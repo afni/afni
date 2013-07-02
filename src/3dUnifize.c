@@ -521,6 +521,13 @@ int main( int argc , char *argv[] )
             "                  if the dataset voxel size differs significantly from 1 mm.\n"
             "  -ssave ss  = Save the scale factor used at each voxel into a dataset 'ss'.\n"
             "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
+            "               ++ For the curious, the codes used are:\n"
+            "                   A = Automask\n"
+            "                   D = Duplo down (process a half-size volume)\n"
+            "                   V = Voxel-wise histograms to get local scale factors\n"
+            "                   U = duplo Up (convert local scale factors to full-size volume)\n"
+            "                   W = multiply by White matter factors\n"
+            "                   G = multiply by Gray matter factors [optional]\n"
             "\n"
             "------------------------------------------\n"
             "Special options for Jedi AFNI Masters ONLY:\n"
@@ -692,7 +699,13 @@ int main( int argc , char *argv[] )
 
    /* vamoose the ranch */
 
-   if( verb ) INFO_message("===== CPU time = %.1f sec  Elapsed = %.1f\n",
-                           COX_cpu_time() , 0.001*(NI_clock_time()-ct) ) ;
+   if( verb ){
+     double cput = COX_cpu_time() ;
+     if( cput > 0.05 )
+       INFO_message("===== CPU time = %.1f sec  Elapsed = %.1f\n",
+                             COX_cpu_time() , 0.001*(NI_clock_time()-ct) ) ;
+     else
+       INFO_message("===== Elapsed = %.1f\n", 0.001*(NI_clock_time()-ct) ) ;
+   }
    exit(0) ;
 }
