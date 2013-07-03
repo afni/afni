@@ -4327,7 +4327,9 @@ static int Hduplo     =   0 ;
 static int Hfinal     =   0 ;
 static int Hworkhard1 =   0 ;
 static int Hworkhard2 =  -1 ;
-static int Hfirsttime =   0 ;  /* for fun only */
+
+static int   Hfirsttime = 0 ;  /* for fun only */
+static float Hfirstcost = 666.0f ;
 
 static int Hsuperhard1 =  0 ;
 static int Hsuperhard2 = -1 ;
@@ -4349,7 +4351,7 @@ static int Hqonly   = 0 ;  /* 27 Jun 2013 */
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
-static float Hcost = 666.0f ;
+static float Hcost = 666.666f ;
 static float Hpenn = 0.0f ;
 
 static int Hverb = 1 ;
@@ -5466,8 +5468,8 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    }
 
    if( Hfirsttime ){
-     fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
-     Hfirsttime = 0 ;
+     if( Hverb ) fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
+     Hfirsttime = 0 ; Hfirstcost = (float)cost ;
    }
 
    return cost ;
@@ -5919,7 +5921,7 @@ ENTRY("IW3D_improve_warp") ;
 
    if( Hverb > 1 ){
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost:%g iter=%d : energy=%.3f:%.3f pen=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
    } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
@@ -5960,14 +5962,14 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    int lev,levs , xwid,ywid,zwid , xdel,ydel,zdel , iter ;
    int ibot,itop,idon , jbot,jtop,jdon , kbot,ktop,kdon , dox,doy,doz , iii ;
    IndexWarp3D *OutWarp ;
-   float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f ;
+   float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f,Hcostbeg=999.9f ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
    int qmode=MRI_CUBIC , nlevr , nsup,isup ;
 
 ENTRY("IW3D_warpomatic") ;
 
-   if( Hverb ) Hfirsttime = 1 ;
+   Hfirsttime = 1 ;
 
    IW3D_setup_for_improvement( bim, wbim, sim, WO_iwarp, meth_code, warp_flags ) ;
 
@@ -6008,12 +6010,12 @@ ENTRY("IW3D_warpomatic") ;
          break ;
        }
      }
-     if( Hverb == 1 ) fprintf(stderr," done [cost=%.3f]\n",Hcost) ;
+     if( Hverb == 1 ) fprintf(stderr," done [cost:%.3f==>%.3f]\n",Hfirstcost,Hcost) ;
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do */
    }
    Hforce = 0 ; Hlev_final = 0 ; Hpen_use = (Hpen_fac > 0.0f) ;
-   Hcostmid = Hcostend = Hcost ;
+   Hcostmid = Hcostend = Hcostbeg = Hcost ;
 
    if( !Hduplo ) ITEROUT(0) ;
 
@@ -6199,7 +6201,9 @@ ENTRY("IW3D_warpomatic") ;
        Hcostend = Hcost ;
      }
 
-     if( Hverb == 1 ) fprintf(stderr," done [cost=%.3f]\n",Hcost) ;
+     if( Hcostbeg > 666.0f ) Hcostbeg = Hfirstcost ;
+     if( Hverb == 1 ) fprintf(stderr," done [cost:%.3f==>%.3f]\n",Hcostbeg,Hcost) ;
+     Hcostbeg = Hcost ;
 
      if( !Hduplo ) ITEROUT(lev) ;
 
@@ -6912,8 +6916,8 @@ double IW3D_scalar_costfun_plusminus( int npar , double *dpar )
    }
 
    if( Hfirsttime ){
-     fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
-     Hfirsttime = 0 ;
+     if( Hverb ) fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
+     Hfirsttime = 0 ; Hfirstcost = (float)cost ;
    }
 
    return cost ;
@@ -7432,7 +7436,7 @@ IndexWarp3D * IW3D_warpomatic_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IM
 
 ENTRY("IW3D_warpomatic_plusminus") ;
 
-   if( Hverb ) Hfirsttime = 1 ;
+   Hfirsttime = 1 ;
 
 #ifdef USE_PLUSMINUS_INITIALWARP
    if( WO_iwarp == NULL ){
