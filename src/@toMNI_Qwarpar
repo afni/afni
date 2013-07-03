@@ -152,7 +152,7 @@ foreach part ( `count -dig 1 1 $qjob` )
   set top = $toplist[$part]
   set plist = ( $qlist[$bot-$top] )
   tcsh ./BBwarp_script $plist &
-  sleep 2
+  sleep 9
 end
 
 # wait until the number of markers for scripts being done is complete
@@ -234,7 +234,7 @@ echo 'exit 0'                                                          >> CCwarp
 
 foreach part ( `count -dig 1 1 $qjob` )
   tcsh ./CCwarp_script $qlist[$botlist[$part]-$toplist[$part]] &
-  sleep 2
+  sleep 9
 end
 
 while(1)
@@ -310,7 +310,7 @@ echo 'exit 0'                                                             >> DDw
 
 foreach part ( `count -dig 1 1 $qjob` )
   tcsh ./DDwarp_script $qlist[$botlist[$part]-$toplist[$part]] &
-  sleep 2
+  sleep 9
 end
 
 while(1)
@@ -386,7 +386,7 @@ echo 'exit 0'                                                            >> EEwa
 
 foreach part ( `count -dig 1 1 $qjob` )
   tcsh ./EEwarp_script $qlist[$botlist[$part]-$toplist[$part]] &
-  sleep 2
+  sleep 9
 end
 
 while(1)
@@ -469,7 +469,7 @@ echo 'exit 0'                                                           >> FFwar
 
 foreach part ( `count -dig 1 1 $qjob` )
   tcsh ./FFwarp_script $qlist[$botlist[$part]-$toplist[$part]] &
-  sleep 2
+  sleep 9
 end
 
 while(1)
