@@ -7573,6 +7573,14 @@ g_help_string = """
 
             See also -volreg_compute_tsnr.
 
+        -regress_fout yes/no         : output F-stat sub-bricks
+
+                e.g. -regress_fout no
+                default: yes
+
+            This option controls whether to apply -fout in 3dDeconvolve.  The
+            default is yes.
+
         -regress_make_cbucket yes/no : add a -cbucket option to 3dDeconvolve
 
                 default: 'no'
