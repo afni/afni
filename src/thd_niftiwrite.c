@@ -225,6 +225,11 @@ ENTRY("populate_nifti_image") ;
       nim->intent_code = DSET_BRICK_STATCODE(dset,0);
       if (nim->intent_code < 0) nim->intent_code = dset->func_type ;
       if (nim->intent_code < 0) nim->intent_code = NIFTI_INTENT_NONE ;
+      /* 3dbucket func_type=FUNC_BUCK_TYPE becomes NIFTI_INTENT_NORMAL, which
+         AFNI whines about...  3dD uses 'none' for stat type on betas, so
+         stick with that                        6 Jul 2013 [rickr] */
+      if (nim->intent_code >= FUNC_BUCK_TYPE)
+        nim->intent_code = NIFTI_INTENT_NONE ;
       if( options.debug_level > 1 )
         fprintf(stderr,"-- PNI: stat code = %d !!!\n",nim->intent_code) ;
       if(PRINT_TRACING){
