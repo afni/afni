@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Jul, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "use NIFTI_INTENT_NONE for case of intent_code = FUNC_BUCK_TYPE",
+   "3dbucket's FUNC_BUCK_TYPE went to intent_code for 1 vol dset"
+ } ,
+
  {  1,  Jul, 2013, RCR, "afni-general", MICRO, TYPE_NEW_OPT,
    "added AFNI_INCLUDE_HISTORY: set to No to omit history from output",
    NULL
