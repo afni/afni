@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Jul, 2013, RCR, "@Install_FATCAT_DEMO", MINOR, TYPE_NEW_PROG,
+   "replaces @Install_PTaylor_TractDemo",
+   NULL
+ } ,
+
  {  6,  Jul, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "use NIFTI_INTENT_NONE for case of intent_code = FUNC_BUCK_TYPE",
    "3dbucket's FUNC_BUCK_TYPE went to intent_code for 1 vol dset"
