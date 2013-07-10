@@ -19,6 +19,7 @@ static void T3D_reverse_list(int, char **);
 
 /*------------------ global variables: so shoot me ---------------------*/
 
+static int mri_float_convert_ushort( MRI_IMAGE * fim );
 static to3d_widget_set wset ;
 static to3d_data       user_inputs ;
 
@@ -54,6 +55,7 @@ static int     af_type_set=0 ;                 /* 20 Dec 2001 */
 
 static int     use_oblique_origin = 0;         /* 01 Dec 2008 */
 static int     reverse_list = 0;               /* 04 Dec 2008 */
+static int     ushort2float = 0;               /* 09 Jul 2013 [rickr] */
 
 /*** additions of Mar 2, 1995 ***/
 
@@ -135,7 +137,9 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
    MCW_help_CB(NULL,NULL,NULL) ;
    CURSOR_normalize ;
 
-   if( negative_shorts && !AFNI_yesenv("AFNI_NO_NEGATIVES_WARNING") ){ /* 19 Jan 2000 */
+   if( negative_shorts          /* 19 Jan 2000 */
+        && ! AFNI_yesenv("AFNI_NO_NEGATIVES_WARNING")
+        && ! ushort2float ){    /*  9 Jul 2013 [rickr] */
       float perc = (100.0*negative_shorts)/nvox_total ;
       sprintf(msg , " \n"
                     " to3d WARNING: %d negative voxels (%g%%)\n"
@@ -237,7 +241,7 @@ int main( int argc , char * argv[] )
 
    T3D_read_images() ;
 
-   if( negative_shorts ){
+   if( negative_shorts && ! ushort2float ){
       float perc = (100.0*negative_shorts)/nvox_total ;
       fprintf(stderr,
        "++ to3d WARNING: %d negative voxels (%g%%) were read in images of shorts.\n"
@@ -2926,6 +2930,15 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -ushort2float option     9 Jul 2013 [rickr] -----*/
+
+      if( strcmp(Argv[nopt],"-ushort2float") == 0 ){
+         argopt.datum_all = MRI_float ;
+         ushort2float = 1 ;
+
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -ncolor # option -----*/
 
       if( strncmp(Argv[nopt],"-ncolor",4) == 0 ){
@@ -3554,6 +3567,8 @@ void Syntax()
     "  -use_old_mosaic_code\n"
     "    If present, do not use the Dec 2010 updates to siemens mosaic code.\n"
     "    By default, use the new code if this option is not provided.\n"
+    "  -ushort2float\n"
+    "    Convert input shorts to float, and add 2^16 to any negatives.\n"
    ) ;
 
    printf(
@@ -3821,7 +3836,9 @@ ENTRY("T3D_swap_CB") ;
       case 8: swap_eightbytes( nvox , dbrick ) ; break ;
    }
 
-   if( argopt.datum_all == MRI_short && !AFNI_yesenv("AFNI_NO_NEGATIVES_WARNING") ){ /* 24 Aug 2001 */
+   if( argopt.datum_all == MRI_short    /* 24 Aug 2001 */
+        && !AFNI_yesenv("AFNI_NO_NEGATIVES_WARNING")
+        && !ushort2float ){             /*  9 Jul 2013 [rickr] */
       short * sar = (short *) dbrick ; int ii ;
       negative_shorts = 0 ;
       for( ii=0 ; ii < nvox_total ; ii++ )
@@ -4052,6 +4069,7 @@ void T3D_read_images(void)
    float nonshort_min=1.E38 , nonshort_max=-1.E38 ;
    float nonbyte_min =1.E38 , nonbyte_max =-1.E38 ;
    int   nonshort_num=0 , nonfloat_num=0 , noncomplex_num=0 , nonbyte_num=0 ;
+   int   ushort_num=0 ;
    int     gnim ;
    char ** gname ;
    int time_dep , ltt,kzz , ntt=0,nzz=0 , nvoxt ;
@@ -4401,12 +4419,18 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
 
                case MRI_float:{            /** convert to floats **/
                   float * shar ;
+                  int     uconvert = ushort2float && im->kind == MRI_short;
 
                   shim = mri_to_float( im ) ;  nonfloat_num++ ;
                   KILL_1MRI(im) ;
 
                   shar = MRI_FLOAT_PTR( shim ) ;  /* image of floats */
-                  if( shar[1]==-10000.0 && shar[2]==10000.0 ) shar[1]=shar[2]=0.0 ;
+                  if( shar[1]==-10000.0 && shar[2]==10000.0 )
+                     shar[1]=shar[2]=0.0 ;
+
+                  /* if requested and appropriate, convert negative shorts
+                     as unsigned */
+                  if( uconvert ) ushort_num += mri_float_convert_ushort(shim);
                }
                break ;  /* end of conversion to floats */
 
@@ -4528,6 +4552,10 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
    if( noncomplex_num > 0 )
       printf( "++ Number of non-complex slices converted to complexes = %d\n",
              noncomplex_num ) ;
+
+   if( ushort_num > 0 )
+      printf( "++ Number of overflow shorts converted to floats = %d\n",
+             ushort_num ) ;
 
    /*--- now create the rest of the data structures, as far as we can ---*/
 
@@ -6028,6 +6056,33 @@ int decode_location( char * str , float * val , int * dcode )
 
 /*----------------------- 15 Aug 2001: count outliers -----------------------------*/
 
+/* convert ushorts to short range in float image
+   (part of converting unsigned shorts to floats)  9 Jul 2013 [rickr]
+
+   Add 2^16 to any negative values (to undo 2's complement).
+ */
+static int mri_float_convert_ushort( MRI_IMAGE * fim ){
+   float * far;
+   int     index, nconvert;
+
+ENTRY("mri_float_convert_ushort") ;
+
+   if( fim->kind != MRI_float ) {
+      WARNING_message("have non-float image in mri_float_convert_ushort");
+      RETURN(0);
+   }
+
+   far = MRI_FLOAT_PTR(fim);
+   nconvert = 0;
+   for( index = 0; index < fim->nvox; index++ )
+      if( far[index] < 0 ) {
+         far[index] += 65536;
+         nconvert++;
+      }
+
+   RETURN(nconvert);
+}
+
 void T3D_check_outliers( int opcode )
 {
    char *eee = my_getenv("AFNI_TO3D_OUTLIERS") ;
@@ -6040,7 +6095,8 @@ ENTRY("T3D_check_outliers") ;
        dset->taxis->ntt > 5                 &&
        !skip                                &&
        ISANATTYPE(user_inputs.dataset_type) &&
-       negative_shorts < 0.01*nvox_total      ){
+       negative_shorts < 0.01*nvox_total    &&
+       ! ushort2float  ){
 
      int *out_count, out_ctop , cc=0 ;
      Widget wmsg=NULL ;

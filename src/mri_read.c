@@ -114,6 +114,10 @@ mat44   MRILIB_dicom_matrix     ;
 
 int     MRILIB_dicom_count = 0 ;
 
+/*! Global variable reporting signed 16-bit overflow (into unsigned). */
+
+int     MRILIB_dicom_s16_overflow = 0 ;
+
 /*! Global variable containing DICOM header info for each file. */
 
 AFD_dicom_header **MRILIB_dicom_header = NULL ;
