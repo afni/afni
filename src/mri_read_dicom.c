@@ -125,6 +125,7 @@ MRI_IMARR * mri_read_dicom( char *fname )
                                       - 1 = little endian, 0 = big - RWCox */
    int un16 = 0 ;      /* 05 Jul 2006 - is it 16 bit unsigned data? */
    int ov16 = 0 ;      /*             - did 16 bit overflow occur? */
+   static int ov16_whine = 1;     /* only whine once   10 Jul 2013 [rickr] */
 
    float xc1=0.0,xc2=0.0,xc3=0.0 , yc1=0.0,yc2=0.0,yc3=0.0 ;
    float xn,yn ; int qq ;
@@ -608,6 +609,7 @@ ENTRY("mri_read_dicom") ;
    }
 
    /* check if we might have 16 bit unsigned data that fills all bits */
+   MRILIB_dicom_s16_overflow = 0;   /* track overflow   8 Jul 2013 [rickr] */
    if( bpp == 2 ){
      if( epos[E_PIXEL_REPRESENTATION] != NULL ){
        ddd = strstr(epos[E_PIXEL_REPRESENTATION],"//") ;
@@ -1124,15 +1126,20 @@ ENTRY("mri_read_dicom") ;
    /* make sure im wasn't TRUNCATEd   1 Jul 2008 (and 5 Aug 2008) [rickr] */
    im = IMARR_SUBIM(imar,0) ;
 
-   if( un16 && g_info.read_data ){
+   if( un16 && g_info.read_data && ov16_whine ){
      for( ov16=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
        short *sar = MRI_SHORT_PTR( IMARR_SUBIM(imar,ii) ) ;
        for( jj=0 ; jj < im->nvox ; jj++ ) if( sar[jj] < 0 ) ov16++ ;
      }
-     if( ov16 )
+     if( ov16 ) {
+       MRILIB_dicom_s16_overflow = 1;  /* let calling function know */
        WARNING_message(
-        "DICOM file %s: unsigned 16-bit; AFNI stores signed: %d pixels < 0" ,
-          fname , ov16 ) ;
+         "DICOM file %s:\n"
+         "  --> unsigned 16-bit; AFNI stores as signed; %d pixels < 0\n"
+         "  --> consider 'to3d -ushort2float', if not already being applied",
+         fname , ov16 ) ;
+       ov16_whine = 0 ;
+     }
    }
 
 
