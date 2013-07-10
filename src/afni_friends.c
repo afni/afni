@@ -453,6 +453,7 @@ static mday holiday[] = {
    {JUL, 6,"Malawi Independence Day"                                 } ,
    {JUL, 7,"Satchel Paige's birthday"                                } ,
    {JUL, 7,"Robert Heinlein's birthday"                              } ,
+   {JUL, 7,"Anniversary of Sliced Bread!"                            } ,
    {JUL, 9,"Argentina Independence Day"                              } ,
    {JUL, 9,"Palau Constitution Day"                                  } ,
    {JUL,10,"Bahamas Independence Day"                                } ,
