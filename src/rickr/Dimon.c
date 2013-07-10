@@ -99,10 +99,12 @@ static char * g_history[] =
     "      - made many changes in prep for adding AFNI file type\n"
     " 3.14 Jan 24, 2013 [rickr]\n",
     "      - now handles -file_type AFNI\n"
+    " 3.15 Jul 10, 2013 [rickr]\n",
+    "      - if unsigned short is detected, pass -ushort2float to to3d\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.14 (January 24, 2013)"
+#define DIMON_VERSION "version 3.15 (July 10, 2013)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -254,6 +256,7 @@ extern float        g_image_posn[3];
 extern int          g_image_ori_ind[3];
 
 static int          read_obl_info = 1;  /* only process obl_info once */
+static int          want_ushort2float = 0;  /* 9 Jul 2013 */
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
@@ -2936,6 +2939,9 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     im = imarr->imarr[0];       /* for convenience */
 
+    /* check whether short overflow to unsigned */
+    if( MRILIB_dicom_s16_overflow ) want_ushort2float = 1;
+
     /* process oblique info only once */
     if( obl_info_set == 2 && read_obl_info ) {
         read_obl_info = 0;
@@ -4998,6 +5004,10 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             if( opts->use_last_elem )
                 fprintf(fp, "     -use_last_elem                \\\n");
 
+            /* have short overflow, convert to floats   9 Jul 2013 */
+            if( want_ushort2float )
+                fprintf(fp, "     -ushort2float                 \\\n");
+
             fprintf(fp, "     -@ < %s\n\n", outfile);
 
             /* and possibly move output datasets there */
@@ -5007,6 +5017,11 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         }
 
     fclose( fp );
+
+    /* warn user about conversion to floats */
+    if( want_ushort2float )
+        fprintf(stderr,"** warning, have signed short overflow to unsigned,\n"
+                "   applying -ushort2float in GERT_Reco to3d command\n\n");
 
     /* now make it an executable */
     sprintf(command, "chmod u+x %s", sfile );

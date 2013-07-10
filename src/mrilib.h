@@ -81,6 +81,7 @@ extern mat44   MRILIB_dicom_matrix ;
 
 #include "mri_dicom_stuff.h"
 extern int                MRILIB_dicom_count ;  /* 15 Mar 2006 */
+extern int                MRILIB_dicom_s16_overflow ;  /* 9 Jul 2013 [rickr] */
 extern AFD_dicom_header **MRILIB_dicom_header ;
 
 /*! Clear the MRILIB globals

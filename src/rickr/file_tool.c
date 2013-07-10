@@ -132,9 +132,10 @@ static char g_history[] =
  " 3.10 Oct 18, 2012    - option -test is same as -show_bad_all\n"
  " 3.11 Feb 11, 2013    - added recent options to help\n"
  " 3.12 Mar 07, 2013    - applied -prefix with -show_bad_backslash\n"
+ " 3.13 Jul 09, 2013    - added a little more info for locating bad chars\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.12 (March 7, 2013)"
+#define VERSION         "3.13 (July 9, 2013)"
 
 
 /* ----------------------------------------------------------------------
@@ -390,7 +391,7 @@ scr_show_bad_ch( char * filename, param_t * p )
     static char * fdata = NULL;
     static int    flen  = 0;
     char        * cp;
-    int           length, count, bad = 0, bad_loc=-1;
+    int           length, lineno, count, bad = 0, bad_loc=-1, bad_line=-1;
 
     if( p->debug ) fprintf(stderr,"-- show_bad_chars: file %s ...\n",
                            filename);
@@ -399,6 +400,7 @@ scr_show_bad_ch( char * filename, param_t * p )
 
     if( p->debug ) fprintf(stderr,"file length = %d\n", length);
 
+    lineno = 1;
     for( cp = fdata, count = 0; count < length; count++ )
     {
         if( !isprint(cp[count]) && !isspace(cp[count]) )
@@ -409,15 +411,22 @@ scr_show_bad_ch( char * filename, param_t * p )
                 if( !bad ) fputs("bad chars", stderr);
                 fprintf(stderr," : %d (0x%0x)",cp[count],0xff & cp[count]);
             }
-            if( bad_loc < 0 ) bad_loc = count;
+            if( bad_loc < 0 ) {
+                bad_loc = count;
+                bad_line = lineno;
+            }
             bad++;
         }
+        if( cp[count] == '\n' ) lineno++;
     }
 
     if( bad && p->debug ) putc('\n', stderr);
-    printf("%s has %d bad characters", filename, bad);
-    if ( bad ) printf(", starting at position %d\n", bad_loc);
-    else       putchar('\n');
+    printf("%s has %d bad characters\n", filename, bad);
+    if ( bad ) {
+        printf("  -- starting at line %d, position %d\n", bad_line, bad_loc);
+        if( bad_loc > 50 )
+           printf("  -- bad chars follow: '%.50s'\n",fdata+(bad_loc-50));
+    } else putchar('\n');
     return 0;
 }
 
