@@ -449,7 +449,7 @@ int main (int argc,char *argv[])
 		
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			SUMA_usage (ps, strlen(argv[kar]) > 3 ? 2:1);
-          exit (1);
+          exit (0); /* return a good status on -help   12 Jul 2013 [rickr] */
 		}
 		
       /* -list_ports list and quit */
