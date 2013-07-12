@@ -225,6 +225,14 @@ def exec_tcsh_command(cmd, lines=0, noblank=0):
 
     return status, otext
 
+def limited_shell_exec(command, nlines=-1):
+   """run a simple shell command, returning the top nlines"""
+   st, so, se = BASE.shell_exec2(command, capture=1)
+   if nlines >= 0:
+      so = so[0:nlines+1]
+      se = se[0:nlines+1]
+   return st, so, se
+
 def write_afni_com_history(fname, length=0, wrap=1):
    """write the afni_com history to the given file
 
@@ -314,6 +322,28 @@ def get_login_shell():
    if len(pstack) == 0:
       print '** cannot detect shell: empty process stack'
       return
+
+   # start from init and work down to find first valid shell
+   for pline in pstack:
+      if pline[3] not in shells and pline[3] not in dshells: continue
+      shell = pline[3]
+      if shell[0] == '-': shell = shell[1:]      # strip any leading '-'
+      return shell
+
+   return 'SHELL_NOT_DETECTED'
+
+def get_current_shell():
+   """return the apparent login shell
+      from get_process_stack(), search down s[3] until a shell is found
+   """
+   shells = ['csh','tcsh','sh','bash','zsh']
+   dshells = ['-%s' % s for s in shells]
+
+   pstack = get_process_stack()
+   if len(pstack) == 0:
+      print '** cannot detect shell: empty process stack'
+      return
+   pstack.reverse()
 
    # start from init and work down to find first valid shell
    for pline in pstack:
@@ -2285,6 +2315,55 @@ def get_ids_from_dsets(dsets, prefix='', suffix='', hpad=0, tpad=0, verb=1):
       return None
 
    return slist
+
+def insensitive_word_pattern(word):
+   """replace each alphabetical char with [Ul], an upper/lower search pair
+      use of 'either' suggested by G Irving at stackoverflow.com
+   """
+   def either(c):
+      return '[%s%s]'%(c.lower(),c.upper()) if c.isalpha() else c
+   return ''.join(map(either,word))
+   
+def insensitive_glob(pattern):
+   """return glob.glob, but where every alphabetic character is
+      replaced by lower/upper pair tests
+   """
+   return glob.glob(insensitive_word_pattern(pattern))
+
+
+def search_path_dirs(word, exact=0, casematch=1):
+   """return status and list of matching files
+      return number of files found, or -1 on error
+
+      Could be more efficient, esp. with exact and casematch set, but
+      I will strive for simplicity and consistency and see how it goes.
+   """
+   try:
+      plist = os.environ['PATH'].split(':')
+   except:
+      print '** search_path_dirs: no PATH var'
+      return -1, []
+
+   # if no casematch, look for upper/lower pairs
+   if casematch: wpat = word
+   else:         wpat = insensitive_word_pattern(word)
+
+   # if not exact, surround with wildcard pattern
+   if exact:     form = '%s/%s'
+   else:         form = '%s/*%s*'
+
+   # now just search for matches
+   rlist = []
+   for pdir in plist:
+      glist = glob.glob(form % (pdir, wpat))
+      if len(glist) > 0: rlist.extend(glist)
+
+   return 0, get_unique_sublist(rlist)
+
+def show_found_in_path(word, exact=0, casematch=1, indent='\n   '):
+   """a simple wrapper to print search_path_dirs results"""
+   rv, rlist = search_path_dirs(word, exact=exact, casematch=casematch)
+   if not rv: print indent+indent.join(rlist)
 
 # ----------------------------------------------------------------------
 # mathematical functions:
