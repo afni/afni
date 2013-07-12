@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Jul, 2013, RCR, "Suma", MICRO, TYPE_MODIFY,
+   "return a good status (0) on -help",
+   NULL
+ } ,
+
  {  9,  Jul, 2013, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "if unsigned shorts are detected, add -ushort2float to to3d command",
    NULL
