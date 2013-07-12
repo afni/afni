@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 12,  Jul, 2013, RCR, "Suma", MICRO, TYPE_MODIFY,
+ { 12,  Jul, 2013, RCR, "afni_system_check.py", MAJOR, TYPE_NEW_PROG,
+   "perform various system checks, maybe to assist in AFNI setup",
+   NULL
+ } ,
+
+ { 12,  Jul, 2013, RCR, "suma", MICRO, TYPE_MODIFY,
    "return a good status (0) on -help",
    NULL
  } ,
