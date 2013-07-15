@@ -754,7 +754,7 @@ int main( int argc , char *argv[] )
        if( duplo          ) ERROR_exit("Cannot use -inilev with -duplo :-(") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        ilev = (int)strtod(argv[nopt],NULL) ;
-       if( ilev < 0 ) ilev = 0 ; else if( ilev > 10 ) ilev = 10 ;
+       if( ilev < 0 ) ilev = 0 ; else if( ilev > 19 ) ilev = 19 ;
        nopt++ ; continue ;
      }
 
