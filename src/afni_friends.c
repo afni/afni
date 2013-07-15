@@ -465,6 +465,7 @@ static mday holiday[] = {
    {JUL,14,"Iraq Republic Day"                                       } ,
    {JUL,14,"Gerald Ford's birthday"                                  } ,
    {JUL,15,"Anniversary of Battle of Grunwald"                       } ,
+   {JUL,15,"Rembrandt van Rijn's birthday"                           } ,
    {JUL,16,"Anniversary of 1st atomic explosion"                     } ,
    {JUL,16,"Anniversary of Apollo 11's launch"                       } ,
    {JUL,17,"Anniversary of Disneyland's opening"                     } ,
