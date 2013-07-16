@@ -49,8 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 12,  Jul, 2013, RCR, "afni_system_check.py", MAJOR, TYPE_NEW_PROG,
-   "perform various system checks, maybe to assist in AFNI setup",
+ { 16,  Jul, 2013, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "added checks for early python versions; added a little help",
    NULL
  } ,
 

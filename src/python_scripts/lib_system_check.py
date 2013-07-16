@@ -2,8 +2,16 @@
 
 # library for performing various system checks
 
-import os, sys, platform
+import os, sys
 import module_test_lib as MT
+
+# test dependency libs before proceeding
+# note: platform came with python 2.3
+testlibs = ['platform', 'afni_base', 'afni_util']
+if MT.num_import_failures(testlibs):
+   sys.exit(1)
+
+import platform
 import afni_base as BASE
 import afni_util as UTIL
 
@@ -34,9 +42,15 @@ class SysInfo:
       print 'version:              %s' % platform.version()
 
       # check distributions by type
-      if   self.system == 'Linux':  dstr = tostr(platform.linux_distribution())
-      elif self.system == 'Darwin': dstr = tostr(platform.mac_ver())
-      else: dstr = tostr(platform.dist())
+      checkdist = 0
+      if   self.system == 'Linux':
+         try:    dstr = tostr(platform.linux_distribution())
+         except: checkdist = 1
+      elif self.system == 'Darwin':
+         try: dstr = tostr(platform.mac_ver())
+         except: checkdist = 1
+      else: checkdist = 1
+      if checkdist: dstr = tostr(platform.dist())
       print 'distribution:         %s' % dstr
          
       print 'number of CPUs:       %s' % self.get_cpu_count()

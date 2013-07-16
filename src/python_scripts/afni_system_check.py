@@ -23,7 +23,19 @@ current usage (run without options):
 -----------------------------------------------------------------------------
 details displayed (just run to see):
 
-   - ...
+   general information:
+      - CPU, operating system and version, # CPUs, login shell
+
+   AFNI and related tests:
+      - which afni, python, R and tcsh, along with versions
+      - check for multiple afni packages in PATH
+      - check that various AFNI programs run
+
+   python libs:
+      - check that various python libraries are found and loaded
+
+   path vars:
+      - show some environment variables related to the PATH
 
 -----------------------------------------------------------------------------
 options:
@@ -59,9 +71,10 @@ g_history = """
    afni_system_check.py history:
 
    0.0  Jul 11, 2013    - initial version
+   0.1  Jul 16, 2013    - added a couple of checks for early python versions
 """
 
-g_version = "afni_system_check.py version 0.0, July 11, 2013"
+g_version = "afni_system_check.py version 0.1, July 16, 2013"
 
 
 class CmdInterface:

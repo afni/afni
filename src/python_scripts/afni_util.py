@@ -2321,7 +2321,8 @@ def insensitive_word_pattern(word):
       use of 'either' suggested by G Irving at stackoverflow.com
    """
    def either(c):
-      return '[%s%s]'%(c.lower(),c.upper()) if c.isalpha() else c
+      if c.isalpha: return '[%s%s]'%(c.lower(),c.upper())
+      else:         return c
    return ''.join(map(either,word))
    
 def insensitive_glob(pattern):
