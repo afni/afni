@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , JUN , 2013 , RWC , "various files" , MINOR , TYPE_GENERAL ,
+  { 16 , JUL , 2013 , RWC , "3dQwarp" , MAJOR , TYPE_NEW_OPT ,
+   "-allineate = run 3dAllineate first" ,
+   "With this option, 3dQwarp can align datasets that are not so close, and\n"
+   "are not on the same 3D grid (since the substitute source dataset output\n"
+   "by 3dAllineate will be on the base grid)." } ,
+
+ { 26 , JUN , 2013 , RWC , "various files" , MINOR , TYPE_GENERAL ,
    "Allow individual sub-bricks over 2 GB in size" ,
    "By changing the brick_bytes[] array to int64_t from int, and then\n"
    "modifying all places that use it." } ,
