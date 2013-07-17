@@ -221,12 +221,16 @@ void Qhelp(void)
     "* Input datasets must be on the same 3D grid!\n"
     " ++ If necessary, you can use 3dAllineate or 3dresample to make a\n"
     "    resampled version of one dataset to match the other's 3D grid.\n"
+    " ++ However, you can use the '-allineate' option in 3dQwarp to run\n"
+    "    affine alignment before the nonlinear alignment, which will also\n"
+    "    do the resampling described above.\n"
     "\n"
     "* Input datasets should be reasonably well aligned already\n"
     "  (e.g., as from an affine warping via 3dAllineate).\n"
     " ++ The standard result from 3dAllineate will resample the affinely\n"
     "    aligned dataset to the same 3D grid as the -base dataset, so this\n"
     "    new dataset will be ready to run in 3dQwarp against the same base.\n"
+    " ++ Again, the '-allineate' option can do this for you, inside 3dQwarp.\n"
     "\n"
     "* Outputs of 3dQwarp are the warped dataset and the warp that did it.\n"
     " ++ These datasets are stored in float format, no matter what the\n"
@@ -409,6 +413,11 @@ void Qhelp(void)
     "               * Do NOT attempt to use the (obsolescent) '-nwarp' option in\n"
     "                 3dAllineate from inside 3dQwarp -- bad things will probably\n"
     "                 happen, and you won't get any Christmas presents ever again.\n"
+    "               * If the datasets overlap well already, but the source needs\n"
+    "                 resampling to match the 3D grid of the base, then you could\n"
+    "                 try using the option\n"
+    "                     -allineate_opts '-onepass -conv 0.3'\n"
+    "                 to make 3dAllineate run more quickly.\n"
     "\n"
     " -nowarp      = Do not save the _WARP file.\n"
     " -iwarp       = Do compute and save the _WARPINV file.\n"
@@ -1215,6 +1224,7 @@ int main( int argc , char *argv[] )
      duplo = 0 ;
        INFO_message("-duplo disabled since dataset is small: %d x %d x %d",nx,ny,nz) ;
      ININFO_message(" smallest size allowed for -duplo is    %d x %d x %d",3*Hngmin,3*Hngmin,3*Hngmin) ;
+     ININFO_message(" ['small' is relative to the minimum patch size you set = %d]",Hngmin) ;
    }
 
 #ifdef USE_SAVER
