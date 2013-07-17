@@ -6391,13 +6391,15 @@ IndexWarp3D * IW3D_duplo_up( IndexWarp3D *AA , int xadd,int yadd,int zadd)
    int nxa,nya,nza , nxb,nyb,nzb , nxya,nxyb , ii,jj,kk , im,jm,km,ip,jp,kp ;
    float *xda, *yda, *zda , *xdb, *ydb, *zdb ;
 
+ENTRY("IW3D_duplo_up") ;
+
    nxa = AA->nx ; nya = AA->ny ; nza = AA->nz  ;
 
    nxb = (nxa == 1) ? 1 : (2*nxa+(xadd != 0)) ;
    nyb = (nya == 1) ? 1 : (2*nya+(yadd != 0)) ;
    nzb = (nza == 1) ? 1 : (2*nza+(zadd != 0)) ;
 
-   BB = IW3D_create(nxb,nyb,nzb) ; if( BB == NULL ) return NULL ;
+   BB = IW3D_create(nxb,nyb,nzb) ; if( BB == NULL ) RETURN(NULL) ;
 
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ; nxya = nxa*nya ;
    xdb = BB->xd ; ydb = BB->yd ; zdb = BB->zd ; nxyb = nxb*nyb ;
@@ -6407,11 +6409,14 @@ IndexWarp3D * IW3D_duplo_up( IndexWarp3D *AA , int xadd,int yadd,int zadd)
         (from 8 points), then the doubling is the factor of 0.250 = 0.125 * 2  */
 
    for( kk=0 ; kk < nzb ; kk++ ){
-    kp = km = kk/2 ; if( kk%2 ){ kp++; if( kp >= nza ) kp = nza-1; }
+    kp = km = kk/2 ; if( kk%2 ) kp++;
+    if( kp >= nza ) kp = nza-1; if( km >= nza ) km = nza-1;
     for( jj=0 ; jj < nyb ; jj++ ){
-      jp = jm = jj/2 ; if( jj%2 ){ jp++; if( jp >= nya ) jp = nya-1; }
+      jp = jm = jj/2 ; if( jj%2 ) jp++;
+      if( jp >= nya ) jp = nya-1; if( jm >= nya ) jm = nya-1;
       for( ii=0 ; ii < nxb ; ii++ ){
-        ip = im = ii/2 ; if( ii%2 ){ ip++; if( ip >= nxa ) ip = nxa-1; }
+        ip = im = ii/2 ; if( ii%2 ) ip++;
+        if( ip >= nxa ) ip = nxa-1; if( im >= nxa ) im = nxa-1;
         FSUB(xdb,ii,jj,kk,nxb,nxyb) =
           0.250f * ( FSUB(xda,im,jm,km,nxa,nxya) + FSUB(xda,ip,jm,km,nxa,nxya)
                     +FSUB(xda,im,jp,km,nxa,nxya) + FSUB(xda,ip,jp,km,nxa,nxya)
@@ -6432,7 +6437,7 @@ IndexWarp3D * IW3D_duplo_up( IndexWarp3D *AA , int xadd,int yadd,int zadd)
      BB->emat = AA->emat ; MAT33_SCALE(BB->emat,2.0f) ; BB->use_emat = 1 ;
    }
 
-   return BB ;
+   RETURN(BB) ;
 }
 
 /*----------------------------------------------------------------------------*/
