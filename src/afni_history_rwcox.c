@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , JUL , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+  { 17 , JUL , 2013 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
+   "fixed problem with -zclip in the source volume - indexing error" ,
+   NULL } ,
+
+ { 17 , JUL , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "clip output image to range of input image when interpolating" ,
    NULL } ,
 
