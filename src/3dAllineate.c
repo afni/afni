@@ -1443,6 +1443,12 @@ int main( int argc , char *argv[] )
         "===========================================================================\n"
         "\n"
         " -nwarp type = Experimental nonlinear warping:\n"
+        "\n"
+        "              ***** Note that these '-nwarp' options are superseded  *****\n"
+        "              ***** by the AFNI program 3dQwarp,  which does a more  *****\n"
+        "              ***** accurate and better and job of nonlinear warping *****\n"
+        "              ***** ------ Zhark the Warper ------ July 2013 ------- *****\n"
+        "\n"
         "              * At present, the only 'type' is 'bilinear',\n"
         "                as in 3dWarpDrive, with 39 parameters.\n"
         "              * I plan to implement more complicated nonlinear\n"
@@ -1612,7 +1618,7 @@ int main( int argc , char *argv[] )
 
        printf(
         "\n"
-        "[[[ To see a plethora of advanced/experimental options, use '-HELP'. ]]]\n");
+        " [[[ To see a plethora of advanced/experimental options, use '-HELP'. ]]]\n");
 
      }
 
@@ -4056,7 +4062,7 @@ STATUS("zeropad weight dataset") ;
 
      if( do_zclip ){
        float *bar = MRI_FLOAT_PTR(im_targ) ;
-       for( ii=0 ; ii < nvox_base ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
+       for( ii=0 ; ii < im_targ->nvox ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
      }
 
      /*** if we are just applying input parameters, set up for that now ***/

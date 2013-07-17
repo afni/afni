@@ -2968,6 +2968,15 @@ ENTRY("IW3D_warp_floatim") ;
    IW3D_warp_into_floatim( AA , sim , fim ,
                            0,sim->nx-1 , 0,sim->ny-1 , 0,sim->nz-1 , code , fac ) ;
 
+   if( MRI_HIGHORDER(code) ){
+     double_pair smm = mri_minmax(sim) ;
+     float sb=(float)smm.a , st=(float)smm.b ; int qq ;
+     float *far=MRI_FLOAT_PTR(fim) ;
+     for( qq=0 ; qq < fim->nvox ; qq++ ){
+       if( far[qq] < sb ) far[qq] = sb ; else if( far[qq] > st ) far[qq] = st ;
+     }
+   }
+
    RETURN(fim) ;
 }
 
@@ -3437,8 +3446,16 @@ ENTRY("THD_nwarp_dataset") ;
      }
      if( verb_nww && iv == 0 ) fprintf(stderr,"Warping dataset: ") ;
      THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
+     if( MRI_HIGHORDER(dincode) ){
+       double_pair fmm = mri_minmax(fim) ;
+       float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
+       float *war=MRI_FLOAT_PTR(wim) ;
+       for( qq=0 ; qq < wim->nvox ; qq++ ){
+         if( war[qq] < fb ) war[qq] = fb ; else if( war[qq] > ft ) war[qq] = ft ;
+       }
+     }
      EDIT_substitute_brick( dset_out , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
-     mri_clear_and_free(wim) ;
+     mri_clear_and_free(wim) ; mri_free(fim) ;
      if( nya > 1 ){ DESTROY_IMARR(im_src) ; }  /* will be re-computed */
      if( verb_nww ) fprintf(stderr,".") ;
    }
