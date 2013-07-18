@@ -11,6 +11,7 @@
 set testing = 0         # set for just a test, clear to actually move
 
 set prog = `basename $0`
+set dprefix = ''                # directory prefix
 set fprefix = tmp
 set infiles = ()
 set series_tag = 0020,0011
@@ -38,6 +39,14 @@ while ( $ac <= $#argv )
          exit 1
       endif
       set action = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-dprefix" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -dprefix"
+         exit 1
+      endif
+      set dprefix = $argv[$ac]
 
    else if ( "$argv[$ac]" == "-tag" ) then
       @ ac += 1
@@ -80,6 +89,19 @@ set slist = ( `awk '{print $2}' $slist_file | sort | uniq` )
 echo found $#slist series numbers: $slist
 echo ""
 
+if ( $dprefix != '' ) then
+   if ( -d $dprefix ) then
+      echo "-- output series will go under $dprefix..."
+   else
+      echo "-- creating output directory root $dprefix"
+      mkdir $dprefix
+      if ( $status ) then
+         echo "** failed to create output directory root $dprefix"
+         exit 1
+      endif
+   endif
+endif
+
 foreach series ( $slist )
    set sfiles = ( `awk '$2 == '$series' {print $1}' $slist_file` )
 
@@ -89,6 +111,8 @@ foreach series ( $slist )
    endif
 
    set sdir = series.$series
+   if ( $dprefix != '' ) set sdir = $dprefix/$sdir
+
    if ( -d $sdir ) then
       echo "** already have series dir 'series.$series', failing"
       exit
@@ -143,6 +167,8 @@ processing option:
 
    -action ACTION       : ACTION can be copy or move
                           default = copy
+   -dprefix PREFIX      : specify directory root for output series directories
+                          default = .
    -tag TAG             : specify tag to use for partitioning
                           default = 0020,0011   (REL Series Number)
    -test                : do not move any file, just show what would be done
@@ -162,6 +188,7 @@ cat << EOF
 $prog modification history:
 
    0.0  : Apr 24, 2013: initial version
+   0.1  : Jul 18, 2013: added -dprefix option
 
 EOF
 

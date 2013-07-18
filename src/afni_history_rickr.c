@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Jul, 2013, RCR, "@move.to.series.dirs", MINOR, TYPE_ENHANCE,
+   "added -dprefix option, for output directory prefix",
+   NULL
+ } ,
+
  { 16,  Jul, 2013, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "added checks for early python versions; added a little help",
    NULL
