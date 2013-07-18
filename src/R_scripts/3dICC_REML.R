@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dICC_REML.R, an AFNI IntraClass Correlation Package!
 #-----------------------------------------------------------
-#Version 0.0.4,  Feb 19, 2013
+#Version 0.0.5,  Jul 10, 2013
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/icc.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -62,6 +62,9 @@ libLoad("lme4")
 # MASK: optional
 mask <- getInfo("Mask", parFile)
 
+fixEff <- getInfo("FixEff", parFile)
+ranEff <- unlist(strsplit(getInfo("RanEff", parFile), split="[+]"))
+
 # number of Clusters: optional
 nNodes <- as.integer(getInfo("Clusters", parFile))
 if(is.na(nNodes)) nNodes<-1
@@ -76,15 +79,17 @@ if(!is.na(LN<-lineNum("InputFile", parFile))) {
 
 # Number of input files
 NoFile <- dim(Model[1])[1]
-# number of factors
-nFact <- dim(Model)[2]-1
+# number of random factors
+# nFact <- dim(Model)[2]-1
+nFact <- length(ranEff)
 # factor names
-fNames <- colnames(Model)[which(colnames(Model) != "InputFile")]
+#fNames <- colnames(Model)[which(colnames(Model) != "InputFile")]
 
-ModelForm <- paste("Beta~(1|",fNames[1],")")
+#ModelForm <- paste("Beta~(1|",fNames[1],")")
+ModelForm <- paste("Beta~", fixEff)
 #if (nFact == 2 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")")
 #if (nFact == 3 ) ModelForm <- paste(ModelForm,"+","(1|",fNames[2],")","+(1|",fNames[3],")")
-if(nFact>1) for(ii in 2:nFact) ModelForm <- paste(ModelForm,"+(1|",fNames[ii],")")
+for(ii in 1:nFact) ModelForm <- paste(ModelForm,"+(1|",ranEff[ii],")")
 ModelForm <- as.formula(ModelForm)
 
 # Read in the 1st input file so that we have the dimension information
@@ -204,7 +209,8 @@ rm(IData)  # retrieve some memory
 #outData <- band(outData, 0, 1)
 #dd<-aperm(dd, c(2,3,4,1))
 
-MyLabel <- append(fNames, "Residual")
+#MyLabel <- append(fNames, "Residual")
+MyLabel <- append(names(VarCorr(fm)), "Residual")
 
 #write.AFNI(OutFile, outData, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$origin, 
 #   delta=Data$delta, idcode="whatever")
