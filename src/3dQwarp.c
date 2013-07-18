@@ -1049,6 +1049,8 @@ int main( int argc , char *argv[] )
 
    /*----- check for errorororors -----*/
 
+STATUS("check for errors") ;
+
    nbad = 0 ;
 
    if( flags == NWARP_NODISP_FLAG ){
@@ -1094,10 +1096,13 @@ int main( int argc , char *argv[] )
 
    /*--- get the input datasts, check for errors ---*/
 
+STATUS("read inputs") ;
+
    if( bset == NULL ){
      bset = THD_open_dataset(argv[nopt++]) ;
      if( bset == NULL ) ERROR_exit("Can't open base dataset") ;
-     bsname = strdup(argv[nopt]) ;
+     bsname = strdup(argv[nopt-1]) ;
+STATUS("base dataset opened") ;
    }
    if( DSET_NVALS(bset) > 1 )
      INFO_message("base dataset has more than 1 sub-brick: ignoring all but the first") ;
@@ -1105,7 +1110,8 @@ int main( int argc , char *argv[] )
    if( sset == NULL ){
      sset = THD_open_dataset(argv[nopt++]) ;
      if( sset == NULL ) ERROR_exit("Can't open source dataset") ;
-     ssname = strdup(argv[nopt]) ; sstrue = sset ;
+     ssname = strdup(argv[nopt-1]) ; sstrue = sset ;
+STATUS("source dataset opened") ;
    }
    if( DSET_NVALS(sset) > 1 )
      INFO_message("source dataset has more than 1 sub-brick: ignoring all but the first") ;
@@ -1117,6 +1123,8 @@ int main( int argc , char *argv[] )
 
    if( do_allin ){
      char *qs ;  MRI_IMAGE *qim ; float *qar ; /* temp stuff */
+
+STATUS("3dAllineate coming up") ;
 
      if( noneg ){
        if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+32) ;
@@ -1153,12 +1161,15 @@ int main( int argc , char *argv[] )
 
    } /*--- end of 3dAllineate prolegomenon ----------------------------------*/
 
+STATUS("check dataset for stupid errors") ;
+
    if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("base-source dataset grid mismatch :-(") ;
    if(  EQUIV_DSETS  (bset,sset) ) ERROR_exit("base & source datasets are identical :-(");
 
    /* construct the initial warp, if any [altered somewhat: 15 Jul 2013] */
 
    if( iwname != NULL ){
+STATUS("construct initial warp") ;
      if( strstr(iwname,".1D") != NULL && strchr(iwname,' ') == NULL ){
        char *qstr = (char *)malloc(strlen(iwname)+strlen(bsname)+64) ;
        sprintf(qstr,"IDENT(%s) %s",bsname,iwname) ;
@@ -1173,6 +1184,8 @@ int main( int argc , char *argv[] )
 
    if( iwset != NULL && !EQUIV_GRIDXYZ(bset,iwset) )
      ERROR_exit("-iniwarp dataset grid mismatch with base dataset :-(") ;
+
+STATUS("load datasets") ;
 
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
    bim = THD_extract_float_brick(0,bset) ; DSET_unload(bset) ;
@@ -1267,6 +1280,8 @@ int main( int argc , char *argv[] )
    }
 #endif
 
+STATUS("construct weight/mask volume") ;
+
    wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
 
    /* blur base here if so ordered */
@@ -1323,6 +1338,8 @@ int main( int argc , char *argv[] )
 
      /** adjust warp for 3dAllineate matrix **/
 
+STATUS("adjust for 3dAllineate matrix") ;
+
      qmat = allin_matrix ;                      /* convert matrix to */
      tmat = MAT44_MUL(qmat,oww->cmat) ;         /* index space from  */
      smat = MAT44_MUL(oww->imat,tmat) ;         /* coordinate space  */
@@ -1354,6 +1371,7 @@ int main( int argc , char *argv[] )
 
    if( !nodset ){
      char *qprefix = prefix ;
+STATUS("output warped dataset") ;
      if( do_plusminus ){
        sprintf(appendage,"_%s",plusname) ;
        qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
@@ -1398,6 +1416,7 @@ int main( int argc , char *argv[] )
 
    if( !nowarp ){
      char *qprefix ;
+STATUS("output warp") ;
      if( do_plusminus){
        sprintf(appendage,"_%s_WARP",plusname) ;
        qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
@@ -1435,6 +1454,8 @@ int main( int argc , char *argv[] )
    }
 
    /*--- go back to watching Matlock reruns ---*/
+
+STATUS("watch Matlock") ;
 
    cput = COX_cpu_time() ;
    if( cput > 0.05 )
