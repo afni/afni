@@ -141,6 +141,7 @@ echo '   set bbb = `basename $lucy _uni+tlrc.HEAD`'         >> BBwarp_script
 echo '   nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 4    \'  >> BBwarp_script
 echo '                -minpatch 101 -useweight -nodset  \'  >> BBwarp_script
 echo "                $AAbasename" '$lucy'                  >> BBwarp_script
+echo '   gzip -9v ${bbb}_uniB*.BRIK'                        >> BBwarp_script
 echo 'end'                                                  >> BBwarp_script
 echo 'touch BBwarp_$argv[1]_Done'                           >> BBwarp_script
 echo 'exit 0'                                               >> BBwarp_script
@@ -228,6 +229,7 @@ echo '   nice 3dQwarp -prefix ${bbb}_uniC  -blur 0 3               \'  >> CCwarp
 echo '                -inilev 2  -minpatch 49 -nodset  -useweight  \'  >> CCwarp_script
 echo '                -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD          \'  >> CCwarp_script
 echo '                Qwarp_meanB+tlrc.HEAD $fred'                     >> CCwarp_script
+echo '   gzip -9v ${bbb}_uniC*.BRIK'                                   >> CCwarp_script
 echo 'end'                                                             >> CCwarp_script
 echo 'touch CCwarp_$argv[1]_Done'                                      >> CCwarp_script
 echo 'exit 0'                                                          >> CCwarp_script
@@ -304,6 +306,7 @@ echo '   nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 -2                \'   >> DDw
 echo '                -inilev 5  -minpatch 23 -nodset    -useweight  \'   >> DDwarp_script
 echo '                -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD            \'   >> DDwarp_script
 echo '                Qwarp_meanC+tlrc.HEAD $fred'                        >> DDwarp_script
+echo '   gzip -9v ${bbb}_uniD*.BRIK'                                      >> DDwarp_script
 echo 'end'                                                                >> DDwarp_script
 echo 'touch DDwarp_$argv[1]_Done'                                         >> DDwarp_script
 echo 'exit 0'                                                             >> DDwarp_script
@@ -380,6 +383,7 @@ echo '   nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -2                \'  >> EEwa
 echo '                -inilev 7  -minpatch 13 -nodset   -useweight   \'  >> EEwarp_script
 echo '                -iniwarp ${bbb}_uniD_WARP+tlrc.HEAD            \'  >> EEwarp_script
 echo '                Qwarp_meanD+tlrc.HEAD $fred'                       >> EEwarp_script
+echo '   gzip -9v ${bbb}_uniE*.BRIK'                                     >> EEwarp_script
 echo 'end'                                                               >> EEwarp_script
 echo 'touch EEwarp_$argv[1]_Done'                                        >> EEwarp_script
 echo 'exit 0'                                                            >> EEwarp_script
@@ -463,6 +467,7 @@ echo '   nice 3dQwarp -prefix ${bbb}_uniF  -blur 0 -2              \'   >> FFwar
 echo '                -inilev 9  -minpatch 9  -nodset   -useweight \'   >> FFwarp_script
 echo '                -iniwarp ${bbb}_uniE_WARP+tlrc.HEAD          \'   >> FFwarp_script
 echo '                Qwarp_meanE+tlrc.HEAD $fred'                      >> FFwarp_script
+echo '   gzip -9v ${bbb}_uniF*.BRIK'                                    >> FFwarp_script
 echo 'end'                                                              >> FFwarp_script
 echo 'touch FFwarp_$argv[1]_Done'                                       >> FFwarp_script
 echo 'exit 0'                                                           >> FFwarp_script
@@ -491,6 +496,8 @@ end
 FFF_done:
 
 ################ finished ################
+
+gzip -9v Qwarp*.BRIK
 
 echo " "
 echo "========== @toMNI_Qwarpar: free at last =========="
