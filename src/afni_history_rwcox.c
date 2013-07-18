@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , JUL , 2013 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+  { 18 , JUL , 2013 , RWC , "@toMNI_Awarp _Qwarpar" , MICRO , TYPE_MODIFY ,
+   "Modified to gzip output BRIKs" ,
+   NULL } ,
+
+ { 18 , JUL , 2013 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
    "Yet another indexing error (in argv[], no less)" ,
    NULL } ,
 
