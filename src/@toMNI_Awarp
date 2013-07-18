@@ -82,7 +82,7 @@ foreach fred ( `count -dig 1 1 $ndset` )
 
   echo " "
   echo "========================================================================="
-  echo "   3dUnifize-ing dataset $flist[$fred], then @auto_tlrc-ing the result"
+  echo "3dUnifize-ing dataset $flist[$fred], then @auto_tlrc-ing the result"
   echo "========================================================================="
   echo " "
 
@@ -95,6 +95,18 @@ foreach fred ( `count -dig 1 1 $ndset` )
 end
 
 \rm -f pre.* *_shft.1D
+
+echo " "
+echo "=== compressing output BRIK files ==="
+echo " "
+which pigz >& /dev/null
+if ( $status == 0 ) then
+  set GZIP = pigz
+else
+  set GZIP = gzip
+endif
+
+$GZIP -9v *.BRIK
 
 cd ..
 exit 0
