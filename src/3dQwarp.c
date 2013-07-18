@@ -708,7 +708,7 @@ void Qhelp(void)
 
 /*---------------------------------------------------------------------------*/
 
-char *Qunstr=NULL ;
+static char *Qunstr=NULL ;
 
 void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 {
@@ -751,6 +751,40 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
 
 /*---------------------------------------------------------------------------*/
 
+void Qallin_resample( char *basname , char *srcname )
+{
+   char *cmd ; int ss ; FILE *fp ;
+
+   ss  = strlen(basname)+strlen(srcname)+2048 ;
+   cmd = (char *)malloc(ss) ;
+
+   Qunstr = UNIQ_idcode() ;
+
+   sprintf( cmd , "3dAllineate"
+                  " -master %s"
+                  " -source %s"
+                  " -prefix %s.nii"
+                  " -final wsinc5 -float -quiet -1Dparam_apply '1D: 12@0'\\'" ,
+            basname , srcname , Qunstr ) ;
+
+   INFO_message("Starting 3dAllineate command:\n  %s\n ",cmd) ;
+   INFO_message("###########################################################") ;
+   ss = system(cmd) ;
+   if( ss != 0 ) ERROR_exit("3dQwarp: 3dAllineate command failed :-(") ;
+
+   /* write out the identity matrix */
+
+   sprintf(cmd,"%s.aff12.1D",Qunstr) ;
+   fp = fopen( cmd , "w" ) ;
+   if( fp == NULL ) ERROR_exit("3dQwarp: Can't write .aff12.1D file from 3dAllineate") ;
+   fprintf(fp,"1 0 0 0   0 1 0 0   0 0 1 0\n") ;
+   fclose(fp) ;
+   free(cmd) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
@@ -762,6 +796,7 @@ int main( int argc , char *argv[] )
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg = 0 ;
    int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
+   int do_resam=0 ;
    int flags = 0 , nbad = 0 ;
    double cput = 0.0 ;
    int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
@@ -836,6 +871,10 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        allopt = strdup(argv[nopt]) ;
        nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-resample") == 0 ){         /* 17 Jul 2013 */
+       do_resam = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-plusminus") == 0 || strcmp(argv[nopt],"+-") == 0 ){
@@ -1063,6 +1102,9 @@ STATUS("check for errors") ;
      ERROR_message("need 2 args for base and source") ; nbad++ ;
    }
 
+   if( do_allin && do_resam ){
+     ERROR_message("You cannot use -allineate and -resample together :-(") ; nbad++ ;
+   }
    if( do_allin && do_plusminus ){
      ERROR_message("You cannot use -allineate and -plusminus together :-(") ; nbad++ ;
    }
@@ -1121,19 +1163,24 @@ STATUS("source dataset opened") ;
    if( !do_allin && allopt != NULL )
      WARNING_message("-allineate_opts is ignored: no -allineate option was used!") ;
 
-   if( do_allin ){
+   if( do_allin || do_resam ){
      char *qs ;  MRI_IMAGE *qim ; float *qar ; /* temp stuff */
 
 STATUS("3dAllineate coming up") ;
 
-     if( noneg ){
+     if( do_allin && noneg ){
        if( allopt != NULL ) allopt = (char *)realloc(allopt,strlen(allopt)+32) ;
        else                 allopt = (char *)calloc(32,1) ;
        strcat(allopt," -zclip") ;
      }
 
      DSET_unload(sstrue) ;                /* de-allocate orig source dataset */
-     Qallineate( bsname , ssname , esname , allopt ) ;    /* run 3dAllineate */
+
+     if( do_allin )
+       Qallineate( bsname , ssname , esname , allopt ) ;    /* run 3dAllineate */
+     else /* do_resam */
+       Qallin_resam( bsname , ssname ) ;
+
      fprintf(stderr,"\n") ;
 
      INFO_message("3dQwarp: replacing source dataset with %s.nii",Qunstr) ;
@@ -1156,7 +1203,7 @@ STATUS("3dAllineate coming up") ;
                              qar[8],qar[9],qar[10],qar[11] ) ;
      remove(qs) ;             /* erase the 3dAllineate matrix file from disk */
      if( Hverb ) ININFO_message("3dAllineate output files have been deleted") ;
-     if( Hverb ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
+     if( Hverb && do_allin ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
      free(qs) ; mri_free(qim) ;
 
    } /*--- end of 3dAllineate prolegomenon ----------------------------------*/
@@ -1330,21 +1377,21 @@ STATUS("construct weight/mask volume") ;
 
    /*----- Special case of pre-3dAllineate: adjust warp and image -----*/
 
-   if( do_allin ){
-     mat44 tmat,smat,qmat ;
-     IndexWarp3D *tarp ;
+   if( do_allin || do_resam ){
      THD_3dim_dataset *wset , *iset ;
      MRI_IMAGE *iim ;
 
      /** adjust warp for 3dAllineate matrix **/
 
+     if( do_allin ){
+       mat44 tmat,smat,qmat ; IndexWarp3D *tarp ;
 STATUS("adjust for 3dAllineate matrix") ;
-
-     qmat = allin_matrix ;                      /* convert matrix to */
-     tmat = MAT44_MUL(qmat,oww->cmat) ;         /* index space from  */
-     smat = MAT44_MUL(oww->imat,tmat) ;         /* coordinate space  */
-     tarp = IW3D_compose_w1m2(oww,smat,MRI_WSINC5) ;  /* adjust warp */
-     IW3D_destroy(oww) ; oww = tarp ;
+       qmat = allin_matrix ;                      /* convert matrix to */
+       tmat = MAT44_MUL(qmat,oww->cmat) ;         /* index space from  */
+       smat = MAT44_MUL(oww->imat,tmat) ;         /* coordinate space  */
+       tarp = IW3D_compose_w1m2(oww,smat,MRI_WSINC5) ;  /* adjust warp */
+       IW3D_destroy(oww) ; oww = tarp ;
+     }
 
      /** directly warp from original source dataset to output image **/
      /** (and then replace existing oim with this re-warped image)  **/
@@ -1355,7 +1402,7 @@ STATUS("adjust for 3dAllineate matrix") ;
        iset = THD_nwarp_dataset( wset , sstrue , bset , "WhoTheHellCares" ,
                                  MRI_WSINC5 , MRI_WSINC5 , 0.0f,1.0f , 1 , NULL ) ;
        if( iset == NULL )  /* should be impossible */
-         ERROR_exit("Can't warp with 3dAllineate matrix for some reason :-(") ;
+         ERROR_exit("Can't warp from original dataset for some reason :-(") ;
        iim = THD_extract_float_brick(0,iset) ;
        mri_free(oim) ; oim = iim ; DSET_delete(iset) ; DSET_delete(wset) ;
 
