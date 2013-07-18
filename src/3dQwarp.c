@@ -742,6 +742,7 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
      sprintf( cmd+strlen(cmd) , " %s"        , allopt) ;
 
    INFO_message("Starting 3dAllineate command:\n  %s\n ",cmd) ;
+   INFO_message("###########################################################") ;
    ss = system(cmd) ;
    if( ss != 0 ) ERROR_exit("3dQwarp: 3dAllineate command failed :-(") ;
    free(cmd) ;
@@ -1146,7 +1147,8 @@ int main( int argc , char *argv[] )
                              qar[4],qar[5],qar[ 6],qar[ 7],
                              qar[8],qar[9],qar[10],qar[11] ) ;
      remove(qs) ;             /* erase the 3dAllineate matrix file from disk */
-     if( Hverb ) ININFO_message("3dAllineate output files are deleted") ;
+     if( Hverb ) ININFO_message("3dAllineate output files have been deleted") ;
+     if( Hverb ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
      free(qs) ; mri_free(qim) ;
 
    } /*--- end of 3dAllineate prolegomenon ----------------------------------*/
