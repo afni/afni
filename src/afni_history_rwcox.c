@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , JUL , 2013 , RWC , "@toMNI_Awarp _Qwarpar" , MICRO , TYPE_MODIFY ,
+  { 19 , JUL , 2013 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Added warning if censor array is too long" ,
+   NULL } ,
+
+ { 19 , JUL , 2013 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "-resample and -allinfast options" ,
+   "For resampling (without registering) and fast affine registering -- both\n"
+   "done via 3dAllineate." } ,
+
+ { 18 , JUL , 2013 , RWC , "@toMNI_Awarp _Qwarpar" , MICRO , TYPE_MODIFY ,
    "Modified to gzip output BRIKs" ,
    NULL } ,
 
