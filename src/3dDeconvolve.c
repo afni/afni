@@ -5038,10 +5038,14 @@ void check_for_valid_inputs
   /*----- Check length of censor array -----*/
   if (censor_length < nt)
     {
-      sprintf (message, "Input censor time series file %s is too short",
-             option_data->censor_filename);
+      sprintf (message, "Input censor time series file %s is too short (%d < %d)",
+             option_data->censor_filename,censor_length,nt);
       DC_error (message);
     }
+  else if( censor_length > nt ){  /* 19 Jul 2013 */
+    WARNING_message("Input censor time series file %s is too long (%d > %d)",
+             option_data->censor_filename,censor_length,nt);
+  }
 
 
   /*----- Check validity of concatenated runs list -----*/
