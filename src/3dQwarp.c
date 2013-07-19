@@ -1229,8 +1229,10 @@ STATUS("3dAllineate coming up next") ;
 
 STATUS("check dataset for stupid errors") ;
 
-   if( !EQUIV_GRIDXYZ(bset,sset) ) ERROR_exit("base-source dataset grid mismatch :-(") ;
-   if(  EQUIV_DSETS  (bset,sset) ) ERROR_exit("base & source datasets are identical :-(");
+   if( !EQUIV_GRIDXYZ(bset,sset) )
+     ERROR_exit("base-source dataset grid mismatch :-( : try the -resample option") ;
+   if(  EQUIV_DSETS  (bset,sset) )
+     ERROR_exit("base & source datasets are identical :-( : are you trying something sneaky?");
 
    /* construct the initial warp, if any [altered somewhat: 15 Jul 2013] */
 
