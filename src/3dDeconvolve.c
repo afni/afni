@@ -2069,6 +2069,11 @@ void get_options
 
   if( AFNI_yesenv("AFNI_3dDeconvolve_GOFORIT") ) goforit++ ; /* 07 Mar 2007 */
 
+  if( argc < 2 ) {           /* for us lazy people   18 Jul 2013 [rickr] */
+    display_help_menu(1);
+    exit(0);
+  }
+
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
