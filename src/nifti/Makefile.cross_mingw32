@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 # -*- Makefile -*-
-# 
+#
 # This makefile was initially created by Michael Hanke
 # <michael.hanke@gmail.com> to cross compile the nifticlibs for win32 on a
 # Debian system -- although it should work on most Linux systems with possibly

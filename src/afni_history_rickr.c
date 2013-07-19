@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jul, 2013, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+   "applied ITK compatibility updates from 11/2010 by H Johnson",
+   NULL
+ } ,
+
  { 19,  Jul, 2013, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
    "no options implies -h",
    NULL

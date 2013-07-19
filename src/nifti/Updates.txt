@@ -51,12 +51,12 @@ Updated in version 0.6 August 27, 2007
     - RR allowed for datasets with a single volume > 2^31 bytes
     - RR allowed for datasets with total size > 2^32 bytes
     - RR added regression testing under Testing/nifti_regress_test
-    - KF added upper level packaging directory and put Andy Loenings's 
+    - KF added upper level packaging directory and put Andy Loenings's
          rpm spec file in it
-    - HJ Changed default installation path of header files into include/nifti 
+    - HJ Changed default installation path of header files into include/nifti
          from CMakeLists.txt
     - HJ/KW Added exposing Analyze75 orientation codes
-    - HJ/KW Added function to allow any sized subregion of the image to be read 
+    - HJ/KW Added function to allow any sized subregion of the image to be read
          from disk
     - RR/KF znzlib/config.h incorporated into znzlib.h and removed
 
@@ -85,8 +85,9 @@ Updated in version 1.1.0 August 28, 2008
          http://www.itk.org/Bug/view.php?id=7530
          having to do with ITK version numbers for znzlib.
 
+
 -----------------------------------------------------------------
-Recent Updates
+Updated in version 2.0.0 July 20, 2010
 
     - RR added nifti_NBL_matches_nim() check for write_bricks()
     - HJ added casts to suppress compiler warnings
@@ -101,4 +102,12 @@ Recent Updates
     - RR changed nifti_swap_* routines/calls to take size_t
     - RR fixed nifti_tool.c:nt_read_bricks bsize for large files
     - MH updated CMakeLists.txt to version 2.0
+
+
+-----------------------------------------------------------------
+Recent Updates
+
+    - HJ Merged ITK and official nifti branch for code compatibility
+         across many compilers by removing compiler warnings
+    - HJ added a few free() calls in failure cases
 

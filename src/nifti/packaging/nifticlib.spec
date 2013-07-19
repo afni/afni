@@ -41,7 +41,7 @@ rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 
 ## hack to get this to work for x86_64
-%if "%{?_lib}" == "lib64" 
+%if "%{?_lib}" == "lib64"
 	mv $RPM_BUILD_ROOT/usr/lib $RPM_BUILD_ROOT/%{_libdir}
 %endif
 

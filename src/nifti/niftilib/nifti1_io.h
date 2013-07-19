@@ -39,9 +39,9 @@ extern "C" {
 /*****  incidental or otherwise, caused by any use of this document.     *****/
 /*****===================================================================*****/
 
-/* 
+/*
    Modified by: Mark Jenkinson (FMRIB Centre, University of Oxford, UK)
-   Date: July/August 2004 
+   Date: July/August 2004
 
       Mainly adding low-level IO and changing things to allow gzipped files
       to be read and written
@@ -244,12 +244,12 @@ typedef struct {
 /*****************************************************************************/
 /*--------------- Prototypes of functions defined in this file --------------*/
 
-char *nifti_datatype_string   ( int dt ) ;
-char *nifti_units_string      ( int uu ) ;
-char *nifti_intent_string     ( int ii ) ;
-char *nifti_xform_string      ( int xx ) ;
-char *nifti_slice_string      ( int ss ) ;
-char *nifti_orientation_string( int ii ) ;
+char const * nifti_datatype_string   ( int dt ) ;
+char const *nifti_units_string      ( int uu ) ;
+char const *nifti_intent_string     ( int ii ) ;
+char const *nifti_xform_string      ( int xx ) ;
+char const *nifti_slice_string      ( int ss ) ;
+char const *nifti_orientation_string( int ii ) ;
 
 int   nifti_is_inttype( int dt ) ;
 
@@ -270,7 +270,7 @@ void  nifti_swap_Nbytes ( size_t n , int siz , void *ar ) ;
 
 int    nifti_datatype_is_valid   (int dtype, int for_nifti);
 int    nifti_datatype_from_string(const char * name);
-char * nifti_datatype_to_string  (int dtype);
+const char * nifti_datatype_to_string  (int dtype);
 
 int   nifti_get_filesize( const char *pathname ) ;
 void  swap_nifti_header ( struct nifti_1_header *h , int is_nifti ) ;
@@ -294,12 +294,12 @@ void         nifti_image_free    ( nifti_image *nim ) ;
 int          nifti_read_collapsed_image( nifti_image * nim, const int dims [8],
                                          void ** data );
 
-int          nifti_read_subregion_image( nifti_image * nim, 
+int          nifti_read_subregion_image( nifti_image * nim,
                                          int *start_index, int *region_size,
                                          void ** data );
 
 void         nifti_image_write   ( nifti_image * nim ) ;
-void         nifti_image_write_bricks(nifti_image * nim, 
+void         nifti_image_write_bricks(nifti_image * nim,
                                       const nifti_brick_list * NBL);
 void         nifti_image_infodump( const nifti_image * nim ) ;
 
@@ -435,7 +435,7 @@ int    valid_nifti_extensions(const nifti_image *nim);
 
 #define NIFTI_ECODE_COMMENT          6  /* plain ASCII text only              */
 
-#define NIFTI_ECODE_XCEDE            8  /* David B Keator: dbkeator@uci.edu 
+#define NIFTI_ECODE_XCEDE            8  /* David B Keator: dbkeator@uci.edu
                                            http://www.nbirn.net/Resources
                                                 /Users/Applications/
                                                 /xcede/index.htm              */
@@ -493,7 +493,7 @@ typedef struct {
     int    type;           /* should match the NIFTI_TYPE_ #define */
     int    nbyper;         /* bytes per value, matches nifti_image */
     int    swapsize;       /* bytes per swap piece, matches nifti_image */
-    char * name;           /* text string to match #define */
+    char const * const name;           /* text string to match #define */
 } nifti_type_ele;
 
 #undef  LNI_FERR /* local nifti file error, to be compact and repetative */
