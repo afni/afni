@@ -957,6 +957,7 @@ if(PRINT_TRACING)
    grapher->time_index  =  0 ;
    grapher->pin_top     =  0 ;  /* 27 Apr 1997 */
    grapher->pin_bot     =  0 ;  /* 17 Mar 2004 */
+   grapher->pin_stride  =  1 ;  /* 19 Jul 2013 */
    grapher->ggap        =  INIT_GR_ggap ;    /* 12 Jan 1998 + 27 May 1999 */
    grapher->gthick      =  INIT_GR_gthick ;  /* 06 Oct 2004 */
 
