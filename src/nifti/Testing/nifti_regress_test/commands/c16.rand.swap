@@ -32,4 +32,3 @@ nifti_tool -diff_hdr -debug 2 -infiles swap.old.hdr swap.ana.hdr        \
 echo '------------- DIFF old/new nifti -------------'
 nifti_tool -diff_hdr -debug 2 -infiles swap.new_nifti.hdr swap.old_nifti.hdr  \
            > out.rand.swap.compare.nifti
-
