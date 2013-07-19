@@ -31,4 +31,3 @@ nifti_tool -disp_hdr -infiles $prefix.6.IMG.GZ
 echo should be errors:
 nifti_tool -disp_hdr -infiles small.NII
 nifti_tool -disp_hdr -infiles $prefix.4.NII.gz
-
