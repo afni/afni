@@ -86,11 +86,11 @@ foreach fred ( `count -dig 1 1 $ndset` )
   echo "========================================================================="
   echo " "
 
-  3dUnifize -prefix ${pre}_uni -GM -input $flist[$fred]
-  @auto_tlrc -base $basename                \
-             -input ${pre}_uni${vvv}        \
-             -no_ss -init_xform AUTO_CENTER \
-             -rmode quintic
+  nice 3dUnifize -prefix ${pre}_uni -GM -input $flist[$fred]
+  nice @auto_tlrc -base $basename                \
+                  -input ${pre}_uni${vvv}        \
+                  -no_ss -init_xform AUTO_CENTER \
+             -     rmode quintic
   \rm -f ${pre}_???${vvv}.*
 end
 
@@ -106,7 +106,7 @@ else
   set GZIP = gzip
 endif
 
-$GZIP -9v *.BRIK
+nice $GZIP -9v *.BRIK
 
 cd ..
 exit 0
