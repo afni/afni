@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Jul, 2013, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "no options implies -h",
+   NULL
+ } ,
+
  { 18,  Jul, 2013, RCR, "@move.to.series.dirs", MINOR, TYPE_ENHANCE,
    "added -dprefix option, for output directory prefix",
    NULL
