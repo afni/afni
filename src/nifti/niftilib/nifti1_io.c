@@ -336,9 +336,10 @@ static char const * const gni_history[] =
   "   - fixed znzread/write, noting example by M Adler\n"
   "   - changed nifti_swap_* routines/calls to take size_t (6)\n"
   "1.43 07 Jul 2010 [rickr]: fixed znzR/W to again return nmembers\n",
+  "1.44 19 Jul 2013 [rickr]: ITK compatibility updates from H Johnson\n",
   "----------------------------------------------------------------------\n"
 };
-static const char gni_version[] = "nifti library version 1.39 (23 June, 2009)";
+static const char gni_version[] = "nifti library version 1.44 (19 July, 2013)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = {
