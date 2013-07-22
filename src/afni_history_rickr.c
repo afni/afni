@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22,  Jul, 2013, RCR, "nifti_tool", MICRO, TYPE_GENERAL,
+   "re-applied 2012 change of originator to shorts (lost with ITK update)",
+   NULL
+ } ,
+
  { 19,  Jul, 2013, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
    "applied ITK compatibility updates from 11/2010 by H Johnson",
    NULL

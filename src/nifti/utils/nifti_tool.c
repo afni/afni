@@ -155,9 +155,11 @@ static char * g_history[] =
   "1.22 08 Oct 2008 [rickr] - allow cbl with indices in 0..nt*nu*nv*nw-1\n"
   "1.23 06 Jul 2010 [rickr]\n",
   "   - in nt_read_bricks, bsize computation should allow for large integers\n"
+  "1.24 26 Sep 2012 [rickr]\n",
+  "   - changed ana originator from char to short\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.23 (July 6, 2010)";
+static char g_version[] = "version 1.24 (September 26, 2012)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -3211,7 +3213,8 @@ int fill_ana_field_array( field_s * ah_fields )
    NT_SFILL(nhdr, ahf, NT_DT_STRING, aux_file,      24, rv);  errs += rv;
 
    NT_SFILL(nhdr, ahf, DT_INT8,      orient,         1, rv);  errs += rv;
-   NT_SFILL(nhdr, ahf, NT_DT_STRING, originator,    10, rv);  errs += rv;
+   /* originator is 5 (3) shorts, not 10 chars        26 Sep 2012 [rickr] */
+   NT_SFILL(nhdr, ahf, DT_INT16,     originator,     5, rv);  errs += rv;
    NT_SFILL(nhdr, ahf, NT_DT_STRING, generated,     10, rv);  errs += rv;
    NT_SFILL(nhdr, ahf, NT_DT_STRING, scannum,       10, rv);  errs += rv;
    NT_SFILL(nhdr, ahf, NT_DT_STRING, patient_id,    10, rv);  errs += rv;
