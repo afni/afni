@@ -169,6 +169,7 @@ typedef struct {
 #define MIN_PIN    2
 #define MAX_PIN    9999
 #define MAX_STRIDE 99
+#define ALLOW_STRIDE
 
 /* plotting range is from time index NBOT to NTOP-1 */
 
@@ -177,9 +178,13 @@ typedef struct {
 #define NTOP(gr) ( ((gr)->pin_top >= MIN_PIN                ) ? (gr)->pin_top            \
                                                               : (gr)->status->num_series )
 
+#ifdef ALLOW_STRIDE
 #define NSTRIDE(gr) ( (gr)->pin_stride )
+#else
+#define NSTRIDE(gr) 1
+#endif
 
-#if 1
+#ifdef ALLOW_STRIDE
 # define NABC(a,b,c) ( (int)ceil( ((b)-(a))/(double)(c) ) )
 # define NPTS(gr)    NABC( NBOT(gr) , NTOP(gr) , NSTRIDE(gr) )
 #else
