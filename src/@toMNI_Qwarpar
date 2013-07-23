@@ -497,6 +497,8 @@ FFF_done:
 
 ################ finished ################
 
+\rm -f *_uni[BCD]_WARP+tlrc.*
+
 nice gzip -9v Qwarp*.BRIK
 
 echo " "
