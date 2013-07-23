@@ -573,7 +573,7 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
    if (!all(abs(inData) < 10e-8)) {        
       dataframe$Beta<-inData
       fm <- NULL
-      try(fm <- aov.car(ModelForm, data=dataframe, return='full'), silent=TRUE)
+      try(fm <- aov.car(ModelForm, data=dataframe, factorize=FALSE, return='full'), silent=TRUE)
       if(!is.null(fm)) {
          #if(pars[[6]]) try(Stat[1:pars[[2]]] <- univ(fm[[1]])[2:(1+pars[[2]]),3], silent=TRUE) else
          #   try(Stat[1:pars[[2]]] <- unname(univ(fm[[1]])[[1]][-1,5]), silent=TRUE)
@@ -841,7 +841,7 @@ while(is.null(fm)) {
    fm<-NULL
    lop$dataStr$Beta<-inData[ii, jj, kk,]
    options(warn=-1)     
-   try(fm <- aov.car(ModelForm, data=lop$dataStr, return='full'), silent=TRUE)
+   try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, return='full'), silent=TRUE)
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
@@ -887,7 +887,7 @@ while(is.null(fm)) {
 #}
 
 
-#fm <- aov.car(ModelForm, data=Model, return='lm')
+#fm <- aov.car(ModelForm, data=Model, factorize=FALSE, return='lm')
 #bm <- c(1,-1)%*%t(aa$lm$coefficients)
 #Vm <- c(1,-1)%*%vcov(aa$lm)%*%c(1,-1)
 #t(bm)%*%solve(Vm)%*%bm
