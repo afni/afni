@@ -90,7 +90,7 @@ foreach fred ( `count -dig 1 1 $ndset` )
   nice @auto_tlrc -base $basename                \
                   -input ${pre}_uni${vvv}        \
                   -no_ss -init_xform AUTO_CENTER \
-             -     rmode quintic
+                  -rmode quintic
   \rm -f ${pre}_???${vvv}.*
 end
 
