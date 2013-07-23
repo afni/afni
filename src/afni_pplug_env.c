@@ -575,6 +575,11 @@ PLUGIN_interface * ENV_init(void)
                     "Number of tick marks for colorscale" ,
                     0,63,0,9 , NULL ) ;
 
+   /* 23 Jul 2013 [RWC] */
+   ENV_add_yesno( "AFNI_RECENTER_VIEWING" ,
+                  "Re-center xhairs when switching UnderLay?" ) ;
+  
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
