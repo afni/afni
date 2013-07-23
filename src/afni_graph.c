@@ -1957,6 +1957,7 @@ void plot_graphs( MCW_grapher *grapher , int code )
    float       tsbot=0.0 , ftemp,fwid,foff , tstop ;
    int i, m, index, ix, iy, xtemp,ytemp,ztemp, xoff=0,yoff=0, its,ibot,itop;
    int ptop,pbot,pnum,qnum , tbot,ttop,tnum , ntmax ;  /* 17 Mar 2004 */
+   int pstep=1 ;
 
    static int      *plot = NULL ;  /* arrays to hold plotting coordinates */
    static XPoint *a_line = NULL ;
@@ -2000,10 +2001,11 @@ ENTRY("plot_graphs") ;
 
    /* 17 Mar 2004: we will plot from pbot..ptop-1, with data from tbot..ttop-1 */
 
-   ptop = NTOP(grapher) ; pbot = NBOT(grapher) ;
+   ptop = NTOP(grapher) ; pbot = NBOT(grapher) ; pstep = NSTRIDE(grapher) ;
    if( pbot >= ptop ){
      pbot = 0 ; ptop = grapher->status->num_series ;
    }
+   if( pstep > 1 && NPTS(grapher) < 2 ){ grapher->pin_stride = pstep = 1 ; }
    ttop = TTOP(grapher) ; ttop = MIN(ttop,ptop) ; tbot = pbot ;
    if( ttop <= tbot || ttop > grapher->status->num_series ){
      ttop = MIN(ptop,grapher->status->num_series) ;
