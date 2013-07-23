@@ -19,11 +19,18 @@ endif
 
 set basename = MNI152_1mm_uni+tlrc
 
+## max number of jobs to run in parallel (less than or equal to number of CPUS)
+set numjob   = 7
+
+## check if output directory is already there
+
 set dname = $argv[1]
 if( -e $dname ) then
   echo "** @toMNI_Awarp: Directory $dname already exists -- cannot continue"
   exit 1
 endif
+
+## find the base template
 
 set tpath = `@FindAfniDsetPath $basename`
 if( $tpath == '' ) then
@@ -31,12 +38,14 @@ if( $tpath == '' ) then
   exit 1
 endif
 
+## create the list of input datasets
+
 set dlist = ( )
 set nerr  = 0
-foreach fred ( `count -dig 1 2 $#argv` )
-  set dlist = ( $dlist $argv[$fred] )
-  if( ! -f $argv[$fred] ) then
-    echo " * @toMNI_Awarp: Dataset file $argv[$fred] does not exist"
+foreach nnn ( `count -dig 1 2 $#argv` )
+  set dlist = ( $dlist $argv[$nnn] )
+  if( ! -f $argv[$nnn] ) then
+    echo " * @toMNI_Awarp: Dataset file $argv[$nnn] does not exist"
     @ nerr++
   endif
 end
@@ -45,6 +54,8 @@ if( $nerr > 0 ) then
   echo "** @toMNI_Awarp: Cannot continue after such flagrant problems"
   exit 1
 endif
+
+## create the output directory
 
 \mkdir -pv $dname
 if( ! -d $dname ) then
@@ -55,17 +66,19 @@ endif
 set ndset = $#dlist
 set flist = ( )
 
+echo " "
 echo "++ @toMNI_Awarp: copying input datasets to $dname"
+echo " "
 
-foreach fred ( `count -dig 1 1 $ndset` )
-  set pan = `@parse_afni_name $dlist[$fred]`
-  set isn = `3dinfo -is_nifti $dlist[$fred]`
+foreach nnn ( `count -dig 1 1 $ndset` )
+  set pan = `@parse_afni_name $dlist[$nnn]`
+  set isn = `3dinfo -is_nifti $dlist[$nnn]`
   if( $isn ) then
     set nip = `echo $pan[2] | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
-    3dcopy $dlist[$fred] $dname/$nip
+    3dcopy $dlist[$nnn] $dname/$nip
     set fname = `echo $dname/${nip}+????.HEAD`
   else
-    3dcopy $dlist[$fred] $dname/$pan[2]
+    3dcopy $dlist[$nnn] $dname/$pan[2]
     set fname = `echo $dname/$pan[2]+????.HEAD`
   endif
   set flist = ( $flist $fname:t )
@@ -73,31 +86,49 @@ end
 
 cd $dname
 
-echo "++ @toMNI_Awarp: beginning @auto_tlrc loop"
+echo " "
+echo "++ @toMNI_Awarp: beginning 3dUnifize loop"
+echo " "
 
-foreach fred ( `count -dig 1 1 $ndset` )
-  set pan = `@parse_afni_name $flist[$fred]`
+setenv OMP_NUM_THREADS 1
+foreach nnn ( `count -dig 1 1 $ndset` )
+  set pan = `@parse_afni_name $flist[$nnn]`
   set pre = $pan[2]
   set vvv = $pan[3]
+  \mkdir -pv        Temp${nnn}
+  cp ${pre}${vvv}.* Temp${nnn}
+  cd                Temp${nnn}
+  nice 3dUnifize -prefix ${pre}_uni -GM -input ${pre}${vvv}.HEAD &
+  cd ..
+  @ rrr = $nnn % $numjob
+  if( $rrr == 0 ) wait
+end
+unsetenv OMP_NUM_THREADS
+wait
 
-  echo " "
-  echo "========================================================================="
-  echo "3dUnifize-ing dataset $flist[$fred], then @auto_tlrc-ing the result"
-  echo "========================================================================="
-  echo " "
+echo " "
+echo "++ @toMNI_Awarp: beginning @auto_tlrc loop"
+echo " "
 
-  nice 3dUnifize -prefix ${pre}_uni -GM -input $flist[$fred]
+foreach nnn ( `count -dig 1 1 $ndset` )
+  set pan = `@parse_afni_name $flist[$nnn]`
+  set pre = $pan[2]
+  set vvv = $pan[3]
+  cd Temp${nnn}
   nice @auto_tlrc -base $basename                \
                   -input ${pre}_uni${vvv}        \
                   -no_ss -init_xform AUTO_CENTER \
-                  -rmode quintic
-  \rm -f ${pre}_???${vvv}.*
+                  -rmode quintic                   &
+  cd ..
+  @ rrr = $nnn % $numjob
+  if( $rrr == 0 ) wait
 end
-
-\rm -f pre.* *_shft.1D
+wait
+mv Temp*/*_uni+tlrc.* .
+\rm -rf Temp*
 
 echo " "
-echo "=== compressing output BRIK files ==="
+echo "++ @toMNI_Awarp compressing output BRIK files"
 echo " "
 which pigz >& /dev/null
 if ( $status == 0 ) then
@@ -107,6 +138,5 @@ else
 endif
 
 nice $GZIP -9v *.BRIK
-
 cd ..
 exit 0
