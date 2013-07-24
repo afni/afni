@@ -4608,6 +4608,7 @@ ENTRY("HCwarp_setup_basis") ;
        bbbcar[ii] = (float *)malloc(sizeof(float)*nbbcxyz) ;
      for( qq=kk=0 ; kk < nbcz ; kk++ ){
       for( jj=0 ; jj < nbcy ; jj++ ){
+#pragma ivdep
         for( ii=0 ; ii < nbcx ; ii++,qq++ ){
           bbbcar[0][qq] = bc0z[kk]*bc0y[jj]*bc0x[ii] ;
           bbbcar[1][qq] = bc1z[kk]*bc0y[jj]*bc0x[ii] ;
@@ -4744,6 +4745,7 @@ ENTRY("HQwarp_setup_basis") ;
        bbbqar[ii] = (float *)malloc(sizeof(float)*nbbqxyz) ;
      for( qq=kk=0 ; kk < nbqz ; kk++ ){
       for( jj=0 ; jj < nbqy ; jj++ ){
+#pragma ivdep
         for( ii=0 ; ii < nbqx ; ii++,qq++ ){
           bbbqar[ 0][qq] = bq0z[kk]*bq0y[jj]*bq0x[ii];
           bbbqar[ 1][qq] = bq1z[kk]*bq0y[jj]*bq0x[ii];
@@ -5286,6 +5288,7 @@ AFNI_OMP_START ;
    int ith = 0 ;
 #endif
 
+#pragma ivdep
 #pragma omp for
    for( qq=0 ; qq < nbxyz ; qq++ ){            /* for each voxel in the patch */
      ii = qq % nbx; kk = qq / nbxy; jj = (qq-kk*nbxy) / nbx; /* patch indexes */

@@ -499,7 +499,18 @@ FFF_done:
 
 \rm -f *_uni[BCD]_WARP+tlrc.*
 
-nice gzip -9v Qwarp*.BRIK
+echo " "
+echo "========== @toMNI_Qwarpar: compressing output BRIK files =========="
+echo " "
+
+which pigz >& /dev/null
+if ( $status == 0 ) then
+  set GZIP = pigz
+else
+  set GZIP = gzip
+endif
+
+nice $GZIP -9v *.BRIK
 
 echo " "
 echo "========== @toMNI_Qwarpar: free at last =========="
