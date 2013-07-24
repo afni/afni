@@ -26,6 +26,15 @@
 #undef  USE_PLUSMINUS_INITIALWARP   /* don't do this */
 #include "mri_nwarp.c"
 
+/** include the Powell NEWUOA functions **/
+
+#include "powell_int.c"
+#define max MAX
+#define min MIN
+#include "powell_newuoa.c"
+#undef max
+#undef min
+
 /** constants for the mri_weightize() function (liberated from 3dAllineate) **/
 
 static int auto_weight    = 2 ;

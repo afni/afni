@@ -890,6 +890,8 @@ double INCOR_incomplete_pearson( INCOR_pearson *inpear )
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 
+#ifndef USE_OMP /*--- Serial code version ---*/
+
 void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
                                         float *w, INCOR_pearclp *inpear )
 {
@@ -941,7 +943,7 @@ void INCOR_addto_incomplete_pearclp_SS( int n, float *x, float *y,
 }
 
 /*----------------------------------------------------------------------------*/
-#ifdef USE_OMP /*--- Parallel-ized verison of the above ----------------------*/
+#else /*--- Parallel-ized verison of the above ----------------------*/
 
 void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
                                         float *w, INCOR_pearclp *inpear )
@@ -1022,7 +1024,7 @@ void INCOR_addto_incomplete_pearclp_PP( int n, float *x, float *y,
 
    return ;
 }
-#endif
+#endif  /* USE_OMP */
 
 /*----------------------------------------------------------------------------*/
 
@@ -1031,12 +1033,10 @@ void INCOR_addto_incomplete_pearclp( int n, float *x, float *y,
 {
    if( n <= 0 || x == NULL || y == NULL || inpear == NULL ) return ;
 #ifdef USE_OMP
-   if( nthmax > 1 && n >= 333 ){
-     INCOR_addto_incomplete_pearclp_PP( n , x,y,w , inpear ) ;
-     return ;
-   }
-#endif
+   INCOR_addto_incomplete_pearclp_PP( n , x,y,w , inpear ) ;
+#else
    INCOR_addto_incomplete_pearclp_SS( n , x,y,w , inpear ) ;
+#endif
    return ;
 }
 
