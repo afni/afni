@@ -505,7 +505,7 @@ int main( int argc , char *argv[] )
    }
 
    AFNI_logger("3drefit",argc,argv) ;
-   PUTENV("AFNI_COMPRESSOR","NONE") ; /* 26 Jul 2013 */
+   AFNI_setenv("AFNI_COMPRESSOR=NONE") ; /* 26 Jul 2013 */
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
