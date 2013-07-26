@@ -634,7 +634,7 @@ STATUS("create dataset") ;
      sar = (float *)malloc(sizeof(float)*nxyz) ;
 
 STATUS("load hexvol") ;
-     (void)IW3D_load_hexvol(AA) ;
+     (void)IW3D_load_hexvol(AA,NULL) ;
 STATUS("load energy") ;
      (void)IW3D_load_energy(AA) ;
 STATUS("done with aux volumes") ;
@@ -909,6 +909,105 @@ STATUS("work is done") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Compute the bulk, shear, and vorticity deformations, from DISPLACEMENTS
+   at corners.
+*//*--------------------------------------------------------------------------*/
+
+static INLINE float_triple hexahedron_bsv( float dx, float dy, float dz ,
+                                           float_triple d000 , float_triple d100 ,
+                                           float_triple d010 , float_triple d110 ,
+                                           float_triple d001 , float_triple d101 ,
+                                           float_triple d011 , float_triple d111  )
+{
+   float fxx,fxy,fxz, fyx,fyy,fyz, fzx,fzy,fzz , jcb ;
+   float_triple bsv ;
+
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+
+   /* load strain matrix */
+
+   fxx = ( DA(d100,d000) + DA(d111,d011) ) * 0.5f + 1.0f ;
+   fxy = ( DB(d100,d000) + DB(d111,d011) ) * 0.5f * (dy/dx) ;
+   fxz = ( DC(d100,d000) + DC(d111,d011) ) * 0.5f * (dz/dx) ;
+
+   fyx = ( DA(d010,d000) + DA(d111,d101) ) * 0.5f * (dx/dy) ;
+   fyy = ( DB(d010,d000) + DB(d111,d101) ) * 0.5f + 1.0f ;
+   fyz = ( DC(d010,d000) + DC(d111,d101) ) * 0.5f * (dz/dy) ;
+
+   fzx = ( DA(d001,d000) + DA(d111,d110) ) * 0.5f * (dx/dz) ;
+   fzy = ( DB(d001,d000) + DB(d111,d110) ) * 0.5f * (dy/dz) ;
+   fzz = ( DC(d001,d000) + DC(d111,d110) ) * 0.5f + 1.0f ;
+
+   /* determinant = bulk volume (1=unchanged) */
+
+   jcb   = TRIPROD( fxx,fxy,fxz, fyx,fyy,fyz, fzx,fzy,fzz ) ;
+   bsv.a = jcb - 1.0f ;
+   jcb   = cbrtf(jcb*jcb) ;
+
+   /* trace of matrix square = shear energy */
+
+   bsv.b = (  fxx*fxx + fyy*fyy + fzz*fzz
+            + fxy*fxy + fyx*fyx + fxz*fxz
+            + fzx*fzx + fyz*fyz + fzy*fzy ) / jcb - 3.0f ;
+
+   /* "vorticity" energy */
+
+   fxx = fyz - fzy ; fyy = fxz - fzx ; fzz = fxy - fyx ;
+   bsv.c = ( fxx*fxx + fyy*fyy + fzz*fzz ) / jcb ;
+
+   return bsv ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Load the deformation values for all voxels [26 Jul 2013] */
+
+void IW3D_load_bsv( IndexWarp3D *AA , float dx,float dy,float dz ,
+                    float *bb , float *ss , float *vv )
+{
+   float enout=0.0f ;
+   float *xda, *yda , *zda , *jea,*sea , jetop,setop ;
+   int nx,ny,nz , nxy,nxyz , ii ;
+
+ENTRY("IW3D_load_bsv") ;
+
+   if( AA == NULL ) EXRETURN ;
+   if( bb == NULL && ss == NULL && vv == NULL ) EXRETURN ;
+
+   nx = AA->nx ; ny = AA->ny ; nz = AA->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel
+ { float_triple x0,x1,x2,x3,x4,x5,x6,x7 ; float_triple bsv ;
+   int ii,jj,kk , ip,jp,kp , ijk , qq ; float esum=0.0f, ev ;
+#pragma omp for
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     ip = ii+1 ; jp = jj+1 ; kp = kk+1 ;
+     if( ip == nx ) ip-- ; if( jp == ny ) jp-- ; if( kp == nz ) kp-- ;
+     ijk = IJK(ip,jj,kk) ; E2F(ijk,x1) ;
+     ijk = IJK(ii,jp,kk) ; E2F(ijk,x2) ;
+     ijk = IJK(ip,jp,kk) ; E2F(ijk,x3) ;
+     ijk = IJK(ii,jj,kp) ; E2F(ijk,x4) ;
+     ijk = IJK(ip,jj,kp) ; E2F(ijk,x5) ;
+     ijk = IJK(ii,jp,kp) ; E2F(ijk,x6) ;
+     ijk = IJK(ip,jp,kp) ; E2F(ijk,x7) ;
+     ijk = qq            ; E2F(ijk,x0) ;
+     bsv = hexahedron_bsv(dx,dy,dz,x0,x1,x2,x3,x4,x5,x6,x7);
+     if( bb != NULL ) bb[qq] = bsv.a ;
+     if( ss != NULL ) ss[qq] = bsv.b ;
+     if( vv != NULL ) vv[qq] = bsv.c ;
+   }
+ }
+ AFNI_OMP_END ;
+
+  EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
 #ifdef USE_OMP
 double HPEN_addup( int njs , float *je , float *se )
 {
@@ -983,9 +1082,9 @@ static INLINE float hexahedron_volume( float_triple x0 , float_triple x1 ,
 
 /*---------------------------------------------------------------------------*/
 /* Load the volumes of each hexahedral element in the displaced grid.
-   An undistorted voxel will get volumen 1, since AA is a unitless warp. */
+   An undistorted voxel will get volume 1, since AA is a unitless warp. */
 
-float IW3D_load_hexvol( IndexWarp3D *AA )
+float IW3D_load_hexvol( IndexWarp3D *AA , float *hv )
 {
    float *xda, *yda , *zda , *hva , top,bot ;
    int nx,ny,nz , nxy,nxyz , ii ;
@@ -997,8 +1096,11 @@ float IW3D_load_hexvol( IndexWarp3D *AA )
 
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
 
-   hva = AA->hv ;
-   if( hva == NULL ) hva = AA->hv = (float *)calloc(nxyz,sizeof(float)) ;
+   hva = hv ;
+   if( hva == NULL ){
+     hva = AA->hv ;
+     if( hva == NULL ) hva = AA->hv = (float *)calloc(nxyz,sizeof(float)) ;
+   }
 
  AFNI_OMP_START ;
 #pragma omp parallel

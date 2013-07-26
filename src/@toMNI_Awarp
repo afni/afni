@@ -20,13 +20,14 @@ endif
 set basename = MNI152_1mm_uni+tlrc
 
 ## max number of jobs to run in parallel (less than or equal to number of CPUS)
+## (these are single-threaded jobs)
 set numjob   = 7
 
 ## check if output directory is already there
 
 set dname = $argv[1]
 if( -e $dname ) then
-  echo "** @toMNI_Awarp: Directory $dname already exists -- cannot continue"
+  echo "***** @toMNI_Awarp: Directory $dname already exists -- cannot continue"
   exit 1
 endif
 
@@ -34,7 +35,7 @@ endif
 
 set tpath = `@FindAfniDsetPath $basename`
 if( $tpath == '' ) then
-  echo "** @toMNI_Awarp: Failed to find template $basename -- cannot continue"
+  echo "***** @toMNI_Awarp: Failed to find template $basename -- cannot continue"
   exit 1
 endif
 
@@ -45,13 +46,13 @@ set nerr  = 0
 foreach nnn ( `count -dig 1 2 $#argv` )
   set dlist = ( $dlist $argv[$nnn] )
   if( ! -f $argv[$nnn] ) then
-    echo " * @toMNI_Awarp: Dataset file $argv[$nnn] does not exist"
+    echo "  *** @toMNI_Awarp: Dataset file $argv[$nnn] does not exist"
     @ nerr++
   endif
 end
 
 if( $nerr > 0 ) then
-  echo "** @toMNI_Awarp: Cannot continue after such flagrant problems"
+  echo "***** @toMNI_Awarp: Cannot continue after such flagrant problems"
   exit 1
 endif
 
@@ -59,7 +60,7 @@ endif
 
 \mkdir -pv $dname
 if( ! -d $dname ) then
-  echo "** @toMNI_Awarp: Failed to create directory $dname -- cannot continue"
+  echo "***** @toMNI_Awarp: Failed to create directory $dname -- cannot continue"
   exit 1
 endif
 
@@ -67,7 +68,7 @@ set ndset = $#dlist
 set flist = ( )
 
 echo " "
-echo "++ @toMNI_Awarp: copying input datasets to $dname"
+echo "===== @toMNI_Awarp: copying input datasets to $dname ====="
 echo " "
 
 foreach nnn ( `count -dig 1 1 $ndset` )
@@ -87,7 +88,7 @@ end
 cd $dname
 
 echo " "
-echo "++ @toMNI_Awarp: beginning 3dUnifize loop"
+echo "===== @toMNI_Awarp: beginning 3dUnifize loop ====="
 echo " "
 
 setenv OMP_NUM_THREADS 1
@@ -95,6 +96,7 @@ foreach nnn ( `count -dig 1 1 $ndset` )
   set pan = `@parse_afni_name $flist[$nnn]`
   set pre = $pan[2]
   set vvv = $pan[3]
+## work for the nnn-th file is done in the Temp${nnn} directory
   \mkdir -pv        Temp${nnn}
   cp ${pre}${vvv}.* Temp${nnn}
   cd                Temp${nnn}
@@ -107,7 +109,7 @@ unsetenv OMP_NUM_THREADS
 wait
 
 echo " "
-echo "++ @toMNI_Awarp: beginning @auto_tlrc loop"
+echo "===== @toMNI_Awarp: beginning @auto_tlrc loop ====="
 echo " "
 
 foreach nnn ( `count -dig 1 1 $ndset` )
@@ -128,7 +130,7 @@ mv Temp*/*_uni+tlrc.* .
 \rm -rf Temp*
 
 echo " "
-echo "++ @toMNI_Awarp compressing output BRIK files"
+echo "===== @toMNI_Awarp compressing output BRIK files ====="
 echo " "
 which pigz >& /dev/null
 if ( $status == 0 ) then
@@ -139,4 +141,8 @@ endif
 
 nice $GZIP -9v *.BRIK
 cd ..
+
+echo " "
+echo "===== @toMNI_Awarp is wrapped up, done, finished, and over ====="
+echo " "
 exit 0
