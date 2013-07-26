@@ -831,7 +831,7 @@ PARSE:
          goto DEMO
       endif
       
-      if ("$argv[$cnt]" == "-no_volreg") then
+      if ("$argv[$cnt]" == "-no_volreg" || "$argv[$cnt]" == "-noVR") then
          set noVR = 1
          goto NEXT
       endif
@@ -1689,6 +1689,13 @@ echo " -phase : Use phase of fundamental frequency to estimate latency (default)
 echo " -delay : Use delay relative to reference time series to estimate latency"
 echo "          You should be better off using the -delay option, especially in "
 echo "          noisy situations"
+echo "          To graph the reference time series relative to which response"
+echo "          latency is estimated you will need to run @RetinoProc command"
+echo "          first. The reference time series are generated at run time."
+echo "          The reference time series are in ascii files called ECC.1D and"
+echo "          POL.1D. You can easily plot them with 1dplot. You can also get"
+echo "          the commands that generated them (using the program waver) from"
+echo "          files called: ECC.WAVER.log and POL.WAVER.log." 
 echo ""
 echo "+++ Stimulus, and Time Series Parameters:"
 echo " -TR TR: TR, in seconds, of retinotopic scans"
@@ -1757,6 +1764,7 @@ echo "                is used as a targe for registering AVol. If not set, "
 echo "                EpiAnatRef is set to be EpiRef."
 echo " -noVR: Skip time series volume registration step. There will be no"
 echo "                regression of motion estimates with this option"
+echo " -no_volreg: Same as -noVR"
 echo " -anat_vol AVol: T1 volume acquired during the same session as the"
 echo "                 retinotopic scans. This volume is assumed to need"
 echo "                 registration to EpiRef volume. The registration"
