@@ -138,7 +138,7 @@ echo "setenv OMP_NUM_THREADS $qcpu"                         >  BBwarp_script
 echo 'echo $argv'                                           >> BBwarp_script
 echo 'foreach lucy ( $argv )'                               >> BBwarp_script
 echo '   set bbb = `basename $lucy _uni+tlrc.HEAD`'         >> BBwarp_script
-echo '   nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 4    \'  >> BBwarp_script
+echo '   nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 9    \'  >> BBwarp_script
 echo '                -minpatch 101 -useweight -nodset  \'  >> BBwarp_script
 echo "                $AAbasename" '$lucy'                  >> BBwarp_script
 echo '   nice gzip -9v ${bbb}_uniB*.BRIK'                   >> BBwarp_script
@@ -225,7 +225,7 @@ echo "=== Top    index list = $toplist"
 echo "setenv OMP_NUM_THREADS $qcpu"                                    >  CCwarp_script
 echo 'foreach fred ( $argv )'                                          >> CCwarp_script
 echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                    >> CCwarp_script
-echo '   nice 3dQwarp -prefix ${bbb}_uniC  -blur 0 3               \'  >> CCwarp_script
+echo '   nice 3dQwarp -prefix ${bbb}_uniC  -blur 1 6               \'  >> CCwarp_script
 echo '                -inilev 2  -minpatch 49 -nodset  -useweight  \'  >> CCwarp_script
 echo '                -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD          \'  >> CCwarp_script
 echo '                Qwarp_meanB+tlrc.HEAD $fred'                     >> CCwarp_script
@@ -302,7 +302,7 @@ echo "=== Top    index list = $toplist"
 echo "setenv OMP_NUM_THREADS $qcpu"                                       >  DDwarp_script
 echo 'foreach fred ( $argv )'                                             >> DDwarp_script
 echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                       >> DDwarp_script
-echo '   nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 -2                \'   >> DDwarp_script
+echo '   nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 4                 \'   >> DDwarp_script
 echo '                -inilev 5  -minpatch 23 -nodset    -useweight  \'   >> DDwarp_script
 echo '                -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD            \'   >> DDwarp_script
 echo '                Qwarp_meanC+tlrc.HEAD $fred'                        >> DDwarp_script
@@ -496,8 +496,6 @@ end
 FFF_done:
 
 ################ finished ################
-
-\rm -f *_uni[BCD]_WARP+tlrc.*
 
 echo " "
 echo "========== @toMNI_Qwarpar: compressing output BRIK files =========="
