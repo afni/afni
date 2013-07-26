@@ -495,8 +495,6 @@ int main( int argc , char *argv[] )
 
    /*-------------------------- help me if you can? --------------------------*/
 
-
-
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    mainENTRY("3drefit main"); machdep() ; PRINT_VERSION("3drefit") ; AUTHOR("RW Cox") ;
@@ -507,6 +505,7 @@ int main( int argc , char *argv[] )
    }
 
    AFNI_logger("3drefit",argc,argv) ;
+   PUTENV("AFNI_COMPRESSOR","NONE") ; /* 26 Jul 2013 */
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
