@@ -951,6 +951,7 @@ static INLINE float_triple hexahedron_bsv( float dx, float dy, float dz ,
    bsv.b = (  fxx*fxx + fyy*fyy + fzz*fzz
             + fxy*fxy + fyx*fyx + fxz*fxz
             + fzx*fzx + fyz*fyz + fzy*fzy ) / jcb - 3.0f ;
+   if( bsv.b < 0.0f ) bsv.b = 0.0f ;
 
    /* "vorticity" energy */
 
