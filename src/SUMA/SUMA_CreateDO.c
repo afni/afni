@@ -10460,19 +10460,10 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
       SO->aSO = aSO;
       *aSOp = NULL; /* allow no one to touch this anymore */
 
-      /* Now fill up some additional fields */
-      SUMA_LH("Filling extras");
-      SO->Side = SUMA_GuessSide(SO);
-      if (SO->isSphere == SUMA_GEOM_NOT_SET) SUMA_SetSphereParams(SO, -0.1);
-      SO->AnatCorrect = SUMA_GuessAnatCorrect(SO);
-      SO->State = 
-         SUMA_append_replace_string(
-            NI_get_attribute(nelxyz,"GeometricType"),
-            NI_get_attribute(nelxyz,"AnatomicalStructureSecondary"),
-            ".", 0);
-
       /* Is there an xform to apply ? */
-      SUMA_LH("Dealing with Xforms");
+      SUMA_LH("Dealing with Xforms.\n"
+              "Note that transform is not applied to normals.\n"
+              "Not sure what the standard dictates for such a case.");
       if (!SUMA_GetSOCoordXform(SO, xform)) {
          SUMA_S_Err("Failed to get xform!");
          NI_SET_INT(nelxyz,"inxformspace",0);
@@ -10485,6 +10476,18 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
             NI_SET_INT(nelxyz,"inxformspace",1);
          }
       }
+      
+      /* Now fill up some additional fields */
+      SUMA_LH("Filling extras");
+      SO->Side = SUMA_GuessSide(SO);
+      if (SO->isSphere == SUMA_GEOM_NOT_SET) SUMA_SetSphereParams(SO, -0.1);
+      SO->AnatCorrect = SUMA_GuessAnatCorrect(SO);
+      SO->State = 
+         SUMA_append_replace_string(
+            NI_get_attribute(nelxyz,"GeometricType"),
+            NI_get_attribute(nelxyz,"AnatomicalStructureSecondary"),
+            ".", 0);
+
    } else { /* add new one */
       SUMA_LH("Adding a new aSO");
       if (SO->aSO) {
