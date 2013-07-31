@@ -19,9 +19,12 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 /*------------------------------------------------------------------*/
 
 #undef INLINE
+
 #ifdef __GNUC__
 # define INLINE __inline__
-#else
+#endif
+
+#ifndef INLINE
 # define INLINE /*nada*/
 #endif
 
