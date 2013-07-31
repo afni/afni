@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  Jul, 2013, RCR, "3dmask_tool", MINOR, TYPE_BUG_FIX,
+   "fixed failure to apply a negative dilation in non-convert case",
+   "Thanks to W Gaggl for noting the problematic scenario."
+ } ,
+
  { 22,  Jul, 2013, RCR, "nifti_tool", MICRO, TYPE_GENERAL,
    "re-applied 2012 change of originator to shorts (lost with ITK update)",
    NULL
