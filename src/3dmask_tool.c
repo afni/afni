@@ -26,10 +26,14 @@ static char * g_history[] =
   "       (now dilations and erosions should be symmetric)\n"
   "0.2   5 Jun 2012\n"
   "     - explicit set of DSET_BRICK_TYPE() needed on F8 system?\n"
-  "     - make empty copy for grid test\n"
+  "     - make empty copy for grid test\n",
+  "0.3   30 Jul 2013\n"
+  "     - in apply_dilations: split out count/apply_affected_voxels\n"
+  "     - fixes a failure to apply a negative dilation in non-convert case\n"
+  "       (thanks to W Gaggl for noting the problematic scenario)\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.2, 5 June 2012";
+static char g_version[] = "3dmask_tool version 0.3, 30 July 2013";
 
 #include "mrilib.h"
 
@@ -57,6 +61,8 @@ param_t g_params;
 
 /*--------------- prototypes ---------------*/
 THD_3dim_dataset * apply_dilations (THD_3dim_dataset *, int_list *, int, int);
+int apply_affected_voxels(void *, int, byte *, int);
+int count_affected_voxels(void *, int, byte *, int, int);
 int convert_to_bytemask (THD_3dim_dataset * dset, int verb);
 int count_masks         (THD_3dim_dataset *[], int, int,
                          THD_3dim_dataset **, int *);
@@ -191,19 +197,16 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
    for( ivol=0; ivol < DSET_NVALS(dnew); ivol++ ) {
       datum = DSET_BRICK_TYPE(dnew, ivol);
       /* if non-byte data (short/float), make byte mask of volume */
-      if( datum == MRI_byte )
-         bdata = DBLK_ARRAY(dnew->dblk, ivol);
-      else if ( datum == MRI_float || datum == MRI_short )
-         bdata = THD_makemask(dnew, ivol, 1, 0);
-      else {
+      if( datum != MRI_byte && datum != MRI_float && datum != MRI_short ) {
          ERROR_message("invalid datum for result: %d", datum);
          RETURN(NULL);
       }
-      if( !bdata ) {
-         ERROR_message("failed to make as mask");
-         RETURN(NULL);
-      }
 
+      /* start with a clean mask */
+      bdata = THD_makemask(dnew, ivol, 1, 0);
+      if( !bdata ) { ERROR_message("failed to make as mask"); RETURN(NULL); }
+
+      /* apply dilations to mask */
       for( index=0; index < D->num; index++ ) {
          dsize = D->list[index];
          if(verb>2) INFO_message("... dilating vol %d by %d\n", ivol, dsize);
@@ -216,30 +219,23 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
          }
       }
 
+      /* split out count/apply_affected_voxels    30 Jul 2013 [rickr] */
+      /* -- this also fixes a failure to apply a negative dilation in */
+      /*    the non-convert case */
+
+      /* count affected voxels */
+      if( count_affected_voxels(DBLK_ARRAY(dnew->dblk, ivol), datum, bdata,
+                                nvox, verb) ) RETURN(NULL);
+
       /* if we are converting, just replace the old data */
-      if( convert && (datum == MRI_short || datum == MRI_float) ) {
+      if( convert ) {
          if( verb > 2 ) INFO_message("applying byte result from dilate");
          EDIT_substitute_brick(dnew, ivol, MRI_byte, bdata);
          /* explicit set needed on an Fedora 8 system?   5 Jun 2012 */
          DSET_BRICK_TYPE(dnew, ivol) = MRI_byte; 
-         continue;  /* so nothing more to do */
-      }
-
-      /* if short or float data, apply mask changes to data */
-      if( datum == MRI_short ) {
-         short * dptr = DBLK_ARRAY(dnew->dblk, ivol);
-         int     nfill=0;
-         if( verb > 2 ) INFO_message("applying dilate result to short data");
-         for( index = 0; index < nvox; index++ )
-            if( ! dptr[index] && bdata[index] ){ dptr[index] = 1; nfill++; }
-         if( verb > 1 ) INFO_message("AD: filled %d voxels", nfill);
-         free(bdata);
-      }
-      else if( datum == MRI_float ) {
-         float * dptr = DBLK_ARRAY(dnew->dblk, ivol);
-         if( verb > 2 ) INFO_message("applying dilate result to float data");
-         for( index = 0; index < nvox; index++ )
-            if( ! dptr[index] && bdata[index] ) dptr[index] = 1.0;
+      } else { /* apply mask changes, and nuke mask */
+         if( apply_affected_voxels(DBLK_ARRAY(dnew->dblk,ivol), datum,
+                                   bdata, nvox) ) RETURN(NULL);
          free(bdata);
       }
    }
@@ -253,6 +249,71 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
    }
 
    RETURN(dnew);
+}
+
+
+/*--------------- apply voxels affected by mask operation ---------------*/
+int apply_affected_voxels(void * data, int datum, byte * mask, int nvox)
+{
+   int index, fill=0, rm=0;
+
+   ENTRY("apply_affected_voxels");
+
+   if( datum == MRI_byte ) {
+      byte * dptr = (byte *)data;
+      for( index = 0; index < nvox; index++ )
+         if     ( mask[index] && ! dptr[index] ) dptr[index] = 1;
+         else if( ! mask[index] && dptr[index] ) dptr[index] = 0;
+   } else if( datum == MRI_short ) {
+      short * dptr = (short *)data;
+      for( index = 0; index < nvox; index++ )
+         if     ( mask[index] && ! dptr[index] ) dptr[index] = 1;
+         else if( ! mask[index] && dptr[index] ) dptr[index] = 0;
+   } else if( datum == MRI_float ) {
+      float * dptr = (float *)data;
+      for( index = 0; index < nvox; index++ )
+         if     ( mask[index] && ! dptr[index] ) dptr[index] = 1.0;
+         else if( ! mask[index] && dptr[index] ) dptr[index] = 0.0;
+   } else {
+      fprintf(stderr,"** apply_affected_voxels: bad datum %d\n", datum);
+      RETURN(1);
+   }
+
+   RETURN(0);
+}
+
+
+/*--------------- count voxels affected by mask operation ---------------*/
+int count_affected_voxels(void * data, int datum, byte * mask, int nvox,
+                          int verb)
+{
+   int index, fill=0, rm=0;
+
+   ENTRY("count_affected_voxels");
+
+   if( datum == MRI_byte ) {
+      byte * dptr = (byte *)data;
+      for( index = 0; index < nvox; index++ )
+         if     ( mask[index] && ! dptr[index] ) fill++;
+         else if( ! mask[index] && dptr[index] ) rm++;
+   } else if( datum == MRI_short ) {
+      short * dptr = (short *)data;
+      for( index = 0; index < nvox; index++ )
+         if     ( mask[index] && ! dptr[index] ) fill++;
+         else if( ! mask[index] && dptr[index] ) rm++;
+   } else if( datum == MRI_float ) {
+      float * dptr = (float *)data;
+      for( index = 0; index < nvox; index++ )
+         if     ( mask[index] && ! dptr[index] ) fill++;
+         else if( ! mask[index] && dptr[index] ) rm++;
+   } else {
+      fprintf(stderr,"** count_affected_voxels: bad datum %d\n", datum);
+      RETURN(1);
+   }
+
+   if(verb>1) INFO_message("AD: filled %d voxels, cleared %d", fill, rm);
+
+   RETURN(0);
 }
 
 
