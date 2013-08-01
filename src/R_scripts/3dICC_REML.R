@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dICC_REML.R, an AFNI IntraClass Correlation Package!
 #-----------------------------------------------------------
-#Version 0.0.5,  Jul 10, 2013
+#Version 0.0.6,  Aug 1, 2013
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/icc.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -63,6 +63,7 @@ libLoad("lme4")
 mask <- getInfo("Mask", parFile)
 
 fixEff <- getInfo("FixEff", parFile)
+if(is.na(fixEff)) fixEff <- 1
 ranEff <- unlist(strsplit(getInfo("RanEff", parFile), split="[+]"))
 
 # number of Clusters: optional
