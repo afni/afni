@@ -23,6 +23,7 @@ static byte gifti_surf_meta_to_afni_surf_meta(
 static byte afni_surf_meta_to_gifti_surf_meta(
                NI_group *aSO,
                gifti_image * gim);
+static int flip_float_triples(float * fdata, int ntrip);
 
 
 
@@ -141,7 +142,12 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
    giiDataArray  * dan=NULL; /* normals */
    long long  rows=0, cols=0;
    NI_element *nelxyz=NULL, *nelnormals=NULL, *nelxform=NULL, *nelijk=NULL;
+
+   int rai_convert = 0;
+
    ENTRY("gifti_surf_to_afni_surf");
+
+   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
 
    gifti_globs_from_env();     /* for thd_gifti */
    if( (dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0)) &&
@@ -183,6 +189,14 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
    NI_alter_veclen(nelxyz, (int)(rows*cols));
    NI_add_column(nelxyz, NI_FLOAT, (void *)dac->data); 
    NI_SETA_INT(nelxyz,"EmbedDim",3);
+
+   /* maybe convert LPI to RAI   31 Jul 2013 [rickr/zaid] */
+   if( rai_convert ) {
+      if( cols != 3 ) {
+         fprintf(stderr, "** GIFTI 2 AFNI: cols != 3, no RAI conversion\n");
+         rai_convert = 0;
+      } else flip_float_triples((float *)nelxyz->vec[0], rows);
+   }
    
    gifti_DA_rows_cols(  dat, 
                         &(rows),
@@ -200,6 +214,8 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
                         &(cols) );
       NI_alter_veclen(nelnormals, (int)(rows*cols));
       NI_add_column(nelnormals, NI_FLOAT, dan->data);
+      /* maybe convert LPI to RAI   31 Jul 2013 [rickr/zaid] */
+      if( rai_convert ) flip_float_triples((float *)nelnormals->vec[0], rows);
    } 
    
    if (!gifti_surf_meta_to_afni_surf_meta(gim, aSO)) {
@@ -207,9 +223,21 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
       RETURN(aSO);
    }
    
-   
-   
    RETURN(aSO);
+}
+
+static int flip_float_triples(float * fdata, int ntrip)
+{
+   float * fp = fdata;
+   int ind;
+   if( !fp || ntrip < 0 ) return 1;
+
+   for( ind = 0; ind < ntrip; ind++ ) {
+      *fp = -*fp;  fp++;
+      *fp = -*fp;  fp++;
+      fp++;
+   }
+   return 0;
 }
 
 /* convert afni surface to GIFTI surface */
@@ -218,8 +246,12 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    gifti_image * gim=NULL;
    giiDataArray  * da=NULL; 
    NI_element *nelxyz=NULL, *nelijk=NULL, *nelnormals=NULL, *nelxform=NULL;
+   int           rai_convert=0;
    
    ENTRY("afni_surf_to_gifti_surf");
+
+   /* maybe convert RAI back to LPI   1 Aug 2013 [rickr/zaid] */
+   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
 
    gifti_globs_from_env();     /* for thd_gifti */
    
@@ -268,7 +300,10 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    }
    memcpy( da->data, (void *)nelxyz->vec[0],
             sizeof(float)*da->dims[0]*da->dims[1]); 
-      
+
+   /* convert AFNI's RAI back to GIFTI's LPI */
+   if( rai_convert ) flip_float_triples((float *)da->data, da->dims[0]);
+
    /* coordsys is added in the afni_surf_meta_to_gifti_surf_meta function */
       
    /* and the triangles */
@@ -328,6 +363,9 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    }
    memcpy( da->data, nelnormals->vec[0],
             sizeof(float)*da->dims[0]*da->dims[1]); 
+   /* convert AFNI's RAI back to GIFTI's LPI */
+   if( rai_convert ) flip_float_triples((float *)da->data, da->dims[0]);
+
 #endif  /* end normals */
    
    /* and now for the grits */
@@ -349,13 +387,15 @@ static byte gifti_surf_meta_to_afni_surf_meta(
                NI_group *aSO)
 {
    char *cp=NULL;
-   int i=0, j=0, k=0;
+   int i=0, j=0, k=0, rai_convert=0;
    giiDataArray  * dac=NULL; /* coords */
    giiDataArray  * dat=NULL; /* triangles */
    NI_element *nelxyz=NULL, *nelijk=NULL, *nelnormals=NULL, *nelxform=NULL;
    double *dv = NULL;
    
    ENTRY("gifti_surf_meta_to_afni_surf_meta");
+
+   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
    
    /* Begin with nodelist */
    dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0);
@@ -422,6 +462,8 @@ static byte gifti_surf_meta_to_afni_surf_meta(
       for (i=0; i<4;++i) {
          for (j=0; j<4; ++j) {
             dv[k] = dac->coordsys[0]->xform[i][j];
+            /* maybe convert LPI to RAI   31 Jul 2013 [rickr/zaid] */
+            if( rai_convert && i < 2 ) dv[k] = -dv[k];
             ++k;
          }   
       }
@@ -473,16 +515,18 @@ static byte afni_surf_meta_to_gifti_surf_meta(
                NI_group *aSO, 
                gifti_image * gim )
 {
-   char *cp=NULL;
    int i=0, j=0;
    giiDataArray  * dac=NULL; /* coords */
    giiDataArray  * dat=NULL; /* triangles */
    NI_element *nelxyz=NULL, *nelijk=NULL, *nelnormals=NULL, *nelxform=NULL;
    double *dv=NULL;
-   int k=0;
+   int k=0, rai_convert=0;
    
    ENTRY("afni_surf_meta_to_gifti_surf_meta");
    
+   /* maybe convert RAI back to LPI   1 Aug 2013 [rickr/zaid] */
+   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
+
    /* Begin with nodelist */
    dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0);
    nelxyz = SUMA_FindNgrNamedElement(aSO,"Node_XYZ");
@@ -540,6 +584,8 @@ static byte afni_surf_meta_to_gifti_surf_meta(
    for (i=0; i<4; ++i) 
          for (j=0; j< 4; ++j) { 
             dac->coordsys[0]->xform[i][j] = dv[k];
+            if( rai_convert && i < 2 )  /* convert RAI back to LPI */
+               dac->coordsys[0]->xform[i][j] = -dac->coordsys[0]->xform[i][j];
             ++k;
          }
    dac = NULL; /* make sure it is not used below */

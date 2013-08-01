@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Aug, 2013, RCR, "suma-general", MINOR, TYPE_BUG_FIX,
+   "in suma_gifti.c, convert GIFTI's LPI to and from AFNI's RAI",
+   "Done with Ziad.  Thanks to N Oosterhof for bringing this up."
+ } ,
+
  { 31,  Jul, 2013, RCR, "3dmask_tool", MINOR, TYPE_BUG_FIX,
    "fixed failure to apply a negative dilation in non-convert case",
    "Thanks to W Gaggl for noting the problematic scenario."
