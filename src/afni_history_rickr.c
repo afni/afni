@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  Aug, 2013, RCR, "3dmask_tool", MINOR, TYPE_BUG_FIX,
+   "fixed apparent pointer step issue, which happens on only some systems",
+   "Same binary would work on one system but fail on another, so apparent\n"
+   "shared library difference (libc?).\n"
+   "Thanks to W Gaggl for pointing out the problem."
+ } ,
+
  {  1,  Aug, 2013, RCR, "suma-general", MINOR, TYPE_BUG_FIX,
    "in suma_gifti.c, convert GIFTI's LPI to and from AFNI's RAI",
    "Done with Ziad.  Thanks to N Oosterhof for bringing this up."
