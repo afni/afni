@@ -4600,6 +4600,9 @@ typedef struct {
 extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask, int ignore );
 extern MRI_vectim * THD_dset_to_vectim_stend( THD_3dim_dataset *dset, byte *mask , int start, int end ) ;
 
+extern MRI_vectim * THD_dset_censored_to_vectim( THD_3dim_dataset *dset,
+                                                 byte *mask , int nkeep , int *keep ) ;
+
 MRI_vectim * THD_2dset_to_vectim( THD_3dim_dataset *dset1, byte *mask1 ,
                                   THD_3dim_dataset *dset2, byte *mask2 ,
                                   int ignore );

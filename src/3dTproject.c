@@ -21,6 +21,7 @@ typedef struct {
    char                    *prefix ;
    float                      blur ;
    float                   *censar ;
+   int                     ncensar ;
    int_triple          *abc_CENSOR ;
    int                  num_CENSOR ;
    int                     cenmode ;
@@ -30,11 +31,20 @@ typedef struct {
 #define CEN_ZERO 1
 #define CEN_KILL 2
 
-static TPR_input tin = { NULL,NULL,NULL , 2 , 0,0 ,
-                         NULL,NULL,       NULL,0 ,
-                         0.0f , "Tproject" , 0.0f , NULL,NULL,0,CEN_KILL , 1 } ;
+/*----------------------------------------------------------------------------*/
+
+static TPR_input tin = { NULL,NULL,NULL ,
+                         2 , 0 , 0 ,
+                         NULL,NULL,
+                         NULL,0 , 0.0f ,
+                         "Tproject" ,
+                         0.0f ,
+                         NULL,0, NULL,0,CEN_KILL ,
+                         1 } ;
 
 static TPR_input *tinp = &tin ;
+
+/*----------------------------------------------------------------------------*/
 
 #undef  ADD_STOPBAND
 #define ADD_STOPBAND(bb,tt)                                                       \
@@ -46,7 +56,7 @@ static TPR_input *tinp = &tin ;
 
 /*----------------------------------------------------------------------------*/
 
-void TPR_help(void)
+void TPR_help_the_pitiful_user(void)
 {
   printf(
    "\n"
@@ -63,9 +73,11 @@ void TPR_help(void)
    "--------\n"
    " -input dataset      = Specifies the input dataset.\n"
    " -prefix ppp         = Specifies the output dataset, as usual.\n"
+#if 0
    "\n"
    " -despike            = Despike each input dataset time series before\n"
    "                       other processing.\n"
+#endif
    "\n"
    " -censor cname       = As in 3dDeconvolve.\n"
    " -CENSORTR clist     = As in 3dDeconvolve.\n"
@@ -87,7 +99,9 @@ void TPR_help(void)
    "                       ++ That is, 'fset' contains a different nuisance time\n"
    "                          series for each voxel (e.g., from AnatICOR).\n"
    "                       ++ Multiple -dsort options are allowed.\n"
+#if 0
    "                       ++ These datasets are NOT despiked or blurred!\n"
+#endif
    "\n"
    " -passband fbot ftop = Remove all frequences EXCEPT those in the range\n"
    "                       fbot..ftop.\n"
@@ -141,8 +155,11 @@ void TPR_help(void)
 }
 
 /*----------------------------------------------------------------------------*/
+/* get the workspace for compute_psinv() for a matrix of size m X n,
+   with some extra if desired.
+*//*--------------------------------------------------------------------------*/
 
-static char * get_psinv_wsp( int m , int n )
+static char * get_psinv_wsp( int m , int n , int extra )
 {
    char *wsp ;
 
@@ -154,19 +171,23 @@ static char * get_psinv_wsp( int m , int n )
    sval = (double *)calloc( sizeof(double),n   );   /* singular values */
 #endif
 
-   wsp = (char *)malloc( sizeof(double) * (2*m*n + 2*n + n*n) ) ;
+   if( extra < 0 ) extra = 0 ;
+   wsp = (char *)malloc( sizeof(double) * (2*m*n + 2*n + n*n + extra) ) ;
    return wsp ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Compute the pseudo-inverse of a matrix stored in a 2D float image.
-    If the input (rmat) is m X n, the output (pmat) is n X m.
+/*! Compute the pseudo-inverse of a matrix stored in a 2D float array
+    (in column-major order).
+    The input (rmat) is m X n, the output (pmat) is n X m.
+    The workspace should be allocated by get_psinv_wsp(), and can be
+    free()-ed when the need for it is over.
 *//*--------------------------------------------------------------------------*/
 
 static void compute_psinv( int m, int n, float *rmat, float *pmat, double *wsp )
 {
    int ii,jj,kk ;
-   double *amat , *umat , *vmat , *sval , *xfac , smax,del ;
+   double *amat , *umat , *vmat , *sval , *xfac , *wpp , smax,del ;
    register double sum ;
 
    /* deal with a single vector (of length m) */
@@ -191,11 +212,12 @@ static void compute_psinv( int m, int n, float *rmat, float *pmat, double *wsp )
    umat = (double *)calloc( sizeof(double),m*n );   /* left singular vectors */
    sval = (double *)calloc( sizeof(double),n   );   /* singular values */
 #else
-   amat = wsp ;
-   xfac = amat + m*n ;
-   vmat = xfac + n ;
-   umat = vmat + n*n ;
-   sval = umat + m*n ;
+   wpp = wsp ; if( wpp == NULL ) wpp = get_psinv_wsp(m,n,0) ;
+   amat = wpp ;            /* input matrix           (m*n) */
+   xfac = amat + m*n ;     /* column norms of amat   (n)   */
+   vmat = xfac + n ;       /* right singular vectors (n*n) */
+   umat = vmat + n*n ;     /* left singular vectors  (n*m) */
+   sval = umat + m*n ;     /* singular values        (n)   */
 #endif
 
 #undef  PSINV_EPS
@@ -206,16 +228,16 @@ static void compute_psinv( int m, int n, float *rmat, float *pmat, double *wsp )
 #undef  P
 #undef  U
 #undef  V
-#define R(i,j) rmat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
-#define A(i,j) amat[(i)+(j)*m]   /* i=0..m-1 , j=0..n-1 */
-#define P(i,j) pmat[(i)+(j)*n]   /* i=0..n-1 , j=0..m-1 */
+#define R(i,j) rmat[(i)+(j)*m]
+#define A(i,j) amat[(i)+(j)*m]
+#define P(i,j) pmat[(i)+(j)*n]
 #define U(i,j) umat[(i)+(j)*m]
 #define V(i,j) vmat[(i)+(j)*n]
 
    /* copy input matrix into amat */
 
    for( ii=0 ; ii < m ; ii++ )
-     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = R(ii,jj) ;
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = (double)R(ii,jj) ;
 
    /* scale each column to have norm 1 */
 
@@ -241,10 +263,12 @@ static void compute_psinv( int m, int n, float *rmat, float *pmat, double *wsp )
    }
 
    if( smax <= 0.0 ){                        /* this is bad */
-     static int first = 1 ;
+     static int first=1 ;
 #pragma omp critical (STDERR)
      { if( first ) ERROR_message("SVD fails in compute_psinv()!\n"); }
-     AAmemset( pmat , 0 , sizeof(double)*m*n ) ; first = 0 ; return ;
+     AAmemset( pmat , 0 , sizeof(float)*m*n ) ; first = 0 ;
+     if( wpp != wsp ) free(wpp) ;
+     return ;
    }
 
    /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
@@ -269,16 +293,28 @@ static void compute_psinv( int m, int n, float *rmat, float *pmat, double *wsp )
      for( jj=0 ; jj < m ; jj++ ) P(ii,jj) *= xfac[ii] ;
    }
 
+   if( wpp != wsp ) free(wpp) ;
    return ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Project out ONE set of vectors:
+     nr = number of rows = length of vectors
+     nc = number of columns = number of vectors
+    aar = nr X nc array of vectors
+    par = nc X nr pseudo-inverse of aar
+    var = nr length vector to have columns of aar projected out of
+          (will be modified in place)
+    wsp = workspace (at least nc floats long)
+*//*--------------------------------------------------------------------------*/
 
 static void project_out_once( int nr, int nc,
                               float *aar, float *par,
                               float *var, float *wsp )
 {
    float *ap,*pp,vv ; int ii,jj,kk ;
+
+   if( nr <= 0 || nc <= 0 ) return ;
 
    for( ii=0 ; ii < nc ; ii++ ) wsp[ii] = 0.0f ;
    for( kk=0 ; kk < nr ; kk++ ){
@@ -293,6 +329,21 @@ static void project_out_once( int nr, int nc,
 }
 
 /*----------------------------------------------------------------------------*/
+/* Project out TWO sets of vectors, one of which is fixed (aar) and one
+   of which varies with each voxel (bar):
+     nr = number of rows = length of vectors
+     nc = number of columns = number of vectors in the first set
+    aar = nr X nc array of vectors in the first set
+    par = nc X nr pseudo-inverse of aar
+     nb = number of vectors in the second set
+          if nb == 0, then this function just calls project_out_once()
+    bar = nr x nb array of vectors in the second set
+   pbar = nb x nr workspace of floats to hold the pseudo-inverse of bar
+          (will be computed in here)
+    var = nr length vector to have columns of aar projected out of,
+          and then columns of bar also (will be modified in place)
+    wsp = workspace (at least MAX(nc,nb) floats long)
+*//*--------------------------------------------------------------------------*/
 
 static void project_out_twice( int nr , int nc , float *aar , float *par  ,
                                         int nb , float *bar , float *pbar ,
@@ -312,35 +363,304 @@ static void project_out_twice( int nr , int nc , float *aar , float *par  ,
 }
 
 /*----------------------------------------------------------------------------*/
+/* Process all the data */
 
 void TPR_process_data( TPR_input *tp )
 {
-   /* check for errors:
-        ortar vectors too short
-        dsortar time series too short
-        just too many orts            */
+   int nt,nte,ntkeep , nort_fixed=0 , nort_voxel=0 , nbad=0 , qq,jj,qort ;
+   int *fmask=NULL , nf=0 ; float df ;
+   byte *vmask=NULL , nvmask=0 , nvox , *vlist=NULL ;
+   float *ort_fixed , *ort_voxel , *ort_fixed_psinv ;
+   int *keep=NULL ;
+   MRI_vectim *inset_mrv , **dsort_mrv=NULL ; nort_dsort=0 ;
 
-   /* make censor array */
+   nt = DSET_NVALS(tp->inset) ; nte = ((nt%2)==0) ;  /* nte = even-ness of nt */
 
-   /* make mask, if present */
+   nvox = DSET_NVOX(tp->inset) ;
 
-   /* make stopband frequency mask */
+   /*----- make censor array -----*/
 
-   /* create array of all fixed orts */
+   if( tp->censar != NULL){
+     if( tp->ncensar < nt ){
+       ERROR_message("-censor file is too short (%d) for dataset (%d)",tp->ncensar,nt) ;
+       nbad++ ;
+     } else if( tp->ncensar > nt ){
+       WARNING_message("-censort file is too long (%d) for dataset (%d)",tp->ncensar,nt) ;
+     }
+   } else {
+     tp->censar = (float *)malloc(sizeof(float)*nt) ;
+     for( jj=0 ; jj < nt ; jj++ ) tp->censar[jj] = 1.0f ;
+   }
 
-   /* make vector images from all input datasets */
+   /*-- apply any -CENSORTR commands --*/
 
-   /* despike input dataset */
+   if( tp->num_CENSOR > 0 ){
+     int cc , r,a,b ;
+     for( cc=0 ; cc < tp->num_CENSOR ; cc++ ){
+       r = tp->abc_CENSOR[cc].i; a = tp->abc_CENSOR[cc].j; b = tp->abc_CENSOR[cc].k;
+       if( r > 1 ) contine ; /* should not happen */
+       if( a < 0   ) a = 0 ;
+       if( b >= nt ) b = nt-1 ;
+       for( jj=a ; jj <= b ; jj++ ) tp->censar[jj] = 0.0f ;
+     }
+   }
 
-   /* censor fixed orts and all input datasets */
+   /*-- count number of time points that are kept (NOT censored) --*/
 
-   /* filter time series */
+   for( jj=ntkeep=0 ; jj < nt ; jj++ ) if( tp->censar[jj] != 0.0f ) ntkeep++ ;
 
-   /* blurring */
+   if( tp->verb )
+     INFO_message("input time points = %d ; censored = %d ; remaining = %d",
+                  nt , nt-ntkeep , ntkeep ) ;
 
-   /* convert output time series into dataset */
+   if( ntkeep < 9 )
+     ERROR_exit("only %d points left after censoring -- cannot continue",ntkeep) ;
 
-   /* clean up whatever trash is still left */
+   /*-- make list of time indexes to keep --*/
+
+   keep = (int *)malloc( sizeof(int) * ntkeep ) ;
+   for( qq=jj=0 ; jj < nt ; jj++ ) if( tp->censar[jj] != 0.0f ) keep[qq++] = jj ;
+
+   /*----- make stopband frequency mask, count number of frequency regressors -----*/
+
+   if( tp->nstopband > 0 ){
+     int ib , jbot,jtop ; float fbot,ftop ;
+
+     df = (tp->dt > 0.0f ) ? tp->dt : DSET_TR(tp->inset) ;
+     if( df <= 0.0f ) df = 1.0f ;
+     df = 1.0f / (nt*df) ;
+
+     nf = nt/2 ; fmask = (int *)calloc(sizeof(int)*(nf+1)) ;
+
+     for( ib=0 ; ib < tp->nstopband ; ib++ ){
+       fbot = tp->stopband[ib].a ;
+       ftop = tp->stopband[ib].b ;
+       jbot = (int)rintf(fbot/df); if( jbot < 0  ) jbot = 0 ;
+       jtop = (int)rintf(ftop/df); if( jbot > nf ) jbot = nf;
+       for( jj=jbot ; jj <= jtop ; jj++ ) fmask[jj] = 1 ;
+     }
+     if( fmask[0] ){                    /* always do freq=0 via polort */
+       if( tp->polort < 0 ) tp->polort = 0 ;
+       fmask[0] = 0 ;
+     }
+
+     for( jj=1 ; jj < nf ; jj++ ) if( fmask[jj] ) nort_fixed += 2 ;
+     if( fmask[nf] ) nort_fixed += (nte ? 1 : 2) ;
+
+     if( nort_fixed >= nt ){
+       ERROR_message(
+         "bandpass / stopbands ==> %d frequency regressors -- too many for %d time points!",
+         nort_fixed , nt ) ;
+       nbad++ ;
+     }
+   }
+
+   /*----- check for various errors:
+           ortar vectors too short
+           dsortar time series too short
+           just too many orts for the data -----*/
+
+   /*-- allow for polort (N.B.: freq=0 and const polynomial don't BOTH occur) */
+
+   if( tp->polort >= 0 ) nort_fixed += tp->polort+1 ;
+
+   /*-- check ortar --*/
+
+   if( tp->ortar != NULL ){
+     MRI_IMAGE *qim ;
+     for( qq=0 ; qq < IMARR_COUNT(tp->ortar) ; qq++ ){
+       qim = IMARR_SUBIM(tp->ortar,qq) ;
+       nort_fixed += qim->ny ;
+       if( qim->nx != nt ){
+         ERROR_message("-ort file #%d (%s) is %d long, but dataset is %d",
+                       qq+1 , qim->filename , qim->nx , nt ) ;
+         nbad++ ;
+       }
+     }
+   }
+
+   if( nort_fixed >= ntkeep ){
+     ERROR_message(
+       "number of fixed regressors (%d) is too many for %d retained time points!",
+       nort_fixed , nt ) ;
+     nbad++ ;
+   }
+
+   /*-- check dsortar --*/
+
+   if( tp->dsortar != NULL ){
+     for( jj=0 ; jj < tp->dsortar->num ){
+       if( DSET_NVALS(tp->dsortar->ar[jj]) != nt ){
+         ERROR_message("-dsort file #%d (%s) is %d long, but dataset is %d",
+                       qq+1 , DSET_BRIKNAME(tp->dsortar->ar[jj]) ,
+                              DSET_NVALS(tp->dsortar->ar[jj])    , nt ) ;
+         nbad++ ;
+       }
+     }
+     nort_dsort = nort_voxel = tp->dsortar->num ;
+   }
+
+   if( nort_voxel > 0 && nort_fixed+nort_voxel >= ntkeep ){
+     ERROR_message(
+       "number of fixed + voxel-wise regressors (%d+%d=%d) is too many for %d retained time points!",
+       nort_fixed,nort_voxel,nort_fixed+nort_voxel , nt ) ;
+     nbad++ ;
+   }
+
+   /***** refuse to continue if fatal errors have been observed in the wild *****/
+
+   if( nbad > 0 ) ERROR_exit("Cannot continue after above errors :-( :-( :-( !!") ;
+
+   if( tp->verb )
+     INFO_message("%d retained time points MINUS %d regressors ==> %d D.O.F. left",
+                  ntkeep , nort_fixed+nort_voxel , ntkeep-nort_fixed-nort_voxel    ) ;
+
+   /*----- make voxel mask, if present -----*/
+
+   if( tp->maskset != NULL ){
+     vmask = THD_make_mask( tp->maskset , 0 , 1.0f,0.0f ) ;
+     DSET_unload(tp->maskset) ;
+     if( vmask == NULL )
+       ERROR_exit("Can't make mask from -mask dataset '%s'",DSET_BRIKNAME(tp->maskset) ;
+     nvmask = THD_countmask( DSET_NVOX(tp->inset) , vmask ) ;
+     if( tp->verb )
+       INFO_message("%d voxels in the spatial mask",nvmask) ;
+     if( nvmask == 0 )
+       ERROR_exit("Mask from -mask dataset %s has 0 voxels",DSET_BRIKNAME(tp->maskset) ;
+   } else {
+     vmask = (byte *)malloc(sizeof(byte)*nvox) ; nvmask = nvox ;
+     for( jj=0 ; jj < nvox ; jj++ ) vmask[jj] = 1 ;
+     if( tp->verb )
+       INFO_message("no -mask option ==> processing all %d voxels in dataset",nvox) ;
+   }
+
+   /*-- make list of voxels to filter --*/
+
+   vlist = (int *)malloc(sizeof(int)*nvmask) ;
+   for( jj=qq=0 ; jj < nvox ; jj++ ) if( vmask[jj] ) vlist[qq++] = jj ;
+
+   /*----- create array of all fixed orts -----*/
+
+   ort_fixed = (float *)malloc( sizeof(float) * ntkeep * nort_fixed ) ;
+
+   /*-- polort part of ort_fixed --*/
+
+   qort = 0 ;
+   if( tp->polort >= 0 ){
+     double fac=2.0/(nt-1.0) ; float *opp , sum ; int pp ;
+     for( pp=0 ; pp <= tp->polort ; pp++ ){
+       opp = ort_fixed + qort*ntkeep ; qort++ ;
+       for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
+         opp[jj] = Plegendre(fac*keep[jj]-1.0,pp) ; sum += fabsf(opp[jj]) ;
+       }
+       if( sum == 0.0f ){  /* should not happen */
+         WARNING_message("sine -ort #%d is all zero: skipping",pp) ; qort-- ;
+       }
+     }
+   }
+
+   /*-- cosine/sine (stopbands) part of ort_fixed --*/
+
+   if( fmask != NULL ){
+     int pp ; float *opp , fq , sum ;
+     for( pp=1 ; pp <= nf ; pp++ ){
+       if( fmask[pp] == 0 ) continue ;
+       opp = ort_fixed + qort*ntkeep ; qort++ ;
+       fq = (2.0f * PI * pp) / (float)nt ;
+       for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
+         opp[jj] = cosf(fq*keep[jj]) ; sum += fabsf(opp[jj]) ;
+       }
+       if( sum == 0.0f ){  /* should not happen */
+         WARNING_message("cosine -ort #%d is all zero: skipping",pp) ; qort-- ;
+       }
+       if( pp < nf || nte == 0 ){  /* skip the Nyquist freq for sin() */
+         opp = ort_fixed + qort*ntkeep ; qort++ ;
+         for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
+           opp[jj] = sinf(fq*keep[jj]) ; sum += fabsf(opp[jj]) ;
+         }
+         if( sum == 0.0f ){  /* should not happen */
+           WARNING_message("sine -ort #%d is all zero: skipping",pp) ; qort-- ;
+         }
+       }
+     }
+   }
+
+   /*-- ortar part of ort_fixed --*/
+
+   if( tp->ortar != NULL ){
+     MRI_IMAGE *qim ; float *qar , *opp , *qpp , sum ; int pp ;
+     for( qq=0 ; qq < IMARR_COUNT(tp->ortar) ; qq++ ){
+       qim = IMARR_SUBIM(tp->ortar,qq) ; qar = MRI_FLOAT_PTR(qim) ;
+       for( pp=0 ; pp < qim->ny ; pp++ ){
+         qpp = qar + pp*qim->nx ;
+         opp = ort_fixed + qort*ntkeep ; qort++ ;
+         for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
+           opp[jj] = qpp[keep[jj]] ; sum += fabsf(opp[jj]) ;
+         }
+         if( sum == 0.0f ){
+           WARNING_message("fixed -ort #%d, column #%d is all zero: skipping",
+                           qq+1 , pp ) ;
+           qort-- ;
+         }
+       }
+     }
+     DESTROY_IMARR(tp->ortar) ; tp->ortar = NULL ;
+   }
+
+   nort_fixed = qort ;  /* in case it shrank above */
+
+   /*-- pseudo-inverse --*/
+
+   if( nort_fixed > 0 ){
+     ort_fixed_psinv = (float *)malloc(sizeof(float)*ntkeep*nort_fixed) ;
+     compute_psinv( ntkeep, nort_fixed, ort_fixed, ort_fixed_psinv, NULL ) ;
+   } else {
+     ort_fixed_psinv = NULL ;
+   }
+
+   /*----- make vector images from all input datasets -----*/
+
+   inset_mrv = THD_dset_censored_to_vectim( tp->inset, vmask, ntkeep, keep ) ;
+   DSET_unload(tp->inset) ;
+
+   if( tp->dsortar != NULL ){
+     dsort_mrv = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nort_dsort) ;
+     for( jj=0 ; jj < nort_dsrot ){
+       dsort_mrv[jj] = THD_dset_censored_to_vectim( tp->dsortar->ar[jj] ,
+                                                    vmask, ntkeep, keep ) ;
+       DSET_unload(tp->dsortar->ar[jj]) ;
+     }
+   }
+
+   /*----- despike input dataset -----*/
+
+   if( tp->do_despike ) (void)THD_vectim_despike9( inset_mrv ) ;
+
+   /*----- filter time series -----*/
+
+AFNI_OMP_START ;
+#pragma omp parallel
+{  int vv , nds=nort_dsort+1 ;
+   double *wsp ; float *dsar ;
+
+#pragma omp critical
+   { wsp = get_psinv_wsp( ntkeep , nds , ntkeep*2 ) ;
+     dsar = (float *)malloc(sizeof(float)*nds*ntkeep) ; }
+
+#pragma omp for
+   for( vv=0 ; vv < nvmask ; vv++ ){
+   }
+
+#pragma omp critical
+   { free(wsp) ; free(dsar) ; }
+}
+AFNI_OMP_END ;
+
+   /*----- blurring -----*/
+
+   /*----- convert output time series into dataset -----*/
+
+   /*----- clean up whatever trash is still left -----*/
 }
 
 /*----------------------------------------------------------------------------*/
@@ -353,7 +673,8 @@ int main( int argc , char *argv[] )
    /*----------*/
 
    AFNI_SETUP_OMP(0) ;
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) TPR_help() ;
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 )
+     TPR_help_the_pitiful_user() ;
 
    /*----- scan options -----*/
 
@@ -500,7 +821,7 @@ int main( int argc , char *argv[] )
        if( tinp->censar != NULL ) ERROR_exit("Can't use -censor more than once!") ;
        cenim = mri_read_1D(argv[iarg]) ;
        if( cenim == NULL ) ERROR_exit("-censor can't read file '%s'",argv[iarg]) ;
-       tinp->censar = MRI_FLOAT_PTR(cenim) ;
+       tinp->censar = MRI_FLOAT_PTR(cenim) ; tinp->ncensar = cenim->nx ;
        mri_clear_and_free(cenim) ;
        iarg++ ; continue ;
      }
@@ -555,9 +876,13 @@ int main( int argc , char *argv[] )
               nerr++ ; continue ;
             }
           }
-          tinp->abc_CENSOR = (int_triple *)realloc( tinp->abc_CENSOR ,
-                                              sizeof(int_triple)*(tinp->num_CENSOR+1) );
-          rab.i = r; rab.j = a; rab.k = b; tinp->abc_CENSOR[tinp->num_CENSOR++] = rab ;
+          if( r > 1 ){
+            WARNING_message("-CENSORTR '%s' has run number > 1 ==> ignoring it",nsar->str[ns]) ;
+          } else {
+            tinp->abc_CENSOR = (int_triple *)realloc( tinp->abc_CENSOR ,
+                                                sizeof(int_triple)*(tinp->num_CENSOR+1) );
+            rab.i = r; rab.j = a; rab.k = b; tinp->abc_CENSOR[tinp->num_CENSOR++] = rab ;
+          }
         } /* end of loop over -CENSORTR strings */
         if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSORTR errors! [iarg=%d]",iarg) ;
         NI_delete_str_array(nsar) ; free(src) ;
