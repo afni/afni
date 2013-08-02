@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Aug, 2013, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "check for multiple R and python programs in PATH",
+   NULL
+ } ,
+
  {  2,  Aug, 2013, RCR, "3dANOVA", MINOR, TYPE_BUG_FIX,
    "if AFNI_COMPRESSOR and input nii.gz, 'remove()' would not remove BRIK.gz",
    "Thanks to P Molfese for noting the problem."

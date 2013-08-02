@@ -90,10 +90,17 @@ class SysInfo:
             if s: print '%-20s : %s' % ('%s version'%prog, v)
       print
 
-      rv, files = UTIL.search_path_dirs('afni', exact=1)
-      if not rv:
-         print "instances of 'afni' found in PATH: %d" % len(files)
-         if len(files) > 0: print '   '+'\n   '.join(files)
+      # make generic but pretty
+      print "instances of various programs found in PATH:"
+      proglist = ['afni', 'R', 'python']
+      ml = UTIL.max_len_in_list(proglist)
+      for prog in proglist:
+         rv, files = UTIL.search_path_dirs(prog, exact=1)
+         if not rv:
+            if len(files) > 1:   fstr = '\n      '+'\n      '.join(files)
+            elif len(files) > 0: fstr = '  (%s)' % files[0]
+            else:                fstr = ''
+            print '    %-*s : %d %s' % (ml, prog, len(files), fstr)
       print
 
       ind = '%8s' % ' '
