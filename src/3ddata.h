@@ -5060,6 +5060,8 @@ extern int THD_bandpass_vectim( MRI_vectim *mrv ,
 extern int      THD_despike9       ( int, float *) ; /* 08 Oct 2010 */
 extern int_pair THD_vectim_despike9( MRI_vectim *) ;
 
+extern void THD_vectim_despike_L1( MRI_vectim *mrv , int localedit ) ; /* 02 Aug 2013 */
+
 extern THD_3dim_dataset * THD_despike9_dataset( THD_3dim_dataset *, byte * ) ;
 
   /*-- see mri_3dalign.c for these routines --*/
