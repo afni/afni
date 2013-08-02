@@ -72,9 +72,10 @@ g_history = """
 
    0.0  Jul 11, 2013    - initial version
    0.1  Jul 16, 2013    - added a couple of checks for early python versions
+   0.2  Aug 02, 2013    - check for multiple R and python programs in PATH
 """
 
-g_version = "afni_system_check.py version 0.1, July 16, 2013"
+g_version = "afni_system_check.py version 0.2, August 2, 2013"
 
 
 class CmdInterface:
