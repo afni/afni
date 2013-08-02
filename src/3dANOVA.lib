@@ -816,11 +816,14 @@ void remove_dataset (THD_3dim_dataset * new_dset, char * filename)
    switch( use_1D_filenames ){  /* 14 Mar 2003 - RWCox */
      default:
        remove (DSET_HEADNAME(new_dset));
-       remove (DSET_BRIKNAME(new_dset));
+       /* remove might fail if BRIK got compressed    2 Aug 2013 [rickr] */
+       if( remove (DSET_BRIKNAME(new_dset)) )
+          COMPRESS_unlink(DSET_BRIKNAME(new_dset));
 #if 0
        fprintf(stderr,"%s ",DSET_HEADNAME(new_dset)) ;
        fprintf(stderr,"%s\n",DSET_BRIKNAME(new_dset)) ;
 #endif
+     break ;                         /* was missing   2 Aug 2013 [rickr] */
 
      case 1:
      case 3:{
