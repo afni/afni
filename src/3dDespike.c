@@ -417,7 +417,7 @@ int main( int argc , char *argv[] )
         kzold = kz ;
       }
 #else
-      if( verb && ii % 5000 == 4999 ) fprintf(stderr,".") ;
+      if( verb && ii % 2345 == 1234 ) fprintf(stderr,".") ;
 #endif
 
       /*** extract ii-th time series into far[] ***/
