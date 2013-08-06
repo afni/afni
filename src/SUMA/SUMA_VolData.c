@@ -1218,6 +1218,7 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
                   Xform[1][0], Xform[1][1], Xform[1][2], Xform[1][3],    \
                   Xform[2][0], Xform[2][1], Xform[2][2], Xform[2][3]   );
    } else {
+      SUMA_LH("Inverting xform");
       LOAD_MAT44( A0, \
                   Xform[0][0], Xform[0][1], Xform[0][2], Xform[0][3],    \
                   Xform[1][0], Xform[1][1], Xform[1][2], Xform[1][3],    \
@@ -1225,6 +1226,8 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
       A = nifti_mat44_inverse(A0);
    }            
    
+   SUMA_LHv("Node 0, Pre: %f %f %f\n",
+            NodeList[0] , NodeList[1], NodeList[2]);
    for (i=0; i < N_Node; ++i) {
       id = NodeDim * i;
       x = (double)NodeList[id] ;
@@ -1254,7 +1257,9 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
          NodeList[id+1] -= ppshift[1];
          NodeList[id+2] -= ppshift[2];
       }
-    }
+   }
+   SUMA_LHv("Node 0, Post: %f %f %f\n",
+            NodeList[0] , NodeList[1], NodeList[2]);
 
    SUMA_RETURN(YUP);
 }

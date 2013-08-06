@@ -5052,7 +5052,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_viewSurfaceCont"};
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
