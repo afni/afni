@@ -4785,7 +4785,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    SUMA_DO_Types ttv[2]={SO_type, GRAPH_LINK_type};
    float *XYZ, *XYZmap, zfac = 0.0;
    DList *list = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
