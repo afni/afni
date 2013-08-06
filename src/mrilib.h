@@ -129,6 +129,8 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 # define AAmemcpy memcpy
 # define AAmemset memset
 #endif
+#define AA_memcpy AAmemcpy
+#define AA_memset AAmemset
 
 /* to disable ENTRY/RETURN macros (which use static variables) */
 

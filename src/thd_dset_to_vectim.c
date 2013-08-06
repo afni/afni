@@ -1078,6 +1078,43 @@ ENTRY("THD_vectim_to_dset") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------*/
+/* The jj-th time point in the vectim goes to the tlist[jj]-th time
+   point in the output dataset [06 Aug 2013].
+*//*--------------------------------------------------------------------*/
+
+void THD_vectim_to_dset_indexed( MRI_vectim *mrv ,
+                                 THD_3dim_dataset *dset , int *tlist )
+{
+   int nvals , nvec ,  jj,kk , tmax=0 ;
+   float *tar , *var ;
+
+ENTRY("THD_vectim_to_dset_indexed") ;
+
+   if( mrv == NULL || !ISVALID_DSET(dset) || tlist == NULL ) EXRETURN ;
+
+   nvec  = mrv->nvec ;
+   nvals = mrv->nvals ;
+
+   for( kk=0 ; kk < nvals ; kk++ ){
+     if( tlist[kk] < 0    ) EXRETURN ;
+     if( tlist[kk] > tmax ) tmax = tlist[kk] ;
+   }
+   tmax++ ; if( DSET_NVALS(dset) < tmax ) EXRETURN ;
+
+   tar = (float *)malloc(sizeof(float)*tmax) ;
+
+   for( kk=0 ; kk < nvec ; kk++ ){
+     var = VECTIM_PTR(mrv,kk) ;
+     for( jj=0 ; jj < tmax  ; jj++ ) tar[jj] = 0.0f ;
+     for( jj=0 ; jj < nvals ; jj++ ) tar[jj] = var[tlist[jj]] ;
+     THD_insert_series( mrv->ivec[kk] , dset ,
+                        tmax , MRI_float , tar , 0 ) ;
+   }
+
+   free(tar) ; EXRETURN ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 MRI_vectim * THD_tcat_vectims( int nvim , MRI_vectim **vim )
