@@ -18286,7 +18286,7 @@ SUMA_Boolean SUMA_Dset_to_GDset(SUMA_DSET **pdset,
    SUMA_DSET *tdset=NULL, *dset=NULL;
    float tt;
    char *dname=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -18534,7 +18534,7 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
    static char FuncName[]={"SUMA_GDSET_Set_Aux_matrix_shape"};
    double range[2];
    int loc[2];
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    if (!dset->dnel) {
