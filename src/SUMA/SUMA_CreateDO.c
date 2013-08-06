@@ -4609,7 +4609,7 @@ GLubyte *SUMA_New_colid(SUMA_SurfaceViewer *sv,
    DListElmt *elt=NULL;
    DListElmt *elf=NULL;
    int nwarn=0; 
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -10423,7 +10423,7 @@ int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, char *which,
    SUMA_VIS_XFORM *vx;
    float *xx=NULL;
    int n, nn, xform_orig=0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

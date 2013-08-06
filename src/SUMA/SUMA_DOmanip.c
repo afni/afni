@@ -1308,7 +1308,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_SphereDO *spdo=NULL;
    SUMA_NIDO *nido=NULL;
    SUMA_GraphLinkDO *gldo =NULL; 
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
 

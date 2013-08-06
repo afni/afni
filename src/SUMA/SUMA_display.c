@@ -8105,7 +8105,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_GLDO (
    int loc[2], i;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
