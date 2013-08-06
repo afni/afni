@@ -1413,7 +1413,7 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Failed to add history");
       }
       SUMA_free(ppo); ppo=NULL;
-      if (!SUMA_AddDsetIndexCol(adset, NULL)) {
+      if (!SUMA_AddDsetIndexCol(adset, NULL, NULL, NULL)) {
          SUMA_S_Err("Failed to add new data");
          SUMA_FreeDset(adset); exit(1);
       } 

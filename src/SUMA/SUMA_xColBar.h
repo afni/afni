@@ -51,12 +51,6 @@
 #endif
 
 #define SUMA_XHAIR_STRING(v, str)   {\
-   /* sprintf(str,"%5s , %5s , %5s", \
-               MV_format_fval(v[0]), MV_format_fval(v[1]), MV_format_fval(v[2]));   */\
-   /*
-   This one below does not work, all three three strings have the same value
-   sprintf(str,"%s, %s, %s", \
-      MV_format_fval2(v[0], 7),  MV_format_fval2(v[1], 7),  MV_format_fval2(v[2], 7)); */\
    sprintf(str,"%s, ", MV_format_fval2(v[0], 7)); \
    strcat(str, MV_format_fval2(v[1], 7)); \
    strcat(str, ", ");   \
@@ -110,33 +104,61 @@ No callback is made*/
 
 /* scale size gets messed up, see afni_widg.c and afni.h's
 FIX_SCALE_SIZE*/
-#define SUMA_FORCE_SCALE_HEIGHT(SO) {\
-  XtVaSetValues(  SO->SurfCont->thr_sc, XmNheight,  SUMA_CMAP_HEIGHT-40, NULL ) ; \
+#define SUMA_FORCE_SCALE_HEIGHT(SurfCont) {\
+  XtVaSetValues(  SurfCont->thr_sc, XmNheight,  SUMA_CMAP_HEIGHT-40, NULL ) ; \
 }
 
-#define SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO) {\
-      SUMA_UpdateNodeNodeField(SO); \
+#define SUMA_UPDATE_ALL_NODE_GUI_FIELDS(ado) {\
+      SUMA_UpdateNodeNodeField(ado); \
       /* Now get the data values at that node */   \
-      SUMA_UpdateNodeValField(SO);  \
+      SUMA_UpdateNodeValField(ado);  \
       /* now find that node in the colored list */ \
-      SUMA_UpdateNodeLblField(SO);  \
+      SUMA_UpdateNodeLblField(ado);  \
 }    
 
 /*! structure for holding table data for range setting */
 typedef struct {
-   SUMA_SurfaceObject *SO;
+   SUMA_ALL_DO *ado;
    SUMA_OVERLAYS *colp;
 } SUMA_SRV_DATA;
 
-
+SUMA_Boolean SUMA_isTopColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_isCurColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
+SUMA_X_SurfCont *SUMA_ADO_Cont(SUMA_ALL_DO *ado);
+SUMA_ALL_DO *SUMA_Cont_ADO(SUMA_X_SurfCont *SurfCont);
+SUMA_SurfaceObject *SUMA_Cont_SO(SUMA_X_SurfCont *SurfCont);
+SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_isADO_Cont_Realized(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_isADO_Cont_Created(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_isTopColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_isCurColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
+float *SUMA_ADO_DatumXYZ(SUMA_ALL_DO *ado, int isel, char *variant);
+float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here);
+float *SUMA_GDSET_NodeXYZ(SUMA_DSET *dset, int node, char *variant, float *here);
+char *SUMA_ADO_LDP(SUMA_ALL_DO *ado);
+char * SUMA_ADO_Label(SUMA_ALL_DO *ado);
+char * SUMA_ADO_idcode(SUMA_ALL_DO *ado);
+char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado);
+SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado);
+int SUMA_ADO_N_Datum(SUMA_ALL_DO *ado);
+char * SUMA_ADO_variant(SUMA_ALL_DO *ado);
+int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
+                                          SUMA_COLID_OFFSET_DATUM *codf);
+SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel);
+int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado);
+SUMA_OVERLAYS * SUMA_ADO_Overlay0(SUMA_ALL_DO *ado);
+SUMA_OVERLAYS * SUMA_ADO_Overlay(SUMA_ALL_DO *ado, int i);
+SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado);
 void SUMA_ShowMeTheChildren(Widget w);
 void SUMA_UnmanageTheChildren(Widget w);
 void SUMA_ManageTheChildren(Widget w);
 void SUMA_DoForTheChildren(Widget w, int i, int lvl, int rec);
+Widget SUMA_FindChildWidgetNamed(Widget w, char *name);
 XImage *SUMA_cmap_to_XImage (Widget wid, SUMA_COLOR_MAP *cm);
 void SUMA_DrawCmap(SUMA_COLOR_MAP *Cmap);
-void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO);
-void SUMA_cmap_context_Init(SUMA_SurfaceObject *SO);
+void SUMA_cmap_wid_display(SUMA_ALL_DO *ado);
+void SUMA_cmap_context_Init(SUMA_ALL_DO *ado);
 void SUMA_cmap_wid_graphicsInit (Widget w, XtPointer clientData, XtPointer call);
 Boolean SUMA_cmap_wid_handleRedisplay(XtPointer clientData);
 void SUMA_cmap_wid_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
@@ -144,45 +166,50 @@ void SUMA_cmap_wid_expose(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cmap_wid_resize(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer call);
 unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb);
-void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO);
+void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado);
 void SUMA_cb_ColMap_Switch(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_SwitchCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM, int setmenu);
-int SUMA_SwitchCmap_one(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM, int setmenu);
-int SUMA_SelectSwitchCmap_one( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,
+int SUMA_SwitchCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM, int setmenu);
+int SUMA_SwitchCmap_one(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM, int setmenu);
+int SUMA_SelectSwitchCmap_one( SUMA_ALL_DO *ado, SUMA_LIST_WIDGET *LW,
                                int ichoice, SUMA_Boolean CloseShop, int setmen);
-int SUMA_SelectSwitchCmap( SUMA_SurfaceObject *SO, SUMA_LIST_WIDGET *LW,
+int SUMA_SelectSwitchCmap( SUMA_ALL_DO *ado, SUMA_LIST_WIDGET *LW,
                            int ichoice, SUMA_Boolean CloseShop, int setmen);
 int SUMA_SwitchColPlaneBrightness_one(
-         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
          int ind, int setmen);
 int SUMA_SwitchColPlaneBrightness(
-         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
          int ind, int setmen);
 void SUMA_cb_SwitchBrightness(Widget w, XtPointer clientData, XtPointer call);
 int SUMA_SwitchColPlaneThreshold(
-         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
          int ind, int setmen);
 int SUMA_SwitchColPlaneThreshold_one(
-         SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
          int ind, int setmen);
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_SwitchColPlaneIntensity(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+int SUMA_SwitchColPlaneIntensity(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
                                  int ind, int setmen);
 int SUMA_SwitchColPlaneIntensity_one (
-         SUMA_SurfaceObject *SO, 
+         SUMA_ALL_DO *ado, 
          SUMA_OVERLAYS *colp, 
          int ind, int setmen);
 void SUMA_cb_SwitchIntensity(Widget w, XtPointer clientData, XtPointer call);
 SUMA_MenuItem *SUMA_FreeMenuVector(SUMA_MenuItem *menu, int Nels);
-SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, int *N_items);
-void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Boolean NewMap);
+SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado, 
+                                            int what, int *N_items);
+void SUMA_set_cmap_options(SUMA_ALL_DO *ado, 
+                           SUMA_Boolean NewDset, SUMA_Boolean NewMap);
+void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
+                           SUMA_Boolean NewMap);
+
 void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call);
 SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps);
 void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call);
 void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call);
-SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int type, int bringup);
-SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM);
-SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str);
+SUMA_Boolean SUMA_CmapSelectList(SUMA_ALL_DO *ado, int type, int bringup);
+SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM);
+SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str);
 int SUMA_GetListIchoice(XmListCallbackStruct *cbs, 
                         SUMA_LIST_WIDGET *LW,
                         SUMA_Boolean *CloseShop);
@@ -196,18 +223,18 @@ void SUMA_cb_SelectSwitchBrt (
          Widget w, XtPointer client_data, 
          XtPointer call_data);
 int SUMA_SelectSwitchDsetCol(
-         SUMA_SurfaceObject *SO, 
+         SUMA_ALL_DO *ado, 
          SUMA_LIST_WIDGET *LW, 
          int block,
          int ichoice);
 void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call);
-void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2]);  
-int SUMA_set_threshold_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2]);  
+int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *val);
-int SUMA_set_threshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *val);
 void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_set_threshold_label(SUMA_SurfaceObject *SO, float val);
+int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );
 void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, 
@@ -237,35 +264,35 @@ void SUMA_leave_TableField( Widget w , XtPointer client_data ,
 void SUMA_SetRangeValueOld (void *data);
 void SUMA_SetRangeValueOld_one (void *data);
 #endif
-int SUMA_SetRangeValueNew(SUMA_SurfaceObject *SO, 
+int SUMA_SetRangeValueNew(SUMA_ALL_DO *ado, 
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
                           int setmen, 
                           int redisplay, float *reset);
-int SUMA_SetRangeValueNew_one(SUMA_SurfaceObject *SO, 
+int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado, 
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
                           int setmen, 
                           int redisplay, float *reset);
 void SUMA_cb_SetRangeValue (void *data);
-int SUMA_SetClustValue(SUMA_SurfaceObject *SO, 
+int SUMA_SetClustValue(SUMA_ALL_DO *ado, 
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
                           int setmen, 
                           int redisplay, float *reset);
-int SUMA_SetClustValue_one(SUMA_SurfaceObject *SO, 
+int SUMA_SetClustValue_one(SUMA_ALL_DO *ado, 
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
                           int setmen, 
                           int redisplay, float *reset);
 void SUMA_cb_SetClustValue (void *data);
-SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_ALL_DO *ado, 
                         SUMA_OVERLAYS *colp, int i, int j, int Button); 
-SUMA_Boolean SUMA_SetClustTableTit (SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_SetClustTableTit (SUMA_ALL_DO *ado, 
                         SUMA_OVERLAYS *colp, int i, int j, int Button);
 void SUMA_SetClustTableTit_EV ( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch ); 
@@ -274,50 +301,64 @@ SUMA_Boolean SUMA_SetTableTitleButton1(SUMA_TABLE_FIELD *TF, int i, int j,
 SUMA_TABLE_FIELD * SUMA_AllocTableField(void);
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF);
 SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n);
-SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what);
-SUMA_Boolean SUMA_InitClustTable(SUMA_SurfaceObject *SO);
-void SUMA_CreateXhairWidgets(Widget parent, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_InitRangeTable(SUMA_ALL_DO *ado, int what);
+SUMA_Boolean SUMA_InitClustTable(SUMA_ALL_DO *ado);
+void SUMA_CreateXhairWidgets(Widget parent, SUMA_ALL_DO *ado);
+void SUMA_CreateXhairWidgets_SO(Widget parent, SUMA_ALL_DO *ado);
+void SUMA_CreateXhairWidgets_GLDO(Widget parent, SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_UpdateCrossHairNodeLabelField(SUMA_SurfaceViewer *sv);
 void SUMA_XhairInput (void* data);
-SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO);
 void SUMA_NodeInput (void* data);
+void SUMA_GNodeInput (void *data);
 void  SUMA_SetCellEditMode(SUMA_TABLE_FIELD *TF, int i, int j, int Mode);
 void SUMA_TriInput (void* data);
 SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO);
-char **SUMA_FormNodeValFieldStrings(SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ADO);
+SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ADO);
+char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado, 
                                  SUMA_DSET *dset, int Node,
                                  int find, int tind, int bind, int dec);
-SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_SurfaceObject *SO);
-void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
-void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
-void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_data);
-void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_data);
-SUMA_Boolean SUMA_SetCmapMode(SUMA_SurfaceObject *SO, int imenu);
-void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data, XtPointer call_data);
+SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado);
+void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, 
+                                    XtPointer client_data);
+void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, 
+                                    XtPointer client_data);
+void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, 
+                                    XtPointer client_data);
+void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, 
+                                    XtPointer call_data);
+SUMA_Boolean SUMA_SetCmapMode(SUMA_ALL_DO *ado, int imenu);
+void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data, 
+                                    XtPointer call_data);
+void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
+                                SUMA_Boolean NewMap);
 void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data);
 SUMA_COLOR_MAP *SUMA_LoadCmapFile_eng(char *filename);
 void SUMA_LoadCmapFile (char *filename, void *data);
 SUMA_Boolean  SUMA_Insert_Cmap_of_Dset(SUMA_DSET *dset);
-void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
-int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val);
+void SUMA_CreateUpdatableCmapMenu(SUMA_ALL_DO *ado);
+int SUMA_ThreshVal2ScalePos(SUMA_ALL_DO *ado, float *val);
 void SUMA_cb_SetScaleThr(void *data);
-int SUMA_SetScaleThr_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                           float *val, int setmen, int redisplay);
-int SUMA_SetScaleThr(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                           float *val, int setmen, int redisplay);
 SUMA_Boolean SUMA_DsetColSelectList(
-         SUMA_SurfaceObject *SO, int type, 
+         SUMA_ALL_DO *ado, int type, 
          int refresh, int bringup);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset); 
-void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh);
-SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO);
-char *SUMA_GetLabelsAtNode(SUMA_SurfaceObject *SO, int node);
-SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
-
+void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh);
+double SUMA_Pval2ThreshVal (SUMA_ALL_DO *ado, double pval);
+SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado);
+SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado);
+char *SUMA_GetLabelsAtNode(SUMA_ALL_DO *ado, int node);
+char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node);
+SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
+SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado, 
+                                     SUMA_SurfaceViewer *sv);
 /* the help strings */
 
 /* Surface Properties Block */
@@ -369,7 +410,7 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
    "cross hair in your viewer."    
 
 #define SUMA_SurfContHelp_Node   \
-   "Node index of node in\n"   \
+   "Index of node in\n"   \
    "focus on this controller's\n"   \
    "surface. Nodes in focus are\n"   \
    "highlighted by the blue sphere\n"   \
@@ -380,7 +421,10 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
    "location (like 'j').\n"   \
    "Use 'alt+l' to center the\n"   \
    "cross hair in your viewer."
-         
+
+ #define SUMA_SurfContHelp_GNode   \
+   "FILL ME"
+        
 #define SUMA_SurfContHelp_Tri   \
    "1- Triangle (faceset) index of\n"   \
    "triangle in focus on this \n"   \
@@ -391,29 +435,46 @@ SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_SurfaceObject *SO, char *str);
    "focus (like 'J').\n"   \
    "2- Nodes forming triangle."
 
+#define SUMA_SurfContHelp_GEdge \
+   "FILL ME"
+   
 #define SUMA_SurfContHelp_NodeValTblr0 \
    "Data Values at node in focus"
-
+#define SUMA_SurfContHelp_GEdgeValTblr0 \
+   "Data Values at edge in focus"
+   
 #define SUMA_SurfContHelp_NodeValTblc0 \
    "Data Values at node in focus"
-
+#define SUMA_SurfContHelp_GEdgeValTblc0 \
+   "Data Values at edge in focus"
+   
 #define SUMA_SurfContHelp_NodeValTblc1 \
    "Intensity (I) value"
+#define    SUMA_SurfContHelp_GEdgeValTblc1\
+   "Intensity (I) value" 
 
 #define SUMA_SurfContHelp_NodeValTblc2 \
+   "Threshold (T) value"
+#define SUMA_SurfContHelp_GEdgeValTblc2\
    "Threshold (T) value"
 
 #define SUMA_SurfContHelp_NodeValTblc3 \
    "Brightness modulation (B) value"
+#define SUMA_SurfContHelp_GEdgeValTblc3 \
+   "Brightness modulation (B) value"
 
 #define SUMA_SurfContHelp_NodeLabelTblr0 \
-   "Color from the selected Dset\n" \
+   "Labels available the selected Dset\n" \
    "at the node in focus.\n"   \
-   "For the moment, only color\n"   \
-   "is displayed. The plan is\n"   \
-   "to display labels of various\n"   \
-   "sorts here."
+   "If nothing is available, node color\n"   \
+   "is displayed."
 
+#define SUMA_SurfContHelp_GEdgeLabelTblr0\
+   "Color from the selected Dset\n" \
+   "at the edge in focus.\n"   \
+   "If nothing is available, node color\n"   \
+   "is displayed."
+   
 #define SUMA_SurfContHelp_DsetLblTblr0 \
   "Label of Dset." 
   

@@ -112,7 +112,7 @@ int main( int argc , char *argv[] )
    char *prefix="./localhistog" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    int verb=1 , do_prob=0 ;
-   int nx,ny,nz,nvox , rbot,rtop ;
+   int nx=0,ny=0,nz=0,nvox=0, rbot,rtop ;
    char *labfile=NULL ; NI_element *labnel=NULL ;
    int nlab=0 , *labval=NULL ; char **lablab=NULL ; char buf[THD_MAX_SBLABEL] ;
    UINT32 *ohist , *mhist=NULL ; char *ohist_name=NULL ; int ohzadd=0 ;

@@ -378,6 +378,7 @@ SUMA_MEMBER_FACE_SETS *SUMA_MemberFaceSets (int Nind, int * FaceSetList,
    if (ownerid) sprintf(RetStrct->owner_id, "%s", ownerid);
    else RetStrct->owner_id[0] = '\0';
    RetStrct->LinkedPtrType = SUMA_LINKED_MEMB_FACE_TYPE;
+   RetStrct->do_type = not_DO_type;
    
    RetStrct->N_Memb_max = RetStrct->Nnode = 0;
    RetStrct->N_Memb = NULL;

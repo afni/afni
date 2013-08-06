@@ -7505,6 +7505,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
    if (ownerid) sprintf(SEL->owner_id, "%s", ownerid);
    else SEL->owner_id[0] = '\0';
    SEL->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
+   SEL->do_type = not_DO_type;
    
    N_Node_Alloc = FL[0];
    for (i=1; i<3*N_FL; ++i) if (N_Node_Alloc < FL[i]) N_Node_Alloc=FL[i]; 
@@ -8655,6 +8656,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el,
    if (ownerid) sprintf(FN->owner_id, "%s", ownerid);
    else FN->owner_id[0] = '\0';
    FN->LinkedPtrType = SUMA_LINKED_ND_FRST_NEI_TYPE;
+   FN->do_type = not_DO_type;
    
    FN->idcode_str = NULL;
    SUMA_NEW_ID(FN->idcode_str, NULL);
@@ -10260,37 +10262,7 @@ int * SUMA_UniqueInt_ind (int *ys, int N_y, int *kunq, int **iup)
    SUMA_RETURN (yu);
 }/*SUMA_UniqueInt_ind*/
 
-/*!
-   \brief creates a reordered version of a vector 
-   yr = SUMA_reorder(y, isort, N_isort);
-   
-   \param y (int *) vector
-   \param isort (int *) vector containing sorting order
-   \param N_isort (int ) number of elements in isort
-   \return yr (int *) reordered version of y where:
-                     yr[i] = y[isort[i]];
-                     
-   - you should free yr with SUMA_free(yr) when done with it
-   - obviously it's your business to ensure that
-            isort[i] cannot be larger than then number
-            of elements in y 
-*/
-int *SUMA_reorder(int *y, int *isort, int N_isort)
-{
-   static char FuncName[]={"SUMA_reorder"};
-   int i = 0, *yr = NULL;
-   
-   SUMA_ENTRY;
-   
-   if (!y || !isort || N_isort <= 0) SUMA_RETURN(yr);
-   
-   yr = (int *)SUMA_calloc( N_isort, sizeof(int));
-   if (!yr) SUMA_RETURN(yr);
-   
-   for (i=0; i<N_isort; ++i) yr[i] = y[isort[i]];
-   
-   SUMA_RETURN(yr);
-}
+
 
 void SUMA_ShowFromTo(char *f, char *t, char *head){
    if (head) {

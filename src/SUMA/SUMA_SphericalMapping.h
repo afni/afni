@@ -60,7 +60,6 @@ void SUMA_write1D ( int *num, float *vals, int *index, char firstline[], char ou
 float * SUMA_createColGradient( float *col, int numSeg, SUMA_Boolean allGvn );
 float * SUMA_assignColors( float *vals, float *cols, int numVal, int numCol, float *colRng, float *valDiv );
 
-SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg);
 float intersection_map(float a, float b, float c, float d, float val);
 float * SUMA_detWeight (float node0[], float node1[], float node2[], float ptHit[]);
 SUMA_Boolean SUMA_inNodeNeighb( SUMA_SurfaceObject *surf, float *nodeList, int *node, float *P0, float *P1);

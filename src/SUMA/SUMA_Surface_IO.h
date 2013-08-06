@@ -112,6 +112,7 @@ SUMA_Boolean SUMA_MNI_OBJ_Write(char * f_name_in, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_MNI_OBJ_Read(char * f_name, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_GIFTI_Read(char *f_name, SUMA_SurfaceObject *SO,
                              int debug);
+void set_GIFTI_RAI_warn(int v);
 SUMA_Boolean SUMA_GetSOCoordXform(SUMA_SurfaceObject *SO, double xform[4][4]);                          
                              
 

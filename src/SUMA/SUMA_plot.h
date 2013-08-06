@@ -11,7 +11,7 @@
 
    
 SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
-               SUMA_SurfaceObject *SO,
+               SUMA_ALL_DO *ado,
                int inode);
 void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp );
 void SUMA_memplot_clone(void *mpv);
@@ -24,10 +24,5 @@ typedef struct {
    char write_name[100];
 }SUMA_MEMPLOT_USERDATA; /* Modify REFILL_MPUD and SUMA_clear_mpud_contents 
                            when adding new fields here */
-SUMA_MEMPLOT_USERDATA * SUMA_clear_mpud_contents(SUMA_MEMPLOT_USERDATA *mpud); 
-
-SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
-               SUMA_SurfaceObject *SO,
-               int inode);
-
+SUMA_MEMPLOT_USERDATA * SUMA_clear_mpud_contents(SUMA_MEMPLOT_USERDATA *mpud);
 #endif

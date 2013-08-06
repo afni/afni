@@ -1275,9 +1275,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             sopd.N = 0;
          }
 
-         if (!SUMA_Fetch_OverlayPointer(  SO->Overlays, SO->N_Overlays, 
-                                          "FuncAfni_0", 
-                                           &itmp)) {
+         if (!SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, 
+                                        "FuncAfni_0", &itmp)) {
             /* first timer, pop it up */
             popit = 1;
          } else popit = 0;
@@ -1289,9 +1288,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          }
          if (popit) {
-            ColPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, 
-                                                 "FuncAfni_0", 
-                                                 &itmp);
+            ColPlane = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, 
+                                                 "FuncAfni_0",&itmp);
             if (!ColPlane) {
                SUMA_S_Errv("Failed to find dset %s\n", 
                            "FuncAfni_0"); 
@@ -1300,11 +1298,12 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   fprintf (SUMA_STDERR,
                            "%s: Retrieved ColPlane named %s\n", 
                            FuncName, ColPlane->Name);
-               SUMA_InitializeColPlaneShell(SO, ColPlane);
-               SUMA_UpdateColPlaneShellAsNeeded(SO); 
+               SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SO, ColPlane);
+               SUMA_UpdateColPlaneShellAsNeeded((SUMA_ALL_DO *)SO); 
                               /* update other open ColPlaneShells */
                /* If you're viewing one plane at a time, do a remix */
-               if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
+               if (SO->SurfCont->ShowCurForeOnly) 
+                  SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
             }
          }
          /* register a color remix request */
@@ -1419,19 +1418,23 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                      if (LocalHead) 
                         fprintf(SUMA_STDERR,
                                "%s: surface_idcode missing in nel (%s), "
-                               "using svi->Focus_SO_ID.\n", FuncName, nel->name);
-                     dest_SO_ID = svi->Focus_SO_ID; /* default */
-                     SOaf = (SUMA_SurfaceObject *)
-                                 (SUMAg_DOv[svi->Focus_SO_ID].OP);
+                               "using svi->Focus_DO_ID.\n", FuncName, nel->name);
+                     if (!(SOaf = SUMA_SV_Focus_any_SO(svi, &dest_SO_ID))) { 
+                        SUMA_S_Err("No surface I can work with");
+                        SUMA_RETURN(NOPE);
+                     }
                   } else {
                      SOaf = SUMA_findSOp_inDOv (nel_surfidcode, 
                                                 SUMAg_DOv, SUMAg_N_DOv);
                      if (!SOaf) {
                         SUMA_S_Warn("AFNI sending unkown id, "
                                     "taking default for viewer");
-                        SOaf = (SUMA_SurfaceObject *)
-                                       (SUMAg_DOv[svi->Focus_SO_ID].OP);
+                        if (!(SOaf = SUMA_SV_Focus_any_SO(svi, NULL))) { 
+                           SUMA_S_Err("No surface I can work with");
+                           SUMA_RETURN(NOPE);
+                        }
                      }
+                        
                      /* first try to find out if one of the displayed surfaces 
                         is or has a parent equal to nel_surfidcode */
                      if (LocalHead) 
@@ -1460,7 +1463,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                            SUMA_LHv("Checking %s\n   %s versus\n   %s\n", 
                                     SO->Label, nel_surfidcode, 
                                     SO->LocalDomainParentID);
-                           if (SUMA_isRelated(SOaf, SO, 1)) { 
+                           if (SUMA_isRelated_SO(SOaf, SO, 1)) { 
                               /* ZSS Aug. 06 (used to be: 
                                  (strcmp( nel_surfidcode, 
                                           SO->LocalDomainParentID) == 0) */
@@ -1487,7 +1490,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                                        "%s:%s: nel idcode is not "
                                        "found in DOv.\n", 
                                        FuncName, nel->name);            
-                           dest_SO_ID = svi->Focus_SO_ID; 
+                           SUMA_SV_Focus_any_SO(svi, &dest_SO_ID);
                         } else { /* good, set SO accordingly */
                            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
                            if (LocalHead) 
@@ -1500,6 +1503,11 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                      }
                   }
 
+                  if (dest_SO_ID < 0) {
+                     SUMA_S_Err("Confounded Tintin!"
+                                "No surface for the life of me.");
+                     SUMA_RETURN(NOPE);
+                  }
                   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
 
                   if (LocalHead) SUMA_nel_stdout (nel);
@@ -2042,9 +2050,11 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
    NI_set_attribute (nel, "local_domain_parent", SO->LocalDomainParent);
-   if (SO->SpecFile.FileName) NI_set_attribute (nel, "surface_specfile_name", SO->SpecFile.FileName);
+   if (SO->SpecFile.FileName) 
+      NI_set_attribute (nel, "surface_specfile_name", SO->SpecFile.FileName);
    else NI_set_attribute (nel, "surface_specfile_name", "Unknown");
-   if (SO->SpecFile.Path) NI_set_attribute (nel, "surface_specfile_path", SO->SpecFile.Path);
+   if (SO->SpecFile.Path) 
+      NI_set_attribute (nel, "surface_specfile_path", SO->SpecFile.Path);
    else NI_set_attribute (nel, "surface_specfile_path", "Unknown");
 
    SUMA_RETURN (nel);
@@ -2062,9 +2072,11 @@ SUMA_Boolean SUMA_nel_stdout (NI_element *nel)
       fprintf(SUMA_STDERR,"%s: Can't open fd:1\n", FuncName); 
       SUMA_RETURN(NOPE); 
    }
-   fprintf (stdout, "\n----------------------------nel stdout begin-------------------\n");
+   fprintf (stdout, 
+      "\n----------------------------nel stdout begin-------------------\n");
    NI_write_element( nstdout , nel , NI_TEXT_MODE ) ;
-   fprintf (stdout, "----------------------------nel stdout end  -------------------\n");
+   fprintf (stdout, 
+      "----------------------------nel stdout end  -------------------\n");
    NI_stream_close(nstdout);
 
    SUMA_RETURN(YUP);
@@ -2089,7 +2101,11 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
       SUMA_RETURN (NULL);
    }
 
-   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+   if (!(SO = SUMA_SV_Focus_SO(sv))) {
+      SUMA_S_Err("no focus so");
+      SUMA_RETURN (NULL);
+   }
+   
    I_C = SO->SelectedNode;
    XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c_noVisX, SO, 
                              SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);

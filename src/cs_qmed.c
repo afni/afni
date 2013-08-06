@@ -345,6 +345,18 @@ int compare_Z_IQSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b )
    return (0);
 }
 
+int compare_Z_QSORT_INT (Z_QSORT_INT *a, Z_QSORT_INT *b )
+{
+   if (a->x < b->x)
+      return (-1);
+   else if (a->x == b->x)
+      return (0);
+   else if (a->x > b->x)
+      return (1);
+   /* this will never be reached but it will shut the compiler up */
+   return (0);
+}
+
 int compare_Z_IQSORT_STRING (Z_QSORT_STRING *a, Z_QSORT_STRING *b )
 {
    if (!a->x && !b->x) return(0);

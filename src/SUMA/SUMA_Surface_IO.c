@@ -4587,7 +4587,7 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
       No pointer tricks here, keep niml separate */
    
    NI_add_column(nel, NI_FLOAT, (void*)NodeList);
-   
+      
    nel = SUMA_FindNgrNamedElement(SO->aSO, "Mesh_IJK");
    if (nel->vec_num) { 
       SUMA_S_Crit("Unexpected non NULL mesh pointer!");
@@ -4939,21 +4939,25 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       /* load 1D ROI */
       /* You need to select a parent surface */
       SUMA_SLP_Warn("Assuming parent surface.");
-      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-      if (SO->N_patchNode < SO->N_Node ||
-          SO->patchNodeMask) {
-         SUMA_S_Note("Assigning ROI to domain parent");
-         if (!(SOp = SUMA_findSOp_inDOv(SO->LocalDomainParentID, 
-                                        SUMAg_DOv, SUMAg_N_DOv))) {
-            SUMA_S_Note("Failed to find LDP, sticking with initial surf"); 
-                  /* continue ...*/
-         }else {
-            SO = SOp;
+      if ((SO = SUMA_SV_Focus_SO(sv))) {
+         if (SO->N_patchNode < SO->N_Node || SO->patchNodeMask) {
+            SUMA_S_Note("Assigning ROI to domain parent");
+            if (!(SOp = SUMA_findSOp_inDOv(SO->LocalDomainParentID, 
+                                           SUMAg_DOv, SUMAg_N_DOv))) {
+               SUMA_S_Note("Failed to find LDP, sticking with initial surf"); 
+                     /* continue ...*/
+            }else {
+               SO = SOp;
+            }
+         }    
+         if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, 
+                                             &N_ROI, YUP))) {
+            SUMA_SLP_Err("Failed to read NIML ROI.");
+            SUMA_RETURNe;
          }
-      }    
-      if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, 
-                                          &N_ROI, YUP))) {
-         SUMA_SLP_Err("Failed to read NIML ROI.");
+      } else {
+         SUMA_SLP_Err("Have no surface in focus. Can't load ROI\n"
+                      "Select a surface and try again.");
          SUMA_RETURNe;
       }
    }else {
@@ -5000,10 +5004,10 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    
    /* find the overlay plane */
    over = SUMA_Fetch_OverlayPointer(
-            SO->Overlays, SO->N_Overlays, 
+            (SUMA_ALL_DO *)SO, 
             SUMAg_CF->X->DrawROI->curDrawnROI->ColPlaneName,
             &i);       
-   if (over) SUMA_InitializeColPlaneShell(SO, over);
+   if (over) SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SO, over);
 
    /* put a nice redisplay here */
    if (!list) list = SUMA_CreateList ();
@@ -5800,9 +5804,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                   
                   sd=SUMA_SideType(NI_get_attribute(nel,"Parent_side"));
                   /* assume user has selected the proper surface first */
-                  if (iDO < 0 && sv->Focus_SO_ID >= 0) { 
+                  if (iDO < 0 && (SO = SUMA_SV_Focus_SO(sv))) { 
                                           /* Use selection and side match ?*/
-                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
                      if (SUMA_isSurfaceOfSide(SO,sd)) {
                         iDO = SUMA_findSO_inDOv(SO->LocalDomainParentID, 
                                              SUMAg_DOv, SUMAg_N_DOv); 
@@ -5819,9 +5822,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                      }
                   }
                   /* forget the side now */
-                  if (iDO < 0 && sv->Focus_SO_ID >= 0 ) {
+                  if (iDO < 0 && (SO = SUMA_SV_Focus_SO(sv))) {
                            /* user selection, who cares about sid */
-                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
                      iDO = SUMA_findSO_inDOv(SO->LocalDomainParentID, 
                                           SUMAg_DOv, SUMAg_N_DOv); 
                      SUMA_LHv("User SO selection (%d) no side check ?\n",
@@ -6285,7 +6287,7 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
    
    /* make it easy */
    dset->dnel = SUMA_FindDsetDataElement(dset);
-   dset->inel = SUMA_FindDsetNodeIndexElement(dset);
+   dset->inel = SUMA_FindSDsetNodeIndexElement(dset);
    
    SUMA_LH("cleanup ...");
    if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
@@ -6692,7 +6694,7 @@ SUMA_DSET *SUMA_ROIv2MultiDset (SUMA_DRAWN_ROI** ROIv, int N_ROIv,
    
    /* make it easy */
    dset->dnel = SUMA_FindDsetDataElement(dset);
-   dset->inel = SUMA_FindDsetNodeIndexElement(dset);
+   dset->inel = SUMA_FindSDsetNodeIndexElement(dset);
    
    /* Set all column ranges, they don't get set when you add columns with NULL */
    SUMA_UpdateDsetColRange(dset, -1);
@@ -8969,7 +8971,8 @@ char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int L
    LOAD_IVEC3( nxyz   , dxp->counts[2]    , dxp->counts[1]    , dxp->counts[0] ) ;
    
    /* orientation */
-   /* find closest orientation in RAI, delta matrix does allow for obliqueness (non diagonal matrix) but we ignore it */
+   /* find closest orientation in RAI, delta matrix does allow for 
+      obliqueness (non diagonal matrix) but we ignore it */
    LOAD_MAT(m33, 
                dxp->delta[6], dxp->delta[7], dxp->delta[8], 
                dxp->delta[3], dxp->delta[4], dxp->delta[5],

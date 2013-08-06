@@ -1,7 +1,8 @@
 #ifndef SUMA_DOMANIP_INCLUDED
 #define SUMA_DOMANIP_INCLUDED
 
-SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov);
+void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type);
+SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
 int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *closest_node, float *closest_dist, byte *vox_mask, int verb);
 float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex);
 int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList);
@@ -10,8 +11,11 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
 int SUMA_SurfNormDir (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov);
 SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N);
-SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType);
-SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free_op);
+SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, 
+               SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType);
+SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, 
+                           SUMA_Boolean Free_op);
+SUMA_Boolean SUMA_UnRegisterDO_idcode(char *idcode_str, SUMA_SurfaceViewer *cSV);
 SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
 SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
 void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out);
@@ -52,6 +56,9 @@ SUMA_Boolean SUMA_existSO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existVO(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov);
 const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd);
+
+#define SUMA_whichADOg(idcode) SUMA_whichADO((idcode), SUMAg_DOv, SUMAg_N_DOv)
+SUMA_ALL_DO* SUMA_whichADO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findVO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
@@ -85,10 +92,13 @@ SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isSO (SUMA_DO DO);
 SUMA_Boolean SUMA_isVO (SUMA_DO DO);  
 SUMA_Boolean SUMA_isSO_G (SUMA_DO DO, char *Group);
-SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
-SUMA_Boolean SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int level);
+SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1, 
+                                          SUMA_SurfaceObject *SO2);
+SUMA_Boolean SUMA_isRelated (SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2, int level);
+SUMA_Boolean SUMA_isRelated_SO(SUMA_SurfaceObject *SO1, 
+                               SUMA_SurfaceObject *SO2, int level);
 SUMA_Boolean SUMA_isNBDOrelated (SUMA_NB_DO *SDO, SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isNIDOrelated (SUMA_NIDO *SDO, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isNIDO_SurfBased(SUMA_NIDO *nido);
@@ -133,15 +143,14 @@ SUMA_Boolean SUMA_SetXformShowPreProc(SUMA_XFORM *xf, int ShowPreProc,
    \brief SUMA_IS_SWITCH_COL_PLANE_SHADED(SO, Shaded)
    Shaded is YUP unless the Switch Col plane window is currently open.
 */
-#define SUMA_IS_SWITCH_COL_PLANE_SHADED(SO, Shaded)   \
+#define SUMA_IS_SWITCH_COL_PLANE_SHADED(ado, Shaded)   \
 {  \
+   SUMA_X_SurfCont *SurfCont=NULL;  \
    Shaded = YUP;  \
-   if (SO) {   \
-      if (SO->SurfCont) {\
-         if (SO->SurfCont->SwitchDsetlst) {\
-            if (!SO->SurfCont->SwitchDsetlst->isShaded) {\
-               Shaded = NOPE;  \
-            }  \
+   if ((SurfCont = SUMA_ADO_Cont(ado))) {   \
+      if (SurfCont->SwitchDsetlst) {\
+         if (!SurfCont->SwitchDsetlst->isShaded) {\
+            Shaded = NOPE;  \
          }  \
       }  \
    }  \
@@ -217,7 +226,7 @@ SUMA_Boolean SUMA_SetCallbackPending (SUMA_CALLBACK *cb, SUMA_Boolean pen,
                                       SUMA_ENGINE_SOURCE src);
 SUMA_Boolean SUMA_FlushCallbackEventParameters (SUMA_CALLBACK *cb);
 SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb, 
-                                  int refresh, SUMA_SurfaceObject *SO,
+                                  int refresh, SUMA_ALL_DO *ado,
                                   int doall) ;
 void SUMA_FreeXformInterface(SUMA_GENERIC_XFORM_INTERFACE *gui);
 SUMA_GENERIC_XFORM_INTERFACE * SUMA_NewXformInterface(

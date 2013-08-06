@@ -46,6 +46,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    const char *NextCom;
    int NextComCode, ii, i, id, ND, ip, NP, itmp=-1;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    float delta_t, ftmp = -1.0;
    struct  timeval tt;
    int it, Wait_tot, nn=0, N_SOlist, 
@@ -258,11 +261,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                  But it is only to select the wildcard
                  SO assignment to an ROI is done in the ROI
                  reading function*/
-               SO = (SUMA_SurfaceObject *)
-                           SUMAg_DOv[sv->Focus_SO_ID].OP;
-               if (!SUMA_WildcardChoice(2, SO, sbuf)) {
+               SO = SUMA_SV_Focus_SO(sv);
+               if (SO && !SUMA_WildcardChoice(2, SO, sbuf)) {
                   sprintf(sbuf, "*.roi");
-               }
+               } else sprintf(sbuf, "*.roi");
                if (!EngineData->vp) EngineData->vp = sv;
                if (!EngineData->ip) {
                   SUMAg_CF->X->FileSelectDlg = 
@@ -559,8 +561,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
-            SO = (SUMA_SurfaceObject *)EngineData->vp;
-            if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
+            ado = (SUMA_ALL_DO *)EngineData->vp;
+            if (!SUMA_viewSurfaceCont(NULL, ado, sv)) {
                SUMA_S_Err("Failed open surfcont");
                break;  
             }
@@ -574,8 +576,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             }
             if (!sv) sv = &(SUMAg_SVv[0]);
-            SO = (SUMA_SurfaceObject *)EngineData->vp;
-            if (!SUMA_ColPlaneShowOneFore_Set (SO, YUP, 
+            ado = (SUMA_ALL_DO *)EngineData->vp;
+            if (!SUMA_ColPlaneShowOneFore_Set (ado, YUP, 
                                  EngineData->Src == SES_SumaWidget)) {
                SUMA_S_Err("Failed to set one only");
                break;  
@@ -756,8 +758,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   displayed here */
                DrawnROI = NULL;
                /* start with the Focus_SO */
-               if (sv->Focus_SO_ID >= 0) {
-                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+               if ((SO = SUMA_SV_Focus_SO(sv))) {
                   DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  
                                                        SUMAg_N_DOv); 
                }
@@ -803,22 +804,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_SetDsetViewMode:
             { /* sets the viewing mode of a dset, 
-               expects SO in vp and rendering mode in i*/
+               expects ADO in vp and rendering mode in i*/
                SUMA_COLOR_MAP *cmp=NULL;
                static int nwarn=0, nwarn2=0;
-               
-               SO = (SUMA_SurfaceObject *)EngineData->vp;
-               it = SUMA_ABS(SO->SurfCont->curColPlane->ShowMode);
+
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }               
+               it = SUMA_ABS(curColPlane->ShowMode);
                if (EngineData->i == SW_SurfCont_DsetViewXXX) {
-                  SO->SurfCont->curColPlane->ShowMode = 
-                     -SUMA_ABS(SO->SurfCont->curColPlane->ShowMode);
+                  curColPlane->ShowMode = 
+                     -SUMA_ABS(curColPlane->ShowMode);
                } else {
-                  SO->SurfCont->curColPlane->ShowMode =  EngineData->i ;
+                  curColPlane->ShowMode =  EngineData->i ;
                }
-               if (strcmp(SO->SurfCont->curColPlane->cmapname,"explicit")) {
+               if (strcmp(curColPlane->cmapname,"explicit")) {
                   /* Can we do contours? */
                   cmp = SUMA_FindNamedColMap(
-                                 SO->SurfCont->curColPlane->cmapname);
+                                 curColPlane->cmapname);
                   if (!cmp) { SUMA_S_Err("Unexpected null colormap"); break;}
                   if (SUMA_NeedsLinearizing(cmp)) {
                      if (EngineData->i == SW_SurfCont_DsetViewCon   ||
@@ -830,26 +836,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                          "Notice shown once per session.");
                            ++nwarn;
                         }
-                        SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
-                        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
+                        curColPlane->ShowMode = it; /* get back */ 
+                        SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any */
-                        SUMA_KillOverlayContours(SO->SurfCont->curColPlane);
+                        SUMA_KillOverlayContours(curColPlane);
                      }
                   }
                   /* if new mode require contours, better regenerate them */
                   if ( (it != SW_SurfCont_DsetViewCon &&
                         it != SW_SurfCont_DsetViewCaC ) &&
-                       (SO->SurfCont->curColPlane->ShowMode == 
+                       (curColPlane->ShowMode == 
                                  SW_SurfCont_DsetViewCon   ||
-                        SO->SurfCont->curColPlane->ShowMode == 
+                        curColPlane->ShowMode == 
                                  SW_SurfCont_DsetViewCaC) ) {
-                     if (!SUMA_ColorizePlane(SO->SurfCont->curColPlane)) {
+                     if (!SUMA_ColorizePlane(curColPlane)) {
                         SUMA_S_Err( "Police at the station - "
                                     "and they don't look friendly.");
                      }
                   }
                } else {
+                  SUMA_LH("lam");
                   /* explicit colormap no need for all the complications above*/
                      if (EngineData->i == SW_SurfCont_DsetViewCon   ||
                          EngineData->i == SW_SurfCont_DsetViewCaC ) {
@@ -859,15 +866,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                          "Notice shown once per session.");
                            ++nwarn2;
                         }
-                        SO->SurfCont->curColPlane->ShowMode = it; /* get back */ 
-                        SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
+                        curColPlane->ShowMode = it; /* get back */ 
+                        SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                            SUMA_ShowMode2ShowModeMenuItem(it));
                         /* kill current contours, if any . There should be none
                            here but there is no harm */
-                        SUMA_KillOverlayContours(SO->SurfCont->curColPlane);
+                        SUMA_KillOverlayContours(curColPlane);
                      }
                }  
-               if (!SUMA_RemixRedisplay (SO)) {
+               if (!SUMA_RemixRedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -1928,33 +1935,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_ToggleShowSelectedNode:
             /* expects nothing in EngineData */
             {
-               int CommonState = -1;
-               
-               for (ii=0; ii<sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
-                     if (CommonState < 0) {
-                        SO = (SUMA_SurfaceObject *)
-                                    (SUMAg_DOv[sv->RegisteredDO[ii]].OP);
-                        SO->ShowSelectedNode = !SO->ShowSelectedNode;
-                        CommonState = SO->ShowSelectedNode;
-                        fprintf( SUMA_STDOUT,
-                                 "SO->ShowSelectedNode = %d\n", 
-                                 SO->ShowSelectedNode);
-                     } else {
-                        SO->ShowSelectedNode = CommonState;
-                     }
-                  }
-                
-               }
-            
-            XmToggleButtonSetState (sv->X->ViewMenu->mw[SW_ViewNodeInFocus], 
-                  CommonState, NOPE); 
-                
+               int st = SUMA_SV_GetShowSelectedDatum(sv);
+               SUMA_SV_SetShowSelectedDatum(sv, !st,NOPE);
             }
             break;
 
          case SE_SetSelectedNode:
-            /* expects a node index in i and maybe a ngr in ngr
+            /* expects a node (datum) index in i and maybe a ngr in ngr
             ngr is only being used when AFNI is the src of the call*/
             if (EngineData->i_Dest != NextComCode ||
                 EngineData->ngr_Dest != NextComCode) {
@@ -1963,31 +1950,39 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         FuncName, NextCom, NextComCode);
                break;
             } 
-            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-            if (EngineData->i >= 0 && EngineData->i < SO->N_Node) {
-               SO->SelectedNode = EngineData->i;
+            if (!(ado = SUMA_SV_Focus_ADO(sv))) {
+               /* No so in focus */
+               SUMA_S_Err("No SO/DO in focus");
+               break;
+            }
+            if (EngineData->i >= 0 && EngineData->i < SUMA_ADO_N_Datum(ado)) {
+               SUMA_ADO_Set_SelectedDatum(ado, EngineData->i);
             } else {
                /* ignore -1, used in initializations */
                if (EngineData->i != -1) { 
                   snprintf(tmpstr,80*sizeof(char), 
                         "Node index (%d) < 0 || > Number of surface nodes (%d)",
-                        EngineData->i, SO->N_Node);
+                        EngineData->i, SUMA_ADO_N_Datum(ado));
                   SUMA_SLP_Err(tmpstr);                
                }
                break;
             }
             /* Nick's options. Jump to the sub-brick index corresponding 
                to node */
+            if (!(curColPlane = SUMA_ADO_CurColPlane(ado))) {
+               SUMA_S_Err("No cur plane");
+               break;
+            }
             SUMA_LHv("Have %d, %d and %d\n",
                SUMAg_CF->YokeIntToNode,
-               SDSET_VECNUM(SO->SurfCont->curColPlane->dset_link),
+               SDSET_VECNUM(curColPlane->dset_link),
                SO->N_Node);
             if (SUMAg_CF->YokeIntToNode   &&
-                !(SDSET_VECNUM(SO->SurfCont->curColPlane->dset_link) % 
-                                                               SO->N_Node)) {
-               itmp = SDSET_VECNUM(SO->SurfCont->curColPlane->dset_link) / 
-                                                               SO->N_Node;
-               if (!SUMA_SwitchColPlaneIntensity(SO, SO->SurfCont->curColPlane,
+                !(SDSET_VECNUM(curColPlane->dset_link) % 
+                                             SUMA_ADO_N_Datum(ado))) {
+               itmp = SDSET_VECNUM(curColPlane->dset_link) / 
+                                             SUMA_ADO_N_Datum(ado);
+               if (!SUMA_SwitchColPlaneIntensity(ado, curColPlane,
                                                  EngineData->i*itmp, 1)) {
                   SUMA_S_Err("Failed to yoke intensity to node index");
                }
@@ -1999,35 +1994,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                Check for possible duplications ... */
             if (SUMAg_CF->callbacks && !SUMAg_CF->HoldClickCallbacks) {
                if (!SUMA_Selected_Node_Activate_Callbacks (
-                        SO, SO->SurfCont->curColPlane,
+                        ado, curColPlane,
                         EngineData->Src, EngineData->ngr)) {
                   SUMA_S_Err("Failed to activate callbacks");
                }
             }
             
-            SUMA_UpdateNodeField(SO);
+            /* get the controller up if it is not, and the mood is right*/
+            SUMA_OpenSurfCont_if_other(sv->X->TOPLEVEL, ado, sv);
+            
+            SUMA_UpdateNodeField(ado);
             break;
             
          case SE_ToggleShowSelectedFaceSet:
             /* expects nothing ! */
-            { int CommonState = -1;
-               for (ii=0; ii<sv->N_DO; ++ii) {
-                  if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
-                     SO = (SUMA_SurfaceObject *)
-                                 (SUMAg_DOv[sv->RegisteredDO[ii]].OP);
-                     if (CommonState < 0) { 
-                                    /* first surface, set the common state */
-                        SO->ShowSelectedFaceSet = !SO->ShowSelectedFaceSet;
-                        CommonState = SO->ShowSelectedFaceSet;
-                        fprintf(SUMA_STDOUT,"SO->ShowSelectedFaceSet = %d\n", \
-                           SO->ShowSelectedFaceSet);
-                      }else {
-                        SO->ShowSelectedFaceSet = CommonState;
-                     }
-                  }
-               }
-            XmToggleButtonSetState (sv->X->ViewMenu->mw[SW_ViewSelectedFaceset], 
-                  CommonState, NOPE);  
+            { 
+               int st = SUMA_SV_GetShowSelectedFaceSet(sv);
+               SUMA_SV_SetShowSelectedFaceSet(sv,!st,NOPE);  
             }          
             break;
          
@@ -2039,39 +2022,72 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         FuncName, NextCom, NextComCode);
                break;
             } 
-            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-            SUMA_VisX_Pointers4Display(SO, 1); /* coordinates as displayed */
-            if (EngineData->i < 0 || EngineData->i >= SO->N_FaceSet) {
-               if (EngineData->i != -1) { /* ignore -1, used in initialization */
-                  SUMA_SLP_Err("Node index < 0 || "
-                               "> Number of FaceSets in surface");
-               } 
+            if (!(ado = SUMA_SV_Focus_ADO(sv))) {
+               SUMA_S_Err("No SO/ADO in focus");
                break;
             }
-            ND = SO->NodeDim;
-            NP = SO->FaceSetDim;
-            ip = NP * EngineData->i;
-            id = ND * SO->FaceSetList[ip];
-            SO->FaceSetMarker->n0[0] = SO->NodeList[id];
-            SO->FaceSetMarker->n0[1] = SO->NodeList[id+1];
-            SO->FaceSetMarker->n0[2] = SO->NodeList[id+2];
-            id = ND * SO->FaceSetList[ip+1];
-            SO->FaceSetMarker->n1[0] = SO->NodeList[id];
-            SO->FaceSetMarker->n1[1] = SO->NodeList[id+1];
-            SO->FaceSetMarker->n1[2] = SO->NodeList[id+2];
-            id = ND * SO->FaceSetList[ip+2];
-            SO->FaceSetMarker->n2[0] = SO->NodeList[id];
-            SO->FaceSetMarker->n2[1] = SO->NodeList[id+1];
-            SO->FaceSetMarker->n2[2] = SO->NodeList[id+2];
-            SO->FaceSetMarker->NormVect[0] = SO->FaceNormList[ip];
-            SO->FaceSetMarker->NormVect[1] = SO->FaceNormList[ip+1];
-            SO->FaceSetMarker->NormVect[2] = SO->FaceNormList[ip+2];
-            
-            SO->SelectedFaceSet = EngineData->i;
-            SUMA_VisX_Pointers4Display(SO, 0); /* revert to surf cooords. */
-            SUMA_UpdateTriField(SO);
-            break;
-            
+            switch(ado->do_type) {
+               case SO_type: {
+                  SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+                  SUMA_VisX_Pointers4Display(SO, 1);/*coordinates as displayed*/
+                  if (EngineData->i < 0 || EngineData->i >= SO->N_FaceSet) {
+                     if (EngineData->i != -1){
+                        SUMA_SLP_Err("Node index < 0 || "
+                                     "> Number of FaceSets in surface");
+                     } 
+                     break;
+                  }
+                  ND = SO->NodeDim;
+                  NP = SO->FaceSetDim;
+                  ip = NP * EngineData->i;
+                  id = ND * SO->FaceSetList[ip];
+                  SO->FaceSetMarker->n0[0] = SO->NodeList[id];
+                  SO->FaceSetMarker->n0[1] = SO->NodeList[id+1];
+                  SO->FaceSetMarker->n0[2] = SO->NodeList[id+2];
+                  id = ND * SO->FaceSetList[ip+1];
+                  SO->FaceSetMarker->n1[0] = SO->NodeList[id];
+                  SO->FaceSetMarker->n1[1] = SO->NodeList[id+1];
+                  SO->FaceSetMarker->n1[2] = SO->NodeList[id+2];
+                  id = ND * SO->FaceSetList[ip+2];
+                  SO->FaceSetMarker->n2[0] = SO->NodeList[id];
+                  SO->FaceSetMarker->n2[1] = SO->NodeList[id+1];
+                  SO->FaceSetMarker->n2[2] = SO->NodeList[id+2];
+                  SO->FaceSetMarker->NormVect[0] = SO->FaceNormList[ip];
+                  SO->FaceSetMarker->NormVect[1] = SO->FaceNormList[ip+1];
+                  SO->FaceSetMarker->NormVect[2] = SO->FaceNormList[ip+2];
+
+                  SO->SelectedFaceSet = EngineData->i;
+                  SUMA_VisX_Pointers4Display(SO, 0);/* revert to surf cooords. */
+                  SUMA_UpdateTriField(SO);
+                  break; }
+               case SDSET_type:
+                  SUMA_S_Err("ambigous display method without variant");
+                  break;
+               case GRAPH_LINK_type: {
+                  SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado);
+                  SUMA_GRAPH_SAUX *Saux = SDSET_GSAUX(dset);
+                  if (EngineData->i < dset->Aux->range_node_index[0] || 
+                      EngineData->i > dset->Aux->range_node_index[1]) {
+                     if (EngineData->i != -1){
+                        SUMA_SLP_Err("Node index < 0 || "
+                                     "> Number of nodes in graph dataset");
+                        SUMA_S_Errv("Index is %d, current range is: %ld %ld\n", 
+                                     EngineData->i,
+                                     dset->Aux->range_node_index[0], 
+                                     dset->Aux->range_node_index[1]);
+                        SUMA_DUMP_TRACE("WEIRD 3");
+                     } 
+                     break;
+                  }
+                  Saux->PR->selectedEnode = EngineData->i;
+                  Saux->PR->datum_index = -1;
+                  SUMA_UpdatePointField((SUMA_ALL_DO*)ado);
+                  break;}
+               default:
+                  SUMA_S_Errv("Not ready for %s\n", ADO_TNAME(ado));
+                  break;
+            }
+            break;  
          case SE_ToggleCrossHair:
             /* expects nothing in EngineData */
             sv->ShowCrossHair = !sv->ShowCrossHair;
@@ -2080,7 +2096,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
             
          case SE_SetCrossHair:
-            /* Expects Cross Hair coordinates in fv3, and SO in vp */
+            /* Expects Cross Hair coordinates in fv3, and ADO in vp */
             if (EngineData->fv3_Dest != NextComCode ||
                 EngineData->vp_Dest != NextComCode) {
                fprintf (SUMA_STDERR,
@@ -2088,8 +2104,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         FuncName, NextCom, NextComCode);
                break;
             }
-            SO = (SUMA_SurfaceObject *)EngineData->vp;
-
+            ado = (SUMA_ALL_DO *)EngineData->vp;
             if (LocalHead) 
                fprintf(SUMA_STDERR,"%s: Setting cross hair at %f %f %f\n", 
                                     FuncName, EngineData->fv3[0], 
@@ -2100,7 +2115,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             sv->Ch->c[2]= EngineData->fv3[2];
 
             /* are we in VisX mode? */
-            if (SO && SO->VisX.Applied) { /* undo the VisX */
+            if (ado && ado->do_type == SO_type &&
+                (SO = (SUMA_SurfaceObject *)ado) && SO->VisX.Applied) { 
+                                                         /* undo the VisX */
                SUMA_Apply_VisX_Chain(EngineData->fv3, 1, SO->VisX.Xchain, 1);
                sv->Ch->c_noVisX[0]= EngineData->fv3[0]; 
                sv->Ch->c_noVisX[1]= EngineData->fv3[1]; 
@@ -2117,15 +2134,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
          
          case SE_BindCrossHair:
-            /* expects SurfaceID to bind cross hair to*/
+            /* expects adoID to bind cross hair to*/
             if (EngineData->iv3_Dest != NextComCode) {
                fprintf (SUMA_STDERR,
                         "Error %s: Data not destined correctly for %s (%d).\n",
                         FuncName, NextCom, NextComCode);
                break;
             }
-            sv->Ch->SurfaceID = EngineData->iv3[0];
-            sv->Ch->NodeID = EngineData->iv3[1];
+            sv->Ch->adoID = EngineData->iv3[0];
+            sv->Ch->datumID = EngineData->iv3[1];
             SUMA_UpdateCrossHairNodeLabelField(sv);
             break;
          
@@ -2137,11 +2154,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         FuncName, NextCom, NextComCode);
                break;
             }
-            if (sv->Focus_SO_ID != EngineData->i) {
+            if (sv->Focus_DO_ID != EngineData->i) {
                /* a new one, update */
-               sv->Focus_SO_ID = EngineData->i;
+               sv->Focus_DO_ID = EngineData->i;
                SUMA_UpdateViewerTitle(sv);
-           }
+            }
             break;
             
          case SE_ToggleLockView:
@@ -2271,8 +2288,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            svi->Ch->c[0] = sv->Ch->c[0];
                            svi->Ch->c[1] = sv->Ch->c[1];
                            svi->Ch->c[2] = sv->Ch->c[2];
-                           svi->Ch->NodeID = -1;
-                           svi->Ch->SurfaceID = -1;
+                           svi->Ch->datumID = -1;
+                           svi->Ch->adoID = -1;
                            /* FORCE a redisplay */
                            svi->ResetGLStateVariables = YUP;
                            SUMA_handleRedisplay((XtPointer)svi->X->GLXAREA);                           
@@ -2281,10 +2298,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            {
                               SUMA_SurfaceObject *SO1 = NULL, *SO2 = NULL;
                               
-                              if (LocalHead) 
-                                 fprintf (SUMA_STDERR, 
-                                          "%s: Try to I lock viewer %d to node"
-                                          " %d.\n", FuncName, i, sv->Ch->NodeID);
+                              SUMA_LHv("Try to I lock viewer %d to node"
+                                       " %d.\n", i, sv->Ch->datumID);
                               
                               /* determine the list of shown surfaces */
                               N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, 
@@ -2292,27 +2307,30 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
                               /* first find the surface that the cross hair 
                                  is bound to */
-                              if (sv->Ch->SurfaceID < 0) {
+                              if (sv->Ch->adoID < 0) {
                                  fprintf (SUMA_STDERR, 
                                           "%s: Cannot link from this viewer's "
                                           "cross hair. No bound surface.\n", 
                                           FuncName);
                                  break;
                               }
-                              if (sv->Ch->NodeID < 0) {
-                                 fprintf (SUMA_STDERR, 
-                                          "%s: Cannot link from this viewer's" 
-                                          " cross hair. No NodeID.\n", FuncName);
+                              if (sv->Ch->datumID < 0) {
+                                 SUMA_S_Err("Cannot link from this viewer's" 
+                                          " cross hair. No datumID.\n");
                                  break;
                               }
+                              if (SUMAg_DOv[sv->Ch->adoID].ObjectType != 
+                                                                     SO_type){
+                                 SUMA_LH("Not ready for I lock on non SOs");
+                              }
                               SO1 = (SUMA_SurfaceObject *)
-                                             SUMAg_DOv[sv->Ch->SurfaceID].OP;
+                                             SUMAg_DOv[sv->Ch->adoID].OP;
                               Found = NOPE;
                               it = 0;
                               while (it < N_SOlist && !Found) {
                                  SO2 = (SUMA_SurfaceObject *)
                                              SUMAg_DOv[SOlist[it]].OP;
-                                 if (SUMA_isRelated (SO1, SO2, 2)) { 
+                                 if (SUMA_isRelated_SO(SO1, SO2, 2)) { 
                                        /* high level relationship is allowed,
                                           but with same-side enforcement.
                                           A level 3 returns a match based on
@@ -2322,24 +2340,22 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                           same node index does not refer 
                                           necessarily to the same anatomical 
                                           areas.   */
-                                    svi->Ch->SurfaceID = SOlist[it];
-                                    if (sv->Ch->NodeID > SO2->N_Node) {
-                                       fprintf (SUMA_STDERR,
-                                                "Error %s: NodeID is larger than"
-                                                " N_Node. Setting NodeID to 0.\n"
-                                                , FuncName);
-                                       svi->Ch->NodeID = 0;
+                                    svi->Ch->adoID = SOlist[it];
+                                    if (sv->Ch->datumID > SO2->N_Node) {
+                                       SUMA_S_Err("datumID is larger than"
+                                             " N_Node. Setting datumID to 0.\n");
+                                       svi->Ch->datumID = 0;
                                     }else{
-                                       svi->Ch->NodeID = sv->Ch->NodeID;
+                                       svi->Ch->datumID = sv->Ch->datumID;
                                     }
                                     
                                     /* set the XYZ */
                                     svi->Ch->c[0] = SO2->NodeList[SO2->NodeDim*
-                                                               svi->Ch->NodeID];
+                                                               svi->Ch->datumID];
                                     svi->Ch->c[1] = SO2->NodeList[SO2->NodeDim*
-                                                             svi->Ch->NodeID+1];
+                                                             svi->Ch->datumID+1];
                                     svi->Ch->c[2] = SO2->NodeList[SO2->NodeDim*
-                                                             svi->Ch->NodeID+2];
+                                                             svi->Ch->datumID+2];
                                     if (LocalHead)
                                        fprintf (SUMA_STDERR,
                                                 "%s: new XYZ %f %f %f\n", 
@@ -2418,9 +2434,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* sends the current node to Group Icor */
             if (SUMAg_CF->giset && SUMAg_CF->Connected_v[SUMA_GICORR_LINE] 
                 && !SUMAg_CF->HoldClickCallbacks &&
-                (SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+                (SO = SUMA_SV_Focus_SO(sv))) {
                SUMA_LHv("Sending notice to GICOR, SO_ID: %d\n",
-                              sv->Focus_SO_ID);
+                              sv->Focus_DO_ID);
                if (SUMA_AFNI_gicor_setref(SO, SO->SelectedNode) < 0) {
                   SUMA_S_Err("Failed in SUMA_AFNI_gicor_setref");
                } 
@@ -2735,8 +2751,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         FuncName, NextCom, NextComCode);
                break;
             }
-            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
-            {
+            
+            if ((SO = SUMA_SV_Focus_SO(sv))) {
                GLfloat *glar_ColorList;
                glar_ColorList = SUMA_GetColorList(sv, SO->idcode_str);
                if (!glar_ColorList) {
@@ -2781,20 +2797,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects Node XYZ in EngineData->fv15[0..2]
             Box dimensions in EngineData->fv15[3..5] */
             if (EngineData->fv15_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               SUMA_S_Errv("Data not destined correctly for %s (%d).\n",
+                           NextCom, NextComCode);
                break;
             }
-            {
+            if ((SO = SUMA_SV_Focus_SO(sv))) {
                SUMA_ISINBOX IB;
                
-               SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
                ND = SO->NodeDim;
             
                SUMA_etime (&tt, 0);
-               IB = SUMA_isinbox (SO->NodeList, SO->N_Node, &(EngineData->fv15[0]), &(EngineData->fv15[3]),  YUP);
+               IB = SUMA_isinbox (SO->NodeList, SO->N_Node, 
+                           &(EngineData->fv15[0]), &(EngineData->fv15[3]),  YUP);
                delta_t = SUMA_etime (&tt, 1);
-               fprintf (SUMA_STDOUT,"Elapsed time for isinbox operation: %f\n", delta_t);
-               fprintf (SUMA_STDOUT,"\t%d nodes (out of %d) found in box\n",IB.nIsIn, SO->N_Node);
+               fprintf (SUMA_STDOUT,"Elapsed time for isinbox operation: %f\n", 
+                                    delta_t);
+               fprintf (SUMA_STDOUT,"\t%d nodes (out of %d) found in box\n",
+                                    IB.nIsIn, SO->N_Node);
                
                if (IB.nIsIn) { /* found some, find the closest node */
                   /* locate the closest node and store it's id in EngineData*/
@@ -2865,10 +2884,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         FuncName, NextCom, NextComCode);
                break;
             }
-            {
+            if ((SO = SUMA_SV_Focus_SO(sv))){
                SUMA_ISINBOX IB;
                
-               SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
                ND = SO->NodeDim;
                SUMA_etime (&tt, 0);
                IB = SUMA_isinbox (SO->NodeList, SO->N_Node, 
@@ -2981,7 +2999,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                        is, sv->CurGroupName)) {
                   SUMA_S_Err("Failed to switch state"); break;
                } else {
-                  sv->Focus_SO_ID = SUMA_findSO_inDOv(
+                  sv->Focus_DO_ID = SUMA_findSO_inDOv(
                                        SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
                   sv->NewGeom = YUP;   /* sv->ResetGLStateVariables 
                                           was not enough */
@@ -3005,7 +3023,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
             if (NI_get_attribute(EngineData->ngr, "switch_dset")) {
                SUMA_OVERLAYS *ColPlane = SUMA_Fetch_OverlayPointer(
-                  SO->Overlays, SO->N_Overlays, 
+                  (SUMA_ALL_DO *)SO, 
                   NI_get_attribute(EngineData->ngr, "switch_dset"), 
                   &itmp);
                if (!ColPlane) {
@@ -3017,11 +3035,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      fprintf (SUMA_STDERR,
                               "%s: Retrieved ColPlane named %s\n", 
                               FuncName, ColPlane->Name);
-                  SUMA_InitializeColPlaneShell(SO, ColPlane);
-                  SUMA_UpdateColPlaneShellAsNeeded(SO); 
+                  SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SO, ColPlane);
+                  SUMA_UpdateColPlaneShellAsNeeded((SUMA_ALL_DO *)SO); 
                                  /* update other open ColPlaneShells */
                   /* If you're viewing one plane at a time, do a remix */
-                  if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
+                  if (SO->SurfCont->ShowCurForeOnly) 
+                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
                }
             }
             
@@ -3038,32 +3057,32 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
                   #if 0
                   /* Set the menu button to the current choice */
-                  if (!SUMA_SetCmapMenuChoice (SO, ColMap->Name)) {
+                  if (!SUMA_SetCmapMenuChoice((SUMA_ALL_DO *)SO, ColMap->Name)) {
                      SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
                   }
 
                   /* switch to the recently loaded  cmap */
-                  if (!SUMA_SwitchColPlaneCmap(SO, ColMap)) {
+                  if (!SUMA_SwitchColPlaneCmap((SUMA_ALL_DO *)SO, ColMap)) {
                      SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
                   }
 
                   /* update Lbl fields */
-                  SUMA_UpdateNodeLblField(SO);
+                  SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                   #else
-                  SUMA_SwitchCmap(SO, ColMap, 1);
+                  SUMA_SwitchCmap((SUMA_ALL_DO *)SO, ColMap, 1);
                   #endif
                }
             }
             
             if (NI_get_attribute(EngineData->ngr, "switch_cmode")) {
                /* Set the menu button to the current choice */
-               if (!SUMA_SetCmodeMenuChoice (SO, 
+               if (!SUMA_SetCmodeMenuChoice ((SUMA_ALL_DO *)SO, 
                         NI_get_attribute(EngineData->ngr, "switch_cmode"))) {
                   SUMA_SL_Err("Failed in SUMA_SetCmodeMenuChoice");
                }
                
                /* update Lbl fields */
-               SUMA_UpdateNodeLblField(SO);
+               SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
             }
             
             if (NI_get_attribute(EngineData->ngr, "load_cmap")) {
@@ -3073,8 +3092,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "I_sb")) {
                NI_GET_INT(EngineData->ngr, "I_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */
-               if (!SUMA_SwitchColPlaneIntensity(SO, SO->SurfCont->curColPlane, 
-                                                 itmp, 1)) { 
+               if (!SUMA_SwitchColPlaneIntensity((SUMA_ALL_DO *)SO, 
+                        SO->SurfCont->curColPlane, itmp, 1)) { 
                   SUMA_S_Err("Failed in I_sb"); break; 
                }
             }
@@ -3082,7 +3101,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* inefficient implementation (causes redisplay, 
                   but avoids duplicating code... */
-               if (!SUMA_SetDsetViewMode(SO, 
+               if (!SUMA_SetDsetViewMode((SUMA_ALL_DO *)SO, 
                      SUMA_ShowModeStr2ShowModeMenuItem(cbuf), 1)) { 
                   SUMA_S_Err("Failed in Dsp"); break; 
                }
@@ -3123,9 +3142,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_RemixRedisplay(SO);
-                           SUMA_UpdateNodeValField(SO);
-                           SUMA_UpdateNodeLblField(SO);
+                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                           SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
+                           SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                         }
                      } 
                   }
@@ -3150,9 +3169,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                      SUMA_SLP_Err("Failed to colorize plane.\n"); 
                   } else {
-                     SUMA_RemixRedisplay(SO);
-                     SUMA_UpdateNodeValField(SO);
-                     SUMA_UpdateNodeLblField(SO);
+                     SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                     SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
+                     SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                   }
                } 
             }
@@ -3173,8 +3192,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {
                NI_GET_INT(EngineData->ngr, "B_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */
-               if (!SUMA_SwitchColPlaneBrightness(SO, SO->SurfCont->curColPlane, 
-                                                 itmp, 1)) { 
+               if (!SUMA_SwitchColPlaneBrightness((SUMA_ALL_DO *)SO, 
+                        SO->SurfCont->curColPlane, itmp, 1)) { 
                   SUMA_S_Err("Failed in T_sb"); break; 
                }
             }
@@ -3209,9 +3228,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_RemixRedisplay(SO);
-                           SUMA_UpdateNodeValField(SO);
-                           SUMA_UpdateNodeLblField(SO);
+                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                           SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
+                           SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                         }
                      } 
                   }
@@ -3248,9 +3267,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_RemixRedisplay(SO);
-                           SUMA_UpdateNodeValField(SO);
-                           SUMA_UpdateNodeLblField(SO);
+                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                           SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
+                           SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                         }
                      } 
                   }
@@ -3261,7 +3280,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "T_sb")) {
                NI_GET_INT(EngineData->ngr, "T_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */
-               if (!SUMA_SwitchColPlaneThreshold(SO, 
+               if (!SUMA_SwitchColPlaneThreshold((SUMA_ALL_DO *)SO, 
                             SO->SurfCont->curColPlane, itmp, 1)) { 
                   SUMA_S_Err("Failed in T_sb"); break; 
                }
@@ -3283,7 +3302,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                        stmp); 
                }
                #endif
-               SUMA_ColPlane_NewDimFact(SO, NULL, ftmp, 0);
+               SUMA_ColPlane_NewDimFact((SUMA_ALL_DO *)SO, NULL, ftmp, 0);
             }
             if (NI_get_attribute(EngineData->ngr, "Opa")) {
                char stmp[50];
@@ -3298,7 +3317,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                #endif
                /* inefficient implementation, but avoids duplicate code... */
-               SUMA_ColPlane_NewOpacity(SO, NULL, ftmp, 0);
+               SUMA_ColPlane_NewOpacity((SUMA_ALL_DO *)SO, NULL, ftmp, 0);
             }
             if (NI_get_attribute(EngineData->ngr, "view_dset")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "y")) {
@@ -3429,7 +3448,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "1_only"));
                   itmp = YUP;
                }
-               if (!SUMA_ColPlaneShowOneFore_Set(SO, itmp, 0)) {
+               if (!SUMA_ColPlaneShowOneFore_Set((SUMA_ALL_DO *)SO, itmp, 0)) {
                   SUMA_S_Err("Failed to set one only");
                   break;  
                }
@@ -3438,7 +3457,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "View_Surf_Cont")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                         "View_Surf_Cont", "y")) {
-                  if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
+                  if (!SUMA_viewSurfaceCont(NULL, (SUMA_ALL_DO *)SO, sv)) {
                      SUMA_S_Err("Failed open surfcont");
                      break;  
                   }
@@ -4030,9 +4049,9 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          }
       }
    }
-   if (!SO) SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+   if (!SO) SO = SUMA_SV_Focus_SO(sv);
    if (!SO) {
-      SO = SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv); /* last resort */
+      SO = SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv, NULL); /* last resort */
    }
    if (!SO) {
       SUMA_S_Err("Have no surfaces to work with at all.\n");
@@ -4056,10 +4075,11 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                         "Please report error to author.");
             SUMA_RETURN(Ret);
          }
-         if (!SUMA_SURFCONT_REALIZED(SO)) { /* better have a controller 
+         if (!SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SO)){ 
+                                       /* better have a controller 
                                                 before going crazy */
             if (0) { /* this option or the next behave in the same way */
-               if (!SUMA_viewSurfaceCont(NULL, SO, sv)) {
+               if (!SUMA_viewSurfaceCont(NULL, (SUMA_ALL_DO *)SO, sv)) {
                         SUMA_S_Err("Failed open surfcont");
                         break;  
                }
@@ -4262,12 +4282,14 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
          sv->ShowLeft and with SO->Show set to YUP
    \param sv (SUMA_SurfaceViewer *) the surface viewer structure
    \param dov (SUMA_DO *) the Displayable Objects vector (accessible to sv)
-   \param SO_IDs (int *) pre-allocated integer vector that will contain the IDs of the SO shown in sv
+   \param SO_IDs (int *) pre-allocated integer vector that will contain the 
+         IDs of the SO shown in sv
          send NULL if you do not care for it and all you'll get is ans
    \ret ans (int) the number of SOs shown in SV
-   Still confused ? read the code for the function, it is shorter than the documentation.
+   Still confused ? read the code for the function, it is shorter 
+   than the documentation.
    
-   \sa SUMA_isVisibleSO
+   \sa SUMA_isVisibleSO, SUMA_Selectable_ADOs
 */
 
 int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
@@ -4305,35 +4327,117 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_RETURN (k);
 }
 
+int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
+{
+   static char FuncName[]={"SUMA_Selectable_ADOs"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i, k = 0;
+   SUMA_NIDO *SDO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   for (i=0; i< sv->N_DO; ++i) {
+      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
+         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+         if (SO_SHOWING(SO, sv)) {
+            if (  SO->Side == SUMA_NO_SIDE || 
+                  SO->Side == SUMA_SIDE_ERROR  || 
+                  SO->Side == SUMA_LR) {
+               if (SO_IDs) {
+                  SO_IDs[k] = sv->RegisteredDO[i];
+               }
+               ++k;
+            } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
+                         (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
+               if (SO_IDs) {
+                  SO_IDs[k] = sv->RegisteredDO[i];
+               }
+               ++k;
+            }
+         }
+      } else if (dov[sv->RegisteredDO[i]].ObjectType == GRAPH_LINK_type) {
+         if (SO_IDs) {
+            SO_IDs[k] = sv->RegisteredDO[i];
+         }
+         ++k;
+      }
+   }
+   
+   SUMA_RETURN (k);
+}
+
+int SUMA_ADOs_WithSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs)
+{
+   static char FuncName[]={"SUMA_ADOs_WithSurfCont"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i, k = 0;
+   SUMA_NIDO *SDO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   for (i=0; i< N_dov; ++i) {
+      if (SUMA_ADO_Cont((SUMA_ALL_DO*)SUMAg_DOv[i].OP)) {
+                  dov_IDs[k] = i;
+               ++k;
+      }
+   }
+   
+   SUMA_RETURN (k);
+}
+
+
 /*!
    \brief YUP if surface is visible in a viewer
    \sa SUMA_VisibleSOs 
 */
-SUMA_Boolean SUMA_isVisibleSO (SUMA_SurfaceViewer *sv, 
-                               SUMA_DO *dov, SUMA_SurfaceObject *curSO)
+SUMA_Boolean SUMA_isVisibleDO (SUMA_SurfaceViewer *sv, 
+                               SUMA_DO *dov, SUMA_ALL_DO *ado)
 {
-   static char FuncName[]={"SUMA_isVisibleSO"};
+   static char FuncName[]={"SUMA_isVisibleDO"};
    SUMA_SurfaceObject *SO=NULL;
+   SUMA_SurfaceObject *curSO=NULL;
    int i, k = 0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
-   for (i=0; i< sv->N_DO; ++i) {
-      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
-         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
-         if (curSO == SO) {
-            if (SO_SHOWING(SO, sv)) {
-               if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
-                  SUMA_RETURN(YUP);
-                  ++k;
-               } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
-                            (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
-                  SUMA_RETURN(YUP);
-                  ++k;
+   switch(ado->do_type) {
+      case SO_type:
+         curSO = (SUMA_SurfaceObject *)ado;
+         for (i=0; i< sv->N_DO; ++i) {
+            if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
+               SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+               if (curSO == SO) {
+                  if (SO_SHOWING(SO, sv)) {
+                     if ( SO->Side == SUMA_NO_SIDE || 
+                          SO->Side == SUMA_SIDE_ERROR ) {
+                        SUMA_RETURN(YUP);
+                        ++k;
+                     } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
+                                  (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
+                        SUMA_RETURN(YUP);
+                        ++k;
+                     }
+                  }
                }
             }
          }
-      }
+         break;
+      case SDSET_type:
+         SUMA_S_Err("Can't judge this without variant");
+         SUMA_RETURN(NOPE);
+         break;
+      case GRAPH_LINK_type:
+         for (i=0; i< sv->N_DO; ++i) {
+            if (dov[sv->RegisteredDO[i]].OP == ado)  SUMA_RETURN(YUP);
+         }
+         SUMA_RETURN(YUP);
+         break;
+      default:
+         SUMA_S_Errv("Nothing to do with %s\n",
+               SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         SUMA_RETURN(NOPE);
    }
    
    SUMA_RETURN(NOPE);
@@ -4359,6 +4463,29 @@ SUMA_Boolean SUMA_isRegisteredSO (SUMA_SurfaceViewer *sv,
    
    SUMA_RETURN(NOPE);
 }
+
+SUMA_Boolean SUMA_isRegisteredDO (SUMA_SurfaceViewer *sv, 
+                                  SUMA_DO *dov, SUMA_ALL_DO *curDO)
+{
+   static char FuncName[]={"SUMA_isRegisteredDO"};
+   SUMA_ALL_DO *DO=NULL;
+   int i, k = 0;
+   
+   SUMA_ENTRY;
+   
+   for (i=0; i< sv->N_DO; ++i) {
+      if (1) {
+         DO = (SUMA_ALL_DO *)dov[sv->RegisteredDO[i]].OP;
+         if (curDO == DO) {
+            SUMA_RETURN(YUP);
+         }
+      }
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+
 
 /*! 
    nxtState = SUMA_NextState(sv);
@@ -4390,7 +4517,9 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
             /* back where we started */
             SUMA_RETURN(inxt);
          } else {
-            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { 
+            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName) ||
+                (!strcmp(sv->VSv[inxt].Group, "ANY") && 
+                  strncmp(sv->VSv[inxt].Name,"TheShadow",9))) { 
                /* group match, good, go back */
                SUMA_RETURN(inxt);
             }
@@ -4491,9 +4620,9 @@ int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, SUMA_SurfaceObject *SOnx
 
 /*! 
    Replaces one surface in RegisteredDO with another 
-
 */
-SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, 
+                            int SOcurID, int SOnxtID, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_SwitchSO"};
    SUMA_Axis *EyeAxis;
@@ -4512,18 +4641,20 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    }
 
    /* set the focus ID to the current surface */
-   sv->Focus_SO_ID = SOnxtID;
+   sv->Focus_DO_ID = SOnxtID;
 
    /* register the new surface in RegisteredDO */
-   /*fprintf(SUMA_STDERR,"%s: Registering DOv[%d]...\n", FuncName, sv->Focus_SO_ID); */
-   if (!SUMA_RegisterDO(sv->Focus_SO_ID, sv)) {
+   /*fprintf(SUMA_STDERR,"%s: Registering DOv[%d]...\n", 
+             FuncName, sv->Focus_DO_ID); */
+   if (!SUMA_RegisterDO(sv->Focus_DO_ID, sv)) {
       fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
 
    /* modify the rotation center */
    if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to update center of rotation", FuncName);
       SUMA_RETURN (NOPE);
    }
    
@@ -4544,8 +4675,12 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    }
    
    /* do the light business */
-   if (!SUMA_SetViewerLightsForSO(sv, (SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP))) {
-      SUMA_S_Warn("Failed to set viewer lights.\nUse 'F' key to flip lights in SUMA\nif necessary.");
+   if (dov[sv->Focus_DO_ID].ObjectType == SO_type &&
+       !SUMA_SetViewerLightsForSO(sv, 
+                  (SUMA_SurfaceObject *)(dov[sv->Focus_DO_ID].OP))) {
+      SUMA_S_Warn("Failed to set viewer lights.\n"
+                  "Use 'F' key to flip lights in SUMA\n"
+                  "if necessary.");
    }
    
    /* do the axis setup */
@@ -4564,7 +4699,8 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    /* take care of the cross hair's XYZ */
 
    /* to do elsewhere */
-   /* when a cross hair needs to be communicated, you must use the LocalDomainParentID surface and not the Focus_Surface */
+   /* when a cross hair needs to be communicated, you must use 
+      the LocalDomainParentID surface and not the Focus_Surface */
    SUMA_RETURN (YUP);
 }
 
@@ -4572,7 +4708,8 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    \brief gets overlays from parent surface SO_prec to child surface SO_nxt
    
 */
-SUMA_Boolean SUMA_GetOverlaysFromParent(SUMA_SurfaceObject *SO_nxt, SUMA_SurfaceObject *SO_prec) 
+SUMA_Boolean SUMA_GetOverlaysFromParent(SUMA_SurfaceObject *SO_nxt, 
+                                        SUMA_SurfaceObject *SO_prec) 
 {
    static char FuncName[]={"SUMA_GetOverlaysFromParent"};
    int j, OverInd=-1;
@@ -4584,7 +4721,7 @@ SUMA_Boolean SUMA_GetOverlaysFromParent(SUMA_SurfaceObject *SO_nxt, SUMA_Surface
       SUMA_SL_Err("Null input");
       SUMA_RETURN(NOPE);
    }
-   if (!SUMA_isRelated(SO_prec, SO_nxt, 1)) {
+   if (!SUMA_isRelated_SO(SO_prec, SO_nxt, 1)) {
       SUMA_SL_Err("Surfaces are not level 1 related");
       SUMA_RETURN(NOPE);
    }
@@ -4592,8 +4729,8 @@ SUMA_Boolean SUMA_GetOverlaysFromParent(SUMA_SurfaceObject *SO_nxt, SUMA_Surface
    /* Create a link to each overlay plane in the precursor unless 
       such a plane exists already  */
    for (j=0; j < SO_prec->N_Overlays; ++j) {
-      if (!SUMA_Fetch_OverlayPointer (SO_nxt->Overlays, 
-               SO_nxt->N_Overlays, SO_prec->Overlays[j]->Name, &OverInd)) {
+      if (!SUMA_Fetch_OverlayPointer ((SUMA_ALL_DO *)SO_nxt,
+                           SO_prec->Overlays[j]->Name, &OverInd)) {
          /* plane not found, create a link to it */
          SUMA_LHv("Overlay plane %s not found, creating the link.\n", 
                   SO_prec->Overlays[j]->Name);
@@ -4642,12 +4779,13 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    int EyeAxis_ID, I_C, ND, id;
    char CommString[100];
    SUMA_EngineData ED;
-   int curstateID, i, j, jmax, prec_ID;
+   int curstateID, i, j, jmax, prec_ID, *MembSOs=NULL, N_MembSOs=0;
    int RegSO[SUMA_MAX_DISPLAYABLE_OBJECTS], N_RegSO;
-   SUMA_SurfaceObject *SO_nxt, *SO_prec, *SO1, *SO2;
+   SUMA_SurfaceObject *SO_nxt, *SO_prec, *SO1, *SO2, *SOtmp=NULL;
+   SUMA_DO_Types ttv[2]={SO_type, GRAPH_LINK_type};
    float *XYZ, *XYZmap, zfac = 0.0;
    DList *list = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
@@ -4662,11 +4800,12 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    /* unregister all the surfaces for the current view */
    if (LocalHead) 
          fprintf( SUMA_STDERR,
-                  "%s: Unregistering state %d (%s), sv(%p)->State = %s\n", 
-                  FuncName, curstateID, sv->VSv[curstateID].Name, 
+                  "%s: Request to change to id %d\n"
+                  "Unregistering state %d (%s), sv(%p)->State = %s\n", 
+                  FuncName, nxtstateID, curstateID, sv->VSv[curstateID].Name, 
                   sv, sv->State);
-   for (i=0; i<sv->VSv[curstateID].N_MembSOs; ++i) {
-      if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembSOs[i], sv)) {
+   for (i=0; i<sv->VSv[curstateID].N_MembDOs; ++i) {
+      if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembDOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
@@ -4683,13 +4822,18 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       SUMA_LH("No group change...");
    }
    
-   /* register all the surfaces from the next view */
+   /* register all the surfaces/DOs from the next view */
    if (LocalHead) 
       fprintf( SUMA_STDERR,
                "%s: Registering DOv of state %d (%s)...\n", 
                FuncName, nxtstateID, sv->VSv[nxtstateID].Name);
-   for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
-      if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembSOs[i], sv)) {
+
+   /* Need to set the state before you go into Registering DOs    May 2013 */
+   sv->State =  sv->VSv[nxtstateID].Name;
+   sv->iState = nxtstateID;
+
+   for (i=0; i<sv->VSv[nxtstateID].N_MembDOs; ++i) {
+      if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembDOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
@@ -4714,6 +4858,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       }
    }
    
+   SUMA_LH("Setting remix flag");
    /*set the Color Remix flag */
    if (!SUMA_SetShownLocalRemixFlag (sv)) {
       fprintf (SUMA_STDERR,
@@ -4721,11 +4866,16 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       SUMA_RETURN (NOPE);
    }
 
+   /* Get those DOs that are surfaces */
+   MembSOs = SUMA_ViewState_Membs(&(sv->VSv[nxtstateID]), ttv, 2, &N_MembSOs);
    
    /* if no coloroverlay exists, link to MapReference surface, if possible */
-   for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
+   SUMA_LHv("Have %d memb[SD]Os\n", N_MembSOs);
+   for (i=0; i<N_MembSOs; ++i) {
+      switch (dov[MembSOs[i]].ObjectType) {
+         case SO_type:
       /* next surface being checked */
-      SO_nxt = (SUMA_SurfaceObject *)(dov[sv->VSv[nxtstateID].MembSOs[i]].OP);
+      SO_nxt = (SUMA_SurfaceObject *)(dov[MembSOs[i]].OP);
 
       /* Get the Mapping Reference surface, that's the precursor*/
       if (!SO_nxt->LocalDomainParentID) {
@@ -4741,7 +4891,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
                   "No precursors found for surface %d.\n"
                   "Colors, selected nodes and facesets will "
                   "not reflect those in previous state.\n.",
-                  FuncName, sv->VSv[nxtstateID].MembSOs[i]);
+                  FuncName, MembSOs[i]);
          continue;
       }
 
@@ -4771,60 +4921,69 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
          /* check for risk of node inconsistencies */
          if (SO_prec->N_Node == SO_nxt->N_Node) {
             SO_nxt->SelectedNode = SO_prec->SelectedNode;
-            } else { /*more nodes in precursor, make sure selected node is OK */
-            if (SO_prec->SelectedNode < SO_nxt->N_Node) {
-               SO_nxt->SelectedNode = SO_prec->SelectedNode;
-            } else { /* this node does not exist in the upcoming thing */
-               fprintf(SUMA_STDERR, 
-                        "\n\aWarning %s: "
-                        "Slected node in precursor state does not exist "
-                        "in current state.\n"
-                        "Selected Node is left at previous setting in "
-                        "this view state.\n", FuncName);
-               }
-            }
-
-         } /* > or equal number of nodes */ else { /* less in prec */
+         } else { /*more nodes in precursor, make sure selected node is OK */
+         if (SO_prec->SelectedNode < SO_nxt->N_Node) {
+            SO_nxt->SelectedNode = SO_prec->SelectedNode;
+         } else { /* this node does not exist in the upcoming thing */
             fprintf(SUMA_STDERR, 
-                     "\n\aWarning %s: More nodes (%d) in upcoming surface. "
-                     "Colors, selected nodes and facesets are not carried "
-                     "through from precursor.\n", 
-                     FuncName, SO_nxt->N_Node - SO_prec->N_Node);
+                     "\n\aWarning %s: "
+                     "Slected node in precursor state does not exist "
+                     "in current state.\n"
+                     "Selected Node is left at previous setting in "
+                     "this view state.\n", FuncName);
+            }
          }
 
-         #if 0
-         /* You do not want to mix colors yet, 
-            the flag for doing that has already been set*/
-         /* Here you need to remix the colors */
-         if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, 
-                                       SO_nxt->N_Overlays, 
-                                       SUMA_GetColorList (sv,
-                                                         SO_nxt->idcode_str),
-                                       SO_nxt->N_Node,
-                                       sv->Back_Modfact, 
-                                       sv->ShowBackground, 
-                                       sv->ShowForeground)) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n",
-                     FuncName);
-            SUMA_RETURN (NOPE);
-         }
-         #endif
-         
+      } /* > or equal number of nodes */ else { /* less in prec */
+         fprintf(SUMA_STDERR, 
+                  "\n\aWarning %s: More nodes (%d) in upcoming surface. "
+                  "Colors, selected nodes and facesets are not carried "
+                  "through from precursor.\n", 
+                  FuncName, SO_nxt->N_Node - SO_prec->N_Node);
+      }
+
+      #if 0
+      /* You do not want to mix colors yet, 
+         the flag for doing that has already been set*/
+      /* Here you need to remix the colors */
+      if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, 
+                                    SO_nxt->N_Overlays, 
+                                    SUMA_GetColorList (sv,
+                                                      SO_nxt->idcode_str),
+                                    SO_nxt->N_Node,
+                                    sv->Back_Modfact, 
+                                    sv->ShowBackground, 
+                                    sv->ShowForeground)) {
+         fprintf (SUMA_STDERR,
+                  "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n",
+                  FuncName);
+         SUMA_RETURN (NOPE);
+      }
+      #endif
+            break;
+         case GRAPH_LINK_type:
+            /* nothing needed */
+            break;
+         default:
+            SUMA_S_Err("Should not be here");
+            break;
       }
    
+   }
+   
+   
    /* Bind the cross hair to a reasonable surface, if possible */
-   if (sv->Ch->SurfaceID >= 0) {      
+   if (iDO_isSO(sv->Ch->adoID)) {      
       if (LocalHead) 
          fprintf( SUMA_STDERR, 
-                  "Local Debug %s: Linking Cross Hair via SurfaceID...\n",
+                  "Local Debug %s: Linking Cross Hair via adoID...\n",
                    FuncName);
-      j = SUMA_MapRefRelative (sv->Ch->SurfaceID, 
-                               sv->VSv[nxtstateID].MembSOs,
-                               sv->VSv[nxtstateID].N_MembSOs, dov);
+      j = SUMA_MapRefRelative (sv->Ch->adoID, 
+                               MembSOs,
+                               N_MembSOs, dov);
       if (LocalHead) fprintf( SUMA_STDERR, 
                               "Local Debug %s: "
-                              "Cross Hair's  New SurfaceID = %d\n", 
+                              "Cross Hair's  New adoID = %d\n", 
                               FuncName, j );
       
       /* set the XYZ of the cross hair based on the 
@@ -4832,10 +4991,10 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       if (j >= 0) {
          SO_nxt = (SUMA_SurfaceObject *)(dov[j].OP);
          ND = SO_nxt->NodeDim;
-         id = ND * sv->Ch->NodeID;
-         if (sv->Ch->NodeID >= 0) {
+         id = ND * sv->Ch->datumID;
+         if (sv->Ch->datumID >= 0) {
             if (LocalHead) fprintf( SUMA_STDERR, 
-                                    "Local Debug %s: Using NodeID for link.\n",
+                                    "Local Debug %s: Using datumID for link.\n",
                                     FuncName);
             sv->Ch->c[0] = SO_nxt->NodeList[id];
             sv->Ch->c[1] = SO_nxt->NodeList[id+1];
@@ -4845,7 +5004,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
             if (LocalHead) fprintf( SUMA_STDERR, 
                                     "Local Debug %s: Using XYZ for link.\n", 
                                     FuncName);
-            SO_prec = (SUMA_SurfaceObject *)(dov[sv->Ch->SurfaceID].OP);
+            SO_prec = (SUMA_SurfaceObject *)(dov[sv->Ch->adoID].OP);
             /* go from XYZ to XYZmap on current surface 
                then from XYZmap to XYZ on new surface */
             I_C = -1;
@@ -4872,8 +5031,8 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
          }
          
          /* if the surface controller is open, update it */
-         if (SUMA_SURFCONT_REALIZED(SO_nxt))   { 
-            SUMA_Init_SurfCont_SurfParam(SO_nxt);
+         if (SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SO_nxt))   { 
+            SUMA_Init_SurfCont_SurfParam((SUMA_ALL_DO *)SO_nxt);
          }
 
       } else {
@@ -4882,37 +5041,34 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
                   "CrossHair location will not correspond between states\n",
                   FuncName); 
       }
-      sv->Ch->SurfaceID = j;
+      sv->Ch->adoID = j;
       if (LocalHead) 
          fprintf(SUMA_STDERR, 
-                  "Local Debug %s: Linking Cross Hair Via NodeID Done.\n",
+                  "Local Debug %s: Linking Cross Hair Via datumID Done.\n",
                   FuncName);
    }
    
 
 
-   /* switch the state accordingly */
-   sv->State =  sv->VSv[nxtstateID].Name;
-   sv->iState = nxtstateID;
    if (sv->FOV[sv->iState] == sv->FOV_original) { 
       sv->FOV[sv->iState] = SUMA_sv_fov_original(sv);
    }
    if (sv->FreezeZoomXstates) 
       sv->FOV[sv->iState] = SUMA_sv_fov_original(sv)*zfac; 
 
-   /* set the focus ID to the first surface in the next view */
-   sv->Focus_SO_ID = sv->VSv[nxtstateID].MembSOs[0];
+   /* set the focus ID to the first surface/object in the next view */
+   sv->Focus_DO_ID = MembSOs[0];
+   
+   SUMA_ifree(MembSOs); 
    
    /* Now update the cross hair info if needed for the surface in focus */
-   if (sv->Ch->SurfaceID >= 0)   { 
-      SUMA_SurfaceObject *SOtmp=(SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP);
-      if (SUMA_SURFCONT_REALIZED(SOtmp)) {
-         SUMA_Init_SurfCont_CrossHair(SOtmp);
+   if (sv->Ch->adoID >= 0 && (SOtmp = SUMA_SV_Focus_SO(sv)))   { 
+      if (SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SOtmp)) {
+         SUMA_Init_SurfCont_CrossHair((SUMA_ALL_DO *)SOtmp);
       }
    }
 
-   if (LocalHead) {
-      SUMA_SurfaceObject *SOtmp=(SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP);
+   if (LocalHead && (SOtmp = SUMA_SV_Focus_SO(sv))) {
       fprintf( SUMA_STDERR,
                "%s: Setting new Focus ID to surface %s\n", 
                FuncName, SOtmp->Label);
@@ -4959,9 +5115,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    SUMA_WorldAxisStandard (sv->WAx, sv);
 
    /* do the light business */
-   if (!SUMA_SetViewerLightsForSO(
-               sv, 
-               (SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP) )) {
+   if (!SUMA_SetViewerLightsForSO( sv, SUMA_SV_Focus_SO(sv) )) {
       SUMA_S_Warn("Failed to set viewer lights.\n"
                   "Use 'F' key to flip lights in SUMA\nif necessary.");
    }
@@ -5474,7 +5628,7 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list,
                       SO_prec->LocalDomainParentID) == 0 || 
             strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0 )
          to
-         if (  SUMA_isRelated(SOcur, SO_prec, 1) )
+         if ( SUMA_isRelated_SO(SOcur, SO_prec, 1) )
          The two are the same except for the condition when the two surfaces 
          are identical. So I put in a error message when that would happen and 
          I'll deal with it then.
@@ -5483,7 +5637,7 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list,
          
       }
       
-      if (  SUMA_isRelated(SOcur, SO_prec, 1) ) { 
+      if ( SUMA_isRelated_SO(SOcur, SO_prec, 1) ) { 
          /* Change made Jan 08 04, see note above */
          /* there's some relationship here, save it for return */
          if (rel_id < 0) {

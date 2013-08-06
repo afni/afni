@@ -4,7 +4,7 @@
 #endif
 
 /* store the special names used for xmats */
-static char special_xmats[] = {"RandShift, RandRigid, RandAffine, Scale"}; 
+static char special_xmats[] = {"RandShift, RandRigid, RandAffine, Scale, NegXY"}; 
 void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    
   {/*Usage*/
@@ -79,6 +79,13 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                 where all the nodes in nodelist are used in the mesh.\n"
 "                 Note that node indices will no longer correspond between\n"
 "                 the input patch and the output surface.\n"
+"    -merge_surfs: Merge multitudes of surfaces on the command line into one\n"
+"                  big surface before doing anything else to the surface.\n"
+"                  This is for the moment the only option for which you \n"
+"                  should specify more than one input surface on the command\n"
+"                  line. For example:\n"
+"            ConvertSurface -i lh.smoothwm.gii -i rh.smoothwm.gii \\\n"
+"                           -merge_surfs       -o_gii lrh.smoothwm.gii\n"
 "\n"                 
 "    Options for applying arbitrary affine transform:\n"
 "    [xyz_new] = [Mr] * [xyz_old - cen] + D + cen\n"
@@ -91,11 +98,12 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                  or\n"
 "                  r11 r12 r13 D1 r21 r22 r23 D2 r31 r32 r33 D3\n"
 "    -ixmat_1D mat: Same as xmat_1D except that mat is replaced by inv(mat)\n"
-"    -ixmat_1D mat: Same as xmat_1D except that mat is replaced by inv(mat)\n"
 "        NOTE: For both -xmat_1D and -ixmat_1D, you can replace mat with \n"
 "              one of the special strings:\n"
 "              'RandShift', 'RandRigid', or 'RandAffine' which would create\n"
 "              a transform on the fly. \n"
+"              You can also use 'NegXY' to flip the sign of X and Y \n"
+"              coordinates.\n"
 "    -seed SEED: Use SEED to seed the random number generator for random\n"
 "                matrix generation\n"
 "    -XYZscale sX sY sZ: Scale the coordinates by sX sY sZ.\n"
@@ -125,7 +133,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
-	int kar, volexists, i, Doinv, randseed;
+	int kar, volexists, i, j, Doinv, randseed, Domergesurfs=0;
    float DoR2S;
    double xcen[3], sc[3];
    double xform[4][4];
@@ -181,6 +189,7 @@ int main (int argc,char *argv[])
    DoR2S = 0.0;
    Do_PolDec = NOPE;
    Doinv = 0;
+   Domergesurfs = 0;
    onemore = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -245,6 +254,10 @@ int main (int argc,char *argv[])
 		}
       if (!brk && (strcmp(argv[kar], "-polar_decomp") == 0)) {
          Do_PolDec = YUP;
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-merge_surfs") == 0)) {
+         Domergesurfs = 1;
 			brk = YUP;
 		}
       
@@ -466,6 +479,12 @@ int main (int argc,char *argv[])
       }
    }
    
+   if ( ps->i_N_surfnames > 1 && !Domergesurfs) {
+      SUMA_S_Err("Multiple surfaces specified without -merge_surfs option\n"
+                 "Nothing to do for such an input\n");
+      exit(1);
+   }
+   
    
    /* test for existence of input files */
    if (!SUMA_filexists(if_name)) {
@@ -570,6 +589,8 @@ int main (int argc,char *argv[])
          SUMA_FillRandXform(xform, randseed, 1);
       } else if (!strcmp(xmat_name,"Scale")) {
          SUMA_FillScaleXform(xform, sc);
+      } else if (!strcmp(xmat_name,"NegXY")) {
+         SUMA_FillXYnegXform(xform);
       } else {
          im = mri_read_double_1D (xmat_name);
 
@@ -735,13 +756,43 @@ int main (int argc,char *argv[])
          #endif 
       }
    }
-   /* prepare the name of the surface object to read*/
-   SO = SUMA_Load_Surface_Object_Wrapper ( if_name, if_name2, vp_name, iType, iForm, sv_name, 1);
-   if (!SO) {
-      SUMA_S_Err("Failed to read input surface.\n");
-      exit (1);
+   
+   if ( ps->i_N_surfnames ==  1) {
+      /* load that one surface */
+      SO = SUMA_Load_Surface_Object_Wrapper ( if_name, if_name2, vp_name, 
+                                              iType, iForm, sv_name, 1);
+      if (!SO) {
+         SUMA_S_Err("Failed to read input surface.\n");
+         exit (1);
+      }
+   } else if ( ps->i_N_surfnames > 1 && Domergesurfs) {
+      SUMA_SurfaceObject **SOar=NULL;
+      int ii;
+      SUMA_S_Notev("Merging %d surfaces into 1\n", ps->i_N_surfnames);
+      SOar = (SUMA_SurfaceObject **)
+                  SUMA_calloc(ps->i_N_surfnames, sizeof(SUMA_SurfaceObject *));
+      if (ps->N_sv > 1 || ps->N_vp > 1) {
+         SUMA_S_Errv("Cannot handle multiple (%d) -sv or multiple (%d) -vp\n",
+                     ps->N_sv, ps->N_vp);
+         exit(1);
+      }
+      for (ii = 0; ii<ps->i_N_surfnames; ++ii) {
+         SOar[ii] = SUMA_Load_Surface_Object_Wrapper(ps->i_surfnames[ii], 
+                                                     ps->i_surftopo[ii],
+                                                     vp_name, 
+                                                     ps->i_FT[0], ps->i_FF[0], 
+                                                     sv_name, 1);
+      }
+      if (!(SO = SUMA_MergeSurfs(SOar, ps->i_N_surfnames))) {
+         SUMA_S_Err("Failed to merge");
+         exit(1);
+      }
+      for (ii = 0; ii<ps->i_N_surfnames; ++ii) {
+         SUMA_Free_Surface_Object(SOar[ii]);
+         SOar[ii]=NULL;
+      } SUMA_free(SOar); SOar=NULL;
    }
-
+   
    if (DoR2S > 0.0000001) {
       if (!SUMA_ProjectSurfaceToSphere(SO, NULL , DoR2S , NULL)) {
          SUMA_S_Err("Failed to project to surface");
@@ -904,20 +955,23 @@ int main (int argc,char *argv[])
             SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
          }
       }
+      SUMA_Blank_AfniSO_Coord_System(SO->aSO);
    }
    
    if (orcode[0] != '\0') {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Changing coordinates from %s to %s\n", FuncName, orsurf, orcode);
+      SUMA_LHv("Changing coordinates from %s to %s\n", orsurf, orcode);
       if (!SUMA_CoordChange(orsurf, orcode, SO->NodeList, SO->N_Node)) {
          SUMA_S_Err("Failed to change coords.");
          exit(1);
       }
+      SUMA_Blank_AfniSO_Coord_System(SO->aSO);
    }
    
    if (Do_p2s) {
       SUMA_SurfaceObject *SOold = SO;
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Changing patch to surface...\n", FuncName);
-      SO = SUMA_Patch2Surf(SOold->NodeList, SOold->N_Node, SO->FaceSetList, SO->N_FaceSet, 3);
+      SUMA_LH("Changing patch to surface...");
+      SO = SUMA_Patch2Surf(SOold->NodeList, SOold->N_Node, 
+                           SO->FaceSetList, SO->N_FaceSet, 3);
       if (!SO) {
          SUMA_S_Err("Failed to change patch to surface.");
          exit(1);

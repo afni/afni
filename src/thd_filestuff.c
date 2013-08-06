@@ -181,6 +181,31 @@ char *THD_filetime( char *pathname )
    return (sout[icall]) ;
 }
 
+/*-------------------------------------------------------*/
+/*! Compare file's last modified date to reference       
+    -1 file modification predates the specified day 
+     0 same as specified day
+     1 newer 
+     2 for error in input or file not found              */
+
+int THD_filetime_diff( char *pathname, 
+                       int year, int month, int day  )
+{
+   static struct stat buf ; int ii ;
+   static struct tm *lt=NULL ;
+   int fday, Dday = year*10000+month*100+day;
+      
+   if( pathname == NULL || *pathname == '\0' ) return (2);
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return (2) ;
+   
+   lt = localtime(&buf.st_mtime);
+   fday = (lt->tm_year+1900)*10000+(lt->tm_mon+1)*100+lt->tm_mday;
+   if (Dday > fday) return(-1);
+   else if (Dday < fday) return(1);
+   else return(0);
+}
+
+
 char *THD_homedir(byte withslash)
 {
    static char sout[3][520]; 

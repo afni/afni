@@ -259,8 +259,7 @@ def fitmodels2__(catd,mmix,mask,t2s,tes,fout=None,reindex=False):
 	WTS = tsoc_B/tsoc_resid.std(axis=-1)[:,np.newaxis]
 	#Compute skews to determine signs, fix mmix signs
 	try: from scipy.stats import skew
-	except:
-		from scipy.stats import skew
+	except: from scipy.stats import skew
 	signs = skew(WTS,axis=0)
 	signs /= np.abs(signs)
 	mmix = mmix.copy()

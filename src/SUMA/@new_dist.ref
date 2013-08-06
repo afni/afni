@@ -67,6 +67,15 @@ if ("$package" == "") then
       set expat_sh = 1
       set fontconf = 1
       set user_bin = '/home/ziad/abin'
+   else if ( "${thishost}" =~ morgoth* ) then
+      set package = linux_openmp_64
+      echo "Forcing use of -expat_sh, -fontconf -fixccold -dynxlibs"
+      set localX = -1
+      set fixccold = 1
+      set expat_sh = 1
+      set fontconf = 1
+      set dynxlibs = 1
+      set user_bin = '/home/ziad/abin'
    else if ( "${thishost}" =~ manwe* ) then
       if ($lesstifing == 0) then
          echo "Using -lesstif as default for `hostname`"
@@ -232,10 +241,18 @@ endif
 if ($localX == 1) then
    sed 's/# USE_LOCAL_X_TREE/USE_LOCAL_X_TREE/' Makefile > ___mm
    mv ___mm Makefile
+else if ($localX == -1) then
+   sed "s/^\ *USE_LOCAL_X_TREE/#USE_LOCAL_X_TREE/" Makefile > ___mm
+   mv ___mm  Makefile
 endif
 
+
 if ( $optimize_problem ) then
-  sed 's/-O2/-O1/' Makefile > ___mm
+  sed 's/-O1//' Makefile > ___mm
+  mv ___mm Makefile
+  sed 's/-O2//' Makefile > ___mm
+  mv ___mm Makefile
+  sed 's/-O3//' Makefile > ___mm
   mv ___mm Makefile
 endif
 
@@ -356,7 +373,7 @@ if ($buildX) then
    cd $CurDir
 endif
 
-if ($localX) then
+if ($localX == 1) then
    if (  ! -f /usr/local/afniX/lib/libXm.a && \
          ! -f /usr/local/afniX/lib64/libXm.a ) then
       echo "Could not find X libraries, consider using -buildX"
@@ -475,6 +492,14 @@ PARSE_COMMAND:
       endif
       if ($donext && "$argv[$cnt]" == "-fixccold") then
          set fixccold = 1;
+         set donext = 0;		
+      endif
+      if ($donext && "$argv[$cnt]" == "-mcwmalloc") then
+         set mcwmalloc = 1;
+         set donext = 0;		
+      endif
+      if ($donext && "$argv[$cnt]" == "-no_mcwmalloc") then
+         set mcwmalloc = -1;
          set donext = 0;		
       endif
       if ($donext && "$argv[$cnt]" == "-expat_sh") then
@@ -685,6 +710,8 @@ USAGE:
    echo "   [-expat_sh]: Use .so for libexpat"
    echo "   [-fontconf]: Add -lfontconfig"
    echo "   [-jpega]: Add  $(XROOT)/lib/libjpeg.a"
+   echo "   [-mcwmalloc]: Make sure MCW_MALLOC is used"
+   echo "   [-no_mcwmalloc]: Make sure MCW_MALLOC is NOT used."
    goto END
 
    
