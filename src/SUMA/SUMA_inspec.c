@@ -185,46 +185,9 @@ int main (int argc,char *argv[])
    }
    
    if (state_rm) {
-      int i, k;
-      k = 0;
-      for (i=0; i<Spec.N_Surfs; ++i) {
-         if (!strstr(Spec.State[i],state_rm)) {
-            SUMA_LHv("Working to copy state %s for surface i=%d k=%d\n",
-                           Spec.State[i], i, k);
-            if (k < i) {
-            sprintf(Spec.State[k], "%s",Spec.State[i]);
-            sprintf(Spec.SurfaceType[k], "%s",Spec.SurfaceType[i]);
-            sprintf(Spec.SurfaceFormat[k], "%s",Spec.SurfaceFormat[i]);
-            sprintf(Spec.TopoFile[k], "%s",Spec.TopoFile[i]);
-            sprintf(Spec.CoordFile[k], "%s",Spec.CoordFile[i]);
-            sprintf(Spec.MappingRef[k], "%s",Spec.MappingRef[i]);
-            sprintf(Spec.SureFitVolParam[k], "%s",Spec.SureFitVolParam[i]);
-            sprintf(Spec.SurfaceFile[k], "%s",Spec.SurfaceFile[i]);
-            sprintf(Spec.VolParName[k], "%s",Spec.VolParName[i]);
-            if (Spec.IDcode[i]) sprintf(Spec.IDcode[k], "%s",Spec.IDcode[i]);
-            else Spec.IDcode[k]=NULL;
-            sprintf(Spec.State[k], "%s",Spec.State[i]);
-            sprintf(Spec.LabelDset[k], "%s",Spec.LabelDset[i]);
-            sprintf(Spec.Group[k], "%s",Spec.Group[i]);
-            sprintf(Spec.SurfaceLabel[k], "%s",Spec.SurfaceLabel[i]);
-            Spec.EmbedDim[k] = Spec.EmbedDim[i];
-            sprintf(Spec.AnatCorrect[k], "%s",Spec.AnatCorrect[i]);
-            sprintf(Spec.Hemisphere[k], "%s",Spec.Hemisphere[i]);
-            sprintf(Spec.DomainGrandParentID[k], 
-                                    "%s",Spec.DomainGrandParentID[i]);
-            sprintf(Spec.OriginatorID[k], "%s",Spec.OriginatorID[i]);
-            sprintf(Spec.LocalCurvatureParent[k], 
-                                    "%s",Spec.LocalCurvatureParent[i]);
-            sprintf(Spec.LocalDomainParent[k], "%s",Spec.LocalDomainParent[i]);
-            sprintf(Spec.NodeMarker[k], "%s",Spec.NodeMarker[i]);
-            }
-            ++k;
-         }
-      }
-      if (k != Spec.N_Surfs) Spec.N_States = Spec.N_States-1;
-      Spec.N_Surfs = k;
+      SUMA_RemoveSpecState(&Spec, state_rm, 0, NULL);
    }
-    
+       
    /* showme the contents */
    if (detail && !SUMA_ShowSpecStruct (&Spec, NULL, detail)) {
       SUMA_SL_Err("Failed in SUMA_ShowSpecStruct\n");
