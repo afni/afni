@@ -1950,6 +1950,45 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
     tempZ_mat33.m[2][2] = (AA).m[2][2]*(ff) + (BB).m[2][2]*(gg) , tempZ_mat33 )
 
 /*---------------------------------------------------------------------*/
+/*--- Macros to work on augmented ([4][4]) affine transforms       ----*/
+
+#undef  AFF44_MULT
+#define AFF44_MULT( M, A, B ) {\
+   int i,j ;   \
+   for( i=0 ; i < 3 ; i++ )   \
+    for( j=0 ; j < 4 ; j++ )  \
+     M[i][j] =    A[i][0] * B[0][j] + A[i][1] * B[1][j]   \
+                + A[i][2] * B[2][j] + A[i][3] * B[3][j] ; \
+   M[3][0] = M[3][1] = M[3][2] = 0.0 ; M[3][3] = 1.0 ;  \
+}
+
+#undef AFF44_COPY
+#define AFF44_COPY( C, A ) {\
+   int i,j ;   \
+   for( i=0 ; i < 4 ; i++ )   \
+    for( j=0 ; j < 4 ; j++ )  \
+     C[i][j] =    A[i][j] ; \
+}
+
+#undef AFF44_LOAD
+#define AFF44_LOAD( C, a,b,c,d, e,f,g,h, i,j,k,l ) {\
+   C[0][0]=a; C[0][1]=b; C[0][2]=c; C[0][3]=d;  \
+   C[1][0]=e; C[1][1]=f; C[1][2]=g; C[1][3]=h;  \
+   C[2][0]=i; C[2][1]=j; C[2][2]=k; C[2][3]=l;  \
+   C[3][0]=0; C[3][1]=0; C[3][2]=0; C[3][3]=1;  \
+}
+
+/* Change transform matrix so that it applies to RAI space
+   rather than LPI or vice versa.                             */
+#undef  AFF44_LPI_RAI_FLIP
+#define AFF44_LPI_RAI_FLIP( M , A )   {              \
+   double F[4][4], T[4][4];                           \
+   AFF44_LOAD( F , -1,0,0,0 , 0,-1,0,0 , 0,0,1,0 );   \
+   AFF44_MULT( T , F , A );                           \
+   AFF44_MULT( M , T , F );                             \
+}
+
+/*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
 
 #define TIMEAXIS_TYPE 907

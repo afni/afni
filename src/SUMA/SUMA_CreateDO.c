@@ -12427,14 +12427,14 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
               "Not sure what the standard dictates for such a case.");
       if (!SUMA_GetSOCoordXform(SO, xform)) {
          SUMA_S_Err("Failed to get xform!");
-         NI_SET_INT(nelxyz,"inxformspace",0);
+         NI_set_attribute(nelxyz,"inxformspace","no");
       } else {
          if (!SUMA_Apply_Coord_xform(SO->NodeList, SO->N_Node, SO->NodeDim,
                                      xform, 0, NULL)) {
             SUMA_S_Err("Failed to apply xform!");
-            NI_SET_INT(nelxyz,"inxformspace",0);
+            NI_set_attribute(nelxyz,"inxformspace","no");
          }else{
-            NI_SET_INT(nelxyz,"inxformspace",1);
+         NI_set_attribute(nelxyz,"inxformspace","yes");
          }
       }
       
@@ -12475,7 +12475,7 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
       }
       
       /* populate xform with junk since this concept does not exist in SO */
-      NI_SET_INT(nelxyz,"inxformspace",  0);
+      NI_set_attribute(nelxyz,"inxformspace","no");
       NI_set_attribute(nelxform, "dataspace", "NIFTI_XFORM_UNKNOWN");
       NI_set_attribute(nelxform, "xformspace", "NIFTI_XFORM_UNKNOWN");
       dv = (double *)nelxform->vec[0];
