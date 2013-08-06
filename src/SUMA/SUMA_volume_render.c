@@ -288,81 +288,90 @@ void SUMA_CreateSphereList(void)
 }
 
 
-SUMA_EnablingRecord SUMA_RecordEnablingState(void)
+void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER)
 {
    static char FuncName[]={"SUMA_RecordEnablingState"};
-   SUMA_EnablingRecord SER;
    
    SUMA_ENTRY;
    
-   SER.DEPTH_TEST = glIsEnabled(GL_DEPTH_TEST);
-   SER.TEXTURE_3D_EXT = glIsEnabled(GL_TEXTURE_3D_EXT);
-   SER.TEXTURE_3D = glIsEnabled(GL_TEXTURE_3D);
-   SER.TEXTURE_GEN_S = glIsEnabled(GL_TEXTURE_GEN_S);
-   SER.TEXTURE_GEN_T = glIsEnabled(GL_TEXTURE_GEN_T);
-   SER.TEXTURE_GEN_R = glIsEnabled(GL_TEXTURE_GEN_R);
-   SER.CLIP_PLANE0 = glIsEnabled(GL_CLIP_PLANE0);
-   SER.CLIP_PLANE1 = glIsEnabled(GL_CLIP_PLANE1);
-   SER.CLIP_PLANE2 = glIsEnabled(GL_CLIP_PLANE2);
-   SER.CLIP_PLANE3 = glIsEnabled(GL_CLIP_PLANE3);
-   SER.CLIP_PLANE4 = glIsEnabled(GL_CLIP_PLANE4);
-   SER.CLIP_PLANE5 = glIsEnabled(GL_CLIP_PLANE5);
-   SER.LIGHTING = glIsEnabled(GL_LIGHTING);
-   SER.LIGHT0 = glIsEnabled(GL_LIGHT0);
-   SER.LIGHT1 = glIsEnabled(GL_LIGHT1);
-   SER.LIGHT2 = glIsEnabled(GL_LIGHT2);
-   SER.BLEND = glIsEnabled(GL_BLEND);
-   /* SER. = glIsEnabled(GL_); */
-   
-   SUMA_RETURN(SER);
-}
-
-void SUMA_RestoreEnablingState(SUMA_EnablingRecord SER)
-{
-   static char FuncName[]={"SUMA_RestoreEnablingState"};
-   
-   SUMA_ENTRY;
-      
-   if (SER.DEPTH_TEST) glEnable(GL_DEPTH_TEST);
-   else glDisable(GL_DEPTH_TEST);
-   if (SER.TEXTURE_3D_EXT) glEnable(GL_TEXTURE_3D_EXT);
-   else glDisable(GL_TEXTURE_3D_EXT);
-   if (SER.TEXTURE_3D) glEnable(GL_TEXTURE_3D);
-   else glDisable(GL_TEXTURE_3D);
-   if (SER.TEXTURE_GEN_S) glEnable(GL_TEXTURE_GEN_S);
-   else glDisable(GL_TEXTURE_GEN_S);
-   if (SER.TEXTURE_GEN_T) glEnable(GL_TEXTURE_GEN_T);
-   else glDisable(GL_TEXTURE_GEN_T);
-   if (SER.TEXTURE_GEN_R) glEnable(GL_TEXTURE_GEN_R);
-   else glDisable(GL_TEXTURE_GEN_R);
-   if (SER.CLIP_PLANE0) glEnable(GL_CLIP_PLANE0);
-   else glDisable(GL_CLIP_PLANE0);
-   if (SER.CLIP_PLANE1) glEnable(GL_CLIP_PLANE1);
-   else glDisable(GL_CLIP_PLANE1);
-   if (SER.CLIP_PLANE2) glEnable(GL_CLIP_PLANE2);
-   else glDisable(GL_CLIP_PLANE2);
-   if (SER.CLIP_PLANE3) glEnable(GL_CLIP_PLANE3);
-   else glDisable(GL_CLIP_PLANE3);
-   if (SER.CLIP_PLANE4) glEnable(GL_CLIP_PLANE4);
-   else glDisable(GL_CLIP_PLANE4);
-   if (SER.CLIP_PLANE5) glEnable(GL_CLIP_PLANE5);
-   else glDisable(GL_CLIP_PLANE5);
-   if (SER.LIGHTING) glEnable(GL_LIGHTING);
-   else glDisable(GL_LIGHTING);
-   if (SER.LIGHT0) glEnable(GL_LIGHT0);
-   else glDisable(GL_LIGHT0);
-   if (SER.LIGHT1) glEnable(GL_LIGHT1);
-   else glDisable(GL_LIGHT1);
-   if (SER.LIGHT2) glEnable(GL_LIGHT2);
-   else glDisable(GL_LIGHT2);
-   if (SER.BLEND) glEnable(GL_BLEND);
-   else glDisable(GL_BLEND);
-   /* if (SER.) glEnable(); */
+   if (!SER) {
+      SUMA_S_Err("NULL SER, how am I to record?");
+      SUMA_RETURNe;
+   }
+   SER->DEPTH_TEST = glIsEnabled(GL_DEPTH_TEST);
+   SER->TEXTURE_3D_EXT = glIsEnabled(GL_TEXTURE_3D_EXT);
+   SER->TEXTURE_3D = glIsEnabled(GL_TEXTURE_3D);
+   SER->TEXTURE_GEN_S = glIsEnabled(GL_TEXTURE_GEN_S);
+   SER->TEXTURE_GEN_T = glIsEnabled(GL_TEXTURE_GEN_T);
+   SER->TEXTURE_GEN_R = glIsEnabled(GL_TEXTURE_GEN_R);
+   SER->CLIP_PLANE0 = glIsEnabled(GL_CLIP_PLANE0);
+   SER->CLIP_PLANE1 = glIsEnabled(GL_CLIP_PLANE1);
+   SER->CLIP_PLANE2 = glIsEnabled(GL_CLIP_PLANE2);
+   SER->CLIP_PLANE3 = glIsEnabled(GL_CLIP_PLANE3);
+   SER->CLIP_PLANE4 = glIsEnabled(GL_CLIP_PLANE4);
+   SER->CLIP_PLANE5 = glIsEnabled(GL_CLIP_PLANE5);
+   SER->LIGHTING = glIsEnabled(GL_LIGHTING);
+   SER->LIGHT0 = glIsEnabled(GL_LIGHT0);
+   SER->LIGHT1 = glIsEnabled(GL_LIGHT1);
+   SER->LIGHT2 = glIsEnabled(GL_LIGHT2);
+   SER->BLEND = glIsEnabled(GL_BLEND);
+   SER->LINE_SMOOTH = glIsEnabled(GL_LINE_SMOOTH);
+   /* SER-> = glIsEnabled(GL_); */
    
    SUMA_RETURNe;
 }
 
-char *SUMA_EnablingState_Info(SUMA_EnablingRecord SER)
+void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER)
+{
+   static char FuncName[]={"SUMA_RestoreEnablingState"};
+   
+   SUMA_ENTRY;
+   if (!SER) {
+      SUMA_S_Err("No pointer amigo");
+      SUMA_RETURNe;
+   }   
+   if (SER->DEPTH_TEST) glEnable(GL_DEPTH_TEST);
+   else glDisable(GL_DEPTH_TEST);
+   if (SER->TEXTURE_3D_EXT) glEnable(GL_TEXTURE_3D_EXT);
+   else glDisable(GL_TEXTURE_3D_EXT);
+   if (SER->TEXTURE_3D) glEnable(GL_TEXTURE_3D);
+   else glDisable(GL_TEXTURE_3D);
+   if (SER->TEXTURE_GEN_S) glEnable(GL_TEXTURE_GEN_S);
+   else glDisable(GL_TEXTURE_GEN_S);
+   if (SER->TEXTURE_GEN_T) glEnable(GL_TEXTURE_GEN_T);
+   else glDisable(GL_TEXTURE_GEN_T);
+   if (SER->TEXTURE_GEN_R) glEnable(GL_TEXTURE_GEN_R);
+   else glDisable(GL_TEXTURE_GEN_R);
+   if (SER->CLIP_PLANE0) glEnable(GL_CLIP_PLANE0);
+   else glDisable(GL_CLIP_PLANE0);
+   if (SER->CLIP_PLANE1) glEnable(GL_CLIP_PLANE1);
+   else glDisable(GL_CLIP_PLANE1);
+   if (SER->CLIP_PLANE2) glEnable(GL_CLIP_PLANE2);
+   else glDisable(GL_CLIP_PLANE2);
+   if (SER->CLIP_PLANE3) glEnable(GL_CLIP_PLANE3);
+   else glDisable(GL_CLIP_PLANE3);
+   if (SER->CLIP_PLANE4) glEnable(GL_CLIP_PLANE4);
+   else glDisable(GL_CLIP_PLANE4);
+   if (SER->CLIP_PLANE5) glEnable(GL_CLIP_PLANE5);
+   else glDisable(GL_CLIP_PLANE5);
+   if (SER->LIGHTING) glEnable(GL_LIGHTING);
+   else glDisable(GL_LIGHTING);
+   if (SER->LIGHT0) glEnable(GL_LIGHT0);
+   else glDisable(GL_LIGHT0);
+   if (SER->LIGHT1) glEnable(GL_LIGHT1);
+   else glDisable(GL_LIGHT1);
+   if (SER->LIGHT2) glEnable(GL_LIGHT2);
+   else glDisable(GL_LIGHT2);
+   if (SER->BLEND) glEnable(GL_BLEND);
+   else glDisable(GL_BLEND);
+   if (SER->LINE_SMOOTH) glEnable(GL_LINE_SMOOTH);
+   else glDisable(GL_LINE_SMOOTH);
+   /* if (SER->) glEnable(); */
+   
+   SUMA_RETURNe;
+}
+
+char *SUMA_EnablingState_Info(SUMA_EnablingRecord *SER)
 {
    static char FuncName[]={"SUMA_EnablingState_Info"};
    char *s=NULL;
@@ -371,50 +380,58 @@ char *SUMA_EnablingState_Info(SUMA_EnablingRecord SER)
    SUMA_ENTRY;
       
    SS = SUMA_StringAppend(NULL, NULL);
+   if (!SER) {
+      SUMA_StringAppend_va(SS,"NULL SER\n");
+      SUMA_SS2S(SS,s);
+      SUMA_RETURN(s);
+   }  
    SUMA_StringAppend_va(SS,"GL_DEPTH_TEST is %s\n", 
-                        SER.DEPTH_TEST ? "Enabled":"Disabled"); 
+                        SER->DEPTH_TEST ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_3D_EXT is %s\n", 
-                        SER.TEXTURE_3D_EXT ? "Enabled":"Disabled"); 
+                        SER->TEXTURE_3D_EXT ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_3D is %s\n", 
-                        SER.TEXTURE_3D ? "Enabled":"Disabled"); 
+                        SER->TEXTURE_3D ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_S is %s\n", 
-                        SER.TEXTURE_GEN_S ? "Enabled":"Disabled"); 
+                        SER->TEXTURE_GEN_S ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_T is %s\n", 
-                        SER.TEXTURE_GEN_T ? "Enabled":"Disabled"); 
+                        SER->TEXTURE_GEN_T ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_R is %s\n", 
-                        SER.TEXTURE_GEN_R ? "Enabled":"Disabled"); 
+                        SER->TEXTURE_GEN_R ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_CLIP_PLANE0 is %s\n", 
-                        SER.CLIP_PLANE0 ? "Enabled":"Disabled"); 
+                        SER->CLIP_PLANE0 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_CLIP_PLANE1 is %s\n", 
-                        SER.CLIP_PLANE1 ? "Enabled":"Disabled"); 
+                        SER->CLIP_PLANE1 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_CLIP_PLANE2 is %s\n", 
-                        SER.CLIP_PLANE2 ? "Enabled":"Disabled"); 
+                        SER->CLIP_PLANE2 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_CLIP_PLANE3 is %s\n", 
-                        SER.CLIP_PLANE3 ? "Enabled":"Disabled"); 
+                        SER->CLIP_PLANE3 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_CLIP_PLANE4 is %s\n", 
-                        SER.CLIP_PLANE4 ? "Enabled":"Disabled"); 
+                        SER->CLIP_PLANE4 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_CLIP_PLANE5 is %s\n", 
-                        SER.CLIP_PLANE5 ? "Enabled":"Disabled"); 
+                        SER->CLIP_PLANE5 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_LIGHTING is %s\n", 
-                        SER.LIGHTING ? "Enabled":"Disabled"); 
+                        SER->LIGHTING ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_LIGHT0 is %s\n", 
-                        SER.LIGHT0 ? "Enabled":"Disabled"); 
+                        SER->LIGHT0 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_LIGHT1 is %s\n", 
-                        SER.LIGHT1 ? "Enabled":"Disabled"); 
+                        SER->LIGHT1 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_LIGHT2 is %s\n", 
-                        SER.LIGHT2 ? "Enabled":"Disabled"); 
+                        SER->LIGHT2 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_BLEND is %s\n", 
-                        SER.BLEND ? "Enabled":"Disabled"); 
+                        SER->BLEND ? "Enabled":"Disabled"); 
+   SUMA_StringAppend_va(SS,"GL_LINE_SMOOTH is %s\n", 
+                        SER->LINE_SMOOTH ? "Enabled":"Disabled"); 
 
 /*   
    SUMA_StringAppend_va(SS,"GL_ is %s\n", 
-                        SER. ? "Enabled":"Disabled"); 
+                        SER-> ? "Enabled":"Disabled"); 
                         */
    SUMA_SS2S(SS,s);
    
    SUMA_RETURN(s);
 }
-void SUMA_ShowEnablingState(SUMA_EnablingRecord SER, FILE *out, char *preamble) {
+void SUMA_ShowEnablingState(SUMA_EnablingRecord *SER, FILE *out, 
+                            char *preamble) {
    static char FuncName[]={"SUMA_ShowEnablingState"};
    char *s=NULL;
    SUMA_ENTRY;
@@ -818,6 +835,10 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
    if (!VO) SUMA_RETURN(NOPE);
    if (!sv) sv = &(SUMAg_SVv[0]);
    
+   if (sv->DO_PickMode) {
+      SUMA_S_Warn("Function not ready for picking mode, should be fixed");
+      SUMA_RETURN(YUP);
+   }
    
    if (!VO->Show) SUMA_RETURN(YUP);
    

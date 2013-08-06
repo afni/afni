@@ -147,7 +147,7 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
 
    ENTRY("gifti_surf_to_afni_surf");
 
-   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
+   rai_convert = !AFNI_yesenv("AFNI_GIFTI_IN_RAI");
 
    gifti_globs_from_env();     /* for thd_gifti */
    if( (dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0)) &&
@@ -251,7 +251,7 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    ENTRY("afni_surf_to_gifti_surf");
 
    /* maybe convert RAI back to LPI   1 Aug 2013 [rickr/zaid] */
-   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
+   rai_convert = !AFNI_yesenv("AFNI_GIFTI_IN_RAI");
 
    gifti_globs_from_env();     /* for thd_gifti */
    
@@ -395,7 +395,10 @@ static byte gifti_surf_meta_to_afni_surf_meta(
    
    ENTRY("gifti_surf_meta_to_afni_surf_meta");
 
-   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
+   /* We don't need to mess with the transform. It is enough that
+      the RAI-->LPI coordinate negation is applied to the 
+      coordinates                          ZSS Aug. 2013 */
+   rai_convert = 0;
    
    /* Begin with nodelist */
    dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0);
@@ -524,9 +527,11 @@ static byte afni_surf_meta_to_gifti_surf_meta(
    
    ENTRY("afni_surf_meta_to_gifti_surf_meta");
    
-   /* maybe convert RAI back to LPI   1 Aug 2013 [rickr/zaid] */
-   rai_convert = AFNI_yesenv("AFNI_GIFTI_TO_RAI");
-
+   /* We don't need to mess with the transform. It is enough that
+      the RAI-->LPI coordinate negation is applied to the 
+      coordinates                          ZSS Aug. 2013 */
+   rai_convert = 0;
+      
    /* Begin with nodelist */
    dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0);
    nelxyz = SUMA_FindNgrNamedElement(aSO,"Node_XYZ");

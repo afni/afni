@@ -404,7 +404,7 @@ int main (int argc,char *argv[])
    
 	SUMAg_CF->isGraphical = YUP;
    
-   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-dset;");
 
    /* initialize Volume Parent and AfniHostName to nothing */
    for (ispec=0; ispec < SUMA_MAX_N_GROUPS; ++ispec) {
@@ -895,6 +895,23 @@ int main (int argc,char *argv[])
          exit (1);   
       }
    }
+   
+   /* load the datasets onto the first SO*/
+   if (ps->N_dsetname>0) {
+      SUMA_SurfaceObject *SO = SUMA_findanySOp_inDOv(SUMAg_DOv, 
+                                                     SUMAg_N_DOv, NULL);
+      if (!SO) {
+         SUMA_S_Err("Could not find any SO!");
+         exit(1);
+      }
+      for (i=0; i<ps->N_dsetname; ++i) {
+         if (!(SUMA_LoadDsetOntoSO_eng(ps->dsetname[i], SO, 1, 1, 1, NULL))) {
+            SUMA_S_Errv("Failed to load %s onto %s\n", 
+                        ps->dsetname[i], SO->Label);
+         }
+      }
+   }
+
    SUMA_FreeGenericArgParse(ps); ps = NULL;
  
    /* A Warning about no sumarc */

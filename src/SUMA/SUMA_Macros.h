@@ -144,6 +144,14 @@
       else { SUMA_SL_Err("Bad chnk");   }   \
 }
 
+#define SUMA_NODELIST_XY_NEGATE(v, n) {   \
+   int m_n3 = 3*n, m_n=0; \
+   while (m_n < m_n3) {\
+      v[m_n] = -v[m_n]; m_n++;\
+      v[m_n] = -v[m_n]; m_n += 2;\
+   }\
+}
+
 #define SUMA_CHECK_NULL_STR(str) ((str) ? (str) : "(NULL)")
 
 #define SUMA_IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
@@ -461,13 +469,34 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    }
 
 /*!
-   \brief Project point N onto direction u, projection is in P
+   \brief Project point C onto line with direction U (unit vector)and passing
+   through the origin, projection is in P. It is like using 
+      SUMA_PROJECT_C_ONTO_AB with A being the origin, and B being U
 */
-#define SUMA_PROJECT_ONTO_DIR(U,N,P) {\
-   static double m_Eq[4];   \
-   SUMA_PLANE_NORMAL_POINT(U,N,m_Eq); /* plane through N with dir U */ \
-   P[0] = -m_Eq[3]*U[0]; P[1] = -m_Eq[3]*U[1]; P[2] = -m_Eq[3]*U[2]; \
+#define SUMA_PROJECT_ONTO_DIR(U,C,P) {\
+   double f;   \
+   f = (U[0]*C[0]+U[1]*C[1]+U[2]*C[2]);\
+   P[0] = f*U[0]; P[1]=f*U[1]; P[2]=f*U[2];\
 }
+
+/*!
+   \brief Project point C onto vector AB, projection is in P, fractional distance
+          of projection from A is in f
+*/
+#define SUMA_PROJECT_C_ONTO_AB(C, A, B, P, f) {\
+   static double AB[3], AC[3], AP[3], ABdAC, ABdAB;  \
+   AB[0]=B[0]-A[0]; AB[1]=B[1]-A[1]; AB[2]=B[2]-A[2]; \
+   AC[0]=C[0]-A[0]; AC[1]=C[1]-A[1]; AC[2]=C[2]-A[2]; \
+   ABdAC = (AB[0]*AC[0]+AB[1]*AC[1]+AB[2]*AC[2]);\
+   ABdAB = (AB[0]*AB[0]+AB[1]*AB[1]+AB[2]*AB[2]);\
+   if (ABdAB) {\
+      f = ABdAC/ABdAB; \
+      AP[0] = f*AB[0]; AP[1]=f*AB[1]; AP[2]=f*AB[2];\
+      P[0] = AP[0]+A[0]; P[1] = AP[1]+A[1]; P[2] = AP[2]+A[2]; \
+   } else {\
+      f=0; P[0] = P[1] = P[2] = 0.0;   \
+   }\
+} 
 
 /*!
    \brief intersection of line defined by point N and direction U
@@ -650,7 +679,11 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 
 #define SUMA_GLX_BUF_SWAP(sv) {\
    if ((sv)->X->DOUBLEBUFFER) {  \
-       glXSwapBuffers((sv)->X->DPY, XtWindow((sv)->X->GLXAREA));\
+       if ((sv)->DO_PickMode) {   \
+         glFlush(); \
+       } else { \
+         glXSwapBuffers((sv)->X->DPY, XtWindow((sv)->X->GLXAREA));\
+       } \
    } else { \
       glFlush();\
    }  \
@@ -1949,6 +1982,12 @@ SUMA_COPY_VEC(a,b,len,typea,typeb)
                        for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
                            *(_PTB)++ = (typeb)(*(_PTA)++);  \
                     }
+
+#define SUMA_VEC_DIFF3(a, b) ((   ((a)[0] != (b)[0]) || ((a)[1] != (b)[1]) \
+                               || ((a)[2] != (b)[2]) ) ? 1:0 )
+#define SUMA_VEC_DIFF4(a, b) ((   ((a)[0] != (b)[0]) || ((a)[1] != (b)[1]) \
+                               || ((a)[2] != (b)[2]) || ((a)[3] != (b)[3]))\
+                                                       ? 1:0 )
 
 /*!
    SUMA_INIT_VEC macro: initializes values in a vector

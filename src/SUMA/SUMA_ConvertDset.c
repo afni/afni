@@ -92,6 +92,28 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                     CMAP. A CMAP can easily be generated with MakeColorMap's\n"
 "                     options -usercolorlutfile and -suma_cmap.\n"
 "\n"
+"     -graphize: Turn the dataset into a SUMA graph dataset.\n"
+"                See input format constraints under -onegraph and -multigraph\n"
+"     -graph_nodelist_1D NODEINDLIST.1D NODELIST.1D: Two files specifying the \n"
+"                                  indices and the coordinates of the graph's\n"
+"                                  nodes. In sum you need I X Y Z (RAI mm).\n"
+"                                  but the I comes from NODEINDLIST.1D and the\n"
+"                                  X Y Z coordinates from NODELIST.1D\n"
+"                                  If you have everything in one file, use\n"
+"                                  the same filename twice with proper column\n"
+"                                  selectors.\n"
+"     -graph_edgelist_1D EDGELIST.1D: i j indices of graph nodes defining edge\n"
+"                                   with each row matching the input dset row.\n"
+"                                   This option only works with -multigraph\n"
+"                                   This option also marks the graph as being\n"
+"                                   a sparse matrix, even if a square matrix \n"
+"                                   is provided.\n"
+"     -onegraph: Expect input dataset to be one square matrix defining the\n"
+"                graph (default).\n"
+"     -multigraph: Expect each column in input dataset to define an entire\n"
+"                  graph. Each column in this case should be a column-stacked\n"
+"                  square matrix.\n" 
+"\n"
 "     -i_TYPE: TYPE of input datasets\n"
 "              where TYPE is one of:\n"
 "           niml: for niml data sets.\n"
@@ -166,11 +188,13 @@ int main (int argc,char *argv[])
    float *fv = NULL;
    SUMA_DSET_FORMAT iform, oform;
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
-   char *NameOut, *prfx = NULL, *prefix = NULL, *cmapfile;
+   char *NameOut, *prfx = NULL, *prefix = NULL, *cmapfile, 
+         *graph_nodelist_1D=NULL, *graph_nodeindlist_1D=NULL,
+         *graph_edgelist_1D=NULL;
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
    int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
-   int orderednodelist = 1, split=0;
+   int orderednodelist = 1, split=0, toGDSET=0, OneMat;
    SUMA_COLOR_MAP *SM=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -193,6 +217,8 @@ int main (int argc,char *argv[])
    split = 0;
    no_hist = 0;
    cmapfile=NULL;
+   toGDSET=0;
+   OneMat=1;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
@@ -226,6 +252,22 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-graphize") == 0))
+      {
+         toGDSET = 1;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-onegraph") == 0))
+      {
+         OneMat = 1;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-multigraph") == 0))
+      {
+         OneMat = 0;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-i_niml") == 0))
       {
          if (iform != SUMA_NO_DSET_FORMAT) {
@@ -280,6 +322,30 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-graph_nodelist_1d") == 0))
+      {
+         if (kar+2 >= argc) {
+            SUMA_SL_Err("Need 2 arguments after -graph_nodelist_1D");
+            exit(1);
+         }
+         ++kar;
+         graph_nodeindlist_1D = argv[kar];
+         ++kar;
+         graph_nodelist_1D = argv[kar];
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-graph_edgelist_1d") == 0))
+      {
+         if (kar+1 >= argc) {
+            SUMA_SL_Err("Need argument after -graph_edgelist_1D");
+            exit(1);
+         }
+         ++kar;
+         graph_edgelist_1D = argv[kar];
+         brk = YUP;
+      }
+
       if (!brk && (strcmp(argv[kar], "-node_index_1d") == 0))
       {
          if (kar+1 >= argc) {
@@ -403,6 +469,113 @@ int main (int argc,char *argv[])
          SUMA_ShowDset(dset, 0, NULL);
       }
       
+      if (toGDSET) {
+         SUMA_LH("Going to graph format");
+         
+         if (graph_edgelist_1D) {
+            int *ie=NULL;
+            SUMA_DSET *dsetc=NULL;
+            iform = SUMA_1D;
+            if (!(dseti = SUMA_LoadDset_s (graph_edgelist_1D, &iform, 0))) {
+               SUMA_S_Err("Failed to load nodelist ");
+               exit(1);
+            }
+            if (SDSET_VECNUM(dseti) != 3 && SDSET_VECNUM(dseti) != 2 ) {
+               SUMA_S_Err("Bad edgelist source, only 2or 3 columns allowed");
+               exit(1);
+            }
+            if (!(dsetc = SUMA_CoercedCopyofDset(dseti, SUMA_int, NULL))) {
+               SUMA_S_Err("Failed to copy to ints?");
+               exit(1);
+            }  
+            SUMA_FreeDset(dseti); dseti = dsetc; dsetc = NULL;
+            switch (SDSET_VECNUM(dseti)){
+               case 2:
+                  if (!(SUMA_Dset_to_GDset(&dset, OneMat, 
+                                           NULL,
+                                           (int *)SDSET_VEC(dseti,0),
+                                           (int *)SDSET_VEC(dseti,1)))) {
+                     SUMA_S_Err("Failed to graphize");
+                  }
+                  break;
+               case 3:
+                  if (!(SUMA_Dset_to_GDset(&dset, OneMat, 
+                                           (int *)SDSET_VEC(dseti,0),
+                                           (int *)SDSET_VEC(dseti,1),
+                                           (int *)SDSET_VEC(dseti,2)))) {
+                     SUMA_S_Err("Failed to graphize");
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("More infidel than an infidel!");
+                  break;
+            }
+            SUMA_FreeDset(dseti); dseti = NULL;
+         } else {
+            if (!(SUMA_Dset_to_GDset(&dset, OneMat, NULL, NULL, NULL))) {
+               SUMA_S_Err("Failed to graphize");
+            }
+         }
+         
+         if (graph_nodelist_1D) {
+            SUMA_DSET *dsetind=NULL;
+            SUMA_LH("Set Aux shape");
+            if (!SUMA_GDSET_Set_Aux_matrix_shape(dset)) {
+               SUMA_S_Err("Need my matrix params");
+               exit(1);
+            } 
+            
+            SUMA_LH("Now the nodelist");
+            iform = SUMA_1D;
+            if (!(dseti = SUMA_LoadDset_s (graph_nodelist_1D, &iform, 0))) {
+               SUMA_S_Err("Failed to load nodelist ");
+               exit(1);
+            }
+            if (SDSET_VECNUM(dseti) != 3) {
+               SUMA_S_Err("Bad nodelist source, only 3 column allowed");
+               exit(1);
+            }
+            if (!(dsetind = SUMA_LoadDset_s (graph_nodeindlist_1D, &iform, 0))) {
+               SUMA_S_Err("Failed to load nodelist ");
+               exit(1);
+            }
+            if (SDSET_VECNUM(dsetind) != 1) {
+               SUMA_S_Err("Bad nodelist index source, only 1 column allowed");
+               exit(1);
+            }
+            if (SDSET_VECFILLED(dseti) != SDSET_VECFILLED(dsetind)) {
+               SUMA_S_Errv( "mismatch in number of values between %s and %s\n",
+                           graph_nodelist_1D, graph_nodeindlist_1D);
+               exit(1);
+            }
+            if (SDSET_VECFILLED(dseti) != GDSET_MAX_POINTS(dset)) {
+               SUMA_S_Errv( "mismatch in number of values "
+                           "in nodelist source (%ld) and dataset (%d)\n",
+                           GDSET_MAX_POINTS(dset), SDSET_VECFILLED(dseti));
+               exit(1);
+            }
+            /* coerce index input to int */
+            {
+               SUMA_DSET *dsetc=NULL;
+               if (!(dsetc = SUMA_CoercedCopyofDset(dseti, SUMA_int, NULL))) {
+                  SUMA_S_Err("Failed coerce");
+                  exit(1);
+               }
+               SUMA_FreeDset(dsetind); dsetind = dsetc; dsetc = NULL;
+            }
+            if (!(SUMA_AddGDsetNodeListElement(dset, SDSET_VEC(dsetind,0),
+                                                     SDSET_VEC(dseti,0),
+                                                     SDSET_VEC(dseti,1),
+                                                     SDSET_VEC(dseti,2),
+                                                     SDSET_VECFILLED(dseti)))) {
+               SUMA_S_Err("Failed to add node list");
+               exit(1);                                       
+            }
+            SUMA_FreeDset(dseti); dseti = NULL;
+         }
+         if (LocalHead) SUMA_ShowDset(dset,0, NULL);  
+      }
+      
       SUMA_LH("Checking on inel...");
       /* make sure inel is initialized*/
       if (!dset->inel || !SDSET_NODEINDLEN(dset)) { 
@@ -443,6 +616,7 @@ int main (int argc,char *argv[])
          SUMA_free(Ti); Ti = NULL; 
          SUMA_FreeDset(dseti); dseti = NULL;
       }
+      
       
       if (add_node_index) {
          if (!SUMA_PopulateDsetNodeIndexNel(dset, 1)) {
@@ -563,7 +737,7 @@ int main (int argc,char *argv[])
       if (no_hist) {
          SUMA_RemoveDsetHist(dset);
       }
-      
+            
       if (prepend_node_index) {/* prepend node index? */         
          if (!SUMA_InsertDsetNelCol (  dset, "Node Index Copy", 
                                        SUMA_NODE_INT, 

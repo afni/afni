@@ -10,10 +10,18 @@
 
 /*! functions defined in SUMA_SVmanip.c */
 SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name);
+SUMA_Boolean SUMA_DiffGeomViewStruct(SUMA_GEOMVIEW_STRUCT gvs1,
+                                     SUMA_GEOMVIEW_STRUCT gvs2, 
+                                     int level);
+SUMA_Boolean SUMA_CopyGeomViewStruct(SUMA_GEOMVIEW_STRUCT *gvs1,
+                                     SUMA_GEOMVIEW_STRUCT *gvs2);
 SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N);
-void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, int detail);
+void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, 
+                                     int detail);
+SUMA_Boolean SUMA_isViewerStateAnatomical(SUMA_SurfaceViewer *sv);
 char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail);
-SUMA_Boolean SUMA_SetViewerLightsForSO(SUMA_SurfaceViewer *cSV, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_SetViewerLightsForSO(SUMA_SurfaceViewer *cSV, 
+                                       SUMA_SurfaceObject *SO);
 
 SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, 
                                     SUMA_DO *dov, int N_dov);
@@ -25,16 +33,28 @@ SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV,
                                     SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_SetGLHome(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV);
-SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N);
+SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, 
+                                                  int N);
 SUMA_Boolean SUMA_Free_ViewState (SUMA_ViewState *vs);
 SUMA_ViewState *SUMA_Alloc_ViewState (int N);
 SUMA_Boolean SUMA_New_ViewState (SUMA_SurfaceViewer *csv);
 SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh);
 SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void);
 SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out, int detail); 
+int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *tt, int N_tt,
+                          int *uN_MembSOs);
 char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail);
-SUMA_Boolean SUMA_AdoptSurfGroup(SUMA_SurfaceViewer *csv, SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov, int viewopt);
+int SUMA_SV_GetShowSelectedDatum(SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_SV_SetShowSelectedDatum(SUMA_SurfaceViewer *sv, 
+                                          int act, int callback);
+int SUMA_SV_GetShowSelectedFaceSet(SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_SV_SetShowSelectedFaceSet(SUMA_SurfaceViewer *sv, 
+                                          int act, int callback);
+SUMA_Boolean SUMA_AdoptSurfGroup(SUMA_SurfaceViewer *csv, 
+                                 SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, 
+                                  SUMA_SurfaceViewer *csv, 
+                                  SUMA_DO* dov, int N_dov, int viewopt);
 int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup);
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf);
 SUMA_CommonFields * SUMA_Create_CommonFields (void);
@@ -42,7 +62,7 @@ void SUMA_Show_CommonFields (SUMA_CommonFields *cf, FILE *out);
 char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail);
 SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv, SUMA_SurfaceViewer *cSV, int viewopt);
-SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *SO);
 SUMA_Boolean SUMA_EmptyColorList (SUMA_SurfaceViewer *sv, char *DO_idstr);
 GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr);
 SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, int N_SVv);
@@ -54,7 +74,7 @@ SUMA_X_SumaCont *SUMA_CreateSumaContStruct (void);
 void *SUMA_FreeSumaContStruct (SUMA_X_SumaCont *SumaCont);
 SUMA_X_ViewCont *SUMA_CreateViewContStruct (void);
 void *SUMA_FreeViewContStruct (SUMA_X_ViewCont *ViewCont);
-SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str);
+SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types dd);
 void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont);
 SUMA_MENU_WIDGET *SUMA_Free_Menu_Widget(SUMA_MENU_WIDGET *smw);
 SUMA_MENU_WIDGET *SUMA_Alloc_Menu_Widget(int nw);
@@ -83,11 +103,17 @@ SUMA_SurfaceViewer *SUMA_OneViewerWithSOVisible(
                               SUMA_SurfaceObject *curSO);
 SUMA_SurfaceViewer *SUMA_OneViewerWithSORegistered(
                               SUMA_SurfaceObject *curSO);
-int SUMA_UpdateCrossHairNodeLabelFieldForSO(SUMA_SurfaceObject *curSO);
-SUMA_SurfaceViewer *SUMA_BestViewerForSO(
-                              SUMA_SurfaceObject *curSO);
+int SUMA_UpdateCrossHairNodeLabelFieldForDO(SUMA_ALL_DO *ado);
+SUMA_SurfaceViewer *SUMA_BestViewerForDO(SUMA_ALL_DO *ado);
 SUMA_PARSED_NAME *SUMA_SetAutoRecord(char *pref);
-
+SUMA_SurfaceObject *SUMA_SV_Focus_SO(SUMA_SurfaceViewer *sv);
+SUMA_SurfaceObject *SUMA_SV_Focus_any_SO(SUMA_SurfaceViewer *sv, int *dov_id);
+SUMA_ALL_DO *SUMA_SV_Focus_ADO(SUMA_SurfaceViewer *sv);
+SUMA_ALL_DO *SUMA_findanyFocusable_ADO(int *dov_id);
+SUMA_ALL_DO *SUMA_SV_Focus_any_ADO(SUMA_SurfaceViewer *sv, int *dov_id);
+SUMA_Boolean SUMA_SurfCont_SetcurDOp(SUMA_X_SurfCont *SurfCont, 
+                                     SUMA_ALL_DO *ado);
+SUMA_ALL_DO *SUMA_SurfCont_GetcurDOp(SUMA_X_SurfCont *SurfCont);
 
 
 

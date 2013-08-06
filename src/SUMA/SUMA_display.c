@@ -18,8 +18,12 @@
 /*! Widget initialization */
 static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
    GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1,  None};
+/* May 2013: Added GLX_ALPHA_SIZE, 1 for visual to get color picking to work.
+             Without it, there was always what looked like antialiasing that
+             resulted in more colors rendered than specified, no matter 
+             what I disabled                                            */
 static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
-  GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1,
+  GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_ALPHA_SIZE, 1, 
   GLX_DOUBLEBUFFER,
   None};
 
@@ -488,7 +492,8 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist,
          SUMA_LHv("Building SDO of %d edges from %d strips\n", 
                   N_allEpath, dlist_size(striplist));
          if ((SDO = SUMA_Alloc_SegmentDO (N_allEpath, 
-                        "SUMA_SPI_to_EdgeStrips_segs", 0, NULL, 0, LS_type))) {
+                        "SUMA_SPI_to_EdgeStrips_segs", 0, 
+                        SO->idcode_str, 0, LS_type, SO_type, NULL))) {
             SDO->do_type = LS_type;
             SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
             SDO->LineWidth = 4;
@@ -563,7 +568,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist,
                   N_allEpath, dlist_size(striplist));
          if ((SEDO = SUMA_Alloc_SegmentDO (N_allEpath, 
                         "SUMA_SPI_to_EdgeStrips_pointsegs", 1, 
-                        NULL, 0, OLS_type))) {
+                        SO->idcode_str, 0, OLS_type, SO_type, NULL))) {
             SEDO->do_type = LS_type;
             SEDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SEDO->N_n);
             SEDO->LineWidth = 2;
@@ -727,7 +732,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    SUMA_SegmentDO *SDO = NULL;
    SUMA_SurfaceViewer *sv;
    SUMA_SurfaceObject *SO=NULL;
-   SUMA_DO_Types dotp=no_type;
+   SUMA_DO_Types dotp=not_DO_type;
    SUMA_DO_CoordType coord_type=SUMA_WORLD;
    void *VDO = NULL;
    
@@ -739,7 +744,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    
    /* what type are we dealing with ? */
    dotp = SUMA_Guess_DO_Type(s);
-   if (dotp == no_type) {
+   if (dotp == not_DO_type) {
       SUMA_S_Warnv("Could not determine DO type of %s, assuming segments.",
                      s);
       /* assume segments */
@@ -748,7 +753,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    coord_type = SUMA_WORLD;
    switch (dotp) {
       case TRACT_type:
-         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+         if (!(SO = SUMA_SV_Focus_SO(sv))) {
             SUMA_S_Note("No surface in focus to which the tracts "
                         "would be attached. That's OK.\n");
          }
@@ -760,7 +765,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          break;
       case ONBV_type:
       case NBV_type:
-         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+         if (!(SO = SUMA_SV_Focus_SO(sv))) {
             SUMA_SL_Err("No surface in focus to which the vector "
                         "would be attached.\n");
             SUMA_RETURNe;
@@ -780,7 +785,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          VDO = (void *)SDO;
          break;
       case NBSP_type:
-         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+         if (!(SO = SUMA_SV_Focus_SO(sv))) {
             SUMA_SL_Err("No surface in focus to which "
                         "the spheres would be attached.\n");
             SUMA_RETURNe;
@@ -808,7 +813,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          VDO = (void *)SDO;
          break;
       case NBOLS_type:
-         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+         if (!(SO = SUMA_SV_Focus_SO(sv))) {
             SUMA_SL_Err("No surface in focus to which "
                         "the spheres would be attached.\n");
             SUMA_RETURNe;
@@ -821,7 +826,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          VDO = (void *)SDO;
          break;
       case NBLS_type:
-         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+         if (!(SO = SUMA_SV_Focus_SO(sv))) {
             SUMA_SL_Err("No surface in focus to which "
                         "the spheres would be attached.\n");
             SUMA_RETURNe;
@@ -849,11 +854,8 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          ((SUMA_SphereDO * )VDO)->do_type = dotp;
          break;
       case NIDO_type:
-         if (sv->Focus_SO_ID >=0) 
-            SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-         else
-            SO = NULL;
-         if (!(VDO = (void *)SUMA_ReadNIDO(s, SO->idcode_str))) {
+         SO = SUMA_SV_Focus_SO(sv);
+         if (!(VDO = (void *)SUMA_ReadNIDO(s, SO ? SO->idcode_str:NULL))) {
             SUMA_SL_Err("Failed to read spheres file.\n");
             SUMA_RETURNe;
          }
@@ -864,7 +866,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          if (!coord_type) {
             SUMA_SL_Err("Bad coord_type");
             SUMA_RETURNe;
-         }   
+         }
          break;
       default:
          SUMA_SL_Err("Should not get here");
@@ -1345,12 +1347,75 @@ GLenum SUMA_index_to_clip_plane(int iplane)
    }
 }
 
-int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb) 
+int SUMA_PixelsToDisk(SUMA_SurfaceViewer *csv, int w, int h, GLubyte *pixels, 
+                      int colordepth, int verb, char *ufname) 
+{
+   static char FuncName[]={"SUMA_PixelsToDisk"};  
+   MRI_IMAGE *tim=NULL;
+   static char fname[512];
+   SUMA_PARSED_NAME *pn=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!pixels || w < 1 || SUMA_ABS(h) < 1) SUMA_RETURN(0);
+
+   switch (colordepth) {
+      case 3:
+         tim = ISQ_snap_to_mri_image (w, h, (unsigned char *)pixels );
+         break;
+      case 4:
+         tim = ISQ_snap4_to_mri_image (w, h, (unsigned char *)pixels );
+         break;
+      default:
+         SUMA_S_Errv("Bad color depth of %d\n", colordepth);
+         SUMA_RETURN(0);
+         break;
+   }
+   
+   if (!tim) {
+      SUMA_S_Err("Failed to get image"); 
+      SUMA_RETURN(0); 
+   }
+   
+   if (!ufname) {
+      SUMA_VALIDATE_RECORD_PATH(SUMAg_CF->autorecord);
+      pn = SUMAg_CF->autorecord;
+   } else {
+      if (!(pn = SUMA_ParseFname(ufname, NULL))) {
+         SUMA_S_Errv("Failed to parse %s\n", ufname);
+         SUMA_RETURN(0);
+      }
+   }
+   if (!strcasecmp(pn->Ext,".jpg") ||
+       !strcasecmp(pn->Ext,".ppm") ||
+       !strcasecmp(pn->Ext,".1D") ){
+         snprintf(fname,510*sizeof(char),
+                  "%s/%s.%c.%s%s", 
+                  pn->Path, 
+                  pn->FileName_NoExt,
+                  SUMA_SV_CHAR(csv),
+                  SUMA_time_stamp(),
+                  pn->Ext); 
+   } else {
+         snprintf(fname,510*sizeof(char),
+                  "%s/%s.%c.%s%s", 
+                  pn->Path, 
+                  pn->FileName,
+                  SUMA_SV_CHAR(csv),
+                  SUMA_time_stamp(),
+                  ".jpg"); 
+   }
+   
+   mri_write(fname,tim); mri_free(tim); tim=NULL; 
+   if (verb) SUMA_S_Notev("Wrote image to %s\n",fname);
+   if (ufname) pn = SUMA_Free_Parsed_Name(pn);
+   SUMA_RETURN(1);
+}  
+
+int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback) 
 {
    static char FuncName[]={"SUMA_SnapToDisk"};
-   MRI_IMAGE *tim=NULL;
    GLvoid *pixels=NULL;
-   static char fname[512];
    int holdrdc = 0;
    
    SUMA_ENTRY;
@@ -1373,37 +1438,18 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb)
       #endif
    #endif
    glXWaitX();
-   pixels = SUMA_grabRenderedPixels(csv, 1, csv->X->WIDTH, csv->X->HEIGHT);
+   pixels = SUMA_grabRenderedPixels(csv, 3, csv->X->WIDTH, csv->X->HEIGHT,
+                                    getback);
    if (pixels) {
-      if (!(tim = ISQ_snap_to_mri_image (csv->X->WIDTH, -csv->X->HEIGHT, 
-                         (unsigned char *)pixels ))) {
-         SUMA_S_Err("Failed to get image");                  
-      } else {
-         SUMA_VALIDATE_RECORD_PATH(SUMAg_CF->autorecord);
-         if (!strcasecmp(SUMAg_CF->autorecord->Ext,".jpg") ||
-             !strcasecmp(SUMAg_CF->autorecord->Ext,".ppm") ||
-             !strcasecmp(SUMAg_CF->autorecord->Ext,".1D") ){
-               snprintf(fname,510*sizeof(char),
-                        "%s/%s.%c.%s%s", 
-                        SUMAg_CF->autorecord->Path, 
-                        SUMAg_CF->autorecord->FileName_NoExt,
-                        SUMA_SV_CHAR(csv),
-                        SUMA_time_stamp(),
-                        SUMAg_CF->autorecord->Ext); 
-         } else {
-               snprintf(fname,510*sizeof(char),
-                        "%s/%s.%c.%s%s", 
-                        SUMAg_CF->autorecord->Path, 
-                        SUMAg_CF->autorecord->FileName,
-                        SUMA_SV_CHAR(csv),
-                        SUMA_time_stamp(),
-                        ".jpg"); 
-         }
-         mri_write(fname,tim); mri_free(tim); tim=NULL; 
-         if (verb) SUMA_S_Notev("Wrote image to %s\n",fname);
-      } 
+      if (!SUMA_PixelsToDisk(csv, csv->X->WIDTH, -csv->X->HEIGHT,
+                             (GLubyte *)pixels, 3, verb, NULL)) {
+         SUMA_S_Err("Failed to write pix to disk");
+         SUMA_free(pixels);
+         SUMA_RETURN(0);
+      }
       SUMA_free(pixels);
    }
+   
    SUMA_RETURN(1);
 }
 
@@ -1422,15 +1468,21 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) {
       SUMA_DUMP_TRACE("Trace At display call");
    }
-
    if (!csv->Open) {
       SUMA_S_Errv("Very weird to be here with Open flag = %d\n", csv->Open);
       SUMA_RETURNe;
    }
    
+   
+   if (csv->DO_PickMode && !csv->pick_colid_list) { /* get ready */
+      csv->pick_colid_list = (DList *)SUMA_calloc(1,sizeof(DList));
+      dlist_init(csv->pick_colid_list, SUMA_free_colid_offset_datum);
+   }
+   
    /* reset stippling masks */
    SUMA_StippleMaskResest(); 
 
+   
    /* now you need to set the clear_color since 
       it can be changed per viewer Thu Dec 12 2002 */
    glClearColor ( csv->clear_color[0], csv->clear_color[1], 
@@ -1472,7 +1524,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                               xList, yList, csv->Plist_close);
    }
    /* decide on color mixing needs */
-   if (!SUMA_MixColors (csv)) {
+   if (!csv->DO_PickMode && !SUMA_MixColors (csv)) {
       fprintf( SUMA_STDERR,
                "Error %s: Failed in SUMA_MixColors. Aborting.\n", FuncName);
       exit(1);
@@ -1513,8 +1565,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                SUMA_S_Err("This is reserved for the number of types");
                break;
             case type_not_set:
-            case no_type:
                SUMA_SL_Err("Should not be doing this buidness");
+               break;
+            case not_DO_type: /* nothing to see here */
                break;
             case NBSP_type:
             case SP_type:
@@ -1584,6 +1637,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                }
                break;
             case TRACT_type: /* should not be fixed */
+               break;
+            case GRAPH_LINK_type: /* don't think we have these fixed either */
                break;
          }
       }
@@ -1725,8 +1780,17 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                   }
                }
                break;
+            case GRAPH_LINK_type:
+               /* find the real DO this baby points to and render that */
+               if (!SUMA_DrawGraphLinkDO (
+                        (SUMA_GraphLinkDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     fprintf(SUMA_STDERR, 
+                              "Error %s: Failed in SUMA_DrawGraphLinkDO.\n", 
+                              FuncName);
+               }
+               break;
             case type_not_set:
-            case no_type:
+            case not_DO_type:
                SUMA_SL_Err("What's cracking?");
                break;
          }
@@ -1788,7 +1852,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       This way I could have used SUMA_grabPixels
       instead of SUMA_grabRenderedPixels. 
       Consider this in the future. ZSS Feb 2012*/
-  if (csv->Record == 1) {
+  if (csv->Record == 1 && !csv->DO_PickMode) {
       if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
          if (0) {/* problem should be fixed by SUMA_grabRenderedPixels
                               Throw section out if no new problems arise.
@@ -1820,7 +1884,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                                                operation ... */
               SUMA_handleRedisplay((XtPointer)csv->X->GLXAREA);
               csv->rdc=holdrdc;
-              pixels = SUMA_grabPixels(1, csv->X->WIDTH, csv->X->HEIGHT);
+              pixels = SUMA_grabPixels(3, csv->X->WIDTH, csv->X->HEIGHT);
               if (pixels) {
                 ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
                               (unsigned char *)pixels, csv->X->GLXAREA );
@@ -1832,8 +1896,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          #endif
          } else { /* better approach after fixing buffer swaping bug Feb 2012*/
             GLvoid *pixels=NULL;
-            pixels = SUMA_grabRenderedPixels(csv, 1, 
-                                          csv->X->WIDTH, csv->X->HEIGHT);
+            pixels = SUMA_grabRenderedPixels(csv, 3, 
+                                          csv->X->WIDTH, csv->X->HEIGHT, 0);
             if (pixels) {
               ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
                            (unsigned char *)pixels, csv->X->GLXAREA );
@@ -1841,9 +1905,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             }
          }
       }
-  } else if (csv->Record == 2) {
+  } else if (csv->Record == 2 && !csv->DO_PickMode) {
       if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
-         SUMA_SnapToDisk(csv,0);
+         SUMA_SnapToDisk(csv,0,0);
       }
   }
   /* reset rdc, if it is the last thing you'll ever do */
@@ -2989,7 +3053,13 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          XmToggleButtonSetState (
             SUMAg_SVv[ic].X->ViewMenu->mw[SW_ViewCrossHair], 
             SUMAg_SVv[ic].ShowCrossHair, NOPE);
-         
+         XmToggleButtonSetState (
+            SUMAg_SVv[ic].X->ViewMenu->mw[SW_ViewSelectedFaceset], 
+            SUMAg_SVv[ic].ShowSelectedFaceSet, NOPE);
+         XmToggleButtonSetState (
+            SUMAg_SVv[ic].X->ViewMenu->mw[SW_ViewNodeInFocus], 
+            SUMAg_SVv[ic].ShowSelectedDatum, NOPE);
+            
          XmToggleButtonSetState (
             SUMAg_SVv[ic].X->HelpMenu->mw[SW_HelpMemTrace], 
             SUMAg_CF->MemTrace, NOPE);
@@ -3591,7 +3661,7 @@ SUMA_generateEPS( char *filename, int inColor,
    
    SUMA_ENTRY;
 
-   pixels = SUMA_grabPixels(inColor, width, height);
+   pixels = SUMA_grabPixels(inColor ? 3:1, width, height);
    
    if (pixels == NULL)
     SUMA_RETURN (1);
@@ -3654,18 +3724,18 @@ SUMA_generateEPS( char *filename, int inColor,
    SUMA_RETURN (0);
 }
 
-GLvoid *SUMA_grabRenderedPixels(SUMA_SurfaceViewer *sv, int inColor, 
-                        unsigned int width, unsigned int height)
+GLvoid *SUMA_grabRenderedPixels(SUMA_SurfaceViewer *sv, int ColorDepth, 
+                        unsigned int width, unsigned int height, int getback)
 {
    GLvoid *buffer=NULL;
    if (!sv || !sv->X) return(buffer);
-   SUMA_GLX_BUF_SWAP(sv); /* return to last rendered buffer */
-   buffer = SUMA_grabPixels(inColor, width, height);
-   SUMA_GLX_BUF_SWAP(sv);  /* return to current buffer */
+   if (!getback) SUMA_GLX_BUF_SWAP(sv); /* return to last rendered buffer */
+   buffer = SUMA_grabPixels(ColorDepth, width, height);
+   if (!getback) SUMA_GLX_BUF_SWAP(sv);  /* return to current buffer */
    return(buffer);
 }
 
-GLvoid *SUMA_grabPixels(int inColor, 
+GLvoid *SUMA_grabPixels(int ColorDepth, 
                         unsigned int width, unsigned int height)
 {
    GLvoid *buffer;
@@ -3677,13 +3747,23 @@ GLvoid *SUMA_grabPixels(int inColor,
 
    SUMA_ENTRY;
    
-            
-   if (inColor) {
-    format = GL_RGB;
-    size = width * height * 3;
-   } else {
-    format = GL_LUMINANCE;
-    size = width * height * 1;
+   if (ColorDepth == 0) ColorDepth = 1;   /* for backward compatibility */
+         
+   switch (ColorDepth) {
+      case 1:
+         format = GL_LUMINANCE;
+         size = width * height * 1;
+      case 3:
+         format = GL_RGB;
+         size = width * height * 3;
+         break;
+      case 4:
+         format = GL_RGBA;
+         size = width * height * 4;
+         break;
+      default:
+         SUMA_S_Errv("Bad ColorDepth of %d\n", ColorDepth);
+         SUMA_RETURN(NULL);
    }
 
    buffer = (GLvoid *) SUMA_malloc(size);
@@ -3711,7 +3791,7 @@ GLvoid *SUMA_grabPixels(int inColor,
 
    /* Actually read the pixels. */
    glReadPixels(0, 0, width, height, format,
-    GL_UNSIGNED_BYTE, (GLvoid *) buffer);
+                GL_UNSIGNED_BYTE, (GLvoid *) buffer);
 
    /* Restore saved modes. */
    glPixelStorei(GL_PACK_SWAP_BYTES, swapbytes);
@@ -3793,17 +3873,13 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 
    /* find out the next best name and write it*/
    {
-        char tmpprfx[100], *padprfx, *padname;
+      char tmpprfx[100], *padprfx, *padname;
       int cntindx=0;
       SUMA_SurfaceObject *SO;
       SUMA_Boolean OKname = NOPE;
       
       /* get the SO in focus, use it's label for output filename */
-      if (csv->Focus_SO_ID >= 0) {
-         SO = (SUMA_SurfaceObject *)(SUMAg_DOv[csv->Focus_SO_ID].OP);
-      }else {
-         SO = NULL;
-      }
+      SO = SUMA_SV_Focus_SO(csv);
       
       if (!SO){
          padname = (char *)SUMA_calloc(100, sizeof(char));
@@ -3985,9 +4061,11 @@ int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
 }   
 
 /*!
-   Purpose: Takes a the world x,y,z coordinates and turns them into screen coordinates
-   Set the last param to 0 (or NOPE) if you are calling this function after the projection 
-   and other viewing matrices have been set. This happens when this function is called as
+   Purpose: Takes a the world x,y,z coordinates and turns them into 
+            screen coordinates
+   Set the last param to 0 (or NOPE) if you are calling this function 
+   after the projection  and other viewing matrices have been set. 
+   This happens when this function is called as
    a child of SUMA_display
    \sa SUMA_GetSelectionLine
 */
@@ -4212,7 +4290,8 @@ SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv,
             the Pick0 and Pick1 values (usually sv's) 
    \param sv (*SUMA_SurfaceViewer)
    \param x (int) mouse coordinate
-   \param y (int)
+   \param y (int) (y will get set to: viewport[3] - (GLint)y -1; 
+                   inside of function)
    \param Pick0 (GLdouble *) vector of 3 elements (usually, pass sv->Pick0)
    \param Pick1 (GLdouble *) vector of 3 elements (usually, pass sv->Pick1)
    \param N_List (int) if > 0, it indicates that there are N_list 
@@ -4223,6 +4302,7 @@ SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv,
    \param PickList (Gldouble *) a N_list x 3 vector containing the equivalent 
                                 of Pick0 for the values in xList and yList
    \return YUP/NOPE
+      Also, if N_List <= 0, sv->PickPix is set before returning
    \sa SUMA_input, button3 pick
    \sa SUMA_NormScreenToWorld
 */
@@ -4338,7 +4418,12 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
    glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
    /* viewport[3] is height of window in pixels */
    realy = viewport[3] - (GLint)y -1;
-
+   
+   if (N_List <=0 ) {
+      /* store selection location in pixel indices into frame buffer */
+      sv->PickPix[0] = (int)x; sv->PickPix[1]=(int)realy;
+   }
+   
    if (LocalHead) 
       fprintf (SUMA_STDOUT, 
                "%s: Coordinates at cursor are (%4d, %4d)\n"
@@ -4530,25 +4615,24 @@ void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_helpSurfaceStruct"};
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_SurfaceViewer *sv = NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_ALL_DO *ado = NULL;
    
    SUMA_ENTRY;
    
    datap = (SUMA_MenuCallBackData *)data;
    sv = &(SUMAg_SVv[(INT_CAST)datap->ContID]);
-   if (sv->Focus_SO_ID >= 0) {
-      SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-   }else {
-      SUMA_SLP_Err("No surface object in focus.\n");
+   if (!(ado = SUMA_SV_Focus_ADO(sv))) {
+      SUMA_SLP_Err("No object in focus.\n");
       SUMA_RETURNe;
    }
 
-   if (!SUMA_SURFCONT_REALIZED(SO)) {
-      SUMA_OpenCloseSurfaceCont(NULL, SO, NULL);
+   if (!SUMA_isADO_Cont_Realized(ado)) {
+      SUMA_OpenCloseSurfaceCont(NULL, ado, NULL);
    }
    
    /* Now do the info thingy */
-   SUMA_cb_moreSurfInfo (w, (XtPointer)SO->SurfCont->curSOp, callData);
+   SUMA_cb_moreSurfInfo (w, 
+         (XtPointer)SUMA_Cont_ADO(SUMA_ADO_Cont(ado)), callData);
 
    SUMA_RETURNe;
 
@@ -4752,45 +4836,87 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_RETURNe;
 }
 
-/* Many times you need the surface controller created but not for 
-display, create it if needed, then minimize it immediately afterwards*/
-int SUMA_OpenCloseSurfaceCont(Widget w, 
-                              SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_isSurfContWidgetCreated(SUMA_X_SurfCont  *SurfCont)
+{
+   static char FuncName[]={"SUMA_isSurfContWidgetCreated"};
+   if (!SurfCont || !SurfCont->TLS) return(0);
+   return(1);
+}
+
+/* Open the surface controller if other had been open already
+   This is only for the single window mode */
+int SUMA_OpenSurfCont_if_other(Widget w, 
+                              SUMA_ALL_DO *ado, 
                               SUMA_SurfaceViewer *sv) 
 {
-   static char FuncName[]={"SUMA_OpenCloseSurfaceCont"};
+   static char FuncName[]={"SUMA_OpenSurfCont_if_other"};
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    
-   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
+   if (!SUMAg_CF->X->UseSameSurfCont) { SUMA_RETURN(1); /* only in same mode */ }
+   if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0); /* bad */
+   if (!SUMAg_CF->X->SameSurfContOpen) { /* window not on screen, do nothing */
+      SUMA_RETURN(0);
+   }
+   /* OK, bring it up if needed */
+   if (SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(1); /* nothing to do */
    
-   if (SUMA_SURFCONT_REALIZED(SO)) SUMA_RETURN(1); /* nothing to do */
+   if (0 && w) {/* no need, using  SameSurfContOpen instead*/
+      XWindowAttributes winattr;
+      XGetWindowAttributes(XtDisplay(w), XtWindow(w), &winattr);
+      SUMA_LHv("Window map_state: %d\n", winattr.map_state);
+   }
+   
+   if (!SUMA_viewSurfaceCont(w, ado, sv)) {
+      SUMA_S_Err("Failed to view surface cont");
+      SUMA_RETURN(0);
+   }
+
+   SUMA_RETURN(1);
+}
+
+/* Many times you need the surface controller created but not for 
+display, create it if needed, then minimize it immediately afterwards*/
+int SUMA_OpenCloseSurfaceCont(Widget w, 
+                              SUMA_ALL_DO *ado, 
+                              SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_OpenCloseSurfaceCont"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   
+   if (SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(1); /* nothing to do */
    
    if (w) {
       SUMA_LH("nism");
-      SUMA_cb_createSurfaceCont( w, (XtPointer)SO, NULL);
+      SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
    } else {
       if (!sv) {
-         if (!(sv = SUMA_BestViewerForSO(SO)) ||
+         if (!(sv = SUMA_BestViewerForDO(ado)) ||
              !sv->X->TOPLEVEL) {
             SUMA_LH("NULLity");
             SUMA_RETURN(0);
          }
       }
-      if (!SUMA_SURFCONT_CREATED(SO)) {
+      if (!SUMA_isADO_Cont_Created(ado)) {
       	SUMA_LH("Creationism");
-      	SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);  
+      	SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL); 
       } else {
         /* must have been closed, open it */
-	if (!SUMA_viewSurfaceCont( sv->X->TOPLEVEL, SO, sv)) {
+	if (!SUMA_viewSurfaceCont( sv->X->TOPLEVEL, ado, sv)) {
 	   SUMA_S_Err("Failed to open surf cont anew");
 	   SUMA_RETURN(0);
 	}
       }
    }
    SUMA_LH("Initializing ColPaneShell");
-   SUMA_InitializeColPlaneShell(SO, SO->SurfCont->curColPlane);
+   SUMA_InitializeColPlaneShell(ado, SUMA_ADO_CurColPlane(ado));
 
 
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
@@ -4798,9 +4924,9 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    #if 0 /* Not a good idea to do this because widgets get unrealized and
    	The main reason for calling this function is to be sure that
 	the widgets are alive and well for setting and queries ZSS Nov 9 2012 */
-   SUMA_cb_closeSurfaceCont(NULL, (XtPointer) SO, NULL);
+   SUMA_cb_closeSurfaceCont(NULL, (XtPointer) ado, NULL);
    #else
-   XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->TLS), 0);
+   XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SurfCont->TLS), 0);
    #endif
    SUMA_LH("Returnism")
    SUMA_RETURN(1);
@@ -4811,99 +4937,109 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
    You'll have to change the returned pointer someday to allow 
    for other objects that may have a page in Notebook... 
 */
-SUMA_SurfaceObject **SUMA_SurfacesInSurfContNotebook(Widget NB)
+SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
 {
-   static char FuncName[]={"SUMA_SurfacesInSurfContNotebook"};
+   static char FuncName[]={"SUMA_DOsInSurfContNotebook"};
    int i, lp, j, iso;
-   static SUMA_SurfaceObject *SOv[100];
-   SUMA_SurfaceObject *SOt=NULL, *curSO=NULL;
+   static SUMA_ALL_DO *DOv[100];
+   SUMA_ALL_DO *DOt=NULL, *curDO=NULL;
    XmNotebookPageStatus ns;
    XmNotebookPageInfo pi;
    char *allids = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL, *curSurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    iso=0;
-   SOv[0]=NULL;
-   if (!NB) SUMA_RETURN(SOv);
+   DOv[0]=NULL;
+   if (!NB) SUMA_RETURN(DOv);
    
    XtVaGetValues(NB, XmNlastPageNumber, &lp, NULL);
    for (i=0; i<lp; ++i) {
       ns = XmNotebookGetPageInfo(NB, i+1, &pi);
       if (ns != XmPAGE_FOUND) {
          SUMA_LH("Could not find page!");
-         SUMA_RETURN(SOv);
+         SUMA_RETURN(DOv);
       }
       SUMA_LHv("Page %d, widget %p, page name=%s\n",
                    i+1, pi.page_widget,
                    XtName(pi.page_widget));
       
       for (j=0; j<SUMAg_N_DOv; ++j) {
-         if (SUMAg_DOv[j].ObjectType == SO_type) {
-            SOt = (SUMA_SurfaceObject *)SUMAg_DOv[j].OP;
-            if (SOt && SOt->SurfCont) {
-               curSO = (SUMA_SurfaceObject *)*(SOt->SurfCont->curSOp);
-               if (curSO) {
-                  if (!allids || !strstr(allids, curSO->idcode_str)) {
-                     if (pi.page_widget == curSO->SurfCont->Page) {
+         if (SUMAg_DOv[j].ObjectType == SO_type ||
+             SUMAg_DOv[j].ObjectType == SDSET_type) {
+            DOt = (SUMA_ALL_DO *)SUMAg_DOv[j].OP;
+            SurfCont = SUMA_ADO_Cont(DOt);
+            if (DOt && SurfCont) {
+               curDO = SUMA_Cont_ADO(SurfCont);
+               if (curDO) {
+                  if (!allids || !strstr(allids, SUMA_ADO_idcode(curDO))) {
+                     curSurfCont = SUMA_ADO_Cont(curDO);
+                     if (pi.page_widget == curSurfCont->Page) {
                         if (iso < 99) {
-                           SOv[iso] = curSO; ++iso; SOv[iso]=NULL;
+                           DOv[iso] = curDO; ++iso; DOv[iso]=NULL;
                            allids = SUMA_append_replace_string(allids,
-                                                   curSO->idcode_str,"**",1);
-                           SUMA_LHv("Got surface %s\n", curSO->Label);
+                                                SUMA_ADO_idcode(curDO),"**",1);
+                           SUMA_LHv("Got object %s\n", SUMA_ADO_Label(curDO));
                         } else {
                            SUMA_S_Errv("Too many surface controllers (%d)\n"
                                        "Will need to increase limit\n",
                                        iso);
                            if (allids) SUMA_free(allids); allids=NULL;
-                           SUMA_RETURN(SOv);
+                           SUMA_RETURN(DOv);
                         }
                      }
                   } else {
                      /* surface sharing controller */
-                     if (curSO != SOt) {
+                     if (curDO != DOt) {
                         SUMA_LHv(
-                           "Surface %s should be sharing a controller with %s\n",
-                           SOt->Label, curSO->Label);
+                       "Surface/DO %s should be sharing a controller with %s\n",
+                           SUMA_ADO_Label(DOt), SUMA_ADO_Label(curDO));
                      }
                   }
                } else {
                   SUMA_LHv("Surface %s has no current SO in its controller\n"
                         "This should mean its controller has never been open\n",
-                          SOt->Label);
+                         SUMA_ADO_Label(DOt));
                }
             } else {
                SUMA_LHv("Surface %s has no controller open yet\n", 
-                        SOt?SOt->Label:NULL);
+                        DOt?SUMA_ADO_Label(DOt):"NULL");
             }
          }
       }
    }
 
    if (allids) SUMA_free(allids); allids=NULL;
-   SUMA_RETURN(SOv);
+   SUMA_RETURN(DOv);
 }
 
-SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_SurfaceObject *SO)
+SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_MarkSurfContOpen"};
    int i;
-   SUMA_SurfaceObject **SOv=NULL;
+   SUMA_ALL_DO **DOv=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    
    SUMA_ENTRY;
+   
    if (SUMAg_CF->X->UseSameSurfCont) {
       SUMAg_CF->X->SameSurfContOpen = Open;
+      SurfCont = SUMA_ADO_Cont(ado);
+      SurfCont->Open = Open;
       /* apply to all other surfaces */
-      SOv = SUMA_SurfacesInSurfContNotebook(SUMAg_CF->X->SC_Notebook);      
+      DOv = SUMA_DOsInSurfContNotebook(SUMAg_CF->X->SC_Notebook);      
       i = 0;
-      while (SOv[i]) {
-         SOv[i]->SurfCont->Open=Open;
+      while (DOv[i]) {
+         SurfCont = SUMA_ADO_Cont(DOv[i]);
+         SurfCont->Open=Open;
          ++i;
       }
    } else {
-      if (SO) {
-         SO->SurfCont->Open = Open;
+      if (ado) {
+         SurfCont = SUMA_ADO_Cont(ado);
+         SurfCont->Open = Open;
       }
    }
    SUMA_RETURN(YUP);
@@ -4911,32 +5047,34 @@ SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_SurfaceObject *SO)
  
 /*! if calling this function from outside interface, set w to NULL 
 */
-int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, 
+int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado, 
                          SUMA_SurfaceViewer *sv) 
 {
    static char FuncName[]={"SUMA_viewSurfaceCont"};
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
-   if (!SO || !SO->SurfCont) {
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_RETURN(0);
    }
    
    
    if (!sv) {
-      SUMA_LHv("Got to get me an sv for %s\n", SO->Label);
-      if (!(sv = SUMA_BestViewerForSO(SO))) {
+      SUMA_LHv("Got to get me an sv for %s\n", SUMA_ADO_Label(ado));
+      if (!(sv = SUMA_BestViewerForDO(ado))) {
          SUMA_RETURN(0);
       }
    }
-   SUMA_LHv("Working surface %s,\n sv %p,\n w  %p\n", SO->Label, w, sv);
+   SUMA_LHv("Working surface %s,\n sv %p,\n w  %p\n", 
+            SUMA_ADO_Label(ado), w, sv);
       
-   if (!SUMA_SURFCONT_CREATED(SO)) {
+   if (!SUMA_isADO_Cont_Created(ado)) {
       if (LocalHead) 
          SUMA_LH("Calling SUMA_cb_createSurfaceCont.");
-      if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)SO, NULL);
-      else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)SO, NULL);
+      if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
+      else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
    }else {
       /* controller already created, need to bring it up again */
       switch (SUMA_GL_CLOSE_MODE)   {/* open GL drawables in this widget*/
@@ -4946,20 +5084,20 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
                         "%s: Controller already created, Raising it.\n", 
                         FuncName);
             XMapRaised( SUMAg_CF->X->DPY_controller1, 
-                        XtWindow(SO->SurfCont->TLS));
+                        XtWindow(SurfCont->TLS));
             break;
          case SUMA_UNREALIZE:
             if (LocalHead) 
                fprintf (SUMA_STDERR,
                         "%s: Controller already created, realizing it.\n", 
                         FuncName);
-            XtRealizeWidget( SO->SurfCont->TLS);
+            XtRealizeWidget( SurfCont->TLS);
             XSync(SUMAg_CF->X->DPY_controller1, 0);
             /* now do Raise, so that we can see the damned thing if it 
                behind other windows, and hope it does not crash*/
             SUMA_LH("Rise and do not crash");
             XMapRaised( SUMAg_CF->X->DPY_controller1, 
-                        XtWindow(SO->SurfCont->TLS)); 
+                        XtWindow(SurfCont->TLS)); 
 
             break;
          default:
@@ -4970,21 +5108,21 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
 
    }
    
-   SUMA_MarkSurfContOpen(1,SO); 
+   SUMA_MarkSurfContOpen(1,ado); 
 
 
    SUMA_LH("Init SurfParam");
-   SUMA_Init_SurfCont_SurfParam(SO);
+   SUMA_Init_SurfCont_SurfParam(ado);
    SUMA_LH("Init CrossHair");
-   SUMA_Init_SurfCont_CrossHair(SO);
+   SUMA_Init_SurfCont_CrossHair(ado);
    SUMA_LH("Dset goodies");
-   SUMA_InitializeColPlaneShell(SO, SO->SurfCont->curColPlane);
+   SUMA_InitializeColPlaneShell(ado, SurfCont->curColPlane);
    
    SUMA_LH("Init Position");
-   if (SO->SurfCont->PosRef != sv->X->TOPLEVEL) {
-      SO->SurfCont->PosRef = sv->X->TOPLEVEL;
-      SUMA_PositionWindowRelative ( SO->SurfCont->TLS, 
-                                    SO->SurfCont->PosRef, SWP_TOP_RIGHT);   
+   if (SurfCont->PosRef != sv->X->TOPLEVEL) {
+      SurfCont->PosRef = sv->X->TOPLEVEL;
+      SUMA_PositionWindowRelative ( SurfCont->TLS, 
+                                    SurfCont->PosRef, SWP_TOP_RIGHT);   
    }
    
    SUMA_LH("Returning");
@@ -5004,7 +5142,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
       */
    SUMA_LH("Making sv's GLXAREA current\n");
    SUMA_SiSi_I_Insist();
-
+        
    SUMA_RETURN(1); 
 }
 
@@ -5017,7 +5155,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO,
 */ 
 void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
-   SUMA_SurfaceObject *SO;
+   SUMA_ALL_DO *ado;
    SUMA_SurfaceViewer *sv;
    int isv, widtype;
    static char FuncName[] = {"SUMA_cb_viewSurfaceCont"};
@@ -5033,14 +5171,14 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                FuncName, isv, widtype);
    
    sv = &SUMAg_SVv[isv];
-   if (sv->Focus_SO_ID >= 0) {
-    SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+   if (sv->Focus_DO_ID >= 0) {
+    ado = (SUMA_ALL_DO *)SUMAg_DOv[sv->Focus_DO_ID].OP;
    }else {
-      fprintf (SUMA_STDERR,"%s: No surface object in focus.\n", FuncName);
+      fprintf (SUMA_STDERR,"%s: No displayable objects in focus.\n", FuncName);
       SUMA_RETURNe;
    }
    
-   if (!SUMA_viewSurfaceCont(w, SO, sv)) {
+   if (!SUMA_viewSurfaceCont(w, ado, sv)) {
       SUMA_S_Err("Failed in SUMA_viewSurfaceCont");
       SUMA_RETURNe;
    }
@@ -5571,7 +5709,7 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
          NULL);
 
    /* row column Lock rowcolumns */
-   rc = XtVaCreateWidget ("rowcolumn",
+   rc = XtVaCreateWidget ("rowcolumnCBF",
          xmRowColumnWidgetClass, DispFrame,
          XmNpacking, XmPACK_TIGHT, 
          XmNorientation , XmHORIZONTAL ,
@@ -5626,30 +5764,86 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
    SUMA_RETURN(DispFrame);
 }
 
-/*!
-   \brief SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
-   \param data (XtPointer) to SO (NOT sv)
-
-*/
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
-   Widget tl, pb, form, DispFrame, SurfFrame, 
-          rc_left, rc_right, rc_mamma, tls=NULL;
+   static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    Display *dpy;
-   SUMA_SurfaceObject *SO;
+   SUMA_ALL_DO *ado;
    char *slabel, *lbl30, *sss=NULL;
    XmString xmstmp; 
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *over0=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
-   *(SO->SurfCont->curSOp) = (void *)SO;
+   ado = (SUMA_ALL_DO *)data;
+   if (!(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_S_Errv("Failed to get Controller for ado %s\n",
+                  SUMA_ADO_Label(ado));
+      SUMA_RETURNe;
+   }
    
-   if (SO->SurfCont->TLS) {
+   switch (ado->do_type) {
+      case SO_type:
+         SUMA_cb_createSurfaceCont_SO(w, data, callData);
+         break; 
+      case SDSET_type:
+         SUMA_S_Err("Cannot create a controller for a dataset"
+                    "with no rendering variant");
+         break;
+      case GRAPH_LINK_type: {
+         SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
+         SUMA_cb_createSurfaceCont_GLDO(w, (XtPointer)ado,  callData);
+         break; }
+      default:
+         SUMA_S_Errv("No controller for type %d (%s)\n",
+               ado->do_type, SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         break;
+   }
+
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, 
+                                    XtPointer callData);
+   \param data (XtPointer) to SO (NOT sv)
+
+*/
+void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_createSurfaceCont_SO"};
+   Widget tl, pb, form, DispFrame, SurfFrame, 
+          rc_left, rc_right, rc_mamma, rc_gmamma, tls=NULL;
+   Display *dpy;
+   SUMA_ALL_DO *ado;
+   char *slabel, *lbl30, *sss=NULL;
+   XmString xmstmp; 
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *over0=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_S_Errv("Failed to get Controller for ado %s\n",
+                  SUMA_ADO_Label(ado));
+      SUMA_RETURNe;
+   }
+   if (!SUMA_SurfCont_SetcurDOp(SurfCont, ado)) {/* First set owner of GUI */
+      SUMA_S_Err("Failed to set curDOp");
+      SUMA_RETURNe;
+   }
+   if (!(curColPlane = SUMA_ADO_CurColPlane(ado))) {
+      SUMA_S_Errv("Failed to get current col plane for ado %s\n",
+                  SUMA_ADO_Label(ado));
+      SUMA_RETURNe;
+   }
+   if (SurfCont->TLS) {
       fprintf (SUMA_STDERR,
-               "Error %s: SO->SurfCont->TopLevelShell!=NULL.\n"
+               "Error %s: SurfCont->TopLevelShell!=NULL.\n"
                "Should not be here.\n", FuncName);
       SUMA_RETURNe;
    }
@@ -5657,16 +5851,17 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    tl = SUMA_GetTopShell(w); /* top level widget */
    dpy = XtDisplay(tl);
    
-   slabel = (char *)SUMA_malloc (sizeof(char) * (strlen(SO->Label) + 100));
-   if (strlen(SO->Label) > 40) {
+   slabel = (char *)SUMA_malloc(sizeof(char) * 
+                                 (strlen(SUMA_ADO_Label(ado)) + 100));
+   if (strlen(SUMA_ADO_Label(ado)) > 40) {
       char *tmpstr=NULL;
-      tmpstr = SUMA_truncate_string(SO->Label, 40);
+      tmpstr = SUMA_truncate_string(SUMA_ADO_Label(ado), 40);
       if (tmpstr) { 
          sprintf(slabel,"[%s] Surface Controller", tmpstr);
          free(tmpstr); tmpstr=NULL;
       }
    } else {
-      sprintf(slabel,"[%s] Surface Controller", SO->Label);
+      sprintf(slabel,"[%s] Surface Controller", SUMA_ADO_Label(ado));
    }
    
    /* March 12 08: Made font8 default for surface controller */
@@ -5711,9 +5906,10 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XmAddWMProtocolCallback(/* make "Close" window menu work */
          tls,
          XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
-         SUMA_cb_closeSurfaceCont, (XtPointer) SO) ;
+         SUMA_cb_closeSurfaceCont, (XtPointer) ado) ;
       
       if (SUMAg_CF->X->UseSameSurfCont) {
+         Widget scroller;
          SUMAg_CF->X->CommonSurfContTLW = tls;
          SUMAg_CF->X->SC_Notebook = 
             XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
@@ -5729,32 +5925,41 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                           XmNbindingWidth, XmNONE,
                           NULL); */
             
+         
+         /* Kill the scroller from hell otherwise no keyboard input
+            gets to the baby widgets. Better write my own scroller
+            if need be in the future */
+         scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
+         XtUnmanageChild (scroller);
       }
    }
    
    if (SUMAg_CF->X->UseSameSurfCont) {
-      SO->SurfCont->TLS = SUMAg_CF->X->CommonSurfContTLW;
+      SurfCont->TLS = SUMAg_CF->X->CommonSurfContTLW;
    } else {
-      SO->SurfCont->TLS = tls;
+      SurfCont->TLS = tls;
    }
    
-   if (!SO->SurfCont->TLS) {
+   if (!SurfCont->TLS) {
       SUMA_S_Err("Bad logic");
       SUMA_RETURNe;
    }
    
    SUMA_LH("Widgets...");
    if (SUMAg_CF->X->UseSameSurfCont) {
+      Arg args[20];
       /* add the page */
-      SO->SurfCont->Page = XmCreateRowColumn (SUMAg_CF->X->SC_Notebook, 
-                                              SO->Label?SO->Label:"page", 
-                                              NULL, 0);
+      XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
+      SurfCont->Page = 
+         XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
+                     SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
+                                              args, 1);
    }
    
    /* create a form widget, manage it at the end ...*/
-   SO->SurfCont->Mainform = XtVaCreateWidget ("dialog", 
-      xmFormWidgetClass, SO->SurfCont->Page ? 
-                              SO->SurfCont->Page:SO->SurfCont->TLS,
+   SurfCont->Mainform = XtVaCreateWidget ("dialog", 
+      xmFormWidgetClass, SurfCont->Page ? 
+                              SurfCont->Page:SurfCont->TLS,
       XmNborderWidth , 0 ,
       XmNmarginHeight , SUMA_MARGIN ,
       XmNmarginWidth  , SUMA_MARGIN ,
@@ -5762,8 +5967,24 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XmNshadowType, XmSHADOW_ETCHED_IN,
       NULL); 
    
+   rc_gmamma = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->Mainform,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+            
+
+   DispFrame = SUMA_CloseBhelp_Frame(rc_gmamma,
+                     SUMA_cb_closeSurfaceCont, (XtPointer) ado,
+                     "Close Surface controller", SUMA_closeSurfaceCont_help,
+                     NULL, NULL, NULL, NULL);
+                     
+   XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_gmamma , NULL);
+   
    rc_mamma = XtVaCreateWidget ("rowcolumn",
-            xmRowColumnWidgetClass, SO->SurfCont->Mainform,
+            xmRowColumnWidgetClass, rc_gmamma,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmHORIZONTAL ,
             XmNmarginHeight, SUMA_MARGIN ,
@@ -5827,18 +6048,24 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
       /*put a label containing the surface name, number of nodes 
       and number of facesets */
-      lbl30 = SUMA_set_string_length(SO->Label, ' ', 27);
-      if (lbl30) {
-         sprintf( slabel,"%s\n%d nodes: %d tri.", 
-                  lbl30, SO->N_Node, SO->N_FaceSet); 
-         SUMA_free(lbl30); lbl30 = NULL;
+      lbl30 = SUMA_set_string_length(SUMA_ADO_Label(ado), ' ', 27);
+      if (ado->do_type == SO_type) {
+         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+         if (lbl30) {
+            sprintf( slabel,"%s\n%d nodes: %d tri.", 
+                     lbl30, SO->N_Node, SO->N_FaceSet); 
+            SUMA_free(lbl30); lbl30 = NULL;
+         } else {
+            sprintf(slabel,"???\n%d nodes: %d tri.", SO->N_Node, SO->N_FaceSet); 
+         }
       } else {
-         sprintf(slabel,"???\n%d nodes: %d tri.", SO->N_Node, SO->N_FaceSet); 
+         SUMA_S_Err("This function is only for SOs");
+         SUMA_RETURNe;
       }
       xmstmp = XmStringCreateLtoR (slabel, XmSTRING_DEFAULT_CHARSET);
          /* XmStringCreateLocalized(slabel) does not reliably 
             handle newline characters q*/
-      SO->SurfCont->SurfInfo_label = XtVaCreateManagedWidget ("dingel", 
+      SurfCont->SurfInfo_label = XtVaCreateManagedWidget ("dingel", 
                xmLabelWidgetClass, rc,
                XmNlabelString, xmstmp,
                NULL);
@@ -5847,27 +6074,28 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                                  xmSeparatorWidgetClass, rc, 
                                  XmNorientation, XmVERTICAL, NULL );
 
-      SO->SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
+      SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, 
-                     SUMA_cb_moreSurfInfo, (XtPointer)SO->SurfCont->curSOp);
-      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, 
-                     (XtPointer)SO->SurfCont->curSOp, NULL); /* 
+      XtAddCallback (SurfCont->SurfInfo_pb, XmNactivateCallback, 
+                     SUMA_cb_moreSurfInfo, 
+                        (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont));
+      XtVaSetValues (SurfCont->SurfInfo_pb, XmNuserData, 
+                     (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont), NULL); /* 
             Feb 23 04: XmNuserData is not used anymore.
             See notes for SUMA_cb_moreViewerInfo
             call for reasons why this was done...
 
-            store the surface object SO in userData
+            store the surface object SO/DO in userData
             I think it is more convenient than as data
             in the call back structure. This way it will
             be easy to change the SO that this same button
             might refer to. 
             This is only for testing purposes, the pb_close
             button still expects SO in clientData*/
-      MCW_register_hint( SO->SurfCont->SurfInfo_pb , "More info on Surface" ) ;
-      MCW_register_help( SO->SurfCont->SurfInfo_pb , SUMA_SurfContHelp_more ) ;
-      XtManageChild (SO->SurfCont->SurfInfo_pb); 
+      MCW_register_hint( SurfCont->SurfInfo_pb , "More info on Surface" ) ;
+      MCW_register_help( SurfCont->SurfInfo_pb , SUMA_SurfContHelp_more ) ;
+      XtManageChild (SurfCont->SurfInfo_pb); 
 
       XtManageChild (rc);
       
@@ -5885,33 +6113,33 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
       /* rendering menu option */
       SUMA_BuildMenuReset(0);
-      SO->SurfCont->RenderModeMenu = 
+      SurfCont->RenderModeMenu = 
             SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Render);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
                                  "Drw", '\0', YUP, RenderMode_Menu, 
-                                 (void *)(SO->SurfCont->curSOp), 
+                                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
                         "Choose the rendering (drawing) mode for this surface.",
                                  SUMA_SurfContHelp_RenderMode, 
-                                 SO->SurfCont->RenderModeMenu );
-      XtManageChild (SO->SurfCont->RenderModeMenu->mw[SW_SurfCont_Render]);
+                                 SurfCont->RenderModeMenu );
+      XtManageChild (SurfCont->RenderModeMenu->mw[SW_SurfCont_Render]);
 
       SUMA_BuildMenuReset(0);
-      SO->SurfCont->TransModeMenu = 
+      SurfCont->TransModeMenu = 
             SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Trans);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
                                  "Trn", '\0', YUP, TransMode_Menu, 
-                                 (void *)(SO->SurfCont->curSOp), 
+                                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
                         "Choose the transparency for this surface.",
                                  SUMA_SurfContHelp_TransMode, 
-                                 SO->SurfCont->TransModeMenu );
-      XtManageChild (SO->SurfCont->TransModeMenu->mw[SW_SurfCont_Trans]);
+                                 SurfCont->TransModeMenu );
+      XtManageChild (SurfCont->TransModeMenu->mw[SW_SurfCont_Trans]);
       
       pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, 
                      SUMA_cb_ToggleManagementColPlaneWidget, 
-                     (XtPointer) SO->SurfCont->curSOp);
+                     (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont));
       MCW_register_hint( pb , 
                         "Show/Hide Dataset (previously Color Plane) "
                         "controllers" ) ;
@@ -5928,7 +6156,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    {  /* Xhair Controls */
       Widget rcv;
       /* put a frame */
-      SO->SurfCont->Xhair_fr = XtVaCreateWidget ("dialog",
+      SurfCont->Xhair_fr = XtVaCreateWidget ("dialog",
          xmFrameWidgetClass, rc_left,
          XmNshadowType , XmSHADOW_ETCHED_IN ,
          XmNshadowThickness , 5 ,
@@ -5936,14 +6164,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL); 
       
       XtVaCreateManagedWidget ("Xhair Info",
-            xmLabelWidgetClass, SO->SurfCont->Xhair_fr, 
+            xmLabelWidgetClass, SurfCont->Xhair_fr, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
             
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
-            xmRowColumnWidgetClass, SO->SurfCont->Xhair_fr,
+            xmRowColumnWidgetClass, SurfCont->Xhair_fr,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmVERTICAL ,
             XmNmarginHeight, 0 ,
@@ -5951,18 +6179,18 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             NULL);
 
       /* create the widgets for the colormap stuff */
-      SUMA_CreateXhairWidgets(rcv, SO);
+      SUMA_CreateXhairWidgets(rcv, ado);
 
       
       XtManageChild(rcv);
-      XtManageChild(SO->SurfCont->Xhair_fr);
+      XtManageChild(SurfCont->Xhair_fr);
    }  /* Xhair Controls */
 
-   SUMA_LHv("\nDset Mapping, surface %s\n", SO->Label);
+   SUMA_LHv("\nDset Mapping, surface %s\n", SUMA_ADO_Label(ado));
    {  /* Dset Mapping */
       Widget rcv;
       /* put a frame */
-      SO->SurfCont->DsetMap_fr = XtVaCreateWidget ("dialog",
+      SurfCont->DsetMap_fr = XtVaCreateWidget ("dialog",
          xmFrameWidgetClass, rc_right,
          XmNrightAttachment , XmATTACH_FORM ,
          XmNleftAttachment, XmATTACH_WIDGET,
@@ -5974,14 +6202,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL); 
       
       XtVaCreateManagedWidget ("Dset Mapping",
-            xmLabelWidgetClass, SO->SurfCont->DsetMap_fr, 
+            xmLabelWidgetClass, SurfCont->DsetMap_fr, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
             
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
-            xmRowColumnWidgetClass, SO->SurfCont->DsetMap_fr,
+            xmRowColumnWidgetClass, SurfCont->DsetMap_fr,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmVERTICAL ,
             XmNmarginHeight, 0 ,
@@ -5989,11 +6217,11 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             NULL);
 
       /* create the widgets for the colormap stuff */
-      SUMA_CreateCmapWidgets(rcv, SO);
+      SUMA_CreateCmapWidgets(rcv, ado);
 
       XtManageChild(rcv);
 
-      XtManageChild(SO->SurfCont->DsetMap_fr);
+      XtManageChild(SurfCont->DsetMap_fr);
    }
 
    SUMA_LH("Dset Controls");
@@ -6003,7 +6231,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
      
       
       /* put a frame */
-      SO->SurfCont->ColPlane_fr = XtVaCreateWidget ("dialog",
+      SurfCont->ColPlane_fr = XtVaCreateWidget ("dialog",
          xmFrameWidgetClass, rc_left,
          XmNshadowType , XmSHADOW_ETCHED_IN ,
          XmNshadowThickness , 5 ,
@@ -6011,14 +6239,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL); 
       
       XtVaCreateManagedWidget ("Dset Controls",
-            xmLabelWidgetClass, SO->SurfCont->ColPlane_fr, 
+            xmLabelWidgetClass, SurfCont->ColPlane_fr, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
             
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
-            xmRowColumnWidgetClass, SO->SurfCont->ColPlane_fr,
+            xmRowColumnWidgetClass, SurfCont->ColPlane_fr,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmVERTICAL ,
             XmNmarginHeight, 0 ,
@@ -6052,7 +6280,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             NULL, NULL,
             NULL, NULL,
             NULL, NULL, 
-            SO->SurfCont->ColPlaneLabelTable);
+            SurfCont->ColPlaneLabelTable);
       }
       XtManageChild (rc);
       
@@ -6067,19 +6295,19 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            1, 0, 20, 1,
                            2, SUMA_int,
                            NOPE,
-                           SUMA_cb_ColPlane_NewOrder, (void *)SO,
+                           SUMA_cb_ColPlane_NewOrder, (void *)ado,
                            SUMA_SurfCont_ColPlaneOrder_hint, 
                            SUMA_SurfContHelp_DsetOrd,
-                           SO->SurfCont->ColPlaneOrder);
+                           SurfCont->ColPlaneOrder);
                              
       SUMA_CreateArrowField ( rc, "Opa",
                            1, 0.0, 1.0, 0.1,
                            3, SUMA_float,
                            NOPE,
-                           SUMA_cb_ColPlane_NewOpacity, (void *)SO,
+                           SUMA_cb_ColPlane_NewOpacity, (void *)ado,
                            SUMA_SurfCont_ColPlaneOpacity_hint,
                            SUMA_SurfContHelp_DsetOpa,
-                           SO->SurfCont->ColPlaneOpacity);
+                           SurfCont->ColPlaneOpacity);
 
       /* manage  rc */
       XtManageChild (rc);
@@ -6095,52 +6323,52 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            1, 0.1, 1, 0.1,
                            3, SUMA_float,
                            YUP,
-                           SUMA_cb_ColPlane_NewDimFact, (void *)SO, 
+                           SUMA_cb_ColPlane_NewDimFact, (void *)ado, 
                            SUMA_SurfCont_ColPlaneDim_hint, 
                            SUMA_SurfContHelp_DsetDim,
-                           SO->SurfCont->ColPlaneDimFact);
+                           SurfCont->ColPlaneDimFact);
            
       #if 0
-      SO->SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("view", 
+      SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("view", 
             xmToggleButtonWidgetClass, rc, NULL);
-      XmToggleButtonSetState (SO->SurfCont->ColPlaneShow_tb, YUP, NOPE);
-      XtAddCallback (SO->SurfCont->ColPlaneShow_tb, 
-                  XmNvalueChangedCallback, SUMA_cb_ColPlaneShow_toggled, SO);
-      MCW_register_help(SO->SurfCont->ColPlaneShow_tb , 
+      XmToggleButtonSetState (SurfCont->ColPlaneShow_tb, YUP, NOPE);
+      XtAddCallback (SurfCont->ColPlaneShow_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_ColPlaneShow_toggled, ado);
+      MCW_register_help(SurfCont->ColPlaneShow_tb , 
                         SUMA_SurfContHelp_DsetView ) ;
-      MCW_register_hint(SO->SurfCont->ColPlaneShow_tb , "Shows/Hides Dset." ) ;
-      SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShow_tb);
+      MCW_register_hint(SurfCont->ColPlaneShow_tb , "Shows/Hides Dset." ) ;
+      SUMA_SET_SELECT_COLOR(SurfCont->ColPlaneShow_tb);
      #else
       SUMA_BuildMenuReset(0);
-      SO->SurfCont->DsetViewModeMenu = 
+      SurfCont->DsetViewModeMenu = 
          SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetView);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
                       "Dsp", '\0', YUP, DsetViewMode_Menu, 
-                      (void *)(SO->SurfCont->curSOp), 
+                      (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
                       "Choose the rendering mode for this dataset.",
                       SUMA_SurfContHelp_DsetViewMode, 
-                      SO->SurfCont->DsetViewModeMenu );
-      XtManageChild (SO->SurfCont->DsetViewModeMenu->mw[SW_SurfCont_DsetView]);
-      SUMA_Set_Menu_Widget(SO->SurfCont->DsetViewModeMenu,
+                      SurfCont->DsetViewModeMenu );
+      XtManageChild (SurfCont->DsetViewModeMenu->mw[SW_SurfCont_DsetView]);
+      SUMA_Set_Menu_Widget(SurfCont->DsetViewModeMenu,
                     SUMA_ShowMode2ShowModeMenuItem(
-                                 SO->SurfCont->curColPlane->ShowMode));
+                                 curColPlane->ShowMode));
 
       #endif            
 
-      SO->SurfCont->ColPlaneShowOneFore_tb = 
+      SurfCont->ColPlaneShowOneFore_tb = 
          XtVaCreateManagedWidget("1", 
                                  xmToggleButtonWidgetClass, rc, NULL);
-      XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, 
-                              SO->SurfCont->ShowCurForeOnly, NOPE);
-      XtAddCallback (SO->SurfCont->ColPlaneShowOneFore_tb, 
+      XmToggleButtonSetState (SurfCont->ColPlaneShowOneFore_tb, 
+                              SurfCont->ShowCurForeOnly, NOPE);
+      XtAddCallback (SurfCont->ColPlaneShowOneFore_tb, 
                      XmNvalueChangedCallback, 
-                     SUMA_cb_ColPlaneShowOneFore_toggled, SO);
+                     SUMA_cb_ColPlaneShowOneFore_toggled, ado);
                   
-      MCW_register_help(SO->SurfCont->ColPlaneShowOneFore_tb , 
+      MCW_register_help(SurfCont->ColPlaneShowOneFore_tb , 
                         SUMA_SurfContHelp_DsetViewOne ) ;
-      MCW_register_hint(SO->SurfCont->ColPlaneShowOneFore_tb , 
+      MCW_register_hint(SurfCont->ColPlaneShowOneFore_tb , 
              "Show ONLY ONE selected Dset. Foreground only. BHelp for more.\n") ;
-      SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShowOneFore_tb);
+      SUMA_SET_SELECT_COLOR(SurfCont->ColPlaneShowOneFore_tb);
            
       /* manage  rc */
       XtManageChild (rc);
@@ -6157,14 +6385,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
          
       /* put a push button to switch between color planes */
-      SO->SurfCont->SwitchDsetlst = 
+      SurfCont->SwitchDsetlst = 
             SUMA_AllocateScrolledList ("Switch Dset", 
                      SUMA_LSP_SINGLE, 
                      NOPE, NOPE, /* duplicate deletion, no sorting */ 
-                     SO->SurfCont->TLS, SWP_POINTER,
+                     SurfCont->TLS, SWP_POINTER,
                      125,
-                     SUMA_cb_SelectSwitchColPlane, (void *)SO,
-                     SUMA_cb_SelectSwitchColPlane, (void *)SO,
+                     SUMA_cb_SelectSwitchColPlane, (void *)ado,
+                     SUMA_cb_SelectSwitchColPlane, (void *)ado,
                      SUMA_cb_CloseSwitchColPlane, NULL);
 
 
@@ -6172,7 +6400,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, 
-                     SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)SO);
+                     SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)ado);
       MCW_register_hint(pb , "Switch between datasets" ) ;
       MCW_register_help(pb , SUMA_SurfContHelp_DsetSwitch ) ;
       XtManageChild (pb);
@@ -6181,7 +6409,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             xmPushButtonWidgetClass, rc, 
             NULL);   
          XtAddCallback (pb, XmNactivateCallback, 
-                        SUMA_cb_Dset_Load, (XtPointer) SO);
+                        SUMA_cb_Dset_Load, (XtPointer) ado);
          MCW_register_hint(pb ,  
                   "Load a new dataset (much more with BHelp)" ) ;
          MCW_register_help(pb ,  SUMA_SurfContHelp_DsetLoad ) ;
@@ -6191,14 +6419,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, 
-                     SUMA_cb_ColPlane_Delete, (XtPointer) SO);
+                     SUMA_cb_ColPlane_Delete, (XtPointer) ado);
       /* XtManageChild (pb); */ /* Not ready for this one yet */
 
       pb = XtVaCreateWidget ("Load Col", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, 
-                     SUMA_cb_ColPlane_Load, (XtPointer) SO);
+                     SUMA_cb_ColPlane_Load, (XtPointer) ado);
       MCW_register_hint(pb , "Load a new color plane (more with BHelp)" ) ;
       MCW_register_help(pb , SUMA_SurfContHelp_DsetLoadCol  ) ;
       XtManageChild (pb);
@@ -6208,111 +6436,74 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       /* manage vertical row column */
       XtManageChild (rcv);
       
-      XtManageChild (SO->SurfCont->ColPlane_fr);
+      XtManageChild (SurfCont->ColPlane_fr);
    }
    
    
-   if (0){ /*s close and help buttons */
-      Widget rc, pb_close, pb_bhelp;
-      
-      /* put up a frame to group the display controls */
-      DispFrame = XtVaCreateWidget ("dialog",
-         xmFrameWidgetClass, rc_left,
-         XmNleftAttachment , XmATTACH_FORM ,
-         XmNbottomAttachment  , XmATTACH_WIDGET ,
-         XmNbottomWidget, rc_left,
-         XmNshadowType , XmSHADOW_ETCHED_IN ,
-         XmNshadowThickness , 5 ,
-         XmNtraversalOn , False ,
-         NULL); 
-
-         
-      /* this one requires Motif 1.2 or newer */
-         XtVaCreateManagedWidget ("Disp. Cont.",
-            xmLabelWidgetClass, DispFrame, 
-            XmNchildType, XmFRAME_TITLE_CHILD,
-            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
-            NULL);
-
-      /* row column Lock rowcolumns */
-      rc = XtVaCreateWidget ("rowcolumn",
-            xmRowColumnWidgetClass, DispFrame,
-            XmNpacking, XmPACK_TIGHT, 
-            XmNorientation , XmHORIZONTAL ,
-            XmNmarginHeight, SUMA_MARGIN ,
-            XmNmarginWidth , SUMA_MARGIN ,
-            NULL);
-
-      pb_close = XtVaCreateWidget ("Close", 
-         xmPushButtonWidgetClass, rc, 
-         NULL);   
-      XtAddCallback (pb_close, XmNactivateCallback, 
-                     SUMA_cb_closeSurfaceCont, (XtPointer) SO);
-      MCW_register_hint( pb_close , "Close Surface controller" ) ;
-      MCW_register_help( pb_close , SUMA_closeSurfaceCont_help ) ;
-      XtManageChild (pb_close); 
-
-      pb_bhelp = XtVaCreateWidget ("BHelp", 
-         xmPushButtonWidgetClass, rc, 
-         NULL);
-      XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
-      MCW_register_help(pb_bhelp , SUMA_help_help ) ;
-      MCW_register_hint(pb_bhelp  , 
-                        "Press this button then click on a "
-                        "button/label/menu for more help." ) ;
-
-      XtManageChild (pb_bhelp); 
-
-
-
-      /* now start managing the row column widget */
-      XtManageChild (rc);
-
-      /* manage the frame and the fslabelorm */
-      XtManageChild (DispFrame);
-   } else {
-      DispFrame = SUMA_CloseBhelp_Frame(rc_left,
-                        SUMA_cb_closeSurfaceCont, (XtPointer) SO,
-                        "Close Surface controller", SUMA_closeSurfaceCont_help,
-                        NULL, NULL, NULL, NULL);
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      Widget rc=NULL;
+      /* put something to cycle through objects */
+      if ((rc = SUMA_FindChildWidgetNamed(DispFrame, "rowcolumnCBF"))) {
+         XtVaCreateManagedWidget (  "sep", 
+                              xmSeparatorWidgetClass, rc, 
+                              XmNorientation, XmVERTICAL,NULL);
+         SUMA_CreateArrowField ( rc, "Switch",
+                           1, 1, 20, 1,
+                           2, SUMA_int,
+                           YUP,
+                           SUMA_cb_SurfCont_SwitchPage, (void *)ado,
+                           "Switch to other object controller", 
+                           "Switch to other object controller",
+                           SurfCont->SurfContPage);
+         xmstmp = XmStringCreateLtoR (SUMA_ADO_Label(ado), 
+                                      XmSTRING_DEFAULT_CHARSET);
+         SurfCont->SurfContPage_label = XtVaCreateManagedWidget ("dingel", 
+               xmLabelWidgetClass, rc,
+               XmNlabelString, xmstmp,
+               NULL);
+         XmStringFree (xmstmp);
+      }
    }
-   
-   SUMA_LH("Management...");
+   SUMA_LHv("Management ...%p %p %p %p %p\n",
+            rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
 
    XtManageChild (rc_right);
    XtManageChild (rc_left);
    XtManageChild (rc_mamma);
-   XtManageChild (SO->SurfCont->Mainform);
-   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SO->SurfCont->Page);
+   XtManageChild (rc_gmamma);
+   XtManageChild (SurfCont->Mainform);
+   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SurfCont->Page);
    
    #if SUMA_CONTROLLER_AS_DIALOG    
    #else
    /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, 
    you should do the popping after all the widgets have been created.
    Otherwise, the window does not size itself correctly when open */
-   XtPopup(SO->SurfCont->TLS, XtGrabNone);
+   XtPopup(SurfCont->TLS, XtGrabNone);
    #endif
    
    /* realize the widget */
    if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
-   XtRealizeWidget (SO->SurfCont->TLS);
+   XtRealizeWidget (SurfCont->TLS);
    
+   SUMA_LH(slabel);
    SUMA_free (slabel);
 
    /* Mark as open */
-   SUMA_MarkSurfContOpen(1,SO);
+   SUMA_MarkSurfContOpen(1,ado);
    
-   SUMA_LHv("Marked %s's controller as open.\n", SO->Label);
+   SUMA_LHv("Marked %s's controller as open.\n", SUMA_ADO_Label(ado));
    
    /* initialize the left side 
       (no need here, that's done in SUMA_cb_viewSurfaceCont)*/
-   /* SUMA_Init_SurfCont_SurfParam(SO); */
+   /* SUMA_Init_SurfCont_SurfParam(ado); */
    
    /* initialize the ColorPlane frame if possible 
    Do it here rather than above because scale goes crazy 
    when parent widgets are being resized*/
-   if (!SO->Overlays[0]) {
-      SUMA_SurfaceObject *SOp=NULL;
+   
+   if (!(over0 = SUMA_ADO_Overlay0(ado))) {
+      SUMA_SurfaceObject *SOp=NULL, *SO=(SUMA_SurfaceObject *)ado;
       SUMA_LH("NO Overlays yet for this surface\n");
       /* happens in very few instances when both child and parent 
       are in the first view and the child is selected before the surface
@@ -6328,15 +6519,15 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       }
    }
    
-   if (SO->N_Overlays) {
+   if (SUMA_ADO_N_Overlays(ado)>0) {
       SUMA_LH("Initializing ColPlaneShell");
-      SUMA_InitializeColPlaneShell(SO, SO->Overlays[0]);
+      SUMA_InitializeColPlaneShell(ado, SUMA_ADO_Overlay0(ado));
       #ifdef NONONO /* It looks like I do not need this anymore 
                        Used to be #idef DARWIN */
       /* Sometimes color maps do not show up on mac when you first 
          open the surface controller */
       SUMA_LH("Darwining");
-      SUMA_SwitchColPlaneCmap(SO, SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+      SUMA_SwitchColPlaneCmap(ado, SUMA_CmapOfPlane(curColPlane));
       #endif
    }
 
@@ -6344,13 +6535,688 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_LH("Less tif fix");
    /* A quick fix to ensure Dset_Mapping 
       gets displayed properly the first time */
-   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&SO), NULL);
-   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&SO), NULL);
+   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
+   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
    #endif
 
    SUMA_LH("going home.");
 
-   SUMA_MarkSurfContOpen(1, SO);
+   SUMA_MarkSurfContOpen(1, ado);
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data, 
+                                     XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_createSurfaceCont_GLDO"};
+   Widget tl, pb, form, DispFrame, SurfFrame, 
+          rc_left, rc_right, rc_mamma, rc_gmamma, tls=NULL;
+   Display *dpy;
+   SUMA_ALL_DO *ado;
+   char *slabel, *lbl30, *sss=NULL;
+   XmString xmstmp; 
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL, *over0=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (ado->do_type != GRAPH_LINK_type) {
+      SUMA_S_Errv("Calling me with (%s) other than SDSET_GRAPH_Link type,\n" 
+                  "I don't like that, call me with GLDO",
+                  SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+      SUMA_RETURNe;
+   }
+   SUMA_LHv("Creating SurfaceCont for type %s, label %s\n",
+            ADO_TNAME(ado), SUMA_ADO_Label(ado));
+   if (LocalHead) {
+      SUMA_DUMP_TRACE("Creating SurfaceCont");
+   }
+   if (!(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_S_Errv("Failed to get Controller for ado %s\n",
+                  SUMA_ADO_Label(ado));
+      SUMA_RETURNe;
+   }
+   if (!SUMA_SurfCont_SetcurDOp(SurfCont, ado)) {
+      SUMA_S_Errv("Failed to Set curDOp for %s\n",
+                  SUMA_ADO_Label(ado));
+      SUMA_RETURNe;
+   }
+   if (!(curColPlane = SUMA_ADO_CurColPlane(ado))) {
+      SUMA_S_Errv("Failed to get current col plane for ado %s\n",
+                  SUMA_ADO_Label(ado));
+      SUMA_RETURNe;
+   }
+   if (SurfCont->TLS) {
+      fprintf (SUMA_STDERR,
+               "Error %s: SurfCont->TopLevelShell!=NULL.\n"
+               "Should not be here.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   tl = SUMA_GetTopShell(w); /* top level widget */
+   dpy = XtDisplay(tl);
+   
+   slabel = (char *)SUMA_malloc(sizeof(char) * 
+                                 (strlen(SUMA_ADO_Label(ado)) + 100));
+   if (strlen(SUMA_ADO_Label(ado)) > 40) {
+      char *tmpstr=NULL;
+      tmpstr = SUMA_truncate_string(SUMA_ADO_Label(ado), 40);
+      if (tmpstr) { 
+         sprintf(slabel,"[%s] Graph Dset Controller", tmpstr);
+         free(tmpstr); tmpstr=NULL;
+      }
+   } else {
+      sprintf(slabel,"[%s] Graph Dset Controller", SUMA_ADO_Label(ado));
+   }
+   
+   /* March 12 08: Made font8 default for surface controller */
+   if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+      sss = "font9";
+   } else {
+      sss = "font8";
+   }
+
+   SUMA_LH("Creating dialog shell.");
+   if (!SUMAg_CF->X->UseSameSurfCont || 
+       !SUMAg_CF->X->CommonSurfContTLW) { /* need a new one */
+      #if SUMA_CONTROLLER_AS_DIALOG /* xmDialogShellWidgetClass, 
+                                       topLevelShellWidgetClass*/
+      tls = XtVaCreatePopupShell (sss,
+         XmNtitle, slabel,
+         xmDialogShellWidgetClass, tl,
+         XmNallowShellResize, True, /* let code resize shell */
+         XmNdeleteResponse, XmDO_NOTHING,
+         NULL);    
+      #else
+      SUMA_LH("Creating toplevel shell.");
+      /** Feb 03/03:    I was using XtVaCreatePopupShell to create a 
+                        topLevelShellWidgetClass. 
+                        XtVaCreatePopupShell is used to create dialog 
+                        shells not toplevel or appshells. 
+                        Of course, it made no difference! */
+      tls = XtVaAppCreateShell (sss, "Suma",
+         topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
+         XmNtitle, slabel,
+         XmNdeleteResponse, XmDO_NOTHING,
+         NULL);   
+      #endif
+
+      /* allow for code to resize the shell */
+      XtVaSetValues (tls, 
+            XmNresizePolicy , XmRESIZE_NONE , 
+            XmNallowShellResize , True ,       /* let code resize shell */
+            NULL);
+
+      /* handle the close button from window manager */
+      XmAddWMProtocolCallback(/* make "Close" window menu work */
+         tls,
+         XmInternAtom( dpy , "WM_DELETE_WINDOW" , False ) ,
+         SUMA_cb_closeSurfaceCont, (XtPointer) ado) ;
+      
+      if (SUMAg_CF->X->UseSameSurfCont) {
+         Widget scroller;
+         SUMAg_CF->X->CommonSurfContTLW = tls;
+         SUMAg_CF->X->SC_Notebook = 
+            XtVaCreateWidget("ControllerBook", xmNotebookWidgetClass,
+                             SUMAg_CF->X->CommonSurfContTLW, 
+                             XmNbindingWidth, XmNONE,
+                             XmNbackPageNumber, 0, 
+                             XmNmajorTabSpacing, 0, 
+                             XmNminorTabSpacing, 0, 
+                             NULL);
+            /*XmCreateNotebook (SUMAg_CF->X->CommonSurfContTLW, "ControllerBook",
+                              NULL, 0);
+              XtVaSetValues(SUMAg_CF->X->SC_Notebook,
+                          XmNbindingWidth, XmNONE,
+                          NULL); */
+            
+         
+         /* Kill the scroller from hell otherwise no keyboard input
+            gets to the baby widgets. Better write my own scroller
+            if need be in the future */
+         scroller = XtNameToWidget (SUMAg_CF->X->SC_Notebook, "PageScroller");
+         XtUnmanageChild (scroller);
+      }
+   }
+   
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      SurfCont->TLS = SUMAg_CF->X->CommonSurfContTLW;
+   } else {
+      SurfCont->TLS = tls;
+   }
+   
+   if (!SurfCont->TLS) {
+      SUMA_S_Err("Bad logic");
+      SUMA_RETURNe;
+   }
+   
+   SUMA_LH("Widgets...");
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      Arg args[20];
+      /* add the page */
+      XtSetArg (args[0], XmNnotebookChildType, XmPAGE);
+      SurfCont->Page = 
+         XmCreateRowColumn (SUMAg_CF->X->SC_Notebook,
+                     SUMA_ADO_Label(ado)?SUMA_ADO_Label(ado):"page",
+                                              args, 1);
+   }
+   
+   /* create a form widget, manage it at the end ...*/
+   SurfCont->Mainform = XtVaCreateWidget ("dialog", 
+      xmFormWidgetClass, SurfCont->Page ? 
+                              SurfCont->Page:SurfCont->TLS,
+      XmNborderWidth , 0 ,
+      XmNmarginHeight , SUMA_MARGIN ,
+      XmNmarginWidth  , SUMA_MARGIN ,
+      XmNshadowThickness, 2,
+      XmNshadowType, XmSHADOW_ETCHED_IN,
+      NULL); 
+   
+   rc_gmamma = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->Mainform,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            XmNtopAttachment  , XmATTACH_FORM ,
+            XmNbottomAttachment  , XmATTACH_FORM ,
+            NULL);
+   
+
+   DispFrame = SUMA_CloseBhelp_Frame(rc_gmamma,
+                     SUMA_cb_closeSurfaceCont, (XtPointer) ado,
+                     "Close Surface controller", SUMA_closeSurfaceCont_help,
+                     NULL, NULL, NULL, NULL);
+   
+   XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_gmamma , NULL);
+         
+   rc_mamma = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_gmamma,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            XmNleftAttachment , XmATTACH_FORM ,
+            XmNtopAttachment  , XmATTACH_FORM ,
+            XmNrightAttachment , XmATTACH_FORM ,
+            NULL);
+            
+   rc_left = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_mamma,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+/*            XmNwidth, 317,
+            XmNresizeWidth, False, */
+            NULL);
+   
+   rc_right = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_mamma,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL); 
+                    
+   
+   {/*surface properties */ 
+      Widget rc, label, rc_SurfProp, pb;
+     
+      /* put a frame */
+      SurfFrame = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      XtVaCreateManagedWidget ("Graph Dset Properties",
+            xmLabelWidgetClass, SurfFrame, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+      
+      rc_SurfProp = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfFrame,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL); 
+      
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_SurfProp,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+
+      /*put a label containing the surface name, number of nodes 
+      and number of facesets */
+      lbl30 = SUMA_set_string_length(
+            SDSET_LABEL(SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado)), ' ', 27);
+      if (lbl30) { 
+         sprintf(slabel,"%s \n%d edges, variant %s.",
+                     lbl30, SUMA_ADO_N_Datum(ado), SUMA_ADO_variant(ado)); 
+         SUMA_free(lbl30); lbl30 = NULL;
+      } else {
+         sprintf(slabel,"???\n%d edges.",SUMA_ADO_N_Datum(ado)); 
+      }
+      xmstmp = XmStringCreateLtoR (slabel, XmSTRING_DEFAULT_CHARSET);
+         /* XmStringCreateLocalized(slabel) does not reliably 
+            handle newline characters q*/
+      SurfCont->SurfInfo_label = XtVaCreateManagedWidget ("dingel", 
+               xmLabelWidgetClass, rc,
+               XmNlabelString, xmstmp,
+               NULL);
+      XmStringFree (xmstmp);
+      
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rc, 
+                                 XmNorientation, XmVERTICAL, NULL );
+
+      SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (SurfCont->SurfInfo_pb, XmNactivateCallback, 
+                     SUMA_cb_moreSurfInfo, 
+                        (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont));
+      XtVaSetValues (SurfCont->SurfInfo_pb, XmNuserData, 
+                     (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont), NULL); 
+      MCW_register_hint( SurfCont->SurfInfo_pb , "More info on Graph Dset" ) ;
+      MCW_register_help( SurfCont->SurfInfo_pb , SUMA_SurfContHelp_more ) ;
+      XtManageChild (SurfCont->SurfInfo_pb); 
+
+      XtManageChild (rc);
+      
+      #if 0 /* This section is for widgets that have no use yet 
+               for graph dsets. If they don't get revived soon,
+               kill them all in the future.     May 2013 */
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rc_SurfProp, 
+                                 XmNorientation, XmHORIZONTAL,NULL);
+
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rc_SurfProp,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      /* rendering menu option */
+      SUMA_BuildMenuReset(0);
+      SurfCont->RenderModeMenu = 
+            SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Render);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                                 "Drw", '\0', YUP, RenderMode_Menu, 
+                                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
+                        "Choose the rendering (drawing) mode for this surface.",
+                                 SUMA_SurfContHelp_RenderMode, 
+                                 SurfCont->RenderModeMenu );
+      XtManageChild (SurfCont->RenderModeMenu->mw[SW_SurfCont_Render]);
+
+      SUMA_BuildMenuReset(0);
+      SurfCont->TransModeMenu = 
+            SUMA_Alloc_Menu_Widget(SW_N_SurfCont_Trans);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                                 "Trn", '\0', YUP, TransMode_Menu, 
+                                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
+                        "Choose the transparency for this surface.",
+                                 SUMA_SurfContHelp_TransMode, 
+                                 SurfCont->TransModeMenu );
+      XtManageChild (SurfCont->TransModeMenu->mw[SW_SurfCont_Trans]);
+      
+      pb = XtVaCreateWidget ("Dsets", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_ToggleManagementColPlaneWidget, 
+                     (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont));
+      MCW_register_hint( pb , 
+                        "Show/Hide Dataset (previously Color Plane) "
+                        "controllers" ) ;
+      MCW_register_help( pb , SUMA_SurfContHelp_Dsets ) ;
+      XtManageChild (pb);
+      
+      XtManageChild (rc);
+      #endif
+      
+      XtManageChild (rc_SurfProp);
+      XtManageChild (SurfFrame);
+   }  
+   
+   SUMA_LH("Xhair business");
+   {  /* Xhair Controls */
+      Widget rcv;
+      /* put a frame */
+      SurfCont->Xhair_fr = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      XtVaCreateManagedWidget ("Xhair Info",
+            xmLabelWidgetClass, SurfCont->Xhair_fr, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+            
+      /* vertical row column */
+      rcv = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->Xhair_fr,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+
+      /* create the widgets for the colormap stuff */
+      SUMA_CreateXhairWidgets(rcv, ado);
+      
+      XtManageChild(rcv);
+      XtManageChild(SurfCont->Xhair_fr);
+   }  /* Xhair Controls */
+
+   SUMA_LHv("\nDset Mapping, surface %s\n", SUMA_ADO_Label(ado));
+   {  /* Dset Mapping */
+      Widget rcv;
+      /* put a frame */
+      SurfCont->DsetMap_fr = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_right,
+         XmNrightAttachment , XmATTACH_FORM ,
+         XmNleftAttachment, XmATTACH_WIDGET,
+         XmNleftWidget, SurfFrame,
+         XmNtopAttachment  , XmATTACH_FORM ,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      XtVaCreateManagedWidget ("Dset Mapping",
+            xmLabelWidgetClass, SurfCont->DsetMap_fr, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+            
+      /* vertical row column */
+      rcv = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->DsetMap_fr,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+
+      /* create the widgets for the colormap stuff */
+      SUMA_CreateCmapWidgets(rcv, ado);
+
+      XtManageChild(rcv);
+
+      XtManageChild(SurfCont->DsetMap_fr);
+   }
+
+   SUMA_LH("Dset Controls");
+   /* Dset Controls */
+   {
+       Widget rc, rcv, pb;
+     
+      
+      /* put a frame */
+      SurfCont->ColPlane_fr = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      XtVaCreateManagedWidget ("Dset Controls",
+            xmLabelWidgetClass, SurfCont->ColPlane_fr, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+            
+      /* vertical row column */
+      rcv = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->ColPlane_fr,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+            
+      /* row column for label*/
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      
+      /*put a label containing the surface name, 
+         number of nodes and number of facesets */
+      {
+         char *Dset_tit[]  =  {  "Lbl", NULL };
+         char *Dset_hint[] =  {  "Label of Graph Dset",  NULL };
+         char *Dset_help[] =  {  SUMA_SurfContHelp_DsetLblTblr0, NULL };
+         int colw[]={ 3, 27};
+         SUMA_CreateTable(rc, 
+            1, 2,
+            Dset_tit, NULL,
+            Dset_hint, NULL,
+            Dset_help, NULL,
+            colw, NOPE, SUMA_string,
+            NULL, NULL,
+            NULL, NULL,
+            NULL, NULL, 
+            SurfCont->ColPlaneLabelTable);
+      }
+      XtManageChild (rc);
+            
+      /* add a rc for the colorplane brightness factor and visibility */
+      rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         NULL);
+   
+      SUMA_CreateArrowField ( rc, "Dim",
+                           1, 0.1, 1, 0.1,
+                           3, SUMA_float,
+                           YUP,
+                           SUMA_cb_ColPlane_NewDimFact, (void *)ado, 
+                           SUMA_SurfCont_ColPlaneDim_hint, 
+                           SUMA_SurfContHelp_DsetDim,
+                           SurfCont->ColPlaneDimFact);
+           
+      SurfCont->ColPlaneShowOneFore_tb = 
+         XtVaCreateManagedWidget("1", 
+                                 xmToggleButtonWidgetClass, rc, NULL);
+      XmToggleButtonSetState (SurfCont->ColPlaneShowOneFore_tb, 
+                              SurfCont->ShowCurForeOnly, NOPE);
+      XtAddCallback (SurfCont->ColPlaneShowOneFore_tb, 
+                     XmNvalueChangedCallback, 
+                     SUMA_cb_ColPlaneShowOneFore_toggled, ado);
+                  
+      MCW_register_help(SurfCont->ColPlaneShowOneFore_tb , 
+                        SUMA_SurfContHelp_DsetViewOne ) ;
+      MCW_register_hint(SurfCont->ColPlaneShowOneFore_tb , 
+             "Show ONLY ONE selected Dset. Foreground only. BHelp for more.\n") ;
+      SUMA_SET_SELECT_COLOR(SurfCont->ColPlaneShowOneFore_tb);
+           
+      /* manage  rc */
+      XtManageChild (rc);
+      
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rcv, 
+                                 XmNorientation, XmHORIZONTAL,NULL);
+
+      /* row column for Switch, Load, Delete */
+      rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         NULL);
+         
+      /* put a push button to switch between color planes */
+      SurfCont->SwitchDsetlst = 
+            SUMA_AllocateScrolledList ("Switch Dset", 
+                     SUMA_LSP_SINGLE, 
+                     NOPE, NOPE, /* duplicate deletion, no sorting */ 
+                     SurfCont->TLS, SWP_POINTER,
+                     125,
+                     SUMA_cb_SelectSwitchColPlane, (void *)ado,
+                     SUMA_cb_SelectSwitchColPlane, (void *)ado,
+                     SUMA_cb_CloseSwitchColPlane, NULL);
+
+
+      pb = XtVaCreateWidget ("Switch Dset", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)ado);
+      MCW_register_hint(pb , "Switch between datasets" ) ;
+      MCW_register_help(pb , SUMA_SurfContHelp_DsetSwitch ) ;
+      XtManageChild (pb);
+      
+      pb = XtVaCreateWidget ("Load Dset", 
+            xmPushButtonWidgetClass, rc, 
+            NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_Dset_Load, (XtPointer) ado);
+         MCW_register_hint(pb ,  
+                  "Load a new dataset (much more with BHelp)" ) ;
+         MCW_register_help(pb ,  SUMA_SurfContHelp_DsetLoad ) ;
+         XtManageChild (pb);
+      
+      pb = XtVaCreateWidget ("Delete", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_ColPlane_Delete, (XtPointer) ado);
+      /* XtManageChild (pb); */ /* Not ready for this one yet */
+
+      
+       
+      XtManageChild (rc);
+      /* manage vertical row column */
+      XtManageChild (rcv);
+      
+      XtManageChild (SurfCont->ColPlane_fr);
+   }
+   
+   
+   
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      Widget rc=NULL;
+      /* put something to cycle through objects */
+      if ((rc = SUMA_FindChildWidgetNamed(DispFrame, "rowcolumnCBF"))) {
+         XtVaCreateManagedWidget (  "sep", 
+                              xmSeparatorWidgetClass, rc, 
+                              XmNorientation, XmVERTICAL,NULL);
+         SUMA_CreateArrowField ( rc, "Switch",
+                           1, 1, 20, 1,
+                           2, SUMA_int,
+                           YUP,
+                           SUMA_cb_SurfCont_SwitchPage, (void *)ado,
+                           "Switch to other object controller", 
+                           "Switch to other object controller",
+                           SurfCont->SurfContPage);
+         xmstmp = XmStringCreateLtoR (SUMA_ADO_Label(ado), 
+                                      XmSTRING_DEFAULT_CHARSET);
+         SurfCont->SurfContPage_label = XtVaCreateManagedWidget ("dingel", 
+               xmLabelWidgetClass, rc,
+               XmNlabelString, xmstmp,
+               NULL);
+         XmStringFree (xmstmp);
+      }
+   }
+   
+   SUMA_LHv("Management ...%p %p %p %p %p\n",
+            rc_right, rc_left, rc_mamma, SurfCont->Mainform, SurfCont->Page);
+
+   XtManageChild (rc_right);
+   XtManageChild (rc_left);
+   XtManageChild (rc_mamma);
+   XtManageChild (rc_gmamma);
+   XtManageChild (SurfCont->Mainform);
+   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SurfCont->Page);
+   
+   #if SUMA_CONTROLLER_AS_DIALOG    
+   #else
+   /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, 
+   you should do the popping after all the widgets have been created.
+   Otherwise, the window does not size itself correctly when open */
+   XtPopup(SurfCont->TLS, XtGrabNone);
+   #endif
+   
+   /* realize the widget */
+   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
+   XtRealizeWidget (SurfCont->TLS);
+   
+   SUMA_LH(slabel);
+   SUMA_free (slabel);
+
+   /* Mark as open */
+   SUMA_MarkSurfContOpen(1,ado);
+   
+   SUMA_LHv("Marked %s's controller as open.\n", SUMA_ADO_Label(ado));
+   
+   /* initialize the left side 
+      (no need here, that's done in SUMA_cb_viewSurfaceCont)*/
+   /* SUMA_Init_SurfCont_SurfParam(ado); */
+   
+   /* initialize the ColorPlane frame if possible 
+   Do it here rather than above because scale goes crazy 
+   when parent widgets are being resized*/
+   
+   if (ado->do_type == SO_type && !(over0 = SUMA_ADO_Overlay0(ado))) {
+      SUMA_SurfaceObject *SOp=NULL, *SO=(SUMA_SurfaceObject *)ado;
+      SUMA_LH("NO Overlays yet for this surface\n");
+      /* happens in very few instances when both child and parent 
+      are in the first view and the child is selected before the surface
+      controller for that family is ever opened! */
+      SOp = SUMA_findSOp_inDOv(SO->LocalDomainParentID, SUMAg_DOv, SUMAg_N_DOv);
+      if (!SOp) {
+         SUMA_SL_Err("Failed to find parent, should not be.");
+      }
+
+      if (!SUMA_GetOverlaysFromParent(SO, SOp)) {
+         SUMA_SL_Err("Failed to copy overlays!");
+         SUMA_RETURNe;
+      }
+   }
+   
+   if (SUMA_ADO_N_Overlays(ado)>0) {
+      SUMA_LH("Initializing ColPlaneShell");
+      SUMA_InitializeColPlaneShell(ado, SUMA_ADO_Overlay0(ado));
+      #ifdef NONONO /* It looks like I do not need this anymore 
+                       Used to be #idef DARWIN */
+      /* Sometimes color maps do not show up on mac when you first 
+         open the surface controller */
+      SUMA_LH("Darwining");
+      SUMA_SwitchColPlaneCmap(ado, SUMA_CmapOfPlane(curColPlane));
+      #endif
+   }
+
+   #if USING_LESSTIF
+   SUMA_LH("Less tif fix");
+   /* A quick fix to ensure Dset_Mapping 
+      gets displayed properly the first time */
+   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
+   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&ado), NULL);
+   #endif
+
+   SUMA_LH("going home.");
+
+   SUMA_MarkSurfContOpen(1, ado);
 
    SUMA_RETURNe;
 }
@@ -6361,16 +7227,18 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_closeSurfaceCont"};
-   SUMA_SurfaceObject *SO;
+   SUMA_ALL_DO *ado;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
+   ado = (SUMA_ALL_DO *)data;
+   SurfCont = SUMA_ADO_Cont(ado);
    SUMA_LHv("Have TLS %p Open %d Same %d SameOpen %d\n",
-            SO->SurfCont->TLS, SO->SurfCont->Open,
+            SurfCont->TLS, SurfCont->Open,
             SUMAg_CF->X->UseSameSurfCont, SUMAg_CF->X->SameSurfContOpen) 
-   if (!SO->SurfCont->TLS || !SO->SurfCont->Open ||
+   if (!SurfCont->TLS || !SurfCont->Open ||
        (SUMAg_CF->X->UseSameSurfCont && !SUMAg_CF->X->SameSurfContOpen) )
       SUMA_RETURNe;
 
@@ -6380,23 +7248,23 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             fprintf (SUMA_STDERR,
                      "%s: Withdrawing Surface Controller...\n", FuncName);
          XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
-            XtWindow(SO->SurfCont->TLS),
-            XScreenNumberOfScreen(XtScreen(SO->SurfCont->TLS)));
+            XtWindow(SurfCont->TLS),
+            XScreenNumberOfScreen(XtScreen(SurfCont->TLS)));
          break;
       case SUMA_DESTROY: 
          if (LocalHead) 
             fprintf (SUMA_STDERR,
                      "%s: Destroying Surface Controller...\n", FuncName);
          if (!SUMAg_CF->X->CommonSurfContTLW) { /* not in common mode */
-               XtDestroyWidget(SO->SurfCont->TLS);
+               XtDestroyWidget(SurfCont->TLS);
          }
-         SO->SurfCont->TLS = NULL;
+         SurfCont->TLS = NULL;
          break;
       case SUMA_UNREALIZE:
          if (LocalHead) 
             fprintf (SUMA_STDERR,
                      "%s: Unrealizing Surface Controller...\n", FuncName);
-         XtUnrealizeWidget(SO->SurfCont->TLS);
+         XtUnrealizeWidget(SurfCont->TLS);
          break;
       default: 
          SUMA_S_Err("Not set up to deal with this closure mode");
@@ -6404,12 +7272,13 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          break;
    }
 
-   SUMA_MarkSurfContOpen(0,SO);
+   SUMA_MarkSurfContOpen(0,ado);
    SUMA_RETURNe;
 }
 
 /*! 
    Find number for page widget in notebook 
+   0 for bad news
 */
 int SUMA_PageWidgetToNumber(Widget NB, Widget page)
 {
@@ -6420,6 +7289,8 @@ int SUMA_PageWidgetToNumber(Widget NB, Widget page)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (!NB || !page) SUMA_RETURN(0);
    
    XtVaGetValues(NB, XmNlastPageNumber, &lp, NULL);
    for (i=0; i<lp; ++i) {
@@ -6461,19 +7332,65 @@ int SUMA_isCurrentContPage(Widget NB, Widget page)
 /*!
    \brief updates the left side of Surface Controller
 */
-SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_Init_SurfCont_SurfParam"};
+   
+   SUMA_ENTRY;
+   
+   if (!ado) SUMA_RETURN(NOPE);  
+   
+   switch (ado->do_type) {
+      case SO_type:
+         SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_SO((SUMA_SurfaceObject *)ado));
+         break;
+      case SDSET_type:
+         SUMA_S_Err("Should not send me DOs that can't be displayed \n"
+                    "without variant info");
+         SUMA_RETURN(NOPE);
+         break;
+      case GRAPH_LINK_type: {
+         SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
+         SUMA_DSET *dset=NULL;
+         if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
+            SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
+                        SUMA_ADO_Label(ado));
+            SUMA_RETURN(NOPE);
+         }
+         SUMA_RETURN(SUMA_Init_SurfCont_SurfParam_GLDO(ado));
+         break; }
+      default:
+         SUMA_S_Errv("Rien de rien for %s\n",
+            SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         break;
+   }
+   SUMA_RETURN(NOPE);
+}
+
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_Init_SurfCont_SurfParam_SO"};
    char *slabel = NULL, *Name, *lbl30 = NULL;
    int i, imenu;
    Widget *w=NULL, whist=NULL;
    XmString string;
    SUMA_SurfaceObject *oSO;
+   SUMA_ALL_DO *oado=NULL;
    SUMA_Boolean SameSurface = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   oSO = *(SO->SurfCont->curSOp);
+   
+   if (!(oado = SUMA_SurfCont_GetcurDOp(SO->SurfCont))) {
+      SUMA_S_Err("Failed to retrieve DO");
+      SUMA_RETURN(NOPE);
+   }
+   if (oado->do_type != SO_type) {
+      SUMA_S_Err("Did not expect type mismatch here.");
+      SUMA_RETURN(NOPE);
+   } else {
+      oSO = (SUMA_SurfaceObject *)oado;
+   }
    if (oSO == SO) {
       SameSurface = YUP;
    } else {
@@ -6483,7 +7400,10 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
    SUMA_LHv("Called for %s, current %s, buttdown = %d\n", 
             SO->Label, oSO->Label, SUMAg_CF->X->ButtonDown);
    /* set the new current surface pointer */
-   *(SO->SurfCont->curSOp) = (void *)SO;
+   if (!SUMA_SurfCont_SetcurDOp(SO->SurfCont, (SUMA_ALL_DO *)SO)) {
+      SUMA_S_Err("Failed to set current pointer");
+      SUMA_RETURN(NOPE);  
+   }
    if (!SameSurface || 
        ( SUMAg_CF->X->UseSameSurfCont && 
          !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, 
@@ -6665,8 +7585,182 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
                      i,SUMAg_CF->X->ButtonDown);
             if (LocalHead) SUMA_DUMP_TRACE("You rang?");
             if (!SUMAg_CF->X->ButtonDown) {
-               XtVaSetValues(SUMAg_CF->X->SC_Notebook,
-                          XmNcurrentPageNumber, i, NULL);
+               SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, i);
+            }   
+         }
+      }
+   } 
+   
+   /* do even if this is the old surface */ 
+    
+   SUMA_RETURN(YUP);
+}
+
+int SUMA_NotebookLastPageNumber(Widget NB) 
+{
+   static char FuncName[]={"SUMA_NotebookLastPageNumber"};
+   int imax=0;
+   if (NB) XtVaGetValues(NB, XmNlastPageNumber, &imax, NULL);
+   return(imax);
+}
+
+SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
+{
+   static char FuncName[]={"SUMA_SetSurfContPageNumber"};
+   int k, N_adolist=0, adolist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   SUMA_X_SurfCont *SurfCont = NULL;
+   char sbuf[SUMA_MAX_LABEL_LENGTH];
+   XmString string;
+   int imax;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   if (!NB || i < 1) {
+      SUMA_S_Errv("NULL widget or bad page number %d\n", i);
+      SUMA_RETURN(NOPE);
+   }
+   XtVaGetValues(NB, XmNlastPageNumber, &imax, NULL);
+   if (i > imax) {
+      SUMA_S_Errv("Request to switch to page %d, but have %d pages total.\n", 
+                  i, imax);
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_LHv("Setting page to %d\n", i);
+   XtVaSetValues(NB, XmNcurrentPageNumber, i, NULL);
+   
+   /* And force set all arrow fields, they are supposed to act like one */
+   N_adolist = SUMA_ADOs_WithSurfCont (SUMAg_DOv, SUMAg_N_DOv, adolist);
+   SUMA_LHv("Force setting %d surfconts to page %d, max %d\n", 
+               N_adolist, i, imax);
+   for (k=0; k<N_adolist; ++k) {
+      /* Note that many objects in this list maybe intimately
+         related (they share the same parent graph link). So
+         beware that you may be setting the same arrow head 
+         multiple times. But that is not a big deal, just redundant
+         work */
+      SUMA_LHv("   %d for %s\n",
+               k, SUMA_ADO_Label((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP));
+      SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP);
+      if (SurfCont && SurfCont->SurfContPage && SurfCont->SurfContPage->rc) {
+         SurfCont->SurfContPage->value = i;
+         SurfCont->SurfContPage->max = (float)imax;
+         
+         sprintf(sbuf,"%d",(int)SurfCont->SurfContPage->value);
+         SUMA_SET_TEXT_FIELD(SurfCont->SurfContPage->textfield, sbuf);
+         
+         string = XmStringCreateLtoR (
+                     SUMA_ADO_Label((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP), 
+                     XmSTRING_DEFAULT_CHARSET);
+         XtVaSetValues( SurfCont->SurfContPage_label, 
+                        XmNlabelString, string, NULL);
+         XmStringFree (string);
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam_GLDO(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_Init_SurfCont_SurfParam_GLDO"};
+   char *slabel = NULL, *Name, *lbl30 = NULL;
+   int i, imenu;
+   Widget *w=NULL, whist=NULL;
+   XmString string;
+   SUMA_DSET *dset=NULL;
+   SUMA_ALL_DO *oado=NULL;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean SameObject = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_S_Err("NULL input"); SUMA_RETURN(NOPE);
+   }
+   if (!(oado = SUMA_SurfCont_GetcurDOp(SurfCont))) {
+      SUMA_S_Err("Failed to retrieve DO");
+   }
+   if (oado->do_type != GRAPH_LINK_type) {
+      SUMA_S_Errv("Type mismatch: oado is %d (%s), ado is %d (%s)\n",
+                  oado->do_type, 
+                  SUMA_ObjectTypeCode2ObjectTypeName(oado->do_type),
+                  ado->do_type, 
+                  SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+      SUMA_RETURN(NOPE);
+   } 
+   if (oado == ado) {
+      SameObject = YUP;
+   } else {
+      SameObject = NOPE;
+   }
+    
+   SUMA_LHv("Called for %s, current %s, buttdown = %d\n", 
+            SUMA_ADO_Label(ado), SUMA_ADO_Label(oado), SUMAg_CF->X->ButtonDown);
+   /* set the new current surface pointer. 
+      Here you must decide whether or not to get the particular DO variant 
+      that was clicked on...  */
+   if (!SUMA_SurfCont_SetcurDOp(SurfCont,ado)) {
+      SUMA_S_Err("Failed to set curDOp");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SameObject || 
+       ( SUMAg_CF->X->UseSameSurfCont && 
+         !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, 
+                                 SurfCont->Page))) {      
+      /* initialize the title of the window */
+      slabel = (char *)SUMA_malloc (sizeof(char) * 
+                           (strlen(SUMA_ADO_Label(ado)) + 100));
+      if (strlen(SUMA_ADO_Label(ado)) > 40) {
+         char *tmpstr=NULL;
+         tmpstr = SUMA_truncate_string(SUMA_ADO_Label(ado), 40);
+         if (tmpstr) { 
+            sprintf(slabel,"[%s] Graph Controller", tmpstr);
+            free(tmpstr); tmpstr=NULL;
+         }
+      } else {
+         sprintf(slabel,"[%s] Graph Controller", SUMA_ADO_Label(ado));
+      }
+      SUMA_LH("Setting title");
+      XtVaSetValues(SurfCont->TLS, XtNtitle, slabel, NULL);
+
+      /* initialize the string before the more button */
+         /*put a label containing the surface name, number of nodes 
+            and number of facesets */
+         lbl30 = SUMA_set_string_length(SUMA_ADO_Label(ado), ' ', 27);
+         if (lbl30) { 
+            sprintf(slabel,"%s\n%d edges, variant %s.",
+                     lbl30, SUMA_ADO_N_Datum(ado), SUMA_ADO_variant(ado)); 
+            SUMA_free(lbl30); lbl30 = NULL;
+         } else {
+            sprintf(slabel,"???\n%d edges.",SUMA_ADO_N_Datum(ado)); 
+         }
+         SUMA_LHv("Setting label to\n>>%s<<\n", slabel);
+         string = XmStringCreateLtoR (slabel, XmSTRING_DEFAULT_CHARSET);
+         XtVaSetValues( SurfCont->SurfInfo_label, 
+                        XmNlabelString, string, NULL);
+         XmStringFree (string);
+
+      if (slabel) SUMA_free(slabel); slabel = NULL;
+      /* Can't do much with the SurfInfo button,
+      You can only have on Info shell/LocalDomainParent
+      at a time */
+      
+
+      RAISE:
+      if (SUMAg_CF->X->UseSameSurfCont) { 
+         if (!(i = SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, 
+                                           SurfCont->Page))) {
+            SUMA_S_Errv("Failed to find controller page for surface %s\n",
+                        CHECK_NULL_STR(SUMA_ADO_Label(ado)));
+         } else {
+            SUMA_LHv("Setting notebook page to page %d, button down is %d\n",
+                     i,SUMAg_CF->X->ButtonDown);
+            if (LocalHead) SUMA_DUMP_TRACE("You rang?");
+            if (!SUMAg_CF->X->ButtonDown) {
+               SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, i);
             }
          }
       }
@@ -6765,10 +7859,56 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
    \brief Initializes the widgets in the color plane shell window based on the SUMA_OVERLAYS structue
 */
 SUMA_Boolean SUMA_InitializeColPlaneShell (
+                  SUMA_ALL_DO *ado, 
+                  SUMA_OVERLAYS *colPlane)
+{
+   static char FuncName[] = {"SUMA_InitializeColPlaneShell"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   
+   if (!ado) {
+      SUMA_S_Err("NULL input, what gives?");
+      SUMA_RETURN(NOPE);
+   }
+   
+   switch(ado->do_type) {
+      case SO_type:
+         SUMA_RETURN(SUMA_InitializeColPlaneShell_SO(
+                              (SUMA_SurfaceObject *)ado, colPlane));
+         break;
+      case SDSET_type:
+         SUMA_S_Err("No init for a DO that cannot be dispalyed\n"
+                    "without variant");
+         SUMA_RETURN(NOPE);
+         break;
+      case GRAPH_LINK_type: {
+         SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
+         SUMA_DSET *dset=NULL;
+         if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
+            SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
+                        SUMA_ADO_Label(ado));
+            SUMA_RETURN(NOPE);
+         }
+         SUMA_RETURN(SUMA_InitializeColPlaneShell_GLDO(ado, colPlane));
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for %s types\n",
+            SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
                   SUMA_SurfaceObject *SO, 
                   SUMA_OVERLAYS *ColPlane)
 {
-   static char FuncName[] = {"SUMA_InitializeColPlaneShell"};
+   static char FuncName[] = {"SUMA_InitializeColPlaneShell_SO"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    double range[2];
    int loc[2], i;
@@ -6795,6 +7935,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
       SUMA_LH("Initializing with NULL");
       SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, "-");
       SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, "-");
+      SUMA_SET_TEXT_FIELD(SO->SurfCont->SurfContPage->textfield, "-");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, "-");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield,"-");
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield,"-");
@@ -6845,6 +7986,16 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
                                  1, 1, SOpar->Label);
       }
       
+      if (SUMAg_CF->X->UseSameSurfCont) {
+         SO->SurfCont->SurfContPage->value = 
+            SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, 
+                                    SO->SurfCont->Page);
+         SUMA_S_Notev("Setting PPpage to %d\n",
+                      (int)SO->SurfCont->SurfContPage->value);
+         sprintf(sbuf,"%d",(int)SO->SurfCont->SurfContPage->value);
+         SUMA_SET_TEXT_FIELD(SO->SurfCont->SurfContPage->textfield, sbuf);
+      }
+      
       SO->SurfCont->ColPlaneOrder->value = ColPlane->PlaneOrder;
       sprintf(sbuf,"%d", ColPlane->PlaneOrder);
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, sbuf);
@@ -6888,7 +8039,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
 
       
    /* update the cross hair group */
-   SUMA_Init_SurfCont_CrossHair(SO);
+   SUMA_Init_SurfCont_CrossHair((SUMA_ALL_DO *)SO);
    
    /* set the colormap */
    SUMA_LH("Cmap time");
@@ -6920,16 +8071,135 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
 
          SUMA_LH( "cmap options");
          /* set the widgets for dems mapping options */
-         SUMA_set_cmap_options(SO, YUP, NOPE);
+         SUMA_set_cmap_options((SUMA_ALL_DO *)SO, YUP, NOPE);
 
          /* set the menu to show the colormap used */
-         SUMA_SetCmapMenuChoice(SO, ColPlane->cmapname);
+         SUMA_SetCmapMenuChoice((SUMA_ALL_DO *)SO, ColPlane->cmapname);
 
          /* set the values for the threshold bar */
          if (SUMA_GetDsetColRange(  SO->SurfCont->curColPlane->dset_link, 
                                     SO->SurfCont->curColPlane->OptScl->tind, 
                                     range, loc)) {   
-            SUMA_SetScaleRange(SO, range );
+            SUMA_SetScaleRange((SUMA_ALL_DO *)SO, range );
+         }
+      }
+   } else {
+      SUMA_LH("cmap_context was NULL");
+   }
+   
+   SUMA_LH("Returning");
+   SUMA_RETURN (YUP);
+}
+
+/*!
+   This function mirrors SUMA_InitializeColPlaneShell_SO
+   but it is for graph datasets 
+*/
+SUMA_Boolean SUMA_InitializeColPlaneShell_GLDO (
+                  SUMA_ALL_DO *ado, 
+                  SUMA_OVERLAYS *ColPlane)
+{
+   static char FuncName[] = {"SUMA_InitializeColPlaneShell_GLDO"};
+   char sbuf[SUMA_MAX_LABEL_LENGTH];
+   double range[2];
+   int loc[2], i;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   
+   if (!ado || !SurfCont) {
+      SUMA_S_Err("NULL input, what gives?");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SurfCont->ColPlane_fr) {
+      /* just set the curColPlane before returning ZSS  March 25 08*/
+      if (ColPlane) SurfCont->curColPlane = ColPlane;
+      SUMA_RETURN(YUP);
+   }
+   
+   if (!ColPlane) {
+      SUMA_LH("Initializing with NULL");
+      SUMA_INSERT_CELL_STRING(SurfCont->ColPlaneLabelTable, 0, 1, "-");
+      SUMA_INSERT_CELL_STRING(SurfCont->ColPlaneLabelTable, 1, 1, "-");
+      SUMA_SET_TEXT_FIELD(SurfCont->SurfContPage->textfield, "-");
+      SUMA_SET_TEXT_FIELD(SurfCont->ColPlaneOrder->textfield, "-");
+      SUMA_SET_TEXT_FIELD(SurfCont->ColPlaneOpacity->textfield,"-");
+      SUMA_SET_TEXT_FIELD(SurfCont->ColPlaneDimFact->textfield,"-");
+      SUMA_RETURN (YUP);
+   } else {
+      SUMA_LH("Initializing for real");
+      
+      SUMA_INSERT_CELL_STRING(SurfCont->ColPlaneLabelTable, 
+                                 0, 1, ColPlane->Label);
+   }
+   
+   SurfCont->curColPlane = ColPlane;   
+   
+   
+   /* update the cross hair group */
+   SUMA_Init_SurfCont_CrossHair(ado);
+   
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      SurfCont->SurfContPage->value = 
+         SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, 
+                                 SurfCont->Page); 
+      SUMA_LHv("Setting PPpage to %d\n",
+                    (int)SurfCont->SurfContPage->value);
+
+      sprintf(sbuf,"%d",(int)SurfCont->SurfContPage->value);
+      SUMA_SET_TEXT_FIELD(SurfCont->SurfContPage->textfield, sbuf);
+   }
+      
+   /* set the colormap */
+   SUMA_LH("Cmap time");
+   if (SurfCont->cmp_ren->cmap_context) {
+      SUMA_LH("Rendering context not null");
+      if (strcmp(curColPlane->cmapname, "explicit") == 0 ||
+          SUMA_is_Label_dset(curColPlane->dset_link, NULL)) {
+         SUMA_LH("Checking management");
+         if (XtIsManaged(SurfCont->DsetMap_fr)) {
+            SUMA_LH("An RGB dset, or label dset no surface controls to be seen");
+            XtUnmanageChild(SurfCont->DsetMap_fr);
+            XtUnmanageChild(XtParent(SurfCont->DsetMap_fr));
+         }else {
+            SUMA_LH("An RGB dset, or label dset and no controls managed");
+         }
+      } else {
+         if (!XtIsManaged(SurfCont->DsetMap_fr)) {
+            SUMA_LH( "A non RGB, and non label, dset \n"
+                     "surface controls need to be seen\n"
+                     "But only when ColPlane_fr is also shown \n"
+                     "(frame may be hidden by Dsets button action)");
+            if (XtIsManaged(SurfCont->ColPlane_fr)) {
+               XtManageChild(XtParent(SurfCont->DsetMap_fr));
+               XtManageChild(SurfCont->DsetMap_fr);
+            }
+         }
+         SUMA_LH( "Handling redisplay"); 
+         SUMA_cmap_wid_handleRedisplay((XtPointer)ado); 
+
+         SUMA_LH( "cmap options");
+         /* set the widgets for dems mapping options */
+         SUMA_set_cmap_options(ado, YUP, NOPE);
+
+         SUMA_LH( "cmap menu choice");
+         /* set the menu to show the colormap used */
+         SUMA_SetCmapMenuChoice(ado, ColPlane->cmapname);
+
+         /* set the values for the threshold bar */
+         SUMA_LH( "dset range");
+         if (SUMA_GetDsetColRange(  curColPlane->dset_link, 
+                                    curColPlane->OptScl->tind, 
+                                    range, loc)) {   
+            SUMA_SetScaleRange(ado, range );
          }
       }
    } else {
@@ -6945,33 +8215,52 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
    if the color planes are open and displaying the same plane
    
 */
-SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
+SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *ado)
 {
    static char FuncName[] = {"SUMA_UpdateColPlaneShellAsNeeded"};
    int i=-1;
-   SUMA_SurfaceObject *SOi=NULL;
+   SUMA_SurfaceObject *SOi=NULL, *SO=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!SO->SurfCont) SUMA_RETURN(NOPE);
+   SurfCont = SUMA_ADO_Cont(ado);
+   if (!SurfCont) SUMA_RETURN(NOPE);
    
    SUMA_LH("Called");
-   /* find out which surfaces are related to SO */
-   for (i=0; i<SUMAg_N_DOv; ++i) {
-      if (SUMA_isSO(SUMAg_DOv[i])) {
-         SOi = (SUMA_SurfaceObject *)SUMAg_DOv[i].OP;
-         if (SOi != SO && SUMA_isRelated (SOi, SO, 1)) { 
-            /* do this for kins of the 1st order */
-            if (SOi->SurfCont) {
-               if (  SOi->SurfCont != SO->SurfCont && 
-                     SOi->SurfCont->ColPlane_fr && 
-                     SOi->SurfCont->curColPlane == SO->SurfCont->curColPlane) {
-                  SUMA_InitializeColPlaneShell(SOi, SOi->SurfCont->curColPlane);
+   switch (ado->do_type) {
+      case SO_type:
+         /* find out which surfaces are related to SO */
+         SO = (SUMA_SurfaceObject *)ado;
+         for (i=0; i<SUMAg_N_DOv; ++i) {
+            if (SUMA_isSO(SUMAg_DOv[i])) {
+               SOi = (SUMA_SurfaceObject *)SUMAg_DOv[i].OP;
+               if (SOi != SO && SUMA_isRelated_SO (SOi, SO, 1)) { 
+                  /* do this for kins of the 1st order */
+                  if (SOi->SurfCont) {
+                     if (  SOi->SurfCont != SO->SurfCont && 
+                           SOi->SurfCont->ColPlane_fr && 
+                           SOi->SurfCont->curColPlane == 
+                                       SO->SurfCont->curColPlane) {
+                        SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SOi, 
+                                                     SOi->SurfCont->curColPlane);
+                     }
+                  }
                }
             }
          }
-      }
+         break;
+      case SDSET_type:
+         SUMA_S_Warn("This should not happen in this modern day and age");
+         break;
+      case GRAPH_LINK_type:
+         SUMA_InitializeColPlaneShell(ado, SurfCont->curColPlane);
+         break;
+      default:
+         SUMA_S_Errv("Nothing to do with %s\n",
+               SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         SUMA_RETURN(NOPE);
    }
    
    SUMA_RETURN(YUP);
@@ -7545,7 +8834,8 @@ SUMA_LIST_WIDGET * SUMA_FreeScrolledList (SUMA_LIST_WIDGET *LW)
    up with multiple callbacks
    \sa SUMA_CreateScrolledList
 */
-SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Data, void *Select_Data, void *CloseList_Data) 
+SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, 
+            void *Default_Data, void *Select_Data, void *CloseList_Data) 
 {
    static char FuncName[]={"SUMA_UpdateScrolledListData"};
    SUMA_Boolean LocalHead = NOPE;
@@ -7553,25 +8843,31 @@ SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Dat
    SUMA_ENTRY;
 
    if (!LW) SUMA_RETURN(NOPE);
-   if (!LW->toplevel) { /* no callbacks yet, just assign the data values to their positions in LW */
+   if (!LW->toplevel) { /* no callbacks yet, just assign the data 
+                           values to their positions in LW */
       LW->Default_Data = Default_Data;
       LW->Select_Data = Select_Data;
       LW->CloseList_Data = CloseList_Data; 
       SUMA_RETURN(YUP);
    }
 
-   /* need to remove old callbacks before adding new ones SEE ALSO SUMA_CreateScrolledList*/
+   /* need to remove old callbacks before adding new ones 
+      SEE ALSO SUMA_CreateScrolledList*/
    if (LW->Default_Data !=  Default_Data) {
       SUMA_LH("Doing Default Data..."); 
       if (!LW->Default_Data) {
-         XtRemoveCallback(LW->list, XmNdefaultActionCallback, LW->Default_cb, (XtPointer)LW);
+         XtRemoveCallback(LW->list, XmNdefaultActionCallback, 
+                           LW->Default_cb, (XtPointer)LW);
       } else {
-         XtRemoveCallback (LW->list, XmNdefaultActionCallback, LW->Default_cb, (XtPointer)LW->Default_Data);
+         XtRemoveCallback (LW->list, XmNdefaultActionCallback, 
+                           LW->Default_cb, (XtPointer)LW->Default_Data);
       }
       if (!Default_Data) {
-         XtAddCallback (LW->list, XmNdefaultActionCallback, LW->Default_cb, (XtPointer)LW);
+         XtAddCallback (LW->list, XmNdefaultActionCallback, 
+                        LW->Default_cb, (XtPointer)LW);
       } else {
-         XtAddCallback (LW->list, XmNdefaultActionCallback, LW->Default_cb, (XtPointer)Default_Data);
+         XtAddCallback (LW->list, XmNdefaultActionCallback, 
+                        LW->Default_cb, (XtPointer)Default_Data);
       }
       LW->Default_Data =  Default_Data;
    }
@@ -7581,29 +8877,37 @@ SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Dat
       switch (LW->SelectPolicy){
          case SUMA_LSP_SINGLE:
             if (!LW->Select_Data) 
-               XtRemoveCallback (LW->list, XmNsingleSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtRemoveCallback (LW->list, XmNsingleSelectionCallback, 
+                                 LW->Select_cb, (XtPointer)LW);
             else
-               XtRemoveCallback (LW->list, XmNsingleSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtRemoveCallback (LW->list, XmNsingleSelectionCallback,
+                                 LW->Select_cb, (XtPointer)LW->Select_Data); 
             break;
          case SUMA_LSP_BROWSE:
             if (!LW->Select_Data) 
-               XtRemoveCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtRemoveCallback (LW->list, XmNbrowseSelectionCallback, 
+                                 LW->Select_cb, (XtPointer)LW);
             else
-               XtRemoveCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtRemoveCallback (LW->list, XmNbrowseSelectionCallback, 
+                                 LW->Select_cb, (XtPointer)LW->Select_Data); 
 
             break;
          case SUMA_LSP_MULTIPLE:
             if (!LW->Select_Data) 
-               XtRemoveCallback (LW->list, XmNmultipleSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtRemoveCallback (LW->list, XmNmultipleSelectionCallback, 
+                                 LW->Select_cb, (XtPointer)LW);
             else
-               XtRemoveCallback (LW->list, XmNmultipleSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtRemoveCallback (LW->list, XmNmultipleSelectionCallback, 
+                                 LW->Select_cb, (XtPointer)LW->Select_Data); 
 
             break;
          case SUMA_LSP_EXTENDED:
             if (!LW->Select_Data) 
-               XtRemoveCallback (LW->list, XmNextendedSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtRemoveCallback (LW->list, XmNextendedSelectionCallback, 
+                                 LW->Select_cb, (XtPointer)LW);
             else
-               XtRemoveCallback (LW->list, XmNextendedSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtRemoveCallback (LW->list, XmNextendedSelectionCallback, 
+                                 LW->Select_cb, (XtPointer)LW->Select_Data); 
 
             break;
          default:
@@ -7615,29 +8919,37 @@ SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Dat
       switch (LW->SelectPolicy){
          case SUMA_LSP_SINGLE:
             if (!Select_Data) 
-               XtAddCallback (LW->list, XmNsingleSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, XmNsingleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNsingleSelectionCallback, LW->Select_cb, (XtPointer)Select_Data); 
+               XtAddCallback (LW->list, XmNsingleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)Select_Data); 
             break;
          case SUMA_LSP_BROWSE:
             if (!Select_Data) 
-               XtAddCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, XmNbrowseSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)Select_Data); 
+               XtAddCallback (LW->list, XmNbrowseSelectionCallback, 
+                              LW->Select_cb, (XtPointer)Select_Data); 
 
             break;
          case SUMA_LSP_MULTIPLE:
             if (!Select_Data) 
-               XtAddCallback (LW->list, XmNmultipleSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, XmNmultipleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNmultipleSelectionCallback, LW->Select_cb, (XtPointer)Select_Data); 
+               XtAddCallback (LW->list, XmNmultipleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)Select_Data); 
 
             break;
          case SUMA_LSP_EXTENDED:
             if (!Select_Data) 
-               XtAddCallback (LW->list, XmNextendedSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, XmNextendedSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNextendedSelectionCallback, LW->Select_cb, (XtPointer)Select_Data); 
+               XtAddCallback (LW->list, XmNextendedSelectionCallback, 
+                              LW->Select_cb, (XtPointer)Select_Data); 
 
             break;
          default:
@@ -7655,23 +8967,27 @@ SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Dat
       if (!LW->CloseList_Data) {
          XmRemoveWMProtocolCallback(/* make "Close" window menu work */
             LW->toplevel,
-            XmInternAtom( SUMAg_CF->X->DPY_controller1  , "WM_DELETE_WINDOW" , False ) ,
+            XmInternAtom( SUMAg_CF->X->DPY_controller1  , 
+                           "WM_DELETE_WINDOW" , False ) ,
             LW->CloseList_cb, (XtPointer)LW) ;
       } else {
          XmRemoveWMProtocolCallback(/* make "Close" window menu work */
             LW->toplevel,
-            XmInternAtom( SUMAg_CF->X->DPY_controller1  , "WM_DELETE_WINDOW" , False ) ,
+            XmInternAtom( SUMAg_CF->X->DPY_controller1  , 
+                           "WM_DELETE_WINDOW" , False ) ,
             LW->CloseList_cb, (XtPointer)LW->CloseList_Data) ;
       }
       if (!CloseList_Data) {
          XmAddWMProtocolCallback(/* make "Close" window menu work */
             LW->toplevel,
-            XmInternAtom( SUMAg_CF->X->DPY_controller1  , "WM_DELETE_WINDOW" , False ) ,
+            XmInternAtom( SUMAg_CF->X->DPY_controller1  , 
+                           "WM_DELETE_WINDOW" , False ) ,
             LW->CloseList_cb, (XtPointer)LW) ;
       } else {
          XmAddWMProtocolCallback(/* make "Close" window menu work */
             LW->toplevel,
-            XmInternAtom( SUMAg_CF->X->DPY_controller1  , "WM_DELETE_WINDOW" , False ) ,
+            XmInternAtom( SUMAg_CF->X->DPY_controller1  , 
+                           "WM_DELETE_WINDOW" , False ) ,
             LW->CloseList_cb, (XtPointer)CloseList_Data) ;
       }
 
@@ -7679,6 +8995,7 @@ SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Dat
    } 
    SUMA_RETURN(YUP);
 }
+
 /*!
    \brief creates a scrolled list window 
    SUMA_CreateScrolledList (  clist, N_clist, Partial, LW);
@@ -8354,96 +9671,105 @@ void SUMA_DrawROI_NewValue (void *data)
    SUMA_RETURNe;
 }
 
-int SUMA_ColPlane_NewOrder(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+int SUMA_ColPlane_NewOrder(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                int neworder, int cb_direct) 
 {
    static char FuncName[]={"SUMA_ColPlane_NewOrder"};
-   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_OVERLAYS *colpC=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!SO) SUMA_RETURN(0);
-   
-   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (!colp) colp = curColPlane;
    if (!colp) SUMA_RETURN(0);
-   if (colp != SO->SurfCont->curColPlane) {
+   if (colp != curColPlane) {
       SUMA_S_Err("Will need to switch current plane. Not ready for this");
       SUMA_RETURN(0);      
    }
    
-   if (!SUMA_ColPlane_NewOrder_one(SO, colp, neworder, cb_direct)) {
+   if (!SUMA_ColPlane_NewOrder_one(ado, colp, neworder, cb_direct)) {
       SUMA_S_Err("Returning on a sad note");
       SUMA_RETURN(0);
    }
    
-   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-   if (colpC && SOC) {
-      SUMA_LHv("Found contralateral equivalent to:\n"
-                   " %s and %s in\n"
-                   " %s and %s\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label),
-                   SOC->Label, CHECK_NULL_STR(colpC->Label));
-      if (SOC->SurfCont->curColPlane != colpC) {
-         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
-                    "This should not happen under L/R yoked conditions.");
-         SUMA_RETURN(0);
+   if (ado->do_type == SO_type) {
+      SO = (SUMA_SurfaceObject *)ado;
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (SOC->SurfCont->curColPlane != colpC) {
+            SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                       "This should not happen under L/R yoked conditions.");
+            SUMA_RETURN(0);
+         }
+         if (!SUMA_ColPlane_NewOrder_one((SUMA_ALL_DO *)SOC, colpC, 
+                                         neworder, 0)) {
+            SUMA_S_Warn("Failed in contralateralization");
+         }
+      } else {
+         SUMA_LHv("Found NO contralateral equivalent to:\n"
+                      " %s and %s in\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label));
       }
-      if (!SUMA_ColPlane_NewOrder_one(SOC, colpC, 
-                                      neworder, 0)) {
-         SUMA_S_Warn("Failed in contralateralization");
-      }
-   } else {
-      SUMA_LHv("Found NO contralateral equivalent to:\n"
-                   " %s and %s in\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label));
    }
 
    
    SUMA_RETURN(1);
 }
 
-int SUMA_ColPlane_NewOrder_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+int SUMA_ColPlane_NewOrder_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                int neworder, int cb_direct) 
 {
    static char FuncName[]={"SUMA_ColPlane_NewOrder_one"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    int Old_Order = -1, i, iMove, NetMove;
    SUMA_Boolean Shaded, Decent; 
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!SO) SUMA_RETURN(0);
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
    
-   if (!colp) colp = SO->SurfCont->curColPlane;
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
+   if (!colp) colp = curColPlane;
    if (!colp) SUMA_RETURN(0);
-   if (colp != SO->SurfCont->curColPlane) {
+   if (colp != curColPlane) {
       SUMA_S_Err("Will need to switch current plane. Not ready for this");
       SUMA_RETURN(0);      
    }
    
    /* Now show the new order */
-   if (LocalHead) SUMA_Print_PlaneOrder(SO, NULL);
+   if (LocalHead) SUMA_Print_PlaneOrder(ado, NULL);
    
 
    /* Now figure out the direction of the arrow presses */
    NetMove = (int)neworder - 
-                  SO->SurfCont->curColPlane->PlaneOrder ; 
+                  curColPlane->PlaneOrder ; 
    
    if (LocalHead) fprintf (SUMA_STDERR,"%s:  Net move %d\n", FuncName, NetMove);
    iMove = 0;
    Decent = YUP;
    if (NetMove > 0) {   
       do {
-         Old_Order = SO->SurfCont->curColPlane->PlaneOrder;
-         if (!SUMA_MovePlaneUp(SO, SO->SurfCont->curColPlane->Name)) {
+         Old_Order = curColPlane->PlaneOrder;
+         if (!SUMA_MovePlaneUp(ado, curColPlane->Name)) {
             SUMA_L_Err("Error in SUMA_MovePlaneUp.");
             SUMA_RETURN(0);
          }
          
-         if (SO->SurfCont->curColPlane->PlaneOrder == Old_Order) {
+         if (curColPlane->PlaneOrder == Old_Order) {
             SUMA_LH("Nothing can be done");
             Decent = NOPE;
          } else {
@@ -8452,12 +9778,12 @@ int SUMA_ColPlane_NewOrder_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
       } while (iMove < NetMove && Decent);
    } else if (NetMove < 0) {
       do {
-         Old_Order = SO->SurfCont->curColPlane->PlaneOrder;
-         if (!SUMA_MovePlaneDown(SO, SO->SurfCont->curColPlane->Name)) {
+         Old_Order = curColPlane->PlaneOrder;
+         if (!SUMA_MovePlaneDown(ado, curColPlane->Name)) {
             SUMA_L_Err("Error in SUMA_MovePlaneDown.");
             SUMA_RETURN(0);
          }
-         if (SO->SurfCont->curColPlane->PlaneOrder == Old_Order) {
+         if (curColPlane->PlaneOrder == Old_Order) {
             SUMA_LH("Enough");
             Decent = NOPE;
          } else {
@@ -8471,35 +9797,35 @@ int SUMA_ColPlane_NewOrder_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
    
    SUMA_LH("Out");
    /* Now show the new order */
-   if(LocalHead) SUMA_Print_PlaneOrder(SO, NULL);
+   if(LocalHead) SUMA_Print_PlaneOrder(ado, NULL);
    
    /* refresh the switch list */
-   SUMA_IS_SWITCH_COL_PLANE_SHADED(SO, Shaded);
+   SUMA_IS_SWITCH_COL_PLANE_SHADED(ado, Shaded);
    if (!Shaded) {
       SUMA_LH("Refreshing Col Plane List");
-      SUMA_RefreshDsetList (SO);
+      SUMA_RefreshDsetList (ado);
    }
 
    if (!Decent) {
       /* reset order value in widget to its last acceptable value. */
-      sprintf(sbuf,"%d", SO->SurfCont->curColPlane->PlaneOrder);
-      neworder = SO->SurfCont->curColPlane->PlaneOrder;
-      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, sbuf); 
+      sprintf(sbuf,"%d", curColPlane->PlaneOrder);
+      neworder = curColPlane->PlaneOrder;
+      SUMA_SET_TEXT_FIELD(SurfCont->ColPlaneOrder->textfield, sbuf); 
    }
    
-   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+   SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
    if (iMove > 0) { /* something decent was done, act on it */
       /* a good remix and redisplay */
       SUMA_LH("Remix and redisplay");
-      SUMA_RemixRedisplay (SO);
+      SUMA_RemixRedisplay (ado);
    }
    
-   if (!cb_direct && neworder != (int)SO->SurfCont->ColPlaneOrder->value) {
+   if (!cb_direct && neworder != (int)SurfCont->ColPlaneOrder->value) {
       /* force gui match */
       sprintf(sbuf,"%d", neworder);
-      SO->SurfCont->ColPlaneOrder->value = neworder;
-      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOrder->textfield, sbuf); 
+      SurfCont->ColPlaneOrder->value = neworder;
+      SUMA_SET_TEXT_FIELD(SurfCont->ColPlaneOrder->textfield, sbuf); 
    }
    
    SUMA_RETURN(1);
@@ -8508,30 +9834,69 @@ int SUMA_ColPlane_NewOrder_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
 /*!
    \brief Function to update the order of a colorplane 
 
-   -expects SO in data
+   -expects ADO in data
 */
 void SUMA_cb_ColPlane_NewOrder (void *data)
 {
    static char FuncName[]={"SUMA_cb_ColPlane_NewOrder"};
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
-   if (!SO || !SO->SurfCont || !SO->SurfCont->ColPlaneOrder) SUMA_RETURNe;
-
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
+            || !SurfCont->ColPlaneOrder) SUMA_RETURNe;
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   
       
    /* make sure a new order is in order */
-   if (SO->SurfCont->curColPlane->PlaneOrder == 
-         (int)SO->SurfCont->ColPlaneOrder->value) SUMA_RETURNe;
+   if (curColPlane->PlaneOrder == 
+         (int)SurfCont->ColPlaneOrder->value) SUMA_RETURNe;
    
-   SUMA_ColPlane_NewOrder(SO, NULL, 
-                              (int)SO->SurfCont->ColPlaneOrder->value, 1);
+   SUMA_ColPlane_NewOrder(ado, NULL, 
+                              (int)SurfCont->ColPlaneOrder->value, 1);
    
    SUMA_RETURNe;
 }
 
+/*!
+   \brief Function to change pages in notebook 
+
+   -expects ADO in data
+*/
+void SUMA_cb_SurfCont_SwitchPage (void *data)
+{
+   static char FuncName[]={"SUMA_cb_SurfCont_SwitchPage"};
+   char sbuf[SUMA_MAX_LABEL_LENGTH];
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
+            || !SurfCont->SurfContPage) SUMA_RETURNe;
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   
+   SUMA_LHv("About to change page to %d\n", (int)SurfCont->SurfContPage->value);
+   if (!(SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, 
+                                    SurfCont->SurfContPage->value))) {
+      /* revert to good value */
+      SurfCont->SurfContPage->value = 
+               SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, SurfCont->Page);
+      sprintf(sbuf,"%d",(int)SurfCont->SurfContPage->value);
+      SUMA_SET_TEXT_FIELD(SurfCont->SurfContPage->textfield, sbuf);
+      SUMA_LHv("Problem, reverting to %d\n",
+               (int)SurfCont->SurfContPage->value);
+   } 
+   
+   SUMA_RETURNe;
+}
 
 /*!
    \brief Function to update the opacity of a colorplane 
@@ -8541,108 +9906,119 @@ void SUMA_cb_ColPlane_NewOrder (void *data)
 void SUMA_cb_ColPlane_NewOpacity(void *data)
 {
    static char FuncName[]={"SUMA_cb_ColPlane_NewOpacity"};
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
-   if (!SO || !SO->SurfCont || !SO->SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
+            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
+   curColPlane = SUMA_ADO_CurColPlane(ado);
    
-   if (SO->SurfCont->ColPlaneOpacity->value == 
-       SO->SurfCont->curColPlane->GlobalOpacity) SUMA_RETURNe;
+   if (SurfCont->ColPlaneOpacity->value == 
+       curColPlane->GlobalOpacity) SUMA_RETURNe;
    
-   SUMA_ColPlane_NewOpacity(SO, NULL, SO->SurfCont->ColPlaneOpacity->value, 1);
+   SUMA_ColPlane_NewOpacity(ado, NULL, SurfCont->ColPlaneOpacity->value, 1);
    
    SUMA_RETURNe;
 }
 
-int SUMA_ColPlane_NewOpacity (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+int SUMA_ColPlane_NewOpacity (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
                                float newopacity, int cb_direct )
 {
    static char FuncName[]={"SUMA_ColPlane_NewOpacity"};
-   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_OVERLAYS *colpC=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
    
-   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
-   
-   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (!colp) colp = curColPlane;
    if (!colp) SUMA_RETURN(0);
-   if (colp != SO->SurfCont->curColPlane) {
+   if (colp != curColPlane) {
       SUMA_S_Err( "Will need to switch to current plane first. "
                   "Not ready for this");
       SUMA_RETURN(0);      
    }
    
-   if (!SUMA_ColPlane_NewOpacity_one(SO, colp, newopacity, cb_direct)) {
+   if (!SUMA_ColPlane_NewOpacity_one(ado, colp, newopacity, cb_direct)) {
       SUMA_S_Err("Returning on a sad note");
       SUMA_RETURN(0);
    }
    
-   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-   if (colpC && SOC) {
-      SUMA_LHv("Found contralateral equivalent to:\n"
-                   " %s and %s in\n"
-                   " %s and %s\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label),
-                   SOC->Label, CHECK_NULL_STR(colpC->Label));
-      if (SOC->SurfCont->curColPlane != colpC) {
-         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
-                    "This should not happen under L/R yoked conditions.");
-         SUMA_RETURN(0);
+   if (ado->do_type == SO_type) {
+      SO = (SUMA_SurfaceObject *)ado;
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (SOC->SurfCont->curColPlane != colpC) {
+            SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                       "This should not happen under L/R yoked conditions.");
+            SUMA_RETURN(0);
+         }
+         if (!SUMA_ColPlane_NewOpacity_one((SUMA_ALL_DO *)SOC, colpC, 
+                                         newopacity, 0)) {
+            SUMA_S_Warn("Failed in contralateralization");
+         }
+      } else {
+         SUMA_LHv("Found NO contralateral equivalent to:\n"
+                      " %s and %s in\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label));
       }
-      if (!SUMA_ColPlane_NewOpacity_one(SOC, colpC, 
-                                      newopacity, 0)) {
-         SUMA_S_Warn("Failed in contralateralization");
-      }
-   } else {
-      SUMA_LHv("Found NO contralateral equivalent to:\n"
-                   " %s and %s in\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label));
    }
    
    SUMA_RETURN(1);
 }
 
-int SUMA_ColPlane_NewOpacity_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
+int SUMA_ColPlane_NewOpacity_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  float newopacity, int cb_direct) 
 {
    static char FuncName[]={"SUMA_ColPlane_NewOpacity_one"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
-   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
-   
-   if (!colp) colp = SO->SurfCont->curColPlane;
+      
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (!colp) colp = curColPlane;
    if (!colp) SUMA_RETURN(0);
-   if (colp != SO->SurfCont->curColPlane) {
+   if (colp != curColPlane) {
       SUMA_S_Err("Will need to switch current plane. Not ready for this");
       SUMA_RETURN(0);      
    }
    
    /* change the value of the global opacity */
-   SO->SurfCont->curColPlane->GlobalOpacity = newopacity;   
+   curColPlane->GlobalOpacity = newopacity;   
    if (LocalHead) fprintf(SUMA_STDERR,"%s: GlobalOpacity of %s set to %f.\n", 
-         FuncName, SO->SurfCont->curColPlane->Name, 
-         SO->SurfCont->curColPlane->GlobalOpacity);
+         FuncName, curColPlane->Name, 
+         curColPlane->GlobalOpacity);
    
-   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+   SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
    /* a good remix and redisplay */
-   SUMA_RemixRedisplay (SO);
+   SUMA_RemixRedisplay (ado);
    
-   if (!cb_direct && newopacity != SO->SurfCont->ColPlaneOpacity->value) {
+   if (!cb_direct && newopacity != SurfCont->ColPlaneOpacity->value) {
       /* force gui match */
       sprintf(sbuf,"%.2f", newopacity);
-      SO->SurfCont->ColPlaneOpacity->value = newopacity;
-      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield, sbuf); 
+      SurfCont->ColPlaneOpacity->value = newopacity;
+      SUMA_SET_TEXT_FIELD(SurfCont->ColPlaneOpacity->textfield, sbuf); 
    }
    
    SUMA_RETURN(1);
@@ -8657,122 +10033,131 @@ int SUMA_ColPlane_NewOpacity_one(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
 void SUMA_cb_ColPlane_NewDimFact (void *data)
 {
    static char FuncName[]={"SUMA_cb_ColPlane_NewDimFact"};
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
    
-   SO = (SUMA_SurfaceObject *)data;
-   if (!SO || !SO->SurfCont || !SO->SurfCont->curColPlane ) SUMA_RETURNe;
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado)) 
+            || !SurfCont->curColPlane ) SUMA_RETURNe;
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (curColPlane->DimFact == 
+       SurfCont->ColPlaneDimFact->value) SUMA_RETURNe;
    
-   if (SO->SurfCont->curColPlane->DimFact == 
-       SO->SurfCont->ColPlaneDimFact->value) SUMA_RETURNe;
-   
-   SUMA_ColPlane_NewDimFact(SO, SO->SurfCont->curColPlane, 
-                            SO->SurfCont->ColPlaneDimFact->value, 1);
+   SUMA_ColPlane_NewDimFact(ado, curColPlane, 
+                            SurfCont->ColPlaneDimFact->value, 1);
    SUMA_RETURNe;                            
 }
 
-int SUMA_ColPlane_NewDimFact (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+int SUMA_ColPlane_NewDimFact (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
                               float newdimfact, int cb_direct)
 {
    static char FuncName[]={"SUMA_ColPlane_NewDimFact"};
-   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_OVERLAYS *colpC=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
    
-   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
-   
-   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (!colp) colp = curColPlane;
    if (!colp) SUMA_RETURN(0);
-   if (colp != SO->SurfCont->curColPlane) {
+   if (colp != curColPlane) {
       SUMA_S_Err( "Will need to switch to current plane first. "
                   "Not ready for this");
       SUMA_RETURN(0);      
    }
    
-   if (!SUMA_ColPlane_NewDimFact_one(SO, colp, newdimfact, cb_direct)) {
+   if (!SUMA_ColPlane_NewDimFact_one(ado, colp, newdimfact, cb_direct)) {
       SUMA_S_Err("Non son pagliaccio");
       SUMA_RETURN(0);
    }
    
-   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-   if (colpC && SOC) {
-      SUMA_LHv("Found contralateral equivalent to:\n"
-                   " %s and %s in\n"
-                   " %s and %s\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label),
-                   SOC->Label, CHECK_NULL_STR(colpC->Label));
-      if (SOC->SurfCont->curColPlane != colpC) {
-         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
-                    "This should not happen under L/R yoked conditions.");
-         SUMA_RETURN(0);
+   if (ado->do_type == SO_type) {
+      SO = (SUMA_SurfaceObject *)ado;
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (SOC->SurfCont->curColPlane != colpC) {
+            SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                       "This should not happen under L/R yoked conditions.");
+            SUMA_RETURN(0);
+         }
+         if (!SUMA_ColPlane_NewDimFact_one((SUMA_ALL_DO *)SOC, colpC, 
+                                           newdimfact, 0)) {
+            SUMA_S_Warn("Failed in contralateralization");
+         }
+      } else {
+         SUMA_LHv("Found NO contralateral equivalent to:\n"
+                      " %s and %s in\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label));
       }
-      if (!SUMA_ColPlane_NewDimFact_one(SOC, colpC, 
-                                        newdimfact, 0)) {
-         SUMA_S_Warn("Failed in contralateralization");
-      }
-   } else {
-      SUMA_LHv("Found NO contralateral equivalent to:\n"
-                   " %s and %s in\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label));
    }
-   
    SUMA_RETURN(1);
 }
 
-int SUMA_ColPlane_NewDimFact_one (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, 
+int SUMA_ColPlane_NewDimFact_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
                                   float newdimfact, int cb_direct)
 {
    static char FuncName[]={"SUMA_ColPlane_NewDimFact_one"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
    
-   if (!SO || !SO->SurfCont) SUMA_RETURN(0);
-      
-   if (!colp) colp = SO->SurfCont->curColPlane;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   curColPlane = SUMA_ADO_CurColPlane(ado);   
+   if (!colp) colp = curColPlane;
    if (!colp) SUMA_RETURN(0);
-   if (colp != SO->SurfCont->curColPlane) {
+   if (colp != curColPlane) {
       SUMA_S_Err("Will need to switch current plane. Not ready for this");
       SUMA_RETURN(0);      
    }
 
    /* change the value of the dimfact */
-   SO->SurfCont->curColPlane->DimFact = newdimfact; 
-   if (SO->SurfCont->curColPlane->OptScl) 
-      SO->SurfCont->curColPlane->OptScl->BrightFact = 
-                                 SO->SurfCont->curColPlane->DimFact;
+   curColPlane->DimFact = newdimfact; 
+   if (curColPlane->OptScl) 
+      curColPlane->OptScl->BrightFact = 
+                                 curColPlane->DimFact;
       
    if (LocalHead) fprintf(SUMA_STDERR,"%s: DimFact of %s set to %f.\n", 
-         FuncName, SO->SurfCont->curColPlane->Name, 
-         SO->SurfCont->curColPlane->DimFact);
+         FuncName, curColPlane->Name, 
+         curColPlane->DimFact);
    
-   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+   SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
    /* need to colorize plane */
-   SUMA_ColorizePlane(SO->SurfCont->curColPlane);
+   SUMA_ColorizePlane(curColPlane);
    
    /* a good remix and redisplay */
-   SUMA_RemixRedisplay (SO);
+   SUMA_RemixRedisplay (ado);
    
    /* update color label */
-   SUMA_UpdateNodeLblField(SO);
+   SUMA_UpdateNodeLblField(ado);
    
-   if (!cb_direct && newdimfact != SO->SurfCont->ColPlaneDimFact->value) {
+   if (!cb_direct && newdimfact != SurfCont->ColPlaneDimFact->value) {
       /* force gui match */
       sprintf(sbuf,"%.2f", newdimfact);
-      SO->SurfCont->ColPlaneDimFact->value = newdimfact;
-      SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield, sbuf); 
+      SurfCont->ColPlaneDimFact->value = newdimfact;
+      SUMA_SET_TEXT_FIELD(SurfCont->ColPlaneDimFact->textfield, sbuf); 
    }
   
    SUMA_RETURN(1);
@@ -8782,18 +10167,37 @@ int SUMA_ColPlane_NewDimFact_one (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp,
    \brief Function to set the color remix flag for surface SO and call 
       a redisplay for relevant viewers 
 */
-SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO)
+SUMA_Boolean SUMA_RemixRedisplay (SUMA_ALL_DO *ADO)
 {
    static char FuncName[]={"SUMA_RemixRedisplay"};
    DList *list=NULL;
+   char *idcode=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SUMA_LH("Called");
+   SUMA_LHv("Called with ado=%p, ado->do_type=%d, ado->idcode_str=%s\n",
+      ADO, ADO?ADO->do_type:-1, SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ADO)));
+
    /* remix colors for all viewers displaying related surfaces */
-   if (!SUMA_SetRemixFlag(SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
-      SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
+   switch (ADO->do_type) {
+      case SO_type:
+      case SDSET_type:
+         idcode = SUMA_ADO_idcode(ADO);
+         break;
+      case GRAPH_LINK_type: {
+         SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ADO);
+         idcode = SUMA_ADO_idcode((SUMA_ALL_DO *)dset);
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for type %s\n", ADO_TNAME(ADO));
+         SUMA_RETURN(NOPE);
+         break;
+   }
+         
+   
+   if (!SUMA_SetRemixFlag(idcode, SUMAg_SVv, SUMAg_N_SVv)) {
+      SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.");
       SUMA_RETURN(NOPE);
    }
 
@@ -8847,7 +10251,7 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
    SUMA_LH("Updating color plane shells");
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
-   SUMA_RemixRedisplay(SO);
+   SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
    SUMA_UpdateNodeLblField(NULL,SO);
    
    SUMA_RETURNe;
@@ -8859,89 +10263,103 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
    
    -expects SO in data
 */
-void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data, XtPointer client_data)
+void SUMA_cb_ColPlaneShowOneFore_toggled (Widget w, XtPointer data, 
+                                          XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_ColPlaneShowOneFore_toggled"};
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
    
-   SO = (SUMA_SurfaceObject *)data;
+   ado = (SUMA_ALL_DO *)data;
    
-   if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+   if (!curColPlane) SUMA_RETURNe;
 
-   SUMA_ColPlaneShowOneFore_Set(SO,
-               XmToggleButtonGetState (SO->SurfCont->ColPlaneShowOneFore_tb), 1);
+   SUMA_ColPlaneShowOneFore_Set(ado,
+               XmToggleButtonGetState (SurfCont->ColPlaneShowOneFore_tb), 1);
       
    SUMA_RETURNe;
 }
 
-int SUMA_ColPlaneShowOneFore_Set_one ( SUMA_SurfaceObject *SO, 
+int SUMA_ColPlaneShowOneFore_Set_one ( SUMA_ALL_DO *ado, 
                                        SUMA_Boolean state, int cb_direct)
 {
    static char FuncName[]={"SUMA_ColPlaneShowOneFore_Set_one"};
-   
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+
    SUMA_ENTRY;
 
-   if (!SO->SurfCont) SUMA_RETURN(0);
-   if (!SUMA_SURFCONT_REALIZED(SO)) SUMA_RETURN(0);
    
-   if (SO->SurfCont->ShowCurForeOnly == state) SUMA_RETURN(1);
+   if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
    
-   SO->SurfCont->ShowCurForeOnly = state;
-   XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOneFore_tb, 
-                           SO->SurfCont->ShowCurForeOnly, NOPE);   
+   if (SurfCont->ShowCurForeOnly == state) SUMA_RETURN(1);
    
-   SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+   SurfCont->ShowCurForeOnly = state;
+   XmToggleButtonSetState (SurfCont->ColPlaneShowOneFore_tb, 
+                           SurfCont->ShowCurForeOnly, NOPE);   
+   
+   SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
-   SUMA_RemixRedisplay(SO);
-   SUMA_UpdateNodeLblField(SO);
+   SUMA_RemixRedisplay(ado);
+   SUMA_UpdateNodeLblField(ado);
    
    SUMA_RETURN(1);
 }
 
-int SUMA_ColPlaneShowOneFore_Set ( SUMA_SurfaceObject *SO, 
+int SUMA_ColPlaneShowOneFore_Set ( SUMA_ALL_DO *ado, 
                                    SUMA_Boolean state, int cb_direct)
 {
    static char FuncName[]={"SUMA_ColPlaneShowOneFore_Set"};
-   SUMA_SurfaceObject *SOC=NULL;
+   SUMA_SurfaceObject *SOC=NULL, *SO=NULL;
    SUMA_OVERLAYS *colpC=NULL, *colp=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
-   if (!SO->SurfCont) SUMA_RETURN(0);
-   if (!SUMA_SURFCONT_REALIZED(SO)) SUMA_RETURN(0);
+   if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
    
-   if (!SUMA_ColPlaneShowOneFore_Set_one (SO, state, cb_direct)) {
+   
+   if (!SUMA_ColPlaneShowOneFore_Set_one (ado, state, cb_direct)) {
       SUMA_S_Err("Returning on an angry note");
       SUMA_RETURN(0);
    }
    
-   colp = SO->SurfCont->curColPlane;
-   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-   if (colpC && SOC) {
-      SUMA_LHv("Found contralateral equivalent to:\n"
-                   " %s and %s in\n"
-                   " %s and %s\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label),
-                   SOC->Label, CHECK_NULL_STR(colpC->Label));
-      if (SOC->SurfCont->curColPlane != colpC) {
-         SUMA_S_Err("Don't have contralateral as cur colplane.\n"
-                    "This should not happen under L/R yoked conditions.");
-         SUMA_RETURN(0);
+   if (ado->do_type == SO_type) {
+      SO = (SUMA_SurfaceObject *)ado;
+      colp = SO->SurfCont->curColPlane;
+      colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (SOC->SurfCont->curColPlane != colpC) {
+            SUMA_S_Err("Don't have contralateral as cur colplane.\n"
+                       "This should not happen under L/R yoked conditions.");
+            SUMA_RETURN(0);
+         }
+         if (!SUMA_ColPlaneShowOneFore_Set_one ((SUMA_ALL_DO *)SOC, state, 0)) {
+            SUMA_S_Err("Returning on an cranky note");
+            SUMA_RETURN(0);
+         }
+      } else {
+         SUMA_LHv("Found NO contralateral equivalent to:\n"
+                      " %s and %s in\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label));
       }
-      if (!SUMA_ColPlaneShowOneFore_Set_one (SOC, state, 0)) {
-         SUMA_S_Err("Returning on an cranky note");
-         SUMA_RETURN(0);
-      }
-   } else {
-      SUMA_LHv("Found NO contralateral equivalent to:\n"
-                   " %s and %s in\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label));
    }
    
    SUMA_RETURN(1);
@@ -9159,14 +10577,14 @@ void SUMA_cb_SurfCont_SwitchColPlane (Widget w, XtPointer data,
 {
    static char FuncName[]={"SUMA_cb_SurfCont_SwitchColPlane"};
    SUMA_Boolean LocalHead = NOPE;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_ALL_DO *ado = NULL;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
-   SO = (SUMA_SurfaceObject *)data;
+   ado = (SUMA_ALL_DO *)data;
    
-   SUMA_RefreshDsetList (SO);
+   SUMA_RefreshDsetList (ado);
                                                    
    SUMA_RETURNe;
 }
@@ -9332,18 +10750,21 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
 
 }
 
-int SUMA_SelectSwitchColPlane_one(SUMA_SurfaceObject *SO, 
+int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado, 
                                   SUMA_LIST_WIDGET *LW, 
                                   int ichoice, SUMA_Boolean CloseShop, 
                                   int setmen)
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane_one"};
    SUMA_OVERLAYS *ColPlane=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!SO || !LW) SUMA_RETURN(0);
+   if (!ado || !LW) SUMA_RETURN(0);
+   SurfCont = SUMA_ADO_Cont(ado);
    
    /* retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT 
       structure and initialize the drawing window */
@@ -9355,13 +10776,14 @@ int SUMA_SelectSwitchColPlane_one(SUMA_SurfaceObject *SO,
          if (LocalHead) 
             fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n", 
                      FuncName, ColPlane->Name);
-         SUMA_InitializeColPlaneShell(SO, ColPlane);
-         SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open 
+         SUMA_InitializeColPlaneShell(ado, ColPlane);
+         SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open 
                                                    ColPlaneShells */
-         SUMA_UpdateNodeField(SO);
-         SUMA_UpdateCrossHairNodeLabelFieldForSO(SO);
+         SUMA_UpdateNodeField(ado);
+         SUMA_UpdateCrossHairNodeLabelFieldForDO(ado);
          /* If you're viewing one plane at a time, do a remix */
-         if (SO->SurfCont->ShowCurForeOnly) SUMA_RemixRedisplay(SO);
+         if (SurfCont->ShowCurForeOnly)
+            SUMA_RemixRedisplay(ado);
       }
    } else {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: NULL ALS\n", FuncName); 
@@ -9369,43 +10791,47 @@ int SUMA_SelectSwitchColPlane_one(SUMA_SurfaceObject *SO,
 
    if (CloseShop) {
       SUMA_cb_CloseSwitchColPlane( NULL,  
-                        (XtPointer)SO->SurfCont->SwitchDsetlst,  NULL);
+                        (XtPointer)SurfCont->SwitchDsetlst,  NULL);
    }  
    
    SUMA_RETURN(1);
 }
 
-int SUMA_SelectSwitchColPlane(SUMA_SurfaceObject *SO, 
+int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado, 
                                   SUMA_LIST_WIDGET *LW, 
                                   int ichoice, SUMA_Boolean CloseShop, 
                                   int setmen)
 {
    static char FuncName[]={"SUMA_SelectSwitchColPlane"};
-   SUMA_OVERLAYS *colp=NULL, *colpC=NULL;
-   SUMA_SurfaceObject *SOC=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!SO || !LW) SUMA_RETURN(0);
+   if (!ado || !LW) SUMA_RETURN(0);
 
-   if (!SUMA_SelectSwitchColPlane_one(SO, LW, ichoice, CloseShop, setmen)) {
+   if (!SUMA_SelectSwitchColPlane_one(ado, LW, ichoice, CloseShop, setmen)) {
       SUMA_RETURN(0);
    }
    
-   /* do we have a contralateral SO and overlay? */
-   colp = SO->SurfCont->curColPlane;
-   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-   if (colpC && SOC) {
-      SUMA_LHv("Found contralateral equivalent to:\n"
-                   " %s and %s in\n"
-                   " %s and %s\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label),
-                   SOC->Label, CHECK_NULL_STR(colpC->Label));
-      if (!SOC->SurfCont->SwitchDsetlst->ALS) SUMA_RefreshDsetList (SOC);
-      if (!SUMA_SelectSwitchColPlane_one(SOC, SOC->SurfCont->SwitchDsetlst, 
-                                         ichoice, 0, 1)) {
-         SUMA_S_Warn("Failed in contralateralization");
+   if (ado->do_type == SO_type) {
+      SUMA_OVERLAYS *colp=NULL, *colpC=NULL;
+      SUMA_SurfaceObject *SOC=NULL, *SO=(SUMA_SurfaceObject *)ado;
+      /* do we have a contralateral SO and overlay? */
+      colp = SUMA_ADO_CurColPlane(ado);
+      colpC = SUMA_Contralateral_overlay(colp, (SUMA_SurfaceObject *)ado, &SOC);
+      if (colpC && SOC) {
+         SUMA_LHv("Found contralateral equivalent to:\n"
+                      " %s and %s in\n"
+                      " %s and %s\n",
+                      SO->Label, CHECK_NULL_STR(colp->Label),
+                      SOC->Label, CHECK_NULL_STR(colpC->Label));
+         if (!SOC->SurfCont->SwitchDsetlst->ALS)
+                        SUMA_RefreshDsetList ((SUMA_ALL_DO *)SOC);
+         if (!SUMA_SelectSwitchColPlane_one((SUMA_ALL_DO *)SOC, 
+                                       SOC->SurfCont->SwitchDsetlst, 
+                                            ichoice, 0, 1)) {
+            SUMA_S_Warn("Failed in contralateralization");
+         }
       }
    }
 
@@ -9426,13 +10852,16 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    SUMA_Boolean CloseShop = NOPE, Found = NOPE;
    int ichoice = -1;
    SUMA_OVERLAYS *ColPlane = NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)data;
-   LW = SO->SurfCont->SwitchDsetlst;
+   ado = (SUMA_ALL_DO *)data;
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   LW = SurfCont->SwitchDsetlst;
    
    if (!LW) {
       SUMA_S_Err("NULL LW!");
@@ -9441,7 +10870,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
 
    ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
 
-   if (!SUMA_SelectSwitchColPlane(SO, LW, ichoice, CloseShop, 1)) {
+   if (!SUMA_SelectSwitchColPlane(ado, LW, ichoice, CloseShop, 1)) {
       SUMA_S_Err("I guess failure was an option.");
    }
    
@@ -10192,7 +11621,7 @@ void SUMA_cb_newSumaCont(Widget w, XtPointer client_data, XtPointer callData)
    fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
    /* open a new controller */
    if (!SUMA_X_SurfaceViewer_Create ()) {
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", FuncName);
+      SUMA_S_Err("Failed in SUMA_X_SurfaceViewer_Create.");
       SUMA_RETURNe;
    } 
    
@@ -10377,17 +11806,24 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
    #endif
    
    isv = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
+   /* form the string of the surface info */
+   if (!(s = SUMA_SurfaceViewer_StructInfo(sv, 1))) {
+      SUMA_S_Err("Failed in SUMA_SurfaceViewer_StructInfo.");
+      SUMA_RETURNe;
+   }
+   sprintf(stmp, "[%c] Viewer Info", 65+isv);
 
    /* check to see if window is already open, if it is, just raise it */
    if (sv->X->ViewCont->ViewerInfo_TextShell) {
-      XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(sv->X->ViewCont->ViewerInfo_TextShell->toplevel));
-      SUMA_RETURNe;
+     sv->X->ViewCont->ViewerInfo_TextShell = 
+         SUMA_CreateTextShell(s, stmp, sv->X->ViewCont->ViewerInfo_TextShell);
+     SUMA_ifree(s); 
+     XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
+         XtWindow(sv->X->ViewCont->ViewerInfo_TextShell->toplevel));
+     SUMA_RETURNe;
    }
    
-   /* for the string of the surface info */
-   s = SUMA_SurfaceViewer_StructInfo(sv, 1);
    
-   #if 1
    if (s) {
       TextShell =  SUMA_CreateTextShellStruct (
                                  SUMA_ViewerInfo_open, 
@@ -10400,25 +11836,19 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
                    FuncName);
          SUMA_RETURNe;
       }
-      sprintf(stmp, "[%c] Viewer Info", 65+isv);
       sv->X->ViewCont->ViewerInfo_TextShell = 
             SUMA_CreateTextShell(s, stmp, TextShell);
-      SUMA_free(s);
-   }else {
-      fprintf (SUMA_STDERR, 
-               "Error %s: Failed in SUMA_SurfaceViewer_StructInfo.\n",
-               FuncName);
+      SUMA_ifree(s);
+      /* invert the widget to indicate window is open */
+      MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
    }   
-   #else 
-      fprintf (SUMA_STDERR, "%s\n", s);
-      SUMA_free(s); 
-   #endif
 
     
    SUMA_RETURNe;
 }
+
 /*!
-   \brief Function called when Surface Info window is open
+   \brief Function called when Viewer Info window is open
 */
 void SUMA_ViewerInfo_open (void *p) 
 {
@@ -10428,7 +11858,6 @@ void SUMA_ViewerInfo_open (void *p)
    SUMA_ENTRY;
    
    sv = (SUMA_SurfaceViewer *)p;
-   MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
    
    
    SUMA_RETURNe;
@@ -10467,15 +11896,22 @@ void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData)
    
    SUMA_ENTRY;
    
+   /* form the string of the surface info */
+   if (!(s = SUMA_CommonFieldsInfo (SUMAg_CF, 1))) {
+      SUMA_S_Err("Failed in SUMA_CommonFieldsInfo.");
+      SUMA_RETURNe;
+   }
+   
    /* check to see if window is already open, if it is, just raise it */
    if (SUMAg_CF->X->SumaCont->SumaInfo_TextShell) {
+      SUMAg_CF->X->SumaCont->SumaInfo_TextShell = 
+               SUMA_CreateTextShell(s, "SUMA", 
+                           SUMAg_CF->X->SumaCont->SumaInfo_TextShell);
+      SUMA_ifree(s); 
       XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
                   XtWindow(SUMAg_CF->X->SumaCont->SumaInfo_TextShell->toplevel));
       SUMA_RETURNe;
    }
-   
-   /* for the string of the surface info */
-   s = SUMA_CommonFieldsInfo (SUMAg_CF, 1);
    
    if (s) {
       TextShell =  SUMA_CreateTextShellStruct (SUMA_SumaInfo_open, NULL, 
@@ -10487,10 +11923,8 @@ void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData)
       }
       SUMAg_CF->X->SumaCont->SumaInfo_TextShell = 
                         SUMA_CreateTextShell(s, "SUMA", TextShell);
-      SUMA_free(s);
-   }else {
-      SUMA_S_Err("Failed in SUMA_CommonFieldsInfo.");
-   }   
+      SUMA_ifree(s);
+   }  
 
     
    SUMA_RETURNe;
@@ -10527,51 +11961,53 @@ void SUMA_SumaInfo_destroyed (void *p)
 /*! 
    \brief opens a text window with information about the surface object in focus 
    -expects SO pointer in userdata
-   Feb 23 04: Now requiring sv in client_data. Other widgets will be calling
+   Feb 23 04: Now requiring ado in client_data. Other widgets will be calling
    this function too, so w should not be used
 */
 void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_moreSurfInfo"};
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
    void *n=NULL;
    char *s = NULL;
-   void **curSOp;
    SUMA_Boolean LocalHead = NOPE;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
    
    SUMA_ENTRY;
-   #if 0
-   XtVaGetValues (w,
-                  XmNuserData, &n,
-                  NULL);
-                  
-   SO = (SUMA_SurfaceObject *)n;
-   #else
-   curSOp = (void **)client_data;
-   SO = (SUMA_SurfaceObject *)(*curSOp);
-   #endif
-  
-   /* check to see if window is already open, if it is, just raise it */
-   if (SO->SurfCont->SurfInfo_TextShell) {
-      XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->SurfInfo_TextShell->toplevel));
+
+   ado = (SUMA_ALL_DO *)client_data;
+   SurfCont = SUMA_ADO_Cont(ado);
+   
+   if (!(s = SUMA_ADO_Info (ado, SUMAg_CF->DsetList, 0))) {
+      SUMA_S_Err("Failed in SUMA_SurfaceObject_Info.");
       SUMA_RETURNe;
    }
    
-   /* for the string of the surface info */
-   s = SUMA_SurfaceObject_Info (SO, SUMAg_CF->DsetList);
+   /* check to see if window is already open, if it is, just raise it */
+   if (SurfCont->SurfInfo_TextShell) {
+      SurfCont->SurfInfo_TextShell = 
+         SUMA_CreateTextShell(s, SUMA_ADO_Label(ado), 
+                              SurfCont->SurfInfo_TextShell);
+      SUMA_ifree(s); 
+      XRaiseWindow (SUMAg_CF->X->DPY_controller1, 
+            XtWindow(SurfCont->SurfInfo_TextShell->toplevel));
+      SUMA_RETURNe;
+   }
    
    if (s) {
-      TextShell =  SUMA_CreateTextShellStruct (SUMA_SurfInfo_open, (void *)SO, 
-                                               SUMA_SurfInfo_destroyed, (void *)SO);
+      TextShell =  
+         SUMA_CreateTextShellStruct (SUMA_SurfInfo_open, (void *)ado, 
+                                     SUMA_SurfInfo_destroyed, (void *)ado);
       if (!TextShell) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
+         SUMA_S_Err("Failed in SUMA_CreateTextShellStruct.");
          SUMA_RETURNe;
       }
-      SO->SurfCont->SurfInfo_TextShell = SUMA_CreateTextShell(s, SO->Label, TextShell);
-      SUMA_free(s);
-   }else {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceObject_Info.\n", FuncName);
+      SurfCont->SurfInfo_TextShell = 
+         SUMA_CreateTextShell(s, SUMA_ADO_Label(ado), TextShell);
+      SUMA_ifree(s);
+      /* invert the widget to indicate window is open */
+      MCW_invert_widget (SurfCont->SurfInfo_pb);
    }   
 
     
@@ -10584,12 +12020,11 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
 void SUMA_SurfInfo_open (void *p) 
 {
    static char FuncName[] = {"SUMA_SurfInfo_open"};
-   SUMA_SurfaceObject *SO= NULL;
+   SUMA_ALL_DO *ado= NULL;
   
    SUMA_ENTRY;
    
-   SO = (SUMA_SurfaceObject *)p;
-   MCW_invert_widget (SO->SurfCont->SurfInfo_pb);
+   ado = (SUMA_ALL_DO *)p;
    
    
    SUMA_RETURNe;
@@ -10601,14 +12036,17 @@ void SUMA_SurfInfo_open (void *p)
 void SUMA_SurfInfo_destroyed (void *p) 
 {
    static char FuncName[] = {"SUMA_SurfInfo_destroyed"};
-   SUMA_SurfaceObject *SO= NULL;
+   SUMA_ALL_DO *ado= NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    
    SUMA_ENTRY;
-
-   SO = (SUMA_SurfaceObject *)p;
-   MCW_invert_widget (SO->SurfCont->SurfInfo_pb);
+   if (!(ado = (SUMA_ALL_DO *)p) || !(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_S_Err("Real bad cheese");
+      SUMA_RETURNe;
+   }
+   MCW_invert_widget (SurfCont->SurfInfo_pb);
    
-   SO->SurfCont->SurfInfo_TextShell = NULL;
+   SurfCont->SurfInfo_TextShell = NULL;
    SUMA_RETURNe;
 }
 
@@ -10618,6 +12056,7 @@ void SUMA_SurfInfo_destroyed (void *p)
       if (isspace(str[m_i])) { str[m_i]='_'; } \
    }  \
 }
+
  
 char * SUMA_WriteStringToFile(char *fname, char *s, int over, int view) 
 {
@@ -10632,7 +12071,7 @@ char * SUMA_WriteStringToFile(char *fname, char *s, int over, int view)
    if (!fname) fname = FuncName;
    if (!s) SUMA_RETURN(NULL);
    
-   fused = SUMA_copy_string(fname);NO_SPACE(fused);
+   fused = SUMA_copy_string(fname);SUMA_NICEATE_FILENAME(fused, '_');
    if (!over) {
       i = 0;
       while (i < 10000 && SUMA_filexists(fused)) {
@@ -10818,9 +12257,12 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
    
    \param s (char *) string to display, must be null terminated.
    \param title (char *) title of window
-   \param TextShell (SUMA_CreateTextShell *) containing options for SUMA_CreateTextShell
-      if TextShell->toplevel then only the log message is updated, otherwise the window is created.
-   \return TextShell (SUMA_CreateTextShell *) same structure sent to function but with widgets fields filled. 
+   \param TextShell (SUMA_CreateTextShell *) containing options 
+                                                for SUMA_CreateTextShell
+      if TextShell->toplevel then only the log message is updated, otherwise 
+                                                the window is created.
+   \return TextShell (SUMA_CreateTextShell *) same structure sent to function 
+                                              but with widgets fields filled. 
    
    \sa SUMA_CreateTextShellStruct
    
@@ -10985,13 +12427,33 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
       XtRealizeWidget (TextShell->toplevel);
    } else { /* already created, just replace text and perhaps title in title bar 
                (in the future)*/
+      XmTextPosition nlpos, otpos;
+      
+      otpos = XmTextGetInsertionPosition(TextShell->text_w);/*current position*/
       SUMA_LH("Setting string in previously created text shell window.\n");
+      
       if (!s) XmTextSetString (TextShell->text_w, 
                                "No Messages.\n---------------\n");
       else XmTextSetString (TextShell->text_w, s);
+      nlpos = XmTextGetLastPosition (TextShell->text_w); /*new last position*/
       if (TextShell->CursorAtBottom) {
-         XmTextSetInsertionPosition(TextShell->text_w, 
-                                 XmTextGetLastPosition (TextShell->text_w));
+         XmTextSetInsertionPosition(TextShell->text_w, nlpos);
+      } else {
+         n = 1;
+         XtVaGetValues (TextShell->text_w, XmNrows, &n, NULL);
+         SUMA_LHv("previous pos %d, current last pos %d, num_rows %d\n",
+                        (int)otpos, (int)nlpos, n);
+         /* for some reason sometimes n is undefined, put restrictions */
+         if (n<0) n = 10;  /* Bug should not happen */
+         if (n>40) n = 40; /* Guarding for too big a shift
+                              Might not be necessary */
+         /* try to put the cursor in a comparable position */
+         if ( (int)otpos < (int)nlpos ) {
+            XmTextSetInsertionPosition(TextShell->text_w, otpos);
+         } else {
+            XmTextSetInsertionPosition(TextShell->text_w, nlpos);
+         }
+         if (n) XmTextScroll(TextShell->text_w, n/2);
       }
    }
    SUMA_RETURN(TextShell);
@@ -11199,15 +12661,13 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
    SUMA_EngineData *ED = NULL;
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_SurfaceObject *SO = NULL;
-   void **curSOp;
    int imenu = 0;
    
    SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-   curSOp = (void **)datap->ContID;
-   SO = (SUMA_SurfaceObject *)(*curSOp);
+   SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
    
    switch (imenu) {
@@ -11290,15 +12750,13 @@ void SUMA_cb_SetTransMode(Widget widget, XtPointer client_data,
    SUMA_EngineData *ED = NULL;
    SUMA_MenuCallBackData *datap=NULL;
    SUMA_SurfaceObject *SO = NULL;
-   void **curSOp;
    int imenu = 0;
    
    SUMA_ENTRY;
 
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-   curSOp = (void **)datap->ContID;
-   SO = (SUMA_SurfaceObject *)(*curSOp);
+   SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
    
    switch (imenu) {
@@ -11453,12 +12911,14 @@ int SUMA_ShowModeStr2ShowModeMenuItem(char *str)
    \brief sets the dataset viewing mode of the current dset  on SO
    
 */
-int SUMA_SetDsetViewMode(SUMA_SurfaceObject *SO, int imenu, int updatemenu) 
+int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int updatemenu) 
 {
    static char FuncName[]={"SUMA_SetDsetViewMode"};
    DList *list = NULL;
    DListElmt *Elmnt = NULL;
    SUMA_EngineData *ED = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
 
    SUMA_ENTRY;
 
@@ -11470,7 +12930,7 @@ int SUMA_SetDsetViewMode(SUMA_SurfaceObject *SO, int imenu, int updatemenu)
                                          SES_SumaWidget, NULL, NOPE,
                                          SEI_Head, NULL);
    if (!SUMA_RegisterEngineListCommand ( list, ED,
-                                         SEF_vp, (void *)SO,
+                                         SEF_vp, (void *)ado,
                                          SES_SumaWidget, NULL, NOPE,
                                          SEI_In, Elmnt)) {
       fprintf (SUMA_STDERR, 
@@ -11485,9 +12945,11 @@ int SUMA_SetDsetViewMode(SUMA_SurfaceObject *SO, int imenu, int updatemenu)
       SUMA_RETURN(NOPE);    
    }
 
-   if (updatemenu) {
-      SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
-                     SO->SurfCont->curColPlane->ShowMode);
+   if (updatemenu && 
+       (SurfCont = SUMA_ADO_Cont(ado)) &&
+       (curColPlane = SUMA_ADO_CurColPlane(ado))) {
+      SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
+                            curColPlane->ShowMode);
    }
 
    SUMA_RETURN(YUP);
@@ -11504,8 +12966,7 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
 {
    static char FuncName[]={"SUMA_cb_SetDsetViewMode"};
    SUMA_MenuCallBackData *datap=NULL;
-   SUMA_SurfaceObject *SO = NULL;
-   void **curSOp;
+   SUMA_ALL_DO *ado = NULL;
    int imenu = 0;
    
    SUMA_ENTRY;
@@ -11513,11 +12974,10 @@ void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data,
    
    /* get the surface object that the setting belongs to */
    datap = (SUMA_MenuCallBackData *)client_data;
-   curSOp = (void **)datap->ContID;
-   SO = (SUMA_SurfaceObject *)(*curSOp);
+   ado = (SUMA_ALL_DO *)datap->ContID;
    imenu = (INT_CAST)datap->callback_data; 
    
-   if (!SUMA_SetDsetViewMode(SO, imenu, 0)) {
+   if (!SUMA_SetDsetViewMode(ado, imenu, 0)) {
       SUMA_S_Err("Failed to set view mode");
       SUMA_RETURNe;
    }
@@ -11992,7 +13452,7 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
       SUMAg_CF->X->DrawROI->Delete_first = NOPE ;
 
       /* if not re-pressed in 5 seconds, will reset to lowercase */
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: First Press, adding time out.\n", FuncName);
+      SUMA_LH("First Press, adding time out.");
       (void) XtAppAddTimeOut(
                XtWidgetToApplicationContext(SUMAg_CF->X->DrawROI->Delete_pb) ,
                5000 , SUMA_delete_timeout_CB , NULL ) ;
@@ -12002,10 +13462,12 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
    
    /* delete ROI */
    ErrCnt = 0;
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Should be deleting ROI %s here ...\n", FuncName, SUMAg_CF->X->DrawROI->curDrawnROI->Label);
+   SUMA_LHv("Should be deleting ROI %s here ...\n",
+            SUMAg_CF->X->DrawROI->curDrawnROI->Label);
    
    /* preserve some info about ROI to be deleted */
-   SO = SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str , SUMAg_DOv, SUMAg_N_DOv);
+   SO = SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str ,
+                           SUMAg_DOv, SUMAg_N_DOv);
    PlaneName = SUMA_copy_string(SUMAg_CF->X->DrawROI->curDrawnROI->ColPlaneName);
    
    if (!SUMA_DeleteROI (SUMAg_CF->X->DrawROI->curDrawnROI)) {
@@ -12013,8 +13475,10 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
       SUMA_RETURNe; 
    }
    
-   /* If no other ROIs remain on the same plane as the deleted ROI, flush that plane's colors */
-   SUMA_FlushPlaneNotInUse (PlaneName, SO, SUMAg_DOv, SUMAg_N_DOv);
+   /* If no other ROIs remain on the same plane as the deleted ROI, 
+      flush that plane's colors */
+   SUMA_FlushPlaneNotInUse (PlaneName, (SUMA_ALL_DO *)SO, 
+                            SUMAg_DOv, SUMAg_N_DOv);
    if (PlaneName) SUMA_free(PlaneName);
    
    /* Now update the Paint job on the ROI plane */
@@ -12026,7 +13490,8 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
 
    /* redisplay */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL); 
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                      SES_Suma, NULL); 
    if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
    
    /* reset the Delete button settings */
@@ -12518,7 +13983,8 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
       * contain the control area and the action area
       * (created by CreateActionArea() using the action_items above).
       */
-      prmpt->pane = XtVaCreateWidget ("pane", xmPanedWindowWidgetClass, prmpt->dialog,
+      prmpt->pane = XtVaCreateWidget ("pane", xmPanedWindowWidgetClass, 
+                                      prmpt->dialog,
         XmNsashWidth,  1,
         XmNsashHeight, 1,
         NULL);
@@ -12526,7 +13992,8 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
       /* create the control area which contains a
       * Label gadget and a TextField widget.
       */
-      rc = XtVaCreateWidget ("control_area", xmRowColumnWidgetClass, prmpt->pane, NULL);
+      rc = XtVaCreateWidget ("control_area", xmRowColumnWidgetClass, 
+                             prmpt->pane, NULL);
       string = XmStringCreateLocalized (prmpt->label);
       XtVaCreateManagedWidget ("label", xmLabelWidgetClass, rc,
         XmNlabelString,    string,
@@ -12544,7 +14011,8 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialog(char *title_extension, SUMA_P
       }
 
       /* add a callback for the return in the text-field widget */
-      XtAddCallback (prmpt->text_w, XmNactivateCallback, SUMA_PromptActivate_cb, (XtPointer)prmpt);
+      XtAddCallback (prmpt->text_w, XmNactivateCallback, 
+                     SUMA_PromptActivate_cb, (XtPointer)prmpt);
       
       /* RowColumn is full -- now manage */
       XtManageChild (rc);
@@ -13306,7 +14774,8 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
    if (dlg->Mode == SUMA_FILE_SAVE) {
       /* here you could do some tests on the file given the
       options that would be specified in dlg */
-      /* Do not carry out tests here as filename might change once proper extensions are added */
+      /* Do not carry out tests here as filename might change
+         once proper extensions are added */
       #if 0
       if (!(fp = fopen (filename, "w"))) {
          perror (filename);
@@ -13348,8 +14817,9 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
       dlg->SelectCallback(dlg->filename, dlg->SelectData);
    } 
 
-   XtUnmanageChild (dlg->dlg_w); /* this function will call the unmap callback which will 
-                                    do the destruction if dialog is not to be preserved */
+   XtUnmanageChild (dlg->dlg_w); /* this function will call the unmap 
+                                    callback which will do the destruction 
+                                    if dialog is not to be preserved */
 
    SUMA_RETURNe;
 }
@@ -13360,57 +14830,59 @@ void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data,
 {
    static char FuncName[]={"SUMA_cb_ToggleManagementColPlaneWidget"};
    static int ncall=1;
-   SUMA_SurfaceObject *SO = NULL;
-   void **curSOp;
+   SUMA_ALL_DO *ado = NULL;
    int xx, yy, notest = 0;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   curSOp = (void **)data;
-   SO = (SUMA_SurfaceObject *)(*curSOp);
+   ado = (SUMA_ALL_DO *)data;
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
    
 #ifdef USING_LESSTIF
       notest = 1;
 #endif
 
    if (ncall > 0) {
-      if (XtIsManaged(SO->SurfCont->ColPlane_fr)) {
+      if (XtIsManaged(SurfCont->ColPlane_fr)) {
          SUMA_LHv("UnM.ch: ColPlane_fr, ncall %d\n", ncall);
-         XtUnmanageChild(SO->SurfCont->ColPlane_fr);
+         XtUnmanageChild(SurfCont->ColPlane_fr);
       }
       if( notest ) {
          SUMA_LHv("UnM.ch: DsetMap_fr, ncall %d\n", ncall);
-         XtUnmanageChild(SO->SurfCont->DsetMap_fr); /* needed */
+         XtUnmanageChild(SurfCont->DsetMap_fr); /* needed */
       }   
       /* if nothing else remains in the parent of ColPlane, 
          then unmanage its parent (rc_right) too. 
          *** Parent of that frame is now rc_left    May 25 04*/
-      /* XtUnmanageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
-      if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+      /* XtUnmanageChild(XtParent(SurfCont->ColPlane_fr)); May 25 04*/
+      if (XtIsManaged(SurfCont->DsetMap_fr)) {
          SUMA_LHv("UnM.ch: DsetMap_fr, par(DsetMap_fr), ncall %d\n", ncall);
-         XtUnmanageChild(SO->SurfCont->DsetMap_fr);
-         XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
+         XtUnmanageChild(SurfCont->DsetMap_fr);
+         XtUnmanageChild(XtParent(SurfCont->DsetMap_fr));
       }
    } else {
-      /* XtManageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
-      if ((strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") != 0) &&
-          !SUMA_is_Label_dset(SO->SurfCont->curColPlane->dset_link, NULL)) { 
+      /* XtManageChild(XtParent(SurfCont->ColPlane_fr)); May 25 04*/
+      if ((strcmp(curColPlane->cmapname, "explicit") != 0) &&
+          !SUMA_is_Label_dset(curColPlane->dset_link, NULL)) { 
          SUMA_LHv("Not explicit, ncall = %d\n", ncall);
          /* not an RGB dset */
-         if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+         if (!XtIsManaged(SurfCont->DsetMap_fr)) {
             SUMA_LHv("M.ch: par(DsetMap_fr) DsetMap_fr, ncall = %d\n", ncall);
-            XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
-            XtManageChild((Widget)SO->SurfCont->DsetMap_fr);
+            XtManageChild(XtParent(SurfCont->DsetMap_fr));
+            XtManageChild((Widget)SurfCont->DsetMap_fr);
          }
       }
 
       SUMA_LHv("M.ch: ColPlane_fr, ncall = %d\n", ncall);
-      XtManageChild((Widget)SO->SurfCont->ColPlane_fr);
+      XtManageChild((Widget)SurfCont->ColPlane_fr);
       
       SUMA_LHv("Map.R: ColPlane_fr, ncall = %d\n", ncall);
-      XMapRaised (XtDisplay(SO->SurfCont->ColPlane_fr), 
-                  XtWindow(SO->SurfCont->TLS));
+      XMapRaised (XtDisplay(SurfCont->ColPlane_fr), 
+                  XtWindow(SurfCont->TLS));
    }
    
    ncall *= -1;
@@ -13940,8 +15412,6 @@ void SUMA_ShowAllVisuals (void)
    char *vargv[1]={ "[A] SUMA" };
    int cargc = 1;
 
-
-   
    SUMA_ENTRY;
 
    dpy = XOpenDisplay(NULL);
@@ -14056,7 +15526,8 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead)
    
    glXGetConfig(dpy, vi, GLX_USE_GL, &glxCapable);
    if (glxCapable) {
-      fprintf(SUMA_STDERR, "0x%x %2d %s",(unsigned int)vi->visualid, vi->depth, SUMA_ClassOf(vi->class));
+      fprintf(SUMA_STDERR, "0x%x %2d %s",(unsigned int)vi->visualid, 
+                           vi->depth, SUMA_ClassOf(vi->class));
       glXGetConfig(dpy, vi, GLX_BUFFER_SIZE, &bufferSize);
       glXGetConfig(dpy, vi, GLX_LEVEL, &level);
       glXGetConfig(dpy, vi, GLX_RGBA, &renderType);
@@ -14082,7 +15553,8 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead)
          SUMA_Format(redSize, 2), SUMA_Format(greenSize, 2),
          SUMA_Format(blueSize, 2), SUMA_Format(alphaSize, 2));
       fprintf(SUMA_STDERR, "%2s %2s %2s %2s %2s %2s %2s",
-        SUMA_Format(auxBuffers, 2), SUMA_Format(depthSize, 2), SUMA_Format(stencilSize, 2),
+        SUMA_Format(auxBuffers, 2), SUMA_Format(depthSize, 2), 
+        SUMA_Format(stencilSize, 2),
         SUMA_Format(acRedSize, 2), SUMA_Format(acGreenSize, 2),
         SUMA_Format(acBlueSize, 2), SUMA_Format(acAlphaSize, 2));
       fprintf(SUMA_STDERR, "\n");

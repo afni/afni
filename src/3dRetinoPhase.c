@@ -344,7 +344,7 @@ THD_3dim_dataset * Combine_Opposites(THD_3dim_dataset *dset1,
                  
    EDIT_substitute_brick( oset , 0 , MRI_float  , sum ) ; /* do not free sum */
    EDIT_substitute_brick( oset , 1 , MRI_float  , dif ) ; /* do not free dif */
-   EDIT_substitute_brick( oset , 2 , MRI_float  , mxxc ) ;/* do not free dif */
+   EDIT_substitute_brick( oset , 2 , MRI_float  , mxxc ) ;/* do not free mxxc */
    if (Dir_is_eccentricity(rpud->dir)) {
       EDIT_BRICK_LABEL(oset , 0, "Eccentricity");
    } else if (Dir_is_polar(rpud->dir)) {

@@ -632,7 +632,7 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    SUMA_LHv("Checking too small a surface: %f\n", SO->MaxCentDist);
    /* check for too small a surface */
    if (SO->MaxCentDist < 10.0 && !iwarn) {
-      if (!(sv = SUMA_BestViewerForSO(SO))) sv = SUMAg_SVv;
+      if (!(sv = SUMA_BestViewerForDO((SUMA_ALL_DO *)SO))) sv = SUMAg_SVv;
       if (sv) { /* This can be null when surfaces are created on the fly,
                    No need to warn in that case though.*/
          if (sv->GVS[sv->StdView].DimSclFac < 5 && !iwarn) {
@@ -677,8 +677,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    SO->ViewCenterWeight = SO->N_Node;
    
    /* No selections yet, but make the preps */
-      SO->ShowSelectedNode = YUP;
-      SO->ShowSelectedFaceSet = YUP;
+      SUMA_SV_SetShowSelectedDatum(sv, YUP, NOPE);
+      SUMA_SV_SetShowSelectedFaceSet(sv, YUP, NOPE);
       SO->SelectedFaceSet = -1;
       SO->SelectedNode = -1;
       /* create the ball object*/
@@ -779,8 +779,6 @@ Input paramters :
    SO->glar_NodeNormList
    SO->RotationWeight
    SO->ViewCenterWeight
-   SO->ShowSelectedNode
-   SO->ShowSelectedFaceSet
    SO->SelectedFaceSet
    SO->SelectedNode
    SO->NodeMarker
@@ -1540,6 +1538,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
    int ex, skp, evl, i, kkk, LHunify=0;
    FILE *sf_file;
    SUMA_FileName SpecName;
+   SUMA_Boolean onGIFTIalert = NOPE;
    SUMA_Boolean   OKread_SurfaceFormat, OKread_SurfaceType, 
                   OKread_TopoFile, OKread_CoordFile;
    SUMA_Boolean   OKread_MappingRef, OKread_SureFitVolParam,
@@ -1598,6 +1597,8 @@ SUMA_Boolean SUMA_Read_SpecFile (
             "%s", SpecName.Path);
    snprintf(Spec->SpecFileName,SUMA_MAX_NAME_LENGTH*sizeof(char), 
             "%s", SpecName.FileName);
+   
+   if (SUMA_iswordin(Spec->SpecFileName,"N27")) onGIFTIalert = 1;
    
    /* free SpecName since it's not used elsewhere */
    if (SpecName.Path) SUMA_free(SpecName.Path);
@@ -2321,6 +2322,40 @@ SUMA_Boolean SUMA_Read_SpecFile (
                SUMA_RETURN (NOPE);
             } else {
                OKread_FreeSurferSurface = NOPE;
+            }
+            if (onGIFTIalert) {
+               if (SUMA_isExtension(Spec->SurfaceFile[Spec->N_Surfs-1],".gii")) {
+                  /* have gifti file with N27 spec, check gifti date */
+                  if (THD_filetime_diff(Spec->SurfaceFile[Spec->N_Surfs-1],
+                                        2013, 8, 1) < 0) {
+                     SUMA_S_Warnv(
+"*******************************************************\n"
+"File %s is probably from SUMA's \n"
+"N27 GIFTI surfaces that are in RAI. With this new version\n"
+"of SUMA all GIFTI surfaces must be in LPI.\n"
+"\n"
+"You need to either correct these old surfaces or get\n"
+"a new copy of the template surface archives: \n"
+"   http://afni.nimh.nih.gov/pub/dist/tgz/suma_MNI_N27.tgz\n"
+"or\n"
+"   http://afni.nimh.nih.gov/pub/dist/tgz/suma_TT_N27.tgz\n"
+"\n"
+"If you choose to correct what you have, instead of a new\n"
+"download, see the help for option -nocor in @SUMA_Make_Spec_FS \n"
+"for suggestions.\n"
+"\n"
+"Results obtained with older versions of SUMA on old GIFTI\n"
+"surfaces are valid. You just can't mix old files with \n"
+"versions of SUMA postdating Aug. 1st 2013\n"
+"As usual, if you have concerns, open surfaces in SUMA \n"
+"and talk to AFNI. If contours line up, you're OK.\n"
+"*******************************************************\n"
+"*******************************************************\n"
+"\n",
+                      Spec->SurfaceFile[Spec->N_Surfs-1]);
+                                 
+                  }
+               }
             }
             skp = 1;
          }
@@ -3443,7 +3478,7 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
       
       /* create the surface controller */
       if (!SO->SurfCont) {
-         SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
+         SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, SO_type);
       } else {
          SUMA_S_Note("Surface Controller Exists Already.");
       }
@@ -3466,7 +3501,7 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
          } 
 
          /* Add this plane to SO->Overlays */
-         if (!SUMA_AddNewPlane (SO, NewColPlane, NULL, -1, 1)) { 
+         if (!SUMA_AddNewPlane ((SUMA_ALL_DO *)SO, NewColPlane, NULL, -1, 1)) { 
             /* duplicate planes will be ignored! */
             SUMA_SL_Err("Failed in SUMA_AddNewPlane");
             SUMA_FreeOverlayPointer(NewColPlane);
@@ -3502,7 +3537,7 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
       /* Change the defaults of Mesh axis to fit standard  */
       /* For the moment, use Box Axis */
       SO->MeshAxis->atype = SUMA_SCALE_BOX;
-      SUMA_MeshAxisStandard (SO->MeshAxis, SO);
+      SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
       /*turn on the viewing for the axis */
       SO->ShowMeshAxis = NOPE;
 
@@ -3709,7 +3744,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             
             /* move that plane down the stack, nice to have convexity stay
             on top */
-            SUMA_MovePlaneDown(SO, NewColPlane->Name);
+            SUMA_MovePlaneDown((SUMA_ALL_DO *)SO, NewColPlane->Name);
             
             NewColPlane=NULL;          /* don't let anyone here use it */
          }
@@ -3789,7 +3824,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                SUMA_RETURN(NOPE);
             }
             /* Change the defaults of Mesh axis to fit standard  */
-            SUMA_MeshAxisStandard (SO->MeshAxis, SO);
+            SUMA_MeshAxisStandard (SO->MeshAxis, (SUMA_ALL_DO *)SO);
             /*turn off the viewing for the axis */
             SO->ShowMeshAxis = NOPE;
 
@@ -3908,7 +3943,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                } else {
                   /* brand new one */
                   if (!SO->SurfCont) {
-                     SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str);
+                     SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str, 
+                                                              SO_type);
                   } else {
                      SUMA_S_Note("Surface Controller Exists Already (d)\n");
                   }

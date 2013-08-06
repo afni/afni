@@ -12057,6 +12057,43 @@ MRI_IMAGE * ISQ_snap_to_mri_image( int ww , int hh , byte *pix  )
    RETURN(tim) ;
 }
 
+/*----------------------------------------------------------------------------*/
+/*! Like ISQ_snap_to_mri_image, but pix is a pointer to RGBA data. 
+      Returned image is still MRI_rbg, so alphas are ignored.
+------------------------------------------------------------------------------*/
+MRI_IMAGE * ISQ_snap4_to_mri_image( int ww , int hh , byte *pix  )
+{
+   MRI_IMAGE *tim ;
+   byte *qix ;
+   int ii , jj , flip=0, nn3, nn4 ;
+
+   ENTRY("ISQ_snap4_to_mri_image") ;
+
+   if( ww < 2 || pix == NULL ) RETURN(NULL) ;
+   if( hh < 0 ){ hh = -hh ; flip = 1 ; }
+   if( hh < 2 )                RETURN(NULL) ;
+
+   tim = mri_new( ww,hh, MRI_rgb ) ; qix = MRI_RGB_PTR(tim) ;
+
+   if( flip ){                    /* flip vertically */
+     for (jj=(hh-1), nn3=0; jj>=0; --jj) {
+     for (ii=0; ii < ww; ii++ ) {
+         nn4 = (jj*ww+ii)*4;
+         qix[nn3++] = pix[nn4]; 
+         qix[nn3++] = pix[nn4+1]; 
+         qix[nn3++] = pix[nn4+2]; 
+     } }
+   } else {                                                   /* simple copy */
+     for (jj=0, nn3=0, nn4=0; jj < hh; jj++ ) {
+     for (ii=0; ii < ww; ii++ ) {
+         qix[nn3++] = pix[nn4++]; 
+         qix[nn3++] = pix[nn4++]; 
+         qix[nn3++] = pix[nn4++]; ++nn4; 
+     }}
+   }
+
+   RETURN(tim) ;
+}
 
 /*----------------------------------------------------------------------------*/
 

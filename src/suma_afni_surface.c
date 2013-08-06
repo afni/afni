@@ -63,6 +63,7 @@ NI_group *SUMA_NewAfniSurfaceObjectPointset(void)
    
    SUMA_RETURN(ngr);
 }
+
 NI_group *SUMA_NewAfniSurfaceObjectNormals(void)
 { 
    static char FuncName[]={"SUMA_NewAfniSurfaceObjectNormals"};

@@ -273,11 +273,13 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
                   "Error SUMA_Free_Displayable_Object, "
                   "Not trained to free GO objects\n");
          break;
+      case not_DO_type:
+         /* not a DO, leave it to beaver */
+         break;
       case type_not_set:
-      case no_type:
          fprintf(SUMA_STDERR,
                   "Error SUMA_Free_Displayable_Object, "
-                  "no free no_type or type_not_set\n");
+                  "no free type_not_set\n");
          break;
       case NBSP_type:
       case SP_type:
@@ -300,6 +302,9 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          break;
       case TRACT_type:
          SUMA_free_TractDO(dov->OP);
+         break;
+      case GRAPH_LINK_type:
+         SUMA_free_GraphLinkDO(dov->OP);
          break;
       default:
          SUMA_S_Errv("Type %d not accounted for!\n", dov->ObjectType);
@@ -341,20 +346,22 @@ int SUMA_FindDOi_byID(SUMA_DO *dov, int N_dov, char *idcode_str)
    
    SUMA_ENTRY;
    
+   SUMA_LHv("idcode %s\n", idcode_str);
    if (!dov || !idcode_str) {
       SUMA_RETURN(-1);
    }
     
    for (i=0; i<N_dov; ++i) {
-      if (dov[i].ObjectType > no_type) {
+      if (dov[i].ObjectType > not_DO_type) {
          ado = (SUMA_ALL_DO *)dov[i].OP;
          SUMA_LHv("ado %p: Object %d/%d type: %d\n", 
                   ado, i, N_dov, dov[i].ObjectType); 
          SUMA_LHv("ado->idcode_str= %s\n", 
-                  SUMA_CHECK_NULL_STR(ado->idcode_str));
+                  SUMA_CHECK_NULL_STR(SUMA_ADO_idcode(ado)));
          SUMA_LHv("idcode_str= %s\n", 
                   SUMA_CHECK_NULL_STR(idcode_str)); 
-         if (ado->idcode_str && strcmp(ado->idcode_str, idcode_str) == 0) {
+         if (SUMA_ADO_idcode(ado) && 
+             strcmp(SUMA_ADO_idcode(ado), idcode_str) == 0) {
             SUMA_RETURN(i);
          } 
       } else {
@@ -364,6 +371,7 @@ int SUMA_FindDOi_byID(SUMA_DO *dov, int N_dov, char *idcode_str)
    if (LocalHead) SUMA_Show_DOv (dov, N_dov, NULL); 
    SUMA_RETURN(-1);
 }
+
 /*!
 Add a displayable object to dov
 */
@@ -379,16 +387,16 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
    SUMA_ENTRY;
 
    ado = (SUMA_ALL_DO *)op;
-   if (!ado->idcode_str) {
+   if (!SUMA_ADO_idcode(ado)) {
       SUMA_error_message (FuncName, "Need an idcode_str for do",0);
       SUMA_RETURN(NOPE);
    }
-   if (DO_Type <= no_type || DO_Type >= N_DO_TYPES) {
+   if (DO_Type <= not_DO_type || DO_Type >= N_DO_TYPES) {
       SUMA_S_Errv("DO_type %d not valid\n", DO_Type);
       SUMA_RETURN(NOPE);
    }
    /* Does that baby exist? */
-   if ((ieo = SUMA_FindDOi_byID(dov, *N_dov, ado->idcode_str)) >= 0) {
+   if ((ieo = SUMA_FindDOi_byID(dov, *N_dov, SUMA_ADO_idcode(ado))) >= 0) {
       if (DO_Type == SO_type) {
          SUMA_SLP_Err("Surface exists, cannot be replaced this way.");
          SUMA_RETURN(NOPE);
@@ -419,8 +427,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
       dov[*N_dov].OP = op;
       dov[*N_dov].ObjectType = DO_Type;
       dov[*N_dov].CoordType = DO_CoordType;
-      *N_dov = *N_dov+1;
-   
+      *N_dov = *N_dov+1;   
    }
    
    
@@ -440,7 +447,8 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
          Freeing is done via SUMA_Free_Displayable_Object()
    \return success (SUMA_Boolean)  flag. 
 */
-SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free_op)
+SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, 
+                           SUMA_Boolean Free_op)
 {
    static char FuncName[] = {"SUMA_RemoveDO"};
    int i;
@@ -453,9 +461,9 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free
    for (i=0; i<*N_dov; ++i) {
       if (dov[i].OP == op) {
          Found = YUP;
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: found object. Removing it from dov.\n", FuncName);
+         if (LocalHead) SUMA_S_Err("found object. Removing it from dov.");
          if (Free_op) {
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: Freeing object.\n", FuncName);
+            if (LocalHead) SUMA_S_Err("Freeing object.");
             if (!SUMA_Free_Displayable_Object (&dov[i])) {
                SUMA_SLP_Crit("Failed to free displayable object.");
                SUMA_RETURN(NOPE);
@@ -484,60 +492,189 @@ if not found then dov_id is registered at the end of cSV->RegisteredDO
 When a DO is registered, a ColorList is created if the DO is a surface object.
 and N_DO is updated
 */
-SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
+SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
 {
-   int i;
    static char FuncName[]={"SUMA_RegisterDO"};
+   int i, is, icsvmin=0, icsvmax=0, icsv=0;
+   SUMA_SurfaceViewer *cSV=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (LocalHead && SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
-      fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", 
+   if (!cSVu) { /* Do this for all viewers */
+      SUMA_LHv("Working all %d svs\n", SUMA_MAX_SURF_VIEWERS);
+      icsvmin = 0; icsvmax=SUMA_MAX_SURF_VIEWERS;
+   } else {
+      icsvmin = SUMA_WhichSV(cSVu, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS);
+      if (icsvmin >=0) icsvmax = icsvmin+1;
+      else {
+         SUMA_DUMP_TRACE("No SV???");
+         SUMA_S_Err("Could not find sv!");
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_LHv("Working from sv %d to %d\n", icsvmin, icsvmax);
+   }
+   
+   icsv = icsvmin;
+   while (icsv < icsvmax) {
+      cSV = &(SUMAg_SVv[icsv]);
+      
+      if (LocalHead && 
+          SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
+         fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", 
               FuncName, 65+SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
-      /* turn off the LocalHead, too much output*/
-      LocalHead = NOPE;
-   }  
-    
-   /* check to see if dov_id exists */
-   i = 0;
-   while (i < cSV->N_DO) {
-      if (cSV->RegisteredDO[i] == dov_id) {
-         /* found do nothing, return */
-         SUMA_RETURN(YUP);
-      }
-      ++i;
-   }
-   cSV->RegisteredDO[cSV->N_DO] = dov_id;
-   cSV->N_DO += 1;
-   
-   /* Now add the ColorList, if DO is a surface object */
-   if (SUMA_isSO(SUMAg_DOv[dov_id])) {
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: Adding color list...\n", FuncName);
-      /* add the ColorList */
-      if (!SUMA_FillColorList (cSV,(SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP)) {
-         fprintf(SUMA_STDERR,
-                 "Error %s: Failed in SUMA_FillColorList.\n", FuncName);
-         SUMA_RETURN (NOPE);
-      }
-   }
-   
-   if (LocalHead) 
-      fprintf (SUMA_STDERR, "%s: Back from SUMA_FillColorList. (%s/%d).\n", 
-         FuncName, cSV->ColList[0].idcode_str, cSV->N_ColList);
-   
-   if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
-      for (i=0; i< cSV->N_DO; ++i) {
-         fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", i, cSV->RegisteredDO[i]);
-      }
-      fprintf(SUMA_STDERR,"\n");
-   }
+         /* turn off the LocalHead, too much output*/
+         LocalHead = NOPE;
+      }  
 
-   /* update the title bar */
-   SUMA_UpdateViewerTitle(cSV);   
+      
+      switch (iDO_type(dov_id)) {
+         case SO_type: /* add it regardless. This may need revisiting if you 
+                          begin to load surfaces interactively, not from
+                          the initial startup */
+            /* check to see if dov_id exists */
+            if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id) >= 0) { /* found, do nothing */
+               goto NEXT_CSV;
+            }
+            cSV->RegisteredDO[cSV->N_DO] = dov_id;
+            cSV->N_DO += 1;
+            
+            /* Now add the ColorList, if DO is a surface object */
+            if (SUMA_isSO(SUMAg_DOv[dov_id])) {
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,"%s: Adding color list...\n", FuncName);
+               /* add the ColorList */
+               if (!SUMA_FillColorList (cSV,
+                              (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
+                  fprintf(SUMA_STDERR,
+                          "Error %s: Failed in SUMA_FillColorList.\n", FuncName);
+                  SUMA_RETURN (NOPE);
+               }
+            }
+            SUMA_LHv("Back from SUMA_FillColorList. (%s/%d).\n", 
+                   cSV->ColList[0].idcode_str, cSV->N_ColList);
+            break;
+         case GRAPH_LINK_type:
+            {
+            SUMA_GraphLinkDO *GLDO=(SUMA_GraphLinkDO *)(SUMAg_DOv[dov_id].OP);
+            SUMA_LHv("With GLDO %s, variant %s, Anat Correctedness %s\n", 
+                     DO_label(GLDO), GLDO->variant,
+                     SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))?"YES":"NO");
+            if (SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))) {
+               /* Register it also in all states of VSv that are AnatCorrect */
+               for (is=0; is < cSV->N_VSv; ++is) {
+                  if (cSV->VSv[is].AnatCorrect && 
+                     SUMA_FindFirst_inIntVect(cSV->VSv[is].MembDOs,
+                                  cSV->VSv[is].MembDOs+cSV->VSv[is].N_MembDOs,
+                                  dov_id) < 0) {
+                     cSV->VSv[is].N_MembDOs += 1;
+                     cSV->VSv[is].MembDOs = 
+                        (int *)SUMA_realloc(cSV->VSv[is].MembDOs,
+                                             cSV->VSv[is].N_MembDOs*sizeof(int));   
+                     cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
+                  }
+               }
+               /* if the current state is anatomical, register object also 
+                  in cSV->RegisteredDO */
+               if (SUMA_isViewerStateAnatomical(cSV)) {
+                  if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id) < 0) {
+                     cSV->RegisteredDO[cSV->N_DO] = dov_id;
+                     cSV->N_DO += 1;
+                  } else {
+                     SUMA_LHv("   GLDO %s, %s already in the bag at"
+                              " cSV->RegisteredDO[%d]\n", 
+                                 DO_label(GLDO), GLDO->variant,
+                                 SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id));
+                  }
+                  SUMA_LH("Adding color list...");
+                  /* add the ColorList */
+                  if (!SUMA_FillColorList (cSV,
+                                 (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
+                     SUMA_S_Err("Failed in SUMA_FillColorList.");
+                     SUMA_RETURN (NOPE);
+                  }
+ 
+               } else {
+                  SUMA_LHv(" Viewer state (%s) not anatomical for GLDO %s, %s\n",
+                           cSV->State, DO_label(GLDO), GLDO->variant);
+               } 
+            } else {
+               /* gets a new sate all its own */
+               is = SUMA_WhichState (SUMA_iDO_state(dov_id), cSV, 
+                                     SUMA_iDO_group(dov_id));
+               if (is < 0) { /* add state, it is a new one */
+                  SUMA_LHv("For GLDO %s\nState:%s to be added, group %s\n", 
+                           GLDO->Label, SUMA_iDO_state(dov_id),
+                                        SUMA_iDO_group(dov_id));
+                  SUMA_New_ViewState (cSV);
+                  is = cSV->N_VSv-1;
+                  cSV->VSv[is].Name = 
+                                 SUMA_copy_string(SUMA_iDO_state(dov_id));
+                  cSV->VSv[is].AnatCorrect = NOPE;
+                  cSV->VSv[is].Group = SUMA_copy_string("ANY"); 
+                  if (!cSV->VSv[is].Name || 
+                      !cSV->VSv[is].Group) {
+                     SUMA_S_Err("Failed to allocate for cSV->VSv[is]."
+                                "Name or .Group.");
+                     SUMA_RETURN (NOPE);
+                  }   
+                  cSV->VSv[is].N_MembDOs = 1;
+                  cSV->VSv[is].MembDOs = 
+                     (int *)SUMA_calloc(cSV->VSv[is].N_MembDOs, sizeof(int));
+                  cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
+               } else { /* old state, just add the DO */
+                  SUMA_LHv("For GLDO  %s\n State:%s,Group:%s found\n", 
+                           GLDO->Label, SUMA_iDO_state(dov_id),
+                                        SUMA_iDO_group(dov_id));
+                  if (SUMA_FindFirst_inIntVect(cSV->VSv[is].MembDOs,
+                                  cSV->VSv[is].MembDOs+cSV->VSv[is].N_MembDOs,
+                                  dov_id) < 0) { /* not present, add it */
+                     cSV->VSv[is].N_MembDOs += 1;
+                     cSV->VSv[is].MembDOs = 
+                        (int *)SUMA_realloc(cSV->VSv[is].MembDOs,
+                                             cSV->VSv[is].N_MembDOs*sizeof(int));
+                     cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
+                  }
+               }
+            }
+            }
+            break;
+         default:
+            if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id) < 0){
+               /* just add for now */
+               cSV->RegisteredDO[cSV->N_DO] = dov_id;
+               cSV->N_DO += 1;
+            }
+            break;
+      }
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
+         for (i=0; i< cSV->N_DO; ++i) {
+            fprintf(SUMA_STDERR,
+                        "RegisteredDO[%d] = %d , type=%d (%s) label %s\t", i, 
+                        cSV->RegisteredDO[i], iDO_type(cSV->RegisteredDO[i]),
+             SUMA_ObjectTypeCode2ObjectTypeName(iDO_type(cSV->RegisteredDO[i])),
+                        iDO_label(cSV->RegisteredDO[i]));
+         }
+         fprintf(SUMA_STDERR,"\n");
+      }
 
+      /* update the title bar */
+      SUMA_UpdateViewerTitle(cSV);   
+   
+      NEXT_CSV:
+      ++icsv;
+   }
+   
+   
    SUMA_RETURN(YUP); 
 }
 /*!
@@ -545,6 +682,17 @@ remove DO with I.D. dov_id from RegisteredDO list of that current viewer
 removal of dov_id element is done by replacing it with the last entry in RegisteredDO
 list. If not found, nothing happens.
 */
+SUMA_Boolean SUMA_UnRegisterDO_idcode(char *idcode_str, SUMA_SurfaceViewer *cSV)
+{
+   static char FuncName[]={"SUMA_UnRegisterDO_idcode"};
+   int id = SUMA_FindDOi_byID(SUMAg_DOv, SUMAg_N_DOv, idcode_str);
+   SUMA_ENTRY;
+   if (id >= 0) {
+      SUMA_RETURN(SUMA_UnRegisterDO(id, cSV));
+   }   
+   SUMA_RETURN(YUP);
+} 
+
 SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 {
    int i;
@@ -552,7 +700,6 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
    /* check to see if dov_id exists */
    i = 0;
    while (i < cSV->N_DO) {
@@ -566,10 +713,12 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
          /* empty the ColorList for this surface */
          if (SUMA_isSO(SUMAg_DOv[dov_id])) {
             SUMA_SurfaceObject *SO = NULL;
-            if (LocalHead) fprintf (SUMA_STDERR,"%s: Emptying ColorList ...\n", FuncName);
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,"%s: Emptying ColorList ...\n", FuncName);
             SO = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
             if (!SUMA_EmptyColorList (cSV, SO->idcode_str)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_EmptyColorList\n", FuncName);
+               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_EmptyColorList\n", 
+                           FuncName);
                SUMA_RETURN(NOPE);
             }
          }
@@ -577,7 +726,8 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
          if (LocalHead) {
             fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
             for (i=0; i< cSV->N_DO; ++i) {
-               fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", i, cSV->RegisteredDO[i]);
+               fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", 
+                        i, cSV->RegisteredDO[i]);
             }
             fprintf(SUMA_STDERR,"\n");
          }
@@ -609,8 +759,8 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
       case type_not_set:
          return("type_not_set");
          break;
-      case no_type:
-         return("no_type");
+      case not_DO_type:
+         return("not_DO");
          break;
       case SO_type:
          return("Surface");
@@ -674,6 +824,9 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
          break;
       case TRACT_type:
          return("TRACT");
+         break;
+      case GRAPH_LINK_type:
+         return("GRAPH_LINK");
          break;
       case N_DO_TYPES:
          return("Number_Of_DO_Types");
@@ -913,6 +1066,21 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                      SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
                      dov[i].CoordType);
                break;
+            case GRAPH_LINK_type: {
+               SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)dov[i].OP;
+               SUMA_DSET *dset = SUMA_find_GLDO_Dset(gldo);
+               SS = SUMA_StringAppend_va(SS,
+                        "DOv ID: %d\n\tGLDO Label: %s, id: %s%s\n"
+                        "\tType: %d (%s), Axis Attachment %d, Variant: %s,\n"
+                        "\tParent:  %s (id %s)\n", 
+                        i, gldo->Label, gldo->idcode_str,
+                     strcmp(gldo->variant,"TheShadow")?
+                           "":"(id always same as Parent's)",
+                     dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType, 
+                     gldo->variant, SDSET_LABEL(dset), gldo->Parent_idcode_str);
+               break; }
             default:
                SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n"
                                             "\tUnknown Type (%d) %s!\n",
@@ -1139,11 +1307,14 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_Axis *sax = NULL;
    SUMA_SphereDO *spdo=NULL;
    SUMA_NIDO *nido=NULL;
+   SUMA_GraphLinkDO *gldo =NULL; 
+   SUMA_Boolean LocalHead=YUP;
    
    SUMA_ENTRY;
 
    if (SUMA_IS_EMPTY_STR_ATTR(idcode)) { /* might come in as ~ at times */
       fprintf(SUMA_STDERR,"Warning %s: NULL idcode.\n", FuncName);
+      if (LocalHead) SUMA_DUMP_TRACE("NUULL id");
       SUMA_RETURN (-1);
    }
    for (i=0; i< N_dov; ++i) {
@@ -1197,12 +1368,29 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
                SUMA_RETURN (i);
             }
             break;
+         case (GRAPH_LINK_type):
+            gldo = (SUMA_GraphLinkDO *)dov[i].OP;
+            if (strcmp(idcode, gldo->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
          default:
-            SUMA_S_Warnv("Object type %d not checked.\n", dov[i].ObjectType);
+            SUMA_S_Warnv("Object type %d (%s) not checked.\n", 
+               dov[i].ObjectType,
+               SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType));
             break;
       }
    }
    SUMA_RETURN(-1);
+}
+
+SUMA_ALL_DO* SUMA_whichADO(char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_whichADO"};
+   int ido = SUMA_whichDO(idcode, dov, N_dov);
+   
+   if (ido < 0) return(NULL);
+   return((SUMA_ALL_DO *)dov[ido].OP);
 }
 
 /*!
@@ -1210,7 +1398,8 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    searches all SO_type DO objects for idcode
    
    \param idcode (char *) idcode of SO you are searching for
-   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, 
+                         typically SUMAg_DOv
    \param N_dov (int) number of DOs in dov
    \return ans (int) index into dov of object with matching idcode 
        -1 if not found
@@ -1244,7 +1433,8 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    searches all VO_type DO objects for idcode
    
    \param idcode (char *) idcode of VO you are searching for
-   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, 
+                         typically SUMAg_DOv
    \param N_dov (int) number of DOs in dov
    \return ans (int) index into dov of object with matching idcode 
        -1 if not found
@@ -1497,9 +1687,41 @@ int SUMA_BiggestLocalDomainParent_Side(SUMA_DO *dov, int N_dov, SUMA_SO_SIDE ss)
    SUMA_RETURN(imax);
 }
 
+/* Try to find any idcode_str, not complete yet */
+void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
+{
+   static char FuncName[]={"SUMA_find_any_object"};
+   int i;
+   void *PP=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!idcode_str) SUMA_RETURN(PP);
+   if (do_type) *do_type = type_not_set;
+   if ((PP = SUMA_FindDset_s(idcode_str, SUMAg_CF->DsetList))) {
+      if (do_type) *do_type = SDSET_type;
+      SUMA_RETURN(PP);
+   } else if ((PP = SUMA_findSOp_inDOv (idcode_str, SUMAg_DOv, SUMAg_N_DOv))){
+      if (do_type) *do_type = SO_type;
+      SUMA_RETURN(PP);
+   } else if ((PP = SUMA_findVOp_inDOv (idcode_str, SUMAg_DOv, SUMAg_N_DOv))){
+      if (do_type) *do_type = VO_type;
+      SUMA_RETURN(PP);
+   } else if ((i = SUMA_FindDOi_byID(SUMAg_DOv, SUMAg_N_DOv,idcode_str))>=0) {
+      PP = &(SUMAg_DOv[i].OP);
+      if (do_type) *do_type = SUMAg_DOv[i].ObjectType;
+      SUMA_RETURN(PP);
+   } else {
+      /* Can still search in overlay planes, ROIs, etc. 
+         But wait until we need them .. */    
+   }
+   
+   SUMA_RETURN(NULL);
+
+}
 
 
-SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov)
+SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
 {
    static char FuncName[]={"SUMA_findanySOp_inDOv"};
    SUMA_SurfaceObject *SO;
@@ -1507,10 +1729,12 @@ SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov)
    
    SUMA_ENTRY;
    
+   if (dov_id) *dov_id = -1;
    SO = NULL;
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == SO_type) {
          SO = (SUMA_SurfaceObject *)dov[i].OP;
+         if (dov_id) *dov_id = i;
          SUMA_RETURN (SO);
       }
    }
@@ -1917,8 +2141,45 @@ SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO)
    SUMA_RETURN (NOPE);
 }
 
+
+SUMA_Boolean SUMA_isRelated( SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2 , int level)
+{
+   static char FuncName[]={"SUMA_isRelated"};
+   char *p1=NULL, *p2=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado1 || !ado2) SUMA_RETURN(NOPE);
+
+   switch (ado1->do_type) {
+      case SO_type:
+         if (ado1->do_type != ado2->do_type) SUMA_RETURN(NOPE); 
+         SUMA_RETURN(SUMA_isRelated_SO((SUMA_SurfaceObject *)ado1,
+                                       (SUMA_SurfaceObject *)ado2,level));
+         break;
+      case SDSET_type:
+      case GRAPH_LINK_type:
+         if (ado2->do_type != SDSET_type && ado2->do_type != GRAPH_LINK_type) 
+                                                         SUMA_RETURN(NOPE); 
+         if ((p1=SUMA_ADO_Parent_idcode(ado1)) && 
+             (p2=SUMA_ADO_Parent_idcode(ado2)) &&
+             !strcmp(p1,p2)) {
+            SUMA_RETURN(YUP);
+         }
+         SUMA_RETURN(NOPE);
+         break;
+      default:
+         SUMA_S_Errv("Not ready to deal with type %s\n",
+                     SUMA_ObjectTypeCode2ObjectTypeName(ado1->do_type));
+         SUMA_RETURN(NOPE);
+   }
+   SUMA_RETURN(NOPE);
+}
+
 /*!
-   \brief ans = SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2, int level);
+   \brief ans = SUMA_isRelated_SO (SUMA_SurfaceObject *SO1, 
+                                   SUMA_SurfaceObject *SO2, int level);
    
    returns YUP if SO1 and SO2 are related at level 1 or 2
    level 1 means nuclear family (share the same parent)
@@ -1934,11 +2195,10 @@ SUMA_Boolean SUMA_isLocalDomainParent (SUMA_SurfaceObject *SO)
    
    \sa SUMA_WhatAreYouToMe
 */
-
-SUMA_Boolean SUMA_isRelated ( SUMA_SurfaceObject *SO1, 
-                              SUMA_SurfaceObject *SO2, int level)
+SUMA_Boolean SUMA_isRelated_SO ( SUMA_SurfaceObject *SO1, 
+                                 SUMA_SurfaceObject *SO2, int level)
 {
-   static char FuncName[]={"SUMA_isRelated"};
+   static char FuncName[]={"SUMA_isRelated_SO"};
    SUMA_DOMAIN_KINSHIPS kin;
    static int iwarn=0;
    SUMA_Boolean LocalHead = NOPE;
@@ -2048,7 +2308,7 @@ SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
       }
    }
    
-   if (SOC && SUMA_isRelated(SOC, SO, 1)) {
+   if (SOC && SUMA_isRelated_SO(SOC, SO, 1)) {
       SUMA_S_Warn("Unexpected surface pair with same localdomainparent.\n"
                   "Good Luck To You");
    }
@@ -2259,13 +2519,13 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
       /* Nothingness, return */
       SUMA_RETURN(overC);
    }
-   if (!(overC=SUMA_Fetch_OverlayPointerByDset (SOC->Overlays, 
-                     SOC->N_Overlays, dsetC, &OverInd))) {
+   if (!(overC=SUMA_Fetch_OverlayPointerByDset ((SUMA_ALL_DO *)SOC, 
+                                                dsetC, &OverInd))) {
       SUMA_S_Err("Failed oh failed to find overlay for contralateral dset");            SUMA_RETURN(NULL);      
    }
    
-   if (!SUMA_SURFCONT_REALIZED(SOC)) {
-      if (!(SUMA_OpenCloseSurfaceCont(NULL, SOC, NULL))) {
+   if (!SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SOC)) {
+      if (!(SUMA_OpenCloseSurfaceCont(NULL, (SUMA_ALL_DO *)SOC, NULL))) {
          SUMA_S_Err("Could not ensure controller is ready");
          SOC = NULL; overC=NULL;
       } 
@@ -2657,7 +2917,7 @@ SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO,
       if (dov[i].ObjectType == ROIdO_type) {
          ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
          if (ROI->DrawStatus == SUMA_ROI_InCreation) {
-            if (SUMA_isdROIrelated (ROI, SO)) {
+            if (SUMA_isdROIrelated (ROI, (SUMA_ALL_DO *)SO)) {
                /* found an ROI, should be the only one, return */
                SUMA_RETURN (ROI);
             }
@@ -2686,20 +2946,21 @@ SUMA_Boolean SUMA_isNBDOrelated (SUMA_NB_DO *SDO, SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
-   /* Just compare the idcodes, not allowing for kinship yet but code below could do that */
+   /* Just compare the idcodes, not allowing for kinship yet but 
+      code below could do that */
    if (strcmp(SO->idcode_str, SDO->Parent_idcode_str) == 0) {
       SUMA_RETURN(YUP);
    } else {
       SUMA_RETURN(NOPE);
    }
    
-   if (LocalHead) {
-      fprintf (SUMA_STDERR, "%s: %s SO->LocalDomainParentID\n", FuncName, SO->LocalDomainParentID);
-      fprintf (SUMA_STDERR, "%s: %s SDO->Parent_idcode_str\n", FuncName, SDO->Parent_idcode_str);
-      fprintf (SUMA_STDERR, "%s: %s SO->idcode_str\n", FuncName, SO->idcode_str);
-   }
+   SUMA_LHv(" %s SO->LocalDomainParentID\n"
+            " %s SDO->Parent_idcode_str\n"
+            " %s SO->idcode_str\n", 
+      SO->LocalDomainParentID, SDO->Parent_idcode_str, SO->idcode_str);
    
-   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   /* find the pointer to the surface having for an idcode_str: 
+         ROI->Parent_idcode_str */
    SO_NB = SUMA_findSOp_inDOv(SDO->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    
    if (!SO_NB) {
@@ -2707,7 +2968,7 @@ SUMA_Boolean SUMA_isNBDOrelated (SUMA_NB_DO *SDO, SUMA_SurfaceObject *SO)
       SUMA_RETURN (NOPE);
    }
    
-   if ( SUMA_isRelated (SO, SO_NB, 1)) { /*  relationship of the 1st order only */ 
+   if (SUMA_isRelated_SO(SO, SO_NB, 1)){ /* relationship of the 1st order only */
       SUMA_RETURN (YUP);
    }
    
@@ -2751,13 +3012,13 @@ SUMA_Boolean SUMA_isNIDOrelated (SUMA_NIDO *SDO, SUMA_SurfaceObject *SO)
       SUMA_RETURN(NOPE);
    }
    
-   if (LocalHead) {
-      fprintf (SUMA_STDERR, "%s: %s SO->LocalDomainParentID\n", FuncName, SO->LocalDomainParentID);
-      fprintf (SUMA_STDERR, "%s: %s SDO->Parent_idcode_str\n", FuncName, Parent_idcode_str);
-      fprintf (SUMA_STDERR, "%s: %s SO->idcode_str\n", FuncName, SO->idcode_str);
-   }
+   SUMA_LHv(" %s SO->LocalDomainParentID\n"
+            " %s SDO->Parent_idcode_str\n"
+            "  %s SO->idcode_str\n", 
+            SO->LocalDomainParentID, Parent_idcode_str, SO->idcode_str);
    
-   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   /* find the pointer to the surface having for an idcode_str: 
+      ROI->Parent_idcode_str */
    SO_NB = SUMA_findSOp_inDOv(Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    
    if (!SO_NB) {
@@ -2765,7 +3026,7 @@ SUMA_Boolean SUMA_isNIDOrelated (SUMA_NIDO *SDO, SUMA_SurfaceObject *SO)
       SUMA_RETURN (NOPE);
    }
    
-   if ( SUMA_isRelated (SO, SO_NB, 1)) { /*  relationship of the 1st order only */ 
+   if (SUMA_isRelated_SO(SO, SO_NB, 1)){ /*relationship of the 1st order only */
       SUMA_RETURN (YUP);
    }
    
@@ -2786,7 +3047,7 @@ ans = SUMA_isdROIrelated (dROI, SO);
 \return ans (SUMA_Boolean) YUP/NOPE
 
 */
-SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
+SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_isdROIrelated"};
    SUMA_SurfaceObject *SO_ROI = NULL;
@@ -2794,35 +3055,44 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
-   if (!SO || !ROI) {
+   if (!ado || !ROI) {
       SUMA_S_Err("NULL input");
       SUMA_RETURN(NOPE);
    }
-   if (LocalHead) {
-      fprintf (SUMA_STDERR, 
-               "%s: %s SO->LocalDomainParentID\n", 
-               FuncName, SO->LocalDomainParentID);
-      fprintf (SUMA_STDERR, 
-               "%s: %s ROI->Parent_idcode_str\n", 
-               FuncName, ROI->Parent_idcode_str);
-      fprintf (SUMA_STDERR, 
-               "%s: %s SO->idcode_str\n", 
-               FuncName, SO->idcode_str);
-   }
-   
-   /* find the pointer to the surface having for an 
-      idcode_str: ROI->Parent_idcode_str */
-   SO_ROI = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-   
-   
-   if (!SO_ROI) {
-      SUMA_SL_Err("Could not find surface of ROI->Parent_idcode_str");
-      SUMA_RETURN(NOPE);
-   }
-   
-   if (SUMA_isRelated (SO, SO_ROI, 1)) { 
-      /* relationship of the 1st order only */ 
-      SUMA_RETURN (YUP);
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         if (LocalHead) {
+            fprintf (SUMA_STDERR, 
+                     "%s: %s SO->LocalDomainParentID\n", 
+                     FuncName, SO->LocalDomainParentID);
+            fprintf (SUMA_STDERR, 
+                     "%s: %s ROI->Parent_idcode_str\n", 
+                     FuncName, ROI->Parent_idcode_str);
+            fprintf (SUMA_STDERR, 
+                     "%s: %s SO->idcode_str\n", 
+                     FuncName, SO->idcode_str);
+         }
+
+         /* find the pointer to the surface having for an 
+            idcode_str: ROI->Parent_idcode_str */
+         SO_ROI = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, 
+                                     SUMAg_DOv, SUMAg_N_DOv);
+
+         if (!SO_ROI) {
+            SUMA_SL_Err("Could not find surface of ROI->Parent_idcode_str");
+            SUMA_RETURN(NOPE);
+         }
+
+         if (SUMA_isRelated_SO(SO, SO_ROI, 1)) { 
+            /* relationship of the 1st order only */ 
+            SUMA_RETURN (YUP);
+         }
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for %s\n",
+             SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         break;
    }
 
    SUMA_RETURN (NOPE);
@@ -2846,7 +3116,8 @@ SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
-   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   /* find the pointer to the surface having for an idcode_str: 
+      ROI->Parent_idcode_str */
    SO_ROI = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    
    if (!SO_ROI) {
@@ -2854,7 +3125,7 @@ SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO)
       SUMA_RETURN (NOPE);
    }
    
-   if (SUMA_isRelated (SO, SO_ROI, 1)) { /* relationship of the 1st order only */
+   if (SUMA_isRelated_SO(SO, SO_ROI, 1)){/* relationship of the 1st order only */
       SUMA_RETURN (YUP);
    }
 
@@ -2903,8 +3174,8 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO,
       switch (dov[i].ObjectType) { /* case Object Type */
          case ROIdO_type:
             D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
-            if (SUMA_isdROIrelated (D_ROI, SO)) {
-               if (LocalHead) fprintf (SUMA_STDERR, "%s: Found a drawn ROI, building mask...\n", FuncName);
+            if (SUMA_isdROIrelated (D_ROI, (SUMA_ALL_DO *)SO)) {
+               SUMA_LH("Found a drawn ROI, building mask...");
 
                Npart = SUMA_Build_Mask_DrawnROI (D_ROI, Mask);
                if (Npart < 0) {
@@ -2914,7 +3185,7 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO,
                   SUMA_RETURN(NULL);
                }else {
                   *N_added = *N_added + Npart;
-                  if (LocalHead) fprintf (SUMA_STDERR, "%s: %d nodes found in that ROI.\n", FuncName, Npart);
+                  SUMA_LHv("%d nodes found in that ROI.\n", Npart);
                }
             }
             break;
@@ -3963,7 +4234,7 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    nel = NI_new_data_element("event_parameters", 0); 
    NI_add_to_group(cb->FunctionInput, nel);
    NI_SET_INT(nel,"event.new_node", -1);
-   NI_set_attribute(nel, "event.SO_idcode", "");
+   NI_set_attribute(nel, "event.DO_idcode", "");
    NI_set_attribute(nel,"event.overlay_name", "");
   
    SUMA_LH("Adding parent"); 
@@ -4037,7 +4308,7 @@ SUMA_Boolean SUMA_FlushCallbackEventParameters (SUMA_CALLBACK *cb)
 }
 
 SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb, 
-                                  int refresh, SUMA_SurfaceObject *SO,
+                                  int refresh, SUMA_ALL_DO *ado,
                                   int doall) 
 {
    static char FuncName[]={"SUMA_ExecuteCallback"};
@@ -4057,19 +4328,19 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb,
    SUMA_FlushCallbackEventParameters(cb);
    
    if (refresh) {/* Now decide on what needs refreshing */
-      if (!SO) {
+      if (!ado) {
          curSO = NULL;
       } else {
-         curSO = *(SO->SurfCont->curSOp);
+         curSO = SUMA_Cont_SO(SUMA_ADO_Cont(ado));
       }           
       for (i=0; i<cb->N_parents; ++i) {
          if (SUMA_is_ID_4_DSET(cb->parents[i], &targetDset)) {
             targetSO = SUMA_findSOp_inDOv(cb->parents_domain[i],
                                           SUMAg_DOv, SUMAg_N_DOv);
             if (!targetSO) {
-               if (SO) {
+               if (ado && ado->do_type == SO_type) {
                   SUMA_S_Warn("Could not find targetSO, using SO instead");
-                  targetSO = SO;
+                  targetSO = (SUMA_SurfaceObject *)ado;
                } else {
                   SUMA_S_Err("Don't know what do do here");
                   SUMA_RETURN(NOPE);
@@ -4077,8 +4348,7 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb,
             }
             /* refresh overlay and SO for this callback */
             targetSover = SUMA_Fetch_OverlayPointerByDset(
-                                 targetSO->Overlays, 
-                                 targetSO->N_Overlays,
+                                 (SUMA_ALL_DO*)targetSO,
                                  targetDset,
                                  &jj);
             SUMA_LHv("Colorizing %s\n", targetSover->Name);
@@ -4090,8 +4360,8 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb,
                SUMA_RETURN(NOPE);
             }
             if (doall || curSO != targetSO) {
-               SUMA_UPDATE_ALL_NODE_GUI_FIELDS(targetSO);
-               SUMA_RemixRedisplay(targetSO);
+               SUMA_UPDATE_ALL_NODE_GUI_FIELDS((SUMA_ALL_DO*)targetSO);
+               SUMA_RemixRedisplay((SUMA_ALL_DO*)targetSO);
             } else {
                /* Update and Remix will be done for curSO 
                   by the function who called this one */
@@ -4103,7 +4373,7 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb,
                event .... */
             SUMA_LHv("Updating threshold at %f\n", 
                      targetSO->SurfCont->curColPlane->OptScl->ThreshRange[0]);
-            SUMA_UpdatePvalueField( targetSO,
+            SUMA_UpdatePvalueField( (SUMA_ALL_DO *)targetSO,
                      targetSO->SurfCont->curColPlane->OptScl->ThreshRange[0]);
          } else if (SUMA_is_ID_4_SO(cb->parents[i], &targetSO)) {
             SUMA_S_Note("Got surface, don't know \n"

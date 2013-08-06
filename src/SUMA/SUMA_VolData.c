@@ -1211,7 +1211,7 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
       SUMA_LH("Indentity, nothing to do.");
       SUMA_RETURN(YUP);      
    }
-   
+
    if (!doinv) {
       LOAD_MAT44( A, \
                   Xform[0][0], Xform[0][1], Xform[0][2], Xform[0][3],    \

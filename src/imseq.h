@@ -870,6 +870,7 @@ extern void ISQ_cropper( MCW_imseq *, XButtonEvent *) ; /* 17 Jun 2002 */
 extern void ISQ_snapshot( Widget w ) ;                 /* 18 Jun 2003 */
 extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
 extern MRI_IMAGE * ISQ_snap_to_mri_image( int  , int  , byte *); /* Dec 2011 */
+extern MRI_IMAGE * ISQ_snap4_to_mri_image( int  , int  , byte *); /* May 2013 */
 extern void ISQ_snap_agif( char * ) ;                  /* 06 Dec 2006 */
 extern void ISQ_snap_mpeg( char * ) ;
 extern void ISQ_snap_jpeg( char * ) ;
