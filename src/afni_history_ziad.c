@@ -65,6 +65,28 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Aug , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
+   "Recreated suma_MNI_N27.tgz and suma_TT_N27.tgz with LPI GIFTI",
+   "The surfaces had to be recreated to fit LPI assumption.\n"
+   "Old suma will not work with new archives and vice versa.\n"
+   "SUMA will warn when using old archive to help users with transition\n"
+   "See @SUMA_Make_Spec_FS -nocor and -GNIFTI options for more info.\n"
+ },
+ 
+ { 6, Aug , 2013 , ZSS , "MapIcosahedron" , MINOR , TYPE_MODIFY,
+   "Hard coded skipping of outer-pial-smoothed surfaces",
+   "Those brain envelopes are not isotopic with the rest of \n"
+   "the surfaces so there is no point standardizing them."
+ },
+ 
+ { 5, Aug , 2013 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY,
+   "Option -nocor is now obsolte. -GNIFTI replaces it",
+   "This was necessary to alert whoever was using -nocor that\n"
+   "resultant GIFTI surfaces were being written in RAI and that now\n"
+   "they are in LPI in keeping with the standard.\n"
+   "See @SUMA_Make_Spec_FS -nocor and -GNIFTI options for more info.\n"
+ },
+ 
  { 5, Aug , 2013 , ZSS , "inspec" , MINOR , TYPE_NEW_OPT,
    "Added -remove_state to remove surfaces of specific state from spec file",
    NULL

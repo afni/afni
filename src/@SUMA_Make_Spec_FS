@@ -1115,7 +1115,6 @@ L_ICO:
       @ ild ++
       set both = ()
       foreach hem (lh rh)
-         set echo
          set sp = {$subj_id}_${hem}.spec
          set dm = ()
          if ($#fsdsets > 0) then
@@ -1129,7 +1128,6 @@ L_ICO:
             MapIcosahedron -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
             set both = ($both ${ldpref[$ild]}{$subj_id}_${hem}.spec)
          endif
-         unset echo
       end
       if ($#both == 2) then
          inspec -LRmerge $both -prefix ${ldpref[$ild]}{$subj_id}_both.spec
