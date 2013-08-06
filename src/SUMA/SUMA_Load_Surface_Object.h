@@ -27,6 +27,8 @@ SUMA_Boolean SUMA_Merge_SpecFiles( SUMA_SurfSpecFile *lhs,
                                    SUMA_SurfSpecFile *rhs,
                                    SUMA_SurfSpecFile *bhs,
                                    char *FileName);
+int SUMA_RemoveSpecState(SUMA_SurfSpecFile  *Spec, 
+                         char *state_rm, int exact_match, char *ldp);
 SUMA_Boolean SUMA_Load_SO_NodeMarker(SUMA_SurfaceObject *SO, 
                                      char *NodeMarker);
 SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName);
