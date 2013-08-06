@@ -4428,7 +4428,7 @@ SUMA_Boolean SUMA_isSOinXformedSpace(SUMA_SurfaceObject *SO, NI_element **nelp)
       SUMA_S_Warn("Can't tell, returning NO");
       SUMA_RETURN(0);
    }
-   nel = SUMA_FindNgrNamedElement(SO->aSO, "Coord_System");
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Node_XYZ");
    if (nelp) *nelp = nel;
    if (!nel) {
       SUMA_S_Warn("Can't tell, returning Nein");
