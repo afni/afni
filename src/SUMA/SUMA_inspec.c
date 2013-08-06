@@ -35,6 +35,7 @@ int main (int argc,char *argv[])
    char *spec_name=NULL, *spec_name_right=NULL,*outname=NULL, *state_rm=NULL;
    SUMA_SurfSpecFile Spec;   
    SUMA_Boolean brk;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_mainENTRY;
    
