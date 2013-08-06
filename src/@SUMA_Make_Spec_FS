@@ -785,7 +785,14 @@ L_CREATE_SPEC:
        else
       set map_ref = $s_head.smoothwm.${sex}
        endif
-
+       
+       # check for SAME mapping ref case for pial-outer
+       if ( "$surf.${sex}" == "$s_head.pial-outer-smoothed.${sex}" ) then
+      set map_ref = SAME
+       else
+      #abide by previous setting
+       endif
+       
        # EmbedDimension is 2 for .flat surfaces, else 3
        if ( $surf =~ *.flat* ) then
       set embed_ref = 2

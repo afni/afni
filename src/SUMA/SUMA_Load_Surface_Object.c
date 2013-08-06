@@ -1526,7 +1526,8 @@ SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs)
 /*! 
    Function to read the surface specs file.
    \param fname (char *) name of the specs file
-   \param Spec (SUMA_SurfSpecFile *) pre-allocated pointer to SUMA_SurfSpecFile structure. )
+   \param Spec (SUMA_SurfSpecFile *) pre-allocated pointer to 
+          SUMA_SurfSpecFile structure. )
    \ret YUP, good, NOPE, not good
 */
 SUMA_Boolean SUMA_Read_SpecFile (
@@ -2478,6 +2479,7 @@ SUMA_Boolean SUMA_Read_SpecFile (
    SUMA_RETURN (YUP); 
 }/* SUMA_Read_SpecFile */
 
+
 /*!
    \brief merge left and right side specfiles in a manner that suits AFNI
 */
@@ -2597,8 +2599,81 @@ SUMA_Boolean SUMA_Merge_SpecFiles( SUMA_SurfSpecFile *lhs,
    
    
    SUMA_RETURN(YUP);
-}            
-                       
+}       
+
+/*!
+   Remove surfaces of a certain state from the spec struct
+   If ldp is not NULL, remove if both domain parent and the
+   state match. ldp match is always partial.
+   
+   Returns the number of surfaces remaining in the spec struct
+*/
+int SUMA_RemoveSpecState(SUMA_SurfSpecFile  *Spec, 
+                         char *state_rm, int exact_match,
+                         char *ldp)
+{
+   static char FuncName[]={"SUMA_RemoveSpecState"};
+   int i, k, copyit;
+   SUMA_Boolean LocalHead = NOPE;
+
+   if (!Spec || !state_rm) SUMA_RETURN(0);
+
+   k = 0;
+   for (i=0; i<Spec->N_Surfs; ++i) {
+      copyit = 1;
+      if ( (exact_match == 0 &&  strstr(Spec->State[i],state_rm)) ||
+           (exact_match == 1 && !strcmp(Spec->State[i],state_rm))) {
+         /* found state to remove */
+         copyit = 0;
+         SUMA_LHv("Will remove %s\n", Spec->State[i]);
+      }
+      /* don't use exact match for Spec->LocalDomainParent[i], 
+         unless you account for the paths. "SAME" ends up being
+         "./SAME", for example. */
+      if (!copyit && ldp && !strstr(Spec->LocalDomainParent[i], ldp)) { 
+         /* no match for ldp, cancel */
+         copyit = 1;
+         SUMA_LHv("Canceling removal ldp is %s\n", Spec->LocalDomainParent[i]);
+      }
+      if ( copyit ) {
+         SUMA_LHv("Working to copy state %s for surface i=%d k=%d\n",
+                        Spec->State[i], i, k);
+         if (k < i) {
+         sprintf(Spec->State[k], "%s",Spec->State[i]);
+         sprintf(Spec->SurfaceType[k], "%s",Spec->SurfaceType[i]);
+         sprintf(Spec->SurfaceFormat[k], "%s",Spec->SurfaceFormat[i]);
+         sprintf(Spec->TopoFile[k], "%s",Spec->TopoFile[i]);
+         sprintf(Spec->CoordFile[k], "%s",Spec->CoordFile[i]);
+         sprintf(Spec->MappingRef[k], "%s",Spec->MappingRef[i]);
+         sprintf(Spec->SureFitVolParam[k], "%s",Spec->SureFitVolParam[i]);
+         sprintf(Spec->SurfaceFile[k], "%s",Spec->SurfaceFile[i]);
+         sprintf(Spec->VolParName[k], "%s",Spec->VolParName[i]);
+         if (Spec->IDcode[i]) sprintf(Spec->IDcode[k], "%s",Spec->IDcode[i]);
+         else Spec->IDcode[k]=NULL;
+         sprintf(Spec->State[k], "%s",Spec->State[i]);
+         sprintf(Spec->LabelDset[k], "%s",Spec->LabelDset[i]);
+         sprintf(Spec->Group[k], "%s",Spec->Group[i]);
+         sprintf(Spec->SurfaceLabel[k], "%s",Spec->SurfaceLabel[i]);
+         Spec->EmbedDim[k] = Spec->EmbedDim[i];
+         sprintf(Spec->AnatCorrect[k], "%s",Spec->AnatCorrect[i]);
+         sprintf(Spec->Hemisphere[k], "%s",Spec->Hemisphere[i]);
+         sprintf(Spec->DomainGrandParentID[k], 
+                                 "%s",Spec->DomainGrandParentID[i]);
+         sprintf(Spec->OriginatorID[k], "%s",Spec->OriginatorID[i]);
+         sprintf(Spec->LocalCurvatureParent[k], 
+                                 "%s",Spec->LocalCurvatureParent[i]);
+         sprintf(Spec->LocalDomainParent[k], "%s",Spec->LocalDomainParent[i]);
+         sprintf(Spec->NodeMarker[k], "%s",Spec->NodeMarker[i]);
+         }
+         ++k;
+      }
+   }
+   if (k != Spec->N_Surfs) Spec->N_States = Spec->N_States-1;
+   Spec->N_Surfs = k;
+   
+   SUMA_RETURN(k);
+}
+           
 /*!
    \brief Write SUMA_SurfSpecFile  structure to disk
    \param Spec: Structure containing specfile
