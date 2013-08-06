@@ -1205,6 +1205,14 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o 3dBlurInMask 3dBlurInMask.o $(LFLAGS) $(LLIBS)
 
+3dTproject.o:3dTproject.c mri_blur3d_variable.c
+	$(RM) $@
+	$(CCOMP) -c 3dTproject.c $(INFLAGS)
+
+3dTproject:3dTproject.o
+	$(RM) $@
+	$(CCOMP) -o 3dTproject 3dTproject.o $(LFLAGS) $(LLIBS)
+
 3dDespike.o:3dDespike.c
 	$(RM) $@
 	$(CCOMP) -c 3dDespike.c $(INFLAGS)
