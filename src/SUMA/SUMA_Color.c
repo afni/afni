@@ -2183,7 +2183,7 @@ SUMA_Boolean SUMA_TransferCoordBias(SUMA_OVERLAYS *ovr,
    for (iso=0; iso<SUMAg_N_DOv; ++iso) {
       if (SUMA_isSO(SUMAg_DOv[iso])) {
          SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
-         if (SUMA_isOverlayOfSO(SO, ovr)) {
+         if (SUMA_isOverlayOfDO((SUMA_ALL_DO *)SO, ovr)) {
             SUMA_LH("Setting bias flag");
             ovr->OptScl->DoBias = BiasDim;
             SUMA_TransferSO_CoordBias(SO, ovr, BiasDim);   
@@ -2419,7 +2419,7 @@ SUMA_Boolean SUMA_SetCoordBias(SUMA_OVERLAYS *ovr,
    for (iso=0; iso<SUMAg_N_DOv; ++iso) {
       if (SUMA_isSO(SUMAg_DOv[iso])) {
          SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
-         if (SUMA_isOverlayOfSO(SO, ovr)) {
+         if (SUMA_isOverlayOfDO((SUMA_ALL_DO *)SO, ovr)) {
             SUMA_LH(SO->Label);
             SUMA_ApplyVisXform(SO, "VisX", UNDO_XFORM, 1);
             SUMA_SetSO_CoordBias(SO, ovr, NewBias, BiasDim);   
@@ -2445,7 +2445,7 @@ SUMA_Boolean SUMA_RemoveCoordBias(SUMA_OVERLAYS *ovr)
       for (iso=0; iso<SUMAg_N_DOv; ++iso) {
          if (SUMA_isSO(SUMAg_DOv[iso])) {
             SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
-            if (SUMA_isOverlayOfSO(SO, ovr)) {
+            if (SUMA_isOverlayOfDO((SUMA_ALL_DO *)SO, ovr)) {
                SUMA_LH(SO->Label);
                SUMA_ApplyVisXform(SO, "VisX", UNDO_XFORM, 1);
                SUMA_RemoveSO_CoordBias(SO, ovr); 
@@ -3385,7 +3385,8 @@ NI_group *SUMA_CmapToNICmap(SUMA_COLOR_MAP *CM)
    /* So this is not really a dset, but it was nice to make use of
    dset utility functions. Now cleanup a little */
    /* remove ugly inel */
-   NI_remove_from_group(dset->ngr, dset->inel);
+   NI_remove_from_group(dset->ngr, dset->inel); 
+      NI_free_element(dset->inel); dset->inel=NULL;
    
    /* grab ngr from dset, it is all we need */
    ngr = dset->ngr; dset->ngr = NULL; 
@@ -5331,6 +5332,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(
    if (ownerid) sprintf(Sover->owner_id, "%s", ownerid);
    else Sover->owner_id[0] = '\0';
    Sover->LinkedPtrType = SUMA_LINKED_OVERLAY_TYPE;
+   Sover->do_type = not_DO_type;
    
    /* make a link to dset */
    SUMA_LH("Linking to Dset");
@@ -5678,8 +5680,8 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
    \param OverInd (int *) index of overlay plane in Overlays that is fetched (-1 if plane not found)
    \ret ptr (SUMA_OVERLAYS *)  pointer of overlay plane (= Overlays[*OverInd]) NULL if Name is not found
 */
-
-SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overlays, const char * Name, int * OverInd)
+SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_ALL_DO *ado, const char * Name,
+                                           int * OverInd)
 {
    static char FuncName[]={"SUMA_Fetch_OverlayPointer"};
    int i, ifound =-1, nfound = 0;
@@ -5689,18 +5691,51 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
    
    SUMA_ENTRY;
    
-   if (!Name) SUMA_RETURN(NULL);
+   if (!ado || !Name) SUMA_RETURN(NULL);
+   
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         SUMA_RETURN(SUMA_Fetch_OverlayPointer_arr(SO->Overlays, SO->N_Overlays,
+                                                Name, OverInd));
+         break; }
+      case SDSET_type: {
+         SUMA_OVERLAYS *over = SUMA_ADO_Overlay(ado,0);
+         SUMA_RETURN(SUMA_Fetch_OverlayPointer_arr (&over, 1, Name, OverInd));
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for type %s\n",
+               SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         break;
+   }
+         
+   SUMA_RETURN(NULL);
+}
+
+SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer_arr (SUMA_OVERLAYS **Overlays, 
+                           int N_Overlays, const char * Name, int * OverInd)
+{
+   static char FuncName[]={"SUMA_Fetch_OverlayPointer_arr"};
+   int i, ifound =-1, nfound = 0;
+   SUMA_OVERLAYS *ptr= NULL;
+   SUMA_PARSED_NAME *pn=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!Name || N_Overlays < 1) SUMA_RETURN(NULL);
    
    for (i=0; i < N_Overlays; ++i) {
       SUMA_LHv("Comparing\n>%s<\nto>%s<\n", Overlays[i]->Name, Name);
       if (!strcmp(Overlays[i]->Name, Name)) {
          *OverInd = i;
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Found overlay plane %s, indexed %d.\n", FuncName, Name, i);
+         SUMA_LHv("Found overlay plane %s, indexed %d.\n", Name, i);
          SUMA_RETURN (Overlays[i]);
       }
    }
    
-   /* failed to find name, perhaps name is missing the path which would be OK as long as there is no conflict */
+   /* failed to find name, perhaps name is missing the path which 
+   would be OK as long as there is no conflict */
    nfound = 0;
    for (i=0; i < N_Overlays; ++i) {
       if (strlen(Overlays[i]->Name) > strlen(Name)) {
@@ -5715,26 +5750,64 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
    if (nfound == 1) {
       i = ifound;
       *OverInd = i;
-      if (LocalHead) fprintf (SUMA_STDOUT,"%s: Found overlay plane %s in secondary search, indexed %d.\n", FuncName, Name, i);
+      SUMA_LHv("Found overlay plane %s in secondary search, indexed %d.\n", 
+               Name, i);
       SUMA_RETURN (Overlays[i]);
    } else if (nfound > 1) {
       SUMA_LHv("Found %d possible matches for %s\n", nfound, Name);
    } 
    
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Overlay plane %s was not found.\n", FuncName, Name);
+   SUMA_LHv("Overlay plane %s was not found.\n", Name);
    
    *OverInd = -1;
 
    SUMA_RETURN (NULL);
-} 
+}
 
+SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_ALL_DO *ado,
+                                                 SUMA_DSET *dset, int * OverInd)
+{
+   static char FuncName[]={"SUMA_Fetch_OverlayPointerByDset"};
+   int i, nfound;
+   SUMA_OVERLAYS *ptr= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !ado) {
+      SUMA_SL_Warn("NULL dset");
+      SUMA_RETURN(NULL);
+   }
+   
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(SO->Overlays, 
+                        SO->N_Overlays, dset, OverInd));
+         break; }
+      case SDSET_type: {
+         SUMA_OVERLAYS *over = SUMA_ADO_Overlay(ado,0);
+         SUMA_RETURN(SUMA_Fetch_OverlayPointerByDset_arr(&over, 1, 
+                        dset, OverInd));
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for type %s (%d)\n",
+               SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type), ado->do_type);
+         if (LocalHead) SUMA_DUMP_TRACE("Bad object type");
+         break;
+   }
+         
+   SUMA_RETURN(NULL);
+
+
+}
 /*!
    Look for overlay pointers for a particular dset 
 */
-SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_OVERLAYS **Overlays, 
+SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset_arr (SUMA_OVERLAYS **Overlays, 
                                  int N_Overlays, SUMA_DSET *dset, int * OverInd)
 {
-   static char FuncName[]={"SUMA_Fetch_OverlayPointerByDset"};
+   static char FuncName[]={"SUMA_Fetch_OverlayPointerByDset_arr"};
    int i, nfound;
    SUMA_OVERLAYS *ptr= NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -5784,35 +5857,89 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_OVERLAYS **Overlays,
    SUMA_RETURN (NULL);
 } 
  
+SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado, 
+                                 SUMA_SurfaceViewer *SV, GLfloat *glcolar)
+{
+   static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
+   SUMA_ENTRY;
+   if (!ado) SUMA_RETURN(NOPE);
+   
+   switch(ado->do_type) {
+      case SO_type:
+         SUMA_RETURN(SUMA_Overlays_2_GLCOLAR4_SO((SUMA_SurfaceObject *)ado,
+                                                 SV, glcolar));
+         break; 
+      case SDSET_type: {
+         SUMA_DSET *dset=(SUMA_DSET *)ado;
+         SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
+         if (!GSaux || !GSaux->Overlay) {
+            SUMA_S_Errv("No GSaux or GSaux->Overlay for %s\n", 
+                        SDSET_LABEL(dset));
+            SUMA_RETURN(NOPE);
+         }
+         if (!GSaux->isColored) {
+            if (!(GSaux->isColored = (SUMA_Boolean *)
+                      SUMA_calloc(SDSET_VECLEN(dset),sizeof(SUMA_Boolean)))) {
+               SUMA_S_Crit("Failed to allocate for iscolored");
+               SUMA_RETURN(NOPE);
+            }
+         } else {
+            memset(GSaux->isColored, 0, sizeof(SUMA_Boolean)*SDSET_VECLEN(dset));
+         }
+         if (!SUMA_MixOverlays ( &GSaux->Overlay, 1, NULL, 0, 
+                                 glcolar, SDSET_VECLEN(dset), 
+                                 GSaux->isColored, NOPE)) {
+            SUMA_S_Err("Failed in SUMA_MixOverlays.");
+            SUMA_RETURN (NOPE);
+         }
+         SUMA_RETURN(YUP);  
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for type %d (%s)\n",
+            ado->do_type, SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+         SUMA_RETURN(NOPE);
+   }
+   SUMA_RETURN(NOPE);
+}
 /*!
 
    function to turn color overlay planes into GL color array
    
    --- usage prior to Fri Nov  7 15:58:57 EST 2003 ---
-   ans = SUMA_Overlays_2_GLCOLAR4(Overlays, N_Overlays, glar_ColorList, N_Node, Back_Modfact, ShowBackground, ShowForeground);
+   ans = SUMA_Overlays_2_GLCOLAR4_SO(Overlays, N_Overlays, glar_ColorList, 
+                                  N_Node, 
+                                  Back_Modfact, ShowBackground, ShowForeground);
    
    
-   \param Overlays (SUMA_OVERLAYS **) a pointer to the vector of overlay planes structure pointers
+   \param Overlays (SUMA_OVERLAYS **) a pointer to the vector of overlay planes 
+                                    structure pointers
    \param N_Overlays (int) number of overlay plane structures
-   \param glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that contains the node colors 
-   \param N_Node (int) total number of nodes in Surface NOT in color overlay plane
-   \param Back_Modfact (float) Background brightness modulation factor typically SAFNIg_cSV->Back_Modfact
-   \param ShowBackground (SUMA_Boolean) flag for showing/hiding background (brightness modulating) colors
+   \param glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that 
+                                    contains the node colors 
+   \param N_Node (int) total number of nodes in Surface NOT in color overlay 
+                                    plane
+   \param Back_Modfact (float) Background brightness modulation factor typically 
+                                    SAFNIg_cSV->Back_Modfact
+   \param ShowBackground (SUMA_Boolean) flag for showing/hiding background 
+                                    (brightness modulating) colors
    \param ShowForeground (SUMA_Boolean) flag for showing/hiding foreground colors
    \ret YUP/NOPE
    \sa SUMA_MixOverlays
 
    --- current usage ---
-   ans = SUMA_Overlays_2_GLCOLAR4(SO, SV, glar_ColorList)
-   \param SO (SUMA_SurfaceObject *) surface structure with all the parameters listed in the old usage needed, and more
-   \param SV (SUMA_SurfaceViewer *) surface viewer structure with all the parameters listed in the old usage needed, and more
-   \param glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that contains the node colors 
+   ans = SUMA_Overlays_2_GLCOLAR4_SO(SO, SV, glar_ColorList)
+   \param SO (SUMA_SurfaceObject *) surface structure with all the parameters 
+                                    listed in the old usage needed, and more
+   \param SV (SUMA_SurfaceViewer *) surface viewer structure with all the 
+                           parameters listed in the old usage needed, and more
+   \param glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that 
+                           contains the node colors 
 */
 
-SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO, 
                                  SUMA_SurfaceViewer *SV, GLfloat *glcolar)
 {
-   static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
+   static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4_SO"};
    int ShowOverLays[SUMA_MAX_OVERLAYS], ShowOverLays_Back[SUMA_MAX_OVERLAYS]; 
    int   ShowOverLays_sort[SUMA_MAX_OVERLAYS], 
          ShowOverLays_Back_sort[SUMA_MAX_OVERLAYS], iloc[SUMA_MAX_OVERLAYS];
@@ -5832,7 +5959,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
    SUMA_ENTRY;
 
    if (!SO || !SV || !glcolar) {
-      SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4!");
+      SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4_SO!");
       SUMA_RETURN(NOPE);
    }
    
@@ -5975,8 +6102,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
          if (!SUMA_MixOverlays ( Overlays, N_Overlays, ShowOverLays_Back_sort, 
                                  NshowOverlays_Back, glcolar_Back, N_Node, 
                                  isColored_Back, NOPE)) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
+            SUMA_S_Err("Failed in SUMA_MixOverlays.");
             SUMA_RETURN (NOPE);
          }
       } else {
@@ -6188,19 +6314,27 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO,
    
    SUMA_RETURN (YUP);
 }
+
 /*! 
    function to mix overlay plane colors 
 
-   ans = SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *ShowOvelays, int N_ShowOverlays, GLfloat *glcolar, int N_Node, SUMA_Boolean *isColored, SUMA_Boolean FILL)
+   ans = SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, 
+                           int *ShowOvelays, int N_ShowOverlays, 
+                           GLfloat *glcolar, int N_Node, SUMA_Boolean *isColored,
+                           SUMA_Boolean FILL)
    
-   Overlays (SUMA_OVERLAYS **) a pointer to the vector of overlay planes structure pointers
+   Overlays (SUMA_OVERLAYS **) a pointer to the vector of overlay planes 
+                               structure pointers
    N_Overlays (int) number of overlay plane structures
-   ShowOvelays (int *) vector of Overlay plane indices to be used. The plane indices must be sorted by plane order. 
+   ShowOvelays (int *) vector of Overlay plane indices to be used. The plane 
+                       indices must be sorted by plane order. 
    N_ShowOverlays (int) number of ovrlay planes used in the mixing
-   glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that contains the node colors 
+   glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that 
+                              contains the node colors 
    N_Node (int) total number of nodes in Surface NOT in color overlay plane
-   \param isColored (SUMA_Boolean *) N_Node x1 vector containing flags indicating if a node received a color or not
-   \param FILL (SUMA_Boolean) top off nodes that received no color with default gray
+   \param isColored (SUMA_Boolean *) N_Node x1 vector containing flags indicating                                      if a node received a color or not
+   \param FILL (SUMA_Boolean) top off nodes that received no color with 
+                              default gray
    
    \sa SUMA_Overlays_2_GLCOLAR4
 */
@@ -6208,7 +6342,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
                                  int *ShowOverlays, int NshowOverlays, 
                                  GLfloat *glcolar, int N_Node, 
                                  SUMA_Boolean *isColored, SUMA_Boolean FILL)
-{    
+{
    static char FuncName[] = {"SUMA_MixOverlays"};
    int i, j;
    int *NodeDef, N_NodeDef = -1;
@@ -6229,9 +6363,8 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
       fprintf (SUMA_STDERR, "Error %s: isColored is NULL.\n", FuncName); 
       SUMA_RETURN (NOPE);
    }
-   if (!ShowOverlays) {
-      SUMA_SL_Err("NULL ShowOverlays");
-      SUMA_RETURN (NOPE);
+   if (!ShowOverlays) { /* default is to show all, in the order of Overlays */
+      NshowOverlays = N_Overlays;
    }
    if (!NshowOverlays) { /* nothing to see here */
       fprintf (SUMA_STDERR, "Warning %s: Nothing to do.\n", FuncName); 
@@ -6256,7 +6389,8 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
       Locl = YUP;
       Fill = YUP; 
       
-      i = ShowOverlays[j];
+      if (!ShowOverlays) i=j;
+      else i = ShowOverlays[j];
       if (!Overlays[i]) {
          fprintf(SUMA_STDERR,"Error %s:\nNULL ShowOverlays[%d]\n", FuncName, i);
          SUMA_RETURN (NOPE);
@@ -6290,103 +6424,114 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
       N_NodeDef = COLP_N_NODEDEF(Overlays[i]);
    
 
-      if (LocalHead) 
-         fprintf (SUMA_STDOUT,"%s: Building color layer %d Overlay #%d: %s ...\nFull=%d, Glob=%d (Globopacity %f), Locl=%d,Fill=%d\n", \
-         FuncName, j, i, Overlays[i]->Name, (int)Full, (int)Glob, Overlays[i]->GlobalOpacity, (int)Locl, (int)Fill);
+      SUMA_LHv("Building color layer %d Overlay #%d: %s ...\n"
+               "Full=%d, Glob=%d (Globopacity %f), Locl=%d,Fill=%d\n", 
+          j, i, Overlays[i]->Name, (int)Full, (int)Glob, 
+          Overlays[i]->GlobalOpacity, (int)Locl, (int)Fill);
       
          
       /* call the appropriate macro to add the overlay */
       if (Full && Glob && Locl) {
          if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBv_FGL_AR4op ...\n", FuncName);
-            /* This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
+            SUMA_LH("Calling SUMA_RGBv_FGL_AR4op ...");
+            /* This macro used to be called: 
+                        SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
             but name was too long for some compilers */
-            SUMA_RGBv_FGL_AR4op(\
-            Overlays[i]->ColVec, glcolar, N_Node, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored);         
+            SUMA_RGBv_FGL_AR4op(Overlays[i]->ColVec, glcolar, N_Node, 
+               Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored);
          } else if (SUMAg_CF->ColMixMode == SUMA_4AML) {
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBv_FGL_AR4op2 ...\n", FuncName);
-            SUMA_RGBv_FGL_AR4op2(\
-            Overlays[i]->ColVec, glcolar, N_Node, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored); 
+            SUMA_LH("Calling SUMA_RGBv_FGL_AR4op2 ...");
+            SUMA_RGBv_FGL_AR4op2(Overlays[i]->ColVec, glcolar, N_Node, 
+               Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity, isColored);
          }
       }
       
       if (!Full && Glob && Locl) {
          if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBv_PGL_AR4op ...\n", FuncName);
-            /* This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity */
-            SUMA_RGBv_PGL_AR4op(\
-            Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity,  N_Node);
+            SUMA_LH("Calling SUMA_RGBv_PGL_AR4op ...");
+            /* This macro used to be called: 
+                  SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity */
+            SUMA_RGBv_PGL_AR4op(Overlays[i]->ColVec, NodeDef, glcolar, 
+                                N_NodeDef, isColored, Overlays[i]->GlobalOpacity,
+                                Overlays[i]->LocalOpacity,  N_Node);
           } else if (SUMAg_CF->ColMixMode == SUMA_4AML) {  
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBv_PGL_AR4op2 ...\n", FuncName);
-            SUMA_RGBv_PGL_AR4op2(\
-            Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, isColored, Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity,  N_Node);
+            SUMA_LH("Calling SUMA_RGBv_PGL_AR4op2 ...");
+            SUMA_RGBv_PGL_AR4op2(Overlays[i]->ColVec, NodeDef, glcolar, 
+                                N_NodeDef, isColored, Overlays[i]->GlobalOpacity,
+                                Overlays[i]->LocalOpacity,  N_Node);
          }
       }
       
       if (Full && !Glob && Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBv_FnGL_AR4op...\n", FuncName);
-         /* This macro used to be called: SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity */
-         SUMA_RGBv_FnGL_AR4op(\
-         Overlays[i]->ColVec, glcolar, N_Node, Overlays[i]->LocalOpacity, isColored);         
+         SUMA_LH("Calling  SUMA_RGBv_FnGL_AR4op...");
+         /* This macro used to be called: 
+                     SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity */
+         SUMA_RGBv_FnGL_AR4op(Overlays[i]->ColVec, glcolar, N_Node, 
+                              Overlays[i]->LocalOpacity, isColored);         
       }
       
       if (!Full && !Glob && Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBv_PnGL_AR4op ...\n", FuncName);
-         /* This macro used to be called: SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity*/
-         SUMA_RGBv_PnGL_AR4op(\
-         Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, isColored, Overlays[i]->LocalOpacity, N_Node);
+         SUMA_LH("Calling SUMA_RGBv_PnGL_AR4op ...");
+         /* This macro used to be called: 
+                     SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity*/
+         SUMA_RGBv_PnGL_AR4op( Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, 
+                               isColored, Overlays[i]->LocalOpacity, N_Node);
       }
       
       if (Full && !Glob && !Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBv_FnGnL_AR4op ...\n", FuncName);
-         /* This macro used to be called: SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity*/
+         SUMA_LH("Calling SUMA_RGBv_FnGnL_AR4op ...");
+         /* This macro used to be called: 
+                      SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity*/
          SUMA_RGBv_FnGnL_AR4op(\
          Overlays[i]->ColVec, glcolar, N_Node, isColored);         
       }
       
       if (!Full && !Glob && !Locl) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling SUMA_RGBv_PnGnL_AR4op ...\n", FuncName);  
-         /* This macro used to be called: SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity */
-         SUMA_RGBv_PnGnL_AR4op(\
-         Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, isColored, N_Node);
+         SUMA_LH("Calling SUMA_RGBv_PnGnL_AR4op ...");  
+         /* This macro used to be called: 
+                      SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity */
+         SUMA_RGBv_PnGnL_AR4op(Overlays[i]->ColVec, NodeDef, glcolar, 
+                               N_NodeDef, isColored, N_Node);
       }
       
       if (Full && Glob && !Locl) {
          if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBv_FGnL_AR4op...\n", FuncName);
-            /* This macro used to be called: SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity*/
-            SUMA_RGBv_FGnL_AR4op(\
-            Overlays[i]->ColVec, glcolar, N_Node, Overlays[i]->GlobalOpacity, isColored);
+            SUMA_LH("Calling  SUMA_RGBv_FGnL_AR4op...");
+            /* This macro used to be called: 
+                      SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity*/
+            SUMA_RGBv_FGnL_AR4op(Overlays[i]->ColVec, glcolar, N_Node, 
+                                 Overlays[i]->GlobalOpacity, isColored);
          } else if (SUMAg_CF->ColMixMode == SUMA_4AML){
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBv_FGnL_AR4op2...\n", FuncName);
-            SUMA_RGBv_FGnL_AR4op2(\
-            Overlays[i]->ColVec, glcolar, N_Node, Overlays[i]->GlobalOpacity, isColored);
+            SUMA_LH("Calling  SUMA_RGBv_FGnL_AR4op2...");
+            SUMA_RGBv_FGnL_AR4op2(Overlays[i]->ColVec, glcolar, N_Node, 
+                                  Overlays[i]->GlobalOpacity, isColored);
          }
          
       }
        
       if (!Full && Glob && !Locl) {
          if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
-            if (LocalHead) {
-               fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBv_PGnL_AR4op...\n"
-                                    "    N_NodeDef = %d, N_Node = %d\n", FuncName, N_NodeDef, N_Node);
-            
-            }
-            /* This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
-            SUMA_RGBv_PGnL_AR4op(\
-            Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
+            SUMA_LHv("Calling  SUMA_RGBv_PGnL_AR4op...\n"
+                     "    N_NodeDef = %d, N_Node = %d\n", 
+                     N_NodeDef, N_Node);
+            /* This macro used to be called: 
+                      SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
+            SUMA_RGBv_PGnL_AR4op(Overlays[i]->ColVec, NodeDef, glcolar, 
+                     N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
          } else if (SUMAg_CF->ColMixMode == SUMA_4AML){
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBv_PGnL_AR4op2...\n", FuncName);
-            SUMA_RGBv_PGnL_AR4op2(\
-            Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
+            SUMA_LH("Calling  SUMA_RGBv_PGnL_AR4op2...");
+            SUMA_RGBv_PGnL_AR4op2(Overlays[i]->ColVec, NodeDef, glcolar, 
+                  N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
          }
       }
          
    }
    
    if (FILL && Fill) { /* nothing to see here */
-      if (LocalHead) fprintf (SUMA_STDOUT,"%s: Some nodes received no colors from any of the overplanes, filling them with background color ...\n", FuncName);
-      SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
+      SUMA_LH("Some nodes received no colors from any of the overplanes, \n"
+               "filling them with background color ...");
+      SUMA_FillBlanks_GLCOLAR4(isColored, N_Node, SUMA_GRAY_NODE_COLOR, 
+                        SUMA_GRAY_NODE_COLOR, SUMA_GRAY_NODE_COLOR, glcolar);
       SUMA_RETURN (YUP);
    }
    
@@ -6666,7 +6811,7 @@ void SUMA_FreeOverlayListDatum (void *OLDv)
                   
 
 */
-DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
+DList * SUMA_OverlaysToOrderedList (SUMA_ALL_DO *ado, int Opt)
 {
    static char FuncName[]={"SUMA_OverlaysToOrderedList"}; 
    DList *listop = NULL;
@@ -6682,11 +6827,11 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
    
    dlist_init(listop, SUMA_FreeOverlayListDatum);
    SUMA_LH("Considering loop");
-   for (i=0; i < SO->N_Overlays; ++i) {
+   for (i=0; i < SUMA_ADO_N_Overlays(ado); ++i) {
       SUMA_LH("In Loop");
          OvD = (SUMA_OVERLAY_LIST_DATUM *)
                   SUMA_calloc(1,sizeof(SUMA_OVERLAY_LIST_DATUM));
-         OvD->Overlay = SO->Overlays[i];
+         OvD->Overlay = SUMA_ADO_Overlay(ado,i);
          if (!OvD->Overlay) {
             SUMA_LH("NULL Overlay");
          }
@@ -6713,7 +6858,7 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
                
                /* transform PlaneOrder so that is 
                   reflects the Background modulation */
-               Shift = SO->N_Overlays;
+               Shift = SUMA_ADO_N_Overlays(ado);
                
                if (OvD->Overlay->isBackGrnd) 
                   ShftPlaneOrder = OvD->Overlay->PlaneOrder - Shift;
@@ -6850,9 +6995,7 @@ int SUMA_GetSmallestForegroundOrder (DList *listop)
       ++i;
    } while (!dlist_is_tail(Elmop));
    
-   if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: Lowest foreground order found is %d\n", FuncName, Order);
-   }
+   SUMA_LHv("Lowest foreground order found is %d\n", Order);
    
    SUMA_RETURN(Order);
 }
@@ -6860,21 +7003,26 @@ int SUMA_GetSmallestForegroundOrder (DList *listop)
 /*!
    Is a color overlay plane registered in SO
 */
-SUMA_Boolean SUMA_isOverlayOfSO (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Plane)
+SUMA_Boolean SUMA_isOverlayOfDO (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Plane)
 {
-   static char FuncName[]={"SUMA_isOverlayOfSO"};
+   static char FuncName[]={"SUMA_isOverlayOfDO"};
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY; 
 
-   for (i=0; i< SO->N_Overlays; ++i) if (SO->Overlays[i] == Plane) { SUMA_LHv("Found plane at ind: %d\n", i); SUMA_RETURN(YUP); }
+   for (i=0; i< SUMA_ADO_N_Overlays(ado); ++i) {
+      if (SUMA_ADO_Overlay(ado,i) == Plane) { 
+         SUMA_LHv("Found plane at ind: %d\n", i); 
+         SUMA_RETURN(YUP);
+      }
+   }
    
    SUMA_LH("Plane not found");
    SUMA_RETURN(NOPE);
 }
 
-void SUMA_Print_PlaneOrder (SUMA_SurfaceObject *SO, FILE *Out)
+void SUMA_Print_PlaneOrder (SUMA_ALL_DO *ado, FILE *Out)
 {   
    static char FuncName[]={"SUMA_Print_PlaneOrder"};
    char *s;
@@ -6883,13 +7031,13 @@ void SUMA_Print_PlaneOrder (SUMA_SurfaceObject *SO, FILE *Out)
 
    if (Out == NULL) Out = stdout;
       
-   s =  SUMA_PlaneOrder_Info(SO);
+   s =  SUMA_PlaneOrder_Info(ado);
    
    if (s) {
       fprintf (Out, "%s", s);
       SUMA_free(s);
    }else {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_PlaneOrder_Info.\n", FuncName);
+      SUMA_S_Err("Failed in SUMA_PlaneOrder_Info.");
    }   
    
    SUMA_RETURNe;
@@ -6898,7 +7046,7 @@ void SUMA_Print_PlaneOrder (SUMA_SurfaceObject *SO, FILE *Out)
 /*!
    \brief Shows the overlay plane order 
 */
-char * SUMA_PlaneOrder_Info (SUMA_SurfaceObject *SO)
+char * SUMA_PlaneOrder_Info (SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_PlaneOrder_Info"};
    char stmp[1000], *s = NULL;
@@ -6912,7 +7060,7 @@ char * SUMA_PlaneOrder_Info (SUMA_SurfaceObject *SO)
    /* get the background and foreground lists */
    SS = SUMA_StringAppend (NULL, NULL);
       
-   if (!(list = SUMA_OverlaysToOrderedList (SO, -1))) {
+   if (!(list = SUMA_OverlaysToOrderedList (ado, -1))) {
       SS = SUMA_StringAppend (SS,"NULL Background list\n");
    }else if (!list->size) {
       SS = SUMA_StringAppend (SS,"Empty Background list\n");
@@ -6922,12 +7070,13 @@ char * SUMA_PlaneOrder_Info (SUMA_SurfaceObject *SO)
          if (!Elm) Elm = dlist_head(list);
          else Elm = Elm->next;
          OvD = (SUMA_OVERLAY_LIST_DATUM *)Elm->data;
-         sprintf (stmp,"BK: %s o%d (%s)\n", OvD->Overlay->Label, OvD->Overlay->PlaneOrder, OvD->Overlay->Name );
+         sprintf (stmp,"BK: %s o%d (%s)\n", 
+            OvD->Overlay->Label, OvD->Overlay->PlaneOrder, OvD->Overlay->Name );
          SS = SUMA_StringAppend (SS,stmp);
       } while (Elm != dlist_tail(list));
    }
    
-   if (!(list = SUMA_OverlaysToOrderedList (SO, 1))) {
+   if (!(list = SUMA_OverlaysToOrderedList (ado, 1))) {
       SS = SUMA_StringAppend (SS,"NULL Foreground list\n");
    }else if (!list->size) {
       SS = SUMA_StringAppend (SS,"Empty Foreground list\n");
@@ -6937,7 +7086,8 @@ char * SUMA_PlaneOrder_Info (SUMA_SurfaceObject *SO)
          if (!Elm) Elm = dlist_head(list);
          else Elm = Elm->next;
          OvD = (SUMA_OVERLAY_LIST_DATUM *)Elm->data;
-         sprintf (stmp,"FG: %s o%d (%s)\n", OvD->Overlay->Label, OvD->Overlay->PlaneOrder, OvD->Overlay->Name );
+         sprintf (stmp,"FG: %s o%d (%s)\n", 
+            OvD->Overlay->Label, OvD->Overlay->PlaneOrder, OvD->Overlay->Name );
          SS = SUMA_StringAppend (SS,stmp);
       } while (Elm != dlist_tail(list));
    }
@@ -6951,7 +7101,7 @@ char * SUMA_PlaneOrder_Info (SUMA_SurfaceObject *SO)
 /*!
    \brief Moves a plane up one order
 */
-SUMA_Boolean SUMA_MovePlaneUp (SUMA_SurfaceObject *SO, char *Name)
+SUMA_Boolean SUMA_MovePlaneUp (SUMA_ALL_DO *ado, char *Name)
 {
    static char FuncName[]={"SUMA_MovePlaneUp"};
    SUMA_OVERLAYS *Overlay=NULL;
@@ -6965,15 +7115,15 @@ SUMA_Boolean SUMA_MovePlaneUp (SUMA_SurfaceObject *SO, char *Name)
    
    /* search for the plane by name */
    SUMA_LH("Searching for plane");
-   if (!(Overlay = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, Name, &junk))) {
+   if (!(Overlay = SUMA_Fetch_OverlayPointer(ado, Name, &junk))) {
       SUMA_S_Err("Plane does not exist in SO->Overlays. (identified by name)");
       SUMA_RETURN (NOPE);
    }
    
    /* get the list of planes */
    SUMA_LH("Creating list");
-   if (Overlay->isBackGrnd) list = SUMA_OverlaysToOrderedList (SO, -1);
-   else list = SUMA_OverlaysToOrderedList (SO, 1);
+   if (Overlay->isBackGrnd) list = SUMA_OverlaysToOrderedList (ado, -1);
+   else list = SUMA_OverlaysToOrderedList (ado, 1);
    if (!list) {
       SUMA_S_Err("NULL list");
       SUMA_RETURN (NOPE);
@@ -7018,7 +7168,7 @@ SUMA_Boolean SUMA_MovePlaneUp (SUMA_SurfaceObject *SO, char *Name)
 /*!
    \brief Moves a plane up one order
 */
-SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
+SUMA_Boolean SUMA_MovePlaneDown (SUMA_ALL_DO *ado, char *Name)
 {
    static char FuncName[]={"SUMA_MovePlaneDown"};
    SUMA_OVERLAYS *Overlay=NULL;
@@ -7032,15 +7182,17 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
    
    /* search for the plane by name */
    SUMA_LH("Searching for plane");
-   if (!(Overlay = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, Name, &junk))) {
-      SUMA_S_Err("Plane does not exist in SO->Overlays. (identified by name)");
+   if (!(Overlay = SUMA_Fetch_OverlayPointer(ado, 
+                                             Name, &junk))) {
+      SUMA_S_Err("Plane does not exist in Object's Overlays."
+                 " (identified by name)");
       SUMA_RETURN (NOPE);
    }
    
    /* get the list of planes */
    SUMA_LH("Creating list");
-   if (Overlay->isBackGrnd) list = SUMA_OverlaysToOrderedList (SO, -1);
-   else list = SUMA_OverlaysToOrderedList (SO, 1);
+   if (Overlay->isBackGrnd) list = SUMA_OverlaysToOrderedList (ado, -1);
+   else list = SUMA_OverlaysToOrderedList (ado, 1);
    if (!list) {
       SUMA_S_Err("NULL list");
       SUMA_RETURN (NOPE);
@@ -7083,25 +7235,25 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
 }
 
 
-SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay)
+SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_ALL_DO *ado, 
+                                    SUMA_OVERLAYS *Overlay)
 {
    static char FuncName[]={"SUMA_NewPlaneSearch"};
    int junk = 0;
    
    SUMA_ENTRY;
    
-   if (!Overlay || !SO) {
+   if (!Overlay || !ado) {
       SUMA_S_Err("You sent me NULLS!");
       SUMA_RETURN (NULL);
    }
    
-   if (SUMA_isOverlayOfSO(SO, Overlay)) {
+   if (SUMA_isOverlayOfDO(ado, Overlay)) {
       SUMA_RETURN(Overlay);
    }
    
    /* also try looking for plane by name */
-   SUMA_RETURN(SUMA_Fetch_OverlayPointer( SO->Overlays, SO->N_Overlays, 
-                                          Overlay->Name, &junk));
+   SUMA_RETURN(SUMA_Fetch_OverlayPointer( ado, Overlay->Name, &junk));
 }
 
 /*!
@@ -7112,7 +7264,7 @@ SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overl
    DuplicateFlag == 0 return with error if plane already exists
                     1 return with warning if plane already exists
 */
-SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, 
+SUMA_Boolean SUMA_AddNewPlane (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Overlay, 
                                  SUMA_DO *dov, int N_dov, int DuplicateFlag)
 {
    static char FuncName[]={"SUMA_AddNewPlane"};
@@ -7129,17 +7281,17 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
       SUMA_RETURN (NOPE);
    }
    
-   if (SUMA_NewPlaneSearch(SO, Overlay)) {
+   if (SUMA_NewPlaneSearch(ado, Overlay)) {
       if (DuplicateFlag == 0) {
          SUMA_S_Errv(
-            "Plane exists in SO->Overlays either \n"
+            "Plane exists in Overlays either \n"
             "by pointer %p or by name (%s).\n"
             "Both of these must be unique because DuplicateFlag=%d\n", 
             Overlay, Overlay->Name, DuplicateFlag);
          SUMA_DUMP_TRACE("Allora");
          SUMA_RETURN (NOPE);
       } else {
-         SUMA_S_Note("Plane exists in SO->Overlays. Preserving old one.");
+         SUMA_S_Note("Plane exists in Overlays. Preserving old one.");
          SUMA_RETURN (YUP);
       }
    }
@@ -7160,17 +7312,17 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
       }
    }
    /* make sure there's enough room for the new plane */
-   if (SO->N_Overlays+1 >= SUMA_MAX_OVERLAYS) {
+   if (SUMA_ADO_N_Overlays(ado)+1 >= SUMA_MAX_OVERLAYS) {
       SUMA_SL_Crit("Too many color overlays.");
       SUMA_RETURN (NOPE);
    }
    
    /* Now add the plane where it belongs */
-   if (!(ForeList = SUMA_OverlaysToOrderedList (SO, 1))) {
+   if (!(ForeList = SUMA_OverlaysToOrderedList (ado, 1))) {
       SUMA_S_Err("NULL ForeList");
       SUMA_RETURN (NOPE);
    }
-   if (!(BackList = SUMA_OverlaysToOrderedList (SO, -1))) {
+   if (!(BackList = SUMA_OverlaysToOrderedList (ado, -1))) {
       SUMA_S_Err("NULL BackList");
       SUMA_RETURN (NOPE);
    }
@@ -7191,52 +7343,64 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
    }
    
    SUMA_LH("Out dude...");
-   /* place the Overlay plane and its inode in SO */
-   SO->Overlays[SO->N_Overlays] = Overlay;
-   /* Now increment the number of overlays to be in SO */
-   ++SO->N_Overlays;
    
-   
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         /* place the Overlay plane and its inode in SO */
+         SO->Overlays[SO->N_Overlays] = Overlay;
+         /* Now increment the number of overlays to be in SO */
+         ++SO->N_Overlays;
+         /* Now register plane with surfaces deserving it*/
+         if (AFNI_yesenv("SUMA_ShareGrandChildrenOverlays")) {
+            SUMA_S_Warn("Option needs polishing before\n"
+                        "public usage. Nothing is done\n"
+                        "to reflect changes to overlay coloring\n"
+                        "from one group of LocalDom. to another\n"
+                        "that share the same DomainGrandParentID\n");
+            kin = 2;
+         } else kin = 1; 
+         if (dov) {
+            SUMA_LH("Registering plane with surfaces deserving it");
+            /* Now that you have the color overlay plane set, 
+               go about all the surfaces, searching for ones related to SO 
+               and make sure they have this colorplane, 
+               otherwise, create a link to it. */   
+            for (i=0; i < N_dov; ++i) {
+               if (SUMA_isSO(dov[i])) { 
+                  SO2 = (SUMA_SurfaceObject *)dov[i].OP;
+                  if (SUMA_isRelated_SO(SO, SO2, kin) && SO != SO2) { 
+                     /* only 1st order kinship allowed */
+                     /* surfaces related and not identical, check colorplanes */
+                     if (!SUMA_Fetch_OverlayPointer ( (SUMA_ALL_DO *)SO2, 
+                                                      Overlay->Name, &OverInd)) {
+                        /* color plane not found, link to that of SO */
+                        SO2->Overlays[SO2->N_Overlays] = 
+                           (SUMA_OVERLAYS*)SUMA_LinkToPointer(
+                                    (void*)SO->Overlays[SO->N_Overlays-1]);
+                        /*increment the number of overlay planes */
+                        ++SO2->N_Overlays;
+                     } else {
+                        /* colorplane found OK */
+                     }
+                  }
+               }
+            }
+         }         
+         break; }
+      case SDSET_type: {
+         SUMA_S_Warn("Should not have multiple planes for graph dsets");
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for type %s\n",
+              SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type)); 
+         break;   
+   }
    SUMA_LH("Destruction...");
    dlist_destroy(ForeList); SUMA_free(ForeList);
    dlist_destroy(BackList); SUMA_free(BackList);
 
-   /* Now register plane with surfaces deserving it*/
-   if (AFNI_yesenv("SUMA_ShareGrandChildrenOverlays")) {
-      SUMA_S_Warn("Option needs polishing before\n"
-                  "public usage. Nothing is done\n"
-                  "to reflect changes to overlay coloring\n"
-                  "from one group of LocalDom. to another\n"
-                  "that share the same DomainGrandParentID\n");
-      kin = 2;
-   } else kin = 1; 
-   if (dov) {
-      SUMA_LH("Registering plane with surfaces deserving it");
-      /* Now that you have the color overlay plane set, 
-         go about all the surfaces, searching for ones related to SO 
-         and make sure they have this colorplane, 
-         otherwise, create a link to it. */   
-      for (i=0; i < N_dov; ++i) {
-         if (SUMA_isSO(dov[i])) { 
-            SO2 = (SUMA_SurfaceObject *)dov[i].OP;
-            if (SUMA_isRelated(SO, SO2, kin) && SO != SO2) { 
-               /* only 1st order kinship allowed */
-               /* surfaces related and not identical, check on colorplanes */
-               if (!SUMA_Fetch_OverlayPointer ( SO2->Overlays, SO2->N_Overlays, 
-                                                Overlay->Name, &OverInd)) {
-                  /* color plane not found, link to that of SO */
-                  SO2->Overlays[SO2->N_Overlays] = 
-                     (SUMA_OVERLAYS*)SUMA_LinkToPointer(
-                                       (void*)SO->Overlays[SO->N_Overlays-1]);
-                  /*increment the number of overlay planes */
-                  ++SO2->N_Overlays;
-               } else {
-                  /* colorplane found OK */
-               }
-            }
-         }
-      }
-   }
+
    SUMA_RETURN (YUP);
 }
 
@@ -7250,6 +7414,9 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_MixColors"};
    int i, dov_id;
+   void *pp=NULL;
+   SUMA_DO_Types tp;
+   SUMA_DSET *dset=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -7257,25 +7424,44 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
 
    for (i=0; i<sv->N_ColList; ++i) {
       if (sv->ColList[i].Remix) {
-         if (LocalHead) 
-            fprintf( SUMA_STDERR, 
-                     "%s: Mixing colors (%s)...\n", 
-                     FuncName, sv->ColList[i].idcode_str);
-         dov_id = SUMA_findSO_inDOv (  sv->ColList[i].idcode_str, 
-                                       SUMAg_DOv, SUMAg_N_DOv);
-         if (dov_id < 0) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_findSO_inDOv.\n", FuncName);
+         if (!(pp = SUMA_find_any_object(sv->ColList[i].idcode_str, &tp))) {
+            SUMA_S_Err("Zut alors!");
             SUMA_RETURN(NOPE);
          }
-         SO = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
-         if (!SUMA_Overlays_2_GLCOLAR4(SO, sv, sv->ColList[i].glar_ColorList)) {
-            fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", 
-                     FuncName);
-            SUMA_RETURN(NOPE);
-         }
-         sv->ColList[i].Remix = NOPE;
+         switch (tp) {
+            case SO_type:
+               if (LocalHead) 
+                  fprintf( SUMA_STDERR, 
+                           "%s: Mixing colors (%s)...\n", 
+                           FuncName, sv->ColList[i].idcode_str);
+               SO = (SUMA_SurfaceObject *)pp;
+               if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)SO, sv, 
+                                       sv->ColList[i].glar_ColorList)) {
+                  fprintf (SUMA_STDERR,
+                           "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", 
+                           FuncName);
+                  SUMA_RETURN(NOPE);
+               }
+               sv->ColList[i].Remix = NOPE;
+               break;
+            case SDSET_type:
+               dset = (SUMA_DSET *)pp;
+               SUMA_LHv("Mixing Graph Dset Colors (%s), Dset %s...\n", 
+                        sv->ColList[i].idcode_str, SDSET_LABEL(dset));
+               if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)dset, sv, 
+                                       sv->ColList[i].glar_ColorList)) {
+                  fprintf (SUMA_STDERR,
+                           "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", 
+                           FuncName);
+                  SUMA_RETURN(NOPE);
+               }
+               sv->ColList[i].Remix = NOPE;
+               break;
+            default:
+               SUMA_S_Errv("Type %d (%s) is not welcome here\n", 
+                           tp, SUMA_ObjectTypeCode2ObjectTypeName(tp));
+               SUMA_RETURN(NOPE); 
+         }   
       }
    }   
    
@@ -7317,8 +7503,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
 
       SUMA_LH("Fetching Overlay Pointer");
       /* if plane exists use it, else create a new one on the mappable surface */
-      if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, 
-                                       Name, &OverInd)) {
+      if (!SUMA_Fetch_OverlayPointer ((SUMA_ALL_DO *)SO, Name, &OverInd)) {
          SUMA_LH("pointer not found");
          /* overlay plane not found, create a new one on the mappable surface*/
          if (!SUMA_isLocalDomainParent(SO)) {
@@ -7371,7 +7556,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          OverInd = SO->N_Overlays; 
 
          /* Add this plane to SO->Overlays */
-         if (!SUMA_AddNewPlane (SO, Overlay, dov, N_dov, 0)) {
+         if (!SUMA_AddNewPlane ((SUMA_ALL_DO *)SO, Overlay, dov, N_dov, 0)) {
             SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
             SUMA_FreeOverlayPointer(Overlay);
             SUMA_RETURN (NOPE);
@@ -7565,8 +7750,8 @@ SUMA_DRAWN_ROI * SUMA_is_NamedColPlane_ForROI(char *PlaneName)
    If no ROI related to SO has PlaneName for a color plane
    then that colorplane is flushed (ie no node colors are left in it, not deleted)
 */
-SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, 
-                                       SUMA_DO *dov, int N_dov)
+SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_ALL_DO *ado, 
+                                      SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_FlushPlaneNotInUse"};
    SUMA_DRAWN_ROI *D_ROI = NULL;
@@ -7587,7 +7772,7 @@ SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO,
             D_ROI = NULL;
             break;
       }
-      if (D_ROI && SUMA_isdROIrelated (D_ROI, SO)) {
+      if (D_ROI && SUMA_isdROIrelated (D_ROI, ado)) {
          if (strcmp(PlaneName, D_ROI->ColPlaneName) == 0) {
             /* found one, do nothing and return */
             SUMA_RETURN (YUP);
@@ -7596,17 +7781,13 @@ SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO,
    }   
    
    /* looks like no other ROIs use that plane, flush it */
-   if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, PlaneName, &OverInd)) {
+   if (!SUMA_Fetch_OverlayPointer (ado, PlaneName, &OverInd)) {
       SUMA_SLP_Warn("No Overlay Plane Found!");
       SUMA_RETURN (YUP);
    }
    
    SUMA_LH("Flushing meadows");
-   #if 0
-      SO->Overlays[OverInd]->N_NodeDef = 0; /* Flushed */
-   #else
-      COLP_N_NODEDEF(SO->Overlays[OverInd]) = 0;
-   #endif
+   COLP_N_NODEDEF(SUMA_ADO_Overlay(ado,OverInd)) = 0;
    SUMA_RETURN (YUP);
 }
 
@@ -7615,16 +7796,17 @@ SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO,
    A combo of SUMA_AssembleColorPlaneList and SUMA_CreateScrolledList.
    
 */
-void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO) 
+void SUMA_RefreshDsetList (SUMA_ALL_DO *ado) 
 {
    static char FuncName[]={"SUMA_RefreshDsetList"};
    SUMA_LIST_WIDGET *LW = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   
-   LW = SO->SurfCont->SwitchDsetlst;
+   SurfCont = SUMA_ADO_Cont(ado);
+   LW = SurfCont->SwitchDsetlst;
    
    if (!LW) SUMA_RETURNe;
    
@@ -7636,7 +7818,7 @@ void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO)
    
    
    /* assemble the ColorPlane list */
-   LW->ALS = SUMA_AssembleColorPlaneList (SO);
+   LW->ALS = SUMA_AssembleColorPlaneList (ado);
   
    if (!LW->ALS) {
       SUMA_SLP_Err("Error assembling list.");
@@ -7669,13 +7851,14 @@ void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO)
    
    \param SO (SUMA_SurfaceObject *) pointer to surface object
    
-   \return clist (SUMA_ASSEMBLE_LIST_STRUCT *) pointer to structure containing results
+   \return clist (SUMA_ASSEMBLE_LIST_STRUCT *) pointer to structure 
+   containing results
    
    \sa SUMA_FreeAssembleListStruct
    \sa SUMA_CreateAssembleListStruct
    
 */
-SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO) 
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_ALL_DO *ado) 
 {
    static char FuncName[]={"SUMA_AssembleColorPlaneList"};
    int i=-1, N_clist=-1; 
@@ -7693,7 +7876,7 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
    
    /* get list of all Overlay planes */
-   OverlayPlanelist = SUMA_OverlaysToOrderedList (SO, 0);
+   OverlayPlanelist = SUMA_OverlaysToOrderedList (ado, 0);
 
    /* need a list to store new names */
    list = (DList *)SUMA_calloc(1,sizeof(DList));
@@ -7982,7 +8165,7 @@ void SUMA_LoadDsetOntoSO (char *filename, void *data)
    }
 
    /* have contralateral bunch, load 'em cowboy */
-   if (!(SUMA_OpenCloseSurfaceCont(NULL, SOC, NULL))) {
+   if (!(SUMA_OpenCloseSurfaceCont(NULL, (SUMA_ALL_DO *)SOC, NULL))) {
       SUMA_free(fC);
       SUMA_S_Err("Failed initializing contraleteral controller"); 
       SUMA_RETURNe;
@@ -8044,13 +8227,16 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    /* load the dude */
    /* first, set the parent ID of the dset to be loaded,
    This parent ID is only used when generating an ID for those dsets
-   that have no ID attached, like the 1D ones */
+   that have no ID attached, like the 1D ones 
+   N.B: These setting will get ignored if the loaded dataset does
+   not belong on a surface, like for a graph.
+   */
    if (SO->LocalDomainParentID) 
       SUMA_SetParent_DsetToLoad(SO->LocalDomainParentID);
    else if (SO->idcode_str) 
       SUMA_SetParent_DsetToLoad(SO->idcode_str); 
    else SUMA_SetParent_DsetToLoad(NULL);  
-
+      
    dset = SUMA_LoadDset_s (filename, &form, 0); 
    SUMA_LHv("Dset as loaded is %p\n", dset);
    
@@ -8071,53 +8257,57 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       SUMA_free(si); si = NULL;
    }
    
-   /* Check if the domain order is SO or not .
-   If not specified, assign it */
-   np = SDSET_IDMDOM(dset); if (np) lnp = strlen(np) ; else lnp = 0;
-   
-   if (np && lnp) {
-      SUMA_SL_Note("dset has a mesh parent, Checking relationship");
-      if (!SUMA_isDsetRelated(dset, SO)) {
-         if (SUMA_isEnv("SUMA_AlwaysAssignSurface","Y")) {
-            SUMA_S_Note("Setting domain_parent_idcode to NULL!");
-            NI_set_attribute(dset->ngr, "domain_parent_idcode", NULL);
-            np = NULL; lnp = 0; 
-         } else {
-            SUMA_SLP_Err("Dset not related to SO");
-            SUMA_FreeDset(dset); dset=NULL;
-            SUMA_RETURN(NOPE);
-         }
-      }
-      
-   }
+   if (!SUMA_isGraphDset(dset)) { /* Non Graph, take care of parenting */
+      /* Check if the domain order is SO or not .
+      If not specified, assign it */
+      np = SDSET_IDMDOM(dset); if (np) lnp = strlen(np) ; else lnp = 0;
 
-   if (!np || lnp == 0) { 
-      SUMA_LH("dset has no mesh parent, assigning SO");
-      if (!SUMA_OKassign(dset, SO)) {
-         SUMA_SurfaceObject *SOldp = SUMA_findSOp_inDOv(
-                           SO->LocalDomainParentID,SUMAg_DOv, SUMAg_N_DOv);
-         if (SOldp) {
-            SUMA_SLP_Note( "Could not assign dset to SO.\n"
-                           "Trying to assign to domain parent.");
-            if (!SUMA_OKassign(dset, SOldp)) {
-               SUMA_SLP_Err(  "Cannot assign dset to SO \n"
-                              "or its local domain parent");
+      if (np && lnp) {
+         SUMA_SL_Note("dset has a mesh parent, Checking relationship");
+         if (!SUMA_isDsetRelated(dset, SO)) {
+            if (SUMA_isEnv("SUMA_AlwaysAssignSurface","Y")) {
+               SUMA_S_Note("Setting domain_parent_idcode to NULL!");
+               NI_set_attribute(dset->ngr, "domain_parent_idcode", NULL);
+               np = NULL; lnp = 0; 
+            } else {
+               SUMA_SLP_Err("Dset not related to SO");
                SUMA_FreeDset(dset); dset=NULL;
                SUMA_RETURN(NOPE);
             }
-            /* from that point on, treat dset as if being loaded onto SOpar*/
-            SO = SOldp;
-         } else {
-            SUMA_SLP_Err("Cannot assign dset to SO.");
-            SUMA_FreeDset(dset); dset=NULL;
-            SUMA_RETURN(NOPE);
          }
+
       }
-      NI_set_attribute(dset->ngr,"domain_parent_idcode", SO->idcode_str);
-      NI_set_attribute(dset->ngr,"geometry_parent_idcode", SO->idcode_str);
-      if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
-   } else {
-      
+
+      if (!np || lnp == 0) { 
+         SUMA_LH("dset has no mesh parent, assigning SO");
+         if (!SUMA_OKassign(dset, SO)) {
+            SUMA_SurfaceObject *SOldp = SUMA_findSOp_inDOv(
+                              SO->LocalDomainParentID,SUMAg_DOv, SUMAg_N_DOv);
+            if (SOldp) {
+               SUMA_SLP_Note( "Could not assign dset to SO.\n"
+                              "Trying to assign to domain parent.");
+               if (!SUMA_OKassign(dset, SOldp)) {
+                  SUMA_SLP_Err(  "Cannot assign dset to SO \n"
+                                 "or its local domain parent");
+                  SUMA_FreeDset(dset); dset=NULL;
+                  SUMA_RETURN(NOPE);
+               }
+               /* from that point on, treat dset as if being loaded onto SOpar*/
+               SO = SOldp;
+            } else {
+               SUMA_SLP_Err("Cannot assign dset to SO.");
+               SUMA_FreeDset(dset); dset=NULL;
+               SUMA_RETURN(NOPE);
+            }
+         }
+         NI_set_attribute(dset->ngr,"domain_parent_idcode", SO->idcode_str);
+         NI_set_attribute(dset->ngr,"geometry_parent_idcode", SO->idcode_str);
+         if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
+      } else {
+         SUMA_S_Warn("For graph dsets, the rest of the procedure should\n"
+                     "move to another function where there is no SO needed.\n"
+                     "Problem is, one needs a SurfCont to work with...\n");
+      }
    }
    
    /* add the dset to the list SUMAg_CF->DsetList*/
@@ -8148,193 +8338,392 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       SUMA_RETURN(NOPE);
    }
 
-   if (SetupOverlay) {
-      SUMA_LH("Setting up overlay");
-      OverInd = -1;
-      {
-         if (dset != dsetpre) { /* dset was pre-existing in the list */
-            if (LocalHead) {
-               fprintf( SUMA_STDERR,
-                        "%s: Dset %s (%p) pre-existing, "
-                        "finding its pre-existing overlays.\n", 
-                        FuncName, SDSET_LABEL(dset), dset); 
+   if (!SUMA_isGraphDset(dset)) {
+      if (SetupOverlay) {
+         SUMA_LH("Setting up overlay");
+         OverInd = -1;
+         {
+            if (dset != dsetpre) { /* dset was pre-existing in the list */
+               if (LocalHead) {
+                  fprintf( SUMA_STDERR,
+                           "%s: Dset %s (%p) pre-existing, "
+                           "finding its pre-existing overlays.\n", 
+                           FuncName, SDSET_LABEL(dset), dset); 
+               }
+               if (!(colplanepre = SUMA_Fetch_OverlayPointerByDset (
+                              (SUMA_ALL_DO *)SO, dset, &OverInd))) {
+                  SUMA_SLP_Err("Failed to fetch existing dset's "
+                               "overlay pointer");
+                  SUMA_RETURN(NOPE);
+               }
+               /* have bias? REMOVE IT! */
+               if (!SUMA_RemoveCoordBias(colplanepre)) {
+                  SUMA_SLP_Err("Failed to remove coord bias");
+                  SUMA_RETURN(NOPE);
+               }
+               /* have clusterize? Recompute */
+               if (colplanepre->OptScl->Clusterize) 
+                  colplanepre->OptScl->RecomputeClust = 1;         
+               OKdup = 1;
+            } else { /* dset is considered new */
+               colplanepre = NULL;
+               /* The overlay index for that plane is SO->N_Overlays */
+               OverInd = SO->N_Overlays;
+               OKdup = 0;
             }
-            if (!(colplanepre = SUMA_Fetch_OverlayPointerByDset (
-                           SO->Overlays, SO->N_Overlays, dset, &OverInd))) {
-               SUMA_SLP_Err("Failed to fetch existing dset's overlay pointer");
+            /* set up the colormap for this dset */
+            NewColPlane = SUMA_CreateOverlayPointer ( filename, 
+                                                      dset, SO->idcode_str, 
+                                                      colplanepre);
+            if (SetupOverlay < 0) NewColPlane->isBackGrnd = YUP;
+            else NewColPlane->isBackGrnd = NOPE;
+
+            if (!NewColPlane) {
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
+                        FuncName);
                SUMA_RETURN(NOPE);
             }
-            /* have bias? REMOVE IT! */
-            if (!SUMA_RemoveCoordBias(colplanepre)) {
-               SUMA_SLP_Err("Failed to remove coord bias");
+
+            /* Add this plane to SO->Overlays */
+            if (!SUMA_AddNewPlane ((SUMA_ALL_DO *)SO, NewColPlane, SUMAg_DOv, 
+                                   SUMAg_N_DOv, OKdup)) {
+               SUMA_SL_Err("Failed in SUMA_AddNewPlane");
+               SUMA_FreeOverlayPointer(NewColPlane);
+               if (!SUMA_DeleteDsetPointer(&dset, SUMAg_CF->DsetList)) {
+                  SUMA_S_Err("Failed to delete dset pointer");
+               }
+
                SUMA_RETURN(NOPE);
             }
-            /* have clusterize? Recompute */
-            if (colplanepre->OptScl->Clusterize) 
-               colplanepre->OptScl->RecomputeClust = 1;         
-            OKdup = 1;
-         } else { /* dset is considered new */
-            colplanepre = NULL;
-            /* The overlay index for that plane is SO->N_Overlays */
-            OverInd = SO->N_Overlays;
-            OKdup = 0;
+         } 
+
+         /* Match the old settings? */
+         if (colplanepre == NewColPlane) { /* old col plane found for this dset*/
+            /* Don't change settings. Before Aug 2012, it would reset as below */
+         } else if (SUMA_PreserveOverlaySettings(SO->SurfCont->curColPlane,
+                                                NewColPlane)) {
+                           /* attempt to preserve current situation */
+            SUMA_OVERLAYS *settingPlane = NULL;
+            settingPlane = SO->SurfCont->curColPlane;
+            NewColPlane->GlobalOpacity = settingPlane->GlobalOpacity;
+            NewColPlane->ShowMode = settingPlane->ShowMode;
+            NewColPlane->OptScl->BrightFact = settingPlane->OptScl->BrightFact;
+            NewColPlane->OptScl->find = settingPlane->OptScl->find;
+            NewColPlane->OptScl->tind = settingPlane->OptScl->tind;
+            NewColPlane->OptScl->bind = settingPlane->OptScl->bind;
+            NewColPlane->OptScl->UseThr = settingPlane->OptScl->UseThr;
+            NewColPlane->OptScl->UseBrt = settingPlane->OptScl->UseBrt;
+            NewColPlane->OptScl->ThrMode = settingPlane->OptScl->ThrMode;
+            NewColPlane->OptScl->ThreshRange[0] = 
+                                          settingPlane->OptScl->ThreshRange[0];
+            NewColPlane->OptScl->ThreshRange[1] = 
+                                          settingPlane->OptScl->ThreshRange[1];
+            NewColPlane->OptScl->BrightRange[0] = 
+                                          settingPlane->OptScl->BrightRange[0];
+            NewColPlane->OptScl->BrightRange[1] = 
+                                          settingPlane->OptScl->BrightRange[1];
+            NewColPlane->OptScl->BrightMap[0] = 
+                                          settingPlane->OptScl->BrightMap[0];
+            NewColPlane->OptScl->BrightMap[1] = 
+                                          settingPlane->OptScl->BrightMap[1];
+            NewColPlane->SymIrange = settingPlane->SymIrange;
+            NewColPlane->OptScl->IntRange[0] = settingPlane->OptScl->IntRange[0];
+            NewColPlane->OptScl->IntRange[1] = settingPlane->OptScl->IntRange[1];
+            dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
+            if (dsetcmap) {
+               SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
+            } else {
+               SUMA_STRING_REPLACE(NewColPlane->cmapname, 
+                                   settingPlane->cmapname);
+            }         
+            NewColPlane->OptScl->Clusterize = settingPlane->OptScl->Clusterize;
+            NewColPlane->OptScl->ClustOpt->AreaLim = 
+               settingPlane->OptScl->ClustOpt->AreaLim;
+            NewColPlane->OptScl->ClustOpt->DistLim = 
+               settingPlane->OptScl->ClustOpt->DistLim;
+         } else {
+            /* set the opacity, index column and the range */
+            NewColPlane->GlobalOpacity = YUP;
+            NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
+            if (!colplanepre) {/* only set this if first time creating plane*/
+               NewColPlane->OptScl->BrightFact = 0.8;
+            }
+            NewColPlane->OptScl->find = 0;
+            NewColPlane->OptScl->tind = 0;
+            NewColPlane->OptScl->bind = 0;
+            SUMA_GetDsetColRange(dset, 0, NewColPlane->OptScl->IntRange, loc);
+            if (NewColPlane->SymIrange) {
+               NewColPlane->OptScl->IntRange[0] = 
+                  -fabs(SUMA_MAX_PAIR( NewColPlane->OptScl->IntRange[0],
+                                       NewColPlane->OptScl->IntRange[1]));
+               NewColPlane->OptScl->IntRange[1] = 
+                  -NewColPlane->OptScl->IntRange[0];
+            }
+
+            /* stick a colormap onto that plane ? */
+            dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
+            if (dsetcmap) {
+               SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
+            } else {
+               /* don't worry, there's a default one */
+            }
          }
-         /* set up the colormap for this dset */
-         NewColPlane = SUMA_CreateOverlayPointer ( filename, 
-                                                   dset, SO->idcode_str, 
-                                                   colplanepre);
-         if (SetupOverlay < 0) NewColPlane->isBackGrnd = YUP;
-         else NewColPlane->isBackGrnd = NOPE;
-         
-         if (!NewColPlane) {
-            fprintf (SUMA_STDERR, 
-                     "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
-                     FuncName);
+         if (NewColPlane->OptScl->Clusterize) 
+            NewColPlane->OptScl->RecomputeClust = 1;
+         /* colorize the plane */
+         SUMA_LH("Colorizing Plane");
+         SUMA_ColorizePlane(NewColPlane);
+
+         /* SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); */
+
+         /* set the new curColPlane to the newly loaded plane,
+         you need to do this before you remix the colors in case
+         you are only showing the curColPlane.
+         curColPlane is normally set in  SUMA_InitializeColPlaneShell
+         but when SO->SurfCont->ShowCurForeOnly = YUP, curColPlane
+         is used in the RemixRedisplay function.
+         NOTE: You can't call SUMA_InitializeColPlaneShell
+         before remixing because colors are reported in Lbl block
+          June 28 04*/
+         if (MakeOverlayCurrent) 
+            SO->SurfCont->curColPlane = SO->Overlays[OverInd]; 
+      }
+   
+      if (LaunchDisplay) {
+         SUMA_LHv("Remix Redisplay %s\n", SO->Label);
+         /* remix-redisplay  for surface */
+         if (!SUMA_RemixRedisplay ((SUMA_ALL_DO*)SO)) {
             SUMA_RETURN(NOPE);
          }
 
-         /* Add this plane to SO->Overlays */
-         if (!SUMA_AddNewPlane (SO, NewColPlane, SUMAg_DOv, 
-                                SUMAg_N_DOv, OKdup)) {
-            SUMA_SL_Err("Failed in SUMA_AddNewPlane");
-            SUMA_FreeOverlayPointer(NewColPlane);
-            if (!SUMA_DeleteDsetPointer(&dset, SUMAg_CF->DsetList)) {
-               SUMA_S_Err("Failed to delete dset pointer");
+         SUMA_LH("Refreshing Dset list");            
+         /*update the list widget if open */
+         LW = SO->SurfCont->SwitchDsetlst;
+         if (LW) {
+            if (!LW->isShaded) SUMA_RefreshDsetList ((SUMA_ALL_DO *)SO);  
+         }  
+
+         SUMA_LH("Refreshing sub-brick selectors");            
+         /* if lists for switching sub-bricks are not shaded, update them too */
+         if (SO->SurfCont->SwitchIntMenu) {
+            if ((LW = SO->SurfCont->SwitchIntMenu->lw) && !LW->isShaded) {
+               SUMA_DsetColSelectList((SUMA_ALL_DO*)SO, 0, 0, 1);
+            }
+            if ((LW = SO->SurfCont->SwitchThrMenu->lw) && !LW->isShaded) {
+               SUMA_DsetColSelectList((SUMA_ALL_DO*)SO, 1, 0, 1);
+            }
+            if ((LW = SO->SurfCont->SwitchBrtMenu->lw) && !LW->isShaded) {
+               SUMA_DsetColSelectList((SUMA_ALL_DO*)SO, 2, 0, 1);
             }
 
-            SUMA_RETURN(NOPE);
-         }
-      } 
-
-      /* Match the old settings? */
-      if (colplanepre == NewColPlane) { /* old col plane found for this dset*/
-         /* Don't change settings. Before Aug 2012, it would reset as below */
-      } else if (SUMA_PreserveOverlaySettings(SO->SurfCont->curColPlane,
-                                             NewColPlane)) {
-                        /* attempt to preserve current situation */
-         SUMA_OVERLAYS *settingPlane = NULL;
-         settingPlane = SO->SurfCont->curColPlane;
-         NewColPlane->GlobalOpacity = settingPlane->GlobalOpacity;
-         NewColPlane->ShowMode = settingPlane->ShowMode;
-         NewColPlane->OptScl->BrightFact = settingPlane->OptScl->BrightFact;
-         NewColPlane->OptScl->find = settingPlane->OptScl->find;
-         NewColPlane->OptScl->tind = settingPlane->OptScl->tind;
-         NewColPlane->OptScl->bind = settingPlane->OptScl->bind;
-         NewColPlane->OptScl->UseThr = settingPlane->OptScl->UseThr;
-         NewColPlane->OptScl->UseBrt = settingPlane->OptScl->UseBrt;
-         NewColPlane->OptScl->ThrMode = settingPlane->OptScl->ThrMode;
-         NewColPlane->OptScl->ThreshRange[0] = 
-                                       settingPlane->OptScl->ThreshRange[0];
-         NewColPlane->OptScl->ThreshRange[1] = 
-                                       settingPlane->OptScl->ThreshRange[1];
-         NewColPlane->OptScl->BrightRange[0] = 
-                                       settingPlane->OptScl->BrightRange[0];
-         NewColPlane->OptScl->BrightRange[1] = 
-                                       settingPlane->OptScl->BrightRange[1];
-         NewColPlane->OptScl->BrightMap[0] = 
-                                       settingPlane->OptScl->BrightMap[0];
-         NewColPlane->OptScl->BrightMap[1] = 
-                                       settingPlane->OptScl->BrightMap[1];
-         NewColPlane->SymIrange = settingPlane->SymIrange;
-         NewColPlane->OptScl->IntRange[0] = settingPlane->OptScl->IntRange[0];
-         NewColPlane->OptScl->IntRange[1] = settingPlane->OptScl->IntRange[1];
-         dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
-         if (dsetcmap) {
-            SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
-         } else {
-            SUMA_STRING_REPLACE(NewColPlane->cmapname, settingPlane->cmapname);
-         }         
-         NewColPlane->OptScl->Clusterize = settingPlane->OptScl->Clusterize;
-         NewColPlane->OptScl->ClustOpt->AreaLim = 
-            settingPlane->OptScl->ClustOpt->AreaLim;
-         NewColPlane->OptScl->ClustOpt->DistLim = 
-            settingPlane->OptScl->ClustOpt->DistLim;
-      } else {
-         /* set the opacity, index column and the range */
-         NewColPlane->GlobalOpacity = YUP;
-         NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
-         if (!colplanepre) {/* only set this if first time creating plane*/
-            NewColPlane->OptScl->BrightFact = 0.8;
-         }
-         NewColPlane->OptScl->find = 0;
-         NewColPlane->OptScl->tind = 0;
-         NewColPlane->OptScl->bind = 0;
-         SUMA_GetDsetColRange(dset, 0, NewColPlane->OptScl->IntRange, loc);
-         if (NewColPlane->SymIrange) {
-            NewColPlane->OptScl->IntRange[0] = 
-               -fabs(SUMA_MAX_PAIR( NewColPlane->OptScl->IntRange[0],
-                                    NewColPlane->OptScl->IntRange[1]));
-            NewColPlane->OptScl->IntRange[1] = 
-               -NewColPlane->OptScl->IntRange[0];
-         }
-
-         /* stick a colormap onto that plane ? */
-         dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
-         if (dsetcmap) {
-            SUMA_STRING_REPLACE(NewColPlane->cmapname, dsetcmap);
-         } else {
-            /* don't worry, there's a default one */
+            if (LocalHead) 
+               fprintf (SUMA_STDERR,
+                        "%s: Updating Dset frame, OverInd=%d\n", 
+                        FuncName, OverInd);
+            /* update the Dset frame */
+            if (OverInd >= 0)        
+               SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SO, 
+                                            SO->Overlays[OverInd]);
          }
       }
-      if (NewColPlane->OptScl->Clusterize) 
-         NewColPlane->OptScl->RecomputeClust = 1;
-      /* colorize the plane */
-      SUMA_LH("Colorizing Plane");
-      SUMA_ColorizePlane(NewColPlane);
 
-      /* SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); */
+      if (used_over) *used_over = SO->Overlays[OverInd];
+   } else {
+      SUMA_GRAPH_SAUX *GSaux=NULL;
+      if (SetupOverlay) {
+         SUMA_LH("Setting up overlay for GRAPH dset");
+         OverInd = -1; /* OverInd is irrelvant, 
+                          just one overlay per graph dset, at least for now */
+         {
+            if (dset != dsetpre) { /* dset was pre-existing in the list */
+               if (!(GSaux = SDSET_GSAUX(dset))) {
+                  SUMA_S_Warn("That is weird, should this happen?");
+                  if (!SUMA_AddDsetSaux(dset)) {
+                     SUMA_S_Err("Failed to create Saux struct");
+                     SUMA_RETURN(NOPE);   
+                  }   
+                  GSaux = SDSET_GSAUX(dset);
+               }
+               if (LocalHead) {
+                  fprintf( SUMA_STDERR,
+                           "%s: Dset %s (%p) pre-existing, "
+                           "finding its pre-existing overlays.\n", 
+                           FuncName, SDSET_LABEL(dset), dset); 
+               }
+               colplanepre = SDSET_GOVERLAY(dset);
+               OKdup = 1;
+            } else { /* dset is considered new */
+               colplanepre = NULL;
+               if (!SUMA_AddDsetSaux(dset)) {
+                  SUMA_S_Err("Failed to create Saux struct");
+                  SUMA_RETURN(NOPE);   
+               }   
+               GSaux = SDSET_GSAUX(dset);
+               OKdup = 0;
+            }
+            
+            /* set up the colormap for this dset */
+            GSaux->Overlay = SUMA_CreateOverlayPointer ( filename, 
+                                                      dset, SDSET_ID(dset), 
+                                                      colplanepre);
+            if (!GSaux->Overlay) {
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed in SUMA_CreateOverlayPointer.\n", 
+                        FuncName);
+               SUMA_RETURN(NOPE);
+            }
 
-      /* set the new curColPlane to the newly loaded plane,
-      you need to do this before you remix the colors in case
-      you are only showing the curColPlane.
-      curColPlane is normally set in  SUMA_InitializeColPlaneShell
-      but when SO->SurfCont->ShowCurForeOnly = YUP, curColPlane
-      is used in the RemixRedisplay function.
-      NOTE: You can't call SUMA_InitializeColPlaneShell
-      before remixing because colors are reported in Lbl block
-       June 28 04*/
-      if (MakeOverlayCurrent) 
-         SO->SurfCont->curColPlane = SO->Overlays[OverInd]; 
-   }
-   
-   if (LaunchDisplay) {
-      SUMA_LHv("Remix Redisplay %s\n", SO->Label);
-      /* remix-redisplay  for surface */
-      if (!SUMA_RemixRedisplay (SO)) {
+         } 
+
+         /* Match the old settings? */
+         if (colplanepre == GSaux->Overlay) { /* old col plane found */
+            /* Don't change settings. */
+         } else if (0) {
+            /* This block would parallel what is after function
+            call SUMA_PreserveOverlaySettings() above
+            For now there is no 'curColPlane' for graph datasets */ 
+                           /* attempt to preserve current situation */
+            SUMA_OVERLAYS *settingPlane = NULL;
+            GSaux->Overlay->GlobalOpacity = settingPlane->GlobalOpacity;
+            GSaux->Overlay->ShowMode = settingPlane->ShowMode;
+            GSaux->Overlay->OptScl->BrightFact = 
+                                          settingPlane->OptScl->BrightFact;
+            GSaux->Overlay->OptScl->find = settingPlane->OptScl->find;
+            GSaux->Overlay->OptScl->tind = settingPlane->OptScl->tind;
+            GSaux->Overlay->OptScl->bind = settingPlane->OptScl->bind;
+            GSaux->Overlay->OptScl->UseThr = settingPlane->OptScl->UseThr;
+            GSaux->Overlay->OptScl->UseBrt = settingPlane->OptScl->UseBrt;
+            GSaux->Overlay->OptScl->ThrMode = settingPlane->OptScl->ThrMode;
+            GSaux->Overlay->OptScl->ThreshRange[0] = 
+                                          settingPlane->OptScl->ThreshRange[0];
+            GSaux->Overlay->OptScl->ThreshRange[1] = 
+                                          settingPlane->OptScl->ThreshRange[1];
+            GSaux->Overlay->OptScl->BrightRange[0] = 
+                                          settingPlane->OptScl->BrightRange[0];
+            GSaux->Overlay->OptScl->BrightRange[1] = 
+                                          settingPlane->OptScl->BrightRange[1];
+            GSaux->Overlay->OptScl->BrightMap[0] = 
+                                          settingPlane->OptScl->BrightMap[0];
+            GSaux->Overlay->OptScl->BrightMap[1] = 
+                                          settingPlane->OptScl->BrightMap[1];
+            GSaux->Overlay->SymIrange = settingPlane->SymIrange;
+            GSaux->Overlay->OptScl->IntRange[0] = 
+                                             settingPlane->OptScl->IntRange[0];
+            GSaux->Overlay->OptScl->IntRange[1] = 
+                                             settingPlane->OptScl->IntRange[1];
+            dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
+            if (dsetcmap) {
+               SUMA_STRING_REPLACE(GSaux->Overlay->cmapname, dsetcmap);
+            } else {
+               SUMA_STRING_REPLACE(GSaux->Overlay->cmapname, 
+                                   settingPlane->cmapname);
+            }         
+            GSaux->Overlay->OptScl->Clusterize = 
+                     settingPlane->OptScl->Clusterize;
+            GSaux->Overlay->OptScl->ClustOpt->AreaLim = 
+               settingPlane->OptScl->ClustOpt->AreaLim;
+            GSaux->Overlay->OptScl->ClustOpt->DistLim = 
+               settingPlane->OptScl->ClustOpt->DistLim;
+         } else {
+            /* set the opacity, index column and the range */
+            GSaux->Overlay->GlobalOpacity = YUP;
+            GSaux->Overlay->ShowMode = SW_SurfCont_DsetViewCol;
+            if (!colplanepre) {/* only set this if first time creating plane*/
+               GSaux->Overlay->OptScl->BrightFact = 0.8;
+            }
+            GSaux->Overlay->OptScl->find = 0;
+            GSaux->Overlay->OptScl->tind = 0;
+            GSaux->Overlay->OptScl->bind = 0;
+            SUMA_GetDsetColRange(dset, 0, GSaux->Overlay->OptScl->IntRange, loc);
+            if (GSaux->Overlay->SymIrange) {
+               GSaux->Overlay->OptScl->IntRange[0] = 
+                  -fabs(SUMA_MAX_PAIR( GSaux->Overlay->OptScl->IntRange[0],
+                                       GSaux->Overlay->OptScl->IntRange[1]));
+               GSaux->Overlay->OptScl->IntRange[1] = 
+                  -GSaux->Overlay->OptScl->IntRange[0];
+            }
+
+            /* stick a colormap onto that plane ? */
+            dsetcmap = NI_get_attribute(dset->ngr,"SRT_use_this_cmap");
+            if (dsetcmap) {
+               SUMA_STRING_REPLACE(GSaux->Overlay->cmapname, dsetcmap);
+            } else {
+               /* don't worry, there's a default one */
+            }
+         }
+         if (GSaux->Overlay->OptScl->Clusterize) 
+            GSaux->Overlay->OptScl->RecomputeClust = 1;
+         /* colorize the plane */
+         SUMA_LH("Colorizing Plane");
+         SUMA_ColorizePlane(GSaux->Overlay);
+
+         if (LocalHead) {
+            SUMA_Show_ColorOverlayPlanes(&GSaux->Overlay, 1, 1); 
+         }
+         /* set the new curColPlane to the newly loaded plane,
+         you need to do this before you remix the colors in case
+         you are only showing the curColPlane.
+         curColPlane is normally set in  SUMA_InitializeColPlaneShell
+         but when SO->SurfCont->ShowCurForeOnly = YUP, curColPlane
+         is used in the RemixRedisplay function.
+         NOTE: You can't call SUMA_InitializeColPlaneShell
+         before remixing because colors are reported in Lbl block
+          June 28 04*/
+         if (MakeOverlayCurrent) {
+            SUMA_S_Warn("Need to figure out how/where current graph should"
+                        "be set. I suggest you store just the ID of the"
+                        "current graph dset");
+         }
+      }
+      /* initialize matrix shape info */
+      if (dset->Aux->matrix_shape == MAT_HEEHAW) {
+         SUMA_GDSET_Set_Aux_matrix_shape(dset);
+      }
+      /* This is where you add the business about the DOs*/
+      if (!SUMA_CreateGraphDOs(dset)) {
+         SUMA_S_Err("Failed to create DOs for graph dset");
          SUMA_RETURN(NOPE);
       }
-
-      SUMA_LH("Refreshing Dset list");            
-      /*update the list widget if open */
-      LW = SO->SurfCont->SwitchDsetlst;
-      if (LW) {
-         if (!LW->isShaded) SUMA_RefreshDsetList (SO);  
-      }  
-      
-      SUMA_LH("Refreshing sub-brick selectors");            
-      /* if lists for switching sub-bricks are not shaded, update them too */
-      if (SO->SurfCont->SwitchIntMenu) {
-         if ((LW = SO->SurfCont->SwitchIntMenu->lw) && !LW->isShaded) {
-            SUMA_DsetColSelectList(SO, 0, 0, 1);
-         }
-         if ((LW = SO->SurfCont->SwitchThrMenu->lw) && !LW->isShaded) {
-            SUMA_DsetColSelectList(SO, 1, 0, 1);
-         }
-         if ((LW = SO->SurfCont->SwitchBrtMenu->lw) && !LW->isShaded) {
-            SUMA_DsetColSelectList(SO, 2, 0, 1);
-         }
-
-         if (LocalHead) 
-            fprintf (SUMA_STDERR,
-                     "%s: Updating Dset frame, OverInd=%d\n", 
-                     FuncName, OverInd);
-         /* update the Dset frame */
-         if (OverInd >= 0)        
-            SUMA_InitializeColPlaneShell(SO, SO->Overlays[OverInd]);
+      /* register them with this viewer */
+      if (!SUMA_RegisterGraphDOs(dset,NULL)) {
+         SUMA_S_Err("Failed to register graph DO with all viewers ");
+         SUMA_RETURN(NOPE);
       }
+      if (LaunchDisplay) {
+         if (!(GSaux = SDSET_GSAUX(dset))) {
+            SUMA_S_Err("Come on now, should have GSaux by now!");
+            SUMA_RETURN(NOPE);   
+         }
+
+         SUMA_LHv("Remix Redisplay %s (id %s) (dset %p)\n", 
+                  SDSET_LABEL(dset), SDSET_ID(dset), dset);
+         /* remix-redisplay  for surface */
+         if (!SUMA_RemixRedisplay((SUMA_ALL_DO*)dset)) {
+            SUMA_RETURN(NOPE);
+         }
+
+         SUMA_LH("Refreshing sub-brick selectors");            
+         /* if lists for switching sub-bricks are not shaded, update them too */
+         if (GSaux->DOCont->SwitchIntMenu) {
+            if ((LW = GSaux->DOCont->SwitchIntMenu->lw) && !LW->isShaded) {
+               SUMA_DsetColSelectList((SUMA_ALL_DO *)dset, 0, 0, 1);
+            }
+            if ((LW = GSaux->DOCont->SwitchThrMenu->lw) && !LW->isShaded) {
+               SUMA_DsetColSelectList((SUMA_ALL_DO *)dset, 1, 0, 1);
+            }
+            if ((LW = GSaux->DOCont->SwitchBrtMenu->lw) && !LW->isShaded) {
+               SUMA_DsetColSelectList((SUMA_ALL_DO *)dset, 2, 0, 1);
+            }
+
+            SUMA_LH("Updating Dset frame");
+            /* update the Dset frame */
+            SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)dset, 
+                                    SUMA_ADO_Overlay0((SUMA_ALL_DO *)dset));
+         }
+      }
+
    }
-   
-   if (used_over) *used_over = SO->Overlays[OverInd];
    SUMA_RETURN(YUP);
 }
 
@@ -8409,7 +8798,7 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    /* See note before similar line in SUMA_LoadDsetOntoSO */
    SO->SurfCont->curColPlane = SO->Overlays[OverInd]; 
 
-   if (!SUMA_RemixRedisplay (SO)) {
+   if (!SUMA_RemixRedisplay ((SUMA_ALL_DO*)SO)) {
       SUMA_RETURNe;
    }
   
@@ -8417,7 +8806,7 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    /*update the list widget if open */
    LW = SO->SurfCont->SwitchDsetlst;
    if (LW) {
-      if (!LW->isShaded) SUMA_RefreshDsetList (SO);  
+      if (!LW->isShaded) SUMA_RefreshDsetList ((SUMA_ALL_DO *)SO);  
    }  
    
    if (LocalHead) 
@@ -8426,7 +8815,7 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
                FuncName, OverInd);
    /* update the color plane frame */
    if (OverInd >= 0)        
-      SUMA_InitializeColPlaneShell(SO, SO->Overlays[OverInd]);
+      SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SO, SO->Overlays[OverInd]);
 
    SUMA_RETURNe;
 }
@@ -9084,8 +9473,7 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO,
    }
    
    if (!(ConvPlane = 
-            SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, 
-                                      "Convexity", &junk))) {
+            SUMA_Fetch_OverlayPointer((SUMA_ALL_DO*)SO, "Convexity", &junk))) {
       SUMA_SL_Err("Failed to find overlay plane 'Convexity'");
       SUMA_RETURN(NOPE);
    }
@@ -9237,7 +9625,7 @@ int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
    \param ngr: a NI_group* containing crosshair data from AFNI
 */
 SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
-      SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Sover,
+      SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover,
       SUMA_ENGINE_SOURCE Src, NI_group *ngr)
 {
    static char FuncName[]={"SUMA_Selected_Node_Activate_Callbacks"};
@@ -9249,11 +9637,12 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
    NI_element *nel=NULL;
    SUMA_CALLBACK *cb=NULL;
    NI_element *nelpars=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    
-   if (!SO || !SO->SurfCont || !Sover) {
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado)) || !Sover) {
       /* this can happen in normal cases where nothing is loaded or selected. */
       SUMA_LH("No Surface or Surface Controller, or other important stuff!");
       SUMA_RETURN(YUP);
@@ -9283,9 +9672,9 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                   SUMA_S_Err("Failed to find parameters element!");                                 SUMA_RETURN(NOPE);
                }  
                NI_SET_INT(nelpars,     
-                          "event.new_node", SO->SelectedNode);
+                          "event.new_node", SUMA_ADO_SelectedDatum(ado));
                NI_set_attribute( nelpars, 
-                                 "event.SO_idcode", SO->idcode_str);
+                                 "event.DO_idcode", SUMA_ADO_idcode(ado));
                NI_set_attribute(nelpars, 
                                 "event.overlay_name", 
                                 Sover->Name);
@@ -9340,7 +9729,7 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                                            (int)fv3[0], (int)fv3[1],(int)fv3[2]);
                            } else {
                               sprintf(stmp,"v2s_array.%d.1D",
-                                           SO->SelectedNode);
+                                           SUMA_ADO_SelectedDatum(ado));
                            }
                            fv = (float *)nelts->vec[0];
                            SUMA_LHv("Writing %s\n", stmp);

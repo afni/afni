@@ -9357,6 +9357,88 @@ SUMA_Boolean SUMA_FlipTriangles (int *FaceSetList,int N_FaceSet)
    SUMA_RETURN(YUP);
 }
 
+/*
+   \brief A surface to merge a bunch of surfaces into one big mamma
+*/
+SUMA_SurfaceObject *SUMA_MergeSurfs(SUMA_SurfaceObject **SOv, int N_SOv)
+{
+   static char FuncName[]={"SUMA_MergeSurfs"};
+   SUMA_SurfaceObject *SO=NULL, *iso=NULL;
+   int i = 0, cnt = 0, n3=0;
+   int N_Node = 0, NodeOffset=0, *meshp=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SOv || N_SOv < 1) {
+      SUMA_SL_Err("Null input");
+      SUMA_RETURN(SO);
+   }
+   
+   /* count the number of nodes and initialize imask*/
+   SO = SUMA_Alloc_SurfObject_Struct(1);
+   if (!SO) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(SO);
+   }
+   
+   for (i=0; i<N_SOv; ++i) {
+      if ((iso = SOv[i])) {
+         if (i==0 || SO->N_Node == 0) {
+            SO->NodeDim = iso->NodeDim;
+            SO->FaceSetDim = iso->FaceSetDim;
+         } else if (iso->NodeDim != SO->NodeDim) {
+            SUMA_S_Errv("Bad dimensions for %s, skipping it\n",
+                        iso->Label);
+            SOv[i] = NULL;
+            continue;
+         }
+         SO->N_Node += iso->N_Node;
+         SO->N_FaceSet += iso->N_FaceSet;
+      }
+   }
+   
+   if (!(SO->NodeList = (float *)SUMA_calloc(SO->N_Node*SO->NodeDim, 
+                                       sizeof(float))) ||
+       !(SO->FaceSetList = (int *)SUMA_calloc(SO->N_FaceSet*SO->FaceSetDim, 
+                                         sizeof(int)))) {
+      SUMA_S_Errv("Could not allocate for %d nodes, %d triangles\n",
+                  SO->N_Node, SO->N_FaceSet);
+      SUMA_ifree(SO->NodeList);
+      SUMA_ifree(SO->FaceSetList);
+      SUMA_Free_Surface_Object(SO);
+      SUMA_RETURN(NULL);
+   }
+   cnt = 0;
+   for (i=0; i<N_SOv; ++i) {
+      if ((iso = SOv[i])) {
+         memcpy(SO->NodeList+(cnt*iso->NodeDim),iso->NodeList,
+                  sizeof(float)*iso->N_Node*iso->NodeDim); 
+         cnt += iso->N_Node;
+      }
+   }
+   cnt = 0;
+   for (i=0; i<N_SOv; ++i) {
+      if ((iso = SOv[i])) {
+         if (cnt == 0) {
+            memcpy(SO->FaceSetList+(cnt*iso->FaceSetDim),iso->FaceSetList,
+                     sizeof(int)*iso->N_FaceSet*iso->FaceSetDim);
+            NodeOffset = iso->N_Node;
+         } else {
+            meshp = SO->FaceSetList+(cnt*iso->FaceSetDim);
+            for (n3=0; n3<iso->N_FaceSet*iso->FaceSetDim; ++n3) {
+               *meshp = iso->FaceSetList[n3]+NodeOffset; ++meshp;
+            }
+            NodeOffset += iso->N_Node;
+         }
+         cnt += iso->N_FaceSet;
+      }
+   }
+   
+   SUMA_RETURN(SO);
+}
+
+
 /* 
    \brief a function to turn a surface patch (not all vertices are in use) into a surface where all nodes are used.
    \param NodeList (float *) N_Nodelist * 3 vector containing xyz triplets for vertex coordinates
@@ -10432,8 +10514,6 @@ double SUMA_Pattie_Volume (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
 SUMA_Boolean SUMA_FillScaleXform(double xform[][4], double sc[3]) 
 {
    static char FuncName[]={"SUMA_FillScaleXform"};
-   float a[3], phi, q[4];
-   GLfloat m[4][4];
    int nrow, ncol, i;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -10448,6 +10528,25 @@ SUMA_Boolean SUMA_FillScaleXform(double xform[][4], double sc[3])
    
    SUMA_RETURN(YUP);
 } 
+
+SUMA_Boolean SUMA_FillXYnegXform(double xform[][4]) 
+{
+   static char FuncName[]={"SUMA_FillXYnegXform"};
+   int nrow, ncol, i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   for(nrow=0;nrow<4;++nrow) 
+      for (ncol=0; ncol<4;++ncol) 
+         xform[nrow][ncol] = 0.0;
+   xform[0][0] = -1.0;
+   xform[1][1] = -1.0;
+   xform[2][2] =  1.0;
+   xform[3][3] =  1.0;
+   
+   SUMA_RETURN(YUP);
+} 
+
 
 SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type) 
 {
@@ -11554,7 +11653,9 @@ void SUMA_free_SPI (SUMA_SURF_PLANE_INTERSECT *SPI)
 /*! 
 Show the SPI structure 
 */
-SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_SurfaceObject *SO, char *opref, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, 
+                           SUMA_SurfaceObject *SO, char *opref, 
+                           SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Show_SPI"};
    int i, j;
@@ -11594,7 +11695,8 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
    if (sv) {
       SUMA_SegmentDO *SDO = NULL;
       if ((SDO = SUMA_Alloc_SegmentDO (SPI->N_IntersEdges, 
-                                 "Show_SPI_segs", 0, NULL, 0, LS_type))) {
+                                 "Show_SPI_segs", 0, SO->idcode_str, 
+                                 0, LS_type, SO_type, NULL))) {
          SDO->do_type = LS_type;
          for (i=0; i < SPI->N_IntersEdges; ++i) {
             for (j=0; j<3;++j) {
@@ -12323,7 +12425,8 @@ int * SUMA_Dijkstra_usegen (SUMA_SurfaceObject *SO, int Nx,
    \sa SUMA_NodePath_to_EdgePath_Inters
    \sa Path S in labbook NIH-2 page 153
 */
-int *SUMA_NodePath_to_EdgePath (SUMA_EDGE_LIST *EL, int *Path, int N_Path, int *N_Edge)
+int *SUMA_NodePath_to_EdgePath (SUMA_EDGE_LIST *EL, int *Path, int N_Path, 
+                                int *N_Edge)
 {
    static char FuncName[]={"SUMA_NodePath_to_EdgePath"};
    int *ePath = NULL, i, i0;

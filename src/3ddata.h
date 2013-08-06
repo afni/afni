@@ -4040,6 +4040,8 @@ extern int THD_mkdir       ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_cwd         ( char * ) ;  /* 19 Dec 2002 */
 extern int THD_equiv_files ( char * , char * ) ;
 extern long long THD_filesize( char * pathname ) ;
+extern int THD_filetime_diff( char *pathname, 
+                              int year, int month, int day);
 extern char *THD_filetime( char *pathname );
 extern char *THD_homedir(byte withslash);
 extern char *THD_custom_atlas_dir(byte withslash);

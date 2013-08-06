@@ -736,6 +736,8 @@ extern char * MD5_B64_file(char * filename) ;
 extern char * UNIQ_idcode(void) ;
 extern void   UNIQ_idcode_fill( char * ) ;
 extern char * UNIQ_hashcode( char * ) ;
+extern void UNIQ_hashprefix_fill( char *idc ) ;  /* 30 Apr 2013 */
+extern char * UNIQ_hashprefix( void ) ;
 
 extern char * UUID_hashcode( char * ) ;   /* 20 Aug 2002 */
 extern char * UUID_idcode(void) ;

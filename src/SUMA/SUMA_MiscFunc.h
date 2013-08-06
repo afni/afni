@@ -105,7 +105,6 @@ SUMA_Boolean SUMA_Point_To_Point_Distance (float *NodeList, int N_points, float 
 int *SUMA_z_dqsort (int *x , int nx );
 int *SUMA_z_dqsort_nsc (int *x , int nx );
 int *SUMA_z_qsort (float *x , int nx );
-int *SUMA_reorder(int *y, int *isort, int N_isort);
 int SUMA_compare_int (int *a, int *b );
 int SUMA_compare_float (float *a, float *b );
 int SUMA_compare_double (double *a, double *b );

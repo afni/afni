@@ -297,6 +297,7 @@ int *z_rand_order(int bot, int top, long int seed);
 int *z_iqsort (float *x , int nx );
 int *z_idoubleqsort (double *x , int nx );
 int *z_idqsort (int *x , int nx );
+int *z_dqsort (int *x , int nx );
 int *z_istrqsort (char **x , int nx );
 void Show_Atlas_Region (AFNI_ATLAS_REGION *aar);
 AFNI_ATLAS_REGION * Free_Atlas_Region (AFNI_ATLAS_REGION *aar);

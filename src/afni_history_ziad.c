@@ -65,6 +65,33 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 5, Aug , 2013 , ZSS , "inspec" , MINOR , TYPE_NEW_OPT,
+   "Added -remove_state to remove surfaces of specific state from spec file",
+   NULL
+ },
+ 
+ { 31, Jul , 2013 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
+   "Added -xmat_1D NegXY to flip X Y coordinate sign of surfaces.",
+   "This should make it easy to turn GIFTI files with RAI units to\n"
+   "LPI with something like: \n"
+   "ConvertSurface -i toy.gii -o_gii toy -overwrite -xmat_1D NegXY\n"
+ },
+ 
+ { 31, Jul , 2013 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
+   "Added -merge_surfs to facilitate ECOG strip merging.",
+   NULL
+ },
+ 
+ { 29, Jul , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Coordinates xform of GIFTI surfaces was applied too late",
+   NULL
+ },
+ 
+ { 26, Jul , 2013 , ZSS , "@RetinoProc" , MICRO , TYPE_MODIFY,
+   "Fixed bad option name in -help and clarified -delay option",
+   NULL
+ },
+ 
  { 14, Jun , 2013 , ZSS , "1dmatcalc" , MICRO , TYPE_MODIFY,
    "Set status to 1 on failure",
    NULL

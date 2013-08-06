@@ -1587,69 +1587,8 @@ float * SUMA_detWeight (float node0[3], float node1[3], float node2[3], float pt
 
 } 
 
-/*!
-  SUMA_binSearch( nodeList, target, seg);
 
-  This function performs a binary search.  The indices of the elements in nodeList surrounding target will be stored in (overwrite) seg; thus seg[0]=seg[1]=i implies that an exact match was found at index i.
-  \param nodeList (float *) vector of sorted values
-  \param target (float) value seeking
-  \param seg (int *) contains begin and end point of segment being searched
-  \return found (SUMA_Boolean) YUP if all passed correctly and target within segment, NOPE otherwise
 
-  Written by Brenna Argall
-*/
-SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) {
-  
-   int mid=0;
-   int beg = seg[0], end = seg[1];
-   SUMA_Boolean found=YUP;
-   static char FuncName[]={"SUMA_binSearch"};
-   
-   SUMA_ENTRY;
-//   fprintf(SUMA_STDERR, "%f < %f < %f\n", nodeList[beg], target, nodeList[end]);
-   if ( end<beg) {
-      fprintf(SUMA_STDERR, "Error %s: Segment must be passed with seg[0] being of lower index of seg[1].\n\n", FuncName);
-      SUMA_RETURN (found = NOPE);
-   }
-   if ( nodeList[end]<nodeList[beg] ) {
-      fprintf(SUMA_STDERR, "Error %s: Nodelist must be passed sorted and in ascending order.\n\n", FuncName);
-      SUMA_RETURN (found = NOPE);
-   }
-   if ( (nodeList[beg]>target) || (nodeList[end]<target) ) {
-      fprintf(SUMA_STDERR, "Error %s: Target does not lie within segment!\n\n", FuncName);
-      SUMA_RETURN (found = NOPE);
-   }
-
-   if (beg!=end) {
-      mid =(end-beg)/2 + beg;
-      /**no exact match, but elements above and below found*/
-      if (beg+1==end) {
-         seg[0] = beg;
-         seg[1] = end;
-      }
-      else if (target==nodeList[mid]) {
-         seg[0] = mid;
-         seg[1] = mid;
-      }
-      /**keep searching*/
-      else if ( target  < nodeList[mid]) {
-         seg[0] = beg;  seg[1] = mid;
-         found = SUMA_binSearch( nodeList, target, seg);
-      }
-      else if ( target > nodeList[mid]) {
-         seg[0] = mid;  seg[1] = end;
-         found = SUMA_binSearch( nodeList, target, seg);
-      }
-   }
-   /**exact match; beg==end or target==nodeList[ indexList[mid] ]*/
-   else {
-      seg[0] = mid;
-      seg[1] = mid;
-   }
-  
-   SUMA_RETURN(found);
-}
- 
 /**gives value for intersection of two lines, as defined in SUMA_MapSurface 
       (see p10 LNB)*/
 float intersection_map(float a, float b, float c, float d, float val) {

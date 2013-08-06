@@ -272,6 +272,30 @@
    IJK[1] = ((IJK[1]) / (ni)); \
 }
 
+/*Macros to go from 1D to 4D ubyte indexing. 
+  For SUMA_COLID_N2RGBA, you will need to pass ints for r g b a
+  even though ubyte is needed for final storage */
+#define SUMA_COLID_N2RGBA(n,r,g,b,a) { \
+   (b) = (n) & (16777215); /* x % 2^24 = x & (2^n-1) */ \
+   (a) = (n) >> 24; /* divide by 2^24 (256x256x256) */  \
+   (g) = (b) & (65535); \
+   (b) = (b) >> 16; \
+   (r) = (g) & (255); \
+   (g) = (g) >> 8;   \
+}
+#define SUMA_COLID_N2RGBA_slow(n,r,g,b,a) { \
+   (b) = (n) % (16777216); /* x % 2^24 = x & (2^n-1) */ \
+   (a) = (n) /  16777216; /* divide by 2^24 (256x256x256) */  \
+   (g) = (b) % (65536); \
+   (b) = (b) / 65536; \
+   (r) = (g) % (256); \
+   (g) = (g) / 256;  \
+}
+#define SUMA_COLID_RGBA2N(r,g,b,a,n) { \
+   (n) = ((a) << 24) + ((b) << 16) + ((g) << 8) + (r);  \
+}
+
+
 #define GET_NEIGHBS_IN_MASK(cmask, ijk, ni, nj, nk, nij, ijkn_vec){  \
    static int m_IJK[3];   \
    m_IJK[2] = ((ijk) / (nij)); \

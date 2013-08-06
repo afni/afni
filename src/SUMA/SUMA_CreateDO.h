@@ -23,7 +23,53 @@ typedef struct {
    char whodunit[32]; /*!< Who wanted this state tracked */
 } SUMA_GL_STEL;
 
+typedef struct {
+   char *idcode_str;
+   float *NodeList;
+   int N_Node;
+   int *NodeIndex;
+   
+   float AvgLe;
+   byte err;
+} SUMA_DUMB_DO;   /* A structure to hold pointer copies for use by drawing
+                     functions. Nothing in here should be allocated for.
+                     All use of this structure should be temporary to the
+                     drawing function */
+/*! Graph dataset Auxiliary structure for SUMA's use */
+typedef struct {
+   DList *DisplayUpdates;
+   SUMA_SegmentDO *SDO;
+   SUMA_OVERLAYS *Overlay;
+   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
+   SUMA_PICK_RESULT *PR;
+   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
+                                 by thresholds etc. */
+} SUMA_GRAPH_SAUX;
 
+#define SDSET_GSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
+                               SUMA_isGraphDset(dset) ) ? \
+                           (SUMA_GRAPH_SAUX *)((dset)->Aux->Saux):NULL )
+#define SDSET_GOVERLAY(dset) (( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
+                               SUMA_isGraphDset(dset) ) ? \
+                  ((SUMA_GRAPH_SAUX *)(dset)->Aux->Saux)->Overlay:NULL )
+#define SDSET_GDRAW_VARIANT(dset) ( (SDSET_GSAUX(dset))->CurrentDrawVariant)
+
+SUMA_Boolean SUMA_DrawDO_UL_FullMonty(DList *dl);
+SUMA_Boolean SUMA_ADO_UL_Add(SUMA_ALL_DO *ado, char *com, int replace);
+SUMA_Boolean SUMA_DrawDO_UL_Add(DList *dl, char *com, int replace); 
+DListElmt *SUMA_DrawDO_UL_Find(DList *dl, char *com); 
+SUMA_Boolean SUMA_DrawDO_UL_EmptyList(DList *dl, DListElmt *del);
+void SUMA_Free_GSaux(void *vSaux);
+void SUMA_Free_Saux_DisplayUpdates_datum(void *ddd);
+SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset);
+SUMA_Boolean SUMA_Load_Dumb_DO(SUMA_ALL_DO *ado, SUMA_DUMB_DO *DDO);
+SUMA_Boolean SUMA_SetDrawVariant(SUMA_DSET *dset, char *variant);
+char *SUMA_GetDrawVariant(SUMA_DSET *dset);
+SUMA_Boolean SUMA_UnSetDrawVariant(SUMA_DSET *dset);
+SUMA_Boolean SUMA_SetDrawVariant(SUMA_DSET *dset, char *variant);
+SUMA_Boolean SUMA_isDrawVariant(SUMA_DSET *dset, char *variant);
+float *SUMA_Graph_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,    
+                           int **ind, char *thisvariant); 
 NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
                                           int N_do, SUMA_SurfaceViewer *sv );
 SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void);
@@ -36,7 +82,7 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name, SUMA_DO_Types type);
 void SUMA_Free_Axis (SUMA_Axis *Ax);
 SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv);
-void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso);
+void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_ALL_DO *cso);
 void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv);
 void SUMA_Free_CrossHair (SUMA_CrossHair *Ch);
 SUMA_CrossHair* SUMA_Alloc_CrossHair (void);
@@ -74,6 +120,7 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
                                         SUMA_SurfaceObject *SO);
 NI_group *SUMA_ExtractAfniSO_FromSumaSO( SUMA_SurfaceObject *SO, 
                                                    int CopyData);
+SUMA_Boolean SUMA_Blank_AfniSO_Coord_System(NI_group *aSO);
 char *SUMA_SideName(SUMA_SO_SIDE ss);
 SUMA_SO_SIDE SUMA_SideType(char *s);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
@@ -82,14 +129,17 @@ void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
 char *SUMA_VisX_XformType2Name(SUMA_VISX_XFORM_TYPE tt);
 char *SUMA_VisX_Info(SUMA_VIS_XFORM VisX, int N_Node, char *mumble);
 char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList);
+char *SUMA_ADO_Info(SUMA_ALL_DO *ado, DList *DsetList, int detail);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
 int SUMA_NumVE(SUMA_VolumeObject *VO);
 SUMA_VolumeObject *SUMA_CreateVolumeObject(char *label);
 SUMA_Boolean SUMA_AddDsetVolumeObject( SUMA_VolumeObject *VO, 
                                        THD_3dim_dataset **dsetp);
-SUMA_DRAWN_ROI * SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, 
-                                       SUMA_ROI_DRAWING_TYPE Type, char * label, int ilabel);
-SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char * label, int N_ElInd, int *ElInd);
+SUMA_DRAWN_ROI * SUMA_AllocateDrawnROI (char *Parent_idcode_str, 
+                           SUMA_ROI_DRAWING_STATUS DrawStatus, 
+                           SUMA_ROI_DRAWING_TYPE Type, char * label, int ilabel);
+SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, 
+                             char * label, int N_ElInd, int *ElInd);
 SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI); 
 SUMA_Boolean SUMA_freeROI (SUMA_ROI *ROI); 
 SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, 
@@ -99,23 +149,57 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
 SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
 SUMA_NIDO * SUMA_Alloc_NIDO (char *idcode_str, char *Label, 
                              char *Parent_idcode_str);
-SUMA_NIDO *SUMA_free_NIDO(SUMA_NIDO *TDO) ;
+SUMA_NIDO *SUMA_free_NIDO(SUMA_NIDO *NIDO); 
 int SUMA_ProcessDODrawMask(SUMA_SurfaceViewer *sv,          
                                     SUMA_SurfaceObject *SO,
                                     byte **mask, int *ncross);
 SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, 
-                                       char *parent_idcode, int NodeBased,
-                                       SUMA_DO_Types type);
+                                      char *parent_idcode,
+                                      int NodeBased, SUMA_DO_Types type, 
+                                    SUMA_DO_Types P_type, char *DrawnDO_variant);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, 
+                                  SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv);
 SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *parent_idcode, 
                                      SUMA_DO_Types type);
 SUMA_TractDO * SUMA_Alloc_TractDO (char *Label, char *parent_idcode);
 SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label, SUMA_DO_Types type);
+SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo, 
+                                   SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo, 
+                                       SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawGraphDO_GRELIEF (SUMA_GraphLinkDO *gldo, 
+                                       SUMA_SurfaceViewer *sv);
 void SUMA_free_SphereDO (SUMA_SphereDO * SDO);
 void SUMA_free_TractDO (SUMA_TractDO * SDO);
 void SUMA_free_PlaneDO (SUMA_PlaneDO * SDO);
+void SUMA_free_GraphLinkDO (SUMA_GraphLinkDO * GLDO);
+SUMA_GraphLinkDO * SUMA_Alloc_GraphLinkDO (  char *variant, 
+                                             SUMA_DSET *ParentGraph);
+SUMA_GraphLinkDO *SUMA_find_Dset_GLDO(SUMA_DSET *dset, char *variant, 
+                                      int *ifound);
+SUMA_DSET *SUMA_find_GLDO_Dset(SUMA_GraphLinkDO *GLDO);
+SUMA_Boolean SUMA_Remove_From_Pick_Colid_list(SUMA_SurfaceViewer *sv, 
+                                              char *idcode_str);
+DListElmt * SUMA_Find_In_Pick_Colid_list(SUMA_SurfaceViewer *sv, 
+                                         char *idcode_str, char *primitive);
+void *SUMA_Picked_reference_object(SUMA_COLID_OFFSET_DATUM *cod, 
+                               SUMA_DO_Types *do_type);
+int SUMA_Picked_DO_ID(SUMA_COLID_OFFSET_DATUM *cod);
+SUMA_Boolean SUMA_CreateGraphDOs(SUMA_DSET *dset);
+SUMA_Boolean SUMA_RegisterGraphDOs(SUMA_DSET *dset, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawGraphDO (SUMA_GraphLinkDO *gldo, SUMA_SurfaceViewer *sv,
+                               char *variant);
+SUMA_Boolean SUMA_DrawGraphLinkDO (SUMA_GraphLinkDO *GLDO, 
+                                   SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_isGLDO_AnatCorrect(SUMA_GraphLinkDO *GLDO);
+char *SUMA_iDO_state(int i);
+char *SUMA_DO_state(SUMA_DO *DO);
+char *SUMA_iDO_group(int i);
+char *SUMA_DO_group(SUMA_DO *DO);
+int SUMA_isDO_AnatCorrect(SUMA_DO *DO);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_isROIdequal (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2);
@@ -152,6 +236,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value,
 SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id);
 SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id);
 SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id);
+GLushort SUMA_int_to_stipplemask(int i); 
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *soid);
 SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *soid);
 SUMA_SphereDO * SUMA_ReadSphDO (char *s);
@@ -163,7 +248,8 @@ SUMA_NIDO *SUMA_BlankNIDO (char *idcode_str, char *Label,
 SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, 
                                        int Stipple,
                                        char *Label, char *idcode_str, 
-                                       char *Parent_idcode_str,
+                           char *Parent_idcode_str, SUMA_DO_Types Parent_do_type,
+                                       char *DrawnDO_variant,
                                        float LineWidth, float *LineCol,
                                        int *NodeId, int *NodeId1,
                                        float *n0, float *n1,
@@ -247,6 +333,45 @@ char *SUMA_EnumToGLstate(int glpar);
 int SUMA_GLstateToEnum(char *state);
 int SUMA_GLStateTrack(char *action, DList **stu, char *progenitor,
                       char *state, void *val);
+void SUMA_free_colid_offset_datum (void *vv);
+GLubyte *SUMA_New_colid(SUMA_SurfaceViewer *sv, 
+                char *Label, char *idcode_str, char *primitive, char *variant,
+                char *reference_idcode_str, SUMA_DO_Types ref_do_type,
+                int N_n);
+GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
+                           char *primitive, char *variant,
+                           char *ref_idcode_str,SUMA_DO_Types ref_do_type,
+                                   SUMA_SurfaceViewer *sv);
+
+/*! Following DO_ macros are for setting states up for colorid picking
+    and restoring states at exit.
+    Note that some of these are overkill. They were added in a attempt
+    to remedy what looked like antialiasing in the rendered image.
+    It turned out the problem was caused by the visual not having an
+    alpha size of 0. */
+#define DO_PICK_VARS int pgllst=0, pgllsm=0, pgllight=0, pglblend=0, \
+                         pgldith=0, pgltex2=0, pgltex3=0
+
+#define DO_PICK_RESTORE {  \
+   if (pgllst) glEnable(GL_LINE_STIPPLE);  \
+   if (pgllsm) glEnable(GL_LINE_SMOOTH);   \
+   if (pgllight) glEnable(GL_LIGHTING);    \
+   if (pglblend) glEnable(GL_BLEND);       \
+   if (pgldith)  glEnable(GL_DITHER);      \
+   if (pgltex2)  glEnable(GL_TEXTURE_2D);  \
+   if (pgltex3)  glEnable(GL_TEXTURE_3D);  \
+}
+
+#define DO_PICK_DISABLES {   \
+   if ((pgllst = glIsEnabled(GL_LINE_STIPPLE))) glDisable(GL_LINE_STIPPLE); \
+   if ((pgllsm = glIsEnabled(GL_LINE_SMOOTH)) ) glDisable(GL_LINE_SMOOTH);  \
+   if ((pgllight = glIsEnabled(GL_LIGHTING))) glDisable(GL_LIGHTING);       \
+   if ((pglblend = glIsEnabled(GL_BLEND))) glDisable(GL_BLEND);             \
+   if ((pgldith = glIsEnabled(GL_DITHER))) glDisable(GL_DITHER);            \
+   if ((pgltex2 = glIsEnabled(GL_TEXTURE_2D))) glDisable(GL_TEXTURE_2D);    \
+   if ((pgltex3 = glIsEnabled(GL_TEXTURE_3D))) glDisable(GL_TEXTURE_3D);    \
+}
+
 
 /*!
    NO Guarantee that certain nodes might 

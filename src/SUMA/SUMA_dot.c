@@ -350,7 +350,7 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset,
          }
 
          if (!(child = SUMA_Fetch_OverlayPointerByDset (
-                    SO->Overlays, SO->N_Overlays, pdset, &OverInd))) {
+                              (SUMA_ALL_DO *)SO, pdset, &OverInd))) {
             /* need a new one */
             if (!(SDSET_LABEL(pdset))) SUMA_LabelDset(pdset,NULL);
             stmp = SUMA_append_string("dotprep.", SDSET_LABEL(pdset));         
@@ -363,7 +363,7 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset,
             }
             SUMA_LH("Add overlay to SO");
             /* Add this plane to SO->Overlays */
-            if (!SUMA_AddNewPlane ( SO, child, 
+            if (!SUMA_AddNewPlane ( (SUMA_ALL_DO *)SO, child, 
                                     SUMAg_DOv, SUMAg_N_DOv, 0)) {
                SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                SUMA_FreeOverlayPointer(child);
@@ -383,11 +383,11 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset,
             /*update the list widget if open */
             LW = SO->SurfCont->SwitchDsetlst;
             if (LW) {
-               if (!LW->isShaded) SUMA_RefreshDsetList (SO);  
+               if (!LW->isShaded) SUMA_RefreshDsetList ((SUMA_ALL_DO *)SO);  
             }  
 
             /* this chunk from SUMA_ColPlane_NewOrder */
-            if (!SUMA_MovePlaneDown(SO, child->Name)) {
+            if (!SUMA_MovePlaneDown((SUMA_ALL_DO *)SO, child->Name)) {
                SUMA_L_Err("Error in SUMA_MovePlaneUp.");
                goto BAIL;
             }
@@ -581,19 +581,18 @@ void SUMA_dot_product_CB( void *params)
    }
    
    if (N_ts < 0) { /* try to get ts from a dset, based on where click happened */
-      if (!(SO = SUMA_findSOp_inDOv(NI_get_attribute(nelpars,"event.SO_idcode"),
+      if (!(SO = SUMA_findSOp_inDOv(NI_get_attribute(nelpars,"event.DO_idcode"),
                                     SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Notev("Could not find event's SO (%s)\n"
                       "Use Shift+Ctrl+Right Click on the surface "
                       "to calculate correlation with new changes\n",
-                     NI_get_attribute(nelpars,"event.SO_idcode"));
-         /* SUMA_DUMP_TRACE("event.SO_idcode"); */
+                     NI_get_attribute(nelpars,"event.DO_idcode"));
+         /* SUMA_DUMP_TRACE("event.DO_idcode"); */
          SUMA_RETURNe;
       }
       /* find out which overlay was clicked on */
-      if (!(Sover = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays,
-                                 NI_get_attribute(nelpars,"event.overlay_name"),
-                                 &jj))) {
+      if (!(Sover = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO*)SO,
+                        NI_get_attribute(nelpars,"event.overlay_name"),&jj))) {
          SUMA_S_Err("Could not find event's overlay");
          SUMA_RETURNe;                          
       }
@@ -1171,7 +1170,8 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
             ov[i]->OptScl->ThreshRange[1] = 0.0;
 
             /* Now add the overlay to SOv[i]->Overlays */
-            if (!SUMA_AddNewPlane (SOv[i], ov[i], SUMAg_DOv, SUMAg_N_DOv, 1)) {
+            if (!SUMA_AddNewPlane ((SUMA_ALL_DO *)SOv[i], ov[i], 
+                                    SUMAg_DOv, SUMAg_N_DOv, 1)) {
                SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                SUMA_FreeOverlayPointer(ov[i]);
                SUMA_free(dset_namev[i]); SUMA_free(targetv[i]);
@@ -1208,7 +1208,7 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
       for (i=0; i<2; ++i) {
          if (sdsetv[i]) {
             if (!(ov[i] = SUMA_Fetch_OverlayPointerByDset(
-                             SOv[i]->Overlays, SOv[i]->N_Overlays,
+                             (SUMA_ALL_DO *)SOv[i],
                              sdsetv[i], &ovind))) {
                SUMA_S_Err("Failed to find overlay pointer");
                SUMA_RETURN(NOPE);
@@ -1390,25 +1390,25 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
    for (id=0; id<2; ++id) {
       if (ov[id] && SOv[id]) {
          SOv[id]->SurfCont->curColPlane = ov[id];
-         if (!SUMA_OpenCloseSurfaceCont(NULL, SOv[id], NULL)) {
+         if (!SUMA_OpenCloseSurfaceCont(NULL, (SUMA_ALL_DO*)SOv[id], NULL)) {
             SUMA_SLP_Err("Cannot open Surface Controller!");
             SUMA_RETURN(NOPE);
          }
          if ( SOv[id]->SurfCont->SwitchDsetlst && 
               !SOv[id]->SurfCont->SwitchDsetlst->isShaded ) {
-             SUMA_RefreshDsetList (SOv[id]);       
+             SUMA_RefreshDsetList ((SUMA_ALL_DO*)SOv[id]);       
          }
          SUMA_LHv("Colorizing %d\n", id);
          if (!SUMA_ColorizePlane (ov[id])) {
             SUMA_SLP_Err("Failed to colorize plane.\n");
             SUMA_RETURN(NOPE);
          }
-         if (!SUMA_RemixRedisplay (SOv[id])) {
+         if (!SUMA_RemixRedisplay ((SUMA_ALL_DO*)SOv[id])) {
             SUMA_SLP_Err("Failed to remix redisplay.\n");
             SUMA_RETURN(NOPE);
          }
          SUMA_LHv("Initializing %d\n", id);
-         SUMA_UpdateColPlaneShellAsNeeded(SOv[id]);
+         SUMA_UpdateColPlaneShellAsNeeded((SUMA_ALL_DO*)SOv[id]);
       }
    }
 
@@ -1510,9 +1510,9 @@ int SUMA_AFNI_gicor_setref( SUMA_SurfaceObject *SO, int node )
       SUMA_RETURN(-1);
    }
    
-   if (SUMA_isRelated(SO, SOv[0],1)) {
+   if (SUMA_isRelated_SO(SO, SOv[0],1)) {
       ijk = node;
-   } else if (SUMA_isRelated(SO, SOv[1],1)) {
+   } else if (SUMA_isRelated_SO(SO, SOv[1],1)) {
       ijk = node+giset->nnode_domain[0]; 
    } else {
       SUMA_SLP_Warn("Cannot change node to ijk");

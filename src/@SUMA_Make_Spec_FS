@@ -176,6 +176,22 @@ L_PARSE_COMMAND:
        # ----------------------------------------------------------
        # usage : -nocor
        case "-nocor":
+      set endstr = "Option -nocor obsolete. See -help for important details."
+      goto L_BAD_END
+      
+      #set neuro_ori = -1
+      #set sfieldname = 'SurfaceName'
+      #set sex = 'gii'
+      #set stp = 'GIFTI'
+      
+       breaksw
+
+       # ----------------------------------------------------------
+       # usage : -GNIFTI
+       case "-GNIFTI":
+       case "-NIFTI":
+       case "-GIFTI":
+       case "-IFTI":
 
       set neuro_ori = -1
       set sfieldname = 'SurfaceName'
@@ -1202,14 +1218,37 @@ L_HELP_END:
     echo "          right is on the left side of the image.  In the"
     echo "          neurological orientation, left is really left."
     echo ""
-    echo "    -nocor          : Do not use COR volumes at all."
-    echo "            This option results in volumes and surfaces that"
-    echo "            are in alignment with the original volume that"
-    echo "            was used to create the surface. All volumes are"
+    echo "    -nocor: This option is no longer supported because it created"
+    echo "            GIFTI surfaces with coordinates in RAI, rather than LPI"
+    echo "            which is the GIFTI standard. While using RAI surfaces"
+    echo "            within AFNI/SUMA is not problematic, the resultant GIFTI"
+    echo "            surfaces do not port well to other software."
+    echo "            The replacement option for -nocor is -GNIFTI but the"
+    echo "            surfaces will have negated coordinates along the x and y"
+    echo "            compared to those with -nocor."
+    echo "            GIFTI surfaces produced with SUMA programs compiled before"
+    echo "            August 1st 2013 will have their X and Y coordinates "
+    echo "            negated and will no longer line up with the anatomy. "
+    echo "            Correcting such surfaces can be done with ConvertSurface"
+    echo "            with the following command:"
+    echo "              ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \"
+    echo "                              -overwrite -xmat_1D NegXY"
+    echo "            or for an entire SUMA directory:"
+    echo "              cd SUMA"
+    echo "              tcsh"
+    echo '              foreach ss (*.gii)'
+    echo '                 ConvertSurface  -i $ss -o_gii $ss \'
+    echo "                                 -overwrite -xmat_1D NegXY"
+    echo "              end"
+    echo ""            
+    echo "    -GNIFTI:Produce files in exchangeable formats. With this option"
+    echo "    -NIFTI :COR volumes are no longer used and output volumes"
+    echo "    -GIFTI :and surfaces are in alignment with the original "
+    echo "    -IFTI  :volume used to create the surface. All volumes are"
     echo "            written out NIFTI format, and all surfaces are"
     echo "            in GIFTI format."
     echo "            This option is incompatible with -neuro or -use_mgz"
-    echo "    NOTE for -nocor:"
+    echo "    NOTE for -GNIFTI:"
     echo "        If you really care that the volumes in SUMA/ are in exact"
     echo "        register with the volume you passed to FreeSurfer, you "
     echo "        should be sure that the volume passed to FreeSurfer has "

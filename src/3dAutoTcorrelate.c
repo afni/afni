@@ -190,6 +190,13 @@ int main( int argc , char *argv[] )
 "                 that first stage run is the correlation map of that\n"
 "                 voxel with all other voxels.\n"
 "             ** '-polort -1' is recommended with this option!\n"
+"             ** Odds are you do not want use this option if the dataset\n"
+"                on which eta^2 is to be computed was genereated with\n"
+"                options -mask_only_targets or -mask_source.\n"
+"                In this program, the eta^2 is computed between pseudo-\n"
+"                timeseries (the 4th dimension of the dataset).\n"
+"                If you want to compute eta^2 between sub-bricks then use\n"
+"                3ddot -eta2 instead.\n"
    #if 0
 "  -spearman = Correlation is the Spearman (rank) correlation\n"
 "               coefficient.\n"

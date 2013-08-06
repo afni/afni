@@ -456,7 +456,7 @@ void SUMA_memplot_clone(void *mpv)
    static char FuncName[]={"SUMA_memplot_clone"};
    MEM_topshell_data *mp=(MEM_topshell_data *)mpv;
    SUMA_OVERLAYS *Sover=NULL;
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
    SUMA_MEMPLOT_USERDATA *mpud=NULL;
 
    int iso=0;
@@ -476,14 +476,14 @@ void SUMA_memplot_clone(void *mpv)
       Sover->rowgraph_mtd = NULL;
       
       /* an attempt to recreate a replacement plot.
-         No sure fire way to know which SO to use,
+         No sure fire way to know which SO/DO to use,
          but it seems like a safe bet to just go
          for any deserving surface. */
       for (iso=0; iso<SUMAg_N_DOv; ++iso) {
          if (SUMA_isSO(SUMAg_DOv[iso])) {
-            SO = (SUMA_SurfaceObject *)SUMAg_DOv[iso].OP;
-            if (SUMA_isOverlayOfSO(SO, Sover)) {
-               SUMA_OverlayGraphAtNode(Sover, SO, SO->SelectedNode);  
+            ado = (SUMA_ALL_DO *)SUMAg_DOv[iso].OP;
+            if (SUMA_isOverlayOfDO(ado, Sover)) {
+               SUMA_OverlayGraphAtNode(Sover, ado, SUMA_ADO_SelectedDatum(ado)); 
             } 
          }
       }
@@ -577,7 +577,7 @@ void SUMA_Show_Rowgraph_MTD(MEM_topshell_data *rowgraph_mtd)
 }
 
 SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
-               SUMA_SurfaceObject *SO,
+               SUMA_ALL_DO *ado,
                int inode) {
    static char FuncName[]={"SUMA_OverlayGraphAtNode"};
    MEM_plotdata *mp =NULL;
@@ -595,40 +595,32 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
    SUMA_ENTRY;
    
    if (  !Sover || 
-         !SO || !Sover || 
-         !Sover->dset_link) {
+         !ado || !Sover->dset_link) {
       SUMA_SL_Err("Nothing to graph");
-      SUMA_RETURN(0);
+      SUMA_RETURN(0);    
    }
    Dset = Sover->dset_link;
    /* Excerpts right out of ISQ_rowgraph_draw*/
 
    if (!(res = (float*)SUMA_GetDsetAllNodeValsInCols2(Dset, 
                               NULL, 0, 
-                              inode, SO->N_Node, /* test this
-                                                    SO->N_Node when
-                                                    using patches. 
-                                                    Else -1 */
+                              inode, SUMA_ADO_N_Datum(ado), 
                               &N_res,
                               SUMA_float))) { 
-      /* instead of returning with
-         SUMA_RETURN(0); Prioir to March 12 08 
-         , produce a no data graph */
-       
       N_res = SDSET_VECNUM(Dset);
       res = (float *) SUMA_calloc(N_res , sizeof(float));
       snprintf(title_str, 100*sizeof(char), 
                "No Data: %s, node %d on %s", 
                SUMA_CHECK_NULL_STR(Sover->Label),
                inode,
-               SUMA_CHECK_NULL_STR(SO->Label));
+               SUMA_CHECK_NULL_STR(SUMA_ADO_Label(ado)));
       sl1 = SUMA_EscapeChars(title_str, "_","\\");
    } else {
       snprintf(title_str, 100*sizeof(char), 
                "%s, node %d on %s", 
                SUMA_CHECK_NULL_STR(Sover->Label),
                inode,
-               SUMA_CHECK_NULL_STR(SO->Label));
+               SUMA_CHECK_NULL_STR(SUMA_ADO_Label(ado)));
       sl1 = SUMA_EscapeChars(title_str, "_","\\");
    }
    
@@ -685,7 +677,7 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
          SUMA_RETURN(1);
       }
       /* position plot */
-      sv = SUMA_BestViewerForSO(SO);
+      sv = SUMA_BestViewerForDO(ado);
       if (sv) {
          SUMA_PositionWindowRelative(  Sover->rowgraph_mtd->top , 
                                        sv->X->TOPLEVEL, 
@@ -706,7 +698,7 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
       res = NULL;
    }
    SUMA_RETURN(1);
-}   
+}
 
 /* if the input structure is NULL is passed, a new structure is created and
 returned. Else the contents of mpud are cleared */

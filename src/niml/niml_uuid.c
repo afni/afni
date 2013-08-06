@@ -136,6 +136,40 @@ char * UNIQ_idcode(void)
 }
 
 /*----------------------------------------------------------------------*/
+/*! Fill the 3 character idcode prefix and cap with '\0' for safety
+------------------------------------------------------------------------*/
+
+void UNIQ_hashprefix_fill( char *idc )
+{
+   if (idc) {
+      char *eee ;
+      int ii ;
+      eee = getenv("IDCODE_PREFIX") ;
+      if( eee != NULL && isalpha(eee[0]) ){
+        for( ii=0 ; ii < 3 && isalnum(eee[ii]) ; ii++ )
+          idc[ii] = eee[ii] ;
+        idc[ii] = '\0';
+      } else {
+        strcpy(idc,"XYZ") ;  /* innocent default prefix */
+      }
+   }
+   
+   return;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Return the 3 character idcode prefix and cap with '\0',
+    environment variable IDCODE_PREFIX is not expected to change
+    within a session.
+------------------------------------------------------------------------*/
+char * UNIQ_hashprefix( void )
+{
+   static char idr[4]={""};
+   if (idr[0] == '\0') UNIQ_hashprefix_fill( idr );
+   return(idr);
+}
+
+/*----------------------------------------------------------------------*/
 /*! Make an idcode-formatted malloc-ed string from an input string.
     Unlike UNIQ_idcode(), this will always return the same value,
     given the same input.
@@ -147,14 +181,8 @@ char * UNIQ_hashcode( char *str )
    int ii , nn ;
 
    idc = (char *)calloc(1,32) ;
-
-   eee = getenv("IDCODE_PREFIX") ;
-   if( eee != NULL && isalpha(eee[0]) ){
-     for( ii=0 ; ii < 3 && isalnum(eee[ii]) ; ii++ )
-       idc[ii] = eee[ii] ;
-   } else {
-     strcpy(idc,"XYZ") ;  /* innocent default prefix */
-   }
+   
+   UNIQ_hashprefix_fill( idc );  /* ZSS Apr 2013 */
    strcat(idc,"_") ;  /* recall idc was calloc()-ed */
 
    if( str == NULL || str[0] == '\0' ) str = "Onen i Estel Edain" ;

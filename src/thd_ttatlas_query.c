@@ -2748,6 +2748,48 @@ int *z_idqsort (int *x , int nx )
 
 }/*z_idqsort*/
 
+/* sort ints */
+int *z_dqsort (int *x , int nx )
+{/*z_dqsort*/
+   int *I, k;
+   Z_QSORT_INT *Z_Q_fStrct;
+
+   ENTRY("z_idqsort");
+
+   /* allocate for the structure */
+   Z_Q_fStrct = (Z_QSORT_INT *) calloc(nx, sizeof (Z_QSORT_INT));
+   I = (int *) calloc (nx, sizeof(int));
+
+   if (!Z_Q_fStrct || !I)
+      {
+         ERROR_message("Allocation problem");
+         RETURN (NULL);
+      }
+
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         Z_Q_fStrct[k].x = x[k];
+         Z_Q_fStrct[k].Index = k;
+      }
+
+   /* sort the structure by it's field value */
+   qsort(Z_Q_fStrct, nx, sizeof(Z_QSORT_INT), 
+         (int(*) (const void *, const void *)) compare_Z_QSORT_INT);
+
+   /* recover the index table */
+   for (k=0; k < nx; ++k) /* copy the data into a structure */
+      {
+         x[k] = Z_Q_fStrct[k].x;
+         I[k] = Z_Q_fStrct[k].Index;
+      }
+
+   /* free the structure */
+   free(Z_Q_fStrct);
+
+   /* return */
+   RETURN (I);
+}/*z_dqsort*/
+
 /*
   give a shuffled series between bot and top inclusive
 

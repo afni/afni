@@ -79,6 +79,22 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                                     int IgnoreSameNode);
 int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                     int IgnoreSameNode);
+int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                               int IgnoreSameNode);
+SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov);
+SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid, 
+                                SUMA_COLID_OFFSET_DATUM **ucodf, int i, int j,
+                                SUMA_PICK_RESULT *PR);
+SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR);
+SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR);
+SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP);
+void SUMA_Show_Pick_Colid_List(DList *pick_colid_list, FILE *fout); 
+char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list);
+SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer, 
+                                    char *OnDisk);
+SUMA_Boolean SUMA_GetColidInPickBuffer4(GLubyte *pix, int Ni, int Nj,
+                                        int *ii, int *ji, 
+                                        int maxlay, GLubyte *colid);
 void SUMA_momentum(XtPointer clientData, XtIntervalId *id);
 SUMA_Boolean  SUMA_AddToBrushStroke (SUMA_SurfaceViewer *sv, int x, int y, GLdouble *NP, GLdouble *FP, SUMA_Boolean Show);
 SUMA_Boolean  SUMA_CreateBrushStroke (SUMA_SurfaceViewer *sv);
@@ -110,6 +126,9 @@ void SUMA_SetObjectClip (char *s, void *data);
 void SUMA_SetClip (char *s, SUMA_SurfaceViewer *data, SUMA_CLIP_PLANE_TYPES tp);
 void SUMA_SetLight0 (char *s, void *data);
 void SUMA_JumpIndex (char *s, void *data);
+void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO);
+void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv, 
+                           SUMA_DSET *dset, char *variant);
 void SUMA_JumpXYZ (char *s, void *data);
 void SUMA_JumpFocusNode (char *s, void *data);
 void SUMA_JumpFocusFace (char *s, void *data);
