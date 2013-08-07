@@ -121,6 +121,7 @@ int main( int argc , char *argv[] )
        "   As far as I know, its only usage in modern English is in crossword puzzles,\n"
        "   and in Scrabble.\n"
        " * For other meanings of 'ort', see http://en.wikipedia.org/wiki/Ort\n"
+       " * Do not confuse 'ort' with 'Oort': http://en.wikipedia.org/wiki/Oort_cloud\n"
        "\n"
        "AUTHOR -- RWCox -- Jan 2012\n"
      ) ;
