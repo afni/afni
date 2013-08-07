@@ -169,8 +169,8 @@ void TPR_help_the_pitiful_user(void)
    "   voxel-independent A.  Since the number of columns in B is usually\n"
    "   many fewer than the number of columns in A, this technique can\n"
    "   be much faster than constructing the full Q([A B]) for each voxel.\n"
-   "
-   "* A similar regression could be done via the slower 3dTfitter program:
+   "\n"
+   "* A similar regression could be done via the slower 3dTfitter program:\n"
    "    3dTfitter -RHS inputdataset+orig   \\\n"
    "              -LHS ort1.1D dsort2+orig \\\n"
    "              -polort 2 -prefix NULL   \\\n"
@@ -416,6 +416,24 @@ static void vector_demean( int n , float *v )
 }
 
 /*----------------------------------------------------------------------------*/
+
+static int is_vector_zero( int n , float *v )
+{
+   int ii ;
+   for( ii=0 ; ii < n && v[ii] == 0.0f ; ii++ ) ; /*nada*/
+   return (ii==n) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static int is_vector_constant( int n , float *v )
+{
+   int ii ;
+   for( ii=1 ; ii < n && v[ii] == v[0] ; ii++ ) ; /*nada*/
+   return (ii==n) ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Process all the data, as pointed to by tp */
 
 void TPR_process_data( TPR_input *tp )
@@ -463,7 +481,7 @@ void TPR_process_data( TPR_input *tp )
 
    for( jj=ntkeep=0 ; jj < nt ; jj++ ) if( tp->censar[jj] != 0.0f ) ntkeep++ ;
 
-   if( tp->verb )
+   if( tp->verb && ntkeep < nt )
      INFO_message("input time points = %d ; censored = %d ; remaining = %d",
                   nt , nt-ntkeep , ntkeep ) ;
 
@@ -478,11 +496,11 @@ void TPR_process_data( TPR_input *tp )
    /*----- make stopband frequency mask, count number of frequency regressors -----*/
 
    if( tp->nstopband > 0 ){
-     int ib , jbot,jtop ; float fbot,ftop ;
+     int ib , jbot,jtop ; float fbot,ftop , dff ;
 
      df = (tp->dt > 0.0f ) ? tp->dt : DSET_TR(tp->inset) ;
      if( df <= 0.0f ) df = 1.0f ;
-     df = 1.0f / (nt*df) ;
+     df = 1.0f / (nt*df) ; dff = 0.1666666f * df ;
 
      nf = nt/2 ; fmask = (int *)calloc(sizeof(int),(nf+1)) ;
 
@@ -491,8 +509,8 @@ void TPR_process_data( TPR_input *tp )
      for( ib=0 ; ib < tp->nstopband ; ib++ ){
        fbot = tp->stopband[ib].a ;
        ftop = tp->stopband[ib].b ;
-       jbot = (int)rintf(fbot/df); if( jbot < 0  ) jbot = 0 ;
-       jtop = (int)rintf(ftop/df); if( jbot > nf ) jbot = nf;
+       jbot = (int)rintf((fbot+dff)/df); if( jbot < 0  ) jbot = 0 ;
+       jtop = (int)rintf((ftop-dff)/df); if( jtop > nf ) jtop = nf;
        for( jj=jbot ; jj <= jtop ; jj++ ) fmask[jj] = 1 ;
      }
      if( fmask[0] ){                    /* always do freq=0 via polort */
@@ -620,13 +638,11 @@ void TPR_process_data( TPR_input *tp )
 
    qort = 0 ;
    if( tp->polort >= 0 ){
-     double fac=2.0/(nt-1.0) ; float *opp , sum ; int pp ;
+     double fac=2.0/(nt-1.0) ; float *opp ; int pp ;
      for( pp=0 ; pp <= tp->polort ; pp++ ){
        opp = ort_fixed + qort*ntkeep ; qort++ ;
-       for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
-         opp[jj] = Plegendre(fac*keep[jj]-1.0,pp) ; sum += fabsf(opp[jj]) ;
-       }
-       if( sum == 0.0f ){  /* should not happen */
+       for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = Plegendre(fac*keep[jj]-1.0,pp) ;
+       if( is_vector_zero(ntkeep,opp) ){  /* should not happen */
          WARNING_message("polort #%d is all zero: skipping",pp) ; qort-- ;
        }
      }
@@ -635,24 +651,20 @@ void TPR_process_data( TPR_input *tp )
    /*-- load cosine/sine (stopbands) part of ort_fixed --*/
 
    if( fmask != NULL ){
-     int pp ; float *opp , fq , sum ;
+     int pp ; float *opp , fq ;
      for( pp=1 ; pp <= nf ; pp++ ){
        if( fmask[pp] == 0 ) continue ;              /** keep this frequency! **/
        opp = ort_fixed + qort*ntkeep ; qort++ ;
        fq = (2.0f * PI * pp) / (float)nt ;
-       for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
-         opp[jj] = cosf(fq*keep[jj]) ; sum += fabsf(opp[jj]) ;
-       }
-       if( sum == 0.0f ){  /* should not happen */
-         WARNING_message("cosine -ort #%d is all zero: skipping",pp) ; qort-- ;
+       for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = cosf(fq*keep[jj]) ;
+       if( is_vector_zero(ntkeep,opp) ){  /* should not happen */
+         WARNING_message("cosine ort #%d is all zero: skipping",pp) ; qort-- ;
        }
        if( pp < nf || nte == 0 ){  /* skip the Nyquist freq for sin() */
          opp = ort_fixed + qort*ntkeep ; qort++ ;
-         for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
-           opp[jj] = sinf(fq*keep[jj]) ; sum += fabsf(opp[jj]) ;
-         }
-         if( sum == 0.0f ){  /* should not happen */
-           WARNING_message("sine -ort #%d is all zero: skipping",pp) ; qort-- ;
+         for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = sinf(fq*keep[jj]) ;
+         if( is_vector_zero(ntkeep,opp) ){  /* should not happen */
+           WARNING_message("sine ort #%d is all zero: skipping",pp) ; qort-- ;
          }
        }
      }
@@ -661,19 +673,15 @@ void TPR_process_data( TPR_input *tp )
    /*-- load ortar part of ort_fixed --*/
 
    if( tp->ortar != NULL ){
-     MRI_IMAGE *qim ; float *qar , *opp , *qpp , sum ; int pp ;
+     MRI_IMAGE *qim ; float *qar , *opp , *qpp ; int pp ;
      for( qq=0 ; qq < IMARR_COUNT(tp->ortar) ; qq++ ){
        qim = IMARR_SUBIM(tp->ortar,qq) ; qar = MRI_FLOAT_PTR(qim) ;
        for( pp=0 ; pp < qim->ny ; pp++ ){
          qpp = qar + pp*qim->nx ;
          opp = ort_fixed + qort*ntkeep ; qort++ ;
-         for( sum=0.0f,jj=0 ; jj < ntkeep ; jj++ ){
-           opp[jj] = qpp[keep[jj]] ; sum += fabsf(opp[jj]) ;
-         }
-         if( sum == 0.0f ){
-           WARNING_message("-ort #%d, column #%d is all zero: skipping",
-                           qq+1 , pp ) ;
-           qort-- ;
+         for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = qpp[keep[jj]] ;
+         if( is_vector_zero(ntkeep,opp) ){
+           WARNING_message("-ort #%d, column #%d is all zero: skipping",qq+1,pp) ; qort-- ;
          }
        }
      }
@@ -684,16 +692,27 @@ void TPR_process_data( TPR_input *tp )
    /*-- de-mean the later regressors, if the all-1s regressor is present
         (not strictly necessary, but makes the pseudo-inversion be happier) --*/
 
-   if( tp->polort >= 0 && nort_fixed > 1 ){
+   if( nort_fixed > 1 && ( tp->polort >= 0 || is_vector_constant(ntkeep,ort_fixed) ) ){
      float *opp ;
      for( qq=1 ; qq < nort_fixed ; qq++ ){
        opp = ort_fixed + qq*ntkeep ; vector_demean( ntkeep , opp ) ;
      }
    }
 
+#if 1
+  if( nort_fixed > 0 ){
+    MRI_IMAGE *qim = mri_new_vol_empty(ntkeep,nort_fixed,1,MRI_float) ;
+    char fname[256] ;
+    mri_fix_data_pointer(ort_fixed,qim) ;
+    sprintf(fname,"%s.ort.1D",tp->prefix) ;
+    mri_write_1D(fname,qim) ; mri_clear_and_free(qim) ;
+  }
+#endif
+
    /*-- pseudo-inverse of the fixed orts --*/
 
    if( nort_fixed > 0 ){
+     if( tp->verb ) INFO_message("Compute pseudo-inverse of fixed orts") ;
      ort_fixed_psinv = (float *)malloc(sizeof(float)*ntkeep*nort_fixed) ;
      compute_psinv( ntkeep, nort_fixed, ort_fixed, ort_fixed_psinv, NULL ) ;
    } else {
@@ -702,6 +721,7 @@ void TPR_process_data( TPR_input *tp )
 
    /*----- make vector images from all input datasets -----*/
 
+   if( tp->verb ) INFO_message("Loading dataset%s",(tp->dsortar != NULL) ? "s" : "\0") ;
    inset_mrv = THD_dset_censored_to_vectim( tp->inset, vmask, ntkeep, keep ) ;
    DSET_unload(tp->inset) ;
 
@@ -724,15 +744,15 @@ void TPR_process_data( TPR_input *tp )
 
    /*----- do the actual work: filter time series !! -----*/
 
+   if( tp->verb ) INFO_message("Starting project-orization") ;
+
 AFNI_OMP_START ;
 #pragma omp parallel
 {  int vv , kk , nds=nort_dsort+1 ;
    double *wsp ; float *dsar , *zar , *pdar ;
 
-#if 0
 #ifdef USE_OMP
-    if( tp->verb ) INFO_message("start OpenMP thread %d",omp_get_thread_num());
-#endif
+    if( tp->verb ) ININFO_message(" start OpenMP thread %d",omp_get_thread_num());
 #endif
 
    { wsp = (double *)get_psinv_wsp( ntkeep , nds , ntkeep*2 ) ;
@@ -744,6 +764,8 @@ AFNI_OMP_START ;
    for( vv=0 ; vv < nvmask ; vv++ ){
 
      zar = VECTIM_PTR(inset_mrv,vv) ;   /* input data vector to be filtered */
+
+     if( is_vector_zero(ntkeep,zar) ) continue ;      /* skip all zero data */
 
      if( nort_dsort > 0 ){             /* collect the voxel-wise regressors */
        float *dar , *ear ;
@@ -760,6 +782,10 @@ AFNI_OMP_START ;
    }
 
    { free(wsp) ; free(dsar) ; free(pdar) ; }
+
+#ifdef USE_OMP
+    if( tp->verb ) ININFO_message("   end OpenMP thread %d",omp_get_thread_num());
+#endif
 }
 AFNI_OMP_END ;
 
@@ -781,9 +807,14 @@ AFNI_OMP_END ;
 
    /*----- norming -----*/
 
-   if( tp->do_norm ) THD_vectim_normalize(inset_mrv) ;
+   if( tp->do_norm ){
+     if( tp->verb ) INFO_message("normalizing time series") ;
+     THD_vectim_normalize(inset_mrv) ;
+   }
 
    /*----- convert output time series into dataset -----*/
+
+   if( tp->verb ) INFO_message("Convert results to output dataset") ;
 
    tp->outset = EDIT_empty_copy( tp->inset ) ;
    nvout      = (tp->cenmode == CEN_ZERO) ? nt : ntkeep ;
