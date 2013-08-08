@@ -1494,6 +1494,12 @@ void AFNI_sigfunc_alrm(int sig)
      "Did I mention that we're doomed? Horribly horribly doomed?"    ,
      "I could go for some momos right now, how about you?"           ,
      "I wake and feel the fell of dark, not day"                     ,
+     "Love all, trust a few, do wrong to none"                       ,
+     "The wheel is come full circle"                                 ,
+     "Brains and AFNI make the hours seem short"                     ,
+     "I am not bound to please thee with my statistics"              ,
+     "I will praise any man that will praise me"                     ,
+     "If you have tears, prepare to shed them now"                   ,
 
      "Meet me at the Torre Pendente di Pisa on the feast of St Rainerius"             ,
      "One martini is just right; two is too many; three is never enough"              ,
