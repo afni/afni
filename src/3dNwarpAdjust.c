@@ -64,7 +64,7 @@ int main( int argc , char *argv[] )
       "\n"
       "OPTIONS:\n"
       "--------\n"
-      " -nwarp  w1 w2 ... = List of input 3D warp datasets (at least 9).\n"
+      " -nwarp  w1 w2 ... = List of input 3D warp datasets (at least 5).\n"
       "                     The list ends when a command line argument starts\n"
       "                     with a '-' or the command line itself ends.\n"
       "                     * This 'option' is required!\n"
@@ -124,7 +124,7 @@ int main( int argc , char *argv[] )
        if( nwset > 0 ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        for( kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++,nwset++ ) ; /*nada*/
-       if( nwset < 9 ) ERROR_exit("Need at least 9 datasets after '%s",argv[iarg-1]) ;
+       if( nwset < 5 ) ERROR_exit("Need at least 5 datasets after '%s'",argv[iarg-1]) ;
        dset_nwarp = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*nwset) ;
        for( kk=0 ; kk < nwset ; kk++ ){
          dset_nwarp[kk] = THD_open_dataset( argv[iarg+kk] ) ;
@@ -148,7 +148,7 @@ int main( int argc , char *argv[] )
        if( nsset > 0 ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        for( kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++,nsset++ ) ; /*nada*/
-       if( nsset < 9 ) ERROR_exit("Need at least 9 datasets after '%s",argv[iarg-1]) ;
+       if( nsset < 5 ) ERROR_exit("Need at least 5 datasets after '%s'",argv[iarg-1]) ;
        dset_src = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*nsset) ;
        for( kk=0 ; kk < nsset ; kk++ ){
          dset_src[kk] = THD_open_dataset( argv[iarg+kk] ) ;
