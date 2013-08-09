@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , JUL , 2013 , RWC , "3dNwarpFuncs" , MINOR , TYPE_NEW_PROG ,
+  { 9 , AUG , 2013 , RWC , "3dTproject" , MINOR , TYPE_NEW_PROG ,
+   "Rapid orthogonal projection to remove unwanted time series" ,
+   "To replace 3dBandpass when necessary" } ,
+
+ { 26 , JUL , 2013 , RWC , "3dNwarpFuncs" , MINOR , TYPE_NEW_PROG ,
    "Calculate various functions of a warp (e.g., Jacobian)" ,
    NULL } ,
 
