@@ -33,6 +33,9 @@ typedef struct {
 #define CEN_ZERO 1
 #define CEN_KILL 2
 
+int   TPR_verb   = 0 ;
+char *TPR_prefix = NULL ;
+
 /*----------------------------------------------------------------------------*/
 
 static TPR_input tin = { NULL,NULL,NULL , 0 ,
@@ -131,6 +134,8 @@ void TPR_help_the_pitiful_user(void)
    "                       squares = 1. This is the LAST operation.\n"
    "\n"
    " -quiet              = Hide the super-fun and thrilling progress messages.\n"
+   " -verb               = The program will save the fixed ort matrix and its\n"
+   "                       singular values into .1D files, for post-mortems.\n"
    "\n"
    "------\n"
    "NOTES:\n"
@@ -262,9 +267,6 @@ static void compute_psinv( int m, int n, float *rmat, float *pmat, double *wsp )
    sval = umat + m*n ;     /* singular values        (n)   */
 #endif
 
-#undef  PSINV_EPS
-#define PSINV_EPS 1.e-12
-
 #undef  R
 #undef  A
 #undef  P
@@ -313,7 +315,18 @@ static void compute_psinv( int m, int n, float *rmat, float *pmat, double *wsp )
      return ;
    }
 
+   if( TPR_verb > 1 && TPR_prefix != NULL ){    /* save singular values? */
+     char fname[256] ; FILE *fp ;
+     sprintf(fname,"%s.sval.1D",TPR_prefix) ;
+     fp = fopen( fname , "w" ) ;
+     for( ii=0 ; ii < n ; ii++ ) fprintf(fp," %14.7g\n",sval[ii]) ;
+     fclose(fp) ;
+   }
+
    /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
+
+#undef  PSINV_EPS
+#define PSINV_EPS 1.e-6
 
    del = PSINV_EPS * smax*smax ;
    for( ii=0 ; ii < n ; ii++ )
@@ -440,7 +453,7 @@ void TPR_process_data( TPR_input *tp )
 {
    int nt,nte,ntkeep , nort_fixed=0 , nort_voxel=0 , nbad=0 , qq,jj,qort ;
    int *fmask=NULL , nf=0 ; float df ;
-   byte *vmask=NULL ; int nvmask=0 , nvox , nvout ;
+   byte *vmask=NULL ; int nvmask=0 , nvox , nvout , do_demean ;
    float *ort_fixed=NULL , *ort_fixed_psinv=NULL ;
    int *keep=NULL ;
    MRI_vectim *inset_mrv , **dsort_mrv=NULL ; int nort_dsort=0 ;
@@ -551,7 +564,7 @@ void TPR_process_data( TPR_input *tp )
        qim = IMARR_SUBIM(tp->ortar,qq) ;
        nort_fixed += qim->ny ;
        if( qim->nx != nt ){
-         ERROR_message("-ort file #%d (%s) is %d long, but dataset is %d",
+         ERROR_message("-ort file #%d (%s) is %d long, but input dataset is %d",
                        qq+1 , qim->fname , qim->nx , nt ) ;
          nbad++ ;
        }
@@ -570,9 +583,14 @@ void TPR_process_data( TPR_input *tp )
    if( tp->dsortar != NULL ){
      for( jj=0 ; jj < tp->dsortar->num ; jj++ ){
        if( DSET_NVALS(tp->dsortar->ar[jj]) != nt ){
-         ERROR_message("-dsort file #%d (%s) is %d long, but dataset is %d",
+         ERROR_message("-dsort file #%d (%s) is %d long, but input dataset is %d",
                        qq+1 , DSET_BRIKNAME(tp->dsortar->ar[jj]) ,
                               DSET_NVALS(tp->dsortar->ar[jj])    , nt ) ;
+         nbad++ ;
+       }
+       if( !EQUIV_GRIDXYZ(tp->inset,tp->dsortar->ar[jj]) ){
+         ERROR_message("-dsort file #%d (%s) grid does not match input dataset",
+                       qq+1 , DSET_BRIKNAME(tp->dsortar->ar[jj]) ) ;
          nbad++ ;
        }
      }
@@ -692,29 +710,30 @@ void TPR_process_data( TPR_input *tp )
    /*-- de-mean the later regressors, if the all-1s regressor is present
         (not strictly necessary, but makes the pseudo-inversion be happier) --*/
 
-   if( nort_fixed > 1 && ( tp->polort >= 0 || is_vector_constant(ntkeep,ort_fixed) ) ){
+   do_demean = (nort_fixed > 0 && is_vector_constant(ntkeep,ort_fixed) ) ;
+   if( do_demean ){
      float *opp ;
      for( qq=1 ; qq < nort_fixed ; qq++ ){
        opp = ort_fixed + qq*ntkeep ; vector_demean( ntkeep , opp ) ;
      }
    }
 
-#if 1
-  if( nort_fixed > 0 ){
-    MRI_IMAGE *qim = mri_new_vol_empty(ntkeep,nort_fixed,1,MRI_float) ;
-    char fname[256] ;
-    mri_fix_data_pointer(ort_fixed,qim) ;
-    sprintf(fname,"%s.ort.1D",tp->prefix) ;
-    mri_write_1D(fname,qim) ; mri_clear_and_free(qim) ;
-  }
-#endif
+   if( TPR_verb > 1 && nort_fixed > 0 ){
+     MRI_IMAGE *qim = mri_new_vol_empty(ntkeep,nort_fixed,1,MRI_float) ;
+     char fname[256] ;
+     mri_fix_data_pointer(ort_fixed,qim) ;
+     sprintf(fname,"%s.ort.1D",tp->prefix) ;
+     mri_write_1D(fname,qim) ; mri_clear_and_free(qim) ;
+   }
 
    /*-- pseudo-inverse of the fixed orts --*/
 
    if( nort_fixed > 0 ){
      if( tp->verb ) INFO_message("Compute pseudo-inverse of fixed orts") ;
      ort_fixed_psinv = (float *)malloc(sizeof(float)*ntkeep*nort_fixed) ;
+     TPR_prefix = tp->prefix ;
      compute_psinv( ntkeep, nort_fixed, ort_fixed, ort_fixed_psinv, NULL ) ;
+     TPR_prefix = NULL ;
    } else {
      ort_fixed_psinv = NULL ;
    }
@@ -731,7 +750,7 @@ void TPR_process_data( TPR_input *tp )
        dsort_mrv[jj] = THD_dset_censored_to_vectim( tp->dsortar->ar[jj] ,
                                                     vmask, ntkeep, keep ) ;
        DSET_unload(tp->dsortar->ar[jj]) ;
-       if( tp->polort >= 0 )  /* de_mean the vectors? */
+       if( do_demean )  /* de_mean the vectors? */
          THD_vectim_applyfunc( dsort_mrv[jj] , vector_demean ) ;
      }
    }
@@ -860,6 +879,10 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-quiet") == 0 ){
        tinp->verb = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-verb") == 0 ){
+       tinp->verb++ ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -1119,6 +1142,8 @@ int main( int argc , char *argv[] )
    ct = NI_clock_time() ;
 
    /*----- process the data -----*/
+
+   TPR_verb = tinp->verb ;
 
    TPR_process_data( tinp ) ;
 
