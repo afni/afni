@@ -160,10 +160,10 @@ ENTRY("mri_blur3D_inmask") ;
    EXRETURN ;
 }
 
-/*! This function can be a slightly faster (20%) version of mri_blur3D_inmask 
+/*! This function can be a slightly faster (20%) version of mri_blur3D_inmask
     under the following conditions:
       1- The mask is big and has few or no holes in it, as a brain mask would
-      2- You have a volume with more than 2 voxels in each direction and you 
+      2- You have a volume with more than 2 voxels in each direction and you
          are blurring in 3D
       ZSS March 2011
 */
@@ -179,7 +179,7 @@ void mri_blur3D_inmask_speedy( MRI_IMAGE *im, byte *mask,
 ENTRY("mri_blur3D_inmask_speedy") ;
 
    if( im == NULL || nrep <= 0 ) EXRETURN ;
-   
+
    nx = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; nxyz = nxy*nz;
 
    iar = MRI_FLOAT_PTR(im) ;
@@ -198,10 +198,10 @@ ENTRY("mri_blur3D_inmask_speedy") ;
      for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
          if( !INMASK(ijk) ) continue ;
-         if (  ii == 0    || jj == 0    || kk == 0 || 
+         if (  ii == 0    || jj == 0    || kk == 0 ||
                ii == nx-1 || jj == ny-1 || jj == nz-1 ||
                ijk < nxy || ijk > ijkm) {
-            skin[ijk] = 1; /* in mask, on edge of volume, 
+            skin[ijk] = 1; /* in mask, on edge of volume,
                               or close to boundary slices */
          } else if (        !INMASK(ijk-1)  || !INMASK(ijk+1) ||
                      !INMASK(ijk-nx) || !INMASK(ijk+nx)||
@@ -272,7 +272,7 @@ ENTRY("mri_blur3D_inmask_speedy") ;
               }
             }
          }
-         qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */ 
+         qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */
      }}}
 
      AAmemcpy(iar,qar,sizeof(float)*nxyz) ;
@@ -303,7 +303,7 @@ void mri_blur3D_inmask_NN( MRI_IMAGE *im, byte *mask, int nrep )
 ENTRY("mri_blur3D_inmask_NN") ;
 
    if( im == NULL || nrep <= 0 ) EXRETURN ;
-   
+
    nx = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; nxyz = nxy*nz;
 
    iar = MRI_FLOAT_PTR(im) ;
@@ -315,10 +315,10 @@ ENTRY("mri_blur3D_inmask_NN") ;
      for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,ijk++ ){
          if( !INMASK(ijk) ) continue ;
-         if (  ii == 0    || jj == 0    || kk == 0 || 
+         if (  ii == 0    || jj == 0    || kk == 0 ||
                ii == nx-1 || jj == ny-1 || jj == nz-1 ||
                ijk < nxy || ijk > ijkm) {
-            skin[ijk] = 1; /* in mask, on edge of volume, 
+            skin[ijk] = 1; /* in mask, on edge of volume,
                               or close to boundary slices */
          } else if (        !INMASK(ijk-1)  || !INMASK(ijk+1) ||
                      !INMASK(ijk-nx) || !INMASK(ijk+nx)||
@@ -339,7 +339,7 @@ ENTRY("mri_blur3D_inmask_NN") ;
          if( !INMASK(ijk) ) continue ;
          vout = iar[ijk] ;
          if (!skin[ijk]) { /* Not skin, go fast */
-            qar[ijk] = (iar[ijk]     + 
+            qar[ijk] = (iar[ijk]     +
                         iar[ijk-1]   + iar[ijk+1]  +
                         iar[ijk-nx]  + iar[ijk+nx] +
                         iar[ijk-nxy] + iar[ijk+nxy] ) / 7.0;
@@ -364,7 +364,7 @@ ENTRY("mri_blur3D_inmask_NN") ;
             if( kk+1 < nz && INMASK(ijk+nxy) ){
              qar[ijk] += qar[ijk+nxy]; ++vout;
             }
-            qar[ijk] /= vout;  
+            qar[ijk] /= vout;
          }
      }}}
 
@@ -433,7 +433,7 @@ ENTRY("mri_blur3D_addfwhm") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! A version of mri_blur3D_addfwhm that can be about 20%faster under certain 
+/*! A version of mri_blur3D_addfwhm that can be about 20%faster under certain
    conditions. See mri_blur3D_inmask_speedy for details.
    ZSS March 2011
 */
@@ -462,7 +462,7 @@ ENTRY("mri_blur3D_addfwhm_speedy") ;
    } else {
       INFO_message("mri_blur3D_addfwhm_speedy:\n"
                    " Thin volume or 2D blurring, Going the slow route.");
-      mri_blur3D_inmask( im , mask , fx,fy,fz , nrep ) ; 
+      mri_blur3D_inmask( im , mask , fx,fy,fz , nrep ) ;
    }
    EXRETURN ;
 }
@@ -508,6 +508,10 @@ ENTRY("mri_blur3d_vectim") ;
 
 #pragma omp critical (BLUR3D_vectim)
    { qim = mri_new_vol( nx,ny,nz , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ; }
+
+#ifdef USE_OMP
+   if( MRILIB_verb ) ININFO_message(" start OpenMP thread %d",omp_get_thread_num());
+#endif
 
 #pragma omp for
    for( iv=0 ; iv < vim->nvals ; iv++ ){

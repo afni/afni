@@ -1106,8 +1106,8 @@ ENTRY("THD_vectim_to_dset_indexed") ;
 
    for( kk=0 ; kk < nvec ; kk++ ){
      var = VECTIM_PTR(mrv,kk) ;
-     for( jj=0 ; jj < tmax  ; jj++ ) tar[jj] = 0.0f ;
-     for( jj=0 ; jj < nvals ; jj++ ) tar[jj] = var[tlist[jj]] ;
+     for( jj=0 ; jj < tmax  ; jj++ ) tar[jj]        = 0.0f    ;
+     for( jj=0 ; jj < nvals ; jj++ ) tar[tlist[jj]] = var[jj] ;
      THD_insert_series( mrv->ivec[kk] , dset ,
                         tmax , MRI_float , tar , 0 ) ;
    }
