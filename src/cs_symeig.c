@@ -683,6 +683,7 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
    integer mm,nn , lda,ldu,ldv , ierr ;
    doublereal *aa, *ww , *uu , *vv , *rv1 ;
    logical    matu , matv ;
+   char *eee ; int use_svdlib=0 ;
 
    if( a == NULL || s == NULL || m < 1 || n < 1 ) return ;
 
@@ -718,8 +719,12 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 
    /** the actual SVD **/
 
-   (void) svd_( &mm , &nn , &lda , aa , ww ,
-                &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
+   eee = getenv("AFNI_USE_SVDLIB") ; use_svdlib = (eee != NULL && toupper(*eee) == 'Y') ;
+   if( use_svdlib )
+     AFNI_svdLAS2( mm , nn , aa , ww , uu , vv ) ;
+   else
+     (void) svd_( &mm , &nn , &lda , aa , ww ,
+                  &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
 
 #ifdef CHECK_SVD
    /** back-compute [A] from [U] diag[ww] [V]'
@@ -765,6 +770,8 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
        err /= (m*n) ;
        fprintf(stderr," new avg err=%g %s\n",
                err , (err >= 1.e-5*amag || !IS_GOOD_FLOAT(err)) ? "**BAD**" : "**OK**" ) ;
+       if( !use_svdlib )
+       fprintf(stderr," ** to try an alternative algorithm, setenv AFNI_USE_SVDLIB YES\n") ;
      }
    }
 #endif
