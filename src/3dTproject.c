@@ -3,6 +3,7 @@
 #ifdef USE_OMP
 #include <omp.h>
 #include "mri_blur3d_variable.c"
+#include "svdlib.c"
 #endif
 
 /*----------------------------------------------------------------------------*/
@@ -150,11 +151,6 @@ void TPR_help_the_pitiful_user(void)
    "   In particular, this method allows for bandpassing of censored time\n"
    "   series.\n"
    "\n"
-   "* If A is a matrix whose column comprise the vectors to be projected\n"
-   "   out, define the projection matrix Q(A) by\n"
-   "    Q(A) = I - A psinv(A)\n"
-   "   where psinv(A) is the pseudo-inverse of A [e.g., inv(A'A)A'].\n"
-   "\n"
    "* If you like technical math jargon (and who doesn't?), this program\n"
    "   performs orthogonal projection onto the null space of the set of 'ort'\n"
    "   vectors assembled from the various options '-polort', '-ort',\n"
@@ -163,17 +159,20 @@ void TPR_help_the_pitiful_user(void)
    "* If A is a matrix whose column comprise the vectors to be projected\n"
    "   out, define the projection matrix Q(A) by\n"
    "    Q(A) = I - A psinv(A)\n"
-   "   where psinv(A) is the pseudo-inverse of A [e.g., inv(A'A)A'].\n"
+   "   where psinv(A) is the pseudo-inverse of A [e.g., inv(A'A)A' -- but\n"
+   "   the pseudo-inverse is actually calculated here via the SVD algorithm.]\n"
    "\n"
    "* If option '-dsort' is used, each voxel has a different matrix of\n"
-   "   regressors -- encode this extra set of regressors in matrix B.\n"
-   "   Then the projection for the compound matrix [A B] is\n"
-   "      Q( Q(A)B ) Q(A) ;\n"
+   "   regressors -- encode this extra set of regressors in matrix B\n"
+   "   (i.e., each column of B is a vector to be removed from its voxel's\n"
+   "   time series). Then the projection for the compound matrix [A B] is\n"
+   "      Q( Q(A)B ) Q(A) \n"
    "   that is, A is projected out of B, then the projector for that\n"
    "   reduced B is formed, and applied to the projector for the\n"
    "   voxel-independent A.  Since the number of columns in B is usually\n"
    "   many fewer than the number of columns in A, this technique can\n"
    "   be much faster than constructing the full Q([A B]) for each voxel.\n"
+   "   (Since Q(A) only need to be constructed once for all voxels.)\n"
    "\n"
    "* A similar regression could be done via the slower 3dTfitter program:\n"
    "    3dTfitter -RHS inputdataset+orig   \\\n"
@@ -182,11 +181,10 @@ void TPR_help_the_pitiful_user(void)
    "              -fitts Tfit\n"
    "    3dcalc -a inputdataset+orig -b Tfit+orig -expr 'a-b' \\\n"
    "           -datum float -prefix Tresidual\n"
-   "  3dTproject should be much more efficient, especially when using\n"
+   "  3dTproject should be MUCH more efficient, especially when using\n"
    "  voxel-specific regressors (i.e., '-dsort'), and of course, it also\n"
    "  offers internal generation of the bandpass/stopband regressors,\n"
-   "  as well as censoring, blurring, and L2-norming.  But 3dTfitter DOES\n"
-   "  provide a way to check if 3dTproject is correct-ish (and vice-versa).\n"
+   "  as well as censoring, blurring, and L2-norming.\n"
   "\n"
 #ifdef USE_OMP
    "* This version of the program is compiled using OpenMP for speed.\n"
@@ -457,6 +455,8 @@ void TPR_process_data( TPR_input *tp )
    float *ort_fixed=NULL , *ort_fixed_psinv=NULL ;
    int *keep=NULL ;
    MRI_vectim *inset_mrv , **dsort_mrv=NULL ; int nort_dsort=0 ;
+
+ENTRY("TPR_process_data") ;
 
    /*----- structural constants -----*/
 
@@ -729,11 +729,19 @@ void TPR_process_data( TPR_input *tp )
    /*-- pseudo-inverse of the fixed orts --*/
 
    if( nort_fixed > 0 ){
+     MRI_IMAGE *qim ; char fname[256] ;
      if( tp->verb ) INFO_message("Compute pseudo-inverse of fixed orts") ;
      ort_fixed_psinv = (float *)malloc(sizeof(float)*ntkeep*nort_fixed) ;
      TPR_prefix = tp->prefix ;
      compute_psinv( ntkeep, nort_fixed, ort_fixed, ort_fixed_psinv, NULL ) ;
      TPR_prefix = NULL ;
+     if( TPR_verb > 1 ){
+       MRI_IMAGE *qim ; char fname[256] ;
+       qim = mri_new_vol_empty(ntkeep,nort_fixed,1,MRI_float) ;
+       mri_fix_data_pointer(ort_fixed_psinv,qim) ;
+       sprintf(fname,"%s.ort_psinv.1D",tp->prefix) ;
+       mri_write_1D(fname,qim) ; mri_clear_and_free(qim) ;
+     }
    } else {
      ort_fixed_psinv = NULL ;
    }
@@ -765,16 +773,21 @@ void TPR_process_data( TPR_input *tp )
 
    if( tp->verb ) INFO_message("Starting project-orization") ;
 
+#ifdef USE_OMP
+   if( tp->verb ) fprintf(stderr," + OpenMP threads: ") ;
+#endif
+
 AFNI_OMP_START ;
 #pragma omp parallel
 {  int vv , kk , nds=nort_dsort+1 ;
    double *wsp ; float *dsar , *zar , *pdar ;
 
 #ifdef USE_OMP
-    if( tp->verb ) ININFO_message(" start OpenMP thread %d",omp_get_thread_num());
+    if( tp->verb ) fprintf(stderr,"%d",omp_get_thread_num()) ;
 #endif
 
-   { wsp = (double *)get_psinv_wsp( ntkeep , nds , ntkeep*2 ) ;
+#pragma omp critical
+   { wsp  = (double *)get_psinv_wsp( ntkeep , nds , ntkeep*2 ) ;
      dsar = (float *)malloc(sizeof(float)*nds*ntkeep) ;
      pdar = (float *)malloc(sizeof(float)*nds*ntkeep) ;
    }
@@ -800,13 +813,14 @@ AFNI_OMP_START ;
                                      zar       , (char *)wsp      ) ;
    }
 
+#pragma omp critical
    { free(wsp) ; free(dsar) ; free(pdar) ; }
-
-#ifdef USE_OMP
-    if( tp->verb ) ININFO_message("   end OpenMP thread %d",omp_get_thread_num());
-#endif
 }
 AFNI_OMP_END ;
+
+#ifdef USE_OMP
+   if( tp->verb ) fprintf(stderr,"\n") ;
+#endif
 
    /*-- get rid of some no-longer-needed stuff here --*/
 
