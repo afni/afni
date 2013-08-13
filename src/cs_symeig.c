@@ -678,12 +678,13 @@ void set_svd_sort( int ss ){ svd_sort = ss; }
   Modified 10 Jan 2007 to add sorting of s and corresponding columns of u & v.
 ------------------------------------------------------------------------------*/
 
+extern void AFNI_svdLAS2( int m, int n, double *a, double *s, double *u, double *v ) ;
+
 void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 {
    integer mm,nn , lda,ldu,ldv , ierr ;
    doublereal *aa, *ww , *uu , *vv , *rv1 ;
    logical    matu , matv ;
-   char *eee ; int use_svdlib=0 ;
 
    if( a == NULL || s == NULL || m < 1 || n < 1 ) return ;
 
@@ -719,12 +720,8 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 
    /** the actual SVD **/
 
-   eee = getenv("AFNI_USE_SVDLIB") ; use_svdlib = (eee != NULL && toupper(*eee) == 'Y') ;
-   if( use_svdlib )
-     AFNI_svdLAS2( mm , nn , aa , ww , uu , vv ) ;
-   else
-     (void) svd_( &mm , &nn , &lda , aa , ww ,
-                  &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
+   (void) svd_( &mm , &nn , &lda , aa , ww ,
+                &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
 
 #ifdef CHECK_SVD
    /** back-compute [A] from [U] diag[ww] [V]'
@@ -732,7 +729,7 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
        if not, compute the results in another function;
        this is needed because the svd() function compiles with
        rare computational errors on some compilers' optimizers **/
-   { register int i,j,k ; register doublereal aij ; double err=0.0,amag=1.e-11 ;
+   { register int i,j,k ; register doublereal aij ; double err=0.0,amag=1.e-12 ;
      for( j=0 ; j < n ; j++ ){
       for( i=0 ; i < m ; i++ ){
         aij = A(i,j) ; amag += fabs(aij) ;
@@ -742,10 +739,10 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
      amag /= (m*n) ; /* average absolute value of matrix elements */
      err  /= (m*n) ; /* average absolute error per matrix element */
      if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
-       fprintf(stderr,"SVD avg err=%g; recomputing ...",err) ;
+       fprintf(stderr,"\n **** SVD avg err=%g; recomputing ...",err) ;
 
-#if 1     /* mangle all zero columns */
-       { double arep=1.e-11*amag , *aj ;
+#if 1     /* mangle any all zero columns */
+       { double arep=1.e-12*amag , *aj ;
          for( j=0 ; j < nn ; j++ ){
            aj = aa + j*mm ;
            for( i=0 ; i < mm ; i++ ) if( aj[i] != 0.0 ) break ;
@@ -768,11 +765,28 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
           err += fabs(aij) ;
        }}
        err /= (m*n) ;
-       fprintf(stderr," new avg err=%g %s\n",
-               err , (err >= 1.e-5*amag || !IS_GOOD_FLOAT(err)) ? "**BAD**" : "**OK**" ) ;
-       if( !use_svdlib )
-       fprintf(stderr," ** to try an alternative algorithm, setenv AFNI_USE_SVDLIB YES\n") ;
+
+       /* not fixed YET?  try another algorithm (one that's usually slower) */
+
+       if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
+         fprintf(stderr," new avg err=%g; re-recomputing ...",err) ;
+         AFNI_svdLAS2( mm , nn , aa , ww , uu , vv ) ;  /* svdlib.c */
+         err = 0.0 ;
+         for( j=0 ; j < n ; j++ ){
+          for( i=0 ; i < m ; i++ ){
+            aij = A(i,j) ;
+            for( k=0 ; k < n ; k++ ) aij -= U(i,k)*V(j,k)*ww[k] ;
+            err += fabs(aij) ;
+         }}
+         err /= (m*n) ;
+         fprintf(stderr," newer avg err=%g %s" ,
+                 err ,
+                 (err >= 1.e-5*amag || !IS_GOOD_FLOAT(err)) ? "**BAD**" : "**OK**" ) ;
+       } else {
+         fprintf(stderr," new avg error=%g **OK**",err) ;
+       }
      }
+     fprintf(stderr,"\n\n") ;
    }
 #endif
 
