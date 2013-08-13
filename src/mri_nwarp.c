@@ -4454,8 +4454,7 @@ static float Hfirstcost = 666.0f ;
 static int Hsuperhard1 =  0 ;
 static int Hsuperhard2 = -1 ;
 
-#define ALLOW_QMODE
-#ifdef  ALLOW_QMODE
+#ifdef ALLOW_QMODE
 static int Hqfinal  = 0 ;  /* 07 May 2013 */
 static int Hqonly   = 0 ;  /* 27 Jun 2013 */
 #else
