@@ -178,12 +178,19 @@ ENTRY("create_float_dataset") ;
 /*! Save a series of floats into a dataset,
     either directly into the bricks, or to a temp file to be restored later. */
 
+char sslab[256] = "\0" ;
+
 void save_series( int vv, THD_3dim_dataset *dset, int npt, float *var, FILE *fp )
 {
+ENTRY("save_series") ;
+if( sslab[0] != '\0' ){ STATUS(sslab) ; }
+
    if( fp == NULL )
      THD_insert_series( vv , dset , npt , MRI_float , var , 0 ) ;
    else
      my_fwrite( var , sizeof(float) , npt , fp ) ;
+
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -3036,6 +3043,7 @@ STATUS("setting up Rglt") ;
 
          if( Rfitts_dset != NULL ){  /* note that iv still contains original data */
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
+           sprintf(sslab,"%s %d", "Rfitts" ,vv);
            save_series( vv , Rfitts_dset , nfull , iv , Rfitts_fp ) ;
          }
 
@@ -3043,6 +3051,7 @@ STATUS("setting up Rglt") ;
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
+           sprintf(sslab,"%s %d", "Rerrts" ,vv);
            save_series( vv , Rerrts_dset , nfull , iv , Rerrts_fp ) ;
          }
 
@@ -3050,11 +3059,13 @@ STATUS("setting up Rglt") ;
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = bb2[ii] ;
+           sprintf(sslab,"%s %d", "Rwherr" ,vv);
            save_series( vv , Rwherr_dset , nfull , iv , Rwherr_fp ) ;
          }
 
          if( Rbeta_dset != NULL ){
            for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
+           sprintf(sslab,"%s %d", "Rbeta" ,vv);
            save_series( vv , Rbeta_dset , nbetaset , iv , Rbeta_fp ) ;
          }
 
@@ -3062,6 +3073,7 @@ STATUS("setting up Rglt") ;
            iv[0] = RCsli[ss]->rs[jj]->rho ; iv[1] = RCsli[ss]->rs[jj]->barm ;
            iv[2] = RCsli[ss]->rs[jj]->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
            iv[4] = (rar != NULL) ? rar[vv] : 0.0f ;
+           sprintf(sslab,"%s %d", "Rvar" ,vv);
            save_series( vv , Rvar_dset , 5 , iv , Rvar_fp ) ;
          }
 
@@ -3090,6 +3102,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
+           sprintf(sslab,"%s %d", "Rbuckt glt" ,vv);
            save_series( vv , Rbuckt_dset , nbuckt , iv , Rbuckt_fp ) ;
          }
 
@@ -3117,6 +3130,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
+           sprintf(sslab,"%s %d", "Rglt" ,vv);
            save_series( vv , Rglt_dset , neglt , iv , Rglt_fp ) ;
          }
 
@@ -3335,6 +3349,7 @@ STATUS("setting up Rglt") ;
 
          if( Ofitts_dset != NULL ){
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
+           sprintf(sslab,"%s %d", "Ofitts" ,vv);
            save_series( vv , Ofitts_dset , nfull , iv , Ofitts_fp ) ;
          }
 
@@ -3342,16 +3357,19 @@ STATUS("setting up Rglt") ;
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
+           sprintf(sslab,"%s %d", "Oerrts" ,vv);
            save_series( vv , Oerrts_dset , nfull , iv , Oerrts_fp ) ;
          }
 
          if( Obeta_dset != NULL ){
            for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
+           sprintf(sslab,"%s %d", "Obeta" ,vv);
            save_series( vv , Obeta_dset , nbetaset , iv , Obeta_fp ) ;
          }
 
          if( Ovar_dset != NULL ){
            iv[0] = sqrt( bbsumq / ddof ) ;
+           sprintf(sslab,"%s %d", "Ovar" ,vv);
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
@@ -3380,6 +3398,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
+           sprintf(sslab,"%s %d", "Obuckt glt" ,vv);
            save_series( vv , Obuckt_dset , nbuckt , iv , Obuckt_fp ) ;
          }
 
@@ -3407,6 +3426,7 @@ STATUS("setting up Rglt") ;
                }
              }
            }
+           sprintf(sslab,"%s %d", "Oglt" ,vv);
            save_series( vv , Oglt_dset , neglt , iv , Oglt_fp ) ;
          }
        }
