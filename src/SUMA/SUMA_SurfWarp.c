@@ -196,9 +196,11 @@ SUMA_SegmentDO *SUMA_Perturbation2SDO(SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Pe
             }
          }                            
          if (p==0) {
-            colv[4*kcc+0] = 1.0; colv[4*kcc+1] = colv[4*kcc+2] = colv[4*kcc+3] = 0.0;  
+            colv[4*kcc+0] = 1.0; 
+            colv[4*kcc+1] = colv[4*kcc+2] = colv[4*kcc+3] = 0.0;  
          } else{
-            colv[4*kcc+1] = 1.0; colv[4*kcc+0] = colv[4*kcc+2] = colv[4*kcc+3] = 0.0;  
+            colv[4*kcc+1] = 1.0; 
+            colv[4*kcc+0] = colv[4*kcc+2] = colv[4*kcc+3] = 0.0;  
          }
          thickv[kcc] = 2;   
          ++kcc;
@@ -208,10 +210,10 @@ SUMA_SegmentDO *SUMA_Perturbation2SDO(SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Pe
 
    SDO = SUMA_CreateSegmentDO( N_n, oriented, NodeBased, Stipple,
                                Label, idcode_str, Parent_idcode_str,
+                               type_not_set, NULL,
                                LineWidth, LineCol,
                                NodeId, NULL, n0, n1,
-                               colv, thickv 
-                              );
+                               colv, thickv );
 
    if (idcode_str) SUMA_free(idcode_str); idcode_str = NULL;
    if (n0) SUMA_free(n0); n0 = NULL;
@@ -921,10 +923,10 @@ SUMA_SegmentDO *SUMA_G2SDO(vector G, SUMA_MX_VEC *ControlCurve,
 
    SDO = SUMA_CreateSegmentDO( N_n, oriented, NodeBased, Stipple,
                                Label, idcode_str, Parent_idcode_str,
+                               type_not_set, NULL,
                                LineWidth, LineCol,
                                NodeId, NULL, n0, n1,
-                               colv, thickv 
-                              );
+                               colv, thickv);
 
    if (idcode_str) SUMA_free(idcode_str); idcode_str = NULL;
    if (n0) SUMA_free(n0); n0 = NULL;
