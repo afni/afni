@@ -21,7 +21,8 @@
 
 /** include the warping functions, and enable the warp-optimizing functions **/
 
-#define ALLOW_QWARP
+#define ALLOW_QWARP                 /* this must be defined!! */
+#define ALLOW_QMODE
 #define ALLOW_PLUSMINUS
 #undef  USE_PLUSMINUS_INITIALWARP   /* don't do this */
 #include "mri_nwarp.c"
@@ -605,7 +606,7 @@ void Qhelp(void)
     "           -->>* The fastest way to register to a template image is via the\n"
     "                 -duplo option, and without the -workhard or -superhard options.\n"
 #if 0
-#ifdef ALLOW_MODE
+#ifdef ALLOW_QMODE
     "\n"
     " -Qfinal      = At the finest patch size (the final level), use Hermite\n"
     "                quintic polynomials for the warp instead of cubic polynomials.\n"
