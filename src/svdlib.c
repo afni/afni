@@ -1928,6 +1928,17 @@ long ritvec(long n, SMat A, SVDRec R, double kappa, double *ritz, double *bnd,
   return nsig;
 }
 
+/*----------------------------------------------------------------------*/
+
+static int vstep=0 ;
+static void vstep_print(void)
+{
+   static char xx[10] = "0123456789" ;
+   fprintf(stderr , "%c" , xx[vstep%10] ) ;
+   if( vstep%10 == 9) fprintf(stderr,".") ;
+   vstep++ ;
+}
+
 /***********************************************************************
  *                                                                     *
  *                          lanso()                                    *
@@ -2004,10 +2015,12 @@ int lanso(SMat A, long iterations, long dimensions, double endl,
   last = svd_imin(dimensions + svd_imax(8, dimensions), iterations);
   ENOUGH = FALSE;
   /*id1 = 0;*/
+  if( SVDVerbosity > 1 ){ fprintf(stderr,"Lanczos:"); vstep=0; }
   while (/*id1 < dimensions && */!ENOUGH) {
     if (rnm <= tol) rnm = 0.0;
 
     /* the actual lanczos loop */
+    if( SVDVerbosity > 1 ) vstep_print() ;
     j = lanczos_step(A, first, last, wptr, alf, eta, oldeta, bet, &ll,
                      &ENOUGH, &rnm, &tol, n);
     if (ENOUGH) j = j - 1;
