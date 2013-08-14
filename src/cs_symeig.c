@@ -17,6 +17,11 @@
 # define IS_GOOD_FLOAT(x) finite(x)
 #endif
 
+#define USE_SVDLIB
+#ifdef  USE_SVDLIB
+#include "svdlib.c"
+#endif
+
 /*---------------------------------------------------------------------------*/
 
 #undef  SQR
@@ -678,8 +683,6 @@ void set_svd_sort( int ss ){ svd_sort = ss; }
   Modified 10 Jan 2007 to add sorting of s and corresponding columns of u & v.
 ------------------------------------------------------------------------------*/
 
-extern void AFNI_svdLAS2( int m, int n, double *a, double *s, double *u, double *v ) ;
-
 void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 {
    integer mm,nn , lda,ldu,ldv , ierr ;
@@ -769,8 +772,10 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
        /* not fixed YET?  try another algorithm (one that's usually slower) */
 
        if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
-         fprintf(stderr," new avg err=%g; re-recomputing ...",err) ;
+         fprintf(stderr," new avg err=%g; re-recomputing the hard way ...\n",err) ;
+         SVDVerbosity = 2 ;
          AFNI_svdLAS2( mm , nn , aa , ww , uu , vv ) ;  /* svdlib.c */
+         SVDVerbosity = 0 ;
          err = 0.0 ;
          for( j=0 ; j < n ; j++ ){
           for( i=0 ; i < m ; i++ ){
