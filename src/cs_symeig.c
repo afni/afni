@@ -744,14 +744,18 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
      if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
        fprintf(stderr,"\n **** SVD avg err=%g; recomputing ...",err) ;
 
-#if 1     /* mangle any all zero columns */
+#if 1     /* perturb matrix slightly */
        { double arep=1.e-12*amag , *aj ;
          for( j=0 ; j < nn ; j++ ){
            aj = aa + j*mm ;
+#if 1
+           for( i=0 ; i < mm ; i++ ) aj[i] += (drand48()-0.5)*arep ;
+#else
            for( i=0 ; i < mm ; i++ ) if( aj[i] != 0.0 ) break ;
            if( i == mm ){
              for( i=0 ; i < mm ; i++ ) aj[i] = (drand48()-0.5)*arep ;
            }
+#endif
          }
        }
 #endif
