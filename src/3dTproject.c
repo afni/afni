@@ -3,7 +3,7 @@
 #ifdef USE_OMP
 #include <omp.h>
 #include "mri_blur3d_variable.c"
-#include "svdlib.c"
+#include "cs_symeig.c"
 #endif
 
 /*----------------------------------------------------------------------------*/
