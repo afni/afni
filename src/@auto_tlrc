@@ -788,7 +788,7 @@ AUTO_TLRC_MODE:
                   -prefix ./${tmppref}_reg_warpdriveout \
                   -input ${rs_pref}${anat_view}
       if ($status) then
-            echo "Failed to resample"
+            echo "Bad exit status from 3dWarpDrive"
             goto BEND  
       endif            
       if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then

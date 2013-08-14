@@ -139,7 +139,7 @@ g_history = """
         - in mask block, try to create anat and group masks
         - added -mask_apply option, for choosing mask to apply to regression
         - added -align_opts_aea, for extra opts to align_epi_anat.py
-    2.0  Jun 26 2009 : process method update: suggest processing in group space
+    2.00 Jun 26 2009 : process method update: suggest processing in group space
         - mask warped EPI by its extents (at volreg step)
         - added -volreg_no_extent_mask, to block this masking
         - added 'extents' to list of mask in -mask_apply
@@ -380,9 +380,11 @@ g_history = """
     3.48 May 09, 2013: added options -write_3dD_script, -write_3dD_prefix
     3.49 Jun 25, 2013: added options -volreg_mosim, -volreg_opts_ms
     3.50 Jun 27, 2013: added option -regress_mot_as_ort
+    4.00 Aug 14, 2013: added non-linear template registration via auto_warp.py
+        - added options -tlrc_NL_warp and -tlrc_NL_awpy_rm
 """
 
-g_version = "version 3.50, June 27, 2013"
+g_version = "version 4.00, Aug 14, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "10 Jun 2013"
@@ -475,8 +477,11 @@ class SubjProcSream:
         self.anat_has_skull = 1         # does the input anat have a skull
                                         # also updated in db_cmd_align
         self.anat_final = None          # anat assumed aligned with stats
+        self.nlw_aff_mat= ''
+        self.nlw_NL_mat = ''
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
+        self.tlrc_nlw   = 0             # are we using non-linear registration
         self.tlrc_ss    = 1             # whether to do skull strip in tlrc
         self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
@@ -732,6 +737,11 @@ class SubjProcSream:
                         helpstr='alternate @auto_tlrc base (not TT_N27, say)')
         self.valid_opts.add_opt('-tlrc_opts_at', -1, [],
                         helpstr='additional options supplied to @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_NL_awpy_rm', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='use non-linear warping to template')
+        self.valid_opts.add_opt('-tlrc_NL_warp', 0, [],
+                        helpstr='use non-linear warping to template')
         self.valid_opts.add_opt('-tlrc_no_ss', 0, [],
                         helpstr='do not skull-strip during @auto_tlrc')
         self.valid_opts.add_opt('-tlrc_rmode', 1, [],
@@ -1354,6 +1364,8 @@ class SubjProcSream:
 
     # create script from blocks and options
     def create_script(self):
+        if self.overwrite_error(): return 0
+
         rv = self.get_run_info()
         if rv != None: return rv
 
@@ -1882,6 +1894,16 @@ class SubjProcSream:
 
         return 0
 
+    def overwrite_error(self, report=1):
+        """is it valid to create the output script?"""
+        if self.make_main_script and os.path.isfile(self.script) \
+                                 and not self.overwrite:
+            if report:
+               print "error: script file '%s' already exists" % self.script
+            return 1
+
+        return 0
+
     def open_script(self):
         """open script for writing
 
@@ -1892,9 +1914,8 @@ class SubjProcSream:
 
         if not self.make_main_script: return 0
 
-        if not self.overwrite and os.path.isfile(self.script):
-            print "error: script file '%s' already exists, exiting..." % \
-                  self.script
+        if self.overwrite_error():
+            print "exiting..." 
             return 1
 
         try: self.fp = open(self.script,'w')
@@ -2099,13 +2120,16 @@ def run_proc():
     if rv != None:  # terminal, but do not display command on 0
         if rv != 0:
             show_args_as_command(ps.argv, "** failed command (create_script):")
-        return rv
+        return 1
 
     # finally, execute if requested
     if ps.user_opts.find_opt('-execute'): rv = os.system(ps.bash_cmd)
 
+    return rv
+
 # main
 if __name__ == '__main__':
 
-    run_proc()
+    rv = run_proc()
+    sys.exit(rv)
 

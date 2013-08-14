@@ -335,7 +335,7 @@ class RegWrap:
       return 0
 
    def version(self):
-      self.info_msg("auto_tlrc version: %s" % self.align_version)
+      self.info_msg("auto_warp.py version: %s" % self.align_version)
 
    # copy dataset 1 to dataset 2
    # show message and check if dset1 is the same as dset2

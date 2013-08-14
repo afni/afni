@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Aug, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added non-linear standard space registration via -tlrc_NL_warp",
+   NULL
+ } ,
+
  {  2,  Aug, 2013, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "check for multiple R and python programs in PATH",
    NULL
