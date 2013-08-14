@@ -2734,6 +2734,7 @@ STATUS("make GLTs from matrix file") ;
 #pragma omp for
      for( rv=0 ; rv < nmask ; rv++ ){
        vv = vvar[rv] ;
+       if( ithr == 0 && vstep && rv%666==333 ) fprintf(stderr,".") ;
 #pragma omp critical (MEMCPY)
  {
        if( inset_mrv != NULL ){

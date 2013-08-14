@@ -773,18 +773,10 @@ ENTRY("TPR_process_data") ;
 
    if( tp->verb ) INFO_message("Starting project-orization") ;
 
-#ifdef USE_OMP
-   if( tp->verb ) fprintf(stderr," + OpenMP threads: ") ;
-#endif
-
 AFNI_OMP_START ;
 #pragma omp parallel
 {  int vv , kk , nds=nort_dsort+1 ;
    double *wsp ; float *dsar , *zar , *pdar ;
-
-#ifdef USE_OMP
-    if( tp->verb ) fprintf(stderr,"%d",omp_get_thread_num()) ;
-#endif
 
 #pragma omp critical
    { wsp  = (double *)get_psinv_wsp( ntkeep , nds , ntkeep*2 ) ;
@@ -817,10 +809,6 @@ AFNI_OMP_START ;
    { free(wsp) ; free(dsar) ; free(pdar) ; }
 }
 AFNI_OMP_END ;
-
-#ifdef USE_OMP
-   if( tp->verb ) fprintf(stderr,"\n") ;
-#endif
 
    /*-- get rid of some no-longer-needed stuff here --*/
 
