@@ -1844,7 +1844,7 @@ mri_to_byte.o:mri_to_byte.c
 	$(RM) $@
 	$(CCFAST) -c mri_to_byte.c $(INFLAGS)
 
-cs_symeig.o:cs_symeig.c
+cs_symeig.o:cs_symeig.c svdlib.c
 	$(RM) $@
 	$(CCFAST) -c cs_symeig.c $(INFLAGS)
 

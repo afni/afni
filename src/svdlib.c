@@ -2025,6 +2025,7 @@ int lanso(SMat A, long iterations, long dimensions, double endl,
     if( SVDVerbosity > 1 ) vstep_print() ;
     j = lanczos_step(A, first, last, wptr, alf, eta, oldeta, bet, &ll,
                      &ENOUGH, &rnm, &tol, n);
+    if( SVDVerbosity > 1 ) fprintf(stderr,".") ;
     if (ENOUGH) j = j - 1;
     else j = last - 1;
     first = j + 1;
