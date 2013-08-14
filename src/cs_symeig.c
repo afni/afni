@@ -17,10 +17,12 @@
 # define IS_GOOD_FLOAT(x) finite(x)
 #endif
 
-#define USE_SVDLIB
+#undef  USE_SVDLIB
 #ifdef  USE_SVDLIB
 #include "svdlib.c"
 #endif
+
+void svd_double_ata( int m, int n, double *a, double *s, double *u, double *v ) ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -136,7 +138,6 @@ void symeig_3( double *a , double *e , int dovec )
 
    if( qq <= 0.0 ){       /*** This should never happen!!! ***/
      static int nerr=0 ;
-#pragma omp critical (STDERR)
      {
      if( ++nerr < 4 )
        fprintf(stderr,"** ERROR in symeig_3: discrim=%g numer=%g\n",qq,rr) ;
@@ -524,7 +525,6 @@ int first_principal_vectors( int n , int m , float *xx ,
 
    if( nvec > nsym ) nvec = nsym ;  /* can't compute more vectors than nsym! */
 
-#pragma omp critical (MALLOC)
    { asym  = (double *)malloc(sizeof(double)*nsym*nsym) ;  /* symmetric matrix */
      deval = (double *)malloc(sizeof(double)*nsym) ;       /* its eigenvalues */
    }
@@ -548,7 +548,6 @@ int first_principal_vectors( int n , int m , float *xx ,
    } else {                             /* more columns than rows:  */
                                         /* so [A] = [X][X]' = n x n */
      float *xt ; int m1=mm-1 ;
-#pragma omp critical (MALLOC)
      xt = (float *)malloc(sizeof(float)*nn*mm) ;
      for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
        for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xx[ii+jj*nn] ;
@@ -564,7 +563,6 @@ int first_principal_vectors( int n , int m , float *xx ,
        }
      }
 
-#pragma omp critical (MALLOC)
      free(xt) ;  /* don't need this no more */
    }
 
@@ -574,7 +572,6 @@ int first_principal_vectors( int n , int m , float *xx ,
    ii = symeig_irange( nsym, asym, deval, nsym-nvec, nsym-1, (uvec==NULL) ) ;
 
    if( ii != 0 ){
-#pragma omp critical (MALLOC)
      { free(deval) ; free(asym) ; }
      return -33333 ;  /* eigensolver failed!? */
    }
@@ -593,7 +590,6 @@ int first_principal_vectors( int n , int m , float *xx ,
    /** if no output vectors desired, we are done done done!!! **/
 
    if( uvec == NULL ){
-#pragma omp critical (MALLOC)
      { free(deval) ; free(asym) ; }
      return nvec ;
    }
@@ -640,7 +636,6 @@ int first_principal_vectors( int n , int m , float *xx ,
 
    /** free at last!!! **/
 
-#pragma omp critical (MALLOC)
    { free(deval) ; free(asym) ; }
    return nvec ;
 }
@@ -745,7 +740,7 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
        fprintf(stderr,"\n **** SVD avg err=%g; recomputing ...",err) ;
 
 #if 1     /* perturb matrix slightly */
-       { double arep=1.e-12*amag , *aj ;
+       { double arep=1.e-13*amag , *aj ;
          for( j=0 ; j < nn ; j++ ){
            aj = aa + j*mm ;
 #if 1
@@ -777,9 +772,13 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 
        if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
          fprintf(stderr," new avg err=%g; re-recomputing the hard way ...\n",err) ;
+#ifdef USE_SVDLIB
          SVDVerbosity = 2 ;
          AFNI_svdLAS2( mm , nn , aa , ww , uu , vv ) ;  /* svdlib.c */
          SVDVerbosity = 0 ;
+#else
+         svd_double_ata( mm , nn , aa , ww , uu, vv ) ; /* below */
+#endif
          err = 0.0 ;
          for( j=0 ; j < n ; j++ ){
           for( i=0 ; i < m ; i++ ){
@@ -818,22 +817,18 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
      qsort_doubleint( n , sv , iv ) ;
      if( u != NULL ){
        double *cc = (double *)calloc(sizeof(double),m*n) ;
-#pragma omp critical (MEMCPY)
        (void)memcpy( cc , u , sizeof(double)*m*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;  /* where the new jj-th col came from */
-#pragma omp critical (MEMCPY)
          (void)memcpy( u+jj*m , cc+kk*m , sizeof(double)*m ) ;
        }
        free((void *)cc) ;
      }
      if( v != NULL ){
        double *cc = (double *)calloc(sizeof(double),n*n) ;
-#pragma omp critical (MEMCPY)
        (void)memcpy( cc , v , sizeof(double)*n*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;
-#pragma omp critical (MEMCPY)
          (void)memcpy( v+jj*n , cc+kk*n , sizeof(double)*n ) ;
        }
        free((void *)cc) ;
@@ -844,6 +839,68 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
    }
 
    return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* SVD via eigensolution of A'A (presumes n < m) */
+
+void svd_double_ata( int m, int n, double *a, double *s, double *u, double *v )
+{
+   double *ata , *ai,*aj , sum ;
+   int ii,jj,kk ;
+
+   if( a == NULL || s == NULL || m < 1 || n < 1 ) return ;
+
+   /* make A'A matrix */
+
+   ata = (double *)malloc(sizeof(double)*n*n) ;
+   for( ii=0 ; ii < n ; ii++ ){
+     ai = a + ii*m ;                   /* ii-th column of A */
+     for( jj=0 ; jj <= ii ; jj++ ){
+       aj = a + jj*m ;                 /* jj-th column of A */
+       for( sum=0.0,kk=0 ; kk < m ; kk++ ) sum += ai[kk]*aj[kk] ;
+       ata[ii+jj*n] = sum ; if( jj < ii ) ata[jj+ii*n] = sum ;
+     }
+   }
+
+   /* Since A = U S V', then A'A = V S^2 V', or A'A V = V S^2,
+      so the eigensolution of A'A gives S^2 as the eigenvalues,
+      and gives V as the eigenvectors (which here over-write ata). */
+
+   symeig_double( n , ata , s ) ;
+
+   /* sqrt the eigenvalues to get the singular values */
+
+   for( ii=0 ; ii < n ; ii++ )
+     s[ii] = (s[ii] <= 0.0) ? 0.0 : sqrt(s[ii]) ;
+
+   /* copy ata into the output place for V */
+
+   if( v != NULL ){
+     (void)memcpy( v , ata , sizeof(double)*n*n ) ;
+   }
+
+   /* manufacture U from A and V (which is in ata, recall):
+      AV = US, so if we form the matrix product AV, then
+      L2-normalizing each column will give us the matrix U. */
+
+   if( u != NULL ){
+     double *uj , *vj ;
+     for( jj=0 ; jj < n ; jj++ ){
+       uj = u   + jj*m ;              /* jj-th column of U */
+       vj = ata + jj*n ;              /* jj-th column of V */
+       for( ii=0 ; ii < m ; ii++ ){             /* A_{ii,kk} V_{kk,jj} */
+         for( sum=0.0,kk=0 ; kk < n ; kk++ ) sum += a[ii+kk*m]*vj[kk] ;
+         uj[ii] = sum ;
+       }
+       for( sum=0.0,ii=0 ; ii < m ; ii++ ) sum += uj[ii]*uj[ii] ;
+       if( sum > 0.0 ){
+         for( sum=1.0/sqrt(sum),ii=0 ; ii < m ; ii++ ) uj[ii] *= sum ;
+       }
+     }
+   }
+
+   free(ata) ; return ;
 }
 
 /*--------------------------------------------------------------------*/
