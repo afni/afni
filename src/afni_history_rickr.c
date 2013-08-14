@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Aug, 2013, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "added emacs to the list of editors to check for displaying help",
+   "Added for P Taylor."
+ } ,
+
  { 14,  Aug, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added non-linear standard space registration via -tlrc_NL_warp",
    NULL
