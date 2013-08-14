@@ -24,6 +24,7 @@ WARP_EPI_ALIGN_E2A      = 8
 # - if new dir to remove: proc.rm_list.append('dir') ; proc.rm_dirs = 1
 # - apply proc.sep_char?  (maybe it's time to forget that...)
 # - if OL.opt_is_yes(block.opts.find_opt(oname)): ...
+#   if block.opts.have_yes_opt('-regress_run_clustsim', default=1):
 
 def apply_uopt_to_block(opt_name, user_opts, block):
     """just pass any parameters for opt_name along to the block
@@ -1107,6 +1108,7 @@ def db_cmd_volreg(proc, block):
                 "# align each dset to base volume%s\n" \
                 % (block_header('volreg'), cstr)
 
+    all1_input = None
     if dowarp or doadwarp or do_extents:
         cmd = cmd + '\n'
 
@@ -1120,11 +1122,11 @@ def db_cmd_volreg(proc, block):
                 % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
 
         if do_extents:
+            all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
             cmd = cmd + \
                 "# create an all-1 dataset to mask the extents of the warp\n" \
-                "3dcalc -a %s -expr 1 -prefix rm.epi.all1\n\n"                \
-                % proc.prev_prefix_form(1, view=1)
-            all1_input = 'rm.epi.all1' + proc.view
+                "3dcalc -a %s -expr 1 -prefix %s\n\n"                         \
+                % (proc.prev_prefix_form(1, view=1), all1_input.prefix)
 
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
@@ -1169,7 +1171,9 @@ def db_cmd_volreg(proc, block):
             '    cat_matvec -ONELINE \\\n' % cstr
 
         if dowarp:
-            wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
+            # either non-linear or affing warp
+            if proc.nlw_aff_mat: wstr = proc.nlw_aff_mat
+            else:                wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
 
@@ -1187,32 +1191,14 @@ def db_cmd_volreg(proc, block):
         cmd = cmd +                                     \
             '               mat.r$run.vr.aff12.1D > mat.r$run.warp.aff12.1D\n'
 
-        
         if do_extents: wprefix = "rm.epi.nomask.r$run"
         else:          wprefix = cur_prefix
-        cmd = cmd + '\n' +                                                 \
-            '    # apply catenated xform : %s\n'                           \
-            '    3dAllineate -base %s \\\n'                                \
-            '                -input %s \\\n'                               \
-            '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
-            '                -mast_dxyz %g\\\n'                            \
-            '                -prefix %s \n'                                \
-            % (cstr, allinbase, prev_prefix, dim, wprefix)
 
-        if do_extents:      # then warp the all data and intersect over the run
-           cmd = cmd + '\n' +                                                 \
-               '    # warp the all-1 dataset for extents masking \n'          \
-               '    3dAllineate -base %s \\\n'                                \
-               '                -input %s \\\n'                               \
-               '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
-               '                -mast_dxyz %g -final NN -quiet \\\n'          \
-               '                -prefix rm.epi.1.r$run \n'                    \
-               % (allinbase, all1_input, dim)
-
-           cmd = cmd + '\n' +                                                 \
-               '    # make an extents intersection mask of this run\n'        \
-               '    3dTstat -min -prefix rm.epi.min.r$run rm.epi.1.r$run%s\n' \
-               % proc.view
+        # apply linear or non-linear warps
+        wcmd = apply_catenated_warps(proc, allinbase, prev_prefix, wprefix,
+                                     dim, all1_input, cstr)
+        if wcmd == None: return
+        cmd += wcmd
 
     # if there is a base_dset option, check for failure in 3dvolreg
     if basevol:
@@ -1347,10 +1333,70 @@ def db_cmd_volreg(proc, block):
 
     return cmd
 
+#wcmd = apply_catenated_warps(proc, allinbase, prev_prefix, wprefix,
+#                             dim, all1_input)
+def apply_catenated_warps(proc, gridbase, winput, woutput, dim, all1_dset,cstr):
+   """generate either 3dAllineate or 3dNwarpApply commands"""
+
+   # affine case
+   if proc.nlw_aff_mat == '':
+      cmd = '\n'                                                         \
+          '    # apply catenated xform : %s\n'                           \
+          '    3dAllineate -base %s \\\n'                                \
+          '                -input %s \\\n'                               \
+          '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
+          '                -mast_dxyz %g\\\n'                            \
+          '                -prefix %s \n'                                \
+          % (cstr, gridbase, winput, dim, woutput)
+
+      if all1_dset != None: # warp all-1 data and intersect over the run
+         cmd = cmd + '\n' +                                                 \
+             '    # warp the all-1 dataset for extents masking \n'          \
+             '    3dAllineate -base %s \\\n'                                \
+             '                -input %s \\\n'                               \
+             '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
+             '                -mast_dxyz %g -final NN -quiet \\\n'          \
+             '                -prefix rm.epi.1.r$run \n'                    \
+             % (gridbase, all1_dset.pv(), dim)
+
+   # affine case - apply proc.nlw_NL_mat along with typical mat
+   else:
+      cmd = '\n'                                                         \
+          '    # apply catenated xform: %s\n'                            \
+          '    # then apply non-linear standard-space warp\n'            \
+          '    3dNwarpApply -master %s -dxyz %g \\\n'                    \
+          '                 -source %s \\\n'                             \
+          '                 -nwarp %s \\\n'                              \
+          '                 -affter mat.r$run.warp.aff12.1D \\\n'        \
+          '                 -prefix %s \n'                               \
+          % (cstr, gridbase, dim, winput, proc.nlw_NL_mat, woutput)
+
+      if all1_dset != None: # warp all-1 data and intersect over the run
+         cmd = cmd + '\n' +                                                 \
+             '    # warp the all-1 dataset for extents masking \n'          \
+             '    3dNwarpApply -master %s -dxyz %g\\\n'                     \
+             '                 -source %s \\\n'                             \
+             '                 -nwarp %s \\\n'                              \
+             '                 -prefix rm.epi.1.r$run \\\n'                 \
+             '                 -affter mat.r$run.warp.aff12.1D \\\n'        \
+             '                 -ainterp NN -quiet \n'                       \
+             % (gridbase, dim, all1_dset.pv(), proc.nlw_NL_mat)
+
+   # intersection mask of all-1 time series is same either way
+   if all1_dset != None:
+      cmd = cmd + '\n' +                                                 \
+          '    # make an extents intersection mask of this run\n'        \
+          '    3dTstat -min -prefix rm.epi.min.r$run rm.epi.1.r$run%s\n' \
+          % proc.view
+
+   return cmd
+
+
 # create @simulate_motion commands
 def db_cmd_volreg_motsim(proc, block, basevol):
     """generate a @simulate_motion command
           - use proc.mot_default and proc.e2final_mv
+          - if self.nlw_NL_mat, apply with 3dNwarpApply
        return 0 on success, along with any command string
     """
     proc.mot_simset = BASE.afni_name('motsim_$subj%s' % proc.view)
@@ -1378,6 +1424,7 @@ def db_cmd_volreg_motsim(proc, block, basevol):
     if proc.e2final == '':
         cmd += "                 -warp_method VOLREG\n\n"
     else:
+        # rcr todo - add if self.nlw_NL_mat, add -warp_NL_dset
         cmd += "                 -warp_method VOLREG_AND_WARP \\\n"     \
                "                 -warp_1D %s \\\n"                      \
                "                 -warp_master %s\n\n"                   \
@@ -3676,8 +3723,7 @@ def db_cmd_blur_est(proc, block):
     cmd = cmd + '\n'
 
     # maybe make string to run and apply 3dClustSim
-    opt = block.opts.find_opt('-regress_run_clustsim')
-    if not opt or OL.opt_is_yes(opt):
+    if block.opts.have_yes_opt('-regress_run_clustsim', default=1):
         stats_dset = 'stats.$subj%s' % proc.view
         if block.opts.find_opt('-regress_reml_exec'):
            reml_dset = 'stats.${subj}_REML%s' % proc.view
@@ -4176,7 +4222,6 @@ def db_cmd_regress_censor_motion(proc, block):
 def db_mod_tlrc(block, proc, user_opts):
     if len(block.opts.olist) == 0:      # then init to defaults
         block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
-        block.opts.add_opt('-tlrc_suffix', 1, ['NONE'], setpar=1)
 
     # verify that anatomical dataset exists
     opt_anat = user_opts.find_opt('-copy_anat')
@@ -4194,32 +4239,12 @@ def db_mod_tlrc(block, proc, user_opts):
 
     # add other options
 
-    uopt = user_opts.find_opt('-tlrc_base')
-    if uopt:
-        bopt = block.opts.find_opt('-tlrc_base')
-        bopt.parlist = uopt.parlist
-
-    uopt = user_opts.find_opt('-tlrc_opts_at')
-    bopt = block.opts.find_opt('-tlrc_opts_at')
-    if uopt :
-        if bopt: bopt.parlist = uopt.parlist
-        else:    block.opts.add_opt('-tlrc_opts_at', 0, uopt.parlist, setpar=1)
-
-    uopt = user_opts.find_opt('-tlrc_no_ss')
-    bopt = block.opts.find_opt('-tlrc_no_ss')
-    if uopt and not bopt:
-        block.opts.add_opt('-tlrc_no_ss', 0, [])
-
-    uopt = user_opts.find_opt('-tlrc_rmode')
-    if uopt:
-        bopt = block.opts.find_opt('-tlrc_rmode')
-        if bopt: bopt.parlist = uopt.parlist
-        else: block.opts.add_opt('-tlrc_rmode', 1, uopt.parlist, setpar=1)
-
-    uopt = user_opts.find_opt('-tlrc_suffix')
-    if uopt:
-        bopt = block.opts.find_opt('-tlrc_suffix')
-        bopt.parlist = uopt.parlist
+    apply_uopt_to_block('-tlrc_base', user_opts, block)
+    apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
+    apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
+    apply_uopt_to_block('-tlrc_no_ss', user_opts, block)
+    apply_uopt_to_block('-tlrc_rmode', user_opts, block)
+    apply_uopt_to_block('-tlrc_suffix', user_opts, block)
 
     block.valid = 1
 
@@ -4229,8 +4254,7 @@ def db_cmd_tlrc(proc, block):
 
     block.index = proc.bindex   # save
 
-    dname = proc.anat.pv()
-    if not dname :
+    if not proc.anat.pv() :
         print "** missing dataset name for tlrc operation"
         return None
 
@@ -4244,29 +4268,165 @@ def db_cmd_tlrc(proc, block):
 
     # add any user-specified options
     opt = block.opts.find_opt('-tlrc_opts_at')
-    if opt and opt.parlist: extra_opts = " \\\n           %s" % \
-                            ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
-    else:   extra_opts = ''
+    if opt: extra_opts = opt.parlist
+    else:   extra_opts = []
 
+    # note whether skull stripping is needed
     opt = block.opts.find_opt('-tlrc_no_ss')
-    if opt or not proc.anat_has_skull or not proc.tlrc_ss: ss = ' -no_ss'
-    else:                                                  ss = ''
+    if opt or not proc.anat_has_skull or not proc.tlrc_ss: strip = 0
+    else:                                                  strip = 1
 
-    opt = block.opts.find_opt('-tlrc_rmode')
-    if opt: rmode = ' -rmode %s' % opt.parlist[0]
-    else:   rmode = ''
+    # note any requested resample mode
+    rmode, err = block.opts.get_string_opt('-tlrc_rmod', default='')
 
     # note any suffix for the tlrcanat dataset
-    suf = ''
-    opt = block.opts.find_opt('-tlrc_suffix')
-    if opt:
-        suffix = ' -suffix %s' % opt.parlist[0]
-        suf = opt.parlist[0]
-    else: suffix = ' -suffix NONE'     # make NONE the default
-    if suf == 'NONE': suf = ''         # clear if we had the default option
+    suffix, err = block.opts.get_string_opt('-tlrc_suffix', default='')
+
+    # note whether doing non-linear standard space warp
+    proc.tlrc_nlw = block.opts.find_opt('-tlrc_NL_warp') != None
+    if proc.tlrc_nlw and rmode:
+       print '** -tlrc_rmode is not valid in case of NL_warp'
+       return None
+
+    if proc.tlrc_nlw:
+       return tlrc_cmd_nlwarp(proc, block, proc.anat, base, strip=strip,
+                              suffix=suffix, exopts=extra_opts)
+    else:
+       return tlrc_cmd_warp  (proc, proc.anat, base, strip=strip, rmode=rmode,
+                              suffix=suffix, exopts=extra_opts)
+
+def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
+    """return block string for case of auto_warp.py
+
+       aset     : dataset to warp       [afni_name]
+       base     : alignment base        [string]
+       strip    : flag - skull strip?   [0/1]
+       suffix   : result suffix         [string]
+       exopts   : extra options         [list of strings]
+
+       same options as tlrc_cmd_warp, excpet no rmode
+
+       resulting files under awpy:
+          PREFIX.aw.nii           : final NL-warped anat
+          anat.un.aff.qw_WARP.nii : final NL warp
+          anat.un.aff.Xat.1D      : @auto_tlrc warp (not -ONELINE)
+       and copy back to results dir in AFNI format?
+          - use 3dbucket to "rename" anat result, preserving history
+          - move the warp files out of awpy
+          - by default, remove the awpy directory
+
+       note that the -affter matrix can be either -ONELINE or not:
+          cat_matvec          anat.un.aff.nii::WARP_DATA -I > at.warp.aff12.1D
+          cat_matvec -ONELINE anat.un.aff.nii::WARP_DATA -I > at.warp.aff12.1D
+       (-ONELINE is needed for time series of EPI warps)
+
+       and it can be applied via:
+          3dNwarpApply -nwarp anat.un.aff.qw_WARP.nii -master NWARP     \
+                 -affter at.warp.aff12.1D -source e0+orig -prefix e0.at.nlw
+    """
+
+    if proc.verb > 0: print '-- using non-linear template alignment'
+
+    prog = 'auto_warp.py'
+
+    if strip: sstr = ' -skull_strip_input yes'
+    else:     sstr = ' -skull_strip_input no'
+
+    if suffix:
+       suf = suffix
+       sufstr = ' -suffix %s' % suf
+    else:
+       suf = ''
+       sufstr = ''
 
     # store what we expect for output
-    proc.tlrcanat = proc.anat.new(proc.anat.prefix+suf, '+tlrc')
+    apre = aset.prefix
+    if not apre:
+       print "** missing dataset name for NLtlrc operation"
+       return None
+
+    if len(exopts) > 0:
+        pstr  = ' \\\n%*s' % (len(prog)+1, ' ')
+        exstr = "%s%s" % (pstr ,' '.join(UTIL.quotize_list(exopts, '',1)))
+    else: exstr = ''
+
+    # start with block separator
+    cmd = "# %s\n" % block_header('tlrc')
+
+    cmd += "# warp anatomy to standard space (non-linear warp)\n" \
+           "auto_warp.py -base %s -input %s \\\n"                 \
+           "            %s%s"                                     \
+           "%s"                                                   \
+           "\n\n"                                                 \
+           % (base, aset.pv(), sstr, sufstr, exstr)
+
+    # add commands to move or copy results out of awpy directory
+
+    # resulting files under awpy:
+    #    PREFIX.aw.nii           : final NL-warped anat
+    #    anat.un.aff.qw_WARP.nii : final NL warp
+    #    anat.un.aff.Xat.1D      : @auto_tlrc warp (not -ONELINE)
+    # and copy back to results dir in AFNI format?
+    #    - use 3dbucket to "rename" anat result, preserving history
+    #    - move the warp files out of awpy
+    #    - by default, remove the awpy directory
+
+    proc.tlrcanat = proc.anat.new(apre+suf, '+tlrc')
+    proc.nlw_aff_mat = 'anat.un.aff.Xat.1D'
+    proc.nlw_NL_mat = 'anat.un.aff.qw_WARP.nii'
+
+    pstr = '# move results up out of the awpy directory\n'  \
+           '# (NL-warped anat, affine warp, NL warp)\n'     \
+           '# (use typical standard space name for anat)\n' \
+           '3dbucket -prefix %s awpy/%s.aw.nii\n'           \
+           % (proc.tlrcanat.prefix, apre+suf)
+
+    pstr += 'mv awpy/%s .\n'   % proc.nlw_aff_mat
+    pstr += 'mv awpy/%s .\n\n' % proc.nlw_NL_mat
+
+    # probably nuke the awpy directory
+    if block.opts.have_yes_opt('-tlrc_NL_awpy_rm', default=1):
+       proc.rm_list.append('awpy') ; proc.rm_dirs = 1
+
+    return cmd + pstr
+
+def tlrc_cmd_warp(proc, aset, base, strip=1, rmode='', suffix='', exopts=[]):
+    """return block string for case of @auto_tlrc
+
+       aset     : dataset to warp       [afni_name]
+       base     : alignment base        [string]
+       strip    : flag - skull strip?   [0/1]
+       rmode    : resample mode         [string]
+       suffix   : result suffix         [string]
+       exopts   : extra options         [list of strings]
+    """
+
+    prog = 'auto_warp.py'
+
+    if strip: sstr = ''
+    else:     sstr = ' -no_ss'
+
+    if rmode: rstr = ' -rmode %s' % rmode
+    else:     rstr = ''
+
+    if suffix:
+       sufstr = ' -suffix %s' % suffix
+       suf = suffix
+    else:
+       sufstr = ''
+       suf = ''
+
+    if len(exopts) > 0:
+        pstr  = ' \\\n%*s' % (len(prog)+1, ' ')
+        exstr = "%s%s" % (pstr ,' '.join(UTIL.quotize_list(exopts, '',1)))
+    else: exstr = ''
+
+    # store what we expect for output
+    apre = aset.prefix
+    if not apre:
+       print "** missing dataset name for tlrc warp"
+       return None
+    proc.tlrcanat = proc.anat.new(apre+suf, '+tlrc')
 
     # start with block separator
     cmd = "# %s\n" % block_header('tlrc')
@@ -4275,7 +4435,7 @@ def db_cmd_tlrc(proc, block):
            "@auto_tlrc -base %s -input %s%s%s%s"        \
            "%s"                                         \
            "\n\n"                                       \
-           % (base, dname, ss, rmode, suffix, extra_opts)
+           % (base, aset.pv(), sstr, rstr, sufstr, exstr)
 
     return cmd
 
@@ -4648,6 +4808,7 @@ g_help_string = """
 
         tlrc:     - use TT_N27+tlrc as the base (-tlrc_base TT_N27+tlrc)
                   - no additional suffix (-tlrc_suffix NONE)
+                  - use affine registration (no -tlrc_NL_warp)
 
     D   volreg:   - align to third volume of first run, -zpad 1
                         (option: -volreg_align_to third)
@@ -6551,7 +6712,7 @@ g_help_string = """
                 default: -tlrc_base TT_N27+tlrc
 
             This option is used to supply an alternate -base dataset for
-            @auto_tlrc.  Otherwise, TT_N27+tlrc will be used.
+            @auto_tlrc (or auto_warp.py).  Otherwise, TT_N27+tlrc will be used.
 
             Note that the default operation of @auto_tlrc is to "skull strip"
             the input dataset.  If this is not appropriate, consider also the
@@ -6560,14 +6721,44 @@ g_help_string = """
             Please see '@auto_tlrc -help' for more information.
             See also -tlrc_anat, -tlrc_no_ss.
 
-        -tlrc_opts_at OPTS ...   : add additional options to @auto_tlrc
+        -tlrc_NL_warp           : use non-linear for template alignment
 
-                e.g. -tlrc_opts_at -OK_maxite
+                e.g. -tlrc_NL_warp
 
-            This option is used to add user-specified options to @auto_tlrc,
-            specifically those afni_proc.py is not otherwise set to handle.
+            If this option is applied, then auto_warp.py is applied for the
+            transformation to standard space, rather than @auto_tlrc, which in
+            turn applies 3dQwarp (rather than 3dWarpDrive in @auto_tlrc).
 
-            Please see '@auto_tlrc -help' for more information.
+            The output datasets from this operation are:
+
+                INPUT_ANAT+tlrc         : standard space version of anat
+                anat.un.aff.Xat.1D      : affine xform to standard space
+                anat.un.aff.qw_WARP.nii : non-linear xform to standard space
+                                          (displacement vectors across volume)
+
+            The resulting ANAT dataset is copied out of the awpy directory
+            back into AFNI format, and with the original name but new view,
+            while the 2 transformation files (one text file of 12 numbers, one
+            3-volume dataset vectors) are moved out with the original names.
+
+            If -volreg_tlrc_warp is given, then the non-linear transformation
+            will also be applied to the EPI data, sending the 'volreg' output
+            directly to standard space.  As usual, all transformations are
+            combined so that the EPI is only resampled one time.
+
+            Options can be added to auto_warp.py via -tlrc_opts_at.
+
+            Please see 'auto_warp.py -help' for more information.
+            See also '-tlrc_opts_at'.
+
+        -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
+
+                e.g.     -tlrc_NL_awpy_rm no
+                default: -tlrc_NL_awpy_rm yes
+
+            The auto_warp.py program does all its work in an sub-directory
+            called 'awpy', which is removed by default.  Use this option with
+            'no' to save the awpy directory.
 
         -tlrc_no_ss             : add the -no_ss option to @auto_tlrc
 
@@ -6577,6 +6768,19 @@ g_help_string = """
             strip operation.
 
             Please see '@auto_tlrc -help' for more information.
+
+        -tlrc_opts_at OPTS ...   : add additional options to @auto_tlrc
+
+                e.g. -tlrc_opts_at -OK_maxite
+
+            This option is used to add user-specified options to @auto_tlrc,
+            specifically those afni_proc.py is not otherwise set to handle.
+
+            In the case of -tlrc_NL_warp, the options will be passed to
+            auto_warp.py, instead.
+
+            Please see '@auto_tlrc -help' for more information.
+            Please see 'auto_warp.py -help' for more information.
 
         -tlrc_rmode RMODE       : apply RMODE resampling in @auto_tlrc
 

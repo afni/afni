@@ -53,7 +53,7 @@ class OptionList:
         self.show_count = 1     # display option count in show()
         self.verb     = 1       # display option count in show()
 
-    def add_opt(self, name, npar, deflist, acplist=[], req=0, setpar=0,  \
+    def add_opt(self, name, npar, deflist=[], acplist=[], req=0, setpar=0,  \
                 helpstr = "", okdash=1):
         """add an option to the current OptionList
 
@@ -113,6 +113,28 @@ class OptionList:
                 olist.append(com)
         return olist
 
+    def have_yes_opt(self, name, default=0, nth=1):
+        """return whether such an option exists and param[0] looks like 'yes'
+
+           default : default value to return if the option does not exist
+           nth     : parameter for matching 'find_opt'
+        """
+        opt = self.find_opt(name, nth=nth)
+        if opt == None: return default
+        if opt_is_yes(opt): return 1
+        return 0
+
+    def have_no_opt(self, name, default=0, nth=1):
+        """return whether such an option exists and param[0] looks like 'no'
+
+           default : default value to return if the option does not exist
+           nth : parameter for matching 'find_opt'
+        """
+        opt = self.find_opt(name, nth=nth)
+        if opt == None: return defauldefault
+        if opt_is_yes(opt): return 1
+        return 0
+
     def count_opt(self, name):
         """return number of comopts where name=name"""
         count = 0
@@ -130,18 +152,18 @@ class OptionList:
                     del self.olist[index]
                     return 1
 
-    def get_string_opt(self, opt_name=None, opt=None):
+    def get_string_opt(self, opt_name=None, opt=None, default=None):
         """return the option parameter string and err
            (if opt is passed, we don't need to find it)
            err = 0 on success, 1 on failure"""
 
         if opt == None: opt = self.find_opt(opt_name)
-        if not opt or not opt.parlist: return None, 0
+        if not opt or not opt.parlist: return default, 0
         if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
             print "** expecting 1 parmeter for option '%s', have: %s" % \
                   (opt_name, opt.parlist)
-            return None, 1
+            return default, 1
         return opt.parlist[0], 0
 
     def get_string_list(self, opt_name=None, opt=None):
@@ -434,7 +456,8 @@ def opt_is_yes(opt):
     rv = 0
     try:
         val = opt.parlist[0]
-        if val == 'yes' or val == 'Yes' or val == 'YES': rv = 1
+        if val == 'yes' or val == 'Yes' or val == 'YES' \
+                        or val == 'Y'   or val == 'y': rv = 1
     except: pass
 
     return rv
@@ -447,7 +470,8 @@ def opt_is_no(opt):
     rv = 0
     try:
         val = opt.parlist[0]
-        if val == 'no' or val == 'No' or val == 'NO': rv = 1
+        if val == 'no' or val == 'No' or val == 'NO' \
+                       or val == 'N'  or val == 'n': rv = 1
     except: pass
 
     return rv
