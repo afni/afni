@@ -59,7 +59,6 @@ todo: afni_system_check.py
    - for Unix or OSX, run ldd or 'otool -L' to check for shared libs in:
       - afni, suma, 3dSkullStrip, 
       - NOTE: 'otool -L' does not show whether libraries resolve
-   - run module tests on some libraries, like PyQt4
    - check for gcc for mac?  can we tell whether openMP is supported?
 
    - check for .afnirc/.sumarc .afni/help
@@ -73,9 +72,12 @@ g_history = """
    0.0  Jul 11, 2013    - initial version
    0.1  Jul 16, 2013    - added a couple of checks for early python versions
    0.2  Aug 02, 2013    - check for multiple R and python programs in PATH
+   0.3  Aug 14, 2013
+                - PYTHON_PATH should be PYTHONPATH
+                - added a look at any /sw/bin/python* programs
 """
 
-g_version = "afni_system_check.py version 0.2, August 2, 2013"
+g_version = "afni_system_check.py version 0.3, August 14, 2013"
 
 
 class CmdInterface:
