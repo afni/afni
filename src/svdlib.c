@@ -2055,6 +2055,7 @@ int lanso(SMat A, long iterations, long dimensions, double endl,
         bnd[id3] = rnm * fabs(bnd[id3]);
       l = i + 1;
     }
+    if( SVDVerbosity > 1 ) fprintf(stderr,".") ;
 
     /* sort eigenvalues into increasing order */
     svd_dsort2((j+1) / 2, j + 1, ritz, bnd);
@@ -2079,6 +2080,7 @@ int lanso(SMat A, long iterations, long dimensions, double endl,
     ENOUGH = ENOUGH || first >= iterations;
     /* id1++; */
     /* printf("id1=%d dimen=%d first=%d\n", id1, dimensions, first); */
+    if( SVDVerbosity > 1 ) fprintf(stderr,".") ;
   }
   store(n, STORQ, j, wptr[1]);
   return j;
@@ -2130,6 +2132,7 @@ long lanczos_step(SMat A, long first, long last, double *wptr[],
    double t, *mid, rnm = *rnmp, tol = *tolp, anorm;
    long i, j;
 
+    if( SVDVerbosity > 1 ) fprintf(stderr,"[%d.%d]",first,last) ;
    for (j=first; j<last; j++) {
       mid     = wptr[2];
       wptr[2] = wptr[1];
@@ -2142,13 +2145,18 @@ long lanczos_step(SMat A, long first, long last, double *wptr[],
       if (j-1 < MAXLL) store(n, STORP, j-1, wptr[4]);
       bet[j] = rnm;
 
+
+
+     if( SVDVerbosity > 1 ) fprintf(stderr,"a") ;
       /* restart if invariant subspace is found */
       if (!bet[j]) {
+     if( SVDVerbosity > 1 ) fprintf(stderr,"b") ;
 	 rnm = startv(A, wptr, j, n);
 	 if (ierr) return j;
 	 if (!rnm) *enough = TRUE;
       }
       if (*enough) {
+     if( SVDVerbosity > 1 ) fprintf(stderr,"c") ;
         /* added by Doug... */
         /* These lines fix a bug that occurs with low-rank matrices */
         mid     = wptr[2];
@@ -2178,6 +2186,7 @@ long lanczos_step(SMat A, long first, long last, double *wptr[],
 	 eta[i] = eps1;
 	 oldeta[i] = eps1;
       }
+     if( SVDVerbosity > 1 ) fprintf(stderr,"d") ;
 
       /* extended local reorthogonalization */
       t = svd_ddot(n, wptr[0], 1, wptr[4], 1);
@@ -2198,6 +2207,7 @@ long lanczos_step(SMat A, long first, long last, double *wptr[],
       purge(n, *ll, wptr[0], wptr[1], wptr[4], wptr[3], wptr[5], eta, oldeta,
             j, &rnm, tol);
       if (rnm <= tol) rnm = 0.0;
+     if( SVDVerbosity > 1 ) fprintf(stderr,"e") ;
    }
    *rnmp = rnm;
    *tolp = tol;
