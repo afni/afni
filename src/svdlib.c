@@ -863,7 +863,8 @@ void svdWriteDenseArray(double *a, int n, char *filename, char binary) {
   } else {
     fprintf(file, "%d\n", n);
     for (i = 0; i < n; i++)
-      fprintf(file, "%g\n", a[i]);
+      fprintf(file, "%g  ", a[i]);
+    fprintf(file,"\n") ;
   }
   svd_closeFile(file);
 }
@@ -1683,9 +1684,10 @@ SVDRec svdLAS2(SMat A, long dimensions, long iterations, double end[2],
            "RITZ VALUES STABILIZED    = %6ld\n", steps + 1, neig);
   }
   if (SVDVerbosity > 2) {
-    printf("\nCOMPUTED RITZ VALUES  (ERROR BNDS)\n");
+    printf("COMPUTED RITZ VALUES  (ERROR BNDS)\n");
     for (i = 0; i <= steps; i++)
-      printf("%3ld  %22.14E  (%11.2E)\n", i + 1, ritz[i], bnd[i]);
+      printf("# %3ld  %22.14E  (%11.2E)   ", i + 1, ritz[i], bnd[i]);
+    printf("\n") ;
   }
 
   SAFE_FREE(wptr[0]);
