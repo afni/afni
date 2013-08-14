@@ -11,7 +11,7 @@ testlibs = ['platform', 'afni_base', 'afni_util']
 if MT.num_import_failures(testlibs):
    sys.exit(1)
 
-import platform
+import platform, glob
 import afni_base as BASE
 import afni_util as UTIL
 
@@ -69,9 +69,20 @@ class SysInfo:
       for lib in plibs: MT.test_import(lib, verb=verb)
       print
 
+      pdirs = glob.glob('/sw/bin/python*')
+      if len(pdirs) > 0: pdirs = [dd for dd in pdirs if dd.find('config')<0]
+      if len(pdirs) > 0:
+         print 'python binaries under /sw/bin:'
+         for pdir in pdirs:
+            if os.path.islink(pdir):
+               rstr = ' (sym link to %s)' % os.path.realpath(pdir)
+            else: rstr = ''
+            print '    %-20s%s' % (pdir, rstr)
+         print
+
    def show_path_vars(self, header=1):
       print UTIL.section_divider('path vars', hchar='-')
-      for evar in ['PATH', 'PYTHON_PATH',
+      for evar in ['PATH', 'PYTHONPATH',
                    'LD_LIBRARY_PATH',
                    'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']:
          if os.environ.has_key(evar): print "%s = %s\n" % (evar, os.environ[evar])
