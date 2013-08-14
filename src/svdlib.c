@@ -1,3 +1,5 @@
+#ifndef _I_ALREADY_HAVE_SVDLIB_
+#define _I_ALREADY_HAVE_SVDLIB_
 /*
 Copyright © 2002, University of Tennessee Research Foundation.
 All rights reserved.
@@ -3147,3 +3149,4 @@ fprintf(stderr," unpack results\n") ;
 
    svdFreeSVDRec(aSVD) ; return ;
 }
+#endif
