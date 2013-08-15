@@ -771,8 +771,9 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
        /* not fixed YET?  try another algorithm (one that's usually slower) */
 
        if( err >= 1.e-5*amag || !IS_GOOD_FLOAT(err) ){
-         fprintf(stderr," new avg err=%g; re-recomputing the hard way ...\n",err) ;
+         fprintf(stderr," new avg err=%g; re-recomputing the hard way ...",err) ;
 #ifdef USE_SVDLIB
+         fprintf(stderr,"\n") ;
          SVDVerbosity = 2 ;
          AFNI_svdLAS2( mm , nn , aa , ww , uu , vv ) ;  /* svdlib.c */
          SVDVerbosity = 0 ;
@@ -789,12 +790,12 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
          err /= (m*n) ;
          fprintf(stderr," newer avg err=%g %s" ,
                  err ,
-                 (err >= 1.e-5*amag || !IS_GOOD_FLOAT(err)) ? "**BAD**" : "**OK**" ) ;
+                 (err >= 1.e-5*amag || !IS_GOOD_FLOAT(err)) ? "**BAD** :-(" : "**OK** :-)" ) ;
        } else {
-         fprintf(stderr," new avg error=%g **OK**",err) ;
+         fprintf(stderr," new avg error=%g **OK** :-)",err) ;
        }
+       fprintf(stderr,"\n\n") ;
      }
-     fprintf(stderr,"\n\n") ;
    }
 #endif
 
