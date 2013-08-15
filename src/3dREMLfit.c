@@ -2643,7 +2643,7 @@ STATUS("make GLTs from matrix file") ;
      rim = mri_new_vol( nx,ny,nz , MRI_float ) ;
      rim->dx = dx ; rim->dy = dy ; rim->dz = dz ; rar = MRI_FLOAT_PTR(rim) ;
 
-     if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
+     if( vstep ){ fprintf(stderr,"++ REML voxel loop: ") ; vn = 0 ; }
 
   if( maxthr <= 1 ){   /**--------- serial computation (no threads) ---------**/
     int ss,rv,vv,ssold,ii,kbest ;
@@ -2737,7 +2737,7 @@ STATUS("make GLTs from matrix file") ;
 #pragma omp for
      for( rv=0 ; rv < nmask ; rv++ ){
        vv = vvar[rv] ;
-       if( ithr == 0 && qstep && rv%qstep==0 ) vstep_print() ;
+       if( ithr == 0 && qstep && rv%qstep==1 ) vstep_print() ;
 #pragma omp critical (MEMCPY)
  {
        if( inset_mrv != NULL ){
@@ -2973,7 +2973,7 @@ STATUS("setting up Rglt") ;
 
      /* ss = slice index, rv = VECTIM index, vv = voxel index */
 
-     if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
+     if( vstep ){ fprintf(stderr,"++ GLSQ voxel loop: ") ; vn = 0 ; }
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
@@ -3312,7 +3312,7 @@ STATUS("setting up Rglt") ;
 
      /* rv = VECTIM index, vv = voxel index */
 
-     if( vstep ) fprintf(stderr,"++ OLSQ voxel loop: ") ;
+     if( vstep ){ fprintf(stderr,"++ OLSQ voxel loop: ") ; vn = 0 ; }
      for( rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
