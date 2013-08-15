@@ -112,9 +112,10 @@ int check_matrix_condition( matrix xdata , char *xname )
 /*---------------------------------------------------------------------------*/
 /*! For voxel loop progress report. */
 
+static int vn=0 ;
 static void vstep_print(void)
 {
-   static char xx[10] = "0123456789" ; static int vn=0 ;
+   static char xx[10] = "0123456789" ;
    fprintf(stderr , "%c" , xx[vn%10] ) ;
    if( vn%10 == 9) fprintf(stderr,".") ;
    vn++ ;
@@ -2708,16 +2709,18 @@ STATUS("make GLTs from matrix file") ;
 
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
-    if( vstep ) fprintf(stderr,"start %d OpenMP threads",maxthr) ;
+    if( vstep ){ fprintf(stderr,"start %d OpenMP threads",maxthr) ; vn = 0 ; }
 
 #ifdef USE_OMP
   AFNI_OMP_START ;
 #pragma omp parallel
   {
-    int ss,vv,rv,ii,kbest , ithr ;
+    int ss,vv,rv,ii,kbest , ithr , qstep ;
     float *iv ; vector y ;  /* private arrays for each thread */
     MTYPE *ws ;
     FILE *mfp=NULL ;
+
+    qstep = vstep / maxthr ;
 
 #pragma omp critical (MALLOC)
  {
@@ -2734,7 +2737,7 @@ STATUS("make GLTs from matrix file") ;
 #pragma omp for
      for( rv=0 ; rv < nmask ; rv++ ){
        vv = vvar[rv] ;
-       if( ithr == 0 && vstep && rv%666==333 ) fprintf(stderr,".") ;
+       if( ithr == 0 && qstep && rv%qstep==0 ) vstep_print() ;
 #pragma omp critical (MEMCPY)
  {
        if( inset_mrv != NULL ){
