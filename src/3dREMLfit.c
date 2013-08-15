@@ -2709,7 +2709,7 @@ STATUS("make GLTs from matrix file") ;
 
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
-    if( vstep ){ fprintf(stderr,"start %d OpenMP threads",maxthr) ; vn = 0 ; }
+    if( vstep ){ fprintf(stderr,"start %d OpenMP threads ",maxthr) ; vn = 0 ; }
 
 #ifdef USE_OMP
   AFNI_OMP_START ;
