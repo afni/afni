@@ -818,18 +818,22 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
      qsort_doubleint( n , sv , iv ) ;
      if( u != NULL ){
        double *cc = (double *)calloc(sizeof(double),m*n) ;
+#pragma omp critical
        (void)memcpy( cc , u , sizeof(double)*m*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;  /* where the new jj-th col came from */
+#pragma omp critical
          (void)memcpy( u+jj*m , cc+kk*m , sizeof(double)*m ) ;
        }
        free((void *)cc) ;
      }
      if( v != NULL ){
        double *cc = (double *)calloc(sizeof(double),n*n) ;
+#pragma omp critical
        (void)memcpy( cc , v , sizeof(double)*n*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;
+#pragma omp critical
          (void)memcpy( v+jj*n , cc+kk*n , sizeof(double)*n ) ;
        }
        free((void *)cc) ;
@@ -878,6 +882,7 @@ void svd_double_ata( int m, int n, double *a, double *s, double *u, double *v )
    /* copy ata into the output place for V */
 
    if( v != NULL ){
+#pragma omp critical
      (void)memcpy( v , ata , sizeof(double)*n*n ) ;
    }
 
