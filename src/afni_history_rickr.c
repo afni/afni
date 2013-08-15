@@ -71,8 +71,7 @@ afni_history_struct rickr_history[] = {
 
  {  1,  Aug, 2013, RCR, "3dmask_tool", MINOR, TYPE_BUG_FIX,
    "fixed apparent pointer step issue, which happens on only some systems",
-   "Same binary would work on one system but fail on another, so apparent\n"
-   "shared library difference (libc?).\n"
+   "Apparent problem with MMAP (memory mapping of files).\n"
    "Thanks to W Gaggl for pointing out the problem."
  } ,
 
@@ -91,7 +90,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 19,  Jul, 2013, RCR, "afni-general", MAJOR, TYPE_ENHANCE,
+ { 19,  Jul, 2013, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "applied ITK compatibility updates from 11/2010 by H Johnson",
    NULL
  } ,
@@ -113,6 +112,11 @@ afni_history_struct rickr_history[] = {
 
  { 12,  Jul, 2013, RCR, "suma", MICRO, TYPE_MODIFY,
    "return a good status (0) on -help",
+   NULL
+ } ,
+
+ { 11,  Jul, 2013, RCR, "afni_system_check.py", MINOR, TYPE_NEW_PROG,
+   "perform many checks to validate a system for AFNI use",
    NULL
  } ,
 
