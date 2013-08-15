@@ -2996,6 +2996,7 @@ STATUS("setting up Rglt") ;
              The purpose of doing it this way is to save memory space.  ======*/
 
        if( ss > ssold ){                                   /* at a new slice! */
+         STATUS("new slice") ;
          if( ssold >= 0 ) reml_collection_destroy( RCsli[ssold] , 1 ) ;
          if( RCsli[ss] == NULL ){              /* create this slice setup now */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
@@ -3020,6 +3021,7 @@ STATUS("setting up Rglt") ;
          MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
          MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
 
+         STATUS("new setup?") ;
          RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
          for( kk=0 ; kk < glt_num ; kk++ )     /* make sure GLTs are included */
            REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk] ) ;
@@ -3040,6 +3042,7 @@ STATUS("setting up Rglt") ;
                 bb2 = whitened residuals    (ntime)
                       (sum of squares of bb2 = bbsumq = noise variance) ------*/
 
+         sprintf(sslab,"%s %d", "fitting" ,vv); STATUS(sslab) ;
          (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
                           bbar , &bbsumq ) ;
 
@@ -3089,6 +3092,7 @@ STATUS("setting up Rglt") ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
+sprintf(sslab,"%s %d %d", "Rbuckt glt" ,vv,kk); STATUS(sslab) ;
              gv = REML_compute_gltstat( ddof , &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
