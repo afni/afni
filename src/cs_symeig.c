@@ -644,7 +644,7 @@ int first_principal_vectors( int n , int m , float *xx ,
 
 /*--------------------------------------------------------------------*/
 
-#define CHECK_SVD
+#define CHECK_SVD   /* unfortunately, this is necessary */
 
 #undef CHK
 #ifdef CHECK_SVD
@@ -720,6 +720,8 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 
    (void) svd_( &mm , &nn , &lda , aa , ww ,
                 &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
+
+   /** the following code is to check if the SVD worked **/
 
 #ifdef CHECK_SVD
    /** back-compute [A] from [U] diag[ww] [V]'
