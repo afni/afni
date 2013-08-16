@@ -854,8 +854,10 @@ int main( int argc , char *argv[] )
    (void)COX_clock_time() ;  /* initialize the clock timer */
    putenv("AFNI_WSINC5_SILENT=YES") ;
 
+   LOAD_IDENT_MAT44(allin_matrix); /* Just to quite initialization warning */
+   
    /*--- options ---*/
-
+   
    nopt = 1 ;
    Hblur_b = Hblur_s = 2.345f ;
    while( nopt < argc && argv[nopt][0] == '-' ){
