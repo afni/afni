@@ -2768,7 +2768,8 @@ int SUMA_iswordsame_ci ( const char *sbig, const char *ssub)
    int ans;
    
    SUMA_ENTRY;
-   if ( (ans = SUMA_iswordin_ci(sbig, ssub)) == 1 && strlen(sbig) != strlen(ssub) ) ans = 0;
+   if ( (ans = SUMA_iswordin_ci(sbig, ssub)) == 1 && 
+        strlen(sbig) != strlen(ssub) ) ans = 0;
    
    SUMA_RETURN(ans);
 }
@@ -2779,7 +2780,8 @@ int SUMA_iswordsame ( const char *sbig, const char *ssub)
    int ans;
    
    SUMA_ENTRY;
-   if ( (ans = SUMA_iswordin(sbig, ssub)) == 1 && strlen(sbig) != strlen(ssub) ) ans = 0;
+   if ( (ans = SUMA_iswordin(sbig, ssub)) == 1 && 
+        strlen(sbig) != strlen(ssub) ) ans = 0;
    
    SUMA_RETURN(ans);
 }

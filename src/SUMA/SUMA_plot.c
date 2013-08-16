@@ -604,7 +604,7 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
 
    if (!(res = (float*)SUMA_GetDsetAllNodeValsInCols2(Dset, 
                               NULL, 0, 
-                              inode, SUMA_ADO_N_Datum(ado), 
+                              inode, SUMA_ADO_Max_Datum_Index(ado), 
                               &N_res,
                               SUMA_float))) { 
       N_res = SDSET_VECNUM(Dset);

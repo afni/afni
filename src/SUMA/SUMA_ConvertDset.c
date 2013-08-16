@@ -491,7 +491,7 @@ int main (int argc,char *argv[])
             SUMA_FreeDset(dseti); dseti = dsetc; dsetc = NULL;
             switch (SDSET_VECNUM(dseti)){
                case 2:
-                  if (!(SUMA_Dset_to_GDset(&dset, OneMat, 
+                  if (!(SUMA_Dset_to_GDSET(&dset, NULL, OneMat, 
                                            NULL,
                                            (int *)SDSET_VEC(dseti,0),
                                            (int *)SDSET_VEC(dseti,1)))) {
@@ -499,7 +499,7 @@ int main (int argc,char *argv[])
                   }
                   break;
                case 3:
-                  if (!(SUMA_Dset_to_GDset(&dset, OneMat, 
+                  if (!(SUMA_Dset_to_GDSET(&dset, NULL, OneMat, 
                                            (int *)SDSET_VEC(dseti,0),
                                            (int *)SDSET_VEC(dseti,1),
                                            (int *)SDSET_VEC(dseti,2)))) {
@@ -512,7 +512,7 @@ int main (int argc,char *argv[])
             }
             SUMA_FreeDset(dseti); dseti = NULL;
          } else {
-            if (!(SUMA_Dset_to_GDset(&dset, OneMat, NULL, NULL, NULL))) {
+            if (!(SUMA_Dset_to_GDSET(&dset, NULL, OneMat, NULL, NULL, NULL))) {
                SUMA_S_Err("Failed to graphize");
             }
          }

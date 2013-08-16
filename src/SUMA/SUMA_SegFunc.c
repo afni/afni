@@ -3318,7 +3318,7 @@ float *SUMA_Volume_RadFill_Fit(THD_3dim_dataset *aset, float *fv, byte *cmask,
    byte *holi=NULL;
    double nno, ft;
    MRI_IMAGE *imin=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -3567,7 +3567,7 @@ float *SUMA_Volume_RadFill_Blend(THD_3dim_dataset *aset, float *fv, byte *cmask,
    byte *holi=NULL;
    double bb, tt, bo;
    MRI_IMAGE *imin=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -7476,7 +7476,7 @@ int SUMA_MergeCpriors(SUMA_CLASS_STAT *cs, byte *cmask,
    double sdf, df, dfA, dfL, *ggkk=NULL,*mixfrac=NULL;
    THD_3dim_dataset  *priCgALL = *priCgALLp;
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

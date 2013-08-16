@@ -955,162 +955,6 @@ NI_element *SUMA_FindDsetDataElement(SUMA_DSET *dset)
    SUMA_RETURN(nel);
 }
 
-NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset)
-{
-   static char FuncName[]={"SUMA_FindGDsetNodeListElement"};
-   char *attname=NULL;
-   NI_element *nel=NULL;
-   SUMA_Boolean LocalHead = NOPE;
-    
-   SUMA_ENTRY;
-   
-   if (!dset || !dset->ngr) { SUMA_SL_Err("NUll input "); SUMA_RETURN(NULL); }
-   attname = SUMA_append_string(NEL_DSET_TYPE(dset->ngr),"_node_coordinates");
-   SUMA_LHv("Seeking NODE_COORDS with %s\n", attname);
-   nel = SUMA_FindNgrDataElement(dset->ngr, "NODE_COORDS", attname);
-   SUMA_free(attname);
-   SUMA_RETURN(nel);
-}
-
-/* Add the indices and coordinates of nodes forming graph dataset 
-   Note that I may get reodered in this function */
-NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset, 
-                                        int *I, float *X, float *Y, float *Z, 
-                                        int N_Nodes)
-{
-   static char FuncName[]={"SUMA_AddDsetNodeListElement"};
-   char *attname=NULL;
-   NI_element *nel=NULL;
-   int *isort = NULL, dosort = 0, ii;
-   float *fv=NULL;
-    
-   SUMA_ENTRY;
-   
-   if (!dset || !dset->ngr) { SUMA_SL_Err("NUll input "); SUMA_RETURN(NULL); }
-   if (!SUMA_isGraphDset(dset)) {
-      SUMA_SL_Err("Non graph dset");
-      SUMA_RETURN(NULL);
-   }
-   if (dset->Aux->matrix_shape == MAT_HEEHAW) {
-      if (!SUMA_GDSET_Set_Aux_matrix_shape(dset)) {
-         SUMA_S_Err("Failed to set matrix shape");
-         SUMA_RETURN(NULL);
-      }
-   }
-   if (N_Nodes != GDSET_MAX_POINTS(dset)) {
-      SUMA_S_Errv("Mismatch in number of points (%d vs %ld)\n", 
-                 N_Nodes, GDSET_MAX_POINTS(dset));
-      SUMA_RETURN(NULL);
-   }
-   if (!(nel=SUMA_FindGDsetNodeListElement(dset))) {
-      attname = SUMA_append_string(NEL_DSET_TYPE(dset->ngr),"_node_coordinates");
-      nel = NI_new_data_element("NODE_COORDS", N_Nodes); 
-      NI_set_attribute (nel, "data_type", attname); 
-      SUMA_free(attname); attname = NULL;
-      NI_add_to_group(dset->ngr, nel);
-   }
-   
-   /* Make sure I is sorted */
-   if (I) {
-      if (nel->vec_num != 0) {
-         SUMA_S_Err("Attempting to add I out of order");
-         SUMA_RETURN(nel);
-      }
-      for (ii=1; ii<N_Nodes; ++ii) {
-         if (I[ii-1]>I[ii]) {
-            dosort = 1;
-            break;
-         } 
-      }
-      if (dosort) isort = z_dqsort (I, N_Nodes );
-      if (!SUMA_AddDsetNelCol (  dset, "Gnode Index", 
-                                    SUMA_GNODE_INDEX, (void *)I, NULL, 1)) {
-            SUMA_SL_Err("Failed to add column");
-            SUMA_RETURN(nel);  
-       }
-   } else {
-      /* I want it, keep things clear and simple */
-      if (nel->vec_num != 0) {
-         SUMA_S_Err("Attempting to add I out of order");
-         SUMA_RETURN(nel);
-      }
-      I = (int *)SUMA_calloc(nel->vec_len, sizeof(int));
-      for (ii=0; ii<nel->vec_len; ++ii) I[ii]=ii;
-      if (!SUMA_AddDsetNelCol (  dset, "Gnode Index", 
-                                    SUMA_GNODE_INDEX, (void *)I, NULL, 1)) {
-            SUMA_SL_Err("Failed to add column");
-            SUMA_RETURN(nel);  
-       }
-       SUMA_ifree(I);
-   }
-   if (X) {
-       if (nel->vec_num != 1) {
-         SUMA_S_Err("Attempting to add X out of order");
-         SUMA_RETURN(nel);
-       }
-       if (isort) {
-         fv = SUMA_freorder(X, isort, nel->vec_len);
-         if (!SUMA_AddDsetNelCol (  dset, "Gnode X", 
-                                       SUMA_NODE_X, (void *)fv, NULL, 1)) {
-               SUMA_SL_Err("Failed to add column");
-               SUMA_RETURN(nel);  
-          }
-          SUMA_ifree(fv);
-       } else {
-          if (!SUMA_AddDsetNelCol (  dset, "Gnode X", 
-                                       SUMA_NODE_X, (void *)X, NULL, 1)) {
-               SUMA_SL_Err("Failed to add column");
-               SUMA_RETURN(nel);  
-          }
-       }
-   }
-   if (Y) {
-       if (nel->vec_num != 2) {
-         SUMA_S_Err("Attempting to add Y out of order");
-         SUMA_RETURN(nel);
-       }
-       if (isort) {
-         fv = SUMA_freorder(Y, isort, nel->vec_len);
-         if (!SUMA_AddDsetNelCol (  dset, "Gnode Y", 
-                                       SUMA_NODE_Y, (void *)fv, NULL, 1)) {
-               SUMA_SL_Err("Failed to add column");
-               SUMA_RETURN(nel);  
-          }
-          SUMA_ifree(fv);
-       } else {
-          if (!SUMA_AddDsetNelCol (  dset, "Gnode Y", 
-                                       SUMA_NODE_Y, (void *)Y, NULL, 1)) {
-               SUMA_SL_Err("Failed to add column");
-               SUMA_RETURN(nel);  
-          }
-       }
-   }
-   if (Z) {
-       if (nel->vec_num != 3) {
-         SUMA_S_Err("Attempting to add Z out of order");
-         SUMA_RETURN(nel);
-       }
-       if (isort) {
-         fv = SUMA_freorder(Z, isort, nel->vec_len);
-         if (!SUMA_AddDsetNelCol (  dset, "Gnode Z", 
-                                       SUMA_NODE_Z, (void *)fv, NULL, 1)) {
-               SUMA_SL_Err("Failed to add column");
-               SUMA_RETURN(nel);  
-          }
-          SUMA_ifree(fv);
-       } else {
-          if (!SUMA_AddDsetNelCol (  dset, "Gnode Z", 
-                                       SUMA_NODE_Z, (void *)Z, NULL, 1)) {
-               SUMA_SL_Err("Failed to add column");
-               SUMA_RETURN(nel);  
-          }
-       }
-   }
-   
-   SUMA_ifree(isort);
-   
-   SUMA_RETURN(nel);  
-}
 
 NI_element *SUMA_FindDsetDatumIndexElement(SUMA_DSET *dset)
 {
@@ -2476,7 +2320,7 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    static char FuncName[]={"SUMA_AddGenDsetNodeIndexColAttr"};
    char Name[500], **junk, *stmp=NULL;
    float amin = 0.0, amax = 0.0, *fv;
-   int aminloc = -1, amaxloc = -1, *iv, icol=0;
+   int aminloc = -1, amaxloc = -1, *iv, icol=0, N_col;
    byte *bv;
    complex *cv = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -2505,25 +2349,26 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    } else { 
       SUMA_LH("Calculating indrange");
       icol = SUMA_DATUM_INDEX_CTP2COL(ctp);
+      N_col = stride*SDSET_VECFILLED(dset);
       stmp = SUMA_copy_string(NI_get_attribute(dset->inel,"COLMS_RANGE"));
       switch (SUMA_ColType2TypeCast(ctp)) {
          case SUMA_int:           
             iv = (int *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(iv ,SDSET_VECFILLED(dset), amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(iv, N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
                      (int)amin, (int)amax, aminloc, amaxloc);
             break;
          case SUMA_float:
             fv = (float *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(fv ,SDSET_VECFILLED(dset), amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(fv , N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(Name, 500*sizeof(char),"%f %f %d %d", 
                            amin, amax, aminloc, amaxloc);
             break;
          case SUMA_byte:
             bv = (byte *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(bv ,SDSET_VECFILLED(dset), amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(bv , N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
                            (int)amin, (int)amax, aminloc, amaxloc);
@@ -2533,7 +2378,7 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
             break;
          case SUMA_complex:
             cv = (complex *)col;
-            SUMA_MIN_MAX_CVEC_STRIDE(cv ,SDSET_VECFILLED(dset), amin, amax, 
+            SUMA_MIN_MAX_CVEC_STRIDE(cv , N_col, amin, amax, 
                                     aminloc, amaxloc, stride, 0);
             snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
                            (int)amin, (int)amax, aminloc, amaxloc);
@@ -2563,7 +2408,7 @@ int SUMA_AddGenGDsetNodeXYZColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    static char FuncName[]={"SUMA_AddGenGDsetNodeXYZColAttr"};
    char Name[500], **junk, *stmp=NULL;
    float amin = 0.0, amax = 0.0, *fv;
-   int aminloc = -1, amaxloc = -1, *iv, icol=0;
+   int aminloc = -1, amaxloc = -1, *iv, icol=0, N_col=0;
    byte *bv;
    complex *cv = NULL;
    NI_element *xyznel=NULL;
@@ -2607,25 +2452,26 @@ int SUMA_AddGenGDsetNodeXYZColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    } else { 
       SUMA_LH("Calculating XYZrange");
       icol = SUMA_GNODE_IXYZ_CTP2COL(ctp);
+      N_col = GDSET_MAX_POINTS(dset)*stride;
       stmp = SUMA_copy_string(NI_get_attribute(xyznel,"COLMS_RANGE"));
       switch (SUMA_ColType2TypeCast(ctp)) {
          case SUMA_int:           
             iv = (int *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(iv ,GDSET_MAX_POINTS(dset), amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(iv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
                      (int)amin, (int)amax, aminloc, amaxloc);
             break;
          case SUMA_float:
             fv = (float *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(fv ,GDSET_MAX_POINTS(dset), amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(fv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(Name, 500*sizeof(char),"%f %f %d %d", 
                            amin, amax, aminloc, amaxloc);
             break;
          case SUMA_byte:
             bv = (byte *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(bv ,GDSET_MAX_POINTS(dset), amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(bv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
                            (int)amin, (int)amax, aminloc, amaxloc);
@@ -2635,7 +2481,7 @@ int SUMA_AddGenGDsetNodeXYZColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
             break;
          case SUMA_complex:
             cv = (complex *)col;
-            SUMA_MIN_MAX_CVEC_STRIDE(cv ,GDSET_MAX_POINTS(dset), amin, amax, 
+            SUMA_MIN_MAX_CVEC_STRIDE(cv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride, 0);
             snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
                            (int)amin, (int)amax, aminloc, amaxloc);
@@ -2672,7 +2518,7 @@ int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col,
    static char FuncName[]={"SUMA_AddGenColAttr"};
    static char stmp[500], Name[500];
    float amin = 0.0, amax = 0.0, *fv;
-   int aminloc = -1, amaxloc = -1, *iv;
+   int aminloc = -1, amaxloc = -1, *iv, N_col=0;
    complex *cv = NULL;
    byte *bv;
 
@@ -2695,24 +2541,25 @@ int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col,
          without filling it up */
       sprintf(stmp, "0 0 -1 -1");
    } else {
+      N_col = stride*nel->vec_filled;
       switch (SUMA_ColType2TypeCast(ctp)) {
          case SUMA_int:
             iv = (int *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(iv ,nel->vec_filled, amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(iv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(stmp, 500*sizeof(char),"%d %d %d %d", 
                            (int)amin, (int)amax, aminloc, amaxloc);
             break;
          case SUMA_float:
             fv = (float *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(fv ,nel->vec_filled, amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(fv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(stmp, 500*sizeof(char),"%f %f %d %d", 
                            amin, amax, aminloc, amaxloc);
             break;
          case SUMA_byte:
             bv = (byte *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(bv ,nel->vec_filled, amin, amax, 
+            SUMA_MIN_MAX_VEC_STRIDE(bv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride);
             snprintf(stmp, 500*sizeof(char),"%d %d %d %d", 
                            (int)amin, (int)amax, aminloc, amaxloc);
@@ -2722,7 +2569,7 @@ int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col,
             break;
          case SUMA_complex:
             cv = (complex *)col;
-            SUMA_MIN_MAX_CVEC_STRIDE(cv ,nel->vec_filled, amin, amax, 
+            SUMA_MIN_MAX_CVEC_STRIDE(cv ,N_col, amin, amax, 
                                     aminloc, amaxloc, stride, 0);
             snprintf(stmp, 500*sizeof(char),"%d %d %d %d", 
                            (int)amin, (int)amax, aminloc, amaxloc);
@@ -2990,6 +2837,7 @@ int SUMA_GetDsetNodeIndexColRange_eng(  SUMA_DSET *dset,
    char *rs = NULL, Name[500];
    double nums[4];
    char *ctmp=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -3007,6 +2855,30 @@ int SUMA_GetDsetNodeIndexColRange_eng(  SUMA_DSET *dset,
          SUMA_RETURN(0);
       }
    }
+   
+   if (SUMA_isGraphDset(dset) && dset->inel->vec_num == 0) {
+      SUMA_LH("Here is hoping we're standard");
+      switch (dset->Aux->matrix_shape) {
+         case MAT_HEEHAW:
+         default:
+            SUMA_S_Err("Should not happen here");
+            SUMA_RETURN(NOPE);
+         case MAT_TRI:
+         case MAT_TRI_DIAG:
+         case MAT_FULL:
+            if (ii==0) {
+               range[0]=loc[0]=0; range[1]=loc[1]=SDSET_VECLEN(dset)-1;
+            } else if (ii==1 || ii==2) {
+               range[0]=loc[0]=0; range[1]=loc[1]=SDSET_MATRIX_SZ0(dset)-1;
+            }
+            break;
+         case MAT_SPARSE:
+            SUMA_S_Err("Sparse matrix and no inel?");
+            SUMA_RETURN(0);
+      }
+      SUMA_RETURN(1);
+   }
+   
    rs = NI_get_attribute(dset->inel, "COLMS_RANGE");
    if (!rs) { 
       if (!addifmissing) {
@@ -4465,7 +4337,8 @@ SUMA_DSET * SUMA_VcatDset(SUMA_DSET *odset,
       SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset); */
    
    /* add the catenated monster*/
-   lblcp = SUMA_append_replace_string(SUMA_DsetColLabelCopy(odset, 0, 0),"...","",1);         
+   lblcp = SUMA_append_replace_string(
+                     SUMA_DsetColLabelCopy(odset, 0, 0),"...","",1);         
    if (!SUMA_AddDsetNelCol (ndset, lblcp, ctp, ncol, NULL ,1)) {
       SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
       SUMA_FreeDset((void*)ndset); ndset = NULL;
@@ -4487,8 +4360,10 @@ SUMA_DSET * SUMA_VcatDset(SUMA_DSET *odset,
 }
 
 /* A vertically catenating version of SUMA_Copy_Part_Column */
-SUMA_Boolean SUMA_Append_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, byte *rowmask, int masked_only, 
-                                   void **appendhere, int *append_rowtype_code, int *n_inappendhere) 
+SUMA_Boolean SUMA_Append_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col,
+                                    byte *rowmask, int masked_only, 
+                                    void **appendhere, int *append_rowtype_code, 
+                                    int *n_inappendhere) 
 {
    static char FuncName[]={"SUMA_Append_Copy_Part_Column"};
    SUMA_Boolean LocalHead = NOPE;
@@ -4507,7 +4382,8 @@ SUMA_Boolean SUMA_Append_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, 
        SUMA_RETURN(NOPE);   
    }
    if (!*appendhere) { /* first time */
-      *appendhere = SUMA_Copy_Part_Column(col, rt, N_col, rowmask, masked_only, &n_incopy);   
+      *appendhere = SUMA_Copy_Part_Column(col, rt, N_col, rowmask, 
+                                          masked_only, &n_incopy);   
       *append_rowtype_code = rt->code;
       *n_inappendhere = n_incopy;
       SUMA_RETURN(YUP);
@@ -4524,22 +4400,26 @@ SUMA_Boolean SUMA_Append_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, 
       SUMA_RETURN(NOPE);     
    }
    
-   ndat = (char *)SUMA_Copy_Part_Column(col, rt, N_col, rowmask, masked_only, &n_incopy);   
-   /* OK, now realloc. be careful incrementing (*appendhere), that vector can store variables
-      that are of different size than char */
-   *appendhere = (char *)SUMA_realloc(*appendhere, rt->size * (n_incopy+*n_inappendhere) *sizeof(char));
-   memcpy((*appendhere)+(*n_inappendhere*rt->size/sizeof(char)), ndat, n_incopy*rt->size*sizeof(char));
+   ndat = (char *)SUMA_Copy_Part_Column(col, rt, N_col, rowmask, 
+                                        masked_only, &n_incopy);   
+   /* OK, now realloc. be careful incrementing (*appendhere), 
+      that vector can store variables that are of different size than char */
+   *appendhere = (char *)SUMA_realloc(*appendhere, 
+                           rt->size * (n_incopy+*n_inappendhere) *sizeof(char));
+   memcpy((char*)(*appendhere)+(*n_inappendhere*rt->size/sizeof(char)), 
+          ndat, n_incopy*rt->size*sizeof(char));
    SUMA_free(ndat); ndat=NULL;
    *n_inappendhere = *n_inappendhere+n_incopy;
       
    SUMA_RETURN(YUP); 
-} 
+}
 
 /*!
    see help for SUMA_MaskedCopyofDset
       
 */
-void *SUMA_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, byte *rowmask, int masked_only, int *n_incopy)
+void *SUMA_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, 
+                            byte *rowmask, int masked_only, int *n_incopy)
 {
    static char FuncName[]={"SUMA_Copy_Part_Column"};
    int n_alloc = -1, i, j, cnt;
@@ -6309,20 +6189,20 @@ SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn)
    dset->inel = SUMA_FindDsetDatumIndexElement(dset);
    if (!dset->dnel) {
       SUMA_SL_Warn("Failed to find dset data element");
-   } 
+   }
    if (!dset->inel || !SDSET_NODEINDNUM(dset)) {
       /* If a dset had an empty node index holder at write time,
       the inel is written with vecnum set to 0. This would make
       any attempt to add columns later on fail.
       */
-      if (warn) {
+      if (warn && !SUMA_isGraphDsetNgr(nini)) {
          SUMA_S_Note("NIML dset with no valid node index element");
       }
       NI_remove_from_group(dset->ngr, dset->inel);
       NI_free_element(dset->inel); dset->inel = NULL;
       /* Now add the new and proper node index element holder*/
       if (dset->dnel) {
-         if (warn) {
+         if (warn && !SUMA_isGraphDsetNgr(nini)) {
             SUMA_S_Note("Adding empty holder");
          }
          SUMA_Reset_NodeIndex_Element(dset, NULL);
@@ -6725,6 +6605,7 @@ char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt,
       SS = SUMA_StringAppend_va(SS, "%s", title);
    }
    
+   
    firsthalf = mxshow / 2;
    secondhalf = mxshow - firsthalf;
    if (LocalHead) 
@@ -6733,7 +6614,7 @@ char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt,
                "SUMA_int=%d, SUMA_byte=%d, SUMA_short=%d\n", 
                FuncName, tp, SUMA_complex, SUMA_double, SUMA_float, 
                SUMA_int, SUMA_byte, SUMA_short);
-   if (mxshow) {
+   if (mxshow && dt) {
       switch (tp) {
          case SUMA_double:
             dtd = (double*)dt;
@@ -6807,7 +6688,11 @@ char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt,
             SS = SUMA_StringAppend_va(SS, "Type not supported.");
       }
    } else {
-      SS = SUMA_StringAppend_va(SS, "Empty vector.");
+      if (!dt) {
+        SUMA_StringAppend(SS,"NULL vector.");
+      } else {
+         SS = SUMA_StringAppend_va(SS, "Empty vector.");
+      }
    }  
 
    SUMA_SS2S(SS,s);
@@ -7244,7 +7129,8 @@ int SUMA_GetNodeRow_FromNodeIndex_ns(SUMA_DSET *dset, int node, int N_Node)
    WorkErrLog_ns();
    return(i);
 }
-int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
+int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, 
+                                      int Max_Node_Index)
 {
    static char FuncName[]={"SUMA_GetNodeRow_FromNodeIndex_eng"};
    static int WarnCount;
@@ -7258,14 +7144,14 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    SUMA_ENTRY;
       
    
-   if (!dset || node < 0 || (N_Node >=0 && node >= N_Node)) {
+   if (!dset || node < 0 || (Max_Node_Index >=0 && node > Max_Node_Index)) {
       /* turn this warning off once you confirm that Shane's bug is gone */
       /* Note that -1 is a flag for an unitialized node, so it is benign */
       if (LocalHead) {
          snprintf(mmm,
                  255*sizeof(char),
-                  "Strange input, dset %p, node %d, N_Node %d. returning -1.",
-                 dset, node, N_Node);
+            "Strange input, dset %p, node %d, Max Node Index %d. returning -1.",
+                 dset, node, Max_Node_Index);
          
          SUMA_PushErrLog("SL_Warn", mmm, FuncName);
          SUMA_DUMP_TRACE("At the strange input");
@@ -7284,7 +7170,7 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    /* This would fail if data are not ordered such that row(i) is 
       the data for node i */
    SUMA_LH( "Trying the fast one");
-   if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
+   if (nel->vec_len == nel->vec_filled && nel->vec_len == (Max_Node_Index+1)) {
       SUMA_RETURN(node);
    }
    #endif
@@ -7304,15 +7190,15 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
       }
       /* explicit search */
       SUMA_LH("Explicit");
-      if (N_Node >= 0 && nel->vec_filled > N_Node) { 
-                                 /* Sometimes N_Node is not set (-1)*/
+      if (Max_Node_Index >= 0 && nel->vec_filled > (Max_Node_Index+1)) { 
+                                 /* Sometimes Max_Node_Index is not set (-1)*/
          if (LocalHead) {
             fprintf( SUMA_STDERR,
-                  "Error %s: nel->vec_filled (%d) > (%d) N_Node\n",
-                  FuncName, nel->vec_filled, N_Node); 
+                  "Error %s: nel->vec_filled (%d) > (%d) Max_Node_Index+1\n",
+                  FuncName, nel->vec_filled, Max_Node_Index+1); 
          }
          SUMA_PushErrLog("SL_Err",
-                         "Unexpected error nel->vec_filled > N_Node", 
+                         "Unexpected error nel->vec_filled > Max_Node_Index+1", 
                          FuncName);
          SUMA_RETURN(-1);
       }
@@ -7332,7 +7218,7 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    
    /* last resort, assume that data are ordered properly 
       (see commented out section above)*/
-   if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
+   if (nel->vec_len == nel->vec_filled && nel->vec_len == Max_Node_Index+1) {
       if (0 && !(WarnCount % 25 - 1)) {
          SUMA_PushErrLog("SLP_Err", "Assuming ith row of data\n"
                      "corresponds to node i.\n"
@@ -8349,9 +8235,9 @@ SUMA_DSET *SUMA_VecArray2Dset(void **resv,
    Otherwise, pass -1 for last param.
 */
 double SUMA_GetDsetNodeValInCol2(SUMA_DSET *dset, int ind, 
-                                 int node, int N_Node)
+                                 int node, int Max_Node_Index)
 {
-   int ival = SUMA_GetNodeRow_FromNodeIndex_eng (dset, node, N_Node);
+   int ival = SUMA_GetNodeRow_FromNodeIndex_eng (dset, node, Max_Node_Index);
    if (ival < 0) return(0.0);
    else return( SUMA_GetDsetValInCol2( dset, ind, ival ) );
 } 
@@ -10267,7 +10153,7 @@ SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb)
                   ++n;
                } }
                break;
-            case MAT_SQUARE:
+            case MAT_FULL:
                for (j=0, n=0; j <dset->Aux->matrix_size[0]; ++j) {
                for (i=0; i <dset->Aux->matrix_size[0]; ++i) {
                   P1[n]=i;
@@ -12387,6 +12273,7 @@ NI_group *SUMA_NI_Cmap_of_Dset(SUMA_DSET *dset)
                }  
                SUMA_RETURN(ngr);
             }
+            ngr=NULL; /* not good, keep looking */
             break ;
          case NI_ELEMENT_TYPE:
             nel = (NI_element *)dset->ngr->part[ip] ;
@@ -14501,11 +14388,11 @@ SUMA_DSET_FORMAT SUMA_FormatFromFormString(char *arg) {
    } else if (  (
          (strncmp(arg, "gii", 3) == 0) ||
          (strncmp(arg, "gifti", 5) == 0) ) ) {
-      if (strcasestr(arg,"asc"))
+      if (AFNI_strcasestr(arg,"asc"))
          oform = SUMA_XML_ASCII_DSET;
-      else if (strcasestr(arg,"b64gz"))
+      else if (AFNI_strcasestr(arg,"b64gz"))
          oform = SUMA_XML_B64GZ_DSET;
-      else if (strcasestr(arg,"b64"))
+      else if (AFNI_strcasestr(arg,"b64"))
          oform = SUMA_XML_B64_DSET;
       else oform = SUMA_XML_DSET;
    }
@@ -16043,8 +15930,8 @@ SUMA_SO_SIDE SUMA_giiStringToNumSide(char *cc)
    if (!cc) SUMA_RETURN(SUMA_NO_SIDE);
    
    deblank_name(cc);
-   hasleft = strcasestr(cc,"Left");
-   hasright = strcasestr(cc,"Right");
+   hasleft = AFNI_strcasestr(cc,"Left");
+   hasright = AFNI_strcasestr(cc,"Right");
    if ( hasleft  && !hasright ) {
       SUMA_RETURN(SUMA_LEFT);
    } else if ( hasright && !hasleft ) {
@@ -17172,7 +17059,7 @@ int SUMA_NI_str_array_find( char *targ , NI_str_array *sar , int partial, int ci
             if( strstr(sar->str[ii], targ) == NULL ) SUMA_RETURN(ii) ;
       } else {
          for( ii=0 ; ii < sar->num ; ii++ )
-            if( !strcasestr(sar->str[ii], targ) ) SUMA_RETURN(ii) ;
+            if( !AFNI_strcasestr(sar->str[ii], targ) ) SUMA_RETURN(ii) ;
       }
    }
    SUMA_RETURN(-1) ;
@@ -18275,16 +18162,85 @@ int SUMA_PopulateDsetsFromGICORnel(NI_element *nel, GICOR_setup *giset,
 /************************ END GICOR functions  ********************* */
 
 /************************ GRAPH Dset functions  ******************** */
+/*!
+   Turn a bunch of matrices into a graph dataset.
+   vec (float **) A collection of vec_num arrays with each array representing
+                  a matrix of length vec_len.
+                  Matrix k is stored in vec[k] and has a total of vec_len
+                  elements. 4 types of matrices can be stored.
+                  1- An MxM square matrix is stored in column major order
+                     vec_len = M*M 
+                  2- A lower triangular matrix with diagonal is stored in
+                     column major order, vec_len = M*(M+1)/2
+                  3- A lower triangular matrix  is stored in column major 
+                     order with vec_len = M*(M-1)/2
+                  4- A sparse M*M matrix of vec_len elements. For this you
+                     will need to specify ie, i0, and i1 (see below)
+   vec_num (int) : number of matrices
+   vec_len (int) : number of elements in vec[k]
+   mtype   (char *) : Choose from NULL (let function guess) or "full", 
+                      "lower_diag", "lower", or "sparse"
+   vec_labs(char **) : labels of each matrix, vec_num of them. Send NULL for
+                       default labeling
+   The next three parameters are used when the matrices are sparse
+   ie (int *): If not NULL, ie contains the 'edge/cell' index of the matrix 
+               where entries exist. If null, the edges are numbered from 0
+               to vec_len-1
+   i0 (int *): row indices
+   i1 (int *): column indices
+*/
+    
+SUMA_DSET *SUMA_FloatVec_to_GDSET(float **vec, int vec_num, int vec_len, 
+                                  char *mtype,
+                                  char **vec_labs, int *ie, int *i0, int *i1)
+{
+   static char FuncName[]={"SUMA_FloatVec_to_GDSET"};
+   SUMA_DSET *dset=NULL;
+   char *lab=NULL, sbuf[32];
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!(dset =  SUMA_CreateDsetPointer( FuncName, SUMA_NODE_BUCKET,
+                                         NULL, NULL, vec_len ))) {
+      SUMA_S_Err("Failed to create dset");
+      SUMA_RETURN(dset);
+   }
+   
+   for (i=0; i<vec_num; ++i) {
+      if (vec_labs) lab = vec_labs[i];
+      else {
+         sprintf(sbuf,"Mat%3d",i);
+         lab = sbuf;
+      }
+      if (!SUMA_AddDsetNelCol(dset, lab, 
+                              SUMA_NODE_FLOAT, (void *)vec[i], NULL, 1)) {
+         SUMA_S_Errv("Failed to add column %d %s\n", i, lab);
+         SUMA_FreeDset(dset); dset=NULL;
+         SUMA_RETURN(dset);
+      }
+   }
+   
+   /* Now turn dset to graph */
+   if (!SUMA_Dset_to_GDSET(&dset, mtype, 0, ie, i0, i1)) {
+      SUMA_S_Err("Failed to graphize");
+      SUMA_FreeDset(dset); dset = NULL;
+      SUMA_RETURN(dset);
+   }
+   
+   SUMA_RETURN(dset);
+}
+
 /* Turn a node-based dset structure into a graph structure, 
    cunningly still called SUMA_DSET                         */ 
-SUMA_Boolean SUMA_Dset_to_GDset(SUMA_DSET **pdset, 
+SUMA_Boolean SUMA_Dset_to_GDSET(SUMA_DSET **pdset, char *mtype,
                                 int ok_verticalize, 
                                 int *ie, int *i0, int *i1)
 {
-   static char FuncName[]={"SUMA_Dset_to_GDset"};
-   int npts = 0, nseg=0, msz[2];
+   static char FuncName[]={"SUMA_Dset_to_GDSET"};
+   int npts = -1, nseg=0, msz[2];
    SUMA_DSET *tdset=NULL, *dset=NULL;
-   float tt;
+   float tt=-1.0;
    char *dname=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -18318,13 +18274,45 @@ SUMA_Boolean SUMA_Dset_to_GDset(SUMA_DSET **pdset,
       /* get rid of old inel, if any, and put in a new one for graph dsets*/
       SUMA_Reset_NodeIndex_Element(dset, NULL);
       
+      /* figure out the matrix size */
+      npts = -1;
+      if (mtype) {
+         if (!strcmp(mtype,"lower")) {
+            if (!((tt = (1+sqrt(1+8*nseg))/2.0) == (int)tt)) {
+               SUMA_S_Errv("Can't get lower triangular matrix from %d values\n",
+                           nseg);
+               SUMA_RETURN(NOPE);
+            }
+            npts = tt;
+         } else if (!strcmp(mtype,"lower_diag")) {
+            if (!((tt = (-1+sqrt(1+8*nseg))/2.0) == (int)tt)) {
+               SUMA_S_Errv("Can't get lower tri+diag matrix from %d values\n",
+                           nseg);
+               SUMA_RETURN(NOPE);
+            }
+            npts = tt;
+         } else if (!strcmp(mtype,"full")) {
+            if (!((tt = sqrt(SDSET_VECLEN(dset))) == (int)tt)) {
+               SUMA_S_Errv("Can't get full square matrix from %d values\n",
+                           nseg);
+               SUMA_RETURN(NOPE);
+            }
+            npts = tt;
+         } else if (!strcmp(mtype,"sparse")) {
+            if (!i0 || !i1) {
+               SUMA_S_Err("Must provide i0 and i1 for spare matrices");
+               SUMA_RETURN(NOPE);
+            }
+         }
+      }
       /* cases where the whole matrix is packed into 1 column */
       nseg = SDSET_VECLEN(dset);
-      if ((!i0 && !i1) && (tt = (1+sqrt(1+8*nseg))/2.0) == (int)tt) { 
-         npts = tt;
+      if ((mtype && !strcmp(mtype,"lower")) || 
+          ((!i0 && !i1) && (tt = (1+sqrt(1+8*nseg))/2.0) == (int)tt)) { 
+         if (npts < 0) npts = tt;
          SUMA_LHv("Me thinks it triangular Pa, %d %d\n", 
                SDSET_VECNUM(dset), SDSET_VECLEN(dset));
-         /* (M*M-1)/2, lower tri, without the diagonal */
+         /* M*(M-1)/2, lower tri, without the diagonal */
          msz[0]= msz[1] = npts;
          NI_SET_INTv(dset->dnel,"matrix_size", msz,2);
          NI_set_attribute(dset->dnel, "matrix_shape",
@@ -18334,11 +18322,12 @@ SUMA_Boolean SUMA_Dset_to_GDset(SUMA_DSET **pdset,
             seg 1 --> 2,0
             seg 2 --> 2,1
          */
-      } else if ((!i0 && !i1) && (tt = (-1+sqrt(1+8*nseg))/2.0) == (int)tt) { 
-         npts = tt;
+      } else if ((mtype && !strcmp(mtype,"lower_diag")) || 
+                 ((!i0 && !i1) && (tt = (-1+sqrt(1+8*nseg))/2.0) == (int)tt)) { 
+         if (npts < 0) npts = tt;
          SUMA_LHv("Me thinks it triangular Paps, %d %d\n", 
                SDSET_VECNUM(dset), SDSET_VECLEN(dset));
-         /* (M*M+1)/2, lower tri, with the diagonal */
+         /* M*(M+1)/2, lower tri, with the diagonal */
          msz[0]= msz[1] = npts;
          NI_SET_INTv(dset->dnel,"matrix_size", msz,2);
          NI_set_attribute(dset->dnel, "matrix_shape",
@@ -18351,15 +18340,16 @@ SUMA_Boolean SUMA_Dset_to_GDset(SUMA_DSET **pdset,
             seg 4 --> 2,1
             seg 5 --> 2,2
          */
-      } else if ((!i0 && !i1) && (tt = sqrt(SDSET_VECLEN(dset))) == (int)tt) {
-         npts = tt;
+      } else if ((mtype && !strcmp(mtype,"full")) || 
+                 ((!i0 && !i1) && (tt = sqrt(SDSET_VECLEN(dset))) == (int)tt)) {
+         if (npts < 0) npts = tt;
          SUMA_LHv("A wholesome stick, %d %d\n", 
                SDSET_VECNUM(dset), SDSET_VECLEN(dset));
          /* full matrix, one column */
          msz[0]= msz[1] = npts;
          NI_SET_INTv(dset->dnel,"matrix_size", msz,2);
          NI_set_attribute(dset->dnel, "matrix_shape",
-                          SUMA_matrix_shape_to_matrix_shape_name(MAT_SQUARE));
+                          SUMA_matrix_shape_to_matrix_shape_name(MAT_FULL));
          /* Edges are implicitly defined, example for a 3x3 
             seg 0 --> 0,0
             seg 1 --> 1,0
@@ -18433,8 +18423,15 @@ SUMA_Boolean SUMA_Dset_to_GDset(SUMA_DSET **pdset,
       }
    } else {
       SUMA_LH("Nothing changed, odset already a graph");
-   }   
+   }
+   
+   /* set Aux info */
+   if (!SUMA_GDSET_Set_Aux_matrix_shape(dset)) {
+      SUMA_S_Err("Failed to set matrix shape");
+      SUMA_RETURN(NOPE);
+   }
    SUMA_LH("Done");
+   
    SUMA_RETURN(YUP);
 }
 
@@ -18442,7 +18439,10 @@ SUMA_SQ_MATRIX_SHAPES SUMA_matrix_shape_name_to_matrix_shape(char *name)
 {
    if (!name) return(MAT_UNKNOWN);
    
-   if (!strcmp(name,"square")) return(MAT_SQUARE);
+   if (!strcmp(name,"full")) return(MAT_FULL);
+   if (!strcmp(name,"square")) { 
+      fprintf(stderr,"square should be replaced by full\n"); return(MAT_FULL);
+   }
    if (!strcmp(name,"tri")) return(MAT_TRI);
    if (!strcmp(name,"tri_diag")) return(MAT_TRI_DIAG);
    if (!strcmp(name,"sparse")) return(MAT_SPARSE);
@@ -18455,7 +18455,7 @@ SUMA_SQ_MATRIX_SHAPES SUMA_matrix_shape_name_to_matrix_shape(char *name)
 char * SUMA_matrix_shape_to_matrix_shape_name(SUMA_SQ_MATRIX_SHAPES sq) 
 {
    switch (sq) {
-      case MAT_SQUARE: return("square");
+      case MAT_FULL: return("full");
       case MAT_TRI: return("tri");
       case MAT_TRI_DIAG: return("tri_diag");
       case MAT_SPARSE: return("sparse");
@@ -18555,7 +18555,7 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
                               NI_get_attribute(dset->dnel,"matrix_shape"));
    SUMA_LHv("shape: %s (%d), sq=%d\n", 
       NI_get_attribute(dset->dnel,"matrix_shape"), 
-      dset->Aux->matrix_shape, MAT_SQUARE);
+      dset->Aux->matrix_shape, MAT_FULL);
    
    SUMA_LHv("size: %s\n", NI_get_attribute(dset->dnel,"matrix_size"));
    NI_GET_INTv(dset->dnel, "matrix_size", dset->Aux->matrix_size, 2, 0);
@@ -18566,7 +18566,7 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
    dset->Aux->matrix_2M = 2*dset->Aux->matrix_size[0];
    
    switch (dset->Aux->matrix_shape) {
-      case MAT_SQUARE:
+      case MAT_FULL:
          dset->Aux->matrix_max_index = 
             dset->Aux->matrix_size[0]*dset->Aux->matrix_size[0]-1;
          dset->Aux->range_edge_index[0] = 0; 
@@ -18662,7 +18662,9 @@ if the index map is properly formed ...
 \param i1 (int *)to contain the index of the 1st node forming the edge
 \param i2 (int *)to contain the index of the 2nd node forming the edge
 \param row (int *) to contain the row in 'inel' where si was listed.
-                   This parameter is only set for sparse matrices */
+                   This parameter is only set for sparse matrices 
+\sa SUMA_GDSET_SegRowToPoints
+*/
 byte SUMA_GDSET_SegIndexToPoints(SUMA_DSET *dset, int si, 
                                  int *i1, int *i2, int *row)
 {
@@ -18670,7 +18672,7 @@ byte SUMA_GDSET_SegIndexToPoints(SUMA_DSET *dset, int si,
    if (si < 0) return(0);
    *i1 = -1;
    switch (dset->Aux->matrix_shape) {
-      case MAT_SQUARE:
+      case MAT_FULL:
          if (si > dset->Aux->matrix_max_index) return(0);
          *i2 = si / dset->Aux->matrix_size[0];
          if (*i2 >= dset->Aux->matrix_size[0]) return(0);
@@ -18705,6 +18707,53 @@ byte SUMA_GDSET_SegIndexToPoints(SUMA_DSET *dset, int si,
    return(0);
 }
 
+/*! Go from segment row to points (and index)
+\sa SUMA_GDSET_SegIndexToPoints
+*/
+byte SUMA_GDSET_SegRowToPoints(SUMA_DSET *dset, int ri, 
+                                 int *i1, int *i2, int *index)
+{
+   static char FuncName[]={"SUMA_GDSET_SegRowToPoints"};
+   if (ri < 0) return(0);
+   *i1 = -1;
+   switch (dset->Aux->matrix_shape) {
+      case MAT_FULL:
+         if (ri > dset->Aux->matrix_max_index) return(0);
+         *i2 = ri / dset->Aux->matrix_size[0];
+         if (*i2 >= dset->Aux->matrix_size[0]) return(0);
+         *i1 = ri % dset->Aux->matrix_size[0]; return(1);
+         break;
+      case MAT_TRI:
+         if (ri > dset->Aux->matrix_max_index) return(0);
+         SUMA_CItri_p2ij(ri, dset->Aux->matrix_size[0], 
+                         dset->Aux->matrix_2M, 0, i1, i2);
+         return(1);
+         break;
+      case MAT_TRI_DIAG:
+         SUMA_CItri_p2ij(ri, dset->Aux->matrix_size[0], 
+                         dset->Aux->matrix_2M, 1, i1, i2);
+         return(1);
+         break;
+      case MAT_SPARSE: { int r, *rp;
+         /* Use index to figure out row */
+            rp = (int*)(dset->inel->vec[1]);
+            *i1 = rp[ri];
+            rp = (int*)(dset->inel->vec[2]);
+            *i2 = rp[ri];
+            if (index) {
+               rp = (int*)(dset->inel->vec[0]);
+               *index = rp[ri];
+            }
+            /* SUMA_S_Notev("Edge row %d, index %d, row %d, [%d %d]\n", 
+                            ri, index ? *index:-1, *i1, *i2); */
+         return(1);
+         break; }
+   }
+      
+   return(0);
+}
+
+/* \sa SUMA_GDSET_PointsToSegRow */
 byte SUMA_GDSET_PointsToSegIndex(SUMA_DSET *dset, int i1, int i2, int *si)
 {
    static char FuncName[]={"SUMA_GDSET_PointsToSegIndex"};
@@ -18712,7 +18761,7 @@ byte SUMA_GDSET_PointsToSegIndex(SUMA_DSET *dset, int i1, int i2, int *si)
    *si = -1;
    if (i1 < 0 || i2 < 0) return(0);
    switch (dset->Aux->matrix_shape) {
-      case MAT_SQUARE:
+      case MAT_FULL:
          if (i1 >= dset->Aux->matrix_size[0] ||
              i2 >= dset->Aux->matrix_size[0]) return(0);
          *si = i1+i2*dset->Aux->matrix_size[0]; return(1);
@@ -18729,12 +18778,13 @@ byte SUMA_GDSET_PointsToSegIndex(SUMA_DSET *dset, int i1, int i2, int *si)
          *si = SUMA_CItri_ij2p_diag(i1,i2,dset->Aux->matrix_2M);
          return(1);
          break;
-      case MAT_SPARSE: { int is, *p1, *p2;
+      case MAT_SPARSE: { int is, *p1, *p2, *p0;
          /* This will be a slow slog unless I create a points to edge list */
          p1 = (int*)(dset->inel->vec[1]);
          p2 = (int*)(dset->inel->vec[2]);
+         p0 = (int*)(dset->inel->vec[0]);
          for (is=0; is < dset->inel->vec_len; ++is) {
-            if (p1[is]==i1 && p2[is]==i2) { *si = is; return(1); }
+            if (p1[is]==i1 && p2[is]==i2) { *si = p0[is]; return(1); }
          }
          break; }
    }
@@ -18742,6 +18792,48 @@ byte SUMA_GDSET_PointsToSegIndex(SUMA_DSET *dset, int i1, int i2, int *si)
    return(0);
    
 }
+
+/*
+\sa SUMA_GDSET_PointsToSegIndex
+*/
+byte SUMA_GDSET_PointsToSegRow(SUMA_DSET *dset, int i1, int i2, int *ri)
+{
+   static char FuncName[]={"SUMA_GDSET_PointsToSegRow"};
+   
+   *ri = -1;
+   if (i1 < 0 || i2 < 0) return(0);
+   switch (dset->Aux->matrix_shape) {
+      case MAT_FULL:
+         if (i1 >= dset->Aux->matrix_size[0] ||
+             i2 >= dset->Aux->matrix_size[0]) return(0);
+         *ri = i1+i2*dset->Aux->matrix_size[0]; return(1);
+         break;
+      case MAT_TRI:
+         if (i1 >= dset->Aux->matrix_size[0] ||
+             i2 >= dset->Aux->matrix_size[0]) return(0);
+         *ri = SUMA_CItri_ij2p(i1,i2,dset->Aux->matrix_2M);
+         return(1);
+         break;
+      case MAT_TRI_DIAG:
+         if (i1 >= dset->Aux->matrix_size[0] ||
+             i2 >= dset->Aux->matrix_size[0]) return(0);
+         *ri = SUMA_CItri_ij2p_diag(i1,i2,dset->Aux->matrix_2M);
+         return(1);
+         break;
+      case MAT_SPARSE: { int is, *p1, *p2;
+         /* This will be a slow slog unless I create a points to edge list */
+         p1 = (int*)(dset->inel->vec[1]);
+         p2 = (int*)(dset->inel->vec[2]);
+         for (is=0; is < dset->inel->vec_len; ++is) {
+            if (p1[is]==i1 && p2[is]==i2) { *ri = is; return(1); }
+         }
+         break; }
+   }
+      
+   return(0);
+   
+}
+
 
 /* From a node index, find the row where that node index is listed
 in the node list */
@@ -18774,6 +18866,44 @@ int SUMA_GDSET_Index_To_NodeIndex(SUMA_DSET *dset, int cinode)
          return(-1);
       } else return(cinode);
    }
+}
+
+int SUMA_GDSET_EdgeIndex_To_Row(SUMA_DSET *dset, int ei)
+{
+   static char FuncName[]={"SUMA_GDSET_EdgeIndex_To_Row"};
+   if (ei < 0) return(ei);
+   switch (dset->Aux->matrix_shape) {
+      case MAT_SPARSE: { int *p0, N=SDSET_VECLEN(dset);
+         p0 = (int*)(dset->inel->vec[0]);
+         return(SUMA_NodeIndex_To_Index(p0, N, ei)); 
+         break; }
+      default:
+         return(ei);
+   }
+   return(ei);
+}
+
+int SUMA_GDSET_EdgeRow_To_Index(SUMA_DSET *dset, int ri)
+{
+   static char FuncName[]={"SUMA_GDSET_EdgeRow_To_Index"};
+   if (ri < 0 || ri > SDSET_VECLEN(dset)) return(-1);
+   switch (dset->Aux->matrix_shape) {
+      case MAT_SPARSE: { int *p0;
+         p0 = (int*)(dset->inel->vec[0]);
+         return(p0[ri]);
+         break; }
+      default:
+         return(ri);
+   }
+   return(ri);
+}
+
+int SUMA_GDSET_Max_Edge_Index(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_GDSET_Max_Edge_Index"};
+   int mm;
+   GDSET_MAX_EDGE_INDEX(dset, mm);
+   return(mm);
 }
 
 /* Get the column containing the ids of points
@@ -18830,6 +18960,179 @@ int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals,
    SUMA_RETURN(I);
 }
 
+NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_FindGDsetNodeListElement"};
+   char *attname=NULL;
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+    
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->ngr) { SUMA_SL_Err("NUll input "); SUMA_RETURN(NULL); }
+   attname = SUMA_append_string(NEL_DSET_TYPE(dset->ngr),"_node_coordinates");
+   SUMA_LHv("Seeking NODE_COORDS with %s\n", attname);
+   nel = SUMA_FindNgrDataElement(dset->ngr, "NODE_COORDS", attname);
+   SUMA_free(attname);
+   SUMA_RETURN(nel);
+}
+
+/* Add the indices and coordinates of nodes forming graph dataset 
+   Note that I may get reodered in this function */
+NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset, 
+                                        int *I, float *X, float *Y, float *Z, 
+                                        int N_Nodes)
+{
+   static char FuncName[]={"SUMA_AddGDsetNodeListElement"};
+   char *attname=NULL;
+   NI_element *nel=NULL;
+   int *isort = NULL, dosort = 0, ii, jump=0;
+   float *fv=NULL, *fvxyz=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+    
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->ngr) { SUMA_SL_Err("NUll input "); SUMA_RETURN(NULL); }
+   
+   if (!SUMA_isGraphDset(dset)) {
+      SUMA_SL_Err("Non graph dset");
+      SUMA_RETURN(NULL);
+   }
+   if (dset->Aux->matrix_shape == MAT_HEEHAW) {
+      if (!SUMA_GDSET_Set_Aux_matrix_shape(dset)) {
+         SUMA_S_Err("Failed to set matrix shape");
+         SUMA_RETURN(NULL);
+      }
+   }
+   if (N_Nodes != GDSET_MAX_POINTS(dset)) {
+      SUMA_S_Errv("Mismatch in number of points (%d vs %ld)\n", 
+                 N_Nodes, GDSET_MAX_POINTS(dset));
+      SUMA_RETURN(NULL);
+   }
+   if (!(nel=SUMA_FindGDsetNodeListElement(dset))) {
+      attname = SUMA_append_string(NEL_DSET_TYPE(dset->ngr),"_node_coordinates");
+      nel = NI_new_data_element("NODE_COORDS", N_Nodes); 
+      NI_set_attribute (nel, "data_type", attname); 
+      SUMA_free(attname); attname = NULL;
+      NI_add_to_group(dset->ngr, nel);
+   }
+   /* Make sure I is sorted */
+   if (I) {
+      if (nel->vec_num != 0) {
+         SUMA_S_Err("Attempting to add I out of order");
+         SUMA_RETURN(nel);
+      }
+      for (ii=1; ii<N_Nodes; ++ii) {
+         if (I[ii-1]>I[ii]) {
+            dosort = 1;
+            break;
+         } 
+      }
+      if (dosort) isort = z_dqsort (I, N_Nodes );
+      if (!SUMA_AddDsetNelCol (  dset, "Gnode Index", 
+                                    SUMA_GNODE_INDEX, (void *)I, NULL, 1)) {
+            SUMA_SL_Err("Failed to add column");
+            SUMA_RETURN(nel);  
+       }
+   } else {
+      /* I want it, keep things clear and simple */
+      if (nel->vec_num != 0) {
+         SUMA_S_Err("Attempting to add I out of order");
+         SUMA_RETURN(nel);
+      }
+      I = (int *)SUMA_calloc(nel->vec_len, sizeof(int));
+      for (ii=0; ii<nel->vec_len; ++ii) I[ii]=ii;
+      if (!SUMA_AddDsetNelCol (  dset, "Gnode Index", 
+                                    SUMA_GNODE_INDEX, (void *)I, NULL, 1)) {
+            SUMA_SL_Err("Failed to add column");
+            SUMA_RETURN(nel);  
+       }
+       SUMA_ifree(I);
+   }
+   
+   jump = 1;
+   if (X && !Y && !Z) {  /* a trick to specify X Y Z with triplets */
+      jump = 3;
+      fvxyz  = NULL;
+      if (isort) {
+         fvxyz  = SUMA_freorder_triplets(X, isort, nel->vec_len);
+         X = fvxyz;
+         isort = 0; /* sorting now done */
+      }  
+      Y = X + 1;
+      Z = X + 2;
+   }
+    
+   if (X) {
+       if (nel->vec_num != 1) {
+         SUMA_S_Err("Attempting to add X out of order");
+         SUMA_RETURN(nel);
+       }
+       if (isort) {
+         fv = SUMA_freorder(X, isort, nel->vec_len);
+         if (!SUMA_AddDsetNelCol (  dset, "Gnode X", 
+                                       SUMA_NODE_X, (void *)fv, NULL, jump)) {
+               SUMA_SL_Err("Failed to add column");
+               SUMA_RETURN(nel);  
+          }
+          SUMA_ifree(fv);
+       } else {
+          if (!SUMA_AddDsetNelCol (  dset, "Gnode X", 
+                                       SUMA_NODE_X, (void *)X, NULL, jump)) {
+               SUMA_SL_Err("Failed to add column");
+               SUMA_RETURN(nel);  
+          }
+       }
+   }
+   if (Y) {
+       if (nel->vec_num != 2) {
+         SUMA_S_Err("Attempting to add Y out of order");
+         SUMA_RETURN(nel);
+       }
+       if (isort) {
+         fv = SUMA_freorder(Y, isort, nel->vec_len);
+         if (!SUMA_AddDsetNelCol (  dset, "Gnode Y", 
+                                       SUMA_NODE_Y, (void *)fv, NULL, jump)) {
+               SUMA_SL_Err("Failed to add column");
+               SUMA_RETURN(nel);  
+          }
+          SUMA_ifree(fv);
+       } else {
+          if (!SUMA_AddDsetNelCol (  dset, "Gnode Y", 
+                                       SUMA_NODE_Y, (void *)Y, NULL, jump)) {
+               SUMA_SL_Err("Failed to add column");
+               SUMA_RETURN(nel);  
+          }
+       }
+   }
+   if (Z) {
+       if (nel->vec_num != 3) {
+         SUMA_S_Err("Attempting to add Z out of order");
+         SUMA_RETURN(nel);
+       }
+       if (isort) {
+         fv = SUMA_freorder(Z, isort, nel->vec_len);
+         if (!SUMA_AddDsetNelCol (  dset, "Gnode Z", 
+                                       SUMA_NODE_Z, (void *)fv, NULL, jump)) {
+               SUMA_SL_Err("Failed to add column");
+               SUMA_RETURN(nel);  
+          }
+          SUMA_ifree(fv);
+       } else {
+          if (!SUMA_AddDsetNelCol (  dset, "Gnode Z", 
+                                       SUMA_NODE_Z, (void *)Z, NULL, jump)) {
+               SUMA_SL_Err("Failed to add column");
+               SUMA_RETURN(nel);  
+          }
+       }
+   }
+   SUMA_ifree(fvxyz);
+   SUMA_ifree(isort);
+   
+   SUMA_RETURN(nel);  
+}
+
+
 /*!
   SUMA_binSearch( nodeList, target, seg);
 
@@ -18841,41 +19144,46 @@ int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals,
 
   Written by Brenna Argall
 */
-SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) {
-  
+SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) 
+{
+   static char FuncName[]={"SUMA_binSearch"};
    int mid=0;
    int beg = seg[0], end = seg[1];
    SUMA_Boolean found=YUP;
    SUMA_Boolean LocalHead = NOPE;
    
-   static char FuncName[]={"SUMA_binSearch"};
-   
-   SUMA_ENTRY;
-   
+      
    SUMA_LHv("%f < %f < %f\n", nodeList[beg], target, nodeList[end]);
    if ( end<beg) {
       SUMA_S_Errv("Segment must be passed with seg[0]=%d <= seg[1]=%d.\n",
                   seg[0], seg[1]);
-      SUMA_RETURN (found = NOPE);
+      return (found = NOPE);
    }
    if ( nodeList[end]<nodeList[beg] ) {
       SUMA_S_Errv("Nodelist must be passed sorted and in ascending order.\n"
                   "nodeList[%d]=%f<nodeList[%d]=%f\n",
                   end, nodeList[end], beg, nodeList[beg]);
-      SUMA_RETURN (found = NOPE);
+      return (found = NOPE);
    }
    if ( (nodeList[beg]>target) || (nodeList[end]<target) ) {
       SUMA_LHv("Don't bother, target (%f) does not lie within segment ]%f, %f[\n"
                   , target, nodeList[beg], nodeList[end]);
-      SUMA_RETURN (found = NOPE);
+      return (found = NOPE);
    }
 
    if (beg!=end) {
       mid =(end-beg)/2 + beg;
       /**no exact match, but elements above and below found*/
       if (beg+1==end) {
-         seg[0] = beg;
-         seg[1] = end;
+         if (nodeList[end]==target) {
+            seg[0] = end;
+            seg[1] = end;
+         } else if (nodeList[beg]==target) {
+            seg[0] = beg;
+            seg[1] = beg;
+         } else {
+            return (found = NOPE);
+         }
       }
       else if (target==nodeList[mid]) {
          seg[0] = mid;
@@ -18897,8 +19205,9 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) {
       seg[1] = mid;
    }
   
-   SUMA_RETURN(found);
+   return(found);
 }
+
 int SUMA_binFind( float *indexList, int N_node, float target) {
    int seg[2]={0, N_node -1};
    if (SUMA_binSearch(indexList, target, seg)) return(seg[0]);
@@ -18918,36 +19227,42 @@ int SUMA_binFind( float *indexList, int N_node, float target) {
 
 SUMA_Boolean SUMA_ibinSearch( int *indexList, int target, int *seg) 
 {
+   static char FuncName[]={"SUMA_ibinSearch"};
    int mid=0;
    int beg = seg[0], end = seg[1];
    SUMA_Boolean found=YUP;
    SUMA_Boolean LocalHead = NOPE;
-   static char FuncName[]={"SUMA_ibinSearch"};
    
-   SUMA_ENTRY;
    if ( end<beg) {
       SUMA_S_Errv("Segment must be passed with seg[0]=%d <= seg[1]=%d.\n",
                   seg[0], seg[1]);
-      SUMA_RETURN (found = NOPE);
+      return (found = NOPE);
    }
    if  (indexList[end]<indexList[beg] ) {
       SUMA_S_Errv("indexList must be passed sorted and in ascending order.\n"
                   "indexList[%d]=%d<indexList[%d]=%d\n",
                   end, indexList[end], beg, indexList[beg]);
-      SUMA_RETURN (found = NOPE);
+      return (found = NOPE);
    }
    if ( (indexList[beg]>target) || (indexList[end]<target) ) {
       SUMA_LHv("Don't bother, target (%d) does not lie within segment ]%d, %d[\n"
                   , target, indexList[beg], indexList[end]);
-      SUMA_RETURN (found = NOPE);
+      return (found = NOPE);
    }
 
    if (beg!=end) {
       mid =(end-beg)/2 + beg;
       /**no exact match, but elements above and below found*/
       if (beg+1==end) {
-         seg[0] = beg;
-         seg[1] = end;
+         if (indexList[end]==target) {
+            seg[0] = end;
+            seg[1] = end;
+         } else if (indexList[beg]==target) {
+            seg[0] = beg;
+            seg[1] = beg;
+         } else {
+            return (found = NOPE);
+         }
       }
       else if (target==indexList[mid]) {
          seg[0] = mid;
@@ -18969,7 +19284,7 @@ SUMA_Boolean SUMA_ibinSearch( int *indexList, int target, int *seg)
       seg[1] = mid;
    }
   
-   SUMA_RETURN(found);
+   return(found);
 } 
 
 int SUMA_ibinFind( int *indexList, int N_node, int target) {
@@ -19025,6 +19340,28 @@ float *SUMA_freorder(float *y, int *isort, int N_isort)
    if (!yr) SUMA_RETURN(yr);
    
    for (i=0; i<N_isort; ++i) yr[i] = y[isort[i]];
+   
+   SUMA_RETURN(yr);
+}
+
+float *SUMA_freorder_triplets(float *y, int *isort, int N_isort)
+{
+   static char FuncName[]={"SUMA_freorder_triplets"};
+   int i = 0;
+   float *yr = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!y || !isort || N_isort <= 0) SUMA_RETURN(yr);
+   
+   yr = (float *)SUMA_calloc( N_isort*3, sizeof(float));
+   if (!yr) SUMA_RETURN(yr);
+   
+   for (i=0; i<N_isort; ++i) {
+      yr[3*i] = y[3*isort[i]];
+      yr[3*i+1] = y[3*isort[i]+1];
+      yr[3*i+2] = y[3*isort[i]+2];
+   }
    
    SUMA_RETURN(yr);
 }

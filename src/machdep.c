@@ -206,7 +206,7 @@ char * Random_Insult(void)
 
 /*---------------------------------------------------------------------------*/
 #define SOL_TO_LOWER(c) ( ((c) >= 'A' && (c) <= 'Z') ? (c + 'a' - 'A') : (c) )
-char *SOLARIS_strcasestr(const char *s1, const char *s2)
+char *AFNI_strcasestr(const char *s1, const char *s2)
 {
    char *s1u=NULL;
    char *s2u=NULL;
@@ -219,11 +219,11 @@ char *SOLARIS_strcasestr(const char *s1, const char *s2)
                                 You will get death if s2 is NULL */
    
    if (!(s1u = strdup(s1))) {
-      fprintf(stderr,"SOLARIS_strcasestr: Failed to dup string 1\n");
+      fprintf(stderr,"AFNI_strcasestr: Failed to dup string 1\n");
       return(NULL);
    }
    if (!(s2u = strdup(s2))) {
-      fprintf(stderr,"SOLARIS_strcasestr: Failed to dup string 2\n");
+      fprintf(stderr,"AFNI_strcasestr: Failed to dup string 2\n");
       free(s1u);
       return(NULL);
    }

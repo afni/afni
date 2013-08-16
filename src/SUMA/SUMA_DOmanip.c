@@ -628,18 +628,34 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                   cSV->VSv[is].MembDOs = 
                      (int *)SUMA_calloc(cSV->VSv[is].N_MembDOs, sizeof(int));
                   cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
-               } else { /* old state, just add the DO */
-                  SUMA_LHv("For GLDO  %s\n State:%s,Group:%s found\n", 
+               } 
+               { /* If we are in the proper state add it to RegisteredDO*/
+                  SUMA_LHv("For GLDO  %s\n State:%s,Group:%s found.\n"
+                           "Comparing to current viewer state of %s\n", 
                            GLDO->Label, SUMA_iDO_state(dov_id),
-                                        SUMA_iDO_group(dov_id));
-                  if (SUMA_FindFirst_inIntVect(cSV->VSv[is].MembDOs,
-                                  cSV->VSv[is].MembDOs+cSV->VSv[is].N_MembDOs,
-                                  dov_id) < 0) { /* not present, add it */
-                     cSV->VSv[is].N_MembDOs += 1;
-                     cSV->VSv[is].MembDOs = 
-                        (int *)SUMA_realloc(cSV->VSv[is].MembDOs,
-                                             cSV->VSv[is].N_MembDOs*sizeof(int));
-                     cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
+                                        SUMA_iDO_group(dov_id),
+                           cSV->State);
+                  if (!strcmp(cSV->State, SUMA_iDO_state(dov_id))) {
+                     if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id) < 0) {/* not present, add it */
+                     cSV->RegisteredDO[cSV->N_DO] = dov_id;
+                     cSV->N_DO += 1; 
+                     } else {
+                        SUMA_LHv("   GLDO %s, %s already in the bag at"
+                              " cSV->RegisteredDO[%d]\n", 
+                                 DO_label(GLDO), GLDO->variant,
+                                 SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id));
+                     }
+                     SUMA_LH("Adding color list.");
+                     /* add the ColorList */
+                     if (!SUMA_FillColorList (cSV,
+                                    (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
+                        SUMA_S_Err("Failed in SUMA_FillColorList.");
+                        SUMA_RETURN (NOPE);
+                     }
                   }
                }
             }
@@ -2627,12 +2643,11 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
          SUMA_RETURN (SUMA_GPSO1_is_GPSO2);
       }
    }
-   
    if (SO1->N_Node == SO2->N_Node) {
       SUMA_LH(SUMA_DomainKinships_String (SUMA_N_NODE_SAME));
       SUMA_RETURN (SUMA_N_NODE_SAME);
    }
-   
+  
    SUMA_LH(SUMA_DomainKinships_String (SUMA_DOMAINS_NOT_RELATED));
    SUMA_RETURN (SUMA_DOMAINS_NOT_RELATED);
    

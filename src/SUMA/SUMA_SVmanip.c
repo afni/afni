@@ -869,7 +869,7 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
             SUMA_S_Err("Dataset should be graph type");
             SUMA_RETURN(NOPE);
          }
-         N_points = SDSET_VECLEN(dset);
+         N_points = 1+SUMA_GDSET_Max_Edge_Index(dset);
          idcode = SDSET_ID(dset);
          SUMA_LHv("Filling a color list for dset %s (%s).\n", 
                   SDSET_LABEL(dset), SDSET_ID(dset));
@@ -900,7 +900,7 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
          } else {
             static int iwhine=0;
             if (!(iwhine % 10)) {
-               SUMA_S_Note("Is it OK to return benignly for graphs here?"
+               SUMA_S_Note("Is it OK to return benignly for graphs here?\n"
                         "Is there a free missing upon switching states?");
             } 
             ++iwhine;
@@ -1666,6 +1666,10 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
                TotWeight += so_op->ViewCenterWeight;
             }
             break;
+         case GRAPH_LINK_type:
+            SUMA_LHv("Nothing done for GRAPH_LINK_type, variant %s yet\n",
+                     SUMA_ADO_variant((SUMA_ALL_DO *)(dov[do_id].OP)));
+            break;
          default:
             break;
       } 
@@ -1714,11 +1718,11 @@ Updates the Rotation Center of SV based on the contents of RegisteredDO
 SUMA_Boolean SUMA_UpdateRotaCenter (
                SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
 {
+   static char FuncName[]={"SUMA_UpdateRotaCenter"};
    int i, do_id, TotWeight;
    float NewCenter[3], UsedCenter[3];
    SUMA_SurfaceObject *so_op;
    SUMA_Boolean LocalHead = NOPE;
-   static char FuncName[]={"SUMA_UpdateRotaCenter"};
    
    SUMA_ENTRY;
 
@@ -1760,6 +1764,11 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
                NewCenter[2] += so_op->RotationWeight*UsedCenter[2];
                TotWeight += so_op->RotationWeight;
             }
+            break;
+         case GRAPH_LINK_type:
+            SUMA_LHv("Nothing done for GLDO (variant %s). Need a function\n"
+                     "to return the COM of such monsters\n",
+                     SUMA_ADO_variant((SUMA_ALL_DO *)(dov[do_id].OP)));
             break;
          default:
             break;
@@ -2054,12 +2063,20 @@ int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *ttv, int N_tt,
    int ii, jj;
    SUMA_DO_Types tt;
    int *Membs = NULL, N_Membs = 0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
    if (uN_Membs) *uN_Membs = 0;
+   SUMA_LHv("VS %p, MembDOs %p, N_MembDOs %d\n",
+            VS, (VS && VS->MembDOs) ? VS->MembDOs:NULL, 
+                (VS && VS->N_MembDOs) ? VS->N_MembDOs:0);
    if (!VS || !VS->MembDOs) SUMA_RETURN(Membs);
    for (jj=0; jj<N_tt; ++jj) {  tt = ttv[jj];
    for (ii=0; ii<VS->N_MembDOs; ++ii) {
+            SUMA_LHv("Checking %s type %s \n",
+                     iDO_label(VS->MembDOs[ii]), 
+                     SUMA_ObjectTypeCode2ObjectTypeName(tt));
       switch (tt) {
          case SO_type:
             if (iDO_isSO(VS->MembDOs[ii])) {
@@ -2091,6 +2108,7 @@ int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *ttv, int N_tt,
         }
    } }
    if (uN_Membs) *uN_Membs = N_Membs;
+   
    SUMA_RETURN(Membs);
 }
 
@@ -2500,8 +2518,9 @@ int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv, char *ForceGroup)
             SUMA_LH("Null Name or State or CurGroupName.\n");
             SUMA_RETURN (-1);
          }
-         if (strcmp(csv->VSv[i].Name, state) == 0 && 
-             strcmp(csv->VSv[i].Group, ForceGroup) == 0 ) {
+         if (strcmp(csv->VSv[i].Name, state) == 0              && 
+               (strcmp(csv->VSv[i].Group, ForceGroup) == 0 ||
+                strcmp(csv->VSv[i].Group, "ANY") == 0         ) ) {
             if (LocalHead) fprintf(SUMA_STDERR,"%s: FOUND, i=%d!\n", 
                FuncName, i);
             SUMA_RETURN (i);
@@ -3716,8 +3735,9 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
 {
    static char FuncName[] = {"SUMA_BestStandardView"};
    SUMA_STANDARD_VIEWS ans;
-   int N_MembSOs, *MembSOs=NULL, i, maxdim = -1, is, balls;
+   int N_MembSOs, *MembSOs=NULL, i, maxdim = -1, is, balls, vslice=0;
    SUMA_SurfaceObject *SO = NULL;
+   char *variant=NULL;
    SUMA_DO_Types ttv[2]={SO_type, GRAPH_LINK_type};
    SUMA_SO_SIDE side=SUMA_NO_SIDE;
    SUMA_Boolean LocalHead = NOPE;
@@ -3731,8 +3751,9 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
    }
    
    side = SUMA_LEFT;
-   balls = 0;
-   MembSOs = SUMA_ViewState_Membs(&(sv->VSv[is]), ttv, 1, &N_MembSOs);
+   balls = 0; vslice = 0;
+   MembSOs = SUMA_ViewState_Membs(&(sv->VSv[is]), ttv, 2, &N_MembSOs);
+   SUMA_LHv("Working on %d members\n", N_MembSOs);
    for (i=0; i<N_MembSOs; ++i) {   
       switch (dov[MembSOs[i]].ObjectType) {
          case SO_type:
@@ -3746,7 +3767,11 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
             if (SUMA_IS_GEOM_SYMM(SO->isSphere)) balls = 1;
             break;
          case GRAPH_LINK_type:
-            SUMA_LH("Nothing to do for now");
+            maxdim = 3;
+            variant = SUMA_ADO_variant((SUMA_ALL_DO *)dov[MembSOs[i]].OP);
+            if (!strcmp(variant,"GMATRIX")) {
+               vslice = 1; /* a slice viewed from above */
+            } 
             break;
          default:
             SUMA_S_Err("Should not be here");
@@ -3763,7 +3788,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (  SUMA_SurfaceViewer *sv,
             SUMA_RETURN (SUMA_2D_Z0);
          }
       case 3:
-         if (!balls) SUMA_RETURN(SUMA_3D);
+         if (!balls && !vslice) SUMA_RETURN(SUMA_3D);
          else SUMA_RETURN(SUMA_3D_Z0);
       default:
          fprintf(SUMA_STDERR,
@@ -4048,7 +4073,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
 
       if (!SUMA_SetViewerLightsForSO(cSV, SO)) {
          SUMA_S_Warn("Failed to set viewer lights.\n"
-                     "Use 'F' key to flip lights in SUMA\nif necessary.");
+                     "Use 'F' key to flip lights in SUMA if necessary.");
       }
    }
    

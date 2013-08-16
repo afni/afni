@@ -35,15 +35,33 @@ typedef struct {
                      functions. Nothing in here should be allocated for.
                      All use of this structure should be temporary to the
                      drawing function */
+
+/* A structure to create a hash table for locating NIML elements
+   for a certain edge in a graph dataset */
+typedef struct {
+    int id;    /* keep it named 'id' to facilitate use of convenience
+                  macros in uthash . The integer id of an edge: its index*/
+    int ngrindex; /* the index into ngr->part of the ni element in question.
+                     ngr is the AFNI_dataset group element */
+    UT_hash_handle hh;  /* keep it named 'hh' for same reasons  */
+}  SUMA_NGR_INDEX_HASH_DATUM;
+
+
 /*! Graph dataset Auxiliary structure for SUMA's use */
 typedef struct {
    DList *DisplayUpdates;
    SUMA_SegmentDO *SDO;
+   SUMA_NIDO *nido;
    SUMA_OVERLAYS *Overlay;
    SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
    SUMA_PICK_RESULT *PR;
    SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
                                  by thresholds etc. */
+   NI_group *net; /*!< A network group holding tract indexed in thd. 
+                       if net is NULL, then thd indexes into dset->ngr*/
+   SUMA_NGR_INDEX_HASH_DATUM *thd; /*! A hash table pointing to niml element
+                                       containing tract to represent path
+                                       between two points */
 } SUMA_GRAPH_SAUX;
 
 #define SDSET_GSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
@@ -59,6 +77,7 @@ SUMA_Boolean SUMA_ADO_UL_Add(SUMA_ALL_DO *ado, char *com, int replace);
 SUMA_Boolean SUMA_DrawDO_UL_Add(DList *dl, char *com, int replace); 
 DListElmt *SUMA_DrawDO_UL_Find(DList *dl, char *com); 
 SUMA_Boolean SUMA_DrawDO_UL_EmptyList(DList *dl, DListElmt *del);
+SUMA_Boolean SUMA_DestroyNgrHashDatum(SUMA_NGR_INDEX_HASH_DATUM *thd);
 void SUMA_Free_GSaux(void *vSaux);
 void SUMA_Free_Saux_DisplayUpdates_datum(void *ddd);
 SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset);
@@ -94,6 +113,8 @@ SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM,
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
+void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj, 
+                         GLfloat *colp, SUMA_SurfaceViewer *sv);
 SUMA_VIS_XFORM_DATUM *SUMA_NewVisXdatum(char *label);
 void SUMA_FreeVisXdatum (void *vxd);
 
@@ -172,6 +193,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                                        SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawGraphDO_GRELIEF (SUMA_GraphLinkDO *gldo, 
                                        SUMA_SurfaceViewer *sv);
+SUMA_SurfaceObject *SUMA_Surface_Of_NIDO_Matrix(SUMA_NIDO *nido);
 void SUMA_free_SphereDO (SUMA_SphereDO * SDO);
 void SUMA_free_TractDO (SUMA_TractDO * SDO);
 void SUMA_free_PlaneDO (SUMA_PlaneDO * SDO);
@@ -342,7 +364,9 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
                            char *primitive, char *variant,
                            char *ref_idcode_str,SUMA_DO_Types ref_do_type,
                                    SUMA_SurfaceViewer *sv);
-
+NI_element *SUMA_GDSET_Edge_Bundle(SUMA_DSET *gset, SUMA_GRAPH_SAUX *GSaux, 
+                                   int edge_id, int alt_edge_id);
+                                   
 /*! Following DO_ macros are for setting states up for colorid picking
     and restoring states at exit.
     Note that some of these are overkill. They were added in a attempt
