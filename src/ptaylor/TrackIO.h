@@ -12,14 +12,22 @@ typedef struct {
 
 
 typedef struct {
-   THD_3dim_dataset *grid;
-   THD_3dim_dataset *FA;
    int N_tracts;
    int N_allocated;
    TAYLOR_TRACT *tracts;
-   char atlas_space[65];
 } TAYLOR_BUNDLE;
 
+typedef struct {
+   THD_3dim_dataset *grid;
+   THD_3dim_dataset *FA;
+   char atlas_space[65];
+   int N_allocated;
+   int N_tbv;
+   TAYLOR_BUNDLE **tbv;
+   int *bundle_tags;
+} TAYLOR_NETWORK;
+
+void Show_Taylor_Network(TAYLOR_NETWORK *network, FILE *out, int mx, int mxb);
 void Show_Taylor_Bundle(TAYLOR_BUNDLE *bundle, FILE *out, int mx);
 void Show_Taylor_Tract(TAYLOR_TRACT *tract, FILE *out, int mx);
 TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
@@ -27,21 +35,27 @@ TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
                           int id, THD_3dim_dataset *grid);
 TAYLOR_TRACT *Free_Tracts(TAYLOR_TRACT *tt, int N);
 TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf, 
-                              TAYLOR_TRACT *tracts_buff, 
-                              THD_3dim_dataset *grid);
+                               TAYLOR_TRACT *tracts_buff);
 TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb);
-                              
+TAYLOR_NETWORK *Free_Network(TAYLOR_NETWORK *net);                       
 
 NI_element *Tract_2_NIel(TAYLOR_TRACT *tt);
 TAYLOR_TRACT *NIel_2_Tract(NI_element *nel);
-NI_group *Bundle_2_NIgr(TAYLOR_BUNDLE *tb, int mode);
-TAYLOR_BUNDLE *NIgr_2_Bundle(NI_group *ngr); 
-int Write_NI_Bundle(NI_group *ngr, char *name, char *mode); 
+
+TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network, 
+                                      TAYLOR_BUNDLE **tb,int tag,
+                                      THD_3dim_dataset *grid);
+NI_group *Network_2_NIgr(TAYLOR_NETWORK *network, int mode);
+TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr); 
+int Write_NI_Network(NI_group *ngr, char *name, char *mode); 
+int Write_Network(TAYLOR_NETWORK *network, char *name, char *mode);
 int Write_Bundle(TAYLOR_BUNDLE *tb, char *name, char *mode);
-TAYLOR_BUNDLE * Read_Bundle(char *name) ;
-NI_group * Read_NI_Bundle(char *name);
+TAYLOR_NETWORK * Read_Network(char *name) ;
+NI_group * Read_NI_Network(char *name);
+
 int get_tract_verb(void);
 void set_tract_verb(int v);
+int get_NI_tract_type(void);
 int NI_getTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAngDeg, 
                        float *MinL, int *SeedPerV, int *M, int *bval);
 NI_element * NI_setTractAlgOpts(NI_element *nel, float *MinFA, 
@@ -111,5 +125,10 @@ typedef struct
   int           hdr_size;   
 } tv_io_header;   
 
+// for writing trackvis track info currently
+int SimpleWriteDetNetTr(FILE *file, int ***idx, THD_3dim_dataset *FA,
+                        THD_3dim_dataset *MD, THD_3dim_dataset *L1,
+                        float **loc, int **locI, int len,
+                        int *TV, int *Dim, float *Ledge);
 
 #endif

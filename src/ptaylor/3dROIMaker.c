@@ -27,6 +27,7 @@
 #include <mrilib.h>    
 #include <rsfc.h>    
 #include <3ddata.h>    
+#include "DoTrackit.h"
 
 #define DEP (1)              // search rad of defining ROIs
 #define BASE_DVAL (-1)       // intermed values for ROI-finding
