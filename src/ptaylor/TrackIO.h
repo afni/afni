@@ -25,6 +25,7 @@ typedef struct {
    int N_tbv;
    TAYLOR_BUNDLE **tbv;
    int *bundle_tags;
+   int *bundle_alt_tags;
 } TAYLOR_NETWORK;
 
 void Show_Taylor_Network(TAYLOR_NETWORK *network, FILE *out, int mx, int mxb);
@@ -43,7 +44,7 @@ NI_element *Tract_2_NIel(TAYLOR_TRACT *tt);
 TAYLOR_TRACT *NIel_2_Tract(NI_element *nel);
 
 TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network, 
-                                      TAYLOR_BUNDLE **tb,int tag,
+                                      TAYLOR_BUNDLE **tb,int tag, int alt_tag,
                                       THD_3dim_dataset *grid);
 NI_group *Network_2_NIgr(TAYLOR_NETWORK *network, int mode);
 TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr); 

@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16, Aug , 2013 , ZSS , "suma-general" , MAJOR , TYPE_MODIFY,
+   "Yet another still hidden expansion of graph dsets",
+   "Modifications to many data structures and handling functions\n"
+   "to allow for the storage and display of graph datasets (such as\n"
+   "correlation matrices, and the like.\n"
+ },
+ 
+ { 16, Aug , 2013 , ZSS , "afni-general" , MAJOR , TYPE_MODIFY,
+   "Changes to tractography I/O API to allow for graph dataset handling",
+   "Effort in concert with Paul Taylor\n"
+ },
+ 
+ 
  { 6, Aug , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
    "Recreated suma_MNI_N27.tgz and suma_TT_N27.tgz with LPI GIFTI",
    "The surfaces had to be recreated to fit LPI assumption.\n"

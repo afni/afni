@@ -205,6 +205,7 @@ NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname)
    SUMA_RETURN((NI_element *)nel);
 }
 
+/* Return any element or group named elname */
 void *SUMA_FindNgrNamedAny(NI_group *ngr, char *elname)
 {
    static char FuncName[]={"SUMA_FindNgrNamedAny"};

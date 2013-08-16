@@ -335,7 +335,8 @@ ENTRY("storage_mode_from_niml");
             if( atr && 
                 ( !strcmp(atr, "Node_Bucket") ||
                   !strcmp(atr, "Node_ROI")    ||
-                  !strcmp(atr, "Node_Label")  )   ) /* then SUMA DSET */
+                  !strcmp(atr, "Node_Label")  ||
+                  !strcmp(atr, "Graph_Bucket"))   ) /* then SUMA DSET */
                 RETURN(STORAGE_BY_NI_SURF_DSET);
             RETURN(STORAGE_BY_NIML);                 /* else assume AFNI */
         } else if ( ! strcmp(ng->name, "bundle") )
@@ -839,14 +840,18 @@ ENTRY("process_NSD_sparse_data");
     if( !rhs || 
          (  strcmp(rhs, "Node_Bucket_data") &&
             strcmp(rhs, "Node_ROI_data")   &&
-            strcmp(rhs, "Node_Label_data")    ) )
+            strcmp(rhs, "Node_Label_data") &&
+            strcmp(rhs, "Graph_Bucket_data")   ) )
     {
         if(gni.debug)
           fprintf(stderr,"** SPARSE_DATA without data_type "
-                   "Node_Bucket_data or Node_ROI_data or Node_Label_data\n");
+             "Node_Bucket_data or Node_ROI_data or Node_Label_data "
+             "or Node_Bucket_data\n");
         RETURN(1);
     }
-
+    if(gni.debug && !strcmp(rhs, "Graph_Bucket_data")) {
+      fprintf(stderr,"+d Reading graph data but output will not retain type\n");
+    }
     /* if we have a node list, verify that it matches the data in length */
     if( blk->nnodes > 0 && (blk->nnodes != nel->vec_len) )
     {

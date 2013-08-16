@@ -3936,7 +3936,7 @@ void SUMA_NodeInput (void *data)
    j = n / TF->Ni;
    
    if ((int)TF->num_value[n] < 0 || 
-       (int)TF->num_value[n] >= SUMA_ADO_N_Datum(ado)) {
+       (int)TF->num_value[n] > SUMA_ADO_Max_Datum_Index(ado)) {
       SUMA_SLP_Err("Node index must be positive and \n"
                    "less than the number of nodes \n"
                    "forming the surface.\n");
@@ -8996,7 +8996,7 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado)
    SelectedNode = SUMA_ADO_SelectedDatum(ado);
    
    if (!SurfCont || !SurfCont->NodeTable) SUMA_RETURN(NOPE);
-   if (SelectedNode < 0 || SelectedNode >= SUMA_ADO_N_Datum(ado)) 
+   if (SelectedNode < 0 || SelectedNode > SUMA_ADO_Max_Datum_Index(ado)) 
                                           SUMA_RETURN(NOPE);
    if (!SurfCont->NodeTable->num_value) { /* Table widgets not created yet? */
       SUMA_RETURN(NOPE);
@@ -9043,18 +9043,18 @@ char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado,
    char **sar=NULL;
    double dval;
    int Found = -1;
-   int N_Node = -1;
+   int Max_Node_Index = -1;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    if (!ado || !dset) SUMA_RETURN(sar);
    
-   N_Node = SUMA_ADO_N_Datum(ado);
+   Max_Node_Index = SUMA_ADO_Max_Datum_Index(ado);
    
    /* 1- Where is this node in the data set ? */
    if (Node > -1) {
-      Found = SUMA_GetNodeRow_FromNodeIndex_s(  dset, Node, N_Node );
+      Found = SUMA_GetNodeRow_FromNodeIndex_s(  dset, Node, Max_Node_Index );
    } else {
       Found = -1;
    }
@@ -10242,6 +10242,42 @@ int SUMA_ADO_N_Datum(SUMA_ALL_DO *ado)
    }
    return(-1);
 }
+
+int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_ADO_Max_Datum_Index"};
+   if (!ado) return(-1);
+   switch(ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+         return(SO->N_Node-1);
+         break; }
+      case SDSET_type: {
+         SUMA_DSET *dset=(SUMA_DSET *)ado;
+         if (SUMA_isGraphDset(dset)) {
+            int mm;
+            GDSET_MAX_EDGE_INDEX(dset,mm);
+            return(mm);
+         } else {
+            return(SDSET_VECLEN(dset)-1);
+         }
+         break; }
+      case GRAPH_LINK_type: {
+         SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
+         SUMA_DSET *dset=NULL;
+         if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
+            SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
+                        SUMA_ADO_Label(ado));
+            return(-1);
+         }
+         return(SUMA_ADO_Max_Datum_Index((SUMA_ALL_DO *)dset));
+         break; }
+      default:
+         return(-1);
+   }
+   return(-1);
+}
+
 
 char * SUMA_ADO_variant(SUMA_ALL_DO *ado) {
    static char FuncName[]={"SUMA_ADO_variant"};

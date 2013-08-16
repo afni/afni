@@ -453,8 +453,8 @@ int SUMA_comma_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   
             /* find out if there are any surfaces that will be rendered */
 
-         } while (!SUMA_VisibleSOs (sv, SUMAg_DOv, NULL) && 
-                  sv->iState != origState);
+         } while (!SUMA_Selectable_ADOs (sv, SUMAg_DOv, NULL) && 
+                   sv->iState != origState);
 
          /* register a call to redisplay 
             (you also need to copy the color data, 
@@ -552,8 +552,8 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             }
             SUMA_SET_AS_NEEDED_2D_VIEW_ANGLE(sv);
 
-         } while (!SUMA_VisibleSOs (sv, SUMAg_DOv, NULL) && 
-                  sv->iState != origState);
+         } while (!SUMA_Selectable_ADOs(sv, SUMAg_DOv, NULL) && 
+                   sv->iState != origState);
          /* register a call to redisplay 
          (you also need to copy the color data, in case the next surface 
           is of the same family)*/
@@ -1189,7 +1189,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                
                if (!(fv = (float*)SUMA_GetDsetAllNodeValsInCols2(in_dset, 
                                        NULL, 0, 
-                                       inode, SO->N_Node, 
+                                       inode, SO->N_Node-1, 
                                        &N_ts,
                                        SUMA_float))) { 
                   SUMA_S_Err("Failed to extract time series.");
@@ -4569,7 +4569,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   
                   
                   if (SUMA_ALTHELL) {
-                     SUMA_S_Note("DO picking, order needs attention here");
+                     SUMA_LH("DO picking, order needs attention here");
                      hit = SUMA_MarkLineDOsIntersect (sv,  SUMAg_DOv, 0);
                      if (hit < 0) {
                         SUMA_S_Err("Failed in SUMA_MarkLineDOsIntersect.");
@@ -5463,7 +5463,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
    if (codf) {
       float *fv=NULL;
       double xyzw[9], scl[9], U[3], P[3], C[3], *dv=NULL;
-      int quad[3], i0, i1, ir;
+      int quad[3], i0, i1, ir, datum_index;
       SUMA_ALL_DO *ado=NULL;
       SUMA_DSET *dset=NULL;
       GLint viewport[4];
@@ -5476,6 +5476,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
       switch (codf->ref_do_type) {
          case GRAPH_LINK_type: {
             dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado);
+            datum_index = SUMA_GDSET_EdgeRow_To_Index(dset, PR->primitive_index);
             DDO.err = 1; SUMA_Load_Dumb_DO(ado, &DDO);
             if (DDO.err) {
                if (DDO.err==1) {
@@ -5492,12 +5493,13 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                SUMA_RETURN (PR);
             }
             if (SUMA_is_ADO_Datum_Primitive(ado, codf)) { 
-               if (!(SUMA_GDSET_SegIndexToPoints(dset, PR->primitive_index, 
+               
+               if (!(SUMA_GDSET_SegIndexToPoints(dset, datum_index, 
                                                  &i0, &i1, NULL))) {
                   SUMA_RETURN(PR);
                }
-               SUMA_LHv("Segment %ld is formed by points %d and %d\n",
-                        PR->primitive_index, i0, i1);
+               SUMA_LHv("Segment %d is formed by points %d and %d\n",
+                        datum_index, i0, i1);
                fv = SUMA_GDSET_NodeXYZ(dset, i0, SUMA_ADO_variant(ado), NULL);
                   xyzw[0] = fv[0]; xyzw[1] = fv[1]; xyzw[2] = fv[2];
                fv = SUMA_GDSET_NodeXYZ(dset, i1, SUMA_ADO_variant(ado), NULL);
@@ -5520,7 +5522,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                SUMA_LHv("User click locations: %d %d Norm(%f %f)\n"
                         "sv PickPix: %d %d (screen/mouse y:%d)\n"
                         "world: near[%f %f %f] far[%f %f %f]\n"
-                        "Edge %ld formed by nodes %d [%f %f %f], %d [%f %f %f]\n"
+                        "Edge %d formed by nodes %d [%f %f %f], %d [%f %f %f]\n"
                         "Nodes projected to screen: [%f %f %f], [%f %f %f]\n"
                   "Projection of click point screen edge: [%f %f %f], f = %f\n"
                         ,ipick, jpick, 
@@ -5528,8 +5530,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                         sv->PickPix[0], sv->PickPix[1], viewport[3]-jpick-1,
                            sv->Pick0[0], sv->Pick0[1], sv->Pick0[2],
                            sv->Pick1[0], sv->Pick1[1], sv->Pick1[2],
-                        PR->primitive_index, i0, xyzw[0], xyzw[1], xyzw[2],
-                           i1, xyzw[3], xyzw[4], xyzw[5],
+                        datum_index, i0, xyzw[0], xyzw[1], xyzw[2],
+                                     i1, xyzw[3], xyzw[4], xyzw[5],
                            scl[0], scl[1], scl[2], scl[3], scl[4], scl[5],
                            P[0], P[1], P[2], f);
 
@@ -5542,15 +5544,19 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                if (f <= 0.5) {
                   PR->selectedEnode = i0;
                   if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
-                     PR->datum_index = PR->primitive_index;
+                     PR->datum_index = datum_index;
                   } else PR->datum_index = -1;
                } else {
+                  SUMA_LHv("++half way, looking for opp. edge [%d %d]\n",
+                           i1, i0);
                   PR->selectedEnode = i1;
                   if (SUMA_ABS(1.0-f) > 0.01) { /* not too close to edge */
                      /* does edge [i1, i0] exist? If so take it*/
                      if (SUMA_GDSET_PointsToSegIndex(dset, i1, i0, &ir)) {
                         SUMA_LHv("Switching primitve to edge %d\n", ir);
                         PR->datum_index = ir;
+                     } else { /* leave old hit, no opposite edge */
+                        PR->datum_index = datum_index;
                      }
                   } else PR->datum_index = -1;
                }
