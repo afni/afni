@@ -454,7 +454,7 @@ typedef enum { SUMA_NO_PTR_TYPE,
                SUMA_N_LINKED_PTR_TYPES } SUMA_LINKED_PTR_TYPES;
 
 typedef enum { MAT_UNKNOWN=-2, MAT_NA = -1, MAT_HEEHAW = 0 /* not set */, 
-               MAT_SQUARE = 1, MAT_TRI, MAT_TRI_DIAG, MAT_SPARSE 
+               MAT_FULL = 1, MAT_TRI, MAT_TRI_DIAG, MAT_SPARSE 
               } SUMA_SQ_MATRIX_SHAPES; 
 
 typedef struct { /* Something to hold auxiliary datasets structs */
@@ -926,6 +926,9 @@ typedef struct {
    }  \
 }
 
+/* Edges are the 'nodes' of datasets */
+#define GDSET_MAX_EDGE_INDEX DSET_MAX_NODE_INDEX   
+
 /*!
    \brief Macros to access commonly used colorplane parameters
    DO NOT USE COLP_NODEDEF macro inside a loop where the returned
@@ -1018,6 +1021,7 @@ static byte NI_GOT;
    char m_stmp[100]; sprintf(m_stmp,"%f", val);   \
    NI_set_attribute(ngr, name, m_stmp);  \
 }
+
 #define NI_GET_FLOAT(ngr, name, val)  {\
    char *m_s = NI_get_attribute(ngr, name);  \
    if (m_s) { NI_GOT = 1; val = atof(m_s); } else { NI_GOT = 0; val = 0.0; }\
@@ -1040,6 +1044,50 @@ static byte NI_GOT;
    if (m_s) {  \
       NI_GOT = 1; \
       m_fv = (float *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_float, NULL); \
+      if (m_fv) {\
+         if (verb) {\
+            if (m_nr < n) { \
+               SUMA_S_Warn("Fewer values in field\nProceeding..."); }  \
+            else if (m_nr > n) { \
+               SUMA_S_Warn("More values in field\nProceeding..."); }  \
+         }  \
+         for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) \
+            valv[m_i] = m_fv[m_i];    \
+         SUMA_free(m_fv);  \
+      } else {    \
+         NI_GOT = 1; \
+         if (verb) SUMA_S_Warn("NULL vec, filling with zeros"); \
+      }  \
+   } else { NI_GOT = 0; }  \
+}
+
+#define NI_SET_DOUBLE(ngr, name, val)  {\
+   char m_stmp[100]; sprintf(m_stmp,"%f", val);   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+
+#define NI_GET_DOUBLE(ngr, name, val)  {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   if (m_s) { NI_GOT = 1; val = strtod(m_s,NULL); } else { NI_GOT = 0; val = 0.0; }\
+}
+
+#define NI_SET_DOUBLEv(ngr, name, valv, n) {\
+   char m_stmp[400]; int m_i=0, m_s=0;  m_stmp[0] = '\0';\
+   for (m_i=0; m_i<n && m_s < 350; ++m_i) { \
+      sprintf(m_stmp+m_s, " %f", valv[m_i]);   \
+      m_s = strlen(m_stmp);  \
+      if (m_s >= 350) { SUMA_S_Warn("Too long a vector, might get truncated"); }\
+   }\
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+
+#define NI_GET_DOUBLEv(ngr, name, valv, n, verb) {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   int m_nr, m_i; double *m_fv;  \
+   for (m_i=0; m_i<n; ++m_i) valv[m_i] = 0.0;   \
+   if (m_s) {  \
+      NI_GOT = 1; \
+      m_fv = (double *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_double, NULL); \
       if (m_fv) {\
          if (verb) {\
             if (m_nr < n) { \
@@ -2079,13 +2127,19 @@ int SUMA_PopulateDsetsFromGICORnel(NI_element *nel, GICOR_setup *giset,
 #define SUMA_CItri_pmax_diag(n) (((n)*((n)+1))/2-1)
 #define SUMA_CItri_pmax(n)      (((n)*((n)-1))/2-1)
 
-SUMA_Boolean SUMA_Dset_to_GDset(SUMA_DSET **dset,  
+SUMA_DSET *SUMA_FloatVec_to_GDSET(float **vec, int vec_num, int vec_len, 
+                                  char *mtype, 
+                                  char **vec_labs, int *ie, int *i0, int *i1);
+SUMA_Boolean SUMA_Dset_to_GDSET(SUMA_DSET **dset, char *mtype,  
                                 int ok_verticalize, int *ie, int *i0, int *i1);
 byte SUMA_CItri_p2ij(int p, int n, int two_n, byte withdiag, int *i, int *j);
 SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset);
 byte SUMA_GDSET_SegIndexToPoints(SUMA_DSET *dset, int si, 
                                  int *i1, int *i2, int *row);
 byte SUMA_GDSET_PointsToSegIndex(SUMA_DSET *dset, int i1, int i2, int *si);
+byte SUMA_GDSET_SegRowToPoints(SUMA_DSET *dset, int ri, 
+                                 int *i1, int *i2, int *index);
+byte SUMA_GDSET_PointsToSegRow(SUMA_DSET *dset, int i1, int i2, int *ri);
 SUMA_SQ_MATRIX_SHAPES SUMA_matrix_shape_name_to_matrix_shape(char *name); 
 char * SUMA_matrix_shape_to_matrix_shape_name(SUMA_SQ_MATRIX_SHAPES sq);
 SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg);
@@ -2095,9 +2149,13 @@ int SUMA_ibinFind( int *indexList, int N_node, int target);
 int *SUMA_reorder(int *y, int *isort, int N_isort);
 double *SUMA_dreorder(double *y, int *isort, int N_isort);
 float *SUMA_freorder(float *y, int *isort, int N_isort);
+float *SUMA_freorder_triplets(float *y, int *isort, int N_isort);
 int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals, NI_element **);
 int SUMA_GDSET_Index_To_NodeIndex(SUMA_DSET *dset, int cinode);
 int SUMA_GDSET_NodeIndex_To_Index(SUMA_DSET *dset, int node);
+int SUMA_GDSET_EdgeIndex_To_Row(SUMA_DSET *dset, int ei);
+int SUMA_GDSET_EdgeRow_To_Index(SUMA_DSET *dset, int ri);
+int SUMA_GDSET_Max_Edge_Index(SUMA_DSET *dset);
 
 
 #endif

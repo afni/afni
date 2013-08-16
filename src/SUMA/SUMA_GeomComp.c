@@ -6873,7 +6873,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
          SUMA_LHv("In Dset, node %d=%f\n",
                SUMA_SSidbg, 
                SUMA_GetDsetNodeValInCol2(dset,icols[k], 
-                                          SUMA_SSidbg, SO->N_Node));
+                                          SUMA_SSidbg, SO->N_Node-1));
       }
       if (fin_float) SUMA_free(fin_float); fin_float = NULL;
       
@@ -6905,7 +6905,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
             int nnn = -1;
             nnn = SUMA_GetNodeRow_FromNodeIndex_s(
                         dset, SUMA_SSidbg, 
-                        SO->N_Node);
+                        SO->N_Node-1);
             SUMA_LHv("Value at node %d (row %d), column %d: %f\n",
                SUMA_SSidbg, nnn, icols[k], 
                SUMA_GetDsetValInCol2( dset,icols[k], nnn ) );

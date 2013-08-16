@@ -2616,6 +2616,8 @@ int SUMA_RemoveSpecState(SUMA_SurfSpecFile  *Spec,
    int i, k, copyit;
    SUMA_Boolean LocalHead = NOPE;
 
+   SUMA_ENTRY;
+   
    if (!Spec || !state_rm) SUMA_RETURN(0);
 
    k = 0;

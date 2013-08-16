@@ -1722,7 +1722,7 @@ typedef struct {
       /* Begin specific fields */
    char *Parent_idcode_str;
    
-   TAYLOR_BUNDLE *tb; 
+   TAYLOR_NETWORK *net; 
 
    GLfloat LineWidth; /*!< Common LineWidth of all segment*/
    GLfloat LineCol[4]; /*!< Common LineColor of all segments*/

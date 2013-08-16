@@ -1083,7 +1083,7 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
    NI_element *C=NULL;
    float **feat_exp=usethis, wadj;
    char *fname=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

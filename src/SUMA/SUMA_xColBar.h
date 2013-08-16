@@ -141,6 +141,7 @@ char * SUMA_ADO_idcode(SUMA_ALL_DO *ado);
 char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado);
 SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado);
 int SUMA_ADO_N_Datum(SUMA_ALL_DO *ado);
+int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado);
 char * SUMA_ADO_variant(SUMA_ALL_DO *ado);
 int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,

@@ -170,6 +170,7 @@ TAYLOR_NETWORK *Free_Network(TAYLOR_NETWORK *net)
       free(net->tbv);
    }
    if (net->bundle_tags) free(net->bundle_tags);
+   if (net->bundle_alt_tags) free(net->bundle_alt_tags);
    
    free(net);
    
@@ -345,7 +346,7 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
    NI_element *nel=NULL;
    NI_group *ngr=NULL, *ngrgrid=NULL, *ngrfa=NULL;
    TAYLOR_BUNDLE *tb=NULL;
-   int ii=0, N_All_tracts, ei, bb;
+   int ii=0, N_All_tracts, ei, ei_alt, bb;
    
    ENTRY("Bundle_2_NIgr");
    
@@ -362,6 +363,8 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
       if ((tb = net->tbv[bb])) {
          if (net->bundle_tags) ei = net->bundle_tags[bb];
          else ei = bb;
+         if (net->bundle_alt_tags) ei_alt = net->bundle_alt_tags[bb];
+         else ei_alt = -1;
          if (tb->tracts) {
             if (mode == 0) { /* slow, handy */
                for (ii=0; ii<tb->N_tracts; ++ii) {
@@ -371,6 +374,7 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
             } else if (mode == 1) { /* fast */
                nel = Tracts_2_NIel(tb->tracts, tb->N_tracts);
                NI_SET_INT(nel,"Bundle_Tag", ei);
+               if (ei_alt >= 0) NI_SET_INT(nel,"Bundle_Alt_Tag", ei_alt);
                NI_add_to_group(ngr, nel);
             }
          }
@@ -439,7 +443,7 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 						tt = Free_Tracts(tt, N_tracts);
                   NI_GET_INT(nel,"Bundle_Tag",ei);
                   if (!NI_GOT) ei = -1;
-                  net = AppAddBundleToNetwork(net, &tbb, ei, NULL);
+                  net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL);
 					} else {
 						WARNING_message("Failed to interpret nel tract,"
 											 " ignoring.\n");
@@ -459,7 +463,7 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 }
 
 TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network, 
-                                      TAYLOR_BUNDLE **tb,int tag,
+                                      TAYLOR_BUNDLE **tb, int tag, int alt_tag,
                                       THD_3dim_dataset *grid)
 {
    TAYLOR_NETWORK *net=NULL;
@@ -486,10 +490,14 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
                            net->N_allocated*sizeof(TAYLOR_BUNDLE *));
       net->bundle_tags = (int *)realloc(net->bundle_tags,
                                      sizeof(int)*net->N_allocated);
+      net->bundle_alt_tags = (int *)realloc(net->bundle_alt_tags,
+                                     sizeof(int)*net->N_allocated);
+
    }
    
    net->tbv[net->N_tbv] = *tb; *tb = NULL;
    net->bundle_tags[net->N_tbv] = tag;
+   net->bundle_alt_tags[net->N_tbv] = alt_tag;
    ++net->N_tbv;
    
    RETURN(net);
@@ -553,8 +561,10 @@ int Write_Bundle(TAYLOR_BUNDLE *tb, char *name, char *mode)
    net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
    net->tbv = (TAYLOR_BUNDLE**)calloc(1,sizeof(TAYLOR_BUNDLE*));
    net->bundle_tags = (int *)calloc(1,sizeof(int));
+   net->bundle_alt_tags = (int *)calloc(1,sizeof(int));
    net->tbv[0]=tb;
    net->bundle_tags[0]=-1;
+   net->bundle_alt_tags[0]=-1;
    net->N_tbv=1;
    
    rval = Write_Network(net, name, mode);

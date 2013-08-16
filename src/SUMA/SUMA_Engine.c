@@ -1955,14 +1955,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_S_Err("No SO/DO in focus");
                break;
             }
-            if (EngineData->i >= 0 && EngineData->i < SUMA_ADO_N_Datum(ado)) {
+            if (EngineData->i >= 0 && 
+                  EngineData->i <= SUMA_ADO_Max_Datum_Index(ado)) {
                SUMA_ADO_Set_SelectedDatum(ado, EngineData->i);
             } else {
                /* ignore -1, used in initializations */
                if (EngineData->i != -1) { 
                   snprintf(tmpstr,80*sizeof(char), 
-                        "Node index (%d) < 0 || > Number of surface nodes (%d)",
-                        EngineData->i, SUMA_ADO_N_Datum(ado));
+                        "Node index (%d) < 0 || >= Number of surface nodes (%d)",
+                        EngineData->i, SUMA_ADO_Max_Datum_Index(ado)+1);
                   SUMA_SLP_Err(tmpstr);                
                }
                break;
@@ -4338,6 +4339,7 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
+      SUMA_LHv("Checking on %s\n", iDO_label(sv->RegisteredDO[i]));
       if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
          if (SO_SHOWING(SO, sv)) {
@@ -4558,7 +4560,8 @@ int SUMA_PrevState(SUMA_SurfaceViewer *sv)
             /* back where we started */
             SUMA_RETURN(inxt);
          } else {
-            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { /* group match, good, go back */
+            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { 
+               /* group match, good, go back */
                SUMA_RETURN(inxt);
             }
          }
@@ -4823,15 +4826,14 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    }
    
    /* register all the surfaces/DOs from the next view */
-   if (LocalHead) 
-      fprintf( SUMA_STDERR,
-               "%s: Registering DOv of state %d (%s)...\n", 
-               FuncName, nxtstateID, sv->VSv[nxtstateID].Name);
 
    /* Need to set the state before you go into Registering DOs    May 2013 */
    sv->State =  sv->VSv[nxtstateID].Name;
    sv->iState = nxtstateID;
 
+   SUMA_LHv("Registering %d DOs of state %d (%s)...\n", 
+            sv->VSv[nxtstateID].N_MembDOs, nxtstateID, 
+            sv->VSv[nxtstateID].Name);
    for (i=0; i<sv->VSv[nxtstateID].N_MembDOs; ++i) {
       if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembDOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
@@ -4866,7 +4868,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       SUMA_RETURN (NOPE);
    }
 
-   /* Get those DOs that are surfaces */
+   /* Get those DOs that are surfaces or graphs*/
    MembSOs = SUMA_ViewState_Membs(&(sv->VSv[nxtstateID]), ttv, 2, &N_MembSOs);
    
    /* if no coloroverlay exists, link to MapReference surface, if possible */
@@ -4942,24 +4944,6 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
                   FuncName, SO_nxt->N_Node - SO_prec->N_Node);
       }
 
-      #if 0
-      /* You do not want to mix colors yet, 
-         the flag for doing that has already been set*/
-      /* Here you need to remix the colors */
-      if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, 
-                                    SO_nxt->N_Overlays, 
-                                    SUMA_GetColorList (sv,
-                                                      SO_nxt->idcode_str),
-                                    SO_nxt->N_Node,
-                                    sv->Back_Modfact, 
-                                    sv->ShowBackground, 
-                                    sv->ShowForeground)) {
-         fprintf (SUMA_STDERR,
-                  "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n",
-                  FuncName);
-         SUMA_RETURN (NOPE);
-      }
-      #endif
             break;
          case GRAPH_LINK_type:
             /* nothing needed */
@@ -5068,7 +5052,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
       }
    }
 
-   if (LocalHead && (SOtmp = SUMA_SV_Focus_SO(sv))) {
+   if ((SOtmp = SUMA_SV_Focus_SO(sv)) && LocalHead) {
       fprintf( SUMA_STDERR,
                "%s: Setting new Focus ID to surface %s\n", 
                FuncName, SOtmp->Label);
@@ -5115,9 +5099,9 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    SUMA_WorldAxisStandard (sv->WAx, sv);
 
    /* do the light business */
-   if (!SUMA_SetViewerLightsForSO( sv, SUMA_SV_Focus_SO(sv) )) {
+   if (SOtmp && !SUMA_SetViewerLightsForSO( sv, SOtmp )) {
       SUMA_S_Warn("Failed to set viewer lights.\n"
-                  "Use 'F' key to flip lights in SUMA\nif necessary.");
+                  "Use 'F' key to flip lights in SUMA if necessary.");
    }
     
    /* Home call baby */
@@ -5132,11 +5116,13 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
 
 /*!
    Call this function whenever you have new geometry in the viewer
-   This happens when you switch states or when you modify the coordinates of a surface
+   This happens when you switch states or when you modify the coordinates 
+   of a surface
    The succession of function calls is replicated in parts elsewhere in the code
    like in the SwitchState function
 */
-SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov, 
+                                       SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_NewGeometryInViewer"};
    SUMA_Axis *EyeAxis;
@@ -5584,11 +5570,12 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov,
    \param Prec_List (int *) indices into dov of the precursor surface objects 
    \param N_Prec_List (int) number of indices in Prec_List
    \param dov (SUMA_DO *) the vector of Displayable Object Structures
-   \ret Prec_ID (int) index into dov of the surface object that is related to Cur_ID
+   \ret Prec_ID (int) index into dov of the surface object that is related 
+         to Cur_ID
 
 */
 int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, 
-                           SUMA_DO *dov) 
+                         SUMA_DO *dov) 
 {
    int i, rel_id = -1;
    static char FuncName[]={"SUMA_MapRefRelative"};
@@ -5596,58 +5583,63 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list,
 
    SUMA_ENTRY;
 
+   if (!iDO_isSO(cur_id)) { /* not a surface, return */
+      SUMA_RETURN(-1);
+   }
+   
    SOcur = (SUMA_SurfaceObject *)(dov[cur_id].OP);
    /* if surface has no MapRef then it cannot receive colors from precursors */
    if (!SUMA_ismappable(SOcur)) {
       SUMA_RETURN (-1);
    }
-   
     
    for (i=0; i<N_prec_list; ++i) {
-      SO_prec = (SUMA_SurfaceObject *)(dov[prec_list[i]].OP);
-      
-      if (  SO_prec == SOcur ||
-            strcmp(SOcur->idcode_str, SO_prec->idcode_str) == 0 ) {
-         if (N_prec_list == 1) {
-            /* if all you have is one surface in one state in SUMA 
-               then you need not worry about the rest */
-         } else {
-            /* this can happen if you have multiple surfaces with each being 
-               their own mappable surfaces., so it is OK too */
-            /*
-               fprintf(SUMA_STDERR, "\nError %s: Flow problem.\n"
-                                 "Did not expect identical surfaces \n"
-                                 "in this condition (N_prec_list = %d)\n", 
-                                 FuncName, N_prec_list);
-            SUMA_BEEP;
-            */ 
-         }
-         /* 
-         I changed the next condition: 
-         if (  strcmp(SOcur->LocalDomainParentID, 
-                      SO_prec->LocalDomainParentID) == 0 || 
-            strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0 )
-         to
-         if ( SUMA_isRelated_SO(SOcur, SO_prec, 1) )
-         The two are the same except for the condition when the two surfaces 
-         are identical. So I put in a error message when that would happen and 
-         I'll deal with it then.
-         ZSS Jan 08 04
-         */
-         
-      }
-      
-      if ( SUMA_isRelated_SO(SOcur, SO_prec, 1) ) { 
-         /* Change made Jan 08 04, see note above */
-         /* there's some relationship here, save it for return */
-         if (rel_id < 0) {
-            rel_id = prec_list[i];
-         } else {
-            fprintf (SUMA_STDERR,
-                  "Error %s: I did not think that would occur!"
-                  " Ignoring other relatives for now.\n", FuncName); 
+      if (iDO_isSO(prec_list[i])) {
+         SO_prec = (SUMA_SurfaceObject *)(dov[prec_list[i]].OP);
+
+         if (  SO_prec == SOcur ||
+               strcmp(SOcur->idcode_str, SO_prec->idcode_str) == 0 ) {
+            if (N_prec_list == 1) {
+               /* if all you have is one surface in one state in SUMA 
+                  then you need not worry about the rest */
+            } else {
+               /* this can happen if you have multiple surfaces with each being 
+                  their own mappable surfaces., so it is OK too */
+               /*
+                  fprintf(SUMA_STDERR, "\nError %s: Flow problem.\n"
+                                    "Did not expect identical surfaces \n"
+                                    "in this condition (N_prec_list = %d)\n", 
+                                    FuncName, N_prec_list);
+               SUMA_BEEP;
+               */ 
+            }
+            /* 
+            I changed the next condition: 
+            if (  strcmp(SOcur->LocalDomainParentID, 
+                         SO_prec->LocalDomainParentID) == 0 || 
+               strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0 )
+            to
+            if ( SUMA_isRelated_SO(SOcur, SO_prec, 1) )
+            The two are the same except for the condition when the two surfaces 
+            are identical. So I put in a error message when that would happen and
+            I'll deal with it then.
+            ZSS Jan 08 04
+            */
+
          }
 
+         if ( SUMA_isRelated_SO(SOcur, SO_prec, 1) ) { 
+            /* Change made Jan 08 04, see note above */
+            /* there's some relationship here, save it for return */
+            if (rel_id < 0) {
+               rel_id = prec_list[i];
+            } else {
+               fprintf (SUMA_STDERR,
+                     "Error %s: I did not think that would occur!"
+                     " Ignoring other relatives for now.\n", FuncName); 
+            }
+
+         }
       }
    }
 

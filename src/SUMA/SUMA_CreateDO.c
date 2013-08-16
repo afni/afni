@@ -2111,7 +2111,7 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
 SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id) 
 {
    static char FuncName[]={"SUMA_ReadTractDO"};
-   TAYLOR_BUNDLE *tb=NULL;
+   TAYLOR_NETWORK *net=NULL;
    SUMA_TractDO *TDO=NULL;
    
    SUMA_ENTRY;
@@ -2120,7 +2120,7 @@ SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id)
       SUMA_SLP_Err("NULL s");
       SUMA_RETURN(NULL);
    }
-   if (!(tb = Read_Bundle(s))) {
+   if (!(net = Read_Network(s))) {
       SUMA_S_Errv("Failed to read %s\n",s);
       SUMA_RETURN(NULL);
    }
@@ -2129,7 +2129,7 @@ SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id)
       SUMA_RETURN(NULL);
    }
    
-   TDO->tb = tb;
+   TDO->net = net;
    
    SUMA_RETURN(TDO);
 }
@@ -2998,7 +2998,7 @@ void SUMA_free_TractDO (SUMA_TractDO * TDO)
    if (TDO->Parent_idcode_str) SUMA_free(TDO->Parent_idcode_str);
    if (TDO->Label) SUMA_free(TDO->Label);
    if (TDO->idcode_str) SUMA_free(TDO->idcode_str);
-   if (TDO->tb) Free_Bundle(TDO->tb);
+   if (TDO->net) Free_Network(TDO->net);
    
    if (TDO) SUMA_free(TDO);
    
@@ -3379,9 +3379,10 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawTractDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, i3a, i3b, n, N_pts;
+   int i, i3a, i3b, n, N_pts, knet=0;
    float origwidth=0.0, Un, U[4]={0.0, 0.0, 0.0, 1.0}, *pa=NULL, *pb=NULL;
    TAYLOR_TRACT *tt=NULL;
+   TAYLOR_BUNDLE *tb=NULL;
    byte *mask=NULL;
    byte color_by_mid = 0; /* this one should be interactively set ... */
    GLboolean gl_sm=FALSE;
@@ -3401,7 +3402,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    }
    
 
-   if (!TDO->tb) SUMA_RETURN(YUP);
+   if (!TDO->net) SUMA_RETURN(YUP);
    
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    gl_sm = glIsEnabled(GL_LINE_SMOOTH);
@@ -3463,29 +3464,32 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                /* turn off ambient and diffuse components */
       glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
       
-      for (n=0; n<TDO->tb->N_tracts; ++n) {
-         tt = TDO->tb->tracts+n;
-         N_pts = TRACT_NPTS(tt);
-         if (N_pts>2 && color_by_mid) {
-            /* set color based on mid point */
-            pa = tt->pts+(tt->N_pts3/2);
-            pb = pa - 3;
-            SUMA_SEG_DELTA_COL(pa,pb,U);
-            glMaterialfv(GL_FRONT, GL_EMISSION, U);
-         }
-         i = 1;
-         while (i < N_pts) {
-            i3a = 3*(i-1); i3b = 3*i;
-            pa = tt->pts+i3a; pb = tt->pts+i3b;
-            if (TDO->colv) {
-               glMaterialfv(GL_FRONT, GL_EMISSION, &(TDO->colv[4*(i/3)]));
-            } else if (!color_by_mid) { 
+      for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+         tb = TDO->net->tbv[knet]; 
+         for (n=0; tb && n<tb->N_tracts; ++n) {
+            tt = tb->tracts+n;
+            N_pts = TRACT_NPTS(tt);
+            if (N_pts>2 && color_by_mid) {
+               /* set color based on mid point */
+               pa = tt->pts+(tt->N_pts3/2);
+               pb = pa - 3;
                SUMA_SEG_DELTA_COL(pa,pb,U);
                glMaterialfv(GL_FRONT, GL_EMISSION, U);
-            }   
-            glVertex3f(pa[0], pa[1], pa[2]);
-            glVertex3f(pb[0], pb[1], pb[2]);
-            ++i;
+            }
+            i = 1;
+            while (i < N_pts) {
+               i3a = 3*(i-1); i3b = 3*i;
+               pa = tt->pts+i3a; pb = tt->pts+i3b;
+               if (TDO->colv) {
+                  glMaterialfv(GL_FRONT, GL_EMISSION, &(TDO->colv[4*(i/3)]));
+               } else if (!color_by_mid) { 
+                  SUMA_SEG_DELTA_COL(pa,pb,U);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, U);
+               }   
+               glVertex3f(pa[0], pa[1], pa[2]);
+               glVertex3f(pb[0], pb[1], pb[2]);
+               ++i;
+            }
          }
       }
       glEnd();
@@ -3926,7 +3930,6 @@ SUMA_Boolean SUMA_DrawGraphDO (SUMA_GraphLinkDO *gldo, SUMA_SurfaceViewer *sv,
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    int i, i3a, i3b, n, N_pts, mode = 0;
    float origwidth=0.0, Un, U[4]={0.0, 0.0, 0.0, 1.0}, *pa=NULL, *pb=NULL;
-   byte *mask=NULL;
    byte color_by_mid = 0; /* this one should be interactively set ... */
    GLboolean gl_sm=FALSE;
    SUMA_Boolean ans = YUP;
@@ -3983,12 +3986,343 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                                        SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawGraphDO_GMATRIX"};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   int iseg, N_seg, usedel=0, M4, ii, jj, si;
+   int M[2], G[2], B[2], GB[2], N[2], is4, ii4, iipix, jjpix, iipixMax, jjpixMax;
+   DListElmt *el=NULL, *eln=NULL;
+   NI_element *nini=NULL;
+   GLfloat *colv=NULL;
+   byte *bb=NULL;
+   char Label[64]={""};
+   SUMA_Boolean ans = YUP;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)gldo;
+   SUMA_DSET *dset=NULL;
+   SUMA_GRAPH_SAUX *GSaux = NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
 
+   if (!gldo || !(dset=SUMA_find_GLDO_Dset(gldo)) || !sv 
+         || !SUMA_isGraphDset(dset) || !(GSaux=SDSET_GSAUX(dset))) {
+      fprintf(stderr,"Error %s: NULL or bad pointers.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+      
+   if (sv->DO_PickMode) {
+      SUMA_LH("In picking mode!");
+   }
+   
+
+   #if USE_SER
+   SUMA_RecordEnablingState(&(sv->SER)); /* Lazy, consider SUMA_GLStateTrack ,
+                                         Also, why record it if it is already
+                                         well preserved. */ 
+   #endif
+   
+   /* Form empty NIDO*/
+   snprintf(Label, 63*sizeof(char), "Image_%s_GMATRIX", SDSET_LABEL(dset));
+   if (!GSaux->nido) {
+      SUMA_LHv("Creating new NIDO for %s matrix\n", SDSET_LABEL(dset));
+      if (!(GSaux->nido = SUMA_BlankNIDO (NULL, Label, NULL, "mobile", NULL))) {
+         SUMA_S_Errv("Failed to allocate for GSaux->nido %s (%d)\n",
+                     Label, SDSET_VECLEN(dset));
+         goto BUGOUT;
+      }
+      NI_set_attribute(GSaux->nido->ngr,"parent_dset_id", SDSET_ID(dset));
+
+      /* fill in all the parameters per the controller settings */
+      G[0] = 6; G[1] = 4;  /* Pixels per matrix val */
+                        NI_SET_INTv(GSaux->nido->ngr, "PixPerVal", G, 2); 
+      B[0] = 2; B[1] = 1;  /* Border width */
+                        NI_SET_INTv(GSaux->nido->ngr, "BorWid", B, 2);
+      /* add a slice image nel */
+      nini = NI_new_data_element("Slice", 2); /* symbolic tiny size */
+      NI_SET_INT(nini,"k",0); /* 0th slice, always */
+      NI_add_column (nini, NI_BYTE, NULL); 
+      NI_add_to_group(GSaux->nido->ngr, nini);
+   } else {
+      if (!(nini = SUMA_FindNgrNamedElement(GSaux->nido->ngr,"Slice"))) {
+         SUMA_S_Err("Could not find Slice");
+         goto BUGOUT;
+      }
+      NI_GET_INTv(GSaux->nido->ngr, "PixPerVal", G, 2, LocalHead);
+      NI_GET_INTv(GSaux->nido->ngr, "PixPerVal", B, 2, LocalHead);
+   }
+   
+   /* number of values in matrix */
+   N[0] = SDSET_MATRIX_SZ0(dset); N[1] = SDSET_MATRIX_SZ1(dset); 
+   
+   /* total num of pixels per value */
+   GB[0] = G[0]+B[0];
+   GB[1] = G[1]+B[1];
+   
+   /* number of pixels in resultant image */
+   M[0] = G[0]*N[0] + B[0]*(N[0]+1);
+   M[1] = G[1]*N[1] + B[1]*(N[1]+1);
+   NI_SET_INTv(nini, "PixCount", M, 2);
+   
+   M4 = M[0]*M[1]*4;
+   
+   /* hand made ijk_to_dicom_real so that slice has constant size of 240mm*/
+   { 
+      double ijk2dcm[4][4], V[12];
+      AFF44_IDENT(ijk2dcm);
+      ijk2dcm[0][0] = 240/(double)M[0];
+      ijk2dcm[1][1] = ijk2dcm[0][0] * (double)M[1]/M[0];
+      AFF44_TO_V12( V, ijk2dcm);
+      NI_SET_DOUBLEv(GSaux->nido->ngr, "ijk_to_dicom_real", V, 12);
+   }
+   
+   /* check on sufficient size in nini */
+   if (nini->vec_len != M4) {
+      NI_alter_veclen(nini, M4);
+   }
+   if (!(bb = (byte *)nini->vec[0])) {
+      SUMA_S_Err("No bb to be had");
+      goto BUGOUT;
+   }
+   
+   if (dlist_size(GSaux->DisplayUpdates)) {/* GSaux->nido needs updating */
+      el = dlist_head(GSaux->DisplayUpdates);
+      do {
+         usedel = 1; /* assume will consumate this element */
+         if (!strcmp((char *)el->data,"nido_MapColors")) {
+            /* blank out all values */
+            memset(bb, 0, sizeof(byte)*M4);
+            /* get the color vector */
+            if (!(colv = SUMA_GetColorList(sv, SDSET_ID(dset)))) {
+               SUMA_S_Errv("No colv for %s?\n", SDSET_LABEL(dset));
+               goto BUGOUT;
+            }
+            N_seg = SDSET_VECLEN(dset);
+
+            /* Fillup where you have segments */
+            SUMA_LHv("Filling up image for %d cells\n", N_seg);
+            for(iseg=0; iseg<N_seg; ++iseg) {
+               if (!SUMA_GDSET_SegRowToPoints(dset, iseg, 
+                                                &ii, 
+                                                &jj,
+                                                NULL)){
+                  SUMA_S_Errv("Failed for edge %d\n", iseg);
+               }
+               si = SUMA_GDSET_EdgeRow_To_Index(dset, iseg);
+               
+               /* fill background, gray for now*/
+               iipix = ii*(GB[0]); iipixMax = iipix+B[0];
+               jjpix = jj*(GB[1]); jjpixMax = jjpix+B[1];
+               while (iipix < iipixMax) {
+                  while (jjpix < jjpixMax) {
+                     ii4 = (iipix*M[0]+jjpix)*4;
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 255; 
+                     ++jjpix;
+                  }
+                  ++iipix;
+               }
+               /* fill foreground */
+               iipix = ii*(GB[0])+B[0]; iipixMax = iipix+B[0]+G[0];
+               jjpix = jj*(GB[1])+B[1]; jjpixMax = jjpix+B[1]+G[1];
+               while (iipix < iipixMax) {
+                  while (jjpix < jjpixMax) {
+                     ii4 = (iipix*M[0]+jjpix)*4;
+                     is4 = 4*si;
+                     bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                     bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                     bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                     bb[ii4] = (byte)(255*colv[is4  ]); 
+                     ++jjpix;
+                  }
+                  ++iipix;
+               }
+            }
+         } else {
+            usedel = 0;
+            /* this may not need to be an error condition, you might just skip 
+            this update if it is irrelevant ?*/
+            SUMA_LHv("DisplayUpdates command %s not relevant here\n",
+                        (char *)el->data);
+         }
+         
+         if (el != dlist_tail(GSaux->DisplayUpdates)) eln = dlist_next(el);
+         else eln = NULL;
+         if (usedel) {
+            /* delete used element */
+            SUMA_DrawDO_UL_EmptyList(GSaux->DisplayUpdates, el);
+            el = NULL;
+         }
+         el = eln;
+      } while (el);
+   }
+   
+   /* and draw the GSaux */   
+   #if 0
+   SUMA_ShowNel(GSaux->nido->ngr);
+   #endif
+   
+   /* form the SO and draw it */   
+   SO = SUMA_Surface_Of_NIDO_Matrix(GSaux->nido);
+   SUMA_SimpleDrawMesh(SO, NULL, NULL);
+   if (LocalHead) {
+      char *ss = SUMA_SurfaceObject_Info(SO, NULL);
+      fprintf(SUMA_STDERR,"La Surface\n%s\n", ss);
+      SUMA_ifree(ss);
+   }
+   SUMA_S_Note("Consider this business about freeing SO all the time\n"
+               "You want that monster stored so that you can query it\n"
+               "for viewer point of view/FOV setups, etc.\n"
+               "Also, because it is pickable, you'll need it handy for\n"
+               "Picking, do we need its edge list, normals and whatnots?\n"
+               "You just don't want to compute every time if you just store\n"
+               "nodelist and faceset for nini. Hmmm, how does that fit with\n"
+               "volumes? Should we  just have a permanent array of slice frames\n"
+               "within each nido if creating the minimum on the fly is costly?\n"
+               "Where can I store a slice's surface frame anyway? Can't put it\n"
+               "in nini, it has to go in nido->ngr...\n"
+               "See what is needed for surface selection and simple rendering 1st.\n");
+   SUMA_Free_Surface_Object(SO); SO = NULL;
+   goto GETOUT;
+   
+   BUGOUT:
+   ans = NOPE;
+   
+   GETOUT:
+   
+#if USE_SER
+   /* Use in concert with SUMA_RecordEnablingState above */
+   SUMA_RestoreEnablingState(&(sv->SER));  
+#endif
+      
+   SUMA_RETURN(ans);
    SUMA_S_Err("Fill me up");
 
    SUMA_RETURN(YUP);
 }
+
+SUMA_SurfaceObject *SUMA_Surface_Of_NIDO_Matrix(SUMA_NIDO *nido)
+{
+   static char FuncName[]={"SUMA_Surface_Of_NIDO_Matrix"};
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_NEW_SO_OPT *nsoopt=NULL;
+   NI_element *nini = NULL;
+   float *NodeList=NULL;
+   double Aff[4][4], I[3], V[12], X[3];
+   int M[2], k, N_Node, N_FaceSet, *FaceSetList=NULL, i, i3;
+   
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!nido || !(nini = SUMA_FindNgrNamedElement(nido->ngr,"Slice"))) {
+      SUMA_S_Err("Could not find Slice");
+      SUMA_RETURN(SO);
+   }
+   
+   NI_GET_INTv(nini, "PixCount", M, 2, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No pixel dims!");
+      SUMA_RETURN(SO);
+   }
+   NI_GET_DOUBLEv(nido->ngr, "ijk_to_dicom_real", V, 12, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Warn("No coords matrix, going rogue");
+      V[0]= 240.0/M[0]; V[1] = V[2] = V[3] = 0.0;
+      V[5]= 240.0/M[1]; V[4] = V[6] = V[7] = 0.0;
+      V[10]= 240.0/M[1]; V[8] = V[9] = V[11] = 0.0;
+   }
+   V12_TO_AFF44(Aff, V);
+   
+   NI_GET_INT(nini, "k", k);
+   if (!NI_GOT) {
+      SUMA_S_Warn("No k, setting to 0");
+      k = 0;
+   }
+   
+   /* Prepare the grid (see labbook NIH-6, pp 243*/
+   N_Node = 12;
+   N_FaceSet = 10;
+   NodeList = (float *)SUMA_calloc(3*N_Node, sizeof(float));
+   FaceSetList = (int *)SUMA_calloc(3*N_FaceSet, sizeof(int));
+   I[2] = k;
+   
+   /* load the coordinates of the corners (not voxel/cell centers) */
+   i = 0; i3 = 3*i;  I[0] = -0.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 1; i3 = 3*i;  I[0] = -0.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+     
+   i = 2; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+     
+   i = 3; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 4; i3 = 3*i;  I[0] = -10-0.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 5; i3 = 3*i;  I[0] = -10-0.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 6; i3 = 3*i;  I[0] = -0.5; I[1] = M[1]+10.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 7; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = M[1]+10.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 8; i3 = 3*i;  I[0] = M[0]+10.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 9; i3 = 3*i;  I[0] = M[0]+10.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 10; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = -10.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   i = 11; i3 = 3*i;  I[0] = -0.5; I[1] = -10.5;  AFF44_MULT_I(X, Aff,I);
+   NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
+   
+   /* form the triangles */
+   i = 0; i3 = 3*i;
+   FaceSetList[i3++] = 0; FaceSetList[i3++] = 1; FaceSetList[i3++] = 2; 
+   
+   i = 1; i3 = 3*i;
+   FaceSetList[i3++] = 0; FaceSetList[i3++] = 2; FaceSetList[i3++] = 3; 
+   
+   i = 2; i3 = 3*i;
+   FaceSetList[i3++] = 4; FaceSetList[i3++] = 5; FaceSetList[i3++] = 1; 
+   
+   i = 3; i3 = 3*i;
+   FaceSetList[i3++] = 4; FaceSetList[i3++] = 1; FaceSetList[i3++] = 0; 
+   
+   i = 4; i3 = 3*i;
+   FaceSetList[i3++] = 6; FaceSetList[i3++] = 7; FaceSetList[i3++] = 2; 
+   
+   i = 5; i3 = 3*i;
+   FaceSetList[i3++] = 6; FaceSetList[i3++] = 2; FaceSetList[i3++] = 1; 
+   
+   i = 6; i3 = 3*i;
+   FaceSetList[i3++] = 8; FaceSetList[i3++] = 9; FaceSetList[i3++] = 3; 
+   
+   i = 7; i3 = 3*i;
+   FaceSetList[i3++] = 8; FaceSetList[i3++] = 3; FaceSetList[i3++] = 2; 
+   
+   i = 8; i3 = 3*i;
+   FaceSetList[i3++] = 10; FaceSetList[i3++] = 11; FaceSetList[i3++] = 0; 
+   
+   i = 9; i3 = 3*i;
+   FaceSetList[i3++] = 10; FaceSetList[i3++] = 0; FaceSetList[i3++] = 3; 
+   
+   nsoopt = SUMA_NewNewSOOpt();
+   SO = SUMA_NewSO( &NodeList, N_Node, &FaceSetList, N_FaceSet, nsoopt );
+   nsoopt = SUMA_FreeNewSOOpt(nsoopt);
+   
+   SUMA_S_Note("Consider storing the SO parts in NIDO as 'FrameSO' for speed\n")
+   
+   SUMA_RETURN(SO);
+} 
 
 SUMA_Boolean SUMA_DrawGraphDO_GRELIEF (SUMA_GraphLinkDO *gldo, 
                                        SUMA_SurfaceViewer *sv)
@@ -4016,9 +4350,12 @@ SUMA_Boolean SUMA_DrawDO_UL_FullMonty(DList *dl)
       SUMA_S_Warn("Update List not empty, emptying it now");
       SUMA_DrawDO_UL_EmptyList(dl, NULL);
    }
-   dlist_ins_next(dl, dlist_tail(dl), SUMA_copy_string("NodeList"));
-   dlist_ins_next(dl, dlist_tail(dl), SUMA_copy_string("MapColors"));
-   dlist_ins_next(dl, dlist_tail(dl), SUMA_copy_string("SetStippling"));
+   dlist_ins_next(dl, dlist_tail(dl), SUMA_copy_string("SDO_NodeList"));
+   dlist_ins_next(dl, dlist_tail(dl), SUMA_copy_string("SDO_MapColors"));
+   dlist_ins_next(dl, dlist_tail(dl), SUMA_copy_string("SDO_SetStippling"));
+
+   dlist_ins_next(dl, dlist_tail(dl), SUMA_copy_string("nido_MapColors"));   
+   
    SUMA_RETURN(YUP);   
 }
 
@@ -4116,7 +4453,6 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
    int iseg, N_seg, usedel=0;
    DListElmt *el=NULL, *eln=NULL;
    float origwidth=0.0;
-   byte *mask=NULL;
    GLboolean gl_sm=FALSE;
    char Label[64]={""};
    SUMA_Boolean ans = YUP;
@@ -4167,9 +4503,9 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
       el = dlist_head(GSaux->DisplayUpdates);
       do {
          usedel = 1; /* assume will consumate this element */
-                if (!strcmp((char *)el->data,"NodeList")) {
+                if (!strcmp((char *)el->data,"SDO_NodeList")) {
                SUMA_Graph_NodeList(dset, NULL, 1, NULL, SUMA_ADO_variant(ado)); 
-         } else if (!strcmp((char *)el->data,"MapColors")) {
+         } else if (!strcmp((char *)el->data,"SDO_MapColors")) {
             SUMA_LH("Here is where you decide what needs coloring, \n"
                          "showing, etc. etc. For now we show all.\n");
             N_seg = SDSET_VECLEN(dset);
@@ -4184,14 +4520,14 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
             }
             /* Fillup node segments */
             for(iseg=0; iseg<N_seg; ++iseg) {
-               if (!SUMA_GDSET_SegIndexToPoints(dset, iseg, 
+               if (!SUMA_GDSET_SegRowToPoints(dset, iseg, 
                                                 GSaux->SDO->NodeID+iseg, 
                                                 GSaux->SDO->NodeID1+iseg,
                                                 NULL)){
                   SUMA_S_Errv("Failed for edge %d\n", iseg);
                }
                #if 0
-               SUMA_LHv("Edge %d: %d %d\n", 
+               SUMA_LHv("Edge row %d: %d %d\n", 
                         iseg, GSaux->SDO->NodeID[iseg], 
                               GSaux->SDO->NodeID1[iseg]);
                #endif
@@ -4201,13 +4537,13 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
             /* thickness? */
             GSaux->SDO->thickv = NULL;
             /* stippling ? */
-         } else if (!strcmp((char *)el->data,"SetStippling")) {
+         } else if (!strcmp((char *)el->data,"SDO_SetStippling")) {
             SUMA_LH("Not ready for stippling yet");
          }else {
             usedel = 0;
             /* this may not need to be an error condition, you might just skip 
             this update if it is irrelevant ?*/
-            SUMA_S_Errv("DisplayUpdates command %s unexpected\n",
+            SUMA_LHv("DisplayUpdates command %s not relevant here\n",
                         (char *)el->data);
          }
          
@@ -4241,7 +4577,6 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
    glLineWidth(origwidth);
 #endif
-   if (mask) SUMA_free(mask); mask=NULL;
       
    SUMA_RETURN(ans);
 }
@@ -4325,11 +4660,19 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
             SUMA_Remove_From_Pick_Colid_list(NULL,GSaux->SDO->idcode_str);
             SUMA_free_SegmentDO(GSaux->SDO); GSaux->SDO = NULL;
          }
+         
+         if (GSaux->nido) {/* Free segment DO */
+            GSaux->nido = SUMA_free_NIDO(GSaux->nido);
+         }
          if (GSaux->Overlay) {
             SUMA_S_Warn("Have overlay already, will remove it. Revisit later.");
             SUMA_FreeOverlayPointer(GSaux->Overlay);
             GSaux->Overlay = NULL;
          }
+         
+         if (GSaux->net) GSaux->net = NULL; /* pointer copy, do not free */
+         if (GSaux->thd) SUMA_DestroyNgrHashDatum(GSaux->thd); GSaux->thd = NULL;
+         
          if (GSaux->DOCont) {
             SUMA_S_Warn("Have controller already. Keep it.");
          }
@@ -4342,9 +4685,12 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          dlist_init(GSaux->DisplayUpdates, SUMA_Free_Saux_DisplayUpdates_datum);
          
          GSaux->SDO = NULL;
+         GSaux->nido = NULL;
          GSaux->Overlay = NULL;
          GSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), SDSET_type);
          GSaux->PR = SUMA_New_Pick_Result(NULL);
+         GSaux->thd = NULL;
+         GSaux->net = NULL;
       }
       
       SUMA_DrawDO_UL_FullMonty(GSaux->DisplayUpdates);
@@ -4352,6 +4698,28 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
    
    
    SUMA_RETURN(YUP);  
+}
+
+/* destroy the hash table of the tract paths */
+SUMA_Boolean SUMA_DestroyNgrHashDatum(SUMA_NGR_INDEX_HASH_DATUM *thd)
+{
+   static char FuncName[]={"SUMA_DestroyNgrHashDatum"};
+   SUMA_NGR_INDEX_HASH_DATUM *hd=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!thd) SUMA_RETURN(YUP);
+   
+   /* destroy all of the hash table */
+   while (thd) {
+      hd = thd;  /* will delete the head of the hash table list */
+      HASH_DEL( thd, hd); /* remove the head from the list, after
+                                 this macro, thd points to the next
+                                 item in the list; the new head */ 
+      SUMA_free(hd); hd = NULL; /* free hd, no longer needed */
+   }
+      
+   SUMA_RETURN(YUP);
 }
 
 void SUMA_Free_GSaux(void *vSaux)
@@ -4371,15 +4739,24 @@ void SUMA_Free_GSaux(void *vSaux)
       SUMA_Remove_From_Pick_Colid_list(NULL,Saux->SDO->idcode_str);
       SUMA_free_SegmentDO(Saux->SDO); Saux->SDO = NULL;
    }
+   
+   Saux->nido = SUMA_free_NIDO(Saux->nido); 
+   
    if (Saux->Overlay) {
       SUMA_FreeOverlayPointer(Saux->Overlay);
       Saux->Overlay = NULL;
    }
+   
    SUMA_ifree(Saux->isColored);
+   
    if (Saux->DOCont) SUMA_FreeSurfContStruct(Saux->DOCont);
    Saux->DOCont=NULL;
    
    if (Saux->PR) Saux->PR = SUMA_free_PickResult(Saux->PR);
+   
+   if (Saux->thd) SUMA_DestroyNgrHashDatum(Saux->thd); Saux->thd = NULL;
+   if (Saux->net) Saux->net = NULL; /* never free this pointer copy */
+   
    SUMA_ifree(Saux);
    return; 
 }
@@ -5203,6 +5580,63 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    
 }
 
+NI_element *SUMA_GDSET_Edge_Bundle(SUMA_DSET *gset, SUMA_GRAPH_SAUX *GSaux, 
+                                   int edge_id, int alt_edge_id) 
+{
+   static char FuncName[]={"SUMA_GDSET_Edge_Bundle"};
+   NI_element *nel=NULL;
+   SUMA_NGR_INDEX_HASH_DATUM *hd=NULL;
+   
+   if (edge_id < 0 || !gset || !GSaux || !GSaux->thd) return(NULL);
+   
+   /* Get the ngr part number for the nel from the hash table */
+   HASH_FIND_INT(GSaux->thd, &edge_id, hd); 
+   if (!hd) {
+      if (alt_edge_id < 0) return(NULL);
+      else {
+         HASH_FIND_INT(GSaux->thd, &alt_edge_id, hd);
+         if (!hd) return(NULL);
+      }
+   }
+   
+   /* Have index, work it */
+   if (GSaux->net) return((NI_element *)GSaux->net->part[hd->ngrindex]);
+   else return((NI_element *)gset->ngr->part[hd->ngrindex]); /* old style */
+   
+   return(NULL);
+}
+
+#define SUMA_EDGEINDEX_TO_NELNUM(key,thd,hdbuf) { \
+   HASH_FIND_INT(thd, &key, hdbuf); \
+   if (hdbuf) key = hdbuf->ngrindex; else  key = -1; \
+}
+
+#define SUMA_GDSET_TRACK_NEL(dset, GSaux, itp) ( \
+         GSaux->net ? (NI_element *)GSaux->net->part[itp]: \
+                      (NI_element *)dset->ngr->part[itp] );
+
+#define SUMA_DRAW_GRAPH_EDGE(DDO, cna3, cnb3, nelitp) {              \
+   if (!nelitp) { /* good ole fashioned segment */                   \
+      glVertex3f( DDO.NodeList[cna3], DDO.NodeList[cna3+1],          \
+                  DDO.NodeList[cna3+2]);                             \
+      glVertex3f( DDO.NodeList[cnb3  ],                              \
+                  DDO.NodeList[cnb3+1],                              \
+                  DDO.NodeList[cnb3+2]);                             \
+   } else {     /* bundle mode */                                    \
+      int nn, mm;                                                    \
+      TAYLOR_TRACT *ttn=NULL;                                        \
+      for (nn=0; nn<nelitp->vec_len; ++nn) {                         \
+         ttn = (TAYLOR_TRACT *)(nelitp->vec[0])+nn;                  \
+         mm=0;                                                       \
+         while (mm < ttn->N_pts3-3) {                                \
+      glVertex3f(ttn->pts[mm  ], ttn->pts[mm+1], ttn->pts[mm+2] );   \
+      glVertex3f(ttn->pts[mm+3], ttn->pts[mm+4], ttn->pts[mm+5] );   \
+            mm += 3;                                                 \
+         }                                                           \
+      }                                                              \
+   }                                                                 \
+}
+
 /* A variant on DrawSegmentDO that is tailored to the drawing needs
 of a graph dataset. Eventually, I might create a new DO type, but for
 now we piggy back on the good old SegmentDO */ 
@@ -5210,10 +5644,11 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
 {
    static char FuncName[]={"SUMA_DrawGSegmentDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, N_n3, i3, cn3, cn, n, cn1=0, n1=0, cn13=0, ncross=-1, ndraw=-1;
+   int i, si, N_n3, i3, cn3, cn, n, cn1=0, n1=0, cn13=0, ncross=-1, ndraw=-1;
    long int n4;
    int gllst=0, gllsm=0, OnlyThroughNode = -1;
    byte *msk=NULL;
+   NI_element *nelitp = NULL;
    float origwidth=0.0, rad = 0.0, gain = 1.0;
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
    byte *mask=NULL;
@@ -5224,7 +5659,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    SUMA_SegmentDO *SDO = NULL;
    DO_PICK_VARS;
    GLfloat selcol[4];
-   int ic0, ic1, s0, s1;
+   int ic0, ic1, s0, r0, s1, r1;
    int stipsel = 0; /* flag for stippling of selected edge */
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5317,7 +5752,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       OnlyThroughNode = GSaux->PR->selectedEnode;
    } else OnlyThroughNode = -1;
    
-   ic0 = -1; ic1=-1; s0 = -1; s1 = -1;
+   ic0 = -1; ic1=-1; r0 = -1; r1 = -1; s0 = -1; s1 = -1;
    if (!sv->DO_PickMode && (s0=GSaux->PR->datum_index) >=0 &&
        SUMA_SV_GetShowSelectedDatum(sv)) { /* Have selection to highlight, 
                                               Need to avoid it being masked
@@ -5325,20 +5760,24 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                               is enabled. For this reason we 
                                               will mask all the edges between
                                               the points of the selected edge */
-      if (GSaux->isColored && GSaux->isColored[s0]) {/* Don't show it if 
-                                                        thresholded */
+      r0 = SUMA_GDSET_EdgeIndex_To_Row(dset,s0);
+      if (GSaux->isColored && 
+         GSaux->isColored[s0]) {/* Don't show it if thresholded */
          ic0 = GSaux->isColored[s0];
          GSaux->isColored[s0] = 0;
-         n = SDO->NodeID[s0];
-         n1 = SDO->NodeID1[s0];
-         SUMA_GDSET_PointsToSegIndex(dset, n1, n, &s1);/* get the n1-->n edge */
+         n = SDO->NodeID[r0];
+         n1 = SDO->NodeID1[r0];
+         SUMA_GDSET_PointsToSegRow(dset, n1, n, &r1);/* get the n1-->n edge */
+         s1 = SUMA_GDSET_EdgeRow_To_Index(dset, r1);
          ic1 = GSaux->isColored[s1];
          GSaux->isColored[s1] = 0;
             /* Now do the highlight for edge s0, why wait till the end ?*/
-         n = SDO->NodeID[s0]; 
-         n1 = SDO->NodeID1[s0];
-         SUMA_LHv("Highlight: edge %d/%d, %d,%d (%d)\n", 
-                  s0, SDO->N_n, n, n1, DDO.N_Node);
+         n = SDO->NodeID[r0]; 
+         n1 = SDO->NodeID1[r0];
+         SUMA_LHv("Highlight: edge row %d/%d edge index %d, [%d,%d] (%d)\n"
+                  "Reverse edge: row %d, index %d\n", 
+                  r0, SDO->N_n, s0, n, n1, DDO.N_Node,
+                  r1, s1);
          
          /* get position of node n in NodeList */
          cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n); 
@@ -5351,22 +5790,20 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                     glEnable(GL_LINE_STIPPLE);
                glLineStipple (1, SUMA_int_to_stipplemask(stipsel-1)); 
             }
-            i3 = 3*s0;
             if (SDO->thickv) glLineWidth(SDO->thickv[s0]); 
             selcol[0] = 1-sv->clear_color[0];
             selcol[1] = 1-sv->clear_color[1];
             selcol[2] = 1-sv->clear_color[2];
             selcol[3] = 1-sv->clear_color[3]; 
+            nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, s0, s1);
             SUMA_LHv("Col:[%f %f %f %f]\n",
                selcol[0], selcol[1], selcol[2], selcol[3]);
+            
             glBegin(GL_LINES);
             glMaterialfv(GL_FRONT, GL_EMISSION, selcol);
-
-            glVertex3f( DDO.NodeList[cn3], DDO.NodeList[cn3+1], 
-                        DDO.NodeList[cn3+2]);
-            glVertex3f( DDO.NodeList[cn13  ], 
-                        DDO.NodeList[cn13+1], 
-                        DDO.NodeList[cn13+2]); 
+            
+            SUMA_DRAW_GRAPH_EDGE(DDO, cn3, cn13, nelitp);
+            
             glEnd();
             if (stipsel && !gllst) glDisable(GL_LINE_STIPPLE);
          }
@@ -5385,15 +5822,44 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                      /* turn off ambient and diffuse components */
             glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);      
          }
-         SUMA_LH("two-node vectors ");
+         SUMA_LHv("two-node vectors\n"
+                  "    DDO.NodeIndex %p, DDO.N_Node %d\n"
+                  "    GSaux->isColored %p, OnlyThroughNode=%d\n",
+                  DDO.NodeIndex, DDO.N_Node, GSaux->isColored,
+                  OnlyThroughNode);
          i = 0;
          gain = 1.0; n4=0;
          while (i < SDO->N_n) {
             n = SDO->NodeID[i];  
             n1 = SDO->NodeID1[i];
-            if (LocalHead) 
-               fprintf(SUMA_STDERR,"%s: %d/%d, %d,%d\n", 
-                        FuncName, i, SDO->N_n, n, n1);
+            si = SUMA_GDSET_EdgeRow_To_Index(dset,i);
+            
+            /* Do we have a tract for this monster ? */
+            nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, si, -1);
+            
+            if (LocalHead) { 
+               fprintf(SUMA_STDERR,
+                    "%s: segment row %d/%d, index %d, nodes [%d,%d], MASK %d\n",
+                        FuncName, i, SDO->N_n, 
+                        si, n, n1, IN_MASK(GSaux->isColored,si));
+               if (nelitp) {
+                  
+                  fprintf(SUMA_STDERR,
+                     "   Have special tract of segment %d at '%s %s'\n",
+                     si, nelitp ? nelitp->name:"nothing", 
+                     nelitp ? SUMA_CHECK_NULL_STR(
+                              NI_get_attribute(nelitp, "Edge_Index")):"NULL");
+               }
+               #if 0
+               if (i==0) {
+                  char *ss;
+                  ss=SUMA_ShowMeSome(DDO.NodeIndex, SUMA_int, 
+                                     DDO.N_Node, 5, NULL);
+                  fprintf(SUMA_STDERR,"DDO.NodeIndex=%s\n", ss);
+                  SUMA_ifree(ss);
+               }
+               #endif
+            }
             if (OnlyThroughNode>=0 && 
                   (OnlyThroughNode != n &&  OnlyThroughNode != n1)) {
                      ++i; continue;
@@ -5404,25 +5870,33 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                cn3 = 3*cn;
             cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
                cn13 = 3*cn1;
+            #if 0
+               SUMA_LHv("Rows of nodes [%d %d] are [%d %d]\n",
+                     n, n1, cn, cn1);
+            #endif
             if (cn<DDO.N_Node && cn1 < DDO.N_Node && 
-                IN_MASK(GSaux->isColored,i)) {
+                IN_MASK(GSaux->isColored,si)) {
                i3 = 3*i;
                
                if (colid){
                   n4 = 4*i; /* Always keep indexing tied to arrays of objects */
                   glColor4ub(colid[n4], colid[n4+1], colid[n4+2], colid[n4+3]);
                   if (LocalHead) 
-               fprintf(SUMA_STDERR,"%s:         %d %d %d %d\n", 
-                        FuncName, colid[n4], colid[n4+1],
+               fprintf(SUMA_STDERR,
+                     "%s: colid for segment row %d         %d %d %d %d\n", 
+                        FuncName, i, colid[n4], colid[n4+1],
                                   colid[n4+2], colid[n4+3]);
-               } else if (SDO->colv) 
-                  glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i)]));
-               
-               glVertex3f( DDO.NodeList[cn3], DDO.NodeList[cn3+1], 
-                           DDO.NodeList[cn3+2]);
-               glVertex3f( DDO.NodeList[cn13  ], 
-                           DDO.NodeList[cn13+1], 
-                           DDO.NodeList[cn13+2]); 
+               } else if (SDO->colv) { /* Colv is index by datum index */
+                  glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(si)]));
+               }
+               SUMA_LHv("Seg row %d between [%d,%d]: [%f %f %f --> %f %f %f]\n",
+                 i, cn, cn1,
+                 DDO.NodeList[cn3   ],DDO.NodeList[cn3 +1],DDO.NodeList[cn3 +2],
+                 DDO.NodeList[cn13  ],DDO.NodeList[cn13+1],DDO.NodeList[cn13+2]);
+               SUMA_DRAW_GRAPH_EDGE(DDO, cn3, cn13, nelitp);
+            } else {
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR, "masked segment %d?\n", i);
             }
             i += 1;
          }
@@ -5439,9 +5913,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          while (i < SDO->N_n) {
             n = SDO->NodeID[i]; 
             n1 = SDO->NodeID1[i]; 
+            si = SUMA_GDSET_EdgeRow_To_Index(dset,i);
             if (LocalHead) 
-               fprintf(SUMA_STDERR,"%s: %d/%d, %d,%d\n", 
-                        FuncName, i, SDO->N_n, n, n1);
+               fprintf(SUMA_STDERR,"%s: %d/%d, edge index %d [%d,%d]\n", 
+                        FuncName, i, SDO->N_n, si, n, n1);
             if (OnlyThroughNode>=0 && 
                   (OnlyThroughNode != n &&  OnlyThroughNode != n1)) {
                      ++i; continue;
@@ -5452,16 +5927,16 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
                cn13 = 3*cn1;
             if (cn<DDO.N_Node && cn1 < DDO.N_Node && 
-                IN_MASK(GSaux->isColored,i)) {
+                IN_MASK(GSaux->isColored,si)) {
                i3 = 3*i;
                if (SDO->thickv) glLineWidth(SDO->thickv[i]); 
                glBegin(GL_LINES);
                if (colid){
                   n4 = 4*i; /* Always keep indexing tied to arrays of objects */
                   glColor4ub(colid[n4], colid[n4+1], colid[n4+2], colid[n4+3]);
-               } else if (SDO->colv) 
-                  glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i)]));
-               
+               } else if (SDO->colv) { /* Colv is index by datum index */
+                  glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(si)]));
+               }
                glVertex3f( DDO.NodeList[cn3], DDO.NodeList[cn3+1], 
                            DDO.NodeList[cn3+2]);
                glVertex3f( DDO.NodeList[cn13  ], 
@@ -5482,12 +5957,12 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       if (ic1 >= 0) GSaux->isColored[s1] = ic1;                                      }     
 
    /* Highlight selected Datum, ONLY if we did not go the mask route */
-   if (!sv->DO_PickMode && (i=GSaux->PR->datum_index) >=0 &&
+   if (!sv->DO_PickMode && (si=GSaux->PR->datum_index) >=0 &&
        SUMA_SV_GetShowSelectedDatum(sv) && !GSaux->isColored) {
       n = SDO->NodeID[i]; 
       n1 = SDO->NodeID1[i]; 
-      SUMA_LHv("Highlight: %d/%d, %d,%d (%d)\n", 
-               i, SDO->N_n, n, n1, DDO.N_Node);
+      SUMA_LHv("Highlight: edge %d/%d, edge index %d [%d,%d] (%d)\n", 
+               i, SDO->N_n, si, n, n1, DDO.N_Node);
       /* get position of node n in NodeList */
       cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n); 
          cn3 = 3*cn;
@@ -10359,6 +10834,180 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_RETURNe;
 } /* SUMA_DrawMesh */
 
+/*! Create a simple tesselated mesh,
+   You don't even need to pass sv for this function
+   just simple surface drawing, node colors
+   must be passed directly if desired */
+void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj, 
+                         GLfloat *colp, SUMA_SurfaceViewer *sv)
+{  
+   static char FuncName[]={"SUMA_SimpleDrawMesh"};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   static GLfloat PermCol[] = {0.0, 0.0, 1.0, 1.0};
+   int i, ii, ND, id, ip, NP, PolyMode, sz[2]={0, 0};
+   SUMA_DRAWN_ROI *DrawnROI = NULL;
+   GLfloat rotationMatrix[4][4];
+   GLenum Face=GL_FRONT;
+   DList *st=NULL;
+   SUMA_TRANS_MODES trmode;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+   
+   SUMA_LH("Entered DrawMesh");
+   
+   if (  SurfObj->PolyMode == SRM_Hide || 
+         (sv && sv->PolyMode == SRM_Hide) ||
+         SurfObj->TransMode == STM_16 ||
+         (sv && sv->TransMode == STM_16)) {
+      SUMA_LH("Hiding surface"); 
+      SUMA_RETURNe; 
+   }
+
+   if (sv && sv->DO_PickMode) {
+      SUMA_LH("No need to DrawMesh in DO picking mode");
+      SUMA_RETURNe;
+   }
+   
+
+   #if 0 /* Not sure this will ever be needed for a simple mesh */
+   SUMA_LH("Might need to swap coords from the VisX transformed data");
+   SUMA_VisX_Pointers4Display(SurfObj, 1);
+   #endif
+   
+   if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
+      SUMA_S_Err("Failed to create tracking list");
+      SUMA_RETURNe; 
+   } 
+   /* check on rendering mode */
+   if (SurfObj->PolyMode != SRM_ViewerDefault) {
+     SUMA_LHv("Poly Mode %d\n", SurfObj->PolyMode);
+     /* not the default, do the deed */
+     #if 0 /* Need to start using MACRO below, but it is not working yet */
+     SUMA_SET_GL_RENDER_MODE_TRACK(SurfObj->PolyMode, st); 
+     #else
+     SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode);
+     #endif
+   }
+
+   /* check on rendering mode */
+   if (SurfObj->TransMode == STM_ViewerDefault) {
+      if (sv) trmode = sv->TransMode;
+      else trmode = STM_0;
+   } else if (SurfObj->TransMode > STM_0) {
+      trmode = SurfObj->TransMode;
+   } else trmode = STM_0;
+   
+   if (trmode != STM_0) {
+     /* not the default, do the deed */
+     SUMA_LHv("Trans Mode %d\n", trmode);
+     SUMA_SET_GL_TRANS_MODE(trmode, st); 
+   }
+
+
+         
+   SUMA_LH("Draw Method");
+   ND = SurfObj->NodeDim;
+   NP = SurfObj->FaceSetDim;
+   switch (DRAW_METHOD) { 
+      case STRAIGHT:
+         switch (RENDER_METHOD) {
+            case TRIANGLES:
+               glBegin (GL_TRIANGLES);
+               break;
+            case POINTS:
+               glPointSize(4.0); /* keep outside of glBegin */
+               glBegin (GL_POINTS);
+               break;
+         } /* switch RENDER_METHOD */
+         glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
+         for (i=0; i < SurfObj->N_FaceSet; i++)
+         {   
+            ip = NP * i;
+            id = ND * SurfObj->FaceSetList[ip];
+            glNormal3fv(&SurfObj->NodeNormList[id]);
+            glVertex3fv(&SurfObj->NodeList[id]); 
+               /* glVertex3f(0.1, 0.9, 0.0); */
+
+            id = ND * SurfObj->FaceSetList[ip+1];
+            glNormal3fv(&SurfObj->NodeNormList[id]);
+            glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.1, 0.1, 0.0); */
+
+            id = ND * SurfObj->FaceSetList[ip+2];
+            glNormal3fv(&SurfObj->NodeNormList[id]);
+            glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.7, 0.5, 0.0); */
+         }
+         glEnd();
+         break;
+      
+      case ARRAY:
+         /* This allows each node to follow the color 
+            specified when it was drawn */ 
+         glColorMaterial(Face, GL_AMBIENT_AND_DIFFUSE); 
+         glEnable(GL_COLOR_MATERIAL);
+         
+         /*Now setup various pointers*/
+         glEnableClientState (GL_COLOR_ARRAY);
+         glEnableClientState (GL_VERTEX_ARRAY);
+         glEnableClientState (GL_NORMAL_ARRAY);
+         if (!colp) { /* no color list, try  PermCol */
+            if (SurfObj->PermCol) {
+               glColorPointer (4, GL_FLOAT, 0, SurfObj->PermCol);
+            } else {
+               glDisableClientState (GL_COLOR_ARRAY);   
+               glColor4f(PermCol[0], PermCol[1], PermCol[2], PermCol[3]);
+            }
+         } else { 
+            glColorPointer (4, GL_FLOAT, 0, colp); 
+         }
+
+         glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
+         glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
+         if (LocalHead) 
+            fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet); 
+         switch (RENDER_METHOD) {
+            case TRIANGLES:
+               glDrawElements (  GL_TRIANGLES, (GLsizei)SurfObj->N_FaceSet*3, 
+                                 GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
+               break;
+            case POINTS:
+               glPointSize(4.0); /* keep outside of glBegin */
+               /* it is inefficient to draw points using the 
+                  glar_FaceSetList because nodes are listed more 
+                  than once. You are better off creating an index 
+                  vector into glar_NodeList to place all the points, just once*/ 
+               glDrawElements (  GL_POINTS, (GLsizei)SurfObj->N_FaceSet*3, 
+                                 GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
+               break;
+         } /* switch RENDER_METHOD */
+         
+                 
+         /*fprintf(stdout, "Disabling clients\n");*/
+         glDisableClientState (GL_COLOR_ARRAY);   
+         glDisableClientState (GL_VERTEX_ARRAY);
+         glDisableClientState (GL_NORMAL_ARRAY);   
+         /*fprintf(stdout, "Out SUMA_DrawMesh, ARRAY mode\n");*/
+         
+         glDisable(GL_COLOR_MATERIAL);
+         
+         break;
+
+   } /* switch DRAW_METHOD */
+   
+   #if 0 /* keep in sync with stuff above */
+   SUMA_LH("Bring the coords back where they ought to be");
+   SUMA_VisX_Pointers4Display(SurfObj, 0);
+   #endif
+   
+   SUMA_LH("Undoing state changes");
+   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
+   
+   
+   SUMA_LH("Done");
+   SUMA_RETURNe;
+} /* SUMA_SimpleDrawMesh */
+
+
 void SUMA_FreeVisXdatum (void *vxd)
 {
    static char FuncName[]={"SUMA_FreeVisXdatum"};
@@ -12162,7 +12811,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       SUMA_StringAppend (SS, s);
       SUMA_free(s); s = NULL;
    } else {
-      SS = SUMA_StringAppend (SS, "CommonNodeObject is NULL");
+      SS = SUMA_StringAppend (SS, "CommonNodeObject is NULL\n");
    }
    
    if (SO->NodeObjects) {
@@ -12170,13 +12819,13 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       SUMA_StringAppend (SS, s);
       SUMA_free(s); s = NULL;
    } else {
-      SS = SUMA_StringAppend (SS, "NodeObjects is NULL");
+      SS = SUMA_StringAppend (SS, "NodeObjects is NULL\n");
    }
    
    if (SO->NodeNIDOObjects) {
-      SUMA_StringAppend (SS, "NodeNIDOObjects is NOT NULL");
+      SUMA_StringAppend (SS, "NodeNIDOObjects is NOT NULL\n");
    } else {
-      SS = SUMA_StringAppend (SS, "NodeNIDOObjects is NULL");
+      SS = SUMA_StringAppend (SS, "NodeNIDOObjects is NULL\n");
    }
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);

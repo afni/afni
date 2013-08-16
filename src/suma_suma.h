@@ -43,6 +43,8 @@
 
 /* SUMA's generic includes */
    #include "uthash.h"
+   #include "ptaylor/TrackIO.h"
+   #include "mcw_malloc.h"
    #include "SUMA/SUMA_label.h"
    #include "suma_algorithms.h"
    #include "suma_afni_surface.h"
@@ -55,19 +57,7 @@
    #define SUMA_RETURNe EXRETURN 
    #define SUMA_mainENTRY mainENTRY(FuncName)
    
-   #include "mcw_malloc.h"
-   #include "ptaylor/TrackIO.h"
-   
-   /* post March 3 04, using AFNI's allocation and tracing routines
-   instead of SUMA's 
-   If you do not want to use AFNI's allocation functions, then use
-   -DDONT_USE_MCW_MALLOC in your compile command
-   
-   Relevant afni files:
-   mcw_malloc.c/h
-   debugtrace.c/h
-   */
-   
+      
    #define SUMA_free mcw_free
    #define SUMA_ifree(p)  if ((p)) {SUMA_free((p));} (p)=NULL; 
    

@@ -7990,7 +7990,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
          SO->SurfCont->SurfContPage->value = 
             SUMA_PageWidgetToNumber(SUMAg_CF->X->SC_Notebook, 
                                     SO->SurfCont->Page);
-         SUMA_S_Notev("Setting PPpage to %d\n",
+         SUMA_LHv("Setting PPpage to %d\n",
                       (int)SO->SurfCont->SurfContPage->value);
          sprintf(sbuf,"%d",(int)SO->SurfCont->SurfContPage->value);
          SUMA_SET_TEXT_FIELD(SO->SurfCont->SurfContPage->textfield, sbuf);

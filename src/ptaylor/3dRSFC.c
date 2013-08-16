@@ -60,7 +60,6 @@ int main( int argc , char * argv[] )
 	float fbotALL=0.0f, ftopALL=999999.9f; // do full range version
 	int NumDen = 0; // switch for doing numerator or denom
 	THD_3dim_dataset *outsetALL=NULL ; 	
-	THD_3dim_dataset *inset0 = NULL;
 	int m, mm;
 	float delf; // harmonics
 	int ind_low,ind_high,N_ny, ctr;
@@ -87,7 +86,6 @@ int main( int argc , char * argv[] )
 	char out_mrsfa[300];
 	char out_frsfa[300];
 	char out_unBP[300];
-	char in_name0[300];
 	int SERIES_OUT = 1;
 	int UNBP_OUT = 0; 
 	int DO_RSFA = 1;
@@ -392,11 +390,6 @@ int main( int argc , char * argv[] )
 			inset = THD_open_dataset(argv[nopt]) ;
 			CHECK_OPEN_ERROR(inset,argv[nopt]) ; 
 
-			sprintf(in_name0,"%s[0]", argv[nopt]); // @@ for size of output...
-			inset0 = THD_open_dataset(in_name0) ;
-			if( (inset0 == NULL ))
-				ERROR_exit("Can't open 0th brick of dataset as '%s[0]'.",in_name0);
-		 
 			nopt++ ; continue ;
 		}
 
@@ -425,10 +418,7 @@ int main( int argc , char * argv[] )
 			ERROR_exit("Need input dataset name on command line after options!") ;
 		inset = THD_open_dataset(argv[nopt]) ;
 		CHECK_OPEN_ERROR(inset,argv[nopt]) ;	 
-		sprintf(in_name0,"%s[0]", argv[nopt]); // @@ for size of output...
-		inset0 = THD_open_dataset(in_name0) ;
-		if( (inset0 == NULL ))
-			ERROR_exit("Can't open 0th brick of dataset as '%s[0]'.",in_name0);
+
 		nopt++ ;
    }
    DSET_UNMSEC(inset) ;
@@ -674,7 +664,7 @@ int main( int argc , char * argv[] )
 			outsetALL = EDIT_empty_copy(inset) ;
 			if(UNBP_OUT){ 
 				sprintf(out_unBP,"%s_unBP",prefix); 
-				EDIT_dset_items( outsetALL , ADN_prefix, out_unBP , ADN_none ) ;
+				EDIT_dset_items( outsetALL, ADN_prefix, out_unBP, ADN_none );
 				tross_Copy_History( inset , outsetALL ) ;
 				tross_Make_History( "3dRSFC" , argc,argv , outsetALL ) ;
 			}
@@ -829,9 +819,10 @@ int main( int argc , char * argv[] )
 	// **************************************************************
 	// **************************************************************
 	
-	outsetALFF = EDIT_empty_copy( inset0 ) ; 
+	outsetALFF = EDIT_empty_copy( inset ) ; 
 	sprintf(out_alff,"%s_ALFF",prefix); 
 	EDIT_dset_items( outsetALFF,
+                    ADN_nvals, 1,
 						  ADN_datum_all , MRI_float , 
 						  ADN_prefix    , out_alff,
 						  ADN_none ) ;
@@ -844,9 +835,10 @@ int main( int argc , char * argv[] )
 	tross_Make_History("3dRSFC", argc, argv, outsetALFF);
 	THD_write_3dim_dataset(NULL, NULL, outsetALFF, True);
 
-	outsetfALFF = EDIT_empty_copy( inset0 ) ; 
+	outsetfALFF = EDIT_empty_copy( inset ) ;
 	sprintf(out_falff,"%s_fALFF",prefix); 
 	EDIT_dset_items( outsetfALFF,
+                    ADN_nvals, 1,
 						  ADN_datum_all , MRI_float , 
 						  ADN_prefix    , out_falff,
 						  ADN_none ) ;
@@ -859,10 +851,13 @@ int main( int argc , char * argv[] )
 	tross_Make_History("3dRSFC", argc, argv, outsetfALFF);
 	THD_write_3dim_dataset(NULL, NULL, outsetfALFF, True);
 
-	outsetmALFF = EDIT_empty_copy( inset0 ) ; 
+
+
+	outsetmALFF = EDIT_empty_copy( inset ) ;
 	sprintf(out_malff,"%s_mALFF",prefix); 
 	EDIT_dset_items( outsetmALFF,
-						  ADN_datum_all , MRI_float , 
+                    ADN_nvals, 1,
+                    ADN_datum_all , MRI_float , 
 						  ADN_prefix    , out_malff,
 						  ADN_none ) ;
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetmALFF)) )
@@ -875,10 +870,11 @@ int main( int argc , char * argv[] )
 	THD_write_3dim_dataset(NULL, NULL, outsetmALFF, True);
 
 	if(DO_RSFA){
-		outsetRSFA = EDIT_empty_copy( inset0 ) ; 
+     outsetRSFA = EDIT_empty_copy( inset ) ;
 		sprintf(out_rsfa,"%s_RSFA",prefix); 
 		EDIT_dset_items( outsetRSFA,
-							  ADN_datum_all , MRI_float , 
+                       ADN_nvals, 1,
+                       ADN_datum_all , MRI_float , 
 							  ADN_prefix    , out_rsfa,
 							  ADN_none ) ;
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetRSFA)) )
@@ -890,10 +886,11 @@ int main( int argc , char * argv[] )
 		tross_Make_History("3dRSFC", argc, argv, outsetRSFA);
 		THD_write_3dim_dataset(NULL, NULL, outsetRSFA, True);
 		
-		outsetfRSFA = EDIT_empty_copy( inset0 ) ; 
+      outsetfRSFA = EDIT_empty_copy( inset ) ;
 		sprintf(out_frsfa,"%s_fRSFA",prefix); 
 		EDIT_dset_items( outsetfRSFA,
-							  ADN_datum_all , MRI_float , 
+                       ADN_nvals, 1,
+                       ADN_datum_all , MRI_float , 
 							  ADN_prefix    , out_frsfa,
 							  ADN_none ) ;
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetfRSFA)) )
@@ -905,10 +902,11 @@ int main( int argc , char * argv[] )
 		tross_Make_History("3dRSFC", argc, argv, outsetfRSFA);
 		THD_write_3dim_dataset(NULL, NULL, outsetfRSFA, True);
 		
-		outsetmRSFA = EDIT_empty_copy( inset0 ) ; 
+		outsetmRSFA = EDIT_empty_copy( inset ) ; 
 		sprintf(out_mrsfa,"%s_mRSFA",prefix); 
 		EDIT_dset_items( outsetmRSFA,
-							  ADN_datum_all , MRI_float , 
+                       ADN_nvals, 1,
+                       ADN_datum_all , MRI_float , 
 							  ADN_prefix    , out_mrsfa,
 							  ADN_none ) ;
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetmRSFA)) )

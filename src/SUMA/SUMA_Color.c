@@ -3691,7 +3691,7 @@ SUMA_COLOR_MAP *SUMA_NICmapToCmap(NI_group *ngr)
    This function will be called a trillion times, do not
    put fancy stuff in it, or just use macro
    \sa faster macro SUMA_COLMAPKEYTOINDEX
-   */
+*/
 int SUMA_ColMapKeyIndex(int key, SUMA_COLOR_MAP *CM)
 {
    static char FuncName[]={"SUMA_ColMapKeyIndex"};
@@ -5878,16 +5878,20 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
             SUMA_RETURN(NOPE);
          }
          if (!GSaux->isColored) {
-            if (!(GSaux->isColored = (SUMA_Boolean *)
-                      SUMA_calloc(SDSET_VECLEN(dset),sizeof(SUMA_Boolean)))) {
+            /* isColored might be too problematic for sparse graphs
+            from very large networks... will see */
+            if (!(GSaux->isColored = 
+                 (SUMA_Boolean *)SUMA_calloc((1+SUMA_GDSET_Max_Edge_Index(dset)),
+                                                sizeof(SUMA_Boolean)))) {
                SUMA_S_Crit("Failed to allocate for iscolored");
                SUMA_RETURN(NOPE);
             }
          } else {
-            memset(GSaux->isColored, 0, sizeof(SUMA_Boolean)*SDSET_VECLEN(dset));
+            memset(GSaux->isColored, 0, sizeof(SUMA_Boolean)*
+                                          (1+SUMA_GDSET_Max_Edge_Index(dset)));
          }
          if (!SUMA_MixOverlays ( &GSaux->Overlay, 1, NULL, 0, 
-                                 glcolar, SDSET_VECLEN(dset), 
+                                 glcolar, (1+SUMA_GDSET_Max_Edge_Index(dset)), 
                                  GSaux->isColored, NOPE)) {
             SUMA_S_Err("Failed in SUMA_MixOverlays.");
             SUMA_RETURN (NOPE);
@@ -6482,8 +6486,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
          SUMA_LH("Calling SUMA_RGBv_FnGnL_AR4op ...");
          /* This macro used to be called: 
                       SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity*/
-         SUMA_RGBv_FnGnL_AR4op(\
-         Overlays[i]->ColVec, glcolar, N_Node, isColored);         
+         SUMA_RGBv_FnGnL_AR4op(Overlays[i]->ColVec, glcolar, N_Node, isColored);         
       }
       
       if (!Full && !Glob && !Locl) {
@@ -8236,7 +8239,10 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    else if (SO->idcode_str) 
       SUMA_SetParent_DsetToLoad(SO->idcode_str); 
    else SUMA_SetParent_DsetToLoad(NULL);  
-      
+   
+   /* Might have tracts in there */
+   get_NI_tract_type();
+   
    dset = SUMA_LoadDset_s (filename, &form, 0); 
    SUMA_LHv("Dset as loaded is %p\n", dset);
    
@@ -8530,6 +8536,10 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
 
       if (used_over) *used_over = SO->Overlays[OverInd];
    } else {
+      SUMA_NGR_INDEX_HASH_DATUM *hd = NULL;
+      NI_element *nel=NULL;
+      NI_group *ngrnet=NULL;
+      int ip, ei;
       SUMA_GRAPH_SAUX *GSaux=NULL;
       if (SetupOverlay) {
          SUMA_LH("Setting up overlay for GRAPH dset");
@@ -8573,8 +8583,50 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                         FuncName);
                SUMA_RETURN(NOPE);
             }
+            
+            /* setup hash table for attaching explicit tracts to certain segs */
+            /* find a network element */
+            GSaux->net = (NI_group *)SUMA_FindNgrNamedAny(dset->ngr, "network");
+            if (GSaux->net) ngrnet = GSaux->net;
+            else ngrnet = dset->ngr;
+            for (ip=0; ip<ngrnet->part_num; ++ip) {
+               switch( ngrnet->part_typ[ip] ){
+                  case NI_GROUP_TYPE:
+                     break ;
+                  case NI_ELEMENT_TYPE:
+                     nel = (NI_element *)ngrnet->part[ip] ;
+                     if (!strcmp(nel->name, "tracts")) {
+                        if (nel->vec_typ[0] != get_NI_tract_type()) {
+                           SUMA_S_Errv("Bad vec_type, have %d, expected %d\n",
+							         nel->vec_typ[0], get_NI_tract_type());
+                        } else {
+                           NI_GET_INT(nel, "Bundle_Tag", ei);
+                           if (NI_GOT) {
+                              hd = (SUMA_NGR_INDEX_HASH_DATUM *)
+                            SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
+                              hd->id = ei;
+                              hd->ngrindex = ip;
+                              HASH_ADD_INT(GSaux->thd, id, hd);
+                           } else {
+                              SUMA_S_Warn("Loose tracts element in dataset");
+                           }
+                           NI_GET_INT(nel, "Bundle_Alt_Tag", ei);
+                           if (NI_GOT) {
+                              hd = (SUMA_NGR_INDEX_HASH_DATUM *)
+                            SUMA_calloc(1, sizeof(SUMA_COLOR_MAP_HASH_DATUM));
+                              hd->id = ei;
+                              hd->ngrindex = ip;
+                              HASH_ADD_INT(GSaux->thd, id, hd);
+                           }
+                        } 
+                     }
+                     break;
+                  default:
+                     break;
+               }
+            }
 
-         } 
+         }
 
          /* Match the old settings? */
          if (colplanepre == GSaux->Overlay) { /* old col plane found */
