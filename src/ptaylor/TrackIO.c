@@ -1,5 +1,7 @@
 #include <afni.h> 
 #include <suma_afni_surface.h> 
+#include <suma_algorithms.h> 
+#include <suma_datasets.h> 
 #include <TrackIO.h>
 
 static int NI_tract_type = -1;
@@ -28,8 +30,7 @@ void set_tract_verb(int v) { tract_verb=v; return; }
   Only used at initialization level
 */ 
 TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf, 
-                               TAYLOR_TRACT *tracts_buff, 
-                               THD_3dim_dataset *grid)
+                               TAYLOR_TRACT *tracts_buff)
 {
    TAYLOR_BUNDLE *tb=NULL;
    int nn;
@@ -41,11 +42,6 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
       tb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
       tb->N_allocated = 0;
       tb->N_tracts = 0;
-      if (grid) {
-         snprintf(tb->atlas_space,64*sizeof(char),"%s", grid->atlas_space);
-      } else {
-         snprintf(tb->atlas_space,64*sizeof(char),"UNKNOWN");
-      }
    } else {
       tb = tbu;
    }
@@ -147,12 +143,39 @@ TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb)
    ENTRY("Free_Bundle");
    
    if (!tb) RETURN(NULL);
-   if (tb->grid) DSET_delete(tb->grid);
-   if (tb->FA) DSET_delete(tb->FA);
    tb->tracts = Free_Tracts(tb->tracts, tb->N_tracts);
    free(tb);
    RETURN(NULL);
 }
+
+TAYLOR_NETWORK *Free_Network(TAYLOR_NETWORK *net) 
+{
+   TAYLOR_BUNDLE *tb=NULL;
+   int i;
+   
+   ENTRY("Free_Network");
+   
+   if (!net) RETURN(NULL);
+   if (net->grid) DSET_delete(net->grid);
+   if (net->FA) DSET_delete(net->FA);
+   if (net->tbv) {
+      for (i=0; i<net->N_tbv; ++i) {
+         tb = net->tbv[i];
+         if (tb) {
+            tb->tracts = Free_Tracts(tb->tracts, tb->N_tracts);
+            free(tb);
+         }
+         net->tbv[i]=NULL;
+      }
+      free(net->tbv);
+   }
+   if (net->bundle_tags) free(net->bundle_tags);
+   
+   free(net);
+   
+   RETURN(NULL);
+}
+
 
 void Show_Taylor_Tract(TAYLOR_TRACT *tt, FILE *out, int show_maxu) 
 {
@@ -197,6 +220,29 @@ void Show_Taylor_Bundle(TAYLOR_BUNDLE *tb, FILE *out, int show_maxu)
    EXRETURN;
 }
 
+void Show_Taylor_Network(TAYLOR_NETWORK *net, FILE *out, 
+                         int show_maxu, int show_maxub) 
+{
+   TAYLOR_BUNDLE *tb=NULL;
+   int show_max;
+   int ii=0;
+   
+   ENTRY("Show_Taylor_Network");
+   if (!out) out = stderr;
+   if (!tb) {
+      fprintf(out,"NULL tb"); 
+      EXRETURN;
+   }
+   fprintf(out,"  Network has %d bundles\n", net->N_tbv);
+   if (show_maxu < 0) show_max = net->N_tbv;
+   else if (show_maxu == 0) show_max = (net->N_tbv < 5) ? net->N_tbv : 5;  
+   else show_max = show_maxu;
+   
+   for (ii=0; ii<show_max; ++ii)
+      Show_Taylor_Bundle(net->tbv[ii], out, show_maxub);
+     
+   EXRETURN;
+}
 
 
 
@@ -294,60 +340,77 @@ TAYLOR_TRACT *NIel_2_Tracts(NI_element *nel, int *N_tracts)
    RETURN(tt);
 }
 
-NI_group *Bundle_2_NIgr(TAYLOR_BUNDLE *tb, int mode)
+NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
 {
    NI_element *nel=NULL;
-   NI_group *ngr=NULL, *ngrdset=NULL;
-   int ii=0;
+   NI_group *ngr=NULL, *ngrgrid=NULL, *ngrfa=NULL;
+   TAYLOR_BUNDLE *tb=NULL;
+   int ii=0, N_All_tracts, ei, bb;
    
    ENTRY("Bundle_2_NIgr");
    
-   if ( !tb ) RETURN(ngr);
+   if ( !net || !net->tbv || net->N_tbv < 1) RETURN(ngr);
    
-   ngr = NI_new_group_element(); NI_rename_group(ngr,"bundle");
-   NI_SETA_INT(ngr, "N_tracts", tb->N_tracts);
-   if (tb->tracts) {
-      if (mode == 0) { /* slow, handy */
-         for (ii=0; ii<tb->N_tracts; ++ii) {
-            nel = Tract_2_NIel(tb->tracts+ii);
-            NI_add_to_group(ngr, nel);
-         }
-      } else if (mode == 1) { /* fast */
-         nel = Tracts_2_NIel(tb->tracts, tb->N_tracts);
-         NI_add_to_group(ngr, nel);
+   ngr = NI_new_group_element(); NI_rename_group(ngr,"network");
+   for (N_All_tracts=0, bb=0; bb<net->N_tbv; ++bb) {
+      if ((tb = net->tbv[bb])) {
+         N_All_tracts += tb->N_tracts;
       }
    }
-   
-   if (tb->grid) {
-      ngrdset = THD_dataset_to_niml(tb->grid);
-      NI_set_attribute(ngrdset,"bundle_aux_dset","grid");
-      NI_add_to_group(ngr, ngrdset);
+   NI_SETA_INT(ngr, "N_tracts", N_All_tracts);
+   for (bb=0; bb<net->N_tbv; ++bb) {
+      if ((tb = net->tbv[bb])) {
+         if (net->bundle_tags) ei = net->bundle_tags[bb];
+         else ei = bb;
+         if (tb->tracts) {
+            if (mode == 0) { /* slow, handy */
+               for (ii=0; ii<tb->N_tracts; ++ii) {
+                  nel = Tract_2_NIel(tb->tracts+ii);
+                  NI_add_to_group(ngr, nel);
+               }
+            } else if (mode == 1) { /* fast */
+               nel = Tracts_2_NIel(tb->tracts, tb->N_tracts);
+               NI_SET_INT(nel,"Bundle_Tag", ei);
+               NI_add_to_group(ngr, nel);
+            }
+         }
+
+      }
+   }
+   if (net->grid) {
+      ngrgrid = THD_dataset_to_niml(net->grid);
+      NI_set_attribute(ngrgrid,"bundle_aux_dset","grid");
+      NI_add_to_group(ngr, ngrgrid);
+      if (net->atlas_space)
+         NI_set_attribute(ngr,"atlas_space", net->atlas_space);
+   }
+   if (net->FA) {
+      ngrfa = THD_dataset_to_niml(net->FA);
+      NI_set_attribute(ngrfa,"bundle_aux_dset","FA");
+      NI_add_to_group(ngr, ngrfa);
    }
    
-   if (tb->FA) {
-      ngrdset = THD_dataset_to_niml(tb->FA);
-      NI_set_attribute(ngrdset,"bundle_aux_dset","FA");
-      NI_add_to_group(ngr, ngrdset);
-   }
-   
-   NI_set_attribute(ngrdset,"atlas_space", tb->atlas_space);
+      
    
    RETURN(ngr);
 }
 
-TAYLOR_BUNDLE *NIgr_2_Bundle(NI_group *ngr) 
+TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr) 
 {
-   TAYLOR_BUNDLE *tb=NULL; 
+   TAYLOR_NETWORK *net=NULL;
+   TAYLOR_BUNDLE *tbb=NULL; 
    TAYLOR_TRACT *tt=NULL;
    NI_element *nel=NULL;
-   int ip=0, N_tracts=0;
+   int ip=0, N_tracts=0, ei=0;
    char *bad=NULL, *sbuf=NULL;
    
-   ENTRY("NIgr_2_Bundle");
+   ENTRY("NIgr_2_Network");
 
-   if (!ngr) RETURN(tb);
-   if (!strcmp(ngr->name,"bundle")) {
-      tb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
+   if (!ngr) RETURN(net);
+   if (!strcmp(ngr->name,"bundle") ||/* old style */
+       !strcmp(ngr->name,"network") ) { 
+      net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
+      tbb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
       for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
          switch( ngr->part_typ[ip] ){
 			case NI_GROUP_TYPE:
@@ -355,25 +418,28 @@ TAYLOR_BUNDLE *NIgr_2_Bundle(NI_group *ngr)
 					WARNING_message("Got unknown group in here! Plodding along");
 				}
 				if (!strcmp(bad,"grid")) {
-					tb->grid = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
+					net->grid = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
 				} else if (!strcmp(bad,"FA")) {
-					tb->FA = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
+					net->FA = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
 				} else {
 					WARNING_message("Not ready to feel the love for %s\n", bad);
 				}  
 				if ((sbuf = NI_get_attribute((NI_group*)ngr->part[ip]
 													  ,"atlas_space"))) {
-					snprintf(tb->atlas_space,64*sizeof(char),"%s",sbuf);
+					snprintf(net->atlas_space,64*sizeof(char),"%s",sbuf);
 				} else {
-					snprintf(tb->atlas_space,64*sizeof(char),"UNKNOWN");
+					snprintf(net->atlas_space,64*sizeof(char),"UNKNOWN");
 				}
 				break ;
 			case NI_ELEMENT_TYPE:
 				nel = (NI_element *)ngr->part[ip] ;
 				if (!strcmp(nel->name,"tract") || !strcmp(nel->name,"tracts")) {
 					if ((tt = NIel_2_Tracts(nel, &N_tracts))) {
-						tb = AppCreateBundle(tb, N_tracts, tt, NULL); 
+						tbb = AppCreateBundle(tbb, N_tracts, tt); 
 						tt = Free_Tracts(tt, N_tracts);
+                  NI_GET_INT(nel,"Bundle_Tag",ei);
+                  if (!NI_GOT) ei = -1;
+                  net = AppAddBundleToNetwork(net, &tbb, ei, NULL);
 					} else {
 						WARNING_message("Failed to interpret nel tract,"
 											 " ignoring.\n");
@@ -389,15 +455,52 @@ TAYLOR_BUNDLE *NIgr_2_Bundle(NI_group *ngr)
          }
       }
    } 
-   RETURN(tb);
+   RETURN(net);
 }
 
-int Write_NI_Bundle(NI_group *ngr, char *name, char *mode) 
+TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network, 
+                                      TAYLOR_BUNDLE **tb,int tag,
+                                      THD_3dim_dataset *grid)
+{
+   TAYLOR_NETWORK *net=NULL;
+   
+   ENTRY("AppAddBundleToNetwork");
+   
+   if (!tb) RETURN(net);
+   
+   if (!network) {
+      net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
+      net->N_allocated = -1;
+      if (grid) {
+         snprintf(net->atlas_space,64*sizeof(char),"%s", grid->atlas_space);
+      } else {
+         snprintf(net->atlas_space,64*sizeof(char),"UNKNOWN");
+      }      
+   } else { 
+      net = network;
+   }
+   
+   if (net->N_allocated <= 0 || net->N_tbv >= net->N_allocated) {
+      net->N_allocated += 100;
+      net->tbv = (TAYLOR_BUNDLE **)realloc( net->tbv,
+                           net->N_allocated*sizeof(TAYLOR_BUNDLE *));
+      net->bundle_tags = (int *)realloc(net->bundle_tags,
+                                     sizeof(int)*net->N_allocated);
+   }
+   
+   net->tbv[net->N_tbv] = *tb; *tb = NULL;
+   net->bundle_tags[net->N_tbv] = tag;
+   ++net->N_tbv;
+   
+   RETURN(net);
+}
+
+int Write_NI_Network(NI_group *ngr, char *name, char *mode) 
 {
    char *nameout=NULL;
    NI_stream ns;
    
-   ENTRY("Write_NI_Bundle");
+   ENTRY("Write_NI_Network");
    
    if (!mode) mode = "NI_fast_binary";
    
@@ -439,38 +542,66 @@ int Write_NI_Bundle(NI_group *ngr, char *name, char *mode)
 
 int Write_Bundle(TAYLOR_BUNDLE *tb, char *name, char *mode)
 {
-   NI_group *ngr=NULL;
+   TAYLOR_NETWORK *net=NULL;
    int rval=0;
    
    ENTRY("Write_Bundle");
+   
    if (!name) name = "no_name_jack";
    if (!tb) RETURN(0);
+
+   net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
+   net->tbv = (TAYLOR_BUNDLE**)calloc(1,sizeof(TAYLOR_BUNDLE*));
+   net->bundle_tags = (int *)calloc(1,sizeof(int));
+   net->tbv[0]=tb;
+   net->bundle_tags[0]=-1;
+   net->N_tbv=1;
+   
+   rval = Write_Network(net, name, mode);
+   
+   net->tbv[0]=0; net->N_tbv=0;
+   Free_Network(net);
+   RETURN(rval);
+}
+
+int Write_Network(TAYLOR_NETWORK *net, 
+                  char *name, char *mode)
+{
+   NI_group *ngr=NULL;
+   int rval=0;
+   
+   ENTRY("Write_Network");
+   if (!name) name = "no_name_jack";
+   if (!net) RETURN(0);
    
    if (!mode) mode = "NI_fast";
-   
+   if (net->N_tbv > 1 && !strcasestr(mode,"NI_fast")) {
+      ERROR_message("Cannot write more than one bundle in slow mode");
+      RETURN(0);
+   }
    if (strcasestr(mode,"NI_fast")) {
-      ngr = Bundle_2_NIgr(tb, 1);
+      ngr = Network_2_NIgr(net, 1);
    } else if (strcasestr(mode,"NI_slow")) {
-      ngr = Bundle_2_NIgr(tb, 0);
+      ngr = Network_2_NIgr(net, 0);
    } else {
       ERROR_message("Stop making bad choices! %s\n",mode);
       RETURN(0);
    }
    
-   rval = Write_NI_Bundle(ngr, name, mode);
+   rval = Write_NI_Network(ngr, name, mode);
    NI_free_element(ngr); ngr=NULL;
    
    RETURN(rval);
 } 
 
-NI_group * Read_NI_Bundle(char *name)
+NI_group * Read_NI_Network(char *name)
 {
    
    NI_stream ns;
    NI_group *ngr=NULL;
    char *nameout=NULL;
    
-   ENTRY("Read_NI_Bundle");
+   ENTRY("Read_NI_Network");
    
    /* be sure to init for tract datum */
    if (get_NI_tract_type() < 0) {
@@ -507,29 +638,29 @@ NI_group * Read_NI_Bundle(char *name)
    RETURN(ngr);
 }
 
-TAYLOR_BUNDLE * Read_Bundle(char *name) 
+TAYLOR_NETWORK * Read_Network(char *name) 
 {
    NI_group *ngr=NULL;
-   TAYLOR_BUNDLE *tb=NULL;
+   TAYLOR_NETWORK *net=NULL;
    
-   ENTRY("Read_Bundle");
+   ENTRY("Read_Network");
    
-   if (!name) RETURN(tb);
+   if (!name) RETURN(net);
    
-   if (!(ngr = Read_NI_Bundle(name))) {
+   if (!(ngr = Read_NI_Network(name))) {
       ERROR_message("Failed to read NI_Bundle %s\n", name);
-      RETURN(tb);
+      RETURN(net);
    }
    
-   if (!(tb = NIgr_2_Bundle(ngr))) {
+   if (!(net = NIgr_2_Network(ngr))) {
       ERROR_message("Failed to turn group element to bundle %s\n", name);
       NI_free_element(ngr); ngr = NULL;
-      RETURN(tb);
+      RETURN(net);
    }
  
    NI_free_element(ngr); ngr = NULL;
    
-   RETURN(tb);
+   RETURN(net);
 }
 
 
@@ -790,3 +921,36 @@ NI_element * ReadProbTractAlgOpts(char *fname)
    RETURN(nel);
 }      
 
+int SimpleWriteDetNetTr(FILE *file, int ***idx, THD_3dim_dataset *FA,
+                        THD_3dim_dataset *MD, THD_3dim_dataset *L1,
+                        float **loc, int **locI, int len,
+                        int *TV, int *Dim, float *Ledge)
+{ // for trackvis
+  int m,aa,bb;
+  int READS_in;
+  float READS_fl;
+
+  // first write len of tr
+  READS_in = len;
+  fwrite(&READS_in,sizeof(READS_in),1,file);
+
+  // then track, coors and props
+  for( m=0 ; m<len ; m++ ) {
+    // recenter phys loc for trackvis, if nec...
+    for( aa=0 ; aa<3 ; aa++ ) {
+      READS_fl = loc[m][aa];
+      if(!TV[aa])
+        READS_fl = Ledge[aa]*Dim[aa]-READS_fl;	
+      fwrite(&READS_fl,sizeof(READS_fl),1,file);
+    }
+    bb=idx[locI[m][0]][locI[m][1]][locI[m][2]];
+    READS_fl = 1; //THD_get_voxel(FA, bb, 0); 
+    fwrite(&READS_fl,sizeof(READS_fl),1,file);
+    READS_fl = 1; //THD_get_voxel(MD, bb, 0); 
+    fwrite(&READS_fl,sizeof(READS_fl),1,file);
+    READS_fl = 1; //THD_get_voxel(L1, bb, 0); 
+    fwrite(&READS_fl,sizeof(READS_fl),1,file);
+  }
+
+  RETURN(1);
+}
