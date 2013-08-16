@@ -15,10 +15,10 @@ int main( int argc , char *argv[] )
    int nwset=0,nsset=0 ; THD_3dim_dataset **dset_nwarp=NULL , **dset_src=NULL ;
    char *prefix = "AdjMean" ;
    int iarg , ii,kk , verb=1 , iv ;
-   THD_3dim_dataset *dset_sbar , *dset_wbar , *dset_twarp ;
-   int nx,ny,nz,nxyz , nxs,nys,nzs ;
+   THD_3dim_dataset *dset_sbar=NULL , *dset_wbar , *dset_twarp ;
+   int nx=0,ny=0,nz=0,nxyz=0, nxs=0,nys=0,nzs=0;
    IndexWarp3D *AA,*BB , *WWbin ;
-   float *sbar , fac , Anorm,Bnorm ;
+   float *sbar=NULL , fac , Anorm,Bnorm ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
