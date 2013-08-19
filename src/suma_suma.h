@@ -48,6 +48,7 @@
    #include "SUMA/SUMA_label.h"
    #include "suma_algorithms.h"
    #include "suma_afni_surface.h"
+   #include "suma_utils.h"
    #include "suma_datasets.h"
    #include "SUMA/SUMA_Macros.h"  
    #include "SUMA/SUMA_StringParse.h"

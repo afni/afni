@@ -1,6 +1,7 @@
 #include <afni.h> 
 #include <suma_afni_surface.h> 
 #include <suma_algorithms.h> 
+#include <suma_utils.h>
 #include <suma_datasets.h> 
 #include <TrackIO.h>
 
