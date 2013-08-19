@@ -5461,6 +5461,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
    
    /* Compute get more info about intersection  */
    if (codf) {
+      NI_element *nelitp=NULL;
       float *fv=NULL;
       double xyzw[9], scl[9], U[3], P[3], C[3], *dv=NULL;
       int quad[3], i0, i1, ir, datum_index;
@@ -5498,28 +5499,153 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                                                  &i0, &i1, NULL))) {
                   SUMA_RETURN(PR);
                }
-               SUMA_LHv("Segment %d is formed by points %d and %d\n",
-                        datum_index, i0, i1);
-               fv = SUMA_GDSET_NodeXYZ(dset, i0, SUMA_ADO_variant(ado), NULL);
-                  xyzw[0] = fv[0]; xyzw[1] = fv[1]; xyzw[2] = fv[2];
-               fv = SUMA_GDSET_NodeXYZ(dset, i1, SUMA_ADO_variant(ado), NULL);
-                  xyzw[3] = fv[0]; xyzw[4] = fv[1]; xyzw[5] = fv[2];
-               xyzw[6] = (sv->Pick0[0]+sv->Pick1[0])/2.0;
-               xyzw[7] = (sv->Pick0[1]+sv->Pick1[1])/2.0;
-               xyzw[8] = (sv->Pick0[2]+sv->Pick1[2])/2.0;
+               
+               if ((nelitp = SUMA_GDSET_Edge_Bundle(dset, 
+                                          SDSET_GSAUX(dset), datum_index, -1))) {
+                  int nn=0, mm=0, nnmin=-1, mmmin=-1;
+                  float *scrxyz = NULL, scpx[3], *A, *B;
+                  float mindist, mindist2, dist, distatmin, seglen;
+                  float dx, dy, dxy2=0.0, fmin;
+                  TAYLOR_TRACT *ttn=NULL;
+                  
+                  SUMA_LHv("Clicked on a bundle representation of edge %d.\n",
+                           datum_index);
+                  /* screen pick coordinate in screen coords */
+                  scpx[0] = sv->PickPix[0]; 
+                  scpx[1] = viewport[3]-sv->PickPix[1]-1;
+                  scpx[2] = 0.0;
+                  /* find the closest point to where we clicked on the bundle */
+                  nnmin=-1; mmmin=-1; mindist=mindist2=1000; fmin=1.0;
+                  for (nn=0; nn<nelitp->vec_len; ++nn) {
+                     ttn = (TAYLOR_TRACT *)(nelitp->vec[0])+nn;
+                     scrxyz = (float *)SUMA_calloc(ttn->N_pts3, sizeof(float));
+                     memcpy(scrxyz, ttn->pts, (ttn->N_pts3)*sizeof(float));
+                     /* tranform bundle points to screen space*/
+                     if (!SUMA_World2ScreenCoordsF(sv, ttn->N_pts3/3, 
+                                                  ttn->pts, scrxyz, quad, YUP)) {
+                        SUMA_S_Err("Failed to get screen coords");
+                        SUMA_RETURN(PR);
+                     }
+                     /* Now search for the closest point of bundle to the click 
+                        The depth is ignored, in the hope that a simple closest
+                        search is enough. Otherwise we need to add a heuristic
+                        for the cost of depth */
+                     #ifdef CRUDE_SEARCH
+                        /* For finer tracing, you should project scpx onto the 
+                        segment between the 1st and 2 points forming a segment,
+                        much like what is done in SUMA_PROJECT_C_ONTO_AB below 
+                        The finer tracing is needed for crass paths. However  
+                        for real bundles, on high-res data this might be 
+                        overkill */
+                     mm=0;                                                       
+                     while (mm < ttn->N_pts3) {
+                        if ( ((dx = SUMA_ABS(scrxyz[mm  ]-scpx[0])) < mindist) &&
+                             ((dy = SUMA_ABS(scrxyz[mm+1]-scpx[1])) < mindist) ){                            if ((dxy2 = dx*dx+dy*dy) < mindist2) {
+                              mindist2 = dxy2; 
+                              mindist  = sqrtf(mindist2);
+                              nnmin=nn; mmmin=mm;  fmin = 0.0;
+                           }
+                        }
+                        mm += 3;
+                     }
+                     #else
+                     mm=0;
+                     while (mm < ttn->N_pts3-3) {
+                        A = scrxyz+mm;
+                        B = scrxyz+mm+3;
+                        SUMA_PROJECT_C_ONTO_AB(scpx, A, B, P, f);
+                        if ( ((dx = SUMA_ABS(P[0]-scpx[0])) < mindist) &&
+                             ((dy = SUMA_ABS(P[1]-scpx[1])) < mindist) ){                                    if ((dxy2 = dx*dx+dy*dy) < mindist2) {
+                              mindist2 = dxy2; 
+                              mindist  = sqrtf(mindist2);
+                              nnmin=nn; mmmin=mm; fmin=f;
+                           }
+                        }
+                        mm += 3;
+                     }                     
+                     #endif
+                     SUMA_ifree(scrxyz);
+                  }
+                  if (nnmin > -1) {
+                     ttn = (TAYLOR_TRACT *)(nelitp->vec[0])+nnmin;
+                     if (fmin != 0.0f) {
+                        PR->PickXYZ[0]=ttn->pts[mmmin+0]+
+                                    fmin*(ttn->pts[mmmin+3]-ttn->pts[mmmin]);
+                        PR->PickXYZ[1]=ttn->pts[mmmin+1]+
+                                    fmin*(ttn->pts[mmmin+4]-ttn->pts[mmmin+1]);
+                        PR->PickXYZ[2]=ttn->pts[mmmin+2]+
+                                    fmin*(ttn->pts[mmmin+5]-ttn->pts[mmmin+2]);
+                        /* where along the tract? */
+                        mm=0; dist=0.0; distatmin=19999.9;
+                        while (mm < ttn->N_pts3-3) {
+                           A = ttn->pts+mm;
+                           B = ttn->pts+mm+3;
+                           seglen =  sqrtf((B[0]-A[0])*(B[0]-A[0])+
+                                           (B[1]-A[1])*(B[1]-A[1])+
+                                           (B[2]-A[2])*(B[2]-A[2]));
+                           if (mm==mmmin) {
+                              distatmin = dist + fmin*seglen;
+                           }
+                           dist +=seglen;
+                           mm += 3;
+                        }
+                        /* Which is the closest node? */
+                        f = distatmin/dist;
+                        if (f <= 0.5) {
+                           PR->selectedEnode = i0;
+                           if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
+                              PR->datum_index = datum_index;
+                           } else PR->datum_index = -1;
+                        } else {
+                           SUMA_LHv("++half way, look for opp. edge [%d %d]\n",
+                                    i1, i0);
+                           PR->selectedEnode = i1;
+                           if (SUMA_ABS(1.0-f) > 0.01){/*not too close to edge*/
+                              /* does edge [i1, i0] exist? If so take it*/
+                              if (SUMA_GDSET_PointsToSegIndex(dset,i1,i0,&ir)) {
+                                 SUMA_LHv("Switching primitve to edge %d\n", ir);
+                                 PR->datum_index = ir;
+                              } else { /* leave old hit, no opposite edge */
+                                 PR->datum_index = datum_index;
+                              }
+                           } else PR->datum_index = -1;
+                        }
+                     } else { /* from the quick search, no fmin used*/
+                        PR->PickXYZ[0]=ttn->pts[mmmin+0];
+                        PR->PickXYZ[1]=ttn->pts[mmmin+1];
+                        PR->PickXYZ[2]=ttn->pts[mmmin+2];
+                     }
+                  } else {
+                     PR->PickXYZ[0] = PR->PickXYZ[1] = PR->PickXYZ[2]=0.0;
+                  }
+                  SUMA_LHv("Closest distance of %f, tract %d, point %d, f=%f\n"
+                           "at world [%f %f %f]\n",
+                           mindist, nnmin, mmmin, fmin,
+                           PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
+               } else {
+                  SUMA_LHv("Segment %d is formed by points %d and %d\n",
+                           datum_index, i0, i1);
+                  fv = SUMA_GDSET_NodeXYZ(dset, i0, SUMA_ADO_variant(ado), NULL);
+                     xyzw[0] = fv[0]; xyzw[1] = fv[1]; xyzw[2] = fv[2];
+                  fv = SUMA_GDSET_NodeXYZ(dset, i1, SUMA_ADO_variant(ado), NULL);
+                     xyzw[3] = fv[0]; xyzw[4] = fv[1]; xyzw[5] = fv[2];
+                  xyzw[6] = (sv->Pick0[0]+sv->Pick1[0])/2.0;
+                  xyzw[7] = (sv->Pick0[1]+sv->Pick1[1])/2.0;
+                  xyzw[8] = (sv->Pick0[2]+sv->Pick1[2])/2.0;
 
-               if (!SUMA_World2ScreenCoords(sv, 3, xyzw, scl, quad, YUP)) {
-                  SUMA_S_Err("Failed to get screen coords");
-                  SUMA_RETURN(PR);
-               }
-               /* Project click point onto line by two nodes */
-               C[0] = sv->PickPix[0]; 
-               C[1] = viewport[3]-sv->PickPix[1]-1; 
-               C[2] = 0; 
-               dv = scl+3; /* point B */
-               SUMA_PROJECT_C_ONTO_AB(C, scl, dv, P, f);
-               /* Project point click onto segment */
-               SUMA_LHv("User click locations: %d %d Norm(%f %f)\n"
+                  if (!SUMA_World2ScreenCoords(sv, 3, xyzw, scl, quad, YUP)) {
+                     SUMA_S_Err("Failed to get screen coords");
+                     SUMA_RETURN(PR);
+                  }
+                  /* Project click point onto line by two nodes */
+                  C[0] = sv->PickPix[0]; 
+                  C[1] = viewport[3]-sv->PickPix[1]-1; 
+                  C[2] = 0; 
+                  dv = scl+3; /* point B */
+                  SUMA_PROJECT_C_ONTO_AB(C, scl, dv, P, f);
+                  /* Project point click onto segment */
+                  SUMA_LHv(
+                     "User click locations: %d %d Norm(%f %f)\n"
                         "sv PickPix: %d %d (screen/mouse y:%d)\n"
                         "world: near[%f %f %f] far[%f %f %f]\n"
                         "Edge %d formed by nodes %d [%f %f %f], %d [%f %f %f]\n"
@@ -5535,30 +5661,31 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                            scl[0], scl[1], scl[2], scl[3], scl[4], scl[5],
                            P[0], P[1], P[2], f);
 
-               /* Record the intersection location */ 
-               PR->PickXYZ[0]=xyzw[0]+f*(xyzw[3]-xyzw[0]);
-               PR->PickXYZ[1]=xyzw[1]+f*(xyzw[4]-xyzw[1]);
-               PR->PickXYZ[2]=xyzw[2]+f*(xyzw[5]-xyzw[2]);;
+                  /* Record the intersection location */ 
+                  PR->PickXYZ[0]=xyzw[0]+f*(xyzw[3]-xyzw[0]);
+                  PR->PickXYZ[1]=xyzw[1]+f*(xyzw[4]-xyzw[1]);
+                  PR->PickXYZ[2]=xyzw[2]+f*(xyzw[5]-xyzw[2]);
 
-               /* Which is the closest node? */
-               if (f <= 0.5) {
-                  PR->selectedEnode = i0;
-                  if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
-                     PR->datum_index = datum_index;
-                  } else PR->datum_index = -1;
-               } else {
-                  SUMA_LHv("++half way, looking for opp. edge [%d %d]\n",
-                           i1, i0);
-                  PR->selectedEnode = i1;
-                  if (SUMA_ABS(1.0-f) > 0.01) { /* not too close to edge */
-                     /* does edge [i1, i0] exist? If so take it*/
-                     if (SUMA_GDSET_PointsToSegIndex(dset, i1, i0, &ir)) {
-                        SUMA_LHv("Switching primitve to edge %d\n", ir);
-                        PR->datum_index = ir;
-                     } else { /* leave old hit, no opposite edge */
+                  /* Which is the closest node? */
+                  if (f <= 0.5) {
+                     PR->selectedEnode = i0;
+                     if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
                         PR->datum_index = datum_index;
-                     }
-                  } else PR->datum_index = -1;
+                     } else PR->datum_index = -1;
+                  } else {
+                     SUMA_LHv("++half way, looking for opp. edge [%d %d]\n",
+                              i1, i0);
+                     PR->selectedEnode = i1;
+                     if (SUMA_ABS(1.0-f) > 0.01) { /* not too close to edge */
+                        /* does edge [i1, i0] exist? If so take it*/
+                        if (SUMA_GDSET_PointsToSegIndex(dset, i1, i0, &ir)) {
+                           SUMA_LHv("Switching primitve to edge %d\n", ir);
+                           PR->datum_index = ir;
+                        } else { /* leave old hit, no opposite edge */
+                           PR->datum_index = datum_index;
+                        }
+                     } else PR->datum_index = -1;
+                  }
                }
             } else { /* picked a node, no data on it*/
                PR->selectedEnode =
