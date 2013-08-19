@@ -1644,14 +1644,18 @@ suma_datasets.o: suma_datasets.c
 	$(RM) $@
 	$(CC) -c suma_datasets.c -o $@ -ISUMA/ $(INFLAGS)
 
+suma_utils.o: suma_utils.c
+	$(RM) $@
+	$(CC) -c suma_utils.c -o $@ -ISUMA/ $(INFLAGS)
+
 suma_algorithms.o: suma_algorithms.c
 	$(RM) $@
 	$(CC) -c suma_algorithms.c -o $@ -ISUMA/ $(INFLAGS)
 
-testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o
+testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o suma_utils.o
 	$(RM) $@
-	$(CC) -o testdsetio SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o \
-            -ISUMA/ $(INFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o testdsetio SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_utils.o  \
+            suma_algorithms.o -ISUMA/ $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 ### Sort of clean
 
@@ -2085,7 +2089,7 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
                netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o   netcdf_var.o     \
                thd_mincread.o
 
-SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_algorithms.o
+SUMA_OBJS = suma_afni_surface.o suma_datasets.o suma_utils.o suma_algorithms.o
 
 MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \

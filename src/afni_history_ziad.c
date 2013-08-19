@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 19, Aug , 2013 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Dreaded __builtin_object_size came up for 3dTproject",
+   "Replace memcpy with AAmemcpy in cs_symeig.c . Separated OMP\n"
+   "macros from mrilib.h by putting them in Aomp.h\n"
+ },
+ 
  { 16, Aug , 2013 , ZSS , "suma-general" , MAJOR , TYPE_MODIFY,
    "Yet another still hidden expansion of graph dsets",
    "Modifications to many data structures and handling functions\n"
