@@ -15231,13 +15231,14 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
   Supposed to behave like ForceUser function below but only for pausing.
 */
 int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos, 
-                        XtAppContext *app, int withcancel)
+                        XtAppContext *app, int withcancel, float timeout)
 {
    static char FuncName[]={"SUMA_PauseForUser"};
    static Widget dialog; /* static to avoid multiple creation */
    Widget YesWid;
    int ii;
    XmString text, yes;
+   struct  timeval  tt;
    static int answer;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -15272,7 +15273,8 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
     } else {
       SUMA_LH("Reusing Dialog (SLOW SLOW SLOW)");
     }
-    
+   
+   SUMA_etime(&tt, 0);
    answer = SUMA_NO_ANSWER;
    text = XmStringCreateLocalized (question);
    yes = XmStringCreateLocalized ("OK");
@@ -15296,9 +15298,20 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
    
 
    if (!app) app = &(SUMAg_CF->X->App);
-   while (answer == SUMA_NO_ANSWER && XtIsManaged(dialog)) {
-     XtAppProcessEvent (*app, XtIMAll);
-   }   
+   if (timeout < 0.0) { /* no timer */
+      while ( (answer == SUMA_NO_ANSWER && XtIsManaged(dialog)) ) {
+          XtAppProcessEvent (*app, XtIMAll);
+      } 
+   } else {
+      while ( (answer == SUMA_NO_ANSWER && XtIsManaged(dialog)) ) {
+         if (timeout < 0.0 || SUMA_etime(&tt,1) < timeout) {
+            if (XtAppPending(*app)) { XtAppProcessEvent (*app, XtIMAll); }
+         } else {
+            XtVaGetValues(YesWid, XmNuserData, &answer, NULL);       
+            break;
+         }
+      }
+   }
    #if 1
       SUMA_LH("destroying dialog");
       
@@ -15310,9 +15323,10 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
                                     
       dialog = NULL;
    #else /* bad, takes for ever to come back up. 
-               Same for repeated calls of ForceUser if created for the first time from DriveSuma and
-               not from the interface with, say 'shft+Esc' 
-               See bit of illustration code in SUMA_Engine where PauseForUser is called*/ 
+            Same for repeated calls of ForceUser if created for the first 
+            time from DriveSuma and not from the interface with, say 'shft+Esc' 
+            See bit of illustration code in SUMA_Engine where PauseForUser 
+            is called*/ 
       XtUnmanageChild(dialog);
    #endif
    SUMA_RETURN(answer);
