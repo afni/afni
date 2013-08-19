@@ -542,6 +542,9 @@ int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
 SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, 
                               double *WorldList, double *ScreenList, int *Quad, 
                               SUMA_Boolean ApplyXform);
+SUMA_Boolean SUMA_World2ScreenCoordsF (
+                     SUMA_SurfaceViewer *sv, int N_List, float *WorldList, 
+                     float *ScreenList, int *Quad, SUMA_Boolean ApplyXform);
 SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, 
                                                 int x1, int y1, int meth);
 void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, 

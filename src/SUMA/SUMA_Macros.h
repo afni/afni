@@ -496,7 +496,23 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    } else {\
       f=0; P[0] = P[1] = P[2] = 0.0;   \
    }\
+}
+/* Same as  SUMA_PROJECT_C_ONTO_AB but external variable to contain vector AB.*/
+#define SUMA_PROJECT_C_ONTO_ABv(C, A, B, P, f, AB) {\
+   static double AC[3], AP[3], ABdAC, ABdAB;  \
+   AB[0]=B[0]-A[0]; AB[1]=B[1]-A[1]; AB[2]=B[2]-A[2]; \
+   AC[0]=C[0]-A[0]; AC[1]=C[1]-A[1]; AC[2]=C[2]-A[2]; \
+   ABdAC = (AB[0]*AC[0]+AB[1]*AC[1]+AB[2]*AC[2]);\
+   ABdAB = (AB[0]*AB[0]+AB[1]*AB[1]+AB[2]*AB[2]);\
+   if (ABdAB) {\
+      f = ABdAC/ABdAB; \
+      AP[0] = f*AB[0]; AP[1]=f*AB[1]; AP[2]=f*AB[2];\
+      P[0] = AP[0]+A[0]; P[1] = AP[1]+A[1]; P[2] = AP[2]+A[2]; \
+   } else {\
+      f=0; P[0] = P[1] = P[2] = 0.0;   \
+   }\
 } 
+
 
 /*!
    \brief intersection of line defined by point N and direction U

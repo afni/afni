@@ -4068,6 +4068,7 @@ int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
    This happens when this function is called as
    a child of SUMA_display
    \sa SUMA_GetSelectionLine
+   \sa SUMA_World2ScreenCoordsF, sync modifications
 */
 SUMA_Boolean SUMA_World2ScreenCoords (
                      SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
@@ -4186,6 +4187,127 @@ SUMA_Boolean SUMA_World2ScreenCoords (
    SUMA_RETURN (YUP);
 }
 
+/* Floating point precision version of SUMA_World2ScreenCoords.
+   Keep in sync with SUMA_World2ScreenCoords */
+SUMA_Boolean SUMA_World2ScreenCoordsF (
+                     SUMA_SurfaceViewer *sv, int N_List, float *WorldList, 
+                     float *ScreenList, int *Quad, SUMA_Boolean ApplyXform)
+{
+   static char FuncName[]={"SUMA_World2ScreenCoordsF"};
+   GLfloat rotationMatrix[4][4];
+   GLint viewport[4];
+   GLdouble mvmatrix[16], projmatrix[16], scd[3];
+   int i, i3;
+   char CommString[100];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, 
+               "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", 
+               FuncName, sv->GVS[sv->StdView].currentQuat[0],           
+               sv->GVS[sv->StdView].currentQuat[1], 
+               sv->GVS[sv->StdView].currentQuat[2],
+               sv->GVS[sv->StdView].currentQuat[3]);
+      fprintf (SUMA_STDERR, 
+               "%s: Translation Vector of view #%d: %.4f, %.4f, %.4f\n", 
+               FuncName, sv->StdView, sv->GVS[sv->StdView].translateVec[0], 
+               sv->GVS[sv->StdView].translateVec[1], 
+               sv->GVS[sv->StdView].translateVec[2]);
+      fprintf (SUMA_STDERR, 
+               "%s: RotaCenter of view #%d: %.4f, %.4f, %.4f\n", 
+               FuncName, sv->StdView, sv->GVS[sv->StdView].RotaCenter[0], 
+               sv->GVS[sv->StdView].RotaCenter[1], 
+               sv->GVS[sv->StdView].RotaCenter[2]);
+   }
+      
+   
+   if (ApplyXform) {
+      /* go through the ModelView transforms as you would 
+         in display since the modelview matrix is popped
+         after each display call */
+      SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
+      glMatrixMode(GL_MODELVIEW);
+      /* The next line appears to fix some bug with GL_MODELVIEW's matrix. 
+         When you clicked button3 for the first time in a viewer, 
+         the chosen point was off. The next click in the identical position would          select the correct point and subsequent clicks are OK.
+         None of the parameters used for the selection would change between the  
+         first click and the next but it appears that going from one
+         viewer to the next caused GL_MODELVIEW to change (sometimes) slightly.            Putting the line glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+         to check (and debug) what was happening to GL_MODELVIEW matrix between 
+         one viewer and the next fixed the clicking problem. So, we keep
+         it here as a fix until a better one comes along. PS: This was also the 
+         source of the Z (blue) eye axis showing up when it should not. */  
+         glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+         if (LocalHead) {
+            int itmp = 0;
+            fprintf (SUMA_STDERR, "%s: Initial Modelview:\nMV=[ ", FuncName);
+            while (itmp < 16) { 
+               fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+            fprintf (SUMA_STDERR, "]\n");
+         }
+      glPushMatrix();
+      glTranslatef ( sv->GVS[sv->StdView].translateVec[0], 
+                     sv->GVS[sv->StdView].translateVec[1], 0.0);
+      glTranslatef ( sv->GVS[sv->StdView].RotaCenter[0], 
+                     sv->GVS[sv->StdView].RotaCenter[1], 
+                     sv->GVS[sv->StdView].RotaCenter[2]);
+      glMultMatrixf(&rotationMatrix[0][0]);
+      glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+         if (LocalHead) {
+            int itmp = 0;
+            fprintf (SUMA_STDERR, 
+                     "%s: Modelview After Translation & Rotation:\nMVtr=[ ", 
+                     FuncName);
+            while (itmp < 16) { 
+               fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+            fprintf (SUMA_STDERR, "]\n");
+         }
+      glTranslatef ( -sv->GVS[sv->StdView].RotaCenter[0], 
+                     -sv->GVS[sv->StdView].RotaCenter[1], 
+                     -sv->GVS[sv->StdView].RotaCenter[2]);
+   } 
+   glGetIntegerv(GL_VIEWPORT, viewport);
+   glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+   glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
+   
+   for (i=0;i<N_List; ++i) {
+      i3 = 3*i;
+      gluProject( (GLdouble)WorldList[i3], 
+                  (GLdouble)WorldList[i3+1], (GLdouble)WorldList[i3+2],  
+                  mvmatrix, projmatrix, viewport, 
+                  (GLdouble*)(scd  ), 
+                  (GLdouble*)(scd+1), 
+                  (GLdouble*)(scd+2) );
+      ScreenList[i3] = scd[0]; 
+      ScreenList[i3+1] = viewport[3] - scd[1] - 1; /* change from 
+                                                   OpenGL's y to screen's y */
+      ScreenList[i3+2] = scd[2];
+       
+      if (ScreenList[i3] < sv->WindWidth/2) {
+         if (ScreenList[i3+1] > sv->WindHeight/2) 
+            Quad[i] = SUMA_LOWER_LEFT_SCREEN;
+         else Quad[i] = SUMA_UPPER_LEFT_SCREEN;
+      } else {
+         if (ScreenList[i3+1] > sv->WindHeight/2) 
+            Quad[i] = SUMA_LOWER_RIGHT_SCREEN;
+         else Quad[i] = SUMA_UPPER_RIGHT_SCREEN;
+      }
+      if (LocalHead) 
+         fprintf (SUMA_STDOUT, 
+                  "%s: World: [%.2f %.2f %.2f] \t "
+                  "Screen [%.2f %.2f %.2f] \t Quad %d\n", 
+                  FuncName, 
+                  WorldList[i3],WorldList[i3+1], WorldList[i3+2], 
+                  ScreenList[i3], ScreenList[i3+1],ScreenList[i3+2], Quad[i]);
+   
+   }
+
+   if (ApplyXform) glPopMatrix();
+
+   SUMA_RETURN (YUP);
+}
 /* Take normalized x,y screen corrdinates and turn them to world coordinates 
 Based on code from SUMA_GetSelectionLine.
 If you need to set GL_MODELVIEW_MATRIX set ApplyXform to 1 and make sure 
