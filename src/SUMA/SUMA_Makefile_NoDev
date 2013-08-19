@@ -126,7 +126,7 @@ ${GLWLIB} : ${GLW_OBJS}
 	cp ${GLWLIB} ../ 
 
 #rebuild libmri.a only when suma related files change
-libmri.a : ../suma_algorithms.c  ../suma_datasets.c  ../suma_niml.c
+libmri.a : ../suma_utils.c ../suma_algorithms.c  ../suma_datasets.c  ../suma_niml.c
 	( cd .. ;	\
 	  $(MAKE) libmri.a ; \
 	  cd SUMA  )
