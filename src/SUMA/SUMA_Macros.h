@@ -832,7 +832,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    }  \
    if (m_w)  { \
       SUMA_PauseForUser(m_w, s, \
-                        SWP_POINTER_OFF, &m_app, 0);  \
+                        SWP_POINTER_OFF, &m_app, 0, -1.0);  \
       if (m_wkill) {    \
          /* This is set when the top level widget is created  */ \
          /* and there is no XtAppMainLoop to process events and */\
