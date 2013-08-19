@@ -13,6 +13,10 @@ void usage_prompt_user (SUMA_GENERIC_ARGV_PARSE *ps)
          "  -pause MESSAGE: Pops a window prompting the user with MESSAGE.\n"
          "                  Program does not return until user responds.\n"
          "                  note: if MESSAGE is '-', it is read from stdin\n"
+         "  -timeout TT: Timeout in seconds of prompt message. Default answer\n"
+         "               is returned if TT seconds elapse without user\n"
+         "               input.\n"
+         "  -to TT: Same as -timeout TT\n"
          "\n");
 
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -32,7 +36,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_prompt_user_ParseInput(
    
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct(); 
    Opt->ps = ps;  /* just hold it there for convenience */
-   Opt->ps = ps; /* for convenience */
+   Opt->flt1 = -1.0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -70,6 +74,21 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_prompt_user_ParseInput(
          brk = YUP;
 
          if (!strcmp(Opt->in_name, "-")) Opt->in_name = read_file_text(stdin);
+      }
+
+      if (!brk && (
+            (strcmp(argv[kar], "-timeout") == 0) ||
+            (strcmp(argv[kar], "-to") == 0)) )
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, 
+                     "need a time in seconds after -timeout/-to \n");
+            exit (1);
+         }
+         
+         Opt->flt1 = atof(argv[++kar]);
+         brk = YUP;
       }
       
       if (!brk && !ps->arg_checked[kar]) {
@@ -152,7 +171,8 @@ int main (int argc,char *argv[])
       case 1:
          /* apply some escape characters     31 Jul 2009 [rickr] */
          esc_str = unescape_unix_str(Opt->in_name);
-         ii = SUMA_PauseForUser(w, esc_str, SWP_POINTER_LEFT_BOTTOM, &app, 1);
+         ii = SUMA_PauseForUser(w, esc_str, SWP_POINTER_LEFT_BOTTOM, 
+                                &app, 1, Opt->flt1);
          fprintf(SUMA_STDOUT,"%d\n", ii);
          break;
       default:
@@ -162,7 +182,7 @@ int main (int argc,char *argv[])
    }
    
    /* because you have no XtAppMainLoop, you'll need to process the next 
-   event for the XtDestroy command on w's child takes effect. So you'll
+   event for when the XtDestroy command on w's child takes effect. So you'll
    just have this zombie widget that stares at you.
    In this simple command line program, the widget dies anyway when you
    exit the program, so the call below is a teaching moment for when
@@ -170,8 +190,8 @@ int main (int argc,char *argv[])
    XtAppMainLoop. 
    See also SUMA_PAUSE_PROMPT macro */
    
-   while ((pp = XtAppPending(app))) {  \
-      XtAppProcessEvent(app, pp); \
+   while ((pp = XtAppPending(app))) {  
+      XtAppProcessEvent(app, pp);
    } 
    
    if (Opt->debug > 2) LocalHead = YUP;
