@@ -202,7 +202,7 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h    \
              mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h        \
              nifti/niftilib/nifti1_io.h nifti/nifticdf/nifticdf.h             \
-             nifti/znzlib/znzlib.h                                            \
+             nifti/znzlib/znzlib.h Aomp.h                                     \
              rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h
 
 ### Make everything, install it too, and cleanup
@@ -2093,7 +2093,7 @@ MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
 
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
-         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h 3ddata.h $(SOMEAFOBJS)
+         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h Aomp.h 3ddata.h $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
@@ -2120,7 +2120,7 @@ vol2surf.o:vol2surf.h
 libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h mrilib.h 3ddata.h   \
-          shared_netcdf_attr
+          Aomp.h shared_netcdf_attr
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
