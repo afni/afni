@@ -1,12 +1,16 @@
-#!/bin/tcsh -f
+#!/bin/tcsh -fe
 
-#!/bin/tcsh -f
-if ("$1" == "-h" || "$1" == "-help") goto HELP
-
+set testmode = 0
 set tmpico = __donut
+set to = ''
 
-#goto NIDO
-        set l = `prompt_user -pause \
+if ("$1" == "-h" || "$1" == "-help") goto HELP
+if ("$1" == "-auto_test") then
+   set testmode = 1
+   set to = "-to 2.0" 
+endif
+
+        set l = `prompt_user ${to} -pause \
 '@DO.examples script.\n\
 DriveSuma commands are echoed on the terminal, but\n\
 you should take a look at the actual script to get a good\n\
@@ -16,25 +20,25 @@ Make sure no current SUMA is running, then press OK'`
         if ( $l == '0') goto STEND
 
 #Launch suma -niml in a new terminal, just to keep terminal clean
-xterm -name SUMA -geometry 80x30+10+450 -bg black -fg white   \
--e 'suma -dev -niml' &
+if (${testmode} == 0) then
+   xterm -name SUMA -geometry 80x30+10+450 -bg black -fg white   \
+         -e 'suma -dev -niml |& tee -a __testlog.txt ' &
+else 
+   suma -dev -niml |& tee -a __testlog.txt  &
+endif
 
-set l = `prompt_user -pause "Hit enter when SUMA is up and running"`
+set l = `prompt_user ${to} -pause "Hit enter when SUMA is up and running"`
         if ( $l == '0') goto STEND
 
-#if ( ! -f ${tmpico}_surf.asc) CreateIcosahedron -ld 10 -prefix ${tmpico}
-#DriveSuma   -echo_edu   \
-               -com show_surf -label ${tmpico} \
-#            -i_fs ${tmpico}_surf.asc
-IsoSurface -shape 3 64 -o_ply ${tmpico}.ply
-quickspec -spec ${tmpico}.spec -tn ply ${tmpico}.ply
+IsoSurface -shape 3 64 -o_ply ${tmpico}.ply |& tee -a __testlog.txt  
+quickspec -spec ${tmpico}.spec -tn ply ${tmpico}.ply |& tee -a __testlog.txt  
 DriveSuma   -echo_edu   \
             -com show_surf -label ${tmpico} \
             -i ${tmpico}.ply \
             -com viewer_cont -viewer_size 1000 1000 \
-                              -key m -key left
+                              -key m -key left        |& tee -a __testlog.txt  
 
-set l = `prompt_user -pause "Hit enter for node-based segments object"`
+set l = `prompt_user ${to} -pause "Hit enter for node-based segments object"`
         if ( $l == '0') goto STEND
 
 #node-based_segments  or #node-based_oriented_segments 
@@ -45,9 +49,9 @@ echo "616 574  9" >> $pr.1D.do
 echo "554 634  1" >> $pr.1D.do
 DriveSuma   -echo_edu   \
                -com viewer_cont -load_do $pr.1D.do \
-                           -key p
+                           -key p               |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for node-based oriented segments"`
+set l = `prompt_user ${to} -pause "Hit enter for node-based oriented segments"`
         if ( $l == '0') goto STEND
 
 set pr = '__onbs'
@@ -56,9 +60,10 @@ echo "#node-based_oriented_segments" >> $pr.1D.do
 echo "313 160    1 0 0 1 1 3" >> $pr.1D.do
 echo "314 331    1 1 0 1 5 4" >> $pr.1D.do
 DriveSuma   -echo_edu   \
-               -com viewer_cont -load_do $pr.1D.do 
+               -com viewer_cont -load_do $pr.1D.do |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for node-based oriented segments with differing thickness"`
+set l = `prompt_user ${to} -pause \
+      "Hit enter for node-based oriented segments with differing thickness"`
         if ( $l == '0') goto STEND
 
 set pr = '__onbst'
@@ -67,9 +72,9 @@ echo "#node-based_oriented_segments" >> $pr.1D.do
 echo "327 1    1 0 0 1 8" >> $pr.1D.do
 echo "116 532    1 1 0 1 2" >> $pr.1D.do
 DriveSuma   -echo_edu   \
-               -com viewer_cont -load_do $pr.1D.do 
+               -com viewer_cont -load_do $pr.1D.do |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for coordinate-based segments"`
+set l = `prompt_user ${to} -pause "Hit enter for coordinate-based segments"`
         if ( $l == '0') goto STEND
 
 #oriented_segments  or #segments
@@ -79,9 +84,9 @@ echo "#oriented_segments" >> $pr.1D.do
 echo "230.3 261.1 210.9  240 220.8 198.5  0 1 1 1 2 1" >> $pr.1D.do
 echo "240.1 280.2 185.23   240.9 250.1 180     0 1 0 1 1 3" >> $pr.1D.do
 DriveSuma   -echo_edu   \
-               -com viewer_cont -load_do $pr.1D.do 
+               -com viewer_cont -load_do $pr.1D.do |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for spheres"`
+set l = `prompt_user ${to} -pause "Hit enter for spheres"`
         if ( $l == '0') goto STEND
 
 #spheres
@@ -91,25 +96,27 @@ echo "#spheres" >> $pr.1D.do
 echo "240 230.8 208.5  1 1 1 1 15 1" >> $pr.1D.do
 echo "235  201  215    1 1  0 1 10 2 " >> $pr.1D.do
 DriveSuma   -echo_edu   \
-               -com viewer_cont -load_do $pr.1D.do 
+               -com viewer_cont -load_do $pr.1D.do |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for vectors"`
+set l = `prompt_user ${to} -pause "Hit enter for vectors"`
         if ( $l == '0') goto STEND
 
 #vectors
 set pr = '__vec'
 rm -f $pr.TriNormSeg.1D
 SurfaceMetrics -spec ${tmpico}.spec -surf_A ${tmpico} \
-               -face_normals -normals_scale -10 -prefix $pr
+               -face_normals -normals_scale -10 -prefix $pr \
+                                                   |& tee -a __testlog.txt
 #get a  random colection
 set nout = `3dnvals -all ${pr}.TriNormSeg.1D`
 set nout = `ccalc -int $nout[1] - 1`
 1dcat $pr.TriNormSeg.1D"{count 0 $nout S50}" > $pr.mini.TriNormSeg.1D
 
 DriveSuma   -echo_edu   \
-               -com viewer_cont -load_do $pr.mini.TriNormSeg.1D
+               -com viewer_cont -load_do $pr.mini.TriNormSeg.1D   \
+                                                   |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for planes"`
+set l = `prompt_user ${to} -pause "Hit enter for planes"`
         if ( $l == '0') goto STEND
 
 PLANES:
@@ -118,15 +125,15 @@ rm -f $pr.1D.do
 echo "#planes" >> $pr.1D.do
 echo "1 1 1 0 286.766998, 281.160004, 236." >> $pr.1D.do
 DriveSuma   -echo_edu   \
-               -com viewer_cont -load_do $pr.1D.do
+               -com viewer_cont -load_do $pr.1D.do |& tee -a __testlog.txt
 
 
-set l = `prompt_user -pause "Hit enter for toggling surface display modes"`
+set l = `prompt_user ${to} -pause "Hit enter for toggling surface display modes"`
         if ( $l == '0') goto STEND
 DriveSuma   -echo_edu   \
-               -com viewer_cont -key:r3:s0.8 p
+               -com viewer_cont -key:r3:s0.8 p |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for displaying a node path on the surface"`
+set l = `prompt_user ${to} -pause "Hit enter for displaying a node path on the surface"`
         if ( $l == '0') goto STEND
 NODE_PATH:
 set pr = '__np'
@@ -138,9 +145,9 @@ echo 1256 1095 >> nodelist.1D
 
 SurfDist -i ${tmpico}.ply \
          -input nodelist.1D \
-         -node_path_do $pr   > surfdist.1D
+         -node_path_do $pr   > surfdist.1D |& tee -a __testlog.txt
 DriveSuma   -echo_edu   \
-               -com viewer_cont -load_do $pr.1D.do
+               -com viewer_cont -load_do $pr.1D.do |& tee -a __testlog.txt
 
 
 NIDO:
@@ -159,7 +166,7 @@ if ( ! -f fixed.niml.do || ! -f mobile.niml.do ) then
    goto END
 endif
 
-set l = `prompt_user -pause \
+set l = `prompt_user ${to} -pause \
 "Next we illustrate NIML displayable objects (NIDO)\n\
 Hit enter to see images, and text in fixed coord_type."`
         if ( $l == '0') goto STEND
@@ -167,63 +174,66 @@ Hit enter to see images, and text in fixed coord_type."`
 #Hide the textures
 sed "s;\<Tex;\<\#Tex;g" fixed.niml.do > __fixed.niml.do
 DriveSuma   -echo_edu   \
-             -com viewer_cont -load_do __fixed.niml.do 
+             -com viewer_cont -load_do __fixed.niml.do  |& tee -a __testlog.txt
 
-set l = `prompt_user -pause \
+set l = `prompt_user ${to} -pause \
 "Hit enter to see texture images added, fixed coord_type.\n\
 This may slow rendering speeds considerably on some machines."`
         if ( $l == '0') goto STEND
 
 cp fixed.niml.do __fixed.niml.do
 DriveSuma   -echo_edu   \
-             -com viewer_cont -load_do __fixed.niml.do
+             -com viewer_cont -load_do __fixed.niml.do |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter to see images, texture, and text in mobile coord_type."`
+set l = `prompt_user ${to} -pause "Hit enter to see images, texture, and text in mobile coord_type."`
         if ( $l == '0') goto STEND
 
 #first hide all content of fixed, to reduce confusion
 sed "s;\<;\<#;g" fixed.niml.do > __fixed.niml.do
 DriveSuma   -echo_edu   \
-             -com viewer_cont -load_do __fixed.niml.do
+             -com viewer_cont -load_do __fixed.niml.do  |& tee -a __testlog.txt
 
 #Now load the mobile one
 DriveSuma   -echo_edu   \
-             -com viewer_cont -load_do mobile.niml.do 
+             -com viewer_cont -load_do mobile.niml.do  |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter to see all NIDO elements together"`
+set l = `prompt_user ${to} -pause "Hit enter to see all NIDO elements together"`
         if ( $l == '0') goto STEND
 
 DriveSuma   -echo_edu   \
-             -com viewer_cont -load_do fixed.niml.do
+             -com viewer_cont -load_do fixed.niml.do |& tee -a __testlog.txt
 
-set l = `prompt_user -pause "Hit enter for some zoom in action"`
+set l = `prompt_user ${to} -pause "Hit enter for some zoom in action"`
         if ( $l == '0') goto STEND
 DriveSuma   -echo_edu   \
-             -com viewer_cont -key:r8 Z
+             -com viewer_cont -key:r8 Z |& tee -a __testlog.txt
 
 QUIT:
-set kk = `prompt_user -pause \
+set kk = `prompt_user ${to} -pause \
 "Demo completed.\n\
 Hit OK to cleanup temp files\n\
    Cancel to leave temp files behind"` 
 
 if ("$kk" == "1") then
+   if ( ${testmode} == 0 ) rm -f __testlog.txt 
    rm -f __*.1D.do ${tmpico}*.*  __*.niml.do
    cd ..
 else 
    echo ""
    echo "Left temporary files. To cleanup, remove files: "
-   set ll = (__*.1D.do ${tmpico}*.*  __*.niml.do)
+   set ll = (__*.1D.do ${tmpico}*.*  __*.niml.do __testlog.txt)
    echo "   $ll"
    echo ""
    cd ..
 endif
 
+if ( ${testmode} == 1) DriveSuma -echo_edu -com kill_suma |& tee -a __testlog.txt
+
 goto END
 
 HELP:
 echo ""
-echo "Usage: `basename $0` "
+echo "Usage: `basename $0` [-auto_test]"
 echo ""
 echo "A script to illustrate the use of Displayable Objects in SUMA."
 echo "Read this script and see suma -help_nido for information."
@@ -236,6 +246,10 @@ echo ""
 echo "Questions or comments are welcome on AFNI's message board:"
 echo ' http://afni.nimh.nih.gov/afni/community/board/list.php?f=1 '
 echo ""
+echo "-auto_test: Run this script in test mode where user prompts are"
+echo "timed out at 2 seconds, and the command output log is preserved"
+echo "in a file called __testlog.txt"
+echo ""
 echo "   Ziad S. Saad, saadz@mail.nih.gov"
 echo ""
 goto END
@@ -244,10 +258,18 @@ STEND:
    echo ""
    echo "Stopped by user"
    echo "To cleanup, remove files: "
-   set ll = (__*.1D.do ${tmpico}*.*  __*.niml.do)
+   if ( -f __testlog.txt ) then
+      set ll = (__*.1D.do ${tmpico}*.*  __*.niml.do __testlog.txt)
+   endif
    echo "   $ll"
    echo ""
    goto END
 
+BEND:
+   echo ""
+   echo "Untimely death"
+   echo ""
+   exit 1
+   
 END:
 
