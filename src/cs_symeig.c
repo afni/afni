@@ -885,7 +885,7 @@ void svd_double_ata( int m, int n, double *a, double *s, double *u, double *v )
 
    if( v != NULL ){
 #pragma omp critical
-     AAmemcpy( v , ata , sizeof(double)*n*n ) ;
+     memcpy( v , ata , sizeof(double)*n*n ) ;
    }
 
    /* manufacture U from A and V (which is in ata, recall):
