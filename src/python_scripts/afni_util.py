@@ -2332,26 +2332,35 @@ def insensitive_glob(pattern):
    return glob.glob(insensitive_word_pattern(pattern))
 
 
-def search_path_dirs(word, exact=0, casematch=1):
+def search_path_dirs(word, mtype=0, casematch=1):
    """return status and list of matching files
-      return number of files found, or -1 on error
 
-      Could be more efficient, esp. with exact and casematch set, but
+      Could be more efficient, esp. with mtype=exact and casematch set, but
       I will strive for simplicity and consistency and see how it goes.
+
+        mtype     : 0 = match any sub-word (i.e. look for DIR/*word*)
+                    1 = exact match (i.e. no wildcard, look for DIR/word)
+                    2 = prefix match (i.e. look for DIR/word*)
+        casematch : flag: if set, case must match
+                          else, 'word' letters can be either case
    """
    try:
       plist = os.environ['PATH'].split(':')
    except:
       print '** search_path_dirs: no PATH var'
-      return -1, []
+      return 1, []
 
    # if no casematch, look for upper/lower pairs
    if casematch: wpat = word
    else:         wpat = insensitive_word_pattern(word)
 
    # if not exact, surround with wildcard pattern
-   if exact:     form = '%s/%s'
-   else:         form = '%s/*%s*'
+   if   mtype == 0: form = '%s/*%s*'    # any sub-word
+   elif mtype == 1: form = '%s/%s'      # exact match
+   elif mtype == 2: form = '%s/%s*'     # prefix match
+   else:
+      print '** search_path_dirs: illegal mtype = %s' % mtype
+      return 1, []
 
    # now just search for matches
    rlist = []
@@ -2361,9 +2370,20 @@ def search_path_dirs(word, exact=0, casematch=1):
 
    return 0, get_unique_sublist(rlist)
 
-def show_found_in_path(word, exact=0, casematch=1, indent='\n   '):
-   """a simple wrapper to print search_path_dirs results"""
-   rv, rlist = search_path_dirs(word, exact=exact, casematch=casematch)
+def show_found_in_path(word, mtype=1, casematch=1, indent='\n   '):
+   """a simple wrapper to print search_path_dirs results
+
+      Search for given 'word' in path, and print out list elements
+      with element prefix of 'indent'.
+
+        mtype     : 0 = exact match (i.e. no wildcard, look for DIR/word)
+                  : 1 = match any sub-word (i.e. look for DIR/*word*)
+                    2 = prefix match (i.e. look for DIR/word*)
+        casematch : flag: if set, case must match
+                          else, 'word' letters can be either case
+        indent    : prefix/separator string for list elements
+   """
+   rv, rlist = search_path_dirs(word, mtype=mtype, casematch=casematch)
    if not rv: print indent+indent.join(rlist)
 
 # ----------------------------------------------------------------------
