@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  Aug, 2013, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "make 3dAutomask the default EPI strip method",
+   "Suggested by D Glen.  I should have done that in the first place."
+ } ,
+
  { 20,  Aug, 2013, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "update do search_path_dirs/show_found_in_path",
    NULL

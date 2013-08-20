@@ -382,9 +382,10 @@ g_history = """
     3.50 Jun 27, 2013: added option -regress_mot_as_ort
     4.00 Aug 14, 2013: added non-linear template registration via auto_warp.py
         - added options -tlrc_NL_warp and -tlrc_NL_awpy_rm
+    4.01 Aug 20, 2013: make 3dAutomask the default EPI strip method
 """
 
-g_version = "version 4.00, Aug 14, 2013"
+g_version = "version 4.01, Aug 20, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "10 Jun 2013"
@@ -454,6 +455,7 @@ class SubjProcSream:
         self.mot_extern = ''            # from -regress_motion_file
         self.mot_demean = ''            # from demeaned motion file
         self.mot_deriv  = ''            # motion derivatives
+        self.mot_enorm  = ''            # euclidean norm of derivatives
         self.mot_simset = None          # motion simulation dset (afni_name)
 
         self.mot_cen_lim= 0             # motion censor limit, if applied
@@ -527,6 +529,7 @@ class SubjProcSream:
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
 
+        self.bandpass     = []          # bandpass limits
         self.censor_file  = ''          # for use as '-censor FILE' in 3dD
         self.censor_count = 0           # count times censoring
         self.censor_extern = ''         # from -regress_censor_extern
