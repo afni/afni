@@ -383,12 +383,14 @@ g_history = """
     4.00 Aug 14, 2013: added non-linear template registration via auto_warp.py
         - added options -tlrc_NL_warp and -tlrc_NL_awpy_rm
     4.01 Aug 20, 2013: make 3dAutomask the default EPI strip method
+    4.02 Aug 20, 2013: added -regress_RSFC, to run 3dRSFC
+                       (requires updated 3dRSFC, for input sub-brick selection)
 """
 
-g_version = "version 4.01, Aug 20, 2013"
+g_version = "version 4.02, Aug 20, 2013"
 
 # version of AFNI required for script execution
-g_requires_afni = "10 Jun 2013"
+g_requires_afni = "16 Aug 2013" # for 3dRSFC update
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -951,6 +953,8 @@ class SubjProcSream:
                         helpstr="regress out known ROIs")
         self.valid_opts.add_opt('-regress_RONI', -1, [], okdash=0,
                         helpstr="1-based list of regressors of no interest")
+        self.valid_opts.add_opt('-regress_RSFC', 0, [],
+                        helpstr="use 3dRSFC to bandpass and output params")
 
         # surface options
         self.valid_opts.add_opt('-surf_anat', 1, [],

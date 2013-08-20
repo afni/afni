@@ -2842,6 +2842,9 @@ def db_mod_regress(block, proc, user_opts):
     # maybe do bandpass filtering in the regression
     apply_uopt_to_block('-regress_bandpass', user_opts, block)
 
+    # maybe do bandpass filtering in the regression
+    apply_uopt_to_block('-regress_RSFC', user_opts, block)
+
     # prepare to return
     if errs > 0:
         block.valid = 0
@@ -3194,11 +3197,11 @@ def db_cmd_regress(proc, block):
     if nregs == 0 or (not opt.parlist and (bluropt or tsnropt)):
         opt.parlist = ['errts.${subj}%s' % suff]
 
-    errts_pre = ''
+    proc.errts_pre = ''
     if not opt or not opt.parlist: errts = ''
     else:
-        errts_pre = opt.parlist[0]
-        errts = '    -errts %s%s' % (tmp_prefix, errts_pre)
+        proc.errts_pre = opt.parlist[0]
+        errts = '    -errts %s%s' % (tmp_prefix, proc.errts_pre)
     # -- end errts --
 
     # if the user wants to compute fitts, save the prefix
@@ -3207,7 +3210,7 @@ def db_cmd_regress(proc, block):
         if fitts_pre == '':
             print '** regress_compute_fitts: no fitts prefix'
             return
-        if errts_pre == '':
+        if proc.errts_pre == '':
             print '** regress_compute_fitts: no errts prefix'
             return
         compute_fitts = 1
@@ -3314,7 +3317,7 @@ def db_cmd_regress(proc, block):
 
     # if REML, -x1D_stop and errts_pre, append _REML to errts_pre
     if block.opts.find_opt('-regress_reml_exec') and \
-        stop_opt and errts_pre: errts_pre = errts_pre + '_REML'
+        stop_opt and proc.errts_pre: proc.errts_pre = proc.errts_pre + '_REML'
 
     # create all_runs dataset
     proc.all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
@@ -3329,12 +3332,18 @@ def db_cmd_regress(proc, block):
        if rv: return
        cmd += tcmd
 
+    # maybe add the 3dRSFC block
+    if block.opts.find_opt('-regress_RSFC'):
+       rv, tcmd = db_cmd_regress_rsfc(proc, block)
+       if rv: return
+       cmd += tcmd
+
     # if errts and scaling, maybe create tsnr volume as mean/stdev(errts)
     # (if scaling, mean should be 100)
     opt = block.opts.find_opt('-regress_compute_tsnr')
     if opt.parlist[0] == 'yes':
-       if errts_pre:
-          tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts_pre)
+       if proc.errts_pre:
+          tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, proc.errts_pre)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        else: print '-- no errts, will not compute final TSNR'
@@ -3343,8 +3352,8 @@ def db_cmd_regress(proc, block):
     # unit errts (leave as rm. dataset)
     opt = block.opts.find_opt('-regress_compute_gcor')
     if opt.parlist[0] == 'yes':
-       if errts_pre and proc.mask_epi and not proc.surf_anat:
-          tcmd = db_cmd_regress_gcor(proc, block, errts_pre)
+       if proc.errts_pre and proc.mask_epi and not proc.surf_anat:
+          tcmd = db_cmd_regress_gcor(proc, block, proc.errts_pre)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        elif proc.verb > 1:
@@ -3357,7 +3366,7 @@ def db_cmd_regress(proc, block):
             fstr += "%s# create fitts dataset from all_runs and errts\n" % istr
             fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n"            \
                     "%s       -prefix %s%s\n"                            \
-                    % (istr, proc.all_runs, vstr, errts_pre, vstr,
+                    % (istr, proc.all_runs, vstr, proc.errts_pre, vstr,
                        istr, fitts_pre, suff)
         elif not block.opts.find_opt('-regress_reml_exec'):
             print '** cannot compute fitts, have 3dD_stop but no reml_exec'
@@ -3369,7 +3378,7 @@ def db_cmd_regress(proc, block):
             fstr += "%s# create fitts from REML errts\n" % istr
             fstr += "%s3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n" \
                     "%s       -prefix %s\_REML%s\n"                 \
-                    % (istr, proc.all_runs, vstr, errts_pre, vstr,
+                    % (istr, proc.all_runs, vstr, proc.errts_pre, vstr,
                        istr, fitts_pre, suff)
         cmd = cmd + fstr + feh_end + '\n'
 
@@ -3585,6 +3594,69 @@ def db_cmd_regress_tfitter(proc, block):
 
     return 0, cmd
 
+# compute temporal signal to noise after the regression
+def db_cmd_regress_rsfc(proc, block):
+    """execute 3dRSFC per run on errts data
+          mkdir RSFC
+          set b0 = 0
+          set b1 = -1
+          # run index is 1 digit (wary of octal), run part of file name is 2
+          foreach rind ( `count -digits 1 1 $#runs` )
+             reps = $tr_counts[$rind]
+             @ b1 += $reps
+             3dRSFC -prefix RSFC/run_$runs[$rind] -nodetrend MASK \
+                    BAND0 BAND1 ERRTS+VIEW'[$b0..$b1]'
+             @ b0 += $reps
+          end
+    """
+
+    if not proc.errts_pre: return 0, ''
+
+    mopt = '-regress_censor_motion'
+    ropt = '-regress_RSFC'
+    if block.opts.find_opt(mopt):
+       print '** %s is (currently) illegal with %s' % (mopt, ropt)
+       return 1, ''
+
+    if proc.surf_anat:
+       print "** RSFC not yet ready for surface data, please pester rick"
+       return 1, ''
+
+    if len(proc.bandpass) != 2:
+       print "** RSFC: missing -regress_bandpass option"
+       return 1, ''
+
+    if proc.mask and proc.regmask:
+        mstr = '           -mask %s' % proc.mask.shortinput()
+    else: mstr = ''
+
+    rcmd = '    3dRSFC -prefix RSFC/run_$runs[$rind] -nodetrend\\\n' \
+           '%s'                                                      \
+           '           %g %g %s%s"[$b0..$b1]"\n'                     \
+           % (mstr, proc.bandpass[0], proc.bandpass[1],
+              proc.errts_pre, proc.view)
+
+    proc.errts_pre = 'RSFC_LFF_rall_$subj'
+
+    cmd = '# --------------------------------------------------\n'          \
+          '# for each run, bandpass with 3dRSFC and calculate parameters\n' \
+          'mkdir RSFC\n'                                                    \
+          '\n'                                                              \
+          'set b0 = 0\n'                                                    \
+          'set b1 = -1\n'                                                   \
+          '# run index is 1 digit (wary of octal), file name run is 2\n'    \
+          'foreach rind ( `count -digits 1 1 $#runs` )\n'                   \
+          '    set reps = $tr_counts[$rind]\n'                              \
+          '    @ b1 += $reps\n'                                             \
+          '%s'                                                              \
+          '    @ b0 += $reps\n'                                             \
+          'end\n\n'                                                         \
+          '# copy main LFF results out, catenated back into one dataset\n'  \
+          '# (this basically replaces the input errts dataset)\n'           \
+          '3dTcat -prefix %s RSFC/run*_LFF%s.HEAD\n\n'                      \
+          % (rcmd, proc.errts_pre, proc.view)
+
+    return 0, cmd
 
 # compute temporal signal to noise after the regression
 def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
@@ -3710,8 +3782,8 @@ def db_cmd_blur_est(proc, block):
     if opt and opt.parlist: errts_pre = opt.parlist[0]
     else:   errts_pre = 'errts.${subj}'
 
-    if eopt and not sopt: # want errts, but 3dD was not executed
-        bstr = blur_est_loop_str(proc, '%s%s' % (errts_pre, proc.view), 
+    if eopt and not sopt: # want errts, and 3dD was not stopped
+        bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_pre, proc.view), 
                     mask_dset, 'errts', blur_file)
         if not bstr: return
         cmd = cmd + bstr
@@ -3721,6 +3793,7 @@ def db_cmd_blur_est(proc, block):
                     mask_dset, 'err_reml', blur_file)
         if not bstr: return
         cmd = cmd + bstr
+
     cmd = cmd + '\n'
 
     # maybe make string to run and apply 3dClustSim
@@ -3974,6 +4047,13 @@ def db_cmd_regress_bandpass(proc, block):
     if freq[0] >= freq[1]:
         print '** %s: must have low freq < high freq' % oname
         return 1, ''
+
+    # if doing RSFC, then do not bandpass in 3dDeconvolve
+    # (so we are done here)
+    if block.opts.find_opt('-regress_RSFC'):
+       if proc.verb > 0:
+          print '-- have -regress_RSFC, bandpassing will be done in 3dRSFC'
+       return 0, ''
 
     bfile = 'bandpass_rall.1D'
     tfile = 'rm.bpass.1D'
