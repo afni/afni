@@ -256,6 +256,8 @@ def combine_censor_files(proc, cfile, newfile=''):
 def db_mod_align(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
         block.opts.add_opt('-align_opts_aea', -1, [])
+        block.opts.add_opt('-align_epi_strip_method', 1, ['3dAutomask'],
+                           setpar=1)
 
     # general options for align_epi_anat.py
     uopt = user_opts.find_opt('-align_opts_aea')
@@ -274,11 +276,7 @@ def db_mod_align(block, proc, user_opts):
     if bopt: proc.align_ebase = bopt.parlist[0]
 
     # maybe adjust EPI skull stripping method
-    uopt = user_opts.find_opt('-align_epi_strip_method')
-    bopt = block.opts.find_opt('-align_epi_strip_method')
-    if uopt and not bopt: 
-       block.opts.add_opt('-align_epi_strip_method', 1, uopt.parlist, setpar=1)
-    elif uopt and bopt: bopt.parlist = uopt.parlist
+    apply_uopt_to_block('-align_epi_strip_method', user_opts, block)
 
     block.valid = 1
 
@@ -1216,19 +1214,21 @@ def db_cmd_volreg(proc, block):
             "# compute motion magnitude time series: the Euclidean norm\n"  \
             "# (sqrt(sum squares)) of the motion parameter derivatives\n"
 
+        proc.mot_enorm = 'motion_${subj}_enorm.1D'
         if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
            cmd = cmd +                                                      \
                "1d_tool.py -infile %s \\\n"                                 \
                "           -set_run_lengths %s \\\n"                        \
                "           -derivative  -collapse_cols euclidean_norm \\\n" \
-               "           -write motion_${subj}_enorm.1D\n\n"              \
-               % (proc.mot_file, UTIL.int_list_string(proc.reps_all))
+               "           -write %s\n\n"                                   \
+               % (proc.mot_file, UTIL.int_list_string(proc.reps_all),
+                  proc.mot_enorm)
         else:                   # stick with -set_nruns
            cmd = cmd +                                                      \
                "1d_tool.py -infile %s -set_nruns %d \\\n"                   \
                "           -derivative  -collapse_cols euclidean_norm \\\n" \
-               "           -write motion_${subj}_enorm.1D\n\n"              \
-               % (proc.mot_file, proc.runs)
+               "           -write %s\n\n"                                   \
+               % (proc.mot_file, proc.runs, proc.mot_enorm)
 
     if do_extents:
         proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
@@ -3585,6 +3585,7 @@ def db_cmd_regress_tfitter(proc, block):
 
     return 0, cmd
 
+
 # compute temporal signal to noise after the regression
 def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
     if not all_runs or not errts_pre: return ''
@@ -3854,10 +3855,10 @@ def db_cmd_regress_sfiles2times(proc, block):
     if proc.verb > 0: print '-- old stim list: %s' % proc.stims
 
     cmd = cmd + '\n# create -stim_times files\n'
-    cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d'       \
-                ' -nt %d \\\n'                                                 \
-                '%s'                                                           \
-                '                   -files '    \
+    cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d' \
+                ' -nt %d \\\n'                                           \
+                '%s'                                                     \
+                '                   -files '                             \
                 % (str(proc.tr), proc.runs, proc.reps,off_cmd)
     cols = 0
     for file in proc.stims_orig:
@@ -3964,7 +3965,9 @@ def db_cmd_regress_bandpass(proc, block):
     opt = block.opts.find_opt(oname)
     if not opt: return 0, ''
 
-    freq, err = block.opts.get_type_list(float, opt=opt)
+    # otherwise, note the frequency band limits
+    proc.bandpass, err = block.opts.get_type_list(float, opt=opt)
+    freq = proc.bandpass # for ease
     if len(freq) != 2:
         print '** %s requires 2 parameters, low and high frequencies' % oname
         return 1, ''
@@ -4196,7 +4199,7 @@ def db_cmd_regress_censor_motion(proc, block):
         proc.censor_file = censor_file
         proc.censor_count = 1
         cfs = ''
-                
+
     # make command string to create censor file
     if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
         cmd = cmd + '1d_tool.py -infile %s -set_run_lengths %s \\\n' \
@@ -4212,6 +4215,7 @@ def db_cmd_regress_censor_motion(proc, block):
                 % (prev_str, cfstr, limit, mot_prefix)
 
     proc.mot_cen_lim = limit
+    proc.mot_enorm   = '%s_enorm.1D' % mot_prefix
 
     if cfs: cmd += cfs
 
@@ -6083,8 +6087,8 @@ g_help_string = """
 
                 e.g. -anat_has_skull no
 
-            Use this option to block any skull-stripping operations, likely either
-            in the align or tlrc processing blocks.
+            Use this option to block any skull-stripping operations, likely
+            either in the align or tlrc processing blocks.
 
         -ask_me                 : ask the user about the basic options to apply
 
