@@ -69,15 +69,16 @@ todo: afni_system_check.py
 g_history = """
    afni_system_check.py history:
 
-   0.0  Jul 11, 2013    - initial version
-   0.1  Jul 16, 2013    - added a couple of checks for early python versions
-   0.2  Aug 02, 2013    - check for multiple R and python programs in PATH
+   0.0  Jul 11, 2013 - initial version
+   0.1  Jul 16, 2013 - added a couple of checks for early python versions
+   0.2  Aug 02, 2013 - check for multiple R and python programs in PATH
    0.3  Aug 14, 2013
                 - PYTHON_PATH should be PYTHONPATH
                 - added a look at any /sw/bin/python* programs
+   0.4  Aug 19, 2013 - update to match that of afni_util.search_path_dirs()
 """
 
-g_version = "afni_system_check.py version 0.3, August 14, 2013"
+g_version = "afni_system_check.py version 0.4, August 19, 2013"
 
 
 class CmdInterface:
@@ -165,7 +166,7 @@ class CmdInterface:
 
    def show_system_info(self):
 
-      print UTIL.section_divider('system check', hchar='=')
+      print UTIL.section_divider(g_version, hchar='=')
       print 
 
       self.sinfo = SC.SysInfo()

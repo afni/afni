@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  Aug, 2013, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "update do search_path_dirs/show_found_in_path",
+   NULL
+ } ,
+
  { 14,  Aug, 2013, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "removed '_' from PYTHON_PATH; note any /sw/bin/python* files",
    NULL

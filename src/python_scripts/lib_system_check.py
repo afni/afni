@@ -106,7 +106,7 @@ class SysInfo:
       proglist = ['afni', 'R', 'python']
       ml = UTIL.max_len_in_list(proglist)
       for prog in proglist:
-         rv, files = UTIL.search_path_dirs(prog, exact=1)
+         rv, files = UTIL.search_path_dirs(prog, mtype=1)
          if not rv:
             if len(files) > 1:   fstr = '\n      '+'\n      '.join(files)
             elif len(files) > 0: fstr = '  (%s)' % files[0]
