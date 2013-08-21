@@ -212,7 +212,7 @@ void Show_Taylor_Bundle(TAYLOR_BUNDLE *tb, FILE *out, int show_maxu)
       EXRETURN;
    }
    fprintf(out,"  Bundle has %d tracts\n", tb->N_tracts);
-   if (show_maxu < 0) show_max = tb->N_tracts;
+   if ((show_maxu < 0) || (tb->N_tracts < show_maxu)) show_max = tb->N_tracts;
    else if (show_maxu == 0) show_max = (tb->N_tracts < 5) ? tb->N_tracts : 5;  
    else show_max = show_maxu;
    
