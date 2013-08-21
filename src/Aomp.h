@@ -1,6 +1,10 @@
 #ifndef _AOMP_INCLUDED__
 #define _AOMP_INCLUDED__
 
+#ifndef INLINE
+# define INLINE /*nada*/
+#endif
+
 /*------------- Macros to be used in OpenMP enabled AFNI code ----------------*/
 
 /* to replace memcpy and memset, which cause trouble inside a parallel region */
@@ -105,4 +109,4 @@ static INLINE void AAmemset( void *ooo , int c , size_t nnn )
 #endif
 
 
-#endif
+#endif /* _AOMP_INCLUDED__ */
