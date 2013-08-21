@@ -8,6 +8,8 @@
 
 /*----------------------------------------------------------------------------*/
 
+#define MIN_RUN 9
+
 typedef struct {
    THD_3dim_dataset         *inset ;
    THD_3dim_dataset        *outset ;
@@ -28,6 +30,8 @@ typedef struct {
    int_triple          *abc_CENSOR ;
    int                  num_CENSOR ;
    int                     cenmode ;
+   int                      nblock ;
+   int             *blbeg , *blend ;
    int                        verb ;
 } TPR_input ;
 
@@ -46,6 +50,7 @@ static TPR_input tin = { NULL,NULL,NULL , 0 ,
                          "Tproject" ,
                          0.0f ,
                          NULL,0, NULL,0,CEN_KILL ,
+                         0,NULL,NULL ,
                          1 } ;
 
 static TPR_input *tinp = &tin ;
@@ -95,8 +100,30 @@ void TPR_help_the_pitiful_user(void)
    "                                      ==> output dataset is shorter than input\n"
    "                       ** The default mode is KILL !!!\n"
    "\n"
+   " -concat ccc.1D      = The catenation file, as in 3dDeconvolve, containing the\n"
+   "                       TR indexes of the start points for each contiguous run\n"
+   "                       within the input dataset.\n"
+   "                       ++ Also as in 3dDeconvolve, if the input dataset is\n"
+   "                          automatically catenated from a collection of datasets,\n"
+   "                          then the run start indexes are determined directly,\n"
+   "                          and '-concat' is not needed (and will be ignored).\n"
+   "                       ++ Each run must have at least %d time points AFTER\n"
+   "                          censoring, or the program will not work!\n"
+   "                       ++ The only use made of this input is in setting up\n"
+   "                          the bandpass/stopband regressors.\n"
+   "                       ++ '-ort' and '-dsort' regressors run through all time\n"
+   "                          points, as read in.  If you want separate projections\n"
+   "                          in each run, then you must either break these ort files\n"
+   "                          into appropriate components, OR you must run 3dTproject\n"
+   "                          for each run separately, using the appropriate pieces\n"
+   "                          from the ort files via the '{...}' selector for the\n"
+   "                          1D files and the '[...]' selector for the datasets.\n"
+   " -noblock            = Also as in 3dDeconvolve, if you want the program to treat\n"
+   "                       an auto-catenated dataset as one long run, use this option.\n"
+   "\n"
    " -ort f.1D           = Remove each column in f.1D\n"
    "                       ++ Multiple -ort options are allowed.\n"
+   "                       ++ Each column will have its mean removed.\n"
    " -polort pp          = Remove polynomials up to and including degree pp.\n"
    "                       ++ Default value is 2.\n"
    "                       ++ It makes no sense to use a value of pp greater than\n"
@@ -143,10 +170,6 @@ void TPR_help_the_pitiful_user(void)
    "------\n"
    "* The output dataset is in floating point format.\n"
    "\n"
-   "* The input file is treated as one continuous imaging 'run'; no time\n"
-   "   discontinuities (breaks) are allowed -- that is, you can't use a\n"
-   "   '-concat' option.\n"
-   "\n"
    "* Removal of the various undesired components is via linear regression.\n"
    "   In particular, this method allows for bandpassing of censored time\n"
    "   series.\n"
@@ -173,6 +196,7 @@ void TPR_help_the_pitiful_user(void)
    "   many fewer than the number of columns in A, this technique can\n"
    "   be much faster than constructing the full Q([A B]) for each voxel.\n"
    "   (Since Q(A) only need to be constructed once for all voxels.)\n"
+   "   A little fun linear algebra will show you that Q(Q(A)B)Q(A) = Q([A B]).\n"
    "\n"
    "* A similar regression could be done via the slower 3dTfitter program:\n"
    "    3dTfitter -RHS inputdataset+orig   \\\n"
@@ -194,6 +218,8 @@ void TPR_help_the_pitiful_user(void)
 #endif
   "\n"
    "* Authored by RWCox in a fit of excessive linear algebra [summer 2013].\n"
+
+    , MIN_RUN
   ) ;
 
   PRINT_COMPILE_DATE ; exit(0) ;
@@ -449,19 +475,27 @@ static int is_vector_constant( int n , float *v )
 
 void TPR_process_data( TPR_input *tp )
 {
-   int nt,nte,ntkeep , nort_fixed=0 , nort_voxel=0 , nbad=0 , qq,jj,qort ;
-   int *fmask=NULL , nf=0 ; float df ;
-   byte *vmask=NULL ; int nvmask=0 , nvox , nvout , do_demean ;
-   float *ort_fixed=NULL , *ort_fixed_psinv=NULL ;
+   int nt,ntkeep , nort_fixed=0 , nort_voxel=0 , nbad=0 , qq,jj,qort ;
+   byte *vmask=NULL ; int nvmask=0 , nvox , nvout ;
+   float *ort_fixed=NULL , *ort_fixed_psinv=NULL , *ort_fixed_unc ;
    int *keep=NULL ;
    MRI_vectim *inset_mrv , **dsort_mrv=NULL ; int nort_dsort=0 ;
+   int nbl , *bla , *blb , tt ;
+   int **fmask=NULL , *nf=NULL ; float *df=NULL ;
 
 ENTRY("TPR_process_data") ;
 
    /*----- structural constants -----*/
 
    nvox = DSET_NVOX(tp->inset) ;
-   nt   = DSET_NVALS(tp->inset) ; nte = ((nt%2)==0) ;  /* nte = even-ness of nt */
+   nt   = DSET_NVALS(tp->inset) ;
+
+   nbl = tinp->nblock ; bla = tinp->blbeg ; blb = tinp->blend ;
+   if( nbl < 1 ){
+     nbl = 1 ;
+     bla = (int *)malloc(sizeof(int)) ; bla[0] = 0 ;
+     blb = (int *)malloc(sizeof(int)) ; blb[0] = nt-1 ;
+   }
 
    /*----- make censor array -----*/
 
@@ -480,12 +514,36 @@ ENTRY("TPR_process_data") ;
    /*-- apply any -CENSORTR commands --*/
 
    if( tp->num_CENSOR > 0 ){
-     int cc , r,a,b ;
+     int cc , r,a,b , bbot,btop ;
      for( cc=0 ; cc < tp->num_CENSOR ; cc++ ){
        r = tp->abc_CENSOR[cc].i; a = tp->abc_CENSOR[cc].j; b = tp->abc_CENSOR[cc].k;
-       if( r > 1 ) continue ; /* should not happen */
-       if( a < 0   ) a = 0 ;
+       if( nbl > 1 && r == -666 ){ /* wildcard run ==> create new triples */
+         int_triple rab ;
+         tp->abc_CENSOR = (int_triple *)realloc( tp->abc_CENSOR ,
+                                                 sizeof(int_triple)*(tp->num_CENSOR+nbl) ) ;
+         for( r=1 ; r <= nbl ; r++ ){
+           rab.i = r ; rab.j = a ; rab.k = b ; tp->abc_CENSOR[tp->num_CENSOR++] = rab ;
+         }
+         continue ;  /* skip to next triple in newly expanded list */
+       }
+       if( nbl > 1 && r != 0 ){  /* convert local indexes to global */
+         if( r < 0 || r > nbl ){
+           WARNING_message("-CENSORTR %d:%d-%d has run index out of range 1..%d",
+                           r,a,b , nbl ) ;
+           a = -666666 ; b = -777777 ;
+         } else {
+           bbot = bla[r-1] ;
+           btop = blb[r-1] ;
+           if( a+bbot > btop ){
+             WARNING_message("-CENSORTR %d:%d-%d has start index past end of run (%d)",
+                             r,a,b,btop-bbot) ;
+           }
+           a += bbot ; b += bbot ; if( b > btop ) b = btop ;
+         }
+       }
+       if( a < 0 || a >= nt || b < a ) continue ;
        if( b >= nt ) b = nt-1 ;
+       if( TPR_verb > 1 ) ININFO_message("applying -CENSORTR from %d..%d",a,b) ;
        for( jj=a ; jj <= b ; jj++ ) tp->censar[jj] = 0.0f ;
      }
    }
@@ -498,8 +556,23 @@ ENTRY("TPR_process_data") ;
      INFO_message("input time points = %d ; censored = %d ; remaining = %d",
                   nt , nt-ntkeep , ntkeep ) ;
 
-   if( ntkeep < 9 )
+   if( ntkeep < MIN_RUN )
      ERROR_exit("only %d points left after censoring -- cannot continue",ntkeep) ;
+
+   /* do the same for runs, if any */
+
+   if( nbl > 1 ){
+     int aa,bb, nnk , nbad=0 ;
+     for( tt=0 ; tt < nbl ; tt++ ){
+       aa = bla[tt] ; bb = blb[tt] ;
+       for( nnk=0,jj=aa ; jj <= bb ; jj++ ) if( tp->censar[jj] != 0.0f ) nnk++ ;
+       if( nnk < MIN_RUN ){
+         ERROR_message("run #%d has only %d points after censoring",tt+1,nnk) ;
+         nbad++ ;
+       }
+     }
+     if( nbad > 0 ) ERROR_exit("Cannot continue with such over-censoring!") ;
+   }
 
    /*-- make list of time indexes to keep --*/
 
@@ -509,35 +582,42 @@ ENTRY("TPR_process_data") ;
    /*----- make stopband frequency mask, count number of frequency regressors -----*/
 
    if( tp->nstopband > 0 ){
-     int ib , jbot,jtop ; float fbot,ftop , dff ;
+     int ib , jbot,jtop , ntt ; float fbot,ftop , dff ;
 
-     df = (tp->dt > 0.0f ) ? tp->dt : DSET_TR(tp->inset) ;
-     if( df <= 0.0f ) df = 1.0f ;
-     df = 1.0f / (nt*df) ; dff = 0.1666666f * df ;
+     fmask = (int **) malloc(sizeof(int *)*nbl) ;
+     nf    = (int *)  malloc(sizeof(int)  *nbl) ;
+     df    = (float *)malloc(sizeof(float)*nbl) ;
 
-     nf = nt/2 ; fmask = (int *)calloc(sizeof(int),(nf+1)) ;
+     for( tt=0 ; tt < nbl ; tt++ ){
+       ntt = blb[tt] - bla[tt] + 1 ;
+       dff = (tp->dt > 0.0f ) ? tp->dt : DSET_TR(tp->inset) ;
+       if( dff <= 0.0f ) dff = 1.0f ;
+       df[tt] = 1.0f / (ntt*dff) ; dff = 0.1666666f * df[tt] ;
 
-     /* mark the frequencies to regress out */
+       nf[tt] = ntt/2 ; fmask[tt] = (int *)calloc(sizeof(int),(nf[tt]+1)) ;
 
-     for( ib=0 ; ib < tp->nstopband ; ib++ ){
-       fbot = tp->stopband[ib].a ;
-       ftop = tp->stopband[ib].b ;
-       jbot = (int)rintf((fbot+dff)/df); if( jbot < 0  ) jbot = 0 ;
-       jtop = (int)rintf((ftop-dff)/df); if( jtop > nf ) jtop = nf;
-       for( jj=jbot ; jj <= jtop ; jj++ ) fmask[jj] = 1 ;
+       /* mark the frequencies to regress out */
+
+       for( ib=0 ; ib < tp->nstopband ; ib++ ){
+         fbot = tp->stopband[ib].a ;
+         ftop = tp->stopband[ib].b ;
+         jbot = (int)rintf((fbot+dff)/df[tt]); if( jbot < 0      ) jbot = 0     ;
+         jtop = (int)rintf((ftop-dff)/df[tt]); if( jtop > nf[tt] ) jtop = nf[tt];
+         for( jj=jbot ; jj <= jtop ; jj++ ) fmask[tt][jj] = 1 ;
+       }
+       if( fmask[tt][0] ){                    /* always do freq=0 via polort */
+         if( tp->polort < 0 ) tp->polort = 0 ;
+         fmask[tt][0] = 0 ;
+       }
+
+       /* count the frequency regressors */
+
+       for( jj=1 ; jj < nf[tt] ; jj++ ) if( fmask[tt][jj] ) nort_fixed += 2 ;
+
+       /* even nt ==> top is Nyquist frequency (cosine only) */
+
+       if( fmask[nf[tt]] ) nort_fixed += ( (ntt%2==0) ? 1 : 2 ) ;
      }
-     if( fmask[0] ){                    /* always do freq=0 via polort */
-       if( tp->polort < 0 ) tp->polort = 0 ;
-       fmask[0] = 0 ;
-     }
-
-     /* count the frequency regressors */
-
-     for( jj=1 ; jj < nf ; jj++ ) if( fmask[jj] ) nort_fixed += 2 ;
-
-     /* even nt ==> top is Nyquist frequency (cosine only) */
-
-     if( fmask[nf] ) nort_fixed += (nte ? 1 : 2) ;
 
      if( nort_fixed >= nt ){
        ERROR_message(
@@ -554,7 +634,7 @@ ENTRY("TPR_process_data") ;
 
    /*-- count polort regressors (N.B.: freq=0 and const polynomial don't BOTH occur) */
 
-   if( tp->polort >= 0 ) nort_fixed += tp->polort+1 ;
+   if( tp->polort >= 0 ) nort_fixed += (tp->polort+1) * nbl ;
 
    /*-- check ortar for good-ositiness --*/
 
@@ -646,49 +726,51 @@ ENTRY("TPR_process_data") ;
 
    }
 
-   /*----- create array to hold all fixed orts -----*/
+   /*----- create array to hold all fixed orts (at this point, un-censored) -----*/
 
    if( nort_fixed > 0 )
-     ort_fixed = (float *)malloc( sizeof(float) * ntkeep * nort_fixed ) ;
+     ort_fixed_unc = (float *)calloc( sizeof(float) , nt * nort_fixed ) ;
 
-   /*-- load the polort part of ort_fixed ;
+   /*-- load the polort part of ort_fixed_unc ;
         note that the all 1s regressor will be first among equals --*/
 
    qort = 0 ;
    if( tp->polort >= 0 ){
-     double fac=2.0/(nt-1.0) ; float *opp ; int pp ;
-     for( pp=0 ; pp <= tp->polort ; pp++ ){
-       opp = ort_fixed + qort*ntkeep ; qort++ ;
-       for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = Plegendre(fac*keep[jj]-1.0,pp) ;
-       if( is_vector_zero(ntkeep,opp) ){  /* should not happen */
-         WARNING_message("polort #%d is all zero: skipping",pp) ; qort-- ;
+     int ntt ; double fac ; float *opp ; int pp ;
+     for( tt=0 ; tt < nbl ; tt++ ){
+       ntt = blb[tt] - bla[tt] + 1 ;
+       fac = 2.0/(ntt-1.0) ;
+       for( pp=0 ; pp <= tp->polort ; pp++ ){
+         opp = ort_fixed_unc + qort*nt ; qort++ ;
+         for( jj=bla[tt] ; jj <= blb[tt] ; jj++ )
+           opp[jj] = Plegendre( fac*(jj-bla[tt])-1.0 , pp ) ;
        }
      }
    }
 
-   /*-- load cosine/sine (stopbands) part of ort_fixed --*/
+   /*-- load cosine/sine (stopbands) part of ort_fixed_unc --*/
 
    if( fmask != NULL ){
-     int pp ; float *opp , fq ;
-     for( pp=1 ; pp <= nf ; pp++ ){
-       if( fmask[pp] == 0 ) continue ;              /** keep this frequency! **/
-       opp = ort_fixed + qort*ntkeep ; qort++ ;
-       fq = (2.0f * PI * pp) / (float)nt ;
-       for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = cosf(fq*keep[jj]) ;
-       if( is_vector_zero(ntkeep,opp) ){  /* should not happen */
-         WARNING_message("cosine ort #%d is all zero: skipping",pp) ; qort-- ;
-       }
-       if( pp < nf || nte == 0 ){  /* skip the Nyquist freq for sin() */
-         opp = ort_fixed + qort*ntkeep ; qort++ ;
-         for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = sinf(fq*keep[jj]) ;
-         if( is_vector_zero(ntkeep,opp) ){  /* should not happen */
-           WARNING_message("sine ort #%d is all zero: skipping",pp) ; qort-- ;
+     int pp , ntt ; float *opp , fq ;
+     for( tt=0 ; tt < nbl ; tt++ ){
+       ntt = blb[tt] - bla[tt] + 1 ;
+       for( pp=1 ; pp <= nf[tt] ; pp++ ){
+         if( fmask[tt][pp] == 0 ) continue ;              /** keep this frequency! **/
+         opp = ort_fixed_unc + qort*nt ; qort++ ;
+         fq = (2.0f * PI * pp) / (float)ntt ;
+         for( jj=bla[tt] ; jj <= blb[tt] ; jj++ ) opp[jj] = cosf(fq*(jj-bla[tt])) ;
+         if( pp < nf[tt] || ntt%2==1 ){  /* skip the Nyquist freq for sin() */
+           opp = ort_fixed_unc + qort*nt ; qort++ ;
+           for( jj=bla[tt] ; jj <= blb[tt] ; jj++ ) opp[jj] = sinf(fq*(jj-bla[tt])) ;
          }
        }
+       free(fmask[tt]) ;
      }
+     free(fmask) ; free(nf) ; free(df) ;
+     fmask = NULL ; nf = NULL ; df = NULL ;
    }
 
-   /*-- load ortar part of ort_fixed --*/
+   /*-- load ortar part of ort_fixed_unc --*/
 
    if( tp->ortar != NULL ){
      MRI_IMAGE *qim ; float *qar , *opp , *qpp ; int pp ;
@@ -696,26 +778,35 @@ ENTRY("TPR_process_data") ;
        qim = IMARR_SUBIM(tp->ortar,qq) ; qar = MRI_FLOAT_PTR(qim) ;
        for( pp=0 ; pp < qim->ny ; pp++ ){
          qpp = qar + pp*qim->nx ;
-         opp = ort_fixed + qort*ntkeep ; qort++ ;
-         for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = qpp[keep[jj]] ;
-         if( is_vector_zero(ntkeep,opp) ){
-           WARNING_message("-ort #%d, column #%d is all zero: skipping",qq+1,pp) ; qort-- ;
-         }
+         opp = ort_fixed_unc + qort*nt ; qort++ ;
+         for( jj=0 ; jj < nt ; jj++ ) opp[jj] = qpp[jj] ;
+         vector_demean( nt , opp ) ;
        }
      }
    }
 
-   nort_fixed = qort ;  /* in case it shrank above */
+   /*---- censor ort_fixed_unc into ort_fixed ----*/
 
-   /*-- de-mean the later regressors, if the all-1s regressor is present
-        (not strictly necessary, but makes the pseudo-inversion be happier) --*/
+   nort_fixed = qort ;
 
-   do_demean = (nort_fixed > 0 && is_vector_constant(ntkeep,ort_fixed) ) ;
-   if( do_demean ){
-     float *opp ;
-     for( qq=1 ; qq < nort_fixed ; qq++ ){
-       opp = ort_fixed + qq*ntkeep ; vector_demean( ntkeep , opp ) ;
+   if( ntkeep == nt ){
+     ort_fixed = ort_fixed_unc ; ort_fixed_unc = NULL ;   /* no censoring */
+   } else {
+     int pp,qort=0 ; float *opp , *upp ;
+     ort_fixed = (float *)malloc(sizeof(float)*ntkeep*nort_fixed) ;
+     for( pp=0 ; pp < nort_fixed ; pp++ ){
+       upp = ort_fixed_unc + pp*nt ;
+       opp = ort_fixed     + qort*ntkeep ; qort++ ;
+       for( jj=0 ; jj < ntkeep ; jj++ ) opp[jj] = upp[keep[jj]] ;
+       if( is_vector_zero(ntkeep,opp) ) qort-- ;
      }
+     if( qort < nort_fixed ){  /* it might have shrunk above */
+       INFO_message("%d fixed ort vectors discarded as all zero, after censoring",nort_fixed-qort) ;
+       nort_fixed = qort ;
+     }
+     if( nort_fixed == 0 )
+       ERROR_exit("Censoring results in no nonzero fixed orts!") ;
+     free(ort_fixed_unc) ; ort_fixed_unc = NULL ;
    }
 
    if( TPR_verb > 1 && nort_fixed > 0 ){
@@ -758,16 +849,9 @@ ENTRY("TPR_process_data") ;
        dsort_mrv[jj] = THD_dset_censored_to_vectim( tp->dsortar->ar[jj] ,
                                                     vmask, ntkeep, keep ) ;
        DSET_unload(tp->dsortar->ar[jj]) ;
-       if( do_demean )  /* de_mean the vectors? */
-         THD_vectim_applyfunc( dsort_mrv[jj] , vector_demean ) ;
+       THD_vectim_applyfunc( dsort_mrv[jj] , vector_demean ) ;
      }
    }
-
-#if 0
-   /*----- despike input dataset -----*/
-
-   if( tp->do_despike ) (void)THD_vectim_despike9( inset_mrv ) ;
-#endif
 
    /*----- do the actual work: filter time series !! -----*/
 
@@ -816,7 +900,6 @@ AFNI_OMP_END ;
      for( jj=0 ; jj < nort_dsort ; jj++ ) VECTIM_destroy(dsort_mrv[jj]) ;
      free(dsort_mrv) ; dsort_mrv = NULL ;
    }
-   free(fmask) ; fmask = NULL ;
    free(vmask) ; vmask = NULL ;
    if( ort_fixed       != NULL ){ free(ort_fixed)       ; ort_fixed = NULL       ; }
    if( ort_fixed_psinv != NULL ){ free(ort_fixed_psinv) ; ort_fixed_psinv = NULL ; }
@@ -866,6 +949,7 @@ AFNI_OMP_END ;
 int main( int argc , char *argv[] )
 {
    int iarg=1 , ct , nact=0 ;
+   int nbl=0 , *blist=NULL , tt , noblock=0 ;
 
    /*----------*/
 
@@ -885,6 +969,26 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-verb") == 0 ){
        tinp->verb++ ; iarg++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcasecmp(argv[iarg],"-noblock") == 0 ){
+       noblock++ ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-concat") == 0 ){
+       MRI_IMAGE *cim ; float *car ;
+       if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
+       if( nbl    > 0     ) ERROR_exit("You can't use '-concat' twice!") ;
+       cim = mri_read_1D( argv[iarg] ) ;
+       if( cim    == NULL ) ERROR_exit("Can't read from '-concat' file %s",argv[iarg]) ;
+       car   = MRI_FLOAT_PTR(cim) ;
+       nbl   = cim->nvox ;
+       blist = (int *)malloc(sizeof(int)*nbl) ;
+       for( tt=0 ; tt < nbl ; tt++ ) blist[tt] = (int)rintf(car[tt]) ;
+       mri_free(cim) ;
+       iarg++ ; continue ;
      }
 
      /*-----*/
@@ -923,14 +1027,6 @@ int main( int argc , char *argv[] )
        if( tinp->polort > 20 ) ERROR_exit("-polort value can't be over 20 :-(") ;
        iarg++ ; continue ;
      }
-
-#if 0
-     /*-----*/
-
-     if( strcasecmp(argv[iarg],"-despike") == 0 ){
-       tinp->do_despike = 1 ; iarg++ ; continue ;
-     }
-#endif
 
      if( strcasecmp(argv[iarg],"-norm") == 0 ){
        tinp->do_norm = 1 ; iarg++ ; continue ;
@@ -1112,8 +1208,8 @@ int main( int argc , char *argv[] )
    if( tinp->inset == NULL )
      ERROR_exit("no input dataset?") ;
 
-   if( DSET_NVALS(tinp->inset) < 9 )
-     ERROR_exit("input dataset has fewer than 9 time points?") ;
+   if( DSET_NVALS(tinp->inset) < MIN_RUN )
+     ERROR_exit("input dataset has fewer than %d time points?",MIN_RUN) ;
 
    if( tinp->maskset != NULL && !EQUIV_GRIDXYZ(tinp->inset,tinp->maskset) )
      ERROR_exit("mask and input datasets are NOT on the same 3D grid?") ;
@@ -1123,8 +1219,58 @@ int main( int argc , char *argv[] )
      DSET_load(tinp->maskset) ; CHECK_LOAD_ERROR(tinp->maskset) ;
    }
 
+   /* auto-catenated dataset ==> build blist */
+
+   if( DSET_IS_TCAT(tinp->inset) ){
+     int nerr=0 ;
+     if( nbl > 0 ){
+       WARNING_message("-concat option is ignored, since input dataset was automatically catenated") ;
+       free(blist) ; blist = NULL ; nbl = 0 ;
+     }
+     if( !noblock ){
+       nbl      = tinp->inset->tcat_num ;
+       blist    = (int *)malloc(sizeof(int)*nbl) ;
+       blist[0] = 0 ;
+       for( tt=1 ; tt < nbl ; tt++ ){
+         if( tinp->inset->tcat_len[tt-1] < MIN_RUN ) nerr++ ;
+         blist[tt] = blist[tt-1] + tinp->inset->tcat_len[tt-1] ;
+       }
+       if( nerr > 0 ) ERROR_exit("Auto-catenated dataset has runs with length < %d",MIN_RUN) ;
+       if( tinp->verb ) INFO_message("Auto-catenated dataset has %d runs",nbl) ;
+     } else {
+       if( tinp->verb ) INFO_message("Auto-catenated dataset treated as 1 run instead of %d",tinp->inset->tcat_num) ;
+     }
+   }
+
+   if( nbl == 0 ){
+     nbl = 1 ; blist = (int *)malloc(sizeof(int)) ; blist[0] = 0 ;
+   }
+
+   /* load nbl and blist into tinp */
+
+   tinp->nblock = nbl ;
+   tinp->blbeg  = (int *)malloc(sizeof(int)*nbl) ;
+   tinp->blend  = (int *)malloc(sizeof(int)*nbl) ;
+   for( tt=0 ; tt < nbl ; tt++ ){
+     tinp->blbeg[tt] = blist[tt] ;
+     tinp->blend[tt] = (tt < nbl-1) ? blist[tt+1]-1 : DSET_NVALS(tinp->inset)-1 ;
+   }
+
+   /* check CENSOR command for run indexes: should all have them, or none */
+
+   if( tinp->abc_CENSOR != NULL ){
+     int ic , rr , nzr=0 ;
+     for( ic=0 ; ic < tinp->num_CENSOR ; ic++ ) /* count number with run != 0 */
+       if( tinp->abc_CENSOR[ic].i ) nzr++ ;
+     if( nzr > 0 && nzr < tinp->num_CENSOR )
+       WARNING_message(
+         "%d -CENSORTR commands have 'run:' numbers and %d do not!\n"
+         "   (either all should have 'run:' numbers or none)",nzr,tinp->num_CENSOR-nzr);
+   }
+
+   /* check to see how many 'actions' are requested */
+
    nact = 0 ;
-   if( tinp->do_despike       ) nact++ ;
    if( tinp->polort >= 0      ) nact++ ;
    if( tinp->do_norm          ) nact++ ;
    if( tinp->ortar != NULL    ) nact++ ;
