@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	INFO_message("version: BETA");
+   //	INFO_message("version: BETA");
 	Dim = (int *)calloc(4,sizeof(int));
 
 	// scan args
