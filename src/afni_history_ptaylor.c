@@ -67,6 +67,42 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 21, Aug , 2013 , PT , "3dProbTrackID" , MAJOR , TYPE_MODIFY,
+   "Putting together old deterministic and probabilistic programs into 1.",
+   "Unifying tracking, will be easier to update/improve in future."
+   "For deterministic tracking, allow networks of target ROIs for tracking,"
+   "as well as bunding outputs for SUMA network/matrix viewing."
+   "New option as well, `-mini_prob', to have some probabilistic aspect to"
+   "deterministic/tract-based output."
+},
+
+{ 21, Aug , 2013 , PT , "3dTrackID" , MINOR , TYPE_MODIFY,
+   "Minor changes in internal trackbundle handling/NIML-output.",
+   "Temporary step to SUMAfication of program; this program will"
+   "eventually be phased out in favor of 3dProbTrackID deterministic options."
+},
+
+{ 21, Aug , 2013 , PT , "3dROIMaker" , MICRO , TYPE_MODIFY,
+   "Minor change to INFO_message.",
+   NULL
+},
+
+{ 21, Aug , 2013 , PT , "3dNetcorr" , MICRO , TYPE_MODIFY,
+   "Minor change to INFO_message.",
+   NULL
+},
+
+{ 21, Aug , 2013 , PT , "3dMatch" , MICRO , TYPE_MODIFY,
+   "Minor change to INFO_message.",
+   NULL
+},
+
+{ 21, Aug , 2013 , PT , "3dRSFC" , MINOR , TYPE_BUG_FIX,
+   "Allow subset of time series to be selected.",
+   "Minor tweaking of internal workings for writing output.\n"
+   "No quantitative change.\n"
+},
+
 { 25, Mar , 2013 , PT , "3dReHo" , MINOR , TYPE_NEW_OPT,
    "More voxelwise neighborhood shapes available.",
    "Voxelwise neighborhoods can be any sphere/radius size, and even\n"

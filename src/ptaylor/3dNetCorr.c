@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
   // ****************************************************************
   // ****************************************************************
 
-  INFO_message("version: BETA");
+  //  INFO_message("version: BETA");
 	
   /** scan args **/
   if (argc == 1) { usage_NetCorr(1); exit(0); }
