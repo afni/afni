@@ -1,6 +1,8 @@
+
 /* 
-   Probabilistic tracking,  first draft at AFNIfication, March 2012.
-   using FACTID code, from Taylor, Kuan-Hung, Lin and Biswal (2012)
+   Probabilistic(+deterministic) tracking, first draft at
+   AFNIfication, March 2012.  using FACTID code, from Taylor,
+   Kuan-Hung, Lin and Biswal (2012)
 
 	Sept 2012: fixing some memory stuff.
 
@@ -10,6 +12,7 @@
 	+ allow non-FA map to define `WM' for tracks,
 	+ can include brainmask, if wanted.
 	+ allow both nifti and afni inputs to be read 
+
 	Jan 2013:
 	+ 'NOT' masks
 	+ minimum uncert
@@ -17,11 +20,21 @@
 	Jan 2013: 
 	+ output ascii format 'dumps' to be turned into masks by 3dUndump,
 	or individ brain mask dumps, or both 
+
    Feb 2013:
    + allow for output of unthresholded values for ROI maps
+
    Mar 2013:
    + output *.grid file now has row of ROI labels in it
    + floor instead of ceil to calc NmNsThr
+
+   Aug 2013:
+   + merge with det tracking to have networks here, and single prog: @)
+   + mini prob tracking for det case
+   + better visualization tools, a la Ziad Saad
+   + groundwork for adding SUMA+matrix capabilities, new IO: @)))
+   + will start voxelwise track info
+
 */
 
 
@@ -38,6 +51,7 @@
 #include <gsl/gsl_rng.h>
 #include <TrackIO.h>
 
+#include "suma_suma.h"
 
 void usage_ProbTrackID(int detail) 
 {
@@ -83,6 +97,7 @@ void usage_ProbTrackID(int detail)
 "        11- Numbers of voxels in WM ROI connecting GM-ROIs \n"
 "\n\n"
 "  + TRACTOGRAPHY OPTIONS via {-algopt [file of tractog options}: \n"
+"     1) Probabilistic mode (default):\n"
 "        MinFA    :FA cutoff value, lower bound\n"
 "        MaxAng   :max angle (in deg) to propagate between vox\n"
 "        MinL     :min physical length (in mm) of tracts to keep\n"
@@ -93,25 +108,62 @@ void usage_ProbTrackID(int detail)
 "        Nmonte   :number of Monte Carlo iterations\n"
 "        M        :number of grads used to scan (not used yet)\n"
 "        bval     :non-b=0 value (mm^2/s), e.g., 1000 (not used yet)\n"
+"\n"
+"     2) Deterministic mode (`-det_net', below):\n"
+"        MinFA       :FA cutoff value, lower bound\n"
+"        MaxAng      :max angle (in deg) to propagate between vox\n"
+"        MinL        :min physical length (in mm) of tracts to keep\n"
+"        SeedPerV[0] :Number of seeds per vox in x direc\n"
+"        SeedPerV[1] :Number of seeds per vox in y direc\n"
+"        SeedPerV[2] :Number of seeds per vox in z direc\n"
+"        M           :number of grads used to scan (not used yet)\n"
+"        bval        :non-b=0 value (mm^2/s), e.g., 1000 (not used yet)\n"
 "\n\n"
 "  + RUNNING, need to provide:\n"
 "    -netrois ROIS   :mask(s) of ROIs- can be many subbricks!\n"
-"    -uncert  FILE   :uncertainty values [6 subbricks]. \n"
-"                     There is a minimum uncertainty of stdevs: for FA,\n"
-"                     it is 0.015; for delta e_i, it is 0.06rad (~3.4deg).\n"
 "    -prefix  PREFIX :output file name part\n"
-"    -input   INPREF :Basename of DTI volumes output by, e.g., 3dDWItoDT.\n"
+"    -input   INPREF :basename of DTI volumes output by, e.g., 3dDWItoDT.\n"
 "                     NB- following volumes are currently expected:\n"
 "                     INPREF_V1, INPREF_MD, INPREF_L1, INPREF_FA,\n" 
 "                     INPREF_V2 and INPREF_V3\n"
 "    -algopt  ALGO   :ASCII file with eight numbers defining parameter \n"
-"                     quantities just above. NB: Diff than that for\n"
-"                     3dTrackID!!!\n"
-"    -extra_set SET  :if you want to use a non-FA derived definition for the\n"
-"                     WM skeleton in which tracts run, you can input one, and\n"
-"                     then the threshold in the ALGO file refers to values\n"
-"                     in this map. (Then the uncertainty in FA measures does\n"
-"                     not really matter during the Monte Carlo part.)\n"
+"                     quantities just above (see list above); note the\n"
+"                     slight difference whether running in 1) the default\n"
+"                     probabilistic mode, or 2) the deterministic mode.\n"
+"\n"
+"    -uncert  U_FILE :uncertainty values [6 subbricks], obtainable from\n"
+"                     3dDWUncert. Necessary in default probabilistic mode, or\n"
+"                     if using `-det_net' + `-mini_prob', described below.\n"
+"                     Note that whatever the values in the U_FILE, this\n"
+"                     program asserts a minimum uncertainty of stdevs:\n"
+"                     for FA, it is 0.015;\n"
+"                     for delta e_i, it is 0.06rad (~3.4deg).\n"
+"\n"
+"    -det_net {OR|AND}:perform *deterministic* tractography, thus the ALGO\n"
+"                     file should contain the relevant information described\n"
+"                     for case 2 up above.  One can still enter network(s) of\n"
+"                     ROIs, one per brik, choosing to keep tracks found with\n"
+"                     either OR or AND logic: i.e., keeping either any track\n"
+"                     found to go through at least one network ROI, or only\n"
+"                     those tracks which join a pair of ROIs.\n"
+"                     When using AND here, the `cut_at_rois' option will be\n"
+"                     applied automatically (see below).\n"
+"    -rec_orig       :record dataset origin in the header of the *.trk file.\n"
+"                     As of Sept. 2012, TrackVis doesn't use this info so it\n"
+"                     wasn't included, but if you might want to map your \n"
+"                     *.trk file later, then use the switch as the datasets's\n"
+"                     Origin is necessary info for the mapping (the default\n"
+"                     image in TrackVis might not pop up in the center of the\n"
+"                     viewing window, though, just be aware). NB: including\n"
+"                     the origin might become default at some point in time.\n"
+"    -mini_prob NUM  :will run a small number NUM of whole brain Monte Carlo\n"
+"                     iterations perturbing relevant tensor values in accord\n"
+"                     with their uncertainty values (hence, the need for also\n"
+"                     using `-uncert' with this option). This might be useful\n"
+"                     for giving a flavor of a broader range of connections\n"
+"                     while still seeing estimated tracks themselves. NB: if\n"
+"                     NUM is large, you might be *big* output track files.\n"
+"\n"
 "    -mask   MASK    :can include a brainmask within which to calculate \n"
 "                     things. Otherwise, data should be masked already.\n"
 "    -cut_at_rois    :for pairwise track connections, only keep voxels in\n"
@@ -119,23 +171,11 @@ void usage_ProbTrackID(int detail)
 "                     tracks which run beyond ROIs). Even with this switch\n"
 "                     on, for individual ROI stats and total tracking maps,\n"
 "                     all voxels are kept.\n"
-"    -dump_rois TYPE :can output individual masks of ROI connections.\n"
-"                     Options for TYPE are: {DUMP | AFNI | BOTH}. Using DUMP\n"
-"                     gives a set of 4-column ASCII files, each formatted\n"
-"                     like a 3dmaskdump data set; it can be reconstituted\n"
-"                     using 3dUndump. Using AFNI gives a set of BRIK/HEAD\n"
-"                     (byte) files in a directory called PREFIX; using BOTH\n"
-"                     produces both formats of outputs.\n"
-"    -posteriori     :switch to have a bunch of individual files output, with\n"
-"                     the value in each being the number of tracks per voxel\n"
-"                     for that pair; works with '-dump_rois {AFNI | BOTH }',\n"
-"                     where you get track-path maps instead of masks; makes\n"
-"                     threshold for number of tracks between ROIs to keep to\n"
-"                     be one automatically, regardless of setting in algopt.\n"
-"    -lab_orig_rois  :if using `-dump_rois', then apply numerical labels of\n"
-"                     original ROIs input to the output names.  This would\n"
-"                     only matter if input ROI labels aren't consecutive and\n"
-"                     starting one (e.g., if instead they were 1,2,3,5,8,..).\n"
+"    -extra_set SET  :if you want to use a non-FA derived definition for the\n"
+"                     WM skeleton in which tracts run, you can input one, and\n"
+"                     then the threshold in the ALGO file refers to values\n"
+"                     in this map. (Then the uncertainty in FA measures does\n"
+"                     not really matter during the Monte Carlo part.)\n"
 "    -not_mask NM    :a mask of locations through which tracks cannot go.\n"
 "                     A single brik NM can be input, then to be applied to\n"
 "                     each ROIS brik, or an NM with the same number of briks\n"
@@ -143,12 +183,31 @@ void usage_ProbTrackID(int detail)
 "                     sponding ROIS brik. (And you could pad with zero-laden\n"
 "                     NOT-masks, in the latter case.) Mask acts such that if\n"
 "                     a possible track enters it, the whole track is removed.\n"
-"    -write_rois     :Write out a file (PREFIX.roi.labs) of all the ROI \n" 
+"\n"
+"    -dump_rois TYPE :can output individual masks of ROI connections.\n"
+"                     Options for TYPE are: {DUMP | AFNI | BOTH}. Using DUMP\n"
+"                     gives a set of 4-column ASCII files, each formatted\n"
+"                     like a 3dmaskdump data set; it can be reconstituted\n"
+"                     using 3dUndump. Using AFNI gives a set of BRIK/HEAD\n"
+"                     (byte) files in a directory called PREFIX; using BOTH\n"
+"                     produces both formats of outputs.\n"
+"    -lab_orig_rois  :if using `-dump_rois', then apply numerical labels of\n"
+"                     original ROIs input to the output names.  This would\n"
+"                     only matter if input ROI labels aren't consecutive and\n"
+"                     starting one (e.g., if instead they were 1,2,3,5,8,..).\n"
+"    -posteriori     :switch to have a bunch of individual files output, with\n"
+"                     the value in each being the number of tracks per voxel\n"
+"                     for that pair; works with '-dump_rois {AFNI | BOTH }',\n"
+"                     where you get track-path maps instead of masks; makes\n"
+"                     threshold for number of tracks between ROIs to keep to\n"
+"                     be one automatically, regardless of setting in algopt.\n"
+"\n"
+"    -write_rois     :write out a file (PREFIX.roi.labs) of all the ROI \n" 
 "                     (re-)labels, for example if the input ROIs aren't\n"
 "                     simply consecutive and starting from 1. File has 3cols:\n"
 "                       Input_ROI   Condensed_form_ROI   Power_of_2_label\n"
-"    -write_opts     :Write out all the option values into PREFIX.niml.opts.\n" 
-"    -verb VERB      :Verbosity level, default is 0.\n"
+"    -write_opts     :write out all the option values into PREFIX.niml.opts.\n" 
+"    -verb VERB      :verbosity level, default is 0.\n"
 "\n\n"
 "  + EXAMPLE:\n"
 "      Download and install this archive:\n"
@@ -181,7 +240,7 @@ void usage_ProbTrackID(int detail)
 		
 
 int main(int argc, char *argv[]) {
-	int i,j,k,m,n,ii,jj,kk,mm,gg,nn,hh,bb,cc,rr,ss,tt;
+  int i,j,k,m,n,ii,jj,kk,mm,gg,nn,hh,bb,cc,rr,ss,uu,vv;
 	int iarg;
 	int nmask1=0;
 	int nmask2=0;
@@ -215,7 +274,6 @@ int main(int argc, char *argv[]) {
 	char in_MD[300];
 	char in_L1[300];
 
-	char OUT_bin[300];
 	char OUT_grid[300];
 	char OUT_map[300];
 	char OUT_mask[300];
@@ -259,6 +317,7 @@ int main(int argc, char *argv[]) {
 	float totlen_phys;
 	int Numtract; 
 
+   int READS_in;
 	float READS_fl;
 	int end[2][3];
 	int test_ind[2];
@@ -292,6 +351,51 @@ int main(int argc, char *argv[]) {
 	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
 	int  FOUND = -1;
 
+   // @) this block of values for detnet options
+   int DETNET = 0; // switch on detnet
+	int SeedPerV[3]={2,2,2}; // default detnet seedopts
+   TAYLOR_NETWORK **tnet=NULL;
+   TAYLOR_BUNDLE ***tb=NULL;  // @))), for new IO
+   int *N_bund=NULL; // @))) number of possible tri+diag bund/net
+   int **b_tags=NULL; // @))) bundle tags per network
+	TAYLOR_TRACT **tt=NULL;  
+	char *mode = "NI_fast_binary";
+   int *id=NULL;
+	float **flTtot=NULL, **cutTot=NULL;
+   int **cutTotI=NULL;
+   int trL=0;
+   char **prefix_det=NULL;
+	char OUT_bin[300];
+   FILE **fout0=NULL;
+	tv_io_header header1 = {.id_string = "TRACK\0", 
+				.origin = {0,0,0},   
+				.n_scalars = 3,
+				.scal_n[0] = "FA",
+				.scal_n[1] = "MD",
+				.scal_n[2] = "L1",
+				.n_properties = 0,
+				.vox_to_ras = {{0.,0.,0.,0.},{0.,0.,0.,0.},
+					       {0.,0.,0.,0.},{0.,0.,0.,0.}},
+				// reset this later based on actual data set
+				.voxel_order = "RAI\0", 
+				.invert_x = 0,
+				.invert_y = 0,
+				.invert_z = 0,
+				.swap_xy = 0,
+				.swap_yz = 0,
+				.swap_zx = 0,
+				.n_count = 0,
+				.version = 2,
+				.hdr_size = 1000};
+	int RECORD_ORIG = 0; 
+	float Orig[3] = {0.0,0.0,0.0};
+   int LOG_TYPE=0; // default is OR logic
+   int MINI_PROB_NM=1; // default: no mini monte carloing for det_net
+
+   // @)) jump lesion searching stuff, to be used prob only with DETNET
+   int JUMPLES=0; // switch to turn on prop check.
+   float ***TROUT=NULL;
+
 	// for random number generation
 	srand(time(0));
 	seed = time(NULL) ;
@@ -308,7 +412,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
   
-	//	INFO_message("version: RHO");
+	//	INFO_message("version: TAU");
 
 	// scan args 
 	if (argc == 1) { usage_ProbTrackID(1); exit(0); }
@@ -444,8 +548,11 @@ int main(int argc, char *argv[]) {
 			Dim[2] = DSET_NZ(insetFA); 
 			Ledge[0] = fabs(DSET_DX(insetFA)); Ledge[1] = fabs(DSET_DY(insetFA)); 
 			Ledge[2] = fabs(DSET_DZ(insetFA)); 
+			Orig[0] = DSET_XORG(insetFA); Orig[1] = DSET_YORG(insetFA); // @)
+			Orig[2] = DSET_ZORG(insetFA);
+
 			// check tot num vox match (as proxy for dims...)
-			if( (Nvox != nmask1) || (Nvox != nmask2) )
+			if( (Nvox != nmask1) || ( (Nvox != nmask2) && !DETNET) )
 				ERROR_exit("Input dataset does not match both mask volumes!");
         
 			// this stores the original data file orientation for later use,
@@ -453,14 +560,22 @@ int main(int argc, char *argv[]) {
 			// described below
 			voxel_order = (char *)calloc(4, sizeof(char)); 
 			TV_switch = (int *)calloc(3, sizeof(int)); 
-
 			voxel_order[0]=ORIENT_typestr[insetFA->daxes->xxorient][0];
 			voxel_order[1]=ORIENT_typestr[insetFA->daxes->yyorient][0];
 			voxel_order[2]=ORIENT_typestr[insetFA->daxes->zzorient][0];
 			voxel_order[3]='\0';
-			for( i=0 ; i<3 ; i++) 
-				TV_switch[i] = !(dset_or[i]==voxel_order[i]);
-			
+
+			header1.voxel_order[0]=ORIENT_typestr[insetFA->daxes->xxorient][0]; // @)
+			header1.voxel_order[1]=ORIENT_typestr[insetFA->daxes->yyorient][0];
+			header1.voxel_order[2]=ORIENT_typestr[insetFA->daxes->zzorient][0];
+
+			for( i=0 ; i<3 ; i++) {
+           header1.dim[i] = Dim[i];
+           header1.voxel_size[i] = Ledge[i];
+           // will want this when outputting file later for TrackVis.
+           TV_switch[i] = !(dset_or[i]==voxel_order[i]);
+			}
+
 			FOUND = -1;
 			for( i=0 ; i<4 ; i++) {
 				sprintf(in_V1,"%s_V1%s", argv[iarg],postfix[i]); 
@@ -587,9 +702,6 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-
-
-
 		if( strcmp(argv[iarg],"-mask") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-mask'");
@@ -615,6 +727,60 @@ int main(int argc, char *argv[]) {
         iarg++ ; continue ;
 		} 
 
+      if( strcmp(argv[iarg],"-det_net") == 0) { // @)
+        iarg++ ; if( iarg >= argc ) 
+                   ERROR_exit("Need argument after '-det_net'");
+
+        INFO_message("ROI logic type is: %s",argv[iarg]);
+        if( strcmp(argv[iarg],"AND") == 0 ) 
+          LOG_TYPE = 1;
+        else if( strcmp(argv[iarg],"OR") == 0 ) 
+          LOG_TYPE = 0;
+        else 
+          ERROR_exit("Illegal after '-det_net': need 'OR' or 'AND'");
+
+        DETNET=1;
+        iarg++ ; continue ;
+		}
+
+      // can do a mini monte carlo if you want; for example, use 1
+      // seed per ROI and then see more locs to tracks possibly; prob
+      // don't want to make tooo large for visualization stuff.
+      if( strcmp(argv[iarg],"-mini_prob") == 0) { // @)
+        iarg++ ; if( iarg >= argc ) 
+                   ERROR_exit("Need argument after '-mini_prob'");
+        
+        MINI_PROB_NM = atoi(argv[iarg]);
+
+        iarg++ ; continue ;
+		}
+
+      /*    TURNED OFF FOR MOMENT, WORK IN PROGRESS
+            if( strcmp(argv[iarg],"-jump_les") == 0) { // @)) prop check
+            JUMPLES=1;
+            iarg++ ; continue ;
+            } */
+      
+      
+      
+		if( strcmp(argv[iarg],"-rec_orig") == 0) { // @)
+			RECORD_ORIG=1;
+			iarg++ ; continue ;
+		}
+      if( strcmp(argv[iarg],"-tract_out_mode") == 0) { // @)
+        if( ++iarg >= argc ) 
+          ERROR_exit("Need argument after '-tract_out_mode'") ;
+        if (strcmp(argv[iarg], "NI_fast_binary") &&
+            strcmp(argv[iarg], "NI_fast_text") &&
+            strcmp(argv[iarg], "NI_slow_binary") &&
+            strcmp(argv[iarg], "NI_slow_text") ) {
+          ERROR_message("Bad value (%s) for -tract_out_mode",argv[iarg]);
+				exit(1);
+        }  
+        mode = argv[iarg];
+        iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-dump_rois") == 0) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-dump_rois'");
@@ -631,6 +797,119 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+      if ( strcmp(argv[iarg],"-gdset_toy") == 0 ) {
+         float x[3]={-40, 38, 4.7};
+         float y[3]={-27, -34, 14.4};
+         float z[3]={26, 41, 55};
+            /* alternate coordinate specification */
+         float xyz[9]={ x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]};
+         float **mv=NULL;
+         int i,j,k=0;
+         char **labs, *NameOut;
+         SUMA_DSET *gset=NULL;
+         TAYLOR_TRACT *tt=NULL;
+         TAYLOR_BUNDLE *tb=NULL;
+         TAYLOR_NETWORK *net=NULL;
+         int onexyz = 1; /* set to 1 to specify coords by xyz triplets 
+                            in demo. 0 to specify x,y, and z as separate
+                            vectors */
+
+         INFO_message("A demonstration for creating/writing graph dset\n"
+                      "The vast majority of this content is for creating\n"
+                      "dummy data.\n"
+                      "Non dummy sections are marked with -->\n");
+
+         /* Create 2 matrices and some matrix labels */
+               mv = (float **)calloc(2, sizeof(float*));
+               for (i=0; i<2; ++i) mv[i] = (float *)calloc(9, sizeof(float));
+               labs = (char **)calloc(2, sizeof(char*));
+               for (i=0; i<2; ++i) labs[i]=calloc(64, sizeof(char));
+
+               for (i=0; i<2; ++i) {
+                  for (j=0; j<9; ++j) {
+                     mv[i][j] = k++;
+                  }
+                  sprintf(labs[i],"Label Of Matrix %d", i);
+               }
+         
+         /* --> Create a graph dataset out of these two matrices */
+               gset = SUMA_FloatVec_to_GDSET(mv, 2, 9, "full", labs, 
+                                             NULL, NULL, NULL);
+         
+         /* --> Now add the XYZ of each graph point, two ways are possible*/
+               if (onexyz) { /* for when your ROI centroid coords 
+                                and in one vector of XYZ triplets */
+                  if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
+                                                  xyz, NULL, NULL, 3))) {
+                     ERROR_message("Failed to add node list");
+                     exit(1);  
+                  }                                     
+               } else {
+                  if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
+                                                  x, y, z, 3))) {
+                     ERROR_message("Failed to add node list");
+                     exit(1);     
+                  }
+               }
+
+         /* Create some dummy bundles representing edge 1-2=5, or 2-1=7*/
+               tb = NULL; net = NULL; tt = NULL;
+               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+               tt->id=77; tt->N_pts3=12; 
+               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+               tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+               tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
+               tt->pts[6]=22;   tt->pts[7]=33;   tt->pts[8]=49;
+               tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+               tb = AppCreateBundle(tb, 1, tt);
+               tt = Free_Tracts(tt, 1);
+               /* put another track in */
+               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+               tt->id=78; tt->N_pts3=12; 
+               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+               tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+               tt->pts[3]=23;   tt->pts[4]=35;   tt->pts[5]=42;
+               tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
+               tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+               tb = AppCreateBundle(tb, 1, tt);
+               tt = Free_Tracts(tt, 1);
+               /* add it to network */
+               net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL);
+               /* make another one for edge 0-1=1 and 1-0=3*/
+               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+               tt->id=77; tt->N_pts3=15; 
+               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+               tt->pts[0]=x[0]; tt->pts[1]=y[0];  tt->pts[2]=z[0];
+               tt->pts[3]=5;    tt->pts[4]=12;    tt->pts[5]=17;
+               tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
+               tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
+               tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
+               tb = AppCreateBundle(tb, 1, tt);
+               tt = Free_Tracts(tt, 1);
+               /* add bundle to network */
+               net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
+
+         /* --> Now put network in graph dset */
+               NI_add_to_group(gset->ngr, Network_2_NIgr(net, 1));
+
+         /* --> Write the graph dataset */
+               NameOut = SUMA_WriteDset_ns ("toy", gset, SUMA_ASCII_NIML, 1, 0);
+               if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
+                  ERROR_message("Failed to write dataset."); exit(1); 
+               } else {
+                  if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
+               }
+         
+         
+         /* cleanup for good manners */
+            for(i=0;i<2; ++i) free(mv[i]); free(mv);
+            for(i=0;i<2; ++i) free(labs[i]); free(labs);
+            Free_Network(net); net = NULL;
+         
+         INFO_message("All done. Demo graph dset is called toy.niml.dset");   
+         exit(0);
+      }
+      
 		ERROR_message("Bad option '%s'\n",argv[iarg]) ;
 		suggest_best_prog_option(argv[0], argv[iarg]);
 		exit(1);
@@ -640,6 +919,21 @@ int main(int argc, char *argv[]) {
 		ERROR_message("Too few options. Try -help for details.\n");
 		exit(1);
 	}
+
+   if(nmask2 && DETNET && (MINI_PROB_NM == 1) ){ // @)
+     ERROR_message("Don't do -detnet AND -uncert together without -mini_prob.\n");
+     exit(1);
+   }
+
+   if(!nmask2 && (MINI_PROB_NM != 1) ){ // @)
+     ERROR_message("If using -mini_prob, then you need -uncert as well.\n");
+     exit(1);
+   }
+
+   if(DETNET && LOG_TYPE && !ONLY_BT){
+     INFO_message("With `-det_net AND', the `-cut_at_rois' option will be automically applied.");
+     ONLY_BT=1;
+   }
 
 	if (dump_opts) {
 		nel = NI_setProbTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
@@ -674,22 +968,147 @@ int main(int argc, char *argv[]) {
 			ERROR_exit("The number of not_mask and netrois briks must match (or not_mask have only 1 brik): here, not_mask:%d, netrois:%d",NOTMASK,N_nets);
 	}
 
-
-	// Process the options a little 
-	LocSeed = calloc(Nseed,sizeof(LocSeed)); 
-	for(i=0 ; i<Nseed ; i++) 
-		LocSeed[i] = calloc(3,sizeof(float)); 
-  
 	// convert to cos of rad value for comparisons, instead of using acos()
 	MaxAng = cos(CONV*MaxAngDeg); 
+
+	// for temp storage array, just a multiple of longest dimension!
+	// essentially, a buffer size per tract we're making
+	if(Dim[0] > Dim[1])
+		ArrMax = Dim[0] * 4;
+	else
+		ArrMax = Dim[1] * 4;
+	if(4*Dim[2] > ArrMax)
+		ArrMax = Dim[2] * 4;
   
-	// will take stats on voxels with number of tracts >=NmNsThr
-	NmNsThr =  (int) floor(NmNsFr*Nseed*Nmonte); 
-   // lower bound is 1, and also force to be 1 if posteriori is chosen
-	if( (NmNsThr<1) || POST ) 
-		NmNsThr=1;
-	INFO_message("Effective Monte Iters:%d. Voxel threshold:%d.",
-					 Nseed*Nmonte,NmNsThr);
+   // switch to add header-- option for now, added Sept. 2012
+	// for use with map_TrackID to map tracks to different space
+	if(RECORD_ORIG) { // @)
+		for( i=0 ; i<3 ; i++)
+			header1.origin[i] = Orig[i];
+	}
+
+   // @) IF DOING JUST DETNET TRACK
+   // adjust what some params mean
+   if (DETNET){ 
+
+     if( N_nets > FOPEN_MAX)
+       ERROR_message("You have more networks (%d) than the allowable number of open stream (%d)\n"
+                    "allowed for your computer. You should divide up the networks below this max,\n"
+                    "or spring for a better computer.\n",N_nets,FOPEN_MAX);
+     //printf("FOPEN_MAX=%d\n",FOPEN_MAX);
+
+
+     Nmonte = MINI_PROB_NM; // only doing 1 it
+
+     if( (NmNsFr >= 1) && (Nseed >= 1) && (Nmonte >= 1) ) {
+       SeedPerV[0] = (int) NmNsFr;
+       SeedPerV[1] = (int) Nseed;
+       SeedPerV[2] = (int) Nmonte;
+     } 
+     else // just have 2x2x2
+       INFO_message("Perhaps you are using a *probabilistic* algopt file.\n  Since you are chose the deterministic switch,\n  going to use 8 evenly spaced seeds per vox.");
+     
+     Nseed = SeedPerV[0]*SeedPerV[1]*SeedPerV[2];
+     
+     LocSeed = calloc(Nseed,sizeof(LocSeed)); 
+     for(i=0 ; i<Nseed ; i++) 
+       LocSeed[i] = calloc(3,sizeof(float)); 
+     
+     if( (LocSeed == NULL) ){
+       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+       exit(123);
+     }
+     
+     // regularly spaced seeds
+     i = 0; 
+     for( ii=0 ; ii<SeedPerV[0] ; ii++ ) 
+       for( jj=0 ; jj<SeedPerV[1] ; jj++ ) 
+         for( kk=0 ; kk<SeedPerV[2] ; kk++ ) {
+           LocSeed[i][0] = (0.5 + (float) ii)/SeedPerV[0];
+           LocSeed[i][1] = (0.5 + (float) jj)/SeedPerV[1];
+           LocSeed[i][2] = (0.5 + (float) kk)/SeedPerV[2];
+           i++;
+         }
+     
+     NmNsThr = 1; // thresh of 1 for stats stuff
+
+     // @) @)))
+     //tb = (TAYLOR_BUNDLE **)calloc(N_nets, sizeof(TAYLOR_BUNDLE)); 
+     N_bund = (int *)calloc(N_nets, sizeof(int)); 
+     if( N_bund == NULL) {
+       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+       exit(123);
+     }
+     if(LOG_TYPE) //just for AND logic
+       for( i=0 ; i<N_nets ; i++)
+         N_bund[i] = (NROI[i]*(NROI[i]+1))/2;
+     else
+       for( i=0 ; i<N_nets ; i++)
+         N_bund[i] = 1;
+     
+     tb = (TAYLOR_BUNDLE ***) calloc( N_nets, sizeof(TAYLOR_BUNDLE **) );
+     for ( i = 0 ; i < N_nets ; i++ ) // halftri+diag notation!!!
+       tb[i] = (TAYLOR_BUNDLE **) calloc( N_bund[i], sizeof(TAYLOR_BUNDLE *));
+     tt = (TAYLOR_TRACT **)calloc(N_nets, sizeof(TAYLOR_TRACT *)); 
+     tnet = (TAYLOR_NETWORK **)calloc(N_nets, sizeof(TAYLOR_NETWORK *));
+     id = (int *)calloc(N_nets, sizeof(int)); 
+     
+     b_tags = calloc(N_nets,sizeof(b_tags)); 
+     for(i=0 ; i<N_nets ; i++) 
+       b_tags[i] = calloc(N_bund[i],sizeof(int)); 
+
+
+     flTtot = calloc(2*ArrMax,sizeof(flTtot)); 
+     for(i=0 ; i<2*ArrMax ; i++) 
+       flTtot[i] = calloc(3,sizeof(float)); 
+     cutTot = calloc(2*ArrMax,sizeof(cutTot)); 
+     for(i=0 ; i<2*ArrMax ; i++) 
+       cutTot[i] = calloc(3,sizeof(float)); 
+     cutTotI = calloc(2*ArrMax,sizeof(cutTotI)); 
+     for(i=0 ; i<2*ArrMax ; i++) 
+       cutTotI[i] = calloc(3,sizeof(float)); 
+
+     prefix_det = calloc( N_nets,sizeof(prefix_det));  
+     for(i=0 ; i<N_nets ; i++) 
+       prefix_det[i] = calloc( 300,sizeof(char)); 
+
+     fout0 = (FILE **)calloc(N_nets, sizeof(FILE)); 
+
+     if(  (prefix_det == NULL) || (flTtot == NULL) || (cutTot == NULL) 
+          || (tb == NULL) || (tt == NULL) || (id == NULL) 
+          || (b_tags == NULL) || (tnet == NULL)
+          || (fout0 == NULL) || (cutTotI == NULL) ){
+       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+       exit(123);
+     }
+
+     for( i=0 ; i<N_nets ; i++)
+       if(tnet[i])
+         fprintf(stderr,"\nHEY!!!! %d",i);
+
+   }
+   else {
+     // Process the options a little 
+     LocSeed = calloc(Nseed,sizeof(LocSeed)); 
+     for(i=0 ; i<Nseed ; i++) 
+       LocSeed[i] = calloc(3,sizeof(float)); 
+     
+     // initial value in this case 
+     for( k=0 ; k<Nseed ; k++ ) 
+       for( j=0 ; j<3 ; j++ ) 
+         LocSeed[k][j] = rand()*1.0/RAND_MAX;
+     
+     // will take stats on voxels with number of tracts >=NmNsThr
+     NmNsThr =  (int) floor(NmNsFr*Nseed*Nmonte); 
+     // lower bound is 1, and also force to be 1 if posteriori is chosen
+     if( (NmNsThr<1) || POST ) 
+       NmNsThr=1;
+     INFO_message("Effective Monte Iters:%d. Voxel threshold:%d.",
+                  Nseed*Nmonte,NmNsThr);
+   }
+
+
+
    if(POST){
      if(DUMP_TYPE==1) {
        INFO_message("You asked for '-dump_rois DUMP', but also chose\n"
@@ -706,7 +1125,6 @@ int main(int argc, char *argv[]) {
      }
    }
    
-
 
 	// have all be RAI for processing here
 	if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
@@ -752,11 +1170,13 @@ int main(int argc, char *argv[]) {
 		mset1=dsetn;
 		dsetn=NULL;
     
-		dsetn = r_new_resam_dset(insetUC, NULL, 0.0, 0.0, 0.0,
-										 dset_or, RESAM_NN_TYPE, NULL, 1, 0);
-		DSET_delete(insetUC); 
-		insetUC=dsetn;
-		dsetn=NULL;
+      if(!DETNET || !(MINI_PROB_NM==1) ){
+        dsetn = r_new_resam_dset(insetUC, NULL, 0.0, 0.0, 0.0,
+                                 dset_or, RESAM_NN_TYPE, NULL, 1, 0);
+        DSET_delete(insetUC); 
+        insetUC=dsetn;
+        dsetn=NULL;
+      }
 
 		if(EXTRAFILE) {
 			dsetn = r_new_resam_dset(insetEXTRA, NULL, 0.0, 0.0, 0.0,
@@ -792,15 +1212,6 @@ int main(int argc, char *argv[]) {
 	//                    make arrays for tracking
 	// ****************************************************************
 	// ****************************************************************
-  
-	// for temp storage array, just a multiple of longest dimension!
-	// essentially, a buffer size per tract we're making
-	if(Dim[0] > Dim[1])
-		ArrMax = Dim[0] * 4;
-	else
-		ArrMax = Dim[1] * 4;
-	if(4*Dim[2] > ArrMax)
-		ArrMax = Dim[2] * 4;
   
 	// will hold indices of all voxels with actual data, i.e., takes in
 	// (i,j,k) coor and gives index, for efficiency of storage because
@@ -947,7 +1358,27 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(12);
 	}
-    
+
+   // @))
+   if(JUMPLES){
+
+     // right now, this contains space for:
+     //     + a growing param,
+     //     + and a counter of tracks per vox
+     TROUT = (float ***) calloc( (Ndata+1), sizeof(float **) );
+     for ( i = 0 ; i<=Ndata ; i++ ) 
+       TROUT[i] = (float **) calloc( N_nets, sizeof(float *) );
+     for ( i=0 ; i<=Ndata ; i++ ) 
+       for ( j=0 ; j<N_nets ; j++ ) 
+			TROUT[i][j] = (float *) calloc( 2 , sizeof(float) );
+     
+     if(  (TROUT == NULL) ) {
+       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+       exit(14);
+     }
+     
+   }
+   
 	// set up eigvecs in 3D coord sys,
 	// mark off where ROIs are and keep index handy
 	// also make uncert matrix, with min values of del ang and del FA
@@ -1006,9 +1437,10 @@ int main(int argc, char *argv[]) {
   
 	
 	// can free uncert dsets
-	DSET_delete(insetUC);
-	free(insetUC);
-
+   if(nmask2){
+     DSET_delete(insetUC);
+     free(insetUC);
+   }
 	// *************************************************************
 	// *************************************************************
 	//                    Beginning of main loops
@@ -1016,19 +1448,43 @@ int main(int argc, char *argv[]) {
 	// *************************************************************
 
 	Numtract = 0;
- 
+
+   if(DETNET){ // @)
+
+     // @))) start bundle tags
+     // counter here: halftri+diag notation!!!
+     for( hh=0 ; hh<N_nets ; hh++) {
+       for( i=0 ; i<N_bund[hh] ; i++)
+         tb[hh][i] = AppCreateBundle(NULL, 0, NULL); // start bundle
+       
+       sprintf(OUT_bin,"%s_%03d.trk",prefix,hh+1);
+       if( (fout0[hh] = fopen(OUT_bin, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.",OUT_bin);
+         exit(16);
+       }
+       // all outputs have same header
+       fwrite(&header1,sizeof(tv_io_header),1,fout0[hh]); 
+     }
+     
+     if (get_tract_verb()) {
+       INFO_message("Begin tracking...");
+     }
+   }
+   
 	for (gg=0 ; gg<Nmonte ; gg++) {
-    
-		// relative location of each seed within voxel for this iter
-		for( k=0 ; k<Nseed ; k++ ) 
-			for( j=0 ; j<3 ; j++ ) 
-           LocSeed[k][j] = rand()*1.0/RAND_MAX;
-        
-		if( gg>0) // first time through is no change
-			for( k=0 ; k<Dim[2] ; k++ ) 
-				for( j=0 ; j<Dim[1] ; j++ ) 
-					for( i=0 ; i<Dim[0] ; i++ ) {
-						// only do region in brain mask
+     
+     
+     if( gg>0) {// first time through is no change
+        // relative location of each seed within voxel for this iter
+        for( k=0 ; k<Nseed ; k++ ) // @) had just minorly rearr. here
+          for( j=0 ; j<3 ; j++ ) 
+            LocSeed[k][j] = rand()*1.0/RAND_MAX;
+
+
+        for( k=0 ; k<Dim[2] ; k++ ) 
+          for( j=0 ; j<Dim[1] ; j++ ) 
+            for( i=0 ; i<Dim[0] ; i++ ) {
+              // only do region in brain mask
 						if(mskd[i][j][k]) {
 							idx = INDEX2[i][j][k];
 							
@@ -1070,12 +1526,14 @@ int main(int argc, char *argv[]) {
 								copy_coorded[idx][m] = 0;
 					}
 
+      }
+
 		// this is where we start the tracking for a given data set
 		// start of Monte Carlo loop
 		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
-				for( i=0 ; i<Dim[0] ; i++ ) 
-					if( (EXTRAFILE==0 && (copy_coorded[INDEX2[i][j][k]][3]>=MinFA))
+        for( j=0 ; j<Dim[1] ; j++ ) 
+          for( i=0 ; i<Dim[0] ; i++ ) 
+            if( (EXTRAFILE==0 && (copy_coorded[INDEX2[i][j][k]][3]>=MinFA))
 						 || (EXTRAFILE && 
 							  (THD_get_voxel(insetEXTRA, INDEX[i][j][k], 0)>=MinFA)) )
 						for( kk=0 ; kk<Nseed ; kk++ ) {
@@ -1119,6 +1577,21 @@ int main(int argc, char *argv[]) {
 			for(m=0;m<3;m++)
 				Ttot[rr][m] = Tforw[n][m];
 		}
+
+      if(DETNET){ // @) for now, have sep mirroring option to above
+        // glue together for simpler notation later
+        for( n=0 ; n<len_back ; n++) { // all of this
+          rr = len_back-n-1; // read in backward
+          for(m=0;m<3;m++)
+				flTtot[rr][m] = flTback[n][m];
+        }
+        for( n=1 ; n<len_forw ; n++) { // skip first->overlap
+          rr = n+len_back-1; // put after
+          for(m=0;m<3;m++)
+				flTtot[rr][m] = flTforw[n][m];
+        }
+      }
+
 
 		// <<So close and orthogonal condition>>:
 		// test projecting ends, to see if they abut ROI.  
@@ -1187,7 +1660,18 @@ int main(int argc, char *argv[]) {
 				if( m>0) {
 					if( (ONLY_BT==0) || (m==1) ) {
 
-						for( mm=0 ; mm<totlen ; mm++) { // @@@
+                 trL = 0; // @) counter of len of flTtot
+                 for( mm=0 ; mm<totlen ; mm++) { // @@@
+                                       
+                    // @) keep both float loc and ind
+                    if(DETNET){
+                      for( uu=0 ; uu<3 ; uu++) {
+                        cutTot[trL][uu] = flTtot[mm][uu];
+                        cutTotI[trL][uu] = Ttot[mm][uu];
+                      }
+                      trL++;
+                    }
+
 							rr = INDEX2[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]];// @@@
 							//if(NOTMASK>0)
 							//	NM = CheckNotMask(rr,hh,antimask,ALLorONE);
@@ -1203,6 +1687,22 @@ int main(int argc, char *argv[]) {
 								}
 							//	}
 						}// @@@
+                                         
+                 if(DETNET && (trL>0) && !LOG_TYPE){
+                   // @) if created, it will be kept
+                   tt[hh] = Create_Tract(trL, cutTot, 0, 
+                                         NULL, id[hh], insetFA); ++id[hh]; 
+
+
+                   tb[hh][0] = AppCreateBundle(tb[hh][0], 1, tt[hh]); 
+                   tt[hh] = Free_Tracts(tt[hh], 1);
+                   
+                   ss = SimpleWriteDetNetTr(fout0[hh], INDEX, insetFA,
+                                            insetMD, insetL1,
+                                            cutTot, cutTotI, trL,
+                                            TV_switch, Dim, Ledge);
+                 }
+                 
 					} // end of 'if only_bt or m==1'
 					else{
 						// first do diagonal/individual ones, because now we
@@ -1215,12 +1715,12 @@ int main(int argc, char *argv[]) {
 							//	NM = CheckNotMask(rr,hh,antimask,ALLorONE);
 							//if(!NM) {
 							for( bb=0 ; bb<m ; bb++) {
-								tt = temp_list[bb];
-								NETROI[rr][hh][tt][tt]+=1;
-								if(NETROI[rr][hh][tt][tt]==NmNsThr)
+								vv = temp_list[bb];
+								NETROI[rr][hh][vv][vv]+=1;
+								if(NETROI[rr][hh][vv][vv]==NmNsThr)
 									ss=ScoreTrackGrid(Param_grid,
 															INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
-															hh, tt,tt, 
+															hh, vv,vv, 
 															insetFA,insetMD,insetL1);
 							}
 						}
@@ -1233,6 +1733,7 @@ int main(int argc, char *argv[]) {
 								// 2 switches for finding ROI, and 1 for current 'FIND'
 								onoff[0]=0; onoff[1]=0; onoff[2]=0;
 								BreakAddCont=0;
+                        
 
 								// test pre-beginning
 								// +1 on the temp_list[] entry because the value
@@ -1242,6 +1743,7 @@ int main(int argc, char *argv[]) {
 								if( MAPROI[test_ind[0]][hh]==temp_list[cc]+1 )
 									onoff[1]=1;
 
+                        trL = 0; //counter of len of flTtot
 								// now walk through each vox, keep testing and
 								// evaluating at each step
 								for( mm=0 ; mm<totlen ; mm++) {
@@ -1279,6 +1781,16 @@ int main(int argc, char *argv[]) {
 									
 									//printf("(%d,%d)",mm,BreakAddCont);
 									if(BreakAddCont==1) {// are in b/t
+
+                             // @) keep both float loc and ind
+                             if(DETNET){
+                               for( uu=0 ; uu<3 ; uu++) {
+                                 cutTot[trL][uu] = flTtot[mm][uu];
+                                 cutTotI[trL][uu] = Ttot[mm][uu];
+                               }
+                               trL++;
+                             }
+
 										// get both sides of param_grid, b/c just testing one,
 										// and param_grid is symm
 										NETROI[rr][hh][temp_list[bb]][temp_list[cc]]+=1;
@@ -1301,9 +1813,28 @@ int main(int argc, char *argv[]) {
 										continue;
 									}
 									//}
-								}
-							}
-					}
+								} // end of mm
+
+                        if(DETNET && (trL>0) && LOG_TYPE){
+                          int lll;
+                           // @) if created, it will be kept
+                          tt[hh] = Create_Tract(trL, cutTot, 0, 
+                                                NULL, id[hh], insetFA); ++id[hh];
+                          lll = temp_list[cc]+temp_list[bb]*NROI[hh]; // sq matr coor
+                          lll -= (temp_list[bb]*(temp_list[bb]+1))/2; // fix for tridiag.
+                          //if(lll>N_bund[hh])
+                          //fprintf(stderr, "  tb[%d][%d]=%p\n",hh, lll, tb[hh][lll]);
+                          tb[hh][lll] = AppCreateBundle(tb[hh][lll], 1, tt[hh]); 
+                          tt[hh] = Free_Tracts(tt[hh], 1);
+                          
+                          ss = SimpleWriteDetNetTr(fout0[hh], INDEX, insetFA,
+                                                   insetMD, insetL1,
+                                                   cutTot, cutTotI, trL,
+                                                   TV_switch, Dim, Ledge);
+                        }
+                        
+							} // end of cc
+					} // end of an else
 				}// end of 'if m>0'
 			
 				//will just have be symm
@@ -1319,7 +1850,42 @@ int main(int argc, char *argv[]) {
 }
 	} // end of Monte Carlo loop
 	
-	
+   if(DETNET){
+     for( i=0 ; i<N_nets ; i++){
+       fclose(fout0[i]); // !important to do...
+       k=0;
+       for( j=0 ; j<N_bund[i] ; j++)
+         k+= tb[i][j]->N_tracts;
+       INFO_message("Done tracking, net[%d] has %d tracks.",i+1,k);
+       }
+
+     if (get_tract_verb()) {
+       for( i=0 ; i<N_nets ; i++)
+         for( j=0 ; j<N_bund[i] ; j++){
+           INFO_message("Done tracking, net[%d], bund[%d] has %d tracks.",
+                        i+1,j+1, tb[i][j]->N_tracts);
+           Show_Taylor_Bundle(tb[i][j], NULL, 3);
+         }
+     }
+     
+     for( i=0 ; i<N_nets ; i++){
+       for (j=0; j<N_bund[i]; j++) {
+         tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][j]), 
+                                         b_tags[i][j], -1, insetFA); 
+       }
+     }
+     
+     for( i=0 ; i<N_nets ; i++){
+       sprintf(prefix_det[i],"%s_%03d",prefix,i+1); 
+       
+       if (!Write_Network(tnet[i],prefix_det[i],mode)) 
+         ERROR_message("Failed to write the network.");
+     
+       tnet[i] = Free_Network(tnet[i]);
+     }
+   }
+
+
 	// **************************************************************
 	// **************************************************************
 	//                    Some outputs
@@ -1489,6 +2055,47 @@ int main(int argc, char *argv[]) {
 	free(Tback);
 	free(flTforw);
 	free(flTback);
+
+   if(DETNET){ // @) freeing
+     for( i=0 ; i<2*ArrMax ; i++) {
+       free(flTtot[i]);
+       free(cutTot[i]);
+       free(cutTotI[i]);
+     }
+     free(flTtot);
+     free(cutTot);
+     free(cutTotI);
+     
+     for( i=0 ; i<N_nets ; i++) 
+       for ( j=0 ; j<N_bund[i] ; j++ ) // halftri+diag notation!!!
+         free(tb[i][j]);
+     for( i=0 ; i<N_nets ; i++) {
+       free(tb[i]);
+       free(tt[i]);
+       free(tnet[i]);
+       free(b_tags[i]);
+       //free(fout0[i]);
+     }
+     free(id);
+     for( i=0 ; i<N_nets ; i++) {
+       free(prefix_det[i]); 
+     }
+     free(prefix_det);
+     free(N_bund);
+
+   }
+
+   if(JUMPLES){
+     for( k=0 ; k<=Ndata ; k++) 
+       for( m=0 ; m<N_nets ; m++) 
+         free(TROUT[k][m]);
+     for( k=0 ; k<=Ndata ; k++) 
+       free(TROUT[k]);
+     free(TROUT);
+
+   }
+
+
 
 	for( i=0 ; i<Nseed ; i++) 
 		free(LocSeed[i]);

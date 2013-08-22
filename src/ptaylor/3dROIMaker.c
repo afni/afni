@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	INFO_message("version: NU");
+	//INFO_message("version: NU");
 	Dim = (int *)calloc(4,sizeof(int));
 
 	// scan args
