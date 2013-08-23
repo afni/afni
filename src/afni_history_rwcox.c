@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , AUG , 2013 , RWC , "cs_symeig" , MICRO , TYPE_BUG_FIX ,
+  { 23 , AUG , 2013 , RWC , "3dTproject" , MINOR , TYPE_MODIFY ,
+   "Add catenation, for RCR" ,
+   NULL } ,
+
+ { 15 , AUG , 2013 , RWC , "cs_symeig" , MICRO , TYPE_BUG_FIX ,
    "Modify backup for svd_double failure" ,
    "gcc-compiled source for eispack SVD function sometimes gives wrong\n"
    "results.  The backup code for this also sometimes fails.  So I modified\n"

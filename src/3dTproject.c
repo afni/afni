@@ -102,7 +102,7 @@ void TPR_help_the_pitiful_user(void)
    "\n"
    " -concat ccc.1D      = The catenation file, as in 3dDeconvolve, containing the\n"
    "                       TR indexes of the start points for each contiguous run\n"
-   "                       within the input dataset.\n"
+   "                       within the input dataset (the first entry should be 0).\n"
    "                       ++ Also as in 3dDeconvolve, if the input dataset is\n"
    "                          automatically catenated from a collection of datasets,\n"
    "                          then the run start indexes are determined directly,\n"
@@ -120,6 +120,8 @@ void TPR_help_the_pitiful_user(void)
    "                          1D files and the '[...]' selector for the datasets.\n"
    " -noblock            = Also as in 3dDeconvolve, if you want the program to treat\n"
    "                       an auto-catenated dataset as one long run, use this option.\n"
+   "                       ++ However, '-noblock' will not affect catenation if you use\n"
+   "                          the '-concat' option.\n"
    "\n"
    " -ort f.1D           = Remove each column in f.1D\n"
    "                       ++ Multiple -ort options are allowed.\n"
@@ -515,6 +517,7 @@ ENTRY("TPR_process_data") ;
 
    if( tp->num_CENSOR > 0 ){
      int cc , r,a,b , bbot,btop ;
+     if( TPR_verb > 1 ) INFO_message("-CENSORTR commands:") ;
      for( cc=0 ; cc < tp->num_CENSOR ; cc++ ){
        r = tp->abc_CENSOR[cc].i; a = tp->abc_CENSOR[cc].j; b = tp->abc_CENSOR[cc].k;
        if( nbl > 1 && r == -666 ){ /* wildcard run ==> create new triples */
@@ -532,7 +535,7 @@ ENTRY("TPR_process_data") ;
                            r,a,b , nbl ) ;
            a = -666666 ; b = -777777 ;
          } else {
-           bbot = bla[r-1] ;
+           bbot = bla[r-1] ;  /* run indexes start at 1, but AFNI counts from 0 */
            btop = blb[r-1] ;
            if( a+bbot > btop ){
              WARNING_message("-CENSORTR %d:%d-%d has start index past end of run (%d)",
@@ -543,7 +546,7 @@ ENTRY("TPR_process_data") ;
        }
        if( a < 0 || a >= nt || b < a ) continue ;
        if( b >= nt ) b = nt-1 ;
-       if( TPR_verb > 1 ) ININFO_message("applying -CENSORTR from %d..%d",a,b) ;
+       if( TPR_verb > 1 ) ININFO_message("  from %d..%d",a,b) ;
        for( jj=a ; jj <= b ; jj++ ) tp->censar[jj] = 0.0f ;
      }
    }
@@ -562,16 +565,16 @@ ENTRY("TPR_process_data") ;
    /* do the same for runs, if any */
 
    if( nbl > 1 ){
-     int aa,bb, nnk , nbad=0 ;
+     int aa,bb, nnk , nerr=0 ;
      for( tt=0 ; tt < nbl ; tt++ ){
        aa = bla[tt] ; bb = blb[tt] ;
        for( nnk=0,jj=aa ; jj <= bb ; jj++ ) if( tp->censar[jj] != 0.0f ) nnk++ ;
        if( nnk < MIN_RUN ){
          ERROR_message("run #%d has only %d points after censoring",tt+1,nnk) ;
-         nbad++ ;
+         nerr++ ;
        }
      }
-     if( nbad > 0 ) ERROR_exit("Cannot continue with such over-censoring!") ;
+     if( nerr > 0 ) ERROR_exit("Cannot continue with such over-censoring!") ;
    }
 
    /*-- make list of time indexes to keep --*/
@@ -588,7 +591,7 @@ ENTRY("TPR_process_data") ;
      nf    = (int *)  malloc(sizeof(int)  *nbl) ;
      df    = (float *)malloc(sizeof(float)*nbl) ;
 
-     for( tt=0 ; tt < nbl ; tt++ ){
+     for( tt=0 ; tt < nbl ; tt++ ){    /* each run (block) is filtered separately */
        ntt = blb[tt] - bla[tt] + 1 ;
        dff = (tp->dt > 0.0f ) ? tp->dt : DSET_TR(tp->inset) ;
        if( dff <= 0.0f ) dff = 1.0f ;
@@ -634,7 +637,7 @@ ENTRY("TPR_process_data") ;
 
    /*-- count polort regressors (N.B.: freq=0 and const polynomial don't BOTH occur) */
 
-   if( tp->polort >= 0 ) nort_fixed += (tp->polort+1) * nbl ;
+   if( tp->polort >= 0 ) nort_fixed += (tp->polort+1) * nbl ;  /* one set for each run */
 
    /*-- check ortar for good-ositiness --*/
 
@@ -982,12 +985,28 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
        if( nbl    > 0     ) ERROR_exit("You can't use '-concat' twice!") ;
        cim = mri_read_1D( argv[iarg] ) ;
-       if( cim    == NULL ) ERROR_exit("Can't read from '-concat' file %s",argv[iarg]) ;
-       car   = MRI_FLOAT_PTR(cim) ;
-       nbl   = cim->nvox ;
-       blist = (int *)malloc(sizeof(int)*nbl) ;
-       for( tt=0 ; tt < nbl ; tt++ ) blist[tt] = (int)rintf(car[tt]) ;
-       mri_free(cim) ;
+       if( cim == NULL ) ERROR_exit("Can't read from -concat file '%s'",argv[iarg]) ;
+       nbl = cim->nvox ;
+       if( nbl <= 1 ){
+         WARNING_message("-concat file '%s' has only 1 entry ==> ignoring this file",argv[iarg]) ;
+         nbl = 0 ; blist = NULL ; mri_free(cim) ;
+       } else {
+         car   = MRI_FLOAT_PTR(cim) ;
+         blist = (int *)malloc(sizeof(int)*nbl) ;
+         for( tt=0 ; tt < nbl ; tt++ ) blist[tt] = (int)rintf(car[tt]) ;
+         mri_free(cim) ;
+         if( blist[0] != 0 ){
+           WARNING_message("-concat file '%s' has first entry = %d ==> changing it to 0",
+                           argv[iarg] , blist[0] ) ;
+           blist[0] = 0 ;
+         }
+         for( tt=1 ; tt < nbl ; tt++ ){
+           if( blist[tt] <= blist[tt-1] ){
+             WARNING_message("-concat file '%s' has entries out of order ==> ignoring this file",argv[iarg]) ;
+             nbl = 0 ; free(blist) ; blist = NULL ; break ;
+           }
+         }
+       }
        iarg++ ; continue ;
      }
 
