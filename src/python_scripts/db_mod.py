@@ -5247,7 +5247,7 @@ g_help_string = """
 
                 -blocks         : includes surf, but no mask
                                   (default blocks for surf, so not needed)
-                -surf_anat      : volumed aligned with surface
+                -surf_anat      : volume aligned with surface
                 -surf_spec      : spec file(s) for surface
 
            This example is intended to be run from AFNI_data6/FT_analysis.

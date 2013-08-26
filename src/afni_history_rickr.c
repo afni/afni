@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Aug, 2013, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "added -check_all, -find_prog, -casematch, -exact",
+   "These changes are to add PATH searching for programs.\n"
+ } ,
+
  { 20,  Aug, 2013, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_RSFS, to run 3dRSFC",
    "Would run 3dRSFC per run on errts, to bandpass and compute parameters."
