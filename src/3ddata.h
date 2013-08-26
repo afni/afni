@@ -4642,7 +4642,7 @@ typedef struct {
      (nam)->nvec  = (nvc) ;                                       \
      (nam)->nvals = (nvl) ;                                       \
      (nam)->ivec  = (int *)  calloc(sizeof(int)  ,(nvc)) ;        \
-     (nam)->fvec  = (float *)calloc(sizeof(float),(nvc)*(nvl)) ;  \
+     (nam)->fvec  = (float *)calloc(sizeof(float)*(nvc),(nvl)) ;  \
  } while(0)
 
 #undef  ISVALID_VECTIM
@@ -4650,7 +4650,7 @@ typedef struct {
  ( (mv) != NULL && (mv)->ivec != NULL && (mv)->fvec != NULL )
 
 #undef  VECTIM_PTR
-#define VECTIM_PTR(mv,j) ((mv)->fvec + (j)*(mv)->nvals)
+#define VECTIM_PTR(mv,j) ((mv)->fvec + (size_t)(j)*(size_t)(mv)->nvals)
 
 #undef  VECTIM_extract
 #define VECTIM_extract(mv,j,aa) \
