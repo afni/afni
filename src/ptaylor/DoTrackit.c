@@ -685,14 +685,15 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		// THEN THE INDIVID TRACKS
 		EDIT_substitute_brick(networkMAPS2, 0, MRI_float, temp_arr2[0]);
 		temp_arr2[0]=NULL;
-		if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
-			dsetn = r_new_resam_dset(networkMAPS2, NULL, 0.0, 0.0, 0.0,
-											 voxel_order, RESAM_NN_TYPE, 
-											 NULL, 1, 0);
-			DSET_delete(networkMAPS2); 
-			networkMAPS2=dsetn;
-			dsetn=NULL;
-		}      
+      //		if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
+      dsetn = r_new_resam_dset(networkMAPS2, NULL, 0.0, 0.0, 0.0,
+                               voxel_order, RESAM_NN_TYPE, 
+                               NULL, 1, 0);
+      DSET_delete(networkMAPS2); 
+      networkMAPS2=dsetn;
+      dsetn=NULL;
+         //		}      
+
 		EDIT_dset_items(networkMAPS2,
 							 ADN_prefix    , prefix_netmap2[hh] ,
 							 ADN_brick_label_one , "ALLROI",
