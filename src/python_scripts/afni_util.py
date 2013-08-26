@@ -2370,14 +2370,14 @@ def search_path_dirs(word, mtype=0, casematch=1):
 
    return 0, get_unique_sublist(rlist)
 
-def show_found_in_path(word, mtype=1, casematch=1, indent='\n   '):
+def show_found_in_path(word, mtype=0, casematch=1, indent='\n   '):
    """a simple wrapper to print search_path_dirs results
 
       Search for given 'word' in path, and print out list elements
       with element prefix of 'indent'.
 
-        mtype     : 0 = exact match (i.e. no wildcard, look for DIR/word)
-                  : 1 = match any sub-word (i.e. look for DIR/*word*)
+        mtype     : 0 = match any sub-word (i.e. look for DIR/*word*)
+                    1 = exact match (i.e. no wildcard, look for DIR/word)
                     2 = prefix match (i.e. look for DIR/word*)
         casematch : flag: if set, case must match
                           else, 'word' letters can be either case
