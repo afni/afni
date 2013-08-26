@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 26, Aug , 2013 , PT , "DoTrackit.c" , MINOR , TYPE_BUG_FIX,
+  "Fix handling of non-RPI datasets.",
+  "No ostensible output change, except to not produce an error message.\n"
+},
+
 { 21, Aug , 2013 , PT , "3dProbTrackID" , MAJOR , TYPE_MODIFY,
    "Putting together old deterministic and probabilistic programs into 1.",
    "Unifying tracking, will be easier to update/improve in future."
