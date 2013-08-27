@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.0, Aug 19, 2013
+Version 2.0.0, Aug 27, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.0, Aug 19, 2013
+Version 2.0.0, Aug 27, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -614,7 +614,6 @@ scanLine <- function(file, lnNo=1, marker="\\:")
 # takes components from Anova(fm$lm, type=3, test='Pillai') as input  
 maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to remove the intercept: -1 below
    return(stats:::Pillai(Re(eigen(qr.coef(qr(SSPE), SSP), symmetric = FALSE)$values), DF, error.DF))
-
                                                 
 runAOV <- function(inData, dataframe, ModelForm, pars) {
    maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to remove the intercept: -1 below
@@ -651,9 +650,9 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
                } #if(!any(is.nan(Fvalues)))
             } #if(pars[[6]][1] & pars[[7]])
          } #if(!is.null(uvfm))   
-         if(!pars[[7]]) { # reall MVM
+         if(!pars[[7]]) { # reall MVM: currently not allowed to mix within-subject variables
             tryCatch(mvfm <- Anova(fm$lm, type=3, test='Pillai'), error=function(e) NULL)  # need to add options for type and test!
-            if(pars[[6]][1]) tryCatch(out[(pars[[2]][2]+pars[[2]][3]+1):pars[[2]][1]] <- maov(mvfm)[2], error=function(e) NULL)
+            #if(pars[[6]][1]) tryCatch(out[(pars[[2]][2]+pars[[2]][3]+1):pars[[2]][1]] <- maov(mvfm)[2], error=function(e) NULL)
             for(ii in 1:pars[[2]][4]) # pars[[2]][4] equals length(mvfm$terms)
                tryCatch(out[pars[[2]][2]+pars[[2]][3]+ii] <-
                   maov(mvfm$SSPE, mvfm$SSP[[ii]], mvfm$df[ii], mvfm$error.df)[2], error=function(e) NULL)
