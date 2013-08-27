@@ -332,9 +332,9 @@ typedef struct MRI_IMAGE {
           int nv ;            /*!< 6th dimension of image (1 for 5D image) */
           int nw  ;           /*!< 7th dimension of image (1 for 6D image) */
           int nxy ;           /*!< nx*ny */
-          int nxyz ;          /*!< nx*ny*nz */
-          int nxyzt  ;        /*!< nx*ny*nz*nt */
-          int nvox   ;        /*!< number of voxels total */
+          int64_t nxyz ;      /*!< nx*ny*nz */
+          int64_t nxyzt  ;    /*!< nx*ny*nz*nt */
+          int64_t nvox   ;    /*!< number of voxels total */
           int pixel_size ;    /*!< bytes per pixel */
 
           MRI_TYPE kind ;     /*!< one of the MRI_TYPE codes above */

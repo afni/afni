@@ -420,7 +420,7 @@ int main( int argc , char *argv[] )
    int ids , nopt , kk ;
    char *prefix = "EIC" ;
    char *fname=NULL , *buf ;
-   MRI_vectim *mv ; THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset ;
 
    /*--- official AFNI startup stuff ---*/
 

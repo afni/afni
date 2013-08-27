@@ -506,7 +506,7 @@ ENTRY("THD_extract_many_arrays") ;
 
    far = (float **) malloc(sizeof(float *)*ns) ;  /* 27 Feb 2003 */
    NULL_CHECK(far) ;
-   for( kk=0 ; kk < ns ; kk++ ) far[kk] = dsar + kk*nv ;
+   for( kk=0 ; kk < ns ; kk++ ) far[kk] = dsar + (size_t)kk*(size_t)nv ;
 
    /* fill the output */
 

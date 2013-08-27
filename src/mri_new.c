@@ -64,11 +64,15 @@ ENTRY("mri_new_7D_generic") ;
 
    newim->nx   = nx ;
    newim->ny   = ny ; newim->nxy   = nx*ny ;
-   newim->nz   = nz ; newim->nxyz  = nx*ny*nz ;
-   newim->nt   = nt ; newim->nxyzt = nx*ny*nz*nt ;
+   newim->nz   = nz ;
+   newim->nt   = nt ;
    newim->nu   = nu ;
    newim->nv   = nv ;
-   newim->nw   = nw ; newim->nvox  = newim->nxyzt * nu*nv*nw ;
+   newim->nw   = nw ;
+
+   newim->nxyz  = (int64_t)nx*(int64_t)ny*(int64_t)nz ;
+   newim->nxyzt = (int64_t)nx*(int64_t)ny*(int64_t)nz*(int64_t)nt ;
+   newim->nvox  = newim->nxyzt * (int64_t)nu*(int64_t)nv*(int64_t)nw ;
 
    newim->kind = kind ;
    newim->name = NULL ;
@@ -159,7 +163,7 @@ void mri_adjust_fvectim( MRI_IMAGE *im , int vdim )
 
      vpt = realloc( im->im , im->pixel_size*im->nvox ) ;
      if( vpt != NULL ){
-       int nvox , ii,jj ; float *far ;
+       int64_t nvox , ii,jj ; float *far ;
        far = (float *)vpt ; nvox = im->nvox ;
        for( ii=nvox-1 ; ii >= 0 ; ii-- ){  /* move each old vect to new spot */
          for( jj=0 ; jj < vdold ; jj++ ) far[vdim*ii+jj] = far[vdold*ii+jj] ;
@@ -171,7 +175,7 @@ void mri_adjust_fvectim( MRI_IMAGE *im , int vdim )
 
      vpt = calloc( im->pixel_size , im->nvox ) ;  /* new space */
      if( vpt != NULL ){
-       int nvox , ii,jj ; float *far , *gar ;
+       int64_t nvox , ii,jj ; float *far , *gar ;
        far = (float *)vpt ; gar = (float *)im->im ; nvox = im->nvox ;
        for( ii=0 ; ii < nvox ; ii++ ){  /* move each old vect to new spot */
          for( jj=0 ; jj < vdim ; jj++ ) far[vdim*ii+jj] = gar[vdold*ii+jj] ;

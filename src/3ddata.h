@@ -4863,8 +4863,8 @@ extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 
 extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 2001 */
 
-extern int thd_floatscan  ( int , float *   ) ; /* 30 Jul 1999 */
-extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
+extern int thd_floatscan  ( size_t , float *   ) ; /* 30 Jul 1999 */
+extern int thd_complexscan( size_t , complex * ) ; /* 14 Sep 1999 */
 
 #undef floatfix
 #ifdef isfinite

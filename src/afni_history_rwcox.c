@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , AUG , 2013 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
+  { 27 , AUG , 2013 , RWC , "Continuing vectim saga" , MICRO , TYPE_MODIFY ,
+   "More 64 bit fixes" ,
+   "A few more 64 bit fixes in various MRI_vectim using codes.  Also, change\n"
+   "the nvox field in MRI_IMAGE to int64_t.  However, generally allowing for\n"
+   "more than 2G voxels in a 3D volume will be a very grueling change to\n"
+   "make in thousands of places!" } ,
+
+ { 26 , AUG , 2013 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
    "Program crashes or gets bad answers on very large datasets" ,
    "Problem: with a vectim, the pointer to the k-th voxel time series array\n"
    "(of length nvals) is calculated as\n"
