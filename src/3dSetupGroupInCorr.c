@@ -306,7 +306,8 @@ int main( int argc , char * argv[] )
    byte *mask=NULL ;
    int mask_nx=0,mask_ny=0,mask_nz=0,nmask=0 , nx=0,ny=0,nz=0,nvox=0 ;
    NI_element *nel ;
-   int nvec , *nvals , *ivec=NULL , iv,kk,nvv , nopt , do_delete=0 ;
+   int nvec , *nvals , *ivec=NULL , iv,kk , nopt , do_delete=0 ;
+   int64_t nvv , kvv ;         /* 27 Aug 2013 */
    float *fac , *fv , val,top ;
    NI_float_array *facar ; NI_int_array *nvar ;
    short *sv=NULL; sbyte *bv=NULL ; MRI_vectim *mv ; FILE *fp ; long long fsize ;
@@ -627,9 +628,9 @@ int main( int argc , char * argv[] )
         THD_vectim_normalize( mv ) ;     /* L2 normalize each time series */
 
         /* find largest absolute value over all vectors */
-        nvv = mv->nvec * mv->nvals ; top = 0.0f ; fv = mv->fvec ;
-        for( kk=0 ; kk < nvv ; kk++ ){
-          val = fabsf(fv[kk]) ; if( val > top ) top = val ;
+        nvv = (int64_t)mv->nvec * (int64_t)mv->nvals ; top = 0.0f ; fv = mv->fvec ;
+        for( kvv=0 ; kvv < nvv ; kvv++ ){
+          val = fabsf(fv[kvv]) ; if( val > top ) top = val ;
         }
 
         if( top == 0.0f ){
@@ -641,16 +642,16 @@ int main( int argc , char * argv[] )
         if( do_byte ){
           top = 127.4f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
           bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;       /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ){
-            val = fv[kk]*top ;
-            bv[kk] = (val >= 0.0f) ? (sbyte)(val+0.499f) : (sbyte)(val-0.499f) ;
+          for( kvv=0 ; kvv < nvv ; kvv++ ){
+            val = fv[kvv]*top ;
+            bv[kvv] = (val >= 0.0f) ? (sbyte)(val+0.499f) : (sbyte)(val-0.499f) ;
           }
         } else {
           top = 32766.0f / top ; fac[ids/2] = 1.0f / top ;  /* save scale factor */
           sv = (short *)malloc(sizeof(short)*nvv) ;         /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ){
-            val = fv[kk]*top ;
-            sv[kk] = (val >= 0.0f) ? (short)(val+0.499f) : (short)(val-0.499f) ;
+          for( kvv=0 ; kvv < nvv ; kvv++ ){
+            val = fv[kvv]*top ;
+            sv[kvv] = (val >= 0.0f) ? (short)(val+0.499f) : (short)(val-0.499f) ;
           }
         }
         VECTIM_destroy(mv) ;
@@ -661,11 +662,11 @@ int main( int argc , char * argv[] )
 
         /* write output array */
 
-        if( do_byte ) kk = fwrite( bv , sizeof(sbyte) , nvv , fp ) ;
-        else          kk = fwrite( sv , sizeof(short) , nvv , fp ) ;
-        if( kk < nvv ){
+        if( do_byte ) kvv = fwrite( bv , sizeof(sbyte) , nvv , fp ) ;
+        else          kvv = fwrite( sv , sizeof(short) , nvv , fp ) ;
+        if( kvv < nvv ){
           fclose(fp) ; remove(dfname) ;
-          ERROR_exit("Write to '%s' failed -- disk full? permission?",dfname) ;
+          ERROR_exit("Write to '%s' failed -- is disk full? permission problem?",dfname) ;
         }
         if( do_byte ) free(bv) ;
         else          free(sv) ;  /* toss this trash */
@@ -703,9 +704,9 @@ int main( int argc , char * argv[] )
         THD_vectim_applyfunc( mv , prepfunc ) ;  /* prep each time series */
 #if 0
         /* find largest absolute value over all vectors */
-        nvv = mv->nvec * mv->nvals ; top = 0.0f ; fv = mv->fvec ;
-        for( kk=0 ; kk < nvv ; kk++ ){
-          val = fabsf(fv[kk]) ; if( val > top ) top = val ;
+        nvv = (int64_t)mv->nvec * (int64_t)mv->nvals ; top = 0.0f ; fv = mv->fvec ;
+        for( kvv=0 ; kvv < nvv ; kvv++ ){
+          val = fabsf(fv[kvv]) ; if( val > top ) top = val ;
         }
         fprintf(stderr,"[post top=%g]",top) ;
 #endif
@@ -723,9 +724,9 @@ int main( int argc , char * argv[] )
 
         /* find largest absolute value over all vectors */
 
-        nvv = mv->nvec * mv->nvals ; top = 0.0f ; fv = mv->fvec ;
-        for( kk=0 ; kk < nvv ; kk++ ){
-          val = fabsf(fv[kk]) ; if( val > top ) top = val ;
+        nvv = (int64_t)mv->nvec * (int64_t)mv->nvals ; top = 0.0f ; fv = mv->fvec ;
+        for( kvv=0 ; kvv < nvv ; kvv++ ){
+          val = fabsf(fv[kvv]) ; if( val > top ) top = val ;
         }
 #if 0
         fprintf(stderr,"[post top=%g]",top) ;
@@ -740,16 +741,16 @@ int main( int argc , char * argv[] )
         if( do_byte ){
           top = 127.4f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
           bv = (sbyte *)malloc(sizeof(sbyte)*nvv) ;     /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ){
-            val = fv[kk]*top ;
-            bv[kk] = (val >= 0.0f) ? (sbyte)(val+0.499f) : (sbyte)(val-0.499f) ;
+          for( kvv=0 ; kvv < nvv ; kvv++ ){
+            val = fv[kvv]*top ;
+            bv[kvv] = (val >= 0.0f) ? (sbyte)(val+0.499f) : (sbyte)(val-0.499f) ;
           }
         } else {
           top = 32766.0f / top ; fac[ids] = 1.0f / top ;  /* save scale factor */
           sv = (short *)malloc(sizeof(short)*nvv) ;       /* output array */
-          for( kk=0 ; kk < nvv ; kk++ ){
-            val = fv[kk]*top ;
-            sv[kk] = (val >= 0.0f) ? (short)(val+0.499f) : (short)(val-0.499f) ;
+          for( kvv=0 ; kvv < nvv ; kvv++ ){
+            val = fv[kvv]*top ;
+            sv[kvv] = (val >= 0.0f) ? (short)(val+0.499f) : (short)(val-0.499f) ;
           }
         }
         VECTIM_destroy(mv) ;
@@ -760,9 +761,9 @@ int main( int argc , char * argv[] )
 
         /* write output array */
 
-        if( do_byte ) kk = fwrite( bv , sizeof(sbyte) , nvv , fp ) ;
-        else          kk = fwrite( sv , sizeof(short) , nvv , fp ) ;
-        if( kk < nvv ){
+        if( do_byte ) kvv = fwrite( bv , sizeof(sbyte) , nvv , fp ) ;
+        else          kvv = fwrite( sv , sizeof(short) , nvv , fp ) ;
+        if( kvv < nvv ){
           fclose(fp) ; remove(dfname) ;
           ERROR_exit("Write to '%s' failed -- disk full? permission?",dfname) ;
         }
