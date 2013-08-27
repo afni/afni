@@ -501,7 +501,7 @@ void THD_vectim_localpv( MRI_vectim *mrv , float rad )
   ind = (int *)malloc(sizeof(int)*nbhd->num_pt) ;
   pv  = (float *)malloc(sizeof(float)*mrv->nvals) ;
 
-  kk = thd_floatscan( mrv->nvec*mrv->nvals , mrv->fvec ) ;
+  kk = thd_floatscan( (size_t)mrv->nvec*(size_t)mrv->nvals , mrv->fvec ) ;
   if( kk > 0 )
     WARNING_message("fixed %d float error%s before localPV",kk,(kk==1)?"\0":"s");
 
@@ -526,10 +526,10 @@ void THD_vectim_localpv( MRI_vectim *mrv , float rad )
     }
   }
 
-  memcpy( mrv->fvec , qrv->fvec , sizeof(float)*mrv->nvec*mrv->nvals ) ;
+  memcpy( mrv->fvec , qrv->fvec , sizeof(float)*(size_t)mrv->nvec*(size_t)mrv->nvals ) ;
   VECTIM_destroy(qrv) ;
 
-  kk = thd_floatscan( mrv->nvec*mrv->nvals , mrv->fvec ) ;
+  kk = thd_floatscan( (size_t)mrv->nvec*(size_t)mrv->nvals , mrv->fvec ) ;
   if( kk > 0 )
     WARNING_message("fixed %d float error%s after localPV",kk,(kk==1)?"\0":"s");
 

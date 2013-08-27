@@ -59,7 +59,7 @@ ENTRY("THD_dset_to_vectim") ;
      RETURN(NULL) ;
    }
 #pragma omp critical (MALLOC)
-   mrv->fvec  = (float *)malloc(sizeof(float)*nmask*nvals) ;
+   mrv->fvec  = (float *)malloc(sizeof(float)*(size_t)nmask*(size_t)nvals) ;
    if( mrv->fvec == NULL ){
      ERROR_message("THD_dset_to_vectim: out of memory") ;
      free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
@@ -222,7 +222,7 @@ int THD_vectim_reload_fromfile( MRI_vectim *mrv , char *fnam )
    if( mrv == NULL || fnam == NULL ) return 0 ;
 
    fp = fopen( fnam , "r" ) ; if( fp == NULL ) return 0 ;
-   nf = mrv->nvec * mrv->nvals ;
+   nf = (size_t)mrv->nvec * (size_t)mrv->nvals ;
    if( mrv->fvec == NULL ) mrv->fvec = (float *)malloc(sizeof(float)*nf) ;
    nw = fread( mrv->fvec , sizeof(float) , nf , fp ) ;
    fclose(fp) ; return (int)nw ;
@@ -477,10 +477,10 @@ ENTRY("THD_2dset_to_vectim") ;
 
    } else {  /* do all at once: this way is a lot faster */
 
-     THD_extract_many_arrays( nmaskv[0] ,  mrv->ivec            ,
-                                dsetv[0]  ,   mrv->fvec            ) ;
+     THD_extract_many_arrays( nmaskv[0] ,  mrv->ivec  ,
+                               dsetv[0] ,   mrv->fvec  ) ;
      THD_extract_many_arrays( nmaskv[1] ,  ivvectmp,
-                                dsetv[1]  ,  (mrv->fvec+nmaskv[0]*mrv->nvals) ) ;
+                               dsetv[1] ,  (mrv->fvec+(size_t)nmaskv[0]*(size_t)mrv->nvals) ) ;
 
    }
 
@@ -502,7 +502,7 @@ ENTRY("THD_2dset_to_vectim") ;
      fprintf(stderr,"++ ZSS mrv->nvec = %d, mrv->nvals = %d\n",
                     mrv->nvec, mrv->nvals);
      for( kk=0 ; kk < mrv->nvals; ++kk) {
-      fff=mrv->fvec+(mrv->nvals*ShowThisTs);
+      fff=mrv->fvec+((size_t)mrv->nvals*(size_t)ShowThisTs);
       fprintf(stderr," %f \t", *(fff+kk));
      }
    }
@@ -522,7 +522,7 @@ MRI_vectim * THD_vectim_copy( MRI_vectim *mrv )  /* 08 Apr 2010 */
    MAKE_VECTIM( qrv , mrv->nvec , mrv->nvals ) ;
    qrv->ignore = mrv->ignore ;
    AAmemcpy( qrv->ivec , mrv->ivec , sizeof(int)*mrv->nvec ) ;
-   AAmemcpy( qrv->fvec , mrv->fvec , sizeof(float)*mrv->nvec*mrv->nvals ) ;
+   AAmemcpy( qrv->fvec , mrv->fvec , sizeof(float)*(size_t)mrv->nvec*(size_t)mrv->nvals ) ;
    qrv->nx = mrv->nx ; qrv->dx = mrv->dx ;
    qrv->ny = mrv->ny ; qrv->dy = mrv->dy ;
    qrv->nz = mrv->nz ; qrv->dz = mrv->dz ; qrv->dt = mrv->dt ;

@@ -27,16 +27,16 @@
    Return the number of illegal values found.
 -----------------------------------------------------------------------*/
 
-int thd_floatscan( int nbuf , float *fbuf )
+int thd_floatscan( size_t nbuf , float *fbuf )
 {
-   int ii , nerr ;
+   size_t ii , nerr ;
 
    if( nbuf <= 0 || fbuf == NULL ) return 0 ;
 
    for( nerr=ii=0 ; ii < nbuf ; ii++ )
      if( !IS_GOOD_FLOAT(fbuf[ii]) ){ fbuf[ii] = 0.0f ; nerr++ ; }
 
-   return nerr ;
+   return (int)nerr ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -45,9 +45,9 @@ int thd_floatscan( int nbuf , float *fbuf )
 typedef struct complex { float r , i ; } complex ;  /* cf. mrilib.h */
 #endif
 
-int thd_complexscan( int nbuf , complex *cbuf )
+int thd_complexscan( size_t nbuf , complex *cbuf )
 {
-   int ii , nerr ;
+   size_t ii , nerr ;
 
    if( nbuf <= 0 || cbuf == NULL ) return 0 ;
 
@@ -56,7 +56,7 @@ int thd_complexscan( int nbuf , complex *cbuf )
      if( !IS_GOOD_FLOAT(cbuf[ii].i) ){ cbuf[ii].i = 0.0f ; nerr++ ; }
    }
 
-   return nerr ;
+   return (int)nerr ;
 }
 
 /*--------------------------------------------------------------------*/
