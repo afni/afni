@@ -424,6 +424,9 @@ void Qhelp(void)
     "             *** The following 3dQwarp options CANNOT be used with -allineate:\n"
     "                   -plusminus  -inilev  -iniwarp\n"
     "             *** However, you CAN use -duplo with -allineate.\n"
+    "               * Normally, the output files from 3dAllineate are deleted after\n"
+    "                 being read in by 3dQwarp. However, if you use the '-allinkeep'\n"
+    "                 option, then they will be left on disk.\n"
     "\n"
     " -allineate_opts '-opt ...'\n"
     "   *OR*        * This option lets you add extra options to the 3dAllineate\n"
@@ -814,7 +817,7 @@ int main( int argc , char *argv[] )
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg = 0 ;
    int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
-   int do_resam=0 ;
+   int do_resam=0 ; int keep_allin=0 ;
    int flags = 0 , nbad = 0 ;
    double cput = 0.0 ;
    int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
@@ -884,6 +887,10 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-allineate") == 0 ||       /* 15 Jul 2013 */
          strcasecmp(argv[nopt],"-allin"    ) == 0   ){
        do_allin =  1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-allinkeep") == 0 ){       /* 27 Aug 2013 */
+       keep_allin = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-allinfast") == 0 ||       /* 19 Jul 2013 */
@@ -1228,7 +1235,7 @@ STATUS("3dAllineate coming up next") ;
      sset = THD_open_dataset(qs) ;                 /* get its output dataset */
      if( sset == NULL ) ERROR_exit("Can't open replacement source??") ;
      DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ; DSET_lock(sset) ;
-     remove(qs) ;                 /* erase the 3dAllineate dataset from disk */
+     if( !keep_allin ) remove(qs) ;   /* erase the 3dAllineate dataset from disk */
 
      if( do_allin ){
        MRI_IMAGE *qim ; float *qar ;
@@ -1242,8 +1249,10 @@ STATUS("3dAllineate coming up next") ;
        LOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
                                qar[4],qar[5],qar[ 6],qar[ 7],
                                qar[8],qar[9],qar[10],qar[11] ) ;
-       remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
-       if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
+       if( !keep_allin ){
+         remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
+         if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
+       }
        if( Hverb && do_allin ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
        mri_free(qim) ;
      }
