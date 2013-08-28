@@ -1205,7 +1205,7 @@ STATUS("source dataset opened") ;
    }
 
    if( do_allin || do_resam ){
-     char *qs ;  /* temp stuff */
+     char *qs , *ns , *rs ;  /* temp stuff */
 
 STATUS("3dAllineate coming up next") ;
 
@@ -1229,13 +1229,19 @@ STATUS("3dAllineate coming up next") ;
 
      fprintf(stderr,"\n") ;
 
-     INFO_message("3dQwarp: replacing source dataset with %s.nii",Qunstr) ;
-     qs = (char *)malloc(strlen(Qunstr)+64) ;
+     qs = (char *)malloc(strlen(Qunstr)+strlen(prefix)+64) ;
+     ns = (char *)malloc(strlen(Qunstr)+strlen(prefix)+64) ;
      sprintf(qs,"%s.nii",Qunstr) ;
-     sset = THD_open_dataset(qs) ;                 /* get its output dataset */
+     if( keep_allin ){
+       sprintf(ns,"%s_Allin.nii",prefix) ; rename(qs,ns) ; rs = ns ;
+     } else {
+       rs = qs ;
+     }
+     INFO_message("3dQwarp: replacing source dataset with %s",rs) ;
+     sset = THD_open_dataset(rs) ;                 /* get its output dataset */
      if( sset == NULL ) ERROR_exit("Can't open replacement source??") ;
      DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ; DSET_lock(sset) ;
-     if( !keep_allin ) remove(qs) ;   /* erase the 3dAllineate dataset from disk */
+     if( !keep_allin ) remove(qs) ;  /* erase the 3dAllineate dataset from disk */
 
      if( do_allin ){
        MRI_IMAGE *qim ; float *qar ;
@@ -1252,12 +1258,15 @@ STATUS("3dAllineate coming up next") ;
        if( !keep_allin ){
          remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
          if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
+       } else {
+         sprintf(ns,"%s_Allin.aff12.1D",prefix) ; rename(qs,ns) ;
+         if( Hverb ) ININFO_message("3dAllineate output files have been renamed") ;
        }
        if( Hverb && do_allin ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
        mri_free(qim) ;
      }
 
-     free(qs) ; /* temp string is history */
+     free(qs) ; free(qs) ;
 
    } /*--- end of 3dAllineate prolegomenon ----------------------------------*/
 
