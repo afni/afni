@@ -419,14 +419,12 @@ void Qhelp(void)
     "          -->>** The final output warped dataset is warped directly from the\n"
     "                 original source dataset, NOT from the substitute source.\n"
     "               * The intermediate files from 3dAllineate (the substitute source\n"
-    "                 dataset and the affine matrix) are deleted from disk after\n"
-    "                 being read into 3dQwarp.\n"
+    "                 dataset and the affine matrix) are saved, using 'prefix_Allin'\n"
+    "                 in the filenames.  If you wish to have them deleted, use the\n"
+    "                 option '-allinkill' in addition to '-allineate'.\n"
     "             *** The following 3dQwarp options CANNOT be used with -allineate:\n"
     "                   -plusminus  -inilev  -iniwarp\n"
     "             *** However, you CAN use -duplo with -allineate.\n"
-    "               * Normally, the output files from 3dAllineate are deleted after\n"
-    "                 being read in by 3dQwarp. However, if you use the '-allinkeep'\n"
-    "                 option, then they will be left on disk.\n"
     "\n"
     " -allineate_opts '-opt ...'\n"
     "   *OR*        * This option lets you add extra options to the 3dAllineate\n"
@@ -812,12 +810,12 @@ int main( int argc , char *argv[] )
    char *bsname=NULL , *iwname=NULL , *ssname=NULL , *esname=NULL ;
    MRI_IMAGE *bim , *wbim , *sim , *oim ; float bmin,smin ;
    IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw=NULL ;
-   char *prefix = "Qwarp" ; int nopt , nevox=0 ;
+   char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg = 0 ;
    int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
-   int do_resam=0 ; int keep_allin=0 ;
+   int do_resam=0 ; int keep_allin=1 ;
    int flags = 0 , nbad = 0 ;
    double cput = 0.0 ;
    int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
@@ -891,6 +889,9 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-allinkeep") == 0 ){       /* 27 Aug 2013 */
        keep_allin = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-allinkill") == 0 ){       /* 27 Aug 2013 */
+       keep_allin = 0 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-allinfast") == 0 ||       /* 19 Jul 2013 */
@@ -1119,6 +1120,15 @@ int main( int argc , char *argv[] )
      ERROR_exit("Totally bogus option '%s'",argv[nopt]) ;
    }
 
+   /*-- make a 'clean' prefix --*/
+
+   { char *ns ;
+     prefix_clean = strdup(prefix) ;
+     ns = strstr(prefix_clean,".nii" ) ; if( ns != NULL ) *ns = '\0' ;
+     ns = strstr(prefix_clean,"+orig") ; if( ns != NULL ) *ns = '\0' ;
+     ns = strstr(prefix_clean,"+tlrc") ; if( ns != NULL ) *ns = '\0' ;
+   }
+
    /*----- check for errorororors -----*/
 
 STATUS("check for errors") ;
@@ -1233,7 +1243,7 @@ STATUS("3dAllineate coming up next") ;
      ns = (char *)malloc(strlen(Qunstr)+strlen(prefix)+64) ;
      sprintf(qs,"%s.nii",Qunstr) ;
      if( keep_allin ){
-       sprintf(ns,"%s_Allin.nii",prefix) ; rename(qs,ns) ; rs = ns ;
+       sprintf(ns,"%s_Allin.nii",prefix_clean) ; rename(qs,ns) ; rs = ns ;
      } else {
        rs = qs ;
      }
@@ -1259,7 +1269,7 @@ STATUS("3dAllineate coming up next") ;
          remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
          if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
        } else {
-         sprintf(ns,"%s_Allin.aff12.1D",prefix) ; rename(qs,ns) ;
+         sprintf(ns,"%s_Allin.aff12.1D",prefix_clean) ; rename(qs,ns) ;
          if( Hverb ) ININFO_message("3dAllineate output files have been renamed") ;
        }
        if( Hverb && do_allin ) DUMP_MAT44("3dAllineate matrix",allin_matrix) ;
