@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , AUG , 2013 , RWC , "Continuing vectim saga" , MICRO , TYPE_MODIFY ,
+  { 28 , AUG , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "-allinkeep option ==> keep -allineate files around" ,
+   NULL } ,
+
+ { 27 , AUG , 2013 , RWC , "Continuing vectim saga" , MICRO , TYPE_MODIFY ,
    "More 64 bit fixes" ,
    "A few more 64 bit fixes in various MRI_vectim using codes.  Also, change\n"
    "the nvox field in MRI_IMAGE to int64_t.  However, generally allowing for\n"
