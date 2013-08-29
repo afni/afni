@@ -1726,6 +1726,8 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-nwarp") == 0 ){     /* 03 Apr 2008 = SECRET */
        nwarp_pass = 1 ; iarg++ ;
 
+       WARNING_message(" !! Consider using program 3dQwarp instead of 3dAllineate -nwarp !!" ) ;
+
        if( iarg >= argc ){
          ERROR_exit("need a warp type after '-nwarp' :-(") ;
        } else if( strncasecmp(argv[iarg],"bil",3) == 0 ){
