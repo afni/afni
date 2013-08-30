@@ -1283,7 +1283,7 @@ STATUS("3dAllineate coming up next") ;
        mri_free(qim) ;
      }
 
-     free(qs) ; free(qs) ;
+     free(qs) ; free(ns) ;
 
    } /*--- end of 3dAllineate prolegomenon ----------------------------------*/
 
