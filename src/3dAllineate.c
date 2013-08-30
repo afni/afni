@@ -3950,6 +3950,19 @@ STATUS("zeropad weight dataset") ;
         allpar[jj] = stup.wfunc_param[jj].xxx ;   \
   } while(0)
 
+#undef  PARLIST
+#define PARLIST(ss,xxx)                                     \
+  do{ fprintf(stderr," + %s Parameters:\n    ",ss) ;        \
+      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){          \
+        if( jj > 0 && jj%3 == 0 ) fprintf(stderr,"\n    "); \
+        fprintf(stderr," %9s=%7.4f",                        \
+     stup.wfunc_param[jj].name,stup.wfunc_param[jj].xxx) ;  \
+      }                                                     \
+      fprintf(stderr,"\n") ;                                \
+  } while(0)
+#undef  PARNOUT
+#define PARNOUT(ss) PARLIST(ss,val_out)   /* 30 Aug 2013 */
+
    /*-- the Annunciation --*/
 
    if( do_allcost >= 0 && verb ){
@@ -4180,7 +4193,7 @@ STATUS("zeropad weight dataset") ;
      didtwo = 0 ;
      if( twopass && (!twofirst || !tfdone) ){
        int tb , ib , ccode , nrand ; char *eee ;
-       if( verb ) INFO_message("Start coarse pass") ;
+       if( verb ) INFO_message("*** Coarse pass begins ***") ;
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
        stup.npt_match   = ntask / 15 ;
@@ -4203,7 +4216,7 @@ STATUS("zeropad weight dataset") ;
        if( tbest > 0 ){  /* default tbest==4 */
          int nrefine ;
 
-         if( verb ) ININFO_message("- Search for coarse starting parameters") ;
+         if( verb > 1 ) ININFO_message("- Search for coarse starting parameters") ;
 
          /* startup search only allows up to 6 parameters, so freeze excess */
 
@@ -4579,8 +4592,8 @@ STATUS("zeropad weight dataset") ;
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
      /*** if( verb > 2 ) GA_do_params(0) ; ***/
 
-     if( verb ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
-     if( verb > 1 && meth_check_count < 1 ) PAROUT("Final fine fit") ;
+     if( verb > 1 ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
+     if( verb > 1 || (verb==1 && kk==0) ) PARNOUT("Final fine fit") ; /* 30 Aug 2013 */
      if( verb > 1 ) ININFO_message("- Fine net CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
      if( save_hist != NULL ) SAVEHIST("final",1) ;
