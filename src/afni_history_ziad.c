@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 3, Sep , 2013 , ZSS , "MapIcosahedron" , MICRO , TYPE_BUG_FIX,
+   "Program was crashing with message about binSearch failing.",
+   "Problem was caused by recent changes to binSearch that forced\n"
+   "exact matching.\n"
+ },
+ 
+ { 19, Aug , 2013 , ZSS , "@DO.examples" , MICRO , TYPE_MODIFY,
+   "Changes to help with builds and tests on NeuroDebian",
+   "Minor tweaks, cleanup and new option -timeout for prompt_user program.\n"
+ },
+ 
  { 19, Aug , 2013 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Dreaded __builtin_object_size came up for 3dTproject",
    "Replace memcpy with AAmemcpy in cs_symeig.c . Separated OMP\n"
