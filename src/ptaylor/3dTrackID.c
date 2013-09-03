@@ -490,13 +490,13 @@ int main(int argc, char *argv[]) {
                if (onexyz) { /* for when your ROI centroid coords 
                                 and in one vector of XYZ triplets */
                   if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
-                                                  xyz, NULL, NULL, 3))) {
+                                                  xyz, NULL, NULL, NULL, 3))) {
                      ERROR_message("Failed to add node list");
                      exit(1);  
                   }                                     
                } else {
                   if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
-                                                  x, y, z, 3))) {
+                                                  x, y, z, NULL, 3))) {
                      ERROR_message("Failed to add node list");
                      exit(1);     
                   }
