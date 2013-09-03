@@ -1886,7 +1886,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
                                                 scale ctrNodeList1, from which)*/
          seg[0] = seg[1];                      /*(justX_2 comes)*/
       else {
-         if ( !SUMA_binSearch( justX_2, ptHit[0], seg )) {
+         if ( !SUMA_binSearch( justX_2, ptHit[0], seg, 0 )) {
             fprintf( SUMA_STDERR, 
                      "Error %s: Failed in binary search !(%f < %f < %f).\n\n", 
                      FuncName, justX_2[seg[0]], ptHit[0], justX_2[seg[1]]);
@@ -3164,7 +3164,7 @@ float * SUMA_createColGradient( float *col, int numSeg, SUMA_Boolean allGvn ) {
       
       /*find stdColIncr elements nearest to given colors; set given colors to stdColIncr*/
       bind_currCol[0] = 0;  bind_currCol[1] = 70;
-      if ( !SUMA_binSearch( stdColIncr, colRng[i], bind_currCol ) ) {
+      if ( !SUMA_binSearch( stdColIncr, colRng[i], bind_currCol, 0 ) ) {
          fprintf(SUMA_STDERR, "\nError %s: Failed in binary search !(%f < %f < %f). Exiting.\n\n", FuncName, stdColIncr[bind_currCol[0]], colRng[i], stdColIncr[bind_currCol[1]]);
          if (colRng) SUMA_free(colRng);
          if (stdColIncr) SUMA_free(stdColIncr);
