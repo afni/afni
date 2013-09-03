@@ -4320,23 +4320,25 @@ int SUMA_NodeIndex_To_Index(int *NodeIndex, int N_Node, int n)
 }
 
 /*!
-  SUMA_binSearch( nodeList, target, seg);
+  SUMA_binSearch( nodeList, target, seg, ematch);
 
   This function performs a binary search.  The indices of the elements in nodeList surrounding target will be stored in (overwrite) seg; thus seg[0]=seg[1]=i implies that an exact match was found at index i.
   \param nodeList (float *) vector of sorted values
   \param target (float) value seeking
   \param seg (int *) contains begin and end point of segment being searched
+  \param ematch (byte) 1: Exact match enforced. 0: Closest
   \return found (SUMA_Boolean) YUP if all passed correctly and target within segment, NOPE otherwise
 
   Written by Brenna Argall
 */
-SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) 
+SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg, 
+                             byte ematch) 
 {
    static char FuncName[]={"SUMA_binSearch"};
    int mid=0;
    int beg = seg[0], end = seg[1];
    SUMA_Boolean found=YUP;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
       
    SUMA_LHv("%f < %f < %f\n", nodeList[beg], target, nodeList[end]);
@@ -4367,8 +4369,13 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg)
          } else if (nodeList[beg]==target) {
             seg[0] = beg;
             seg[1] = beg;
-         } else {
-            return (found = NOPE);
+         } else { 
+            if (!ematch) {
+               seg[0] = beg;
+               seg[1] = end;
+            } else {
+               return(found = NOPE);
+            }
          }
       }
       else if (target==nodeList[mid]) {
@@ -4378,11 +4385,11 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg)
       /**keep searching*/
       else if ( target  < nodeList[mid]) {
          seg[0] = beg;  seg[1] = mid;
-         found = SUMA_binSearch( nodeList, target, seg);
+         found = SUMA_binSearch( nodeList, target, seg, ematch);
       }
       else if ( target > nodeList[mid]) {
          seg[0] = mid;  seg[1] = end;
-         found = SUMA_binSearch( nodeList, target, seg);
+         found = SUMA_binSearch( nodeList, target, seg, ematch);
       }
    }
    /**exact match; beg==end or target==nodeList[ indexList[mid] ]*/
@@ -4394,9 +4401,9 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg)
    return(found);
 }
 
-int SUMA_binFind( float *indexList, int N_node, float target) {
+int SUMA_binFind( float *indexList, int N_node, float target, byte ematch) {
    int seg[2]={0, N_node -1};
-   if (SUMA_binSearch(indexList, target, seg)) return(seg[0]);
+   if (SUMA_binSearch(indexList, target, seg, ematch)) return(seg[0]);
    else return(-1);
 }
 
