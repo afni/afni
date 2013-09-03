@@ -1317,6 +1317,19 @@ NI_element * SUMA_GetUniqueIndicesAttr(SUMA_DSET *dset, int iindex)
    SUMA_RETURN(nel);
 }
 
+int * SUMA_GetUniqueIndicesVec(SUMA_DSET *dset, int iindex)
+{
+   static char FuncName[]={"SUMA_GetUniqueIndicesVec"};
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY; 
+   
+   if (!(nel = SUMA_GetUniqueIndicesAttr(dset, iindex))) SUMA_RETURN(NULL);
+
+   SUMA_RETURN((int *)nel->vec[0]);
+}
+
 /*! \brief Add an attribute that contains the set of unique values
             in a column 
 */
@@ -6665,7 +6678,8 @@ int SUMA_GetNodeIndex_FromNodeRow_eng(SUMA_DSET *dset, int row, int N_Node)
       } ++ WarnCount; 
       SUMA_RETURN(row);
    }
-      
+   
+   SUMA_DUMP_TRACE("???");   
    SUMA_PushErrLog(  "SL_Err", "No way to get column index.", FuncName);
       
    /* bad news lews, this node is not in this Dset */ 
@@ -14094,14 +14108,14 @@ SUMA_Boolean SUMA_Dset_to_GDSET(SUMA_DSET **pdset, char *mtype,
             SUMA_S_Err("Failed to get unique indices");
             SUMA_RETURN(NOPE);
          }
-         SUMA_ShowNel(nn);
+         
          msz[0]= nn->vec_len;
          SUMA_LH("Get unique indices 2");
          if (!(nn = SUMA_GetUniqueIndicesAttr(dset,2))) {
             SUMA_S_Err("Failed to get unique indices");
             SUMA_RETURN(NOPE);
          }
-         SUMA_ShowNel(nn);
+         
          msz[1]= nn->vec_len;
          if ((tt=SDSET_VECLEN(dset)/(msz[0]*msz[1])) != (int)tt) {
             SUMA_S_Errv( "Number of entries per column (%d) is not an \n"
@@ -14626,6 +14640,11 @@ int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals,
    
    SUMA_ENTRY;
    
+   if (!N_vals) {
+      SUMA_S_Err("You cheap date! I need N_vals to be not null");
+      SUMA_RETURN(NULL);
+   }  
+   
    *N_vals = -2; /*use as an error flag */
    if (nelxyzr) *nelxyzr = NULL;
    
@@ -14655,6 +14674,52 @@ int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals,
    SUMA_RETURN(I);
 }
 
+char **SUMA_GDSET_GetPointNamesColumn(SUMA_DSET *dset, int *N_vals, 
+                                    NI_element **nelxyzr)
+{
+   static char FuncName[]={"SUMA_GDSET_GetPointNamesColumn"};
+   NI_element *nelxyz=NULL;
+   char  **I=NULL;
+   int iicoord=-1;
+   char *cs=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!N_vals) {
+      SUMA_S_Err("You cheap skate! I need N_vals to be not null");
+      SUMA_RETURN(NULL);
+   }  
+   *N_vals = -2; /*use as an error flag */
+   if (nelxyzr) *nelxyzr = NULL;
+   
+   if (!(nelxyz = SUMA_FindGDsetNodeListElement(dset))) {
+      SUMA_S_Errv("Failed to find Dset %s's NodeListElement\n", 
+                        SDSET_LABEL(dset));
+      SUMA_RETURN(NULL);
+   }
+   if (nelxyzr) *nelxyzr = nelxyz;
+   
+   /* The search by label is overkill since I enforce 'I'
+      to be the 1st column ... Oh well. */
+   if (!(cs = NI_get_attribute(nelxyz,"COLMS_LABS"))) {
+      SUMA_S_Err("What can I say?");
+      SUMA_RETURN(NULL);
+   }
+
+   if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, 
+                                          "Gnode Label"))<0) {
+      SUMA_LH("Failed to find I, assuming we have a full list"); 
+      *N_vals = -1;
+   } else {
+      I = (char **)nelxyz->vec[iicoord];
+      *N_vals = nelxyz->vec_len; 
+   }
+
+   SUMA_RETURN(I);
+}
+
+
 NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset)
 {
    static char FuncName[]={"SUMA_FindGDsetNodeListElement"};
@@ -14676,6 +14741,7 @@ NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset)
    Note that I may get reodered in this function */
 NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset, 
                                         int *I, float *X, float *Y, float *Z, 
+                                        char **names,
                                         int N_Nodes)
 {
    static char FuncName[]={"SUMA_AddGDsetNodeListElement"};
@@ -14821,6 +14887,37 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
           }
        }
    }
+   
+   if (!names) {/* Add dummy names */
+      /* get I back */
+      if ((ii=SUMA_NI_find_in_cs_string(
+            NI_get_attribute(nel,"COLMS_LABS"), SUMA_NI_CSS, "Gnode Index"))<0) {
+         SUMA_LH("Failed to find I?!"); 
+      } else {   
+         I = (int *)nel->vec[ii];
+         names = (char **)SUMA_calloc(nel->vec_len, sizeof(char*));
+         for (ii=0; ii<nel->vec_len; ++ii) {
+            names[ii] = (char *)SUMA_calloc(20, sizeof(char));
+            sprintf(names[ii],"%d", I[ii]);
+         }
+      }
+      if (!SUMA_AddDsetNelCol (  dset, "Gnode Label", 
+                                 SUMA_NODE_SLABEL, (void *)names, NULL, 1)) {
+         SUMA_SL_Err("Failed to add names column");
+         SUMA_RETURN(nel);  
+      }
+      /* Left here for the lesson:
+         Do not free names[ii] after adding names as a column   
+                  for (ii=0; ii<nel->vec_len; ++ii) SUMA_ifree(names[ii]); */ 
+      SUMA_ifree(names);
+   } else {  /* Caller's names */
+      if (!SUMA_AddDsetNelCol (  dset, "Gnode Label", 
+                                 SUMA_NODE_SLABEL, (void *)names, NULL, 1)) {
+         SUMA_SL_Err("Failed to add names column");
+         SUMA_RETURN(nel);  
+      }
+   }
+   
    SUMA_ifree(fvxyz);
    SUMA_ifree(isort);
    

@@ -85,6 +85,7 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov);
 SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid, 
                                 SUMA_COLID_OFFSET_DATUM **ucodf, int i, int j,
                                 SUMA_PICK_RESULT *PR);
+SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido);
 SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR);
 SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR);
 SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP);

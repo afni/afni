@@ -26,7 +26,9 @@ void usage_SurfDsetInfo (SUMA_GENERIC_ARGV_PARSE *ps)
       exit(0);
 }
 
-SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDsetInfo_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *
+   SUMA_SurfDsetInfo_ParseInput(char *argv[], int argc, 
+                                SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_SurfDsetInfo_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
@@ -65,8 +67,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDsetInfo_ParseInput(char *argv[], int
 			/* Assume the rest is input data */
 			while (kar < argc) {
             if (Opt->ps->N_dsetname < SUMA_MAX_DSET_ON_COMMAND) {
-               SUMA_LH("Je suis la!");
-               Opt->ps->dsetname[Opt->ps->N_dsetname] = SUMA_copy_string(argv[kar]);
+               Opt->ps->dsetname[Opt->ps->N_dsetname] = 
+                                       SUMA_copy_string(argv[kar]);
                ++Opt->ps->N_dsetname; ++kar;
             } else {
                SUMA_S_Err("Too many input dsets on command line");

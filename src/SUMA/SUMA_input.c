@@ -308,69 +308,72 @@ int SUMA_space_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
          /* make sure switching is OK */
          curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
-         SO = SUMA_SV_Focus_SO(sv);
-         if (SUMA_isLocalDomainParent (SO)) {
-            /* get the last non mappable state in SV */
-            if (sv->LastNonMapStateID < 0) { 
-                                    /* not recorded, complain and quit */
-               fprintf(SUMA_STDERR,
-                       "Warning %s: Nothing defined to toggle with yet.\n", 
-                       FuncName); 
-               break;
+         if ((SO = SUMA_SV_Focus_SO(sv))) { /* have something to work with */
+            if (SUMA_isLocalDomainParent (SO)) {
+               /* get the last non mappable state in SV */
+               if (sv->LastNonMapStateID < 0) { 
+                                       /* not recorded, complain and quit */
+                  fprintf(SUMA_STDERR,
+                          "Warning %s: Nothing defined to toggle with yet.\n", 
+                          FuncName); 
+                  break;
+               }
+
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s: surface is inherrently mappable, "
+                           "switching to last non mappable state %d.\n", 
+                           FuncName, sv->LastNonMapStateID);
+
+               if (!SUMA_SwitchState ( SUMAg_DOv, SUMAg_N_DOv, sv, 
+                                      sv->LastNonMapStateID, sv->CurGroupName)) {
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed in SUMA_SwitchState.\n", FuncName);
+                  break;
+               }
+
+            } else {/* that's a non mappable, go to state containing reference */
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s: surface is not inherrently mappable, "
+                           "searching for mapping reference and its state.\n", 
+                           FuncName);
+
+               /* find SO that is mappable reference & get its state ID*/
+               dov_ID = SUMA_findSO_inDOv(SO->LocalDomainParentID, SUMAg_DOv, 
+                                          SUMAg_N_DOv);
+               SOmap = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
+               nxtstateID = SUMA_WhichState(SOmap->State, sv, sv->CurGroupName);
+
+               if (nxtstateID < 0) {
+                  fprintf (SUMA_STDERR,
+                           "%s: Failed in SUMA_findSO_inDOv "
+                           "This should not happen.\n", FuncName);
+                  break;
+               }
+
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s: Found mapping reference in viewer state %d.\n", 
+                           FuncName, nxtstateID);
+
+               /* store this location */
+               sv->LastNonMapStateID = curstateID;
+
+               /* go there */
+               if (!SUMA_SwitchState ( SUMAg_DOv, SUMAg_N_DOv, sv, 
+                                       nxtstateID, sv->CurGroupName)) {
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed in SUMA_SwitchState.\n", 
+                           FuncName);
+                  break;
+               }
             }
-                  
-            if (LocalHead) 
-               fprintf (SUMA_STDERR,
-                        "%s: surface is inherrently mappable, "
-                        "switching to last non mappable state %d.\n", 
-                        FuncName, sv->LastNonMapStateID);
 
-            if (!SUMA_SwitchState ( SUMAg_DOv, SUMAg_N_DOv, sv, 
-                                    sv->LastNonMapStateID, sv->CurGroupName)) {
-               fprintf( SUMA_STDERR,
-                        "Error %s: Failed in SUMA_SwitchState.\n", FuncName);
-               break;
-            }
-
-         } else {/* that's a non mappable, go to state containing reference */
-            if (LocalHead) 
-               fprintf (SUMA_STDERR,
-                        "%s: surface is not inherrently mappable, "
-                        "searching for mapping reference and its state.\n", 
-                        FuncName);
-
-            /* find SO that is mappable reference & get corresponding state ID*/
-            dov_ID = SUMA_findSO_inDOv(SO->LocalDomainParentID, SUMAg_DOv, 
-                                       SUMAg_N_DOv);
-            SOmap = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
-            nxtstateID = SUMA_WhichState(SOmap->State, sv, sv->CurGroupName);
-                  
-            if (nxtstateID < 0) {
-               fprintf (SUMA_STDERR,
-                        "%s: Failed in SUMA_findSO_inDOv "
-                        "This should not happen.\n", FuncName);
-               break;
-            }
-                  
-            if (LocalHead) 
-               fprintf (SUMA_STDERR,
-                        "%s: Found mapping reference in viewer state %d.\n", 
-                        FuncName, nxtstateID);
-
-            /* store this location */
-            sv->LastNonMapStateID = curstateID;
-
-            /* go there */
-            if (!SUMA_SwitchState ( SUMAg_DOv, SUMAg_N_DOv, sv, 
-                                    nxtstateID, sv->CurGroupName)) {
-               fprintf( SUMA_STDERR,
-                        "Error %s: Failed in SUMA_SwitchState.\n", 
-                        FuncName);
-               break;
-            }
+            SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         } else {
+            SUMA_LH("No surfaces in this state, space bar ignored");
          }
-         
-         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -2504,7 +2507,7 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   if (!SUMAg_CF->X->Whereami_TextShell) {
                      if (!(SUMAg_CF->X->Whereami_TextShell = 
                               SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
-                                                      NULL, 
+                                                      NULL, NULL,
                                                       SUMA_Whereami_destroyed,
                                                       NULL))) {
                         SUMA_S_Err("Failed to create TextShellStruct.");
@@ -2551,7 +2554,7 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          /*fprintf(stderr,"Zoom in %f\n", sv->FOV[sv->iState]);*/
          /* Now update the zoom compensation variable */
          if (sv->ZoomCompensate) {
-            sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
+            sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_auto_fov(sv);
             if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; 
                /* weird stuff at zc_fac higher that 1.5 */
             else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
@@ -2571,7 +2574,7 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          /*fprintf(stderr,"Zoom out %f\n", sv->FOV[sv->iState]);*/
          /* Now update the zoom compensation variable */
          if (sv->ZoomCompensate) {
-            sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_fov_original(sv);
+            sv->ZoomCompensate = sv->FOV[sv->iState] / SUMA_sv_auto_fov(sv);
             if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; 
                /* weird stuff at zc_fac higher that 1.5 */
             else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
@@ -4795,7 +4798,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sqrt(sv->FOV[sv->iState] / 
-                                    SUMA_sv_fov_original(sv));
+                                    SUMA_sv_auto_fov(sv));
                      /* slow down compensation, with sqrt*/
                if (sv->ZoomCompensate > 1) 
                   sv->ZoomCompensate = 1.0; 
@@ -5071,7 +5074,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                } 
 
                if (SUMA_ALTHELL) {
-                     SUMA_S_Note("DO picking, order needs attention here");
+                     SUMA_LH("Non SO DO picking");
                      hit = SUMA_MarkLineDOsIntersect (sv,  SUMAg_DOv, 0);
                      if (hit < 0) {
                         SUMA_S_Err("Failed in SUMA_MarkLineDOsIntersect.");
@@ -5270,7 +5273,7 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
    }
    if (OnDisk) {
       if (!SUMA_PixelsToDisk(sv, sv->X->WIDTH, -sv->X->HEIGHT,
-                          (GLubyte *)sv->pickrenpix4, 4, 1, OnDisk)) {
+                          (GLubyte *)sv->pickrenpix4, 4, 1, OnDisk, 1, 0)) {
          SUMA_S_Err("Failed to write pix to disk");
       }
    }
@@ -5417,6 +5420,205 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
    SUMA_RETURN(YUP);
 }
 
+/* What was picked on a frame SO */
+SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
+{
+   static char FuncName[]={"SUMA_WhatWasPicked_FrameSO"};
+   float P0[3], P1[3];
+   int N[3], IIm[3], ii, jj, i, *ui=NULL, *uj=NULL, si=-1, G[3], B[3], M[3];
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_DSET *dset=NULL;
+   SUMA_PICK_RESULT *PR = NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_GRAPH_SAUX *GSaux = NULL;
+   SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL;
+   double Aff[4][4], I[3], V[12], X[3], GB[3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!sv ) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(PR);
+   }
+   
+   if (!iDO_isGLDO(ido) || !iDO_is_variant(ido,"GMATRIX")) { 
+      /* No frame SOs in this DO, not an error just keep looking */
+      SUMA_LH("Not a DO with a FrameSO, go on");
+      SUMA_RETURN(PR);
+   }
+   
+   SUMA_LHv("Pick Query for FrameSO on sv %p, ido %d\n", sv, ido);
+   if (iDO_is_variant(ido,"GMATRIX") && 
+       (GSaux = iDO_GSaux(ido))) {
+       SO=GSaux->FrameSO; 
+   }
+   if (!SO) {
+      SUMA_S_Errv("No FrameSO on %s\n", iDO_label(ido));
+      SUMA_RETURN(PR);
+   }
+   NI_GET_DOUBLEv(GSaux->nido->ngr, "dicom_real_to_ijk", V, 12, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No dicom_real_to_ijk");
+      SUMA_RETURN(PR);
+   }   
+   V12_TO_AFF44(Aff, V);
+   
+   NI_GET_INTv(GSaux->nido->ngr, "Nijk", N, 3, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No Nijk");
+      SUMA_RETURN(PR);
+   } 
+   
+   /* total num of pixels per value */
+   NI_GET_INTv(GSaux->nido->ngr, "PixCount", M, 3, LocalHead);
+   NI_GET_INTv(GSaux->nido->ngr, "PixPerVal", G, 3, LocalHead);
+   NI_GET_INTv(GSaux->nido->ngr, "BorWid", B, 3, LocalHead);
+   GB[0] = G[0]+B[0];
+   GB[1] = G[1]+B[1];
+   GB[2] = G[2]+B[2];
+   
+   SUMA_COPY_VEC(sv->Pick0, P0, 3, GLdouble, float);
+   SUMA_COPY_VEC(sv->Pick1, P1, 3, GLdouble, float);
+   if (!(MTI = SUMA_MT_intersect_triangle(P0, P1,
+                           SO->NodeList, SO->N_Node, 
+                           SO->FaceSetList, SO->N_FaceSet, NULL, 0))){
+      SUMA_S_Err("SUMA_MT_intersect_triangle failed.");
+      SUMA_RETURN(PR);
+   }
+         
+   if (MTI->N_hits < 1) { 
+      SUMA_LH("No hits");
+      SUMA_RETURN(PR);
+   }
+   
+   ui = uj = NULL;
+   if (iDO_isGLDO(ido)) {
+      if (!(dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)SUMAg_DOv[ido].OP))) {
+         SUMA_S_Err("No dset for GLDO?");
+         SUMA_RETURN(PR);
+      }
+      switch (dset->Aux->matrix_shape) {
+         case MAT_FULL:
+         case MAT_TRI:
+         case MAT_TRI_DIAG:
+            SUMA_LH("Direct indexing between edge points and matrix row/col");
+            break;
+         case MAT_SPARSE:
+            if (!dset->inel) {
+               SUMA_S_Err("Don't have inel, badly shaped dataset");
+               SUMA_RETURN(PR);
+            }
+            if (  !(ui = SUMA_GetUniqueIndicesVec(dset,1)) || 
+                  !(uj = SUMA_GetUniqueIndicesVec(dset,2))    ) {
+               SUMA_S_Err("Failed to get unique indices");
+               SUMA_RETURN(PR);
+            }
+            break;
+         default:
+            SUMA_S_Err("Rats");
+            SUMA_RETURN(PR);
+            break;
+      }
+   }
+
+
+   PR = SUMA_New_Pick_Result(PR);
+   PR->ado_idcode_str = SUMA_replace_string(PR->ado_idcode_str,iDO_idcode(ido));
+   ado = SUMA_whichADOg(PR->ado_idcode_str);
+   PR->primitive = SUMA_replace_string(PR->primitive, "none yet");
+   PR->primitive_index = -1;
+   PR->PickXYZ[0] = MTI->P[0];
+   PR->PickXYZ[1] = MTI->P[1];
+   PR->PickXYZ[2] = MTI->P[2];
+   sv->Focus_DO_ID = ido;
+   PR->selectedEnode = -1;
+   PR->datum_index = -1;
+   AFF44_MULT_I(I, Aff, MTI->P);
+
+   SUMA_LHv("Hit on Frame SO, triangle %d %f %f %f, M=[%d %d]\n"
+            "     Pixel hit: %.2f %.2f %.2f\n", 
+            MTI->ifacemin, MTI->P[0], MTI->P[1], MTI->P[2], M[0], M[1],
+            I[0], I[1], I[2]);
+   for (i=0; i<3; ++i) {
+      /* I[i] = I[i]/GB[i]; Account for per value gain and 
+                                    background thickness */
+      I[i] = I[i]/GB[i]-0.5; /* Undo the gain to get back to matrix grid */
+      if (I[i] < -0.5 || I[i] > N[i]-0.5) IIm[i] = -1;
+      else {
+         IIm[i] = (int)SUMA_ROUND(I[i]);
+      }
+   }
+   
+   if (ui) { /* sparse hell */
+      if (IIm[0]>=0) ii = ui[IIm[0]]; 
+      else ii = -1;
+      if (IIm[1]>=0) jj = uj[IIm[1]];
+      else jj = -1;
+   } else {
+      ii = IIm[0]; jj=IIm[1];
+   }
+   
+   SUMA_LHv("In face %d X=[%f %f %f]dicom, GB=[%d %d] \n"
+            "     If=[%f %f %f], Im=[%d %d %d], ii,jj=[%d %d]\n", 
+            MTI->ifacemin, MTI->P[0], MTI->P[1], MTI->P[2], 
+            (int)GB[0], (int)GB[1],
+            I[0], I[1], I[2], IIm[0], IIm[1], IIm[2], ii, jj);
+
+   switch (MTI->ifacemin) {
+      case 0:
+      case 1:
+         /* in matrix */
+         PR->primitive = SUMA_replace_string(PR->primitive, "segments");
+         if (!ui && ii >= 0 && jj >= 0) {
+            PR->datum_index = PR->primitive_index = ii+jj*N[0];
+         } else { /* sparse */
+            if (ii < 0 || jj < 0) {
+               PR->datum_index = PR->primitive_index = -1;
+            } else if (!SUMA_GDSET_PointsToSegIndex(dset, ii, jj, &si)) {
+               SUMA_S_Errv("Failed to find segment for %d %d\n", ii, jj);
+               PR->datum_index = PR->primitive_index = -1;
+            } else {
+               PR->datum_index = PR->primitive_index = si;
+            }
+         }  
+         if (MTI->ifacemin == 1) PR->selectedEnode = ii;
+         else PR->selectedEnode = jj;
+         break;
+      case 2:
+      case 3:
+         /* top edge*/
+         PR->primitive = SUMA_replace_string(PR->primitive, "balls");
+         PR->selectedEnode = jj;
+         break;
+      case 4:
+      case 5:
+         /* right edge*/
+         PR->primitive = SUMA_replace_string(PR->primitive, "balls");
+         PR->selectedEnode = ii;
+         break;
+      case 6:
+      case 7:
+         /* bottom edge*/
+         PR->primitive = SUMA_replace_string(PR->primitive, "balls");
+         PR->selectedEnode = jj;
+         break;
+      case 8:
+      case 9:
+         /* left edge*/
+         PR->primitive = SUMA_replace_string(PR->primitive, "balls");
+         PR->selectedEnode = ii;
+         break;
+      default:
+         SUMA_S_Errv("Faceset %d???\n", MTI->ifacemin);
+         SUMA_RETURN(PR);
+   }
+   
+   MTI = SUMA_Free_MT_intersect_triangle(MTI); 
+   
+   SUMA_RETURN(PR);
+}
+
 /* Find the object that was picked, pointer copy to found object is 
    returned in ucodf and should not be freed by calling function*/
 SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid, 
@@ -5477,7 +5679,6 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
       switch (codf->ref_do_type) {
          case GRAPH_LINK_type: {
             dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado);
-            datum_index = SUMA_GDSET_EdgeRow_To_Index(dset, PR->primitive_index);
             DDO.err = 1; SUMA_Load_Dumb_DO(ado, &DDO);
             if (DDO.err) {
                if (DDO.err==1) {
@@ -5494,7 +5695,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                SUMA_RETURN (PR);
             }
             if (SUMA_is_ADO_Datum_Primitive(ado, codf)) { 
-               
+               datum_index = SUMA_GDSET_EdgeRow_To_Index(dset, 
+                                                         PR->primitive_index);
                if (!(SUMA_GDSET_SegIndexToPoints(dset, datum_index, 
                                                  &i0, &i1, NULL))) {
                   SUMA_RETURN(PR);
@@ -5878,7 +6080,8 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                                int IgnoreSameNode)
 {
    static char FuncName[]={"SUMA_MarkLineDOsIntersect"};
-   int i, j, it=-1, iv3[3];
+   int i, j, it=-1, iv3[3],  *MembDOs=NULL, N_MembDOs;
+   SUMA_DO_Types ttv[12];
    SUMA_PICK_RESULT *hit=NULL;
    GLubyte colans[4];
    SUMA_COLID_OFFSET_DATUM *codf=NULL;
@@ -5903,44 +6106,59 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       SUMA_RETURN(-1);
    }
 
-   if (!SUMA_PickBuffer(sv, 2, dov)) { /* refresh the buffer only if needed */
-      SUMA_S_Err("Failed to refresh buffer");
-      SUMA_RETURN(-1);
-   }
-   
-   if (!sv->pickrenpix4) {
-      SUMA_S_Err("Could not form pickrenpix4, should this be an error?");
-      SUMA_RETURN(-1);
-   }
-   
-   /* get pixel at click */
-   i = sv->PickPix[0]; j = sv->PickPix[1];
-   if (SUMA_GetColidInPickBuffer4(sv->pickrenpix4, 
-                        sv->X->WIDTH, sv->X->HEIGHT,
-                        &i, &j, 2, colans)) {
-      if (LocalHead) { 
-         /* Just for debugging, draw the crosshair point */
-         SUMA_MarkPickInBuffer4(sv, 1, NULL);
-         SUMA_LHv("User pixel selection: \n"
-                  "  closest hit to click at %d %d was from %d %d\n"
-                  "  colid = %d %d %d %d \n", 
-                  sv->PickPix[0], sv->PickPix[1], i, j, 
-                  colans[0] , colans[1],
-                  colans[2] , colans[3]);
+   /* Any pickable DO, other than brain surfaces, that does not require
+      pick buffer picking? */
+   ttv[0] = GRAPH_LINK_type;
+   MembDOs = SUMA_ViewState_Membs(&(sv->VSv[sv->iState]), ttv, 1, &N_MembDOs);
+   for (i=0; i<N_MembDOs; ++i) {
+      if ((hit = SUMA_WhatWasPicked_FrameSO(sv, MembDOs[i]))) { 
+         /* got something, leave. Perhaps in the future will need to go through
+         all stack (slices) and pick the best one ... */
+         break;
       }
-      /* so what was that you touched */
-      hit = SUMA_WhatWasPicked(sv, colans, &codf, i, j, NULL);
-   } else {
-      SUMA_LH("There is no there there\n");
-      hit = NULL;
+   }
+   SUMA_ifree(MembDOs);
+   
+   if (!hit) { /* nothing found above, go for pick buffer */
+      if (!SUMA_PickBuffer(sv, 2, dov)) { /* refresh the buffer only if needed */
+         SUMA_S_Err("Failed to refresh buffer");
+         SUMA_RETURN(-1);
+      }
+
+      if (!sv->pickrenpix4) {
+         SUMA_S_Err("Could not form pickrenpix4, should this be an error?");
+         SUMA_RETURN(-1);
+      }
+
+      /* get pixel at click */
+      i = sv->PickPix[0]; j = sv->PickPix[1];
+      if (SUMA_GetColidInPickBuffer4(sv->pickrenpix4, 
+                           sv->X->WIDTH, sv->X->HEIGHT,
+                           &i, &j, 2, colans)) {
+         if (LocalHead) { 
+            /* Just for debugging, draw the crosshair point */
+            SUMA_MarkPickInBuffer4(sv, 1, NULL);
+            SUMA_LHv("User pixel selection: \n"
+                     "  closest hit to click at %d %d was from %d %d\n"
+                     "  colid = %d %d %d %d \n", 
+                     sv->PickPix[0], sv->PickPix[1], i, j, 
+                     colans[0] , colans[1],
+                     colans[2] , colans[3]);
+         }
+         /* so what was that you touched */
+         hit = SUMA_WhatWasPicked(sv, colans, &codf, i, j, NULL);
+         if ((sv->Focus_DO_ID = SUMA_Picked_DO_ID(codf)) < 0) {
+            SUMA_S_Err("Failed to find picked DO despite hit!");
+            SUMA_RETURN(-1);
+         }
+      } else {
+         SUMA_LH("There is no there there\n");
+         hit = NULL;
+      }
    }
    
       /* Mark intersection Facsets */
    if (hit) {
-      if ((sv->Focus_DO_ID = SUMA_Picked_DO_ID(codf)) < 0) {
-         SUMA_S_Err("Failed to find picked DO despite hit!");
-         SUMA_RETURN(-1);
-      }
       ado = SUMA_SV_Focus_ADO(sv);
       SUMA_LHv("Hit object type %s, label %s\n",
          SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type),
@@ -6042,36 +6260,6 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
             fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
       }
       
-      #if 0 /* ******************************************************
-               Code from surface picking Delete as you form
-               equivalent 
-               ****************************************************** */
-      
-      /* put in a request for GICOR if need be */
-      if (  !NodeIgnored &&
-            SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
-            SUMAg_CF->giset && !SUMAg_CF->HoldClickCallbacks) {
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,
-                     "%s: Notifying GICOR of node selection\n", FuncName);
-         /* register a call to SetGICORnode */
-         if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetGICORnode, 
-                                             SES_Suma, sv);
-         if (!SUMA_Engine (&list)) {
-            fprintf( SUMA_STDERR, 
-                     "Error %s: SUMA_Engine call failed.\n", FuncName);
-            SUMA_RETURN (-1);
-         }
-      }else {
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,"%s: No Notification to GICOR.\n", FuncName);
-      }
-      
-            /* ******************************************************
-               END Code from surface picking 
-               ****************************************************** */
-      #endif
       /* now put in a request for locking cross hair but you must do 
          this after the node selection has been executed 
          NOTE: You do not always have SetNodeElem because the list might 

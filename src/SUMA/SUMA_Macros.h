@@ -218,6 +218,20 @@
                xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );  \
 }  
 
+#define SUMA_INV_V12MATRIX(vxform) \
+{  \
+   static mat44 A, A0;  \
+      LOAD_MAT44( A0, \
+               V[0], V[1], V[2], V[3],    \
+               V[4], V[5], V[6], V[7],    \
+               V[8], V[9], V[10], V[11]   );  \
+      A = nifti_mat44_inverse(A0);  \
+      UNLOAD_MAT44(A,   \
+               V[0], V[1], V[2], V[3],    \
+               V[4], V[5], V[6], V[7],    \
+               V[8], V[9], V[10], V[11]   );  \
+}  
+
 #define SUMA_POW2(a) ((a)*(a))
 
 #define SUMA_POW3(a) ((a)*(a)*(a))

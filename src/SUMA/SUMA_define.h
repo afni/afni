@@ -127,6 +127,7 @@
 
 
 #define SUMA_MAX_N_SURFACE_SPEC 500/*!< Maximum number of surfaces allowed in a spec file */
+#define SUMA_MAX_N_DO_SPEC 100
 
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
@@ -907,6 +908,11 @@ typedef struct {
    int N_Surfs;         /*!< Number of surfaces, in the spec file */
    int N_States;                                                     
    int N_Groups;
+   
+   int N_DO;
+   int *DO_type;
+   char **DO_name;
+   
    char *StateList;
    char *SpecFilePath;
    char *SpecFileName;
@@ -1086,6 +1092,7 @@ typedef struct {
    void (*OpenCallBack)(void *data); /*!< call back performed when 
                               SUMA_CreateTextShell is entered */
    void * OpenData;  /*!< data sent along with OpenCallBack */
+   char *OpenDataType; /* The type of data struct in OpenData_Type */
    void (*DestroyCallBack)(void *data);   /*!< call back performed when 
                                  SUMA_DestroyTextShell is entered */
    void * DestroyData; /*!< data sent along with DestroyCallBack */
@@ -1156,9 +1163,12 @@ typedef struct {
    Widget Mainform; 
    Widget ViewerInfo_pb;
    Widget Info_lb;
-   SUMA_LIST_WIDGET *SwitchGrouplst; /*!< a structure containing widgets and options for the switch Group list */
-   SUMA_LIST_WIDGET *SwitchStatelst; /*!< a structure containing widgets and options for the switch State list */
-   SUMA_CREATE_TEXT_SHELL_STRUCT * ViewerInfo_TextShell; /*!< structure containing widgets and options of the viewer info text shell */
+   SUMA_LIST_WIDGET *SwitchGrouplst; /*!< a structure containing widgets 
+                                    and options for the switch Group list */
+   SUMA_LIST_WIDGET *SwitchStatelst; /*!< a structure containing widgets 
+                                 and options for the switch State list */
+   SUMA_CREATE_TEXT_SHELL_STRUCT * ViewerInfo_TextShell; /*!< structure 
+                  containing widgets and options of the viewer info text shell */
 }SUMA_X_ViewCont;
 
 typedef struct {
@@ -1899,6 +1909,7 @@ typedef struct {
    char *idcode_str; /*!< string containing the idcode of the surface/object to 
                          which glar_ColorList belongs*/
    SUMA_Boolean Remix; /*!< flag indicating that colors need to be remixed */ 
+   int RemixID; /*!< An id of sorts updated each time remix is done */
 } SUMA_COLORLIST_STRUCT;
 
 typedef enum { SUMA_STD_ZERO_CENTERED, SUMA_SCALE_BOX } SUMA_AxisType;
@@ -2054,6 +2065,7 @@ typedef struct {
    float ZoomCompensate; /*!< Compensate mouse movements by zoom factor */
    float *FOV; /*!< Field of View (affects zoom level, there is a 
                     separate FOV for each ViewState)*/
+   float *auto_FOV_val; /*!< Field of view computed on selectable content */
    float *FOV_last_PickMode; /*!< FOV last time we picked a DO */
    float FOV_original; /*!< Original field of view of viewer */
    float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows 

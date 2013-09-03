@@ -203,7 +203,7 @@ sets the select color of the widget to its foreground color */
 
 /* return the character for a viewer struct */
 #define SUMA_SV_CHAR(csv) \
-   (char)( 65+SUMA_WhichSV((csv), SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) )
+   (char)( csv ? (65+SUMA_WhichSV((csv), SUMAg_SVv, SUMA_MAX_SURF_VIEWERS)):'-' )
 
 /* Make sure recording path is legit */
 #define SUMA_VALIDATE_RECORD_PATH(autorecord) {\
@@ -244,7 +244,8 @@ Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 GLenum SUMA_index_to_clip_plane(int iplane) ;
 int SUMA_PixelsToDisk(SUMA_SurfaceViewer *csv, int w, int h, GLubyte *pixels, 
-                      int colordepth, int verb, char *ufname); 
+                      int colordepth, int verb, char *ufname, 
+                      int autoname, int over); 
 int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback);
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
 Colormap SUMA_getShareableColormap_Eng(XVisualInfo * vi, Display *dpy);
@@ -321,17 +322,20 @@ void SUMA_cb_FileSaveView (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileLoadView (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData);
-void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData);
+void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, 
+                                                            XtPointer callData);
 void SUMA_ViewerInfo_destroyed (void *p);
 void SUMA_ViewerInfo_open (void *p);
 void SUMA_SumaInfo_destroyed (void *p);
 void SUMA_SumaInfo_open (void *p);
-SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (void (*opencallback)(void *data), void *opendata, 
-                                                            void (*closecallback)(void*data), void *closedata);
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
+   void (*opencallback)(void *data), void *opendata, char *opendatatype, 
+   void (*closecallback)(void*data), void *closedata);
 SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA_CREATE_TEXT_SHELL_STRUCT *TextShellStruct);
 void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_data);
 char * SUMA_WriteStringToFile(char *fname, char *s, int, int);
 void SUMA_SaveTextShell(Widget w, XtPointer ud, XtPointer cd);
+void SUMA_RefreshTextShell(Widget w, XtPointer ud, XtPointer cd);
 void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd);
 void SUMA_SurfInfo_open (void *SO);
 void SUMA_SurfInfo_destroyed (void *SO);

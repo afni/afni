@@ -3227,6 +3227,12 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
       ps->dsetname[i]=NULL;
    }
    
+   ps->N_DO = 0;
+   for (i=0; i<SUMA_MAX_DO_ON_COMMAND; ++i) {
+      ps->DO_name[i]=NULL;
+      ps->DO_type[i] = type_not_set;
+   }
+   
    for (i=0; i< SUMA_N_ARGS_MAX; ++i) {
       ps->arg_checked[i] = 0;
    }
@@ -3252,6 +3258,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
       ps->accept_mask = 1; else ps->accept_mask = 0;
    if (SUMA_iswordin(optflags,"-dset;")||SUMA_iswordin(optflags,"-d;")) 
       ps->accept_dset = 1; else ps->accept_dset = 0;
+   if (SUMA_iswordin(optflags,"-do;")||SUMA_iswordin(optflags,"-d;")) 
+      ps->accept_do = 1; else ps->accept_do = 0;
    if (SUMA_iswordin(optflags,"-cmap;")) 
       ps->accept_cmap = 1; else ps->accept_cmap = 0;
    
@@ -3318,7 +3326,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps)
       for (i=0; i<SUMA_MAX_DSET_ON_COMMAND; ++i) {
          if (ps->dsetname[i]) SUMA_free(ps->dsetname[i]); ps->dsetname[i]=NULL;
       }
-      
+      for (i=0; i<SUMA_MAX_DO_ON_COMMAND; ++i) {
+         if (ps->DO_name[i]) SUMA_free(ps->DO_name[i]); ps->DO_name[i]=NULL;
+      }
       if (ps->nmaskname) SUMA_free(ps->nmaskname); ps->nmaskname = NULL;
       if (ps->bmaskname) SUMA_free(ps->nmaskname); ps->nmaskname = NULL;
       if (ps->cmask) SUMA_free(ps->cmask); ps->cmask = NULL;
@@ -3342,6 +3352,14 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    SS = SUMA_StringAppend (NULL, NULL);
    
    
+   if (opt->accept_do) {
+      SS = SUMA_StringAppend (SS, 
+" Specifying displayable objects:\n"
+"    -gdset GDSET: Load and display a graph dataset\n"
+"    -tract TRACT: Load and display a tractography dataset\n"      
+      );
+   }
+
    if (opt->accept_i) {
       SS = SUMA_StringAppend (SS, 
 " Specifying input surfaces using -i or -i_TYPE options: \n"
@@ -3919,6 +3937,53 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 			   brk = YUP;
 		  } 
       }
+      if (!brk && ps->accept_do) {
+        if (!brk && 
+               (  (strcmp(argv[kar], "-tract") == 0) ||
+                  (strcmp(argv[kar], "-gdset") == 0)    )) {
+			   if (kar+1 >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 1 argument after -tract/-gdset \n");
+				   exit (1);
+			   }
+            ps->N_DO = 0;
+            do {
+               ps->arg_checked[kar]=1; ++kar;
+               /* do we have a - as the first char ? */
+               if (argv[kar][0] == '-') {
+                  fprintf (SUMA_STDERR,
+                           "no option should directly follow -tract/-gdset \n");
+				      exit (1);
+               }
+			      if (ps->N_DO+1 < SUMA_MAX_DO_ON_COMMAND) {
+                  ps->DO_name[ps->N_DO] = SUMA_copy_string(argv[kar]);
+                          if ((strcmp(argv[kar-1], "-tract") == 0)) {
+                     ps->DO_type[ps->N_DO] = TRACT_type;
+                  }  else if ((strcmp(argv[kar-1], "-gdset") == 0)) {
+                     ps->DO_type[ps->N_DO] = SDSET_type;
+                  }  else {
+                     SUMA_S_Errv("Not set to handle type%s\n",argv[kar-1]);
+                     exit(1);
+                  }
+                  SUMA_LHv("Got %s, type %d (%s)\n", 
+                           ps->DO_name[ps->N_DO], ps->DO_type[ps->N_DO],
+                     SUMA_ObjectTypeCode2ObjectTypeName(ps->DO_type[ps->N_DO]));
+                  ++ps->N_DO;
+               } else {
+                  SUMA_S_Errv("Too many displayable objects on command line.\n"
+                              "Maximum of %d is allowed.\n", 
+                              SUMA_MAX_DO_ON_COMMAND);
+                  exit (1);
+               }
+               ps->arg_checked[kar]=1;
+               if (kar+1>= argc || argv[kar+1][0] == '-') { 
+                  SUMA_LH("No more input"); MoreInput = 0; }
+               else { SUMA_LH("More input"); MoreInput = 1; }
+            } while (MoreInput);             
+			   brk = YUP;
+		  } 
+      }
+
+      
       if (!brk && ps->accept_talk_suma) {
          if (!brk && (strcmp(argv[kar], "-talk_suma") == 0)) {
             ps->arg_checked[kar]=1;

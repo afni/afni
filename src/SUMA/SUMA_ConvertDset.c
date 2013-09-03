@@ -557,7 +557,7 @@ int main (int argc,char *argv[])
             /* coerce index input to int */
             {
                SUMA_DSET *dsetc=NULL;
-               if (!(dsetc = SUMA_CoercedCopyofDset(dseti, SUMA_int, NULL))) {
+               if (!(dsetc = SUMA_CoercedCopyofDset(dsetind, SUMA_int, NULL))) {
                   SUMA_S_Err("Failed coerce");
                   exit(1);
                }
@@ -567,6 +567,7 @@ int main (int argc,char *argv[])
                                                      SDSET_VEC(dseti,0),
                                                      SDSET_VEC(dseti,1),
                                                      SDSET_VEC(dseti,2),
+                                                     NULL,
                                                      SDSET_VECFILLED(dseti)))) {
                SUMA_S_Err("Failed to add node list");
                exit(1);                                       

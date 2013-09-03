@@ -7431,6 +7431,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
             SUMA_S_Err("Zut alors!");
             SUMA_RETURN(NOPE);
          }
+         ++sv->ColList[i].RemixID;
          switch (tp) {
             case SO_type:
                if (LocalHead) 
@@ -8190,6 +8191,9 @@ void SUMA_LoadDsetOntoSO (char *filename, void *data)
    SUMA_RETURNe;
 }
 
+/*!
+   Function originally meant to load dset and associate with SO.
+   However it is not also used to load a graph dset which needs no SO */
 SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                               int SetupOverlay, int MakeOverlayCurrent,
                               int LaunchDisplay, SUMA_OVERLAYS **used_over)
@@ -8207,7 +8211,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       
    SUMA_ENTRY;
 
-   if (!filename || !SO) {
+   if (!filename) {
       SUMA_S_Err("Null data"); 
       SUMA_RETURN(NOPE);
    }
@@ -8215,7 +8219,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    if (LocalHead) {
       fprintf (SUMA_STDERR,
                "%s: Received request to load %s for surface %s.\n", 
-               FuncName, filename, SO->Label);
+               FuncName, filename, SO ? SO->Label:"NULL");
    }
 
    /* find out if file exists and how many values it contains */
@@ -8234,11 +8238,15 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    N.B: These setting will get ignored if the loaded dataset does
    not belong on a surface, like for a graph.
    */
-   if (SO->LocalDomainParentID) 
-      SUMA_SetParent_DsetToLoad(SO->LocalDomainParentID);
-   else if (SO->idcode_str) 
-      SUMA_SetParent_DsetToLoad(SO->idcode_str); 
-   else SUMA_SetParent_DsetToLoad(NULL);  
+   if (SO) {
+      if (SO->LocalDomainParentID) 
+         SUMA_SetParent_DsetToLoad(SO->LocalDomainParentID);
+      else if (SO->idcode_str) 
+         SUMA_SetParent_DsetToLoad(SO->idcode_str); 
+      else SUMA_SetParent_DsetToLoad(NULL);  
+   } else {
+      SUMA_SetParent_DsetToLoad(NULL);
+   }
    
    /* Might have tracts in there */
    get_NI_tract_type();
@@ -8254,7 +8262,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                                  "messages."); SUMA_RETURN(NOPE); }
    SUMA_SetParent_DsetToLoad(NULL);  /* reset the parent surface flag */
    
-   if (LocalHead) {
+   if (LocalHead > 1) {
       char *si = NULL;
       si = SUMA_DsetInfo(dset, 0);
       fprintf( SUMA_STDERR,
@@ -8264,6 +8272,10 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    }
    
    if (!SUMA_isGraphDset(dset)) { /* Non Graph, take care of parenting */
+      if (!SO) {
+         SUMA_S_Err("Cannot load dset without parent SO, purging.");
+         SUMA_FreeDset(dset); dset=NULL; SUMA_RETURN(NOPE);
+      }
       /* Check if the domain order is SO or not .
       If not specified, assign it */
       np = SDSET_IDMDOM(dset); if (np) lnp = strlen(np) ; else lnp = 0;
@@ -8308,7 +8320,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          }
          NI_set_attribute(dset->ngr,"domain_parent_idcode", SO->idcode_str);
          NI_set_attribute(dset->ngr,"geometry_parent_idcode", SO->idcode_str);
-         if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
+         if (LocalHead > 1) SUMA_ShowDset(dset, 0, NULL);
       } else {
          SUMA_S_Warn("For graph dsets, the rest of the procedure should\n"
                      "move to another function where there is no SO needed.\n"
@@ -8710,7 +8722,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          SUMA_LH("Colorizing Plane");
          SUMA_ColorizePlane(GSaux->Overlay);
 
-         if (LocalHead) {
+         if (LocalHead > 1) {
             SUMA_Show_ColorOverlayPlanes(&GSaux->Overlay, 1, 1); 
          }
          /* set the new curColPlane to the newly loaded plane,

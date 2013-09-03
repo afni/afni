@@ -7,6 +7,7 @@
 
 #define SUMA_MAX_SURF_ON_COMMAND 100
 #define SUMA_MAX_DSET_ON_COMMAND 1000
+#define SUMA_MAX_DO_ON_COMMAND 100
 #define SUMA_N_ARGS_MAX 1000
 #define SUMA_VIEW_LENGTH 5
 
@@ -29,6 +30,7 @@ typedef struct {
    char *i_group[SUMA_MAX_SURF_ON_COMMAND];
    int i_anatomical[SUMA_MAX_SURF_ON_COMMAND];
    int i_N_surfnames;
+   int i_DO_type[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_SO_File_Format i_FF[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_SO_File_Type i_FT[SUMA_MAX_SURF_ON_COMMAND];
    
@@ -86,6 +88,11 @@ typedef struct {
    /* dsets */
    char *dsetname[SUMA_MAX_DSET_ON_COMMAND];
    int N_dsetname;
+
+   /* DOs */
+   char *DO_name[SUMA_MAX_DO_ON_COMMAND];
+   int N_DO;
+   int DO_type[SUMA_MAX_DO_ON_COMMAND];
    
    /* flags for what to read */
    byte accept_t;
@@ -101,6 +108,7 @@ typedef struct {
    byte check_input_surf;
    byte accept_mask;
    byte accept_dset;
+   byte accept_do;
    byte accept_cmap;
    
    /* flags for help */

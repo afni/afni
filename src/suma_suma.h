@@ -128,16 +128,21 @@
    
    #define SUMA_LH(msg) {\
       if (LocalHead) \
-         fprintf (SUMA_STDERR, "##      %s:\n %s\n", FuncName, msg);  \
+         fprintf (SUMA_STDERR, "##      %s (%s:%d):\n %s\n", FuncName, __FILE__, __LINE__, msg);  \
    }
    
    #define SUMA_LHv(msg, ...) {\
       if (LocalHead) {  \
-         fprintf (SUMA_STDERR, "##      %s:\n", FuncName);  \
+         fprintf (SUMA_STDERR, "##      %s (%s:%d):\n", FuncName, __FILE__, __LINE__);  \
          fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
       }  \
    }
-  
+   
+   #define TLH(v) {\
+      if (v) { LocalHead = v; SUMA_LH("LocalHead Temp ON"); } \
+      else { SUMA_LH("LocalHead Temp OFF"); LocalHead = NOPE; }   \
+   }
+   
    #ifdef SUMA_noFunc
      #define SUMA_S_Warn(msg) {\
       fprintf (SUMA_STDERR, "Warning: %s\n", msg);  \
