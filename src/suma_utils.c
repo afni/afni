@@ -4338,7 +4338,7 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg,
    int mid=0;
    int beg = seg[0], end = seg[1];
    SUMA_Boolean found=YUP;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
       
    SUMA_LHv("%f < %f < %f\n", nodeList[beg], target, nodeList[end]);

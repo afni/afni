@@ -254,8 +254,8 @@ int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep);
 
 
 int SUMA_NodeIndex_To_Index(int *NodeIndex, int N_Node, int n);
-SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg);
-int SUMA_binFind( float *indexList, int N_node, float target);
+SUMA_Boolean SUMA_binSearch(float *nodeList, float target,int *seg, byte ematch);
+int SUMA_binFind( float *indexList, int N_node, float target, byte ematch);
 SUMA_Boolean SUMA_ibinSearch( int *indexList, int target, int *seg);
 int SUMA_ibinFind( int *indexList, int N_node, int target);
 int *SUMA_reorder(int *y, int *isort, int N_isort);
