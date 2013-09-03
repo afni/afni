@@ -2108,6 +2108,154 @@ SUMA_SphereDO * SUMA_ReadSphDO (char *s)
    SUMA_RETURN(SDO);
 }
 
+int SUMA_TDO_N_tracts(SUMA_TractDO *tdo) 
+{
+   static char FuncName[]={"SUMA_TDO_N_tracts"};
+   int ntr = -1, ii;
+   TAYLOR_BUNDLE *tb=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!tdo || !tdo->net) SUMA_RETURN(ntr);   
+   
+   ntr = 0;
+   for (ii=0; ii<tdo->net->N_tbv; ++ii) {
+      if ((tb = tdo->net->tbv[ii])) ntr += tb->N_tracts;
+   }
+   
+   SUMA_RETURN(ntr);
+}
+
+float *SUMA_TDO_Grid_Center(SUMA_TractDO *tdo, float *here) 
+{
+   static char FuncName[]={"SUMA_TDO_Grid_Center"};
+   static int icall=0;
+   static float fv[10][3];
+   float A[4][4], I[3];
+   THD_3dim_dataset *dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[1] = here[2] =  0.0;
+   
+   if (!tdo || !tdo->net || !tdo->net->grid) SUMA_RETURN(here);
+   
+   dset = tdo->net->grid;
+   
+   if (  !dset->daxes || 
+         !ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
+      SUMA_S_Err("no valid ijk_to_dicom_real") ;
+      SUMA_RETURN(here);
+   }
+   MAT44_TO_AFF44(A, dset->daxes->ijk_to_dicom_real);
+   I[0] = DSET_NX(dset)/2.0; 
+   I[1] = DSET_NY(dset)/2.0;
+   I[2] = DSET_NZ(dset)/2.0;
+   AFF44_MULT_I(here, A, I);
+   
+   SUMA_RETURN(here);
+}
+
+float *SUMA_TDO_Points_Center(SUMA_TractDO *tdo, float *here) 
+{
+   static char FuncName[]={"SUMA_TDO_Points_Center"};
+   static int icall=0;
+   static float fv[10][3];
+   int ii, jj, kk, npts = 0;
+   TAYLOR_BUNDLE *tb=NULL;
+   TAYLOR_TRACT *tt=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[1] = here[2] =  0.0;
+   
+   if (!tdo || !tdo->net || !tdo->net->tbv) SUMA_RETURN(here);
+   
+   npts = 0;
+   for (ii=0; ii<tdo->net->N_tbv; ++ii) {
+      if ((tb = tdo->net->tbv[ii])) {
+         for (jj=0; jj<tb->N_tracts; ++jj) {
+            if ((tt = tb->tracts+jj) && tt->N_pts3>2) {
+               kk=0;
+               do {
+                  here[0] += tt->pts[kk++];
+                  here[1] += tt->pts[kk++];
+                  here[2] += tt->pts[kk++];
+               } while (kk<tt->N_pts3);
+               npts += tt->N_pts3/3;
+            }
+         } 
+      }
+   }
+   
+   here[0] /= (float)npts;
+   here[1] /= (float)npts;
+   here[2] /= (float)npts;
+   
+   SUMA_RETURN(here);
+}
+float *SUMA_TDO_XYZ_Range(SUMA_TractDO *tdo, float *here) 
+{
+   static char FuncName[]={"SUMA_TDO_XYZ_Range"};
+   static int icall=0;
+   static float fv[10][6];
+   int ii, jj, kk, ok;
+   TAYLOR_BUNDLE *tb=NULL;
+   TAYLOR_TRACT *tt=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[2] = here[4] =  -20;
+   here[1] = here[3] = here[5] =   20;
+   if (!tdo || !tdo->net || !tdo->net->tbv) SUMA_RETURN(here);
+   
+   here[0] = here[2] = here[4] =   2000000000000;
+   here[1] = here[3] = here[5] =  -2000000000000;
+   ok = 0;
+   for (ii=0; ii<tdo->net->N_tbv; ++ii) {
+      if ((tb = tdo->net->tbv[ii])) {
+         for (jj=0; jj<tb->N_tracts; ++jj) {
+            if ((tt = tb->tracts+jj) && tt->N_pts3>2) {
+               kk=0;
+               do {
+                  if (here[0] > tt->pts[kk]) here[0] = tt->pts[kk];
+                  if (here[1] < tt->pts[kk]) here[1] = tt->pts[kk]; ++kk;
+                  
+                  if (here[2] > tt->pts[kk]) here[2] = tt->pts[kk];
+                  if (here[3] < tt->pts[kk]) here[3] = tt->pts[kk]; ++kk;
+               
+                  if (here[4] > tt->pts[kk]) here[4] = tt->pts[kk];
+                  if (here[5] < tt->pts[kk]) here[5] = tt->pts[kk]; ++kk;
+               } while (kk<tt->N_pts3);
+               if (!ok && kk>0) ok=1;
+            }
+         } 
+      }
+   }
+   
+   if (!ok) { /* weird, nothing at all, revert to defaults */
+      here[0] = here[2] = here[4] =  -20;
+      here[1] = here[3] = here[5] =   20;
+   }
+   
+   SUMA_RETURN(here);
+}
+
 SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id) 
 {
    static char FuncName[]={"SUMA_ReadTractDO"};
@@ -2643,6 +2791,10 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_ALL_DO *ado)
             }
          }
          break;
+      case GRAPH_LINK_type:
+         SUMA_S_Notev("Nothing done for GRAPH_LINK_type, variant %s yet\n",
+                         SUMA_ADO_variant(ado));
+         break;
       default:
          SUMA_S_Errv("Not ready for type %s\n",
          SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
@@ -2655,9 +2807,10 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_ALL_DO *ado)
 void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_WorldAxisStandard"};
-   float MinDims[3], MaxDims[3];
-   int i, j, Nvis, *Vis_IDs=NULL;
+   float MinDims[3], MaxDims[3], *xyzr;
+   int i, j, Nsel, *Vis_IDs=NULL;
    SUMA_SurfaceObject *cso=NULL;
+   SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2689,26 +2842,84 @@ void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    Ax->Center[2] = sv->GVS[sv->StdView].RotaCenter[2];
 
    Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
-   Nvis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
+   Nsel = SUMA_Selectable_ADOs (sv, SUMAg_DOv, Vis_IDs);
    
-   if (Nvis > 0) {
-      for (i=0; i<Nvis; ++i) {
-         cso = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[i]].OP;
-         if (!i) {
-            for (j=0; j<3; ++j) {
-               MinDims[j] = cso->MinDims[j];
-               MaxDims[j] = cso->MaxDims[j];
-            }
-         } else {
-            for (j=0; j<3; ++j) {
-               if (cso->MinDims[j] < MinDims[j]) MinDims[j] = cso->MinDims[j];
-               if (cso->MaxDims[j] > MaxDims[j]) MaxDims[j] = cso->MaxDims[j];
-            }
+   /* init */
+   MinDims[0]=MinDims[1]=MinDims[2]=1; 
+   MaxDims[0]=MaxDims[1]=MaxDims[2]=0; 
+   if (Nsel > 0) {
+      for (i=0; i<Nsel; ++i) {
+         switch (SUMAg_DOv[Vis_IDs[i]].ObjectType) {
+            case SO_type:
+               cso = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[i]].OP;
+               if (MinDims[0] > MaxDims[0]) {/* initialize */
+                  for (j=0; j<3; ++j) {
+                     MinDims[j] = cso->MinDims[j];
+                     MaxDims[j] = cso->MaxDims[j];
+                  }
+               } else {
+                  for (j=0; j<3; ++j) {
+                     if (cso->MinDims[j] < MinDims[j]) 
+                        MinDims[j] = cso->MinDims[j];
+                     if (cso->MaxDims[j] > MaxDims[j]) 
+                        MaxDims[j] = cso->MaxDims[j];
+                  }
+               }
+               break;
+            case GRAPH_LINK_type:
+               if(!(dset=SUMA_find_GLDO_Dset(
+                              (SUMA_GraphLinkDO *)(SUMAg_DOv[Vis_IDs[i]].OP)))){
+                  SUMA_S_Err("Gilda");
+                  break;
+               }
+            
+               if (!SUMA_IS_REAL_VARIANT(iDO_variant(Vis_IDs[i]))) break;
+               xyzr = SUMA_GDSET_XYZ_Range(dset, iDO_variant(Vis_IDs[i]), NULL);
+               if (MinDims[0] > MaxDims[0]) {/* initialize */
+                  for (j=0; j<3; ++j) {
+                     MinDims[j] = xyzr[2*j];
+                     MaxDims[j] = xyzr[2*j+1];
+                  }
+               } else {
+                  for (j=0; j<3; ++j) {
+                     if (xyzr[2*j] < MinDims[j])  MinDims[j] = xyzr[2*j];
+                     if (xyzr[2*j+1] > MaxDims[j]) MaxDims[j] = xyzr[2*j+1];
+                  }
+               }
+               break;
+            case TRACT_type: {
+               SUMA_TractDO *tdo=(SUMA_TractDO *)SUMAg_DOv[Vis_IDs[i]].OP;
+               xyzr = SUMA_TDO_XYZ_Range(tdo, NULL);
+               if (MinDims[0] > MaxDims[0]) {/* initialize */
+                  for (j=0; j<3; ++j) {
+                     MinDims[j] = xyzr[2*j];
+                     MaxDims[j] = xyzr[2*j+1];
+                  }
+               } else {
+                  for (j=0; j<3; ++j) {
+                     if (xyzr[2*j] < MinDims[j])  MinDims[j] = xyzr[2*j];
+                     if (xyzr[2*j+1] > MaxDims[j]) MaxDims[j] = xyzr[2*j+1];
+                  }
+               }
+               break; }
+            default:
+               SUMA_LHv("Ignoring dims of %s\n", iDO_label(Vis_IDs[i]));
+               break;
          }
+      }
+      if (MinDims[0] > MaxDims[0]) {/* Bad trip */
+         SUMA_S_Warn("Nothing good for initialization, using default");
+         MinDims[0]=MinDims[1]=MinDims[2]=-20; 
+         MaxDims[0]=MaxDims[1]=MaxDims[2]=20; 
       }
       Ax->BR[0][0] = MinDims[0]; Ax->BR[0][1] = MaxDims[0];
       Ax->BR[1][0] = MinDims[1]; Ax->BR[1][1] = MaxDims[1];
       Ax->BR[2][0] = MinDims[2]; Ax->BR[2][1] = MaxDims[2];
+   } else {
+      SUMA_LH("No Surfs/Selectable DOs, Going with defaults for now");
+      Ax->BR[0][0] = -20; Ax->BR[0][1] = 20;
+      Ax->BR[1][0] = -20; Ax->BR[1][1] = 20;
+      Ax->BR[2][0] = -20; Ax->BR[2][1] = 20;
    }
    if (Vis_IDs) SUMA_free(Vis_IDs);
    
@@ -3571,6 +3782,7 @@ SUMA_Boolean SUMA_CreateGraphDOs(SUMA_DSET *dset)
       }      
    }
    
+   #if 0 /* Just a place holder, nothing is done for this type of display yet */
    if (!(GLDO = SUMA_Alloc_GraphLinkDO("GRELIEF", dset))) {
       SUMA_S_Err("Failed to create GRELIEF");
    } else { /* Add it to DOv */
@@ -3580,7 +3792,7 @@ SUMA_Boolean SUMA_CreateGraphDOs(SUMA_DSET *dset)
          SUMA_free_GraphLinkDO(GLDO); GLDO=NULL;   
       } 
    }
-   
+   #endif
             
    SUMA_RETURN(YUP);
 }
@@ -3629,6 +3841,8 @@ int SUMA_Picked_DO_ID(SUMA_COLID_OFFSET_DATUM *codf)
    void *PP=NULL;
    
    SUMA_ENTRY;
+   
+   if (!codf) SUMA_RETURN(-1);
    
    switch (codf->ref_do_type) {
       case SDSET_type:
@@ -3730,6 +3944,7 @@ SUMA_Boolean SUMA_RegisterGraphDOs(SUMA_DSET *dset, SUMA_SurfaceViewer *sv)
    
    SUMA_ENTRY;
    
+   
    if (!dset || !SUMA_isGraphDset(dset) || !dset->Aux) {
       SUMA_S_Errv("NULL or non Graph input: %p %d %p\n",
          dset, SUMA_isGraphDset(dset), dset->Aux);
@@ -3765,7 +3980,7 @@ SUMA_Boolean SUMA_DrawGraphLinkDO (SUMA_GraphLinkDO *GLDO,
    SUMA_DSET *dset=NULL;
    SUMA_Boolean ans = NOPE;
    int ifound=0;
-   SUMA_Boolean LocalHead = YUP; 
+   SUMA_Boolean LocalHead = NOPE; 
    
    SUMA_ENTRY;
    
@@ -3878,7 +4093,24 @@ char *SUMA_DO_state(SUMA_DO *DO)
    SUMA_RETURN(gret);
 }
 
-/*! Is a displayable object anatomically correct? */
+/*! Is a displayable object anatomically correct? 
+   \sa SUMA_isDO_AnatCorrect
+*/
+int  SUMA_is_iDO_AnatCorrect(int dov_id)
+{
+   static char FuncName[]={"SUMA_is_iDO_AnatCorrect"};   
+   SUMA_ENTRY;
+   if (dov_id < 0 || dov_id>=SUMAg_N_DOv) {
+      SUMA_S_Errv("Bad do_id %d, not in [%d %d[ returning 0\n",
+                  dov_id, 0, SUMAg_N_DOv);
+      SUMA_RETURN(0);
+   }
+   SUMA_RETURN(SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id])));
+}
+
+/*! Is a displayable object anatomically correct? 
+   \sa SUMA_is_iDO_AnatCorrect
+*/
 int SUMA_isDO_AnatCorrect(SUMA_DO *DO)
 {
    static char FuncName[]={"SUMA_isDO_AnatCorrect"};   
@@ -3982,16 +4214,71 @@ SUMA_Boolean SUMA_DrawGraphDO (SUMA_GraphLinkDO *gldo, SUMA_SurfaceViewer *sv,
    SUMA_RETURN(YUP);
 }
 
+SUMA_NIDO * SUMA_GDSET_matrix_nido(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GDSET_matrix_nido"};
+   int G[3], B[3], N[3], M[3];
+   SUMA_GRAPH_SAUX *GSaux = NULL;
+   char Label[64]={""};
+   NI_element *nini=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !SUMA_isGraphDset(dset) || !(GSaux=SDSET_GSAUX(dset))) {
+      fprintf(stderr,"Error %s: NULL or bad pointers.\n", FuncName);
+      SUMA_RETURN (NULL);
+   }
+   
+   if (GSaux->nido) SUMA_RETURN(GSaux->nido);
+   
+   SUMA_LHv("Creating new NIDO for %s matrix\n", SDSET_LABEL(dset));
+   if (!(GSaux->nido = SUMA_BlankNIDO (NULL, Label, NULL, "mobile", NULL))) {
+         SUMA_S_Errv("Failed to allocate for GSaux->nido %s (%d)\n",
+                     Label, SDSET_VECLEN(dset));
+         SUMA_RETURN(NULL);
+   }
+   NI_set_attribute(GSaux->nido->ngr,"parent_dset_id", SDSET_ID(dset));
+
+   /* fill in all the parameters per the controller settings */
+   G[0] = 20; G[1] = 20; G[2] = 1; /* Pixels per matrix val */
+                     NI_SET_INTv(GSaux->nido->ngr, "PixPerVal", G, 3); 
+   B[0] = 1; B[1] = 1;  B[2] = 0; /* Border width */
+                     NI_SET_INTv(GSaux->nido->ngr, "BorWid", B, 3);
+   /* add a slice image nel */
+   nini = NI_new_data_element("Slice", 2); /* symbolic tiny size */
+   NI_SET_INT(nini,"k",0); /* 0th slice, always */
+   NI_add_column (nini, NI_BYTE, NULL); 
+   
+   /* number of values in matrix */
+   N[0] = SDSET_MATRIX_SZ0(dset); N[1] = SDSET_MATRIX_SZ1(dset); N[2]=1; 
+   NI_SET_INTv(GSaux->nido->ngr, "Nijk", N, 3);
+      
+   /* number of pixels in resultant image */
+   M[0] = G[0]*N[0] + B[0]*(N[0]+1);
+   M[1] = G[1]*N[1] + B[1]*(N[1]+1);
+   M[3] = 1;
+   NI_SET_INTv(GSaux->nido->ngr, "PixCount", M, 3);
+
+   NI_add_to_group(GSaux->nido->ngr, nini);
+   
+   SUMA_RETURN(GSaux->nido);
+}
+
 SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo, 
                                        SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawGraphDO_GMATRIX"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int iseg, N_seg, usedel=0, M4, ii, jj, si;
-   int M[2], G[2], B[2], GB[2], N[2], is4, ii4, iipix, jjpix, iipixMax, jjpixMax;
+   static float txcol[3] = {1, 1, 1};
+   int iseg, N_seg, usedel=0, M4, ii, jj, iim, jjm, si, pof = 0, rid,
+       *ui, *uj, cc, ee, eem, *GNI=NULL, iname=0;
+   int M[3], G[3], B[3], GB[3], N[3], is4, ii4, iipix, jjpix, iipixMax, jjpixMax;
+   double Aff[4][4], I[3];
    DListElmt *el=NULL, *eln=NULL;
    NI_element *nini=NULL;
-   GLfloat *colv=NULL;
+   GLfloat *colv=NULL, *texcoord=NULL;
+   static GLuint texName;
    byte *bb=NULL;
    char Label[64]={""};
    SUMA_Boolean ans = YUP;
@@ -3999,6 +4286,13 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    SUMA_DSET *dset=NULL;
    SUMA_GRAPH_SAUX *GSaux = NULL;
    SUMA_SurfaceObject *SO=NULL;
+   SUMA_COLORLIST_STRUCT *colstr=NULL;
+   float XYZ[27];
+   GLfloat sq_col[] = {1, 1, 1, 1.0};
+   GLboolean valid;
+   GLfloat rpos[4];
+   NI_element *nelxyz = NULL;
+   char **names = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -4022,57 +4316,33 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    
    /* Form empty NIDO*/
    snprintf(Label, 63*sizeof(char), "Image_%s_GMATRIX", SDSET_LABEL(dset));
-   if (!GSaux->nido) {
-      SUMA_LHv("Creating new NIDO for %s matrix\n", SDSET_LABEL(dset));
-      if (!(GSaux->nido = SUMA_BlankNIDO (NULL, Label, NULL, "mobile", NULL))) {
-         SUMA_S_Errv("Failed to allocate for GSaux->nido %s (%d)\n",
-                     Label, SDSET_VECLEN(dset));
-         goto BUGOUT;
-      }
-      NI_set_attribute(GSaux->nido->ngr,"parent_dset_id", SDSET_ID(dset));
-
-      /* fill in all the parameters per the controller settings */
-      G[0] = 6; G[1] = 4;  /* Pixels per matrix val */
-                        NI_SET_INTv(GSaux->nido->ngr, "PixPerVal", G, 2); 
-      B[0] = 2; B[1] = 1;  /* Border width */
-                        NI_SET_INTv(GSaux->nido->ngr, "BorWid", B, 2);
-      /* add a slice image nel */
-      nini = NI_new_data_element("Slice", 2); /* symbolic tiny size */
-      NI_SET_INT(nini,"k",0); /* 0th slice, always */
-      NI_add_column (nini, NI_BYTE, NULL); 
-      NI_add_to_group(GSaux->nido->ngr, nini);
+   if (!GSaux->nido && ! (GSaux->nido = SUMA_GDSET_matrix_nido(dset))) {
+      SUMA_S_Err("Failed to create nido");
+      goto BUGOUT;
    } else {
       if (!(nini = SUMA_FindNgrNamedElement(GSaux->nido->ngr,"Slice"))) {
          SUMA_S_Err("Could not find Slice");
          goto BUGOUT;
       }
-      NI_GET_INTv(GSaux->nido->ngr, "PixPerVal", G, 2, LocalHead);
-      NI_GET_INTv(GSaux->nido->ngr, "PixPerVal", B, 2, LocalHead);
+      NI_GET_INTv(GSaux->nido->ngr, "PixPerVal", G, 3, LocalHead);
+      NI_GET_INTv(GSaux->nido->ngr, "BorWid", B, 3, LocalHead);
    }
    
    /* number of values in matrix */
-   N[0] = SDSET_MATRIX_SZ0(dset); N[1] = SDSET_MATRIX_SZ1(dset); 
+   N[0] = SDSET_MATRIX_SZ0(dset); N[1] = SDSET_MATRIX_SZ1(dset); N[2] = 1;
    
    /* total num of pixels per value */
    GB[0] = G[0]+B[0];
    GB[1] = G[1]+B[1];
+   GB[2] = G[2]+B[2];
    
    /* number of pixels in resultant image */
    M[0] = G[0]*N[0] + B[0]*(N[0]+1);
    M[1] = G[1]*N[1] + B[1]*(N[1]+1);
-   NI_SET_INTv(nini, "PixCount", M, 2);
+   M[2] = G[2]*N[2] + B[2]*(N[2]+1);
+   NI_SET_INTv(GSaux->nido->ngr, "PixCount", M, 3);
    
    M4 = M[0]*M[1]*4;
-   
-   /* hand made ijk_to_dicom_real so that slice has constant size of 240mm*/
-   { 
-      double ijk2dcm[4][4], V[12];
-      AFF44_IDENT(ijk2dcm);
-      ijk2dcm[0][0] = 240/(double)M[0];
-      ijk2dcm[1][1] = ijk2dcm[0][0] * (double)M[1]/M[0];
-      AFF44_TO_V12( V, ijk2dcm);
-      NI_SET_DOUBLEv(GSaux->nido->ngr, "ijk_to_dicom_real", V, 12);
-   }
    
    /* check on sufficient size in nini */
    if (nini->vec_len != M4) {
@@ -4083,20 +4353,97 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
       goto BUGOUT;
    }
    
+   SUMA_LHv("G=[%d %d], B=[%d %d], GB=[%d %d], M=[%d %d], M4=%d\n",
+            G[0], G[1], B[0], B[1], GB[0], GB[1], M[0], M[1], M4);
+   
+   if (!(colstr = SUMA_GetColorListStruct (sv, SDSET_ID(dset)))) {
+      SUMA_S_Errv("No col struct for %s ???\n", SDSET_LABEL(dset));
+      goto BUGOUT;
+   }
+   
+   /* Do we have a new remix ID? */
+   NI_GET_INT(nini, "RemixID", rid);
+   if (!NI_GOT || rid != colstr->RemixID) {
+      SUMA_DrawDO_UL_Add(GSaux->DisplayUpdates, "nido_MapColors", 1);
+      NI_SET_INT(nini, "RemixID", colstr->RemixID);
+   }
+   
+   /* what kind of monstrosity is this ? */
+   ui = uj = NULL;
+   switch (dset->Aux->matrix_shape) {
+      case MAT_FULL:
+      case MAT_TRI:
+      case MAT_TRI_DIAG:
+         SUMA_LH("Direct indexing between edge points and matrix row/columns");
+         break;
+      case MAT_SPARSE:
+         if (!dset->inel) {
+            SUMA_S_Err("Don't have inel, badly shaped dataset");
+            goto BUGOUT;
+         }
+         if (  !(ui = SUMA_GetUniqueIndicesVec(dset,1)) || 
+               !(uj = SUMA_GetUniqueIndicesVec(dset,2))    ) {
+            SUMA_S_Err("Failed to get unique indices");
+           goto BUGOUT;
+         }
+         break;
+      default:
+         SUMA_S_Err("Congrats");
+         break;
+   }
+   
    if (dlist_size(GSaux->DisplayUpdates)) {/* GSaux->nido needs updating */
       el = dlist_head(GSaux->DisplayUpdates);
       do {
          usedel = 1; /* assume will consumate this element */
          if (!strcmp((char *)el->data,"nido_MapColors")) {
-            /* blank out all values */
+            /* blank out all values bb is ROW major, unlike the way 
+               MAT_full is stored. i* vars are for 1st matrix dim, 
+               j* vars are for the second*/
             memset(bb, 0, sizeof(byte)*M4);
             /* get the color vector */
-            if (!(colv = SUMA_GetColorList(sv, SDSET_ID(dset)))) {
+            if (!(colv = colstr->glar_ColorList)) {
                SUMA_S_Errv("No colv for %s?\n", SDSET_LABEL(dset));
                goto BUGOUT;
             }
             N_seg = SDSET_VECLEN(dset);
 
+            /* Fillup background grays */
+            for (ii=0; ii<N[0]+1; ++ii) { /* 1st the rows */
+               iipix = ii*GB[0]; iipixMax = iipix+B[0];
+               while (iipix < iipixMax) {
+                  jjpix = 0;
+                  while (jjpix < M[1]) {
+                     ii4 = (iipix*M[1]+jjpix)*4; 
+                           /* Texture image is filled in row major, so
+                              image in bb is transposed */
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 255; 
+                     ++jjpix;
+                  }
+                  ++iipix;
+               }
+            }
+            for (jj=0; jj<N[1]+1; ++jj) { /* now the cols */
+               jjpix = jj*(GB[1]); jjpixMax = jjpix+B[1];
+               while (jjpix < jjpixMax) {
+                  iipix = 0;
+                  while (iipix < M[0]) {
+                     ii4 = (iipix*M[1]+jjpix)*4; 
+                           /* Texture image is filled in row major, so
+                              image in bb is transposed */
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 128; ++ii4; 
+                     bb[ii4] = 255; 
+                     ++iipix;
+                  }
+                  ++jjpix;
+               }
+            }
+            
             /* Fillup where you have segments */
             SUMA_LHv("Filling up image for %d cells\n", N_seg);
             for(iseg=0; iseg<N_seg; ++iseg) {
@@ -4107,37 +4454,52 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                   SUMA_S_Errv("Failed for edge %d\n", iseg);
                }
                si = SUMA_GDSET_EdgeRow_To_Index(dset, iseg);
-               
-               /* fill background, gray for now*/
-               iipix = ii*(GB[0]); iipixMax = iipix+B[0];
-               jjpix = jj*(GB[1]); jjpixMax = jjpix+B[1];
-               while (iipix < iipixMax) {
-                  while (jjpix < jjpixMax) {
-                     ii4 = (iipix*M[0]+jjpix)*4;
-                     bb[ii4] = 128; ++ii4; 
-                     bb[ii4] = 128; ++ii4; 
-                     bb[ii4] = 128; ++ii4; 
-                     bb[ii4] = 255; 
-                     ++jjpix;
-                  }
-                  ++iipix;
+               if (!ui) {
+                  iim = ii; jjm = jj;
+               } else {
+                  iim = SUMA_ibinFind(ui, N[0], ii);
+                  jjm = SUMA_ibinFind(uj, N[1], jj);
                }
-               /* fill foreground */
-               iipix = ii*(GB[0])+B[0]; iipixMax = iipix+B[0]+G[0];
-               jjpix = jj*(GB[1])+B[1]; jjpixMax = jjpix+B[1]+G[1];
-               while (iipix < iipixMax) {
-                  while (jjpix < jjpixMax) {
-                     ii4 = (iipix*M[0]+jjpix)*4;
-                     is4 = 4*si;
-                     bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
-                     bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
-                     bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
-                     bb[ii4] = (byte)(255*colv[is4  ]); 
-                     ++jjpix;
+               #if 0
+               SUMA_LHv(
+                  "Edge %d [%d %d] in %dx%d mat [%d %d], col [%d %d %d] (%d)\n",
+                     si, ii, jj, N[0], N[1], iim, jjm, (byte)(255*colv[4*si]),
+                           (byte)(255*colv[4*si+1]), (byte)(255*colv[4*si+2]),
+                           GSaux->isColored[si]);
+               #endif
+               if (GSaux->isColored[si]) {
+                  /* fill foreground */
+                  iipix = iim*(GB[0])+B[0]; iipixMax = iipix+G[0];
+                  while (iipix < iipixMax) {
+                     jjpix = jjm*(GB[1])+B[1]; jjpixMax = jjpix+G[1];
+                     while (jjpix < jjpixMax) {
+                        ii4 = (iipix*M[1]+jjpix)*4; 
+                           /* Texture image is filled in row major, so
+                              image in bb is transposed */
+                        is4 = 4*si;
+                        bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                        bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                        bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                        bb[ii4] = (byte)(255*colv[is4  ]); 
+                        ++jjpix;
+                     }
+                     ++iipix;
                   }
-                  ++iipix;
                }
             }
+            
+            #if 0
+            for (iipix=0; iipix<M[0]; ++iipix) {
+               for (jjpix=0; jjpix<M[1]; ++jjpix) {
+                     ii4 = (iipix*M[1]+jjpix)*4; 
+                           /* Texture image is filled in row major, so
+                              image in bb is transposed */
+                  fprintf(stderr,"(%d %d %d %d)   ", 
+                           bb[ii4], bb[ii4+1], bb[ii4+2], bb[ii4+3]);
+               }
+               fprintf(stderr,"\n");
+            }
+            #endif
          } else {
             usedel = 0;
             /* this may not need to be an error condition, you might just skip 
@@ -4157,38 +4519,249 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
       } while (el);
    }
    
+   if (LocalHead) {
+      /* Write the matrix to an image width is M[1], height is M[0] */
+      if (!SUMA_PixelsToDisk(NULL, M[1], M[0], bb, 4, 1, "mat.ppm", 0, 1)) {
+         SUMA_S_Err("Failed to save matrix to disk");
+      } else {
+         SUMA_LHv("Saved %dx%d matrix to %s\n", M[1], M[0], "mat.ppm");
+      }
+   }
+
    /* and draw the GSaux */   
    #if 0
    SUMA_ShowNel(GSaux->nido->ngr);
    #endif
    
-   /* form the SO and draw it */   
-   SO = SUMA_Surface_Of_NIDO_Matrix(GSaux->nido);
-   SUMA_SimpleDrawMesh(SO, NULL, NULL);
-   if (LocalHead) {
-      char *ss = SUMA_SurfaceObject_Info(SO, NULL);
-      fprintf(SUMA_STDERR,"La Surface\n%s\n", ss);
-      SUMA_ifree(ss);
+   /* form the SO and draw it, if you must*/   
+   if (!GSaux->FrameSO) GSaux->FrameSO = 
+                     SUMA_Surface_Of_NIDO_Matrix(GSaux->nido);
+   if (LocalHead) SUMA_SimpleDrawMesh(GSaux->FrameSO, NULL, NULL);
+
+   /* See SUMA_DrawTextureNIDOnel() for more tests
+      before drawing 2D textures */
+   if ((pof = glIsEnabled(GL_POLYGON_OFFSET_FILL))) 
+                     glDisable (GL_POLYGON_OFFSET_FILL);
+   
+   /* Now put in the texture */
+   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+   NI_GET_INT(nini,"texName",texName);
+   if (!NI_GOT) {
+      /* Need to generate texture */
+      glGenTextures(1, &texName);
+      /* Now store it */
+      NI_SET_INT(nini,"texName",texName);
    }
-   SUMA_S_Note("Consider this business about freeing SO all the time\n"
-               "You want that monster stored so that you can query it\n"
-               "for viewer point of view/FOV setups, etc.\n"
-               "Also, because it is pickable, you'll need it handy for\n"
-               "Picking, do we need its edge list, normals and whatnots?\n"
-               "You just don't want to compute every time if you just store\n"
-               "nodelist and faceset for nini. Hmmm, how does that fit with\n"
-               "volumes? Should we  just have a permanent array of slice frames\n"
-               "within each nido if creating the minimum on the fly is costly?\n"
-               "Where can I store a slice's surface frame anyway? Can't put it\n"
-               "in nini, it has to go in nido->ngr...\n"
-               "See what is needed for surface selection and simple rendering 1st.\n");
-   SUMA_Free_Surface_Object(SO); SO = NULL;
+   glBindTexture(GL_TEXTURE_2D, texName);
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
+   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT); 
+   glTexParameteri(  GL_TEXTURE_2D,
+                     GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+   glTexParameteri(  GL_TEXTURE_2D,
+                     GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+         /* width is M[1], height is M[0] */
+   glTexImage2D(  GL_TEXTURE_2D, 0, GL_RGBA, 
+                  M[1], M[0], 0, GL_RGBA, 
+                  GL_UNSIGNED_BYTE, bb);
+   glEnable(GL_TEXTURE_2D);
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
+               GL_REPLACE);
+         /* GL_DECAL, GL_REPLACE, GL_MODULATE, GL_BLEND */
+   glBindTexture(GL_TEXTURE_2D, texName); 
+   texcoord = GSaux->FrameSO->NodeList;
+   SUMA_LHv("Texture as image, texName=%d, filename=%s\n"
+             "coords:\n"
+             "%.3f %.3f %.3f\n%.3f %.3f %.3f\n"
+             "%.3f %.3f %.3f\n%.3f %.3f %.3f\n",
+             texName, "CoorMat",
+             texcoord[0], texcoord[1], texcoord[2],
+             texcoord[3], texcoord[4], texcoord[5],
+             texcoord[6], texcoord[7], texcoord[8],
+             texcoord[9], texcoord[10], texcoord[11]);
+   glBegin(GL_QUADS);
+                        /* Transpose image in bb, because matrix is column major 
+                           stored in a transposed image in row major order  
+            Image corners: A-B    Surface points forming square: 0-1
+                           | |                                   | |
+                           D-C                                   3-2 
+                                Mapping: A-->0, B-->3, C-->*/
+   glTexCoord2f(0.0, 0.0); /* A */
+                   /* 0 */ glVertex3f(texcoord[0], texcoord[1], texcoord[2]);
+   glTexCoord2f(0.0, 1.0); /* B */
+                   /* 3 */ glVertex3f(texcoord[9], texcoord[10], texcoord[11]);
+   glTexCoord2f(1.0, 1.0); /* C */
+                   /* 2 */ glVertex3f(texcoord[6], texcoord[7], texcoord[8]);
+   glTexCoord2f(1.0, 0.0); /* D */
+                   /* 1 */ glVertex3f(texcoord[3], texcoord[4], texcoord[5]);
+   glEnd();
+   glFlush();
+   glDisable(GL_TEXTURE_2D);
+   if (pof) glEnable (GL_POLYGON_OFFSET_FILL); /* April 2011  */
+
+   /* Now for the selection */
+   if (SUMA_SV_GetShowSelectedDatum(sv)) {
+      if (GSaux->PR->datum_index != -1) {
+         /* Highlight cell */
+         if (!SUMA_GDSET_SegIndexToPoints(dset, GSaux->PR->datum_index, 
+                                          &ii, &jj, NULL)) {
+            SUMA_S_Err("What else?"); goto BUGOUT;
+         }
+
+         if ((cc=SUMA_GDSET_edgeij_to_GMATRIX_XYZ(dset, ii, jj, XYZ, 1)) < 0) {
+            SUMA_S_Err("Failed to get square"); goto BUGOUT;
+         } else if (cc == 0) {
+            SUMA_LH("Nothing to mark?");
+            goto GETOUT;
+         }
+         if (cc>=4) {
+            SUMA_LHv("Cell Loop (cc=%d)\n", cc);
+            glLineWidth(2);
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, sq_col );
+                     /* Add 1 to the Z coord to make the square float */
+            glBegin(GL_LINE_LOOP);
+               glVertex3f(XYZ[3],  XYZ[4],  XYZ[5] +1.0);
+               glVertex3f(XYZ[6],  XYZ[7],  XYZ[8] +1.0);
+               glVertex3f(XYZ[9],  XYZ[10], XYZ[11]+1.0);
+               glVertex3f(XYZ[12], XYZ[13], XYZ[14]+1.0);
+            glEnd();
+         }
+      } else if (GSaux->PR->selectedEnode != -1 ) {
+         if ((cc=SUMA_GDSET_edgeij_to_GMATRIX_XYZ(dset, 
+                           GSaux->PR->selectedEnode, -1, XYZ, 1)) < 0) {
+            SUMA_S_Err("Failed to get square"); goto BUGOUT;
+         } else if (cc == 0) {
+            SUMA_LH("Nothing to mark?");
+            goto GETOUT;
+         }
+         if (cc>=4) {
+            SUMA_LHv("Loop1 (cc=%d)\n", cc);
+            glLineWidth(2);
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, sq_col );
+                     /* Add 1 to the Z coord to make the square float */
+            glBegin(GL_LINE_LOOP);
+               glVertex3f(XYZ[3],  XYZ[4],  XYZ[5] +1.0);
+               glVertex3f(XYZ[6],  XYZ[7],  XYZ[8] +1.0);
+               glVertex3f(XYZ[9],  XYZ[10], XYZ[11]+1.0);
+               glVertex3f(XYZ[12], XYZ[13], XYZ[14]+1.0);
+            glEnd();
+         }
+         if (cc>=8) {
+            SUMA_LHv("Loop2 (cc=%d)\n", cc);
+            glLineWidth(2);
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, sq_col );
+                     /* Add 1 to the Z coord to make the square float */
+            glBegin(GL_LINE_LOOP);
+               glVertex3f(XYZ[15],  XYZ[16],  XYZ[17] +1.0);
+               glVertex3f(XYZ[18],  XYZ[19],  XYZ[20] +1.0);
+               glVertex3f(XYZ[21],  XYZ[22],  XYZ[23]+1.0);
+               glVertex3f(XYZ[24],  XYZ[25],  XYZ[26]+1.0);
+            glEnd();
+         }
+         
+      }
+   }
+   
+   /* Show the text ? */
+   if (1) {
+      int nl, tw, th, 
+          lh = SUMA_glutBitmapFontHeight(GLUT_BITMAP_9_BY_15), kkk=0, SGN=-1;
+      float off = -lh;
+      if (!(names = SUMA_GDSET_GetPointNamesColumn(dset, &ii, &nelxyz))) {
+         SUMA_LH("No names!"); /* No need to weep */
+         goto GETOUT;
+      }
+      if (!(GNI = SUMA_GDSET_GetPointIndexColumn(dset, &ii, NULL))) {
+         SUMA_S_Err("No indices!!");
+         goto BUGOUT;
+      }
+      if (!(SUMA_GDSET_GMATRIX_Aff(dset, Aff, 1))) {
+         SUMA_S_Err("No Aff!!");
+         goto BUGOUT;
+      }
+      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor); 
+      glMaterialfv(GL_FRONT, GL_EMISSION, txcol); /*turn on emissidity for text*/
+      /* Do the column side */
+      for (ee=0; ee<N[0]; ++ee) {
+         if (!ui) {
+            eem = ee; 
+         } else {
+            eem = ui[ee];
+         }
+         if ((iname = SUMA_ibinFind(GNI, nelxyz->vec_len, eem)) < 0){
+            SUMA_S_Err("Index not found!");
+            goto BUGOUT;
+         }
+         I[0] = (eem+0.5)*GB[0]; I[1] = -0.15*GB[1]; I[3] = 0.0;
+         AFF44_MULT_I(XYZ, Aff,I);
+         glRasterPos3d(XYZ[0], XYZ[1], XYZ[2]);
+         glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+         glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+         SUMA_TextBoxSize (names[iname], &tw, &th, &nl, GLUT_BITMAP_9_BY_15);
+         SUMA_LHv("For XYZ %f %f %f, name %s, width %d, height %d\n"
+                  "Raster position (%g,%g, %g) is %s\n",
+                  XYZ[0], XYZ[1], XYZ[2], names[iname], tw, th, 
+                  rpos[0], rpos[1], rpos[2], 
+                  valid ? "valid" : "INVALID");
+         /* do some text action */
+         if (valid) {
+            glColor3fv(txcol); 
+               /* offset for right align */
+            glBitmap( 0, 0, 0, 0,  -(float)tw, 0,  NULL );
+            for (ii=0; names[iname][ii] != '\0'; ii++) {
+               glutBitmapCharacter(GLUT_BITMAP_9_BY_15, names[iname][ii]);
+            }  
+         }
+      }
+      for (ee=0; ee<N[1]; ++ee) {
+         if (!uj) {
+            eem = ee; 
+         } else {
+            eem = uj[ee];
+         }
+         if ((iname = SUMA_ibinFind(GNI, nelxyz->vec_len, eem)) < 0){
+            SUMA_LH("Index not found!");
+            goto BUGOUT;
+         }
+         I[0] = (N[0]+ 0.15)*GB[0]; I[1] = (eem+0.5)*GB[1]; I[3] = 0.0;
+         AFF44_MULT_I(XYZ, Aff,I);
+         glRasterPos3d(XYZ[0], XYZ[1], XYZ[2]);
+         glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+         glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+         SUMA_TextBoxSize (names[iname], &tw, &th, &nl, GLUT_BITMAP_9_BY_15);
+         SUMA_LHv("For XYZ %f %f %f, name %s, text width %d\n"
+                  "Raster position (%g,%g, %g) is %s\n",
+                  XYZ[0], XYZ[1], XYZ[2], names[iname], tw,
+                  rpos[0], rpos[1], rpos[2], 
+                  valid ? "valid" : "INVALID");
+         /* do some text action */
+         if (valid) {
+            glColor3fv(txcol); 
+            /* offset for varying horizontal center align 
+               This should be done based on necessity or user
+               input. Perhaps just offset those whose width
+               exceeds a cell's width in screen pixels...
+               Deal with this later.*/
+            off = off + SGN*th; if (!(kkk++%2)) SGN *= -1;  
+            glBitmap( 0, 0, 0, 0,  
+                      -(float)tw/2.0, off,  NULL ); 
+            for (ii=0; names[iname][ii] != '\0'; ii++) {
+               glutBitmapCharacter(GLUT_BITMAP_9_BY_15, names[iname][ii]);
+            }  
+         }
+      }
+
+      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);  
+         /*turn off emissidity for text*/ 
+   }
+
+   
    goto GETOUT;
    
    BUGOUT:
    ans = NOPE;
    
    GETOUT:
+   if (pof) glEnable (GL_POLYGON_OFFSET_FILL); /* April 2011  */
    
 #if USE_SER
    /* Use in concert with SUMA_RecordEnablingState above */
@@ -4196,10 +4769,8 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
 #endif
       
    SUMA_RETURN(ans);
-   SUMA_S_Err("Fill me up");
-
-   SUMA_RETURN(YUP);
 }
+
 
 SUMA_SurfaceObject *SUMA_Surface_Of_NIDO_Matrix(SUMA_NIDO *nido)
 {
@@ -4207,11 +4778,12 @@ SUMA_SurfaceObject *SUMA_Surface_Of_NIDO_Matrix(SUMA_NIDO *nido)
    SUMA_SurfaceObject *SO=NULL;
    SUMA_NEW_SO_OPT *nsoopt=NULL;
    NI_element *nini = NULL;
-   float *NodeList=NULL;
+   float *NodeList=NULL, fac = 1.0, Eoff[2];
    double Aff[4][4], I[3], V[12], X[3];
-   int M[2], k, N_Node, N_FaceSet, *FaceSetList=NULL, i, i3;
+   int M[2], Mf[2], GB[2], G[2], B[2], k, N_Node, N_FaceSet, 
+       *FaceSetList=NULL, i, i3;
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -4220,19 +4792,46 @@ SUMA_SurfaceObject *SUMA_Surface_Of_NIDO_Matrix(SUMA_NIDO *nido)
       SUMA_RETURN(SO);
    }
    
-   NI_GET_INTv(nini, "PixCount", M, 2, LocalHead);
+   NI_GET_INTv(nido->ngr, "PixCount", M, 2, LocalHead);
    if (!NI_GOT) {
       SUMA_S_Err("No pixel dims!");
       SUMA_RETURN(SO);
    }
+   
+   /* total num of pixels per value */
+   NI_GET_INTv(nido->ngr, "PixPerVal", G, 2, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No PixPerVal!");
+      SUMA_RETURN(SO);
+   }
+   NI_GET_INTv(nido->ngr, "BorWid", B, 2, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No BorWid!");
+      SUMA_RETURN(SO);
+   }
+   GB[0] = G[0]+B[0];
+   GB[1] = G[1]+B[1];
+   
    NI_GET_DOUBLEv(nido->ngr, "ijk_to_dicom_real", V, 12, LocalHead);
    if (!NI_GOT) {
-      SUMA_S_Warn("No coords matrix, going rogue");
-      V[0]= 240.0/M[0]; V[1] = V[2] = V[3] = 0.0;
-      V[5]= 240.0/M[1]; V[4] = V[6] = V[7] = 0.0;
-      V[10]= 240.0/M[1]; V[8] = V[9] = V[11] = 0.0;
+      SUMA_LH("No coords matrix, going rogue");
+      /* Note that X coord is for the 2nd matrix dimension,
+         and Y coord is for the 1st (i) dimension */
+      if (M[0]<M[1]) fac = 1.0/M[1];
+      else fac = 1.0/M[0];
+      AFF44_LOAD(Aff,
+                 0.0      ,  240.0*fac,  0.0      ,  0.0      ,
+                -240.0*fac,  0.0      ,  0.0      ,  0.0      ,
+                 0.0      ,  0.0      ,  240.0*fac,  0.0      );
+      AFF44_TO_V12(V, Aff);
+      NI_SET_DOUBLEv(nido->ngr, "ijk_to_dicom_real", V, 12);
+      /* and put in the inverse for good measure */
+      SUMA_INV_V12MATRIX(V);
+      NI_SET_DOUBLEv(nido->ngr, "dicom_real_to_ijk", V, 12);
+   } else {
+      V12_TO_AFF44(Aff, V);
    }
-   V12_TO_AFF44(Aff, V);
+   
    
    NI_GET_INT(nini, "k", k);
    if (!NI_GOT) {
@@ -4248,40 +4847,61 @@ SUMA_SurfaceObject *SUMA_Surface_Of_NIDO_Matrix(SUMA_NIDO *nido)
    I[2] = k;
    
    /* load the coordinates of the corners (not voxel/cell centers) */
-   i = 0; i3 = 3*i;  I[0] = -0.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   Mf[0] = M[0]-1; Mf[1] = M[1]-1; /* -1 because you want the max 
+                                 to be the last index, not number of voxels*/
+   Eoff[0] = SUMA_MAX_PAIR(1, Mf[0]/10.0);
+   Eoff[1] = SUMA_MAX_PAIR(1, Mf[1]/10.0);
+   
+   /* Oh just use the same dimension from the surround select region */
+   Eoff[0] = SUMA_MAX_PAIR(Eoff[0], Eoff[1]);
+   Eoff[1] = Eoff[0];
+   
+   i = 0; i3 = 3*i;  I[0] = -0.5; I[1] = -0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 1; i3 = 3*i;  I[0] = -0.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   i = 1; i3 = 3*i;  I[0] = -0.5; I[1] = Mf[1]+0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
      
-   i = 2; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   i = 2; i3 = 3*i;  I[0] = Mf[0]+0.5; I[1] = Mf[1]+0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
      
-   i = 3; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   i = 3; i3 = 3*i;  I[0] = Mf[0]+0.5; I[1] = -0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 4; i3 = 3*i;  I[0] = -10-0.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   i = 4; i3 = 3*i;  I[0] = -Eoff[0]-0.5; I[1] = -0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 5; i3 = 3*i;  I[0] = -10-0.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   i = 5; i3 = 3*i;  I[0] = -Eoff[0]-0.5; I[1] = Mf[1]+0.5; 
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 6; i3 = 3*i;  I[0] = -0.5; I[1] = M[1]+10.5;  AFF44_MULT_I(X, Aff,I);
+   i = 6; i3 = 3*i;  I[0] = -0.5; I[1] = Mf[1]+Eoff[1]+0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 7; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = M[1]+10.5;  AFF44_MULT_I(X, Aff,I);
+   i = 7; i3 = 3*i;  I[0] = Mf[0]+0.5; I[1] = Mf[1]+Eoff[1]+0.5; 
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 8; i3 = 3*i;  I[0] = M[0]+10.5; I[1] = M[1]+0.5;  AFF44_MULT_I(X, Aff,I);
+   i = 8; i3 = 3*i;  I[0] = Mf[0]+Eoff[0]+0.5; I[1] = Mf[1]+0.5; 
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 9; i3 = 3*i;  I[0] = M[0]+10.5; I[1] = -0.5;  AFF44_MULT_I(X, Aff,I);
+   i = 9; i3 = 3*i;  I[0] = Mf[0]+Eoff[0]+0.5; I[1] = -0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 10; i3 = 3*i;  I[0] = M[0]+0.5; I[1] = -10.5;  AFF44_MULT_I(X, Aff,I);
+   i = 10; i3 = 3*i;  I[0] = Mf[0]+0.5; I[1] = -Eoff[1]-0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
-   i = 11; i3 = 3*i;  I[0] = -0.5; I[1] = -10.5;  AFF44_MULT_I(X, Aff,I);
+   i = 11; i3 = 3*i;  I[0] = -0.5; I[1] = -Eoff[1]-0.5;  
+                                                         AFF44_MULT_I(X, Aff,I);
    NodeList[i3++] = X[0]; NodeList[i3++] = X[1]; NodeList[i3++] = X[2];   
    
    /* form the triangles */
@@ -4319,10 +4939,14 @@ SUMA_SurfaceObject *SUMA_Surface_Of_NIDO_Matrix(SUMA_NIDO *nido)
    SO = SUMA_NewSO( &NodeList, N_Node, &FaceSetList, N_FaceSet, nsoopt );
    nsoopt = SUMA_FreeNewSOOpt(nsoopt);
    
-   SUMA_S_Note("Consider storing the SO parts in NIDO as 'FrameSO' for speed\n")
+   if (LocalHead) {
+      char *ss = SUMA_SurfaceObject_Info(SO, NULL);
+      fprintf(SUMA_STDERR,"La Surface\n%s\n", ss);
+      SUMA_ifree(ss);
+   }
    
    SUMA_RETURN(SO);
-} 
+}
 
 SUMA_Boolean SUMA_DrawGraphDO_GRELIEF (SUMA_GraphLinkDO *gldo, 
                                        SUMA_SurfaceViewer *sv)
@@ -4504,7 +5128,7 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
       do {
          usedel = 1; /* assume will consumate this element */
                 if (!strcmp((char *)el->data,"SDO_NodeList")) {
-               SUMA_Graph_NodeList(dset, NULL, 1, NULL, SUMA_ADO_variant(ado)); 
+               SUMA_GDSET_NodeList(dset, NULL, 1, NULL, SUMA_ADO_variant(ado)); 
          } else if (!strcmp((char *)el->data,"SDO_MapColors")) {
             SUMA_LH("Here is where you decide what needs coloring, \n"
                          "showing, etc. etc. For now we show all.\n");
@@ -4612,7 +5236,7 @@ SUMA_Boolean SUMA_Load_Dumb_DO(SUMA_ALL_DO *ado, SUMA_DUMB_DO *DDO)
          break; }
       case GRAPH_LINK_type:{
          DDO->idcode_str = SUMA_ADO_idcode(ado);
-         DDO->NodeList = SUMA_Graph_NodeList(
+         DDO->NodeList = SUMA_GDSET_NodeList(
                               SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado), 
                               &(DDO->N_Node), 0, &(DDO->NodeIndex),
                               SUMA_ADO_variant(ado));
@@ -4740,6 +5364,8 @@ void SUMA_Free_GSaux(void *vSaux)
       SUMA_free_SegmentDO(Saux->SDO); Saux->SDO = NULL;
    }
    
+   if (Saux->FrameSO) SUMA_Free_Surface_Object(Saux->FrameSO); 
+   Saux->FrameSO = NULL;
    Saux->nido = SUMA_free_NIDO(Saux->nido); 
    
    if (Saux->Overlay) {
@@ -4761,12 +5387,178 @@ void SUMA_Free_GSaux(void *vSaux)
    return; 
 }
 
+/* From the indices of two nodes that form an edge,
+find the XYZ coordinates of the center of the regions
+where it would displayed in its frame surface 
+\sa the function where picking is done on a GMATRIX
+and function that create FrameSO 
+
+Caution, XYZ may contain as many as 9 XYZ triplets (27 floats)
+
+The function returns the number of triplets stored in XYZ
+-1 to flag an error
+*/
+int SUMA_GDSET_edgeij_to_GMATRIX_XYZ(SUMA_DSET *dset, 
+                                        int ei, int ej, float *XYZ,
+                                        int FourCorners) 
+{
+   static char FuncName[]={"SUMA_GDSET_edgeij_to_GMATRIX_XYZ"};
+   SUMA_GRAPH_SAUX *GSaux=NULL;
+   double V[12], Aff[4][4];
+   int iim, jjm, cc = 0, eemi, eemj, ee, *ui, *uj, N[3], G[3], B[3], GB[3];
+   float I[3], xxx[3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !XYZ || (ei < 0 && ej < 0)) SUMA_RETURN(-1);
+   
+   GSaux = SDSET_GSAUX(dset);   
+   if (!GSaux || !GSaux->FrameSO) { 
+      SUMA_RETURN(-1);
+   }
+   
+   /* number of values in matrix */
+   N[0] = SDSET_MATRIX_SZ0(dset); N[1] = SDSET_MATRIX_SZ1(dset); 
+
+   NI_GET_DOUBLEv(GSaux->nido->ngr, "ijk_to_dicom_real", V, 12, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No ijk_to_dicom_real");
+      SUMA_RETURN(-1);
+   }   
+   V12_TO_AFF44(Aff, V);
+
+   /* total num of pixels per value */
+   NI_GET_INTv(GSaux->nido->ngr, "PixPerVal", G, 3, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No PixPerVal!");
+      SUMA_RETURN(-1);
+   }
+   NI_GET_INTv(GSaux->nido->ngr, "BorWid", B, 3, LocalHead);
+   if (!NI_GOT) {
+      SUMA_S_Err("No BorWid!");
+      SUMA_RETURN(-1);
+   }
+   GB[0] = G[0]+B[0];
+   GB[1] = G[1]+B[1];
+   
+   ui = uj = NULL;
+   switch (dset->Aux->matrix_shape) {
+      case MAT_FULL:
+      case MAT_TRI:
+      case MAT_TRI_DIAG:
+         SUMA_LH("Direct indexing between edge points and matrix row/col");
+         break;
+      case MAT_SPARSE:
+         if (!dset->inel) {
+            SUMA_S_Err("Don't have inel, badly shaped dataset");
+            SUMA_RETURN(-1);
+         }
+         if (  !(ui = SUMA_GetUniqueIndicesVec(dset,1)) || 
+               !(uj = SUMA_GetUniqueIndicesVec(dset,2))    ) {
+            SUMA_S_Err("Failed to get unique indices");
+            SUMA_RETURN(-1);
+         }
+         break;
+      default:
+         SUMA_S_Err("Rats");
+         SUMA_RETURN(-1);
+         break;
+   }
+   
+   if (ei >= 0 && ej >= 0) {
+      if (!ui) {
+         iim = ei; jjm = ej;
+      } else {
+         iim = SUMA_ibinFind(ui, N[0], ei);
+         jjm = SUMA_ibinFind(uj, N[1], ej);
+      }
+      I[0] = (iim+0.5)*GB[0]; I[1] = (jjm+0.5)*GB[1]; I[3] = 0.0;
+      SUMA_LHv("Matrix indices %d %d to Display indices of %d %d \n"
+                   "    to Pixels %f %f (GB %d %d) to XYZ:\n", 
+                   ei, ej, iim, jjm, I[0], I[1], GB[0], GB[1]);
+
+      AFF44_MULT_I(XYZ, Aff,I); cc = 3;
+      
+      
+      /* Now fill the coords of the 4 corners forming the square 
+         around the cell */
+      if (FourCorners) {
+         I[0] = (iim)*GB[0]; I[1] = (jjm)*GB[1]; I[3] = 0.0;
+            AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* A */
+         I[0] = (iim)*GB[0]; I[1] = (jjm+1)*GB[1]; I[3] = 0.0;
+            AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* B */
+         I[0] = (iim+1)*GB[0]; I[1] = (jjm+1)*GB[1]; I[3] = 0.0;
+            AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* C */
+         I[0] = (iim+1)*GB[0]; I[1] = (jjm)*GB[1]; I[3] = 0.0;
+            AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* D */
+      }
+   } else {
+      if (ei >= 0) ee = ei;
+      else ee = ej;
+      
+      if (!ui) {
+         eemi = ee; eemj = ee;
+      } else {
+         eemi = SUMA_ibinFind(ui, N[0], ee);
+         eemj = SUMA_ibinFind(uj, N[1], ee);
+      }
+      
+      
+      cc = 0;/* Not sure what to do for a center location, leave blank */
+      XYZ[0] = XYZ[1] = XYZ[2] = 0.0; /* all zeros means nothing was found */
+      if (eemi >= 0) { /* exists as row, set its Y coordinate only */
+         I[0] = (eemi+0.5)*GB[0]; I[1] = 0; I[3] = 0.0;
+         AFF44_MULT_I(xxx, Aff,I); cc = 3;
+         XYZ[0] = XYZ[2] = 0.0; XYZ[1] = xxx[1];
+      }
+      if (eemj >= 0) { /* exists as column, set its X coordinate only*/
+         I[0] = 0; I[1] = (eemj+0.5)*GB[1]; I[3] = 0.0;
+         AFF44_MULT_I(xxx, Aff,I); cc = 3;
+         XYZ[0] = xxx[0]; XYZ[1] = XYZ[2] = 0.0;
+      }
+      
+      /* Now fill the coords of the 4 corners forming the rectangle 
+         around the the whole row and the whole column whenever 
+         applicable*/
+      if (FourCorners) {
+         cc=3;
+         if (eemi >=0) { /* Point exists as row */
+            SUMA_LHv("Marking row %d for edge point %d\n", eemi, ee);
+            I[0] = (eemi)*GB[0]; I[1] = (0)*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* A */
+            I[0] = (eemi)*GB[0]; I[1] = (N[1])*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* B */
+            I[0] = (eemi+1)*GB[0]; I[1] = (N[1])*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* C */
+            I[0] = (eemi+1)*GB[0]; I[1] = (0)*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* D */
+          }
+          if (eemj >=0) { /* Point exists as column */   
+            SUMA_LHv("Marking col %d for edge point %d\n", eemj, ee);
+             I[0] = (0)*GB[0]; I[1] = (eemj)*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* A */
+             I[0] = (0)*GB[0]; I[1] = (eemj+1)*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* B */
+             I[0] = (N[0])*GB[0]; I[1] = (eemj+1)*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* C */
+             I[0] = (N[0])*GB[0]; I[1] = (eemj)*GB[1]; I[3] = 0.0;
+               AFF44_MULT_I((XYZ+cc), Aff,I); cc += 3; /* D */  
+          }
+      }
+          
+   }
+   
+   SUMA_RETURN((cc/3)); /* Return the number of XYZ triplets filled */
+}
+
+
 /* Return a pointer copy of a graph dset's node coordinates,
    *ind is a copy of the node index pointer */
-float *SUMA_Graph_NodeList(SUMA_DSET *dset, int *N_Node, int recompute, 
+float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute, 
                            int **ind, char *this_variant) 
 {
-   static char FuncName[]={"SUMA_Graph_NodeList"};
+   static char FuncName[]={"SUMA_GDSET_NodeList"};
    NI_element *nel=NULL, *nelxyz=NULL;
    float *NodeList=NULL, *X=NULL, *Y=NULL, *Z=NULL;
    int ii, ii3, iicoord;
@@ -4777,7 +5569,7 @@ float *SUMA_Graph_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
    
    if (N_Node) *N_Node = -1;
    if (!this_variant || this_variant[0]=='\0') this_variant = "GMATRIX";
-   if (!this_variant) SUMA_RETURN(NULL);
+   if (!SUMA_IS_REAL_VARIANT(this_variant)) SUMA_RETURN(NULL);
       
    /* Check the drawing variant */
    if (!strcmp(this_variant,"G3D")) {
@@ -4842,7 +5634,8 @@ float *SUMA_Graph_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
       }
       SUMA_RETURN(NodeList);                     
    } else if (!strcmp(this_variant,"GMATRIX")) {
-      SUMA_S_Err("Not ready yet for GMATRIX");
+      SUMA_LH("Nothing to return for GMATRIX, potentially one could return"
+              "the NodeList from the G3D version ...");
       if (ind) *ind=NULL;
       SUMA_RETURN(NodeList); 
    } else if (!strcmp(this_variant,"GRELIEF")) {   
@@ -5159,7 +5952,9 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
          SUMA_RETURN(NULL);
          break; }
       default:
-         SUMA_S_Errv("Not supported for types %d\n", DO->do_type);
+         SUMA_S_Errv("Not supported for types %d (%s)\n", 
+                     DO->do_type,
+                     SUMA_ObjectTypeCode2ObjectTypeName (DO->do_type));
          SUMA_RETURN(NULL);
          
    }     
@@ -5644,8 +6439,13 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
 {
    static char FuncName[]={"SUMA_DrawGSegmentDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, si, N_n3, i3, cn3, cn, n, cn1=0, n1=0, cn13=0, ncross=-1, ndraw=-1;
+   GLfloat textcolor[4] = {1.0, 1.0, 1.0, 1.0};
+   int i, iii, si, N_n3, i3, cn3, cn, n, cn1=0, n1=0, 
+       cn13=0, ncross=-1, ndraw=-1;
+   GLfloat rpos[4];
    long int n4;
+   char **names=NULL;
+   GLboolean valid;
    int gllst=0, gllsm=0, OnlyThroughNode = -1;
    byte *msk=NULL;
    NI_element *nelitp = NULL;
@@ -5710,6 +6510,12 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       SUMA_RETURN (NOPE);
    }
    
+   if (!(names = SUMA_GDSET_GetPointNamesColumn(dset, &iii, NULL))) {
+      SUMA_LH("No names!"); /* No need to weep */
+   }
+   
+   for (i=0;i<3;++i) textcolor[i] = 1.0 - sv->clear_color[i];
+
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    if (!SDO->thickv || SDO->NodeBased) glLineWidth(SDO->LineWidth);  
 
@@ -6084,6 +6890,23 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                               10, 10);
                   glTranslatef (-DDO.NodeList[cn3]  , 
                                 -DDO.NodeList[cn3+1]  , -DDO.NodeList[cn3+2]  );
+                  
+                  if (1 && names) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, textcolor);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, textcolor);
+                     glRasterPos3d(DDO.NodeList[cn3]  +rad , 
+                                   DDO.NodeList[cn3+1]+rad , 
+                                   DDO.NodeList[cn3+2] +rad );
+                     glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+                     glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+                     /* do some text action */
+                     if (valid) {
+                        for (iii=0; names[cn][iii] != '\0'; iii++) {
+                           glutBitmapCharacter(GLUT_BITMAP_9_BY_15, 
+                                                      names[cn][iii]);
+                        }  
+                     }
+                  }               
                   msk[n] = 1;
                } else {
                   SUMA_LH("Sphere already drawn");
@@ -6797,7 +7620,8 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
       }
    }
    SUMA_RETURN(YUP);
-}   
+}
+
 
 /*!
    See also SUMA_TextBoxSize 
@@ -10082,11 +10906,11 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    
    if (scl) {
       fac = SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03);
-      radsph = Ch->sphrad*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
-      gapch = Ch->g*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
-      radch = Ch->r*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
+      radsph = Ch->sphrad*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
+      gapch = Ch->g*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
+      radch = Ch->r*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
    } else {
-      fac = (SUMA_sv_fov_original(sv)/FOV_INITIAL);
+      fac = (SUMA_sv_auto_fov(sv)/FOV_INITIAL);
       radsph = Ch->sphrad*fac;
       gapch = Ch->g*fac;
       radch = Ch->r*fac;
@@ -10770,7 +11594,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                            SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
             gluSphere(  SurfObj->NodeMarker->sphobj,
                         SurfObj->NodeMarker->sphrad *          
-                           (SUMA_sv_fov_original(sv)/FOV_INITIAL) *  
+                           (SUMA_sv_auto_fov(sv)/FOV_INITIAL) *  
                            SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
                         SurfObj->NodeMarker->slices, 
                         SurfObj->NodeMarker->stacks);

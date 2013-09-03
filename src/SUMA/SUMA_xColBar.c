@@ -6454,7 +6454,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_ALL_DO *ado, int what)
    }
    
    /* TF Range table Int*/
-   SUMA_LH("Setting Int.");
+   SUMA_LHv("Setting Int. fi=%d\n", fi);
    SUMA_RANGE_STRING(curColPlane->dset_link, 
                      fi, srange_min, srange_max, 
                      srange_minloc, srange_maxloc, range); 
@@ -10514,31 +10514,308 @@ float *SUMA_GDSET_NodeXYZ(SUMA_DSET *dset, int node, char *variant, float *here)
       ++icall; if (icall > 9) icall = 0;
       here = (float *)(&fv[icall]);
    }
+   
+   SUMA_GDSET_NodeXYZ_eng(dset, node, variant, here);
+      
+   SUMA_RETURN(here);
+}
+
+SUMA_Boolean SUMA_GDSET_NodeXYZ_eng(SUMA_DSET *dset, int node, 
+                                    char *variant, float *here) 
+{
+   static char FuncName[]={"SUMA_GDSET_NodeXYZ_eng"};
+   int N_Node=-1, *Node_Ind=NULL, cinode = -1;
+   float *ff=NULL, *NodeList = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      SUMA_S_Err("Need output pointer");
+      SUMA_RETURN(NOPE);
+   }
    here[0] = here[1] = here[2] =  0.0;
    
-   if (!dset || node < 0) SUMA_RETURN(here);
+   if (!dset || node < 0) SUMA_RETURN(NOPE);
    
-   if (!(NodeList = SUMA_Graph_NodeList(dset, &N_Node, 0, &Node_Ind, variant))) 
-                                                      SUMA_RETURN(here);
+   if (!(NodeList = SUMA_GDSET_NodeList(dset, &N_Node, 0, &Node_Ind, variant))) 
+                                                      SUMA_RETURN(NOPE);
    
    /* get position of node n in NodeList */
    cinode =  SUMA_NodeIndex_To_Index(Node_Ind, N_Node, node);      
-   SUMA_LHv("Node %d is in row %d of the nodelist\n",node, cinode);
+   SUMA_LHv("Node %d is in row %d of the nodelist of %d nodes\n",
+            node, cinode, N_Node);
    
    if (cinode >= 0 && cinode < N_Node) {
       ff = NodeList+3*cinode;
       here[0] = *ff; ++ff; 
       here[1] = *ff; ++ff; 
       here[2] = *ff;
-      SUMA_RETURN(here);
+      SUMA_RETURN(YUP);
    } else {
       SUMA_LHv("Node %d not found in node list\n", node);
-      SUMA_RETURN(here);
+      SUMA_RETURN(NOPE);
    } 
+   
+   SUMA_RETURN(NOPE);
+}
+
+float *SUMA_GDSET_XYZ_Range(SUMA_DSET *dset,  char *variant, float *here) 
+{
+   static char FuncName[]={"SUMA_GDSET_XYZ_Range"};
+   static int icall=0;
+   static float fv[10][6];
+   float *X, *Y, *Z;
+   int *I;
+   double nums[6];
+   int iicoord;
+   NI_element *nelxyz = NULL;
+   char *ctmp=NULL, *rs=NULL, *cs=NULL, sbuf[24];   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[1] = here[2] =  -10.0;
+   here[0] = here[1] = here[2] =  10.0;
+
+   if (!dset || !variant) SUMA_RETURN(here);
+      
+   if (!strcmp(variant,"G3D")) {
+      if (!(nelxyz = SUMA_FindGDsetNodeListElement(dset))) {
+         SUMA_S_Errv("Failed to find Dset %s's NodeListElement\n", 
+                           SDSET_LABEL(dset));
+         SUMA_RETURN(here);
+      }
+      if (!(cs = NI_get_attribute(nelxyz,"COLMS_LABS"))) {
+         SUMA_S_Err("What can I say?");
+         SUMA_RETURN(here);
+      }
+      if (!(rs = NI_get_attribute(nelxyz,"COLMS_RANGE"))) {
+         SUMA_S_Err("Zut alors!");
+         SUMA_RETURN(here);
+      }
+      
+      /* Get the X range */
+      if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode X"))<0) {
+         SUMA_S_Err("Failed to find X"); 
+         SUMA_RETURN(here);
+      }
+      ctmp = SUMA_Get_Sub_String(rs, SUMA_NI_CSS, iicoord);
+      if (SUMA_StringToNum(ctmp, (void *)nums, 4, 2) != 4) { 
+         SUMA_SL_Err("Failed to read 6 nums from range."); 
+         SUMA_RETURN(here); 
+      }
+      here[0]=nums[0]; here[1]=nums[1];
+      
+      /* Get the Y range */
+      if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode Y"))<0) {
+         SUMA_S_Err("Failed to find Y"); 
+         SUMA_RETURN(here);
+      }
+      ctmp = SUMA_Get_Sub_String(rs, SUMA_NI_CSS, iicoord);
+      if (SUMA_StringToNum(ctmp, (void *)nums, 4, 2) != 4) { 
+         SUMA_SL_Err("Failed to read 6 nums from range."); 
+         SUMA_RETURN(here); 
+      }
+      here[2]=nums[0]; here[3]=nums[1];
+      
+      /* Get the Z range */
+      if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode Z"))<0) {
+         SUMA_S_Err("Failed to find Y"); 
+         SUMA_RETURN(here);
+      }
+      ctmp = SUMA_Get_Sub_String(rs, SUMA_NI_CSS, iicoord);
+      if (SUMA_StringToNum(ctmp, (void *)nums, 4, 2) != 4) { 
+         SUMA_SL_Err("Failed to read 6 nums from range."); 
+         SUMA_RETURN(here); 
+      }
+      here[4]=nums[0]; here[5]=nums[1];
+   } else if (!strcmp(variant,"GMATRIX")) {
+      /* This would be the range of the FrameSO */
+      SUMA_SurfaceObject *SO = SUMA_GDSET_FrameSO(dset);
+      if (SO) {
+         SUMA_LHv("%f -- %f, %f -- %f, %f -- %f\n",
+                  SO->MinDims[0], SO->MaxDims[0],
+                  SO->MinDims[1], SO->MaxDims[1],
+                  SO->MinDims[2], SO->MaxDims[2]);
+         here[0] = SO->MinDims[0]; here[1] = SO->MaxDims[0];
+         here[2] = SO->MinDims[1]; here[3] = SO->MaxDims[2];         
+         here[4] = SO->MinDims[2]; here[5] = SO->MaxDims[2];         
+      }
+      SUMA_RETURN(here);
+   } else if (!strcmp(variant,"GRELIEF")) {   
+      SUMA_S_Err("Not ready yet for GRELIEF");
+      SUMA_RETURN(here);
+   } else if (!strncmp(variant,"TheShadow", 9)) {
+      SUMA_LH("Who knows what evil lurks in the hearts of men?");
+      SUMA_RETURN(here);
+   } else {
+      SUMA_S_Errv("Bad draw variant >%s< for %s\n", 
+                  variant, SDSET_LABEL(dset));
+      SUMA_DUMP_TRACE("Bad draw variant");
+      SUMA_RETURN(here);
+   }
    
    SUMA_RETURN(here);
 }
 
+float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here) 
+{
+   static char FuncName[]={"SUMA_GDSET_XYZ_Center"};
+   static int icall=0;
+   static float fv[10][3];
+   float *X, *Y, *Z, meanI;
+   double nums[6];
+   int iicoord, *I;
+   NI_element *nelxyz = NULL;
+   char *cen=NULL, *ctmp=NULL, *rs=NULL, *cs=NULL, *stmp=NULL, sbuf[24];   
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[1] = here[2] =  0.0;
+   
+   if (!dset || !variant) SUMA_RETURN(here);
+   
+   if (!strcmp(variant,"G3D")) {
+      if (!(nelxyz = SUMA_FindGDsetNodeListElement(dset))) {
+         SUMA_S_Errv("Failed to find Dset %s's NodeListElement\n", 
+                           SDSET_LABEL(dset));
+         SUMA_RETURN(here);
+      }
+      /* create and store the thing */
+      if (!(cs = NI_get_attribute(nelxyz,"COLMS_LABS"))) {
+         SUMA_S_Err("What can I say?");
+         SUMA_RETURN(here);
+      }
+      if (!(cen = NI_get_attribute(nelxyz,"COLMS_AVG"))) {
+        /* Stupid but have to do it for COLMS_AVG */   
+         /* Get the I col */
+         if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, 
+                                              "Gnode Index"))<0) {
+            SUMA_S_Err("Failed to find I"); 
+            SUMA_RETURN(here);
+         }
+         I = (int *)nelxyz->vec[iicoord];
+         SUMA_MEAN_VEC(I, nelxyz->vec_len, meanI, 0); 
+         sprintf(sbuf,"%f", meanI); 
+         if (!SUMA_Set_Sub_String(&stmp, SUMA_NI_CSS, iicoord,sbuf)) {
+            SUMA_LHv("Failed to set substring to %s\n", stmp);
+            SUMA_RETURN(here);
+         }
+            
+         /* Get the X col */
+         if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode X"))<0) {
+            SUMA_S_Err("Failed to find X"); 
+            SUMA_RETURN(here);
+         }
+         X = (float *)nelxyz->vec[iicoord];
+         SUMA_MEAN_VEC(X, nelxyz->vec_len, here[0], 0);
+         sprintf(sbuf,"%f", here[iicoord]); 
+         if (!SUMA_Set_Sub_String(&stmp, SUMA_NI_CSS, iicoord,sbuf)) {
+            SUMA_LHv("Failed to set substring to %s\n", stmp);
+            SUMA_RETURN(here);
+         }
+            
+         /* Get the Y col */
+         if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode Y"))<0) {
+            SUMA_S_Err("Failed to find Y"); 
+            SUMA_RETURN(here);
+         }
+         Y = (float *)nelxyz->vec[iicoord];
+         SUMA_MEAN_VEC(Y, nelxyz->vec_len, here[1], 0);
+         sprintf(sbuf,"%f", here[iicoord]); 
+         if (!SUMA_Set_Sub_String(&stmp, SUMA_NI_CSS, iicoord,sbuf)) {
+            SUMA_LHv("Failed to set substring to %s\n", stmp);
+            SUMA_RETURN(here);
+         }
+         
+         /* Get the Z col */
+         if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode Z"))<0) {
+            SUMA_S_Err("Failed to find Z"); 
+            SUMA_RETURN(here);
+         }
+         Z = (float *)nelxyz->vec[iicoord];
+         SUMA_MEAN_VEC(Z, nelxyz->vec_len, here[2], 0);
+         sprintf(sbuf,"%f", here[iicoord]); 
+         if (!SUMA_Set_Sub_String(&stmp, SUMA_NI_CSS, iicoord,sbuf)) {
+            SUMA_LHv("Failed to set substring to %s\n", stmp);
+            SUMA_RETURN(here);
+         }
+        
+         NI_set_attribute(nelxyz,"COLMS_AVG", stmp);
+         SUMA_LHv("Computed for %s to be: %f %f %f: (stored in %s)\n", 
+                  variant, here[0], here[1], here[2], stmp);
+         SUMA_ifree(stmp);
+      } else {
+         if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode X"))<0) {
+            SUMA_S_Err("Failed to find X"); 
+            SUMA_RETURN(here);
+         }
+         ctmp = SUMA_Get_Sub_String(cen, SUMA_NI_CSS, iicoord);
+         if (SUMA_StringToNum(ctmp, (void *)nums, 1, 2) != 1) { 
+            SUMA_SL_Err("Failed to read 1 num from range."); 
+            SUMA_RETURN(here); 
+         }
+         here[0]=nums[0];
+         
+         if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode Y"))<0) {
+            SUMA_S_Err("Failed to find Y"); 
+            SUMA_RETURN(here);
+         }
+         ctmp = SUMA_Get_Sub_String(cen, SUMA_NI_CSS, iicoord);
+         if (SUMA_StringToNum(ctmp, (void *)nums, 1, 2) != 1) { 
+            SUMA_SL_Err("Failed to read 1 num from range."); 
+            SUMA_RETURN(here); 
+         }
+         here[1]=nums[0];
+         
+         if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, "Gnode Z"))<0) {
+            SUMA_S_Err("Failed to find Z"); 
+            SUMA_RETURN(here);
+         }
+         ctmp = SUMA_Get_Sub_String(cen, SUMA_NI_CSS, iicoord);
+         if (SUMA_StringToNum(ctmp, (void *)nums, 1, 2) != 1) { 
+            SUMA_SL_Err("Failed to read 1 num from range."); 
+            SUMA_RETURN(here); 
+         }
+         here[2]=nums[0];
+         SUMA_LHv("Retrieved (%s) from header for %s to be: %f %f %f:\n", 
+                     cen, variant, here[0], here[1], here[2]);
+      }
+   } else if (!strcmp(variant,"GMATRIX")) {
+      SUMA_SurfaceObject *SO=SUMA_GDSET_FrameSO(dset);
+      if (!SO) {
+         SUMA_S_Warnv("No Frame SO for %s?\n", SDSET_LABEL(dset));
+         SUMA_RETURN(here);
+      }
+      here[0] = SO->Center[0]; here[1] = SO->Center[1]; here[2] = SO->Center[2];
+      SUMA_LHv("From SO for %s : %f %f %f:\n", 
+                  variant, here[0], here[1], here[2]);
+      SUMA_RETURN(here);
+   } else if (!strcmp(variant,"GRELIEF")) {   
+      SUMA_S_Err("Not ready yet for GRELIEF");
+      SUMA_RETURN(here);
+   } else if (!strncmp(variant,"TheShadow", 9)) {
+      SUMA_LH("Who knows what evil lurks in the hearts of men?");
+      SUMA_RETURN(here);
+   } else {
+      SUMA_S_Errv("Bad draw variant >%s< for %s\n", 
+                  variant, SDSET_LABEL(dset));
+      SUMA_DUMP_TRACE("Bad draw variant");
+      SUMA_RETURN(here);
+   }
+   
+   SUMA_RETURN(here);
+}
 
 #define NVALS_XYZ_EDGE 6	
 float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here) 
@@ -10546,8 +10823,6 @@ float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here)
    static char FuncName[]={"SUMA_GDSET_EdgeXYZ"};
    static int icall=0;
    static float fv[10][NVALS_XYZ_EDGE];
-   int N_Node=-1, *ind0=NULL, *ind1=NULL, *inde=NULL, i1=-1, i2=0;
-   float *ff=NULL;
    
    SUMA_ENTRY;
    
@@ -10555,55 +10830,147 @@ float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here)
       ++icall; if (icall > 9) icall = 0;
       here = (float *)(&fv[icall]);;
    }
-   
-   SUMA_S_Notev("isel = %d\n", isel);
-   
-   here[0] = here[1] = here[2] = 
-   here[3] = here[4] = here[5] = 0.0;
       
-   if (!dset || isel < 0) SUMA_RETURN(here);
-   if (!variant) {
-      SUMA_S_Err("No XYZ on dset without variant");
-      SUMA_RETURN(here);  
+   SUMA_GDSET_EdgeXYZ_eng(dset, isel, variant, here);
+            
+   SUMA_RETURN(here);
+}
+
+SUMA_Boolean SUMA_GDSET_EdgeXYZ_eng(SUMA_DSET *dset, int isel, 
+                                    char *variant, float *here) 
+{
+   static char FuncName[]={"SUMA_GDSET_EdgeXYZ_eng"};
+   int N_Node=-1, *ind0=NULL, *ind1=NULL, *inde=NULL, i1=-1, i2=0;
+   SUMA_GraphLinkDO *gldo=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      SUMA_S_Err("Must give me a pointer for results");
+      SUMA_RETURN(NOPE);
    }
    
-   if (isel < SDSET_VECLEN(dset)) {
+   SUMA_LHv("Looking for XYZ of edge ID %d, variant %s on dset %s\n",
+            isel, variant, SDSET_LABEL(dset));
+            
+   here[0] = here[1] = here[2] = 
+   here[3] = here[4] = here[5] = 0.0;
+   
+   if (!dset || isel < 0) SUMA_RETURN(NOPE);
+   if (!variant) {
+      SUMA_S_Err("No XYZ on dset without variant");
+      SUMA_RETURN(NOPE);  
+   }
+   
+   if (isel < SUMA_GDSET_Max_Edge_Index(dset)) {
       SDSET_EDGE_NODE_INDEX_COLS(dset, inde, ind0, ind1);
-      if (!ind0 || !ind1 || !inde) SUMA_RETURN(here);
+      if (!ind0 || !ind1 || !inde) {
+         SUMA_LH("No explicit node idexing information");
+         SUMA_RETURN(NOPE);
+      }
       if (inde[isel] != isel) {
-         SUMA_S_Notev("Hard way for segment index %d: i1=%d, i2 = %d\n",
+         SUMA_LHv("Hard way for segment index %d: i1=%d, i2 = %d\n",
                         isel, i1, i2);         
          /* Fetch the indices of the nodes forming the edge */
          if (!SUMA_GDSET_SegIndexToPoints(dset, isel, &i1, &i2, NULL)) {
             SUMA_S_Errv("Failed to locate nodes of edge %d on dset %s\n",
                         isel, SDSET_LABEL(dset));
-            SUMA_RETURN(here);
+            SUMA_RETURN(NOPE);
          }
-         SUMA_S_Notev("Hard way for segment index %d: i1=%d, i2 = %d\n",
-                  isel, i1, i2);
       } else { /* the easy way */
-         SUMA_S_Notev("Easy way: inde[%d]=%d [%d %d]\n",
+         SUMA_LHv("Easy way: inde[%d]=%d [%d %d]\n",
                   isel, inde[isel], ind0[isel], ind1[isel]);
          i1 = ind0[isel];
          i2 = ind1[isel];
       }
-      if (i1 > -1) {
-         SUMA_GDSET_NodeXYZ(dset, i1, variant, here);
+      
+      if (i1 < 0 || i2 < 0) SUMA_RETURN(NOPE);
+      
+      if (!strcmp(variant,"GMATRIX")) {
+         SUMA_LHv("Here looking for XYZ of %d %d\n", i1, i2);
+         /* Get an edge coord based on the matrix being displayed */
+         if (SUMA_GDSET_edgeij_to_GMATRIX_XYZ(dset, i1, i2, here, 0)) {
+            /* duplicate the 1st three vals to make results consistent
+               with G3D case */
+            here[3] = here[0]; here[4]=here[1]; here[5]=here[2];
+         } else {
+            SUMA_S_Err("Should this happen ?");
+            SUMA_RETURN(NOPE);
+         }
+      } else { /* the 3D one */
+         if (!(SUMA_GDSET_NodeXYZ_eng(dset, i1, variant, here))) 
+               SUMA_RETURN(NOPE);
+         if (!(SUMA_GDSET_NodeXYZ(dset, i2, variant, here+3)))
+               SUMA_RETURN(NOPE);
       }
-      if (i2 > -1) {
-         SUMA_GDSET_NodeXYZ(dset, i2, variant, here+3);
-      }          
-      SUMA_S_Notev("Selection request for edge %d [%d %d]\n"
+      
+      SUMA_LHv("Selection request for edge %d [%d %d] variant %s\n"
                    "here=[%f %f %f %f %f %f]\n", 
-                   isel, i1, i2, 
+                   isel, i1, i2, variant, 
                    here[0], here[1], here[2], here[3], here[4], here[5]);
    } else {
-      SUMA_S_Notev("isel=%d, veclen=%d\n", isel, SDSET_VECLEN(dset));
+      SUMA_LHv("isel=%d, veclen=%d, max edge index %d\n", 
+               isel, SDSET_VECLEN(dset), SUMA_GDSET_Max_Edge_Index(dset));
    }
          
-   SUMA_RETURN(here);
+   SUMA_RETURN(YUP);
 }
 
+SUMA_SurfaceObject *SUMA_GDSET_FrameSO(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GDSET_FrameSO"};
+   SUMA_GRAPH_SAUX *GSaux = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!(GSaux = SDSET_GSAUX(dset))) {
+      SUMA_S_Err("Cannot create an SO this early, or dset is not graph");
+      SUMA_RETURN(NULL);
+   }
+   if (!GSaux->nido && !(GSaux->nido = SUMA_GDSET_matrix_nido(dset))) {
+      SUMA_S_Err("No milk!");
+      SUMA_DUMP_TRACE(FuncName);
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!GSaux->FrameSO) {
+      /* need to make one */
+      GSaux->FrameSO = SUMA_Surface_Of_NIDO_Matrix(GSaux->nido);
+   }
+   
+   SUMA_RETURN(GSaux->FrameSO);
+}
+
+SUMA_Boolean SUMA_GDSET_GMATRIX_Aff(SUMA_DSET *dset, double Aff[4][4], int I2X)
+{
+   static char FuncName[]={"SUMA_GDSET_GMATRIX_Aff"};
+   SUMA_GRAPH_SAUX *GSaux=NULL;
+   double V[12];
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!(GSaux = SDSET_GSAUX(dset)) || !GSaux->nido) SUMA_RETURN(NOPE);
+   
+   if (I2X) {
+      NI_GET_DOUBLEv(GSaux->nido->ngr, "ijk_to_dicom_real", V, 12, LocalHead);
+      if (!NI_GOT) {
+         SUMA_S_Err("No ijk_to_dicom_real");
+         SUMA_RETURN(NOPE);
+      }   
+      V12_TO_AFF44(Aff, V);
+   } else {
+      NI_GET_DOUBLEv(GSaux->nido->ngr, "dicom_real_to_ijk", V, 12, LocalHead);
+      if (!NI_GOT) {
+         SUMA_S_Err("No dicom_real_to_ijk");
+         SUMA_RETURN(NOPE);
+      }   
+      V12_TO_AFF44(Aff, V);
+   }
+   
+   SUMA_RETURN(YUP);
+}
 /* Return coordinates of a datum, failure returns 0 0 0 
    Note that what a datum represents will differ
    depending on the object*/
@@ -10704,7 +11071,7 @@ SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado)
          break;
       case GRAPH_LINK_type: {
          SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado);
-         return(SDSET_GSAUX((SUMA_DSET *)ado));
+         return(SUMA_ADO_GSaux((SUMA_ALL_DO *)dset));
          break; }
       default:
          return(NULL);

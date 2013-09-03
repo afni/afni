@@ -134,7 +134,15 @@ SUMA_Boolean SUMA_isTopColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_isCurColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
 float *SUMA_ADO_DatumXYZ(SUMA_ALL_DO *ado, int isel, char *variant);
 float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here);
+SUMA_Boolean SUMA_GDSET_EdgeXYZ_eng(SUMA_DSET *dset, int isel, 
+                                    char *variant, float *here);
+SUMA_SurfaceObject *SUMA_GDSET_FrameSO(SUMA_DSET *dset);
+SUMA_Boolean SUMA_GDSET_GMATRIX_Aff(SUMA_DSET *dset, double Aff[4][4], int I2X);
+float *SUMA_GDSET_XYZ_Range(SUMA_DSET *dset,  char *variant, float *here);
+float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here);
 float *SUMA_GDSET_NodeXYZ(SUMA_DSET *dset, int node, char *variant, float *here);
+SUMA_Boolean SUMA_GDSET_NodeXYZ_eng(SUMA_DSET *dset, int node, 
+                                    char *variant, float *here);
 char *SUMA_ADO_LDP(SUMA_ALL_DO *ado);
 char * SUMA_ADO_Label(SUMA_ALL_DO *ado);
 char * SUMA_ADO_idcode(SUMA_ALL_DO *ado);

@@ -57,7 +57,8 @@ int * SUMA_disaster(void)
    /* AFNI's functions do not check for this ...*/
    /* SUMA_free(iv3);*/
          
-   /* don't free iv2, that should only give a warning when you exit with -trace option turned on */
+   /* don't free iv2, that should only give a warning when you
+      exit with -trace option turned on */
    SUMA_S_Note("Now dumping malloc table");
    mcw_malloc_dump();
    
@@ -404,7 +405,7 @@ int main (int argc,char *argv[])
    
 	SUMAg_CF->isGraphical = YUP;
    
-   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-dset;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-dset;-do;");
 
    /* initialize Volume Parent and AfniHostName to nothing */
    for (ispec=0; ispec < SUMA_MAX_N_GROUPS; ++ispec) {
@@ -422,7 +423,7 @@ int main (int argc,char *argv[])
    /* call the function to parse the other surface mode inputs */
    ispec = 0;
    if (LocalHead) SUMA_Show_IO_args(ps);
-   if (ps->i_N_surfnames || ps->t_N_surfnames) {
+   if (ps->i_N_surfnames || ps->t_N_surfnames || ps->N_DO) {
       SUMA_LH("-i and/or -t surfaces on command line!");
       Specp[ispec] = SUMA_IO_args_2_spec (ps, &nspec); 
       if (Specp[ispec]) {
@@ -739,6 +740,25 @@ int main (int argc,char *argv[])
    /* Make surface loading pacifying */
    SetLoadPacify(1);
    
+   #if 0
+   if (ps->N_DO) { /* Have DOs on command line */
+      if (Specp[0]) { /* Add to Specp[0] */
+         if (ps->N_DO + Specp[0]->N_DO > SUMA_MAX_DO_SPEC) {
+            SUMA_S_Warn("Too many DOs, increase static limit..");
+                                       /* ignore extras for now */
+            ps->N_DO = SUMA_MAX_DO_SPEC - Specp[0]->N_DO;
+         }
+         for (i=0; i<ps->N_DO; ++i) {
+            strcpy(Specp[0]->DO_name[Specp[0]->N_DO], ps->DO_name[i]);
+            Specp[0]->DO_type[Specp[0]->N_DO] = ps->DO_type[i];
+            ++Specp[0]->N_DO;
+         }
+      } else {
+         Specp[0]
+      }
+   }
+   #endif
+   
    /* any Specp to be found ?*/
    
 	if (specfilename[0] == NULL && Specp[0] == NULL) {
@@ -866,7 +886,7 @@ int main (int argc,char *argv[])
       }
    }
    
-   if (!SUMA_Engine (&list)) {
+   if (ispec > 0 && !SUMA_Engine (&list)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Engine\n", FuncName);
       exit (1);
    }
@@ -896,18 +916,18 @@ int main (int argc,char *argv[])
       }
    }
    
-   /* load the datasets onto the first SO*/
+   /* load the datasets onto the first SO, if any, else hope that dset 
+      is some form of DO  */
    if (ps->N_dsetname>0) {
       SUMA_SurfaceObject *SO = SUMA_findanySOp_inDOv(SUMAg_DOv, 
                                                      SUMAg_N_DOv, NULL);
       if (!SO) {
-         SUMA_S_Err("Could not find any SO!");
-         exit(1);
+         SUMA_LH("Could not find any SO, here is hoping dset is a DO");
       }
       for (i=0; i<ps->N_dsetname; ++i) {
          if (!(SUMA_LoadDsetOntoSO_eng(ps->dsetname[i], SO, 1, 1, 1, NULL))) {
             SUMA_S_Errv("Failed to load %s onto %s\n", 
-                        ps->dsetname[i], SO->Label);
+                        ps->dsetname[i], SO?SO->Label:"NULL");
          }
       }
    }

@@ -1999,6 +1999,23 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
      C[i][j] =    A[i][j] ; \
 }
 
+#undef MAT44_TO_AFF44
+#define MAT44_TO_AFF44( A, M ) {\
+   int i,j ;   \
+   for( i=0 ; i < 4 ; i++ )   \
+    for( j=0 ; j < 4 ; j++ )  \
+     A[i][j] =    M.m[i][j] ; \
+}
+
+#undef AFF44_TO_MAT44
+#define AFF44_TO_MAT44( M, A ) {\
+   int i,j ;   \
+   for( i=0 ; i < 4 ; i++ )   \
+    for( j=0 ; j < 4 ; j++ )  \
+     M.m[i][j] =    A[i][j] ; \
+}
+
+
 #undef AFF44_LOAD
 #define AFF44_LOAD( C, a,b,c,d, e,f,g,h, i,j,k,l ) {\
    C[0][0]=a; C[0][1]=b; C[0][2]=c; C[0][3]=d;  \

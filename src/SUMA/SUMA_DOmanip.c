@@ -563,6 +563,15 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                      DO_label(GLDO), GLDO->variant,
                      SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))?"YES":"NO");
             if (SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))) {
+               if (SUMA_FirstGoodAnatCorrState(cSV) < 0) { 
+                                            /* have nothing yet, add one */
+                  SUMA_LH("Not one anatomical state to be found, adding one");
+                  if (SUMA_Which_iDO_State(dov_id, cSV, 1) < 0) {
+                     SUMA_S_Err("State could not be added!!!");
+                     SUMA_RETURN (NOPE);
+                  }   
+               }
+               
                /* Register it also in all states of VSv that are AnatCorrect */
                for (is=0; is < cSV->N_VSv; ++is) {
                   if (cSV->VSv[is].AnatCorrect && 
@@ -605,63 +614,106 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                            cSV->State, DO_label(GLDO), GLDO->variant);
                } 
             } else {
-               /* gets a new sate all its own */
-               is = SUMA_WhichState (SUMA_iDO_state(dov_id), cSV, 
-                                     SUMA_iDO_group(dov_id));
-               if (is < 0) { /* add state, it is a new one */
-                  SUMA_LHv("For GLDO %s\nState:%s to be added, group %s\n", 
-                           GLDO->Label, SUMA_iDO_state(dov_id),
-                                        SUMA_iDO_group(dov_id));
-                  SUMA_New_ViewState (cSV);
-                  is = cSV->N_VSv-1;
-                  cSV->VSv[is].Name = 
-                                 SUMA_copy_string(SUMA_iDO_state(dov_id));
-                  cSV->VSv[is].AnatCorrect = NOPE;
-                  cSV->VSv[is].Group = SUMA_copy_string("ANY"); 
-                  if (!cSV->VSv[is].Name || 
-                      !cSV->VSv[is].Group) {
-                     SUMA_S_Err("Failed to allocate for cSV->VSv[is]."
-                                "Name or .Group.");
+               is = SUMA_Which_iDO_State(dov_id, cSV, 1);
+               /* If we are in the proper state add it to RegisteredDO*/
+               SUMA_LHv("For GLDO  %s\n      State:%s,Group:%s found.\n"
+                        "Comparing to current viewer state of %s\n", 
+                        GLDO->Label, SUMA_iDO_state(dov_id),
+                        SUMA_iDO_group(dov_id), cSV->State);
+               if (!strcmp(cSV->State, SUMA_iDO_state(dov_id))) {
+                  if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                      cSV->RegisteredDO+cSV->N_DO,
+                                      dov_id) < 0) {/* not present, add it */
+                     SUMA_LHv("   GLDO %s, %s has been appended\n",
+                           DO_label(GLDO), GLDO->variant);
+                  cSV->RegisteredDO[cSV->N_DO] = dov_id;
+                  cSV->N_DO += 1; 
+                  } else {
+                     SUMA_LHv("   GLDO %s, %s already in the bag at"
+                           " cSV->RegisteredDO[%d]\n", 
+                              DO_label(GLDO), GLDO->variant,
+                              SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                      cSV->RegisteredDO+cSV->N_DO,
+                                      dov_id));
+                  }
+                  SUMA_LH("Adding color list.");
+                  /* add the ColorList */
+                  if (!SUMA_FillColorList (cSV,
+                                 (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
+                     SUMA_S_Err("Failed in SUMA_FillColorList.");
                      SUMA_RETURN (NOPE);
-                  }   
-                  cSV->VSv[is].N_MembDOs = 1;
-                  cSV->VSv[is].MembDOs = 
-                     (int *)SUMA_calloc(cSV->VSv[is].N_MembDOs, sizeof(int));
-                  cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
-               } 
-               { /* If we are in the proper state add it to RegisteredDO*/
-                  SUMA_LHv("For GLDO  %s\n State:%s,Group:%s found.\n"
-                           "Comparing to current viewer state of %s\n", 
-                           GLDO->Label, SUMA_iDO_state(dov_id),
-                                        SUMA_iDO_group(dov_id),
-                           cSV->State);
-                  if (!strcmp(cSV->State, SUMA_iDO_state(dov_id))) {
-                     if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
-                                         dov_id) < 0) {/* not present, add it */
-                     cSV->RegisteredDO[cSV->N_DO] = dov_id;
-                     cSV->N_DO += 1; 
-                     } else {
-                        SUMA_LHv("   GLDO %s, %s already in the bag at"
-                              " cSV->RegisteredDO[%d]\n", 
-                                 DO_label(GLDO), GLDO->variant,
-                                 SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
-                                         dov_id));
-                     }
-                     SUMA_LH("Adding color list.");
-                     /* add the ColorList */
-                     if (!SUMA_FillColorList (cSV,
-                                    (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
-                        SUMA_S_Err("Failed in SUMA_FillColorList.");
-                        SUMA_RETURN (NOPE);
-                     }
                   }
                }
             }
             }
             break;
+         case TRACT_type:
+            {
+            SUMA_TractDO *TDO=(SUMA_TractDO *)(SUMAg_DOv[dov_id].OP);
+            SUMA_LHv("With TDO %s, Anat Correctedness %s\n", 
+                     DO_label(TDO),
+                     SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))?"YES":"NO");
+            if (SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))) {
+               if (SUMA_FirstGoodAnatCorrState(cSV) < 0) { 
+                     SUMA_LH("Not one anatomical state to be found, adding one");
+                  if (SUMA_Which_iDO_State(dov_id, cSV, 1) < 0) {
+                     SUMA_S_Err("State could not be added!!!");
+                     SUMA_RETURN (NOPE);
+                  }
+               } 
+               /* Register it also in all states of VSv that are AnatCorrect */
+               for (is=0; is < cSV->N_VSv; ++is) {
+                  if (cSV->VSv[is].AnatCorrect && 
+                     SUMA_FindFirst_inIntVect(cSV->VSv[is].MembDOs,
+                                  cSV->VSv[is].MembDOs+cSV->VSv[is].N_MembDOs,
+                                  dov_id) < 0) {
+                     cSV->VSv[is].N_MembDOs += 1;
+                     cSV->VSv[is].MembDOs = 
+                        (int *)SUMA_realloc(cSV->VSv[is].MembDOs,
+                                             cSV->VSv[is].N_MembDOs*sizeof(int));   
+                     cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
+                  }
+               }
+               /* if the current state is anatomical, register object also 
+                  in cSV->RegisteredDO */
+               if (SUMA_isViewerStateAnatomical(cSV)) {
+                  if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id) < 0) {
+                     cSV->RegisteredDO[cSV->N_DO] = dov_id;
+                     cSV->N_DO += 1;
+                  } else {
+                     SUMA_LHv("   TDO %s, already in the bag at"
+                              " cSV->RegisteredDO[%d]\n", 
+                                 DO_label(TDO),
+                                 SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
+                                         cSV->RegisteredDO+cSV->N_DO,
+                                         dov_id));
+                  }
+                  SUMA_LH("Adding color list...");
+                  /* add the ColorList */
+                  if (!SUMA_FillColorList (cSV,
+                                 (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
+                     SUMA_S_Err("Failed in SUMA_FillColorList.");
+                     SUMA_RETURN (NOPE);
+                  }
+ 
+               } else {
+                  SUMA_LHv(" Viewer state (%s) not anatomical for TDO %s\n",
+                           cSV->State, DO_label(TDO));
+               } 
+            } else {
+               SUMA_S_Err("Tracts are supposed to be anatomically correct\n"
+                          "If this is not an error, you'll need to put in\n"
+                          "a block here that parallels what is not with \n"
+                          "anatomically incorrect GLDOs above.");
+               SUMA_RETURN(NOPE);
+            }
+            }
+            break;
          default:
+            SUMA_LHv("Just adding DO %s, no states, nothing\n",
+                     iDO_label(dov_id));
             if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
                                          cSV->RegisteredDO+cSV->N_DO,
                                          dov_id) < 0){
