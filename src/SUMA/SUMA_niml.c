@@ -898,7 +898,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          Spec = SUMA_SOGroup_2_Spec (&SO, 1);
 
          /* register the new group with SUMA */
-         if (!SUMA_RegisterGroup(SUMAg_CF, Spec)) {
+         if (!SUMA_RegisterSpecGroup(SUMAg_CF, Spec)) {
             SUMA_SL_Err("Failed to register group");
             SUMA_RETURN(NOPE);
          }
@@ -911,7 +911,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   "viewopt = %d...\n", FuncName, viewopt);
 
          for (i = 0; i< SUMA_MAX_SURF_VIEWERS; ++i) {
-            if (!SUMA_SetupSVforDOs (*Spec, SUMAg_DOv, SUMAg_N_DOv, 
+            if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, 
                      &(SUMAg_SVv[i]), viewopt)) {
 			      fprintf (SUMA_STDERR, 
                         "Error %s: Failed in SUMA_SetupSVforDOs function.\n", 

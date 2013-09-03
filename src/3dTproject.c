@@ -479,7 +479,7 @@ void TPR_process_data( TPR_input *tp )
 {
    int nt,ntkeep , nort_fixed=0 , nort_voxel=0 , nbad=0 , qq,jj,qort ;
    byte *vmask=NULL ; int nvmask=0 , nvox , nvout ;
-   float *ort_fixed=NULL , *ort_fixed_psinv=NULL , *ort_fixed_unc ;
+   float *ort_fixed=NULL , *ort_fixed_psinv=NULL , *ort_fixed_unc=NULL ;
    int *keep=NULL ;
    MRI_vectim *inset_mrv , **dsort_mrv=NULL ; int nort_dsort=0 ;
    int nbl , *bla , *blb , tt ;

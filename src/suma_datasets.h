@@ -196,11 +196,15 @@ typedef enum {
 #define SUMA_IS_GNODE_IXYZ_COL(ctp) (((ctp)==SUMA_NODE_X || \
                                  (ctp)==SUMA_NODE_Y || \
                                  (ctp)==SUMA_NODE_Z || \
-                                 (ctp)==SUMA_GNODE_INDEX) ? 1:0)
+                                 (ctp)==SUMA_GNODE_INDEX || \
+                                 (ctp)==SUMA_NODE_SLABEL) ? 1:0)
+                                 
 #define SUMA_GNODE_IXYZ_CTP2COL(ctp) ( (ctp)==SUMA_NODE_X ? 1 : \
                                        ( (ctp)==SUMA_NODE_Y ? 2: \
                                        ( (ctp)==SUMA_NODE_Z ? 3: \
-                                       ( (ctp)==SUMA_GNODE_INDEX ? 0: -1 ) ) )  )
+                                       ( (ctp)==SUMA_NODE_SLABEL ? 4: \
+                                       ( (ctp)==SUMA_GNODE_INDEX ? 0: \
+                                                               -1 )  ) ) )  )
                                        
 #define SUMA_IS_DATUM_INDEX_COL(ctp) (((ctp)==SUMA_NODE_INDEX || \
                                  (ctp)==SUMA_EDGE_P1_INDEX || \
@@ -249,6 +253,9 @@ typedef enum { type_not_set = -1,
                               "NO OBJECT!": \
                       ( SUMA_ObjectTypeCode2ObjectTypeName(\
                                     SUMAg_DOv[(i)].ObjectType) ) )
+#define iDO_state SUMA_iDO_state
+#define iDO_group SUMA_iDO_group
+
 #define ADO_TNAME(ado) (!(ado) ? \
                               "NULL ADO!": \
                       ( SUMA_ObjectTypeCode2ObjectTypeName(\
@@ -257,8 +264,23 @@ typedef enum { type_not_set = -1,
 #define iDO_label(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? \
                               "NO OBJECT!": \
                       ( (SUMA_ADO_Label((SUMA_ALL_DO *)SUMAg_DOv[(i)].OP) ) ) )
+#define iDO_variant(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? \
+                              "NO OBJECT!": \
+                      ( (SUMA_ADO_variant((SUMA_ALL_DO *)SUMAg_DOv[(i)].OP) ) ) )
+
+#define iDO_GSaux(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? \
+                              NULL: \
+                      ( (SUMA_ADO_GSaux((SUMA_ALL_DO *)SUMAg_DOv[(i)].OP) ) ) )
+#define iDO_idcode(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? \
+                              NULL: \
+                      ( (SUMA_ADO_idcode((SUMA_ALL_DO *)SUMAg_DOv[(i)].OP) ) ) )                      
+#define iDO_is_variant(i,var) ( (var) ? !strcmp(iDO_variant(i),(var)):0 )
 #define  DO_label(DO) ( !(DO) ? "NO OBJECT!": \
                         ((SUMA_ADO_Label((SUMA_ALL_DO *)(DO)) ) ) )
+
+#define SUMA_IS_GOOD_STATE(mm) ( ((mm)&&strncmp(mm,"TheShadow",9))?1:0 )
+#define SUMA_IS_REAL_VARIANT(mm) ( ((mm)&&strncmp(mm,"TheShadow",9))?1:0 )
+
 /*! 
 I do not think we can have both nodes and triangles in this struct.
 I guess I can make this be a Node Datum then create a similar struct
@@ -1486,7 +1508,7 @@ NI_element *SUMA_FindDsetDataElement(SUMA_DSET *dset);
 NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset);
 NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset, 
                                          int *I, float *X, float *Y, float *Z, 
-                                         int N_Node);
+                                         char **names, int N_Node);
 NI_element *SUMA_FindDsetDatumIndexElement(SUMA_DSET *dset);
 NI_element *SUMA_FindSDsetNodeIndexElement(SUMA_DSET *dset);
 NI_element *SUMA_FindGDsetEdgeIndexElement(SUMA_DSET *dset);
@@ -1630,6 +1652,7 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
 SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace);
 NI_element * SUMA_GetUniqueValsAttr(SUMA_DSET *dset, int icol);
 NI_element * SUMA_GetUniqueIndicesAttr(SUMA_DSET *dset, int iindex);
+int * SUMA_GetUniqueIndicesVec(SUMA_DSET *dset, int iindex);
 SUMA_Boolean SUMA_SetUniqueIndicesAttr(SUMA_DSET *dset, byte replace);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, 
                          double range[2], int loc[2]);
@@ -1899,6 +1922,8 @@ byte SUMA_GDSET_PointsToSegRow(SUMA_DSET *dset, int i1, int i2, int *ri);
 SUMA_SQ_MATRIX_SHAPES SUMA_matrix_shape_name_to_matrix_shape(char *name); 
 char * SUMA_matrix_shape_to_matrix_shape_name(SUMA_SQ_MATRIX_SHAPES sq);
 int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals, NI_element **);
+char **SUMA_GDSET_GetPointNamesColumn(SUMA_DSET *dset, int *N_vals, 
+                                    NI_element **nelxyzr);
 int SUMA_GDSET_Index_To_NodeIndex(SUMA_DSET *dset, int cinode);
 int SUMA_GDSET_NodeIndex_To_Index(SUMA_DSET *dset, int node);
 int SUMA_GDSET_EdgeIndex_To_Row(SUMA_DSET *dset, int ei);

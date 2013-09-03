@@ -735,6 +735,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    SUMA_DO_Types dotp=not_DO_type;
    SUMA_DO_CoordType coord_type=SUMA_WORLD;
    void *VDO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -753,8 +754,8 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    coord_type = SUMA_WORLD;
    switch (dotp) {
       case TRACT_type:
-         if (!(SO = SUMA_SV_Focus_SO(sv))) {
-            SUMA_S_Note("No surface in focus to which the tracts "
+         if (!sv || !(SO = SUMA_SV_Focus_SO(sv))) {
+            SUMA_LH("No surface in focus to which the tracts "
                         "would be attached. That's OK.\n");
          }
          if (!(VDO = (void *)SUMA_ReadTractDO(s, SO?SO->idcode_str:NULL))) {
@@ -908,8 +909,10 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    }
 
    /* redisplay curent only*/
-   sv->ResetGLStateVariables = YUP;
-   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+   if (sv) {
+      sv->ResetGLStateVariables = YUP;
+      SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+   }
                
    SUMA_RETURNe;
 }
@@ -1348,11 +1351,13 @@ GLenum SUMA_index_to_clip_plane(int iplane)
 }
 
 int SUMA_PixelsToDisk(SUMA_SurfaceViewer *csv, int w, int h, GLubyte *pixels, 
-                      int colordepth, int verb, char *ufname) 
+                      int colordepth, int verb, char *ufname, int autoname, 
+                      int overwrite) 
 {
    static char FuncName[]={"SUMA_PixelsToDisk"};  
    MRI_IMAGE *tim=NULL;
    static char fname[512];
+   int undoover=0;
    SUMA_PARSED_NAME *pn=NULL;
    
    SUMA_ENTRY;
@@ -1380,35 +1385,61 @@ int SUMA_PixelsToDisk(SUMA_SurfaceViewer *csv, int w, int h, GLubyte *pixels,
    if (!ufname) {
       SUMA_VALIDATE_RECORD_PATH(SUMAg_CF->autorecord);
       pn = SUMAg_CF->autorecord;
+      autoname = 1;
    } else {
       if (!(pn = SUMA_ParseFname(ufname, NULL))) {
          SUMA_S_Errv("Failed to parse %s\n", ufname);
          SUMA_RETURN(0);
       }
    }
-   if (!strcasecmp(pn->Ext,".jpg") ||
-       !strcasecmp(pn->Ext,".ppm") ||
-       !strcasecmp(pn->Ext,".1D") ){
-         snprintf(fname,510*sizeof(char),
-                  "%s/%s.%c.%s%s", 
-                  pn->Path, 
-                  pn->FileName_NoExt,
-                  SUMA_SV_CHAR(csv),
-                  SUMA_time_stamp(),
-                  pn->Ext); 
+   if (autoname) {
+      if (!strcasecmp(pn->Ext,".jpg") ||
+          !strcasecmp(pn->Ext,".ppm") ||
+          !strcasecmp(pn->Ext,".1D") ){
+            snprintf(fname,510*sizeof(char),
+                     "%s/%s.%c.%s%s", 
+                     pn->Path, 
+                     pn->FileName_NoExt,
+                     SUMA_SV_CHAR(csv),
+                     SUMA_time_stamp(),
+                     pn->Ext); 
+      } else {
+            snprintf(fname,510*sizeof(char),
+                     "%s/%s.%c.%s%s", 
+                     pn->Path, 
+                     pn->FileName,
+                     SUMA_SV_CHAR(csv),
+                     SUMA_time_stamp(),
+                     ".jpg"); 
+      }
    } else {
-         snprintf(fname,510*sizeof(char),
-                  "%s/%s.%c.%s%s", 
-                  pn->Path, 
-                  pn->FileName,
-                  SUMA_SV_CHAR(csv),
-                  SUMA_time_stamp(),
-                  ".jpg"); 
+      if (!strcasecmp(pn->Ext,".jpg") ||
+          !strcasecmp(pn->Ext,".ppm") ||
+          !strcasecmp(pn->Ext,".1D") ){
+            snprintf(fname,510*sizeof(char),
+                     "%s/%s%s", 
+                     pn->Path, 
+                     pn->FileName_NoExt,
+                     pn->Ext); 
+      } else {
+            snprintf(fname,510*sizeof(char),
+                     "%s/%s%s", 
+                     pn->Path, 
+                     pn->FileName,
+                     ".jpg"); 
+      }
    }
    
-   mri_write(fname,tim); mri_free(tim); tim=NULL; 
+   if (overwrite && !THD_ok_overwrite()) {
+      THD_force_ok_overwrite(1);
+      undoover=1;
+   }  
+   if (strcasecmp(pn->Ext,".1D")) mri_write(fname,tim); 
+   else mri_write_1D(fname,tim);
+   mri_free(tim); tim=NULL; 
    if (verb) SUMA_S_Notev("Wrote image to %s\n",fname);
    if (ufname) pn = SUMA_Free_Parsed_Name(pn);
+   if (undoover) THD_force_ok_overwrite(0);
    SUMA_RETURN(1);
 }  
 
@@ -1442,7 +1473,7 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback)
                                     getback);
    if (pixels) {
       if (!SUMA_PixelsToDisk(csv, csv->X->WIDTH, -csv->X->HEIGHT,
-                             (GLubyte *)pixels, 3, verb, NULL)) {
+                             (GLubyte *)pixels, 3, verb, NULL, 1, 0)) {
          SUMA_S_Err("Failed to write pix to disk");
          SUMA_free(pixels);
          SUMA_RETURN(0);
@@ -1650,7 +1681,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    /* cycle through csv->RegisteredDO and display 
       those things that have a Local CoordType*/
    if (LocalHead) 
-      fprintf (SUMA_STDOUT,
+      fprintf (SUMA_STDERR,
                "%s: Creating objects with local coordinates ...\n", FuncName);
 
    /* cuting plane for all? */
@@ -11949,7 +11980,7 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
    if (s) {
       TextShell =  SUMA_CreateTextShellStruct (
                                  SUMA_ViewerInfo_open, 
-                                 (void *)sv, 
+                                 (void *)sv, "SurfaceViewer",
                                  SUMA_ViewerInfo_destroyed, 
                                  (void *)sv);
       if (!TextShell) {
@@ -11962,7 +11993,8 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
             SUMA_CreateTextShell(s, stmp, TextShell);
       SUMA_ifree(s);
       /* invert the widget to indicate window is open */
-      MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
+      if (sv->X->ViewCont && sv->X->ViewCont->ViewerInfo_pb) 
+               MCW_invert_widget (sv->X->ViewCont->ViewerInfo_pb);
    }   
 
     
@@ -12036,7 +12068,7 @@ void SUMA_cb_moreSumaInfo (Widget w, XtPointer client_data, XtPointer callData)
    }
    
    if (s) {
-      TextShell =  SUMA_CreateTextShellStruct (SUMA_SumaInfo_open, NULL, 
+      TextShell =  SUMA_CreateTextShellStruct (SUMA_SumaInfo_open, NULL, NULL, 
                                                SUMA_SumaInfo_destroyed, NULL);
       if (!TextShell) {
          fprintf (SUMA_STDERR, 
@@ -12119,7 +12151,7 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    
    if (s) {
       TextShell =  
-         SUMA_CreateTextShellStruct (SUMA_SurfInfo_open, (void *)ado, 
+         SUMA_CreateTextShellStruct (SUMA_SurfInfo_open, (void *)ado, "ADO",
                                      SUMA_SurfInfo_destroyed, (void *)ado);
       if (!TextShell) {
          SUMA_S_Err("Failed in SUMA_CreateTextShellStruct.");
@@ -12200,7 +12232,7 @@ char * SUMA_WriteStringToFile(char *fname, char *s, int over, int view)
          SUMA_free(fused);fused = NULL;
          sprintf(sbuf,".%03d", i);
          fused = SUMA_append_replace_string(fname,sbuf,"", 0); NO_SPACE(fused);
-         
+         SUMA_NICEATE_FILENAME(fused, '_');
          ++i;
       }
       if (i >= 10000) {
@@ -12304,6 +12336,39 @@ void SUMA_SaveTextShell(Widget w, XtPointer ud, XtPointer cd)
 }
 
 
+/*!
+   Refresh content of text shell  
+*/
+void SUMA_RefreshTextShell(Widget w, XtPointer ud, XtPointer cd) 
+{
+   static char FuncName[] = {"SUMA_RefreshTextShell"};
+   SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
+   char *string=NULL, *fused=NULL;
+   char sbuf[128];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
+   
+   if (!TextShell->OpenDataType) { /* not refreshable for sure */
+      SUMA_RETURNe;
+   }
+   
+   /* find out where this text shell comes from based on the OpenDataType */
+   if (strstr(TextShell->OpenDataType, "SurfaceViewer")) {
+      SUMA_cb_moreViewerInfo(w, TextShell->OpenData, cd);
+   } else if (strstr(TextShell->OpenDataType, "ADO")) {
+      SUMA_cb_moreSurfInfo(w, TextShell->OpenData, cd);
+   } else {
+      /* nothing know as updatable */
+      SUMA_LHv("Nothing done for >%s<%s>\n",
+                  TextShell->title, TextShell->OpenDataType);
+   }
+   
+   SUMA_RETURNe;
+}
+
 
 
 /*!
@@ -12316,14 +12381,17 @@ void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd)
    
    SUMA_ENTRY;
    
-   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
-   
-   if (TextShell->DestroyCallBack) {
-      /* call destroy callback */
-      TextShell->DestroyCallBack(TextShell->DestroyData);
+   if (TextShell) {
+      TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
+
+      if (TextShell->DestroyCallBack) {
+         /* call destroy callback */
+         TextShell->DestroyCallBack(TextShell->DestroyData);
+      }
+      SUMA_ifree(TextShell->title);
+      SUMA_ifree(TextShell->OpenDataType);
+      SUMA_free(TextShell);
    }
-   if (TextShell) SUMA_free(TextShell);
-   
    XtDestroyWidget(SUMA_GetTopShell(w));
 
    SUMA_RETURNe;
@@ -12342,7 +12410,7 @@ void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd)
 
 SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
                                     void (*opencallback)(void *data), 
-                                    void *opendata,
+                                    void *opendata, char *odtype,
                                     void (*closecallback)(void*data), 
                                     void *closedata)
 {
@@ -12359,6 +12427,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
                FuncName);
       SUMA_RETURN (NULL);
    }
+   if (!odtype) odtype = "NotSet";
    TextShell->text_w =  TextShell->search_w = 
                         TextShell->text_output = 
                         TextShell->toplevel = NULL;
@@ -12366,6 +12435,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
    TextShell->allow_edit = NOPE;
    TextShell->OpenCallBack = opencallback;
    TextShell->OpenData = opendata;
+   TextShell->OpenDataType = SUMA_copy_string(odtype);
    TextShell->DestroyCallBack = closecallback;
    TextShell->DestroyData = closedata;
    TextShell->CursorAtBottom = NOPE;
@@ -12398,7 +12468,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
 {
    static char FuncName[] = {"SUMA_CreateTextShell"};
    Widget rowcol_v, rowcol_h, close_w, save_w, view_w, 
-          form, frame, toggle_case_w;
+          form, frame, toggle_case_w, refresh_w;
    int n;
    Pixel fg_pix = 0;
    Arg args[30];
@@ -12460,6 +12530,14 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
                      XmNvalueChangedCallback,
                      SUMA_cb_ToggleCaseSearch, 
                      TextShell);
+      refresh_w = XtVaCreateManagedWidget (
+                     "Refresh",
+                     xmPushButtonWidgetClass, 
+                     rowcol_h, NULL);
+      XtAddCallback (refresh_w, 
+                     XmNactivateCallback, 
+                     SUMA_RefreshTextShell, 
+                     TextShell);    
       save_w = XtVaCreateManagedWidget (
                      "Save",
                      xmPushButtonWidgetClass, 

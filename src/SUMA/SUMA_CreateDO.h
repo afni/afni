@@ -52,6 +52,7 @@ typedef struct {
    DList *DisplayUpdates;
    SUMA_SegmentDO *SDO;
    SUMA_NIDO *nido;
+   SUMA_SurfaceObject *FrameSO; /*!< Matrix's holder surface object */
    SUMA_OVERLAYS *Overlay;
    SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
    SUMA_PICK_RESULT *PR;
@@ -67,10 +68,18 @@ typedef struct {
 #define SDSET_GSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
                                SUMA_isGraphDset(dset) ) ? \
                            (SUMA_GRAPH_SAUX *)((dset)->Aux->Saux):NULL )
+
 #define SDSET_GOVERLAY(dset) (( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
                                SUMA_isGraphDset(dset) ) ? \
                   ((SUMA_GRAPH_SAUX *)(dset)->Aux->Saux)->Overlay:NULL )
+                  
+#define SDSET_GMATSO(dset) (( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
+                               SUMA_isGraphDset(dset) ) ? \
+                  ((SUMA_GRAPH_SAUX *)(dset)->Aux->Saux)->FrameSO:NULL )
+                  
 #define SDSET_GDRAW_VARIANT(dset) ( (SDSET_GSAUX(dset))->CurrentDrawVariant)
+
+#define TDO_HAS_GRID(tdo) ( ((tdo) && (tdo)->net && (tdo)->net->grid) ? (tdo)->net->grid : NULL )
 
 SUMA_Boolean SUMA_DrawDO_UL_FullMonty(DList *dl);
 SUMA_Boolean SUMA_ADO_UL_Add(SUMA_ALL_DO *ado, char *com, int replace);
@@ -87,7 +96,9 @@ char *SUMA_GetDrawVariant(SUMA_DSET *dset);
 SUMA_Boolean SUMA_UnSetDrawVariant(SUMA_DSET *dset);
 SUMA_Boolean SUMA_SetDrawVariant(SUMA_DSET *dset, char *variant);
 SUMA_Boolean SUMA_isDrawVariant(SUMA_DSET *dset, char *variant);
-float *SUMA_Graph_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,    
+int SUMA_GDSET_edgeij_to_GMATRIX_XYZ(SUMA_DSET *dset, 
+                                        int ei, int ej, float *XYZ, int FC);
+float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,    
                            int **ind, char *thisvariant); 
 NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
                                           int N_do, SUMA_SurfaceViewer *sv );
@@ -183,12 +194,17 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, 
                                   SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv);
+float *SUMA_TDO_Grid_Center(SUMA_TractDO *tdo, float *here);
+int SUMA_TDO_N_tracts(SUMA_TractDO *tdo);
+float *SUMA_TDO_Points_Center(SUMA_TractDO *tdo, float *here);
+float *SUMA_TDO_XYZ_Range(SUMA_TractDO *tdo, float *here);
 SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *parent_idcode, 
                                      SUMA_DO_Types type);
 SUMA_TractDO * SUMA_Alloc_TractDO (char *Label, char *parent_idcode);
 SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label, SUMA_DO_Types type);
 SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo, 
                                    SUMA_SurfaceViewer *sv);
+SUMA_NIDO * SUMA_GDSET_matrix_nido(SUMA_DSET *dset);
 SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo, 
                                        SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawGraphDO_GRELIEF (SUMA_GraphLinkDO *gldo, 
@@ -222,6 +238,7 @@ char *SUMA_DO_state(SUMA_DO *DO);
 char *SUMA_iDO_group(int i);
 char *SUMA_DO_group(SUMA_DO *DO);
 int SUMA_isDO_AnatCorrect(SUMA_DO *DO);
+int  SUMA_is_iDO_AnatCorrect(int dov_id);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_isROIdequal (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2);
@@ -330,6 +347,7 @@ SUMA_Boolean SUMA_MinMaxNodesInROI (SUMA_DRAWN_ROI *D_ROI,
                                     int MinMax[]);
 SUMA_Boolean SUMA_TextBoxSize(char *txt, int *w, int *h, int *nl, void *font);
 int SUMA_glutBitmapFontHeight(void *font) ;
+int *SUMA_NIDOtext_LineWidth(char *string, void *font, int *N_lines);
 
 static void *FontPointerList[] = 
          {  GLUT_BITMAP_8_BY_13, GLUT_BITMAP_9_BY_15, 

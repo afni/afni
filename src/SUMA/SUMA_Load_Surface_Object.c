@@ -150,7 +150,10 @@ SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec)
       SUMA_S_Err("Failed to allocate"); SUMA_RETURN(NOPE); 
    }
    
-
+   Spec->DO_name = (char **)SUMA_allocate2D(SUMA_MAX_N_DO_SPEC,
+                                 SUMA_MAX_FP_NAME_LENGTH , sizeof(char));       
+   Spec->DO_type = (int *)SUMA_calloc(SUMA_MAX_N_DO_SPEC, sizeof(int));
+   Spec->N_DO = 0;
    
    Spec->StateList = (char *)SUMA_calloc( SUMA_MAX_N_SURFACE_SPEC*100, 
                                           sizeof(char));
@@ -204,6 +207,12 @@ SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec)
    if (Spec->SurfaceFile) { 
       SUMA_free2D((char **)Spec->SurfaceFile, SUMA_MAX_N_SURFACE_SPEC);
       Spec->SurfaceFile = NULL; }
+   
+   if (Spec->DO_name) { 
+      SUMA_free2D((char **)Spec->DO_name, SUMA_MAX_N_DO_SPEC);
+      Spec->DO_name = NULL; }
+   if (Spec->DO_type) SUMA_free(Spec->DO_type); Spec->DO_type=NULL;
+   Spec->N_DO = 0;
    
    if (Spec->VolParName) { 
       SUMA_free2D((char **)Spec->VolParName, SUMA_MAX_N_SURFACE_SPEC);
@@ -3706,6 +3715,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov,
 static int LoadPacify = 0;
 void SetLoadPacify(int k) { LoadPacify = k; }
 int  GetLoadPacify(void) { return LoadPacify; }
+
 SUMA_Boolean SUMA_LoadSpec_eng (
                   SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, 
                   char *VolParName, int debug, DList *DsetList)
@@ -3720,11 +3730,12 @@ SUMA_Boolean SUMA_LoadSpec_eng (
    SUMA_Boolean LocalHead = NOPE; 
 
    SUMA_ENTRY;
-   if (LocalHead) debug = 2;
+   
+   if (LocalHead) debug = 1;
    
    if ( debug )
-       SUMA_S_Notev("Expecting to read %d surfaces.\n", 
-                     Spec->N_Surfs);
+       SUMA_S_Notev("Expecting to read %d surfaces, %d DOs.\n", 
+                     Spec->N_Surfs, Spec->N_DO);
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
       /*locate and load all Mappable surfaces */
       if (Spec->LocalDomainParent[i][0] == '\0') {
@@ -4053,6 +4064,30 @@ SUMA_Boolean SUMA_LoadSpec_eng (
 
    }/*locate and load all NON Mappable surfaces */
 
+   for (i=0; i<Spec->N_DO; ++i) {
+      switch ((SUMA_DO_Types)Spec->DO_type[i]) {
+         case TRACT_type:
+            SUMA_S_Warnv("BETA for type %s. %s not loaded.\n",
+                     SUMA_ObjectTypeCode2ObjectTypeName(Spec->DO_type[i]),
+                     Spec->DO_name[i]);
+            SUMA_LoadSegDO (Spec->DO_name[i], NULL );
+            break;
+         case SDSET_type:
+            SUMA_LHv("Loading graph dset %s\n",Spec->DO_name[i]);
+            /* Expecting it to be a graph dset */
+            if (!(SUMA_LoadDsetOntoSO_eng(Spec->DO_name[i], 
+                                          NULL, 1, 1, 1, NULL))) {
+               SUMA_S_Errv("Failed to load %s\n", Spec->DO_name[i]);
+            }
+            break;
+         default:
+            SUMA_S_Errv("Bad or unexpected type %s for %s\n",
+                  SUMA_ObjectTypeCode2ObjectTypeName(Spec->DO_type[i]),
+                     Spec->DO_name[i]);
+            break;
+      }
+   }
+   
    SUMA_RETURN (YUP);
 }/* SUMA_LoadSpec_eng */
 
@@ -5573,9 +5608,24 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
 
    spec->N_Surfs = 0;
    spec->N_States = 0;
+   spec->N_DO = 0;
    spec->N_Groups = 1;
    strcpy(spec->SpecFilePath, "./");
    strcpy(spec->SpecFileName, "FromCommandLine.spec");   
+   SUMA_LHv("Accept_do: %d, %d DOs\n", ps->accept_do, ps->N_DO);
+   if (ps->accept_do) {
+      SUMA_LH("Processing -tract/-graph");
+      if (ps->N_DO+spec->N_DO >= SUMA_MAX_N_DO_SPEC) {
+         SUMA_S_Err("Too many DOs to work with.\n"); 
+         *nspec = 0; SUMA_RETURN(spec); 
+      }
+      for (i=0; i<ps->N_DO; ++i) {
+         spec->DO_type[spec->N_DO] = ps->DO_type[i];
+         strcpy(spec->DO_name[spec->N_DO], ps->DO_name[i]);
+         ++spec->N_DO;
+      }
+   }
+   
    if (ps->accept_i) {
       SUMA_LH("Processing -i");
       if (ps->i_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { 
@@ -5634,6 +5684,7 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
          ++spec->N_Surfs;
       }
    }
+   
    if (ps->accept_ipar) {
       SUMA_LH("Processing -ipar");
       if (ps->ipar_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { 
@@ -5743,19 +5794,32 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
    SUMA_LH("Working States");
    
    /* now create the states list */
-   if (spec->N_Surfs) { 
-      spec->N_States = 1;
-      sprintf(spec->StateList, "%s|", spec->State[0]);
-      for (i=1; i<spec->N_Surfs; ++i) {
-         sprintf(sbuf,"%s|",spec->State[i]); 
-         if (!SUMA_iswordin(spec->StateList, sbuf)) { 
-            sprintf(spec->StateList, "%s|", spec->State[i]); 
-            ++spec->N_States; 
+   if (spec->N_Surfs || spec->N_DO) {
+      if (spec->N_Surfs) {
+         spec->N_States = 1;
+         sprintf(spec->StateList, "%s|", spec->State[0]);
+         for (i=1; i<spec->N_Surfs; ++i) {
+            sprintf(sbuf,"%s|",spec->State[i]); 
+            if (!SUMA_iswordin(spec->StateList, sbuf)) { 
+               sprintf(spec->StateList, "%s|", spec->State[i]); 
+               ++spec->N_States; 
+            }
          }
+         if (LocalHead) 
+            fprintf( SUMA_STDERR,"%s:\n%d distinct states\n%s\n", 
+                     FuncName, spec->N_States, spec->StateList);
       }
-      if (LocalHead) 
-         fprintf( SUMA_STDERR,"%s:\n%d distinct states\n%s\n", 
-                  FuncName, spec->N_States, spec->StateList);
+      
+      if (spec->N_DO) {
+         spec->N_States = 1;
+         sprintf(spec->StateList, "ANY|");
+      }
+       
+      if (spec->Group[0][0] == '\0') {
+         /* Perhaps only DOs loaded, label the group */
+         strcpy(spec->Group[0], "ANY");
+      }
+
       ispec0 = *nspec;
    } else {
       if (LocalHead) fprintf(SUMA_STDERR,"%s:\n no surfs\n", FuncName);
@@ -5840,6 +5904,7 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
          
       }
    }
+   
    if (LocalHead) { 
       fprintf( SUMA_STDERR,
                "%s: About to return, have %d spec files.\n", FuncName, *nspec);

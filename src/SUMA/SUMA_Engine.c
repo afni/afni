@@ -51,7 +51,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    SUMA_OVERLAYS *curColPlane=NULL;
    float delta_t, ftmp = -1.0;
    struct  timeval tt;
-   int it, Wait_tot, nn=0, N_SOlist, 
+   int it, Wait_tot, nn=0, N_SOlist,
             SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], iv200[200];
    float ft, **fm, fv15[15];
    double dv15[15];
@@ -910,7 +910,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      fprintf (SUMA_STDERR,
                               "%s: Message string:\n%s\n", FuncName, s);
                   LogShell =  SUMA_CreateTextShellStruct (
-                                  SUMA_Message_open, NULL, 
+                                  SUMA_Message_open, NULL, NULL, 
                                   SUMA_Message_destroyed, NULL);
                   if (!LogShell) {
                      fprintf (SUMA_STDERR, 
@@ -934,7 +934,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               XtWindow(SUMAg_CF->X->Help_TextShell->toplevel));
                } else {
                   SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
-                                    SUMA_Help_open, NULL, 
+                                    SUMA_Help_open, NULL, NULL,
                                     SUMA_Help_destroyed, NULL);
                   if (!SUMAg_CF->X->Help_TextShell) {
                      fprintf (SUMA_STDERR, 
@@ -980,7 +980,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               XtWindow(SUMAg_CF->X->Help_TextShell->toplevel));
                } else { /* make one */
                   SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
-                                    SUMA_Help_open, NULL, 
+                                    SUMA_Help_open, NULL, NULL,
                                     SUMA_Help_destroyed, NULL);
                   if (!SUMAg_CF->X->Help_TextShell) {
                      fprintf (SUMA_STDERR, 
@@ -1039,7 +1039,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }else {
                   TextShell =  
                      SUMA_CreateTextShellStruct (  SUMA_Help_Cmap_open, 
-                                                   NULL, 
+                                                   NULL, NULL,
                                                    SUMA_Help_Cmap_destroyed,
                                                    NULL);
                   if (!TextShell) {
@@ -1075,7 +1075,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }else {
                   TextShell =  
                      SUMA_CreateTextShellStruct (  SUMA_Help_Plot_open, 
-                                                   NULL, 
+                                                   NULL, NULL,
                                                    SUMA_Help_Plot_destroyed,
                                                    NULL);
                   if (!TextShell) {
@@ -1116,7 +1116,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (!SUMAg_CF->X->Whereami_TextShell) {
                   if (!(SUMAg_CF->X->Whereami_TextShell = 
                            SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
-                                                   NULL, 
+                                                   NULL, NULL,
                                                    SUMA_Whereami_destroyed,
                                                    NULL))) {
                      SUMA_S_Err("Failed to create TextShellStruct.");
@@ -1170,12 +1170,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
                VolParName = (char *)EngineData->vp;
                specfilename = EngineData->cp;
-               
                if (specfilename) {
                   /* Load The spec file */
 		            if (LocalHead) 
                      fprintf (SUMA_STDERR, 
-                              "%s: Reading Spec File ...\n", FuncName);
+                              "%s: Reading Spec File %s...\n", 
+                              FuncName, specfilename);
                   if (!SUMA_AllocSpecFields(&Spec)) { 
                      SUMA_S_Err("Failed to initialize spec fields."); 
                      exit(1); 
@@ -1198,44 +1198,43 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* make sure only one group was read in */
 		         if (Spec.N_Groups != 1) {
-			         fprintf( SUMA_STDERR,
+			         if (Spec.N_Groups > 1) {
+                     fprintf( SUMA_STDERR,
                            "Error %s: "
                            "One and only one group of surfaces is allowed "
                            "at the moment (%d found).\n", 
                            FuncName, Spec.N_Groups);
-			         exit(1);
-		         }
-
-		         if (!EngineData->f) {
-                  /* load the surfaces specified in the specs file, one by one*/			
-		            if (LocalHead) 
-                     fprintf (SUMA_STDERR, 
-                              "%s: Loading Surfaces in Spec File ...\n", 
-                              FuncName);
-		            if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, 
-                                          VolParName, 0, SUMAg_CF->DsetList)) {
-			            fprintf( SUMA_STDERR,
-                              "Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
 			            exit(1);
-		            }
+                  }
+                  /* We hope some DOs are visible, proceed */
+		         } else {
+		            if (!EngineData->f) {
+                     /* load one by one surfs specified in the specs file */
+		               if (LocalHead) 
+                        fprintf (SUMA_STDERR, 
+                                 "%s: Loading Surfaces in Spec File ...\n", 
+                                 FuncName);
+		               if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, 
+                                             VolParName, 0, SUMAg_CF->DsetList)){
+			               SUMA_LH("Failed in SUMA_LoadSpec.");
+			               exit(1);
+		               }
+                  }
+
+
+                  /* register the new group with SUMA */
+                  if (!SUMA_RegisterSpecGroup(SUMAg_CF, &Spec)) {
+                     SUMA_SL_Err("Failed to register group");
+                     break;
+                  }
+
                }
-               
-               
-               /* register the new group with SUMA */
-               if (!SUMA_RegisterGroup(SUMAg_CF, &Spec)) {
-                  SUMA_SL_Err("Failed to register group");
-                  break;
-               }
-               
-	            /* Register the surfaces in Spec file with the 
-                  surface viewer and perform setups */
-               
+	            /* Register surfaces in Spec file or other DOs with the 
+                     surface viewer and perform setups */
                for (ii = 0; ii < EngineData->i; ++ii) {
-	               if (LocalHead) 
-                     fprintf (SUMA_STDERR, 
-                              "%s: Registering surfaces with surface viewer "
-                              "%d/%d ...\n", FuncName, ii, EngineData->i);
-                  if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, 
+	               SUMA_LHv("%s: Registering surfaces with surface viewer "
+                           "%d/%d ...\n", FuncName, ii, EngineData->i);
+                  if (!SUMA_SetupSVforDOs (&Spec, SUMAg_DOv, SUMAg_N_DOv, 
                                        &(SUMAg_SVv[EngineData->iv15[ii]]), 0)) {
 			            fprintf (SUMA_STDERR, 
                               "Error %s: "
@@ -2296,12 +2295,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMA_handleRedisplay((XtPointer)svi->X->GLXAREA);                           
                            break;
                         case SUMA_I_Lock: 
-                           {
+                           Found = NOPE;
+                           if (iDO_isSO(sv->Ch->adoID)) { /* Surface click */
                               SUMA_SurfaceObject *SO1 = NULL, *SO2 = NULL;
-                              
+
                               SUMA_LHv("Try to I lock viewer %d to node"
                                        " %d.\n", i, sv->Ch->datumID);
-                              
+
                               /* determine the list of shown surfaces */
                               N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, 
                                                             SOlist);
@@ -2316,14 +2316,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  break;
                               }
                               if (sv->Ch->datumID < 0) {
-                                 SUMA_S_Err("Cannot link from this viewer's" 
-                                          " cross hair. No datumID.\n");
+                                 SUMA_S_Errv("Cannot link from this viewer's" 
+                                       " cross hair. No datumID for DO %s\n",
+                                       iDO_label(sv->Ch->adoID));
                                  break;
                               }
-                              if (SUMAg_DOv[sv->Ch->adoID].ObjectType != 
-                                                                     SO_type){
-                                 SUMA_LH("Not ready for I lock on non SOs");
-                              }
+                              
                               SO1 = (SUMA_SurfaceObject *)
                                              SUMAg_DOv[sv->Ch->adoID].OP;
                               Found = NOPE;
@@ -2349,7 +2347,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                     }else{
                                        svi->Ch->datumID = sv->Ch->datumID;
                                     }
-                                    
+
                                     /* set the XYZ */
                                     svi->Ch->c[0] = SO2->NodeList[SO2->NodeDim*
                                                                svi->Ch->datumID];
@@ -2367,20 +2365,96 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  }
                                  ++it;
                               }
-                              if (!Found) {
-                                 if (LocalHead) 
-                                    fprintf (SUMA_STDERR,
-                                             "%s: No related surfaces found in"
-                                             " viewer, cross hair will not be"
-                                             "touched .\n", FuncName);
+                           } else if (iDO_isGLDO(sv->Ch->adoID)){
+                              SUMA_GraphLinkDO *gldo1, *gldo2=NULL;
+                              SUMA_DSET *dset=NULL;
+                              char *variant=NULL;
+                              int ido2;
+                              float fv6[6];
+                              SUMA_LHv("Try to I lock viewer %d to edge"
+                                       " %d.\n", i, sv->Ch->datumID);
+
+                              if (sv->Ch->adoID < 0) {
+                                 fprintf (SUMA_STDERR, 
+                                          "%s: Cannot link from this viewer's "
+                                          "cross hair. No bound graph.\n", 
+                                          FuncName);
                                  break;
-                              } else {
-                                 /* FORCE a redisplay */
-                                 svi->ResetGLStateVariables = YUP;
-                                 SUMA_handleRedisplay(
-                                          (XtPointer)svi->X->GLXAREA);
+                              }
+                              if (sv->Ch->datumID < 0) {
+                                 SUMA_LHv("No datumID for DO %s\n",
+                                       iDO_label(sv->Ch->adoID));
+                                 /* Don't exit here, because sometimes users
+                                 select and entire set of edes, when they
+                                 click on the nodes of a graph, you still
+                                 want to refresh the other representations
+                                 of that graph*/
+                              }
+                              gldo1 = (SUMA_GraphLinkDO *)
+                                          SUMAg_DOv[sv->Ch->adoID].OP;
+                              if (!(dset = SUMA_find_GLDO_Dset(gldo1))) {
+                                 SUMA_S_Err("Seal Attack!");
+                                 break;
+                              }
+                              Found = NOPE;
+                              it = 0;
+                              while (it < svi->N_DO && !Found) {
+                                    ido2 = svi->RegisteredDO[it];
+                                    if (iDO_isGLDO(ido2)) {
+                                 gldo2 = (SUMA_GraphLinkDO *)SUMAg_DOv[ido2].OP;
+                                 variant = iDO_variant(ido2);   
+                                    } else {
+                                 gldo2 = NULL;
+                                 variant = NULL;
+                                    }
+                                 if ((SUMA_find_GLDO_Dset(gldo2) == dset)&&
+                                     SUMA_IS_REAL_VARIANT(variant)) { 
+                                    svi->Ch->adoID = ido2;
+                                    svi->Ch->datumID = sv->Ch->datumID;
+
+                                    /* set the XYZ */
+                                    if (svi->Ch->datumID >= 0 &&
+                                        (SUMA_GDSET_EdgeXYZ_eng(dset, 
+                                                svi->Ch->datumID,
+                                           iDO_variant(ido2), fv6))){
+                                       svi->Ch->c[0] = (fv6[0]+fv6[3])/2.0;
+                                       svi->Ch->c[1] = (fv6[1]+fv6[4])/2.0;
+                                       svi->Ch->c[2] = (fv6[2]+fv6[5])/2.0;
+                                       if (LocalHead)
+                                          fprintf (SUMA_STDERR,
+                                                   "%s: new XYZ %f %f %f\n", 
+                                                   FuncName, 
+                                                   svi->Ch->c[0], svi->Ch->c[1], 
+                                                   svi->Ch->c[2]); 
+                                       Found = YUP;
+                                    } else {
+                                       /* Still declare it found, even if coords
+                                          are not set because datum index is < 0
+                                          This is for updating when you select
+                                          and edge's point/node */
+                                       Found = YUP;
+                                    }  
+                                 }
+                                 ++it;
                               }
                               
+                           } else {
+                              SUMA_LHv(
+                                 "No linkage for clicks on objects like %s\n",
+                                 iDO_label(sv->Ch->adoID));
+                           }
+                           if (!Found) {
+                              if (LocalHead) 
+                                 fprintf (SUMA_STDERR,
+                                          "%s: No related DOs found in"
+                                          " viewer, cross hair will not be"
+                                          "touched .\n", FuncName);
+                              break;
+                           } else {
+                              /* FORCE a redisplay */
+                              svi->ResetGLStateVariables = YUP;
+                              SUMA_handleRedisplay(
+                                       (XtPointer)svi->X->GLXAREA);
                            }
                            break;
                         default:
@@ -2730,12 +2804,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          
          case SE_FOVreset:
             /* expects nothing in EngineData */
-            sv->FOV[sv->iState] = SUMA_sv_fov_original(sv);   
+            sv->FOV[sv->iState] = SUMA_sv_auto_fov(sv);   
                         /* reset the zooming */
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / 
-                                    SUMA_sv_fov_original(sv);
+                                    SUMA_sv_auto_fov(sv);
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; 
                   /* weird stuff at zc_fac higher that 1.5 */
                else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
@@ -4328,6 +4402,25 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_RETURN (k);
 }
 
+/*
+   Is this the kind of DO that can be selected in SUMA
+   In other terms, can it be loaded and viewed with nothing
+   else?
+*/
+int SUMA_is_iDO_Selectable(int dov_id)
+{
+   static char FuncName[]={"SUMA_is_iDO_Selectable"};
+   
+   switch (iDO_type(dov_id)){
+      case SO_type:
+      case TRACT_type:
+      case GRAPH_LINK_type:
+         return(1);
+      default:
+         return(0);
+   }
+}
+
 int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
 {
    static char FuncName[]={"SUMA_Selectable_ADOs"};
@@ -4358,11 +4451,30 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
                ++k;
             }
          }
-      } else if (dov[sv->RegisteredDO[i]].ObjectType == GRAPH_LINK_type) {
-         if (SO_IDs) {
-            SO_IDs[k] = sv->RegisteredDO[i];
+      } else {
+         switch (dov[sv->RegisteredDO[i]].ObjectType) {
+            case SO_type:
+               /* ignore, escaped from above isSO_G */
+               break;
+            case GRAPH_LINK_type:
+               /* avoid the shadow ... */
+               if (!SUMA_IS_GOOD_STATE(iDO_state(sv->RegisteredDO[i]))) break;
+               /* OK, keep */
+               if (SO_IDs) {
+                  SO_IDs[k] = sv->RegisteredDO[i];
+               }
+               ++k;
+               break;
+            case TRACT_type:
+               if (SO_IDs) {
+                  SO_IDs[k] = sv->RegisteredDO[i];
+               }
+               ++k;
+               break;
+            default:
+               SUMA_LHv("Ignoring %s\n", iDO_label(sv->RegisteredDO[i]));
+               break;
          }
-         ++k;
       }
    }
    
@@ -4488,6 +4600,50 @@ SUMA_Boolean SUMA_isRegisteredDO (SUMA_SurfaceViewer *sv,
 }
 
 
+/*!
+   Return 1st decent, preferably anat correct state(i.e. not shadown state)
+*/
+int SUMA_FirstGoodState(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[] = {"SUMA_FirstGoodState"};
+   int inxt, iok;
+   
+   SUMA_ENTRY;
+   
+   inxt = 0; iok = -1;
+   while (inxt < sv->N_VSv) {
+      if (SUMA_IS_GOOD_STATE(sv->VSv[inxt].Name)) {
+         if (sv->VSv[inxt].AnatCorrect) {
+            SUMA_RETURN(inxt);
+         } else {
+            if (iok < 0) iok = inxt;
+         }
+      }
+      ++inxt;
+   }
+   
+   SUMA_RETURN(iok);
+}
+int SUMA_FirstGoodAnatCorrState(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[] = {"SUMA_FirstGoodAnatCorrState"};
+   int inxt, iok;
+   
+   SUMA_ENTRY;
+   
+   inxt = 0; iok = -1;
+   while (inxt < sv->N_VSv) {
+      if (SUMA_IS_GOOD_STATE(sv->VSv[inxt].Name)) {
+         if (sv->VSv[inxt].AnatCorrect) {
+            SUMA_RETURN(inxt);
+         } 
+      }
+      ++inxt;
+   }
+   
+   SUMA_RETURN(iok);
+}
+
 
 /*! 
    nxtState = SUMA_NextState(sv);
@@ -4518,13 +4674,14 @@ int SUMA_NextState(SUMA_SurfaceViewer *sv)
          if (inxt == icur) {
             /* back where we started */
             SUMA_RETURN(inxt);
-         } else {
+         } else if (strncmp(sv->VSv[inxt].Name,"TheShadow",9)) {
             if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName) ||
-                (!strcmp(sv->VSv[inxt].Group, "ANY") && 
-                  strncmp(sv->VSv[inxt].Name,"TheShadow",9))) { 
+                (!strcmp(sv->VSv[inxt].Group, "ANY"))) { 
                /* group match, good, go back */
                SUMA_RETURN(inxt);
             }
+         } else {
+            /* Skip the shadow state */
          }
          inxt = (inxt + 1) % sv->N_VSv;
       } while (1);
@@ -4559,11 +4716,14 @@ int SUMA_PrevState(SUMA_SurfaceViewer *sv)
          if (inxt == icur) {
             /* back where we started */
             SUMA_RETURN(inxt);
-         } else {
-            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName)) { 
+         } else if (strncmp(sv->VSv[inxt].Name,"TheShadow",9)) {
+            if (!strcmp(sv->VSv[inxt].Group, sv->CurGroupName) ||
+                (!strcmp(sv->VSv[inxt].Group, "ANY"))) { 
                /* group match, good, go back */
                SUMA_RETURN(inxt);
             }
+         } else {
+            /* Skip the shadow state */
          }
          inxt = inxt -1; if (inxt < 0) inxt = sv->N_VSv + inxt;
       } while (1);
@@ -4796,7 +4956,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    XYZmap = NULL;
    
    curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
-   zfac = sv->FOV[curstateID]/SUMA_sv_fov_original(sv);
+   zfac = sv->FOV[curstateID]/SUMA_sv_auto_fov(sv);
    if (zfac > 10) zfac = 10.0;
    if (zfac < 0.005) zfac = 0.005;
    
@@ -4871,6 +5031,11 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    /* Get those DOs that are surfaces or graphs*/
    MembSOs = SUMA_ViewState_Membs(&(sv->VSv[nxtstateID]), ttv, 2, &N_MembSOs);
    
+   if (!MembSOs || N_MembSOs==0) {
+      SUMA_S_Errv("No members found for state %s, what gives?\n",
+                 sv->VSv[nxtstateID].Name);
+      SUMA_RETURN(NOPE);
+   }
    /* if no coloroverlay exists, link to MapReference surface, if possible */
    SUMA_LHv("Have %d memb[SD]Os\n", N_MembSOs);
    for (i=0; i<N_MembSOs; ++i) {
@@ -5034,11 +5199,11 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    
 
 
-   if (sv->FOV[sv->iState] == sv->FOV_original) { 
-      sv->FOV[sv->iState] = SUMA_sv_fov_original(sv);
+   if (sv->FOV[sv->iState] == sv->FOV_original || sv->FOV[sv->iState] < 0) { 
+      sv->FOV[sv->iState] = SUMA_sv_auto_fov(sv);
    }
    if (sv->FreezeZoomXstates) 
-      sv->FOV[sv->iState] = SUMA_sv_fov_original(sv)*zfac; 
+      sv->FOV[sv->iState] = SUMA_sv_auto_fov(sv)*zfac; 
 
    /* set the focus ID to the first surface/object in the next view */
    sv->Focus_DO_ID = MembSOs[0];
