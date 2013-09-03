@@ -104,6 +104,7 @@ static char * g_history[] =
     " 3.16 Sep  3, 2013 [rickr]\n",
     "      - if im_is_volume and single volume, get dz from image\n"
     "        (problem reported by A Nilsen)\n"
+    "      - also, pass along option TR in volume case\n"
     "----------------------------------------------------------------------\n"
 };
 
@@ -1727,6 +1728,7 @@ static int scan_ge_files (
 
             if ( gD.level > 3 )
             {
+fprintf(stderr,"== current header info\n");
                 idisp_ge_header_info( p->fnames[fp->index], &fp->geh );
                 idisp_ge_extras( p->fnames[fp->index], &fp->gex );
                 idisp_mosaic_info( p->fnames[fp->index], &fp->minfo );
@@ -2867,10 +2869,10 @@ static int read_afni_image( char * pathname, finfo_t * fp, int get_data )
     fp->geh.dz    = DSET_DZ(dset);
     fp->geh.zoff  = DSET_ZORG(dset);
     fp->geh.slice_loc = DSET_ZORG(dset); /* rcr - same? what about mosaic? */
-    if ( gP.opts.use_slice_loc ) { }
 
-    /* get some stuff from mrilib */
+    /* TR of single volume dataset is probably 0.0   3 Sep 2013 */
     fp->geh.tr = DSET_TR(dset);
+    if ( fp->geh.tr == 0.0 && gP.opts.tr > 0.0 ) fp->geh.tr = gP.opts.tr;
     fp->geh.te = 0; /* no way to know */
 
     /* orients, go backwards from daxes->xxorient values to LRPAIS, say */
@@ -2895,7 +2897,7 @@ static int read_afni_image( char * pathname, finfo_t * fp, int get_data )
     fp->minfo.mos_nx       = fp->geh.nx;
     fp->minfo.mos_ny       = fp->geh.ny;
 
-    if( gD.level > 3 ) idisp_mosaic_info( "AFNI volume", &fp->minfo );
+    if( gD.level > 3 ) idisp_mosaic_info( "AFNI volume ", &fp->minfo );
 
     if( get_data ) {
         DSET_load(dset);
@@ -3477,8 +3479,7 @@ static int idisp_im_store_t( char * info, im_store_t * is )
 */
 static int idisp_param_t( char * info, param_t * p )
 {
-    if ( info )
-        fputs( info, stdout );
+    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
 
     if ( p == NULL )
     {
@@ -3622,8 +3623,7 @@ static int disp_ftype( char * info, int ftype )
 */
 static int idisp_vol_t( char * info, vol_t * v )
 {
-    if ( info )
-        fputs( info, stdout );
+    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
 
     if ( v == NULL )
     {
@@ -3660,8 +3660,7 @@ static int idisp_vol_t( char * info, vol_t * v )
 */
 static int idisp_ge_extras( char * info, ge_extras * E )
 {
-    if ( info )
-        fputs( info, stdout );
+    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
 
     if ( E == NULL )
     {
@@ -3697,8 +3696,7 @@ static int idisp_ge_extras( char * info, ge_extras * E )
 */
 static int idisp_ge_header_info( char * info, ge_header_info * I )
 {
-    if ( info )
-        fputs( info, stdout );
+    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
 
     if ( I == NULL )
     {
@@ -3734,8 +3732,7 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
 */
 static int idisp_mosaic_info( char * info, mosaic_info * I )
 {
-    if ( info )
-        fputs( info, stdout );
+    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
 
     if ( I == NULL )
     {
