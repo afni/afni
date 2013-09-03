@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Sep, 2013, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "Dimon -rt: if im_is_volume and single volume, get dz from image",
+   "Thanks to A Nilsen for reporting the problem.\n"
+ } ,
+
  { 26,  Aug, 2013, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
    "added -check_all, -find_prog, -casematch, -exact",
    "These changes are to add PATH searching for programs.\n"
