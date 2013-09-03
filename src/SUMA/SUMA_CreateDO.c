@@ -4691,7 +4691,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
             SUMA_S_Err("Index not found!");
             goto BUGOUT;
          }
-         I[0] = (eem+0.5)*GB[0]; I[1] = -0.15*GB[1]; I[3] = 0.0;
+         I[0] = (eem+0.5)*GB[0]; I[1] = -0.15*GB[1]; I[2] = 0.0;
          AFF44_MULT_I(XYZ, Aff,I);
          glRasterPos3d(XYZ[0], XYZ[1], XYZ[2]);
          glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
@@ -4722,7 +4722,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
             SUMA_LH("Index not found!");
             goto BUGOUT;
          }
-         I[0] = (N[0]+ 0.15)*GB[0]; I[1] = (eem+0.5)*GB[1]; I[3] = 0.0;
+         I[0] = (N[0]+ 0.15)*GB[0]; I[1] = (eem+0.5)*GB[1]; I[2] = 0.0;
          AFF44_MULT_I(XYZ, Aff,I);
          glRasterPos3d(XYZ[0], XYZ[1], XYZ[2]);
          glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
