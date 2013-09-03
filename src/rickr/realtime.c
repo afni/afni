@@ -431,10 +431,12 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     /* volume dimensions */
     /* if the data is oblique, get dz directly from the image structure */
-    /*                                             2009 June 25 [rickr] */
+    /*                                              25 Jun 2009 [rickr] */
+    /* similarly if volume (AFNI or mosaic)          3 Sep 2013 [rickr] */
     {
        float dz = v->z_delta;
-       if( ac->is_oblique && v->image_dz > 0.0 ) dz = v->image_dz;
+       if( (ac->is_oblique || v->minfo.im_is_volume) &&
+           v->image_dz > 0.0 ) dz = v->image_dz;
        sprintf( tbuf, "XYFOV %f %f %f", fabs(v->geh.nx * v->geh.dx),
                                         fabs(v->geh.ny * v->geh.dy),
                                         fabs(nim       * dz       ) );
