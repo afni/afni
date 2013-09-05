@@ -659,6 +659,10 @@ int SUMA_Seg_Write_Dset(char *proot, char *prefi, THD_3dim_dataset *dset,
    if (hh) tross_Append_History(dset, hh);/*add history*/ 
      
    DSET_quiet_overwrite(dset);   
+   /* dset might get purged at write time, such as when
+      AFNI_BYTEORDER is not the same as the native order (Isaac's shenanigans)
+      So reload dset since I may still need it */
+      DSET_mallocize(dset); DSET_load(dset);
    
    EDIT_dset_items(  dset , ADN_prefix  , opref, ADN_none);  
    strcpy(DSET_IDCODE_STR(dset), oid); 
