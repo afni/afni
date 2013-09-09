@@ -4392,6 +4392,8 @@ static double Hbasis_parmax = 0.0 ;  /* max warp parameter allowed */
 
 static floatvec *Hmpar = NULL ;
 
+static int Hlocalstat = 0 ;
+
 /*--- Other stuff for incremental warping ---*/
 
 #undef USE_HLOADER  /* define this for 'all-at-once' Hwarp load vs. incremental */
@@ -5964,6 +5966,7 @@ ENTRY("IW3D_improve_warp") ;
      /* initialize the 'correlation' from the data that won't
         be changing (i.e., data from outside the local patch) */
 
+     if( !Hlocalstat )
      INCOR_addto( Hincor , Hnxyz ,
                   MRI_FLOAT_PTR(Hbasim) , MRI_FLOAT_PTR(Haasrcim) , wbfar ) ;
      RESTORE_WBFAR ;
@@ -7175,6 +7178,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      /* initialize the 'correlation' from the data that won't
         be changing (i.e., data from outside the local patch) */
 
+     if( !Hlocalstat )
      INCOR_addto( Hincor , Hnxyz ,
                   MRI_FLOAT_PTR(Haabasim_minus) , MRI_FLOAT_PTR(Haasrcim_plus) , wbfar ) ;
      RESTORE_WBFAR ;
