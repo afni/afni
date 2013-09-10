@@ -2368,6 +2368,9 @@ def search_path_dirs(word, mtype=0, casematch=1):
       glist = glob.glob(form % (pdir, wpat))
       if len(glist) > 0: rlist.extend(glist)
 
+   # make a new list based on os.path.realpath, to avoid links
+   rlist = [os.path.realpath(pfile) for pfile in rlist]
+
    return 0, get_unique_sublist(rlist)
 
 def show_found_in_path(word, mtype=0, casematch=1, indent='\n   '):
