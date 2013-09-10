@@ -26,7 +26,7 @@ int SARR_find_substring( THD_string_array * sar , char * str, byte ci )
    return SARR_lookfor_substring( sar , str , 0 , ci) ;
 }
 
-int SARR_lookfor_string( THD_string_array * sar , char * str , 
+int SARR_lookfor_string( THD_string_array * sar , char * str ,
                          int nstart , byte ci )
 {
    int ii ;
@@ -34,14 +34,14 @@ int SARR_lookfor_string( THD_string_array * sar , char * str ,
    if( sar == NULL || str == NULL ) return -1 ;
 
    for( ii=nstart ; ii < sar->num ; ii++ ){
-      if( sar->ar[ii] != NULL && 
+      if( sar->ar[ii] != NULL &&
           ( (ci && !strcasecmp(sar->ar[ii],str)) || !strcmp(sar->ar[ii],str) ) )
          return ii ;
    }
    return -1 ;
 }
 
-int SARR_lookfor_substring( THD_string_array * sar , char * sub , 
+int SARR_lookfor_substring( THD_string_array * sar , char * sub ,
                             int nstart , byte ci )
 {
    int ii ;
@@ -49,7 +49,7 @@ int SARR_lookfor_substring( THD_string_array * sar , char * sub ,
    if( sar == NULL || sub == NULL ) return -1 ;
 
    for( ii=nstart ; ii < sar->num ; ii++ ){
-      if( sar->ar[ii] != NULL && 
+      if( sar->ar[ii] != NULL &&
           ( (ci && strcasestr(sar->ar[ii],sub)) || strstr(sar->ar[ii],sub) ) )
          return ii ;
    }
@@ -285,6 +285,16 @@ ENTRY("THD_normalize_flist") ;
    for( ii=0 ; ii < star_in->num ; ii++ ){
       if( skip_realpath ) rp = star_in->ar[ii] ;
       else                rp = realpath( star_in->ar[ii] , rpath ) ;
+
+      if( rp == NULL && strchr(star_in->ar[ii],'+') != NULL ){ /* 10 Sep 2013 */
+        char *sp ;
+        jj = strlen(star_in->ar[ii]) ; sp = malloc(jj+32) ;
+        strcpy(sp,star_in->ar[ii]) ;
+        if( sp[jj-1] != '.' ) strcat(sp,".") ;
+        strcat(sp,"HEAD") ;
+        rp = realpath( sp , rpath ) ;
+        free(sp) ;
+      }
 
       if( rp != NULL ) ADDTO_SARR( star_out , rp ) ;
    }
