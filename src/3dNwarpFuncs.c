@@ -105,7 +105,6 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
-       if( prefix != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: '%s' '%s' :-(",argv[iarg-1],argv[iarg]) ;
