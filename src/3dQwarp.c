@@ -195,7 +195,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
 static THD_3dim_dataset *qset = NULL ;
 
-#undef  USE_SAVER
+#define USE_SAVER
 #ifdef  USE_SAVER
 void Qsaver(char *lab, MRI_IMAGE *im)
 {
@@ -1028,11 +1028,14 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-#ifdef USE_SAVER
      if( strcasecmp(argv[nopt],"-qsave") == 0 ){
-       qsave = 1 ; nopt++ ; continue ;
-     }
+#ifndef USE_SAVER
+       WARNING_message("-qsave option is not compiled into this copy of 3dQwarp :-(") ;
+#else
+       qsave = 1 ;
 #endif
+       nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-noXdis") == 0 ){
        flags |= NWARP_NOXDIS_FLAG ; nopt++ ; continue ;
@@ -1558,7 +1561,7 @@ STATUS("output warped dataset") ;
 
 #ifdef  USE_SAVER
    if( qset != NULL && DSET_NVALS(qset) > 1 ){
-     EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_none ) ;
+     EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_ttdel , 1.0f , ADN_none ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
 #endif
