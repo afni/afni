@@ -96,6 +96,7 @@ void NWC_help(void)
     " * An input warp dataset can contain extra sub-bricks -- only the first 3\n"
     "    are used.\n"
     "\n"
+#if 0
     " * Warp datasets output by this program have a 4th sub-brick, labeled\n"
     "    'hexvol', which contains the volume of each distorted hexahedron in\n"
     "    the grid.  This sub-brick is NOT used in any application of the\n"
@@ -103,6 +104,10 @@ void NWC_help(void)
     "    help you understand how much distortion is present in the warp.\n"
     "   ++ If there are any negative values in the hexvol sub-brick, this\n"
     "      indicates that something bad happened in the warp calculation.\n"
+#else
+    " * If you want the volume distortion at each voxel, use the program\n"
+    "   3dNwarpFuncs.\n"
+#endif
     "\n"
     "OPERATORS\n"
     "---------\n"
