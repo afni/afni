@@ -49,6 +49,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Sep, 2013, RCR, "model_conv_cosine4", MAJOR, TYPE_NEW_PROG,
+   "A four half-cosine convolvable model.",
+   "Based on: Fully Bayesian Spatio-Temporal Modeling of FMRI Data\n"
+   "          IEEE Transactions on Medical Imaging,\n"
+   "          Volume 23, Issue 2, February 2004, Pages 213-231\n"
+   "          Woolrich, M.W., Jenkinson, M., Brady, J.M., Smith, S.M.\n"
+   "Requested by C Connolly and Felix."
+ } ,
+
  {  3,  Sep, 2013, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "Dimon -rt: if im_is_volume and single volume, get dz from image",
    "Thanks to A Nilsen for reporting the problem.\n"
