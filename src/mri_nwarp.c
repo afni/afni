@@ -4393,6 +4393,8 @@ static double Hbasis_parmax = 0.0 ;  /* max warp parameter allowed */
 static floatvec *Hmpar = NULL ;
 
 static int Hlocalstat = 0 ;
+static int Hskipped   = 0 ;
+static int Hdone      = 0 ;
 
 /*--- Other stuff for incremental warping ---*/
 
@@ -5853,7 +5855,7 @@ ENTRY("IW3D_improve_warp") ;
 
    nxh = itop-ibot+1 ; nyh = jtop-jbot+1 ; nzh = ktop-kbot+1 ;
 
-   if( nxh < NGMIN && nyh < NGMIN && nzh < NGMIN ) RETURN(0) ;
+   if( nxh < NGMIN && nyh < NGMIN && nzh < NGMIN ){ Hskipped++ ;  RETURN(0) ; }
 
    Hibot = ibot ; Hitop = itop ; /* index range of the patch we're working on */
    Hjbot = jbot ; Hjtop = jtop ;
@@ -5877,7 +5879,7 @@ ENTRY("IW3D_improve_warp") ;
                        (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                        ibot,itop, jbot,jtop, kbot,ktop ,
                        (100.0f*nwb)/Hnval , (100.0f*wsum)/(Hnval*Hwbar) ) ;
-     RETURN(0) ;
+     Hskipped++ ; RETURN(0) ;
    }
 
    /*-- setup the basis functions for Hwarping --*/
@@ -5960,7 +5962,7 @@ ENTRY("IW3D_improve_warp") ;
            "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (base=const=%g)" ,
                          (warp_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                          ibot,itop, jbot,jtop, kbot,ktop , Hbval[0] ) ;
-       RESTORE_WBFAR ; RETURN(0) ;
+       RESTORE_WBFAR ; Hskipped++ ; RETURN(0) ;
      }
 
      /* initialize the 'correlation' from the data that won't
@@ -6018,7 +6020,7 @@ ENTRY("IW3D_improve_warp") ;
 
    free(xtop) ; free(xbot) ;
 
-   if( iter <= 0 ){ free(parvec); RETURN(0); }  /* something bad happened */
+   if( iter <= 0 ){ free(parvec); Hskipped++ ; RETURN(0); }  /* something bad happened */
 
    /* load optimized warped image and warp into their patches */
 
@@ -6055,7 +6057,7 @@ ENTRY("IW3D_improve_warp") ;
 
    /* ZOMG -- let's vamoose */
 
-   free(parvec) ; RETURN(iter) ;
+   free(parvec) ; Hdone++ ; RETURN(iter) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -6247,6 +6249,8 @@ ENTRY("IW3D_warpomatic") ;
      else if( Hverb == 1 )
        fprintf(stderr,"lev=%d patch=%dx%dx%d [clock=%s]",lev,xwid,ywid,zwid,nice_time_string(NI_clock_time()) ) ;
 
+     Hdone = Hskipped = 0 ;
+
      /* alternate the direction of sweeping at different levels */
 
      if( lev%2 == 1 || nlevr > 1 ){  /* bot to top, ijk */
@@ -6327,7 +6331,12 @@ ENTRY("IW3D_warpomatic") ;
      }
 
      if( Hcostbeg > 666.0f ) Hcostbeg = Hfirstcost ;
-     if( Hverb == 1 ) fprintf(stderr," done [cost:%.3f==>%.3f]\n",Hcostbeg,Hcost) ;
+     if( Hverb == 1 ){
+       if( Hdone > 0 )
+         fprintf(stderr," done [cost:%.3f==>%.3f ; %d patches optimized, %d skipped]\n",Hcostbeg,Hcost,Hdone,Hskipped) ;
+       else
+         fprintf(stderr," done [cost:%.3f ; all patches skipped]\n",Hcost) ;
+     }
      Hcostbeg = Hcost ;
 
      if( !Hduplo ) ITEROUT(lev) ;
