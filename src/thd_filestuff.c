@@ -370,6 +370,28 @@ char *THD_helpdir(byte withslash)
    return (sout[icall]) ;
 }
 
+/* Return the name of the data directory, no guarantee that it exists
+   Consider THD_get_datadir()
+   Do not free returned pointer. Failure results in an empty string.
+*/
+char *THD_datadir(byte withslash)
+{
+   static char sout[3][610]; 
+   static int icall=0;
+   char *home=NULL;
+   
+   ++icall; if (icall>2) icall=0;
+   
+   sout[icall][0]='\0';
+   
+   home = THD_homedir(0);
+   if (home[0]=='\0') return(sout[icall]); 
+   
+   if (withslash) snprintf(sout[icall],600*sizeof(char),"%s/.afni/data/",home);
+   else snprintf(sout[icall],599*sizeof(char),"%s/.afni/data",home);
+    
+   return (sout[icall]) ;
+}
 
 /* retrieve help directory and make sure it is present 
    Do not free returned pointer. Failure is a NULL pointer */
@@ -379,6 +401,23 @@ char *THD_get_helpdir(byte withslash)
    hdir = THD_helpdir(withslash);
    if (hdir[0] == '\0') {
       ERROR_message("Have no help directory\n");
+      return(NULL);
+   }
+   if (!THD_mkdir(hdir)) {
+      ERROR_message("Cannot create %s directory\n", hdir);
+      return(NULL);
+   }
+   return(hdir);
+}
+
+/* retrieve data directory and make sure it is present 
+   Do not free returned pointer. Failure is a NULL pointer */
+char *THD_get_datadir(byte withslash) 
+{
+   char *hdir = NULL;
+   hdir = THD_datadir(withslash);
+   if (hdir[0] == '\0') {
+      ERROR_message("Have no data directory\n");
       return(NULL);
    }
    if (!THD_mkdir(hdir)) {

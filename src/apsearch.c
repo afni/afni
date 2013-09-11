@@ -187,6 +187,7 @@ void apsearch_usage(int detail)
    "  -recreate_all_afni_help: Like -update_all_afni_help but force receration\n"
    "                           even if nothing changed in the help\n"
    "  -afni_help_dir: Print afni help directory location and quit.\n"
+   "  -afni_data_dir: Print afni data directory location and quit.\n"
    "  -afni_bin_dir: Print afni's binaries directory location and quit.\n"
    "  -afni_home_dir: Print afni's home directory and quit.\n"
    "  -afni_rc_file: Pathname to .afnirc. You'll get one even if none exists.\n"
@@ -347,6 +348,11 @@ int main(int argc, char **argv)
 
       if (strcmp(argv[iarg],"-afni_help_dir") == 0) { 
          fprintf(stdout,"%s\n", THD_helpdir(0));
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-afni_data_dir") == 0) { 
+         fprintf(stdout,"%s\n", THD_datadir(0));
          return(0);
       }
 
