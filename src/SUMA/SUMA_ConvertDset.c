@@ -102,6 +102,16 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                                  If you have everything in one file, use\n"
 "                                  the same filename twice with proper column\n"
 "                                  selectors.\n"
+"     -graph_full_nodelist_1D NODELIST.1D: Same as above, but without the need\n"
+"                                  for NODEINDLIST.1D. In that case, indices\n"
+"                                  will implicitly go from 0 to N-1, with N\n"
+"                                  being the number of nodes.\n"
+"     -graph_named_nodelist_txt NODENAMES.txt NODELIST.1D: Two files used to \n"
+"                                  specify graph node indices, string labels, \n"
+"                                  and their coordinates.\n"
+"                                  In sum you need I LABEL X Y Z (RAI mm).\n"
+"                                  The I and LABEL come from NODENAMES.txt and\n"
+"                                  the X Y Z coordinates from NODELIST.1D\n"
 "     -graph_edgelist_1D EDGELIST.1D: i j indices of graph nodes defining edge\n"
 "                                   with each row matching the input dset row.\n"
 "                                   This option only works with -multigraph\n"
@@ -190,9 +200,9 @@ int main (int argc,char *argv[])
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL, *cmapfile, 
          *graph_nodelist_1D=NULL, *graph_nodeindlist_1D=NULL,
-         *graph_edgelist_1D=NULL;
+         *graph_edgelist_1D=NULL, *graph_nodeindlist_txt=NULL, **names=NULL;
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
-   int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1;
+   int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1, *ivec=NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    int orderednodelist = 1, split=0, toGDSET=0, OneMat;
    SUMA_COLOR_MAP *SM=NULL;
@@ -330,6 +340,31 @@ int main (int argc,char *argv[])
          }
          ++kar;
          graph_nodeindlist_1D = argv[kar];
+         ++kar;
+         graph_nodelist_1D = argv[kar];
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-graph_full_nodelist_1d") == 0))
+      {
+         if (kar+1 >= argc) {
+            SUMA_SL_Err("Need 1 arguments after -graph_full_nodelist_1D");
+            exit(1);
+         }
+         graph_nodeindlist_1D = NULL;
+         ++kar;
+         graph_nodelist_1D = argv[kar];
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-graph_named_nodelist_txt") == 0))
+      {
+         if (kar+2 >= argc) {
+            SUMA_SL_Err("Need 2 arguments after -graph_named_nodelist_txt");
+            exit(1);
+         }
+         ++kar;
+         graph_nodeindlist_txt = argv[kar];
          ++kar;
          graph_nodelist_1D = argv[kar];
          brk = YUP;
@@ -535,18 +570,95 @@ int main (int argc,char *argv[])
                SUMA_S_Err("Bad nodelist source, only 3 column allowed");
                exit(1);
             }
-            if (!(dsetind = SUMA_LoadDset_s (graph_nodeindlist_1D, &iform, 0))) {
-               SUMA_S_Err("Failed to load nodelist ");
-               exit(1);
-            }
-            if (SDSET_VECNUM(dsetind) != 1) {
-               SUMA_S_Err("Bad nodelist index source, only 1 column allowed");
-               exit(1);
-            }
-            if (SDSET_VECFILLED(dseti) != SDSET_VECFILLED(dsetind)) {
-               SUMA_S_Errv( "mismatch in number of values between %s and %s\n",
-                           graph_nodelist_1D, graph_nodeindlist_1D);
-               exit(1);
+            if (graph_nodeindlist_1D) {
+               if (!(dsetind = 
+                        SUMA_LoadDset_s (graph_nodeindlist_1D, &iform, 0))) {
+                  SUMA_S_Err("Failed to load nodelist ");
+                  exit(1);
+               }
+               if (SDSET_VECNUM(dsetind) != 1) {
+                  SUMA_S_Err("Bad nodelist index source, only 1 column allowed");
+                  exit(1);
+               }
+               if (SDSET_VECFILLED(dseti) != SDSET_VECFILLED(dsetind)) {
+                  SUMA_S_Errv( 
+                     "mismatch in number of values between %s and %s\n",
+                     graph_nodelist_1D, graph_nodeindlist_1D);
+                  exit(1);
+               }
+               /* coerce index input to int */
+               {
+                  SUMA_DSET *dsetc=NULL;
+                  if (!(dsetc = SUMA_CoercedCopyofDset(dsetind, 
+                                                       SUMA_int, NULL))) {
+                     SUMA_S_Err("Failed coerce");
+                     exit(1);
+                  }
+                  SUMA_FreeDset(dsetind); dsetind = dsetc; dsetc = NULL;
+               }
+               ivec = SDSET_VEC(dsetind,0);
+               dsetind->dnel->vec[0] = NULL; 
+               SUMA_FreeDset(dsetind); dsetind = NULL;
+            } else if (graph_nodeindlist_txt) {
+               char *fl=NULL, *fle=NULL, *fl2=NULL;
+               int ok=0, cnt=0, mxcol=0, nalloc=0, nchar, ans;
+               float dum;
+
+               /* Load file that has node indices and labels */
+               if (!(fl = SUMA_file_suck(graph_nodeindlist_txt, &nchar))) {
+                  SUMA_S_Errv("Faile to read %s\n", graph_nodeindlist_txt);
+                  exit(1);
+               }
+               fle = fl+nchar;
+               ok = 1;
+               cnt = 0; mxcol = 0, nalloc=0;
+               while (ok && fl < fle) {
+                  SUMA_SKIP_BLANK(fl, fle);
+                  do {
+                     /* skip comment, if any */
+                     SUMA_IS_COMMENT_LINE(fl, fle, '#', ans);
+                     if (ans) {  
+                        SUMA_LH("Skipping comment..."); 
+                        SUMA_SKIP_LINE(fl, fle);
+                     }
+                  } while (ans); 
+                  SUMA_SKIP_BLANK(fl, fle); if (fl == fle) break; 
+                  SUMA_LHv("Now at >>%s<<\n", fl);
+                  /* read first number */
+                  SUMA_ADVANCE_PAST_NUM(fl, dum, ok); 
+                  if (!ok && fl!=fle) { 
+                     SUMA_S_Errv("Failed to read i, stuck at >>%s<<\n", 
+                                 fl); exit(1);
+                  }
+                  if (cnt >= nalloc) {
+                     nalloc = nalloc+256;
+                     ivec = (int *)SUMA_realloc(ivec, nalloc*sizeof(int));
+                     names = (char **)SUMA_realloc(names, nalloc*sizeof(char *));
+                  }
+                  SUMA_LHv("index[%d] %f\n", cnt, dum);
+                  ivec[cnt] = (int)dum;
+                  SUMA_GET_TO_EOL(fl, fle, fl2);
+                  if (fl2 > fl) {
+                     names[cnt]=NULL; /* realloc above does not seem to set 
+                                         pointers to NULL */
+                     SUMA_COPY_TO_STRING(fl, fl2, names[cnt]);
+                     SUMA_LHv("  Name[%d] %s\n",cnt, names[cnt]);
+                     fl = fl2;
+                  } else {
+                     SUMA_S_Errv("Failed to get label associated with index %d\n"
+                                 ,ivec[cnt]);
+                     exit(1); 
+                  }
+                  ++cnt;
+               }
+               if (cnt != SDSET_VECFILLED(dseti)) {
+                  SUMA_S_Errv("Have %d entries in %s but %d enties in %s\n",
+                           cnt, graph_nodeindlist_txt, 
+                           SDSET_VECFILLED(dseti), graph_nodelist_1D);
+                  exit(1);
+               }
+            }  else {
+               ivec = NULL; /* SUMA_AddGDsetNodeListElement will generate one */
             }
             if (SDSET_VECFILLED(dseti) != GDSET_MAX_POINTS(dset)) {
                SUMA_S_Errv( "mismatch in number of values "
@@ -554,25 +666,18 @@ int main (int argc,char *argv[])
                            GDSET_MAX_POINTS(dset), SDSET_VECFILLED(dseti));
                exit(1);
             }
-            /* coerce index input to int */
-            {
-               SUMA_DSET *dsetc=NULL;
-               if (!(dsetc = SUMA_CoercedCopyofDset(dsetind, SUMA_int, NULL))) {
-                  SUMA_S_Err("Failed coerce");
-                  exit(1);
-               }
-               SUMA_FreeDset(dsetind); dsetind = dsetc; dsetc = NULL;
-            }
-            if (!(SUMA_AddGDsetNodeListElement(dset, SDSET_VEC(dsetind,0),
+            if (!(SUMA_AddGDsetNodeListElement(dset, ivec,
                                                      SDSET_VEC(dseti,0),
                                                      SDSET_VEC(dseti,1),
                                                      SDSET_VEC(dseti,2),
-                                                     NULL,
+                                                     names,
                                                      SDSET_VECFILLED(dseti)))) {
                SUMA_S_Err("Failed to add node list");
                exit(1);                                       
             }
             SUMA_FreeDset(dseti); dseti = NULL;
+            if (ivec) free(ivec); ivec=NULL;
+            if (names) SUMA_free(names); names = NULL;
          }
          if (LocalHead) SUMA_ShowDset(dset,0, NULL);  
       }

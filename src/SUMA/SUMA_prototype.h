@@ -9,6 +9,7 @@ char * SUMA_help_message_Info(void);
 char * SUMA_help_xform_dot_message_Info(void);
 char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP *Cmp);
 char * SUMA_help_Plot_message_Info(void);
+char *SUMA_help_SPEC_symbolic(void);
 void SUMA_Help_open (void *p);
 void SUMA_Help_destroyed (void *p);
 void SUMA_Help_Cmap_open (void *p);

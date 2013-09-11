@@ -77,6 +77,17 @@
    }  \
 }
 
+#define SUMA_SKIP_TO_EOL(op, eop){  \
+   char m_quote_open = '\0';   \
+   while (*op != '\0' && op !=eop && !( !m_quote_open && (*op == '\n' || *op == '\v' || *op == '\f' || *op == '\r')) ) { \
+      if (*op == '"' || *op == '\'') {  \
+         if (!m_quote_open) m_quote_open = *op; \
+         else if (m_quote_open == *op) m_quote_open = '\0'; \
+      }  \
+      ++op; \
+   }  \
+}
+
 #define SUMA_SKIP_TO_NEXT_CHAR(op, eop, ch){  \
    char m_quote_open = '\0';   \
    while (*op != '\0' && op !=eop && !( !m_quote_open && (*op == ch)) ) { \
@@ -102,6 +113,12 @@
    SUMA_SKIP_BLANK(op, eop); /* skip first blanks*/   \
    op2 = op;                 /* skip till next blanks */ \
    SUMA_SKIP_TO_NEXT_BLANK(op2, eop);  \
+}
+
+#define SUMA_GET_TO_EOL(op, eop, op2){  \
+   SUMA_SKIP_BLANK(op, eop); /* skip first blanks*/   \
+   op2 = op;                 /* skip till next blanks */ \
+   SUMA_SKIP_TO_EOL(op2, eop);  \
 }
 
 /*! \brief Count number of blank delimited words. 

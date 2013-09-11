@@ -37,6 +37,7 @@ SUMA_Boolean SUMA_isRegisteredSO (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                                   SUMA_SurfaceObject *curSO);
 SUMA_Boolean SUMA_isRegisteredDO (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                   SUMA_ALL_DO *curDO);
+SUMA_Boolean SUMA_ADO_isRegistered(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado);
 int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send) ;
 void *SUMA_nimlEngine2Engine(NI_group *ngr); 
 

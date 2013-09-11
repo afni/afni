@@ -1604,12 +1604,13 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   }  
 
                   /* attach the cross hair to the selected surface */
-                     iv3[0] = dest_SO_ID; /* nel_surfidcode == NULL is 
+                  iv3[0] = dest_SO_ID; /* nel_surfidcode == NULL is 
                                              handled above, May 15 03*/
 
                   iv3[1] = I_C; /* use the closest node for a link 
                                    otherwise when you switch states, 
                                    you'll get a wandering cross hair */
+                  iv3[2] = -1;
                   if (!list) list = SUMA_CreateList();
 
 

@@ -73,8 +73,8 @@ int * SUMA_disaster(void)
 void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    
   {/*Usage*/
-          char *sb = NULL, *sio = NULL;
-          
+          char *sb = NULL, *sio = NULL, *ssym=NULL;
+          ssym = SUMA_help_SPEC_symbolic();
           sb = SUMA_help_basics();
           sio  = SUMA_help_IO_Args(ps);
           printf (
@@ -102,6 +102,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                      @SUMA_Make_Spec_SF (for SureFit surfaces). \n"
 "                      The Spec file should be located in the directory \n"
 "                      containing the surfaces.\n"
+"%s\n"
 "   [-sv <SurfVol>]: Anatomical volume used in creating the surface \n"     
 "                    and registerd to the current experiment's anatomical \n"
 "                    volume (using @SUMA_AlignToExperiment). \n"
@@ -157,6 +158,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "\n"
 "\n"
 "%s", 
+       (detail > 1) ? ssym:"     use -help for more detail on loading template surfaces with symbolic notation\n" ,
        (detail > 1) ? sio:"     use -help for more detail on input options\n" , 
        (detail > 1) ? sb:"     use -help for more detail on basic options\n", 
        (detail > 1) ? get_np_help():
@@ -186,7 +188,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "   If you can't get help here, please get help somewhere.\n"
       ); } 
    }
-   SUMA_free(sb); SUMA_free(sio);
+   SUMA_free(sb); SUMA_free(sio); SUMA_free(ssym);
 	if (detail) {
       SUMA_Version(NULL);
       printf ("\n" 
@@ -383,7 +385,7 @@ int main (int argc,char *argv[])
 	int kar, i;
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
-	char  *NameParam, *AfniHostName = NULL, *s = NULL;
+	char  *NameParam, *AfniHostName = NULL, *s = NULL, *pdspec=NULL, *pdsv=NULL;
    char *specfilename[SUMA_MAX_N_GROUPS], *VolParName[SUMA_MAX_N_GROUPS];
    byte InMem[SUMA_MAX_N_GROUPS];
 	SUMA_SurfSpecFile *Specp[SUMA_MAX_N_GROUPS];   
@@ -680,8 +682,14 @@ int main (int argc,char *argv[])
             exit(1);
          }
          
-			specfilename[ispec] = argv[kar]; 
-			if (LocalHead) {
+         if (SUMA_is_predefined_SO_name(argv[kar], NULL, 
+                                        &pdspec, &pdsv, NULL) == 3) {
+            specfilename[ispec] = pdspec; pdspec = NULL; /* Memory leak! */
+            VolParName[ispec] = pdsv; pdsv = NULL; /* Memory leak! */
+         } else {
+			   specfilename[ispec] = argv[kar]; 
+			}
+         if (LocalHead) {
             fprintf(SUMA_STDOUT, "Found: %s\n", specfilename[ispec]);
          }
          ++ispec;

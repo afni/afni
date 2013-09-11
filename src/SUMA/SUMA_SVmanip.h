@@ -30,7 +30,8 @@ DListElmt *SUMA_Fetch_VisX_Element(char *label, DList *dl);
 SUMA_VIS_XFORM_DATUM *SUMA_Fetch_VisX_Datum (char *label, DList *dl, 
                                   SUMA_VISX_ADD_POSITIONS add, char *ref_label);
 SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, 
-                                    SUMA_DO *dov, int N_dov);
+                                    SUMA_DO *dov, int N_dov, byte keepzoom);
+SUMA_Boolean SUMA_UpdateViewPoint_RegisteredADO(SUMA_ALL_DO *ado, byte keepzoom);
 SUMA_Boolean SUMA_SetGLHome(SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV);
 SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, 

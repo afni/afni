@@ -148,10 +148,12 @@ char * SUMA_ADO_Label(SUMA_ALL_DO *ado);
 char * SUMA_ADO_idcode(SUMA_ALL_DO *ado);
 char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado);
 SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado);
+SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado);
 int SUMA_ADO_N_Datum(SUMA_ALL_DO *ado);
 int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado);
 char * SUMA_ADO_variant(SUMA_ALL_DO *ado);
 int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado);
+int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
                                           SUMA_COLID_OFFSET_DATUM *codf);
 SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel);
@@ -363,8 +365,8 @@ void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh);
 double SUMA_Pval2ThreshVal (SUMA_ALL_DO *ado, double pval);
 SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado);
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado);
-char *SUMA_GetLabelsAtNode(SUMA_ALL_DO *ado, int node);
-char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node);
+char *SUMA_GetLabelsAtSelection(SUMA_ALL_DO *ado, int node, int sec);
+char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec);
 SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
 SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado, 
                                      SUMA_SurfaceViewer *sv);
@@ -405,6 +407,56 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    " few colors to get a contour of use.\n" \
    " Contours are not created if colormap has panes\n"   \
    " of unequal sizes.\n"   
+
+#define  SUMA_SurfContHelp_DsetFont  \
+   "Choose the font size for labels of nodes.\n" \
+   "   8: 8x13.\n"  \
+   "   9: 9x15.\n"  \
+   "   TR10: Times New Roman 10.\n"    \
+   "   HE10: Helvetica 10.\n"    \
+   "   HE12: Helvetica 12.\n"    \
+   "   HE18: Helvetica 18.\n"    \
+   "   TR24: Times New Roman 24.\n"    \
+   "   XXX: Show no text.\n"  
+
+#define  SUMA_SurfContHelp_DsetNodeRad  \
+   "Choose the radius sizing for nodes of this dataset.\n" \
+   "   Const: All nodes have a radius of 1 x Gain.\n"  \
+   "   Val: Nodes size equals its dset value x Gain\n"  \
+   "   XXX: Show no balls.\n"  
+
+#define  SUMA_SurfContHelp_DsetEdgeThick  \
+   "Choose the thickness sizing for edges of this graph dataset.\n" \
+   "   Const: All nodes have a radius of 1 x Gain.\n"  \
+   "   Val: Nodes size equals its dset value x Gain\n"  
+
+#define  SUMA_SurfContHelp_DsetEdgeStip  \
+   "Choose the stippling for edges of this graph dataset.\n" \
+   "   1 :   One pixel/16, the stippliest\n"  \
+   "   ...\n"    \
+   "   15:   15/16 pixels on, almost solid\n"   \
+   "   Val: Set stippling based on the dset value\n"  \
+   "   XXX: No stippling, solid line.\n"  
+   
+#define  SUMA_SurfContHelp_DsetNodeCol  \
+   "Choose the colorization method for nodes of this dataset.\n" \
+   "   White: Alle weiss.\n"  \
+   "   Black: Tutti nero.\n"  \
+   "   Red: Sve crveno.\n"  \
+   "   Green: Killon akhdar.\n" \
+   "   Blue: Tous bleu.\n"   \
+   "   Yellow: Todos amarillo.\n"   \
+   "   Gray50: Not there yet.\n" \
+   "   Val: Nodes color is based its dset value and the chosen colormap\n"
+
+#define  SUMA_SurfContHelp_DsetGmatBord  \
+   "Choose the partition ratio of the matrix border.\n" \
+   "   XX: No partition.\n"  \
+   "   5: Border is 1/5 of cell width.\n"  \
+   "   10: Border is 1/10 of cell width.\n"  \
+   "   20: Border is 1/20 of cell width.\n" \
+   "   30: Border is 1/30 of cell width.\n"   \
+   "   40: Border is 1/40 of cell width.\n"
 
 #define SUMA_SurfContHelp_Dsets  \
    "Show/Hide Dataset (previously Color Plane) controllers"
@@ -529,6 +581,18 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "colors mapped onto the surface are.\n"   \
    "For RGB Dsets (.col files), Dim is\n" \
    "applied to the RGB colors directly"
+
+#define SUMA_SurfContHelp_DsetNodeRadGain  \
+   "Gain to apply to node radius.\n" \
+   "This multiplier is always applied to whatever\n" \
+   "radius value the node gets, whether is it constant\n"   \
+   "or data derived.\n"   
+   
+#define SUMA_SurfContHelp_DsetEdgeThickGain  \
+   "Gain to apply to edge thickness.\n" \
+   "This multiplier is always applied to whatever\n" \
+   "thickness value the edge gets, whether is it constant\n"   \
+   "or data derived.\n"   
    
 #define SUMA_SurfContHelp_DsetView  \
    "View (ON)/Hide Dset node colors."

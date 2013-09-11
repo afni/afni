@@ -8760,7 +8760,7 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
          } else {
             SUMA_LH("No GUI Node Field Updates, but may use a whereami update");
             if (SUMAg_CF->X->Whereami_TextShell) {
-               lbls = SUMA_GetLabelsAtNode(ado, SO->SelectedNode);
+               lbls = SUMA_GetLabelsAtSelection(ado, SO->SelectedNode, -1);
                if (lbls) SUMA_free(lbls); lbls = NULL;
             }
          }
@@ -8844,7 +8844,8 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
          } else {
             SUMA_LH("No GUI Node Field Updates, but may use a whereami update");
             if (SUMAg_CF->X->Whereami_TextShell) {
-               lbls = SUMA_GetLabelsAtNode(ado, SUMA_ADO_SelectedDatum(ado));
+               lbls = SUMA_GetLabelsAtSelection(ado, SUMA_ADO_SelectedDatum(ado),
+                                                SUMA_ADO_SelectedSecondary(ado));
                if (lbls) SUMA_free(lbls); lbls = NULL;
             }
          }
@@ -9160,9 +9161,9 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado)
    SUMA_RETURN(YUP);
 }
 
-char *SUMA_GetLabelsAtNode(SUMA_ALL_DO *ado, int node) 
+char *SUMA_GetLabelsAtSelection(SUMA_ALL_DO *ado, int node, int sec) 
 {
-   static char FuncName[]={"SUMA_GetLabelsAtNode"};
+   static char FuncName[]={"SUMA_GetLabelsAtSelection"};
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -9171,13 +9172,13 @@ char *SUMA_GetLabelsAtNode(SUMA_ALL_DO *ado, int node)
    
    switch (ado->do_type) {
       case SO_type:
-         SUMA_RETURN(SUMA_GetLabelsAtNode_ADO(ado,node));
+         SUMA_RETURN(SUMA_GetLabelsAtSelection_ADO(ado,node, sec));
          break;
       case SDSET_type:
          SUMA_S_Warn("Not ready to return labels for dsets, and should I be?");
          break;
       case GRAPH_LINK_type:
-         SUMA_RETURN(SUMA_GetLabelsAtNode_ADO(ado,node));
+         SUMA_RETURN(SUMA_GetLabelsAtSelection_ADO(ado,node, sec));
          break;
       default:
          SUMA_LHv("No labels ready for type %s\n",
@@ -9188,10 +9189,14 @@ char *SUMA_GetLabelsAtNode(SUMA_ALL_DO *ado, int node)
    SUMA_RETURN(NULL);
 }
 
-/* Do we have label dsets for this surface ? */
-char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node) 
+/* Do we have labels at this location ? 
+   node is the 'datum' index, primary selection - think node on surface,
+                                                  or edge on graph
+   sec is the secondary selection index - think FaceSet on surface,
+                                                  or node on graph*/
+char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec) 
 {
-   static char FuncName[]={"SUMA_GetLabelsAtNode_ADO"};
+   static char FuncName[]={"SUMA_GetLabelsAtSelection_ADO"};
    char *lbls=NULL;
    int key = -1, OverInd=-1, i0, i, sp;
    SUMA_DSET *cdset=NULL, *dd=NULL;
@@ -9207,6 +9212,10 @@ char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node)
    SUMA_ENTRY;
    
    if (!ado) SUMA_RETURN(NULL);
+   
+   /* Any clusters? */
+   SUMA_LHv("on ADO %s, looking for labels for selection %d and secondary %d\n", 
+            SUMA_ADO_Label(ado), node, sec);
    
    if (ado->do_type == SO_type) {
       SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
@@ -9252,7 +9261,9 @@ char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node)
                               Sover->OptScl->find, 
                               Sover->OptScl->tind,
                               Sover->OptScl->bind, 5))) {
+         SUMA_LH("No Sar");
       } else if (1) { /* include sub-brick labels */
+         SUMA_LH("Sar");
          if (lbls) lbls = SUMA_append_replace_string(lbls,"\n","",1);
          if (sar[0] && sar[1] && sar[2]) {
             if (!strcmp(sar[0],sar[1]) && !strcmp(sar[2],sar[1])) {
@@ -9331,7 +9342,6 @@ char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node)
 
          }
          SUMA_free(sar); sar=NULL;
-         /* Any clusters? */
          if (ado->do_type == SO_type) {
             if ((sp=SUMA_NodeClustNumber(Sover, node, 
                                         (SUMA_SurfaceObject *)ado, NULL))) {
@@ -9339,7 +9349,8 @@ char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node)
                if (lbls) lbls = SUMA_append_replace_string(lbls,stmp,"",1);
             }
          }
-      } else { /* old approach to labeling, I,T, business only */
+     } else { /* old approach to labeling, I,T, business only */
+         SUMA_LH("Old");
          if (lbls) lbls = SUMA_append_replace_string(lbls,"\n","",1);
          if (sar[0] && sar[1] && sar[2]) {
             if (!strcmp(sar[0],sar[1]) && !strcmp(sar[2],sar[1])) {
@@ -9369,6 +9380,32 @@ char *SUMA_GetLabelsAtNode_ADO(SUMA_ALL_DO *ado, int node)
             }
          }
          SUMA_free(sar); sar=NULL;
+      }
+      /* Any edge info ? */
+      if (ado->do_type == GRAPH_LINK_type) {
+         SUMA_DSET *gset=NULL;
+         char *stmp=NULL, *pref=NULL;
+         gset =  SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado);
+         if (node >= 0) { /* an edge */
+            pref = "\nGpair "; /* I was using "Cell" and "Edge"
+                                 depending on the variant, but
+                                 the label is shared across viewers
+                                 so that does not work well */
+            if ((stmp=SUMA_GDSET_Edge_Label(gset, node, pref, NULL))) {
+               SUMA_LHv("Adding edge label %s\n", stmp);
+               lbls = SUMA_append_replace_string(lbls,stmp,"", 1);
+               SUMA_ifree(stmp);
+            }
+         } else {
+            if (sec >= 0) { /* all from some node */
+               if ((stmp=SUMA_GDSET_Node_Label(gset, sec))) {
+                  SUMA_LHv("Got graph node label %s\n", stmp);
+                  stmp = SUMA_append_replace_string("\nGnode ", stmp, "", 0);
+                  lbls = SUMA_append_replace_string(lbls,stmp,"", 1);
+                  SUMA_ifree(stmp);
+               }
+            }
+         }
       }
    }
       
@@ -9525,7 +9562,8 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
       case SO_type: 
          /* get labels from Label Datasets, and update whereami 
             window if needed*/
-         lbls = SUMA_GetLabelsAtNode_ADO(ado, SUMA_ADO_SelectedDatum(ado));
+         lbls = SUMA_GetLabelsAtSelection_ADO(ado, SUMA_ADO_SelectedDatum(ado),
+                                              SUMA_ADO_SelectedSecondary(ado));
          SUMA_LHv("Label Dsets: %s\n", lbls);
          break;
       case SDSET_type:
@@ -9625,7 +9663,7 @@ SUMA_Boolean SUMA_UpdateCrossHairNodeLabelField(SUMA_SurfaceViewer *sv)
    }
    
    if ( sv->ShowLabelAtXhair &&
-       (lbls = SUMA_GetLabelsAtNode(ado, sv->Ch->datumID))) {
+       (lbls = SUMA_GetLabelsAtSelection(ado, sv->Ch->datumID, sv->Ch->secID))) {
       SUMA_NodeLabelToTextNIDO (lbls, ado, sv);
       SUMA_free(lbls); lbls = NULL;
    } else {
@@ -10149,6 +10187,46 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado)
    return(-1);
 }
 
+/*!
+   This function returns secondary selections a DO
+   For surfaces, this is always SurfCont->SelectedFaceSet
+   For SDSETs, it is GSaux->PR->selectedEnode
+*/
+int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_ADO_SelectedSecondary"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (!ado) return(-1);
+   SUMA_LHv("Here with %d (%s), %s\n", 
+             ado->do_type, ADO_TNAME(ado), SUMA_ADO_Label(ado));
+   switch(ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+         return(SO->SelectedFaceSet);
+         break; }
+      case SDSET_type: {
+         SUMA_DSET *dset=(SUMA_DSET *)ado;
+         SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
+         if (!GSaux) return(-1);
+         return(GSaux->PR->selectedEnode);
+         break; }
+      case GRAPH_LINK_type: {
+         SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
+         SUMA_DSET *dset=NULL;
+         if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
+            SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
+                        SUMA_ADO_Label(ado));
+            return(-1);
+         }
+         return(SUMA_ADO_SelectedDatum((SUMA_ALL_DO *)dset));
+         break; }
+      default:
+         return(-1);
+   }
+   return(-1);
+}
+
 /* Was what was selected a primitive of the DO that carries
    data ? 
    A selected edge on a graph would return YES
@@ -10526,7 +10604,7 @@ SUMA_Boolean SUMA_GDSET_NodeXYZ_eng(SUMA_DSET *dset, int node,
    static char FuncName[]={"SUMA_GDSET_NodeXYZ_eng"};
    int N_Node=-1, *Node_Ind=NULL, cinode = -1;
    float *ff=NULL, *NodeList = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -10673,7 +10751,7 @@ float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here)
    int iicoord, *I;
    NI_element *nelxyz = NULL;
    char *cen=NULL, *ctmp=NULL, *rs=NULL, *cs=NULL, *stmp=NULL, sbuf[24];   
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -10719,7 +10797,7 @@ float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here)
          }
          X = (float *)nelxyz->vec[iicoord];
          SUMA_MEAN_VEC(X, nelxyz->vec_len, here[0], 0);
-         sprintf(sbuf,"%f", here[iicoord]); 
+         sprintf(sbuf,"%f", here[0]); 
          if (!SUMA_Set_Sub_String(&stmp, SUMA_NI_CSS, iicoord,sbuf)) {
             SUMA_LHv("Failed to set substring to %s\n", stmp);
             SUMA_RETURN(here);
@@ -10732,7 +10810,7 @@ float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here)
          }
          Y = (float *)nelxyz->vec[iicoord];
          SUMA_MEAN_VEC(Y, nelxyz->vec_len, here[1], 0);
-         sprintf(sbuf,"%f", here[iicoord]); 
+         sprintf(sbuf,"%f", here[1]); 
          if (!SUMA_Set_Sub_String(&stmp, SUMA_NI_CSS, iicoord,sbuf)) {
             SUMA_LHv("Failed to set substring to %s\n", stmp);
             SUMA_RETURN(here);
@@ -10745,7 +10823,7 @@ float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here)
          }
          Z = (float *)nelxyz->vec[iicoord];
          SUMA_MEAN_VEC(Z, nelxyz->vec_len, here[2], 0);
-         sprintf(sbuf,"%f", here[iicoord]); 
+         sprintf(sbuf,"%f", here[2]); 
          if (!SUMA_Set_Sub_String(&stmp, SUMA_NI_CSS, iicoord,sbuf)) {
             SUMA_LHv("Failed to set substring to %s\n", stmp);
             SUMA_RETURN(here);
@@ -10863,7 +10941,7 @@ SUMA_Boolean SUMA_GDSET_EdgeXYZ_eng(SUMA_DSET *dset, int isel,
       SUMA_RETURN(NOPE);  
    }
    
-   if (isel < SUMA_GDSET_Max_Edge_Index(dset)) {
+   if (isel <= SUMA_GDSET_Max_Edge_Index(dset)) {
       SDSET_EDGE_NODE_INDEX_COLS(dset, inde, ind0, ind1);
       if (!ind0 || !ind1 || !inde) {
          SUMA_LH("No explicit node idexing information");
@@ -11072,6 +11150,27 @@ SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado)
       case GRAPH_LINK_type: {
          SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado);
          return(SUMA_ADO_GSaux((SUMA_ALL_DO *)dset));
+         break; }
+      default:
+         return(NULL);
+   }
+   return(NULL);
+}
+
+SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado) 
+{
+   static char FuncName[]={"SUMA_ADO_Dset"};
+   
+   if (!ado) return(NULL);
+   switch (ado->do_type) {
+      case SO_type: 
+         return(NULL);
+         break;
+      case SDSET_type:
+         return((SUMA_DSET *)ado);
+         break;
+      case GRAPH_LINK_type: {
+         return(SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado));
          break; }
       default:
          return(NULL);

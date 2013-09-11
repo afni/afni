@@ -77,8 +77,6 @@ typedef struct {
                                SUMA_isGraphDset(dset) ) ? \
                   ((SUMA_GRAPH_SAUX *)(dset)->Aux->Saux)->FrameSO:NULL )
                   
-#define SDSET_GDRAW_VARIANT(dset) ( (SDSET_GSAUX(dset))->CurrentDrawVariant)
-
 #define TDO_HAS_GRID(tdo) ( ((tdo) && (tdo)->net && (tdo)->net->grid) ? (tdo)->net->grid : NULL )
 
 SUMA_Boolean SUMA_DrawDO_UL_FullMonty(DList *dl);
@@ -98,6 +96,8 @@ SUMA_Boolean SUMA_SetDrawVariant(SUMA_DSET *dset, char *variant);
 SUMA_Boolean SUMA_isDrawVariant(SUMA_DSET *dset, char *variant);
 int SUMA_GDSET_edgeij_to_GMATRIX_XYZ(SUMA_DSET *dset, 
                                         int ei, int ej, float *XYZ, int FC);
+int SUMA_GDSET_GMATRIX_CellPixSize(SUMA_DSET *dset, SUMA_SurfaceViewer *sv,
+                                   float *Sz);
 float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,    
                            int **ind, char *thisvariant); 
 NI_element * SUMA_SO_NIDO_Node_Texture (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
@@ -204,7 +204,10 @@ SUMA_TractDO * SUMA_Alloc_TractDO (char *Label, char *parent_idcode);
 SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label, SUMA_DO_Types type);
 SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo, 
                                    SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_BordFrac_to_GB(int BF, int *G, int *B);
 SUMA_NIDO * SUMA_GDSET_matrix_nido(SUMA_DSET *dset);
+SUMA_Boolean SUMA_GDSET_clear_matrix_nido(SUMA_DSET *dset, int clear_SO);
+SUMA_Boolean SUMA_GDSET_refresh_matrix_nido(SUMA_DSET *dset, int also_SO);
 SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo, 
                                        SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawGraphDO_GRELIEF (SUMA_GraphLinkDO *gldo, 
@@ -276,6 +279,7 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id);
 SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id);
 SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id);
 GLushort SUMA_int_to_stipplemask(int i); 
+GLushort SUMA_int_to_stipplemask_cont(int i);
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *soid);
 SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *soid);
 SUMA_SphereDO * SUMA_ReadSphDO (char *s);
@@ -364,6 +368,7 @@ int SUMA_NIDO_TexEnvMode(NI_element *nel, int def);
 const GLubyte *SUMA_StippleMask(int transp);
 const GLubyte *SUMA_StippleMask_rand(int transp);
 const GLubyte *SUMA_StippleMask_shift(int transp);
+GLushort SUMA_StippleLineMask_rand(int transp, int chunkwidth, int rseed);
 void SUMA_StippleMaskResest(void);
 SUMA_GL_STEL *SUMA_FindStateTrackEl(char *state, DList *stu);
 void SUMA_FreeStateTrackEl(void *stel);

@@ -252,8 +252,13 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_SetViewerCont);
    if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_SetRecorderCont);
    if (!strcmp(Scom,"SetDsetViewMode")) SUMA_RETURN(SE_SetDsetViewMode);
+   if (!strcmp(Scom,"SetDsetFont")) SUMA_RETURN(SE_SetDsetFont);
+   if (!strcmp(Scom,"SetDsetNodeRad")) SUMA_RETURN(SE_SetDsetNodeRad);
+   if (!strcmp(Scom,"SetDsetEdgeThick")) SUMA_RETURN(SE_SetDsetEdgeThick);
+   if (!strcmp(Scom,"SetDsetEdgeStip")) SUMA_RETURN(SE_SetDsetEdgeStip);
+   if (!strcmp(Scom,"SetDsetNodeCol")) SUMA_RETURN(SE_SetDsetNodeCol);
+   if (!strcmp(Scom,"SetDsetGmatBord")) SUMA_RETURN(SE_SetDsetGmatBord);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
-   
    /* Last one is Bad Code */
    SUMA_RETURN (SE_BadCode);
      
@@ -493,6 +498,18 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("recorder_cont"); 
       case SE_SetDsetViewMode:
          SUMA_RETURN("SetDsetViewMode");
+      case SE_SetDsetFont:
+         SUMA_RETURN("SetDsetFont"); 
+      case SE_SetDsetNodeRad:
+         SUMA_RETURN("SetDsetNodeRad"); 
+      case SE_SetDsetEdgeStip:
+         SUMA_RETURN("SetDsetEdgeStip"); 
+      case SE_SetDsetEdgeThick:
+         SUMA_RETURN("SetDsetEdgeThick"); 
+      case SE_SetDsetNodeCol:
+         SUMA_RETURN("SetDsetNodeCol"); 
+      case SE_SetDsetGmatBord:
+         SUMA_RETURN("SetDsetGmatBord"); 
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
@@ -2908,30 +2925,48 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
    \return Type SUMA_SO_File_Type
    Bad name for function, should be ...SurfTypeFromExte...
 */
-SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name)
+SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name,
+                                    char **pdspec, char **pdsv, char **pdsname)
 {
    static char FuncName[]={"SUMA_GuessSurfFormatFromExtension_core"};
    SUMA_SO_File_Type form=SUMA_FT_NOT_SPECIFIED;
-     
+   int tp=0;
+   
    SUMA_ENTRY;
    if (!Name) { SUMA_RETURN(form); }
-   if ( SUMA_is_predefined_SO_name(Name, NULL) ) SUMA_RETURN(SUMA_PREDEFINED);  
+   if ( (tp = SUMA_is_predefined_SO_name(Name, NULL, 
+                                          pdspec, pdsv, pdsname)) ) {  
+      switch(tp) {
+         case 1:
+         case 2: 
+            SUMA_RETURN(SUMA_PREDEFINED);
+            break;
+         case 3:
+            /* Spec file, not for here */
+            break;
+         case 4: /* pre-existing template file */
+            Name = *pdsname; /* format TBD below */
+            break;   
+      }
+   }
+   
    if (  SUMA_isExtension(Name, ".1D.coord") ||
-         SUMA_isExtension(Name, ".1D.topo")) SUMA_RETURN(SUMA_VEC);
-   if (  SUMA_isExtension(Name, ".1D") ) SUMA_RETURN(SUMA_VEC);
-   if (  SUMA_isExtension(Name, ".asc")) SUMA_RETURN(SUMA_FREE_SURFER);
-   if (  SUMA_isExtension(Name, ".topo") ||
-         SUMA_isExtension(Name, ".coord") ) SUMA_RETURN(SUMA_SUREFIT);
-   if (  SUMA_isExtension(Name, ".iv") ) SUMA_RETURN(SUMA_INVENTOR_GENERIC);
-   if (  SUMA_isExtension(Name, ".dx")) SUMA_RETURN(SUMA_OPENDX_MESH); 
-   if (  SUMA_isExtension(Name, ".ply")) SUMA_RETURN(SUMA_PLY); 
-   if (  SUMA_isExtension(Name, ".obj")) SUMA_RETURN(SUMA_MNI_OBJ); 
-   if (  SUMA_isExtension(Name, ".srf")) SUMA_RETURN(SUMA_BRAIN_VOYAGER);
-   if (  SUMA_isExtension(Name, ".gii")) SUMA_RETURN(SUMA_GIFTI);
-   if (  SUMA_isExtension(Name, ".byu") ||
+         SUMA_isExtension(Name, ".1D.topo")) form = SUMA_VEC;
+   else if (  SUMA_isExtension(Name, ".1D") ) form = SUMA_VEC;
+   else if (  SUMA_isExtension(Name, ".asc")) form = SUMA_FREE_SURFER;
+   else if (  SUMA_isExtension(Name, ".topo") ||
+         SUMA_isExtension(Name, ".coord") ) form = SUMA_SUREFIT;
+   else if (  SUMA_isExtension(Name, ".iv") ) form = SUMA_INVENTOR_GENERIC;
+   else if (  SUMA_isExtension(Name, ".dx")) form = SUMA_OPENDX_MESH; 
+   else if (  SUMA_isExtension(Name, ".ply")) form = SUMA_PLY; 
+   else if (  SUMA_isExtension(Name, ".obj")) form = SUMA_MNI_OBJ; 
+   else if (  SUMA_isExtension(Name, ".srf")) form = SUMA_BRAIN_VOYAGER;
+   else if (  SUMA_isExtension(Name, ".gii")) form = SUMA_GIFTI;
+   else if (  SUMA_isExtension(Name, ".byu") ||
          SUMA_isExtension(Name, ".g") ||
-         SUMA_isExtension(Name, ".go")) SUMA_RETURN( SUMA_BYU);
-   if (  SUMA_isExtension(Name, ".cmap")) SUMA_RETURN(SUMA_CMAP_SO);
+         SUMA_isExtension(Name, ".go")) form =  SUMA_BYU;
+   else if (  SUMA_isExtension(Name, ".cmap")) form = SUMA_CMAP_SO;
+   
    
    SUMA_RETURN(form);
 }
@@ -2946,10 +2981,12 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension(
    SUMA_ENTRY;
    
    if (!Name && fallbackname) {Name = fallbackname;}
-   form = SUMA_GuessSurfFormatFromExtension_core(Name);
+   form = SUMA_GuessSurfFormatFromExtension_core(Name, NULL, NULL, NULL);
 
-   if (form <= SUMA_NO_DSET_FORMAT && fallbackname && Name != fallbackname ) { /* try with fallback */
-      form = SUMA_GuessSurfFormatFromExtension_core(fallbackname);
+   if (form <= SUMA_NO_DSET_FORMAT && fallbackname && Name != fallbackname ) { 
+      /* try with fallback */
+      form = SUMA_GuessSurfFormatFromExtension_core(fallbackname, 
+                                                    NULL, NULL, NULL);
    }
    
    SUMA_RETURN(form);
@@ -3361,7 +3398,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    }
 
    if (opt->accept_i) {
-      SS = SUMA_StringAppend (SS, 
+      SS = SUMA_StringAppend_va (SS, 
 " Specifying input surfaces using -i or -i_TYPE options: \n"
 "    -i_TYPE inSurf specifies the input surface,\n"
 "            TYPE is one of the following:\n"
@@ -3398,6 +3435,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 " Note that if the surface filename has the proper extension, \n"
 " it is enough to use the -i option and let the programs guess\n"
 " the type from the extension.\n"
+"\n"
 "     -onestate: Make all -i_* surfaces have the same state, i.e.\n"
 "                they all appear at the same time in the viewer.\n"
 "                By default, each -i_* surface has its own state. \n"
@@ -3405,7 +3443,60 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 "                options with on the command line. \n"
 "     -anatomical: Label all -i surfaces as anatomically correct.\n"
 "                Again, this option should precede the -i_* options.\n"
-      );
+"\n"
+" More variants for option -i:\n"
+"-----------------------------\n"
+" You can also load standard-mesh spheres that are formed in memory\n"
+" with the following notation\n"
+"     -i ldNUM:  Where NUM is the parameter controlling\n"
+"                the mesh density exactly as the parameter -ld linDepth\n"
+"                does in CreateIcosahedron. For example: \n"
+"                    suma -i ld60\n"
+"                create on the fly a surface that is identical to the\n"
+"                one produced by: CreateIcosahedron -ld 60 -tosphere\n"
+"     -i rdNUM: Same as -i ldNUM but with NUM specifying the equivalent\n"
+"               of parameter -rd recDepth in CreateIcosahedron.\n"
+"\n"
+" To keep the option confusing enough, you can also use -i to load\n"
+" template surfaces. For example:\n"
+"           suma -i lh:MNI_N27:ld60:smoothwm \n"
+" will load the left hemisphere smoothwm surface for template MNI_N27 \n"
+" at standard mesh density ld60.\n"
+" The string following -i is formatted thusly:\n"
+"     HEMI:TEMPLATE:DENSITY:SURF where:\n"
+"     HEMI specifies a hemisphere. Choose from 'l', 'r', 'lh' or 'rh'.\n"
+"          You must specify a hemisphere with option -i because it is \n"
+"          supposed to load one surface at a time. \n"
+"          You can load multiple surfaces with -spec which also supports \n"
+"          these features.\n"
+"     TEMPLATE: Specify the template name. For now, choose from MNI_N27 if\n"
+"               you want to use the FreeSurfer reconstructed surfaces from\n"
+"               the MNI_N27 volume, or TT_N27\n"
+"               Those templates must be installed under this directory:\n"
+"                 %s\n"
+"               If you have no surface templates there, download\n"
+"                 http:afni.nimh.nih.gov:/pub/dist/tgz/suma_MNI_N27.tgz\n"
+"               and/or\n"
+"                 http:afni.nimh.nih.gov:/pub/dist/tgz/suma_TT_N27.tgz\n"
+"               and untar them under directory %s\n"
+"     DENSITY: Use if you want to load standard-mesh versions of the template\n"
+"              surfaces. Note that only ld20, ld60, ld120, and ld141 are in\n"
+"              the current distributed templates. You can create other \n"
+"              densities if you wish with MapIcosahedron, but follow the\n"
+"              same naming convention to enable SUMA to find them.\n"
+"     SURF: Which surface do you want. The string matching is partial, as long\n"
+"           as the match is unique. \n"
+"           So for example something like: suma -i l:MNI_N27:ld60:smooth\n"
+"           is more than enough to get you the ld60 MNI_N27 left hemisphere\n"
+"           smoothwm surface.\n"
+"     The order in which you specify HEMI, TEMPLATE, DENSITY, and SURF, does\n"
+"     not matter.\n"
+"     For template surfaces, the -sv option is provided automatically, so you\n"
+"     can have SUMA talking to AFNI with something like:\n"
+"             suma -i l:MNI_N27:ld60:smooth &\n"
+"             afni -niml %s/suma_MNI_N27 \n"
+"\n",
+      THD_datadir(1), THD_datadir(1), THD_datadir(0));
    }
    if (opt->accept_ipar) {
       SS = SUMA_StringAppend (SS, 
@@ -3449,10 +3540,14 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    }
    
    if (opt->accept_spec) {
-      SS = SUMA_StringAppend (SS, 
+      char *ss = SUMA_help_SPEC_symbolic();
+      SS = SUMA_StringAppend_va (SS, 
 " Specifying a surface specification (spec) file:\n"
 "    -spec SPEC: specify the name of the SPEC file.\n"
+"%s\n",
+   ss
       );
+      SUMA_ifree(ss);
    }
    
    if (opt->accept_s) {
@@ -4113,6 +4208,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 		   }   
       }
       if (!brk && (ps->accept_spec || ps->accept_s)) {
+         char *pdspec=NULL, *pdsv=NULL;
          if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -4124,10 +4220,20 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_SL_Err("Exceeding maximum number of allowed spec files...");
                exit(1);   
             }
-			   ps->spec_names[ps->N_spec_names] = SUMA_copy_string(argv[kar]);
-			   ++ps->N_spec_names;
+            if (SUMA_GuessSurfFormatFromExtension_core(argv[kar+1],
+                                       &pdspec, &pdsv, NULL) == 3) {
+               ps->spec_names[ps->N_spec_names] = pdspec; pdspec = NULL;
+               ++ps->N_spec_names;
+               ps->sv[ps->N_sv] = pdsv; pdsv = NULL;
+               ++ps->N_vp;
+            } else {
+			      ps->spec_names[ps->N_spec_names] = SUMA_copy_string(argv[kar]);
+			      ++ps->N_spec_names;
+            }
+            SUMA_ifree(pdspec); SUMA_ifree(pdsv);
             brk = YUP;
-		   }   
+		   }
+         
       }
       if (!brk && ps->accept_s) {
          if (!brk 
@@ -4193,13 +4299,15 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
       }
       if (!brk && ps->accept_i) {
          char *tmp_i = NULL;
-         
+         char *pdspec=NULL, *pdsname=NULL, *pdsv=NULL;
          if (strcmp(argv[kar], "-i_") == 0 || strcmp(argv[kar], "-i") == 0) {
             if (kar+1 >= argc)  {
 	            SUMA_S_Err( "need argument after -i_ ");
 	            exit (1);
             }
-            switch(SUMA_GuessSurfFormatFromExtension_core(argv[kar+1])) {
+            
+            switch(SUMA_GuessSurfFormatFromExtension_core(argv[kar+1],
+                                       &pdspec, &pdsv, &pdsname)) {
                case SUMA_FREE_SURFER:
                case SUMA_FREE_SURFER_PATCH:
                   tmp_i = SUMA_copy_string("-i_fs");
@@ -4261,7 +4369,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_BRAIN_VOYAGER;
             ps->i_FF[ps->i_N_surfnames] = SUMA_BINARY;
             ++ps->i_N_surfnames;
@@ -4279,7 +4394,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_BYU;
             ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
             ++ps->i_N_surfnames;
@@ -4298,7 +4420,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_GIFTI;
             ps->i_FF[ps->i_N_surfnames] = SUMA_XML_SURF;
             ++ps->i_N_surfnames;
@@ -4316,7 +4445,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_FREE_SURFER;
             if (SUMA_isExtension(ps->i_surfnames[ps->i_N_surfnames], ".asc")) 
                ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
@@ -4372,6 +4508,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
+            if (pdsname) {
+               SUMA_S_Err("Cannot load template surfs of 1D or VEC format");
+            }
             if (!SUMA_isExtension(argv[kar], ".topo")) { 
                ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
                kar ++; ps->arg_checked[kar]=1;
@@ -4400,7 +4539,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_PLY;
             ps->i_FF[ps->i_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
             ++ps->i_N_surfnames;
@@ -4419,7 +4565,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_MNI_OBJ;
             ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
             ++ps->i_N_surfnames;
@@ -4438,7 +4591,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_OPENDX_MESH;
             ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
             ++ps->i_N_surfnames;
@@ -4456,6 +4616,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
+            }
+            if (pdsname) {
+               SUMA_S_Err("Cannot load template surfs of predefined format");
             }
             ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
             ps->i_FT[ps->i_N_surfnames] = SUMA_PREDEFINED;
@@ -4475,13 +4638,21 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_INVENTOR_GENERIC;
             ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (tmp_i) SUMA_free(tmp_i); tmp_i=NULL;         
+         if (tmp_i) SUMA_free(tmp_i); tmp_i=NULL;   
+         SUMA_ifree(pdsname); SUMA_ifree(pdsv); SUMA_ifree(pdspec);      
       }
       
       if (!brk && ps->accept_ipar) {
@@ -4614,7 +4785,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-         if (!SUMA_isExtension(argv[kar], ".topo")) { 
+        if (!SUMA_isExtension(argv[kar], ".topo")) { 
             ps->ipar_surfnames[ps->ipar_N_surfnames] = 
                SUMA_copy_string(argv[kar]);
             kar ++; ps->arg_checked[kar]=1;
@@ -4857,7 +5028,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 	            SUMA_S_Err( "need argument after -o_ ");
 	            exit (1);
             }
-            switch(SUMA_GuessSurfFormatFromExtension_core(argv[kar+1])) {
+            switch(SUMA_GuessSurfFormatFromExtension_core(argv[kar+1], 
+                                                          NULL, NULL, NULL)) {
                case SUMA_FREE_SURFER:
                case SUMA_FREE_SURFER_PATCH:
                   tmp_o = SUMA_copy_string("-o_fs");
