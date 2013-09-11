@@ -183,6 +183,8 @@ float SUMA_sv_auto_fov(SUMA_SurfaceViewer *sv)
                      avgdim += maxv[k] - minv[k];
                   }
                   avgdim /= 2.0;
+                  /* increase dims a little to allow for text placement */
+                  avgdim *= 1.15; mxdim *= 1.15;
                } else {
                   avgdim = 0.0;
                   for (k=0;k<3;++k) { 
@@ -939,7 +941,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N
 
 /*!
 \brief ans = SUMA_FillColorList (sv, so);
-Creates a colorlist structure for a certain surface.   
+Creates a colorlist structure for a certain displayable.   
 
 \param sv (SUMA_SurfaceViewer *) pointer to surface viewer
 \param so (SUMA_SurfaceObject *) pointer to surface object
@@ -1003,15 +1005,12 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    for (i=0; i<sv->N_ColList; ++i) {
       if (strcmp (idcode, sv->ColList[i].idcode_str) == 0) {
          if (ADO->do_type != SDSET_type) {
-            SUMA_S_Err("idcode is already in sv->ColList");
+            SUMA_S_Err("idcode is already in sv->ColList, \n"
+                       "This is an error for a SurfaceObject, though I doubt\n"
+                       "it is of serious consequence...");
             SUMA_RETURN (NOPE);
          } else {
-            static int iwhine=0;
-            if (!(iwhine % 10)) {
-               SUMA_S_Note("Is it OK to return benignly for graphs here?\n"
-                        "Is there a free missing upon switching states?");
-            } 
-            ++iwhine;
+            /* No harm done, no need to get upset. */ 
             SUMA_RETURN(YUP);
          }
       }
@@ -1772,15 +1771,38 @@ SUMA_Boolean SUMA_Apply_VisX_Chain(float *xyz, int N, DList *dl, int inv)
 }
 
 /*!
+   Update view points of all viewers with this ADO registered 
+*/
+SUMA_Boolean SUMA_UpdateViewPoint_RegisteredADO(SUMA_ALL_DO *ado, byte keepzoom)
+{
+   static char FuncName[]={"SUMA_UpdateViewPoint_RegisteredADO"};
+   int ii;
+   SUMA_SurfaceViewer *sv=NULL;
+
+   SUMA_ENTRY; 
+    
+   if (!ado) SUMA_RETURN(NOPE);
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      sv = &(SUMAg_SVv[ii]);
+      if (SUMA_ADO_isRegistered(sv, ado)) {
+         SUMA_UpdateViewPoint(sv, SUMAg_DOv, SUMAg_N_DOv, keepzoom); 
+         SUMA_SetGLHome(sv);
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+
+/*!
 Updates the View Center and view from of SV based on the contents of RegisteredDO
 */
-
 SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV, 
-                                    SUMA_DO *dov, int N_dov)
+                                    SUMA_DO *dov, int N_dov, byte KeepZoom)
 {
    static char FuncName[]={"SUMA_UpdateViewPoint"};
    int i, do_id, TotWeight;
-   float NewCenter[3], UsedCenter[3], *xyzr;
+   float NewCenter[3], UsedCenter[3], *xyzr, odelta=0.0, oviewd=0.0;
    SUMA_SurfaceObject *so_op;
    SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1857,26 +1879,38 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
       } 
       ++i;
    }
+   
+   odelta = SV->GVS[SV->StdView].ViewFrom[2] -SV->GVS[SV->StdView].ViewCenter[2];
+   oviewd = SV->GVS[SV->StdView].ViewDistance;
    if (TotWeight) {
       SV->GVS[SV->StdView].ViewCenter[0] = NewCenter[0]/(float)TotWeight;
       SV->GVS[SV->StdView].ViewCenter[1] = NewCenter[1]/(float)TotWeight;
       SV->GVS[SV->StdView].ViewCenter[2] = NewCenter[2]/(float)TotWeight;
       SV->GVS[SV->StdView].ViewFrom[0] = SV->GVS[SV->StdView].ViewCenter[0];
       SV->GVS[SV->StdView].ViewFrom[1] = SV->GVS[SV->StdView].ViewCenter[1];
-      SV->GVS[SV->StdView].ViewFrom[2] = SV->GVS[SV->StdView].ViewCenter[2]+
-                         SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;   
-      SV->GVS[SV->StdView].ViewDistance = 
-                         SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;   
+      if (!KeepZoom) {
+         SV->GVS[SV->StdView].ViewFrom[2] = 
+            SV->GVS[SV->StdView].ViewCenter[2]+
+            SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;
+         SV->GVS[SV->StdView].ViewDistance = 
+            SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;
+      } else {
+         SV->GVS[SV->StdView].ViewFrom[2] = 
+            SV->GVS[SV->StdView].ViewCenter[2]+odelta;
+         SV->GVS[SV->StdView].ViewDistance = oviewd;
+      }
    } else {/* default back to o.o, o.o, o.o */
       SV->GVS[SV->StdView].ViewCenter[0] = 
       SV->GVS[SV->StdView].ViewCenter[1] = 
       SV->GVS[SV->StdView].ViewCenter[2] = 0.0;
       SV->GVS[SV->StdView].ViewFrom[0] = 
       SV->GVS[SV->StdView].ViewFrom[1] = 0.0; 
-      SV->GVS[SV->StdView].ViewFrom[2] = 
+      if (!KeepZoom) {
+         SV->GVS[SV->StdView].ViewFrom[2] = 
                          SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;
-      SV->GVS[SV->StdView].ViewDistance = 
+         SV->GVS[SV->StdView].ViewDistance = 
                          SUMA_DEFAULT_VIEW_FROM/SV->GVS[SV->StdView].DimSclFac;  
+      }
    }
    
       /* Store that info in case subjects change things */
@@ -3641,6 +3675,10 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
    SurfCont->SurfContPage_label = NULL;
    SurfCont->SurfContPage = 
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->NodeRadGainAF = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->EdgeThickGainAF = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->ColPlaneOrder = 
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->ColPlaneOpacity = 
@@ -3759,6 +3797,8 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    
    /* no more links, go for it */
    if (SurfCont->SurfContPage) free (SurfCont->SurfContPage);
+   if (SurfCont->NodeRadGainAF) free (SurfCont->NodeRadGainAF);
+   if (SurfCont->EdgeThickGainAF) free (SurfCont->EdgeThickGainAF);
    if (SurfCont->ColPlaneOrder) free (SurfCont->ColPlaneOrder);
    if (SurfCont->ColPlaneOpacity) free (SurfCont->ColPlaneOpacity);
    if (SurfCont->ColPlaneDimFact) free (SurfCont->ColPlaneDimFact);
@@ -4456,7 +4496,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile *Spec, SUMA_DO *DOv,
    if (viewopt & UPDATE_VIEW_POINT_MASK) {
       /* set the viewing points */
       SUMA_LH("setting the viewing points");
-      if (!SUMA_UpdateViewPoint(cSV, DOv, N_DOv)) {
+      if (!SUMA_UpdateViewPoint(cSV, DOv, N_DOv, 0)) {
          SUMA_S_Err("Failed to update view point");
          SUMA_RETURN(NOPE);
       }

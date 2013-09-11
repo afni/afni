@@ -2488,7 +2488,7 @@ SUMA_SurfaceObject *SUMA_SO_of_ColPlane(SUMA_OVERLAYS *Sover)
 SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 {
    static char FuncName[]={"SUMA_ScaleToMap_Interactive"};
-   float *V=NULL, *T=NULL, *B=NULL;
+   float *T=NULL, *B=NULL;
    int i, icmap, i3, cnt, cnt3, loc[2], *nd=NULL;
    float *nv = NULL;
    double Range[2];
@@ -2548,7 +2548,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                                     Opt->ColsContMode);
    
    SUMA_LH("Fetching vetors from dset");
-   T = NULL; V = NULL; B = NULL;
+   T = NULL; SUMA_ifree(Sover->V); B = NULL;
    /* Thresholding ? */
    if (Opt->tind >= 0 && Opt->UseThr) { 
       SUMA_LH("Fetching Threshold column");
@@ -2597,12 +2597,12 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (Opt->find < 0) { SUMA_SL_Crit("Bad column index.\n"); SUMA_RETURN(NOPE); }
    else { 
       /* got to copy values into float vectors 'cause of possible types */
-      V = SUMA_DsetCol2Float (Sover->dset_link, Opt->find, 0);
-      if (!V) { SUMA_SL_Err("Failed to get V"); SUMA_RETURN(NOPE); }
+      Sover->V = SUMA_DsetCol2Float (Sover->dset_link, Opt->find, 0);
+      if (!Sover->V) { SUMA_SL_Err("Failed to get V"); SUMA_RETURN(NOPE); }
    }
 
-   /* setup nodedef so that it can be used along with V
-      for clusterinzing. V will get modified in subsequent
+   /* setup nodedef so that it can be used along with Sover->V
+      for clusterinzing. Sover->V will get modified in subsequent
       calls so got to do it now */
    if (Opt->Clusterize && Opt->RecomputeClust) {
       if (!(nv = (float *)SUMA_calloc(SDSET_VECFILLED(Sover->dset_link),
@@ -2617,7 +2617,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
          if (!SV->isMasked[i]) {
             Sover->NodeDef[cnt] = nd[i];
-            if (nv) nv[cnt] = V[i];
+            if (nv) nv[cnt] = Sover->V[i];
             ++cnt;
          }
       }
@@ -2626,7 +2626,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
          if (!SV->isMasked[i]) {
             Sover->NodeDef[cnt] = i;
-            if (nv) nv[cnt] = V[i];               
+            if (nv) nv[cnt] = Sover->V[i];               
             ++cnt;
          }
       }
@@ -2771,7 +2771,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if ( (Opt->interpmode == SUMA_DIRECT)&& 
         (SUMA_is_Label_dset(Sover->dset_link,NULL)) ) {
       SUMA_LH("Scaling a la HASH");
-      if (!SUMA_ScaleToMap_alaHASH (V, SDSET_VECFILLED(Sover->dset_link), 
+      if (!SUMA_ScaleToMap_alaHASH (Sover->V, SDSET_VECFILLED(Sover->dset_link), 
                                     ColMap, Opt,
                                     SV) ) {
          SUMA_SL_Err("Failed in SUMA_ScaleToMap_alaHASH");
@@ -2780,7 +2780,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    } else if (Opt->alaAFNI) {
       /* a la AFNI */
       SUMA_LH("Scaling a la AFNI");
-      if (!SUMA_ScaleToMap_alaAFNI (V, SDSET_VECFILLED(Sover->dset_link),
+      if (!SUMA_ScaleToMap_alaAFNI (Sover->V, SDSET_VECFILLED(Sover->dset_link),
                               SUMA_LARG_ABS(Opt->IntRange[0], Opt->IntRange[1]), 
                                     ColMap, Opt,
                                     SV) ) {
@@ -2790,7 +2790,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    } else { 
       /* a la SUMA */
       SUMA_LHv("Scaling a la SUMA %f %f\n", Opt->IntRange[0], Opt->IntRange[1]);
-      if (!SUMA_ScaleToMap( V, SDSET_VECFILLED(Sover->dset_link),
+      if (!SUMA_ScaleToMap( Sover->V, SDSET_VECFILLED(Sover->dset_link),
                             Opt->IntRange[0], Opt->IntRange[1], 
                             ColMap, Opt,
                             SV) ){
@@ -2935,10 +2935,12 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       /* SUMA_Show_ColorOverlayPlanes (&Sover, 1, 1);  */
    }
    
+   /* update remix ID */
+   ++Sover->RemixID;
+   
    /* clean up */
    SUMA_LH("Cleanup, cleanup, everybody cleanup");
    if (T) SUMA_free(T); T = NULL;
-   if (V) SUMA_free(V); V = NULL;
    if (B) SUMA_free(B); B = NULL;
    if (SV)  SUMA_Free_ColorScaledVect (SV); SV = NULL;
    SUMA_RETURN(YUP);
@@ -5430,6 +5432,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    
 
    Sover->ColVec = (float *)SUMA_calloc(N_Alloc*3, sizeof(float));
+   Sover->RemixID = 0;
+   Sover->V = NULL;
    Sover->LocalOpacity = (float *)SUMA_calloc(N_Alloc, sizeof(float));
    Sover->LocalOpacity[0] = -1.0; /* flag indicating local facts 
                                        have not been initialized */
@@ -5444,6 +5448,14 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    if (!Recycle) {
       Sover->GlobalOpacity = -1.0; /* no factor applied */
       Sover->ShowMode = -SW_SurfCont_DsetViewCol;
+      Sover->Font = SW_SurfCont_DsetFont9;
+      Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
+      Sover->NodeRadGain = 1.0;
+      Sover->NodeCol = SW_SurfCont_DsetNodeColWhite;
+      Sover->BordFrac = SW_SurfCont_DsetGmatBord0;
+      Sover->EdgeThick = SW_SurfCont_DsetEdgeThickConst;
+      Sover->EdgeThickGain = 1.0;
+      Sover->EdgeStip = SW_SurfCont_DsetEdgeStipXXX;
       Sover->PlaneOrder = -1; /* No order is specified */
       Sover->isBackGrnd = 0; /* no brightness modulation effects */
       Sover->DimFact = 0.3;
@@ -5567,7 +5579,8 @@ SUMA_Boolean SUMA_ReleaseOverlay (SUMA_OVERLAYS * Overlays,
    -WARNING, If YOU CREATED AN INODE FOR THIS POINTER, YOU NEED TO RELASE IT BEFORE YOU FREE Sover
    Perhaps you should use SUMA_FreeOverlay (SUMA_OVERLAYS * Sover, SUMA_INODE *Sover_Inode);
    
-   If you free one overlay structure at a time, take care to make sure the plane orders still make sense
+   If you free one overlay structure at a time, take care to make sure the 
+   plane orders still make sense
 */
 SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover)
 {
@@ -5587,8 +5600,11 @@ SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover)
    Sover->FullList = -1;
    /* if (Sover->ColMat) SUMA_free2D ((char **)Sover->ColMat, Sover->N_Alloc); 
       Sover->ColMat = NULL*/
-   if (Sover->ColVec)  SUMA_free(Sover->ColVec); 
-   Sover->ColVec = NULL;
+   
+   SUMA_ifree(Sover->ColVec);
+   ++Sover->RemixID; /* Does not hurt to change it */
+   SUMA_ifree(Sover->V);
+   
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity); 
    Sover->LocalOpacity = NULL;
    
@@ -6627,13 +6643,15 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays,
             else ShowN = N_NodeDef;
          }
          SS = SUMA_StringAppend (SS,"\n");
-         sprintf (stmp,"\tindex\tR\tG\tB\tLocOp\n");
-         SS = SUMA_StringAppend (SS,stmp);
+         SS = SUMA_StringAppend_va (SS,
+                        "\tindex\tR\tG\tB\tLocOp\t\tDsetVal @RemixID %d\n",
+                        Overlays[i]->RemixID);
          for (j=0; j < ShowN; ++j) {
-            SS = SUMA_StringAppend_va (SS, "\t%d\t%.3f\t%.3f\t%.3f\t%.3f\n", 
+            SS = SUMA_StringAppend_va(SS, 
+                           "\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\t%.3f\n", 
                      NodeDef[j], Overlays[i]->ColVec[3*j], 
                      Overlays[i]->ColVec[3*j+1], Overlays[i]->ColVec[3*j+2],
-                     Overlays[i]->LocalOpacity[j]);
+                     Overlays[i]->LocalOpacity[j], Overlays[i]->V[j]);
          }
          SS = SUMA_StringAppend (SS,"\n");
          
@@ -8724,20 +8742,6 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
 
          if (LocalHead > 1) {
             SUMA_Show_ColorOverlayPlanes(&GSaux->Overlay, 1, 1); 
-         }
-         /* set the new curColPlane to the newly loaded plane,
-         you need to do this before you remix the colors in case
-         you are only showing the curColPlane.
-         curColPlane is normally set in  SUMA_InitializeColPlaneShell
-         but when SO->SurfCont->ShowCurForeOnly = YUP, curColPlane
-         is used in the RemixRedisplay function.
-         NOTE: You can't call SUMA_InitializeColPlaneShell
-         before remixing because colors are reported in Lbl block
-          June 28 04*/
-         if (MakeOverlayCurrent) {
-            SUMA_S_Warn("Need to figure out how/where current graph should"
-                        "be set. I suggest you store just the ID of the"
-                        "current graph dset");
          }
       }
       /* initialize matrix shape info */

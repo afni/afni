@@ -2515,8 +2515,8 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                      }
                   }
                   /* call the function to form labels and notify window */
-                  lbls = SUMA_GetLabelsAtNode((SUMA_ALL_DO *)SO,
-                                               SO->SelectedNode);
+                  lbls = SUMA_GetLabelsAtSelection((SUMA_ALL_DO *)SO,
+                                               SO->SelectedNode, -1);
                   if (lbls) SUMA_free(lbls); lbls = NULL;
                }
             }
@@ -5420,7 +5420,11 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
    SUMA_RETURN(YUP);
 }
 
-/* What was picked on a frame SO */
+/* What was picked on a frame SO ?
+   See SUMA_Surface_Of_NIDO_Matrix() for how surface coordinates
+   translate to matrix pixels and eventually matrix cells.
+   See also SUMA_GDSET_edgeij_to_GMATRIX_XYZ() and SUMA_DrawGraphDO_GMATRIX()
+*/
 SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
 {
    static char FuncName[]={"SUMA_WhatWasPicked_FrameSO"};
@@ -5540,14 +5544,15 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
             "     Pixel hit: %.2f %.2f %.2f\n", 
             MTI->ifacemin, MTI->P[0], MTI->P[1], MTI->P[2], M[0], M[1],
             I[0], I[1], I[2]);
+            
    for (i=0; i<3; ++i) {
       /* I[i] = I[i]/GB[i]; Account for per value gain and 
                                     background thickness */
-      I[i] = I[i]/GB[i]-0.5; /* Undo the gain to get back to matrix grid */
-      if (I[i] < -0.5 || I[i] > N[i]-0.5) IIm[i] = -1;
-      else {
-         IIm[i] = (int)SUMA_ROUND(I[i]);
-      }
+      /* Round I to get matrix pixel coordinates*/
+      I[i] = SUMA_ROUND(I[i]);
+      if (I[i] < 0) IIm[i] = -1;
+      else if (I[i] >= GB[i]*N[i]) IIm[i] = -1;
+      else IIm[i] = (int)(I[i]/GB[i]); /* Undo gain to get back to matrix grid */
    }
    
    if (ui) { /* sparse hell */
@@ -5724,7 +5729,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                      memcpy(scrxyz, ttn->pts, (ttn->N_pts3)*sizeof(float));
                      /* tranform bundle points to screen space*/
                      if (!SUMA_World2ScreenCoordsF(sv, ttn->N_pts3/3, 
-                                                  ttn->pts, scrxyz, quad, YUP)) {
+                                                  ttn->pts, scrxyz, quad, 
+                                                  YUP, YUP)) {
                         SUMA_S_Err("Failed to get screen coords");
                         SUMA_RETURN(PR);
                      }
@@ -5835,7 +5841,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                   xyzw[7] = (sv->Pick0[1]+sv->Pick1[1])/2.0;
                   xyzw[8] = (sv->Pick0[2]+sv->Pick1[2])/2.0;
 
-                  if (!SUMA_World2ScreenCoords(sv, 3, xyzw, scl, quad, YUP)) {
+                  if (!SUMA_World2ScreenCoords(sv, 3,xyzw,scl, quad, YUP, YUP)) {
                      SUMA_S_Err("Failed to get screen coords");
                      SUMA_RETURN(PR);
                   }
@@ -6228,6 +6234,7 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       /* attach the cross hair to the selected ado */
       iv3[0] = SUMA_whichDO(hit->ado_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
       iv3[1] = hit->datum_index; 
+      iv3[2] = hit->selectedEnode;
       ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
       if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                              SEF_iv3, (void*)iv3,
@@ -6482,6 +6489,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       /* attach the cross hair to the selected surface */
       iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
       iv3[1] = MTI->inodemin;
+      iv3[2] = MTI->ifacemin;
       ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
       if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                              SEF_iv3, (void*)iv3,
@@ -8903,6 +8911,7 @@ void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
    /* attach the cross hair to the selected surface */
    iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    iv3[1] = it;
+   iv3[2] = -1;
    ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_iv3, (void*)iv3,
@@ -9032,6 +9041,7 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
       Note that binding here is to edge of graph and not to a node*/
    SUMA_find_Dset_GLDO(dset,variant, iv3); /* this will set iv3[0] */
    iv3[1] = it;
+   iv3[2] = -1;
    ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_iv3, (void*)iv3,

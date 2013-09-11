@@ -988,7 +988,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->normdir = -1;  /* negative */
          break;
      case SUMA_PREDEFINED:
-         i1 = SUMA_is_predefined_SO_name((char *)SO_FileName_vp, &par);
+         i1 = SUMA_is_predefined_SO_name((char *)SO_FileName_vp, &par, 
+                                         NULL, NULL, NULL);
          switch(i1) {
             case 1:
                SO = SUMA_CreateIcosahedron(30, par, NULL, "n", 1);
@@ -3759,9 +3760,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
 	      }
 
          if (Spec->VolParName[i][0] != '\0') {
-            fprintf (SUMA_STDOUT, 
-               "Warning %s: Using Volume Parent Specified in Spec File.\n"
-               " This overrides -sv option.\n", FuncName);
+            SUMA_LH("Using Volume Parent Specified in Spec File.\n"
+                    "This overrides -sv option.");
             tmpVolParName = Spec->VolParName[i];
          }else {
             tmpVolParName = VolParName;
@@ -3854,9 +3854,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
 
       if (Spec->VolParName[i][0] != '\0') {
          if (VolParName) {
-            fprintf (SUMA_STDOUT, 
-                     "Warning %s: Using Volume Parent Specified in Spec File.\n"
-                     "This overrides -sv option.\n", FuncName);
+            SUMA_LH("Using Volume Parent Specified in Spec File.\n"
+                     "This overrides -sv option.");
          }
          tmpVolParName = Spec->VolParName[i];
       }else {
@@ -5333,6 +5332,48 @@ int SUMA_unique_name_ind( SUMA_SurfSpecFile * spec, char * sname )
     return index;
 }
 
+/* Like SUMA_unique_name_ind, but return a pointer copy to the
+   coordfile name instead.
+   An empty string is retuned in error cases or no match */
+char * SUMA_unique_name( SUMA_SurfSpecFile * spec, char * sname )
+{
+    char * nfile;
+    int    surf, index = -1;
+
+    if ( ! spec || ! sname )
+    {
+	fprintf(stderr,"** unique_name_ind: bad params (%p, %p)\n",spec,sname);
+	return ("");
+    }
+
+    for ( surf = 0; surf < spec->N_Surfs; surf++ )
+    {
+	nfile = SUMA_coord_file(spec, surf);
+
+	if ( ! nfile )
+	{
+	    fprintf(stderr,"** surf %d, no coord file\n", surf);
+	    return ("");
+	}
+
+	/* we have a match */
+	if ( strstr(nfile, sname) )
+	{
+	    if ( index >= 0 )
+	    {
+		fprintf(stderr,"** surf name %d, '%s': multiple matches\n"
+			"   '%s' and '%s'\n",
+			surf, sname, nfile, SUMA_coord_file(spec,index));
+		return ("");
+	    }
+
+	    index = surf;
+	}
+    }
+
+    return (SUMA_coord_file(spec,index));
+}
+
 /*---------------------------------------------------------------------------
  * SUMA_coord_file	  - based on the surf type, return coord file
  *								[rickr]
@@ -5366,36 +5407,188 @@ char * SUMA_coord_file( SUMA_SurfSpecFile * spec, int index )
 /*!
    return 1 if ld# surface, par takes #
           2 if rd# surface, par takes #
+          3 if template spec, par is useless
+          4 if template surface, par is useless
           0 not a prededined surface name
 */
-int SUMA_is_predefined_SO_name(char *name, int *par) 
+int SUMA_is_predefined_SO_name(char *name, int *upar,
+                               char **pdspec, char **pdsv, char **pdsname) 
 {
    static char FuncName[]={"SUMA_is_predefined_SO_name"};
-   int ldv = 0;
-   
+   int ldv = 0, tp = 0, par, StdOK=0, ii=0;
+   NI_str_array *nisa=NULL;
+   char *template=NULL, *leftover=NULL, *svname=NULL,
+         *sname=NULL, *ss=NULL, stmp[64], *specname, *spref=NULL;
+   SUMA_SO_SIDE side = SUMA_SIDE_ERROR;
+   SUMA_SurfSpecFile spec;
+   SUMA_Boolean LocalHead = NOPE;
+     
    SUMA_ENTRY;
    
-   if (!name) SUMA_RETURN(0);
-   
-   if (  (!strncmp(name,"ld",2) || !strncmp(name,"rd",2)) &&
-         strlen(name) <= 5 ) {
-         ldv = (int)atoi(name+2);
-         if (name[0]=='r' && ldv >= 0 && ldv <=100) {
-            if (par) *par = ldv;
-            SUMA_RETURN(2);  
-         }
-         if (name[0]=='l' && ldv >= 0 && ldv <=1000) {
-            if (par) *par = ldv;
-            SUMA_RETURN(1);  
-         }
+   if (!name) SUMA_RETURN(tp);
+   if (  (pdspec && *pdspec) || (pdsv && *pdsv) || (pdsname && *pdsname)) {
+      SUMA_S_Err("Must sent pointer to null char * pointer, or just NULL");
+      SUMA_RETURN(tp);
    }
-
-   SUMA_RETURN(0);
+   
+   if (upar) *upar = -1;
+   
+   if (!(nisa = SUMA_comp_str_2_NI_str_ar(name, ":"))) SUMA_RETURN(tp);
+   
+   if (nisa->num == 0) {
+      /* this should not happen... */
+      SUMA_free_NI_str_array(nisa); SUMA_RETURN(tp);
+   }
+   
+   par = -1; tp = 0; 
+   template = NULL; side = SUMA_LR; StdOK = 1;
+   leftover = NULL;
+   for (ii=0; ii<nisa->num && StdOK; ++ii) {
+      if (  (!strncmp(nisa->str[ii],"ld",2) || !strncmp(nisa->str[ii],"rd",2)) &&
+            (strlen(nisa->str[ii]) <= 5) ) { /* Look for something like ld60 */
+            ldv = (int)atoi(nisa->str[ii]+2);
+         if (*nisa->str[ii]=='r' && ldv >= 0 && ldv <=100) {
+            par = ldv;
+            tp = 2;  
+         }
+         if (*nisa->str[ii]=='l' && ldv >= 0 && ldv <=1000) {
+            par = ldv;
+            tp = 1;  
+         }
+         if (par == -1) { /* not that kind of a block, and 
+                             hence not a standard name, leave */
+            StdOK = 0;
+         }
+      } else if ( !strcmp(nisa->str[ii],"MNI_N27") ) {/* A template name */
+         template = "suma_MNI_N27";  
+         spref = "MNI_N27";   
+      } else if (!strcmp(nisa->str[ii],"TT_N27") ) {/* A template name */
+         template = "suma_TT_N27";     
+         spref = "TT_N27";   
+      } else if ( !strcasecmp(nisa->str[ii],"l") ||
+                  !strcasecmp(nisa->str[ii],"lh") ||
+                  !strcasecmp(nisa->str[ii],"left") ) { /* side */
+         side = SUMA_LEFT;
+      } else if ( !strcasecmp(nisa->str[ii],"r") ||
+                  !strcasecmp(nisa->str[ii],"rh") ||
+                  !strcasecmp(nisa->str[ii],"right") ) { /* side */
+         side = SUMA_RIGHT;
+      } else if ( !strcasecmp(nisa->str[ii],"lr") ||
+                  !strcasecmp(nisa->str[ii],"both") ||
+                  !strcasecmp(nisa->str[ii],"rl") ) {  /* side */
+         side = SUMA_LR;           
+      } else if (!leftover) { /* state/surf name, potentially */
+         leftover = nisa->str[ii];
+      } else { /* Uncool, get out */
+         StdOK = 0;
+      }
+   }
+   
+   if (!template && leftover) { /* Not a standard name */
+      SUMA_free_NI_str_array(nisa); nisa = NULL;
+      if (upar) *upar = -1;
+      SUMA_RETURN(0);
+   }
+   
+   if (!template) {
+      SUMA_free_NI_str_array(nisa); nisa = NULL;
+      if (upar) *upar = par;
+      SUMA_LHv("Command line string >>%s<< parsed to:\n"
+               "par %d, tp = %d\n",
+               name, par, tp);   
+      SUMA_RETURN(tp);
+   } else { /* now it gets complicated */
+      if (par > 0) {
+         sprintf(stmp, "std.%d.", par);
+      } else {
+         stmp[0]='\0'; 
+      }
+      specname = SUMA_append_replace_string(template,stmp,"/",0);
+      switch (side) {
+         case SUMA_LEFT:
+            specname = SUMA_append_replace_string(specname,"_lh.spec",spref,1);
+            break;
+         case SUMA_RIGHT:
+            specname = SUMA_append_replace_string(specname,"_rh.spec",spref,1);
+            break;
+         case SUMA_LR:
+            specname = SUMA_append_replace_string(specname,"_both.spec",spref,1);
+            break;
+      }
+      ss = find_afni_file(specname, 0);
+      if (ss[0] == '\0') {
+         SUMA_S_Errv("Spec file %s not found despite effort\n", specname);
+         SUMA_ifree(specname); specname = NULL;
+         SUMA_free_NI_str_array(nisa); nisa = NULL;
+         if (upar) *upar = -1;   
+         SUMA_RETURN(0);
+      } else {
+         SUMA_free(specname); specname = SUMA_copy_string(ss);
+         tp = 3;
+      }
+      svname = SUMA_append_replace_string(template,spref,"/",0);
+      svname = SUMA_append_replace_string(svname,"_SurfVol.nii","",1);
+      ss = find_afni_file(svname, 0);
+      if (ss[0] == '\0') {/* try one more time */
+         svname = SUMA_append_replace_string(svname,".gz","",1);
+         ss = find_afni_file(svname, 0);
+      }
+      if (ss[0] == '\0') {
+         SUMA_S_Warnv("No sv found for %s\n", specname);
+         SUMA_ifree(svname);
+      } else {
+         SUMA_free(svname); svname=SUMA_copy_string(ss);
+      }
+   }
+   
+   /* So now we have a template spec, do we have a request for a particular 
+      surface ? */
+   if (leftover) {
+      /* load the spec, identify the surface and set its name */
+      SUMA_AllocSpecFields(&spec);
+      if (!SUMA_Read_SpecFile (specname, &spec)) {
+         SUMA_S_Errv("Failed to read SpecFile %s\n", specname);
+         SUMA_ifree(specname); specname = NULL;
+         SUMA_free_NI_str_array(nisa); nisa = NULL;
+         if (upar) *upar = -1; 
+          SUMA_FreeSpecFields(&spec); 
+         SUMA_RETURN(0);
+      }
+      ss = SUMA_unique_name( &spec, leftover );
+      
+      if (ss[0]=='\0') {
+         SUMA_S_Errv("Failed to get %s from %s\n", leftover, specname);
+         SUMA_ifree(specname); specname = NULL;
+         SUMA_free_NI_str_array(nisa); nisa = NULL;
+         if (upar) *upar = -1;   
+         SUMA_FreeSpecFields(&spec); 
+         SUMA_RETURN(0);
+      }
+      /* OK, now we have a full surface name */
+      sname = SUMA_copy_string(ss);
+      SUMA_FreeSpecFields(&spec); 
+      
+      tp = 4;
+   }
+   
+   SUMA_LHv("Command line string >>%s<< parsed to:\n"
+            "specname %s, svname %s, sname %s, par %d, side %d, tp %d\n",
+            name, specname?specname:"NULL", svname?svname:"NULL",
+            sname?sname:"NULL", par, side, tp);
+   
+   if (pdspec) *pdspec = specname;
+   else SUMA_ifree(specname);
+   if (pdsv) *pdsv = svname;
+   else SUMA_ifree(svname);
+   if (pdsname) *pdsname = sname;
+   else SUMA_ifree(sname); 
+           
+   SUMA_RETURN(tp);
 }
 
 #define SUMA_CHECK_INPUT_SURF(name, topo, ok) {  \
    ok = 0;  \
-   if (SUMA_is_predefined_SO_name(name, NULL)) {\
+   if (SUMA_is_predefined_SO_name(name, NULL, NULL, NULL, NULL)) {\
       ok = 1; \
    } else if (SUMA_filexists(name)) {   \
       if  (!(topo)) { ok = 1; }   \

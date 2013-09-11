@@ -1147,6 +1147,60 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
    SUMA_RETURN (s);
 
 }
+
+char *SUMA_help_SPEC_symbolic(void)
+{
+   static char FuncName[]={"SUMA_help_SPEC_symbolic"};
+   char stmp[1000], *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+
+   
+   SS = SUMA_StringAppend_va (SS, 
+"     As with option -i, you can load template\n"
+"     spec files with symbolic notation trickery as in:\n"
+"                    suma -spec MNI_N27 \n"
+"     which will load the all the surfaces from template MNI_N27\n"
+"     at the original FreeSurfer mesh density.\n"
+"  The string following -spec is formatted in the following manner:\n"
+"     HEMI:TEMPLATE:DENSITY where:\n"
+"     HEMI specifies a hemisphere. Choose from 'l', 'r', 'lh', 'rh', 'lr', or\n"
+"          'both' which is the default if you do not specify a hemisphere.\n"
+"     TEMPLATE: Specify the template name. For now, choose from MNI_N27 if\n"
+"               you want surfaces from the MNI_N27 volume, or TT_N27\n"
+"               for the Talairach version.\n"
+"               Those templates must be installed under this directory:\n"
+"                 %s\n"
+"               If you have no surface templates there, download\n"
+"                 http:afni.nimh.nih.gov:/pub/dist/tgz/suma_MNI_N27.tgz\n"
+"               and/or\n"
+"                 http:afni.nimh.nih.gov:/pub/dist/tgz/suma_TT_N27.tgz\n"
+"               and untar them under directory %s\n"
+"     DENSITY: Use if you want to load standard-mesh versions of the template\n"
+"              surfaces. Note that only ld20, ld60, ld120, and ld141 are in\n"
+"              the current distributed templates. You can create other \n"
+"              densities if you wish with MapIcosahedron, but follow the\n"
+"              same naming convention to enable SUMA to find them.\n"
+"              This parameter is optional.\n"
+"     The order in which you specify HEMI, TEMPLATE, and DENSITY, does\n"
+"     not matter.\n"
+"     For template surfaces, the -sv option is provided automatically, so you\n"
+"     can have SUMA talking to AFNI with something like:\n"
+"             suma -spec MNI_N27:ld60 &\n"
+"             afni -niml %s/suma_MNI_N27 \n"
+, THD_datadir(1), THD_datadir(1), THD_datadir(0)
+);
+   
+   SS = SUMA_StringAppend (SS, NULL);   
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN (s);
+}
+
 static char PlotCommonHelp[]={
       "        Open a graphing window for the dataset\n"
       "        currently selected. The graphing window\n"
