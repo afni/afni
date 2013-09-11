@@ -2183,7 +2183,6 @@ char *find_atlas_niml_file(char * nimlname, int niname)
    RETURN(filestr[icall]);
 }
 
-
 /* read various NIML files for atlas information*/
 int init_global_atlas_from_niml_files()
 {

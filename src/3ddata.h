@@ -4135,7 +4135,10 @@ extern char *THD_afnirc(void);
 extern char *THD_custom_atlas_file(char *name);
 extern char *THD_helpdir(byte withslash);
 extern char *THD_get_helpdir(byte withslash);
+extern char *THD_datadir(byte withslash);
+extern char *THD_get_datadir(byte withslash);
 extern char *THD_abindir(byte withslash);
+extern char *find_afni_file(char * nimlname, int niname);
 char *THD_helpsearchlog(int createpath);
 
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;

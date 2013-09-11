@@ -862,7 +862,7 @@ static byte NI_GOT;
    if (m_s) { NI_GOT = 1; val = atoi(m_s); } else { NI_GOT = 0; val = 0; }\
 }
 #define NI_SET_INTv(ngr, name, valv, n) {\
-   char m_stmp[400]; int m_i=0, m_s=0; m_stmp[0] = '\0';\
+   char m_stmp[400]={""}; int m_i=0, m_s=0; m_stmp[0] = '\0';\
    for (m_i=0; m_i<n && m_s < 350; ++m_i) { \
       sprintf(m_stmp+m_s, " %d", valv[m_i]);   \
       m_s = strlen(m_stmp);  \
@@ -1919,6 +1919,9 @@ byte SUMA_GDSET_PointsToSegIndex(SUMA_DSET *dset, int i1, int i2, int *si);
 byte SUMA_GDSET_SegRowToPoints(SUMA_DSET *dset, int ri, 
                                  int *i1, int *i2, int *index);
 byte SUMA_GDSET_PointsToSegRow(SUMA_DSET *dset, int i1, int i2, int *ri);
+byte SUMA_GDSET_PointToDiagSegRowIndex(SUMA_DSET *dset,int i1, int *ri, int *si);
+byte SUMA_GDSET_PointToDiagSegIndex(SUMA_DSET *dset, int i1, int *si);
+byte SUMA_GDSET_PointToDiagSegRow(SUMA_DSET *dset, int i1, int *ri);
 SUMA_SQ_MATRIX_SHAPES SUMA_matrix_shape_name_to_matrix_shape(char *name); 
 char * SUMA_matrix_shape_to_matrix_shape_name(SUMA_SQ_MATRIX_SHAPES sq);
 int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals, NI_element **);
@@ -1929,6 +1932,8 @@ int SUMA_GDSET_NodeIndex_To_Index(SUMA_DSET *dset, int node);
 int SUMA_GDSET_EdgeIndex_To_Row(SUMA_DSET *dset, int ei);
 int SUMA_GDSET_EdgeRow_To_Index(SUMA_DSET *dset, int ri);
 int SUMA_GDSET_Max_Edge_Index(SUMA_DSET *dset);
+char *SUMA_GDSET_Node_Label(SUMA_DSET *dset, int psel);
+char *SUMA_GDSET_Edge_Label(SUMA_DSET *dset, int isel, char *pref, char *sep);
 
 
 #endif

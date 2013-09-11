@@ -13446,7 +13446,7 @@ char * SUMA_file_suck( char *fname , int *nread )
    ii = read( fd , buf , len ) ;
    close( fd ) ;
    if( ii <= 0 ){ SUMA_free(buf) ; buf = NULL; SUMA_RETURN(buf); }
-   *nread = ii ; SUMA_RETURN(buf) ;
+   *nread = ii ; buf[ii]='\0'; SUMA_RETURN(buf) ;
 }
 
 
@@ -14502,6 +14502,82 @@ byte SUMA_GDSET_PointsToSegIndex(SUMA_DSET *dset, int i1, int i2, int *si)
    
 }
 
+byte SUMA_GDSET_PointToDiagSegIndex(SUMA_DSET *dset, int i1, int *si)
+{
+   static char FuncName[]={"SUMA_GDSET_PointToDiagSegIndex"};
+   
+   *si = -1;
+   if (i1 < 0) return(0);
+   switch (dset->Aux->matrix_shape) {
+      case MAT_FULL:
+         if (i1 >= dset->Aux->matrix_size[0]) return(0);
+         *si = i1+i1*dset->Aux->matrix_size[0]; return(1);
+         break;
+      case MAT_TRI:
+         /* No diags elems here */
+         return(0);
+         break;
+      case MAT_TRI_DIAG:
+         if (i1 >= dset->Aux->matrix_size[0]) return(0);
+         *si = SUMA_CItri_ij2p_diag(i1,i1,dset->Aux->matrix_2M);
+         return(1);
+         break;
+      case MAT_SPARSE: { int is, *p1, *p2, *p0;
+         /* This will be a slow slog unless I create a points to edge list */
+         p1 = (int*)(dset->inel->vec[1]);
+         p2 = (int*)(dset->inel->vec[2]);
+         p0 = (int*)(dset->inel->vec[0]);
+         for (is=0; is < dset->inel->vec_len; ++is) {
+            if (p1[is]==i1 && p2[is]==i1) { *si = p0[is]; return(1); }
+         }
+         break; }
+   }
+      
+   return(0);
+   
+}
+
+byte SUMA_GDSET_PointToDiagSegRowIndex(SUMA_DSET *dset, int i1, int *ri, int *si)
+{
+   static char FuncName[]={"SUMA_GDSET_PointToDiagSegRowIndex"};
+   
+   *si = -1; *ri = -1;
+   if (i1 < 0) return(0);
+   switch (dset->Aux->matrix_shape) {
+      case MAT_FULL:
+         if (i1 >= dset->Aux->matrix_size[0]) return(0);
+         *si = i1+i1*dset->Aux->matrix_size[0]; return(1);
+         *ri = *si;
+         break;
+      case MAT_TRI:
+         /* No diags elems here */
+         return(0);
+         break;
+      case MAT_TRI_DIAG:
+         if (i1 >= dset->Aux->matrix_size[0]) return(0);
+         *si = SUMA_CItri_ij2p_diag(i1,i1,dset->Aux->matrix_2M);
+         *ri = *si;
+         return(1);
+         break;
+      case MAT_SPARSE: { int is, *p1, *p2, *p0;
+         /* This will be a slow slog unless I create a points to edge list */
+         p1 = (int*)(dset->inel->vec[1]);
+         p2 = (int*)(dset->inel->vec[2]);
+         p0 = (int*)(dset->inel->vec[0]);
+         for (is=0; is < dset->inel->vec_len; ++is) {
+            if (p1[is]==i1 && p2[is]==i1) { 
+               *si = p0[is]; 
+               *ri = is;
+               return(1); 
+            }
+         }
+         break; }
+   }
+      
+   return(0);
+   
+}
+
 /*
 \sa SUMA_GDSET_PointsToSegIndex
 */
@@ -14543,6 +14619,39 @@ byte SUMA_GDSET_PointsToSegRow(SUMA_DSET *dset, int i1, int i2, int *ri)
    
 }
 
+byte SUMA_GDSET_PointToDiagSegRow(SUMA_DSET *dset, int i1, int *ri)
+{
+   static char FuncName[]={"SUMA_GDSET_PointToDiagSegRow"};
+   
+   *ri = -1;
+   if (i1 < 0) return(0);
+   switch (dset->Aux->matrix_shape) {
+      case MAT_FULL:
+         if (i1 >= dset->Aux->matrix_size[0]) return(0);
+         *ri = i1+i1*dset->Aux->matrix_size[0]; return(1);
+         break;
+      case MAT_TRI:
+         /* No diagonal entries here */
+         return(0);
+         break;
+      case MAT_TRI_DIAG:
+         if (i1 >= dset->Aux->matrix_size[0]) return(0);
+         *ri = SUMA_CItri_ij2p_diag(i1,i1,dset->Aux->matrix_2M);
+         return(1);
+         break;
+      case MAT_SPARSE: { int is, *p1, *p2;
+         /* This will be a slow slog unless I create a points to edge list */
+         p1 = (int*)(dset->inel->vec[1]);
+         p2 = (int*)(dset->inel->vec[2]);
+         for (is=0; is < dset->inel->vec_len; ++is) {
+            if (p1[is]==i1 && p2[is]==i1) { *ri = is; return(1); }
+         }
+         break; }
+   }
+      
+   return(0);
+   
+}
 
 /* From a node index, find the row where that node index is listed
 in the node list */
@@ -14553,6 +14662,7 @@ int SUMA_GDSET_NodeIndex_To_Index(SUMA_DSET *dset, int node)
    if (node < 0) return(node);
    I = SUMA_GDSET_GetPointIndexColumn(dset, &N_vals, NULL);
    if (N_vals == -2) return(-1); /* error */
+   if (N_vals == -1) return(node); /* implicit list ! */
    return(SUMA_NodeIndex_To_Index(I, N_vals, node));
 }
 
@@ -14719,6 +14829,86 @@ char **SUMA_GDSET_GetPointNamesColumn(SUMA_DSET *dset, int *N_vals,
    SUMA_RETURN(I);
 }
 
+/* Get the name of an edge in a graph dset
+   DO FREE the result */
+char *SUMA_GDSET_Edge_Label(SUMA_DSET *dset, int isel, char *pref, char *sep)
+{
+   static char FuncName[]={"SUMA_GDSET_Edge_Label"};
+   int *inde, *ind0, *ind1, i1, i2;
+   char *ans=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || isel < 0) SUMA_RETURN(NULL);
+   if (!sep) sep = ",";
+   
+   if (isel <= SUMA_GDSET_Max_Edge_Index(dset)) {
+      SDSET_EDGE_NODE_INDEX_COLS(dset, inde, ind0, ind1);
+      if (!ind0 || !ind1 || !inde) {
+         SUMA_LH("No explicit node idexing information");
+         SUMA_RETURN(NULL);
+      }
+      if (inde[isel] != isel) {
+         SUMA_LHv("Hard way for segment index %d: i1=%d, i2 = %d\n",
+                        isel, i1, i2);         
+         /* Fetch the indices of the nodes forming the edge */
+         if (!SUMA_GDSET_SegIndexToPoints(dset, isel, &i1, &i2, NULL)) {
+            SUMA_S_Errv("Failed to locate nodes of edge %d on dset %s\n",
+                        isel, SDSET_LABEL(dset));
+            SUMA_RETURN(NULL);
+         }
+      } else { /* the easy way */
+         SUMA_LHv("Easy way: inde[%d]=%d [%d %d]\n",
+                  isel, inde[isel], ind0[isel], ind1[isel]);
+         i1 = ind0[isel];
+         i2 = ind1[isel];
+      }
+      
+      if (i1 < 0 || i2 < 0) SUMA_RETURN(NULL);
+      
+      if (!pref) {
+         ans = SUMA_copy_string(SUMA_GDSET_Node_Label(dset, i1));
+      } else {
+         ans = SUMA_append_replace_string(pref, 
+                     SUMA_GDSET_Node_Label(dset, i1),"", 0);
+      }
+      ans = SUMA_append_replace_string(ans, 
+                        SUMA_GDSET_Node_Label(dset, i2), sep ,1);
+      
+      SUMA_LHv("label for edge %d [%d %d] on %s is: %s from (%s %s)\n", 
+                isel, i1, i2, SDSET_LABEL(dset), ans?ans:"NULL",
+             SUMA_GDSET_Node_Label(dset, i1), SUMA_GDSET_Node_Label(dset, i2));
+   } else {
+      SUMA_LHv("isel=%d, veclen=%d, max edge index %d\n", 
+               isel, SDSET_VECLEN(dset), SUMA_GDSET_Max_Edge_Index(dset));
+   }
+   
+   SUMA_RETURN(ans);
+}
+
+/* Get the name label for a graph dset node 
+   Do not free returned string */
+char *SUMA_GDSET_Node_Label(SUMA_DSET *dset, int psel)
+{
+   static char FuncName[]={"SUMA_GDSET_Node_Label"};
+   int ii, iname; 
+   char **names= NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || psel < 0) SUMA_RETURN(NULL);
+   
+   if (!(names = SUMA_GDSET_GetPointNamesColumn(dset, &ii, NULL))) {
+      if (ii == -2) SUMA_S_Err("No names!!");
+      SUMA_RETURN(NULL);
+   }
+
+   iname = SUMA_GDSET_NodeIndex_To_Index(dset, psel);
+   if (iname >= 0) SUMA_RETURN(names[iname]);
+   
+   SUMA_RETURN(NULL);
+}
 
 NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset)
 {

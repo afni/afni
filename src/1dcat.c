@@ -13,7 +13,7 @@ int main( int argc , char * argv[] )
    MRI_IMAGE **inim ;
    float *far;
    char *formatstr=NULL, *sel=NULL, *fname=NULL;
-   int nonconst=0 , ncol,ncold , cc , nonfixed=0 ;
+   int nonconst=0 , ncol,ncold , cc , nonfixed=0 , stack=0;
    intvec *ncv=NULL ;
    char *hline=NULL ;
 
@@ -39,23 +39,29 @@ int main( int argc , char * argv[] )
 "\n"
 "OPTIONS:\n"
 "--------\n"
-"The '-nonconst' option indicates that columns that are identically\n"
-"constant should be omitted from the output.\n"
+"  -nonconst: Columns that are identically constant should be omitted\n"
+"             from the output.\n"
 "\n"
-"The '-nonfixed' option indicates to keep only columns that are\n"
-"marked as 'free' in the 3dAllineate header from '-1Dparam_save'.\n"
-"If there is no such header, all columns are kept.\n"
+"  -nonfixed: Keep only columns that are marked as 'free' in the \n"
+"             3dAllineate header from '-1Dparam_save'.\n"
+"             If there is no such header, all columns are kept.\n"
 "\n"
-"The '-form' option indicates the format of the numbers to be output.\n"
-"For help on -form's usage, see ccalc's help for the option of the same name.\n"
+"  -form FORM: Format of the numbers to be output.\n"
+"              You can also substitute -form FORM with shortcuts such \n"
+"              as -i, -f, or -c.\n"
+"              For help on -form's usage, and its shortcut versions\n"
+"              see ccalc's help for the option of the same name. \n"
 "\n"
-"The '-sel SEL' options allows you to apply the same column/row selection\n"
-"string to all of the filenames on the command line.\n"
-"For example 1dcat -sel '[0,2]' f1.1D f2.1D\n"
-"is the same as: 1dcat f1.1D'[1,2]' f2.1D'[1,2]'\n"
-"the advantage of the option is that it allows wildcard use\n"
-"in file specification so that you can run something like:\n"
-"  1dcat -sel '[0,2]' f?.1D\n"
+"  -stack: Stack the columns of the resultant matrix in the output.\n"
+"\n"
+"  -sel SEL: Apply the same column/row selection string to all filenames\n"
+"            on the command line.\n"
+"            For example:\n"
+"              1dcat -sel '[0,2]' f1.1D f2.1D\n"
+"            is the same as: 1dcat f1.1D'[1,2]' f2.1D'[1,2]'\n"
+"            The advantage of the option is that it allows wildcard use\n"
+"            in file specification so that you can run something like:\n"
+"              1dcat -sel '[0,2]' f?.1D\n"
 "\n"
 "EXAMPLE:\n"
 "--------\n"
@@ -74,6 +80,7 @@ int main( int argc , char * argv[] )
    /* do we have any options? */
    oform = CCALC_NOT_SET; 
    sel = NULL;
+   stack = 0;
    narg = 1;
    while (narg < argc && argv[narg][0] == '-') {
 
@@ -84,7 +91,11 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[narg],"-nonfixed",7) == 0 ){  /* 06 Dec 2010 */
         nonfixed++ ; narg++ ; continue ;
       }
-
+      
+      if( strncmp(argv[narg],"-stack",6) == 0 ){  /* 05 Sep 2013 */
+        stack = 1 ; narg++ ; continue ;
+      }
+      
       if (strcmp(argv[narg],"-form") == 0) {
          ++narg;
          if (narg >= argc)  {
@@ -209,29 +220,54 @@ int main( int argc , char * argv[] )
 
    nx = inim[0]->nx ;
 
-   if (oform == CCALC_NOT_SET) {
-      for( ii=0 ; ii < nx ; ii++ ){
+   if (stack) {
+      if (oform == CCALC_NOT_SET) {
          for( cc=jj=0 ; jj < nim ; jj++ ){
             far = MRI_FLOAT_PTR(inim[jj]) ;
             for( kk=0 ; kk < inim[jj]->ny ; kk++,cc++ ){
-               if( ncv == NULL || ncv->ar[cc] )
-                 printf(" %g", far[ii+kk*nx] ) ; 
-              /* printf(" %+.2f", far[ii+kk*nx] ) ;*/
+               for( ii=0 ; ii < nx ; ii++ ){
+                  if( ncv == NULL || ncv->ar[cc] )
+                    printf(" %g\n", far[ii+kk*nx] ) ; 
+               }
             }
          }
-         printf("\n") ;
+      } else {
+         for( cc=jj=0 ; jj < nim ; jj++ ){
+            far = MRI_FLOAT_PTR(inim[jj]) ;
+            for( kk=0 ; kk < inim[jj]->ny ; kk++,cc++ ){
+               for( ii=0 ; ii < nx ; ii++ ){
+                  if( ncv == NULL || ncv->ar[cc] )
+                    printf(" %s\n", 
+                        format_value_4print(far[ii+kk*nx], oform, formatstr )); 
+               }
+            }
+         }
       }
    } else {
-      for( ii=0 ; ii < nx ; ii++ ){
-         for( cc=jj=0 ; jj < nim ; jj++ ){
-            far = MRI_FLOAT_PTR(inim[jj]) ;
-            for( kk=0 ; kk < inim[jj]->ny ; kk++,cc++ ){
-               if( ncv == NULL || ncv->ar[cc] )
-                 printf(" %s", 
-                        format_value_4print(far[ii+kk*nx], oform, formatstr )); 
+      if (oform == CCALC_NOT_SET) {
+         for( ii=0 ; ii < nx ; ii++ ){
+            for( cc=jj=0 ; jj < nim ; jj++ ){
+               far = MRI_FLOAT_PTR(inim[jj]) ;
+               for( kk=0 ; kk < inim[jj]->ny ; kk++,cc++ ){
+                  if( ncv == NULL || ncv->ar[cc] )
+                    printf(" %g", far[ii+kk*nx] ) ; 
+                 /* printf(" %+.2f", far[ii+kk*nx] ) ;*/
+               }
             }
+            printf("\n") ;
          }
-         printf("\n") ;
+      } else {
+         for( ii=0 ; ii < nx ; ii++ ){
+            for( cc=jj=0 ; jj < nim ; jj++ ){
+               far = MRI_FLOAT_PTR(inim[jj]) ;
+               for( kk=0 ; kk < inim[jj]->ny ; kk++,cc++ ){
+                  if( ncv == NULL || ncv->ar[cc] )
+                    printf(" %s", 
+                        format_value_4print(far[ii+kk*nx], oform, formatstr )); 
+               }
+            }
+            printf("\n") ;
+         }
       }
    }
    exit(0) ;
