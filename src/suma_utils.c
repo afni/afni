@@ -3572,7 +3572,7 @@ SUMA_Boolean SUMA_Set_Sub_String(char **cs, char *sep, int ii, char *str)
    static char FuncName[]={"SUMA_Set_Sub_String"};
    NI_str_array *nisa=NULL;
    char *s = NULL, act[64];
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -3586,7 +3586,7 @@ SUMA_Boolean SUMA_Set_Sub_String(char **cs, char *sep, int ii, char *str)
    }  
    sprintf(act,"c%d",ii);
    nisa = SUMA_NI_decode_string_list( *cs , sep );
-   /* SUMA_LHv("act: >>%s<< >>%s<< >>%s<< >>%s<<\n", act, *cs, sep, str); */
+   /*SUMA_LHv("act: >>%s<< >>%s<< >>%s<< >>%s<<\n", act, *cs, sep, str);*/ 
    nisa = SUMA_NI_str_array(nisa,str,act);
    SUMA_free(*cs); 
    *cs = SUMA_NI_str_ar_2_comp_str(nisa, sep);

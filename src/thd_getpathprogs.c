@@ -142,6 +142,117 @@ ENTRY("THD_find_regular_file") ;
    RETURN(NULL) ;
 }
 
+/* find a file somewhere afniish */
+char *find_afni_file(char * nimlname, int niname)
+{
+   static char filestr[5][1024];
+   static int icall = -1;
+   static char *envlist[]={"AFNI_PLUGINPATH",
+                           "AFNI_PLUGIN_PATH", 
+                           "AFNI_TTAPATH", 
+                           "AFNI_TTATLAS_DATASET", NULL };
+   char namebuf[1024];
+   char *fstr, *epath, *abpath=NULL;
+   int kk = 0;
+   
+   ENTRY("find_afni_file");
+   
+   ++icall; if (icall > 4) icall = 0;
+   filestr[icall][0]='\0';
+   namebuf[0] = '\0';
+   
+   if(wami_verb() > 1) 
+      INFO_message("trying to open %s \n",nimlname);   
+   snprintf(namebuf, 1000*sizeof(char),
+             "%s", nimlname);  
+   if (THD_is_file(namebuf)) goto GOTIT;
+   
+   if(wami_verb() > 1) 
+      INFO_message("%s not found, trying different paths, if no path is set.\n"
+                     ,nimlname);   
+   
+   if (nimlname[0] == '/') { /* not found and have abs path, get out */
+      RETURN(filestr[icall]);
+   }
+     
+   /* okay that didn't work, try the AFNI plugin directory */
+   kk = 0;
+   while (envlist[kk]) {
+      namebuf[0]='\0';
+                          epath = getenv(envlist[kk]) ;
+      if( epath == NULL ) epath = getenv(envlist[kk]) ;
+      if( epath != NULL ) {
+         if(wami_verb() > 1) 
+            INFO_message("trying to open %s in %s directory %s\n",
+                 nimlname, envlist[kk], epath);   
+         fstr = THD_find_regular_file(nimlname, epath);
+         if(fstr) {
+            if(wami_verb() > 1)
+               INFO_message("found %s in %s", nimlname, fstr);
+            snprintf(namebuf, 1000*sizeof(char), "%s", fstr);
+            if (THD_is_file(namebuf)) goto GOTIT;
+            if(wami_verb() > 1) 
+               INFO_message("failed to open %s as %s\n",
+                            nimlname, namebuf);  
+         }
+      }
+      ++kk;
+   }
+
+   /* Look in AFNI data directory */
+   namebuf[0]='\0';
+   epath = THD_datadir(1);
+   if( epath[0] == '\0' ) RETURN(filestr[icall]) ;  /* should not happen */
+   if(wami_verb() > 1) 
+      INFO_message("trying to open %s in path as regular file\n  %s\n",
+                     nimlname, epath);   
+
+   fstr = THD_find_regular_file(nimlname, epath);
+   if(fstr) {
+      if(wami_verb() > 1)
+         INFO_message("found %s in %s", nimlname, fstr);
+      snprintf(namebuf, 1000*sizeof(char), "%s", fstr);
+      if (THD_is_file(namebuf)) goto GOTIT;
+      if(wami_verb() > 1) 
+         INFO_message("failed to open %s as %s\n",
+                      nimlname, namebuf);  
+   }
+   
+   /* still can't find it. Maybe it's in the afni path */ 
+   namebuf[0]='\0';
+   abpath = THD_abindir(1);
+   if( abpath == NULL ) RETURN(filestr[icall]) ;  /* bad-who has no afni?*/
+   if(wami_verb() > 1) 
+      INFO_message("trying to open %s in path as regular file\n  %s\n",
+                     nimlname, abpath);   
+
+   fstr = THD_find_regular_file(nimlname, abpath);
+   if(fstr) {
+      if(wami_verb() > 1)
+         INFO_message("found %s in %s", nimlname, fstr);
+      snprintf(namebuf, 1000*sizeof(char), "%s", fstr);
+      if (THD_is_file(namebuf)) goto GOTIT;
+      if(wami_verb() > 1) 
+         INFO_message("failed to open %s as %s\n",
+                      nimlname, namebuf);  
+   }
+   
+   if (abpath) free(abpath);
+   RETURN(filestr[icall]);
+   
+   GOTIT:
+   if (niname) {
+      snprintf(filestr[icall], 1000*sizeof(char),
+               "file:%s", namebuf);
+   } else {
+      snprintf(filestr[icall], 1000*sizeof(char),
+               "%s", namebuf);
+   }
+
+   if (abpath) free(abpath);
+   RETURN(filestr[icall]);
+}
+
 /*===========================================================================*/
 /*! Return a list of all executable files in the PATH and the dlist. */
 
