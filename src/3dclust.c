@@ -286,7 +286,7 @@ int main( int argc , char * argv[] )
   "Explanation of 3dclust Output:                                          \n"
   "-----------------------------                                           \n"
   "                                                                        \n"
-  "   Volume       : Volume that makes us the cluster, in microliters (mm^3)\n"
+  "   Volume       : Volume that makes up the cluster, in microliters (mm^3)\n"
   "                  (or the number of voxels, if -dxyz=1 is given)        \n"
   "                                                                        \n"
   "   CM RL        : Center of mass (CM) for the cluster in the Right-Left \n"
