@@ -136,14 +136,17 @@ sets the select color of the widget to its foreground color */
                   "%s: Setting up matrix mode and perspective ...\n", \
                   FuncName); \
       if (csv->FOV[csv->iState] < 0.00001) { \
-         SUMA_S_Warnv("Fov (%f) seems messed up, resetting to %f\n",\
-            csv->FOV[csv->iState], FOV_INITIAL);   \
+         /* This can happen when only Non-SO objects are loaded
+            Just do nothing  without fanfare */ \
+         SUMA_LHv("Fov (%f) seems messed up, ignoring call\n",\
+            csv->FOV[csv->iState]);   \
+      }  else {\
+         glMatrixMode (GL_PROJECTION); \
+         glLoadIdentity ();   \
+         gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, \
+                        SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); \
+                        /*lower angle is larger zoom,*/   \
       }  \
-      glMatrixMode (GL_PROJECTION); \
-      glLoadIdentity ();   \
-      gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, \
-                     SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); \
-                     /*lower angle is larger zoom,*/   \
    }  else { \
       GLdouble m_sz = \
          0.5 *tan(SUMA_PI * csv->FOV[csv->iState] / 180.0) * \
@@ -196,6 +199,8 @@ sets the select color of the widget to its foreground color */
    } else if (m_j == SUMA_2D_Z0L) { \
       m_a[0] = 0.0; m_a[1] = 0.0; m_a[2] = 1.0; \
       axis_to_quat(m_a, SUMA_PI, sv->GVS[m_j].currentQuat); \
+   } else if (m_j == SUMA_3D_Z0) { \
+      SUMA_HOME_QUAT(SUMA_3D_Z0, sv->GVS[m_j].currentQuat); \
    } \
 }
 
@@ -355,10 +360,23 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data,
 void SUMA_cb_SetTransMode(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int update_menu) ;
+int SUMA_SetDsetFont(SUMA_ALL_DO *ado, int imenu, int updatemenu);
+int SUMA_SetDsetNodeRad(SUMA_ALL_DO *ado, int imenu, int updatemenu);
+int SUMA_SetDsetNodeCol(SUMA_ALL_DO *ado, int imenu, int updatemenu);
 void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
                               XtPointer call_data);
+void SUMA_cb_SetDsetFont(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+void SUMA_cb_SetDsetNodeCol(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+void SUMA_cb_SetDsetNodeRad(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+void SUMA_cb_SetDsetGmatBord(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+int SUMA_SetDsetGmatBord(SUMA_ALL_DO *ado, int imenu, int updatemenu);
 void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data);
-void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer client_data, 
+                                XtPointer call_data);
 void SUMA_CreateDrawROIWindow(void);
 SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
 SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
@@ -390,8 +408,10 @@ void SUMA_DrawROI_NewLabel (void * data);
 void SUMA_ATF_change_value (XtPointer client_data, XtIntervalId *id);
 void SUMA_ATF_start_stop (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_DrawROI_NewValue (void * data);
-void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, 
+                               XtPointer call_data);
 void SUMA_ATF_SetString (SUMA_ARROW_TEXT_FIELD * AF);
+void SUMA_ATF_GetString (SUMA_ARROW_TEXT_FIELD * AF, char *sbuf);
 void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF);
 void SUMA_ATF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_leave_EV( Widget w , XtPointer client_data ,
@@ -421,20 +441,24 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (
                                           XtPointer calldata), 
                      void *CloseListData);
 SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Data, void *Select_Data, void *CloseList_Data); 
-void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partial, 
-                                  SUMA_LIST_WIDGET *LW);
+void SUMA_CreateScrolledList (char **clist, int N_clist, SUMA_Boolean Partial, 
+                              SUMA_LIST_WIDGET *LW);
 void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data);
-void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer call_data);
-void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtPointer call_data);
-SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title, SUMA_SELECTION_DIALOG_STRUCT **dlg);
+void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, 
+                                    XtPointer call_data);
+void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, 
+                                    XtPointer call_data);
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title, 
+                                          SUMA_SELECTION_DIALOG_STRUCT **dlg);
 SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (
    Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
    void (*SelectCallback)(char *filename, void *data), void *SelectData,
    void (*CancelCallback)(void *data), void *CancelData,
    char *FilePattern,
    SUMA_SELECTION_DIALOG_STRUCT *dlg);
-void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_FileSelection_Unmap_cb (Widget w, XtPointer client_data, 
+                                  XtPointer call_data);
 void SUMA_FreeFileSelectionDialogStruct(SUMA_SELECTION_DIALOG_STRUCT *dlg);
 SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (
    SUMA_PROMPT_MODE Mode, char *TextFieldLabel, 
@@ -458,7 +482,8 @@ void SUMA_PromptHelp_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt);
-void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data, XtPointer client_data);
+void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data, 
+                                                      XtPointer client_data);
 void SUMA_cb_SurfCont_SwitchPage (void *data);
 void SUMA_cb_ColPlane_NewOrder (void *data);
 int SUMA_ColPlane_NewOrder     (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
@@ -475,6 +500,11 @@ int SUMA_ColPlane_NewDimFact     (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  float newdimfact, int cb_direct);
 int SUMA_ColPlane_NewDimFact_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  float newdimfact, int cb_direct);
+int SUMA_ColPlane_NewNodeRadGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+                                       float newdimfact, int cb_direct);
+int SUMA_ColPlane_NewNodeRadGain (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+                              float newdimfact, int cb_direct);
+void SUMA_cb_ColPlane_NewNodeRadGain (void *data);
 
 void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, 
                                    XtPointer client_data);
@@ -487,7 +517,8 @@ int SUMA_ColPlaneShowOneFore_Set_one (SUMA_ALL_DO *ado, SUMA_Boolean state,
 void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data);
-void SUMA_cb_SurfCont_SwitchColPlane(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_SurfCont_SwitchColPlane(Widget w, XtPointer data, 
+                                                         XtPointer client_data);
 void SUMA_cb_CloseSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data);
 int SUMA_SelectSwitchColPlane(SUMA_ALL_DO *ado, 
@@ -545,10 +576,11 @@ int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
                                           int inode, double *dd);
 SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, 
                               double *WorldList, double *ScreenList, int *Quad, 
-                              SUMA_Boolean ApplyXform);
+                              SUMA_Boolean ApplyXform, SUMA_Boolean ScreenY);
 SUMA_Boolean SUMA_World2ScreenCoordsF (
                      SUMA_SurfaceViewer *sv, int N_List, float *WorldList, 
-                     float *ScreenList, int *Quad, SUMA_Boolean ApplyXform);
+                     float *ScreenList, int *Quad, 
+                     SUMA_Boolean ApplyXform, SUMA_Boolean ScreenY);
 SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, 
                                                 int x1, int y1, int meth);
 void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, 
@@ -573,6 +605,25 @@ int SUMA_RenderMode2RenderModeMenuItem(int Mode);
 int SUMA_TransMode2TransModeMenuItem(int Mode);
 int SUMA_ShowMode2ShowModeMenuItem(int Mode);
 int SUMA_ShowModeStr2ShowModeMenuItem(char *str); 
+int SUMA_Font2FontMenuItem(int Mode);
+int SUMA_FontStr2FontMenuItem(char *str); 
+void * SUMA_Font2GLFont(int Mode);
+int SUMA_NodeRad2NodeRadMenuItem(int Mode);
+int SUMA_NodeRadStr2NodeRadMenuItem(char *str);
+int SUMA_NodeCol2NodeColMenuItem(int Mode);
+int SUMA_NodeColStr2NodeColMenuItem(char *str);
+float *SUMA_NodeCol2Col(int Mode, float *here);
+void SUMA_cb_SetDsetEdgeStip(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+int SUMA_SetDsetEdgeStip(SUMA_ALL_DO *ado, int imenu, int updatemenu); 
+void SUMA_cb_SetDsetEdgeThick(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+int SUMA_SetDsetEdgeThick(SUMA_ALL_DO *ado, int imenu, int updatemenu);
+int SUMA_ColPlane_NewEdgeThickGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+                                       float newdimfact, int cb_direct);
+int SUMA_ColPlane_NewEdgeThickGain (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+                              float newdimfact, int cb_direct);
+void SUMA_cb_ColPlane_NewEdgeThickGain (void *data);
 
 
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
@@ -904,6 +955,12 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i);
 
 #define SUMA_SurfCont_ColPlaneDim_hint \
    "Dimming factor to apply to colormap." \
+
+#define SUMA_SurfCont_NodeRadGain_hint \
+   "Gain factor to apply to node radius." \
+
+#define SUMA_SurfCont_EdgeThickGain_hint \
+   "Gain factor to apply to edge thickness." \
 
 #define SUMA_SurfCont_ColPlaneOrder_hint \
    "Order of Dset's colorplane." \

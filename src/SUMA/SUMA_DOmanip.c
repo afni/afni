@@ -383,6 +383,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
    static int nm=0;
    void *eo=NULL;
    int ieo;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -404,7 +405,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
       if (DO_Type == VO_type) {
          SUMA_S_Warn("Replacing volume object, might get complicated...");
       }
-      if (!(nm % 300)) {
+      if (LocalHead && !(nm % 300)) {
          SUMA_SL_Note( "Object exists and will be replaced.\n"
                         "Message shown intermittently");
       }
@@ -501,6 +502,12 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
    
    SUMA_ENTRY;
    
+   if (dov_id < 0) {
+      SUMA_S_Err("A negative dov_id!");
+      SUMA_DUMP_TRACE("Negative dov_id bro? What gives?");
+      SUMA_RETURN(NOPE);
+   }
+   
    if (!cSVu) { /* Do this for all viewers */
       SUMA_LHv("Working all %d svs\n", SUMA_MAX_SURF_VIEWERS);
       icsvmin = 0; icsvmax=SUMA_MAX_SURF_VIEWERS;
@@ -519,6 +526,18 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
    while (icsv < icsvmax) {
       cSV = &(SUMAg_SVv[icsv]);
       
+      #if 0
+      if (LocalHead) {
+         /* scan for trouble */
+         for (i=0; i<cSV->N_DO; ++i) {
+            if (cSV->RegisteredDO[i] < 0) {
+               SUMA_DUMP_TRACE("What the what?");
+               exit(1);
+            }
+         }
+      }
+      #endif
+
       if (LocalHead && 
           SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
          fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", 
@@ -538,6 +557,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                                          dov_id) >= 0) { /* found, do nothing */
                goto NEXT_CSV;
             }
+            /* Not yet registered so add it */
             cSV->RegisteredDO[cSV->N_DO] = dov_id;
             cSV->N_DO += 1;
             
@@ -601,7 +621,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                                          cSV->RegisteredDO+cSV->N_DO,
                                          dov_id));
                   }
-                  SUMA_LH("Adding color list...");
+                  SUMA_LH("Adding color list (if necessary)...");
                   /* add the ColorList */
                   if (!SUMA_FillColorList (cSV,
                                  (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {

@@ -1,7 +1,8 @@
 #ifndef SUMA__INCLUDED
 #define SUMA__INCLUDED
 
-int SUMA_is_predefined_SO_name(char *name, int *par);
+int SUMA_is_predefined_SO_name(char *name, int *par,
+                               char **pdspec, char **pdsv, char **pdsname);
 SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec);
 SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec);
 SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
@@ -57,6 +58,7 @@ int    SUMA_copy_spec_entries( SUMA_SurfSpecFile * spec0,
                                SUMA_SurfSpecFile *spec1,
                                int i0, int i1, int debug);
 int    SUMA_unique_name_ind   ( SUMA_SurfSpecFile * spec, char * sname );
+char * SUMA_unique_name( SUMA_SurfSpecFile * spec, char * sname );
 int    swap_strings           ( char * s0, char * s1, char * save, int len );
 int    copy_strings( char * s0, char * s1, int len );
 void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps);

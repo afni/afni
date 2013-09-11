@@ -331,7 +331,8 @@ SUMA_DO_DRAW_MASK SUMA_DO_DrawMaskName2Code (char *name);
 char *SUMA_DO_DrawMaskCode2Name(SUMA_DO_DRAW_MASK dd);
 char *SUMA_DO_DrawMaskCode2Name_human(SUMA_DO_DRAW_MASK dd);
 SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str);
-SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name);
+SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name,
+                                 char **specname, char **svname, char **sname);
 SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension(
    char *Name,  char *fallbackname);
 SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags);

@@ -880,6 +880,125 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }  
             break;
             
+         case SE_SetDsetFont:
+            { /* sets the Font for nodes of a (graph) dset, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               if (EngineData->i == SW_SurfCont_DsetFontXXX) {
+                  curColPlane->Font = 
+                     -SUMA_ABS(curColPlane->Font);
+               } else {
+                  curColPlane->Font = EngineData->i;
+               }
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
+         case SE_SetDsetNodeRad:
+            { /* sets the sphere radius for nodes of a (graph) dset, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               if (EngineData->i == SW_SurfCont_DsetNodeRadXXX) {
+                  curColPlane->NodeRad = 
+                     -SUMA_ABS(curColPlane->NodeRad);
+               } else {
+                  curColPlane->NodeRad = EngineData->i;
+               }
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
+            
+         case SE_SetDsetEdgeThick:
+            { /* sets the thickness of a (graph's) edges, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               curColPlane->EdgeThick = EngineData->i;
+
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
+         case SE_SetDsetEdgeStip:
+            { /* sets the stippling of a (graph's) edges, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               if (EngineData->i == SW_SurfCont_DsetEdgeStipXXX) {
+                  curColPlane->EdgeStip = 
+                     -SUMA_ABS(curColPlane->EdgeStip);
+               } else {
+                  curColPlane->EdgeStip = EngineData->i;
+               }
+
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }
+            break;
+         case SE_SetDsetNodeCol:
+            { /* sets the Font for nodes of a (graph) dset, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               curColPlane->NodeCol = EngineData->i;
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
+            
+         case SE_SetDsetGmatBord:
+            { /* sets the border width of a (graph) dset matrix, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                
+               /* Get rid of matrix */
+               curColPlane->BordFrac = EngineData->i;
+               SUMA_GDSET_refresh_matrix_nido(SUMA_ADO_Dset(ado), 1);
+               /* Update all viewers showing ado */
+               SUMA_UpdateViewPoint_RegisteredADO(ado, 1);
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
          case SE_UpdateLog:
             /* Updates the Log window if it is open */
             {
@@ -2143,6 +2262,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             sv->Ch->adoID = EngineData->iv3[0];
             sv->Ch->datumID = EngineData->iv3[1];
+            sv->Ch->secID = EngineData->iv3[2];
             SUMA_UpdateCrossHairNodeLabelField(sv);
             break;
          
@@ -4578,6 +4698,12 @@ SUMA_Boolean SUMA_isRegisteredSO (SUMA_SurfaceViewer *sv,
    SUMA_RETURN(NOPE);
 }
 
+SUMA_Boolean SUMA_ADO_isRegistered(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado) 
+{
+   static char FuncName[]={"SUMA_ADO_isRegistered"};
+   return(SUMA_isRegisteredDO(sv, SUMAg_DOv, ado));
+}
+
 SUMA_Boolean SUMA_isRegisteredDO (SUMA_SurfaceViewer *sv, 
                                   SUMA_DO *dov, SUMA_ALL_DO *curDO)
 {
@@ -4822,7 +4948,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov,
    }
    
    /* set the viewing points */
-   if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
+   if (!SUMA_UpdateViewPoint(sv, dov, N_dov, 0)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
       SUMA_RETURN (NOPE);
    }
@@ -5245,7 +5371,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    }
    
    /* set the viewing points */
-   if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
+   if (!SUMA_UpdateViewPoint(sv, dov, N_dov, 0)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
       SUMA_RETURN (NOPE);
    }
@@ -5313,12 +5439,12 @@ SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov,
    
    /* modify the rotation center */
    if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+      SUMA_S_Err("Failed to update center of rotation");
       SUMA_RETURN (NOPE);
    }
    
    /* set the viewing points */
-   if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
+   if (!SUMA_UpdateViewPoint(sv, dov, N_dov, 0)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
       SUMA_RETURN (NOPE);
    }
@@ -5337,10 +5463,14 @@ SUMA_Boolean SUMA_NewGeometryInViewer (SUMA_DO *dov, int N_dov,
    /* Need to update where you're looking at*/
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
-   gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], 
-               sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], 
-               sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], 
-               sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], 
+   gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], 
+               sv->GVS[sv->StdView].ViewFrom[1], 
+               sv->GVS[sv->StdView].ViewFrom[2], 
+               sv->GVS[sv->StdView].ViewCenter[0], 
+               sv->GVS[sv->StdView].ViewCenter[1], 
+               sv->GVS[sv->StdView].ViewCenter[2], 
+               sv->GVS[sv->StdView].ViewCamUp[0], 
+               sv->GVS[sv->StdView].ViewCamUp[1], 
                sv->GVS[sv->StdView].ViewCamUp[2]);
    
    /* do the axis setup */
@@ -5395,7 +5525,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov,
    }
    
    /* set the viewing points */
-   if (!SUMA_UpdateViewPoint(sv, dov, N_dov)) {
+   if (!SUMA_UpdateViewPoint(sv, dov, N_dov, 0)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to update view point", FuncName);
       SUMA_RETURN (NOPE);
    }
@@ -5408,7 +5538,10 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov,
    EyeAxis_ID = SUMA_GetEyeAxis (sv, dov);
 
    if (EyeAxis_ID < 0) {
-      fprintf(SUMA_STDERR,"Error %s: No Eye Axis. %d\n", FuncName, EyeAxis_ID);
+      /* This happens when only loading objects that are not surfaces.
+         the eye axis for such monsters is created later, so return 
+         quietly */
+      SUMA_LH("No Eye Axis. %d, dealing with non SOs I take it?");
    } else {
       EyeAxis = (SUMA_Axis *)(dov[EyeAxis_ID].OP);
       SUMA_EyeAxisStandard (EyeAxis, sv);

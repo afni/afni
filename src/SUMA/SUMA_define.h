@@ -230,7 +230,9 @@ typedef enum { SE_Empty,
                SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip, 
                SE_OpenDsetFile, SE_OpenColFile, SE_OneOnly, SE_OpenSurfCont,
                SE_SetSurfCont, SE_SetViewerCont, SE_SetRecorderCont,
-               SE_SetDsetViewMode,
+               SE_SetDsetViewMode, SE_SetDsetFont, SE_SetDsetNodeRad, 
+               SE_SetDsetNodeCol, SE_SetDsetEdgeThick, SE_SetDsetEdgeStip,
+               SE_SetDsetGmatBord,
                SE_BadCode} SUMA_ENGINE_CODE; 
                         /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,
@@ -329,10 +331,74 @@ typedef enum { SW_SurfCont_DsetView,
                SW_SurfCont_DsetViewXXX,  /* do not show, keep it last in list */
                SW_N_SurfCont_DsetView } SUMA_WIDGET_INDEX_SURFCONT_DSETVIEW;
                
+typedef enum { SW_SurfCont_DsetFont,
+               SW_SurfCont_DsetFont8,
+               SW_SurfCont_DsetFont9,
+               SW_SurfCont_DsetFontTR10,
+               SW_SurfCont_DsetFontHE10,
+               SW_SurfCont_DsetFontHE12,
+               SW_SurfCont_DsetFontHE18,
+               SW_SurfCont_DsetFontTR24,
+               SW_SurfCont_DsetFontXXX, /* do not show, keep it last in list */
+               SW_N_SurfCont_DsetFont } SUMA_WIDGET_INDEX_SURFCONT_DSETFONT;
+
+typedef enum { SW_SurfCont_DsetNodeCol,
+               SW_SurfCont_DsetNodeColWhite,
+               SW_SurfCont_DsetNodeColBlack,
+               SW_SurfCont_DsetNodeColRed,
+               SW_SurfCont_DsetNodeColGreen,
+               SW_SurfCont_DsetNodeColBlue,
+               SW_SurfCont_DsetNodeColYellow,
+               SW_SurfCont_DsetNodeColGray50,
+               SW_SurfCont_DsetNodeColVal,/* colorize based on data value */
+               SW_N_SurfCont_DsetNodeCol }
+                                          SUMA_WIDGET_INDEX_SURFCONT_DSETNODECOL;
+typedef enum { SW_SurfCont_DsetGmatBord,
+               SW_SurfCont_DsetGmatBord0,
+               SW_SurfCont_DsetGmatBord5,
+               SW_SurfCont_DsetGmatBord10,
+               SW_SurfCont_DsetGmatBord20,
+               SW_SurfCont_DsetGmatBord40,
+               SW_N_SurfCont_DsetGmatBord }
+                                         SUMA_WIDGET_INDEX_SURFCONT_DSETGMATBORD;
+typedef enum { SW_SurfCont_DsetNodeRad,
+               SW_SurfCont_DsetNodeRadConst,
+               SW_SurfCont_DsetNodeRadVal,
+               SW_SurfCont_DsetNodeRadXXX,
+               SW_N_SurfCont_DsetNodeRad }
+                                          SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD;
+
+typedef enum { SW_SurfCont_DsetEdgeThick,
+               SW_SurfCont_DsetEdgeThickConst,
+               SW_SurfCont_DsetEdgeThickVal,
+               SW_N_SurfCont_DsetEdgeThick }
+                                       SUMA_WIDGET_INDEX_SURFCONT_DSETEDGETHICK;
+                                       
+typedef enum { SW_SurfCont_DsetEdgeStip,
+               SW_SurfCont_DsetEdgeStipXXX,
+               SW_SurfCont_DsetEdgeStipVal,
+               SW_SurfCont_DsetEdgeStip1,
+               SW_SurfCont_DsetEdgeStip2,
+               SW_SurfCont_DsetEdgeStip3,
+               SW_SurfCont_DsetEdgeStip4,
+               SW_SurfCont_DsetEdgeStip5,
+               SW_SurfCont_DsetEdgeStip6,
+               SW_SurfCont_DsetEdgeStip7,
+               SW_SurfCont_DsetEdgeStip8,
+               SW_SurfCont_DsetEdgeStip9,
+               SW_SurfCont_DsetEdgeStip10,
+               SW_SurfCont_DsetEdgeStip11,
+               SW_SurfCont_DsetEdgeStip12,
+               SW_SurfCont_DsetEdgeStip13,
+               SW_SurfCont_DsetEdgeStip14,
+               SW_SurfCont_DsetEdgeStip15,
+               SW_N_SurfCont_DsetEdgeStip }
+                                       SUMA_WIDGET_INDEX_SURFCONT_DSETEDGESTIP;
+            
 typedef enum { SW_DrawROI_SaveMode,
                SW_DrawROI_SaveMode1D, SW_DrawROI_SaveModeNIML, 
-               SW_N_DrawROI_SaveMode } SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE; /*!< Indices to widgets in DrawROI under
-                                                                           SavingMode */
+               SW_N_DrawROI_SaveMode } SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE; 
+                           /*!< Indices to widgets in DrawROI under SavingMode */
 typedef enum { SW_DrawROI_SaveWhat,
                SW_DrawROI_SaveWhatThis, SW_DrawROI_SaveWhatRelated, 
                SW_N_DrawROI_SaveWhat } SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT; /*!< Indices to widgets in DrawROI under SavingWhat */
@@ -398,7 +464,8 @@ typedef struct {
    SUMA_Boolean Show; /*!< show plane ?*/
    float GlobalOpacity; /*!< Global opacity factor */
    SUMA_Boolean isBackGrnd; /*!< Brightness modulation */
-}  SUMA_OVERLAY_PLANE_DATA; /*!< This is a conveninence structure meant to carry data required to fill a color plane. 
+}  SUMA_OVERLAY_PLANE_DATA; /*!< This is a conveninence structure 
+                           meant to carry data required to fill a color plane. 
                                  \sa SUMA_OVERLAYS*/
 
 typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, /* Begin adding colormaps next: */
@@ -779,6 +846,23 @@ typedef struct {
                   +/-SW_SurfCont_DsetViewCon, and +/-SW_SurfCont_DsetViewC&C 
                   It cannot be +/-SW_SurfCont_DsetViewXXX
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETVIEW */
+   int Font; /*!< negative do not show, postive, 
+                  Font can be +/- most of SUMA_WIDGET_INDEX_SURFCONT_DSETFONT
+                  It cannot be +/-SW_SurfCont_DsetFontXXX
+                  see SUMA_WIDGET_INDEX_SURFCONT_DSETFONT */
+   int NodeRad; /*!< negative do not show, postive, 
+               NodeRad can be +/- most of SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD
+                  It cannot be +/-SW_SurfCont_DsetNodeRadXXX
+                  see SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD */
+   float NodeRadGain;
+   int NodeCol; /*!< Node colors, either constant or from dset 
+                  see SUMA_WIDGET_INDEX_SURFCONT_DSETNODECOL */
+   int BordFrac; /*!< Thinckness of border relative to cell width */
+   
+   int EdgeThick; /* see SUMA_WIDGET_INDEX_SURFCONT_DSETEDGETHICK */
+   float EdgeThickGain;
+   int EdgeStip; /* see SUMA_WIDGET_INDEX_SURFCONT_DSETEDGESTIP */
+   
    char *Name; /*!<  name of ovelay, CONVEXITY or Functional or areal boundaries 
                      perhaps. The Name can be a filename with path*/
    char *Label; /*!< Usually the same as Name without any existing path */
@@ -805,6 +889,9 @@ typedef struct {
                      
    float *ColVec; /*!< N_NodeDef x 3 vector containing colors of nodes 
                        specified in NodeDef, Replaces ColMat, Wed Mar 17 04*/
+   int RemixID; /*!< A number that changes each time ColVec content is changed */
+   float *V; /*!< A copy of the dataset's column that produced the colors in
+                      ColVec. */
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to 
                            all values in ColMat */
    float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to 
@@ -1329,12 +1416,22 @@ typedef struct {
                                        controlling the transparency menu */
    SUMA_MENU_WIDGET *DsetViewModeMenu; /*!<[SW_N_SurfCont_DsetView]  widgets 
                                        controlling the dataset view mode menu */
+   SUMA_MENU_WIDGET *DsetFontMenu; /*!<[SW_N_SurfCont_DsetFont] widgets                                   controlling the font displayed on graph nodes */
+   SUMA_MENU_WIDGET *DsetNodeColMenu; /*!<[SW_N_SurfCont_DsetNodeCol] widgets                                   controlling the color mapping of graph nodes */
+   SUMA_MENU_WIDGET *DsetGmatBordMenu; /*!<[SW_N_SurfCont_DsetGmatBord] widgets                                   controlling the border thickness in GMATRIX */
+   SUMA_MENU_WIDGET *DsetNodeRadMenu; /*!<[SW_N_SurfCont_DsetNodeRad] widgets                                   controlling the sizing of graph nodes */
+   SUMA_MENU_WIDGET *DsetEdgeThickMenu; /*!<[SW_N_SurfCont_DsetEdgeThick] widgets                                   controlling the sizing of graph nodes */
+   SUMA_MENU_WIDGET *DsetEdgeStipMenu; /*!<[SW_N_SurfCont_DsetEdgeStip] widgets                                   controlling the sizing of graph nodes */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
    Widget DsetMap_fr; /*!< the frame for mapping Dset to colormap */
    Widget Xhair_fr; /*!< The frame for cross hair Info and controls */ 
    Widget SurfContPage_label; /*!< Le label */
    SUMA_ARROW_TEXT_FIELD *SurfContPage; /*!< arrow/text field  
                                               controlling color plane order */
+   SUMA_ARROW_TEXT_FIELD *NodeRadGainAF; /*!< arrow/text field  
+                                              controlling node radius gain */
+   SUMA_ARROW_TEXT_FIELD *EdgeThickGainAF; /*!< arrow/text field  
+                                              controlling node radius gain */
    SUMA_ARROW_TEXT_FIELD *ColPlaneOrder; /*!< arrow/text field  
                                               controlling color plane order */
    SUMA_ARROW_TEXT_FIELD *ColPlaneOpacity; /*!< arrow/text field 
@@ -1610,6 +1707,7 @@ typedef struct {
                         -1 if that cross hair is wild and loose */
    int datumID; /*!< a node/datum from adoID can be associated with the cross 
                      hair (-1 for nothing) */   
+   int secID;   /*!< a secondary selection like FaceSet or Node of a graph. */
    GLUquadricObj *sphobjCmax; /*!< quadric object, representing Max cluster */
    GLfloat sphcolCmax[4]; /*!< Sphere color */
 }SUMA_CrossHair;   
