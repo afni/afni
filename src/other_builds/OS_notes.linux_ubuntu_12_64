@@ -1,0 +1,44 @@
+# This is a simple list of installations that were found to be
+# useful/necessary to build AFNI from source in Linux (64bit) Ubuntu
+# machines, first of the 11.* variety and then of the 12.* kind.
+
+# This most recent list used on an Ubuntu 12.10 machine in early
+# September, 2013.
+
+# (NB: there is an accompanying Makefile.linux_Ubuntu_64bit which was
+# used in conjunction with this list.)
+
+# This (executable) file should be executable by typing:
+# $ ./OS_notes.linux_Ubuntu_64bit.txt
+# in a terminal window; you could also copy/past the commands into a
+# terminal window, if you wish.  You may be prompted about whether to 
+# install some packages, to which methinks you should say yes (since 
+# you are running this script in the first place; that is, unless you 
+# are about some specific dependency problem elsewhere on the machine).
+
+sudo apt-get install libnifti-dev
+sudo apt-get install libnifti2
+sudo apt-get install zlib1g
+sudo apt-get install zlib1g-dev
+sudo apt-get install libxt-dev
+sudo apt-get install apt-file
+sudo apt-get install libmotif4
+sudo apt-get install libxt6
+sudo apt-get install x11proto-print-dev
+sudo apt-get install libmotif-dev
+sudo apt-get install libxmu-headers
+sudo apt-get install libglu1-mesa-dev
+sudo apt-get install libxmu-dev
+sudo apt-get install libexpat1-dev 
+sudo apt-get install xmhtml1-dev
+sudo apt-get install libxpm-dev
+sudo apt-get install libmotif-dev
+sudo apt-get install motif-clients
+sudo apt-get install freeglut3-dev
+sudo apt-get install libxi-dev 
+sudo apt-get install libglw1-mesa-dev
+sudo apt-get install libglib2.0-dev
+sudo apt-get install libglib2.0
+sudo apt-get install libgsl0-dev
+sudo apt-get install libxp-dev
+sudo apt-get install tcsh
