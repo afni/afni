@@ -925,7 +925,17 @@ int main(int argc, char *argv[]) {
             for(i=0;i<2; ++i) free(labs[i]); free(labs);
             Free_Network(net); net = NULL;
          
-         INFO_message("All done. Demo graph dset is called toy.niml.dset");   
+         INFO_message(
+            "All done. Demo graph dset is called toy.niml.dset."
+             "graph dset with external network spec is toy.link.niml.dset\n"
+             "Try:\n"
+             "       suma -gdset toy.link.niml.dset\n\n"
+             "* Open a new controller (ctrl+n), switch states ('>') to\n"
+             "see graph dset in complementary forms.\n"
+             "* Open 'Surface Controller' to colorize graph data, etc.\n"
+             "Interacting with such data is possible, but not \n"
+             "yet documented. This will come soon.\n"
+                      );   
          exit(0);
       }
       
