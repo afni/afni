@@ -8568,8 +8568,9 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
    } else {
       SUMA_NGR_INDEX_HASH_DATUM *hd = NULL;
       NI_element *nel=NULL;
-      NI_group *ngrnet=NULL;
+      NI_group *ngrnet=NULL, *nilink;
       int ip, ei;
+      char *ss=NULL;
       SUMA_GRAPH_SAUX *GSaux=NULL;
       if (SetupOverlay) {
          SUMA_LH("Setting up overlay for GRAPH dset");
@@ -8616,9 +8617,38 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
             
             /* setup hash table for attaching explicit tracts to certain segs */
             /* find a network element */
-            GSaux->net = (NI_group *)SUMA_FindNgrNamedAny(dset->ngr, "network");
+               /* First search for an element in the dataset */
+            if (!(GSaux->net = 
+                     (NI_group *)SUMA_FindNgrNamedAny(dset->ngr, "network"))) {
+               /* Otherwise try for a file link */
+               nilink = 
+                  (NI_group *)SUMA_FindNgrNamedAny(dset->ngr, "network_link");
+               if (nilink) {
+                  ss = find_afni_file(
+                           NI_get_attribute(nilink,"network_file"), 1);
+                  if (ss[0] != '\0') {
+                     SUMA_LHv("Reading network from %s\n", ss);
+                     NEL_READ(GSaux->net, ss);
+                     if (strcmp(GSaux->net->name,"network")) {
+                        SUMA_S_Errv("Network link file does not contain network"
+                                    "group. Got me %s instead.\n",
+                                    GSaux->net->name);
+                        NI_free_element(GSaux->net); GSaux->net = NULL;
+                     } 
+                  } else {
+                     if (ss=NI_get_attribute(nilink,"network_file")) {
+                        SUMA_S_Errv(
+                           "Could not find network_file \"%s\" on disk.\n", ss);
+                     } else {
+                        SUMA_S_Err("Could not find network_file attribute "
+                                    "in network_link");                     
+                     }
+                  }
+               }
+            }
+            
             if (GSaux->net) ngrnet = GSaux->net;
-            else ngrnet = dset->ngr;
+            else ngrnet = dset->ngr; /* old defunct style */
             for (ip=0; ip<ngrnet->part_num; ++ip) {
                switch( ngrnet->part_typ[ip] ){
                   case NI_GROUP_TYPE:

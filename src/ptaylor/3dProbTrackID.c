@@ -810,6 +810,8 @@ int main(int argc, char *argv[]) {
          TAYLOR_TRACT *tt=NULL;
          TAYLOR_BUNDLE *tb=NULL;
          TAYLOR_NETWORK *net=NULL;
+         NI_group *netngrlink=NULL, *netngr=NULL;
+         
          int onexyz = 1; /* set to 1 to specify coords by xyz triplets 
                             in demo. 0 to specify x,y, and z as separate
                             vectors */
@@ -890,7 +892,8 @@ int main(int argc, char *argv[]) {
                net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
 
          /* --> Now put network in graph dset */
-               NI_add_to_group(gset->ngr, Network_2_NIgr(net, 1));
+               netngr = Network_2_NIgr(net, 1);
+               NI_add_to_group(gset->ngr, netngr);
 
          /* --> Write the graph dataset */
                NameOut = SUMA_WriteDset_ns ("toy", gset, SUMA_ASCII_NIML, 1, 0);
@@ -900,7 +903,23 @@ int main(int argc, char *argv[]) {
                   if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
                }
          
-         
+         /* --> Now alternately you can leave the network outside of the 
+                graph dataset and just put a link element to it           */
+               NI_remove_from_group(gset->ngr, netngr);
+               netngrlink = Network_link("toy.network");
+               NI_add_to_group(gset->ngr, netngrlink);
+               NameOut = SUMA_WriteDset_ns ("toy.link",
+                                            gset, SUMA_ASCII_NIML, 1, 0);
+               if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
+                  ERROR_message("Failed to write dataset."); exit(1); 
+               } else {
+                  if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
+               }
+               /* And of course you need to write the tract */
+               Write_NI_Network(netngr, "toy.network", NI_TEXT_MODE);
+               /* free netngr since it is no longer tucked into dset */
+               NI_free_element(netngr); netngr = NULL;
+               
          /* cleanup for good manners */
             for(i=0;i<2; ++i) free(mv[i]); free(mv);
             for(i=0;i<2; ++i) free(labs[i]); free(labs);
