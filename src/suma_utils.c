@@ -1876,12 +1876,11 @@ int SUMA_filexists (char *f_name)
       If no search path is given, then path from user's environment is searched.
    If file is found, old name is freed and new one put in its place.
 */
-
 int SUMA_search_file(char **fnamep, char *epath) 
 {
    static char FuncName[]={"SUMA_search_file"};
    SUMA_PARSED_NAME *pn = NULL;
-   char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL;
+   char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL, *af=NULL;
    int epos=0, ll=0, ii=0, id = 0, imode=1;
    
    SUMA_ENTRY;
@@ -1915,9 +1914,22 @@ int SUMA_search_file(char **fnamep, char *epath)
    #endif
    
    /* Now work the path (based on code form get_atlas function */
-   if (!epath)    epath = getenv("PATH") ;
-   if( epath == NULL ) SUMA_RETURN(NOPE) ; /* nothing left to do */
-
+   if (!epath) {
+      #if 0 /* overkill, as Yaroslav Halchenko pointed out*/
+         epath = getenv("PATH") ;
+         if( epath == NULL ) SUMA_RETURN(NOPE) ; /* nothing left to do */
+      #else
+         /* Search in AFNI's standard locations */
+         af = find_afni_file(*fnamep, 0);
+         if (af[0] != '\0') {
+            SUMA_free(*fnamep); 
+            *fnamep = SUMA_copy_string(af);
+            SUMA_RETURN(1);
+         } 
+      #endif
+      SUMA_RETURN(NOPE); /* miserable pathless failure */
+   }
+   
    /*----- copy path list into local memory -----*/
 
    ll = strlen(epath) ;

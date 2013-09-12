@@ -360,7 +360,7 @@ int main (int argc,char *argv[])
    
    SO_name = SUMA_Prefix2SurfaceName(  Opt->out_prefix, NULL, NULL, 
                                        Opt->SurfFileType, &exists);
-   if (exists) {
+   if (exists && !THD_ok_overwrite()) {
       SUMA_S_Errv("Output file(s) %s* on disk.\nWill not overwrite.\n", 
                   Opt->out_prefix);
       exit(1);

@@ -30,8 +30,9 @@ endif
 set l = `prompt_user ${to} -pause "Hit enter when SUMA is up and running"`
         if ( $l == '0') goto STEND
 
-IsoSurface -shape 3 64 -o_ply ${tmpico}.ply |& tee -a __testlog.txt  
-quickspec -spec ${tmpico}.spec -tn ply ${tmpico}.ply |& tee -a __testlog.txt  
+IsoSurface -overwrite -shape 3 64 -o_ply ${tmpico}.ply |& tee -a __testlog.txt  
+quickspec -overwrite -spec ${tmpico}.spec \
+                     -tn ply ${tmpico}.ply |& tee -a __testlog.txt  
 DriveSuma   -echo_edu   \
             -com show_surf -label ${tmpico} \
             -i ${tmpico}.ply \
@@ -154,16 +155,20 @@ NIDO:
 #Displayable objects (DO) action
 set spath = `which suma`
 set spath = $spath:h
-if ( -f $spath/demo.fixed.niml.do) then
-   cp $spath/demo.fixed.niml.do ./fixed.niml.do
-   cp $spath/demo.mobile.niml.do ./mobile.niml.do
-else if ( -f $spath/../demo.fixed.niml.do) then
-   cp $spath/../demo.fixed.niml.do ./fixed.niml.do
-   cp $spath/../demo.mobile.niml.do ./mobile.niml.do
-endif
+foreach dopath ($spath $spath/.. $spath/../.. /usr/share/doc/afni-common/examples)
+   if ( -f $dopath/demo.fixed.niml.do) then
+     cp $dopath/demo.fixed.niml.do ./fixed.niml.do
+     cp $dopath/demo.mobile.niml.do ./mobile.niml.do
+	 break
+   endif
+end
 if ( ! -f fixed.niml.do || ! -f mobile.niml.do ) then
-   echo "could not find demo .do files."
-   goto END
+   echo "Could not find demo .do files."
+   if (${testmode} == 0) then
+   	  goto END
+   else
+      exit 1
+   endif
 endif
 
 set l = `prompt_user ${to} -pause \

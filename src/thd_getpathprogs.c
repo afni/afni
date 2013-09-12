@@ -142,7 +142,11 @@ ENTRY("THD_find_regular_file") ;
    RETURN(NULL) ;
 }
 
-/* find a file somewhere afniish */
+/* 
+   Find a file somewhere afniish
+   Do not free returned pointer
+   Empty string means nothing was found
+*/
 char *find_afni_file(char * nimlname, int niname)
 {
    static char filestr[5][1024];

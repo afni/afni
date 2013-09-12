@@ -65,6 +65,14 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 11, Sep , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
+   "Small changes to make Yaroslav's Debian tests work better",
+   "Changes to @DO.examples to fit Debian installations\n"
+   "Changed SUMA_search_file to avoid searching entire path and\n"
+   "focus on AFNI specific regions instead.\n"
+   "Made DriveSuma's kill_suma command less onerous.\n"
+ },
+
  { 11, Sep , 2013 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT,
    "Allow for surface specification with symbolic notation",
    "Option -i now can parse strings like: ld60:MNI_N27:l:smoothwm\n"

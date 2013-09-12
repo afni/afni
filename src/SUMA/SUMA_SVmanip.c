@@ -4396,7 +4396,8 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile *Spec, SUMA_DO *DOv,
       ws =  SUMA_WhichState (cSV->State, cSV, cSV->CurGroupName) ;
    }
    if ( ws < 0) { 
-      SUMA_S_Warn("No good state at this stage? Defaulting to ws = 0;");
+      /* This happens for example when running @DO.examples */
+      SUMA_LH("No good state at this stage? Defaulting to ws = 0;");
       ws = 0;
    }
 
