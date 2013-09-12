@@ -47,6 +47,7 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
                                       TAYLOR_BUNDLE **tb,int tag, int alt_tag,
                                       THD_3dim_dataset *grid);
 NI_group *Network_2_NIgr(TAYLOR_NETWORK *network, int mode);
+NI_group *Network_link(char *filename);
 TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr); 
 int Write_NI_Network(NI_group *ngr, char *name, char *mode); 
 int Write_Network(TAYLOR_NETWORK *network, char *name, char *mode);

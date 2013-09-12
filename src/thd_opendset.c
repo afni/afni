@@ -32,7 +32,7 @@ static char * file_extension_list[] = {
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
     ".niml", ".niml.dset",
-    ".gii", ".gii.dset"
+    ".gii", ".gii.dset", ".niml.tract"
 };
 
 /* 
