@@ -3834,6 +3834,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
       SUMA_RETURN(NULL);
    }
    ps->N_args = argc;
+   ps->N_DO = 0;
    ps->cs = SUMA_Create_CommSrtuct();
    kar = 1;
 	brk = NOPE;
@@ -4040,7 +4041,6 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 		  		   fprintf (SUMA_STDERR, "need 1 argument after -tract/-gdset \n");
 				   exit (1);
 			   }
-            ps->N_DO = 0;
             do {
                ps->arg_checked[kar]=1; ++kar;
                /* do we have a - as the first char ? */

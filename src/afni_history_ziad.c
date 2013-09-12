@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 12, Sep , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
+   "Added possibilty to store network tracts in external file for graph dsets",
+   "See 3dProbTrackID's -gdset_toy for an illustration.\n"
+   "Some small changes were made to ptaylor/ files to allow for this.\n"
+ },
+
  { 11, Sep , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
    "Small changes to make Yaroslav's Debian tests work better",
    "Changes to @DO.examples to fit Debian installations\n"

@@ -285,7 +285,7 @@ endif
 if ( $fontconf ) then
   sed 's/libXm.a/libXm.a -lfontconfig/' Makefile > ___mm
   mv ___mm Makefile
-  sed 's/-lXm/-lXm -lfontconfig/' Makefile > ___mm
+  sed 's/-lXm /-lXm -lfontconfig /' Makefile > ___mm
   mv ___mm Makefile
 endif
 

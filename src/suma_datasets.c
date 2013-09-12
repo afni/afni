@@ -5773,15 +5773,15 @@ SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn)
       the inel is written with vecnum set to 0. This would make
       any attempt to add columns later on fail.
       */
-      if (warn && !SUMA_isGraphDsetNgr(nini)) {
+      if (warn && !SUMA_isGraphDsetNgr(dset->ngr)) {
          SUMA_S_Note("NIML dset with no valid node index element");
       }
       NI_remove_from_group(dset->ngr, dset->inel);
       NI_free_element(dset->inel); dset->inel = NULL;
       /* Now add the new and proper node index element holder*/
       if (dset->dnel) {
-         if (warn && !SUMA_isGraphDsetNgr(nini)) {
-            SUMA_S_Note("Adding empty holder");
+         if (warn && !SUMA_isGraphDsetNgr(dset->ngr)) {
+            SUMA_S_Note("Adding empty holder\n");
          }
          SUMA_Reset_NodeIndex_Element(dset, NULL);
       }

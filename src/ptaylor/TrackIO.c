@@ -4,6 +4,7 @@
 #include <suma_utils.h>
 #include <suma_datasets.h> 
 #include <TrackIO.h>
+#include "suma_suma.h"
 
 static int NI_tract_type = -1;
 int get_NI_tract_type(void) {
@@ -349,7 +350,7 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
    TAYLOR_BUNDLE *tb=NULL;
    int ii=0, N_All_tracts, ei, ei_alt, bb;
    
-   ENTRY("Bundle_2_NIgr");
+   ENTRY("Network_2_NIgr");
    
    if ( !net || !net->tbv || net->N_tbv < 1) RETURN(ngr);
    
@@ -399,6 +400,23 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
    
    RETURN(ngr);
 }
+
+NI_group *Network_link(char *filename)
+{
+   NI_group *ngr=NULL;
+   char *fext = NULL;
+   
+   ENTRY("Network_link");
+   
+   if ( !filename) RETURN(ngr);
+   fext = SUMA_Extension(filename, ".niml.tract", NOPE);
+   ngr = NI_new_group_element(); NI_rename_group(ngr,"network_link");
+   NI_set_attribute(ngr, "network_file", fext);
+   SUMA_free(fext);
+   
+   RETURN(ngr);
+}
+
 
 TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr) 
 {
@@ -519,7 +537,7 @@ int Write_NI_Network(NI_group *ngr, char *name, char *mode)
       RETURN(0);
    }
    if (!name) name = "no_name";
-   
+
    nameout = (char *)calloc(strlen(name)+35, sizeof(char));
    strcpy(nameout, "file:");
    strcat(nameout,name);
@@ -545,7 +563,7 @@ int Write_NI_Network(NI_group *ngr, char *name, char *mode)
    }
    NI_stream_close(ns); ns=NULL;
    free(nameout);
-   
+
    RETURN(1);
 }
 
