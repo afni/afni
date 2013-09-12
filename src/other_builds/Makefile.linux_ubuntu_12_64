@@ -1,6 +1,9 @@
 # This Makefile works on Linux,
 # compiling with Ubuntu 12.* (may also work on 11.*), on a 64-bit CPU.
 # Updated September 2013 (for latest AFNI at end of Aug., 2013).
+# P Taylor
+
+SYSTEM_NAME = linux_ubuntu_12_64
 
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
@@ -44,7 +47,7 @@ PLUGIN_CC     = $(CC)
 # PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
 PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib64
 
-SHOWOFF = -DSHOWOFF=linux_ubuntu
+SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib
@@ -59,7 +62,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./linux_ubuntu
+INSTALLDIR = ./$(SYSTEM_NAME)
 LIBDIR = $(INSTALLDIR)
 
 INSTALL_PREREQ = suma
