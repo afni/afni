@@ -1,0 +1,15 @@
+
+# Fedora 19 Linux setup, 21 Aug, 2013   R Reynolds
+
+# This is probably not a complete depencency list, but it
+# should help.
+
+# for a build machine:
+
+   sudo yum install tcsh wget gsl-devel expat-devel motif-devel libpng12
+   sudo yum install PyQt4 R
+
+# for a user machine:
+
+   sudo yum install tcsh wget gsl expat motif libpng12 PyQt4 R
+
