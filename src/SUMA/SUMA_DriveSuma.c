@@ -2313,11 +2313,21 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps, char *EchoNel)
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
-      SUMA_Wait_Till_Stream_Goes_Bad(ps->cs, 100, 1000, 0);
+      
+      if (1) {
+         /* go bad anyway without waiting for stream to go bad 
+         because suma will be dying. No point in waiting if
+         if there was a communication error. 
+               Added per Yaroslav Halchenko's request     Sept 2013 */
+         ps->cs->GoneBad = YUP;
+      } else {
+         SUMA_Wait_Till_Stream_Goes_Bad(ps->cs, 100, 1000, 0);
+      }
       NI_free_element(ngr); ngr = NULL;
       ans = -1; 
    } else {
-      fprintf(SUMA_STDERR, "Error %s: Action '%s' not supported.\n", FuncName, act);
+      fprintf(SUMA_STDERR, 
+               "Error %s: Action '%s' not supported.\n", FuncName, act);
       ans = NOPE;
    }
    
@@ -2394,8 +2404,10 @@ int main (int argc,char *argv[])
             /* recalculate surface normals */
             SUMA_RECOMPUTE_NORMALS(SO); 
             if (ps->cs->Send) {
-               if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+               if (!SUMA_SendToSuma (SO, ps->cs, 
+                                     (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                               "Communication halted.");
                }
             }
          ++cnt;
@@ -2408,18 +2420,20 @@ int main (int argc,char *argv[])
             fprintf(SUMA_STDERR,"Command %d: %s\n", i, Opt->com[i]);
          }
          if (!(exflag = SUMA_ProcessCommand(Opt->com[i], ps, Opt->s))) {
-            fprintf(SUMA_STDERR,"Error %s: Failed in processing command\n%s\n", FuncName, Opt->com[i]); 
+            SUMA_S_Errv("Failed in processing command\n%s\n", Opt->com[i]); 
             exit(1);
          }   
          if (exflag == -1) { /*gone daddy gone */ 
-            fprintf(SUMA_STDERR,"There's no more reason to exist.\nFarewell dear friends.\n");
+            SUMA_S_Note("There's no more reason to exist.\n"
+                        "Farewell dear friends.\n");
             exit(0);
          }
       }
    }
    
    SUMA_LH("Freedom");
-   /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/
+   /* you don't want to exit rapidly because the SUMA might 
+       not be done processing the last elements*/
    if (ps->cs->Send && !ps->cs->GoneBad) {
       /* cleanup and close connections */
       if (!SUMA_SendToSuma (SO, ps->cs, NULL, SUMA_NODE_XYZ, 2)) {
@@ -2428,7 +2442,8 @@ int main (int argc,char *argv[])
    }   
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    
    exit(0);
    
