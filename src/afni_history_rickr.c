@@ -49,6 +49,24 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Sep, 2013, RCR, "afni-general", MICRO, TYPE_GENERAL,
+   "added SYSTEM_NAME to Makefile.linux_ubuntu_12_64",
+   NULL
+ } ,
+
+ { 12,  Sep, 2013, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "added P Taylor's Makefile and install notes",
+   "Makefile.linux_ubuntu_12_64, OS_notes.linux_ubuntu_12_64"
+ } ,
+
+ { 12,  Sep, 2013, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "added afni_src/other_builds directory",
+   "This is for non-AFNI-build Makefiles and OS install notes.\n"
+   "It has been initialized with:\n"
+   "   Makefile.linux_fedora_19_64\n"
+   "   OS_notes.linux_fedora_19_64.txt"
+ } ,
+
  { 11,  Sep, 2013, RCR, "model_conv_cosine4", MAJOR, TYPE_NEW_PROG,
    "A four half-cosine convolvable model.",
    "Based on: Fully Bayesian Spatio-Temporal Modeling of FMRI Data\n"
