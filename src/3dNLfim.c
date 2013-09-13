@@ -429,6 +429,12 @@ void display_help_menu()
     "                             symbol 't' as the time variable;\n"
     "                             see model_expr2.c for details.\n"
     "\n"
+    "  ConvCosine4              : 4-piece Cosine Convolution Model\n"
+    "                             (A, C1, C2, M1, M2, M3, M4)\n"
+    "                             see model_conv_cosine4.c\n"
+    "                  for help : setenv AFNI_MODEL_HELP_CONV_COSINE4 YES\n"
+    "                             3dNLfim -signal ConvCosine4\n"
+    "\n"
     "----------------------------------------\n"
     "Noise Models (see the appropriate model_*.c file for exact details) :\n"
     "\n"
@@ -676,6 +682,7 @@ void get_options
                  "           Before 04 Nov 2008, default value was 3" ) ;
 
   /*----- main loop over input options -----*/
+  *input_filename = NULL;
   while (nopt < argc )
     {
       /*-----   -noFDR   -----*/
@@ -1487,6 +1494,10 @@ void get_options
       NLfit_error (message);
 
     }
+
+   /* maybe there was no input   13 Sep 2013 [rickr] */
+   if ( *input_filename == NULL ) ERROR_exit("missing -input option");
+
    if (*ignore < 0) {
       fprintf(stderr,"\n** NOTICE: "
                      "ignore option now defaults to 0 instead of 3.\n\n");

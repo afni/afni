@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13,  Sep, 2013, RCR, "3dNLfim", MICRO, TYPE_BUG_FIX,
+   "report an error instead of crashing if no -input is given",
+   "This allows for getting individual signal help without the crash.\n"
+ } ,
+
+ { 13,  Sep, 2013, RCR, "model_conv_cosine4", MICRO, TYPE_ENHANCE,
+   "updated help with a usage example",
+   NULL
+ } ,
+
  { 12,  Sep, 2013, RCR, "afni-general", MICRO, TYPE_GENERAL,
    "added SYSTEM_NAME to Makefile.linux_ubuntu_12_64",
    NULL
