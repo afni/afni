@@ -1181,6 +1181,7 @@ void THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
    free(nnn) ; return ;
 }
 
+/*---------------------------------------------------------------------*/
 /* clip in autobox by default but allow turning it off */
 /* thanks Judd */
 static int bbox_clip=1 ;
