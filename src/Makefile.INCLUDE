@@ -508,6 +508,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dTcat 3dTcat.o $(LFLAGS) $(LLIBS)
 
+3dToyProg:3dToyProg.o
+	$(RM) $@
+	$(CC) -o 3dToyProg 3dToyProg.o $(LFLAGS) $(LLIBS)
+
 3dSynthesize:3dSynthesize.o
 	$(RM) $@
 	$(CC) -o 3dSynthesize 3dSynthesize.o $(LFLAGS) $(LLIBS)

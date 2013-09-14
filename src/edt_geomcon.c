@@ -6,6 +6,7 @@
 /*! Create an empty dataset with geometry given by a string. Examples:
      - "tlrc"
      - "RAI:nx,xorg,dx,ny,yorg,dy,nz,zorg,dz"
+     - "RAI:D:nx,xorg,dx,ny,yorg,dy,nz,zorg,dz" if xorg, yorg, zorg are DICOM
      - "MATRIX(a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34):nx,ny,nz"
 *//*-----------------------------------------------------------------------*/
 
@@ -17,7 +18,7 @@ THD_3dim_dataset * EDIT_geometry_constructor( char *gstr , char *prefix )
    mat44 ijk_to_dicom44 ; THD_mat33 R ;
    int view=VIEW_ORIGINAL_TYPE ;
    float dx,dy,dz , xorg,yorg,zorg ;
-   int   nx,ny,nz , ii ;
+   int   nx,ny,nz , ii, dicomorigin = 0;
    char *lstr , *cpt ;
    float a11,a12,a13,a14 ;
    float a21,a22,a23,a24 ;
@@ -47,11 +48,24 @@ ENTRY("EDIT_geometry_constructor") ;
 
      for( cpt=lstr ; *cpt != '\0' ; cpt++ ) if( *cpt == ',' ) *cpt = ' ' ;
      nx = ny = nz = -1; dx = dy = dz = -1.0f; xorg = yorg = zorg = 0.0f ;
-     ii = sscanf(lstr+4,"%d%f%f%d%f%f%d%f%f",
-                 &nx,&xorg,&dx , &ny,&yorg,&dy , &nz,&zorg,&dz ) ;
-     if( ii <  9 ||
-			nx <= 0 || ny <= 0 || nz <= 0 ||
-         dx <= 0 || dy <= 0 || dz <= 0   ){ free(lstr); RETURN(NULL); }
+     if (!strncmp(lstr+4,"D:",2)) {
+       dicomorigin = 1;
+       ii = sscanf(lstr+6,"%d%f%f%d%f%f%d%f%f",
+                   &nx,&xorg,&dx , &ny,&yorg,&dy , &nz,&zorg,&dz ) ;
+       if( ii <  9 ||
+	       nx <= 0 || ny <= 0 || nz <= 0 ||
+          dx <= 0 || dy <= 0 || dz <= 0   ){ 
+            ERROR_message("Negative or 0 voxel counts or voxel sizes");
+            free(lstr); RETURN(NULL); 
+         }
+     } else { 
+       dicomorigin = 0;
+       ii = sscanf(lstr+4,"%d%f%f%d%f%f%d%f%f",
+                   &nx,&xorg,&dx , &ny,&yorg,&dy , &nz,&zorg,&dz ) ;
+       if( ii <  9 ||
+	       nx <= 0 || ny <= 0 || nz <= 0 ||
+          dx <= 0 || dy <= 0 || dz <= 0   ){ free(lstr); RETURN(NULL); }
+     }
 
      a11 = dx ; a21 = 0.0f ; a31 = 0.0f ;
      THD_coorder_to_dicom( &cord , &a11,&a21,&a31 ) ;
@@ -63,7 +77,7 @@ ENTRY("EDIT_geometry_constructor") ;
      THD_coorder_to_dicom( &cord , &a13,&a23,&a33 ) ;
 
      a14 = xorg ; a24 = yorg ; a34 = zorg ;
-     THD_coorder_to_dicom( &cord , &a14,&a24,&a34 ) ;
+     if (!dicomorigin) THD_coorder_to_dicom( &cord , &a14,&a24,&a34 ) ;
 
      cpt = (char *)malloc(sizeof(char)*666) ;
      sprintf(cpt,
