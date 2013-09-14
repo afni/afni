@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, Sep , 2013 , ZSS , "3dToyProg" , MICRO , TYPE_NEW_PROG,
+   "A sample program to illustrate I/O API for intrepid C programmers",
+   NULL
+ },
+
+ { 13, Sep , 2013 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
+   "Added way to specify DICOM origin in function EDIT_geometry_constructor()",
+   NULL
+ },
+
  { 12, Sep , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
    "Added possibilty to store network tracts in external file for graph dsets",
    "See 3dProbTrackID's -gdset_toy for an illustration.\n"
