@@ -2015,6 +2015,14 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
      M.m[i][j] =    A[i][j] ; \
 }
 
+#undef AFF44_INV
+#define AFF44_INV( Ai, A ) {\
+   mat44 M, Mi;                  \
+   AFF44_TO_MAT44( M, A );  \
+   Mi = MAT44_INV( M ); \
+   MAT44_TO_AFF44 ( Ai, Mi ); \
+}
+   
 
 #undef AFF44_LOAD
 #define AFF44_LOAD( C, a,b,c,d, e,f,g,h, i,j,k,l ) {\
