@@ -2759,6 +2759,46 @@ int SUMA_iswordin_ci ( const char *sbig, const char *ssub)
    SUMA_RETURN(ans);
    
 } 
+
+int SUMA_wordswap_ci ( const char *sbig, const char *ssub, 
+                       const char *sswap, char *sout)
+{
+   static char FuncName[]={"SUMA_wordswap_ci"};
+   char *sbigc, *ssubc, *sswapc, *sfn=NULL;
+   int ans, i, n, k;
+   
+   SUMA_ENTRY;
+   sbigc = SUMA_copy_string((char *)sbig);
+   ssubc = SUMA_copy_string((char *)ssub);
+   sswapc = SUMA_copy_string((char *)sswap);
+  
+   SUMA_TO_LOWER(sbigc);
+   SUMA_TO_LOWER(ssubc);
+   SUMA_TO_LOWER(sswapc);
+   
+   ans = SUMA_iswordin (sbigc, ssubc);
+   k = 0;
+   if (ans) {
+      sfn = strstr(sbigc, ssubc);
+      i = 0;
+      while (i < (int)(sfn-sbigc)) { sout[k++] = sbigc[i++]; }/* Copy to swap */
+      if (sswapc) {
+         n = 0;
+         while (n < strlen(sswapc)) { sout[k++] = sswapc[n++]; }
+      }
+      i += strlen(ssub);
+      while (i < strlen(sbigc)) { sout[k++] = sbigc[i++]; } /* Copy left over */
+      sout[k] = '\0';
+   }
+   
+   if (sbigc) SUMA_free(sbigc); sbigc = NULL;
+   if (sswapc) SUMA_free(sswapc); sswapc = NULL;
+   if (ssubc) SUMA_free(ssubc); ssubc = NULL;
+   
+   SUMA_RETURN(ans);
+   
+} 
+
 /*!
    \brief case insensitive version of SUMA_iswordsame 
 */

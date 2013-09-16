@@ -3584,7 +3584,7 @@ SUMA_Boolean SUMA_Set_Sub_String(char **cs, char *sep, int ii, char *str)
    static char FuncName[]={"SUMA_Set_Sub_String"};
    NI_str_array *nisa=NULL;
    char *s = NULL, act[64];
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

@@ -55,6 +55,8 @@ void SUMA_free2D(char **a,int rows);
 void SUMA_error_message (char *s1,char *s2,int ext);
 char *SUMA_StringDiff(char *s1, char *s2);
 char *SUMA_StringMatch(char *s1, char *s2, int firstdiff, char filler);
+int SUMA_wordswap_ci ( const char *sbig, const char *ssub, 
+                       const char *sswap, char *sout);
 int SUMA_iswordin_ci (const char *sbig,const char *ssub);
 int SUMA_iswordin (const char *sbig,const char *ssub);
 int SUMA_iswordsame_ci (const char *sbig,const char *ssub);
