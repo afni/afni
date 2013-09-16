@@ -86,13 +86,13 @@ THD_3dim_dataset * New_Dataset_From_Scratch(char *prefix)
    }
    /* Now let us put in the time series */
    ts = (float *)calloc(nvals, sizeof(float));
-   nijk=0;
+   nijk=0; 
    for (kk=0; kk<DSET_NZ(oset); ++ kk) {
    for (jj=0; jj<DSET_NY(oset); ++ jj) {
    for (ii=0; ii<DSET_NX(oset); ++ ii) {
       for (tt=0; tt<nvals; ++tt) {
-         ts[tt] = sin(tt*(kk+1.0)/100.0) +
-                  (1+(float)kk/DSET_NZ(oset))*drand48();
+         ts[tt] = (sin(tt*(kk+1.0)/100.0) +
+                   (1+(float)kk/DSET_NZ(oset))*drand48());
       }
       /* insert the time series */
       THD_insert_series(nijk, oset, nvals, 
@@ -190,8 +190,8 @@ THD_3dim_dataset * Volumewise_Operations(THD_3dim_dataset *dset, char *prefix,
 
 void Dataset_Navigation(THD_3dim_dataset *dset)
 {
-   int tt, I[3], ni, nj, nij, nijk, i, j, k;
-   float X[3], *far=NULL;
+   int tt, ni, nj, nij, nijk, i, j, k;
+   float X[3], I[3], *far=NULL;
    float A[4][4], Ai[4][4];
    
    ENTRY("Dataset_Navigation");
@@ -210,21 +210,26 @@ void Dataset_Navigation(THD_3dim_dataset *dset)
                      
                      /* X = A I */
    AFF44_MULT_I(X, A, I );
-
+   INFO_message("\nVoxel %d %d %d is at %.3f %.3f %.3f mm RAI\n",
+                (int)I[0], (int)I[1], (int)I[2], X[0], X[1], X[2]);
+                
    /* To go from X to I */
                      /* Compute the inverse of A */
    AFF44_INV( Ai, A );
                      /* I = Ai X */
    AFF44_MULT_I(I, Ai, X );
-   
+   INFO_message("Location %.3f %.3f %.3f mm RAI is at voxel %.3f %.3f %.3f\n",
+                X[0], X[1], X[2], I[0], I[1], I[2]);
+                
    /* To go from voxel 1D index (nijk) (entire volume in one array), 
       to 3D index (i,j,k)                                         */
    ni = DSET_NX(dset);
    nij = DSET_NX(dset)*DSET_NY(dset);
    
-   nijk = AFNI_3D_to_1D_index(DSET_NX(dset)/2, DSET_NY(dset)/2, DSET_NZ(dset)/2, 
-                              ni, nij);
-   
+   i = DSET_NX(dset)/2; j = DSET_NY(dset)/2; k = DSET_NZ(dset)/2;
+   nijk = AFNI_3D_to_1D_index(i, j, k, ni, nij);
+   INFO_message("3D indices %d %d %d correspond to 1D index %d\n",
+                i, j, k, nijk);
    /* To go from voxel 1D index (nijk) (entire volume in one array), 
       to 3D index (i,j,k) */
    AFNI_1D_to_3D_index(nijk, i, j, k, ni, nij);
@@ -234,13 +239,15 @@ void Dataset_Navigation(THD_3dim_dataset *dset)
    if (THD_extract_float_array( nijk, dset, far ) == -1) {
       ERROR_message("Failed to extract data at voxel %d\n", nijk);
    } else {
-      fprintf(stdout,
-         "Got %d values from voxel %d (%d %d %d) or (%.2f %.2f %.2f mm)\n",
+      INFO_message(
+         "\nHave %d values from voxel %d (%d %d %d) or (%.2f %.2f %.2f mm)\n",
                      DSET_NVALS(dset), nijk, i, j, k, X[0], X[1], X[2]);
       for (tt=0; tt<DSET_NVALS(dset); ++tt) {
-         fprintf(stdout,"%.3f    ", far[tt]);
+         if (tt<5 || tt>(DSET_NVALS(dset)-10)) 
+            fprintf(stdout,"%.3f    ", far[tt]);
+         else if (tt == 5) fprintf(stdout," ...    ");
       }
-      fprintf(stdout,"\n");
+      fprintf(stdout,"\n\n");
       free(far); far = NULL;
    }
    
@@ -268,7 +275,7 @@ static void toy_tsfunc( double tzero, double tdelta ,
    TOY_UD *rpud = (TOY_UD *)ud; 
    
    if( val == NULL ){
-      INFO_message("%s notification call, npts=%d\n", 
+      INFO_message("toy_tsfunc: %s notification call, npts=%d\n", 
                    npts?"Start":"End", npts);
       if( npts > 0 ){  /* the "start notification" */
          /* This is when you perform any setup you don't want to repeat
@@ -475,8 +482,7 @@ int main( int argc , char * argv[] )
       ERROR_message(
          "Output %s already exists, use -overwrite to do you know what",
          DSET_HEADNAME(sset));
-   }
-   DSET_write(sset); 
+   } else DSET_write(sset); 
    
    /* Now we'll do some voxelwise computations */
    xset = Voxelwise_Operations(sset, maskvox, prefix);
@@ -486,8 +492,7 @@ int main( int argc , char * argv[] )
       ERROR_message(
          "Output %s already exists, use -overwrite to do you know what",
          DSET_HEADNAME(xset));
-   }
-   DSET_write(xset); 
+   } else DSET_write(xset); 
    
    /* Or some volumewise operations */
    vset = Volumewise_Operations(sset, prefix, udatum);
@@ -497,8 +502,7 @@ int main( int argc , char * argv[] )
       ERROR_message(
          "Output %s already exists, use -overwrite to do you know what",
          DSET_HEADNAME(vset));
-   }
-   DSET_write(vset); 
+   } else DSET_write(vset); 
    
    
    
