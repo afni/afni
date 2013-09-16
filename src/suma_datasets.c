@@ -6669,7 +6669,11 @@ int SUMA_GetNodeIndex_FromNodeRow_eng(SUMA_DSET *dset, int row, int N_Node)
    
    /* last resort, assume that data are ordered properly 
       (see commented out section above)*/
-   if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
+   if ((nel->vec_len == nel->vec_filled && 
+       (nel->vec_len == N_Node || N_Node == -1))) {
+               /* N_Node can be set to -1 when function is called on
+                  non-SOs . In that case the N_Node match should not
+                  be enforced */
       if (0 && !(WarnCount % 25 - 1)) {
          SUMA_PushErrLog(  "SLP_Warn", "Assuming ith row of data\n"
                      "corresponds to node i.\n"
@@ -6679,6 +6683,8 @@ int SUMA_GetNodeIndex_FromNodeRow_eng(SUMA_DSET *dset, int row, int N_Node)
       SUMA_RETURN(row);
    }
    
+   fprintf(stderr,"row %d vec_len %d vec_filled %d N_Node %d\n",
+                row, nel->vec_len, nel->vec_filled, N_Node);
    SUMA_DUMP_TRACE("???");   
    SUMA_PushErrLog(  "SL_Err", "No way to get column index.", FuncName);
       

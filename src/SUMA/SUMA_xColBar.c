@@ -11025,7 +11025,7 @@ SUMA_Boolean SUMA_GDSET_GMATRIX_Aff(SUMA_DSET *dset, double Aff[4][4], int I2X)
    static char FuncName[]={"SUMA_GDSET_GMATRIX_Aff"};
    SUMA_GRAPH_SAUX *GSaux=NULL;
    double V[12];
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
