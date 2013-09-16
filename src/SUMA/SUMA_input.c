@@ -163,7 +163,20 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
                   tk, keyname );  \
       SUMA_RETURN(0);   \
    }  \
-}   
+}
+
+#define SUMA_KEY_SWITCH {  \
+   /* Check for key switching */ \
+   if (sv->State && strstr(sv->State, "GMATRIX")==sv->State) {  \
+      if (SUMA_SHIFT_KEY(key)) { \
+         strncpy(skeyi, key, 63); skeyi[64]='\0';  \
+         SUMA_wordswap_ci(skeyi, "shift", "", skey);  \
+      } else   \
+         snprintf(skey,63,"shift%s",key); \
+      key = skey; \
+   }  \
+}
+ 
 
 #if 0 /* a template to use for various keys , replace CHAR by upper case char and cHaR by lower case*/
 int SUMA_CHAR_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
@@ -2596,7 +2609,7 @@ int SUMA_Z_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 {
    static char FuncName[]={"SUMA_Up_Key"};
-   char tk[]={"Up"}, keyname[100];
+   char tk[]={"Up"}, keyname[100], skey[65], skeyi[65];
    int k, nc, ii, inode = -1;
    float ArrowDeltaRot = 0.05; 
       /* The larger the value, the bigger the rotation increment */
@@ -2608,6 +2621,8 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    SUMA_ENTRY;
    
    SUMA_KEY_COMMON;
+   
+   SUMA_KEY_SWITCH;
    
    w = sv->X->GLXAREA;
    /* do the work */
@@ -2715,7 +2730,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 {
    static char FuncName[]={"SUMA_Down_Key"};
-   char tk[]={"Down"}, keyname[100];
+   char tk[]={"Down"}, keyname[100], skey[65], skeyi[65];
    int k, nc, ii, inode=-1;
    float ArrowDeltaRot = 0.05; 
          /* The larger the value, the bigger the rotation increment */
@@ -2727,6 +2742,8 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    SUMA_ENTRY;
    
    SUMA_KEY_COMMON;
+   
+   SUMA_KEY_SWITCH;
       
    w = sv->X->GLXAREA;
    /* do the work */
@@ -2829,8 +2846,8 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 {
    static char FuncName[]={"SUMA_Left_Key"};
-   char tk[]={"Left"}, keyname[100];
-   int k, nc, ii, jj, inode = -1;
+   char tk[]={"Left"}, keyname[100], skey[65], skeyi[65];
+   int k, nc, ii, jj, inode = -1, bkey = 0;
    float ArrowDeltaRot = 0.05; 
       /* The larger the value, the bigger the rotation increment */
    Widget w;
@@ -2841,7 +2858,9 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    SUMA_ENTRY;
    
    SUMA_KEY_COMMON;
-         
+   
+   SUMA_KEY_SWITCH;
+   
    w = sv->X->GLXAREA;
    /* do the work */
    switch (k) {
@@ -2935,7 +2954,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 {
    static char FuncName[]={"SUMA_Right_Key"};
-   char tk[]={"Right"}, keyname[100];
+   char tk[]={"Right"}, keyname[100], skey[65], skeyi[65];
    int k, nc, ii, inode=-1;
    float ArrowDeltaRot = 0.05; 
          /* The larger the value, the bigger the rotation increment */
@@ -2947,6 +2966,8 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    SUMA_ENTRY;
    
    SUMA_KEY_COMMON;
+   
+   SUMA_KEY_SWITCH;
          
    w = sv->X->GLXAREA;
    /* do the work */
@@ -4369,7 +4390,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                               , pButton, Button1, Button2, Button3, Button4,
                               Button5);
       }
-     
+      
      /* trap for double click */
       if (Bev.time - B1time < SUMA_DOUBLE_CLICK_MAX_DELAY) {
          if (LocalHead) fprintf(SUMA_STDERR, "%s: Double click.\n", FuncName);
@@ -4377,6 +4398,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       } else {
          DoubleClick = NOPE;
       }
+      
+
+      if (strstr(sv->State, "GMATRIX")==sv->State) {
+         /* For graph in matrix representation swap buttons 1 and 2 */
+         switch (pButton) {
+            case Button1:
+               pButton = Button2;
+               break;
+            case Button2:
+               pButton = Button1;
+               break;
+         }
+      }
+      
+
       B1time = Bev.time; 
       M1time = 0;      
       switch (pButton) { /* switch type of button Press */
@@ -4571,7 +4607,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            sv->Pick1[0], sv->Pick1[1], sv->Pick1[2]);
                   
                   
-                  if (SUMA_ALTHELL) {
+                  if (SUMA_ALTHELL || 
+                      SUMA_VisibleSOs(sv, SUMAg_DOv, NULL) == 0) {
                      SUMA_LH("DO picking, order needs attention here");
                      hit = SUMA_MarkLineDOsIntersect (sv,  SUMAg_DOv, 0);
                      if (hit < 0) {
@@ -4655,6 +4692,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          if (rButton == Button1) rButton = Button3;
          else if (rButton == Button3) rButton = Button1;
       }
+      
+      if (strstr(sv->State, "GMATRIX")==sv->State) {
+         /* For graph in matrix representation swap buttons 1 and 2 */
+         switch (rButton) {
+            case Button1:
+               rButton = Button2;
+               break;
+            case Button2:
+               rButton = Button1;
+               break;
+         }
+      }
+      
+
       switch (rButton) { /* switch type of button Press */
          case Button3:
             if (LocalHead) 
@@ -4774,6 +4825,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             mButton = SUMA_Button_3_Motion;
          }else {
             break;
+         }
+      }
+      
+      if (strstr(sv->State, "GMATRIX")==sv->State) {
+         /* For graph in matrix representation swap buttons 1 and 2 */
+         switch (mButton) {
+            case SUMA_Button_1_Motion:
+               mButton = SUMA_Button_2_Motion;
+               break;
+            case SUMA_Button_2_Motion:
+               mButton = SUMA_Button_1_Motion;
+               break;
          }
       }
       
@@ -5073,7 +5136,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                } 
 
-               if (SUMA_ALTHELL) {
+               if (SUMA_ALTHELL ||
+                   SUMA_VisibleSOs(sv,  SUMAg_DOv, NULL) == 0) {
                      SUMA_LH("Non SO DO picking");
                      hit = SUMA_MarkLineDOsIntersect (sv,  SUMAg_DOv, 0);
                      if (hit < 0) {
@@ -6107,9 +6171,11 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    
    if (sv->PickPix[0] < 0 || sv->PickPix[1] < 0 ||
        sv->PickPix[0] >= sv->X->WIDTH ||  sv->PickPix[1] >= sv->X->HEIGHT) {
-      SUMA_S_Errv("Bad PickPix=[%d %d] for viewport %d %d\n",
+      /* This happens when you select and drag outside of the viewing area
+      Don't return in error */
+      SUMA_LHv("Bad PickPix=[%d %d] for viewport %d %d\n",
                  sv->PickPix[0], sv->PickPix[1], sv->X->WIDTH, sv->X->HEIGHT); 
-      SUMA_RETURN(-1);
+      SUMA_RETURN(0);
    }
 
    /* Any pickable DO, other than brain surfaces, that does not require

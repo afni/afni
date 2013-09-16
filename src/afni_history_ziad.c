@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16, Sep , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Switched functions of mouse buttons 1 and 2 when viewing GRAPH MATRIX",
+   "This means matrix spatial rotation would be done with button 2 and\n"
+   "shifting with button 1. Selection can also be done with button 3 whenever\n"
+   "there is no selectable surface in sight." 
+ },
+
  { 13, Sep , 2013 , ZSS , "3dToyProg" , MICRO , TYPE_NEW_PROG,
    "A sample program to illustrate I/O API for intrepid C programmers",
    NULL

@@ -6753,8 +6753,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    gl_dt = glIsEnabled(GL_DEPTH_TEST);
    
    if (stipsel) {
-      SUMA_S_Warn("This option is no good at this moment with stippling on.\n"
-                  "Easy to fix though ...");
+      SUMA_S_Warn("This option is no good at this moment when segment stippling"
+                  "\n is turned on for all segments. Easy to fix though ...");
    }
    if (SDO->NodeBased == 2) { /* Locate the surface in question */
       SUMA_LH("Node-based vectors");
