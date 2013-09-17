@@ -193,6 +193,36 @@ void IW3D_destroy( IndexWarp3D *AA )
 }
 
 /*---------------------------------------------------------------------------*/
+/* 13 Sep 2013 */
+
+IndexWarp3D * IW3D_zeropad( IndexWarp3D *AA , int nxbot , int nxtop ,
+                                              int nybot , int nytop ,
+                                              int nzbot , int nztop  )
+{
+   IndexWarp3D *BB ;
+   int nxold,nyold,nzold , nxnew,nynew,nznew ;
+
+   if( AA == NULL ) return NULL ;
+
+   nxold = AA->nx ; nyold = AA->ny ; nzold = AA->nz ;
+   nxnew = nxold + nxbot + nxtop ; if( nxnew < 1 ) return NULL ;
+   nynew = nyold + nybot + nytop ; if( nynew < 1 ) return NULL ;
+   nznew = nzold + nzbot + nztop ; if( nznew < 1 ) return NULL ;
+
+   BB = IW3D_create_vacant( nxnew , nynew , nznew ) ;
+   if( AA->xd != NULL )
+     BB->xd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
+                                    nxold,nyold,nzold , MRI_float , AA->xd ) ;
+   if( AA->yd != NULL )
+     BB->yd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
+                                    nxold,nyold,nzold , MRI_float , AA->yd ) ;
+   if( AA->zd != NULL )
+     BB->zd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
+                                    nxold,nyold,nzold , MRI_float , AA->zd ) ;
+   return BB ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 void IW3D_pair_destroy( IndexWarp3D_pair *PP )
 {
