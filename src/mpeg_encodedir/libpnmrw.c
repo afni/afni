@@ -10,7 +10,8 @@
  ** implied warranty.
  */
 
-#define pm_error(x) exit(1)
+/* if an error happens, spit out the string    17 Sep 2013 [rickr] */
+#define pm_error(x) do { fputs(x, stderr); (void)exit(1); } while(0)
 
 
 #if defined(SVR2) || defined(SVR3) || defined(SVR4)
@@ -28,6 +29,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>     /* for free() and exit()   17 Sep 2013 [rickr] */
 #include "libpnmrw.h"
 
 /* if don't have string.h, try strings.h */
