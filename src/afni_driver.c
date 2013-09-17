@@ -2099,6 +2099,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      if( cpt == NULL ){
        sscanf( cmd+dadd , "%f %s" , &val, str ) ;
        if( val <= 0.0 ) RETURN(-1) ;
+       if( pos ) pbar->mode = 1 ;
        wal = (pbar->mode) ? 0.0f : -val ;
      } else {
        sscanf( cmd+dadd , "%f::%f %s" , &wal,&val , str ) ;
