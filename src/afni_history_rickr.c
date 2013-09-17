@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Sep, 2013, RCR, "mpeg_encode", MICRO, TYPE_MODIFY,
+   "on fatal error, print message; added stdlib.h for free()/exit() protos",
+   "Thanks to TheChymera (Message Board) for mentioning compile warnings."
+ } ,
+
  { 13,  Sep, 2013, RCR, "3dNLfim", MICRO, TYPE_BUG_FIX,
    "report an error instead of crashing if no -input is given",
    "This allows for getting individual signal help without the crash.\n"
