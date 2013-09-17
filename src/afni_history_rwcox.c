@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , SEP , 2013 , RWC , "3dQwarp" , MINOR , TYPE_MODIFY ,
+  { 17 , SEP , 2013 , RWC , "afni_driver.c" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with SET_PBAR_ALL +99" ,
+   "Didn't properly enforce the positivity." } ,
+
+ { 16 , SEP , 2013 , RWC , "3dQwarp" , MINOR , TYPE_MODIFY ,
    "Add zero-padding" ,
    "To allow for images that run right up to the edge of the volume, where\n"
    "displacements are defined to be zero, so those parts of the volume won't\n"
