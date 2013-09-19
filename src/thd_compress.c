@@ -33,13 +33,21 @@ static void COMPRESS_setup_programs(void)  /* 03 May 2013 */
    static char *cprog_gzip=NULL , *cprog_bzip2=NULL ;
    static char *uprog_gzip=NULL , *uprog_bzip2=NULL ;
    static int first=1 ;
+   int        cind=-1;
 
    if( !first ) return ;
    first = 0 ;
    if( getenv("SKIP_COMPRESS_SETUP") ) return; /* Temp. fix. Strange R crash. 
                                                    ZSS  09 May 2013           */ 
-   
-                        pgname = THD_find_executable("pigz") ;
+   /* for some symmetry, init pgname based on AFNI_COMPRESSOR
+    * (for either gzip or pigz)           19 Sep 2013 [rickr] */
+   cind = THD_enviro_write_compression();
+   if      ( cind == COMPRESS_GZIP ) pgname = THD_find_executable("gzip") ;
+   else if ( cind == COMPRESS_PIGZ ) pgname = THD_find_executable("pigz") ;
+   else                              pgname = NULL ;
+
+   /* if that failed (ignore which), just start clean */
+   if( pgname == NULL ) pgname = THD_find_executable("pigz") ;
    if( pgname == NULL ) pgname = THD_find_executable("gzip") ;
    if( pgname == NULL ){
      COMPRESS_program_ok[0] = COMPRESS_program_ok[3] = 0 ;
@@ -51,6 +59,7 @@ static void COMPRESS_setup_programs(void)  /* 03 May 2013 */
      sprintf(uprog_gzip,"%s -dc '%%s'",pgname) ;
      COMPRESS_unprogram[0] = COMPRESS_unprogram[3] = uprog_gzip ;
    }
+
                         pgname = THD_find_executable("pbzip2") ;
    if( pgname == NULL ) pgname = THD_find_executable("bzip2") ;
    if( pgname == NULL ){

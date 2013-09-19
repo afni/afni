@@ -385,9 +385,10 @@ g_history = """
     4.01 Aug 20, 2013: make 3dAutomask the default EPI strip method
     4.02 Aug 20, 2013: added -regress_RSFC, to run 3dRSFC
                        (requires updated 3dRSFC, for input sub-brick selection)
+    4.03 Sep 19, 2013: added help for -regress_RSFC, including example 10b.
 """
 
-g_version = "version 4.02, Aug 20, 2013"
+g_version = "version 4.03, September 19, 2013"
 
 # version of AFNI required for script execution
 g_requires_afni = "16 Aug 2013" # for 3dRSFC update
