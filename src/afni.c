@@ -392,6 +392,8 @@ void AFNI_syntax(void)
      "   -nomall      Disables use of the mcw_malloc() library routines.\n"
 #endif
      "   -motif_ver   Show the applied motif version string.\n"
+     "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
+     "   -global_opts Show options that are global to all AFNI programs.\n"
      "   -goodbye     Print a 'goodbye' message and exit (just for fun).\n"
      "   -ver         Print the current AFNI version and exit.\n"
      "\n"
@@ -1651,6 +1653,26 @@ int main( int argc , char *argv[] )
 
    if( check_string("-motif_ver",argc,argv) ) {
      show_motif_version_string() ;
+     dienow++ ;
+   }
+
+   /* check the processed environment, the afni way: machdep/prefilter
+    * and the common main() way: prefilter/machdep  19 Sep 2013 [rickr] */
+   if( check_string("-get_processed_env_afni",argc,argv) ) {
+     AFNI_prefilter_args( &argc , argv );
+     machdep();
+     system("env | grep -e '^AFNI' -e '^NIFTI' | sort");
+     dienow++ ;
+   }
+   else if( check_string("-get_processed_env",argc,argv) ) {
+     machdep();
+     AFNI_prefilter_args( &argc , argv );
+     system("env | grep -e '^AFNI' -e '^NIFTI' | sort");
+     dienow++ ;
+   }
+
+   if( check_string("-global_opts",argc,argv) ) {
+     fputs(get_gopt_help(), stdout);
      dienow++ ;
    }
 

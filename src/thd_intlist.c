@@ -528,6 +528,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
    int ii , ipos , nout , slen ;
    int ibot,itop,istep , nused ;
    char *cpt ;
+   static int show_labs = -1;
       
    /* Meaningless input? */
    if( nvals < 1 ) return NULL ;
@@ -535,6 +536,8 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
    /* No selection list? */
 
    if( str == NULL || str[0] == '\0' ) return NULL ;
+
+   if( show_labs == -1 ) show_labs = AFNI_yesenv("AFNI_SHOW_LABEL_TO_INDEX");
 
    /* skip initial '[' or '{' or '#'*/
 
@@ -587,11 +590,9 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
          }
          ipos += nused ;
       } else {
-         /* have a label */
-         /*
-         fprintf(stderr,"ZSS: Sub-brick %d, picked by label %s\n", 
+         if( show_labs )
+            fprintf(stderr,"-- label select: sub-brick %d is from label %s\n",
                         ibot, labels[ibot]);
-         */
          ipos+=nused;
       }
 
@@ -646,10 +647,9 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
          ipos += nused ;
       } else {
          /* have a label */
-         /*
-         fprintf(stderr,"ZSS: Sub-brick %d, picked by label %s\n", 
+         if( show_labs )
+            fprintf(stderr,"-- label select: sub-brick %d is from label %s\n",
                         itop, labels[itop]);
-         */
          ipos+=nused;
       }
 

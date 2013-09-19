@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Sep, 2013, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
+   "show label->sub-brick index conversion via AFNI_SHOW_LABEL_TO_INDEX",
+   NULL
+ } ,
+
+ { 19,  Sep, 2013, RCR, "afni", MINOR, TYPE_NEW_OPT,
+   "added options -get_processed_env[_afni] and -global_opts",
+   NULL
+ } ,
+
  { 17,  Sep, 2013, RCR, "mpeg_encode", MICRO, TYPE_MODIFY,
    "on fatal error, print message; added stdlib.h for free()/exit() protos",
    "Thanks to TheChymera (Message Board) for mentioning compile warnings."
