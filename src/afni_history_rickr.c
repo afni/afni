@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Sep, 2013, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow regress_polort -1; added help for -regress_RSFC",
+   NULL
+ } ,
+
+ { 19,  Sep, 2013, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "allow AFNI_COMPRESSOR to init decompression tool between gzip/pigz",
+   NULL
+ } ,
+
  { 19,  Sep, 2013, RCR, "afni-general", MINOR, TYPE_NEW_OPT,
    "show label->sub-brick index conversion via AFNI_SHOW_LABEL_TO_INDEX",
    NULL

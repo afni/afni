@@ -2416,7 +2416,6 @@ def db_mod_regress(block, proc, user_opts):
         block.opts.add_opt('-regress_compute_gcor', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_cormat_warnings', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_fout', 1, ['yes'], setpar=1)
-        block.opts.add_opt('-regress_polort', 1, [-1], setpar=1)
         block.opts.add_opt('-regress_stim_files', -1, [])
         block.opts.add_opt('-regress_stim_labels', -1, [])
         block.opts.add_opt('-regress_RONI', -1, [])
@@ -2481,14 +2480,7 @@ def db_mod_regress(block, proc, user_opts):
         if bopt: bopt.parlist[0] = norm
         else: block.opts.add_opt('-regress_basis_normall', 1, [norm], setpar=1)
 
-    uopt = user_opts.find_opt('-regress_polort')
-    bopt = block.opts.find_opt('-regress_polort')
-    if uopt and bopt:
-        try: bopt.parlist[0] = int(uopt.parlist[0])
-        except:
-            print "** -regress_polort requires int for degree (have '%s')\n" \
-                  % uopt.parlist[0]
-            errs += 1
+    apply_uopt_to_block('-regress_polort', user_opts, block)
 
     # files can have many stim classes in one file
     uopt = user_opts.find_opt('-regress_stim_files')
@@ -2898,12 +2890,17 @@ def db_cmd_regress(proc, block):
         vstr = proc.view
 
     opt = block.opts.find_opt('-regress_polort')
-    polort = opt.parlist[0]
-    if ( polort < 0 ) :
+    if not opt:
         polort = UTIL.get_default_polort(proc.tr, proc.reps)
         if proc.verb > 0:
             print "++ updating polort to %d, from run len %.1f s" %  \
                   (polort, proc.tr*proc.reps)
+    else:
+        try: polort = int(opt.parlist[0])
+        except:
+            print "** -regress_polort requires int for degree (have '%s')\n" \
+                  % uopt.parlist[0]
+            return
 
     # ---- allow no stims
     # if len(proc.stims) <= 0:   # be sure we have some stim files
@@ -3977,9 +3974,9 @@ def db_cmd_regress_ROI(proc, block):
             elif roi == 'GM'   : estr='gray matter %s'  % segstr
             elif roi == 'WM'   : estr='white matter %s' % segstr
             elif roi == 'CSF'  : estr='CSF %s'          % segstr
-            elif roi == 'GMe'  : estr='eroded gray %s'  % erdstr
-            elif roi == 'WMe'  : estr='white matter %s' % erdstr
-            elif roi == 'CSFe' : estr='CSF %s'          % erdstr
+            elif roi == 'GMe'  : estr='eroded gray %s'  % segstr
+            elif roi == 'WMe'  : estr='white matter %s' % segstr
+            elif roi == 'CSFe' : estr='CSF %s'          % segstr
             else               : estr = 'not a known ROI'
             print "** ROI '%s' : %s" % (roi, estr)
             nerrs += 1
@@ -5359,22 +5356,47 @@ g_help_string = """
            averages.  The WMe and CSFe signals come from the Classes dataset,
            created by 3dSeg via the -mask_segment_anat option.
 
-                afni_proc.py -subj_id subj123                               \\
-                        -dsets epi_run1+orig.HEAD                           \\
-                        -copy_anat anat+orig                                \\
-                        -blocks despike align tlrc volreg blur mask regress \\
-                        -tcat_remove_first_trs 3                            \\
-                        -volreg_align_e2a                                   \\
-                        -volreg_tlrc_warp                                   \\
-                        -mask_segment_anat yes                              \\
-                        -regress_censor_motion 0.2                          \\
-                        -regress_censor_outliers 0.1                        \\
-                        -regress_bandpass 0.01 0.1                          \\
-                        -regress_apply_mot_types demean deriv               \\
-                        -regress_ROI WMe CSFe                               \\
-                        -regress_run_clustsim no                            \\
-                        -regress_est_blur_errts
+                afni_proc.py -subj_id subj123                                \\
+                  -dsets epi_run1+orig.HEAD                                  \\
+                  -copy_anat anat+orig                                       \\
+                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -tcat_remove_first_trs 3                                   \\
+                  -volreg_align_e2a                                          \\
+                  -volreg_tlrc_warp                                          \\
+                  -mask_segment_anat yes                                     \\
+                  -regress_censor_motion 0.2                                 \\
+                  -regress_censor_outliers 0.1                               \\
+                  -regress_bandpass 0.01 0.1                                 \\
+                  -regress_apply_mot_types demean deriv                      \\
+                  -regress_ROI WMe CSFe                                      \\
+                  -regress_run_clustsim no                                   \\
+                  -regress_est_blur_errts
 
+       10b. Resting state analysis, with tissue-based regressors and 3dRSFC
+            (for bandpassing and computation of ALFF, etc).
+
+            Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
+            Skip censoring because of the bandpass operation.
+
+            To correspond to common tractography, this example stays in orig
+            space (no 'tlrc' block, no -volreg_tlrc_warp option).  Of course,
+            going to standard space is an option.
+
+                afni_proc.py -subj_id subj123                                \\
+                  -dsets epi_run1+orig.HEAD                                  \\
+                  -copy_anat anat+orig                                       \\
+                  -blocks despike tshift align volreg blur mask regress      \\
+                  -tcat_remove_first_trs 3                                   \\
+                  -volreg_align_e2a                                          \\
+                  -blur_size 6.0                                             \\
+                  -mask_apply epi                                            \\
+                  -mask_segment_anat yes                                     \\
+                  -regress_bandpass 0.01 0.1                                 \\
+                  -regress_apply_mot_types demean deriv                      \\
+                  -regress_ROI WMe CSFe                                      \\
+                  -regress_RSFC                                              \\
+                  -regress_run_clustsim no                                   \\
+                  -regress_est_blur_errts
 
     --------------------------------------------------
     -ask_me EXAMPLES:
@@ -5454,12 +5476,13 @@ g_help_string = """
         step 1: analyze with afni_proc.py
 
                 Consider these afni_proc.py -help examples:
-                   5b. case of ricor and no bandpassing
-                   5c. ricor and bandpassing and full registration
-                   9.  no ricor, but with bandpassing
-                   10. also with tissue-based regressors
-                   soon: with WMeLocal (local white-matter, eroded) - ANATICOR
-                         extra motion regs via motion simulated time series
+                   5b.  case of ricor and no bandpassing
+                   5c.  ricor and bandpassing and full registration
+                   9.   no ricor, but with bandpassing
+                   9b.  with WMeLocal (local white-matter, eroded) - ANATICOR
+                   10.  also with tissue-based regressors
+                   10b. apply bandpassing via 3dRSFC
+                   soon: extra motion regs via motion simulated time series
                          (either locally or not)
 
             processing blocks:
@@ -8315,6 +8338,20 @@ g_help_string = """
 
             See also -mask_segment_anat.
             Please see '3dSeg -help' for motion information on the masks.
+
+        -regress_RSFC           : perform bandpassing via 3dRSFC
+
+            Use this option flag to run 3dRSFC after the linear regression
+            step (presumably to clean resting state data).  Along with the
+            bandpassed data, 3dRSFC will produce connectivity parameters,
+            saved in the RSFC directory by the proc script.
+
+            The -regress_bandpass option is required, and those bands will be
+            passed directly to 3dRSFC.  Since bandpassing will be done only
+            after the linear regression, censoring is not advisable.
+
+            See also -regress_bandpass, -regress_censor_motion.
+            Please see '3dRSFC -help' for more information.
 
         -regress_RONI IND1 ...  : specify a list of regressors of no interest
 
