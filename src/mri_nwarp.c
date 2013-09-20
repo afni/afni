@@ -5545,6 +5545,7 @@ AFNI_OMP_END ;
 #define Hpen_fbase 0.00666
 
 static double Hpen_fac = Hpen_fbase ;
+static double Hpen_fff = Hpen_fbase ;
 static double Hpen_sum = 0.0 ;
 static int    Hpen_num = 0 ;
 static int    Hpen_use = 1 ;
@@ -5555,7 +5556,7 @@ double HPEN_penalty(void)
 {
    double hsum ;
    hsum = Hpen_sum + (double)IW3D_load_energy(AHwarp) ;
-   if( hsum > 0.0 ) hsum = Hpen_fac * pow( hsum , 0.25 ) ;
+   if( hsum > 0.0 ) hsum = Hpen_fff * pow( hsum , 0.25 ) ;
    return hsum ;
 }
 
@@ -6194,6 +6195,8 @@ ENTRY("IW3D_warpomatic") ;
    levs = MAX(1,Hlev_start) ;
    for( lev=levs ; lev <= Hlev_end && !levdone ; lev++ ){
 
+     Hpen_fff = Hpen_fac * lev ;  /* 20 Sep 2013 */
+
      /* compute width of rectangles at this level */
 
      flev = powf(Hshrink,(float)lev) ;                 /* shrinkage fraction */
@@ -6778,7 +6781,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
 
    Hshrink    = 0.749999f ;
    Hlev_start = 0 ;
-   Hpen_fac  *= 8.0f ;
+   Hpen_fac  *= 4.0f ;
    Hduplo     = 1 ; Hnpar_sum = 0 ;
 
    if( Hemask != NULL ){
@@ -6791,7 +6794,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
 
    Dwarp = IW3D_warpomatic( bimd , wbimd , simd , meth_code , warp_flags ) ;
 
-   Hpen_fac  /= 8.0f ;
+   Hpen_fac  /= 4.0f ;
    Hduplo     = 0 ;
 
    mri_free(simd) ; mri_free(wbimd) ; mri_free(bimd) ;
@@ -7573,7 +7576,7 @@ ENTRY("IW3D_initialwarp_plusminus") ;
    free(mask) ;
 
    lstart     = Hlev_start ; lend     = Hlev_end ; pfac     = Hpen_fac ;
-   Hlev_start = 0          ; Hlev_end = 1        ; Hpen_fac = 0.0      ;
+   Hlev_start = 0          ; Hlev_end = 1        ; Hpen_fac = 0.0f     ;
 
    hw1 = Hworkhard1 ; hs1 = Hsuperhard1 ;
    hw2 = Hworkhard2 ; hs2 = Hsuperhard2 ;
@@ -7687,6 +7690,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
    levs = MAX(1,Hlev_start) ;
    for( lev=levs ; lev <= Hlev_end && !levdone ; lev++ ){
+
+     Hpen_fff = Hpen_fac * lev ;  /* 20 Sep 2013 */
 
      /* compute width of rectangles at this level */
 

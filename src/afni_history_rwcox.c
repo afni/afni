@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , SEP , 2013 , RWC , "afni_driver.c" , MICRO , TYPE_BUG_FIX ,
+  { 20 , SEP , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Make the penalty factor get bigger with level." ,
+   NULL } ,
+
+ { 20 , SEP , 2013 , RWC , "ccalc" , MICRO , TYPE_BUG_FIX ,
+   "Fixed Ziad's stupid sprintf(buf, ... , buf) bug" ,
+   NULL } ,
+
+ { 17 , SEP , 2013 , RWC , "afni_driver.c" , MICRO , TYPE_BUG_FIX ,
    "Fix problem with SET_PBAR_ALL +99" ,
    "Didn't properly enforce the positivity." } ,
 
