@@ -14,6 +14,15 @@
 #include "readline.h"
 #endif
 
+/*------------------------------------------------*/
+static char * Tsdup( char *str ){  /* 20 Sep 2013 */
+  static char *Zork = NULL ;
+  if( str == NULL ) return NULL ;
+  if( Zork != NULL ){ free(Zork); Zork = NULL; }
+  Zork = strdup(str) ; return Zork ;
+}
+/*------------------------------------------------*/
+
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode ;
@@ -150,7 +159,7 @@ int main( int argc , char * argv[] )
                                  "Stop it!\n", argv[kar]);
                exit (1);
             }
-            sprintf(expr,"%s %s", expr, argv[kar]);
+            sprintf(expr,"%s %s", Tsdup(expr), argv[kar]);
             ++ kar;
          }
          /* fprintf (stdout, "%s\n", expr);*/
@@ -170,7 +179,7 @@ int main( int argc , char * argv[] )
                                  "Stop it!\n", argv[kar]);
                exit (1);
             }
-            sprintf(expr,"%s %s", expr, argv[kar]);
+            sprintf(expr,"%s %s", Tsdup(expr), argv[kar]);
             ++ kar;
          }
          /* fprintf (stdout, "%s\n", expr);*/

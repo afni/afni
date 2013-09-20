@@ -38,3 +38,40 @@ ww := (n,m) -> factor(diff(simplify( sqrt(x**2+y**2+z**2)^n
 # Laplacian operator (for checking)
 
 lap := ff -> diff(f,x,x) + diff(f,y,y) + diff(f,z,z) :
+
+# Max value of qq and ww
+
+qqmax := (n,m) -> max( abs(subs(x=1,y=0,z=0,qq(n,m))) ,
+                       abs(subs(x=1,y=1,z=0,qq(n,m))) ,
+                       abs(subs(x=1,y=1,z=1,qq(n,m))) ,
+                       abs(subs(x=0,y=1,z=1,qq(n,m))) ,
+                       abs(subs(x=0,y=1,z=0,qq(n,m))) ,
+                       abs(subs(x=1,y=0,z=1,qq(n,m))) ,
+                       abs(subs(x=0,y=0,z=1,qq(n,m))) ,
+                       abs(subs(x=1/2,y=0,z=0,qq(n,m))) ,
+                       abs(subs(x=1/2,y=1/2,z=0,qq(n,m))) ,
+                       abs(subs(x=1/2,y=1/2,z=1/2,qq(n,m))) ,
+                       abs(subs(x=0,y=1/2,z=0,qq(n,m))) ,
+                       abs(subs(x=0,y=1/2,z=1/2,qq(n,m))) ,
+                       abs(subs(x=1/2,y=0,z=1/2,qq(n,m))) ,
+                       abs(subs(x=0,y=0,z=1/2,qq(n,m)))  ) :
+
+wwmax := (n,m) -> max( abs(subs(x=1,y=0,z=0,ww(n,m))) ,
+                       abs(subs(x=1,y=1,z=0,ww(n,m))) ,
+                       abs(subs(x=1,y=1,z=1,ww(n,m))) ,
+                       abs(subs(x=0,y=1,z=1,ww(n,m))) ,
+                       abs(subs(x=1,y=0,z=1,ww(n,m))) ,
+                       abs(subs(x=0,y=0,z=1,ww(n,m))) ,
+                       abs(subs(x=0,y=1,z=0,qq(n,m))) ,
+                       abs(subs(x=1/2,y=0,z=0,qq(n,m))) ,
+                       abs(subs(x=1/2,y=1/2,z=0,qq(n,m))) ,
+                       abs(subs(x=0,y=1/2,z=0,qq(n,m))) ,
+                       abs(subs(x=1/2,y=1/2,z=1/2,qq(n,m))) ,
+                       abs(subs(x=0,y=1/2,z=1/2,qq(n,m))) ,
+                       abs(subs(x=1/2,y=0,z=1/2,qq(n,m))) ,
+                       abs(subs(x=0,y=0,z=1/2,qq(n,m)))  ) :
+
+shc := (n,m) -> qq(n,m) / qqmax(n,m) :
+shs := (n,m) -> ww(n,m) / wwmax(n,m) :
+
+shtab := (nn) -> [ seq(shc(nn,mm),mm=0..nn-1) , seq(shs(nn,mm),mm=1..nn-1) ] ;
