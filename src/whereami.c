@@ -52,7 +52,7 @@ char *PrettyRef(char *ref) {
    strbuf[i] = '\0';
    
    /* now add the reference */
-   snprintf(strbuf, 490*sizeof(char), "%s\n            -> %s", strbuf, pj);
+   snprintf(strbuf+i, 490*sizeof(char), "\n            -> %s", pj);
    
    return(strbuf);
 }
