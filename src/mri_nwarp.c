@@ -5542,10 +5542,10 @@ AFNI_OMP_END ;
 
 /*----------------------------------------------------------------------------*/
 
-#define Hpen_fbase 0.00666
+#define Hpen_fbase 0.033333         /* increased by factor of 5 [23 Sep 2013] */
 
 static double Hpen_fac = Hpen_fbase ;
-static double Hpen_fff = Hpen_fbase ;
+static double Hpen_fff = Hpen_fbase ;     /* increases with lev [20 Sep 2013] */
 static double Hpen_sum = 0.0 ;
 static int    Hpen_num = 0 ;
 static int    Hpen_use = 1 ;

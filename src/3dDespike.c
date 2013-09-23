@@ -584,5 +584,5 @@ int main( int argc , char *argv[] )
      DSET_delete(tset) ;
    }
 
-   exit(0) ;
+   exit( THD_get_write_error_count() ) ;
 }
