@@ -4450,6 +4450,9 @@ extern THD_3dim_dataset_array *
 extern Boolean THD_write_3dim_dataset( char *,char * ,
                                        THD_3dim_dataset * , Boolean );
 
+extern int THD_get_write_error_count(void) ;     /* 23 Sep 2013 */
+extern void THD_reset_write_error_count(void) ;
+
 extern void THD_use_3D_format   ( int ) ;  /* 21 Mar 2003 */
 extern void THD_use_NIFTI_format( int ) ;  /* 06 Apr 2005 */
 extern void THD_set_quiet_overwrite ( int ) ;  /* 31 Jan 2011 */
