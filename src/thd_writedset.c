@@ -8,6 +8,10 @@
 #include "thd.h"
 #include "thd_niftiwrite.h"
 
+static int error_count = 0 ;
+int THD_get_write_error_count(void){ return error_count; }
+void THD_reset_write_error_count(void){ error_count = 0; }
+
 static int use_3D_format    = 0 ;  /* 21 Mar 2003 */
 static int use_NIFTI_format = 0 ;  /* 06 Apr 2005 */
 static int quiet_overwrite  = 0 ;  /* 31 Jan 2011 */
@@ -38,6 +42,7 @@ Boolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
    int is_nsd = 0, is_gifti = 0 ;  /* is NI_SURF_DSET  03 Jul 2006 [rickr] */
    int free_1d = 0 ;               /* write 1D using prefix */
    char *ppp ;  /* 06 Apr 2005 */
+   Boolean bb ;
 
 ENTRY("THD_write_3dim_dataset") ;
 
@@ -48,7 +53,7 @@ ENTRY("THD_write_3dim_dataset") ;
        ! ISVALID_DISKPTR(dset->dblk->diskptr) ) {
       /* do not fail silently                 5 Aug 2010 [rickr] */
       fprintf(stderr,"** cannot write dataset, invalid dset/dblk/diskptr\n");
-      RETURN(False) ;
+      error_count++ ; RETURN(False) ;
    }
 
    if( new_prefixname ) ppp = new_prefixname;
@@ -61,38 +66,38 @@ ENTRY("THD_write_3dim_dataset") ;
    if( DSET_IS_MINC(dset)     ) {
       fprintf(stderr,"** cannot write '%s', dset is MINC\n",
               ppp ? ppp : "<NO PREFIX>");
-      RETURN(False) ;  /* 29 Oct 2001 */
+      error_count++ ; RETURN(False) ;  /* 29 Oct 2001 */
    }
    if( DSET_IS_MASTERED(dset) ) {
       fprintf(stderr,"** cannot write '%s', dset is MASTERED (sub-bricks)\n",
               ppp ? ppp : "<NO PREFIX>");
-      RETURN(False) ;  /* 11 Jan 1999 */
+      error_count++ ; RETURN(False) ;  /* 11 Jan 1999 */
    }
    if( DSET_IS_ANALYZE(dset)  ) {
       fprintf(stderr,"** cannot write '%s', dset is ANALYZE\n",
               ppp ? ppp : "<NO PREFIX>");
-      RETURN(False) ;  /* 27 Aug 2002 */
+      error_count++ ; RETURN(False) ;  /* 27 Aug 2002 */
    }
    if( DSET_IS_CTFMRI(dset)   ) {
       fprintf(stderr,"** cannot write '%s', dset is CTFMRI\n",
               ppp ? ppp : "<NO PREFIX>");
-      RETURN(False) ;  /* 05 Dec 2002 */
+      error_count++ ; RETURN(False) ;  /* 05 Dec 2002 */
    }
    if( DSET_IS_CTFSAM(dset)   ) {
       fprintf(stderr,"** cannot write '%s', dset is CTFSAM\n",
               ppp ? ppp : "<NO PREFIX>");
-      RETURN(False) ;  /* 05 Dec 2002 */
+      error_count++ ; RETURN(False) ;  /* 05 Dec 2002 */
    }
    if( DSET_IS_TCAT(dset)     ) {
       fprintf(stderr,"** cannot write '%s', dset is TCAT\n",
               ppp ? ppp : "<NO PREFIX>");
-      RETURN(False) ;  /* 05 Aug 2004 */
+      error_count++ ; RETURN(False) ;  /* 05 Aug 2004 */
    }
 
    if( DSET_IS_VOLUMES(dset) && write_brick ) {
       fprintf(stderr,"** cannot write '%s', dset is VOLUMES\n",
               ppp ? ppp : "<NO PREFIX>");
-      RETURN(False) ;  /* 20 Jun 2002 */
+      error_count++ ; RETURN(False) ;  /* 20 Jun 2002 */
    }
 
    /* block NI_SURF_DSET from 1D write    11 Jul 2006 [rickr] */
@@ -149,7 +154,7 @@ ENTRY("THD_write_3dim_dataset") ;
          } else {
            ERROR_message("output dataset name '%s' conflicts with existing file",pfx);
            ERROR_message("dataset NOT written to disk!") ;
-           RETURN(False) ;
+           error_count++ ; RETURN(False) ;
          }
        }
      }
@@ -218,6 +223,7 @@ ENTRY("THD_write_3dim_dataset") ;
      }
 
      free((void *)options.infile_name) ;
+     if( ii==0 ) error_count++ ;
      RETURN( (Boolean)ii ) ;
    }
 
@@ -228,7 +234,7 @@ ENTRY("THD_write_3dim_dataset") ;
        fprintf(stderr,
                "** ERROR: can't write HEADER only for .3D file: %s\n",
                DSET_PREFIX(dset) ) ;
-       RETURN(False) ;
+       error_count++ ; RETURN(False) ;
      }
      THD_write_3D( NULL, NULL, dset ) ; RETURN(True) ;
    }
@@ -236,20 +242,26 @@ ENTRY("THD_write_3dim_dataset") ;
    /*------ 12 Jun 2006: use the .niml format -----*/
 
    if( STRING_HAS_SUFFIX(ppp,".niml") || DSET_IS_NIML(dset) ){
-     RETURN( THD_write_niml( dset, write_brick ) ) ;
+     bb = THD_write_niml( dset, write_brick ) ;
+     if( bb == False ) error_count++ ;
+     RETURN(bb) ;
    }
 
    /*------ 28 Jun 2006: use the .niml.dset format -----*/
 
    /* if(STRING_HAS_SUFFIX(ppp,".niml.dset") || DSET_IS_NI_SURF_DSET(dset)){ */
    if( is_nsd ){  /* already determined                  03 Jul 2006 [rickr] */
-     if( is_gifti ) RETURN( THD_write_gifti( dset, write_brick, 0 ) ) ;
-     else           RETURN( THD_write_niml( dset, write_brick ) ) ;
+     if( is_gifti ) bb = THD_write_gifti( dset, write_brick, 0 ) ;
+     else           bb = THD_write_niml( dset, write_brick ) ;
+     if( bb == False ) error_count++ ;
+     RETURN(bb) ;
    }
 
    /*----- write datablock to disk in AFNI .HEAD/.BRIK format -----*/
 
-   RETURN( THD_write_datablock(blk,write_brick) ) ;
+   bb = THD_write_datablock(blk,write_brick) ;
+   if( bb == False ) error_count++ ;
+   RETURN(bb) ;
 }
 
 /* accessor functions to control whether attributes will be reinitialized 
