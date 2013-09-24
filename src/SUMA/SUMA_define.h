@@ -232,7 +232,7 @@ typedef enum { SE_Empty,
                SE_SetSurfCont, SE_SetViewerCont, SE_SetRecorderCont,
                SE_SetDsetViewMode, SE_SetDsetFont, SE_SetDsetNodeRad, 
                SE_SetDsetNodeCol, SE_SetDsetEdgeThick, SE_SetDsetEdgeStip,
-               SE_SetDsetGmatBord,
+               SE_SetDsetGmatBord, SE_SetDsetTxtShad,
                SE_BadCode} SUMA_ENGINE_CODE; 
                         /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,
@@ -353,6 +353,17 @@ typedef enum { SW_SurfCont_DsetNodeCol,
                SW_SurfCont_DsetNodeColVal,/* colorize based on data value */
                SW_N_SurfCont_DsetNodeCol }
                                           SUMA_WIDGET_INDEX_SURFCONT_DSETNODECOL;
+
+typedef enum { SW_SurfCont_DsetTxtShad,
+               SW_SurfCont_DsetTxtShad1,
+               SW_SurfCont_DsetTxtShad2,
+               SW_SurfCont_DsetTxtShad3,
+               SW_SurfCont_DsetTxtShad4,
+               SW_SurfCont_DsetTxtShad5,
+               SW_SurfCont_DsetTxtShad6,
+               SW_N_SurfCont_DsetTxtShad }
+                                          SUMA_WIDGET_INDEX_SURFCONT_DSETTXTSHAD;
+
 typedef enum { SW_SurfCont_DsetGmatBord,
                SW_SurfCont_DsetGmatBord0,
                SW_SurfCont_DsetGmatBord5,
@@ -858,6 +869,7 @@ typedef struct {
    int NodeCol; /*!< Node colors, either constant or from dset 
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETNODECOL */
    int BordFrac; /*!< Thinckness of border relative to cell width */
+   int TxtShad; /*!< Text shadowing, see SUMA_WIDGET_INDEX_SURFCONT_DSETTXTSHAD*/
    
    int EdgeThick; /* see SUMA_WIDGET_INDEX_SURFCONT_DSETEDGETHICK */
    float EdgeThickGain;
@@ -1418,6 +1430,7 @@ typedef struct {
                                        controlling the dataset view mode menu */
    SUMA_MENU_WIDGET *DsetFontMenu; /*!<[SW_N_SurfCont_DsetFont] widgets                                   controlling the font displayed on graph nodes */
    SUMA_MENU_WIDGET *DsetNodeColMenu; /*!<[SW_N_SurfCont_DsetNodeCol] widgets                                   controlling the color mapping of graph nodes */
+   SUMA_MENU_WIDGET *DsetTxtShadMenu; /*!<[SW_N_SurfCont_DsetTxtShad] widgets                                   controlling the shading/shadowing of txt */
    SUMA_MENU_WIDGET *DsetGmatBordMenu; /*!<[SW_N_SurfCont_DsetGmatBord] widgets                                   controlling the border thickness in GMATRIX */
    SUMA_MENU_WIDGET *DsetNodeRadMenu; /*!<[SW_N_SurfCont_DsetNodeRad] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *DsetEdgeThickMenu; /*!<[SW_N_SurfCont_DsetEdgeThick] widgets                                   controlling the sizing of graph nodes */
@@ -1774,7 +1787,11 @@ typedef struct {
    GLushort *stipv;  /* stippling pattern for each seg. */
    int Mstip;
    GLushort stip;    /* common stippling pattern */
-}SUMA_SegmentDO;
+   
+   int N_UnqNodes; /* Number of unique nodes that are used to form the segments
+                      That the number of elements in the set formed by NodeID1 
+                      and NodeID, -1 if it is not set*/
+} SUMA_SegmentDO;
 
 typedef struct {
    char *parent_ID;

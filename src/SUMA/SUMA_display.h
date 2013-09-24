@@ -374,6 +374,9 @@ void SUMA_cb_SetDsetNodeRad(Widget widget, XtPointer client_data,
 void SUMA_cb_SetDsetGmatBord(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 int SUMA_SetDsetGmatBord(SUMA_ALL_DO *ado, int imenu, int updatemenu);
+int SUMA_SetDsetTxtShad(SUMA_ALL_DO *ado, int imenu, int updatemenu); 
+void SUMA_cb_SetDsetTxtShad(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
 void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer client_data, 
                                 XtPointer call_data);
@@ -581,6 +584,8 @@ SUMA_Boolean SUMA_World2ScreenCoordsF (
                      SUMA_SurfaceViewer *sv, int N_List, float *WorldList, 
                      float *ScreenList, int *Quad, 
                      SUMA_Boolean ApplyXform, SUMA_Boolean ScreenY);
+int * SUMA_DepthSort(float *NodeList, int N_Node, char **names, 
+                     int cpxform, float *scrxyz);
 SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, 
                                                 int x1, int y1, int meth);
 void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, 

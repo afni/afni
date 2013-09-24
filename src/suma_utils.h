@@ -259,6 +259,7 @@ int SUMA_binFind( float *indexList, int N_node, float target, byte ematch);
 SUMA_Boolean SUMA_ibinSearch( int *indexList, int target, int *seg);
 int SUMA_ibinFind( int *indexList, int N_node, int target);
 int *SUMA_reorder(int *y, int *isort, int N_isort);
+char **SUMA_sreorder(char **y, int *isort, int N_isort);
 double *SUMA_dreorder(double *y, int *isort, int N_isort);
 float *SUMA_freorder(float *y, int *isort, int N_isort);
 float *SUMA_freorder_triplets(float *y, int *isort, int N_isort);

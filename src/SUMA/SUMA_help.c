@@ -1722,8 +1722,10 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     Mouse Controls:\n");
    SS = SUMA_StringAppend (SS, 
-      "     Button 1-Motion: rotation as if you were using\n"
-      "                      a trackball.\n"
+      "     Button 1-Motion: For 3D scenes, rotation as if you were \n"
+      "                      using a trackball. For matrix displays \n"
+      "                      Button 1-Motion causes translation because\n"
+      "                      rotations are of little use.\n"
       "       Pure vertical motion is equivalent to using \n"
       "       the up/down arrow keys.\n"
       "       Pure horizontal motion is equivalent to using \n"
@@ -1753,18 +1755,31 @@ char * SUMA_help_message_Info(void)
       "       SUMA_LHunify = YES (see your ~/.sumarc for help)\n"
       "     Button 1-DoubleClick: Reset to Home vieweing angle, zooming is\n"
       "       left unchanged. See also 'Home' key\n"
-      "     Control+Button 1-DoubleClick: Reset surface prying.n" 
+      "     Control+Button 1-DoubleClick: Reset surface prying.\n" 
       );
    SS = SUMA_StringAppend (SS, 
-      "     Button 2-Motion: translation\n"); 
+      "     Button 2-Motion: Translation for 3D scenes. Rotation for\n"
+      "                      matrix displays.\n"); 
    SS = SUMA_StringAppend (SS, 
       "     Button 1+2-Motion    OR \n"
       "     Shift+Button2-Motion: \n"
       "          Zoom in/out\n");
    SS = SUMA_StringAppend (SS, 
-      "     Button 3-Press: Node picking \n"
+      "     Button 3-Press: Node picking whenever surfaces are present\n"
       "                     Initiates a path to new node in DrawROI mode.\n"
-      "                     No calls in Dot xform mode, or GroupInCorr\n" 
+      "                     No calls in Dot xform mode, or GroupInCorr.\n"
+      "                     Graph Edge/Matrix Cell picking whenever displaying\n"
+      "                     graph datasets only (no surfaces in sight).\n"
+      "                     Intersections with graph edges/nodes are ignored \n"
+      "                     when surfaces are displayed. \n"
+      "                     See Alt+Button 3-Press next.\n" 
+      "     Alt+Button 3-Press: Graph edge/node picking in the presence \n"
+      "                         of surfaces. Intersections with surfaces\n"
+      "                         are ignored.\n"
+      "     Shift+Alt+Button 3-Press: Same as Alt+Button 3, but also display\n"
+      "                         pick buffer. This is mostly for debugging or \n"
+      "                         for understanding why selection is behaving\n"
+      "                         strangely.\n"
       "     Shift+Button 3-Press: Same as without shift, except does not draw\n"
       "                           in DrawROI mode.\n"
       "     Ctrl+Button 3-Press: Yoke intensity selection to index of \n"
@@ -1775,9 +1790,13 @@ char * SUMA_help_message_Info(void)
       "     Shift+Ctrl+Button 3-Press: Pick and initiate call in Dot xform\n"
       "                               mode, or to GroupInCorr\n");
    SS = SUMA_StringAppend (SS, 
-      "     Button 3-Motion: continuous picking\n"
+      "     Button 3-Motion: continuous picking whenever surface are present.\n"
       "                      No calls for dot product (InstaCorr)\n"
-      "                           or GroupInCorr, while dragging.\n" 
+      "                           or GroupInCorr, while dragging.\n"
+      "                      Continuous picking of graph edges/nodes if no\n"
+      "                      surfaces are displayed.\n"
+      "     Alt+Button 3-Motion: Continuous picking of graph edges/nodes. \n"
+      "                      Intersections with surfaces are ignored.\n" 
       "     Ctrl+Button 3-Motion: continous yoking of intensity selection to\n"
       "                           selected node*K.\n" 
       "     Shift+Ctrl+Button 3-Motion: Continuous picking and calls \n"

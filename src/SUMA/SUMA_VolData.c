@@ -1569,16 +1569,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       NetShift[0] = SO->VolPar->ROTATE_CENTER_BASE[0] + Delta[0];
       NetShift[1] = SO->VolPar->ROTATE_CENTER_BASE[0] + Delta[1];
       NetShift[2] = SO->VolPar->ROTATE_CENTER_BASE[0] + Delta[2];
-      
-      /*
-      fprintf (SUMA_STDERR,"%s: Applying Rotation.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
-               Mrot[0][0], Mrot[0][1], Mrot[0][2], Mrot[1][0], Mrot[1][1], Mrot[1][2], Mrot[2][0], Mrot[2][1], Mrot[2][2], \
-               Delta[0], Delta[1], Delta[2]);
-      fprintf (SUMA_STDERR,"ROTATE_CENTER_BASE = [%f %f %f]. ROTATE_CENTER_OLD = [%f %f %f]\n", \
-         SO->VolPar->ROTATE_CENTER_BASE[0], SO->VolPar->ROTATE_CENTER_BASE[1], SO->VolPar->ROTATE_CENTER_BASE[2], \
-         SO->VolPar->ROTATE_CENTER_OLD[0], SO->VolPar->ROTATE_CENTER_OLD[1], SO->VolPar->ROTATE_CENTER_OLD[2]);
-      */
-      
+            
       for (i=0; i < SO->N_Node; ++i) {
          id = ND * i;
          /* zero the center */ 

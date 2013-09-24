@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, Sep , 2013 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "Numerous updates/bug fixes for graph dset handling",
+   "Pick buffer update now synced with what viewer shows. \n"
+   "See SUMA_ADO_Flush_Pick_Buffer(). Text, whenever displayed,\n"
+   "is turned into a solid rectangle in the pick buffer to facilitate\n"
+   "selection.\n"
+   "Point radius based on value was improperly scaled, same for stippling\n"
+   "Gain arrows had a min of 1.0, now min is 0 and max 200\n"
+   "Background of text now updates along with text color when color of viewer\n"
+   "background is changed.\n"
+   "Help message for picking updated.\n"
+   "Shift+Alt+Button-3 press will now take a snapshot of the pick buffer\n"
+   "to help with debugging." 
+ },
+
  { 16, Sep , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Switched functions of mouse buttons 1 and 2 when viewing GRAPH MATRIX",
    "This means matrix spatial rotation would be done with button 2 and\n"
