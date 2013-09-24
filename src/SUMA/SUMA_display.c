@@ -2896,6 +2896,36 @@ SUMA_MenuItem DsetNodeCol_Menu[] = {
    {NULL},
 };
 
+SUMA_MenuItem DsetTxtShad_Menu[] = {
+   {  "T", &xmPushButtonWidgetClass, 
+      '1', NULL, NULL, 
+      SUMA_cb_SetDsetTxtShad, 
+      (XtPointer) SW_SurfCont_DsetTxtShad1, NULL},
+      
+   {  "Ts", &xmPushButtonWidgetClass, 
+      '2', NULL, NULL, 
+      SUMA_cb_SetDsetTxtShad, 
+      (XtPointer) SW_SurfCont_DsetTxtShad2, NULL},
+      
+   {  "B", &xmPushButtonWidgetClass, 
+      '3', NULL, NULL, 
+      SUMA_cb_SetDsetTxtShad, (XtPointer) SW_SurfCont_DsetTxtShad3, NULL},
+   
+   {  "Bs", &xmPushButtonWidgetClass, 
+      '4', NULL, NULL, 
+      SUMA_cb_SetDsetTxtShad, (XtPointer) SW_SurfCont_DsetTxtShad4, NULL},
+            
+   {  "Ta", &xmPushButtonWidgetClass, 
+      '5', NULL, NULL, 
+      SUMA_cb_SetDsetTxtShad, (XtPointer) SW_SurfCont_DsetTxtShad5, NULL},
+            
+   {  "Ba", &xmPushButtonWidgetClass, 
+      '6', NULL, NULL, 
+      SUMA_cb_SetDsetTxtShad, (XtPointer) SW_SurfCont_DsetTxtShad6, NULL},
+            
+   {NULL},
+};
+
 SUMA_MenuItem DsetGmatBord_Menu[] = {
    {  "XX", &xmPushButtonWidgetClass, 
       'X', NULL, NULL, 
@@ -4273,7 +4303,7 @@ int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
 /*!
    Purpose: Takes a the world x,y,z coordinates and turns them into 
             screen coordinates
-   Set the last param to 0 (or NOPE) if you are calling this function 
+   Set the ApplyXform to 0 (or NOPE) if you are calling this function 
    after the projection  and other viewing matrices have been set. 
    This happens when this function is called as
    a child of SUMA_display
@@ -4295,7 +4325,11 @@ SUMA_Boolean SUMA_World2ScreenCoords (
    
    SUMA_ENTRY;
    
-   if (LocalHead) {
+   if (!sv && (Quad || ApplyXform)) {
+      SUMA_S_Err("NULL sv with Quad or Xform. I need sv for that");
+      SUMA_RETURN(NOPE);
+   }
+   if (LocalHead && sv) {
       fprintf (SUMA_STDERR, 
                "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", 
                FuncName, sv->GVS[sv->StdView].currentQuat[0],           
@@ -4419,8 +4453,11 @@ SUMA_Boolean SUMA_World2ScreenCoordsF (
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
-   if (LocalHead) {
+   if (!sv && (Quad || ApplyXform)) {
+      SUMA_S_Err("NULL sv with Quad or Xform. I need sv for that");
+      SUMA_RETURN(NOPE);
+   }
+   if (LocalHead && sv) {
       fprintf (SUMA_STDERR, 
                "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", 
                FuncName, sv->GVS[sv->StdView].currentQuat[0],           
@@ -4532,6 +4569,103 @@ SUMA_Boolean SUMA_World2ScreenCoordsF (
 
    SUMA_RETURN (YUP);
 }
+
+/* 
+   Depth sorting of locations in NodeList
+   
+   All viewing matrices should be applied before this function is called 
+   Retruns sorting map, isrt (int *), such that NodeList[3*isrt[0]] is 
+   the location farthest from the eyeball. 
+   
+   if (xform_NodeList) then NodeList's content is replaced with the
+   screen projection coords.
+   
+   scrxyz (float *): Pointer to hold screen corrds version of
+                     NodeList before any sorting. Pass NULL
+                     to have the function use its static array.
+                     
+*/
+int * SUMA_DepthSort(float *NodeList, int N_Node, char **names, 
+                     int xform_NodeList, float *uscrxyz)
+{
+   static char FuncName[]={"SUMA_DepthSort"};
+   static float *scrxyz_loc=NULL;
+   float *scrxyzR=NULL, *scrz=NULL, *scrxyz=NULL;
+   static int N_alloc=-1;
+   int ii, *isrt=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (N_Node == -1) { /* cleanup call */
+      SUMA_ifree(scrxyz_loc); N_alloc = -1;
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!uscrxyz) {
+      if (!scrxyz_loc || N_alloc != N_Node) {
+         SUMA_ifree(scrxyz_loc);
+         if (!(scrxyz_loc = (float *)SUMA_malloc(3*N_Node *sizeof(float)))) {
+            SUMA_S_Critv("Failed to allocate for %d node XYZ vals\n", N_Node);
+            SUMA_RETURN(NULL);
+         }
+         N_alloc = N_Node;
+      }
+      scrxyz = scrxyz_loc;
+   } else {
+      scrxyz = uscrxyz;
+   }
+   
+   SUMA_World2ScreenCoordsF(NULL, N_Node, NodeList, scrxyz, NULL, NOPE, YUP);
+   if (xform_NodeList) memcpy(NodeList, scrxyz, 3*N_Node*sizeof(float));
+   
+   if (LocalHead) { /* slower way for debugging */
+      if (!(scrz = (float *)SUMA_malloc(N_Node *sizeof(float)))) {
+         SUMA_S_Critv("Failed to allocate for %d node XYZ vals\n", N_Node);
+         SUMA_RETURN(NULL);
+      }
+      for (ii=0; ii<N_Node; ++ii) {
+         scrz[ii] = -scrxyz[3*ii+2];
+      }
+      isrt = SUMA_z_qsort (scrz, N_Node);
+   
+      scrxyzR = SUMA_freorder_triplets(scrxyz, isrt, N_Node);
+
+      fprintf(stderr,"\nSorted %d objects, farthest first, closest last\n",
+             N_Node);
+      for (ii=0; ii<N_Node; ++ii) {
+         fprintf(stderr,"Obj. %d, name %s, scr coords [%f %f %f], "
+                        "orig coords [%f %f %f]\n",
+               isrt[ii], names?names[isrt[ii]]:"NULL", 
+               scrxyzR[3*ii], scrxyzR[3*ii+1], scrxyzR[3*ii+2],
+               NodeList[3*ii], NodeList[3*ii+1],NodeList[3*ii+2]);
+      }
+      SUMA_ifree(scrxyzR); 
+      SUMA_ifree(scrz);
+   } else {
+      if (uscrxyz) {/* don't ruin the screen array */
+         if (!(scrz = (float *)SUMA_malloc(N_Node *sizeof(float)))) {
+            SUMA_S_Critv("Failed to allocate for %d node XYZ vals\n", N_Node);
+            SUMA_RETURN(NULL);
+         }
+         for (ii=0; ii<N_Node; ++ii) {
+            scrz[ii] = -scrxyz[3*ii+2];
+         }
+         isrt = SUMA_z_qsort (scrz, N_Node);
+         SUMA_ifree(scrz);
+      } else {
+         /* reuse scrxyz, only 1/3 will be used*/
+         for (ii=0; ii<N_Node; ++ii) {
+            scrxyz[ii] = -scrxyz[3*ii+2];
+         }
+         isrt = SUMA_z_qsort (scrxyz, N_Node);
+      }
+   }
+   
+   
+   SUMA_RETURN(isrt);
+}  
+
 /* Take normalized x,y screen corrdinates and turn them to world coordinates 
 Based on code from SUMA_GetSelectionLine.
 If you need to set GL_MODELVIEW_MATRIX set ApplyXform to 1 and make sure 
@@ -7423,7 +7557,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       XtManageChild (SurfCont->DsetNodeRadMenu->mw[SW_SurfCont_DsetNodeRad]);
       
       SUMA_CreateArrowField ( rc, "Gn",
-                           1, 1.0, 20.0, 1.0,
+                           1.0, 0.0, 200.0, 1.0,
                            3, SUMA_float,
                            YUP,
                            SUMA_cb_ColPlane_NewNodeRadGain, (void *)ado, 
@@ -7431,6 +7565,17 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                            SUMA_SurfContHelp_DsetNodeRadGain,
                            SurfCont->NodeRadGainAF);
      
+      SUMA_BuildMenuReset(0);
+      SurfCont->DsetGmatBordMenu =
+         SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetGmatBord);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                "Br", '\0', YUP, DsetGmatBord_Menu,
+                (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
+                "Choose the partition ratio of matrix.",
+                SUMA_SurfContHelp_DsetGmatBord, 
+                SurfCont->DsetGmatBordMenu );
+      XtManageChild (SurfCont->DsetGmatBordMenu->mw[SW_SurfCont_DsetGmatBord]);
+      
       XtManageChild (rc);
       
       /* add a rc for the node font and colorization */
@@ -7464,15 +7609,15 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       XtManageChild (SurfCont->DsetNodeColMenu->mw[SW_SurfCont_DsetNodeCol]);
       
       SUMA_BuildMenuReset(0);
-      SurfCont->DsetGmatBordMenu =
-         SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetGmatBord);
+      SurfCont->DsetTxtShadMenu =
+         SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetTxtShad);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
-                "Br", '\0', YUP, DsetGmatBord_Menu,
+                "Sh", '\0', YUP, DsetTxtShad_Menu,
                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
                 "Choose the partition ratio of matrix.",
-                SUMA_SurfContHelp_DsetGmatBord, 
-                SurfCont->DsetGmatBordMenu );
-      XtManageChild (SurfCont->DsetGmatBordMenu->mw[SW_SurfCont_DsetGmatBord]);
+                SUMA_SurfContHelp_DsetTxtShad, 
+                SurfCont->DsetTxtShadMenu );
+      XtManageChild (SurfCont->DsetTxtShadMenu->mw[SW_SurfCont_DsetTxtShad]);
       
       /* manage  rc */
       XtManageChild (rc);
@@ -7496,7 +7641,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       XtManageChild (SurfCont->DsetEdgeThickMenu->mw[SW_SurfCont_DsetEdgeThick]);
       
       SUMA_CreateArrowField ( rc, "Gn",
-                           1, 1.0, 20.0, 1.0,
+                           1.0, 0.0, 200.0, 1.0,
                            3, SUMA_float,
                            YUP,
                            SUMA_cb_ColPlane_NewEdgeThickGain, (void *)ado, 
@@ -10717,6 +10862,8 @@ int SUMA_ColPlane_NewNodeRadGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    
    SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+   
    /* need to colorize plane */
    SUMA_ColorizePlane(curColPlane);
    
@@ -10827,6 +10974,8 @@ int SUMA_ColPlane_NewEdgeThickGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    /* need to colorize plane */
    SUMA_ColorizePlane(curColPlane);
    
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
    /* a good remix and redisplay */
    SUMA_RemixRedisplay (ado);
    
@@ -14303,6 +14452,76 @@ void SUMA_cb_SetDsetNodeCol(Widget widget, XtPointer client_data,
    imenu = (INT_CAST)datap->callback_data; 
    
    if (!SUMA_SetDsetNodeCol(ado, imenu, 0)) {
+      SUMA_S_Err("Failed to set view mode");
+      SUMA_RETURNe;
+   }
+      
+   
+   SUMA_RETURNe;
+}
+
+int SUMA_SetDsetTxtShad(SUMA_ALL_DO *ado, int imenu, int updatemenu) 
+{
+   static char FuncName[]={"SUMA_SetDsetTxtShad"};
+   DList *list = NULL;
+   DListElmt *Elmnt = NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+
+   SUMA_ENTRY;
+
+   /* make a call to SUMA_Engine */
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetDsetTxtShad);
+
+   Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_i, (void *)&imenu,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+   if (!SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)ado,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_In, Elmnt)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
+               FuncName);
+      SUMA_RETURN(NOPE);                                     
+   }
+
+
+   if (!SUMA_Engine (&list)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+      SUMA_RETURN(NOPE);    
+   }
+
+   if (updatemenu && 
+       (SurfCont = SUMA_ADO_Cont(ado)) &&
+       (curColPlane = SUMA_ADO_CurColPlane(ado))) {
+      SUMA_Set_Menu_Widget( SurfCont->DsetTxtShadMenu,
+                            curColPlane->TxtShad);
+   }
+
+   SUMA_RETURN(YUP);
+}
+
+void SUMA_cb_SetDsetTxtShad(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetDsetTxtShad"};
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int imenu = 0;
+   
+   SUMA_ENTRY;
+
+   
+   /* get the  object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   ado = (SUMA_ALL_DO *)datap->ContID;
+   imenu = (INT_CAST)datap->callback_data; 
+   
+   if (!SUMA_SetDsetTxtShad(ado, imenu, 0)) {
       SUMA_S_Err("Failed to set view mode");
       SUMA_RETURNe;
    }

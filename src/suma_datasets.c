@@ -14552,8 +14552,8 @@ byte SUMA_GDSET_PointToDiagSegRowIndex(SUMA_DSET *dset, int i1, int *ri, int *si
    switch (dset->Aux->matrix_shape) {
       case MAT_FULL:
          if (i1 >= dset->Aux->matrix_size[0]) return(0);
-         *si = i1+i1*dset->Aux->matrix_size[0]; return(1);
-         *ri = *si;
+         *si = i1+i1*dset->Aux->matrix_size[0]; 
+         *ri = *si; return(1);
          break;
       case MAT_TRI:
          /* No diags elems here */

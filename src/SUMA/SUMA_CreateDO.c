@@ -960,6 +960,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
          SDO->Parent_idcode_str = NULL;
          SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
          SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+         SDO->N_UnqNodes = -2; /* Cannot be set */
       } else {
          if (NodeBased == 1) {
             SDO->NodeBased = 1;
@@ -968,6 +969,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
             SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
             SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
             SDO->NodeID1 = NULL;
+            SDO->N_UnqNodes = -1;
          } else if (NodeBased == 2) {
             SDO->NodeBased = 2;
             SDO->n0 = NULL;
@@ -975,6 +977,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
             SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
             SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
             SDO->NodeID1 = (int*) SUMA_calloc(N_n, sizeof(int));
+            SDO->N_UnqNodes = -1;
          } 
       }
    
@@ -1002,6 +1005,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
       SDO->n0 = NULL;
       SDO->n1 = NULL;
       SDO->N_n = 0;
+      SDO->N_UnqNodes = -1;
    }
    
    /* create a string to hash an idcode */
@@ -1039,6 +1043,61 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
    } else SDO->botobj = NULL;
    
    SUMA_RETURN (SDO);
+}
+
+/* Set the number of unique points in a segment DO.
+   if N is provided and is >= 0, them SDO->N_UnqNodes is set to N
+   and the function returns
+   Otherwise, the function will figure out the number of unique points
+   if possible, and if SDO->N_UnqNodes is not = -2. A value of 
+   SDO->N_UnqNodes = -2 is meant to flag that no attempt should 
+   be made to compute N_UnqNodes.
+*/
+int SUMA_Set_N_UnqNodes_SegmentDO(SUMA_SegmentDO * SDO, int N)
+{
+   static char FuncName[]={"SUMA_Set_N_UnqNodes_SegmentDO"};
+   int *uu=NULL, *uus=NULL;
+   SUMA_ENTRY;
+   
+   if (!SDO) SUMA_RETURN(-2); /* error */
+   
+   if (SDO->N_UnqNodes < -1) { /* flagged as not feasible, don't bother */
+      SUMA_RETURN(SDO->N_UnqNodes);
+   }                           
+   if (!SDO->NodeID && !SDO->NodeID1) { /* nothing possible */
+      SDO->N_UnqNodes = -2; SUMA_RETURN(SDO->N_UnqNodes);
+   }
+   if (N >= 0) { /* use it, no questions asked */
+      SDO->N_UnqNodes = N; SUMA_RETURN(SDO->N_UnqNodes);
+   }
+   if (SDO->N_UnqNodes >= 0) { /* don't bother anew, return existing answer */
+      SUMA_RETURN(SDO->N_UnqNodes);
+   }
+   
+   /* Now we need to figure things out here */
+   if (!SDO->NodeID && SDO->NodeID1) {
+      uu = SUMA_UniqueInt(SDO->NodeID1, SDO->N_n, &(SDO->N_UnqNodes), 0);
+      SUMA_ifree(uu);
+      SUMA_RETURN(SDO->N_UnqNodes); 
+   } else if (SDO->NodeID && !SDO->NodeID1) {
+      uu = SUMA_UniqueInt(SDO->NodeID, SDO->N_n, &(SDO->N_UnqNodes), 0);
+      SUMA_ifree(uu);
+      SUMA_RETURN(SDO->N_UnqNodes); 
+   } else { /* Both are set */
+      if (!(uu = (int *)SUMA_malloc(SDO->N_n*2 * sizeof(int)))) {
+         SUMA_S_Crit("Failed to allocate");
+         SDO->N_UnqNodes = -2;
+         SUMA_RETURN(SDO->N_UnqNodes);
+      }
+      memcpy(uu, SDO->NodeID, SDO->N_n*sizeof(int));
+      memcpy(uu+SDO->N_n, SDO->NodeID1, SDO->N_n*sizeof(int));
+      uus = SUMA_UniqueInt(uu, 2*SDO->N_n, &(SDO->N_UnqNodes), 0);
+      SUMA_ifree(uus); SUMA_ifree(uu);
+      SUMA_RETURN(SDO->N_UnqNodes);
+   } 
+   /* should not get here */
+   SDO->N_UnqNodes = -2;
+   SUMA_RETURN(SDO->N_UnqNodes);
 }
 
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
@@ -5360,7 +5419,8 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
             GSaux->SDO->colv = SUMA_GetColorList(sv, SDSET_ID(dset));
             /* thickness? */
             GSaux->SDO->thickv = NULL;
-            /* stippling ? */
+            /* number of uniqe points */
+            SUMA_Set_N_UnqNodes_SegmentDO(GSaux->SDO, GDSET_MAX_POINTS(dset));
          } else if (!strcmp((char *)el->data,"SDO_SetStippling")) {
             SUMA_LH("Not ready for stippling yet");
          }else {
@@ -6207,9 +6267,31 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
             }
             SUMA_RETURN(colv);
          } else  if (!strcmp(DO_primitive,"balls")) {
+             if (SDO->N_UnqNodes < 0) {
+               if (SDO->N_UnqNodes == -1) {
+                  SUMA_S_Err("Looks like N_UnqNodes was not initialized.\n"
+                        "I can do it here with SUMA_Set_N_UnqNodes_SegmentDO()\n"
+                        "But for now I prefer to complain and return NULL");
+                  SUMA_RETURN(NULL);
+               } else {
+                  SUMA_LHv("Have SDO->N_UnqNodes = %d, nothing to do here\n", 
+                           SDO->N_UnqNodes);
+                  SUMA_RETURN(NULL);
+               }
+             }
              if (!(colv = SUMA_New_colid(sv, SDO->Label, SDO->idcode_str,
-                                 DO_primitive, DO_variant,
-                                 ref_idcode_str, ref_do_type, SDO->N_n))) {
+                                 DO_primitive, DO_variant, ref_idcode_str, 
+                                 ref_do_type, SDO->N_UnqNodes))) {
+               SUMA_S_Errv("Failed to get colid for %s\n",
+                           SDO->Label);
+               SUMA_RETURN(NULL);
+            }
+            SUMA_RETURN(colv);
+         } else  if (!strcmp(DO_primitive,"seg_balls")) { 
+                              /* For generic segments, not those of graph DOs! */
+             if (!(colv = SUMA_New_colid(sv, SDO->Label, SDO->idcode_str,
+                                 DO_primitive, DO_variant, ref_idcode_str, 
+                                 ref_do_type, SDO->N_n))) {
                SUMA_S_Errv("Failed to get colid for %s\n",
                            SDO->Label);
                SUMA_RETURN(NULL);
@@ -6596,7 +6678,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
          if (sv->DO_PickMode) {
             if (!(colidballs = SUMA_DO_get_pick_colid(
                                  (SUMA_ALL_DO *)SDO, SDO->idcode_str,
-                                 "balls", SDO->DrawnDO_variant,
+                                 "seg_balls", SDO->DrawnDO_variant,
                                  SDO->Parent_idcode_str, SDO->Parent_do_type,
                                  sv) )) {
                SUMA_S_Err("Failed to create colid for ball picking.");
@@ -6716,21 +6798,21 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    GLfloat  textcolor[4] = {1.0, 1.0, 1.0, 1.0}, 
             textshadcolor[4] = {0.0, 1.0, 1.0, 1.0};
-   int i, iii, si, N_n3, i3, cn3, cn, n, cn1=0, n1=0, 
-       cn13=0, ncross=-1, ndraw=-1, tw, th, nl, istip;
-   GLfloat rpos[4], *col1=NULL, *col2=NULL;
+   int i, iii, si, N_n3, i3, i4, cn3, cn, n, cn1=0, n1=0, 
+       cn13=0, ncross=-1, ndraw=-1, tw=0, th=0, nl=0, istip=0;
+   GLfloat rpos[4], col1[4], col2[4];
    long int n4;
    char **names=NULL;
    GLboolean valid;
    int gllst=0, gllsm=0, OnlyThroughNode = -1;
-   byte *msk=NULL;
+   byte *bbox=NULL;
    NI_element *nelitp = NULL;
    float origwidth=0.0, radconst = 0.0, rad = 0.0, 
          gain = 1.0, constcol[4], edgeconst=1.0, 
-         vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0;
+         vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0, cdim=1/3.0;
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
-   byte *mask=NULL;
-   GLubyte *colid=NULL, *colidballs=NULL;
+   byte *mask=NULL, *wmask=NULL, showword = 0;
+   GLubyte *colid=NULL, *colidballs=NULL, *colballpick=NULL;
    SUMA_SurfaceObject *SO1 = NULL;
    SUMA_DSET *dset=NULL;
    SUMA_DUMB_DO DDO;
@@ -6739,8 +6821,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    GLfloat selcol[4], Wrange[2];
    SUMA_OVERLAYS *curcol = NULL;
    void *fontGL=NULL;
-   int ic0, ic1, s0, r0, s1, r1, WithShadow=1, okind, ri;
+   int ic0, ic1, s0, r0, s1, r1, TxtShadeMode=1, okind, ri, 
+       *dsrt=NULL, *dsrt_ind=NULL, *GNI=NULL, wbox=0;
    int stipsel = 0; /* flag for stippling of selected edge */
+   int depthsort = 1; /* Sort text and draw from farthest to closest */
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -6776,6 +6860,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       fontGL = SUMA_Font2GLFont(curcol->Font);
       SUMA_NodeCol2Col(curcol->NodeCol, constcol);
       
+      TxtShadeMode = curcol->TxtShad;
+      
       edgeconst = 1 * curcol->EdgeThickGain;
 
       glGetFloatv(GL_LINE_WIDTH, &origwidth);
@@ -6786,7 +6872,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       
       if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal ||
           curcol->EdgeStip == SW_SurfCont_DsetEdgeStipVal){
-         /* compute width scaling params */
+         /* compute width / stippling scaling params */
          if (SUMA_ABS(curcol->OptScl->IntRange[0]) < 
              SUMA_ABS(curcol->OptScl->IntRange[1])) {
             vmin = SUMA_ABS(curcol->OptScl->IntRange[0]);
@@ -6798,9 +6884,17 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          if (vmin == vmax) { vmin = 0; vmax = 1.0; }
          /* Will need to fix this should you unalias segment drawing... */
          glGetFloatv(GL_ALIASED_LINE_WIDTH_RANGE, Wrange);
-         if ((Wfac = (Wrange[1]-Wrange[0])/(vmax-vmin)) <= 0.0) Wfac = 1.0;
+         if (vmax > vmin) {
+            if ((Wfac = (Wrange[1]-Wrange[0])/(vmax)) <= 0.0) Wfac = 1.0;
+         } else {
+            if ((Wfac = (Wrange[1]-Wrange[0])/(vmin)) <= 0.0) Wfac = 1.0;
+         }
          /* For stippling */
-         if ((Sfac = 15/(vmax-vmin)) <= 0.0) Sfac = 1.0;
+         if (vmax > vmin) {
+            if ((Sfac = 15/(vmax)) <= 0.0) Sfac = 1.0;
+         } else {
+            if ((Sfac = 15/(vmin)) <= 0.0) Sfac = 1.0;
+         }
       }
             
       DDO.err = 1; /* not set */
@@ -6834,15 +6928,27 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    if (!(names = SUMA_GDSET_GetPointNamesColumn(dset, &iii, NULL))) {
       SUMA_LH("No names!"); /* No need to weep */
    }
-   
+   if (!(GNI = SUMA_GDSET_GetPointIndexColumn(dset, &iii, NULL))) {
+      if (iii == -2) {
+         SUMA_S_Err("Bad news for indices!!");
+         SUMA_RETURN(NOPE);
+      }
+   }
+
    for (i=0;i<3;++i) {
       textcolor[i] = 1.0 - sv->clear_color[i];
       textshadcolor[i] = sv->clear_color[i];
    }
-   
-   SUMA_LHv("Stippling %d (XXX=%d, Val=%d, 01=%d)\n",
+   if (textcolor[0]+textcolor[1]+textcolor[2] > 1.5) {
+      wbox = 0;
+      cdim = 1/3.0;
+   } else {
+      wbox = 1;
+      cdim = 3.0;
+   }
+   SUMA_LHv("Stippling %d (XXX=%d, Val=%d, 01=%d) wbox=%d\n",
                 curcol->EdgeStip, SW_SurfCont_DsetEdgeStipXXX, 
-                SW_SurfCont_DsetEdgeStipVal, SW_SurfCont_DsetEdgeStip1);
+                SW_SurfCont_DsetEdgeStipVal, SW_SurfCont_DsetEdgeStip1, wbox);
    if (curcol->EdgeStip == SW_SurfCont_DsetEdgeStipXXX ||
        curcol->EdgeStip < 0) {
       SDO->Stipple = SUMA_SOLID_LINE;
@@ -6928,7 +7034,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                glLineStipple (1, SUMA_int_to_stipplemask(stipsel-1)); 
             }
             if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal) 
-                  glLineWidth(((SUMA_ABS(curcol->V[r0])-vmin)*Wfac+Wrange[0])
+                  glLineWidth(((SUMA_ABS(curcol->V[r0]))*Wfac+Wrange[0])
                                                          *curcol->EdgeThickGain); 
             selcol[0] = 1-sv->clear_color[0];
             selcol[1] = 1-sv->clear_color[1];
@@ -7076,17 +7182,14 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                 IN_MASK(GSaux->isColored,si)) {
                i3 = 3*i;
                if (curcol->EdgeStip == SW_SurfCont_DsetEdgeStipVal) {
-                  istip = 16-(int)((SUMA_ABS(curcol->V[i])-vmin)*Sfac);
-                  /*
-                  fprintf(stderr,"V[%d]=%f, Sfac %f, istip=%d\n", 
-                                 i, curcol->V[i], Sfac, istip);
-                  */
+                  istip = 16-(int)((SUMA_ABS(curcol->V[i]))*Sfac);
+                  
                   if (istip == 16) --istip; /* Not nice to avoid displaying
                                                min edge ... */
                   glLineStipple (1, SUMA_StippleLineMask_rand(istip, 1, 0)); 
                }
                if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal) {
-                  glLineWidth(((SUMA_ABS(curcol->V[i])-vmin)*Wfac+Wrange[0])
+                  glLineWidth(((SUMA_ABS(curcol->V[i]))*Wfac+Wrange[0])
                                                    *curcol->EdgeThickGain); 
                }
                glBegin(GL_LINES);
@@ -7139,7 +7242,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          }
          i3 = 3*i;
          if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal) 
-                     glLineWidth(((SUMA_ABS(curcol->V[i])-vmin)*Wfac+Wrange[0])
+                     glLineWidth(((SUMA_ABS(curcol->V[i]))*Wfac+Wrange[0])
                                                          *curcol->EdgeThickGain); 
          selcol[0] = 1-sv->clear_color[0];
          selcol[1] = 1-sv->clear_color[1];
@@ -7174,6 +7277,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    
    /* draw the bottom object */
    if (SDO->botobj) {
+      float *xyz=(float *)SUMA_malloc(3*SDO->N_UnqNodes*sizeof(float));
+      float *xyzr=NULL;
+      int *GNIr=NULL;
+      char **namesr=NULL;
       SUMA_LH("Drawing bottom");
       glLineWidth(0.5);
       if (!SDO->colv) {
@@ -7188,12 +7295,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
 
       /* create a mask for those spheres already drawn, 
          multiple vectors per node possible...*/
-      msk = (byte *)SUMA_calloc(DDO.N_Node, sizeof(byte));
-      if (!msk) { 
-         SUMA_SL_Crit("Failed to allocate!\n");
-         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
-         goto GETOUT;
-      }
+      
       if (sv->DO_PickMode) {
          if (!(colidballs = SUMA_DO_get_pick_colid(
                               (SUMA_ALL_DO *)SDO, SDO->idcode_str,
@@ -7203,130 +7305,353 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             SUMA_S_Err("Failed to create colid for ball picking.");
          }
       }
-      n4=0;
-      for (i=0; i<SDO->N_n;++i) {
-         i3 = 3*i;
-         n = SDO->NodeID[i]; 
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
-         /* get position of node n in NodeList */
-         cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n); 
-            cn3 = 3*cn;
-         if (cn<DDO.N_Node && DO_DRAW(mask,n,ncross)) {
-            if (!msk[n]) {
-               okind=-2;
-               if (curcol->NodeRad >= 0) {
-                  if (curcol->NodeRad == SW_SurfCont_DsetNodeRadVal) {
-                     if (okind == -2) {
-                        if (!SUMA_GDSET_PointToDiagSegRowIndex(dset,n,&ri,&si)){
-                           okind = -1;     
-                        } else okind = 1;
-                     }
-                     if (okind>0) 
-                        rad = SUMA_ABS(curcol->V[ri])*curcol->NodeRadGain;
-                  } else {
-                     rad = radconst;
-                  }
-                  if (OnlyThroughNode == n) {
-                     selcol[0] = 1-sv->clear_color[0];
-                     selcol[1] = 1-sv->clear_color[1];
-                     selcol[2] = 1-sv->clear_color[2];
-                     selcol[3] = 1-sv->clear_color[3]; 
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
-                     glMaterialfv(GL_FRONT, GL_EMISSION, selcol);
-                  } else {
-                     if (colidballs) {
-                        n4 = 4*cn; /* Keep indexing tied to arrays of object 
-                                   elements as they are defined in the object */
-                        glColor4ub( colidballs[n4  ], colidballs[n4+1], 
-                                    colidballs[n4+2], colidballs[n4+3]);
-                     } else if (SDO->colv && 
-                                curcol->NodeCol == SW_SurfCont_DsetNodeColVal) {
-                        if (okind == -2) {
-                           if (!SUMA_GDSET_PointToDiagSegRowIndex(
-                                                            dset,n,&ri,&si)){
-                              okind = -1;     
-                           } else okind = 1;
-                        }
-                        if (okind>0) {
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                                            &(SDO->colv[si*4]));
-                           glMaterialfv(GL_FRONT, GL_EMISSION, 
-                                                            &(SDO->colv[si*4]));
-                        } else {
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                                               constcol);
-                           glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
-                        }
-                     } else {
-                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, constcol);
-                        glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
-                     }
-                  }
-            
-                  glTranslatef ( DDO.NodeList[cn3]  , 
-                                 DDO.NodeList[cn3+1]  , DDO.NodeList[cn3+2]  );
-                  gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
-                              /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
-                              10, 10);
-                  glTranslatef (-DDO.NodeList[cn3]  , 
-                                -DDO.NodeList[cn3+1]  , -DDO.NodeList[cn3+2]  );
+      
+      /* Get the coords of the nodes to represent */
+      for (i=0; i<SDO->N_UnqNodes;++i) {
+         cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, 
+                                       DDO.N_Node, GNI ? GNI[i]:i); 
+         cn3 = 3*cn;
+         xyz[3*i  ] = DDO.NodeList[cn3  ];
+         xyz[3*i+1] = DDO.NodeList[cn3+1];
+         xyz[3*i+2] = DDO.NodeList[cn3+2];
+      }
+      
+      if (fontGL && names && depthsort) {
+         float *xyzsc= SUMA_malloc(3*SDO->N_UnqNodes*sizeof(float)), 
+               *xyzscr=NULL;
+         dsrt = SUMA_DepthSort(xyz, SDO->N_UnqNodes, names, 0, xyzsc);
+         xyzr = SUMA_freorder_triplets(xyz, dsrt, SDO->N_UnqNodes); 
+         xyzscr = SUMA_freorder_triplets(xyzsc, dsrt, SDO->N_UnqNodes); 
+         GNIr = SUMA_reorder(GNI, dsrt, SDO->N_UnqNodes);
+         namesr = SUMA_sreorder(names, dsrt, SDO->N_UnqNodes);
+         #if 0
+         fprintf(stderr,"Sorting from farthest to closest:\n");
+         for (i=0; i<SDO->N_UnqNodes;++i) {
+            fprintf(stderr,"dsrt[%d]=%d, namesr[%d] = %s @[%.2f %.2f %.2f],"
+                           " names[%d]= %s @ [%.2f %.2f %.2f]\n",
+                           i, dsrt[i], i, namesr[i], 
+                           xyzr[3*i], xyzr[3*i+1], xyzr[3*i+2], i, names[i],
+                           xyz[3*i], xyz[3*i+1], xyz[3*i+2]);
+         }
+         #endif
+         wmask = SUMA_WordOverlapMask(sv->X->WIDTH, sv->X->HEIGHT,
+                                      SDO->N_UnqNodes, 
+                                      namesr, fontGL, xyzscr, -1);
+         SUMA_ifree(xyzsc); SUMA_ifree(xyzscr); 
+      } else {
+         xyzr = xyz;
+         GNIr = GNI;
+         namesr = names;
+         wmask = NULL;
+      }
+      n4=0; 
+      for (i=0; i<SDO->N_UnqNodes;++i) {
+         i3 = 3*i; i4 = 4*i;
+         if (GNIr) {
+            n = GNIr[i];
+         } else {
+            n = i;
+         }
+         
+         if (wmask) showword = wmask[i];
+         else showword = 255;
+                   
+         SUMA_LHv("%d/%d, %d, showword %d\n", 
+                  i, SDO->N_UnqNodes, n, showword);
+         okind=-2;
+         if (curcol->NodeRad >= 0) {
+            if (curcol->NodeRad == SW_SurfCont_DsetNodeRadVal) {
+               if (okind == -2) {
+                  if (!SUMA_GDSET_PointToDiagSegRowIndex(dset,n,&ri,&si)){
+                     okind = -1;     
+                  } else okind = 1;
                }
-               if (fontGL && names) {
-                  if (gl_dt) glDisable(GL_DEPTH_TEST);
-                  if (WithShadow) {
-                     col1 = textshadcolor;
-                     col2 = textcolor;
-                  } else {
-                     col1 = textcolor;
+               if (okind>0) 
+                  rad = SUMA_ABS(curcol->V[ri])*curcol->NodeRadGain;
+            } else {
+               rad = radconst;
+            }
+            if (OnlyThroughNode == n) {
+               selcol[0] = 1-sv->clear_color[0];
+               selcol[1] = 1-sv->clear_color[1];
+               selcol[2] = 1-sv->clear_color[2];
+               selcol[3] = 1-sv->clear_color[3]; 
+               glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
+               glMaterialfv(GL_FRONT, GL_EMISSION, selcol);
+            } else {
+               if (colidballs) {
+                  if (dsrt) {
+                     i4 = 4*dsrt[i];
+                  } else i4 = 4*i;
+                  colballpick = colidballs+i4;
+                  glColor4ub( colidballs[i4  ], colidballs[i4+1], 
+                              colidballs[i4+2], colidballs[i4+3]);
+               } else if (SDO->colv && 
+                          curcol->NodeCol == SW_SurfCont_DsetNodeColVal) {
+                  if (okind == -2) {
+                     if (!SUMA_GDSET_PointToDiagSegRowIndex(
+                                                      dset,n,&ri,&si)){
+                        okind = -1;     
+                     } else okind = 1;
                   }
-                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                                            col1);
+                  if (okind>0) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                      &(SDO->colv[si*4]));
+                     glMaterialfv(GL_FRONT, GL_EMISSION, 
+                                                      &(SDO->colv[si*4]));
+                  } else {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                         constcol);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                  }
+               } else {
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, constcol);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+               }
+            }
+            glTranslatef ( xyzr[i3]  , xyzr[i3+1]  , xyzr[i3+2]  );
+            gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
+                        /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
+                        10, 10);
+            glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
+         }
+         if (fontGL && names) {
+            if (gl_dt) glDisable(GL_DEPTH_TEST);
+            if (colidballs) {
+               SUMA_COPY_VEC(colballpick, col1, 4, GLbyte, GLfloat);
+               SUMA_COPY_VEC(colballpick, col2, 4, GLbyte, GLfloat);
+            } else {
+               if (TxtShadeMode) {
+                  SUMA_COPY_VEC(textshadcolor, col1, 4, GLfloat, GLfloat);
+                  SUMA_COPY_VEC(textcolor, col2, 4, GLfloat, GLfloat);
+               } else {
+                  SUMA_COPY_VEC(textcolor, col1, 4, GLfloat, GLfloat);
+               }
+            }
+            SUMA_LHv("namesr[%d] %s at %f %f %f, shad = %d, fontGL=%p"
+                     "col1 [%.3f %.3f %.3f] col2 [%.3f %.3f %.3f] \n"
+                     "size(GLbyte) %ld, size(byte) %ld\n",
+                     i, names ? namesr[i]:"NULL"
+                     , xyzr[i3], xyzr[i3+1], xyzr[i3+2],
+                     TxtShadeMode, fontGL, col1[0], col1[1], col1[2],
+                     col2[0], col2[1], col2[2], sizeof(GLbyte), sizeof(byte));
+            if (colidballs) { /* No need to allow selection with different
+                                 shadow modes, just put a box where the 
+                                 text is to go and let the picking be based
+                                 on that. If you want to see the text
+                                 for debugging the pick buffer, block
+                                 this if statement and let function
+                                 proceed below */
+               glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
+               glMaterialfv(GL_FRONT, GL_EMISSION, col1);
+               glRasterPos3d(xyzr[i3]  +rad , 
+                       xyzr[i3+1]+rad , 
+                       xyzr[i3+2] +rad );
+               glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+               glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+               if (!valid) continue;
+               SUMA_TextBoxSize (namesr[i], &tw, &th, &nl, fontGL);
+               bbox = (byte*)SUMA_calloc(4*(tw+2)*(th+2), sizeof(byte));
+               /* Turn box white? Someday you'll need to set the
+                  box colors to be that of the background exactly... */
+               iii=0;
+               while (iii<4*(tw+2)*(th+2)) {
+                  bbox[iii++] = colballpick[0];
+                  bbox[iii++] = colballpick[1];
+                  bbox[iii++] = colballpick[2];
+                  bbox[iii++] = colballpick[3];
+               }   
+               glBitmap( 0, 0, 0, 0,  
+                         0.0, -th/4.0,  NULL );
+               glDrawPixels(tw, th, GL_RGBA, GL_UNSIGNED_BYTE, bbox);
+               SUMA_ifree(bbox);
+               continue; /* On to the next point */        
+            }
+            /* do some text action */
+            switch(TxtShadeMode) {
+               case SW_SurfCont_DsetTxtShad1:
+               case SW_SurfCont_DsetTxtShad5:
+                  if (showword > 128 || TxtShadeMode == 5) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, col1);
+                     glRasterPos3d(xyzr[i3]  +rad , 
+                             xyzr[i3+1]+rad , 
+                             xyzr[i3+2] +rad );
+                     glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+                     glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+                     if (!valid) break;
+                     /* Black font behind white font */
+                     for (iii=0; namesr[i][iii] != '\0'; iii++) {
+                        glutBitmapCharacter(fontGL, namesr[i][iii]);
+                     }
+                     /* Change the current raster color 
+                     (can't set glMaterialfv(), alone, need 
+                     call to glRasterPos3d which will also set the 
+                     current raster color (GL_CURRENT_RASTER_COLOR)
+                     Note that we draw the shadow first, to avoid
+                     aliasing artifacts from the shadow*/
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                         col2);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, col2);
+                     glRasterPos3d(xyzr[i3]  +rad , 
+                                   xyzr[i3+1]+rad , 
+                                   xyzr[i3+2] +rad );
+                     /* offset rel. to  shadow */
+                     glBitmap( 0, 0, 0, 0,  
+                               -1.0, -1.0,  NULL );
+                     for (iii=0; namesr[i][iii] != '\0'; iii++) {
+                        glutBitmapCharacter(fontGL, namesr[i][iii]);
+                     }
+                  }
+                  break;
+               case SW_SurfCont_DsetTxtShad2:
+                  if (showword < 250) {
+                     /* dim the colors */
+                     col2[0] = col2[0]*cdim;
+                     col2[1] = col2[1]*cdim;
+                     col2[2] = col2[2]*cdim;
+                  }
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                   glMaterialfv(GL_FRONT, GL_EMISSION, col1);
-                  glRasterPos3d(DDO.NodeList[cn3]  +rad , 
-                                DDO.NodeList[cn3+1]+rad , 
-                                DDO.NodeList[cn3+2] +rad );
+                     /* Must come AFTER glMaterialfv */
+                  glRasterPos3d( xyzr[i3]  +rad , 
+                                 xyzr[i3+1]+rad , 
+                                 xyzr[i3+2] +rad );
                   glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
                   glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
-                  /* do some text action */
-                  if (valid) {
-                     for (iii=0; names[cn][iii] != '\0'; iii++) {
-                        glutBitmapCharacter(fontGL, names[cn][iii]);
-                     }
-                     if (WithShadow) {
-                        /* Change the current raster color 
-                           (can't set glMaterialfv(), alone, need 
-                           call to glRasterPos3d which will also set the 
-                           current raster color (GL_CURRENT_RASTER_COLOR)
-                           Note that we draw the shadow first, to avoid
-                           aliasing artifacts from the shadow*/
-                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                                            col2);
-                        glMaterialfv(GL_FRONT, GL_EMISSION, col2);
-                        glRasterPos3d(DDO.NodeList[cn3]  +rad , 
-                                      DDO.NodeList[cn3+1]+rad , 
-                                      DDO.NodeList[cn3+2] +rad );
-                        SUMA_TextBoxSize (names[cn], &tw, &th, &nl, fontGL);
-                        glBitmap( 0, 0, 0, 0,  
-                                  -1.0, -1.0,  NULL );
-                        for (iii=0; names[cn][iii] != '\0'; iii++) {
-                           glutBitmapCharacter(fontGL, names[cn][iii]);
-                        }
+                  if (!valid) break;
+                  /* Black font behind white font */
+                  for (iii=0; names[i][iii] != '\0'; iii++) {
+                     glutBitmapCharacter(fontGL, namesr[i][iii]);
+                  }
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                      col2);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, col2);
+                  glRasterPos3d(xyzr[i3]  +rad , 
+                                xyzr[i3+1]+rad , 
+                                xyzr[i3+2] +rad );
+                  SUMA_TextBoxSize (namesr[i], &tw, &th, &nl, fontGL);
+                  /* offset rel. to  shadow */
+                  glBitmap( 0, 0, 0, 0,  
+                            -1.0, -1.0,  NULL );
+                  for (iii=0; namesr[i][iii] != '\0'; iii++) {
+                     glutBitmapCharacter(fontGL, namesr[i][iii]);
+                  }
+                  break;
+               case SW_SurfCont_DsetTxtShad6:
+               case SW_SurfCont_DsetTxtShad3:
+                  /* Black box behind white font, hide if more than
+                     half is masked */
+                  if (showword > 128 || TxtShadeMode == 6) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, col1);
+                     /* Must come AFTER glMaterialfv */
+                     glRasterPos3d( xyzr[i3]  +rad , 
+                                    xyzr[i3+1]+rad , 
+                                    xyzr[i3+2] +rad );
+                     glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+                     glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+                     if (!valid) break;
+                     SUMA_TextBoxSize (namesr[i], &tw, &th, &nl, fontGL);
+                     SUMA_LHv("namesr[%d]=%s %d %d %d\n", 
+                              i, namesr[i], tw, th, nl);
+                     /* Had to add the +2 in calloc and memset to get rid
+                     of a strange one pixel wide black line that showed 
+                     up on the top right corner of the box. It is only
+                     noticeable when wbox is set. Not sure what causes this*/ 
+                     bbox = (byte*)SUMA_calloc(4*(tw+2)*(th+2), sizeof(byte));
+                     /* Turn box white? Someday you'll need to set the
+                        box colors to be that of the background exactly... */
+                     if (wbox) memset(bbox, 255, 4*(tw+2)*(th+2)*sizeof(byte));
+                     glBitmap( 0, 0, 0, 0,  
+                               0.0, -th/4.0,  NULL );
+                     glDrawPixels(tw, th, GL_RGBA, GL_UNSIGNED_BYTE, bbox);
+                     SUMA_ifree(bbox);
+                     /* Now draw the text */
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                         col2);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, col2);
+                     glRasterPos3d(xyzr[i3]  +rad , 
+                                   xyzr[i3+1]+rad , 
+                                   xyzr[i3+2] +rad );
+                     for (iii=0; namesr[i][iii] != '\0'; iii++) {
+                        glutBitmapCharacter(fontGL, namesr[i][iii]);
                      }
                   }
-                  if (gl_dt) glEnable(GL_DEPTH_TEST);
-               }               
-               msk[n] = 1;
-            } else {
-               SUMA_LH("Sphere already drawn");
+                  break;
+               case SW_SurfCont_DsetTxtShad4:
+                  /* Black box behind white font for unobstructed 
+                     text. Obstructed text has no black background
+                     and is dimmed by overlap. Tried variable dimming
+                     but it gets confusing. Note that obstruction
+                     is only computed for text with text, not text
+                     with objects */
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, col1);
+                  /* Must come AFTER glMaterialfv */
+                  glRasterPos3d( xyzr[i3]  +rad , 
+                                 xyzr[i3+1]+rad , 
+                                 xyzr[i3+2] +rad );
+                  glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+                  glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+                  if (!valid) break;
+                  SUMA_TextBoxSize (namesr[i], &tw, &th, &nl, fontGL);
+                  SUMA_LHv("namesr[%d]=%s %d %d %d\n", 
+                           i, namesr[i], tw, th, nl);
+                  if (showword > 250) { /* Practically fully exposed
+                                          Show word proudly, with background*/
+                     bbox = (byte*)SUMA_calloc(4*(tw+2)*(th+2), sizeof(byte));
+                     if (wbox) memset(bbox, 255, 4*(tw+2)*(th+2)*sizeof(byte));
+
+                     glBitmap( 0, 0, 0, 0,  
+                               0.0, -th/4.0,  NULL );
+                     glDrawPixels(tw, th, GL_RGBA, GL_UNSIGNED_BYTE, bbox);
+                     SUMA_ifree(bbox);
+                  } else { /* dim the text to reduce clutter */
+                     col2[0] = col2[0]*cdim;
+                     col2[1] = col2[1]*cdim;
+                     col2[2] = col2[2]*cdim;
+                  }
+                  /* Now draw the text */
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                      col2);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, col2);
+                  glRasterPos3d(xyzr[i3]  +rad , 
+                                xyzr[i3+1]+rad , 
+                                xyzr[i3+2] +rad );
+                  for (iii=0; namesr[i][iii] != '\0'; iii++) {
+                     glutBitmapCharacter(fontGL, namesr[i][iii]);
+                  }
+                  break;
+               default:
+                  SUMA_S_Warnv("Bad shadow val of %d, using simplest case\n", 
+                               TxtShadeMode);
+                  
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, textcolor);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, textcolor);
+                  glRasterPos3d(xyzr[i3]  +rad , 
+                          xyzr[i3+1]+rad , 
+                          xyzr[i3+2] +rad );
+                  glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+                  glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+                  if (!valid) break;
+                  for (iii=0; namesr[i][iii] != '\0'; iii++) {
+                     glutBitmapCharacter(fontGL, namesr[i][iii]);
+                  }
+                  break;
             }
-         }
+            if (gl_dt) glEnable(GL_DEPTH_TEST);
+         }               
       }
-      if (msk) SUMA_free(msk); msk = NULL;
+      if (xyzr != xyz) SUMA_ifree(xyzr); xyzr=NULL;
+      if (namesr != names) SUMA_ifree(namesr); namesr=NULL;
+      if (GNIr != GNI) SUMA_ifree(GNIr); GNIr = NULL;
+      SUMA_ifree(xyz);
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
    }
 
    GETOUT:
+   SUMA_ifree(dsrt); SUMA_ifree(wmask);
    if (sv->DO_PickMode) DO_PICK_RESTORE;
    
    SUMA_ifree(colid); SUMA_ifree(colidballs);
@@ -7336,6 +7661,106 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
      
    SUMA_RETURN (YUP);
    
+}
+
+/* A function to find out which words would overlap when displayed in OpenGL
+   Nwidth (int) width of viewport in pixels
+   Nheight (int) height of viewport in pixels
+   N_n (int) number of words
+   names (char **) the words (spaces OK, just not multiple lines).
+                   words in names should be sorted from the farthest
+                   to the closest
+   fontGL (void *) the font in use
+   xyzr (float *) XYZ triplets specifying position of each word in 
+                 SCREEN coordinates. 
+   maxoverlap (float ) a number between 0 and 1: 
+                  0 means a word will be let in if it does not overlap with
+                    the boundaries of another
+                  1 means all words will be allowed to show.
+                  -1 means no thresholding in applied, get a continous 
+                     overlap mask
+   \ret mask (byte *) A byte mask with '1' where a word should be shown, 
+                      0 otherwise. A NULL could signal an error, but also
+                      that all words should be displayed.            
+*/                        
+byte *SUMA_WordOverlapMask(int Nwidth, int Nheight, int N_n, 
+                           char **names, void *fontGL, float *xyzr,
+                           float maxoverlap)
+{
+   static char FuncName[]={"SUMA_WordOverlapMask"};
+   byte **overbuf=NULL, *mask=NULL;
+   int i, ibuf, jbuf, empt, wh, *ww=NULL, nn, mm, offh, offw;
+   float pempt;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   SUMA_LHv("Nwidth %d, Nheight %d maxoverlap %f\n"
+            " Words from CLOSEST to farthest\n", 
+            Nwidth, Nheight, maxoverlap);
+   overbuf = (byte **)SUMA_allocate2D(Nwidth, Nheight, sizeof(byte));
+   ww = (int *)SUMA_malloc(N_n*sizeof(int));
+   mask = (byte *)SUMA_calloc(N_n, sizeof(byte));
+   wh = SUMA_WordBoxSize(names, N_n, ww, fontGL);
+   for (i = N_n-1; i>-1; --i) {
+      ibuf = (int)xyzr[3*i]; jbuf = (int)xyzr[3*i+1];
+      if (ibuf < 0) ibuf = 0;
+      if (jbuf < 0) jbuf = 0;
+      if (ibuf+ww[i]>Nwidth) offw = Nwidth-ibuf;
+      else offw = ww[i];
+      if (jbuf+wh>Nheight) offh = Nheight-jbuf;
+      else offh = wh;
+      empt = 0;
+      for (nn=0; nn<offw; ++nn) {
+         for (mm=0; mm<offh; ++mm) {
+            if (!overbuf[nn+ibuf][mm+jbuf]) {
+               ++empt;
+            }
+         }
+      }
+      pempt = (float)empt/(ww[i]*wh);
+      if (maxoverlap >= 0.0) {
+         if (pempt >= 1.0-maxoverlap) { /* deserves keeping, so mark it */
+            mask[i] = (byte)(pempt*255.0);
+            for (nn=0; nn<offw; ++nn) {
+               for (mm=0; mm<offh; ++mm) {
+                  if (overbuf[nn+ibuf][mm+jbuf] < 255) 
+                        ++overbuf[nn+ibuf][mm+jbuf];
+               }
+            }
+         } else {
+            mask[i] = 0.0;
+         }
+      } else { /* continous marking */
+         mask[i] = (byte)(pempt*255.0);
+         for (nn=0; nn<offw; ++nn) {
+            for (mm=0; mm<offh; ++mm) {
+               if (overbuf[nn+ibuf][mm+jbuf] < 255) 
+                        ++overbuf[nn+ibuf][mm+jbuf];
+            }
+         }
+      }
+      SUMA_LHv("%s pempt[%d] %f, mask[%d]=%d bloc=[%d %d], off [%d %d]\n", 
+               names[i], i, pempt, i, mask[i], ibuf,jbuf, offw, offh);
+         
+   }
+   
+   if (LocalHead) {
+      FILE *fid = fopen(FuncName,"w");
+      for (mm=0; mm<Nheight; ++mm) {
+         for (nn=0; nn<Nwidth; ++nn) {
+            fprintf(fid,"%d ", overbuf[nn][mm]);
+         }
+         fprintf(fid,"\n");
+      }
+      fclose(fid); fid = NULL;
+      SUMA_LHv("To view debugging image:\n"
+               "  aiv %s\n", FuncName);
+   }
+      
+   SUMA_ifree(ww); 
+   SUMA_free2D((char **)overbuf, Nwidth); overbuf=NULL;
+
+   SUMA_RETURN(mask);
 }
 
 SUMA_Boolean SUMA_LoadImageNIDOnel(NI_element *nel)
@@ -8411,8 +8836,15 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
    }
    
    if (sv && sv->DO_PickMode) {
-      SUMA_S_Warn("Function not ready for picking mode, should be fixed");
-      SUMA_RETURN(YUP);
+      if (SUMA_ADO_isLabel((SUMA_ALL_DO *)SDO,"AHorseWithNoName")) {
+         /* viewer label, do not complain */
+         SUMA_RETURN(YUP);
+      } else {
+         SUMA_S_Warnv(
+            "Function not ready for picking mode on '%s', should be fixed.\n",
+            SUMA_ADO_sLabel((SUMA_ALL_DO *)SDO));
+         SUMA_RETURN(YUP);
+      }
    }
    
 
@@ -9366,6 +9798,46 @@ SUMA_Boolean SUMA_TextBoxSize (char *txt, int *w, int *h, int *nl, void *font)
        
        
    SUMA_RETURN(YUP);
+}
+
+/*!
+   Get widths for each single-line string in txt
+   The function returns the height of one line, a constant for all single line
+   texts. -1 is returned in error
+*/
+int SUMA_WordBoxSize (char **txt, int N_txt, int *w, void *font)
+{
+   static char FuncName[]={"SUMA_WordBoxSize"};
+   char *s=NULL;
+   int nc=0, ii;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!txt || N_txt < 1) SUMA_RETURN(-1);
+   
+
+   for (ii=0; ii<N_txt; ++ii) {
+      if (!(s = txt[ii]) || *s=='\0') w[ii]=0;
+      else {
+         nc = 0;
+         while (s[nc++]!='\0');
+         if (!font) w[ii]=nc;
+         else {
+            nc=0; w[ii]=0;
+            while (s[nc] != '\0') w[ii]+=glutBitmapWidth(font,s[nc++]);
+         }
+      }
+   }
+   
+
+   if (LocalHead) {
+      for (ii=0; ii<N_txt; ++ii) {
+         fprintf(stderr,"%d width %d height for %s\n", 
+                  w[ii], SUMA_glutBitmapFontHeight(font), txt[ii]);
+      }
+   }  
+   SUMA_RETURN(SUMA_glutBitmapFontHeight(font));
 }
 
 /*! 
@@ -16574,7 +17046,7 @@ GLushort SUMA_StippleLineMask_rand(int stip, int chunk_width, int rseed) {
    
    if (stip < 0  || 
        stip > 16) {
-      fprintf(stderr,"Error SUMA_StippleMask: Bad stip %d\n", stip); 
+      fprintf(stderr,"Error SUMA_StippleMask_rand: Bad stip %d\n", stip); 
       stip = 8;
    }
    

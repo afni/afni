@@ -190,6 +190,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
                                       int NodeBased, SUMA_DO_Types type, 
                                     SUMA_DO_Types P_type, char *DrawnDO_variant);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
+int SUMA_Set_N_UnqNodes_SegmentDO(SUMA_SegmentDO * SDO, int N);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, 
                                   SUMA_SurfaceViewer *sv);
@@ -350,6 +351,9 @@ SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_MinMaxNodesInROI (SUMA_DRAWN_ROI *D_ROI, 
                                     int MinMax[]);
 SUMA_Boolean SUMA_TextBoxSize(char *txt, int *w, int *h, int *nl, void *font);
+byte *SUMA_WordOverlapMask(int Nwidth, int Nheight, int N_n, char **names, 
+                           void *fontGL, float *xyz, float maxoverlap);
+int SUMA_WordBoxSize (char **txt, int N_txt, int *w, void *font);
 int SUMA_glutBitmapFontHeight(void *font) ;
 int *SUMA_NIDOtext_LineWidth(char *string, void *font, int *N_lines);
 

@@ -144,7 +144,7 @@ THD_3dim_dataset * Volumewise_Operations(THD_3dim_dataset *dset, char *prefix,
    
    /* Put the results in a new dataset */
    oset = EDIT_empty_copy( dset ) ;
-   if (datum == MRI_float) { /* Write results as float */
+   if (datum == MRI_float) { /* store results as float */
       stmp = modify_afni_prefix(prefix,NULL,".volops.float");
       EDIT_dset_items( oset ,
                       ADN_prefix , stmp,
@@ -157,7 +157,7 @@ THD_3dim_dataset * Volumewise_Operations(THD_3dim_dataset *dset, char *prefix,
          vout = NULL; /* do not free vout, oset uses the same pointer 
                         because column types is oset are float */
       EDIT_substitute_brick( oset , 1 , MRI_float  , yout ) ; yout = NULL;
-   } else { /* Write results as short */
+   } else { /* store results as short */
       stmp = modify_afni_prefix(prefix,NULL,".volops.short");
       EDIT_dset_items( oset ,
                       ADN_prefix , stmp,
@@ -476,7 +476,7 @@ int main( int argc , char * argv[] )
    /* Let us create a dataset from scratch */
    sset = New_Dataset_From_Scratch(prefix);
         /* Now for the output, add history, check for overwrite and write away */
-   tross_Copy_History( iset , sset ) ; /* Copy the old */
+   tross_Copy_History( iset , sset );/* Copy the old history (not mandatory). */
    tross_Make_History("3dToyProg", argc, argv ,sset) ; /* add the new */
    if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(sset)) ) {
       ERROR_message(

@@ -4503,7 +4503,9 @@ int SUMA_ibinFind( int *indexList, int N_node, int target) {
    \brief creates a reordered version of a vector 
    yr = SUMA_reorder(y, isort, N_isort);
    
-   \param y (int *) vector
+   \param y (int *) vector, if y is NULL what 
+                    you get back in yr is a copy
+                    of isort. 
    \param isort (int *) vector containing sorting order
    \param N_isort (int ) number of elements in isort
    \return yr (int *) reordered version of y where:
@@ -4521,9 +4523,31 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
    
    SUMA_ENTRY;
    
-   if (!y || !isort || N_isort <= 0) SUMA_RETURN(yr);
+   if (!isort || N_isort <= 0) SUMA_RETURN(yr);
    
    yr = (int *)SUMA_calloc( N_isort, sizeof(int));
+   if (!yr) SUMA_RETURN(yr);
+   
+   if (!y) for (i=0; i<N_isort; ++i) yr[i] = isort[i];
+   else for (i=0; i<N_isort; ++i) yr[i] = y[isort[i]];
+   
+   SUMA_RETURN(yr);
+}
+
+/* Careful to only free returned pointer after 
+calling function is done with it. Do not free
+individual strings in returned pointer */
+char **SUMA_sreorder(char **y, int *isort, int N_isort)
+{
+   static char FuncName[]={"SUMA_sreorder"};
+   int i = 0;
+   char **yr = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!y || !isort || N_isort <= 0) SUMA_RETURN(yr);
+   
+   yr = (char  **)SUMA_calloc( N_isort, sizeof(char*));
    if (!yr) SUMA_RETURN(yr);
    
    for (i=0; i<N_isort; ++i) yr[i] = y[isort[i]];

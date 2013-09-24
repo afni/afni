@@ -145,6 +145,8 @@ SUMA_Boolean SUMA_GDSET_NodeXYZ_eng(SUMA_DSET *dset, int node,
                                     char *variant, float *here);
 char *SUMA_ADO_LDP(SUMA_ALL_DO *ado);
 char * SUMA_ADO_Label(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_ADO_isLabel(SUMA_ALL_DO *ado, char *lbl);
+char *SUMA_ADO_sLabel(SUMA_ALL_DO *ado);
 char * SUMA_ADO_idcode(SUMA_ALL_DO *ado);
 char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado);
 SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado);
@@ -448,6 +450,15 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "   Yellow: Todos amarillo.\n"   \
    "   Gray50: Not there yet.\n" \
    "   Val: Nodes color is based its dset value and the chosen colormap\n"
+
+#define  SUMA_SurfContHelp_DsetTxtShad  \
+   "Choose the variants for how labels are handled.\n" \
+   "   T : Text shown unless more than 50% occluded.\n"  \
+   "   Ts: Foreground text bright, occluded text shaded\n"  \
+   "   B : Text shown with background box unless more than 50% occluded\n"   \
+   "   Bs: Foreground text with background, occluded text shaded\n"   \
+   "   Ta: All text shown, occlusions be damned.\n"\
+   "   Ba: All text shown with background, damn the torpedoes.\n"
 
 #define  SUMA_SurfContHelp_DsetGmatBord  \
    "Choose the partition ratio of the matrix border.\n" \

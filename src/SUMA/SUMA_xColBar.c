@@ -976,14 +976,15 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    /* sad as it is */
    SUMA_FORCE_SCALE_HEIGHT(SUMA_ADO_Cont(ado)); 
 
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
    #endif
    
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
-   SUMA_UpdatePvalueField (ado,
-                           colp->OptScl->ThreshRange[0]);  
+   SUMA_UpdatePvalueField (ado, colp->OptScl->ThreshRange[0]);  
  
    SUMA_RETURN(1);
 }
@@ -1204,7 +1205,8 @@ int SUMA_SwitchColPlaneIntensity_one (
 
    if (colp->ShowMode < 0) { SUMA_RETURN(1); } /* nothing else to do */
    
-   
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+
    if (!SUMA_ColorizePlane (colp)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURN(0);
@@ -1356,6 +1358,8 @@ int SUMA_SwitchColPlaneThreshold_one(
    
    if (!colp->OptScl->UseThr) { SUMA_RETURN(1); } /* nothing else to do */
 
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+   
    if (!SUMA_ColorizePlane (colp)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURN(0);
@@ -1720,6 +1724,8 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
       SUMA_RETURNe;
    } 
    
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+   
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURNe;
@@ -1841,6 +1847,8 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
    if (!curColPlane->OptScl->UseThr) { SUMA_RETURNe; } 
                                                 /* nothing else to do */
 
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+   
    if (!SUMA_ColorizePlane (curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
          SUMA_RETURNe;
@@ -3742,6 +3750,9 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
         (redisplay == 1 && !curColPlane->OptScl->UseThr) ) { 
       SUMA_RETURN(0); 
    } /* nothing else to do */
+
+
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
 
    SUMA_LH("Colorize");
    if (!SUMA_ColorizePlane (curColPlane)) {
@@ -9620,7 +9631,6 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
          }
       } else {
          {
-
             /* Now we know what the index of this node 
                is in the overlay plane (and the data) */
             sprintf(str_col,"%s",              
@@ -10389,6 +10399,29 @@ char * SUMA_ADO_Label(SUMA_ALL_DO *ado)
          break; }
    }
    return(NULL);
+}
+
+/* Like ADO_Label, but return empty string in err */
+char *SUMA_ADO_sLabel(SUMA_ALL_DO *ado) {
+   static char FuncName[]={"SUMA_ADO_sLabel"};
+   char *cc = SUMA_ADO_Label(ado);
+   if (!cc) return("");
+   else return(cc);
+}
+
+/* compare labels, NULL=NULL --> OK */
+SUMA_Boolean SUMA_ADO_isLabel(SUMA_ALL_DO *ado, char *lbl) 
+{
+   static char FuncName[]={"SUMA_ADO_isLabelSUMA_ALL_DO"};
+   char *cc=NULL;
+   if (!ado) SUMA_RETURN(NOPE);
+   cc = SUMA_ADO_Label(ado);
+   if (!cc) {
+      if (!lbl) SUMA_RETURN(YUP);
+   } else {
+      if (!strcmp(cc, lbl)) SUMA_RETURN(YUP);
+   }
+   SUMA_RETURN(NOPE);
 }
 
 /* Because of the damned SUMA_DSET * object, which needs
