@@ -257,6 +257,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetDsetEdgeThick")) SUMA_RETURN(SE_SetDsetEdgeThick);
    if (!strcmp(Scom,"SetDsetEdgeStip")) SUMA_RETURN(SE_SetDsetEdgeStip);
    if (!strcmp(Scom,"SetDsetNodeCol")) SUMA_RETURN(SE_SetDsetNodeCol);
+   if (!strcmp(Scom,"SetDsetTxtShad")) SUMA_RETURN(SE_SetDsetTxtShad);
    if (!strcmp(Scom,"SetDsetGmatBord")) SUMA_RETURN(SE_SetDsetGmatBord);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    /* Last one is Bad Code */
@@ -508,6 +509,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetDsetEdgeThick"); 
       case SE_SetDsetNodeCol:
          SUMA_RETURN("SetDsetNodeCol"); 
+      case SE_SetDsetTxtShad:
+         SUMA_RETURN("SetDsetTxtShad"); 
       case SE_SetDsetGmatBord:
          SUMA_RETURN("SetDsetGmatBord"); 
       /*case SE_:

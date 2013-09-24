@@ -896,6 +896,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else {
                   curColPlane->Font = EngineData->i;
                }
+               SUMA_ADO_Flush_Pick_Buffer(ado, sv);
                if (!SUMA_RemixRedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
@@ -917,6 +918,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else {
                   curColPlane->NodeRad = EngineData->i;
                }
+               SUMA_ADO_Flush_Pick_Buffer(ado, sv);
                if (!SUMA_RemixRedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
@@ -934,7 +936,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                               
                curColPlane->EdgeThick = EngineData->i;
-
+               SUMA_ADO_Flush_Pick_Buffer(ado, sv);
                if (!SUMA_RemixRedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
@@ -962,8 +964,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
             break;
+
          case SE_SetDsetNodeCol:
-            { /* sets the Font for nodes of a (graph) dset, 
+            { /* sets the node coloring mode of a (graph) dset, 
                expects ADO in vp and rendering mode in i*/
                ado = (SUMA_ALL_DO *)EngineData->vp;
                if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
@@ -973,6 +976,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                               
                curColPlane->NodeCol = EngineData->i;
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
+            
+         case SE_SetDsetTxtShad:
+            { /* sets the text shading for nodes of a (graph) dset, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               curColPlane->TxtShad = EngineData->i;
                if (!SUMA_RemixRedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
@@ -999,6 +1019,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }  
             break;
+
          case SE_UpdateLog:
             /* Updates the Log window if it is open */
             {

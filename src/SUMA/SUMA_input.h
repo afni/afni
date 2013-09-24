@@ -82,6 +82,7 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                int IgnoreSameNode);
 SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov);
+SUMA_Boolean SUMA_ADO_Flush_Pick_Buffer(SUMA_ALL_DO *ado,SUMA_SurfaceViewer *sv);
 SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid, 
                                 SUMA_COLID_OFFSET_DATUM **ucodf, int i, int j,
                                 SUMA_PICK_RESULT *PR);

@@ -5455,6 +5455,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
       Sover->BordFrac = SW_SurfCont_DsetGmatBord0;
       Sover->EdgeThick = SW_SurfCont_DsetEdgeThickConst;
       Sover->EdgeThickGain = 1.0;
+      Sover->TxtShad = SW_SurfCont_DsetTxtShad1;
       Sover->EdgeStip = SW_SurfCont_DsetEdgeStipXXX;
       Sover->PlaneOrder = -1; /* No order is specified */
       Sover->isBackGrnd = 0; /* no brightness modulation effects */

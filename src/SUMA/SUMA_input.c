@@ -4611,6 +4611,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                       SUMA_VisibleSOs(sv, SUMAg_DOv, NULL) == 0) {
                      SUMA_LH("DO picking, order needs attention here");
                      hit = SUMA_MarkLineDOsIntersect (sv,  SUMAg_DOv, 0);
+                     if (Kev.state & ShiftMask) { /* Show me the click buffer */
+                        SUMA_MarkPickInBuffer4(sv, 1, NULL);
+                     }
                      if (hit < 0) {
                         SUMA_S_Err("Failed in SUMA_MarkLineDOsIntersect.");
                         break;   
@@ -5440,6 +5443,11 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
    
    SUMA_ENTRY;
    
+   if (!sv) {
+      SUMA_S_Err("Null sv!");
+      SUMA_RETURN(NOPE);
+   }
+   
    if ( action == 0 || /* flush only */
         action == 1 /* Recreate regardless */ ) { 
          /* flush needed */
@@ -5460,6 +5468,7 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
    }
 
    if (Flush) {
+      SUMA_LHv("Flushing, action %d\n", action);
       if (sv->pickrenpix4) SUMA_free(sv->pickrenpix4);
       sv->pickrenpix4 = NULL;
    }
@@ -5481,6 +5490,29 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
       }
       sv->DO_PickMode = 0;
    }
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_ADO_Flush_Pick_Buffer(SUMA_ALL_DO *ado, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_ADO_Flush_Pick_Buffer"};
+   int ii;
+   SUMA_ENTRY;
+   
+   if (!ado) SUMA_RETURN(NOPE);
+   if (sv) {
+      if (SUMA_ADO_isRegistered(sv, ado)) {
+         SUMA_PickBuffer(sv, 0, NULL);
+      }
+   } else { /* Do it for all */
+      for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+         sv = &(SUMAg_SVv[ii]);
+         if (SUMA_ADO_isRegistered(sv, ado)) {
+            SUMA_PickBuffer(sv, 0, NULL);
+         }
+      }
+   }
+   
    SUMA_RETURN(YUP);
 }
 

@@ -2567,7 +2567,8 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
    
 */
 
-float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, SUMA_Boolean rowmajor, SUMA_Boolean SkipCoords)   
+float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, 
+                         SUMA_Boolean rowmajor, SUMA_Boolean SkipCoords)   
 {
    static char FuncName[]={"SUMA_readFScurv"};
    MRI_IMAGE *im = NULL;
@@ -2581,10 +2582,11 @@ float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, SUMA_Boolean rowm
    
    /* check for existence */
 	if (!SUMA_filexists(f_name)) {
-		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+		SUMA_S_Errv("File %s does not exist or cannot be read.\n", f_name);
 		SUMA_RETURN (NULL);
 	}else if (LocalHead) {
-		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", 
+              FuncName, f_name);
 	}
    
    if (SkipCoords) *ncols = 2;
@@ -2596,161 +2598,75 @@ float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, SUMA_Boolean rowm
    }
 
 
-   #if 0
-      /* thought is had the number of nodes at the top ! */
-      /* start reading */
-	   fs_file = fopen (f_name,"r");
-	   if (fs_file == NULL) {
-         SUMA_SL_Err ("Could not open input file");
-         SUMA_RETURN (v);
-	   }
+   /* now load the input data */
+   SUMA_LH("Reading file...");
+   im = mri_read_1D (f_name);
 
-	   /* read first character and check if it is a comment */
-	   ex = fscanf (fs_file,"%c",&c);
-	   if (c == '#') {
-		   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Found comment\n", FuncName); 
+   if (!im) {
+      SUMA_SL_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
 
-         /*skip till next line */
-		   cnt = 0;
-		   while (ex != EOF && c != '\n') {
-			   ex = fscanf (fs_file,"%c",&c);
-			   if (cnt < SUMA_MAX_STRING_LENGTH-2) {
-				   sprintf(comment, "%s%c", comment, c);
-				   ++cnt;
-			   } else {
-				   fprintf(SUMA_STDERR,"Error %s: Too long a comment in curvature file, increase SUMA_MAX_STRING_LENGTH\n", FuncName);
-				   SUMA_RETURN (NOPE);
-			   }
-		   }
-	   }
+   far = MRI_FLOAT_PTR(im);
+   nvec = im->nx;
+   ncol = im->ny;
+   /* data in column major order at this point */
 
+   if (!nvec) {
+      SUMA_SL_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
 
-	   /* read in the number of nodes */
-	   ex = fscanf(fs_file, "%d", nrows);
+   if (ncol != 5) {
+      SUMA_SL_Err("Must have 5 columns in data file.");
+      mri_free(im); im = NULL;   /* done with that baby */
+      SUMA_RETURN(NULL);
+   }
 
-      if (*nrows <= 0) {
-         SUMA_SL_Crit("Trouble parsing curvature file.\nNull or negative number of nodes\n");
-         SUMA_RETURN(NULL);
-      }
+   *nrows = nvec;
 
-	   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for data (%dx%d) \n", FuncName, *nrows, *ncols);
+   SUMA_LHv("Allocating for data (%dx%d) \n", *nrows, *ncols);
 
-      v = (float *) SUMA_calloc(*nrows * *ncols, sizeof(float));
-      if (!v) {
-         SUMA_SL_Crit("Failed to allocate for v");
-         SUMA_RETURN(v);
-      }
+   v = (float *) SUMA_calloc(*nrows * *ncols, sizeof(float));
 
-      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Parsing file...\n", FuncName);
+   if (!v) {
+      SUMA_SL_Crit("Failed to allocate for v");
+      SUMA_RETURN(v);
+   }
 
-      if (rowmajor) {
-         cnt = 0;
-	      if (*ncols == 5) {
-            while (ex != EOF && cnt < *nrows) {
-		         id = *ncols * cnt;
-		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[id]), &(v[id+1]),&(v[id+2]), &(v[id+3]), &(v[id+4]) );
-		         ++cnt;
-	         }
-         } else {
-            while (ex != EOF && cnt < *nrows) {
-		         id = *ncols * cnt;
-		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[id]), &jnk, &jnk, &jnk, &(v[id+1]) );
-		         ++cnt;
-	         }
-         } 
+   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Parsing file...\n", FuncName);
 
+   if (rowmajor) {
+	   if (*ncols == 5) {
+         SUMA_LH("RowMajor, All Coords");
+         for (i=0; i< *nrows; ++i) {
+            id = *ncols*i;
+            v[id] = far[i];
+            v[id+1] = far[i+*nrows];
+            v[id+2] = far[i+2 * *nrows];
+            v[id+3] = far[i+3 * *nrows];
+            v[id+4] = far[i+4 * *nrows];
+         }   
       } else {
-         cnt = 0;
-	      if (*ncols == 5) {
-            while (ex != EOF && cnt < *nrows) {
-		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[cnt]), &(v[cnt+ *nrows]),&(v[cnt+ 2 * *nrows]), &(v[cnt+ 3 * *nrows]), &(v[cnt+ 4 * *nrows]));
-		         ++cnt;
-	         }
-         } else if (*nrows == 2) {
-            while (ex != EOF && cnt < *nrows) {
-		         ex = fscanf(fs_file, "%f %f %f %f %f", &(v[cnt]), &jnk, &jnk, &jnk, &(v[cnt+ *nrows]));
-		         ++cnt;
-	         }
-         } else {
-
+         SUMA_LH("RowMajor, Skipping Coords");
+         for (i=0; i< *nrows; ++i) {
+            id = *ncols*i;
+            v[id] = far[i];
+            v[id+1] = far[i+4 * *nrows];
          }
-      }
+      } 
+   } else {
+	   if (*ncols == 5) {
+         SUMA_LH("ColMajor, All Coords");
+         for (i=0; i<*ncols * *nrows; ++i) v[i] = far[i];
+      } else if (*ncols == 2) {
+         SUMA_LH("ColMajor, Skipping Coords");
+         for (i=0; i<*nrows; ++i) v[i] = far[i];
+         for (i=*nrows; i< 2 * *nrows; ++i) v[i] = far[i+3 * *nrows];
+      } 
+   }
+   mri_free(im); im = NULL; far = NULL;
 
-      if (cnt != *nrows) {
-		   fprintf(SUMA_STDERR,"Error %s: Expected %d rows, %d read.\n", FuncName, *nrows, cnt);
-		   SUMA_free(v); v = NULL;
-         SUMA_RETURN (NULL);
-	   }
-   #else 
-      /* now load the input data */
-      SUMA_LH("Reading file...");
-      im = mri_read_1D (f_name);
-
-      if (!im) {
-         SUMA_SL_Err("Failed to read 1D file");
-         SUMA_RETURN(NULL);
-      }
-
-      far = MRI_FLOAT_PTR(im);
-      nvec = im->nx;
-      ncol = im->ny;
-      /* data in column major order at this point */
-
-      if (!nvec) {
-         SUMA_SL_Err("Empty file");
-         SUMA_RETURN(NULL);
-      }
-
-      if (ncol != 5) {
-         SUMA_SL_Err("Must have 5 columns in data file.");
-         mri_free(im); im = NULL;   /* done with that baby */
-         SUMA_RETURN(NULL);
-      }
-      
-      *nrows = nvec;
-      
-      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Allocating for data (%dx%d) \n", FuncName, *nrows, *ncols);
-
-      v = (float *) SUMA_calloc(*nrows * *ncols, sizeof(float));
-      
-      if (!v) {
-         SUMA_SL_Crit("Failed to allocate for v");
-         SUMA_RETURN(v);
-      }
-
-      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Parsing file...\n", FuncName);
-
-      if (rowmajor) {
-	      if (*ncols == 5) {
-            SUMA_LH("RowMajor, All Coords");
-            for (i=0; i< *nrows; ++i) {
-               id = *ncols*i;
-               v[id] = far[i];
-               v[id+1] = far[i+*nrows];
-               v[id+2] = far[i+2 * *nrows];
-               v[id+3] = far[i+3 * *nrows];
-               v[id+4] = far[i+4 * *nrows];
-            }   
-         } else {
-            SUMA_LH("RowMajor, Skipping Coords");
-            for (i=0; i< *nrows; ++i) {
-               id = *ncols*i;
-               v[id] = far[i];
-               v[id+1] = far[i+4 * *nrows];
-            }
-         } 
-      } else {
-	      if (*ncols == 5) {
-            SUMA_LH("ColMajor, All Coords");
-            for (i=0; i<*ncols * *nrows; ++i) v[i] = far[i];
-         } else if (*ncols == 2) {
-            SUMA_LH("ColMajor, Skipping Coords");
-            for (i=0; i<*nrows; ++i) v[i] = far[i];
-            for (i=*nrows; i< 2 * *nrows; ++i) v[i] = far[i+3 * *nrows];
-         } 
-      }
-      mri_free(im); im = NULL; far = NULL;
-   #endif
    SUMA_RETURN(v);
 }
 

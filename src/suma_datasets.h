@@ -885,7 +885,7 @@ static byte NI_GOT;
             else  if (m_nr > n) { \
                SUMA_S_Warn("More values in field\nProceeding..."); }  \
          }  \
-         for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) valv[m_i] = m_iv[m_i];    \
+         for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) valv[m_i] = m_iv[m_i];  \
          SUMA_free(m_iv);  \
       } else {    \
          NI_GOT = 1; \

@@ -3437,16 +3437,19 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO,
    if (VolPar->dirname) NI_set_attribute(nel, "dirname", VolPar->dirname);
    else NI_set_attribute(nel, "dirname", SUMA_EMPTY_ATTR);
    
-   if (VolPar->vol_idcode_str) NI_set_attribute(nel, "vol_idcode_str", VolPar->vol_idcode_str);
+   if (VolPar->vol_idcode_str) 
+      NI_set_attribute(nel, "vol_idcode_str", VolPar->vol_idcode_str);
    else NI_set_attribute(nel, "vol_idcode_str", SUMA_EMPTY_ATTR);
       
-   if (VolPar->vol_idcode_date) NI_set_attribute(nel, "vol_idcode_date", VolPar->vol_idcode_date);
+   if (VolPar->vol_idcode_date) 
+      NI_set_attribute(nel, "vol_idcode_date", VolPar->vol_idcode_date);
    else NI_set_attribute(nel, "vol_idcode_date", SUMA_EMPTY_ATTR);
    
    sprintf(stmp, "%d %d %d", VolPar->nx, VolPar->ny, VolPar->nz);
    NI_set_attribute(nel, "nxyz", stmp);
    
-   sprintf(stmp, "%d %d %d", VolPar->xxorient, VolPar->yyorient, VolPar->zzorient);
+   sprintf(stmp, "%d %d %d", 
+      VolPar->xxorient, VolPar->yyorient, VolPar->zzorient);
    NI_set_attribute(nel, "xyzorient", stmp);
    
    sprintf(stmp, "%f %f %f", VolPar->dx, VolPar->dy, VolPar->dz);
@@ -3457,18 +3460,21 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO,
    
    if (VolPar->CENTER_OLD) {
       stmp[0] = '\0';
-      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->CENTER_OLD[i]);
+      for (i=0; i<3; ++i) 
+         sprintf(stmp+strlen(stmp)," %f", VolPar->CENTER_OLD[i]);
       NI_set_attribute(nel, "CENTER_OLD", stmp);
    }
    if (VolPar->CENTER_BASE) {
       stmp[0] = '\0';
-      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->CENTER_BASE[i]);
+      for (i=0; i<3; ++i) 
+         sprintf(stmp+strlen(stmp)," %f", VolPar->CENTER_BASE[i]);
       NI_set_attribute(nel, "CENTER_BASE", stmp);
    }
    
    if (VolPar->MATVEC) {
       stmp[0] = '\0';
-      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->MATVEC[i]);
+      for (i=0; i<12; ++i) 
+         sprintf(stmp+strlen(stmp)," %f", VolPar->MATVEC[i]);
       NI_set_attribute(nel, "MATVEC", stmp);
    }
    
@@ -3489,22 +3495,30 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO,
    A function to turn node values into a colored nel to be sent to SUMA
    \param SO (SUMA_SurfaceObject *) Surface object, domain of data
    \param val (float *)  vector of node values to be colored and stored as nel
-   \param instanceID (char *) a unique identifier used to tag a set of val vectors that are sent
-                              through repeated calls. With a new instanceID, static arrays are newly
-                              allocated and will continue to be used as long as instanceID does not change
-                              When instanceID changes, the function cleans up and reallocates automatically.
+   \param instanceID (char *) a unique identifier used to tag a set of val 
+                              vectors that are sent through repeated calls. 
+                              With a new instanceID, static arrays are newly
+                              allocated and will continue to be used as long as 
+                              instanceID does not change
+                              When instanceID changes, the function cleans up and
+                              reallocates automatically.
    \param option (int) Set this flag to:
-                         1 to signal that you are done using this function for good and 
-                                 want to make sure any local allocations are freed. 
+                         1 to signal that you are done using this function 
+                              for good and want to make sure any local 
+                              allocations are freed. 
                                  Returns NULL, does not need any previous params
-                         -1 to signal that this function is to be called just once under a particular
-                                 instance and that the function should cleanup before it returns.  
+                         -1 to signal that this function is to be called just
+                              once under a particular instance and that the 
+                              function should cleanup before it returns.  
                                  Returns valid nel, requires all params. 
-                                 You can also use -1 if that is the last call in a series
-                        0 to signal that this function will still be called under that instance                           
+                                 You can also use -1 if that is the last call in 
+                                 a series
+                        0 to signal that this function will still be called under
+                           that instance                           
                               
 */
-NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *instanceID, int cleanup)
+NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, 
+                                     char *instanceID, int cleanup)
 {
    static char FuncName[]={"SUMA_NodeVal2irgba_nel"};
    static int i_in=0, *node=NULL;

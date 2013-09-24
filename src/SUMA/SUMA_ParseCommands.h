@@ -504,10 +504,12 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 
 */
 #define SUMA_S_Warn(msg) {\
-   fprintf (SUMA_STDERR, "oo     Warning %s (%s:%d):\n%s\n", FuncName, __FILE__, __LINE__, msg);  \
+   fprintf (SUMA_STDERR, "oo     Warning %s (%s:%d):\n%s\n", \
+                         FuncName, __FILE__, __LINE__, msg);  \
 }
 #define SUMA_S_Warnv(msg, ...) {\
-   fprintf (SUMA_STDERR, "oo     Warning %s (%s:%d):\n", FuncName, __FILE__ , __LINE__);  \
+   fprintf (SUMA_STDERR, "oo     Warning %s (%s:%d):\n", \
+                         FuncName, __FILE__ , __LINE__);  \
    fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
 }
 /*!
@@ -539,8 +541,15 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 
 */
 #define SUMA_S_Crit(msg) {\
-   fprintf (SUMA_STDERR, "**     Critical %s (%s:%d):\n%s\n", FuncName, __FILE__, __LINE__,msg);  \
+   fprintf (SUMA_STDERR, "**     Critical %s (%s:%d):\n%s\n", \
+                         FuncName, __FILE__, __LINE__,msg);  \
 }
+#define SUMA_S_Critv(msg, ...) {\
+   fprintf (SUMA_STDERR, "**     Critical %s (%s:%d):\n", \
+                         FuncName, __FILE__, __LINE__);  \
+   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+}
+
 /*!
    \brief Macro that reports a critical error to stderr and log 
 
