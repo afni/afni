@@ -495,6 +495,10 @@ void Qhelp(void)
     "               * The progressive increase in the penalty at higher levels\n"
     "                 means that the 'cost function' can actually look like the\n"
     "                 alignment is getting worse when the levels change.\n"
+    "               * IF you wish to turn off this progression, for whatever\n"
+    "                 reason (e.g., to keep compatibility with older results),\n"
+    "                 use the option '-penold'.  To be completely compatible with\n"
+    "                 the older 3dQwarp, you'll also have to use '-penfac 0.2'.\n"
     " -useweight   = Normally, each voxel in the automask of the base dataset\n"
     "                counts the same.  With '-useweight', each voxel is weighted\n"
     "                by the intensity of the (blurred) base image.  This makes\n"
@@ -1138,6 +1142,10 @@ int main( int argc , char *argv[] )
          Hpen_fac = Hpen_fbase * val ;
        }
        nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-penold") == 0 ){
+       Hpen_old = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
