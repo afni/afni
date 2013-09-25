@@ -1441,7 +1441,10 @@ STATUS("load datasets") ;
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
 
-     if( zeropad ) qsave = 0 ;  /* too much trouble to do both */
+     if( zeropad && qsave ){  /* too much trouble to do both */
+       INFO_message("-qsave is turned off because zero-padding is happening!") ;
+       qsave = 0 ;
+     }
 
      if( zeropad ){
        if( Hverb )
