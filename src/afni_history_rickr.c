@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Sep, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "added more .h files to install_lib for compiling outside of afni_src",
+   "Added rcmat.h, misc_math.h, thd_atlas.h, thd_ttatlas_query.h\n"
+   "and thd_ttatlas_CA_EZ.h."
+ } ,
+
  { 19,  Sep, 2013, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow regress_polort -1; added help for -regress_RSFC",
    NULL
