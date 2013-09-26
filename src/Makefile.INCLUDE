@@ -202,8 +202,9 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h    \
              mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h        \
              nifti/niftilib/nifti1_io.h nifti/nifticdf/nifticdf.h             \
-             nifti/znzlib/znzlib.h Aomp.h                                     \
-             rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h
+             nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                 \
+             rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h          \
+             thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h 
 
 ### Make everything, install it too, and cleanup
 
