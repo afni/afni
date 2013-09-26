@@ -5800,8 +5800,8 @@ g_help_string = """
         last), -volreg_base_ind can be used.
 
         To specify a volume that is NOT one of those used in pre-processing
-        (such as a pre-steady state volume that will be excluded by the option
-        -tcat_remove_first_trs), use -volreg_base_dset.
+        (such as the first pre-steady state volume, which would be excluded by
+        the option -tcat_remove_first_trs), use -volreg_base_dset.
 
     2. anat to EPI alignment cases (the align block)
 
@@ -6744,8 +6744,8 @@ g_help_string = """
 
             Since it is likely that the number of TRs in the ricor regressor
             files matches the number of TRs in the original input dataset (via
-            -dsets), it is likely that -ricor_regs_nfirst should match
-            -tcat_remove_first_trs.
+            the -dsets option), it is likely that -ricor_regs_nfirst should
+            match -tcat_remove_first_trs.
 
             See also '-tcat_remove_first_trs', '-ricor_regs', '-dsets'.
 
@@ -8466,7 +8466,9 @@ g_help_string = """
 
             Use this option to specify extra files to be applied with the
             -stim_file option in 3dDeconvolve (as opposed to the more usual
-            -stim_times).  These files will not be converted to stim_times.
+            option, -stim_times).
+
+            These files will not be converted to stim_times format.
 
             Corresponding labels can be given with -regress_extra_stim_labels.
 
