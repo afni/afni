@@ -4404,6 +4404,9 @@ static float **bbbcar = NULL ;
 static int    nbbqxyz = 0 ;
 static float **bbbqar = NULL ;
 
+#undef  MEGA
+#define MEGA 1048576   /* 2^20 */
+
 /*--- local (small) warp over region we are optimizing ---*/
 
 static IndexWarp3D *Hwarp   = NULL ;
@@ -4737,7 +4740,7 @@ ENTRY("HCwarp_setup_basis") ;
    /* 3D versions for small enough warp fields (will be faster) */
 
    nbbcxyz = nbcx * nbcy * nbcz ;
-   if( nbbcxyz <= 1048576 ){
+   if( nbbcxyz <= 8*MEGA ){
      int jj , kk , qq ;
      bbbcar = (float **)malloc(sizeof(float *)*8) ;
      for( ii=0 ; ii < 8 ; ii++ )
@@ -4874,7 +4877,7 @@ ENTRY("HQwarp_setup_basis") ;
    /* 3D versions? */
 
    nbbqxyz = nbqx * nbqy * nbqz ;
-   if( nbbqxyz <= 524288 ){
+   if( nbbqxyz <= 2*MEGA ){
      int jj , kk , qq ;
      bbbqar = (float **)malloc(sizeof(float *)*27) ;
      for( ii=0 ; ii < 27 ; ii++ )
