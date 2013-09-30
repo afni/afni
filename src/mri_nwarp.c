@@ -6281,14 +6281,12 @@ ENTRY("IW3D_warpomatic") ;
      nsup  = SUPERHARD(lev) ? 2 : 1 ;
 
      if( Hverb > 1 )
-       ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s [clock=%s]" ,
-                      lev,xwid,ywid,zwid,Hfactor , (levdone   ? "FINAL"  : "\0") ,
+       ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s [clock=%s]" ,
+                      lev,xwid,ywid,zwid,Hfactor,Hpen_fff , (levdone   ? "FINAL"  : "\0") ,
                                                    (nlevr > 1 ? "WORKHARD" : "\0") ,
                       nice_time_string(NI_clock_time()) ) ;
      else if( Hverb == 1 )
        fprintf(stderr,"lev=%d patch=%dx%dx%d [clock=%s]",lev,xwid,ywid,zwid,nice_time_string(NI_clock_time()) ) ;
-
-     if( Hverb > 1 ) ININFO_message("   Hpen_fff = %g",Hpen_fff) ;
 
      Hdone = Hskipped = 0 ;
 
@@ -7780,8 +7778,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      nsup  = SUPERHARD(lev) ? 2 : 1 ;
 
      if( Hverb > 1 )
-       ININFO_message("  ........ +-lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g %s %s" ,
-                      lev,xwid,ywid,zwid,Hfactor , (levdone   ? "FINAL"  : "\0") ,
+       ININFO_message("  ........ +-lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s" ,
+                      lev,xwid,ywid,zwid,Hfactor,Hpen_fff , (levdone   ? "FINAL"  : "\0") ,
                                                    (nlevr > 1 ? "WORKHARD" : "\0") ) ;
      else if( Hverb == 1 )
        fprintf(stderr,"lev=%d patch=%dx%dx%d: ",lev,xwid,ywid,zwid) ;
