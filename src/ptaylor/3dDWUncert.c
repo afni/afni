@@ -55,15 +55,12 @@ void usage_DWUncert(int detail)
 	printf(
 "\n"
 "  Use jackknifing to estimate uncertainty of DTI parameters which are\n"
-"    important for probabilistic tractography on per voxel basis\n"
+"    important for probabilistic tractography on per voxel basis.\n"
 "\n"
 "  Produces useful input for 3dProbTrackID, which does probabilistic\n"
-"    tractography for GM ROIs in networks.\n"
+"    tractography for GM ROIs in networks, part of FATCAT (Taylor & Saad,\n"
+"    2013) in AFNI.\n"
 "\n"
-"  Jackknifing done with nonlinear fitting described in: \n"
-"    Taylor PA, Biswal BB (2011). Geometric analysis of the b-dependent\n"
-"    effects of Rician signal noise on diffusion tensor imaging\n"
-"    estimates and determining an optimal b value. MRI 29:777–788.\n"
 "\n"
 "  COMMAND: 3dDWUncert -inset FILE -input [base of FA/MD/etc.] \\\n"
 "           {-grads | -bmatr} FILE -prefix NAME -iters NUMBER \n"
@@ -121,8 +118,16 @@ void usage_DWUncert(int detail)
 "      -prefix TEST_FILES/DTI/o.UNCERT \\\n"
 "      -input TEST_FILES/DTI/DT \\\n"
 "      -grads TEST_FILES/Siemens_d30_GRADS.dat \\\n"
-"      -iters 50\n"
-"   \n" );
+"      -iters 50\n\n"
+"  If you use this program, please reference the jackknifing algorithm done\n"
+"  with nonlinear fitting described in: \n"
+"    Jackknifing done with nonlinear fitting described in: \n"
+"    Taylor PA, Biswal BB (2011). Geometric analysis of the b-dependent\n"
+"    effects of Rician signal noise on diffusion tensor imaging\n"
+"    estimates and determining an optimal b value. MRI 29:777–788.\n"
+"  and the introductory/description paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 	return;
 }
 

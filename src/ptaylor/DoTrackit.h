@@ -26,12 +26,11 @@ int TrackIt(float ****CC, int *IND, float *PHYSIND,
             float *Edge, int *dim, float minFA, 
 	    float maxAng, int arrMax, 
             int **T, float **flT, int FB, float *physL);
-int TrackItP(float **CC, int *IND, float *PHYSIND, 
+int TrackItP_NEW(float **CC, int *IND, float *PHYSIND, 
 	     float *Edge, int *dim, float minFA, 
 	     float maxAng, int arrMax, 
 	     int **T, float **flT, int FB, float *physL,
 	     int ***ID2);
-
 int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox, 
 								char *prefix,THD_3dim_dataset *insetFA,
 								int *TV_switch,char *voxel_order,int *NROI,
