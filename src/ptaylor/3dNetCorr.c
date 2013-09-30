@@ -23,7 +23,8 @@ void usage_NetCorr(int detail)
   printf(
 "\n"
 "  Calculate correlation matrix of a set of ROIs (using mean time series of\n"
-"  each). Written by PA Taylor (March, 2013).\n\n"
+"  each). Written by PA Taylor (March, 2013), part of FATCAT (Taylor & Saad,\n"
+"  2013) in AFNI.\n"
 "  \n"
 "  USAGE: Input a set of 4D data and a set of ROI masks (i.e., a bunch of \n"
 "         ROIs in a brik each labelled with a distinct integer), and get a\n"
@@ -62,7 +63,11 @@ void usage_NetCorr(int detail)
 "        represent a zero-padded version of the network number, based on the\n"
 "        number of subbricks in the `in_rois' option (i.e., 001, 002,...).\n"
 "        If the `-ts_out' option is used, the mean time series per ROI, one\n"
-"        line, are output in PREFIX_???.netts files.\n\n");
+"        line, are output in PREFIX_???.netts files.\n\n"
+"  If you use this program, please reference the introductory/description\n"
+"  paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
   return;
 }
 

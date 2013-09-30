@@ -28,7 +28,8 @@ void usage_Match(int detail)
 {
 	printf(
 "\n"
-"  3dMatch, written by PA Taylor (Nov., 2012).\n\n"
+"  3dMatch, written by PA Taylor (Nov., 2012), part of FATCAT (Taylor & Saad,\n"
+"    2013) in AFNI.\n\n"
 "  Find similar subbricks and rearrange order to ease comparison\n\n"
 "  Comparison simply done by comparing (weighted) correlation maps of\n"
 "  values, which may include thresholding of either refset or inset\n"
@@ -103,7 +104,10 @@ void usage_Match(int detail)
 "          -mask mask+orig  -in_min 0.4 -ref_min 2.3 -prefix MATCHED \\\n"
 "          -only_dice_thr .\n"
 "\n"
-"\n");
+"  If you use this program, please reference the introductory/description\n"
+"  paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 	return;
 }
 

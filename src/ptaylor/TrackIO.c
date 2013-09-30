@@ -71,9 +71,72 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
    RETURN(tb);
 }
 
+
 /*!
   grid (THD_3dim_dataset *) Without the grid structure, coordinates
   will not be in RAI, but in UHU, unholy units.
+
+  this works a bit differently than originally: tracts are not
+  delivered in half anymore but instead in full strings; length of
+  tract is not just given but the start and ending locations, A and B
+  (respectively and inclusively) in the array, because NOT masks might
+  trim away part of string for *some* nets but not all; finally,
+  tracts themselves will be included a bit differently-- instead of
+  having `test-ends' awkwardly separate, they will now be included in
+  the array even though they aren't full locations.
+
+*/
+TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff, 
+									int id, THD_3dim_dataset *grid)
+{
+   TAYLOR_TRACT *tt=NULL;
+   int kk = 0, ii=0;
+   static int nwarn=0;
+   
+   ENTRY("Create_Tract");
+   
+   if (grid) {
+      if (ORIENT_typestr[grid->daxes->xxorient][0] != 'R' ||
+          ORIENT_typestr[grid->daxes->yyorient][0] != 'A' ||
+          ORIENT_typestr[grid->daxes->zzorient][0] != 'I' ) {
+         ERROR_message("Only expecting RAI grids");
+         RETURN(NULL);
+      }  
+   } else {
+      if (!nwarn) {
+         WARNING_message("No grid, coordinates in UHU\n"
+                         "Further messages muted\n");
+         ++nwarn;
+      }
+   }
+   tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+   if (tt == NULL) {
+      ERROR_message("Failed to allocate tract");
+      RETURN(NULL);
+   }
+   tt->id = id; tt->N_pts3 = (ptB-ptA+1)*3;
+   if (!(tt->pts = (float *)calloc(tt->N_pts3, sizeof(float)))) {
+      ERROR_message("Failed to allocate pts vector");
+      Free_Tracts(tt,1); RETURN(NULL);
+   }
+   kk=0;
+   if (pts_buff) { // A and B are inclusive vals
+      for (ii=ptA; ii<=ptB; ++ii) { 
+       tt->pts[kk] = pts_buff[ii][0]+DSET_XORG(grid);++kk;
+       tt->pts[kk] = pts_buff[ii][1]+DSET_YORG(grid);++kk;
+       tt->pts[kk] = pts_buff[ii][2]+DSET_ZORG(grid);++kk;
+      }
+   }
+
+   RETURN(tt);
+}
+
+
+/*!  THIS VERSION JUST KEPT AROUND FOR 3dTrackID, UNTIL THAT IS FULLY
+     REMOVED.
+
+     grid (THD_3dim_dataset *) Without the grid structure, coordinates
+     will not be in RAI, but in UHU, unholy units.
 */
 TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB, 
 									int N_ptsF, float **pts_buffF,
@@ -232,8 +295,8 @@ void Show_Taylor_Network(TAYLOR_NETWORK *net, FILE *out,
    
    ENTRY("Show_Taylor_Network");
    if (!out) out = stderr;
-   if (!tb) {
-      fprintf(out,"NULL tb"); 
+   if (!net) {
+      fprintf(out,"NULL net"); 
       EXRETURN;
    }
    fprintf(out,"  Network has %d bundles\n", net->N_tbv);
@@ -248,6 +311,44 @@ void Show_Taylor_Network(TAYLOR_NETWORK *net, FILE *out,
 }
 
 
+int Network_N_points(TAYLOR_NETWORK *net)
+{
+   int nb, ib=0, nn=-1, it;
+   
+   if (!net) return(-1);
+   nn = 0;
+   for (ib=0; ib<net->N_tbv; ++ib) {
+      if (net->tbv[ib]) {
+         for (it=0; it<net->tbv[ib]->N_tracts; ++it) {
+            nn += net->tbv[ib]->tracts[it].N_pts3;
+         }
+      } 
+   }
+   nn /= 3;
+   return(nn);
+}
+
+int Network_N_tracts(TAYLOR_NETWORK *net)
+{
+   int nb, ib=0, nn=-1, it;
+   
+   if (!net) return(-1);
+   nn = 0;
+   for (ib=0; ib<net->N_tbv; ++ib) {
+      if (net->tbv[ib]) {
+         nn += net->tbv[ib]->N_tracts;
+      } 
+   }
+
+   return(nn);
+}
+
+
+int Network_N_bundles(TAYLOR_NETWORK *net)
+{
+   if (!net) return(-1);
+   return(net->N_tbv);
+}
 
 NI_element *Tract_2_NIel(TAYLOR_TRACT *tt)
 {

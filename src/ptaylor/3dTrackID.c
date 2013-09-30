@@ -28,7 +28,8 @@ void usage_TrackID(int detail)
 {
 	printf(
 "\n"
-"  FACTID code, from Taylor, Cho, Lin and Biswal (2012)\n"
+"  FACTID-based tractography code, from Taylor, Cho, Lin and Biswal (2012),\n"
+"  part of FATCAT in AFNI (Taylor & Saad, 2013).\n"
 "  \n"
 "  USAGE: read in data from 3dDWItoDT results; use L1 and V1 for actual\n"
 "    algorithm, and include MD and FA for stats\n"
@@ -113,11 +114,13 @@ void usage_TrackID(int detail)
 "         -algopt TEST_FILES/ALGOPTS.dat \\\n"
 "         -logic AND\n"
 "  \n\n"
-"  If you use this program, please reference:\n"
-"    Taylor PA, Cho K-H, Lin C-P, Biswal BB (2012) Improving DTI\n"
+"  If you use this program, please reference the tractography algorithm:\n"
+"    Taylor PA, Cho K-H, Lin C-P, Biswal BB (2012). Improving DTI\n"
 "    Tractography by including Diagonal Tract Propagation. PLoS ONE\n"
 "    7(9): e43415. \n"
-"   \n" );
+"    and the introductory/description paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 	return;
 }
 

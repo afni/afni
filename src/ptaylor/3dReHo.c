@@ -32,7 +32,8 @@ void usage_ReHo(int detail)
 {
   printf(
 "\n"
-"  REHO/Kendall W code, written by PA Taylor (July, 2012).\n\n"
+"  REHO/Kendall W code, written by PA Taylor (July, 2012), part of FATCAT\n"
+"  (Taylor & Saad, 2013) in AFNI.\n\n"
 "  ReHo (regional homogeneity) is just a renaming of the Kendall's W\n"
 "  (or Kendall's coefficient of concordance, KCC, (Kendall & Babington\n"
 "  Smith, 1939)) for set of time series.  Application to fMRI data was\n"
@@ -123,8 +124,11 @@ void usage_ReHo(int detail)
 "              -inset REST+orig \\\n"
 "              -prefix REST_REHO \\\n"
 "              -neigh_RAD 2.9 \\\n"
-"              -chi_sq\n"
-"  \n" );
+"              -chi_sq\n\n"
+"  If you use this program, please reference the introductory/description\n"
+"  paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
   return;
 }
 
