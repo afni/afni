@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Sep, 2013, RCR, "unix_tutorial", MINOR, TYPE_ENHANCE,
+   "updates to installs/unix_commands/scripts/basic_*/bin/*",
+   "The updates are for the 2 Dec 2013 bootcamp."
+ } ,
+
  { 26,  Sep, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "added more .h files to install_lib for compiling outside of afni_src",
    "Added rcmat.h, misc_math.h, thd_atlas.h, thd_ttatlas_query.h\n"
