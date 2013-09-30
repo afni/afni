@@ -6200,8 +6200,8 @@ ENTRY("IW3D_warpomatic") ;
    levs = MAX(1,Hlev_start) ;
    for( lev=levs ; lev <= Hlev_end && !levdone ; lev++ ){
 
-     flev = (Hpen_old) ? 1.0f : powf( (float)lev , 0.666f ) ; ;
-     Hpen_fff = Hpen_fac * MIN(6.66f,flev) ;  /* 20 Sep 2013 */
+     flev = (Hpen_old) ? 1.0f : powf( (float)lev , 0.333f ) ; ;
+     Hpen_fff = Hpen_fac * MIN(2.22f,flev) ;  /* 20 Sep 2013 */
 
      /* compute width of rectangles at this level */
 
@@ -7699,8 +7699,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    levs = MAX(1,Hlev_start) ;
    for( lev=levs ; lev <= Hlev_end && !levdone ; lev++ ){
 
-     flev = (Hpen_old) ? 1.0f : powf( (float)lev , 0.666f ) ; ;
-     Hpen_fff = Hpen_fac * MIN(6.66f,flev) ;  /* 20 Sep 2013 */
+     flev = (Hpen_old) ? 1.0f : powf( (float)lev , 0.333f ) ; ;
+     Hpen_fff = Hpen_fac * MIN(2.22f,flev) ;  /* 20 Sep 2013 */
 
      /* compute width of rectangles at this level */
 
