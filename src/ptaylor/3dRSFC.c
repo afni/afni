@@ -102,6 +102,10 @@ int main( int argc , char * argv[] )
 "  series.  This program is **heavily** based on the existing\n"
 "  3dBandPass by RW Cox, with the amendments to calculate RSFC\n"
 "  parameters written by PA Taylor (July, 2012).\n"
+"  This program is part of FATCAT (Taylor & Saad, 2013) in AFNI. Importantly,\n"
+"  its functionality can be included in the `afni_proc.py' processing-script \n"
+"  generator; see that program's help file for an example including RSFC\n"
+"  and spectral parameter calculation via the `-regress_RSFC' option.\n"
 "\n"
 "  All options of 3dBandPass may be used here (with a couple other\n"
 "  parameter options, as well): essentially, the motivation of this\n"
@@ -242,8 +246,11 @@ int main( int argc , char * argv[] )
 "                      contaminate any further processing, such as inter-voxel\n"
 "                      correlations via InstaCorr.\n"
 "                   ++ No other tests are made [yet] for non-stationary behavior\n"
-"                      in the time series data.\n"
-				 ) ;
+"                      in the time series data.\n\n"
+"  If you use this program, please reference the introductory/description\n"
+"  paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 		PRINT_AFNI_OMP_USAGE(
 " 3dRSFC" ,
 " * At present, the only part of 3dRSFC that is parallelized is the\n"

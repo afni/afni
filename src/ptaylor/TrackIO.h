@@ -31,6 +31,11 @@ typedef struct {
 void Show_Taylor_Network(TAYLOR_NETWORK *network, FILE *out, int mx, int mxb);
 void Show_Taylor_Bundle(TAYLOR_BUNDLE *bundle, FILE *out, int mx);
 void Show_Taylor_Tract(TAYLOR_TRACT *tract, FILE *out, int mx);
+TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff, 
+                               int id, THD_3dim_dataset *grid);
+int Network_N_points(TAYLOR_NETWORK *network);
+int Network_N_tracts(TAYLOR_NETWORK *network);
+int Network_N_bundles(TAYLOR_NETWORK *network);
 TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
                           int N_ptsF, float **pts_buffF, 
                           int id, THD_3dim_dataset *grid);

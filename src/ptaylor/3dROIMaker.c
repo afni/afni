@@ -6,7 +6,7 @@
 	threshold to make GM-ROIs; then that latter and make into ROIs for
 	tractography (most likely prob. tractography to define WM-ROIs)
 
-	Inflation/detection for voxels sharing face/edge, but not only
+	Inflation/detection for voxels sharing face/edge, but not for only
 	vertex.
 
 	Dec. 2012: 
@@ -16,6 +16,9 @@
 
 	Jan. 2013:
 	     csf_skel option
+
+   Sept. 2013:
+        allow negative ROIs to be used in refset
 */
 
 
@@ -37,7 +40,8 @@ void usage_ROIMaker(int detail)
 {
 	printf(
 "\n"
-"  ROIMaker, written by PA Taylor (Nov, 2012).\n\n"
+"  ROIMaker, written by PA Taylor (Nov, 2012), part of FATCAT (Taylor & Saad,\n"
+"  2013) in AFNI.\n\n"
 "  THE GENERAL PURPOSE of this code is to create a labelled set of ROIs from\n"
 "  input data. It was predominantly written with a view of aiding the process\n"
 "  of combining functional and tractographic/structural data. Thus, one might\n"
@@ -87,7 +91,9 @@ void usage_ROIMaker(int detail)
 "                       with multiple REFSET ROIs, then the former is split\n"
 "                       amongst the latter-- overlap regions get labelled \n"
 "                       first, and then REFSET labels grow to cover the INSET\n"
-"                       ROI in question.\n"
+"                       ROI in question.  NB: it is possible to utilize\n"
+"                       negative-valued ROIs (voxels =-1) to represent NOT-\n"
+"                       regions for tracking, for example.\n"
 "     -volthr   MINVOL :integer number representing minimum size a cluster of\n"
 "                       voxels must have in order to remain a GM ROI after \n"
 "                       the values have been thresholded.  Number might be\n"
@@ -133,7 +139,10 @@ void usage_ROIMaker(int detail)
 "      3dROIMaker -inset CORR_VALUES+orig. -thresh 0.6 -prefix ROI_MAP \\\n"
 "            -volthr 100 -inflate 2 -wm_skel WM_T1+orig. -skel_stop .\n"
 "\n"
-"\n");
+"  If you use this program, please reference the introductory/description\n"
+"  paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 	return;
 }
 
@@ -198,6 +207,10 @@ int main(int argc, char *argv[]) {
 	int *NROI_GM=NULL,*INVROI_GM=NULL;
 	int ***COUNT_GM=NULL;
 
+   int *RESCALES=NULL; // will be used if negative values in refset mask
+   short int **temp_ref=NULL; // for holding rescaled values
+   THD_3dim_dataset *set_REFSCAL=NULL;
+   float dum1[1]={0},dum2[1]={0};
 
 	mainENTRY("3dROIMaker"); machdep(); 
   
@@ -207,7 +220,7 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	//INFO_message("version: NU");
+	//INFO_message("version: OMICRON");
 	Dim = (int *)calloc(4,sizeof(int));
 
 	// scan args
@@ -641,14 +654,62 @@ int main(int argc, char *argv[]) {
 		NROI_REF = (int *)calloc(HAVEREF, sizeof(int)); 
 		NROI_REF_b = (int *)calloc(HAVEREF, sizeof(int)); // for counting
 		INVROI_REF = (int *)calloc(HAVEREF, sizeof(int)); 
+		RESCALES = (int *)calloc(HAVEREF, sizeof(int)); 
+      temp_ref = calloc( HAVEREF,sizeof(temp_ref));  // XYZ components
+      for(i=0 ; i<HAVEREF ; i++) 
+         temp_ref[i] = calloc( Nvox,sizeof(short int) ); 
+
 		if( (NROI_REF == NULL) || (NROI_REF == NULL) || (NROI_REF_b == NULL) 
-			 ) {
+			 || (RESCALES == NULL) || (temp_ref == NULL) ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(122);
 		}
 		
+      // NEW: allow for having `antimask'/negative/NOT-ROIs by simple
+      // rescaling up of REFSET values, if there's a negative present;
+      // then do normal labelling, and then rescale down again.
+		for( i=0 ; i<HAVEREF ; i++) {
+         THD_subbrick_minmax(insetREF, i, 1,&dum1[0], &dum2[0]);
+         if( dum1[0]<0 )//??inset-->fixed
+            RESCALES[i] = 1 - ((int) dum1[0]);
+         //printf("\n%d\t%d --> refscal=%d",(int) dum1[0], 
+         //       (int) dum2[0], RESCALES[i]);
+      }
+
+      // rescale values as necessary
+      for( m=0 ; m<Dim[3] ; m++ ) {
+			idx=0;
+			for( k=0 ; k<Dim[2] ; k++ ) 
+				for( j=0 ; j<Dim[1] ; j++ ) 
+					for( i=0 ; i<Dim[0] ; i++ ) {
+						if( THD_get_voxel(insetREF,idx,m)>0.5 ||
+                      THD_get_voxel(insetREF,idx,m)<-0.5 ) {
+                     temp_ref[m][idx] = (short int) 
+                        THD_get_voxel(insetREF,idx,m);
+                     if( RESCALES[m] )
+                        temp_ref[m][idx]+= RESCALES[m];
+                  }
+                  idx++;
+               }
+      }
+      set_REFSCAL = EDIT_empty_copy( insetREF ) ; 
+      EDIT_dset_items(set_REFSCAL,
+							 ADN_datum_all , MRI_short , 
+							 ADN_none ) ;
+
+      for( m=0 ; m<Dim[3] ; m++ ) {
+         EDIT_substitute_brick(set_REFSCAL, m, MRI_short, temp_ref[m]);
+         temp_ref[m]=NULL; // to not get into trouble...
+      }
+      free(temp_ref);
+
+      for( i=0 ; i<HAVEREF ; i++) {
+         THD_subbrick_minmax(set_REFSCAL, i, 1,&dum1[0], &dum2[0]);
+         printf("\nREFSCAL[%d] %d\t%d",i,(int) dum1[0],(int) dum2[0]);
+      }
+      
 		for( i=0 ; i<HAVEREF ; i++) 
-			INVROI_REF[i] = (int) THD_subbrick_max(insetREF, i, 1);//??inset-->fixed
+			INVROI_REF[i] = (int) THD_subbrick_max(set_REFSCAL, i, 1);//??inset-->fixed
 		
 		ROI_LABELS_REF = calloc( HAVEREF,sizeof(ROI_LABELS_REF));  
 		for(i=0 ; i<HAVEREF ; i++) 
@@ -663,7 +724,7 @@ int main(int argc, char *argv[]) {
 		
 		// Step 3A-2: find out the labels in the ref, organize them
 		//            both backwards and forwards.
-		bb = ViveLeRoi(insetREF, 
+		bb = ViveLeRoi(set_REFSCAL,
 							ROI_LABELS_REF, INV_LABELS_REF, 
 							NROI_REF,       INVROI_REF);
 		if( bb != 1)
@@ -708,10 +769,10 @@ int main(int argc, char *argv[]) {
 			for( k=0 ; k<Dim[2] ; k++ ) 
 				for( j=0 ; j<Dim[1] ; j++ ) 
 					for( i=0 ; i<Dim[0] ; i++ ) {
-						if( THD_get_voxel(insetREF,idx,m)>0 ) {
+						if( THD_get_voxel(set_REFSCAL,idx,m)>0 ) {
 							// for ease/shortcut, define X, the compact form of
 							// the refROI label index, and Y, the inset ROI smallval
-							X = INV_LABELS_REF[m][(int) THD_get_voxel(insetREF,idx,m)];
+							X = INV_LABELS_REF[m][(int) THD_get_voxel(set_REFSCAL,idx,m)];
 							N_refvox_R[m][X]+=1;
 							if( DATA[i][j][k][m]>0 ) {
 								Y = DATA[i][j][k][m] - N_thr[m];
@@ -814,8 +875,8 @@ int main(int argc, char *argv[]) {
 									relab_vox[m]++;
 								}
 								else if( (OLAP_RI[m][ii][Y][1]==4) &&
-											(THD_get_voxel(insetREF,idx,m)>0) ) {// relabel
-									DATA[i][j][k][m] = THD_get_voxel(insetREF,idx,m);
+											(THD_get_voxel(set_REFSCAL,idx,m)>0) ) {// relabel
+									DATA[i][j][k][m] = THD_get_voxel(set_REFSCAL,idx,m);
 									relab_vox[m]++;
 									break;
 								}
@@ -927,7 +988,8 @@ int main(int argc, char *argv[]) {
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
 				for( i=0 ; i<Dim[0] ; i++ ) {
-					temp_arr[m][idx] = DATA[i][j][k][m];
+               if( DATA[i][j][k][m] )// account for neg values rescaled
+                  temp_arr[m][idx] = DATA[i][j][k][m]-RESCALES[m];
 					idx+=1;
 				}
 		EDIT_substitute_brick(outsetGM, m, MRI_short, temp_arr[m]); 
@@ -1091,7 +1153,8 @@ int main(int argc, char *argv[]) {
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
 				for( i=0 ; i<Dim[0] ; i++ ) {
-					temp_arr2[m][idx] = DATA[i][j][k][m];
+               if( DATA[i][j][k][m] )
+                  temp_arr2[m][idx] = DATA[i][j][k][m]-RESCALES[m];
 					idx+=1;
 				}
 		EDIT_substitute_brick(outsetGMI, m, MRI_short, temp_arr2[m]); 
@@ -1172,6 +1235,9 @@ int main(int argc, char *argv[]) {
 		free(NROI_REF_b);
 		free(INVROI_REF);
 		free(EXTRA_LAB);
+      free(RESCALES);
+      free(set_REFSCAL);
+      DSET_delete(set_REFSCAL);
 	}
 	
 	for( i=0 ; i<Dim[3] ; i++) {

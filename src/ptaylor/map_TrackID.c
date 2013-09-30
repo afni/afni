@@ -33,8 +33,9 @@ void usage_map_TrackID(int detail)
 {
 	printf(
 "\n"
-"  Supplementary code for 3dTrackID, written by PA Taylor.\n"
-"  \n\n"
+"  Supplementary code for 3dTrackID, written by PA Taylor, part of FATCAT\n"
+"  (Taylor & Saad, 2013) in AFNI.\n"
+"  \n"
 "  USAGE: This program maps the track file (*.trk) output of 3dTrackID to\n"
 "  another space, such as MNI standard, using the 1Dmatrix_save info of\n"
 "  3dAllineate.  The scalar values are not changed or interpolated to within,\n"
@@ -130,7 +131,11 @@ void usage_map_TrackID(int detail)
 "        -input TEST_FILES/DTI/DT_FA+orig. \\\n"
 "        -base TEST_FILES/DTI/MNI_3mm+tlrc \\\n"
 "        -prefix TEST_FILES/DTI/MNI_DT_FA -mi \\n"
-"\n\n");
+"\n"
+"  If you use this program, please reference the introductory/description\n"
+"  paper for the FATCAT toolbox:\n"
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 	return;
 }
 
