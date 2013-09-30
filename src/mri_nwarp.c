@@ -5622,9 +5622,10 @@ double IW3D_scalar_costfun( int npar , double *dpar )
      for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %g",dpar[ii]) ;
      fprintf(stderr,"\n") ;
    }
+   Hcostt = cost ;
 
    if( Hpen_use ){
-     Hpenn = HPEN_penalty() ; Hcostt = cost ; cost += Hpenn ;  /* penalty is saved in Hpenn */
+     Hpenn = HPEN_penalty() ; cost += Hpenn ;  /* penalty is saved in Hpenn */
    } else {
      Hpenn = 0.0f ;
    }
@@ -6200,7 +6201,7 @@ ENTRY("IW3D_warpomatic") ;
    levs = MAX(1,Hlev_start) ;
    for( lev=levs ; lev <= Hlev_end && !levdone ; lev++ ){
 
-     flev = (Hpen_old) ? 1.0f : powf( (float)lev , 0.333f ) ; ;
+     flev = (Hpen_old) ? 1.0f : powf( (float)(lev-levs+1) , 0.333f ) ; ;
      Hpen_fff = Hpen_fac * MIN(2.22f,flev) ;  /* 20 Sep 2013 */
 
      /* compute width of rectangles at this level */
@@ -7697,7 +7698,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    levs = MAX(1,Hlev_start) ;
    for( lev=levs ; lev <= Hlev_end && !levdone ; lev++ ){
 
-     flev = (Hpen_old) ? 1.0f : powf( (float)lev , 0.333f ) ; ;
+     flev = (Hpen_old) ? 1.0f : powf( (float)(lev-levs+1) , 0.333f ) ; ;
      Hpen_fff = Hpen_fac * MIN(2.22f,flev) ;  /* 20 Sep 2013 */
 
      /* compute width of rectangles at this level */
