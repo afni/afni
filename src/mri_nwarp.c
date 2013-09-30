@@ -4507,8 +4507,9 @@ static int Hqonly   = 0 ;  /* 27 Jun 2013 */
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 
-static float Hcost = 666.666f ;
-static float Hpenn = 0.0f ;
+static float Hcost  = 666.666f ;
+static float Hpenn  = 0.0f ;
+static float Hcostt = 0.0f ;
 
 static int Hverb = 1 ;
 
@@ -5623,7 +5624,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    }
 
    if( Hpen_use ){
-     Hpenn = HPEN_penalty() ; cost += Hpenn ;  /* penalty is saved in Hpenn */
+     Hpenn = HPEN_penalty() ; Hcostt = cost ; cost += Hpenn ;  /* penalty is saved in Hpenn */
    } else {
      Hpenn = 0.0f ;
    }
@@ -6083,9 +6084,9 @@ ENTRY("IW3D_improve_warp") ;
 
    if( Hverb > 1 ){
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost:%g iter=%d : energy=%.3f:%.3f pen=%g",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost:%g iter=%d : energy=%.3f:%.3f pen=%g pure=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
+                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn , Hcostt ) ;
    } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
      fprintf(stderr,".") ;
    }
@@ -6286,6 +6287,8 @@ ENTRY("IW3D_warpomatic") ;
                       nice_time_string(NI_clock_time()) ) ;
      else if( Hverb == 1 )
        fprintf(stderr,"lev=%d patch=%dx%dx%d [clock=%s]",lev,xwid,ywid,zwid,nice_time_string(NI_clock_time()) ) ;
+
+     if( Hverb > 1 ) ININFO_message("   Hpen_fff = %g",Hpen_fff) ;
 
      Hdone = Hskipped = 0 ;
 
