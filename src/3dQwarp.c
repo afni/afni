@@ -1567,6 +1567,7 @@ STATUS("construct weight/mask volume") ;
    if( wbim == NULL ){
      wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
    } else {
+     float fac , *wt ; int ii ;
      if( zeropad ){
        MRI_IMAGE *qim ;
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
@@ -1575,6 +1576,11 @@ STATUS("construct weight/mask volume") ;
      }
      if( wbim->nx != nx || wbim->ny != ny || wbim->nz != nz )
        ERROR_exit("-weight image doesn't match -base image grid") ;
+     fac = (float)mri_max(wbim) ;
+     if( fac <= 0.0f ) ERROR_exit("-weight volume is not positive?!") ;
+     fac = 1.0f / fac ; wt = MRI_FLOAT_PTR(wbim) ;
+     for( ii=0 ; ii < wbim->nvox ; ii++ )
+       wt[ii] = ( wt[ii] <= 0.0f ) ? 0.0f : fac * wt[ii] ;
    }
 
    /* blur base here if so ordered */
