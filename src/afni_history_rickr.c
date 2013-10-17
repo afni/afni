@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Oct, 2013, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "avoid infinite loop on empty SYM: or SYM: rows",
+   NULL
+ } ,
+
  { 30,  Sep, 2013, RCR, "unix_tutorial", MINOR, TYPE_ENHANCE,
    "updates to installs/unix_commands/scripts/basic_*/bin/*",
-   "The updates are for the 2 Dec 2013 bootcamp."
+   "These are for the 2 Dec 2013 bootcamp."
  } ,
 
  { 26,  Sep, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
