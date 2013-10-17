@@ -10053,7 +10053,14 @@ ENTRY("read_glt_matrix") ;
          if( fpt == NULL ) fpt = strchr(buf,'|') ;
          if( fpt != NULL ) *fpt = '\0' ;
          fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
-         if( fvv == NULL || fvv->nvec < 1 ) continue ;
+         if( fvv == NULL || fvv->nvec < 1 ) {
+            /* skip any empty row, else fail      17 Oct 2013 [rickr] */ 
+            if( fpt ) WARNING_message("skipping empty SYM row at posn %d of %s",
+                                      (int)(fpt-fdup)+4, fname);
+            else ERROR_exit("failing on empty SYM");
+            buf = fpt+1;
+            continue ;
+         }
          far = (float **)realloc((void *)far , sizeof(float *)*(nr+fvv->nvec)) ;
          for( iv=0 ; iv < fvv->nvec ; iv++ ) far[nr++] = fvv->fvar[iv].ar ;
          free((void *)fvv->fvar) ; free((void *)fvv) ;
