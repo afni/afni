@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 20 , SEP , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+  { 18 , OCT , 2013 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "added -weight option" ,
+   NULL } ,
+
+ { 20 , SEP , 2013 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "Make the penalty factor get bigger with level." ,
    NULL } ,
 
