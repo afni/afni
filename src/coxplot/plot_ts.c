@@ -233,6 +233,49 @@ void plot_ts_clear_vbox(void)
    vbox = NULL ; nvbox = 0 ; return ;
 }
 
+/*-----------------------------------------------------------------------*/
+
+static int    nsepx = 0 ;
+static int   *lsepx = NULL ;
+static float **sepx = NULL ;
+
+static float sepx_bot , sepx_top ;
+
+void plot_ts_clear_sepx(void)
+{
+   if( lsepx != NULL ){ free(lsepx) ; lsepx = NULL ; }
+   if( nsepx > 0 && sepx != NULL ){
+     int kk ;
+     for( kk=0 ; kk < nsepx ; kk++ ) free(sepx[kk]) ;
+     free(sepx) ; sepx = NULL ;
+   }
+   nsepx = 0 ; return ;
+}
+
+void plot_ts_add_sepx( int lx , float *x )
+{
+   int kk ; float xbot,xtop ;
+
+   if( lx < 2 || x == NULL ) return ;
+   lsepx = (int *   )realloc( lsepx , sizeof(int)    *(nsepx+1) ) ;
+    sepx = (float **)realloc(  sepx , sizeof(float *)*(nsepx+1) ) ;
+    sepx[nsepx] = (float *)malloc( sizeof(float)*lx ) ;
+   lsepx[nsepx] = lx ;
+   xbot = xtop = x[0] ;
+   for( kk=0 ; kk < lx ; kk++ ){
+     sepx[nsepx][kk] = x[kk] ;
+     if( x[kk] < xbot ) xbot = x[kk] ;
+     if( x[kk] > xtop ) xtop = x[kk] ;
+   }
+   if( nsepx == 0 ){
+     sepx_bot = xbot ; sepx_top = xtop ;
+   } else {
+     if( xbot < sepx_bot ) sepx_bot = xbot ;
+     if( xtop > sepx_top ) sepx_top = xtop ;
+   }
+   nsepx++ ; return ;
+}
+
 /*-----------------------------------------------------------------------
   Plot some timeseries data into an in-memory plot structure, which
   must be displayed later in some fashion.
@@ -244,6 +287,8 @@ void plot_ts_clear_vbox(void)
 
   27 Jan 1999: all routines are modified to leave the plotpak_set()
                transform for the data at box #0 as the last setting
+
+  21 Oct 2013: if global variable nsepx > 0, then the x[] axis is ignored
 -------------------------------------------------------------------------*/
 
 MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
@@ -254,7 +299,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    float *xx , *yy=NULL ;
    float xbot,xtop , ybot,ytop , pbot,ptop , xobot,xotop,yobot,yotop ;
    char str[32] ;
-   int yall , ysep ;
+   int yall , ysep , ixtop ;
    float *ylo , *yhi , yll,yhh ;
    MEM_plotdata *mp ;
    float xb1,xb2,yb1,yb2 ; int iv ;
@@ -268,7 +313,10 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    /*-- make up an x-axis if none given --*/
 
-   if( x == NULL ){
+   if( nsepx > 0 ){
+     xbot = sepx_bot ;
+     xtop = sepx_top ;
+   } else if( x == NULL ){
       xx = (float *) malloc( sizeof(float) * nx ) ;
       for( ii=0 ; ii < nx ; ii++ ) xx[ii] = ii ;
       xbot = 0 ; xtop = nx-1 ;
@@ -480,9 +528,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          set_thick_memplot( thth ) ;
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
 
+         if( nsepx > 0 ){
+           int qq = jj ; if( qq >= nsepx ) qq = nsepx-1 ;
+           xx = sepx[qq] ; ixtop = lsepx[qq] ; if( ixtop > nx ) ixtop = nx ;
+         } else {
+           ixtop = nx ;
+         }
          if( !noline ){
            yy = y[jj] ;
-           for( ii=1 ; ii < nx ; ii++ ){
+           for( ii=1 ; ii < ixtop ; ii++ ){
               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
                   yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
                 plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
@@ -491,7 +545,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
          if( tsbox > 0.0f ){
            set_thick_memplot( thik ) ;
-           for( ii=0 ; ii < nx ; ii++ ){
+           for( ii=0 ; ii < ixtop ; ii++ ){
              if( noline != 2 ||
                  ( xx[ii] >= xbot && xx[ii] <= xtop &&
                    yy[ii] >= ybot && yy[ii] <= ytop   ) )
@@ -546,8 +600,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              set_color_memplot( vbox[iv].rr , vbox[iv].gg , vbox[iv].bb ) ;
              xb1 = vbox[iv].x1 ; xb2 = vbox[iv].x2 ;
              yb1 = ylo[jj]     ; yb2 = yhi[jj]     ;
-             zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2); 
-             plotfrect_memplot( xb1,yb1 , xb2,yb2 ) ;
+             zzphys_(&xb1,&yb1); zzphys_(&xb2,&yb2);
+             plotfrect_memplot( xb1,yb1 , xb2,yb2 );
            }
          }
 
@@ -577,9 +631,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          if( jj >= thik_n1 && jj <= thik_n2 ) thth = thik_12 ;
          set_thick_memplot( thth ) ;
 
+         if( nsepx > 0 ){
+           int qq = jj ; if( qq >= nsepx ) qq = nsepx-1 ;
+           xx = sepx[qq] ; ixtop = lsepx[qq] ; if( ixtop > nx ) ixtop = nx ;
+         } else {
+           ixtop = nx ;
+         }
          if( !noline ){
            yy = y[jj] ;
-           for( ii=1 ; ii < nx ; ii++ ){
+           for( ii=1 ; ii < ixtop ; ii++ ){
               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
                   yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
                 plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
@@ -588,7 +648,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          }
 
          if( tsbox > 0.0f ){
-           for( ii=0 ; ii < nx ; ii++ ){
+           for( ii=0 ; ii < ixtop ; ii++ ){
              if( noline != 2 ||
                  ( xx[ii] >= xbot    && xx[ii] <= xtop    &&
                    yy[ii] >= ylo[jj] && yy[ii] <= yhi[jj]    ) )
@@ -606,7 +666,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    plot_ts_clear_vbox() ;
 
-   if( xx != x ) free(xx) ;
+   if( nsepx == 0 && xx != x ) free(xx) ;
    free(ylo) ; free(yhi) ;
 
    mp = get_active_memplot() ;
