@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , OCT , 2013 , RWC , "1dplot" , MINOR , TYPE_NEW_OPT ,
+  { 21 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "And the -dashed option" ,
+   NULL } ,
+
+ { 21 , OCT , 2013 , RWC , "1dplot" , MINOR , TYPE_NEW_OPT ,
    "Add -xmulti option" ,
    "For graphing with different x-values for different y-value 1D files." } ,
 
