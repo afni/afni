@@ -296,21 +296,25 @@ extern void memplot_topshell_setsaver( char * ,
 
 #define TSP_SEPARATE_YBOX    1
 #define TSP_SEPARATE_YSCALE  2
+#define TSP_SEPARATE_XAXIS   4
 
 extern void plot_ts_xypush( int , int ) ;
 extern void plot_ts_dobox ( float ) ;
-extern void plot_ts_xfix( int,int , float,float ) ;  /* 22 Jul 2003 */
+extern void plot_ts_xfix( int,int , float,float ) ;                /* 22 Jul 2003 */
 extern void plot_ts_yfix( int,int , float,float ) ;
 
 extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 2012 */
 
-extern void plot_ts_setcolors( int, float *, float *, float * ) ; /* 23 Nov 2007 */
-extern void plot_ts_setTHIK( float thk ) ;                        /* 26 Nov 2007 */
-extern void plot_ts_setthik( float thk ) ;                        /* 02 May 2012 */
+extern void plot_ts_add_sepx( int lx , float *x ) ;                /* 21 Oct 2013 */
+extern void plot_ts_clear_sepx(void) ;
+
+extern void plot_ts_setcolors( int, float *, float *, float * ) ;  /* 23 Nov 2007 */
+extern void plot_ts_setTHIK( float thk ) ;                         /* 26 Nov 2007 */
+extern void plot_ts_setthik( float thk ) ;                         /* 02 May 2012 */
 #define plot_ts_setthick plot_ts_setthik /* for clumsy typists */
 #define plot_ts_sethik   plot_ts_setthik
 #define plot_ts_sethick  plot_ts_setthik
-extern void plot_ts_setthik_12( int n1, int n2, float thk ) ;     /* 04 Mar 2013 */
+extern void plot_ts_setthik_12( int n1, int n2, float thk ) ;      /* 04 Mar 2013 */
 
 extern void plot_ts_lab( Display *,
                          int,float *, int,float **,

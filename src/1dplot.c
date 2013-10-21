@@ -113,6 +113,23 @@ void usage_1dplot(int detail)
      "\n"
      " -xl10 X.1D = Use log10(X.1D) as the X axis.\n"
      "\n"
+     " -xmulti X1.1D X2.1D ...\n"
+     "              This new [Oct 2013] option allows you to plot different\n"
+     "              columns from the data with different values along the\n"
+     "              x-axis.  You can supply one or more 1D files after the\n"
+     "              '-xmulti' option.  The columns from these files are\n"
+     "              catenated, and then the first xmulti column is used as\n"
+     "              as x-axis values for the first data column plotted, the\n"
+     "              second xmulti column gives the x-axis values for the\n"
+     "              second data column plotted, and so on.\n"
+     "           ** The command line arguments after '-xmulti' are taken\n"
+     "              as 1D filenames to read, until an argument starts with\n"
+     "              a '-' character -- this would either be another option,\n"
+     "              or just a single '-' to separate the xmulti 1D files\n"
+     "              from the data files to be plotted.\n"
+     "           ** If you don't provide enough xmulti columns for all the\n"
+     "              data files, the last xmulti column will be re-used.\n"
+     "\n"
      " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
      "                [default = 1] SYNONYMS: '-dt' and '-del'\n"
      " -xzero zz  = Initial x coordinate is 'zz' [default = 0]\n"
@@ -625,6 +642,22 @@ int main( int argc , char *argv[] )
            ynar[nyar++] = argv[iarg++] ;
         }
         /* 23 Aug 2006: skip next arg if it is "-" */
+        if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
+        continue ;
+     }
+
+     if( strcmp(argv[iarg],"-xmulti") == 0 ){  /* 21 Oct 2013 */
+        MRI_IMAGE *qim ; float *qar ; int qq ;
+        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
+        while( ++iarg < argc && argv[iarg][0] != '-' ){
+          qim = mri_read_1D( argv[iarg] ) ;
+          if( qim == NULL || qim->nx < 2 )
+            ERROR_exit("can't read -xmulti file '%s'",argv[iarg]) ;
+          qar = MRI_FLOAT_PTR(qim) ;
+          for( qq=0 ; qq < qim->ny ; qq++ )
+            plot_ts_add_sepx( qim->nx , qar + qq*qim->nx ) ;
+          mri_free(qim) ;
+        }
         if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
         continue ;
      }
