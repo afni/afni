@@ -129,6 +129,10 @@ void usage_1dplot(int detail)
      "              from the data files to be plotted.\n"
      "           ** If you don't provide enough xmulti columns for all the\n"
      "              data files, the last xmulti column will be re-used.\n"
+     "           ** Useless but fun example:\n"
+     "               1deval -num 100 -expr '(i-i)+z+gran(0,6)' > X1.1D\n"
+     "               1deval -num 100 -expr '(i-i)+z+gran(0,6)' > X2.1D\n"
+     "               1dplot -one -box -xmulti X1.1D X2.1D - X2.1D X1.1D\n"
      "\n"
      " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
      "                [default = 1] SYNONYMS: '-dt' and '-del'\n"
@@ -646,7 +650,7 @@ int main( int argc , char *argv[] )
         continue ;
      }
 
-     if( strcmp(argv[iarg],"-xmulti") == 0 ){  /* 21 Oct 2013 */
+     if( strcmp(argv[iarg],"-xmulti") == 0 || strcmp(argv[iarg],"-multix") == 0 ){  /* 21 Oct 2013 */
         MRI_IMAGE *qim ; float *qar ; int qq ;
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         while( ++iarg < argc && argv[iarg][0] != '-' ){
