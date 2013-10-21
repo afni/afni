@@ -250,6 +250,13 @@ void usage_1dplot(int detail)
      "                   [An alternative to using '-DAFNI_1DPLOT_THIK=...']\n"
      " -THICK          = Twice the power of '-thick' at no extra cost!!\n"
      "\n"
+     " -dashed codes   = Plot dashed lines between data points.  The 'codes'\n"
+     "                   are a colon-separated list of dash values, which\n"
+     "                   can be 1 (solid), 2 (longer dashes), or 3 (shorter dashes).\n"
+     "                ** Example: '-dashed 1:2:3' means to plot the first time\n"
+     "                   series with solid lines, the second with long dashes,\n"
+     "                   and the third with short dashes.\n"
+     "\n"
      " -Dname=val      = Set environment variable 'name' to 'val'\n"
      "                   for this run of the program only:\n"
      " 1dplot -DAFNI_1DPLOT_THIK=0.01 -DAFNI_1DPLOT_COLOR_01=blue '1D:3 4 5 3 1 0'\n"
@@ -664,6 +671,21 @@ int main( int argc , char *argv[] )
         }
         if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
         continue ;
+     }
+
+     if( strcmp(argv[iarg],"-dashed") == 0 || strcmp(argv[iarg],"-dash") == 0 ){
+       int ddd[99] ; int ii , nd=0 ;
+       if( ++iarg < argc && isdigit(argv[iarg][0]) ){
+         char *cpt , *dpt=argv[iarg] ;
+         while(1){
+           ddd[nd] = (int)strtod(dpt,&cpt) ; nd++ ;
+           if( *cpt != '\0' ) dpt = cpt+1 ; else break ;
+         }
+         iarg++ ;
+       } else {
+         nd = 99 ; for( ii=0 ; ii < 99 ; ii++ ) ddd[ii] = 2 ;
+       }
+       plot_ts_setdash(nd,ddd) ; continue ;
      }
 
      if( strcmp(argv[iarg],"-volreg") == 0 ){
