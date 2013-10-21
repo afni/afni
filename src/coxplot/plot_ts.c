@@ -25,6 +25,9 @@ static float ccc[NCLR_MAX][3] = {
   { 0.7 , 0.6 , 0.0 } ,
 } ;
 
+static int use_ddd = 0 ;
+static int ddd[NCLR_MAX] = { 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 } ;
+
 static int NCLR = 6 ;
 static int dont_init_colors=0 ;
 
@@ -162,6 +165,18 @@ void plot_ts_setcolors( int ncol , float *rrr , float *ggg , float *bbb )
      }
      if( ncol > NCLR ) NCLR = ncol ;
    }
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void plot_ts_setdash( int ndash , int *code )
+{
+   int ii ;
+   if( ndash <= 0 || code == NULL ){ use_ddd = 0 ; return ; }
+   if( ndash > NCLR_MAX ) ndash = NCLR_MAX ;
+   for( ii=0 ; ii < ndash ; ii++ ) ddd[ii] = code[ii] ;
+   use_ddd = 1 ;
    return ;
 }
 
@@ -490,7 +505,9 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
            if( STGOOD(nam_yyy[jj]) ){
              set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
              set_thick_memplot( 1.234f*THIK ) ;
+             if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
              plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
+             if( use_ddd ) plotpak_setlin(1) ;
              set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
              sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
              set_thick_memplot( thik*sz/13.9f ) ;
@@ -536,11 +553,13 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          }
          if( !noline ){
            yy = y[jj] ;
+           if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
            for( ii=1 ; ii < ixtop ; ii++ ){
               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
                   yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
                 plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
            }
+           if( use_ddd ) plotpak_setlin(1) ;
          }
 
          if( tsbox > 0.0f ){
@@ -572,7 +591,9 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
                set_thick_memplot( 1.234f*THIK ) ;
                yv = 0.7*yhh + 0.3*yll ;
+               if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
                plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
+               if( use_ddd ) plotpak_setlin(1) ;
                set_thick_memplot( thik ) ;
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
                sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
@@ -639,12 +660,14 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          }
          if( !noline ){
            yy = y[jj] ;
+           if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
            for( ii=1 ; ii < ixtop ; ii++ ){
               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
                   yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
                 plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
            }
            set_thick_memplot( thik ) ;
+           if( use_ddd ) plotpak_setlin(1) ;
          }
 
          if( tsbox > 0.0f ){
