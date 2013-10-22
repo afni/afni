@@ -551,8 +551,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          } else {
            ixtop = nx ;
          }
+         yy = y[jj] ;
          if( !noline ){
-           yy = y[jj] ;
            if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
            for( ii=1 ; ii < ixtop ; ii++ ){
               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
@@ -658,8 +658,8 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          } else {
            ixtop = nx ;
          }
+         yy = y[jj] ;
          if( !noline ){
-           yy = y[jj] ;
            if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
            for( ii=1 ; ii < ixtop ; ii++ ){
               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
