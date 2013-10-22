@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 21 , OCT, 2013 , DRG , "whereami GUI" , 
+    MINOR , TYPE_NEW_ENV, 
+    "NeuroSynth.org link",
+    "Link out from whereami GUI in afni to neurosynth.org\n"
+    "with new environment variable AFNI_NEUROSYNTH (YES/NO).\n"
+    "Must also set AFNI_WEBBY_WAMI to YES."
+} ,
+
 { 14 , MAY, 2013 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "motion file renamed",
