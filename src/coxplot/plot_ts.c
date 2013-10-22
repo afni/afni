@@ -97,15 +97,32 @@ static void plot_one_dtriang( float xx , float yy )
    plotpak_phline( x+db , y+da    , x    , y-tsbox ) ;
 }
 
+static void plot_one_circle( float xx , float yy )
+{
+   static int first=1 ; static float cc[21] , ss[21] ;
+   float x , y ; int ii ;
+   if( first ){
+     for( ii=0 ; ii < 21 ; ii++ ){
+       cc[ii] = cosf(2.0f*3.141592f*ii/20.0f) ;
+       ss[ii] = sinf(2.0f*3.141592f*ii/20.0f) ;
+     }
+     first = 0 ;
+   }
+   plotpak_zzphys( xx , yy , &x , &y ) ;
+   for( ii=0 ; ii < 20 ; ii++ )
+     plotpak_phline( x+tsbox*cc[ii], y+tsbox*ss[ii], x+tsbox*cc[ii+1], y+tsbox*ss[ii+1] ) ;
+}
+
 static void plot_onebox( float xx , float yy , int kk )
 {
-   switch( kk%5 ){
+   switch( kk%6 ){
      default:
      case 0:  plot_one_diamond(xx,yy) ; break ;
-     case 1:  plot_one_hexagon(xx,yy) ; break ;
-     case 2:  plot_one_square (xx,yy) ; break ;
-     case 3:  plot_one_utriang(xx,yy) ; break ;
-     case 4:  plot_one_dtriang(xx,yy) ; break ;
+     case 1:  plot_one_circle (xx,yy) ; break ;
+     case 2:  plot_one_hexagon(xx,yy) ; break ;
+     case 3:  plot_one_square (xx,yy) ; break ;
+     case 4:  plot_one_utriang(xx,yy) ; break ;
+     case 5:  plot_one_dtriang(xx,yy) ; break ;
    }
 }
 
