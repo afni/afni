@@ -97,25 +97,44 @@ static void plot_one_dtriang( float xx , float yy )
    plotpak_phline( x+db , y+da    , x    , y-tsbox ) ;
 }
 
+#undef  CIRCNUM
+#define CIRCNUM 16
+static float circc[CIRCNUM+1] , circs[CIRCNUM+1] ;
+
+static void circ_setup(void)
+{
+   static int circdone=0 ; int ii ;
+   if( circdone ) return ;
+   for( ii=0 ; ii < CIRCNUM+1 ; ii++ ){
+     circc[ii] = cosf(2.0f*3.141592f*ii/(float)CIRCNUM) ;
+     circs[ii] = sinf(2.0f*3.141592f*ii/(float)CIRCNUM) ;
+   }
+   circdone = 1 ;
+}
+
 static void plot_one_circle( float xx , float yy )
 {
-   static int first=1 ; static float cc[21] , ss[21] ;
    float x , y ; int ii ;
-   if( first ){
-     for( ii=0 ; ii < 21 ; ii++ ){
-       cc[ii] = cosf(2.0f*3.141592f*ii/20.0f) ;
-       ss[ii] = sinf(2.0f*3.141592f*ii/20.0f) ;
-     }
-     first = 0 ;
-   }
+   circ_setup() ;
    plotpak_zzphys( xx , yy , &x , &y ) ;
-   for( ii=0 ; ii < 20 ; ii++ )
-     plotpak_phline( x+tsbox*cc[ii], y+tsbox*ss[ii], x+tsbox*cc[ii+1], y+tsbox*ss[ii+1] ) ;
+   for( ii=0 ; ii < CIRCNUM ; ii++ )
+     plotpak_phline( x+tsbox*circc[ii], y+tsbox*circs[ii], x+tsbox*circc[ii+1], y+tsbox*circs[ii+1] ) ;
+}
+
+static void plot_one_stellar( float xx , float yy )
+{
+   float x , y , dt=0.5f*tsbox ; int ii ;
+   circ_setup() ;
+   plotpak_zzphys( xx , yy , &x , &y ) ;
+   for( ii=0 ; ii < CIRCNUM ; ii+=2 ){
+     plotpak_phline( x+tsbox*circc[ii], y+tsbox*circs[ii], x+dt*circc[ii+1], y+dt*circs[ii+1] ) ;
+     plotpak_phline( x+dt*circc[ii+1], y+dt*circs[ii+1], x+tsbox*circc[ii+2], y+tsbox*circs[ii+2] ) ;
+   }
 }
 
 static void plot_onebox( float xx , float yy , int kk )
 {
-   switch( kk%6 ){
+   switch( kk%7 ){
      default:
      case 0:  plot_one_diamond(xx,yy) ; break ;
      case 1:  plot_one_circle (xx,yy) ; break ;
@@ -123,6 +142,7 @@ static void plot_onebox( float xx , float yy , int kk )
      case 3:  plot_one_square (xx,yy) ; break ;
      case 4:  plot_one_utriang(xx,yy) ; break ;
      case 5:  plot_one_dtriang(xx,yy) ; break ;
+     case 6:  plot_one_stellar(xx,yy) ; break ;
    }
 }
 
