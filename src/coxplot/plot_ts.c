@@ -596,13 +596,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
              set_thick_memplot( 1.234f*THIK ) ;
              if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
-             plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
+             plotpak_line( xotop+0.008 , yv , xotop+0.041 , yv ) ;
              if( use_ddd ) plotpak_setlin(1) ;
-             if( tsbox > 0.0f ){ set_thick_memplot(thik); plot_onebox(xotop+0.025,yv,jj ); }
+             if( tsbox > 0.0f ){
+               set_thick_memplot(thik); plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj );
+             }
              set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
              sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
              set_thick_memplot( thik*sz/13.9f ) ;
-             plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
+             plotpak_pwritf( xotop+0.049 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
              yv -= 0.05 ;
            }
          }
@@ -683,13 +685,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                set_thick_memplot( 1.234f*THIK ) ;
                yv = 0.7*yhh + 0.3*yll ;
                if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
-               plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
+               plotpak_line( xotop+0.008 , yv , xotop+0.041 , yv ) ;
                if( use_ddd ) plotpak_setlin(1) ;
-               if( tsbox > 0.0f ){ set_thick_memplot(thik); plot_onebox(xotop+0.025,yv,jj ); }
+               if( tsbox > 0.0f ){
+                 set_thick_memplot(thik); plot_onebox(xotop+0.008,yv,jj ); plot_onebox(xotop+0.041,yv,jj );
+               }
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
                sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
                set_thick_memplot( thik*sz/13.9f ) ;
-               plotpak_pwritf( xotop+0.048 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
+               plotpak_pwritf( xotop+0.049 , yv , nam_yyy[jj] , sz , 0 , -1 ) ;
             }
          }
       }
