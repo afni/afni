@@ -134,15 +134,15 @@ static void plot_one_stellar( float xx , float yy )
 
 static void plot_onebox( float xx , float yy , int kk )
 {
-   switch( kk%7 ){
+   switch( kk%7 ){  /* choose box shape depending on which curve is being plotted */
      default:
      case 0:  plot_one_diamond(xx,yy) ; break ;
      case 1:  plot_one_circle (xx,yy) ; break ;
-     case 2:  plot_one_hexagon(xx,yy) ; break ;
-     case 3:  plot_one_square (xx,yy) ; break ;
-     case 4:  plot_one_utriang(xx,yy) ; break ;
+     case 2:  plot_one_utriang(xx,yy) ; break ;
+     case 3:  plot_one_stellar(xx,yy) ; break ;
+     case 4:  plot_one_square (xx,yy) ; break ;
      case 5:  plot_one_dtriang(xx,yy) ; break ;
-     case 6:  plot_one_stellar(xx,yy) ; break ;
+     case 6:  plot_one_hexagon(xx,yy) ; break ;
    }
 }
 
