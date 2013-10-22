@@ -47,13 +47,46 @@ static float noline = 0 ;
 void plot_ts_dobox( float a ){ tsbox = a ; }
 void plot_ts_noline( int a ){ noline = a ; }
 
-static void plot_onebox( float xx , float yy ){
+static void plot_one_diamond( float xx , float yy )
+{
    float x , y ;
    plotpak_zzphys( xx , yy , &x , &y ) ;
    plotpak_phline( x+tsbox , y       , x       , y+tsbox ) ;
    plotpak_phline( x       , y+tsbox , x-tsbox , y       ) ;
    plotpak_phline( x-tsbox , y       , x       , y-tsbox ) ;
    plotpak_phline( x       , y-tsbox , x+tsbox , y       ) ;
+}
+
+static void plot_one_hexagon( float xx , float yy )
+{
+   float x , y , da=0.5f*tsbox , db=0.866f*tsbox ;
+   plotpak_zzphys( xx , yy , &x , &y ) ;
+   plotpak_phline( x    , y+tsbox    , x-db , y+tsbox-da ) ;
+   plotpak_phline( x-db , y+tsbox-da , x-db , y-tsbox+da ) ;
+   plotpak_phline( x-db , y-tsbox+da , x    , y-tsbox    ) ;
+   plotpak_phline( x    , y-tsbox    , x+db , y-tsbox+da ) ;
+   plotpak_phline( x+db , y-tsbox+da , x+db , y+tsbox-da ) ;
+   plotpak_phline( x+db , y+tsbox-da , x    , y+tsbox    ) ;
+}
+
+static void plot_one_square( float xx , float yy )
+{
+   float x , y ;
+   plotpak_zzphys( xx , yy , &x , &y ) ;
+   plotpak_phline( x-tsbox , y-tsbox , x+tsbox , y-tsbox ) ;
+   plotpak_phline( x+tsbox , y-tsbox , x+tsbox , y+tsbox ) ;
+   plotpak_phline( x+tsbox , y+tsbox , x-tsbox , y+tsbox ) ;
+   plotpak_phline( x-tsbox , y+tsbox , x-tsbox , y-tsbox ) ;
+}
+
+static void plot_onebox( float xx , float yy , int kk )
+{
+   switch( kk%3 ){
+     default:
+     case 0:  plot_one_diamond(xx,yy) ; break ;
+     case 1:  plot_one_hexagon(xx,yy) ; break ;
+     case 2:  plot_one_square (xx,yy) ; break ;
+   }
 }
 
 /*----------------------------------------------------------------------*/
@@ -568,7 +601,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              if( noline != 2 ||
                  ( xx[ii] >= xbot && xx[ii] <= xtop &&
                    yy[ii] >= ybot && yy[ii] <= ytop   ) )
-             plot_onebox( xx[ii] , yy[ii] ) ;
+             plot_onebox( xx[ii] , yy[ii] , jj ) ;
            }
            set_thick_memplot( THIK ) ;
          }
@@ -675,7 +708,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              if( noline != 2 ||
                  ( xx[ii] >= xbot    && xx[ii] <= xtop    &&
                    yy[ii] >= ylo[jj] && yy[ii] <= yhi[jj]    ) )
-               plot_onebox( xx[ii] , yy[ii] ) ;
+               plot_onebox( xx[ii] , yy[ii] , jj ) ;
            }
          }
 
