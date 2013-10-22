@@ -79,13 +79,33 @@ static void plot_one_square( float xx , float yy )
    plotpak_phline( x-tsbox , y+tsbox , x-tsbox , y-tsbox ) ;
 }
 
+static void plot_one_utriang( float xx , float yy )
+{
+   float x , y , da=0.5f*tsbox , db=0.866f*tsbox ;
+   plotpak_zzphys( xx , yy , &x , &y ) ;
+   plotpak_phline( x    , y+tsbox , x-db , y-da    ) ;
+   plotpak_phline( x-db , y-da    , x+db , y-da    ) ;
+   plotpak_phline( x+db , y-da    , x    , y+tsbox ) ;
+}
+
+static void plot_one_dtriang( float xx , float yy )
+{
+   float x , y , da=0.5f*tsbox , db=0.866f*tsbox ;
+   plotpak_zzphys( xx , yy , &x , &y ) ;
+   plotpak_phline( x    , y-tsbox , x-db , y+da    ) ;
+   plotpak_phline( x-db , y+da    , x+db , y+da    ) ;
+   plotpak_phline( x+db , y+da    , x    , y-tsbox ) ;
+}
+
 static void plot_onebox( float xx , float yy , int kk )
 {
-   switch( kk%3 ){
+   switch( kk%5 ){
      default:
      case 0:  plot_one_diamond(xx,yy) ; break ;
      case 1:  plot_one_hexagon(xx,yy) ; break ;
      case 2:  plot_one_square (xx,yy) ; break ;
+     case 3:  plot_one_utriang(xx,yy) ; break ;
+     case 4:  plot_one_dtriang(xx,yy) ; break ;
    }
 }
 
