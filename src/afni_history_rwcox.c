@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+  { 22 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_BUG_FIX ,
+   "Found that -noline didn't work right with 2 or more time series!" ,
+   NULL } ,
+
+ { 21 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "And the -dashed option" ,
    NULL } ,
 
