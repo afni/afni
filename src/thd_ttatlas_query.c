@@ -38,10 +38,12 @@ char *old_space_list[] = {"TLRC","MNI","MNI_ANAT"};
 static int wami_web_found = 0;
 static int wami_web_reqtype = 0;
 static char wami_url[MAX_URL];
+static int neurosynth_link = -1;
 
 /* global web browser is used here, not sure where else to put it...      */
 char *GLOBAL_browser = NULL ;   /* 30 Dec 2005, moved 22 Feb 2012 [rickr] */
  
+
 #define TINY_NUMBER 1E-10
 /* minimum probability (0.0-1.0) to consider with probabilistic atlases */
 static float wami_min_prob = -1.0;
@@ -1122,10 +1124,10 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               ATLAS_COORD ac, WAMI_SORT_MODES mode,
                               ATLAS_LIST *atlas_list)
 {
-   char *rbuf = NULL;
+   char *rbuf = NULL, *strptr=NULL;
    int max_spaces = 50;
    char  xlab[max_spaces][32], ylab[max_spaces][32] , zlab[max_spaces][32],
-         clab[max_spaces][32], lbuf[1024]  , tmps[1024], pf[10], 
+         clab[max_spaces][128], lbuf[1024]  , tmps[1024], pf[10], 
          x_fstr[10], y_fstr[10], z_fstr[10] ;
    THD_string_array *sar =NULL;
    ATLAS_COORD *acl=NULL;
@@ -1138,7 +1140,6 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    char histart[16],hiend[16], hmarkstart[16], hmarkend[16];
 
    ENTRY("genx_Atlas_Query_to_String") ;
-
    if (!wami) {
       ERROR_message("NULL wami");
       RETURN(rbuf);
@@ -1223,7 +1224,12 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 
       sprintf(ylab[i],"%s mm [%c]",y_fstr,(acl[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i],"%s mm [%c]",z_fstr,(acl[i].z<0.0)?'I':'S') ;
-      sprintf(clab[i],"{%s}", acl[i].space_name);
+      if((strcmp(acl[i].space_name,"MNI")==0) && show_neurosynth_link()) {
+          sprintf(clab[i],"{MNI} <a href=\"%s\">NeuroSynth</a>",
+           neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+      }          
+      else sprintf(clab[i],"{%s}", acl[i].space_name);
+
    }
    free(acl); acl = NULL;
 #if 0
@@ -1262,7 +1268,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
             ADDTO_SARR(sar,lbuf);
             for (ii=0; ii<3; ++ii) {
                SS('p');sprintf(tmps,"%s, %s, %s", xlab[ii], ylab[ii], zlab[ii]);
-               SS('q');sprintf(lbuf,"%-36s\t%-12s", tmps, clab[ii]);
+               SS('q');sprintf(lbuf,"%-36s\t%-64s", tmps, clab[ii]);
                ADDTO_SARR(sar,lbuf);
             }
          break;
@@ -1569,6 +1575,32 @@ int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces,
    RETURN(1);
 }
 
+/* show links out to neurosynth.org */
+int
+show_neurosynth_link()
+{
+  if(neurosynth_link >=0)
+     return(neurosynth_link);
+     
+  if (AFNI_yesenv("AFNI_NEUROSYNTH"))
+     neurosynth_link = 1;
+  else
+     neurosynth_link = 0;
+}
+
+/* format a coordinates link string the Neurosynth website */
+char *
+neurosynth_coords_link(float x, float y, float z)
+{
+   static char neurosynthpage[128];
+   int ix,iy,iz;
+   
+   ix = (int) x; iy = (int) y; iz = (int) z;
+   
+   sprintf(neurosynthpage, "http://neurosynth.org/locations/%d_%d_%d",ix,iy,iz);
+   return(neurosynthpage);
+}
+
 int find_coords_in_space(ATLAS_COORD *acl, int N_acl, char *space_name) 
 {
    int i;
@@ -1708,7 +1740,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       case TAB2_WAMI_ATLAS_SORT:
       case TAB2_WAMI_ZONE_SORT:
             SS('o');
-            sprintf(lbuf,"%-36s\t%-12s", "Focus point (LPI)", "Coord.Space");
+            sprintf(lbuf,"%-36s\t%-64s", "Focus point (LPI)", "Coord.Space");
             ADDTO_SARR(sar,lbuf);
             for (ii=0; ii<3; ++ii) {
                SS('p');sprintf(tmps,"%s,%s,%s", xlab[ii], ylab[ii], zlab[ii]);

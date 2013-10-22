@@ -486,7 +486,8 @@ size_t CURL_read_URL_http ( char *url, char **data);
 void set_wami_minprob(float val);
 float get_wami_minprob(void);
 float Get_PMap_Factor(void);
-
+int show_neurosynth_link();
+char * neurosynth_coords_link(float x, float y, float z);
 /* Transforms for going from one space to another */
 #if 0
 static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc was obtained by transforming N27 from MNI 
