@@ -598,6 +598,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
              if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
              plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
              if( use_ddd ) plotpak_setlin(1) ;
+             if( tsbox > 0.0f ){ set_thick_memplot(thik); plot_onebox(xotop+0.025,yv,jj ); }
              set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
              sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
              set_thick_memplot( thik*sz/13.9f ) ;
@@ -684,7 +685,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
                plotpak_line( xotop+0.008 , yv , xotop+0.042 , yv ) ;
                if( use_ddd ) plotpak_setlin(1) ;
-               set_thick_memplot( thik ) ;
+               if( tsbox > 0.0f ){ set_thick_memplot(thik); plot_onebox(xotop+0.025,yv,jj ); }
                set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
                sz = (strlen(nam_yyy[jj]) <= 10) ? 12 : 9 ;
                set_thick_memplot( thik*sz/13.9f ) ;
