@@ -307,6 +307,7 @@ extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 201
 
 extern void plot_ts_add_sepx( int lx , float *x ) ;                /* 21 Oct 2013 */
 extern void plot_ts_clear_sepx(void) ;
+extern void plot_ts_fetch_sepx( int *ns , int **ls , float ***sx ) ;
 extern void plot_ts_setdash( int ndash , int *code ) ;
 
 extern void plot_ts_setcolors( int, float *, float *, float * ) ;  /* 23 Nov 2007 */

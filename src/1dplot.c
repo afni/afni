@@ -214,6 +214,9 @@ void usage_1dplot(int detail)
      "                   time series in distinct ways inside 1dplot).\n"
      "                 * '-ytran' is applied BEFORE the various '-norm' options.\n"
      "\n"
+     " -xtran 'expr'    = Similar, but for the x-axis.\n"
+     "                  ** Applies to '-xmulti' , '-x' , or the default x-axis.\n"
+     "\n"
      " -xaxis b:t:n:m  = Set the x-axis to run from value 'b' to\n"
      "                   value 't', with 'n' major divisions and\n"
      "                   'm' minor tic marks per major division.\n"
@@ -446,6 +449,7 @@ int main( int argc , char *argv[] )
    int skip_x11=0 , imsave=0 ; char *imfile=NULL ;
    int do_norm=0 ;   /* 26 Mar 2008 */
    char *ytran=NULL; /* 16 Jun 2009 */
+   char *xtran=NULL; /* 23 Oct 2013 */
    char autotitle[512]={""}; /* 23 March 2009 */
    float tsbox=0.0f , boxsiz ; int noline=0 ;
 
@@ -566,6 +570,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-ytran") == 0 ){   /* 16 Jun 2009 */
        ytran = strdup(argv[++iarg]) ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-xtran") == 0 ){   /* 23 Oct 2013 */
+       xtran = strdup(argv[++iarg]) ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-nopush") == 0 ){  /* 12 Mar 2003 */
@@ -1272,6 +1280,14 @@ int main( int argc , char *argv[] )
       mri_free(inimx); inimx=NULL; far = NULL;
       if( xl10 )
         for( ii=0 ; ii < nx ; ii++ ) xar[ii] = log10(fabs(xar[ii])) ;
+   }
+
+   if( xtran != NULL ){
+     int ss , ns , *ls ; float **sx ;
+     ss = PARSER_1dtran( xtran , nx , xar[ii] ) ;
+     if( ss <= 0 ) ERROR_exit("Can't evaluate -xtran expression '%s'",xtran) ;
+     plot_ts_fetch_sepx( &ns , &ls , &sx ) ;
+     for( ss=0 ; ss < ns ; ss++ ) PARSER_1dtran( xtran , ls[ss] , sx[ss] ) ;
    }
 
    plot_ts_dobox(tsbox) ; plot_ts_noline(noline) ; /* 23 May 2011 */

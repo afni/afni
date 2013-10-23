@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_BUG_FIX ,
+  { 23 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "Add -xtran option (to complement -ytran)" ,
+   NULL } ,
+
+ { 22 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_BUG_FIX ,
    "Found that -noline didn't work right with 2 or more time series!" ,
    NULL } ,
 
