@@ -344,7 +344,14 @@ static int    nsepx = 0 ;
 static int   *lsepx = NULL ;
 static float **sepx = NULL ;
 
-static float sepx_bot , sepx_top ;
+static float sepx_bot=-1.0f , sepx_top=1.0f ;
+
+void plot_ts_fetch_sepx( int *ns , int **ls , float ***sx )
+{
+   if( ns != NULL ) *ns = nsepx ;
+   if( ls != NULL ) *ls = lsepx ;
+   if( sx != NULL ) *sx =  sepx ;
+}
 
 void plot_ts_clear_sepx(void)
 {
@@ -359,26 +366,35 @@ void plot_ts_clear_sepx(void)
 
 void plot_ts_add_sepx( int lx , float *x )
 {
-   int kk ; float xbot,xtop ;
+   int kk ;
 
    if( lx < 2 || x == NULL ) return ;
    lsepx = (int *   )realloc( lsepx , sizeof(int)    *(nsepx+1) ) ;
     sepx = (float **)realloc(  sepx , sizeof(float *)*(nsepx+1) ) ;
     sepx[nsepx] = (float *)malloc( sizeof(float)*lx ) ;
    lsepx[nsepx] = lx ;
-   xbot = xtop = x[0] ;
-   for( kk=0 ; kk < lx ; kk++ ){
-     sepx[nsepx][kk] = x[kk] ;
-     if( x[kk] < xbot ) xbot = x[kk] ;
-     if( x[kk] > xtop ) xtop = x[kk] ;
-   }
-   if( nsepx == 0 ){
-     sepx_bot = xbot ; sepx_top = xtop ;
-   } else {
-     if( xbot < sepx_bot ) sepx_bot = xbot ;
-     if( xtop > sepx_top ) sepx_top = xtop ;
-   }
+   for( kk=0 ; kk < lx ; kk++ ) sepx[nsepx][kk] = x[kk] ;
    nsepx++ ; return ;
+}
+
+static void plot_ts_sepx_getstats(void)
+{
+   int ss , ii ; float bb , tt ;
+
+   if( nsepx <= 0 || lsepx == NULL || sepx == NULL ) return ;
+
+   bb = tt = sepx[0][0] ;
+   for( ss=0 ; ss < nsepx ; ss++ ){
+     for( ii=0 ; ii < lsepx[ss] ; ii++ ){
+       if( sepx[ss][ii] < bb ) bb = sepx[ss][ii] ;
+       if( sepx[ss][ii] > tt ) tt = sepx[ss][ii] ;
+     }
+   }
+   if( bb < tt ){
+     sepx_bot = bb ; sepx_top = tt ;
+   } else {
+     sepx_bot = bb-1.0f ; sepx_top = bb+1.0f ;
+   }
 }
 
 /*-----------------------------------------------------------------------
@@ -419,6 +435,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    /*-- make up an x-axis if none given --*/
 
    if( nsepx > 0 ){
+     plot_ts_sepx_getstats() ;
      xbot = sepx_bot ;
      xtop = sepx_top ;
    } else if( x == NULL ){
