@@ -2094,6 +2094,18 @@ window was introduced -- this method uses 'anti-aliasing' to produce
 smoother lines and characters.  If you want the old coarser-looking
 rendering method, set this variable to YES.
 
+----------------------------
+Variable: AFNI_1DPLOT_RANBOX
+----------------------------
+When using '-noline' in 1dplot (to get a cloud of points without
+lines), and when there are multiple time series being plotted with
+option '-one', the normal state of affairs is that later time series
+boxes get plotted on top of earlier boxes.  If there are a lot of
+points, then the earlier boxes get completely obscured.  Setting
+this variable to YES means that the boxes will be plotted in a
+pseudo-random order, so that each color/shape of box has a chance
+to be seen in the cloud of data.
+
 ---------------------------------
 Variable: AFNI_SIEMENS_INTERLEAVE
 ---------------------------------
