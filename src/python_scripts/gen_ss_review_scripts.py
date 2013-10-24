@@ -86,6 +86,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       sum_ideal            sum_ideal.1D
       xmat_uncensored      X.nocensor.xmat.1D
       tsnr_dset            TSNR.ft+tlrc.HEAD
+      gcor_dset            out.gcor.1D
 
 ------------------------------------------
 
@@ -275,17 +276,23 @@ else
     echo "num TRs per run           : $trs"
 endif
 
-# count total (uncensored) TRs from X-matrix (as a check against sum of TRs)
+# count total TRs (uncensored and censored) from X-matrix
 if ( $?xmat_uncensored ) then
    set xmat = $xmat_uncensored
-else
-   set xmat = $xmat_regress
+   set rows_cols = ( `1d_tool.py -infile $xmat -show_rows_cols -verb 0` )
+   set num_trs = $rows_cols[1]
+   echo "TRs total (uncensored)    : $num_trs"
 endif
-set rows_cols = ( `1d_tool.py -infile $xmat -show_rows_cols -verb 0` )
-set num_trs = $rows_cols[1]
-echo "TRs total (uncensored)    : $num_trs"
-echo ""
 
+set rows_cols = ( `1d_tool.py -infile $xmat_regress -show_rows_cols -verb 0` )
+set num_trs = $rows_cols[1]
+echo "TRs total                 : $num_trs"
+
+set rows_cols = ( `1d_tool.py -infile $xmat_regress -show_rows_cols -verb 0` )
+@ dof_rem = $rows_cols[1] - $rows_cols[2]
+echo "degress of freedom used   : $rows_cols[2]"
+echo "degress of freedom left   : $dof_rem"
+echo ""
 """
 
 g_censor_results_str = """
@@ -345,6 +352,15 @@ if ( -f $tsnr_dset && -f $mask_dset ) then
     eval 'set tsnr_ave = `3dmaskave -quiet -mask $mask_dset $tsnr_dset`' \
          >& /dev/null
     echo "TSNR average              : $tsnr_ave"
+endif
+"""
+
+g_basic_gcor_str = """
+# ------------------------------------------------------------
+# get global correlation
+if ( -f $gcor_dset ) then
+    set gcor_val = `cat $gcor_dset`
+    echo "global correlation (GCOR) : $gcor_val"
 endif
 """
 
@@ -419,6 +435,7 @@ g_eg_uvar.enorm_dset      = 'motion_FT_enorm.1D'
 g_eg_uvar.censor_dset     = 'motion_FT_censor.1D'
 g_eg_uvar.motion_dset     = 'dfile_rall.1D'
 g_eg_uvar.outlier_dset    = 'outcount_rall.1D'
+g_eg_uvar.gcor_dset       = 'out.gcor.1D'
 g_eg_uvar.mot_limit       = 0.3
 g_eg_uvar.out_limit       = 0.1
 g_eg_uvar.xmat_regress    = 'X.xmat.1D'
@@ -441,6 +458,7 @@ g_uvar_dict = {
  'enorm_dset'       :'set motion_enorm file',
  'motion_dset'      :'set motion parameter file',
  'outlier_dset'     :'set outcount_rall file',
+ 'gcor_dset'        :'set gcor_dset file',
  'mot_limit'        :'set motion limit (maybe for censoring)',
  'out_limit'        :'set outlier limit (maybe for censoring)',
  'xmat_regress'     :'set X-matrix file used in regression',
@@ -522,6 +540,7 @@ g_history = """
    0.25 Aug 23, 2012: allow passing of -censor_dset
    0.26 Sep 06, 2012: print missing xmat message w/out debug as it is fatal
    0.27 Apr 29, 2013: set AFNI_NO_OBLIQUE_WARNING in scripts
+   0.28 Oct 24, 2013: output global correlation, and DoF info from review_basic
 """
 
 g_version = "gen_ss_review_scripts.py version 0.27, April 29, 2013"
@@ -787,6 +806,7 @@ class MyInterface:
       if self.guess_align_anat():  return 1
       if self.guess_mask_dset():   return 1
       if self.guess_tsnr_dset():   return 1
+      if self.guess_gcor_dset():   return 1
 
       if self.find_censor_file():  return 1
 
@@ -1407,6 +1427,31 @@ class MyInterface:
 
       return 0
 
+   def guess_gcor_dset(self):
+      """set uvars.gcor_dset"""
+
+      # check if already set
+      if self.uvars.is_not_empty('gcor_dset'):
+         if self.cvars.verb > 3:
+            print '-- already set: gcor_dset = %s' % self.uvars.gcor_dset
+
+      gstr = 'out.gcor.1D'
+
+      if os.path.isfile(gstr):
+         self.uvars.gcor_dset = gstr
+         return 0
+
+      # otherwise, try a glob pattern
+      gstr = '*[gG][cC][oO][rR]*.1D'
+      glist = glob.glob(gstr)
+      if len(glist) == 0:
+         print '** failed to find gcor dset, continuing...'
+         return 0 # failure is not terminal
+
+      self.uvars.gcor_dset = glist[0]
+
+      return 0
+
    def guess_volreg_dset(self):
       """set uvars.volreg_dset"""
 
@@ -1638,6 +1683,10 @@ class MyInterface:
       if self.uvars.is_not_empty('mask_dset') and \
          self.uvars.is_not_empty('tsnr_dset'):
          self.text_basic += g_basic_tsnr_str
+
+      if self.uvars.is_not_empty('gcor_dset'):
+         self.text_basic += g_basic_gcor_str
+
       self.text_basic += g_basic_finish_str
 
       return 0
@@ -1676,7 +1725,7 @@ class MyInterface:
       txt  = '# ' + '-'*70 + '\n' + \
              '# main variables regarding this single subject analysis\n'
 
-      format = 'set %-16s = %s\n'
+      form = 'set %-16s = %s\n'
       uvars  = self.uvars
       errs   = 0
       # some cases with matching var names
@@ -1684,7 +1733,7 @@ class MyInterface:
       for var in ['subj', 'rm_trs', 'num_stim', 'mot_limit', 'out_limit',
                   'final_view']:
          if uvars.valid(var):
-            txt += format % (var,self.uvars.val(var))
+            txt += form % (var,self.uvars.val(var))
          elif var in ['rm_trs']: # non-fatal
             print '** warning: basic script, missing variable %s' % var
          else:
@@ -1692,72 +1741,74 @@ class MyInterface:
             errs += 1
 
       if self.dsets.is_not_empty('censor_dset'):
-         txt += format % ('was_censored', '1')
+         txt += form % ('was_censored', '1')
       else:
-         txt += format % ('was_censored', '0')
+         txt += form % ('was_censored', '0')
 
       txt += '\n'
 
       var = 'tcat_dset'
       if self.uvars.is_not_empty(var):
-         txt += format % (var, self.uvars.val(var))
-      else: # non-fatal
-         print '** warning: basic script: missing variable %s' % var
+         txt += form % (var, self.uvars.val(var))
+
+      var = 'gcor_dset'
+      if self.uvars.is_not_empty(var):
+         txt += form % (var, self.uvars.val(var))
 
       var = 'enorm_dset'
       if uvars.is_not_empty(var):
-         txt += format % ('enorm_dset', uvars.val(var))
+         txt += form % ('enorm_dset', uvars.val(var))
       else:
          print '** basic script: missing variable %s' % var
          errs += 1
 
       var = 'motion_dset'
       if uvars.is_not_empty(var):
-         txt += format % ('motion_dset', uvars.val(var))
+         txt += form % ('motion_dset', uvars.val(var))
 
       var = 'outlier_dset'
       if uvars.is_not_empty(var):
-         txt += format % ('outlier_dset', uvars.val(var))
+         txt += form % ('outlier_dset', uvars.val(var))
       else:
          print '** basic script: missing variable %s' % var
          errs += 1
 
       var = 'xmat_regress'
       if uvars.is_not_empty(var):
-         txt += format % ('xmat_regress', uvars.val(var))
+         txt += form % ('xmat_regress', uvars.val(var))
       else:
          print '** basic script: missing variable %s' % var
          errs += 1
 
       var = 'stats_dset'
       if self.uvars.is_not_empty(var):
-         txt += format % (var, self.uvars.val(var))
+         txt += form % (var, self.uvars.val(var))
       else:
          print '** basic script: missing variable %s' % var
          errs += 1
 
       var = 'censor_dset'
       if self.uvars.is_not_empty(var):
-         txt += format % (var, self.uvars.val(var))
+         txt += form % (var, self.uvars.val(var))
 
       var = 'xmat_uncensored'
       if self.uvars.is_not_empty(var):
-         txt += format % (var, self.uvars.val(var))
+         txt += form % (var, self.uvars.val(var))
       # else: okay - not required
 
       var = 'final_anat'
       if self.uvars.is_not_empty(var):
-         txt += format % (var, self.uvars.val(var))
+         txt += form % (var, self.uvars.val(var))
       # else: okay - not required
 
       var = 'mask_dset'
       if self.uvars.is_not_empty(var):
-         txt += format % (var, self.uvars.val(var))
+         txt += form % (var, self.uvars.val(var))
       # not required
 
       var = 'tsnr_dset'
       if self.uvars.is_not_empty(var):
-         txt += format % (var, self.uvars.val(var))
+         txt += form % (var, self.uvars.val(var))
       # not required
 
       if errs > 0: return 1
