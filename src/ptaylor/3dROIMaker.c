@@ -566,9 +566,13 @@ int main(int argc, char *argv[]) {
 	ROI_LABELS_pre = calloc( Dim[3],sizeof(ROI_LABELS_pre));  
 	for(i=0 ; i<Dim[3] ; i++) 
 		ROI_LABELS_pre[i] = calloc(2*N_thr[i],sizeof(int));
+   // always make, for ease of code use later; if no refset given, it
+   // just stays as 0s.  By definition, if HAVEREF>0, then HAVEREF==Dim[3],
+   // so this definition works
+   RESCALES = (int *)calloc(Dim[3], sizeof(int)); 
 
-	if( (list1 == NULL) || (ROI_LABELS_pre == NULL)
-		 ) { 
+	if( (list1 == NULL) || (ROI_LABELS_pre == NULL) 
+		 || (RESCALES == NULL) ) { 
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(15);
 	}		
@@ -654,13 +658,12 @@ int main(int argc, char *argv[]) {
 		NROI_REF = (int *)calloc(HAVEREF, sizeof(int)); 
 		NROI_REF_b = (int *)calloc(HAVEREF, sizeof(int)); // for counting
 		INVROI_REF = (int *)calloc(HAVEREF, sizeof(int)); 
-		RESCALES = (int *)calloc(HAVEREF, sizeof(int)); 
       temp_ref = calloc( HAVEREF,sizeof(temp_ref));  // XYZ components
       for(i=0 ; i<HAVEREF ; i++) 
          temp_ref[i] = calloc( Nvox,sizeof(short int) ); 
 
 		if( (NROI_REF == NULL) || (NROI_REF == NULL) || (NROI_REF_b == NULL) 
-			 || (RESCALES == NULL) || (temp_ref == NULL) ) {
+			 || (temp_ref == NULL) ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(122);
 		}
@@ -705,7 +708,7 @@ int main(int argc, char *argv[]) {
 
       for( i=0 ; i<HAVEREF ; i++) {
          THD_subbrick_minmax(set_REFSCAL, i, 1,&dum1[0], &dum2[0]);
-         printf("\nREFSCAL[%d] %d\t%d",i,(int) dum1[0],(int) dum2[0]);
+         //printf("\nREFSCAL[%d] %d\t%d",i,(int) dum1[0],(int) dum2[0]);
       }
       
 		for( i=0 ; i<HAVEREF ; i++) 
@@ -1235,11 +1238,12 @@ int main(int argc, char *argv[]) {
 		free(NROI_REF_b);
 		free(INVROI_REF);
 		free(EXTRA_LAB);
-      free(RESCALES);
+      
       free(set_REFSCAL);
       DSET_delete(set_REFSCAL);
 	}
-	
+	free(RESCALES);
+
 	for( i=0 ; i<Dim[3] ; i++) {
 		for ( j = 0 ; j<NROI_GM[i]+1 ; j++ ) 
 			free(COUNT_GM[i][j]);
