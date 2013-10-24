@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Oct, 2013, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "output global correlation, and DoF info from review_basic",
+   NULL
+ } ,
+
  { 17,  Oct, 2013, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "avoid infinite loop on empty SYM: or SYM: rows",
    NULL
