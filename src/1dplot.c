@@ -95,6 +95,11 @@ void usage_1dplot(int detail)
      "               series columns.  At present, there is no way to\n"
      "               control which shape is used for what column\n"
      "               (unless you modify the source code, that is).\n"
+     "             * You can set environment variable AFNI_1DPLOT_RANBOX\n"
+     "               to YES to get the '-noline' boxes plotted in a\n"
+     "               pseudo-random order, so that one particular color\n"
+     "               doesn't dominate just because it is last in the\n"
+     "               plotting order.\n"
      "\n"
      "           ** The '-norm' options below can be useful for\n"
      "               plotting data with different value ranges on\n"
@@ -474,6 +479,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[ii],"-help") == 0 ){ skip_x11 = 1; break; }
    }
    if( argc == 1 ) skip_x11 = 1 ;  /* this is because Ziad is trouble */
+   /** set_opacity_memplot( 0.666f ) ; **/
 
    if( !skip_x11 ){
      for( ii=1 ; ii < argc ; ii++ ){
@@ -1308,6 +1314,8 @@ int main( int argc , char *argv[] )
    { MEM_plotdata *mp ;
      int ymask = (sep) ? TSP_SEPARATE_YBOX : 0 ;
      if (sepscl) ymask = ymask | TSP_SEPARATE_YSCALE;
+
+     /* mri_draw_opacity(0.666f) ; */
 
      mp = plot_ts_mem( nx,xar , nts,ymask,yar ,
                        xlabel , ylabel , title , yname ) ;

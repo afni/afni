@@ -145,6 +145,26 @@ static void plot_onebox( float xx , float yy , int kk )
      case 6:  plot_one_hexagon(xx,yy) ; break ;
    }
 }
+/*---------------------------------------------------------------------------*/
+
+static int ts_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
+{
+  while( m > 0 ){
+    if( n > m ){ int t=m; m=n; n=t; } /* swap */
+    m -= n ;
+  }
+  return n ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static int ts_find_relprime( int n )  /* find number relatively prime to n */
+{
+   int dj , n5=n/5 ;
+   if( n5 < 2 ) return 1 ;
+   for( dj=n5 ; ts_gcd(n,dj) > 1 ; dj++ ) ; /*nada*/
+   return dj ;
+}
 
 /*----------------------------------------------------------------------*/
 static int xpush=1 , ypush=1 ;
@@ -572,6 +592,10 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
    create_memplot_surely( "tsplot" , 1.3 ) ;
    set_thick_memplot( thik ) ;  /* for labels */
+#if 0
+   thth = get_opacity_memplot() ;
+   if( thth != 1.0f ) set_opacity_memplot(thth) ;
+#endif
 
    /*-- plot labels, if any --*/
 
@@ -602,6 +626,20 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
    /*-- plot all on same vertical scale --*/
 
    if( yall ){
+#define ADDTO_SBOX(xv,yv,qq) do{ if( nsbox == asbox ){                                      \
+                                   asbox += 64 ;                                             \
+                                   xsbox = (float *)realloc(xsbox,sizeof(float)*asbox) ;      \
+                                   ysbox = (float *)realloc(ysbox,sizeof(float)*asbox) ;       \
+                                   jsbox = (int *  )realloc(jsbox,sizeof(float)*asbox) ;        \
+                                 }                                                               \
+                                 xsbox[nsbox] = (xv); ysbox[nsbox] = (yv); jsbox[nsbox++] = (qq); \
+                             } while(0)
+      int do_sbox=0, nsbox=0, asbox=0, *jsbox=NULL ; float *xsbox=NULL, *ysbox=NULL ;
+
+      if( noline && tsbox > 0.0f ){
+        char *eee = getenv("AFNI_1DPLOT_RANBOX") ;
+        if( eee != NULL && (*eee == 'Y' || *eee == 'y') ) do_sbox = 1 ;
+      }
 
       /* do name labels at right? */
 
@@ -673,16 +711,29 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          }
 
          if( tsbox > 0.0f ){
-           set_thick_memplot( thik ) ;
+           if( !do_sbox) set_thick_memplot( thik ) ;
            for( ii=0 ; ii < ixtop ; ii++ ){
              if( noline != 2 ||
                  ( xx[ii] >= xbot && xx[ii] <= xtop &&
                    yy[ii] >= ybot && yy[ii] <= ytop   ) )
-             plot_onebox( xx[ii] , yy[ii] , jj ) ;
+             if( do_sbox ) ADDTO_SBOX (xx[ii],yy[ii],jj) ;
+             else          plot_onebox(xx[ii],yy[ii],jj) ;
            }
            set_thick_memplot( THIK ) ;
          }
       }
+
+      if( do_sbox && nsbox > 0 ){  /* 24 Oct 2013 */
+        int qq , ss , ds ;
+        ds = ts_find_relprime(nsbox) ;
+        set_thick_memplot( thik ) ;
+        for( qq=0,ss=nsbox/7 ; qq < nsbox ; qq++,ss=(ss+ds)%nsbox ){
+          set_color_memplot( ccc[jsbox[ss]%NCLR][0] , ccc[jsbox[ss]%NCLR][1] , ccc[jsbox[ss]%NCLR][2] ) ;
+          plot_onebox(xsbox[ss],ysbox[ss],jsbox[ss]) ;
+        }
+        free(jsbox) ; free(ysbox) ; free(xsbox) ;
+      }
+
       set_thick_memplot( thik ) ;
       set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
 
