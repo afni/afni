@@ -66,8 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Octt , 2013 , PT , "3dROIMaker" , MINOR , TYPE_BUG_FIX,
+  "Fix segmentation error when not using -refset.",
+  "Fixed error in defining/freeing a certain array."
+},
 
-{ 26, Sep , 2013 , PT , "3dProbTrackID" , MINOR , TYPE_MODIFY,
+{ 26, Sept , 2013 , PT , "3dProbTrackID" , MINOR , TYPE_MODIFY,
   "Improving ease of NOT-mask ROI inclusion and (internal) track handling.",
   "Instead of separate ROI NOT-masks, uses can build in ANTI-ROIs with"
   "negative-valued (=-1) voxels."
@@ -76,19 +80,19 @@ afni_history_struct ptaylor_history[] = {
   "to track bundles, as well."
 },
 
-{ 26, Sep , 2013 , PT , "3dROIMaker" , MINOR , TYPE_MODIFY,
+{ 26, Sept , 2013 , PT , "3dROIMaker" , MINOR , TYPE_MODIFY,
   "Allow negative ROIs in refset.",
   "This is useful/necessary for handling new NOT-mask regionality in network"
   "files for tracking."
 },
 
-{ 26, Sep , 2013 , PT , "DoTrackit.c" , MINOR , TYPE_MODIFY,
+{ 26, Sept , 2013 , PT , "DoTrackit.c" , MINOR , TYPE_MODIFY,
   "Improving ease of NOT-mask ROI inclusion and (internal) track handling.",
   "This is useful/necessary for handling new NOT-mask regionality in network"
   "files for tracking; think it just streamlines various processing, as well."
 },
 
-{ 26, Sep , 2013 , PT , "TrackIO.c" , MINOR , TYPE_MODIFY,
+{ 26, Sept , 2013 , PT , "TrackIO.c" , MINOR , TYPE_MODIFY,
   "Improving ease of track handling.",
   "Updated TrackCreate function, which has simpler inputs from 3dProbTrackID"
   "now; outputs unchanged."
