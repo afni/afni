@@ -636,7 +636,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                              } while(0)
       int do_sbox=0, nsbox=0, asbox=0, *jsbox=NULL ; float *xsbox=NULL, *ysbox=NULL ;
 
-      if( noline && tsbox > 0.0f ){
+      if( noline && tsbox > 0.0f && ny > 1 ){
         char *eee = getenv("AFNI_1DPLOT_RANBOX") ;
         if( eee != NULL && (*eee == 'Y' || *eee == 'y') ) do_sbox = 1 ;
       }
@@ -725,11 +725,18 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
       if( do_sbox && nsbox > 0 ){  /* 24 Oct 2013 */
         int qq , ss , ds ;
-        ds = ts_find_relprime(nsbox) ;
         set_thick_memplot( thik ) ;
+        ds = (4*nsbox)/5 ;
+        for( qq=0 ; qq < ds ; qq++ ){
+          ss = lrand48() % nsbox ; jj = jsbox[ss] ; if( jj < 0 ) continue ;
+          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
+          plot_onebox(xsbox[ss],ysbox[ss],jj) ; jsbox[ss] = -1 ;
+        }
+        ds = ts_find_relprime(nsbox) ;
         for( qq=0,ss=nsbox/7 ; qq < nsbox ; qq++,ss=(ss+ds)%nsbox ){
-          set_color_memplot( ccc[jsbox[ss]%NCLR][0] , ccc[jsbox[ss]%NCLR][1] , ccc[jsbox[ss]%NCLR][2] ) ;
-          plot_onebox(xsbox[ss],ysbox[ss],jsbox[ss]) ;
+          jj = jsbox[ss] ; if( jj < 0 ) continue ;
+          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
+          plot_onebox(xsbox[ss],ysbox[ss],jj) ; jsbox[ss] = -1 ;
         }
         free(jsbox) ; free(ysbox) ; free(xsbox) ;
       }
