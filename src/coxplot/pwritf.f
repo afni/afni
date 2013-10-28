@@ -709,6 +709,8 @@ C     2 = end superscript
 C     3 = start subscript
 C     4 = end subscript
 C     5,6,7,8,9,10,11 = change color
+C     12 = smaller text  [28 Oct 2013]
+C     13 = larger text
 C
          IF( IOFF .LE. 0 )THEN
             IF( ISTR .EQ. 1 )THEN
@@ -732,6 +734,10 @@ C
                LSTR(NSTR) = 96+ISTR
                XSTR(NSTR) = XCUR
                YSTR(NSTR) = YCUR
+            ELSEIF( ISTR .EQ. 12 )THEN
+               SCALE = 0.8*SCALE
+            ELSEIF( ISTR .EQ. 13 )THEN
+               SCALE = 1.25 * SCALE
             ENDIF
 C.....................................................................
 C  Check if this is a newline character
@@ -777,7 +783,7 @@ C
       INTEGER       NCHIN , NCHOUT
 C.......................................................................
       INTEGER     NTABLE
-      PARAMETER ( NTABLE = 113 )
+      PARAMETER ( NTABLE = 115 )
       INTEGER      ICHEXT(NTABLE)
       CHARACTER*15 CHTEX(NTABLE) , CHCONT , CHESC,CHNESC
 C
@@ -825,7 +831,7 @@ C
      X '\\neq'      , '\\supset'    , '\\infty'         , '\\uparrow'  ,
      X '\\#','\\$','\\%','\\&','\\{','\\}','\\\\','\\cents'            ,
      X '\\black','\\red','\\blue','\\green','\\yellow','\\magenta'     ,
-     X '\\cyan' /
+     X '\\cyan' , '\\small' , '\\large' /
 C
 C  Corresponding extended character set bytes
 C
@@ -846,7 +852,8 @@ C
      X   16#a8 , 16#a9 ,16#aa , 16#ab ,16#ac , 16#ad ,16#ae , 16#af ,
      X   16#ba , 16#bb ,16#bc , 16#bd ,16#be , 16#bf ,16#ff , 16#60 ,
      X   16#23 , 16#24 , 16#25 , 16#26 , 16#7b , 16#7d , 16#5c , 16#5e ,
-     X   16#94 , 16#95 , 16#96 , 16#97 , 16#98 , 16#99 , 16#9a /
+     X   16#94 , 16#95 , 16#96 , 16#97 , 16#98 , 16#99 , 16#9a ,
+     X   16#9b , 16#9c /
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C  Test if a character is alphabetic
 C
