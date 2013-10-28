@@ -815,6 +815,8 @@ L200:
 /*     3 = start subscript */
 /*     4 = end subscript */
 /*     5,6,7,8,9,10,11 = change color */
+/*     12 = smaller text  [28 Oct 2013] */
+/*     13 = larger text */
 
 	if (ioff <= 0) {
 	    if (istr == 1) {
@@ -838,6 +840,10 @@ L200:
 		lstr[*nstr] = istr + 96;
 		xstr[*nstr] = xcur;
 		ystr[*nstr] = ycur;
+	    } else if (istr == 12) {
+		scale *= .8f;
+	    } else if (istr == 13) {
+		scale *= 1.25f;
 	    }
 /* ...............................................................
 ...... */
@@ -931,7 +937,7 @@ L200:
 
     static char chesc[15] = "\\esc           ";
     static char chnesc[15] = "\\noesc         ";
-    static char chtex[15*113] = "\\Plus          " "\\Cross         " "\\Dia"
+    static char chtex[15*115] = "\\Plus          " "\\Cross         " "\\Dia"
 	    "mond       " "\\Box           " "\\FDiamond      " "\\FBox      "
 	    "    " "\\FPlus         " "\\FCross        " "\\Burst         " 
 	    "\\Octagon       " "\\alpha         " "\\beta          " "\\gamm"
@@ -965,15 +971,15 @@ L200:
 	    "          " "\\}             " "\\\\             " "\\cents     "
 	    "    " "\\black         " "\\red           " "\\blue          " 
 	    "\\green         " "\\yellow        " "\\magenta       " "\\cyan"
-	    "          ";
-    static integer ichext[113] = { 176,177,178,179,180,181,182,183,184,185,
+	    "          " "\\small         " "\\large         ";
+    static integer ichext[115] = { 176,177,178,179,180,181,182,183,184,185,
 	    225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,
 	    241,242,243,244,245,246,247,248,193,194,195,196,197,198,199,200,
 	    201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,
 	    128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,
 	    160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,
 	    186,187,188,189,190,191,255,96,35,36,37,38,123,125,92,94,148,149,
-	    150,151,152,153,154 };
+	    150,151,152,153,154,155,156 };
 
     /* System generated locals */
     integer i__1;
@@ -1161,7 +1167,7 @@ t also */
 	nused = itop - inc + 1;
 	s_copy(chcont, chin + (inc - 1), 15L, itop - (inc - 1));
 
-	for (i__ = 1; i__ <= 113; ++i__) {
+	for (i__ = 1; i__ <= 115; ++i__) {
 	    if (s_cmp(chcont, chtex + (i__ - 1) * 15, 15L, 15L) == 0) {
 		goto L410;
 	    }
