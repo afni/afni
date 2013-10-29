@@ -134,6 +134,8 @@ void usage_ROIMaker(int detail)
 "                       It's also useful to ensure that the output *_GMI*\n"
 "                       ROI masks stay within the brain-- this probably won't\n"
 "                       often matter too much.\n"
+"                       For an N-brick inset, one can input an N- or 1-brick\n"
+"                       mask.\n"
 "\n"
 "  + EXAMPLE:\n"
 "      3dROIMaker -inset CORR_VALUES+orig. -thresh 0.6 -prefix ROI_MAP \\\n"
@@ -148,7 +150,7 @@ void usage_ROIMaker(int detail)
 
 
 int main(int argc, char *argv[]) {
-	int i,j,k,m,ii,jj,kk,mm,bb,n;
+	int i,j,k,m,ii,jj,kk,mm,bb,n,aaa;
 	int X,Y,Z;
 	int iarg=0;
 	THD_3dim_dataset *inset=NULL;
@@ -368,7 +370,7 @@ int main(int argc, char *argv[]) {
 		if( strcmp(argv[iarg],"-mask") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-mask'");
-			HAVE_MASK=1;
+			// HAVE_MASK=1;
 
 			sprintf(in_mask,"%s", argv[iarg]); 
 			MASK = THD_open_dataset(in_mask) ;
@@ -376,7 +378,8 @@ int main(int argc, char *argv[]) {
 				ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
 			DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+			HAVE_MASK = DSET_NVALS(MASK);
+
 			iarg++ ; continue ;
 		}
 
@@ -403,6 +406,26 @@ int main(int argc, char *argv[]) {
 			 voxel_order[2] != ORIENT_typestr[insetREF->daxes->zzorient][0] )
 			ERROR_exit("Refset orientation is not %s like the inset.",voxel_order);
 	}
+
+   if(HAVE_MASK) {
+		if((Dim[0] != DSET_NX(MASK)) || (Dim[1] != DSET_NY(MASK)) ||
+			(Dim[2] != DSET_NZ(MASK)) )
+			ERROR_exit("The xyz-dimensions of mask and inset don't match");
+		
+		if( Dim[3] == HAVE_MASK )
+			INFO_message("Each subrik of mask will be applied to corresponding inset brik.");
+      else if( HAVE_MASK == 1)
+         INFO_message("Will apply single mask to the multiple inset briks.");
+		else
+			ERROR_exit("The number of mask briks must be either one or match the number of  inset briks.  Here: here, mask=%d, inset=%d",HAVE_MASK,Dim[3]);
+
+		if( voxel_order[0] != ORIENT_typestr[MASK->daxes->xxorient][0] ||
+			 voxel_order[1] != ORIENT_typestr[MASK->daxes->yyorient][0] ||
+			 voxel_order[2] != ORIENT_typestr[MASK->daxes->zzorient][0] )
+			ERROR_exit("Mask orientation is not %s like the inset.",voxel_order);
+	}
+
+
 	
 	if(HAVESKEL) {
 		if((Dim[0] != DSET_NX(insetSKEL)) || (Dim[1] != DSET_NY(insetSKEL)) ||
@@ -524,13 +547,17 @@ int main(int argc, char *argv[]) {
 
 	// STEP 1: go through brik by brik to apply thresholding -> prod bin mask
 	for( m=0 ; m< Dim[3] ; m++ ) {
+      if( HAVE_MASK>1 ) // allow multiple mask briks
+         aaa = m;
+      else
+         aaa = 0;
 		idx = 0;
 		// should preserve relative ordering of data
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
 				for( i=0 ; i<Dim[0] ; i++ ) {
 					if( (HAVE_MASK==0) || 
-						 (HAVE_MASK && ( THD_get_voxel(MASK,idx,0)>0 ) ) )
+						 (HAVE_MASK && ( THD_get_voxel(MASK,idx,aaa)>0 ) ) )
 						if( THD_get_voxel(inset,idx,m) > THR  ) 
 							if( !TRIM_OFF_WM || (TRIM_OFF_WM && !SKEL[i][j][k]) )
 								if( !HAVE_CSFSKEL 
@@ -1094,9 +1121,13 @@ int main(int argc, char *argv[]) {
 													(0 <= j+jj) && (j+jj < Dim[1]) && 
 													(0 <= k+kk) && (k+kk < Dim[2])) {
 													idx = THREE_TO_IJK(i+ii,j+jj,k+kk,Dim[0],Dim[0]*Dim[1]);
+                                       if( HAVE_MASK>1 )
+                                          aaa = m;
+                                       else
+                                          aaa = 0;
 													if( (HAVE_MASK==0) || 
 														 (HAVE_MASK && 
-														  ( THD_get_voxel(MASK,idx,0)>0 ) ) ) {
+														  ( THD_get_voxel(MASK,idx,aaa)>0 ) ) ) {
 														
 														// grow if ngb=0; give temp value
 														// of -[value it will have]

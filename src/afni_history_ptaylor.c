@@ -66,6 +66,20 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+
+{ 28, Oct , 2013 , PT , "3dROIMaker" , MINOR , TYPE_MODIFY,
+  "Allow multiple-brick masks.",
+  "For N-brick data set, can input either 1- or N-brick mask."
+},
+
+{ 28, Oct , 2013 , PT , "3dMatch" , MINOR , TYPE_BUG_FIX,
+  "Fixed subbrick labelling oddity.",
+  "For some reason, subbrick selection with [i] was getting confused"
+  "with i-th label (which was an integer). Solved by prefixing label"
+  "designation with a short string of useful letters."
+},
+
 { 24, Oct , 2013 , PT , "3dROIMaker" , MINOR , TYPE_BUG_FIX,
   "Fix segmentation error when not using -refset.",
   "Fixed error in defining/freeing a certain array."

@@ -543,7 +543,7 @@ int main(int argc, char *argv[]) {
 		
 		EDIT_substitute_brick(outset, m, MRI_float, temp_arr[m]); 
 		temp_arr[m]=NULL; // to not get into trouble...
-		sprintf(bri_lab,"%d",MatchList[m]);
+		sprintf(bri_lab,"in_%d",MatchList[m]);
 		EDIT_BRICK_LABEL(outset,m,bri_lab); //original index val
 	}
 	//@@
@@ -608,7 +608,7 @@ int main(int argc, char *argv[]) {
 		
 		EDIT_substitute_brick(outset2, m, MRI_float, MatchCC[m]); 
 		MatchCC[m]=NULL; // to not get into trouble...
-		sprintf(bri_lab,"%d",MatchList2[m]);
+		sprintf(bri_lab,"ref_%d",MatchList2[m]);
 		EDIT_BRICK_LABEL(outset2,m,bri_lab); //original index val
 	} 
 	//@@
