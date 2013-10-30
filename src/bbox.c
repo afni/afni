@@ -4333,3 +4333,265 @@ printf("MCW_choose_CB: plotting selected timeseries\n") ;
 
    EXRETURN ;  /* unreachable */
 }
+
+/*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+
+#define MSTUF_tofree(ic) ( (ic) == MSTUF_INT || (ic) == MSTUF_STRLIST )
+
+static int     CS_nsav = 0 ;
+static void ** CS_sav  = NULL ;
+static int *   CS_scod = NULL ;
+
+static gen_func *CS_func      = NULL ;
+static XtPointer CS_func_data = NULL ;
+static Widget    CS_wpop      = NULL ;
+static Widget    CS_wpar      = NULL ;
+
+#define NUM_CSO_ACT 3
+static MCW_action_item CSO_act[] = {
+ { OVC_quit_label , MCW_stuff_CB, NULL, OVC_quit_help ,"Close window"                 ,0 },
+ { OVC_apply_label, MCW_stuff_CB, NULL, OVC_apply_help,"Apply choice and keep window" ,0 },
+ { OVC_done_label , MCW_stuff_CB, NULL, OVC_done_help ,"Apply choice and close window",1 },
+} ;
+
+/*----------------------------------------------------------------------------*/
+
+void MCW_stuff_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   char *wname = XtName(w) ;
+   XmAnyCallbackStruct *icbs = (XmAnyCallbackStruct *)call_data ;
+   XEvent *cbev = (icbs != NULL) ? icbs->event : NULL ;
+   void **outval ; int iss, done,call ;
+
+ENTRY("MCW_stuff_CB") ;
+
+   done = (strcmp(wname,OVC_apply_label) != 0) ;
+   call = (strcmp(wname,OVC_quit_label)  != 0) ;
+   if( done  ) RWC_XtPopdown(CS_wpop) ;
+   if( !call ) EXRETURN ;
+
+   outval = (void **)calloc(CS_nsav,sizeof(void *)) ;
+
+   for( iss=0 ; iss < CS_nsav ; iss++ ){
+     switch( CS_scod[iss] ){
+       case MSTUF_INT:{
+         MCW_arrowval *av = (MCW_arrowval *)CS_sav[iss] ;
+         outval[iss] = (void *)(intptr_t)(av->ival) ;
+       }
+       break ;
+
+       case MSTUF_STRING:{
+         Widget wtf = (Widget)CS_sav[iss] ;
+         outval[iss] = (void *)TEXT_GET(wtf) ;
+       }
+       break ;
+     }
+   }
+
+   AFNI_CALL_VOID_4ARG( CS_func ,
+                          Widget    , CS_wpar ,
+                          XtPointer , CS_func_data ,
+                          int       , CS_nsav ,
+                          void **   , outval ) ;
+
+   free(outval) ; EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Call this multi-item chooser like
+      MCW_choose_stuff( parent_widget , "Top Label" ,
+                        call_func     , call_func_data ,
+                          ITEM ,
+                          ITEM , ...
+                        MSTUF_END    ) ;
+   where ITEM is one of the following lists specifying something to choose:
+      MSTUF_INT    , label , bot , top , init
+      MSTUF_STRING , label
+
+   The call_func is called like so
+
+ void call_func( Widget wpar, XtPointer call_func_data, int nval, void **val );
+*//*--------------------------------------------------------------------------*/
+
+void MCW_choose_stuff( Widget wpar , char *mainlabel ,
+                       gen_func *func , XtPointer func_data , ... )
+{
+   Widget wrc ;
+   va_list vararg_ptr ;
+   Position xx,yy ;
+   int iss , scode ;
+
+ENTRY("MCW_choose_stuff") ;
+
+   /** destructor callback **/
+
+   if( wpar == NULL ){
+     if( CS_wpop != NULL ){
+       XtUnmapWidget( CS_wpop ) ;
+       XtRemoveCallback( CS_wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &CS_wpop ) ;
+       XtDestroyWidget( CS_wpop ) ;
+     }
+     CS_wpop = NULL ; CS_wpar = NULL ; EXRETURN ;
+   }
+
+   if( ! XtIsRealized(wpar) ){  /* illegal call */
+     fprintf(stderr,"\n*** illegal call to MCW_choose_integer: %s\n",XtName(wpar)) ;
+     EXRETURN ;
+   }
+
+   /*--- if popup widget already exists, destroy it ---*/
+
+   if( CS_wpop != NULL ){
+      XtRemoveCallback( CS_wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &CS_wpop ) ;
+      XtDestroyWidget( CS_wpop ) ;
+   }
+   if( CS_nsav > 0 ){
+     for( iss=0 ; iss < CS_nsav ; iss++ ){
+       if( MSTUF_tofree(CS_scod[iss]) ) myXtFree(CS_sav[iss]) ;
+     }
+     free(CS_sav) ; free(CS_scod) ;
+   }
+   CS_sav = NULL ; CS_scod = NULL ; CS_nsav = 0 ;
+
+   /*--- create popup widget ---*/
+
+   CS_wpop = XtVaCreatePopupShell(                           /* Popup Shell */
+               MENU , xmDialogShellWidgetClass , wpar ,
+                  XmNtraversalOn , True ,
+                  XmNinitialResourcesPersistent , False ,
+                  XmNkeyboardFocusPolicy , XmEXPLICIT ,
+               NULL ) ;
+
+   CS_wpar = wpar ; CS_func = func ; CS_func_data = func_data ;
+
+   if( MCW_isitmwm(CS_wpar) ){
+      XtVaSetValues( CS_wpop ,
+                        XmNmwmDecorations , MWM_DECOR_BORDER ,
+                        XmNmwmFunctions   ,  MWM_FUNC_MOVE ,
+                     NULL ) ;
+   }
+
+   XtAddCallback( CS_wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &CS_wpop ) ;
+
+   XmAddWMProtocolCallback(
+        CS_wpop ,
+        XmInternAtom( XtDisplay(CS_wpop) , "WM_DELETE_WINDOW" , False ) ,
+        MCW_kill_chooser_CB , CS_wpop ) ;
+
+   wrc  = XtVaCreateWidget(                 /* RowColumn to hold all */
+             MENU , xmRowColumnWidgetClass , CS_wpop ,
+                XmNpacking      , XmPACK_TIGHT ,
+                XmNorientation  , XmVERTICAL ,
+                XmNtraversalOn , True ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+   if( mainlabel != NULL && *mainlabel != '\0' ){
+     Widget wlab ;
+     wlab = XtVaCreateManagedWidget(
+               MENU , xmLabelWidgetClass , wrc ,
+                  LABEL_ARG(mainlabel) ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+     LABELIZE(wlab) ;
+     (void) XtVaCreateManagedWidget(
+              MENU , xmSeparatorWidgetClass , wrc ,
+                XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+   }
+
+   /* now loop over variable arguments to create selectors */
+
+   va_start( vararg_ptr , func_data ) ;
+
+   do{
+     scode = va_arg( vararg_ptr , int ) ;   /** get next arg **/
+     if( scode <= 0 ) break ;               /** no more args **/
+
+     switch( scode ){
+
+       default:  ERROR_message("Illegal code %d in MCW_choose_stuff()",scode) ;
+                 return ;
+
+       case MSTUF_INT:{      /* integer */
+         int bot, top, init ; char *lab ; MCW_arrowval *av ;
+         lab  = va_arg( vararg_ptr , char * ) ;
+         bot  = va_arg( vararg_ptr , int ) ;
+         top  = va_arg( vararg_ptr , int ) ;
+         init = va_arg( vararg_ptr , int ) ;
+         if( bot >= top ) top = bot+1 ;
+         if( init < bot ) init = bot ; else if( init > top ) init = top ;
+         av = new_MCW_arrowval( wrc ,
+                                lab , MCW_AV_downup ,  /* selection */
+                                bot,top,init ,
+                                MCW_AV_edittext , 0 ,
+                                NULL , NULL , NULL , NULL ) ;
+         av->allow_wrap = 1 ;
+         CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
+         CS_sav[CS_nsav] = (void *)av ;
+         CS_scod = (int *)realloc( CS_scod , sizeof(int)*(CS_nsav+1) ) ;
+         CS_scod[CS_nsav] = scode ;
+         CS_nsav++ ;
+       }
+       break ;
+
+       case MSTUF_STRING:{   /* string */
+         char *lab ; Widget hrc, wlab, wtf ; int ncol=16 ;
+         hrc  = XtVaCreateWidget(                 /* RowColumn to hold all */
+                  MENU , xmRowColumnWidgetClass , wrc ,
+                    XmNpacking      , XmPACK_TIGHT ,
+                    XmNorientation  , XmHORIZONTAL ,
+                    XmNtraversalOn , True ,
+                    XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+         lab = va_arg( vararg_ptr , char * ) ;
+         wlab = XtVaCreateManagedWidget(
+                  MENU , xmLabelWidgetClass , hrc ,
+                    LABEL_ARG(lab) ,
+                    XmNinitialResourcesPersistent , False ,
+                  NULL ) ;
+         LABELIZE(wlab) ;
+         wtf = XtVaCreateManagedWidget(
+                 MENU , TEXT_CLASS , hrc ,
+                   XmNcolumns         , ncol ,
+                   XmNeditable        , True ,
+                   XmNmaxLength       , 31 ,
+                   XmNresizeWidth     , False ,
+                   XmNmarginHeight    , 1 ,
+                   XmNmarginWidth     , 1 ,
+                   XmNcursorPositionVisible , True ,
+                   XmNblinkRate , 0 ,
+                   XmNautoShowCursorPosition , True ,
+                   XmNinitialResourcesPersistent , False ,
+                   XmNtraversalOn , True ,
+                NULL ) ;
+         XtManageChild(hrc) ;
+         CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
+         CS_sav[CS_nsav] = (void *)wtf ;
+         CS_scod = (int *)realloc( CS_scod , sizeof(int)*(CS_nsav+1) ) ;
+         CS_scod[CS_nsav] = scode ;
+         CS_nsav++ ;
+       }
+       break ;
+
+       case MSTUF_STRLIST:{  /* string list */
+       }
+       break ;
+     }
+   }while(1) ;
+   va_end( vararg_ptr ) ;
+
+   for( iss=0 ; iss < NUM_CSO_ACT ; iss++ ) CSO_act[iss].data = NULL ;
+   (void) MCW_action_area( wrc , CSO_act , NUM_CSO_ACT ) ;
+
+   XtTranslateCoords( CS_wpar , 15,15 , &xx , &yy ) ;
+   XtVaSetValues( CS_wpop , XmNx , (int)xx , XmNy , (int)yy , NULL ) ;
+   XtManageChild( wrc ) ;
+   XtPopup( CS_wpop , XtGrabNone ) ; RWC_sleep(1);
+   RWC_visibilize_widget( CS_wpop ) ;
+   NORMAL_cursorize( CS_wpop ) ;
+
+   EXRETURN ;
+}

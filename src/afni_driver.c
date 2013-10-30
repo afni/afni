@@ -861,7 +861,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt == NULL ) cpt = strstr(cmd,"opacity:") ;
       if( cpt != NULL ){
         int opaval = -1 ;
-        sscanf( cpt+8 , "%d" , &opaval ) ;
+        sscanf( cpt+7 , "%d" , &opaval ) ;
         drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer)ITOP(opaval) ) ;
       }
 
@@ -2590,9 +2590,9 @@ ENTRY("AFNI_open_panel") ;
 
 static int AFNI_drive_save_1image( char *cmd , int mode , char *suf )
 {
-   int ic , dadd=2 , imm ;
+   int ic , dadd=2 , imm , blowup=1 ;
    Three_D_View *im3d ;
-   char junk[256] , fname[599] ;
+   char junk[256] , fname[599] , *cpt ;
    MCW_imseq   *isq=NULL ;
    MCW_grapher *gra=NULL ;
 
@@ -2629,6 +2629,15 @@ ENTRY("AFNI_drive_save_1image") ;
      }
    }
 
+   /* 30 Oct 2013: find blowup factor */
+
+   cpt = strstr(cmd,"blowup=") ;
+   if( cpt != NULL ){
+     blowup = (int)strtod(cpt+7,NULL) ;
+     if( blowup < 1 ) blowup = 1 ; else if( blowup > 8 ) blowup = 8 ;
+   }
+fprintf(stderr,"blowup set to %d\n",blowup) ;
+
    /* find graph or image window */
 
         if( HAS_axialimage   (cmd+dadd) ) isq = im3d->s123 ;
@@ -2651,7 +2660,9 @@ ENTRY("AFNI_drive_save_1image") ;
        case JPEG_MODE:     imm = isqDR_save_jpeg    ; break ;
        default:            imm = isqDR_save_filtered; break ;
      }
+     isq->saver_blowup = blowup ;
      drive_MCW_imseq( isq, imm, (XtPointer)fname ) ;
+     isq->saver_blowup = 1 ;
    } else if( gra != NULL ){
      if( mode == RAW_MODE || mode == RAWMONT_MODE ){
        ERROR_message("Can't save 'raw' image from a graph!") ;
@@ -2714,9 +2725,9 @@ static int AFNI_drive_save_filtered( char *cmd )
 
 static int AFNI_drive_save_allimages( char *cmd , int mode )
 {
-   int ic , dadd=2 ;
+   int ic , dadd=2 , blowup=1 ;
    Three_D_View *im3d ;
-   char junk[256] , fname[288] ;
+   char junk[256] , fname[288] , *cpt ;
    MCW_imseq   *isq=NULL ;
    MCW_grapher *gra=NULL ;
    int imode ;
@@ -2752,6 +2763,14 @@ ENTRY("AFNI_drive_save_allimages") ;
      ERROR_message("Saving All Images '%s': something is missing",cmd); RETURN(-1);
    }
 
+   /* 30 Oct 2013: find blowup factor */
+
+   cpt = strstr(cmd,"blowup=") ;
+   if( cpt != NULL ){
+     blowup = (int)strtod(cpt+8,NULL) ;
+     if( blowup < 1 ) blowup = 1 ; else if( blowup > 8 ) blowup = 8 ;
+   }
+
    /* find graph or image window */
 
         if( HAS_axialimage   (cmd+dadd) ) isq = im3d->s123 ;
@@ -2764,7 +2783,9 @@ ENTRY("AFNI_drive_save_allimages") ;
    XmUpdateDisplay( im3d->vwid->top_shell ) ;
 
    if( isq != NULL ){
+     isq->saver_blowup = blowup ;
      drive_MCW_imseq( isq, imode , (XtPointer)fname ) ;
+     isq->saver_blowup = 1 ;
    } else if( gra != NULL ){
      ERROR_message("Saving All Images '%s': graph windows not implemented",cmd);
      RETURN(-1) ;

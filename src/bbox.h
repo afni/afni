@@ -236,6 +236,13 @@ extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
 
 /*---------------------------------------------------------------------------------*/
 
+#define MSTUF_END     0
+#define MSTUF_NONE    0
+#define MSTUF_INT     1
+#define MSTUF_INTEGER 1
+#define MSTUF_STRING  2
+#define MSTUF_STRLIST 3
+
 #define POPDOWN_ovcolor_chooser    MCW_choose_ovcolor(NULL,NULL,0,NULL,NULL)
 #define POPDOWN_string_chooser     MCW_choose_string(NULL,NULL,NULL,NULL,NULL)
 #define POPDOWN_strlist_chooser    MCW_choose_strlist(NULL,NULL,0,0,NULL,NULL,NULL)
@@ -246,11 +253,17 @@ extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
 #define POPDOWN_editable_strlist_chooser \
                                    MCW_choose_editable_strlist(NULL,NULL,NULL,0,NULL,NULL)
 
+#define POPDOWN_stuff_chooser      MCW_choose_stuff(NULL,NULL,NULL,NULL,0)
+
 extern void MCW_list_mode_CB( MCW_arrowval * , XtPointer ) ;
 
 extern char * MCW_DC_ovcolor_text( MCW_arrowval * , MCW_DC * ) ;
 extern void   MCW_choose_ovcolor( Widget , MCW_DC * , int , gen_func * , XtPointer ) ;
 extern void   MCW_choose_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void MCW_choose_stuff( Widget wpar , char *mainlabel ,
+                              gen_func *func , XtPointer func_data , ... ) ;
+extern void MCW_stuff_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
 
 extern void   MCW_destroy_chooser_CB( Widget , XtPointer , XtPointer ) ;
 extern void   MCW_kill_chooser_CB   ( Widget , XtPointer , XtPointer ) ;

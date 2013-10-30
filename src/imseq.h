@@ -464,7 +464,7 @@ typedef struct MCW_imseq {
 
      /*--- temporary, I hope [Hah!] ---*/
 
-     int saver_from , saver_to ;
+     int saver_from , saver_to , saver_blowup ;
      char *saver_prefix ;
 
      /*--- the obligatory ---*/
