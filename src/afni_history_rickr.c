@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Oct, 2013, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
+   "added -keep_dirent_pre, to expand subject ID to directory entry prefix",
+   "Requested by  P Molfese."
+ } ,
+
  { 24,  Oct, 2013, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
    "output global correlation, and DoF info from review_basic",
    NULL
