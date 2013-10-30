@@ -1962,12 +1962,16 @@ def glob_form_matches_list(slist, ordered=1):
    return 1
    
 
-def list_minus_glob_form(slist, hpad=0, tpad=0):
+def list_minus_glob_form(slist, hpad=0, tpad=0, keep_dent_pre=0):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
 
         e.g. given ['subjA1.txt', 'subjB4.txt', 'subjA2.txt' ]
              return [ 'A1', 'B4', 'A2' ]
+
+      hpad NPAD         : number of characters to pad at prefix
+      tpad NPAD         : number of characters to pad at suffix
+      keep_dent_pre Y/N : (flag) keep entire prefix from directory entry
 
       If hpad > 0, then pad with that many characters back into the head
       element.  Similarly, tpad pads forward into the tail.
@@ -1976,8 +1980,18 @@ def list_minus_glob_form(slist, hpad=0, tpad=0):
              if hpad = 926 (or 4 :) and tpad = 1,
              return [ 'subjA1.', 'subjB4.', 'subjA2.' ]
 
+      If keep_dent_pre is set, then (if '/' is found) decrement hlen until 
+      that '/'.
+
+        e.g. given ['dir/subjA1.txt', 'dir/subjB4.txt', 'dir/subjA2.txt' ]
+                -> return = [ 'A1.', 'B4.', 'A2.' ]
+             with keep_dent_pre == 1:
+                -> return = [ 'subjA1.', 'subjB4.', 'subjA2.' ]
+
       Somewhat opposite glob_form_from_list().
    """
+
+   if len(slist) <= 1: return slist
 
    if hpad < 0 or tpad < 0:
       print '** list_minus_glob_form: hpad/tpad must be non-negative'
@@ -1993,6 +2007,15 @@ def list_minus_glob_form(slist, hpad=0, tpad=0):
    else:            hlen -= hpad
    if tpad >= tlen: tlen = 0
    else:            tlen -= tpad
+
+   # apply directory entry prefix, if requested
+   if keep_dent_pre:
+      s = slist[0]
+      posn = s.rfind('/', 0, hlen)
+      # if found, start at position to right of it
+      # otherwise, use entire prefix
+      if posn >= 0: hlen = posn + 1
+      else:         hlen = 0
 
    # and return the list of center strings
    if tlen == 0: return [ s[hlen:]      for s in slist ]
