@@ -329,6 +329,16 @@ SAVE_AGIF    [c].imagewindowname filename
   put a suffix like '.jpg' or '.mpg' on the filename -- it will be added.
   ++ Unlike 'SAVE_JPEG', these commands do not work with graph windows.
 
+  *** The above SAVE_xxx commands also take an optional string of ***
+  *** the form 'blowup=4', indicating that the image(s) should be ***
+  *** blown up by the given factor before being saved.  The legal ***
+  *** values of this factor are 1..8 (inclusive).  For example:   ***
+  ***   SAVE_JPEG axialimage FredAxial blowup=4                   ***
+  *** Exceptions to the use of 'blowup=':                         ***
+  ***   Image view montages are not blown up                      ***
+  ***   Graph windows are not blown up                            ***
+  ***   RAW images (cf. below) are not blown up                   ***
+
 SAVE_RAW [c.]imagewindowname filename
   Saves the raw data from the given image viewer to a file.  This data
   is the slice data extracted from the dataset, not further processed
