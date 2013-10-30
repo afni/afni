@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+  { 30 , OCT , 2013 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Add 'blowup' to image viewer saver" ,
+   "From interactive dialog AND from SAVE_xxx driver commands." } ,
+
+ { 23 , OCT , 2013 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "Add -xtran option (to complement -ytran)" ,
    NULL } ,
 

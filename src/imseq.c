@@ -3003,8 +3003,8 @@ MEM_plotdata * ISQ_plot_label( MCW_imseq *seq , char *lab )
 {
    MEM_plotdata *mp ; int ww ; float asp , dd ;
    static int   sz[5] = { 20    , 28    , 40    , 56    , 80     } ;
-   static float th[5] = { 0.002f, 0.003f, 0.004f, 0.005f, 0.006f } ;
-   char *eee ; float rr=1.0,gg=1.0,bb=0.7 , sb=0.003 ;
+   static float th[5] = { 0.002f, 0.004f, 0.005f, 0.006f, 0.009f } ;
+   char *eee ; float rr=1.0f,gg=1.0f,bb=0.7f , sb=0.003f ;
 
 ENTRY("ISQ_plot_label") ;
 
@@ -3662,6 +3662,14 @@ ENTRY("ISQ_but_cswap_CB") ;
    image saving options
 ---------------------------------------------------------------------*/
 
+#define USE_STUFF
+
+#ifndef USE_STUFF
+# define POPDOWN_first_one POPDOWN_string_chooser
+#else
+# define POPDOWN_first_one POPDOWN_stuff_chooser
+#endif
+
 void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    MCW_imseq *seq = (MCW_imseq *) cd ;
@@ -3763,14 +3771,18 @@ ENTRY("ISQ_saver_CB") ;
 
          /* 23 Mar 2002: zoom out, if ordered */
 
-         if( seq->zoom_fac >  1    &&
+         if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) &&
              seq->mont_nx  == 1    &&
              seq->mont_ny  == 1    &&
              tim           != NULL && tim->kind == MRI_rgb ){
 
+           int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
            MRI_IMAGE *qim ;
+
            if( dbg ) fprintf(stderr,"  zooming\n") ;
-           qim = mri_dup2D(seq->zoom_fac,tim) ;
+           if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           qim = mri_dup2D(zf,tim) ;
+           mri_dup2D_mode(7) ;
            mri_free(tim) ; tim = qim ;
          }
 
@@ -3784,11 +3796,12 @@ ENTRY("ISQ_saver_CB") ;
          /* 25 Mar 2002: perhaps cut up zoomed image
                          (after overlay is drawn on it, that is) */
 
-         if( seq->zoom_fac >  1               &&
-             seq->mont_nx  == 1               &&
-             seq->mont_ny  == 1               &&
-             tim           != NULL            &&
-             tim->kind     == MRI_rgb         &&
+         if( seq->zoom_fac      >  1          &&
+             seq->saver_blowup == 1           &&
+             seq->mont_nx      == 1           &&
+             seq->mont_ny      == 1           &&
+             tim               != NULL        &&
+             tim->kind         == MRI_rgb     &&
              AFNI_yesenv("AFNI_CROP_ZOOMSAVE")  ) {
 
             MRI_IMAGE *qim ;
@@ -3844,7 +3857,8 @@ ENTRY("ISQ_saver_CB") ;
                if( fp == NULL ){
                   fprintf(stderr,"** Can't open output filter: %s\a\n",filt) ;
                   if( errno != 0 ) perror("** Unix error message") ;
-                  POPDOWN_string_chooser ; mri_free(tim) ; EXRETURN ;
+                  POPDOWN_first_one ;
+                  mri_free(tim) ; EXRETURN ;
                }
 
                /* write a PPM file to the filter pipe */
@@ -3855,7 +3869,7 @@ ENTRY("ISQ_saver_CB") ;
                if( pc == -1 ){
                   perror("** Error in image output pipe") ;
                   fprintf(stderr,"** filter command was %s\n",filt) ;
-                  POPDOWN_string_chooser ; mri_free(tim) ; EXRETURN ;
+                  POPDOWN_first_one ; mri_free(tim) ; EXRETURN ;
                }
             }
 
@@ -3875,14 +3889,14 @@ ENTRY("ISQ_saver_CB") ;
             XBell( XtDisplay(w) , 100 ) ;  /* image creation failed! */
          }
          myXtFree( seq->saver_prefix ) ; seq->saver_prefix = NULL ;
-         POPDOWN_string_chooser ;
+         POPDOWN_first_one ;
          EXRETURN ;
       }
 
       /*-- Not doing Save:One, so    --*/
       /*-- move on to the From value --*/
 
-      POPDOWN_string_chooser ;
+      POPDOWN_first_one ;
 
       MCW_choose_integer( w , "Image from" ,
                           0 , seq->status->num_total-1 , 0 ,
@@ -4077,9 +4091,12 @@ ENTRY("ISQ_saver_CB") ;
 
          /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
 
-         if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+         if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+           int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
            if( dbg ) fprintf(stderr,"  zoom zoom zoom\n") ;
-           tim=mri_dup2D(seq->zoom_fac,flim) ;
+           if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           tim=mri_dup2D(zf,flim) ;
+           mri_dup2D_mode(7) ;
            mri_free(flim) ; flim = tim ;
          }
 
@@ -4107,9 +4124,10 @@ ENTRY("ISQ_saver_CB") ;
            }
          }
 
-         if( seq->zoom_fac > 1 &&                   /* crop zoomed image */
-             seq->mont_nx == 1 &&                   /* to displayed part? */
-             seq->mont_ny == 1 &&
+         if( seq->zoom_fac      > 1 &&    /* crop zoomed image */
+             seq->saver_blowup == 1 &&
+             seq->mont_nx      == 1 &&    /* to displayed part? */
+             seq->mont_ny      == 1 &&
              AFNI_yesenv("AFNI_CROP_ZOOMSAVE") ) {
 
            int xa,ya , iw=flim->nx/seq->zoom_fac , ih=flim->ny/seq->zoom_fac ;
@@ -4489,6 +4507,28 @@ ENTRY("ISQ_saver_CB") ;
 }
 
 /*----------------------------------------------------------------------*/
+
+#ifdef USE_STUFF
+static void ISQ_saver_CB2( Widget w , XtPointer cd , int nval , void **val )
+{
+   MCW_imseq *seq = (MCW_imseq *)cd ;
+   MCW_choose_cbs cbs ;
+
+ENTRY("ISQ_saver_CB2") ;
+
+   if( nval < 2 || val == NULL ) return ;
+   seq->saver_blowup = (int)(intptr_t)val[1] ;
+
+   cbs.reason = mcwCR_string ;  /* set structure for call to user */
+   cbs.event  = NULL ;
+   cbs.cval   = (char *)val[0] ;
+   ISQ_saver_CB( w , cd , &cbs ) ;
+
+   EXRETURN ;
+}
+#endif
+
+/*----------------------------------------------------------------------*/
 /*! Called from the 'Save' button; starts the save image dialog. */
 
 void ISQ_but_save_CB( Widget w , XtPointer client_data ,
@@ -4501,10 +4541,17 @@ ENTRY("ISQ_but_save_CB") ;
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
 
    seq->saver_prefix = NULL ;
-   seq->saver_from = seq->saver_to = -1 ;
+   seq->saver_from = seq->saver_to = -1 ; seq->saver_blowup = 1 ;
 
+#ifndef USE_STUFF
    MCW_choose_string( w , "Filename prefix:" , NULL ,
                       ISQ_saver_CB , (XtPointer) seq ) ;
+#else
+   MCW_choose_stuff( w , "Image Saver" , ISQ_saver_CB2 , (XtPointer)seq ,
+                       MSTUF_STRING , "Prefix"  ,
+                       MSTUF_INT    , "Blowup " , 1 , 8 , 1 ,
+                     MSTUF_END ) ;
+#endif
 
    ISQ_but_done_reset( seq ) ;
    EXRETURN ;
@@ -12033,6 +12080,7 @@ ENTRY("ISQ_snapsave") ;
      - if(hh < 0) ==> flip image vertically (e.g., from glReadPixels)
      - pix = pointer to 3*ww*hh bytes of RGB data
 ------------------------------------------------------------------------------*/
+
 MRI_IMAGE * ISQ_snap_to_mri_image( int ww , int hh , byte *pix  )
 {
    MRI_IMAGE *tim ;
@@ -12058,9 +12106,10 @@ MRI_IMAGE * ISQ_snap_to_mri_image( int ww , int hh , byte *pix  )
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Like ISQ_snap_to_mri_image, but pix is a pointer to RGBA data. 
+/*! Like ISQ_snap_to_mri_image, but pix is a pointer to RGBA data.
       Returned image is still MRI_rbg, so alphas are ignored.
 ------------------------------------------------------------------------------*/
+
 MRI_IMAGE * ISQ_snap4_to_mri_image( int ww , int hh , byte *pix  )
 {
    MRI_IMAGE *tim ;
@@ -12079,16 +12128,16 @@ MRI_IMAGE * ISQ_snap4_to_mri_image( int ww , int hh , byte *pix  )
      for (jj=(hh-1), nn3=0; jj>=0; --jj) {
      for (ii=0; ii < ww; ii++ ) {
          nn4 = (jj*ww+ii)*4;
-         qix[nn3++] = pix[nn4]; 
-         qix[nn3++] = pix[nn4+1]; 
-         qix[nn3++] = pix[nn4+2]; 
+         qix[nn3++] = pix[nn4];
+         qix[nn3++] = pix[nn4+1];
+         qix[nn3++] = pix[nn4+2];
      } }
    } else {                                                   /* simple copy */
      for (jj=0, nn3=0, nn4=0; jj < hh; jj++ ) {
      for (ii=0; ii < ww; ii++ ) {
-         qix[nn3++] = pix[nn4++]; 
-         qix[nn3++] = pix[nn4++]; 
-         qix[nn3++] = pix[nn4++]; ++nn4; 
+         qix[nn3++] = pix[nn4++];
+         qix[nn3++] = pix[nn4++];
+         qix[nn3++] = pix[nn4++]; ++nn4;
      }}
    }
 
@@ -12704,8 +12753,11 @@ ENTRY("ISQ_save_image") ;
 
    /** zoom? **/
 
-   if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
-     flim = mri_dup2D(seq->zoom_fac,tim) ;
+   if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+     int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
+     if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+     flim = mri_dup2D(zf,tim) ;
+     mri_dup2D_mode(7) ;
      if( flim != NULL ){ mri_free(tim); tim = flim; }
    }
 
@@ -12716,9 +12768,10 @@ ENTRY("ISQ_save_image") ;
 
    /** cut up zoomed image? **/
 
-   if( seq->zoom_fac >  1               &&
-       seq->mont_nx  == 1               &&
-       seq->mont_ny  == 1               &&
+   if( seq->zoom_fac      > 1           &&
+       seq->saver_blowup == 1           &&
+       seq->mont_nx      == 1           &&
+       seq->mont_ny      == 1           &&
        AFNI_yesenv("AFNI_CROP_ZOOMSAVE")  ) {
 
       int xa,ya , iw=tim->nx/seq->zoom_fac , ih=tim->ny/seq->zoom_fac ;
@@ -12975,7 +13028,6 @@ ENTRY("ISQ_save_anim") ;
      if( adup <= 0 ) adup = 1 ; else if( adup > 99 ) adup = 99 ;
    }
 
-
    /*---- loop thru, get images, save them ----*/
 
    if( doanim )
@@ -13043,8 +13095,11 @@ ENTRY("ISQ_save_anim") ;
 
       /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
 
-      if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
-        tim=mri_dup2D(seq->zoom_fac,flim) ;
+      if( (seq->zoom_fac > 1 || seq->saver_blowup > 1) && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+        int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
+        if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+        tim=mri_dup2D(zf,flim) ;
+        mri_dup2D_mode(7) ;
         mri_free(flim) ; flim = tim ;
       }
 
