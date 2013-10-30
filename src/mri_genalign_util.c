@@ -98,7 +98,7 @@ void GA_interp_NN( MRI_IMAGE *fim ,
 ENTRY("GA_interp_NN") ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 9999)
+#pragma omp parallel if(npp > 6666)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -132,7 +132,7 @@ ENTRY("GA_interp_linear") ;
 #endif
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 7777)
+#pragma omp parallel if(npp > 4444)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -211,7 +211,7 @@ void GA_interp_cubic( MRI_IMAGE *fim ,
 ENTRY("GA_interp_cubic") ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 5555)
+#pragma omp parallel if(npp > 2222)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -530,7 +530,7 @@ ENTRY("GA_interp_wsinc5s") ;
 
    /*----- loop over points -----*/
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 2222)
+#pragma omp parallel if(npp > 444)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -601,7 +601,7 @@ ENTRY("GA_interp_wsinc5p") ;
  }
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 2222)
+#pragma omp parallel if(npp > 444)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -861,6 +861,88 @@ ENTRY("GA_interp_wsinc5") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Square (tensor product) windowed sinc interpolation in 2D. */
+
+#undef  FAR2D
+#define FAR2D(i,j) far[(i)+(j)*nx]
+
+#undef  FARJ2D
+#define FARJ2D(j,k) (far+(j)*nx)
+
+void GA_interp_wsinc5_2D( MRI_IMAGE *fim ,
+                          int npp, float *ip, float *jp, float *vv )
+{
+ENTRY("GA_interp_wsinc5_2D") ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if(npp > 444)
+ {
+   int nx=fim->nx , ny=fim->ny , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , xx,yy ;
+   float fx,fy ;
+   float *far = MRI_FLOAT_PTR(fim) , *farj ;
+   int nx1=nx-1,ny1=ny-1, ix,jy ;
+
+   float xw,yw,rr , sum,wsum,wfac,wt ;
+   int   iq,jq , qq,jj ;
+   float xsin[2*IRAD_MAX] , ysin[2*IRAD_MAX] ;
+   float wtt [2*IRAD_MAX] , fj  [2*IRAD_MAX] ;
+   int   iqq[2*IRAD_MAX]  ;
+
+   /*----- loop over points -----*/
+
+#pragma omp for
+   for( pp=0 ; pp < npp ; pp++ ){
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+
+     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
+
+     if( ISTINY(fx) && ISTINY(fy) ){
+       CLIP(ix,nx1); CLIP(jy,ny1); vv[pp] = FAR2D(ix,jy); continue;
+     }
+
+     /*- x interpolations -*/
+
+     for( wsum=0.0f,qq=-IRAD1 ; qq <= IRAD ; qq++ ){  /* setup weights */
+       xw  = fabsf(fx-qq) ; wt = sinc(xw) ;
+       xw /= WRAD ; if( xw > WCUT ) wt *= ww(xw) ;
+       wtt[qq+IRAD1] = wt ; wsum += wt ;
+       iq = ix+qq ; CLIP(iq,nx1) ; iqq[qq+IRAD1] = iq ;
+     }
+     wfac = wsum ;
+
+     for( jj=-IRAD1 ; jj <= IRAD ; jj++ ){
+       jq = jy+jj ; CLIP(jq,ny1) ;
+       for( sum=0.0f,qq=-IRAD1 ; qq <= IRAD ; qq++ ){
+         iq = iqq[qq+IRAD1] ; sum += FAR2D(iq,jq) * wtt[qq+IRAD1] ;
+       }
+       fj[jj+IRAD1] = sum ;
+     }
+
+     /*- y interpolations -*/
+
+     for( wsum=0.0f,qq=-IRAD1 ; qq <= IRAD ; qq++ ){
+       yw  = fabsf(fy - qq) ; wt = sinc(yw) ;
+       yw /= WRAD ; if( yw > WCUT ) wt *= ww(yw) ;
+       wtt[qq+IRAD1] = wt ; wsum += wt ;
+     }
+     wfac *= wsum ;
+
+     for( sum=0.0f,jj=-IRAD1 ; jj <= IRAD ; jj++ ){
+       sum += wtt[jj+IRAD1]*fj[jj+IRAD1] ;
+     }
+     vv[pp] = sum / wfac ;
+   }
+
+ } /* end OpenMP */
+ AFNI_OMP_END ;
+
+   EXRETURN ;
+}
+
 /*===========================================================================*/
 /* define quintic interpolation polynomials (Lagrange) */
 
@@ -886,7 +968,7 @@ void GA_interp_quintic( MRI_IMAGE *fim ,
 ENTRY("GA_interp_quintic") ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if(npp > 3333)
+#pragma omp parallel if(npp > 1111)
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;

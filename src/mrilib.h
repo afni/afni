@@ -1913,6 +1913,8 @@ extern void GA_interp_varp1  ( MRI_IMAGE *fim , int npp,
                                float *ip, float *jp, float *kp, float *vv ) ;
 extern void GA_interp_wsinc5 ( MRI_IMAGE *fim , int npp,
                                float *ip, float *jp, float *kp, float *vv ) ;
+extern void GA_interp_wsinc5_2D( MRI_IMAGE *fim ,
+                                 int npp, float *ip, float *jp, float *vv ) ;
 extern int GA_gcd(int,int) ;
 extern int GA_find_relprime_fixed(int) ;
 extern MRI_IMAGE * GA_smooth( MRI_IMAGE *im, int meth, float rad ) ;
