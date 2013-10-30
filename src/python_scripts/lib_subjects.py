@@ -907,7 +907,7 @@ class SubjectList(object):
          if self.verb > 1:
             print '++ setting common dir, %s = %s' % (cname, cdir)
 
-   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0):
+   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=0):
       """use the varying part of the dataset names for subject IDs
 
          If hpad > 0 or tpad > 0, expand into the head or tail of the dsets.
@@ -927,14 +927,18 @@ class SubjectList(object):
          print '   trying directories...'
          dlist = [s.dset for s in self.subjects]
 
-      slist = UTIL.list_minus_glob_form(dlist, hpad, tpad)
+      slist = UTIL.list_minus_glob_form(dlist, hpad, tpad, keep_dent_pre=dpre)
 
       # in the case of diretories, check for success
-      for val in slist:
-         if '/' in val:
-            print '** failed to extract subject IDs from directory list'
-            print '   (directories do not vary at single level)'
-            return 1
+      # (maybe we can try to skip past them, that might be okay)
+      for index in range(len(slist)):
+         if '/' in slist[index]:
+            posn = slist[index].rfind('/')
+            slist[index] = slist[index][posn+1:]
+            if len(slist[index]) < 1:
+               print '** failed to extract subject IDs from directory list'
+               print '   (directories do not vary at single level)'
+               return 1
 
       if len(slist) != len(self.subjects):
          print '** failed to set SIDs from dset names\n'        \

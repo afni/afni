@@ -446,6 +446,43 @@ other options:
         See the example with '3dANOVA3 -type 4' as part of example D, above.
         See also -subs_betas.
 
+   -keep_dirent_pre             : keep directory entry prefix
+
+        Akin to -subj_prefix, this flag expands the subject prefix list to
+        include everything up to the beginning of the directory names (at
+        the level that varies across input datasets).
+
+        Example 1:
+           datasets:
+              subj.FP/betas+tlrc   subj.FR/betas+tlrc   subj.FT/betas+tlrc
+              subj.FV/betas+tlrc   subj.FW/betas+tlrc   subj.FX/betas+tlrc
+              subj.FY/betas+tlrc   subj.FZ/betas+tlrc
+
+           The default subject IDs would be:
+              P R T V W X Y Z
+
+           When using -keep_dirent_pre, subject IDs would be:
+              subj.FP subj.FR subj.FT subj.FV subj.FW subj.FX subj.FY subj.FZ
+
+           Note that these IDs come at the directory level, since the dataset
+           names do not vary.
+
+        Example 2:
+           datasets:
+              subj.FP/OLSQ.FP.betas+tlrc   subj.FR/OLSQ.FR.betas+tlrc
+              subj.FT/OLSQ.FT.betas+tlrc   subj.FV/OLSQ.FV.betas+tlrc
+              subj.FW/OLSQ.FW.betas+tlrc   subj.FX/OLSQ.FX.betas+tlrc
+              subj.FY/OLSQ.FY.betas+tlrc   subj.FZ/OLSQ.FZ.betas+tlrc
+
+           The default subject IDs would be:
+              P R T V W X Y Z
+
+           When using -keep_dirent_pre, subject IDs would be:
+              OLSQ.FP OLSQ.FR OLSQ.FT OLSQ.FV OLSQ.FW OLSQ.FX OLSQ.FY OLSQ.FZ
+
+           Note that these IDs come at the dataset level, since the dataset
+           names vary.
+
    -options OPT1 OPT2 ...       : list of options to pass along to result
 
         The given options will be passed directly to the resulting command.  If
@@ -501,11 +538,11 @@ R Reynolds    October 2010
 g_history = """
    gen_group_command.py history:
 
-   0.0  Sep 09, 2010    - initial version
-   0.1  Oct 25, 2010    - handle some 3dMEMA cases
-   0.2  Oct 26, 2010    - MEMA updates
-   0.3  Nov 08, 2010    - can generate 3dttest++ commands
-   0.4  Jun 15, 2011    - if constant dset names, extract SIDs from dir names
+   0.0  Sep 09, 2010 - initial version
+   0.1  Oct 25, 2010 - handle some 3dMEMA cases
+   0.2  Oct 26, 2010 - MEMA updates
+   0.3  Nov 08, 2010 - can generate 3dttest++ commands
+   0.4  Jun 15, 2011 - if constant dset names, extract SIDs from dir names
                           (done for R Momenan)
    0.5  Jun 27, 2011
         - added -dset_index0_list/-dset_index1_list options (for R Momenan)
@@ -514,12 +551,13 @@ g_history = """
    0.6  Jun 22, 2012
         - added commands 3dANOVA2 and 3dANOVA3
         - added -factors for 3dANOVA3 -type 4
-   0.7  Jun 25, 2012    - added help for -factors and 3dANOVA3 -type 4 examples
-   0.8  Sep 04, 2012    - fixed error message
-   0.9  Oct 03, 2012    - some options do not allow dashed parameters
+   0.7  Jun 25, 2012 - added help for -factors and 3dANOVA3 -type 4 examples
+   0.8  Sep 04, 2012 - fixed error message
+   0.9  Oct 03, 2012 - some options do not allow dashed parameters
+   0.10 Oct 30, 2013 - added -keep_dirent_pre
 """
 
-g_version = "gen_group_command.py version 0.9, October 3, 2012"
+g_version = "gen_group_command.py version 0.10, October 30, 2013"
 
 
 class CmdInterface:
@@ -545,6 +583,7 @@ class CmdInterface:
 
       self.subj_prefix     = ''         # prefix for each subject ID
       self.subj_suffix     = ''         # suffix for each subject ID
+      self.dent_pre        = 0          # flag: keep dir entry prefix
       self.verb            = verb
 
       # lists
@@ -568,6 +607,7 @@ class CmdInterface:
       print "label list       : %s" % self.lablist
       print "subject prefix   : %s" % self.subj_prefix
       print "subject suffix   : %s" % self.subj_suffix
+      print "dirent prefix    : %s" % self.dent_pre
       print "verb             : %s" % self.verb
 
       print "options          : %s" % self.options
@@ -611,6 +651,8 @@ class CmdInterface:
                       helpstr='restrict dsets to 1-based index list')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
+      self.valid_opts.add_opt('-keep_dirent_pre', 0, [], 
+                      helpstr='keep directory entry prefix')
       self.valid_opts.add_opt('-options', -1, [], 
                       helpstr='specify options to pass to the command')
       self.valid_opts.add_opt('-prefix', 1, [], 
@@ -713,6 +755,10 @@ class CmdInterface:
             val, err = uopts.get_type_list(int, '', opt=opt)
             if val == None or err: return 1
             self.factors = val
+            continue
+
+         if opt.name == '-keep_dirent_pre':
+            self.dent_pre = 1
             continue
 
          if opt.name == '-options':
@@ -844,7 +890,8 @@ class CmdInterface:
          slist = SUBJ.SubjectList(dset_l=dlist, verb=self.verb)
          if slist.status: return 1
          if slist.set_ids_from_dsets(prefix=self.subj_prefix,
-                                     suffix=self.subj_suffix):
+                                     suffix=self.subj_suffix,
+                                     dpre=self.dent_pre):
             print '** cannot set subject IDs from datasets'
             return 1
          self.slist.append(slist)
