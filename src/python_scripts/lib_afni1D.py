@@ -926,19 +926,37 @@ class Afni1D:
 
       return 0
 
-   def get_censored_trs(self):
+   def get_censored_trs(self, run_index=-1):
       """return a list of TRs that were censored
          (basically, return an inverted goodlist)
+
+         if run_index >= 0: restrict to that 0-based run
+            (apply runstart info after invert_int_list)
 
          return status (0=success) and the TR index list
       """
 
-      rv, ilist = self.get_uncensored_trs()
+      rv, ilist = self.get_uncensored_trs()  # no run_index
       if rv: return 1, []
 
-      return 0, UTIL.invert_int_list(ilist, top=self.nt-1)
+      rlist = UTIL.invert_int_list(ilist, top=self.nt-1)
 
-   def get_uncensored_trs(self):
+      # maybe we are done
+      if run_index < 0: return 0, rlist
+
+      if run_index >= self.nruns:
+         print '** cannot return (cen) TR list for (0-based) run %d, have %d' \
+               (run_index, self.nruns)
+         return 1, []
+
+      # restrict return values to [bot, top)
+      bot = self.runstart[run_index]
+      if run_index == self.nruns - 1: top = self.nrowfull
+      else:                           top = self.runstart[run_index+1]
+
+      return 0, [v for v in rlist if v >= bot and v < top]
+
+   def get_uncensored_trs(self, run_index=-1):
       """return a list of TRs that were used, i.e. we not censored
          (basically, return goodlist)
 
@@ -946,6 +964,10 @@ class Afni1D:
 
            1. X-matrix format
                 len(goodlist) > 0 and nrowfull >= len(goodlist)
+
+              if run_index >= 0, limit goodlist indices base on run_len[]
+              (run index is 0-based)
+
            2. binary format
                 nvec == 1 and UTIL.vals_are_0_1(mat[0])
 
@@ -957,7 +979,23 @@ class Afni1D:
          return 1, []
 
       # handle xmat case separately
-      if len(self.goodlist) > 0: return 0, self.goodlist
+      if len(self.goodlist) > 0:
+         # simple case, return all runs
+         if run_index < 0: return 0, self.goodlist
+
+         # otherwise, restrict
+         if run_index >= self.nruns:
+            print '** cannot return TR list for (0-based) run %d, have %d' \
+                  (run_index, self.nruns)
+            return 1, []
+
+         # return a partial goodlist
+         bot = UTIL.loc_sum(self.run_len[0:run_index])
+         if run_index < self.nruns-1:
+            top = bot + self.run_len[run_index]
+            return 0, self.goodlist[bot:top]
+         else:
+            return 0, self.goodlist[bot:]
 
       # otherwise, return indices from mat[0] as mask
       return 0, [i for i,v in enumerate(self.mat[0]) if v]

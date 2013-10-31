@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  Oct, 2013, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "restrict blur estimation to uncensored TRs",
+   NULL
+ } ,
+
+ { 31,  Oct, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_trs_run",
+   "This will be used by afni_proc.py to restrict TRs for blur estimation\n"
+   "to those that were not censored, per run."
+ } ,
+
  { 30,  Oct, 2013, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
    "added -keep_dirent_pre, to expand subject ID to directory entry prefix",
    "Requested by  P Molfese."
