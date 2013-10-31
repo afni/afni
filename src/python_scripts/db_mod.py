@@ -3887,17 +3887,15 @@ def blur_est_loop_str(proc, dname, mname, label, outfile):
           'touch %s\n\n' % (label, tmpfile)
 
     cmd = cmd +                                                 \
-        'set b0 = 0     # first index for current run\n'        \
-        'set b1 = -1    # will be last index for current run\n' \
-        'foreach reps ( $tr_counts )\n'                         \
-        '    @ b1 += $reps  # last index for current run\n'     \
-        '    3dFWHMx -detrend -mask %s \\\n'                    \
-        '        %s"[$b0..$b1]" >> %s\n'                        \
-        % (mask, inset, tmpfile)
-
-    cmd = cmd +                                                 \
-        '    @ b0 += $reps  # first index for next run\n'       \
-        'end\n\n'
+      '# restrict to uncensored TRs, per run\n'                 \
+      'foreach run ( $runs )\n'                                 \
+      '    set trs = `1d_tool.py -infile %s -show_trs_uncensored encoded \\\n'\
+      '                          -show_trs_run $run`\n'         \
+      '    if ( $trs == "" ) continue\n'                        \
+      '    3dFWHMx -detrend -mask %s \\\n'                      \
+      '        %s"[$trs]" >> %s\n'                              \
+      'end\n\n'                                                 \
+      % (proc.xmat, mask, inset, tmpfile)
 
     # how to get the blurs differs if there is only 1 run
     if proc.runs > 1: blur_str = "3dTstat -mean -prefix - %s\\\'" % tmpfile
