@@ -361,6 +361,11 @@ examples (very basic for now):
 
           1d_tool.py -infile X.xmat.1D -show_trs_uncensored encoded
 
+       Only those applied in run #2 (1-based).
+
+          1d_tool.py -infile X.xmat.1D -show_trs_uncensored encoded \\
+                     -show_trs_run 2
+
    21. Convert to rank order.
 
        a. show rank order of slice times from a 1D file
@@ -735,6 +740,10 @@ general options:
                                      space      : space delimited
                                      encoded    : succinct selector list
                                      verbose    : chatty
+        See example 20.
+
+   -show_trs_run RUN            : restrict -show_trs_[un]censored to the given
+                                  1-based run
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
                                   - consider the -reverse option
@@ -898,9 +907,10 @@ g_history = """
    1.16 May  8, 2013 - added options -rank, -rank_style
    1.17 May 14, 2013 - added -show_argmin/argmax
    1.18 Jun 10, 2013 - added -select_groups, -show_cormat, -volreg2allineate
+   1.19 Oct 31, 2013 - added -show_trs_run
 """
 
-g_version = "1d_tool.py version 1.18, June 10, 2013"
+g_version = "1d_tool.py version 1.19, Oct 31, 2013"
 
 
 class A1DInterface:
@@ -967,6 +977,7 @@ class A1DInterface:
       self.show_trs_censored = ''       # style variable can be in:
       self.show_trs_uncensored = ''     # style variable can be in:
                                # {'', 'comma', 'space', 'encoded', 'verbose'}
+      self.show_trs_run    = -1         # restrict 'show_trs' to (0-based) run
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
       self.transpose_w     = 0          # transpose the output matrix
@@ -1232,6 +1243,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-show_trs_uncensored', 1, [], 
                    acplist=['comma', 'space', 'encoded', 'describe', 'verbose'],
                    helpstr='display TRs applied from Xmat in given STYLE')
+
+      self.valid_opts.add_opt('-show_trs_run', 1, [], 
+                   helpstr='restrict -show_trs to given (1-based) run')
 
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
@@ -1624,6 +1638,11 @@ class A1DInterface:
             if err: return 1
             self.show_trs_uncensored = val
 
+         elif opt.name == '-show_trs_run':
+            val, err = uopts.get_type_opt(int, '', opt=opt)
+            if err: return 1
+            self.show_trs_run = val-1 # convert 1-based to 0-based
+
          elif opt.name == '-sort':
             self.sort = 1
 
@@ -1899,10 +1918,10 @@ class A1DInterface:
       else:        action = 'kept'
 
       if censored:
-         rv, tlist = self.adata.get_censored_trs()
+         rv, tlist = self.adata.get_censored_trs(self.show_trs_run)
          style = self.show_trs_censored
       else:
-         rv, tlist = self.adata.get_uncensored_trs()
+         rv, tlist = self.adata.get_uncensored_trs(self.show_trs_run)
          style = self.show_trs_uncensored
 
       # check bad style or failure
