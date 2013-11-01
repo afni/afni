@@ -20,6 +20,7 @@
 #             - added option -no_recur
 # 21 Dec 2012 : do rehash before apsearch
 #             - check download by looking for string in this file
+# 01 Nov 2013 : Darwin defaults to 10.7 package
 # ----------------------------------------------------------------------
 
 
@@ -194,7 +195,7 @@ if ( $package == "" ) then
          endif
       else if ( $sysname == Darwin ) then
          # default to no.omp.glib for now
-         set package = macosx_10.6_Intel_64.no.omp.glib
+         set package = macosx_10.7_Intel_64
       else
          @ errs ++
       endif
@@ -475,6 +476,14 @@ if ( $do_apsearch && $cur_afni == $abin ) then
    set cmd = "apsearch -update_all_afni_help"
    echo "++ running $cmd ..."
    $cmd
+endif
+
+# maybe they need to set the DYLD_F_L_P
+if ( $package == macosx_10.7_Intel_64 ) then
+   echo ""
+   echo "-- remember to set the DYLD_FALLBACK_LIBRARY_PATH, e.g."
+   echo "   setenv DYLD_FALLBACK_LIBRARY_PATH $abin"
+   echo ""
 endif
 
 # finally nuke any leftovers

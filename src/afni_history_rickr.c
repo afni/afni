@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1,  Nov, 2013, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "OS X now defaults to 10.7_Intel package",
+   NULL
+ } ,
+
+ { 1,  Nov, 2013, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "let all-1 input for extents mask vary per run (for diff # TRs)",
+   NULL
+ } ,
+
  { 31,  Oct, 2013, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "restrict blur estimation to uncensored TRs",
    NULL

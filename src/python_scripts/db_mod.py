@@ -1119,13 +1119,6 @@ def db_cmd_volreg(proc, block):
                 'endif\n\n'                                             \
                 % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
 
-        if do_extents:
-            all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
-            cmd = cmd + \
-                "# create an all-1 dataset to mask the extents of the warp\n" \
-                "3dcalc -a %s -expr 1 -prefix %s\n\n"                         \
-                % (proc.prev_prefix_form(1, view=1), all1_input.prefix)
-
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
     cmd = cmd + "foreach run ( $runs )\n"                                     \
@@ -1137,6 +1130,14 @@ def db_cmd_volreg(proc, block):
                 "%s"                                                          \
                 "             %s\n" %                                         \
                 (zpad, bstr, prefix, resam, other_opts, matstr, prev_prefix)
+
+    if do_extents:
+       all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
+       cmd = cmd + '\n' \
+          "    # create an all-1 dataset to mask the extents of the warp\n" \
+          "    3dcalc -overwrite -a %s -expr 1 \\\n"                        \
+          "           -prefix %s\n"                                         \
+          % (prev_prefix, all1_input.prefix)
 
     # if warping, multiply matrices and apply
     if doadwarp or dowarp or doe2a:
