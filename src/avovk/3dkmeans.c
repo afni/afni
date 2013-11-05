@@ -78,7 +78,21 @@ static void display_help(int detail)
           "                output files.\n"
           "                (default is derived from the input file name)\n");
   printf ("  -prefix PREFIX Allows you to specify a prefix for the output \n"
-          "                 volumes. Default is the same as jobname\n");
+          "                 volumes. Default is the same as jobname\n"
+          "                 There are two output volumes, one for the cluster\n"
+          "                 membership and one with distance measures.\n"
+          "                 The distance dataset, mostly for debugging puposes\n"
+          "                 is formatted as follows:\n"
+          "                 Sub-brick 0: Dc = 100*(1-Ci)+100*Di/(Dmax)\n"
+          "                 with Ci the cluster number for voxel i, Di the \n"
+          "                 distance of voxel i to the centroid of its \n"
+          "                 assigned cluster, Dmax is the maximum distance in\n"
+          "                 cluster Ci.\n"
+          "                 Sub-bricks 1..k: Dc0k contains the distance of a\n"
+          "                 voxel's data to the centroid of cluster k.\n"
+          "                 Sub-brick k+1: Dc_norm = (1.0-Di/Ei)*100.0, where \n"
+          "                 Ei is the smallest distance of voxel i to \n"
+          "                 the remaining clusters that is larger than Di.\n");
   printf ("  -g [0..8]     Specifies distance measure for clustering\n" );
   printf ("                Note: Weight is a vector as long as the signatures\n"
           "                and used when computing distances. However for the\n"
@@ -109,10 +123,13 @@ static void display_help(int detail)
           "\n"
           "       (default for -g is 1, 7 if input has one value per voxel)\n"
           "\n");
+#if 0
   printf ("  -k number     Specifies whether to run k-means clustering\n"
           "                instead of hierarchical clustering, and the number\n"
           "                of clusters k to use. \n"
           "                Default is kmeans with k = 3 clusters\n");
+#endif
+  printf ("  -k number     Specify number of clusters\n");  
   printf ("  -remap  METH  Reassign clusters numbers based on METH:\n"
           "                   NONE: No remapping (default)\n"
           "                   COUNT: based on cluster size ascending\n"
@@ -242,7 +259,7 @@ int main(int argc, char **argv)
     }
     if(     !strcmp(argument,"--verb") 
          || !strcmp(argument,"-verb") )
-    { oc.verb=1;
+    { oc.verb +=1;
       continue;
     }
     if(     !strcmp(argument,"--write_dists") 
