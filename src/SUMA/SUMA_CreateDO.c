@@ -12980,7 +12980,7 @@ int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO)
 {
    static char FuncName[]={"SUMA_AllowPrying"};
    SUMA_SurfaceObject *SO1, *SO2;
-   int N_RegSO, LoL;
+   int N_RegSO, LoL, ir=-1, il=-1, ii=-1;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -12991,16 +12991,32 @@ int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO)
    if (N_RegSO != 2) {
       SUMA_LH( "Not set up to pry other than 2 surfaces.\n"
                "Deal with this when the need arises.\n");
-      SUMA_RETURN(0);
-   }
-   /* Do Surfaces for left right pair? */
-   SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[0]].OP;
-   SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[1]].OP;  
-   if (  (SO1->Side != SUMA_LEFT && SO1->Side != SUMA_RIGHT) ||
-         (SO2->Side != SUMA_LEFT && SO2->Side != SUMA_RIGHT) ||
-         (SO1->Side == SO2->Side) ) {
-      SUMA_LH("Only work with left / right surface pairs")
-      SUMA_RETURN(0);     
+      /* MSB, as usual, makes the need arise! */
+      for (ii=0, il=-1, ir=-1; ii<N_RegSO && (il <0 || ir < 0); ++ii) {
+         SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[ii]].OP;
+         if (SO1->Side == SUMA_LEFT && il < 0) il = ii;
+         if (SO1->Side == SUMA_RIGHT && ir < 0) ir = ii;
+      }
+      if (il >= 0 && ir >= 0) {
+         SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[il]].OP;
+         SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[ir]].OP;
+         ii = RegSO[0];
+         RegSO[0] = RegSO[il]; RegSO[il] = ii;
+         ii = RegSO[1];
+         RegSO[1] = RegSO[ir]; RegSO[ir] = ii;
+      } else {
+         SUMA_RETURN(0);
+      }
+   } else {
+      /* Do Surfaces form left right pair? */
+      SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[0]].OP;
+      SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[RegSO[1]].OP;
+      if (  (SO1->Side != SUMA_LEFT && SO1->Side != SUMA_RIGHT) ||
+            (SO2->Side != SUMA_LEFT && SO2->Side != SUMA_RIGHT) ||
+            (SO1->Side == SO2->Side) ) {
+         SUMA_LH("Only work with left / right surface pairs")
+         SUMA_RETURN(0);     
+      }
    }
    
    LoL = SUMA_LeftShownOnLeft(sv, SO1, SO2, 1, 0);
