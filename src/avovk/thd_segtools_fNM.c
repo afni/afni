@@ -1422,8 +1422,8 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    if (oc.k > 0) {
       if (oc.verb) {
          ININFO_message("Going to cluster: k=%d, r=%d\n"
-                        "distmetric %c, jobname %s\n",
-                        oc.k, oc.r, oc.distmetric, oc.jobname);
+                        "distmetric %c, jobname %s, verb = %d\n",
+                        oc.k, oc.r, oc.distmetric, oc.jobname, oc.verb);
       }
       segtools_verb(oc.verb);
       segtools_writedists(oc.writedists);
