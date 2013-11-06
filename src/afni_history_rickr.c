@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5,  Nov, 2013, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
+   "watch out of 'afni -ver' crashing because of missing libraries",
+   "Trap check of $package, since it is included with $status.\n"
+   "Thanks to CC Yen for noting the error."
+ } ,
+
+ { 5,  Nov, 2013, RCR, "@FindAfniDsetPath", MICRO, TYPE_ENHANCE,
+   "check AFNI_ATLAS_PATH and $HOME/.afni/atlases for datasets",
+   NULL
+ } ,
+
  { 1,  Nov, 2013, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "OS X now defaults to 10.7_Intel package",
    NULL

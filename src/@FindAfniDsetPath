@@ -22,6 +22,14 @@ if ( $?AFNI_GLOBAL_SESSION ) then
     set dataset_path = (${dataset_path} `echo $AFNI_GLOBAL_SESSION | tr ':' ' '`)
 endif
 
+if ( $?AFNI_ATLAS_PATH ) then
+    set dataset_path = (${dataset_path} `echo $AFNI_ATLAS_PATH | tr ':' ' '`)
+endif
+
+if ( -d $HOME/.afni/atlases ) then
+    set dataset_path = (${dataset_path} $HOME/.afni/atlases)
+endif
+
 if ( $?AFNI_PLUGINPATH ) then
     set dataset_path = (${dataset_path} `echo $AFNI_PLUGINPATH | tr ':' ' '`)
 endif
