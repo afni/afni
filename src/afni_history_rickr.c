@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Nov, 2013, RCR, "3dTfitter", MICRO, TYPE_ENHANCE,
+   "added help example for PPI analysis",
+   NULL
+ } ,
+
  { 5,  Nov, 2013, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
    "watch out of 'afni -ver' crashing because of missing libraries",
    "Trap check of $package, since it is included with $status.\n"
