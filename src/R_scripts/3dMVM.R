@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.1, Oct 23, 2013
+Version 2.0.2, Nov 3, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.0.1, Oct 23, 2013
+Version 2.0.2, Nov 3, 2013
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1021,8 +1021,8 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt)
 
 # DFs for F-stat
 F_DF <- vector('list', nF)
-for(ii in 1:nFu) if(is.na(lop$mVar) & is.na(lop$wsVars))
-   F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[nF, 'Df']) else
+for(ii in 1:nFu) if(is.na(lop$mVar) & is.na(lop$wsVars)) # between-subjects variables only
+   F_DF[[ii]] <- c(uvfm[ii, 'Df'], uvfm[nF+1, 'Df']) else # having within-subject factor
    F_DF[[ii]] <- c(unname(uvfm$anova[ii,'num Df']), unname(uvfm$anova[ii,'den Df'])) # skip the intercept: ii+1
 
 if(nFsc > 0) for(ii in 1:nFsc) F_DF[[nFu+ii]] <- c(numDF[ii], denDF[ii])
