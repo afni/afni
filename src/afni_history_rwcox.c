@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , OCT , 2013 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+  { 15 , NOV , 2013 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+   "Add -stim_times_FSL option" ,
+   "Allows scripting from FSL-style timing files, as distributed by the\n"
+   "Human Connectome Project.  God Save the Queen." } ,
+
+ { 30 , OCT , 2013 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Add 'blowup' to image viewer saver" ,
    "From interactive dialog AND from SAVE_xxx driver commands." } ,
 
