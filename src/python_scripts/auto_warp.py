@@ -653,7 +653,7 @@ class RegWrap:
          com = shell_com(  \
                 "3dQwarp                                       "\
                 "         -prefix %s                           "\
-                "         -blur 0 3                            "\
+                "         -blur -3 -3 -workhard:0:1            "\
                 "         -useweight %s %s                     "\
                 % ( n.input(), b.input(), a.input()), \
                 ps.oexec)
