@@ -318,7 +318,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          if(lop$centerType2 == 2 | lop$centerType2 == 3) {  # different center 
             if(lop$centerType == 0) lop$covData <- rbind(apply(as.matrix(lop$covData[1:lop$nSubj[1],]), 2, scale, scale=F), 
                apply(as.matrix(lop$covData[(lop$nSubj[1]+1):(lop$nSubj[1]+lop$nSubj[2]),]), 2, scale, scale=F))
-            if(lop$centerType == 1) {
+            if(lop$centerType == 1) {  # user-specified center
                covList <- vector('list', lop$nGrp)               
                for(ii in 1:lop$nGrp) {
                   lop$centerVal <- vector(mode = "numeric", length = lop$nCov)
@@ -1349,14 +1349,14 @@ process.MEMA.opts <- function (lop, verb = 0) {
          } # if(lop$centerType2 == 0 | lop$centerType2 == 1)
         
          if(lop$centerType2 == 2 | lop$centerType2 == 3) {  # different center 
-            if(lop$centerType == 0) 
+            if(lop$centerType == 0) # mean centering
                lop$covData <- 
                         rbind(apply(as.matrix(lop$covData[1:lop$nSubj[1],]), 
                                     2, scale, scale=F),
                               apply(as.matrix(lop$covData[
                                  (lop$nSubj[1]+1):(lop$nSubj[1]+lop$nSubj[2]),]),
                                     2, scale, scale=F))
-            if(lop$centerType == 1) {
+            if(lop$centerType == 1) { # user-specified centers
                covList <- vector('list', lop$nGrp)               
                for(ii in 1:lop$nGrp) {
                   centerVal <- 
@@ -2229,7 +2229,8 @@ tTop <- 100   # upper bound for t-statistic
    
    # each subject has two number: one for lambda, and the other, deviation, 
    # for outlier identificaiton - need to do the same for type 4
-   
+  
+   if(is.null(lop$myDim)) lop$myDim <- c(1,1,1) 
    nBrick0 <- 4*lop$nGrp+(anyCov)*2*lop$nCov   
                         # no. sub-bricks in the main output
    nBrick <- 4*lop$nGrp+(anyCov)*2*lop$nCov+2*sum(lop$nSubj)*lop$resZout  
@@ -2291,6 +2292,12 @@ tTop <- 100   # upper bound for t-statistic
    } 
 
    if(lop$anaType==4) {
+      if(prod(lop$myDim)==1) outArr <- runRMA(comArr,
+         nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)),
+               p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData,
+               mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest,
+               nNonzero=nNonzero, nCov=lop$nCov, nBrick=nBrick,
+               anaType=lop$anaType, resZout=lop$resZout, tol=tolL) else {
       if(lop$nNodes==1) 
          for (ii in 1:lop$myDim[3]) {
             tmp_oarr <- apply(comArr[,,ii,], marg, runRMA, 
@@ -2323,7 +2330,14 @@ tTop <- 100   # upper bound for t-statistic
          }
          stopCluster(cl)
       }  # if(lop$nNodes>1)
-   } else {
+   }} else {
+      if(prod(lop$myDim)==1) outArr <- runRMA(comArr,
+         nGrp=lop$nGrp, n=sum(lop$nSubj),
+               p=dim(lop$xMat)[2], xMat=lop$xMat,
+               outData=outData, mema=rmaB, lapMod=lop$lapMod,
+               KHtest=lop$KHtest, nNonzero=nNonzero, nCov=lop$nCov,
+               nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout,
+               tol=tolL) else { 
       if(lop$nNodes==1) for (ii in 1:lop$myDim[3]) {
          tmp_oarr <- apply(comArr[,,ii,], marg, runRMA, 
                nGrp=lop$nGrp, n=sum(lop$nSubj), 
@@ -2358,7 +2372,7 @@ tTop <- 100   # upper bound for t-statistic
          stopCluster(cl)
       }  # if(lop$nNodes>1)
             
-   } # if(lop$anaType==4)
+   }} # if(lop$anaType==4)
 
    print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
    print("#++++++++++++++++++++++++++++++++++++++++++++")
