@@ -7658,7 +7658,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
    glLineWidth(origwidth);
    if (mask) SUMA_free(mask); mask=NULL;
-     
+   if (gl_dt) glEnable(GL_DEPTH_TEST);
    SUMA_RETURN (YUP);
    
 }
