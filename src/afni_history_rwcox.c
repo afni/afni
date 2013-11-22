@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , NOV , 2013 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+  { 22 , NOV , 2013 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "Modify dmUBLOCK to allow peak=1 to occur at duration X" ,
+   "By choosing Rmodel as 'dmUBLOCK(-X') -- per the request of Chen Gang." } ,
+
+ { 15 , NOV , 2013 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
    "Add -stim_times_FSL option" ,
    "Allows scripting from FSL-style timing files, as distributed by the\n"
    "Human Connectome Project.  God Save the Queen." } ,
