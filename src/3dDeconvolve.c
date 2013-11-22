@@ -1500,8 +1500,8 @@ void display_help_menu(int detail)
     " For some graphs of what dmBLOCK regressors look like, see             \n"
     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
     " and/or try the following command:                                     \n"
-    "    3dDeconvolve -nodata 350 1 -polort -1 -num_stimts 1 \\             \n"
-    "                 -stim_times_AM1 1 q.1D 'dmBLOCK'       \\             \n"
+    "    3dDeconvolve -nodata 350 1 -polort -1 -num_stimts 1 \\\n"
+    "                 -stim_times_AM1 1 q.1D 'dmBLOCK'       \\\n"
     "                 -x1D stdout: | 1dplot -stdin -thick -thick            \n"
     " where file q.1D contains the single line                              \n"
     "   10:1 40:2 70:3 100:4 130:5 160:6 190:7 220:8 250:9 280:30           \n"
@@ -1515,13 +1515,13 @@ void display_help_menu(int detail)
     "                    vary with the duration of the stimulus; getting    \n"
     "                    larger with larger durations; for durations longer \n"
     "                    than about 15s, the amplitude will become 1.       \n"
-    "                    This choice is equivalent to 'dmUBLOCK(0)', but    \n"
+    "               -->> This choice is equivalent to 'dmUBLOCK(0)', but    \n"
     "                    is NOT equivalent to 'dmBLOCK(0)' due to the       \n"
     "                    historical scaling issue alluded to above.         \n"
     "                                                                       \n"
     "   (b) 'dmUBLOCK(1)' = all response models will get amplitude 1,       \n"
     "                       no matter what the duration of the stimulus.    \n"
-    "                       This choice is equivalent to 'dmBLOCK(1)'.      \n"
+    "                  -->> This choice is equivalent to 'dmBLOCK(1)'.      \n"
     "                                                                       \n"
     " Some users have expressed the desire to allow the amplitude to        \n"
     " vary with duration, as in case (a), BUT to specify the duration       \n"
@@ -1534,9 +1534,27 @@ void display_help_menu(int detail)
     "                         amplitude 1, shorter durations get amplitudes \n"
     "                         smaller than 1, and longer durations get      \n"
     "                         amplitudes larger than 1.                     \n"
+    "                    -->> Please note that 'dmBLOCK(-X)' is NOT the     \n"
+    "                         same as this case (a1), and in fact it        \n"
+    "                         has no meaning.                               \n"
     "                                                                       \n"
     " I hope this clarifies things and makes your life simpler, happier,    \n"
     " and more carefree.  (If not, please blame Gang Chen, not me.)         \n"
+    "                                                                       \n"
+    " An example to clarify the difference between these cases:             \n"
+    "    3dDeconvolve -nodata 350 1 -polort -1 -num_stimts 3 \\\n"
+    "                 -stim_times_AM1 1 q.1D 'dmUBLOCK'      \\\n"
+    "                 -stim_times_AM1 2 q.1D 'dmUBLOCK(1)'   \\\n"
+    "                 -stim_times_AM1 3 q.1D 'dmUBLOCK(-4)'  \\\n"
+    "                 -x1D stdout: |                         \\\n"
+    "     1dplot -stdin -thick                               \\\n"
+    "            -ynames 'dmUBLOCK' 'dmUB(1)' 'dmUB(-4)'                    \n"
+    " where file q.1D contains the single line                              \n"
+    "   10:1 60:2 110:4 160:10 210:20 260:30                                \n"
+    " Note how the 'dmUBLOCK(-4)' curve (green) peaks at 1 for the 3rd      \n"
+    " stimulus, and peaks at larger values for the later (longer) blocks.   \n"
+    " Whereas the 'dmUBLOCK' curve (black) peaks at 1 at only the longest   \n"
+    " blocks, and the 'dmUBLOCK(1)' curve (red) peaks at 1 for ALL blocks.  \n"
     " ********************************************************************* \n"
     "                                                                       \n"
     "[-stim_times_FSL k tname Rmodel]                                       \n"
@@ -1546,7 +1564,7 @@ void display_help_menu(int detail)
     "   20 seconds, and is given amplitude 1'.  Since In this format,       \n"
     "   each stimulus can have a different duration and get a different     \n"
     "   response amplitude, the 'Rmodel' must be one of the 'dm'            \n"
-    "   duration-modulated options above ['dmBLOCK(1)' is probably the      \n"
+    "   duration-modulated options above ['dmUBLOCK(1)' is probably the     \n"
     "   most useful].  The amplitude modulation is taken to be like         \n"
     "   '-stim_times_AM1', where the given amplitude in the 'tname' file    \n"
     "   multiplies the basic response shape.                                \n"
@@ -2847,9 +2865,9 @@ void get_options
         nopt++ ;
         model = argv[nopt] ;
         if( do_FSL && strncmp(model,"dm",2) != 0 ){
-          WARNING_message("'%s %d' file '%s' -- model '%s' is not of 'dm' type -- replacing with 'dmBLOCK(1)'",
+          WARNING_message("'%s %d' file '%s' -- model '%s' is not of 'dm' type -- replacing with 'dmUBLOCK(1)'",
                           sopt , ival , argv[nopt-1] , model ) ;
-          model = "dmBLOCK(1)" ;
+          model = "dmUBLOCK(1)" ;
         }
         basis_stim[k] = basis_parser(model) ;
 
@@ -10476,18 +10494,27 @@ static float basis_block_hrf4( float tt , float TT )
   return (float)w ;
 }
 
-/*--------------------------------------------------------------------------*/
-
+/*----------------------------------------------------------------------------*/
+/* for BLOCK4, dmBLOCK4, and dmUBLOCK4:
+    t    = time of evaluation
+    T    = duration
+    peak =      if( peak >  0 ) ==> arrange so peak amplitude of curve is 'peak'
+           else if( peak == 0 ) ==> let amplitude come from duration, and
+                                      amplitude(duration=big) = 1
+           else if( peak <  0 ) ==> let amplitude come from duration, with
+                                      amplitude(duration=-peak) = 1
+*//*--------------------------------------------------------------------------*/
 
 static float basis_block4_NEW( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp , TT ;
 
-   w = basis_block_hrf4(t,T) ;
+   w = basis_block_hrf4(t,T) ; /* function value, but need to alter amplitude */
 
    if( w > 0.0f ){
-     if( peak != 0.0f ){ TT = T ; }
-     else              { TT = 99.9f ; peak = 1.0f ; }
+          if( peak >  0.0f ){ TT = T ; }
+     else if( peak == 0.0f ){ TT = 99.9f ; peak = 1.0f ; }
+     else                   { TT = -peak ; peak = 1.0f ; }
      tp = TPEAK4(TT) ; pp = basis_block_hrf4(tp,TT) ;
      if( pp > 0.0f ) w *= peak / pp ;
    }
@@ -10571,8 +10598,9 @@ static float basis_block5_NEW( float t, float T, float peak, float junk, void *q
    w = basis_block_hrf5(t,T) ;
 
    if( w > 0.0f ){
-     if( peak != 0.0f ){ TT = T ; }
-     else              { TT = 99.9f ; peak = 1.0f ; }
+          if( peak >  0.0f ){ TT = T ; }
+     else if( peak == 0.0f ){ TT = 99.9f ; peak = 1.0f ; }
+     else                   { TT = -peak ; peak = 1.0f ; }
      tp = TPEAK5(TT) ; pp = basis_block_hrf5(tp,TT) ;
      if( pp > 0.0f ) w *= peak / pp ;
    }
