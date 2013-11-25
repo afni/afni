@@ -2132,7 +2132,7 @@ long lanczos_step(SMat A, long first, long last, double *wptr[],
    double t, *mid, rnm = *rnmp, tol = *tolp, anorm;
    long i, j;
 
-    if( SVDVerbosity > 1 ) fprintf(stderr,"[%d.%d]",first,last) ;
+    if( SVDVerbosity > 1 ) fprintf(stderr,"[%d.%d]",(int)first,(int)last) ;
    for (j=first; j<last; j++) {
       mid     = wptr[2];
       wptr[2] = wptr[1];
