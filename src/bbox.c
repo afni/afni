@@ -4567,6 +4567,7 @@ ENTRY("MCW_choose_stuff") ;
                    XmNinitialResourcesPersistent , False ,
                    XmNtraversalOn , True ,
                 NULL ) ;
+         XtAddCallback( wtf,XmNactivateCallback,MCW_stuff_CB,NULL ) ; /* return key */
          XtManageChild(hrc) ;
          CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
          CS_sav[CS_nsav] = (void *)wtf ;
