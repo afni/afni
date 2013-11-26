@@ -829,7 +829,7 @@ extern void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad * , XtPointer ) ;
 
 /*---- temporary, I hope (yeah, sure, right, uh huh) ----*/
 
-extern void ISQ_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void ISQ_saver_CB( Widget w , XtPointer cd , int nval , void **val ) ;
 
 extern MEM_plotdata * ISQ_plot_label( MCW_imseq *, char * ) ; /* 20 Sep 2001 */
 
