@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , NOV , 2013 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+  { 26 , NOV , 2013 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Modify imseq.c Image Save function" ,
+   "(a) Make 'Enter' on prefix field activate saving\n"
+   "(b) Put all widgets for multiple image save in one window -- 19 years\n"
+   "after first thinking about it!\n"
+   "\n"
+   "'Need brooks no delay, but late is better than never'" } ,
+
+ { 22 , NOV , 2013 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Modify dmUBLOCK to allow peak=1 to occur at duration X" ,
    "By choosing Rmodel as 'dmUBLOCK(-X') -- per the request of Chen Gang." } ,
 

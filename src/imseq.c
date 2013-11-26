@@ -3662,6 +3662,9 @@ ENTRY("ISQ_but_cswap_CB") ;
 
 /*-------------------------------------------------------------------
    image saving options
+   * modified 26 Nov 2013 to get all inputs at once
+     nval == 2 is the Save One case  (val = prefix, blowup)
+     nval == 4 is the Save Many case (val = prefix, blowup, from, to)
 ---------------------------------------------------------------------*/
 
 #define USE_STUFF
@@ -3672,7 +3675,7 @@ ENTRY("ISQ_but_cswap_CB") ;
 # define POPDOWN_first_one POPDOWN_stuff_chooser
 #endif
 
-void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
+void ISQ_saver_CB( Widget w , XtPointer cd , int nval , void **val )
 {
    MCW_imseq *seq = (MCW_imseq *) cd ;
    int ii , kf ;
@@ -3684,6 +3687,8 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    int dbg ;                          /* 03 Sep 2004 */
    int adup=1 , akk,aa ;              /* 09 Feb 2009 */
 
+   char *cval1 ; int ival2 , ival3=0 , ival4=0 , ll ;  /* 26 Nov 2013 */
+
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
    Widget meter = NULL ;
@@ -3691,6 +3696,17 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 #endif
 
 ENTRY("ISQ_saver_CB") ;
+
+   if( nval != 2 && nval != 4 ) EXRETURN ;  /* bad inputs */
+
+   cval1 = (char *)val[0] ;  /* copy input values to local variables */
+   ival2 = (int)(intptr_t)val[1] ;
+   if( nval > 2 ){
+     ival3 = (int)(intptr_t)val[2] ;
+     ival4 = (int)(intptr_t)val[3] ;
+   }
+   if( cval1 == NULL || *cval1 == '\0' ) EXRETURN ;
+   ll = strlen(cval1) ; if( ll > 32 ) EXRETURN ;
 
    dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
 
@@ -3711,17 +3727,10 @@ ENTRY("ISQ_saver_CB") ;
 
    /*---------------*/
 
-   if( seq->saver_prefix == NULL ){  /* just got a string */
-      int ll , ii ;
-
-      if( cbs->reason != mcwCR_string ||
-          cbs->cval == NULL           || (ll = strlen(cbs->cval)) == 0 ){
-
-         XBell( XtDisplay(w) , 100 ) ; EXRETURN ;
-      }
+   { /* process input prefix string */
 
       seq->saver_prefix = (char*)XtMalloc( sizeof(char) * (ll+8) ) ;
-      strcpy( seq->saver_prefix , cbs->cval ) ;
+      strcpy( seq->saver_prefix , cval1 ) ;
 
       if( seq->saver_prefix[ll-1] != '.' ){  /* add a . at the end */
          seq->saver_prefix[ll++] = '.' ;     /* if one isn't there */
@@ -3744,9 +3753,11 @@ ENTRY("ISQ_saver_CB") ;
          EXRETURN ;
       }
 
+      seq->saver_blowup = ival2 ;
+
       /*-- April 1996: Save One case here --*/
 
-      if( seq->opt.save_one && !DO_ANIM(seq) ){
+      if( nval == 2 ){
          char *ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
          int   sll  = strlen( seq->saver_prefix ) ;
 
@@ -3891,60 +3902,12 @@ ENTRY("ISQ_saver_CB") ;
             XBell( XtDisplay(w) , 100 ) ;  /* image creation failed! */
          }
          myXtFree( seq->saver_prefix ) ; seq->saver_prefix = NULL ;
-         POPDOWN_first_one ;
          EXRETURN ;
       }
-
-      /*-- Not doing Save:One, so    --*/
-      /*-- move on to the From value --*/
-
-      POPDOWN_first_one ;
-
-      MCW_choose_integer( w , "Image from" ,
-                          0 , seq->status->num_total-1 , 0 ,
-                          ISQ_saver_CB , (XtPointer) seq ) ;
-
-      seq->saver_from = -1 ;
-      EXRETURN ;
    }
 
-   /*--- got 'From' value ---*/
-
-   if( seq->saver_from == -1 ){  /* just got an integer */
-
-      if( cbs->reason != mcwCR_integer ){  /* error */
-         XBell( XtDisplay(w) , 100 ) ;
-         myXtFree( seq->saver_prefix ) ; seq->saver_prefix = NULL ;
-         EXRETURN ;
-      }
-
-      if( dbg ) fprintf(stderr,"IMSAVE: got From=%d\n",cbs->ival) ;
-      seq->saver_from = cbs->ival ;
-
-      POPDOWN_integer_chooser ;
-
-      MCW_choose_integer(
-          w , "Image to" ,
-          0 , seq->status->num_total-1 , seq->status->num_total-1 ,
-          ISQ_saver_CB , (XtPointer) seq ) ;
-
-      seq->saver_to = -1 ;
-      EXRETURN ;
-   }
-
-   /*--- go 'To' value ==> last call ---*/
-
-   if( cbs->reason != mcwCR_integer ){  /* error */
-      XBell( XtDisplay(w) , 100 ) ;
-      myXtFree( seq->saver_prefix ) ; seq->saver_prefix = NULL ;
-      EXRETURN ;
-   }
-
-   POPDOWN_integer_chooser ;
-
-   if( dbg ) fprintf(stderr,"IMSAVE: got To  =%d\n",cbs->ival) ;
-
-   seq->saver_to = cbs->ival ;
+   seq->saver_from = ival3 ;
+   seq->saver_to   = ival4 ;
 
    /* check if all inputs are good */
 
@@ -4508,27 +4471,6 @@ ENTRY("ISQ_saver_CB") ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------------*/
-
-#ifdef USE_STUFF
-static void ISQ_saver_CB2( Widget w , XtPointer cd , int nval , void **val )
-{
-   MCW_imseq *seq = (MCW_imseq *)cd ;
-   MCW_choose_cbs cbs ;
-
-ENTRY("ISQ_saver_CB2") ;
-
-   if( nval < 2 || val == NULL ) return ;
-   seq->saver_blowup = (int)(intptr_t)val[1] ;
-
-   cbs.reason = mcwCR_string ;  /* set structure for call to user */
-   cbs.event  = NULL ;
-   cbs.cval   = (char *)val[0] ;
-   ISQ_saver_CB( w , cd , &cbs ) ;
-
-   EXRETURN ;
-}
-#endif
 
 /*----------------------------------------------------------------------*/
 /*! Called from the 'Save' button; starts the save image dialog. */
@@ -4537,6 +4479,7 @@ void ISQ_but_save_CB( Widget w , XtPointer client_data ,
                                  XtPointer call_data    )
 {
    MCW_imseq *seq = (MCW_imseq *) client_data ;
+   int ibl = (seq->saver_blowup > 0 && seq->saver_blowup < 9 ) ? seq->saver_blowup : 1 ;
 
 ENTRY("ISQ_but_save_CB") ;
 
@@ -4545,19 +4488,19 @@ ENTRY("ISQ_but_save_CB") ;
    seq->saver_prefix = NULL ;
    seq->saver_from = seq->saver_to = -1 ;
 
-#ifndef USE_STUFF
-   seq->saver_blowup = 1 ;
-   MCW_choose_string( w , "Filename prefix:" , NULL ,
-                      ISQ_saver_CB , (XtPointer) seq ) ;
-#else
-   { int ibl = (seq->saver_blowup > 0 && seq->saver_blowup < 9 )
-               ? seq->saver_blowup : 1 ;
-     MCW_choose_stuff( w , "Image Saver" , ISQ_saver_CB2 , (XtPointer)seq ,
+   if( seq->opt.save_one && !DO_ANIM(seq) ){
+     MCW_choose_stuff( w , "Image Saver (One)" , ISQ_saver_CB , (XtPointer)seq ,
                          MSTUF_STRING , "Prefix"  ,
                          MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
                        MSTUF_END ) ;
+   } else {
+     MCW_choose_stuff( w , "Image Saver (Multiple)" , ISQ_saver_CB , (XtPointer)seq ,
+                         MSTUF_STRING , "Prefix"  ,
+                         MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
+                         MSTUF_INT    , "From:  " , 0 , seq->status->num_total-1 , 0 ,
+                         MSTUF_INT    , "To:    " , 0 , seq->status->num_total-1 , seq->status->num_total-1 ,
+                       MSTUF_END ) ;
    }
-#endif
 
    ISQ_but_done_reset( seq ) ;
    EXRETURN ;
