@@ -4412,6 +4412,8 @@ ENTRY("MCW_stuff_CB") ;
    The call_func is called like so
 
  void call_func( Widget wpar, XtPointer call_func_data, int nval, void **val );
+
+   This function must know what the types to which to cast each val[] result.
 *//*--------------------------------------------------------------------------*/
 
 void MCW_choose_stuff( Widget wpar , char *mainlabel ,
