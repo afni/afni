@@ -845,6 +845,8 @@ if( PRINT_TRACING ){
    newseq->set_orim  = 0 ;
    newseq->need_orim = 0 ;
 
+   newseq->saver_blowup = 1 ;
+
    newseq->given_xim = newseq->sized_xim
                      = newseq->given_xbar
                      = newseq->sized_xbar = NULL ;
@@ -4541,16 +4543,20 @@ ENTRY("ISQ_but_save_CB") ;
    if( ! ISQ_REALZ(seq) || w == NULL || ! XtIsWidget(w) ) EXRETURN ;
 
    seq->saver_prefix = NULL ;
-   seq->saver_from = seq->saver_to = -1 ; seq->saver_blowup = 1 ;
+   seq->saver_from = seq->saver_to = -1 ;
 
 #ifndef USE_STUFF
+   seq->saver_blowup = 1 ;
    MCW_choose_string( w , "Filename prefix:" , NULL ,
                       ISQ_saver_CB , (XtPointer) seq ) ;
 #else
-   MCW_choose_stuff( w , "Image Saver" , ISQ_saver_CB2 , (XtPointer)seq ,
-                       MSTUF_STRING , "Prefix"  ,
-                       MSTUF_INT    , "Blowup " , 1 , 8 , 1 ,
-                     MSTUF_END ) ;
+   { int ibl = (seq->saver_blowup > 0 && seq->saver_blowup < 9 )
+               ? seq->saver_blowup : 1 ;
+     MCW_choose_stuff( w , "Image Saver" , ISQ_saver_CB2 , (XtPointer)seq ,
+                         MSTUF_STRING , "Prefix"  ,
+                         MSTUF_INT    , "Blowup " , 1 , 8 , ibl ,
+                       MSTUF_END ) ;
+   }
 #endif
 
    ISQ_but_done_reset( seq ) ;
