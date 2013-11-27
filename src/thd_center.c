@@ -61,3 +61,31 @@ THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm )
    cmv = THD_3dmm_to_dicomm( xset , cmv ) ;
    return cmv ;
 }
+
+/*-------------------------------------------------------------------------*/
+/*! Get the center of mass of integer labeled ROIs in a sub-brick. Returns
+a float vector N_rois XYZ triplets.
+---------------------------------------------------------------------------*/
+
+float *THD_roi_cmass(THD_3dim_dataset *xset , int iv , int *rois, int N_rois)
+{
+   float *xyz=NULL, roi;
+   THD_fvec3 cmr ;
+   int ir;
+   byte *mmm;
+   
+   ENTRY("THD_roi_cmass");
+   
+   if (!xset || !rois || N_rois < 1) RETURN(NULL);
+   
+   xyz = (float *)calloc(N_rois*3, sizeof(float));
+   for (ir = 0; ir < N_rois; ++ir) {
+      roi = rois[ir];
+      mmm = THD_makemask( xset, iv , roi , roi );
+      cmr = THD_cmass( xset, iv , mmm);
+      free(mmm); mmm = NULL;
+      xyz[3*ir] = cmr.xyz[0]; xyz[3*ir+1] = cmr.xyz[1]; xyz[3*ir+2] = cmr.xyz[2];
+   }
+   
+   RETURN(xyz);
+}
