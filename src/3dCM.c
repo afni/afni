@@ -3,7 +3,7 @@
 
 int main( int argc , char * argv[] )
 {
-   int narg=1, do_automask=0 , iv , nxyz , do_set=0 ;
+   int narg=1, do_automask=0 , iv , nxyz , do_set=0 , *rois=NULL, N_rois=0;
    THD_3dim_dataset *xset ;
    byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
    THD_fvec3 cmv , setv ;
@@ -21,6 +21,11 @@ int main( int argc , char * argv[] )
              "  -set x y z   After computing the CM of the dataset, set the\n"
              "                 origin fields in the header so that the CM\n"
              "                 will be at (x,y,z) in DICOM coords.\n"
+             "  -roi_vals v0 v1 v2 ... : Compute center of mass for each blob\n"
+             "                           with voxel value of v0, v1, v2, etc.\n"
+             "                           This option is handy for getting ROI \n"
+             "                           centers of mass.\n"
+             "         Options -set and -roi_vals are mutually exclusive.\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -71,6 +76,23 @@ int main( int argc , char * argv[] )
         narg++ ; continue ;
       }
 
+      if( strncmp(argv[narg],"-roi_vals",5) == 0 ){
+        if( narg+1 >= argc ){
+          fprintf(stderr,"*** -mask option requires a following argument(s)!\n");
+          exit(1) ;
+        }
+        rois = (int *)calloc(argc, sizeof(int));
+        N_rois = 0;
+        ++narg;
+        while (narg < argc-1 && argv[narg][0] != '-') {
+         fprintf(stderr,"Taking %s\n", argv[narg]);
+         rois[N_rois++] = atoi(argv[narg]);
+         ++narg;
+        }
+        
+        continue ;
+      }
+      
       if( strcmp(argv[narg],"-automask") == 0 ){
         if( mmm != NULL ){
           fprintf(stderr,"*** Can't have -mask and -automask!\n") ; exit(1) ;
@@ -116,40 +138,53 @@ int main( int argc , char * argv[] )
        DSET_delete(xset) ; continue ;
      }
 
-     cmv = THD_cmass( xset , 0 , mmm ) ;
-     printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
-      DSET_unload(xset) ;
+     if (!N_rois) {
+        cmv = THD_cmass( xset , 0 , mmm ) ;
+        printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
+        DSET_unload(xset) ;
 
-     if( do_set ){
-       THD_fvec3 dv , ov ;
-       if(  DSET_IS_MASTERED(xset) ){
-         fprintf(stderr,"+++ Can't modify CM of dataset %s\n",argv[narg]) ;
-       } else {
-         /* lose obliquity */
-         /* recompute Tc (Cardinal transformation matrix for new grid output */
-         THD_make_cardinal(xset);
+        if( do_set ){
+          THD_fvec3 dv , ov ;
+          if(  DSET_IS_MASTERED(xset) ){
+            fprintf(stderr,"+++ Can't modify CM of dataset %s\n",argv[narg]) ;
+          } else {
+            /* lose obliquity */
+            /* recompute Tc(Cardinal transformation matrix for new grid output */
+            THD_make_cardinal(xset);
 
-         LOAD_FVEC3(ov,DSET_XORG(xset),DSET_YORG(xset),DSET_ZORG(xset)) ;
-         ov = THD_3dmm_to_dicomm( xset , ov ) ;
-         dv = SUB_FVEC3(setv,cmv) ;
-         ov = ADD_FVEC3(dv,ov) ;
-         ov = THD_dicomm_to_3dmm( xset , ov ) ;
-         xset->daxes->xxorg = ov.xyz[0] ;
-         xset->daxes->yyorg = ov.xyz[1] ;
-         xset->daxes->zzorg = ov.xyz[2] ;
-         /* allow overwriting header for all types of output data */
-         putenv("AFNI_DECONFLICT=OVERWRITE") ;
-         tross_Make_History( "3dCM" , argc,argv , xset ) ; /* ZSS   Dec. 09 08 */
-	 if(DSET_IS_BRIK(xset)) {
-           INFO_message("Rewriting header %s",DSET_HEADNAME(xset)) ;
-           DSET_overwrite_header( xset ) ;
-	 }
-	 else {     /* for other dataset types like NIFTI, rewrite whole dset */
-	    DSET_load( xset ) ;
-       DSET_overwrite(xset) ;
-       INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(xset)) ;
-	 }   
-      }
+            LOAD_FVEC3(ov,DSET_XORG(xset),DSET_YORG(xset),DSET_ZORG(xset)) ;
+            ov = THD_3dmm_to_dicomm( xset , ov ) ;
+            dv = SUB_FVEC3(setv,cmv) ;
+            ov = ADD_FVEC3(dv,ov) ;
+            ov = THD_dicomm_to_3dmm( xset , ov ) ;
+            xset->daxes->xxorg = ov.xyz[0] ;
+            xset->daxes->yyorg = ov.xyz[1] ;
+            xset->daxes->zzorg = ov.xyz[2] ;
+            /* allow overwriting header for all types of output data */
+            putenv("AFNI_DECONFLICT=OVERWRITE") ;
+            tross_Make_History( "3dCM" , argc,argv , xset );/* ZSS  Dec. 09 08 */
+	    if(DSET_IS_BRIK(xset)) {
+              INFO_message("Rewriting header %s",DSET_HEADNAME(xset)) ;
+              DSET_overwrite_header( xset ) ;
+	    }
+	    else {     /* for other dataset types like NIFTI, rewrite whole dset */
+	       DSET_load( xset ) ;
+          DSET_overwrite(xset) ;
+          INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(xset)) ;
+	    }   
+         }
+        }
+     } else {
+        float *xyz;
+        if ((xyz = THD_roi_cmass(xset , 0 , rois, N_rois))) {
+           for (iv=0; iv<N_rois; ++iv) {
+            printf("#ROI %d\n", rois[iv]);
+            printf("%g  %g  %g\n",xyz[3*iv],xyz[3*iv+1],xyz[3*iv+2]) ;
+           }
+           free(xyz);
+        } else {
+           ERROR_message("Failed in THD_roi_cmass"); exit(1);
+        }
      }
      DSET_delete(xset) ;
   }

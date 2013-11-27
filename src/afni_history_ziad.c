@@ -65,6 +65,39 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27, Nov , 2013 , ZSS , "3dCM" , MINOR , TYPE_NEW_OPT,
+   "Added -roi_vals to get COM for multiple ROIs",
+   "Workhorse is THD_roi_cmass() in thd_center.c"
+ },
+
+ { 4, Nov , 2013 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
+   "Made functions transforming afni volumes to suma dsets preserve types",
+   "Formerly much was changed into floats. Affected functions include:\n"
+   "nsd_add_colms_type(), SUMA_afnidset2sumadset(), and nsd_add_sparse_data()"
+ },
+
+ { 1, Oct , 2013 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "Made suma send filename of surface volume to AFNI",
+   "In this manner a -sv volume that is not in AFNI's\n"
+   "current session will still be loaded into the current session\n"
+   "See afni function AFNI_append_dset_to_session() and wherever it\n"
+   "is used for details" 
+ },
+
+ { 1, Oct , 2013 , ZSS , "afni" , MINOR , TYPE_MODIFY,
+   "Made AFNI seek and add to session a missing SUMA surface volume",
+   "See afni function AFNI_append_dset_to_session() and wherever it\n"
+   "is used for details. That function is under afni_plugin.c which is one\n"
+   "of the few .c files with access to the GLOBAL_library structure." 
+ },
+
+ { 1, Oct , 2013 , ZSS , "afni" , MINOR , TYPE_MODIFY,
+   "Reduced AFNI complaints of missing surface volumes and extra triangles.",
+   "These messages come up for each surface component 'nel' and are highly\n"
+   "redundant. Now messages are choked to about once every 2 seconds for \n"
+   "each message id. See whine_about_idcode() for details."
+ },
+
  { 23, Sep , 2013 , ZSS , "suma" , MINOR , TYPE_MODIFY,
    "Numerous updates/bug fixes for graph dset handling",
    "Pick buffer update now synced with what viewer shows. \n"
