@@ -3,7 +3,8 @@
 
 int main( int argc , char * argv[] )
 {
-   int narg=1, do_automask=0 , iv , nxyz , do_set=0 , *rois=NULL, N_rois=0;
+   int narg=1, do_automask=0 , iv , nxyz , do_set=0 , 
+       *rois=NULL, N_rois=0, all_rois = 0;
    THD_3dim_dataset *xset ;
    byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
    THD_fvec3 cmv , setv ;
@@ -25,8 +26,11 @@ int main( int argc , char * argv[] )
              "                           with voxel value of v0, v1, v2, etc.\n"
              "                           This option is handy for getting ROI \n"
              "                           centers of mass.\n"
-             "         Options -set and -roi_vals are mutually exclusive.\n"
-            ) ;
+             "  -all_rois     Don't bother listing the values of ROIs you want\n"
+             "                the program will find all of them and produce a \n"
+             "                full list.\n"
+             "  NOTE: Masking options are ignored with -roi_vals and -all_rois\n"
+             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -92,6 +96,10 @@ int main( int argc , char * argv[] )
         
         continue ;
       }
+      if( strncmp(argv[narg],"-all_rois",5) == 0 ){
+         all_rois = 1;
+         narg++ ; continue ;
+      }
       
       if( strcmp(argv[narg],"-automask") == 0 ){
         if( mmm != NULL ){
@@ -138,6 +146,13 @@ int main( int argc , char * argv[] )
        DSET_delete(xset) ; continue ;
      }
 
+     if (all_rois) {
+      if (!(rois = THD_unique_vals(xset, 0, &N_rois, NULL)) || N_rois == 0) {
+         ERROR_message("No rois or error in THD_unique_vals"); continue;
+      }
+      fprintf(stderr,"#%d distinct ROIs", N_rois);
+     }
+     
      if (!N_rois) {
         cmv = THD_cmass( xset , 0 , mmm ) ;
         printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
@@ -177,13 +192,14 @@ int main( int argc , char * argv[] )
      } else {
         float *xyz;
         if ((xyz = THD_roi_cmass(xset , 0 , rois, N_rois))) {
+           printf("#Dset %s\n",DSET_BRIKNAME(xset));
            for (iv=0; iv<N_rois; ++iv) {
             printf("#ROI %d\n", rois[iv]);
             printf("%g  %g  %g\n",xyz[3*iv],xyz[3*iv+1],xyz[3*iv+2]) ;
            }
-           free(xyz);
+           free(xyz); free(rois); 
         } else {
-           ERROR_message("Failed in THD_roi_cmass"); exit(1);
+           ERROR_message("Failed in THD_roi_cmass"); continue;
         }
      }
      DSET_delete(xset) ;
