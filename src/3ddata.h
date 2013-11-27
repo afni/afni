@@ -1960,6 +1960,15 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    M[3][0] = M[3][1] = M[3][2] = 0.0;\
 }
 
+#undef AFF44_ZERO
+#define AFF44_ZERO( M ) {\
+   M[0][0] = M[1][1] = M[2][2] = M[3][3] =  \
+   M[0][1] = M[0][2] = M[0][3] = \
+   M[1][0] = M[1][2] = M[1][3] = \
+   M[2][0] = M[2][1] = M[2][3] = \
+   M[3][0] = M[3][1] = M[3][2] = 0.0;\
+}
+
 #undef AFF44_TO_V12
 #define AFF44_TO_V12( V, M ) { \
    V[0] = M[0][0]; V[1] = M[0][1]; V[2]  = M[0][2]; V[3]  = M[0][3];   \
@@ -1971,7 +1980,8 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #define V12_TO_AFF44( M, V) { \
    M[0][0] = V[0]; M[0][1] = V[1]; M[0][2] = V[2];  M[0][3] = V[3];   \
    M[1][0] = V[4]; M[1][1] = V[5]; M[1][2] = V[6];  M[1][3] = V[7];   \
-   M[2][0] = V[8]; M[2][1] = V[9]; M[2][2] = V[10]; M[2][3] = V[11];   \
+   M[2][0] = V[8]; M[2][1] = V[9]; M[2][2] = V[10]; M[2][3] = V[11];  \
+   M[3][0] = 0.0;  M[3][1] = 0.0;  M[3][2] = 0.0;   M[3][3] = 1.0;    \
 }
 
 #undef AFF44_MULT_I
@@ -1979,6 +1989,15 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    X[0] = M[0][0]*I[0] + M[0][1]*I[1] + M[0][2]*I[2] + M[0][3]; \
    X[1] = M[1][0]*I[0] + M[1][1]*I[1] + M[1][2]*I[2] + M[1][3]; \
    X[2] = M[2][0]*I[0] + M[2][1]*I[1] + M[2][2]*I[2] + M[2][3]; \
+}
+
+/* This macro is for transforming a direction D, rather than 
+   a point in I */
+#undef AFF44_MULT_D
+#define AFF44_MULT_D( X, M, D ) { \
+   X[0] = M[0][0]*I[0] + M[0][1]*I[1] + M[0][2]*I[2]; \
+   X[1] = M[1][0]*I[0] + M[1][1]*I[1] + M[1][2]*I[2]; \
+   X[2] = M[2][0]*I[0] + M[2][1]*I[1] + M[2][2]*I[2]; \
 }
 
 #undef  AFF44_MULT
@@ -2040,6 +2059,20 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    AFF44_LOAD( F , -1,0,0,0 , 0,-1,0,0 , 0,0,1,0 );   \
    AFF44_MULT( T , F , A );                           \
    AFF44_MULT( M , T , F );                             \
+}
+
+/* Show the matrix */
+#undef  AFF44_SHOW
+#define AFF44_SHOW( A , str)   {              \
+   if (str) fprintf(stderr,"%s\n", str);   \
+   fprintf(stderr,"%f\t%f\t%f\t%f\n"   \
+                  "%f\t%f\t%f\t%f\n"   \
+                  "%f\t%f\t%f\t%f\n"   \
+                  "%f\t%f\t%f\t%f\n",  \
+            A[0][0], A[0][1], A[0][2], A[0][3],  \
+            A[1][0], A[1][1], A[1][2], A[1][3],  \
+            A[2][0], A[2][1], A[2][2], A[2][3],  \
+            A[3][0], A[3][1], A[3][2], A[3][3]); \
 }
 
 /*---------------------------------------------------------------------*/
@@ -3221,6 +3254,11 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 /*! Return number of voxels along z-axis of dataset ds */
 
 #define DSET_NZ(ds) ((ds)->daxes->nzz)
+
+/*! Return number of voxels in a slice of dataset ds */
+
+#define DSET_NXY(ds) ((ds)->daxes->nxx * (ds)->daxes->nyy)
+
 
 /*! Return grid spacing (voxel size) along x-axis of dataset ds */
 
@@ -4519,6 +4557,7 @@ extern int  write_niml_file( char *, NI_group *);      /* 12 Jun 2006 [rickr] */
 extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;
 extern THD_slist_find THD_dset_in_session( int,void * , THD_session * ) ;
+extern int AFNI_append_dset_to_session( char *fname, int sss ) ;
 
 extern void THD_check_idcodes( THD_sessionlist * ) ; /* 08 Jun 1999 */
 
@@ -4564,6 +4603,8 @@ extern float * TS_parse_tpattern( int, float, char * ) ;  /* 11 Dec 2007 */
 
 extern THD_fvec3 THD_dataset_center( THD_3dim_dataset * ) ;  /* 01 Feb 2001 */
 extern THD_fvec3 THD_cmass( THD_3dim_dataset *xset , int iv , byte *mmm );
+extern float *THD_roi_cmass(THD_3dim_dataset *xset , int iv , 
+                            int *rois, int N_rois);
 extern int THD_dataset_mismatch(THD_3dim_dataset *, THD_3dim_dataset *) ;
 extern double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2,
                                 int scl);
