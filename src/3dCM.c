@@ -89,7 +89,6 @@ int main( int argc , char * argv[] )
         N_rois = 0;
         ++narg;
         while (narg < argc-1 && argv[narg][0] != '-') {
-         fprintf(stderr,"Taking %s\n", argv[narg]);
          rois[N_rois++] = atoi(argv[narg]);
          ++narg;
         }
