@@ -20,6 +20,7 @@
 #include <mrilib.h>    
 #include <3ddata.h>    
 #include <TrackIO.h>
+#include <gsl/gsl_rng.h>
 #include <DoTrackit.h>
 
 #include "suma_suma.h"

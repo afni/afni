@@ -30,6 +30,7 @@
 #include <mrilib.h>    
 #include <rsfc.h>    
 #include <3ddata.h>    
+#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 
 #define DEP (1)              // search rad of defining ROIs

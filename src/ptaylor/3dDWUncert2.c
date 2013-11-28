@@ -30,7 +30,6 @@
 #include <debugtrace.h>
 #include <mrilib.h>     
 #include <3ddata.h>     
-#include <DoTrackit.h>
 #include <time.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
@@ -42,6 +41,7 @@
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_statistics.h>
 #include <gsl/gsl_linalg.h>
+#include <DoTrackit.h>
 
 // from <editvol.h>
 #define EDIT_DSET_ORIENT(ds,ox,oy,oz)                              \
