@@ -232,7 +232,7 @@ typedef enum { SE_Empty,
                SE_SetSurfCont, SE_SetViewerCont, SE_SetRecorderCont,
                SE_SetDsetViewMode, SE_SetDsetFont, SE_SetDsetNodeRad, 
                SE_SetDsetNodeCol, SE_SetDsetEdgeThick, SE_SetDsetEdgeStip,
-               SE_SetDsetGmatBord, SE_SetDsetTxtShad,
+               SE_SetDsetGmatBord, SE_SetDsetTxtShad, SE_SetTractMask,
                SE_BadCode} SUMA_ENGINE_CODE; 
                         /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,
@@ -406,6 +406,13 @@ typedef enum { SW_SurfCont_DsetEdgeStip,
                SW_N_SurfCont_DsetEdgeStip }
                                        SUMA_WIDGET_INDEX_SURFCONT_DSETEDGESTIP;
             
+typedef enum { SW_SurfCont_TractMask,
+               SW_SurfCont_TractMaskHide,
+               SW_SurfCont_TractMaskGray,
+               SW_SurfCont_TractMaskIgnore,
+               SW_N_SurfCont_TractMask }
+                                       SUMA_WIDGET_INDEX_SURFCONT_TRACT_MASK;
+            
 typedef enum { SW_DrawROI_SaveMode,
                SW_DrawROI_SaveMode1D, SW_DrawROI_SaveModeNIML, 
                SW_N_DrawROI_SaveMode } SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE; 
@@ -462,9 +469,13 @@ typedef struct {
    int N; /*!< number of elements */
 }SUMA_IRGB; /*!< structure containing node colors */
 
+
 typedef struct {
-   SUMA_OVERLAY_PLANE_TYPE Type; /*!< This variable determines the types of the variables below */
+   SUMA_OVERLAY_PLANE_TYPE Type; /*!< This variable determines the types 
+                                      of the variables below */
    SUMA_ENGINE_SOURCE Source; /*!< provenance of plane */
+   SUMA_DATUM_LEVEL dtlvl; /* What does node refer to? Data can be passed
+                              at multiple levels */
    void *i; /*!< Node index */
    void *r; /*!< Node red */
    void *g; /*!< Node green */
@@ -479,22 +490,28 @@ typedef struct {
                            meant to carry data required to fill a color plane. 
                                  \sa SUMA_OVERLAYS*/
 
-typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, /* Begin adding colormaps next: */
-               SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20, SUMA_CMAP_GRAY02, SUMA_CMAP_flpGRAY02, 
+typedef enum { SUMA_CMAP_ERROR=-1, SUMA_CMAP_UNDEFINED, 
+                           /* Begin adding colormaps next: */
+               SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20, 
+               SUMA_CMAP_GRAY02, SUMA_CMAP_flpGRAY02, 
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
-               SUMA_CMAP_MATLAB_DEF_BYR64, SUMA_CMAP_BGYR64, SUMA_CMAP_ROI64, SUMA_CMAP_ROI128,
+               SUMA_CMAP_MATLAB_DEF_BYR64, SUMA_CMAP_BGYR64, 
+               SUMA_CMAP_ROI64, SUMA_CMAP_ROI128,
                SUMA_CMAP_ROI256,
                SUMA_CMAP_N_MAPS /* Don't add after this one */
-               } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
+               } SUMA_STANDARD_CMAP; /*!< Names of standard colormaps. 
+                  RGYBR20 reads Red, Green, Yellow, Blue, Red, 20 colors total */
 
-typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
+typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, 
+               SUMA_ROI_InEdit} SUMA_ROI_DRAWING_STATUS;
 
-typedef enum { SUMA_ROI_OpenPath,   /*!< A collection of nodes that are topologically connected */
+typedef enum { SUMA_ROI_OpenPath,   /*!< Topologically connected nodes*/
                SUMA_ROI_ClosedPath, /*!< A closed OpenPath */
                SUMA_ROI_FilledArea, /*!< A filled ClosePath */
                                     /* Preserve the order of the above three */
                SUMA_ROI_Collection  /*!< A collection of nodes */
-            } SUMA_ROI_DRAWING_TYPE;  /*!< an ROI created by drawing (or other means)*/
+            } SUMA_ROI_DRAWING_TYPE;  /*!< an ROI created by drawing 
+                                          (or other means)*/
 
 typedef enum { SUMA_BSA_Undefined, SUMA_BSA_AppendStroke, SUMA_BSA_AppendStrokeOrFill, SUMA_BSA_JoinEnds, SUMA_BSA_FillArea } SUMA_BRUSH_STROKE_ACTION; 
 
@@ -850,7 +867,10 @@ typedef struct {
    int LinkedPtrType; /*!< Indicates the type of linked pointer */
    int N_links;   /*!< Number of links to this pointer */
    char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created 
-                                    that pointer. Might never get used.... */
+                                    that pointer. */
+
+   SUMA_DATUM_LEVEL dtlvl; /* What does a 'node' refer to? Data can be passed
+                              at multiple levels */
 
    int ShowMode; /*!< negative do not show, postive, 
                   ShowMode can be +/-SW_SurfCont_DsetViewCol
@@ -1395,6 +1415,27 @@ typedef struct {
    int menu_type;
 } SUMA_MENU_WIDGET;
 
+typedef struct {
+   Widget rc; /*! container row column */
+   Widget lab; /*! Label */
+   Widget sl;  /*! Slider widget */
+   Widget tb;  /*! Toggle button for view slice */
+   Widget text; /*! Text area where user enters slice number */
+   Widget mont;  /* Text area where user enters montage */
+   int Nslc;
+   char *variant;
+   char *slice_num_str;
+   char *mont_str;
+   float slice_num;
+   float mont_num;
+   float mont_inc;
+   SUMA_NUMERICAL_UNITS slice_units;
+   SUMA_NUMERICAL_UNITS mont_units;
+   void (*NewValueCallback)(void *data); /*!< callback when a new value is set */
+   void *NewValueCallbackData; 
+   SUMA_Boolean modified; /*!< set to YUP when user edits the value field */
+} SUMA_SLICE_FIELD;
+
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
    /* *** DO NOT ADD ANYTHING BEFORE THESE FIELDS
@@ -1435,7 +1476,10 @@ typedef struct {
    SUMA_MENU_WIDGET *DsetNodeRadMenu; /*!<[SW_N_SurfCont_DsetNodeRad] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *DsetEdgeThickMenu; /*!<[SW_N_SurfCont_DsetEdgeThick] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *DsetEdgeStipMenu; /*!<[SW_N_SurfCont_DsetEdgeStip] widgets                                   controlling the sizing of graph nodes */
+   SUMA_MENU_WIDGET *TractMaskMenu; /*!<[SW_N_SurfCont_TractMask] widgets 
+                                controlling the masking method */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
+   Widget Slice_fr;
    Widget DsetMap_fr; /*!< the frame for mapping Dset to colormap */
    Widget Xhair_fr; /*!< The frame for cross hair Info and controls */ 
    Widget SurfContPage_label; /*!< Le label */
@@ -1451,6 +1495,8 @@ typedef struct {
                                              controlling color plane opacity */
    SUMA_ARROW_TEXT_FIELD *ColPlaneDimFact; /*!< arrow/text field 
                                              controlling color plane DimFact */
+   SUMA_ARROW_TEXT_FIELD *TractMaskGray; /*!< arrow/text field 
+                                      controlling grayness of masked tracts */
    SUMA_TABLE_FIELD *SetRangeTable; /*!< structure for range setting table */
    SUMA_TABLE_FIELD *RangeTable; /*!< structure for range  table */
    SUMA_TABLE_FIELD *XhairTable; /*!< structure for Cross hair  table */
@@ -1491,6 +1537,9 @@ typedef struct {
    SUMA_CMAP_RENDER_AREA *cmp_ren;   /* data for cmap rendering zone */
    Widget thr_sc;   /*! scale for threshold data */
    Widget brt_sc;   /*! scale for brightness data */
+   SUMA_SLICE_FIELD *Ax_slc;
+   SUMA_SLICE_FIELD *Sa_slc;
+   SUMA_SLICE_FIELD *Co_slc;
    Widget thr_lb;  /*! threshold title 
                         No longer used, 
                         using SetThrScaleTable instead */ 
@@ -1691,6 +1740,9 @@ typedef struct {
                                    all be sharing this top level widget */
    Widget SC_Notebook;  /* Surface Controllers Notebook */
    int ButtonDown; /* Is mouse button pressed? */
+   
+   int roffx; /* relative offset of widget in window */
+   int roffy;
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */
@@ -1843,7 +1895,13 @@ typedef struct {
    SUMA_DO_Types do_type; 
    char *idcode_str;
    char *Label;
-      
+   
+      /* Not sure whether or not these things need to be moved into 
+         the common stuff in SUMA_ALL_DO yet ... */
+   void *Saux; /* A pointer to a structure for SUMA's use */
+   void (*FreeSaux)(void *Saux); /* Function to free Saux */
+   int N_datum; /* Here number of control points forming tracts */
+   
       /* Begin specific fields */
    char *Parent_idcode_str;
    
@@ -1856,6 +1914,7 @@ typedef struct {
    GLfloat *thickv; /*!< Vector of segment thincknesses, 
                          1 elements per segment. NULL if using LineWidth */
    SUMA_STIPPLE Stipple; /*!< dashed or solid line */
+
 } SUMA_TractDO;
 
 typedef struct {
@@ -2132,16 +2191,41 @@ typedef struct {
    long int idatum;
 } SUMA_COLID_OFFSET_DATUM;
 
+#define SUMA_NET_BUN    0  /* selectedNetworkBundle */
+#define SUMA_VOL_I      0  /* selectedVoxelI */
+#define SUMA_SURF_TRI   0  /* selected triangle */
+#define SUMA_ENODE_0    0  /* 1st point/node forming edge */
+
+#define SUMA_BUN_TRC    1  /* selectedBundleTract */
+#define SUMA_VOL_J      1  /* selectedVoxelJ */
+#define SUMA_ENODE_1    1  /* 2st point/node forming edge */
+
+#define SUMA_TRC_PNT    2  /* selectedTractPoint */
+#define SUMA_VOL_K      2  /* selectedVoxelK */
+
+#define SUMA_NET_TRC    3  /* selectedNetworkTract */
+#define SUMA_VOL_IJK    3  /* selectedVoxelIJK, 1D index */
+
+#define SUMA_N_ALTSEL_TYPES 4 
+
+
 typedef struct {
    char *ado_idcode_str;   /* id of ado that was picked */
    char *primitive;        /* Type of object selected, for graphs, for 
                               example, it could be an edge, or a node 
                               Not all primitives carry data*/
    long int primitive_index; 
-   long int datum_index;   /* If primitve is one that carries data
-                              then this value is set */
+   long int datum_index;   /* If intersection is found for something 
+                              that carries an elementary data
+                              then this value is set.*/
+   int ignore_same_datum;
+   
    float PickXYZ[3]; /* Location of index */
-   long int selectedEnode; /* Selected edge node */
+   
+   long int AltSel[SUMA_N_ALTSEL_TYPES];
+
+   char *dset_idcode_str; /* ID of volume where selection was made, 
+                      if a volume was selected */
 } SUMA_PICK_RESULT; /* Structure holding results of pointer selection*/
 
 
@@ -2168,7 +2252,10 @@ typedef struct {
    short verbose;   /*!< Verbosity of viewer */
 
    SUMA_X *X; /*!< structure containing X widget midgets */
-
+   
+   DList *SelAdo; /* A list of DOs intersected by selection line */
+   char *LastSel_ado_idcode_str; 
+   
    int ShowSelectedDatum;
    int ShowSelectedFaceSet;
    int ShowSelectedEdge;
@@ -2199,6 +2286,9 @@ typedef struct {
             one specified here*/
    SUMA_TRANS_MODES TransMode; 
    SUMA_DO_DRAW_MASK DO_DrawMask; /*!< What to draw of displayable objects */
+   int MouseMode; /* Behavior when mouse gets busy */
+   char *MouseMode_ado_idcode_str;
+   
    float Back_Modfact; /*!< Factor to apply when modulating foreground 
                color with background intensity
                background does not modulate foreground, 
@@ -2460,6 +2550,7 @@ typedef struct {
    float dx, dy, dz; /*!< delta x, y, z in mm */
    float xorg, yorg, zorg; /*!< voxel origin in three dimensions */
    char *prefix; /*!< parent volume prefix */
+   char *headname;
    char *filecode; /*!< parent volume prefix + view */
    char *dirname; /*!< parent volume directory name */
    char *vol_idcode_str; /*!< idcode string OF parent volume*/
@@ -2628,6 +2719,16 @@ typedef struct {
                                                    TAGALIGN_APPLIED,
                                                    ROTATE_APPLIED,
                                                    etc*/
+   void *Saux; /* A pointer to a structure for SUMA's use 
+                  For now this is mostly for accessing the
+                  pick result structure. 
+                  In the future, all selections currently
+                  under SO-> should move to SO->Saux->PR
+                  sane for overlays, etc. This would make
+                  SOs behave more like the other displayable
+                  objects. All in good time */
+   void (*FreeSaux)(void *Saux); /* Function to free Saux */
+
    SUMA_Boolean SentToAfni; /*!< YUP if the surface has been 
                                  niml-sent to AFNI */
    SUMA_Boolean Show; /*!< YUP then the surface is visible in the viewer. 
@@ -2760,6 +2861,41 @@ typedef struct {
                      \sa SUMA_Load_Surface_Object in SUMA_Load_Surface_Object.c
                */  
 
+
+typedef struct {
+      /* FIRST VARIABLES MUST RETAIN THEIR ORDER and follow SUMA_ALL_DO */
+   SUMA_DO_Types do_type; 
+   char *idcode_str;
+   char *Label;
+   
+      /* Not sure whether or not these things need to be moved into 
+         the common stuff in SUMA_ALL_DO yet ... */
+   void *Saux; /* A pointer to a structure for SUMA's use */
+   void (*FreeSaux)(void *Saux); /* Function to free Saux */
+   int N_datum; /* Here number of control points forming tracts */
+   
+      /* Begin specific fields */
+   char *Parent_idcode_str;
+   
+   char mtype[64]; /* A string defining mask subtypes 
+                      cube --> box
+                      ball --> sphere
+                      surface --> surface of generic shape 
+                      volume --> volume of generic shape */
+   int N_obj;
+   float *cen; /* Center of mask */
+   float *hdim; /* XYZ half dims of mask */
+   
+   float *init_cen; /* Initial centers */
+   float *init_hdim; /* Initial dims */
+   
+   SUMA_SurfaceObject *SO; /* Surface defining mask shape */ 
+   
+   GLfloat *colv; /*!< Vector of segment colors, 4 elements per segment. 
+                        NULL if using LineCol */
+} SUMA_MaskDO;
+
+
 typedef struct {
    /* *** DO NOT ADD ANYTHING BEFORE THESE FIELDS
           DO NOT CHANGE THE ORDER OF THESE FIELDS
@@ -2777,14 +2913,26 @@ typedef struct {
 
 #define SUMA_MAX_N_VE 5
 typedef struct {
-   THD_3dim_dataset *dset;
+   char *dset_idcode_str;
    
    GLubyte *texvec;  /* vector of voxel textures */
    GLuint *texName;
    
+   int Ni;
+   int Nj;
+   int Nk;
+   
+   float I2X[4][4];  /* ijk to dicom real */
+   float X2I[4][4];  /* dicom real to ijk */
+   float X2T[4][4];  /* dicom real to texture */
+   float T2X[4][4];  /* texture to dicom real */
+   float bcorners[24];/* box corners (outer edges) */
+   float vcorners[24];/* vox corners (voxel centers) */
+   
    float vo0[3];  /* coordinates of 1st voxel */
    float voN[3];  /* coordinates of last voxel */
-   
+   float bo0[3];  /* coordinates of 1st box corner */
+   float boN[3];  /* coordinates of last box corner */
 } SUMA_VolumeElement;
 
 typedef struct {
@@ -2795,9 +2943,11 @@ typedef struct {
    
       /* Begin specific fields */
    SUMA_VolumeElement **VE;
-   
    GLfloat TexEnvMode;
    
+   void *Saux; /* A pointer to a structure for SUMA's use */
+   void (*FreeSaux)(void *Saux); /* Function to free Saux */
+
    GLdouble CutPlane[6][4];
    byte UseCutPlane[6];
    int SelectedCutPlane;
@@ -2820,6 +2970,13 @@ typedef struct {
     int colmapindex; /* the index into the colormap of id */
     UT_hash_handle hh;  /* keep it named 'hh' for same reasons  */
 }  SUMA_COLOR_MAP_HASH_DATUM;
+
+/* Structure keeping track of what was selected in a surface viewer*/
+typedef struct {
+   char *ado_idcode_str;
+   char *variant;
+   SUMA_PICK_RESULT *PR;
+} SUMA_SEL_ADO_DATUM;
 
 /*! Structure containing a color map */
 typedef struct {

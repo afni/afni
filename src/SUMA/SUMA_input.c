@@ -240,8 +240,8 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          if (!Nwarn_bracket && callmode && 
                strcmp(callmode, "interactive") == 0) { 
-            SUMA_SLP_Note(stmp); ++Nwarn_bracket;
-         } else { SUMA_S_Note(stmp); } 
+            SUMA_SLP_Note("%s",stmp); ++Nwarn_bracket;
+         } else { SUMA_S_Note("%s",stmp); } 
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -284,8 +284,8 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          if (!Nwarn_bracket && callmode && 
                strcmp(callmode, "interactive") == 0) { 
-            SUMA_SLP_Note(stmp); ++Nwarn_bracket;
-         } else { SUMA_S_Note(stmp); } 
+            SUMA_SLP_Note("%s",stmp); ++Nwarn_bracket;
+         } else { SUMA_S_Note("%s",stmp); } 
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -443,7 +443,7 @@ int SUMA_comma_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                note = SUMA_append_string("Skipping state ",sv->State);
                note = SUMA_append_replace_string(note, 
                                              ".\nNo surfaces visible.", "", 1);
-               SUMA_SLP_Note(note);
+               SUMA_SLP_Note("%s",note);
                SUMA_free(note);   note = NULL;
             }
 
@@ -539,7 +539,7 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                note = SUMA_append_string("Skipping state ",sv->State);
                note = SUMA_append_replace_string(note, 
                                           ".\nNo surfaces visible.", "", 1);
-               SUMA_SLP_Note(note);
+               SUMA_SLP_Note("%s",note);
                SUMA_free(note);   note = NULL;
             }
 
@@ -822,15 +822,18 @@ int SUMA_F7_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          {
             char stmp[200];
-            sprintf(stmp,"Using %s color mixing mode.", SUMA_ColMixModeString(SUMAg_CF->ColMixMode)); 
-            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note(stmp); }
-            else { SUMA_S_Note(stmp); }
+            sprintf(stmp,"Using %s color mixing mode.", 
+                     SUMA_ColMixModeString(SUMAg_CF->ColMixMode)); 
+            if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_SLP_Note("%s",stmp); }
+            else { SUMA_S_Note("%s",stmp); }
          }
 
          SUMA_SetAllRemixFlag (SUMAg_SVv, SUMAg_N_SVv);
 
          if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                            SES_Suma, NULL);
          if (!SUMA_Engine (&list)) {
                fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
          }
@@ -872,8 +875,8 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                sv->FOV[sv->iState] = sv->FOV[sv->iState] * 2.0;
             }
             if (callmode && strcmp(callmode, "interactive") == 0) { 
-                  SUMA_SLP_Note(stmp); }
-            else { SUMA_S_Note(stmp); }
+                  SUMA_SLP_Note("%s",stmp); }
+            else { SUMA_S_Note("%s",stmp); }
          }
 
          SUMA_SET_GL_PROJECTION(sv, sv->ortho);
@@ -916,8 +919,8 @@ int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                sprintf(stmp,"Hiding Label At Xhair");
             }
             if (callmode && strcmp(callmode, "interactive") == 0 && inote < 2) { 
-               SUMA_SLP_Note(stmp); ++inote;}
-            else { SUMA_S_Note(stmp); }
+               SUMA_SLP_Note("%s",stmp); ++inote;}
+            else { SUMA_S_Note("%s",stmp); }
          }
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break; 
@@ -1486,7 +1489,7 @@ int SUMA_G_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
       SUMA_SL_Err("Nothing to graph");
       SUMA_RETURN(0);
    }
-   inode = SUMA_ADO_SelectedDatum(ado);
+   inode = SUMA_ADO_SelectedDatum(ado, NULL);
    if (inode < 0) {
       if (callmode && strcmp(callmode, "interactive") == 0) {
          SUMA_SLP_Warn("No selected node.\nNothing to graph.");
@@ -1534,7 +1537,7 @@ int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
    int k=0, nc=-1;
    int inode = -1;
    SUMA_DSET *Dset = NULL;
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
    SUMA_OVERLAYS *Sover=NULL;
    char stmp[100]={"\0"};
    SUMA_Boolean LocalHead = NOPE;
@@ -1544,11 +1547,11 @@ int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
    SUMA_KEY_COMMON;
    
 
-   if (!(SO = SUMA_SV_Focus_SO(sv))) {
+   if (!(ado = SUMA_SV_Focus_ADO(sv))) {
       if (callmode && strcmp(callmode, "interactive") == 0) {
-         SUMA_SLP_Err("No surface in focus.\nCannot Jump.");
+         SUMA_SLP_Err("No object in focus.\nCannot Jump.");
       } else {
-         SUMA_S_Err("No surface in focus.\nCannot Jump.");
+         SUMA_S_Err("No object in focus.\nCannot Jump.");
       }
       SUMA_RETURN(0);
    }
@@ -1955,8 +1958,8 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             snprintf(msg,100*sizeof(char),"DO DrawMask now set to: %s", 
                         SUMA_DO_DrawMaskCode2Name_human(sv->DO_DrawMask));
             if (callmode && strcmp(callmode, "interactive") == 0) { 
-                  SUMA_SLP_Note (msg); 
-            } else { SUMA_S_Note (msg); }
+                  SUMA_SLP_Note ("%s",msg); 
+            } else { SUMA_S_Note ("%s",msg); }
          } else {
             sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
             if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
@@ -2000,8 +2003,8 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                sprintf(msg,"Oversampling now set to %d", 
                            SUMAg_CF->SUMA_SnapshotOverSampling);
                if (callmode && strcmp(callmode, "interactive") == 0) { 
-                  SUMA_SLP_Note (msg); 
-               } else { SUMA_S_Note (msg); }
+                  SUMA_SLP_Note ("%s",msg); 
+               } else { SUMA_S_Note ("%s",msg); }
             }
          } else if (SUMA_CTRL_KEY(key)) {
             #if 0
@@ -2175,8 +2178,8 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                sprintf(msg,"Writing resultant image\n"
                            " to HighRes_Suma_tmp.ppm ...");
                if (callmode && strcmp(callmode, "interactive") == 0) { 
-                  SUMA_SLP_Note (msg); 
-               } else { SUMA_S_Note (msg); }
+                  SUMA_SLP_Note ("%s",msg); 
+               } else { SUMA_S_Note ("%s",msg); }
                ISQ_snap_png_rng("HighRes_Photo___tmp",
                                 -(SUMAg_CF->SUMA_SnapshotOverSampling * 
                                   SUMAg_CF->SUMA_SnapshotOverSampling),
@@ -2199,16 +2202,16 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                            SUMAg_CF->autorecord->Path,
                            SUMAg_CF->autorecord->FileName_NoExt);
                if (callmode && strcmp(callmode, "interactive") == 0) { 
-                  SUMA_SLP_Note (sbuf); }
-               else { SUMA_S_Note (sbuf); }
+                  SUMA_SLP_Note ("%s",sbuf); }
+               else { SUMA_S_Note ("%s",sbuf); }
             } else { 
                snprintf(sbuf,256*sizeof(char), 
                         "Disk Recording OFF. Results in: %s%s*",
                            SUMAg_CF->autorecord->Path,
                            SUMAg_CF->autorecord->FileName_NoExt);
                if (callmode && strcmp(callmode, "interactive") == 0) { 
-                  SUMA_SLP_Note (sbuf); }
-               else { SUMA_S_Note (sbuf);} 
+                  SUMA_SLP_Note ("%s",sbuf); }
+               else { SUMA_S_Note ("%s",sbuf);} 
             }
             SUMA_UpdateViewerTitle(sv);
          } else {
@@ -3075,7 +3078,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    char CommString[SUMA_MAX_COMMAND_LENGTH];
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100];
    static char ssource[]={"suma"};
-   int it, ii, iv3[3], hit = 0;
+   int it, ii, iv3[3], hit = 0, SwasHit = 0;
    float **fm, fv3[3], fv15[15];
    XKeyEvent Kev;
    XButtonEvent Bev;
@@ -4208,7 +4211,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SS = SUMA_StringAppend (SS, stmp);
                }
                
-               SUMA_SLP_Note(SS->s);
+               SUMA_SLP_Note("%s",SS->s);
                
                if (Vis_IDs) SUMA_free(Vis_IDs);
                SUMA_free(SS->s);
@@ -4529,7 +4532,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             "viewer #%d : X=%f, Y = %f\n", 
                             SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
                               (float)Bev.x, (float)Bev.y);
-                              
+                             
                /* Bev.state does work in the line below, 
                   unlike Mev.state further down.
                   Using Kev.state anyway because it works in both cases */
@@ -4559,6 +4562,59 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMAg_CF->YokeIntToNode = 0;
                }
 
+               SUMA_LH("Get the selection line, bitte");
+               if (!SUMA_GetSelectionLine (  sv, (int)Bev.x, (int)Bev.y, 
+                                             sv->Pick0, sv->Pick1, 0, 
+                                             NULL, NULL, NULL)) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_GetSelectionLine.\n", 
+                           FuncName);
+                  break;
+               }
+               
+               if (DoubleClick) { /* See if you are selecting masks */
+                  SUMA_ALL_DO *mado=NULL;
+                  /* you do not want to waist time doing double calculations if 
+                     the user clicks twice by mistake */
+                  /* make sure no viewer, other than the one clicked in is in 
+                     momentum mode */
+                  if (SUMAg_N_SVv > 1) {
+                     ii = SUMA_WhichViewerInMomentum (SUMAg_SVv, 
+                                                      SUMAg_N_SVv, NULL);
+                     if (ii >= 0) {
+                        sprintf (s, "You cannot select or draw while viewers\n"
+                                    "(like viewer %c) are in momentum mode.\n", 
+                                    ii+65);
+                        SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                                              s, FuncName, SMT_Error, 
+                                              SMA_LogAndPopup);
+                        SUMA_RETURNe;
+                     }
+                  }
+                  
+                  /* Any hits for masks? */
+                  hit = SUMA_ComputeLineMaskIntersect (sv, SUMAg_DOv, 0, &mado);
+                  if (hit < 0) {
+                    SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
+                  } else if (hit > 0) {
+                     SUMA_S_Warn("Mask was double clicked");
+                  }
+                  if (!MASK_MANIP_MODE(sv)) {
+                     SUMA_S_Note("Turning on mask manip mode");
+                     if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,
+                                               (void *)(ADO_ID(mado)))) {
+                        SUMA_S_Warn("Mask manip mode could not be set");
+                     }
+                  } else {
+                     SUMA_S_Note("Turning off mask manip mode");
+                     if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,NULL)) {
+                        SUMA_S_Warn("Mask manip mode could not be set");
+                     }
+                  }
+                  /* Not much else to do */
+                  goto OUT;
+               }
+               
                if (!DoubleClick) {
                   /* you do not want to waist time doing double calculations if 
                      the user clicks twice by mistake */
@@ -4588,17 +4644,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_OpenGLStateReset(SUMAg_DOv, SUMAg_N_DOv, sv);
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
                   #endif
-                  SUMA_LH("Get the selection line, bitte");
-                  if (!SUMA_GetSelectionLine (  sv, (int)Bev.x, (int)Bev.y, 
-                                                sv->Pick0, sv->Pick1, 0, 
-                                                NULL, NULL, NULL)) {
-                     fprintf (SUMA_STDERR, 
-                              "Error %s: Failed in SUMA_GetSelectionLine.\n", 
-                              FuncName);
+
+                  /* Clear any pre-existing selection */
+                  if (!SUMA_Add_To_PickResult_List(sv, NULL, "TERSUM", NULL)) {
+                     SUMA_S_Err("Failed to clear selections");
                      break;
-                  } 
-
-
+                  }
+                  
                   /* perform the intersection calcluation and mark the surface */
                   SUMA_LHv("Finding hit: %d %d,\n"
                            "Pick0: %f %f %f, Pick1: %f %f %f\n",
@@ -4607,51 +4659,62 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            sv->Pick1[0], sv->Pick1[1], sv->Pick1[2]);
                   
                   
-                  if (SUMA_ALTHELL || 
-                      SUMA_VisibleSOs(sv, SUMAg_DOv, NULL) == 0) {
-                     SUMA_LH("DO picking, order needs attention here");
-                     hit = SUMA_MarkLineDOsIntersect (sv,  SUMAg_DOv, 0);
+                  if (1) {
+                     hit = SUMA_ComputeLineDOsIntersect (sv, SUMAg_DOv, 0, NULL);
                      if (Kev.state & ShiftMask) { /* Show me the click buffer */
                         SUMA_MarkPickInBuffer4(sv, 1, NULL);
                      }
                      if (hit < 0) {
-                        SUMA_S_Err("Failed in SUMA_MarkLineDOsIntersect.");
-                        break;   
+                        SUMA_S_Err("Failed in SUMA_ComputeLineDOsIntersect.");
                      }
-                     goto REDISPLAY;
                   }
                
+                  if (1) {
+                      SUMA_LH("Trying for volume intersections");
+                      hit =  SUMA_ComputeLineVOslicesIntersect(sv, SUMAg_DOv, 
+                                                               0, NULL);
+                      if (hit < 0) {
+                         fprintf( SUMA_STDERR,
+                            "Error %s: "
+                            "Failed in SUMA_MarkLineVOslicesIntersect.\n",
+                                  FuncName);
+                      }
+                  }
+                  
+                  SUMA_S_Warn("Fix me");
+                  #if 0
+                  if (SUMA_ALTHELL || 
+                      SUMA_VisibleSOs(sv, SUMAg_DOv, NULL) == 0) {
+                      SUMA_LH("Trying for cutplanes");
+                      hit = SUMA_MarkLineCutplaneIntersect (sv, SUMAg_DOv, 0);
+                      if (hit < 0) {
+                         fprintf( SUMA_STDERR,
+                            "Error %s: "
+                            "Failed in SUMA_MarkLineCutplaneIntersect.\n",
+                                  FuncName);
+                      }
+                  }
+                  #endif
+                     
                   SUMA_LH("Checking on registered surfaces");
+                  SwasHit = 0;
                   ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
                   if (ii == 0) { /* no surfaces, break */
                      SUMA_LH("No registrants");
                   } else {
                      /* have surfaces, find hits */
-                     hit = SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv, 0);
+                     hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv, 
+                                                             0, NULL);
                      if (hit < 0) {
-                        SUMA_S_Err("Failed in SUMA_MarkLineSurfaceIntersect.");
-                     }
+                       SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
+                     } else if (hit > 0) SwasHit = 1;
+                     
                   }
-                  if (hit == 0) { /* nothing hit, try cut planes  */
-                     if (SUMAg_CF->Dev ) {
-                        SUMA_LH("No hit, trying cutplanes");
-                        hit = SUMA_MarkLineCutplaneIntersect (sv, SUMAg_DOv, 0);
-                        if (hit < 0) {
-                           fprintf( SUMA_STDERR,
-                              "Error %s: "
-                              "Failed in SUMA_MarkLineCutplaneIntersect.\n",
-                                    FuncName);
-                        } else if (hit == 0) { /* nothing hit, go out */
-                        }
-                     } else { /* nothing hit, and don't touch clipplanes, */
-                     }
-                  }
-                  if (hit <= 0) { /* nothing here, get out */
-                     break;
-                  }
+                  
                }
                
-               if (ROI_mode) {
+               
+               if (ROI_mode && (SwasHit || DoubleClick)) {
                   /* keep track of mouse motion in window */
                   if (!SUMA_CreateBrushStroke (sv)) {
                      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
@@ -4666,12 +4729,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      sv->Pick1, YUP); 
                }
                
-               REDISPLAY:
-               SUMA_LH("Calling redisplay");
-               /* redisplay */
-               sv->ResetGLStateVariables = YUP;
-               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
-               
+               ASSESS:
+               SUMA_LH("Assessment");
+               if (dlist_size(sv->SelAdo)) {
+                  if (!SUMA_Process_Selected_ADO(sv,SUMA_ALTHELL)) {
+                     SUMA_S_Err("Failed to process selected ados");
+                     goto OUT;
+                  }
+                  
+                  SUMA_LH("Calling redisplay");
+                  /* redisplay */
+                  sv->ResetGLStateVariables = YUP;
+                  SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
+               }
+               OUT:
                /* reset hold on xforms */
                SUMAg_CF->HoldClickCallbacks = 0;
             break;
@@ -5059,10 +5130,23 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }  
             break;
          
-         case SUMA_Button_3_Motion:
+         case SUMA_Button_3_Motion: {
+            SUMA_ALL_DO *lado=NULL;
+            SUMA_DO_Types lado_type=NOT_SET_type;
+            
+            if (sv->LastSel_ado_idcode_str) {
+               lado = SUMA_whichADOg(sv->LastSel_ado_idcode_str);
+               if (lado) lado_type = lado->do_type;
+            }  
             if (LocalHead) 
                fprintf(SUMA_STDERR,"%s: In motion, Butt3 \n", FuncName); 
             
+            /* Clear any pre-existing selection */
+            if (!SUMA_Add_To_PickResult_List(sv, NULL, "TERSUM", NULL)) {
+               SUMA_S_Err("Failed to clear selections");
+               break;
+            }
+
             if (SUMAg_CF->ROI_mode && SUMA_SV_Focus_SO(sv) && sv->BS) {
                /* ROI drawing mode */
                ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
@@ -5139,47 +5223,79 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                } 
 
-               if (SUMA_ALTHELL ||
-                   SUMA_VisibleSOs(sv,  SUMAg_DOv, NULL) == 0) {
-                     SUMA_LH("Non SO DO picking");
-                     hit = SUMA_MarkLineDOsIntersect (sv,  SUMAg_DOv, 0);
-                     if (hit < 0) {
-                        SUMA_S_Err("Failed in SUMA_MarkLineDOsIntersect.");
-                        break;   
-                     }
-                     goto REDISPLAY_MOTION;
+                  if (lado_type == NOT_SET_type ||
+                      lado_type == MASK_type) {
+               if (!MASK_MANIP_MODE(sv)) { /* You don't want these if 
+                                              you're moving them! */
+                  SUMA_LH("Mask picking");
+                  hit = SUMA_ComputeLineMaskIntersect (sv, SUMAg_DOv, 0, NULL);
+                  if (hit < 0) {
+                     SUMA_S_Err("Failed in SUMA_ComputeLineMaskIntersect.");
+                  }
                }
-
+                  }
+               
+                  if (lado_type == NOT_SET_type ||
+                      lado_type == TRACT_type || lado_type == GRAPH_LINK_type) {
+               if (1) {
+                  SUMA_LH("Tract picking");
+                  hit = SUMA_ComputeLineDOsIntersect (sv, SUMAg_DOv, 0, NULL);
+                  if (hit < 0) {
+                     SUMA_S_Err("Failed in SUMA_ComputeLineDOsIntersect.");
+                  }
+               }
+                  }
+               
+                  if (lado_type == NOT_SET_type ||
+                      lado_type == VO_type) {
+               if (1) {
+                   SUMA_LH("Trying for volume intersections");
+                   hit =  SUMA_ComputeLineVOslicesIntersect(sv, SUMAg_DOv, 
+                                                            0, NULL);
+                   if (hit < 0) {
+                      fprintf( SUMA_STDERR,
+                         "Error %s: "
+                         "Failed in SUMA_MarkLineVOslicesIntersect.\n",
+                               FuncName);
+                   }
+               }
+                  }
+               
+                  if ((lado_type == NOT_SET_type ||
+                       lado_type == SO_type)) {
                ii = SUMA_RegisteredSOs(sv, SUMAg_DOv, NULL);
-               if (ii == 0) { /* no surfaces, break */
-                  break;
+               if (ii > 0) { /* some surfaces, try */
+                  /* perform the intersection calcluation and mark the surface */
+                  hit = SUMA_ComputeLineSurfaceIntersect (sv, SUMAg_DOv, 
+                                                          1, NULL);
+                  if (hit < 0) {
+                     fprintf( SUMA_STDERR,
+                              "Error %s: "
+                              "Failed in SUMA_ComputeLineSurfaceIntersect.\n",
+                              FuncName);
+                     break;
+                  }
                }
+                  }
 
-               /* perform the intersection calcluation and mark the surface */
-               hit = SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv, 1);
-               if (hit < 0) {
-                  fprintf( SUMA_STDERR,
-                           "Error %s: "
-                           "Failed in SUMA_MarkLineSurfaceIntersect.\n",
-                           FuncName);
-                  break;
-               }else if (hit == 0) { /* nothing hit, get out */
-                  break;
-               }
-               
-               REDISPLAY_MOTION:
-               /* redisplay */
-               sv->ResetGLStateVariables = YUP;
-               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
-               
+               ASSESS_MOTION:
+               SUMA_LH("Assessment");
+               if (dlist_size(sv->SelAdo)) {
+                  if (!SUMA_Process_Selected_ADO(sv, SUMA_ALTHELL)) {
+                     SUMA_S_Err("Failed to process selected ado");
+                     SUMA_RETURNe;
+                  }
+
+                  /* redisplay */
+                  sv->ResetGLStateVariables = YUP;
+                  SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
+               }               
+               OUT_MOTION:
                /* reset hold on xforms */
                SUMAg_CF->HoldClickCallbacks = 0;
-
             }
-            
-            
-            
-            break;
+                        
+            break; }
       }
       
       
@@ -5340,7 +5456,7 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
    }
    if (OnDisk) {
       if (!SUMA_PixelsToDisk(sv, sv->X->WIDTH, -sv->X->HEIGHT,
-                          (GLubyte *)sv->pickrenpix4, 4, 1, OnDisk, 1, 0)) {
+                          (GLvoid *)sv->pickrenpix4, 4, 1, OnDisk, 1, 0)) {
          SUMA_S_Err("Failed to write pix to disk");
       }
    }
@@ -5454,9 +5570,10 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
          SUMA_LH("Flushing pickrenpix4");
          Flush = 1;
    } else if (action == 2) { /* recreate if needed */
-      if (SUMA_DiffGeomViewStruct(sv->GVS[sv->StdView], 
+      if (  MASK_MANIP_MODE(sv) || 
+            SUMA_DiffGeomViewStruct(sv->GVS[sv->StdView], 
                                   sv->GVS_last_PickMode[sv->StdView], 1) ||
-         sv->FOV[sv->iState] != sv->FOV_last_PickMode[sv->iState]) {
+            sv->FOV[sv->iState] != sv->FOV_last_PickMode[sv->iState]) {
          SUMA_LH("Have a changed GVS or FOV, flushing pickrenpix4");
          Flush = 1;
       } else {
@@ -5632,8 +5749,9 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
    PR->PickXYZ[1] = MTI->P[1];
    PR->PickXYZ[2] = MTI->P[2];
    sv->Focus_DO_ID = ido;
-   PR->selectedEnode = -1;
+
    PR->datum_index = -1;
+   for (i=0; i<SUMA_N_ALTSEL_TYPES; ++i) PR->AltSel[i] = -1;
    AFF44_MULT_I(I, Aff, MTI->P);
 
    SUMA_LHv("Hit on Frame SO, triangle %d %f %f %f, M=[%d %d]\n"
@@ -5683,32 +5801,41 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
                PR->datum_index = PR->primitive_index = si;
             }
          }  
-         if (MTI->ifacemin == 1) PR->selectedEnode = ii;
-         else PR->selectedEnode = jj;
+         if (MTI->ifacemin == 1) {
+            PR->AltSel[SUMA_ENODE_0] = ii;
+            PR->AltSel[SUMA_ENODE_1] = jj;
+         } else {
+            PR->AltSel[SUMA_ENODE_0] = jj;
+            PR->AltSel[SUMA_ENODE_1] = ii;
+         }
          break;
       case 2:
       case 3:
          /* top edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->selectedEnode = jj;
+         PR->AltSel[SUMA_ENODE_0] = jj;
+         PR->AltSel[SUMA_ENODE_1] = -1;
          break;
       case 4:
       case 5:
          /* right edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->selectedEnode = ii;
+         PR->AltSel[SUMA_ENODE_0] = ii;
+         PR->AltSel[SUMA_ENODE_1] = -1;
          break;
       case 6:
       case 7:
          /* bottom edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->selectedEnode = jj;
+         PR->AltSel[SUMA_ENODE_0] = jj;
+         PR->AltSel[SUMA_ENODE_1] = -1;
          break;
       case 8:
       case 9:
          /* left edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->selectedEnode = ii;
+         PR->AltSel[SUMA_ENODE_0] = ii;
+         PR->AltSel[SUMA_ENODE_1] = -1;
          break;
       default:
          SUMA_S_Errv("Faceset %d???\n", MTI->ifacemin);
@@ -5718,6 +5845,154 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
    MTI = SUMA_Free_MT_intersect_triangle(MTI); 
    
    SUMA_RETURN(PR);
+}
+
+/*!
+   \brief find the closest location on a bundle to a point
+   on the screen.
+   
+   p (void *) One bundle
+   ptype (char): Type of bundle. 'N' --> p is a NI_element *
+                                 'B' --> p is a TAYLOR_BUNDLE *
+   Tmask (int): if not < 0 then only consider intersections in
+                tract Tmask of the bundle.
+   sv (SUMA_SurfaceViewer *) The viewer
+   scpx (float *) The pixel location in screen coordinates.
+                  If NULL, form it from sv->PickPix;
+   crude (int) if (0) then use crude search, return closest point
+                      not bothering with where along the segment
+                      between the two closest points you are
+                  1   a fine search, locating where between
+                      the two closest points one clicked
+   tmin (int *) Will contain the index of the tract that was
+                hit within the bundle (-1 for no cigar)
+   pmin (int *) Will contain the index of the closest point
+                to the hit in tract tmin
+   fmin (float *) Will contain the fraction between pmin and
+                  pmin+1 where intersection occurred
+   mindist (float *) Distance from closest location on tract
+   \ret YUP all good, NOPE nothing found or bad input
+*/
+   
+SUMA_Boolean SUMA_Bundle_Pick_Intersect(void *p, char ptype, int Tmask,
+                     SUMA_SurfaceViewer *sv, float *scpxu, int crude,
+                     int *tmin, int *pmin, float *frmin, float *mindistu)
+{
+   static char FuncName[]={"SUMA_Bundle_Pick_Intersect"};
+   int nn, nnmin, mmmin, mm, nn_max, nn_min;
+   float *scrxyz = NULL, dx, dy, dxy2=0.0, fmin, scpx[3];
+   float  mindist2, mindist, *A, *B;
+   double P[3], f = 0.0;
+   NI_element *nelitp=NULL;
+   TAYLOR_BUNDLE *tb = NULL;
+   TAYLOR_TRACT *ttn=NULL;
+
+   SUMA_ENTRY;
+   
+   if (tmin) *tmin = -1;
+   if (pmin) *pmin = -1;
+   if (frmin) *frmin = -1.0;
+   if (mindistu) *mindistu = -1.0;
+   
+   if (!p || !sv) SUMA_RETURN(NOPE);
+   
+   nn_min = 0;
+   if (ptype == 'N') { /* NI_element */
+      nelitp = (NI_element *)p;
+      nn_max = nelitp->vec_len;
+   } else if (ptype == 'B') { /* Taylor Bundle */
+      tb = (TAYLOR_BUNDLE *)p;
+      if (Tmask < 0) {
+         nn_max = tb->N_tracts;
+      } else {
+         if (Tmask < tb->N_tracts) {
+            nn_min = Tmask;
+            nn_max = nn_min+1;
+         } else {
+            SUMA_S_Err("Tmask (%d) exceeds number of tracts (%d) in bundle", 
+                       Tmask, tb->N_tracts);
+            SUMA_RETURN(NOPE);
+         }
+      }
+   } else {
+      SUMA_RETURN(NOPE);
+   }
+   
+   nnmin=-1; mmmin=-1; mindist=mindist2=1000; fmin=1.0;
+   if (scpxu) {
+      scpx[0] = scpxu[0]; scpx[1] = scpxu[1]; scpx[2] = scpxu[2];
+   } else {
+      GLint viewport[4];
+      glGetIntegerv(GL_VIEWPORT, viewport);
+      /* screen pick coordinate in screen coords */
+      scpx[0] = sv->PickPix[0]; 
+      scpx[1] = viewport[3]-sv->PickPix[1]-1;
+      scpx[2] = 0.0;
+   }
+   
+   for (nn=nn_min; nn<nn_max; ++nn) {
+      if (nelitp) {
+         ttn = (TAYLOR_TRACT *)(nelitp->vec[0])+nn;
+      } else {
+         ttn = tb->tracts+nn; 
+      }
+      scrxyz = (float *)SUMA_calloc(ttn->N_pts3, sizeof(float));
+      memcpy(scrxyz, ttn->pts, (ttn->N_pts3)*sizeof(float));
+      /* tranform bundle points to screen space*/
+      if (!SUMA_World2ScreenCoordsF(sv, ttn->N_pts3/3, 
+                                   ttn->pts, scrxyz, NULL, 
+                                   YUP, YUP)) {
+         SUMA_S_Err("Failed to get screen coords");
+         SUMA_RETURN(NOPE);
+      }
+      /* Now search for the closest point of bundle to the click 
+         The depth is ignored, in the hope that a simple closest
+         search is enough. Otherwise we need to add a heuristic
+         for the cost of depth */
+      if (crude) {
+            /* For finer tracing, you should project scpx onto the 
+            segment between the 1st and 2 points forming a segment,
+            much like what is done in SUMA_PROJECT_C_ONTO_AB below 
+            The finer tracing is needed for crass paths. However  
+            for real bundles, on high-res data this might be 
+            overkill */
+         mm=0;                                                       
+         while (mm < ttn->N_pts3) {
+            if ( ((dx = SUMA_ABS(scrxyz[mm  ]-scpx[0])) < mindist) &&
+                 ((dy = SUMA_ABS(scrxyz[mm+1]-scpx[1])) < mindist) ){                            if ((dxy2 = dx*dx+dy*dy) < mindist2) {
+                  mindist2 = dxy2; 
+                  mindist  = sqrtf(mindist2);
+                  nnmin=nn; mmmin=mm/3;  fmin = 0.0;
+               }
+            }
+            mm += 3;
+         }
+      } else {
+         mm=0;
+         while (mm < ttn->N_pts3-3) {
+            A = scrxyz+mm;
+            B = scrxyz+mm+3;
+            SUMA_PROJECT_C_ONTO_AB(scpx, A, B, P, f);
+            if ( (f > -0.2 && f < 1.2) &&
+                 ((dx = SUMA_ABS(P[0]-scpx[0])) < mindist) &&
+                 ((dy = SUMA_ABS(P[1]-scpx[1])) < mindist) ){                                    if ((dxy2 = dx*dx+dy*dy) < mindist2) {
+                  mindist2 = dxy2; 
+                  mindist  = sqrtf(mindist2);
+                  nnmin=nn; mmmin=mm/3; fmin=f;
+               }
+            }
+            mm += 3;
+         }                     
+      }
+      SUMA_ifree(scrxyz);
+   }
+
+   if (tmin) *tmin=nnmin;
+   if (pmin) *pmin=mmmin;
+   if (frmin) *frmin=fmin;
+   if (mindistu) *mindistu = mindist;
+   
+   SUMA_RETURN(YUP);
 }
 
 /* Find the object that was picked, pointer copy to found object is 
@@ -5731,6 +6006,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
    DListElmt *el=NULL;
    SUMA_COLID_OFFSET_DATUM *cod=NULL, *codf=NULL;
    long int n4;
+   int iii;
    double f = 0.0;
    SUMA_ALL_DO *ado=NULL;
    SUMA_DUMB_DO DDO;
@@ -5767,7 +6043,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
       NI_element *nelitp=NULL;
       float *fv=NULL;
       double xyzw[9], scl[9], U[3], P[3], C[3], *dv=NULL;
-      int quad[3], i0, i1, ir, datum_index;
+      int i0, i1, ir, datum_index;
       SUMA_ALL_DO *ado=NULL;
       SUMA_DSET *dset=NULL;
       GLint viewport[4];
@@ -5776,6 +6052,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                                                codf->ref_idcode_str);
       PR->primitive = SUMA_replace_string(PR->primitive, codf->primitive);
       PR->primitive_index = (n4-codf->i0);
+      for (i0=0; i0<SUMA_N_ALTSEL_TYPES; ++i0) PR->AltSel[i0] = -1;
+      PR->datum_index = -1;
       ado = SUMA_whichADOg(PR->ado_idcode_str);
       switch (codf->ref_do_type) {
          case GRAPH_LINK_type: {
@@ -5805,6 +6083,86 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                
                if ((nelitp = SUMA_GDSET_Edge_Bundle(dset, 
                                           SDSET_GSAUX(dset), datum_index, -1))) {
+               #if 1 /* more unified version, older, valid one below */
+                  int nn=0, mm=0, nnmin=-1, mmmin=-1, mmmin3=-1;
+                  float scpx[3], *A, *B;
+                  float mindist, dist, distatmin, seglen;
+                  float fmin;
+                  TAYLOR_TRACT *ttn=NULL;
+                  
+                  SUMA_LHv("Clicked on a bundle representation of edge %d.\n",
+                           datum_index);
+                  /* screen pick coordinate in screen coords */
+                  scpx[0] = sv->PickPix[0]; 
+                  scpx[1] = viewport[3]-sv->PickPix[1]-1;
+                  scpx[2] = 0.0;
+                  /* find the closest point to where we clicked on the bundle */
+                  if (!SUMA_Bundle_Pick_Intersect(nelitp, 'N', -1, sv, scpx, 0, 
+                                                  &nnmin, &mmmin, 
+                                                  &fmin, &mindist)) {
+                     SUMA_LH("No bunlde intersection");
+                  }
+                  mmmin3 = 3*mmmin;
+                  if (nnmin > -1) {
+                     ttn = (TAYLOR_TRACT *)(nelitp->vec[0])+nnmin;
+                     if (fmin != 0.0f) {
+                        PR->PickXYZ[0]=ttn->pts[mmmin3+0]+
+                                    fmin*(ttn->pts[mmmin3+3]-ttn->pts[mmmin3]);
+                        PR->PickXYZ[1]=ttn->pts[mmmin3+1]+
+                                    fmin*(ttn->pts[mmmin3+4]-ttn->pts[mmmin3+1]);
+                        PR->PickXYZ[2]=ttn->pts[mmmin3+2]+
+                                    fmin*(ttn->pts[mmmin3+5]-ttn->pts[mmmin3+2]);
+                        /* where along the tract? */
+                        mm=0; dist=0.0; distatmin=19999.9;
+                        while (mm < ttn->N_pts3-3) {
+                           A = ttn->pts+mm;
+                           B = ttn->pts+mm+3;
+                           seglen =  sqrtf((B[0]-A[0])*(B[0]-A[0])+
+                                           (B[1]-A[1])*(B[1]-A[1])+
+                                           (B[2]-A[2])*(B[2]-A[2]));
+                           if (mm==mmmin3) {
+                              distatmin = dist + fmin*seglen;
+                           }
+                           dist +=seglen;
+                           mm += 3;
+                        }
+                        /* Which is the closest node? */
+                        f = distatmin/dist;
+                        if (f <= 0.5) {
+                           PR->AltSel[SUMA_ENODE_0] = i0;
+                           PR->AltSel[SUMA_ENODE_0] = i1;
+                           if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
+                              PR->datum_index = datum_index;
+                           } else PR->datum_index = -1;
+                        } else {
+                           SUMA_LHv("++half way, look for opp. edge [%d %d]\n",
+                                    i1, i0);
+                           PR->AltSel[SUMA_ENODE_0] = i1;
+                           PR->AltSel[SUMA_ENODE_1] = i0;
+                           
+                           if (SUMA_ABS(1.0-f) > 0.01){/*not too close to edge*/
+                              /* does edge [i1, i0] exist? If so take it*/
+                              if (SUMA_GDSET_PointsToSegIndex(dset,i1,i0,&ir)) {
+                                 SUMA_LHv("Switching primitve to edge %d\n", ir);
+                                 PR->datum_index = ir;
+                              } else { /* leave old hit, no opposite edge */
+                                 PR->datum_index = datum_index;
+                              }
+                           } else PR->datum_index = -1;
+                        }
+                     } else { /* from the quick search, no fmin used*/
+                        PR->PickXYZ[0]=ttn->pts[mmmin3+0];
+                        PR->PickXYZ[1]=ttn->pts[mmmin3+1];
+                        PR->PickXYZ[2]=ttn->pts[mmmin3+2];
+                     }
+                  } else {
+                     PR->PickXYZ[0] = PR->PickXYZ[1] = PR->PickXYZ[2]=0.0;
+                  }
+                  SUMA_LHv("Closest distance of %f, tract %d, point %d, f=%f\n"
+                           "at world [%f %f %f]\n",
+                           mindist, nnmin, mmmin, fmin,
+                           PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
+               #else
                   int nn=0, mm=0, nnmin=-1, mmmin=-1;
                   float *scrxyz = NULL, scpx[3], *A, *B;
                   float mindist, mindist2, dist, distatmin, seglen;
@@ -5825,7 +6183,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                      memcpy(scrxyz, ttn->pts, (ttn->N_pts3)*sizeof(float));
                      /* tranform bundle points to screen space*/
                      if (!SUMA_World2ScreenCoordsF(sv, ttn->N_pts3/3, 
-                                                  ttn->pts, scrxyz, quad, 
+                                                  ttn->pts, scrxyz, NULL, 
                                                   YUP, YUP)) {
                         SUMA_S_Err("Failed to get screen coords");
                         SUMA_RETURN(PR);
@@ -5896,14 +6254,17 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                         /* Which is the closest node? */
                         f = distatmin/dist;
                         if (f <= 0.5) {
-                           PR->selectedEnode = i0;
+                           PR->AltSel[SUMA_ENODE_0] = i0;
+                           PR->AltSel[SUMA_ENODE_1] = i1;
+                           
                            if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
                               PR->datum_index = datum_index;
                            } else PR->datum_index = -1;
                         } else {
                            SUMA_LHv("++half way, look for opp. edge [%d %d]\n",
                                     i1, i0);
-                           PR->selectedEnode = i1;
+                           PR->AltSel[SUMA_ENODE_0] = i1;
+                           PR->AltSel[SUMA_ENODE_1] = i0;
                            if (SUMA_ABS(1.0-f) > 0.01){/*not too close to edge*/
                               /* does edge [i1, i0] exist? If so take it*/
                               if (SUMA_GDSET_PointsToSegIndex(dset,i1,i0,&ir)) {
@@ -5926,6 +6287,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                            "at world [%f %f %f]\n",
                            mindist, nnmin, mmmin, fmin,
                            PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
+                  
+               #endif
                } else {
                   SUMA_LHv("Segment %d is formed by points %d and %d\n",
                            datum_index, i0, i1);
@@ -5937,7 +6300,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                   xyzw[7] = (sv->Pick0[1]+sv->Pick1[1])/2.0;
                   xyzw[8] = (sv->Pick0[2]+sv->Pick1[2])/2.0;
 
-                  if (!SUMA_World2ScreenCoords(sv, 3,xyzw,scl, quad, YUP, YUP)) {
+                  if (!SUMA_World2ScreenCoords(sv, 3,xyzw,scl, NULL, YUP, YUP)) {
                      SUMA_S_Err("Failed to get screen coords");
                      SUMA_RETURN(PR);
                   }
@@ -5972,14 +6335,16 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
 
                   /* Which is the closest node? */
                   if (f <= 0.5) {
-                     PR->selectedEnode = i0;
+                     PR->AltSel[SUMA_ENODE_0] = i0;
+                     PR->AltSel[SUMA_ENODE_1] = i1;
                      if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
                         PR->datum_index = datum_index;
                      } else PR->datum_index = -1;
                   } else {
                      SUMA_LHv("++half way, looking for opp. edge [%d %d]\n",
                               i1, i0);
-                     PR->selectedEnode = i1;
+                     PR->AltSel[SUMA_ENODE_0] = i1;
+                     PR->AltSel[SUMA_ENODE_1] = i0;
                      if (SUMA_ABS(1.0-f) > 0.01) { /* not too close to edge */
                         /* does edge [i1, i0] exist? If so take it*/
                         if (SUMA_GDSET_PointsToSegIndex(dset, i1, i0, &ir)) {
@@ -5992,10 +6357,11 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                   }
                }
             } else { /* picked a node, no data on it*/
-               PR->selectedEnode =
+               PR->AltSel[SUMA_ENODE_0] = 
                   SUMA_GDSET_Index_To_NodeIndex(dset, PR->primitive_index);
+               PR->AltSel[SUMA_ENODE_1] = -1;
                PR->datum_index = -1;
-               fv = SUMA_GDSET_NodeXYZ(dset, PR->selectedEnode, 
+               fv = SUMA_GDSET_NodeXYZ(dset, PR->AltSel[SUMA_ENODE_0], 
                                        SUMA_ADO_variant(ado), NULL);
                PR->PickXYZ[0]=fv[0]; PR->PickXYZ[1]=fv[1]; PR->PickXYZ[2]=fv[2];
             }                        
@@ -6003,6 +6369,96 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
          case SDSET_type:
             SUMA_S_Err("I don't expect dsets to be picked");
             break;
+         case VO_type:
+            SUMA_S_Err("VOs not picked on buffer....");
+            break;
+         case MASK_type:
+            SUMA_S_Err("Masks not picked on buffer....");
+            break;
+         case TRACT_type:
+            {
+            SUMA_TractDO *tdo=(SUMA_TractDO *)ado;
+            int nn=0, mm=0, nnmin=-1, mmmin=-1, mmmin3=-1, oki=0, it=0, ib=0;
+            float *scrxyz = NULL;
+            float mindist, dist;
+            float fmin;
+            TAYLOR_TRACT *ttn=NULL;
+            TAYLOR_BUNDLE *tb=NULL;
+
+            oki = 0;
+            if (!strcmp(PR->primitive,"bundles")) {
+               ib = PR->primitive_index;
+               SUMA_LHv("Seeking bundle %d/%d\n", 
+                           (int)PR->primitive_index, tdo->net->N_tbv);
+               tb = TDO_BUNDLE(tdo, PR->primitive_index);
+               if (!(oki=SUMA_Bundle_Pick_Intersect(tb, 'B', -1, sv, NULL, 0, 
+                                            &nnmin, &mmmin, &fmin, &mindist))) {
+                  SUMA_LH("No bunlde intersection");
+               }
+            } else if (!strcmp(PR->primitive,"tracts")) {
+               SUMA_LHv("Seeking tract %d/%d\n", 
+                           (int)PR->primitive_index, TDO_N_TRACTS(tdo));
+               if (Network_1T_to_TB(tdo->net, 
+                           (int)PR->primitive_index, &it, &ib, NULL, NULL) < 0) {
+                  SUMA_S_Err("Failed to resolve tract index");
+               } else {
+                  tb = TDO_BUNDLE(tdo, ib);
+                  if (!(oki=SUMA_Bundle_Pick_Intersect(tb, 'B', it, sv, NULL, 0, 
+                                            &nnmin, &mmmin, &fmin, &mindist))) {
+                     SUMA_LH("No tract intersection");
+                  }
+               }
+            }
+            if (oki) {
+               if (nnmin > -1) {
+                  mmmin3=3*mmmin;
+                  ttn = tb->tracts+nnmin;
+                  if (fmin != 0.0f) {
+                     PR->PickXYZ[0]=ttn->pts[mmmin3+0]+
+                                 fmin*(ttn->pts[mmmin3+3]-ttn->pts[mmmin3]);
+                     PR->PickXYZ[1]=ttn->pts[mmmin3+1]+
+                                 fmin*(ttn->pts[mmmin3+4]-ttn->pts[mmmin3+1]);
+                     PR->PickXYZ[2]=ttn->pts[mmmin3+2]+
+                                 fmin*(ttn->pts[mmmin3+5]-ttn->pts[mmmin3+2]);
+                  } else {
+                     /* from the quick search, no fmin used*/
+                     PR->PickXYZ[0]=ttn->pts[mmmin3+0];
+                     PR->PickXYZ[1]=ttn->pts[mmmin3+1];
+                     PR->PickXYZ[2]=ttn->pts[mmmin3+2];   
+                  }
+                  PR->AltSel[SUMA_TRC_PNT] = mmmin; 
+                  PR->AltSel[SUMA_BUN_TRC] = nnmin; 
+                  PR->AltSel[SUMA_NET_BUN] = ib;  
+                  PR->datum_index = Network_PTB_to_1P(tdo->net,
+                                                      PR->AltSel[SUMA_TRC_PNT], 
+                                                      PR->AltSel[SUMA_BUN_TRC],
+                                                      PR->AltSel[SUMA_NET_BUN]);
+                  PR->AltSel[SUMA_NET_TRC] = Network_TB_to_1T(tdo->net,
+                                                      PR->AltSel[SUMA_BUN_TRC],
+                                                      PR->AltSel[SUMA_NET_BUN]);
+                  SUMA_LHv("Bundle %ld intersected, tract %ld, "
+                           "point %ld, tract in net %ld. \n"
+                           "Point NetID: %ld\n"
+                           "XYZ[%.3f %.3f %.3f], fmin=%f\n", 
+                           PR->AltSel[SUMA_NET_BUN], 
+                           PR->AltSel[SUMA_BUN_TRC],
+                           PR->AltSel[SUMA_TRC_PNT], 
+                           PR->AltSel[SUMA_NET_TRC], PR->datum_index, 
+                           PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2], fmin);
+                           
+                  #if 0 /* Just to debug reverse lookup */
+                  if (Network_1P_to_PTB(tdo->net, PR->datum_index, 
+                                         &mmmin, &nnmin, &nn, NULL) < 0) {
+                     SUMA_S_Err("Failed in reverse lookup test");
+                  } else {
+                     SUMA_LHv("Inverse lookup: %ld --> P %d, T %d, B %d\n",
+                              PR->datum_index, mmmin, nnmin, nn); 
+                  }
+                  #endif
+               }
+            }
+            f = fmin;
+            break; }
          default:
             SUMA_S_Warnv("Not ready to get location for %s\n",
                       SUMA_ObjectTypeCode2ObjectTypeName(codf->ref_do_type));
@@ -6015,11 +6471,14 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
          SUMA_S_Notev("\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"
                    "DO pick: colid (%ld=[%d %d %d %d]) \n"
                    "      is in    <%s, %s, %s>, f=%1.3f\n"
-                   "   datum = %ld, selectedEnode = %ld\n"
-                      "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n", 
-                  n4, colid[0], colid[1], colid[2], colid[3],
-                  cod->Label, cod->variant, cod->primitive, f, 
-                  PR->datum_index, PR->selectedEnode);
+                   "   datum = %ld, AltSel = [",
+                   n4, colid[0], colid[1], colid[2], colid[3],
+                   cod->Label, cod->variant, cod->primitive, f, 
+                   PR->datum_index);
+        for (iii=0; iii<SUMA_N_ALTSEL_TYPES; ++iii)
+            fprintf(SUMA_STDOUT, "%ld, ", PR->AltSel[iii]);          
+        fprintf(SUMA_STDOUT, "]\n"
+                      "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
    }
    
    SUMA_RETURN(PR);
@@ -6028,12 +6487,13 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
 SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR) 
 {
    static char FuncName[]={"SUMA_New_Pick_Result"};
+   int i;
    if (!PR) {
       PR = (SUMA_PICK_RESULT *)SUMA_calloc(1,sizeof(SUMA_PICK_RESULT));
    }
    PR->primitive_index = -1;
    PR->datum_index = -1;
-   PR->selectedEnode = -1;
+   for (i=0; i<SUMA_N_ALTSEL_TYPES; ++i) PR->AltSel[i] = -1;
    SUMA_ifree(PR->primitive);
    SUMA_ifree(PR->ado_idcode_str);
 
@@ -6047,6 +6507,7 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
    if (!PR) SUMA_RETURN(PR);
    SUMA_ifree(PR->primitive);
    SUMA_ifree(PR->ado_idcode_str);
+   SUMA_ifree(PR->dset_idcode_str);
    SUMA_free(PR);
    SUMA_RETURN(NULL);
 }
@@ -6060,10 +6521,12 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
    if (!PRP || !*PRP) SUMA_RETURN(NOPE);  
 
    switch (ado->do_type) {
-      case SO_type:
-         SUMA_S_Err("SOs don't store this yet");
-         SUMA_RETURN(NOPE);
-         break;
+      case SO_type: {
+         SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
+         SUMA_free_PickResult(Saux->PR);
+         Saux->PR = *PRP; *PRP = NULL;
+         SUMA_RETURN(YUP);
+         break; }
       case SDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *Saux = SDSET_GSAUX(dset);
@@ -6073,14 +6536,99 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
          break; }
       case GRAPH_LINK_type: 
          SUMA_RETURN(SUMA_ADO_StorePickResult(
-            (SUMA_ALL_DO*)SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado),PRP));
+            (SUMA_ALL_DO*)SUMA_find_GLDO_Dset(
+                           (SUMA_GraphLinkDO*)ado),PRP));
          break;
+      case TRACT_type: {
+         SUMA_TRACT_SAUX *Saux = SUMA_ADO_TSaux(ado);
+         SUMA_free_PickResult(Saux->PR);
+         Saux->PR = *PRP; *PRP = NULL;
+         SUMA_RETURN(YUP);
+         break; }
+      case MASK_type: {
+         SUMA_MASK_SAUX *Saux = SUMA_ADO_MSaux(ado);
+         if (Saux) {
+            SUMA_free_PickResult(Saux->PR);
+            Saux->PR = *PRP; *PRP = NULL;
+         } else {
+            SUMA_S_Err("NULL Saux!!!, don't let that happen");
+            SUMA_RETURN(NOPE);
+         }
+         SUMA_RETURN(YUP);
+         break; }
+      case VO_type: {
+         SUMA_VOL_SAUX *Saux = SUMA_ADO_VSaux(ado);
+         if (!(*PRP)->primitive) {
+            SUMA_S_Err("NULL primitve not acceptable for VOs");
+            break;
+         }
+         if (!strcmp((*PRP)->primitive,"voxel")) {
+            SUMA_free_PickResult(Saux->PR);
+            Saux->PR = *PRP; *PRP = NULL;
+            SUMA_RETURN(YUP);
+         } else if (!strcmp((*PRP)->primitive,"cutplane")) {
+            SUMA_free_PickResult(Saux->PRc);
+            Saux->PRc = *PRP; *PRP = NULL;
+            SUMA_RETURN(YUP);
+         } else {
+            SUMA_S_Err("Bad primitive %s for VO", (*PRP)->primitive);
+            SUMA_DUMP_TRACE("Who dunit?");
+         }
+         break; }
       default:
          SUMA_S_Errv("Note ready for type %s\n", ADO_TNAME(ado));
          break; 
    }
    SUMA_RETURN(NOPE);
 }
+
+SUMA_PICK_RESULT * SUMA_ADO_GetPickResult(SUMA_ALL_DO *ado, char *primitive)
+{
+   static char FuncName[]={"SUMA_ADO_GetPickResult"};
+   SUMA_PICK_RESULT *PR=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!ado) SUMA_RETURN(NULL);  
+   if (!primitive) primitive = "none";
+   
+   switch (ado->do_type) {
+      case SO_type:{
+         SUMA_SURF_SAUX *Saux = SUMA_ADO_SSaux(ado);
+         SUMA_RETURN(Saux->PR);
+         break; }
+      case SDSET_type: {
+         SUMA_DSET *dset=(SUMA_DSET *)ado;
+         SUMA_GRAPH_SAUX *Saux = SDSET_GSAUX(dset);
+         SUMA_RETURN(Saux->PR);
+         break; }
+      case GRAPH_LINK_type: 
+         SUMA_RETURN(SUMA_ADO_GetPickResult(
+           (SUMA_ALL_DO*)SUMA_find_GLDO_Dset((SUMA_GraphLinkDO*)ado),primitive));
+         break;
+      case TRACT_type: {
+         SUMA_TRACT_SAUX *Saux = SUMA_ADO_TSaux(ado);
+         SUMA_RETURN(Saux->PR);
+         break; }
+      case MASK_type: {
+         SUMA_MASK_SAUX *Saux = SUMA_ADO_MSaux(ado);
+         SUMA_RETURN(Saux->PR);
+         break; }
+      case VO_type: {
+         SUMA_VOL_SAUX *Saux = SUMA_ADO_VSaux(ado);
+         if (!strcmp(primitive,"voxel")) SUMA_RETURN(Saux->PR);
+         else if (!strcmp(primitive,"cutplane")) SUMA_RETURN(Saux->PRc);
+         else {
+            SUMA_S_Err("Bad primitive %s for VO", primitive);
+         }
+         break; }
+      default:
+         SUMA_S_Errv("Note ready for type %s\n", ADO_TNAME(ado));
+         break; 
+   }
+   SUMA_RETURN(NOPE);
+}
+
 
 /*!
 */
@@ -6161,6 +6709,20 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
                         SUMA_ADO_Label(ado),
                         SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
                break;
+            case TRACT_type:
+               SS = SUMA_StringAppend_va(SS,
+                        "     Reference object is a tract object labeled %s "
+                        "(reference type %s)\n",
+                        SUMA_ADO_Label(ado),
+                        SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
+               break;
+            case MASK_type:
+               SS = SUMA_StringAppend_va(SS,
+                        "     Reference object is a mask object labeled %s "
+                        "(reference type %s)\n",
+                        SUMA_ADO_Label(ado),
+                        SUMA_ObjectTypeCode2ObjectTypeName(cod->ref_do_type));
+               break;
             default:
                SS = SUMA_StringAppend_va(SS,
                      "     Parent, not surface or dset.\n");
@@ -6175,14 +6737,38 @@ char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list)
    SUMA_RETURN(s);
 }
 
-/*!
-   Determines the intersection between pickline and displayable objects
-*/
 int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                int IgnoreSameNode)
 {
    static char FuncName[]={"SUMA_MarkLineDOsIntersect"};
-   int i, j, it=-1, iv3[3],  *MembDOs=NULL, N_MembDOs;
+
+   SUMA_PICK_RESULT *PR = NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int ans;
+   
+   SUMA_ENTRY;
+   SUMA_S_Warn("Do not call me anymore."
+               "Go via SUMA_ComputeLineDOsIntersect. "
+               "This is left here for testing purposes");
+   ans = SUMA_ComputeLineDOsIntersect(sv, dov, IgnoreSameNode, &ado);
+   if (ans <= 0) {
+      SUMA_RETURN(ans);
+   }
+   /* just for temporary testing, get PR back from list and apply it */
+   PR = SUMA_Get_From_PickResult_List(sv, ado, NULL);
+   ans = SUMA_Apply_PR(sv, &PR);
+   
+   SUMA_RETURN(ans);
+}
+
+/*!
+   Determines the intersection between pickline and displayable objects
+*/
+int SUMA_ComputeLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                  int IgnoreSameNode, SUMA_ALL_DO **pado)
+{
+   static char FuncName[]={"SUMA_ComputeLineDOsIntersect"};
+   int i, j, *MembDOs=NULL, N_MembDOs;
    SUMA_DO_Types ttv[12];
    SUMA_PICK_RESULT *hit=NULL;
    GLubyte colans[4];
@@ -6212,12 +6798,14 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 
    /* Any pickable DO, other than brain surfaces, that does not require
       pick buffer picking? */
-   ttv[0] = GRAPH_LINK_type;
-   MembDOs = SUMA_ViewState_Membs(&(sv->VSv[sv->iState]), ttv, 1, &N_MembDOs);
+   ttv[0] = GRAPH_LINK_type; ttv[1] = NOT_SET_type;
+   MembDOs = SUMA_ViewState_Membs(&(sv->VSv[sv->iState]), ttv, &N_MembDOs);
    for (i=0; i<N_MembDOs; ++i) {
       if ((hit = SUMA_WhatWasPicked_FrameSO(sv, MembDOs[i]))) { 
          /* got something, leave. Perhaps in the future will need to go through
          all stack (slices) and pick the best one ... */
+         ado = iDO_ADO(MembDOs[i]);
+         if (pado) *pado = ado;
          break;
       }
    }
@@ -6233,201 +6821,503 @@ int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          SUMA_S_Err("Could not form pickrenpix4, should this be an error?");
          SUMA_RETURN(-1);
       }
-
-      /* get pixel at click */
-      i = sv->PickPix[0]; j = sv->PickPix[1];
-      if (SUMA_GetColidInPickBuffer4(sv->pickrenpix4, 
-                           sv->X->WIDTH, sv->X->HEIGHT,
-                           &i, &j, 2, colans)) {
-         if (LocalHead) { 
-            /* Just for debugging, draw the crosshair point */
-            SUMA_MarkPickInBuffer4(sv, 1, NULL);
-            SUMA_LHv("User pixel selection: \n"
-                     "  closest hit to click at %d %d was from %d %d\n"
-                     "  colid = %d %d %d %d \n", 
-                     sv->PickPix[0], sv->PickPix[1], i, j, 
-                     colans[0] , colans[1],
-                     colans[2] , colans[3]);
-         }
-         /* so what was that you touched */
-         hit = SUMA_WhatWasPicked(sv, colans, &codf, i, j, NULL);
-         if ((sv->Focus_DO_ID = SUMA_Picked_DO_ID(codf)) < 0) {
-            SUMA_S_Err("Failed to find picked DO despite hit!");
-            SUMA_RETURN(-1);
-         }
+      if (!sv->pick_colid_list || !dlist_size(sv->pick_colid_list)) {
+         SUMA_LH("No such pickable objects");
       } else {
-         SUMA_LH("There is no there there\n");
-         hit = NULL;
+         /* get pixel at click */
+         i = sv->PickPix[0]; j = sv->PickPix[1];
+         if (SUMA_GetColidInPickBuffer4(sv->pickrenpix4, 
+                              sv->X->WIDTH, sv->X->HEIGHT,
+                              &i, &j, 2, colans)) {
+            if (LocalHead) { 
+               /* Just for debugging, draw the crosshair point */
+               SUMA_MarkPickInBuffer4(sv, 1, NULL);
+               SUMA_LHv("User pixel selection: \n"
+                        "  closest hit to click at %d %d was from %d %d\n"
+                        "  colid = %d %d %d %d \n", 
+                        sv->PickPix[0], sv->PickPix[1], i, j, 
+                        colans[0] , colans[1],
+                        colans[2] , colans[3]);
+            }
+            /* so what was that you touched. Note hit is never
+               returned as null. */
+            hit = SUMA_WhatWasPicked(sv, colans, &codf, i, j, NULL);
+            if (!hit || !hit->ado_idcode_str) {
+               SUMA_LH("Not hit found.");
+            } else {
+               if (!(ado = iDO_ADO(SUMA_Picked_DO_ID(codf)))) {
+                  SUMA_S_Err("Could not locate object in codf (%s) /hit (%s)!",
+                            codf->ref_idcode_str, hit->ado_idcode_str);
+                  SUMA_free_PickResult(hit); hit = NULL;
+               } else {
+                  if (pado) *pado = ado;
+               }
+            }
+         } else {
+            SUMA_LH("There is no there there\n");
+            hit = NULL;
+         }
       }
    }
    
-      /* Mark intersection Facsets */
-   if (hit) {
-      ado = SUMA_SV_Focus_ADO(sv);
-      SUMA_LHv("Hit object type %s, label %s\n",
+   if (hit && ado) {
+      SUMA_LH("Adding hit to list");
+      if (!SUMA_Add_To_PickResult_List(sv, ado, NULL, &hit)) {
+         SUMA_S_Err("Failed to add selected ado");
+         SUMA_RETURN(-1);
+      }
+      SUMA_RETURN(1);
+   } else SUMA_RETURN(0);
+}
+
+int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
+                     SUMA_PICK_RESULT **PRi)
+{
+   static char FuncName[]={"SUMA_Apply_PR_DO"};
+   DList *list = NULL;
+   DListElmt *SetNodeElem = NULL, *Location=NULL;
+   SUMA_Boolean NodeIgnored = NOPE;
+   SUMA_PICK_RESULT *PR;
+   int NP=0, ip=0, it=-1, id = 0, iv3[3], iv15[15];
+   SUMA_EngineData *ED = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+  
+   SUMA_ENTRY;
+   SUMA_LH("Here");
+   if (!sv || !ado || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
+
+   PR = *PRi; /* keep local copy */
+   /* Store the PR in ado, hide it from return potential */
+   SUMA_ADO_StorePickResult(ado, PRi);
+         
+   SUMA_LHv("Hit object type %s, label %s\n",
          SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type),
          SUMA_ADO_Label(ado));
-      SUMA_UpdateViewerTitle(sv);
+         
+   sv->Focus_DO_ID = ADO_iDO(ado);
+   SUMA_UpdateViewerTitle(sv);
 
-      /* if the surface controller is open, update it */
-      if (SUMA_isADO_Cont_Realized(ado))
-         SUMA_Init_SurfCont_SurfParam(ado);
-      
-      /* Based on what you selected, update controller */
-      /* Set the Nodeselection at the closest node */
-      if (hit->datum_index >= 0 ||
-          (hit->datum_index == -1 && hit->selectedEnode >= 0)) { 
-                        /* 2nd condition is when only edge node is selected */
-         it = (int)hit->datum_index;
-         if (!list) list = SUMA_CreateList();
-         if (IgnoreSameNode && SUMA_ADO_SelectedDatum(ado) == it) {
-            SUMA_LHv("Ignoring identical datum selection %d on object %s\n",
-                     SUMA_ADO_SelectedDatum(ado), SUMA_ADO_Label(ado));
-            NodeIgnored = YUP;
+   /* if the surface controller is open, update it */
+   if (SUMA_isADO_Cont_Realized(ado))
+      SUMA_Init_SurfCont_SurfParam(ado);
+
+   /* print nodes about the pick */
+   switch (ado->do_type) {
+      case TRACT_type:
+   fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+   fprintf(SUMA_STDOUT, "Selected network %s (Focus_DO_ID # %d).\n"
+                        "Point %ld, (Bundle %ld, Tract %ld, Point %ld)\n", 
+      ADO_LABEL(ado), sv->Focus_DO_ID, PR->datum_index,
+      PR->AltSel[SUMA_NET_BUN], PR->AltSel[SUMA_BUN_TRC],
+      PR->AltSel[SUMA_TRC_PNT]);
+   fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
+   fprintf(SUMA_STDOUT, "%f, %f, %f\n", 
+      PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
+   fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+         break;
+      case MASK_type:
+   fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+   fprintf(SUMA_STDOUT, "Selected mask %s (Focus_DO_ID # %d).\n", 
+      ADO_LABEL(ado), sv->Focus_DO_ID);
+   fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
+   fprintf(SUMA_STDOUT, "%f, %f, %f\n", 
+      PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
+   fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+         break;
+      case GRAPH_LINK_type:
+   fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+   fprintf(SUMA_STDOUT, "Selected Graph Dset %s (Focus_DO_ID # %d).\n"
+                        "Edge %ld, (P0 %ld, P1 %ld)\n", 
+      ADO_LABEL(ado), sv->Focus_DO_ID, PR->datum_index,
+      PR->AltSel[SUMA_ENODE_0], PR->AltSel[SUMA_ENODE_1]);
+   fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
+   fprintf(SUMA_STDOUT, "%f, %f, %f\n", 
+      PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
+   fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");   
+         break;
+      default:
+   SUMA_S_Err("Not yet set to report on %s", ADO_LABEL(ado));
+         break;
+   }
+    
+   /* Based on what you selected, update controller */
+   /* Set the Nodeselection at the closest node */
+   if (PR->datum_index >= 0 ||
+       (PR->datum_index == -1 && PR->AltSel[SUMA_ENODE_0] >= 0)) { 
+                     /* 2nd condition is when only edge node is selected */
+      it = (int)PR->datum_index;
+      if (!list) list = SUMA_CreateList();
+      if (PR->ignore_same_datum && SUMA_ADO_SelectedDatum(ado, NULL) == it) {
+         SUMA_LHv("Ignoring identical datum selection %d on object %s\n",
+                  SUMA_ADO_SelectedDatum(ado, NULL), SUMA_ADO_Label(ado));
+         NodeIgnored = YUP;
+      } else {
+         ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+         SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
+                                                SEF_i, (void*)&it,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Head, NULL);
+         if (!SetNodeElem) {
+            fprintf( SUMA_STDERR,
+                     "Error %s: Failed to register SetNodeElem\n", FuncName);
+            SUMA_RETURN (-1);
          } else {
-            ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
-            SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
-                                                   SEF_i, (void*)&it,
-                                                   SES_Suma, (void *)sv, NOPE,
-                                                   SEI_Head, NULL);
-            if (!SetNodeElem) {
-               fprintf( SUMA_STDERR,
-                        "Error %s: Failed to register SetNodeElem\n", FuncName);
-               SUMA_RETURN (-1);
-            } else {
-               SUMA_RegisterEngineListCommand (  list, ED, 
-                                                 SEF_ngr, NULL,
-                                                 SES_Suma, (void *)sv, NOPE,
-                                                 SEI_In, SetNodeElem);  
-            }
-         }
-      }
-      
-      
-      /* Set the selected edge node (cunningly in recycled selected face set) */
-      it = hit->selectedEnode;
-      ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_i, (void*)&it,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-         SUMA_RETURN (-1);
-      }
-      
-      /* Now set the cross hair position at the intersection*/
-      ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-      if (!(Location = SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_fv3, (void*)hit->PickXYZ,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL))) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-         SUMA_RETURN (-1);
-      }
-      /* and add the ado with this location, needed for VisX business*/
-      SUMA_RegisterEngineListCommand (  list, ED, 
-                                              SEF_vp, (void *)ado,
+            SUMA_RegisterEngineListCommand (  list, ED, 
+                                              SEF_ngr, NULL,
                                               SES_Suma, (void *)sv, NOPE,
-                                              SEI_In, Location);
-      /* attach the cross hair to the selected ado */
-      iv3[0] = SUMA_whichDO(hit->ado_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-      iv3[1] = hit->datum_index; 
-      iv3[2] = hit->selectedEnode;
-      ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_iv3, (void*)iv3,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                                              SEI_In, SetNodeElem);  
+         }
+         iv15[SUMA_NET_BUN] = (int)PR->AltSel[SUMA_NET_BUN];
+         iv15[SUMA_BUN_TRC] = (int)PR->AltSel[SUMA_BUN_TRC];
+         iv15[SUMA_TRC_PNT] = (int)PR->AltSel[SUMA_TRC_PNT];
+         iv15[SUMA_NET_TRC] = (int)PR->AltSel[SUMA_NET_TRC];
+         SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_iv15, (void *)iv15,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, SetNodeElem);  
+      }
+   }
+      
+      
+   /* Set the selected edge node (cunningly in recycled selected face set) */
+   it = PR->AltSel[SUMA_ENODE_0];
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+
+   /* Now set the cross hair position at the intersection*/
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!(Location = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)PR->PickXYZ,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+   /* and add the ado with this location, needed for VisX business*/
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_vp, (void *)ado,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+   /* attach the cross hair to the selected ado */
+   iv3[0] = SUMA_whichDO(PR->ado_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   iv3[1] = PR->datum_index; 
+   iv3[2] = PR->AltSel[SUMA_ENODE_0];
+   ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+
+   /* check to see if AFNI needs to be notified */
+   /* Need to deal with SUMA_TO_MATLAB_STREAM_INDEX too 
+      Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
+   if (  ( SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
+           sv->LinkAfniCrossHair )                             ||
+         ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])    ) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                  "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* register a call to SetAfniCrossHair */
+      if (!list) list = SUMA_CreateList();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
+                                          SES_Suma, sv);
+      if (!SUMA_Engine (&list)) {
+         fprintf( SUMA_STDERR, 
+                  "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN (-1);
       }
+   }else {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
+   }
 
-      /* check to see if AFNI needs to be notified */
-      /* Need to deal with SUMA_TO_MATLAB_STREAM_INDEX too 
-         Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
-      if (  ( SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
-              sv->LinkAfniCrossHair )                             ||
-            ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])    ) {
+   /* now put in a request for locking cross hair but you must do 
+      this after the node selection has been executed 
+      NOTE: You do not always have SetNodeElem because the list might 
+      get emptied in the call to AFNI notification.
+      You should just put the next call at the end of the list.*/
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
+{
+   static char FuncName[]={"SUMA_Apply_PR"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Here");
+   if (!sv || !PR || !*PR) {
+      SUMA_S_Err("NULL input %p %p %p", sv, PR, *PR);
+      SUMA_DUMP_TRACE("creep");
+      SUMA_RETURN(-1);
+   }
+   if (MASK_MANIP_MODE(sv)) {
+      SUMA_LH("Mask Manip Mode, moving to %f %f %f\n", 
+               (*PR)->PickXYZ[0], (*PR)->PickXYZ[1], (*PR)->PickXYZ[2]);
+      /* Just move the selected mask */
+      ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+      if (ado->do_type != MASK_type) {
+         SUMA_S_Err("Bad ID for mouse mode value");
+         SUMA_RETURN(-1);
+      }
+      SUMA_RETURN(SUMA_MDO_New_Center((SUMA_MaskDO *)ado, (*PR)->PickXYZ));
+   } else {
+      ado = SUMA_whichADOg((*PR)->ado_idcode_str);
+      SUMA_LH("Here %s", ADO_LABEL(ado));
+      SUMA_ifree(sv->LastSel_ado_idcode_str);
+      sv->LastSel_ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
+      switch (ado->do_type) {
+         case SO_type:
+            SUMA_RETURN(SUMA_Apply_PR_SO(sv, (SUMA_SurfaceObject *)ado, PR)); 
+            break;
+         case VO_type:
+            SUMA_RETURN(SUMA_Apply_PR_VO(sv, (SUMA_VolumeObject *)ado, PR)); 
+            break;
+         case GRAPH_LINK_type:
+            SUMA_RETURN(SUMA_Apply_PR_DO(sv, ado, PR)); 
+            break;
+         case TRACT_type:
+            SUMA_RETURN(SUMA_Apply_PR_DO(sv, ado, PR)); 
+            break;
+         case MASK_type:
+            SUMA_RETURN(SUMA_Apply_PR_DO(sv, ado, PR)); 
+            break;
+         default:
+            SUMA_S_Err("Not yet implemented for %s", ADO_TNAME(ado));
+            SUMA_RETURN(-1);
+            break;
+      }
+   }
+   SUMA_RETURN(-1);
+}
+
+int SUMA_MarkLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                int IgnoreSameNode)
+{/* determine intersection */
+   static char FuncName[]={"SUMA_MarkLineMaskIntersect"};
+   SUMA_PICK_RESULT *PR = NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int ans;
+   
+   SUMA_ENTRY;
+   SUMA_S_Warn("Do not call me anymore. Follow the new selection logic");
+   ans = SUMA_ComputeLineMaskIntersect(sv, dov, IgnoreSameNode, &ado);
+   if (ans <= 0) {
+      SUMA_RETURN(ans);
+   }
+   /* just for temporary testing, get PR back from list and apply it */
+   PR = SUMA_Get_From_PickResult_List(sv, ado, NULL);
+   ans = SUMA_Apply_PR(sv, &PR);
+   SUMA_RETURN(ans);
+}
+
+int SUMA_ComputeLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                      int IgnoreSameNode, SUMA_ALL_DO **pado)
+{/* determine intersection */
+   static char FuncName[]={"SUMA_ComputeLineMaskIntersect"};
+   float P0f[3], P1f[3];
+   int NP; 
+   SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL, *MTIi = NULL;
+   float delta_t_tmp, dmin; 
+   struct timeval tt_tmp; 
+   int ip, it, id, ii, N_MDOlist, 
+       MDOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], imin;
+   char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
+   SUMA_MaskDO *MDO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   P0f[0] = sv->Pick0[0];
+   P0f[1] = sv->Pick0[1];
+   P0f[2] = sv->Pick0[2];
+   P1f[0] = sv->Pick1[0];
+   P1f[1] = sv->Pick1[1];
+   P1f[2] = sv->Pick1[2];
+   
+   N_MDOlist = SUMA_VisibleMDOs(sv, dov, MDOlist);
+   imin = -1;
+   dmin = 10000000.0;
+   for (ii=0; ii < N_MDOlist; ++ii) { /* find the closest intersection */
+      if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+                     "%s: working %d/%d shown masks ...\n", 
+                     FuncName, ii, N_MDOlist);
+      MDO = (SUMA_MaskDO *)dov[MDOlist[ii]].OP;
+      if (!MDO_IS_SURF(MDO) && !MDO_IS_BOX(MDO) && !MDO_IS_SPH(MDO)) {
+         fprintf(SUMA_STDERR,
+            "Error %s: "
+            "Not ready to handle such MDO (%s) intersections\n", 
+            FuncName, MDO->mtype);
+      } if (!MDO->SO) {
+         SUMA_S_Err("No SO buster");
+      } else {
+         /* Here we're doing the intersection the lazy way, via the SO,
+         although this can be done a lot faster in other ways for box and
+         sphere, speed is not an issue here */
+         SUMA_etime (&tt_tmp, 0);
+         MTIi = SUMA_MT_intersect_triangle(P0f, P1f, MDO->SO->NodeList,
+                                 MDO->SO->N_Node, MDO->SO->FaceSetList, 
+                                 MDO->SO->N_FaceSet, NULL, 0);
+
+         delta_t_tmp = SUMA_etime (&tt_tmp, 1);
          if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+               "Local Debug %s: Intersection took %f seconds.\n", 
+               FuncName, delta_t_tmp);
+
+         if (MTIi == NULL) {
             fprintf(SUMA_STDERR,
-                     "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-         /* register a call to SetAfniCrossHair */
-         if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
-                                             SES_Suma, sv);
-         if (!SUMA_Engine (&list)) {
-            fprintf( SUMA_STDERR, 
-                     "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     "Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
             SUMA_RETURN (-1);
          }
-      }else {
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
+         
+         if (MTIi->N_hits) { 
+            /* decide on the closest surface to the clicking point */
+            if (MTIi->t[MTIi->ifacemin] < dmin) {
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, "%s: A minimum for surface %d.\n", 
+                           FuncName, ii);
+               dmin = MTIi->t[MTIi->ifacemin];
+               imin = MDOlist[ii];
+               MTI = MTIi;
+            }else {     
+               /* not good, toss it away */
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, 
+                           "%s: ii=%d freeing MTIi...\n", FuncName, ii);
+               MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
+            }
+         }else {
+            /* not good, toss it away */
+           if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
+           MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
+        }
       }
-      
-      /* now put in a request for locking cross hair but you must do 
-         this after the node selection has been executed 
-         NOTE: You do not always have SetNodeElem because the list might 
-         get emptied in the call to AFNI notification.
-         You should just put the next call at the end of the list.*/
-      if (!list) list = SUMA_CreateList();
-      ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_iv3, (void*)iv3,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Tail, NULL)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-         SUMA_RETURN (-1);
+    } 
+
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Closest surface is indexed %d in DOv.\n", FuncName, imin);
+   
+   if (imin >= 0) {
+      SUMA_PICK_RESULT *PR;
+      SUMA_ALL_DO *ado;
+      if (!(ado = iDO_ADO(imin))) {
+         SUMA_S_Err("NULL ado at this point?");
+         SUMA_RETURN(-1);
       }
-      if (!SUMA_Engine (&list)) {
-         fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-         SUMA_RETURN (-1);
+      PR = (SUMA_PICK_RESULT *)SUMA_calloc(1, sizeof(SUMA_PICK_RESULT));
+      if (pado) *pado = ado; /* user want answer back */
+      PR->ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
+      PR->datum_index = MTI->inodemin;
+      PR->ignore_same_datum = IgnoreSameNode;
+      PR->AltSel[SUMA_SURF_TRI] = MTI->ifacemin;
+      SUMA_COPY_VEC(MTI->P, PR->PickXYZ, 3, float, float);
+      /* Add selection result to stack */
+      if (!SUMA_Add_To_PickResult_List(sv, ado, NULL, &PR)) {
+         SUMA_S_Err("Failed to add selected ado");
+         SUMA_RETURN(-1);
       }
+   } 
+   
+   /* clear MTI */
+   if (MTI) {
+      MTI = SUMA_Free_MT_intersect_triangle(MTI);
    }
-   if (hit) {
-      SUMA_ADO_StorePickResult(ado, &hit);
-      if (hit) hit = SUMA_free_PickResult(hit);
-      SUMA_RETURN(1);
-   } else {
-      SUMA_RETURN(0);
+   
+   if (imin >=0) SUMA_RETURN(1);
+   else SUMA_RETURN(0);
+}
+
+
+int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                    int IgnoreSameNode)
+{
+   static char FuncName[]={"SUMA_MarkLineSurfaceIntersect"};
+   SUMA_PICK_RESULT *PR = NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int ans;
+   
+   SUMA_ENTRY;
+   SUMA_S_Warn("Do not call me anymore."
+               "Go via SUMA_ComputeLineSurfaceIntersect. "
+               "This is left here for testing purposes");
+   ans = SUMA_ComputeLineSurfaceIntersect(sv, dov, IgnoreSameNode, &ado);
+   if (ans <= 0) {
+      SUMA_RETURN(ans);
    }
+   /* just for temporary testing, get PR back from list and apply it */
+   PR = SUMA_Get_From_PickResult_List(sv, ado, NULL);
+   ans = SUMA_Apply_PR(sv, &PR);
+   
+   SUMA_RETURN(ans);
 }
 
 /*!
    Determines the intersection between ]sv->Pick0 sv->Pick1[ and SO
    Highlights the intersected faceset, node and updates cross hair location 
    This used to be part of Button3's code in SUMA_input
-   ans = SUMA_MarkLineSurfaceIntersect (sv, dov);
+   ans = SUMA_ComputeLineSurfaceIntersect (sv, dov);
    \param sv (SUMA_SurfaceViewer *) surface viewer pointer
    \param dov (SUMA_DO *) displayable object vector pointer
    \param IgnoreSameNode (int) 1 do nothing if node already selected
                                0 don't care if it was already selected
+   \param pado  (SUMA_ALL_DO **) If not NULL, *pado will contain a copy
+                                 of an ADO pointer to the intersected
+                                 object, if any. 
    \ret ans (int)  -1 error, 0 no hit, hit 
+   
+   Note that this function will register whatever surfaces get hit in the
+   selections list with a call to SUMA_Add_To_PickResult_List()
    
    also requires SUMAg_DOv and SUMAg_N_DOv
 */
-int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
-                                    int IgnoreSameNode)
+int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                      int IgnoreSameNode, SUMA_ALL_DO **pado)
 {/* determine intersection */
-   static char FuncName[]={"SUMA_MarkLineSurfaceIntersect"};
+   static char FuncName[]={"SUMA_ComputeLineSurfaceIntersect"};
    float P0f[3], P1f[3];
    int NP; 
    SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL, *MTIi = NULL;
    float delta_t_tmp, dmin; 
    struct timeval tt_tmp; 
-   int ip, it, id, iv3[3], ii, N_SOlist, 
+   int ip, it, id, ii, N_SOlist, 
        SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], imin;
    char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
-   SUMA_EngineData *ED = NULL;
-   DList *list = NULL;
-   DListElmt *SetNodeElem = NULL, *Location=NULL;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean NodeIgnored = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-
+   
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
    P0f[2] = sv->Pick0[2];
@@ -6500,177 +7390,222 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    if (LocalHead) 
       fprintf (SUMA_STDERR, 
                "%s: Closest surface is indexed %d in DOv.\n", FuncName, imin);
-      
-   /* Mark intersection Facsets */
+   
    if (imin >= 0) {
-      sv->Focus_DO_ID = imin;
-      SUMA_UpdateViewerTitle(sv);
-      SO = (SUMA_SurfaceObject *)dov[imin].OP;
-      NP = SO->FaceSetDim;
-      ip = NP * MTI->ifacemin;
-
-      /* if the surface controller is open, update it */
-      if (SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SO))
-         SUMA_Init_SurfCont_SurfParam((SUMA_ALL_DO *)SO);
-
-      /* print nodes about the closets faceset*/
-      fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
-      fprintf(SUMA_STDOUT, "Selected surface %s (Focus_DO_ID # %d).\n"
-                           "FaceSet %d, Closest Node %d\n", 
-         SO->Label, sv->Focus_DO_ID, MTI->ifacemin, MTI->inodemin);
-      fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
-      fprintf(SUMA_STDOUT, "%d, %d, %d\n", 
-         SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
-
-      fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
-      for (it=0; it < 3; ++it) { 
-
-         id = SO->NodeDim * SO->FaceSetList[ip+it];
-         fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[id],
-                                              SO->NodeList[id+1],
-                                              SO->NodeList[id+2]);
+      SUMA_PICK_RESULT *PR;
+      SUMA_ALL_DO *ado;
+      if (!(ado = iDO_ADO(imin))) {
+         SUMA_S_Err("NULL ado at this point?");
+         SUMA_RETURN(-1);
       }
-      fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
-
-      /* Set the Nodeselection at the closest node */
-      it = MTI->inodemin;
-      if (!list) list = SUMA_CreateList();
-      if (IgnoreSameNode && SO->SelectedNode == MTI->inodemin) {
-         SUMA_LHv("Ignoring identical node selection %d on surface %s\n",
-                  SO->SelectedNode, SO->Label);
-         NodeIgnored = YUP;
-      } else {
-         ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
-         SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
-                                                SEF_i, (void*)&it,
-                                                SES_Suma, (void *)sv, NOPE,
-                                                SEI_Head, NULL);
-         if (!SetNodeElem) {
-            fprintf( SUMA_STDERR,
-                     "Error %s: Failed to register SetNodeElem\n", FuncName);
-            SUMA_RETURN (-1);
-         } else {
-            SUMA_RegisterEngineListCommand (  list, ED, 
-                                              SEF_ngr, NULL,
-                                              SES_Suma, (void *)sv, NOPE,
-                                              SEI_In, SetNodeElem);  
-         }
+      PR = (SUMA_PICK_RESULT *)SUMA_calloc(1, sizeof(SUMA_PICK_RESULT));
+      if (pado) *pado = ado; /* user want answer back */
+      PR->ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
+      PR->datum_index = MTI->inodemin;
+      PR->ignore_same_datum = IgnoreSameNode;
+      PR->AltSel[SUMA_SURF_TRI] = MTI->ifacemin;
+      SUMA_COPY_VEC(MTI->P, PR->PickXYZ, 3, float, float);
+      /* Add selection result to stack */
+      if (!SUMA_Add_To_PickResult_List(sv, ado, NULL, &PR)) {
+         SUMA_S_Err("Failed to add selected ado");
+         SUMA_RETURN(-1);
       }
-      
-      
-      /* Set the FaceSetselection */
-      it = MTI->ifacemin;
-      ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_i, (void*)&it,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-         SUMA_RETURN (-1);
-      }
-      
-      /* Now set the cross hair position at the intersection*/
-      ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-      if (!(Location = SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_fv3, (void*)MTI->P,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL))) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-         SUMA_RETURN (-1);
-      }
-      /* and add the SO with this location, needed for VisX business*/
-      SUMA_RegisterEngineListCommand (  list, ED, 
-                                              SEF_vp, (void *)SO,
-                                              SES_Suma, (void *)sv, NOPE,
-                                              SEI_In, Location);
-                                              
-      /* attach the cross hair to the selected surface */
-      iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-      iv3[1] = MTI->inodemin;
-      iv3[2] = MTI->ifacemin;
-      ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_iv3, (void*)iv3,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Head, NULL)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-         SUMA_RETURN (-1);
-      }
-      
-      /* check to see if AFNI needs to be notified */
-      /* Need to deal with SUMA_TO_MATLAB_STREAM_INDEX too 
-         Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
-      if (  ( SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
-              sv->LinkAfniCrossHair )                             ||
-            ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])    ) {
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,
-                     "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-         /* register a call to SetAfniCrossHair */
-         if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
-                                             SES_Suma, sv);
-         if (!SUMA_Engine (&list)) {
-            fprintf( SUMA_STDERR, 
-                     "Error %s: SUMA_Engine call failed.\n", FuncName);
-            SUMA_RETURN (-1);
-         }
-      }else {
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
-      }
-      
-      /* put in a request for GICOR if need be */
-      if (  !NodeIgnored &&
-            SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
-            SUMAg_CF->giset && !SUMAg_CF->HoldClickCallbacks) {
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,
-                     "%s: Notifying GICOR of node selection\n", FuncName);
-         /* register a call to SetGICORnode */
-         if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetGICORnode, 
-                                             SES_Suma, sv);
-         if (!SUMA_Engine (&list)) {
-            fprintf( SUMA_STDERR, 
-                     "Error %s: SUMA_Engine call failed.\n", FuncName);
-            SUMA_RETURN (-1);
-         }
-      }else {
-         if (LocalHead) 
-            fprintf(SUMA_STDERR,"%s: No Notification to GICOR.\n", FuncName);
-      }
-      /* now put in a request for locking cross hair but you must do 
-         this after the node selection has been executed 
-         NOTE: You do not always have SetNodeElem because the list might 
-         get emptied in the call to AFNI notification.
-         You should just put the next call at the end of the list.*/
-      if (!list) list = SUMA_CreateList();
-      ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
-      if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_iv3, (void*)iv3,
-                                             SES_Suma, (void *)sv, NOPE,
-                                             SEI_Tail, NULL)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
-         SUMA_RETURN (-1);
-      }
-      
-      if (!SUMA_Engine (&list)) {
-         fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-         SUMA_RETURN (-1);
-      }
-   }
-    
+   } 
+   
    /* clear MTI */
    if (MTI) {
       MTI = SUMA_Free_MT_intersect_triangle(MTI);
    }
    
-   if (imin >= 0) {
-      SUMA_RETURN (1); /* hit */
-   } else {
-      SUMA_RETURN (0); /* no hit */
+   if (imin >=0) SUMA_RETURN(1);
+   else SUMA_RETURN(0);
+}
+
+int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, 
+                     SUMA_PICK_RESULT **PRi) 
+{
+   static char FuncName[]={"SUMA_Apply_PR_SO"};
+   SUMA_ALL_DO *ado=NULL;
+   DList *list = NULL;
+   DListElmt *SetNodeElem = NULL, *Location=NULL;
+   SUMA_Boolean NodeIgnored = NOPE;
+   SUMA_PICK_RESULT *PR;
+   int NP=0, ip=0, it=0, id = 0, iv3[3];
+   SUMA_EngineData *ED = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   SUMA_LH("Here");
+   if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
+    
+   /* Mark intersection Facsets */
+   ado = (SUMA_ALL_DO *)SO;
+
+   PR = *PRi;   /* Keep local copy */
+   /* Store the PR in ado, hide it from return potential */
+   SUMA_ADO_StorePickResult(ado, PRi);
+   
+   
+   sv->Focus_DO_ID = ADO_iDO(ado);
+   SUMA_UpdateViewerTitle(sv);
+
+   NP = SO->FaceSetDim;
+   ip = NP * PR->AltSel[SUMA_SURF_TRI];
+      
+   
+   /* if the surface controller is open, update it */
+   if (SUMA_isADO_Cont_Realized(ado))
+       SUMA_Init_SurfCont_SurfParam(ado);
+
+   /* print nodes about the closets faceset*/
+   fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+   fprintf(SUMA_STDOUT, "Selected surface %s (Focus_DO_ID # %d).\n"
+                        "FaceSet %ld, Closest Node %ld\n", 
+      SO->Label, sv->Focus_DO_ID, PR->AltSel[SUMA_SURF_TRI], 
+      PR->datum_index);
+   fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
+   fprintf(SUMA_STDOUT, "%d, %d, %d\n", 
+      SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
+
+   fprintf (SUMA_STDOUT,"Coordinates of Nodes forming closest FaceSet:\n");
+   for (it=0; it < 3; ++it) { 
+
+      id = SO->NodeDim * SO->FaceSetList[ip+it];
+      fprintf(SUMA_STDOUT, "%f, %f, %f\n", SO->NodeList[id],
+                                           SO->NodeList[id+1],
+                                           SO->NodeList[id+2]);
    }
+   fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+
+   /* Set the Nodeselection at the closest node */
+   it = PR->datum_index;
+   if (!list) list = SUMA_CreateList();
+   if (PR->ignore_same_datum && SO->SelectedNode == PR->datum_index) {
+      SUMA_LHv("Ignoring identical node selection %d on surface %s\n",
+               SO->SelectedNode, SO->Label);
+      NodeIgnored = YUP;
+   } else {
+      ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+      SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_i, (void*)&it,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL);
+      if (!SetNodeElem) {
+         fprintf( SUMA_STDERR,
+                  "Error %s: Failed to register SetNodeElem\n", FuncName);
+         SUMA_RETURN (-1);
+      } else {
+         SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_ngr, NULL,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, SetNodeElem);  
+      }
+   }
+      
+      
+   /* Set the FaceSetselection */
+   it = PR->AltSel[SUMA_SURF_TRI];
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+
+   /* Now set the cross hair position at the intersection*/
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!(Location = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)PR->PickXYZ,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+   /* and add the SO with this location, needed for VisX business*/
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_vp, (void *)SO,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+
+   /* attach the cross hair to the selected surface */
+   iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   iv3[1] = PR->datum_index;
+   iv3[2] = PR->AltSel[SUMA_SURF_TRI];
+   ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+      
+   /* check to see if AFNI needs to be notified */
+   /* Need to deal with SUMA_TO_MATLAB_STREAM_INDEX too 
+      Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
+   if (  ( SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
+           sv->LinkAfniCrossHair )                             ||
+         ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])    ) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                  "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* register a call to SetAfniCrossHair */
+      if (!list) list = SUMA_CreateList();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
+                                          SES_Suma, sv);
+      if (!SUMA_Engine (&list)) {
+         fprintf( SUMA_STDERR, 
+                  "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+   }else {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
+   }
+
+   /* put in a request for GICOR if need be */
+   if (  !NodeIgnored &&
+         SUMAg_CF->Connected_v[SUMA_GICORR_LINE] && 
+         SUMAg_CF->giset && !SUMAg_CF->HoldClickCallbacks) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+                  "%s: Notifying GICOR of node selection\n", FuncName);
+      /* register a call to SetGICORnode */
+      if (!list) list = SUMA_CreateList();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetGICORnode, 
+                                          SES_Suma, sv);
+      if (!SUMA_Engine (&list)) {
+         fprintf( SUMA_STDERR, 
+                  "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+   }else {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: No Notification to GICOR.\n", FuncName);
+   }
+   /* now put in a request for locking cross hair but you must do 
+      this after the node selection has been executed 
+      NOTE: You do not always have SetNodeElem because the list might 
+      get emptied in the call to AFNI notification.
+      You should just put the next call at the end of the list.*/
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+    
+   SUMA_RETURN (1); /* OK */
 }/* determine intersection */
 
 int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
@@ -6695,7 +7630,6 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
 
    P0f[0] = sv->Pick0[0];
    P0f[1] = sv->Pick0[1];
@@ -6775,11 +7709,32 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       
    /* Mark intersection Facsets */
    if (imin >= 0) {
+      SUMA_ALL_DO *ado=NULL;
       if (!(VO = SUMA_VolumeObjectOfClipPlaneSurface(SO))) {
          SUMA_S_Err("Failed to find volume object for clipped surface");
          SUMA_RETURN(-1);
       }
       VO->SelectedCutPlane = imin;
+      SUMA_S_Warn("NEED TO IMPLEMENT PR THING HERE, THEN PASS IT BELOW");
+      ado = (SUMA_ALL_DO *)VO;
+      if (!SUMA_Add_To_PickResult_List(sv, ado, "cutplane", NULL)) {
+         SUMA_S_Err("Failed to add selected ado");
+         SUMA_RETURN(-1);
+      }
+      /* Now set this volume as the focus DO */
+      sv->Focus_DO_ID = 
+         SUMA_findVO_inDOv(SUMA_ADO_idcode(ado), SUMAg_DOv, SUMAg_N_DOv);
+
+      /* if the surface controller is open, update it */
+      if (SUMA_isADO_Cont_Realized(ado))
+         SUMA_Init_SurfCont_SurfParam(ado);
+
+      SUMA_UpdateViewerTitle(sv);
+      
+      /* if the surface controller is open, update it */
+      if (SUMA_isADO_Cont_Realized(ado))
+         SUMA_Init_SurfCont_SurfParam(ado);
+
       
       ip = SO->FaceSetDim * MTI->ifacemin;
       SUMA_S_Note("Have to decide on what to do here,\n"
@@ -6887,6 +7842,255 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       SUMA_RETURN (0); /* no hit */
    }
 }/* determine intersection with cutplanes*/
+
+int SUMA_MarkLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                    int IgnoreSameNode)
+{/* determine intersection */
+   static char FuncName[]={"SUMA_MarkLineVOslicesIntersect"};
+   SUMA_PICK_RESULT *PR = NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int ans;
+   
+   SUMA_ENTRY;
+   SUMA_S_Warn("Do not call me anymore. Follow the new selection logic");
+   ans = SUMA_ComputeLineVOslicesIntersect(sv, dov, IgnoreSameNode, &ado);
+   if (ans <= 0) {
+      SUMA_RETURN(ans);
+   }
+   /* just for temporary testing, get PR back from list and apply it */
+   PR = SUMA_Get_From_PickResult_List(sv, ado, NULL);
+   ans = SUMA_Apply_PR(sv, &PR);
+   SUMA_RETURN(ans);
+}
+
+int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                       int IgnoreSameNode, SUMA_ALL_DO **pado)
+{/* determine intersection */
+   static char FuncName[]={"SUMA_ComputeLineVOslicesIntersect"};
+   float P0f[3], P1f[3], pinter[3], I[3];
+   int NP; 
+   float delta_t_tmp, dmin, val; 
+   struct timeval tt_tmp; 
+   int ip, it, id, ii, imin, I1d, Irw, Hit, ive, icolplane;
+   char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
+   SUMA_VolumeObject *VO=NULL;
+   SUMA_Boolean NodeIgnored = NOPE;
+   SUMA_RENDERED_SLICE *rslc;
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_DSET *dset = NULL;
+   SUMA_OVERLAYS *colplane=NULL;
+   SUMA_VOL_SAUX *VSaux = NULL;
+   SUMA_PICK_RESULT *PR=NULL;
+   DListElmt *el=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   P0f[0] = sv->Pick0[0];
+   P0f[1] = sv->Pick0[1];
+   P0f[2] = sv->Pick0[2];
+   P1f[0] = sv->Pick1[0];
+   P1f[1] = sv->Pick1[1];
+   P1f[2] = sv->Pick1[2];
+   
+   SUMA_LHv("Searching for hit: %f %f %f --> %f %f %f\n", 
+            P0f[0], P0f[1], P0f[2], P1f[0], P1f[1], P1f[2]);   
+   Hit = 0;
+   for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+      if (SUMA_isVO(SUMAg_DOv[ii])) {
+         VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+         ado = (SUMA_ALL_DO *)VO;
+         VSaux = SUMA_ADO_VSaux(ado);
+         SUMA_LH("%d slices on %s", dlist_size(VSaux->slcl), ADO_LABEL(ado));
+         if (!dlist_size(VSaux->slcl)) continue;
+         /* now compute intersection from the top down */
+         el = NULL;
+         do {
+            if (!el) el = dlist_head(VSaux->slcl);
+            else el = dlist_next(el);
+            rslc = (SUMA_RENDERED_SLICE *)el->data;
+            /* does line intersect this plane? */
+            SUMA_SEGMENT_PLANE_INTERSECT(P0f, P1f, rslc->Eq, Hit, pinter);
+            if (Hit) {/* is the intersection point in the volume? */
+               Hit = 0; /* demote, real hit decided on below */
+               ive = 0;
+               while (VO->VE && VO->VE[ive]) {
+                  AFF44_MULT_I(I, VO->VE[ive]->X2I, pinter);
+                  SUMA_LH("On %s: Inter at X=[%f %f %f] --> ijk=[%f %f %f]", 
+                           SUMA_VE_Headname(VO->VE, ive),
+                           pinter[0], pinter[1], pinter[2], I[0], I[1], I[2]);
+                  I[0] = (int)I[0]; I[1] = (int)I[1]; I[2] = (int)I[2];
+                  if (I[0] >= 0.0f && I[1] >= 0.0f && I[2] >= 0.0f &&
+                      I[0] < VO->VE[ive]->Ni &&  I[1] < VO->VE[ive]->Nj &&
+                      I[2] < VO->VE[ive]->Nk) {
+                      dset = SUMA_VE_dset(VO->VE, ive);
+                      colplane =  SUMA_Fetch_OverlayPointerByDset(
+                                          (SUMA_ALL_DO *)VO, dset, &icolplane); 
+                      /* here you check on the value at I in the dataset */
+                      I1d = I[2]*VO->VE[ive]->Ni*VO->VE[ive]->Nj + 
+                            I[1]*VO->VE[ive]->Ni+I[0];
+                      Irw = SUMA_GetNodeRow_FromNodeIndex_eng(dset, I1d,-1);
+                      if (!colplane->V) {
+                        SUMA_S_Err("Need SUMA_GetDsetValInCol to get vals");
+                        SUMA_RETURN(NOPE);
+                      } else {
+                        val = colplane->V[Irw];
+                      }
+                      SUMA_LH("Have intersection on ive %d inside VE %s\n"
+                              "IJK [%d %d %d], I1d=%d, Irw=%d, \n"
+                              "val %f, thr [%f %f]\n",
+                              ive, SUMA_VE_Headname(VO->VE, ive), 
+                              (int)I[0], (int)I[1], (int)I[2], 
+                              I1d, Irw, val,
+                              colplane->OptScl->ThreshRange[0], 
+                              colplane->OptScl->ThreshRange[1]);
+                      if ( (val >= colplane->OptScl->ThreshRange[1] || 
+                            val <= colplane->OptScl->ThreshRange[0] ) && 
+                           (val != 0.0f || !colplane->OptScl->MaskZero) ) {
+                           SUMA_LH("FOUND IT, on VE %s, IJK [%d %d %d], val %f",
+                                   SUMA_VE_Headname(VO->VE, ive), 
+                                   (int)I[0], (int)I[1], (int)I[2], val);
+                           PR = SUMA_New_Pick_Result(NULL);
+                           PR->ado_idcode_str = SUMA_replace_string(
+                                           PR->ado_idcode_str, ADO_ID(ado));
+                           if (pado) *pado = ado; /* user wants it */
+                           PR->primitive = SUMA_replace_string(
+                                                         PR->primitive,"voxel");
+                           PR->primitive_index = -1;
+                           PR->PickXYZ[0] = pinter[0];
+                           PR->PickXYZ[1] = pinter[1];
+                           PR->PickXYZ[2] = pinter[2];
+                           PR->ignore_same_datum = IgnoreSameNode;
+                           PR->datum_index = I1d;
+                           PR->AltSel[SUMA_VOL_I] = I[0];
+                           PR->AltSel[SUMA_VOL_J] = I[1];
+                           PR->AltSel[SUMA_VOL_K] = I[2];
+                           PR->AltSel[SUMA_VOL_IJK] = I1d;
+                           PR->dset_idcode_str = SUMA_replace_string(
+                                           PR->dset_idcode_str, SDSET_ID(dset));
+                           if (!SUMA_Add_To_PickResult_List(sv, ado, 
+                                                            "voxel", &PR)) {
+                              SUMA_S_Err("Failed to add selected ado");
+                              SUMA_RETURN(0);
+                           }
+                           Hit = 1;
+                           goto GOT_IT;
+                      }
+                  }
+                  ++ive;
+               }
+            }
+            SUMA_LH("el now %p,\n"
+                    "tail = %p, Hit = %d", 
+                    el, dlist_tail(VSaux->slcl), Hit);
+         } while(el != dlist_tail(VSaux->slcl) && !Hit);
+      }
+   }
+
+
+   GOT_IT:
+   if (Hit) SUMA_RETURN(1);
+   else SUMA_RETURN(0);
+}/* determine intersection with slices of VO*/
+
+int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO, 
+                     SUMA_PICK_RESULT **PRi) 
+{
+   static char FuncName[]={"SUMA_Apply_PR_VO"};
+   SUMA_ALL_DO *ado=NULL;
+   int iv3[3];
+   DList *list = NULL;
+   SUMA_PICK_RESULT *PR;
+   SUMA_EngineData *ED = NULL;
+   SUMA_DSET *dset=NULL;
+   DListElmt *Location=NULL, *el=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Here");
+   if (!sv || !VO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
+    
+   /* Mark intersection Facsets */
+   ado = (SUMA_ALL_DO *)VO;
+
+   PR = *PRi;   /* Keep local copy */
+   /* Store the PR in ado, hide it from return potential */
+   SUMA_ADO_StorePickResult(ado, PRi);
+   
+   if (!(dset = SUMA_FindDset_s(PR->dset_idcode_str, SUMAg_CF->DsetList))) {
+      SUMA_S_Err("NULL dset?");
+      SUMA_RETURN(0);
+   }
+   
+   sv->Focus_DO_ID = ADO_iDO(ado);
+   SUMA_UpdateViewerTitle(sv);
+
+   /* if the surface controller is open, update it */
+   if (SUMA_isADO_Cont_Realized(ado))
+      SUMA_Init_SurfCont_SurfParam(ado);
+
+   fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+   fprintf(SUMA_STDOUT, "Selected voxel RAI [%.3f %.3f %.3f]mm \n"
+                        "               IJK [%ld %ld %ld] on volume %s.\n",
+      PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2],
+      PR->AltSel[SUMA_VOL_I], PR->AltSel[SUMA_VOL_J], PR->AltSel[SUMA_VOL_K],
+      SDSET_FILENAME(dset));
+   fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+      
+   /* Now set the cross hair position at the selected node*/
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)PR->PickXYZ,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN(-1);                                          
+   } 
+   /* and add the object with this location */
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                     SEF_vp, (void *)dset,
+                                     SES_Suma, (void *)sv, NOPE,
+                                     SEI_In, Location);
+
+   /* attach the cross hair to the selected object 
+   Note that binding here is to voxel of dset */
+   iv3[0] = ADO_iDO(ado);
+   iv3[1] = PR->AltSel[SUMA_VOL_IJK];
+   iv3[2] = -1;
+
+   ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURN(-1);
+   }   
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURN(-1);
+   }
+
+   /* check to see if AFNI needs to be notified */
+   if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
+       sv->LinkAfniCrossHair) {
+      SUMA_LH("Notifying Afni of CrossHair XYZ");
+      /* register a call to SetAfniCrossHair */
+      if (!list) list = SUMA_CreateList();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
+                              SE_SetAfniCrossHair, SES_Suma, sv);
+      if (!SUMA_Engine (&list)) {
+         fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN(-1);
+      }
+   }
+
+   SUMA_RETURN(1);
+}
 
 /*!
    \brief Show the contents of a brush stroke
@@ -8905,6 +10109,15 @@ void SUMA_JumpIndex (char *s, void *data)
          }
          SUMA_JumpIndex_GDSET (s, sv, dset, gldo->variant);
          break; }
+      case TRACT_type: {
+         SUMA_JumpIndex_TDO (s, sv, (SUMA_TractDO *)ado);
+         break; }
+      case MASK_type: {
+         SUMA_JumpIndex_MDO (s, sv, (SUMA_MaskDO *)ado);
+         break; }
+      case VO_type: {
+         SUMA_JumpIndex_VO (s, sv, (SUMA_VolumeObject *)ado);
+         break; }      
       default:
          SUMA_S_Errv("For %s nothing my dear\n",
             SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
@@ -9129,7 +10342,7 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
       fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
       SUMA_RETURNe;                                          
    } 
-   /* and add the SO with this location, needed for VisX business*/
+   /* and add the object with this location */
    SUMA_RegisterEngineListCommand (  list, ED, 
                                            SEF_vp, (void *)dset,
                                            SES_Suma, (void *)sv, NOPE,
@@ -9191,7 +10404,496 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
    
    SUMA_RETURNe;
 
-}  
+}
+
+/* Jump to a certain point on a tract object */
+void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv, 
+                           SUMA_TractDO *tdo)
+{
+   static char FuncName[]={"SUMA_JumpIndex_TDO"};
+   DList *list=NULL;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)tdo;
+   DListElmt *el=NULL, *Location=NULL;
+   SUMA_EngineData *ED = NULL;
+   float fv3[3];
+   int it, iv15[15], iv3[3], nv = 0;
+   char stmp[64];
+   SUMA_Boolean revert_on_err = YUP;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+
+   if (!s || !sv || !tdo || !tdo->net) SUMA_RETURNe;
+      
+   /* parse s */
+   if ((nv = SUMA_StringToNum(s, (void*)fv3, 3,1)) != 1 &&
+       nv != 3) {
+                                    /*problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   SUMA_LHv("Parsed %s to %d val(s)\n", s, nv);
+   if (nv == 3) {/* bundle, tract, point */
+      iv15[SUMA_NET_BUN] = (int)fv3[SUMA_NET_BUN]; 
+      iv15[SUMA_BUN_TRC] = (int)fv3[SUMA_BUN_TRC]; 
+      iv15[SUMA_TRC_PNT] = (int)fv3[SUMA_TRC_PNT];
+      iv15[SUMA_NET_TRC] = 
+         Network_TB_to_1T(tdo->net, iv15[SUMA_BUN_TRC], iv15[SUMA_NET_BUN]);
+      it = Network_PTB_to_1P(tdo->net, 
+               iv15[SUMA_TRC_PNT], iv15[SUMA_BUN_TRC], iv15[SUMA_NET_BUN]);
+      if (it < 0) { /* no good */
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_LH("BTP %d %d %d could not be parsed\n",
+                 iv15[SUMA_NET_BUN],   iv15[SUMA_BUN_TRC], iv15[SUMA_TRC_PNT]);
+         if (revert_on_err) {
+            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL));
+            SUMA_JumpIndex_TDO(stmp, sv, tdo);
+         }
+         SUMA_RETURNe;
+      }
+      SUMA_LHv("Point ID %d from B%d T%d P%d (tract in net %d)\n",
+               it, iv15[SUMA_NET_BUN], iv15[SUMA_BUN_TRC], 
+               iv15[SUMA_TRC_PNT], iv15[SUMA_NET_TRC]);
+   } else {
+      /* Set the point selection  */
+      it = (int) fv3[0];
+      if (!Network_1P_to_PTB(tdo->net, it, 
+               iv15+SUMA_TRC_PNT, iv15+SUMA_BUN_TRC, 
+               iv15+SUMA_NET_BUN, iv15+SUMA_NET_TRC)) {
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_RETURNe;
+      }
+      SUMA_LHv("Point ID %d yielded B%d T%d P%d (tract in net %d) \n"
+               "  (which yields back %d)\n",
+               it, iv15[SUMA_NET_BUN], iv15[SUMA_BUN_TRC], iv15[SUMA_TRC_PNT],
+               iv15[SUMA_NET_TRC],
+               Network_PTB_to_1P(tdo->net,
+                  iv15[SUMA_TRC_PNT], iv15[SUMA_BUN_TRC], iv15[SUMA_NET_BUN]));
+   }
+   
+   SUMA_TDO_PointXYZ(tdo, it, iv15, fv3);
+   SUMA_LH("   Located at %f %f %f\n", fv3[0], fv3[1], fv3[2]);
+   
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+   if (!(el = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)(&it),
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                      
+   } else {
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_ngr, NULL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv15, (void *)iv15,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+   }
+
+
+   /* Now set the cross hair position at the selected point*/
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)fv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                          
+   } 
+   /* and add the DO with this location, needed for VisX business*/
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_vp, (void *)tdo,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+
+   /* attach the cross hair to the selected object 
+      Note that binding here is to edge of graph and not to a node*/
+   iv3[0] = SUMA_whichDO(SUMA_ADO_idcode(ado), SUMAg_DOv, SUMAg_N_DOv); 
+   iv3[1] = it;
+   iv3[2] = -1;
+   ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }   
+   
+   /* check to see if AFNI needs to be notified */
+   if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* register a call to SetAfniCrossHair */
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
+                              SE_SetAfniCrossHair, SES_Suma, sv);
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* now put in a request for locking cross hair but you must do this 
+   after the node selection has been executed 
+   NOTE: You do not always have SetNodeElem because the list might get emptied in
+   the call to AFNI notification.
+   You should just put the next call at the end of the list.*/
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA); 
+   
+   SUMA_RETURNe;
+
+}
+
+/* Jump to a certain point on a volume object */
+void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv, 
+                        SUMA_VolumeObject *vo)
+{
+   static char FuncName[]={"SUMA_JumpIndex_VO"};
+   DList *list=NULL;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)vo;
+   DListElmt *el=NULL, *Location=NULL;
+   SUMA_EngineData *ED = NULL;
+   float fv3[3];
+   int it, iv15[15], iv3[3], nv = 0, *dims=NULL;
+   char stmp[64];
+   SUMA_DSET *dset=NULL;
+   SUMA_Boolean revert_on_err = YUP;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+
+   if (!s || !sv || !vo ||
+       !(dset = SUMA_VO_dset(vo)) ||
+       !(dims = SUMA_GetDatasetDimensions(dset))) SUMA_RETURNe;
+      
+   /* parse s */
+   if ((nv = SUMA_StringToNum(s, (void*)fv3, 3,1)) != 1 &&
+       nv != 3) {
+                                    /*problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   SUMA_LHv("Parsed %s to %d val(s)\n", s, nv);
+   if (nv == 3) {/* i j k */
+      iv15[SUMA_VOL_I] = (int)fv3[SUMA_VOL_I]; 
+      iv15[SUMA_VOL_J] = (int)fv3[SUMA_VOL_J]; 
+      iv15[SUMA_VOL_K] = (int)fv3[SUMA_VOL_K];
+      if (iv15[SUMA_VOL_I] < 0 || iv15[SUMA_VOL_I] >= dims[0] ||
+          iv15[SUMA_VOL_J] < 0 || iv15[SUMA_VOL_J] >= dims[1] ||
+          iv15[SUMA_VOL_K] < 0 || iv15[SUMA_VOL_K] >= dims[2] ) {
+         /* no good */
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_LH("IJK %d %d %d could not be parsed or out of range\n",
+                 iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K]);
+         if (revert_on_err) {
+            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL));
+            SUMA_JumpIndex_VO(stmp, sv, vo);
+         }
+         SUMA_RETURNe;
+      }
+      
+      iv15[SUMA_VOL_IJK] = 
+         SUMA_3D_2_1D_index(iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K],
+         dims[0], dims[0]*dims[1] );
+
+
+      SUMA_LHv("Voxel ID %d from I%d J%d K%d\n",
+               iv15[SUMA_VOL_IJK], iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], 
+               iv15[SUMA_VOL_K]);
+   } else {
+      /* Set the point selection  */
+      it = (int) fv3[0];
+      if (it < 0 || it >= SDSET_NVOX(dset)) {
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_RETURNe;
+      }
+      Vox1D2Vox3D(it, dims[0], dims[0]*dims[1], (iv15+SUMA_VOL_I));
+      SUMA_LHv("Point ID %d yielded I%d J%d K%d \n",
+               it, iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K]);
+   }
+   
+   SUMA_VO_PointXYZ(vo, it, iv15, fv3);
+   SUMA_LH("   Located at %f %f %f\n", fv3[0], fv3[1], fv3[2]);
+   
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+   if (!(el = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)(&it),
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                      
+   } else {
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_ngr, NULL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv15, (void *)iv15,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+   }
+
+
+   /* Now set the cross hair position at the selected point*/
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)fv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                          
+   } 
+   /* and add the DO with this location, needed for VisX business*/
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_vp, (void *)vo,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+
+   /* attach the cross hair to the selected object 
+      Note that binding here is to edge of graph and not to a node*/
+   iv3[0] = SUMA_whichDO(SUMA_ADO_idcode(ado), SUMAg_DOv, SUMAg_N_DOv); 
+   iv3[1] = it;
+   iv3[2] = -1;
+   ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }   
+   
+   /* check to see if AFNI needs to be notified */
+   if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* register a call to SetAfniCrossHair */
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
+                              SE_SetAfniCrossHair, SES_Suma, sv);
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* now put in a request for locking cross hair but you must do this 
+   after the node selection has been executed 
+   NOTE: You do not always have SetNodeElem because the list might get emptied in
+   the call to AFNI notification.
+   You should just put the next call at the end of the list.*/
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA); 
+   
+   SUMA_RETURNe;
+
+}
+
+/* Jump to a certain point on a mask object */
+void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo)
+{
+   static char FuncName[]={"SUMA_JumpIndex_MDO"};
+   DList *list=NULL;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)mo;
+   DListElmt *el=NULL, *Location=NULL;
+   SUMA_EngineData *ED = NULL;
+   float fv3[3];
+   int it, iv15[15], iv3[3], nv = 0, *dims=NULL;
+   char stmp[64];
+   SUMA_DSET *dset=NULL;
+   SUMA_Boolean revert_on_err = YUP;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+
+   if (!s || !sv) SUMA_RETURNe;
+   
+   SUMA_S_Err("Not ready for action");
+   SUMA_RETURNe;
+      
+   /* parse s */
+   if ((nv = SUMA_StringToNum(s, (void*)fv3, 3,1)) != 1 &&
+       nv != 3) {
+                                    /*problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+   SUMA_LHv("Parsed %s to %d val(s)\n", s, nv);
+   if (nv == 3) {/* i j k */
+      iv15[SUMA_VOL_I] = (int)fv3[SUMA_VOL_I]; 
+      iv15[SUMA_VOL_J] = (int)fv3[SUMA_VOL_J]; 
+      iv15[SUMA_VOL_K] = (int)fv3[SUMA_VOL_K];
+      if (iv15[SUMA_VOL_I] < 0 || iv15[SUMA_VOL_I] >= dims[0] ||
+          iv15[SUMA_VOL_J] < 0 || iv15[SUMA_VOL_J] >= dims[1] ||
+          iv15[SUMA_VOL_K] < 0 || iv15[SUMA_VOL_K] >= dims[2] ) {
+         /* no good */
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_LH("IJK %d %d %d could not be parsed or out of range\n",
+                 iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K]);
+         if (revert_on_err) {
+            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL));
+            SUMA_JumpIndex_MDO(stmp, sv, mo);
+         }
+         SUMA_RETURNe;
+      }
+      
+      iv15[SUMA_VOL_IJK] = 
+         SUMA_3D_2_1D_index(iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K],
+         dims[0], dims[0]*dims[1] );
+
+
+      SUMA_LHv("Voxel ID %d from I%d J%d K%d\n",
+               iv15[SUMA_VOL_IJK], iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], 
+               iv15[SUMA_VOL_K]);
+   } else {
+      /* Set the point selection  */
+      it = (int) fv3[0];
+      if (it < 0 || it >= SDSET_NVOX(dset)) {
+         XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+         SUMA_RETURNe;
+      }
+      Vox1D2Vox3D(it, dims[0], dims[0]*dims[1], (iv15+SUMA_VOL_I));
+      SUMA_LHv("Point ID %d yielded I%d J%d K%d \n",
+               it, iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K]);
+   }
+   
+   SUMA_MDO_PointXYZ(mo, it, iv15, fv3);
+   SUMA_LH("   Located at %f %f %f\n", fv3[0], fv3[1], fv3[2]);
+   
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+   if (!(el = SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)(&it),
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                      
+   } else {
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_ngr, NULL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv15, (void *)iv15,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+   }
+
+
+   /* Now set the cross hair position at the selected point*/
+   ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+   if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void*)fv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;                                          
+   } 
+   /* and add the DO with this location, needed for VisX business*/
+   SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_vp, (void *)mo,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+
+   /* attach the cross hair to the selected object 
+      Note that binding here is to edge of graph and not to a node*/
+   iv3[0] = SUMA_whichDO(SUMA_ADO_idcode(ado), SUMAg_DOv, SUMAg_N_DOv); 
+   iv3[1] = it;
+   iv3[2] = -1;
+   ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Head, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }   
+   
+   /* check to see if AFNI needs to be notified */
+   if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* register a call to SetAfniCrossHair */
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
+                              SE_SetAfniCrossHair, SES_Suma, sv);
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* now put in a request for locking cross hair but you must do this 
+   after the node selection has been executed 
+   NOTE: You do not always have SetNodeElem because the list might get emptied in
+   the call to AFNI notification.
+   You should just put the next call at the end of the list.*/
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_iv3, (void*)iv3,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* call with the list */
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA); 
+   
+   SUMA_RETURNe;
+
+}
 
 /*!
    \brief sends the cross hair to a certain XYZ location. 

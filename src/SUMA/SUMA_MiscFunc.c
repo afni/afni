@@ -839,7 +839,7 @@ SUMA_MX_VEC * SUMA_MxVecRand(SUMA_VARTYPE tp, int N_dims, int *dims, SUMA_MX_VEC
          for (i=0; i<vi->N_vals; ++i) mxvd1(vi, i) = (double)rand()/(double)RAND_MAX;
          break; 
       default:
-         SUMA_S_Err("Type not supported");
+         SUMA_S_Err("MxVec Type not supported");
          vi = SUMA_FreeMxVec(vi);
          break;
    }  

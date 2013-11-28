@@ -1855,11 +1855,11 @@ int SUMA_filexists (char *f_name)
    
    SUMA_ENTRY;
 
-    outfile = fopen (f_name,"r");
+   outfile = fopen (f_name,"r");
+   /*fprintf(stderr,"%s %p\n", f_name, outfile);*/
    if (outfile == NULL) {
        SUMA_RETURN(0); 
-   }
-    else {
+   } else {
        fclose (outfile); 
    }
     
@@ -1882,14 +1882,17 @@ int SUMA_search_file(char **fnamep, char *epath)
    SUMA_PARSED_NAME *pn = NULL;
    char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL, *af=NULL;
    int epos=0, ll=0, ii=0, id = 0, imode=1;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    /* does it exist? */
    if ( SUMA_filexists(*fnamep) ) {
+      SUMA_LH("Found file %s as named", *fnamep);
       SUMA_RETURN(1); /* all is well */
    }
    
+   SUMA_LH("Searching for variations on %s", *fnamep);
    #if defined SUMA_COMPILED
    /* else, the hard work, first check with cwd options 
    for suma programs*/
@@ -2238,7 +2241,7 @@ int SUMA_NumStringUnits (char *s, int marktip)
    }
  
    /* now look for unit string */
-   SUMA_LH((s+nd));
+   SUMA_LH("%s",(s+nd));
    unt = SUMA_NO_NUM_UNITS;
    if (0) ; /* order of following else ifs matters */
    else if (!strncmp((s+nd), "mm", 2)) 
@@ -2256,6 +2259,7 @@ int SUMA_strtod(char *n, double *valp)
    char *stp=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
    if (!n || !valp) SUMA_RETURN(0);
    
    errno = 0;
@@ -2714,7 +2718,7 @@ char * SUMA_append_extension(char *s1, char *s2)
    if (s2 && s2[0] == '.') ++s2;
    
    /* put them together */
-   RETURN(SUMA_append_replace_string(s1c, s2, ".", 1));
+   SUMA_RETURN(SUMA_append_replace_string(s1c, s2, ".", 1));
 }
 
 /*!
@@ -4114,7 +4118,18 @@ static ENV_SPEC envlist[] = {
    {  "Put surface controllers in same window\n"
       "Choose from YES or NO",
       "SUMA_SameSurfCont",
-      "NO" }, 
+      "YES" },
+   {  "Adjust offset of Surface Viewers as they are first open\n"
+      "Choose from AUTO or provide two X Y offsets.",
+      "SUMA_WindowOffset",
+      "Auto" },
+   {  "Lock views across viewers\n"
+      "Choose from YES or NO.",
+      "SUMA_LockViewers",
+      "YES" },
+   {  "Set colormap for volumes, choose any of the standard list",
+      "SUMA_VO_ColorMap",
+      "ngray20" },
    {  NULL, NULL, NULL  }
 };
       
@@ -4189,7 +4204,7 @@ int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep)
    if (sval == NULL) SUMA_RETURN(0);
    if (LocalHead) 
       fprintf(SUMA_STDERR,
-              "%s: eee %s, sval %s, sep %s\n", FuncName, eee, sval, sep);
+           "%s: eee %s, sval %s, sep %s\n", FuncName, eee, sval, sep?sep:"NULL");
    if (!sep) {
       if (ci) SUMA_RETURN(!(strcasecmp(eee,sval)));
       else SUMA_RETURN(!(strcmp(eee,sval)));

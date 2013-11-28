@@ -97,21 +97,21 @@ void WorkErrLog_ns(void)
    while (del) {
       el = (SUMA_ERRLOG *)del->data;
       sprintf(FuncName, "%s", el->FuncName); 
-           if (!strcmp(el->macroname,"L_Err")) { SUMA_L_Err(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Err")) { SUMA_SL_Err(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Err")) { SUMA_SLP_Err(el->msg); }
-      else if (!strcmp(el->macroname,"L_Warn")) { SUMA_L_Warn(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Warn")) { SUMA_SL_Warn(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Warn")) { SUMA_SLP_Warn(el->msg); }
-      else if (!strcmp(el->macroname,"L_Note")) { SUMA_L_Note(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Note")) { SUMA_L_Note(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Note")) { SUMA_SLP_Note(el->msg); }
-      else if (!strcmp(el->macroname,"L_Crit")) { SUMA_L_Crit(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Crit")) { SUMA_SL_Crit(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Crit")) { SUMA_SLP_Crit(el->msg); }
+           if (!strcmp(el->macroname,"L_Err")) { SUMA_L_Err("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Err")) { SUMA_SL_Err("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Err")) { SUMA_SLP_Err("%s", el->msg); }
+      else if (!strcmp(el->macroname,"L_Warn")) { SUMA_L_Warn("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Warn")) { SUMA_SL_Warn("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Warn")){SUMA_SLP_Warn("%s", el->msg); }
+      else if (!strcmp(el->macroname,"L_Note")) { SUMA_L_Note("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Note")) { SUMA_L_Note("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Note")){SUMA_SLP_Note("%s", el->msg); }
+      else if (!strcmp(el->macroname,"L_Crit")) { SUMA_L_Crit("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Crit")) { SUMA_SL_Crit("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Crit")){SUMA_SLP_Crit("%s", el->msg); }
       else {
          snprintf(mmm, 255*sizeof(char), "Bad macroname %s", el->macroname); 
-         sprintf(FuncName, "%s", "WorkErrLog_ns"); SUMA_S_Err(mmm);
+         sprintf(FuncName, "%s", "WorkErrLog_ns"); SUMA_S_Err("%s",mmm);
       }
       del = SUMA_PopErrLog(del);
    }
@@ -955,8 +955,7 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
          /*-- a sub-group ==> recursion! --*/
          case NI_GROUP_TYPE: /* not quite attributes, but oh well...*/
             nicmap = (NI_group *)ngri->part[ip] ;
-            SUMA_LH("Have group named")
-            SUMA_LH(nicmap->name);
+            SUMA_LH("Have group named %s",nicmap->name);
             if (  !attrlist || 
                   SUMA_FindInAttrList(attrlist,nicmap->name, isrc, &iattrlist)) {
                SUMA_LH("Will copy it");
@@ -1330,6 +1329,126 @@ int * SUMA_GetUniqueIndicesVec(SUMA_DSET *dset, int iindex)
    SUMA_RETURN((int *)nel->vec[0]);
 }
 
+int * SUMA_GetDatasetDimensions(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetDatasetDimensions"};
+   NI_element *nel=NULL;
+   static int v[10][5];
+   static int ncall = 0;
+   
+   SUMA_ENTRY;
+   
+   ++ncall; if (ncall > 9) ncall = 0;
+   
+   if (!dset) {
+      v[ncall][0] = -1; SUMA_RETURN(v[ncall]);
+   }
+    
+   if (!(nel = SUMA_FindDsetAttributeElement (dset, "DATASET_DIMENSIONS"))) {
+      v[ncall][0] = SDSET_VECLEN(dset); 
+      v[ncall][1] = 0; v[ncall][2] = 0; v[ncall][3] = 0; v[ncall][4] = 0;  
+      SUMA_RETURN(v[ncall]);
+   }
+   
+   SUMA_RETURN((int *)nel->vec[0]);
+}
+
+float * SUMA_GetDatasetFactors(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_GetDatasetFactors"};
+   NI_element *nel=NULL;
+   
+   SUMA_ENTRY;
+   
+   
+   if (!dset) {
+      SUMA_RETURN(NULL);
+   }
+    
+   if (!(nel = SUMA_FindDsetAttributeElement (dset, "BRICK_FLOAT_FACS"))) {
+      SUMA_RETURN(NULL);
+   }
+   SUMA_RETURN((float *)nel->vec[0]);
+}
+
+float SUMA_GetBrickFactor(SUMA_DSET *dset, int ii)
+{
+   static char FuncName[]={"SUMA_GetBrickFactor"};
+   float *vv = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || ii < 0 || ii >= SDSET_VECNUM(dset)) SUMA_RETURN(0.0);
+   
+   if (!(vv = SUMA_GetDatasetFactors(dset))) SUMA_RETURN(0.0);
+   
+   SUMA_RETURN(vv[ii]);
+}
+
+MRI_TYPE SUMA_GetBrickType(SUMA_DSET *dset, int ii)
+{
+   static char FuncName[]={"SUMA_GetBrickType"};
+   SUMA_COL_TYPE ctp;
+   SUMA_VARTYPE vtp;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || ii < 0 || ii >= SDSET_VECNUM(dset)) SUMA_RETURN(0.0);
+   
+   ctp = SUMA_TypeOfDsetColNumb(dset, ii); 
+   vtp = SUMA_ColType2TypeCast(ctp) ;   
+   switch (vtp) {
+      case SUMA_short:
+         SUMA_RETURN(MRI_short);
+      case SUMA_byte:
+         SUMA_RETURN(MRI_byte);
+      case SUMA_float:
+         SUMA_RETURN(MRI_float);
+      case SUMA_complex:
+         SUMA_RETURN(MRI_complex);
+      case SUMA_double:
+         SUMA_RETURN(MRI_double);
+      default:
+         SUMA_RETURN(-1);
+   }
+   
+   SUMA_RETURN(-1);
+}
+
+float * SUMA_GetDatasetI2X(SUMA_DSET *dset, float M[4][4])
+{
+   static char FuncName[]={"SUMA_GetDatasetI2X"};
+   NI_element *nel=NULL;
+   float *v;
+   
+   SUMA_ENTRY;
+   
+   
+   if (!dset) {
+      SUMA_RETURN(NULL);
+   }
+    
+   if (!(nel = SUMA_FindDsetAttributeElement (dset, "IJK_TO_DICOM_REAL"))) {
+      SUMA_RETURN(NULL);
+   }
+
+   if ((v = (float *)nel->vec[0])) {
+      V12_TO_AFF44(M, v);
+   }
+   SUMA_RETURN(v);
+}
+
+int SUMA_isVolDataset(SUMA_DSET *dset)
+{
+   int *dims = 0;
+   
+   if (!dset) return(0);
+   if ((dims = SUMA_GetDatasetDimensions(dset))) {
+      if (dims[1]>1) return(1);
+   }
+   return(0);
+}
+
 /*! \brief Add an attribute that contains the set of unique values
             in a column 
 */
@@ -1495,7 +1614,7 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
       case SUMA_NODE_XCORR:
          if (col_attr){  
             float *pars = (float *)col_attr;
-            SUMA_LH(
+            SUMA_LH("%s",
                NI_stat_encode(NI_STAT_CORREL, pars[0], pars[1], pars[2]));
             attrstr = SUMA_copy_string( 
                         NI_stat_encode(NI_STAT_CORREL, 
@@ -1880,7 +1999,7 @@ int SUMA_UpdateDsetColRange(SUMA_DSET *dset, int icol)
       }else {
          NI_element *nelb = 
             SUMA_FindDsetAttributeElement(dset, "COLMS_RANGE");
-         SUMA_LH(sbuf);
+         SUMA_LH("%s", sbuf);
          SUMA_AddColAtt_CompString(nelb, ic, sbuf, SUMA_NI_CSS,0);
          SUMA_free(sbuf); sbuf=NULL;
       }
@@ -3226,7 +3345,7 @@ SUMA_DSET * SUMA_EmptyCopyofDset (  SUMA_DSET *odset,
          SUMA_LH("Pre copy");
          SUMA_ShowNel((void*)odset->inel);
          ss = SUMA_ShowMeSome(ind, SUMA_int, SDSET_VECLEN(odset), -1, NULL);
-         SUMA_S_Note(ss); if (ss) SUMA_free(ss); ss = NULL;
+         SUMA_S_Note("%s",ss); if (ss) SUMA_free(ss); ss = NULL;
       }
       if (keep_node_index && !masked_only) {
          /* preserve all rows */
@@ -3267,7 +3386,7 @@ SUMA_DSET * SUMA_EmptyCopyofDset (  SUMA_DSET *odset,
          SUMA_LH("Post copy");
          SUMA_ShowNel((void*)odset->inel);
          ss = SUMA_ShowMeSome(ncoli, SUMA_int, n_incopy, -1, NULL);
-         SUMA_S_Note(ss); if (ss) SUMA_free(ss); ss = NULL;
+         SUMA_S_Note("%s",ss); if (ss) SUMA_free(ss); ss = NULL;
       }
    } else { /* no node index to work with */
       if (keep_node_index && !masked_only) {
@@ -4477,8 +4596,12 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp)
       case SUMA_NODE_STRING:
          SUMA_RETURN(SUMA_string);
          break;
+      case SUMA_NODE_SHORT:
+         SUMA_RETURN(SUMA_short);
+         break;
       default:
-         fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
+         fprintf  (stderr,"Error %s: Bad column type %d (Max allowed %d)\n", 
+                     FuncName, ctp, SUMA_N_COL_TYPES-1);
          SUMA_RETURN(SUMA_notypeset);
          break; 
    }
@@ -4571,6 +4694,9 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
       case SUMA_NODE_BUCKET:
          SUMA_RETURN("Node_Bucket");
          break;
+      case SUMA_VOXEL_BUCKET:
+         SUMA_RETURN("Voxel_Bucket");
+         break;
       case SUMA_AFNI_NODE_BUCKET:
          SUMA_RETURN("AFNI_3D_dataset");
          break;
@@ -4631,6 +4757,9 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
       case SUMA_GRAPH_BUCKET:
          SUMA_RETURN("Graph_Bucket");
          break;
+      case SUMA_TRACT_BUCKET:
+         SUMA_RETURN("Tract_Bucket");
+         break;
       default:
          SUMA_RETURN("Cowabonga-gothdo");
          break;
@@ -4646,6 +4775,7 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    if (!strcmp(Name,"Dset_Type_Undefined")) SUMA_RETURN (SUMA_NO_DSET_TYPE);
    if (!strcmp(Name,"Error_Dset_Type")) SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
    if (!strcmp(Name,"Node_Bucket")) SUMA_RETURN (SUMA_NODE_BUCKET);
+   if (!strcmp(Name,"Voxel_Bucket")) SUMA_RETURN (SUMA_VOXEL_BUCKET);
    if (!strcmp(Name,"Node_ROI")) SUMA_RETURN (SUMA_NODE_ROI);
    if (!strcmp(Name,"Node_RGB")) SUMA_RETURN (SUMA_NODE_RGB);
    if (!strcmp(Name,"Node_RGBA")) SUMA_RETURN (SUMA_NODE_RGBA);
@@ -4667,6 +4797,7 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    if (!strcmp(Name,"SegmentObject")) SUMA_RETURN (SUMA_SEGMENT_OBJECT);
    if (!strcmp(Name,"LabelTableObject")) SUMA_RETURN (SUMA_LABEL_TABLE_OBJECT);
    if (!strcmp(Name,"Node_Label")) SUMA_RETURN (SUMA_NODE_LABEL);
+   if (!strcmp(Name,"Tract_Bucket")) SUMA_RETURN (SUMA_TRACT_BUCKET);
    if (!strcmp(Name,"Graph_Bucket")) SUMA_RETURN (SUMA_GRAPH_BUCKET);
    
    SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
@@ -5011,7 +5142,7 @@ char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold)
                               strcat(chold,cdate) ;
          strcat(chold,"] ") ;
          strcat(chold,cn) ;
-         SUMA_LH(chold);
+         SUMA_LH("%s",chold);
          ch = tross_Encode_String(chold) ; 
          if( ch == NULL ){ free(chold); SUMA_RETURN(NULL); }
          stmp = SUMA_copy_string(ch);
@@ -5019,7 +5150,7 @@ char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold)
       } else {
          chold = AFMALL(char, idate+iuser+iname+strlen(cn)+12 ) ;
          sprintf(chold,"[%s@%s: %s] %s",cuser,cname,cdate,cn) ;
-         SUMA_LH(chold);
+         SUMA_LH("%s",chold);
          ch = tross_Encode_String(chold) ; 
          if( ch == NULL ){ free(chold); SUMA_RETURN(NULL); }
          stmp = SUMA_copy_string(ch);
@@ -5733,10 +5864,14 @@ SUMA_Boolean SUMA_Add_Dset_Aux(SUMA_DSET *dset)
    if (SUMA_isGraphDsetNgr(dset->ngr)) {
       dset->Aux = (SUMA_DSET_AUX *)SUMA_calloc(1,sizeof(SUMA_DSET_AUX));
       dset->Aux->matrix_shape = MAT_HEEHAW;
-      dset->Aux->isGraph = 1;
-   } else { /* you should always have Aux allocated...*/
+      dset->Aux->isGraph = GRAPH_DSET;
+   } else if (SUMA_isTractDsetNgr(dset->ngr)) {
       dset->Aux = (SUMA_DSET_AUX *)SUMA_calloc(1,sizeof(SUMA_DSET_AUX));
-      dset->Aux->isGraph = 0;
+      dset->Aux->matrix_shape = MAT_NA;
+      dset->Aux->isGraph = TRACT_DSET;
+   } else { /* you should always have Aux allocated, default to surf_dset...*/
+      dset->Aux = (SUMA_DSET_AUX *)SUMA_calloc(1,sizeof(SUMA_DSET_AUX));
+      dset->Aux->isGraph = SURF_DSET;
       dset->Aux->matrix_shape = MAT_NA;
    }
 
@@ -5796,12 +5931,12 @@ SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn)
    
    /* Set Aux (could have been set already with earlier calls 
       via SUMA_isGraphDset() ) */
-   if (!dset->Aux && SUMA_Add_Dset_Aux(dset)) {
+   if (!dset->Aux && !SUMA_Add_Dset_Aux(dset)) {
       SUMA_S_Err("Failed to add Aux");
    }
    
    SUMA_RETURN(dset);
-}  
+}
 
 /*!
    \brief assign a label to a dset
@@ -6081,7 +6216,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
       SUMA_LH("Dset exists");
       if (replace || AFNI_yesenv("SUMA_AllowFilenameDsetMatch")) {
          SUMA_LH("Replacing");
-         SUMA_SL_Note(stmp);
+         SUMA_SL_Note("%s",stmp);
          #ifdef OLD_DSET /* before ngr was used */
          if (dprev->nel) NI_free_element(dprev->nel); dprev->nel = NULL; 
          dprev->nel = dset->nel;
@@ -6099,7 +6234,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          dset->inel = NULL;
          #endif
          SUMA_free(dset);
-         /* now make the switch so that on return, dset becomes the previous dset*/
+         /*make the switch so that on return, dset becomes the previous dset*/
          *dsetp = dprev;
       } else {
          SUMA_LH("Not Replacing");
@@ -6108,7 +6243,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
                         "Replacement option is turned off.\n"
                         "Set 'SUMA_AllowDsetReplacement = YES'\n"
                         "in ~/.sumarc to allow replacement.\n", s);
-         SUMA_SL_Err(stmp);
+         SUMA_SL_Err("%s",stmp);
          SUMA_RETURN(0);
       }
    } else {
@@ -6123,6 +6258,7 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
    
    SUMA_RETURN(1);
 }
+
 int SUMA_DeleteDsetPointer (SUMA_DSET **dsetp, DList *DsetList)
 {
    static char FuncName[]={"SUMA_DeleteDsetPointer"};
@@ -6162,6 +6298,7 @@ char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt,
    int i, imx, firsthalf, secondhalf;
    double *dtd;
    int *dti;
+   short *dth;
    byte *dtb;
    char **dts;
    float *dtf;
@@ -6238,6 +6375,17 @@ char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt,
             }
             SS = SUMA_StringAppend_va(SS, "%d", dtb[N_dt-1]);
             break;
+         case SUMA_short:
+            dth = (short*)dt;
+            for (i=0; i < firsthalf; ++i) 
+               SS = SUMA_StringAppend_va(SS, "%d, ", dth[i]);
+            if (mxshow < N_dt) SS = SUMA_StringAppend_va(SS, "..., ");
+            if (secondhalf > 1) { 
+               for (i=SUMA_MAX_PAIR(N_dt-secondhalf, firsthalf); i<N_dt-1; ++i) 
+                  SS = SUMA_StringAppend_va(SS, "%d, ", dth[i]); 
+            }
+            SS = SUMA_StringAppend_va(SS, "%d", dth[N_dt-1]);
+            break;
          case SUMA_string:
             dts = (char **)dt;
             for (i=0; i < firsthalf; ++i) 
@@ -6263,7 +6411,7 @@ char *SUMA_ShowMeSome ( void *dt, SUMA_VARTYPE tp, int N_dt,
                                        dtc[N_dt-1].r, dtc[N_dt-1].i);
             break;
          default:
-            SS = SUMA_StringAppend_va(SS, "Type not supported.");
+            SS = SUMA_StringAppend_va(SS, "Column type not supported.");
       }
    } else {
       if (!dt) {
@@ -6316,7 +6464,9 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
    SS = SUMA_StringAppend(NULL, NULL);
    
    if (dset) {
-      SS = SUMA_StringAppend_va(SS, "Dset %p\n", dset);
+      SS = SUMA_StringAppend_va(SS, "Dset %p, datum level %d (0..%d possible)\n",
+                                 dset,  SUMA_sdset_datum_level(dset),
+                                 SUMA_N_LEV_DAT);
       SS = SUMA_StringAppend_va(SS, "Number of Links: %d\n", dset->N_links);
       if (dset->dnel) {
          SS = SUMA_StringAppend_va(SS, "Dset Name: %s (%d)\n", 
@@ -6452,6 +6602,171 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
    
    SUMA_SS2S(SS, s);
    
+   SUMA_RETURN(s);
+}
+
+char *SUMA_Taylor_Tract_Info(TAYLOR_TRACT *tt, int show_maxu) 
+{
+   static char FuncName[]={"SUMA_Taylor_Tract_Info"};
+   int show_max;
+   int ii=0;
+   char *s=NULL;
+   SUMA_STRING *SS=NULL;
+   
+   SUMA_ENTRY;
+
+   SS = SUMA_StringAppend(NULL, NULL);
+
+   if (!tt) {
+      SUMA_StringAppend(SS,"NULL tract pointer"); 
+   } else {
+      SUMA_StringAppend_va(SS, "  track id %d, Npts=%d\n", 
+                           tt->id, TRACT_NPTS(tt));
+      if (show_maxu < 0) show_max = TRACT_NPTS(tt);
+      else if (show_maxu == 0) 
+                  show_max = (TRACT_NPTS(tt) < 5) ? TRACT_NPTS(tt) : 5;
+      else show_max = show_maxu < TRACT_NPTS(tt) ? show_maxu : TRACT_NPTS(tt);
+      for (ii=0; ii<show_max; ++ii) {
+         SUMA_StringAppend_va(SS, "      %d %f %f %f\n", 
+				     ii, tt->pts[3*ii], tt->pts[3*ii+1],tt->pts[3*ii+2]);
+      }
+      if (show_max < TRACT_NPTS(tt)) {
+         int pl = (TRACT_NPTS(tt)-show_max > 1);
+         SUMA_StringAppend_va(SS, 
+                     "      ... %d point%sremain%s in tract.\n",
+            TRACT_NPTS(tt)-show_max, pl ? "s ":" ", pl ? "":"s");
+      }
+   }
+   
+   SUMA_SS2S(SS, s);
+   SUMA_RETURN(s);
+}
+
+/* Both of SUMA_Network_N_points and SUMA_Network_N_tracts 
+   are copies of the one in ptaylor/TrackIO.c
+   The other ones should be used as soon as 
+   we resolve afni's dependency on ptaylor/ */
+int SUMA_Network_N_points(TAYLOR_NETWORK *net, byte recalc)
+{
+   int nb, ib=0, nn=-1, it;
+   
+   if (!net) return(-1);
+   if (!recalc && net->N_points_private > 0) return(net->N_points_private);
+   nn = 0;
+   for (ib=0; ib<net->N_tbv; ++ib) {
+      if (net->tbv[ib]) {
+         nb = 0;
+         for (it=0; it<net->tbv[ib]->N_tracts; ++it) {
+            nb += net->tbv[ib]->tracts[it].N_pts3;
+         }
+         net->tbv[ib]->N_points_private = nb/3;
+         nn += nb;
+      } 
+   }
+   nn /= 3;
+   net->N_points_private = nn;
+   return(nn);
+}
+
+int SUMA_Network_N_tracts(TAYLOR_NETWORK *net, byte recalc)
+{
+   int nb, ib=0, nn=-1, it;
+   
+   if (!net) return(-1);
+   if (!recalc && net->N_tracts_private > 0) return(net->N_tracts_private);
+   nn = 0;
+   for (ib=0; ib<net->N_tbv; ++ib) {
+      if (net->tbv[ib]) {
+         nn += net->tbv[ib]->N_tracts;
+      } 
+   }
+   net->N_tracts_private = nn;
+   return(nn);
+}
+
+
+char *SUMA_Taylor_Bundle_Info(TAYLOR_BUNDLE *tb, int show_maxu) 
+{
+   static char FuncName[]={"SUMA_Taylor_Bundle_Info"};
+   int show_max;
+   int ii=0;
+   char stmp[64];
+   char *s=NULL;
+   SUMA_STRING *SS=NULL;
+   
+   SUMA_ENTRY;
+
+   SS = SUMA_StringAppend(NULL, NULL);
+
+   if (!tb) {
+      SUMA_StringAppend(SS,"NULL bundle pointer"); 
+   } else {
+      SUMA_StringAppend_va(SS, "Bundle has %d tracts\n", tb->N_tracts);
+      if ((show_maxu < 0) || (tb->N_tracts < show_maxu)) show_max = tb->N_tracts;
+      else if (show_maxu == 0) show_max = (tb->N_tracts < 5) ? tb->N_tracts : 5;
+      else show_max = show_maxu < tb->N_tracts ? show_maxu : tb->N_tracts;
+
+      s = NULL;
+      for (ii=0; ii<show_max; ++ii) {
+         sprintf(stmp, "      Bun.Trc %d ++> ", ii);
+         s = SUMA_append_replace_string(s,
+               SUMA_Taylor_Tract_Info(tb->tracts+ii, show_maxu),stmp,2);
+      }
+      SUMA_StringAppend_va(SS,s); SUMA_ifree(s);
+      if (show_max < tb->N_tracts) {
+         int pl = (tb->N_tracts-show_max > 1);
+         SUMA_StringAppend_va(SS,
+               "   ... %d tract%sremain%s in bundle.\n", 
+               tb->N_tracts-show_max, pl ? "s ":" ", pl ? "":"s");
+      }
+   }
+   
+   SUMA_SS2S(SS, s);
+   SUMA_RETURN(s);
+}
+
+char * SUMA_Taylor_Network_Info(TAYLOR_NETWORK *net, 
+                                int show_maxu, int show_maxub)
+{
+   static char FuncName[]={"SUMA_Taylor_Network_Info"};
+   TAYLOR_BUNDLE *tb=NULL;
+   int show_max;
+   char stmp[64];
+   int ii=0;
+   char *s=NULL;
+   SUMA_STRING *SS=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+
+   if (!net) {
+      SUMA_StringAppend(SS,"NULL network pointer"); 
+   } else {
+      SUMA_StringAppend_va(SS,"  Network has %d bundles, %d tracts, %d points\n",
+            net->N_tbv, SUMA_Network_N_tracts(net,1), 
+            SUMA_Network_N_points(net, 1));
+      if (show_maxu < 0) show_max = net->N_tbv;
+      else if (show_maxu == 0) show_max = (net->N_tbv < 5) ? net->N_tbv : 5;  
+      else show_max = show_maxu < net->N_tbv ? show_maxu : net->N_tbv;
+
+      s = NULL;
+      for (ii=0; ii<show_max; ++ii) {
+         sprintf(stmp, "   Net.Bun. %d --> ", ii);
+         s = SUMA_append_replace_string(s,
+               SUMA_Taylor_Bundle_Info(net->tbv[ii], show_maxub),stmp,2);
+      }
+      SUMA_StringAppend_va(SS, s); SUMA_ifree(s);
+      if (show_max < net->N_tbv) {
+         int pl = (net->N_tbv-show_max > 1);
+         SUMA_StringAppend_va(SS, 
+            "... %d bundle%sremain%s in network.\n", 
+            net->N_tbv-show_max, pl ? "s ":" ", pl ? "":"s");
+      }
+      
+   }
+     
+   SUMA_SS2S(SS, s);
    SUMA_RETURN(s);
 }
 
@@ -6758,7 +7073,7 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node,
    NodeDef = SUMA_GetNodeDef (dset);
    
    if (NodeDef) {
-      SUMA_LH("Col. Index found");
+      SUMA_LH("Col. Index found, node %d, vec_filled %d", node, nel->vec_filled);
       if (nel->vec_filled > node) { 
          /* bug here (used to be < !) discovered thanks to Rosanna and Shane */
          if (node == NodeDef[node]) {
@@ -6782,8 +7097,10 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node,
       }
       
       if (SDSET_IS_SORTED(dset)) {
+         SUMA_LH("A sorted beast");
          SUMA_RETURN(SUMA_ibinFind(NodeDef, nel->vec_filled, node));
       } else {
+         SUMA_LH("A long slow search through %d data\n",nel->vec_filled); 
          for (i=0; i<nel->vec_filled; ++i) {
             if (NodeDef[i] == node) {
                SUMA_RETURN(i);
@@ -6796,7 +7113,12 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node,
    
    /* last resort, assume that data are ordered properly 
       (see commented out section above)*/
+   if (Max_Node_Index < 0 && SUMA_isVolDataset(dset)) {
+      /* By now, we know we do not have explicit node indices */
+      Max_Node_Index = nel->vec_len -1;
+   }
    if (nel->vec_len == nel->vec_filled && nel->vec_len == Max_Node_Index+1) {
+      SUMA_LH("Off the deep end");
       if (0 && !(WarnCount % 25 - 1)) {
          SUMA_PushErrLog("SLP_Err", "Assuming ith row of data\n"
                      "corresponds to node i.\n"
@@ -6804,6 +7126,9 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node,
                      "This warning is shown intermittently.", FuncName);
       } ++ WarnCount;       
       SUMA_RETURN(node);
+   } else {
+      SUMA_LH("Govt Shutdown");
+      SUMA_ShowDset(dset, 0, NULL);
    }
       
    /* bad news lews, this node is not in this Dset */ 
@@ -7014,7 +7339,7 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
          break;
    }
 
-   SUMA_LH(str);
+   SUMA_LH("%s",str);
    SUMA_RETURN(str);
 }
 
@@ -7269,7 +7594,7 @@ void **SUMA_Dset2VecArray(SUMA_DSET *dset,
                   }
                   break;
                default:
-                  SUMA_S_Err("Type not supported."
+                  SUMA_S_Err("Var Type not supported."
                              "Memory leak now present");
                   SUMA_RETURN(NULL); 
             }
@@ -7902,6 +8227,7 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
    SUMA_COL_TYPE ctp;
    SUMA_VARTYPE vtp;
    byte *bv = NULL;
+   short *shv=NULL;
    double *dv = NULL;
    float *fv=NULL;
    int *iv = NULL;
@@ -7937,7 +8263,7 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
             dset, SDSET_LABEL(dset), SDSET_FILENAME(dset),
             ind, ival, 
             ctp, vtp, SUMA_byte, SUMA_int, SUMA_float, SUMA_double);
-      SUMA_LH(stmp);
+      SUMA_LH("%s", stmp);
    }
    switch (vtp) {
       case SUMA_byte:
@@ -7945,6 +8271,12 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
          bv = (byte *)dset->dnel->vec[ind];
          sprintf(str,"%d",bv[ival]);
          *dval = (double)bv[ival];
+         break;
+      case SUMA_short:
+         str = (char *)SUMA_malloc(50*sizeof(char));
+         shv = (short *)dset->dnel->vec[ind];
+         sprintf(str,"%d",shv[ival]);
+         *dval = (double)shv[ival];
          break;
       case SUMA_int:
          str = (char *)SUMA_malloc(50*sizeof(char));
@@ -7981,7 +8313,7 @@ char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval)
          break;
    }
 
-   SUMA_LH(str);
+   SUMA_LH("%s",str);
    SUMA_RETURN(str);
 }
 
@@ -9209,9 +9541,10 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
 {
    static char FuncName[]={"SUMA_DsetCol2Float"};
    int i = -1, N_read = -1, *iv = NULL;
-   float *V=NULL, *fv = NULL;
+   float *V=NULL, *fv = NULL, fac;
    byte *bv=NULL;
    double *dv=NULL;
+   short *sv=NULL;
    complex *cmv=NULL;
    SUMA_COL_TYPE ctp;
    SUMA_VARTYPE vtp;
@@ -9233,18 +9566,23 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
    }
    
    ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
-
+   fac = SUMA_GetBrickFactor(dset, ind); if (fac == 0.0f) fac = 1.0;
+   SUMA_LH("Col fac (if any) %f\n", fac);
    V = (float *)SUMA_calloc(N_read, sizeof(float));
    if (!V) { SUMA_SL_Crit("Failed to allocate for V."); SUMA_RETURN(NULL); }
    vtp = SUMA_ColType2TypeCast (ctp) ;
    switch (vtp) {
       case SUMA_byte:
          bv = (byte *)dset->dnel->vec[ind];
-         for (i=0; i<N_read; ++i) V[i] = (float)bv[i];
+         for (i=0; i<N_read; ++i) V[i] = (float)(bv[i]*fac);
          break;
       case SUMA_int:
          iv = (int *)dset->dnel->vec[ind];
          for (i=0; i<N_read; ++i) V[i] = (float)iv[i];
+         break;
+      case SUMA_short:
+         sv = (short *)dset->dnel->vec[ind];
+         for (i=0; i<N_read; ++i) V[i] = (float)(sv[i]*fac);
          break;
       case SUMA_float:
          fv = (float *)dset->dnel->vec[ind];
@@ -9462,7 +9800,7 @@ SUMA_COL_TYPE SUMA_TypeOfDsetColNumb(SUMA_DSET *dset, int ind)
    SUMA_LH("Fetching Type a la afni");
    cnm = NI_get_attribute(dset->dnel, "ni_type");
    if (cnm) {
-      SUMA_LH(cnm);
+      SUMA_LH("%s",cnm);
       iar = decode_type_string( cnm ); 
       if (iar) {
          ctp = iar->ar[ind];   
@@ -9545,8 +9883,7 @@ SUMA_Boolean SUMA_isSameDsetColTypes(SUMA_DSET *dset1, SUMA_DSET *dset2)
    cnm1 = NI_get_attribute(dset1->dnel, "ni_type");
    cnm2 = NI_get_attribute(dset2->dnel, "ni_type");
    if (cnm1 && cnm2) {
-      SUMA_LH(cnm1);
-      SUMA_LH(cnm2);
+      SUMA_LH("%s %s", cnm1, cnm2);
       iar1 = decode_type_string( cnm1 ); 
       iar2 = decode_type_string( cnm1 ); 
       if (iar1 && iar2) {
@@ -10179,7 +10516,7 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
                            "Failed clean dset name", FuncName); 
          SUMA_RETURN(-1);
       }
-      SUMA_LH(PrefOut);
+      SUMA_LH("%s", PrefOut);
    }
    
    if (form == SUMA_NO_DSET_FORMAT) {
@@ -10251,7 +10588,7 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
 
 
    if (NameOutp && !SUMA_IS_DSET_STDXXX_FORMAT(form)) {
-      SUMA_LH(NameOut);
+      SUMA_LH("%s", NameOut);
       *NameOutp = NameOut; NameOut = NULL;
    } else {
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;
@@ -10300,8 +10637,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
       SUMA_RETURN(NameOut); 
    }
    if (LocalHead) {
-      SUMA_LH(Name);
-      SUMA_LH("About to write dset");
+      SUMA_LH("About to write dset to %s", Name);
       SUMA_ShowDset(dset, 0, NULL);
    }  
    if (!dset->ngr) { 
@@ -10394,13 +10730,11 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
                strmname = SUMA_append_string("file:",NameOut);
                NI_set_attribute(dset->ngr,"filename", NameOut);
                if (form == SUMA_ASCII_NIML) { 
-                 SUMA_LH("Writing NIML, ASCII..."); 
-                 SUMA_LH(strmname);  
+                 SUMA_LH("Writing NIML, ASCII...%s",strmname);  
                  NEL_WRITE_TX (dset->ngr, strmname, flg);  
                  SUMA_LH("DONE.");
                } else { 
-                 SUMA_LH("Writing NIML, BINARY..."); 
-                 SUMA_LH(strmname); 
+                 SUMA_LH("Writing NIML, BINARY...%s",strmname); 
                  NEL_WRITE_BI (dset->ngr, strmname, flg); 
                  SUMA_LH("DONE.");
                }
@@ -10415,13 +10749,11 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
          case SUMA_NIML_STDERR:
          case SUMA_NIML_STDOUT:
             if (form == SUMA_NIML_STDOUT) { 
-              SUMA_LH("Writing NIML, STDOUT..."); 
-              SUMA_LH(strmname); 
+              SUMA_LH("Writing NIML, STDOUT...%s", strmname); 
               NEL_WRITE_TX (dset->ngr, "stdout:", flg);  
               SUMA_LH("DONE.");
             } else { 
-              SUMA_LH("Writing NIML, STDERR..."); 
-              SUMA_LH(strmname); 
+              SUMA_LH("Writing NIML, STDERR...%s", strmname); 
               NEL_WRITE_TX (dset->ngr, "stderr:", flg); 
               SUMA_LH("DONE.");
             }
@@ -10435,7 +10767,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
             {
                NI_set_attribute(dset->ngr,"filename", NameOut);
                strmname = SUMA_append_string("file:",NameOut);
-	            SUMA_LH("Writing 1D..."); SUMA_LH(strmname); 
+	            SUMA_LH("Writing 1D...%s", strmname); 
                DSET_WRITE_1D (dset, strmname, flg, AddIndex_1D);
                if (!flg) {
                   SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
@@ -10448,7 +10780,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
             {
                NI_set_attribute(dset->ngr,"filename", NameOut);
                strmname = SUMA_copy_string(NameOut);
-	            SUMA_LH("Writing 1D pure..."); SUMA_LH(strmname); 
+	            SUMA_LH("Writing 1D pure...%s", strmname); 
                DSET_WRITE_1D_PURE (dset, strmname, flg, AddIndex_1D);
                if (!flg) {
                   SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
@@ -10461,7 +10793,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
             {
                NI_set_attribute(dset->ngr,"filename", NameOut);
                strmname = SUMA_copy_string(NameOut);
-	            SUMA_LH("Writing 1D pure transpose..."); SUMA_LH(strmname); 
+	            SUMA_LH("Writing 1D pure transpose...%s", strmname); 
                DSET_WRITE_1D_PURE_TRANSPOSE (dset, strmname, flg, AddIndex_1D);
                if (!flg) {
                   SUMA_PushErrLog("SL_Err","Output file not written", FuncName);
@@ -10473,7 +10805,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
          case SUMA_1D_PURE_STDOUT:
             {
                NI_set_attribute(dset->ngr,"filename", "stdout");
-	            SUMA_LH("Writing 1D pure..."); SUMA_LH(strmname); 
+	            SUMA_LH("Writing 1D pure...%s", strmname); 
                DSET_WRITE_1D_PURE (dset, "stdout", flg, AddIndex_1D);
                {
                   SUMA_LH("DONE.");
@@ -10483,7 +10815,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
          case SUMA_1D_PURE_STDERR:
             {
                NI_set_attribute(dset->ngr,"filename", "stderr");
-	            SUMA_LH("Writing 1D pure..."); SUMA_LH(strmname); 
+	            SUMA_LH("Writing 1D pure...%s", strmname); 
                DSET_WRITE_1D_PURE (dset, "stderr", flg, AddIndex_1D);
                {
                   SUMA_LH("DONE.");
@@ -10493,7 +10825,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
          case SUMA_1D_PURE_STDOUT_TRANSPOSE:
             {
                NI_set_attribute(dset->ngr,"filename","stdout");
-	            SUMA_LH("Writing 1D pure transpose..."); SUMA_LH(strmname); 
+	            SUMA_LH("Writing 1D pure transpose...%s", strmname)
                DSET_WRITE_1D_PURE_TRANSPOSE (dset, "stdout", flg, AddIndex_1D);
                {
                   SUMA_LH("DONE.");
@@ -10503,7 +10835,7 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset,
          case SUMA_1D_PURE_STDERR_TRANSPOSE:
             {
                NI_set_attribute(dset->ngr,"filename","stderr");
-	            SUMA_LH("Writing 1D pure transpose..."); SUMA_LH(strmname); 
+	            SUMA_LH("Writing 1D pure transpose...%s", strmname);
                DSET_WRITE_1D_PURE_TRANSPOSE (dset, "stderr", flg, AddIndex_1D);
                {
                   SUMA_LH("DONE.");
@@ -12745,6 +13077,29 @@ char* SUMA_sdset_id(SUMA_DSET *dset)
    SUMA_RETURN(id);
 }
 
+SUMA_DATUM_LEVEL SUMA_sdset_datum_level(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_sdset_datum_level"};
+   SUMA_DATUM_LEVEL dtlvl = SUMA_ELEM_DAT;
+   
+   if (!dset || !dset->ngr) return(dtlvl);
+   NI_GET_INT(dset->ngr, "Datum_Level", dtlvl);
+   if (!NI_GOT) dtlvl = SUMA_ELEM_DAT;
+   
+   return(dtlvl);
+}
+
+SUMA_Boolean SUMA_sdset_set_datum_level(SUMA_DSET *dset, SUMA_DATUM_LEVEL lvl)
+{
+   static char FuncName[]={"SUMA_sdset_set_datum_level"};
+   
+   if (!dset || !dset->ngr ||
+         lvl < SUMA_ELEM_DAT || lvl >= SUMA_N_LEV_DAT) return(NOPE);
+   
+   NI_SET_INT(dset->ngr, "Datum_Level", lvl);
+   return(YUP);
+}
+
 /*!
    \brief return a niml dset's mesh parent ID , substitute for macro 
    SDSET_IDMDOM
@@ -12769,6 +13124,36 @@ char* SUMA_sdset_idmdom(SUMA_DSET *dset)
    #endif
    SUMA_RETURN(id);
 }
+
+/* Return orientation code if available */
+char *SUMA_Dset_orcode(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_Dset_orcode"};
+   static int ncall = 0;
+   int *iv=NULL;
+   NI_element *nelb = NULL;
+   static char ccc[10][3];
+   char *orcode;
+   
+   SUMA_ENTRY;
+   
+   ++ncall; if (ncall > 9) ncall = 0;
+   orcode = (char *)ccc[ncall];
+   orcode[0] = orcode[1] = orcode[2] = 'X'; orcode[3] = '\0';
+   if (!dset) SUMA_RETURN(orcode);   
+   if (!(nelb = SUMA_FindDsetAttributeElement(dset, "ORIENT_SPECIFIC"))) {
+      SUMA_S_Err("No ORIENT SPECIFIC");
+      SUMA_RETURN(orcode); 
+   }
+   iv = (int *)nelb->vec[0];
+   orcode[0] = ORIENT_typestr[iv[0]][0] ;
+   orcode[1] = ORIENT_typestr[iv[1]][0] ;
+   orcode[2] = ORIENT_typestr[iv[2]][0] ;
+   orcode[3] = '\0';
+   
+   SUMA_RETURN(orcode);
+}
+
 
 /*! A function to change SUMA_DSET * to THD_3dim_dataset *
 This would work for float only dsets, function is in its
@@ -12860,15 +13245,21 @@ infancy
                            Otherwise you get attributes and indices, no more.                      
    \param cleardset (int) Call DSET_delete on *dsetp and set *dsetp to NULL.
                           Only allowed if copy_data is set.
+   \param floatize (int) if 1, floatize the input, unless it is complex.
+                            0, leave as is.
+                           -1, abide by the default (floatize is on),
+                               and by the value of env var: AFNI_NSD_TO_FLOAT
+                               which would be ignored otherwise.
    \return sdset (SUMA_DSET *) a SUMA dataset version of *dsetp
    
    \sa SUMA_sumadset2afnidset
 */
 SUMA_DSET *SUMA_afnidset2sumadset(
       THD_3dim_dataset **dsetp, 
-      int copy_data, int cleardset)
+      int copy_data, int cleardset, int floatize)
 {
    static char FuncName[]={"SUMA_afnidset2sumadset"};
+   int ntf, vv;
    THD_3dim_dataset *dset = NULL;
    SUMA_DSET *newset=NULL;
    NI_group *ngr=NULL;
@@ -12885,17 +13276,26 @@ SUMA_DSET *SUMA_afnidset2sumadset(
    dset = *dsetp;
    if (!dset) { SUMA_S_Err("NULL *dsetp."); SUMA_RETURN(newset); }
 
-   set_ni_globs_from_env();
-   ngr = THD_dset_to_ni_surf_dset(dset, copy_data);
+   if (floatize == -1) {
+      set_ni_globs_from_env();
+      ngr = THD_dset_to_ni_surf_dset(dset, copy_data);
+   } else {
+      ntf = get_gni_to_float(); set_gni_to_float(floatize);
+      ngr = THD_dset_to_ni_surf_dset(dset, copy_data);
+      set_gni_to_float(ntf);
+   }
    if (!ngr) {
       SUMA_S_Err("Failed in THD_dset_to_ni_surf_dset");
       SUMA_RETURN(newset);
    }else {
+      /* Keep track of HEADNAME of input */
+      NI_set_attribute(ngr,"DSET_HEADNAME", DSET_HEADNAME(dset));
       if (!(newset = SUMA_ngr_2_dset(ngr, 1))) {
          SUMA_S_Err("Failed to go from ngr to dset");
          SUMA_RETURN(newset);
       }
    }
+   
    if (cleardset) { 
       SUMA_LH("Clearing dset ..."); 
       DSET_delete(dset); *dsetp = NULL; 
@@ -12938,6 +13338,8 @@ SUMA_DSET_FORMAT SUMA_FormatFromFormString(char *arg) {
    static char FuncName[]={"SUMA_FormatFromFormString"};
    
    SUMA_DSET_FORMAT oform = SUMA_ERROR_DSET_FORMAT;
+   
+   SUMA_ENTRY;
    
    if (!arg) {
       SUMA_RETURN(oform);
@@ -13151,7 +13553,17 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
                nalloc, n0+n1+n2+1, CHECK_NULL_STR(cs), CHECK_NULL_STR(lbl));
       if (nalloc < (n0+n1+n2+1)) { /* and a little faster July 2012 
                                     still need to go faster, but 
-                                    bottle neck may be elsewhere */
+                                    bottle neck may be elsewhere 
+                                    Note that if you add then readjust
+                                    by editing the mid section, all this 
+                                    speed up effort becomes a real bad idea
+                                    See what I do with alloc_max in the
+                                    next blocs below. 
+                                    Need to get away from single composite
+                                    strings, but that wouldstop being compatible
+                                    with AFNI. Perhaps make the change at read, 
+                                    and undo it just before write.
+                                    */
          nalloc += (n0+n1+n2+1)+8192;
          cs = (char *)NI_realloc(cs, char,
                   nalloc*sizeof(char));
@@ -13192,10 +13604,10 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
          ns = SUMA_NI_str_ar_2_comp_str(nisa, sep);
          if (LocalHead)
             fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
-         /* This next macro is causing a post-malloc corruption that I cannot
-         trace. Adding +10 instead of +1 to the NI_malloc in the macro seems
-         to solve the problem.  TAG09102012    ZSS , Sept 10 2012 */  
          SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns);
+         /* Make sure alloc_max is reset, this is a new pointer and the
+         pre-allocation done above is of no further use */
+         SUMA_NI_set_int(nel,"alloc_max", strlen(ns));
          /* SUMA_DUMP_TRACE(NI_malloc_status()); */
       }
    } else { /* insert in middle */
@@ -13214,7 +13626,8 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
       ns = SUMA_NI_str_ar_2_comp_str(nisa, sep);
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
-      SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns); 
+      SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns);
+      SUMA_NI_set_int(nel,"alloc_max", strlen(ns));
    }
    if (ns) SUMA_free(ns); ns = NULL;
    if (nisa) SUMA_free_NI_str_array(nisa); nisa = NULL;
@@ -13664,7 +14077,7 @@ int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset,
       if( tdset == NULL ) {
          snprintf(sbuf, 256, 
             "ERROR %s: Could not construct dset from %s\n",FuncName, pre);
-         SUMA_S_Err(sbuf);
+         SUMA_S_Err("%s", sbuf);
          SUMA_RETURN(NOPE) ;
       }
       giset->nvox = DSET_NVOX(tdset) ;
@@ -13688,7 +14101,7 @@ int SUMA_init_GISET_setup(NI_stream nsg , NI_element *nel, GICOR_setup *giset,
             FuncName, NI_get_attribute(nel,"LRpair_nnode"),
             SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",0),
             SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",1));
-      SUMA_LH(sbuf);
+      SUMA_LH("%s",sbuf);
    }
    if ((s=SUMA_NI_get_ith_string(
                NI_get_attribute(nel,"LRpair_nnode"),",",0))) {
@@ -13859,9 +14272,11 @@ byte SUMA_isGraphDset(SUMA_DSET *dset)
          SUMA_RETURN(NOPE);
       }      
    }
-   dset->Aux->isGraph = SUMA_isGraphDsetNgr(dset->ngr);
+   if (SUMA_isGraphDsetNgr(dset->ngr)) {
+      dset->Aux->isGraph = GRAPH_DSET;
+   }
    
-   SUMA_RETURN(dset->Aux->isGraph);
+   SUMA_RETURN(dset->Aux->isGraph == GRAPH_DSET);
 }
 
 byte SUMA_isGraphDsetNgr(NI_group *ngr)
@@ -13875,7 +14290,6 @@ byte SUMA_isGraphDsetNgr(NI_group *ngr)
    }
    return(0);
 }
-
 
 /*!
    Turn a bunch of matrices into a graph dataset.
@@ -15120,4 +15534,40 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
    SUMA_RETURN(nel);  
 }
 
+/**************** Tract dset functions *************************/
+
+/* This query goes back to the source all the time,
+   use SUMA_isTractDset_fast for speed */
+byte SUMA_isTractDset(SUMA_DSET *dset) 
+{
+   static char FuncName[]={"SUMA_isTractDset"};
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->ngr) SUMA_RETURN(NOPE);
+   
+   if (!dset->Aux) { /* create one, always good */
+      if (!SUMA_Add_Dset_Aux(dset)) {
+         SUMA_S_Err("Bad news, this should not fail");
+         SUMA_RETURN(NOPE);
+      }      
+   }
+   if (SUMA_isTractDsetNgr(dset->ngr)) {
+      dset->Aux->isGraph == TRACT_DSET;
+   }
+   
+   SUMA_RETURN(dset->Aux->isGraph == TRACT_DSET);
+}
+
+byte SUMA_isTractDsetNgr(NI_group *ngr)
+{
+   if (!ngr) return(0);
+   switch (SUMA_Dset_Type(NEL_DSET_TYPE(ngr))) {
+      case SUMA_TRACT_BUCKET:
+         return(1);
+      default:
+         return(0);
+   }
+   return(0);
+}
 

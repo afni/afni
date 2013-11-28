@@ -73,21 +73,21 @@ void WorkErrLog_s(void)
    while (del) {
       el = (SUMA_ERRLOG *)del->data;
       sprintf(FuncName, "%s", el->FuncName); 
-           if (!strcmp(el->macroname,"L_Err")) { SUMA_L_Err(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Err")) { SUMA_SL_Err(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Err")) { SUMA_SLP_Err(el->msg); }
-      else if (!strcmp(el->macroname,"L_Warn")) { SUMA_L_Warn(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Warn")) { SUMA_SL_Warn(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Warn")) { SUMA_SLP_Warn(el->msg); }
-      else if (!strcmp(el->macroname,"L_Note")) { SUMA_L_Note(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Note")) { SUMA_SL_Note(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Note")) { SUMA_SLP_Note(el->msg); }
-      else if (!strcmp(el->macroname,"L_Crit")) { SUMA_L_Crit(el->msg); }
-      else if (!strcmp(el->macroname,"SL_Crit")) { SUMA_SL_Crit(el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Crit")) { SUMA_SLP_Crit(el->msg); }
+           if (!strcmp(el->macroname,"L_Err")) { SUMA_L_Err("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Err")) { SUMA_SL_Err("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Err")) { SUMA_SLP_Err("%s", el->msg); }
+      else if (!strcmp(el->macroname,"L_Warn")) { SUMA_L_Warn("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Warn")) { SUMA_SL_Warn("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Warn")){SUMA_SLP_Warn("%s", el->msg); }
+      else if (!strcmp(el->macroname,"L_Note")) { SUMA_L_Note("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Note")) { SUMA_SL_Note("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Note")){SUMA_SLP_Note("%s", el->msg); }
+      else if (!strcmp(el->macroname,"L_Crit")) { SUMA_L_Crit("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SL_Crit")) { SUMA_SL_Crit("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Crit")){SUMA_SLP_Crit("%s", el->msg); }
       else {
          snprintf(mmm, 255*sizeof(char), "Bad macroname %s", el->macroname); 
-         sprintf(FuncName, "%s", "WorkErrLog_ns"); SUMA_S_Err(mmm);
+         sprintf(FuncName, "%s", "WorkErrLog_ns"); SUMA_S_Err("%s",mmm);
       }
       del = SUMA_PopErrLog(del);
    }

@@ -210,7 +210,7 @@ SUMA_SegmentDO *SUMA_Perturbation2SDO(SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Pe
 
    SDO = SUMA_CreateSegmentDO( N_n, oriented, NodeBased, Stipple,
                                Label, idcode_str, Parent_idcode_str,
-                               type_not_set, NULL,
+                               NOT_SET_type, NULL,
                                LineWidth, LineCol,
                                NodeId, NULL, n0, n1,
                                colv, thickv );
@@ -923,7 +923,7 @@ SUMA_SegmentDO *SUMA_G2SDO(vector G, SUMA_MX_VEC *ControlCurve,
 
    SDO = SUMA_CreateSegmentDO( N_n, oriented, NodeBased, Stipple,
                                Label, idcode_str, Parent_idcode_str,
-                               type_not_set, NULL,
+                               NOT_SET_type, NULL,
                                LineWidth, LineCol,
                                NodeId, NULL, n0, n1,
                                colv, thickv);

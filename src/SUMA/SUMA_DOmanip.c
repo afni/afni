@@ -276,10 +276,10 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case not_DO_type:
          /* not a DO, leave it to beaver */
          break;
-      case type_not_set:
+      case NOT_SET_type:
          fprintf(SUMA_STDERR,
                   "Error SUMA_Free_Displayable_Object, "
-                  "no free type_not_set\n");
+                  "no free NOT_SET_type\n");
          break;
       case NBSP_type:
       case SP_type:
@@ -303,13 +303,16 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case TRACT_type:
          SUMA_free_TractDO(dov->OP);
          break;
+      case MASK_type:
+         SUMA_free_MaskDO(dov->OP);
+         break;
       case GRAPH_LINK_type:
          SUMA_free_GraphLinkDO(dov->OP);
          break;
       default:
          SUMA_S_Errv("Type %d not accounted for!\n", dov->ObjectType);
          break;   
-   }   
+   }  
 
    SUMA_RETURN(YUP);
 }
@@ -509,8 +512,9 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
    }
    
    if (!cSVu) { /* Do this for all viewers */
-      SUMA_LHv("Working all %d svs\n", SUMA_MAX_SURF_VIEWERS);
-      icsvmin = 0; icsvmax=SUMA_MAX_SURF_VIEWERS;
+      SUMA_LHv("Working all %d svs (%d open X-realized)\n", 
+               SUMA_MAX_SURF_VIEWERS, SUMAg_N_SVv);
+      icsvmin = 0; icsvmax=SUMAg_N_SVv;
    } else {
       icsvmin = SUMA_WhichSV(cSVu, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS);
       if (icsvmin >=0) icsvmax = icsvmin+1;
@@ -525,7 +529,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
    icsv = icsvmin;
    while (icsv < icsvmax) {
       cSV = &(SUMAg_SVv[icsv]);
-      
+      SUMA_LH("Process for viewer %d, %p, [%c]", icsv, cSV, 65+icsv);
       #if 0
       if (LocalHead) {
          /* scan for trouble */
@@ -540,8 +544,9 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
 
       if (LocalHead && 
           SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) != 0) {
-         fprintf(SUMA_STDERR,"%s: Muted for viewer[%c]\n", 
-              FuncName, 65+SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
+         fprintf(SUMA_STDERR,"%s: Muted for viewer %p [%c]\n", 
+              FuncName, cSV, 
+              65+SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS) );
          /* turn off the LocalHead, too much output*/
          LocalHead = NOPE;
       }  
@@ -585,7 +590,9 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
             if (SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))) {
                if (SUMA_FirstGoodAnatCorrState(cSV) < 0) { 
                                             /* have nothing yet, add one */
-                  SUMA_LH("Not one anatomical state to be found, adding one");
+                  SUMA_LH("Not one anatomical state to be found for sv %p [%c],"
+                          " adding one", cSV, 
+                          SUMA_WhichSVc(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS));
                   if (SUMA_Which_iDO_State(dov_id, cSV, 1) < 0) {
                      SUMA_S_Err("State could not be added!!!");
                      SUMA_RETURN (NOPE);
@@ -667,11 +674,13 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
             }
             }
             break;
+         case MASK_type:
+         case VO_type:
          case TRACT_type:
             {
-            SUMA_TractDO *TDO=(SUMA_TractDO *)(SUMAg_DOv[dov_id].OP);
-            SUMA_LHv("With TDO %s, Anat Correctedness %s\n", 
-                     DO_label(TDO),
+            SUMA_ALL_DO *ADO=(SUMA_ALL_DO *)(SUMAg_DOv[dov_id].OP);
+            SUMA_LHv("With ADO %s, Anat Correctedness %s\n", 
+                     ADO_LABEL(ADO),
                      SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))?"YES":"NO");
             if (SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id]))) {
                if (SUMA_FirstGoodAnatCorrState(cSV) < 0) { 
@@ -703,14 +712,17 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                      cSV->RegisteredDO[cSV->N_DO] = dov_id;
                      cSV->N_DO += 1;
                   } else {
-                     SUMA_LHv("   TDO %s, already in the bag at"
+                     SUMA_LHv("   ADO %s, already in the bag at"
                               " cSV->RegisteredDO[%d]\n", 
-                                 DO_label(TDO),
+                                 ADO_LABEL(ADO),
                                  SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
                                          cSV->RegisteredDO+cSV->N_DO,
                                          dov_id));
                   }
-                  SUMA_LH("Adding color list...");
+                  SUMA_LH("Adding color list for %s (id %s), viewer %p %d [%c]", 
+                           iDO_label(dov_id), iDO_idcode(dov_id), cSV,
+                           SUMA_WhichSV(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS),
+                           SUMA_WhichSVc(cSV, SUMAg_SVv, SUMA_MAX_SURF_VIEWERS));
                   /* add the ColorList */
                   if (!SUMA_FillColorList (cSV,
                                  (SUMA_ALL_DO *)SUMAg_DOv[dov_id].OP)) {
@@ -719,8 +731,8 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                   }
  
                } else {
-                  SUMA_LHv(" Viewer state (%s) not anatomical for TDO %s\n",
-                           cSV->State, DO_label(TDO));
+                  SUMA_LHv(" Viewer state (%s) not anatomical for ADO %s\n",
+                           cSV->State, ADO_LABEL(ADO));
                } 
             } else {
                SUMA_S_Err("Tracts are supposed to be anatomically correct\n"
@@ -843,9 +855,10 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 
 const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd) 
 {
+   static char FuncName[]={"SUMA_ObjectTypeCode2ObjectTypeName"};
    switch (dd) {
-      case type_not_set:
-         return("type_not_set");
+      case NOT_SET_type:
+         return("NOT_SET_type");
          break;
       case not_DO_type:
          return("not_DO");
@@ -912,6 +925,9 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
          break;
       case TRACT_type:
          return("TRACT");
+         break;
+      case MASK_type:
+         return("MASK");
          break;
       case GRAPH_LINK_type:
          return("GRAPH_LINK");
@@ -1169,6 +1185,22 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                      dov[i].CoordType, 
                      gldo->variant, SDSET_LABEL(dset), gldo->Parent_idcode_str);
                break; }
+            case TRACT_type: {
+               SS = SUMA_StringAppend_va(SS,
+                        "DOv ID: %d\n\tTract  Object\n"
+                        "\tType: %d (%s), Axis Attachment %d\n", 
+                        i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
+               break; }
+            case MASK_type: {
+               SS = SUMA_StringAppend_va(SS,
+                        "DOv ID: %d\n\tMask  Object\n"
+                        "\tType: %d (%s), Axis Attachment %d\n", 
+                        i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
+               break; }
             default:
                SS = SUMA_StringAppend_va(SS,"DOv ID: %d\n"
                                             "\tUnknown Type (%d) %s!\n",
@@ -1187,6 +1219,86 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
    
    SUMA_RETURN(s);
 }
+
+char *SUMA_TractDOInfo (SUMA_TractDO *tdo, int detail)
+{
+   static char FuncName[]={"SUMA_TractDOInfo"};
+   int i;
+   SUMA_COL_TYPE ctp;
+   char *s=NULL, stmp[200];
+   SUMA_STRING *SS=NULL;
+   NI_group *ngr=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (tdo) {
+      SS = SUMA_StringAppend_va(SS, "Tract %p\n", tdo);
+      s = SUMA_Taylor_Network_Info(tdo->net, 2,5);
+      SS = SUMA_StringAppend(SS,s);
+      SUMA_ifree(s);
+   } else {
+      SS = SUMA_StringAppend(SS, "NULL Tract.");
+   }
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+}
+
+char *SUMA_MaskDOInfo (SUMA_MaskDO *mdo, int detail)
+{
+   static char FuncName[]={"SUMA_MaskDOInfo"};
+   int i;
+   SUMA_COL_TYPE ctp;
+   char *s=NULL, stmp[200];
+   SUMA_STRING *SS=NULL;
+   NI_group *ngr=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (mdo) {
+      SS = SUMA_StringAppend_va(SS, "Mask %p\n", mdo);
+      SS = SUMA_StringAppend(SS,"Fill this function up please");
+      SUMA_ifree(s);
+   } else {
+      SS = SUMA_StringAppend(SS, "NULL Mask.");
+   }
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+}
+
+char *SUMA_VolumeObjectInfo (SUMA_VolumeObject *vo, int detail)
+{
+   static char FuncName[]={"SUMA_VolumeObjectInfo"};
+   int i;
+   SUMA_COL_TYPE ctp;
+   char *s=NULL, stmp[200];
+   SUMA_STRING *SS=NULL;
+   NI_group *ngr=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (vo) {
+      SS = SUMA_StringAppend_va(SS, "VolumeObject %p\n", vo);
+      SS = SUMA_StringAppend(SS,"Fill this function up please");
+      SUMA_ifree(s);
+   } else {
+      SS = SUMA_StringAppend(SS, "NULL VO.");
+   }
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+}
+
 
 /*!
 print out the data contained in dov 
@@ -1395,7 +1507,9 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_Axis *sax = NULL;
    SUMA_SphereDO *spdo=NULL;
    SUMA_NIDO *nido=NULL;
-   SUMA_GraphLinkDO *gldo =NULL; 
+   SUMA_GraphLinkDO *gldo =NULL;
+   SUMA_TractDO *tdo = NULL;
+   SUMA_MaskDO *mdo=NULL;
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
@@ -1459,6 +1573,18 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
          case (GRAPH_LINK_type):
             gldo = (SUMA_GraphLinkDO *)dov[i].OP;
             if (strcmp(idcode, gldo->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case TRACT_type:
+            tdo = (SUMA_TractDO *)dov[i].OP;
+            if (strcmp(idcode, tdo->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case MASK_type:
+            mdo = (SUMA_MaskDO *)dov[i].OP;
+            if (strcmp(idcode, mdo->idcode_str)== 0) {
                SUMA_RETURN (i);
             }
             break;
@@ -1785,7 +1911,7 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
    SUMA_ENTRY;
    
    if (!idcode_str) SUMA_RETURN(PP);
-   if (do_type) *do_type = type_not_set;
+   if (do_type) *do_type = NOT_SET_type;
    if ((PP = SUMA_FindDset_s(idcode_str, SUMAg_CF->DsetList))) {
       if (do_type) *do_type = SDSET_type;
       SUMA_RETURN(PP);
@@ -1796,7 +1922,7 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
       if (do_type) *do_type = VO_type;
       SUMA_RETURN(PP);
    } else if ((i = SUMA_FindDOi_byID(SUMAg_DOv, SUMAg_N_DOv,idcode_str))>=0) {
-      PP = &(SUMAg_DOv[i].OP);
+      PP = (SUMAg_DOv[i].OP);
       if (do_type) *do_type = SUMAg_DOv[i].ObjectType;
       SUMA_RETURN(PP);
    } else {
@@ -1830,6 +1956,68 @@ SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
    SUMA_RETURN(NULL);
 }
 
+SUMA_VolumeObject * SUMA_findanyVOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
+{
+   static char FuncName[]={"SUMA_findanyVOp_inDOv"};
+   SUMA_VolumeObject *VO;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (dov_id) *dov_id = -1;
+   VO = NULL;
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == VO_type) {
+         VO = (SUMA_VolumeObject *)dov[i].OP;
+         if (dov_id) *dov_id = i;
+         SUMA_RETURN (VO);
+      }
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+SUMA_TractDO * SUMA_findanyTDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
+{
+   static char FuncName[]={"SUMA_findanyTDOp_inDOv"};
+   SUMA_TractDO *TDO;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (dov_id) *dov_id = -1;
+   TDO = NULL;
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == TRACT_type) {
+         TDO = (SUMA_TractDO *)dov[i].OP;
+         if (dov_id) *dov_id = i;
+         SUMA_RETURN (TDO);
+      }
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+SUMA_MaskDO * SUMA_findanyMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
+{
+   static char FuncName[]={"SUMA_findanyMDOp_inDOv"};
+   SUMA_MaskDO *MDO;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (dov_id) *dov_id = -1;
+   MDO = NULL;
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == MASK_type) {
+         MDO = (SUMA_MaskDO *)dov[i].OP;
+         if (dov_id) *dov_id = i;
+         SUMA_RETURN (MDO);
+      }
+   }
+   
+   SUMA_RETURN(NULL);
+}
 
 char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov)
 {
@@ -2012,7 +2200,7 @@ char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
   VO = SUMA_find_named_VOp_inDOv(char *filename, SUMA_DO *dov, int N_dov)
    searches all VO_type DO objects constructed from a dset from file filename
    
-   \param coordname (char *) filename of VO (as returned by DSET_HEADNAME) 
+   \param filename (char *) filename of VO (as returned by DSET_HEADNAME) 
    \param dov (SUMA_DO*) pointer to vector of Displayable Objects, 
                         typically SUMAg_DOv
    \param N_dov (int) number of DOs in dov
@@ -2042,7 +2230,7 @@ SUMA_VolumeObject * SUMA_find_named_VOp_inDOv( char *filename,
       if (dov[i].ObjectType == VO_type) {
          VO = (SUMA_VolumeObject *)dov[i].OP;
          if (VO->VE && VO->VE[0] &&
-             !strcmp(filename, DSET_HEADNAME(VO->VE[0]->dset))) {
+             !strcmp(filename, SUMA_VE_Headname(VO->VE, 0))) {
             if (VOf) {
                SUMA_S_Errv("Volume name %s\n"
                            "is not a unique identifier.\n",
@@ -2112,7 +2300,8 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv( char *coordnamei,
                                     coordname, SOf->Name_coord.FileName,
                                     SO->Name_coord.FileName);
                      SUMA_SS2S(SS, stmp);
-                     SUMA_SL_Err(stmp); if (stmp) SUMA_free(stmp); stmp = NULL;
+                     SUMA_SL_Err("%s",stmp); 
+                     if (stmp) SUMA_free(stmp); stmp = NULL;
                      if (sf.FileName) SUMA_free(sf.FileName); 
                         sf.FileName = NULL;
                      if (sf.Path) SUMA_free(sf.Path); 
@@ -2144,7 +2333,8 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv( char *coordnamei,
                                     coordname, SOf->Name_coord.FileName,
                                     SO->Name_coord.FileName);
                      SUMA_SS2S(SS, stmp);
-                     SUMA_SL_Err(stmp); if (stmp) SUMA_free(stmp); stmp = NULL;
+                     SUMA_SL_Err("%s",stmp); 
+                     if (stmp) SUMA_free(stmp); stmp = NULL;
                      if (sf.FileName) SUMA_free(sf.FileName); 
                         sf.FileName = NULL;
                      if (sf.Path) SUMA_free(sf.Path); 
@@ -2154,7 +2344,7 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv( char *coordnamei,
                }
                break;
             default: 
-               SUMA_SL_Err("Type not supported.");
+               SUMA_SL_Err("Filetype not supported.");
                SUMA_RETURN(NULL);
          }
       }
@@ -2239,7 +2429,9 @@ SUMA_Boolean SUMA_isRelated( SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2 , int level)
    SUMA_ENTRY;
    
    if (!ado1 || !ado2) SUMA_RETURN(NOPE);
-
+   
+   if (ado1 == ado2) SUMA_RETURN(YUP);
+   
    switch (ado1->do_type) {
       case SO_type:
          if (ado1->do_type != ado2->do_type) SUMA_RETURN(NOPE); 
@@ -2255,6 +2447,22 @@ SUMA_Boolean SUMA_isRelated( SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2 , int level)
              !strcmp(p1,p2)) {
             SUMA_RETURN(YUP);
          }
+         SUMA_RETURN(NOPE);
+         break;
+      case VO_type:
+      case TRACT_type:
+         if (ado2->do_type != ado1->do_type) SUMA_RETURN(NOPE);
+         if ((p1=SUMA_ADO_Parent_idcode(ado1)) && 
+             (p2=SUMA_ADO_Parent_idcode(ado2)) &&
+             !strcmp(p1,p2)) {
+            SUMA_RETURN(YUP);
+         } else if (!p1 && !p2 && !strcmp(ADO_ID(ado1),ADO_ID(ado2))) {
+            SUMA_RETURN(YUP);
+         }
+         SUMA_RETURN(NOPE);
+         break;
+      case MASK_type:
+         SUMA_S_Err("Not implemented yet, perhaps like VO and TRACT?");
          SUMA_RETURN(NOPE);
          break;
       default:
@@ -2412,16 +2620,32 @@ SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
 SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2) 
 {
    static char FuncName[]={"SUMA_isContralateral_name"};
-   char *sd=NULL;
+   char *sd=NULL, *sc1=NULL, *sc2=NULL;
+   int ic1, ic2;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
+   if (s1 && s2 && strstr(s1,"FuncAfni_") && strstr(s2,"FuncAfni_") &&
+       (sc1 = strstr(s1,TMP_NAME_SEP)) && (sc2 = strstr(s2,TMP_NAME_SEP)) ) {
+      /* temporarily mask the idcode part */
+      ic1 = sc1-s1; ic2 = sc2 - s2;
+      s1[ic1] = '\0';
+      s2[ic2] = '\0';   
+   }
    sd = SUMA_StringDiff(s1,s2);
+   /* now put things back */
+   if (sc1 && sc2) {
+      s1[ic1] = sc1[0];
+      s2[ic2] = sc2[0];
+   }
+   sc1 = sc2 = NULL;
+   
    SUMA_LHv("Diff of \n%s and \n%s is \n%s\n", 
             CHECK_NULL_STR(s1), CHECK_NULL_STR(s2), CHECK_NULL_STR(sd));
    
    if (!sd || sd[0] == '\0') SUMA_RETURN(NOPE);
    
+   /* If name is for live dsets from AFNI, make sure you cut after idcode_str */
    /* check for l or r only */
    if (sd[0] != 'l' && sd[0] != 'L' && sd[0] != 'r' && sd[0] != 'R') {
       /* not begginning with l or r */
@@ -2581,7 +2805,7 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
       SUMA_RETURN(overC);
    }
    
-   SUMA_LH("Have contralateral surface to consider\n");
+   SUMA_LH("Have contralateral surface to consider");
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
@@ -2604,7 +2828,7 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
       el = dlist_next(el);
    }
    if (!dsetC) {
-      /* Nothingness, return */
+      SUMA_LH("Quest failed, returning");
       SUMA_RETURN(overC);
    }
    if (!(overC=SUMA_Fetch_OverlayPointerByDset ((SUMA_ALL_DO *)SOC, 
@@ -2619,6 +2843,7 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
       } 
    }
    if (SOCp) *SOCp=SOC;
+   SUMA_T_Err("Returning with %p",overC);
    SUMA_RETURN(overC);
 }
 
@@ -2664,14 +2889,14 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
    if (SO1 == SO2 ||
        strcmp (SO1->idcode_str, SO2->idcode_str) == 0) {
       /* SO1 = SO2 */
-      SUMA_LH(SUMA_DomainKinships_String (SUMA_SO1_is_SO2));
+      SUMA_LH("%s",SUMA_DomainKinships_String (SUMA_SO1_is_SO2));
       SUMA_RETURN (SUMA_SO1_is_SO2);
    }
    
    if (SO1->LocalDomainParentID) {
       if (strcmp (SO1->LocalDomainParentID, SO2->idcode_str) == 0) {
          /* SO2 is the local domain parent of SO1 */
-         SUMA_LH(SUMA_DomainKinships_String (SUMA_SO2_is_LDPSO1));
+         SUMA_LH("%s",SUMA_DomainKinships_String (SUMA_SO2_is_LDPSO1));
          SUMA_RETURN (SUMA_SO2_is_LDPSO1);
       }
    }
@@ -2679,7 +2904,7 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
    if (SO2->LocalDomainParentID) {
       if (strcmp (SO1->idcode_str, SO2->LocalDomainParentID) == 0) {
           /* SO1 is the local domain parent of SO2 */
-          SUMA_LH(SUMA_DomainKinships_String (SUMA_SO1_is_LDPSO2));
+          SUMA_LH("%s",SUMA_DomainKinships_String (SUMA_SO1_is_LDPSO2));
           SUMA_RETURN (SUMA_SO1_is_LDPSO2);
       }
    }
@@ -2687,7 +2912,7 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
    if (SO1->LocalDomainParentID && SO2->LocalDomainParentID) {
       if (strcmp (SO1->LocalDomainParentID, SO2->LocalDomainParentID) == 0) {
          /* SO1 and SO2 have the same local domain parent */
-         SUMA_LH(SUMA_DomainKinships_String (SUMA_LDPSO1_is_LDPSO2));
+         SUMA_LH("%s",SUMA_DomainKinships_String (SUMA_LDPSO1_is_LDPSO2));
          SUMA_RETURN (SUMA_LDPSO1_is_LDPSO2);
       }
    }
@@ -2695,7 +2920,7 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
    if (SO1->DomainGrandParentID && SO2->idcode_str) {
       if (strcmp (SO1->DomainGrandParentID, SO2->idcode_str) == 0) {
          /* SO2 is the grand daddy of SO1 */
-         SUMA_LH(SUMA_DomainKinships_String (SUMA_SO2_is_GPSO1));
+         SUMA_LH("%s",SUMA_DomainKinships_String (SUMA_SO2_is_GPSO1));
          SUMA_RETURN (SUMA_SO2_is_GPSO1);
       }
    }
@@ -2703,7 +2928,7 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
    if (SO1->idcode_str && SO2->DomainGrandParentID) {
       if (strcmp (SO1->idcode_str, SO2->DomainGrandParentID) == 0) {
          /* SO1 is the grand daddy of SO2 */
-         SUMA_LH(SUMA_DomainKinships_String (SUMA_SO1_is_GPSO2));
+         SUMA_LH("%s",SUMA_DomainKinships_String (SUMA_SO1_is_GPSO2));
          SUMA_RETURN (SUMA_SO1_is_GPSO2);
       }
    }
@@ -2711,16 +2936,16 @@ SUMA_DOMAIN_KINSHIPS SUMA_WhatAreYouToMe (SUMA_SurfaceObject *SO1,
    if (SO1->DomainGrandParentID && SO2->DomainGrandParentID) {
       if (strcmp (SO1->DomainGrandParentID, SO2->DomainGrandParentID) == 0) {
          /* SO1 and SO2 have the same grand daddy */
-         SUMA_LH(SUMA_DomainKinships_String (SUMA_GPSO1_is_GPSO2));
+         SUMA_LH("%s", SUMA_DomainKinships_String (SUMA_GPSO1_is_GPSO2));
          SUMA_RETURN (SUMA_GPSO1_is_GPSO2);
       }
    }
    if (SO1->N_Node == SO2->N_Node) {
-      SUMA_LH(SUMA_DomainKinships_String (SUMA_N_NODE_SAME));
+      SUMA_LH("%s", SUMA_DomainKinships_String (SUMA_N_NODE_SAME));
       SUMA_RETURN (SUMA_N_NODE_SAME);
    }
   
-   SUMA_LH(SUMA_DomainKinships_String (SUMA_DOMAINS_NOT_RELATED));
+   SUMA_LH("%s", SUMA_DomainKinships_String (SUMA_DOMAINS_NOT_RELATED));
    SUMA_RETURN (SUMA_DOMAINS_NOT_RELATED);
    
 }
@@ -4312,7 +4537,6 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    
    SUMA_LH("Func input");
    cb->FunctionInput = NI_new_group_element();
-   SUMA_LH(FunctionName);
    snprintf(stmp,sizeof(char)*64,"input.%s",FunctionName);
    NI_rename_group(cb->FunctionInput, stmp);
    

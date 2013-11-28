@@ -4945,6 +4945,68 @@ THD_slist_find PLUTO_dset_finder( char *idc )
    return find ;
 }
 
+/*----------------------------------------------------------------------*/
+/*!
+  Look for a dataset by name and append it to session in question
+  Search if needed for exact name matches under paths from find_afni_file()
+  and then try get_atlas()
+  
+  Returns a 0 only when a dataset was found. 
+  Non-zero indicates stupidity, error, etc. 
+                                                         ZSS Oct. 2013 
+------------------------------------------------------------------------*/
+int AFNI_append_dset_to_session( char *fname, int sss )
+{
+   THD_3dim_dataset *new_dset=NULL;
+   THD_session * this_ss ;
+   THD_slist_find find;
+   
+   ENTRY("AFNI_append_dset_to_session");
+
+   if( GLOBAL_library.have_dummy_dataset ){ RETURN(1); }
+   if (!fname) { RETURN(2); }
+   if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ RETURN(2); }
+
+   this_ss = GLOBAL_library.sslist->ssar[sss] ;
+   if( ! ISVALID_SESSION(this_ss) ){ RETURN(3); }
+
+   /* not sure what to do with GLOBAL_library session yet.
+      why not add to it too? Also, why not add to global
+      if sss == -1 ? For now, return merrily */
+   if( this_ss == GLOBAL_library.session ) RETURN(4);
+   
+   if( this_ss->num_dsset < THD_MAX_SESSION_SIZE ){
+      if (!(new_dset = THD_open_dataset( fname ))) {
+         /* now try looking for it */
+         new_dset = THD_open_dataset(find_afni_file(fname, 0));
+      }
+      if (!new_dset) { /* try again, this works better if name
+                         is not complete */
+         new_dset = get_atlas(NULL, fname);
+      }
+      if( ISVALID_DSET(new_dset) ){
+         /* make sure it is not in the session already */
+         find = THD_dset_in_session( FIND_IDCODE, &(new_dset->idcode), this_ss );
+         if( find.dset == NULL ){
+            find = THD_dset_in_session(FIND_PREFIX, 
+                                       DSET_PREFIX(new_dset),this_ss);
+            if(  find.dset != NULL && 
+                 find.dset->view_type != new_dset->view_type ) find.dset = NULL ;
+         }
+         if (!find.dset) {
+            SET_SESSION_DSET(new_dset, this_ss, 
+                             this_ss->num_dsset, new_dset->view_type);
+            this_ss->num_dsset ++ ;
+            AFNI_inconstancy_check(NULL,new_dset) ;
+            RETURN(0);
+         }
+      }
+   }
+   
+   RETURN(5);
+}
+
+
 /*-----------------------------------------------------------------
    Plot a histogram; input might be from mri_histogram():
      nbin = # of bins in hist[]

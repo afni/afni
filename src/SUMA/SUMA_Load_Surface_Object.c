@@ -4066,12 +4066,30 @@ SUMA_Boolean SUMA_LoadSpec_eng (
    SUMA_S_Notev("Have %d DOs to load\n", Spec->N_DO);
    for (i=0; i<Spec->N_DO; ++i) {
       switch ((SUMA_DO_Types)Spec->DO_type[i]) {
-         case TRACT_type:
-            SUMA_S_Warnv("BETA for type %s. %s not loaded.\n",
-                     SUMA_ObjectTypeCode2ObjectTypeName(Spec->DO_type[i]),
-                     Spec->DO_name[i]);
+         case TRACT_type: {
+            static int ncnt;
+            if (!ncnt) {
+               SUMA_S_Warnv("BETA for type %s.\n", Spec->DO_name[i]);
+               ++ncnt;
+            }
             SUMA_LoadSegDO (Spec->DO_name[i], NULL );
-            break;
+            break; }
+         case MASK_type: {
+            static int ncnt;
+            if (!ncnt) {
+               SUMA_S_Warnv("BETA for type %s.\n", Spec->DO_name[i]);
+               ++ncnt;
+            }
+            SUMA_LoadMaskDO (Spec->DO_name[i], NULL );
+            break; }
+         case VO_type: {
+            static int ncnt;
+            if (!ncnt) {
+               SUMA_S_Warnv("BETA for type %s.\n", Spec->DO_name[i]);
+               ++ncnt;
+            }
+            SUMA_LoadVolDO (Spec->DO_name[i], GL_REPLACE, NULL); 
+            break; }
          case SDSET_type:
             SUMA_LHv("Loading graph dset %s\n",Spec->DO_name[i]);
             /* Expecting it to be a graph dset */
@@ -5371,8 +5389,9 @@ char * SUMA_unique_name( SUMA_SurfSpecFile * spec, char * sname )
 	    index = surf;
 	}
     }
-
-    return (SUMA_coord_file(spec,index));
+    
+    if (!(nfile = SUMA_coord_file(spec,index))) return("");
+    return (nfile);
 }
 
 /*---------------------------------------------------------------------------
@@ -5485,12 +5504,14 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
       }
    }
    
+   SUMA_LH("aa");
    if (!template && leftover) { /* Not a standard name */
       SUMA_free_NI_str_array(nisa); nisa = NULL;
       if (upar) *upar = -1;
       SUMA_RETURN(0);
    }
    
+   SUMA_LH("bb");
    if (!template) {
       SUMA_free_NI_str_array(nisa); nisa = NULL;
       if (upar) *upar = par;
@@ -5527,6 +5548,7 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
          SUMA_free(specname); specname = SUMA_copy_string(ss);
          tp = 3;
       }
+   SUMA_LH("bbcc %s", specname);
       svname = SUMA_append_replace_string(template,spref,"/",0);
       svname = SUMA_append_replace_string(svname,"_SurfVol.nii","",1);
       ss = find_afni_file(svname, 0);
@@ -5541,7 +5563,7 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
          SUMA_free(svname); svname=SUMA_copy_string(ss);
       }
    }
-   
+   SUMA_LH("cc %s, leftover %s", svname, leftover);
    /* So now we have a template spec, do we have a request for a particular 
       surface ? */
    if (leftover) {
@@ -5556,7 +5578,7 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
          SUMA_RETURN(0);
       }
       ss = SUMA_unique_name( &spec, leftover );
-      
+      SUMA_LH("dd %s", ss);
       if (ss[0]=='\0') {
          SUMA_S_Errv("Failed to get %s from %s\n", leftover, specname);
          SUMA_ifree(specname); specname = NULL;
@@ -5808,7 +5830,7 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
    strcpy(spec->SpecFileName, "FromCommandLine.spec");   
    SUMA_LHv("Accept_do: %d, %d DOs\n", ps->accept_do, ps->N_DO);
    if (ps->accept_do) {
-      SUMA_LH("Processing -tract/-graph");
+      SUMA_LH("Processing -tract/-graph/-vol");
       if (ps->N_DO+spec->N_DO >= SUMA_MAX_N_DO_SPEC) {
          SUMA_S_Err("Too many DOs to work with.\n"); 
          *nspec = 0; SUMA_RETURN(spec); 

@@ -8,6 +8,16 @@
 #define UPDATE_STANDARD_VIEW_MASK (1<<5)
 #define UPDATE_ALL_VIEWING_PARAMS_MASK ( UPDATE_ROT_MASK | UPDATE_VIEW_POINT_MASK | UPDATE_EYE_AXIS_STD_MASK | UPDATE_STANDARD_VIEW_MASK )
 
+#define ROI_MODE(sv) ( SUMAg_CF->ROI_mode )
+#define MASK_MANIP_MODE(sv) ( sv->MouseMode == SUMA_MASK_MANIP_MMODE )
+typedef enum {
+   SUMA_DEF_MMODE=0,
+   SUMA_ROI_MMODE,
+   SUMA_MASK_MANIP_MMODE,
+   
+   SUMA_N_MMODES
+} SUMA_MOUSE_MODES;
+
 /*! functions defined in SUMA_SVmanip.c */
 SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name);
 SUMA_Boolean SUMA_DiffGeomViewStruct(SUMA_GEOMVIEW_STRUCT gvs1,
@@ -16,6 +26,14 @@ SUMA_Boolean SUMA_DiffGeomViewStruct(SUMA_GEOMVIEW_STRUCT gvs1,
 SUMA_Boolean SUMA_CopyGeomViewStruct(SUMA_GEOMVIEW_STRUCT *gvs1,
                                      SUMA_GEOMVIEW_STRUCT *gvs2);
 SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N);
+SUMA_PICK_RESULT *SUMA_Get_From_PickResult_List(SUMA_SurfaceViewer *sv,
+                              SUMA_ALL_DO *ado, char *variant);
+SUMA_Boolean SUMA_Add_To_PickResult_List(SUMA_SurfaceViewer *sv, 
+                         SUMA_ALL_DO *ado, char *variant, SUMA_PICK_RESULT **PR);
+void SUMA_Show_PickList(DList *SelAdo, int detail, char *headstring, FILE *out);
+char *SUMA_PickList_Info(DList *SelAdo, int detail);
+SUMA_Boolean SUMA_Process_Selected_ADO(SUMA_SurfaceViewer *sv, int deepfirst);
+void SUMA_Free_SelectedDO_Datum(void *data);
 void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, 
                                      int detail);
 SUMA_Boolean SUMA_isViewerStateAnatomical(SUMA_SurfaceViewer *sv);
@@ -42,7 +60,7 @@ SUMA_Boolean SUMA_New_ViewState (SUMA_SurfaceViewer *csv);
 SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh);
 SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void);
 SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out, int detail); 
-int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *tt, int N_tt,
+int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *tt,
                           int *uN_MembSOs);
 char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail);
 int SUMA_SV_GetShowSelectedDatum(SUMA_SurfaceViewer *sv);
@@ -76,6 +94,7 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SetLocalRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv);
 int SUMA_WhichSV (SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv);
+char SUMA_WhichSVc(SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv);
 SUMA_X_SumaCont *SUMA_CreateSumaContStruct (void);
 void *SUMA_FreeSumaContStruct (SUMA_X_SumaCont *SumaCont);
 SUMA_X_ViewCont *SUMA_CreateViewContStruct (void);
@@ -122,8 +141,9 @@ SUMA_ALL_DO *SUMA_SV_Focus_any_ADO(SUMA_SurfaceViewer *sv, int *dov_id);
 SUMA_Boolean SUMA_SurfCont_SetcurDOp(SUMA_X_SurfCont *SurfCont, 
                                      SUMA_ALL_DO *ado);
 SUMA_ALL_DO *SUMA_SurfCont_GetcurDOp(SUMA_X_SurfCont *SurfCont);
-
-
+SUMA_Boolean SUMA_SetMouseMode(SUMA_SurfaceViewer *sv, 
+                               SUMA_MOUSE_MODES mmode, void *val);
+char *SUMA_ADO_ContName(SUMA_ALL_DO *ado);
 
 
 #endif

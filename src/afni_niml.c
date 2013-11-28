@@ -1486,6 +1486,44 @@ void AFNI_get_xhair_node( void *qq3d , int *kkbest , int *iibest )
 /**  - broken out of AFNI_process_NIML_data()    06 Oct 2004 [rickr]  **/
 /***********************************************************************/
 
+int whine_about_idcode(char *idcode, double sleep, char *which) 
+{
+   static double xtime=0.0;
+   static char last_id[5][IDCODE_LEN+2];
+   int iwhich=0, i;
+   double thisxtime = 0.0;
+   
+   if (!which) iwhich = -1;
+   else {
+      if (which[0] == 'v') iwhich = 0;
+      else if (which[0] == 's') iwhich = 1;
+      else return(1);
+   }
+   if (!idcode) {
+      if (iwhich >= 0) last_id[iwhich][0] = '\0';
+      else {
+         for (i=0; i<5; ++i) last_id[i][0] = '\0';
+      }
+      xtime = COX_clock_time() ;
+      return(0);
+   }
+   
+   if (strcmp(idcode, last_id[iwhich])) {
+      strncpy(last_id[iwhich], idcode, IDCODE_LEN-1);
+      xtime = COX_clock_time() ;
+      return(1);
+   } else { /* old one, don't while if less than 1 sec apart */
+      thisxtime = COX_clock_time();
+      if (thisxtime - xtime > sleep) {
+         xtime = thisxtime;
+         return(1);
+      } else {
+         return(0);
+      }
+   }
+   return(1);
+}
+
 /*------------------------------------------------------------------------*/
 /******** Surface nodes for a dataset *********/
 static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
@@ -1501,7 +1539,7 @@ static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
    int nss = GLOBAL_library.sslist->num_sess ;
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;
-   char *scon_tog , *scon_box , *scon_lin , *scon_plm ;
+   char *scon_tog , *scon_box , *scon_lin , *scon_plm , *vname;
 
 ENTRY("process_NIML_SUMA_ixyz");
 
@@ -1544,12 +1582,22 @@ ENTRY("process_NIML_SUMA_ixyz");
       RETURN(1) ;
    }
    find = PLUTO_dset_finder(idc) ; dset = find.dset ;
+   if (!dset) {
+      if ((vname = NI_get_attribute( nel , "volume_headname" ))) { 
+         if (!AFNI_append_dset_to_session(vname, im3d->vinfo->sess_num)){
+            /* found it int standard location and it is now in the session */
+            find = PLUTO_dset_finder(idc) ; dset = find.dset ;
+         }
+      } else {
+         fprintf(stderr,"No second recourse\n"); 
+      }
+   }
    if( dset == NULL && nss > 1 ){
       sprintf(msg, "*** ERROR:\n\n"
                    " SUMA_ixyz volume dataset idcode is \n"
                    "   %s\n"
                    " Can't find this in AFNI\n", idc ) ;
-      AFNI_popup_message( msg ) ;
+      if (whine_about_idcode(idc, 2.0, "v")) AFNI_popup_message( msg ) ;
       RETURN(1) ;
    }
 
@@ -1800,7 +1848,7 @@ ENTRY("process_NIML_SUMA_ijk");
                    " SUMA_ijk surface dataset idcode is \n"
                    "   %s\n"
                    " Can't find this in AFNI\n", idc ) ;
-      AFNI_popup_message( msg ) ;
+      if (whine_about_idcode(idc, 2.0, "v")) AFNI_popup_message( msg ) ;
       RETURN(1) ;
    }
    sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
@@ -1854,7 +1902,12 @@ ENTRY("process_NIML_SUMA_ijk");
                    " already has %d triangles in it, and\n"
                    " the SUMA user is trying to add %d more!\n" ,
               idc, ag->num_ijk , nel->vec_filled ) ;
-      AFNI_popup_message( msg ) ;
+         /* note that whine id string is a constant, using idc
+            does not calm things down because warnings are not
+            consecutive. To do this properly, whine_about_idcode()
+            should be written to use hash tables to avoid pitfall
+            of non-consecutive repetitions */
+      if (whine_about_idcode("repeat_ijk", 2.0, "s")) AFNI_popup_message( msg ) ;
       RETURN(1) ;   /* perhaps we can remove this */
    }
 
@@ -1954,7 +2007,7 @@ ENTRY("process_NIML_SUMA_node_normals");
                    " SUMA_node_normals surface dataset idcode is \n"
                    "   %s\n"
                    " Can't find this in AFNI\n", idc ) ;
-      AFNI_popup_message( msg ) ;
+      if (whine_about_idcode(idc, 2.0, "v")) AFNI_popup_message( msg ) ;
       RETURN(1) ;
    }
    sess = GLOBAL_library.sslist->ssar[find.sess_index] ;
@@ -2187,7 +2240,7 @@ STATUS("searching for Node_ROI parent volume") ;
                   " Node_ROI volume dataset idcode is \n"
                   "   %s\n"
                   " Can't find this in AFNI\n", dset_idc ) ;
-     AFNI_popup_message( msg ) ;
+     if (whine_about_idcode(dset_idc, 2.0, "v")) AFNI_popup_message( msg ) ;
      RETURN(1) ;
    }
    sess = GLOBAL_library.sslist->ssar[find.sess_index] ;  /* 20 Jan 2004 */
