@@ -25,6 +25,7 @@ static int    nsd_are_sorted_ints(int *, int);
 static int    loc_append_vals(char **, int *, char *, float, float, int, int);
 static char * my_strndup(char *, int);
 static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
+static char * afni2suma_typestring(int afnitype);
 static int    nsd_add_colms_type(int, int ctp, NI_group *);
 static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_str_atr_to_group(char*, char*, THD_datablock*, NI_group*);
@@ -1185,7 +1186,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
     if( !ISVALID_DSET(dset) ) RETURN(NULL);
     blk = dset->dblk;
     if( !blk ) RETURN(NULL);
-    nx = DSET_NX(dset);
+    nx = DSET_NVOX(dset); /* I want it all */
 
     if( blk->nnodes > 0 && blk->nnodes != nx ) {
         fprintf(stderr,"** datablock nnodes differs from nx %d, %d\n",
@@ -1202,13 +1203,29 @@ ENTRY("THD_dset_to_ni_surf_dset");
     /* All gets forced into Node_Bucket for now */
     ngr = NI_new_group_element();
     NI_rename_group(ngr, "AFNI_dataset");
-    NI_set_attribute(ngr, "dset_type", "Node_Bucket");
+    if (DSET_NY(dset) == 1) {
+      NI_set_attribute(ngr, "dset_type", "Node_Bucket");
+    } else {
+      NI_set_attribute(ngr, "dset_type", "Voxel_Bucket");
+      nsd_add_atr_to_group("DATASET_DIMENSIONS", NULL, blk, ngr);
+      nsd_add_atr_to_group("IJK_TO_DICOM_REAL", NULL, blk, ngr);
+      nsd_add_atr_to_group("BRICK_FLOAT_FACS", NULL, blk, ngr);
+      nsd_add_atr_to_group("ORIENT_SPECIFIC", NULL, blk, ngr);
+    }
     NI_set_attribute(ngr, "self_idcode", dset->idcode.str);
     NI_set_attribute(ngr, "filename", blk->diskptr->brick_name);
 
     nsd_add_str_atr_to_group("BRICK_LABS", "COLMS_LABS", blk, ngr);
     nsd_add_colms_range(ngr, dset);
-    nsd_add_colms_type(blk->nvals, DBLK_BRICK_TYPE(blk,0), ngr);
+    if (gni.to_float) {
+      if (DBLK_BRICK_TYPE(blk,0) == MRI_complex) {
+         nsd_add_colms_type(blk->nvals, DBLK_BRICK_TYPE(blk,0), ngr);
+      } else {
+         nsd_add_colms_type(blk->nvals, MRI_float, ngr);
+      }
+    } else {
+      nsd_add_colms_type(blk->nvals, DBLK_BRICK_TYPE(blk,0), ngr);
+    }
     nsd_add_str_atr_to_group("BRICK_STATSYM", "COLMS_STATSYM", blk, ngr);
     nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, blk, ngr);
     
@@ -1280,6 +1297,19 @@ static NI_group * nsd_pad_to_node(NI_group * ngr)
     RETURN(ngr);
 }
 
+/* return the SUMA string corresponding to the AFNI type */
+static char * afni2suma_typestring(int afnitype)
+{
+    switch(afnitype) {
+        case MRI_byte:      return "Generic_Byte;";
+        case MRI_short:     return "Generic_Short;";
+        case MRI_int:       return "Generic_Int;";
+        case MRI_float:     return "Generic_Float;";
+        case MRI_complex:   return "Generic_Complex;";
+    }
+
+    return NULL;  /* bad idea? */
+}
 
 /*! add a COLMS_TYPE attribute element
 
@@ -1298,8 +1328,12 @@ ENTRY("nsd_add_colms_type");
     if( nvals <= 0 || !ngr ) RETURN(1);
 
     /* create a new string: "Generic_Float;Generic_Float;..." */
-    if (tp == MRI_complex) tps = "Generic_Complex;";
-    else tps = "Generic_Float;";
+    if (!(tps = afni2suma_typestring(tp))) { /* ZSS, Nov. 2013 */
+      fprintf(stderr,
+         "** Could not determine column equivalent for afni type %d\n",
+         tp);
+      RETURN(1);
+    }
     
     /* rcr - update this with more types (that agree with SUMA) */
 
@@ -1471,7 +1505,7 @@ static int nsd_add_colms_range(NI_group * ngr, THD_3dim_dataset * dset)
 
 ENTRY("nsd_add_colms_range");
 
-    nx = DSET_NX(dset);
+    nx = DSET_NVOX(dset); /* I want it all.   ZSS: Nov. 1 2013*/
     blk = dset->dblk;
 
     /*-- create the string --*/
@@ -1527,7 +1561,7 @@ static int nsd_fill_index_list(NI_group * ngr, THD_3dim_dataset * dset)
 ENTRY("nsd_fill_index_list");
 
     blk = dset->dblk;
-    nx = DSET_NX(dset);
+    nx = DSET_NVOX(dset); /* I want it all. ZSS: Nov. 1 2013*/
 
     node_list = blk->node_list;
     if( blk->nnodes <= 0 || ! blk->node_list )  /* no node list */
@@ -1594,7 +1628,8 @@ static int nsd_add_sparse_data(NI_group * ngr, THD_3dim_dataset * dset)
 ENTRY("nsd_add_sparse_data");
 
     blk = dset->dblk;
-    nx = DSET_NX(dset);
+    nx = DSET_NVOX(dset); /* I want it all, now carting volumes too.
+                             ZSS: Nov. 1 2013 */
 
     if(gni.debug) fprintf(stderr,"+d adding SPARSE_DATA element\n");
 
@@ -1604,9 +1639,12 @@ ENTRY("nsd_add_sparse_data");
         if( DBLK_BRICK_TYPE(blk, ind) != MRI_float &&
             DBLK_BRICK_TYPE(blk, ind) != MRI_complex) /* then allocate floats */
         {
-            if( ! gni.to_float ){
-                fprintf(stderr,"** dset has non-floats and AFNI_NSD_TO_FLOAT\n"
-                               "   is NO, life has become unbearable...\n");
+            if( ! gni.to_float && 
+                DBLK_BRICK_TYPE(blk, ind) != MRI_short &&
+                DBLK_BRICK_TYPE(blk, ind) != MRI_byte  ){
+                fprintf(stderr,
+                   "** dset has non-floats/complex/short/byte and\n"
+                   "   AFNI_NSD_TO_FLOAT is NO life has become unbearable...\n");
                 RETURN(1);
             }
 
@@ -1639,6 +1677,14 @@ ENTRY("nsd_add_sparse_data");
         {
             NI_add_column(nel, NI_COMPLEX, DBLK_ARRAY(blk, ind)); /* use dblk */
         }
+        else if( ! gni.to_float && DBLK_BRICK_TYPE(blk, ind) == MRI_short )
+        {
+            NI_add_column(nel, NI_SHORT, DBLK_ARRAY(blk, ind)); /* use dblk */
+        }
+        else if( ! gni.to_float && DBLK_BRICK_TYPE(blk, ind) == MRI_byte )
+        {
+            NI_add_column(nel, NI_BYTE, DBLK_ARRAY(blk, ind)); /* use dblk */
+        }
         else 
         {
             EDIT_convert_dtype(nx, DBLK_BRICK_TYPE(blk,ind),DBLK_ARRAY(blk,ind),
@@ -1655,8 +1701,16 @@ ENTRY("nsd_add_sparse_data");
     
     /* Next declare output to be Node_Bucket_data always. Someday 
     we will change that IF we ever feel the need. ZSS Dec 07 */
-    NI_set_attribute(nel, "data_type", "Node_Bucket_data"); 
-
+    {
+      char name[256], *att;
+      if ((att = NI_get_attribute(ngr,"dset_type"))) {
+         snprintf(name, 255,"%s_data", att);
+         NI_set_attribute(nel, "data_type", name);
+      } else {
+         NI_set_attribute(nel, "data_type", "Node_Bucket_data");
+      } 
+    }
+    
     set_sparse_data_attribs(nel, dset, 1);
 
     NI_add_to_group(ngr, nel);

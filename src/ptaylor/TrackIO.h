@@ -15,6 +15,9 @@ typedef struct {
    int N_tracts;
    int N_allocated;
    TAYLOR_TRACT *tracts;
+   int *tract_P0_offset_private; /* Index of 1st point in each tract 
+                                    Index of 1st point of 1st tract is 0 */
+   int N_points_private; /* Sum of points in all tracts of bundle */
 } TAYLOR_BUNDLE;
 
 typedef struct {
@@ -26,6 +29,11 @@ typedef struct {
    TAYLOR_BUNDLE **tbv;
    int *bundle_tags;
    int *bundle_alt_tags;
+   int N_points_private; /* Num of points in all tracts of all bundles in net */
+   int N_tracts_private; /* Sum of number of tracts in all bundles */
+   int Longest_tract_length_private; /* Length in points of longest tract */
+   int Longest_tract_index_in_bundle_private; /* longest tract index in bundle */
+   int Longest_tract_bundle_index_in_network_private; /* longest tract bundle */ 
 } TAYLOR_NETWORK;
 
 void Show_Taylor_Network(TAYLOR_NETWORK *network, FILE *out, int mx, int mxb);
@@ -33,9 +41,19 @@ void Show_Taylor_Bundle(TAYLOR_BUNDLE *bundle, FILE *out, int mx);
 void Show_Taylor_Tract(TAYLOR_TRACT *tract, FILE *out, int mx);
 TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff, 
                                int id, THD_3dim_dataset *grid);
-int Network_N_points(TAYLOR_NETWORK *network);
-int Network_N_tracts(TAYLOR_NETWORK *network);
+int Bundle_N_points(TAYLOR_BUNDLE *bun, byte recalc);
+int Network_N_points(TAYLOR_NETWORK *network, byte recalc);
+int Network_N_tracts(TAYLOR_NETWORK *network, byte recalc);
 int Network_N_bundles(TAYLOR_NETWORK *network);
+int Network_Max_tract_length(TAYLOR_NETWORK *net, byte recalc,
+                             int *t, int *b);
+int Network_PTB_to_1P(TAYLOR_NETWORK *network, int p, int t, int b);
+int Network_TB_to_1T(TAYLOR_NETWORK *net, int t, int b);
+int Network_1P_to_PTB(TAYLOR_NETWORK *network, int P1, 
+                      int *p, int *t, int *b, int *l);
+int Network_1T_to_TB(TAYLOR_NETWORK *net, int TT, int *t, int *b, 
+                     int *P0, int *P1);
+int Network_1B_to_1P(TAYLOR_NETWORK *net, int BB, int *PP1);
 TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
                           int N_ptsF, float **pts_buffF, 
                           int id, THD_3dim_dataset *grid);

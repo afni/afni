@@ -217,17 +217,7 @@ double SUMA_CoordMatchEnergy(SUMA_SurfaceObject *SOr,
    m1[2][0]=m2[2][0]; m1[2][1]=m2[2][0]; m1[2][2]=m2[2][0]; \
 }
 
-#define SHOW_MAT(mat, str) {\
-      if (str) fprintf(stderr,"%s\n", str);   \
-      fprintf(stderr,"%f\t%f\t%f\t%f\n"   \
-                     "%f\t%f\t%f\t%f\n"   \
-                     "%f\t%f\t%f\t%f\n"   \
-                     "%f\t%f\t%f\t%f\n",  \
-               mat[0][0], mat[0][1], mat[0][2], mat[0][3],  \
-               mat[1][0], mat[1][1], mat[1][2], mat[1][3],  \
-               mat[2][0], mat[2][1], mat[2][2], mat[2][3],  \
-               mat[3][0], mat[3][1], mat[3][2], mat[3][3]); \
-}  
+#define SHOW_MAT AFF44_SHOW
 
 int SUMA_par2mat(double *par12, double mat[4][4])
 {

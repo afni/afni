@@ -658,6 +658,18 @@ char *SUMA_NextFunc(char *ss, char *sslim, int *io, char *func, char *file,
    SUMA_RETURN(ss);
 }
 
+char *SUMA_FirstEntry(char *flc, char *fln)
+{
+   char *s1, *s2, *sret=NULL;
+   s1 = strstr(flc, "SUMA_ENTRY");
+   s2 = strstr(flc, "SUMA_mainENTRY");
+   if (s1 && !s2) return(s1);
+   if (!s1 && s2) return(s2);
+   if (!s1 && !s2) return(NULL);
+   if (s1 < s2) return(s1);
+   else return(s2);
+}
+
 int SUMA_AnalyzeSumaFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    static char FuncName[]={"SUMA_AnalyzeSumaFunc"};
    char  *fl = NULL, rkey[100], *flc = NULL, *fls = NULL, 
@@ -708,7 +720,7 @@ int SUMA_AnalyzeSumaFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
       }
       if (sret > flc && sret < fln) { /* OK, look for ENTRY in between */
          ctmp = *sret; *sret = '\0';
-         sent = strstr(flc, "ENTRY");
+         sent = SUMA_FirstEntry(flc, fln);
          *sret = ctmp;
          if (sent > flc) { /* found entry, make sure it is before return */
             if (sent < sret) { /* function is OK */
@@ -734,9 +746,17 @@ int SUMA_AnalyzeSumaFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
       } else {
          /* is there a return before the next function ? */
          sret = strstr(flc, "return");
+         if (!sret) { /* try for the AFNI return */
+            char *sretok=NULL;
+            sret = strstr(flc, "RETURN");
+            sretok = strstr(flc, "SUMA_RETURN");
+            if (sret - sretok == 5) { /* no problem here, have SUMA_RETURN */
+               sret = NULL;
+            }
+         }
          if (sret > flc && sret < fln) { /* Yes, make sure there is no ENTRY */
             ctmp = *sret; *sret = '\0';
-            sent = strstr(flc, "ENTRY");
+            sent = SUMA_FirstEntry(flc, fln);
             *sret = ctmp;
             if (sent > flc) { /* found entry, make sure it NOT  before return */
                if (sent < sret) { /* using lower case return with ENTRY */

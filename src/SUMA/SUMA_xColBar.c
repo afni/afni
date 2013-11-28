@@ -27,8 +27,7 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb)
    im = mri_read_ppm( fname ) ;
    if (!im) { 
       if (verb) { 
-         snprintf(stmp, 500 * sizeof(char), "Failed to read %s", fname); 
-         SUMA_SL_Err(stmp); }
+         SUMA_SL_Err("Failed to read %s", fname); }
       SUMA_RETURN(imar); 
    }
    
@@ -2414,6 +2413,54 @@ SUMA_TABLE_FIELD * SUMA_AllocTableField(void)
    SUMA_RETURN(TF);
 }
 
+SUMA_SLICE_FIELD * SUMA_AllocSliceField(void)
+{
+   static char FuncName[]={"SUMA_AllocSliceField"};
+   SUMA_SLICE_FIELD *SF = NULL;
+
+   SUMA_ENTRY;
+   SF = (SUMA_SLICE_FIELD *)SUMA_calloc(1,sizeof(SUMA_SLICE_FIELD));
+   if (!SF) {
+      SUMA_SL_Crit("Failed to allocate");
+      SUMA_RETURN(SF);
+   }
+   SF->Nslc = -1;
+   SF->sl = NULL;
+   SF->tb = NULL;
+   SF->text = NULL;
+   SF->mont = NULL;
+   SF->NewValueCallback = NULL;
+   SF->NewValueCallbackData = NULL;
+   SF->slice_num_str = NULL;
+   SF->mont_str = NULL;
+   SF->slice_units = SUMA_NO_NUM_UNITS;
+   SF->mont_units = SUMA_NO_NUM_UNITS;
+   SF->slice_num = 0;
+   SF->mont_num = 1;
+   SF->mont_inc = 1;
+   SF->variant = NULL;
+   SUMA_RETURN(SF);
+}
+
+SUMA_SLICE_FIELD * SUMA_FreeSliceField(SUMA_SLICE_FIELD *SF)
+{
+   static char FuncName[]={"SUMA_FreeSliceField"};
+   int i;
+   
+   SUMA_ENTRY;
+
+   if (!SF) SUMA_RETURN(NULL);
+
+   if (SF->slice_num_str) SUMA_free(SF->slice_num_str);
+   if (SF->mont_str) SUMA_free(SF->mont_str);
+   if (SF->variant) SUMA_free(SF->variant);
+   SUMA_free(SF);
+
+   SUMA_RETURN(NULL);
+
+}
+
+
 /*!
    Called when user clicks on range table cell
    Expect SO in cd
@@ -3383,6 +3430,571 @@ void SUMA_CreateTable(  Widget parent,
    SUMA_RETURNe;
 }
 
+int SUMA_set_slice_label(SUMA_ALL_DO *ado, char *variant, float val)
+{
+   static char FuncName[]={"SUMA_set_slice_label"};
+   char slabel[100];
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   
+   if (!ado || !variant) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   
+   sprintf(slabel, "%3s", MV_format_fval(val)); 
+          if (variant[0] == 'A') {
+      SUMA_STRING_REPLACE(SurfCont->Ax_slc->slice_num_str, slabel);
+      XtVaSetValues (SurfCont->Ax_slc->text, XmNvalue, slabel, NULL);
+   } else if (variant[0] == 'S') {
+      SUMA_STRING_REPLACE(SurfCont->Sa_slc->slice_num_str, slabel);
+      XtVaSetValues (SurfCont->Sa_slc->text, XmNvalue, slabel, NULL);
+   } else if (variant[0] == 'C') {
+      SUMA_STRING_REPLACE(SurfCont->Co_slc->slice_num_str, slabel);
+      XtVaSetValues (SurfCont->Co_slc->text, XmNvalue, slabel, NULL);
+   }
+
+   SUMA_RETURN(1);  
+}
+
+int SUMA_set_slice_scale(SUMA_ALL_DO *ado, char *variant, float val)
+{
+   static char FuncName[]={"SUMA_set_slice_scale"};
+   char slabel[100];
+   int cv;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   
+   if (!ado || !variant) { SUMA_SL_Err("NULL ado"); SUMA_RETURN(0); }
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   
+   cv = SUMA_SliceVal2ScalePos (ado, variant, &val );
+
+          if (variant[0] == 'A') {
+      XtVaSetValues(SurfCont->Ax_slc->sl,  XmNvalue, cv, NULL);   
+   } else if (variant[0] == 'S') {
+      XtVaSetValues(SurfCont->Sa_slc->sl,  XmNvalue, cv, NULL);   
+   } else if (variant[0] == 'C') {
+      XtVaSetValues(SurfCont->Co_slc->sl,  XmNvalue, cv, NULL);   
+   }
+
+   SUMA_RETURN(1);  
+}
+
+void SUMA_cb_set_Ax_slice_label(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_cb_set_Ax_slice_label"};
+   SUMA_ALL_DO *ado=NULL;
+   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+   float fff ;
+   int dec=0;
+   char slabel[100];
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+   
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   fff = (float)cbs->value / pow(10.0, dec);
+   
+   SUMA_set_slice(ado, "Ax", &fff, "text_field", 1);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_set_Sa_slice_label(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_cb_set_Sa_slice_label"};
+   SUMA_ALL_DO *ado=NULL;
+   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+   float fff ;
+   int dec=0;
+   char slabel[100];
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+   
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   fff = (float)cbs->value / pow(10.0, dec);
+   
+   SUMA_set_slice(ado, "Sa", &fff, "text_field", 1);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_set_Co_slice_label(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_cb_set_Co_slice_label"};
+   SUMA_ALL_DO *ado=NULL;
+   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+   float fff ;
+   int dec=0;
+   char slabel[100];
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+   
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   fff = (float)cbs->value / pow(10.0, dec);
+   
+   SUMA_set_slice(ado, "Co", &fff, "text_field", 1);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_set_Ax_slice(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_cb_set_Ax_slice"};
+   SUMA_ALL_DO *ado=NULL;
+   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+   float fff=0.0;
+   int dec=-1;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;  
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   fff = (float)cbs->value / pow(10.0, dec);
+   SUMA_LHv("Have %f\n", fff);
+   SUMA_set_slice(ado, "Ax", &fff, "scale", 1);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_set_Sa_slice(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_cb_set_Sa_slice"};
+   SUMA_ALL_DO *ado=NULL;
+   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+   float fff=0.0;
+   int dec=-1;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;  
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   fff = (float)cbs->value / pow(10.0, dec);
+   SUMA_LHv("Have %f\n", fff);
+   SUMA_set_slice(ado, "Sa", &fff, "scale", 1);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_set_Co_slice(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_cb_set_Co_slice"};
+   SUMA_ALL_DO *ado=NULL;
+   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
+   float fff=0.0;
+   int dec=-1;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;  
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+   XtVaGetValues(w, XmNuserData, &dec, NULL);
+   fff = (float)cbs->value / pow(10.0, dec);
+   SUMA_LHv("Have %f\n", fff);
+   SUMA_set_slice(ado, "Co", &fff, "scale", 1);
+   
+   SUMA_RETURNe;
+}
+
+int SUMA_set_slice(SUMA_ALL_DO *ado, char *variant, float *valp, 
+                   char *caller, int redisp)
+{
+   static char FuncName[]={"SUMA_set_slice"};
+   float oval, val;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_VolumeObject *VO=(SUMA_VolumeObject *)ado;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado || !variant) SUMA_RETURN(0);
+   if (!caller) caller = "XXX"; /* Don't update other input sources */
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   
+   if (!valp) {
+      val = SUMA_VO_N_Slices(VO, variant);/* dirty trick to force scale height */
+   } else val = *valp;
+ 
+   SUMA_LH("Slice %s set to %f", variant, val); 
+   
+
+   /* call this one since it is not being called as the slider is dragged. */
+   if (caller[0] != 'X') { /* Update equivalent */
+      if (caller[0] != 't') { /* Caller not from text field so set that*/
+         SUMA_set_slice_label(ado, variant, val);   
+      }
+      if (caller[0] != 's') { /* Caller not from slider, so update that too */
+         SUMA_set_slice_scale(ado, variant, val);
+      }
+   }
+   
+          if (variant[0] == 'A') {
+         SurfCont->Ax_slc->slice_num = val;   
+   } else if (variant[0] == 'S') {
+         SurfCont->Sa_slc->slice_num = val;   
+   } else if (variant[0] == 'C') {
+         SurfCont->Co_slc->slice_num = val;      
+   }
+
+   if (redisp) SUMA_RemixRedisplay(ado);
+
+   /* sad as it is */
+   SUMA_FORCE_SLICE_SCALE_WIDTH(SUMA_ADO_Cont(ado)); 
+   
+   #if 0 /* I don't think this will be necessary */
+   SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
+   #endif
+   
+   /* And this? 
+   #if SUMA_SEPARATE_SURF_CONTROLLERS
+      SUMA_UpdateColPlaneShellAsNeeded(ado);
+   #endif
+   */
+   
+   {
+      static int ncnt=0;
+      if (!ncnt) {
+         SUMA_S_Warn("What to do about selected voxels here? Move them along?");
+         ++ncnt;
+      }
+   }
+   SUMA_UpdateNodeValField(ado);
+   SUMA_UpdateNodeLblField(ado);
+ 
+   SUMA_RETURN(1);   
+}
+
+/*!
+   \brief create slice selection widgets
+*/
+void SUMA_CreateSliceFields(  Widget parent,
+                        char *tit, char *hint, char *help, 
+                        int Nslc, char *var, SUMA_ALL_DO *ado,
+                        void (*NewValueCallback)(void * data), void *cb_data,
+                        SUMA_SLICE_FIELD *SF) 
+{
+   static char FuncName[]={"SUMA_CreateSliceFields"};
+   int i, j, n, titw, xmw, shad, mult;
+   char *tmp, sbuf[12];
+   Widget rco, rcc;
+   XtPointer cd;
+   XtVarArgsList arglist=NULL;
+   XtCallbackProc slcb, sllbcb, slcactcb, shwslccb;
+   int shw_init = 0;
+   SUMA_VOL_SAUX *VSaux=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;                        
+
+   if (!parent) { SUMA_SL_Err("NULL parent"); SUMA_RETURNe; }
+   if (!ado) { SUMA_S_Err("NULL ado"); SUMA_RETURNe; }
+   if (!(VSaux = SUMA_ADO_VSaux(ado))) { SUMA_S_Err("No VSaux"); SUMA_RETURNe; }
+   
+   if (LocalHead) {
+      SUMA_S_Warn("Are NewValueCallback and its data needed at all?");
+   }
+   /* initialize font list if need be */
+   if (!SUMAg_CF->X->TableTextFontList) {
+      if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+         SUMAg_CF->X->TableTextFontList = 
+               SUMA_AppendToFontList( SUMAg_CF->X->TableTextFontList, 
+                                       parent, "*9x15*", NULL);
+      } else {
+         SUMAg_CF->X->TableTextFontList = 
+               SUMA_AppendToFontList( SUMAg_CF->X->TableTextFontList, 
+                                       parent, "*8x13*", NULL);
+      }    
+   }
+   
+   if (!SF) { SUMA_SL_Err("NULL SF"); SUMA_RETURNe; }
+   if (!var){ SUMA_S_Err("Bad var format"); SUMA_RETURNe; }
+   SUMA_LH("Init");
+   if (!strcmp(var,"Ax")) {
+      slcb = SUMA_cb_set_Ax_slice;
+      sllbcb = SUMA_cb_set_Ax_slice_label;
+      slcactcb = SUMA_SliceF_cb_label_change;
+      shwslccb = SUMA_cb_ShowAxSlice_toggled;
+      shw_init = VSaux->ShowAxSlc;
+   } else if (!strcmp(var,"Sa")) {
+      slcb = SUMA_cb_set_Sa_slice;
+      sllbcb = SUMA_cb_set_Sa_slice_label; 
+      slcactcb = SUMA_SliceF_cb_label_change;
+      shwslccb = SUMA_cb_ShowSaSlice_toggled;
+      shw_init = VSaux->ShowSaSlc;
+   } else if (!strcmp(var,"Co")) {   
+      slcb = SUMA_cb_set_Co_slice;
+      sllbcb = SUMA_cb_set_Co_slice_label; 
+      slcactcb = SUMA_SliceF_cb_label_change;
+      shwslccb = SUMA_cb_ShowCoSlice_toggled;
+      shw_init = VSaux->ShowCoSlc;
+   } else {
+      SUMA_S_Err("Bad var %s", var);
+      SUMA_RETURNe;
+   }
+   SF->variant = SUMA_copy_string(var);
+   SF->Nslc = Nslc;
+   SF->NewValueCallback = NewValueCallback;
+   SF->NewValueCallbackData = cb_data;
+   /* An outer row column to keep the inner one from resizing with parent 
+   YOU COULD HAVE SET XmNadjustLast to False, instead ....*/
+   SF->rc = XtVaCreateManagedWidget ("rowcolumn",
+      xmRowColumnWidgetClass, parent,
+      XmNorientation , XmHORIZONTAL ,
+      XmNpacking, XmPACK_TIGHT,
+      XmNmarginHeight, 0,
+      XmNmarginWidth, 0,
+      NULL);
+               
+   SUMA_LH("Widgets, var %s, slice num = %d, Nslc = %d", 
+            var, (int)SF->slice_num, SF->Nslc);
+   SF->lab = XtVaCreateManagedWidget(tit, xmLabelWidgetClass, SF->rc, 
+                           XmNfontList, SUMAg_CF->X->TableTextFontList, 
+                                     NULL);
+   if (hint)  MCW_register_hint( SF->lab, hint );
+   if (help)  MCW_register_help( SF->lab, help ) ;
+
+   mult = ((int)(SF->Nslc/20.0)/5)*5; if (mult < 1) mult = 1;
+   arglist = XtVaCreateArgsList( NULL,
+                           XmNshowValue, False,
+                           XmNmaximum, SF->Nslc,
+                           XmNvalue, (int)SF->slice_num,
+                           XmNscaleMultiple, mult,
+                           XmNheight,  SUMA_SCALE_HEIGHT,
+                           XmNorientation, XmHORIZONTAL,
+                           XmNuserData, (XtPointer)0,
+                           NULL);
+
+   SF->sl =  XtVaCreateManagedWidget(var,
+                                 xmScaleWidgetClass, SF->rc,
+                                 XtVaNestedList, arglist,
+                                 NULL);             
+   XtAddCallback (SF->sl, 
+                  XmNvalueChangedCallback, 
+                  slcb, 
+                  (XtPointer) ado);
+
+   XtAddCallback (SF->sl, 
+                  XmNdragCallback, 
+                  sllbcb, 
+                  (XtPointer) ado); 
+
+   if (arglist) XtFree(arglist); arglist = NULL;
+   
+   sprintf(sbuf,"%-3d", (int)SF->slice_num);
+   SF->text = XtVaCreateManagedWidget(
+                     "slice",  
+                     xmTextFieldWidgetClass, SF->rc,
+                     XmNuserData, (XTP_CAST)ado,
+                     XmNvalue, sbuf,
+                     XmNmarginHeight, 0,
+                     XmNmarginTop, 0,
+                     XmNmarginBottom, 0,
+                     XmNmarginWidth, 5, 
+                     NULL);
+   XtVaSetValues( SF->text, XmNfontList, 
+                  SUMAg_CF->X->TableTextFontList, NULL);
+
+   if (help) MCW_register_help( SF->text, help) ;
+   if (hint) MCW_register_hint( SF->text, hint) ;
+   XtVaSetValues(SF->text, XmNcolumns, 3, NULL); 
+   XtVaSetValues(SF->text, XmNeditable, True, 
+                 XmNshadowThickness , 2,         
+                 XmNcursorPositionVisible, True, 
+                 NULL);
+
+   XtAddCallback (SF->text, XmNactivateCallback, 
+               SUMA_SliceF_cb_label_change, (XtPointer)SF);
+   /* add event handler to notify when widget was left */
+   XtInsertEventHandler( SF->text ,        /* notify when */
+                         LeaveWindowMask ,  /* pointer leaves */
+                         FALSE ,            /* this window */
+                         SUMA_leave_SliceField,
+                         (XtPointer) SF ,
+                         XtListTail ) ;     /* last in queue */
+
+   SF->mont = XtVaCreateManagedWidget(
+                     "mont",  
+                     xmTextFieldWidgetClass, SF->rc,
+                     XmNuserData, (XTP_CAST)ado,
+                     XmNvalue, "1:1",
+                     XmNmarginHeight, 0,
+                     XmNmarginTop, 0,
+                     XmNmarginBottom, 0,
+                     XmNmarginWidth, 5, 
+                     NULL);
+   XtVaSetValues( SF->mont, XmNfontList, 
+                  SUMAg_CF->X->TableTextFontList, NULL);
+
+   if (help) MCW_register_help( SF->mont, help) ;
+   if (hint) MCW_register_hint( SF->mont, hint) ;
+   XtVaSetValues(SF->mont, XmNcolumns, 3, NULL); 
+   XtVaSetValues(SF->mont, XmNeditable, True, 
+                 XmNshadowThickness , 2,         
+                 XmNcursorPositionVisible, True, 
+                 NULL);
+
+   XtAddCallback (SF->mont, XmNactivateCallback, 
+               SUMA_SliceF_cb_mont_change, (XtPointer)SF);
+   /* add event handler to notify when widget was left */
+   XtInsertEventHandler( SF->mont ,        /* notify when */
+                         LeaveWindowMask ,  /* pointer leaves */
+                         FALSE ,            /* this window */
+                         SUMA_leave_MontField,
+                         (XtPointer) SF ,
+                         XtListTail ) ;     /* last in queue */
+
+
+   /* Now for the toggle button */
+   SF->tb = XtVaCreateManagedWidget("v", 
+      xmToggleButtonWidgetClass, SF->rc, NULL);
+   XtAddCallback (SF->tb, 
+         XmNvalueChangedCallback, shwslccb, ado);
+   MCW_register_hint(SF->tb,   
+                     "View (ON)/Hide Slice(s)");
+   MCW_register_help(SF->tb,   
+                     SUMA_SurfContHelp_ShowSliceTgl);
+
+   SUMA_SET_SELECT_COLOR(SF->tb);
+   XmToggleButtonSetState (SF->tb, shw_init , NOPE);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_ShowAxSlice_toggled(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_ShowAxSlice_toggled"};
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) { 
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      
+   SUMA_SetShowSlice((SUMA_VolumeObject *)ado, "Ax", 
+                      XmToggleButtonGetState (SurfCont->Ax_slc->tb));
+   SUMA_RETURNe;
+}
+
+
+void SUMA_cb_ShowSaSlice_toggled(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_ShowSaSlice_toggled"};
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) { 
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      
+   SUMA_SetShowSlice((SUMA_VolumeObject *)ado, "Sa", 
+                      XmToggleButtonGetState (SurfCont->Sa_slc->tb));
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_ShowCoSlice_toggled(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_ShowCoSlice_toggled"};
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   ado = (SUMA_ALL_DO *)data;
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) { 
+      SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
+      
+   SUMA_SetShowSlice((SUMA_VolumeObject *)ado, "Co", 
+                      XmToggleButtonGetState (SurfCont->Co_slc->tb));
+   SUMA_RETURNe;
+}
+
+int SUMA_SetShowSlice(SUMA_VolumeObject *vdo, char *variant, int val)
+{
+   static char FuncName[]={"SUMA_SetShowSlice"};
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_VOL_SAUX *VSaux = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   ado = (SUMA_ALL_DO *)vdo;
+   VSaux = SUMA_ADO_VSaux(ado);
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado)) || !VSaux || !variant) { 
+      SUMA_S_Warn("NULL input"); SUMA_RETURN(0); }
+      
+   if (!strcmp(variant, "Ax")) {
+      if (VSaux->ShowAxSlc != val) {
+         VSaux->ShowAxSlc = val;
+         SUMA_RemixRedisplay(ado);
+         #if SUMA_SEPARATE_SURF_CONTROLLERS
+            SUMA_UpdateColPlaneShellAsNeeded(ado);
+         #endif        
+      }
+   } else if (!strcmp(variant, "Sa")) {
+      if (VSaux->ShowSaSlc != val) {
+         VSaux->ShowSaSlc = val;
+         SUMA_RemixRedisplay(ado);
+         #if SUMA_SEPARATE_SURF_CONTROLLERS
+            SUMA_UpdateColPlaneShellAsNeeded(ado);
+         #endif        
+      }
+   } else if (!strcmp(variant, "Co")) {
+      if (VSaux->ShowCoSlc != val) {
+         VSaux->ShowCoSlc = val;
+         SUMA_RemixRedisplay(ado);
+         #if SUMA_SEPARATE_SURF_CONTROLLERS
+            SUMA_UpdateColPlaneShellAsNeeded(ado);
+         #endif        
+      }
+   }
+   
+   SUMA_RETURN(1);
+}
+
+
+
 SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n)
 {
    static char FuncName[]={"SUMA_cellvariety"};
@@ -3426,9 +4038,244 @@ void SUMA_leave_TableField( Widget w , XtPointer client_data ,
 }
 
 /*!
-   \brief This function is called when the label field is activated by the user
-
+   \brief This function is called when mouse pointer leaves montage field
 */
+void SUMA_leave_MontField( Widget w , XtPointer client_data ,
+                            XEvent * ev , Boolean * continue_to_dispatch )
+{
+   static char FuncName[]={"SUMA_leave_MontField"};
+   SUMA_SLICE_FIELD *SF=NULL; 
+   XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
+   XmAnyCallbackStruct cbs ;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   SF = (SUMA_SLICE_FIELD *)client_data ;
+   if( lev->type != LeaveNotify) SUMA_RETURNe; 
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Leave notification.\n", FuncName);
+   
+   SUMA_SliceF_cb_mont_change( w , (XtPointer)SF , NULL ) ;
+
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief This function is called when mouse pointer leaves slice field
+*/
+void SUMA_leave_SliceField( Widget w , XtPointer client_data ,
+                            XEvent * ev , Boolean * continue_to_dispatch )
+{
+   static char FuncName[]={"SUMA_leave_SliceField"};
+   SUMA_SLICE_FIELD *SF=NULL; 
+   XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
+   XmAnyCallbackStruct cbs ;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   SF = (SUMA_SLICE_FIELD *)client_data ;
+   if( lev->type != LeaveNotify) SUMA_RETURNe; 
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Leave notification.\n", FuncName);
+   
+   SUMA_SliceF_cb_label_change( w , (XtPointer)SF , NULL ) ;
+
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief User entered new slice value
+*/
+void SUMA_SliceF_cb_label_change (  Widget w, XtPointer client_data, 
+                                    XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_SliceF_cb_label_change"};
+   SUMA_SLICE_FIELD *SF=NULL;
+   float val;
+   int N_words = 0;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
+   void *n=NULL;
+   char *cs=NULL;
+   int unt = SUMA_NO_NUM_UNITS;
+   SUMA_Boolean DoCallBacks;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   /* make call to NewValue callback */
+   SF = (SUMA_SLICE_FIELD *)client_data;
+   
+   DoCallBacks = NOPE;
+   if (call_data) { 
+      /* do the call backs if carriage return even if nothing is modified */
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: cbs->reason = %d (CR=%d)\n", 
+                              FuncName, cbs->reason, XmCR_ACTIVATE);
+      if (cbs->reason == XmCR_ACTIVATE) { 
+         DoCallBacks = YUP;
+      }
+   }
+   
+   DoCallBacks = YUP;   /* do the callbacks even if no carriage return ... */
+   /* Check if the string is numerical, and get unit */
+   XtVaGetValues (w, XmNvalue, &n, NULL);
+   cs = (char *)n;
+   if (!cs || !strlen(cs)) {/* empty cell, leave it alone */ 
+      SUMA_LHv("empty %s", cs);
+      SUMA_RETURNe;
+   } else  {
+      SUMA_COUNT_WORDS(cs, NULL, N_words);
+      if (!N_words) { /* no harm, go back */ 
+         SUMA_LHv("spacy %s", cs);
+         SUMA_RETURNe; 
+      }
+   }
+   unt = SUMA_NumStringUnits(cs, 0);
+   if (SUMA_StringToNum(cs, (void *)&val, 1, 1) != 1) {
+      SUMA_BEEP;
+      /* bad syntax, reset value*/
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                            "Bad value in text field", FuncName, 
+                            SMT_Error, SMA_Log);
+      SUMA_SliceF_SetString (SF);
+   }else {
+      if (SF->slice_num == val &&
+          SF->slice_units == unt) { 
+            SUMA_LH("Same value"); 
+            SUMA_RETURNe; 
+      }
+      SUMA_LH("A new beast? %f, %f, %d %d",
+              SF->slice_num, val, SF->slice_units, unt);
+      SF->slice_num = val;
+      SF->slice_units = unt;
+      SUMA_SliceF_SetString (SF);
+   }
+
+   if (DoCallBacks) {
+      SUMA_set_slice((SUMA_ALL_DO *)SF->NewValueCallbackData, SF->variant, &val,
+                     "text_field", 1);
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief User entered new montage string
+*/
+void SUMA_SliceF_cb_mont_change (  Widget w, XtPointer client_data, 
+                                    XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_SliceF_cb_mont_change"};
+   SUMA_SLICE_FIELD *SF=NULL;
+   float val;
+   int N_words = 0;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
+   void *n=NULL;
+   char *cs=NULL;
+   int unt = SUMA_NO_NUM_UNITS;
+   SUMA_Boolean DoCallBacks;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SUMA_LH("Nothing done yet, build based on SUMA_SliceF_cb_label_change");
+   SUMA_RETURNe;
+   /* make call to NewValue callback */
+   SF = (SUMA_SLICE_FIELD *)client_data;
+   
+   DoCallBacks = NOPE;
+   if (call_data) { 
+      /* do the call backs if carriage return even if nothing is modified */
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: cbs->reason = %d (CR=%d)\n", 
+                              FuncName, cbs->reason, XmCR_ACTIVATE);
+      if (cbs->reason == XmCR_ACTIVATE) { 
+         DoCallBacks = YUP;
+      }
+   }
+   
+   DoCallBacks = YUP;   /* do the callbacks even if no carriage return ... */
+   /* Check if the string is numerical, and get unit */
+   XtVaGetValues (w, XmNvalue, &n, NULL);
+   cs = (char *)n;
+   if (!cs || !strlen(cs)) {/* empty cell, leave it alone */ 
+      SUMA_LHv("empty %s", cs);
+      SUMA_RETURNe;
+   } else  {
+      SUMA_COUNT_WORDS(cs, NULL, N_words);
+      if (!N_words) { /* no harm, go back */ 
+         SUMA_LHv("spacy %s", cs);
+         SUMA_RETURNe; 
+      }
+   }
+   unt = SUMA_NumStringUnits(cs, 0);
+   if (SUMA_StringToNum(cs, (void *)&val, 1, 1) != 1) {
+      SUMA_BEEP;
+      /* bad syntax, reset value*/
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                            "Bad value in text field", FuncName, 
+                            SMT_Error, SMA_Log);
+      SUMA_SliceF_SetString (SF);
+   }else {
+      if (SF->slice_num == val &&
+          SF->slice_units == unt) { 
+            SUMA_LH("Same value"); 
+            SUMA_RETURNe; 
+      }
+      SF->slice_num = val;
+      SUMA_LH("Going to set string");
+      SF->slice_units = unt;
+      SUMA_SliceF_SetString (SF);
+   }
+
+   if (DoCallBacks) {
+      SUMA_S_Warn("Nothing done here, these things are not set yet");
+      if (0) {
+      if (!SF->NewValueCallbackData) {
+         SUMA_LH("No Callback data.");
+         if (SF->NewValueCallback) SF->NewValueCallback((void*)SF);
+      } else {
+         SUMA_LH("Callback data.");
+         if (SF->NewValueCallback) 
+            SF->NewValueCallback(SF->NewValueCallbackData);
+      }
+      }
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_SliceF_SetString (SUMA_SLICE_FIELD * SF)
+{
+   static char FuncName[]={"SUMA_SliceF_SetString"};
+   char buf[36];
+
+   SUMA_ENTRY;
+
+   if (SF->slice_units == SUMA_NO_NUM_UNITS) {
+      sprintf (buf, "%-4d", (int)SF->slice_num);
+   }else if (SF->slice_units == SUMA_MM_UNITS) {
+      sprintf (buf, "%s", 
+               MV_format_fval2(  SF->slice_num, 3));
+   }else {
+      /* fair enough, must be stringy */
+   }
+   
+   XtVaSetValues (SF->text, XmNvalue, buf, NULL);
+   SUMA_RETURNe;
+}
+
+
+/*!
+   \brief This function is called when the label field is activated by the user
+\*/
 void SUMA_TableF_cb_label_change (  Widget w, XtPointer client_data, 
                                     XtPointer call_data)
 {
@@ -3533,6 +4380,68 @@ void SUMA_TableF_cb_label_change (  Widget w, XtPointer client_data,
    TF->cell_modified = -1;
    SUMA_RETURNe;
 }
+
+int  SUMA_SliceVal2ScalePos (SUMA_ALL_DO *ado, char *variant, float *val)
+{
+   static char FuncName[]={"SUMA_SliceVal2ScalePos"};
+   int min_v=0, max_v=0, cv=0, scl=0, dec=0;
+   float ftmp;
+   Widget w = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_VOL_SAUX *VSaux=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))
+       || !(VSaux = SUMA_ADO_VSaux(ado)) || !variant) { 
+      SUMA_SL_Err("Null ado or no SurfCont"); SUMA_RETURN(0); 
+   }
+   if (variant[0] == 'A') {
+      w = SurfCont->Ax_slc->sl;
+   } else if (variant[0] == 'S') {
+      w = SurfCont->Sa_slc->sl;
+   } else if (variant[0] == 'C') {
+      w = SurfCont->Co_slc->sl;
+   }  
+   if (!w) { SUMA_SL_Err("Null widget"); SUMA_RETURN(0); }
+   
+   if (XtIsRealized(w)) {
+      XtVaGetValues(w, XmNuserData, &dec, NULL);
+      XtVaGetValues( w,
+                     XmNmaximum, &max_v,
+                     XmNminimum, &min_v,
+                     XmNvalue, &cv,
+                     XmNscaleMultiple, &scl,  
+                     NULL);
+   } else {
+      SUMA_S_Note("Slider widget not realized"); SUMA_RETURN(0); 
+   }
+   
+   if (*val < 0) { /* ignore sign */
+      *val = -*val;
+   }
+   SUMA_LHv("min %d max %d scalemult %d decimals %d\nCurrent scale value %d\n", 
+            min_v, max_v, scl, dec, cv);  
+
+   /* what is the new slider value to be ?*/
+   ftmp = *val * pow(10.0, dec);
+   if (ftmp > 0) cv = (int) (ftmp+0.5);
+   else cv = (int) (ftmp-0.5);              
+
+   /* Now check on the new cv */
+   if (cv < min_v) {
+      cv = min_v;
+      /* must update threshold value in options structure*/
+      *val = (float)cv / pow(10.0, dec); 
+   } else if (cv > max_v) {
+      cv = max_v;
+      *val = (float)cv / pow(10.0, dec); 
+   }
+
+   SUMA_RETURN(cv);
+}
+
 
 /*!
    threshold value to scale value (position)
@@ -3951,18 +4860,109 @@ void SUMA_NodeInput (void *data)
       SUMA_SLP_Err("Node index must be positive and \n"
                    "less than the number of nodes \n"
                    "forming the surface.\n");
-      TF->num_value[n] = SUMA_ADO_SelectedDatum(ado);
+      TF->num_value[n] = SUMA_ADO_SelectedDatum(ado, NULL);
       SUMA_TableF_SetString (TF);
       TF->cell_modified = -1;
       SUMA_RETURNe;
    }
-   
+   if (ado->do_type == VO_type || ado->do_type == MASK_type) {
+      SUMA_S_Warn("Have not dealt with volumes or masks yet");
+      SUMA_RETURNe;
+   }
    switch (j) {
       case 1:
          XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
          if (LocalHead) {
             fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s, node = %d\n", 
                   FuncName, i, j, (char *)cv, (int)TF->num_value[n]);
+         }
+
+         /* look for a viewer that is showing this surface and 
+            has this surface in focus*/
+         for (i=0; i<SUMAg_N_SVv; ++i) {
+            SUMA_LHv("Checking viewer %d.\n", i);
+            if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+               /* is this viewer showing curSO ? */
+               if (SUMA_isVisibleDO(&(SUMAg_SVv[i]), SUMAg_DOv,
+                                    curDO)) {
+                  if (SUMA_SV_Focus_ADO(&(SUMAg_SVv[i])) == curDO) {
+                        SUMA_JumpIndex((char *)cv, (void *)(&(SUMAg_SVv[i])));
+                  }
+               }
+            }
+         }
+         break;
+      case 2:
+         XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
+         if (LocalHead) {
+            fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s, node = %d\n", 
+                  FuncName, i, j, (char *)cv, (int)TF->num_value[n]);
+         }
+         switch (ado->do_type) {
+            case TRACT_type:
+               for (i=0; i<SUMAg_N_SVv; ++i) {
+                  SUMA_LHv("Checking viewer %d.\n", i);
+                  if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+                     /* is this viewer showing curDO ? */
+                     if (SUMA_isVisibleDO(&(SUMAg_SVv[i]), SUMAg_DOv,
+                                          curDO)) {
+                        if (SUMA_SV_Focus_ADO(&(SUMAg_SVv[i])) == curDO) {
+                                 SUMA_JumpIndex((char *)cv, 
+                                                (void *)(&(SUMAg_SVv[i])));
+                        }
+                     }
+                  }
+               }
+               break;
+            default: 
+               SUMA_LH("Nothing to do here");
+               break;
+         }
+         break;
+      default:
+         SUMA_SL_Err("Should not get this input");
+         break;
+   }
+   SUMA_RETURNe;  
+}
+
+/*!
+   \brief Sends the node/datum flying when new value is entered
+*/
+void SUMA_TpointInput (void *data)
+{
+   static char FuncName[]={"SUMA_TpointInput"};
+   SUMA_ALL_DO *ado=(SUMA_ALL_DO *)data, *curDO = NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   int i, n, j;
+   void *cv=NULL;
+   float fv3[3];
+   char str[100];
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+    
+   SUMA_LH("Called");
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+
+   if (!(curDO = SUMA_SurfCont_GetcurDOp(SurfCont))) {
+      SUMA_S_Err("Failed to get curDOp");
+      SUMA_RETURNe;
+   }
+   TF = SurfCont->FaceTable;
+   if (TF->cell_modified<0) SUMA_RETURNe;
+   n = TF->cell_modified;
+   i = n % TF->Ni;
+   j = n / TF->Ni;
+   
+   switch (j) {
+      case 1:
+         XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
+         if (LocalHead) {
+            fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n", 
+                  FuncName, i, j, (char *)cv);
          }
 
          /* look for a viewer that is showing this surface and 
@@ -4033,7 +5033,7 @@ void SUMA_GNodeInput (void *data)
       SUMA_SLP_Err("Node index must be positive and \n"
                    "less than the number of nodes \n"
                    "forming the surface.\n");
-      TF->num_value[n] = GSaux->PR->selectedEnode;
+      TF->num_value[n] = GSaux->PR->AltSel[SUMA_ENODE_0];
       SUMA_TableF_SetString (TF);
       TF->cell_modified = -1;
       SUMA_RETURNe;
@@ -4136,322 +5136,6 @@ void SUMA_XhairInput (void* data)
    SUMA_RETURNe;
 }
 
-#if 0       /* Kill after a while. ZSS: July 11 2012 */
-/*!
-   \brief Sets the range values when new value is input to the table 
-*/
-void SUMA_SetRangeValueOld_one (void *data)
-{
-   static char FuncName[]={"SUMA_SetRangeValueOld_one"};
-   SUMA_SRV_DATA *srvd=NULL;
-   SUMA_SurfaceObject *SO=NULL;
-   SUMA_TABLE_FIELD *TF=NULL;
-   int i, n, j;
-   void *cv=NULL;
-   SUMA_OVERLAYS *ColPlane = NULL;
-   SUMA_Boolean NewDisp = NOPE, isCur = NOPE;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   SUMA_LH("Called");
-   srvd = (SUMA_SRV_DATA *)data;
-   SO = srvd->SO;
-   TF = SO->SurfCont->SetRangeTable;
-   if (TF->cell_modified<0) SUMA_RETURNe;
-   
-   if (!srvd->colp && !SO->SurfCont->curColPlane) SUMA_RETURNe;
-   if (!srvd->colp) {
-      ColPlane = SO->SurfCont->curColPlane;
-   } else {
-      ColPlane = srvd->colp;
-   }
-   if (ColPlane == SO->SurfCont->curColPlane) {
-      isCur = 1;
-   } else isCur = 0;
-   
-   n = TF->cell_modified;
-   i = n % TF->Ni;
-   j = n / TF->Ni;
-   XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
-   if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n", 
-                           FuncName, i, j, (char *)cv);
-   }
-   NewDisp = NOPE;
-   if (1) {
-   /* What are we dealing with ? */
-   switch (i) {
-      case 1:  /* That's the Int. range */
-         SUMA_LHv("Setting Int. Range, isCur=%d\n", isCur);
-         if (j == 1) {
-            if (ColPlane->SymIrange) {
-               ColPlane->OptScl->IntRange[0] = -fabs((double)TF->num_value[n]);
-               ColPlane->OptScl->IntRange[1] = -ColPlane->OptScl->IntRange[0];
-               if (isCur) {
-                  SUMA_INSERT_CELL_VALUE(TF, 1, 1, 
-                                         ColPlane->OptScl->IntRange[0]);
-                  SUMA_INSERT_CELL_VALUE(TF, 1, 2, 
-                                         ColPlane->OptScl->IntRange[1]);
-               }
-            } else {
-               if (TF->num_value[n] > ColPlane->OptScl->IntRange[1]) {
-                  SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->IntRange[0];
-                  SUMA_SLP_Err("Lower bound > Upper bound!");
-                  if (isCur) SUMA_TableF_SetString(TF);
-               } else {
-                  if (LocalHead) 
-                     fprintf (SUMA_STDERR,"%s: IntRange[0] was %f, will be %f\n",
-                              FuncName, ColPlane->OptScl->IntRange[0], 
-                              TF->num_value[n]);
-                  ColPlane->OptScl->IntRange[0] = TF->num_value[n];
-               }
-            }
-         } else if (j==2) {
-             if (ColPlane->SymIrange) {
-               ColPlane->OptScl->IntRange[1] = fabs((double)TF->num_value[n]);
-               ColPlane->OptScl->IntRange[0] = -ColPlane->OptScl->IntRange[1];
-               if (isCur) {
-                  SUMA_INSERT_CELL_VALUE(TF, 1, 1, 
-                                         ColPlane->OptScl->IntRange[0]);
-                  SUMA_INSERT_CELL_VALUE(TF, 1, 2, 
-                                         ColPlane->OptScl->IntRange[1]);
-               }
-             } else {
-               if (TF->num_value[n] < ColPlane->OptScl->IntRange[0]) {
-                  SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->IntRange[1];
-                  SUMA_SLP_Err("Upper bound < Lower bound!");
-                  if (isCur) SUMA_TableF_SetString(TF);
-               } else {
-                  ColPlane->OptScl->IntRange[1] = TF->num_value[n];
-               }
-            }
-         } else { SUMA_SL_Err("What's going on John ?"); }
-         if (isCur && ColPlane->ShowMode > 0) NewDisp = YUP;
-         break;
-      case 2:  /* That's the Brt.. range */
-         SUMA_LH("Setting Brt. Range");
-         if (j == 1) {
-            if (TF->num_value[n] > ColPlane->OptScl->BrightRange[1]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->BrightRange[0];
-               SUMA_SLP_Err("Lower bound > Upper bound!");
-               if (isCur) SUMA_TableF_SetString(TF);
-            } else {
-               ColPlane->OptScl->BrightRange[0] = TF->num_value[n];
-            }
-         } else if (j==2) {
-            if (TF->num_value[n] < ColPlane->OptScl->BrightRange[0]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->BrightRange[1];
-               SUMA_SLP_Err("Upper bound < Lower bound!");
-               if (isCur) SUMA_TableF_SetString(TF);
-            } else {
-               ColPlane->OptScl->BrightRange[1] = TF->num_value[n];
-            }
-         } else { SUMA_SL_Err("What's going on Ron ?"); }
-         if (isCur && ColPlane->OptScl->UseBrt) NewDisp = YUP;
-         break;
-      case 3:  /* That's the Brt. Map Range */
-         SUMA_LH("Setting BrtMap. Range");
-         if (j == 1) {
-            if (TF->num_value[n] > ColPlane->OptScl->BrightMap[1]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->BrightMap[0];
-               SUMA_SLP_Err("Lower bound > Upper bound!");
-               if (isCur) SUMA_TableF_SetString(TF);
-            } else if (TF->num_value[n] < 0) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->BrightMap[0];
-               SUMA_SLP_Err("Value must be >= 0");
-               if (isCur) SUMA_TableF_SetString(TF);
-            } else {
-               ColPlane->OptScl->BrightMap[0] = TF->num_value[n];
-            }
-         } else if (j==2) {
-            if (TF->num_value[n] < ColPlane->OptScl->BrightMap[0]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->BrightMap[1];
-               SUMA_SLP_Err("Upper bound < Lower bound!");
-               if (isCur) SUMA_TableF_SetString(TF);
-            } else {
-               ColPlane->OptScl->BrightMap[1] = TF->num_value[n];
-            }
-         } else { SUMA_SL_Err("What's going on Mon ?"); }
-         if (isCur && ColPlane->OptScl->UseBrt) NewDisp = YUP;
-         break;
-      case 4:  /* That's the coordinate bias Range */
-         SUMA_LH("Setting CoordBias. Range");
-         if (j == 1) {
-            if (TF->num_value[n] > ColPlane->OptScl->CoordBiasRange[1]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->CoordBiasRange[0];
-               SUMA_SLP_Err("Lower bound > Upper bound!");
-               if (isCur) SUMA_TableF_SetString(TF);
-            } else { /* OK */
-               ColPlane->OptScl->CoordBiasRange[0] = TF->num_value[n];
-            }
-         } else if (j==2) {
-            if (TF->num_value[n] < ColPlane->OptScl->CoordBiasRange[0]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->CoordBiasRange[1];
-               SUMA_SLP_Err("Upper bound < Lower bound!");
-               if (isCur) SUMA_TableF_SetString(TF);
-            } else { /* OK */
-               ColPlane->OptScl->CoordBiasRange[1] = TF->num_value[n];
-            }
-         } else { SUMA_SL_Err("What's going on Hon ?"); }
-         if (isCur) NewDisp = YUP; 
-               /* You might want to disable this feature if the ColPlane 
-                  is not shown */
-         break;
-      default:
-         SUMA_SL_Err("You make me sick");
-         break;
-   }
-   }
-   
-   /* Now, you need to redraw the deal */
-   if (NewDisp) {
-      SUMA_ColorizePlane(SO->SurfCont->curColPlane);
-      SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
-   }   
-   
-   /* update the Xhair Info block */
-   if (SO->SurfCont->curColPlane->OptScl->DoBias != SW_CoordBias_None) {
-      SUMA_UpdateNodeNodeField(SO);    
-   }
-   SUMA_UpdateNodeLblField(SO);
-
-   SUMA_RETURNe;
-}
-
-void SUMA_SetRangeValueOld (void *data)
-{
-   static char FuncName[]={"SUMA_SetRangeValueOld"};
-   SUMA_SRV_DATA srvdC, *srvd=NULL;
-   SUMA_SurfaceObject *SO=NULL, *SOC=NULL;
-   SUMA_OVERLAYS *colpC=NULL, *colp=NULL;
-   int n=-1,i=-1,j=-1;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   if (LocalHead) {
-      fprintf(SUMA_STDERR, 
-         "%s:\n request to switch range \n", FuncName);
-   }
-   if (!(srvd = (SUMA_SRV_DATA *)data)) SUMA_RETURNe;
-   SO = srvd->SO; colp = srvd->colp;
-   if (!colp) colp = SO->SurfCont->curColPlane;
-   /* save which cell was modified because that will get reset
-      after 1st call to SUMA_SetRangeValueOld_one */
-   n = SO->SurfCont->SetRangeTable->cell_modified;
-   SUMA_LHv("Initial n %d\n", n);
-   SUMA_SetRangeValueOld_one (data);
-   
-   
-   /* do we have a contralateral SO and overlay? */
-   colpC = SUMA_Contralateral_overlay(colp, SO, &SOC);
-   if (colpC && SOC) {
-      SUMA_LHv("Found contralateral equivalent to:\n"
-                   " %s and %s in\n"
-                   " %s and %s\n"
-                   "cell modified: n = %d\n",
-                   SO->Label, CHECK_NULL_STR(colp->Label),
-                   SOC->Label, CHECK_NULL_STR(colpC->Label),
-                   n);
-      srvdC.SO = SOC; srvdC.colp = colpC;
-      
-      
-      if (colpC == SOC->SurfCont->curColPlane) {
-         if (n >= 0) {
-            i = n % SO->SurfCont->SetRangeTable->Ni;
-            j = n / SO->SurfCont->SetRangeTable->Ni; 
-            SUMA_LHv("Mode 1, n=%d, i=%d, j=%d\n", n, i, j);
-            /* modify the cells in question */
-            switch(i) {
-               case 1:
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 1, 
-                                SO->SurfCont->curColPlane->OptScl->IntRange[0]);
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 2, 
-                                SO->SurfCont->curColPlane->OptScl->IntRange[1]);
-                  break;
-               case 2:
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 1, 
-                              SO->SurfCont->curColPlane->OptScl->BrightRange[0]);
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 2, 
-                              SO->SurfCont->curColPlane->OptScl->BrightRange[1]);
-                  break;
-               case 3:
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 1, 
-                              SO->SurfCont->curColPlane->OptScl->BrightMap[0]);
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 2, 
-                              SO->SurfCont->curColPlane->OptScl->BrightMap[1]);
-                  break;
-               case 4:
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 1, 
-                           SO->SurfCont->curColPlane->OptScl->CoordBiasRange[0]);
-                  SUMA_INSERT_CELL_VALUE(SOC->SurfCont->SetRangeTable, i, 2, 
-                           SO->SurfCont->curColPlane->OptScl->CoordBiasRange[1]);
-                  break; 
-            }
-            SOC->SurfCont->SetRangeTable->cell_modified = n; 
-            SUMA_SetRangeValueOld_one (&srvdC);
-         } else {
-            SUMA_S_Warn("Don't know why this can be");
-         }
-      } else {
-         /* just update values in contralateral baby */
-         if (n > 0) {
-            i = n % SO->SurfCont->SetRangeTable->Ni;
-            j = n / SO->SurfCont->SetRangeTable->Ni; 
-            SUMA_LHv("Mode 2, n=%d, i=%d, j=%d\n", n, i, j);
-            switch(i) {
-               case 1:
-                  colpC->OptScl->IntRange[0] = 
-                     SO->SurfCont->curColPlane->OptScl->IntRange[0];
-                  colpC->OptScl->IntRange[1] = 
-                     SO->SurfCont->curColPlane->OptScl->IntRange[1];
-                  break;
-               case 2:
-                  colpC->OptScl->BrightRange[0] = 
-                     SO->SurfCont->curColPlane->OptScl->BrightRange[0];
-                  colpC->OptScl->BrightRange[1] = 
-                     SO->SurfCont->curColPlane->OptScl->BrightRange[1];
-                  break;
-               case 3:
-                  colpC->OptScl->BrightMap[0] = 
-                     SO->SurfCont->curColPlane->OptScl->BrightMap[0];
-                  colpC->OptScl->BrightMap[1] = 
-                     SO->SurfCont->curColPlane->OptScl->BrightMap[1];
-                  break;
-               case 4:
-                  colpC->OptScl->CoordBiasRange[0] = 
-                     SO->SurfCont->curColPlane->OptScl->CoordBiasRange[0];
-                  colpC->OptScl->CoordBiasRange[1] = 
-                     SO->SurfCont->curColPlane->OptScl->CoordBiasRange[1];
-                  break;
-            }
-         } else {
-            SUMA_LHv("Mode 3, n=%d\n", n);
-            /* Just equate all of them */
-            colpC->OptScl->IntRange[0] = 
-               SO->SurfCont->curColPlane->OptScl->IntRange[0];
-            colpC->OptScl->IntRange[1] = 
-               SO->SurfCont->curColPlane->OptScl->IntRange[1];
-            colpC->OptScl->BrightRange[0] = 
-               SO->SurfCont->curColPlane->OptScl->BrightRange[0];
-            colpC->OptScl->BrightRange[1] = 
-               SO->SurfCont->curColPlane->OptScl->BrightRange[1];
-            colpC->OptScl->BrightMap[0] = 
-               SO->SurfCont->curColPlane->OptScl->BrightMap[0];
-            colpC->OptScl->BrightMap[1] = 
-               SO->SurfCont->curColPlane->OptScl->BrightMap[1];
-            colpC->OptScl->CoordBiasRange[0] = 
-               SO->SurfCont->curColPlane->OptScl->CoordBiasRange[0];
-            colpC->OptScl->CoordBiasRange[1] = 
-               SO->SurfCont->curColPlane->OptScl->CoordBiasRange[1];
-         }
-      }
-   }
-   
-   SUMA_RETURNe; 
-}
-#endif
 
 #define SETMEN (setmen > 1 || (setmen && isCur))
 #define REDISP (redisplay > 1 || (redisplay && NewDisp))
@@ -5134,6 +5818,10 @@ void SUMA_set_cmap_options(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_set_cmap_options_GLDO(ado, NewDset, NewMap);
          SUMA_RETURNe;
          break;
+      case VO_type:
+         SUMA_set_cmap_options_VO(ado, NewDset,  NewMap);
+         SUMA_RETURNe;
+         break;
       default:
          SUMA_S_Errv("Nothing for type %s\n",
             SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
@@ -5159,6 +5847,616 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
    
    if (!ado) SUMA_RETURNe;
    if (ado->do_type != SO_type) {
+      SUMA_S_Err("Should not be here");
+      SUMA_RETURNe;
+   }
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
+   if (!SurfCont) SUMA_RETURNe;
+   if (!SurfCont->opts_form || !SurfCont->opts_rc) SUMA_RETURNe;
+   if (!curColPlane) SUMA_RETURNe;
+   if (!NewDset && !NewMap && SurfCont->rcvo && SurfCont->rccm) {
+      SUMA_SL_Err("Nothing to do");
+      SUMA_RETURNe;
+   }
+   /* row column to contain all switching stuffs */
+   if (!SurfCont->rcvo){
+      SurfCont->rcvo = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, SurfCont->opts_rc,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmVERTICAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
+      NewDset = YUP; /* The first time around */
+   } else {
+      /* (no need ..) */
+      /* XtUnmanageChild(SurfCont->rcvo);  */
+   }  
+   
+   if (NewDset) { /* The intensity / threshold / Brightness block*/
+      /* link mode */
+      if (!SurfCont->LinkModeMenu->mw[SW_LinkMode]) {
+               Widget rc = NULL; /* one pass through this block ONLY */
+               rc = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, SurfCont->rcvo,
+                  XmNpacking, XmPACK_TIGHT, 
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight, 0 ,
+                  XmNmarginWidth , 0 ,
+                  NULL);
+               
+               SUMA_LH("Forming map mode menu");
+               SUMA_BuildMenuReset(0);
+               SUMA_BuildMenu ( rc, XmMENU_OPTION, 
+                               "IxT", '\0', YUP, LinkMode_Menu, 
+                               (void *)ado,  
+                               "Set I, T selection linking modes.", 
+                               SUMA_SurfContHelp_Link,
+                               SurfCont->LinkModeMenu);
+               XtManageChild (SurfCont->LinkModeMenu->mw[SW_LinkMode]);
+               
+               XtManageChild(rc);
+         }
+
+      if (!SurfCont->rcsw) {
+         SurfCont->rcsw = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->rcvo,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNheight, 105,         /* don't let that change dynamically,  */
+            XmNresizeHeight, False, /* it messes up the frame size, when you 
+                                       switch dsets*/
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+       } else {
+         /* (no need ..) */
+         /*XtUnmanageChild(SurfCont->rcsw); */
+       }
+      if (!SurfCont->rcsw_v1) {
+         SurfCont->rcsw_v1 = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->rcsw,
+            XmNpacking, XmPACK_COLUMN, 
+            XmNorientation , XmVERTICAL ,
+            XmNnumColumns, 1,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      }
+      if (!SurfCont->rcsw_v2) {
+         SurfCont->rcsw_v2 = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->rcsw,
+            XmNpacking, XmPACK_COLUMN, 
+            XmNorientation , XmVERTICAL ,
+            XmNnumColumns, 1,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      }
+      
+      /* Switching triplets */
+      SwitchInt_Menu = SUMA_FormSwitchColMenuVector(ado, 0, &N_items);      
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: %d items.\n", FuncName, N_items);
+      if (SwitchInt_Menu || !N_items) {
+         SurfCont->SwitchIntMenu = 
+               SUMA_Free_Menu_Widget(SurfCont->SwitchIntMenu);
+         SurfCont->SwitchIntMenu = 
+               SUMA_Alloc_Menu_Widget(N_items+1);
+         SUMA_BuildMenuReset(13);
+         SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
+                           "I", '\0', YUP, SwitchInt_Menu, 
+                           (void *)ado, 
+                           "Select Intensity (I) column (BHelp for more)", 
+                           SUMA_SurfContHelp_SelInt,
+                           SurfCont->SwitchIntMenu );
+         XtInsertEventHandler( SurfCont->SwitchIntMenu->mw[0] , 
+                                             /* handle events in optmenu */
+                        ButtonPressMask ,  /* button presses */
+                        FALSE ,            /* nonmaskable events? */
+                        SUMA_optmenu_EV ,  /* handler */
+                        (XtPointer) ado ,   /* client data */
+                        XtListTail ) ;
+         if (LocalHead) 
+            SUMA_ShowMeTheChildren(SurfCont->SwitchIntMenu->mw[0]);
+         XtManageChild (SurfCont->SwitchIntMenu->mw[0]);
+         /* Now destroy the SwitchInt_Menu */
+         SwitchInt_Menu = SUMA_FreeMenuVector(SwitchInt_Menu, N_items);
+         /* setup the history to the proper widget */
+         SUMA_Set_Menu_Widget(SurfCont->SwitchIntMenu,
+                       curColPlane->OptScl->find+1) ; 
+      } else {
+         SUMA_SL_Err("NULL SwitchInt_Menu");
+      }
+      
+      SwitchThr_Menu = SUMA_FormSwitchColMenuVector(ado, 1, &N_items);
+      if (SwitchThr_Menu || !N_items) {
+         SurfCont->SwitchThrMenu = 
+               SUMA_Free_Menu_Widget(SurfCont->SwitchThrMenu);
+         SurfCont->SwitchThrMenu = 
+               SUMA_Alloc_Menu_Widget(N_items+1);  
+         SUMA_BuildMenuReset(13);         
+         SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
+                           "T", '\0', YUP, SwitchThr_Menu, 
+                           (void *)ado,  
+                           "Select Threshold (T) column (BHelp for more)", 
+                           SUMA_SurfContHelp_SelThr ,    
+                           SurfCont->SwitchThrMenu );
+         XtInsertEventHandler( SurfCont->SwitchThrMenu->mw[0] ,      
+                                       /* handle events in optmenu */
+                        ButtonPressMask ,  /* button presses */
+                        FALSE ,            /* nonmaskable events? */
+                        SUMA_optmenu_EV ,  /* handler */
+                        (XtPointer) ado ,   /* client data */
+                        XtListTail ) ;
+         XtManageChild (SurfCont->SwitchThrMenu->mw[0]);
+         /* Now destroy the SwitchThr_Menu */
+         SwitchThr_Menu = SUMA_FreeMenuVector(SwitchThr_Menu, N_items);
+         /* setup the history to the proper widget */
+         SUMA_Set_Menu_Widget(SurfCont->SwitchThrMenu,
+                       curColPlane->OptScl->tind+1); 
+      } else {
+         SUMA_SL_Err("NULL SwitchThr_Menu");
+      }
+
+      SwitchBrt_Menu = SUMA_FormSwitchColMenuVector(ado, 2, &N_items);
+      if (SwitchBrt_Menu || !N_items) {
+         SurfCont->SwitchBrtMenu = 
+               SUMA_Free_Menu_Widget(SurfCont->SwitchBrtMenu);
+         SurfCont->SwitchBrtMenu = 
+               SUMA_Alloc_Menu_Widget(N_items+1);
+         SUMA_BuildMenuReset(13);
+         SUMA_BuildMenu (SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
+                           "B", '\0', YUP, SwitchBrt_Menu, 
+                           (void *)ado,  
+                           "Select Brightness (B) column (BHelp for more)", 
+                           SUMA_SurfContHelp_SelBrt,
+                           SurfCont->SwitchBrtMenu );
+         XtInsertEventHandler( SurfCont->SwitchBrtMenu->mw[0] ,      
+                                                /* handle events in optmenu */
+                        ButtonPressMask ,  /* button presses */
+                        FALSE ,            /* nonmaskable events? */
+                        SUMA_optmenu_EV ,  /* handler */
+                        (XtPointer) ado ,   /* client data */
+                        XtListTail ) ;
+
+         XtManageChild (SurfCont->SwitchBrtMenu->mw[0]);
+         /* Now destroy the SwitchBrt_Menu */
+         SwitchBrt_Menu = SUMA_FreeMenuVector(SwitchBrt_Menu, N_items);
+         /* setup the history to the proper widget */
+         SUMA_Set_Menu_Widget(SurfCont->SwitchBrtMenu,
+                       curColPlane->OptScl->bind+1);
+      } else {
+         SUMA_SL_Err("NULL SwitchBrt_Menu");
+      }
+      
+     if (1) {
+     /* put the toggle buttons */
+         if (!SurfCont->Int_tb) {
+            SurfCont->Int_tb = XtVaCreateManagedWidget("v", 
+               xmToggleButtonWidgetClass, SurfCont->rcsw_v2, NULL);
+            XtAddCallback (SurfCont->Int_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_SwitchInt_toggled, ado);
+            MCW_register_hint(SurfCont->Int_tb,   
+                              "View (ON)/Hide Dset node colors");
+            MCW_register_help(SurfCont->Int_tb,   
+                              SUMA_SurfContHelp_SelIntTgl);
+
+            SUMA_SET_SELECT_COLOR(SurfCont->Int_tb);
+         } 
+         XmToggleButtonSetState (SurfCont->Int_tb,      
+                    curColPlane->ShowMode > 0 ? 1:0 , NOPE);
+         
+         if (!SurfCont->Thr_tb) {
+            SurfCont->Thr_tb = XtVaCreateManagedWidget("v", 
+               xmToggleButtonWidgetClass, SurfCont->rcsw_v2, NULL);
+            XtAddCallback (SurfCont->Thr_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_SwitchThr_toggled, ado);
+            SUMA_SET_SELECT_COLOR(SurfCont->Thr_tb);
+            MCW_register_hint(SurfCont->Thr_tb,   
+                              "Apply (ON)/Ignore thresholding");
+            MCW_register_help(SurfCont->Thr_tb,   
+                              SUMA_SurfContHelp_SelThrTgl);
+         }
+         if (curColPlane->OptScl->tind >=0) {
+            XmToggleButtonSetState (SurfCont->Thr_tb, 
+                              curColPlane->OptScl->UseThr, NOPE);
+         }else {
+            XmToggleButtonSetState (SurfCont->Thr_tb, NOPE, NOPE);
+         }
+         
+         if (!SurfCont->Brt_tb) {
+            SurfCont->Brt_tb = XtVaCreateManagedWidget("v", 
+               xmToggleButtonWidgetClass, SurfCont->rcsw_v2, NULL);
+            XtAddCallback (SurfCont->Brt_tb, 
+                     XmNvalueChangedCallback, SUMA_cb_SwitchBrt_toggled, ado);
+            SUMA_SET_SELECT_COLOR(SurfCont->Brt_tb);
+            MCW_register_hint(SurfCont->Brt_tb,   
+                     "View (ON)/Ignore brightness modulation");
+            MCW_register_help(SurfCont->Brt_tb,   
+                              SUMA_SurfContHelp_SelBrtTgl);
+         }
+         if (curColPlane->OptScl->bind >=0) {
+            XmToggleButtonSetState (SurfCont->Brt_tb, 
+                     curColPlane->OptScl->UseBrt, NOPE);
+         } else {
+            XmToggleButtonSetState (SurfCont->Brt_tb, NOPE, NOPE);
+         }
+      }
+      if (!XtIsManaged(SurfCont->rcsw_v1)) 
+         XtManageChild (SurfCont->rcsw_v1);
+      if (!XtIsManaged(SurfCont->rcsw_v2)) 
+         XtManageChild (SurfCont->rcsw_v2);
+      if (!XtIsManaged(SurfCont->rcsw)) XtManageChild (SurfCont->rcsw);
+   } /* The intensity / threshold / Brightness block */
+   
+   
+   {/*  The Color map range and selector block */
+      char *col_tit[]=  {  " ", "Min", "Max", NULL};
+      char *col_hint[]= {  "Clipping ranges", 
+                           "Minimum clip value", 
+                           "Maximum clip value" , NULL};
+      char *col_help[]= {  SUMA_SurfContHelp_SetRngTbl_r0, 
+                           SUMA_SurfContHelp_SetRngTbl_c1, 
+                           SUMA_SurfContHelp_SetRngTbl_c2 , NULL};
+      char *row_tit[]=  {  " ", "I", "B", " " , "C", NULL};
+      char *row_hint[]= {  
+         "Clipping ranges ", 
+         "Intensity clipping range (much more with BHelp)", 
+         "Brightness modulation clipping range (much more with BHelp)", 
+         "Brightness modulation factor range (much more with BHelp)" , 
+         "Coordinate bias range (much more with BHelp)", NULL};
+      char *row_help[]= {  SUMA_SurfContHelp_SetRngTbl_r0, 
+                           SUMA_SurfContHelp_SetRngTbl_r1,
+                           SUMA_SurfContHelp_SetRngTbl_r2, 
+                           SUMA_SurfContHelp_SetRngTbl_r3, 
+                           SUMA_SurfContHelp_SetRngTbl_r4, NULL};
+      if (!SurfCont->rccm) {
+         SurfCont->rccm = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->rcvo,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0,
+            XmNmarginWidth, 0,
+            NULL);
+         NewMap = YUP; /* the first time around */
+      }
+       
+      if (NewMap) {/* new colormaps */
+         SUMA_LH("NewMap set");
+         if (!SurfCont->SetRangeTable->cells) {
+            int colw[3] = { 1, 8, 8 };
+            SUMA_SRV_DATA *srvd=(SUMA_SRV_DATA *)calloc(1,sizeof(SUMA_SRV_DATA));
+            srvd->ado = ado; srvd->colp = NULL;               
+            /* create the widgets for the range table */
+            SUMA_LH("Creating table");
+            SUMA_CreateTable( SurfCont->rccm,
+                           5, 3, 
+                           row_tit, col_tit,  
+                           row_hint, col_hint,  
+                           row_help, col_help,  
+                           colw, YUP, SUMA_float, 
+                           SUMA_cb_SetRangeValue, (void *)srvd,
+                           SUMA_SetRangeTableTit_EV, NULL,
+                           NULL, NULL,  
+                           SurfCont->SetRangeTable);
+         }
+         if (!SurfCont->CoordBiasMenu->mw[SW_CoordBias]) {
+               Widget rc = NULL; /* one pass through this block ONLY */
+               rc = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, SurfCont->rccm,
+                  XmNpacking, XmPACK_TIGHT, 
+                  XmNorientation , XmHORIZONTAL ,
+                  XmNmarginHeight, 0 ,
+                  XmNmarginWidth , 0 ,
+                  NULL);
+               
+               SUMA_LH("Forming map mode menu");
+               SUMA_BuildMenuReset(0);
+               SUMA_BuildMenu ( rc, XmMENU_OPTION, 
+                               "Col", '\0', YUP, CmapMode_Menu, 
+                               (void *)ado,  
+                               "Switch between color mapping modes.", 
+                               SUMA_SurfContHelp_Col,
+                               SurfCont->CmapModeMenu);
+               XtManageChild (SurfCont->CmapModeMenu->mw[SW_CmapMode]);
+               
+               SUMA_LH("Forming new bias menu");
+               SUMA_BuildMenuReset(0);
+               SUMA_BuildMenu ( rc, XmMENU_OPTION, 
+                               "Bias", '\0', YUP, CoordBias_Menu, 
+                               (void *)ado, 
+                               "Coordinate bias direction", 
+                               SUMA_SurfContHelp_Bias, 
+                               SurfCont->CoordBiasMenu);
+               XtManageChild (SurfCont->CoordBiasMenu->mw[SW_CoordBias]);
+               
+               XtManageChild(rc);
+         }
+            
+         if (!SurfCont->rccm_swcmap) {
+            SUMA_LH("Creating rccm_swcmap");
+            SurfCont->rccm_swcmap =  XtVaCreateWidget ("rowcolumn",
+               xmRowColumnWidgetClass, SurfCont->rccm,
+               XmNpacking, XmPACK_TIGHT, 
+               XmNorientation , XmHORIZONTAL ,
+               XmNmarginHeight, 0 ,
+               XmNmarginWidth , 0 ,
+               NULL);
+         }
+
+         {
+            SUMA_CreateUpdatableCmapMenu(ado); 
+
+            #if 0
+               /* Not any more, menu is now stuck in its own rc */
+               /* the loader, needs to be recreated with colormap menu  */
+               if (SurfCont->CmapLoad_pb) { 
+                  XtDestroyWidget(SurfCont->CmapLoad_pb); 
+                  SurfCont->CmapLoad_pb = NULL;
+               }
+            #endif
+            if (!SurfCont->CmapLoad_pb) { 
+               SUMA_LH("Forming CmapLoad button");
+               SurfCont->CmapLoad_pb = XtVaCreateManagedWidget ("New", 
+                                 xmPushButtonWidgetClass, 
+                                 SurfCont->rccm_swcmap, 
+                                 NULL);
+               XtAddCallback (SurfCont->CmapLoad_pb, XmNactivateCallback, 
+                              SUMA_cb_Cmap_Load, (XtPointer) ado);
+               MCW_register_hint(SurfCont->CmapLoad_pb , 
+                                 "Load new colormap");
+               MCW_register_help(SurfCont->CmapLoad_pb ,  
+                                 SUMA_SurfContHelp_CmpNew);
+            }
+         } /* new colormaps */
+         if (!XtIsManaged(SurfCont->rccm_swcmap)) 
+                     XtManageChild (SurfCont->rccm_swcmap); 
+      }
+      
+      /* Set the CoordBias's menu history to reflect current setting */
+      SUMA_LH("Updating Link Mode History");
+      SUMA_Set_Menu_Widget( SurfCont->LinkModeMenu,
+                     curColPlane->LinkMode); 
+      
+      SUMA_LH("Working the lock stuff ...");
+      /* You'll need to fix the table's locking widget colors */
+      if ( SurfCont->IntRangeLocked == 
+               curColPlane->OptScl->AutoIntRange) {
+         SUMA_LH("   Do the Int");
+         /* need to put things in sync */
+         SurfCont->IntRangeLocked = !SurfCont->IntRangeLocked;
+         MCW_invert_widget(SurfCont->SetRangeTable->cells[1]);
+      }
+      if ( SurfCont->BrtRangeLocked == 
+               curColPlane->OptScl->AutoBrtRange) {
+         SUMA_LH("   Do the Brt");
+         /* need to put things in sync */
+         SurfCont->BrtRangeLocked = !SurfCont->BrtRangeLocked;
+         MCW_invert_widget(SurfCont->SetRangeTable->cells[2]);
+      } 
+
+      /* Set the CoordBias's menu history to reflect current setting */
+      SUMA_LH("Updating CoorBias chooser History");
+      SUMA_Set_Menu_Widget( SurfCont->CoordBiasMenu,
+                     curColPlane->OptScl->DoBias); 
+ 
+      /* Set the Col's menu history to reflect current setting */
+      SUMA_LH("Updating Col chooser History");
+      SUMA_Set_Menu_Widget( SurfCont->CmapModeMenu,
+                     curColPlane->OptScl->interpmode); 
+ 
+      /* add the selectors for symmetric range and absolute threshold */
+      if (!SurfCont->AbsThresh_tb) {
+         Widget rc;
+         rc = XtVaCreateWidget ("rowcolumn",
+               xmRowColumnWidgetClass, SurfCont->rccm,
+               XmNpacking, XmPACK_TIGHT, 
+               XmNorientation , XmHORIZONTAL ,
+               XmNmarginHeight, 0 ,
+               XmNmarginWidth , 0 ,
+               NULL);
+         /* create the absolute threshold toggle button */
+         SurfCont->AbsThresh_tb = XtVaCreateManagedWidget("|T|", 
+               xmToggleButtonWidgetClass, rc, 
+               NULL);
+         XtAddCallback (SurfCont->AbsThresh_tb, 
+               XmNvalueChangedCallback, SUMA_cb_AbsThresh_tb_toggled, ado);
+         MCW_register_hint(SurfCont->AbsThresh_tb , 
+                           "Absolute threshold ON/OFF");
+         MCW_register_help(SurfCont->AbsThresh_tb ,  
+                           SUMA_SurfContHelp_AbsThr );
+         
+         SUMA_SET_SELECT_COLOR(SurfCont->AbsThresh_tb);
+         
+         /* create the symmetric range toggle button */
+         SurfCont->SymIrange_tb = XtVaCreateManagedWidget("sym I", 
+               xmToggleButtonWidgetClass, rc, NULL);
+         XtAddCallback (SurfCont->SymIrange_tb, 
+               XmNvalueChangedCallback, SUMA_cb_SymIrange_tb_toggled, ado);
+         MCW_register_hint(SurfCont->SymIrange_tb, 
+                           "Intensity range symmetry about 0 ");
+         MCW_register_help(SurfCont->SymIrange_tb,  SUMA_SurfContHelp_Isym);
+         SUMA_SET_SELECT_COLOR(SurfCont->SymIrange_tb);
+         
+         /* add a button for zero masking */
+         SurfCont->ShowZero_tb = XtVaCreateManagedWidget("shw 0", 
+               xmToggleButtonWidgetClass, rc, NULL);
+         XtAddCallback (SurfCont->ShowZero_tb, 
+               XmNvalueChangedCallback, SUMA_cb_ShowZero_tb_toggled, ado);
+         MCW_register_hint(SurfCont->ShowZero_tb,   
+               "Color masking of nodes with intensity = 0 ");
+         MCW_register_help(SurfCont->ShowZero_tb,   SUMA_SurfContHelp_Shw0);
+         SUMA_SET_SELECT_COLOR(SurfCont->ShowZero_tb);
+         XtManageChild (rc);
+      }
+      
+      {/* The clustering options */
+         char *col_tit[]= { " ", "Conn", "Area", NULL };
+         char *col_hint[]={ "Clusterizing options", 
+                            "Connectedness criterion",
+                            "Cluster Area Threshold", NULL };
+         char *col_help[]={   SUMA_SurfContHelp_SetClustTbl_r0,
+                              SUMA_SurfContHelp_SetClustTbl_c1,
+                              SUMA_SurfContHelp_SetClustTbl_c2, NULL
+                           };
+         char *row_tit[]={ " ", "Clst", NULL};
+         char *row_hint[]={ "Clusterizing options", "Clust on/off", NULL};
+         char *row_help[]={ SUMA_SurfContHelp_SetClustTbl_r0,
+                            SUMA_SurfContHelp_SetClustTbl_r1, NULL
+                           };
+
+         SUMA_LH("Receptacle");
+         if (!SurfCont->rcclust) {
+            SurfCont->rcclust = XtVaCreateWidget ("rowcolumn",
+               xmRowColumnWidgetClass, SurfCont->opts_form,
+               XmNpacking, XmPACK_TIGHT, 
+               XmNorientation , XmHORIZONTAL ,
+               XmNmarginHeight, 0,
+               XmNmarginWidth, 0,
+               XmNrightAttachment, XmATTACH_FORM , 
+               XmNleftAttachment,  XmATTACH_NONE,
+               XmNtopAttachment, XmATTACH_WIDGET ,
+               XmNtopWidget, SurfCont->opts_rc,
+               NULL);
+            FirstTime = YUP; /* the first time around */
+         } else {
+            FirstTime = NOPE;
+         }
+
+         if (FirstTime) {/* new clust */
+            SUMA_LH("FirstTime set");
+            if (!SurfCont->SetClustTable->cells) {
+               int colw[3] = { 4, 6, 6 };
+               SUMA_SRV_DATA *srvd=(SUMA_SRV_DATA *)
+                                 calloc(1,sizeof(SUMA_SRV_DATA));
+               srvd->ado = ado; srvd->colp = NULL;               
+               /* create the widgets for the range table */
+               SUMA_LH("Creating table");
+               SUMA_CreateTable( SurfCont->rcclust,
+                              2, 3, 
+                              row_tit, col_tit,  
+                              row_hint, col_hint,  
+                              row_help, col_help,  
+                              colw, YUP, SUMA_float, 
+                              SUMA_cb_SetClustValue, (void *)srvd,
+                              SUMA_SetClustTableTit_EV, NULL,
+                              NULL, NULL,  
+                              SurfCont->SetClustTable);
+            }
+            
+            if (curColPlane->OptScl) {
+                SUMA_SetTableTitleButton1(SurfCont->SetClustTable, 1,0,                                       curColPlane->OptScl->Clusterize);
+            }
+         }
+         SUMA_LH("Managerial");
+
+         if (!XtIsManaged(SurfCont->rcclust)) 
+                  XtManageChild (SurfCont->rcclust);
+
+      }/* The clustering options */
+
+      /* do the initialization */
+      SUMA_InitClustTable(ado); /* init the clust table values*/
+      
+      if (curColPlane->OptScl->ThrMode == SUMA_ABS_LESS_THAN) {
+         XmToggleButtonSetState( SurfCont->AbsThresh_tb, True, NOPE);
+      } else {
+         XmToggleButtonSetState( SurfCont->AbsThresh_tb, False, NOPE);
+      }
+      if (!curColPlane->SymIrange) {
+         XmToggleButtonSetState( SurfCont->SymIrange_tb, False, NOPE);
+      } else {
+         XmToggleButtonSetState( SurfCont->SymIrange_tb, True, NOPE);
+      }
+      if (!curColPlane->OptScl->MaskZero) {
+         XmToggleButtonSetState( SurfCont->ShowZero_tb, True, NOPE);
+      } else {
+         XmToggleButtonSetState( SurfCont->ShowZero_tb, False, NOPE);
+      }
+      
+      if (!XtIsManaged(SurfCont->rccm)) XtManageChild (SurfCont->rccm);
+   
+   }/*  The Color map range and selector block */
+   
+   if (1){ /* The Range values block*/
+      char *col_tit[]=  {  " ", "Min", "Node", "Max", "Node", NULL};
+      char *col_hint[]= {  "Full range in Dset", 
+                           "Minimum value in Dset column", 
+                           "Node index at minimum", 
+                           "Maximum value in Dset column", 
+                           "Node index at maximum", NULL};
+      char *col_help[]= {  SUMA_SurfContHelp_RangeTbl_c0, 
+                           SUMA_SurfContHelp_RangeTbl_c1,
+                           SUMA_SurfContHelp_RangeTbl_c2, 
+                           SUMA_SurfContHelp_RangeTbl_c3, 
+                           SUMA_SurfContHelp_RangeTbl_c4, NULL};
+      char *row_tit[]=  {  " ", "I", "T", "B", NULL};
+      char *row_hint[]= {  "Full range in Dset", 
+                           "Range of values in intensity (I) column", 
+                           "Range of values in threshold (T) column", 
+                           "Range of values in brightness (B) column", NULL};
+      char *row_help[]= {  SUMA_SurfContHelp_RangeTbl_c0, 
+                           SUMA_SurfContHelp_RangeTbl_r1, 
+                           SUMA_SurfContHelp_RangeTbl_r2, 
+                           SUMA_SurfContHelp_RangeTbl_r3, NULL};
+      if (!SurfCont->rcswr) {
+         SurfCont->rcswr = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->opts_form,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNrightAttachment, XmATTACH_FORM , 
+            XmNleftAttachment,  XmATTACH_NONE,
+            XmNtopAttachment, XmATTACH_WIDGET ,
+            XmNtopWidget, SurfCont->rcclust,
+            NULL);
+      }
+      
+      if (!SurfCont->RangeTable->cells) {
+         int colw[5] = { 1, 6, 6, 6, 6 };
+         /* create the widgets for the range table */
+         SUMA_CreateTable( SurfCont->rcswr,
+                           4, 5, 
+                           row_tit, col_tit,  
+                           row_hint, col_hint,  
+                           row_help, col_help,  
+                           colw, NOPE, SUMA_string, 
+                           NULL, NULL,
+                           NULL, NULL,  
+                           SUMA_RangeTableCell_EV, (void *)ado, 
+                           SurfCont->RangeTable);
+      }
+
+      if (!XtIsManaged(SurfCont->rcswr)) XtManageChild (SurfCont->rcswr);
+   } /* The Range values block */
+         
+   if (NewDset) {
+      /* initialize tables of range values */
+      SUMA_InitRangeTable(ado, 2);
+   }
+   
+   if (!XtIsManaged(SurfCont->rcvo)) XtManageChild (SurfCont->rcvo);
+   SUMA_FORCE_SCALE_HEIGHT(SUMA_ADO_Cont(ado)); 
+
+   SUMA_RETURNe;
+}
+
+void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
+                           SUMA_Boolean NewMap)
+{
+   static char FuncName[]={"SUMA_set_cmap_options_VO"};
+   SUMA_MenuItem  *SwitchInt_Menu = NULL, *SwitchThr_Menu = NULL, 
+                  *SwitchBrt_Menu = NULL;
+   int N_items, FirstTime;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado) SUMA_RETURNe;
+   if (ado->do_type != VO_type) {
       SUMA_S_Err("Should not be here");
       SUMA_RETURNe;
    }
@@ -7638,6 +8936,15 @@ void SUMA_CreateXhairWidgets(Widget parent, SUMA_ALL_DO *ado)
       case GRAPH_LINK_type:
          SUMA_CreateXhairWidgets_GLDO(parent, ado);
          break;
+      case TRACT_type:
+         SUMA_CreateXhairWidgets_TDO(parent, ado);
+         break;
+      case MASK_type:
+         SUMA_CreateXhairWidgets_MDO(parent, ado);
+         break;
+      case VO_type:
+         SUMA_CreateXhairWidgets_VO(parent, ado);
+         break;
       default:
          SUMA_S_Errv("Not ready for this beast %d (%s)\n",
             ado->do_type, SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
@@ -7780,6 +9087,7 @@ void SUMA_CreateXhairWidgets_SO(Widget parent, SUMA_ALL_DO *ado)
    SUMA_RETURNe;
    
 }
+
 void SUMA_CreateXhairWidgets_GLDO(Widget parent, SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_CreateXhairWidgets_GLDO"};
@@ -7919,6 +9227,443 @@ void SUMA_CreateXhairWidgets_GLDO(Widget parent, SUMA_ALL_DO *ado)
    
 }
 
+void SUMA_CreateXhairWidgets_TDO(Widget parent, SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_CreateXhairWidgets_TDO"};
+   char *Xhair_tit[]=   {  "Xhr ", NULL};
+   char *Xhair_hint[]=  {  "Crosshair coordinates.", NULL};
+   char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
+   char *I_tit[]=      { "Ind ", NULL };
+   char *I_hint[] =    { "Point index in whole network", NULL };
+   char *I_help[] =    { "SUMA_SurfContHelp_I", NULL };
+   char *BTP_tit[]=    {  "BTP"   , NULL};
+   char *BTP_hint[]=   {  "Bundle index in network, Tract index in bundle, "
+                          "Point index in tract",
+                           NULL};
+   char *BTP_help[]=   {  SUMA_SurfContHelp_BTP , NULL};
+   char *Data_tit[]=    {  "    ", "Intens", "Thresh", "Bright" , NULL};
+   char *Data_colhint[]=      {  "Data Values at tract point in focus", 
+                                 "Intensity (I) value", 
+                                 "Threshold (T) value", 
+                                 "Brightness modulation (B) value" , NULL};
+   char *Data_colhelp[]=      {  SUMA_SurfContHelp_NodeValTblc0, 
+                                 SUMA_SurfContHelp_NodeValTblc1, 
+                                 SUMA_SurfContHelp_NodeValTblc2, 
+                                 SUMA_SurfContHelp_NodeValTblc3 , NULL}; 
+   
+   char *Data_rtit[]=      {  "    ", "Val " , NULL};
+   char *Data_rowhint[]=   {  "Data Values at point in focus", 
+                              "Data Values at point in focus" , NULL};
+   char *Data_rowhelp[]=   {  SUMA_SurfContHelp_NodeValTblr0, 
+                              SUMA_SurfContHelp_NodeValTblr0 , NULL};
+   
+   char *Label_tit[]=   {  "Lbl ", NULL};
+   char *Label_hint[]=  {  "Label at node in focus", NULL};
+   char *Label_help[]=  {  SUMA_SurfContHelp_NodeLabelTblr0 , NULL};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   Widget rcc, rcch;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado || ado->do_type != TRACT_type || !(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_RETURNe;
+   }
+   /* a row column to contain them all */
+   rcc = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, parent,
+      XmNpacking, XmPACK_TIGHT,
+      XmNleftAttachment,XmATTACH_FORM ,  
+      XmNorientation , XmVERTICAL ,
+      XmNmarginHeight , 0 ,
+      XmNmarginWidth  , 0 ,
+      NULL);
+   
+   /* a simple table with the xhair coordinate */
+   SUMA_LH("Creating Xhair coordinates table");
+   {
+      int colw[] = { 4, 27 };
+      SUMA_CreateTable(rcc, 
+         1, 2,
+         Xhair_tit, NULL,
+         Xhair_hint, NULL,
+         Xhair_help, NULL,
+         colw, YUP, SUMA_string,
+         SUMA_XhairInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->XhairTable);
+   }
+   rcch = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, rcc,
+      XmNpacking, XmPACK_TIGHT,
+      XmNleftAttachment,XmATTACH_FORM ,  
+      XmNorientation , XmHORIZONTAL ,
+      XmNmarginHeight , 0 ,
+      XmNmarginWidth  , 0 ,
+      NULL);
+   /* a table for a point's index */      
+   SUMA_LH("Creating point table");
+   {
+      int colw[]={3, 5};
+      SUMA_CreateTable(rcch, 
+         1, 2,
+         I_tit, NULL,
+         I_hint, NULL,
+         I_help, NULL,
+         colw, YUP, SUMA_int,
+         SUMA_NodeInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->NodeTable);
+   }
+   /* a table for a point's BTP index */      
+   SUMA_LH("Creating BTP table");
+   {
+      int colw[]={4, 15};
+      SUMA_CreateTable(rcch, 
+         1, 2,
+         BTP_tit, NULL,
+         BTP_hint, NULL,
+         BTP_help, NULL,
+         colw, YUP, SUMA_string,
+         SUMA_TpointInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->FaceTable);
+   }
+   XtManageChild(rcch);
+   
+   
+   /* a table for the Dset values at node in focus */      
+   SUMA_LH("Creating Dset Val  table");
+   {
+      int colw[]={ 4, 7, 7, 7};
+      SUMA_CreateTable(rcc, 
+         2, 4,
+         Data_rtit, Data_tit,
+         Data_rowhint, Data_colhint,
+         Data_rowhelp, Data_colhelp,
+         colw, NOPE, SUMA_float,
+         NULL, NULL,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->DataTable);
+   }
+   /* a table for a node's label*/      
+   SUMA_LH("Creating label  table");
+   {
+      int colw[]={4, 26};
+      SUMA_CreateTable(rcc, 
+         1, 2,
+         Label_tit, NULL,
+         Label_hint, NULL,
+         Label_help, NULL, 
+         colw, NOPE, SUMA_string,
+         NULL, NULL,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->LabelTable);
+   }      
+   XtManageChild(rcc);
+   SUMA_RETURNe;
+   
+}
+
+void SUMA_CreateXhairWidgets_MDO(Widget parent, SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_CreateXhairWidgets_MDO"};
+   char *Xhair_tit[]=   {  "Xhr ", NULL};
+   char *Xhair_hint[]=  {  "Crosshair coordinates.", NULL};
+   char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
+   char *I_tit[]=      { "Ind ", NULL };
+   char *I_hint[] =    { "Point index in whole network", NULL };
+   char *I_help[] =    { "SUMA_SurfContHelp_I", NULL };
+   char *BTP_tit[]=    {  "BTP"   , NULL};
+   char *BTP_hint[]=   {  "Bundle index in network, Tract index in bundle, "
+                          "Point index in tract",
+                           NULL};
+   char *BTP_help[]=   {  SUMA_SurfContHelp_BTP , NULL};
+   char *Data_tit[]=    {  "    ", "Intens", "Thresh", "Bright" , NULL};
+   char *Data_colhint[]=      {  "Data Values at tract point in focus", 
+                                 "Intensity (I) value", 
+                                 "Threshold (T) value", 
+                                 "Brightness modulation (B) value" , NULL};
+   char *Data_colhelp[]=      {  SUMA_SurfContHelp_NodeValTblc0, 
+                                 SUMA_SurfContHelp_NodeValTblc1, 
+                                 SUMA_SurfContHelp_NodeValTblc2, 
+                                 SUMA_SurfContHelp_NodeValTblc3 , NULL}; 
+   
+   char *Data_rtit[]=      {  "    ", "Val " , NULL};
+   char *Data_rowhint[]=   {  "Data Values at point in focus", 
+                              "Data Values at point in focus" , NULL};
+   char *Data_rowhelp[]=   {  SUMA_SurfContHelp_NodeValTblr0, 
+                              SUMA_SurfContHelp_NodeValTblr0 , NULL};
+   
+   char *Label_tit[]=   {  "Lbl ", NULL};
+   char *Label_hint[]=  {  "Label at node in focus", NULL};
+   char *Label_help[]=  {  SUMA_SurfContHelp_NodeLabelTblr0 , NULL};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   Widget rcc, rcch;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado || ado->do_type != MASK_type || !(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_RETURNe;
+   }
+   
+   SUMA_S_Warn("Nothing done below");
+   SUMA_RETURNe;
+   
+   /* a row column to contain them all */
+   rcc = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, parent,
+      XmNpacking, XmPACK_TIGHT,
+      XmNleftAttachment,XmATTACH_FORM ,  
+      XmNorientation , XmVERTICAL ,
+      XmNmarginHeight , 0 ,
+      XmNmarginWidth  , 0 ,
+      NULL);
+   
+   /* a simple table with the xhair coordinate */
+   SUMA_LH("Creating Xhair coordinates table");
+   {
+      int colw[] = { 4, 27 };
+      SUMA_CreateTable(rcc, 
+         1, 2,
+         Xhair_tit, NULL,
+         Xhair_hint, NULL,
+         Xhair_help, NULL,
+         colw, YUP, SUMA_string,
+         SUMA_XhairInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->XhairTable);
+   }
+   rcch = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, rcc,
+      XmNpacking, XmPACK_TIGHT,
+      XmNleftAttachment,XmATTACH_FORM ,  
+      XmNorientation , XmHORIZONTAL ,
+      XmNmarginHeight , 0 ,
+      XmNmarginWidth  , 0 ,
+      NULL);
+   /* a table for a point's index */      
+   SUMA_LH("Creating point table");
+   {
+      int colw[]={3, 5};
+      SUMA_CreateTable(rcch, 
+         1, 2,
+         I_tit, NULL,
+         I_hint, NULL,
+         I_help, NULL,
+         colw, YUP, SUMA_int,
+         SUMA_NodeInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->NodeTable);
+   }
+   /* a table for a point's BTP index */      
+   SUMA_LH("Creating BTP table");
+   {
+      int colw[]={4, 15};
+      SUMA_CreateTable(rcch, 
+         1, 2,
+         BTP_tit, NULL,
+         BTP_hint, NULL,
+         BTP_help, NULL,
+         colw, YUP, SUMA_string,
+         SUMA_TpointInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->FaceTable);
+   }
+   XtManageChild(rcch);
+   
+   
+   /* a table for the Dset values at node in focus */      
+   SUMA_LH("Creating Dset Val  table");
+   {
+      int colw[]={ 4, 7, 7, 7};
+      SUMA_CreateTable(rcc, 
+         2, 4,
+         Data_rtit, Data_tit,
+         Data_rowhint, Data_colhint,
+         Data_rowhelp, Data_colhelp,
+         colw, NOPE, SUMA_float,
+         NULL, NULL,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->DataTable);
+   }
+   /* a table for a node's label*/      
+   SUMA_LH("Creating label  table");
+   {
+      int colw[]={4, 26};
+      SUMA_CreateTable(rcc, 
+         1, 2,
+         Label_tit, NULL,
+         Label_hint, NULL,
+         Label_help, NULL, 
+         colw, NOPE, SUMA_string,
+         NULL, NULL,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->LabelTable);
+   }      
+   XtManageChild(rcc);
+   SUMA_RETURNe;
+   
+}
+
+void SUMA_CreateXhairWidgets_VO(Widget parent, SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_CreateXhairWidgets_VO"};
+   char *Xhair_tit[]=   {  "Xhr ", NULL};
+   char *Xhair_hint[]=  {  "Crosshair coordinates.", NULL};
+   char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
+   char *I_tit[]=      { "Ind ", NULL };
+   char *I_hint[] =    { "Voxel 1D index in volume", NULL };
+   char *I_help[] =    { "SUMA_SurfContHelp_I", NULL };
+   char *BTP_tit[]=    {  "IJK"   , NULL};
+   char *BTP_hint[]=   {  "Voxel 3D indices in volume",
+                           NULL};
+   char *BTP_help[]=   {  SUMA_SurfContHelp_IJK , NULL};
+   char *Data_tit[]=    {  "    ", "Intens", "Thresh", "Bright" , NULL};
+   char *Data_colhint[]=      {  "Data Values at voxel in focus", 
+                                 "Intensity (I) value", 
+                                 "Threshold (T) value", 
+                                 "Brightness modulation (B) value" , NULL};
+   char *Data_colhelp[]=      {  SUMA_SurfContHelp_NodeValTblc0, 
+                                 SUMA_SurfContHelp_NodeValTblc1, 
+                                 SUMA_SurfContHelp_NodeValTblc2, 
+                                 SUMA_SurfContHelp_NodeValTblc3 , NULL}; 
+   
+   char *Data_rtit[]=      {  "    ", "Val " , NULL};
+   char *Data_rowhint[]=   {  "Data values at voxel in focus", 
+                              "Data values at voxel in focus" , NULL};
+   char *Data_rowhelp[]=   {  SUMA_SurfContHelp_NodeValTblr0, 
+                              SUMA_SurfContHelp_NodeValTblr0 , NULL};
+   
+   char *Label_tit[]=   {  "Lbl ", NULL};
+   char *Label_hint[]=  {  "Label at voxel in focus", NULL};
+   char *Label_help[]=  {  SUMA_SurfContHelp_NodeLabelTblr0 , NULL};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   Widget rcc, rcch;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado || ado->do_type != VO_type || !(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_RETURNe;
+   }
+   
+   /* a row column to contain them all */
+   rcc = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, parent,
+      XmNpacking, XmPACK_TIGHT,
+      XmNleftAttachment,XmATTACH_FORM ,  
+      XmNorientation , XmVERTICAL ,
+      XmNmarginHeight , 0 ,
+      XmNmarginWidth  , 0 ,
+      NULL);
+   
+   /* a simple table with the xhair coordinate */
+   SUMA_LH("Creating Xhair coordinates table");
+   {
+      int colw[] = { 4, 27 };
+      SUMA_CreateTable(rcc, 
+         1, 2,
+         Xhair_tit, NULL,
+         Xhair_hint, NULL,
+         Xhair_help, NULL,
+         colw, YUP, SUMA_string,
+         SUMA_XhairInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->XhairTable);
+   }
+   rcch = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, rcc,
+      XmNpacking, XmPACK_TIGHT,
+      XmNleftAttachment,XmATTACH_FORM ,  
+      XmNorientation , XmHORIZONTAL ,
+      XmNmarginHeight , 0 ,
+      XmNmarginWidth  , 0 ,
+      NULL);
+   /* a table for a point's index */      
+   SUMA_LH("Creating point table");
+   {
+      int colw[]={3, 5};
+      SUMA_CreateTable(rcch, 
+         1, 2,
+         I_tit, NULL,
+         I_hint, NULL,
+         I_help, NULL,
+         colw, YUP, SUMA_int,
+         SUMA_NodeInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->NodeTable);
+   }
+   /* a table for a point's BTP index */      
+   SUMA_LH("Creating IJK table");
+   {
+      int colw[]={4, 15};
+      SUMA_CreateTable(rcch, 
+         1, 2,
+         BTP_tit, NULL,
+         BTP_hint, NULL,
+         BTP_help, NULL,
+         colw, YUP, SUMA_string,
+         SUMA_TpointInput, (void*)ado,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->FaceTable);
+   }
+   XtManageChild(rcch);
+   
+   
+   /* a table for the Dset values at node in focus */      
+   SUMA_LH("Creating Dset Val  table");
+   {
+      int colw[]={ 4, 7, 7, 7};
+      SUMA_CreateTable(rcc, 
+         2, 4,
+         Data_rtit, Data_tit,
+         Data_rowhint, Data_colhint,
+         Data_rowhelp, Data_colhelp,
+         colw, NOPE, SUMA_float,
+         NULL, NULL,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->DataTable);
+   }
+   /* a table for a voxel's label*/      
+   SUMA_LH("Creating label  table");
+   {
+      int colw[]={4, 26};
+      SUMA_CreateTable(rcc, 
+         1, 2,
+         Label_tit, NULL,
+         Label_hint, NULL,
+         Label_help, NULL, 
+         colw, NOPE, SUMA_string,
+         NULL, NULL,
+         NULL, NULL, 
+         NULL, NULL,  
+         SurfCont->LabelTable);
+   }      
+   XtManageChild(rcc);
+   SUMA_RETURNe;
+   
+}
+
+
 void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_CreateCmapWidgets"};
@@ -7952,7 +9697,8 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
       XmNmarginHeight , 0 ,
       XmNmarginWidth  , 0 ,
       NULL);
-
+   
+   SUMA_LH("Creating the threshold bar widgets");
    { /* the threshold bar */
       rct = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, SurfCont->opts_rc,
@@ -8051,6 +9797,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                      
    if (arglist) XtFree(arglist); arglist = NULL;
    
+   SUMA_LH("The colorbar");
    {/* the color bar */
       Widget rcc2;
       rcc = XtVaCreateWidget ("rowcolumn",
@@ -8286,7 +10033,7 @@ void SUMA_DoForTheChildren(Widget w, int i, int lvl, int rec)
                                      lvl,  ic, XtName(children[ic]), Nbutt);
             break;
          default:
-            SUMA_S_Err("Action %d unknown");
+            SUMA_S_Err("Action %d unknown", i);
             SUMA_RETURNe;
       }
    }
@@ -8695,7 +10442,7 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
             SUMA_LHv("Setting cross hair at %f %f %f\n", 
                                     sv->Ch->c[0],sv->Ch->c[1],sv->Ch->c[2]);
             SUMA_XHAIR_STRING(sv->Ch->c, str);
-            SUMA_LH(str);
+            SUMA_LH("%s",str);
             XtVaSetValues(SurfCont->XhairTable->cells[1], 
                            XmNvalue, str, NULL);
             SUMA_UpdateCrossHairNodeLabelField(sv);
@@ -8806,22 +10553,28 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
          SUMA_RETURN(NOPE);
          break; }
       
+      case VO_type:
+      case TRACT_type:
       case GRAPH_LINK_type:
          {
-         SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
-         SUMA_DSET *dset=NULL;
          SUMA_ALL_DO *curado=NULL;
-         if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
-            SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
-                        SUMA_ADO_Label(ado));
-            SUMA_RETURN(NOPE);
+         
+         if (LocalHead && ado->do_type ==  GRAPH_LINK_type) {
+            SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
+            SUMA_DSET *dset=NULL;
+            if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
+               SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
+                           SUMA_ADO_Label(ado));
+               SUMA_RETURN(NOPE);
+            }
          }
-          if (!(curado = SUMA_SurfCont_GetcurDOp(SurfCont))) {
+         
+         if (!(curado = SUMA_SurfCont_GetcurDOp(SurfCont))) {
             SUMA_S_Err("Failed to get curDOp");
             break;
          }
-         SUMA_LHv("Working %s, curado %s on dset %s\n", 
-                  ADO_TNAME(ado), ADO_TNAME(curado), SDSET_LABEL(dset));
+         SUMA_LHv("Working %s, curado %s on label %s\n", 
+                  ADO_TNAME(ado), ADO_TNAME(curado), ADO_LABEL(ado));
    
          /* Do we have click callbacks pending? */
          if (SUMAg_CF->callbacks && !SUMAg_CF->HoldClickCallbacks) {
@@ -8855,8 +10608,9 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
          } else {
             SUMA_LH("No GUI Node Field Updates, but may use a whereami update");
             if (SUMAg_CF->X->Whereami_TextShell) {
-               lbls = SUMA_GetLabelsAtSelection(ado, SUMA_ADO_SelectedDatum(ado),
-                                                SUMA_ADO_SelectedSecondary(ado));
+               lbls = SUMA_GetLabelsAtSelection(ado, 
+                                             SUMA_ADO_SelectedDatum(ado, NULL),
+                                             SUMA_ADO_SelectedSecondary(ado));
                if (lbls) SUMA_free(lbls); lbls = NULL;
             }
          }
@@ -8872,7 +10626,7 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
                      && Sover->rowgraph_mtd ) {
                   SUMA_OverlayGraphAtNode(Sover, 
                                           ado, 
-                                          SUMA_ADO_SelectedDatum(ado));
+                                          SUMA_ADO_SelectedDatum(ado, NULL));
                }
             }
          } else {
@@ -8882,12 +10636,14 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
                      && Sover->rowgraph_mtd ) {
                   SUMA_OverlayGraphAtNode(Sover, 
                                           ado, 
-                                          SUMA_ADO_SelectedDatum(ado));
+                                          SUMA_ADO_SelectedDatum(ado, NULL));
                }
          }
          SUMA_RETURN(YUP);
          break; }
-         
+      case MASK_type:
+         SUMA_S_Warn("Anything to be done here for masks?");
+         SUMA_RETURN(YUP);   
       default:
          SUMA_S_Errv("Nothing to do with %s\n",
                SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
@@ -8923,6 +10679,7 @@ SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado)
       case SO_type: {
          SUMA_S_Err("Not for SOs this!");
          break; }
+      
       case SDSET_type: {
          SUMA_S_Err("Should not call with this type DO because without\n"
                     "a variant it cannot be displayed");
@@ -8958,12 +10715,13 @@ SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado)
          if (SUMA_isRelated(ado, curado, 1)) {
             SUMA_LH( "Updating GUI Point Fields, ");
             if (curado == ado) {
-               if (GSaux->PR->selectedEnode >= 0) {
-                  sprintf(str, "%ld", GSaux->PR->selectedEnode);
-                  SurfCont->FaceTable->num_value[1] = GSaux->PR->selectedEnode;
+               if (GSaux->PR->AltSel[SUMA_ENODE_0] >= 0) {
+                  sprintf(str, "%ld", GSaux->PR->AltSel[SUMA_ENODE_0]);
+                  SurfCont->FaceTable->num_value[1] = 
+                        GSaux->PR->AltSel[SUMA_ENODE_0];
                   XtVaSetValues(SurfCont->FaceTable->cells[1], 
                                  XmNvalue, str, NULL);
-                  fv = SUMA_GDSET_NodeXYZ(dset, GSaux->PR->selectedEnode,
+                  fv = SUMA_GDSET_NodeXYZ(dset, GSaux->PR->AltSel[SUMA_ENODE_0],
                                           SUMA_ADO_variant(ado),NULL);
                   sprintf(str, "%f, %f, %f", fv[0], fv[1], fv[2]); 
                
@@ -8981,6 +10739,7 @@ SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado)
 
          SUMA_RETURN(YUP);
          break; }
+      
       default:
          SUMA_S_Errv("Nothing to do with %s\n",
                SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
@@ -8994,7 +10753,7 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado)
    static char FuncName[]={"SUMA_UpdateNodeNodeField"};
    char str[100];
    SUMA_X_SurfCont *SurfCont=NULL;
-   int SelectedNode;
+   int SelectedNode, iv4[4];
    float *fv;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -9005,8 +10764,8 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado)
       SUMA_RETURN(NOPE); 
    }
    SurfCont = SUMA_ADO_Cont(ado);
-   SelectedNode = SUMA_ADO_SelectedDatum(ado);
-   
+   SelectedNode = SUMA_ADO_SelectedDatum(ado, NULL);
+   SUMA_LH("Working %d on %s\n", SelectedNode, ADO_LABEL(ado));
    if (!SurfCont || !SurfCont->NodeTable) SUMA_RETURN(NOPE);
    if (SelectedNode < 0 || SelectedNode > SUMA_ADO_Max_Datum_Index(ado)) 
                                           SUMA_RETURN(NOPE);
@@ -9038,6 +10797,16 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado)
          }
          XtVaSetValues(SurfCont->NodeTable->cells[2], XmNvalue, str, NULL);
          break; }
+      case TRACT_type: {
+         if (!SurfCont->FaceTable) SUMA_RETURN(NOPE); 
+         SUMA_ADO_SelectedDatum(ado, (void *)iv4);
+         sprintf(str, "%d, %d, %d", 
+                 iv4[SUMA_NET_BUN], iv4[SUMA_BUN_TRC], iv4[SUMA_TRC_PNT]);
+         XtVaSetValues(SurfCont->FaceTable->cells[1], XmNvalue, str, NULL);
+         break; }
+      case MASK_type: {
+         SUMA_S_Warn("Anything for this?");
+         break; }
       default:
          SUMA_S_Errv("No love for %s\n", ADO_TNAME(ado));
          break;
@@ -9055,6 +10824,7 @@ char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado,
    char **sar=NULL;
    double dval;
    int Found = -1;
+   SUMA_DATUM_LEVEL lev = 0;
    int Max_Node_Index = -1;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -9063,6 +10833,23 @@ char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado,
    if (!ado || !dset) SUMA_RETURN(sar);
    
    Max_Node_Index = SUMA_ADO_Max_Datum_Index(ado);
+   
+   /* What datum level do we have here ? */
+   switch ((lev = SUMA_sdset_datum_level(dset))) {
+      case SUMA_ELEM_DAT:
+         SUMA_LH("Datum %d is expected to refer to an elementary datum level",
+                 Node);
+         break;
+      case SUMA_LEV1_DAT:
+         SUMA_LH("Datum %d is expected to refer to a level1 datum", Node); 
+         break;
+      case SUMA_LEV2_DAT:
+         SUMA_LH("Datum %d is expected to refer to a level2 datum", Node);
+         break;
+      default:
+         SUMA_S_Err("You're not on the level %d", lev);
+         break;
+   }
    
    /* 1- Where is this node in the data set ? */
    if (Node > -1) {
@@ -9118,6 +10905,52 @@ char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado,
    SUMA_RETURN(sar);
 }
 
+/*!
+   Like SUMA_ADO_SelectedDatum, except that 
+if the overlay plane is for a non-elementary 
+datum, the datum selection is adjusted properly
+   Set Sover to NULL if you want to use
+   the current overlay
+*/
+int SUMA_ADO_ColPlane_SelectedDatum(SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover)
+{
+   static char FuncName[]={"SUMA_ADO_ColPlane_SelectedDatum"};
+   int SelectedNode = -1, iv4[4];
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!ado) {
+      SUMA_LH("Null ado");
+      SUMA_RETURN(-1);
+   }
+   
+   if (!Sover) Sover = SUMA_ADO_CurColPlane(ado);
+   if (!Sover) {
+      SUMA_LH("Null Sover and no current overlay plane");
+      SUMA_RETURN(-1);
+   }
+   
+   SelectedNode = SUMA_ADO_SelectedDatum(ado, (void *)iv4);
+   SUMA_LH("Selection: %d -- %d %d %d %d",
+               SelectedNode, iv4[0], iv4[1], iv4[2], iv4[3]);
+   if (Sover->dtlvl != SUMA_ELEM_DAT) {
+      switch (ado->do_type) {
+         case TRACT_type:
+            if (Sover->dtlvl == SUMA_LEV1_DAT) SelectedNode = iv4[SUMA_NET_TRC];
+            else if (Sover->dtlvl == SUMA_LEV2_DAT) 
+                                 SelectedNode = iv4[SUMA_NET_BUN];
+            break;
+         default:
+            SUMA_S_Err("Not ready for non-elementary datum for type %s\n",
+                       ADO_TNAME(ado));
+            break;
+      }
+   }
+   
+   SUMA_RETURN(SelectedNode);
+}
+
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_UpdateNodeValField"};
@@ -9135,19 +10968,20 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado)
    }
 
    Sover = SUMA_ADO_CurColPlane(ado);
-   SurfCont = SUMA_ADO_Cont(ado);
-   SelectedNode = SUMA_ADO_SelectedDatum(ado);
    if (!Sover) {
       SUMA_LH("Null Sover");
       SUMA_RETURN(NOPE);
    }
-
+   SurfCont = SUMA_ADO_Cont(ado);
+   SelectedNode = SUMA_ADO_ColPlane_SelectedDatum(ado, Sover);
    if (!(sar = SUMA_FormNodeValFieldStrings(ado, Sover->dset_link, 
                            SelectedNode, 
                            Sover->OptScl->find, 
                            Sover->OptScl->tind,
                            Sover->OptScl->bind, 0))) {
        SUMA_LH("Failed to get strings");
+   } else {
+      SUMA_LH("Got strings");
    }
    if (sar && sar[0]) {
       SUMA_INSERT_CELL_STRING(SurfCont->DataTable, 1, 1, sar[0]);
@@ -9188,6 +11022,8 @@ char *SUMA_GetLabelsAtSelection(SUMA_ALL_DO *ado, int node, int sec)
       case SDSET_type:
          SUMA_S_Warn("Not ready to return labels for dsets, and should I be?");
          break;
+      case MASK_type:
+      case TRACT_type:
       case GRAPH_LINK_type:
          SUMA_RETURN(SUMA_GetLabelsAtSelection_ADO(ado,node, sec));
          break;
@@ -9418,6 +11254,37 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
             }
          }
       }
+      
+      /* Bundles, tracts? */
+      if (ado->do_type == TRACT_type) {
+         SUMA_TractDO *tdo=(SUMA_TractDO *)ado;
+         SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
+         char stmp[256];
+         if (node >= 0) { /* spell out where you are */
+            if (TSaux->PR->AltSel[SUMA_NET_BUN] >= 0 &&
+                TSaux->PR->AltSel[SUMA_BUN_TRC] >= 0 &&
+                TSaux->PR->AltSel[SUMA_TRC_PNT] >= 0 ) {
+                snprintf(stmp, 256,
+                  "\nPoint %ld of tract %ld in bundle %ld (tract in bundle %ld)",
+                       TSaux->PR->AltSel[SUMA_TRC_PNT], 
+                       TSaux->PR->AltSel[SUMA_BUN_TRC], 
+                       TSaux->PR->AltSel[SUMA_NET_BUN],
+                       TSaux->PR->AltSel[SUMA_NET_TRC]);
+               lbls = SUMA_append_replace_string(lbls,stmp,"", 0);
+            }
+         }
+      }
+      
+      /* Volume object */
+      if (ado->do_type == VO_type) {
+         static int wcnt=0;
+         if (!wcnt) { SUMA_S_Warn("Fill me up with love"); ++wcnt; }
+      }
+      
+      /* Mask object */
+      if (ado->do_type == MASK_type) {
+         SUMA_S_Warn("Fill me up with any love you can spare");
+      }
    }
       
    /* Do we need to tell Santa? */
@@ -9481,7 +11348,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                          SUMA_ADO_LDP(ado), NULL, NULL);
       nini = NI_new_data_element("T", 0);
    
-      v = SUMA_ADO_DatumXYZ(ado, SUMA_ADO_SelectedDatum(ado), NULL);
+      v = SUMA_ADO_DatumXYZ(ado, SUMA_ADO_SelectedDatum(ado, NULL), NULL);
       coord_type = SUMA_WORLD;
    } else {/* fixed on screen */
       nido = SUMA_BlankNIDO(NULL, "AHorseWithNoName",
@@ -9536,6 +11403,9 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ado)
          SUMA_S_Warn("Should I be updating this guy and not it GLDO?");
          return(YUP);
          break; }
+      case VO_type:
+      case TRACT_type:
+      case MASK_type:
       case GRAPH_LINK_type: {
          return(SUMA_UpdateNodeLblField_ADO(ado));
          break; }
@@ -9569,11 +11439,15 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
    } 
    
    switch(ado->do_type) {
+      case VO_type:
       case GRAPH_LINK_type:
+      case MASK_type:
+      case TRACT_type:
       case SO_type: 
          /* get labels from Label Datasets, and update whereami 
             window if needed*/
-         lbls = SUMA_GetLabelsAtSelection_ADO(ado, SUMA_ADO_SelectedDatum(ado),
+         lbls = SUMA_GetLabelsAtSelection_ADO(ado, 
+                                              SUMA_ADO_SelectedDatum(ado, NULL),
                                               SUMA_ADO_SelectedSecondary(ado));
          SUMA_LHv("Label Dsets: %s\n", lbls);
          break;
@@ -9601,7 +11475,8 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
          SUMA_RETURN(YUP);
       }
 
-      Found = SUMA_GetNodeOverInd(Sover, SUMA_ADO_SelectedDatum(ado));
+      Found = SUMA_GetNodeOverInd(Sover, 
+                                  SUMA_ADO_ColPlane_SelectedDatum(ado, Sover));
 
       if (Found < 0) {
          SUMA_Boolean Reasoned = NOPE;
@@ -9639,7 +11514,7 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
             strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+1],5)); 
             strcat( str_col,", ");
             strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+2],5));
-            SUMA_LH(str_col);
+            SUMA_LH("%s", str_col);
          }
       }
       if (lbls) ltmp = SUMA_append_replace_string(lbls, str_col, "; col=", 0);
@@ -9795,6 +11670,24 @@ SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado)
          }
          SUMA_UpdatePointField(ado);
          SUMA_UpdateNodeField(ado);
+         break; }
+      case TRACT_type: {
+         SUMA_UpdateNodeField(ado);
+         break; }
+      case MASK_type: {
+         static int ncnt;
+         if (!ncnt) {
+            ++ncnt;
+            SUMA_S_Warn("Anything for masks?");
+         }
+         break; }
+      case VO_type: {
+         static int ncnt;
+         if (!ncnt) {
+            ++ncnt;
+            SUMA_S_Warn("Am I the only one around here who gives"
+                        " a shit about the rules?");
+         }
          break; }
       default:
          SUMA_S_Errv("Nothing to do with %s\n",
@@ -10049,7 +11942,8 @@ SUMA_Boolean  SUMA_Insert_Cmap_of_Dset(SUMA_DSET *dset)
    SUMA_ADO_CurColPlane: Return the current col plane for any DO
    This is meant to replace all of the old SO->SurfCont->curColPlane
    
-   For DSET_type DO with a DOCont, the answer will be GSaux->Overlay 
+   For some DO with a DOCont, such as DSET_type, the answer 
+   will be GSaux->Overlay 
    For the rest the answer is NULL
 */
 SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
@@ -10081,6 +11975,21 @@ SUMA_OVERLAYS * SUMA_ADO_CurColPlane(SUMA_ALL_DO *ado)
          }
          return(SUMA_ADO_CurColPlane((SUMA_ALL_DO *)dset));
          break; }
+      case MASK_type: {
+         SUMA_MASK_SAUX *MSaux = SUMA_ADO_MSaux(ado);
+         if (!MSaux || !MSaux->DOCont) return(NULL);
+         return(MSaux->DOCont->curColPlane);
+         break; }
+      case TRACT_type: {
+         SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
+         if (!TSaux || !TSaux->DOCont) return(NULL);
+         return(TSaux->DOCont->curColPlane);
+         break; }
+      case VO_type: {
+         SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+         if (!VSaux || !VSaux->DOCont) return(NULL);
+         return(VSaux->DOCont->curColPlane);
+         break; }
       default:
          return(NULL);
    }
@@ -10096,21 +12005,131 @@ SUMA_OVERLAYS * SUMA_ADO_Overlay0(SUMA_ALL_DO *ado)
 SUMA_OVERLAYS * SUMA_ADO_Overlay(SUMA_ALL_DO *ado, int i)
 {
    static char FuncName[]={"SUMA_ADO_Overlay"};
+   SUMA_OVERLAYS **overlays=NULL;
+   int N_over=0;
+   
    if (!ado || i<0) return(NULL);
-   switch(ado->do_type) {
+   if ((overlays = SUMA_ADO_Overlays(ado, &N_over))) { 
+      if (i < N_over) return(overlays[i]);
+   }
+   return(NULL);
+}
+
+SUMA_Boolean SUMA_ADO_Append_Overlay(SUMA_ALL_DO *ado, SUMA_OVERLAYS **over)
+{
+   static char FuncName[]={"SUMA_ADO_Append_Overlay"};
+   SUMA_OVERLAYS ** overlays = NULL;
+   int N_over = -1;
+   
+   SUMA_ENTRY;
+   
+   if (!over || !*over) { 
+      SUMA_S_Err("No overlay to add !");
+      SUMA_RETURN (NOPE);
+   }
+   overlays = SUMA_ADO_Overlays(ado, &N_over);
+   if (!overlays || N_over < 0) {
+      SUMA_S_Err("No overlays (%p) or N_over (%d)", overlays, N_over);
+      SUMA_RETURN (NOPE);
+   }  
+   
+   if (N_over+1 >= SUMA_MAX_OVERLAYS) {
+      SUMA_SL_Crit("Too many color overlays.");
+      SUMA_RETURN (NOPE);
+   }
+   
+   switch (ado->do_type) {
       case SO_type: {
-         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
-         if (i < SO->N_Overlays) return(SO->Overlays[i]);
-         else return(NULL);
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         SUMA_S_Warn("Case not tested yet");
+         overlays[N_over] = *over;
+         *over = NULL;
+         ++SO->N_Overlays;
+         break; }
+      case TRACT_type: {
+         SUMA_TractDO *tdo = (SUMA_TractDO *)ado;
+         SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
+         overlays[N_over] = *over;
+         *over = NULL;
+         ++TSaux->N_Overlays;
+         break; }
+      case MASK_type: {
+         SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+         SUMA_MASK_SAUX *MSaux = SUMA_ADO_MSaux(ado);
+         overlays[N_over] = *over;
+         *over = NULL;
+         ++MSaux->N_Overlays;
+         break; }
+      case VO_type: {
+         SUMA_VolumeObject *vo = (SUMA_VolumeObject *)ado;
+         SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+         overlays[N_over] = *over;
+         *over = NULL;
+         ++VSaux->N_Overlays;
          break; }
       case SDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
-         if (!GSaux) return(NULL);
-         if (i==0) return(GSaux->Overlay);
-         else return(NULL);
+         SUMA_S_Warn("Case not tested yet");
+         if (!GSaux) {
+            SUMA_S_Err("NULL GSaux");
+            SUMA_RETURN(NOPE);
+         }
+         if (N_over > 0) {
+            SUMA_S_Err("Not ready or shouldn't add more than one overlay \n"
+                       "for dsets");
+            SUMA_RETURN(NOPE);
+         }
+         GSaux->Overlay = *over;
+         *over = NULL;
          break; }
       case GRAPH_LINK_type: {
+         SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
+         SUMA_DSET *dset=NULL;
+         SUMA_Boolean ans = NOPE;
+         SUMA_S_Warn("Case not tested yet");
+         if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
+            SUMA_S_Errv("Failed to find dset for gldo %s!!!\n",
+                        SUMA_ADO_Label(ado));
+            SUMA_RETURN(NOPE);
+         }
+         ans = SUMA_ADO_Append_Overlay((SUMA_ALL_DO *)dset, over);
+         if (!ans) SUMA_RETURN(NOPE);
+         *over = NULL;
+         break; }
+      default:
+         SUMA_S_Err("Not ready for %d\n", ado->do_type);
+         SUMA_RETURN(NOPE);
+         break;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_OVERLAYS **  SUMA_ADO_Overlays(SUMA_ALL_DO *ado, int *N_over)
+{
+   static char FuncName[]={"SUMA_ADO_Overlays"};
+   
+   if (!ado) return(NULL);
+   
+   if (N_over) *N_over = -1;
+   
+   switch(ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+         if (N_over) *N_over = SO->N_Overlays;
+         return(SO->Overlays);
+         break; }
+      case SDSET_type: {
+         SUMA_DSET *dset=(SUMA_DSET *)ado;
+         SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
+         if (!GSaux || !GSaux->Overlay) return(NULL);
+         if (N_over) *N_over = 1;
+         return(&(GSaux->Overlay));
+         break; }
+      case GRAPH_LINK_type: {
+         int N_n;
+         SUMA_OVERLAYS **oo=NULL;
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
          SUMA_DSET *dset=NULL;
          if (!(dset=SUMA_find_GLDO_Dset(gldo))) {
@@ -10118,13 +12137,35 @@ SUMA_OVERLAYS * SUMA_ADO_Overlay(SUMA_ALL_DO *ado, int i)
                         SUMA_ADO_Label(ado));
             return(NULL);
          }
-         return(SUMA_ADO_Overlay((SUMA_ALL_DO *)dset, i));
+         if ((oo = SUMA_ADO_Overlays((SUMA_ALL_DO *)dset, &N_n))){
+            if (N_over) *N_over = N_n;
+            return(oo);
+         }
+         break; }
+      case TRACT_type: {
+         SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
+         if (!TSaux) return(NULL);
+         if (N_over) *N_over = TSaux->N_Overlays;
+         return(TSaux->Overlays);
+         break; }
+      case MASK_type: {
+         SUMA_MASK_SAUX *MSaux = SUMA_ADO_MSaux(ado);
+         if (!MSaux) return(NULL);
+         if (N_over) *N_over = MSaux->N_Overlays;
+         return(MSaux->Overlays);
+         break; }
+      case VO_type: {
+         SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+         if (!VSaux) return(NULL);
+         if (N_over) *N_over = VSaux->N_Overlays;
+         return(VSaux->Overlays);
          break; }
       default:
          return(NULL);
    }
    return(NULL);
 }
+
 
 int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado)
 {
@@ -10151,6 +12192,22 @@ int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado)
          }
          return(SUMA_ADO_N_Overlays((SUMA_ALL_DO *)dset));
          break; }
+      case TRACT_type: {
+         SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
+         if (!TSaux) return(-1);
+         return(TSaux->N_Overlays);
+         break; }
+      case MASK_type: {
+         SUMA_MASK_SAUX *MSaux = SUMA_ADO_MSaux(ado);
+         if (!MSaux) return(-1);
+         return(MSaux->N_Overlays);
+         break; }
+      case VO_type: {
+         SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+         if (!VSaux) return(-1);
+         return(VSaux->N_Overlays);
+         break; }
+
       default:
          return(-1);
    }
@@ -10162,7 +12219,7 @@ int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado)
    For surfaces, this is always SurfCont->SelectedNode
    For SDSETs, it is GSaux->PR->datum_index
 */
-int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado)
+int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra)
 {
    static char FuncName[]={"SUMA_ADO_SelectedDatum"};
    SUMA_Boolean LocalHead = NOPE;
@@ -10175,6 +12232,7 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado)
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
          return(SO->SelectedNode);
          break; }
+         
       case SDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
@@ -10189,7 +12247,33 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado)
                         SUMA_ADO_Label(ado));
             return(-1);
          }
-         return(SUMA_ADO_SelectedDatum((SUMA_ALL_DO *)dset));
+         return(SUMA_ADO_SelectedDatum((SUMA_ALL_DO *)dset, extra));
+         break; }
+      case TRACT_type: {
+         SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
+         if (!TSaux) return(-1);
+         if (extra) {
+            int *iv4 = (int *)extra;
+            iv4[SUMA_NET_BUN] = TSaux->PR->AltSel[SUMA_NET_BUN];
+            iv4[SUMA_BUN_TRC] = TSaux->PR->AltSel[SUMA_BUN_TRC];
+            iv4[SUMA_TRC_PNT] = TSaux->PR->AltSel[SUMA_TRC_PNT];
+            iv4[SUMA_NET_TRC] = TSaux->PR->AltSel[SUMA_NET_TRC];
+         }
+         return(TSaux->PR->datum_index);
+         break; }
+      case VO_type: {
+         static int ncnt=0;
+         if (!ncnt) {
+            SUMA_S_Warn("Not ready for volume objects, returning 0"); ++ncnt;
+         }
+         return(0);
+         break; }
+      case MASK_type: {
+         static int ncnt=0;
+         if (!ncnt) {
+            SUMA_S_Warn("Not ready for mask objects, returning 0"); ++ncnt;
+         }
+         return(0);
          break; }
       default:
          return(-1);
@@ -10200,7 +12284,7 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado)
 /*!
    This function returns secondary selections a DO
    For surfaces, this is always SurfCont->SelectedFaceSet
-   For SDSETs, it is GSaux->PR->selectedEnode
+   For SDSETs, it is GSaux->PR->AltSel[SUMA_ENODE_0]
 */
 int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado)
 {
@@ -10219,7 +12303,7 @@ int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado)
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *GSaux = SDSET_GSAUX(dset);
          if (!GSaux) return(-1);
-         return(GSaux->PR->selectedEnode);
+         return(GSaux->PR->AltSel[SUMA_ENODE_0]);
          break; }
       case GRAPH_LINK_type: {
          SUMA_GraphLinkDO *gldo=(SUMA_GraphLinkDO *)ado;
@@ -10229,7 +12313,19 @@ int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado)
                         SUMA_ADO_Label(ado));
             return(-1);
          }
-         return(SUMA_ADO_SelectedDatum((SUMA_ALL_DO *)dset));
+         return(SUMA_ADO_SelectedSecondary((SUMA_ALL_DO *)dset));
+         break; }
+      case TRACT_type: {
+         SUMA_LH("No secondary selections on tracts.");
+         return(-1);
+         break; }
+      case MASK_type: {
+         SUMA_LH("No secondary selections on masks.");
+         return(-1);
+         break; }
+      case VO_type: {
+         SUMA_LH("No secondary selections on volumes.");
+         return(-1);
          break; }
       default:
          return(-1);
@@ -10250,9 +12346,10 @@ SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
    if (!ado || !codf) return(NOPE);
    
    switch (ado->do_type) {
+      case VO_type:
       case SO_type:
          SUMA_S_Err("Function not ready to handle colid selection modes"
-                    "on surfaces");
+                    "on surfaces or volumes");
          break;
       case SDSET_type: 
       case GRAPH_LINK_type:
@@ -10268,7 +12365,7 @@ SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
    return(NOPE);
 }
 
-SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel)
+SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel, void *extra)
 {
    static char FuncName[]={"SUMA_ADO_Set_SelectedDatum"};
    if (!ado) return(0);
@@ -10294,7 +12391,39 @@ SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel)
                         SUMA_ADO_Label(ado));
             return(0);
          }
-         return(SUMA_ADO_Set_SelectedDatum((SUMA_ALL_DO *)dset, sel));
+         return(SUMA_ADO_Set_SelectedDatum((SUMA_ALL_DO *)dset, sel, extra));
+         break; }
+      case TRACT_type: {
+         SUMA_TractDO *tdo = (SUMA_TractDO *)ado;
+         SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
+         int it, ip, ib, l1, *iv = (int *)extra;
+         TSaux->PR->datum_index = sel;
+         if (extra) {
+            TSaux->PR->AltSel[SUMA_NET_BUN] = iv[SUMA_NET_BUN];
+            TSaux->PR->AltSel[SUMA_BUN_TRC] = iv[SUMA_BUN_TRC];
+            TSaux->PR->AltSel[SUMA_TRC_PNT] = iv[SUMA_TRC_PNT];
+            TSaux->PR->AltSel[SUMA_NET_TRC] = iv[SUMA_NET_TRC];
+         } else {
+            TSaux->PR->AltSel[SUMA_NET_BUN] = TSaux->PR->AltSel[SUMA_BUN_TRC] =
+            TSaux->PR->AltSel[SUMA_TRC_PNT] = 
+            TSaux->PR->AltSel[SUMA_NET_TRC] = -1;
+            if (tdo && tdo->net) {
+               if (Network_1P_to_PTB(tdo->net, sel, &ip, &it, &ib, &l1)) {
+                  TSaux->PR->AltSel[SUMA_NET_BUN] = ib;
+                  TSaux->PR->AltSel[SUMA_BUN_TRC] = it;
+                  TSaux->PR->AltSel[SUMA_TRC_PNT] = ip;
+                  TSaux->PR->AltSel[SUMA_NET_TRC] = l1;
+               }
+            }
+         }   
+         break; }
+      case VO_type: {
+         SUMA_S_Warn("Not ready for vo type");
+         return(0);
+         break; }
+      case MASK_type: {
+         SUMA_S_Warn("Not ready for mask type");
+         return(0);
          break; }
       default:
          return(0);
@@ -10304,12 +12433,38 @@ SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel)
 
 int SUMA_ADO_N_Datum(SUMA_ALL_DO *ado)
 {
-   static char FuncName[]={"SUMA_ADO_N_Datum"};
+   return(SUMA_ADO_N_Datum_Lev(ado, SUMA_ELEM_DAT));
+}
+
+int SUMA_ADO_N_Datum_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
+{
+   static char FuncName[]={"SUMA_ADO_N_Datum_Lev"};
    if (!ado) return(-1);
    switch(ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
          return(SO->N_Node);
+         break; }
+      case VO_type: {
+         SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
+         SUMA_DSET *dset = SUMA_VE_dset(VO->VE, 0);
+         return(dset ? SDSET_NVOX(dset):-1);
+         break; }
+      case MASK_type: {
+         SUMA_MaskDO *MDO = (SUMA_MaskDO *)ado;
+         if (MDO->SO && 
+             (MDO_IS_SURF(MDO) || MDO_IS_BOX(MDO) || MDO_IS_SPH(MDO)) ) {
+            return(MDO->SO->N_Node);
+         } else if (MDO_IS_BOX(MDO)) {
+            return(MDO->N_obj*8);
+         } else if (MDO_IS_SPH(MDO)) {
+            SUMA_S_Err("No SO on spheres mask. Need to create your surfs");
+            return(-1);
+         } else {
+            SUMA_S_Err("Not ready for this combo type >%s<", MDO->mtype);
+            return(-1);
+         }
+         return(-1);
          break; }
       case SDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
@@ -10325,15 +12480,45 @@ int SUMA_ADO_N_Datum(SUMA_ALL_DO *ado)
          }
          return(SUMA_ADO_N_Datum((SUMA_ALL_DO *)dset));
          break; }
+      case TRACT_type: {
+         SUMA_TractDO *tdo=(SUMA_TractDO *)ado;
+         if (tdo->N_datum == -2) { /* initialize */
+            tdo->N_datum = Network_N_points(tdo->net, 0);
+         }
+         switch(dtlvl) {
+            default:
+            case SUMA_ELEM_DAT:
+               return(tdo->N_datum);
+               break;
+            case SUMA_LEV1_DAT:
+               return(TDO_N_TRACTS(tdo));
+               break;
+            case SUMA_LEV2_DAT:
+               return(TDO_N_BUNDLES(tdo));
+               break;
+         }
+         break; }
       default:
          return(-1);
    }
    return(-1);
 }
 
-int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado)
+int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado) 
 {
-   static char FuncName[]={"SUMA_ADO_Max_Datum_Index"};
+   if (!ado) return(-1);
+   return(SUMA_ADO_Max_Datum_Index_Lev(ado, SUMA_ELEM_DAT));
+}
+
+/*! This function needs revisiting for all objects.
+    Its intention should be to return the highest index
+    of a datum, but in a sparse set, this max could very
+    well be different from the number of elements. 
+    Check use in code and replace with the maximum of the
+    NodeDef element if change is needed */
+int SUMA_ADO_Max_Datum_Index_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl)
+{
+   static char FuncName[]={"SUMA_ADO_Max_Datum_Index_Lev"};
    if (!ado) return(-1);
    switch(ado->do_type) {
       case SO_type: {
@@ -10358,12 +12543,49 @@ int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado)
                         SUMA_ADO_Label(ado));
             return(-1);
          }
-         return(SUMA_ADO_Max_Datum_Index((SUMA_ALL_DO *)dset));
+         return(SUMA_ADO_Max_Datum_Index_Lev((SUMA_ALL_DO *)dset, dtlvl));
          break; }
+      case TRACT_type: {
+         SUMA_TractDO *tdo=(SUMA_TractDO *)ado;
+         if (tdo->N_datum == -2) { /* initialize */
+            tdo->N_datum = Network_N_points(tdo->net, 0);
+         }
+         switch(dtlvl) {
+            default:
+            case SUMA_ELEM_DAT:
+               return(tdo->N_datum-1);
+               break;
+            case SUMA_LEV1_DAT:
+               return(TDO_N_TRACTS(tdo)-1);
+               break;
+            case SUMA_LEV2_DAT:
+               return(TDO_N_BUNDLES(tdo)-1);
+               break;
+         }
+         break; }
+      case VO_type: {
+         SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
+         SUMA_DSET *dset = SUMA_VE_dset(VO->VE, 0);
+         return(dset ? SDSET_NVOX(dset)-1:-1);
+         }
+      case MASK_type: {
+         SUMA_MaskDO *MDO = (SUMA_MaskDO *)ado;
+         if (MDO_IS_SURF(MDO) || MDO_IS_BOX(MDO) || MDO_IS_SPH(MDO)) {
+            if (!MDO->SO) {
+               SUMA_S_Err("Need my SO baby");
+               return(-1);
+            }
+            return(MDO->SO->N_Node-1);
+         } else {
+            SUMA_S_Warn("Not ready");
+            return(-1);
+         }
+         }
       default:
          return(-1);
    }
    return(-1);
+   
 }
 
 
@@ -10414,14 +12636,15 @@ SUMA_Boolean SUMA_ADO_isLabel(SUMA_ALL_DO *ado, char *lbl)
 {
    static char FuncName[]={"SUMA_ADO_isLabelSUMA_ALL_DO"};
    char *cc=NULL;
-   if (!ado) SUMA_RETURN(NOPE);
+   
+   if (!ado) return(NOPE);
    cc = SUMA_ADO_Label(ado);
    if (!cc) {
-      if (!lbl) SUMA_RETURN(YUP);
+      if (!lbl) return(YUP);
    } else {
-      if (!strcmp(cc, lbl)) SUMA_RETURN(YUP);
+      if (!strcmp(cc, lbl)) return(YUP);
    }
-   SUMA_RETURN(NOPE);
+   return(NOPE);
 }
 
 /* Because of the damned SUMA_DSET * object, which needs
@@ -10461,6 +12684,9 @@ char * SUMA_ADO_Parent_idcode(SUMA_ALL_DO *ado)
          break;
       case TRACT_type:
          return(((SUMA_TractDO*)ado)->Parent_idcode_str);
+         break;
+      case MASK_type:
+         return(((SUMA_MaskDO*)ado)->Parent_idcode_str);
          break;
       case NBLS_type:
       case NBOLS_type:
@@ -10530,12 +12756,37 @@ SUMA_X_SurfCont *SUMA_ADO_Cont(SUMA_ALL_DO *ado)
          }
          return(SUMA_ADO_Cont((SUMA_ALL_DO *)dset));
          break; }
+      case TRACT_type: {
+         SUMA_TRACT_SAUX * TSaux = SUMA_ADO_Saux(ado);
+         if (TSaux) return(TSaux->DOCont);
+         else return(NULL);
+         break; }
+      case MASK_type: {
+         SUMA_MASK_SAUX * MSaux = SUMA_ADO_Saux(ado);
+         if (MSaux) return(MSaux->DOCont);
+         else return(NULL);
+         break; }
+      case VO_type: {
+         SUMA_VOL_SAUX * VSaux = SUMA_ADO_Saux(ado);
+         SUMA_LH("Have %p", VSaux);
+         if (VSaux) return(VSaux->DOCont);
+         else return(NULL);
+         break; }
       default:
          return(NULL);
    }
    return(NULL);
 }
 
+SUMA_Boolean SUMA_ADO_ShowCurForeOnly(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_ADO_ShowCurForeOnly"};
+   SUMA_X_SurfCont *sc=NULL;
+   
+   if (!ado || !(sc = SUMA_ADO_Cont(ado))) return(NOPE);
+   
+   return(sc->ShowCurForeOnly);
+}
 
 SUMA_ALL_DO *SUMA_Cont_ADO(SUMA_X_SurfCont *SurfCont)
 {
@@ -10670,6 +12921,218 @@ SUMA_Boolean SUMA_GDSET_NodeXYZ_eng(SUMA_DSET *dset, int node,
    
    SUMA_RETURN(NOPE);
 }
+
+float *SUMA_TDO_PointXYZ(SUMA_TractDO *tdo, int point, int *BTP, float *here) 
+{
+   static char FuncName[]={"SUMA_TDO_PointXYZ"};
+   static int icall=0;
+   static float fv[10][NVALS_XYZ_NODE];
+   int N_Node=-1, *Node_Ind=NULL, cinode = -1;
+   float *ff=NULL, *NodeList = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   
+   SUMA_TDO_PointXYZ_eng(tdo, point, BTP, here);
+      
+   SUMA_RETURN(here);
+}
+
+SUMA_Boolean SUMA_TDO_PointXYZ_eng(SUMA_TractDO *tdo, int point, 
+                                   int *BTP, float *here) 
+{
+   static char FuncName[]={"SUMA_TDO_PointXYZ_eng"};
+   int N_Node=-1, *Node_Ind=NULL, cinode = -1, iv3[3], nn3;
+   float *ff=NULL, *NodeList = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      SUMA_S_Err("Need output pointer");
+      SUMA_RETURN(NOPE);
+   }
+   here[0] = here[1] = here[2] =  0.0;
+   
+   if (!tdo || !tdo->net || point < 0) SUMA_RETURN(NOPE);
+   
+   if (BTP && BTP[0] >= 0 && BTP[1] >= 0 && BTP[2] >=0) {
+      iv3[SUMA_NET_BUN] = BTP[SUMA_NET_BUN];
+      iv3[SUMA_BUN_TRC] = BTP[SUMA_BUN_TRC];
+      iv3[SUMA_TRC_PNT] = BTP[SUMA_TRC_PNT];
+   } else if (point >= 0) {
+      if (!Network_1P_to_PTB(tdo->net, point, 
+               iv3+SUMA_TRC_PNT, iv3+SUMA_BUN_TRC, iv3+SUMA_NET_BUN, NULL)) {
+         SUMA_S_Err("Bad point index");
+         SUMA_RETURN(NOPE);
+      }
+   }
+   
+   if (iv3[SUMA_NET_BUN] < TDO_N_BUNDLES(tdo)) {
+      if (iv3[SUMA_BUN_TRC] < tdo->net->tbv[iv3[SUMA_NET_BUN]]->N_tracts) {
+         nn3 = iv3[SUMA_TRC_PNT]*3;
+         if (nn3 < 
+             tdo->net->tbv[iv3[SUMA_NET_BUN]]->tracts[iv3[SUMA_BUN_TRC]].N_pts3){
+            ff = 
+             tdo->net->tbv[iv3[SUMA_NET_BUN]]->tracts[iv3[SUMA_BUN_TRC]].pts+nn3;
+            here[0] = ff[0];
+            here[1] = ff[1];
+            here[2] = ff[2];
+            SUMA_RETURN(YUP);
+         }
+      }
+   } else {
+      SUMA_LHv("Point %d (B%d T%d P%d) not found in node list\n", 
+         point, iv3[SUMA_NET_BUN], iv3[SUMA_BUN_TRC], iv3[SUMA_TRC_PNT]);
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+float *SUMA_VO_PointXYZ(SUMA_VolumeObject *vo, int point, int *IJK, float *here) 
+{
+   static char FuncName[]={"SUMA_VO_PointXYZ"};
+   static int icall=0;
+   static float fv[10][NVALS_XYZ_NODE];
+   int N_Node=-1, *Node_Ind=NULL, cinode = -1;
+   float *ff=NULL, *NodeList = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   
+   SUMA_VO_PointXYZ_eng(vo, point, IJK, here);
+      
+   SUMA_RETURN(here);
+}
+
+SUMA_Boolean SUMA_VO_PointXYZ_eng(SUMA_VolumeObject *vo, int point, 
+                                   int *IJK, float *here) 
+{
+   static char FuncName[]={"SUMA_VO_PointXYZ_eng"};
+   int N_Node=-1, *Node_Ind=NULL, cinode = -1, iv3[3]={0,0,0}, nn3;
+   float *ff=NULL, *NodeList = NULL;
+   float I[3];
+   int *dims;
+   SUMA_DSET *dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+    
+   SUMA_ENTRY;
+   
+   
+   if (!here) {
+      SUMA_S_Err("Need output pointer");
+      SUMA_RETURN(NOPE);
+   }
+   here[0] = here[1] = here[2] =  0.0;
+   
+   if (!vo || point < 0) SUMA_RETURN(NOPE);
+   if (!(dset = SUMA_VO_dset(vo)) || 
+       !(dims = SUMA_GetDatasetDimensions(dset)) ||
+       !vo->VE || !vo->VE[0]) {
+      SUMA_S_Err("no valid ijk_to_dicom_real") ;
+      SUMA_RETURN(NOPE);
+   }
+   
+   
+   if (IJK && IJK[0] >= 0 && IJK[1] >= 0 && IJK[2] >=0) {
+      iv3[SUMA_VOL_I] = IJK[SUMA_VOL_I];
+      iv3[SUMA_VOL_J] = IJK[SUMA_VOL_J];
+      iv3[SUMA_VOL_K] = IJK[SUMA_VOL_K];
+   } else if (point >= 0 && point < SDSET_NVOX(dset)) {
+      Vox1D2Vox3D(point, dims[0], dims[0]*dims[1], (iv3+SUMA_VOL_I));
+   }
+   
+   if (iv3[SUMA_VOL_I] < dims[0]) {
+      if (iv3[SUMA_VOL_J] < dims[1]) {
+         if (iv3[SUMA_VOL_K] < dims[2] ) {
+            AFF44_MULT_I(here, vo->VE[0]->I2X, (iv3+SUMA_VOL_I));
+            SUMA_RETURN(YUP);
+         }
+      }
+   } else {
+      SUMA_LHv("Point %d (I%d J%d K%d) not found in grid\n", 
+         point, iv3[SUMA_VOL_I], iv3[SUMA_VOL_J], iv3[SUMA_VOL_K]);
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+float *SUMA_MDO_PointXYZ(SUMA_MaskDO *mo, int point, int *IJK, float *here)
+{
+   static char FuncName[]={"SUMA_MDO_PointXYZ"};
+   static int icall=0;
+   static float fv[10][NVALS_XYZ_NODE];
+   int N_Node=-1, *Node_Ind=NULL, cinode = -1;
+   float *ff=NULL, *NodeList = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   
+   SUMA_MDO_PointXYZ_eng(mo, point, IJK, here);
+      
+   SUMA_RETURN(here);
+}
+
+SUMA_Boolean SUMA_MDO_PointXYZ_eng(SUMA_MaskDO *mo, int point, 
+                                   int *IJK, float *here) 
+{
+   static char FuncName[]={"SUMA_MDO_PointXYZ_eng"};
+   int N_Node=-1, *Node_Ind=NULL, cinode = -1, iv3[3]={0,0,0}, nn3;
+   float *ff=NULL, *NodeList = NULL;
+   float I[3];
+   int *dims;
+   SUMA_Boolean LocalHead = NOPE;
+
+    
+   SUMA_ENTRY;
+   
+   if (!here) {
+      SUMA_S_Err("Need output pointer");
+      SUMA_RETURN(NOPE);
+   }
+   here[0] = here[1] = here[2] =  0.0;
+   
+   if (!mo || point < 0) SUMA_RETURN(NOPE);
+   
+   if (MDO_IS_BOX(mo) || MDO_IS_SPH(mo)) {
+      if (IJK && IJK[0] >= 0 && IJK[1] >= 0) { /* obj index and point within */
+         point = 3*IJK[0]+IJK[1];
+      }
+   }
+
+   if (point < 0 || point >= SUMA_ADO_N_Datum((SUMA_ALL_DO *)mo)) 
+      SUMA_RETURN(NOPE);
+         
+   if (!mo->SO) {
+      SUMA_S_Err("SO no formed yet");
+      SUMA_RETURN(NOPE);
+   }   
+   
+   here[0] = mo->SO->NodeList[3*point];
+   here[1] = mo->SO->NodeList[3*point+1];
+   here[2] = mo->SO->NodeList[3*point+2];
+   
+   SUMA_RETURN(NOPE);
+}
+
 
 float *SUMA_GDSET_XYZ_Range(SUMA_DSET *dset,  char *variant, float *here) 
 {
@@ -11174,15 +13637,100 @@ SUMA_GRAPH_SAUX *SUMA_ADO_GSaux(SUMA_ALL_DO *ado)
    
    if (!ado) return(NULL);
    switch (ado->do_type) {
-      case SO_type: 
+      case SDSET_type:
+      case GRAPH_LINK_type:   
+         return((SUMA_GRAPH_SAUX *)SUMA_ADO_Saux(ado));
+         break;
+      default:
          return(NULL);
+   }
+   return(NULL);
+}
+
+SUMA_TRACT_SAUX *SUMA_ADO_TSaux(SUMA_ALL_DO *ado) 
+{
+   static char FuncName[]={"SUMA_ADO_TSaux"};
+   
+   if (!ado) return(NULL);
+   switch (ado->do_type) {
+      case TRACT_type:
+         return((SUMA_TRACT_SAUX *)SUMA_ADO_Saux(ado));
+         break;
+      default:
+         return(NULL);
+   }
+   return(NULL);
+}
+
+SUMA_MASK_SAUX *SUMA_ADO_MSaux(SUMA_ALL_DO *ado) 
+{
+   static char FuncName[]={"SUMA_ADO_MSaux"};
+   
+   if (!ado) return(NULL);
+   switch (ado->do_type) {
+      case MASK_type:
+         return((SUMA_MASK_SAUX *)SUMA_ADO_Saux(ado));
+         break;
+      default:
+         return(NULL);
+   }
+   return(NULL);
+}
+
+SUMA_SURF_SAUX *SUMA_ADO_SSaux(SUMA_ALL_DO *ado) 
+{
+   static char FuncName[]={"SUMA_SURF_SAUX"};
+   
+   if (!ado) return(NULL);
+   switch (ado->do_type) {
+      case SO_type:
+         return((SUMA_SURF_SAUX *)SUMA_ADO_Saux(ado));
+         break;
+      default:
+         return(NULL);
+   }
+   return(NULL);
+}
+
+SUMA_VOL_SAUX *SUMA_ADO_VSaux(SUMA_ALL_DO *ado) 
+{
+   static char FuncName[]={"SUMA_ADO_VSaux"};
+   
+   if (!ado) return(NULL);
+   switch (ado->do_type) {
+      case VO_type:
+         return((SUMA_VOL_SAUX *)SUMA_ADO_Saux(ado));
+         break;
+      default:
+         return(NULL);
+   }
+   return(NULL);
+}
+
+void *SUMA_ADO_Saux(SUMA_ALL_DO *ado) 
+{
+   static char FuncName[]={"SUMA_ADO_Saux"};
+   
+   if (!ado) return(NULL);
+   switch (ado->do_type) {
+      case SO_type: 
+         return((void *)SDO_SSAUX((SUMA_SurfaceObject *)ado));
          break;
       case SDSET_type:
-         return(SDSET_GSAUX((SUMA_DSET *)ado));
+         return((void *)SDSET_GSAUX((SUMA_DSET *)ado));
          break;
       case GRAPH_LINK_type: {
          SUMA_DSET *dset = SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado);
-         return(SUMA_ADO_GSaux((SUMA_ALL_DO *)dset));
+         return((void *)SUMA_ADO_Saux((SUMA_ALL_DO *)dset));
+         break; }
+      case TRACT_type: {
+         return((void *)TDO_TSAUX((SUMA_TractDO *)ado));
+         break; }
+      case MASK_type: {
+         return((void *)MDO_MSAUX((SUMA_MaskDO *)ado));
+         break; }
+      case VO_type: {
+         return((void *)VDO_VSAUX((SUMA_VolumeObject *)ado));
          break; }
       default:
          return(NULL);
@@ -11209,4 +13757,29 @@ SUMA_DSET *SUMA_ADO_Dset(SUMA_ALL_DO *ado)
          return(NULL);
    }
    return(NULL);
+}
+
+/*!
+   How many and which DOs are anatomically correct ?
+*/
+int SUMA_Anatomical_DOs(SUMA_DO *dov, int N_dov, int *rdov)
+{
+   static char FuncName[]={"SUMA_Anatomical_DOs"};
+   SUMA_ALL_DO *ado=NULL;
+   int ii, N=0;
+   
+   if (!dov) {
+      dov = SUMAg_DOv;
+      N_dov = SUMAg_N_DOv;
+   }
+   for (ii=0; ii<N_dov; ++ii) {
+      ado = (SUMA_ALL_DO *)dov[ii].OP;
+      if (SUMA_ADO_is_AnatCorrect(ado)) {
+         ++N;
+         if (rdov) rdov[N-1] = ii;
+      }
+   }
+   
+   return(N);
+   
 }

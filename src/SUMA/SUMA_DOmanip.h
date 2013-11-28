@@ -3,11 +3,17 @@
 
 void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type);
 SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
-int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, int *closest_node, float *closest_dist, byte *vox_mask, int verb);
-float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex);
+SUMA_VolumeObject * SUMA_findanyVOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
+SUMA_TractDO * SUMA_findanyTDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
+int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, 
+                              int *closest_node, float *closest_dist, 
+                              byte *vox_mask, int verb);
+float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, 
+                            int IncludeIndex);
 int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList);
 void set_surf_norm_quiet(int v);
-SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList, int N_FaceSetList );
+SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, 
+                              int *FaceSetList, int N_FaceSetList );
 int SUMA_SurfNormDir (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov);
 SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N);
@@ -32,7 +38,8 @@ SUMA_Boolean SUMA_AfniExists(char *prefix, char *c2view);
 SUMA_Boolean SUMA_AfniView (char *nameorig, char *cview);
 SUMA_Boolean SUMA_AfniExistsView(int exists, char *view);
 char *SUMA_AfniPrefix(char *name, char *view, char *path, int *exists);
-byte * SUMA_isSkin(THD_3dim_dataset *dset, float *fvec, double thresh, int *N_skin);
+byte * SUMA_isSkin(THD_3dim_dataset *dset, float *fvec, double thresh, 
+                   int *N_skin);
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out);
 char *SUMA_VolPar_Info (SUMA_VOLPAR *VP);
 SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
@@ -102,18 +109,25 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isNIDOrelated (SUMA_NIDO *SDO, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isNIDO_SurfBased(SUMA_NIDO *nido);
-SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov, int N_dov); 
+SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, 
+                                                   SUMA_DO * dov, int N_dov); 
 SUMA_Boolean SUMA_AFNI_forward_warp_xyz( THD_warp * warp , float *XYZv, int N);
 SUMA_Boolean SUMA_AFNItlrc_toMNI(float *NodeList, int N_Node, char *Coord);
 int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask);
-int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_dov, SUMA_SurfaceObject *SO, int *Mask, int *N_added);
-SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel); 
-SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str);
+int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_dov, 
+                           SUMA_SurfaceObject *SO, int *Mask, int *N_added);
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, 
+                                          int N_dov, SUMA_Boolean SortByLabel); 
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(
+                                          SUMA_ASSEMBLE_LIST_STRUCT *str);
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void);
 SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI); 
 int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO);
 int SUMA_ExcludeFromSendToAfni (SUMA_SurfaceObject *SO);
 char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail);
+char *SUMA_TractDOInfo (SUMA_TractDO *tdo, int detail);
+char *SUMA_MaskDOInfo (SUMA_MaskDO *mdo, int detail);
+char *SUMA_VolumeObjectInfo (SUMA_VolumeObject *vo, int detail);
 int SUMA_isSurfaceOfSide(SUMA_SurfaceObject *SO, SUMA_SO_SIDE ss);
 int SUMA_BiggestLocalDomainParent_Side(SUMA_DO *dov, int N_dov, SUMA_SO_SIDE ss);
 int SUMA_BiggestLocalDomainParent(SUMA_DO *dov, int N_dov);

@@ -40,6 +40,7 @@
 */
 
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -47,10 +48,10 @@
 #include <debugtrace.h>
 #include <mrilib.h>     
 #include <3ddata.h>     
-#include <DoTrackit.h>
 #include <time.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
+#include <DoTrackit.h>
 #include <TrackIO.h>
 
 #include "suma_suma.h"
@@ -256,6 +257,19 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *insetL1 = NULL;
 	THD_3dim_dataset *insetFA = NULL,*insetMD = NULL,*insetUC = NULL;
 	THD_3dim_dataset *mset1=NULL; 
+
+   // @#$ 
+   char ***gdset_roi_names=NULL;
+   int DEF_DTI = 1; // default mode, mainly for # of params
+   int Npars = 3; // size of final paramgrid index 2+
+   int Noutmat = 11; // number of output matrices in GRID file
+   char **ParLab=NULL; // default: {"tNTR","fNTR","mFA","sFA","mMD","sMD","mRD","sRD","mL1","sL1","tNV"}
+   SUMA_DSET *gset=NULL;
+   float ***flat_matr=NULL;
+   float *xyz=NULL;
+   char OUT_gdset[300];
+   NI_group *GDSET_netngrlink=NULL;
+   char *NAME_gdset;
 
 	THD_3dim_dataset *insetEXTRA=NULL; 
 	char *in_EXTRA="name";//[300];
@@ -976,8 +990,45 @@ int main(int argc, char *argv[]) {
 			fclose(fout1);    
 		}
 	}
-	
-	// convert to cos of rad value for comparisons, instead of using acos()
+
+   // @#$
+   ParLab = (char **)calloc(Noutmat, sizeof(char *));
+   if( (ParLab == NULL) ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(121);
+   }
+   if(DEF_DTI && (Noutmat==11) ) { // default for DTI 
+      ParLab[0] = strdup("tNT");
+      ParLab[1] = strdup("fNT");
+      ParLab[2] = strdup("mFA");
+      ParLab[3] = strdup("sFA");
+      ParLab[4] = strdup("mMD");
+      ParLab[5] = strdup("sMD");
+      ParLab[6] = strdup("mRD");
+      ParLab[7] = strdup("sRD");
+      ParLab[8] = strdup("mL1");
+      ParLab[9] = strdup("sL1");
+      ParLab[10] = strdup("tNV");
+
+      flat_matr = (float ***) calloc( N_nets, sizeof(float **) );
+      for ( i = 0 ; i < N_nets ; i++ ) 
+         flat_matr[i] = (float **) calloc( Noutmat, sizeof(float *) );
+      for ( i = 0 ; i < N_nets ; i++ ) 
+         for ( j = 0 ; j < Noutmat ; j++ ) 
+            flat_matr[i][j] = (float *) calloc( NROI[i]*NROI[i], sizeof(float));
+
+	}
+
+   gdset_roi_names = (char ***)calloc(N_nets, sizeof(char **));
+	for (i=0; i< N_nets ; i++ ) {
+      gdset_roi_names[i] = (char **)calloc(NROI[i], sizeof(char *));
+      for (j=0; j<NROI[i]; ++j) {
+         gdset_roi_names[i][j] = (char *)calloc(32, sizeof(char));
+         snprintf(gdset_roi_names[i][j],31,"N%03d:R%d", i+1, ROI_LABELS[i][j]);
+      }
+   }
+   
+   // convert to cos of rad value for comparisons, instead of using acos()
 	MaxAng = cos(CONV*MaxAngDeg); 
 
 	// for temp storage array, just a multiple of longest dimension!
@@ -1042,6 +1093,8 @@ int main(int argc, char *argv[]) {
      NmNsThr = 1; // thresh of 1 for stats stuff
 
      // @) @)))
+     //PT: This next line was commented out, but if you
+     //    choose to reuse it, sizeof() should be for (TAYLOR_BUNDLE *)
      //tb = (TAYLOR_BUNDLE **)calloc(N_nets, sizeof(TAYLOR_BUNDLE)); 
      N_bund = (int *)calloc(N_nets, sizeof(int)); 
      if( N_bund == NULL) {
@@ -1834,6 +1887,7 @@ int main(int argc, char *argv[]) {
 	} // end of Monte Carlo loop
 	
    if(DETNET){
+
      for( i=0 ; i<N_nets ; i++){
        fclose(fout0[i]); // !important to do...
        k=0;
@@ -1851,11 +1905,21 @@ int main(int argc, char *argv[]) {
          }
      }
      
+     // @#$
+     //     for( i=0 ; i<N_nets ; i++){
+     //for (j=0; j<N_bund[i]; j++) {
+     //  tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][j]), 
+     //                                  b_tags[i][j], -1, insetFA); 
      for( i=0 ; i<N_nets ; i++){
-       for (j=0; j<N_bund[i]; j++) {
-         tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][j]), 
-                                         b_tags[i][j], -1, insetFA); 
-       }
+        ii = 0;
+        for (j=0; j<NROI[i]; j++) 
+           for (k=j; k<NROI[i]; k++) {
+              jj = j*NROI[i] + k;
+              kk = j + k*NROI[i];
+              tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][ii]), 
+                                              jj,kk, insetFA); 
+              ii+=1;
+        }
      }
      
      for( i=0 ; i<N_nets ; i++){
@@ -1937,10 +2001,52 @@ int main(int argc, char *argv[]) {
 				}
 				fprintf(fout1,"\n");    
 			}
-
 			fclose(fout1);
-		}
 
+         // @#$ recapitulate *.grid files
+         if( DEF_DTI) {
+            for( i=0 ; i<NROI[k] ; i++ ) 
+               for( j=0 ; j<NROI[k] ; j++ ) {
+                  flat_matr[k][0][i*NROI[k]+j] = Prob_grid[k][i][j];
+                  flat_matr[k][1][i*NROI[k]+j] = Prob_grid[k][i][j]*1.0/Numtract;
+                  for( m=0 ; m<9 ; m++) 
+                     flat_matr[k][2+m][i*NROI[k]+j] = Param_grid[k][i][j][m];
+               }
+            gset = SUMA_FloatVec_to_GDSET(flat_matr[k], Noutmat, NROI[k]*NROI[k], 
+                                          "full", ParLab, 
+                                          NULL, NULL, NULL);
+
+            if( xyz = THD_roi_cmass(mset1, k, ROI_LABELS[k]+1, NROI[k]) ) {
+               if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
+                                                  xyz, NULL, NULL, 
+                                               gdset_roi_names[k], NROI[k]))) {
+                  ERROR_message("Failed to add node list");
+                  exit(1);  
+               }
+               free(xyz);
+            } 
+            else {
+               ERROR_message("Failed in THD_roi_cmass"); exit(1);
+            }
+
+            sprintf(OUT_gdset,"%s_%03d",prefix,k+1);
+            GDSET_netngrlink = 
+               Network_link(SUMA_FnameGet(OUT_gdset, "f",NULL));
+            NI_add_to_group(gset->ngr, GDSET_netngrlink);
+            NAME_gdset = SUMA_WriteDset_ns (OUT_gdset,
+                                         gset, SUMA_ASCII_NIML, 1, 0);
+            if (!NAME_gdset && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
+               ERROR_message("Failed to write dataset."); exit(1); 
+            } else {
+               if (NAME_gdset) SUMA_free(NAME_gdset); NAME_gdset = NULL;      
+            }
+            SUMA_FreeDset(gset);
+            gset=NULL;
+
+         }
+         
+      }
+      
 		// in order to threshold the `overall' (`0th') map;
 		// individual ones already have
 		// been above, just by how they were created
@@ -1957,7 +2063,7 @@ int main(int argc, char *argv[]) {
 		i = WriteBasicProbFiles(N_nets, Ndata, Nvox, prefix, 
 										insetFA,TV_switch,voxel_order,
 										NROI, NETROI,mskd,INDEX2,Dim,
-										dsetn,argc,argv);
+										dsetn,argc,argv,ROI_LABELS);
 		if(DUMP_TYPE>=0)
 			i = WriteIndivProbFiles(N_nets,Ndata,Nvox,Prob_grid,
 											prefix,insetFA,
@@ -2000,6 +2106,22 @@ int main(int argc, char *argv[]) {
 	// ************************************************************
 	// ************************************************************
 	
+   for( i=0 ; i<Noutmat ; i++)  free(ParLab[i]);
+   free(ParLab);
+   for ( i = 0 ; i < N_nets ; i++ ) {
+      for (j = 0; j < NROI[i]; ++j) 
+         free(gdset_roi_names[i][j]);
+      free(gdset_roi_names[i]);
+   }
+   free(gdset_roi_names);
+   
+   for ( i = 0 ; i < N_nets ; i++ ) 
+      for ( j = 0 ; j < Noutmat ; j++ ) 
+         free(flat_matr[i][j]);
+   for ( i = 0 ; i < N_nets ; i++ ) 
+      free(flat_matr[i]);
+   free(flat_matr);
+   
 	DSET_delete(insetFA);
 	DSET_delete(insetMD);
 	DSET_delete(insetL1);

@@ -402,7 +402,9 @@ int SUMA_VoxelPlaneCut(THD_3dim_dataset *dset, float *Eq,
 int SUMA_is_Flat_Surf_Coords_PCA (float *xyz, int N_xyz, 
                                   float tol, float sampfrac); 
 int SUMA_is_Constant_Z_Coord(float *NodeList, int N_Node, float tol);
-
+int SUMA_PlaneBoxIntersect(float *cam, float *PlEq, 
+                            float *cvert, float p[18]);
+int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp);
 /*!
    Macros to merge / join two lists together
    elements of lst2 are set to NULL and you should free lst2 

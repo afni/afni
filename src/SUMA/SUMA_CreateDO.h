@@ -65,6 +65,66 @@ typedef struct {
                                        between two points */
 } SUMA_GRAPH_SAUX;
 
+/*! A Tract object's Auxiliary structure for SUMA's use */
+typedef struct {
+   DList *DisplayUpdates;
+   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
+   SUMA_PICK_RESULT *PR;
+   SUMA_OVERLAYS **Overlays;
+   int N_Overlays;
+   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
+                                 by thresholds etc. */
+   int TractMask;
+   float MaskGray;
+} SUMA_TRACT_SAUX;
+
+/*! A Mask object's Auxiliary structure for SUMA's use */
+typedef struct {
+   DList *DisplayUpdates;
+   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
+   SUMA_PICK_RESULT *PR;
+   SUMA_OVERLAYS **Overlays;
+   int N_Overlays;
+   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
+                                 by thresholds etc. */
+} SUMA_MASK_SAUX;
+
+
+/*! A Surface object's Auxiliary structure for SUMA's use */
+typedef struct {
+   #if 0 /* Not in use yet*/
+   DList *DisplayUpdates;
+   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
+   #endif 
+   SUMA_PICK_RESULT *PR;
+   #if 0 /* Not in use yet*/
+   SUMA_OVERLAYS **Overlays;
+   int N_Overlays;
+   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
+                                 by thresholds etc. */
+   #endif
+} SUMA_SURF_SAUX;
+
+typedef struct {
+   float Eq[4];
+} SUMA_RENDERED_SLICE; /*!< Information about a rendered slice */
+
+/*! A volume object's Aux structure for SUMA's use */
+typedef struct {
+   DList *DisplayUpdates;
+   SUMA_X_SurfCont *DOCont;/*!< Displayable object controller */
+   SUMA_PICK_RESULT *PR;
+   SUMA_PICK_RESULT *PRc;
+   SUMA_OVERLAYS **Overlays;
+   int N_Overlays;
+   SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
+                                 by thresholds etc. */
+   DList *slcl; /* Rendered slices, top slice rendered last */
+   int ShowAxSlc;
+   int ShowSaSlc;
+   int ShowCoSlc;
+} SUMA_VOL_SAUX;
+
 #define SDSET_GSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
                                SUMA_isGraphDset(dset) ) ? \
                            (SUMA_GRAPH_SAUX *)((dset)->Aux->Saux):NULL )
@@ -77,7 +137,41 @@ typedef struct {
                                SUMA_isGraphDset(dset) ) ? \
                   ((SUMA_GRAPH_SAUX *)(dset)->Aux->Saux)->FrameSO:NULL )
                   
-#define TDO_HAS_GRID(tdo) ( ((tdo) && (tdo)->net && (tdo)->net->grid) ? (tdo)->net->grid : NULL )
+#define TDO_HAS_GRID(tdo) ( ((tdo) && (tdo)->net && (tdo)->net->grid) ? \
+                              (tdo)->net->grid : NULL )
+
+#define TDO_N_BUNDLES(tdo) ( ((tdo) && (tdo)->net ) ? (tdo)->net->N_tbv : -1 )
+#define TDO_N_TRACTS(tdo) ( ((tdo) ) ? Network_N_tracts((tdo)->net, 0) : -1 )
+
+#define TDO_BUNDLE(tdo, tbi) ( ((tdo) && (tdo)->net && (tdo)->net->tbv && \
+                                 tbi >= 0 && tbi < (tdo)->net->N_tbv) ? \
+                                                   (tdo)->net->tbv[tbi] : NULL )
+#define TDO_TSAUX(tdo) ( (tdo) ? (SUMA_TRACT_SAUX *)(tdo)->Saux:NULL )
+#define VDO_VSAUX(vo) ( (vo) ? (SUMA_VOL_SAUX *)(vo)->Saux:NULL )
+#define SDO_SSAUX(so) ( (so) ? (SUMA_SURF_SAUX *)(so)->Saux:NULL )
+#define MDO_MSAUX(mo) ( (mo) ? (SUMA_MASK_SAUX *)(mo)->Saux:NULL )
+
+#define VE_NX(ve) SUMA_VE_Ni(&ve, 0)
+#define VE_NY(ve) SUMA_VE_Nj(&ve, 0)
+#define VE_NZ(ve) SUMA_VE_Nk(&ve, 0)
+#define VE_NXY(ve) SUMA_VE_Niy(&ve, 0)
+#define VE_NVOX(ve) SUMA_VE_Nvox(&ve, 0)
+
+#define VO_NI(vo) ( (vo) ?  \
+                        SUMA_VE_Ni((vo)->VE, 0) : -1 )
+#define VO_NIJ(vo) ( (vo) ?  \
+                        SUMA_VE_Nij((vo)->VE, 0) : -1 )
+#define VO_NJ(vo) ( (vo) ?  \
+                        SUMA_VE_Nj((vo)->VE, 0) : -1 )
+#define VO_NK(vo) ( (vo) ?  \
+                        SUMA_VE_Nk((vo)->VE, 0) : -1 )
+#define VO_NVOX(vo) ( (vo)  ?  \
+                        SUMA_VE_Nvox((vo)->VE, 0) : -1 )
+#define VO_N_VOLS(vo) ( SUMA_VO_NumVE(vo) )
+
+#define MDO_IS_BOX(MDO) ( ((MDO) && (MDO)->mtype[0] == 'c') ? 1:0 )
+#define MDO_IS_SPH(MDO) ( ((MDO) && (MDO)->mtype[0] == 'b') ? 1:0 )
+#define MDO_IS_SURF(MDO) ( ((MDO) && (MDO)->mtype[0] == 's') ? 1:0 )
 
 SUMA_Boolean SUMA_DrawDO_UL_FullMonty(DList *dl);
 SUMA_Boolean SUMA_ADO_UL_Add(SUMA_ALL_DO *ado, char *com, int replace);
@@ -86,7 +180,15 @@ DListElmt *SUMA_DrawDO_UL_Find(DList *dl, char *com);
 SUMA_Boolean SUMA_DrawDO_UL_EmptyList(DList *dl, DListElmt *del);
 SUMA_Boolean SUMA_DestroyNgrHashDatum(SUMA_NGR_INDEX_HASH_DATUM *thd);
 void SUMA_Free_GSaux(void *vSaux);
+void SUMA_Free_SSaux(void *vSaux);
+void SUMA_Free_TSaux(void *vSaux);
+void SUMA_Free_MSaux(void *vSaux);
+void SUMA_Free_VSaux(void *vSaux);
 void SUMA_Free_Saux_DisplayUpdates_datum(void *ddd);
+SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo);
+SUMA_Boolean SUMA_AddVolSaux(SUMA_VolumeObject *vo);
+void SUMA_Free_SliceListDatum(void *data);
+SUMA_Boolean SUMA_AddMaskSaux(SUMA_MaskDO *mdo);
 SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset);
 SUMA_Boolean SUMA_Load_Dumb_DO(SUMA_ALL_DO *ado, SUMA_DUMB_DO *DDO);
 SUMA_Boolean SUMA_SetDrawVariant(SUMA_DSET *dset, char *variant);
@@ -163,7 +265,9 @@ char *SUMA_VisX_Info(SUMA_VIS_XFORM VisX, int N_Node, char *mumble);
 char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList);
 char *SUMA_ADO_Info(SUMA_ALL_DO *ado, DList *DsetList, int detail);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
-int SUMA_NumVE(SUMA_VolumeObject *VO);
+int SUMA_VO_NumVE(SUMA_VolumeObject *VO);
+SUMA_DSET *SUMA_VO_dset(SUMA_VolumeObject *VO);
+SUMA_DSET *SUMA_VE_dset(SUMA_VolumeElement **VE, int idset);
 SUMA_VolumeObject *SUMA_CreateVolumeObject(char *label);
 SUMA_Boolean SUMA_AddDsetVolumeObject( SUMA_VolumeObject *VO, 
                                        THD_3dim_dataset **dsetp);
@@ -179,6 +283,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov,
 SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO, 
                                SUMA_SurfaceViewer *sv);
 SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
+SUMA_Boolean SUMA_Set_MaskDO_Type(char *s, char *mtype);
 SUMA_NIDO * SUMA_Alloc_NIDO (char *idcode_str, char *Label, 
                              char *Parent_idcode_str);
 SUMA_NIDO *SUMA_free_NIDO(SUMA_NIDO *NIDO); 
@@ -190,15 +295,34 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
                                       int NodeBased, SUMA_DO_Types type, 
                                     SUMA_DO_Types P_type, char *DrawnDO_variant);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
+SUMA_MaskDO *SUMA_Alloc_MaskDO (int N_obj, char *Label, char *parent_ADO_id);
+void SUMA_free_MaskDO (SUMA_MaskDO * MDO);
 int SUMA_Set_N_UnqNodes_SegmentDO(SUMA_SegmentDO * SDO, int N);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, 
                                   SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawMaskDO (SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv);
 float *SUMA_TDO_Grid_Center(SUMA_TractDO *tdo, float *here);
+float *SUMA_MDO_Center(SUMA_MaskDO *MDO, float *here);
+float *SUMA_VO_Grid_Center(SUMA_VolumeObject *vo, float *here);
 int SUMA_TDO_N_tracts(SUMA_TractDO *tdo);
+int SUMA_TDO_Max_N_tracts(SUMA_TractDO *tdo); 
+int SUMA_VE_Nk(SUMA_VolumeElement **VE, int ivo); 
+int SUMA_VE_Nj(SUMA_VolumeElement **VE, int ivo);
+int SUMA_VE_Ni(SUMA_VolumeElement **VE, int ivo);
+int SUMA_VE_Niy(SUMA_VolumeElement **VE, int ivo);
+int SUMA_VE_Nvox(SUMA_VolumeElement **VE, int ivo);
+int SUMA_VO_N_Slices(SUMA_VolumeObject *VO, char *variant);
+int SUMA_VE_N_Slices(SUMA_VolumeElement **VE, int ivo, char *variant);
+char * SUMA_VO_orcode(SUMA_VolumeObject *VO);
+char *SUMA_VE_orcode(SUMA_VolumeElement **VE, int ivo);
+char * SUMA_VE_Headname(SUMA_VolumeElement **VE, int ivo);
+SUMA_Boolean SUMA_VE_Set_Dims(SUMA_VolumeElement **VE, int ive);
 float *SUMA_TDO_Points_Center(SUMA_TractDO *tdo, float *here);
 float *SUMA_TDO_XYZ_Range(SUMA_TractDO *tdo, float *here);
+float *SUMA_VO_XYZ_Range(SUMA_VolumeObject *VO, float *here);
+float *SUMA_MDO_XYZ_Range(SUMA_MaskDO *MDO, float *here);
 SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *parent_idcode, 
                                      SUMA_DO_Types type);
 SUMA_TractDO * SUMA_Alloc_TractDO (char *Label, char *parent_idcode);
@@ -245,6 +369,8 @@ int SUMA_isDO_AnatCorrect(SUMA_DO *DO);
 int  SUMA_is_iDO_AnatCorrect(int dov_id);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawPlanes( float **PlEq, float **cen, float *sz, 
+                              int N_pl, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_isROIdequal (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2);
 void SUMA_FreeROIDatum (void * data);
 SUMA_ROI_DATUM * SUMA_AllocROIDatum (void);
@@ -285,6 +411,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *soid);
 SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *soid);
 SUMA_SphereDO * SUMA_ReadSphDO (char *s);
 SUMA_PlaneDO * SUMA_ReadPlaneDO (char *s);
+SUMA_MaskDO * SUMA_ReadMaskDO (char *s, char *parent_ADO_id);
 SUMA_NIDO *SUMA_ReadNIDO(char *s, char *soid);
 SUMA_NIDO *SUMA_BlankNIDO (char *idcode_str, char *Label, 
                            char *parent_so_id, char *coord_type,
@@ -334,7 +461,8 @@ SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel,
                                     float *default_txcol, int default_node, 
                                     SUMA_SurfaceViewer *sv) ;
 SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv);
-SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA_Boolean AddText);
+SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, 
+                                 SUMA_Boolean AddText);
 DList *SUMA_SortedAxisSegmentList ( SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, 
                                     SUMA_SORT_BOX_AXIS_OPTION opt);
 void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv);
@@ -343,6 +471,9 @@ SUMA_Boolean SUMA_DrawText(char *txt, float *Ps);
 void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId, FILE *out, SUMA_WIDGET_INDEX_DRAWROI_WHATDIST option);
 SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart);
 SUMA_SurfaceObject *SUMA_head_01_surface(void);
+SUMA_SurfaceObject *SUMA_cube_surface(float sz, float *cen);
+SUMA_SurfaceObject *SUMA_box_surface(float *sz3, float *cen, 
+                                     float *col, int n_obj);
 NI_group *SUMA_SDO2niSDO(SUMA_SegmentDO *SDO);
 SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr); 
 SUMA_Boolean SUMA_isSODimInitialized(SUMA_SurfaceObject *SO) ;

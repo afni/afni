@@ -269,7 +269,7 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    /* basic step - create empty image (with a version string) 
       from gifti_create_image */
    gim = (gifti_image *)calloc(1, sizeof(gifti_image));
-   if(!gim){ fprintf(stderr,"** failed to alloc gifti_image\n"); return NULL; }
+   if(!gim){ fprintf(stderr,"** failed to alloc gifti_image\n"); RETURN(NULL); }
 
    gifti_clear_gifti_image(gim);
    gim->version = gifti_strdup(GIFTI_XML_VERSION);

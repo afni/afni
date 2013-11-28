@@ -167,7 +167,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            cmap->M[i][0], cmap->M[i][1], cmap->M[i][2]);
                   stmp = SUMA_append_replace_string(stmp, sbuf, " ", 1);
                }
-               SUMA_LH(stmp);
+               SUMA_LH("%s",stmp);
                NI_set_attribute ( nel, "ni_object", stmp);
                
                /* SUMA_ShowNel((void*)nel); */
@@ -902,6 +902,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }  
             break;
+
          case SE_SetDsetNodeRad:
             { /* sets the sphere radius for nodes of a (graph) dset, 
                expects ADO in vp and rendering mode in i*/
@@ -942,6 +943,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }  
             break;
+
          case SE_SetDsetEdgeStip:
             { /* sets the stippling of a (graph's) edges, 
                expects ADO in vp and rendering mode in i*/
@@ -1014,6 +1016,25 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_GDSET_refresh_matrix_nido(SUMA_ADO_Dset(ado), 1);
                /* Update all viewers showing ado */
                SUMA_UpdateViewPoint_RegisteredADO(ado, 1);
+               if (!SUMA_RemixRedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
+
+         case SE_SetTractMask:
+            { /* sets the masking mode for tracts, 
+               expects ADO in vp and masking mode in i*/
+               SUMA_TRACT_SAUX *TSaux;
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(TSaux = SUMA_ADO_TSaux(ado))) {
+                  SUMA_S_Err("No valid pointers");
+                  break;
+               }
+                              
+               TSaux->TractMask = EngineData->i;
+               
+               SUMA_ADO_Flush_Pick_Buffer(ado, sv);
                if (!SUMA_RemixRedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
@@ -1596,10 +1617,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             } else {
                /* if already on, just close streams */
                /* closing the streams */
-               fprintf(SUMA_STDERR,"%s: Closing streams, but still listening ...\n", FuncName);
+               SUMA_S_Text("Closing streams, but still listening ...");
                /* kill the streams */
                for (ii=0; ii< SUMA_MAX_STREAMS; ++ii) {
-                  if (ii != SUMA_AFNI_STREAM_INDEX) {  /* leave AFNI connection separate */
+                  if (ii != SUMA_AFNI_STREAM_INDEX) {
+                        /* leave AFNI connection separate */
                      NI_stream_close( SUMAg_CF->ns_v[ii] ) ;
                      SUMAg_CF->ns_v[ii] = NULL ;
                      SUMAg_CF->ns_flags_v[ii] = 0;
@@ -2006,7 +2028,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                   if (SendList) SUMA_free(SendList); SendList = NULL;   
                }else {
-                  if (N_Send < 0) {
+                  if (N_Send < 0 && 
+                      !SUMA_Anatomical_DOs(SUMAg_DOv , SUMAg_N_DOv, NULL)) {
                      SUMA_SLP_Warn(
                         "None of the surfaces were marked as 'Anatomical'\n"
                         "So none were sent to AFNI. You can label a surface\n"
@@ -2096,14 +2119,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             if (EngineData->i >= 0 && 
                   EngineData->i <= SUMA_ADO_Max_Datum_Index(ado)) {
-               SUMA_ADO_Set_SelectedDatum(ado, EngineData->i);
+               if (ado->do_type == TRACT_type) {
+                  SUMA_ADO_Set_SelectedDatum(ado, 
+                                       EngineData->i, (void *)EngineData->iv15);
+               } else {
+                  SUMA_ADO_Set_SelectedDatum(ado, EngineData->i, NULL);
+               }
             } else {
                /* ignore -1, used in initializations */
                if (EngineData->i != -1) { 
-                  snprintf(tmpstr,80*sizeof(char), 
-                        "Node index (%d) < 0 || >= Number of surface nodes (%d)",
-                        EngineData->i, SUMA_ADO_Max_Datum_Index(ado)+1);
-                  SUMA_SLP_Err(tmpstr);                
+                  SUMA_SLP_Err(
+                        "Datum index (%d) < 0 || >= Number of data nodes (%d)",
+                        EngineData->i, SUMA_ADO_Max_Datum_Index(ado)+1);                
                }
                break;
             }
@@ -2219,10 +2246,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      } 
                      break;
                   }
-                  Saux->PR->selectedEnode = EngineData->i;
+                  Saux->PR->AltSel[SUMA_ENODE_0] = EngineData->i;
                   Saux->PR->datum_index = -1;
                   SUMA_UpdatePointField((SUMA_ALL_DO*)ado);
                   break;}
+               case TRACT_type: {
+                  SUMA_TractDO *tdo = (SUMA_TractDO *)ado;
+                  SUMA_TRACT_SAUX *Saux = TDO_TSAUX(tdo);
+                  SUMA_LH("No alternate selection for tracts");
+                  break;}
+               case MASK_type: {
+                  SUMA_S_Err("What would that be for a mask?");
+                  break; }
+               case VO_type: {
+                  SUMA_S_Err("Nothing done for volumes here yet");
+                  break; }
                default:
                   SUMA_S_Errv("Not ready for %s\n", ADO_TNAME(ado));
                   break;
@@ -2869,12 +2907,14 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* reset OPEN GL's state variables */
             /* expects the surface viewer pointer in vp */
             if (EngineData->vp_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               SUMA_S_Err("Data not destined correctly for %s (%d).\n",
+                          NextCom, NextComCode);
                break;
             } 
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Resetting OpenGL state variables.\n", FuncName);
+            SUMA_LH("Resetting OpenGL state variables.\n");
             
-            /* No need to call SUMA_OpenGLStateReset, that is now done in SUMA_display */
+            /* No need to call SUMA_OpenGLStateReset, 
+               that is now done in SUMA_display */
             svi = (SUMA_SurfaceViewer *)EngineData->vp;
             svi->ResetGLStateVariables = YUP;
             break;
@@ -4513,7 +4553,6 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    static char FuncName[]={"SUMA_VisibleSOs"};
    SUMA_SurfaceObject *SO=NULL;
    int i, k = 0;
-   SUMA_NIDO *SDO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -4543,6 +4582,39 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_RETURN (k);
 }
 
+int SUMA_VisibleMDOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *MDO_IDs)
+{
+   static char FuncName[]={"SUMA_VisibleMDOs"};
+   SUMA_MaskDO *MDO=NULL;
+   int i, k = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   for (i=0; i< sv->N_DO; ++i) {
+      if (dov[sv->RegisteredDO[i]].ObjectType != MASK_type) continue;
+      MDO = (SUMA_MaskDO *)dov[sv->RegisteredDO[i]].OP;
+      if (MDO_SHOWING(MDO, sv)) {
+         if (  MDO->SO->Side == SUMA_NO_SIDE || 
+               MDO->SO->Side == SUMA_SIDE_ERROR  || 
+               MDO->SO->Side == SUMA_LR) {
+            if (MDO_IDs) {
+               MDO_IDs[k] = sv->RegisteredDO[i];
+            }
+            ++k;
+         } else if (  (MDO->SO->Side == SUMA_RIGHT && sv->ShowRight) || 
+                      (MDO->SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
+            if (MDO_IDs) {
+               MDO_IDs[k] = sv->RegisteredDO[i];
+            }
+            ++k;
+         }
+      }
+   }
+   
+   SUMA_RETURN (k);
+}
+
 /*
    Is this the kind of DO that can be selected in SUMA
    In other terms, can it be loaded and viewed with nothing
@@ -4556,6 +4628,8 @@ int SUMA_is_iDO_Selectable(int dov_id)
       case SO_type:
       case TRACT_type:
       case GRAPH_LINK_type:
+      case MASK_type:
+      case VO_type:
          return(1);
       default:
          return(0);
@@ -4607,6 +4681,8 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
                ++k;
                break;
             case TRACT_type:
+            case MASK_type:
+            case VO_type:
                if (SO_IDs) {
                   SO_IDs[k] = sv->RegisteredDO[i];
                }
@@ -4683,6 +4759,9 @@ SUMA_Boolean SUMA_isVisibleDO (SUMA_SurfaceViewer *sv,
          SUMA_S_Err("Can't judge this without variant");
          SUMA_RETURN(NOPE);
          break;
+      case VO_type:
+      case MASK_type:
+      case TRACT_type:
       case GRAPH_LINK_type:
          for (i=0; i< sv->N_DO; ++i) {
             if (dov[sv->RegisteredDO[i]].OP == ado)  SUMA_RETURN(YUP);
@@ -5092,7 +5171,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    int curstateID, i, j, jmax, prec_ID, *MembSOs=NULL, N_MembSOs=0;
    int RegSO[SUMA_MAX_DISPLAYABLE_OBJECTS], N_RegSO;
    SUMA_SurfaceObject *SO_nxt, *SO_prec, *SO1, *SO2, *SOtmp=NULL;
-   SUMA_DO_Types ttv[2]={SO_type, GRAPH_LINK_type};
+   SUMA_DO_Types ttv[10]={SO_type, GRAPH_LINK_type, NOT_SET_type};
    float *XYZ, *XYZmap, zfac = 0.0;
    DList *list = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -5176,7 +5255,7 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    }
 
    /* Get those DOs that are surfaces or graphs*/
-   MembSOs = SUMA_ViewState_Membs(&(sv->VSv[nxtstateID]), ttv, 2, &N_MembSOs);
+   MembSOs = SUMA_ViewState_Membs(&(sv->VSv[nxtstateID]), ttv, &N_MembSOs);
    
    if (!MembSOs || N_MembSOs==0) {
       SUMA_S_Errv("No members found for state %s, what gives?\n",
@@ -5562,7 +5641,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov,
       /* This happens when only loading objects that are not surfaces.
          the eye axis for such monsters is created later, so return 
          quietly */
-      SUMA_LH("No Eye Axis. %d, dealing with non SOs I take it?");
+      SUMA_LH("No Eye Axis. dealing with non SOs I take it?");
    } else {
       EyeAxis = (SUMA_Axis *)(dov[EyeAxis_ID].OP);
       SUMA_EyeAxisStandard (EyeAxis, sv);

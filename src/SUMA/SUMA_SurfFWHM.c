@@ -594,7 +594,7 @@ int main (int argc,char *argv[])
       SUMA_LH("detrending cleanup done") ;
 
       /* Now back to SUMA_DSET,  don't need afni volume anymore*/
-      din = SUMA_afnidset2sumadset(&inset, 1, 1); 
+      din = SUMA_afnidset2sumadset(&inset, 1, 1, -1); 
       if (volmask) SUMA_free(volmask); volmask=NULL;
 
    }

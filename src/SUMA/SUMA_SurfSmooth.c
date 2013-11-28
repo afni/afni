@@ -1926,7 +1926,7 @@ int main (int argc,char *argv[])
                if (volmask) SUMA_free(volmask); volmask=NULL;
 
                /* Now back to SUMA_DSET */
-               dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni
+               dset = SUMA_afnidset2sumadset(&inset, 1, 1, -1);/* don't need afni
                                                                volume anymore */
                /* write out detrended input? */
                if (Opt->detprefix_in) {
@@ -2057,7 +2057,7 @@ int main (int argc,char *argv[])
                   if (volmask) SUMA_free(volmask); volmask=NULL;
                   
                   /* Now back to SUMA_DSET, and kill afni volume*/
-                  master_dset = SUMA_afnidset2sumadset(&inset, 1, 1); 
+                  master_dset = SUMA_afnidset2sumadset(&inset, 1, 1, -1); 
 
                   /* write out detrended master? */
                   if (Opt->detprefix_master) {
@@ -2354,7 +2354,7 @@ int main (int argc,char *argv[])
                free(ref_in);
 
                /* Now back to SUMA_DSETand kill afni volume*/
-               dset = SUMA_afnidset2sumadset(&inset, 1, 1); 
+               dset = SUMA_afnidset2sumadset(&inset, 1, 1, -1); 
             }
             if (wgtd) { /* this was allocate without allocate2D
                        You can't use free2D to freeit because

@@ -2,10 +2,12 @@
 #define SUMA_DATASETS_INCLUDED
 
 #include "matrix.h"
+#include "ptaylor/TrackIO.h"
 #include "suma_afni_surface.h"
 
 #define MAX_ERRLOG_MSG 1000
 #define MAX_ERRLOG_FUNCNAME 200
+#define TMP_NAME_SEP "_LDPID_"
 
 /*! macro to avoid typecasting warnings when going from 
     void * pointers (or XtPointer) to int and vice versa */
@@ -34,7 +36,7 @@
    char *head=(char*)ihead; /* a trick to quiet compiler warnings about \
                fixed length   strings addresses always evaluating to true */\
    if (head) { \
-      SUMA_S_Note(head);\
+      SUMA_S_Note("%s",head);\
    } else {SUMA_S_Note("Dumping Trace:");\
    }   \
    if( DBG_num >= 0 ){  \
@@ -44,9 +46,21 @@
       fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;   \
    }  \
 }
+#define SUMA_EDUMP_TRACE( ... ) { /* taken from dbtrace.h */\
+   int m_ii;  \
+   SUMA_S_Err( __VA_ARGS__ ); \
+   if( DBG_num >= 0 ){  \
+      for( m_ii=DBG_num-1; m_ii >= 0 ; m_ii-- ) \
+         fprintf(stderr,"%*.*s%s\n",m_ii+1,m_ii+1," ",DBG_rout[m_ii]) ; \
+   } else { \
+      fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;   \
+   }  \
+}
 #else
 #define SUMA_DUMP_TRACE(x) /* nada */
+#define SUMA_EDUMP_TRACE(x) /* nada */
 #endif
+#define SUMA_T_Err SUMA_EDUMP_TRACE
 
 typedef struct {
     char macroname[100];
@@ -88,6 +102,7 @@ typedef enum {
    SUMA_ERROR_DSET_TYPE = -1,
    SUMA_NO_DSET_TYPE,
    SUMA_NODE_BUCKET,
+   SUMA_VOXEL_BUCKET,
    SUMA_AFNI_NODE_BUCKET,
    SUMA_NODE_ROI, /*!< Col0: Node ID, Col1: ROI label (int) */
    SUMA_NODE_RGB,
@@ -108,6 +123,7 @@ typedef enum {
    SUMA_SEGMENT_OBJECT,
    SUMA_LABEL_TABLE_OBJECT,
    SUMA_GRAPH_BUCKET,
+   SUMA_TRACT_BUCKET,
    SUMA_N_DSET_TYPES
 } SUMA_DSET_TYPE; /*!<  Type of data set ( should be called Object, not DSET ) 
                         When you add a new element, modify functions
@@ -186,6 +202,9 @@ typedef enum {
                               need changing*/
    SUMA_EDGE_P1_INDEX,        /* First point (Graph Node) defining an edge */
    SUMA_EDGE_P2_INDEX,        /* Second point defining an edge */
+   
+   
+   SUMA_N_COL_TYPES           /* MAX number of col types */
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr
@@ -230,7 +249,7 @@ typedef enum {
                                                                                     SBT_type: Screen-based text
                                                                                     DBT_type: Dicom-based text
                                                                                     */
-typedef enum { type_not_set = -1,
+typedef enum { NOT_SET_type = -1,
                not_DO_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
                GO_type, LS_type, NBLS_type, OLS_type, NBOLS_type,
                NBV_type, ONBV_type, SP_type,
@@ -238,7 +257,7 @@ typedef enum { type_not_set = -1,
                NBT_type, SBT_type, DBT_type, /*!< Those three will 
                                                    likely not be used */
                NIDO_type, SDSET_type, TRACT_type,
-               GRAPH_LINK_type,
+               GRAPH_LINK_type, MASK_type,
                N_DO_TYPES } SUMA_DO_Types;   
 
 #define iDO_isSO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? 0: \
@@ -247,12 +266,18 @@ typedef enum { type_not_set = -1,
                       ( SUMAg_DOv[(i)].ObjectType == GRAPH_LINK_type ? 1:0) )
 #define iDO_isTDO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? 0: \
                       ( SUMAg_DOv[(i)].ObjectType == TRACT_type ? 1:0) )
-#define iDO_type(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? type_not_set: \
+#define iDO_isVO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? 0: \
+                      ( SUMAg_DOv[(i)].ObjectType == VO_type ? 1:0) )
+#define iDO_type(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? NOT_SET_type: \
                       ( SUMAg_DOv[(i)].ObjectType ) )
 #define iDO_typename(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? \
                               "NO OBJECT!": \
                       ( SUMA_ObjectTypeCode2ObjectTypeName(\
                                     SUMAg_DOv[(i)].ObjectType) ) )
+#define iDO_ADO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? NULL : \
+                              (SUMA_ALL_DO *)SUMAg_DOv[(i)].OP)
+#define ADO_iDO(ado) ( (ado) ? SUMA_whichDO(SUMA_ADO_idcode((ado)), \
+                                            SUMAg_DOv, SUMAg_N_DOv):-1 )
 #define iDO_state SUMA_iDO_state
 #define iDO_group SUMA_iDO_group
 
@@ -260,6 +285,8 @@ typedef enum { type_not_set = -1,
                               "NULL ADO!": \
                       ( SUMA_ObjectTypeCode2ObjectTypeName(\
                                     (ado)->do_type) ) )
+#define ADO_ID(ado) SUMA_ADO_idcode(ado)
+#define ADO_LABEL(ado) SUMA_ADO_sLabel(ado)
 
 #define iDO_label(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? \
                               "NO OBJECT!": \
@@ -334,7 +361,19 @@ typedef enum { MAT_UNKNOWN=-2, MAT_NA = -1, MAT_HEEHAW = 0 /* not set */,
                MAT_FULL = 1, MAT_TRI, MAT_TRI_DIAG, MAT_SPARSE 
               } SUMA_SQ_MATRIX_SHAPES; 
 
+typedef enum { SURF_DSET, GRAPH_DSET, TRACT_DSET, VOLUME_DSET } 
+                                                   SUMA_DSET_FLAVORS;
+typedef enum { SUMA_ELEM_DAT=0, /* Nodes of surface, points of tracts, 
+                                 edges of graph */
+               SUMA_LEV1_DAT, /* data at the tract level*/
+               SUMA_LEV2_DAT, /* data at the bundle level */
+               SUMA_N_LEV_DAT} SUMA_DATUM_LEVEL;
+
 typedef struct { /* Something to hold auxiliary datasets structs */
+      /* The Saux kids are not always set, they should be
+         reached by accessor functions and macros, not
+         fished directly from here 
+         Where Saux lies depends on the flavor of dset at hand */
    void *Saux; /* A pointer to a structure for SUMA's use */
    void (*FreeSaux)(void *Saux); /* Function to free Saux */
    
@@ -349,7 +388,7 @@ typedef struct { /* Something to hold auxiliary datasets structs */
    long int range_node_index[2]; /* min, max, node index 
                                    (points defining edges)*/
    long int N_uniq_nodes; /* Number of unique node indices */
-   byte isGraph;
+   SUMA_DSET_FLAVORS isGraph;
 } SUMA_DSET_AUX;
 
 /*!   
@@ -751,14 +790,21 @@ typedef struct {
    #define SDSET_TYPE_NAME(dset) NI_get_attribute(dset->ngr,"dset_type")
    #define SDSET_TYPE(dset)   \
       SUMA_Dset_Type(NI_get_attribute(dset->ngr,"dset_type"))
+   #define SDSET_DAT_LEVEL(dset) \
+      SUMA_sdset_datum_level(dset);
    #define SDSET_COLCAST(dset, i)   \
       SUMA_ColType2TypeCast(SUMA_TypeOfDsetColNumb(dset, i))
    #define SDSET_COLTYPE(dset, i)   \
       SUMA_TypeOfDsetColNumb(dset, i)
    #define SDSET_VECLEN(dset) ( (!dset || !dset->dnel) ? -1:dset->dnel->vec_len)
+   #define SDSET_VEC(dset,iii) dset->dnel->vec[iii]
+   #define SDSET_NVOX SDSET_VECLEN
+   #define SDSET_IS_VOL SUMA_isVolDataset
+   #define SDSET_BRICK_FACTOR SUMA_GetBrickFactor
+   #define SDSET_BRICK_TYPE   SUMA_GetBrickType
+   #define SDSET_ARRAY SDSET_VEC
    #define SDSET_NODEINDLEN(dset) dset->inel->vec_len
    #define SDSET_VECNUM(dset) dset->dnel->vec_num
-   #define SDSET_VEC(dset,iii) dset->dnel->vec[iii]
    #define SDSET_NODEINDNUM(dset) dset->inel->vec_num
    #define SDSET_VECFILLED(dset) dset->dnel->vec_filled
    #define SDSET_NODEINDFILLED(dset) dset->inel->vec_filled
@@ -810,10 +856,6 @@ typedef struct {
    \brief Macros to access commonly used colorplane parameters
    DO NOT USE COLP_NODEDEF macro inside a loop where the returned
    value is not to change because it involves a function call (SLOW)
-*/
-/* Pre March 29 04. 
-#define COLP_NODEDEF(cop) SUMA_GetNodeDef(cop->dset_link)
-#define COLP_N_NODEDEF(cop) cop->dset_link->nel->vec_filled
 */
 /* Post March 29 04. You can't go frugal and use dset's fields
 NodeDef might be dynamically changed in the overlay plane */
@@ -1049,6 +1091,8 @@ static byte NI_GOT;
       NI_stream_close( m_ns ) ; \
    }  \
 }
+
+#define DSET_FIND(id) (SUMA_FindDset_s(id, SUMAg_CF->DsetList))
 
 /*! Write an array to a text file, mcol consecutive values per line. 
 v is the array
@@ -1362,16 +1406,6 @@ If ind is NULL, then the index will be the line number.
 }
 /*!
    replace a string positioned in column col, row row in NI_element * nel.
-   
-   This macro, when called from SUMA_AddColAtt_CompString ends up reporting
-   a NI_malloc post corruption, at least when starting the dot-product 
-   demo script "tcsh @bugy" under directory
-      /Volumes/Data/ziad/SUMA_test_dirs/suma/srf
-   I can't figure out how m_rc[(row)] is getting corrupted. For now, 
-   allocating for 10 chars more gets rid of the problem.
-   Set +10 to +1 if you want to reproduce the problem.
-   Search for comment tagged: TAG09102012 to find calling 
-   culprit. 
 */
 #define SUMA_NEL_REPLACE_STRING(nel, row, col, str) {\
    char **m_rc;   \
@@ -1379,7 +1413,7 @@ If ind is NULL, then the index will be the line number.
    if (m_rc[(row)]) NI_free(m_rc[(row)]); \
    m_rc[(row)] = NULL;\
    if (str) { \
-      m_rc[(row)] = (char*)NI_malloc(char, (strlen((str))+10)*sizeof(char));\
+      m_rc[(row)] = (char*)NI_malloc(char, (strlen((str))+1)*sizeof(char));\
       strcpy( m_rc[(row)], str );   \
    }  \
 }
@@ -1574,9 +1608,12 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
                                        int isrc, int idest );
                                        
 /* A quick way to check graphinity. Use SUMA_isGraphDset for safety */
-#define SUMA_isGraphDset_fast(dset) ( (dset)->Aux->isGraph ) 
+#define SUMA_isGraphDset_fast(dset) ( ((dset)->Aux->isGraph==GRAPH_DSET) ) 
+#define SUMA_isTractDset_fast(dset) ( ((dset)->Aux->isGraph==TRACT_DSET) ) 
 byte SUMA_isGraphDset(SUMA_DSET *dset);
 byte SUMA_isGraphDsetNgr(NI_group *ngr);
+byte SUMA_isTractDset(SUMA_DSET *dset);
+byte SUMA_isTractDsetNgr(NI_group *ngr);
 SUMA_Boolean SUMA_Add_Dset_Aux(SUMA_DSET *dset);
 SUMA_Boolean SUMA_NewDsetGrp (SUMA_DSET *dset, SUMA_DSET_TYPE dtp, 
                            char* MeshParent_idcode, 
@@ -1602,8 +1639,13 @@ DListElmt * SUMA_FindDsetEl_ns (char *idcode, DList *DsetList);
 SUMA_DSET * SUMA_FindDset_eng (char *idcode_str, DList *DsetList, 
                                  DListElmt **elp, char *itype);
 char *SUMA_DsetInfo (SUMA_DSET *dset, int detail);
+char * SUMA_Taylor_Network_Info(TAYLOR_NETWORK *net, 
+                                int show_maxu, int show_maxub);
+char *SUMA_Taylor_Bundle_Info(TAYLOR_BUNDLE *tb, int show_maxu); 
+char *SUMA_Taylor_Tract_Info(TAYLOR_TRACT *tt, int show_maxu);
 void SUMA_ShowDset (SUMA_DSET *dset, int detail, FILE *out);
-char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, int mxshow, char *title);
+char *SUMA_ShowMeSome (void *dt, SUMA_VARTYPE tp, int N_dt, 
+                       int mxshow, char *title);
 SUMA_DSET * SUMA_NewDsetPointer(void);
 SUMA_DSET * SUMA_CreateDsetPointer (  
                               char *name, 
@@ -1653,6 +1695,12 @@ SUMA_Boolean SUMA_SetUniqueValsAttr(SUMA_DSET *dset, int icol, byte replace);
 NI_element * SUMA_GetUniqueValsAttr(SUMA_DSET *dset, int icol);
 NI_element * SUMA_GetUniqueIndicesAttr(SUMA_DSET *dset, int iindex);
 int * SUMA_GetUniqueIndicesVec(SUMA_DSET *dset, int iindex);
+int * SUMA_GetDatasetDimensions(SUMA_DSET *dset);
+float * SUMA_GetDatasetFactors(SUMA_DSET *dset);
+MRI_TYPE SUMA_GetBrickType(SUMA_DSET *dset, int ii);
+float SUMA_GetBrickFactor(SUMA_DSET *dset, int ii);
+float * SUMA_GetDatasetI2X(SUMA_DSET *dset, float M[4][4]);
+int SUMA_isVolDataset(SUMA_DSET *dset);
 SUMA_Boolean SUMA_SetUniqueIndicesAttr(SUMA_DSET *dset, byte replace);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, 
                          double range[2], int loc[2]);
@@ -1748,6 +1796,9 @@ void *SUMA_Copy_Part_Column(void *col,  NI_rowtype *rt, int N_col,
                             byte *rowmask, int masked_only, int *n_incopy);
 char* SUMA_sdset_id(SUMA_DSET *dset);
 char* SUMA_sdset_idmdom(SUMA_DSET *dset);
+char *SUMA_Dset_orcode(SUMA_DSET *dset);
+SUMA_DATUM_LEVEL SUMA_sdset_datum_level(SUMA_DSET *dset);
+SUMA_Boolean SUMA_sdset_set_datum_level(SUMA_DSET *dset, SUMA_DATUM_LEVEL lvl);
 NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel); 
 void SUMA_SetParent_DsetToLoad(char *parent);
 float *SUMA_Load1D_eng (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
@@ -1797,7 +1848,7 @@ int SUMA_GetAddIndex_1D(void);
 THD_3dim_dataset *SUMA_sumadset2afnidset(SUMA_DSET **dsetp, int copy_data, 
                                          int cleardset);
 SUMA_DSET *SUMA_afnidset2sumadset(THD_3dim_dataset **dsetp, int copy_data, 
-                                  int cleardset);
+                                  int cleardset, int floatize);
 int SUMA_GetDsetColStatAttr(  SUMA_DSET *dset, int col_index, 
                               int *statcode,
                               float *p1, float *p2, float *p3);
