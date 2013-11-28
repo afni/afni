@@ -75,14 +75,35 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData) ;
 void SUMA_Show_SaveList(DList *SL, char *head);
 int SUMA_Add_to_SaveList(DList **SLp, char *type, char *ident, char *prefix);
 void SUMA_free_Save_List_El(void *selu);
+int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR);
+int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                      int IgnoreSameNode, SUMA_ALL_DO **ado);
+int SUMA_ComputeLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                      int IgnoreSameNode, SUMA_ALL_DO **pado);
+int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, 
+                     SUMA_PICK_RESULT **PRi);
 int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                     int IgnoreSameNode);
 int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                     int IgnoreSameNode);
+int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                       int IgnoreSameNode, SUMA_ALL_DO **pado);
+int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO, 
+                     SUMA_PICK_RESULT **PRi); 
+int SUMA_MarkLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                    int IgnoreSameNode);
+int SUMA_ComputeLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
+                                  int IgnoreSameNode, SUMA_ALL_DO **pado);
+int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *DO, 
+                     SUMA_PICK_RESULT **PRi); 
 int SUMA_MarkLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                int IgnoreSameNode);
 SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov);
 SUMA_Boolean SUMA_ADO_Flush_Pick_Buffer(SUMA_ALL_DO *ado,SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_Bundle_Pick_Intersect(void *p, char ptype, int Tmask,
+                     SUMA_SurfaceViewer *sv,
+                     float *scpx, int crude,
+                     int *tmin, int *pmin, float *frmin, float *mindist);
 SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid, 
                                 SUMA_COLID_OFFSET_DATUM **ucodf, int i, int j,
                                 SUMA_PICK_RESULT *PR);
@@ -90,6 +111,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido);
 SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR);
 SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR);
 SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP);
+SUMA_PICK_RESULT * SUMA_ADO_GetPickResult(SUMA_ALL_DO *ado, char *variant);
 void SUMA_Show_Pick_Colid_List(DList *pick_colid_list, FILE *fout); 
 char *SUMA_Pick_Colid_List_Info (DList *pick_colid_list);
 SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer, 
@@ -131,6 +153,11 @@ void SUMA_JumpIndex (char *s, void *data);
 void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO);
 void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv, 
                            SUMA_DSET *dset, char *variant);
+void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv, 
+                           SUMA_TractDO *tdo);
+void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv, 
+                        SUMA_VolumeObject *vo);
+void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo);
 void SUMA_JumpXYZ (char *s, void *data);
 void SUMA_JumpFocusNode (char *s, void *data);
 void SUMA_JumpFocusFace (char *s, void *data);

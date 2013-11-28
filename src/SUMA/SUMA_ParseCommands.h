@@ -391,180 +391,222 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
    \brief Macro that reports an error to the log 
 
 */
-#define SUMA_L_Err(msg) {\
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Error, SMA_Log); \
+#define SUMA_L_Err(...) {\
+   char m_stemp[256];   \
+   snprintf(m_stemp, 255, __VA_ARGS__ );  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Error, SMA_Log); \
 }
 /*!
    \brief Macro that reports an error to stderr 
 
 */
-#define SUMA_S_Err(msg) {\
-   fprintf (SUMA_STDERR, "--     Error %s (%s:%d):\n%s\n", FuncName, __FILE__ , __LINE__, msg);  \
+#define SUMA_S_Errv( ... ) {\
+   fprintf (SUMA_STDERR, \
+            "--     Error %s (%s:%d):\n", FuncName, __FILE__ , __LINE__);  \
+   fprintf (SUMA_STDERR, __VA_ARGS__);  \
 }
-#define SUMA_S_Errv(msg, ...) {\
-   fprintf (SUMA_STDERR, "--     Error %s (%s:%d):\n", FuncName, __FILE__ , __LINE__);  \
-   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+#define SUMA_S_Err( ... ) {\
+   SUMA_S_Errv( __VA_ARGS__ );  \
+   fprintf (SUMA_STDERR,"\n");   \
 }
 
 /*!
    \brief Macro that reports an error to stderr and log 
 
 */
-#define SUMA_SL_Err(msg) {\
-   SUMA_S_Err(msg);  \
-   SUMA_L_Err(msg); \
+#define SUMA_SL_Err(...) {\
+   SUMA_S_Err(__VA_ARGS__);  \
+   SUMA_L_Err(__VA_ARGS__); \
 }
 
 /*!
    \brief Macro that reports an error to stderr and log and popup
 
 */
-#define SUMA_SLP_Err(msg) {\
-   SUMA_S_Err(msg);  \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Error, SMA_LogAndPopup); \
+#define SUMA_SLP_Err(...) {\
+   static char mm[1024];   \
+   SUMA_S_Err(__VA_ARGS__);  \
+   snprintf(mm, 1022, __VA_ARGS__); \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, mm, FuncName, \
+                         SMT_Error, SMA_LogAndPopup); \
 }
 
 /*!
    \brief Macro that reports a notice to the log 
 
 */
-#define SUMA_L_Note(msg) {\
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_Log); \
+#define SUMA_L_Note(...) {\
+   char m_stemp[256];   \
+   snprintf(m_stemp, 255, __VA_ARGS__);   \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Notice, SMA_Log); \
 }
 /*!
    \brief Macro that reports a notice to stderr 
 
 */
-#define SUMA_S_Note(msg) {\
-   fprintf (SUMA_STDERR, "++     Notice %s (%s:%d @%s):\n%s\n", FuncName, __FILE__, __LINE__, SUMA_time(), msg);  \
+#define SUMA_S_Notev( ... ) {\
+   fprintf (SUMA_STDERR, "++     Notice %s (%s:%d @%s):\n", \
+            FuncName, __FILE__ , __LINE__, SUMA_time());  \
+   fprintf (SUMA_STDERR, __VA_ARGS__);  \
 }
-#define SUMA_S_Notev(msg, ...) {\
-   fprintf (SUMA_STDERR, "++     Notice %s (%s:%d @%s):\n", FuncName, __FILE__ , __LINE__, SUMA_time());  \
-   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+#define SUMA_S_Note( ... ) {\
+   SUMA_S_Notev(__VA_ARGS__);  \
+   fprintf (SUMA_STDERR,"\n");   \
 }
 
 /*!
    \brief Macro that reports a notice to stderr and log 
 
 */
-#define SUMA_SL_Note(msg) {\
-   SUMA_S_Note(msg); \
-   SUMA_L_Note(msg);  \
+#define SUMA_SL_Note(...) {\
+   SUMA_S_Note(__VA_ARGS__); \
+   SUMA_L_Note(__VA_ARGS__);  \
 }
 
 /*!
    \brief Macro that reports a notice to stderr and log and popup
 
 */
-#define SUMA_SLP_Note(msg) {\
-   SUMA_S_Note(msg); \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_LogAndPopup); \
+#define SUMA_SLP_Note(...) {\
+   char m_stemp[256];   \
+   snprintf(m_stemp, 255, __VA_ARGS__);   \
+   SUMA_S_Note(__VA_ARGS__); \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Notice, SMA_LogAndPopup); \
 }
 
 /*!
    \brief Macro that reports a text message to the log 
 
 */
-#define SUMA_L_Text(msg) {\
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_Log); \
+#define SUMA_L_Text(...) {\
+   char m_stemp[256];   \
+   snprintf(m_stemp, 255, __VA_ARGS__);   \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Text, SMA_Log); \
 }
 /*!
    \brief Macro that reports a text message to stderr 
 
 */
-#define SUMA_S_Text(msg) {\
-   fprintf (SUMA_STDERR, "%s\n", msg);  \
+#define SUMA_S_Text(...) {\
+   fprintf (SUMA_STDERR, __VA_ARGS__);  \
 }
 /*!
    \brief Macro that reports a text message to stderr and log 
 
 */
-#define SUMA_SL_Text(msg) {\
-   SUMA_S_Text(msg);  \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_Log); \
+#define SUMA_SL_Text(...) {\
+   char m_stemp[256];   \
+   SUMA_S_Text(__VA_ARGS__);  \
+   snprintf(m_stemp, 255, __VA_ARGS__);   \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Text, SMA_Log); \
 }
 /*!
    \brief Macro that reports a text message to stderr and log and popup
 
 */
-#define SUMA_SLP_Text(msg) {\
-   SUMA_S_Text(msg);  \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Text, SMA_LogAndPopup); \
+#define SUMA_SLP_Text(...) {\
+   char m_stemp[256];   \
+   snprintf(m_stemp, 255, __VA_ARGS__);   \
+   SUMA_S_Text(__VA_ARGS__);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Text, SMA_LogAndPopup); \
 }
 
 /*!
    \brief Macro that reports a warning to the log 
 
 */
-#define SUMA_L_Warn(msg) {\
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_Log); \
+#define SUMA_L_Warn(...) {\
+   char m_stemp[256];   \
+   snprintf(m_stemp, 255, __VA_ARGS__ );   \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Warning, SMA_Log); \
 }
 /*!
    \brief Macro that reports a warning to stderr 
 
 */
-#define SUMA_S_Warn(msg) {\
-   fprintf (SUMA_STDERR, "oo     Warning %s (%s:%d):\n%s\n", \
-                         FuncName, __FILE__, __LINE__, msg);  \
-}
-#define SUMA_S_Warnv(msg, ...) {\
+#define SUMA_S_Warnv( ... ) {\
    fprintf (SUMA_STDERR, "oo     Warning %s (%s:%d):\n", \
                          FuncName, __FILE__ , __LINE__);  \
-   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+   fprintf (SUMA_STDERR, __VA_ARGS__);  \
+}
+#define SUMA_S_Warn( ... ) {\
+   SUMA_S_Warnv(__VA_ARGS__);  \
+   fprintf (SUMA_STDERR,"\n");   \
 }
 /*!
    \brief Macro that reports a warning to stderr and log 
 
 */
-#define SUMA_SL_Warn(msg) {\
-   SUMA_S_Warn(msg);  \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_Log); \
+#define SUMA_SL_Warn(...) {\
+   char m_stemp[513];   \
+   SUMA_S_Warn(__VA_ARGS__);  \
+   snprintf(m_stemp, 511, __VA_ARGS__);   \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, FuncName, SMT_Warning, SMA_Log); \
 }
 /*!
    \brief Macro that reports a warning to stderr and log and popup
 
 */
-#define SUMA_SLP_Warn(msg) {\
-   SUMA_S_Warn(msg);  \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_LogAndPopup); \
+#define SUMA_SLP_Warn(...) {\
+   char m_stemp[513];   \
+   SUMA_S_Warn(__VA_ARGS__);  \
+   snprintf(m_stemp, 511, __VA_ARGS__);   \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, \
+                         FuncName, SMT_Warning, SMA_LogAndPopup); \
 }
 
 /*!
    \brief Macro that reports a critical error to the log 
 
 */
-#define SUMA_L_Crit(msg) {\
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_Log); \
+#define SUMA_L_Crit(...) {\
+   char m_stemp[513];   \
+   snprintf(m_stemp, 511, __VA_ARGS__);   \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, FuncName, \
+                         SMT_Critical, SMA_Log); \
 }
 /*!
    \brief Macro that reports a critical error to stderr 
 
 */
-#define SUMA_S_Crit(msg) {\
-   fprintf (SUMA_STDERR, "**     Critical %s (%s:%d):\n%s\n", \
-                         FuncName, __FILE__, __LINE__,msg);  \
-}
-#define SUMA_S_Critv(msg, ...) {\
+#define SUMA_S_Crit( ... ) {\
+   SUMA_S_Critv( __VA_ARGS__ );  \
+   fprintf (SUMA_STDERR,"\n");   \
+}  
+#define SUMA_S_Critv( ... ) {\
    fprintf (SUMA_STDERR, "**     Critical %s (%s:%d):\n", \
                          FuncName, __FILE__, __LINE__);  \
-   fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+   fprintf (SUMA_STDERR, __VA_ARGS__);  \
 }
 
 /*!
    \brief Macro that reports a critical error to stderr and log 
 
 */
-#define SUMA_SL_Crit(msg) {\
-   SUMA_S_Crit(msg); \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_Log); \
+#define SUMA_SL_Crit(...) {\
+   char m_stemp[513];   \
+   snprintf(m_stemp, 511, __VA_ARGS__);   \
+   SUMA_S_Crit(__VA_ARGS__); \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, FuncName, \
+                         SMT_Critical, SMA_Log); \
 }
 /*!
    \brief Macro that reports a critical error to stderr and log and popup
 
 */
-#define SUMA_SLP_Crit(msg) {\
-   SUMA_S_Crit(msg); \
-   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Critical, SMA_LogAndPopup); \
+#define SUMA_SLP_Crit(...) {\
+   char m_stemp[513];   \
+   snprintf(m_stemp, 511, __VA_ARGS__);   \
+   SUMA_S_Crit(__VA_ARGS__); \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, m_stemp, FuncName, \
+                         SMT_Critical, SMA_LogAndPopup); \
 }
 
 #define SUMA_BEEP {  \
@@ -573,16 +615,20 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 /*!
    \brief Macro that reports a message to SUMA_STDERR if LocalHead is set to YUP
 */
-#define SUMA_LH(msg) {\
-   if (LocalHead) fprintf (SUMA_STDERR, "##      %s (%s:%d):\n%s\n", FuncName, __FILE__, __LINE__,msg);  \
-}
-
-#define SUMA_LHv(msg, ...) {\
+#define SUMA_LHv( ...) {\
    if (LocalHead) {  \
-      fprintf (SUMA_STDERR, "##      %s (%s:%d):\n", FuncName, __FILE__, __LINE__);  \
-      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+      fprintf (SUMA_STDERR, "##      %s (%s:%d):\n", \
+               FuncName, __FILE__, __LINE__);  \
+      fprintf (SUMA_STDERR, __VA_ARGS__);  \
    }  \
 }
+#define SUMA_LH( ... ) {\
+   if (LocalHead) {  \
+      SUMA_LHv( __VA_ARGS__ );  \
+      fprintf (SUMA_STDERR,"\n");   \
+   }  \
+}
+
 
 #define SUMA_ANIM_EXT(Ext) (  (\
                                  SUMA_iswordsame_ci(Ext,".agif") || SUMA_iswordsame_ci(Ext,".gif") ||   \

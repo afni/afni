@@ -30,7 +30,7 @@
 
 #define SUMA_HOLD_IT  { \
    SUMA_S_Note("Waiting...");\
-   glXWaitGL();glXWaitX(); \
+   glXWaitGL();glXWaitX(); glFinish();\
    SUMA_S_Note("Done.");}  
                                   
 typedef struct suma_menu_item {
@@ -190,6 +190,19 @@ sets the select color of the widget to its foreground color */
                   -csv->GVS[csv->StdView].RotaCenter[2]); \
 }   
 
+#define SUMA_GL_MAT_SHOW(mm,str) {\
+   int m_i; double m_dmatrix[16];  \
+   glGetDoublev(mm, m_dmatrix); \
+   SUMA_S_Note(str); \
+   for (m_i=0; m_i<4; ++m_i) {   \
+      fprintf(stderr,"\t");  \
+      fprintf(stderr,"%+3.3f\t%+3.3f\t%+3.3f\t%+3.3f\t", \
+         m_dmatrix[m_i],m_dmatrix[4+m_i],m_dmatrix[8+m_i],m_dmatrix[12+m_i]); \
+      fprintf(stderr,"\n");  \
+   }\
+}
+
+
 #define SUMA_SET_AS_NEEDED_2D_VIEW_ANGLE(sv) {  \
    int m_j = SUMA_BestStandardView(sv, SUMAg_DOv, SUMAg_N_DOv); \
    float m_a[3]; \
@@ -248,7 +261,7 @@ void SUMA_CullOption(SUMA_SurfaceViewer *, const char *action);
 Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 GLenum SUMA_index_to_clip_plane(int iplane) ;
-int SUMA_PixelsToDisk(SUMA_SurfaceViewer *csv, int w, int h, GLubyte *pixels, 
+int SUMA_PixelsToDisk(SUMA_SurfaceViewer *csv, int w, int h, GLvoid *pixels, 
                       int colordepth, int verb, char *ufname, 
                       int autoname, int over); 
 int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback);
@@ -303,7 +316,11 @@ void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data, 
+                                     XtPointer callData);
+void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data, 
                                      XtPointer callData);
 void SUMA_cb_newSumaCont(Widget w, XtPointer client_data, XtPointer callData);
 void  SUMA_cb_doneSumaCont(Widget wcall, XtPointer cd1, XtPointer cbs);
@@ -498,6 +515,9 @@ int SUMA_ColPlane_NewOpacity     (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  float newopa, int cb_direct);
 int SUMA_ColPlane_NewOpacity_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  float newopa, int cb_direct);
+int SUMA_Tract_NewGray (SUMA_ALL_DO *ado, 
+                           float newgray, int cb_direct );
+void SUMA_cb_Tract_NewGray(void *data);
 void SUMA_cb_ColPlane_NewDimFact (void *data);
 int SUMA_ColPlane_NewDimFact     (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  float newdimfact, int cb_direct);
@@ -544,6 +564,12 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO(SUMA_SurfaceObject *SO,
                                              SUMA_OVERLAYS *ColPlane);
 SUMA_Boolean SUMA_InitializeColPlaneShell_GLDO(SUMA_ALL_DO *ado,
                                              SUMA_OVERLAYS *ColPlane);
+SUMA_Boolean SUMA_InitializeColPlaneShell_TDO(SUMA_ALL_DO *ado,
+                                             SUMA_OVERLAYS *ColPlane);
+SUMA_Boolean SUMA_InitializeColPlaneShell_VO(SUMA_ALL_DO *ado,
+                                             SUMA_OVERLAYS *ColPlane);
+SUMA_Boolean SUMA_InitializeColPlaneShell_MDO (SUMA_ALL_DO *ado, 
+                                               SUMA_OVERLAYS *ColPlane);
 SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *SO);
 SUMA_Boolean SUMA_RemixRedisplay (SUMA_ALL_DO *ado);
 void SUMA_cb_SetDrawROI_SaveMode(Widget w, XtPointer data, XtPointer call_data);
@@ -564,6 +590,8 @@ void SUMA_LoadVisualState(char *fname, void *csvp);
 int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv);
 void SUMA_SaveVisualState(char *fname, void *csvp);
 void SUMA_LoadSegDO (char *s, void *csvp);
+SUMA_Boolean SUMA_LoadVolDO (char *fname, 
+                        SUMA_DO_CoordUnits coord_type, SUMA_VolumeObject **VOp);
 void SUMA_SiSi_I_Insist(void);
 void SUMA_BuildMenuReset(int nchar);
 void SUMA_MenuArrowFieldCallback (void *CB);
@@ -574,6 +602,10 @@ int SUMA_NotebookLastPageNumber(Widget NB);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_ALL_DO *SO);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam_SO(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam_GLDO(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam_TDO(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam_VO(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam_MDO(SUMA_ALL_DO *ado);
+SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado);
 int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
                                           SUMA_SurfaceObject *SO,
                                           int inode, double *dd);
@@ -621,6 +653,9 @@ float *SUMA_NodeCol2Col(int Mode, float *here);
 void SUMA_cb_SetDsetEdgeStip(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 int SUMA_SetDsetEdgeStip(SUMA_ALL_DO *ado, int imenu, int updatemenu); 
+void SUMA_cb_SetTractMask(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+int SUMA_SetTractMask(SUMA_ALL_DO *ado, int imenu, int updatemenu);
 void SUMA_cb_SetDsetEdgeThick(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 int SUMA_SetDsetEdgeThick(SUMA_ALL_DO *ado, int imenu, int updatemenu);
@@ -966,6 +1001,9 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i);
 
 #define SUMA_SurfCont_EdgeThickGain_hint \
    "Gain factor to apply to edge thickness." \
+
+#define SUMA_SurfCont_TractMask_hint \
+   "What becomes of tracts out of mask." \
 
 #define SUMA_SurfCont_ColPlaneOrder_hint \
    "Order of Dset's colorplane." \

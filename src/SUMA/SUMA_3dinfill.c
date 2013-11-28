@@ -370,7 +370,7 @@ SEG_OPTS *Infill_Default(char *argv[], int argc)
    Opt->Bset=NULL;
    Opt->proot = NULL;
    Opt->smode = STORAGE_BY_BRICK;   
-   SUMA_RETURN(Opt);
+   RETURN(Opt);
 }
 
 int main(int argc, char **argv)

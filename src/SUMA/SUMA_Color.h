@@ -52,7 +52,15 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays,
                                GLfloat *glcolar, int N_Node, 
                                SUMA_Boolean *isColored, SUMA_Boolean FILL);
 SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv);
-SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, 
+SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_ALL_DO *ado, 
+                                 char *Name, SUMA_OVERLAY_PLANE_DATA *sopd, 
+                                 int *PlaneInd, SUMA_DO *dov, int N_dov,
+                                 DList *DsetList);
+SUMA_Boolean SUMA_iRGB_to_SO_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, 
+                                          SUMA_OVERLAY_PLANE_DATA *sopd, 
+                                          int *PlaneInd, SUMA_DO *dov, 
+                                          int N_dov, DList *DsetList);
+SUMA_Boolean SUMA_iRGB_to_TDO_OverlayPointer (SUMA_TractDO *TDO, char *Name,
                                           SUMA_OVERLAY_PLANE_DATA *sopd, 
                                           int *PlaneInd, SUMA_DO *dov, 
                                           int N_dov, DList *DsetList);
@@ -61,11 +69,15 @@ void SUMA_FreeOverlayListDatum (void *OLDv);
 SUMA_Boolean SUMA_AddNewPlane (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Overlay, 
                                SUMA_DO *dov, int N_dov, int DupFlag);
 SUMA_Boolean SUMA_isOverlayOfDO (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Plane);
+SUMA_ALL_DO *SUMA_Overlay_OwnerADO(SUMA_OVERLAYS *Over);
 int SUMA_GetSmallestForegroundOrder (DList *listop);
 int SUMA_GetLargestBackroundOrder (DList *listop);
 DList * SUMA_OverlaysToOrderedList (SUMA_ALL_DO *ado, int Opt);
 SUMA_Boolean SUMA_ReleaseOverlay (SUMA_OVERLAYS * Overlays, 
                                   SUMA_INODE *Overlays_Inode);
+SUMA_Boolean SUMA_ElementarizeOverlay(SUMA_OVERLAYS *iOver, float **ColEVec,
+                                      int **NodeEDef, int *N_NodeEDef,
+                                      float **LocalEOpacity);
 char * SUMA_PlaneOrder_Info(SUMA_ALL_DO *ado);
 void SUMA_Print_PlaneOrder (SUMA_ALL_DO *ado, FILE *Out);
 SUMA_Boolean SUMA_ListOrderToPlaneOrder (DList *listop); 

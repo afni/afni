@@ -432,7 +432,7 @@ SUMA_SegmentDO *SUMA_ControlCurve2SDO(SUMA_MX_VEC *ControlCurve, char *Label)
 
    SDO = SUMA_CreateSegmentDO( N_n, oriented, NodeBased, Stipple,
                                Label, idcode_str, Parent_idcode_str,
-                               type_not_set, NULL, LineWidth, LineCol,
+                               NOT_SET_type, NULL, LineWidth, LineCol,
                                NodeId, NULL, n0, n1,
                                colv, thickv);
 

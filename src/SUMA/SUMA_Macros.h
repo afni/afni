@@ -400,6 +400,10 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    Dist = m_Eq[0] * P[0] + m_Eq[1] * P[1] + m_Eq[2] * P[2] + m_Eq[3] ;   \
 }
 
+#define SUMA_DIST_FROM_PLANE_EQ(Eq, P) ( Eq[0] * P[0] + Eq[1] * P[1] + \
+                                         Eq[2] * P[2] + Eq[3] )
+
+
 #define SUMA_DIST_FROM_PLANE2(P1, P2, P3, P, Dist, InAirSpace, dot){  \
    static float m_Eq[4], m_P2[3], m_U[3], m_Un;   \
    SUMA_Plane_Equation ( P1, P2, P3, m_Eq); \
@@ -421,6 +425,14 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 */
 #define SUMA_PLANE_NORMAL_POINT(N, P, Eq) {   \
    Eq[0] = N[0]; Eq[1] = N[1]; Eq[2] = N[2]; \
+   Eq[3] = -(Eq[0]*P[0] + Eq[1]*P[1] + Eq[2]*P[2]);   \
+}
+
+/*!
+   Shift a plane to pass through P
+   See also SUMA_Plane_Equation
+*/
+#define SUMA_SHIFT_PLANE_TO_P(Eq, P) {   \
    Eq[3] = -(Eq[0]*P[0] + Eq[1]*P[1] + Eq[2]*P[2]);   \
 }
 
@@ -731,6 +743,8 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 */ 
 #define SO_SHOWING(SO,sv) ( SO->Show && SO->PolyMode != SRM_Hide && (SO->PolyMode != SRM_ViewerDefault || sv->PolyMode != SRM_Hide) && (SO->TransMode != STM_ViewerDefault || sv->TransMode != STM_16))
 
+#define MDO_SHOWING(MDO,sv) (  (MDO) && (MDO)->SO && (sv) && \
+                               (SO_SHOWING((MDO)->SO,sv)) )
 /*!
    \brief set polymode
 */ 
@@ -2097,7 +2111,7 @@ WARNING: The input data vectors are not cast to the type of s.
    Pick a color based on the direction of the unit vector
    between pa and pb. Direction sign ignored 
 */
-#define SUMA_SEG_DELTA_COL(pa,pb,U) {\
+#define SUMA_SEG_DELTA_COL(pa,pb,U, Un) {\
    SUMA_UNIT_VEC(pa, pb, U, Un); \
    U[0] = SUMA_ABS(U[0]);        \
    U[1] = SUMA_ABS(U[1]);        \

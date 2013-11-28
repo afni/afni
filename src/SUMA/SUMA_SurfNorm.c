@@ -226,7 +226,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList,
                         "Their normals are set to the\n"
                         "unit vector.\n", 
                         NotMember, (float)NotMember/(float)N_NodeList*100.0);
-         SUMA_SL_Note(stmp);
+         SUMA_SL_Note("%s",stmp);
       }
       
    if (N_Memb) SUMA_free(N_Memb);

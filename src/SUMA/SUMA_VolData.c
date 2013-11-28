@@ -431,6 +431,7 @@ SUMA_VOLPAR *SUMA_Alloc_VolPar (void)
    VP->dx = VP->dy = VP->dz = 0.0; /*!< delta x, y, z in mm */
    VP->xorg = VP->yorg = VP->zorg = 0.0; /*!< voxel origin in three dimensions */
    VP->prefix = NULL; /*!< parent volume prefix */
+   VP->headname = NULL;
    VP->filecode = NULL; /*!< parent volume prefix + view */
    VP->dirname = NULL; /*!< parent volume directory name */
    VP->vol_idcode_str = NULL; /*!< idcode string OF parent volume*/
@@ -450,6 +451,7 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
    SUMA_ENTRY;
    if (!VP) SUMA_RETURN (YUP);
    if (VP->prefix != NULL) SUMA_free(VP->prefix);
+   if (VP->headname != NULL) SUMA_free(VP->headname);
    if (VP->idcode_str != NULL) SUMA_free(VP->idcode_str);
    if (VP->filecode != NULL) SUMA_free(VP->filecode);
    if (VP->dirname != NULL) SUMA_free(VP->dirname);
@@ -498,6 +500,8 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
    VP->xorg = DSET_XORG(dset);
    VP->yorg = DSET_YORG(dset);
    VP->zorg = DSET_ZORG(dset);
+   ii = strlen(DSET_HEADNAME(dset));
+   VP->headname = (char *)SUMA_malloc(ii+1);
    ii = strlen(DSET_PREFIX(dset));
    VP->prefix = (char *)SUMA_malloc(ii+1);
    ii = strlen(DSET_FILECODE(dset));
@@ -509,6 +513,7 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
    ii = strlen(dset->idcode.date);
    VP->vol_idcode_date = (char *)SUMA_malloc(ii+1);
    if (  VP->prefix == NULL || 
+         VP->headname == NULL ||
          VP->filecode == NULL || 
          VP->vol_idcode_date == NULL || 
          VP->dirname == NULL || 
@@ -520,6 +525,7 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
       SUMA_RETURN (NULL);
    }
    VP->prefix = strcpy(VP->prefix, DSET_PREFIX(dset));
+   VP->headname = strcpy(VP->headname, DSET_HEADNAME(dset));
    VP->filecode = strcpy(VP->filecode, DSET_FILECODE(dset));
    VP->dirname = strcpy(VP->dirname, DSET_DIRNAME(dset));
    VP->vol_idcode_str = strcpy(VP->vol_idcode_str, dset->idcode.str);
@@ -723,9 +729,9 @@ char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
       sprintf (stmp,"\nVP contents:\n");
       SS = SUMA_StringAppend (SS, stmp);
       sprintf (stmp,
-               "prefix: %s\tfilecode: %s\tdirname: %s\n"
+               "prefix: %s\tfilecode: %s\theadname %s\tdirname: %s\n"
                "Id code str:%s\tID code date: %s\n", 
-               VP->prefix, VP->filecode, VP->dirname, 
+               VP->prefix, VP->filecode, VP->headname, VP->dirname, 
                VP->vol_idcode_str, VP->vol_idcode_date);
       SS = SUMA_StringAppend (SS, stmp);
       if (VP->idcode_str) SS = SUMA_StringAppend (SS, "IDcode is NULL\n");

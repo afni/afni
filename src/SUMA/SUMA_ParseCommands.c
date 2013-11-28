@@ -259,6 +259,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetDsetNodeCol")) SUMA_RETURN(SE_SetDsetNodeCol);
    if (!strcmp(Scom,"SetDsetTxtShad")) SUMA_RETURN(SE_SetDsetTxtShad);
    if (!strcmp(Scom,"SetDsetGmatBord")) SUMA_RETURN(SE_SetDsetGmatBord);
+   if (!strcmp(Scom,"SetTractMask")) SUMA_RETURN(SE_SetTractMask);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    /* Last one is Bad Code */
    SUMA_RETURN (SE_BadCode);
@@ -1095,7 +1096,7 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
    MD->Source = SUMA_copy_string(Source);
    MD->Type = Type;
    MD->Action = Action;
-   
+   SUMA_S_Note("Have %s %s", MD->Source, MD->Message);
    /* add element at end */
    if (dlist_ins_next (list, dlist_tail(list), (void *)MD) < 0) {
        fprintf (SUMA_STDERR, 
@@ -1262,7 +1263,7 @@ DListElmt * SUMA_RegisterEngineListCommand (
    } 
    
    if (!list) {
-      SUMA_S_Err("list has not been initialized.");
+      SUMA_T_Err("list has not been initialized.");
       SUMA_RETURN (NULL);
    }
    
@@ -1552,8 +1553,11 @@ DListElmt * SUMA_RegisterEngineListCommand (
          break;
          
       case SEF_iv3:
-         if (EngineData->iv3_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
-            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->iv3_Dest);
+         if (EngineData->iv3_Dest != SEF_Empty) {  /* Make sure the data in 
+                                                this field in not predestined */
+            fprintf(SUMA_STDERR, 
+                    "Error %s: field %d has a preset destination (%d).\n", 
+                    FuncName, Fld, EngineData->iv3_Dest);
             SUMA_RETURN (NULL);
          }
          { /* assign by value */
@@ -3270,7 +3274,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
    ps->N_DO = 0;
    for (i=0; i<SUMA_MAX_DO_ON_COMMAND; ++i) {
       ps->DO_name[i]=NULL;
-      ps->DO_type[i] = type_not_set;
+      ps->DO_type[i] = NOT_SET_type;
    }
    
    for (i=0; i< SUMA_N_ARGS_MAX; ++i) {
@@ -3397,6 +3401,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 " Specifying displayable objects:\n"
 "    -gdset GDSET: Load and display a graph dataset\n"
 "    -tract TRACT: Load and display a tractography dataset\n"      
+"    -vol VOL: Load and display a volume\n"      
       );
    }
 
@@ -4039,9 +4044,12 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
       if (!brk && ps->accept_do) {
         if (!brk && 
                (  (strcmp(argv[kar], "-tract") == 0) ||
-                  (strcmp(argv[kar], "-gdset") == 0)    )) {
+                  (strcmp(argv[kar], "-gdset") == 0) ||
+                  (strcmp(argv[kar], "-vol") == 0)   ||
+                  (strcmp(argv[kar], "-mask") == 0) )) {
 			   if (kar+1 >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 1 argument after -tract/-gdset \n");
+		  		   fprintf (SUMA_STDERR,
+                        "need 1 argument after -tract/-gdset/-vol \n");
 				   exit (1);
 			   }
             do {
@@ -4049,7 +4057,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                /* do we have a - as the first char ? */
                if (argv[kar][0] == '-') {
                   fprintf (SUMA_STDERR,
-                           "no option should directly follow -tract/-gdset \n");
+                       "no option should directly follow -tract/-gdset/-vol \n");
 				      exit (1);
                }
 			      if (ps->N_DO+1 < SUMA_MAX_DO_ON_COMMAND) {
@@ -4058,7 +4066,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                      ps->DO_type[ps->N_DO] = TRACT_type;
                   }  else if ((strcmp(argv[kar-1], "-gdset") == 0)) {
                      ps->DO_type[ps->N_DO] = SDSET_type;
-                  }  else {
+                  }  else if ((strcmp(argv[kar-1], "-vol") == 0)) {
+                     ps->DO_type[ps->N_DO] = VO_type;
+                  } else if ((strcmp(argv[kar-1], "-mask") == 0)) {
+                     ps->DO_type[ps->N_DO] = MASK_type;
+                  } else {
                      SUMA_S_Errv("Not set to handle type%s\n",argv[kar-1]);
                      exit(1);
                   }

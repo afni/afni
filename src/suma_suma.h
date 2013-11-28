@@ -126,19 +126,20 @@
    #define SUMA_SL_Crit SUMA_S_Crit
    #define SUMA_L_Crit SUMA_S_Crit
    
-   #define SUMA_LH(msg) {\
-      if (LocalHead) \
-         fprintf (SUMA_STDERR, "##      %s (%s:%d):\n %s\n", \
-                               FuncName, __FILE__, __LINE__, msg);  \
-   }
-   
-   #define SUMA_LHv(msg, ...) {\
+   #define SUMA_LHv( ... ) {\
       if (LocalHead) {  \
          fprintf (SUMA_STDERR, "##      %s (%s:%d):\n", \
                                FuncName, __FILE__, __LINE__);  \
-         fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+         fprintf (SUMA_STDERR, __VA_ARGS__);  \
       }  \
    }
+   #define SUMA_LH( ... ) {\
+      if (LocalHead) {\
+         SUMA_LHv(__VA_ARGS__);  \
+         fprintf (SUMA_STDERR, "\n");  \
+      }  \
+   }
+   
    
    #define TLH(v) {\
       if (v) { LocalHead = v; SUMA_LH("LocalHead Temp ON"); } \
@@ -146,50 +147,52 @@
    }
    
    #ifdef SUMA_noFunc
-     #define SUMA_S_Warn(msg) {\
-      fprintf (SUMA_STDERR, "Warning: %s\n", msg);  \
+     #define SUMA_S_Warn(...) {\
+      fprintf (SUMA_STDERR, "Warning:\n");  \
+      fprintf (SUMA_STDERR , __VA_ARGS__);  \
      }
    #else
-     #define SUMA_S_Warn(msg) {\
-      fprintf (SUMA_STDERR, "Warning %s:\n %s\n", FuncName, msg);  \
+     #define SUMA_S_Warn(...) {\
+      fprintf (SUMA_STDERR, "Warning %s:\n ", FuncName);  \
+      fprintf (SUMA_STDERR , __VA_ARGS__);  \
+      fprintf (SUMA_STDERR , "\n"); \
      }
    #endif
 
-   #define SUMA_S_Warnv(msg,...) {\
+   #define SUMA_S_Warnv(...) {\
       fprintf (SUMA_STDERR, "Warning %s:\n", FuncName);  \
-      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+      fprintf (SUMA_STDERR, __VA_ARGS__);  \
    } 
    
-   #define SUMA_S_Note(msg) {\
-      fprintf (SUMA_STDERR, "Notice %s:\n %s\n", FuncName, msg);  \
-   }
-   #define SUMA_S_Notev(msg,...) {\
+   #define SUMA_S_Notev(...) {\
       fprintf (SUMA_STDERR, "Notice %s:\n", FuncName);  \
-      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+      fprintf (SUMA_STDERR , __VA_ARGS__);  \
    }
-      
-   #define SUMA_S_Err(msg) {\
-      fprintf (SUMA_STDERR, "Error %s (%s:%d):\n %s\n", \
-                            FuncName, __FILE__, __LINE__, msg);  \
+   #define SUMA_S_Note(...) {\
+      SUMA_S_Notev(__VA_ARGS__);  \
+      fprintf (SUMA_STDERR, "\n");  \
    }
 
-   #define SUMA_S_Errv(msg,...) {\
+   #define SUMA_S_Errv(...) {\
       fprintf (SUMA_STDERR, "Error %s (%s:%d):\n", \
                             FuncName, __FILE__, __LINE__);  \
-      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+      fprintf (SUMA_STDERR, __VA_ARGS__);  \
+   }
+   #define SUMA_S_Err(...) {\
+      SUMA_S_Errv(__VA_ARGS__);  \
+      fprintf (SUMA_STDERR, "\n");  \
    }
    
-   #define SUMA_S_Crit(msg) {\
-      fprintf (SUMA_STDERR, "Critical error %s (%s:%d):\n %s\n", \
-                            FuncName, __FILE__, __LINE__, msg);  \
-   }
-    
-   #define SUMA_S_Critv(msg,...) {\
+   #define SUMA_S_Critv( ... ) {\
       fprintf (SUMA_STDERR, "Critical error %s (%s:%d):\n", \
                             FuncName, __FILE__, __LINE__);  \
-      fprintf (SUMA_STDERR, msg , __VA_ARGS__);  \
+      fprintf (SUMA_STDERR, __VA_ARGS__);  \
    }
-
+   #define SUMA_S_Crit(...) {\
+      SUMA_S_Critv(__VA_ARGS__);\
+      fprintf (SUMA_STDERR,"\n");   \
+   }
+    
 
 #endif
 

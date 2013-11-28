@@ -564,6 +564,60 @@ SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si,
    SUMA_RETURN(YUP);
 }
 
+/*
+   Return label for Overlay from AFNI 
+*/
+char *SUMA_AfniOverlayLabel(SUMA_ALL_DO *ado, int num)
+{
+   static char FuncName[]={"SUMA_AfniOverlayLabel"};
+   static char scc[10][64];
+   static int ncall=0;
+   char *cc=NULL;
+   
+   SUMA_ENTRY;
+   
+   ++ncall;
+   if (ncall > 9) ncall = 0;
+   cc = scc[ncall];
+   cc[0] = '\0';
+   
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         switch (SO->Side) {
+            case SUMA_LEFT:   
+               snprintf(cc,63,"lh.FuncAfni_%02d",num);
+               break;
+            case SUMA_RIGHT:
+               snprintf(cc,63,"rh.FuncAfni_%02d",num);
+               break;
+            default:
+               snprintf(cc,63,"FuncAfni_%02d",num);
+               break;
+         }
+         break; }
+      case TRACT_type: {
+         snprintf(cc,63,"TR.%s.FuncAfni_%02d", 
+                  SUMA_ADO_sLabel(ado), num);
+         break; }
+      case MASK_type: {
+         snprintf(cc,63,"MS.%s.FuncAfni_%02d", 
+                  SUMA_ADO_sLabel(ado), num);
+         break; }
+      case VO_type: {
+         snprintf(cc,63,"VO.%s.FuncAfni_%02d", 
+                  SUMA_ADO_sLabel(ado), num);
+         break; }
+      default:
+         SUMA_S_Err("No Afni Overlay Label for %s\n",
+                   SUMA_ADO_sLabel(ado)); 
+         snprintf(cc,63,"Errific");
+         break;
+   }
+   
+   SUMA_RETURN(cc);        
+}
+
 /*----------------------------------------------------------------------*/
 /*! Process NIML data.  
 ------------------------------------------------------------------------*/
@@ -589,6 +643,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_NEW_SO_OPT *nsoopt=NULL;
    SUMA_Boolean Empty_irgba = NOPE,  Found = NOPE;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_ALL_DO *ado=NULL;
    SUMA_SurfaceViewer *svi = NULL;
    SUMA_OVERLAYS * tmpptr; 
    GLfloat *glar_ColorList = NULL;
@@ -1236,11 +1291,16 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          } 
 
-         SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
-         if (!SO) {
+         ado = SUMA_whichADO(nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
+         if (!ado) {
             fprintf( SUMA_STDERR,
                      "Error %s:%s: nel idcode is not found in DOv.\n", 
                      FuncName, nel->name);
+            SUMA_RETURN(NOPE);
+         }
+         if (ado->do_type != SO_type && ado->do_type != TRACT_type) {
+            SUMA_S_Err("Not ready to receive stuff for %s, only surfs and tracts"
+                       , SUMA_ADO_Label(ado));
             SUMA_RETURN(NOPE);
          }
 
@@ -1263,6 +1323,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             division by is no longer necessary.
          */
          sopd.DimFact = SUMA_DIM_AFNI_COLOR_FACTOR;
+         sopd.dtlvl = SUMA_ELEM_DAT;
+         
          if (!Empty_irgba) {
             sopd.i = (void *)nel->vec[0];
             sopd.r = (void *)nel->vec[1];
@@ -1275,43 +1337,44 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             sopd.N = 0;
          }
 
-         if (!SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, 
-                                        "FuncAfni_0", &itmp)) {
+         if (!SUMA_Fetch_OverlayPointer(ado, 
+                        SUMA_AfniOverlayLabel(ado, 0), &itmp)) {
             /* first timer, pop it up */
             popit = 1;
          } else popit = 0;
          
-         if (!SUMA_iRGB_to_OverlayPointer (  SO, "FuncAfni_0", &sopd, &OverInd, 
+         if (!SUMA_iRGB_to_OverlayPointer (  ado, 
+                                             SUMA_AfniOverlayLabel(ado, 0), 
+                                             &sopd, &OverInd, 
                                              SUMAg_DOv, SUMAg_N_DOv, 
                                              SUMAg_CF->DsetList)) {
             SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
             SUMA_RETURN(NOPE);
          }
          if (popit) {
-            ColPlane = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, 
-                                                 "FuncAfni_0",&itmp);
+            ColPlane = SUMA_Fetch_OverlayPointer(ado, 
+                                          SUMA_AfniOverlayLabel(ado, 0),&itmp);
             if (!ColPlane) {
-               SUMA_S_Errv("Failed to find dset %s\n", 
-                           "FuncAfni_0"); 
+               SUMA_S_Err("Failed to find dset %s", 
+                           SUMA_AfniOverlayLabel(ado, 0)); 
             } else {
                if (LocalHead) 
                   fprintf (SUMA_STDERR,
                            "%s: Retrieved ColPlane named %s\n", 
                            FuncName, ColPlane->Name);
-               SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SO, ColPlane);
-               SUMA_UpdateColPlaneShellAsNeeded((SUMA_ALL_DO *)SO); 
+               SUMA_InitializeColPlaneShell(ado, ColPlane);
+               SUMA_UpdateColPlaneShellAsNeeded(ado); 
                               /* update other open ColPlaneShells */
                /* If you're viewing one plane at a time, do a remix */
-               if (SO->SurfCont->ShowCurForeOnly) 
-                  SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+               if (SUMA_ADO_ShowCurForeOnly(ado)) SUMA_RemixRedisplay(ado);
             }
          }
          /* register a color remix request */
          if (LocalHead) 
             fprintf( SUMA_STDERR, 
-                     "%s: Setting Remix Flag for all related surfaces. ...\n", 
+                     "%s: Setting Remix Flag for all related objects. ...\n", 
                      FuncName);
-         if(!SUMA_SetRemixFlag (SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
+         if(!SUMA_SetRemixFlag (SUMA_ADO_idcode(ado), SUMAg_SVv, SUMAg_N_SVv)) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed in SUMA_SetRemixFlag.\n", FuncName);
             SUMA_RETURN(NOPE);
@@ -1902,14 +1965,21 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    NI_add_column( nel , NI_FLOAT , yc ) ; SUMA_free(yc) ;
    NI_add_column( nel , NI_FLOAT , zc ) ; SUMA_free(zc) ;
 
-   if (SO->VolPar) NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
+   if (SO->VolPar) {
+      NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
+      NI_set_attribute (nel, "volume_filecode", SO->VolPar->filecode);
+      NI_set_attribute (nel, "volume_headname", SO->VolPar->headname);
+      NI_set_attribute (nel, "volume_dirname", SO->VolPar->dirname);
+   }
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
    NI_set_attribute (nel, "local_domain_parent", SO->LocalDomainParent);
-   if (SO->SpecFile.FileName) NI_set_attribute (nel, "surface_specfile_name", SO->SpecFile.FileName);
+   if (SO->SpecFile.FileName) 
+      NI_set_attribute (nel, "surface_specfile_name", SO->SpecFile.FileName);
    else NI_set_attribute (nel, "surface_specfile_name", "Unknown");
-   if (SO->SpecFile.Path) NI_set_attribute (nel, "surface_specfile_path", SO->SpecFile.Path);
+   if (SO->SpecFile.Path) 
+      NI_set_attribute (nel, "surface_specfile_path", SO->SpecFile.Path);
    else NI_set_attribute (nel, "surface_specfile_path", "Unknown");
    
    SUMA_RETURN (nel);
@@ -1984,6 +2054,9 @@ NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
    NI_add_column( nel , NI_FLOAT , zc ) ; SUMA_free(zc) ;
 
    NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
+   NI_set_attribute (nel, "volume_headname", SO->VolPar->headname);
+   NI_set_attribute (nel, "volume_filecode", SO->VolPar->filecode);
+   NI_set_attribute (nel, "volume_dirname", SO->VolPar->dirname);
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
@@ -2086,9 +2159,10 @@ SUMA_Boolean SUMA_nel_stdout (NI_element *nel)
 NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_makeNI_CrossHair"};
-   NI_element *nel;
+   NI_element *nel=NULL;
    float *XYZmap;
-   int I_C = -1;
+   int I_C = -1, ip, iv4[4];
+   SUMA_ALL_DO *ado = NULL;
    SUMA_SurfaceObject *SO;
    
    SUMA_ENTRY;
@@ -2102,45 +2176,104 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
       SUMA_RETURN (NULL);
    }
 
-   if (!(SO = SUMA_SV_Focus_SO(sv))) {
-      SUMA_S_Err("no focus so");
-      SUMA_RETURN (NULL);
-   }
+   if (!(ado=SUMA_SV_Focus_ADO(sv))) SUMA_RETURN(NULL);
    
-   I_C = SO->SelectedNode;
-   XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c_noVisX, SO, 
-                             SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);
-   
-   if (XYZmap == NULL){
-      fprintf( SUMA_STDERR,
-               "%s: Linkage is not posible, using current XYZ\n", FuncName);
-      XYZmap = (float *)SUMA_calloc (3, sizeof(float));
-      if (XYZmap == NULL) {
-         fprintf (SUMA_STDERR, "Error %s: Give me a break !\n", FuncName);
-         SUMA_RETURN (NULL); 
-      }
-      XYZmap[0] = sv->Ch->c[0];
-      XYZmap[1] = sv->Ch->c[1];
-      XYZmap[2] = sv->Ch->c[2];
-   }
-   
-   /* make a new data element */
-   nel = NI_new_data_element( "SUMA_crosshair_xyz" , 3) ;
-   
-   if (!nel) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel\n", FuncName);
-      SUMA_RETURN (NULL);
-   }
-   
-   /* add some info about surface in question */
-   NI_SETA_INT(nel, "surface_nodeid", SO->SelectedNode);
-   NI_set_attribute( nel, "surface_idcode", SO->idcode_str);
-   NI_set_attribute( nel, "surface_label", SO->Label);
-   
-   NI_add_column( nel , NI_FLOAT , XYZmap );
-   
-   if (XYZmap) SUMA_free(XYZmap);
+   switch(ado->do_type) {
+      case SO_type:
+         SO = (SUMA_SurfaceObject *)ado;
+         I_C = SO->SelectedNode;
+         XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c_noVisX, SO, 
+                                   SUMAg_DOv, SUMAg_N_DOv, &I_C, 0);
 
+         if (XYZmap == NULL){
+            SUMA_S_Err("Linkage is not posible, using current XYZ");
+            XYZmap = (float *)SUMA_calloc (3, sizeof(float));
+            if (XYZmap == NULL) {
+               SUMA_S_Err("Give me a break !");
+               SUMA_RETURN (NULL); 
+            }
+            XYZmap[0] = sv->Ch->c[0];
+            XYZmap[1] = sv->Ch->c[1];
+            XYZmap[2] = sv->Ch->c[2];
+         }
+
+         /* make a new data element */
+         if (!(nel= NI_new_data_element( "SUMA_crosshair_xyz" , 3))) {
+            SUMA_S_Err("Failed to allocate for nel");
+            SUMA_RETURN (NULL);
+         }
+
+         /* add some info about surface in question */
+         NI_SETA_INT(nel, "surface_nodeid", SO->SelectedNode);
+         NI_set_attribute( nel, "surface_idcode", SO->idcode_str);
+         NI_set_attribute( nel, "surface_label", SO->Label);
+
+         NI_add_column( nel , NI_FLOAT , XYZmap );
+
+         if (XYZmap) SUMA_free(XYZmap);
+         break;
+      case TRACT_type:
+         if (!(nel= NI_new_data_element( "SUMA_crosshair_xyz" , 3))) {
+            SUMA_S_Err("Failed to allocate for nel");
+            SUMA_RETURN (NULL);
+         }
+
+         /* add some info about surface in question */
+         ip = SUMA_ADO_SelectedDatum(ado, (void *)iv4);
+         NI_SETA_INT(nel, "network_pointid", ip);
+         NI_SETA_INT(nel, "net_bundle_id", iv4[SUMA_NET_BUN]);
+         NI_SETA_INT(nel, "bundle_tract_id", iv4[SUMA_BUN_TRC]);
+         NI_SETA_INT(nel, "tract_point_id", iv4[SUMA_TRC_PNT]);
+         NI_SETA_INT(nel, "net_tract_id", iv4[SUMA_NET_TRC]);
+         NI_set_attribute(nel, "network_idcode", ADO_ID(ado));
+         NI_set_attribute(nel, "surface_label", ADO_LABEL(ado));
+
+         NI_add_column( nel , NI_FLOAT , sv->Ch->c_noVisX );
+         break;
+      case MASK_type:
+         if (!(nel= NI_new_data_element( "SUMA_crosshair_xyz" , 3))) {
+            SUMA_S_Err("Failed to allocate for nel");
+            SUMA_RETURN (NULL);
+         }
+
+         /* add some info about surface in question */
+         ip = SUMA_ADO_SelectedDatum(ado, (void *)iv4);
+         NI_add_column( nel , NI_FLOAT , sv->Ch->c_noVisX );
+         break;
+      case SDSET_type:
+         break;
+      case GRAPH_LINK_type:
+         if (strcmp(SUMA_ADO_variant(ado),"G3D")) break;
+         if (!(nel= NI_new_data_element( "SUMA_crosshair_xyz" , 3))) {
+            SUMA_S_Err("Failed to allocate for nel");
+            SUMA_RETURN (NULL);
+         }
+
+         /* add some info about object in question */
+         ip = SUMA_ADO_SelectedDatum(ado, NULL);
+         NI_SETA_INT(nel, "edge_id", ip);
+         NI_set_attribute(nel, "graph_idcode", ADO_ID(ado));
+         NI_set_attribute(nel, "graph_label", ADO_LABEL(ado));
+
+         NI_add_column( nel , NI_FLOAT , sv->Ch->c_noVisX );
+         break;
+      case VO_type:
+         if (!(nel= NI_new_data_element( "SUMA_crosshair_xyz" , 3))) {
+            SUMA_S_Err("Failed to allocate for nel");
+            SUMA_RETURN (NULL);
+         }
+
+         /* add some info about object in question */
+         ip = SUMA_ADO_SelectedDatum(ado, NULL);
+         NI_SETA_INT(nel, "voxel_id", ip);
+         NI_set_attribute(nel, "volume_idcode", ADO_ID(ado));
+         NI_set_attribute(nel, "volume_label", ADO_LABEL(ado));
+
+         NI_add_column( nel , NI_FLOAT , sv->Ch->c_noVisX );
+         break;
+      default:
+         break;
+   }
    SUMA_RETURN (nel);
 }
 
@@ -2164,12 +2297,25 @@ SUMA_Boolean SUMA_CanTalkToAfni (SUMA_DO *dov, int N_dov)
    SUMA_ENTRY;
    
    for (i=0; i< N_dov; ++i) {
-      if (SUMA_isSO(dov[i])) {
-         SO = (SUMA_SurfaceObject *)(dov[i].OP);
-         if (SO->LocalDomainParentID != NULL && SO->VolPar != NULL) {
-            SUMA_RETURN (YUP);
-         }
-      } 
+      switch (dov[i].ObjectType) {
+         case SO_type:
+            SO = (SUMA_SurfaceObject *)(dov[i].OP);
+            if (SO->LocalDomainParentID != NULL && SO->VolPar != NULL) {
+               SUMA_RETURN (YUP);
+            }
+            break;
+         case VO_type:
+         case MASK_type:
+         case TRACT_type:
+            SUMA_RETURN(YUP);
+            break;
+         case SDSET_type:
+            break;
+         case GRAPH_LINK_type:
+            if (iDO_is_variant(i, "G3D")) SUMA_RETURN(YUP);
+            break;
+      }
+       
    }
    
    SUMA_RETURN (NOPE);
@@ -3324,6 +3470,10 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
    tmp = NI_get_attribute(nel, "filecode"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->VolPar->filecode = SUMA_copy_string(tmp);
    
+   tmp = NI_get_attribute(nel, "headname"); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->VolPar->headname = SUMA_copy_string(tmp);
+   
    tmp = NI_get_attribute(nel, "dirname"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->VolPar->dirname = SUMA_copy_string(tmp);
    
@@ -3433,6 +3583,9 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO,
    
    if (VolPar->filecode) NI_set_attribute(nel, "filecode", VolPar->filecode);
    else NI_set_attribute(nel, "filecode", SUMA_EMPTY_ATTR);
+   
+   if (VolPar->headname) NI_set_attribute(nel, "headname", VolPar->headname);
+   else NI_set_attribute(nel, "headname", SUMA_EMPTY_ATTR);
    
    if (VolPar->dirname) NI_set_attribute(nel, "dirname", VolPar->dirname);
    else NI_set_attribute(nel, "dirname", SUMA_EMPTY_ATTR);
@@ -3618,7 +3771,8 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val,
    /* map the values in val to the colormap */
 
    /* finally ! */
-   if (!SUMA_ScaleToMap (val, SO->N_Node, OptScl->IntRange[0], OptScl->IntRange[1], CM, OptScl, SV)) {
+   if (!SUMA_ScaleToMap (val, SO->N_Node, OptScl->IntRange[0], 
+                         OptScl->IntRange[1], CM, OptScl, SV)) {
       fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
       SUMA_RETURN (NOPE);
    }             

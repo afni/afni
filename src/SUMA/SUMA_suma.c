@@ -70,6 +70,86 @@ int * SUMA_disaster(void)
 
 #endif
 
+/*!
+   A toy function to identify windows on the root window.
+   This function can potentially be used to identify where
+   AFNI windows, for example, are taking screen space and 
+   have SUMA avoid overlapping with them.
+   The function needs much work. It is not terribly selective
+   about what it chases down. 
+   See command line  xwininfo -tree -root 
+   for full listing from command line, or xwininfo for
+   interactive queries.
+   For now, we let this rest.
+*/
+int SUMA_WindowsOnRootDisplay(Display *dd, Window ww, int all)
+{
+   static char FuncName[]={"SUMA_WindowsOnRootDisplay"};
+   Window rr, pr, *cr, jj;
+   XWindowAttributes wa;
+   unsigned int ncr, wr, hr, bwr, bhr;
+   int ii, xr, yr, showgeom=0;
+   char *wname=NULL, *sout=NULL;
+
+   /* tell me what windows are displayed and where */
+   if (XQueryTree(dd, 
+                   ww,
+                   &rr, &pr, &cr, &ncr)) {
+
+      if (all) fprintf(stderr,"Have %d childern in query\n", ncr);
+      for (ii=0; ii<ncr; ++ii) {
+          showgeom = 0;
+          XGetWindowAttributes(dd, cr[ii], &wa);
+          XTranslateCoordinates (dd, cr[ii], wa.root, 
+                  -wa.border_width,
+                  -wa.border_width,
+                  &xr, &yr, &jj);
+         if (XFetchName(dd, cr[ii], &wname)) { 
+            /* XGetWMName usage From source of xwininfo.c,
+               Not getting advantage over XFetchName for 
+               lots more hassle ....*/
+            if (wname) {
+               sout = SUMA_copy_string(wname);
+               XFree(wname);
+            } else sout = SUMA_copy_string("no name but fetch OK!");
+            if (strcasestr(sout,"afni") ||
+                strcasestr(sout,"suma") ) {
+                fprintf(stderr,"   brethren %d: %s\n", ii, sout);
+                showgeom=1;
+            } else {
+               if (all) {
+                  fprintf(stderr,"   furner %d: %s\n", ii, sout);
+                  showgeom=1;
+               }
+            }
+         } else {
+            if (all) {
+               fprintf(stderr,"   %d: (No name!)\n", ii);
+               showgeom = 1;
+            }
+         }
+         if (showgeom) {
+            fprintf(stderr,
+               "      abs Upper Left X Y %d %d, (rel UL %d %d) W H%d %d, \n", 
+                                    xr, yr, wa.x, wa.y, wa.width, wa.height);
+             /* 
+               Under alternative below, xr and yr are relative UL vals */ 
+             #if 0
+             if (XGetGeometry(dd, cr[ii], &rr,
+                              &xr, &yr, &wr, &hr, &bwr, &bhr)) {
+                fprintf(stderr,"       %d %d, %dx%d, %d %d\n", 
+                               xr, yr, wr, hr, bwr, bhr);     
+
+             }
+             #endif
+         }
+         if (sout) SUMA_free(sout); sout = NULL;
+         SUMA_WindowsOnRootDisplay(dd, cr[ii],all);
+      } 
+   }
+}
+
+
 void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    
   {/*Usage*/
@@ -144,6 +224,8 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 /*"   [-iodbg] Trun on the In/Out debug info from the start.\n"
 "   [-memdbg] Turn on the memory tracing from the start.\n" */    
 "   [-visuals] Shows the available glxvisuals and exits.\n"
+"   [-brethren_windows] For Testing Only. Show a listing of windows possibly \n"
+"                       related to AFNI and SUMA.\n" 
 "   [-version] Shows the current version number.\n"
 "   [-environment] Shows a list of all environment variables, \n"
 "                  their default setting and your current setting.\n"
@@ -219,7 +301,7 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
    Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
             SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
 
-   N_k = 12; /* Think of this number as the number of states, 
+   N_k = 13; /* Think of this number as the number of states, 
                rather than individual surfaces
                10 from isosurface (actually 9, number 6 is removed), 
                1 from HJS collection
@@ -322,6 +404,32 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
                      SUMA_BLANK_NEW_SPEC_SURF*/
             SOv[*N_SOv-1]->State = SUMA_copy_string("head_01");
             SOv[*N_SOv-1]->Label = SUMA_copy_string("La_Tete");
+            SOv[*N_SOv-1]->EmbedDim = 3;
+            SOv[*N_SOv-1]->AnatCorrect = YUP;
+            /* make this surface friendly for suma */
+            if (!SUMA_PrepSO_GeomProp_GL(SOv[*N_SOv-1])) {
+               SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+               SUMA_RETURN(NULL);
+            }
+            /* Add this surface to SUMA's displayable objects */
+            if (!SUMA_PrepAddmappableSO(SOv[*N_SOv-1], SUMAg_DOv, &(SUMAg_N_DOv),                                         0, SUMAg_CF->DsetList)) {
+               SUMA_S_Err("Failed to add mappable SOs ");
+               SUMA_RETURN(NULL);
+            }
+         }
+      } else if (ilist[k] == 12) { /* 12 is code for cube */
+         if ((SO = SUMA_cube_surface(100, NULL))) {
+            ++*N_SOv; 
+            SOv = (SUMA_SurfaceObject **) 
+                     SUMA_realloc(SOv, (*N_SOv)*sizeof(SUMA_SurfaceObject *));
+            SOv[*N_SOv-1]=SO;
+            /* assign its Group and State and Side and few other things, must 
+               look like surfaces loaded with SUMA_Load_Spec_Surf*/
+            SOv[*N_SOv-1]->Group = SUMA_copy_string(SUMA_DEF_TOY_GROUP_NAME); 
+                  /* change this in sync with string in macro 
+                     SUMA_BLANK_NEW_SPEC_SURF*/
+            SOv[*N_SOv-1]->State = SUMA_copy_string("Cube100");
+            SOv[*N_SOv-1]->Label = SUMA_copy_string("Le_Cube");
             SOv[*N_SOv-1]->EmbedDim = 3;
             SOv[*N_SOv-1]->AnatCorrect = YUP;
             /* make this surface friendly for suma */
@@ -477,6 +585,17 @@ int main (int argc,char *argv[])
       
       if (strcmp(argv[kar], "-visuals") == 0) {
 			 SUMA_ShowAllVisuals ();
+          exit (0);
+		}
+      
+      if (strcmp(argv[kar], "-brethren_windows") == 0) {
+			 Display *dd=NULL; Window ww;
+          if (!(dd = XOpenDisplay(NULL))) {
+            SUMA_S_Err("No display "); exit(1);
+          }
+          ww = XDefaultRootWindow(dd);
+          
+          SUMA_WindowsOnRootDisplay(dd, ww , 0);
           exit (0);
 		}
       
@@ -955,8 +1074,6 @@ int main (int argc,char *argv[])
 " See details for -environment and -update_env options in suma -help's output.\n"
 "\n");
    }
-
- 
    
 	/*Main loop */
 	XtAppMainLoop(SUMAg_CF->X->App);

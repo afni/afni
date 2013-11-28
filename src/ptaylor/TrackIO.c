@@ -35,7 +35,7 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
                                TAYLOR_TRACT *tracts_buff)
 {
    TAYLOR_BUNDLE *tb=NULL;
-   int nn;
+   int nn, tinb;
    TAYLOR_TRACT *tt=NULL;
    
    ENTRY("AppCreateBundle");
@@ -44,18 +44,25 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
       tb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
       tb->N_allocated = 0;
       tb->N_tracts = 0;
+      tb->N_points_private = -1;
+      tb->tract_P0_offset_private = NULL;
    } else {
       tb = tbu;
+      tb->N_points_private = -1; /* reset so that this will get recomputed
+                            when Bundle_N_points gets called */
    }
    while (N_tractsbuf > tb->N_allocated - tb->N_tracts) {
       tb->N_allocated += 1000;
       tb->tracts = (TAYLOR_TRACT*)realloc(tb->tracts,
                                           tb->N_allocated*sizeof(TAYLOR_TRACT));
+      tb->tract_P0_offset_private = (int *)realloc(tb->tract_P0_offset_private,
+                                          tb->N_allocated*sizeof(int));;
    }
    
    if (tracts_buff && N_tractsbuf > 0) {
       for (nn=0; nn<N_tractsbuf; ++nn) {
-         tt = tb->tracts+nn+tb->N_tracts; 
+         tinb = nn+tb->N_tracts;
+         tt = tb->tracts+tinb; 
          tt->id = tracts_buff[nn].id;
          tt->N_pts3 = tracts_buff[nn].N_pts3;
          tt->pts = (float *)calloc(tt->N_pts3, sizeof(float));
@@ -64,6 +71,9 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
 						  nn, tt->id, TRACT_NPTS(tt), tracts_buff[nn].pts);
          }
          memcpy(tt->pts, tracts_buff[nn].pts, tt->N_pts3*sizeof(float));
+         if (tinb == 0) tb->tract_P0_offset_private[tinb] = 0;
+         else tb->tract_P0_offset_private[tinb] = 
+                  tb->tract_P0_offset_private[tinb-1]+tt->N_pts3/3;
       }
       tb->N_tracts += N_tractsbuf;
    } 
@@ -209,6 +219,7 @@ TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb)
    
    if (!tb) RETURN(NULL);
    tb->tracts = Free_Tracts(tb->tracts, tb->N_tracts);
+   if (tb->tract_P0_offset_private) free(tb->tract_P0_offset_private);
    free(tb);
    RETURN(NULL);
 }
@@ -310,44 +321,256 @@ void Show_Taylor_Network(TAYLOR_NETWORK *net, FILE *out,
    EXRETURN;
 }
 
-
-int Network_N_points(TAYLOR_NETWORK *net)
+int Bundle_N_points(TAYLOR_BUNDLE *bun, byte recalc)
 {
-   int nb, ib=0, nn=-1, it;
+   int it, nn;
    
-   if (!net) return(-1);
-   nn = 0;
-   for (ib=0; ib<net->N_tbv; ++ib) {
-      if (net->tbv[ib]) {
-         for (it=0; it<net->tbv[ib]->N_tracts; ++it) {
-            nn += net->tbv[ib]->tracts[it].N_pts3;
-         }
-      } 
+   if (!bun) return(-1);
+   if (!recalc && bun->N_points_private > 0) return(bun->N_points_private);
+   for (it=0, nn=0; it<bun->N_tracts; ++it) {
+      nn += bun->tracts[it].N_pts3;
    }
    nn /= 3;
+   bun->N_points_private = nn;
    return(nn);
 }
 
-int Network_N_tracts(TAYLOR_NETWORK *net)
+int Network_N_points(TAYLOR_NETWORK *net, byte recalc)
 {
    int nb, ib=0, nn=-1, it;
    
    if (!net) return(-1);
+   if (!recalc && net->N_points_private > 0) return(net->N_points_private);
+   nn = 0;
+   for (ib=0; ib<net->N_tbv; ++ib) {
+      if (net->tbv[ib]) {
+         nb = 0;
+         for (it=0; it<net->tbv[ib]->N_tracts; ++it) {
+            nb += net->tbv[ib]->tracts[it].N_pts3;
+         }
+         net->tbv[ib]->N_points_private = nb/3;
+         nn += nb;
+      } 
+   }
+   nn /= 3;
+   net->N_points_private = nn;
+   return(nn);
+}
+
+int Network_N_tracts(TAYLOR_NETWORK *net, byte recalc)
+{
+   int nb, ib=0, nn=-1, it;
+   
+   if (!net) return(-1);
+   if (!recalc && net->N_tracts_private > 0) return(net->N_tracts_private);
    nn = 0;
    for (ib=0; ib<net->N_tbv; ++ib) {
       if (net->tbv[ib]) {
          nn += net->tbv[ib]->N_tracts;
       } 
    }
-
+   net->N_tracts_private = nn;
    return(nn);
 }
 
+int Network_Max_tract_length(TAYLOR_NETWORK *net, byte recalc,
+                             int *t, int *b)
+{
+   int ib, it;
+   
+   if (!net) return(-1);
+   if (!recalc && net->Longest_tract_length_private > 0) {
+      if (t) *t = net->Longest_tract_index_in_bundle_private;
+      if (b) *b = net->Longest_tract_bundle_index_in_network_private;
+      return(net->Longest_tract_length_private);
+   }
+   net->Longest_tract_length_private = 0;
+   for (ib=0; ib<net->N_tbv; ++ib) {
+      for (it=0; it<net->tbv[ib]->N_tracts; ++it) {
+         if (net->tbv[ib]->tracts[it].N_pts3 > 
+             net->Longest_tract_length_private) {
+            net->Longest_tract_length_private = net->tbv[ib]->tracts[it].N_pts3;
+            net->Longest_tract_index_in_bundle_private = it;
+            net->Longest_tract_bundle_index_in_network_private = ib;
+         }
+      }
+   }
+   net->Longest_tract_length_private /= 3;
+   
+   if (t) *t = net->Longest_tract_index_in_bundle_private;
+   if (b) *b = net->Longest_tract_bundle_index_in_network_private;
+   return(net->Longest_tract_length_private);
+}
 
 int Network_N_bundles(TAYLOR_NETWORK *net)
 {
    if (!net) return(-1);
    return(net->N_tbv);
+}
+
+int Network_PTB_to_1P(TAYLOR_NETWORK *net, int p, int t, int b)
+{
+   int PP, it, ip, ib;
+   
+   ENTRY("Network_PTB_to_1P");
+   
+   if (!net || p<0 || t<0 || b<0) RETURN(-1);
+   
+   #if 0
+   fprintf(stderr,"P %d, T %d, B %d, \n"
+                  "N_bundlesNet=%d, N_tractsBundle=%d, N_pointsTract %d\n",
+                  p, t, b, b<net->N_tbv ? net->N_tbv:-1,
+           (b<net->N_tbv) ? net->tbv[b]->N_tracts:-1,
+           (b<net->N_tbv && t<net->tbv[b]->N_tracts) ? 
+                                          net->tbv[b]->tracts[t].N_pts3/3 : -1);
+   #endif
+   
+   if (b>=net->N_tbv) RETURN(-1);
+   
+   if (t>=net->tbv[b]->N_tracts) RETURN(-1);
+   
+   if ((3*p)>=net->tbv[b]->tracts[t].N_pts3) RETURN(-1);
+   
+   PP = 0;
+   for (ib=0; ib<b; ++ib) {
+      PP += Bundle_N_points(net->tbv[ib], 0);
+   }
+   if (!net->tbv[b]->tract_P0_offset_private) {
+      for (it=0; it<t; ++it) {
+         PP += (net->tbv[b]->tracts[it].N_pts3/3);
+      }
+   } else {
+      /* use the precomputed offsets */
+      if (t > 0) PP += net->tbv[b]->tract_P0_offset_private[t-1];
+   }
+   PP += p;
+   
+   RETURN(PP);
+}
+
+int Network_TB_to_1T(TAYLOR_NETWORK *net, int t, int b)
+{
+   int it, ib, l1=0;
+   
+   ENTRY("Network_TB_to_1T");
+   
+   if (!net || b<0 || t<0) RETURN(-1);
+   
+   #if 0
+   fprintf(stderr,"T %d, B %d, \n"
+                  "N_bundlesNet=%d, N_tractsBundle=%d, N_pointsTract %d\n",
+                  t, b, b<net->N_tbv ? net->N_tbv:-1,
+           (b<net->N_tbv) ? net->tbv[b]->N_tracts:-1,
+           (b<net->N_tbv && t<net->tbv[b]->N_tracts) ? 
+                                          net->tbv[b]->tracts[t].N_pts3/3 : -1);
+   #endif
+   
+   if (b>=net->N_tbv) RETURN(-1);
+   
+   if (t>=net->tbv[b]->N_tracts) RETURN(-1);
+      
+   l1 = 0;
+   for (ib=0; ib<b; ++ib) {
+      l1 += net->tbv[ib]->N_tracts;
+   }
+   l1 += t;
+   
+   RETURN(l1);
+}
+
+int Network_1T_to_TB(TAYLOR_NETWORK *net, int TT, int *t, int *b, 
+                     int *PP0, int *PP1)
+{
+   int ib;
+   
+   ENTRY("Network_1T_to_TB");
+   
+   if (!net || TT < 0) RETURN(-1);
+   
+   ib = 0;
+   while (ib < net->N_tbv && net->tbv[ib]->N_tracts <= TT) {
+      TT -= net->tbv[ib]->N_tracts;
+      ++ib;
+   }
+   if (ib >= net->N_tbv) RETURN(-1);
+   
+   /* We are in bundle ib, tract TT within ib */
+   if (b) *b = ib; if (t) *t = TT;
+   
+   /* what is the 1st and last point (indexed into the network) of that tract? */
+   if (PP0) {
+      #if 1
+      *PP0 = Network_PTB_to_1P(net, 0, TT, ib);    
+      #else /* No speed up, don't bother */
+      int kb;
+      for (kb = 0, *PP0 =0; kb< ib; ++kb) 
+         *PP0 += Bundle_N_points(net->tbv[ib], 0);
+      for (kb=0; kb<TT; ++kb) *PP0 += net->tbv[ib]->tracts[kb].N_pts3/3;
+      #endif
+      if (PP1) *PP1 = *PP0+(net->tbv[ib]->tracts[TT].N_pts3/3 - 1);
+   }
+   RETURN(1);
+}
+
+int Network_1B_to_1P(TAYLOR_NETWORK *net, int BB, int *PP1)
+{
+   int ib, PP0;
+   
+   ENTRY("Network_1B_to_Prange");
+   
+   if (!net || BB < 0 || BB >= net->N_tbv) RETURN(-1);
+   
+   ib = PP0 = 0;
+   while (ib < BB) {
+      PP0 += Bundle_N_points(net->tbv[ib], 0);
+      ++ib;
+   }
+   
+   if (PP1) *PP1 = PP0 + Bundle_N_points(net->tbv[BB], 0)-1;
+   
+   RETURN(PP0);
+}
+
+/* Go from point index into the whole network to 
+ (bundle in network, tract in bundle, point in tract)
+ and if l1u is not NULL, return the index into the whole
+ network of the tract containing the point index.
+ The latter index is useful for retrieving data stored
+ per tract, rather than per point (SUMA_LEV1_DAT). */
+int Network_1P_to_PTB(TAYLOR_NETWORK *net, int PP, 
+                      int *p, int *t, int *b, int *l1u)
+{
+   int ib, bnp, it, tnp, l1;
+   
+   ENTRY("Network_1P_to_PTB");
+   
+   if (!net || PP<0) RETURN(-1);
+
+   ib = l1 = 0;
+   while (ib < net->N_tbv && ((bnp = Bundle_N_points(net->tbv[ib], 0)) <= PP)) {
+      PP -= bnp;
+      l1 += net->tbv[ib]->N_tracts;
+      ++ib;
+   }
+   if (ib >= net->N_tbv) RETURN(-1);
+   
+   /* We're in bundle ib, get tract in question */
+   it = 0;
+   while (it < net->tbv[ib]->N_tracts && 
+          ((tnp = net->tbv[ib]->tracts[it].N_pts3/3) <= PP)) {
+      PP -= tnp;
+      ++it;
+   } 
+   if (it >= net->tbv[ib]->N_tracts) RETURN(-1);
+   l1 += it; /* Tract index (into whole network) */
+   
+   *p = PP;
+   *t = it;
+   *b = ib;
+   
+   if (l1u) *l1u= l1;
+   
+   RETURN(1);   
 }
 
 NI_element *Tract_2_NIel(TAYLOR_TRACT *tt)
@@ -534,7 +757,10 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
    if (!strcmp(ngr->name,"bundle") ||/* old style */
        !strcmp(ngr->name,"network") ) { 
       net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
+      net->N_points_private = -1;
+      net->N_tracts_private = -1;
       tbb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
+      tbb->N_points_private = -1;
       for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
          switch( ngr->part_typ[ip] ){
 			case NI_GROUP_TYPE:
@@ -595,6 +821,7 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
    if (!network) {
       net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
       net->N_allocated = -1;
+      net->N_points_private = -1;
       if (grid) {
          snprintf(net->atlas_space,64*sizeof(char),"%s", grid->atlas_space);
       } else {
@@ -602,6 +829,7 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
       }      
    } else { 
       net = network;
+      net->N_points_private = -1; /* uninitialize so that it gets reset later */
    }
    
    if (net->N_allocated <= 0 || net->N_tbv >= net->N_allocated) {
@@ -1084,3 +1312,4 @@ int SimpleWriteDetNetTr(FILE *file, int ***idx, THD_3dim_dataset *FA,
 
   RETURN(1);
 }
+
