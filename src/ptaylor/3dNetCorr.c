@@ -13,8 +13,9 @@
 #include <mrilib.h>    
 #include <rsfc.h>    
 #include <3ddata.h>    
-#include "DoTrackit.h"
 #include <gsl/gsl_statistics_double.h>
+#include <gsl/gsl_rng.h>
+#include "DoTrackit.h"
 
 //#define MAX_SELROI (200) // can't have more than this in SELROI
 
