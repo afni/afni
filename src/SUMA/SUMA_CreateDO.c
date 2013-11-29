@@ -7052,7 +7052,7 @@ SUMA_Boolean SUMA_AddMaskSaux(SUMA_MaskDO *mdo)
    static char FuncName[]={"SUMA_AddMaskSaux"};
    SUMA_MASK_SAUX *MSaux;
    int j;
-   
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
    if (!mdo) {
@@ -7112,7 +7112,7 @@ SUMA_Boolean SUMA_AddMaskSaux(SUMA_MaskDO *mdo)
       MSaux->PR = SUMA_New_Pick_Result(NULL);
    }
 
-   SUMA_S_Note("MSaux %p %p %p", MSaux->Overlays, MSaux->PR, MSaux->DOCont);
+   SUMA_LH("MSaux %p %p %p", MSaux->Overlays, MSaux->PR, MSaux->DOCont);
    
    SUMA_DrawDO_UL_FullMonty(MSaux->DisplayUpdates);
    
