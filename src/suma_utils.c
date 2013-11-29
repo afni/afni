@@ -4099,7 +4099,9 @@ static ENV_SPEC envlist[] = {
       "sub-brick selectors.\n",
       "SUMA_ArrowFieldSelectorTrigger",
       "200" }, 
-   {  "Use symmetric Intensity range by default (YES or NO)\n",
+   {  "Use symmetric Intensity range at startup? Valid options are:\n"
+      " YES or NO: For your preference if no decision is made by the software\n"
+      " FYES or FNO: To force your preference and keep software from deciding\n",
       "SUMA_Sym_I_Range",
       "YES" }, 
    {  "Set auto Intensity range by default (YES or NO)\n",

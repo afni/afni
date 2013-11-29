@@ -437,7 +437,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
                             char **nam_yyy )
 {
    int ii , jj , np , nnax,nnay , mmax,mmay ;
-   float *xx , *yy=NULL ;
+   float *xx=NULL , *yy=NULL ;
    float xbot,xtop , ybot,ytop , pbot,ptop , xobot,xotop,yobot,yotop ;
    char str[32] ;
    int yall , ysep , ixtop ;

@@ -5773,12 +5773,13 @@ SUMA_Boolean SUMA_SetMouseMode(SUMA_SurfaceViewer *sv,
 {
    static char FuncName[]={"SUMA_SetMouseMode"};
    int ival;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    if (!sv) SUMA_RETURN(NOPE);   
    
-   SUMA_S_Note("Should this function handle cross hair modification?");
+   SUMA_LH("Should this function handle cross hair modification?");
    
    switch (mmode) {
       case SUMA_ROI_MMODE:

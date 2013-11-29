@@ -2614,11 +2614,12 @@ SUMA_Boolean SUMA_VO_InitCutPlanes(SUMA_VolumeObject *VO)
    */
 
 
-   SUMA_S_Note("The cut off points should be interactive\n"
+   SUMA_LH("The cut off points should be interactive\n"
                "so this next assignment should be done \n"
                "with each drawing operation.\n"
                "These default values, based on First and Last Voxel\n"
-               "should be saved in nel.\n");
+               "should be saved in nel.\n"
+               "This stuff is not used at the moment. Reconsider later");
    
    VO->CutPlane[0][3] = VO->VE[0]->voN[0]; /* Xmore */
    VO->CutPlane[1][3] = -VO->VE[0]->vo0[0]; /* Xless */

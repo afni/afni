@@ -1145,6 +1145,7 @@ SUMA_MaskDO * SUMA_Alloc_MaskDO (int N_n, char *Label, char *Parent_idcode_str)
 void SUMA_free_MaskDO (SUMA_MaskDO * MDO)
 {
    static char FuncName[]={"SUMA_free_MaskDO"};
+   SUMA_ENTRY;
    if (MDO) {
       SUMA_ifree(MDO->cen); SUMA_ifree(MDO->hdim);
       SUMA_ifree(MDO->init_cen); SUMA_ifree(MDO->init_hdim);
@@ -1168,6 +1169,7 @@ int SUMA_Set_N_UnqNodes_SegmentDO(SUMA_SegmentDO * SDO, int N)
 {
    static char FuncName[]={"SUMA_Set_N_UnqNodes_SegmentDO"};
    int *uu=NULL, *uus=NULL;
+   
    SUMA_ENTRY;
    
    if (!SDO) SUMA_RETURN(-2); /* error */
