@@ -5390,7 +5390,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    NI_group *ncmap=NULL;
    SUMA_FileName sfn;
    int N_Alloc = -1, i=0;
-   int N_Nodes = 0;
+   int N_Nodes = 0, SymChosen=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -5486,7 +5486,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
             } else {
                Sover->cmapname = SUMA_copy_string("ngray20");
             }
-            Sover->SymIrange = 0;
+            Sover->SymIrange = 0; SymChosen = 1;
          } else if (SUMA_is_VFR_dset(dset)) {
             char *eee=getenv("SUMA_VFR_DsetColorMap");
             if (eee) {
@@ -5498,7 +5498,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
             } else {
                Sover->cmapname = SUMA_copy_string("afni_n2");
             }
-            Sover->SymIrange = 1;
+            Sover->SymIrange = 1; SymChosen = 1;
          } else if (SUMA_is_RetinoAngle_dset(dset)) {
             char *eee=getenv("SUMA_RetinoAngle_DsetColorMap");
             if (eee) {
@@ -5525,6 +5525,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
                Sover->cmapname = SUMA_copy_string(
                                        NI_get_attribute(ncmap,"Name"));
             }
+            Sover->SymIrange = 0; SymChosen = 1;
          } else {
             char *eee=getenv("SUMA_DsetColorMap");
             if (eee) {
@@ -5551,8 +5552,12 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
             Sover->OptScl->interpmode = SUMA_DIRECT; /* default for such dsets */
          }
       }
-
-      Sover->SymIrange = SUMA_isEnv("SUMA_Sym_I_Range","YES")?1:0;
+      if (SUMA_isEnv("SUMA_Sym_I_Range","FYES") || 
+          SUMA_isEnv("SUMA_Sym_I_Range","FNO") ) {
+          Sover->SymIrange = SUMA_isEnv("SUMA_Sym_I_Range","FYES")?1:0;
+      } else if (!SymChosen) {
+         Sover->SymIrange = SUMA_isEnv("SUMA_Sym_I_Range","YES")?1:0;
+      }
    }
    
    SUMA_RETURN (Sover);
@@ -5742,7 +5747,11 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_ALL_DO *ado, const char * Name,
          } else SUMA_RETURN(NULL);
          break; }
       case VO_type: {
-         SUMA_S_Warn("No overlay to return for volumes, not yet at least");
+         static int ncnt;
+         if (!ncnt) {
+            SUMA_S_Warn("No overlay to return for volumes, not yet at least");
+            ++ncnt;
+         }
          break; }
       default:
          SUMA_S_Errv("Not ready for type %s\n",

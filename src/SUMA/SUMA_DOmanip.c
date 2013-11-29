@@ -2843,7 +2843,6 @@ SUMA_OVERLAYS *SUMA_Contralateral_overlay(SUMA_OVERLAYS *over,
       } 
    }
    if (SOCp) *SOCp=SOC;
-   SUMA_T_Err("Returning with %p",overC);
    SUMA_RETURN(overC);
 }
 

@@ -4572,7 +4572,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   break;
                }
                
-               if (DoubleClick) { /* See if you are selecting masks */
+               if (DoubleClick && !ROI_mode){/*See if you are selecting masks */
                   SUMA_ALL_DO *mado=NULL;
                   /* you do not want to waist time doing double calculations if 
                      the user clicks twice by mistake */
@@ -4597,22 +4597,22 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   if (hit < 0) {
                     SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
                   } else if (hit > 0) {
-                     SUMA_S_Warn("Mask was double clicked");
-                  }
-                  if (!MASK_MANIP_MODE(sv)) {
-                     SUMA_S_Note("Turning on mask manip mode");
-                     if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,
-                                               (void *)(ADO_ID(mado)))) {
-                        SUMA_S_Warn("Mask manip mode could not be set");
+                     SUMA_LH("Mask was double clicked");
+                     if (!MASK_MANIP_MODE(sv)) {
+                        SUMA_S_Note("Turning on mask manip mode");
+                        if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,
+                                                  (void *)(ADO_ID(mado)))) {
+                           SUMA_S_Warn("Mask manip mode could not be set");
+                        }
+                     } else {
+                        SUMA_S_Note("Turning off mask manip mode");
+                        if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,NULL)) {
+                           SUMA_S_Warn("Mask manip mode could not be set");
+                        }
                      }
-                  } else {
-                     SUMA_S_Note("Turning off mask manip mode");
-                     if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,NULL)) {
-                        SUMA_S_Warn("Mask manip mode could not be set");
-                     }
+                     /* Not much else to do */
+                     goto OUT;
                   }
-                  /* Not much else to do */
-                  goto OUT;
                }
                
                if (!DoubleClick) {
@@ -4681,7 +4681,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                       }
                   }
                   
-                  SUMA_S_Warn("Fix me");
                   #if 0
                   if (SUMA_ALTHELL || 
                       SUMA_VisibleSOs(sv, SUMAg_DOv, NULL) == 0) {
