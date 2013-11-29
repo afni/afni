@@ -4533,6 +4533,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                             SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
                               (float)Bev.x, (float)Bev.y);
                              
+               /* Clear any pre-existing selection */
+               if (!SUMA_Add_To_PickResult_List(sv, NULL, "TERSUM", NULL)) {
+                  SUMA_S_Err("Failed to clear selections");
+                  break;
+               }
+               
                /* Bev.state does work in the line below, 
                   unlike Mev.state further down.
                   Using Kev.state anyway because it works in both cases */
@@ -4613,6 +4619,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      /* Not much else to do */
                      goto OUT;
                   }
+                  SUMA_LH("No mask hit");
                }
                
                if (!DoubleClick) {
@@ -4645,12 +4652,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
                   #endif
 
-                  /* Clear any pre-existing selection */
-                  if (!SUMA_Add_To_PickResult_List(sv, NULL, "TERSUM", NULL)) {
-                     SUMA_S_Err("Failed to clear selections");
-                     break;
-                  }
-                  
                   /* perform the intersection calcluation and mark the surface */
                   SUMA_LHv("Finding hit: %d %d,\n"
                            "Pick0: %f %f %f, Pick1: %f %f %f\n",
@@ -4661,7 +4662,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   
                   if (1) {
                      hit = SUMA_ComputeLineDOsIntersect (sv, SUMAg_DOv, 0, NULL);
-                     if (Kev.state & ShiftMask) { /* Show me the click buffer */
+                     if ( (Kev.state & ShiftMask) && 
+                         !(Kev.state & ControlMask) &&
+                         !SUMA_ALTHELL) { /* Show me the click buffer */
                         SUMA_MarkPickInBuffer4(sv, 1, NULL);
                      }
                      if (hit < 0) {
@@ -4729,7 +4732,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
                
                ASSESS:
-               SUMA_LH("Assessment");
+               SUMA_LH("Assessment %d", dlist_size(sv->SelAdo));
                if (dlist_size(sv->SelAdo)) {
                   if (!SUMA_Process_Selected_ADO(sv,SUMA_ALTHELL)) {
                      SUMA_S_Err("Failed to process selected ados");
