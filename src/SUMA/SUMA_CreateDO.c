@@ -14590,6 +14590,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
       SUMA_S_Err("Failed to create tracking list");
       SUMA_RETURNe; 
    } 
+
    /* check on rendering mode */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
      SUMA_LHv("Poly Mode %d\n", SurfObj->PolyMode);
@@ -14735,6 +14736,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
    SUMA_LH("Undoing state changes");
    SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
    
+   if (SurfObj->PolyMode != sv->PolyMode) SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    
    SUMA_LH("Done");
    SUMA_RETURNe;
