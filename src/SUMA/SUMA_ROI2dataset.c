@@ -311,7 +311,7 @@ int main (int argc,char *argv[])
             break;
       }
       #endif
-      SUMA_LH (out_name);
+      SUMA_LH ("%s",out_name);
 
       /* check for existence of out_name */
       if (SUMA_filexists(out_name) && !THD_ok_overwrite()) {

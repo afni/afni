@@ -18497,8 +18497,10 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
    }
 
    
-   if (NewX >= ScrW || NewX < 0) NewX = 50;
-   if (NewY >= ScrH || NewY < 0) NewY = 50;
+   if (NewX >= ScrW-50) NewX = ScrW-50;
+   if (NewX < 0) NewX = 50;
+   if (NewY >= ScrH ) NewY = ScrH-50;
+   if (NewY < 0) NewY = 50;
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Positioning window at %d %d\n", FuncName, NewX, NewY);
    XtVaSetValues (New,

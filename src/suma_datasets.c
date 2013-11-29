@@ -6434,7 +6434,7 @@ void SUMA_ShowDset (SUMA_DSET *dset, int detail, FILE *out)
    SUMA_ENTRY;
    
    if (!out) out = SUMA_STDERR;
-   
+
    si = SUMA_DsetInfo(dset, detail);
    
    fprintf(out,"%s\n", si);
@@ -7127,8 +7127,10 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node,
       } ++ WarnCount;       
       SUMA_RETURN(node);
    } else {
-      SUMA_LH("Govt Shutdown");
-      SUMA_ShowDset(dset, 0, NULL);
+      if (LocalHead) {
+         SUMA_LH("Govt Shutdown");
+         SUMA_ShowDset(dset, 0, NULL);
+      }
    }
       
    /* bad news lews, this node is not in this Dset */ 

@@ -11685,8 +11685,7 @@ SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado)
          static int ncnt;
          if (!ncnt) {
             ++ncnt;
-            SUMA_S_Warn("Am I the only one around here who gives"
-                        " a shit about the rules?");
+            SUMA_S_Warn("Anything for volumes?");
          }
          break; }
       default:

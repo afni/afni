@@ -165,7 +165,7 @@ int main( int argc , char *argv[] )
    int     verb=1 ;
 
    int     do_NEW = 0 ;   /* 29 Nov 2013 */
-   MRI_IMAGE *NEW_psinv ;
+   MRI_IMAGE *NEW_psinv=NULL ;
 
    /*----- Read command line -----*/
 
