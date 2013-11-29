@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , NOV , 2013 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 29 , NOV , 2013 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
+   "add -NEW option" ,
+   "Different fitting method than L1 -- much faster, results not identical,\n"
+   "but does that matter for an ad hoc algorithm?" } ,
+
+ { 26 , NOV , 2013 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Modify imseq.c Image Save function" ,
    "(a) Make 'Enter' on prefix field activate saving\n"
    "(b) Put all widgets for multiple image save in one window -- 19 years\n"
