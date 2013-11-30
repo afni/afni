@@ -6965,6 +6965,7 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          GSaux->PR = SUMA_New_Pick_Result(NULL);
          GSaux->thd = NULL;
          GSaux->net = NULL;
+         GSaux->ShowBundles = 0;
       }
       
       SUMA_DrawDO_UL_FullMonty(GSaux->DisplayUpdates);
@@ -8920,7 +8921,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             selcol[1] = 1-sv->clear_color[1];
             selcol[2] = 1-sv->clear_color[2];
             selcol[3] = 1-sv->clear_color[3]; 
-            nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, s0, s1);
+            if (GSaux->ShowBundles)
+               nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, s0, s1);
+            else nelitp = NULL;
+            
             SUMA_LHv("Col:[%f %f %f %f]\n",
                selcol[0], selcol[1], selcol[2], selcol[3]);
             
@@ -8960,7 +8964,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             si = SUMA_GDSET_EdgeRow_To_Index(dset,i);
             
             /* Do we have a tract for this monster ? */
-            nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, si, -1);
+            if (GSaux->ShowBundles) 
+               nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, si, -1);
+            else nelitp = NULL;
             
             if (LocalHead) { 
                fprintf(SUMA_STDERR,

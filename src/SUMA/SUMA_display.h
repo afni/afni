@@ -664,6 +664,10 @@ int SUMA_ColPlane_NewEdgeThickGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 int SUMA_ColPlane_NewEdgeThickGain (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
                               float newdimfact, int cb_direct);
 void SUMA_cb_ColPlane_NewEdgeThickGain (void *data);
+int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado, 
+                                SUMA_Boolean state, int cb_direct);
+void SUMA_cb_GDSET_ShowBundles_toggled (Widget w, XtPointer data, 
+                                          XtPointer client_data);
 
 
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
