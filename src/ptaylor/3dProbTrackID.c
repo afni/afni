@@ -1106,7 +1106,7 @@ int main(int argc, char *argv[]) {
          N_bund[i] = (NROI[i]*(NROI[i]+1))/2;
      else
        for( i=0 ; i<N_nets ; i++)
-         N_bund[i] = 1;
+         N_bund[i] = (NROI[i]*(NROI[i]+1))/2;
      
      tb = (TAYLOR_BUNDLE ***) calloc( N_nets, sizeof(TAYLOR_BUNDLE **) );
      for ( i = 0 ; i < N_nets ; i++ ) // halftri+diag notation!!!
