@@ -5140,8 +5140,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                lado = SUMA_whichADOg(sv->LastSel_ado_idcode_str);
                if (lado) lado_type = lado->do_type;
             }  
-            if (LocalHead) 
-               fprintf(SUMA_STDERR,"%s: In motion, Butt3 \n", FuncName); 
+            
+            SUMA_LH("In button 3 motion, lado=%s", ADO_LABEL(lado));
             
             /* Clear any pre-existing selection */
             if (!SUMA_Add_To_PickResult_List(sv, NULL, "TERSUM", NULL)) {
@@ -6049,6 +6049,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
       SUMA_ALL_DO *ado=NULL;
       SUMA_DSET *dset=NULL;
       GLint viewport[4];
+      SUMA_GRAPH_SAUX *GSaux = NULL;
+      
       glGetIntegerv(GL_VIEWPORT, viewport);
       PR->ado_idcode_str = SUMA_replace_string(PR->ado_idcode_str,
                                                codf->ref_idcode_str);
@@ -6075,6 +6077,11 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                SUMA_S_Err("SDO is node based but could not get a NodeList");
                SUMA_RETURN (PR);
             }
+            if (!(GSaux = SDSET_GSAUX(dset))) {
+               SUMA_S_Err("No GSaux");
+               SUMA_RETURN(PR);
+            }
+
             if (SUMA_is_ADO_Datum_Primitive(ado, codf)) { 
                datum_index = SUMA_GDSET_EdgeRow_To_Index(dset, 
                                                          PR->primitive_index);
@@ -6082,9 +6089,10 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                                                  &i0, &i1, NULL))) {
                   SUMA_RETURN(PR);
                }
-               
-               if ((nelitp = SUMA_GDSET_Edge_Bundle(dset, 
-                                          SDSET_GSAUX(dset), datum_index, -1))) {
+               nelitp = NULL;
+               if (GSaux->ShowBundles &&
+                   (nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, 
+                                                    datum_index, -1))) {
                #if 1 /* more unified version, older, valid one below */
                   int nn=0, mm=0, nnmin=-1, mmmin=-1, mmmin3=-1;
                   float scpx[3], *A, *B;
@@ -7068,32 +7076,43 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
 int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
 {
    static char FuncName[]={"SUMA_Apply_PR"};
-   SUMA_ALL_DO *ado=NULL;
+   SUMA_ALL_DO *ado=NULL, *ado_pick=NULL;
+   float *xyz=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SUMA_LH("Here");
    if (!sv || !PR || !*PR) {
       SUMA_S_Err("NULL input %p %p %p", sv, PR, *PR);
       SUMA_DUMP_TRACE("creep");
       SUMA_RETURN(-1);
    }
    if (MASK_MANIP_MODE(sv)) {
-      SUMA_LH("Mask Manip Mode, moving to %f %f %f\n", 
-               (*PR)->PickXYZ[0], (*PR)->PickXYZ[1], (*PR)->PickXYZ[2]);
+      ado_pick = SUMA_whichADOg((*PR)->ado_idcode_str);
+      SUMA_LH("Mask Manip Mode, moving to %f %f %f per ado %s\n", 
+               (*PR)->PickXYZ[0], (*PR)->PickXYZ[1], (*PR)->PickXYZ[2],
+               ADO_LABEL(ado_pick));
+      SUMA_ifree(sv->LastSel_ado_idcode_str);
+      sv->LastSel_ado_idcode_str = SUMA_copy_string((*PR)->ado_idcode_str);
       /* Just move the selected mask */
       ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
       if (ado->do_type != MASK_type) {
          SUMA_S_Err("Bad ID for mouse mode value");
          SUMA_RETURN(-1);
       }
-      SUMA_RETURN(SUMA_MDO_New_Center((SUMA_MaskDO *)ado, (*PR)->PickXYZ));
+      if (ado_pick->do_type == SO_type) {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado_pick;
+         /* PickXYZ might be under VisX */
+         xyz = SO->NodeList+SO->NodeDim* (*PR)->datum_index;
+      } else {
+         xyz = (*PR)->PickXYZ;
+      }
+      SUMA_RETURN(SUMA_MDO_New_Center((SUMA_MaskDO *)ado, xyz));
    } else {
       ado = SUMA_whichADOg((*PR)->ado_idcode_str);
       SUMA_LH("Here %s", ADO_LABEL(ado));
       SUMA_ifree(sv->LastSel_ado_idcode_str);
-      sv->LastSel_ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
+      sv->LastSel_ado_idcode_str = SUMA_copy_string((*PR)->ado_idcode_str);
       switch (ado->do_type) {
          case SO_type:
             SUMA_RETURN(SUMA_Apply_PR_SO(sv, (SUMA_SurfaceObject *)ado, PR)); 

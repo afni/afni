@@ -6980,7 +6980,7 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
    static char FuncName[]={"SUMA_AddTractSaux"};
    SUMA_TRACT_SAUX *TSaux;
    int j;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
