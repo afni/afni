@@ -6980,6 +6980,8 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
    static char FuncName[]={"SUMA_AddTractSaux"};
    SUMA_TRACT_SAUX *TSaux;
    int j;
+   SUMA_Boolean LocalHead = YUP;
+   
    SUMA_ENTRY;
    
    if (!tdo) {
@@ -7041,7 +7043,7 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
       TSaux->PR = SUMA_New_Pick_Result(NULL);
    }
 
-   SUMA_S_Note("TSaux %p %p %p", TSaux->Overlays, TSaux->PR, TSaux->DOCont);
+   SUMA_LH("TSaux %p %p %p", TSaux->Overlays, TSaux->PR, TSaux->DOCont);
    
    SUMA_DrawDO_UL_FullMonty(TSaux->DisplayUpdates);
    
@@ -7280,8 +7282,8 @@ SUMA_Boolean SUMA_AddSurfSaux(SUMA_SurfaceObject *so)
 
 void SUMA_Free_SliceListDatum(void *data)
 {
-   static char FuncName[]={"SUMA_Free_SliceList"};
-   SUMA_RENDERED_SLICE *rslc = (SUMA_RENDERED_SLICE *)rslc;
+   static char FuncName[]={"SUMA_Free_SliceListDatum"};
+   SUMA_RENDERED_SLICE *rslc = (SUMA_RENDERED_SLICE *)data;
    
    SUMA_ENTRY;
    
