@@ -13948,6 +13948,33 @@ void SUMA_cb_GDSET_ShowBundles_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+int SUMA_FlushPickBufferForDO(SUMA_ALL_DO *curDO) 
+{
+   static char FuncName[]={"SUMA_FlushPickBufferForDO"};
+   int i=0, iup=0;
+   SUMA_SurfaceViewer *sv=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!curDO) SUMA_RETURN(0);
+   
+   /* update any viewer that is showing this 
+      surface */
+   for (i=0; i<SUMAg_N_SVv; ++i) {
+      if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+         /* is this viewer showing curSO ? */
+         if (SUMA_isRegisteredDO(&(SUMAg_SVv[i]), SUMAg_DOv, curDO)) {
+            sv = &(SUMAg_SVv[i]);
+            SUMA_PickBuffer(sv, 0, NULL); /* flush pick buffer */
+            ++iup;
+         }
+      }
+   }
+
+   SUMA_RETURN(iup);
+}
+
+
 int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado, 
                                 SUMA_Boolean state, int cb_direct)
 {
@@ -13966,7 +13993,9 @@ int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado,
    GSaux->ShowBundles = state;
    XmToggleButtonSetState (SurfCont->GDSET_ShowBundles_tb, 
                            GSaux->ShowBundles, NOPE);   
-   
+   /* flush pick buffer */
+   SUMA_FlushPickBufferForDO(ado);
+
    SUMA_RemixRedisplay(ado);
    
    SUMA_RETURN(1);
@@ -15860,10 +15889,9 @@ void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd)
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
    
    SUMA_ENTRY;
-   
-   if (TextShell) {
-      TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;
 
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)ud;   
+   if (TextShell) {
       if (TextShell->DestroyCallBack) {
          /* call destroy callback */
          TextShell->DestroyCallBack(TextShell->DestroyData);

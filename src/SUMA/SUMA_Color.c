@@ -6629,7 +6629,6 @@ SUMA_Boolean SUMA_ElementarizeOverlay(SUMA_OVERLAYS *iOver,
                               N_E_Data);
                   SUMA_RETURN(NOPE);
                }               
-               SUMA_S_Note("Going in");
                cv = *ColEVec;
                ov = *LocalEOpacity;
                nv = *NodeEDef;
@@ -6660,7 +6659,6 @@ SUMA_Boolean SUMA_ElementarizeOverlay(SUMA_OVERLAYS *iOver,
                      ++ip; ++p0;
                   }
                }
-               SUMA_S_Note("Going out");
                if (whine) {
                   SUMA_S_Warn("%d errors occurred when mapping %d tracts",
                               whine, N_tdef);
