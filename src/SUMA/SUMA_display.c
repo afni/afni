@@ -7274,6 +7274,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    XmString xmstmp; 
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_OVERLAYS *curColPlane=NULL, *over0=NULL;
+   SUMA_GRAPH_SAUX *GSaux = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -7292,6 +7293,11 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    }
    if (!(SurfCont = SUMA_ADO_Cont(ado))) {
       SUMA_S_Errv("Failed to get Controller for ado %s\n",
+                  SUMA_ADO_Label(ado));
+      SUMA_RETURNe;
+   }
+   if (!(GSaux = SUMA_ADO_GSaux(ado))) {
+      SUMA_S_Errv("No GSaux for ado %s\n",
                   SUMA_ADO_Label(ado));
       SUMA_RETURNe;
    }
@@ -7754,25 +7760,22 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                            SUMA_SurfContHelp_DsetDim,
                            SurfCont->ColPlaneDimFact);
       
-           
-      #if 0 /* Not in use for graph dsets at the moment,
-               GUI is functional, but ShowCurForeOnly
-               is not used when displaying graph dset */
-      SurfCont->ColPlaneShowOneFore_tb = 
-         XtVaCreateManagedWidget("1", 
+          
+      
+      SurfCont->GDSET_ShowBundles_tb = 
+         XtVaCreateManagedWidget("Bundles", 
                                  xmToggleButtonWidgetClass, rc, NULL);
-      XmToggleButtonSetState (SurfCont->ColPlaneShowOneFore_tb, 
-                              SurfCont->ShowCurForeOnly, NOPE);
-      XtAddCallback (SurfCont->ColPlaneShowOneFore_tb, 
+      XmToggleButtonSetState (SurfCont->GDSET_ShowBundles_tb, 
+                              GSaux->ShowBundles, NOPE);
+      XtAddCallback (SurfCont->GDSET_ShowBundles_tb, 
                      XmNvalueChangedCallback, 
-                     SUMA_cb_ColPlaneShowOneFore_toggled, ado);
+                     SUMA_cb_GDSET_ShowBundles_toggled, ado);
                   
-      MCW_register_help(SurfCont->ColPlaneShowOneFore_tb , 
-                        SUMA_SurfContHelp_DsetViewOne ) ;
-      MCW_register_hint(SurfCont->ColPlaneShowOneFore_tb , 
-             "Show ONLY ONE selected Dset. Foreground only. BHelp for more.\n") ;
-      SUMA_SET_SELECT_COLOR(SurfCont->ColPlaneShowOneFore_tb);
-      #endif
+      MCW_register_help(SurfCont->GDSET_ShowBundles_tb , 
+                        SUMA_SurfContHelp_GDSET_ViewBundles ) ;
+      MCW_register_hint(SurfCont->GDSET_ShowBundles_tb , 
+                        "Show bundles instead of edges if possible.") ;
+      SUMA_SET_SELECT_COLOR(SurfCont->GDSET_ShowBundles_tb);
            
       /* manage  rc */
       XtManageChild (rc);
@@ -13922,6 +13925,52 @@ int SUMA_ColPlaneShowOneFore_Set ( SUMA_ALL_DO *ado,
    SUMA_RETURN(1);
 }
 
+void SUMA_cb_GDSET_ShowBundles_toggled (Widget w, XtPointer data, 
+                                          XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_GDSET_ShowBundles_toggled"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   ado = (SUMA_ALL_DO *)data;
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   if (!SurfCont) SUMA_RETURNe;
+
+   SUMA_GDSET_ShowBundles(ado,
+               XmToggleButtonGetState (SurfCont->GDSET_ShowBundles_tb), 1);
+      
+   SUMA_RETURNe;
+}
+
+int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado, 
+                                SUMA_Boolean state, int cb_direct)
+{
+   static char FuncName[]={"SUMA_GDSET_ShowBundles"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_GRAPH_SAUX *GSaux = NULL;
+   SUMA_ENTRY;
+
+   
+   if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
+   if (!(GSaux = SUMA_ADO_GSaux(ado))) SUMA_RETURN(0);
+   
+   if (GSaux->ShowBundles == state) SUMA_RETURN(1);
+   
+   GSaux->ShowBundles = state;
+   XmToggleButtonSetState (SurfCont->GDSET_ShowBundles_tb, 
+                           GSaux->ShowBundles, NOPE);   
+   
+   SUMA_RemixRedisplay(ado);
+   
+   SUMA_RETURN(1);
+}
 
 /*!
  \brief Function based on arrow_time.c program from Motif Programing Manual

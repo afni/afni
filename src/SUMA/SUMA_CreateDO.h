@@ -63,6 +63,8 @@ typedef struct {
    SUMA_NGR_INDEX_HASH_DATUM *thd; /*! A hash table pointing to niml element
                                        containing tract to represent path
                                        between two points */
+   SUMA_Boolean ShowBundles; /*!< Show current plane only out of the entire 
+                                    stack */
 } SUMA_GRAPH_SAUX;
 
 /*! A Tract object's Auxiliary structure for SUMA's use */

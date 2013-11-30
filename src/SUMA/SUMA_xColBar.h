@@ -1140,6 +1140,11 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
 #define SUMA_SurfContHelp_RangeTbl_r3  \
    "Range of values in brightness (B) column."
 
+#define SUMA_SurfContHelp_GDSET_ViewBundles \
+   "Show bundles instead of edges between nodes if \n"\
+   "the graph dataset contains such information. For\n"\
+   "the moment, only 3dProbTrackID creates such data."
+
 /* this one's based on AFNI's func->thr_pval_label help */
 #define SUMA_SurfContHelp_ThreshStats  \
    "Shows the estimated significance\n"   \

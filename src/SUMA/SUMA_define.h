@@ -1510,6 +1510,7 @@ typedef struct {
       Replaced with DsetViewModeMenu 
       Widget ColPlaneShow_tb; *//*!< show/hide color plane */
    Widget ColPlaneShowOneFore_tb; /*!< show only one color plane at a time*/
+   Widget GDSET_ShowBundles_tb; /*!< show bundles insted of edges*/
    Widget SymIrange_tb; /*!< Symmetric intensity range */
    Widget AbsThresh_tb; /*!< absolute threshold */
    Widget ShowZero_tb; /*!< Show zero values */
