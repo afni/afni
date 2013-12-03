@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Dec, 2013, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
+   "added -prog_list for Ziad",
+   NULL
+ } ,
+
  { 12,  Nov, 2013, RCR, "3dTfitter", MICRO, TYPE_ENHANCE,
    "added help example for PPI analysis",
    NULL
