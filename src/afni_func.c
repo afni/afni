@@ -12,6 +12,9 @@ extern char **Atlas_Names_List(ATLAS_LIST *atl);
 
 static THD_3dim_dataset *atlas_ovdset = NULL;
 
+static float Thval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
+                         100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
+
 /*-------------------------------------------------------------------
    This routine is also used by the macros
       AFNI_SEE_FUNC_ON and AFNI_SEE_FUNC_OFF
@@ -98,6 +101,77 @@ ENTRY("AFNI_func_autothresh_CB") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! 03 Dec 2013 */
+
+#define TFLASH(iq) \
+  do{ MCW_flash_widget(1,(iq)->vwid->func->thr_scale); BEEPIT; } while(0)
+
+void AFNI_func_setpval_final_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   float pval , thresh ;
+   int newdec , olddec , stop,smax , ival ;
+
+ENTRY("AFNI_func_setpval_final_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   if( cbs->reason  != mcwCR_string ||
+       cbs->cval    == NULL         ||
+       cbs->cval[0] == '\0'           ){ TFLASH(im3d); EXRETURN; }
+
+   if( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) <= 0 ){
+    TFLASH(im3d) ; EXRETURN ;
+   }
+
+   pval = (float)strtod(cbs->cval,NULL) ;
+   if( pval <= 0.0 || pval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
+
+   thresh = THD_pval_to_stat( pval ,
+              DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
+              DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
+   if( thresh < 0.0 ){ TFLASH(im3d); EXRETURN; }
+
+   olddec = (int)rint( log10(im3d->vinfo->func_thresh_top) ) ;
+        if( olddec < 0             ) olddec = 0 ;
+   else if( olddec > THR_top_expon ) olddec = THR_top_expon ;
+
+   newdec = (int)( log10(thresh) + 1.0 ) ;
+        if( newdec < 0             ) newdec = 0 ;
+   else if( newdec > THR_top_expon ) newdec = THR_top_expon ;
+
+   IM3D_CLEAR_TMASK(im3d) ;
+   if( newdec != olddec )
+     AFNI_set_thresh_top( im3d , Thval[newdec] ) ;
+
+   smax = (int)rint( pow(10.0,THR_top_expon) ) ;
+   stop = smax - 1 ;                             /* max slider value */
+   ival = rint( thresh/(THR_factor*Thval[newdec]) ) ;
+        if( ival < 0    ) ival = 0    ;
+   else if( ival > stop ) ival = stop ;
+
+   XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
+
+   AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void AFNI_func_setpval_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_func_setpval_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   MCW_choose_string( w, "Enter p-value", NULL, AFNI_func_setpval_final_CB,cd ) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! 29 Jan 2008: add FDR curves to the functional dataset */
 
 void AFNI_func_fdr_CB( Widget w, XtPointer cd, XtPointer cb)
@@ -144,8 +218,6 @@ ENTRY("AFNI_func_thrsign_CB") ;
 void AFNI_set_threshold( Three_D_View *im3d , float val )
 {
    int olddec,newdec , smax,stop , ival ;
-   static float tval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
-                            100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
 
 ENTRY("AFNI_set_threshold") ;
 
@@ -163,13 +235,13 @@ ENTRY("AFNI_set_threshold") ;
           if( newdec < 0             ) newdec = 0 ;
      else if( newdec > THR_top_expon ) newdec = THR_top_expon ;
      if( newdec != olddec )
-       AFNI_set_thresh_top( im3d , tval[newdec] ) ;
+       AFNI_set_thresh_top( im3d , Thval[newdec] ) ;
    }
 
    smax  = (int)rint( pow(10.0,THR_top_expon) ) ;
    stop  = smax - 1 ;                             /* max slider value */
 
-   ival = rint( val/(THR_factor*tval[newdec]) ) ;
+   ival = rint( val/(THR_factor*Thval[newdec]) ) ;
         if( ival < 0    ) ival = 0    ;
    else if( ival > stop ) ival = stop ;
 
@@ -304,14 +376,12 @@ char * AFNI_thresh_tlabel_CB( MCW_arrowval *av , XtPointer junk )
 void AFNI_thresh_top_CB( MCW_arrowval *av , XtPointer cd )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
-   static float tval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
-                            100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
 
 ENTRY("AFNI_thresh_top_CB") ;
 
-   if( IM3D_OPEN(im3d) && im3d->vinfo->func_thresh_top != tval[av->ival] ){
+   if( IM3D_OPEN(im3d) && im3d->vinfo->func_thresh_top != Thval[av->ival] ){
 
-     AFNI_set_thresh_top( im3d , tval[av->ival] ) ;
+     AFNI_set_thresh_top( im3d , Thval[av->ival] ) ;
      FIX_SCALE_SIZE(im3d) ;
 
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;

@@ -2886,6 +2886,20 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_autothresh_pb ,
                       "Compute ad hoc threshold automatically NOW" ) ;
 
+   /*-- Set pval button [03 Aug 2013] --*/
+
+   func->thr_setpval_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("Set p-value") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_setpval_pb , XmNactivateCallback ,
+                  AFNI_func_setpval_CB , im3d ) ;
+   MCW_register_hint( func->thr_setpval_pb ,
+                      "Enter p-value to set threshold" ) ;
+
    /* Threshold sign arrowval [08 Aug 2007] */
 
    { static char *thr_sign_label[3] = { "Pos & Neg",
