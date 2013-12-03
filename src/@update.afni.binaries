@@ -21,7 +21,9 @@
 # 21 Dec 2012 : do rehash before apsearch
 #             - check download by looking for string in this file
 # 01 Nov 2013 : Darwin defaults to 10.7 package
+# 01 Dec 2013 : added -prog_list for Ziad
 # ----------------------------------------------------------------------
+
 
 
 # ----------------------------------------------------------------------
@@ -30,6 +32,7 @@
 # initialize options to 'unset'
 set abin = ""
 set package = ""
+set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
 set make_backup = 1             # backup previous binaires
 set prog = `basename $0`
@@ -73,6 +76,20 @@ while ( $ac <= $#argv )
             exit 1
         endif
         set package = $argv[$ac]
+    else if ( "$argv[$ac]" == "-prog_list" ) then
+        @ ac ++
+        set resp = ''
+        while ( $ac <= $#argv )
+            set resp = `echo $argv[$ac] | cut -b1`
+            if ( "$resp" == '-' ) break
+            set prog_list = ( $prog_list $argv[$ac] )
+            @ ac ++
+        end
+        if ( $#prog_list == 0 ) then
+            echo "** missing parameter(s) for option '-prog_list'"
+            exit 1
+        endif
+        if ( "$resp" == '-' ) continue # skip ac ++
     else if ( "$argv[$ac]" == "-no_recur" ) then
         set do_recur = 0
     else if ( "$argv[$ac]" == "-help" ) then
@@ -80,11 +97,15 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-d" || "$argv[$ac]" == "-defaults" ) then
         set defaults = 1
     else
-        echo "** unknown option $argv[$ac]"
-        exit 1
+        # allow unknown options if $do_recur, but THEY MUST BE LAST
+        if ( ! $do_recur ) then
+            echo "** unknown option $argv[$ac]"
+            exit 1
+        endif
     endif
     @ ac ++
 end
+
 
 # if requested, show help and exit
 if ( $help ) then
@@ -99,6 +120,8 @@ if ( $help ) then
     echo "    $prog -defaults"
     echo "    $prog -package linux_xorg7"
     echo "    $prog -package linux_xorg7 -bindir ~/abin"
+    echo "    $prog -package linux_openmp_64 \\"
+    echo "                          -programs file_tool python_scripts/*.py"
     echo ""
     echo "options:"
     echo ""
@@ -127,6 +150,20 @@ if ( $help ) then
     echo ""
     echo "    -no_recur             : do not download and run new @uab script"
     echo "    -package PACKAGE      : install distribution package PACKAGE"
+    echo "    -prog_list PROGRAMS   : install given programs, not whole PACKAGE"
+    echo ""
+    echo "        With this option, the listed programs would be installed,"
+    echo "        rather than the entire PACKAGE."
+    echo ""
+    echo "        Note: directories are not allowed (e.g. meica.libs)"
+    echo ""
+    echo "        For example, consider:"
+    echo ""
+    echo "          -prog_list suma python_scripts/*.py"
+    echo ""
+    echo "        In this case, suma and the individual python files would all"
+    echo "        end up in abin, with no directories."
+    echo ""
     echo "    -test                 : just attempt the download and quit"
     echo ""
     echo "Note that the user must have write permissions in the ABIN"
@@ -189,9 +226,9 @@ if ( $package == "" ) then
       # simple cases for now, can expand later
       if ( $sysname == Linux ) then
          if ( $cpuname == x86_64 ) then
-             set package = linux_xorg7_64
+             set package = linux_openmp_64
          else
-             set package = linux_xorg7
+             set package = linux_openmp
          endif
       else if ( $sysname == Darwin ) then
          # default to no.omp.glib for now
@@ -231,6 +268,7 @@ if ( $use_curl || $missing_wget ) set get_prog = ( curl -O -f )
 if ( $package =~ *.tgz ) set package = $package:r
 
 echo "-- attempting to install package $package under"
+if ( $#prog_list > 0 ) echo "   (including only $#prog_list programs)"
 echo "   install dir: $abin..."
 
 # ----------------------------------------------------------------------
@@ -375,15 +413,31 @@ SKIP_RECUR:
 
 # ----------------------------------------------------------------------
 # just download single afni binary and compare
-set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/afni
-echo "++ downloading test file $package/afni ..."
+# (if prog_list, use first prog in list)
+if ( $#prog_list > 0 ) then
+  set pp = $prog_list[1]:t
+  # directories are not allowed (harder to download)
+  foreach ppp ( $prog_list )
+     set prog = $ppp:t
+     if ( -d ../$prog ) then
+        echo "** error: $prog is a directory"
+        exit
+     endif
+  end
+else
+  set pp = afni
+endif
+set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/$pp
+echo "++ downloading test file $package/$pp ..."
 $get_prog $get_package
-cmp -s afni ../afni
+cmp -s $pp ../$pp
 if ( ! $status ) then
     echo "++ no update needed"
     cd ..
     \rm -fr $tmp_dir
     exit
+else
+    \rm $pp
 endif
 
 # if just testing, we are done
@@ -401,20 +455,38 @@ sleep 1
 # ----------------------------------------------------------------------
 # an update is needed, download full package
 
-# download the full binary set
+# download the full binary set or list of programs
 echo "++ downloading full $package.tgz package..."
-set get_package = http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
-$get_prog $get_package
-if ( $status ) then
-    echo "** failed to download package $get_package"
-    exit 1
+if ( $#prog_list == 0 ) then
+   set get_package = http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
+   $get_prog $get_package
+   if ( $status ) then
+       echo "** failed to download package $get_package"
+       exit 1
+   endif
+else
+   # prog_list, get each file
+   foreach pp ( $prog_list )
+      set prog = $pp:t
+      set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/$prog
+      $get_prog $get_package
+      set ss = $status
+      if ( $ss ) then
+          echo "** failed to download package file:"
+          echo "   $get_package"
+          exit 1
+      endif
+   end
 endif
 
-echo "++ extracting package $package..."
-tar xfz $package.tgz
-if ( $status ) then
-    echo "** failed to extract package $package.tgz"
-    exit 1
+# if no prog_list, extract package
+if ( $#prog_list == 0 ) then
+   echo "++ extracting package $package..."
+   tar xfz $package.tgz
+   if ( $status ) then
+       echo "** failed to extract package $package.tgz"
+       exit 1
+   endif
 endif
 
 # ----------------------------------------------------------------------
@@ -445,7 +517,15 @@ else if ( $make_backup ) then
         exit 1
     endif
     echo "++ backing up current binaries to $backup_dir"
-    \mv ../* $backup_dir
+    # if prog_list, only backup those programs
+    if ( $#prog_list ) then
+       foreach pp ( $prog_list )
+          set prog = $pp:t
+          \mv ../$prog $backup_dir
+       end
+    else
+       \mv ../* $backup_dir
+    endif
     \mv $backup_dir ..
 
     set use_rsync = 0   # now do not need rsync
@@ -456,15 +536,28 @@ endif
 # actually install the new binaries
 if ( $use_rsync ) then
    echo "++ synching new binaries..."
-   rsync -a $package/ ../
-   if ( $status ) then
+   # either sync package or files
+   if ( $#prog_list > 0 ) then
+      rsync -av * ..
+      set ss = $status
+   else
+      rsync -a $package/ ..
+      set ss = $status
+   endif
+   if ( $ss ) then
        echo "** failed to overwrite existing package, exiting..."
        exit
    endif
 else
    echo "++ installing new binaries..."
-   \mv $package/* ..
-   if ( $status ) then
+   if ( $#prog_list > 0 ) then
+      \mv * ..
+      set ss = $status
+   else
+      \mv $package/* ..
+      set ss = $status
+   endif
+   if ( $ss ) then
        echo "** failed to overwrite existing package, exiting..."
        exit
    endif
@@ -479,7 +572,7 @@ if ( $do_apsearch && $cur_afni == $abin ) then
 endif
 
 # maybe they need to set the DYLD_F_L_P
-if ( $package == macosx_10.7_Intel_64 ) then
+if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
    echo ""
    echo "-- remember to set the DYLD_FALLBACK_LIBRARY_PATH, e.g."
    echo "   setenv DYLD_FALLBACK_LIBRARY_PATH $abin"
