@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 29 , NOV , 2013 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
+  { 3 , DEC , 2013 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Add Set p-value button to Threshold slider popup menu" ,
+   NULL } ,
+
+ { 29 , NOV , 2013 , RWC , "3dDespike" , MINOR , TYPE_NEW_OPT ,
    "add -NEW option" ,
    "Different fitting method than L1 -- much faster, results not identical,\n"
    "but does that matter for an ad hoc algorithm?" } ,

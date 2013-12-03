@@ -667,6 +667,7 @@ typedef struct {
       MCW_bbox *thr_onoff_bbox ;
       MCW_bbox *thr_olayx_bbox ;
       Widget thr_autothresh_pb ;
+      Widget thr_setpval_pb ;      /* 03 Dec 2013 */
       MCW_arrowval *thr_sign_av ;  /* 08 Aug 2007 */
       Widget thr_fdr_pb ;          /* 29 Jan 2008 */
 
@@ -737,6 +738,7 @@ typedef struct {
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
+extern void AFNI_func_setpval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
 extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007 */
 extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008 */
 
