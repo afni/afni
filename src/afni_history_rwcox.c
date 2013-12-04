@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , DEC , 2013 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 4 , DEC , 2013 , RWC , "3dDespike" , MICRO , TYPE_NEW_OPT ,
+   "Add -dilate option" ,
+   NULL } ,
+
+ { 3 , DEC , 2013 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Add Set p-value button to Threshold slider popup menu" ,
    NULL } ,
 
