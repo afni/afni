@@ -166,6 +166,7 @@ int main( int argc , char *argv[] )
 
    int     do_NEW = 0 ;   /* 29 Nov 2013 */
    MRI_IMAGE *NEW_psinv=NULL ;
+   int     dilate = 4 ;   /* 04 Dec 2013 */
 
    /*----- Read command line -----*/
 
@@ -219,6 +220,8 @@ int main( int argc , char *argv[] )
              " -nomask    = Process all voxels\n"
              "               [default=use a mask of high-intensity voxels, ]\n"
              "               [as created via '3dAutomask -dilate 4 dataset'].\n"
+             " -dilate nd = Dilate 'nd' times (as in 3dAutomask).  The default\n"
+             "               value of 'nd' is 4.\n"
              " -q[uiet]   = Don't print '++' informational messages.\n"
              "\n"
              " -localedit = Change the editing process to the following:\n"
@@ -300,6 +303,15 @@ int main( int argc , char *argv[] )
         nomask = 1 ; iarg++ ; continue ;
       }
 
+      /** dilation count [04 Dec 2013] **/
+
+      if( strcmp(argv[iarg],"-dilate") == 0 ){
+        dilate = (int)strtod(argv[++iarg],NULL) ;
+             if( dilate <=  0 ) dilate = 1 ;
+        else if( dilate >  99 ) dilate = 99 ;
+        iarg++ ; continue ;
+      }
+
       /** output dataset prefix **/
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
@@ -379,10 +391,16 @@ int main( int argc , char *argv[] )
 
    if( !nomask ){
      mask = THD_automask( dset ) ;
-     for( ii=0 ; ii < 4 ; ii++ )
+     if( verb ){
+       ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
+       INFO_message("%d voxels in the automask [out of %d in dataset]",ii,DSET_NVOX(dset)) ;
+     }
+     for( ii=0 ; ii < dilate ; ii++ )
        THD_mask_dilate( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), mask, 3 ) ;
-     ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
-     if( verb ) INFO_message("%d voxels in the mask [out of %d in dataset]",ii,DSET_NVOX(dset)) ;
+     if( verb ){
+       ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
+       INFO_message("%d voxels in the dilated automask [out of %d in dataset]",ii,DSET_NVOX(dset)) ;
+     }
    } else {
      if( verb ) INFO_message("processing all %d voxels in dataset",DSET_NVOX(dset)) ;
    }
