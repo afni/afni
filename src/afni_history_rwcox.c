@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , DEC , 2013 , RWC , "3dDespike" , MICRO , TYPE_NEW_OPT ,
+  { 4 , DEC , 2013 , RWC , "3dTproject" , MICRO , TYPE_GENERAL ,
+   "Output count of the various regressors" ,
+   NULL } ,
+
+ { 4 , DEC , 2013 , RWC , "3dDespike" , MICRO , TYPE_NEW_OPT ,
    "Add -dilate option" ,
    NULL } ,
 
