@@ -856,8 +856,10 @@ SMat svdTransposeS(SMat S) {
 void svdWriteDenseArray(double *a, int n, char *filename, char binary) {
   int i;
   FILE *file = svd_writeFile(filename, FALSE);
-  if (!file)
-    return svd_error("svdWriteDenseArray: failed to write %s", filename);
+  if (!file){
+    svd_error("svdWriteDenseArray: failed to write %s", filename);
+    return ;
+  }
   if (binary) {
     svd_writeBinInt(file, n);
     for (i = 0; i < n; i++)
