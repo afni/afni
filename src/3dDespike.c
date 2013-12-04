@@ -167,6 +167,7 @@ int main( int argc , char *argv[] )
    int     do_NEW = 0 ;   /* 29 Nov 2013 */
    MRI_IMAGE *NEW_psinv=NULL ;
    int     dilate = 4 ;   /* 04 Dec 2013 */
+   int     ctim   = 0 ;
 
    /*----- Read command line -----*/
 
@@ -552,7 +553,7 @@ int main( int argc , char *argv[] )
     INFO_message("%d slices to process",DSET_NZ(dset)) ;
    }
    kzold  = -1 ;
-   nspike =  0 ; nbig = 0 ; nproc = 0 ;
+   nspike =  0 ; nbig = 0 ; nproc = 0 ; ctim = NI_clock_time() ;
 
  AFNI_OMP_START ;
 #pragma omp parallel if( nxyz > 6666 )
@@ -737,6 +738,14 @@ int main( int argc , char *argv[] )
 
  } /* end OpenMP */
  AFNI_OMP_END ;
+
+#ifdef USE_OMP
+   if( verb ) fprintf(stderr,"\n") ;
+#endif
+   ctim = NI_clock_time() - ctim ;
+   INFO_message( "Elapsed despike time = %s" , nice_time_string(ctim) ) ;
+   if( ctim > 345678 && !do_NEW )
+     ININFO_message("That was SLOW -- try the '-NEW' option for a speedup") ;
 
 #ifdef USE_OMP
    if( verb ) fprintf(stderr,"\n") ;
