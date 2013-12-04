@@ -37,6 +37,7 @@ typedef struct {
 
 #define CEN_ZERO 1
 #define CEN_KILL 2
+#define CEN_FILT 3
 
 int   TPR_verb   = 0 ;
 char *TPR_prefix = NULL ;
@@ -98,6 +99,13 @@ void TPR_help_the_pitiful_user(void)
    "                                      ==> output datset is same length as input\n"
    "                       ++ mode = KILL ==> remove those time points\n"
    "                                      ==> output dataset is shorter than input\n"
+#if 0
+   "                       ++ mode = FILT ==> censored values are replaced by\n"
+   "                                          neigbhoring (in time) non-censored values,\n"
+   "                                          BEFORE any projections, and then the\n"
+   "                                          analysis proceeds without actual removal\n"
+   "                                          of any time points -- this is for Javier.\n"
+#endif
    "                       ** The default mode is KILL !!!\n"
    "\n"
    " -concat ccc.1D      = The catenation file, as in 3dDeconvolve, containing the\n"
@@ -942,7 +950,7 @@ AFNI_OMP_END ;
    if( tp->verb ) INFO_message("Convert results to output dataset") ;
 
    tp->outset = EDIT_empty_copy( tp->inset ) ;
-   nvout      = (tp->cenmode == CEN_ZERO) ? nt : ntkeep ;
+   nvout      = (tp->cenmode == CEN_KILL) ? ntkeep : nt ;
 
    EDIT_dset_items( tp->outset ,
                       ADN_prefix    , tp->prefix ,
@@ -1154,6 +1162,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
             if( strcasecmp(argv[iarg],"KILL") == 0 ) tinp->cenmode = CEN_KILL ;
        else if( strcasecmp(argv[iarg],"ZERO") == 0 ) tinp->cenmode = CEN_ZERO ;
+       else if( strcasecmp(argv[iarg],"FILT") == 0 ) tinp->cenmode = CEN_FILT ;
        else ERROR_message("unknown value '%s' after -cenmode",argv[iarg]) ;
        iarg++ ; continue ;
      }
