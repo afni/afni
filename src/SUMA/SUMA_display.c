@@ -18454,7 +18454,7 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
          Window ww;
          dd = XtDisplay(Ref);
          ww = XtWindow(Ref);
-         if (dd && XGetWindowAttributes(dd, ww, &wa)) {
+         if (dd && ww && XGetWindowAttributes(dd, ww, &wa)) {
             if (wa.y > 0) { /* I have had XGetWindowAttributes
                              fail at times and return 0 0 for offsets. */
                SUMA_LHv("Setting offsets to %d %d\n", wa.x, wa.y);
