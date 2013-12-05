@@ -49,13 +49,8 @@
 
 afni_history_struct rickr_history[] = {
 
- {  4,  Dec, 2013, RCR, "@afni.run.me", MINOR, TYPE_NEW_PROG,
-   "download and execute afni:/pub/dist/bin/misc/afni_runme script",
-   NULL
- } ,
-
  {  4,  Dec, 2013, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
-   "fixed ac++ condition",
+   "fixed ac++ condition and empty if",
    NULL
  } ,
 
