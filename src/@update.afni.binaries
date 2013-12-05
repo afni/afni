@@ -89,7 +89,8 @@ while ( $ac <= $#argv )
             echo "** missing parameter(s) for option '-prog_list'"
             exit 1
         endif
-        if ( "$resp" == '-' ) continue # skip ac ++
+        # decide on increment here, and continue
+        continue
     else if ( "$argv[$ac]" == "-no_recur" ) then
         set do_recur = 0
     else if ( "$argv[$ac]" == "-help" ) then
@@ -267,6 +268,7 @@ if ( $use_curl || $missing_wget ) set get_prog = ( curl -O -f )
 # make sure package is set to the base name
 if ( $package =~ *.tgz ) set package = $package:r
 
+# rcr - entire package or just prog_list (though prog_list requires package)
 echo "-- attempting to install package $package under"
 if ( $#prog_list > 0 ) echo "   (including only $#prog_list programs)"
 echo "   install dir: $abin..."
@@ -436,6 +438,9 @@ if ( ! $status ) then
     cd ..
     \rm -fr $tmp_dir
     exit
+else if ( $#prog_list > 0 ) then
+    echo "-- overwriting test update file, $pp"
+    chmod a+x $pp
 else
     \rm $pp
 endif
@@ -456,8 +461,8 @@ sleep 1
 # an update is needed, download full package
 
 # download the full binary set or list of programs
-echo "++ downloading full $package.tgz package..."
 if ( $#prog_list == 0 ) then
+   echo "++ downloading full $package.tgz package..."
    set get_package = http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
    $get_prog $get_package
    if ( $status ) then
@@ -466,7 +471,8 @@ if ( $#prog_list == 0 ) then
    endif
 else
    # prog_list, get each file
-   foreach pp ( $prog_list )
+   if ( $#prog_list > 1 ) echo "++ downloading remaining files ..."
+   foreach pp ( $prog_list[2-] )
       set prog = $pp:t
       set get_package = http://afni.nimh.nih.gov/pub/dist/bin/$package/$prog
       $get_prog $get_package
@@ -476,6 +482,7 @@ else
           echo "   $get_package"
           exit 1
       endif
+      chmod a+x $prog
    end
 endif
 
@@ -521,7 +528,7 @@ else if ( $make_backup ) then
     if ( $#prog_list ) then
        foreach pp ( $prog_list )
           set prog = $pp:t
-          \mv ../$prog $backup_dir
+          if ( -f ../$prog ) \mv ../$prog $backup_dir
        end
     else
        \mv ../* $backup_dir
@@ -564,7 +571,7 @@ else
 endif
 
 # and possibly run apsearch
-if ( $do_apsearch && $cur_afni == $abin ) then
+if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    rehash
    set cmd = "apsearch -update_all_afni_help"
    echo "++ running $cmd ..."
