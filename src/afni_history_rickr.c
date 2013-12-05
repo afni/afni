@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4,  Dec, 2013, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
+   "fixed ac++ condition",
+   NULL
+ } ,
+
+ {  4,  Dec, 2013, RCR, "afni_runme", MINOR, TYPE_NEW_PROG,
+   "added this (Ziad's) script to sysadmin/scripts",
+   NULL
+ } ,
+
  {  3,  Dec, 2013, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "added -prog_list for Ziad",
    NULL
