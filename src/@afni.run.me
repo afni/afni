@@ -1,0 +1,169 @@
+#!/bin/tcsh
+
+# ----------------------------------------------------------------------
+# run some command
+#
+# This script is meant to be able to have users run to do some quick
+# update or other commmand.  We can update the script on the server
+# and easily have everyone do the same thing.
+#
+# - download an afni_runme script and run it
+# - run the rest of the script
+# - terminate on any error, and be clear about which command failed
+#
+# ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# history:
+#    4 Dec 2013: created initial version
+# ----------------------------------------------------------------------
+
+
+# ----------------------------------------------------------------------
+# apply any options
+
+# initialize options to 'unset'
+set tmp_dir = "tmp.afni.run.command"        # should start with '.'
+set prog = `basename $0`
+set run_script = afni_runme
+set run_log = log.$run_script.txt
+set run_opts = ()
+set go = 0
+set made_tmp = 0
+
+if ( $#argv == 0 ) then
+    set help = 1
+else
+    set help = 0
+endif
+
+set use_curl    = 0
+
+set ac = 1
+while ( $ac <= $#argv )
+    if ( "$argv[$ac]" == "-curl" ) then
+        set use_curl = 1
+    else if ( "$argv[$ac]" == "-help" ) then
+        set help = 1
+    else if ( "$argv[$ac]" == "-go" ) then
+        set go = 1
+    else
+        # any trailing options get passed on
+        if ( ! $go )
+           echo "** unknown option $argv[$ac]"
+           exit 1
+        else
+           set run_opts = ( $argv[$ac-] )
+           break
+        endif
+    endif
+    @ ac ++
+end
+
+# if requested, show help and exit
+if ( $help ) then
+    echo "------------------------------------------------------------"
+    echo "$prog   - do something"
+    echo ""
+    echo "examples:"
+    echo ""
+    echo "options:"
+    echo ""
+    echo "    -help                 : show this help"
+
+    echo "    -go                   : DO THE WORK"
+    echo "    -curl                 : default to curl instead of wget"
+    echo ""
+    echo "Note that the user must have write permissions in the current"
+    echo "directory."
+    echo ""
+    exit
+endif
+
+if ( ! $go ) then
+    echo "** refusing to proceed without -go"
+    exit 1
+endif
+
+# ----------------------------------------------------------------------
+# test for existence of wget or curl
+which wget >& /dev/null
+set missing_wget = $status
+which curl >& /dev/null
+set missing_curl = $status
+
+if ( $missing_wget && $missing_curl ) then
+    echo ""
+    echo "** programs wget and curl are missing, please install *either*,"
+    echo "   or look it up on the AFNI message board:"
+    echo "       http://afni.nimh.nih.gov/afni/community/board"
+    echo ""
+    exit 1
+endif
+
+# default to wget, else use curl
+set get_prog = ( wget )
+if ( $use_curl || $missing_wget ) set get_prog = ( curl -O -f )
+
+
+# ======================================================================
+# begin work (most work from temp dir)
+# ======================================================================
+
+# ----------------------------------------------------------------------
+# make and enter the temp dir
+
+# check permissions before doing anything
+if ( ! -w . ) then
+    echo "** you do not have write permissions in the current directory"
+    exit 1
+endif
+
+if ( ! -d $tmp_dir ) then
+    echo making temporary directory, $tmp_dir
+    set  made_tmp = 1
+
+    mkdir $tmp_dir
+    if ( $status ) then
+        echo "** failed to create new or remove old temp dir, $tmp_dir"
+        exit 1
+    endif
+endif
+cd $tmp_dir
+
+
+# ----------------------------------------------------------------------
+# download the run script and run it
+
+# if $run_script exists, remove it
+if ( -f $run_script ) then
+    echo "** removing old $run_script..."
+    \rm -f $run_script
+endif
+
+set bin_root = http://afni.nimh.nih.gov/pub/dist/bin/misc
+set get_file = $bin_root/$run_script
+$get_prog $get_file
+
+set ss = $status
+if ( ! $ss ) then
+   # see if we have this text (and therefore the actual program)
+   grep AFNI_RUNME_COOKIE $run_script > /dev/null
+   set ss = $status
+endif
+
+if ( $ss ) then
+   echo "** failed to download execution program, $run_script, exiting..."
+   exit 1
+endif
+
+# ----- we have the new program, run it
+chmod 755 $run_script
+echo executing: $run_script $run_opts
+./$run_script $run_opts |& tee $run_log
+
+if ( $status ) then
+   echo "** $run_script failed"
+   exit 1
+endif
+
