@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , DEC , 2013 , RWC , "3dTproject" , MICRO , TYPE_GENERAL ,
+  { 6 , DEC , 2013 , RWC , "3dTproject" , MICRO , TYPE_NEW_OPT ,
+   "Add new NTRP censor mode, just for the Spaniard." ,
+   "Where are my cookies?" } ,
+
+ { 4 , DEC , 2013 , RWC , "3dTproject" , MICRO , TYPE_GENERAL ,
    "Output count of the various regressors" ,
    NULL } ,
 

@@ -7,6 +7,44 @@
 #endif
 
 /*----------------------------------------------------------------------------*/
+/* Take a time series and a list of points to keep, and fill in the un-kept
+   points with values linearly interpolated from the nearest kept points.
+   -- This is an ad hoc fit to keep the Spanish Inquisition off my back. --
+*//*--------------------------------------------------------------------------*/
+
+void FILLIN_censored_time_series( int nt, int ntkeep, int *keep, float *xar )
+{
+   int ii , id,iu , qq , ntk1=ntkeep-1 ;
+   float vd,vu ;
+
+   /* if 0 is not a kept point, then fill in from 0 up to the first keeper */
+
+   iu = keep[0] ; vu = xar[iu] ;
+   for( ii=0 ; ii < iu ; ii++ ) xar[ii] = xar[iu] ;
+
+   /* loop over kept point pairs: from id..iu */
+
+   for( qq=0 ; qq < ntk1 ; qq++ ){
+     id = keep[qq]   ; vd = xar[id] ;     /* bottom of interval */
+     iu = keep[qq+1] ; vu = xar[iu] ;        /* top of interval */
+     if( iu-id > 1 ){                   /* any interior points? */
+       float den , fu,fd ;
+       den = 1.0f / (float)(iu-id) ;
+       for( ii=id+1 ; ii < iu ; ii++ ){
+         fu = (ii-id)*den ; fd = 1.0f-fu ; xar[ii] = fu*vu + fd*vd ;
+       }
+     }
+   }
+
+   /* if last point (nt-1) is not a kept point, fill in from the last keeper */
+
+   id = keep[ntk1] ; vd = xar[id] ;
+   for( ii=id+1 ; ii < nt ; ii++ ) xar[ii] = xar[id] ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
 
 #define MIN_RUN 9
 
@@ -37,7 +75,7 @@ typedef struct {
 
 #define CEN_ZERO 1
 #define CEN_KILL 2
-#define CEN_FILT 3
+#define CEN_NTRP 3
 
 int   TPR_verb   = 0 ;
 char *TPR_prefix = NULL ;
@@ -99,13 +137,12 @@ void TPR_help_the_pitiful_user(void)
    "                                      ==> output datset is same length as input\n"
    "                       ++ mode = KILL ==> remove those time points\n"
    "                                      ==> output dataset is shorter than input\n"
-#if 0
-   "                       ++ mode = FILT ==> censored values are replaced by\n"
-   "                                          neigbhoring (in time) non-censored values,\n"
+   "                       ++ mode = NTRP ==> censored values are replaced by interpolated\n"
+   "                                          neighboring (in time) non-censored values,\n"
    "                                          BEFORE any projections, and then the\n"
    "                                          analysis proceeds without actual removal\n"
-   "                                          of any time points -- this is for Javier.\n"
-#endif
+   "                                          of any time points -- this feature is to\n"
+   "                                          keep the Spanish Inquisition happy.\n"
    "                       ** The default mode is KILL !!!\n"
    "\n"
    " -concat ccc.1D      = The catenation file, as in 3dDeconvolve, containing the\n"
@@ -487,7 +524,7 @@ static int is_vector_constant( int n , float *v )
 
 void TPR_process_data( TPR_input *tp )
 {
-   int nt,ntkeep , nort_fixed=0 , nort_voxel=0 , nbad=0 , qq,jj,qort ;
+   int nt,ntkeep,ntuse , nort_fixed=0 , nort_voxel=0 , nbad=0 , qq,jj,qort ;
    byte *vmask=NULL ; int nvmask=0 , nvox , nvout ;
    float *ort_fixed=NULL , *ort_fixed_psinv=NULL , *ort_fixed_unc=NULL ;
    int *keep=NULL ;
@@ -565,14 +602,18 @@ ENTRY("TPR_process_data") ;
 
    for( jj=ntkeep=0 ; jj < nt ; jj++ ) if( tp->censar[jj] != 0.0f ) ntkeep++ ;
 
-   if( tp->verb && ntkeep < nt )
+   if( ntkeep < nt )
      INFO_message("input time points = %d ; censored = %d ; remaining = %d",
                   nt , nt-ntkeep , ntkeep ) ;
 
    if( ntkeep < MIN_RUN )
      ERROR_exit("only %d points left after censoring -- cannot continue",ntkeep) ;
 
-   /* do the same for runs, if any */
+   /** The number of time points to use in regression [06 Dec 2013] **/
+
+   ntuse = (tp->cenmode == CEN_NTRP) ? nt : ntkeep ;
+
+   /* do the same for individual runs, if any */
 
    if( nbl > 1 ){
      int aa,bb, nnk , nerr=0 ;
@@ -717,9 +758,8 @@ ENTRY("TPR_process_data") ;
 
    if( nbad > 0 ) ERROR_exit("Cannot continue after above errors :-( :-( :-( !!") ;
 
-   if( tp->verb )
-     INFO_message("%d retained time points MINUS %d regressors ==> %d D.O.F. left",
-                  ntkeep , nort_fixed+nort_voxel , ntkeep-nort_fixed-nort_voxel    ) ;
+   INFO_message("%d retained time points MINUS %d regressors ==> %d D.O.F. left",
+                ntkeep , nort_fixed+nort_voxel , ntkeep-nort_fixed-nort_voxel    ) ;
 
    /*----- make voxel mask, if present -----*/
 
@@ -730,8 +770,7 @@ ENTRY("TPR_process_data") ;
      if( vmask == NULL )
        ERROR_exit("Can't make mask from -mask dataset '%s'",DSET_BRIKNAME(tp->maskset)) ;
      nvmask = THD_countmask( DSET_NVOX(tp->inset) , vmask ) ;
-     if( tp->verb )
-       INFO_message("%d voxels in the spatial mask",nvmask) ;
+     INFO_message("%d voxels in the spatial mask",nvmask) ;
      if( nvmask == 0 )
        ERROR_exit("Mask from -mask dataset %s has 0 voxels",DSET_BRIKNAME(tp->maskset)) ;
 
@@ -741,8 +780,7 @@ ENTRY("TPR_process_data") ;
      if( vmask == NULL )
        ERROR_exit("Can't mask automask for some reason :-( !!") ;
      nvmask = THD_countmask( DSET_NVOX(tp->inset) , vmask ) ;
-     if( tp->verb )
-       INFO_message("%d voxels in the spatial automask",nvmask) ;
+     INFO_message("%d voxels in the spatial automask",nvmask) ;
      if( nvmask == 0 )
        ERROR_exit("autoask from input dataset %s has 0 voxels",DSET_BRIKNAME(tp->inset)) ;
 
@@ -750,8 +788,7 @@ ENTRY("TPR_process_data") ;
 
      vmask = (byte *)malloc(sizeof(byte)*nvox) ; nvmask = nvox ;
      for( jj=0 ; jj < nvox ; jj++ ) vmask[jj] = 1 ;
-     if( tp->verb )
-       INFO_message("no -mask option ==> processing all %d voxels in dataset",nvox) ;
+     INFO_message("no -mask option ==> processing all %d voxels in dataset",nvox) ;
 
    }
 
@@ -818,7 +855,7 @@ ENTRY("TPR_process_data") ;
 
    nort_fixed = qort ;
 
-   if( ntkeep == nt ){
+   if( ntuse == nt ){
      ort_fixed = ort_fixed_unc ; ort_fixed_unc = NULL ;   /* no censoring */
    } else {
      int pp,qort=0 ; float *opp , *upp ;
@@ -839,7 +876,7 @@ ENTRY("TPR_process_data") ;
    }
 
    if( TPR_verb > 1 && nort_fixed > 0 ){
-     MRI_IMAGE *qim = mri_new_vol_empty(ntkeep,nort_fixed,1,MRI_float) ;
+     MRI_IMAGE *qim = mri_new_vol_empty(ntuse,nort_fixed,1,MRI_float) ;
      char fname[256] ;
      mri_fix_data_pointer(ort_fixed,qim) ;
      sprintf(fname,"%s.ort.1D",tp->prefix) ;
@@ -851,13 +888,13 @@ ENTRY("TPR_process_data") ;
    if( nort_fixed > 0 ){
      MRI_IMAGE *qim ; char fname[256] ;
      if( tp->verb ) INFO_message("Compute pseudo-inverse of fixed orts") ;
-     ort_fixed_psinv = (float *)malloc(sizeof(float)*ntkeep*nort_fixed) ;
+     ort_fixed_psinv = (float *)malloc(sizeof(float)*ntuse*nort_fixed) ;
      TPR_prefix = tp->prefix ;
-     compute_psinv( ntkeep, nort_fixed, ort_fixed, ort_fixed_psinv, NULL ) ;
+     compute_psinv( ntuse, nort_fixed, ort_fixed, ort_fixed_psinv, NULL ) ;
      TPR_prefix = NULL ;
      if( TPR_verb > 1 ){
        MRI_IMAGE *qim ; char fname[256] ;
-       qim = mri_new_vol_empty(ntkeep,nort_fixed,1,MRI_float) ;
+       qim = mri_new_vol_empty(ntuse,nort_fixed,1,MRI_float) ;
        mri_fix_data_pointer(ort_fixed_psinv,qim) ;
        sprintf(fname,"%s.ort_psinv.1D",tp->prefix) ;
        mri_write_1D(fname,qim) ; mri_clear_and_free(qim) ;
@@ -869,14 +906,25 @@ ENTRY("TPR_process_data") ;
    /*----- make vector images from all input datasets -----*/
 
    if( tp->verb ) INFO_message("Loading dataset%s",(tp->dsortar != NULL) ? "s" : "\0") ;
-   inset_mrv = THD_dset_censored_to_vectim( tp->inset, vmask, ntkeep, keep ) ;
+   if( ntuse == nt ){
+     inset_mrv = THD_dset_to_vectim( tp->inset , vmask , 0 ) ;
+     if( ntkeep < ntuse ){               /* do the NTRP stuff now [06 Dec 2013] */
+       for( jj=0 ; jj < inset_mrv->nvec ; jj++ )
+         FILLIN_censored_time_series( nt,ntkeep,keep, VECTIM_PTR(inset_mrv,jj) ) ;
+     }
+   } else {
+     inset_mrv = THD_dset_censored_to_vectim( tp->inset, vmask, ntkeep, keep ) ;
+   }
    DSET_unload(tp->inset) ;
 
    if( tp->dsortar != NULL ){
      dsort_mrv = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nort_dsort) ;
      for( jj=0 ; jj < nort_dsort ; jj++ ){
-       dsort_mrv[jj] = THD_dset_censored_to_vectim( tp->dsortar->ar[jj] ,
-                                                    vmask, ntkeep, keep ) ;
+       if( ntuse == nt )
+         dsort_mrv[jj] = THD_dset_to_vectim( tp->dsortar->ar[jj] , vmask , 0 ) ;
+       else
+         dsort_mrv[jj] = THD_dset_censored_to_vectim( tp->dsortar->ar[jj] ,
+                                                      vmask, ntkeep, keep ) ;
        DSET_unload(tp->dsortar->ar[jj]) ;
        THD_vectim_applyfunc( dsort_mrv[jj] , vector_demean ) ;
      }
@@ -892,9 +940,9 @@ AFNI_OMP_START ;
    double *wsp ; float *dsar , *zar , *pdar ;
 
 #pragma omp critical
-   { wsp  = (double *)get_psinv_wsp( ntkeep , nds , ntkeep*2 ) ;
-     dsar = (float *)malloc(sizeof(float)*nds*ntkeep) ;
-     pdar = (float *)malloc(sizeof(float)*nds*ntkeep) ;
+   { wsp  = (double *)get_psinv_wsp( ntuse , nds , ntuse*2 ) ;
+     dsar = (float *)malloc(sizeof(float)*nds*ntuse) ;
+     pdar = (float *)malloc(sizeof(float)*nds*ntuse) ;
    }
 
 #pragma omp for
@@ -902,17 +950,17 @@ AFNI_OMP_START ;
 
      zar = VECTIM_PTR(inset_mrv,vv) ;   /* input data vector to be filtered */
 
-     if( is_vector_zero(ntkeep,zar) ) continue ;      /* skip all zero data */
+     if( is_vector_zero(ntuse,zar) ) continue ;       /* skip all zero data */
 
      if( nort_dsort > 0 ){             /* collect the voxel-wise regressors */
        float *dar , *ear ;
        for( kk=0 ; kk < nort_dsort ; kk++ ){
-         dar = VECTIM_PTR(dsort_mrv[kk],vv) ; ear = dsar+kk*ntkeep ;
-         AAmemcpy( ear , dar , sizeof(float)*ntkeep ) ;
+         dar = VECTIM_PTR(dsort_mrv[kk],vv) ; ear = dsar+kk*ntuse ;
+         AAmemcpy( ear , dar , sizeof(float)*ntuse ) ;
        }
      }
 
-     project_out_twice( ntkeep ,
+     project_out_twice( ntuse ,
                         nort_fixed , ort_fixed , ort_fixed_psinv ,
                         nort_dsort , dsar      , pdar            ,
                                      zar       , (char *)wsp      ) ;
@@ -1162,7 +1210,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
             if( strcasecmp(argv[iarg],"KILL") == 0 ) tinp->cenmode = CEN_KILL ;
        else if( strcasecmp(argv[iarg],"ZERO") == 0 ) tinp->cenmode = CEN_ZERO ;
-       else if( strcasecmp(argv[iarg],"FILT") == 0 ) tinp->cenmode = CEN_FILT ;
+       else if( strcasecmp(argv[iarg],"NTRP") == 0 ) tinp->cenmode = CEN_NTRP ;
        else ERROR_message("unknown value '%s' after -cenmode",argv[iarg]) ;
        iarg++ ; continue ;
      }
@@ -1282,9 +1330,9 @@ int main( int argc , char *argv[] )
          blist[tt] = blist[tt-1] + tinp->inset->tcat_len[tt-1] ;
        }
        if( nerr > 0 ) ERROR_exit("Auto-catenated dataset has runs with length < %d",MIN_RUN) ;
-       if( tinp->verb ) INFO_message("Auto-catenated dataset has %d runs",nbl) ;
+       INFO_message("Auto-catenated dataset has %d runs",nbl) ;
      } else {
-       if( tinp->verb ) INFO_message("Auto-catenated dataset treated as 1 run instead of %d",tinp->inset->tcat_num) ;
+       INFO_message("Auto-catenated dataset treated as 1 run instead of %d",tinp->inset->tcat_num) ;
      }
    }
 
