@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Dec, 2013, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
+   "added backup function for get_process_stack",
+   "BASE.shell_com() might return a short process list, probably from\n"
+   "limited buffer space (for cmd.stdout)."
+ } ,
+
  {  4,  Dec, 2013, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
    "fixed ac++ condition and empty if",
    NULL
