@@ -199,7 +199,11 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                     communication is through shared memory. \n"
 "                     You can turn that off by explicitly setting AfniHost\n"
 "                     to 127.0.0.1\n"
-"   [-niml]: Start listening for NIML-formatted elements.\n"     
+"   [-niml]: Start listening for communications with NIML-formatted elements.\n"
+"            Environment variable SUMA_START_NIML can also be used to start\n"
+"            listening.\n"
+"   [-noniml]: Do not start listening for communications with NIML-formatted\n"
+"              elements, even if env. SUMA_START_NIML is set to YES\n"    
 "\n"
 " Mode 2: Using -t_TYPE or -t* options to specify surfaces on command line.\n"
 "         -sv, -ah, -niml and -dev are still applicable here. This mode \n"
@@ -504,7 +508,8 @@ int main (int argc,char *argv[])
    int iv15[15], N_iv15, ispec, nspec;
    struct stat stbuf;
    float fff=0.0;
-   SUMA_Boolean Start_niml = NOPE, Domemtrace = YUP;
+   int Start_niml = 0;
+   SUMA_Boolean  Domemtrace = YUP;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -737,7 +742,12 @@ int main (int argc,char *argv[])
 		}
 		
       if (!brk && (strcmp(argv[kar], "-niml") == 0)) {
-			Start_niml = YUP;
+			Start_niml = 1;
+			brk = YUP;
+		}
+
+      if (!brk && (strcmp(argv[kar], "-noniml") == 0)) {
+			Start_niml = -1;
 			brk = YUP;
 		}
       
@@ -1032,7 +1042,7 @@ int main (int argc,char *argv[])
    and the shading reflecting it.... ZSS, Aug. 05 04 */
    glLightfv(GL_LIGHT0, GL_POSITION, SUMAg_SVv[0].light0_position); 
 
-   if (Start_niml || AFNI_yesenv("SUMA_START_NIML")) {
+   if (Start_niml != -1 && (Start_niml == 1|| AFNI_yesenv("SUMA_START_NIML"))) {
       if (!list) list = SUMA_CreateList();
       SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_StartListening, 
                                           SES_Suma, NULL);

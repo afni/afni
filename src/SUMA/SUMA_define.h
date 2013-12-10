@@ -1655,7 +1655,13 @@ typedef struct {
                            widgets for SaveWhat menu */
 } SUMA_X_DrawROI;
 
-               
+typedef struct {
+   GLXContext last_context;
+   Display *last_context_DPY;
+   Window last_context_WDW;
+   char setting_function[64];
+   char widget_label[64];
+} SUMA_GLCONTEXT_RECORD;               
                
 /*! structure containg X vars for surface viewers*/
 typedef struct {
@@ -1744,6 +1750,8 @@ typedef struct {
    
    int roffx; /* relative offset of widget in window */
    int roffy;
+   
+   SUMA_GLCONTEXT_RECORD *Cr;
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */

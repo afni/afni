@@ -1507,27 +1507,38 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                   SUMAg_CF->ClipPlaneType[SUMAg_CF->N_ClipPlanes] = 
                                     (SUMA_CLIP_PLANE_TYPES)EngineData->i;
-                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], 8*sizeof(char), "%s", EngineData->s);
-                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] = (GLdouble)EngineData->fv15[0];
-                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] = (GLdouble)EngineData->fv15[1];
-                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+2] = (GLdouble)EngineData->fv15[2];
-                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+3] = (GLdouble)EngineData->fv15[3];
+                  snprintf(SUMAg_CF->ClipPlanesLabels[SUMAg_CF->N_ClipPlanes], 
+                                          8*sizeof(char), "%s", EngineData->s);
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes  ] = 
+                                                   (GLdouble)EngineData->fv15[0];
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+1] = 
+                                                   (GLdouble)EngineData->fv15[1];
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+2] = 
+                                                   (GLdouble)EngineData->fv15[2];
+                  SUMAg_CF->ClipPlanes[4*SUMAg_CF->N_ClipPlanes+3] = 
+                                                   (GLdouble)EngineData->fv15[3];
                   ++SUMAg_CF->N_ClipPlanes;
                } else {
                   /* Replace an existing one */
-                  SUMAg_CF->ClipPlaneType[iplane] = (SUMA_CLIP_PLANE_TYPES)EngineData->i;
-                  snprintf(SUMAg_CF->ClipPlanesLabels[iplane], 8*sizeof(char), "%s", EngineData->s);
-                  SUMAg_CF->ClipPlanes[4*iplane  ] = (GLdouble)EngineData->fv15[0];
-                  SUMAg_CF->ClipPlanes[4*iplane+1] = (GLdouble)EngineData->fv15[1];
-                  SUMAg_CF->ClipPlanes[4*iplane+2] = (GLdouble)EngineData->fv15[2];
-                  SUMAg_CF->ClipPlanes[4*iplane+3] = (GLdouble)EngineData->fv15[3];
+                  SUMAg_CF->ClipPlaneType[iplane] = 
+                                          (SUMA_CLIP_PLANE_TYPES)EngineData->i;
+                  snprintf(SUMAg_CF->ClipPlanesLabels[iplane], 
+                                          8*sizeof(char), "%s", EngineData->s);
+                  SUMAg_CF->ClipPlanes[4*iplane  ] = 
+                                          (GLdouble)EngineData->fv15[0];
+                  SUMAg_CF->ClipPlanes[4*iplane+1] = 
+                                          (GLdouble)EngineData->fv15[1];
+                  SUMAg_CF->ClipPlanes[4*iplane+2] = 
+                                          (GLdouble)EngineData->fv15[2];
+                  SUMAg_CF->ClipPlanes[4*iplane+3] = 
+                                          (GLdouble)EngineData->fv15[3];
                }
                ED = SUMA_InitializeEngineListData (SE_Redisplay_AllVisible);
                if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                                       SEF_Empty, NULL, 
                                                       SES_Afni, NULL, NOPE, 
                                                       SEI_Tail, NULL )) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  SUMA_S_Err("Failed to register command");
                   break;
                }
                
@@ -1535,42 +1546,51 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_Show_Clip_Planes(SUMAg_CF, NULL);
             }
             break;
+            
          case SE_SetLookAt:
             /* expects a center XYZ in EngineData->fv3[0 .. 2] */
             if (EngineData->fv3_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               SUMA_S_Err("Data not destined correctly for %s (%d).\n", 
+                           NextCom, NextComCode);
                break;
             }
-            /* calculate the transform required to bring the new look at location to the current one */
+            /* calculate the transform required to bring the new look at 
+               location to the current one */
             {
                float ulook_old[3], ulook_new[3];
                int Step = 10, iStep;
                float fracUp, fracDown;
               
-               ulook_old[0] = sv->GVS[sv->StdView].ViewFrom[0] - sv->GVS[sv->StdView].ViewCenter[0];
-               ulook_old[1] = sv->GVS[sv->StdView].ViewFrom[1] - sv->GVS[sv->StdView].ViewCenter[1];
-               ulook_old[2] = sv->GVS[sv->StdView].ViewFrom[2] - sv->GVS[sv->StdView].ViewCenter[2];
+               ulook_old[0] = sv->GVS[sv->StdView].ViewFrom[0] - 
+                              sv->GVS[sv->StdView].ViewCenter[0];
+               ulook_old[1] = sv->GVS[sv->StdView].ViewFrom[1] - 
+                              sv->GVS[sv->StdView].ViewCenter[1];
+               ulook_old[2] = sv->GVS[sv->StdView].ViewFrom[2] - 
+                              sv->GVS[sv->StdView].ViewCenter[2];
                ulook_new[0] = ulook_new[1] = ulook_new[2] = 0.0;
                fm = (float **)SUMA_allocate2D(4,4,sizeof(float));
                
                for (iStep = Step; iStep >= 1; --iStep) {
                   fracUp = (float)(iStep)/(float)Step;
                   fracDown = (float)(Step - iStep)/(float)Step;
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s:%d, fracUp %f, fracDown %f, fv3[%f %f %f]\n", 
-                                 FuncName, iStep, fracUp, fracDown, EngineData->fv3[0], 
+                  SUMA_LH("%d, fracUp %f, fracDown %f, fv3[%f %f %f]\n", 
+                          iStep, fracUp, fracDown, EngineData->fv3[0], 
                                  EngineData->fv3[1], EngineData->fv3[2]);
-                  ulook_new[0] = (EngineData->fv3[0] * fracUp + sv->GVS[sv->StdView].ViewFrom[0] * fracDown) \
+                  ulook_new[0] = (EngineData->fv3[0] * fracUp + 
+                           sv->GVS[sv->StdView].ViewFrom[0] * fracDown)
                                  - sv->GVS[sv->StdView].ViewCenter[0];
-                  ulook_new[1] = (EngineData->fv3[1] * fracUp + sv->GVS[sv->StdView].ViewFrom[1] * fracDown) \
+                  ulook_new[1] = (EngineData->fv3[1] * fracUp + 
+                           sv->GVS[sv->StdView].ViewFrom[1] * fracDown)
                                  - sv->GVS[sv->StdView].ViewCenter[1];
-                  ulook_new[2] = (EngineData->fv3[2] * fracUp + sv->GVS[sv->StdView].ViewFrom[2] * fracDown) \
+                  ulook_new[2] = (EngineData->fv3[2] * fracUp +
+                           sv->GVS[sv->StdView].ViewFrom[2] * fracDown)
                                  - sv->GVS[sv->StdView].ViewCenter[2];
                   if (fm == NULL) {
-                     fprintf (SUMA_STDERR,"Error %s: Failed to allocate fm.\n",FuncName);
+                     SUMA_S_Err("Failed to allocate fm.");
                      break;
                   }
                   if (!SUMA_FromToRotation (ulook_new, ulook_old, fm)) {
-                     fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_FromToRotation.\n",FuncName);
+                     SUMA_S_Err("Failed in SUMA_FromToRotation.");
                      break;
                   }
                   
@@ -1579,20 +1599,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   ED->N_cols = 4;
                   ED->N_rows = 4;
                   if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_fm, (void *)fm, 
-                                                         EngineData->Src, EngineData->Srcp, NOPE, 
-                                                         SEI_Head, NULL ))) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                                    SEF_fm, (void *)fm, 
+                                    EngineData->Src, EngineData->Srcp, NOPE, 
+                                    SEI_Head, NULL ))) {
+                     SUMA_S_Err("Failed to register command");
                      break;
                   }
                                     
                   /* add a redisplay call */
                   ED = SUMA_InitializeEngineListData (SE_RedisplayNow);
                   if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_Empty, NULL, 
-                                                         EngineData->Src, EngineData->Srcp, NOPE, 
-                                                         SEI_After, LocElm )) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                                    SEF_Empty, NULL, 
+                                    EngineData->Src, EngineData->Srcp, NOPE, 
+                                    SEI_After, LocElm )) {
+                     SUMA_S_Err("Failed to register command");
                      break;
                   }
                   

@@ -9631,12 +9631,14 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
       SUMA_RETURNe;
    }
 
+   memset(&sopd, 0, sizeof(SUMA_OVERLAY_PLANE_DATA));
    sopd.N = irgb->N;
    sopd.Type = SOPT_ifff;
    sopd.Source = SES_Suma;
    sopd.GlobalOpacity = 0.3;
    sopd.isBackGrnd = NOPE;
    sopd.Show = YUP;
+   sopd.dtlvl = SUMA_ELEM_DAT;
    /* dim colors from maximum intensity to preserve surface shape 
       highlights, division by 255 is to scale color values between 1 and 0 */
    sopd.DimFact = 0.5;
