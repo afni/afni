@@ -1312,7 +1312,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             change. So I'll allocate for the entire node list 
             for the FuncAfni_0 color plane although only some values will 
             be used*/
-
+         
+         memset(&sopd, 0, sizeof(SUMA_OVERLAY_PLANE_DATA));
          sopd.Type = SOPT_ibbb;
          sopd.Source = SES_Afni;
          sopd.GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;

@@ -1969,6 +1969,15 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    M[3][0] = M[3][1] = M[3][2] = 0.0;\
 }
 
+#undef AFF44_CARD_LOAD
+#define AFF44_CARD_LOAD( M , d0, d1, d2) {\
+   M[0][0] = d0; M[1][1] = d1; M[2][2] = d2; M[3][3] = 1.0;\
+   M[0][1] = M[0][2] = M[0][3] = \
+   M[1][0] = M[1][2] = M[1][3] = \
+   M[2][0] = M[2][1] = M[2][3] = \
+   M[3][0] = M[3][1] = M[3][2] = 0.0;\
+}
+
 #undef AFF44_TO_V12
 #define AFF44_TO_V12( V, M ) { \
    V[0] = M[0][0]; V[1] = M[0][1]; V[2]  = M[0][2]; V[3]  = M[0][3];   \

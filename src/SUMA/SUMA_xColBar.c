@@ -93,10 +93,11 @@ void SUMA_cmap_wid_graphicsInit (Widget w, XtPointer clientData, XtPointer call)
                         True);              /* Direct rendering if possible. */
    
    /* Setup OpenGL state. */
-   if (!glXMakeCurrent( XtDisplay(w), XtWindow(w), 
-                        SurfCont->cmp_ren->cmap_context)) {
+   if (!SUMA_glXMakeCurrent( XtDisplay(w), XtWindow(w), 
+                        SurfCont->cmp_ren->cmap_context, 
+                        FuncName, "some cmap init", 1)) {
       fprintf (SUMA_STDERR, 
-               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               "Error %s: Failed in SUMA_glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
       SUMA_GL_ERRS;
       SUMA_RETURNe;
@@ -374,11 +375,10 @@ Boolean SUMA_cmap_wid_handleRedisplay(XtPointer clientData)
       SUMA_LHv("Making cmap_wid current %p %p\n", 
                SurfCont->cmp_ren->cmap_wid, 
                SurfCont->cmp_ren->cmap_context);
-      if (!glXMakeCurrent( XtDisplay(SurfCont->cmp_ren->cmap_wid), 
+      if (!SUMA_glXMakeCurrent( XtDisplay(SurfCont->cmp_ren->cmap_wid), 
                            XtWindow(SurfCont->cmp_ren->cmap_wid), 
-                           SurfCont->cmp_ren->cmap_context)) {
-         SUMA_GL_ERRS;
-         SUMA_S_Err("Failed in glXMakeCurrent.\n \tContinuing ...");
+            SurfCont->cmp_ren->cmap_context, FuncName, "some cmap resize", 1)) {
+         SUMA_S_Err("Failed in SUMA_glXMakeCurrent.\n \tContinuing ...");
       }
       SUMA_LH("Calling wid display");
       SUMA_cmap_wid_display(ado);
@@ -503,10 +503,10 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
    }  
 
    /* make sure the color map is the current context */
-   if (!glXMakeCurrent( XtDisplay(w), 
+   if (!SUMA_glXMakeCurrent( XtDisplay(w), 
                         XtWindow(w), 
-                        SurfCont->cmp_ren->cmap_context)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n ", FuncName);
+            SurfCont->cmp_ren->cmap_context, FuncName, "some cmap input", 1)) {
+      SUMA_S_Err("Failed in SUMA_glXMakeCurrent.\n ");
       SUMA_RETURNe;
    }
 
@@ -11799,7 +11799,6 @@ void SUMA_LoadCmapFile (char *filename, void *data)
 {
    static char FuncName[]={"SUMA_LoadCmapFile"};
    SUMA_ALL_DO *ado = NULL;
-   SUMA_OVERLAY_PLANE_DATA sopd;
    SUMA_IRGB *irgb=NULL;
    int OverInd = -1, lnp=-1, loc[2];
    char *np=NULL;
@@ -11812,7 +11811,7 @@ void SUMA_LoadCmapFile (char *filename, void *data)
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
-
+   
    if (!SUMAg_CF->scm) {   
       SUMAg_CF->scm = SUMA_Build_Color_maps();
       if (!SUMAg_CF->scm) {

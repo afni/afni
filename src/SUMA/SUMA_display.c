@@ -229,12 +229,64 @@ void SUMA_SiSi_I_Insist(void)
    PleaseDoMakeCurrent = YUP;
 }
 
-Boolean
-SUMA_handleRedisplay(XtPointer closure)
+/* A function that can guess at to whether or not a call to 
+glXMakeCurrent is needed. Eventually, I should no longer use
+SUMA_SiSi_I_Insist() */
+SUMA_Boolean SUMA_glXMakeCurrent(Display *dpy, Window wdw, GLXContext cont,
+      char *fname, char *wlab, int force)
+{
+   static char FuncName[]={"SUMA_glXMakeCurrent"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+      /* An OpenGL rendering context is a port through which all OpenGL 
+         commands pass. */
+      /* Before rendering, a rendering context must be bound to the desired 
+      drawable using glXMakeCurrent. OpenGL rendering commands implicitly use the
+      current bound rendering context and one drawable. Just as a
+      program can create multiple windows, a program can create multiple OpenGL 
+      rendering contexts. But a thread can only be bound to one rendering context
+      and drawable at a time. Once bound, OpenGL rendering can begin.
+      glXMakeCurrent can be called again to bind to a different window and/or 
+      rendering context. */
+      
+   if (force || cont != SUMAg_CF->X->Cr->last_context ||
+                dpy != SUMAg_CF->X->Cr->last_context_DPY ||
+                wdw != SUMAg_CF->X->Cr->last_context_WDW ) {
+   
+      SUMAg_CF->X->Cr->last_context_DPY = NULL; /* This will be a clear
+                                                 record of failure to
+                                                 set last context */
+      snprintf(SUMAg_CF->X->Cr->setting_function, 62,"%s",
+               fname ? fname : "NOT_SET");
+      snprintf(SUMAg_CF->X->Cr->widget_label, 62,"%s",
+               wlab ? wlab : "NOT_SET");
+      SUMA_LH("About to make current %s, %s (dpy %p %ld %ld, force %d)", 
+               fname, wlab, dpy, (long int)wdw, (long int)cont, force);
+      if (!glXMakeCurrent (dpy, wdw, cont)) {
+         SUMA_S_Err("Failed in glXMakeCurrent.\n");
+         SUMA_GL_ERRS;
+         SUMA_EDUMP_TRACE(FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      
+      SUMAg_CF->X->Cr->last_context = cont;
+      SUMAg_CF->X->Cr->last_context_DPY = dpy;
+      SUMAg_CF->X->Cr->last_context_WDW = wdw;
+   } else {
+      SUMA_LHv("No current making needed from %s, label %s\n", 
+               fname?fname:"NULL", wlab?wlab:"NULL");
+   }
+   SUMA_RETURN(YUP);
+}
+
+Boolean SUMA_handleRedisplay(XtPointer closure)
 {
    static char FuncName[]={"SUMA_handleRedisplay"};
    static int Last_isv = -1;
    int isv;
+   char buf[32];
    SUMA_SurfaceViewer *sv;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -253,6 +305,9 @@ SUMA_handleRedisplay(XtPointer closure)
       SUMA_RETURN(NOPE);
    }
    
+   /* NEED TO DO WITHOUT THIS SILLY LOGIC HERE.
+      SUMA_glXMakeCurrent() below should be able to figure out
+      on its own if a call to glXMakeCurrent is needed... */
    if (Last_isv >= 0) {    /* first time function is called, 
                               no use for this variable yet */
       if (isv != Last_isv) {/* need to call glXMakeCurrent */
@@ -293,30 +348,14 @@ SUMA_handleRedisplay(XtPointer closure)
    SUMA_S_Note("Forcing Current Making");
    PleaseDoMakeCurrent = YUP;
    #endif
-   if (PleaseDoMakeCurrent) {
-      SUMA_LHv("Making context current (GLXAREA %p)\n", sv->X->GLXAREA);
-      /* An OpenGL rendering context is a port through which all OpenGL 
-         commands pass. */
-      /* Before rendering, a rendering context must be bound to the desired 
-      drawable using glXMakeCurrent. OpenGL rendering commands implicitly use the
-      current bound rendering context and one drawable. Just as a
-      program can create multiple windows, a program can create multiple OpenGL 
-      rendering contexts. But a thread can only be bound to one rendering context
-      and drawable at a time. Once bound, OpenGL rendering can begin.
-      glXMakeCurrent can be called again to bind to a different window and/or 
-      rendering context. */
-      /* SUMA_HOLD_IT; Not used anymore */
-      if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), 
-                           sv->X->GLXCONTEXT)) {
-               fprintf (SUMA_STDERR, 
-                        "Error %s: Failed in glXMakeCurrent.\n"
-                        " \tContinuing ...\n", FuncName);
-               SUMA_GL_ERRS;
-               
-               SUMA_RETURN(NOPE);
-      }
-      PleaseDoMakeCurrent = NOPE;
+   
+   sprintf(buf,"GLXAREA of sv %d", isv);
+   if (!SUMA_glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), 
+                        sv->X->GLXCONTEXT, FuncName, buf, PleaseDoMakeCurrent)) {
+      SUMA_S_Err("Failed in SUMA_glXMakeCurrent.\n");
+      SUMA_RETURN(NOPE);
    }
+   PleaseDoMakeCurrent = NOPE;
    
    Last_isv = isv; /* store last surface viewer to call display */
    /* call display for the proper surface viewer*/
@@ -1393,10 +1432,11 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    
    /* do a resize (does not matter if dimensions did not change, call is simple.
    This call will also generate a SUMA_resize call */
-   SUMA_WidgetResize (csv->X->TOPLEVEL , csv->WindWidth, csv->WindHeight); 
-
-   SUMA_RETURN(1);   
+   SUMA_LH("Resizing");
    
+   SUMA_WidgetResize (csv->X->TOPLEVEL , csv->WindWidth, csv->WindHeight); 
+   
+   SUMA_RETURN(1);   
 }
 /*!
    \brief function to load a viewer's visual state
@@ -1449,7 +1489,6 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
    NI_free_element(nel); nel = NULL;
    NI_stream_close(nstdin); 
    
-
    SUMA_RETURNe;
 }
 
@@ -1660,6 +1699,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    static int xList[1], yList[1];
    SUMA_SurfaceObject *SO=NULL;
    SUMA_VolumeObject *VO=NULL;
+   GLenum fbs;
    GLfloat rotationMatrix[4][4];
    static char FuncName[]={"SUMA_display"};
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
@@ -1734,10 +1774,45 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) 
       fprintf (SUMA_STDOUT,"%s: Building Rotation matrix ...\n", FuncName);
    SUMA_build_rotmatrix(rotationMatrix, csv->GVS[csv->StdView].currentQuat);
-    
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
+   
+   if (LocalHead) {
+      SUMA_LH("performing glClear ...");
+      SUMA_CHECK_GL_ERROR("OpenGL Error Pre clear");
+   }
+   fbs = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+   switch (fbs) {
+      case 0:
+         SUMA_CHECK_GL_ERROR("OpenGL Error glCheckFramebufferStatus");
+         SUMA_RETURNe;
+      case GL_FRAMEBUFFER_COMPLETE:
+         SUMA_LH("Frame buffer complete (%d)", fbs);
+         break;
+      case GL_FRAMEBUFFER_UNDEFINED:
+         SUMA_S_Err("Frame buffer undefined(%d)", fbs);
+         SUMA_RETURNe;
+      case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+         SUMA_S_Err("Frame buffer incomplete attachment(%d)", fbs);
+         SUMA_RETURNe;
+      case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+         SUMA_S_Err("Frame buffer incomplete layer targets(%d)", fbs);
+         SUMA_RETURNe;
+      case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+         SUMA_S_Err("Frame buffer incomplete multisample(%d)", fbs);
+         SUMA_RETURNe;
+      case GL_FRAMEBUFFER_UNSUPPORTED:
+         SUMA_S_Err("Frame buffer unsupported(%d)", fbs);
+         SUMA_RETURNe;
+      default:
+         SUMA_S_Err("Frame buffer %d?", fbs);
+         SUMA_RETURNe;
+   }
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer 
                                                          and the depth buffer */
+   
+   if (LocalHead) {
+      SUMA_CHECK_GL_ERROR("OpenGL Error Post clear");   
+      SUMA_LH("Clearing done ...");
+   }
    
    SUMA_SET_GL_PROJECTION(csv, csv->ortho);
    
@@ -2133,6 +2208,7 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
    XVisualInfo *SUMAg_cVISINFO=NULL;
    static char FuncName[]={"SUMA_graphicsInit"};
    int isv;
+   char buf[32];
    SUMA_SurfaceViewer *sv;
    
    SUMA_ENTRY;
@@ -2154,9 +2230,11 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
 
    /* Setup OpenGL state. */
    /* SUMA_HOLD_IT; Not used anymore */
-   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
+   sprintf(buf,"Init of sv %d", isv);
+   if (!SUMA_glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT,
+                  FuncName, buf, 1)) {
       fprintf (SUMA_STDERR, 
-               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               "Error %s: Failed in SUMA_glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
       SUMA_RETURNe;
    }
@@ -2247,7 +2325,9 @@ SUMA_resize(Widget w,
    static char FuncName[]={"SUMA_resize"};
    GLwDrawingAreaCallbackStruct *callData;
    SUMA_SurfaceViewer *sv;
+   char buf[32];
    int isv;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -2259,19 +2339,20 @@ SUMA_resize(Widget w,
       SUMA_RETURNe;
    }
 
-   /*   fprintf(stdout, "Resizn'...\n");*/
+   SUMA_LH("Resizing sv %d", isv);
    callData = (GLwDrawingAreaCallbackStruct *) call;
    /* SUMA_HOLD_IT; Not used anymore */
-
-   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
+   sprintf(buf,"Resize sv %d", isv);
+   if (!SUMA_glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT,
+                           FuncName, buf, 1)) {
       fprintf (SUMA_STDERR, 
-               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               "Error %s: Failed in SUMA_glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
       SUMA_GL_ERRS;
 
       SUMA_RETURNe;
    }
-
+   SUMA_LH("Context made current");
    /* SUMA_HOLD_IT; Not used anymore */
    
    glXWaitX();
@@ -3560,6 +3641,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       XtRealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
       
       /* I will need a Graphics Context variable to draw into the window */
+      SUMA_LH("Getting a grahics context");
       {  
          XGCValues gcv; /* see program drawing.c in Motif Programming Manual, 
                            Ch. 10 */
@@ -3573,7 +3655,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       }
       /* keep track of count */
       SUMAg_N_SVv += 1;
-      
+      SUMA_LH("Repos");
       /* initial repositioning, just for 1st creation */
       switch (repos[0]) {
          case 4:
@@ -3620,7 +3702,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
             }
          }
       
-      }       
+      }
+      SUMA_LH("Done with new window setup");  
    } else {    /* widget already set up, just undo whatever 
                   was done in SUMA_ButtClose_pushed */
       
@@ -3650,9 +3733,11 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    ++SUMAg_CF->N_OpenSV; 
    ++CallNum;
    
+   SUMA_LH("Updates");  
    SUMA_UpdateViewerCursor (&(SUMAg_SVv[ic]));
    SUMA_UpdateViewerTitle (&(SUMAg_SVv[ic]));
 
+   SUMA_LH("Returning");  
    SUMA_RETURN (YUP);
 }
 
@@ -4259,6 +4344,8 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    GLXContext cx;
    Pixmap pmap;
    GLXPixmap glxpmap;
+   int isv=-1;
+   char buf[32];
    static char FuncName[]={"SUMA_RenderToPixMap"};
 
    SUMA_ENTRY;
@@ -4300,9 +4387,11 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    pmap = XCreatePixmap(dpy, RootWindow(dpy, vi->screen),
     csv->X->WIDTH, csv->X->HEIGHT, vi->depth);
    glxpmap = glXCreateGLXPixmap(dpy, vi, pmap);
-   if (!glXMakeCurrent(dpy, glxpmap, cx)) {
+   isv = SUMA_WhichSV(csv, SUMAg_SVv, SUMAg_N_SVv);
+   sprintf(buf,"pixmap of sv %d", isv);
+   if (!SUMA_glXMakeCurrent(dpy, glxpmap, cx, FuncName, buf, 1)) {
       fprintf (SUMA_STDERR, 
-               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               "Error %s: Failed in SUMA_glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
       SUMA_GL_ERRS;
 
@@ -4357,10 +4446,12 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 
    /* render to original context */
    /* SUMA_HOLD_IT; Not used anymore */
-   if (!glXMakeCurrent( XtDisplay(csv->X->GLXAREA), 
-                        XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT)) {
+   sprintf(buf,"GLXAREA of sv %d",  isv);
+   if (!SUMA_glXMakeCurrent( XtDisplay(csv->X->GLXAREA), 
+             XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT,
+             FuncName, buf, 1)) {
       fprintf (SUMA_STDERR, 
-               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               "Error %s: Failed in SUMA_glXMakeCurrent.\n \tContinuing ...\n", 
                FuncName);
       SUMA_GL_ERRS;
 
@@ -5025,6 +5116,8 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
    GLdouble mvmatrix[16], projmatrix[16];
    GLint realy; /* OpenGL y coordinate position */
    char CommString[100];
+   int isv=-1;
+   char buf[32];
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -5084,11 +5177,16 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
       notebook page was changed. For some reason, the context was no longer
       current or correct when the window manager had to manage widgets
       outside of the GLX area.   
+      
+      AFTER Nov 2013,
+      Now calling SUMA_glXMakeCurrent with force context setting
    */  
-      if (!glXMakeCurrent (sv->X->DPY, XtWindow(sv->X->GLXAREA), 
-                           sv->X->GLXCONTEXT)) {
+      isv =  SUMA_WhichSV (sv, SUMAg_SVv, SUMAg_N_SVv);
+      sprintf(buf,"GLXAREA of sv %d", isv); 
+      if (!SUMA_glXMakeCurrent (sv->X->DPY, XtWindow(sv->X->GLXAREA), 
+                           sv->X->GLXCONTEXT, FuncName, buf, 1)) {
                fprintf (SUMA_STDERR, 
-                        "Error %s: Failed in glXMakeCurrent.\n"
+                        "Error %s: Failed in SUMA_glXMakeCurrent.\n"
                         " \tContinuing ...\n", FuncName);
                SUMA_GL_ERRS;
       }
@@ -20218,7 +20316,7 @@ void SUMA_ShowAllVisuals (void)
                               0, 0, 100, 100, 0, visualToTry->depth, 
                               InputOutput, visualToTry->visual,
                               CWBorderPixel | CWColormap, &swa);
-      glXMakeCurrent(dpy, window, context);
+      SUMA_glXMakeCurrent(dpy, window, context, FuncName, "showall", 1);
       fprintf(SUMA_STDERR, "\n");
       fprintf(SUMA_STDERR, "OpenGL vendor string: %s\n", glGetString(GL_VENDOR));
       fprintf(SUMA_STDERR, "OpenGL renderer string: %s\n", 

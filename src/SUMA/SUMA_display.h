@@ -32,6 +32,17 @@
    SUMA_S_Note("Waiting...");\
    glXWaitGL();glXWaitX(); glFinish();\
    SUMA_S_Note("Done.");}  
+
+#define SUMA_CHECK_GL_ERROR(str)                                           \
+{                                                                  \
+    GLenum error;                                                  \
+    while((error = glGetError()) != GL_NO_ERROR)                   \
+       fprintf(stderr,"**************GL Error: %s (%s)\n", \
+         gluErrorString(error), str);  \
+}
+
+
+
                                   
 typedef struct suma_menu_item {
     char        *label;         /*!< the label for the item */
@@ -258,6 +269,8 @@ sets the select color of the widget to its foreground color */
 
 String *SUMA_get_fallbackResources ();         
 void SUMA_CullOption(SUMA_SurfaceViewer *, const char *action);
+SUMA_Boolean SUMA_glXMakeCurrent(Display *dpy, Window wdw, GLXContext cont,
+      char *fname, char *wlab, int force);
 Boolean SUMA_handleRedisplay (XtPointer w);
 void SUMA_postRedisplay(Widget w, XtPointer clientData, XtPointer call);
 GLenum SUMA_index_to_clip_plane(int iplane) ;

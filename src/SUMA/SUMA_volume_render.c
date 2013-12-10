@@ -10,15 +10,6 @@ extern int SUMAg_N_DOv;
 See also SUMA_GLUT_volumedemo.c*/
 
 
-#define SUMA_CHECK_GL_ERROR(str)                                           \
-{                                                                  \
-    GLenum error;                                                  \
-    while((error = glGetError()) != GL_NO_ERROR)                   \
-       fprintf(stderr,"**************GL Error: %s (%s)\n", \
-         gluErrorString(error), str);  \
-}
-
-
 
 static GLfloat lightpos[4] = {150., 150., 150., 1.f};
 
