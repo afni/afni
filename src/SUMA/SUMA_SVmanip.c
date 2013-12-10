@@ -2234,9 +2234,9 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
          case VO_type: {
             SUMA_VolumeObject *VO=(SUMA_VolumeObject *)dov[do_id].OP;
             xyzr = SUMA_VO_Grid_Center(VO, NULL);
-            NewCenter[0] += xyzr[0];
-            NewCenter[1] += xyzr[1];
-            NewCenter[2] += xyzr[2];
+            NewCenter[0] += VO_NVOX(VO)*xyzr[0];
+            NewCenter[1] += VO_NVOX(VO)*xyzr[1];
+            NewCenter[2] += VO_NVOX(VO)*xyzr[2];
             TotWeight += VO_NVOX(VO);
             break; }
          default:
@@ -2390,9 +2390,9 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
             SUMA_VolumeObject *VO=(SUMA_VolumeObject *)dov[do_id].OP;
             xyzr = SUMA_VO_Grid_Center(VO, NULL);
             
-            NewCenter[0] += xyzr[0];
-            NewCenter[1] += xyzr[1];
-            NewCenter[2] += xyzr[2];
+            NewCenter[0] += VO_NVOX(VO)*xyzr[0];
+            NewCenter[1] += VO_NVOX(VO)*xyzr[1];
+            NewCenter[2] += VO_NVOX(VO)*xyzr[2];
             TotWeight += VO_NVOX(VO);
             break; }
          default:
@@ -3596,6 +3596,12 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
                   valgrind... Problem may be in XtOpenApplication which
                   returns App, perhaps poorly initialized*/
    
+   cf->X->Cr = (SUMA_GLCONTEXT_RECORD *)calloc(1, sizeof(SUMA_GLCONTEXT_RECORD));
+   cf->X->Cr->last_context_DPY = NULL;
+   cf->X->Cr->last_context_WDW = -1;
+   cf->X->Cr->setting_function[0] = '\0';
+   cf->X->Cr->widget_label[0] = '\0';
+   
    eee = getenv("SUMA_ColorPattern");
    if (eee) {
       if (strcmp (eee, "AFNI") == 0) {
@@ -4332,6 +4338,9 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->X->FileSelectDlg) 
       SUMA_FreeFileSelectionDialogStruct(cf->X->FileSelectDlg); 
    cf->X->FileSelectDlg = NULL;
+   
+   SUMA_ifree(cf->X->Cr);
+   
    if (cf->X->SumaCont) 
       SUMA_FreeSumaContStruct (cf->X->SumaCont); 
    cf->X->SumaCont = NULL;

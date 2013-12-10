@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9, Dec , 2013 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX,
+   "Fixed broken demo script run_stdmesh_demo from std_meshes.tgz",
+   "Failure was in glXMakeCurrent which crashed rather than return in error.\n"
+   "Not sure what was causing this, but it was the rapid succession of \n"
+   "controllers being open and repositioned that was causing this. Simply\n"
+   "splitting the two operations into separate loops was enough to remedy\n"
+   "this. Adding calls to glFinish() and XSync() did nothing to fix the\n"
+   "problem reliably"
+ },
+
+ { 6, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "Automated decision for calling glXMakeCurrent with SUMA_glXMakeCurrent()",
+   "This fixes instances where surfaces were being rendered in the colorbar!"
+   "Eventually any use of SUMA_Si_Si_I_Insist() should be obsolete."
+ },
+
  { 27, Nov , 2013 , ZSS , "3dCM" , MINOR , TYPE_NEW_OPT,
    "Added -roi_vals to get COM for multiple ROIs",
    "Workhorse is THD_roi_cmass() in thd_center.c"

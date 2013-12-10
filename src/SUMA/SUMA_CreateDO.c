@@ -2629,10 +2629,8 @@ SUMA_Boolean SUMA_VE_Set_Dims(SUMA_VolumeElement **VE, int ive)
    */
    SUMA_GetDatasetI2X(sdset, VE[ive]->I2X);  /* A */
    AFF44_INV(VE[ive]->X2I,  VE[ive]->I2X);   /* inv(A) */
-   B[0][0] = 1.0/VE[ive]->Ni; /* T = B I */
-   B[1][1] = 1.0/VE[ive]->Nj;
-   B[2][2] = 1.0/VE[ive]->Nk;
-   B[3][3] = 1.0;
+   /* T = B I */
+   AFF44_CARD_LOAD(B, (1.0/VE[ive]->Ni), (1.0/VE[ive]->Nj), (1.0/VE[ive]->Nk));
    AFF44_MULT(VE[ive]->X2T, B, VE[ive]->X2I); 
    AFF44_INV(VE[ive]->T2X, VE[ive]->X2T);
    
@@ -2988,6 +2986,7 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
    dotract = dotract | 2; /* color by tract mid point orientation */
    dotract = dotract | 3; /* color by tract local orientation */
    
+   memset(&sopd, 0, sizeof(SUMA_OVERLAY_PLANE_DATA));
    if (dotract & 1) {
    SUMA_LH("Coloring by bundle id");
    ltmp = SUMA_append_replace_string(SUMA_ADO_Label(ado), "b_tracts","_",0);
@@ -12958,6 +12957,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             
    SUMA_ENTRY;
    
+   memset(&sopd, 0, sizeof(SUMA_OVERLAY_PLANE_DATA));
    SUMA_LH("Called");
    /* select the color map */
    {
@@ -13285,7 +13285,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
       sopd.g = (void *)gvect;
       sopd.b = (void *)bvect;
       sopd.a = NULL;
-
+      sopd.dtlvl = SUMA_ELEM_DAT;
+      
       SUMA_LH("Calling SUMA_iRGB_to_SO_OverlayPointer");
       if (!SUMA_iRGB_to_SO_OverlayPointer (SO, Plane->name, 
                                           &sopd, &OverInd, 
