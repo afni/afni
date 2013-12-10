@@ -82,7 +82,7 @@ void THD_fitter_set_vthresh( float vvv ){
                        ccon[i] = 0 == no constraint
                                > 0 == coef #i must be >= 0
                                < 0 == coef #i must be <= 0
-    - Output is vector of coefficiens (nref of them).
+    - Output is vector of coefficients (nref of them).
     - Output is NULL if some error transpired.
 *//*----------------------------------------------------------------*/
 
