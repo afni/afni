@@ -646,7 +646,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_ALL_DO *ado=NULL;
    SUMA_SurfaceViewer *svi = NULL;
    SUMA_OVERLAYS * tmpptr; 
-   GLfloat *glar_ColorList = NULL;
    SUMA_OVERLAY_PLANE_DATA sopd;
    SUMA_SurfSpecFile *Spec=NULL;
    SUMA_Boolean iselement = YUP;

@@ -267,7 +267,7 @@ SUMA_Boolean SUMA_glXMakeCurrent(Display *dpy, Window wdw, GLXContext cont,
       if (!glXMakeCurrent (dpy, wdw, cont)) {
          SUMA_S_Err("Failed in glXMakeCurrent.\n");
          SUMA_GL_ERRS;
-         SUMA_EDUMP_TRACE(FuncName);
+         SUMA_EDUMP_TRACE("Called from %s", FuncName);
          SUMA_RETURN(NOPE);
       }
       
@@ -3401,9 +3401,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMA_Boolean LocalHead = NOPE;
        
    SUMA_ENTRY;
-
    /* Step 1. */
    if (CallNum == 0) { /* first call, initialize App */
+      SUMA_LH("Entered 1st viewer creation");
       SUMAg_CF->N_OpenSV = 0;
       /*
          SUMAg_SVv[ic].X->TOPLEVEL = XtAppInitialize(&SUMAg_CF->X->App, "SUMA", 
@@ -3447,6 +3447,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       NewCreation = YUP;
       Inherit = NOPE;
    } else {/* not the first call, new controller is required */
+      SUMA_LH("Entered subsequent viewers creation");
       ic = 0;
       Found = NOPE;
       while (ic < SUMA_MAX_SURF_VIEWERS && !Found) {
@@ -3479,6 +3480,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    }
 
    if (NewCreation) { /* create widgets, add call backs etc ,,, */
+      SUMA_LH("New creation, Inherit=%d", Inherit);
       /* Step 2. */
       XtAddEventHandler(SUMAg_SVv[ic].X->TOPLEVEL, StructureNotifyMask,
        False, SUMA_mapStateChanged, NULL);
@@ -3615,6 +3617,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 
           
       /* Step 7. */
+      SUMA_LH("Callbacks");
       XtAddCallback( SUMAg_SVv[ic].X->GLXAREA, GLwNginitCallback, 
                      SUMA_graphicsInit, NULL);
       XtAddCallback( SUMAg_SVv[ic].X->GLXAREA, GLwNexposeCallback, 
@@ -3642,7 +3645,17 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       
       /* I will need a Graphics Context variable to draw into the window */
       SUMA_LH("Getting a grahics context");
-      {  
+      if (0){ /* This has caused me lots of grief with XQuartz, on 10.8 systems
+                 and possibly before. If this block is executed, I get undefined
+                 buffer errors (right before glClear) and failures to set 
+                 the current graphic context with glXCreateContext().
+                 The problems are intermittent however and at times tricky to
+                 reproduce and they only occur whenver a new controller
+                 is opened with 'ctrl+n' the first time. You have better odds
+                 of causing the problem if you resize the very first window
+                 right before opening the new controller.
+                 In any case, this block is not needed at all anymore since 
+                 X->gc is no longer used anywhere. */
          XGCValues gcv; /* see program drawing.c in Motif Programming Manual, 
                            Ch. 10 */
          gcv.foreground = 
@@ -3651,12 +3664,13 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                                           XtWindow (SUMAg_SVv[ic].X->GLXAREA), 
                                           GCForeground, &gcv);
          SUMA_SetSVForegroundColor (&SUMAg_SVv[ic], "Green");
-
       }
+      
       /* keep track of count */
       SUMAg_N_SVv += 1;
       SUMA_LH("Repos");
       /* initial repositioning, just for 1st creation */
+      if (1) {
       switch (repos[0]) {
          case 4:
             XtVaSetValues (SUMAg_SVv[ic].X->TOPLEVEL, 
@@ -3675,10 +3689,10 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          default:
             break;
       }
-
+      }
       
       /* position window next to the previous one open */
-      {
+      if (1) {
          Found = NOPE;
          icr = SUMA_MAX_SURF_VIEWERS - 1;
          while (icr >= 0 && !Found) {
@@ -3703,6 +3717,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          }
       
       }
+      
       SUMA_LH("Done with new window setup");  
    } else {    /* widget already set up, just undo whatever 
                   was done in SUMA_ButtClose_pushed */
@@ -5297,8 +5312,17 @@ SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv,
    SUMA_Boolean LocalHead  = NOPE;
    SUMA_ENTRY;
 
+   if (meth == 0) {
+      static int nwarn=0;
+      if (!nwarn) {
+         SUMA_S_Warn("meth = 0 no longer allowed because of"
+                     "troubles with X->gc, on macs.");
+         ++nwarn;
+      }
+      meth = 1;
+   }
    switch (meth) {
-      case 0: /* does not work on OSX */
+      case 0: /* does not work on OSX !!!*/
          XDrawLine (sv->X->DPY, XtWindow(sv->X->GLXAREA), sv->X->gc, 
            (int)x0, (int)y0,
            (int)x1, (int)y1);
@@ -18463,6 +18487,7 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
    static char FuncName[]={"SUMA_PositionWindowRelative_current"};
    Position RefX=0, RefY=0, NewX=0, NewY=0, Dx=5, RootX=0, RootY=0;
    Dimension RefW=0, RefH=0, ScrW=0, ScrH=0, NewW=0, NewH=0;
+   Position MinOK=150;
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
@@ -18672,12 +18697,12 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
    }
 
    
-   if (NewX >= ScrW-50) NewX = ScrW-50;
-   if (NewX < 0) NewX = 50;
-   if (NewY >= ScrH ) NewY = ScrH-50;
-   if (NewY < 0) NewY = 50;
+   if (NewX >= ScrW-MinOK) NewX = ScrW-MinOK;
+   if (NewX < 0) NewX = MinOK;
+   if (NewY >= ScrH ) NewY = ScrH-MinOK;
+   if (NewY < 0) NewY = MinOK;
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Positioning window at %d %d\n", FuncName, NewX, NewY);
+   SUMA_LH("Positioning window at %d %d\n", NewX, NewY);
    XtVaSetValues (New,
       XmNx, NewX,
       XmNy, NewY,
