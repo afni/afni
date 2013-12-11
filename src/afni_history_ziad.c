@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 10, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_MODIFY,
+   "Reduced memory load by about a factor of 5 when dealing with volumes",
+   "This was done by sharing color lists across viewers. This would be\n"
+   "appropriate when volumes are colored the same way across viewers, a \n"
+   "likely scenario. Further reductions can be made by going from \n"
+   "GLfloat * to GLbyte *, sometime in the future perhaps.\n"
+ },
+
+ { 10, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
+   "Fixed source of undefined buffer and problem with glXMakeCurrent on OS X",
+   "Problem seems caused by attempting to create an X graphics context when\n"
+   "creating a new suma viewer. XCreateGC is no longer needed - its context\n"
+   "has not been used for a long while anyway.\n"
+ },
+
  { 9, Dec , 2013 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX,
    "Fixed broken demo script run_stdmesh_demo from std_meshes.tgz",
    "Failure was in glXMakeCurrent which crashed rather than return in error.\n"

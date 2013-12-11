@@ -579,7 +579,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                }
             }
             SUMA_LHv("Back from SUMA_FillColorList. (%s/%d).\n", 
-                   cSV->ColList[0].idcode_str, cSV->N_ColList);
+                   cSV->ColList[0]->idcode_str, cSV->N_ColList);
             break;
          case GRAPH_LINK_type:
             {

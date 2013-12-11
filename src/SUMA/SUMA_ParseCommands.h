@@ -617,8 +617,8 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 */
 #define SUMA_LHv( ...) {\
    if (LocalHead) {  \
-      fprintf (SUMA_STDERR, "##      %s (%s:%d):\n", \
-               FuncName, __FILE__, __LINE__);  \
+      fprintf (SUMA_STDERR, "##      %s (%s:%d  @%s):\n", \
+               FuncName, __FILE__, __LINE__, SUMA_time());  \
       fprintf (SUMA_STDERR, __VA_ARGS__);  \
    }  \
 }

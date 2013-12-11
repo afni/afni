@@ -734,20 +734,10 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       }
       SV->N_DO = 0; /* Nothing is registered with the viewer yet */
 
-      SV->ColList = (SUMA_COLORLIST_STRUCT *) 
-         SUMA_calloc(SUMA_MAX_DISPLAYABLE_OBJECTS, 
-                     sizeof(SUMA_COLORLIST_STRUCT));
+      SV->ColList = (SUMA_COLORLIST_STRUCT **) 
+        SUMA_calloc(SUMA_MAX_DISPLAYABLE_OBJECTS,sizeof(SUMA_COLORLIST_STRUCT*));
       SV->N_ColList = 0; /* this number reflects the number of surfaces that 
                             have colorlist structures in SV */
-      /* initialize fields */
-      for (j=0; j<SUMA_MAX_DISPLAYABLE_OBJECTS; ++j) {
-         SV->ColList[j].idcode_str = NULL;
-         SV->ColList[j].glar_ColorList = NULL;
-         SV->ColList[j].N_glar_ColorList = 0;
-         SV->ColList[j].Remix = NOPE;
-         SV->ColList[j].RemixID = 0;
-      }
-      
       
       SV->ShowEyeAxis = 0;
       SV->ShowMeshAxis = 0;      /* Turned off Oct 15 04 in favor of WorldAxis */
@@ -1210,8 +1200,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
             SUMA_S_Err("Failed in SUMA_EmptyColorList.");
       }
       /* done dumping structure contents, now free pointer */
-      SUMA_free(SV->ColList); 
-      SV->ColList = NULL; 
+      SUMA_ifree(SV->ColList); 
       SV->N_ColList = 0;
    }
    
@@ -1262,6 +1251,7 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    static char FuncName[]={"SUMA_FillColorList"};
    int i, N_points;
    char *idcode=NULL;
+   SUMA_COLORLIST_STRUCT *clinh=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1312,7 +1302,7 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    
    /* make sure idcode is not in the list already */
    for (i=0; i<sv->N_ColList; ++i) {
-      if (strcmp (idcode, sv->ColList[i].idcode_str) == 0) {
+      if (strcmp (idcode, sv->ColList[i]->idcode_str) == 0) {
          if (ADO->do_type != SDSET_type && 
              ADO->do_type != TRACT_type &&
              ADO->do_type != VO_type &&
@@ -1334,41 +1324,74 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    }
    
    /* create the ColList struct */
-   if (sv->ColList[sv->N_ColList].glar_ColorList) {
-      SUMA_S_Err("glar_ColorList is not NULL. Cannot reallocate");
+   if (sv->ColList[sv->N_ColList]) {
+      SUMA_S_Err("ColorList is not NULL. Cannot reallocate.\n"
+                  "not expecting this scenario at this stage");
       SUMA_RETURN (NOPE);
    }
    
-   sv->ColList[sv->N_ColList].glar_ColorList = 
+   /* Should we inherit? */
+   clinh = NULL;
+   switch (ADO->do_type) {
+      case SO_type:
+         /* Don't inherit, surfaces can have different colorings in 
+            different viewers */
+         break;
+      case VO_type: /* Those beasts cost a lot of memory, share with sv[0] */
+         if (sv != SUMAg_SVv+0) {
+            clinh = SUMA_GetColorListStruct (SUMAg_SVv, idcode);
+         }
+         break;
+      default: /* For all others, make new copy, decide later whether 
+                  should inherit */
+         break;
+   }
+   if (clinh) {
+      sv->ColList[sv->N_ColList] = 
+                  (SUMA_COLORLIST_STRUCT*)SUMA_LinkToPointer((void *)clinh);
+   } else {
+      sv->ColList[sv->N_ColList] =
+         (SUMA_COLORLIST_STRUCT *)SUMA_calloc(1, sizeof(SUMA_COLORLIST_STRUCT));
+      sv->ColList[sv->N_ColList]->N_links = 0;
+      memset(sv->ColList[sv->N_ColList]->per_sv_extra, 0, 
+             SUMA_MAX_SURF_VIEWERS*sizeof(int));
+      sv->ColList[sv->N_ColList]->owner_id[0] = '\0';
+      sv->ColList[sv->N_ColList]->LinkedPtrType = SUMA_LINKED_COLORLIST_TYPE;
+      sv->ColList[sv->N_ColList]->do_type = not_DO_type;
+
+      sv->ColList[sv->N_ColList]->glar_ColorList = 
             (GLfloat *) SUMA_calloc (N_points*4, sizeof(GLfloat));
-   sv->ColList[sv->N_ColList].idcode_str = 
+      sv->ColList[sv->N_ColList]->idcode_str = 
             (char *)SUMA_malloc((strlen(idcode)+1) * sizeof(char));
    
-   if (!sv->ColList[sv->N_ColList].glar_ColorList || 
-       !sv->ColList[sv->N_ColList].idcode_str) {
-      SUMA_S_Err("Failed to allocate for glar_ColorList or idcode_str.");
-      SUMA_RETURN (NOPE);
-   }
+      if (!sv->ColList[sv->N_ColList]->glar_ColorList || 
+          !sv->ColList[sv->N_ColList]->idcode_str) {
+         SUMA_S_Err("Failed to allocate for glar_ColorList or idcode_str.");
+         SUMA_RETURN (NOPE);
+      }
    
-   sv->ColList[sv->N_ColList].idcode_str = 
-      strcpy (sv->ColList[sv->N_ColList].idcode_str, idcode);
+      sv->ColList[sv->N_ColList]->idcode_str = 
+         strcpy (sv->ColList[sv->N_ColList]->idcode_str, idcode);
 
-   /* fill up with blanks, may be unecessary ... */
-   sv->ColList[sv->N_ColList].N_glar_ColorList = N_points*4;
-   i=0;
-   while (i < sv->ColList[sv->N_ColList].N_glar_ColorList) {
-      sv->ColList[sv->N_ColList].glar_ColorList[i] = SUMA_GRAY_NODE_COLOR; ++i;
-      sv->ColList[sv->N_ColList].glar_ColorList[i] = SUMA_GRAY_NODE_COLOR; ++i;
-      sv->ColList[sv->N_ColList].glar_ColorList[i] = SUMA_GRAY_NODE_COLOR; ++i;
-      sv->ColList[sv->N_ColList].glar_ColorList[i] = SUMA_NODE_ALPHA; ++i;
+      /* fill up with blanks, may be unecessary ... */
+      sv->ColList[sv->N_ColList]->N_glar_ColorList = N_points*4;
+      i=0;
+      while (i < sv->ColList[sv->N_ColList]->N_glar_ColorList) {
+         sv->ColList[sv->N_ColList]->glar_ColorList[i] = 
+                                                   SUMA_GRAY_NODE_COLOR; ++i;
+         sv->ColList[sv->N_ColList]->glar_ColorList[i] = 
+                                                   SUMA_GRAY_NODE_COLOR; ++i;              
+         sv->ColList[sv->N_ColList]->glar_ColorList[i] = 
+                                                   SUMA_GRAY_NODE_COLOR; ++i;
+         sv->ColList[sv->N_ColList]->glar_ColorList[i] = SUMA_NODE_ALPHA; ++i;
+      }
+      sv->ColList[sv->N_ColList]->RemixR = YUP; 
+      ++sv->ColList[sv->N_ColList]->RemixRID;
    }
-   sv->ColList[sv->N_ColList].Remix = YUP; 
-   ++sv->ColList[sv->N_ColList].RemixID;
    
    ++sv->N_ColList;
    
    SUMA_RETURN (YUP);
-
 }
 
 /*!
@@ -1401,9 +1424,9 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
    Found = NOPE;
    i = 0;
    while (!Found && i < sv->N_ColList) {
-      if (strcmp (DO_idstr, sv->ColList[i].idcode_str) == 0) {
+      if (strcmp (DO_idstr, sv->ColList[i]->idcode_str) == 0) {
          Found = YUP;
-         SUMA_RETURN (sv->ColList[i].glar_ColorList);      
+         SUMA_RETURN (sv->ColList[i]->glar_ColorList);      
       }
       ++i;
    }
@@ -1440,9 +1463,9 @@ SUMA_COLORLIST_STRUCT * SUMA_GetColorListStruct (SUMA_SurfaceViewer *sv,
    Found = NOPE;
    i = 0;
    while (!Found && i < sv->N_ColList) {
-      if (strcmp (DO_idstr, sv->ColList[i].idcode_str) == 0) {
+      if (strcmp (DO_idstr, sv->ColList[i]->idcode_str) == 0) {
          Found = YUP;
-         SUMA_RETURN (sv->ColList+i);      
+         SUMA_RETURN (sv->ColList[i]);      
       }
       ++i;
    }
@@ -1455,6 +1478,32 @@ SUMA_COLORLIST_STRUCT * SUMA_GetColorListStruct (SUMA_SurfaceViewer *sv,
    /* should not get to this point */
    SUMA_S_Err("Logic error. Should not get here.");
    SUMA_RETURN (NULL);
+}
+
+/*!
+   frees the Node Neighbor structure formed in SUMA_Build_FirstNeighb
+*/ 
+SUMA_Boolean SUMA_Free_ColorList (SUMA_COLORLIST_STRUCT *cl)
+{
+   static char FuncName[]={"SUMA_Free_ColorList"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   SUMA_LH("Entered");
+   if (!cl) SUMA_RETURN(YUP);
+
+   if (cl->N_links) {
+      SUMA_LH("Just a link release");
+      cl = (SUMA_COLORLIST_STRUCT *)SUMA_UnlinkFromPointer((void *)cl);
+      SUMA_RETURN (YUP);
+   }
+   
+   /* no more links, go for it */
+   SUMA_LH("No more links, here we go");
+   SUMA_ifree(cl->idcode_str); 
+   SUMA_ifree(cl->glar_ColorList);
+   SUMA_ifree(cl);
+   SUMA_RETURN (YUP);
 }
 
 /*!
@@ -1485,49 +1534,27 @@ SUMA_Boolean SUMA_EmptyColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
    if (!DO_idstr) {
       /* empty them all */
       for (i=0; i < sv->N_ColList; ++i) {
-         if (sv->ColList[i].glar_ColorList) 
-            SUMA_free(sv->ColList[i].glar_ColorList);
-         sv->ColList[i].glar_ColorList = NULL;
-         sv->ColList[i].N_glar_ColorList = 0;
-         if (sv->ColList[i].idcode_str) SUMA_free(sv->ColList[i].idcode_str); 
-         sv->ColList[i].idcode_str = NULL;
-         sv->ColList[i].Remix = NOPE;
-         sv->ColList[i].RemixID = 0;
-      }   
+         if (!SUMA_Free_ColorList(sv->ColList[i])) {
+            SUMA_S_Err("Failed to free colorlist");
+            SUMA_RETURN(NOPE);
+         }
+      }
    } else { /* just empty one */
       Found = NOPE;
       i = 0;
       while (!Found && i < sv->N_ColList) {
-         if (strcmp (DO_idstr, sv->ColList[i].idcode_str) == 0) {
+         if (strcmp (DO_idstr, sv->ColList[i]->idcode_str) == 0) {
             Found = YUP;
-            /* empty the load */
-            if (sv->ColList[i].glar_ColorList) 
-               SUMA_free(sv->ColList[i].glar_ColorList);
-            sv->ColList[i].glar_ColorList = NULL;
-            sv->ColList[i].N_glar_ColorList = 0;
-            if (sv->ColList[i].idcode_str) SUMA_free(sv->ColList[i].idcode_str); 
-            sv->ColList[i].idcode_str = NULL;
-            sv->ColList[i].Remix = NOPE;
-            sv->ColList[i].RemixID = 0;
-            
+            if (!SUMA_Free_ColorList(sv->ColList[i])) {
+               SUMA_S_Err("Failed to free colorlist");
+               SUMA_RETURN(NOPE);
+            }
             /* copy the last in the list here */
             if (i < sv->N_ColList) {
-               sv->ColList[i].glar_ColorList = 
-                  sv->ColList[sv->N_ColList-1].glar_ColorList;
-               sv->ColList[i].N_glar_ColorList = 
-                  sv->ColList[sv->N_ColList-1].N_glar_ColorList;
-               sv->ColList[i].idcode_str = 
-                  sv->ColList[sv->N_ColList-1].idcode_str;
-               sv->ColList[i].Remix = sv->ColList[sv->N_ColList-1].Remix;
-               sv->ColList[i].RemixID = 0;
+               sv->ColList[i] = sv->ColList[sv->N_ColList-1];
                
                /* mark the last element as empty */
-               sv->ColList[sv->N_ColList-1].glar_ColorList = NULL;
-               sv->ColList[sv->N_ColList-1].N_glar_ColorList = 0;
-               sv->ColList[sv->N_ColList-1].idcode_str = NULL;
-               sv->ColList[sv->N_ColList-1].Remix = NOPE;
-               sv->ColList[sv->N_ColList-1].RemixID = 0;
-               
+               sv->ColList[sv->N_ColList-1] = NULL;               
                /* decrement the number of full elements in ColList */
                --sv->N_ColList;
             }
@@ -1564,7 +1591,7 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
    
    for (k=0; k < sv->N_ColList; ++k) {
-      sv->ColList[k].Remix = YUP;
+      sv->ColList[k]->RemixR = YUP;
    }
    
    SUMA_RETURN (YUP);
@@ -1621,9 +1648,9 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *sv
                kk = 0;
                Found = NOPE;
                while (!Found && kk < sv->N_ColList) {
-                  if (strcmp(SO2->idcode_str, sv->ColList[kk].idcode_str) == 0) {
+                  if (strcmp(SO2->idcode_str,sv->ColList[kk]->idcode_str) == 0) {
                      Found = YUP;
-                     sv->ColList[kk].Remix = YUP;
+                     sv->ColList[kk]->RemixR = YUP;
                   }
                   ++kk;
                }
@@ -1643,9 +1670,9 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *sv
                Found = NOPE;
                while (!Found && kk < sv->N_ColList) {
                   if ((p2 = SUMA_ADO_idcode(ado2)) &&
-                      !strcmp(p2, sv->ColList[kk].idcode_str)) {
+                      !strcmp(p2, sv->ColList[kk]->idcode_str)) {
                      Found = YUP;
-                     sv->ColList[kk].Remix = YUP;
+                     sv->ColList[kk]->RemixR = YUP;
                   }
                   ++kk;
                }
@@ -1741,10 +1768,10 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
                      Found = NOPE;
                      while (!Found && kk < sv->N_ColList) {
                         if (strcmp (SO2->idcode_str, 
-                                    sv->ColList[kk].idcode_str) == 0) {
+                                    sv->ColList[kk]->idcode_str) == 0) {
                            Found = YUP;
                            SUMA_LHv("Setting remix for %d\n", kk);
-                           sv->ColList[kk].Remix = YUP;
+                           sv->ColList[kk]->RemixR = YUP;
                         }
                         ++kk;
                      }
@@ -1780,9 +1807,9 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
                      while (!Found && kk < sv->N_ColList) {
                         p2=SUMA_ADO_idcode(ado2);
                         
-                        if ( p2 && !strcmp(p2, sv->ColList[kk].idcode_str)) {
+                        if ( p2 && !strcmp(p2, sv->ColList[kk]->idcode_str)) {
                            Found = YUP;
-                           sv->ColList[kk].Remix = YUP;
+                           sv->ColList[kk]->RemixR = YUP;
                         }
                         ++kk;
                      }
@@ -1834,9 +1861,9 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
                               p2=SUMA_ADO_idcode(ado2);
                               break;
                         }
-                        if ( p2 && !strcmp(p2, sv->ColList[kk].idcode_str)) {
+                        if ( p2 && !strcmp(p2, sv->ColList[kk]->idcode_str)) {
                            Found = YUP;
-                           sv->ColList[kk].Remix = YUP;
+                           sv->ColList[kk]->RemixR = YUP;
                         }
                         ++kk;
                      }
@@ -1893,7 +1920,7 @@ SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv)
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
       sv = &(SVv[i]);
-      for (kk = 0; kk < sv->N_ColList; ++kk) sv->ColList[kk].Remix = YUP;
+      for (kk = 0; kk < sv->N_ColList; ++kk) sv->ColList[kk]->RemixR = YUP;
    }
    
    SUMA_RETURN (YUP);
@@ -2619,12 +2646,12 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend(SS, "   ColList = ");
    for (i = 0; i < SV->N_ColList; ++i) {
       SS = SUMA_StringAppend_va(SS,
-         "[%d] for DO %s, id %s, Remix %d, RemixID %d, %d colors\n%s",
-         i, iDO_label(SUMA_whichDO(SV->ColList[i].idcode_str,
+      "[%d] for DO %s, id %s, Remix %d, RemixID %d, %d colors, N_links = %d\n%s",
+         i, iDO_label(SUMA_whichDO(SV->ColList[i]->idcode_str,
                            SUMAg_DOv, SUMAg_N_DOv)), 
-         SV->ColList[i].idcode_str,
-         SV->ColList[i].Remix, SV->ColList[i].RemixID, 
-         SV->ColList[i].N_glar_ColorList,
+         SV->ColList[i]->idcode_str,
+         SV->ColList[i]->RemixR, SV->ColList[i]->RemixRID, 
+         SV->ColList[i]->N_glar_ColorList, SV->ColList[i]->N_links,
          (i<(SV->N_ColList-1)) ? "             ":"");
    }
    if (SV->X == NULL) SS = SUMA_StringAppend_va(SS,"   X struct is NULL!\n");
@@ -3007,6 +3034,11 @@ int SUMA_WhichSV (SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv)
    
    
    SUMA_RETURN (-1);
+}
+
+int SUMA_WhichSVg(SUMA_SurfaceViewer *sv)
+{
+   return(SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv));
 }
 
 char SUMA_WhichSVc(SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv)

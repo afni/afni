@@ -127,14 +127,23 @@ extern SUMA_CommonFields *SUMAg_CF;
                /* SUMA_ShowMemTrace (SUMAg_CF->Mem, NULL);*/
                SUMAg_CF->Mem->N_MaxPointers += SUMA_MEMTRACE_BLOCK;
 
-               SUMAg_CF->Mem->Pointers = (void **)realloc (SUMAg_CF->Mem->Pointers, sizeof(void*) * SUMAg_CF->Mem->N_MaxPointers);
-               SUMAg_CF->Mem->Size  = (int *)realloc ((void *)SUMAg_CF->Mem->Size, sizeof(int) * SUMAg_CF->Mem->N_MaxPointers);
+               SUMAg_CF->Mem->Pointers = 
+                  (void **)realloc (SUMAg_CF->Mem->Pointers, sizeof(void*) * 
+                                    SUMAg_CF->Mem->N_MaxPointers);
+               SUMAg_CF->Mem->Size  = 
+                  (int *)realloc((void *)SUMAg_CF->Mem->Size, sizeof(int) * 
+                                         SUMAg_CF->Mem->N_MaxPointers);
                if (!SUMAg_CF->Mem->Pointers || !SUMAg_CF->Mem->Pointers) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed to reallocate.\nTurning off memory tracing.\n", \
+                  fprintf (SUMA_STDERR, 
+                        "Error %s: Failed to reallocate.\n"
+                        "Turning off memory tracing.\n",
                      FuncName);
-                  /* free up allocated space, clean up pointers, turn off memory tracing DO NOT USE SUMA_free here*/
-                  if (SUMAg_CF->Mem->Pointers) free(SUMAg_CF->Mem->Pointers); SUMAg_CF->Mem->Pointers = NULL;
-                  if (SUMAg_CF->Mem->Size) free(SUMAg_CF->Mem->Size); SUMAg_CF->Mem->Size = NULL;
+                  /* free up allocated space, clean up pointers, turn off memory 
+                     tracing DO NOT USE SUMA_free here*/
+                  if (SUMAg_CF->Mem->Pointers) free(SUMAg_CF->Mem->Pointers); 
+                  SUMAg_CF->Mem->Pointers = NULL;
+                  if (SUMAg_CF->Mem->Size) free(SUMAg_CF->Mem->Size); 
+                  SUMAg_CF->Mem->Size = NULL;
                   SUMAg_CF->MemTrace = 0;
                   SUMAg_CF->Mem->N_alloc = 0;
                   SUMAg_CF->Mem->N_MaxPointers =0;
@@ -1826,6 +1835,10 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
    
    SUMA_ENTRY;
    
+   SUMA_S_Err("No longer in use, use mcw_malloc_dump_sort() instead");
+   
+   if (!Out) Out = SUMA_STDERR;
+
    #ifdef USE_SUMA_MALLOC
    SUMA_SL_Err("NO LONGER SUPPORTED");
    SUMA_RETURNe;
@@ -1850,18 +1863,22 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
    
    #if 1
    for (i=0; i < Mem->N_alloc; ++i) mem_sz_sort[i] = Mem->Size[i];
-   isort = SUMA_z_dqsort_nsc (mem_sz_sort, Mem->N_alloc); /* this version of SUMA_z_dqsort does not use SUMA_calloc for allocation thus keeping the memory trace unchanged */
+   isort = SUMA_z_dqsort_nsc (mem_sz_sort, Mem->N_alloc); /* this version of 
+         SUMA_z_dqsort does not use SUMA_calloc for allocation thus 
+         keeping the memory trace unchanged */
    
    Tot = 0;
    for (i=0; i < Mem->N_alloc; ++i) {
-      fprintf (Out,"->[%d]\tPointer %p\t %d bytes.\n", i, Mem->Pointers[isort[i]], Mem->Size[isort[i]]);
+      fprintf (Out,"->[%d]\tPointer %p\t %d bytes.\n", 
+               i, Mem->Pointers[isort[i]], Mem->Size[isort[i]]);
       Tot += Mem->Size[isort[i]];
    }
    #else
      
    Tot = 0;
    for (i=0; i < Mem->N_alloc; ++i) {
-      fprintf (Out,"->[%d]\tPointer %p\t %d bytes.\n", i, Mem->Pointers[i], Mem->Size[i]);
+      fprintf (Out,"->[%d]\tPointer %p\t %d bytes.\n", 
+               i, Mem->Pointers[i], Mem->Size[i]);
       Tot += Mem->Size[i];
    }
    #endif
@@ -2474,14 +2491,20 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
          /* SUMA_ShowMemTrace (SUMAg_CF->Mem, NULL);*/
          SUMAg_CF->Mem->N_MaxPointers += SUMA_MEMTRACE_BLOCK;
 
-         SUMAg_CF->Mem->Pointers = (void **)realloc (SUMAg_CF->Mem->Pointers, sizeof(void*) * SUMAg_CF->Mem->N_MaxPointers);
-         SUMAg_CF->Mem->Size  = (int *)realloc ((void *)SUMAg_CF->Mem->Size, sizeof(int) * SUMAg_CF->Mem->N_MaxPointers);
+         SUMAg_CF->Mem->Pointers = (void **)realloc(SUMAg_CF->Mem->Pointers, 
+                                 sizeof(void*) * SUMAg_CF->Mem->N_MaxPointers);
+         SUMAg_CF->Mem->Size  = (int *)realloc((void *)SUMAg_CF->Mem->Size, 
+                                 sizeof(int) * SUMAg_CF->Mem->N_MaxPointers);
          if (!SUMAg_CF->Mem->Pointers || !SUMAg_CF->Mem->Pointers) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to reallocate.\nTurning off memory tracing.\n", \
+            fprintf (SUMA_STDERR,
+               "Error %s: Failed to reallocate.\nTurning off memory tracing.\n",
                FuncName);
-            /* free up allocated space, clean up pointers, turn off memory tracing DO NOT USE SUMA_free here*/
-            if (SUMAg_CF->Mem->Pointers) free(SUMAg_CF->Mem->Pointers); SUMAg_CF->Mem->Pointers = NULL;
-            if (SUMAg_CF->Mem->Size) free(SUMAg_CF->Mem->Size); SUMAg_CF->Mem->Size = NULL;
+            /* free up allocated space, clean up pointers, turn off memory 
+               tracing DO NOT USE SUMA_free here*/
+            if (SUMAg_CF->Mem->Pointers) free(SUMAg_CF->Mem->Pointers); 
+            SUMAg_CF->Mem->Pointers = NULL;
+            if (SUMAg_CF->Mem->Size) free(SUMAg_CF->Mem->Size); 
+            SUMAg_CF->Mem->Size = NULL;
             SUMAg_CF->MemTrace = 0;
             SUMAg_CF->Mem->N_alloc = 0;
             SUMAg_CF->Mem->N_MaxPointers =0;

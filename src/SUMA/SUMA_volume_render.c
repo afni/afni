@@ -1857,7 +1857,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO,
    
    if (!VO) SUMA_RETURN(NOPE);
    if (!sv) sv = &(SUMAg_SVv[0]);
-   
+
    if (sv->DO_PickMode) {
       SUMA_LH("No need to draw volume in DO_PickMode");
       SUMA_RETURN(YUP);

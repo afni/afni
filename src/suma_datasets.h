@@ -355,6 +355,7 @@ typedef enum { SUMA_NO_PTR_TYPE,
                SUMA_LINKED_MEMB_FACE_TYPE, 
                                  /*!< For pointers to SUMA_MEMBER_FACE_SETS*/
                SUMA_LINKED_SURFCONT_TYPE, /*!< For pointers to SUMA_X_SurfCont*/
+               SUMA_LINKED_COLORLIST_TYPE,/* pointers to SUMA_COLORLIST_STRUCT */
                SUMA_N_LINKED_PTR_TYPES } SUMA_LINKED_PTR_TYPES;
 
 typedef enum { MAT_UNKNOWN=-2, MAT_NA = -1, MAT_HEEHAW = 0 /* not set */, 

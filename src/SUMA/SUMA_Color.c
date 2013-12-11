@@ -2934,7 +2934,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    }
    
    /* update remix ID */
-   ++Sover->RemixID;
+   ++Sover->RemixOID;
    
    /* clean up */
    SUMA_LH("Cleanup, cleanup, everybody cleanup");
@@ -5433,7 +5433,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    
 
    Sover->ColVec = (float *)SUMA_calloc(N_Alloc*3, sizeof(float));
-   Sover->RemixID = 0;
+   Sover->RemixOID = 0;
    Sover->V = NULL;
    Sover->LocalOpacity = (float *)SUMA_calloc(N_Alloc, sizeof(float));
    Sover->LocalOpacity[0] = -1.0; /* flag indicating local facts 
@@ -5621,7 +5621,7 @@ SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover)
       Sover->ColMat = NULL*/
    
    SUMA_ifree(Sover->ColVec);
-   ++Sover->RemixID; /* Does not hurt to change it */
+   ++Sover->RemixOID; /* Does not hurt to change it */
    SUMA_ifree(Sover->V);
    
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity); 
@@ -5920,7 +5920,11 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
    
    SUMA_ENTRY;
    if (!ado) SUMA_RETURN(NOPE);
-   
+   if (LocalHead) {
+      SUMA_LH("Overlays 2 GLCOLAR viewer %i",  
+            SUMA_WhichSV (SV, SUMAg_SVv, SUMAg_N_SVv));
+      SUMA_DUMP_TRACE("We were called from...");
+   }
    switch(ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_Overlays_2_GLCOLAR4_SO((SUMA_SurfaceObject *)ado,
@@ -7055,7 +7059,7 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays,
          SS = SUMA_StringAppend (SS,"\n");
          SS = SUMA_StringAppend_va (SS,
                         "\tindex\tR\tG\tB\tLocOp\t\tDsetVal @RemixID %d\n",
-                        Overlays[i]->RemixID);
+                        Overlays[i]->RemixOID);
          if (Overlays[i]->ColVec && 
              Overlays[i]->LocalOpacity && Overlays[i]->V) {
             for (j=0; j < ShowN; ++j) {
@@ -7891,7 +7895,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Overlay,
 SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv) 
 {
    static char FuncName[]={"SUMA_MixColors"};
-   int i, dov_id;
+   int i, dov_id, isv;
    void *pp=NULL;
    SUMA_DO_Types tp;
    SUMA_DSET *dset=NULL;
@@ -7899,80 +7903,97 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
+   
+   isv = SUMA_WhichSVg(sv); 
    for (i=0; i<sv->N_ColList; ++i) {
-      if (sv->ColList[i].Remix) {
-         if (!(pp = SUMA_find_any_object(sv->ColList[i].idcode_str, &tp))) {
-            SUMA_S_Err("Zut alors!");
-            SUMA_RETURN(NOPE);
-         }
-         ++sv->ColList[i].RemixID;
+      
+      if (!(pp = SUMA_find_any_object(sv->ColList[i]->idcode_str, &tp))) {
+         SUMA_S_Err("Zut alors!");
+         SUMA_RETURN(NOPE);
+      }
+      if (sv->ColList[i]->RemixR) {
+         ++sv->ColList[i]->RemixRID;
          switch (tp) {
             case SO_type:
                if (LocalHead) 
                   fprintf( SUMA_STDERR, 
                            "%s: Mixing colors (%s)...\n", 
-                           FuncName, sv->ColList[i].idcode_str);
+                           FuncName, sv->ColList[i]->idcode_str);
                SO = (SUMA_SurfaceObject *)pp;
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)SO, sv, 
-                                       sv->ColList[i].glar_ColorList)) {
+                                       sv->ColList[i]->glar_ColorList)) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i].Remix = NOPE;
+               sv->ColList[i]->RemixR = NOPE;
                break;
             case SDSET_type:
                dset = (SUMA_DSET *)pp;
                SUMA_LHv("Mixing Graph Dset Colors (%s), Dset %s...\n", 
-                        sv->ColList[i].idcode_str, SDSET_LABEL(dset));
+                        sv->ColList[i]->idcode_str, SDSET_LABEL(dset));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)dset, sv, 
-                                       sv->ColList[i].glar_ColorList)) {
+                                       sv->ColList[i]->glar_ColorList)) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i].Remix = NOPE;
+               sv->ColList[i]->RemixR = NOPE;
                break;
             case VO_type: {
-               /* This is not of use now and may never be */
                SUMA_VolumeObject *VO = (SUMA_VolumeObject *)pp;
                SUMA_LHv("Mixing Volume Object Colors (%s), Dset %s...\n", 
-                        sv->ColList[i].idcode_str, ADO_LABEL((SUMA_ALL_DO *)VO));
+                     sv->ColList[i]->idcode_str, ADO_LABEL((SUMA_ALL_DO *)VO));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)VO, sv, 
-                                       sv->ColList[i].glar_ColorList)) {
+                                       sv->ColList[i]->glar_ColorList)) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i].Remix = NOPE;
+               sv->ColList[i]->RemixR = NOPE;
+               sv->ColList[i]->per_sv_extra[isv] = 1;
                break; }
             case TRACT_type: {
                SUMA_TractDO *tdo=(SUMA_TractDO *)pp;
                SUMA_LHv("Mixing Tract Colors (%s), Tract %s, ID %s...\n", 
-                        sv->ColList[i].idcode_str, 
+                        sv->ColList[i]->idcode_str, 
                         ADO_LABEL((SUMA_ALL_DO *)pp), ADO_ID((SUMA_ALL_DO *)pp));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)pp, sv, 
-                                       sv->ColList[i].glar_ColorList)) {
+                                       sv->ColList[i]->glar_ColorList)) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i].Remix = NOPE;
+               sv->ColList[i]->RemixR = NOPE;
                break; }
             case MASK_type: {
                SUMA_MaskDO *mdo = (SUMA_MaskDO*)pp;
                SUMA_LHv("Mixing Mask Colors (%s), Mask %s, ID %s...\n", 
-                        sv->ColList[i].idcode_str, 
+                        sv->ColList[i]->idcode_str, 
                         ADO_LABEL((SUMA_ALL_DO *)pp), ADO_ID((SUMA_ALL_DO *)pp));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)pp, sv, 
-                                       sv->ColList[i].glar_ColorList)) {
+                                       sv->ColList[i]->glar_ColorList)) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i].Remix = NOPE;
+               sv->ColList[i]->RemixR = NOPE;
                break; }
             default:
                SUMA_S_Errv("Type %d (%s) is not welcome here\n", 
                            tp, SUMA_ObjectTypeCode2ObjectTypeName(tp));
                SUMA_RETURN(NOPE); 
          }   
+      } else {/* No remix, but a couple of extra steps might be in order */
+         switch (tp) {
+            case VO_type: {
+               SUMA_VolumeObject *vo = (SUMA_VolumeObject *)pp;
+               if (!sv->ColList[i]->per_sv_extra[isv]) {
+                  if (!SUMA_VE_LoadTexture(vo->VE, 0)){
+                     SUMA_S_Err("Failed to GL load texture");
+                     SUMA_RETURN(NOPE);
+                  }
+                  sv->ColList[i]->per_sv_extra[isv]=1;
+               }
+               break; }
+            default: 
+               break;
+         }
       }
    }   
    
