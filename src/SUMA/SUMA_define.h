@@ -921,7 +921,7 @@ typedef struct {
                      
    float *ColVec; /*!< N_NodeDef x 3 vector containing colors of nodes 
                        specified in NodeDef, Replaces ColMat, Wed Mar 17 04*/
-   int RemixID; /*!< A number that changes each time ColVec content is changed */
+   int RemixOID;/*!< A number that changes each time ColVec content is changed */
    float *V; /*!< A copy of the dataset's column that produced the colors in
                       ColVec. */
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to 
@@ -2086,13 +2086,24 @@ typedef struct {
 
 /*! structure holding the pointer the node color assignment and a bit more */
 typedef struct {
+   SUMA_DO_Types do_type;  /*!< To check if this is a displayable object */
+   int LinkedPtrType; /*!< Indicates the type of linked pointer */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that 
+                                       pointer. Might never get used.... */
+   
    GLfloat *glar_ColorList; /*!< pointer to the 1D ColorList array */
    int N_glar_ColorList; /*!< Number of elements in glar_ColorList 4xNumber 
                               of nodes in the surface or edges in a graph */
    char *idcode_str; /*!< string containing the idcode of the surface/object to 
                          which glar_ColorList belongs*/
-   SUMA_Boolean Remix; /*!< flag indicating that colors need to be remixed */ 
-   int RemixID; /*!< An id of sorts updated each time remix is done */
+   SUMA_Boolean RemixR; /*!< flag indicating that colors need to be remixed */ 
+   int RemixRID; /*!< An id of sorts updated each time remix is done */
+   int per_sv_extra[SUMA_MAX_SURF_VIEWERS]; /* Some flags needed to perform extra
+                                    tasks (binding textures) without needing to 
+                                    do the whole remix thing. This is needed when
+                                    ColList is shared amongst multiple viewers to
+                                    save memory */
 } SUMA_COLORLIST_STRUCT;
 
 typedef enum { SUMA_STD_ZERO_CENTERED, SUMA_SCALE_BOX } SUMA_AxisType;
@@ -2247,7 +2258,7 @@ typedef struct {
    SUMA_Boolean ShowLeft; /*!< Show left side surfaces */
    SUMA_Boolean ShowRight; /*!< Show right side surfaces */
    
-   SUMA_COLORLIST_STRUCT *ColList; /*!< pointer to structures containing 
+   SUMA_COLORLIST_STRUCT **ColList; /*!< pointer to structures containing 
                         NodeColorLists for surfaces listed in RegisteredDO */
    int N_ColList; /*!< Number of structures in ColList */
    

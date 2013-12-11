@@ -1737,7 +1737,7 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_M:
-         if (SUMA_CTRL_KEY(key) && (SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key)) ) {            
+         if (SUMA_CTRL_KEY(key) && (SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key)) ) {
             #ifndef DONT_USE_MCW_MALLOC
             /* write memtrace results to disk */
             if (!mcw_malloc_enabled()) {
@@ -1761,7 +1761,7 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                "to latest ./malldump.???\n"
                                "file (if possible).");
                }
-               mcw_malloc_dump();
+               mcw_malloc_dump_sort(1); 
             }
             #else
                if (callmode && strcmp(callmode, "interactive") == 0) {
@@ -1808,14 +1808,10 @@ int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          break;
       case XK_n:
          if (SUMA_CTRL_KEY(key)) {   
-            if (LocalHead) 
-               fprintf(SUMA_STDOUT, 
-                        "%s: Opening a new controller...\n", FuncName);
+            SUMA_LH("Opening a new controller...");
             /* open a new controller */
             if (!SUMA_X_SurfaceViewer_Create ()) {
-               fprintf (SUMA_STDERR,
-                        "Error %s: Failed in SUMA_X_SurfaceViewer_Create.\n", 
-                        FuncName);
+               SUMA_S_Err("Failed in SUMA_X_SurfaceViewer_Create.");
                SUMA_RETURN(0);
             }
          } else {
@@ -3110,10 +3106,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                "Error %s: Failed in macro SUMA_GLXAREA_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    }
-   if (LocalHead) 
-      fprintf (SUMA_STDERR,
-               "%s: A call from SUMA_SurfaceViewer[%d], Pointer %p\n", 
-               FuncName, isv, sv);
+   SUMA_LH("A call from SUMA_SurfaceViewer[%d], Pointer %p\n", isv, sv);
    
 
    Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with 
@@ -3692,6 +3685,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_n:
                if (Kev.state & ControlMask){
+                  SUMA_LH("Going to N_Key");
                   if (!SUMA_N_Key(sv, "ctrl+n", "interactive")) {
                      SUMA_S_Err("Failed in key func.");
                   }
@@ -8305,18 +8299,26 @@ void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color)
    XColor col, unused;
    
    SUMA_ENTRY;
-	/* using sv->X->CMAP instead of 
+	
+   #ifdef DARWIN
+      SUMA_S_Warn("Calling this function from OS X seems to cause trouble");
+   #endif
+   
+   /* using sv->X->CMAP instead of 
 	         DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA))
 		is useless */
-   if (!XAllocNamedColor (sv->X->DPY, DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA)),
-      Color, &col, &unused)) {
-      fprintf (SUMA_STDERR, "Error %s: Can't allocate for %s color.\n", FuncName, Color);
+   if (!XAllocNamedColor (sv->X->DPY, 
+               DefaultColormapOfScreen(XtScreen(sv->X->GLXAREA)),
+               Color, &col, &unused)) {
+      fprintf (SUMA_STDERR, 
+            "Error %s: Can't allocate for %s color.\n", FuncName, Color);
       SUMA_RETURNe;  
    }
    XSetForeground (sv->X->DPY, sv->X->gc, col.pixel);
    
    SUMA_RETURNe;  
 }
+
 /*!
    \brief Draws the brushstroke
    

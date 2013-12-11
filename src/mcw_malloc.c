@@ -421,7 +421,12 @@ long long mcw_malloc_total(void)  /* 01 Feb 2007 */
 
 extern int THD_is_file( char * ) ;
 extern void qsort_intint( int , int * , int * ) ;
-
+static int size_sort = 0;
+void mcw_malloc_dump_sort(int opt) {
+   if (opt == 1) size_sort = 1;
+   mcw_malloc_dump();
+   if (opt == 1) size_sort = 0;
+}
 void mcw_malloc_dump(void)
 {
    if( ! use_tracking ) return ;
@@ -478,7 +483,8 @@ void mcw_malloc_dump(void)
    for( ii=jj=0 ; jj < SLOTS ; jj++ ){
       for( kk=0 ; kk < nhtab[jj] ; kk++ ){
          if( htab[jj][kk].pmt != NULL ){
-            ss[ii] = htab[jj][kk].pss ;   /* save serial number */
+            if (size_sort) ss[ii] =  htab[jj][kk].psz ; /* save size */
+            else ss[ii] = htab[jj][kk].pss ;   /* save serial number */
             jk[ii] = JBASE*jj + kk ;      /* save jj and kk */
             ii++ ;
          }
