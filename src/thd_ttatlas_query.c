@@ -4172,15 +4172,29 @@ char **approx_str_sort(char **words, int N_words, char *str, byte ci,
    RETURN(ws);
 }
 
-/* 
-   Return unique set of strings, NULL strings in words are replaced with "null"
-   for the purpose of preserving a mapping between input and output.
-   
-   The function returns a new array of N_words strings, some of which can be 
-   NULL. The user has to free accordingly.
-   N_unq will contain the number of unique, non-null strings.
-   isort_out, if not NULL, will contain a mapping from the unique array to the
-   initial words array.
+/*! 
+   \brief Return unique set of strings, NULL strings in words are OK.
+      char **unique_str(char **words, int N_words, byte ci, 
+                  byte noae, int *N_unq, int **isort_out);
+                  
+   \param words (char **): Array of strings to be sorted
+   \param N_words (int): Number of strings in words
+   \param ci (byte): 1 == case insensitive matching
+   \param noae (byte): 0 == leave words as they are
+                       1 == remove known AFNI extensions
+                       2 == remove known AFNI extensions AND +VIEW string
+   \param N_unq (int *): To contain number of unique non-null strings found
+   \param isort_out (int **): To contain a mapping from the unique strings 
+                              array to the initial words array.
+   \return unique_words (char **): Array of unique strings found. Returned
+                                   strings are trimmed according to noae.
+                                   They will be lower case if ci == 1. 
+                         Note that unique_words is an array of N_words strings
+                         though some (beyond *N_unq) are likely NULL. 
+                         Check for NULL before freeing each string.
+   \sa MCW_wildcards()
+   See also apsearch's options -wild_* and -test_unique_str
+       for examples on how to use unique_str along with wildcard matching.
 */
 char **unique_str(char **words, int N_words, byte ci, 
                   byte noae, int *N_unq, int **isort_out)
