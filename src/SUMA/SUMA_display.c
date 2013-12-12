@@ -1693,6 +1693,14 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback)
    SUMA_RETURN(1);
 }
 
+/* Some of these constants may not be defined in older openGLs */
+#ifndef GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT 
+   #define GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT -1
+#endif
+#ifndef GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS
+   #define GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS -2
+#endif
+
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {   
    int i;

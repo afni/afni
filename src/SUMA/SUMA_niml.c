@@ -652,7 +652,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_OVERLAY_PLANE_DATA sopd;
    SUMA_SurfSpecFile *Spec=NULL;
    SUMA_Boolean iselement = YUP;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
 
    SUMA_ENTRY;
 
@@ -1872,14 +1872,47 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* don't free nel, it's freed later on */
          SUMA_RETURN(YUP);
+      } else if (strcmp(ngr->name,"network") == 0) {
+         SUMA_TractDO *TDO=NULL;
+         TAYLOR_NETWORK *net=NULL;
+         SUMA_LH("I got me some network. FIX ME. Check ADO replacement, registration, etc.!");
+         SUMA_ShowNel(ngr);
+         if (!(net = NIgr_2_Network(ngr))) {
+            SUMA_S_Err("Failed to turn group element to network\n");
+            SUMA_RETURN(NOPE);
+         }
+         if (!(TDO = SUMA_Net2TractDO(net, "InstaTract", NULL))) {
+            SUMA_S_Err("Failed to turn net to TDO\n");
+            SUMA_RETURN(NOPE);
+         } 
+
+         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)TDO, 
+                         TDO->do_type, SUMA_WORLD)) {
+            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+         
+         if (!sv) sv = &(SUMAg_SVv[0]);
+
+         /* register DO with viewer */
+         if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
+            fprintf( SUMA_STDERR,
+                     "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+
+         /* redisplay curent only*/
+         sv->ResetGLStateVariables = YUP;
+         SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+         
+         /* don't free ngr, it's freed later on */
+         SUMA_RETURN(YUP);
       }
-   
+      
       /*** If here, then name of group didn't match anything 
            Try processing its parts ***/
       if (LocalHead)  {
-               fprintf( SUMA_STDERR,
-                        "%s:  Working group %s \n",
-                        FuncName, ngr->name);
+         fprintf(SUMA_STDERR,"%s:  Working group %s \n", FuncName, ngr->name);
       }
       for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
          switch( ngr->part_typ[ip] ){

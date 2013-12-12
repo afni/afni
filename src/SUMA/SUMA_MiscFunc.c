@@ -6894,7 +6894,12 @@ SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx)
    float e, h, f;
 
    SUMA_ENTRY;
-
+   
+   if (!v0 || !v1) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN (NOPE);
+   }
+   
    /*normalize both vectors */
    vn = sqrt(v0[0]*v0[0] + v0[1]*v0[1] + v0[2]*v0[2]);
    if (vn == 0.0) {
