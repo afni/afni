@@ -251,6 +251,7 @@ void apsearch_usage(int detail)
 "                 trim names, etc.\n"
 "-wild_files_debug: Output results in debugging mode.\n"
 "-wild_files_ci: When searching for unique set, use case insensitive matching\n"
+"-test_unique_str: Run debugging tests for function unique_str().\n"
 "\n"
 "Examples:\n"
 "=========\n"
@@ -346,7 +347,104 @@ char *text_from_stdin(int *nread)
    
    return(txt); 
 }
-            
+
+/* A function to test function unique_str. Use for debugging only */
+int Test_unique_str(void)
+{
+   /* dirty test for sorting */
+   char **ww, **ws;
+   int i, N_words=10, N_unq, *isrt=NULL;
+   ww = (char **)calloc(N_words, sizeof(char *));
+   i = 0;
+   ww[i++] = strdup("hello+orig.HEAD");
+   ww[i++] = strdup("hello+orig.BRIK.gz");
+   ww[i++] = NULL;
+   ww[i++] = strdup("HELLO+orig.HEAD");
+   ww[i++] = NULL;
+   ww[i++] = strdup("hello.nii");
+   ww[i++] = strdup("HELLO+orig.HEAD");
+   ww[i++] = strdup("james.nii");
+   if (i >= N_words) {
+      ERROR_message("Too many strings for allocated space"); return(1);
+   }
+
+   fprintf(stdout,
+            "\nInitial list of %d strings:\n", N_words);
+   for (i=0; i<N_words; ++i) {
+      fprintf(stdout,"%d %s\n", i, ww[i]?ww[i]:"NULL");
+   }
+
+   if ((ws = unique_str(ww, N_words, 0, 0, &N_unq, &isrt))) {
+      fprintf(stdout,
+            "\n%d/%d unique strings, case sensisitve, names as is:\n", 
+                     N_unq, N_words);
+      for (i=0; i<N_words; ++i) {
+         fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+      }
+      if (isrt) free(isrt); isrt = NULL;
+      for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+      free(ws); ws = NULL;
+   }
+   if ((ws = unique_str(ww, N_words, 1, 0, &N_unq, &isrt))) {
+      fprintf(stdout,
+               "\n%d/%d unique strings, case insensitive, names as is:\n",
+                     N_unq, N_words);
+      for (i=0; i<N_words; ++i) {
+         fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+      }
+      if (isrt) free(isrt); isrt = NULL;
+      for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+      free(ws); ws = NULL;
+   }
+   if ((ws = unique_str(ww, N_words, 1, 1, &N_unq, &isrt))) {
+      fprintf(stdout,"\n%d/%d unique strings, case insensitive, noext\n",
+                     N_unq, N_words);
+      for (i=0; i<N_words; ++i) {
+         fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+      }
+      if (isrt) free(isrt); isrt = NULL;
+      for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+      free(ws); ws = NULL;
+   }
+   if ((ws = unique_str(ww, N_words, 1, 2, &N_unq, &isrt))) {
+      fprintf(stdout,
+               "\n%d/%d unique strings, case insensitive, noext noview\n",
+                     N_unq, N_words);
+      for (i=0; i<N_words; ++i) {
+         fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+      }
+      if (isrt) free(isrt); isrt = NULL;
+      for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+      free(ws); ws = NULL;
+   }
+
+   if ((ws = unique_str(ww, N_words, 0, 2, &N_unq, &isrt))) {
+      fprintf(stdout,
+               "\n%d/%d unique strings, case sensitive, noext noview\n",
+                     N_unq, N_words);
+      for (i=0; i<N_words; ++i) {
+         fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+      }
+      if (isrt) free(isrt); isrt = NULL;
+      for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+      free(ws); ws = NULL;
+   }
+
+   for (i=0; i<N_words; ++i) if (ww[i]) free(ww[i]);
+      free(ww); ww = NULL;
+   return(0);
+}
+
 int main(int argc, char **argv)
 {
    int iarg, N_ws, i, max_hits, test_only, new_score=0,
@@ -364,100 +462,7 @@ int main(int argc, char **argv)
    int nglob, nsort, *isrt=NULL, wild_noext=0, 
        wild_all_files = 0, wild_orig_name = 0, wild_ci=0;
    
-   if (0){
-      /* dirty test for sorting */
-      char **ww, **ws;
-      int i, N_words=10, N_unq, *isrt=NULL;
-      ww = (char **)calloc(N_words, sizeof(char *));
-      i = 0;
-      ww[i++] = strdup("hello+orig.HEAD");
-      ww[i++] = strdup("hello+orig.BRIK.gz");
-      ww[i++] = NULL;
-      ww[i++] = strdup("HELLO+orig.HEAD");
-      ww[i++] = NULL;
-      ww[i++] = strdup("hello.nii");
-      ww[i++] = strdup("HELLO+orig.HEAD");
-      ww[i++] = strdup("james.nii");
-      if (i >= N_words) {
-         ERROR_message("Too many strings for allocated space"); exit(1);
-      }
-      
-      fprintf(stdout,
-               "\nInitial list %d strings:\n", N_words);
-      for (i=0; i<N_words; ++i) {
-         fprintf(stdout,"%d %s\n", i, ww[i]?ww[i]:"NULL");
-      }
-         
-      if ((ws = unique_str(ww, N_words, 0, 0, &N_unq, &isrt))) {
-         fprintf(stdout,
-               "\n%d/%d unique strings, case sensisitve, names as is:\n", 
-                        N_unq, N_words);
-         for (i=0; i<N_words; ++i) {
-            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
-                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
-         }
-         if (isrt) free(isrt); isrt = NULL;
-         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
-         free(ws); ws = NULL;
-      }
-      if ((ws = unique_str(ww, N_words, 1, 0, &N_unq, &isrt))) {
-         fprintf(stdout,
-                  "\n%d/%d unique strings, case insensitive, names as is:\n",
-                        N_unq, N_words);
-         for (i=0; i<N_words; ++i) {
-            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
-                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
-         }
-         if (isrt) free(isrt); isrt = NULL;
-         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
-         free(ws); ws = NULL;
-      }
-      if ((ws = unique_str(ww, N_words, 1, 1, &N_unq, &isrt))) {
-         fprintf(stdout,"\n%d/%d unique strings, case insensitive, noext\n",
-                        N_unq, N_words);
-         for (i=0; i<N_words; ++i) {
-            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
-                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
-         }
-         if (isrt) free(isrt); isrt = NULL;
-         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
-         free(ws); ws = NULL;
-      }
-      if ((ws = unique_str(ww, N_words, 1, 2, &N_unq, &isrt))) {
-         fprintf(stdout,
-                  "\n%d/%d unique strings, case insensitive, noext noview\n",
-                        N_unq, N_words);
-         for (i=0; i<N_words; ++i) {
-            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
-                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
-         }
-         if (isrt) free(isrt); isrt = NULL;
-         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
-         free(ws); ws = NULL;
-      }
-      
-      if ((ws = unique_str(ww, N_words, 0, 2, &N_unq, &isrt))) {
-         fprintf(stdout,
-                  "\n%d/%d unique strings, case sensitive, noext noview\n",
-                        N_unq, N_words);
-         for (i=0; i<N_words; ++i) {
-            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
-                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
-         }
-         if (isrt) free(isrt); isrt = NULL;
-         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
-         free(ws); ws = NULL;
-      }
-      
-      for (i=0; i<N_words; ++i) if (ww[i]) free(ww[i]);
-         free(ww); ww = NULL;
-      exit(1);
-   }
+
    mainENTRY("apsearch main"); machdep() ; 
       
    max_hits = 3;
@@ -484,6 +489,11 @@ int main(int argc, char **argv)
 
       if (strcmp(argv[iarg],"-afni_help_dir") == 0) { 
          fprintf(stdout,"%s\n", THD_helpdir(0));
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-test_unique_str") == 0) { 
+         Test_unique_str();
          return(0);
       }
 
