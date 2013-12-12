@@ -7911,8 +7911,8 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
          SUMA_S_Err("Zut alors!");
          SUMA_RETURN(NOPE);
       }
-      if (sv->ColList[i]->RemixR) {
-         ++sv->ColList[i]->RemixRID;
+      if (sv->ColList[i]->Remix) {
+         ++sv->ColList[i]->RemixID;
          switch (tp) {
             case SO_type:
                if (LocalHead) 
@@ -7925,7 +7925,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i]->RemixR = NOPE;
+               sv->ColList[i]->Remix = NOPE;
                break;
             case SDSET_type:
                dset = (SUMA_DSET *)pp;
@@ -7936,7 +7936,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i]->RemixR = NOPE;
+               sv->ColList[i]->Remix = NOPE;
                break;
             case VO_type: {
                SUMA_VolumeObject *VO = (SUMA_VolumeObject *)pp;
@@ -7947,7 +7947,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i]->RemixR = NOPE;
+               sv->ColList[i]->Remix = NOPE;
                sv->ColList[i]->per_sv_extra[isv] = 1;
                break; }
             case TRACT_type: {
@@ -7960,7 +7960,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i]->RemixR = NOPE;
+               sv->ColList[i]->Remix = NOPE;
                break; }
             case MASK_type: {
                SUMA_MaskDO *mdo = (SUMA_MaskDO*)pp;
@@ -7972,7 +7972,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
-               sv->ColList[i]->RemixR = NOPE;
+               sv->ColList[i]->Remix = NOPE;
                break; }
             default:
                SUMA_S_Errv("Type %d (%s) is not welcome here\n", 
@@ -9302,7 +9302,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          you are only showing the curColPlane.
          curColPlane is normally set in  SUMA_InitializeColPlaneShell
          but when SO->SurfCont->ShowCurForeOnly = YUP, curColPlane
-         is used in the RemixRedisplay function.
+         is used in the Remixedisplay function.
          NOTE: You can't call SUMA_InitializeColPlaneShell
          before remixing because colors are reported in Lbl block
           June 28 04*/
@@ -9313,7 +9313,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
       if (LaunchDisplay) {
          SUMA_LHv("Remix Redisplay %s\n", SO->Label);
          /* remix-redisplay  for surface */
-         if (!SUMA_RemixRedisplay ((SUMA_ALL_DO*)SO)) {
+         if (!SUMA_Remixedisplay ((SUMA_ALL_DO*)SO)) {
             SUMA_RETURN(NOPE);
          }
 
@@ -9581,7 +9581,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          SUMA_LHv("Remix Redisplay %s (id %s) (dset %p)\n", 
                   SDSET_LABEL(dset), SDSET_ID(dset), dset);
          /* remix-redisplay  for surface */
-         if (!SUMA_RemixRedisplay((SUMA_ALL_DO*)dset)) {
+         if (!SUMA_Remixedisplay((SUMA_ALL_DO*)dset)) {
             SUMA_RETURN(NOPE);
          }
 
@@ -9683,7 +9683,7 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data)
    /* See note before similar line in SUMA_LoadDsetOntoSO */
    SO->SurfCont->curColPlane = SO->Overlays[OverInd]; 
 
-   if (!SUMA_RemixRedisplay ((SUMA_ALL_DO*)SO)) {
+   if (!SUMA_Remixedisplay ((SUMA_ALL_DO*)SO)) {
       SUMA_RETURNe;
    }
   

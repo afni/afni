@@ -4671,7 +4671,7 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb,
             }
             if (doall || curSO != targetSO) {
                SUMA_UPDATE_ALL_NODE_GUI_FIELDS((SUMA_ALL_DO*)targetSO);
-               SUMA_RemixRedisplay((SUMA_ALL_DO*)targetSO);
+               SUMA_Remixedisplay((SUMA_ALL_DO*)targetSO);
             } else {
                /* Update and Remix will be done for curSO 
                   by the function who called this one */

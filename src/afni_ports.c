@@ -406,6 +406,11 @@ int init_ports_list(void) {
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
       
+   PL.port_id[ip].port = np+ip; 
+   sprintf(PL.port_id[ip].name,"SUMA_INSTA_TRACT_NIML");
+   sprintf(PL.port_id[ip].listener,"SUMA");
+      ++ip;
+      
    PL.n_ports=ip;
    
    reinit = 0;

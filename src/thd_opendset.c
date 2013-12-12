@@ -27,11 +27,11 @@ static char * file_extension_list[] = {
     ".mnc",
     ".mri",
     ".svl",
-    ".1D", ".1D.dset",
+    ".1D", ".1D.dset", ".1D.do",
     ".3D",
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
-    ".niml", ".niml.dset",
+    ".niml", ".niml.dset", ".niml.do",
     ".gii", ".gii.dset", ".niml.tract"
 };
 
@@ -760,6 +760,48 @@ ENTRY("without_afni_filename_extension");
     }
     RETURN(fname);   /* not found */
 }
+
+char * without_afni_filename_view_and_extension( char * fname )
+{
+    char *noext;
+    static char onames[5][THD_MAX_NAME+1];
+    static int icall=0;
+    int flen;
+
+ENTRY("without_afni_filename_view_and_extension");
+    
+    if( !fname || !*fname ) RETURN(NULL);
+    ++icall;
+    if (icall > 4) icall = 0;
+    onames[icall][0]='\0';
+    
+    if ((noext = without_afni_filename_extension(fname))) {
+      flen = strlen(noext);
+      if (fname[strlen(noext)-1] == '.') { 
+         if( STRING_HAS_SUFFIX(noext, "+orig.") ||
+             STRING_HAS_SUFFIX(noext, "+acpc.") ||
+             STRING_HAS_SUFFIX(noext, "+tlrc.") ) {
+            flen = flen - 6;   
+            strncpy(onames[icall], noext, flen);
+            onames[icall][flen]='\0';
+         } 
+      } else if( STRING_HAS_SUFFIX(noext, "+orig") ||
+                 STRING_HAS_SUFFIX(noext, "+acpc") ||
+                 STRING_HAS_SUFFIX(noext, "+tlrc") ) {
+         flen = flen - 5;   
+         strncpy(onames[icall], noext, flen);
+         onames[icall][flen]='\0';
+      } else {
+         strncpy(onames[icall], noext, flen);
+         onames[icall][flen]='\0';
+      }
+      
+      RETURN(onames[icall]);
+    }
+    
+    RETURN(fname);   /* not found */
+}
+
 
 /* Add prefix and/or suffix to filename fname taking care
    to leave the path undisturbed and known extensions preserved */

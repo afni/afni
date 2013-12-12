@@ -1403,7 +1403,7 @@ SUMA_Boolean SUMA_GICOR_process_dataset( NI_element *nel  )
             SUMA_SLP_Err("Failed to colorize plane.\n");
             SUMA_RETURN(NOPE);
          }
-         if (!SUMA_RemixRedisplay ((SUMA_ALL_DO*)SOv[id])) {
+         if (!SUMA_Remixedisplay ((SUMA_ALL_DO*)SOv[id])) {
             SUMA_SLP_Err("Failed to remix redisplay.\n");
             SUMA_RETURN(NOPE);
          }

@@ -345,6 +345,8 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname,
                             int shtp);
 int prog_complete_command (char *prog, char *ofile, int shtp);
 char **approx_str_sort_readmes(char *str, int *N_r);
+char **unique_str(char **words, int N_words, byte ci, 
+                  byte noae, int *N_unq, int **isort_out);
 char *find_readme_file(char *str);
 int view_text_file(char *progname);
 void view_prog_help(char *prog);
