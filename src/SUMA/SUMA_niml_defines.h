@@ -28,7 +28,9 @@ typedef enum { SUMA_AFNI_STREAM_INDEX = 0,
                SUMA_GICORR_LINE,
                      /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 4*/
                SUMA_HALLO_SUMA_LINE,
-                     /*!< Communication with demo taking program */
+                     /*!< Communication with demo talking program */
+               SUMA_INSTA_TRACT_LINE,
+                     /*!< Communication with demo talking program */
                SUMA_MAX_STREAMS 
                      /*!< Maximum number of streams, KEEP AT END */
             } SUMA_STREAM_INDICES; /* If you add a new stream,
