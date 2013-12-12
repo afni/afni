@@ -2097,8 +2097,8 @@ typedef struct {
                               of nodes in the surface or edges in a graph */
    char *idcode_str; /*!< string containing the idcode of the surface/object to 
                          which glar_ColorList belongs*/
-   SUMA_Boolean RemixR; /*!< flag indicating that colors need to be remixed */ 
-   int RemixRID; /*!< An id of sorts updated each time remix is done */
+   SUMA_Boolean Remix; /*!< flag indicating that colors need to be remixed */ 
+   int RemixID; /*!< An id of sorts updated each time remix is done */
    int per_sv_extra[SUMA_MAX_SURF_VIEWERS]; /* Some flags needed to perform extra
                                     tasks (binding textures) without needing to 
                                     do the whole remix thing. This is needed when

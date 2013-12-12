@@ -966,7 +966,7 @@ int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          colp->OptScl->RecomputeClust = 1;
       }
       SUMA_ColorizePlane(colp);
-      SUMA_RemixRedisplay(ado);
+      SUMA_Remixedisplay(ado);
    }
 
    /* call this one since it is not being called as the slider is dragged. */
@@ -1212,7 +1212,7 @@ int SUMA_SwitchColPlaneIntensity_one (
    }
    
    
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -1364,7 +1364,7 @@ int SUMA_SwitchColPlaneThreshold_one(
          SUMA_RETURN(0);
    }
    
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -1525,7 +1525,7 @@ int SUMA_SwitchColPlaneBrightness_one(
          SUMA_RETURN(0);
    }
    
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -1581,7 +1581,7 @@ void SUMA_cb_SwitchBrightness(Widget w, XtPointer client_data, XtPointer call)
    }
    
 
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
    
    #if SUMA_SEPARATE_SURF_CONTROLLERS
       SUMA_UpdateColPlaneShellAsNeeded(ado);
@@ -1730,7 +1730,7 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
          SUMA_RETURNe;
    }
    
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
  
    SUMA_UpdateNodeLblField(ado);
    
@@ -1788,7 +1788,7 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
          SUMA_RETURNe;
    }
    
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
  
    SUMA_UpdateNodeValField(ado);
    SUMA_UpdateNodeLblField(ado);
@@ -1853,7 +1853,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
          SUMA_RETURNe;
    }
    
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
 
    SUMA_UpdateNodeLblField(ado);
 
@@ -1903,7 +1903,7 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
                                  curColPlane->ShowMode));
       
    SUMA_ColorizePlane(curColPlane);
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
@@ -1946,7 +1946,7 @@ void SUMA_cb_SwitchThr_toggled (Widget w, XtPointer data, XtPointer client_data)
          XmToggleButtonGetState (SurfCont->Thr_tb);
       
    SUMA_ColorizePlane(curColPlane);
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
    
    SUMA_UpdateNodeLblField(ado);
    
@@ -1989,7 +1989,7 @@ void SUMA_cb_SwitchBrt_toggled (Widget w, XtPointer data, XtPointer client_data)
                      XmToggleButtonGetState (SurfCont->Brt_tb);
    
    SUMA_ColorizePlane(curColPlane);
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
 
    #if SUMA_SEPARATE_SURF_CONTROLLERS
@@ -2131,7 +2131,7 @@ SUMA_Boolean SUMA_SetCmapMode(SUMA_ALL_DO *ado, int imenu)
    /* redisplay all viewers showing SO*/
    if (NewDisp) {
       SUMA_ColorizePlane(curColPlane);
-      SUMA_RemixRedisplay(ado);
+      SUMA_Remixedisplay(ado);
    }
    
    SUMA_UpdateNodeNodeField(ado);
@@ -2199,7 +2199,7 @@ void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
    /* redisplay all viewers showing SO*/
    if (NewDisp) {
       SUMA_ColorizePlane(curColPlane);
-      SUMA_RemixRedisplay(ado);
+      SUMA_Remixedisplay(ado);
    }
    
    SUMA_UpdateNodeNodeField(ado);
@@ -2304,7 +2304,7 @@ void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
    /* redisplay all viewers showing DO*/
    if (NewDisp) {
       SUMA_ColorizePlane(curColPlane);
-      SUMA_RemixRedisplay(ado);
+      SUMA_Remixedisplay(ado);
    }
    
    SUMA_UpdateNodeNodeField(ado);
@@ -2673,7 +2673,7 @@ void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
                curColPlane->OptScl->AutoIntRange = 1;
                SUMA_InitRangeTable(ado, 0); /* overkill but little overhead */
                SUMA_ColorizePlane(curColPlane);
-               SUMA_RemixRedisplay(ado);
+               SUMA_Remixedisplay(ado);
                curColPlane->OptScl->AutoIntRange = AutoHist; 
             }
             break;
@@ -2688,7 +2688,7 @@ void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
                curColPlane->OptScl->AutoBrtRange = 1;
                SUMA_InitRangeTable(ado, 1); /* overkill but little overhead */
                SUMA_ColorizePlane(curColPlane);
-               SUMA_RemixRedisplay(ado);
+               SUMA_Remixedisplay(ado);
                curColPlane->OptScl->AutoBrtRange = AutoHist; 
             }
             break;
@@ -2754,7 +2754,7 @@ SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_ALL_DO *ado,
                colp->OptScl->Clusterize = TF->but_flag[j*TF->Ni+i];
                colp->OptScl->RecomputeClust = YUP;
                SUMA_ColorizePlane(colp);
-               SUMA_RemixRedisplay((SUMA_ALL_DO*)ado);
+               SUMA_Remixedisplay((SUMA_ALL_DO*)ado);
             }else if (Button == Button3) { /* nothing to do */
                
             }
@@ -3662,7 +3662,7 @@ int SUMA_set_slice(SUMA_ALL_DO *ado, char *variant, float *valp,
          SurfCont->Co_slc->slice_num = val;      
    }
 
-   if (redisp) SUMA_RemixRedisplay(ado);
+   if (redisp) SUMA_Remixedisplay(ado);
 
    /* sad as it is */
    SUMA_FORCE_SLICE_SCALE_WIDTH(SUMA_ADO_Cont(ado)); 
@@ -3967,7 +3967,7 @@ int SUMA_SetShowSlice(SUMA_VolumeObject *vdo, char *variant, int val)
    if (!strcmp(variant, "Ax")) {
       if (VSaux->ShowAxSlc != val) {
          VSaux->ShowAxSlc = val;
-         SUMA_RemixRedisplay(ado);
+         SUMA_Remixedisplay(ado);
          #if SUMA_SEPARATE_SURF_CONTROLLERS
             SUMA_UpdateColPlaneShellAsNeeded(ado);
          #endif        
@@ -3975,7 +3975,7 @@ int SUMA_SetShowSlice(SUMA_VolumeObject *vdo, char *variant, int val)
    } else if (!strcmp(variant, "Sa")) {
       if (VSaux->ShowSaSlc != val) {
          VSaux->ShowSaSlc = val;
-         SUMA_RemixRedisplay(ado);
+         SUMA_Remixedisplay(ado);
          #if SUMA_SEPARATE_SURF_CONTROLLERS
             SUMA_UpdateColPlaneShellAsNeeded(ado);
          #endif        
@@ -3983,7 +3983,7 @@ int SUMA_SetShowSlice(SUMA_VolumeObject *vdo, char *variant, int val)
    } else if (!strcmp(variant, "Co")) {
       if (VSaux->ShowCoSlc != val) {
          VSaux->ShowCoSlc = val;
-         SUMA_RemixRedisplay(ado);
+         SUMA_Remixedisplay(ado);
          #if SUMA_SEPARATE_SURF_CONTROLLERS
             SUMA_UpdateColPlaneShellAsNeeded(ado);
          #endif        
@@ -4669,7 +4669,7 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          SUMA_RETURN(0);
    }
    SUMA_LH("Remix redisplay");
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
 
    SUMA_UpdateNodeLblField(ado);
    SUMA_UpdatePvalueField( ado,
@@ -5390,7 +5390,7 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    /* Now, you need to redraw the deal */
    if (REDISP) {
       SUMA_ColorizePlane(curColPlane);
-      SUMA_RemixRedisplay(ado);
+      SUMA_Remixedisplay(ado);
    }   
    
    /* update the Xhair Info block */
@@ -5599,7 +5599,7 @@ int SUMA_SetClustValue_one(SUMA_ALL_DO *ado,
    /* Now, you need to redraw the deal */
    if (REDISP) {
       SUMA_ColorizePlane(curColPlane);
-      SUMA_RemixRedisplay(ado);
+      SUMA_Remixedisplay(ado);
    }   
    
    /* update the Xhair Info block */
@@ -8776,7 +8776,7 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
 
    /* update the color map display NOW, no workprocess crap. ZSS Mar. 7 08*/
    #if 0
-   /* With this, the next call to SUMA_RemixRedisplay,
+   /* With this, the next call to SUMA_Remixedisplay,
    causes an error: glXSwapBuffers: no context for this drawable
    because SUMA_cmap_wid_handleRedisplay is still to be processed
    as SUMA_cmap_wid_postRedisplay puts it in as a workprocess.
@@ -8789,8 +8789,8 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
    SUMA_cmap_wid_handleRedisplay((XtPointer)ado);
    #endif
    
-   SUMA_LH("Calling SUMA_RemixRedisplay ");          
-   SUMA_RemixRedisplay(ado);
+   SUMA_LH("Calling SUMA_Remixedisplay ");          
+   SUMA_Remixedisplay(ado);
 
    SUMA_LH("Returning");
    SUMA_RETURN(YUP);

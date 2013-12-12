@@ -130,138 +130,177 @@ void apsearch_usage(int detail)
    "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
       printf ( 
-   "Parameters:\n"
-   "===========\n"
-   "  -word WORD: WORD being sought\n"
-   "  -w WORD: Abbreviated version of -word WORD\n"
-   "  -file FILE: Search for WORD in text file FILE\n"
-   "  -files FILE1 FILE2 ...: Search for WORD in text files FILE1 FILE2 ...\n"
-   "  -text TEXT: Search for WORD in string TEXT\n"
-   "  -stdin: Search for WORD in text from stdin\n"
-   "  -: Same as -stdin\n"
-   "  -phelp PROG: Search for WORD in output of command PROG -help\n"
-   "  -popt PROG: Search for possible options of PROG that match WORD\n"
-   "              Make sure you add the '-' to WORD if you are looking\n"
-   "              for an actual option.\n"
-   "  -all_afni_help: Search for WORD in all afni help files.\n"
-   "                  This option is not all that clever at the moment.\n"
-   "  -all_popts PROG: TRY to guess at all the options for PROG\n"
-   "                  The list of options is not guaranteed to be full\n"
-   "                  or accurate. It is created by parsing the program's\n"
-   "                  -help output for likely candidates. \n"
-   "                  It is meant to act as an aid in locating\n"
-   "                  certain options.\n"  
-   "  -list_popts PROG: Like -all_popts, but preserve unique set of options\n"
-   "                    only, no chunks of help output are preserved.\n"
-   "  -popts_complete_command PROG: Generate a csh command that can be sourced\n"
-   "                                to allow option autocompletion for program\n"
-   "                                PROG.\n"
-   "                          See also option -bash and -update_all_afni_help\n" 
-   "  -bash: Use bash format for the complete command. Default is csh/tcsh\n"
-   "         This option MUST PRECEDE option -popts_complete_command\n"
-   "  -ci: Case insensitive search (default)\n"
-   "  -cs: Case sensitive search\n"
-   "  -help: You're looking at it.\n"
-   "  -max_hits MH: Return best MH hits only. Default MH = 3.\n"
-   "                Use -1 to get all results back.\n"
-   "  -m MH: Abbreviated version of -max_hits MH.\n"
-   "  -min_different_hits mDH: Keep outputing hits until you have dDH\n"
-   "                           dissimilar matches. \n"
-   "                           Default is -1 (no minimum).\n"
-   "  -unique_hits_only: Restrict output to novel hits only.\n"
-   "  -show_score: Show matching word's distance.\n"
-   "  -show_score_detail: That's right.\n"
-   "  -list_all_afni_progs: List all executables in AFNI's bin directory\n"
-   "  -list_all_afni_P_progs: Same as -list_all_afni_progs but with path\n"
-   "  -list_all_afni_readmes: List all README files in AFNI's bin directory\n"
-   "  -list_all_afni_P_readmes: Same as -list_all_afni_readmes but with path\n"
-   "  -list_all_afni_dsets: List all datasets in AFNI's bin directory\n"
-   "  -list_all_afni_P_dsets: Same as -list_all_afni_dsets but with path\n"
-   "  -update_all_afni_help: Build/update -help output under directory:\n"
-   "                     %s\n"
-   "                  If older help files differ by little they are deleted\n"
-   "                  Little differences would be the compile date or the\n"
-   "                  version number. See @clean_help_dir code for details.\n"
-   "                  This option also creates autocompletion code for \n"
-   "                  csh/tcsh and bash shells.\n"
-   "  -recreate_all_afni_help: Like -update_all_afni_help but force receration\n"
-   "                           even if nothing changed in the help\n"
-   "  -afni_help_dir: Print afni help directory location and quit.\n"
-   "  -afni_data_dir: Print afni data directory location and quit.\n"
-   "  -afni_bin_dir: Print afni's binaries directory location and quit.\n"
-   "  -afni_home_dir: Print afni's home directory and quit.\n"
-   "  -afni_rc_file: Pathname to .afnirc. You'll get one even if none exists.\n"
-   "  -afni_custom_atlas_dir: Print your afni's custom atlas directory \n"
-   "                          and quit.\n"
-   "  -afni_custom_atlas_file: Print your afni's custom atlas file (if any)\n"
-   "                          and quit.\n"
-   "  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
-   "                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
-   "                     will try to find something suitable.\n"
-   "  -view_text_file FILE: Open FILE with editor of -afni_text_editor\n"
-   "  -view_readme SOMETHING: Find a readme.SOMETHINGISH and open it\n" 
-   "  -apsearch_log_file: Print the name of the logfile that is used to save\n"
-   "                      some results of apsearch's functions. This option\n"
-   "                      is for debugging purposes and is only activated if\n"
-   "                      the environment variable AFNI_LOG_BEST_PROG_OPTION\n"
-   "                      is set to YES.\n"
-   "  -view_prog_help PROG: Open the help file for PROG in a GUI editor.\n"
-   "                        This is like the option -h_view in C programs.\n"
-   "  -web_prog_help PROG: Open the help file for PROG in a web brower.\n"
-   "                       This is like the option -h_web in C programs.\n"
-   "              Use ALL to view the page containing help for all programs.\n"
-   "  -web_class_docs: Open the webpage with latest class pdfs.\n"
-   "\n"
-   "  NOTE: The maximum number of results depends on the combination of\n"
-   "        -max_hits, -min_different_hits, and -unique_hits_only. \n"
-   "        Withoug -unique_hits_only, the output will continue \n"
-   "        while neither -max_hits or -min_different_hits conditions \n"
-   "        are met.\n"
-   "\n"
-   "  -func_test: Run sample function testing and quit. Debugging only.\n"
-   "\n"
-   "Examples:\n"
-   "=========\n"
-   " 1- Search help output of program whereami for the word '-atlas'\n"
-   "        apsearch -ci -phelp whereami -word -atlas\n"
-   " 2- Search all atlas area names for some name (mistakes on purpose)\n"
-   "        whereami -show_atlas_code > all_atlas_area_names.txt\n"
-   "        apsearch -file all_atlas_area_names.txt -word hepp\n"
-   "        apsearch -file all_atlas_area_names.txt -word zipp \\\n"
-   "                  -min_different_hits 5 -unique_hits_only \n"
-   "        apsearch -file all_atlas_area_names.txt -word hipp \\\n"
-   "                  -min_different_hits 5 -unique_hits_only \n"
-   " 3- Debug stupid string matcher:\n"
-   "        apsearch -text 'u:Hippocampus' -word hipp -show_score_detail\n"
-   "        apsearch -text 'u:IPC' -word hipp -show_score_detail\n"
-   " 4- Search help of AFNI programs:\n"
-   "        apsearch -phelp afni -word port\n"
-   "        apsearch -phelp 3dSkullStrip -word hull\n"
-   "        apsearch -phelp afni  -word xt\n"
-   " 5- Suggest a valid option from a program:\n"
-   "        apsearch -popt afni -word xt\n"
-   "        apsearch -popt @ROI_Corr_Mat -word sel\n"
-   "        apsearch -popt @ROI_Corr_Mat -word -sel\n"
-   " 6- Show all(*) options for a program:\n"
-   "        apsearch -all_popts 3dSkullStrip\n"
-   "    (*) see -all_popts in help section\n"
-   " 7- Look for some area named something or other in some atlas:\n"
-   "        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
-   "                                apsearch -stdin -word insola\n"
-   "    If you really screw up the spelling, you should help the search\n"
-   "    program a little as in:\n"
-   "        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
-   "                                sed 's/[-_]/ /g' |\\\n"
-   "                                apsearch -stdin -word insolent\n"
-   " 8- Find 10 afni programs with something like 'Surface' in their names:\n"
-   "        apsearch -list_all_afni_progs | \\\n"
-   "             apsearch -stdin -word surface -max_hits 10\n"
-   " 9- Open the readme for driving AFNI:\n"
-   "        apsearch -view_readme driv\n" 
-   "\n"
-   "Global Options:\n"
-   "===============\n"
-   "%s", 
+"Parameters:\n"
+"===========\n"
+"  -word WORD: WORD being sought\n"
+"  -w WORD: Abbreviated version of -word WORD\n"
+"  -file FILE: Search for WORD in text file FILE\n"
+"  -files FILE1 FILE2 ...: Search for WORD in text files FILE1 FILE2 ...\n"
+"  -text TEXT: Search for WORD in string TEXT\n"
+"  -stdin: Search for WORD in text from stdin\n"
+"  -: Same as -stdin\n"
+"  -phelp PROG: Search for WORD in output of command PROG -help\n"
+"  -popt PROG: Search for possible options of PROG that match WORD\n"
+"              Make sure you add the '-' to WORD if you are looking\n"
+"              for an actual option.\n"
+"  -all_afni_help: Search for WORD in all afni help files.\n"
+"                  This option is not all that clever at the moment.\n"
+"  -all_popts PROG: TRY to guess at all the options for PROG\n"
+"                  The list of options is not guaranteed to be full\n"
+"                  or accurate. It is created by parsing the program's\n"
+"                  -help output for likely candidates. \n"
+"                  It is meant to act as an aid in locating\n"
+"                  certain options.\n"  
+"  -list_popts PROG: Like -all_popts, but preserve unique set of options\n"
+"                    only, no chunks of help output are preserved.\n"
+"  -popts_complete_command PROG: Generate a csh command that can be sourced\n"
+"                                to allow option autocompletion for program\n"
+"                                PROG.\n"
+"                          See also option -bash and -update_all_afni_help\n" 
+"  -bash: Use bash format for the complete command. Default is csh/tcsh\n"
+"         This option MUST PRECEDE option -popts_complete_command\n"
+"  -ci: Case insensitive search (default)\n"
+"  -cs: Case sensitive search\n"
+"  -help: You're looking at it.\n"
+"  -max_hits MH: Return best MH hits only. Default MH = 3.\n"
+"                Use -1 to get all results back.\n"
+"  -m MH: Abbreviated version of -max_hits MH.\n"
+"  -min_different_hits mDH: Keep outputing hits until you have dDH\n"
+"                           dissimilar matches. \n"
+"                           Default is -1 (no minimum).\n"
+"  -unique_hits_only: Restrict output to novel hits only.\n"
+"  -show_score: Show matching word's distance.\n"
+"  -show_score_detail: That's right.\n"
+"  -list_all_afni_progs: List all executables in AFNI's bin directory\n"
+"  -list_all_afni_P_progs: Same as -list_all_afni_progs but with path\n"
+"  -list_all_afni_readmes: List all README files in AFNI's bin directory\n"
+"  -list_all_afni_P_readmes: Same as -list_all_afni_readmes but with path\n"
+"  -list_all_afni_dsets: List all datasets in AFNI's bin directory\n"
+"  -list_all_afni_P_dsets: Same as -list_all_afni_dsets but with path\n"
+"  -update_all_afni_help: Build/update -help output under directory:\n"
+"                     %s\n"
+"                  If older help files differ by little they are deleted\n"
+"                  Little differences would be the compile date or the\n"
+"                  version number. See @clean_help_dir code for details.\n"
+"                  This option also creates autocompletion code for \n"
+"                  csh/tcsh and bash shells.\n"
+"  -recreate_all_afni_help: Like -update_all_afni_help but force receration\n"
+"                           even if nothing changed in the help\n"
+"  -afni_help_dir: Print afni help directory location and quit.\n"
+"  -afni_data_dir: Print afni data directory location and quit.\n"
+"  -afni_bin_dir: Print afni's binaries directory location and quit.\n"
+"  -afni_home_dir: Print afni's home directory and quit.\n"
+"  -afni_rc_file: Pathname to .afnirc. You'll get one even if none exists.\n"
+"  -afni_custom_atlas_dir: Print your afni's custom atlas directory \n"
+"                          and quit.\n"
+"  -afni_custom_atlas_file: Print your afni's custom atlas file (if any)\n"
+"                          and quit.\n"
+"  -afni_text_editor: Print the name of the GUI editor. Priority goes to \n"
+"                     env. variable AFNI_GUI_EDITOR, otherwise afni\n"
+"                     will try to find something suitable.\n"
+"  -afni_web_browser: Print the name of the browser used by AFNI. \n"
+"                     Priority goes to env. variable AFNI_WEB_BROWSER, \n"
+"                     otherwise afni will try to find something suitable.\n"
+"  -afni_web_downloader: Print the name of the downloader used by AFNI. \n"
+"                     Priority goes to env. variable AFNI_WEB_DOWNLOADER, \n"
+"                     otherwise afni will try to find something suitable.\n"
+"  -view_text_file FILE: Open FILE with editor of -afni_text_editor\n"
+"  -view_readme SOMETHING: Find a readme.SOMETHINGISH and open it\n" 
+"  -apsearch_log_file: Print the name of the logfile that is used to save\n"
+"                      some results of apsearch's functions. This option\n"
+"                      is for debugging purposes and is only activated if\n"
+"                      the environment variable AFNI_LOG_BEST_PROG_OPTION\n"
+"                      is set to YES.\n"
+"  -view_prog_help PROG: Open the help file for PROG in a GUI editor.\n"
+"                        This is like the option -h_view in C programs.\n"
+"  -web_prog_help PROG: Open the help file for PROG in a web brower.\n"
+"                       This is like the option -h_web in C programs.\n"
+"              Use ALL to view the page containing help for all programs.\n"
+"  -web_class_docs: Open the webpage with latest class pdfs.\n"
+"\n"
+"  NOTE: The maximum number of results depends on the combination of\n"
+"        -max_hits, -min_different_hits, and -unique_hits_only. \n"
+"        Withoug -unique_hits_only, the output will continue \n"
+"        while neither -max_hits or -min_different_hits conditions \n"
+"        are met.\n"
+"\n"
+"  -func_test: Run sample function testing and quit. Debugging only.\n"
+"\n"
+"Wildcard expansion tools:\n"
+"=========================\n"
+"-wild_files 'PAT1 PAT2 ...' : Find files matching PAT1, or PAT2, etc.\n"
+"                              Should include PAT1, etc. between quotes or \n"
+"                              the shell will do the expansion for you.\n"
+"                              Note that in addition to wildcard expansion, \n"
+"                              the function also sorts the output so the order\n"
+"                              is alphabetical. It also dumps duplicate names\n"
+"                              which can happen when you start to remove \n"
+"                              extensions known to AFNI. See -wild* options\n"
+"                              below.\n" 
+"        Example: -wild_files '*.do *.HEAD'\n"
+"-wild_files_noAext: After compiling list, remove all known AFNI extensions \n"
+"                    and preserve unique set of resultant names\n"
+"-wild_files_noAext_noAview: After compiling list, remove all known AFNI\n"
+"                    extensions and any view such as +tlrc, +orig, +acpc, \n"
+"                    and preserve unique set of resultant names\n"
+"-wild_files_orig_name: Output unique list using orignal (full) filename, \n"
+"                       rather than the names after extensions or views were\n"
+"                       removed. This option makes a difference when using\n"
+"                       one of -wild_files_noAext* options.\n"
+"-wild_all_files: Show all files from wildcard expansion. Do not sort, do not\n"
+"                 trim names, etc.\n"
+"-wild_files_debug: Output results in debugging mode.\n"
+"-wild_files_ci: When searching for unique set, use case insensitive matching\n"
+"\n"
+"Examples:\n"
+"=========\n"
+" 1- Search help output of program whereami for the word '-atlas'\n"
+"        apsearch -ci -phelp whereami -word -atlas\n"
+" 2- Search all atlas area names for some name (mistakes on purpose)\n"
+"        whereami -show_atlas_code > all_atlas_area_names.txt\n"
+"        apsearch -file all_atlas_area_names.txt -word hepp\n"
+"        apsearch -file all_atlas_area_names.txt -word zipp \\\n"
+"                  -min_different_hits 5 -unique_hits_only \n"
+"        apsearch -file all_atlas_area_names.txt -word hipp \\\n"
+"                  -min_different_hits 5 -unique_hits_only \n"
+" 3- Debug stupid string matcher:\n"
+"        apsearch -text 'u:Hippocampus' -word hipp -show_score_detail\n"
+"        apsearch -text 'u:IPC' -word hipp -show_score_detail\n"
+" 4- Search help of AFNI programs:\n"
+"        apsearch -phelp afni -word port\n"
+"        apsearch -phelp 3dSkullStrip -word hull\n"
+"        apsearch -phelp afni  -word xt\n"
+" 5- Suggest a valid option from a program:\n"
+"        apsearch -popt afni -word xt\n"
+"        apsearch -popt @ROI_Corr_Mat -word sel\n"
+"        apsearch -popt @ROI_Corr_Mat -word -sel\n"
+" 6- Show all(*) options for a program:\n"
+"        apsearch -all_popts 3dSkullStrip\n"
+"    (*) see -all_popts in help section\n"
+" 7- Look for some area named something or other in some atlas:\n"
+"        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
+"                                apsearch -stdin -word insola\n"
+"    If you really screw up the spelling, you should help the search\n"
+"    program a little as in:\n"
+"        whereami -show_atlas_code -atlas DKD_Desai_MPM |\\\n"
+"                                sed 's/[-_]/ /g' |\\\n"
+"                                apsearch -stdin -word insolent\n"
+" 8- Find 10 afni programs with something like 'Surface' in their names:\n"
+"        apsearch -list_all_afni_progs | \\\n"
+"             apsearch -stdin -word surface -max_hits 10\n"
+" 9- Open the readme for driving AFNI:\n"
+"        apsearch -view_readme driv\n"
+" 10- Wildcard expansion and sorting:\n"
+"        apsearch -wild_files '*.1D*' '*.HEAD *.BRIK*' \\\n"
+"                 -wild_all_files \n"
+"        apsearch -wild_files '*.1D*' '*.HEAD *.BRIK*' \\\n"
+"                 -wild_files_noAext_noAview \n"
+"        apsearch -wild_files '*.1D*' '*.HEAD *.BRIK*' \\\n"
+"                 -wild_files_noAext_noAview -wild_files_orig_name \n"
+"\n"
+"Global Options:\n"
+"===============\n"
+"%s", 
    THD_helpdir(0),
    detail > 1 ? get_gopt_help():""); 
    PRINT_COMPILE_DATE ;
@@ -321,7 +360,104 @@ int main(int argc, char **argv)
    APPROX_STR_DIFF *D=NULL;
    THD_string_array *sar = NULL;
    byte ci = 1;
+   char *wild_list=NULL, **wglob=NULL, **wsort=NULL;
+   int nglob, nsort, *isrt=NULL, wild_noext=0, 
+       wild_all_files = 0, wild_orig_name = 0, wild_ci=0;
    
+   if (0){
+      /* dirty test for sorting */
+      char **ww, **ws;
+      int i, N_words=10, N_unq, *isrt=NULL;
+      ww = (char **)calloc(N_words, sizeof(char *));
+      i = 0;
+      ww[i++] = strdup("hello+orig.HEAD");
+      ww[i++] = strdup("hello+orig.BRIK.gz");
+      ww[i++] = NULL;
+      ww[i++] = strdup("HELLO+orig.HEAD");
+      ww[i++] = NULL;
+      ww[i++] = strdup("hello.nii");
+      ww[i++] = strdup("HELLO+orig.HEAD");
+      ww[i++] = strdup("james.nii");
+      if (i >= N_words) {
+         ERROR_message("Too many strings for allocated space"); exit(1);
+      }
+      
+      fprintf(stdout,
+               "\nInitial list %d strings:\n", N_words);
+      for (i=0; i<N_words; ++i) {
+         fprintf(stdout,"%d %s\n", i, ww[i]?ww[i]:"NULL");
+      }
+         
+      if ((ws = unique_str(ww, N_words, 0, 0, &N_unq, &isrt))) {
+         fprintf(stdout,
+               "\n%d/%d unique strings, case sensisitve, names as is:\n", 
+                        N_unq, N_words);
+         for (i=0; i<N_words; ++i) {
+            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+         }
+         if (isrt) free(isrt); isrt = NULL;
+         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+         free(ws); ws = NULL;
+      }
+      if ((ws = unique_str(ww, N_words, 1, 0, &N_unq, &isrt))) {
+         fprintf(stdout,
+                  "\n%d/%d unique strings, case insensitive, names as is:\n",
+                        N_unq, N_words);
+         for (i=0; i<N_words; ++i) {
+            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+         }
+         if (isrt) free(isrt); isrt = NULL;
+         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+         free(ws); ws = NULL;
+      }
+      if ((ws = unique_str(ww, N_words, 1, 1, &N_unq, &isrt))) {
+         fprintf(stdout,"\n%d/%d unique strings, case insensitive, noext\n",
+                        N_unq, N_words);
+         for (i=0; i<N_words; ++i) {
+            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+         }
+         if (isrt) free(isrt); isrt = NULL;
+         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+         free(ws); ws = NULL;
+      }
+      if ((ws = unique_str(ww, N_words, 1, 2, &N_unq, &isrt))) {
+         fprintf(stdout,
+                  "\n%d/%d unique strings, case insensitive, noext noview\n",
+                        N_unq, N_words);
+         for (i=0; i<N_words; ++i) {
+            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+         }
+         if (isrt) free(isrt); isrt = NULL;
+         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+         free(ws); ws = NULL;
+      }
+      
+      if ((ws = unique_str(ww, N_words, 0, 2, &N_unq, &isrt))) {
+         fprintf(stdout,
+                  "\n%d/%d unique strings, case sensitive, noext noview\n",
+                        N_unq, N_words);
+         for (i=0; i<N_words; ++i) {
+            fprintf(stdout,"%d %s (ww[%d]=%s)\n",
+                     i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                     isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
+         }
+         if (isrt) free(isrt); isrt = NULL;
+         for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]);
+         free(ws); ws = NULL;
+      }
+      
+      for (i=0; i<N_words; ++i) if (ww[i]) free(ww[i]);
+         free(ww); ww = NULL;
+      exit(1);
+   }
    mainENTRY("apsearch main"); machdep() ; 
       
    max_hits = 3;
@@ -387,7 +523,20 @@ int main(int argc, char **argv)
       }
 
       if (strcmp(argv[iarg],"-afni_text_editor") == 0) { 
-         fprintf(stdout,"%s\n", GetAfniTextEditor());
+         char *ss = GetAfniTextEditor();
+         fprintf(stdout,"%s\n", ss?ss:"NONE FOUND");
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-afni_web_downloader") == 0) { 
+         char *ss = GetAfniWebDownloader();
+         fprintf(stdout,"%s\n", ss?ss:"NONE FOUND");
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-afni_web_browser") == 0) { 
+         char *ss = GetAfniWebBrowser();
+         fprintf(stdout,"%s\n", ss?ss:"NONE FOUND");
          return(0);
       }
 
@@ -434,7 +583,7 @@ int main(int argc, char **argv)
             fprintf( stderr,
                      "** Error: Need text files after -files\n"); return(1);
          }
-         while (iarg <= argc && argv[iarg][0] != '-') {
+         while (iarg < argc && argv[iarg][0] != '-') {
             if ( ! fnamev ) INIT_SARR(fnamev);
             if (!THD_is_file(argv[iarg])) {
                ERROR_exit("Argument %s for -files is not a file on disk\n", 
@@ -445,7 +594,49 @@ int main(int argc, char **argv)
          }
          continue; 
       }
+      
+      if (!strcmp(argv[iarg],"-wild_files_noAext")) {
+         wild_noext = 1;
+         ++iarg; continue;
+      }
+      
+      if (!strcmp(argv[iarg],"-wild_files_noAext_noAview")) {
+         wild_noext = 2;
+         ++iarg; continue;
+      }
+      
+      if (!strcmp(argv[iarg],"-wild_files_orig_name")) {
+         wild_orig_name = 1;
+         ++iarg; continue;
+      }
 
+      if (!strcmp(argv[iarg],"-wild_files_debug")) {
+         wild_orig_name = -1;
+         ++iarg; continue;
+      }
+      
+      if (!strcmp(argv[iarg],"-wild_all_files")) {
+         wild_all_files = 1;
+         ++iarg; continue;
+      }
+      if (!strcmp(argv[iarg],"-wild_files_ci")) {
+         wild_ci = 1;
+         ++iarg; continue;
+      }
+      if (!strcmp(argv[iarg],"-wild_files")) { 
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+               "** Error: Need wildcards files after -wild_files\n"); return(1);
+         }
+         while (iarg < argc && argv[iarg][0] != '-') {
+            wild_list = 
+               SUMA_append_replace_string(wild_list, argv[iarg], " ", 1); 
+            ++iarg;
+         }
+         continue; 
+      }
+      
       if (strcmp(argv[iarg],"-stdin") == 0 || strcmp(argv[iarg],"-") == 0) { 
          fname = stdinflag;
          ++iarg;
@@ -733,6 +924,56 @@ int main(int argc, char **argv)
       return 0;
    }
 
+   if (wild_list) { /* some globbing action only */
+      MCW_wildcards(wild_list, &nglob, &wglob);
+      if (!wglob || nglob == 0) {
+         SUMA_ifree(wild_list);
+         exit(1); /* no files found */
+      }
+      if (wild_all_files) { /* No sorting */
+         for (i=0; i<nglob; ++i) {
+            fprintf(stdout,"%s\n", wglob[i]);
+         }
+         SUMA_ifree(wild_list);
+         MCW_free_wildcards( nglob , wglob ) ;
+         exit(0);
+      }
+      /* some sorting needed */
+      if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext, 
+                              &nsort, &isrt))) {
+         if (wild_orig_name == -1) {/* verbose output */
+            fprintf(stdout, "\n%d/%d unique strings, noext = %d:\n",  
+                     nsort, nglob, wild_noext); 
+            for (i=0; i<nsort; ++i) {
+               fprintf(stdout,"%d %s (wglob[%d]=%s)\n",
+                 i, wsort[i]?wsort[i]:"NULL - what followsort is legit garbage", 
+                 isrt[i], wglob[isrt[i]]?wglob[isrt[i]]:"NULL" );
+            }
+         } else {
+            if (wild_orig_name) { /* output original strings */
+               for (i=0; i<nsort; ++i) {
+                  fprintf(stdout,"%s\n", wglob[isrt[i]]);
+               }
+            } else { /* output trimmed strings */
+               for (i=0; i<nsort; ++i) {
+                  fprintf(stdout,"%s\n", wsort[i]);
+               }
+            }
+         }
+         if (isrt) free(isrt); isrt = NULL;
+         for (i=0; i<nglob; ++i) if (wsort[i]) free(wsort[i]);
+         free(wsort); wsort = NULL;
+         SUMA_ifree(wild_list);
+         MCW_free_wildcards( nglob , wglob ) ;
+         exit(0);
+      } else {
+         ERROR_message("Failed to sort");
+         SUMA_ifree(wild_list);
+         MCW_free_wildcards( nglob , wglob ) ;
+         exit(1);
+      }
+   }
+   
    if ((fnamev || fname || text || prog || popt || all_popts)) {
       if (!strcmp(word,"Ma fich haga")) {
          ERROR_message(

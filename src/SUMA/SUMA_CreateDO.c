@@ -5943,9 +5943,9 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    
    /* Do we have a new remix ID? */
    NI_GET_INT(nini, "RemixID", rid);
-   if (!NI_GOT || rid != colstr->RemixRID) {
+   if (!NI_GOT || rid != colstr->RemixID) {
       SUMA_DrawDO_UL_Add(GSaux->DisplayUpdates, "nido_MapColors", 1);
-      NI_SET_INT(nini, "RemixID", colstr->RemixRID);
+      NI_SET_INT(nini, "RemixID", colstr->RemixID);
    }
    
    /* what kind of monstrosity is this ? */

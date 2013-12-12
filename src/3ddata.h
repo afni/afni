@@ -4329,6 +4329,7 @@ extern int is_writable_storage_mode( int smode ) ;          /* 05 Mar 2012 */
 extern char * find_filename_extension( char * fname );
 extern char * modify_afni_prefix( char * fname , char *pref, char *suf);
 extern char * without_afni_filename_extension( char *fname);
+char * without_afni_filename_view_and_extension( char * fname );
 
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 

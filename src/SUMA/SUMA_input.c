@@ -1324,7 +1324,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   SUMA_ColorizePlane(child);
 
                   /* remix-redisplay  for surface */
-                  if (!SUMA_RemixRedisplay ((SUMA_ALL_DO*)SO)) {
+                  if (!SUMA_Remixedisplay ((SUMA_ALL_DO*)SO)) {
                      SUMA_RETURN(0);
                   }
 

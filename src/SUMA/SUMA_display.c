@@ -13222,7 +13222,7 @@ int SUMA_ColPlane_NewOrder_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    if (iMove > 0) { /* something decent was done, act on it */
       /* a good remix and redisplay */
       SUMA_LH("Remix and redisplay");
-      SUMA_RemixRedisplay (ado);
+      SUMA_Remixedisplay (ado);
    }
    
    if (!cb_direct && neworder != (int)SurfCont->ColPlaneOrder->value) {
@@ -13416,7 +13416,7 @@ int SUMA_ColPlane_NewOpacity_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
    /* a good remix and redisplay */
-   SUMA_RemixRedisplay (ado);
+   SUMA_Remixedisplay (ado);
    
    if (!cb_direct && newopacity != SurfCont->ColPlaneOpacity->value) {
       /* force gui match */
@@ -13474,7 +13474,7 @@ int SUMA_Tract_NewGray (SUMA_ALL_DO *ado,
          TSaux->MaskGray);
    
    /* a good remix and redisplay */
-   SUMA_RemixRedisplay (ado);
+   SUMA_Remixedisplay (ado);
    
    if (!cb_direct && newgray != SurfCont->TractMaskGray->value) {
       /* force gui match */
@@ -13610,7 +13610,7 @@ int SUMA_ColPlane_NewDimFact_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_ColorizePlane(curColPlane);
    
    /* a good remix and redisplay */
-   SUMA_RemixRedisplay (ado);
+   SUMA_Remixedisplay (ado);
    
    /* update color label */
    SUMA_UpdateNodeLblField(ado);
@@ -13718,7 +13718,7 @@ int SUMA_ColPlane_NewNodeRadGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_ColorizePlane(curColPlane);
    
    /* a good remix and redisplay */
-   SUMA_RemixRedisplay (ado);
+   SUMA_Remixedisplay (ado);
    
    /* update color label */
    SUMA_UpdateNodeLblField(ado);
@@ -13827,7 +13827,7 @@ int SUMA_ColPlane_NewEdgeThickGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    SUMA_ADO_Flush_Pick_Buffer(ado, NULL);
 
    /* a good remix and redisplay */
-   SUMA_RemixRedisplay (ado);
+   SUMA_Remixedisplay (ado);
    
    /* update color label */
    SUMA_UpdateNodeLblField(ado);
@@ -13846,9 +13846,9 @@ int SUMA_ColPlane_NewEdgeThickGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
    \brief Function to set the color remix flag for surface SO and call 
       a redisplay for relevant viewers 
 */
-SUMA_Boolean SUMA_RemixRedisplay (SUMA_ALL_DO *ADO)
+SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)
 {
-   static char FuncName[]={"SUMA_RemixRedisplay"};
+   static char FuncName[]={"SUMA_Remixedisplay"};
    DList *list=NULL;
    char *idcode=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -13933,7 +13933,7 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
    SUMA_LH("Updating color plane shells");
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
-   SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+   SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
    SUMA_UpdateNodeLblField(NULL,SO);
    
    SUMA_RETURNe;
@@ -13991,7 +13991,7 @@ int SUMA_ColPlaneShowOneFore_Set_one ( SUMA_ALL_DO *ado,
    
    SUMA_UpdateColPlaneShellAsNeeded(ado); /* update other open ColPlaneShells */
 
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
    SUMA_UpdateNodeLblField(ado);
    
    SUMA_RETURN(1);
@@ -14118,7 +14118,7 @@ int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado,
    /* flush pick buffer */
    SUMA_FlushPickBufferForDO(ado);
 
-   SUMA_RemixRedisplay(ado);
+   SUMA_Remixedisplay(ado);
    
    SUMA_RETURN(1);
 }
@@ -14563,7 +14563,7 @@ int SUMA_SelectSwitchColPlane_one(SUMA_ALL_DO *ado,
          SUMA_UpdateCrossHairNodeLabelFieldForDO(ado);
          /* If you're viewing one plane at a time, do a remix */
          if (SurfCont->ShowCurForeOnly)
-            SUMA_RemixRedisplay(ado);
+            SUMA_Remixedisplay(ado);
       }
    } else {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: NULL ALS\n", FuncName); 
