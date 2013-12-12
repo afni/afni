@@ -1,5 +1,7 @@
 #include "niml.h"
 #include "SUMA_niml_defines.h"
+#include <afni.h> 
+#include <ptaylor/TrackIO.h>
 
 #define NIML_DEBUG 1
 
@@ -34,7 +36,7 @@ void Wait_Till_Stream_Goes_Bad(COMM_STRUCT *cs, int slp, int WaitMax, int verb);
 int show_niml(void *nel);
 int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action);
 int InstaTract_niml_workproc( void *thereiselvis );
-int InstaTract_process_NIML_data(NI_element *nini);
+int InstaTract_process_NIML_data(NI_element *nini, COMM_STRUCT *cs);
 
 
 /* initialize the communication structure 
@@ -523,7 +525,7 @@ int InstaTract_niml_workproc( void *thereiselvis )
                      FuncName, nel->name, nel->vec_len, 
                      nel->vec_filled, nel->vec_num );
             }      
-            if (!InstaTract_process_NIML_data( nini )) {
+            if (!InstaTract_process_NIML_data( nini, cs )) {
                fprintf(stderr,
                   "Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
             }
@@ -545,6 +547,62 @@ int InstaTract_niml_workproc( void *thereiselvis )
    }
 }
 
+/* This function should probably live somewhere under ptaylor/ */
+NI_group *MiniProbTrack(NI_element *nini)
+{
+   TAYLOR_TRACT *tt=NULL;
+   TAYLOR_BUNDLE *tb=NULL;
+   TAYLOR_NETWORK *net=NULL;
+   NI_group *netngr=NULL;
+   float x[3]={-40, 38, 4.7};
+   float y[3]={-27, -34, 14.4};
+   float z[3]={26, 41, 55};
+         
+         /* Create a toy network */
+            /* Create some dummy bundles representing edge 1-2=5, or 2-1=7*/
+               tb = NULL; net = NULL; tt = NULL;
+               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+               tt->id=77; tt->N_pts3=12; 
+               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+               tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+               tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
+               tt->pts[6]=22;   tt->pts[7]=33;   tt->pts[8]=49;
+               tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+               tb = AppCreateBundle(tb, 1, tt);
+               tt = Free_Tracts(tt, 1);
+               /* put another track in */
+               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+               tt->id=78; tt->N_pts3=12; 
+               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+               tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+               tt->pts[3]=23;   tt->pts[4]=35;   tt->pts[5]=42;
+               tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
+               tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+               tb = AppCreateBundle(tb, 1, tt);
+               tt = Free_Tracts(tt, 1);
+               /* add it to network */
+               net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL);
+               /* make another one for edge 0-1=1 and 1-0=3*/
+               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+               tt->id=77; tt->N_pts3=15; 
+               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+               tt->pts[0]=x[0]; tt->pts[1]=y[0];  tt->pts[2]=z[0];
+               tt->pts[3]=5;    tt->pts[4]=12;    tt->pts[5]=17;
+               tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
+               tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
+               tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
+               tb = AppCreateBundle(tb, 1, tt);
+               tt = Free_Tracts(tt, 1);
+               /* add bundle to network */
+               net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
+               
+               /* Now turn network into a transmittable thing */
+               netngr = Network_2_NIgr(net, 1);
+               
+               SUMA_ShowNel(netngr);   
+   return(netngr);
+}
+
 /* Process an element received from SUMA
    In this example, all we do is write 
    the element to stdout.             
@@ -552,11 +610,40 @@ int InstaTract_niml_workproc( void *thereiselvis )
    learn how to unpack the data from a NIML element 
    http://afni.nimh.nih.gov/afni/doc/misc/NIML_documentation/NIML_manual/document_view
 */
-int InstaTract_process_NIML_data(NI_element *nini)
+int InstaTract_process_NIML_data(NI_element *nini, COMM_STRUCT *cs)
 {
-   static int iel = 0;
+   static int iel = 0, iout=0;
+   NI_group *ngr = NULL;
    fprintf(stderr,"Received from SUMA element #%d:\n", ++iel);
    show_niml((void*)nini);
+   
+   /* Now pretend you're doing something with nini and 
+      send something back when done */
+   fprintf(stderr,"Quiet, now working hard....\n"); NI_sleep(300);
+   fprintf(stderr,"OK, GOT IT!!!\n");
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr, "EngineCommand");/* DriveSuma's element to boss SUMA */
+   NI_set_attribute(ngr, "Command", "viewer_cont"); /* like -com view_cont */
+   NI_set_attribute(ngr,"N_Key","1");              /* like -key option */
+   NI_set_attribute(ngr,"Key_0","left");
+   NI_set_attribute(ngr,"Key_rep_0","4");
+   NI_set_attribute(ngr,"Key_pause_0","0.1");
+   NI_set_attribute(ngr,"Key_redis_0","1");
+   if (!SendToSuma(cs, ngr, 1)) {
+      fprintf (stderr,"Failed to send item %d\n", iout);
+   } else ++iout;
+   NI_free(ngr); ngr=NULL; /* Done with this element, free it */
+
+   /* A more substantial returned thing would be to return the result 
+      from MiniProbTrack() */
+   if ((ngr = MiniProbTrack(nini))) {
+      if (!SendToSuma(cs, ngr, 1)) {
+         fprintf (stderr,"Failed to send item %d\n", iout);
+      } else ++iout;
+      NI_free(ngr); ngr=NULL; /* Done with this element, free it */
+   } else {
+      fprintf (stderr,"Failed to miniprobtrackate\n");
+   }
    return(1);
 }
 
@@ -614,6 +701,7 @@ int main( int argc , char *argv[] )
       function that checks for incoming elements should be added to
       the developer's program workprocess functions.                   */
    
+   
    /*------------------------------------------------------*/
    /***************** Sending Example **********************/
    /*------------------------------------------------------*/
@@ -625,6 +713,10 @@ int main( int argc , char *argv[] )
       For example, to see the element that DriveSuma sends to SUMA when 
       asking it to jump node 28, you can run:
          DriveSuma -echo_nel_stdout -com viewer_cont '-key:v28' j
+      
+      You need not send anthing at this stage, but I left these here for
+      illustration. More useful back and forth is in function
+            InstaTract_process_NIML_data()
    */ 
    ngr = NI_new_group_element();
    NI_rename_group(ngr, "EngineCommand");/* DriveSuma's element to boss SUMA */
@@ -646,7 +738,7 @@ int main( int argc , char *argv[] )
    NI_free(ngr); ngr=NULL; /* Done with this element, free it */
    
    /*------------------------------------------------------*/
-   /***************** Receiving Example ********************/
+   /*********** Receiving (and sending) Example ************/
    /*------------------------------------------------------*/
    /* Here we'll go into a listening loop that will only end 
       when the connection is broken.

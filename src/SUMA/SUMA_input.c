@@ -69,6 +69,10 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
             SUMA_RETURN(XK_j);
          case 'J':
             SUMA_RETURN(XK_J);
+         case 'l':
+            SUMA_RETURN(XK_l);
+         case 'L':
+            SUMA_RETURN(XK_L);
          case 'm':
             SUMA_RETURN(XK_m);
          case 'M':
@@ -1658,6 +1662,151 @@ int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
    SUMA_RETURN(1);
 }
 
+int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
+{
+   static char FuncName[]={"SUMA_L_Key"};
+   char tk[]={"L"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   if (strgval) {
+      SUMA_S_Warn("strgval (%s) not implemented for L_Key yet. \n"
+                  "Complain to author if you want it.\n", strgval);
+   }
+   /* do the work */
+   switch (k) {
+      case XK_l:
+            if ((SUMA_CTRL_KEY(key))){
+               if (SUMAg_CF->Dev) {
+                  if (!list) list = SUMA_CreateList();
+                  ED = SUMA_InitializeEngineListData (SE_ToggleLockAllCrossHair);
+                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                   SEF_Empty, NULL, 
+                                                  SES_Suma, (void *)sv, NOPE, 
+                                                  SEI_Head, NULL )) {
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Failed to register command\n", 
+                              FuncName);
+                     break;
+                  }
+                  if (!SUMA_Engine (&list)) {
+                     fprintf( stderr, 
+                              "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  }
+               }
+            } if ((SUMA_ALT_KEY(key) || SUMA_APPLE_KEY(key))){ /* alt + l */
+               /* register cross hair XYZ with ED */
+               if (!list) list = SUMA_CreateList();
+               ED = SUMA_InitializeEngineListData (SE_SetLookAt);
+               if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                                SEF_fv3, (void *)sv->Ch->c, 
+                                                SES_Suma, (void *)sv, NOPE, 
+                                                SEI_Head, NULL )) {
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed to register command\n", FuncName);
+                  SUMA_RETURNe;
+               }
+               if (!SUMA_Engine (&list)) {
+                  fprintf(stderr, 
+                           "Error %s: SUMA_Engine call failed.\n", FuncName);
+               }   
+            } else {
+               sv->X->LookAt_prmpt = SUMA_CreatePromptDialogStruct(
+                                          SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                          "X,Y,Z coordinates to look at:", 
+                                          "0,0,0",
+                                          sv->X->TOPLEVEL, YUP,
+                                          SUMA_APPLY_BUTTON,
+                                          SUMA_LookAtCoordinates, (void *)sv,
+                                          NULL, NULL,
+                                          NULL, NULL,
+                                          SUMA_CleanNumString, (void*)3,  
+                                          sv->X->LookAt_prmpt);
+               
+               sv->X->LookAt_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
+                                                         sv->X->LookAt_prmpt);
+               
+            }
+         break;
+      case XK_L:
+               if ((SUMA_CTRL_KEY(key))){
+                  if (SUMAg_CF->Dev) {
+                     GLfloat light0_color[] = { SUMA_LIGHT0_COLOR_INIT};
+                     sv->dim_spe = sv->dim_spe * 0.8; 
+                        if (sv->dim_spe < 0.1) sv->dim_spe = 1.0;
+                     sv->dim_dif = sv->dim_dif * 0.8; 
+                        if (sv->dim_dif < 0.1) sv->dim_dif = 1.0;
+                     sv->dim_amb = sv->dim_amb * 0.8; 
+                        if (sv->dim_amb < 0.1) sv->dim_amb = 1.0;
+                     sv->dim_emi = sv->dim_emi * 0.8; 
+                        if (sv->dim_emi < 0.1) sv->dim_emi = 1.0;
+                     /* dim the lights */
+                     fprintf(SUMA_STDERR,
+                              "%s:  light dim factor now %.3f\n", 
+                              FuncName, sv->dim_spe);
+                     /*fprintf(SUMA_STDERR,"%s:  light dim factor now %.3f\n"
+                                           "%f %f %f %f\n", 
+                                           FuncName, sv->dim_spe,
+                              sv->light0_color[0], sv->light0_color[1], 
+                              sv->light0_color[2], sv->light0_color[3]);
+                                                         */
+                     light0_color[0] = sv->light0_color[0]*sv->dim_spe;
+                     light0_color[1] = sv->light0_color[1]*sv->dim_spe;
+                     light0_color[2] = sv->light0_color[2]*sv->dim_spe;
+                     light0_color[3] = sv->light0_color[3]*sv->dim_spe;
+                     glLightfv(GL_LIGHT0, GL_SPECULAR, light0_color);
+                     light0_color[0] = sv->light0_color[0]*sv->dim_dif;
+                     light0_color[1] = sv->light0_color[1]*sv->dim_dif;
+                     light0_color[2] = sv->light0_color[2]*sv->dim_dif;
+                     light0_color[3] = sv->light0_color[3]*sv->dim_dif;
+                     glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_color);
+                     light0_color[0] = sv->lmodel_ambient[0]*sv->dim_amb;
+                     light0_color[1] = sv->lmodel_ambient[1]*sv->dim_amb;
+                     light0_color[2] = sv->lmodel_ambient[2]*sv->dim_amb;
+                     light0_color[3] = sv->lmodel_ambient[3]*sv->dim_amb;
+                     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
+                     if (!list) list = SUMA_CreateList(); 
+                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay, 
+                                                         SES_Suma, sv);
+
+                     if (!SUMA_Engine (&list)) {
+                        fprintf(stderr, 
+                                "Error SUMA_input: SUMA_Engine call failed.\n");
+                     }
+                  }
+               } else {
+                  SUMA_PROMPT_DIALOG_STRUCT *prmpt;
+                  prmpt = SUMA_CreatePromptDialogStruct (
+                                 SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                 "X,Y,Z coordinates of light0:", 
+                                 "",
+                                 sv->X->TOPLEVEL, NOPE,
+                                 SUMA_APPLY_BUTTON,
+                                 SUMA_SetLight0, (void *)sv,
+                                 NULL, NULL,
+                                 NULL, NULL,
+                                 SUMA_CleanNumString, (void*)3,  
+                                 NULL);
+
+                  prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
+               }
+               
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
 int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_M_Key"};
@@ -1787,6 +1936,7 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_RETURN(1);
 }
+
 int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_N_Key"};
@@ -3543,122 +3693,15 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break; 
               
          case XK_l:
-            if (Kev.state & ControlMask){
-               
-               if (SUMAg_CF->Dev) {
-                  if (!list) list = SUMA_CreateList();
-                  ED = SUMA_InitializeEngineListData (SE_ToggleLockAllCrossHair);
-                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                   SEF_Empty, NULL, 
-                                                  SES_Suma, (void *)sv, NOPE, 
-                                                  SEI_Head, NULL )) {
-                     fprintf( SUMA_STDERR,
-                              "Error %s: Failed to register command\n", 
-                              FuncName);
-                     break;
-                  }
-                  if (!SUMA_Engine (&list)) {
-                     fprintf( stderr, 
-                              "Error %s: SUMA_Engine call failed.\n", FuncName);
-                  }
+               if (!SUMA_L_Key(sv, "l", "interactive", NULL)) {
+                     SUMA_S_Err("Failed in key func.");
                }
-            } if (SUMA_ALTHELL){ /* alt + l */
-               /* register cross hair XYZ with ED */
-               if (!list) list = SUMA_CreateList();
-               ED = SUMA_InitializeEngineListData (SE_SetLookAt);
-               if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                SEF_fv3, (void *)sv->Ch->c, 
-                                                SES_Suma, (void *)sv, NOPE, 
-                                                SEI_Head, NULL )) {
-                  fprintf( SUMA_STDERR,
-                           "Error %s: Failed to register command\n", FuncName);
-                  SUMA_RETURNe;
-               }
-               if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, 
-                           "Error %s: SUMA_Engine call failed.\n", FuncName);
-               }   
-            } else {
-               sv->X->LookAt_prmpt = SUMA_CreatePromptDialogStruct(
-                                          SUMA_OK_APPLY_CLEAR_CANCEL, 
-                                          "X,Y,Z coordinates to look at:", 
-                                          "0,0,0",
-                                          sv->X->TOPLEVEL, YUP,
-                                          SUMA_APPLY_BUTTON,
-                                          SUMA_LookAtCoordinates, (void *)sv,
-                                          NULL, NULL,
-                                          NULL, NULL,
-                                          SUMA_CleanNumString, (void*)3,  
-                                          sv->X->LookAt_prmpt);
-               
-               sv->X->LookAt_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
-                                                         sv->X->LookAt_prmpt);
-               
-            }
             break;
 
          case XK_L:
-               if ((Kev.state & ControlMask)){
-                  if (SUMAg_CF->Dev) {
-                     GLfloat light0_color[] = { SUMA_LIGHT0_COLOR_INIT};
-                     sv->dim_spe = sv->dim_spe * 0.8; 
-                        if (sv->dim_spe < 0.1) sv->dim_spe = 1.0;
-                     sv->dim_dif = sv->dim_dif * 0.8; 
-                        if (sv->dim_dif < 0.1) sv->dim_dif = 1.0;
-                     sv->dim_amb = sv->dim_amb * 0.8; 
-                        if (sv->dim_amb < 0.1) sv->dim_amb = 1.0;
-                     sv->dim_emi = sv->dim_emi * 0.8; 
-                        if (sv->dim_emi < 0.1) sv->dim_emi = 1.0;
-                     /* dim the lights */
-                     fprintf(SUMA_STDERR,
-                              "%s:  light dim factor now %.3f\n", 
-                              FuncName, sv->dim_spe);
-                     /*fprintf(SUMA_STDERR,"%s:  light dim factor now %.3f\n"
-                                           "%f %f %f %f\n", 
-                                           FuncName, sv->dim_spe,
-                              sv->light0_color[0], sv->light0_color[1], 
-                              sv->light0_color[2], sv->light0_color[3]);
-                                                         */
-                     light0_color[0] = sv->light0_color[0]*sv->dim_spe;
-                     light0_color[1] = sv->light0_color[1]*sv->dim_spe;
-                     light0_color[2] = sv->light0_color[2]*sv->dim_spe;
-                     light0_color[3] = sv->light0_color[3]*sv->dim_spe;
-                     glLightfv(GL_LIGHT0, GL_SPECULAR, light0_color);
-                     light0_color[0] = sv->light0_color[0]*sv->dim_dif;
-                     light0_color[1] = sv->light0_color[1]*sv->dim_dif;
-                     light0_color[2] = sv->light0_color[2]*sv->dim_dif;
-                     light0_color[3] = sv->light0_color[3]*sv->dim_dif;
-                     glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_color);
-                     light0_color[0] = sv->lmodel_ambient[0]*sv->dim_amb;
-                     light0_color[1] = sv->lmodel_ambient[1]*sv->dim_amb;
-                     light0_color[2] = sv->lmodel_ambient[2]*sv->dim_amb;
-                     light0_color[3] = sv->lmodel_ambient[3]*sv->dim_amb;
-                     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, sv->lmodel_ambient);
-                     if (!list) list = SUMA_CreateList(); 
-                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay, 
-                                                         SES_Suma, sv);
-
-                     if (!SUMA_Engine (&list)) {
-                        fprintf(stderr, 
-                                "Error SUMA_input: SUMA_Engine call failed.\n");
-                     }
-                  }
-               } else {
-                  prmpt = SUMA_CreatePromptDialogStruct (
-                                 SUMA_OK_APPLY_CLEAR_CANCEL, 
-                                 "X,Y,Z coordinates of light0:", 
-                                 "",
-                                 sv->X->TOPLEVEL, NOPE,
-                                 SUMA_APPLY_BUTTON,
-                                 SUMA_SetLight0, (void *)sv,
-                                 NULL, NULL,
-                                 NULL, NULL,
-                                 SUMA_CleanNumString, (void*)3,  
-                                 NULL);
-
-                  prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
+               if (!SUMA_L_Key(sv, "L", "interactive", NULL)) {
+                     SUMA_S_Err("Failed in key func.");
                }
-               
             break;
          
          case XK_M:
