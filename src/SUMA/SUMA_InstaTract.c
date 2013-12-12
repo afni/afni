@@ -2,7 +2,7 @@
 #include "SUMA_niml_defines.h"
 
 #define NIML_DEBUG 1
-  
+
 /* A simple program to illustrate communication with SUMA. */
 
 typedef struct {
