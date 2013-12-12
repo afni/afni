@@ -3218,13 +3218,30 @@ SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id)
       SUMA_S_Errv("Failed to read %s\n",s);
       SUMA_RETURN(NULL);
    }
-   if (!(TDO = SUMA_Alloc_TractDO (s, parent_SO_id))) {
+   
+   SUMA_RETURN(SUMA_Net2TractDO(net, s, parent_SO_id));
+}
+
+SUMA_TractDO *SUMA_Net2TractDO(TAYLOR_NETWORK *net, 
+                               char *Label, char *parent_SO_id) 
+{
+   static char FuncName[]={"SUMA_Net2TractDO"};
+   SUMA_TractDO *TDO=NULL;
+   
+   SUMA_ENTRY;
+      
+   if (!net) {
+      SUMA_SLP_Err("NULL net");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!(TDO = SUMA_Alloc_TractDO (Label, parent_SO_id))) {
       SUMA_S_Err("Failed to init TDO.");
       SUMA_RETURN(NULL);
    }
    
    TDO->net = net;
-   
+
    SUMA_S_Warn("Decide if you want this call outside of the Read func.");
    if (!(SUMA_TDO_DefaultOverlays(TDO))) {
       SUMA_S_Warn("Failed to create default overlays");
@@ -3232,6 +3249,7 @@ SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id)
    
    SUMA_RETURN(TDO);
 }
+
 
 SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id)
 {

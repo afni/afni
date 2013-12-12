@@ -797,7 +797,8 @@ int main(int argc, char *argv[]) {
 			else if( strcmp(argv[iarg],"BOTH") == 0 )
 				DUMP_TYPE = 3;
 			else 
-				ERROR_exit("Illegal after '-dump_rois': need 'DUMP', 'AFNI' or 'BOTH'.");
+				ERROR_exit( "Illegal after '-dump_rois': "
+                        "need 'DUMP', 'AFNI' or 'BOTH'.");
 
 			iarg++ ; continue ;
 		}

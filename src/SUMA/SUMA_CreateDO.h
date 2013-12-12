@@ -407,6 +407,8 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value,
 SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id);
 SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id);
 SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id);
+SUMA_TractDO *SUMA_Net2TractDO(TAYLOR_NETWORK *net, char *Label, 
+                               char *parent_SO_id);
 GLushort SUMA_int_to_stipplemask(int i); 
 GLushort SUMA_int_to_stipplemask_cont(int i);
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *soid);
