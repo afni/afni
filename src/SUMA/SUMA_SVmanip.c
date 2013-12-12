@@ -1385,8 +1385,8 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
                                                    SUMA_GRAY_NODE_COLOR; ++i;
          sv->ColList[sv->N_ColList]->glar_ColorList[i] = SUMA_NODE_ALPHA; ++i;
       }
-      sv->ColList[sv->N_ColList]->RemixR = YUP; 
-      ++sv->ColList[sv->N_ColList]->RemixRID;
+      sv->ColList[sv->N_ColList]->Remix = YUP; 
+      ++sv->ColList[sv->N_ColList]->RemixID;
    }
    
    ++sv->N_ColList;
@@ -1591,7 +1591,7 @@ SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
    
    for (k=0; k < sv->N_ColList; ++k) {
-      sv->ColList[k]->RemixR = YUP;
+      sv->ColList[k]->Remix = YUP;
    }
    
    SUMA_RETURN (YUP);
@@ -1650,7 +1650,7 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *sv
                while (!Found && kk < sv->N_ColList) {
                   if (strcmp(SO2->idcode_str,sv->ColList[kk]->idcode_str) == 0) {
                      Found = YUP;
-                     sv->ColList[kk]->RemixR = YUP;
+                     sv->ColList[kk]->Remix = YUP;
                   }
                   ++kk;
                }
@@ -1672,7 +1672,7 @@ SUMA_Boolean SUMA_SetLocalRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *sv
                   if ((p2 = SUMA_ADO_idcode(ado2)) &&
                       !strcmp(p2, sv->ColList[kk]->idcode_str)) {
                      Found = YUP;
-                     sv->ColList[kk]->RemixR = YUP;
+                     sv->ColList[kk]->Remix = YUP;
                   }
                   ++kk;
                }
@@ -1771,7 +1771,7 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
                                     sv->ColList[kk]->idcode_str) == 0) {
                            Found = YUP;
                            SUMA_LHv("Setting remix for %d\n", kk);
-                           sv->ColList[kk]->RemixR = YUP;
+                           sv->ColList[kk]->Remix = YUP;
                         }
                         ++kk;
                      }
@@ -1809,7 +1809,7 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
                         
                         if ( p2 && !strcmp(p2, sv->ColList[kk]->idcode_str)) {
                            Found = YUP;
-                           sv->ColList[kk]->RemixR = YUP;
+                           sv->ColList[kk]->Remix = YUP;
                         }
                         ++kk;
                      }
@@ -1863,7 +1863,7 @@ SUMA_Boolean SUMA_SetRemixFlag (char *DO_idcode_str, SUMA_SurfaceViewer *SVv,
                         }
                         if ( p2 && !strcmp(p2, sv->ColList[kk]->idcode_str)) {
                            Found = YUP;
-                           sv->ColList[kk]->RemixR = YUP;
+                           sv->ColList[kk]->Remix = YUP;
                         }
                         ++kk;
                      }
@@ -1920,7 +1920,7 @@ SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv)
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
       sv = &(SVv[i]);
-      for (kk = 0; kk < sv->N_ColList; ++kk) sv->ColList[kk]->RemixR = YUP;
+      for (kk = 0; kk < sv->N_ColList; ++kk) sv->ColList[kk]->Remix = YUP;
    }
    
    SUMA_RETURN (YUP);
@@ -2650,7 +2650,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
          i, iDO_label(SUMA_whichDO(SV->ColList[i]->idcode_str,
                            SUMAg_DOv, SUMAg_N_DOv)), 
          SV->ColList[i]->idcode_str,
-         SV->ColList[i]->RemixR, SV->ColList[i]->RemixRID, 
+         SV->ColList[i]->Remix, SV->ColList[i]->RemixID, 
          SV->ColList[i]->N_glar_ColorList, SV->ColList[i]->N_links,
          (i<(SV->N_ColList-1)) ? "             ":"");
    }

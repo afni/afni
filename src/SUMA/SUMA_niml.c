@@ -89,6 +89,9 @@ int SUMA_init_ports_assignments(SUMA_CommonFields *cf)
          case SUMA_HALLO_SUMA_LINE:
             cf->TCP_port[i] = get_port_named("SUMA_HALLO_SUMA_NIML");
             break;
+         case SUMA_INSTA_TRACT_LINE:
+            cf->TCP_port[i] = get_port_named("SUMA_INSTA_TRACT_NIML");
+            break;
          default:
             SUMA_S_Errv("Bad stream index %d. Ignoring it.\n", i);
             break;
@@ -1366,7 +1369,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                SUMA_UpdateColPlaneShellAsNeeded(ado); 
                               /* update other open ColPlaneShells */
                /* If you're viewing one plane at a time, do a remix */
-               if (SUMA_ADO_ShowCurForeOnly(ado)) SUMA_RemixRedisplay(ado);
+               if (SUMA_ADO_ShowCurForeOnly(ado)) SUMA_Remixedisplay(ado);
             }
          }
          /* register a color remix request */

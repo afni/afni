@@ -82,9 +82,26 @@ char * GetAfniTextEditor(void)
    if( ate == NULL ) ate = THD_find_executable( "kedit" )   ;
    if( ate == NULL ) ate = THD_find_executable( "gedit" )   ;
    if( ate == NULL ) ate = THD_find_executable( "kwrite" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "kate" )   ;
 #ifdef DARWIN
    if( ate == NULL ) ate = "open -t" ;  /* for Mac OS X */
 #endif
+
+   return(ate);
+}
+
+/*-------------------------------------------------------------------*/
+
+char * GetAfniWebDownloader(void)
+{
+   char *ate=NULL;
+   ate = getenv("AFNI_WEB_DOWNLOADER");
+
+   if( ate ) return ate;
+   
+   /* else, hunt */
+   if( ate == NULL ) ate = THD_find_executable( "curl" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "wget" )   ;
 
    return(ate);
 }

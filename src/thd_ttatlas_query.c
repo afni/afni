@@ -4172,6 +4172,109 @@ char **approx_str_sort(char **words, int N_words, char *str, byte ci,
    RETURN(ws);
 }
 
+/* 
+   Return unique set of strings, NULL strings in words are replaced with "null"
+   for the purpose of preserving a mapping between input and output.
+   
+   The function returns a new array of N_words strings, some of which can be 
+   NULL. The user has to free accordingly.
+   N_unq will contain the number of unique, non-null strings.
+   isort_out, if not NULL, will contain a mapping from the unique array to the
+   initial words array.
+*/
+char **unique_str(char **words, int N_words, byte ci, 
+                  byte noae, int *N_unq, int **isort_out)
+{
+   char **ws=NULL;
+   char *line=NULL;
+   int direct = -1; /* -1 best match first, 1 best match last */
+   int i, c, n_null;
+   int *isrt=NULL;
+   
+   ENTRY("unique_str");
+   
+   if (!words || !N_words) RETURN(ws);
+   if (N_unq) *N_unq = -1;
+   if (isort_out && *isort_out) {
+      ERROR_message("If you want isort_out, you must pass *isort_out = NULL");
+      RETURN(ws);
+   }
+   
+   if (!(ws = (char **)calloc(N_words, sizeof(char *)))) {
+      ERROR_message("Failed to allocate for %d words");
+      RETURN(ws);
+   }
+   
+   /* preprocess list */
+   n_null = 0;
+   for (i=0; i<N_words; ++i) {
+      if (words[i]) {
+         switch (noae) {
+            case 1:
+               ws[i] = strdup(without_afni_filename_extension(words[i]));
+               break;
+            case 2:
+               ws[i] = 
+                  strdup(without_afni_filename_view_and_extension(words[i]));
+               break;
+            default:
+            case 0:
+               ws[i] = strdup(words[i]);
+               break;
+         }
+         if (ci) {
+            c= 0;
+            while (ws[i][c] != '\0') { ws[i][c] = TO_LOWER(ws[i][c]);++c; }
+         }
+      } else {
+         ws[i] = NULL; ++n_null;
+      }
+   }
+
+   /* sort and kill the dups */
+   if (n_null == N_words || !(isrt = z_istrqsort (ws, N_words ))) {
+      ERROR_message("All null or Failed to sort input.");
+      for (i=0; i<N_words; ++i) if (ws[i]) free(ws[i]); free(ws);
+      RETURN(NULL);
+   }
+   /* skip nulls */
+   i = 0;
+   while (i<N_words && !ws[i]) ++i;
+   /* initialize 1st entry */
+   if (i>0 && i<N_words) {
+      ws[0] = ws[i];
+      isrt[0] = isrt[i];
+      ws[i] = NULL;
+   } else {
+      i = 1;
+   }
+   c = 1;
+   while(i<N_words) {
+      if (ws[i] && ws[c-1] && strcmp(ws[i], ws[c-1])){
+                              /* new non-null string, keep it */
+         if (i != c) {
+            if (ws[c]) free(ws[c]);
+            ws[c] = ws[i];
+            isrt[c] = isrt[i];  
+            ws[i]=NULL;
+         }
+         ++c;
+      } else { /* repeat, just delete it */
+         if (i != c && ws[i] ) free(ws[i]); ws[i]=NULL;
+      }
+      ++i;
+   }
+
+   if (!isort_out) free(isrt); 
+   else *isort_out = isrt;
+   isrt=NULL;
+
+   if (N_unq) *N_unq = c;
+   
+   RETURN(ws);
+}
+
+
 typedef struct {
    char *txt_src; /* Such as file name */
    char *orig_txt; /* Original text */

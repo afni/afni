@@ -874,7 +874,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         SUMA_KillOverlayContours(curColPlane);
                      }
                }  
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -897,7 +897,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   curColPlane->Font = EngineData->i;
                }
                SUMA_ADO_Flush_Pick_Buffer(ado, sv);
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -920,7 +920,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   curColPlane->NodeRad = EngineData->i;
                }
                SUMA_ADO_Flush_Pick_Buffer(ado, sv);
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -938,7 +938,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               
                curColPlane->EdgeThick = EngineData->i;
                SUMA_ADO_Flush_Pick_Buffer(ado, sv);
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -961,7 +961,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   curColPlane->EdgeStip = EngineData->i;
                }
 
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }
@@ -978,7 +978,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                               
                curColPlane->NodeCol = EngineData->i;
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -995,7 +995,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                               
                curColPlane->TxtShad = EngineData->i;
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -1016,7 +1016,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_GDSET_refresh_matrix_nido(SUMA_ADO_Dset(ado), 1);
                /* Update all viewers showing ado */
                SUMA_UpdateViewPoint_RegisteredADO(ado, 1);
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -1035,7 +1035,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                TSaux->TractMask = EngineData->i;
                
                SUMA_ADO_Flush_Pick_Buffer(ado, sv);
-               if (!SUMA_RemixRedisplay (ado)) {
+               if (!SUMA_Remixedisplay (ado)) {
                   SUMA_S_Err("Dunno what happened here");
                }
             }  
@@ -3316,7 +3316,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  /* update other open ColPlaneShells */
                   /* If you're viewing one plane at a time, do a remix */
                   if (SO->SurfCont->ShowCurForeOnly) 
-                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
                }
             }
             
@@ -3418,7 +3418,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
                            SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
                            SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                         }
@@ -3445,7 +3445,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                      SUMA_SLP_Err("Failed to colorize plane.\n"); 
                   } else {
-                     SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                     SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
                      SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
                      SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                   }
@@ -3504,7 +3504,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
                            SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
                            SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                         }
@@ -3543,7 +3543,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_RemixRedisplay((SUMA_ALL_DO*)SO);
+                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
                            SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
                            SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
                         }

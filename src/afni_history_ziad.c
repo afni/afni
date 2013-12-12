@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 11, Dec , 2013 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
+   "Wildcard file expansion with extension and view trimming and sorting",
+   "See apsearch's -help output with all the -wild_* options for detail.\n"
+   "Functions at the heart of all this are unique_str() and MCW_wildcards().\n"
+ },
+
+ { 11, Dec , 2013 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
+   "Added -afni_web_downloader",
+   "Done via GetAfniWebDownloader()\n"
+ },
+
  { 10, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_MODIFY,
    "Reduced memory load by about a factor of 5 when dealing with volumes",
    "This was done by sharing color lists across viewers. This would be\n"
