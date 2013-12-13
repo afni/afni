@@ -11720,7 +11720,8 @@ void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_Cmap_Load"};
    SUMA_LIST_WIDGET *LW=NULL;
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    DList *list = NULL;
    SUMA_EngineData *ED = NULL;
    DListElmt *NextElm = NULL;
@@ -11730,18 +11731,20 @@ void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data)
    
    SUMA_LH("Called");
    
-   SO = (SUMA_SurfaceObject *)data;
-   
+   if (!(ado = (SUMA_ALL_DO *)data) || !(SurfCont = SUMA_ADO_Cont(ado))) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURNe;
+   }
    if (!list) list = SUMA_CreateList();
    ED = SUMA_InitializeEngineListData (SE_OpenCmapFileSelection);
    if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                          SEF_vp, (void *)SO,
+                                          SEF_vp, (void *)ado,
                                           SES_Suma, NULL, NOPE,
                                           SEI_Head, NULL))) {
       fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
    }
    SUMA_RegisterEngineListCommand (  list, ED,
-                                     SEF_ip, (void *)SO->SurfCont->TLS,
+                                     SEF_ip, (void *)SurfCont->TLS,
                                      SES_Suma, NULL, NOPE,
                                      SEI_In, NextElm);
    if (!SUMA_Engine (&list)) {
