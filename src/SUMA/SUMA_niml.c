@@ -1875,8 +1875,9 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       } else if (strcmp(ngr->name,"network") == 0) {
          SUMA_TractDO *TDO=NULL;
          TAYLOR_NETWORK *net=NULL;
-         SUMA_LH("I got me some network. FIX ME. Check ADO replacement, registration, etc.!");
-         SUMA_ShowNel(ngr);
+         SUMA_LH( "I got me some network. FIX ME. "
+                  "Check ADO replacement, registration, etc.!");
+         /* SUMA_ShowNel(ngr); */
          if (!(net = NIgr_2_Network(ngr))) {
             SUMA_S_Err("Failed to turn group element to network\n");
             SUMA_RETURN(NOPE);

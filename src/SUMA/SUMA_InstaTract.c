@@ -548,8 +548,10 @@ int InstaTract_niml_workproc( void *thereiselvis )
 }
 
 /* This function should probably live somewhere under ptaylor/ */
+#define RR(t) (lrand48() % t)
 NI_group *MiniProbTrack(NI_element *nini)
 {
+   int i=0;
    TAYLOR_TRACT *tt=NULL;
    TAYLOR_BUNDLE *tb=NULL;
    TAYLOR_NETWORK *net=NULL;
@@ -568,6 +570,7 @@ NI_group *MiniProbTrack(NI_element *nini)
                tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
                tt->pts[6]=22;   tt->pts[7]=33;   tt->pts[8]=49;
                tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+               for (i=0; i<12; ++i) tt->pts[i] != RR(4);
                tb = AppCreateBundle(tb, 1, tt);
                tt = Free_Tracts(tt, 1);
                /* put another track in */
@@ -578,6 +581,7 @@ NI_group *MiniProbTrack(NI_element *nini)
                tt->pts[3]=23;   tt->pts[4]=35;   tt->pts[5]=42;
                tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
                tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+               for (i=0; i<12; ++i) tt->pts[i] != RR(4);
                tb = AppCreateBundle(tb, 1, tt);
                tt = Free_Tracts(tt, 1);
                /* add it to network */
@@ -591,6 +595,7 @@ NI_group *MiniProbTrack(NI_element *nini)
                tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
                tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
                tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
+               for (i=0; i<12; ++i) tt->pts[i] != RR(4);
                tb = AppCreateBundle(tb, 1, tt);
                tt = Free_Tracts(tt, 1);
                /* add bundle to network */
@@ -599,7 +604,8 @@ NI_group *MiniProbTrack(NI_element *nini)
                /* Now turn network into a transmittable thing */
                netngr = Network_2_NIgr(net, 1);
                
-               SUMA_ShowNel(netngr);   
+               /* SUMA_ShowNel(netngr); */
+                 
    return(netngr);
 }
 
