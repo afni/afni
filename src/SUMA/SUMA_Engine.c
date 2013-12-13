@@ -667,7 +667,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_OpenCmapFileSelection:
             /* opens the Cmap file selection window. 
-            Expects SO in vp and a position reference widget 
+            Expects ADO in vp and a position reference widget 
             typecast to ip, the latter can be null.*/
             
             if (  EngineData->vp_Dest != NextComCode || 
@@ -1627,6 +1627,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (!SUMAg_CF->Listening) {
                SUMAg_CF->Listening = !SUMAg_CF->Listening;
                fprintf(SUMA_STDERR,"%s: Starting to listen ...\n", FuncName);
+               /* Make sure special NIML rowtypes are defined before */
+               get_NI_tract_type();
                /* start the listening WorkProcess */
                if (!SUMAg_CF->niml_work_on) {
                   SUMA_LH("registering SUMA_niml_workproc...");
