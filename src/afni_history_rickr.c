@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Dec, 2013, RCR, "auto_warp.py", MINOR, TYPE_NEW_OPT,
+   "added -qblur option for P Molfese",
+   NULL
+ } ,
+
  {  9,  Dec, 2013, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
    "added backup function for get_process_stack",
    "BASE.shell_com() might return a short process list, probably from\n"
