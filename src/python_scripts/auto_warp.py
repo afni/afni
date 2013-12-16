@@ -18,8 +18,7 @@ g_help_string = """
     Basic Usage:
       auto_warp.py -base TT_N27+tlrc -input anat.nii  \\
                    -skull_strip_input yes
-      
-        
+
     ---------------------------------------------
     REQUIRED OPTIONS:
     
@@ -27,8 +26,13 @@ g_help_string = """
     -input  : name of dataset to be registered
     
     MAJOR OPTIONS:
+
     -help       : this help message
-    
+
+    OTHER OPTIONS:
+
+    -qblur bB bS : specify 3dQwarp blurs for base and source volumes
+
 """   
 
 ## BEGIN common functions across scripts (loosely of course)
@@ -50,6 +54,7 @@ class RegWrap:
       self.deoblique_flag = 1  # deoblique datasets first
       self.deoblique_opt = "" # deobliquing/obliquing options
       self.at_opt = "" # @auto_tlrc options
+      self.qblur = [-3, -3]# blurs for 3dQwarp
       self.output_dir = '' # user assigned path for anat and EPI
       
       return
@@ -119,6 +124,9 @@ class RegWrap:
 
 
       #resolutions for computing transforms
+      self.valid_opts.add_opt('-qblur', 2, [],
+             helpstr="3dQwarp base and source blurs (FWHM)\n")
+
       self.valid_opts.add_opt('-warp_dxyz', 1,[0.0],\
              helpstr="Resolution used for computing warp (cubic only)\n")
       self.valid_opts.add_opt('-affine_dxyz', 1,[0.0],\
@@ -194,6 +202,11 @@ class RegWrap:
           if((opt=="") or (opt==" ")) :
             self.error_msg("Cannot have blank suffix")
             ps.ciao(1);
+
+      # 13 Dec, 2013 [rickr] - for Peter Molfese
+      vals, rv = opt_list.get_type_list(float, '-qblur', length=2)
+      if rv: ps.ciao(1)
+      if vals != None: self.qblur = vals
       
       opt = opt_list.find_opt('-warp_dxyz')    
       if opt != None: 
@@ -653,10 +666,10 @@ class RegWrap:
          com = shell_com(  \
                 "3dQwarp                                       "\
                 "         -prefix %s                           "\
-                "         -blur -3 -3 -workhard:0:1            "\
+                "         -blur %s %s -workhard:0:1            "\
                 "         -useweight %s %s                     "\
-                % ( n.input(), b.input(), a.input()), \
-                ps.oexec)
+                % ( n.input(), self.qblur[0], self.qblur[1],
+                    b.input(), a.input()), ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
             self.error_msg("Failed in warping step");
