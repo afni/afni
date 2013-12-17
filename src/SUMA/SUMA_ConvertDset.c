@@ -195,7 +195,7 @@ int main (int argc,char *argv[])
          *indexmap = NULL, add_node_index, prepend_node_index,
          no_hist ;
    byte *Tb=NULL, *auto_nmask=NULL;
-   float *fv = NULL;
+   float *fv = NULL, *cols=NULL;
    SUMA_DSET_FORMAT iform, oform;
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
    char *NameOut, *prfx = NULL, *prefix = NULL, *cmapfile, 
@@ -204,8 +204,8 @@ int main (int argc,char *argv[])
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
    int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1, *ivec=NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
-   int orderednodelist = 1, split=0, toGDSET=0, OneMat;
-   float fv[5];
+   int orderednodelist = 1, split=0, toGDSET=0, OneMat, *clan=NULL;
+   float fv5[5];
    int nv, mxgrp;
    char *stmp=NULL, colnm[32];
    SUMA_COLOR_MAP *SM=NULL;
@@ -658,34 +658,38 @@ int main (int argc,char *argv[])
                   SUMA_GET_TO_EOL(fl, fle, fl2);
                   if (fl2 > fl) {
                      SUMA_COPY_TO_STRING(fl, fl2, stmp);
+                     SUMA_LH("Parsing %s", stmp);
                      /* colors anyone? */
-                     nv = SUMA_StringToNum(stmp, (void *)fv, 4, 1);
+                     nv = SUMA_StringToNum(stmp, (void *)fv5, 4, 1);
                      switch (nv) {
                         case 0:
-                           cln[cnt] = -2;
+                           clan[cnt] = -2;
                         case 1:
-                           cln[cnt] = (int)fv[0];
+                           clan[cnt] = (int)fv5[0];
                            cols[3*cnt  ] = -1.0;
                            cols[3*cnt+1] = -1.0;
                            cols[3*cnt+2] = -1.0;
                            break;
                         case 4:
-                           cln[cnt] = (int)fv[0];
-                           cols[3*cnt  ] = fv[1];
-                           cols[3*cnt+1] = fv[2];
-                           cols[3*cnt+2] = fv[3];
+                           clan[cnt] = (int)fv5[0];
+                           cols[3*cnt  ] = fv5[1];
+                           cols[3*cnt+1] = fv5[2];
+                           cols[3*cnt+2] = fv5[3];
                            break;
                         default:
                            SUMA_S_Err(
                               "Expected 1 or 4  values after name %s, got %d"
                               "Replacing with special group",
                               names[cnt], nv);
-                           cln[cnt] = -1;
-                           fv[0] = fv[1] = fv[2] = -1;
+                           clan[cnt] = -1;
+                           cols[3*cnt  ] = -1.0;
+                           cols[3*cnt+1] = -1.0;
+                           cols[3*cnt+2] = -1.0;
                            break;
                      }
+                     fl = fl2;
                   } else {
-                     cln[cnt] = -2;
+                     clan[cnt] = -2;
                   }
                   SUMA_ifree(stmp);
                   ++cnt;
@@ -697,20 +701,20 @@ int main (int argc,char *argv[])
                   exit(1);
                }
                /* check on colors and grouping */
-               if (cnl[0] == -2) {/* No grouping, no colors */
-                  SUMA_ifree(cln); SUMA_ifree(cols);
+               if (clan[0] == -2) {/* No grouping, no colors */
+                  SUMA_ifree(clan); SUMA_ifree(cols);
                } else { 
                   mxgrp = -1;
                   for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
-                     if (cln[cnt] > mxgrp) mxgrp = cln[cnt];
+                     if (clan[cnt] > mxgrp) mxgrp = clan[cnt];
                   }
                   for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
-                     if (cln[cnt] < 0) cln[cnt] = mxgrp + 1;
+                     if (clan[cnt] < 0) clan[cnt] = mxgrp + 1;
                   }
                   sprintf(colnm, "%d", SUMA_MIN_PAIR(mxgrp+2,255));
                   for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
                      if (cols[3*cnt] < 0) {
-                        SUMA_a_good_col(colnm, cln[cnt], cln+3*cnt);
+                        SUMA_a_good_col(colnm, clan[cnt], cols+3*cnt);
                      }
                   }
                }
@@ -728,7 +732,7 @@ int main (int argc,char *argv[])
                                                      SDSET_VEC(dseti,1),
                                                      SDSET_VEC(dseti,2),
                                                      names,
-                                                     cln,
+                                                     clan,
                                                      cols,
                                                      SDSET_VECFILLED(dseti)))) {
                SUMA_S_Err("Failed to add node list");
@@ -737,7 +741,7 @@ int main (int argc,char *argv[])
             SUMA_FreeDset(dseti); dseti = NULL;
             if (ivec) free(ivec); ivec=NULL;
             if (names) SUMA_free(names); names = NULL;
-            SUMA_ifree(cols); SUMA_ifree(cln);
+            SUMA_ifree(cols); SUMA_ifree(clan);
          }
          if (LocalHead) SUMA_ShowDset(dset,0, NULL);  
       }
