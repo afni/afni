@@ -2931,7 +2931,7 @@ int SUMA_AddGDsetNelXYZCol ( SUMA_DSET *dset, char *col_label,
    static char FuncName[]={"SUMA_AddGDsetNelXYZCol"};
    int *iv, is_sorted;
    NI_element *xyznel=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -15461,7 +15461,7 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
    NI_element *nel=NULL;
    int *isort = NULL, dosort = 0, ii, jump=0;
    float *fv=NULL, *fvxyz=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
     
    SUMA_ENTRY;
    
@@ -15616,6 +15616,7 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
             sprintf(names[ii],"%d", I[ii]);
          }
       }
+      SUMA_LH("Adding default gnode labels");
       if (!SUMA_AddDsetNelCol (  dset, "Gnode Label", 
                                  SUMA_NODE_SLABEL, (void *)names, NULL, 1)) {
          SUMA_SL_Err("Failed to add names column");
@@ -15626,6 +15627,8 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
                   for (ii=0; ii<nel->vec_len; ++ii) SUMA_ifree(names[ii]); */ 
       SUMA_ifree(names);
    } else {  /* Caller's names */
+      SUMA_LH("Adding gnode labels (%s ... %s)", 
+               names[0], names[nel->vec_len-1]);
       if (!SUMA_AddDsetNelCol (  dset, "Gnode Label", 
                                  SUMA_NODE_SLABEL, (void *)names, NULL, 1)) {
          SUMA_SL_Err("Failed to add names column");
@@ -15635,11 +15638,13 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
    
    
    if (cln) { /* Add group belonging */
+      SUMA_LH("Adding gnode groups");
       if (!SUMA_AddDsetNelCol (dset, "Gnode Group", 
                                SUMA_GNODE_IGROUP, (void *)cln,NULL, 1)) {
          SUMA_SL_Err("Failed to add group column");
          SUMA_RETURN(nel);  
       }
+      SUMA_LH("Adding gnode group cols");
       if (!SUMA_AddDsetNelCol (dset, "Gnode R", 
                             SUMA_NODE_R, (void *)cols, NULL, 3)) {
          SUMA_SL_Err("Failed to add group column");
