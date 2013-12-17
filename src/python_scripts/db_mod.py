@@ -398,13 +398,9 @@ def db_mod_despike(block, proc, user_opts):
     if len(block.opts.olist) == 0:    # then init to defaults
         block.opts.add_opt('-despike_opts_3dDes', -1, [])
 
-    uopt = user_opts.find_opt('-despike_opts_3dDes')
-    bopt = block.opts.find_opt('-despike_opts_3dDes')
-    if uopt and bopt: bopt.parlist = uopt.parlist
-
-    uopt = user_opts.find_opt('-despike_mask')
-    bopt = block.opts.find_opt('-despike_mask')
-    if uopt and not bopt: block.opts.add_opt('-despike_mask', 0, [])
+    apply_uopt_to_block('-despike_opts_3dDes', user_opts, block)
+    apply_uopt_to_block('-despike_mask', user_opts, block)
+    apply_uopt_to_block('-despike_new', user_opts, block)
 
     block.valid = 1
 
@@ -427,13 +423,17 @@ def db_cmd_despike(proc, block):
     if block.opts.find_opt('-despike_opts_mask'): mstr = ''
     else:                                         mstr = ' -nomask'
 
+    # default to 3dDespike -NEW for now
+    if block.opts.have_no_opt('-despike_new'): newstr = ''
+    else:                                      newstr = ' -NEW'
+
     # write commands
     cmd = cmd + '# %s\n'                                \
                 '# apply 3dDespike to each run\n' % block_header('despike')
     cmd = cmd + 'foreach run ( $runs )\n'               \
-                '    3dDespike%s%s -prefix %s %s\n'     \
+                '    3dDespike%s%s%s -prefix %s %s\n'   \
                 'end\n\n' %                             \
-                (other_opts, mstr, prefix, prev)
+                (newstr, other_opts, mstr, prefix, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
