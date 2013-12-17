@@ -100,6 +100,7 @@ SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
 SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lm 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar
+SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ###############################################################

@@ -64,6 +64,7 @@ SUMA_LINK_PATH = -L/usr/dt/lib -L/usr/openwin/lib -L../
 SUMA_LINK_LIB = $(LZLIB) $(LGIFTI) -lm -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl
 SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
 SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
+SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ######################################################################

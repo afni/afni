@@ -1805,6 +1805,10 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp,
          NI_set_attribute ( nel, Attr, NULL);
          break;   
       
+      case SUMA_GNODE_IGROUP:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;   
+      
       case SUMA_NODE_SLABEL:
          NI_set_attribute ( nel, Attr, NULL);
          break;   
@@ -4557,6 +4561,7 @@ SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp)
       case SUMA_EDGE_P1_INDEX:
       case SUMA_EDGE_P2_INDEX:
       case SUMA_GNODE_INDEX:
+      case SUMA_GNODE_IGROUP:
       case SUMA_NODE_INDEX:
          SUMA_RETURN(SUMA_int);
          break;
@@ -4825,6 +4830,9 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_GNODE_INDEX:
          SUMA_RETURN("GNode_Index");
          break;
+      case SUMA_GNODE_IGROUP:
+         SUMA_RETURN("GNode_Group");
+         break;
       case SUMA_EDGE_P1_INDEX:
          SUMA_RETURN("Edge_P1_Index");
          break;
@@ -4938,6 +4946,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Generic_Short")) SUMA_RETURN (SUMA_NODE_SHORT);
    if (!strcmp(Name,"Node_Index")) SUMA_RETURN (SUMA_NODE_INDEX);
    if (!strcmp(Name,"GNode_Index")) SUMA_RETURN (SUMA_GNODE_INDEX);
+   if (!strcmp(Name,"GNode_Group")) SUMA_RETURN (SUMA_GNODE_IGROUP);
    if (!strcmp(Name,"Edge_P1_Index")) SUMA_RETURN (SUMA_EDGE_P1_INDEX);
    if (!strcmp(Name,"Edge_P2_Index")) SUMA_RETURN (SUMA_EDGE_P2_INDEX);
    if (!strcmp(Name,"Node_Index_Label")) SUMA_RETURN (SUMA_NODE_ILABEL);
@@ -5624,6 +5633,7 @@ void SUMA_FreeDset(void *vp)
          if (!dset->Aux->FreeSaux) {
             SUMA_S_Err("You're leaky, you're leaky");
          } else dset->Aux->FreeSaux(dset->Aux->Saux);
+         dset->Aux->Saux =NULL; /* pointer freed in freeing function */
       }
       SUMA_free(dset->Aux);
    }
@@ -12305,7 +12315,8 @@ int * SUMA_FindNumericDataDsetCols(SUMA_DSET *dset, int *N_icols)
       if (  SUMA_IS_DATUM_INDEX_COL(ctp) ||
             ctp == SUMA_NODE_ILABEL ||
             ctp == SUMA_NODE_SLABEL ||
-            ctp == SUMA_NODE_STRING ) 
+            ctp == SUMA_NODE_STRING ||
+            ctp == SUMA_GNODE_IGROUP ) 
          continue;
       vtp = SUMA_ColType2TypeCast(ctp) ;
       if (vtp < SUMA_byte || vtp > SUMA_double) continue;
@@ -15353,13 +15364,13 @@ NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset)
    Note that I may get reodered in this function */
 NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset, 
                                         int *I, float *X, float *Y, float *Z, 
-                                        char **names,
+                                        char **names, int *cln, float *cols,
                                         int N_Nodes)
 {
    static char FuncName[]={"SUMA_AddGDsetNodeListElement"};
    char *attname=NULL;
    NI_element *nel=NULL;
-   int *isort = NULL, dosort = 0, ii, jump=0;
+   int *isort = NULL, dosort = 0, ii, jump=0, frc = 0;
    float *fv=NULL, *fvxyz=NULL;
    SUMA_Boolean LocalHead = NOPE;
     
@@ -15530,6 +15541,40 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
       }
    }
    
+   
+   if (cln) { /* Add group belonging */
+      if (!SUMA_AddDsetNelCol (dset, "Gnode Group", 
+                               SUMA_GNODE_IGROUP, (void *)cln,NULL, 1)) {
+         SUMA_SL_Err("Failed to add group column");
+         SUMA_RETURN(nel);  
+      }
+      frc = 0;
+      if (!cols) { /* make one, don't keep me guessing */
+         char sss[32];
+         frc = 1;
+         cols = (float *)SUMA_calloc(nel->vec_len, sizeof(float));
+         sprintf(sss,"%d", SUMA_MIN_PAIR(nel->vec_len, 255));
+         for (ii=0; ii<nel->vec_len; ++ii) {
+            SUMA_a_good_col(sss,cln[ii],cols+3*ii);
+         }
+      }
+      if (!SUMA_AddDsetNelCol (dset, "Gnode R", 
+                            SUMA_NODE_R, (void *)cols, NULL, 3)) {
+         SUMA_SL_Err("Failed to add group column");
+         SUMA_RETURN(nel);  
+      }
+      if (!SUMA_AddDsetNelCol (dset, "Gnode G", 
+                            SUMA_NODE_G, (void *)(cols+1), NULL, 3)) {
+         SUMA_SL_Err("Failed to add group column");
+         SUMA_RETURN(nel);  
+      }
+      if (!SUMA_AddDsetNelCol (dset, "Gnode B", 
+                            SUMA_NODE_B, (void *)(cols+2), NULL, 3)) {
+         SUMA_SL_Err("Failed to add group column");
+         SUMA_RETURN(nel);  
+      }
+      if (frc) SUMA_ifree(cols);
+   }
    SUMA_ifree(fvxyz);
    SUMA_ifree(isort);
    
