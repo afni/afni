@@ -848,13 +848,14 @@ int main(int argc, char *argv[]) {
                if (onexyz) { /* for when your ROI centroid coords 
                                 and in one vector of XYZ triplets */
                   if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
-                                                  xyz, NULL, NULL, NULL, 3))) {
+                                                  xyz, NULL, NULL, NULL, NULL, 
+                                                  NULL,3))) {
                      ERROR_message("Failed to add node list");
                      exit(1);  
                   }                                     
                } else {
                   if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
-                                                  x, y, z, NULL, 3))) {
+                                            x, y, z, NULL, NULL, NULL, 3))) {
                      ERROR_message("Failed to add node list");
                      exit(1);     
                   }
@@ -2020,7 +2021,7 @@ int main(int argc, char *argv[]) {
             if( xyz = THD_roi_cmass(mset1, k, ROI_LABELS[k]+1, NROI[k]) ) {
                if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
                                                   xyz, NULL, NULL, 
-                                               gdset_roi_names[k], NROI[k]))) {
+                                   gdset_roi_names[k], NULL, NULL, NROI[k]))) {
                   ERROR_message("Failed to add node list");
                   exit(1);  
                }
