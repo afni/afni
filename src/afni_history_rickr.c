@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+   "fixed use of num_trs in the case of censoring",
+   "Thanks to K Kerr for nothing the problem."
+ } ,
+
  { 16,  Dec, 2013, RCR, "auto_warp.py", MINOR, TYPE_NEW_OPT,
    "added -qblur option for P Molfese",
    NULL
