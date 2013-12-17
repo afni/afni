@@ -34,6 +34,7 @@ if ("$package" == "") then
       set bitset = 64
       set b64 = '_64'
       set mcwmalloc = 1
+      set bufcheck = 1
       set package = macosx_10.7_Intel${b64}
       if ($openmp == 0) then
          echo "Setting openmp to 1 as as default for `hostname`"
@@ -75,6 +76,7 @@ if ("$package" == "") then
       set fixccold = 1
       set expat_sh = 1
       set fontconf = 1
+      set bufcheck = 1
       set user_bin = '/home/ziad/abin'
    else if ( "${thishost}" =~ morgoth* ) then
       set package = linux_openmp_64
@@ -253,6 +255,28 @@ if ($openmp > 0) then
    mv ___mm Makefile
 endif
 
+if ($bufcheck < 1) then
+   \grep DSUMA_GL_NO_CHECK_FRAME_BUFFER Makefile >& /dev/null
+   if ($status) then
+      sed 's/^SUMA_MDEFS = /SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER/'\
+            Makefile > ___mm
+      mv ___mm Makefile 
+   endif
+endif
+if ($bufcheck > 0) then
+   \grep DSUMA_GL_NO_CHECK_FRAME_BUFFER Makefile >& /dev/null
+   if ($status == 0) then
+      sed 's/-DSUMA_GL_NO_CHECK_FRAME_BUFFER/ /g'\
+            Makefile > ___mm
+      mv ___mm Makefile 
+   endif
+endif
+
+if ($openmp > 0) then
+   sed 's/^CCMIN/OMPFLAG = -fopenmp -DUSE_OMP~CCMIN/' Makefile | tr '~' '\n' \
+      > ___mm
+   mv ___mm Makefile
+endif
 
 #LocalX?
 if ($localX == 1) then
@@ -531,6 +555,7 @@ PARSE_COMMAND:
    set dynXm = 0
    set dynjpeg = 0
    set glib2 = 0
+   set bufcheck = 0
    while ($cnt <= $Narg)
       set donext = 1;
       if ($donext && "$argv[$cnt]" == "-echo") then

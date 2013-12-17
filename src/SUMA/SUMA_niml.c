@@ -652,7 +652,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_OVERLAY_PLANE_DATA sopd;
    SUMA_SurfSpecFile *Spec=NULL;
    SUMA_Boolean iselement = YUP;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
@@ -1908,7 +1908,35 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          
          /* don't free ngr, it's freed later on */
          SUMA_RETURN(YUP);
-      }
+      } else if (strcmp(ngr->name,"IT.griddef") == 0) {
+         THD_3dim_dataset *gdset=NULL; NI_group *gngr=NULL;
+         TLH(1);
+         SUMA_LH("Grid from InstaTract");
+         if (!(gngr = (NI_group *)SUMA_FindNgrNamedAny(ngr, "AFNI_dataset"))) {
+            SUMA_S_Err("Failed to get grid element");
+            SUMA_RETURN(NOPE);
+         }
+         if (!(gdset = THD_niml_to_dataset( gngr , 1 ))) {
+            SUMA_S_Err("Failed to get grid");
+            SUMA_RETURN(NOPE);
+         }
+         SUMA_LH("Yay!");
+         #if 0
+         /* For ROI selection... somewhere else ... */
+         /*
+         1- From click location find all nodes with xmm radius 
+         2- For each incident triangle, identify voxels intersecting it 
+            AND that are within xmm of node
+         3-    From each accepted voxel, travel along incident triangle's normal
+               and accept encountered voxels until you reach the depth limit
+               (for voxel triangle intersection see 
+                     SUMA_GetVoxelsIntersectingTriangle() and 
+                     SUMA_isVoxelIntersect_Triangle()
+         */
+         #endif
+         /* don't free ngr, it's freed later on */
+         SUMA_RETURN(YUP);
+      }      
       
       /*** If here, then name of group didn't match anything 
            Try processing its parts ***/

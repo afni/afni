@@ -51,6 +51,7 @@ SUMA_LINK_PATH = -L/usr/lib32 -L/usr/X11R6/lib -L../ -L/usr/Motif-2.1
 SUMA_LINK_LIB = $(LZLIB) -lm -lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11
 SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
 SUMA_BIN_ARCHIVE = SUMA_SGI.tar
+SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ###############################################################

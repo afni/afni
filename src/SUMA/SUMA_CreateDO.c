@@ -4254,7 +4254,7 @@ void SUMA_free_TractDO (SUMA_TractDO * TDO)
       if (!TDO->FreeSaux) {
          SUMA_S_Err("You're leaky, you're leaky");
       } else TDO->FreeSaux(TDO->Saux);
-      SUMA_free(TDO->Saux);
+      TDO->Saux=NULL; /* pointer freed in freeing function */
    }
 
    TDO->colv = NULL; /* It is copied from the overlay colorlist */
@@ -8667,7 +8667,7 @@ NI_element *SUMA_GDSET_Edge_Bundle(SUMA_DSET *gset, SUMA_GRAPH_SAUX *GSaux,
          GSaux->net ? (NI_element *)GSaux->net->part[itp]: \
                       (NI_element *)dset->ngr->part[itp] );
 
-#define SUMA_DRAW_GRAPH_EDGE(DDO, cna3, cnb3, nelitp) {              \
+#define SUMA_DRAW_GRAPH_EDGE(DDO, cna3, cnb3, nelitp) {    \
    if (!nelitp) { /* good ole fashioned segment */                   \
       glVertex3f( DDO.NodeList[cna3], DDO.NodeList[cna3+1],          \
                   DDO.NodeList[cna3+2]);                             \
@@ -8700,7 +8700,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             textshadcolor[4] = {0.0, 1.0, 1.0, 1.0};
    int i, iii, si, N_n3, i3, i4, cn3, cn, n, cn1=0, n1=0, 
        cn13=0, ncross=-1, ndraw=-1, tw=0, th=0, nl=0, istip=0;
-   GLfloat rpos[4], col1[4], col2[4];
+   GLfloat rpos[4], col1[4], col2[4], clw=0.1, cbw=0.1;
    long int n4;
    char **names=NULL;
    GLboolean valid;
@@ -8767,7 +8767,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       glGetFloatv(GL_LINE_WIDTH, &origwidth);
       if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickConst) {
          SDO->LineWidth = 1.0*curcol->EdgeThickGain;
-         glLineWidth(SDO->LineWidth);
+         clw = SDO->LineWidth;
+         glLineWidth(clw);
       }
       
       if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal ||
@@ -8933,9 +8934,11 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                     glEnable(GL_LINE_STIPPLE);
                glLineStipple (1, SUMA_int_to_stipplemask(stipsel-1)); 
             }
-            if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal) 
-                  glLineWidth(((SUMA_ABS(curcol->V[r0]))*Wfac+Wrange[0])
-                                                         *curcol->EdgeThickGain); 
+            if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal) {
+               clw = ((SUMA_ABS(curcol->V[r0]))*Wfac+Wrange[0])
+                                           *curcol->EdgeThickGain;
+               glLineWidth(clw);
+            }
             selcol[0] = 1-sv->clear_color[0];
             selcol[1] = 1-sv->clear_color[1];
             selcol[2] = 1-sv->clear_color[2];
@@ -9094,8 +9097,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glLineStipple (1, SUMA_StippleLineMask_rand(istip, 1, 0)); 
                }
                if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal) {
-                  glLineWidth(((SUMA_ABS(curcol->V[i]))*Wfac+Wrange[0])
-                                                   *curcol->EdgeThickGain); 
+                  clw = ((SUMA_ABS(curcol->V[i]))*Wfac+Wrange[0])
+                                                   *curcol->EdgeThickGain;
+                  glLineWidth(clw); 
                }
                glBegin(GL_LINES);
                if (colid){
@@ -17183,7 +17187,7 @@ SUMA_VolumeObject *SUMA_FreeVolumeObject(SUMA_VolumeObject *VO) {
       if (!VO->FreeSaux) {
          SUMA_S_Err("You're leaky, you're leaky");
       } else VO->FreeSaux(VO->Saux);
-      SUMA_free(VO->Saux);
+      VO->Saux=NULL; /* pointer freed in freeing function */
    }
    
    if (VO->VoxelMarker) {

@@ -386,7 +386,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
    static int nm=0;
    void *eo=NULL;
    int ieo;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
@@ -408,11 +408,12 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
       if (DO_Type == VO_type) {
          SUMA_S_Warn("Replacing volume object, might get complicated...");
       }
-      if (LocalHead && !(nm % 300)) {
-         SUMA_SL_Note( "Object exists and will be replaced.\n"
-                        "Message shown intermittently");
+      if (LocalHead || !(nm % 300)) {
+         SUMA_SL_Note( "Object %s existed as %s and will be replaced.\n"
+                        "Message shown intermittently", 
+                        ADO_LABEL(ado), ADO_LABEL((SUMA_ALL_DO *)(dov[ieo].OP)));
+         ++nm;
       }
-      ++nm;
       /* free olde one */
       if (!SUMA_Free_Displayable_Object(&(dov[ieo]))) {
          SUMA_SL_Err("Failed to free displayable object");

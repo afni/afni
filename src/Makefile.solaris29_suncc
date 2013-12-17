@@ -60,6 +60,7 @@ SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../coxplot -Igts/src -I/us
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib -L/usr/openwin/lib -L/apps/solaris.utils/sun-studio11/SUNWspro/lib -L/apps/solaris.utils/sun-studio11/SUNWspro/prod/lib -L/usr/local/include/glib-2.0 -R/usr/openwin/lib
 SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri -lf2c $(LZLIB) $(LGIFTI) -lm -lsocket -lnsl
 SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
+SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER
 ######################################################################
 
 MAKE = make

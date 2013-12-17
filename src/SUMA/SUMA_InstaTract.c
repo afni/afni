@@ -556,10 +556,17 @@ NI_group *MiniProbTrack(NI_element *nini)
    TAYLOR_BUNDLE *tb=NULL;
    TAYLOR_NETWORK *net=NULL;
    NI_group *netngr=NULL;
+   float zeros[3]={0, 0, 0}, *cen=NULL;
    float x[3]={-40, 38, 4.7};
    float y[3]={-27, -34, 14.4};
    float z[3]={26, 41, 55};
-         
+   
+   /* Get cross hair coord */
+   if (!strcmp(nini->name, "SUMA_crosshair_xyz")) {
+      cen = (float *)nini->vec[0];
+   } else {
+      cen = zeros;
+   }      
          /* Create a toy network */
             /* Create some dummy bundles representing edge 1-2=5, or 2-1=7*/
                tb = NULL; net = NULL; tt = NULL;
@@ -568,9 +575,9 @@ NI_group *MiniProbTrack(NI_element *nini)
                tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
                tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
                tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
-               tt->pts[6]=22;   tt->pts[7]=33;   tt->pts[8]=49;
+               tt->pts[6]=cen[0];   tt->pts[7]=cen[1];   tt->pts[8]=cen[2];
                tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
-               for (i=0; i<12; ++i) tt->pts[i] != RR(4);
+               for (i=0; i<12; ++i) tt->pts[i] += RR(4);
                tb = AppCreateBundle(tb, 1, tt);
                tt = Free_Tracts(tt, 1);
                /* put another track in */
@@ -578,10 +585,10 @@ NI_group *MiniProbTrack(NI_element *nini)
                tt->id=78; tt->N_pts3=12; 
                tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
                tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
-               tt->pts[3]=23;   tt->pts[4]=35;   tt->pts[5]=42;
+               tt->pts[3]=cen[0];   tt->pts[4]=cen[1];   tt->pts[5]=cen[2];
                tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
                tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
-               for (i=0; i<12; ++i) tt->pts[i] != RR(4);
+               for (i=0; i<12; ++i) tt->pts[i] += RR(4);
                tb = AppCreateBundle(tb, 1, tt);
                tt = Free_Tracts(tt, 1);
                /* add it to network */
@@ -595,7 +602,7 @@ NI_group *MiniProbTrack(NI_element *nini)
                tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
                tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
                tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
-               for (i=0; i<12; ++i) tt->pts[i] != RR(4);
+               for (i=0; i<12; ++i) tt->pts[i] += RR(4);
                tb = AppCreateBundle(tb, 1, tt);
                tt = Free_Tracts(tt, 1);
                /* add bundle to network */
@@ -625,7 +632,7 @@ int InstaTract_process_NIML_data(NI_element *nini, COMM_STRUCT *cs)
    
    /* Now pretend you're doing something with nini and 
       send something back when done */
-   fprintf(stderr,"Quiet, now working hard....\n"); NI_sleep(300);
+   fprintf(stderr,"Quiet, now working hard....\n"); NI_sleep(30);
    fprintf(stderr,"OK, GOT IT!!!\n");
    ngr = NI_new_group_element();
    NI_rename_group(ngr, "EngineCommand");/* DriveSuma's element to boss SUMA */
@@ -674,10 +681,16 @@ void InstaTract_usage(int detail)
 int main( int argc , char *argv[] )
 {
    COMM_STRUCT *cs = NULL;
-   NI_group *ngr = NULL;
+   NI_group *ngr = NULL, *ndset=NULL;
    char sss[256]={""};
    int i, nn;
+   THD_3dim_dataset *gdset;
    
+   
+   /* bureaucracy */
+   mainENTRY("InstaTract main"); machdep(); AFNI_logger("InstaTract",argc,argv);
+   PRINT_VERSION("InstaTract"); AUTHOR("LEGROSCHAT");
+
    /* mini parsing of command line */
    nn = 1;
    while (nn < argc && argv[nn][0] == '-') {
@@ -685,9 +698,28 @@ int main( int argc , char *argv[] )
          InstaTract_usage(strlen(argv[nn]) > 3 ? 2:1);
          exit(0);
       }
-      ++nn;
+
+      if (!strcmp(argv[nn],"-grid")) {
+         ++nn;
+         if (nn>=argc) {
+            ERROR_message("Need dset after -grid");
+            exit(1);
+         }
+         if (!(gdset = THD_open_dataset(argv[nn]))) {
+            ERROR_message("Failed to open dataset");
+            suggest_best_prog_option(argv[0], argv[nn]);
+            exit(1);
+         }
+         ++nn; continue;
+      }
+      ERROR_message("What is with parameter %s\n", argv[nn]);
+      exit(1);
    }
    
+   if (!gdset) {
+      ERROR_message("Need grid dset");
+      exit(1);
+   }
    /* Initialize the communications structure */
    cs = NewCommStruct(NULL, -1);
    
@@ -740,6 +772,16 @@ int main( int argc , char *argv[] )
       if (!SendToSuma(cs, ngr, 1)) {
          fprintf (stderr,"Failed to send item %d\n", i);
       }
+   }
+   NI_free(ngr); ngr=NULL; /* Done with this element, free it */
+
+   /* Now for some real stuff, send the header of the ROI grid to SUMA */
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr, "IT.griddef");/* Tell SUMA what grid to use */
+   ndset = THD_nimlize_dsetatr(gdset);
+   NI_add_to_group(ngr, ndset);
+   if (!SendToSuma(cs, ngr, 1)) {
+      fprintf (stderr,"Failed to send grid\n");
    }
    NI_free(ngr); ngr=NULL; /* Done with this element, free it */
    

@@ -167,8 +167,10 @@ typedef enum {
    SUMA_NO_COL_TYPE,
    SUMA_NODE_INT,    /*!< Generic integer */
    SUMA_NODE_INDEX,  /*!< index of a node OR edge to locate it in its domain */
-   SUMA_NODE_ILABEL, /*!< An integer coding for a label */
+   SUMA_NODE_ILABEL, /*!< An integer coding for an integer label */
    SUMA_NODE_SLABEL, /*!< An integer coding for a string label */
+   SUMA_GNODE_IGROUP, /*!< An integer coding for a group integer label of 
+                           a graph node*/
    SUMA_NODE_FLOAT,  /*!< Generic float */ 
    SUMA_NODE_CX,     /*!< Node convexity */
    SUMA_NODE_X,      /*!< Node X coordinate */
@@ -216,14 +218,22 @@ typedef enum {
                                  (ctp)==SUMA_NODE_Y || \
                                  (ctp)==SUMA_NODE_Z || \
                                  (ctp)==SUMA_GNODE_INDEX || \
+                                 (ctp)==SUMA_GNODE_IGROUP || \
+                                 (ctp)==SUMA_NODE_R || \
+                                 (ctp)==SUMA_NODE_G || \
+                                 (ctp)==SUMA_NODE_B || \
                                  (ctp)==SUMA_NODE_SLABEL) ? 1:0)
                                  
 #define SUMA_GNODE_IXYZ_CTP2COL(ctp) ( (ctp)==SUMA_NODE_X ? 1 : \
                                        ( (ctp)==SUMA_NODE_Y ? 2: \
                                        ( (ctp)==SUMA_NODE_Z ? 3: \
                                        ( (ctp)==SUMA_NODE_SLABEL ? 4: \
+                                       ( (ctp)==SUMA_GNODE_IGROUP ? 5: \
+                                       ( (ctp)==SUMA_NODE_R ? 6: \
+                                       ( (ctp)==SUMA_NODE_G ? 7: \
+                                       ( (ctp)==SUMA_NODE_B ? 8: \
                                        ( (ctp)==SUMA_GNODE_INDEX ? 0: \
-                                                               -1 )  ) ) )  )
+                                                         -1 ) ) ) ) ) ) ) ) )
                                        
 #define SUMA_IS_DATUM_INDEX_COL(ctp) (((ctp)==SUMA_NODE_INDEX || \
                                  (ctp)==SUMA_EDGE_P1_INDEX || \
@@ -1543,7 +1553,8 @@ NI_element *SUMA_FindDsetDataElement(SUMA_DSET *dset);
 NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset);
 NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset, 
                                          int *I, float *X, float *Y, float *Z, 
-                                         char **names, int N_Node);
+                                         char **names, int *cln, float *cols,
+                                         int N_Node);
 NI_element *SUMA_FindDsetDatumIndexElement(SUMA_DSET *dset);
 NI_element *SUMA_FindSDsetNodeIndexElement(SUMA_DSET *dset);
 NI_element *SUMA_FindGDsetEdgeIndexElement(SUMA_DSET *dset);
