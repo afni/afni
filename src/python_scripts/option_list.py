@@ -131,8 +131,8 @@ class OptionList:
            nth : parameter for matching 'find_opt'
         """
         opt = self.find_opt(name, nth=nth)
-        if opt == None: return defauldefault
-        if opt_is_yes(opt): return 1
+        if opt == None: return default
+        if opt_is_no(opt): return 1
         return 0
 
     def count_opt(self, name):
