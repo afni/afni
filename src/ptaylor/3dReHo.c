@@ -95,7 +95,7 @@ void usage_ReHo(int detail)
 "    -neigh_Y   B     :as if *that* weren't enough freedom, you can even have\n"
 "    -neigh_Z   C      ellipsoidal volumes of voxelwise neighbors.  This is done\n"
 "                      by inputing the set of semi-radius lengths you want, again\n"
-"                      as floats/decimals\,. The 'hood is then made according to\n"
+"                      as floats/decimals. The 'hood is then made according to\n"
 "                      the following relation:\n"
 "                          (i/A)^2 + (j/B)^2 + (k/C)^2 <=1.\n"
 "                      which will have approx. V=4*PI*A*B*C/3. The impetus for\n"

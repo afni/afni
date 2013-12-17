@@ -15262,6 +15262,95 @@ char **SUMA_GDSET_GetPointNamesColumn(SUMA_DSET *dset, int *N_vals,
    SUMA_RETURN(I);
 }
 
+int *SUMA_GDSET_GetPointGroupColumn(SUMA_DSET *dset, int *N_vals, 
+                                      NI_element **nelxyzr)
+{
+   static char FuncName[]={"SUMA_GDSET_GetPointGroupColumn"};
+   NI_element *nelxyz=NULL;
+   int *I=NULL;
+   int iicoord=-1;
+   char *cs=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!N_vals) {
+      SUMA_S_Err("You cheap skate! I need N_vals to be not null");
+      SUMA_RETURN(NULL);
+   }  
+   *N_vals = -2; /*use as an error flag */
+   if (nelxyzr) *nelxyzr = NULL;
+   
+   if (!(nelxyz = SUMA_FindGDsetNodeListElement(dset))) {
+      SUMA_S_Errv("Failed to find Dset %s's NodeListElement\n", 
+                        SDSET_LABEL(dset));
+      SUMA_RETURN(NULL);
+   }
+   if (nelxyzr) *nelxyzr = nelxyz;
+   
+   /* The search by label is overkill since I enforce 'I'
+      to be the 1st column ... Oh well. */
+   if (!(cs = NI_get_attribute(nelxyz,"COLMS_LABS"))) {
+      SUMA_S_Err("What can I say?");
+      SUMA_RETURN(NULL);
+   }
+
+   if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, 
+                                          "Gnode Group"))<0) {
+      SUMA_LH("Failed to find I, assuming we have a full list"); 
+      *N_vals = -1;
+   } else {
+      I = (int *)nelxyz->vec[iicoord];
+      *N_vals = nelxyz->vec_len; 
+   }
+
+   SUMA_RETURN(I);
+}
+
+float *SUMA_GDSET_GetPointColumn_f(SUMA_DSET *dset, int *N_vals, 
+                                      NI_element **nelxyzr, char *label)
+{
+   static char FuncName[]={"SUMA_GDSET_GetPointColumn_f"};
+   NI_element *nelxyz=NULL;
+   float *I=NULL;
+   int iicoord=-1;
+   char *cs=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!N_vals) {
+      SUMA_S_Err("You cheap skate! I need N_vals to be not null");
+      SUMA_RETURN(NULL);
+   }  
+   *N_vals = -2; /*use as an error flag */
+   if (nelxyzr) *nelxyzr = NULL;
+   
+   if (!(nelxyz = SUMA_FindGDsetNodeListElement(dset))) {
+      SUMA_S_Errv("Failed to find Dset %s's NodeListElement\n", 
+                        SDSET_LABEL(dset));
+      SUMA_RETURN(NULL);
+   }
+   if (nelxyzr) *nelxyzr = nelxyz;
+   
+   /* The search by label is overkill since I enforce 'I'
+      to be the 1st column ... Oh well. */
+   if (!(cs = NI_get_attribute(nelxyz,"COLMS_LABS"))) {
+      SUMA_S_Err("What can I say?");
+      SUMA_RETURN(NULL);
+   }
+
+   if ((iicoord=SUMA_NI_find_in_cs_string(cs, SUMA_NI_CSS, label))<0) {
+      SUMA_LH("Failed to find I"); 
+      *N_vals = -1;
+   } else {
+      I = (float *)nelxyz->vec[iicoord];
+      *N_vals = nelxyz->vec_len; 
+   }
+
+   SUMA_RETURN(I);
+}
+
 /* Get the name of an edge in a graph dset
    DO FREE the result */
 char *SUMA_GDSET_Edge_Label(SUMA_DSET *dset, int isel, char *pref, char *sep)

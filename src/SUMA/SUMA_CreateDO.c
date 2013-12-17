@@ -8709,7 +8709,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    NI_element *nelitp = NULL;
    float origwidth=0.0, radconst = 0.0, rad = 0.0, 
          gain = 1.0, constcol[4], edgeconst=1.0, 
-         vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0, cdim=1/3.0;
+         vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0, cdim=1/3.0,
+         *GNr=NULL, *GNg=NULL, *GNb=NULL;
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
    byte *mask=NULL, *wmask=NULL, showword = 0;
    GLubyte *colid=NULL, *colidballs=NULL, *colballpick=NULL;
@@ -8722,7 +8723,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    SUMA_OVERLAYS *curcol = NULL;
    void *fontGL=NULL;
    int ic0, ic1, s0, r0, s1, r1, TxtShadeMode=1, okind, ri, 
-       *dsrt=NULL, *dsrt_ind=NULL, *GNI=NULL, wbox=0;
+       *dsrt=NULL, *dsrt_ind=NULL, *GNI=NULL, wbox=0, *GNG=NULL;
    int stipsel = 0; /* flag for stippling of selected edge */
    int depthsort = 1; /* Sort text and draw from farthest to closest */
    SUMA_Boolean LocalHead = NOPE;
@@ -8835,7 +8836,22 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          SUMA_RETURN(NOPE);
       }
    }
-
+   if (!(GNG = SUMA_GDSET_GetPointGroupColumn(dset, &iii, NULL))) {
+      SUMA_LH("No Group!"); /* No need to weep */
+   }
+   if (!(GNr = SUMA_GDSET_GetPointColumn_f(dset, &iii, NULL, "Gnode R"))) {
+      SUMA_LH("No R!"); /* No need to weep */
+   } else {
+      if (!(GNg = SUMA_GDSET_GetPointColumn_f(dset, &iii, NULL, "Gnode G"))) {
+         SUMA_S_Err("What? Have R but not G?");
+         SUMA_RETURN(NOPE);
+      }
+      if (!(GNb = SUMA_GDSET_GetPointColumn_f(dset, &iii, NULL, "Gnode B"))) {
+         SUMA_S_Err("What? Have R but not B?");
+         SUMA_RETURN(NOPE);
+      }
+   }
+   
    for (i=0;i<3;++i) {
       textcolor[i] = 1.0 - sv->clear_color[i];
       textshadcolor[i] = sv->clear_color[i];
