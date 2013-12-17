@@ -45,16 +45,16 @@ SUMA_EXECS = CreateIcosahedron  MapIcosahedron       \
 GLW_SRCS = GLwMDrawA.c GLwDrawA.c 
 
 GLw_local/GLwMDrawA.o: GLw_local/GLwMDrawA.c
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} \
 		   -o GLw_local/GLwMDrawA.o -c GLw_local/GLwMDrawA.c
 
 GLw_local/GLwDrawA.o: GLw_local/GLwDrawA.c
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} \
 		   -o GLw_local/GLwDrawA.o -c GLw_local/GLwDrawA.c 
  
        
 SUMA_gts.o: SUMA_gts.c
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} \
 		    -c SUMA_gts.c 
 
 #Dropping optimization level for SUMA_xColBar.c because with gcc 4.7 and -O2 
@@ -68,7 +68,7 @@ SUMA_gts.o: SUMA_gts.c
 #See comment in SUMA_SetScaleThr_one() for instructions
 #on reproducing the crash 		Nov. 9 2012
 SUMA_xColBar.o: SUMA_xColBar.c
-	${CC} -O1 -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} \
+	${CC} -O1 -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} \
 		    -c SUMA_xColBar.c 
 
 SUMA_SRCS_MAIN = SUMA_suma.c
@@ -150,112 +150,112 @@ clean:
 	$(RM) ../suma_*.o *.o GLw_local/*.o ${SUMA_EXECS}
 
 .c.o:
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -c $*.c 
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} -c $*.c 
 
 SUMA_glxdino:SUMA_glxdino.c
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_glxdino.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_glxdino.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 SUMA_paperplane:SUMA_paperplane.c
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_paperplane.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_paperplane.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 SUMA_pixmap2eps:SUMA_pixmap2eps.c
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_pixmap2eps.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_pixmap2eps.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 suma: libSUMA.a SUMA_suma.o 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o suma ${AFNI_OBJS} SUMA_suma.o ${SUMA_INPATH} ${SUMA_LINK_PATH} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o suma ${AFNI_OBJS} SUMA_suma.o ${SUMA_INPATH} ${SUMA_LINK_PATH} \
 		$(AFWARPOBJS) ${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 MakeColorMap: SUMA_MakeColorMap.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_MakeColorMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ScaleToMap: SUMA_ScaleToMap.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_ScaleToMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 CompareSurfaces: SUMA_compare_surfaces.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_compare_surfaces.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_inflate_compare: SUMA_inflate_compare.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_inflate_compare.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 CreateIcosahedron: SUMA_CreateIcosahedron.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_CreateIcosahedron.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 MapIcosahedron: SUMA_MapIcosahedron.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_MapIcosahedron.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 #HalloSuma should only depend on niml/ and SUMA's SUMA_niml_defines.h
 #but I can't do much to simplify the compile command without a nice libniml.a 
 HalloSuma: SUMA_HalloSuma.c 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@  \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@  \
          SUMA_HalloSuma.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 #InstaTract should only depend on niml/ and SUMA's SUMA_niml_defines.h
 #but I can't do much to simplify the compile command without a nice libniml.a 
 InstaTract: SUMA_InstaTract.c 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@  \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@  \
          SUMA_InstaTract.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 
 ParseName: SUMA_ParseName.c 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_ParseName.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
  
 ConvertSurface: SUMA_ConvertSurface.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_ConvertSurface.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfaceMetrics: SUMA_SurfaceMetrics.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfaceMetrics.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 inspec: SUMA_inspec.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_inspec.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 quickspec: SUMA_quickspec.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_quickspec.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
          ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfDist: SUMA_SurfDist.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfDist.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
          ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfCorrMap: SUMA_SurfCorrMap.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfCorrMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
          ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 plottoy: plottoy.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          plottoy.c ${SUMA_INPATH} -I/Users/ziad/tmp/plotutils-2.5/include \
          ${SUMA_LINK_PATH} \
          ${SUMALIBLIST} ${AFNILIB}  \
@@ -268,75 +268,75 @@ plottoy: plottoy.c
 #>>>>>>>>>>>>>>>>>> Begin special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
 #A special compilation of SUMA_DataSets and SUMA_Algorithms, without SUMA_COMPILED defined
 SUMA_DataSets_NS.o: SUMA_DataSets.c 
-	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -o SUMA_DataSets_NS.o -c SUMA_DataSets.c
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} -o SUMA_DataSets_NS.o -c SUMA_DataSets.c
 
 SUMA_Algorithms_NS.o: SUMA_Algorithms.c 
-	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -o SUMA_Algorithms_NS.o -c SUMA_Algorithms.c
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} -o SUMA_Algorithms_NS.o -c SUMA_Algorithms.c
 
 #This one's old, but it works
 SUMA_TestDataSets_NS: SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDataSets.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
          ${SUMA_INPATH} ${SUMA_LINK_PATH} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 #You can do the same from AFNI/src with make TestDsetIO
 SUMA_TestDsetIO_NS: SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
+	${CC} ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_TestDsetIO.c SUMA_DataSets_NS.o SUMA_Algorithms_NS.o \
          ${SUMA_INPATH} ${SUMA_LINK_PATH} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 #>>>>>>>>>>>>>>>>>> End special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
 #SUMA_TestDsetIO Should be the same as  SUMA_TestDsetIO_NS but it uses SUMA_COMPILED and it links to libSUMA.a
 SUMA_TestDsetIO: SUMA_TestDsetIO.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_TestDsetIO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_TestDsetIO.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ConvertDset: SUMA_ConvertDset.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_ConvertDset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ROI2dataset: SUMA_ROI2dataset.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_ROI2dataset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} SUMA_ROI2dataset.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfSmooth: SUMA_GeomComp.c SUMA_SurfSmooth.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfSmooth.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfPatch: SUMA_SurfPatch.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfPatch.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfQual: SUMA_SurfQual.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfQual.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SUMA_Homer: SUMA_Homer.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_Homer.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfClust: SUMA_SurfClust.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfClust.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 IsoSurface: SUMA_IsoSurface.c MarchingCubes.o
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_IsoSurface.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_IsoSurface.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ConvexHull: SUMA_ConvexHull.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvexHull.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_ConvexHull.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 3dSkullStrip: SUMA_3dSkullStrip.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dSkullStrip.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk \
@@ -345,7 +345,7 @@ ConvexHull: SUMA_ConvexHull.c
 
 SurfMatch: SUMA_SurfMatch.c ${SUMALIB} ${SUMASLIB} libgts.a ${SUMAGTSLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_SurfMatch.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk  \
@@ -355,7 +355,7 @@ SurfMatch: SUMA_SurfMatch.c ${SUMALIB} ${SUMASLIB} libgts.a ${SUMAGTSLIB}
 
 3dGenPriors: SUMA_3dGenPriors.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${OMPFLAG} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${OMPFLAG} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dGenPriors.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk ${SUMALIBLIST} ${SUMASLIB}\
@@ -363,7 +363,7 @@ SurfMatch: SUMA_SurfMatch.c ${SUMALIB} ${SUMASLIB} libgts.a ${SUMAGTSLIB}
 
 3dGenFeatureDist: SUMA_3dGenFeatureDist.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dGenFeatureDist.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk ${SUMALIBLIST} ${SUMASLIB} \
@@ -371,7 +371,7 @@ SurfMatch: SUMA_SurfMatch.c ${SUMALIB} ${SUMASLIB} libgts.a ${SUMAGTSLIB}
 
 3dHist: SUMA_3dHist.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED  ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED  ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dHist.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk ${SUMALIBLIST} ${SUMASLIB} \
@@ -379,12 +379,12 @@ SurfMatch: SUMA_SurfMatch.c ${SUMALIB} ${SUMASLIB} libgts.a ${SUMAGTSLIB}
 
 niprobe: SUMA_niprobe.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_niprobe.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 3dSeg: SUMA_3dSeg.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${OMPFLAG} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${OMPFLAG} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dSeg.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk \
@@ -393,7 +393,7 @@ niprobe: SUMA_niprobe.c
 
 3dinfill: SUMA_3dinfill.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${OMPFLAG} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${OMPFLAG} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dinfill.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk \
@@ -402,7 +402,7 @@ niprobe: SUMA_niprobe.c
 
 3dSeg_noomp: SUMA_3dSeg.c libSUMA.a
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT}  ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS}  ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_3dSeg.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o	\
 		-I../3DEdge/src -l3DEdge -I../avovk \
@@ -411,33 +411,33 @@ niprobe: SUMA_niprobe.c
 
 3dCRUISEtoAFNI: SUMA_3dCRUISEtoAFNI.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dCRUISEtoAFNI.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dCRUISEtoAFNI.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 3dBRAIN_VOYAGERtoAFNI: SUMA_3dBRAIN_VOYAGERtoAFNI.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dBRAIN_VOYAGERtoAFNI.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dBRAIN_VOYAGERtoAFNI.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
        
 3dVol2Surf: SUMA_3dVol2Surf.c 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ SUMA_3dVol2Surf.c ${SUMA_INPATH}	${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_3dVol2Surf.c ${SUMA_INPATH}	${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB}
 
 3dSurf2Vol: SUMA_3dSurf2Vol.c 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ SUMA_3dSurf2Vol.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_3dSurf2Vol.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB}
 
 SurfMeasures: SUMA_SurfMeasures.c 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ SUMA_SurfMeasures.c		\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_SurfMeasures.c		\
 		${SUMA_INPATH}	${SUMA_LINK_PATH} 				\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
@@ -446,7 +446,7 @@ SurfMeasures: SUMA_SurfMeasures.c
 FScurv_to_1D: SUMA_FScurv_to_1D.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED 	\
-   	${CCOPT} ${WARNOPT} -o $@ SUMA_FScurv_to_1D.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+   	${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_FScurv_to_1D.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB}
@@ -454,7 +454,7 @@ FScurv_to_1D: SUMA_FScurv_to_1D.c
 FSread_annot: SUMA_FSread_annot.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED 	\
-   	${CCOPT} ${WARNOPT} -o $@ SUMA_FSread_annot.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 		\
+   	${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_FSread_annot.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_LIB}
@@ -463,7 +463,7 @@ FSread_annot: SUMA_FSread_annot.c
 SampBias: SUMA_SampBias.c ${SUMALIB} 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-		${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c \
+		${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_SampBias.c \
 		${SUMA_INPATH}	${SUMA_LINK_PATH}		\
 		${AFNI_3dOBJS} 		\
 		${AFNI_OBJS} -lf2c			\
@@ -473,7 +473,7 @@ SampBias: SUMA_SampBias.c ${SUMALIB}
 BrainSkin: SUMA_BrainSkin.c ${SUMALIB} libgts.a libSUMAGTS.a
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-		${CCOPT} ${WARNOPT} -o $@ SUMA_BrainSkin.c \
+		${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_BrainSkin.c \
 		${SUMA_INPATH}	${SUMA_LINK_PATH}		\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o		\
 		${AFNI_OBJS} -I../avovk -lf2c			\
@@ -484,7 +484,7 @@ BrainSkin: SUMA_BrainSkin.c ${SUMALIB} libgts.a libSUMAGTS.a
 resolvitivity: SUMA_resolvitivity.c ${SUMALIB} 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-		${CCOPT} ${WARNOPT} -o $@ SUMA_resolvitivity.c ${SUMA_INPATH}		\
+		${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_resolvitivity.c ${SUMA_INPATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST}  ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
@@ -492,7 +492,7 @@ resolvitivity: SUMA_resolvitivity.c ${SUMALIB}
 growingsphere: SUMA_growingsphere.c ${SUMALIB} 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-		${CCOPT} ${WARNOPT} -o $@ SUMA_growingsphere.c ${SUMA_INPATH}		\
+		${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_growingsphere.c ${SUMA_INPATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST}  ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
@@ -500,7 +500,7 @@ growingsphere: SUMA_growingsphere.c ${SUMALIB}
 3dfilter: SUMA_3dfilter.c ${SUMALIB} 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-		${CCOPT} ${WARNOPT} -o $@ SUMA_3dfilter.c ${SUMA_INPATH}		\
+		${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_3dfilter.c ${SUMA_INPATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
@@ -508,7 +508,7 @@ growingsphere: SUMA_growingsphere.c ${SUMALIB}
 SurfMesh: SUMA_coarsen.c libgts.a ${SUMAGTSLIB}
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
-   	${CCOPT} ${WARNOPT} -o $@ SUMA_coarsen.c 	\
+   	${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ SUMA_coarsen.c 	\
       ${SUMA_INPATH} ${SUMA_LINK_PATH} 		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		libSUMAGTS.a ${SUMALIBLIST} -lglib${SUMA_GLIB_VER} ${AFNILIB} ${ZLIB}			\
@@ -516,7 +516,7 @@ SurfMesh: SUMA_coarsen.c libgts.a ${SUMAGTSLIB}
 
 3dSurfMask: SUMA_3dSurfMask.c ${SUMALIB} ${SUMASLIB}
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dSurfMask.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dSurfMask.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		-I../3DEdge/src -l3DEdge -I../avovk \
 		${SUMALIBLIST} ${SUMASLIB} -lsegtools ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB} \
@@ -524,103 +524,103 @@ SurfMesh: SUMA_coarsen.c libgts.a ${SUMAGTSLIB}
 
 Surf2VolCoord: SUMA_Surf2VolCoord_demo.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_Surf2VolCoord_demo.c \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_Surf2VolCoord_demo.c \
       ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
        
 SurfToSurf: SUMA_SurfToSurf.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfToSurf.c \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfToSurf.c \
       ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
        
 SumaProgramTemplate: SUMA_ProgramTemplate.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_ProgramTemplate.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfRetinoMap: SUMA_SurfRetinoMap.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) \
 		${AFNI_OBJS} SUMA_SurfRetinoMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 AnalyzeTrace: SUMA_AnalyzeTrace.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_AnalyzeTrace.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_AnalyzeTrace.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 DriveSuma: SUMA_DriveSuma.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_DriveSuma.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_DriveSuma.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfDsetInfo: SUMA_SurfDsetInfo.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfDsetInfo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfDsetInfo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfInfo: SUMA_SurfInfo.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfInfo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfInfo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfLocalstat: SUMA_SurfLocalStat.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfLocalStat.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfLocalStat.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfExtrema: SUMA_SurfExtrema.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfExtrema.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfExtrema.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SurfFWHM: SUMA_SurfFWHM.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfFWHM.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfFWHM.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 ROIgrow: SUMA_ROIgrow.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_ROIgrow.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_ROIgrow.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 toy_circle: SUMA_toy_circle.c SUMA_SurfWarp.o
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_toy_circle.c \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_toy_circle.c \
 		${SUMA_INPATH} ${SUMA_LINK_PATH} SUMA_SurfWarp.o	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 path_optimize: SUMA_path_optimize.c SUMA_SurfWarp.o
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_path_optimize.c \
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_path_optimize.c \
 		${SUMA_INPATH} ${SUMA_LINK_PATH} SUMA_SurfWarp.o	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SpharmDeco: SUMA_SpharmDeco.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SpharmDeco.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SpharmDeco.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} 			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 SpharmReco: SUMA_SpharmReco.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SpharmReco.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SpharmReco.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} 			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
@@ -632,25 +632,25 @@ MarchingCubes.o: MarchingCubes/MarchingCubes.c
      	
 NikoMap: SUMA_NikoMap.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_NikoMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_NikoMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 GLUT_volumedemo: SUMA_GLUT_volumedemo.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_GLUT_volumedemo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_GLUT_volumedemo.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 prompt_user: SUMA_prompt_user.c
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_prompt_user.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_prompt_user.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 RestSym: SUMA_RestSym.c
 	$(RM) $@
-	${CC} ${OMPFLAG} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_RestSym.c ${SUMA_INPATH} ${SUMA_LINK_PATH}  	\
+	${CC} ${OMPFLAG} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_RestSym.c ${SUMA_INPATH} ${SUMA_LINK_PATH}  	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 

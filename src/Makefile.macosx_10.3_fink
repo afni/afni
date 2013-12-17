@@ -53,7 +53,7 @@ SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L/sw/lib -L/opt/local/lib -L../ -L
 SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri -lf2c -lm -lmx -lglib -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
-
+SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 

@@ -205,6 +205,9 @@ int main (int argc,char *argv[])
    int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1, *ivec=NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    int orderednodelist = 1, split=0, toGDSET=0, OneMat;
+   float fv[5];
+   int nv, mxgrp;
+   char *stmp=NULL, colnm[32];
    SUMA_COLOR_MAP *SM=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -634,13 +637,15 @@ int main (int argc,char *argv[])
                      nalloc = nalloc+256;
                      ivec = (int *)SUMA_realloc(ivec, nalloc*sizeof(int));
                      names = (char **)SUMA_realloc(names, nalloc*sizeof(char *));
+                     clan = (int *)SUMA_realloc(names, nalloc*sizeof(int));
+                     cols = (float *)SUMA_realloc(ivec, 3*nalloc*sizeof(int));
                   }
                   SUMA_LHv("index[%d] %f\n", cnt, dum);
                   ivec[cnt] = (int)dum;
-                  SUMA_GET_TO_EOL(fl, fle, fl2);
+                  /* Now get the label */
+                  SUMA_GET_BETWEEN_BLANKS(fl, fle, fl2);
                   if (fl2 > fl) {
-                     names[cnt]=NULL; /* realloc above does not seem to set 
-                                         pointers to NULL */
+                     names[cnt]=NULL;
                      SUMA_COPY_TO_STRING(fl, fl2, names[cnt]);
                      SUMA_LHv("  Name[%d] %s\n",cnt, names[cnt]);
                      fl = fl2;
@@ -649,6 +654,40 @@ int main (int argc,char *argv[])
                                  ,ivec[cnt]);
                      exit(1); 
                   }
+                  /* And lastly, do we have numbers left? */
+                  SUMA_GET_TO_EOL(fl, fle, fl2);
+                  if (fl2 > fl) {
+                     SUMA_COPY_TO_STRING(fl, fl2, stmp);
+                     /* colors anyone? */
+                     nv = SUMA_StringToNum(stmp, (void *)fv, 4, 1);
+                     switch (nv) {
+                        case 0:
+                           cln[cnt] = -2;
+                        case 1:
+                           cln[cnt] = (int)fv[0];
+                           cols[3*cnt  ] = -1.0;
+                           cols[3*cnt+1] = -1.0;
+                           cols[3*cnt+2] = -1.0;
+                           break;
+                        case 4:
+                           cln[cnt] = (int)fv[0];
+                           cols[3*cnt  ] = fv[1];
+                           cols[3*cnt+1] = fv[2];
+                           cols[3*cnt+2] = fv[3];
+                           break;
+                        default:
+                           SUMA_S_Err(
+                              "Expected 1 or 4  values after name %s, got %d"
+                              "Replacing with special group",
+                              names[cnt], nv);
+                           cln[cnt] = -1;
+                           fv[0] = fv[1] = fv[2] = -1;
+                           break;
+                     }
+                  } else {
+                     cln[cnt] = -2;
+                  }
+                  SUMA_ifree(stmp);
                   ++cnt;
                }
                if (cnt != SDSET_VECFILLED(dseti)) {
@@ -656,6 +695,24 @@ int main (int argc,char *argv[])
                            cnt, graph_nodeindlist_txt, 
                            SDSET_VECFILLED(dseti), graph_nodelist_1D);
                   exit(1);
+               }
+               /* check on colors and grouping */
+               if (cnl[0] == -2) {/* No grouping, no colors */
+                  SUMA_ifree(cln); SUMA_ifree(cols);
+               } else { 
+                  mxgrp = -1;
+                  for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
+                     if (cln[cnt] > mxgrp) mxgrp = cln[cnt];
+                  }
+                  for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
+                     if (cln[cnt] < 0) cln[cnt] = mxgrp + 1;
+                  }
+                  sprintf(colnm, "%d", SUMA_MIN_PAIR(mxgrp+2,255));
+                  for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
+                     if (cols[3*cnt] < 0) {
+                        SUMA_a_good_col(colnm, cln[cnt], cln+3*cnt);
+                     }
+                  }
                }
             }  else {
                ivec = NULL; /* SUMA_AddGDsetNodeListElement will generate one */
@@ -671,6 +728,8 @@ int main (int argc,char *argv[])
                                                      SDSET_VEC(dseti,1),
                                                      SDSET_VEC(dseti,2),
                                                      names,
+                                                     cln,
+                                                     cols,
                                                      SDSET_VECFILLED(dseti)))) {
                SUMA_S_Err("Failed to add node list");
                exit(1);                                       
@@ -678,6 +737,7 @@ int main (int argc,char *argv[])
             SUMA_FreeDset(dseti); dseti = NULL;
             if (ivec) free(ivec); ivec=NULL;
             if (names) SUMA_free(names); names = NULL;
+            SUMA_ifree(cols); SUMA_ifree(cln);
          }
          if (LocalHead) SUMA_ShowDset(dset,0, NULL);  
       }
