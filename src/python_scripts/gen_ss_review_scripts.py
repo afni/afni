@@ -276,19 +276,23 @@ else
     echo "num TRs per run           : $trs"
 endif
 
+# ------------------------------------------------------------
 # count total TRs (uncensored and censored) from X-matrix
-if ( $?xmat_uncensored ) then
-   set xmat = $xmat_uncensored
-   set rows_cols = ( `1d_tool.py -infile $xmat -show_rows_cols -verb 0` )
-   set num_trs = $rows_cols[1]
-   echo "TRs total (uncensored)    : $num_trs"
-endif
 
+# note X-matrix dimensions
 set rows_cols = ( `1d_tool.py -infile $xmat_regress -show_rows_cols -verb 0` )
 set num_trs = $rows_cols[1]
+set total_trs = $num_trs        # total might change if censoring
+
+if ( $?xmat_uncensored ) then
+   set xmat = $xmat_uncensored
+   set urc = ( `1d_tool.py -infile $xmat -show_rows_cols -verb 0` )
+   set total_trs = $urc[1]
+   echo "TRs total (uncensored)    : $total_trs"
+endif
+
 echo "TRs total                 : $num_trs"
 
-set rows_cols = ( `1d_tool.py -infile $xmat_regress -show_rows_cols -verb 0` )
 @ dof_rem = $rows_cols[1] - $rows_cols[2]
 echo "degress of freedom used   : $rows_cols[2]"
 echo "degress of freedom left   : $dof_rem"
@@ -301,7 +305,7 @@ g_censor_results_str = """
 if ( $was_censored ) then
     set ntr_censor = `cat $censor_dset | grep 0 | wc -l`
     echo "TRs censored              : $ntr_censor"
-    echo "censor fraction           : `ccalc $ntr_censor/$num_trs`"
+    echo "censor fraction           : `ccalc $ntr_censor/$total_trs`"
 
     # note number of regressors of interest
     set rc = ( `1d_tool.py -infile $xstim -show_rows_cols -verb 0` )
@@ -541,9 +545,10 @@ g_history = """
    0.26 Sep 06, 2012: print missing xmat message w/out debug as it is fatal
    0.27 Apr 29, 2013: set AFNI_NO_OBLIQUE_WARNING in scripts
    0.28 Oct 24, 2013: output global correlation, and DoF info from review_basic
+   0.29 Dec 16, 2013: fixed use of num_trs with censoring
 """
 
-g_version = "gen_ss_review_scripts.py version 0.27, April 29, 2013"
+g_version = "gen_ss_review_scripts.py version 0.29, December 16, 2013"
 
 g_todo_str = """
    - figure out template_space
