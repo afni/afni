@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17,  Dec, 2013, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "use -NEW by default with 3dDespike",
+   "Added -despike_new to override the default behavior."
+ } ,
+
  { 16,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "fixed use of num_trs in the case of censoring",
    "Thanks to K Kerr for nothing the problem."
