@@ -15370,14 +15370,17 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
    static char FuncName[]={"SUMA_AddGDsetNodeListElement"};
    char *attname=NULL;
    NI_element *nel=NULL;
-   int *isort = NULL, dosort = 0, ii, jump=0, frc = 0;
+   int *isort = NULL, dosort = 0, ii, jump=0;
    float *fv=NULL, *fvxyz=NULL;
    SUMA_Boolean LocalHead = NOPE;
     
    SUMA_ENTRY;
    
    if (!dset || !dset->ngr) { SUMA_SL_Err("NUll input "); SUMA_RETURN(NULL); }
-   
+   if (cln && !cols) {
+      SUMA_S_Err("If you specify node grouping, you must also send the colors");
+      SUMA_RETURN(NULL);
+   }  
    if (!SUMA_isGraphDset(dset)) {
       SUMA_SL_Err("Non graph dset");
       SUMA_RETURN(NULL);
@@ -15548,16 +15551,6 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
          SUMA_SL_Err("Failed to add group column");
          SUMA_RETURN(nel);  
       }
-      frc = 0;
-      if (!cols) { /* make one, don't keep me guessing */
-         char sss[32];
-         frc = 1;
-         cols = (float *)SUMA_calloc(nel->vec_len, sizeof(float));
-         sprintf(sss,"%d", SUMA_MIN_PAIR(nel->vec_len, 255));
-         for (ii=0; ii<nel->vec_len; ++ii) {
-            SUMA_a_good_col(sss,cln[ii],cols+3*ii);
-         }
-      }
       if (!SUMA_AddDsetNelCol (dset, "Gnode R", 
                             SUMA_NODE_R, (void *)cols, NULL, 3)) {
          SUMA_SL_Err("Failed to add group column");
@@ -15573,7 +15566,6 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
          SUMA_SL_Err("Failed to add group column");
          SUMA_RETURN(nel);  
       }
-      if (frc) SUMA_ifree(cols);
    }
    SUMA_ifree(fvxyz);
    SUMA_ifree(isort);
