@@ -1990,6 +1990,10 @@ char * SUMA_matrix_shape_to_matrix_shape_name(SUMA_SQ_MATRIX_SHAPES sq);
 int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals, NI_element **);
 char **SUMA_GDSET_GetPointNamesColumn(SUMA_DSET *dset, int *N_vals, 
                                     NI_element **nelxyzr);
+float *SUMA_GDSET_GetPointColumn_f(SUMA_DSET *dset, int *N_vals, 
+                                      NI_element **nelxyzr, char *label);
+int *SUMA_GDSET_GetPointGroupColumn(SUMA_DSET *dset, int *N_vals, 
+                                      NI_element **nelxyzr);
 int SUMA_GDSET_Index_To_NodeIndex(SUMA_DSET *dset, int cinode);
 int SUMA_GDSET_NodeIndex_To_Index(SUMA_DSET *dset, int node);
 int SUMA_GDSET_EdgeIndex_To_Row(SUMA_DSET *dset, int ei);
