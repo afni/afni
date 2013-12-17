@@ -168,7 +168,7 @@ typedef enum {
    SUMA_NODE_INT,    /*!< Generic integer */
    SUMA_NODE_INDEX,  /*!< index of a node OR edge to locate it in its domain */
    SUMA_NODE_ILABEL, /*!< An integer coding for an integer label */
-   SUMA_NODE_SLABEL, /*!< An integer coding for a string label */
+   SUMA_NODE_SLABEL, /*!< An string label */
    SUMA_GNODE_IGROUP, /*!< An integer coding for a group integer label of 
                            a graph node*/
    SUMA_NODE_FLOAT,  /*!< Generic float */ 
