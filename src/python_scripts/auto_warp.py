@@ -124,6 +124,8 @@ class RegWrap:
 
 
       #resolutions for computing transforms
+
+      # 16 Dec 2013 [rickr]
       self.valid_opts.add_opt('-qblur', 2, [],
              helpstr="3dQwarp base and source blurs (FWHM)\n")
 
