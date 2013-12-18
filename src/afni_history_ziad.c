@@ -65,6 +65,32 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 17, Dec , 2013 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX,
+   "SUMA stopped building on systems lacking glCheckFramebufferStatus()",
+   "That was basically all linux_* systems since they are quite a few\n"
+   "versions behind. The patch is activated with a define at make time.\n"
+   "Set SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER in Makefile.* if\n"
+   "the OpenGL installed does not support  glCheckFramebufferStatus().\n"
+ },
+
+ { 17, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Allowed graph node coloring based on a graph point's group ID",
+   "To use such a coloring scheme, set Cl --> Grp in the surface controller\n"
+   "for a graph dataset. To set group IDs and color, see ConvertDset's\n"
+   "option -graph_named_nodelist_txt\n"
+ },
+ 
+ { 17, Dec , 2013 , ZSS , "ConvertDset" , MINOR , TYPE_NEW_OPT,
+   "ConvertDset's -graph_named_nodelist_txt now takes node grouping and color",
+   "See -graph_named_nodelist_txt's help section for details" 
+ },
+ 
+ { 17, Dec , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed SUMA's opacity cycling with 'o'",
+   "NULL"
+ },
+ 
+
  { 11, Dec , 2013 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
    "Wildcard file expansion with extension and view trimming and sorting",
    "See apsearch's -help output with all the -wild_* options for detail.\n"
