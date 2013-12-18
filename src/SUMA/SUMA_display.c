@@ -1694,21 +1694,35 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback)
 }
 
 /* Some of these constants may not be defined in older openGLs */
+#define NO_GL_CHECK_FRAME_BUFFER 0 /* expect glCheckFramebufferStatus() */
+
+#ifndef  GL_FRAMEBUFFER
+   #define GL_FRAMEBUFFER 0
+   #define NO_GL_CHECK_FRAME_BUFFER 1/* No glCheckFramebufferStatus() */
+#endif
+
 #ifndef  GL_FRAMEBUFFER_COMPLETE
    #define GL_FRAMEBUFFER_COMPLETE -1
+   #define NO_GL_CHECK_FRAME_BUFFER 1
 #endif
+
 #ifndef  GL_FRAMEBUFFER_UNDEFINED
    #define GL_FRAMEBUFFER_UNDEFINED -2
+   #define NO_GL_CHECK_FRAME_BUFFER 1
 #endif
+
 #ifndef  GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE
    #define GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE -3
 #endif
+
 #ifndef  GL_FRAMEBUFFER_UNSUPPORTED
    #define GL_FRAMEBUFFER_UNSUPPORTED -4
 #endif
+
 #ifndef GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT 
    #define GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT -5
 #endif
+
 #ifndef GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS
    #define GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS -6
 #endif
@@ -1718,7 +1732,7 @@ GLenum DUMMY_glCheckFramebufferStatus(GLenum dumdum) {
    return(GL_FRAMEBUFFER_COMPLETE); 
 }
 
-#ifdef SUMA_GL_NO_CHECK_FRAME_BUFFER
+#if NO_GL_CHECK_FRAME_BUFFER
    #define glCheckFramebufferStatus DUMMY_glCheckFramebufferStatus
 #endif
 
