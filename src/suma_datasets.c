@@ -2931,7 +2931,7 @@ int SUMA_AddGDsetNelXYZCol ( SUMA_DSET *dset, char *col_label,
    static char FuncName[]={"SUMA_AddGDsetNelXYZCol"};
    int *iv, is_sorted;
    NI_element *xyznel=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -15461,7 +15461,7 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
    NI_element *nel=NULL;
    int *isort = NULL, dosort = 0, ii, jump=0;
    float *fv=NULL, *fvxyz=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
     
    SUMA_ENTRY;
    
@@ -15644,7 +15644,10 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
          SUMA_SL_Err("Failed to add group column");
          SUMA_RETURN(nel);  
       }
-      SUMA_LH("Adding gnode group cols");
+      SUMA_LH("Adding gnode group cols R %f..%f, G %f..%f, B %f..%f",
+            cols[0], cols[3*(nel->vec_len-1)],
+            cols[1], cols[3*(nel->vec_len-1)+1],
+            cols[2], cols[3*(nel->vec_len-1)+2]);
       if (!SUMA_AddDsetNelCol (dset, "Gnode R", 
                             SUMA_NODE_R, (void *)cols, NULL, 3)) {
          SUMA_SL_Err("Failed to add group column");

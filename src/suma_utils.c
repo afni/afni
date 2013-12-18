@@ -3123,7 +3123,15 @@ NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep )
                     !isspace(ss[id])) id++; ] */
 
       while( id < lss && strchr(sep,ss[id]) == NULL ) id++;
-      if( id == jd ){ id++; continue; }    /* is only a separator? */
+      if( id == jd ){ /* a blank string */
+         /* Prior to Dec. 17 2013, I would:    
+            id++; continue; 
+            But that is a bad idea in cases when parsing
+            strings that have something like "...;;..." where
+            ';;' indicates an empty string. That can come up for
+            column range of data elements when a range cannot be
+            computed. */
+      }
 
       /* new sub-string runs from ss[jd] to ss[id-1] */
 
@@ -3133,7 +3141,7 @@ NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep )
 #if 0
       while( nn > 0 && isspace(ss[jd+nn-1]) ) nn-- ; /* clip trailing blanks */
 #endif
-      sar->str[num] = NI_malloc(char, (nn+1)*sizeof(char)) ;              /* make output string  */
+      sar->str[num] = NI_malloc(char, (nn+1)*sizeof(char)); /* output string  */
       if( nn > 0 ) memcpy(sar->str[num],ss+jd,nn) ;  /* copy sub-string    */
       sar->str[num++][nn] = '\0' ;                   /* terminate output  */
 
@@ -3352,7 +3360,8 @@ void SUMA_Show_NI_str_ar(NI_str_array *nisa, FILE *out)
    else {
       SS = SUMA_StringAppend_va(SS, "%d strings:\n", nisa->num);
       for (i=0; i<nisa->num; ++i) {
-         SS = SUMA_StringAppend_va(SS, "\t%d->>>%s<<<\n", i, nisa->str[i]);
+         SS = SUMA_StringAppend_va(SS, "\t%d->>>%s<<<\n", 
+                  i, nisa->str[i]?nisa->str[i]:"NULL nisa str");
       }
    }
    
@@ -3602,7 +3611,7 @@ SUMA_Boolean SUMA_Set_Sub_String(char **cs, char *sep, int ii, char *str)
    }  
    sprintf(act,"c%d",ii);
    nisa = SUMA_NI_decode_string_list( *cs , sep );
-   /*SUMA_LHv("act: >>%s<< >>%s<< >>%s<< >>%s<<\n", act, *cs, sep, str);*/ 
+   /* SUMA_LHv("act: >>%s<< >>%s<< >>%s<< >>%s<<\n", act, *cs, sep, str); */
    nisa = SUMA_NI_str_array(nisa,str,act);
    SUMA_free(*cs); 
    *cs = SUMA_NI_str_ar_2_comp_str(nisa, sep);

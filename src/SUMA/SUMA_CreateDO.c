@@ -8708,7 +8708,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    byte *bbox=NULL;
    NI_element *nelitp = NULL;
    float origwidth=0.0, radconst = 0.0, rad = 0.0, 
-         gain = 1.0, constcol[4], edgeconst=1.0, 
+         gain = 1.0, constcol[4], edgeconst=1.0, group_col[4],
          vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0, cdim=1/3.0,
          *GNr=NULL, *GNg=NULL, *GNb=NULL;
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
@@ -9311,6 +9311,26 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   colballpick = colidballs+i4;
                   glColor4ub( colidballs[i4  ], colidballs[i4+1], 
                               colidballs[i4+2], colidballs[i4+3]);
+               } else if (GNG && curcol->NodeCol == SW_SurfCont_DsetNodeColGrp) {
+                  if (n>=0) {
+                     if (GNr) {
+                        group_col[0] = GNr[n];
+                        group_col[1] = GNg[n];
+                        group_col[2] = GNb[n];
+                        group_col[3] = 1.0;
+                        SUMA_LH("Point %d group %d: %f %f %f\n", 
+                              n, GNG[n], 
+                              group_col[0], group_col[1],  group_col[2]);
+                     } else {
+                        SUMA_a_good_col("ROI_i256", GNG[n], group_col);
+                     }
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, group_col);
+                  } else {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                         constcol);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                  }
                } else if (SDO->colv && 
                           curcol->NodeCol == SW_SurfCont_DsetNodeColVal) {
                   if (okind == -2) {

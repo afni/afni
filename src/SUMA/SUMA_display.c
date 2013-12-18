@@ -3185,6 +3185,10 @@ SUMA_MenuItem DsetNodeCol_Menu[] = {
       'V', NULL, NULL, 
       SUMA_cb_SetDsetNodeCol, (XtPointer) SW_SurfCont_DsetNodeColVal, NULL},
         
+   {  "Grp", &xmPushButtonWidgetClass, 
+      'G', NULL, NULL, 
+      SUMA_cb_SetDsetNodeCol, (XtPointer) SW_SurfCont_DsetNodeColGrp, NULL},
+        
    {NULL},
 };
 
@@ -16853,6 +16857,8 @@ int SUMA_NodeColStr2NodeColMenuItem(char *str)
        SUMA_RETURN(SW_SurfCont_DsetNodeColGray50);
    else if (!strcmp(str,"val")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColVal);
+   else if (!strcmp(str,"grp")) 
+       SUMA_RETURN(SW_SurfCont_DsetNodeColGrp);
    else {
       SUMA_S_Errv("'%s' is not a valid node color, returning White", str);
       SUMA_RETURN(SW_SurfCont_DsetNodeColWhite);

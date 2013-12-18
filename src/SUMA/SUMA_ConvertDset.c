@@ -606,7 +606,7 @@ int main (int argc,char *argv[])
                char *fl=NULL, *fle=NULL, *fl2=NULL;
                int ok=0, cnt=0, mxcol=0, nalloc=0, nchar, ans;
                float dum;
-
+               
                /* Load file that has node indices and labels */
                if (!(fl = SUMA_file_suck(graph_nodeindlist_txt, &nchar))) {
                   SUMA_S_Errv("Faile to read %s\n", graph_nodeindlist_txt);
@@ -637,8 +637,8 @@ int main (int argc,char *argv[])
                      nalloc = nalloc+256;
                      ivec = (int *)SUMA_realloc(ivec, nalloc*sizeof(int));
                      names = (char **)SUMA_realloc(names, nalloc*sizeof(char *));
-                     clan = (int *)SUMA_realloc(names, nalloc*sizeof(int));
-                     cols = (float *)SUMA_realloc(ivec, 3*nalloc*sizeof(int));
+                     clan = (int *)SUMA_realloc(clan, nalloc*sizeof(int));
+                     cols = (float *)SUMA_realloc(cols, 3*nalloc*sizeof(int));
                   }
                   SUMA_LHv("index[%d] %f\n", cnt, dum);
                   ivec[cnt] = (int)dum;
@@ -714,7 +714,10 @@ int main (int argc,char *argv[])
                   sprintf(colnm, "%d", SUMA_MIN_PAIR(mxgrp+2,255));
                   for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
                      if (cols[3*cnt] < 0) {
-                        SUMA_a_good_col(colnm, clan[cnt], cols+3*cnt);
+                        SUMA_a_good_col(colnm, clan[cnt], fv5);
+                        cols[3*cnt  ] = fv5[0];
+                        cols[3*cnt+1] = fv5[1];
+                        cols[3*cnt+2] = fv5[1];
                      }
                   }
                }
@@ -727,6 +730,8 @@ int main (int argc,char *argv[])
                            GDSET_MAX_POINTS(dset), SDSET_VECFILLED(dseti));
                exit(1);
             }
+            SUMA_LH("Have indices %d .. %d", 
+                    ivec[0], ivec[SDSET_VECFILLED(dseti)]-1);
             if (!(SUMA_AddGDsetNodeListElement(dset, ivec,
                                                      SDSET_VEC(dseti,0),
                                                      SDSET_VEC(dseti,1),

@@ -351,6 +351,7 @@ typedef enum { SW_SurfCont_DsetNodeCol,
                SW_SurfCont_DsetNodeColYellow,
                SW_SurfCont_DsetNodeColGray50,
                SW_SurfCont_DsetNodeColVal,/* colorize based on data value */
+               SW_SurfCont_DsetNodeColGrp,/*  based on group membership */
                SW_N_SurfCont_DsetNodeCol }
                                           SUMA_WIDGET_INDEX_SURFCONT_DSETNODECOL;
 
