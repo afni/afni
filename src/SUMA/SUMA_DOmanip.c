@@ -386,7 +386,7 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
    static int nm=0;
    void *eo=NULL;
    int ieo;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
