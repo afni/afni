@@ -2052,7 +2052,7 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
                                                           sv->X->SetRot_prmpt);
          } else {   
-            sv->TransMode = ((sv->TransMode+4) % (STM_N_TransModes));
+            sv->TransMode = ((sv->TransMode+4) % (STM_N_TransModes-2));
             if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_0;
 
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
