@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Dec, 2013, RCR, "@update.afni.binaries", MINOR, TYPE_MODIFY,
+   "if system files seem to exist in the abin directory, block update",
+   "If AFNI seems to be installed in a system directory (i.e. with OS level\n"
+   "programs), default to not letting the update proceed.  Options -sys_ok\n"
+   "and -help_system_progs were added to provide control and details."
+ } ,
+
  { 17,  Dec, 2013, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "use -NEW by default with 3dDespike",
    "Added -despike_new to override the default behavior."
