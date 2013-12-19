@@ -1727,14 +1727,18 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback)
    #define GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS -6
 #endif
 
+#if NO_GL_CHECK_FRAME_BUFFER
+   #define glCheckFramebufferStatus DUMMY_glCheckFramebufferStatus
+#endif
+#ifndef GL_VERSION_1_4
+   #define glCheckFramebufferStatus DUMMY_glCheckFramebufferStatus
+#endif
+
 /* For older openGL libs */
 GLenum DUMMY_glCheckFramebufferStatus(GLenum dumdum) {
    return(GL_FRAMEBUFFER_COMPLETE); 
 }
 
-#if NO_GL_CHECK_FRAME_BUFFER
-   #define glCheckFramebufferStatus DUMMY_glCheckFramebufferStatus
-#endif
 
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {   
