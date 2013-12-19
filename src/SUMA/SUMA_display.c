@@ -1730,7 +1730,7 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback)
 #if NO_GL_CHECK_FRAME_BUFFER
    #define glCheckFramebufferStatus DUMMY_glCheckFramebufferStatus
 #endif
-#ifndef GL_VERSION_1_4
+#ifdef SUMA_GL_NO_CHECK_FRAME_BUFFER
    #define glCheckFramebufferStatus DUMMY_glCheckFramebufferStatus
 #endif
 
