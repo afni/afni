@@ -2142,9 +2142,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    
    SUMA_ENTRY;
    
-   #ifndef GL_VERSION_1_4
-      /* GL must be < 1.4 */
-      SUMA_S_Err("Open GL < 1.4, glWindowPos2s() not yet supported");
+   #ifndef GL_VERSION_2_0
+      /* GL must be old */
+      SUMA_S_Err("Open GL < 2.0, glWindowPos2s() not yet supported (on all machines)");
       SUMA_RETURN(NOPE);
    #else
    if (!VO) SUMA_RETURN(NOPE);
