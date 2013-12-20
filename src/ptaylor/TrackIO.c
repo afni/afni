@@ -1063,7 +1063,7 @@ NI_element * NI_setTractAlgOpts(NI_element *nel, float *MinFA,
 {   
    ENTRY("NI_setTractAlgOpts");
    
-   if (!nel) nel = NI_new_data_element ("TRACK_opts",0);
+   if (!nel) nel = NI_new_data_element ("oTRACK_opts",0);
    
    if (MinFA ) {
       NI_SETA_FLOAT(nel,"Thresh_FA",*MinFA);
@@ -1142,13 +1142,20 @@ int WriteTractAlgOpts(char *fname, NI_element *nel)
    
    ENTRY("WriteTractAlgOpts");
    
-   if (!nel || !fname) RETURN(1);
-   
-   strm = (char *)calloc(strlen(fname)+20, sizeof(char));
-   if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
-      sprintf(strm,"file:%s",fname);
+   if (!nel) {
+      fprintf(stderr, "NULL nel\n");
+      RETURN(1);
+   }
+   if (fname) {
+      strm = (char *)calloc(strlen(fname)+20, sizeof(char));
+      if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
+         sprintf(strm,"file:%s",fname);
+      } else {
+         sprintf(strm,"file:%s.niml.opts",fname);
+      }
    } else {
-      sprintf(strm,"file:%s.niml.opts",fname);
+      strm = (char *)calloc(20, sizeof(char));
+      sprintf(strm,"fd:1");
    }
    if (!(ns = NI_stream_open( strm , "w" ))) {
       ERROR_message("Failed to open %s\n", strm);
@@ -1170,65 +1177,97 @@ int NI_getProbTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAngDeg,
    ENTRY("NI_getProbTractAlgOpts");
    if (!nel) RETURN(1);
    
-   if (MinFA && (atr=NI_get_attribute(nel,"Thresh_FA"))) {
+   if (MinFA && ( (atr=NI_get_attribute(nel,"Thresh_FA")) ||
+                  (atr=NI_get_attribute(nel,"MinFA"))) ) {
       *MinFA = (float)strtod(atr,NULL);
    }
-   if (MaxAngDeg && (atr=NI_get_attribute(nel,"Thresh_ANG"))) {
+   if (MaxAngDeg && ( (atr=NI_get_attribute(nel,"Thresh_ANG")) ||
+                      (atr=NI_get_attribute(nel,"MaxAng"))) ) {
       *MaxAngDeg = (float)strtod(atr,NULL);
    }
-   if (MinL && (atr=NI_get_attribute(nel,"Thresh_Len"))) {
+   if (MinL && ( (atr=NI_get_attribute(nel,"Thresh_Len")) ||
+                 (atr=NI_get_attribute(nel,"MinL"))) ) {
       *MinL = (float)strtod(atr,NULL);
    }
-   if (NmNsFr && (atr=NI_get_attribute(nel,"Thresh_Frac"))) {
+   /* PROB. TRACKING VARIANT */
+   if (NmNsFr && ( (atr=NI_get_attribute(nel,"Thresh_Frac")) ||
+                   (atr=NI_get_attribute(nel,"MinHitFr"))) ) {
       *NmNsFr = (float)strtod(atr,NULL);
    }
-   if (Nseed && (atr=NI_get_attribute(nel,"Nseed_Vox"))) {
+   if (Nseed && ( (atr=NI_get_attribute(nel,"Nseed_Vox")) ||
+                  (atr=NI_get_attribute(nel,"Nseed"))) ) {
 	   *Nseed = (int)strtod(atr,NULL);
    }
    if (Nmonte && (atr=NI_get_attribute(nel,"Nmonte"))) {
       *Nmonte = (int)strtod(atr,NULL);
    }
+   
+   /* DET TRACKING VARIANT */
+   if (NmNsFr && (atr=NI_get_attribute(nel,"Nseed_X")) ) {
+      *NmNsFr = (int)strtod(atr,NULL);
+   }
+   if (Nseed && (atr=NI_get_attribute(nel,"Nseed_Y")) ) {
+	   *Nseed = (int)strtod(atr,NULL);
+   }
+   if (Nmonte && (atr=NI_get_attribute(nel,"Nseed_Z")) ) {
+      *Nmonte = (int)strtod(atr,NULL);
+   }
+   
+   /* Common again */
    if (M && (atr=NI_get_attribute(nel,"Ngrads"))) {
       *M = (int)strtod(atr,NULL);
    }
-   if (bval && (atr=NI_get_attribute(nel,"Bval"))) {
+   if (bval && ( (atr=NI_get_attribute(nel,"Bval")) ||
+                 (atr=NI_get_attribute(nel,"bval"))) ) {
       *bval = (int)strtod(atr,NULL);
    }
    RETURN(0);
 }
 
-NI_element * NI_setProbTractAlgOpts(NI_element *nel, float *MinFA, 
+NI_element * NI_setProbTractAlgOpts(NI_element *nel, int detmode, float *MinFA, 
 												float *MaxAngDeg, float *MinL,
 												float *NmNsFr, int *Nseed, 
 												int *Nmonte, int *M, int *bval)
 {   
    ENTRY("NI_setProbTractAlgOpts");
    
-   if (!nel) nel = NI_new_data_element ("PROBTRACK_opts",0);
+   if (!nel) nel = NI_new_data_element ("TRACK_opts",0);
    
    if (MinFA ) {
-      NI_SETA_FLOAT(nel,"Thresh_FA",*MinFA);
+      NI_SETA_FLOAT(nel,"MinFA",*MinFA);
    }
    if (MaxAngDeg) {
-      NI_SETA_FLOAT(nel,"Thresh_ANG",*MaxAngDeg);
+      NI_SETA_FLOAT(nel,"MaxAng",*MaxAngDeg);
    }
    if (MinL) {
-      NI_SETA_FLOAT(nel,"Thresh_Len",*MinL);
+      NI_SETA_FLOAT(nel,"MinL",*MinL);
    }
    if (NmNsFr) {
-	   NI_SETA_FLOAT(nel,"Thresh_Frac",*NmNsFr);
+	   if (!detmode) {
+         NI_SETA_FLOAT(nel,"MinHitFr",*NmNsFr);
+      } else {
+         NI_SETA_INT(nel,"Nseed_X",((int)*NmNsFr));
+      }
    }
 	if (Nseed) {
-	   NI_SETA_INT(nel,"Nseed_Vox",*Nseed);
+	   if (!detmode) {
+         NI_SETA_INT(nel,"Nseed",*Nseed);
+      } else {
+         NI_SETA_INT(nel,"Nseed_Y",*Nseed);
+      }
    }
 	if (Nmonte) {
-      NI_SETA_INT(nel,"Nmonte",*Nmonte);
+      if (!detmode) { 
+         NI_SETA_INT(nel,"Nmonte",*Nmonte);
+      } else {
+         NI_SETA_INT(nel,"Nseed_Z",*Nmonte);
+      }
 	}
    if (M) {
       NI_SETA_INT(nel,"Ngrads",*M);
    }
    if (bval) {
-      NI_SETA_INT(nel,"Bval",*bval);
+      NI_SETA_INT(nel,"bval",*bval);
    }
    
    RETURN(nel);
@@ -1260,6 +1299,7 @@ NI_element * ReadProbTractAlgOpts(char *fname)
       }
       NI_stream_close(ns); free(strm); strm = NULL;
    } else {
+      int detmode = -1;
       // Opening/Reading in FACT params
       if( (fin4 = fopen(fname, "r")) == NULL) {
 			fprintf(stderr, "Error opening file %s.",fname);
@@ -1267,9 +1307,14 @@ NI_element * ReadProbTractAlgOpts(char *fname)
       }
       fscanf(fin4, "%f %f %f %f %d %d %d %d",
              &MinFA,&MaxAngDeg,&MinL,&NmNsFr,&Nseed,&Nmonte,&M,&bval);
+      if( (NmNsFr >= 1) && (Nseed >= 1) && (Nmonte >= 1) ) {
+         detmode = 1;
+      } else {
+         detmode = 0;
+      } 
       fclose(fin4);
       if (!(nel = 
-            NI_setProbTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
+            NI_setProbTractAlgOpts(NULL, detmode, &MinFA, &MaxAngDeg, &MinL, 
 											  &NmNsFr,&Nseed,&Nmonte,&M,&bval))){
          ERROR_message("Failed to get options");
          RETURN(NULL);

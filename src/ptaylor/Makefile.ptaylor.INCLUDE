@@ -127,8 +127,15 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
+1dDW_Grad_o_Mat: 1dDW_Grad_o_Mat.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 1dDW_Grad_o_Mat 1dDW_Grad_o_Mat.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
+
 progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC map_TrackID \
-       3dROIMaker 3dMatch 3dNetCorr
+       3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat
 
 all: ${PTAYLORLIB} progs install 
 
@@ -148,6 +155,7 @@ install:
 	@if [ -f  3dROIMaker ]; then mv 3dROIMaker ${INSTALLDIR}; fi; 
 	@if [ -f  3dMatch ]; then mv 3dMatch ${INSTALLDIR}; fi; 
 	@if [ -f  3dNetCorr ]; then mv 3dNetCorr ${INSTALLDIR}; fi;
+	@if [ -f  1dDW_Grad_o_Mat ]; then mv 1dDW_Grad_o_Mat ${INSTALLDIR}; fi;
 
 afni_install:
 	@echo Installing Binaries...
@@ -161,3 +169,4 @@ afni_install:
 	@if [ -f  3dROIMaker ]; then mv 3dROIMaker ${INSTALLDIR}; fi; 
 	@if [ -f  3dMatch ]; then mv 3dMatch ${INSTALLDIR}; fi; 
 	@if [ -f  3dNetCorr ]; then mv 3dNetCorr ${INSTALLDIR}; fi;
+	@if [ -f  1dDW_Grad_o_Mat ]; then mv 1dDW_Grad_o_Mat ${INSTALLDIR}; fi;
