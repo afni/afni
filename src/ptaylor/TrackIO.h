@@ -90,7 +90,7 @@ NI_element *ReadTractAlgOpts(char *fname);
 int NI_getProbTractAlgOpts(NI_element *nel, float *MinFA, float *MaxAngDeg, 
 									float *MinL, float *NmNsFr, int *Nseed, 
 									int *Nmonte, int *M, int *bval);
-NI_element * NI_setProbTractAlgOpts(NI_element *nel, float *MinFA, 
+NI_element * NI_setProbTractAlgOpts(NI_element *nel, int detmode, float *MinFA, 
 												float *MaxAngDeg, float *MinL,
 												float *NmNsFr, int *Nseed, 
 												int *Nmonte, int *M, int *bval);

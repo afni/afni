@@ -105,22 +105,22 @@ void usage_ProbTrackID(int detail)
 "        MinFA    :FA cutoff value, lower bound\n"
 "        MaxAng   :max angle (in deg) to propagate between vox\n"
 "        MinL     :min physical length (in mm) of tracts to keep\n"
-"        NmNsFr   :fractional threshold for number of tracts which must\n"
+"        MinHitFr :fractional threshold for number of tracts which must\n"
 "                  pass through vox to be included in WM ROI (e.g., 0.05).\n"
 "                  It is the frac of Nseed*Nmonte to provide threshold.\n"
 "        Nseed    :number of seeds per vox, will be placed randomly\n"
 "        Nmonte   :number of Monte Carlo iterations\n"
-"        M        :number of grads used to scan (not used yet)\n"
+"        Ngrads   :number of grads used to scan (not used yet)\n"
 "        bval     :non-b=0 value (mm^2/s), e.g., 1000 (not used yet)\n"
 "\n"
 "     2) Deterministic mode (`-det_net', below):\n"
 "        MinFA       :FA cutoff value, lower bound\n"
 "        MaxAng      :max angle (in deg) to propagate between vox\n"
 "        MinL        :min physical length (in mm) of tracts to keep\n"
-"        SeedPerV[0] :Number of seeds per vox in x direc\n"
-"        SeedPerV[1] :Number of seeds per vox in y direc\n"
-"        SeedPerV[2] :Number of seeds per vox in z direc\n"
-"        M           :number of grads used to scan (not used yet)\n"
+"        Nseed_X     :Number of seeds per vox in x direc\n"
+"        Nseed_Y     :Number of seeds per vox in y direc\n"
+"        Nseed_Z     :Number of seeds per vox in z direc\n"
+"        Ngrads      :number of grads used to scan (not used yet)\n"
 "        bval        :non-b=0 value (mm^2/s), e.g., 1000 (not used yet)\n"
 "\n\n"
 "  + RUNNING, need to provide:\n"
@@ -139,6 +139,11 @@ void usage_ProbTrackID(int detail)
 "                     quantities just above (see list above); note the\n"
 "                     slight difference whether running in 1) the default\n"
 "                     probabilistic mode, or 2) the deterministic mode.\n"
+"\n"
+"                     You can also use an annotated ASCII format to specify\n"
+"                     the options. To see what that format looks like use\n"
+"                     option -write_opts to output the current options into\n"
+"                     the annotated format.\n" 
 "\n"
 "    -uncert  U_FILE :uncertainty values [6 subbricks], obtainable from\n"
 "                     3dDWUncert. Necessary in default probabilistic mode, or\n"
@@ -972,7 +977,7 @@ int main(int argc, char *argv[]) {
    }
 
 	if (dump_opts) {
-		nel = NI_setProbTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
+		nel = NI_setProbTractAlgOpts(NULL, DETNET, &MinFA, &MaxAngDeg, &MinL, 
 											  &NmNsFr,&Nseed,&Nmonte, &M, &bval);
 		WriteTractAlgOpts(prefix, nel);
 		NI_free_element(nel); nel=NULL;
@@ -1053,12 +1058,13 @@ int main(int argc, char *argv[]) {
    // adjust what some params mean
    if (DETNET){ 
 
-     if( N_nets > FOPEN_MAX)
+     if( N_nets > FOPEN_MAX) {
        ERROR_message("You have more networks (%d) than the allowable number of open stream (%d)\n"
                     "allowed for your computer. You should divide up the networks below this max,\n"
                     "or spring for a better computer.\n",N_nets,FOPEN_MAX);
      //printf("FOPEN_MAX=%d\n",FOPEN_MAX);
-
+      exit(1);
+     }
 
      Nmonte = MINI_PROB_NM; // only doing 1 it
 
@@ -1066,10 +1072,15 @@ int main(int argc, char *argv[]) {
        SeedPerV[0] = (int) NmNsFr;
        SeedPerV[1] = (int) Nseed;
        SeedPerV[2] = (int) Nmonte;
-     } 
-     else // just have 2x2x2
-       INFO_message("Perhaps you are using a *probabilistic* algopt file.\n  Since you are chose the deterministic switch,\n  going to use 8 evenly spaced seeds per vox.");
-     
+     } else { // just have 2x2x2
+       ERROR_message("Perhaps you are using a *probabilistic* algopt file.\n"
+         "Check the following annotated arguments against your -algopt file:\n");
+       nel = NI_setProbTractAlgOpts(nel, DETNET, &MinFA, &MaxAngDeg, &MinL, 
+											  &NmNsFr,&Nseed,&Nmonte,&M,&bval);
+       WriteTractAlgOpts(NULL, nel);
+       NI_free_element(nel); nel = NULL;
+       exit(1);
+     }
      Nseed = SeedPerV[0]*SeedPerV[1]*SeedPerV[2];
      
      LocSeed = calloc(Nseed,sizeof(LocSeed)); 

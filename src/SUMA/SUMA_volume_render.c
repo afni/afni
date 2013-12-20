@@ -1090,7 +1090,7 @@ SUMA_Boolean SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
    static char FuncName[]={"SUMA_dset_tex_slice_corners_gui"};   
    char *orcode;
    int dim=0, nslc=0, *dims;
-   float I[3], C[3];
+   float I[3]={0.0, 0.0, 0.0}, C[3]={0.0, 0.0, 0.0};
    SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
     
