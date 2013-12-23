@@ -36,6 +36,13 @@ typedef struct {
    int Longest_tract_bundle_index_in_network_private; /* longest tract bundle */ 
 } TAYLOR_NETWORK;
 
+typedef struct {
+   THD_3dim_dataset *grid;
+} INSTA_TRACT_SETUP;
+
+int Free_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS);
+INSTA_TRACT_SETUP *New_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS);
+
 void Show_Taylor_Network(TAYLOR_NETWORK *network, FILE *out, int mx, int mxb);
 void Show_Taylor_Bundle(TAYLOR_BUNDLE *bundle, FILE *out, int mx);
 void Show_Taylor_Tract(TAYLOR_TRACT *tract, FILE *out, int mx);

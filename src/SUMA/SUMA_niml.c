@@ -279,6 +279,12 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
                   SUMAg_CF->TCP_port[cc], cc) ;
          if (cc == SUMA_HALLO_SUMA_LINE) { /* Connected flag for AFNI line 
                                               handled elsewhere */
+            SUMA_S_Note("Connected on HALLO_SUMA");
+            SUMAg_CF->Connected_v[cc] = YUP;
+         }
+         if (cc == SUMA_INSTA_TRACT_LINE) { /* Connected flag for AFNI line 
+                                              handled elsewhere */
+            SUMA_S_Note("Connected on INSTA_TRACT_LINE");
             SUMAg_CF->Connected_v[cc] = YUP;
          }            
      }
@@ -1909,14 +1915,16 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          /* don't free ngr, it's freed later on */
          SUMA_RETURN(YUP);
       } else if (strcmp(ngr->name,"IT.griddef") == 0) {
-         THD_3dim_dataset *gdset=NULL; NI_group *gngr=NULL;
+         NI_group *gngr=NULL;
+         
+         SUMAg_CF->ITset = New_Insta_Tract_Setup(SUMAg_CF->ITset);
          TLH(1);
          SUMA_LH("Grid from InstaTract");
          if (!(gngr = (NI_group *)SUMA_FindNgrNamedAny(ngr, "AFNI_dataset"))) {
             SUMA_S_Err("Failed to get grid element");
             SUMA_RETURN(NOPE);
          }
-         if (!(gdset = THD_niml_to_dataset( gngr , 1 ))) {
+         if (!(SUMAg_CF->ITset->grid = THD_niml_to_dataset( gngr , 1 ))) {
             SUMA_S_Err("Failed to get grid");
             SUMA_RETURN(NOPE);
          }
