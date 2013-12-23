@@ -8034,6 +8034,23 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                 SurfCont->DsetTxtShadMenu );
       XtManageChild (SurfCont->DsetTxtShadMenu->mw[SW_SurfCont_DsetTxtShad]);
       
+      SurfCont->GDSET_ShowUncon_tb = 
+         XtVaCreateManagedWidget("U", 
+                                 xmToggleButtonWidgetClass, rc, NULL);
+      XmToggleButtonSetState (SurfCont->GDSET_ShowUncon_tb, 
+                              GSaux->ShowUncon, NOPE);
+      XtAddCallback (SurfCont->GDSET_ShowUncon_tb, 
+                     XmNvalueChangedCallback, 
+                     SUMA_cb_GDSET_ShowUncon_toggled, ado);
+                  
+      MCW_register_help(SurfCont->GDSET_ShowUncon_tb , 
+                        SUMA_SurfContHelp_GDSET_ViewUncon) ;
+      MCW_register_hint(SurfCont->GDSET_ShowUncon_tb , 
+                        "Show Unconnected Graph Points.") ;
+      SUMA_SET_SELECT_COLOR(SurfCont->GDSET_ShowUncon_tb);
+           
+
+      
       /* manage  rc */
       XtManageChild (rc);
       
@@ -14121,6 +14138,29 @@ void SUMA_cb_GDSET_ShowBundles_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+void SUMA_cb_GDSET_ShowUncon_toggled (Widget w, XtPointer data, 
+                                          XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_GDSET_ShowUncon_toggled"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   ado = (SUMA_ALL_DO *)data;
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   if (!SurfCont) SUMA_RETURNe;
+
+   SUMA_GDSET_ShowUncon(ado,
+               XmToggleButtonGetState (SurfCont->GDSET_ShowUncon_tb), 1);
+      
+   SUMA_RETURNe;
+}
+
 int SUMA_FlushPickBufferForDO(SUMA_ALL_DO *curDO) 
 {
    static char FuncName[]={"SUMA_FlushPickBufferForDO"};
@@ -14166,6 +14206,32 @@ int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado,
    GSaux->ShowBundles = state;
    XmToggleButtonSetState (SurfCont->GDSET_ShowBundles_tb, 
                            GSaux->ShowBundles, NOPE);   
+   /* flush pick buffer */
+   SUMA_FlushPickBufferForDO(ado);
+
+   SUMA_Remixedisplay(ado);
+   
+   SUMA_RETURN(1);
+}
+
+int SUMA_GDSET_ShowUncon ( SUMA_ALL_DO *ado, 
+                                SUMA_Boolean state, int cb_direct)
+{
+   static char FuncName[]={"SUMA_GDSET_ShowUncon"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_GRAPH_SAUX *GSaux = NULL;
+   SUMA_ENTRY;
+
+   
+   if (!(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURN(0);
+   if (!SUMA_isADO_Cont_Realized(ado)) SUMA_RETURN(0);
+   if (!(GSaux = SUMA_ADO_GSaux(ado))) SUMA_RETURN(0);
+   
+   if (GSaux->ShowUncon == state) SUMA_RETURN(1);
+   
+   GSaux->ShowUncon = state;
+   XmToggleButtonSetState (SurfCont->GDSET_ShowUncon_tb, 
+                           GSaux->ShowUncon, NOPE);   
    /* flush pick buffer */
    SUMA_FlushPickBufferForDO(ado);
 
