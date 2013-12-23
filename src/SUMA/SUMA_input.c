@@ -139,6 +139,7 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       if (SUMA_iswordsame_ci(keyname,"f7") == 1) SUMA_RETURN(XK_F7);
       if (SUMA_iswordsame_ci(keyname,"f8") == 1) SUMA_RETURN(XK_F8);
       if (SUMA_iswordsame_ci(keyname,"f9") == 1) SUMA_RETURN(XK_F9);
+      if (SUMA_iswordsame_ci(keyname,"f12") == 1) SUMA_RETURN(XK_F12);
 
       SUMA_S_Errv("Key '%s' not yet supported, complain to author.\n", keyname);
       SUMA_RETURN(XK_VoidSymbol);
@@ -927,6 +928,115 @@ int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             else { SUMA_S_Note("%s",stmp); }
          }
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break; 
+      default:
+         SUMA_S_Err("Il ne faut pas etre hawn");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_F12_Key"};
+   char tk[]={"F12"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   static int inote = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F12: 
+         {
+            /* time display speed */
+            int i, nd = 20, N_vis, *Vis_IDs=NULL, NodeTot, FaceTot;
+            GLfloat buf; 
+            float delta_t;
+            SUMA_SurfaceObject *SO=NULL;
+            struct  timeval tti;
+            char stmp[500], fnameout[]={"__SUMA.speedtest.txt"};
+            SUMA_STRING *SS = NULL;
+            FILE *fout=NULL;
+
+            if (callmode && strcmp(callmode, "drivesuma")) {
+               fout = fopen(fnameout,"w");
+            }
+            SS = SUMA_StringAppend (NULL, NULL);
+
+            buf = sv->light0_position[2];
+            if (callmode && strcmp(callmode, "interactive") == 0) {
+               SUMA_SLP_Note ("Timing Display speed\n"
+                              "(20 displays): \n"); 
+            } else {
+               SUMA_S_Note("Timing Display speed\n"
+                           "(20 displays): \n"); 
+            }
+            if (fout) fprintf(fout, "Timing Display speed (20 displays):\n"); 
+            
+            SUMA_etime (&tti, 0);
+            for (i=0; i< nd-1; ++i) {
+               fprintf (SUMA_STDOUT,"%d\t", i); fflush (SUMA_STDOUT);
+               sv->light0_position[2] *= -1;
+               glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
+               /* direct call to display */
+               SUMA_display(sv, SUMAg_DOv);
+               /* wait for display */
+               glFinish();
+            }
+            fprintf (SUMA_STDOUT,"\n");
+            delta_t = SUMA_etime (&tti, 1);
+            sv->light0_position[2] = buf;
+            glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
+            SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+            sprintf (stmp,
+                     "Elapsed time: %f seconds.\n%.2f displays/second.\n", 
+                     delta_t, nd/delta_t);
+            SS = SUMA_StringAppend (SS, stmp);
+
+            /* Estimate how many nodes and triangles were rendered */
+            Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
+            N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
+            NodeTot = 0;
+            FaceTot = 0;
+            for (i=0; i<N_vis;++i) {
+               SO = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[i]].OP;
+               FaceTot += SO->N_FaceSet;
+               NodeTot += SO->N_Node;   
+            }
+            if (N_vis) {
+               sprintf (stmp, "In Polymode %d, rendered \n"
+                              "%.2f Ktri/sec %.2f Kpnt/sec.\n",
+                  sv->PolyMode,
+                  (float)FaceTot / 1000.0 / delta_t  , 
+                  (float)NodeTot / 1000.0 / delta_t );
+               SS = SUMA_StringAppend (SS, stmp);
+            }
+
+            if (callmode && strcmp(callmode, "interactive") == 0) {
+               SUMA_SLP_Note("%s",SS->s);
+            } else {
+               SUMA_S_Note("%s",SS->s); 
+            }
+            
+            if (fout) {
+               fprintf(fout, "%s\n", SS->s);
+               SUMA_S_Note("Timing results written to file: %s", fnameout);
+               fclose(fout);
+            }
+            
+            if (Vis_IDs) SUMA_free(Vis_IDs);
+            SUMA_free(SS->s);
+            SUMA_free(SS);
+         } 
          break; 
       default:
          SUMA_S_Err("Il ne faut pas etre hawn");
@@ -4194,67 +4304,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case XK_F12: /* F12 */
-            /* time display speed */
-            {
-               int i, nd = 20, N_vis, *Vis_IDs=NULL, NodeTot, FaceTot;
-               GLfloat buf; 
-               float delta_t;
-               SUMA_SurfaceObject *SO=NULL;
-               struct  timeval tti;
-               char stmp[500];
-               SUMA_STRING *SS = NULL;
-               
-               SS = SUMA_StringAppend (NULL, NULL);
-
-               buf = sv->light0_position[2];
-               SUMA_SLP_Note ("Timing Display speed\n"
-                              "(20 displays): \n"); 
-               SUMA_etime (&tti, 0);
-               for (i=0; i< nd-1; ++i) {
-                  fprintf (SUMA_STDOUT,"%d\t", i); fflush (SUMA_STDOUT);
-                  sv->light0_position[2] *= -1;
-                  glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
-                  /* direct call to display */
-                  SUMA_display(sv, SUMAg_DOv);
-                  /* wait for display */
-                  glFinish();
-               }
-               fprintf (SUMA_STDOUT,"\n");
-               delta_t = SUMA_etime (&tti, 1);
-               sv->light0_position[2] = buf;
-               glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
-               SUMA_postRedisplay(w, clientData, callData);
-               sprintf (stmp,
-                        "Elapsed time: %f seconds.\n%.2f displays/second.\n", 
-                        delta_t, nd/delta_t);
-               SS = SUMA_StringAppend (SS, stmp);
-               
-               /* Estimate how many nodes and triangles were rendered */
-               Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
-               N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
-               NodeTot = 0;
-               FaceTot = 0;
-               for (i=0; i<N_vis;++i) {
-                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[i]].OP;
-                  FaceTot += SO->N_FaceSet;
-                  NodeTot += SO->N_Node;   
-               }
-               if (N_vis) {
-                  sprintf (stmp, "In Polymode %d, rendered \n"
-                                 "%.2f Ktri/sec %.2f Kpnt/sec.\n",
-                     sv->PolyMode,
-                     (float)FaceTot / 1000.0 / delta_t  , 
-                     (float)NodeTot / 1000.0 / delta_t );
-                  SS = SUMA_StringAppend (SS, stmp);
-               }
-               
-               SUMA_SLP_Note("%s",SS->s);
-               
-               if (Vis_IDs) SUMA_free(Vis_IDs);
-               SUMA_free(SS->s);
-               SUMA_free(SS);
-               
-            } 
+            if (!SUMA_F12_Key(sv, "F12", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
             break;
          case XK_F13:
             if (SUMAg_CF->Dev) {

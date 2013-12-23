@@ -65,12 +65,40 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, Dec , 2013 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+   "Added support for F12 key from DriveSuma",
+   NULL
+ },
+
+ { 22, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+   "Added option to hide graph nodes when nothing is connected to them",
+   NULL
+ },
+
+ { 22, Dec , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed problem with graph edge selection when viewing connections from node",
+   "Problem is mismatch between colid and what gets rendered when it is not\n"
+   "the whole object being displayed. For now, everything BUT thresholded \n"
+   "edges will get rendered during selection, regardless of what is being\n"
+   "displayed"
+ },
+
+ { 20, Dec , 2013 , ZSS , "3dProbTrackID" , MICRO , TYPE_MODIFY,
+   "Fixed confusion with -algopts parsing",
+   "Program will stop if it gets confused about parameters.\n"
+   "Made annotations in options file match those in the help\n"
+ },
+
  { 17, Dec , 2013 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX,
    "SUMA stopped building on systems lacking glCheckFramebufferStatus()",
    "That was basically all linux_* systems since they are quite a few\n"
    "versions behind. The patch is activated with a define at make time.\n"
    "Set SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER in Makefile.* if\n"
    "the OpenGL installed does not support  glCheckFramebufferStatus().\n"
+   "Note that -DSUMA_GL_NO_CHECK_FRAME_BUFFER is not really needed for\n"
+   "most build machines because the code uses other ways to check for\n"
+   "glCheckFramebufferStatus(). However these auto checks failed on \n"
+   "hurin so SUMA_GL_NO_CHECK_FRAME_BUFFER is still necessary for the moment"
  },
 
  { 17, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,

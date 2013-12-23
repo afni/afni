@@ -681,6 +681,10 @@ int SUMA_GDSET_ShowBundles ( SUMA_ALL_DO *ado,
                                 SUMA_Boolean state, int cb_direct);
 void SUMA_cb_GDSET_ShowBundles_toggled (Widget w, XtPointer data, 
                                           XtPointer client_data);
+int SUMA_GDSET_ShowUncon ( SUMA_ALL_DO *ado, 
+                                SUMA_Boolean state, int cb_direct);
+void SUMA_cb_GDSET_ShowUncon_toggled (Widget w, XtPointer data, 
+                                          XtPointer client_data);
 int SUMA_FlushPickBufferForDO(SUMA_ALL_DO *curDO);
 
 

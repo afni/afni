@@ -4581,6 +4581,25 @@ char **SUMA_sreorder(char **y, int *isort, int N_isort)
    SUMA_RETURN(yr);
 }
 
+byte *SUMA_breorder(byte *y, int *isort, int N_isort)
+{
+   static char FuncName[]={"SUMA_breorder"};
+   int i = 0;
+   byte *yr = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!y || !isort || N_isort <= 0) SUMA_RETURN(yr);
+   
+   yr = (byte *)SUMA_calloc( N_isort, sizeof(byte));
+   if (!yr) SUMA_RETURN(yr);
+   
+   for (i=0; i<N_isort; ++i) yr[i] = y[isort[i]];
+   
+   SUMA_RETURN(yr);
+}
+
+
 float *SUMA_freorder(float *y, int *isort, int N_isort)
 {
    static char FuncName[]={"SUMA_freorder"};

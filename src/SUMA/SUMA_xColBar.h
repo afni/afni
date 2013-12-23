@@ -1145,6 +1145,9 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "the graph dataset contains such information. For\n"\
    "the moment, only 3dProbTrackID creates such data."
 
+#define SUMA_SurfContHelp_GDSET_ViewUncon \
+   "Show graph nodes even if unconnected to other nodes.\n"
+
 /* this one's based on AFNI's func->thr_pval_label help */
 #define SUMA_SurfContHelp_ThreshStats  \
    "Shows the estimated significance\n"   \

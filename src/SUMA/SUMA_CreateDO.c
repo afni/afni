@@ -6983,6 +6983,7 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          GSaux->thd = NULL;
          GSaux->net = NULL;
          GSaux->ShowBundles = 0;
+         GSaux->ShowUncon = 0;
       }
       
       SUMA_DrawDO_UL_FullMonty(GSaux->DisplayUpdates);
@@ -8705,7 +8706,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    char **names=NULL;
    GLboolean valid;
    int gllst=0, gllsm=0, OnlyThroughNode = -1;
-   byte *bbox=NULL;
+   byte *bbox=NULL, *NodeMask=NULL, *NodeMaskr=NULL;
    NI_element *nelitp = NULL;
    float origwidth=0.0, radconst = 0.0, rad = 0.0, 
          gain = 1.0, constcol[4], edgeconst=1.0, group_col[4],
@@ -8714,6 +8715,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
    byte *mask=NULL, *wmask=NULL, showword = 0;
    GLubyte *colid=NULL, *colidballs=NULL, *colballpick=NULL;
+   GLubyte green[4] = {0, 1, 0, 1};
+
    SUMA_SurfaceObject *SO1 = NULL;
    SUMA_DSET *dset=NULL;
    SUMA_DUMB_DO DDO;
@@ -8741,7 +8744,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       SUMA_S_Warn("This option is no good at this moment when segment stippling"
                   "\n is turned on for all segments. Easy to fix though ...");
    }
-   if (SDO->NodeBased == 2) { /* Locate the surface in question */
+   if (SDO->NodeBased == 2) { 
       SUMA_LH("Node-based vectors");
       if (!SDO->Parent_idcode_str) {
          SUMA_SL_Err("Object's parent idcode_str not specified.");
@@ -8851,7 +8854,13 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          SUMA_RETURN(NOPE);
       }
    }
-   
+
+   if (!sv->DO_PickMode && !GSaux->ShowUncon) {
+      SUMA_LH("Masking unconnected nodes");
+      NodeMask = (byte *)SUMA_calloc(DDO.N_Node, sizeof(byte));
+   } else {
+      SUMA_LH("No Masking unused");
+   }
    for (i=0;i<3;++i) {
       textcolor[i] = 1.0 - sv->clear_color[i];
       textshadcolor[i] = sv->clear_color[i];
@@ -8897,6 +8906,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             if (mask) SUMA_free(mask); SUMA_RETURN(NOPE);
       }
    } else {
+      /* Note that this colid is for all the elements in the object
+         to be drawn. If you show only connections through a node
+         or something there will be a mismatch between what is drawn
+         and what is being selected. */
       if (!(colid = SUMA_DO_get_pick_colid((SUMA_ALL_DO *)SDO, SDO->idcode_str,
                            "segments", SDO->DrawnDO_variant,
                            SDO->Parent_idcode_str, SDO->Parent_do_type,
@@ -8908,8 +8921,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       DO_PICK_DISABLES;
    }
    
-   if (GSaux->PR->datum_index == -1 && GSaux->PR->AltSel[SUMA_ENODE_0] != -1) {
+   if (!sv->DO_PickMode &&
+       GSaux->PR->datum_index == -1 && GSaux->PR->AltSel[SUMA_ENODE_0] != -1) {
       OnlyThroughNode = GSaux->PR->AltSel[SUMA_ENODE_0];
+      if (NodeMask) NodeMask[OnlyThroughNode] = 1;
    } else OnlyThroughNode = -1;
    
    ic0 = -1; ic1=-1; r0 = -1; r1 = -1; s0 = -1; s1 = -1;
@@ -8944,7 +8959,13 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             cn3 = 3*cn;
          cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
             cn13 = 3*cn1;
+
          if (cn<DDO.N_Node && cn1 < DDO.N_Node) {
+            if ( NodeMask &&
+                 (cn != cn1)) { /* Only draw points touched by an edge 
+                                   between different points (off diagonal)*/
+               NodeMask[cn] = 1; NodeMask[cn1] = 1; 
+            }
             if (stipsel) {
                if(!(gllst = glIsEnabled(GL_LINE_STIPPLE)))
                                     glEnable(GL_LINE_STIPPLE);
@@ -8976,7 +8997,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          }
       }
    }                                          
-                                              
+                                                    
    if (  SDO->NodeBased == 2 ) {
       if (curcol->EdgeThick != SW_SurfCont_DsetEdgeThickVal &&
           curcol->EdgeStip != SW_SurfCont_DsetEdgeStipVal) {
@@ -9046,6 +9067,11 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             if (cn<DDO.N_Node && cn1 < DDO.N_Node && 
                 IN_MASK(GSaux->isColored,si)) {
                i3 = 3*i;
+               if ( NodeMask &&
+                   (cn != cn1)) { /* Only draw points touched by an edge 
+                                   between different points (off diagonal)*/
+                   NodeMask[cn] = 1; NodeMask[cn1] = 1; 
+               }
                
                if (colid){
                   n4 = 4*i; /* Always keep indexing tied to arrays of objects */
@@ -9105,6 +9131,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             if (cn<DDO.N_Node && cn1 < DDO.N_Node && 
                 IN_MASK(GSaux->isColored,si)) {
                i3 = 3*i;
+               if (NodeMask && 
+                   (cn != cn1)) { NodeMask[cn] = 1; NodeMask[cn1] = 1; }
                if (curcol->EdgeStip == SW_SurfCont_DsetEdgeStipVal) {
                   istip = 16-(int)((SUMA_ABS(curcol->V[i]))*Sfac);
                   
@@ -9152,7 +9180,13 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          cn3 = 3*cn;
       cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
          cn13 = 3*cn1;
+      
       if (cn<DDO.N_Node && cn1 < DDO.N_Node) {
+         if ( NodeMask &&
+              (cn != cn1)) { /* Only draw points touched by an edge 
+                                      between different points (off diagonal)*/
+            NodeMask[cn] = 1; NodeMask[cn1] = 1; 
+         }
          /* Kill depth test or you could get burried under two way edges 
             There is a problem though in that the edge wil ride over 
             other objects that otherwise would obscure it, so that might
@@ -9222,6 +9256,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          multiple vectors per node possible...*/
       
       if (sv->DO_PickMode) {
+         colballpick = green; /* just to be safe, to simplify debugging
+                                 instead of having NULL */
          if (!(colidballs = SUMA_DO_get_pick_colid(
                               (SUMA_ALL_DO *)SDO, SDO->idcode_str,
                               "balls", SDO->DrawnDO_variant,
@@ -9240,7 +9276,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          xyz[3*i+1] = DDO.NodeList[cn3+1];
          xyz[3*i+2] = DDO.NodeList[cn3+2];
       }
-      
+            
       if (fontGL && names && depthsort) {
          float *xyzsc= SUMA_malloc(3*SDO->N_UnqNodes*sizeof(float)), 
                *xyzscr=NULL;
@@ -9249,6 +9285,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          xyzscr = SUMA_freorder_triplets(xyzsc, dsrt, SDO->N_UnqNodes); 
          GNIr = SUMA_reorder(GNI, dsrt, SDO->N_UnqNodes);
          namesr = SUMA_sreorder(names, dsrt, SDO->N_UnqNodes);
+         if (NodeMask) NodeMaskr =SUMA_breorder(NodeMask, dsrt, SDO->N_UnqNodes);
          #if 0
          fprintf(stderr,"Sorting from farthest to closest:\n");
          for (i=0; i<SDO->N_UnqNodes;++i) {
@@ -9261,13 +9298,13 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          #endif
          wmask = SUMA_WordOverlapMask(sv->X->WIDTH, sv->X->HEIGHT,
                                       SDO->N_UnqNodes, 
-                                      namesr, fontGL, xyzscr, -1);
-         SUMA_ifree(xyzsc); SUMA_ifree(xyzscr); 
+                                      namesr, fontGL, xyzscr, -1, NodeMaskr);
+         SUMA_ifree(xyzsc); SUMA_ifree(xyzscr); SUMA_ifree(NodeMaskr);
       } else {
          xyzr = xyz;
          GNIr = GNI;
          namesr = names;
-         wmask = NULL;
+         wmask = NodeMask;
       }
       n4=0; 
       for (i=0; i<SDO->N_UnqNodes;++i) {
@@ -9355,7 +9392,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                }
             }
             glTranslatef ( xyzr[i3]  , xyzr[i3+1]  , xyzr[i3+2]  );
-            gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
+            if (showword) gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
                         /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
                         10, 10);
             glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
@@ -9588,7 +9625,6 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             if (gl_dt) glEnable(GL_DEPTH_TEST);
          }               
       }
-      
       if (xyzr != xyz) SUMA_ifree(xyzr); xyzr=NULL;
       if (namesr != names) SUMA_ifree(namesr); namesr=NULL;
       if (GNIr != GNI) SUMA_ifree(GNIr); GNIr = NULL;
@@ -9597,6 +9633,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    }
 
    GETOUT:
+   SUMA_ifree(NodeMask); 
    SUMA_ifree(dsrt); SUMA_ifree(wmask);
    if (sv->DO_PickMode) DO_PICK_RESTORE;
    
@@ -9631,7 +9668,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
 */                        
 byte *SUMA_WordOverlapMask(int Nwidth, int Nheight, int N_n, 
                            char **names, void *fontGL, float *xyzr,
-                           float maxoverlap)
+                           float maxoverlap, byte *usethesewords)
 {
    static char FuncName[]={"SUMA_WordOverlapMask"};
    byte **overbuf=NULL, *mask=NULL;
@@ -9648,6 +9685,9 @@ byte *SUMA_WordOverlapMask(int Nwidth, int Nheight, int N_n,
    mask = (byte *)SUMA_calloc(N_n, sizeof(byte));
    wh = SUMA_WordBoxSize(names, N_n, ww, fontGL);
    for (i = N_n-1; i>-1; --i) {
+      if (!(IN_MASK(usethesewords, i))) {
+         mask[i] = 0.0; continue;
+      }
       ibuf = (int)xyzr[3*i]; jbuf = (int)xyzr[3*i+1];
       if (ibuf < 0) ibuf = 0;
       if (jbuf < 0) jbuf = 0;
