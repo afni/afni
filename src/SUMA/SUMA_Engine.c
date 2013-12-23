@@ -2699,6 +2699,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Err("NI_write_element failed");   
                }
             }
+            
+            if ( SUMAg_CF->Connected_v[SUMA_INSTA_TRACT_LINE] ) {
+               SUMA_S_Warn(
+               "Instead of (or in addition to) just sending a cross hair nel,\n"
+               "send something that defines an volume ROI on the grid\n"
+               "of ITset->grid. For now, just use a simple idiotic\n"
+               "box centered on XYZ, the rest of the excitement\n"
+               "will come in later. \n");
+               if ( (nn = NI_write_element( 
+                        SUMAg_CF->ns_v[SUMA_INSTA_TRACT_LINE] , 
+                                 nel , NI_TEXT_MODE)) < 0) {
+                  SUMA_S_Err("NI_write_element failed");   
+               }
+            }
             /* SUMA_nel_stdout (nel); */
       
             NI_free_element(nel);
