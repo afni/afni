@@ -7122,7 +7122,8 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
       Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
    if (  ( SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
            sv->LinkAfniCrossHair )                             ||
-         ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])    ) {
+         ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])        ||
+         ( SUMAg_CF->Connected_v[SUMA_INSTA_TRACT_LINE])    ) {
       if (LocalHead) 
          fprintf(SUMA_STDERR,
                   "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
@@ -7657,7 +7658,8 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
       Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
    if (  ( SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
            sv->LinkAfniCrossHair )                             ||
-         ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])    ) {
+         ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE])        ||
+         ( SUMAg_CF->Connected_v[SUMA_INSTA_TRACT_LINE])    ) {
       if (LocalHead) 
          fprintf(SUMA_STDERR,
                   "%s: Notifying Afni of CrossHair XYZ\n", FuncName);

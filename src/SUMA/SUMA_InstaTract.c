@@ -9,7 +9,7 @@
 
 typedef struct {
    int TCP_port; /* Can get number from stdout of sys. command: 
-                           afni -npb PB -port_number SUMA_HALLO_SUMA_NIML */
+                           afni -npb PB -port_number SUMA_INSTA_TRACT_NIML */
    NI_stream NimlStream;
    int NimlStream_flag;
    char Hostname[64]; /* default, same computer */
@@ -40,14 +40,14 @@ int InstaTract_process_NIML_data(NI_element *nini, COMM_STRUCT *cs);
 
 
 /* initialize the communication structure 
-  When port = -1, the he default port value of 1046 is used.
+  When port = -1, the he default port value of 1047 is used.
   It corresponds to the InstaTract port when SUMA's -npb option is set to 0.
   At the moment, you can't call a C function to get the 
   port number for a certain Niml Port Block (npb) without
   depending on the AFNI libraries (see init_ports_list() and its
   brethren). As one way to get the port value that you want for any 
   -npb value you can use the following system command:
-  afni -npb 0 -port_number SUMA_HALLO_SUMA_NIML
+  afni -npb 0 -port_number SUMA_INSTA_TRACT_NIML
   */
 COMM_STRUCT * NewCommStruct(char *Hostname, int port) 
 {
@@ -58,7 +58,7 @@ COMM_STRUCT * NewCommStruct(char *Hostname, int port)
    else sprintf(cs->Hostname,"127.0.0.1");
    
    
-   if (port < 0)  cs->TCP_port = 1046;
+   if (port < 0)  cs->TCP_port = 1047;
    else cs->TCP_port = port;
    
    sprintf(cs->StreamName,"tcp:%s:%d", cs->Hostname, cs->TCP_port);
@@ -684,7 +684,7 @@ int main( int argc , char *argv[] )
    NI_group *ngr = NULL, *ndset=NULL;
    char sss[256]={""};
    int i, nn;
-   THD_3dim_dataset *gdset;
+   THD_3dim_dataset *gdset=NULL;
    
    
    /* bureaucracy */

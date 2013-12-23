@@ -3913,6 +3913,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->PointerLastInViewer = -1;
    
    cf->giset = NULL;
+   cf->ITset = NULL;
    
    cf->autorecord = SUMA_SetAutoRecord(getenv("SUMA_AutoRecordPrefix"));
 
@@ -4419,6 +4420,11 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
          SUMA_S_Warn("dset is not being freed");
       }
       DESTROY_GICOR_setup(cf->giset); cf->giset=NULL;
+   }
+   
+   if (cf->ITset) {
+      Free_Insta_Tract_Setup(cf->ITset);
+      SUMA_ifree(cf->ITset);
    }
    
    if (cf->autorecord) { 

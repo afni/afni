@@ -3475,6 +3475,7 @@ typedef struct {
                            -1 if unknown */
    
    GICOR_setup *giset; /*!< parameters for group icorr setup */
+   INSTA_TRACT_SETUP *ITset; /*!< parameters for instatract setup */
    
    SUMA_PARSED_NAME *autorecord; /*!< Autorecord prefix */
    
