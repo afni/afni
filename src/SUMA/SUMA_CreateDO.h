@@ -63,8 +63,9 @@ typedef struct {
    SUMA_NGR_INDEX_HASH_DATUM *thd; /*! A hash table pointing to niml element
                                        containing tract to represent path
                                        between two points */
-   SUMA_Boolean ShowBundles; /*!< Show current plane only out of the entire 
-                                    stack */
+   SUMA_Boolean ShowBundles; /*!< Show bundles instead of edge if possible */
+   SUMA_Boolean ShowUncon; /*!< Show graph points (nodes) even if not 
+                                  connected */
 } SUMA_GRAPH_SAUX;
 
 /*! A Tract object's Auxiliary structure for SUMA's use */
@@ -487,7 +488,8 @@ SUMA_Boolean SUMA_MinMaxNodesInROI (SUMA_DRAWN_ROI *D_ROI,
                                     int MinMax[]);
 SUMA_Boolean SUMA_TextBoxSize(char *txt, int *w, int *h, int *nl, void *font);
 byte *SUMA_WordOverlapMask(int Nwidth, int Nheight, int N_n, char **names, 
-                           void *fontGL, float *xyz, float maxoverlap);
+                           void *fontGL, float *xyz, float maxoverlap, 
+                           byte *usethesewords);
 int SUMA_WordBoxSize (char **txt, int N_txt, int *w, void *font);
 int SUMA_glutBitmapFontHeight(void *font) ;
 int *SUMA_NIDOtext_LineWidth(char *string, void *font, int *N_lines);
