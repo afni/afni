@@ -29,6 +29,10 @@ typedef struct {
                                 As long as GoneBad is 0 */
 } COMM_STRUCT;
 
+/* PT: In this struct you can stash anything you need to 
+   gather from the command line (-algopt, etc.) of InstaTract
+   in order to pass to the mini prob calculator.
+   I kept it real simple for now */ 
 typedef struct {
    THD_3dim_dataset *gset;
    int Niter;

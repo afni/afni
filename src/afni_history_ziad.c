@@ -65,12 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 22, Dec , 2013 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
+ { 24, Dec , 2013 , ZSS , "InstaTract" , MINOR , TYPE_NEW_PROG,
+   "Wrote the outlines of InstaTract to eventually perform miniprob tracking",
+   "The program now talks to SUMA and receives queries from it.\n"
+   "The queries return a dummy network for now. PT will make it interface\n"
+   "with FATCAT to compute the actual tracts."
+ },
+
+ { 23, Dec , 2013 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
    "Added support for F12 key from DriveSuma",
    NULL
  },
 
- { 22, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
+ { 23, Dec , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Added option to hide graph nodes when nothing is connected to them",
    NULL
  },
