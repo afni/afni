@@ -2989,7 +2989,8 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
    memset(&sopd, 0, sizeof(SUMA_OVERLAY_PLANE_DATA));
    if (dotract & 1) {
    SUMA_LH("Coloring by bundle id");
-   ltmp = SUMA_append_replace_string(SUMA_ADO_Label(ado), "b_tracts","_",0);
+   ltmp = SUMA_append_replace_string(
+            without_afni_filename_extension(SUMA_ADO_Label(ado)), "BUN","_",0);
    if (!SUMA_Fetch_OverlayPointer (ado, ltmp, &OverInd)) {   
       sopd.dtlvl = SUMA_LEV2_DAT; /* colors per bundle */
       if ( (sopd.N = SUMA_ADO_N_Datum_Lev(ado, sopd.dtlvl)) <= 0) {
@@ -3044,7 +3045,8 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
    
    if (dotract & 2) {
    SUMA_LH("Coloring by orientation at middle");
-   ltmp = SUMA_append_replace_string(SUMA_ADO_Label(ado), "tracts","_",0);
+   ltmp = SUMA_append_replace_string(
+            without_afni_filename_extension(SUMA_ADO_Label(ado)), "MID","_",0);
    if (!SUMA_Fetch_OverlayPointer (ado, ltmp, &OverInd)) {   
       sopd.dtlvl = SUMA_LEV1_DAT; /* colors per tract */
       if ( (sopd.N = SUMA_ADO_N_Datum_Lev(ado, sopd.dtlvl)) <= 0) {
@@ -3116,7 +3118,8 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
    if (dotract & 3) {
    SUMA_LH("Coloring by local orientation");
    /* And now create the local orientation based coloring */
-   ltmp = SUMA_append_replace_string(SUMA_ADO_Label(ado), "p_tracts","_",0);
+   ltmp = SUMA_append_replace_string(
+         without_afni_filename_extension(SUMA_ADO_Label(ado)), "LO","_",0);
    if (!SUMA_Fetch_OverlayPointer (ado, ltmp, &OverInd)) {   
       sopd.dtlvl = SUMA_ELEM_DAT; /* colors per tract */
       if ( (sopd.N = SUMA_ADO_N_Datum_Lev(ado, sopd.dtlvl)) <= 0) {
@@ -3195,6 +3198,8 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
    
    /* add as current overlay */
    if ((SurfCont = SUMA_ADO_Cont(ado)) && !SurfCont->curColPlane) {
+      SUMA_LH("Set curcolplane to overlay %p index %d", 
+                  SUMA_ADO_Overlay(ado,OverInd), OverInd);
       SurfCont->curColPlane = SUMA_ADO_Overlay(ado,OverInd);
    }
    
