@@ -38,7 +38,7 @@ int Hallo_process_NIML_data(NI_element *nini);
 
 
 /* initialize the communication structure 
-  When port = -1, the he default port value of 1046 is used.
+  When port = -1, the default port value of 1046 is used.
   It corresponds to the HalloSuma port when SUMA's -npb option is set to 0.
   At the moment, you can't call a C function to get the 
   port number for a certain Niml Port Block (npb) without
@@ -527,9 +527,9 @@ int Hallo_niml_workproc( void *thereiselvis )
                fprintf(stderr,
                   "Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
             }
+            NI_free_element( nini ) ;
          }
 
-         NI_free_element( nini ) ;
 
          if (LocalHead)   
             fprintf(stderr,"processing time=%d ms\n",NI_clock_time()-ct) ;
