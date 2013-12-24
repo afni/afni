@@ -3119,7 +3119,7 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
    SUMA_LH("Coloring by local orientation");
    /* And now create the local orientation based coloring */
    ltmp = SUMA_append_replace_string(
-         without_afni_filename_extension(SUMA_ADO_Label(ado)), "LO","_",0);
+         without_afni_filename_extension(SUMA_ADO_Label(ado)), "LOC","_",0);
    if (!SUMA_Fetch_OverlayPointer (ado, ltmp, &OverInd)) {   
       sopd.dtlvl = SUMA_ELEM_DAT; /* colors per tract */
       if ( (sopd.N = SUMA_ADO_N_Datum_Lev(ado, sopd.dtlvl)) <= 0) {
