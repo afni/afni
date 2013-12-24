@@ -9633,8 +9633,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    }
 
    GETOUT:
+   if (wmask && wmask != NodeMask) SUMA_free(wmask); wmask = NULL;
    SUMA_ifree(NodeMask); 
-   SUMA_ifree(dsrt); SUMA_ifree(wmask);
+   SUMA_ifree(dsrt);
    if (sv->DO_PickMode) DO_PICK_RESTORE;
    
    SUMA_ifree(colid); SUMA_ifree(colidballs);
