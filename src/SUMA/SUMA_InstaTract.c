@@ -651,16 +651,13 @@ int InstaTract_process_NIML_data(NI_group *nini, COMM_STRUCT *cs,
 void InstaTract_usage(int detail) 
 {
    printf(
-"A program to illustrate how to communicate with SUMA\n"
-"  with the help of AFNI's NIML API. Both the NIML API and this\n"
-"  program are independent of the rest of AFNI/SUMA libraries and \n"
-"  can be compiled with C or C++ compilers.\n"
+"A promise of a program\n"
 "\n" 
 "\n"
 "  Example:\n"
 "     Run the following two commands, preferably from different shells.\n"
-"     suma -npb 0 -niml &\n"
-"     InstaTract\n"
+"     suma -niml &\n"
+"     InstaTract -grid SOMEVOLUME &\n"
 "\n" 
             );
    return;
