@@ -4990,6 +4990,7 @@ int SUMA_ShowNel (void *nel)
    
    SUMA_ENTRY;
    
+   SUMA_DUMP_TRACE("Who called ShowNel?");
    nstdout = NI_stream_open( "fd:1","w");
    if( nstdout == NULL ){ 
       fprintf(stderr,"%s: Can't open fd:1\n", FuncName); 

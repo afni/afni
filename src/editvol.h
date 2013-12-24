@@ -697,7 +697,7 @@ extern MRI_IMARR * mri_get_indexed_nbhd( MRI_IMAGE *, byte *,
 
 extern int mri_get_nbhd_array( MRI_IMAGE *inim , byte *mask ,
                                int xx, int yy, int zz, MCW_cluster *nbhd, void *nar ) ;
-extern int mri_load_nbhd_indices ( MRI_IMAGE *inim , byte *mask ,
+extern int mri_load_nbhd_indices ( int nx, int ny, int nz , byte *mask ,
                           int xx, int yy, int zz, MCW_cluster *nbhd, 
                           int *nind);
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
