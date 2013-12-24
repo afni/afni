@@ -65,6 +65,14 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 24, Dec , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
+   "Fixed SUMA's erroneous switch of colplanes for tracts",
+   "Problem was in thoughtless use of SUMA_ADO_Overlay0() insead\n"
+   "of available curColPlane pointer in SUMA_cb_createSurfaceCont_TDO().\n"
+   "Similar changes were made to other SUMA_cb_createSurfaceCont_*() functions\n"
+   "where curColPlane must be non null at the time of controller creation.\n"
+ },
+
  { 24, Dec , 2013 , ZSS , "InstaTract" , MINOR , TYPE_NEW_PROG,
    "Wrote the outlines of InstaTract to eventually perform miniprob tracking",
    "The program now talks to SUMA and receives queries from it.\n"

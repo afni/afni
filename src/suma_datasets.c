@@ -4987,10 +4987,12 @@ int SUMA_ShowNel (void *nel)
    static char FuncName[]={"SUMA_ShowNel"};
    NI_stream nstdout;
    NI_element *el=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SUMA_DUMP_TRACE("Who called ShowNel?");
+   if (LocalHead) SUMA_DUMP_TRACE("Who just called ShowNel?");
+   
    nstdout = NI_stream_open( "fd:1","w");
    if( nstdout == NULL ){ 
       fprintf(stderr,"%s: Can't open fd:1\n", FuncName); 
