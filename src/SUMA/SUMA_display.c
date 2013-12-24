@@ -8238,7 +8238,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    
    if (SUMA_ADO_N_Overlays(ado)>0) {
       SUMA_LH("Initializing ColPlaneShell");
-      SUMA_InitializeColPlaneShell(ado, SUMA_ADO_Overlay0(ado));
+      SUMA_InitializeColPlaneShell(ado, curColPlane);
       #ifdef NONONO /* It looks like I do not need this anymore 
                        Used to be #idef DARWIN */
       /* Sometimes color maps do not show up on mac when you first 
@@ -8290,9 +8290,9 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    }
    tdo = (SUMA_TractDO *)ado;
    
-   SUMA_LHv("Creating SurfaceCont for type %s, label %s\n",
-            ADO_TNAME(ado), SUMA_ADO_Label(ado));
    if (LocalHead) {
+      SUMA_LHv("Creating SurfaceCont for type %s, label %s\n",
+            ADO_TNAME(ado), SUMA_ADO_Label(ado));
       SUMA_DUMP_TRACE("Creating SurfaceCont");
    }
    if (!(SurfCont = SUMA_ADO_Cont(ado))) {
@@ -8310,6 +8310,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                   SUMA_ADO_Label(ado));
       SUMA_RETURNe;
    }
+   SUMA_LH("CurColPlane %p for ado %s\n", curColPlane, SUMA_ADO_Label(ado));
    if (SurfCont->TLS) {
       fprintf (SUMA_STDERR,
                "Error %s: SurfCont->TopLevelShell!=NULL.\n"
@@ -8922,7 +8923,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
   
    if (SUMA_ADO_N_Overlays(ado)>0) {
       SUMA_LH("Initializing ColPlaneShell");
-      SUMA_InitializeColPlaneShell(ado, SUMA_ADO_Overlay0(ado));
+      SUMA_InitializeColPlaneShell(ado, curColPlane);
       #ifdef NONONO /* It looks like I do not need this anymore 
                        Used to be #idef DARWIN */
       /* Sometimes color maps do not show up on mac when you first 
@@ -9576,7 +9577,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
   
    if (SUMA_ADO_N_Overlays(ado)>0) {
       SUMA_LH("Initializing ColPlaneShell");
-      SUMA_InitializeColPlaneShell(ado, SUMA_ADO_Overlay0(ado));
+      SUMA_InitializeColPlaneShell(ado, curColPlane);
       #ifdef NONONO /* It looks like I do not need this anymore 
                        Used to be #idef DARWIN */
       /* Sometimes color maps do not show up on mac when you first 
@@ -10268,7 +10269,7 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
    
    if (SUMA_ADO_N_Overlays(ado)>0) {
       SUMA_LH("Initializing ColPlaneShell");
-      SUMA_InitializeColPlaneShell(ado, SUMA_ADO_Overlay0(ado));
+      SUMA_InitializeColPlaneShell(ado, curColPlane);
       #ifdef NONONO /* It looks like I do not need this anymore 
                        Used to be #idef DARWIN */
       /* Sometimes color maps do not show up on mac when you first 
@@ -10981,14 +10982,16 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
    
    SUMA_ENTRY;
    
-   SUMA_LH("Called");
    
    
    if (!ado) {
       SUMA_S_Err("NULL input, what gives?");
       SUMA_RETURN(NOPE);
    }
-   
+   if (LocalHead) {
+      SUMA_LH("Called with colPlane %p, ado %s", colPlane, ADO_LABEL(ado));
+      SUMA_DUMP_TRACE("And who called that one?");
+   }
    switch(ado->do_type) {
       case SO_type:
          SUMA_RETURN(SUMA_InitializeColPlaneShell_SO(
@@ -11348,8 +11351,10 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_TDO (
    
    SUMA_ENTRY;
    
-   SUMA_LH("Called with ColPlane %p", ColPlane);
-   
+   if (LocalHead) {
+      SUMA_LH("Called with ColPlane %p", ColPlane);
+      SUMA_DUMP_TRACE("Who called this?");
+   }
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
    
@@ -13911,7 +13916,7 @@ int SUMA_ColPlane_NewEdgeThickGain_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 }
 
 /*!
-   \brief Function to set the color remix flag for surface SO and call 
+   \brief Function to set the color remix flag for DOs and call 
       a redisplay for relevant viewers 
 */
 SUMA_Boolean SUMA_Remixedisplay (SUMA_ALL_DO *ADO)

@@ -735,7 +735,7 @@ char * without_afni_filename_extension( char * fname )
     static int icall=0;
     int c, flen, num_ext;
 
-ENTRY("without_afni_filename_extension");
+    ENTRY("without_afni_filename_extension");
     
     if( !fname || !*fname ) RETURN(NULL);
     ++icall;
