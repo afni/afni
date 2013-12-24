@@ -3038,7 +3038,7 @@ suma_exec:libGLws.a libSUMA.a libtracktools.a libmri.a xutil.o LiteClue.o parser
    3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
-   ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill 3dHist HalloSuma \
+   ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill 3dHist HalloSuma InstaTract \
    'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -3207,6 +3207,8 @@ suma_clean:
 	if [ -f SUMA/3dHist ]; then $(RM) SUMA/3dHist; fi;
 	if [ -f HalloSuma ]; then $(RM) HalloSuma; fi;
 	if [ -f SUMA/HalloSuma ]; then $(RM) SUMA/HalloSuma; fi;
+	if [ -f InstaTract ]; then $(RM) InstaTract; fi;
+	if [ -f SUMA/InstaTract ]; then $(RM) SUMA/InstaTract; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -3224,7 +3226,8 @@ suma_link:
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
-   ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill 3dHist HalloSuma; \
+   ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill 3dHist HalloSuma \
+   InstaTract; \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
    3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures SurfFWHM \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset \
@@ -3233,7 +3236,7 @@ suma_link:
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask \
 	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist SpharmReco SpharmDeco prompt_user SurfRetinoMap \
-   ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill 3dHist HalloSuma \
+   ParseName 3dGenPriors 3dSeg SurfExtrema 3dinfill 3dHist HalloSuma InstaTract \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -3265,7 +3268,7 @@ suma_install:
    SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
    SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user SUMA/SurfRetinoMap \
    SUMA/ParseName SUMA/3dGenPriors SUMA/3dSeg SUMA/SurfExtrema SUMA/3dinfill \
-   SUMA/3dHist SUMA/HalloSuma \
+   SUMA/3dHist SUMA/HalloSuma SUMA/InstaTract \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)

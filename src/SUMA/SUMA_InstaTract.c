@@ -1,11 +1,11 @@
 #include "niml.h"
 #include "SUMA_niml_defines.h"
-#include <afni.h> 
+#include <afni.h>
 #include <ptaylor/TrackIO.h>
+#include <SUMA_suma.h>
 
 #define NIML_DEBUG 1
 
-/* A simple program to illustrate communication with SUMA. */
 
 typedef struct {
    int TCP_port; /* Can get number from stdout of sys. command: 
@@ -29,26 +29,26 @@ typedef struct {
                                 As long as GoneBad is 0 */
 } COMM_STRUCT;
 
+typedef struct {
+   THD_3dim_dataset *gset;
+   int Niter;
+} INSTA_TRACT_OPTS;
+
+static INSTA_TRACT_OPTS *ITopts;
+
 COMM_STRUCT * NewCommStruct(char *Hostname, int port); 
 int niml_call (COMM_STRUCT *cs);
-float etime (struct  timeval  *t, int Report  );
 void Wait_Till_Stream_Goes_Bad(COMM_STRUCT *cs, int slp, int WaitMax, int verb); 
-int show_niml(void *nel);
 int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action);
 int InstaTract_niml_workproc( void *thereiselvis );
-int InstaTract_process_NIML_data(NI_element *nini, COMM_STRUCT *cs);
+int InstaTract_process_NIML_data(NI_group *nini, 
+                                 COMM_STRUCT *cs, INSTA_TRACT_OPTS *opts);
+NI_group *InstaTract_MiniProbTrack(NI_group *niniel, INSTA_TRACT_OPTS *opt);
 
 
 /* initialize the communication structure 
-  When port = -1, the he default port value of 1047 is used.
-  It corresponds to the InstaTract port when SUMA's -npb option is set to 0.
-  At the moment, you can't call a C function to get the 
-  port number for a certain Niml Port Block (npb) without
-  depending on the AFNI libraries (see init_ports_list() and its
-  brethren). As one way to get the port value that you want for any 
-  -npb value you can use the following system command:
-  afni -npb 0 -port_number SUMA_INSTA_TRACT_NIML
-  */
+  When port = -1, the default port value is chosen.
+*/
 COMM_STRUCT * NewCommStruct(char *Hostname, int port) 
 {
    COMM_STRUCT *cs=NULL;
@@ -58,9 +58,10 @@ COMM_STRUCT * NewCommStruct(char *Hostname, int port)
    else sprintf(cs->Hostname,"127.0.0.1");
    
    
-   if (port < 0)  cs->TCP_port = 1047;
+   if (port < 0)  cs->TCP_port = get_port_named("SUMA_INSTA_TRACT_NIML");
    else cs->TCP_port = port;
    
+   fprintf(stderr,"Using port %d\n", cs->TCP_port);
    sprintf(cs->StreamName,"tcp:%s:%d", cs->Hostname, cs->TCP_port);
 
    return(cs);
@@ -146,86 +147,6 @@ int niml_call (COMM_STRUCT *cs)
    /* Stream is open */
    return(1);
 }
-
-/* Utility function to track elapsed time */
-float etime (struct  timeval  *t, int Report  )
-{
-   struct  timeval  tn;
-   float Time_Fact = 1000000.0;
-   float delta_t;
-
-   /* get time */
-   gettimeofday(&tn, NULL);
-   
-   if (Report)
-      {
-         delta_t = (((float)(tn.tv_sec - t->tv_sec)*Time_Fact) + 
-                     (float)(tn.tv_usec - t->tv_usec)) /Time_Fact;
-      }
-   else
-      {
-         t->tv_sec = tn.tv_sec;
-         t->tv_usec = tn.tv_usec;
-         delta_t = 0.0;
-      }
-      
-   return (delta_t);
-   
-}
-
-/* A function to wait until open stream goes bad */
-void Wait_Till_Stream_Goes_Bad(COMM_STRUCT *cs, int slp, int WaitMax, int verb) 
-{  
-   static char FuncName[]={"Wait_Till_Stream_Goes_Bad"};
-   int good = 1;
-   int WaitClose = 0;
-   int LocalHead = 0;
-   
-   if (verb) fprintf (stderr,"\nWaiting for SUMA to close stream .\n");
-   while (good && WaitClose < WaitMax) {
-      if (NI_stream_goodcheck(cs->NimlStream, 1) <= 0) {
-         good = 0;
-      } else {
-         if (LocalHead) 
-            fprintf(stderr,"Good Check OK. Sleeping for %d ms...", slp);
-         NI_sleep(slp);
-         if (verb) fprintf (stderr,".");
-         WaitClose += slp;
-      }
-   }
-
-   if (WaitClose >= WaitMax) { 
-      if (verb) 
-         fprintf(stderr,"\nFailed to detect closed stream after %d ms.\n"
-                        "Closing shop anyway...", WaitMax);  
-   }else{
-      if (verb) fprintf (stderr,"Done.\n");
-   }
-
-   return;
-}
-
-/* Function to write a NIML element in text mode to stdout */
-int show_niml(void *nel) 
-{
-   static char FuncName[]={"show_niml"};
-   NI_stream nstdout;
-   NI_element *el=NULL;
-   
-   if (!nel) {
-      fprintf (stdout, "\n***********NULL nel  ************\n");
-      return(1); 
-   }
-   nstdout = NI_stream_open( "stdout:","w");
-   if( nstdout == NULL ){ 
-      fprintf(stderr,"%s: Can't open stdout\n", FuncName); 
-      return(0); 
-   }
-   el = (NI_element *)nel;
-   NI_write_element( nstdout , nel , NI_TEXT_MODE ) ;
-   NI_stream_close(nstdout);
-   return(1);
-}
  
 /* Function that sends to SUMA NIML formatted commands */  
 int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
@@ -268,10 +189,13 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
       if (nel) NI_free_element(nel); nel = NULL;
       
       /* start the workprocess for this program  */
-      fprintf(stderr,"Here you can register the workprocess for listening\n"
-                     "with your program's main loop. See the comments in \n"
-                     "the main() function of this program regarding function\n"
-                     "InstaTract_niml_workproc()\n\n");
+      if (LocalHead) {
+         fprintf(stderr,
+            "Here you can register the workprocess for listening\n"
+            "with your program's main loop. See the comments in \n"
+            "the main() function of this program regarding function\n"
+            "InstaTract_niml_workproc()\n\n");
+      }
       ++i_in;
       return(1);
    }
@@ -337,12 +261,12 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
             etm = 100000.0; /* first pass, an eternity */
             if (LocalHead) 
                fprintf (stdout,"%s: Initializing timer\n", FuncName);
-            etime(&tt, 0);
+            SUMA_etime(&tt, 0);
          }
          else {
             if (LocalHead) 
                fprintf (stdout,"%s: Calculating etm\n", FuncName);
-            etm = etime(&tt, 1);
+            etm = SUMA_etime(&tt, 1);
          }
          wtm = 1./cs->nelps - etm;
          if (wtm > 0) { /* wait */
@@ -364,17 +288,17 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
       }
       
       if (LocalHead) {
-         if (cs->nelps > 0) 
-            fprintf (stdout,
-                     "        element %d sent (%f sec)\n", 
-                     cs->TrackID, etime(&tt, 1));
-         else fprintf (stdout,"        element %d sent \n", cs->TrackID);
+         if (cs->nelps > 0) {
+            etm = SUMA_etime(&tt, 1);
+            fprintf (stdout, "        element %d sent (%f sec)\n", 
+                     cs->TrackID, etm);
+         } else fprintf (stdout,"        element %d sent \n", cs->TrackID);
       }
       
       if (cs->nelps > 0) {
          if (LocalHead) 
             fprintf (stdout,"%s: Resetting time...\n", FuncName);
-         etime(&tt, 0); /* start the timer */
+         SUMA_etime(&tt, 0); /* start the timer */
       }
       ++i_in;
       return(1);
@@ -420,7 +344,7 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
 
 
          /* now wait till stream goes bad */
-         Wait_Till_Stream_Goes_Bad(cs, 1000, 5000, 1);
+         SUMA_Wait_Till_Stream_Goes_Bad(cs, 1000, 5000, 1);
           
          NI_stream_close(cs->NimlStream);
          cs->NimlStream = NULL;
@@ -457,16 +381,16 @@ int InstaTract_niml_workproc( void *thereiselvis )
    void *nini ;
    static int nwarn=0;
    char tmpcom[100], *nel_track;
-   NI_element *nel ;
-   int LocalHead = 0;
+   NI_group *ngr ;
+   int LocalHead = 1;
    COMM_STRUCT *cs=NULL;
    
    cs = (COMM_STRUCT *)thereiselvis;
       
-  /* check if stream has gone bad */
-  nn = NI_stream_goodcheck( cs->NimlStream , 1 ) ;
+   /* check if stream has gone bad */
+   nn = NI_stream_goodcheck( cs->NimlStream , 1 ) ;
 
-  if( nn < 0 ){
+   if( nn < 0 ){
       /* first check in case we are dealing with the 
       intermittent AFNI disruption */
       if (1) {
@@ -485,15 +409,15 @@ int InstaTract_niml_workproc( void *thereiselvis )
          fprintf(stderr,
                  "SUMA connection stream gone bad.\n" );
       }
-  }
+   }
 
-  if( nn < 0 ){                          /* is bad */
+   if( nn < 0 ){                          /* is bad */
     if (cs->NimlStream) NI_stream_close( cs->NimlStream ) ;
     cs->NimlStream = NULL ; /* this will get checked next time */
     fprintf(stderr,"Stream gone bad. Stream closed. \n");
-  } else if (nn == 0) { /* waiting, come back later */
+   } else if (nn == 0) { /* waiting, come back later */
     fprintf(stderr,"Waiting on stream\n");  
-  } else {
+   } else {
    /* if here, stream is good;
       see if there is any data to be read */
       if (cs->NimlStream_flag & SUMA_FLAG_WAITING) {
@@ -517,21 +441,24 @@ int InstaTract_niml_workproc( void *thereiselvis )
                      NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
          if( nini != NULL ) {
-            nel = (NI_element *)nini ;
-
-            if (LocalHead)   {
-               fprintf( stderr,
-                     "%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", 
-                     FuncName, nel->name, nel->vec_len, 
-                     nel->vec_filled, nel->vec_num );
-            }      
-            if (!InstaTract_process_NIML_data( nini, cs )) {
-               fprintf(stderr,
-                  "Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
+            if( NI_element_type(nini) != NI_GROUP_TYPE) {
+               ERROR_message("Expected a group element transmitted");
+            } else {
+               ngr = (NI_group *)nini ; /* A generic cast, nini should
+                                             actually be a group */
+               if (LocalHead)   {
+                  fprintf( stderr,
+                        "%s:     name=%s \n", 
+                        FuncName, ngr->name);
+               }      
+               if (!InstaTract_process_NIML_data( ngr, cs, ITopts)) {
+                  fprintf(stderr,
+                     "Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
+               }
             }
+            NI_free_element( nini ) ;
          }
 
-         NI_free_element( nini ) ;
 
          if (LocalHead)   
             fprintf(stderr,"processing time=%d ms\n",NI_clock_time()-ct) ;
@@ -547,109 +474,166 @@ int InstaTract_niml_workproc( void *thereiselvis )
    }
 }
 
-/* This function should probably live somewhere under ptaylor/ */
+/* PT: This is the function you will need to work on.
+   It should call whatever function will do the live prob tracking
+   and that would probably exist under ptaylor/
+
+   The bloc beteen "PT Replace Section Begin" and "PT Replace Section End"
+   is what you'll need to replace.
+
+   I am sure you will need to pass this function numerous options, 
+   beyond the grid dataset, that is why I passed the entire INSTA_TRACT_OPTS *
+   although for now, all it has is the grid dataset.     
+*/
 #define RR(t) (lrand48() % t)
-NI_group *MiniProbTrack(NI_element *nini)
+NI_group *InstaTract_MiniProbTrack(NI_group *niniel, INSTA_TRACT_OPTS *opt)
 {
-   int i=0;
+   int i=0, *ind=NULL;
    TAYLOR_TRACT *tt=NULL;
    TAYLOR_BUNDLE *tb=NULL;
    TAYLOR_NETWORK *net=NULL;
-   NI_group *netngr=NULL;
+   NI_element *nel=NULL;
+   NI_group *netngr=NULL, *nini=NULL;
    float zeros[3]={0, 0, 0}, *cen=NULL;
    float x[3]={-40, 38, 4.7};
    float y[3]={-27, -34, 14.4};
    float z[3]={26, 41, 55};
    
-   /* Get cross hair coord */
-   if (!strcmp(nini->name, "SUMA_crosshair_xyz")) {
-      cen = (float *)nini->vec[0];
+   ENTRY("InstaTract_MiniProbTrack");
+   
+   if( NI_element_type(niniel) != NI_GROUP_TYPE) {/* Check in case someone was 
+                                                    loose with typecasting */
+      ERROR_message("Expecting group!");
+      RETURN(NULL);
+   }
+   nini = (NI_group *)niniel;
+   
+   if (strcmp(nini->name, "InstaTract_Query")) {
+      ERROR_message("Not ready for %s",nini->name);
+      RETURN(NULL);
+   }
+   
+   /* Get cross hair coord, just for the hell of it,
+      it is not really needed for the real version 
+      of this function */
+   if ((nel = SUMA_FindNgrNamedElement(nini, "SUMA_crosshair_xyz"))) {
+      cen = (float *)nel->vec[0];
+      INFO_message("Have crosshair at %f %f %f\n", cen[0], cen[1], cen[2]);
    } else {
       cen = zeros;
-   }      
-         /* Create a toy network */
-            /* Create some dummy bundles representing edge 1-2=5, or 2-1=7*/
-               tb = NULL; net = NULL; tt = NULL;
-               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
-               tt->id=77; tt->N_pts3=12; 
-               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
-               tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
-               tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
-               tt->pts[6]=cen[0];   tt->pts[7]=cen[1];   tt->pts[8]=cen[2];
-               tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
-               for (i=0; i<12; ++i) tt->pts[i] += RR(4);
-               tb = AppCreateBundle(tb, 1, tt);
-               tt = Free_Tracts(tt, 1);
-               /* put another track in */
-               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
-               tt->id=78; tt->N_pts3=12; 
-               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
-               tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
-               tt->pts[3]=cen[0];   tt->pts[4]=cen[1];   tt->pts[5]=cen[2];
-               tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
-               tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
-               for (i=0; i<12; ++i) tt->pts[i] += RR(4);
-               tb = AppCreateBundle(tb, 1, tt);
-               tt = Free_Tracts(tt, 1);
-               /* add it to network */
-               net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL);
-               /* make another one for edge 0-1=1 and 1-0=3*/
-               tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
-               tt->id=77; tt->N_pts3=15; 
-               tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
-               tt->pts[0]=x[0]; tt->pts[1]=y[0];  tt->pts[2]=z[0];
-               tt->pts[3]=5;    tt->pts[4]=12;    tt->pts[5]=17;
-               tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
-               tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
-               tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
-               for (i=0; i<12; ++i) tt->pts[i] += RR(4);
-               tb = AppCreateBundle(tb, 1, tt);
-               tt = Free_Tracts(tt, 1);
-               /* add bundle to network */
-               net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
+   }
+   if ((nel = SUMA_FindNgrNamedElement(nini, "ROI"))) {
+      ind = (int *)nel->vec[0];
+      INFO_message("Have %d voxels in ROI\n", nel->vec_len);
+   } else {
+      ind = NULL;
+   }
+   
+   /* PT: So here is where you call the prob. tracking and return
+      a niml network as an end result. 
+      Here I just create some junk that changes a little at 
+      random in a manner related to the crosshair location.
+      The real meat of course is in the vector 'ind' which 
+      contains nel->vec_len 1D voxel indices into the beloved grid gset. */
+        
+   /* Create a toy network */
+   /* PT: Replace Section Begin */
+      /* Create some dummy bundles representing edge 1-2=5, or 2-1=7*/
+         tb = NULL; net = NULL; tt = NULL;
+         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+         tt->id=77; tt->N_pts3=12; 
+         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+         tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+         tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
+         tt->pts[6]=cen[0];   tt->pts[7]=cen[1];   tt->pts[8]=cen[2];
+         tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+         for (i=0; i<12; ++i) tt->pts[i] += RR(4);
+         tb = AppCreateBundle(tb, 1, tt);
+         tt = Free_Tracts(tt, 1);
+         /* put another track in */
+         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+         tt->id=78; tt->N_pts3=12; 
+         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+         tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+         tt->pts[3]=cen[0];   tt->pts[4]=cen[1];   tt->pts[5]=cen[2];
+         tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
+         tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+         for (i=0; i<12; ++i) tt->pts[i] += RR(4);
+         tb = AppCreateBundle(tb, 1, tt);
+         tt = Free_Tracts(tt, 1);
+         /* add it to network */
+         net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL);
+         /* make another one for edge 0-1=1 and 1-0=3*/
+         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+         tt->id=77; tt->N_pts3=15; 
+         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+         tt->pts[0]=x[0]; tt->pts[1]=y[0];  tt->pts[2]=z[0];
+         tt->pts[3]=5;    tt->pts[4]=12;    tt->pts[5]=17;
+         tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
+         tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
+         tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
+         for (i=0; i<12; ++i) tt->pts[i] += RR(4);
+         tb = AppCreateBundle(tb, 1, tt);
+         tt = Free_Tracts(tt, 1);
+         /* add bundle to network */
+         net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
+   /* PT: Replace Section End */
                
-               /* Now turn network into a transmittable thing */
-               netngr = Network_2_NIgr(net, 1);
-               
-               /* SUMA_ShowNel(netngr); */
+   /* Now turn network into a transmittable thing */
+   netngr = Network_2_NIgr(net, 1);
+
+   /* SUMA_ShowNel(netngr); */
                  
-   return(netngr);
+   RETURN(netngr);
 }
 
 /* Process an element received from SUMA
-   In this example, all we do is write 
-   the element to stdout.             
+   
+   PT: You can jump to the function body immediately, to get
+   a quick idea of how it works. No need to deal with NIML 
+   trickery for now at least. You don't really need to touch
+   this function....
+   
    Look at the NIML API documentation to 
    learn how to unpack the data from a NIML element 
    http://afni.nimh.nih.gov/afni/doc/misc/NIML_documentation/NIML_manual/document_view
 */
-int InstaTract_process_NIML_data(NI_element *nini, COMM_STRUCT *cs)
+int InstaTract_process_NIML_data(NI_group *nini, COMM_STRUCT *cs, 
+                                 INSTA_TRACT_OPTS *opt)
 {
    static int iel = 0, iout=0;
    NI_group *ngr = NULL;
-   fprintf(stderr,"Received from SUMA element #%d:\n", ++iel);
-   show_niml((void*)nini);
+   int do_useless = 1;
+   int LocalHead = 0;
    
-   /* Now pretend you're doing something with nini and 
-      send something back when done */
-   fprintf(stderr,"Quiet, now working hard....\n"); NI_sleep(30);
-   fprintf(stderr,"OK, GOT IT!!!\n");
-   ngr = NI_new_group_element();
-   NI_rename_group(ngr, "EngineCommand");/* DriveSuma's element to boss SUMA */
-   NI_set_attribute(ngr, "Command", "viewer_cont"); /* like -com view_cont */
-   NI_set_attribute(ngr,"N_Key","1");              /* like -key option */
-   NI_set_attribute(ngr,"Key_0","left");
-   NI_set_attribute(ngr,"Key_rep_0","4");
-   NI_set_attribute(ngr,"Key_pause_0","0.1");
-   NI_set_attribute(ngr,"Key_redis_0","1");
-   if (!SendToSuma(cs, ngr, 1)) {
-      fprintf (stderr,"Failed to send item %d\n", iout);
-   } else ++iout;
-   NI_free(ngr); ngr=NULL; /* Done with this element, free it */
-
-   /* A more substantial returned thing would be to return the result 
-      from MiniProbTrack() */
-   if ((ngr = MiniProbTrack(nini))) {
+   fprintf(stderr,"Received from SUMA element #%d:\n", ++iel);
+   if (LocalHead) SUMA_ShowNel((void*)nini);
+   
+   if (do_useless) {
+      /* Now pretend you're doing something with nini and 
+         send something back when done. This is completely
+         useless but it gives you an idea for how you can manipulate
+         SUMA. This just makes it turn 4 times, pausing 0.1 sec 
+         between turns.*/
+      ngr = NI_new_group_element();
+      NI_rename_group(ngr, "EngineCommand");/*DriveSuma's element to boss SUMA */
+      NI_set_attribute(ngr, "Command", "viewer_cont"); /* like -com view_cont */
+      NI_set_attribute(ngr,"N_Key","1");              /* like -key option */
+      NI_set_attribute(ngr,"Key_0","left");
+      NI_set_attribute(ngr,"Key_rep_0","4");
+      NI_set_attribute(ngr,"Key_pause_0","0.1");
+      NI_set_attribute(ngr,"Key_redis_0","1");
+      if (!SendToSuma(cs, ngr, 1)) {
+         fprintf (stderr,"Failed to send item %d\n", iout);
+      } else ++iout;
+      NI_free(ngr); ngr=NULL; /* Done with this element, free it */
+   }
+   
+   /* PT: Now we call the function that will do the prob. tracking.
+      See comments where function is defined.
+      Main point is that InstaTract_MiniProbTrack() must return a NIML 
+      formatted network, as it does at the moment */
+   if ((ngr = InstaTract_MiniProbTrack(nini, opt))) {
       if (!SendToSuma(cs, ngr, 1)) {
          fprintf (stderr,"Failed to send item %d\n", iout);
       } else ++iout;
@@ -684,14 +668,17 @@ int main( int argc , char *argv[] )
    NI_group *ngr = NULL, *ndset=NULL;
    char sss[256]={""};
    int i, nn;
-   THD_3dim_dataset *gdset=NULL;
    
    
    /* bureaucracy */
    mainENTRY("InstaTract main"); machdep(); AFNI_logger("InstaTract",argc,argv);
    PRINT_VERSION("InstaTract"); AUTHOR("LEGROSCHAT");
-
+   
+   ITopts = (INSTA_TRACT_OPTS *)calloc(1, sizeof(INSTA_TRACT_OPTS));
+   
    /* mini parsing of command line */
+   ITopts->gset=NULL;
+   ITopts->Niter=7;
    nn = 1;
    while (nn < argc && argv[nn][0] == '-') {
       if (!strcmp(argv[nn], "-help") || !strcmp(argv[nn], "-h")) {
@@ -705,7 +692,7 @@ int main( int argc , char *argv[] )
             ERROR_message("Need dset after -grid");
             exit(1);
          }
-         if (!(gdset = THD_open_dataset(argv[nn]))) {
+         if (!(ITopts->gset = THD_open_dataset(argv[nn]))) {
             ERROR_message("Failed to open dataset");
             suggest_best_prog_option(argv[0], argv[nn]);
             exit(1);
@@ -716,7 +703,7 @@ int main( int argc , char *argv[] )
       exit(1);
    }
    
-   if (!gdset) {
+   if (!ITopts->gset) {
       ERROR_message("Need grid dset");
       exit(1);
    }
@@ -778,7 +765,7 @@ int main( int argc , char *argv[] )
    /* Now for some real stuff, send the header of the ROI grid to SUMA */
    ngr = NI_new_group_element();
    NI_rename_group(ngr, "IT.griddef");/* Tell SUMA what grid to use */
-   ndset = THD_nimlize_dsetatr(gdset);
+   ndset = THD_nimlize_dsetatr(ITopts->gset);
    NI_add_to_group(ngr, ndset);
    if (!SendToSuma(cs, ngr, 1)) {
       fprintf (stderr,"Failed to send grid\n");
@@ -809,7 +796,10 @@ int main( int argc , char *argv[] )
    }
    
    free(cs); cs = NULL;
-   
+   if (ITopts) {
+      if (ITopts->gset) DSET_delete(ITopts->gset);
+      free(ITopts);
+   }
    exit(0);
 }
 

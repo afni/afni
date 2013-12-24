@@ -662,7 +662,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
    SUMA_ENTRY;
 
-   if( tt < 0 ) {/* should never happen */
+   if( tt < 0 ) {/* should never happen unless nini was NULL*/
       fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
       SUMA_RETURN(NOPE);
    } 
@@ -1918,7 +1918,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          NI_group *gngr=NULL;
          
          SUMAg_CF->ITset = New_Insta_Tract_Setup(SUMAg_CF->ITset);
-         TLH(1);
          SUMA_LH("Grid from InstaTract");
          if (!(gngr = (NI_group *)SUMA_FindNgrNamedAny(ngr, "AFNI_dataset"))) {
             SUMA_S_Err("Failed to get grid element");
@@ -1929,19 +1928,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          }
          SUMA_LH("Yay!");
-         #if 0
-         /* For ROI selection... somewhere else ... */
-         /*
-         1- From click location find all nodes with xmm radius 
-         2- For each incident triangle, identify voxels intersecting it 
-            AND that are within xmm of node
-         3-    From each accepted voxel, travel along incident triangle's normal
-               and accept encountered voxels until you reach the depth limit
-               (for voxel triangle intersection see 
-                     SUMA_GetVoxelsIntersectingTriangle() and 
-                     SUMA_isVoxelIntersect_Triangle()
-         */
-         #endif
          /* don't free ngr, it's freed later on */
          SUMA_RETURN(YUP);
       }      
@@ -2349,6 +2335,151 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
    }
    SUMA_RETURN (nel);
 }
+
+NI_group * SUMA_makeNI_InstaTract_Query (SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_makeNI_InstaTract_Query"};
+   NI_element *nel=NULL;
+   NI_group *ngr=NULL;
+   THD_3dim_dataset *gset=NULL;
+   float *XYZmap, find[3];
+   int I_C = -1, ip, iv4[4], *nind=NULL, ninmask=-1;
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   MCW_cluster *nbhd=NULL;
+   
+   SUMA_ENTRY;
+
+   if (sv == NULL) {
+      SUMA_S_Err("Null sv.");
+      SUMA_RETURN (NULL);
+   }
+   if (sv->Ch == NULL) {
+      SUMA_S_Err("NULL Ch.");
+      SUMA_RETURN (NULL);
+   }
+   if (!SUMAg_CF->ITset || !(gset = SUMAg_CF->ITset->grid)) {
+      SUMA_S_Err("NULL ITset(%p) or ITset->grid (%p)", 
+                  SUMAg_CF->ITset, SUMAg_CF->ITset?SUMAg_CF->ITset->grid:NULL);
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!(ado=SUMA_SV_Focus_ADO(sv))) SUMA_RETURN(NULL);
+   
+   if (!(nel = SUMA_makeNI_CrossHair(sv))) {
+      SUMA_S_Err("Failed to form cross hair nel");
+      SUMA_RETURN(NULL);
+   }
+   XYZmap = (float*)nel->vec[0]; /* Supposed to be an anatomically correct XYZ */
+   if (!(SUMA_THD_dicomm_to_3dfind(gset, 
+                     XYZmap[0], XYZmap[1], XYZmap[2], find))) {
+      SUMA_S_Err("No good ijk for %f %f %f", 
+                  XYZmap[0], XYZmap[1], XYZmap[2]);
+      NI_free_element(nel); SUMA_RETURN(NULL);
+   }
+   
+   /* Now determine the voxels to be part of the ROI sent to InstaTract */
+   switch(ado->do_type) {
+      case SO_type:
+         SO = (SUMA_SurfaceObject *)ado;
+         I_C = SO->SelectedNode;
+         #if 0
+         /* For ROI selection... somewhere else ... */
+         /*
+         1- From click location find all nodes with xmm radius 
+         2- For each incident triangle, identify voxels intersecting it 
+            AND that are within xmm of node
+         3-    From each accepted voxel, travel along incident triangle's normal
+               and accept encountered voxels until you reach the depth limit
+               (for voxel triangle intersection see 
+                     SUMA_GetVoxelsIntersectingTriangle() and 
+                     SUMA_isVoxelIntersect_Triangle()
+         */
+         #endif
+         /* For now just get something in the sphere, around XYZ.
+         In the future you want to dig in (depending on the surface)
+         and pick white matter. See Adam Greenberg's paper for 
+         an example */
+         nbhd = MCW_spheremask( SUMA_ABS(DSET_DX(gset)), 
+                                SUMA_ABS(DSET_DY(gset)),
+                                SUMA_ABS(DSET_DZ(gset)), 20 );
+         nind = (int *)calloc(nbhd->num_pt, sizeof(int));
+         ninmask = mri_load_nbhd_indices (
+                        DSET_NX(gset), DSET_NY(gset) , DSET_NZ(gset),
+                        NULL , (int)find[0], (int)find[1], (int)find[2], 
+                        nbhd, nind);
+         KILL_CLUSTER(nbhd); nbhd = NULL;
+         break;
+      case TRACT_type:
+         /* For now just get something in the sphere, around XYZ.
+         In the future you want to dig in (depending on the surface)
+         and pick white matter. See Adam Greenberg's paper for 
+         an example */
+         nbhd = MCW_spheremask( SUMA_ABS(DSET_DX(gset)), 
+                                SUMA_ABS(DSET_DY(gset)),
+                                SUMA_ABS(DSET_DZ(gset)), 20 );
+         nind = (int *)calloc(nbhd->num_pt, sizeof(int));
+         ninmask = mri_load_nbhd_indices (
+                        DSET_NX(gset), DSET_NY(gset) , DSET_NZ(gset),
+                        NULL , (int)find[0], (int)find[1], (int)find[2], 
+                        nbhd, nind);
+         KILL_CLUSTER(nbhd); nbhd = NULL;
+         break;
+      case MASK_type:
+         break;
+      case SDSET_type:
+         break;
+      case GRAPH_LINK_type:
+         if (strcmp(SUMA_ADO_variant(ado),"G3D")) break;
+         /* For now just get something in the sphere, around XYZ.
+         In the future you want to dig in (depending on the surface)
+         and pick white matter. See Adam Greenberg's paper for 
+         an example */
+         nbhd = MCW_spheremask( SUMA_ABS(DSET_DX(gset)), 
+                                SUMA_ABS(DSET_DY(gset)),
+                                SUMA_ABS(DSET_DZ(gset)), 20 );
+         nind = (int *)calloc(nbhd->num_pt, sizeof(int));
+         ninmask = mri_load_nbhd_indices (
+                        DSET_NX(gset), DSET_NY(gset) , DSET_NZ(gset),
+                        NULL , (int)find[0], (int)find[1], (int)find[2], 
+                        nbhd, nind);
+         KILL_CLUSTER(nbhd); nbhd = NULL;
+         break;
+      case VO_type:
+         /* For now just get something in the sphere, around XYZ.
+         In the future you want to dig in (depending on the surface)
+         and pick white matter. See Adam Greenberg's paper for 
+         an example */
+         nbhd = MCW_spheremask( SUMA_ABS(DSET_DX(gset)), 
+                                SUMA_ABS(DSET_DY(gset)),
+                                SUMA_ABS(DSET_DZ(gset)), 20 );
+         nind = (int *)calloc(nbhd->num_pt, sizeof(int));
+         ninmask = mri_load_nbhd_indices (
+                        DSET_NX(gset), DSET_NY(gset) , DSET_NZ(gset),
+                        NULL , (int)find[0], (int)find[1], (int)find[2], 
+                        nbhd, nind);
+         KILL_CLUSTER(nbhd); nbhd = NULL;
+         break;
+      default:
+         break;
+   }
+   
+   /* Now put it all together */
+   if (ninmask) {
+      ngr = NI_new_group_element();
+      NI_rename_group(ngr, "InstaTract_Query");
+      NI_add_to_group(ngr, nel);
+      nel = NI_new_data_element("ROI", ninmask);
+      NI_add_column(nel, NI_INT, nind);
+      NI_add_to_group(ngr, nel);   
+   } else {
+      NI_free_element(nel);
+   }
+   SUMA_ifree(nind);
+   
+   SUMA_RETURN (ngr);
+}
+
 
 /*!
    ans = SUMA_CanTalkToAfni (dov, N_dov);

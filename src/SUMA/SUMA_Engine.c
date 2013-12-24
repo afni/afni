@@ -2673,50 +2673,50 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         
          case SE_SetAfniCrossHair:
             /* expects nothing in EngineData */
-            /* sends the current cross hair to afni */
-            /* form nel */
-            nel = SUMA_makeNI_CrossHair (sv);
-            if (!nel) {
-               fprintf(SUMA_STDERR,
-                        "Error %s: SUMA_makeNI_CrossHair failed\n", FuncName);
-               break;
-               }
-            /*send it to afni */
-            SUMA_LH("Sending cross hair nel: SUMA_crosshair_xyz") ;
             if (  SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
                   sv->LinkAfniCrossHair) {
+               SUMA_LH("Sending cross hair nel: SUMA_crosshair_xyz") ;
+               if (!(nel = SUMA_makeNI_CrossHair (sv))) {
+                  SUMA_S_Err("SUMA_makeNI_CrossHair failed");
+                  break;
+               }
                if ( (nn = NI_write_element( 
                         SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
                                  nel , NI_TEXT_MODE)) < 0) {
                   SUMA_S_Err("NI_write_element failed");   
-               } 
+               }
+               NI_free_element(nel); nel = NULL;
             }
             
             if ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE] ) {
+               SUMA_LH("Sending cross hair nel: SUMA_crosshair_xyz") ;
+               if (!(nel = SUMA_makeNI_CrossHair (sv))) {
+                  SUMA_S_Err("SUMA_makeNI_CrossHair failed");
+                  break;
+               }
                if ( (nn = NI_write_element( 
                         SUMAg_CF->ns_v[SUMA_HALLO_SUMA_LINE] , 
                                  nel , NI_TEXT_MODE)) < 0) {
                   SUMA_S_Err("NI_write_element failed");   
                }
+               NI_free_element(nel); nel = NULL;
             }
             
             if ( SUMAg_CF->Connected_v[SUMA_INSTA_TRACT_LINE] ) {
-               SUMA_S_Warn(
-               "Instead of (or in addition to) just sending a cross hair nel,\n"
-               "send something that defines an volume ROI on the grid\n"
-               "of ITset->grid. For now, just use a simple idiotic\n"
-               "box centered on XYZ, the rest of the excitement\n"
-               "will come in later. \n");
+               NI_group *ngr=NULL;
+               if (!(ngr = SUMA_makeNI_InstaTract_Query (sv))) {
+                  SUMA_LH("SUMA_makeNI_InstaTract_Query failed, or "
+                          "nothing found");
+                  break;
+               }
                if ( (nn = NI_write_element( 
                         SUMAg_CF->ns_v[SUMA_INSTA_TRACT_LINE] , 
-                                 nel , NI_TEXT_MODE)) < 0) {
+                                 ngr , NI_BINARY_MODE)) < 0) {
                   SUMA_S_Err("NI_write_element failed");   
                }
+               if (LocalHead) SUMA_ShowNel(ngr);
+               NI_free_element(ngr); ngr = NULL;
             }
-            /* SUMA_nel_stdout (nel); */
-      
-            NI_free_element(nel);
-
             break;
          
          case SE_SetGICORnode:

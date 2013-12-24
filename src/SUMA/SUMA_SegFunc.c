@@ -3876,7 +3876,7 @@ int SUMA_VolumeLSBlurInMask(THD_3dim_dataset *aset,
                                   float FWHM, float mxvx) 
 {
    static char FuncName[]={"SUMA_VolumeLSBlurInMask"};
-   int  sb = 0, nx_in, nxy_in,
+   int  sb = 0, nx_in, nxy_in, ny_in, nz_in,
          nx, ny, nz, ih, nxyz_o;
    MRI_vectim *vecim=NULL;
    float *mm=NULL, dx , dy , dz, na, redx[3];
@@ -3919,8 +3919,8 @@ int SUMA_VolumeLSBlurInMask(THD_3dim_dataset *aset,
                      nbhd, nbhd->num_pt,
                      redx[0], redx[1], redx[2], nx*ny*nz, nxyz_o);
    }
-   nx_in = DSET_NX(aset);
-   nxy_in = nx_in*DSET_NY(aset);
+   nx_in = DSET_NX(aset); ny_in = DSET_NY(aset); nz_in = DSET_NZ(aset);
+   nxy_in = nx_in*ny_in;
    for (sb=0; sb<DSET_NVALS(aset); ++sb) {
       if (!mm) mm = (float *)calloc(nxyz_o, sizeof(float));
       imin = THD_extract_float_brick(sb,aset) ;
@@ -3938,7 +3938,7 @@ AFNI_OMP_START ;
             DSET_1Dindex_to_regrid_ijk(blurred, ijk_o, aset, &ii, &jj, &kk);
             ijk_in = ii+jj*nx_in+kk*nxy_in;
             if (IN_MASK(cmask,ijk_in)) { /* get a mask for that location */
-               nhood = mri_load_nbhd_indices( DSET_BRICK(aset , sb ) ,
+               nhood = mri_load_nbhd_indices( nx_in , ny_in, nz_in,
                                  cmask , ii,jj,kk , nbhd, nind); 
                               /* nhood will not be constant, 
                                  when you are close to mask's edge */
