@@ -51,9 +51,10 @@ class Afni1D:
       self.nvec      = 0        # one vector per column in file
       self.nt        = 0        # length of each column (# rows)
       self.tr        = 1.0
-      self.nrowfull  = 0
+      self.nrowfull  = 0        # length without censoring
       self.nruns     = 1
       self.run_len   = [0]      # len(run_len) is number of runs
+      self.run_len_nc= [0]      # run lengths without censoring
       self.nroi      = 1
       self.GLapplied = 0        # was goodlist applied (1=yes, 2=zero-padded)
 
@@ -81,6 +82,8 @@ class Afni1D:
          if self.init_from_matrix(matrix): return None
 
       self.update_group_info()
+
+      if self.verb > 2: self.show()
 
    def reduce_by_tlist(self, tlist):
       """reduce by time list, similiar to afni's {} selector
@@ -936,25 +939,15 @@ class Afni1D:
          return status (0=success) and the TR index list
       """
 
-      rv, ilist = self.get_uncensored_trs()  # no run_index
+      rv, ulist = self.get_uncensored_trs()  # no run_index
       if rv: return 1, []
 
-      rlist = UTIL.invert_int_list(ilist, top=self.nt-1)
+      if self.nrowfull > 0: nt = self.nrowfull
+      else: nt = self.nt
 
-      # maybe we are done
-      if run_index < 0: return 0, rlist
+      tr_list = UTIL.invert_int_list(ulist, top=nt-1)
 
-      if run_index >= self.nruns:
-         print '** cannot return (cen) TR list for (0-based) run %d, have %d' \
-               (run_index, self.nruns)
-         return 1, []
-
-      # restrict return values to [bot, top)
-      bot = self.runstart[run_index]
-      if run_index == self.nruns - 1: top = self.nrowfull
-      else:                           top = self.runstart[run_index+1]
-
-      return 0, [v for v in rlist if v >= bot and v < top]
+      return self.restrict_tr_list_to_run(tr_list, run_index)
 
    def get_uncensored_trs(self, run_index=-1):
       """return a list of TRs that were used, i.e. we not censored
@@ -978,27 +971,41 @@ class Afni1D:
          print "** Afni1D not ready for get_uncensored_trs"
          return 1, []
 
-      # handle xmat case separately
+      # either have goodlist from xmat or take indices of non-zero values
       if len(self.goodlist) > 0:
-         # simple case, return all runs
-         if run_index < 0: return 0, self.goodlist
+         tr_list = self.goodlist
+      else:
+         tr_list = [i for i,v in enumerate(self.mat[0]) if v]
 
-         # otherwise, restrict
-         if run_index >= self.nruns:
-            print '** cannot return TR list for (0-based) run %d, have %d' \
-                  (run_index, self.nruns)
-            return 1, []
+      # and restrict to run_index
+      return self.restrict_tr_list_to_run(tr_list, run_index)
 
-         # return a partial goodlist
-         bot = UTIL.loc_sum(self.run_len[0:run_index])
-         if run_index < self.nruns-1:
-            top = bot + self.run_len[run_index]
-            return 0, self.goodlist[bot:top]
-         else:
-            return 0, self.goodlist[bot:]
+   def restrict_tr_list_to_run(self, tr_list, run_index=-1):
+      """rely on runstart to restrict tr_list
+         return status and restricted list
+      """
+     
+      # maybe there is nothing to do
+      if run_index < 0: return 0, tr_list
 
-      # otherwise, return indices from mat[0] as mask
-      return 0, [i for i,v in enumerate(self.mat[0]) if v]
+      if run_index >= self.nruns:
+         print '** cannot restrict TR list for (0-based) run %d, have %d' \
+               (run_index, self.nruns)
+         return 1, []
+
+      if self.nrowfull > 0: nt = self.nrowfull
+      else: nt = self.nt
+
+      # restrict return values to [bot, top)
+      bot = self.runstart[run_index]
+      if run_index == self.nruns - 1: top = nt
+      else:                           top = self.runstart[run_index+1]
+
+      if self.verb > 2:
+         print '-- restricting %d TRs between %d and %d' \
+               % (len(tr_list),bot,top-1)
+
+      return 0, [v for v in tr_list if v >= bot and v < top]
 
    def show_censor_count(self, invert=0, column=0):
       """display the total number of TRs censored (clear) in the given column
@@ -1552,6 +1559,8 @@ class Afni1D:
             find the first column in group 0, verify that it looks like
             one run of 1s (with remaining 0s), and use it to set the length
 
+         --> set nruns, run_len and runstart
+
          return 0 on success, 1 on error
       """
 
@@ -1571,6 +1580,11 @@ class Afni1D:
              print '** nvalid nruns = %d (does not divide nt = %d)'  \
                    % (nruns, self.nt)
              return 1
+         # and set runstart
+         self.runstart = [r*rlen for r in range(nruns)]
+         if self.verb > 1:
+            print '++ set_nruns 0: nruns = %d, run_len = %s, runstart = %s' \
+                  % (nruns, self.run_len, self.runstart)
          return 0
 
       # next, try run_lens (if not set, try runstart data from RunStart label)
@@ -1602,8 +1616,14 @@ class Afni1D:
             return 1
          self.run_len = rlens[:]     # make a copy, to be safe
          self.nruns = len(rlens)
+         rsum = 0
+         self.runstart = []
+         for ll in rlens:
+            self.runstart.append(rsum)
+            rsum += ll
          if self.verb > 1:
-            print '++ set_nruns: nruns = %d, run_len = %s' % (nruns, rlens)
+            print '++ set_nruns 1: nruns = %d, run_len = %s, runstart = %s' \
+                  % (nruns, rlens, self.runstart)
          return 0
 
       # otherwise, init to 1 run and look for other labels
@@ -1664,6 +1684,7 @@ class Afni1D:
    def apply_goodlist(self, parent=None, padbad=0):
       """try to apply goodlist, runstart, nt and nrowfull
             -> set nruns and run_lens[]
+            -> also, set run_lens_nc[] (not censored)
 
          if padbad is set, pad the data with zero over all TRs NOT
             in goodlist (so run_lens should come from RunStart)
@@ -1774,8 +1795,14 @@ class Afni1D:
          print '** apply_goodlist: nt (%d) != goodtot (%d)' % (self.nt, gtot)
          return 1
 
+      # also, generate an uncensored run length list from runstart
+      self.run_len_nc = [runstart[i+1]-runstart[i] for i in range(nruns-1)]
+      self.run_len_nc.append(self.nrowfull-self.runstart[-1])
+
       if self.verb > 1:
          print '++ from apply_goodlist: run_len[%d] = %s' % (nruns, rcount)
+         print '   run_len_nc = %s' % self.run_len_nc
+         print '   run_start = %s' % self.runstart
 
       self.nruns = nruns
       self.run_len = rcount     # steal reference
@@ -1795,6 +1822,61 @@ class Afni1D:
       if mesg:     print '%s' % mesg,
       if verb > 0: print 'rows = %d, cols = %d' % (self.nt, self.nvec)
       else:        print '%d %d' % (self.nt, self.nvec)
+
+   def get_tr_counts(self):
+      """return status, self.run_len, self.run_len_nc
+
+         check for consistency
+         if vector lengths are not nruns and 
+      """
+
+      rv = self.check_tr_count_consistency(self.verb)
+      return rv, self.run_len, self.run_len_nc
+
+   def check_tr_count_consistency(self, verb=1):
+      """check the consistency of TR counts
+
+            - matrix is ready
+            - nruns >= 1
+            - len(run_len) == len(run_len_nc) == nruns
+            - sum(run_len) == nt
+            - sun(run_len_nc) == nrowfull
+
+         return 0 if consistent, 1 otherwise
+      """
+
+      if not self.ready:
+         if verb: print '** bad run lists: not ready'
+         return 1
+
+      nr = self.nruns
+      if nr < 1:
+         if verb: print '** bad run lists: nruns = %d' % nr
+         return 1
+
+      if len(self.run_len) != nr:
+         if verb: print '** bad run lists: len(run_len) = %d, nruns = %d' \
+                        % (len(self.run_len), nruns)
+         return 1
+
+      if len(self.run_len_nc) != nr:
+         if verb: print '** bad run lists: len(run_len_nc) = %d, nruns = %d' \
+                        % (len(self.run_len_nc), nruns)
+         return 1
+
+      ntr = UTIL.loc_sum(self.run_len)
+      if ntr != self.nt:
+         if verb: print '** bad run lists: sum(run_len) = %d, nt = %d' \
+                        % (ntr, self.nt)
+         return 1
+
+      ntr = UTIL.loc_sum(self.run_len_nc)
+      if ntr != self.nrowfull:
+         if verb: print '** bad run lists: sum(run_len_nc) = %d, nt = %d' \
+                        % (ntr, self.nt)
+         return 1
+
+      return 0
 
    def apply_censor_dset(self, cset=None):
       """remove censored TRs from self.mat
@@ -2065,10 +2147,11 @@ class Afni1D:
              "++ tr       : %s\n" \
              "++ nrowfull : %d\n" \
              "++ nruns    : %d\n" \
-             "++ run_len  : %s\n" % \
+             "++ run_len  : %s\n" \
+             "++ run_len_nc: %s\n" % \
              (self.name, rstr, self.fname, self.nvec, self.nt,
              self.labels, self.groups, self.goodlist, self.tr, self.nrowfull,
-             self.nruns, self.run_len)
+             self.nruns, self.run_len, self.run_len_nc)
 
       return mstr
 
