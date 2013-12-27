@@ -49,8 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "also output censored TRs per run, along with fractions",
+   NULL
+ } ,
+
  { 27,  Dec, 2013, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
-   "added -show_tr_run_counts, for use in gen_ss_review_scripts.py",
+   "added -show_tr_run_counts and -show_num_runs, for gen_ss_review_scripts.py",
    NULL
  } ,
 
@@ -3403,7 +3408,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 22, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_PROG,
+ { 22, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_OPT,
    "python replacement for serial helper",
    "New 'data_choice' options can be added to compute_data_for_serial_port\n"
    "for sending results of a different computation to the serial port."
