@@ -368,14 +368,25 @@ if ( -f $gcor_dset ) then
 endif
 """
 
-g_basic_finish_str = """
+g_basic_fstat_str = """
 # ------------------------------------------------------------
 # note maximum F-stat
 if ( -f $stats_dset ) then
-    set fmax = `3dBrickStat -slow -max $stats_dset"[Full_Fstat]"`
-    echo "maximum F-stat            : $fmax"
+  set fmax = `3dBrickStat -slow -max $stats_dset"[Full_Fstat]"`
+  echo "maximum F-stat            : $fmax"
 endif
+"""
 
+g_basic_fstat_mask_str = """
+# ------------------------------------------------------------
+# note maximum masked F-stat
+if ( -f $stats_dset && -f $mask_dset ) then
+  set fmax = `3dBrickStat -slow -max -mask $mask_dset $stats_dset"[Full_Fstat]"`
+  echo "maximum F-stat (masked)   : $fmax"
+endif
+"""
+
+g_basic_finish_str = """
 # ------------------------------------------------------------'
 # note blur estimates
 set blur_file = blur_est.$subj.1D
@@ -546,9 +557,10 @@ g_history = """
    0.27 Apr 29, 2013: set AFNI_NO_OBLIQUE_WARNING in scripts
    0.28 Oct 24, 2013: output global correlation, and DoF info from review_basic
    0.29 Dec 16, 2013: fixed use of num_trs with censoring
+   0.30 Dec 26, 2013: max F (and for cluster jump) are masked, if possible
 """
 
-g_version = "gen_ss_review_scripts.py version 0.29, December 16, 2013"
+g_version = "gen_ss_review_scripts.py version 0.30, December 26, 2013"
 
 g_todo_str = """
    - figure out template_space
@@ -1692,6 +1704,12 @@ class MyInterface:
       if self.uvars.is_not_empty('gcor_dset'):
          self.text_basic += g_basic_gcor_str
 
+      # maybe use mask for max F-stat
+      if self.uvars.is_not_empty('mask_dset'):
+         self.text_basic += g_basic_fstat_mask_str
+      else:
+         self.text_basic += g_basic_fstat_str
+
       self.text_basic += g_basic_finish_str
 
       return 0
@@ -1898,11 +1916,13 @@ class MyInterface:
       else: s3 = ''
 
       s4  = \
-          '# locate peak coords of biggest cluster and jump there\n'    \
-          'set maxcoords = ( `3dclust -1thresh $thresh -dxyz=1 1 2 \\\n'\
-          '    %s"[0]" | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
-          'echo -- jumping to max coords: $maxcoords\n'                 \
-          % sset.pv()
+       '# locate peak coords of biggest masked cluster and jump there\n'  \
+       '3dcalc -a %s"[0]" -b %s -expr "a*b" \\\n'                         \
+       '       -overwrite -prefix .tmp.F\n'  \
+       'set maxcoords = ( `3dclust -1thresh $thresh -dxyz=1 1 2 .tmp.F+%s \\\n'\
+       '       | & awk \'/^ / {print $14, $15, $16}\' | head -n 1` )\n'\
+       'echo -- jumping to max coords: $maxcoords\n'                      \
+       % (sset.pv(), mset.pv(), self.uvars.final_view)
 
       txt += '# get 90 percentile for thresholding in afni GUI\n'       \
              '%s'                                                       \
