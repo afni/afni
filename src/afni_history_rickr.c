@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Dec, 2013, RCR, "file_tool", MICRO, TYPE_ENHANCE,
+   "for -show_bad_backslash, check for '\\' as the last file character",
+   NULL
+ } ,
+
  { 27,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "also output censored TRs per run, along with fractions",
    NULL
