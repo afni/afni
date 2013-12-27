@@ -133,9 +133,10 @@ static char g_history[] =
  " 3.11 Feb 11, 2013    - added recent options to help\n"
  " 3.12 Mar 07, 2013    - applied -prefix with -show_bad_backslash\n"
  " 3.13 Jul 09, 2013    - added a little more info for locating bad chars\n"
+ " 3.14 Dec 27, 2013    - bad_backslash includes file ending with one\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.13 (July 9, 2013)"
+#define VERSION         "3.14 (December 27, 2013)"
 
 
 /* ----------------------------------------------------------------------
@@ -338,6 +339,13 @@ scr_show_bad_bs( char * filename, param_t * p )
 
         /* found a '\\' char, count it and look beyond */
         bcount++; count++;
+
+        /* check for '\' at the end of the file (last char or before \n) */
+        if ( count == flen || ( count == flen-1 && fdata[count] == '\n' ) ) {
+           bad++;
+           if( !p->quiet ) printf("file '%s' ends with a backslash\n",filename);
+           break;
+        } 
 
         /* note first char after '\\', and do not write out corrected
            file, until we know the line is okay */
@@ -714,7 +722,7 @@ read_file( char * filename, char ** fdata, int * flen )
     length = THD_filesize(filename);
 
     /* see if we need to update space */
-    if ( *flen < length )
+    if ( *flen != length )
     {
         *fdata = (char*) realloc( *fdata, length * sizeof(char) );
         if ( *fdata == NULL )

@@ -116,21 +116,21 @@ examples (very basic for now):
          1d_tool.py -infile X.xmat.1D -show_cormat
 
    7a. Output temporal derivative of motion regressors.  There are 9 runs in
-       dfile.rall.1D, and derivatives are applied per run.
+       dfile_rall.1D, and derivatives are applied per run.
 
-         1d_tool.py -infile dfile.rall.1D -set_nruns 9 \\
+         1d_tool.py -infile dfile_rall.1D -set_nruns 9 \\
                     -derivative -write motion.deriv.1D
 
    7b. Similar to 7a, but let the run lengths vary.  The sum of run lengths
        should equal the number of time points.
 
-         1d_tool.py -infile dfile.rall.1D                       \\
+         1d_tool.py -infile dfile_rall.1D                       \\
                     -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
                     -derivative -write motion.deriv.rlens.1D
 
    7c. Use forward differences, instead of the default backward differences.
 
-         1d_tool.py -infile dfile.rall.1D                       \\
+         1d_tool.py -infile dfile_rall.1D                       \\
                     -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
                     -forward_diff -write motion.deriv.rlens.1D
 
@@ -215,16 +215,16 @@ examples (very basic for now):
 
        a. across all runs (if runs are not known from input file)
 
-         1d_tool.py -infile dfile.rall.1D -demean -write motion.demean.a.1D
+         1d_tool.py -infile dfile_rall.1D -demean -write motion.demean.a.1D
 
        b. per run, over 9 runs of equal length
 
-         1d_tool.py -infile dfile.rall.1D -set_nruns 9      \\
+         1d_tool.py -infile dfile_rall.1D -set_nruns 9      \\
                 -demean -write motion.demean.b.1D
 
        c. per run, over 9 runs of varying length
 
-         1d_tool.py -infile dfile.rall.1D                   \\
+         1d_tool.py -infile dfile_rall.1D                   \\
                 -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                 -demean -write motion.demean.c.1D
 
@@ -301,11 +301,11 @@ examples (very basic for now):
        set of "coordinates", distances between all N choose 2 pairs are
        evaluated (brute force).
 
-        1d_tool.py -infile dfile.rall.1D -show_max_displace
+        1d_tool.py -infile dfile_rall.1D -show_max_displace
 
    15b. Similar to 15a, but do not include displacement from censored TRs.
 
-        1d_tool.py -infile dfile.rall.1D -show_max_displace \\
+        1d_tool.py -infile dfile_rall.1D -show_max_displace \\
                    -censor_infile motion_censor.1D
 
    16. Randomize a list of numbers, say, those from 1..40.
