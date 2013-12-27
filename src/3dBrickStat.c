@@ -356,7 +356,8 @@ int main( int argc , char * argv[] )
       if (!ninmask) {
          ERROR_exit(" No voxels in mask !");
       }  
-      INFO_message("%d voxels in mask\n", ninmask);
+      /* text output program, so avoid extras   26 Dec 2013 [rickr] */
+      /* INFO_message("%d voxels in mask\n", ninmask); */
       DSET_delete(mask_dset) ; 
    }
          

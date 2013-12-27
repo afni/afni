@@ -413,6 +413,10 @@ examples (very basic for now):
           1d_tool.py -infile X.xmat.1D -show_tr_run_counts frac_cen \\
                      -show_trs_run 3
 
+   25. Show number of runs.
+
+          1d_tool.py -infile X.xmat.1D -show_num_runs
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -755,6 +759,7 @@ general options:
    -show_max_displace           : display max displacement (from motion params)
                                   - the maximum pairwise distance (enorm)
    -show_mmms                   : display min, mean, max, stdev of columns
+   -show_num_runs               : display number of runs found
    -show_rows_cols              : display the number of rows and columns
    -show_tr_run_counts STYLE    : display TR counts per run, according to STYLE
                                   STYLE can be one of:
@@ -939,7 +944,9 @@ g_history = """
    1.17 May 14, 2013 - added -show_argmin/argmax
    1.18 Jun 10, 2013 - added -select_groups, -show_cormat, -volreg2allineate
    1.19 Oct 31, 2013 - added -show_trs_run
-   1.20 Dec 27, 2013 - added -show_tr_run_counts in various styles
+   1.20 Dec 27, 2013
+        - added -show_tr_run_counts in various styles
+        - added -show_num_runs
 """
 
 g_version = "1d_tool.py version 1.20, Dec 27, 2013"
@@ -1005,6 +1012,7 @@ class A1DInterface:
       self.show_label_ord  = 0          # show the label ordering
       self.show_labels     = 0          # show the labels
       self.show_mmms       = 0          # show min, mean, max, stdev
+      self.show_num_runs   = 0          # show the number of runs found
       self.show_rows_cols  = 0          # show the number of rows and columns
       self.show_tr_run_counts = ''      # style variable can be in:
                                         #   trs, trs_cen, trs_no_cen, frac_cen
@@ -1266,6 +1274,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_mmms', 0, [], 
                       helpstr='display min, mean, max, stdev, per column')
+
+      self.valid_opts.add_opt('-show_num_runs', 0, [], 
+                   helpstr='display the number of runs found')
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
@@ -1666,6 +1677,9 @@ class A1DInterface:
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
 
+         elif opt.name == '-show_num_runs':
+            self.show_num_runs = 1
+
          elif opt.name == '-show_tr_run_counts':
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
@@ -1918,6 +1932,8 @@ class A1DInterface:
       if self.show_mmms:
          self.adata.show_min_mean_max_stdev(verb=self.verb)
 
+      if self.show_num_runs: self.show_nruns()
+
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
       if self.show_tr_run_counts  != '': self.show_TR_run_counts()
@@ -1954,6 +1970,12 @@ class A1DInterface:
          if self.write_1D(self.write_file): return 1
 
       return
+
+   def show_nruns(self):
+      """display the number of runs"""
+      if self.verb > 1: pstr = 'number of runs: '
+      else:             pstr = ''
+      print '%s%s' % (pstr, self.adata.nruns)
 
    def show_TR_run_counts(self):
       """display list of TRs per run, according to self.show_tr_run_counts
