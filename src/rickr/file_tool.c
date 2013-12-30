@@ -133,10 +133,10 @@ static char g_history[] =
  " 3.11 Feb 11, 2013    - added recent options to help\n"
  " 3.12 Mar 07, 2013    - applied -prefix with -show_bad_backslash\n"
  " 3.13 Jul 09, 2013    - added a little more info for locating bad chars\n"
- " 3.14 Dec 27, 2013    - bad_backslash includes file ending with one\n"
+ " 3.14 Dec 30, 2013    - bad_backslash includes files ending with one\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.14 (December 27, 2013)"
+#define VERSION         "3.14 (December 30, 2013)"
 
 
 /* ----------------------------------------------------------------------
@@ -342,8 +342,14 @@ scr_show_bad_bs( char * filename, param_t * p )
 
         /* check for '\' at the end of the file (last char or before \n) */
         if ( count == flen || ( count == flen-1 && fdata[count] == '\n' ) ) {
-           bad++;
+           if( !p->quiet && bad ) fputs("   ", stdout);
            if( !p->quiet ) printf("file '%s' ends with a backslash\n",filename);
+           /* and fix the line ('\' was added, so go with 2 newlines) */
+           if( outfp ) {
+              if(p->debug > 1) printf("--> include 2 newlines\n");
+              fputs("\n\n", outfp);
+           }
+           bad++;
            break;
         } 
 
