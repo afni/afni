@@ -18712,7 +18712,7 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
                SUMAg_CF->X->roffx = 0; SUMAg_CF->X->roffy = 0;
             }
          } else {
-            SUMA_S_Err("Failed to get window attributes, approximating");
+            SUMA_LH("Failed to get window attributes, approximating");
             SUMAg_CF->X->roffx = 0;
             SUMAg_CF->X->roffy = 22;
          } 
