@@ -726,9 +726,13 @@ read_file( char * filename, char ** fdata, int * flen )
     }
 
     length = THD_filesize(filename);
+    if( length < 0 ) {
+        fprintf(stderr,"** failed to check size for file '%s'\n", filename);
+        return -1;
+    }
 
     /* see if we need to update space */
-    if ( *flen != length )
+    if ( *flen != length && length > 0 )
     {
         *fdata = (char*) realloc( *fdata, length * sizeof(char) );
         if ( *fdata == NULL )
@@ -1421,7 +1425,7 @@ set_params( param_t * p, int argc, char * argv[] )
     else
         p->modify = 0;                             /* be explicit */
 
-    if ( p->length <= 0 && p->debug > 0 )
+    if ( p->length <= 0 && p->debug > 0 && ! p->script )
         fputs( "warning: missing '-length' option, using file len\n", stderr );
 
     if ( p->modify )
