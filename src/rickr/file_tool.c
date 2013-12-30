@@ -330,28 +330,30 @@ scr_show_bad_bs( char * filename, param_t * p )
         /* note beginning of line (it's the next char) */
         if( fdata[count] == '\n' ){  line_start = fdata+count+1;  lnum++; }
 
-        if( outfp ) fputc(fdata[count], outfp); /* regardless, char is okay */
-
         if( fdata[count] != '\\' ){
+           if( outfp ) fputc(fdata[count], outfp); /* output good char */
            count++;
            continue;
         }
 
         /* found a '\\' char, count it and look beyond */
-        bcount++; count++;
 
         /* check for '\' at the end of the file (last char or before \n) */
-        if ( count == flen || ( count == flen-1 && fdata[count] == '\n' ) ) {
+        if ( count == flen-1 || (count == flen-2 && fdata[count+1] == '\n') ) {
            if( !p->quiet && bad ) fputs("   ", stdout);
            if( !p->quiet ) printf("file '%s' ends with a backslash\n",filename);
            /* and fix the line ('\' was added, so go with 2 newlines) */
            if( outfp ) {
-              if(p->debug > 1) printf("--> include 2 newlines\n");
-              fputs("\n\n", outfp);
+              if(p->debug > 1) printf("--> skip last '\\', include newline\n");
+              fputc('\n', outfp);
            }
            bad++;
            break;
         } 
+
+        /* now look behond the '\' */
+        if( outfp ) fputc(fdata[count], outfp); /* output '\' char */
+        bcount++; count++;
 
         /* note first char after '\\', and do not write out corrected
            file, until we know the line is okay */

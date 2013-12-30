@@ -947,9 +947,10 @@ g_history = """
    1.20 Dec 27, 2013
         - added -show_tr_run_counts in various styles
         - added -show_num_runs
+   1.21 Dec 30, 2013 - skip polort against polort in -show_cormat_warnings
 """
 
-g_version = "1d_tool.py version 1.20, Dec 27, 2013"
+g_version = "1d_tool.py version 1.21, Dec 30, 2013"
 
 
 class A1DInterface:
