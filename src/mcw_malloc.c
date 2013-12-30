@@ -422,11 +422,7 @@ long long mcw_malloc_total(void)  /* 01 Feb 2007 */
 extern int THD_is_file( char * ) ;
 extern void qsort_intint( int , int * , int * ) ;
 static int size_sort = 0;
-void mcw_malloc_dump_sort(int opt) {
-   if (opt == 1) size_sort = 1;
-   mcw_malloc_dump();
-   if (opt == 1) size_sort = 0;
-}
+
 void mcw_malloc_dump(void)
 {
    if( ! use_tracking ) return ;
@@ -540,6 +536,13 @@ void mcw_malloc_dump(void)
  } /* end OpenMP critical */
 
  return ;
+}
+
+/* put below mcw_malloc_dump to appease solaris   30 Dec 2013 [rickr] */
+void mcw_malloc_dump_sort(int opt) {
+   if (opt == 1) size_sort = 1;
+   mcw_malloc_dump();
+   if (opt == 1) size_sort = 0;
 }
 
 /*----------------------------------------------------------------
