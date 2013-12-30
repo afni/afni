@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Dec, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "mcw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
+   "Apparently it does not like inconsistent declaration in same file,\n"
+   "and mcw_malloc.h does not offer prototypes to many functions in the\n"
+   "case of DONT_USE_MCW_MALLOC, including this one."
+ } ,
+
  { 30,  Dec, 2013, RCR, "file_tool", MICRO, TYPE_ENHANCE,
    "for -show_bad_backslash, check for '\\' as the last file character",
    NULL
