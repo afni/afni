@@ -1471,9 +1471,12 @@ class Afni1D:
 
       return 0, mstr
 
-   def list_cormat_warnings(self, cutoff=0.4):
+   def list_cormat_warnings(self, cutoff=0.4, skip_expected=1):
       """return an error code, error string and a list of corval, cosval,
-         vec, index for each cormat value with abs() > cutoff"""
+         vec, index for each cormat value with abs() > cutoff
+
+         if skip_expected, skip: mot or base against mot or base
+      """
 
       if self.verb > 3: print '-- Afni1D list_cormat_warnings, cut=%g'%cutoff
 
@@ -1522,8 +1525,9 @@ class Afni1D:
          rmot  = r in motcols
          cmot  = c in motcols
 
-         if cmot and (rbase or rmot): continue
-         if cbase and rmot: continue
+         # also, skip baseline against baseline (from 2-3 run polort 0)
+         # 30 Dec 2013
+         if skip_expected and (cmot or cbase) and (rbase or rmot): continue
 
          if aval < cutoff: break
 

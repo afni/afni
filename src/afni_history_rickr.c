@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  Dec, 2013, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "skip polort against polort in -show_cormat_warnings",
+   NULL
+ } ,
+
  { 30,  Dec, 2013, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "mcw_malloc.c: moved mcw_malloc_dump_sort below _dump for solaris",
    "Apparently it does not like inconsistent declaration in same file,\n"
@@ -56,9 +61,9 @@ afni_history_struct rickr_history[] = {
    "case of DONT_USE_MCW_MALLOC, including this one."
  } ,
 
- { 30,  Dec, 2013, RCR, "file_tool", MICRO, TYPE_ENHANCE,
+ { 30,  Dec, 2013, RCR, "file_tool", MINOR, TYPE_ENHANCE,
    "for -show_bad_backslash, check for '\\' as the last file character",
-   NULL
+   "The fix (with -prefix) is to delete the last '\\' and end with a newline."
  } ,
 
  { 27,  Dec, 2013, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
