@@ -354,7 +354,10 @@ int main(int argc, char *argv[])
    if (flim == NULL) {
          ERROR_exit("Error reading gradient vector file");
       }
-   preREADIN = mri_transpose(flim); // this effectively *undoes* autotranspose
+   if( IN_FORM )
+      preREADIN = mri_transpose(flim); // effectively *undoes* autotranspose
+   else
+      preREADIN = mri_copy(flim);
    mri_free(flim);
    idx = preREADIN->ny;
 
@@ -363,7 +366,10 @@ int main(int argc, char *argv[])
       if (flim == NULL) {
          ERROR_exit("Error reading b-value file");
       }
-      preREADBVAL = mri_transpose(flim); // effectively *undoes* autotranspose
+      if( flim->ny == 1)
+         preREADBVAL = mri_transpose(flim); // effectively *undoes* autotransp
+      else
+         preREADBVAL = mri_copy(flim); 
       mri_free(flim);
       idx2 = preREADBVAL->ny;
 
@@ -372,7 +378,7 @@ int main(int argc, char *argv[])
    if(idx>= MAXGRADS ) {
       printf("Error, too many input grads.\n");
       mri_free (preREADIN);
-      mri_free (preREADBVAL);
+      if( HAVE_BVAL ) mri_free (preREADBVAL);
       exit(4);
    }
 
@@ -381,7 +387,7 @@ int main(int argc, char *argv[])
       printf("Probably an error, because there aren't 3 or 6 numbers in columns!\n");
 
    if( HAVE_BVAL && ( idx != idx2 ) ) {
-      printf("Error, because there aren't number of bvecs (%d)\n"
+      printf("Error, because the number of bvecs (%d)\n"
              "and bvals (%d) don't appear to match!\n", idx, idx2);
       mri_free (preREADIN);
       mri_free (preREADBVAL);
@@ -588,9 +594,10 @@ int main(int argc, char *argv[])
       }
    }
    fclose(fout);
-   
+
    mri_free(preREADIN);
-   mri_free(preREADBVAL);
+   if( HAVE_BVAL )
+      mri_free(preREADBVAL);
       
 
    printf("\tDone.  Check output file `%s' for results\n\n",Fname_output);
