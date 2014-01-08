@@ -407,11 +407,12 @@ int main(int argc, char *argv[])
    // 4 is bmatrRow col T;
    // 5 is bmatrDiag col A;
 
-   if( IN_FORM == 0 ) // grad rows, no binfo
-      for( i=0; i<idx ; i++ ) 
-         for ( j=0; j<3 ; j++ )
-            OUT_GRAD[i][j+1] = *(READIN +j*idx +i) ;
-   else if ( IN_FORM == 1 )  // grad cols, no binfo
+   //if( IN_FORM == 0 ) // grad rows, no binfo
+   // for( i=0; i<idx ; i++ ) 
+   //    for ( j=0; j<3 ; j++ )
+   //       OUT_GRAD[i][j+1] = *(READIN +j*idx +i) ;
+   //else 
+   if ( IN_FORM <= 1 )  // grad cols, no binfo
       for( i=0; i<idx ; i++ ) 
          for ( j=0; j<3 ; j++ )
             OUT_GRAD[i][j+1] = *(READIN + 3*i+j);
