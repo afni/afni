@@ -124,6 +124,7 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                                  more columns to NODENAMES.txt to have:\n"
 "                                     I LABEL GID R G B\n"
 "                                  with R, G, and B values between 0 and 1.0\n"
+"     -graph_XYZ_LPI: Coords in NodeList.1D are in LPI instead of RAI \n"
 "     -graph_edgelist_1D EDGELIST.1D: i j indices of graph nodes defining edge\n"
 "                                   with each row matching the input dset row.\n"
 "                                   This option only works with -multigraph\n"
@@ -218,7 +219,7 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    int orderednodelist = 1, split=0, toGDSET=0, OneMat, *clan=NULL;
    float fv5[5];
-   int nv, mxgrp;
+   int nv, mxgrp, RAI;
    char *stmp=NULL, colnm[32];
    SUMA_COLOR_MAP *SM=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -244,6 +245,7 @@ int main (int argc,char *argv[])
    cmapfile=NULL;
    toGDSET=0;
    OneMat=1;
+   RAI = 1;
    kar = 1;
    brk = NOPE;
    while (kar < argc) { /* loop accross command ine options */
@@ -276,6 +278,13 @@ int main (int argc,char *argv[])
          no_hist = 1;
          brk = YUP;
       }
+
+      if (!brk && (strcmp(argv[kar], "-graph_xyz_lpi") == 0))
+      {
+         RAI = 0;
+         brk = YUP;
+      }
+      
       
       if (!brk && (strcmp(argv[kar], "-graphize") == 0))
       {
@@ -659,7 +668,8 @@ int main (int argc,char *argv[])
                   if (fl2 > fl) {
                      names[cnt]=NULL;
                      SUMA_COPY_TO_STRING(fl, fl2, names[cnt]);
-                     SUMA_LHv("  Name[%d] %s\n",cnt, names[cnt]);
+                     SUMA_LHv("  Name[%d] %s, fl2[0] is >%c<\n",
+                                 cnt, names[cnt], fl2[0]);
                      fl = fl2;
                   } else {
                      SUMA_S_Errv("Failed to get label associated with index %d\n"
@@ -744,6 +754,16 @@ int main (int argc,char *argv[])
             }
             SUMA_LH("Have indices %d .. %d", 
                     ivec[0], ivec[SDSET_VECFILLED(dseti)]-1);
+            if (!RAI) {
+               int cnt;
+               float *fvx = (float *)SDSET_VEC(dseti,0);
+               float *fvy = (float *)SDSET_VEC(dseti,1);
+               SUMA_LH("Flipping to LPI");
+               for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
+                  fvx[cnt] = -fvx[cnt];
+                  fvy[cnt] = -fvy[cnt];
+               }
+            }
             if (!(SUMA_AddGDsetNodeListElement(dset, ivec,
                                                      SDSET_VEC(dseti,0),
                                                      SDSET_VEC(dseti,1),
