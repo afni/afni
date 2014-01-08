@@ -75,6 +75,7 @@ typedef enum { SUMA_NO_NUM_UNITS = 0,
                SUMA_MM_UNITS,
                SUMA_P_VALUE_UNITS,
                SUMA_Q_VALUE_UNITS,
+               SUMA_PERC_VALUE_UNITS,
                
                SUMA_N_NUMERICAL_UNITS
                } SUMA_NUMERICAL_UNITS;
@@ -276,6 +277,8 @@ typedef enum { NOT_SET_type = -1,
                       ( SUMAg_DOv[(i)].ObjectType == GRAPH_LINK_type ? 1:0) )
 #define iDO_isTDO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? 0: \
                       ( SUMAg_DOv[(i)].ObjectType == TRACT_type ? 1:0) )
+#define iDO_isMDO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? 0: \
+                      ( SUMAg_DOv[(i)].ObjectType == MASK_type ? 1:0) )
 #define iDO_isVO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? 0: \
                       ( SUMAg_DOv[(i)].ObjectType == VO_type ? 1:0) )
 #define iDO_type(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? NOT_SET_type: \
@@ -297,6 +300,8 @@ typedef enum { NOT_SET_type = -1,
                                     (ado)->do_type) ) )
 #define ADO_ID(ado) SUMA_ADO_idcode(ado)
 #define ADO_LABEL(ado) SUMA_ADO_sLabel(ado)
+#define ADO_STATE(ado) SUMA_iDO_state(ADO_iDO(ado))
+#define ADO_GROUP(ado) SUMA_iDO_group(ADO_iDO(ado))
 
 #define iDO_label(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? \
                               "NO OBJECT!": \
