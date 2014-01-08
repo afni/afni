@@ -2250,6 +2250,8 @@ int SUMA_NumStringUnits (char *s, int marktip)
                               SUMA_RETURN(SUMA_P_VALUE_UNITS);
    else if (!strncmp((s+nd), "q",1)) 
                               SUMA_RETURN(SUMA_Q_VALUE_UNITS);
+   else if (!strncmp((s+nd), "%",1)) 
+                              SUMA_RETURN(SUMA_PERC_VALUE_UNITS);
    SUMA_RETURN(unt);
 }
 
@@ -2301,6 +2303,14 @@ int SUMA_strtod(char *n, double *valp)
    \sa SUMA_AdvancePastNumbers
    \sa SUMA_NumStringUnits
 */
+
+/* Do not use SUMA_IS_NUM_E inside SUMA_IS_DIGIT_CHAR */
+#define SUMA_IS_DIGIT_CHAR(s,n) (\
+   (isdigit(s[n]) || s[n] == '.' || s[n] == '-' || s[n] == '+') )
+#define SUMA_IS_NUM_E(s, n) (\
+   (n > 0 && (s[n] == 'e' || s[n] == 'E') && SUMA_IS_DIGIT_CHAR(s,n-1)) )
+#define SUMA_IS_NUM_CHAR(s,n) (SUMA_IS_DIGIT_CHAR(s,n) ||  SUMA_IS_NUM_E(s,n))
+
 int SUMA_StringToNum (char *s, void *vv, int N, int prec)
 {
    static char FuncName[]={"SUMA_StringToNum"};
@@ -2320,8 +2330,7 @@ int SUMA_StringToNum (char *s, void *vv, int N, int prec)
    /* clean s by removing trailing junk then replacing non characters by space*/
    FoundTip = 0;
    for (nd=strlen(s)-1; nd >=0; --nd) {
-      if (!isdigit(s[nd]) && s[nd] != '.' && s[nd] != '-' && s[nd] != '+' && 
-                             s[nd] != 'e' && s[nd] != 'E') {
+      if (!SUMA_IS_NUM_CHAR(s,nd)) {
          if (!FoundTip) {
             s[nd]= '\0'; /* remove */
          } else {
@@ -2432,7 +2441,7 @@ char *SUMA_set_string_length(char *buf, char cp, int n)
    }
          
    if (strlen(lbl) != n) {
-      lbl30 = SUMA_pad_string(lbl, ' ', n, 1); 
+      lbl30 = SUMA_pad_string(lbl, cp, n, 1); 
       SUMA_free(lbl); lbl = NULL;
    } else {
       lbl30 = lbl; lbl = NULL;
@@ -4140,7 +4149,12 @@ static ENV_SPEC envlist[] = {
       "YES" },
    {  "Set colormap for volumes, choose any of the standard list",
       "SUMA_VO_ColorMap",
-      "ngray20" },
+      "bw20" },
+   {  "Force reorienting of read volume.\nTo force reorientation,\n"
+      "Choose from RAI, LPI, RAS. etc...\n"
+      "Use NO to avoid reorientation. This env. is for debugging purposes.\n",
+      "SUMA_VO_Reorient",
+      "NO" },
    {  NULL, NULL, NULL  }
 };
       
