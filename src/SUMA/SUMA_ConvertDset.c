@@ -677,6 +677,7 @@ int main (int argc,char *argv[])
                      exit(1); 
                   }
                   /* And lastly, do we have numbers left? */
+                  SUMA_SKIP_PURE_BLANK(fl, fle);
                   SUMA_GET_TO_EOL(fl, fle, fl2);
                   if (fl2 > fl) {
                      SUMA_COPY_TO_STRING(fl, fl2, stmp);
