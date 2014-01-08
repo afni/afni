@@ -12,6 +12,15 @@ typedef enum { SUMA_notypeset = -1,
                SUMA_complex = NI_COMPLEX64,
                SUMA_string = NI_STRING} SUMA_VARTYPE;
 
+typedef enum { SUMA_noGLtuples = -1, 
+               SUMA_b = 1001, /* unsigned byte */
+               SUMA_bbb = 1002, /* 3* unsigned byte */ 
+               SUMA_bbbb = 1003, /* 3* unsigned byte */ 
+               SUMA_F = 1011, /* one float */
+               SUMA_FFF = 1012, /* 3* float */
+               SUMA_FFFF = 1013, /* 4 * float */
+              } SUMA_GL_TUPLES;
+
 #define SUMA_MX_VEC_MAX_DIMS 50
 typedef struct {
    SUMA_VARTYPE tp;
@@ -103,6 +112,15 @@ typedef struct {
                                        This define is stuck here so that non-SUMA DataSet manipulating programs 
                                        can use it, one hopes.
                                        Numbering is yyyymmdd */
+
+/* Do not use SUMA_IS_NUM_E inside SUMA_IS_DIGIT_CHAR 
+   See also SUMA_IS_DIGIT */
+#define SUMA_IS_DIGIT_CHAR(s,n) (\
+   (isdigit(s[n]) || s[n] == '.' || s[n] == '-' || s[n] == '+') )
+#define SUMA_IS_NUM_E(s, n) (\
+   (n > 0 && (s[n] == 'e' || s[n] == 'E') && SUMA_IS_DIGIT_CHAR(s,n-1)) )
+#define SUMA_IS_NUM_CHAR(s,n) (SUMA_IS_DIGIT_CHAR(s,n) ||  SUMA_IS_NUM_E(s,n))
+
 
 #define SUMA_EMPTY_ATTR "~"
 #define AFNI_NI_CSS "~"    
