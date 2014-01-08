@@ -2304,13 +2304,6 @@ int SUMA_strtod(char *n, double *valp)
    \sa SUMA_NumStringUnits
 */
 
-/* Do not use SUMA_IS_NUM_E inside SUMA_IS_DIGIT_CHAR */
-#define SUMA_IS_DIGIT_CHAR(s,n) (\
-   (isdigit(s[n]) || s[n] == '.' || s[n] == '-' || s[n] == '+') )
-#define SUMA_IS_NUM_E(s, n) (\
-   (n > 0 && (s[n] == 'e' || s[n] == 'E') && SUMA_IS_DIGIT_CHAR(s,n-1)) )
-#define SUMA_IS_NUM_CHAR(s,n) (SUMA_IS_DIGIT_CHAR(s,n) ||  SUMA_IS_NUM_E(s,n))
-
 int SUMA_StringToNum (char *s, void *vv, int N, int prec)
 {
    static char FuncName[]={"SUMA_StringToNum"};
