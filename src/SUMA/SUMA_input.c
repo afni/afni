@@ -1603,7 +1603,7 @@ int SUMA_G_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
       SUMA_SL_Err("Nothing to graph");
       SUMA_RETURN(0);
    }
-   inode = SUMA_ADO_SelectedDatum(ado, NULL);
+   inode = SUMA_ADO_SelectedDatum(ado, NULL, NULL);
    if (inode < 0) {
       if (callmode && strcmp(callmode, "interactive") == 0) {
          SUMA_SLP_Warn("No selected node.\nNothing to graph.");
@@ -4548,6 +4548,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button4:
          case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
             if (pButton==6 || Bev.state & ShiftMask) {
+               SUMA_ALL_DO *ado=NULL;
+               char variant[2];
+               #if 0
                int ii;
                SUMA_VolumeObject *VO=NULL;
                for (ii=0; ii<SUMAg_N_DOv; ++ii) {
@@ -4566,6 +4569,30 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
                SUMA_postRedisplay(w, NULL, NULL);
+               #else
+               if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                  switch (ado->do_type) {
+                     case VO_type: {
+                        float incr = 1.0;
+                        SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
+                        SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+                        if (VSaux && VSaux->PR) {
+                           if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0, 
+                                          VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
+                                          0, variant, NULL)   >=0 ){
+                              SUMA_set_slice(ado, variant, &incr, 
+                                             "increment", 0);
+                           }
+                        }
+                        SUMA_postRedisplay(w, NULL, NULL);
+                        break; }
+                     default:
+                        SUMA_LH("Nothing here for types %s\n",
+                              ADO_TNAME(ado));
+                        break;
+                  }
+               } 
+               #endif
             } else {
                if (!SUMA_Z_Key(sv, "z", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
@@ -4575,6 +4602,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case Button5:
          case 7: /* This is shift and wheel on mac, Button7 is not in X.h ! */
             if (pButton==7 || Bev.state & ShiftMask) {
+               SUMA_ALL_DO *ado=NULL;
+               char variant[2];
+               #if 0
                int ii;
                SUMA_VolumeObject *VO=NULL;
                for (ii=0; ii<SUMAg_N_DOv; ++ii) {
@@ -4593,6 +4623,30 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
                SUMA_postRedisplay(w, NULL, NULL);
+               #else
+               if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                  switch (ado->do_type) {
+                     case VO_type: {
+                        float incr = -1.0;
+                        SUMA_VolumeObject *vo=(SUMA_VolumeObject *)ado;
+                        SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+                        if (VSaux && VSaux->PR) {
+                           if (SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0, 
+                                          VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
+                                          0, variant, NULL)   >=0 ){
+                              SUMA_set_slice(ado, variant, &incr, 
+                                             "increment", 0);
+                           }
+                        }
+                        SUMA_postRedisplay(w, NULL, NULL);
+                        break; }
+                     default:
+                        SUMA_LH("Nothing here for types %s\n",
+                              ADO_TNAME(ado));
+                        break;
+                  }
+               }
+               #endif
             } else {
                if (!SUMA_Z_Key(sv, "Z", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
@@ -4706,7 +4760,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         }
                      }
                      /* Not much else to do */
-                     goto OUT;
+                     goto REDISP;
                   }
                   SUMA_LH("No mask hit");
                }
@@ -4833,6 +4887,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   sv->ResetGLStateVariables = YUP;
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
                }
+               goto OUT;
+               
+               REDISP:
+               SUMA_LH("Calling redisplay without assessment");
+               sv->ResetGLStateVariables = YUP;
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);        
+               goto OUT;
+   
                OUT:
                /* reset hold on xforms */
                SUMAg_CF->HoldClickCallbacks = 0;
@@ -5842,7 +5904,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
    sv->Focus_DO_ID = ido;
 
    PR->datum_index = -1;
-   for (i=0; i<SUMA_N_ALTSEL_TYPES; ++i) PR->AltSel[i] = -1;
+   for (i=0; i<SUMA_N_IALTSEL_TYPES; ++i) PR->iAltSel[i] = -1;
+   for (i=0; i<SUMA_N_DALTSEL_TYPES; ++i) PR->dAltSel[i] = 0.0;
    AFF44_MULT_I(I, Aff, MTI->P);
 
    SUMA_LHv("Hit on Frame SO, triangle %d %f %f %f, M=[%d %d]\n"
@@ -5893,40 +5956,40 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
             }
          }  
          if (MTI->ifacemin == 1) {
-            PR->AltSel[SUMA_ENODE_0] = ii;
-            PR->AltSel[SUMA_ENODE_1] = jj;
+            PR->iAltSel[SUMA_ENODE_0] = ii;
+            PR->iAltSel[SUMA_ENODE_1] = jj;
          } else {
-            PR->AltSel[SUMA_ENODE_0] = jj;
-            PR->AltSel[SUMA_ENODE_1] = ii;
+            PR->iAltSel[SUMA_ENODE_0] = jj;
+            PR->iAltSel[SUMA_ENODE_1] = ii;
          }
          break;
       case 2:
       case 3:
          /* top edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->AltSel[SUMA_ENODE_0] = jj;
-         PR->AltSel[SUMA_ENODE_1] = -1;
+         PR->iAltSel[SUMA_ENODE_0] = jj;
+         PR->iAltSel[SUMA_ENODE_1] = -1;
          break;
       case 4:
       case 5:
          /* right edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->AltSel[SUMA_ENODE_0] = ii;
-         PR->AltSel[SUMA_ENODE_1] = -1;
+         PR->iAltSel[SUMA_ENODE_0] = ii;
+         PR->iAltSel[SUMA_ENODE_1] = -1;
          break;
       case 6:
       case 7:
          /* bottom edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->AltSel[SUMA_ENODE_0] = jj;
-         PR->AltSel[SUMA_ENODE_1] = -1;
+         PR->iAltSel[SUMA_ENODE_0] = jj;
+         PR->iAltSel[SUMA_ENODE_1] = -1;
          break;
       case 8:
       case 9:
          /* left edge*/
          PR->primitive = SUMA_replace_string(PR->primitive, "balls");
-         PR->AltSel[SUMA_ENODE_0] = ii;
-         PR->AltSel[SUMA_ENODE_1] = -1;
+         PR->iAltSel[SUMA_ENODE_0] = ii;
+         PR->iAltSel[SUMA_ENODE_1] = -1;
          break;
       default:
          SUMA_S_Errv("Faceset %d???\n", MTI->ifacemin);
@@ -6145,7 +6208,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                                                codf->ref_idcode_str);
       PR->primitive = SUMA_replace_string(PR->primitive, codf->primitive);
       PR->primitive_index = (n4-codf->i0);
-      for (i0=0; i0<SUMA_N_ALTSEL_TYPES; ++i0) PR->AltSel[i0] = -1;
+      for (i0=0; i0<SUMA_N_IALTSEL_TYPES; ++i0) PR->iAltSel[i0] = -1;
+      for (i0=0; i0<SUMA_N_DALTSEL_TYPES; ++i0) PR->dAltSel[i0] = 0.0;
       PR->datum_index = -1;
       ado = SUMA_whichADOg(PR->ado_idcode_str);
       switch (codf->ref_do_type) {
@@ -6228,16 +6292,16 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                         /* Which is the closest node? */
                         f = distatmin/dist;
                         if (f <= 0.5) {
-                           PR->AltSel[SUMA_ENODE_0] = i0;
-                           PR->AltSel[SUMA_ENODE_0] = i1;
+                           PR->iAltSel[SUMA_ENODE_0] = i0;
+                           PR->iAltSel[SUMA_ENODE_0] = i1;
                            if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
                               PR->datum_index = datum_index;
                            } else PR->datum_index = -1;
                         } else {
                            SUMA_LHv("++half way, look for opp. edge [%d %d]\n",
                                     i1, i0);
-                           PR->AltSel[SUMA_ENODE_0] = i1;
-                           PR->AltSel[SUMA_ENODE_1] = i0;
+                           PR->iAltSel[SUMA_ENODE_0] = i1;
+                           PR->iAltSel[SUMA_ENODE_1] = i0;
                            
                            if (SUMA_ABS(1.0-f) > 0.01){/*not too close to edge*/
                               /* does edge [i1, i0] exist? If so take it*/
@@ -6353,8 +6417,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                         /* Which is the closest node? */
                         f = distatmin/dist;
                         if (f <= 0.5) {
-                           PR->AltSel[SUMA_ENODE_0] = i0;
-                           PR->AltSel[SUMA_ENODE_1] = i1;
+                           PR->iAltSel[SUMA_ENODE_0] = i0;
+                           PR->iAltSel[SUMA_ENODE_1] = i1;
                            
                            if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
                               PR->datum_index = datum_index;
@@ -6362,8 +6426,8 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                         } else {
                            SUMA_LHv("++half way, look for opp. edge [%d %d]\n",
                                     i1, i0);
-                           PR->AltSel[SUMA_ENODE_0] = i1;
-                           PR->AltSel[SUMA_ENODE_1] = i0;
+                           PR->iAltSel[SUMA_ENODE_0] = i1;
+                           PR->iAltSel[SUMA_ENODE_1] = i0;
                            if (SUMA_ABS(1.0-f) > 0.01){/*not too close to edge*/
                               /* does edge [i1, i0] exist? If so take it*/
                               if (SUMA_GDSET_PointsToSegIndex(dset,i1,i0,&ir)) {
@@ -6434,16 +6498,16 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
 
                   /* Which is the closest node? */
                   if (f <= 0.5) {
-                     PR->AltSel[SUMA_ENODE_0] = i0;
-                     PR->AltSel[SUMA_ENODE_1] = i1;
+                     PR->iAltSel[SUMA_ENODE_0] = i0;
+                     PR->iAltSel[SUMA_ENODE_1] = i1;
                      if (SUMA_ABS(f)> 0.01) {/* not too close to edge */
                         PR->datum_index = datum_index;
                      } else PR->datum_index = -1;
                   } else {
                      SUMA_LHv("++half way, looking for opp. edge [%d %d]\n",
                               i1, i0);
-                     PR->AltSel[SUMA_ENODE_0] = i1;
-                     PR->AltSel[SUMA_ENODE_1] = i0;
+                     PR->iAltSel[SUMA_ENODE_0] = i1;
+                     PR->iAltSel[SUMA_ENODE_1] = i0;
                      if (SUMA_ABS(1.0-f) > 0.01) { /* not too close to edge */
                         /* does edge [i1, i0] exist? If so take it*/
                         if (SUMA_GDSET_PointsToSegIndex(dset, i1, i0, &ir)) {
@@ -6456,11 +6520,11 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                   }
                }
             } else { /* picked a node, no data on it*/
-               PR->AltSel[SUMA_ENODE_0] = 
+               PR->iAltSel[SUMA_ENODE_0] = 
                   SUMA_GDSET_Index_To_NodeIndex(dset, PR->primitive_index);
-               PR->AltSel[SUMA_ENODE_1] = -1;
+               PR->iAltSel[SUMA_ENODE_1] = -1;
                PR->datum_index = -1;
-               fv = SUMA_GDSET_NodeXYZ(dset, PR->AltSel[SUMA_ENODE_0], 
+               fv = SUMA_GDSET_NodeXYZ(dset, PR->iAltSel[SUMA_ENODE_0], 
                                        SUMA_ADO_variant(ado), NULL);
                PR->PickXYZ[0]=fv[0]; PR->PickXYZ[1]=fv[1]; PR->PickXYZ[2]=fv[2];
             }                        
@@ -6525,24 +6589,24 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
                      PR->PickXYZ[1]=ttn->pts[mmmin3+1];
                      PR->PickXYZ[2]=ttn->pts[mmmin3+2];   
                   }
-                  PR->AltSel[SUMA_TRC_PNT] = mmmin; 
-                  PR->AltSel[SUMA_BUN_TRC] = nnmin; 
-                  PR->AltSel[SUMA_NET_BUN] = ib;  
+                  PR->iAltSel[SUMA_TRC_PNT] = mmmin; 
+                  PR->iAltSel[SUMA_BUN_TRC] = nnmin; 
+                  PR->iAltSel[SUMA_NET_BUN] = ib;  
                   PR->datum_index = Network_PTB_to_1P(tdo->net,
-                                                      PR->AltSel[SUMA_TRC_PNT], 
-                                                      PR->AltSel[SUMA_BUN_TRC],
-                                                      PR->AltSel[SUMA_NET_BUN]);
-                  PR->AltSel[SUMA_NET_TRC] = Network_TB_to_1T(tdo->net,
-                                                      PR->AltSel[SUMA_BUN_TRC],
-                                                      PR->AltSel[SUMA_NET_BUN]);
+                                                      PR->iAltSel[SUMA_TRC_PNT], 
+                                                      PR->iAltSel[SUMA_BUN_TRC],
+                                                      PR->iAltSel[SUMA_NET_BUN]);
+                  PR->iAltSel[SUMA_NET_TRC] = Network_TB_to_1T(tdo->net,
+                                                      PR->iAltSel[SUMA_BUN_TRC],
+                                                      PR->iAltSel[SUMA_NET_BUN]);
                   SUMA_LHv("Bundle %ld intersected, tract %ld, "
                            "point %ld, tract in net %ld. \n"
                            "Point NetID: %ld\n"
                            "XYZ[%.3f %.3f %.3f], fmin=%f\n", 
-                           PR->AltSel[SUMA_NET_BUN], 
-                           PR->AltSel[SUMA_BUN_TRC],
-                           PR->AltSel[SUMA_TRC_PNT], 
-                           PR->AltSel[SUMA_NET_TRC], PR->datum_index, 
+                           PR->iAltSel[SUMA_NET_BUN], 
+                           PR->iAltSel[SUMA_BUN_TRC],
+                           PR->iAltSel[SUMA_TRC_PNT], 
+                           PR->iAltSel[SUMA_NET_TRC], PR->datum_index, 
                            PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2], fmin);
                            
                   #if 0 /* Just to debug reverse lookup */
@@ -6570,12 +6634,15 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked(SUMA_SurfaceViewer *sv, GLubyte *colid,
          SUMA_S_Notev("\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"
                    "DO pick: colid (%ld=[%d %d %d %d]) \n"
                    "      is in    <%s, %s, %s>, f=%1.3f\n"
-                   "   datum = %ld, AltSel = [",
+                   "   datum = %ld, iAltSel = [",
                    n4, colid[0], colid[1], colid[2], colid[3],
                    cod->Label, cod->variant, cod->primitive, f, 
                    PR->datum_index);
-        for (iii=0; iii<SUMA_N_ALTSEL_TYPES; ++iii)
-            fprintf(SUMA_STDOUT, "%ld, ", PR->AltSel[iii]);          
+        for (iii=0; iii<SUMA_N_IALTSEL_TYPES; ++iii)
+            fprintf(SUMA_STDOUT, "%ld, ", PR->iAltSel[iii]);
+        fprintf(SUMA_STDOUT, "]\n   dAltSel = [");
+        for (iii=0; iii<SUMA_N_DALTSEL_TYPES; ++iii)
+            fprintf(SUMA_STDOUT, "%.3f, ", PR->dAltSel[iii]);
         fprintf(SUMA_STDOUT, "]\n"
                       "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
    }
@@ -6592,7 +6659,8 @@ SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR)
    }
    PR->primitive_index = -1;
    PR->datum_index = -1;
-   for (i=0; i<SUMA_N_ALTSEL_TYPES; ++i) PR->AltSel[i] = -1;
+   for (i=0; i<SUMA_N_IALTSEL_TYPES; ++i) PR->iAltSel[i] = -1;
+   for (i=0; i<SUMA_N_DALTSEL_TYPES; ++i) PR->dAltSel[i] = 0.0;
    SUMA_ifree(PR->primitive);
    SUMA_ifree(PR->ado_idcode_str);
 
@@ -7007,8 +7075,8 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
    fprintf(SUMA_STDOUT, "Selected network %s (Focus_DO_ID # %d).\n"
                         "Point %ld, (Bundle %ld, Tract %ld, Point %ld)\n", 
       ADO_LABEL(ado), sv->Focus_DO_ID, PR->datum_index,
-      PR->AltSel[SUMA_NET_BUN], PR->AltSel[SUMA_BUN_TRC],
-      PR->AltSel[SUMA_TRC_PNT]);
+      PR->iAltSel[SUMA_NET_BUN], PR->iAltSel[SUMA_BUN_TRC],
+      PR->iAltSel[SUMA_TRC_PNT]);
    fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
    fprintf(SUMA_STDOUT, "%f, %f, %f\n", 
       PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
@@ -7028,7 +7096,7 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
    fprintf(SUMA_STDOUT, "Selected Graph Dset %s (Focus_DO_ID # %d).\n"
                         "Edge %ld, (P0 %ld, P1 %ld)\n", 
       ADO_LABEL(ado), sv->Focus_DO_ID, PR->datum_index,
-      PR->AltSel[SUMA_ENODE_0], PR->AltSel[SUMA_ENODE_1]);
+      PR->iAltSel[SUMA_ENODE_0], PR->iAltSel[SUMA_ENODE_1]);
    fprintf(SUMA_STDOUT, "Seletion coordinates:\n");
    fprintf(SUMA_STDOUT, "%f, %f, %f\n", 
       PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2]);
@@ -7042,13 +7110,14 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
    /* Based on what you selected, update controller */
    /* Set the Nodeselection at the closest node */
    if (PR->datum_index >= 0 ||
-       (PR->datum_index == -1 && PR->AltSel[SUMA_ENODE_0] >= 0)) { 
+       (PR->datum_index == -1 && PR->iAltSel[SUMA_ENODE_0] >= 0)) { 
                      /* 2nd condition is when only edge node is selected */
       it = (int)PR->datum_index;
       if (!list) list = SUMA_CreateList();
-      if (PR->ignore_same_datum && SUMA_ADO_SelectedDatum(ado, NULL) == it) {
+      if (PR->ignore_same_datum && 
+            SUMA_ADO_SelectedDatum(ado, NULL, NULL) == it) {
          SUMA_LHv("Ignoring identical datum selection %d on object %s\n",
-                  SUMA_ADO_SelectedDatum(ado, NULL), SUMA_ADO_Label(ado));
+                  SUMA_ADO_SelectedDatum(ado, NULL, NULL), SUMA_ADO_Label(ado));
          NodeIgnored = YUP;
       } else {
          ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
@@ -7066,20 +7135,33 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
                                               SES_Suma, (void *)sv, NOPE,
                                               SEI_In, SetNodeElem);  
          }
-         iv15[SUMA_NET_BUN] = (int)PR->AltSel[SUMA_NET_BUN];
-         iv15[SUMA_BUN_TRC] = (int)PR->AltSel[SUMA_BUN_TRC];
-         iv15[SUMA_TRC_PNT] = (int)PR->AltSel[SUMA_TRC_PNT];
-         iv15[SUMA_NET_TRC] = (int)PR->AltSel[SUMA_NET_TRC];
-         SUMA_RegisterEngineListCommand (  list, ED, 
-                                           SEF_iv15, (void *)iv15,
-                                           SES_Suma, (void *)sv, NOPE,
-                                           SEI_In, SetNodeElem);  
+         switch (ado->do_type) {
+            case TRACT_type:
+               iv15[SUMA_NET_BUN] = (int)PR->iAltSel[SUMA_NET_BUN];
+               iv15[SUMA_BUN_TRC] = (int)PR->iAltSel[SUMA_BUN_TRC];
+               iv15[SUMA_TRC_PNT] = (int)PR->iAltSel[SUMA_TRC_PNT];
+               iv15[SUMA_NET_TRC] = (int)PR->iAltSel[SUMA_NET_TRC];
+               SUMA_RegisterEngineListCommand (  list, ED, 
+                                                 SEF_iv15, (void *)iv15,
+                                                 SES_Suma, (void *)sv, NOPE,
+                                                 SEI_In, SetNodeElem);
+               break;
+            case SO_type:
+            case VO_type:
+               /* handled in separate function */
+               break;
+            default: 
+               SUMA_LH("No aux set here for type %s of %s\n",
+                        ADO_TNAME(ado), SUMA_ADO_Label(ado));
+               break;
+         }
+              
       }
    }
       
       
    /* Set the selected edge node (cunningly in recycled selected face set) */
-   it = PR->AltSel[SUMA_ENODE_0];
+   it = PR->iAltSel[SUMA_ENODE_0];
    if (!list) list = SUMA_CreateList();
    ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
@@ -7107,7 +7189,7 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
    /* attach the cross hair to the selected ado */
    iv3[0] = SUMA_whichDO(PR->ado_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    iv3[1] = PR->datum_index; 
-   iv3[2] = PR->AltSel[SUMA_ENODE_0];
+   iv3[2] = PR->iAltSel[SUMA_ENODE_0];
    ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_iv3, (void*)iv3,
@@ -7351,7 +7433,7 @@ int SUMA_ComputeLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       PR->ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
       PR->datum_index = MTI->inodemin;
       PR->ignore_same_datum = IgnoreSameNode;
-      PR->AltSel[SUMA_SURF_TRI] = MTI->ifacemin;
+      PR->iAltSel[SUMA_SURF_TRI] = MTI->ifacemin;
       SUMA_COPY_VEC(MTI->P, PR->PickXYZ, 3, float, float);
       /* Add selection result to stack */
       if (!SUMA_Add_To_PickResult_List(sv, ado, NULL, &PR)) {
@@ -7514,7 +7596,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       PR->ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
       PR->datum_index = MTI->inodemin;
       PR->ignore_same_datum = IgnoreSameNode;
-      PR->AltSel[SUMA_SURF_TRI] = MTI->ifacemin;
+      PR->iAltSel[SUMA_SURF_TRI] = MTI->ifacemin;
       SUMA_COPY_VEC(MTI->P, PR->PickXYZ, 3, float, float);
       /* Add selection result to stack */
       if (!SUMA_Add_To_PickResult_List(sv, ado, NULL, &PR)) {
@@ -7561,7 +7643,7 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    SUMA_UpdateViewerTitle(sv);
 
    NP = SO->FaceSetDim;
-   ip = NP * PR->AltSel[SUMA_SURF_TRI];
+   ip = NP * PR->iAltSel[SUMA_SURF_TRI];
       
    
    /* if the surface controller is open, update it */
@@ -7572,7 +7654,7 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
    fprintf(SUMA_STDOUT, "Selected surface %s (Focus_DO_ID # %d).\n"
                         "FaceSet %ld, Closest Node %ld\n", 
-      SO->Label, sv->Focus_DO_ID, PR->AltSel[SUMA_SURF_TRI], 
+      SO->Label, sv->Focus_DO_ID, PR->iAltSel[SUMA_SURF_TRI], 
       PR->datum_index);
    fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
    fprintf(SUMA_STDOUT, "%d, %d, %d\n", 
@@ -7615,7 +7697,7 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
       
       
    /* Set the FaceSetselection */
-   it = PR->AltSel[SUMA_SURF_TRI];
+   it = PR->iAltSel[SUMA_SURF_TRI];
    ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_i, (void*)&it,
@@ -7643,7 +7725,7 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    /* attach the cross hair to the selected surface */
    iv3[0] = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    iv3[1] = PR->datum_index;
-   iv3[2] = PR->AltSel[SUMA_SURF_TRI];
+   iv3[2] = PR->iAltSel[SUMA_SURF_TRI];
    ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_iv3, (void*)iv3,
@@ -7975,12 +8057,20 @@ int SUMA_MarkLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_RETURN(ans);
 }
 
+/* BEFORE you start using this MACRO everywhere, including with the, 
+   other ThrMode values, make sure you write a function version of it 
+   which can be used as a sanity check. For now, this seems OK */
+#define SUMA_VAL_MEETS_THRESH(val, ThreshRange, ThrMode) (\
+      ((ThrMode) == SUMA_LESS_THAN && (val) >= ThreshRange[0])?1: \
+     (((ThrMode) == SUMA_ABS_LESS_THAN && ( (val) >=  ThreshRange[0] ||   \
+                                            (val) <= -ThreshRange[0]))?1:0) )
+
 int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov, 
                                        int IgnoreSameNode, SUMA_ALL_DO **pado)
 {/* determine intersection */
    static char FuncName[]={"SUMA_ComputeLineVOslicesIntersect"};
    float P0f[3], P1f[3], pinter[3], I[3];
-   int NP; 
+   int NP, N_Hit; 
    float delta_t_tmp, dmin, val; 
    struct timeval tt_tmp; 
    int ip, it, id, ii, imin, I1d, Irw, Hit, ive, icolplane;
@@ -8007,7 +8097,7 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    
    SUMA_LHv("Searching for hit: %f %f %f --> %f %f %f\n", 
             P0f[0], P0f[1], P0f[2], P1f[0], P1f[1], P1f[2]);   
-   Hit = 0;
+   N_Hit = 0;
    for (ii=0; ii<SUMAg_N_DOv; ++ii) {
       if (SUMA_isVO(SUMAg_DOv[ii])) {
          VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
@@ -8016,6 +8106,7 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          SUMA_LH("%d slices on %s", dlist_size(VSaux->slcl), ADO_LABEL(ado));
          if (!dlist_size(VSaux->slcl)) continue;
          /* now compute intersection from the top down */
+         Hit = 0; 
          el = NULL;
          do {
             if (!el) el = dlist_head(VSaux->slcl);
@@ -8056,12 +8147,17 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                               I1d, Irw, val,
                               colplane->OptScl->ThreshRange[0], 
                               colplane->OptScl->ThreshRange[1]);
-                      if ( (val >= colplane->OptScl->ThreshRange[1] || 
-                            val <= colplane->OptScl->ThreshRange[0] ) && 
+                      
+                      if ( SUMA_VAL_MEETS_THRESH(val, 
+                                    colplane->OptScl->ThreshRange,
+                                    colplane->OptScl->ThrMode ) && 
                            (val != 0.0f || !colplane->OptScl->MaskZero) ) {
-                           SUMA_LH("FOUND IT, on VE %s, IJK [%d %d %d], val %f",
+                           SUMA_LH("FOUND IT, on VE %s, IJK [%d %d %d], val %f," 
+                                   "thresh[%f %f]",
                                    SUMA_VE_Headname(VO->VE, ive), 
-                                   (int)I[0], (int)I[1], (int)I[2], val);
+                                   (int)I[0], (int)I[1], (int)I[2], val,
+                                   colplane->OptScl->ThreshRange[0], 
+                                   colplane->OptScl->ThreshRange[1]);
                            PR = SUMA_New_Pick_Result(NULL);
                            PR->ado_idcode_str = SUMA_replace_string(
                                            PR->ado_idcode_str, ADO_ID(ado));
@@ -8074,10 +8170,14 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                            PR->PickXYZ[2] = pinter[2];
                            PR->ignore_same_datum = IgnoreSameNode;
                            PR->datum_index = I1d;
-                           PR->AltSel[SUMA_VOL_I] = I[0];
-                           PR->AltSel[SUMA_VOL_J] = I[1];
-                           PR->AltSel[SUMA_VOL_K] = I[2];
-                           PR->AltSel[SUMA_VOL_IJK] = I1d;
+                           PR->iAltSel[SUMA_VOL_I] = I[0];
+                           PR->iAltSel[SUMA_VOL_J] = I[1];
+                           PR->iAltSel[SUMA_VOL_K] = I[2];
+                           PR->iAltSel[SUMA_VOL_IJK] = I1d;
+                           PR->dAltSel[SUMA_VOL_SLC_EQ0] = rslc->Eq[0];
+                           PR->dAltSel[SUMA_VOL_SLC_EQ1] = rslc->Eq[1];
+                           PR->dAltSel[SUMA_VOL_SLC_EQ2] = rslc->Eq[2];
+                           PR->dAltSel[SUMA_VOL_SLC_EQ3] = rslc->Eq[3];
                            PR->dset_idcode_str = SUMA_replace_string(
                                            PR->dset_idcode_str, SDSET_ID(dset));
                            if (!SUMA_Add_To_PickResult_List(sv, ado, 
@@ -8086,23 +8186,29 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                               SUMA_RETURN(0);
                            }
                            Hit = 1;
-                           goto GOT_IT;
+                           ++N_Hit; 
+                           /* You could leave at the first hit IF:
+                           you only have one direction of slices in the 
+                           entire stack, AND if they are properly
+                           ordered for rendering.
+                           Should speed be an issue you can check for
+                           this condition and bolt with the line below */
+                           /* goto GOT_IT; */
                       }
                   }
                   ++ive;
                }
             }
             SUMA_LH("el now %p,\n"
-                    "tail = %p, Hit = %d", 
-                    el, dlist_tail(VSaux->slcl), Hit);
-         } while(el != dlist_tail(VSaux->slcl) && !Hit);
+                    "tail = %p, N_Hit = %d", 
+                    el, dlist_tail(VSaux->slcl), N_Hit);
+         } while(el != dlist_tail(VSaux->slcl));
       }
    }
 
 
    GOT_IT:
-   if (Hit) SUMA_RETURN(1);
-   else SUMA_RETURN(0);
+   SUMA_RETURN(N_Hit);
 }/* determine intersection with slices of VO*/
 
 int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO, 
@@ -8110,12 +8216,14 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
 {
    static char FuncName[]={"SUMA_Apply_PR_VO"};
    SUMA_ALL_DO *ado=NULL;
-   int iv3[3];
+   int iv3[3], iv15[15];
+   float fv15[15];
    DList *list = NULL;
+   SUMA_Boolean NodeIgnored = NOPE;
    SUMA_PICK_RESULT *PR;
    SUMA_EngineData *ED = NULL;
    SUMA_DSET *dset=NULL;
-   DListElmt *Location=NULL, *el=NULL;
+   DListElmt *Location=NULL, *el=NULL, *SetNodeElem = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -8146,10 +8254,56 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
    fprintf(SUMA_STDOUT, "Selected voxel RAI [%.3f %.3f %.3f]mm \n"
                         "               IJK [%ld %ld %ld] on volume %s.\n",
       PR->PickXYZ[0], PR->PickXYZ[1], PR->PickXYZ[2],
-      PR->AltSel[SUMA_VOL_I], PR->AltSel[SUMA_VOL_J], PR->AltSel[SUMA_VOL_K],
+      PR->iAltSel[SUMA_VOL_I], PR->iAltSel[SUMA_VOL_J], PR->iAltSel[SUMA_VOL_K],
       SDSET_FILENAME(dset));
    fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+   
+   
+   /* Set the voxel selection */   
+   if (!list) list = SUMA_CreateList();
+   if (PR->ignore_same_datum && 
+        SUMA_ADO_SelectedDatum(ado, NULL, NULL) == PR->datum_index) {
+      SUMA_LHv("Ignoring identical voxel selection %d on volume %s\n",
+               SUMA_ADO_SelectedDatum(ado, NULL, NULL), SUMA_ADO_Label(ado));
+      NodeIgnored = YUP;
+   } else {
+      ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
+      SetNodeElem = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_i, (void*)&PR->datum_index,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Head, NULL);
+      if (!SetNodeElem) {
+         fprintf( SUMA_STDERR,
+                  "Error %s: Failed to register SetNodeElem\n", FuncName);
+         SUMA_RETURN (-1);
+      } else {
+         SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_ngr, NULL,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, SetNodeElem);  
+      }
       
+      iv15[SUMA_VOL_I] = (int)PR->iAltSel[SUMA_VOL_I];
+      iv15[SUMA_VOL_J] = (int)PR->iAltSel[SUMA_VOL_J];
+      iv15[SUMA_VOL_K] = (int)PR->iAltSel[SUMA_VOL_K];
+      iv15[SUMA_VOL_IJK] = (int)PR->iAltSel[SUMA_VOL_IJK];
+      
+      fv15[SUMA_VOL_SLC_EQ0] = (float)PR->dAltSel[SUMA_VOL_SLC_EQ0];
+      fv15[SUMA_VOL_SLC_EQ1] = (float)PR->dAltSel[SUMA_VOL_SLC_EQ1];
+      fv15[SUMA_VOL_SLC_EQ2] = (float)PR->dAltSel[SUMA_VOL_SLC_EQ2];
+      fv15[SUMA_VOL_SLC_EQ3] = (float)PR->dAltSel[SUMA_VOL_SLC_EQ3];
+      
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                        SEF_iv15, (void *)iv15,
+                                        SES_Suma, (void *)sv, NOPE,
+                                        SEI_In, SetNodeElem);
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                        SEF_fv15, (void *)fv15,
+                                        SES_Suma, (void *)sv, NOPE,
+                                        SEI_In, SetNodeElem);
+   }
+      
+
    /* Now set the cross hair position at the selected node*/
    if (!list) list = SUMA_CreateList();
    ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
@@ -8169,7 +8323,7 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
    /* attach the cross hair to the selected object 
    Note that binding here is to voxel of dset */
    iv3[0] = ADO_iDO(ado);
-   iv3[1] = PR->AltSel[SUMA_VOL_IJK];
+   iv3[1] = PR->iAltSel[SUMA_VOL_IJK];
    iv3[2] = -1;
 
    ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
@@ -10566,7 +10720,7 @@ void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv,
          SUMA_LH("BTP %d %d %d could not be parsed\n",
                  iv15[SUMA_NET_BUN],   iv15[SUMA_BUN_TRC], iv15[SUMA_TRC_PNT]);
          if (revert_on_err) {
-            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL));
+            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL, NULL));
             SUMA_JumpIndex_TDO(stmp, sv, tdo);
          }
          SUMA_RETURNe;
@@ -10696,7 +10850,7 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)vo;
    DListElmt *el=NULL, *Location=NULL;
    SUMA_EngineData *ED = NULL;
-   float fv3[3];
+   float fv3[3], fv15[15];
    int it, iv15[15], iv3[3], nv = 0, *dims=NULL;
    char stmp[64];
    SUMA_DSET *dset=NULL;
@@ -10729,7 +10883,7 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
          SUMA_LH("IJK %d %d %d could not be parsed or out of range\n",
                  iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K]);
          if (revert_on_err) {
-            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL));
+            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL, NULL));
             SUMA_JumpIndex_VO(stmp, sv, vo);
          }
          SUMA_RETURNe;
@@ -10757,6 +10911,7 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
    
    SUMA_VO_PointXYZ(vo, it, iv15, fv3);
    SUMA_LH("   Located at %f %f %f\n", fv3[0], fv3[1], fv3[2]);
+   SUMA_MARK_PLANE_NOT_SET(fv15+SUMA_VOL_SLC_EQ0); /* No cigar */
    
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
@@ -10773,6 +10928,10 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
                                           SEI_In, el);
       SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_iv15, (void *)iv15,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv15, (void *)fv15,
                                           SES_Suma, (void *)sv, NOPE,
                                           SEI_In, el);
    }
@@ -10893,7 +11052,7 @@ void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo)
          SUMA_LH("IJK %d %d %d could not be parsed or out of range\n",
                  iv15[SUMA_VOL_I], iv15[SUMA_VOL_J], iv15[SUMA_VOL_K]);
          if (revert_on_err) {
-            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL));
+            sprintf(stmp,"%d", SUMA_ADO_SelectedDatum(ado, NULL, NULL));
             SUMA_JumpIndex_MDO(stmp, sv, mo);
          }
          SUMA_RETURNe;

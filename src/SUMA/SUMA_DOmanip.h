@@ -84,6 +84,7 @@ char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_VOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
 char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
+char *SUMA_find_ADOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2);
 char *SUMA_Contralateral_file(char *f1);
 SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,

@@ -11400,7 +11400,7 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
       }
       #endif
    } else {
-      if (!(dset = SUMA_ngr_2_dset((NI_group *)nini, 1))) {
+      if (!(dset = SUMA_ngr_2_dset((NI_group *)nini, verb))) {
          SUMA_SL_Err("Failed to go from ngr to dset");
          SUMA_RETURN(NULL);
       }
@@ -13306,7 +13306,7 @@ SUMA_DSET *SUMA_afnidset2sumadset(
    }else {
       /* Keep track of HEADNAME of input */
       NI_set_attribute(ngr,"DSET_HEADNAME", DSET_HEADNAME(dset));
-      if (!(newset = SUMA_ngr_2_dset(ngr, 1))) {
+      if (!(newset = SUMA_ngr_2_dset(ngr, LocalHead))) {
          SUMA_S_Err("Failed to go from ngr to dset");
          SUMA_RETURN(newset);
       }

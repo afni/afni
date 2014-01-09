@@ -65,6 +65,44 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 8, Jan, 2014, ZSS, "ConvertDset", MINOR, TYPE_NEW_OPT,
+   "Added -graph_XYZ_LPI to flip coords to RAI for the user.",
+   NULL
+ }, 
+ 
+ { 8, Jan, 2014, ZSS, "ConvertDset", MINOR, TYPE_BUG_FIX,
+   "Fixed problem introduced by earlier -graph_named_nodelist_txt change",
+   "Problem was one of parsing and made the program fail to read in all\n"
+   "entries in labels file.\n"
+ }, 
+ 
+ { 6, Jan, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Set proper voxel identification in interface. No more resampling.",
+   "RAI resampling is no longer needed, but stil available by setting\n"
+   "SUMA_VO_Reorient.\n"
+ }, 
+ 
+ { 3, Jan, 2014, ZSS, "suma", MAJOR, TYPE_MODIFY,
+   "Big improvements to slice rendering",
+   "Improvements include proper alpha masking and auto thresholding\n"
+   "Montage-like capability.\n"
+   "Percentile thresholding and intensity range setting\n"
+   "Fixed intersection bug with multi-slice rendering\n"
+ }, 
+ 
+ { 3, Jan, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Modernized some driver handling functions to use ADO instead of SO",
+   "Improvements will allow easier driving of SUMA for non-surface\n"
+   "objects. For now we're not quite there yet. Soon one hopes.\n"
+ }, 
+ 
+
+ { 31, Dec, 2013, ZSS, "suma", MAJOR, TYPE_MODIFY,
+   "Improvements to tract rendering",
+   "Added stenciling to allow for rendering of masked tracts without\n"
+   "interfering with unmasked tracts\n"
+ }, 
+ 
  { 24, Dec , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed SUMA's erroneous switch of colplanes for tracts",
    "Problem was in thoughtless use of SUMA_ADO_Overlay0() insead\n"

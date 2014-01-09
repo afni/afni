@@ -233,6 +233,7 @@ typedef enum { SE_Empty,
                SE_SetDsetViewMode, SE_SetDsetFont, SE_SetDsetNodeRad, 
                SE_SetDsetNodeCol, SE_SetDsetEdgeThick, SE_SetDsetEdgeStip,
                SE_SetDsetGmatBord, SE_SetDsetTxtShad, SE_SetTractMask,
+               SE_SetDsetAlphaVal,
                SE_BadCode} SUMA_ENGINE_CODE; 
                         /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,
@@ -406,6 +407,16 @@ typedef enum { SW_SurfCont_DsetEdgeStip,
                SW_SurfCont_DsetEdgeStip15,
                SW_N_SurfCont_DsetEdgeStip }
                                        SUMA_WIDGET_INDEX_SURFCONT_DSETEDGESTIP;
+typedef enum { SW_SurfCont_DsetAlphaVal,
+               SW_SurfCont_DsetAlphaVal_Max,
+               SW_SurfCont_DsetAlphaVal_Avg,
+               SW_SurfCont_DsetAlphaVal_Min,
+               SW_SurfCont_DsetAlphaVal_I,
+               SW_SurfCont_DsetAlphaVal_T,
+               SW_SurfCont_DsetAlphaVal_B,
+               SW_SurfCont_DsetAlphaVal_XXX,
+               SW_N_SurfCont_DsetAlphaVal }
+                                       SUMA_WIDGET_INDEX_SURFCONT_DSETALPHAVAL;
             
 typedef enum { SW_SurfCont_TractMask,
                SW_SurfCont_TractMaskHide,
@@ -828,6 +839,7 @@ typedef struct {
    float ThreshStats[2]; /*!<  Thresholding statistics, 
                               ThreshStats[0] = p(ThreshRange[0])
                               ThreshStats[1] = q(ThreshRange[0]) */
+   SUMA_NUMERICAL_UNITS RangeUnits;
    double IntRange[2]; /*!< nodes with values <= Range[0] are 
                            given the first color in the color map, 
                            values >= Range[1] get the last color in the map
@@ -895,7 +907,7 @@ typedef struct {
    int EdgeThick; /* see SUMA_WIDGET_INDEX_SURFCONT_DSETEDGETHICK */
    float EdgeThickGain;
    int EdgeStip; /* see SUMA_WIDGET_INDEX_SURFCONT_DSETEDGESTIP */
-   
+   int AlphaVal; /* see SUMA_WIDGET_INDEX_SURFCONT_DSETALPHAVAL */
    char *Name; /*!<  name of ovelay, CONVEXITY or Functional or areal boundaries 
                      perhaps. The Name can be a filename with path*/
    char *Label; /*!< Usually the same as Name without any existing path */
@@ -922,9 +934,31 @@ typedef struct {
                      
    float *ColVec; /*!< N_NodeDef x 3 vector containing colors of nodes 
                        specified in NodeDef, Replaces ColMat, Wed Mar 17 04*/
+   byte *ColAlpha; /*!< Color Alpha obtained directly from the colors in ColVec,
+                        or from the I,T,B. selectors in the data.
+                        This Alpha is only used for Volume objects at the moment,
+                        and is different from LocalOpacity in that this Alpha
+                        does not enter into any of the SUMA controlled mixing
+                        of color overlay planes. */
    int RemixOID;/*!< A number that changes each time ColVec content is changed */
+   
    float *V; /*!< A copy of the dataset's column that produced the colors in
                       ColVec. */
+   int N_V; /*!< Should be the same as SDSET_VECFILLED(Sover->dset_link),
+                 But it is set when V is created to be safe */
+   char V_identifier[32+SUMA_IDCODE_LENGTH];
+   float *Vperc;
+   int N_Vperc;
+   
+   float *T; /*!< A copy of the dataset's column that corresponds to 
+                  the threshold of V */
+   int N_T; /*!< Should be the same as SDSET_VECFILLED(Sover->dset_link),
+                 But it is set when V is created to be safe */
+   char T_identifier[32+SUMA_IDCODE_LENGTH];
+   float *Tperc;
+   int N_Tperc;
+   
+   
    float GlobalOpacity; /*!< Opacity factor between 0 and 1 to apply to 
                            all values in ColMat */
    float *LocalOpacity; /*!< Opacity factor vector between 0 and 1 to apply to 
@@ -967,6 +1001,7 @@ typedef struct {
    DList *ClustList; /*!< The list of clusters */
    byte *ClustOfNode; /*!< Tells which cluster a node belongs to, Should have
                            SO->N_Node values in it*/
+   float AlphaThresh;
 } SUMA_OVERLAYS;
 
 
@@ -1477,6 +1512,7 @@ typedef struct {
    SUMA_MENU_WIDGET *DsetNodeRadMenu; /*!<[SW_N_SurfCont_DsetNodeRad] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *DsetEdgeThickMenu; /*!<[SW_N_SurfCont_DsetEdgeThick] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *DsetEdgeStipMenu; /*!<[SW_N_SurfCont_DsetEdgeStip] widgets                                   controlling the sizing of graph nodes */
+   SUMA_MENU_WIDGET *DsetAlphaValMenu; /*!<[SW_N_SurfCont_DsetAlphaVal] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *TractMaskMenu; /*!<[SW_N_SurfCont_TractMask] widgets 
                                 controlling the masking method */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
@@ -1496,6 +1532,8 @@ typedef struct {
                                              controlling color plane opacity */
    SUMA_ARROW_TEXT_FIELD *ColPlaneDimFact; /*!< arrow/text field 
                                              controlling color plane DimFact */
+   SUMA_ARROW_TEXT_FIELD *ColPlaneAlphaThresh; /*!< arrow/text field 
+                                           controlling color plane AlphaThresh */
    SUMA_ARROW_TEXT_FIELD *TractMaskGray; /*!< arrow/text field 
                                       controlling grayness of masked tracts */
    SUMA_TABLE_FIELD *SetRangeTable; /*!< structure for range setting table */
@@ -1656,6 +1694,46 @@ typedef struct {
    SUMA_MENU_WIDGET *WhatDistMenu; /*!<[SW_N_DrawROI_WhatDist] set of 
                            widgets for SaveWhat menu */
 } SUMA_X_DrawROI;
+
+#if 0 /* STOPPED HERE */
+/*! structure containing widgets and data for the Mask DO widgets*/
+typedef struct {
+   Widget Parent; /*!< Parent widget for the MaskDO window.
+                         It is an Application Shell if in standalone mode.
+                         Otherwise it is a container Row Column ... */ 
+   int standalone;
+   Widget MaskMovemode_tb; /*!< widget for toggling Mask Move mode */
+
+   Widget New_pb;
+   Widget Load_pb;
+   Widget Save_pb;
+   Widget Delete_pb;
+   SUMA_Boolean Delete_first; /*! Flag indicating button has been 
+                                 pressed for the first time */
+   
+   SUMA_ARROW_TEXT_FIELD *MaskSize; /*!< pointer to arrow field */
+   SUMA_ARROW_TEXT_FIELD *MaskCen; /*!< pointer to text field */
+   
+   SUMA_DRAWN_ROI *curDrawnROI; /*!< A pointer to the DrawnROI structure
+                                    currently in use by window.
+                                    This is a copy of another pointer, 
+                                    NEVER FREE IT*/
+   SUMA_LIST_WIDGET *SwitchROIlst; /*!< a structure containing widgets and 
+                                    options for the switch ROI list */
+   int SaveWhat;  /*!< option for determining what ROI to save, acceptable values
+                     are in SUMA_WIDGET_INDEX_DRAWROI_SAVEWHAT */
+   int SaveMode;  /*!< option for determining format of ROI to save, acceptable
+                     values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
+   int WhatDist;  /*!< option for determining format of ROI to save, acceptable  
+                        values are in SUMA_WIDGET_INDEX_DRAWROI_SAVEMODE */ 
+   SUMA_MENU_WIDGET *SaveModeMenu; /*!<[SW_N_DrawROI_SaveMode] set of 
+                           widgets for SaveMode menu */
+   SUMA_MENU_WIDGET *SaveWhatMenu; /*!<[SW_N_DrawROI_SaveWhat] set of 
+                           widgets for SaveWhat menu */
+   SUMA_MENU_WIDGET *WhatDistMenu; /*!<[SW_N_DrawROI_WhatDist] set of 
+                           widgets for SaveWhat menu */
+} SUMA_X_MaskDO;
+#endif
 
 typedef struct {
    GLXContext last_context;
@@ -2228,8 +2306,22 @@ typedef struct {
 #define SUMA_NET_TRC    3  /* selectedNetworkTract */
 #define SUMA_VOL_IJK    3  /* selectedVoxelIJK, 1D index */
 
-#define SUMA_N_ALTSEL_TYPES 4 
+ 
+#define SUMA_N_IALTSEL_TYPES 4 /* If this goes over 15, make sure you 
+                                 start using something bigger than
+                                 iv15 in SUMA_Engine Calls */
 
+#define SUMA_VOL_SLC_EQ0 0 /* 1st coefficient of plane equation */
+
+#define SUMA_VOL_SLC_EQ1 1 /* 2nd coefficient of plane equation */
+
+#define SUMA_VOL_SLC_EQ2 2 /* 3rd coefficient of plane equation */
+
+#define SUMA_VOL_SLC_EQ3 3 /* 4th coefficient of plane equation */
+
+#define SUMA_N_DALTSEL_TYPES 4 /* If this goes over 15, make sure you 
+                                 start using something bigger than
+                                 fv15 in SUMA_Engine Calls */
 
 typedef struct {
    char *ado_idcode_str;   /* id of ado that was picked */
@@ -2244,8 +2336,9 @@ typedef struct {
    
    float PickXYZ[3]; /* Location of index */
    
-   long int AltSel[SUMA_N_ALTSEL_TYPES];
-
+   long int  iAltSel[SUMA_N_IALTSEL_TYPES];
+   double    dAltSel[SUMA_N_DALTSEL_TYPES];
+   
    char *dset_idcode_str; /* ID of volume where selection was made, 
                       if a volume was selected */
 } SUMA_PICK_RESULT; /* Structure holding results of pointer selection*/
