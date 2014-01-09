@@ -531,6 +531,11 @@ int SUMA_ColPlane_NewOpacity_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 int SUMA_Tract_NewGray (SUMA_ALL_DO *ado, 
                            float newgray, int cb_direct );
 void SUMA_cb_Tract_NewGray(void *data);
+int SUMA_ColPlane_NewAlphaThresh_one (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+                                  float newAlphaThresh, int cb_direct);
+int SUMA_ColPlane_NewAlphaThresh (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+                              float newAlphaThresh, int cb_direct);
+void SUMA_cb_ColPlane_NewAlphaThresh (void *data);
 void SUMA_cb_ColPlane_NewDimFact (void *data);
 int SUMA_ColPlane_NewDimFact     (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  float newdimfact, int cb_direct);
@@ -666,6 +671,9 @@ float *SUMA_NodeCol2Col(int Mode, float *here);
 void SUMA_cb_SetDsetEdgeStip(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 int SUMA_SetDsetEdgeStip(SUMA_ALL_DO *ado, int imenu, int updatemenu); 
+void SUMA_cb_SetDsetAlphaVal(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+int SUMA_SetDsetAlphaVal(SUMA_ALL_DO *ado, int imenu, int updatemenu); 
 void SUMA_cb_SetTractMask(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 int SUMA_SetTractMask(SUMA_ALL_DO *ado, int imenu, int updatemenu);
@@ -1025,14 +1033,60 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i);
    "Gain factor to apply to edge thickness." \
 
 #define SUMA_SurfCont_TractMask_hint \
-   "What becomes of tracts out of mask." \
+   "Gray level (0--100) of tracts outside of mask (only for Msk --> Gry)" \
 
 #define SUMA_SurfCont_ColPlaneOrder_hint \
    "Order of Dset's colorplane." \
 
+#define SUMA_SurfCont_ColPlaneAlphaThresh_hint \
+   "Threshold for voxel alpha value." \
+
 #define SUMA_SurfCont_ColPlaneOpacity_hint \
    "Opacity of Dset's colorplane." \
 
+#define SUMA_SliceSelect_axial_help \
+   "Select axial slice(s) to render.\n"\
+   "If the dataset is oblique, that would be the slice that is closest\n"\
+   "to the axial plane.\n"\
+   "Move slider bar or enter slice number directly in adjoining field.\n"\
+   "To show a stack of axial slices set the second text field to N:S\n"\
+   "where N is the number of slices in the stack and S is the spacing\n"\
+   "in number of slices between consecutive slices. The stack is centered\n"   \
+   "on the chosen slice number. So when N > 1 and even, the 'selected' slice\n" \
+   "is not rendered. In that case, set N to the next odd number to see it.\n"   \
+   "To hide/show all displayed axial slices, use right-side toggle button."
 
+#define SUMA_SliceSelect_axial_hint \
+   "Select axial slice(s) to render (use BHelp for details)"
+   
+#define SUMA_SliceSelect_sagittal_help \
+   "Select sagittal slice(s) to render.\n"\
+   "If the dataset is oblique, that would be the slice that is closest\n"\
+   "to the sagittal plane.\n"\
+   "Move slider bar or enter slice number directly in adjoining field.\n"\
+   "To show a stack of sagittal slices set the second text field to N:S\n"\
+   "where N is the number of slices in the stack and S is the spacing\n"\
+   "in number of slices between consecutive slices. The stack is centered\n"   \
+   "on the chosen slice number. So when N > 1 and even, the 'selected' slice\n" \
+   "is not rendered. In that case, set N to the next odd number to see it.\n"  \
+   "To hide/show all displayed sagittal slices, use right-side toggle button."
+
+#define SUMA_SliceSelect_sagittal_hint \
+   "Select sagittal slice(s) to render (use BHelp for details)"
+
+#define SUMA_SliceSelect_coronal_help \
+   "Select coronal slice(s) to render.\n"\
+   "If the dataset is oblique, that would be the slice that is closest\n"\
+   "to the coronal plane.\n"\
+   "Move slider bar or enter slice number directly in adjoining field.\n"\
+   "To show a stack of coronal slices set the second text field to N:S\n"\
+   "where N is the number of slices in the stack and S is the spacing\n"\
+   "in number of slices between consecutive slices. The stack is centered\n"   \
+   "on the chosen slice number. So when N > 1 and even, the 'selected' slice\n" \
+   "is not rendered. In that case, set N to the next odd number to see it.\n"   \
+   "To hide/show all displayed coronal slices, use right-side toggle button."
+
+#define SUMA_SliceSelect_coronal_hint \
+   "Select coronal slice(s) to render (use BHelp for details)"
    
 #endif

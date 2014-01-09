@@ -2904,10 +2904,23 @@ float *SUMA_VO_XYZ_Range(SUMA_VolumeObject *VO, float *here)
    here[0] = here[2] = here[4] =   2000000000000;
    here[1] = here[3] = here[5] =  -2000000000000;
    
-   here[0] = VO->VE[0]->bo0[0]; here[1] = VO->VE[0]->boN[0]; 
+   here[0] = VO->VE[0]->bo0[0]; here[1] = VO->VE[0]->boN[0];
+      if (here[0] > here[1]) { /* Happens for certain orientations.
+                                  Point 0 is voxel i j k 0 0 0 */
+         here[0] = here[1];
+         here[1] = VO->VE[0]->bo0[0];
+      } 
    here[2] = VO->VE[0]->bo0[1]; here[3] = VO->VE[0]->boN[1]; 
+      if (here[2] > here[3]) { 
+         here[2] = here[3];
+         here[3] = VO->VE[0]->bo0[1];
+      } 
+      
    here[4] = VO->VE[0]->bo0[2]; here[5] = VO->VE[0]->boN[2]; 
-   
+      if (here[4] > here[5]) { 
+         here[4] = here[5];
+         here[5] = VO->VE[0]->bo0[2];
+      }
    SUMA_RETURN(here);
 }
 
@@ -4785,10 +4798,9 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
    SUMA_RETURN(YUP);
 }
 
-
-SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_DrawTractDO_basic (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
 {
-   static char FuncName[]={"SUMA_DrawTractDO"};
+   static char FuncName[]={"SUMA_DrawTractDO_basic"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    int i, i3a, i3b, n, N_pts, knet=0, n4, P, speedup = 1, N_tmask=0, ido;
    float origwidth=0.0, Un, U[4]={0.0, 0.0, 0.0, 1.0}, *pa=NULL, *pb=NULL;
@@ -5009,8 +5021,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                   TSaux->TractMask = SW_SurfCont_TractMaskHide;
                }
             }
-            if ((byte)(TSaux->MaskGray*255) != mgrayvec[0]) {
-               memset(mgrayvec, (byte)(TSaux->MaskGray*255), 
+            if ((byte)(TSaux->MaskGray*2.55) != mgrayvec[0]) {
+               memset(mgrayvec, (byte)(TSaux->MaskGray*2.55), 
                                  4*mgray_alloc*sizeof(byte));
             }
          }
@@ -5067,6 +5079,420 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                      P += N_pts;
                   }
                }
+               break;
+            case SW_SurfCont_TractMaskIgnore:
+               P = 0;
+               for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+                  tb = TDO->net->tbv[knet]; 
+                  for (n=0; tb && n<tb->N_tracts; ++n) {
+                     if (colid) { /* Pick mode */
+                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        glColor4ub(colid[n4], colid[n4+1], 
+                                   colid[n4+2], colid[n4+3]);
+                     }
+                     tt = tb->tracts+n;
+                     N_pts = tt->N_pts3/3;
+                     if (!colid && TDO->colv) {
+                        glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                     }
+                     glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                     glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                      GL_UNSIGNED_INT, rampind);
+                     P += N_pts;
+                  }
+               }
+               break;         
+            default:
+               SUMA_S_Err("Should not be here");
+               break;
+         }
+         glDisableClientState (GL_COLOR_ARRAY);   
+         glDisableClientState (GL_VERTEX_ARRAY);
+         glDisable(GL_COLOR_MATERIAL);
+      } else if (speedup == 2) {/* 474764 tracts, 15462760 points = 2.65 dps. */
+         static GLuint *inds=NULL;
+         static int N_inds=0;
+         static GLfloat *verts = NULL;
+         SUMA_S_Note("Drawing xyz to xyz, sppedup == %d", speedup);
+         SUMA_S_Warn("This option is for testing only.\n"
+                     "It allocates verts and inds once for a network and will \n"
+                     "not update if new networks are presented or that network\n"
+                     "is changed. If one were to use this, one would need to \n"
+                     "keep verts and inds pointers with the network, \n"
+                     "a royal pain and memory drain. All for a method slower\n"
+                     "that speedup == 1!\n"
+                     "Also, the colors do not look correct. \n"
+            "And hey, did I mention that picking (colid) is not implemented?\n"
+            "No masking implemented either");
+         glColorMaterial(GL_FRONT, GL_EMISSION); 
+         glEnable(GL_COLOR_MATERIAL);
+         glEnableClientState (GL_COLOR_ARRAY);
+         glEnableClientState (GL_VERTEX_ARRAY);
+         if (!TDO->colv) { /* no color list, go blue for now */
+            glDisableClientState (GL_COLOR_ARRAY);   
+            glColor4f(0.0, 0.0, 1.0, 1.0);
+         }
+         if (!inds) {
+            inds = (GLuint*)SUMA_malloc(2*Network_N_points(TDO->net,0)
+                                         *sizeof(GLuint));
+            verts = (GLfloat*)SUMA_malloc(Network_N_points(TDO->net,0)
+                                         *sizeof(GLfloat)*3);
+            /* Fill up the monster, each segment needs an entry */
+            N_inds = 0; P = 0;
+            for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+               tb = TDO->net->tbv[knet]; 
+               for (n=0; tb && n<tb->N_tracts; ++n) {
+                  tt = tb->tracts+n;
+                  N_pts = tt->N_pts3/3;
+                  if (N_pts) { 
+                     memcpy(verts+3*P, tt->pts, tt->N_pts3*sizeof(float));
+                     ++P; 
+                     for (i=1; i<N_pts-1; ++i) {
+                        inds[N_inds++] = P-1; inds[N_inds++] = P; ++P;      
+                     }
+                  }
+               }
+            }
+         }
+         if (TDO->colv) glColorPointer (4, GL_FLOAT, 0, TDO->colv); 
+         glVertexPointer (3, GL_FLOAT, 0, verts);
+         glDrawElements ( GL_LINES, (GLsizei)N_inds, 
+                          GL_UNSIGNED_INT, inds);
+         glDisableClientState (GL_COLOR_ARRAY);   
+         glDisableClientState (GL_VERTEX_ARRAY);
+         glDisable(GL_COLOR_MATERIAL);
+      }
+   }
+         
+   switch (TDO->Stipple) {
+      case SUMA_DASHED_LINE:
+         glDisable(GL_LINE_STIPPLE);
+         break;
+      case SUMA_SOLID_LINE:
+         glDisable(GL_LINE_SMOOTH);
+         break;
+   }
+   
+
+   GETOUT:
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
+   glLineWidth(origwidth);
+   if (sv->DO_PickMode) DO_PICK_RESTORE;
+   if (gl_sm) glEnable(GL_LINE_SMOOTH); else glDisable(GL_LINE_SMOOTH);
+   if (mask) SUMA_free(mask); mask=NULL;
+   SUMA_ifree(colid);
+   if (tmask) SUMA_free(tmask); tmask=NULL;
+   
+   SUMA_RETURN(ans);
+}
+
+SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_DrawTractDO"};
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   int i, i3a, i3b, n, N_pts, knet=0, n4, P, speedup = 1, N_tmask=0, ido;
+   float origwidth=0.0, Un, U[4]={0.0, 0.0, 0.0, 1.0}, *pa=NULL, *pb=NULL;
+   TAYLOR_TRACT *tt=NULL;
+   TAYLOR_BUNDLE *tb=NULL;
+   GLubyte *colid=NULL;
+   byte *mask=NULL;
+   byte *tmask=NULL;
+   byte color_by_mid = 0; /* this one should be interactively set ... */
+   GLboolean gl_sm=FALSE;
+   DO_PICK_VARS;
+   SUMA_Boolean ans = YUP;
+   static int mgray_alloc=0;
+   static GLubyte *mgrayvec=NULL;
+   SUMA_TRACT_SAUX *TSaux=NULL;
+   SUMA_OVERLAYS *Sover=NULL;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)TDO;
+   SUMA_Boolean LocalHead = NOPE; 
+   
+   SUMA_ENTRY;
+   
+   if (!TDO || !sv || !(TSaux = SUMA_ADO_TSaux(ado))) {
+      fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   if (!TDO->net) SUMA_RETURN(YUP);
+   {
+      static int ncnt=0;
+      if (!ncnt) {
+   SUMA_S_Warn("Sover->EdgeStip not in use yet, though it is set ...\n"
+               "Still need to trim the option listing a little, no need \n"
+               "for val based stippling. Pickmode is %d", sv->DO_PickMode); 
+         ++ncnt;
+      }
+   }
+   if (speedup != 1) {
+      static int ncnt=0;
+      if (!ncnt) {
+         SUMA_S_Warn("Two pass rendering only enabled for speedup == 1");
+         ++ncnt;
+      }
+   }
+   
+   if (!sv->DO_PickMode) {
+      switch (TDO->Stipple) {
+         case SUMA_DASHED_LINE:
+            glEnable(GL_LINE_STIPPLE);
+            glLineStipple (1, 0x00FF);/* dashed */
+            break;
+         case SUMA_SOLID_LINE: 
+            glDisable(GL_LINE_SMOOTH); /* otherwise lines are too fat */
+            break;
+         default:
+            fprintf(stderr,"Error %s: Unrecognized Stipple option\n", FuncName);
+            ans = NOPE; goto GETOUT;
+      }
+      Sover = SUMA_ADO_CurColPlane(ado);
+      #if 1
+      if (Sover)  TDO->colv = SUMA_GetColorList(sv, ADO_ID((SUMA_ALL_DO *)TDO));
+      if (!TDO->colv) {
+         SUMA_S_Warn("Colv not found for %s\n", ADO_LABEL((SUMA_ALL_DO *)TDO));
+      }
+      #else /* Compute colors on the fly */
+      TDO->colv = NULL;
+      #endif
+   } else {
+      if (!(colid = SUMA_DO_get_pick_colid((SUMA_ALL_DO *)TDO, TDO->idcode_str,
+                           "tracts", "default",
+                           TDO->idcode_str, TRACT_type,
+                           sv) )) {
+         SUMA_S_Err("Failed to create colid for picking.");
+         SUMA_RETURN(NOPE);
+      }
+      /* in pick mode, we enable little */
+      DO_PICK_DISABLES;
+   }
+   
+   N_tmask = 0;
+   if (!sv->DO_PickMode || (sv->DO_PickMode && !(MASK_MANIP_MODE(sv)))) {
+      /* Apply masking if not picking or picking while in mask moving mode */
+      for (ido=0; ido<SUMAg_N_DOv; ++ido) {
+         ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
+         if (ado->do_type == MASK_type) {
+            SUMA_LH("Computing intersection with %s", ADO_LABEL(ado));
+            N_tmask += SUMA_TractMaskIntersect(TDO, (SUMA_MaskDO *)ado, &tmask);
+            SUMA_LH("Now have %d tracts in mask", N_tmask);
+         }
+      }
+   }
+   
+   glGetFloatv(GL_LINE_WIDTH, &origwidth);
+   gl_sm = glIsEnabled(GL_LINE_SMOOTH);
+   if (!TDO->thickv) glLineWidth(0.1); 
+      
+   if (TDO->thickv) {/* slow slow slow */
+      SUMA_S_Err("Not ready for thickness business");
+   } else {
+      if (speedup == 0) { /* 474764 tracts, 15462760 points = 0.8 dps! */
+         SUMA_LH("Drawing xyz to xyz, slow");
+         glBegin(GL_LINES);
+         if (!TDO->colv && !colid) 
+            glMaterialfv(GL_FRONT, GL_EMISSION, TDO->LineCol); 
+                  /*turn on emissivity  */
+         glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+                  /* turn off ambient and diffuse components */
+         glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+
+         P = 0;
+         for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+            tb = TDO->net->tbv[knet]; 
+            for (n=0; tb && n<tb->N_tracts; ++n) {
+               n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+               tt = tb->tracts+n;
+               N_pts = TRACT_NPTS(tt);
+               if (!TDO->colv && N_pts>2 && color_by_mid) {
+                  /* set color based on mid point */
+                  pa = tt->pts+(tt->N_pts3/2);
+                  pb = pa - 3;
+                  SUMA_SEG_DELTA_COL(pa,pb,U, Un);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, U);
+               }
+               i = 1; ++P;
+               while (i < N_pts) {
+                  i3a = 3*i; i3b = 3*(i-1);
+                  pa = tt->pts+i3a; pb = tt->pts+i3b;
+                  if (!colid) {
+                     if (TDO->colv) {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, &(TDO->colv[4*P]));
+                        #if 0
+                        SUMA_LH("colv Bundle %d, Tract %d, pt %d, P=%d/%d, "
+                                    "[%f %f %f] --> [%f %f %f], U=[%f %f %f %f]",
+                                    knet, n, i, P, Network_N_points(TDO->net),
+                                    pa[0], pa[1], pa[2], pb[0], pb[1], pb[2],
+                                    TDO->colv[4*P], TDO->colv[4*P+1], 
+                                    TDO->colv[4*P+2], TDO->colv[4*P+3]);
+                        #endif
+                     } else if (!color_by_mid) { 
+                        SUMA_SEG_DELTA_COL(pa,pb,U, Un);
+                        glMaterialfv(GL_FRONT, GL_EMISSION, U);
+                     }
+                  } else {
+                     glColor4ub(colid[n4], colid[n4+1], 
+                                colid[n4+2], colid[n4+3]);
+                     #if 0
+                     SUMA_LHv("colid for bundle %d         %d %d %d %d\n", 
+                              knet, colid[n4], colid[n4+1],
+                              colid[n4+2], colid[n4+3]);
+                     #endif
+                  }
+                  glVertex3f(pa[0], pa[1], pa[2]);
+                  glVertex3f(pb[0], pb[1], pb[2]);
+                  ++i; ++P;
+               }
+            }
+         }
+         glEnd();
+      } else if (speedup == 1) { /* 474764 tracts, 15462760 points = 3.45 dps */
+         static GLuint *rampind=NULL;
+         static int N_rampind = 0;
+         if (N_rampind < Network_Max_tract_length(TDO->net, 0, NULL, NULL)) {
+            N_rampind = Network_Max_tract_length(TDO->net, 0, NULL, NULL);
+            rampind = (GLuint *)SUMA_realloc(rampind,sizeof(GLuint)*N_rampind);
+            for (i=0; i<N_rampind; ++i) rampind[i]= i; 
+         }
+         SUMA_LH("Drawing xyz to xyz, strips, colid = %p, colv=%p", 
+                 colid, TDO->colv);
+         /*Now setup various pointers*/
+                  /* turn off ambient and diffuse components */
+         glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+         glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+         glColorMaterial(GL_FRONT, GL_EMISSION); 
+         glEnable(GL_COLOR_MATERIAL);
+         glEnableClientState (GL_COLOR_ARRAY);
+         glEnableClientState (GL_VERTEX_ARRAY);
+         if (!TDO->colv || colid) { /* no color list, 
+                                       or in picking mode */
+            glDisableClientState (GL_COLOR_ARRAY);   
+            if (!colid) glColor4f(0.0, 0.0, 1.0, 1.0); /* go blue if desparate */
+         }
+         
+         /* This complicated next block is probably overkill.
+         I decided to create a (static) constant color vector
+         so that I can still stay in GL_COLOR_ARRAY, 
+         otherwise I would have to switch back and forth in 
+         a rather annoying manner. So memory is being sacrificed
+         for code simplicity here */
+         if (TSaux->TractMask == SW_SurfCont_TractMaskGray) {
+            if (SUMA_TDO_Max_N_tracts(TDO) > mgray_alloc) { 
+               mgray_alloc = SUMA_TDO_Max_N_tracts(TDO);
+               if (!(mgrayvec = (GLubyte *)SUMA_realloc(
+                        mgrayvec, 4*sizeof(GLubyte)*mgray_alloc))) {
+                  SUMA_S_Err("Failed to allocate for %d, mgray off ", 
+                              mgray_alloc);
+                  TSaux->TractMask = SW_SurfCont_TractMaskHide;
+               }
+            }
+            if ((byte)(TSaux->MaskGray*2.55) != mgrayvec[0]) {
+               memset(mgrayvec, (byte)(TSaux->MaskGray*2.55), 
+                                 4*mgray_alloc*sizeof(byte));
+            }
+         }
+                  
+         switch (TSaux->TractMask) {
+            case SW_SurfCont_TractMaskHide:
+               P = 0;
+               for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+                  tb = TDO->net->tbv[knet]; 
+                  for (n=0; tb && n<tb->N_tracts; ++n) {
+                     if (colid) { /* Pick mode */
+                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        glColor4ub(colid[n4], colid[n4+1], 
+                                   colid[n4+2], colid[n4+3]);
+                     }
+                     tt = tb->tracts+n;
+                     N_pts = tt->N_pts3/3;
+                     if (!tmask || tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                        if (!colid && TDO->colv) {
+                           glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                        }
+                        glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                        glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                         GL_UNSIGNED_INT, rampind);
+                     }
+                     P += N_pts;
+                  }
+               }
+               break;
+            case SW_SurfCont_TractMaskGray:
+               if (LocalHead) {
+                  SUMA_CHECK_GL_ERROR(
+                     "Loop 1, note that when selecting, one should not bother\n"
+                     "with stencil rendering perhaps...");
+               }
+               /* Loop 1, draw everything in mask and set the stencil buffer */
+               glEnable(GL_STENCIL_TEST);
+               glStencilMask(0xFF); /* enable write to stencil buffer, no mask */
+               glClearStencil(0); /* reset with 0 */
+               glStencilFunc(GL_ALWAYS, 1, 0xFF); 
+               glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE); /* will set to 1 
+                                                             stencil buffer each
+                                                             time we draw */
+               glClear(GL_STENCIL_BUFFER_BIT); /* Clear the buffer */            
+               P = 0;
+               for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+                  tb = TDO->net->tbv[knet]; 
+                  for (n=0; tb && n<tb->N_tracts; ++n) {
+                     if (colid) { /* Pick mode */
+                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        glColor4ub(colid[n4], colid[n4+1], 
+                                   colid[n4+2], colid[n4+3]);
+                     }
+                     tt = tb->tracts+n;
+                     N_pts = tt->N_pts3/3;
+                     if (!tmask || tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                        if (!colid && TDO->colv) {
+                           glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                        }
+                        glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                        glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                         GL_UNSIGNED_INT, rampind);
+                     }
+                     P += N_pts;
+                  }
+               }
+               
+               if (LocalHead && !colid) {
+                  GLvoid *sbuf;
+                  sbuf = 
+                     SUMA_grabPixels(GL_STENCIL_INDEX, 
+                                     sv->X->WIDTH, sv->X->HEIGHT);
+                  SUMA_CHECK_GL_ERROR("Just read stencil 1");
+                  SUMA_PixelsToDisk(sv, sv->X->WIDTH, sv->X->HEIGHT, 
+                                    sbuf, SUMA_F, 1, "dsten1.jpg", 1, 1);
+                  SUMA_ifree(sbuf);
+                                    
+               }
+               /* Loop 2, draw everything not in the mask and not in stencil */
+               glStencilMask(0x00); /* Don't modify stencil buffer anymore */
+                                    /* Only draw where stencil is clear */
+               glStencilFunc(GL_EQUAL, 0, 0xFF);
+               P = 0;
+               for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+                  tb = TDO->net->tbv[knet]; 
+                  for (n=0; tb && n<tb->N_tracts; ++n) {
+                     if (colid) { /* Pick mode */
+                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        glColor4ub(colid[n4], colid[n4+1], 
+                                   colid[n4+2], colid[n4+3]);
+                     }
+                     tt = tb->tracts+n;
+                     N_pts = tt->N_pts3/3;
+                     if (tmask && !tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                        if (!colid && TDO->colv) {
+                           glColorPointer (4, GL_UNSIGNED_BYTE, 0, mgrayvec); 
+                        }
+                        glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                        glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                         GL_UNSIGNED_INT, rampind);
+                      }
+                    P += N_pts;
+                  }
+               }
+               glDisable(GL_STENCIL_TEST);
                break;
             case SW_SurfCont_TractMaskIgnore:
                P = 0;
@@ -6241,9 +6667,9 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                glVertex3f(XYZ[12], XYZ[13], XYZ[14]+1.0);
             glEnd();
          }
-      } else if (GSaux->PR->AltSel[SUMA_ENODE_0] != -1 ) {
+      } else if (GSaux->PR->iAltSel[SUMA_ENODE_0] != -1 ) {
          if ((cc=SUMA_GDSET_edgeij_to_GMATRIX_XYZ(dset, 
-                           GSaux->PR->AltSel[SUMA_ENODE_0], -1, XYZ, 1)) < 0) {
+                           GSaux->PR->iAltSel[SUMA_ENODE_0], -1, XYZ, 1)) < 0) {
             SUMA_S_Err("Failed to get square"); goto BUGOUT;
          } else if (cc == 0) {
             SUMA_LH("Nothing to mark?");
@@ -7048,7 +7474,7 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
       tdo->Saux = (void *)SUMA_calloc(1,sizeof(SUMA_TRACT_SAUX));
 
       TSaux = (SUMA_TRACT_SAUX *)tdo->Saux;
-      TSaux->MaskGray = 0.2;
+      TSaux->MaskGray = 20;
       TSaux->TractMask = SW_SurfCont_TractMaskHide;
       TSaux->DisplayUpdates = (DList *)SUMA_malloc(sizeof(DList));
       dlist_init(TSaux->DisplayUpdates, SUMA_Free_Saux_DisplayUpdates_datum);
@@ -8927,8 +9353,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    }
    
    if (!sv->DO_PickMode &&
-       GSaux->PR->datum_index == -1 && GSaux->PR->AltSel[SUMA_ENODE_0] != -1) {
-      OnlyThroughNode = GSaux->PR->AltSel[SUMA_ENODE_0];
+       GSaux->PR->datum_index == -1 && GSaux->PR->iAltSel[SUMA_ENODE_0] != -1) {
+      OnlyThroughNode = GSaux->PR->iAltSel[SUMA_ENODE_0];
       if (NodeMask) NodeMask[OnlyThroughNode] = 1;
    } else OnlyThroughNode = -1;
    
@@ -17120,17 +17546,11 @@ SUMA_Boolean SUMA_AddDsetVolumeObject( SUMA_VolumeObject *VO,
       /* resample dset to SUMA_VO_dset(VO); ... */
    }
    if (dset) {
-      static int ncnt;
-      if (!ncnt) {
-         SUMA_S_Warn("This is only setup to work with one sub-brick\n"
-                     "Need to handle RGB types also at some point");
-         ++ncnt;
-      }
       SUMA_LHv("Adding dset %s in slot %d\n", DSET_HEADNAME(dset), n_VE);
       {
          SUMA_DSET *sdset=NULL;
          static int ncnt;
-         if (!ncnt) {
+         if (LocalHead) {
             SUMA_S_Warn("The bold experiment,"
                      "Need to fix messy business in SUMA_adset_to_VE...\n"
                      "Need to document meaning of VE in VO in the header.\n" );

@@ -967,6 +967,33 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             break;
 
+         case SE_SetDsetAlphaVal:
+            { /* sets the stippling of a (graph's) edges, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+               
+               SUMA_LH("Setting AlphaVal = %d", EngineData->i);           
+               if (curColPlane->AlphaVal != EngineData->i) {
+                  curColPlane->AlphaVal = EngineData->i;
+                  /* This requires recoloring because the alpha values may
+                     depend on the data */
+                  if (!SUMA_ColorizePlane (curColPlane)) {
+                     SUMA_SLP_Err("Failed to colorize plane.\n");
+                     SUMA_RETURN(0);
+                  }
+
+                  if (!SUMA_Remixedisplay (ado)) {
+                     SUMA_S_Err("Dunno what happened here");
+                  }
+               }
+            }
+            break;
+
          case SE_SetDsetNodeCol:
             { /* sets the node coloring mode of a (graph) dset, 
                expects ADO in vp and rendering mode in i*/
@@ -2141,11 +2168,32 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             if (EngineData->i >= 0 && 
                   EngineData->i <= SUMA_ADO_Max_Datum_Index(ado)) {
-               if (ado->do_type == TRACT_type) {
-                  SUMA_ADO_Set_SelectedDatum(ado, 
-                                       EngineData->i, (void *)EngineData->iv15);
-               } else {
-                  SUMA_ADO_Set_SelectedDatum(ado, EngineData->i, NULL);
+               switch (ado->do_type) {
+                  case VO_type:
+                     if ( EngineData->iv15_Dest != NextComCode ||
+                          EngineData->fv15_Dest != NextComCode ) {
+                        SUMA_S_Err(
+                           "Data not destined correctly for VOtype %s (%d).\n",
+                            NextCom, NextComCode);
+                        break;
+                     } 
+                     SUMA_ADO_Set_SelectedDatum(ado, EngineData->i, 
+                                    (void *)EngineData->iv15, 
+                                    (void *)EngineData->fv15);
+                     break;
+                  case TRACT_type:
+                     if ( EngineData->iv15_Dest != NextComCode ) {
+                        SUMA_S_Err(
+                           "Data not destined correctly for VOtype %s (%d).\n",
+                            NextCom, NextComCode);
+                        break;
+                     }  
+                     SUMA_ADO_Set_SelectedDatum(ado, 
+                                EngineData->i, (void *)EngineData->iv15, NULL);
+                     break;
+                  default:
+                     SUMA_ADO_Set_SelectedDatum(ado, EngineData->i, NULL, NULL);
+                     break;
                }
             } else {
                /* ignore -1, used in initializations */
@@ -2268,7 +2316,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      } 
                      break;
                   }
-                  Saux->PR->AltSel[SUMA_ENODE_0] = EngineData->i;
+                  Saux->PR->iAltSel[SUMA_ENODE_0] = EngineData->i;
                   Saux->PR->datum_index = -1;
                   SUMA_UpdatePointField((SUMA_ALL_DO*)ado);
                   break;}
@@ -3257,7 +3305,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
             
          case SE_SetSurfCont:
-            /* expects a ngr and SO in vp */
+            /* expects a ngr and ADO in vp */
             if (  EngineData->ngr_Dest != NextComCode || 
                   EngineData->vp_Dest != NextComCode) {
                fprintf (SUMA_STDERR,
@@ -3267,32 +3315,35 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         EngineData->ngr_Dest, EngineData->vp_Dest);
                break;
             }
-            SO = (SUMA_SurfaceObject *)EngineData->vp;
+            ado = (SUMA_ALL_DO *)EngineData->vp;
+            if (!(SurfCont = SUMA_ADO_Cont(ado))) {
+               SUMA_S_Err("Need SurfCont for %s", ADO_LABEL(ado));
+               break;
+            }
             
             if (NI_get_attribute(EngineData->ngr, "switch_surf")) {
                int is;
                
-               if (SUMA_iswordsame(SO->Group, sv->CurGroupName) != 1) {
+               if (SUMA_iswordsame(ADO_GROUP(ado), sv->CurGroupName) != 1) {
                   SUMA_S_Errv(
-                     "Surface %s is of group %s while viewer is of group %s.\n"
+                     "ADO %s is of group %s while viewer is of group %s.\n"
                      "Need to switch group before switch_surf\n", 
-                     SO->Label, SO->Group, sv->CurGroupName);
+                     ADO_LABEL(ado), ADO_GROUP(ado), sv->CurGroupName);
                   break;
                }
-               is = SUMA_WhichState(SO->State, sv, sv->CurGroupName);
+               is = SUMA_WhichState(ADO_STATE(ado), sv, sv->CurGroupName);
                if (is < 0) {
                   SUMA_S_Errv("Surface %s of group %s, viewer in group %s\n"
                               "No surface of state %s found.\n",
-                               SO->Label, SO->Group, sv->CurGroupName , 
-                               SO->State);
+                               ADO_LABEL(ado), ADO_GROUP(ado), sv->CurGroupName , 
+                               ADO_STATE(ado));
                   break;
                }
                if (!SUMA_SwitchState ( SUMAg_DOv, SUMAg_N_DOv, sv, 
                                        is, sv->CurGroupName)) {
                   SUMA_S_Err("Failed to switch state"); break;
                } else {
-                  sv->Focus_DO_ID = SUMA_findSO_inDOv(
-                                       SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+                  sv->Focus_DO_ID = ADO_iDO(ado);
                   sv->NewGeom = YUP;   /* sv->ResetGLStateVariables 
                                           was not enough */
                   /* remove this attribute and call engine again 
@@ -3315,9 +3366,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
             if (NI_get_attribute(EngineData->ngr, "switch_dset")) {
                SUMA_OVERLAYS *ColPlane = SUMA_Fetch_OverlayPointer(
-                  (SUMA_ALL_DO *)SO, 
+                  ado, 
                   NI_get_attribute(EngineData->ngr, "switch_dset"), 
                   &itmp);
+               
                if (!ColPlane) {
                   SUMA_S_Errv("Failed to find dset %s\n", 
                               NI_get_attribute(EngineData->ngr, "switch_dset")); 
@@ -3327,12 +3379,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      fprintf (SUMA_STDERR,
                               "%s: Retrieved ColPlane named %s\n", 
                               FuncName, ColPlane->Name);
-                  SUMA_InitializeColPlaneShell((SUMA_ALL_DO *)SO, ColPlane);
-                  SUMA_UpdateColPlaneShellAsNeeded((SUMA_ALL_DO *)SO); 
+                  SUMA_InitializeColPlaneShell(ado, ColPlane);
+                  SUMA_UpdateColPlaneShellAsNeeded(ado); 
                                  /* update other open ColPlaneShells */
                   /* If you're viewing one plane at a time, do a remix */
-                  if (SO->SurfCont->ShowCurForeOnly) 
-                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
+                  if (SurfCont->ShowCurForeOnly) 
+                           SUMA_Remixedisplay(ado);
                }
             }
             
@@ -3349,43 +3401,43 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
                   #if 0
                   /* Set the menu button to the current choice */
-                  if (!SUMA_SetCmapMenuChoice((SUMA_ALL_DO *)SO, ColMap->Name)) {
+                  if (!SUMA_SetCmapMenuChoice(ado, ColMap->Name)) {
                      SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
                   }
 
                   /* switch to the recently loaded  cmap */
-                  if (!SUMA_SwitchColPlaneCmap((SUMA_ALL_DO *)SO, ColMap)) {
+                  if (!SUMA_SwitchColPlaneCmap(ado, ColMap)) {
                      SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
                   }
 
                   /* update Lbl fields */
-                  SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
+                  SUMA_UpdateNodeLblField(ado);
                   #else
-                  SUMA_SwitchCmap((SUMA_ALL_DO *)SO, ColMap, 1);
+                  SUMA_SwitchCmap(ado, ColMap, 1);
                   #endif
                }
             }
             
             if (NI_get_attribute(EngineData->ngr, "switch_cmode")) {
                /* Set the menu button to the current choice */
-               if (!SUMA_SetCmodeMenuChoice ((SUMA_ALL_DO *)SO, 
+               if (!SUMA_SetCmodeMenuChoice (ado, 
                         NI_get_attribute(EngineData->ngr, "switch_cmode"))) {
                   SUMA_SL_Err("Failed in SUMA_SetCmodeMenuChoice");
                }
                
                /* update Lbl fields */
-               SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
+               SUMA_UpdateNodeLblField(ado);
             }
             
             if (NI_get_attribute(EngineData->ngr, "load_cmap")) {
-               SUMA_LoadCmapFile (NI_get_attribute(EngineData->ngr, "load_cmap"),                                   (void *)SO);
+               SUMA_LoadCmapFile (NI_get_attribute(EngineData->ngr, "load_cmap"),                                   (void *)ado);
             }
             
             if (NI_get_attribute(EngineData->ngr, "I_sb")) {
                NI_GET_INT(EngineData->ngr, "I_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */
-               if (!SUMA_SwitchColPlaneIntensity((SUMA_ALL_DO *)SO, 
-                        SO->SurfCont->curColPlane, itmp, 1)) { 
+               if (!SUMA_SwitchColPlaneIntensity(ado, 
+                        SurfCont->curColPlane, itmp, 1)) { 
                   SUMA_S_Err("Failed in I_sb"); break; 
                }
             }
@@ -3393,7 +3445,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* inefficient implementation (causes redisplay, 
                   but avoids duplicating code... */
-               if (!SUMA_SetDsetViewMode((SUMA_ALL_DO *)SO, 
+               if (!SUMA_SetDsetViewMode(ado, 
                      SUMA_ShowModeStr2ShowModeMenuItem(cbuf), 1)) { 
                   SUMA_S_Err("Failed in Dsp"); break; 
                }
@@ -3408,6 +3460,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             Same for B_range and B_scale       ZSS July 2012 */
             if (NI_get_attribute(EngineData->ngr, "I_range")) {
                char *stmp = NULL;
+
                NI_GET_STR_CP(EngineData->ngr, "I_range", stmp);
                if (!stmp) { 
                   SUMA_S_Err("Bad I_range"); 
@@ -3422,21 +3475,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         ftmp = dv15[0]; dv15[0] = dv15[1]; dv15[1] = ftmp; }
                      /* have range, set it please */
                      SUMA_LHv("Have range of %f, %f\n", dv15[0], dv15[1]);  
-                     SO->SurfCont->curColPlane->OptScl->IntRange[0] = dv15[0];
-                     SO->SurfCont->curColPlane->OptScl->IntRange[1] = dv15[1];
-                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 1, 
-                                 SO->SurfCont->curColPlane->OptScl->IntRange[0]);
-                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 2, 
-                                 SO->SurfCont->curColPlane->OptScl->IntRange[1]);
-                     if (SO->SurfCont->curColPlane->ShowMode > 0 &&
-                         SO->SurfCont->curColPlane->ShowMode < 
+                     SurfCont->curColPlane->OptScl->IntRange[0] = dv15[0];
+                     SurfCont->curColPlane->OptScl->IntRange[1] = dv15[1];
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 1, 
+                                 SurfCont->curColPlane->OptScl->IntRange[0]);
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 1, 2, 
+                                 SurfCont->curColPlane->OptScl->IntRange[1]);
+                     if (SurfCont->curColPlane->ShowMode > 0 &&
+                         SurfCont->curColPlane->ShowMode < 
                                              SW_SurfCont_DsetViewXXX ) {
-                        if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+                        if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
-                           SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
-                           SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
+                           SUMA_Remixedisplay(ado);
+                           SUMA_UpdateNodeValField(ado);
+                           SUMA_UpdateNodeLblField(ado);
                         }
                      } 
                   }
@@ -3447,45 +3500,45 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "Clust_Opt")) {
                SUMA_S_Warn("Not ready, just example code...");
                /* pretend you got new values in Clust_opt string ...*/
-               SO->SurfCont->curColPlane->OptScl->ClustOpt->DistLim = -1;
-               SO->SurfCont->curColPlane->OptScl->ClustOpt->AreaLim = 1.0;
+               SurfCont->curColPlane->OptScl->ClustOpt->DistLim = -1;
+               SurfCont->curColPlane->OptScl->ClustOpt->AreaLim = 1.0;
                /* update table */
-               SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetClustTable, 1, 1, 
-                          SO->SurfCont->curColPlane->OptScl->ClustOpt->DistLim);
-               SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetClustTable, 1, 1, 
-                          SO->SurfCont->curColPlane->OptScl->ClustOpt->AreaLim);
-               SO->SurfCont->curColPlane->OptScl->RecomputeClust = 1;
-               if (SO->SurfCont->curColPlane->ShowMode > 0 &&
-                         SO->SurfCont->curColPlane->ShowMode < 
+               SUMA_INSERT_CELL_VALUE(SurfCont->SetClustTable, 1, 1, 
+                          SurfCont->curColPlane->OptScl->ClustOpt->DistLim);
+               SUMA_INSERT_CELL_VALUE(SurfCont->SetClustTable, 1, 1, 
+                          SurfCont->curColPlane->OptScl->ClustOpt->AreaLim);
+               SurfCont->curColPlane->OptScl->RecomputeClust = 1;
+               if (SurfCont->curColPlane->ShowMode > 0 &&
+                         SurfCont->curColPlane->ShowMode < 
                                              SW_SurfCont_DsetViewXXX ) {
-                  if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+                  if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
                      SUMA_SLP_Err("Failed to colorize plane.\n"); 
                   } else {
-                     SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
-                     SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
-                     SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
+                     SUMA_Remixedisplay(ado);
+                     SUMA_UpdateNodeValField(ado);
+                     SUMA_UpdateNodeLblField(ado);
                   }
                } 
             }
             
             if (NI_get_attribute(EngineData->ngr, "shw_0")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "shw_0", "y"))
-                  SO->SurfCont->curColPlane->OptScl->MaskZero = NOPE; 
+                  SurfCont->curColPlane->OptScl->MaskZero = NOPE; 
                else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "shw_0", "n"))
-                  SO->SurfCont->curColPlane->OptScl->MaskZero = YUP;
+                  SurfCont->curColPlane->OptScl->MaskZero = YUP;
                else { 
                   SUMA_S_Errv("Bad value of %s for shw_0, setting to 'y'\n", 
                               NI_get_attribute(EngineData->ngr, "shw_0"));
-                  SO->SurfCont->curColPlane->OptScl->MaskZero = NOPE;
+                  SurfCont->curColPlane->OptScl->MaskZero = NOPE;
                } 
-               XmToggleButtonSetState ( SO->SurfCont->ShowZero_tb,                                             SO->SurfCont->curColPlane->OptScl->MaskZero, YUP);
+               XmToggleButtonSetState ( SurfCont->ShowZero_tb,                                             SurfCont->curColPlane->OptScl->MaskZero, YUP);
             }
             
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {
                NI_GET_INT(EngineData->ngr, "B_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */
-               if (!SUMA_SwitchColPlaneBrightness((SUMA_ALL_DO *)SO, 
-                        SO->SurfCont->curColPlane, itmp, 1)) { 
+               if (!SUMA_SwitchColPlaneBrightness(ado, 
+                        SurfCont->curColPlane, itmp, 1)) { 
                   SUMA_S_Err("Failed in T_sb"); break; 
                }
             }
@@ -3508,21 +3561,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         ftmp = dv15[0]; dv15[0] = dv15[1]; dv15[1] = ftmp; }
                      /* have range, set it please */
                      SUMA_LHv("Have range of %f, %f\n", dv15[0], dv15[1]);  
-                     SO->SurfCont->curColPlane->OptScl->BrightRange[0] = dv15[0];
-                     SO->SurfCont->curColPlane->OptScl->BrightRange[1] = dv15[1];
-                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 2, 1, 
-                              SO->SurfCont->curColPlane->OptScl->BrightRange[0]);
-                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 2, 2, 
-                              SO->SurfCont->curColPlane->OptScl->BrightRange[1]);
-                     if (SO->SurfCont->curColPlane->ShowMode > 0 &&
-                         SO->SurfCont->curColPlane->ShowMode  < 
+                     SurfCont->curColPlane->OptScl->BrightRange[0] = dv15[0];
+                     SurfCont->curColPlane->OptScl->BrightRange[1] = dv15[1];
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 2, 1, 
+                              SurfCont->curColPlane->OptScl->BrightRange[0]);
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 2, 2, 
+                              SurfCont->curColPlane->OptScl->BrightRange[1]);
+                     if (SurfCont->curColPlane->ShowMode > 0 &&
+                         SurfCont->curColPlane->ShowMode  < 
                                              SW_SurfCont_DsetViewXXX) {
-                        if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+                        if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
-                           SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
-                           SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
+                           SUMA_Remixedisplay(ado);
+                           SUMA_UpdateNodeValField(ado);
+                           SUMA_UpdateNodeLblField(ado);
                         }
                      } 
                   }
@@ -3547,21 +3600,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         ftmp = dv15[0]; dv15[0] = dv15[1]; dv15[1] = ftmp; }
                      /* have range, set it please */
                      SUMA_LHv("Have scale range of %f, %f\n",dv15[0], dv15[1]);  
-                     SO->SurfCont->curColPlane->OptScl->BrightMap[0] = dv15[0];
-                     SO->SurfCont->curColPlane->OptScl->BrightMap[1] = dv15[1];
-                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 3, 1, 
-                              SO->SurfCont->curColPlane->OptScl->BrightMap[0]);
-                     SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 3, 2, 
-                              SO->SurfCont->curColPlane->OptScl->BrightMap[1]);
-                     if (SO->SurfCont->curColPlane->ShowMode > 0 &&
-                         SO->SurfCont->curColPlane->ShowMode < 
+                     SurfCont->curColPlane->OptScl->BrightMap[0] = dv15[0];
+                     SurfCont->curColPlane->OptScl->BrightMap[1] = dv15[1];
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 3, 1, 
+                              SurfCont->curColPlane->OptScl->BrightMap[0]);
+                     SUMA_INSERT_CELL_VALUE(SurfCont->SetRangeTable, 3, 2, 
+                              SurfCont->curColPlane->OptScl->BrightMap[1]);
+                     if (SurfCont->curColPlane->ShowMode > 0 &&
+                         SurfCont->curColPlane->ShowMode < 
                                              SW_SurfCont_DsetViewXXX) {
-                        if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+                        if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
                            SUMA_SLP_Err("Failed to colorize plane.\n"); 
                         } else {
-                           SUMA_Remixedisplay((SUMA_ALL_DO*)SO);
-                           SUMA_UpdateNodeValField((SUMA_ALL_DO *)SO);
-                           SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);
+                           SUMA_Remixedisplay(ado);
+                           SUMA_UpdateNodeValField(ado);
+                           SUMA_UpdateNodeLblField(ado);
                         }
                      } 
                   }
@@ -3572,63 +3625,60 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "T_sb")) {
                NI_GET_INT(EngineData->ngr, "T_sb", itmp);
                /* inefficient implementation, but avoids duplicate code... */
-               if (!SUMA_SwitchColPlaneThreshold((SUMA_ALL_DO *)SO, 
-                            SO->SurfCont->curColPlane, itmp, 1)) { 
+               if (!SUMA_SwitchColPlaneThreshold(ado, 
+                            SurfCont->curColPlane, itmp, 1)) { 
                   SUMA_S_Err("Failed in T_sb"); break; 
                }
             }
             if (NI_get_attribute(EngineData->ngr, "T_val")) {
                NI_GET_FLOAT(EngineData->ngr, "T_val", ftmp);
-               SUMA_MODIFY_CELL_VALUE(SO->SurfCont->SetThrScaleTable, 0,0, ftmp);
+               SUMA_MODIFY_CELL_VALUE(SurfCont->SetThrScaleTable, 0,0, ftmp);
                /* inefficient implementation, but avoids duplicate code... */
                SUMA_cb_SetScaleThr(EngineData->vp); 
             }
             if (NI_get_attribute(EngineData->ngr, "Dim")) {
                char stmp[50];
                NI_GET_FLOAT(EngineData->ngr, "Dim", ftmp);
-               #if 0 /* should be handled in new call format below */
-               if (SO->SurfCont && SO->SurfCont->ColPlaneDimFact) {
-                  SO->SurfCont->ColPlaneDimFact->value = ftmp;
-                  sprintf(stmp,"%.1f", ftmp);
-                  SUMA_SET_TEXT_FIELD( SO->SurfCont->ColPlaneDimFact->textfield, 
-                                       stmp); 
-               }
-               #endif
-               SUMA_ColPlane_NewDimFact((SUMA_ALL_DO *)SO, NULL, ftmp, 0);
+               SUMA_ColPlane_NewDimFact(ado, NULL, ftmp, 0);
+            }
+            if (NI_get_attribute(EngineData->ngr, "Alf")) {
+               char stmp[50];
+               NI_GET_FLOAT(EngineData->ngr, "Alf", ftmp);
+               SUMA_ColPlane_NewAlphaThresh(ado, NULL, ftmp, 0);
             }
             if (NI_get_attribute(EngineData->ngr, "Opa")) {
                char stmp[50];
                NI_GET_FLOAT(EngineData->ngr, "Opa", ftmp);
                
                #if 0 /* should be handled in new call format below */
-               if (SO->SurfCont && SO->SurfCont->ColPlaneOpacity) {
-                  SO->SurfCont->ColPlaneOpacity->value = ftmp;
+               if (SurfCont && SurfCont->ColPlaneOpacity) {
+                  SurfCont->ColPlaneOpacity->value = ftmp;
                   sprintf(stmp,"%.1f", ftmp);
-                  SUMA_SET_TEXT_FIELD( SO->SurfCont->ColPlaneOpacity->textfield, 
+                  SUMA_SET_TEXT_FIELD( SurfCont->ColPlaneOpacity->textfield, 
                                        stmp); 
                }
                #endif
                /* inefficient implementation, but avoids duplicate code... */
-               SUMA_ColPlane_NewOpacity((SUMA_ALL_DO *)SO, NULL, ftmp, 0);
+               SUMA_ColPlane_NewOpacity(ado, NULL, ftmp, 0);
             }
             if (NI_get_attribute(EngineData->ngr, "view_dset")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_dset", "y")) {
-                  if (SO->SurfCont->curColPlane->ShowMode < 0)
-                     SO->SurfCont->curColPlane->ShowMode = 
-                        -SO->SurfCont->curColPlane->ShowMode;
+                  if (SurfCont->curColPlane->ShowMode < 0)
+                     SurfCont->curColPlane->ShowMode = 
+                        -SurfCont->curColPlane->ShowMode;
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                                 "view_dset", "n")) {
-                  if (SO->SurfCont->curColPlane->ShowMode > 0)
-                     SO->SurfCont->curColPlane->ShowMode = 
-                                    -SO->SurfCont->curColPlane->ShowMode;
+                  if (SurfCont->curColPlane->ShowMode > 0)
+                     SurfCont->curColPlane->ShowMode = 
+                                    -SurfCont->curColPlane->ShowMode;
                } else { 
                   SUMA_S_Errv("Bad value of %s for view_dset, setting to 'y'\n", 
                               NI_get_attribute(EngineData->ngr, "view_dset"));
-                  SO->SurfCont->curColPlane->ShowMode = SW_SurfCont_DsetViewCol;
+                  SurfCont->curColPlane->ShowMode = SW_SurfCont_DsetViewCol;
                }
-               SUMA_Set_Menu_Widget( SO->SurfCont->DsetViewModeMenu,
+               SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
                               SUMA_ShowMode2ShowModeMenuItem(
-                                 SO->SurfCont->curColPlane->ShowMode));
+                                 SurfCont->curColPlane->ShowMode));
             }
             if (NI_get_attribute(EngineData->ngr, "do_draw_mask")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
@@ -3656,6 +3706,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
             }
             if (NI_get_attribute(EngineData->ngr, "view_surf")) {
+               switch (ado->do_type) {
+                  case SO_type:
+                     SO = (SUMA_SurfaceObject *)ado;
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "view_surf", "y")) {
                   SO->Show = YUP;
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr,"view_surf","n")){
@@ -3663,27 +3716,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Viewer")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_ViewerDefault);
-                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Fill")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_Fill);
-                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Line")) {
                   SUMA_SET_SO_POLYMODE( SO, SRM_Line );
-                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Points")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_Points);
-                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                           "view_surf", "Hide")) {
                   SUMA_SET_SO_POLYMODE(SO,SRM_Hide);
-                  SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu,
+                  SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu,
                          SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
                } else { 
                   SUMA_S_Errv("Bad value of %s for view_surf, setting to 'y'\n", 
@@ -3699,35 +3752,50 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                           This line appears to fix the 
                                           problem... */
                SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+                     break;
+                  default:
+                     SUMA_S_Err("Not ready with view_surf for type %s",
+                              ADO_TNAME(ado));
+                     break;
+               }
             }
             if (NI_get_attribute(EngineData->ngr, "trans_surf")) {
-               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
-                                          "trans_surf", "Viewer")) {
-                  SUMA_SET_SO_TRANSMODE(SO,STM_ViewerDefault);
-                  SUMA_S_Warn("Must check on indexing business");
-                  SUMA_Set_Menu_Widget( SO->SurfCont->TransModeMenu,
-                         SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
-               } else {
-                  int N=0;
-                  NI_GET_INT(EngineData->ngr, "trans_surf", N);
-                  if (N < 0 || N > 16) {
-                     SUMA_S_Errv("Bad value for trans_surf of %s\n",
+               switch (ado->do_type) {
+                  case SO_type:
+                     SO = (SUMA_SurfaceObject *)ado;
+                     if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                                "trans_surf", "Viewer")) {
+                        SUMA_SET_SO_TRANSMODE(SO,STM_ViewerDefault);
+                        SUMA_S_Warn("Must check on indexing business");
+                        SUMA_Set_Menu_Widget(SurfCont->TransModeMenu,
+                              SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
+                     } else {
+                        int N=0;
+                        NI_GET_INT(EngineData->ngr, "trans_surf", N);
+                        if (N < 0 || N > 16) {
+                           SUMA_S_Errv("Bad value for trans_surf of %s\n",
                               NI_get_attribute(EngineData->ngr, "trans_surf"));
-                  } else {
-                     SUMA_SET_SO_TRANSMODE(SO,(N+STM_0));
-                     SUMA_Set_Menu_Widget( SO->SurfCont->TransModeMenu,
-                         SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
-                  }
+                        } else {
+                           SUMA_SET_SO_TRANSMODE(SO,(N+STM_0));
+                           SUMA_Set_Menu_Widget( SurfCont->TransModeMenu,
+                             SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
+                        }
+                     }
+                     /* redisplay */
+                     SUMA_SiSi_I_Insist(); /* did not think that was necessary...
+                                                But DriveSuma's -view_surf failed
+                                                to redisplay properly unless you
+                                                called the command twice or
+                                                move the cursor into the GLXAREA.
+                                                This line appears to fix the 
+                                                problem... */
+                     SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+                     break;
+                  default:
+                     SUMA_S_Err("Not ready with trans_surf for type %s",
+                              ADO_TNAME(ado));
+                     break;
                }
-               /* redisplay */
-               SUMA_SiSi_I_Insist();   /* did not think that was necessary...
-                                          But DriveSuma's -view_surf failed
-                                          to redisplay properly unless you
-                                          called the command twice or
-                                          move the cursor into the GLXAREA.
-                                          This line appears to fix the 
-                                          problem... */
-               SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
             }
             
             if (NI_get_attribute(EngineData->ngr, "1_only")) {
@@ -3740,7 +3808,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               NI_get_attribute(EngineData->ngr, "1_only"));
                   itmp = YUP;
                }
-               if (!SUMA_ColPlaneShowOneFore_Set((SUMA_ALL_DO *)SO, itmp, 0)) {
+               if (!SUMA_ColPlaneShowOneFore_Set(ado, itmp, 0)) {
                   SUMA_S_Err("Failed to set one only");
                   break;  
                }
@@ -3749,14 +3817,14 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr, "View_Surf_Cont")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                         "View_Surf_Cont", "y")) {
-                  if (!SUMA_viewSurfaceCont(NULL, (SUMA_ALL_DO *)SO, sv)) {
+                  if (!SUMA_viewSurfaceCont(NULL, ado, sv)) {
                      SUMA_S_Err("Failed open surfcont");
                      break;  
                   }
                } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                                "View_Surf_Cont", "n")) {
                   SUMA_LH("Closing surface controller");
-                  SUMA_cb_closeSurfaceCont(NULL, (XtPointer) SO, NULL);
+                  SUMA_cb_closeSurfaceCont(NULL, (XtPointer)ado, NULL);
                }
             }
 
@@ -3764,7 +3832,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
             
          case SE_SetViewerCont:
-            /* expects a ngr and SO in vp */
+            /* expects a ngr and ADO in vp */
             if (  EngineData->ngr_Dest != NextComCode || 
                   EngineData->vp_Dest != NextComCode) {
                fprintf (SUMA_STDERR,
@@ -3774,7 +3842,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         EngineData->ngr_Dest, EngineData->vp_Dest);
                break;
             }
-            SO = (SUMA_SurfaceObject *)EngineData->vp; 
+            ado = (SUMA_ALL_DO *)EngineData->vp; 
             if (NI_get_attribute(EngineData->ngr, "inout_notify")) {
                if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "inout_notify", "y"))
                   SUMA_setIO_notify(1); 
@@ -4255,10 +4323,11 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SUMA_EngineData *ED = NULL; 
    DListElmt *el=NULL;
    void *Ret = NULL;
-   char *SOid=NULL, *svid=NULL, *name=NULL, *SOlabel=NULL, 
+   char *adoid=NULL, *svid=NULL, *name=NULL, *adolabel=NULL, 
         ename[32], lhs[64], rhs[256], *enveqn=NULL, *attr=NULL;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_ALL_DO *ado = NULL;
    SUMA_SurfaceViewer *sv = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_PARSED_NAME *fn = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4322,46 +4391,51 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
       sv = &(SUMAg_SVv[0]);
    }
 
-   SO = NULL;
-   SOid = NI_get_attribute(ngr,"SO_idcode");
-   if (SOid) {
-      SO = SUMA_findSOp_inDOv (SOid, SUMAg_DOv, SUMAg_N_DOv);
-      if (!SO) {
-         SUMA_S_Errv("SO with id %s not found.\n", SOid);
+   ado = NULL;
+   if (!(adoid = NI_get_attribute(ngr,"SO_idcode")) &&
+       !(adoid = NI_get_attribute(ngr,"DO_idcode"))) 
+      adoid = NI_get_attribute(ngr,"ADO_idcode");
+      
+   if (adoid) {
+      ado = SUMA_whichADO(adoid, SUMAg_DOv, SUMAg_N_DOv);
+      if (!ado) {
+         SUMA_S_Errv("DO with id %s not found.\n", adoid);
          SUMA_RETURN(Ret);  
       }
    }
-   SOlabel = NI_get_attribute(ngr,"SO_label");
-   if (SOlabel) {
-      if (SO && strcmp(SOlabel, SO->Label)) {
+   if (!(adolabel = NI_get_attribute(ngr,"SO_label")) &&
+       !(adolabel = NI_get_attribute(ngr,"DO_label"))) 
+      adolabel = NI_get_attribute(ngr,"ADO_label");;
+   if (adolabel) {
+      if (ado && strcmp(adolabel, ADO_LABEL(ado))) {
          SUMA_S_Errv("Conflict between id %s (%s) and label (%s)", 
-                     SO->idcode_str, SO->Label, SOlabel);
+                     ADO_ID(ado), ADO_LABEL(ado), adolabel);
          SUMA_RETURN(Ret); 
       }
-      if (!SO) { /* find SO based on label! */
-         if ((SOid = SUMA_find_SOidcode_from_label(SOlabel, 
+      if (!ado) { /* find ado based on label! */
+         if ((adoid = SUMA_find_ADOidcode_from_label(adolabel, 
                                           SUMAg_DOv, SUMAg_N_DOv))) {
-            SO = SUMA_findSOp_inDOv (SOid, SUMAg_DOv, SUMAg_N_DOv);
-            if (!SO) {
-               SUMA_S_Errv("SO with id %s not found.\n", SOid);
+            ado = SUMA_whichADO(adoid, SUMAg_DOv, SUMAg_N_DOv);
+            if (!ado) {
+               SUMA_S_Errv("ADO with id %s not found.\n", adoid);
                SUMA_RETURN(Ret);  
             }
          }else {
-            SUMA_S_Errv("SO id from label %s not found.\n", SOlabel);
+            SUMA_S_Errv("ADO id from label %s not found.\n", adolabel);
             SUMA_RETURN(Ret);  
          }
       }
    }
-   if (!SO) SO = SUMA_SV_Focus_SO(sv);
-   if (!SO) {
-      SO = SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv, NULL); /* last resort */
+   if (!ado) ado = SUMA_SV_Focus_ADO(sv);
+   if (!ado) {
+      ado = SUMA_findanyFocusable_ADO(NULL);/* last resort */
    }
-   if (!SO) {
-      SUMA_S_Err("Have no surfaces to work with at all.\n");
+   if (!ado) {
+      SUMA_S_Err("Have no ADOs to work with at all.\n");
       SUMA_RETURN(Ret);  
    } else {
       if (LocalHead) {
-         SUMA_LHv("Have surface %s to work with\n", SO->Label);
+         SUMA_LHv("Have ADO %s to work with\n", ADO_LABEL(ado));
       }
    }
    /* Create da list */
@@ -4369,20 +4443,20 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
 
    
    
-   
+   SurfCont = SUMA_ADO_Cont(ado);
    /* OK, now, switch on that command and create the Engine structure */
    switch (cc) {
        case SE_niSetSurfCont:
-         if (!SO->SurfCont) {
+         if (!SurfCont) {
             SUMA_S_Err( "Unexpected NULL SurfCont\n"
                         "Please report error to author.");
             SUMA_RETURN(Ret);
          }
-         if (!SUMA_isADO_Cont_Realized((SUMA_ALL_DO *)SO)){ 
+         if (!SUMA_isADO_Cont_Realized(ado)){ 
                                        /* better have a controller 
                                                 before going crazy */
             if (0) { /* this option or the next behave in the same way */
-               if (!SUMA_viewSurfaceCont(NULL, (SUMA_ALL_DO *)SO, sv)) {
+               if (!SUMA_viewSurfaceCont(NULL, ado, sv)) {
                         SUMA_S_Err("Failed open surfcont");
                         break;  
                }
@@ -4390,7 +4464,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
                if (!SUMA_RegisterEngineListCommand (  
                            list, ED,
-                           SEF_vp, (void *)SO,
+                           SEF_vp, (void *)ado,
                            SES_SumaFromAny, (void *)sv, 
                            NOPE,
                            SEI_Head, NULL)) {
@@ -4412,7 +4486,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
             /* Have a dset to load */
             ED = SUMA_InitializeEngineListData (SE_OpenDsetFile);
             if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
-                                                      SEF_vp, (void *)SO,
+                                                      SEF_vp, (void *)ado,
                                                       SES_SumaFromAny, 
                                                       (void *)sv, NOPE,
                                                       SEI_Tail, NULL))) {
@@ -4432,7 +4506,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
             /* Have a color file to load */
             ED = SUMA_InitializeEngineListData (SE_OpenColFile);
             if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
-                                                      SEF_vp, (void *)SO,
+                                                      SEF_vp, (void *)ado,
                                                       SES_SumaFromAny, 
                                                       (void *)sv, NOPE,
                                                       SEI_Tail, NULL))) {
@@ -4459,7 +4533,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                         "Error %s: Failed to register command.\n", FuncName);
          }
          if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_vp, (void *)SO,
+                                                   SEF_vp, (void *)ado,
                                                    SES_SumaFromAny, (void *)sv, 
                                                    NOPE,
                                                    SEI_In, el)) {
@@ -4511,7 +4585,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                         "Error %s: Failed to register command.\n", FuncName);
          }
          if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                   SEF_vp, (void *)SO,
+                                                   SEF_vp, (void *)ado,
                                                    SES_SumaFromAny, (void *)sv, 
                                                    NOPE,
                                                    SEI_In, el)) {

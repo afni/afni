@@ -256,6 +256,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetDsetNodeRad")) SUMA_RETURN(SE_SetDsetNodeRad);
    if (!strcmp(Scom,"SetDsetEdgeThick")) SUMA_RETURN(SE_SetDsetEdgeThick);
    if (!strcmp(Scom,"SetDsetEdgeStip")) SUMA_RETURN(SE_SetDsetEdgeStip);
+   if (!strcmp(Scom,"SetDsetAlphaVal")) SUMA_RETURN(SE_SetDsetAlphaVal);
    if (!strcmp(Scom,"SetDsetNodeCol")) SUMA_RETURN(SE_SetDsetNodeCol);
    if (!strcmp(Scom,"SetDsetTxtShad")) SUMA_RETURN(SE_SetDsetTxtShad);
    if (!strcmp(Scom,"SetDsetGmatBord")) SUMA_RETURN(SE_SetDsetGmatBord);
@@ -506,6 +507,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetDsetNodeRad"); 
       case SE_SetDsetEdgeStip:
          SUMA_RETURN("SetDsetEdgeStip"); 
+      case SE_SetDsetAlphaVal:
+         SUMA_RETURN("SetDsetAlphaVal"); 
       case SE_SetDsetEdgeThick:
          SUMA_RETURN("SetDsetEdgeThick"); 
       case SE_SetDsetNodeCol:
@@ -1076,6 +1079,7 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
    SUMA_MessageData *MD = NULL;
    SUMA_Boolean TryLogWindow = NOPE;
    int i=0, TrimTheFat=0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1096,7 +1100,8 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
    MD->Source = SUMA_copy_string(Source);
    MD->Type = Type;
    MD->Action = Action;
-   SUMA_S_Note("Have %s %s", MD->Source, MD->Message);
+   
+   SUMA_LH("Have %s %s", MD->Source, MD->Message);
    /* add element at end */
    if (dlist_ins_next (list, dlist_tail(list), (void *)MD) < 0) {
        fprintf (SUMA_STDERR, 

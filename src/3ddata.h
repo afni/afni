@@ -2004,9 +2004,9 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    a point in I */
 #undef AFF44_MULT_D
 #define AFF44_MULT_D( X, M, D ) { \
-   X[0] = M[0][0]*I[0] + M[0][1]*I[1] + M[0][2]*I[2]; \
-   X[1] = M[1][0]*I[0] + M[1][1]*I[1] + M[1][2]*I[2]; \
-   X[2] = M[2][0]*I[0] + M[2][1]*I[1] + M[2][2]*I[2]; \
+   X[0] = M[0][0]*D[0] + M[0][1]*D[1] + M[0][2]*D[2]; \
+   X[1] = M[1][0]*D[0] + M[1][1]*D[1] + M[1][2]*D[2]; \
+   X[2] = M[2][0]*D[0] + M[2][1]*D[1] + M[2][2]*D[2]; \
 }
 
 #undef  AFF44_MULT

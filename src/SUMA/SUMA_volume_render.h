@@ -22,7 +22,13 @@ SUMA_Boolean SUMA_dset_box_corners( SUMA_DSET *dset,
 void SUMA_dset_extreme_corners( SUMA_DSET *dset, 
                                 float * mincorner, float *maxcorner,
                                 int voxcen);
-SUMA_Boolean SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive, 
+int SUMA_dset_gui_slice_from_tex_slice_d(SUMA_VolumeElement **VE, int ive,
+                     double *PlEq, int voxcen,
+                     char *variant,int *slider);
+int SUMA_dset_gui_slice_from_tex_slice(SUMA_VolumeElement **VE, int ive,
+                     float *PlEq, int voxcen,
+                     char *variant,int *slider);
+int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive, 
                                              char *variant,int slider, 
                           GLfloat *tcorners, GLfloat *corners, GLfloat *slc_cen, 
                           float *PlEq, int voxcen );
