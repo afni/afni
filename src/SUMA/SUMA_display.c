@@ -8817,6 +8817,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                            SUMA_SurfContHelp_DsetOpa,
                            SurfCont->ColPlaneOpacity);
 
+      #if 0 /* Do we really need stippling?*/
       SUMA_BuildMenuReset(0);
       SurfCont->DsetEdgeStipMenu =
          SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetEdgeStip);
@@ -8827,6 +8828,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                 SUMA_SurfContHelp_DsetEdgeStip, 
                 SurfCont->DsetEdgeStipMenu );
       XtManageChild (SurfCont->DsetEdgeStipMenu->mw[SW_SurfCont_DsetEdgeStip]);
+      #endif
       
       XtManageChild (rc);
      

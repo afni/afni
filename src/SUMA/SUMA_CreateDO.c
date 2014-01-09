@@ -2985,7 +2985,7 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)TDO;
    int knet, n, N_pts, tid, pid, pid0, p, dotract= 0;
-   float *pa, *pb, U[4], Un;
+   float *pa, *pb, U[4], Un, fv5[5];
    int *iv=NULL, OverInd;
    char *ltmp=NULL;
    byte *rv=NULL,*gv=NULL, *bv=NULL;
@@ -3026,13 +3026,27 @@ SUMA_Boolean SUMA_TDO_DefaultOverlays(SUMA_TractDO *TDO)
          SUMA_RETURN(NOPE);
       }
       
-      SUMA_S_Warn("Need to pick colors properly here");
+      #if 0 /* colors at rand */
       for (knet=0; knet<TDO->net->N_tbv; ++knet) {
          iv[knet] = knet;
-         rv[knet] = (byte)(255.0*SUMA_IRAN(256));
-         gv[knet] = (byte)(255.0*SUMA_IRAN(256));
-         bv[knet] = (byte)(255.0*SUMA_IRAN(256));
+         rv[knet] = (byte)(SUMA_IRAN(256));
+         gv[knet] = (byte)(SUMA_IRAN(256));
+         bv[knet] = (byte)(SUMA_IRAN(256));
       }
+      #else /* colors from ROI colormap? */
+      for (knet=0; knet<TDO->net->N_tbv; ++knet) {
+         iv[knet] = knet;
+         if (knet < 256 && SUMA_a_good_col("ROI_i256", knet, fv5)) {
+            rv[knet] = (byte)(255.0*fv5[0]);
+            gv[knet] = (byte)(255.0*fv5[1]);
+            bv[knet] = (byte)(255.0*fv5[2]);
+         } else {
+            rv[knet] = (byte)(SUMA_IRAN(256));
+            gv[knet] = (byte)(SUMA_IRAN(256));
+            bv[knet] = (byte)(SUMA_IRAN(256));
+         }
+      }
+      #endif
       sopd.i = (void *)iv;
       sopd.r = (void *)rv;
       sopd.g = (void *)gv;
@@ -3260,7 +3274,6 @@ SUMA_TractDO *SUMA_Net2TractDO(TAYLOR_NETWORK *net,
    
    TDO->net = net;
 
-   SUMA_S_Warn("Decide if you want this call outside of the Read func.");
    if (!(SUMA_TDO_DefaultOverlays(TDO))) {
       SUMA_S_Warn("Failed to create default overlays");
    }
@@ -5219,7 +5232,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    {
       static int ncnt=0;
       if (!ncnt) {
-   SUMA_S_Warn("Sover->EdgeStip not in use yet, though it is set ...\n"
+   SUMA_LH("Sover->EdgeStip not in use yet, though it is set ...\n"
                "Still need to trim the option listing a little, no need \n"
                "for val based stippling. Pickmode is %d", sv->DO_PickMode); 
          ++ncnt;
