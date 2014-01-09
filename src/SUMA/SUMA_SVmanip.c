@@ -2767,7 +2767,8 @@ int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *ttv,
          case MASK_type:
          case VO_type:
             if (iDO_isTDO(VS->MembDOs[ii])||
-                iDO_isVO(VS->MembDOs[ii])) {
+                iDO_isVO(VS->MembDOs[ii]) ||
+                iDO_isMDO(VS->MembDOs[ii])) {
                if (!Membs) Membs = (int *)
                         SUMA_malloc(N_ttv*(VS->N_MembDOs+1)*sizeof(int));
                Membs[N_Membs++] = VS->MembDOs[ii]; 
@@ -4165,6 +4166,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->ColPlaneDimFact = 
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->ColPlaneAlphaThresh = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->TractMaskGray = 
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->XhairTable = SUMA_AllocTableField();
@@ -4288,6 +4291,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->ColPlaneOrder) free (SurfCont->ColPlaneOrder);
    if (SurfCont->ColPlaneOpacity) free (SurfCont->ColPlaneOpacity);
    if (SurfCont->ColPlaneDimFact) free (SurfCont->ColPlaneDimFact);
+   if (SurfCont->ColPlaneAlphaThresh) free (SurfCont->ColPlaneAlphaThresh);
    if (SurfCont->SetRangeTable) SUMA_FreeTableField (SurfCont->SetRangeTable);
    if (SurfCont->RangeTable) SUMA_FreeTableField (SurfCont->RangeTable);
    if (SurfCont->XhairTable) SUMA_FreeTableField (SurfCont->XhairTable);
@@ -4313,6 +4317,8 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
                               SUMA_Free_Menu_Widget(SurfCont->DsetEdgeThickMenu);
    SurfCont->DsetEdgeStipMenu = 
                               SUMA_Free_Menu_Widget(SurfCont->DsetEdgeStipMenu); 
+   SurfCont->DsetAlphaValMenu = 
+                              SUMA_Free_Menu_Widget(SurfCont->DsetAlphaValMenu); 
    SurfCont->TractMaskMenu = SUMA_Free_Menu_Widget(SurfCont->TractMaskMenu); 
    if (SurfCont->prv_curDOp) free(SurfCont->prv_curDOp);
    if (SurfCont->prv_variant) free(SurfCont->prv_variant);

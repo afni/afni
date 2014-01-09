@@ -2220,7 +2220,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
    static char FuncName[]={"SUMA_makeNI_CrossHair"};
    NI_element *nel=NULL;
    float *XYZmap;
-   int I_C = -1, ip, iv4[4];
+   int I_C = -1, ip, ivsel[SUMA_N_IALTSEL_TYPES];
    SUMA_ALL_DO *ado = NULL;
    SUMA_SurfaceObject *SO;
    
@@ -2278,12 +2278,12 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          }
 
          /* add some info about surface in question */
-         ip = SUMA_ADO_SelectedDatum(ado, (void *)iv4);
+         ip = SUMA_ADO_SelectedDatum(ado, (void *)ivsel, NULL);
          NI_SETA_INT(nel, "network_pointid", ip);
-         NI_SETA_INT(nel, "net_bundle_id", iv4[SUMA_NET_BUN]);
-         NI_SETA_INT(nel, "bundle_tract_id", iv4[SUMA_BUN_TRC]);
-         NI_SETA_INT(nel, "tract_point_id", iv4[SUMA_TRC_PNT]);
-         NI_SETA_INT(nel, "net_tract_id", iv4[SUMA_NET_TRC]);
+         NI_SETA_INT(nel, "net_bundle_id", ivsel[SUMA_NET_BUN]);
+         NI_SETA_INT(nel, "bundle_tract_id", ivsel[SUMA_BUN_TRC]);
+         NI_SETA_INT(nel, "tract_point_id", ivsel[SUMA_TRC_PNT]);
+         NI_SETA_INT(nel, "net_tract_id", ivsel[SUMA_NET_TRC]);
          NI_set_attribute(nel, "network_idcode", ADO_ID(ado));
          NI_set_attribute(nel, "surface_label", ADO_LABEL(ado));
 
@@ -2296,7 +2296,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          }
 
          /* add some info about surface in question */
-         ip = SUMA_ADO_SelectedDatum(ado, (void *)iv4);
+         ip = SUMA_ADO_SelectedDatum(ado, (void *)ivsel, NULL);
          NI_add_column( nel , NI_FLOAT , sv->Ch->c_noVisX );
          break;
       case SDSET_type:
@@ -2309,7 +2309,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          }
 
          /* add some info about object in question */
-         ip = SUMA_ADO_SelectedDatum(ado, NULL);
+         ip = SUMA_ADO_SelectedDatum(ado, NULL, NULL);
          NI_SETA_INT(nel, "edge_id", ip);
          NI_set_attribute(nel, "graph_idcode", ADO_ID(ado));
          NI_set_attribute(nel, "graph_label", ADO_LABEL(ado));
@@ -2323,7 +2323,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          }
 
          /* add some info about object in question */
-         ip = SUMA_ADO_SelectedDatum(ado, NULL);
+         ip = SUMA_ADO_SelectedDatum(ado, (void*)ivsel, NULL);
          NI_SETA_INT(nel, "voxel_id", ip);
          NI_set_attribute(nel, "volume_idcode", ADO_ID(ado));
          NI_set_attribute(nel, "volume_label", ADO_LABEL(ado));

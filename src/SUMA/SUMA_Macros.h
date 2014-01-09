@@ -428,6 +428,14 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    Eq[3] = -(Eq[0]*P[0] + Eq[1]*P[1] + Eq[2]*P[2]);   \
 }
 
+#define SUMA_MARK_PLANE_NOT_SET(P) { (P)[0] = 0.0; (P)[1] = 0.0; \
+                                     (P)[2] = 0.0; (P)[2] = 0.0; }
+/* Is equation of plane marked as not set? */
+#define SUMA_PLANE_NOT_SET(P) (!(P) || \
+                                ((P)[0] == 0.0 && (P)[1] == 0.0 && \
+                                 (P)[2] == 0.0 && (P)[2] == 0.0))
+#define SUMA_PLANE_IS_SET(P) (!(SUMA_PLANE_NOT_SET((P))))
+
 /*!
    Shift a plane to pass through P
    See also SUMA_Plane_Equation

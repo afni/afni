@@ -4067,27 +4067,12 @@ SUMA_Boolean SUMA_LoadSpec_eng (
    for (i=0; i<Spec->N_DO; ++i) {
       switch ((SUMA_DO_Types)Spec->DO_type[i]) {
          case TRACT_type: {
-            static int ncnt;
-            if (!ncnt) {
-               SUMA_S_Warnv("BETA for type %s.\n", Spec->DO_name[i]);
-               ++ncnt;
-            }
             SUMA_LoadSegDO (Spec->DO_name[i], NULL );
             break; }
          case MASK_type: {
-            static int ncnt;
-            if (!ncnt) {
-               SUMA_S_Warnv("BETA for type %s.\n", Spec->DO_name[i]);
-               ++ncnt;
-            }
             SUMA_LoadMaskDO (Spec->DO_name[i], NULL );
             break; }
          case VO_type: {
-            static int ncnt;
-            if (!ncnt) {
-               SUMA_S_Warnv("BETA for type %s.\n", Spec->DO_name[i]);
-               ++ncnt;
-            }
             SUMA_LoadVolDO (Spec->DO_name[i], GL_REPLACE, NULL); 
             break; }
          case SDSET_type:

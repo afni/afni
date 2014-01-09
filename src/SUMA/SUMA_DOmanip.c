@@ -408,7 +408,8 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op,
       if (DO_Type == VO_type) {
          SUMA_S_Warn("Replacing volume object, might get complicated...");
       }
-      if (LocalHead || !(nm % 300)) {
+      if (LocalHead || 
+          (!(nm % 300) && !SUMA_ADO_isLabel(ado,"AHorseWithNoName"))) {
          SUMA_SL_Note( "Object %s existed as %s and will be replaced.\n"
                         "Message shown intermittently", 
                         ADO_LABEL(ado), ADO_LABEL((SUMA_ALL_DO *)(dov[ieo].OP)));
@@ -2129,6 +2130,73 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
    SUMA_RETURN(found);
 }
 
+char *SUMA_find_ADOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_find_ADOidcode_from_label"};
+   SUMA_ALL_DO *ADO;
+   int i;
+   char *found = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!label) SUMA_RETURN(NULL);
+   
+   for (i=0; i<N_dov; ++i) {
+      {
+         ADO = (SUMA_ALL_DO *)dov[i].OP;
+         if (strcmp(label, ADO_LABEL(ADO))== 0) {
+            if (!found) { found = ADO_ID(ADO); }
+            else {
+               SUMA_S_Errv("More than one ADO with label %s found.\n",    
+                           label);
+               SUMA_RETURN(NULL);
+            }
+         }
+      }
+   }
+   
+   if (!found) { /* try less stringent search */
+      for (i=0; i<N_dov; ++i) {
+         {
+            ADO = (SUMA_ALL_DO *)dov[i].OP;
+            if (SUMA_iswordin(ADO_LABEL(ADO), label)) {
+               if (!found) { found = ADO_ID(ADO); }
+               else {
+                  SUMA_S_Errv(
+               "Found more than one ADO with labels partially matching %s.\n"
+               "For example: surfaces %s, and %s .\n",    
+                              label,
+                              ADO_LABEL(SUMA_whichADO(found, dov, N_dov)),
+                              ADO_LABEL(ADO));
+                  SUMA_RETURN(NULL);
+               }
+            }
+         }
+      }
+   }
+   
+   if (!found) { /* even less stringent search */
+      for (i=0; i<N_dov; ++i) {
+         {
+            ADO = (SUMA_ALL_DO *)dov[i].OP;
+            if (SUMA_iswordin_ci(ADO_LABEL(ADO), label)) {
+               if (!found) { found = ADO_ID(ADO); }
+               else {
+                  SUMA_S_Errv(
+               "Found more than one surface with labels patially matching %s.\n"
+               "For example: surfaces %s, and %s .\n",    
+                              label,
+                              ADO_LABEL(SUMA_whichADO(found, dov, N_dov)),
+                              ADO_LABEL(ADO));
+                  SUMA_RETURN(NULL);
+               }
+            }
+         }
+      }
+   }
+   SUMA_RETURN(found);
+}
+
 char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_find_VOidcode_from_label"};
@@ -3180,7 +3248,8 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void)
    
    -This function frees each string in clist. BUT NOT pointers in oplist (for obvious reasons)
 */
-SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str) 
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(
+                                                SUMA_ASSEMBLE_LIST_STRUCT *str) 
 {
    static char FuncName[]={"SUMA_FreeAssembleListStruct"};
    int i;
@@ -3622,8 +3691,9 @@ SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI)
    /* Close the ROIlist window if it is open */
    SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
    if (!Shaded) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing switch ROI window ...\n", FuncName);
-      SUMA_cb_CloseSwitchROI(NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+      SUMA_LH("Closing switch ROI window ...");
+      SUMA_cb_CloseSwitchROI(NULL, 
+                  (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
    }
 
    /* remove ROI for SUMAg_DO and clear the ROI structure*/

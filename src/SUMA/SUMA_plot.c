@@ -484,7 +484,7 @@ void SUMA_memplot_clone(void *mpv)
             ado = (SUMA_ALL_DO *)SUMAg_DOv[iso].OP;
             if (SUMA_isOverlayOfDO(ado, Sover)) {
                SUMA_OverlayGraphAtNode(Sover, ado, 
-                                       SUMA_ADO_SelectedDatum(ado, NULL)); 
+                                       SUMA_ADO_SelectedDatum(ado, NULL, NULL)); 
             } 
          }
       }

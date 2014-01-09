@@ -2471,6 +2471,258 @@ SUMA_SurfaceObject *SUMA_SO_of_ColPlane(SUMA_OVERLAYS *Sover)
    SUMA_RETURN(SO);
 }
 
+float *SUMA_PercFullRangeVol(float *V, int N_V, int p10, int exzero, int *Nvals) 
+{
+   static char FuncName[]={"SUMA_PercFullRangeVol"};
+   int nval = 0, ii;
+   float *pr;
+   float *Vsort, fac, *perc;
+   
+   SUMA_ENTRY;
+   
+   if (Nvals) *Nvals = -1;
+   
+   if (!V) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NULL);
+   }
+   if (p10 < 1 || p10 > 6) {
+      SUMA_S_Err("I suspect you jest p10 = %d", p10);
+      SUMA_RETURN(NULL);
+   }
+   nval = (int)pow(10.0, p10)+1;
+   fac = 100.0/(nval-1);
+   
+   if (!(pr  = (float *)SUMA_calloc(nval, sizeof(float))) ||
+       !(perc= (float *)SUMA_calloc(nval, sizeof(float))) ) {
+      SUMA_S_Err("Failed to allocate");
+      SUMA_ifree(pr); SUMA_ifree(perc);
+      SUMA_RETURN(NULL);
+   }
+   for (ii=0; ii<nval; ++ii) pr[ii] = (float)ii*fac;
+   if ((Vsort=SUMA_PercRangeVol(V, NULL, N_V, 
+                                pr, nval, perc, NULL, exzero, NULL))) {
+      SUMA_ifree(Vsort);
+      SUMA_ifree(pr);
+   } else {
+      SUMA_S_Err("Failed to get percentiles");
+      SUMA_ifree(pr); SUMA_ifree(perc);
+      SUMA_RETURN(NULL); 
+   }
+   if (Nvals) *Nvals = nval;
+   SUMA_RETURN(perc);
+}
+
+/*!
+   A function that setsup vectors V, T and their ilk in the overlay plane.
+   The function is intended to figure out whether the old version of the
+   vector needs throwing away or whether it can be reused.
+   
+   Sover (SUMA_OVERLAYS *): The overlay struct
+   vec (char): Choose from 'V', 'T', or 'A' for both. Note that
+               'A' is only OK with task = "clear"
+   colind (int): Which column to copy from dset
+   task (char *): What should be done? 
+                  "update", make sure T, or V are ready for use.
+                  "clear", wipe T, V, etc.
+                  "reset", clear, then update
+   perc (int): if non zero, then also update percentile vectors
+   \return YUP OK, NOPE, BAD
+*/
+SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec, 
+                                  int colind, char *task, int perc)
+{
+   static char FuncName[]={"SUMA_SetOverlay_Vecs"};
+   char thisid[32+SUMA_IDCODE_LENGTH]={""};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!task) task = "update"; /* Vanilla, recreate if necessary */
+   if (!Sover || !Sover->dset_link) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   if (!strcmp(task,"clear")) { /* just clear, and return */
+      switch (vec) {
+         case 'V':
+            SUMA_ifree(Sover->V);
+            Sover->N_V = -1;
+            Sover->V_identifier[0]='\0';
+            Sover->N_Vperc = -1;
+            SUMA_ifree(Sover->Vperc);
+            break;
+         case 'T':
+            SUMA_ifree(Sover->T);
+            Sover->N_T = -1;
+            Sover->T_identifier[0]='\0';
+            Sover->N_Tperc = -1;
+            SUMA_ifree(Sover->Tperc);
+            break;
+         case 'A':
+            SUMA_SetOverlay_Vecs(Sover, 'T', colind, "clear", perc);
+            SUMA_SetOverlay_Vecs(Sover, 'V', colind, "clear", perc);
+            break;
+         default:
+            SUMA_S_Err("Bad vec=%c", vec);
+            SUMA_RETURN(NOPE);
+      }
+      SUMA_RETURN(YUP);
+   }
+   if (vec != 'V' &&  vec != 'T') {
+      SUMA_S_Err("vec of %c not valid down here", vec);
+      SUMA_RETURN(NOPE);
+   }
+   if (!strcmp(task,"reset")) {
+      if (!SUMA_SetOverlay_Vecs(Sover, vec, colind, "clear", perc)) {
+         SUMA_S_Err("Failed to clear");
+         SUMA_RETURN(NOPE);
+      }
+      if (!SUMA_SetOverlay_Vecs(Sover, vec, colind, "update", perc)) {
+         SUMA_S_Err("Failed to update under reset");
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_RETURN(YUP);
+   }
+   if (!strcmp(task,"update")) {
+      sprintf(thisid, "%c_%d_%s", vec, colind, SDSET_ID(Sover->dset_link));
+      switch (vec) {
+         case 'V':
+            if (strcmp(thisid, Sover->V_identifier)) {
+               SUMA_LH("Need new V copy col %d", colind);
+               SUMA_SetOverlay_Vecs(Sover, vec, colind, "clear", perc);
+               if (Sover->V) {
+                  SUMA_S_Err("Something seriously wrong with head!");
+                  SUMA_RETURN(NOPE);
+               }
+               if (!(Sover->V = 
+                        SUMA_DsetCol2Float (Sover->dset_link, colind, 0))) {
+                  SUMA_SL_Err("Failed to get %c", vec); 
+                  SUMA_RETURN(NOPE); 
+               }
+               Sover->N_V = SDSET_VECFILLED(Sover->dset_link);
+               if (perc) {
+                  Sover->Vperc = 
+                     SUMA_PercFullRangeVol(Sover->V, Sover->N_V, 
+                                           3, 1, &(Sover->N_Vperc));
+               }
+               strcpy(Sover->V_identifier,thisid);
+            } else {
+               if (perc && !Sover->Vperc) {
+                  if (!(Sover->Vperc = 
+                     SUMA_PercFullRangeVol(Sover->V, Sover->N_V, 
+                                           3, 1, &(Sover->N_Vperc)))) {
+                     SUMA_S_Err("Failed in SUMA_PercFullRangeVol for V");
+                     SUMA_RETURN(NOPE); 
+                  }
+               }
+               SUMA_LH("All same for %c %d, do nothing", vec, colind);
+            }
+            break;
+         case 'T':
+            if (strcmp(thisid, Sover->T_identifier)) {
+               SUMA_LH("Need new T copy, col %d", colind);
+               SUMA_SetOverlay_Vecs(Sover, vec, colind, "clear", perc);
+               if (Sover->T) {
+                  SUMA_S_Err("I dont't like ghosts!");
+                  SUMA_RETURN(NOPE);
+               }
+               if (!(Sover->T = 
+                        SUMA_DsetCol2Float (Sover->dset_link, colind, 0))) {
+                  SUMA_SL_Err("Failed to get %c", vec); 
+                  SUMA_RETURN(NOPE); 
+               }
+               Sover->N_T = SDSET_VECFILLED(Sover->dset_link);
+               if (perc) {
+                  Sover->Tperc = 
+                     SUMA_PercFullRangeVol(Sover->T, Sover->N_T, 
+                                           3, 1, &(Sover->N_Tperc));
+               }
+               strcpy(Sover->T_identifier,thisid);
+            } else {
+               if (perc && !Sover->Tperc) {
+                  if (!(Sover->Tperc = 
+                     SUMA_PercFullRangeVol(Sover->T, Sover->N_T, 
+                                           3, 1, &(Sover->N_Tperc)))) {
+                     SUMA_S_Err("Failed in SUMA_PercFullRangeVol for T");
+                     SUMA_RETURN(NOPE); 
+                  }
+               }
+               SUMA_LH("All same for %c %d, do nothing", vec, colind);
+            }
+            break;
+         default:
+            SUMA_S_Err("Bad vec of %c at this point", vec);
+            SUMA_RETURN(NOPE);
+            break;
+      }
+      SUMA_RETURN(YUP);
+   }
+   SUMA_S_Err("Bad task %s", task);
+   SUMA_RETURN(NOPE);
+}
+
+float SUMA_OverlayPercentile (SUMA_OVERLAYS *Sover, char vec, float perc)
+{
+   static char FuncName[]={"SUMA_OverlayPercentile"};
+   float pp=0.0, fac;
+   int ii;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!Sover || perc < 0.0 || perc > 100.0 || 
+       (vec != 'T' && vec != 'V') || !Sover->OptScl) {
+      SUMA_S_Err("NULL or bad input %p, %c, %f, %p", Sover, vec, 
+                              perc, Sover?Sover->OptScl:NULL);
+      SUMA_RETURN(pp);
+   }
+   switch (vec) {
+      case 'T':
+         if (Sover->OptScl->tind < 0) {
+            SUMA_S_Err("No tind?");
+            SUMA_RETURN(pp);
+         }
+         if (!SUMA_SetOverlay_Vecs(Sover, vec, Sover->OptScl->tind,"update",1)) {
+            SUMA_S_Err("Failed to update");
+            SUMA_RETURN(pp);
+         }
+         fac = (Sover->N_Tperc-1)/100.0;
+         ii = (int) (perc * fac);
+         if (ii<0 || ii>=Sover->N_Tperc) {
+            SUMA_S_Err("How can this be? ii=%d", ii);
+            SUMA_RETURN(pp);
+         }
+         SUMA_LH("Am i here? %p, N_Tperc=%d, ii=%d, fac=%f perc=%f", 
+                  Sover->Tperc, Sover->N_Tperc, ii, fac, perc);
+         pp = Sover->Tperc[ii];
+         SUMA_RETURN(pp);
+         break;
+      case 'V':
+         if (Sover->OptScl->find < 0) {
+            SUMA_S_Err("No find?");
+            SUMA_RETURN(pp);
+         }
+         if (!SUMA_SetOverlay_Vecs(Sover, vec, Sover->OptScl->find,"update",1)) {
+            SUMA_S_Err("Failed to update");
+            SUMA_RETURN(pp);
+         }
+         fac = (Sover->N_Vperc-1)/100.0;
+         ii = (int) (perc * fac);
+         if (ii<0 || ii>=Sover->N_Vperc) {
+            SUMA_S_Err("How can this be? ii=%d", ii);
+            SUMA_RETURN(pp);
+         }
+         pp = Sover->Vperc[ii];
+         SUMA_RETURN(pp);
+         break;
+      default:
+         SUMA_S_Err("Why is vec %c here?", vec);
+         break;
+   }
+   SUMA_RETURN(pp);
+}
+
 /*!
    
    -  Some of the fields of SUMA_SCALE_TO_MAP_OPT are ignored here.
@@ -2486,16 +2738,18 @@ SUMA_SurfaceObject *SUMA_SO_of_ColPlane(SUMA_OVERLAYS *Sover)
 SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
 {
    static char FuncName[]={"SUMA_ScaleToMap_Interactive"};
-   float *T=NULL, *B=NULL;
+   float *B=NULL;
    int i, icmap, i3, cnt, cnt3, loc[2], *nd=NULL;
-   float *nv = NULL;
+   float *nv = NULL, am = 0.0;
    double Range[2];
    double minB, maxB, fact=0.0, floc = 0.0;
    SUMA_COLOR_MAP *ColMap = NULL;
    SUMA_SCALE_TO_MAP_OPT *Opt = NULL;
    SUMA_COLOR_SCALED_VECT * SV = NULL;
    float *junk;
+   byte *alphaval=NULL;
    static int nwarn=0;
+   SUMA_ALL_DO *ado=NULL;
    SUMA_WIDGET_INDEX_COORDBIAS HoldBiasOpt;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2546,38 +2800,44 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                                     Opt->ColsContMode);
    
    SUMA_LH("Fetching vetors from dset");
-   T = NULL; SUMA_ifree(Sover->V); B = NULL;
+   
+   B = NULL;
    /* Thresholding ? */
    if (Opt->tind >= 0 && Opt->UseThr) { 
       SUMA_LH("Fetching Threshold column");
-      /* got to copy values into float vectors 'cause of possible types */
-      T = SUMA_DsetCol2Float (Sover->dset_link, Opt->tind, 0);
-      if (!T) { SUMA_SL_Err("Failed to get T"); SUMA_RETURN(NOPE); }
+      if (  !SUMA_SetOverlay_Vecs(Sover, 'T', Opt->tind, "update", 0) ||
+            !Sover->T ) {
+         SUMA_S_Err("Failed to get T");
+         SUMA_RETURN(NOPE);
+      }
       switch (Opt->ThrMode) {
          case SUMA_LESS_THAN:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-               if (T[i] < Opt->ThreshRange[0]) {
+               if (Sover->T[i] < Opt->ThreshRange[0]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
             break;
          case SUMA_ABS_LESS_THAN:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-               if (T[i] < Opt->ThreshRange[0] && T[i] > -Opt->ThreshRange[0]) {
+               if (Sover->T[i] < Opt->ThreshRange[0] && 
+                   Sover->T[i] > -Opt->ThreshRange[0]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
             break;
          case SUMA_THRESH_OUTSIDE_RANGE:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-               if (T[i] < Opt->ThreshRange[0] || T[i] > Opt->ThreshRange[1]) {
+               if (Sover->T[i] < Opt->ThreshRange[0] || 
+                   Sover->T[i] > Opt->ThreshRange[1]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
             break;
          case SUMA_THRESH_INSIDE_RANGE:
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
-               if (T[i] > Opt->ThreshRange[0] && T[i] < Opt->ThreshRange[1]) {
+               if (Sover->T[i] > Opt->ThreshRange[0] && 
+                   Sover->T[i] < Opt->ThreshRange[1]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
@@ -2587,16 +2847,17 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             SUMA_RETURN(NOPE);
             break;
       }
-      /* T is no longer needed */
-      if (T) SUMA_free(T); T = NULL;
    } 
    
+
    SUMA_LH("Fetching Intensity column");
    if (Opt->find < 0) { SUMA_SL_Crit("Bad column index.\n"); SUMA_RETURN(NOPE); }
    else { 
-      /* got to copy values into float vectors 'cause of possible types */
-      Sover->V = SUMA_DsetCol2Float (Sover->dset_link, Opt->find, 0);
-      if (!Sover->V) { SUMA_SL_Err("Failed to get V"); SUMA_RETURN(NOPE); }
+      if (  !SUMA_SetOverlay_Vecs(Sover, 'V', Opt->find, "update", 0) ||
+            !Sover->V ) {
+         SUMA_S_Err("Failed to get V");
+         SUMA_RETURN(NOPE);
+      }
    }
 
    /* setup nodedef so that it can be used along with Sover->V
@@ -2764,6 +3025,28 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    /* nv is no longer needed, only needed for clustering. */
    if (nv) SUMA_free(nv); nv = NULL;
 
+   /* Any need to mess with the range ? */
+   switch(Opt->RangeUnits) {
+      case SUMA_PERC_VALUE_UNITS:{
+         float pr[2] = {2, 98}, prv[2], *Vsort=NULL;
+         pr[0] = Opt->IntRange[0];
+         pr[1] = Opt->IntRange[1];
+         /* See comment about pre-storage of percentiles in the other
+         place that SUMA_PercRangeVol() is used */
+         if ((Vsort=SUMA_PercRangeVol(Sover->V, NULL, Sover->N_V, pr, 2,
+                                      prv, NULL, 1, NULL))) {
+            SUMA_ifree(Vsort);
+            Opt->IntRange[0] = prv[0];
+            Opt->IntRange[1] = prv[1];
+         }
+         Opt->RangeUnits = SUMA_NO_NUM_UNITS; /* Back to normal */
+         break;}
+      case SUMA_NO_NUM_UNITS:
+         break;
+      default:
+         SUMA_S_Warn("Units on IntRange ignored!");
+         break;
+   }
    
    /* colorizing */
    if ( (Opt->interpmode == SUMA_DIRECT)&& 
@@ -2798,7 +3081,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    }                              
    
    
-   if (Opt->bind >= 0 && Opt->UseBrt) {
+   if (Opt->bind >= 0 && 
+       (Opt->UseBrt || Sover->AlphaVal == SW_SurfCont_DsetAlphaVal_B)) {
       SUMA_LH("Brightness modulation needed"); 
       /* got to copy values into float vectors 'cause of possible types */
       B = SUMA_DsetCol2Float (Sover->dset_link, Opt->bind, 0);
@@ -2847,7 +3131,81 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       SUMA_RemoveCoordBias(Sover); 
    }
    
-   
+   /* Do we need alpha from data (first used for Volume objects) ? */
+   alphaval = NULL;
+   ado = SUMA_Overlay_OwnerADO(Sover);
+   SUMA_LH("Have ado %s of type %s, AlphaVal %d", 
+         ADO_LABEL(ado), ADO_TNAME(ado), Sover->AlphaVal);
+   if (ado && ado->do_type == VO_type) {
+      switch (Sover->AlphaVal) {
+         case SW_SurfCont_DsetAlphaVal_I:
+            if (Opt->find < 0 || !Sover->V) break;
+            if (!(alphaval = (byte *)SUMA_calloc(
+                  SDSET_VECFILLED(Sover->dset_link), sizeof(byte)))){
+               SUMA_S_Crit("Failed to allocate");
+               SUMA_RETURN(NOPE); 
+            }
+            fact = Opt->IntRange[1]-Opt->IntRange[2];
+            if (fact == 0.0) fact = 1.0;
+            for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+               if (!SV->isMasked[i]) {
+                  am = (Sover->V[i]-Opt->IntRange[0])/fact;
+                  if (am < 0.0) am = 0.0;
+                  else if (am > 1.0) am = 1.0;
+                  alphaval[i] = (byte)(am*255);
+               }
+            }
+            break;
+         case SW_SurfCont_DsetAlphaVal_T:
+            if (Opt->tind < 0 || !Sover->T) break;
+            if (!(alphaval = (byte *)SUMA_calloc(
+                  SDSET_VECFILLED(Sover->dset_link), sizeof(byte)))){
+               SUMA_S_Crit("Failed to allocate");
+               SUMA_RETURN(NOPE); 
+            }
+            if (!SUMA_GetDsetColRange(Sover->dset_link, Opt->tind, Range, loc)) {
+               SUMA_SL_Err("Failed to get ColRange!"); 
+               SUMA_RETURN(NOPE); 
+            }
+            fact = Range[1]-Range[2];
+            if (fact == 0.0) fact = 1.0;
+            for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+               if (!SV->isMasked[i]) {
+                  am = (Sover->T[i]-Range[0])/fact;
+                  if (am < 0.0) am = 0.0;
+                  else if (am > 1.0) am = 1.0;
+                  alphaval[i] = (byte)(am*255);
+               }
+            }
+            break;
+         case SW_SurfCont_DsetAlphaVal_B:
+            if (Opt->bind < 0 || !B) break;
+            if (!(alphaval = (byte *)SUMA_calloc(
+                  SDSET_VECFILLED(Sover->dset_link), sizeof(byte)))){
+               SUMA_S_Crit("Failed to allocate");
+               SUMA_RETURN(NOPE); 
+            }
+            if (!SUMA_GetDsetColRange(Sover->dset_link, Opt->bind, Range, loc)) {
+               SUMA_SL_Err("Failed to get ColRange!"); 
+               SUMA_RETURN(NOPE); 
+            }
+            fact = Range[1]-Range[2];
+            if (fact == 0.0) fact = 1.0;
+            for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
+               if (!SV->isMasked[i]) {
+                  am = (B[i]-Range[0])/fact;
+                  if (am < 0.0) am = 0.0;
+                  else if (am > 1.0) am = 1.0;
+                  alphaval[i] = (byte)(am*255);
+               }
+            }
+            break;
+         default:
+            /* Nothing needed */
+            break;
+      }
+   }
+
    /* finally copy results */
    SUMA_LH("Copying into NodeDef");
    if (nd) {
@@ -2886,6 +3244,70 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    }
    Sover->N_NodeDef = cnt;  
+   
+   /* Alpha needed, only for volumes at the moment ... */
+   if (ado && ado->do_type == VO_type) {
+      if (!Sover->ColAlpha) {
+         if (!(Sover->ColAlpha = 
+                  (byte *)SUMA_malloc(COLP_N_ALLOC(Sover)*sizeof(byte)))) {
+            SUMA_S_Crit("Failed to allocate");
+            SUMA_RETURN(NOPE);
+         }
+      }
+      SUMA_LH("Have AlphaVal of %d", Sover->AlphaVal);
+      switch (Sover->AlphaVal) {
+         default:
+         case SW_SurfCont_DsetAlphaVal_Max:
+            cnt=0;
+            for(i = 0; i < SDSET_VECFILLED(Sover->dset_link); i++) {
+               if (!SV->isMasked[i]) {
+                  i3 = 3*i; 
+                  am = SUMA_MAX_PAIR(SV->cV[i3  ],SV->cV[i3+1]);
+                  am = SUMA_MAX_PAIR(am, SV->cV[i3+2]);
+                  Sover->ColAlpha[cnt] = (byte)(am*255); ++cnt;
+               }
+            }
+            break;
+         case SW_SurfCont_DsetAlphaVal_Min:
+            cnt=0;
+            for(i = 0; i < SDSET_VECFILLED(Sover->dset_link); i++) {
+               if (!SV->isMasked[i]) {
+                  i3 = 3*i; 
+                  am = SUMA_MIN_PAIR(SV->cV[i3  ],SV->cV[i3+1]);
+                  am = SUMA_MIN_PAIR(am, SV->cV[i3+2]);
+                  Sover->ColAlpha[cnt] = (byte)(am*255); ++cnt;
+               }
+            }
+            break;
+         case SW_SurfCont_DsetAlphaVal_Avg:
+            cnt=0;
+            for(i = 0; i < SDSET_VECFILLED(Sover->dset_link); i++) {
+               if (!SV->isMasked[i]) {
+                  i3 = 3*i; 
+                  am = SV->cV[i3  ]+SV->cV[i3+1]+SV->cV[i3+2];
+                  Sover->ColAlpha[cnt] = (byte)(am*85); ++cnt;
+               }
+            }
+            break;
+         case SW_SurfCont_DsetAlphaVal_I:
+         case SW_SurfCont_DsetAlphaVal_T:
+         case SW_SurfCont_DsetAlphaVal_B:
+            if (alphaval) {
+               cnt=0;
+               for(i = 0; i < SDSET_VECFILLED(Sover->dset_link); i++) {
+                  if (!SV->isMasked[i]) {
+                     Sover->ColAlpha[cnt] = alphaval[i]; ++cnt;
+                  }
+               }
+               SUMA_free(alphaval); alphaval = NULL;
+            }
+            break;
+         case SW_SurfCont_DsetAlphaVal_XXX:
+            SUMA_S_Note("All zeros!");
+            memset(Sover->ColAlpha, 0, sizeof(byte)*COLP_N_ALLOC(Sover));
+            break;
+      }
+   }
    
    /* Add any coord bias ? */
    switch (HoldBiasOpt) {
@@ -2938,7 +3360,6 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    
    /* clean up */
    SUMA_LH("Cleanup, cleanup, everybody cleanup");
-   if (T) SUMA_free(T); T = NULL;
    if (B) SUMA_free(B); B = NULL;
    if (SV)  SUMA_Free_ColorScaledVect (SV); SV = NULL;
    SUMA_RETURN(YUP);
@@ -4263,8 +4684,9 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       SUMA_Free_ColorMap (ColMap); 
    }
    
+   SUMA_LH("Out");
    SUMA_RETURN (YUP);
-} 
+}
 
 /*! function to create a linear colormap out of a non-linear one 
 
@@ -4372,6 +4794,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->MaskColor[0] = Opt->MaskColor[1] = Opt->MaskColor[2] = 0.0; 
    Opt->ApplyClip = NOPE;
    Opt->IntRange[0] = Opt->IntRange[1] = 0.0;
+   Opt->RangeUnits = SUMA_NO_NUM_UNITS;
    Opt->ThreshRange[0] = Opt->ThreshRange[1] = 0.0;
    Opt->ThreshStats[0] = Opt->ThreshStats[1] = -1.0;
    Opt->BrightRange[0] = 0.0; Opt->BrightRange[1] = 0.0; 
@@ -5188,17 +5611,20 @@ int SUMA_Rotate_Color_Map (SUMA_COLOR_MAP *CM, float frac)
    
    This function only allocates space for Vsort if a null is passed for Vsort in the function call
    
-   \sa SUMA_dPercRange
+   \sa SUMA_dPercRange, SUMA_PercRangeVol
 */
-float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float *PercRangeVal, int *iPercRangeVal)
+float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, 
+                        float *PercRangeVal, int *iPercRangeVal)
 {
    static char FuncName[] = {"SUMA_PercRange"};
    int *isort, il, ih;
    
    SUMA_ENTRY;
 
-   if (PercRange[0] < 0 || PercRange[0] > 100 || PercRange[1] < 0 || PercRange[1] > 100) {
-      fprintf (SUMA_STDERR, "Error %s: Values in PercRange must be between 0 and 100.\nVsort will be freed.\n", FuncName);
+   if (PercRange[0] < 0 || PercRange[0] > 100 || 
+       PercRange[1] < 0 || PercRange[1] > 100) {
+      SUMA_S_Err("Values in PercRange must be between 0 and 100.\n"
+                 "Vsort will be freed.");
       if (Vsort) SUMA_free(Vsort);
       SUMA_RETURN (NULL);
    }
@@ -5228,6 +5654,119 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
    }
    SUMA_RETURN (Vsort);
 }
+
+/*! \brief a variant on SUMA_PercRange.
+  
+   Be careful with returned parameters they have a different meaning than
+   those from SUMA_PercRange. The percentiles refer to the masked version
+   of V, rather than V itself.
+   
+   Vmsort = SUMA_PercRangeVol (V, mask, N_V, PercRange, N_PercRange,
+                               PercRangeVal, iPercRangeVal, 
+                               exzero, N_Vmsort);
+   
+   \param V (float *) pointer to vector containing N_V values
+   \param mask (byte *) pointer to mask indicating which values of V to consider 
+   \param N_V (int) number of values in V (and in mask)
+   \param PercRange (float *) N_PercRange x 1 vector with percentile values 
+                              desired (values between 0 and 100)
+   \param N_PercRange (int) Number of values
+   \param PercRangeVal (float *) N_PercRange x 1 vector with values in V 
+                                 corresponding to the percentile range
+   \param iPercRangeVal (int *) N_PercRange x 1 vector containing indices
+                                into Vmsort of PercRangeVal.
+                                i.e.  PercRangeVal[0] = Vmsort[iPercRangeVal[0]];
+                                      PercRangeVal[k] = Vmsort[iPercRangeVal[k]];
+                                pass NULL if you do not care for it.
+   \param exzero (int) if (1) then exclude 0 from consideration. Else
+                       exact zero values are considered.
+   \param N_Vmsort (int *) Pointer to integer to contain resultant number of 
+                           values in Vmsort. If you pass a non null mask, 
+                           and/or exzero == 1, *N_Vmsort <= N_V          
+   \ret Vmsort, pointer to the sorted MASKED version of V. NULL in case of error.
+   
+*/
+float * SUMA_PercRangeVol (float *V, byte *mask, int N_V, 
+                           float *PercRange, int N_PercRange,
+                           float *PercRangeVal, int *iPercRangeVal, 
+                           int exzero, int *N_Vmsort)
+{
+   static char FuncName[] = {"SUMA_PercRangeVol"};
+   int *isort, il, i, N_sorted;
+   float *Vmsort=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (N_Vmsort) *N_Vmsort = -1;
+   
+   for (i=0; i<N_PercRange; ++i) {
+      if (PercRange[i] < 0 || PercRange[i] > 100 ) {
+         SUMA_S_Err("Values in PercRange (%d=%f) must be between 0 and 100.",
+                  i, PercRange[i]);
+         SUMA_RETURN (NULL);
+      }
+   }
+    
+   {
+      N_sorted = 0;
+      if (!mask && !exzero) N_sorted = N_V;
+      else if (mask) {
+         if (!exzero) {
+            for (il=0; il<N_V; ++il) if (mask[il]) ++N_sorted;
+         } else {
+            for (il=0; il<N_V; ++il) {
+               if (V[il] == 0.0f) mask[il]=0;
+               if (mask[il]) ++N_sorted;
+            }
+         }
+      } else if (exzero) {
+         for (il=0; il<N_V; ++il) if (V[il] != 0.0f) ++N_sorted;
+      }
+      /* need to create my own sorted version */
+      Vmsort = (float *)SUMA_calloc (N_sorted, sizeof(float));
+      if (!Vmsort) {
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to allocate for Vmsort.\n", FuncName);
+         SUMA_RETURN (NULL);
+      }
+      
+      if (!mask && !exzero) {
+         /* copy V to Vmsort */
+         SUMA_COPY_VEC (V, Vmsort, N_sorted, float, float);
+      } else {
+         if (mask) { /* exzero has been subsumed already */
+            for (i=0, il=0; il<N_V; ++il) {
+               if (mask[il]) Vmsort[i++] = V[il];    
+            }
+         } else { /* only have exzero */
+            for (i=0, il=0; il<N_V; ++il) {
+               if (V[il] != 0.0f) Vmsort[i++] = V[il];    
+            }
+         }
+      }
+      /* sort Vmsort */
+      isort = SUMA_z_qsort (Vmsort  , N_sorted ); SUMA_free(isort);
+   } 
+   if (N_Vmsort) *N_Vmsort = N_sorted;
+   
+   /* choose the index for the lower range */
+   for (i=0; i<N_PercRange; ++i) {
+      il = (int)rint((N_sorted-1)*PercRange[i]/100.0);
+      PercRangeVal[i] = Vmsort[il];
+      if (iPercRangeVal) { 
+         iPercRangeVal[i] = il;
+      }
+   }
+   if (LocalHead) {
+      for (i=0; i<N_PercRange; ++i) {
+         fprintf(SUMA_STDERR,"%d: %f %.3f\n", 
+            i, PercRangeVal[i], (float)i*100.0/(N_PercRange-1));
+      }
+   }
+   SUMA_RETURN (Vmsort);
+}
+
 /*!
    Vsort = SUMA_dPercRange (V, Vsort, N_V, PercRange, PercRangeVal, iPercRangeVal)
    the double version of SUMA_PercRange, working with double instead of float data
@@ -5376,7 +5915,14 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(
    
    Sover->ClustList = NULL;
    Sover->ClustOfNode = NULL;
-        
+   
+   if (!SUMA_SetOverlay_Vecs(Sover, 'A', -1, "clear", 0)) {
+      SUMA_S_Err("Failed to clear T/V");
+   }
+   
+   Sover->AlphaThresh = 0.1;     
+   Sover->AlphaVal = SW_SurfCont_DsetAlphaVal_Max;
+   
    SUMA_RETURN(Sover);   
 }
 
@@ -5395,6 +5941,9 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    
    SUMA_ENTRY;
 
+   if (LocalHead) {
+      SUMA_DUMP_TRACE("Who just called?");
+   }
    if (!dset || !Name) {
       SUMA_SL_Err("Need dset, need name.");
       SUMA_RETURN(NULL);
@@ -5433,8 +5982,11 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    
 
    Sover->ColVec = (float *)SUMA_calloc(N_Alloc*3, sizeof(float));
+   Sover->ColAlpha = NULL;
    Sover->RemixOID = 0;
-   Sover->V = NULL;
+   if (!SUMA_SetOverlay_Vecs(Sover, 'A', -1, "clear", 0)) {
+      SUMA_S_Err("Failed to clear T/V");
+   }
    Sover->LocalOpacity = (float *)SUMA_calloc(N_Alloc, sizeof(float));
    Sover->LocalOpacity[0] = -1.0; /* flag indicating local facts 
                                        have not been initialized */
@@ -5458,11 +6010,13 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
       Sover->EdgeThickGain = 1.0;
       Sover->TxtShad = SW_SurfCont_DsetTxtShad1;
       Sover->EdgeStip = SW_SurfCont_DsetEdgeStipXXX;
+      Sover->AlphaVal = SW_SurfCont_DsetAlphaVal_Max;
       Sover->PlaneOrder = -1; /* No order is specified */
       Sover->isBackGrnd = 0; /* no brightness modulation effects */
       Sover->DimFact = 0.3;
       Sover->ForceIntRange[0] = 0.0; 
       Sover->ForceIntRange[1] = 0.0; /* force nothing */
+      Sover->AlphaThresh = 0.1;     
 
       /* new, from Feb 20 */
       /* default, choose something */
@@ -5479,12 +6033,12 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
             char *eee=getenv("SUMA_VO_ColorMap");
             if (eee) {
                if (!SUMA_FindNamedColMap(eee)) {
-                  Sover->cmapname = SUMA_copy_string("ngray20");
+                  Sover->cmapname = SUMA_copy_string("bw20");
                   SUMA_S_Errv( "Colormap %s not found.\n"
-                              "Using ngray20 instead.\n", eee);
+                              "Using bw20 instead.\n", eee);
                } else Sover->cmapname = SUMA_copy_string(eee);
             } else {
-               Sover->cmapname = SUMA_copy_string("ngray20");
+               Sover->cmapname = SUMA_copy_string("bw20");
             }
             Sover->SymIrange = 0; SymChosen = 1;
          } else if (SUMA_is_VFR_dset(dset)) {
@@ -5621,8 +6175,12 @@ SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover)
       Sover->ColMat = NULL*/
    
    SUMA_ifree(Sover->ColVec);
+   SUMA_ifree(Sover->ColAlpha);
    ++Sover->RemixOID; /* Does not hurt to change it */
-   SUMA_ifree(Sover->V);
+   
+   if (!SUMA_SetOverlay_Vecs(Sover, 'A', -1, "clear", 0)) {
+      SUMA_S_Err("Failed to clear T/V");
+   }
    
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity); 
    Sover->LocalOpacity = NULL;
@@ -5698,6 +6256,10 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
             Sover->ClustOfNode = NULL;   
    }
    
+   if (!SUMA_SetOverlay_Vecs(Sover, 'A', -1, "clear", 0)) {
+      SUMA_S_Err("Failed to clear T/V");
+   }
+   
    SUMA_free(Sover); Sover = NULL;
    
    SUMA_RETURN (YUP);
@@ -5749,7 +6311,7 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_ALL_DO *ado, const char * Name,
       case VO_type: {
          static int ncnt;
          if (!ncnt) {
-            SUMA_S_Warn("No overlay to return for volumes, not yet at least");
+            SUMA_LH("No overlay to return for volumes, not yet at least");
             ++ncnt;
          }
          break; }
@@ -6048,6 +6610,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
          SUMA_X_SurfCont *SurfCont=NULL;
          float av, am;
          byte *tex3ddata = NULL;
+         
          if (!VSaux || !VSaux->N_Overlays || !VSaux->Overlays) {
             SUMA_S_Errv("No VSaux or VSaux->Overlays for %s\n", 
                         ADO_LABEL(ado));
@@ -6115,6 +6678,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
             SUMA_S_Err("No texture vector?.");
             SUMA_RETURN (NOPE);
          }
+
          j=0;
          for(i = 0; i < N_dat; i++) {
             if (VSaux->isColored[i]) {
@@ -6137,6 +6701,30 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
                tex3ddata[j++] = 0.0;
             } 
          }
+         /* Set the alphas, for now this would work for one volume only.
+         When mixing multiple overlays, my decide who will be doing
+         the mixing and how, if at all ColAlpha is to play with
+         LocalOpacity ...*/
+         {
+            SUMA_OVERLAYS *Sover=VSaux->Overlays[ShowOverLays_sort[0]];
+            int cnt;
+            SUMA_LH("Have AlphaVal of %d", Sover->AlphaVal);
+            if (Sover->ColAlpha && Sover->NodeDef) {
+               if (NshowOverlays != 1) {
+                  SUMA_S_Warn(
+                     "ColAlpha has not been considered for multiple overlays\n"
+                     "Using alpha of zeroth volume.");
+               }
+               SUMA_LH("Doing the alphas %d", Sover->N_NodeDef);
+               for(cnt = 0; cnt < Sover->N_NodeDef; cnt++) {
+                  i = Sover->NodeDef[cnt];
+                  tex3ddata[4*i+3] = Sover->ColAlpha[cnt];
+                  /*if (cnt < 10) fprintf(stderr,"%d   ",Sover->ColAlpha[cnt]);*/
+               }
+               /* fprintf(stderr,"\n");*/
+            }
+         }
+         
          if (!SUMA_VE_LoadTexture(vo->VE, 0)){
             SUMA_S_Err("Failed to GL load texture");
             SUMA_RETURN(NOPE);
@@ -7159,9 +7747,13 @@ char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
    static char FuncName[]={"SUMA_ScaleToMapOpt_Info"};
    char *s = NULL;
    SUMA_STRING *SS = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY; 
+   
    SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (LocalHead) SUMA_DUMP_TRACE("You rang?");
    
    if (!OptScl) { SS = SUMA_StringAppend (SS, "NULL ScaleToMap options\n"); }
    else {
@@ -10238,6 +10830,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
    
    if (LocalHead)  {
       SUMA_LH("Color Plane Pre Colorizing");
+      SUMA_DUMP_TRACE("Who called ColorizePlane?");
       SUMA_Show_ColorOverlayPlanes ( &cp, 1, 0);
    }
    if (!cp) { SUMA_SL_Err("NULL cp"); SUMA_RETURN(NOPE); }
@@ -10557,8 +11150,8 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                                  cb->FunctionInput, "event_parameters"))) {
                   SUMA_S_Err("Failed to find parameters element!");                                 SUMA_RETURN(NOPE);
                }  
-               NI_SET_INT(nelpars,     
-                          "event.new_node", SUMA_ADO_SelectedDatum(ado, NULL));
+               NI_SET_INT(nelpars, "event.new_node", 
+                           SUMA_ADO_SelectedDatum(ado, NULL, NULL));
                NI_set_attribute( nelpars, 
                                  "event.DO_idcode", SUMA_ADO_idcode(ado));
                NI_set_attribute(nelpars, 
@@ -10615,7 +11208,7 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                                            (int)fv3[0], (int)fv3[1],(int)fv3[2]);
                            } else {
                               sprintf(stmp,"v2s_array.%d.1D",
-                                           SUMA_ADO_SelectedDatum(ado, NULL));
+                                       SUMA_ADO_SelectedDatum(ado, NULL, NULL));
                            }
                            fv = (float *)nelts->vec[0];
                            SUMA_LHv("Writing %s\n", stmp);

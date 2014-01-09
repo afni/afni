@@ -23,6 +23,12 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V,
 double * SUMA_dPercRange ( double *V, double *Vsort, int N_V, 
                            double *PercRange, double *PercRangeVal, 
                            int *iPercRangeVal);
+float * SUMA_PercRangeVol (float *V, byte *mask, int N_V, 
+                           float *PercRange, int N_PercRange,
+                           float *PercRangeVal, int *iPercRangeVal, 
+                           int exzero, int *N_Vmsort);
+float *SUMA_PercFullRangeVol(float *V, int N_V, int p10, int exzero, int *Nvals);
+float SUMA_OverlayPercentile (SUMA_OVERLAYS *Sover, char vec, float perc);
 SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 ( float **Fiducials, int Nfid, byte rgba,
                                        int *Nint, SUMA_Boolean SkipLast, 
                                        char *Name);
@@ -114,6 +120,9 @@ SUMA_Boolean SUMA_ScaleToMap_alaHASH ( float *V, int N_V,
                                        SUMA_COLOR_MAP *ColMap, 
                                        SUMA_SCALE_TO_MAP_OPT *Opt, 
                                        SUMA_COLOR_SCALED_VECT * SV);
+SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover );
+SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec, 
+                                  int colind, char *task, int perc);
 SUMA_AFNI_COLORS * SUMA_Get_AFNI_Default_Color_Maps ();
 SUMA_COLOR_MAP ** SUMA_Add_ColorMap (SUMA_COLOR_MAP *CM, 
                                      SUMA_COLOR_MAP **OldCMv, int *N_maps); 

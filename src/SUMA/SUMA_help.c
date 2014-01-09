@@ -1802,7 +1802,11 @@ char * SUMA_help_message_Info(void)
       "     Shift+Ctrl+Button 3-Motion: Continuous picking and calls \n"
       "                                for dot product (InstaCorr)\n"
       "                               or GroupInCorr, while dragging.\n"
-      ); 
+      );
+   SS = SUMA_StringAppend(SS,
+      "     Wheel/Scroll: Zoom in/out\n"
+      "     Shift+Wheel/Scroll: change selected slice if applicable\n"
+      );
    SS = SUMA_StringAppend (SS, 
       "    \n");
    SS = SUMA_StringAppend (SS, 
