@@ -182,11 +182,12 @@ int SUMA_ADO_Max_Datum_Index(SUMA_ALL_DO *ado);
 int SUMA_ADO_Max_Datum_Index_Lev(SUMA_ALL_DO *ado, SUMA_DATUM_LEVEL dtlvl);
 char * SUMA_ADO_variant(SUMA_ALL_DO *ado);
 int SUMA_ADO_ColPlane_SelectedDatum(SUMA_ALL_DO *ado, SUMA_OVERLAYS *Sover);
-int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra);
+int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra, void *extra2);
 int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
                                           SUMA_COLID_OFFSET_DATUM *codf);
-SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel, void *extra);
+SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel, 
+                                        void *extra, void *extra2);
 int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado);
 SUMA_OVERLAYS * SUMA_ADO_Overlay0(SUMA_ALL_DO *ado);
 SUMA_OVERLAYS * SUMA_ADO_Overlay(SUMA_ALL_DO *ado, int i);
@@ -321,13 +322,15 @@ int SUMA_SetRangeValueNew(SUMA_ALL_DO *ado,
                           int row, int col,
                           float v1, float v2,
                           int setmen, 
-                          int redisplay, float *reset);
+                          int redisplay, float *reset,
+                          SUMA_NUMERICAL_UNITS num_units);
 int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado, 
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
                           int setmen, 
-                          int redisplay, float *reset);
+                          int redisplay, float *reset,
+                          SUMA_NUMERICAL_UNITS num_units);
 void SUMA_cb_SetRangeValue (void *data);
 int SUMA_SetClustValue(SUMA_ALL_DO *ado, 
                           SUMA_OVERLAYS *colp,
@@ -364,6 +367,9 @@ void SUMA_SliceF_cb_label_change (  Widget w, XtPointer client_data,
                                     XtPointer call_data);
 int SUMA_set_slice(SUMA_ALL_DO *ado, char *variant, float *valp, 
                    char *caller, int redisp);
+int SUMA_set_mont(SUMA_ALL_DO *ado, char *variant, 
+                  float *val1p, float *val2p,
+                  char *caller, int redisp);
 void SUMA_cb_set_Co_slice(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cb_set_Sa_slice(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cb_set_Ax_slice(Widget w, XtPointer clientData, XtPointer call);
@@ -500,11 +506,25 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "   Val: Set stippling based on the dset value\n"  \
    "   XXX: No stippling, solid line.\n"  
 
+#define  SUMA_SurfContHelp_DsetAlphaVal  \
+   "Choose the method for assigning an alpha value (A) to a voxel's color.\n" \
+   "   Avg :  A = average of R, G, B values\n"  \
+   "   Max :  A = maximum of R, G, B values\n"    \
+   "   Min :  A = minimum of R, G, B values\n"    \
+   "   I :  A is based on I selection. I range parameters apply \n"   \
+   "   T :  A is based on T selection. Full range is used.\n"  \
+   "   B :  A is based on B selection. B range parameters apply\n" \
+   "   XXX: A is set to 0, nothing will show.\n"  
+
 #define  SUMA_SurfContHelp_TractMask  \
    "Select how masked tracts are displayed\n" \
    "   Hde:   Hide 'em masked tracts\n"  \
-   "   Gry:   Gray 'em masked tracts\n"   \
+   "   Gry:   Gray 'em masked tracts (gray color set by 'Gry' arrow field)\n"   \
    "   Ign:   Ignore 'em good for nothing masks\n"
+      
+#define  SUMA_SurfContHelp_TractMaskGray  \
+   "Set the gray level for masked tracts. 0 for black, 100 for white\n" \
+   "   This arrow field only has an effect when 'Msk' menu is set to 'Gry'\n"   \
       
 #define  SUMA_SurfContHelp_DsetNodeCol  \
    "Choose the colorization method for nodes of this dataset.\n" \
@@ -647,7 +667,23 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "on top of the stack. Separate \n"  \
    "stacks exits for foreground (fg:)\n" \
    "and background planes (bg:)."
-   
+ 
+#define SUMA_SurfContHelp_DsetAlphaThresh \
+   "Alpha threshold of Dset's rendered slices.\n"  \
+   "When datasets' voxels get colored, they get an Alpha (A) value\n"\
+   "in addition to the R, G, B values. A is computed based on\n"\
+   "the setting of the 'Avl' menu.\n"\
+   "Voxels (or more precisely, their openGL realization) \n"   \
+   "with Alpha lower than this value will not get rendered.\n"  \
+   "This is another way to 'threshold' a rendered volume, and \n" \
+   "is comparable to thresholding with the slider bar if using a\n"\
+   "monochromatic increasingly monotonic colormap with 'Avl' set to\n"\
+   "one of Max, Min, or Avg.\n"  \
+   "Note that thresholding with the slider bar sets A for thresholded \n" \
+   "voxels to 0.0 regardless of the setting for 'Avl'.\n"   \
+   "Thresholding with Ath is faster than using the slider bar because \n" \
+   "it does not require recreating the whole texture."
+  
 #define SUMA_SurfContHelp_ArrowFieldMenu \
    "For datasets with sub-bricks exceeding what you have\n" \
    "set in environment variable SUMA_ArrowFieldSelectorTrigger\n"\
@@ -720,7 +756,9 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "Set the threshold.\n"  \
    "For statistical parameters, you can \n"  \
    "append a 'p' to set by the p value.\n" \
-   "For example 0.001p\n"
+   "For example 0.001p.\n" \
+   "For percentile thresholding, append a '%' to\n"\
+   "the value, such as 25%\n"
    
 #define SUMA_SurfContHelp_DsetLoad  \
    "Load a new dataset (Dset).\n"   \
@@ -915,6 +953,8 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "colormap. \n"   \
    "Values larger than Max are mapped \n"   \
    "to the top color.\n"   \
+   "\n"\
+   "Append '%' to set values to percentiles.\n"  \
    "\n"   \
    "Left click locks ranges\n"   \
    "from automatic resetting.\n"   \
