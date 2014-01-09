@@ -21,6 +21,15 @@
 /* weighted images. The bmatrix file should have the same number of rows as  */
 /* the total number of diffusion weighted images (including the b0 image).   */
 
+
+// Dec, 2013 (PT):
+// + (probable) bug fix and new matrix format allowed for input (no
+//   zeros at top).  search for '$$' to see the new lines for allowing
+//   bmatrix input with no zeros in top row, and for '@@' for potential
+//   bug fix for original `-bmatrix' options.
+
+
+
 #include "thd_shear3d.h"
 /*#ifndef FLOATIZE*/
 # include "matrix.h"
@@ -69,6 +78,7 @@ static int debug_briks = 0;     /* put Ed, Ed0 and Converge step sub-briks in ou
 static int verbose = 0;         /* print out info every verbose number of voxels - user option */
 static int afnitalk_flag = 0;   /* show convergence in AFNI graph - user option */
 static int bmatrix_given = 0;   /* user input file is b matrix (instead of gradient direction matrix) with 6 columns: Bxx, Byy, Bzz, Bxy, Bxz, Byz */
+static int BMAT_NZ = 0;         /* non-zero bmatrix supplied */
 static int opt_method = 2;      /* use gradient descent instead of Powell's new optimize method*/
 static int voxel_opt_method = 0; /* hybridize optimization between Powell and gradient descent */
 static int Powell_npts = 1;     /* number of points in input dataset for Powell optimization function */
@@ -89,7 +99,7 @@ static float Calc_MD(float *val);
 static void ComputeD0 (void);
 static double ComputeJ (float ts[], int npts);
 static void ComputeDeltaTau (void);
-static void Computebmatrix (MRI_IMAGE * grad1Dptr);
+static void Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1); 
 static void InitGlobals (int npts);
 static void FreeGlobals (void);
 static void Store_Computations (int i, int npts, int converge_step);
@@ -146,58 +156,71 @@ main (int argc, char *argv[])
 	      " and corresponding DTI image volumes.\n"
 	      " The program takes two parameters as input :  \n"
 	      "    a 1D file of the gradient vectors with lines of ASCII floats Gxi,Gyi,Gzi.\n"
-              "    Only the non-zero gradient vectors are included in this file (no G0 line).\n"
-	      "    a 3D bucket dataset with Np+1 sub-briks where the first sub-brik is the\n"
-              "    volume acquired with no diffusion weighting.\n"
-	      " Options:\n"
-              "   -prefix pname = Use 'pname' for the output dataset prefix name.\n"
-              "    [default='DT']\n\n"
-	      "   -automask =  mask dataset so that the tensors are computed only for\n"
-	      "    high-intensity (presumably brain) voxels.  The intensity level is\n"
-              "    determined the same way that 3dClipLevel works.\n\n"
-              "   -mask dset = use dset as mask to include/exclude voxels\n\n"
-	      "   -bmatrix = input dataset is b-matrix, not gradient directions.\n\n"
-              "   -nonlinear = compute iterative solution to avoid negative eigenvalues.\n"
-              "    This is the default method.\n\n"
-              "   -linear = compute simple linear solution.\n\n"
-              "   -reweight = recompute weight factors at end of iterations and restart\n\n"
-              "   -max_iter n = maximum number of iterations for convergence (Default=10).\n"
-              "    Values can range from -1 to any positive integer less than 101.\n"
+         "    Only the non-zero gradient vectors are included in this file (no G0 line).\n"
+         "    a 3D bucket dataset with Np+1 sub-briks where the first sub-brik is the\n"
+         "    volume acquired with no diffusion weighting.\n"
+         " Options:\n"
+         "   -prefix pname = Use 'pname' for the output dataset prefix name.\n"
+         "                   [default='DT']\n\n"
+         "   -automask = mask dataset so that the tensors are computed only for\n"
+         "               high-intensity (presumably brain) voxels.  The intensity level is\n"
+         "               determined the same way that 3dClipLevel works.\n\n"
+         "   -mask dset = use dset as mask to include/exclude voxels\n\n"
+         "   -bmatrix_NZ = input dataset is b-matrix, not gradient directions, and\n"
+         "               there is *no* row of zeros at the top of the file,\n"
+         "               similar to the format for the grad input.\n"
+         "               There must be 6 columns of data, representing either elements\n"
+         "               of G_{ij} = g_i*g_j (i.e., dyad of gradients, without b-value\n"
+         "               included) or of the DW scaled version, B_{ij} = b*g_i*g_j.\n"
+         "               The order of components is: G_xx G_yy G_zz G_xy G_xz G_yz.\n"
+         "   -bmatrix_Z = similar to '-bmatrix_NZ' above, but assumes that first row of the\n"
+         "               file is all zeros, i.e. the bmatrix includes a B=0 volume as the first\n"
+         "               volume. Note that the first row is ignored, so that if you do have\n"
+         "               a non-zero gradient as the first volume, then that would be ignored\n"
+         "               and treated as a B=0, no gradient volume\n\n"
+         "    *****NOTE: The former bmatrix option is no longer available!!!!\n"
+         "               That option produced an error or incorrect results\n\n"
+         "   -nonlinear = compute iterative solution to avoid negative eigenvalues.\n"
+         "    This is the default method.\n\n"
+         "   -linear = compute simple linear solution.\n\n"
+         "   -reweight = recompute weight factors at end of iterations and restart\n\n"
+         "   -max_iter n = maximum number of iterations for convergence (Default=10).\n"
+         "    Values can range from -1 to any positive integer less than 101.\n"
 	      "    A value of -1 is equivalent to the linear solution.\n"
 	      "    A value of 0 results in only the initial estimate of the diffusion tensor\n"
 	      "    solution adjusted to avoid negative eigenvalues.\n\n"
-              "   -max_iter_rw n = max number of iterations after reweighting (Default=5)\n"
-              "    values can range from 1 to any positive integer less than 101.\n\n"
-              "   -eigs = compute eigenvalues, eigenvectors, fractional anisotropy and mean\n"
-              "    diffusivity in sub-briks 6-19. Computed as in 3dDTeig\n\n"
-              "   -debug_briks = add sub-briks with Ed (error functional), Ed0 (orig. error),\n"
-              "     number of steps to convergence and I0 (modeled B0 volume)\n\n"
-              "   -cumulative_wts = show overall weight factors for each gradient level\n"
-              "    May be useful as a quality control\n\n"
-              "   -verbose nnnnn = print convergence steps every nnnnn voxels that survive to\n"
-              "    convergence loops (can be quite lengthy).\n\n"
-              "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive\n"
-              "    to convergence loops. AFNI must have NIML communications on (afni -niml)\n\n"
-              "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
-              "   -csf_val n.nnn = assign diffusivity value to DWI data where the mean values\n"
-              "    for B=0 volumes is less than the mean of the remaining volumes at each\n"
-              "    voxel. The default value is 3.0. The assumption is that there are flow\n"
-              "    artifacts in CSF and blood vessels that give rise to lower B=0 voxels.\n\n"
-              "   -csf_fa n.nnn = assign a specific FA value to those voxels described above\n"
-              "    The default is 0.012345678 for use in tractography programs that may\n"
-              "    make special use of these voxels\n\n"
+         "   -max_iter_rw n = max number of iterations after reweighting (Default=5)\n"
+         "    values can range from 1 to any positive integer less than 101.\n\n"
+         "   -eigs = compute eigenvalues, eigenvectors, fractional anisotropy and mean\n"
+         "    diffusivity in sub-briks 6-19. Computed as in 3dDTeig\n\n"
+         "   -debug_briks = add sub-briks with Ed (error functional), Ed0 (orig. error),\n"
+         "     number of steps to convergence and I0 (modeled B0 volume)\n\n"
+         "   -cumulative_wts = show overall weight factors for each gradient level\n"
+         "    May be useful as a quality control\n\n"
+         "   -verbose nnnnn = print convergence steps every nnnnn voxels that survive to\n"
+         "    convergence loops (can be quite lengthy).\n\n"
+         "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive\n"
+         "    to convergence loops. AFNI must have NIML communications on (afni -niml)\n\n"
+         "   -sep_dsets = save tensor, eigenvalues,vectors,FA,MD in separate datasets\n\n"
+         "   -csf_val n.nnn = assign diffusivity value to DWI data where the mean values\n"
+         "    for B=0 volumes is less than the mean of the remaining volumes at each\n"
+         "    voxel. The default value is 3.0. The assumption is that there are flow\n"
+         "    artifacts in CSF and blood vessels that give rise to lower B=0 voxels.\n\n"
+         "   -csf_fa n.nnn = assign a specific FA value to those voxels described above\n"
+         "    The default is 0.012345678 for use in tractography programs that may\n"
+         "    make special use of these voxels\n\n"
 	      "   -opt mname =  if mname is 'powell', use Powell's 2004 method for optimization\n"
 	      "    If mname is 'gradient' use gradient descent method. If mname is 'hybrid',\n"
-              "    use combination of methods.\n"
+         "    use combination of methods.\n"
 	      "    MJD Powell, \"The NEWUOA software for unconstrained optimization without\n"
-              "    derivatives\", Technical report DAMTP 2004/NA08, Cambridge University\n"
-              "    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
-              " Example:\n"
-              "  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
-              "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
+         "    derivatives\", Technical report DAMTP 2004/NA08, Cambridge University\n"
+         "    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
+         " Example:\n"
+         "  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
+         "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
 	      " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dyy,Dxz,Dyz,Dzz\n"
 	      " (the lower triangular, row-wise elements of the tensor in symmetric matrix form)\n"
-              " Additional sub-briks may be appended with the -eigs and -debug_briks options.\n"
+         " Additional sub-briks may be appended with the -eigs and -debug_briks options.\n"
 	      " These results are appropriate as the input to the 3dDTeig program.\n"
 	      "\n");
       printf ("\n" MASTER_SHORTHELP_STRING);
@@ -291,10 +314,16 @@ main (int argc, char *argv[])
          DSET_delete(mask_dset) ; nopt++ ; continue ;
       }
 
-      if (strcmp(argv[nopt], "-bmatrix") == 0) {
-	bmatrix_given = 1;
-	nopt++;
-	continue;
+      if (strcmp(argv[nopt], "-bmatrix_Z") == 0) {  // input bmatrix with initial B=0 line
+	      bmatrix_given = 1;
+	      nopt++;
+	      continue;
+      }
+
+      if (strcmp(argv[nopt], "-bmatrix_NZ") == 0) { // input bmatrix without first B=0 line
+	      BMAT_NZ = 1;
+	      nopt++;
+	      continue;
       }
 
       if (strcmp (argv[nopt], "-linear") == 0)
@@ -530,7 +559,9 @@ main (int argc, char *argv[])
       ERROR_exit("Error reading gradient vector file");
     }
 
-  if ((grad1Dptr->ny != 3 && !bmatrix_given) || (grad1Dptr->ny != 6 && bmatrix_given))
+  // if ((grad1Dptr->ny != 3 && !bmatrix_given) || (grad1Dptr->ny != 6 && bmatrix_given)) // $$old
+  if ((grad1Dptr->ny != 3 && !(bmatrix_given || BMAT_NZ) ) 
+      || (grad1Dptr->ny != 6 && (bmatrix_given || BMAT_NZ ) )) // BMAT_NZ optioning
     {
       ERROR_message("Error - Only 3 columns of gradient vectors (or 6 columns for b matrices) allowed: %d columns found", grad1Dptr->ny);
       mri_free (grad1Dptr);
@@ -555,8 +586,9 @@ main (int argc, char *argv[])
   CHECK_OPEN_ERROR(old_dset,argv[nopt]) ;
 
   /* expect at least 7 values per voxel - 7 sub-briks as input dataset */
-  if (!(!bmatrix_given && DSET_NVALS (old_dset) == (grad1Dptr->nx + 1)) 
-      && !((bmatrix_given && DSET_NVALS (old_dset) == (grad1Dptr->nx))))
+  if (!(!bmatrix_given && DSET_NVALS (old_dset) == (grad1Dptr->nx + 1))      
+      && !((bmatrix_given && DSET_NVALS (old_dset) == (grad1Dptr->nx)))
+      && !((BMAT_NZ && DSET_NVALS (old_dset) == (grad1Dptr->nx))) ) 
     {
       mri_free (grad1Dptr);
       ERROR_message("Error - Dataset must have number of sub-briks equal to one more than number");
@@ -571,11 +603,11 @@ main (int argc, char *argv[])
    if (bmatrix_given) {
      InitGlobals (grad1Dptr->nx);  /* initialize all the matrices and vectors */
    }
-   else {
+   else { // $$same: can leave same, because BMAT_NZ will have `nx+1'
      InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrices and vectors */
    }
 
-   Computebmatrix (grad1Dptr);	/* compute bij=GiGj */
+   Computebmatrix (grad1Dptr, BMAT_NZ);	/* compute bij=GiGj */
 
   if (automask)
     {
@@ -822,7 +854,7 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
   matrix Rmat;
   register double sf = 1.0;	/* scale factor = 1.0 for now until we know DELTA, delta (gamma = 267.5 rad/ms-mT) */
   register double sf2;		/* just scale factor * 2 */
-  int i, nrows;
+  int i, nrows, noff; // @@new: offset counter, 'noff'= number for offset
   register float *imptr, *Gxptr, *Gyptr, *Gzptr;
   register float *Bxxptr, *Byyptr, *Bzzptr, *Bxyptr, *Bxzptr, *Byzptr;
   matrix *nullptr = NULL;
@@ -833,8 +865,12 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
 
   if (grad1Dptr->ny == 6) {
     /* just read from b-matrix and scale as necessary */
-    nrows = grad1Dptr->nx - 1;
-    matrix_initialize (&Rmat);
+     noff = grad1Dptr->nx;             // offset is always whole dim of array
+     if(BMAT_NZ)                       //  for non-zero first row of BMATs
+        nrows = grad1Dptr->nx;
+     else
+        nrows = grad1Dptr->nx - 1; //$$old:  same for 'bmatrix_given' option
+     matrix_initialize (&Rmat);
     matrix_create (nrows, 6, &Rmat);	/* Rmat = Np x 6 matrix */
     if (Rmat.elts == NULL)
       {				/* memory allocation error */
@@ -843,28 +879,32 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
       }
 
     Bxxptr = imptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
-    Byyptr = imptr + nrows;
-    Bzzptr = Byyptr + nrows;
-    Bxyptr = Bzzptr + nrows;
-    Bxzptr = Bxyptr + nrows;
-    Byzptr = Bxzptr + nrows;
+    if( !BMAT_NZ ) {// @@new switch: start at the nonzero grad
+       Bxxptr+= 1;
+       imptr+= 1;
+    }
+    
+    Byyptr = imptr + noff; // @@new:  needed to iterate by dimension of array
+    Bzzptr = Byyptr + noff;
+    Bxyptr = Bzzptr + noff;
+    Bxzptr = Bxyptr + noff;
+    Byzptr = Bxzptr + noff;
 
     for (i = 0; i < nrows; i++)
-      {
-	Bxx = *Bxxptr++;
-	Byy = *Byyptr++;
-	Bzz = *Bzzptr++;
-	Bxy = *Bxyptr++;
-	Bxz = *Bxzptr++;
-	Byz = *Byzptr++;
-	Rmat.elts[i][0] = sf * Bxx;	/* bxx = Gx*Gx*scalefactor */
-	Rmat.elts[i][1] = sf2 * Bxy;	/* 2bxy = 2GxGy*scalefactor */
-	Rmat.elts[i][2] = sf2 * Bxz;	/* 2bxz = 2GxGz*scalefactor */
-	Rmat.elts[i][3] = sf * Byy;	/* byy = Gy*Gy*scalefactor */
-	Rmat.elts[i][4] = sf2 * Byz;	/* 2byz = 2GyGz*scalefactor */
-	Rmat.elts[i][5] = sf * Bzz;	/* bzz = Gz*Gz*scalefactor */
-      }
-
+       {
+          Bxx = *Bxxptr++;
+          Byy = *Byyptr++;
+          Bzz = *Bzzptr++;
+          Bxy = *Bxyptr++;
+          Bxz = *Bxzptr++;
+          Byz = *Byzptr++;
+          Rmat.elts[i][0] = sf * Bxx;	/* bxx = Gx*Gx*scalefactor */
+          Rmat.elts[i][1] = sf2 * Bxy;	/* 2bxy = 2GxGy*scalefactor */
+          Rmat.elts[i][2] = sf2 * Bxz;	/* 2bxz = 2GxGz*scalefactor */
+          Rmat.elts[i][3] = sf * Byy;	/* byy = Gy*Gy*scalefactor */
+          Rmat.elts[i][4] = sf2 * Byz;	/* 2byz = 2GyGz*scalefactor */
+          Rmat.elts[i][5] = sf * Bzz;	/* bzz = Gz*Gz*scalefactor */
+       }
   }
   else {
     nrows = grad1Dptr->nx;
@@ -1650,7 +1690,8 @@ ComputeD0 ()
 /* b0 is 0 for all 9 elements */
 /* bmatrix is really stored as 6 x npts array */
 static void
-Computebmatrix (MRI_IMAGE * grad1Dptr)
+Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1) 
+// flag to differentiate bmatrix cases that include a zero row or not
 {
   int i, n;
   register double *bptr;
@@ -1661,7 +1702,7 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
   ENTRY ("Computebmatrix");
   n = grad1Dptr->nx;		/* number of gradients other than I0 */
 
-  if (grad1Dptr->ny == 6) {
+  if ( (grad1Dptr->ny == 6)  && !NO_ZERO_ROW1 ) { // extra switch to keep OLD, zero-row version
     /* just read in b matrix */
     Bxxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
     Byyptr = Bxxptr + n;
@@ -1692,6 +1733,45 @@ Computebmatrix (MRI_IMAGE * grad1Dptr)
        else
           B0list[i] = 0;
       }
+
+  } 
+  else if( (grad1Dptr->ny == 6)  && NO_ZERO_ROW1 ) { //  very similar to old bmatrix option
+    /* just read in b matrix */
+    Bxxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
+    Byyptr = Bxxptr + n;
+    Bzzptr = Byyptr + n;
+    Bxyptr = Bzzptr + n;
+    Bxzptr = Bxyptr + n;
+    Byzptr = Bxzptr + n;
+
+    bptr = bmatrix;
+    
+    // do as grads below
+    for (i = 0; i < 6; i++)
+       *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
+    B0list[0]= 1;      /* keep a record of which volumes have no gradient */
+
+
+    for (i = 0; i < n; i++){ 
+	    Bxx = *Bxxptr++;
+	    Byy = *Byyptr++;
+	    Bzz = *Bzzptr++;
+	    Bxy = *Bxyptr++;
+	    Bxz = *Bxzptr++;
+	    Byz = *Byzptr++;
+	    *bptr++ = Bxx;
+	    *bptr++ = Bxy;
+	    *bptr++ = Bxz;
+	    *bptr++ = Byy;
+	    *bptr++ = Byz;
+	    *bptr++ = Bzz;
+       if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
+          B0list[i+1] = 1; 
+       else
+          B0list[i+1] = 0; 
+
+      }
+    
   }
   else {
     Gxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
