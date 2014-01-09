@@ -1048,7 +1048,7 @@ if(!is.null(lop$QV)) if(nCovVal>0) for (n in 1:nCovVal)
    statpar <- paste(statpar, " -substatpar ", nF+2*lop$num_glt+2*n-1, " fitt ", summary(fm)$tTable[pars[[12]][n],"DF"])
 bb <- as.numeric(strsplit(as.character(ModelForm), "\\+", fixed=F)[[3]][1])
 
-if(bb==0 | bb == -1) for (n in 1:dim(summary(fm)$tTable)[1])
+if(!is.na(bb)) if(bb==0 | bb == -1) for (n in 1:dim(summary(fm)$tTable)[1])
    statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
 
 statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
