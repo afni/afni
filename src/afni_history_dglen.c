@@ -49,6 +49,18 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 9 , JAN, 2014 , DRG , "3dDWItoDT" , 
+    MINOR , TYPE_BUG_FIX, 
+    "bmatrix options",
+    "bmatrix_Z and bmatrix_NZ options replace old -bmatrix option\n"
+    "The new options allow for a B=0 and no B=0 row in an optional\n"
+    "b-matrix input. The b-matrix may be used as input instead of the\n"
+    "gradient vector direction file. The former -bmatrix option\n"
+    "resulted in an error or incorrect results. (Paul Taylor is mostly\n"
+    "responsible for recognizing and fixing this. Thanks, Paul!)"
+} ,
+
 { 21 , OCT, 2013 , DRG , "whereami GUI" , 
     MINOR , TYPE_NEW_ENV, 
     "NeuroSynth.org link",
