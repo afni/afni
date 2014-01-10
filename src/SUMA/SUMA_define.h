@@ -1497,6 +1497,7 @@ typedef struct {
    Widget Mainform; /*!< main form, child of TopLevelShell, or NoteBook*/
    Widget SurfInfo_pb; /*!< More info push button */
    Widget SurfInfo_label; /*!< Le label */
+   Widget Mask_pb; /*!< Mask push button */
    SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing 
                         widgets and options of the surface info text shell */
    SUMA_MENU_WIDGET *RenderModeMenu; /*!<[SW_N_SurfCont_Render] widgets 
@@ -1832,6 +1833,8 @@ typedef struct {
    int roffy;
    
    SUMA_GLCONTEXT_RECORD *Cr;
+   
+   SUMA_X_SurfCont *AllMaskCont;
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */
@@ -3476,6 +3479,7 @@ typedef struct {
                      Used to be called ns for connecting to AFNI.
                      ns = ns_v[SUMA_AFNI_STREAM_INDEX]*/
    int ns_to[SUMA_MAX_STREAMS];
+   int ns_toc[SUMA_MAX_STREAMS];
    int ns_flags_v[SUMA_MAX_STREAMS];
    int TCP_port[SUMA_MAX_STREAMS];
    int TalkMode[SUMA_MAX_STREAMS];  /* Talk text or talk binary? */

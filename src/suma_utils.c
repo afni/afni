@@ -4028,7 +4028,7 @@ static ENV_SPEC envlist[] = {
       "SUMA_KeyNodeJump",
       "1" },
    {  "Numer of seconds to wait for SUMA to respond to DriveSuma. \n"
-      " Valid range from 0 to 60000",
+      " Valid range from 0 to 60000, see also env SUMA_DriveSumaMaxCloseWait",
       "SUMA_DriveSumaMaxWait",
       "300.0" },
    {  "String to use in creating left hemisphere dataset wildcards.",
@@ -4148,6 +4148,13 @@ static ENV_SPEC envlist[] = {
       "Use NO to avoid reorientation. This env. is for debugging purposes.\n",
       "SUMA_VO_Reorient",
       "NO" },
+   {  "Set maximum waiting time for proper detection of closed stream\n"
+      "This is to avoid DriveSuma's: Failed to detect closed stream ...\n"
+      "complaint which results in a forced stream closing. Time unit is\n"
+      "in seconds. See also env SUMA_DriveSumaMaxWait\n",
+      "SUMA_DriveSumaMaxCloseWait",
+      "5" },
+   
    {  NULL, NULL, NULL  }
 };
       
