@@ -23,6 +23,7 @@
 # 01 Nov 2013 : Darwin defaults to 10.7 package
 # 01 Dec 2013 : added -prog_list for Ziad
 # 18 Dec 2013 : added check for system programs, -sys_ok and -help_system_progs
+# 14 Jan 2014 : added more system programs
 # ----------------------------------------------------------------------
 
 
@@ -39,8 +40,8 @@ set make_backup = 1             # backup previous binaires
 set prog = `basename $0`
 
 set sys_ok = 0                  # OK to update having system programs
-set system_progs = ( at du gcc less man md5sum passwd perl python scp \
-                     srm sudo vi vim wc xterm yum )
+set system_progs = ( apt-get at cc cpp cmp diff du gcc less man md5sum od \
+                     passwd perl python scp srm sudo vi vim wc xterm yum )
 
 if ( $#argv == 0 ) then
     set help = 1
@@ -184,7 +185,9 @@ if ( $help ) then
     echo "    -sys_ok               : OK to update, even if system progs found"
     echo ""
     echo "        If any system program (e.g. man, sudo, xterm, yum) is found,"
-    echo "        the default behavior is not to continue the update."
+    echo "        the default behavior is not to continue the update.  Note"
+    echo "        that if 'afni -ver' shows a Debian package, then updates"
+    echo "        should be done via apt-get, not this program."
     echo ""
     echo "        Use -sys_ok to all the update to proceed."
     echo ""
