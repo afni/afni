@@ -1327,6 +1327,7 @@ byte * mask_unbinarize( int nvox , byte *mbin )
 bytevec * THD_create_mask_from_string( char *str )  /* Jul 2010 */
 {
    bytevec *bvec=NULL ; int nstr ; char *buf=NULL ;
+   int ferr=0;
 
 ENTRY("THD_create_mask") ;
 
@@ -1349,6 +1350,8 @@ ENTRY("THD_create_mask") ;
        }
        RETURN(bvec) ;
      }
+
+     ferr = 1; /* string is short, but failed to open as dataset */
    }
 
    /* if str is a filename, read that file;
@@ -1369,11 +1372,16 @@ ENTRY("THD_create_mask") ;
      if( bvec->ar != NULL ){
        bvec->nar = nvox ;
      } else {
-       ERROR_message("Can't make mask from string '%.16s' %s",buf,(nstr<=16)?" ":"...") ;
+       /* might be a non-existent file        14 Jan 2014 [rickr] */
+       if( ferr ) ERROR_message("Failed to open mask from '%s'", str);
+       else       ERROR_message("Can't make mask from string '%.16s' %s",
+                                buf,(nstr<=16)?" ":"...") ;
        free(bvec) ; bvec = NULL ;
      }
    } else {
-     ERROR_message("Don't understand mask string '%.16s'",buf,(nstr<=16)?" ":"...") ;
+     if( ferr ) ERROR_message("Failed to open mask '%s'", str);
+     else       ERROR_message("Don't understand mask string '%.16s'",
+                              buf,(nstr<=16)?" ":"...") ;
      free(bvec) ; bvec = NULL ;
    }
 
