@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Jan, 2014, RCR, "3dttest++", MICRO, TYPE_MODIFY,
+   "make mask failure message more clear",
+   "In THD_create_mask_from_string(), if string is short enough for a file\n"
+   "check, report error with entire string."
+ } ,
+
  { 14,  Jan, 2014, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "added more system programs to check",
    NULL
