@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Jan, 2014, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "added more system programs to check",
+   NULL
+ } ,
+
  { 30,  Dec, 2013, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
    "skip polort against polort in -show_cormat_warnings",
    NULL
