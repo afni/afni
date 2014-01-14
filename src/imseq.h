@@ -521,6 +521,7 @@ typedef struct MCW_imseq {
      int crop_nxorg , crop_nyorg , crop_allowed ;
      Widget        crop_drag_pb ;                     /* 17 Jun 2002 */
      int           crop_drag ;
+     int           crop_autocenter ;                  /* 14 Jan 2014 */
 
      int button2_width ;                              /* 08 Oct 2002 */
 
@@ -580,7 +581,7 @@ extern void ISQ_actually_pan( MCW_imseq * , int , int ) ;
 extern int ISQ_show_zoom( MCW_imseq *seq )  ;
 extern void ISQ_center_zoom( MCW_imseq *seq ) ; /* 27 Aug 2009 */
 
-extern void ISQ_adjust_crop( MCW_imseq *,int,int,int,int) ; /* 25 Aug 2009 */
+extern void ISQ_adjust_crop( MCW_imseq *,int,int,int,int,int) ; /* 25 Aug 2009 */
 extern void ISQ_set_crop_hint( MCW_imseq *seq ) ;
 
 #define CURSOR_NORMAL    0                            /* 10 Mar 2003 */

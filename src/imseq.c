@@ -776,6 +776,7 @@ ENTRY("open_MCW_imseq") ;
    newseq->cropit       =  0 ; /* 11 Jun 2002 */
    newseq->crop_allowed =  1 ;
    newseq->crop_nxorg   = newseq->crop_nyorg = -1 ;
+   newseq->crop_autocenter = AFNI_yesenv("AFNI_CROP_AUTOCENTER") ;
 
    newseq->last_width_mm  = IM_WIDTH(tim) ;  /* dimensions in real space */
    newseq->last_height_mm = IM_HEIGHT(tim) ;
@@ -2330,7 +2331,7 @@ ENTRY("ISQ_crop_pb_CB") ;
 /*-----------------------------------------------------------------------*/
 
 void ISQ_adjust_crop( MCW_imseq *seq ,
-                      int dxa , int dxb , int dya , int dyb )
+                      int dxa , int dxb , int dya , int dyb , int doit )
 {
    int new_xa, new_xb, new_ya, new_yb , ii,jj ;
 
@@ -2409,7 +2410,7 @@ ENTRY("ISQ_adjust_crop") ;
 
    seq->crop_xa = new_xa ; seq->crop_xb = new_xb ;
    seq->crop_ya = new_ya ; seq->crop_yb = new_yb ;
-   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   if( doit ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
    EXRETURN ;
 }
 
@@ -2518,26 +2519,32 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
          XButtonEvent *event = (XButtonEvent *) ev ;
          if( event->button == Button3 ){
            char *lvec[2] = { "Width " , "Height" } ;
-           float fvec[2] ; int oww,ohh ;
-           if( seq->cropit && seq->crop_nxorg > 0 ){
-             oww = seq->crop_nxorg ; ohh = seq->crop_nyorg ;
-           } else {
-             oww = seq->horig ; ohh = seq->vorig ;
+           float fvec[2] ; int oww=0,ohh=0 ;
+           if( seq->cropit ){
+             oww = seq->crop_xb -seq->crop_xa + 1 ;
+             ohh = seq->crop_yb -seq->crop_ya + 1 ;
            }
-           fvec[0] = oww/2 ; fvec[1] = ohh/2 ;
-           if( oww > MINCROP && ohh > MINCROP ){
+           if( oww < MINCROP ) oww = seq->horig / 2 ;
+           if( ohh < MINCROP ) ohh = seq->vorig / 2 ;
+           fvec[0] = oww ; fvec[1] = ohh ;
+           if( oww >= MINCROP && ohh >= MINCROP ){
              MCW_choose_vector(
                 seq->crop_drag_pb ,
                 "--------------------------------------------\n"
                 "Choose width and height of image crop window\n"
-                "    (minimum allowed size is 9 pixels)\n"
+                "     (minimum allowed size is 9 pixels)\n"
+                "   Crop window will be centered on image:\n"
+                "    Adjust with Shift+Keypad_Arrow_Keys.\n"
                 "--------------------------------------------"  ,
                 2 , lvec , fvec , ISQ_butcrop_choice_CB , (XtPointer)seq ) ;
            }
 
          } else if( event->button == Button2 ){
             XBell(XtDisplay(w),100) ;
-            MCW_popup_message( w, " \n Ooch! \n ", MCW_USER_KILL );
+            MCW_popup_message( w, 
+                               lrand48()%2 == 0 ? " \n Ooch! \n "
+                                                : "Don't\n DO\nthat!" ,
+                               MCW_USER_KILL );
             /** AFNI_speak( "Ouch!" , 0 ) ; **/
          }
       }
@@ -4772,10 +4779,15 @@ ENTRY("ISQ_redisplay") ;
    /** set the image number to be displayed now **/
 
    if( n >= 0 && !ISQ_set_image_number(seq,n) ){
-      if( RECUR ) recur_flg = FALSE ; EXRETURN ;
+     if( RECUR ) recur_flg = FALSE ; EXRETURN ;
    }
 
    MCW_discard_events_all( seq->wimage , ButtonPressMask ) ;  /* 20 Mar 2007 */
+
+#if 0                                 /*** DOES NOT WORK ***/
+   if( seq->crop_autocenter )               /* 14 Jan 2014 */
+     ISQ_adjust_crop( seq, 0,0,0,0 , 0 ) ;  /* crop center */
+#endif
 
    switch( type ){
       default: { if( RECUR ) recur_flg = FALSE ; EXRETURN ; }
@@ -12206,7 +12218,7 @@ ENTRY("ISQ_handle_keypress") ;
 
        case XK_Home:       /* 27 Aug 2009 : center crop or pan at crosshairs */
          if( shft ){
-           ISQ_adjust_crop( seq, 0,0,0,0 ) ;  /* crop center */
+           ISQ_adjust_crop( seq, 0,0,0,0 , 1 ) ;  /* crop center */
          } else if (ctrl ){
            /* nada */
          } else {
@@ -12217,9 +12229,9 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_Left:
        case XK_KP_Left:
          if( shft ){                        /* 25 Aug 2009: edit crop window */
-           ISQ_adjust_crop( seq , +astp,+astp , 0,0 ) ;
+           ISQ_adjust_crop( seq , +astp,+astp , 0,0 , 1 ) ;
          } else if( ctrl ){
-           ISQ_adjust_crop( seq , +1,-1 , 0,0 ) ;
+           ISQ_adjust_crop( seq , +1,-1 , 0,0 , 1 ) ;
          } else {
            seq->arrowpad->which_pressed = AP_LEFT ;
            seq->arrowpad->xev.type = 0 ;
@@ -12230,9 +12242,9 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_Right:
        case XK_KP_Right:
          if( shft ){
-           ISQ_adjust_crop( seq , -astp,-astp , 0,0 ) ;
+           ISQ_adjust_crop( seq , -astp,-astp , 0,0 , 1 ) ;
          } else if( ctrl ){
-           ISQ_adjust_crop( seq , -1,+1 , 0,0 ) ;
+           ISQ_adjust_crop( seq , -1,+1 , 0,0 , 1 ) ;
          } else {
            seq->arrowpad->which_pressed = AP_RIGHT ;
            seq->arrowpad->xev.type = 0 ;
@@ -12243,9 +12255,9 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_Down:
        case XK_KP_Down:
          if( shft ){
-           ISQ_adjust_crop( seq , 0,0 , -astp,-astp ) ;
+           ISQ_adjust_crop( seq , 0,0 , -astp,-astp , 1 ) ;
          } else if( ctrl ){
-           ISQ_adjust_crop( seq , 0,0 , -1,+1 ) ;
+           ISQ_adjust_crop( seq , 0,0 , -1,+1 , 1 ) ;
          } else {
            seq->arrowpad->which_pressed = AP_DOWN ;
            seq->arrowpad->xev.type = 0 ;
@@ -12256,9 +12268,9 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_Up:
        case XK_KP_Up:
          if( shft ){
-           ISQ_adjust_crop( seq , 0,0 , +astp,+astp ) ;
+           ISQ_adjust_crop( seq , 0,0 , +astp,+astp , 1 ) ;
          } else if( ctrl ){
-           ISQ_adjust_crop( seq , 0,0 , +1,-1 ) ;
+           ISQ_adjust_crop( seq , 0,0 , +1,-1 , 1 ) ;
          } else {
            seq->arrowpad->which_pressed = AP_UP ;
            seq->arrowpad->xev.type = 0 ;

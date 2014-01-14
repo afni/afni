@@ -13112,7 +13112,7 @@ SUMA_Boolean SUMA_sdset_set_datum_level(SUMA_DSET *dset, SUMA_DATUM_LEVEL lvl)
    if (!dset || !dset->ngr ||
          lvl < SUMA_ELEM_DAT || lvl >= SUMA_N_LEV_DAT) return(NOPE);
    
-   NI_SET_INT(dset->ngr, "Datum_Level", lvl);
+   NI_SET_INT(dset->ngr, "Datum_Level", (int)lvl);
    return(YUP);
 }
 
@@ -15359,7 +15359,7 @@ float *SUMA_GDSET_GetPointColumn_f(SUMA_DSET *dset, int *N_vals,
 char *SUMA_GDSET_Edge_Label(SUMA_DSET *dset, int isel, char *pref, char *sep)
 {
    static char FuncName[]={"SUMA_GDSET_Edge_Label"};
-   int *inde, *ind0, *ind1, i1, i2;
+   int *inde, *ind0, *ind1, i1=0, i2=0;
    char *ans=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
