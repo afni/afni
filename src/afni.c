@@ -6816,6 +6816,16 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       if (tlab) free(tlab) ;
    }
 
+   /*** 15 Jan 2014 **/
+
+   AFNI_sleep(1) ;
+   if( im3d->s123 != NULL && im3d->s123->crop_autocenter )
+     ISQ_adjust_crop( im3d->s123 , 0,0,0,0 , 1 ) ;
+   if( im3d->s231 != NULL && im3d->s231->crop_autocenter )
+     ISQ_adjust_crop( im3d->s231 , 0,0,0,0 , 1 ) ;
+   if( im3d->s312 != NULL && im3d->s312->crop_autocenter )
+     ISQ_adjust_crop( im3d->s312 , 0,0,0,0 , 1 ) ;
+
    EXRR ;
 }
 #undef EXRR
