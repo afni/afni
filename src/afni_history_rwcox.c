@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , JAN , 2014 , RWC , "afni image viewer" , MINOR , TYPE_NEW_ENV ,
+  { 15 , JAN , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Modified help to be more clear about -allineate" ,
+   "In particular, that the output nonlinear warp also contains the affine\n"
+   "warp, so you do NOT want to catenate the affine warp again when using\n"
+   "3dNwarpApply!" } ,
+
+ { 15 , JAN , 2014 , RWC , "afni image viewer" , MINOR , TYPE_NEW_ENV ,
    "AFNI_CROP_AUTOCENTER - automatically re-center crop sub-window" ,
    "If set to YES, then the crop sub-window (if cropping is active) will\n"
    "automatically re-center about the crosshair location -- as far as\n"
