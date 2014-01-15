@@ -175,6 +175,11 @@ int main( int argc , char *argv[] )
       "     affine warp -- since this program requires a '-nwarp' option, you can use\n"
       "     -nwarp 'IDENT(dataset)' to define the 3D grid for the 'nonlinear' 3D warp and\n"
       "     then catenate the affine warp (e.g., via '-affter').\n"
+      "\n"
+      "* PLEASE note that if you use the '-allineate' option in 3dQwarp, then the affine\n"
+      "  warp is already included in the output nonlinear warp from 3dQwarp, and so it\n"
+      "  does NOT need to be applied again in 3dNwarpApply!  This mistake has been made\n"
+      "  in the past, and the results were not good.\n"
      ) ;
 
      PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
