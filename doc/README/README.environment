@@ -1647,6 +1647,15 @@ When saving a zoomed image, the default is to save the entire zoomed image,
 not just the part you see.  If this YES/NO variable is set to YES, then only
 the visible part will be saved.
 
+------------------------------
+Variable: AFNI_CROP_AUTOCENTER
+------------------------------
+If this variable is set to YES, then the image viewer windows will
+automatically re-center the cropping sub-window (if cropping is active)
+around the crosshair position -- as far as possible.  You can also set
+this crop autocenter capability individually for each image viewer
+window from the intensity bar right-click popup menu.
+
 ---------------------------
 Variables: AFNI_TLRC_BBOX_*
 ---------------------------

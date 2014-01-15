@@ -522,6 +522,7 @@ typedef struct MCW_imseq {
      Widget        crop_drag_pb ;                     /* 17 Jun 2002 */
      int           crop_drag ;
      int           crop_autocenter ;                  /* 14 Jan 2014 */
+     MCW_bbox     *wbar_crop_bbox ;                   /* 15 Jan 2014 */
 
      int button2_width ;                              /* 08 Oct 2002 */
 
@@ -709,6 +710,7 @@ extern void ISQ_scale_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_wbar_plots_CB( Widget , XtPointer , XtPointer ) ; /* 20 Sep 2001 */
 extern void ISQ_wbar_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_wbar_amask_CB( Widget , XtPointer , XtPointer ) ; /* 14 Jun 2010 */
+extern void ISQ_wbar_crop_CB ( Widget , XtPointer , XtPointer ) ; /* 15 Jan 2014 */
 
 extern void ISQ_wbar_menu_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_set_rng_CB( Widget , XtPointer , MCW_choose_cbs * ) ;

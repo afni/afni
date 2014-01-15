@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , DEC , 2013 , RWC , "3dTproject" , MICRO , TYPE_NEW_OPT ,
+  { 15 , JAN , 2014 , RWC , "afni image viewer" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_CROP_AUTOCENTER - automatically re-center crop sub-window" ,
+   "If set to YES, then the crop sub-window (if cropping is active) will\n"
+   "automatically re-center about the crosshair location -- as far as\n"
+   "possible.  This feature can also be set for each image viewer window\n"
+   "separately from the intensity bar right-click popup menu.  (NOW will\n"
+   "John Butman be happy?)" } ,
+
+ { 6 , DEC , 2013 , RWC , "3dTproject" , MICRO , TYPE_NEW_OPT ,
    "Add new NTRP censor mode, just for the Spaniard." ,
    "Where are my cookies?" } ,
 
