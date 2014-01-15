@@ -33,7 +33,7 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset *dset ;
    int iarg=1 , idsetarg;
-   char *prefix = NULL, ax[7], tx[7], ext[17], oprefix[900] ;
+   char *prefix = NULL, ax[7], tx[7], ext[17]="", oprefix[900] ;
    void *row ;
    char *p2;
    int nx,ny,nz , ii,jj,kk , dcode , dcodeu, ival, D1, D2 ;
@@ -157,7 +157,9 @@ int main( int argc , char * argv[] )
          }
       } else {
          prefix = DSET_PREFIX(dset);
-         if (PREFIX_IS_NIFTI(prefix)) {   /* Note, this ruins prefix in dset! But not me worry here.*/
+         
+         if (PREFIX_IS_NIFTI(prefix)) {   /* Note, this ruins prefix in dset!
+                                             But not me worry here.*/
             if (PREFIX_IS_NIFTI(prefix)) {
                if (STRING_HAS_SUFFIX(prefix,".nii")) {
                   p2 = strstr(prefix, ".nii");
