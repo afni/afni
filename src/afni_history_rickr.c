@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Jan, 2014, RCR, "3dLRflip", MICRO, TYPE_BUG_FIX,
+   "used bad filename without -prefix",
+   "Var ext was not initialized."
+ } ,
+
  { 14,  Jan, 2014, RCR, "3dttest++", MICRO, TYPE_MODIFY,
    "make mask failure message more clear",
    "In THD_create_mask_from_string(), if string is short enough for a file\n"
