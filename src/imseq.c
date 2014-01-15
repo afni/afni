@@ -1648,6 +1648,16 @@ if( PRINT_TRACING ){
    ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
    if( ii > 0 ) newseq->zer_color = ii ;
 
+   { char *blab[1] = { "Crop Autocenter?" } ;
+     newseq->wbar_crop_bbox = new_MCW_bbox( newseq->wbar_menu ,  /* 15 Jan 2014 */
+                                             1 , blab ,
+                                             MCW_BB_check , MCW_BB_noframe ,
+                                             ISQ_wbar_crop_CB , (XtPointer)newseq ) ;
+     MCW_reghint_children(newseq->wbar_crop_bbox->wrowcol,"Automatically center crop window on crosshairs") ;
+     if( newseq->crop_autocenter ) MCW_set_bbox( newseq->wbar_crop_bbox , 1 ) ;
+   }
+
+
    /* label for informational display */
 
    newseq->onoff_widgets[(newseq->onoff_num)++] =
@@ -2526,6 +2536,8 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
            }
            if( oww < MINCROP ) oww = seq->horig / 2 ;
            if( ohh < MINCROP ) ohh = seq->vorig / 2 ;
+           if( oww < MINCROP ) oww = MINCROP ;
+           if( ohh < MINCROP ) ohh = MINCROP ;
            fvec[0] = oww ; fvec[1] = ohh ;
            if( oww >= MINCROP && ohh >= MINCROP ){
              MCW_choose_vector(
@@ -4783,11 +4795,6 @@ ENTRY("ISQ_redisplay") ;
    }
 
    MCW_discard_events_all( seq->wimage , ButtonPressMask ) ;  /* 20 Mar 2007 */
-
-#if 0                                 /*** DOES NOT WORK ***/
-   if( seq->crop_autocenter )               /* 14 Jan 2014 */
-     ISQ_adjust_crop( seq, 0,0,0,0 , 0 ) ;  /* crop center */
-#endif
 
    switch( type ){
       default: { if( RECUR ) recur_flg = FALSE ; EXRETURN ; }
@@ -8627,6 +8634,19 @@ void ISQ_wbar_amask_CB( Widget w, XtPointer client_data, XtPointer call_data )
    MCW_imseq *seq = (MCW_imseq *)client_data ;  /* 14 Jun 2010 */
 ENTRY("ISQ_wbar_amask_CB") ;
    if( ISQ_REALZ(seq) ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void ISQ_wbar_crop_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;  /* 14 Jun 2010 */
+ENTRY("ISQ_wbar_crop_CB") ;
+   if( ISQ_REALZ(seq) ){
+     seq->crop_autocenter = MCW_val_bbox(seq->wbar_crop_bbox) ;
+     ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   }
    EXRETURN ;
 }
 
