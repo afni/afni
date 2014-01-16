@@ -135,7 +135,7 @@ afni_history_struct rwcox_history[] = {
    "Add zero-padding" ,
    "To allow for images that run right up to the edge of the volume, where\n"
    "displacements are defined to be zero, so those parts of the volume won't\n"
-   "be warps.  Zero-padding extends the volume, which will avoid such\n"
+   "be warped.  Zero-padding extends the volume, which will avoid such\n"
    "issues.  It is turned on by default, and can be turned off by '-nopad'\n"
    "(as in 3dAllineate)." } ,
 
