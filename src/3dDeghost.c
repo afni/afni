@@ -195,6 +195,20 @@ double theta_func( int npar , double *thpar )
 
 /***------------------------------------------------------------------------***/
 
+void optimize_theta(void)
+{
+   double thpar[2] , thbot[2] , thtop[2] ;
+
+   thpar[0] =  0.0 ; thpar[1] =  0.00 ;
+   thbot[0] = -0.1 ; thbot[1] = -0.01 ;
+   thtop[0] =  0.1 ; thtop[1] =  0.01 ;
+   iter = powell_newuoa_con( 2 , thpar,thbot,thtop ,
+                             21 , 0.1 , 0.001 , 666 , theta_func ) ;
+   return ;
+}
+
+/***------------------------------------------------------------------------***/
+
 #define CLFRAC 0.4f
 
 THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se )
