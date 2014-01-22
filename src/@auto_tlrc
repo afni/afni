@@ -384,7 +384,7 @@ PARSE:
       echo ""
    endif
    set delete_this = ()
-   if ($isNIFTI == 1) then
+   if ("$isNIFTI" == 1) then
       set NIpref = `echo "$prs_in[2]" | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
       set RNS = `3dnewid -hash NIpref`
       echo "Copying NIFTI volume to $prs_in[1]/${NIpref}_${RNS}"
@@ -514,7 +514,7 @@ PARSE:
    set rs_pref = ${tmppref}__rs_`@GetAfniPrefix "${anat_in}"`
    set tt_pref = ${anat_pref}${suf}
    
-   if ($isNIFTI) then
+   if ("$isNIFTI" == 1) then
       if ($suf == '') set suf = '_at'
       set out_pref = ${NIpref}${suf}
       if ( -f ${out_pref}.nii) then
@@ -950,7 +950,7 @@ AUTO_TLRC_MODE:
    endif
    cp ${tt_prefpad}.Xat.1D ${out_pref}.Xat.1D
    
-   if ($isNIFTI) then
+   if ("$isNIFTI" == 1) then
       if ( -f ${ns_pref}_WarpDrive.log) \
          mv ${ns_pref}_WarpDrive.log ${out_pref}.nii_WarpDrive.log
       if ( -f ${ns_pref}.Xaff12.1D) \
@@ -1033,13 +1033,13 @@ AUTO_TLRC_MODE:
          3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}
       endif
       #finally, rename the damned thing
-      if ($isNIFTI) then
+      if ("$isNIFTI" == 1) then
          3dAFNItoNIFTI -prefix ${out_pref}.nii ${tt_prefupad}${ref_view} 
       else
          3drename ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
       endif
    else
-      if ($isNIFTI) then
+      if ("$isNIFTI" == 1) then
          3dAFNItoNIFTI -prefix ${out_pref}.nii ${tt_prefupad}${anat_view} 
       else
          3drename ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
@@ -1076,13 +1076,13 @@ AUTO_TLRC_MODE:
       if ($KeepView == 0) then
          echo "Changing view of rigid_equiv anatomy"
          3drefit -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
-         if ($isNIFTI) then
+         if ("$isNIFTI" == 1) then
             3dAFNItoNIFTI -prefix $NIpref.Xat.rigid.nii \
                      ${out_pref}.Xat.rigid${ref_view}.HEAD 
             \rm -f ${out_pref}.Xat.rigid${ref_view}.*
          endif
       else
-         if ($isNIFTI) then
+         if ("$isNIFTI" == 1) then
             3dAFNItoNIFTI -prefix $NIpref.Xat.rigid.nii \
                           ${out_pref}.Xat.rigid${anat_view}.HEAD 
             \rm -f ${out_pref}.Xat.rigid${anat_view}.*
@@ -1188,7 +1188,7 @@ APAR_MODE:
             -h "Dataset created via: `basename $0` $argv[*]" \
             ${tmp_out_pref}${anat_view}
    
-   if ($isNIFTI && -f ${out_pref}.nii || -f ${out_pref}.nii.gz) then
+   if ("$isNIFTI" == 1 && -f ${out_pref}.nii || -f ${out_pref}.nii.gz) then
       echo "ERROR: Final output ${out_pref}.nii.gz is already on disk"
             echo "   Aborted command:"
             echo "   3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}"
@@ -1199,7 +1199,7 @@ APAR_MODE:
    if ($KeepView == 0) then
       echo "Changing view of xformed volumes"
       3drefit -view ${ref_view} ${tmp_out_pref}${anat_view}.HEAD
-      if ($isNIFTI) then
+      if ("$isNIFTI" == 1) then
             3dAFNItoNIFTI -prefix ${out_pref}.nii ${tmp_out_pref}${ref_view} 
       else
          if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1) then
@@ -1213,7 +1213,7 @@ APAR_MODE:
          endif
       endif
    else
-      if ($isNIFTI) then
+      if ("$isNIFTI" == 1) then
          3dAFNItoNIFTI -prefix ${out_pref}.nii ${tmp_out_pref}${anat_view}
       else
          if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1) then
