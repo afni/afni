@@ -672,7 +672,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (
 			}
 			Opt->OffsetLim = atof(argv[kar]);
          if (Opt->OffsetLim <= 0 && Opt->OffsetLim != -1.0) {
-            SUMA_S_Errv("Bad value (%f) for refresh_rate\n", Opt->OffsetLim);
+            SUMA_S_Errv("Bad value (%f) for OffsetLim\n", Opt->OffsetLim);
 				exit (1);
          }
 
@@ -2846,7 +2846,8 @@ int main (int argc,char *argv[])
                      "Either failed to smooth or logical error.");
          exit(1);
       }
-      if ((ft = SUMA_guess_surftype_argv(Opt->surf_out)) <= 
+      
+      if ((ft = SUMA_GuessSurfFormatFromExtension(Opt->surf_out, "toy.gii")) <= 
           SUMA_FT_NOT_SPECIFIED) ft = SO->FileType;
       SUMA_free(SO->NodeList); 
       SO->NodeList = dsmooth; dsmooth = NULL;  /* replace NodeList */

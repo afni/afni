@@ -362,7 +362,13 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 		  		fprintf (SUMA_STDERR, "need argument after -out_type \n");
 				exit (1);
 			}
-			Opt->oType = SUMA_guess_surftype_argv(argv[kar]);
+			if ((Opt->oType = 
+               SUMA_GuessSurfFormatFromExtension(argv[kar], NULL)) <= 
+                  SUMA_FT_NOT_SPECIFIED) {
+            /* For backward compatibility */
+            Opt->oType = SUMA_guess_surftype_argv(argv[kar]);        
+         }
+         if (Opt->oType <= SUMA_FT_NOT_SPECIFIED) Opt->oType=SUMA_GIFTI;
          brk = YUP;
 		}
 
