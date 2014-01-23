@@ -155,28 +155,50 @@ int main( int argc , char * argv[] )
 
 /***------------------------------------------------------------------------***/
 
-static float *bvec, *gvec, *xvec, *yvec, *ctvec, *stvec, *mhat ;
+ /* 'vec' variables are in smask = brain voxels whose N/2 location is outside */
 static int    nvec ;
+static float *bvec, *gvec, *xvec, *yvec, *ctvec, *stvec ;
+static byte  *smask ;
 
-static void compute_thvec( int npar , double *thpar )  /* simplest model */
+ /* 'vim' variables cover the whole slice */
+static int    nvim ;
+static float *bvim, *gvim, *xvim, *yvim, *ctvim, *stvim ;
+
+ /* these parameters define theta(x,y) */
+static int   ntheta_par=2 ;
+static double theta_par[2] ;
+
+void compute_theta( int npt , float *xpt   , float *ypt ,
+                              float *cpt   , float *spt  )
 {
-   float th0, th1 , thth ; int ii ;
-   th0 = thpar[0] ; th1 = thpar[1] ;
-   for( ii=0 ; ii < nvec ; ii++ ){
-     thth = th0 + th1 * xvec[ii] ;
-     ctvec[ii] = cosf(thth) ;
-     stvec[ii] = sinf(thth) ;
+   float th0=theta_par[0] , th1=theta_par[1] , thth ; int ii ;
+   for( ii=0 ; ii < npt ; ii++ ){
+     thth = th0 + th1 * xpt[ii] ;
+     cpt[ii] = cosf(thth) ;
+     spt[ii] = sinf(thth) ;
    }
    return ;
 }
 
+void compute_thvec(void)  /* simplest model */
+{
+   compute_theta( nvec,xvec,yvec , ctvec,stvec ) ;
+}
+
+compute_thvim(void)
+{
+   compute_theta( nvim,xvim,yvim , ctvim,stvim ) ;
+}
+
 /***------------------------------------------------------------------------***/
+/* this function is the target for powell_newuoa_con() */
 
 double theta_func( int npar , double *thpar )
 {
    int ii ; double sum ; float mhat,e1,e2 ;
 
-   compute_thvec(npar,thpar) ;
+   theta_par[0] = thpar[0] ; theta_par[1] = thpar[1] ;
+   compute_thvec() ;
 
    for( ii=0 ; ii < nvec ; ii++ ){
 #if 0
@@ -199,11 +221,13 @@ void optimize_theta(void)
 {
    double thpar[2] , thbot[2] , thtop[2] ;
 
-   thpar[0] =  0.0 ; thpar[1] =  0.00 ;
-   thbot[0] = -0.1 ; thbot[1] = -0.01 ;
-   thtop[0] =  0.1 ; thtop[1] =  0.01 ;
+   thpar[0] =  0.0 ; thpar[1] =  0.00 ;  /* initial values */
+   thbot[0] = -0.1 ; thbot[1] = -0.04 ;  /* lower limits */
+   thtop[0] =  0.1 ; thtop[1] =  0.04 ;  /* upper limits */
    iter = powell_newuoa_con( 2 , thpar,thbot,thtop ,
-                             21 , 0.1 , 0.001 , 666 , theta_func ) ;
+                             49 , 0.1 , 0.001 , 666 , theta_func ) ;
+   theta_par[0] = thpar[0] ;
+   theta_par[1] = thpar[1] ;
    return ;
 }
 
@@ -211,28 +235,53 @@ void optimize_theta(void)
 
 #define CLFRAC 0.4f
 
+byte * DEG_automask_image( MRI_IMAGE *im )
+{
+   byte *bmask ;
+   float *iar , cval ;
+   int nx=im->nx , ny=im->ny , nz=im->nz , nvox=im->nvox , ii ;
+
+   THD_automask_set_clipfrac(CLFRAC) ;
+   bmask = mri_automask_image(im) ;
+   cmask = (byte *)malloc(sizeof(byte)*nx*ny*nz) ;
+   memcpy(cmask,bmask,sizeof(byte)*nx*ny*nz) ;
+   iar  = MRI_FLOAT_PTR(im) ;
+   cval = THD_cliplevel(im,CLFRAC) ;
+
+   THD_mask_dilate(nx,ny,nz,cmask,3) ;
+   THD_mask_dilate(nx,ny,nz,cmask,3) ;
+   THD_mask_dilate(nx,ny,nz,cmask,3) ;
+   THD_mask_dilate(nx,ny,nz,cmask,3) ;
+   for( ii=0 ; ii < nvox ; ii++ )
+     if( !bmask[ii] && cmask[ii] && iar[ii] < cval ) cmask[ii] = 0 ;
+
+   free(bmask) ;
+   return cmask ;
+}
+
+/***------------------------------------------------------------------------***/
+
 THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se )
 {
    MRI_IMAGE *medim , *tim ;
    float cval , *mar , *tar ;
-   byte *bmask , *amask , *smask , sm ;
+   byte *bmask , *amask , sm ;
    int nvox , nx,ny,nz , dp=0,df=0,ds=0 , np=0,nf=0,ns=0,np2 ;
-   int pp,ff,ss,nfp , ii , ppg , nsm,ism , vv,nv ;
+   int pp,ff,ss,nfp , ii , ppg , nsm,ism , vv,nv , iim ;
 
    /* create brain mask */
 
-   THD_automask_set_clipfrac(CLFRAC) ;
    medim = THD_median_brick(inset) ;
-   bmask = mri_automask_image(medim) ;
+   bmask = DEG_automask_image(medim) ;  /* brain mask */
 
    nx = medim->nx ; ny = medim->ny ; mz = medim->nz ; nvox = medim->nvox ;
    nv = DSET_NVALS(inset) ;
 
    /* chop out sub-threshold voxels */
 
-   mar  = MRI_FLOAT_PTR(medim) ;
-   cval = THD_cliplevel(medim,CLFRAC) ;
-   amask = (byte *)malloc(sizeof(byte)*nvox) ;
+   mar   = MRI_FLOAT_PTR(medim) ;
+   cval  = THD_cliplevel(medim,CLFRAC) ;
+   amask = (byte *)malloc(sizeof(byte)*nvox) ;  /* clipped brain mask */
    memcpy(amask,bmask,sizeof(byte)*nvox) ;
    for( ii=0 ; ii < nvox ; ii++ )
      if( amask[ii] && mar[ii] < cval ) amask[ii] = 0 ;
@@ -254,7 +303,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
 #undef  IJK
 #define IJK(f,p,s) ((f)*df+(p)*dp+(s)*ds)
 
-   nfp = nf * np ; np2 = np / 2 ;
+   nvim = nfp = nf * np ; np2 = np / 2 ;
    smask = (byte * )malloc(sizeof(byte) *nfp) ;
    bvec  = (float *)malloc(sizeof(float)*nfp) ;
    gvec  = (float *)malloc(sizeof(float)*nfp) ;
@@ -262,7 +311,13 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
    yvec  = (float *)malloc(sizeof(float)*nfp) ;
    ctvec = (float *)malloc(sizeof(float)*nfp) ;
    stvec = (float *)malloc(sizeof(float)*nfp) ;
-   mhat  = (float *)malloc(sizeof(float)*nfp) ;
+
+   bvim  = (float *)malloc(sizeof(float)*nvim) ;
+   gvim  = (float *)malloc(sizeof(float)*nvim) ;
+   xvim  = (float *)malloc(sizeof(float)*nvim) ;
+   yvim  = (float *)malloc(sizeof(float)*nvim) ;
+   ctvim = (float *)malloc(sizeof(float)*nvim) ;
+   stvim = (float *)malloc(sizeof(float)*nvim) ;
 
    /* loop over slices */
 
@@ -270,17 +325,15 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
 
      /* make copy of brain mask in this slice, then edit it down */
 
-     for( nsm=pp=0 ; pp < np ; pp++ ){
+     for( iim=nsm=pp=0 ; pp < np ; pp++ ){
        if( pp >= np2 ) ppg = pp-np2 ; else ppg = pp+np2 ;
-       for( ff=0 ; ff < nf ; ff++ ){
-         sm = amask[IJK(ff,pp,ss)] && !bmask[IJK(ff,ppg,ss)] ;
-         smask[ff+pp*nf] = sm ;
-         if( sm ){
-           xvec[nsm] = ff-nf2 ; yvec[nsm] = pp-np2 ; nsm++ ;
-         }
+       for( ff=0 ; ff < nf ; ff++,iim++ ){
+         smask[iim] = sm = amask[IJK(ff,pp,ss)] && !bmask[IJK(ff,ppg,ss)] ;
+         xvim[iim] = ff-nf2 ; yvim[iim] = pp-np2 ;
+         if( sm ){ xvec[nsm] = xvim[iim]; yvec[nsm] = yvim[iim]; nsm++; }
        }
      }
-     if( nsm < nfp/16 ){      /* skip this slice */
+     if( nsm < nfp/20 ){      /* skip this slice */
        if( verb ) WARNING_message("THD_deghost: skipping slice #%d",ss) ;
        continue ;
      }
@@ -299,11 +352,19 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
        /* extract the vector of image values in smask,
           and the vector of image values at the ghost locations */
 
-       for( ism=pp=0 ; pp < np ; pp++ ){
+       for( iim=ism=pp=0 ; pp < np ; pp++ ){
          if( pp >= np2 ) ppg = pp-np2 ; else ppg = pp+np2 ;
-         for( ff=0 ; ff < nf ; ff++ ){
-           if( ! smask[ff+pp*nf] ) continue ;
-           bvec[ism] = tar[IJK(ff,pp,ss)] ;
-           gvec[ism] = tar[IJK(ff,ppg,ss)] ; ism++ ;
+         for( ff=0 ; ff < nf ; ff++,iim++ ){
+           bvim[iim] = tar[IJK(ff,pp,ss)] ;
+           gvim[iim] = tar[IJK(ff,ppg,ss)] ;
+           if( smask[ff+pp*nf] ){ bvec[ism] = bvim[iim]; gvec[ism++] = gvim[iim]; }
          }
        }
+
+       /* fit the theta parameters from the smask region,
+          then compute theta over the entire image (in and out of smask) */
+
+       optimize_theta() ;
+       compute_thvim() ;
+
+       /*
