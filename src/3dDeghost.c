@@ -2,6 +2,9 @@
 
 static int verb = 1 ;
 
+#undef  FREEIF
+#define FREEIF(x) if((x)!=NULL)free((void *)(x))
+
 THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se ) ;
 
 /*----------------------------------------------------------------------------*/
@@ -144,6 +147,7 @@ int main( int argc , char * argv[] )
    /***** outsource the work *****/
 
    outset = THD_deghoster( inset , pe,fe,se ) ;
+   if( outset == NULL ) ERROR_exit("THD_deghoster fails :-(((") ;
 
    EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
    tross_Copy_History( inset , outset ) ;
@@ -157,12 +161,12 @@ int main( int argc , char * argv[] )
 
  /* 'vec' variables are in smask = brain voxels whose N/2 location is outside */
 static int    nvec ;
-static float *bvec, *gvec, *xvec, *yvec, *ctvec, *stvec ;
-static byte  *smask ;
+static float *bvec=NULL, *gvec=NULL, *xvec=NULL, *yvec=NULL, *ctvec=NULL, *stvec=NULL ;
+static byte  *smask=NULL ;
 
  /* 'vim' variables cover the whole slice */
 static int    nvim ;
-static float *bvim, *gvim, *xvim, *yvim, *ctvim, *stvim ;
+static float *bvim=NULL, *gvim=NULL, *xvim=NULL, *yvim=NULL, *ctvim=NULL, *stvim=NULL ;
 
  /* these parameters define theta(x,y) */
 static int   ntheta_par=2 ;
@@ -173,9 +177,10 @@ void compute_theta( int npt , float *xpt   , float *ypt ,
 {
    float th0=theta_par[0] , th1=theta_par[1] , thth ; int ii ;
    for( ii=0 ; ii < npt ; ii++ ){
-     thth = th0 + th1 * xpt[ii] ;
-     cpt[ii] = cosf(thth) ;
-     spt[ii] = sinf(thth) ;
+     /** thth = th0 + th1 * xpt[ii] ; **/
+     thth = th1*(xpt[ii]-th0) ;
+     cpt[ii] = fabsf(cosf(thth)) ;
+     spt[ii] = fabsf(sinf(thth)) ;
    }
    return ;
 }
@@ -201,7 +206,7 @@ double theta_func( int npar , double *thpar )
    compute_thvec() ;
 
    for( ii=0 ; ii < nvec ; ii++ ){
-#if 0
+#if 1
      mhat = bvec[ii]*ctvec[ii] + gvec[ii]*stvec[ii] ;
      e1   = bvec[ii]-mhat*ctvec[ii] ;
      e2   = gvec[ii]-mhat*stvec[ii] ;
@@ -221,11 +226,11 @@ void optimize_theta(void)
 {
    double thpar[2] , thbot[2] , thtop[2] ;
 
-   thpar[0] =  0.0 ; thpar[1] =  0.00 ;  /* initial values */
-   thbot[0] = -0.1 ; thbot[1] = -0.04 ;  /* lower limits */
-   thtop[0] =  0.1 ; thtop[1] =  0.04 ;  /* upper limits */
-   iter = powell_newuoa_con( 2 , thpar,thbot,thtop ,
-                             49 , 0.1 , 0.001 , 666 , theta_func ) ;
+   thpar[0] =  0.0 ; thpar[1] =  0.000;  /* initial values */
+   thbot[0] = -9.1 ; thbot[1] = -0.005;  /* lower limits */
+   thtop[0] =  9.1 ; thtop[1] =  0.09 ;  /* upper limits */
+   powell_newuoa_con( 2 , thpar,thbot,thtop ,
+                      49 , 0.1 , 0.001 , 999 , theta_func ) ;
    theta_par[0] = thpar[0] ;
    theta_par[1] = thpar[1] ;
    return ;
@@ -237,7 +242,7 @@ void optimize_theta(void)
 
 byte * DEG_automask_image( MRI_IMAGE *im )
 {
-   byte *bmask ;
+   byte *bmask , *cmask ;
    float *iar , cval ;
    int nx=im->nx , ny=im->ny , nz=im->nz , nvox=im->nvox , ii ;
 
@@ -261,12 +266,21 @@ byte * DEG_automask_image( MRI_IMAGE *im )
 
 /***------------------------------------------------------------------------***/
 
+#undef  FREEUP
+#define FREEUP                                                   \
+ do{ mri_free(medim); FREEIF(bmask); FREEIF(amask);              \
+     FREEIF(smask); FREEIF(bvec ); FREEIF(gvec ); FREEIF(xvec ); \
+     FREEIF(yvec ); FREEIF(ctvec); FREEIF(stvec); FREEIF(bvim ); \
+     FREEIF(gvim ); FREEIF(xvim ); FREEIF(yvim ); FREEIF(ctvim); \
+     FREEIF(stvim);                                              \
+ } while(0)
+
 THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se )
 {
-   MRI_IMAGE *medim , *tim ;
-   float cval , *mar , *tar ;
-   byte *bmask , *amask , sm ;
-   int nvox , nx,ny,nz , dp=0,df=0,ds=0 , np=0,nf=0,ns=0,np2 ;
+   MRI_IMAGE *medim=NULL , *tim=NULL ;
+   float cval, *mar=NULL , *tar=NULL ;
+   byte *bmask=NULL , *amask=NULL , sm ;
+   int nvox , nx,ny,nz , dp=0,df=0,ds=0 , np=0,nf=0,ns=0,np2,nf2 ;
    int pp,ff,ss,nfp , ii , ppg , nsm,ism , vv,nv , iim ;
 
    /* create brain mask */
@@ -274,7 +288,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
    medim = THD_median_brick(inset) ;
    bmask = DEG_automask_image(medim) ;  /* brain mask */
 
-   nx = medim->nx ; ny = medim->ny ; mz = medim->nz ; nvox = medim->nvox ;
+   nx = medim->nx ; ny = medim->ny ; nz = medim->nz ; nvox = medim->nvox ;
    nv = DSET_NVALS(inset) ;
 
    /* chop out sub-threshold voxels */
@@ -303,7 +317,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
 #undef  IJK
 #define IJK(f,p,s) ((f)*df+(p)*dp+(s)*ds)
 
-   nvim = nfp = nf * np ; np2 = np / 2 ;
+   nvim = nfp = nf * np ; np2 = np / 2 ; nf2 = nf / 2 ;
    smask = (byte * )malloc(sizeof(byte) *nfp) ;
    bvec  = (float *)malloc(sizeof(float)*nfp) ;
    gvec  = (float *)malloc(sizeof(float)*nfp) ;
@@ -334,7 +348,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
        }
      }
      if( nsm < nfp/20 ){      /* skip this slice */
-       if( verb ) WARNING_message("THD_deghost: skipping slice #%d",ss) ;
+       if( verb ) WARNING_message("THD_deghost: skipping slice #%d: nsm=%d nfp=%d",ss,nsm,nfp) ;
        continue ;
      }
      nvec = nsm ;
@@ -365,6 +379,14 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
           then compute theta over the entire image (in and out of smask) */
 
        optimize_theta() ;
-       compute_thvim() ;
+INFO_message("slice=%d index=%d  theta = %g  %g",ss,vv,theta_par[0],theta_par[1]) ;
+       /** compute_thvim() ; **/
 
-       /*
+       mri_free(tim) ; tim = NULL ;
+     }
+
+   }
+
+   FREEUP ;
+   return NULL ;
+}

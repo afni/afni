@@ -1130,16 +1130,17 @@ ENTRY("THD_mask_erodemany") ;
 /*--------------------------------------------------------------------------*/
 /*! Dilate a mask - that is, fill in zero voxels that have at least ndil
     neighbors in the mask.  The neighbors are the 18 voxels closest
-    in 3D (nearest and next-nearest neighbors).
+    in 3D (nearest and next-nearest neighbors).  Return value is number
+    of voxels added to the mask.
 ----------------------------------------------------------------------------*/
 
-void THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
+int THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
 {
    int ii,jj,kk , jy,kz, im,jm,km , ip,jp,kp , num ;
-   int nxy=nx*ny , nxyz=nxy*nz ;
+   int nxy=nx*ny , nxyz=nxy*nz , nadd ;
    byte *nnn ;
 
-   if( mmm == NULL ) return ;
+   if( mmm == NULL ) return 0 ;
         if( ndil < 1  ) ndil =  1 ;
    else if( ndil > 17 ) ndil = 17 ;
 
@@ -1175,10 +1176,10 @@ void THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
        }
    } } }
 
-   for( ii=0 ; ii < nxyz ; ii++ )            /* actually dilate */
-     if( nnn[ii] ) mmm[ii] = 1 ;
+   for( nadd=ii=0 ; ii < nxyz ; ii++ )                 /* copy it to */
+     if( nnn[ii] && !mmm[ii] ){ mmm[ii] = 1; nadd++; } /* input mask */
 
-   free(nnn) ; return ;
+   free(nnn) ; return nadd ;
 }
 
 /*---------------------------------------------------------------------*/
