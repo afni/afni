@@ -888,6 +888,10 @@ strblast:strblast.o
 	$(RM) $@
 	$(CC) -o 3dMedianFilter 3dMedianFilter.o $(LFLAGS) $(LLIBS)
 
+3dDeghost:3dDeghost.o
+	$(RM) $@
+	$(CC) -o 3dDeghost 3dDeghost.o $(LFLAGS) $(LLIBS)
+
 3dPolyfit:3dPolyfit.o
 	$(RM) $@
 	$(CC) -o 3dPolyfit 3dPolyfit.o $(LFLAGS) $(LLIBS)

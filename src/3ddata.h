@@ -5039,7 +5039,7 @@ extern void THD_mask_erodemany( int nx, int ny, int nz, byte *mmm, int npeel ) ;
 
 extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 
-extern void THD_mask_dilate( int, int, int, byte *, int ) ;  /* 30 Aug 2002 */
+extern int THD_mask_dilate( int, int, int, byte *, int ) ;   /* 30 Aug 2002 */
 extern short *THD_mask_depth (int nx, int ny, int nz, byte *mask,
                               byte preservemask,
                               short *usethisdepth);    /* ZSS March 02 2010 */
