@@ -90,505 +90,66 @@ int CheckNotMask(int id, int br, short **amask, int AO){
 }
 
 
-/* 
-	in ProbTrackID: store the values in param_grid which eventually
-	become ROI statistics.
-*/
-int ScoreTrackGrid(float ****PG,int idx, int h, int C, int B, 
-						 THD_3dim_dataset *FA, THD_3dim_dataset *MD, 
-						 THD_3dim_dataset *L1)
+/*
+  varied length version
+
+ */
+int ScoreTrackGrid_M( float ****PG,int idx, int h, int C, int B, 
+                      THD_3dim_dataset **inset, int bot, int top)
 {
+   int i,j=1;
 	float READS_fl=0;
 	
-	//mu and std of FA,MD,RD,L1
-	PG[h][C][B][0]+= 
-		THD_get_voxel(FA,idx,0);
-	PG[h][C][B][1]+= 
-		(float) pow(THD_get_voxel(FA,idx,0),2);
-	PG[h][C][B][2]+= 
-		THD_get_voxel(MD,idx,0);
-	PG[h][C][B][3]+= 
-		(float) pow(THD_get_voxel(MD,idx,0),2);
-	READS_fl = 0.5*(3.0*THD_get_voxel(MD,idx,0)-
-						 THD_get_voxel(L1,idx,0));
-	PG[h][C][B][4]+= 
-		READS_fl;
-	PG[h][C][B][5]+= 
-		(float) pow(READS_fl,2);
-	PG[h][C][B][6]+= 
-		THD_get_voxel(L1,idx,0);
-	PG[h][C][B][7]+= 
-		(float) pow(THD_get_voxel(L1,idx,0),2);
-	PG[h][C][B][8]+= 1.0;
+   PG[h][C][B][0]+= 1.0; // N_vox
+
+   for( i=bot ; i<top ; i++ ) {
+      
+      //mu and std of FA,MD,RD,L1
+      PG[h][C][B][j]+= 
+         THD_get_voxel(inset[i],idx,0);
+      PG[h][C][B][j+1]+= 
+         (float) pow(THD_get_voxel(inset[i],idx,0),2);
+      j+=2;
+   }
 	
 	RETURN(1);
 }
 
 
 
-
-
-
-/*
-  we have to check 'plus and minus' eigenvector directions, which is
-  controlled with 'FB' variable/switch value; we won't keep rewriting
-  eigenvector things
-*/
-int TrackIt(float ****CC, int *IND, float *PHYSIND, 
-            float *Edge, int *dim, float minFA, 
-            float maxAng, int arrMax, int **T, 
-            float **flT, int FB, float *physL) 
+/* OLD
+int ScoreTrackGrid_M( float ****PG,int idx, int h, int C, int B, 
+                      THD_3dim_dataset **inset, int bot, int top,
+                      int DTI)
 {
-  int tracL = 0;  // trac length 
-  float Iam0[3]; // 'physical' location
-  float AA, BB; // mult by L: (1-f)/2 and (1+f)/2, resp., define diagonal
-  int vsign[3]; // keep trac of vel component sign
-  float test[3]; // use to see if we move diag or not
-  int ord[3];
-  float dotprod;
-  int go[3]; // for walking through
-  int win;
-  float targedge[3]; // possible walls to aim for 
-  float stest[3]; // compare s values-- get shortest 'time' to wall
-  int n;
-  int walkback;
-  float physdist = 0.0; // init dist walked is 0;
-  float FF = 0.4143; //from: (sin(22.5*CONV)/sin((90-22.5)*CONV));
-  float divid;
-
-  ENTRY("TrackIt"); 
-  
-  AA = 0.5*(1.0-FF);
-  BB = 0.5*(1.0+FF);
-
-  // initial place in center of first volume
-  for( n=0 ; n<3 ; n++) 
-    Iam0[n] = PHYSIND[n];
-
-  // init dotprod is ~unity
-  dotprod = 0.999;
-  
-  // tracking!
-  // conditions to stop are:  
-  // + too long of a tract (most likely something wrong with alg,
-  //   because max is large)
-  // + FA drops below threshold
-  // + angulation goes above threshold
-  while( (tracL < arrMax) && (CC[IND[0]][IND[1]][IND[2]][3] >= minFA) 
-	 && ( dotprod >= maxAng) ) {    
-    
-    // square we are 'in' which survived tests: keep trac of, and add
-    // to temp list
-    for( n=0 ; n<3 ; n++) {
-      T[tracL][n] = IND[n];
-      flT[tracL][n] = (float) Iam0[n];
-    }
-    tracL+= 1; 
-    
-    // go to nearest edge 
-    for( n=0 ; n<3 ; n++) {
-      go[n] = 0; // just resetting our direction to 
-      // designate up/down, L/R, forw/back, with FB value given before
-      if(CC[ IND[0] ][ IND[1] ][ IND[2] ][n]*FB >=0) {
-        targedge[n] = (IND[n]+1)*Edge[n]; // physical units
-        vsign[n] = 1;
-      }
-      else {
-        targedge[n] = IND[n]*Edge[n];
-        vsign[n] = -1;
-      }
-    }
-    
-    
-    // calc 'param' to get to edge... 
-    for( n=0 ; n<3 ; n++) {
-      if( fabs(CC[ IND[0] ][ IND[1] ][ IND[2] ][n]) < EPS_V)
-        divid = EPS_V*vsign[n];
-      else
-        divid = FB*CC[ IND[0] ][ IND[1] ][ IND[2] ][n];
-      stest[n] = (targedge[n]-Iam0[n])/divid;
-    }
-    walkback=0; 
-    
-    // say, due to very small CC in opp direction, or trying to push
-    // us back into previous 
-    for( n=0 ; n<3 ; n++) 
-      if( (stest[n]<0) )
-        walkback =1;
-    
-
-    if(walkback==0) {
-      for( n=0 ; n<3 ; n++) // try this config as initial guess
-        ord[n] = n;
-      
-      if(stest[ ord[1] ]<stest[ ord[0] ]) { // switch
-        ord[0] = 1; // these are known values of each...
-        ord[1] = 0;
-      }
-      if(stest[ ord[2] ]<stest[ ord[0] ]) { // switch
-        n = ord[0]; // save temp
-        ord[0] = ord[2]; // overwrite
-        ord[2] = n; // finish switch
-      }
-      if(stest[ ord[2] ]<stest[ ord[1] ]) { // switch
-        n = ord[1];
-        ord[1] = ord[2];
-        ord[2] = n;
-      }
-      
-      win = ord[0]; 
-      go[ord[0]] = vsign[ord[0]];
-      
-      // winner is here; other 2 indices haven't changed, test them.
-      test[ord[1]] = Iam0[ord[1]] + 
-        stest[ord[0]]*FB*CC[IND[0]][IND[1]][IND[2]][ord[1]] - 
-        (IND[ord[1]]*Edge[ord[1]]);
-      
-      if( ( (vsign[ord[1]]>0 ) && (test[ord[1]] > Edge[ord[1]]*BB) ) ||
-          ( (vsign[ord[1]]<0 ) && (test[ord[1]] < Edge[ord[1]]*AA) ) ){ 
-        // then test and see where it would end up
-        test[ord[0]] = Iam0[ord[0]] + 
-          stest[ord[1]]*FB*CC[IND[0]][IND[1]][IND[2]][ord[0]] -
-          (IND[ ord[0]] + go[ord[0]])*Edge[ord[0]];
-        
-        if( ( (vsign[ord[0]]>0) && (test[ord[0]] < Edge[ord[0]]*AA) ) ||
-            ( (vsign[ord[0]]<0) && (test[ord[0]] > Edge[ord[0]]*BB) ) ){
-          go[ord[1]] = vsign[ord[1]]; // partially-'diagonal' route
-          win = ord[1];
-          
-          // and only now, do we test for the other diagonal
-          test[ord[2]] = Iam0[ord[2]] + 
-            stest[ord[0]]*FB*CC[IND[0]][IND[1]][IND[2]][ord[2]] - 
-            (IND[ord[2]]*Edge[ord[2]]);
-          
-          if(((vsign[ord[2]]>0 ) && (test[ord[2]] > Edge[ord[2]]*BB)) ||
-             ((vsign[ord[2]]<0 ) && (test[ord[2]] < Edge[ord[2]]*AA)) ){ 
-            test[ord[0]] = Iam0[ord[0]] + 
-              stest[ord[2]]*FB*CC[IND[0]][IND[1]][IND[2]][ord[0]] - 
-              (IND[ord[0]]+go[ord[0]])*Edge[ord[0]];
-            test[ord[1]] = Iam0[ord[1]] + 
-              stest[ord[2]]*FB*CC[IND[0]][IND[1]][IND[2]][ord[1]]- 
-              (IND[ord[1]] + go[ord[1]])*Edge[ord[1]];
-            
-            // check both for diag-diag
-            if(((vsign[ord[0]]>0) && (test[ord[0]] < Edge[ord[0]]*AA)) ||
-               ((vsign[ord[0]]<0) && (test[ord[0]] > Edge[ord[0]]*BB)))
-              if(((vsign[ord[1]]>0) && (test[ord[1]] < Edge[ord[1]]*AA)) ||
-                 ((vsign[ord[1]]<0) && (test[ord[1]] > Edge[ord[1]]*BB))){
-                go[ord[2]] = vsign[ord[2]]; // fully-'diagonal' route
-                win = ord[2];
-              }
-          }
-        }
-      }
-      
-      // move to boundary of next square, updating square we are 'in'
-      // with current eigenvec
-      for( n=0 ; n<3 ; n++) // phys loc
-        Iam0[n]+= stest[ win ]*FB*CC[ IND[0] ][ IND[1] ][ IND[2] ][n];
-      for( n=0 ; n<3 ; n++) // update indices of square we're in
-        IND[n] = IND[n]+go[n];
-      
-      physdist+= stest[win];
-      
-      
-      // one way we can stop is by trying to 'walk out' of the volume;
-      // can check that here
-      if((IND[0] < dim[0]) && (IND[1] < dim[1]) && (IND[2] < dim[2]) && 
-         (IND[0] >= 0) && (IND[1] >= 0) && (IND[2] >= 0) ) { 
+   int i,j=1;
+	float READS_fl=0;
 	
-        // dot prod for stopping cond (abs value)
-        // check with current dotprod with previous
-        dotprod = 0.;
-        for( n=0 ; n<3 ; n++) 
-          dotprod+= CC[IND[0]][IND[1]][IND[2]][n]*
-            FB*CC[IND[0]-go[0]][IND[1]-go[1]][IND[2]-go[2]][n]; 
-        
-        // because of ambiguity of direc/orient of evecs
-        // and will be checked for criterion at start of next while loop
-        // because we will keep moving in 'negative' orientation of evec
-        if(dotprod<0) {
-          dotprod*=-1.; 
-          FB = -1; 
-        }
-        else
-          FB = 1; // move along current orientation of next one
-        
-        // make sure we haven't been here before
-        for( n=0 ; n<tracL ; n++)
-          if( (IND[0]==T[n][0]) && (IND[1]==T[n][1]) && (IND[2]==T[n][2]) )
-            dotprod =0.; 
-      }
-      else {
-        // to not try to access inaccessible value 
-        // so we will exit tracking in this direction 
-        // at start of next loop
-        for( n=0 ; n<3 ; n++) 
-          IND[n] = 0; 
-        dotprod = 0.; 
-      }
-    }
-    else
-      dotprod = 0.;
-    
-  }
-  
-  if(tracL >= arrMax) {
-    fprintf (stderr,"\n\tErr in data set; or need longer max arr len!\n");
-    exit(101);
-  }
-  
-  physL[0] = physdist;
-  
-  RETURN(tracL); 
-}
+   PG[h][C][B][0]+= 1.0; // N_vox
 
-
-// closely related probabilistic version of Tracking
-// just dimensions of CC have changed, and method of indexing...
-int TrackItP_NEW(float **CC, int *IND, float *PHYSIND, 
-	     float *Edge, int *dim, float minFA, 
-	     float maxAng, int arrMax, int **T, 
-	     float **flT, int FB, float *physL,
-	     int ***ID2) 
-{
-   int tracL = 0;  // trac length 
-   float Iam0[3]; // 'physical' location
-   float AA, BB; // mult by L: (1-f)/2 and (1+f)/2, resp., define diagonal
-   int vsign[3]; // keep trac of vel component sign
-   float test[3]; // use to see if we move diag or not
-   int ord[3];
-   float dotprod;
-   int go[3]; // for walking through
-   int win;
-   float targedge[3]; // possible walls to aim for 
-   float stest[3]; // compare s values-- get shortest 'time' to wall
-   int n, tt;
-   int walkback;
-   float physdist = 0.0; // init dist walked is 0;
-   float FF = 0.4143; //from: (sin(22.5*CONV)/sin((90-22.5)*CONV));
-   float divid;
-
-
-   ENTRY("TrackItP_NEW"); 
-  
-   AA = 0.5*(1.0-FF);
-   BB = 0.5*(1.0+FF);
-
-   // initial place in center of first volume
-   for( n=0 ; n<3 ; n++) 
-      Iam0[n] = PHYSIND[n];
-   tt = ID2[IND[0]][IND[1]][IND[2]]; // tt changes when INDs do
-   // init dotprod is ~unity
-   dotprod = 0.999;
-   // square we are 'in' which survived tests: keep trac of, and add
-   // to temp list
-   for( n=0 ; n<3 ; n++) {
-      T[tracL][n] = IND[n];
-      flT[tracL][n] = Iam0[n];
-   }
-   tracL+= 1; 
-
-   // tracking!
-   // conditions to stop are:  
-   // + too long of a tract (most likely something wrong with alg,
-   //   because max is large)
-   // + FA drops below threshold
-   // + angulation goes above threshold
-   while( (tracL < arrMax) && (CC[tt][3] >= minFA) 
-          && ( dotprod >= maxAng) ) {    
-    
-      // go to nearest edge 
-      for( n=0 ; n<3 ; n++) {
-         go[n] = 0; // just resetting our direction to 
-         // designate up/down, L/R, forw/back, with FB value given before
-         if(CC[tt][n]*FB >=0) {
-            targedge[n] = (IND[n]+1)*Edge[n]; // physical units
-            vsign[n] = 1;
-         }
-         else {
-            targedge[n] = IND[n]*Edge[n];
-            vsign[n] = -1;
-         }
-      }
-  
-    
-      // calc 'param' to get to edge... 
-      for( n=0 ; n<3 ; n++) {
-         if( fabs(CC[tt][n]) < EPS_V)
-            divid = EPS_V*vsign[n];
-         else
-            divid = FB*CC[tt][n];
-         stest[n] = (targedge[n]-Iam0[n])/divid;
-      }
-      walkback=0; 
-    
-      // say, due to very small CC in opp direction, or trying to push
-      // us back into previous 
-      for( n=0 ; n<3 ; n++) 
-         if( (stest[n]<0) )
-            walkback =1;
-    
-    
-      if(walkback==0) {
-         for( n=0 ; n<3 ; n++) // try this config as initial guess
-            ord[n] = n;
-       
-         if(stest[ ord[1] ]<stest[ ord[0] ]) { // switch
-            ord[0] = 1; // these are known values of each...
-            ord[1] = 0;
-         }
-         if(stest[ ord[2] ]<stest[ ord[0] ]) { // switch
-            n = ord[0]; // save temp
-            ord[0] = ord[2]; // overwrite
-            ord[2] = n; // finish switch
-         }
-         if(stest[ ord[2] ]<stest[ ord[1] ]) { // switch
-            n = ord[1];
-            ord[1] = ord[2];
-            ord[2] = n;
-         }
-       
-         win = ord[0]; 
-         go[ord[0]] = vsign[ord[0]];
-       
-         // winner is here; other 2 indices haven't changed, test them.
-         test[ord[1]] = Iam0[ord[1]] + 
-            stest[ord[0]]*FB*CC[tt][ord[1]] - 
-            (IND[ord[1]]*Edge[ord[1]]);
-       
-         if( ( (vsign[ord[1]]>0 ) && (test[ord[1]] > Edge[ord[1]]*BB) ) ||
-             ( (vsign[ord[1]]<0 ) && (test[ord[1]] < Edge[ord[1]]*AA) ) ){ 
-            // then test and see where it would end up
-            test[ord[0]] = Iam0[ord[0]] + 
-               stest[ord[1]]*FB*CC[tt][ord[0]] -
-               (IND[ ord[0]] + go[ord[0]])*Edge[ord[0]];
-          
-            if( ( (vsign[ord[0]]>0) && (test[ord[0]] < Edge[ord[0]]*AA) ) ||
-                ( (vsign[ord[0]]<0) && (test[ord[0]] > Edge[ord[0]]*BB) ) ){
-               go[ord[1]] = vsign[ord[1]]; // partially-'diagonal' route
-               win = ord[1];
-             
-               // and only now, do we test for the other diagonal
-               test[ord[2]] = Iam0[ord[2]] + 
-                  stest[ord[0]]*FB*CC[tt][ord[2]] - 
-                  (IND[ord[2]]*Edge[ord[2]]);
-             
-               if(((vsign[ord[2]]>0 ) && (test[ord[2]] > Edge[ord[2]]*BB)) ||
-                  ((vsign[ord[2]]<0 ) && (test[ord[2]] < Edge[ord[2]]*AA)) ){ 
-                  test[ord[0]] = Iam0[ord[0]] + 
-                     stest[ord[2]]*FB*CC[tt][ord[0]] - 
-                     (IND[ord[0]]+go[ord[0]])*Edge[ord[0]];
-                  test[ord[1]] = Iam0[ord[1]] + 
-                     stest[ord[2]]*FB*CC[tt][ord[1]]- 
-                     (IND[ord[1]] + go[ord[1]])*Edge[ord[1]];
-                
-                  // check both for diag-diag
-                  if(((vsign[ord[0]]>0) && (test[ord[0]] < Edge[ord[0]]*AA)) ||
-                     ((vsign[ord[0]]<0) && (test[ord[0]] > Edge[ord[0]]*BB)))
-                     if(((vsign[ord[1]]>0) && 
-                         (test[ord[1]] < Edge[ord[1]]*AA)) ||
-                        ((vsign[ord[1]]<0) && 
-                         (test[ord[1]] > Edge[ord[1]]*BB))){
-                        go[ord[2]] = vsign[ord[2]]; // fully-'diagonal' route
-                        win = ord[2];
-                     }
-               }
-            }
-         }
-       
-         // move to boundary of next square, updating square we are 'in'
-         // with current eigenvec
-         for( n=0 ; n<3 ; n++) // phys loc
-            Iam0[n]+= stest[ win ]*FB*CC[tt][n];
-         for( n=0 ; n<3 ; n++) // update indices of square we're in
-            IND[n] = IND[n]+go[n]; // will change after testing vals
-       
-         physdist+= stest[win];
-       
-       
-         // one way we can stop is by trying to 'walk out' of the volume;
-         // can check that here
-         if((IND[0] < dim[0]) && (IND[1] < dim[1]) && (IND[2] < dim[2]) && 
-            (IND[0] >= 0) && (IND[1] >= 0) && (IND[2] >= 0) ) { 
-            tt = ID2[IND[0]][IND[1]][IND[2]];
-            // dot prod for stopping cond (abs value)
-            // check with current dotprod with previous
-            dotprod = 0.;
-            for( n=0 ; n<3 ; n++) 
-               dotprod+= CC[tt][n]*
-                  FB*CC[ID2[IND[0]-go[0]][IND[1]-go[1]][IND[2]-go[2]]][n]; 
-          
-            // because of ambiguity of direc/orient of evecs
-            // and will be checked for criterion at start of next while loop
-            // because we will keep moving in 'negative' orientation of evec
-            if(dotprod<0) {
-               dotprod*=-1.; 
-               FB = -1; 
-            }
-            else
-               FB = 1; // move along current orientation of next one
-          
-            // make sure we haven't been here before
-            for( n=0 ; n<tracL ; n++)
-               if( (IND[0]==T[n][0]) && (IND[1]==T[n][1]) && (IND[2]==T[n][2]) )
-                  dotprod =-1.; 
-
-            if(dotprod<0) // bad
-               for( n=0 ; n<3 ; n++) {
-                  T[tracL][n] = -1;
-                  flT[tracL][n] = -1;
-               }
-            else // fine 
-               for( n=0 ; n<3 ; n++) {
-                  T[tracL][n] = IND[n];
-                  flT[tracL][n] = Iam0[n];
-               } 
-            tracL+= 1; 
-            
-         }
-         else {
-            // to not try to access inaccessible value 
-            // so we will exit tracking in this direction 
-            // at start of next loop
-            for( n=0 ; n<3 ; n++) {
-               IND[n] = 0; 
-               T[tracL][n] = -1;
-               flT[tracL][n] = -1;
-            }
-            dotprod = -2.; 
-            tt=0;
-            tracL+= 1;
-         }
-      }
-      else{
-         dotprod = -3.;
-         tt=0;
-         for( n=0 ; n<3 ; n++) {
-            T[tracL][n] = -1;
-            flT[tracL][n] = -1;
-         }
-         tracL+= 1;
-      }
+   for( i=bot ; i<top ; i++ ) {
       
+      //mu and std of FA,MD,RD,L1
+      PG[h][C][B][j]+= 
+         THD_get_voxel(inset[i],idx,0);
+      PG[h][C][B][j+1]+= 
+         (float) pow(THD_get_voxel(inset[i],idx,0),2);
+      j+=2;
    }
+   
+   if(DTI) { // RD = 0.5 * ( 3*MD - L1 )
+      READS_fl = 0.5*(3.0*THD_get_voxel(inset[i-2],idx,0)-
+                      THD_get_voxel(inset[i-1],idx,0));
+      PG[h][C][B][j]+= 
+         READS_fl;
+      PG[h][C][B][j+1]+= 
+         (float) pow(READS_fl,2);
+   }
+	
+	RETURN(1);
+}*/
 
-   if(dotprod>=0 &&  (CC[tt][3] >= minFA)){
-      for( n=0 ; n<3 ; n++) {
-         T[tracL][n] = -1;
-         flT[tracL][n] = -1;
-      }
-      tracL+= 1;
-      }
-   if(tracL >= arrMax) {
-      fprintf (stderr,"\n\tErr in data set; or need longer max arr len!\n");
-      exit(101);
-   }
-  
-   physL[0] = physdist;
-  
-   RETURN(tracL); 
-}
+
 
 // *******************************************************************
 
@@ -625,7 +186,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 	// ****** calc/do
 	for( hh=0 ; hh<N_nets ; hh++) {
 		
-		sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP",prefix,hh+1); 
+		sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP",prefix,hh); 
 		// just get one of right dimensions!
 		networkMAPS = EDIT_empty_copy( insetFA ) ; 
 		EDIT_dset_items(networkMAPS,
@@ -634,7 +195,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		EDIT_add_bricklist(networkMAPS ,
 								 NROI[hh], NULL , NULL , NULL );
 		
-		sprintf(prefix_netmap2[hh],"%s_%03d_INDIMAP",prefix,hh+1); 
+		sprintf(prefix_netmap2[hh],"%s_%03d_INDIMAP",prefix,hh); 
 		// just get one of right dimensions!
 		networkMAPS2 = EDIT_empty_copy( insetFA ) ; 
 		EDIT_dset_items(networkMAPS2,
@@ -837,11 +398,11 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
 						
 						if(DUMP_ORIG_LABS)
 							sprintf(prefix_netmap[hh][count],
-									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh+1,
+									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh,
 									  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
 						else
 							sprintf(prefix_netmap[hh][count],
-									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh+1,i+1,j+1); 
+									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh,i+1,j+1); 
 
 						// single brik, byte map
 						networkMAPS = EDIT_empty_copy( insetFA ) ; 
@@ -851,7 +412,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
 						
 						sprintf(prefix_dump[hh][count],
 								  "%s/NET_%03d_ROI_%03d_%03d.dump",
-								  prefix,hh+1,i+1,j+1); 
+								  prefix,hh,i+1,j+1); 
 
                   float *temp_arr_FL=NULL;
                   byte *temp_arr_BY=NULL;
@@ -878,9 +439,9 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
                   int **temp_arr2=NULL;
                   // we know how many vox per WM ROI, alloc that much 
                   // for the to-be-dumped mask
-                  temp_arr2=calloc(Param_grid[hh][i][j][8],
+                  temp_arr2=calloc(Param_grid[hh][i][j][0],
                                    sizeof(temp_arr2)); 
-                  for(bb=0 ; bb<Param_grid[hh][i][j][8] ; bb++) 
+                  for(bb=0 ; bb<Param_grid[hh][i][j][0] ; bb++) 
                     temp_arr2[bb] = calloc(4,sizeof(int)); //x,y,z,1
                   
 						if(( temp_arr2== NULL)) {
@@ -910,9 +471,9 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
 									idx++;
 								}
                   
-						if(idx2 != Param_grid[hh][i][j][8])
+						if(idx2 != Param_grid[hh][i][j][0])
                     printf("ERROR IN COUNTING! Netw,ROI,ROI= (%d, %d, %d); idx2 %d != %d paramgrid.\n",
-                           hh,i,j,idx2,(int) Param_grid[hh][i][j][8]);
+                           hh,i,j,idx2,(int) Param_grid[hh][i][j][0]);
                   
                   if(POST_IT){
                     EDIT_substitute_brick(networkMAPS, 0, MRI_float, 
@@ -978,7 +539,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
 							
 							fclose(fout);
 						}
-						for( bb=0 ; bb<(int) Param_grid[hh][i][j][8] ; bb++) // free all
+						for( bb=0 ; bb<(int) Param_grid[hh][i][j][0] ; bb++) // free all
 							free(temp_arr2[bb]);
 						free(temp_arr2);
 					}
@@ -1006,23 +567,24 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
 	RETURN(1);
 }
 
-
-int DTI_Setup_Labels_Indices_Unc(int *Dim, int ***mskd, int ***INDEX, 
-                                 int ***INDEX2, float **UNC,
-                                 float **coorded, float **copy_coorded, 
-                                 THD_3dim_dataset *insetFA, 
-                                 THD_3dim_dataset *insetV1, 
-                                 THD_3dim_dataset *insetV2, 
-                                 THD_3dim_dataset *insetV3,
-                                 THD_3dim_dataset *insetUC,
-                                 float unc_minei_std, float unc_minfa_std,
-                                 int N_nets, int *NROI,
-                                 THD_3dim_dataset *mset1, int **MAPROI, 
-                                 int **INV_LABELS, int ****NETROI)
+int Setup_Labels_Indices_Unc_M_both(int *Dim, int ***mskd, int ***INDEX, 
+                                    int ***INDEX2, float **UNC,
+                                    float **coorded, float **copy_coorded, 
+                                    THD_3dim_dataset *insetFA, 
+                                    short *DirPerVox,
+                                    int N_HAR,
+                                    THD_3dim_dataset **insetV, 
+                                    THD_3dim_dataset *insetUC,
+                                    float unc_minei_std, float unc_minfa_std,
+                                    int N_nets, int *NROI,
+                                    THD_3dim_dataset *mset1, int **MAPROI, 
+                                    int **INV_LABELS, int ****NETROI)
 {
    
    int i,j,k,idx,m,mm,rr;
+   int idw,n,nn;
    float tempvmagn;
+   float temp1;
    
 	// set up eigvecs in 3D coord sys,
 	// mark off where ROIs are and keep index handy
@@ -1032,45 +594,79 @@ int DTI_Setup_Labels_Indices_Unc(int *Dim, int ***mskd, int ***INDEX,
 			for( i=0 ; i<Dim[0] ; i++ ) 
 				if(mskd[i][j][k]) {
 					idx = INDEX2[i][j][k];
+               idw = INDEX[i][j][k];
+               
 					coorded[idx][0]=copy_coorded[idx][0]=
-						THD_get_voxel(insetFA,INDEX[i][j][k],0); 
-					for( m=0 ; m<3 ; m++ ) 
-						coorded[idx][m+1]=copy_coorded[idx][m+1]=
-							THD_get_voxel(insetV1,INDEX[i][j][k],m);
-               
+						THD_get_voxel(insetFA,idw,0); 
+
+               // Uncertainty parts if 
                if( UNC != NULL ) {
-                  // all from data set
-                  for( m=0 ; m<6 ; m++ ) 
-                     UNC[idx][m] = THD_get_voxel(insetUC,INDEX[i][j][k],m);
-                  // then check min stds.
-                  if (UNC[idx][1]<unc_minei_std)
-                     UNC[idx][1] = unc_minei_std;
-                  if (UNC[idx][3]<unc_minei_std)
-                     UNC[idx][3] = unc_minei_std;
-                  if (UNC[idx][5]<unc_minfa_std)
-                     UNC[idx][5] = unc_minfa_std;
-					}
-					// apparently, some |V1| != 1... gotta fix
-					tempvmagn = sqrt(copy_coorded[idx][1]*copy_coorded[idx][1]+
-										  copy_coorded[idx][2]*copy_coorded[idx][2]+
-										  copy_coorded[idx][3]*copy_coorded[idx][3]);
-					if(tempvmagn<0.99) 
-						for( m=1 ; m<4 ; m++ ) {
-							copy_coorded[idx][m]/=tempvmagn;
-							coorded[idx][m]/=tempvmagn;
-						}
+                  if( N_HAR==0 ) { // DTI
+                     // all from data set
+                     //for( m=0 ; m<6 ; m++ ) 
+                     //   UNC[idx][m] = THD_get_voxel(insetUC,idw,m);
+                     temp1 = (THD_get_voxel(insetUC,idw,1) > unc_minei_std ) ?
+                           THD_get_voxel(insetUC,idw,1) : unc_minei_std;
+                     temp1 = pow(temp1,2);
+                     temp1+= pow(THD_get_voxel(insetUC,idw,0),2);
+                     UNC[idx][0] = sqrt(temp1); // delta e_{12}
+
+                     temp1 = (THD_get_voxel(insetUC,idw,3) > unc_minei_std ) ?
+                        THD_get_voxel(insetUC,idw,3) : unc_minei_std;
+                     temp1 = pow(temp1,2);
+                     temp1+= pow(THD_get_voxel(insetUC,idw,2),2);
+                     UNC[idx][1] = sqrt(temp1); // delta e_{13}
+
+                     // mean and std of delta FA
+                     UNC[idx][2] = THD_get_voxel(insetUC,idw,4);
+                     UNC[idx][3] = (THD_get_voxel(insetUC,idw,5) > unc_minfa_std ) ?
+                        THD_get_voxel(insetUC,idw,5) : unc_minfa_std;
+
+                  }
+                  else { // HARDI
+                     // all from data set
+                     for( m=0 ; m<DirPerVox[idx] ; m++ ) {
+                        UNC[idx][m] = 
+                           (THD_get_voxel(insetUC,idw,m+1) > unc_minei_std ) ?
+                           THD_get_voxel(insetUC,idw,m+1) : unc_minei_std;
+                     }
+                     UNC[idx][m] = 
+                        (THD_get_voxel(insetUC,idw,0) > unc_minfa_std) ? 
+                        THD_get_voxel(insetUC,idw,0) : unc_minfa_std;
+                  }
+                  
+               }
                
+               // setup all vectors
+               for( n=0 ; n<DirPerVox[idx] ; n++ ) {
+                  nn = 3*n;
+
+                  for( m=0 ; m<3 ; m++ ) 
+                     coorded[idx][nn+m+1]=copy_coorded[idx][nn+m+1]=
+                        THD_get_voxel(insetV[n],idw,m);
+                  
+                  // apparently, some |V1| != 1... gotta fix
+                  tempvmagn = sqrt(copy_coorded[idx][nn+1]*copy_coorded[idx][nn+1]+
+                                   copy_coorded[idx][nn+2]*copy_coorded[idx][nn+2]+
+                                   copy_coorded[idx][nn+3]*copy_coorded[idx][nn+3]);
+                  //					if(tempvmagn<0.99) 
+                  if(tempvmagn>0)
+                     for( m=1 ; m<4 ; m++ ) {
+                        copy_coorded[idx][nn+m]/=tempvmagn;
+                        coorded[idx][nn+m]/=tempvmagn;
+                     }
+               }
                
 					for( m=0 ; m<N_nets ; m++ ) {
 						// allow indentification by index --
 						// now, since we allow non-consecutive ROI labels,
 						// just use the compacted list numbers via INV_LABELS
-						if( THD_get_voxel(mset1, INDEX[i][j][k], m)>0.5 )
-							MAPROI[idx][m] = INV_LABELS[m][(int) THD_get_voxel(mset1,INDEX[i][j][k],m)];
-						else if( THD_get_voxel(mset1, INDEX[i][j][k], m)<-0.5 )   
+						if( THD_get_voxel(mset1, idw, m)>0.5 )
+							MAPROI[idx][m] = INV_LABELS[m][(int) THD_get_voxel(mset1,idw,m)];
+						else if( THD_get_voxel(mset1, idw, m)<-0.5 )   
                      // silly, is zero anyways... can use this to set to neg mask
 							MAPROI[idx][m] = -1;
-       
+                  
 						// counter for number of kept tracks passing through
 						for( mm=0 ; mm<NROI[m] ; mm++ )
 							for( rr=0 ; rr<NROI[m] ; rr++ )
@@ -1085,13 +681,19 @@ int DTI_Setup_Labels_Indices_Unc(int *Dim, int ***mskd, int ***INDEX,
 
 
 
-int HARDI_Setup_Ndir_per_vox(int N_HAR, int *Dim, int ***mskd,
-                             int ***INDEX, 
-                             int ***INDEX2,
-                             THD_3dim_dataset *insetHARDIR,
-                             short *DirPerVox)
+
+
+
+
+
+
+int Setup_Ndir_per_vox(int N_HAR, int *Dim, int ***mskd,
+                       int ***INDEX, 
+                       int ***INDEX2,
+                       THD_3dim_dataset **insetHARDIR,
+                       short *DirPerVox)
 {
-   int i,j,k,idx,m,n,nn;
+   int i,j,k,idx,m,n;
    float tempvmagn;
    
 	// set up eigvecs in 3D coord sys,
@@ -1103,116 +705,50 @@ int HARDI_Setup_Ndir_per_vox(int N_HAR, int *Dim, int ***mskd,
 				if(mskd[i][j][k]) {
 					idx = INDEX2[i][j][k];
                for( n=0 ; n<N_HAR ; n++ ){
-                  nn=3*n;
                   tempvmagn = 0;
                   for( m=0 ; m<3 ; m++ ) 
                      tempvmagn+=
-                        THD_get_voxel(insetHARDIR,INDEX[i][j][k],nn+m)*
-                        THD_get_voxel(insetHARDIR,INDEX[i][j][k],nn+m);
+                        THD_get_voxel(insetHARDIR[n],INDEX[i][j][k],m)*
+                        THD_get_voxel(insetHARDIR[n],INDEX[i][j][k],m);
                   
-                  if( tempvmagn > 0.5)
+                  if( tempvmagn > 0.01)
                      DirPerVox[idx]+=1;
+                  else if( tempvmagn <0.00001 ) // i.e., zero
+                     continue;
+                  else { // awkwardly small.
+                     INFO_message("Minor note: there is a tiny"
+                                  " (magn < 0.1)"
+                                  " vector in the %d-th direction set."
+                                  "\n\t--> Will exclude that voxel"
+                                  " from walkable mask-- recommend checking"
+                                  " model fit.",n);
+                     mskd[i][j][k] = 0;
+                  }
                }
             }
    return 1;
 }
 
-int HARDI_Setup_Labels_Indices_Unc(int N_HAR, int *Dim, int ***mskd,
-                                   int ***INDEX, 
-                                   int ***INDEX2, float **UNC,
-                                   float **coorded, float **copy_coorded, 
-                                   THD_3dim_dataset *insetFA, 
-                                   THD_3dim_dataset *insetHARDIR,
-                                   THD_3dim_dataset *insetUC,
-                                   short *DirPerVox,
-                                   float unc_minei_std, float unc_minfa_std,
-                                   int N_nets, int *NROI,
-                                   THD_3dim_dataset *mset1, int **MAPROI, 
-                                   int **INV_LABELS, int ****NETROI)
-{
-   
-   int i,j,k,idx,idw,m,mm,rr,n,nn;
-   float tempvmagn;
-   float vec[3];
-   
-	// set up eigvecs in 3D coord sys,
-	// mark off where ROIs are and keep index handy
-	// also make uncert matrix, with min values of del ang and del FA
-	for( k=0 ; k<Dim[2] ; k++ ) 
-		for( j=0 ; j<Dim[1] ; j++ ) 
-			for( i=0 ; i<Dim[0] ; i++ ) 
-				if(mskd[i][j][k]) {
-					idx = INDEX2[i][j][k];
-               idw = INDEX[i][j][k];
-               for( n=0 ; n<DirPerVox[idx] ; n++ ){
-
-                  //printf("\t [ %d, %d]",idx,DirPerVox[idx]);
-                  nn=3*n;
-                  for( m=0 ; m<3 ; m++ ) 
-                     vec[m] = THD_get_voxel(insetHARDIR,idw,nn+m);
-
-                  tempvmagn = sqrt( vec[0]*vec[0]+
-                                    vec[1]*vec[1]+
-                                    vec[2]*vec[2]);
-                  if(tempvmagn>0.5)
-                     for( m=0 ; m<3 ; m++ ) 
-                        coorded[idx][nn+m+1] = 
-                           copy_coorded[idx][nn+m+1] = vec[m]/tempvmagn;
-               }
-					coorded[idx][0]=copy_coorded[idx][0]=
-						THD_get_voxel(insetFA,idw,0); 
-               
-               if( UNC != NULL ) {
-                  // all from data set
-                  for( m=0 ; m<DirPerVox[idx] ; m++ ) {
-                     UNC[idx][m] = 
-                        (THD_get_voxel(insetUC,idw,m) > unc_minei_std ) ?
-                        THD_get_voxel(insetUC,idw,m) : unc_minei_std;
-                  }
-                  UNC[idx][m] = 
-                     (THD_get_voxel(insetUC,idw,N_HAR) > unc_minfa_std) ? 
-                     THD_get_voxel(insetUC,idw,N_HAR) : unc_minfa_std;
-               }
-					for( m=0 ; m<N_nets ; m++ ) {
-						// allow indentification by index --
-						// now, since we allow non-consecutive ROI labels,
-						// just use the compacted list numbers via INV_LABELS
-						if( THD_get_voxel(mset1, INDEX[i][j][k], m)>0.5 )
-							MAPROI[idx][m] = INV_LABELS[m][(int) THD_get_voxel(mset1,INDEX[i][j][k],m)];
-						else if( THD_get_voxel(mset1, INDEX[i][j][k], m)<-0.5 )   
-                     // silly, is zero anyways... can use this to set to neg mask
-							MAPROI[idx][m] = -1;
-       
-						// counter for number of kept tracks passing through
-						for( mm=0 ; mm<NROI[m] ; mm++ )
-							for( rr=0 ; rr<NROI[m] ; rr++ )
-								NETROI[idx][m][mm][rr] = 0;
-					}
-				}
-   
-	RETURN(1);
-   
-}
-
-
 /*
   For Monte Carlo iterations, perturb values in mask
  */ 
-int DTI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
-                 float **UNC, float **coorded, float **copy_coorded, 
-                 gsl_rng *r, 
-                 THD_3dim_dataset *insetFA, THD_3dim_dataset *insetV1, 
-                 THD_3dim_dataset *insetV2, THD_3dim_dataset *insetV3)
+int DTI_Perturb_M( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
+                   float **UNC, float **coorded, float **copy_coorded, 
+                   gsl_rng *r, 
+                   THD_3dim_dataset **insetV)
 {
    
-   int i,j,k,m,idx;
-   float tempvmagn,thetval,testang,w2,w3;
+   int i,j,k,m,idx,idw;
+   float tempvmagn,testang,w2,w3;
    float tempv[3];
+
+   // have already got `del theta' for angles in UNC!
 
    for( k=0 ; k<Dim[2] ; k++ ) 
       for( j=0 ; j<Dim[1] ; j++ ) 
          for( i=0 ; i<Dim[0] ; i++ ) {
             idx = INDEX2[i][j][k];
+            idw = INDEX[i][j][k];
             // only do region in brain mask
             if(mskd[i][j][k]) {
                
@@ -1221,49 +757,37 @@ int DTI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                // each tips in the +/- direc toward/away from each evec 
                // by averaging and that's why tan of angle is taken
                //@@@
-               thetval = pow(UNC[idx][0],2) + pow(UNC[idx][1],2); 
-               testang = gsl_ran_gaussian_ziggurat(r,1.0)*sqrt(thetval);
+               testang = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][0];
                w2 = tan(testang); 
-               
-               thetval = pow(UNC[idx][2],2) + pow(UNC[idx][3],2);
-               testang = gsl_ran_gaussian_ziggurat(r,1.0)*sqrt(thetval);
+
+               testang = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][1];
                w3 = tan(testang);
+
+
                for( m=0 ; m<3 ; m++)
                   tempv[m] = coorded[idx][m+1] + 
-                     w2*THD_get_voxel(insetV2,INDEX[i][j][k],m) + 
-                     w3*THD_get_voxel(insetV3,INDEX[i][j][k],m);
+                     w2*THD_get_voxel(insetV[1],idw,m) + 
+                     w3*THD_get_voxel(insetV[2],idw,m);
                tempvmagn = sqrt(tempv[0]*tempv[0]+
                                 tempv[1]*tempv[1]+tempv[2]*tempv[2]);
                
                for( m=0 ; m<3 ; m++)
-                  tempv[m]/= tempvmagn;
-               for( m=0 ; m<3 ; m++)
-                  copy_coorded[idx][m+1] = tempv[m];
+                  copy_coorded[idx][m+1] = tempv[m]/tempvmagn;
                
-               copy_coorded[idx][0] = coorded[idx][0] + UNC[idx][4] +
-                  ( UNC[idx][5] * gsl_ran_gaussian_ziggurat(r,1.0) );
+               // apply bias and std of FA
+               copy_coorded[idx][0] = coorded[idx][0] + UNC[idx][2] +
+                  ( UNC[idx][3] * gsl_ran_gaussian_ziggurat(r,1.0) );
                
-               if(copy_coorded[idx][0] <0)
-                  copy_coorded[idx][0] =0.;
-               if(copy_coorded[idx][0] >1)
-                  copy_coorded[idx][0] =1.;
             }
-            else
-               for( m=0 ; m<4 ; m++)
-                  copy_coorded[idx][m] = 0;
          }
 
 	RETURN(1);   
 }
 
 
-
-
 int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                    float **UNC, float **coorded, float **copy_coorded, 
-                   gsl_rng *r, short *DirPerVox,
-                   THD_3dim_dataset *insetFA,
-                   THD_3dim_dataset *insetHARDIR )
+                   gsl_rng *r, short *DirPerVox) 
 {
    
    int i,j,k,m,idx,n,B,nn;
@@ -1293,15 +817,7 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                // for FA; n should have correct value here...
                for_pol = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
                copy_coorded[idx][0] = coorded[idx][0] + for_pol;
-               if(copy_coorded[idx][0] <0)
-                  copy_coorded[idx][0] =0.;
-               if(copy_coorded[idx][0] >1)
-                  copy_coorded[idx][0] =1.;
             }
-            else
-               // use <= because of the N_HAR+1 size of each array
-               for( m=0 ; m<=DirPerVox[idx] ; m++ )
-                  copy_coorded[idx][m] = 0;
          }
    
 	RETURN(1);
@@ -1370,7 +886,7 @@ int TrackItP_NEW_M(int NHAR, short *DirPerVox, int SEL, float **CC,
    int FULLSEL;
    float which_dp;
 
-   ENTRY("TrackItP_NEW"); 
+   ENTRY("TrackItP_NEW_M"); 
   
    AA = 0.5*(1.0-FF);
    BB = 0.5*(1.0+FF);
@@ -1511,7 +1027,6 @@ int TrackItP_NEW_M(int NHAR, short *DirPerVox, int SEL, float **CC,
             IND[n] = IND[n]+go[n]; // will change after testing vals
        
          physdist+= stest[win];
-       
        
          // one way we can stop is by trying to 'walk out' of the volume;
          // can check that here
