@@ -168,17 +168,18 @@ static byte  *smask=NULL ;
 static int    nvim ;
 static float *bvim=NULL, *gvim=NULL, *xvim=NULL, *yvim=NULL, *ctvim=NULL, *stvim=NULL ;
 
+static float noise_estimate ;  /* initial estimate of noise level */
+
  /* these parameters define theta(x,y) */
 static int   ntheta_par=2 ;
-static double theta_par[2] ;
+static double theta_par[2] , d_par ;
 
 void compute_theta( int npt , float *xpt   , float *ypt ,
                               float *cpt   , float *spt  )
 {
    float th0=theta_par[0] , th1=theta_par[1] , thth ; int ii ;
    for( ii=0 ; ii < npt ; ii++ ){
-     /** thth = th0 + th1 * xpt[ii] ; **/
-     thth = th1*(xpt[ii]-th0) ;
+     thth    = th1*(xpt[ii]-th0) ;
      cpt[ii] = fabsf(cosf(thth)) ;
      spt[ii] = fabsf(sinf(thth)) ;
    }
@@ -196,25 +197,60 @@ compute_thvim(void)
 }
 
 /***------------------------------------------------------------------------***/
+/*** Given Iy, Iyn, theta (in form of cos and sin), and noise level d,
+     find M that is the solution to
+
+      F(M) =    Iy*cos(theta)^2 / sqrt( M^2 * cos(theta)^2 + d^2 )
+             + Iyn*sin(theta)^2 / sqrt( M^2 * sin(theta)^2 + d^2 ) - 1 = 0
+
+     If d=0, M is solved for analytically (mzero).  If d > 0, then 2 steps
+     of Newton's method are used -- unless d is too big, in which case M=0
+     is the return value.
+*//*------------------------------------------------------------------------***/
+
+#undef  COMPUTE_ff_df
+#define COMPUTE_ff_df(mm)                                                   \
+ { mq = (mm)*(mm); mcd = sqrt(mq*ctq+dq) ; msd = sqrt(mq*stq+dq) ;          \
+   ff = iy*ctq/mcd + iyn*stq/msd - 1.0f ;                                   \
+   df = -iy*(mm)*ctq*ctq/(mcd*mcd*mcd) - iyn*(mm)*stq*stq/(msd*msd*msd) ; }
+
+float find_mhat( float iy , float iyn , float ct , float st , float d )
+{
+   float mzero, ff,df, ctq=ct*ct, stq=st*st, mq, dq=d*d , mval ;
+
+   mzero = iy*ct  + iyn*st  ;
+
+   if( d <= 0.0f             ) return mzero ;  /* easiest case */
+   if( d >= iy*ctq + iyn*stq ) return 0.0f  ;  /* unlikely */
+
+   COMPUTE_ff_df(mzero) ;
+   if( ff >= 0.0f || df >= 0.0f ) return mzero ;  /* should not happen */
+
+   mval = mzero - ff/df ;                         /* Newton step #1 */
+
+   COMPUTE_ff_df(mval) ;
+   if( df >= 0.0f ) return mval ;                 /* should not happen */
+
+   mval = mzero - ff/df ;                         /* Newton step #2 */
+
+   return mval ;
+}
+
+/***------------------------------------------------------------------------***/
 /* this function is the target for powell_newuoa_con() */
 
 double theta_func( int npar , double *thpar )
 {
    int ii ; double sum ; float mhat,e1,e2 ;
 
-   theta_par[0] = thpar[0] ; theta_par[1] = thpar[1] ;
+   theta_par[0] = thpar[0] ; theta_par[1] = thpar[1] ; d_par = thpar[2] ;
    compute_thvec() ;
 
    for( ii=0 ; ii < nvec ; ii++ ){
-#if 1
-     mhat = bvec[ii]*ctvec[ii] + gvec[ii]*stvec[ii] ;
-     e1   = bvec[ii]-mhat*ctvec[ii] ;
-     e2   = gvec[ii]-mhat*stvec[ii] ;
+     mhat = find_mhat( bvec[ii],gvec[ii] , ctvec[ii],stvec[ii] , d_par ) ;
+     e1   = bvec[ii]-sqrt(mhat*mhat*ctvec[ii]*ctvec[ii]+d_par*d_par) ;
+     e1   = gvec[ii]-sqrt(mhat*mhat*stvec[ii]*stvec[ii]+d_par*d_par) ;
      sum += e1*e1 + e2*e2 ;
-#else
-     e1   = bvec[ii]*stvec[ii] - gvec[ii]*ctvec[ii] ;
-     sum += e1*e1 ;
-#endif
    }
 
    return sum ;
@@ -224,15 +260,22 @@ double theta_func( int npar , double *thpar )
 
 void optimize_theta(void)
 {
-   double thpar[2] , thbot[2] , thtop[2] ;
+   double thpar[3] , thbot[3] , thtop[3] ;
 
-   thpar[0] =  0.0 ; thpar[1] =  0.000;  /* initial values */
-   thbot[0] = -9.1 ; thbot[1] = -0.005;  /* lower limits */
-   thtop[0] =  9.1 ; thtop[1] =  0.09 ;  /* upper limits */
-   powell_newuoa_con( 2 , thpar,thbot,thtop ,
-                      49 , 0.1 , 0.001 , 999 , theta_func ) ;
+   thpar[0] =  0.0 ;
+   thbot[0] = -9.1 ;
+   thtop[0] =  9.1 ;
+   thpar[1] =  0.000;  /* initial values */
+   thbot[1] = -0.005;  /* lower limits */
+   thtop[1] =  0.09 ;  /* upper limits */
+   thpar[2] =  0.1*noise_estimate ;
+   thbot[2] =  0.0 ;
+   thtop[2] =  2.2*noise_estimate ;
+   powell_newuoa_con( 3 , thpar,thbot,thtop ,
+                      243 , 0.1 , 0.001 , 999 , theta_func ) ;
    theta_par[0] = thpar[0] ;
    theta_par[1] = thpar[1] ;
+   d_par        = thpar[2] ;
    return ;
 }
 
@@ -291,10 +334,17 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
    nx = medim->nx ; ny = medim->ny ; nz = medim->nz ; nvox = medim->nvox ;
    nv = DSET_NVALS(inset) ;
 
+   mar  = MRI_FLOAT_PTR(medim) ;
+   cval = THD_cliplevel(medim,CLFRAC) ;
+   for( noise_estimate=0.0f,iim=ii=0 ; ii < nvox ; ii++ ){
+     if( !bmask[ii] && mar[ii] < cval ){
+       noise_estimate += mar[ii] ; iim++ ;
+     }
+   }
+   noise_estimate /= iim ;  /* initial estimate of noise level */
+
    /* chop out sub-threshold voxels */
 
-   mar   = MRI_FLOAT_PTR(medim) ;
-   cval  = THD_cliplevel(medim,CLFRAC) ;
    amask = (byte *)malloc(sizeof(byte)*nvox) ;  /* clipped brain mask */
    memcpy(amask,bmask,sizeof(byte)*nvox) ;
    for( ii=0 ; ii < nvox ; ii++ )
