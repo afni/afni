@@ -538,8 +538,10 @@ SUMA_Boolean SUMA_SV_RegisteredDO_Refresh(SUMA_SurfaceViewer *sv)
       } else {
          SUMA_LH("A bad entry in RegistDO at index %d/%d, cleaning", 
                      ii, sv->N_DO);
-         strcpy(sv->RegistDO[ii].idcode_str, 
+         if (ii != sv->N_DO-1) {
+            strcpy(sv->RegistDO[ii].idcode_str, 
                 sv->RegistDO[sv->N_DO-1].idcode_str);
+         }
          sv->RegistDO[ii].dov_ind = sv->RegistDO[sv->N_DO-1].dov_ind;
          sv->N_DO = sv->N_DO-1;
       }
@@ -941,8 +943,10 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
          SUMA_LH("Removing %d", dov_id);
          /* found, replace it by the last in the list */
          cSV->RegistDO[i].dov_ind = cSV->RegistDO[cSV->N_DO-1].dov_ind;
-         strcpy(cSV->RegistDO[i].idcode_str, 
-                cSV->RegistDO[cSV->N_DO-1].idcode_str);
+         if (i != cSV->N_DO-1) {
+            strcpy(cSV->RegistDO[i].idcode_str, 
+                   cSV->RegistDO[cSV->N_DO-1].idcode_str);
+         }
          /*remove the last element of the list */
          cSV->RegistDO[cSV->N_DO-1].dov_ind = -1;
          cSV->RegistDO[cSV->N_DO-1].idcode_str[0]='\0';
