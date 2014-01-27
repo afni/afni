@@ -5,6 +5,11 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type);
 SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
 SUMA_VolumeObject * SUMA_findanyVOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
 SUMA_TractDO * SUMA_findanyTDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
+SUMA_MaskDO * SUMA_findanyMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
+SUMA_SurfaceObject * SUMA_findanySOp(int *dov_id);
+SUMA_VolumeObject * SUMA_findanyVOp(int *dov_id);
+SUMA_TractDO * SUMA_findanyTDOp(int *dov_id);
+SUMA_MaskDO * SUMA_findanyMDOp(int *dov_id);
 int SUMA_ClosestNodeToVoxels(SUMA_SurfaceObject *SO, SUMA_VOLPAR *vp, 
                               int *closest_node, float *closest_dist, 
                               byte *vox_mask, int verb);
@@ -23,6 +28,9 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op,
                            SUMA_Boolean Free_op);
 SUMA_Boolean SUMA_UnRegisterDO_idcode(char *idcode_str, SUMA_SurfaceViewer *cSV);
 SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
+int SUMA_FindFirst_dov_ind (SUMA_DO_LOCATOR *x0, SUMA_DO_LOCATOR *x1, int val);
+SUMA_Boolean SUMA_SV_RegisteredDO_Refresh(SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_AllSV_RegisteredDO_Refresh(void);
 SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV);
 void SUMA_Show_DOv (SUMA_DO *dov, int N_dov, FILE *Out);
 int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N);
@@ -66,6 +74,7 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd);
 
 #define SUMA_whichADOg(idcode) SUMA_whichADO((idcode), SUMAg_DOv, SUMAg_N_DOv)
 SUMA_ALL_DO* SUMA_whichADO(char *idcode, SUMA_DO *dov, int N_dov);
+#define SUMA_whichDOg(idcode) SUMA_whichDO((idcode), SUMAg_DOv, SUMAg_N_DOv)
 int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findVO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);

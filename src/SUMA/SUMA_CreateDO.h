@@ -123,9 +123,13 @@ typedef struct {
    SUMA_Boolean *isColored; /*!< is the datum receiving color? Not masked say 
                                  by thresholds etc. */
    DList *slcl; /* Rendered slices, top slice rendered last */
+   DList *vrslcl;
    int ShowAxSlc;
    int ShowSaSlc;
    int ShowCoSlc;
+   int ShowVrSlc;
+   
+   SUMA_ATRANS_MODES TransMode; /*!< polygon transparency  */
 } SUMA_VOL_SAUX;
 
 #define SDSET_GSAUX(dset) ( ( (dset) && (dset)->Aux && (dset)->Aux->Saux &&   \
@@ -172,9 +176,18 @@ typedef struct {
                         SUMA_VE_Nvox((vo)->VE, 0) : -1 )
 #define VO_N_VOLS(vo) ( SUMA_VO_NumVE(vo) )
 
-#define MDO_IS_BOX(MDO) ( ((MDO) && (MDO)->mtype[0] == 'c') ? 1:0 )
-#define MDO_IS_SPH(MDO) ( ((MDO) && (MDO)->mtype[0] == 'b') ? 1:0 )
-#define MDO_IS_SURF(MDO) ( ((MDO) && (MDO)->mtype[0] == 's') ? 1:0 )
+#define MDO_IS_SHADOW(MDO) ( ((MDO) && (MDO)->mtype[0] == 'C' && \
+                                       (MDO)->mtype[1] == 'A' && \
+                                       (MDO)->mtype[2] == 'S' && \
+                                       (MDO)->mtype[3] == 'P' && \
+                                       (MDO)->mtype[4] == 'E' && \
+                                       (MDO)->mtype[5] == 'R' && \
+                                       (MDO)->mtype[6] == '\0' ) ? 1:0 )
+#define MDO_IS_BOX(MDO) ( ((MDO) && (!strcasecmp((MDO)->mtype,"box") || \
+                                     !strcasecmp((MDO)->mtype,"cube"))) ? 1:0 )
+#define MDO_IS_SPH(MDO) ( ((MDO) && (!strcasecmp((MDO)->mtype,"ball") || \
+                                     !strcasecmp((MDO)->mtype,"sphere"))) ? 1:0 )
+#define MDO_IS_SURF(MDO) ( ((MDO) && (!strcasecmp((MDO)->mtype,"surf"))) ? 1:0 )
 
 SUMA_Boolean SUMA_DrawDO_UL_FullMonty(DList *dl);
 SUMA_Boolean SUMA_ADO_UL_Add(SUMA_ALL_DO *ado, char *com, int replace);
@@ -286,7 +299,28 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov,
 SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO, 
                                SUMA_SurfaceViewer *sv);
 SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
-SUMA_Boolean SUMA_Set_MaskDO_Type(char *s, char *mtype);
+SUMA_MaskDO *SUMA_SymMaskDO(char *s, char *mtype, char *hid, byte mtypeonly);
+SUMA_Boolean SUMA_AccessorizeMDO(SUMA_MaskDO *MDO);
+SUMA_Boolean SUMA_isSymMaskDO(char *s, char *mtype);
+SUMA_Boolean SUMA_Ok_Sym_MaskDO_Type(char *mtype);
+SUMA_Boolean SUMA_Guess_Str_MaskDO_Type(char *s, char *mtype);
+SUMA_Boolean SUMA_Set_MaskDO_Type(SUMA_MaskDO *mdo, char *mtype);
+SUMA_Boolean SUMA_Set_MaskDO_Cen(SUMA_MaskDO *mdo, float *cen);
+SUMA_Boolean SUMA_Set_MaskDO_Dim(SUMA_MaskDO *mdo, float *dim);
+SUMA_Boolean SUMA_Set_MaskDO_Color(SUMA_MaskDO *mdo, float *col);
+SUMA_Boolean SUMA_Set_MaskDO_Label(SUMA_MaskDO *mdo, char *lab);
+#define SUMA_MDO_New_Cen(mdo, cen) \
+            SUMA_MDO_New_Params((mdo), (cen), NULL, NULL, NULL, NULL)
+#define SUMA_MDO_New_Type(mdo, ttype) \
+            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, NULL, (ttype))
+#define SUMA_MDO_New_Label(mdo, ttype) \
+            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, (ttype), NULL)
+#define SUMA_MDO_New_Dim(mdo, dim) \
+            SUMA_MDO_New_Params((mdo), NULL, (dim), NULL, NULL, NULL)
+#define SUMA_MDO_New_Color(mdo, col) \
+            SUMA_MDO_New_Params((mdo), NULL, NULL, (col), NULL, NULL)
+int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim, 
+                        float *col, char *Label, char *Type);
 SUMA_NIDO * SUMA_Alloc_NIDO (char *idcode_str, char *Label, 
                              char *Parent_idcode_str);
 SUMA_NIDO *SUMA_free_NIDO(SUMA_NIDO *NIDO); 
@@ -298,7 +332,9 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
                                       int NodeBased, SUMA_DO_Types type, 
                                     SUMA_DO_Types P_type, char *DrawnDO_variant);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
-SUMA_MaskDO *SUMA_Alloc_MaskDO (int N_obj, char *Label, char *parent_ADO_id);
+SUMA_MaskDO *SUMA_Alloc_MaskDO ( int N_obj, char *Label, char *hash_label,
+                                 char *parent_ADO_id, 
+                                 int withcol);
 void SUMA_free_MaskDO (SUMA_MaskDO * MDO);
 int SUMA_Set_N_UnqNodes_SegmentDO(SUMA_SegmentDO * SDO, int N);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
@@ -479,6 +515,8 @@ SUMA_SurfaceObject *SUMA_head_01_surface(void);
 SUMA_SurfaceObject *SUMA_cube_surface(float sz, float *cen);
 SUMA_SurfaceObject *SUMA_box_surface(float *sz3, float *cen, 
                                      float *col, int n_obj);
+SUMA_SurfaceObject *SUMA_ball_surface(float *hd3, float *cen, float *col, 
+                                     int n_obj);
 NI_group *SUMA_SDO2niSDO(SUMA_SegmentDO *SDO);
 SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr); 
 SUMA_Boolean SUMA_isSODimInitialized(SUMA_SurfaceObject *SO) ;

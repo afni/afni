@@ -477,17 +477,26 @@ char * MV_format_fval( float fval )
 */
 char * MV_format_fval2( float fval, int len)
 {
-   static char buf[32] ;
+   static char bufm[10][32];
+   static int icall=0;
+   char *buf=NULL;
    int wid;
    char *pos = NULL;
 
+   ++icall;
+   if (icall > 9) icall = 0;
+   buf = (char *)bufm[icall]; /* This way we can make multiple calls
+                                 formatting function inside one *printf*
+                                 call  ZSS Jan 2014 */
+   
    MV_fval_to_char( fval , buf ) ;
    if (len < 1) return (buf);
    if (strlen(buf) < len) return (buf);
 
    /* trim it down */
    pos = strchr (buf, 'e');
-   if (pos) return(buf); /* scientific notation, get out (ZSS, thanks to tip by Ben Singer Dec 12 05) */
+   if (pos) return(buf); /* scientific notation, get out 
+                           (ZSS, thanks to tip by Ben Singer Dec 12 05) */
    pos = strchr (buf, '.');
    if (!pos) return(buf);  /* can't do no'in */
    wid = pos - buf;

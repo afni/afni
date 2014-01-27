@@ -217,6 +217,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    if (!strcmp(Scom,"SetRenderMode")) SUMA_RETURN(SE_SetRenderMode);
    if (!strcmp(Scom,"SetTransMode")) SUMA_RETURN(SE_SetTransMode);
+   if (!strcmp(Scom,"SetATransMode")) SUMA_RETURN(SE_SetATransMode);
    if (!strcmp(Scom,"OpenDrawROI")) SUMA_RETURN(SE_OpenDrawROI);
    if (!strcmp(Scom,"RedisplayNow_AllVisible")) 
       SUMA_RETURN(SE_RedisplayNow_AllVisible);
@@ -256,6 +257,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetDsetNodeRad")) SUMA_RETURN(SE_SetDsetNodeRad);
    if (!strcmp(Scom,"SetDsetEdgeThick")) SUMA_RETURN(SE_SetDsetEdgeThick);
    if (!strcmp(Scom,"SetDsetEdgeStip")) SUMA_RETURN(SE_SetDsetEdgeStip);
+   if (!strcmp(Scom,"SetTractStyle")) SUMA_RETURN(SE_SetTractStyle);
    if (!strcmp(Scom,"SetDsetAlphaVal")) SUMA_RETURN(SE_SetDsetAlphaVal);
    if (!strcmp(Scom,"SetDsetNodeCol")) SUMA_RETURN(SE_SetDsetNodeCol);
    if (!strcmp(Scom,"SetDsetTxtShad")) SUMA_RETURN(SE_SetDsetTxtShad);
@@ -453,6 +455,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetRenderMode");
       case SE_SetTransMode:
          SUMA_RETURN("SetTransMode");
+      case SE_SetATransMode:
+         SUMA_RETURN("SetATransMode");
       case SE_OpenDrawROI:
          SUMA_RETURN("OpenDrawROI"); 
       case SE_RedisplayNow_AllVisible:
@@ -507,6 +511,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetDsetNodeRad"); 
       case SE_SetDsetEdgeStip:
          SUMA_RETURN("SetDsetEdgeStip"); 
+      case SE_SetTractStyle:
+         SUMA_RETURN("SetTractStyle"); 
       case SE_SetDsetAlphaVal:
          SUMA_RETURN("SetDsetAlphaVal"); 
       case SE_SetDsetEdgeThick:

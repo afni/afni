@@ -2264,7 +2264,8 @@ char * SUMA_Help_AllSurfCont ()
          "shw 0\n%s\n"
          "\n",      
          SUMA_SurfContHelp_Col, SUMA_SurfContHelp_Bias, SUMA_SurfContHelp_Cmp,
-         SUMA_SurfContHelp_CmpNew, SUMA_SurfContHelp_AbsThr, SUMA_SurfContHelp_Isym,
+         SUMA_SurfContHelp_CmpNew, SUMA_SurfContHelp_AbsThr, 
+         SUMA_SurfContHelp_Isym,
          SUMA_SurfContHelp_Shw0);
 
    SS = SUMA_StringAppend_va(SS, 
