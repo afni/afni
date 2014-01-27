@@ -6,6 +6,10 @@
 
 	Sept. 2012: fixed some memory stuff.
 
+   Jan. 2014: 
+       + counter stuff, nicer output for user
+       + cap MAXBAD at 8; only affects cases of >67 grads
+
 */
 
 #include <stdio.h>
@@ -163,7 +167,9 @@ int main(int argc, char *argv[]) {
 	// like 3dDWtoDTI, we don't need bval--
 	// just leave this here in case we ever want it later.
 	float bval=1.0; 
-	
+   int Ndata = 0,ni=0,nprog=0;
+   time_t t_start;
+
 	//	THD_3dim_dataset *dsetn;
 	
 	float *allS; 
@@ -205,9 +211,8 @@ int main(int argc, char *argv[]) {
                  // with potentially several b-vals
 	int FOUND =-1;
 	int Min=0,Nb0=0;
-	int count;  /* ZSS2PT: Unused variable */
-	int *DWcheck=NULL; /* ZSS2PT: Might be unused */
-	float *DWs=NULL;  /* ZSS2PT: Might be unused */
+	int *DWcheck=NULL; 
+	float *DWs=NULL;  
 	float DWval;
 	float DWmax=0.0;
 	float **grads_dyad=NULL; // will store grads in bmatr form
@@ -233,7 +238,7 @@ int main(int argc, char *argv[]) {
 	//                    load AFNI stuff
 	// ****************************************************************
 	// ****************************************************************
-	INFO_message("version: THETA");
+	// INFO_message("version: IOTA");
 	
 	if (argc == 1) { usage_DWUncert(1); exit(0); }
 	
@@ -359,10 +364,14 @@ int main(int argc, char *argv[]) {
 			Mj = (int) floor(0.7*M);
 			if(Mj<7)
 				Mj=7;
-			INFO_message("Grads. Number of DWI in inset=%d. Jackknife sample size=%d",
-							 M,Mj);
+			INFO_message("Input format: grads. Number of DWI in inset=%d."
+                      " Jackknife sample size=%d", M, Mj);
 			MAXBAD = (int) (0.125*M);
-			if(Mj-MAXBAD<6)
+         // for some really large numbers of gradients, >100, the number is 
+         // just too big; Jan, 2014
+         if( MAXBAD>8)
+            MAXBAD = 8; 
+         if(Mj-MAXBAD<6)
 				MAXBAD=Mj-6;
 			
 			grads = calloc(M,sizeof(grads)); 
@@ -377,7 +386,6 @@ int main(int argc, char *argv[]) {
 				exit(1254);
 			}
 			
-			// Opening/Reading in FACT params
 			if( (fin4 = fopen(argv[iarg], "r")) == NULL) {
 				fprintf(stderr, "Error opening file %s.",argv[iarg]);
 				exit(19);
@@ -451,9 +459,13 @@ int main(int argc, char *argv[]) {
 			Mj = (int) floor(0.7*M);
 			if(Mj<7)
 				Mj=7;
-			INFO_message("Bmatrs. Number of DWI in inset=%d. Jackknife sample size=%d",
-							 M,Mj);
+			INFO_message("Input format: bmatrs. Number of DWI in inset=%d."
+                      " Jackknife sample size=%d", M, Mj);
 			MAXBAD = (int) (0.125*M);
+         // for some really large numbers of gradients, >100, the number is 
+         // just too big; Jan, 2014
+         if( MAXBAD>8)
+            MAXBAD = 8; 
 			if(Mj-MAXBAD<6)
 				MAXBAD=Mj-6;
 			
@@ -557,7 +569,7 @@ int main(int argc, char *argv[]) {
 	sortedout = calloc((Nvox),sizeof(sortedout)); 
 	for(i=0 ; i<Nvox ; i++) 
 		sortedout[i] = calloc(12,sizeof(float)); 
-	bmatr = (float *)calloc(6*Mj, sizeof(float)); //!!!!floatcheck
+	//bmatr = (float *)calloc(6*Mj, sizeof(float)); //!!!!floatcheck
 	testS = (float *)calloc(Mj,sizeof(float));
 	delE1e1 = (float *)calloc(Nj, sizeof(float));
 	delE1e2 = (float *)calloc(Nj, sizeof(float));
@@ -565,7 +577,7 @@ int main(int argc, char *argv[]) {
 	delFA = (float *)calloc(Nj, sizeof(float));
   
 	if( (grads == NULL) || (allS == NULL) || (sortedout == NULL) 
-		 || (Wei2 == NULL) || (bmatr == NULL) || (testS == NULL)
+		 || (Wei2 == NULL) || (testS == NULL) //(bmatr == NULL) || 
 		 || (StoreRandInd == NULL) || (OUT == NULL) ||  (delFA == NULL)
 		 || (delE1e1 == NULL) || (delE1e2 == NULL) || (delE1e3 == NULL) ) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -616,11 +628,37 @@ int main(int argc, char *argv[]) {
 			StoreRandInd[b][i] = ind[i];
 	}
   
+   for( i=0 ; i<Nvox ; i++ ) 
+      if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetL1,i,0)<EPS_V) ) ) 
+         continue;
+      else
+         Ndata++;
+   ni = (int) Ndata / 10.;
+   if (ni < 2)
+      ni = Ndata;
+   INFO_message("Ratio of data/total number of voxels: %d/%d.",
+                Ndata, Nvox);
+   
+   /*   for( i=0 ; i<Nvox ; i++ ) 
+      if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetL1,i,0)<EPS_V) ) ) 
+         continue;
+      else{
+         nprog++;
+         if (nprog % ni == 0)
+            fprintf(stderr,"%s %.0f%% %s","[", nprog *10./ni,"]");
+      }*/
+
+   fprintf(stderr,"++ Nvox progress count: start ...\n");
+   t_start = time(NULL);
+
 	for(i=0 ; i<Nvox ; i++) 
 		if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
 			 ( (HAVE_MASK==0) && (THD_get_voxel(insetL1,i,0)<EPS_V) ) ) {
-			for(j=0 ; j<6 ; j++) 
-				OUT[j][i] = 0.0;
+			//for(j=0 ; j<6 ; j++) 
+			//	OUT[j][i] = 0.0;
+         continue;
 		}
 		else if(THD_get_voxel(insetFA,i,0)==CSF_FA) {
 			OUT[0][i] = OUT[2][i] = OUT[4][i] = 0.0; // zero mean
@@ -628,6 +666,14 @@ int main(int argc, char *argv[]) {
 			OUT[5][i] = 1.0; // max uncert
 		}
 		else {
+         // counting, technically off by 1,
+         // because announcing before this is done
+         nprog++;
+         if (nprog % ni == 0) {
+            fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
+                    "[", nprog *10./ni,"]", 
+                    (float) difftime( time(NULL), t_start)/60. );
+         }
 
 			if( BMAT==0 ) {
 				S0 = 1.0*THD_get_voxel(dwset1,i,0);
@@ -822,7 +868,8 @@ int main(int argc, char *argv[]) {
 						sortedout[i][j] = 1.0; 
 						sortedout[i][3+j] = gsl_ran_gaussian_ziggurat(r,1.0);
 					}
-					randmagn = sqrt(pow(sortedout[i][3],2)+pow(sortedout[i][4],2)+
+					randmagn = sqrt(pow(sortedout[i][3],2)+
+                               pow(sortedout[i][4],2)+
 										 pow(sortedout[i][5],2));
 					for(j=3 ; j<6 ; j++) {
 						sortedout[i][j]/= randmagn;
@@ -885,7 +932,7 @@ int main(int argc, char *argv[]) {
 				temp/= pow(sortedout[i][0],2)+pow(sortedout[i][1],2) +
 					pow(sortedout[i][2],2);
 				delFA[jj] = sqrt(1.5*temp)-THD_get_voxel(insetFA,i,0);
-			} 
+			}
       
 			meanE1e2 = 0;
 			meanE1e3 = 0;
@@ -909,10 +956,21 @@ int main(int argc, char *argv[]) {
 			stdE1e3-= Nj*meanE1e3*meanE1e3;
 			stdDelFA-= Nj*meanDelFA*meanDelFA;
       
-			stdE1e2 = sqrt(stdE1e2/(Nj-1));
-			stdE1e3 = sqrt(stdE1e3/(Nj-1));
-			stdDelFA = sqrt(stdDelFA/(Nj-1));
-		
+         if( stdE1e2>0)
+            stdE1e2 = sqrt(stdE1e2/(Nj-1));
+         else
+            stdE1e2 = PIo2;
+
+         if( stdE1e3>0)
+            stdE1e3 = sqrt(stdE1e3/(Nj-1));
+         else
+            stdE1e3 = PIo2;
+
+         if( stdDelFA >0 )
+            stdDelFA = sqrt(stdDelFA/(Nj-1));
+         else
+            stdDelFA = 1;
+
 			OUT[0][i] = meanE1e2;
 			OUT[1][i] = stdE1e2;
 			OUT[2][i] = meanE1e3;
@@ -921,7 +979,10 @@ int main(int argc, char *argv[]) {
 			OUT[5][i] = stdDelFA;
 		
 		}
-  
+   //   fprintf(stderr,"\n\t ... through.\n");
+   fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
+           "[", 100.,"]", (float) difftime( time(NULL) ,t_start)/60.);
+
 	sprintf(evalevecs,"%s_UNC",prefix); 
 	UNC_OUT = EDIT_empty_copy( insetL1 ) ; 
   
@@ -1019,7 +1080,7 @@ int main(int argc, char *argv[]) {
 	free(delFA);
   
 	free(Wei2);
-	free(bmatr);
+   //	free(bmatr);
 	free(testS);
   
 	DSET_delete(insetFA);
@@ -1043,9 +1104,6 @@ int main(int argc, char *argv[]) {
 		free(OUT[i]);
 	free(OUT);
 	gsl_rng_free(r);
-
-
-
 
 	return 0;
 }
@@ -1119,9 +1177,9 @@ void LevMarq( float *xS, float *xB, int N, float *A, float *sigma)
 #define FIT(i) gsl_vector_get(s->x, i)
 	//#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
   
-	{ 
-		float chi = gsl_blas_dnrm2(s->f);  /* ZSS2PT: Unused variable chi */
-		float dof = n - p;   /* ZSS2PT: Unused variable dof */
+   //	{ 
+      //		float chi = gsl_blas_dnrm2(s->f);  /* ZSS2PT: Unused variable chi */
+      //		float dof = n - p;   /* ZSS2PT: Unused variable dof */
 		//    float c = GSL_MAX_DBL(1, chi / sqrt(dof)); 
     
 		//printf("chisq/dof = %g\n",  pow(chi, 2.0) / dof);
@@ -1131,14 +1189,12 @@ void LevMarq( float *xS, float *xB, int N, float *A, float *sigma)
 		//printf ("Dxy   = %.10f +/- %.5f\n", FIT(3), c*ERR(3));
 		//printf ("Dxz   = %.10f +/- %.5f\n", FIT(4), c*ERR(4));
 		//printf ("Dyz   = %.10f +/- %.5f\n", FIT(5), c*ERR(5));
-	}
+	//}
   
 	//printf ("status = %s\n", gsl_strerror (status));
 	// put the values where we need them
 	for (i = 0; i < 6; i++)
 		A[i] = FIT(i); 
-  
-
   
 	gsl_multifit_fdfsolver_free(s);
 	gsl_matrix_free(covar);

@@ -2748,8 +2748,10 @@ SUMA_Boolean SUMA_ViewState_MembsRefresh(SUMA_ViewState *VS)
       } else {
          SUMA_LH("A bad entry in MembDO at index %d/%d, cleaning", 
                      ii, VS->N_MembDO);
-         strcpy(VS->MembDO[ii].idcode_str, 
+         if (ii != VS->N_MembDO-1) {
+            strcpy(VS->MembDO[ii].idcode_str, 
                 VS->MembDO[VS->N_MembDO-1].idcode_str);
+         }
          VS->MembDO[ii].dov_ind = VS->MembDO[VS->N_MembDO-1].dov_ind;
          VS->N_MembDO = VS->N_MembDO-1;
          VS->MembDO = (SUMA_DO_LOCATOR *)SUMA_realloc(VS->MembDO,

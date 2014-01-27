@@ -2,6 +2,10 @@
    Calculate correlation coefficients of mean time series of a set of
    ROIs labelled by ints.  Written by PA Taylor (March, 2013).
 
+   Jan. 2014
+     + changed output format of *.netcc files to match that of 
+       .grid files from Tracking
+
 */
 
 
@@ -12,10 +16,10 @@
 #include <debugtrace.h>
 #include <mrilib.h>    
 #include <rsfc.h>    
-#include <3ddata.h>    
-#include <gsl/gsl_statistics_double.h>
 #include <gsl/gsl_rng.h>
+#include <3ddata.h>    
 #include "DoTrackit.h"
+#include <gsl/gsl_statistics_double.h>
 
 //#define MAX_SELROI (200) // can't have more than this in SELROI
 
@@ -45,7 +49,7 @@ void usage_NetCorr(int detail)
 "                      be treated as a separate network.\n"
 "    -fish_z          :switch to also output a matrix of Fisher Z-transform\n"
 "                      values for the corr coefs (r):\n"
-"                          Z = 0.5 ln( [1+r]/[1-r] ),\n"
+"                          Z = 0.5 ln( [1+r]/[1-r] ) ,\n"
 "                      (with zeros being output along matrix diagonals where\n"
 "                      r=1).\n"
 "    -ts_out          :switch to output the mean time series of the ROIs that\n"
@@ -60,11 +64,11 @@ void usage_NetCorr(int detail)
 "        the Fisher Z-transform of the matrix (with zeros along diag).\n"
 "        If multiple subbricks are entered, one gets multiple files output,\n"
 "        one per subbrick/network.\n"
-"        Naming convention of outputs: PREFIX_???.netcc, where the `\?\?\?'\n"
-"        represent a zero-padded version of the network number, based on the\n"
-"        number of subbricks in the `in_rois' option (i.e., 001, 002,...).\n"
+"        Naming convention of outputs: PREFIX_\?\?\?.netcc, where `\?\?\?'\n"
+"        represents a zero-padded version of the network number, based on the\n"
+"        number of subbricks in the `in_rois' option (i.e., 000, 001,...).\n"
 "        If the `-ts_out' option is used, the mean time series per ROI, one\n"
-"        line, are output in PREFIX_???.netts files.\n\n"
+"        line, are output in PREFIX_\?\?\?.netts files.\n\n"
 "  If you use this program, please reference the introductory/description\n"
 "  paper for the FATCAT toolbox:\n"
 "    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
@@ -427,28 +431,31 @@ int main(int argc, char *argv[]) {
   
   for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
-    sprintf(OUT_grid,"%s_%03d.netcc",prefix,k+1);
-    if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
-      fprintf(stderr, "Error opening file %s.",OUT_grid);
-      exit(19);
-    }
+     sprintf(OUT_grid,"%s_%03d.netcc",prefix,k); // zero counting now
+     if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
+        fprintf(stderr, "Error opening file %s.",OUT_grid);
+        exit(19);
+     }
     
-    fprintf(fout1,"%d\n\n",NROI_REF[k]);
+     // same format as .grid files now
+     fprintf(fout1,"# %d  # Number of network ROIs\n",NROI_REF[k]); // NROIs
+     fprintf(fout1,"# %d  # Number of matrices\n",FISH_OUT+1); // Num of params
+     //    fprintf(fout1,"%d\n\n",NROI_REF[k]);
     for( i=1 ; i<NROI_REF[k] ; i++ ) // labels of ROIs
-      fprintf(fout1,"%d\t",ROI_LABELS_REF[k][i]); // because at =NROI, -> \n
-    fprintf(fout1,"%d\n\n",ROI_LABELS_REF[k][i]);
+      fprintf(fout1,"%8d    \t",ROI_LABELS_REF[k][i]); // because at =NROI, -> \n
+    fprintf(fout1,"%8d\n# %s\n",ROI_LABELS_REF[k][i],"CC");
     for( i=0 ; i<NROI_REF[k] ; i++ ) {
       for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last one.
-        fprintf(fout1,"%.4f\t",Corr_Matr[k][i][j]);
-      fprintf(fout1,"%.4f\n",Corr_Matr[k][i][j]);
+        fprintf(fout1,"%12.4f\t",Corr_Matr[k][i][j]);
+      fprintf(fout1,"%12.4f\n",Corr_Matr[k][i][j]);
     }
     
     if(FISH_OUT) {
-      fprintf(fout1,"\n");
+       fprintf(fout1,"# %s\n", "FZ");
       for( i=0 ; i<NROI_REF[k] ; i++ ) {
         for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last one.
-          fprintf(fout1,"%.4f\t",FisherZ(Corr_Matr[k][i][j]));
-        fprintf(fout1,"%.4f\n",FisherZ(Corr_Matr[k][i][j]));
+          fprintf(fout1,"%12.4f\t",FisherZ(Corr_Matr[k][i][j]));
+        fprintf(fout1,"%12.4f\n",FisherZ(Corr_Matr[k][i][j]));
       }
     }
     
