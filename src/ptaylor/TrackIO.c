@@ -1311,3 +1311,29 @@ int SimpleWriteDetNetTr_M(int N_HAR, FILE *file, int ***idx,
   RETURN(1);
 }
 
+int Free_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS)
+{
+   ENTRY("Free_Insta_Tract_Setup");
+
+   if (!ITS) RETURN(0);
+   
+   if (ITS->grid) DSET_delete(ITS->grid);
+   ITS->grid = NULL;
+   
+   /* Do not delte ITS , leave it to calling function */
+  
+   RETURN(1);
+}
+
+/* Create brandnew, or wipe clean existing ITS */
+INSTA_TRACT_SETUP *New_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS)
+{
+   ENTRY("New_Insta_Tract_Setup");
+
+   if (!ITS) ITS = (INSTA_TRACT_SETUP *)calloc(1,sizeof(INSTA_TRACT_SETUP));
+   else Free_Insta_Tract_Setup(ITS);
+   
+   /* Put any initialization here ... */
+   
+   RETURN(ITS);
+}
