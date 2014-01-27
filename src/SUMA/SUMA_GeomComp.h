@@ -404,6 +404,9 @@ int SUMA_is_Flat_Surf_Coords_PCA (float *xyz, int N_xyz,
 int SUMA_is_Constant_Z_Coord(float *NodeList, int N_Node, float tol);
 int SUMA_PlaneBoxIntersect(float *cam, float *PlEq, 
                             float *cvert, float p[18]);
+int SUMA_PlaneBoxSlice( float *cam, float *PlEq, 
+                                 float *cvert, 
+                                 float *pv, int *hits, float *PlOff, int N_slc);
 int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp);
 /*!
    Macros to merge / join two lists together

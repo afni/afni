@@ -17,7 +17,7 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c \
 		 SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
 		 SUMA_IV_FaceSetsextract.c SUMA_SurfNorm.c SUMA_DOmanip.c \
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c \
-		 SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
+		 SUMA_help.c SUMA_display.c SUMA_display_b.c SUMA_ParseCommands.c	\
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c \
 		 SUMA_Color.c SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_DataSets.c	\
 		 SUMA_HomerFunc.c SUMA_xColBar.c SUMA_IsoSurfaceFunc.c \

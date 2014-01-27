@@ -2332,11 +2332,11 @@ SUMA_Boolean SUMA_NewSurfaceGeometry(SUMA_SurfaceObject *SO)
    for (ii=0; ii<SUMAg_N_SVv; ++ii) {
       if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
          for (i=0; i< SUMAg_SVv[ii].N_DO; ++i) {
-            if (SUMA_isSO_G(  SUMAg_DOv[SUMAg_SVv[ii].RegisteredDO[i]], 
+            if (SUMA_isSO_G(  SUMAg_DOv[SUMAg_SVv[ii].RegistDO[i].dov_ind], 
                               SUMAg_SVv[ii].CurGroupName)) {
                /* is this surface the same as SO ? */
                if (SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv) == 
-                   SUMAg_SVv[ii].RegisteredDO[i]) {
+                   SUMAg_SVv[ii].RegistDO[i].dov_ind) {
                   /* This surface is visible in this viewer, mark that viewer  */
                   SUMA_LH("Marking Viewer ");
                   SUMAg_SVv[ii].NewGeom = YUP;
@@ -3145,7 +3145,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                SUMA_S_Crit("Failed to allocate");
                SUMA_RETURN(NOPE); 
             }
-            fact = Opt->IntRange[1]-Opt->IntRange[2];
+            fact = Opt->IntRange[1]-Opt->IntRange[0];
             if (fact == 0.0) fact = 1.0;
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (!SV->isMasked[i]) {
@@ -3167,7 +3167,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                SUMA_SL_Err("Failed to get ColRange!"); 
                SUMA_RETURN(NOPE); 
             }
-            fact = Range[1]-Range[2];
+            fact = Range[1]-Range[0];
             if (fact == 0.0) fact = 1.0;
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (!SV->isMasked[i]) {
@@ -3189,7 +3189,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
                SUMA_SL_Err("Failed to get ColRange!"); 
                SUMA_RETURN(NOPE); 
             }
-            fact = Range[1]-Range[2];
+            fact = Range[1]-Range[0];
             if (fact == 0.0) fact = 1.0;
             for (i=0; i<SDSET_VECFILLED(Sover->dset_link); ++i) {
                if (!SV->isMasked[i]) {
@@ -8500,7 +8500,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    for (i=0; i<sv->N_ColList; ++i) {
       
       if (!(pp = SUMA_find_any_object(sv->ColList[i]->idcode_str, &tp))) {
-         SUMA_S_Err("Zut alors!");
+         SUMA_S_Err("Zut alors, id %s not found!", sv->ColList[i]->idcode_str);
          SUMA_RETURN(NOPE);
       }
       if (sv->ColList[i]->Remix) {

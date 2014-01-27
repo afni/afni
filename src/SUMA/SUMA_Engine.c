@@ -798,7 +798,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             { /* sets the transparency value of a surface, 
                expects SO in vp and TransMode in i*/
                SO = (SUMA_SurfaceObject *)EngineData->vp;
-               SUMA_SET_SO_TRANSMODE(SO,EngineData->i);
+               SUMA_Set_ADO_TransMode((SUMA_ALL_DO *)SO,EngineData->i);
+            }  
+            break;
+            
+         case SE_SetATransMode:
+            { /* sets the transparency value of a surface, 
+               expects SO in vp and TransMode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               SUMA_Set_ADO_TransMode(ado,EngineData->i);
             }  
             break;
             
@@ -955,6 +963,29 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                               
                if (EngineData->i == SW_SurfCont_DsetEdgeStipXXX) {
+                  curColPlane->EdgeStip = 
+                     -SUMA_ABS(curColPlane->EdgeStip);
+               } else {
+                  curColPlane->EdgeStip = EngineData->i;
+               }
+
+               if (!SUMA_Remixedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }
+            break;
+
+         case SE_SetTractStyle:
+            { /* sets the stippling of a (graph's) edges, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               if (EngineData->i == SW_SurfCont_TractStyleSOLID) {
                   curColPlane->EdgeStip = 
                      -SUMA_ABS(curColPlane->EdgeStip);
                } else {
@@ -2648,7 +2679,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               Found = NOPE;
                               it = 0;
                               while (it < svi->N_DO && !Found) {
-                                    ido2 = svi->RegisteredDO[it];
+                                    ido2 = svi->RegistDO[it].dov_ind;
                                     if (iDO_isGLDO(ido2)) {
                                  gldo2 = (SUMA_GraphLinkDO *)SUMAg_DOv[ido2].OP;
                                  variant = iDO_variant(ido2);   
@@ -3765,7 +3796,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SO = (SUMA_SurfaceObject *)ado;
                      if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                                 "trans_surf", "Viewer")) {
-                        SUMA_SET_SO_TRANSMODE(SO,STM_ViewerDefault);
+                        SUMA_Set_ADO_TransMode(ado,STM_ViewerDefault);
                         SUMA_S_Warn("Must check on indexing business");
                         SUMA_Set_Menu_Widget(SurfCont->TransModeMenu,
                               SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
@@ -3776,7 +3807,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMA_S_Errv("Bad value for trans_surf of %s\n",
                               NI_get_attribute(EngineData->ngr, "trans_surf"));
                         } else {
-                           SUMA_SET_SO_TRANSMODE(SO,(N+STM_0));
+                           SUMA_Set_ADO_TransMode(ado,(N+STM_0));
                            SUMA_Set_Menu_Widget( SurfCont->TransModeMenu,
                              SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
                         }
@@ -3791,6 +3822,43 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                 problem... */
                      SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
                      break;
+                     #if 0 /* UNTESTED, don't uncomment until you test*/
+                  case VolumeObject_type:{
+                     SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
+                     SUMA_VOL_SAUX *VSaux;
+                     if (!(VSaux = ADO_VSaux(ado))) {
+                        SUMA_S_Warn("No VSaux"); break;
+                     }
+                     if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
+                                                "trans_surf", "Viewer")) {
+                        SUMA_Set_ADO_TransMode(ado,SATM_ViewerDefault);
+                        SUMA_S_Warn("Must check on indexing business");
+                        SUMA_Set_Menu_Widget(SurfCont->VTransModeMenu,
+                         SUMA_ATransMode2ATransModeMenuItem(VSaux->TransMode+1));
+                     } else {
+                        int N=0;
+                        NI_GET_INT(EngineData->ngr, "trans_surf", N);
+                        if (N < 0 || N > 16) {
+                           SUMA_S_Errv("Bad value for trans_surf of %s\n",
+                              NI_get_attribute(EngineData->ngr, "trans_surf"));
+                        } else {
+                           SUMA_Set_ADO_TransMode(ado,(N+SATM_0));
+                           SUMA_Set_Menu_Widget( SurfCont->VTransModeMenu,
+                                          SUMA_ATransMode2ATransModeMenuItem(
+                                                            VSaux->TransMode+1));
+                        }
+                     }
+                     /* redisplay */
+                     SUMA_SiSi_I_Insist(); /* did not think that was necessary...
+                                                But DriveSuma's -view_surf failed
+                                                to redisplay properly unless you
+                                                called the command twice or
+                                                move the cursor into the GLXAREA.
+                                                This line appears to fix the 
+                                                problem... */
+                     SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+                     break; }
+                     #endif
                   default:
                      SUMA_S_Err("Not ready with trans_surf for type %s",
                               ADO_TNAME(ado));
@@ -4644,8 +4712,8 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
-         if (SO_IDs != NULL) SO_IDs[k] = sv->RegisteredDO[i];
+      if (SUMA_isSO_G(dov[sv->RegistDO[i].dov_ind], sv->CurGroupName)) {
+         if (SO_IDs != NULL) SO_IDs[k] = sv->RegistDO[i].dov_ind;
          ++k;
       }
    }
@@ -4679,20 +4747,20 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
-         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+      if (SUMA_isSO_G(dov[sv->RegistDO[i].dov_ind], sv->CurGroupName)) {
+         SO = (SUMA_SurfaceObject *)dov[sv->RegistDO[i].dov_ind].OP;
          if (SO_SHOWING(SO, sv)) {
             if (  SO->Side == SUMA_NO_SIDE || 
                   SO->Side == SUMA_SIDE_ERROR  || 
                   SO->Side == SUMA_LR) {
                if (SO_IDs) {
-                  SO_IDs[k] = sv->RegisteredDO[i];
+                  SO_IDs[k] = sv->RegistDO[i].dov_ind;
                }
                ++k;
             } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
                          (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
                if (SO_IDs) {
-                  SO_IDs[k] = sv->RegisteredDO[i];
+                  SO_IDs[k] = sv->RegistDO[i].dov_ind;
                }
                ++k;
             }
@@ -4713,20 +4781,20 @@ int SUMA_VisibleMDOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *MDO_IDs)
    SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (dov[sv->RegisteredDO[i]].ObjectType != MASK_type) continue;
-      MDO = (SUMA_MaskDO *)dov[sv->RegisteredDO[i]].OP;
-      if (MDO_SHOWING(MDO, sv)) {
+      if (dov[sv->RegistDO[i].dov_ind].ObjectType != MASK_type) continue;
+      MDO = (SUMA_MaskDO *)dov[sv->RegistDO[i].dov_ind].OP;
+      if (!MDO_IS_SHADOW(MDO) && MDO_SHOWING(MDO, sv)) {
          if (  MDO->SO->Side == SUMA_NO_SIDE || 
                MDO->SO->Side == SUMA_SIDE_ERROR  || 
                MDO->SO->Side == SUMA_LR) {
             if (MDO_IDs) {
-               MDO_IDs[k] = sv->RegisteredDO[i];
+               MDO_IDs[k] = sv->RegistDO[i].dov_ind;
             }
             ++k;
          } else if (  (MDO->SO->Side == SUMA_RIGHT && sv->ShowRight) || 
                       (MDO->SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
             if (MDO_IDs) {
-               MDO_IDs[k] = sv->RegisteredDO[i];
+               MDO_IDs[k] = sv->RegistDO[i].dov_ind;
             }
             ++k;
          }
@@ -4768,36 +4836,37 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
-      SUMA_LHv("Checking on %s\n", iDO_label(sv->RegisteredDO[i]));
-      if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
-         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+      SUMA_LHv("Checking on %s\n", iDO_label(sv->RegistDO[i].dov_ind));
+      if (SUMA_isSO_G(dov[sv->RegistDO[i].dov_ind], sv->CurGroupName)) {
+         SO = (SUMA_SurfaceObject *)dov[sv->RegistDO[i].dov_ind].OP;
          if (SO_SHOWING(SO, sv)) {
             if (  SO->Side == SUMA_NO_SIDE || 
                   SO->Side == SUMA_SIDE_ERROR  || 
                   SO->Side == SUMA_LR) {
                if (SO_IDs) {
-                  SO_IDs[k] = sv->RegisteredDO[i];
+                  SO_IDs[k] = sv->RegistDO[i].dov_ind;
                }
                ++k;
             } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
                          (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
                if (SO_IDs) {
-                  SO_IDs[k] = sv->RegisteredDO[i];
+                  SO_IDs[k] = sv->RegistDO[i].dov_ind;
                }
                ++k;
             }
          }
       } else {
-         switch (dov[sv->RegisteredDO[i]].ObjectType) {
+         switch (dov[sv->RegistDO[i].dov_ind].ObjectType) {
             case SO_type:
                /* ignore, escaped from above isSO_G */
                break;
             case GRAPH_LINK_type:
                /* avoid the shadow ... */
-               if (!SUMA_IS_GOOD_STATE(iDO_state(sv->RegisteredDO[i]))) break;
+               if (!SUMA_IS_GOOD_STATE(
+                     iDO_state(sv->RegistDO[i].dov_ind))) break;
                /* OK, keep */
                if (SO_IDs) {
-                  SO_IDs[k] = sv->RegisteredDO[i];
+                  SO_IDs[k] = sv->RegistDO[i].dov_ind;
                }
                ++k;
                break;
@@ -4805,12 +4874,12 @@ int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
             case MASK_type:
             case VO_type:
                if (SO_IDs) {
-                  SO_IDs[k] = sv->RegisteredDO[i];
+                  SO_IDs[k] = sv->RegistDO[i].dov_ind;
                }
                ++k;
                break;
             default:
-               SUMA_LHv("Ignoring %s\n", iDO_label(sv->RegisteredDO[i]));
+               SUMA_LHv("Ignoring %s\n", iDO_label(sv->RegistDO[i].dov_ind));
                break;
          }
       }
@@ -4858,8 +4927,8 @@ SUMA_Boolean SUMA_isVisibleDO (SUMA_SurfaceViewer *sv,
       case SO_type:
          curSO = (SUMA_SurfaceObject *)ado;
          for (i=0; i< sv->N_DO; ++i) {
-            if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
-               SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+            if (SUMA_isSO_G(dov[sv->RegistDO[i].dov_ind], sv->CurGroupName)) {
+               SO = (SUMA_SurfaceObject *)dov[sv->RegistDO[i].dov_ind].OP;
                if (curSO == SO) {
                   if (SO_SHOWING(SO, sv)) {
                      if ( SO->Side == SUMA_NO_SIDE || 
@@ -4885,7 +4954,7 @@ SUMA_Boolean SUMA_isVisibleDO (SUMA_SurfaceViewer *sv,
       case TRACT_type:
       case GRAPH_LINK_type:
          for (i=0; i< sv->N_DO; ++i) {
-            if (dov[sv->RegisteredDO[i]].OP == ado)  SUMA_RETURN(YUP);
+            if (dov[sv->RegistDO[i].dov_ind].OP == ado)  SUMA_RETURN(YUP);
          }
          SUMA_RETURN(YUP);
          break;
@@ -4909,7 +4978,7 @@ SUMA_Boolean SUMA_isRegisteredSO (SUMA_SurfaceViewer *sv,
    
    for (i=0; i< sv->N_DO; ++i) {
       if (1) {
-         SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
+         SO = (SUMA_SurfaceObject *)dov[sv->RegistDO[i].dov_ind].OP;
          if (curSO == SO) {
             SUMA_RETURN(YUP);
          }
@@ -4936,7 +5005,7 @@ SUMA_Boolean SUMA_isRegisteredDO (SUMA_SurfaceViewer *sv,
    
    for (i=0; i< sv->N_DO; ++i) {
       if (1) {
-         DO = (SUMA_ALL_DO *)dov[sv->RegisteredDO[i]].OP;
+         DO = (SUMA_ALL_DO *)dov[sv->RegistDO[i].dov_ind].OP;
          if (curDO == DO) {
             SUMA_RETURN(YUP);
          }
@@ -5314,8 +5383,8 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
                   "Unregistering state %d (%s), sv(%p)->State = %s\n", 
                   FuncName, nxtstateID, curstateID, sv->VSv[curstateID].Name, 
                   sv, sv->State);
-   for (i=0; i<sv->VSv[curstateID].N_MembDOs; ++i) {
-      if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembDOs[i], sv)) {
+   for (i=0; i<sv->VSv[curstateID].N_MembDO; ++i) {
+      if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembDO[i].dov_ind, sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
@@ -5339,10 +5408,10 @@ SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov,
    sv->iState = nxtstateID;
 
    SUMA_LHv("Registering %d DOs of state %d (%s)...\n", 
-            sv->VSv[nxtstateID].N_MembDOs, nxtstateID, 
+            sv->VSv[nxtstateID].N_MembDO, nxtstateID, 
             sv->VSv[nxtstateID].Name);
-   for (i=0; i<sv->VSv[nxtstateID].N_MembDOs; ++i) {
-      if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembDOs[i], sv)) {
+   for (i=0; i<sv->VSv[nxtstateID].N_MembDO; ++i) {
+      if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembDO[i].dov_ind, sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
          SUMA_RETURN (NOPE);
       }
@@ -5798,10 +5867,10 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    SUMA_ENTRY;
 
    for (i=0; i< sv->N_DO; ++i) {
-      if (dov[sv->RegisteredDO[i]].ObjectType == AO_type) {
-         AO = (SUMA_Axis *)(dov[sv->RegisteredDO[i]].OP);
+      if (dov[sv->RegistDO[i].dov_ind].ObjectType == AO_type) {
+         AO = (SUMA_Axis *)(dov[sv->RegistDO[i].dov_ind].OP);
          if (strcmp(AO->Label, "Eye Axis") == 0) {
-            k = sv->RegisteredDO[i];
+            k = sv->RegistDO[i].dov_ind;
             ++cnt;
          }
       }

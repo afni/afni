@@ -60,6 +60,8 @@ SUMA_Boolean SUMA_New_ViewState (SUMA_SurfaceViewer *csv);
 SUMA_Boolean SUMA_Free_ViewState_Hist (SUMA_ViewState_Hist *vsh);
 SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void);
 SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out, int detail); 
+SUMA_Boolean SUMA_ViewState_MembsRefresh(SUMA_ViewState *VS);
+SUMA_Boolean SUMA_AllViewState_MembsRefresh(void);
 int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *tt,
                           int *uN_MembSOs);
 char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail);
@@ -103,6 +105,7 @@ SUMA_X_ViewCont *SUMA_CreateViewContStruct (void);
 void *SUMA_FreeViewContStruct (SUMA_X_ViewCont *ViewCont);
 SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types dd);
 void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont);
+SUMA_X_SurfCont *SUMA_GlobalMaskContStruct(char *idcode);
 SUMA_MENU_WIDGET *SUMA_Free_Menu_Widget(SUMA_MENU_WIDGET *smw);
 SUMA_MENU_WIDGET *SUMA_Alloc_Menu_Widget(int nw);
 SUMA_rb_group *SUMA_CreateLock_rb (int N_rb_group, int N_but);
@@ -126,6 +129,9 @@ const char * SUMA_Clip_Type_to_Clip_Name (SUMA_CLIP_PLANE_TYPES tp);
 char * SUMA_Show_Clip_Planes_Info (SUMA_CommonFields *cf);
 void SUMA_Show_Clip_Planes (SUMA_CommonFields *cf, FILE *out);
 float SUMA_sv_auto_fov(SUMA_SurfaceViewer *sv);
+SUMA_SurfaceViewer *SUMA_OneViewerWithADORegistered(SUMA_ALL_DO *ADO);
+SUMA_SurfaceViewer *SUMA_OneViewerWithADOVisible(SUMA_ALL_DO *ADO);
+SUMA_SurfaceViewer *SUMA_OneViewerWithADOinFocus(SUMA_ALL_DO *ADO);
 SUMA_SurfaceViewer *SUMA_OneViewerWithSOinFocus(
                               SUMA_SurfaceObject *curSO);
 SUMA_SurfaceViewer *SUMA_OneViewerWithSOVisible(
@@ -133,7 +139,7 @@ SUMA_SurfaceViewer *SUMA_OneViewerWithSOVisible(
 SUMA_SurfaceViewer *SUMA_OneViewerWithSORegistered(
                               SUMA_SurfaceObject *curSO);
 int SUMA_UpdateCrossHairNodeLabelFieldForDO(SUMA_ALL_DO *ado);
-SUMA_SurfaceViewer *SUMA_BestViewerForDO(SUMA_ALL_DO *ado);
+SUMA_SurfaceViewer *SUMA_BestViewerForADO(SUMA_ALL_DO *ado);
 SUMA_PARSED_NAME *SUMA_SetAutoRecord(char *pref);
 SUMA_SurfaceObject *SUMA_SV_Focus_SO(SUMA_SurfaceViewer *sv);
 SUMA_SurfaceObject *SUMA_SV_Focus_any_SO(SUMA_SurfaceViewer *sv, int *dov_id);

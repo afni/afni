@@ -780,7 +780,7 @@ SUMA_DSET *SUMA_DsetExtrema(
    static char FuncName[]={"SUMA_DsetExtrema"};
       SUMA_DSET *dout = NULL;
    int *icols = NULL, N_icols = -1, *ind = NULL, n_incopy=-1, masked_only=0;
-   int k = -1, N_mask=-1, *isrt=NULL;
+   int k = -1, N_mask=-1, *isrt=NULL, dbg_node=-1;
    int *mout=NULL, n_peak=0, ni=0, cand=-1, il=0, jl=0, neighb=0; 
    void *ncoli=NULL;
    char *lblcp=NULL, *s=NULL, Cside=' ', *Sdir=NULL;
@@ -969,6 +969,13 @@ SUMA_DSET *SUMA_DsetExtrema(
       cand = -1;
       while(ni > 0) { 
          --ni; 
+         #if 0
+         if (isrt[ni] == dbg_node) {
+            fprintf(SUMA_STDERR,"ex_mask[%d]=%d, gin=%f (%f), fin=%f (%f)\n", 
+                        isrt[ni], ex_mask[isrt[ni]],
+                        gin[isrt[ni]], gthresh, finsrt[ni], fthresh);
+         }
+         #endif
          if (  ex_mask[isrt[ni]] && (
                (  dir == SUMA_MAXIMUS && /* Maxima */
                      gin[isrt[ni]] >= gthresh &&
@@ -1010,6 +1017,13 @@ SUMA_DSET *SUMA_DsetExtrema(
                   for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
                      neighb = OffS->layers[il].NodesInLayer[jl];
                      if (OffS->OffVect[neighb] <= r) {
+                        #if 0
+                        if (neighb == dbg_node) {
+                           fprintf(SUMA_STDERR,
+                           "node %d is at dist %f (%f) from candidate node %d\n",
+                                     neighb, OffS->OffVect[neighb], r, cand);
+                        }
+                        #endif
                         ex_mask[neighb] = 0; /* take it out */
                      }
                   }

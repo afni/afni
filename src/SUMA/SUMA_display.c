@@ -786,7 +786,7 @@ void SUMA_LoadMaskDO (char *s, void *csvp )
    if (dotp == not_DO_type) {
       SUMA_S_Warnv("Could not determine DO type of %s, assuming MASK.",
                      s);
-      /* assume segments */
+      /* assume mask */
       dotp = MASK_type;
    }
    coord_type = SUMA_WORLD;
@@ -794,28 +794,14 @@ void SUMA_LoadMaskDO (char *s, void *csvp )
       case MASK_type: {
          SUMA_MaskDO *MDO = NULL;
          if (!(VDO = (void *)SUMA_ReadMaskDO(s, NULL))) {
-               SUMA_SL_Err("Failed to read tracts file.\n");
-               SUMA_RETURNe;
+            SUMA_SL_Err("Failed to read tracts file.\n");
+            SUMA_RETURNe;
          }
          SUMA_LH("Mask read");
          ((SUMA_MaskDO*)VDO)->do_type = dotp;
          MDO = (SUMA_MaskDO *)VDO;
-         if (MDO_IS_BOX(MDO)) {
-            SUMA_LH("Forming SO for box");
-            if (!(MDO->SO = SUMA_box_surface(MDO->hdim, MDO->cen, 
-                                             MDO->colv, MDO->N_obj))) {
-               SUMA_S_Err("Failed to create box SO!");
-               SUMA_RETURNe;
-            }
-         } else if (MDO_IS_SPH(MDO)) {
-            SUMA_S_Warn("Not ready for multi obj, or spheroidal objects");
-            if (!(MDO->SO = SUMA_CreateIcosahedron(MDO->hdim[0], 2, 
-                                                   MDO->cen, "n", 1))) {
-               SUMA_S_Err("Failed to create sphere SO!");
-               SUMA_RETURNe;
-            }
-         } else {
-            SUMA_S_Err("Not ready for prime time");
+         if (!SUMA_AccessorizeMDO(MDO)) {
+            SUMA_SL_Err("Failed to get lipstick on that pig.\n");
             SUMA_RETURNe;
          }
          break; }
@@ -1895,8 +1881,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                FuncName);
    i = 0;
    while (i < csv->N_DO) {
-      if (dov[csv->RegisteredDO[i]].CoordType == SUMA_SCREEN) {
-         switch (dov[csv->RegisteredDO[i]].ObjectType) {
+      if (dov[csv->RegistDO[i].dov_ind].CoordType == SUMA_SCREEN) {
+         switch (dov[csv->RegistDO[i].dov_ind].ObjectType) {
             case N_DO_TYPES:
                SUMA_S_Err("This is reserved for the number of types");
                break;
@@ -1917,7 +1903,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case AO_type:
                if (csv->ShowEyeAxis){
                   if (!SUMA_DrawAxis (
-                        (SUMA_Axis*)dov[csv->RegisteredDO[i]].OP, csv)) {
+                        (SUMA_Axis*)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                      fprintf( SUMA_STDERR,
                               "Error %s: Could not display EYE AXIS\n", 
                               FuncName);
@@ -1944,7 +1930,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case NBOLS_type:
             case NBLS_type:
                if (!SUMA_DrawSegmentDO (
-                     (SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, 
+                     (SUMA_SegmentDO *)dov[csv->RegistDO[i].dov_ind].OP, 
                      csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawSegmentDO.\n", 
@@ -1956,7 +1942,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case VO_type:
                if (!SUMA_DrawVolumeDO (
-                     (SUMA_VolumeObject *)dov[csv->RegisteredDO[i]].OP, 
+                     (SUMA_VolumeObject *)dov[csv->RegistDO[i].dov_ind].OP, 
                         csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawVolumeDO.\n", 
@@ -1965,7 +1951,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case NIDO_type:
                SUMA_LH("Doing Screen NIDO");
-               if (!SUMA_DrawNIDO ((SUMA_NIDO*)dov[csv->RegisteredDO[i]].OP, 
+               if (!SUMA_DrawNIDO ((SUMA_NIDO*)dov[csv->RegistDO[i].dov_ind].OP, 
                      csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawNIDO.\n", 
@@ -1985,7 +1971,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    
    SUMA_SET_GL_MODELVIEW(csv);
 
-   /* cycle through csv->RegisteredDO and display 
+   /* cycle through csv->RegistDO and display 
       those things that have a Local CoordType*/
    if (LocalHead) 
       fprintf (SUMA_STDERR,
@@ -2018,13 +2004,13 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 
    i = 0;
    while (i < csv->N_DO) {
-      if (dov[csv->RegisteredDO[i]].CoordType == SUMA_WORLD) {
-         switch (dov[csv->RegisteredDO[i]].ObjectType) {
+      if (dov[csv->RegistDO[i].dov_ind].CoordType == SUMA_WORLD) {
+         switch (dov[csv->RegistDO[i].dov_ind].ObjectType) {
             case N_DO_TYPES:
                SUMA_S_Err("N_DO_TYPES should not come up here");
                break;
             case SO_type:
-               SO = (SUMA_SurfaceObject *)dov[csv->RegisteredDO[i]].OP;
+               SO = (SUMA_SurfaceObject *)dov[csv->RegistDO[i].dov_ind].OP;
                if (SO->Show && SO->PolyMode != SRM_Hide) {
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) || 
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
@@ -2034,7 +2020,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                }
                break;
             case VO_type:
-               VO = (SUMA_VolumeObject *)dov[csv->RegisteredDO[i]].OP;
+               VO = (SUMA_VolumeObject *)dov[csv->RegistDO[i].dov_ind].OP;
                if (VO->Show) {
                   if (!SUMA_DrawVolumeDO (VO, csv)) {
                      SUMA_S_Err("Failed in SUMA_DrawVolumeDO.");
@@ -2043,7 +2029,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case AO_type:
                if (csv->ShowMeshAxis) {
-                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->RegisteredDO[i]].OP, 
+                  if (!SUMA_DrawAxis (
+                                 (SUMA_Axis*)dov[csv->RegistDO[i].dov_ind].OP, 
                                        csv)) {
                      fprintf( stderr,
                               "display error: Could not display Mesh AXIS\n");
@@ -2074,7 +2061,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case MASK_type:
                if (!SUMA_DrawMaskDO (
-                     (SUMA_MaskDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     (SUMA_MaskDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawMaskDO.\n", 
                            FuncName);
@@ -2082,7 +2069,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case TRACT_type:
                if (!SUMA_DrawTractDO (
-                     (SUMA_TractDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     (SUMA_TractDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawTractDO.\n", 
                            FuncName);
@@ -2091,7 +2078,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case OLS_type:
             case LS_type:
                if (!SUMA_DrawSegmentDO (
-                     (SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     (SUMA_SegmentDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawSegmentDO.\n", 
                            FuncName);
@@ -2102,25 +2089,25 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case SP_type:
                if (!SUMA_DrawSphereDO (
-                     (SUMA_SphereDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     (SUMA_SphereDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
                }
                break;
             case PL_type:
                if (!SUMA_DrawPlaneDO (
-                     (SUMA_PlaneDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     (SUMA_PlaneDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                   fprintf(SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawPlaneDO.\n", FuncName);
                }
                break;
             case NIDO_type:
                if (SUMA_isNIDO_SurfBased(
-                     (SUMA_NIDO *)dov[csv->RegisteredDO[i]].OP)) { 
+                     (SUMA_NIDO *)dov[csv->RegistDO[i].dov_ind].OP)) { 
                   /* this is done in SUMA_DrawMesh */
                } else {
                   if (!SUMA_DrawNIDO (
-                        (SUMA_NIDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                        (SUMA_NIDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                      fprintf(SUMA_STDERR, 
                               "Error %s: Failed in SUMA_DrawNIDO.\n", FuncName);
                   }
@@ -2129,7 +2116,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case GRAPH_LINK_type:
                /* find the real DO this baby points to and render that */
                if (!SUMA_DrawGraphLinkDO (
-                        (SUMA_GraphLinkDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                    (SUMA_GraphLinkDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
                      fprintf(SUMA_STDERR, 
                               "Error %s: Failed in SUMA_DrawGraphLinkDO.\n", 
                               FuncName);
@@ -3123,6 +3110,86 @@ SUMA_MenuItem TransMode_Menu[] = {
    {NULL},
 };
 
+SUMA_MenuItem VTransMode_Menu[] = {
+   {  "Vwr", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATransViewerDefault, NULL},
+
+   {  "A", &xmPushButtonWidgetClass, 
+      'A', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_Alpha, NULL},
+   
+   {  "0", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans0, NULL},
+   
+   {  "1", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans1, NULL},
+    
+   {  "2", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans2, NULL},
+    
+   {  "3", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans3, NULL},
+    
+   {  "4", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans4, NULL},
+    
+   {  "5", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans5, NULL},
+    
+   {  "6", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans6, NULL},
+    
+   {  "7", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_ATrans7, NULL},
+    
+   {  "8", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans8, NULL},
+    
+   {  "9", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_ATrans9, NULL},
+    
+   {  "10", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans10, NULL},
+    
+   {  "11", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans11, NULL},
+    
+   {  "12", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans12, NULL},
+    
+   {  "13", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans13, NULL},
+    
+   {  "14", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_ATrans14, NULL},
+    
+   {  "15", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTransMode, (XtPointer) SW_SurfCont_ATrans15, NULL},
+    
+   {  "16", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetATransMode, (XtPointer) SW_SurfCont_ATrans16, NULL},
+    
+   {NULL},
+};
+
 
 SUMA_MenuItem DsetViewMode_Menu[] = {
    {  "Col", &xmPushButtonWidgetClass, 
@@ -3353,6 +3420,61 @@ SUMA_MenuItem DsetEdgeStip_Menu[] = {
    { "s15", &xmPushButtonWidgetClass, 
       '\0', NULL, NULL, 
       SUMA_cb_SetDsetEdgeStip, (XtPointer) SW_SurfCont_DsetEdgeStip15, NULL},
+   {NULL},
+};
+
+SUMA_MenuItem TractStyle_Menu[] = {
+   { "SLD", &xmPushButtonWidgetClass, 
+      'X', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleSOLID, NULL},
+   {  "HDE", &xmPushButtonWidgetClass, 
+      'V', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleHIDE, NULL},
+   { "s01", &xmPushButtonWidgetClass, 
+      '1', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST1, NULL},
+   { "s02", &xmPushButtonWidgetClass, 
+      '2', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST2, NULL},
+   { "s03", &xmPushButtonWidgetClass, 
+      '3', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST3, NULL},
+   { "s04", &xmPushButtonWidgetClass, 
+      '4', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST4, NULL},
+   { "s05", &xmPushButtonWidgetClass, 
+      '5', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST5, NULL},
+   { "s06", &xmPushButtonWidgetClass, 
+      '6', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST6, NULL},
+   { "s07", &xmPushButtonWidgetClass, 
+      '7', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST7, NULL},
+   { "s08", &xmPushButtonWidgetClass, 
+      '8', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST8, NULL},
+   { "s09", &xmPushButtonWidgetClass, 
+      '9', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST9, NULL},
+   { "s10", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST10, NULL},
+   { "s11", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST11, NULL},
+   { "s12", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST12, NULL},
+   { "s13", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST13, NULL},
+   { "s14", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST14, NULL},
+   { "s15", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetTractStyle, (XtPointer) SW_SurfCont_TractStyleST15, NULL},
    {NULL},
 };
 
@@ -5834,7 +5956,7 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
       SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
    } else {
       if (!sv) {
-         if (!(sv = SUMA_BestViewerForDO(ado)) ||
+         if (!(sv = SUMA_BestViewerForADO(ado)) ||
              !sv->X->TOPLEVEL) {
             SUMA_LH("NULLity");
             SUMA_RETURN(0);
@@ -5999,7 +6121,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    
    if (!sv) {
       SUMA_LHv("Got to get me an sv for %s\n", SUMA_ADO_Label(ado));
-      if (!(sv = SUMA_BestViewerForDO(ado))) {
+      if (!(sv = SUMA_BestViewerForADO(ado))) {
          SUMA_RETURN(0);
       }
    }
@@ -8817,18 +8939,16 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                            SUMA_SurfContHelp_DsetOpa,
                            SurfCont->ColPlaneOpacity);
 
-      #if 0 /* Do we really need stippling?*/
       SUMA_BuildMenuReset(0);
-      SurfCont->DsetEdgeStipMenu =
-         SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetEdgeStip);
+      SurfCont->TractStyleMenu =
+         SUMA_Alloc_Menu_Widget(SW_N_SurfCont_TractStyle);
       SUMA_BuildMenu (rc, XmMENU_OPTION, 
-                "St", '\0', YUP, DsetEdgeStip_Menu,
+                "Ln", '\0', YUP, TractStyle_Menu,
                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
-                "Choose the stippling option for graph edges.",
-                SUMA_SurfContHelp_DsetEdgeStip, 
-                SurfCont->DsetEdgeStipMenu );
-      XtManageChild (SurfCont->DsetEdgeStipMenu->mw[SW_SurfCont_DsetEdgeStip]);
-      #endif
+                "Line drawing style",
+                SUMA_SurfContHelp_TractStyle, 
+                SurfCont->TractStyleMenu );
+      XtManageChild (SurfCont->TractStyleMenu->mw[SW_SurfCont_TractStyle]);
       
       XtManageChild (rc);
      
@@ -8838,40 +8958,58 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
           XmNpacking, XmPACK_TIGHT, 
           XmNorientation , XmHORIZONTAL ,
           NULL);
+             
+      SurfCont->Mask_pb = XtVaCreateWidget ("Masks", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (SurfCont->Mask_pb, XmNactivateCallback, 
+                     SUMA_cb_Mask, 
+                        (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont));
+      XtVaSetValues (SurfCont->Mask_pb, XmNuserData, 
+                     (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont), NULL); 
+      MCW_register_hint( SurfCont->Mask_pb , "Switch to Masks controller" ) ;
+      MCW_register_help( SurfCont->Mask_pb , SUMA_SurfContHelp_Mask ) ;
+      XtManageChild (SurfCont->Mask_pb); 
+ 
          
-       SUMA_BuildMenuReset(0);
-       SurfCont->TractMaskMenu =
-           SUMA_Alloc_Menu_Widget(SW_N_SurfCont_TractMask);
-       SUMA_BuildMenu (rc, XmMENU_OPTION, 
-                 "Msk", '\0', YUP, TractMask_Menu,
-                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
-                 "Choose how masked tracts are displayed.",
-                 SUMA_SurfContHelp_TractMask, 
-                 SurfCont->TractMaskMenu );
-       XtManageChild (SurfCont->TractMaskMenu->mw[SW_SurfCont_TractMask]);
-       
-       SUMA_BuildMenuReset(0);
-       SUMA_CreateArrowField ( rc, "Gry",
-                            TSaux->MaskGray, 0.0, 100, 5,
-                            2, SUMA_int,
-                            NOPE,
-                            SUMA_cb_Tract_NewGray, (void *)ado,
-                            SUMA_SurfCont_TractMask_hint,
-                            SUMA_SurfContHelp_TractMaskGray,
-                            SurfCont->TractMaskGray);
-       XtManageChild (rc);
+      SUMA_BuildMenuReset(0);
+      SurfCont->TractMaskMenu =
+          SUMA_Alloc_Menu_Widget(SW_N_SurfCont_TractMask);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                "", '\0', YUP, TractMask_Menu,
+                (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
+                "Choose how masked tracts are displayed.",
+                SUMA_SurfContHelp_TractMask, 
+                SurfCont->TractMaskMenu );
+      XtManageChild (SurfCont->TractMaskMenu->mw[SW_SurfCont_TractMask]);
+      if (!SUMA_findanyMDOp(NULL)) 
+         XtSetSensitive(SurfCont->TractMaskMenu->mw[SW_SurfCont_TractMask], 0);
       
-       XtVaCreateManagedWidget (  "sep", 
-                                  xmSeparatorWidgetClass, rcv, 
-                                  XmNorientation, XmHORIZONTAL,NULL);
-
-       /* row column for Switch, Load, Delete */
-       rc = XtVaCreateWidget ("rowcolumn",
-          xmRowColumnWidgetClass, rcv,
-          XmNpacking, XmPACK_TIGHT, 
-          XmNorientation , XmHORIZONTAL ,
-          NULL);
+      SUMA_BuildMenuReset(0);
+      SUMA_CreateArrowField ( rc, "Gry",
+                           TSaux->MaskGray, 0.0, 100, 5,
+                           2, SUMA_int,
+                           NOPE,
+                           SUMA_cb_Tract_NewGray, (void *)ado,
+                           SUMA_SurfCont_TractMask_hint,
+                           SUMA_SurfContHelp_TractMaskGray,
+                           SurfCont->TractMaskGray);
+      if (!SUMA_findanyMDOp(NULL)) 
+         XtSetSensitive(SurfCont->TractMaskGray->rc, 0);
          
+      XtManageChild (rc);
+      
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rcv, 
+                                 XmNorientation, XmHORIZONTAL,NULL);
+
+      /* row column for Switch, Load, Delete */
+      rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         NULL);
+        
       /* put a push button to switch between color planes */
       SurfCont->SwitchDsetlst = 
             SUMA_AllocateScrolledList ("Switch Coloring", 
@@ -9012,42 +9150,6 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data, 
-                                     XtPointer callData)
-{
-   static char FuncName[] = {"SUMA_cb_createSurfaceCont_MDO"};
-   Widget tl, pb, form, DispFrame, SurfFrame, 
-          rc_left, rc_right, rc_mamma, rc_gmamma, tls=NULL;
-   Display *dpy;
-   SUMA_ALL_DO *ado;
-   SUMA_MaskDO *mdo;
-   char *slabel, *lbl30, *sss=NULL;
-   XmString xmstmp; 
-   SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_OVERLAYS *curColPlane=NULL, *over0=NULL;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   ado = (SUMA_ALL_DO *)data;
-   if (ado->do_type != MASK_type) {
-      SUMA_S_Errv("Calling me with (%s) other than MASK_type type,\n" 
-                  "I don't like that, call me with MDO",
-                  SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
-      SUMA_RETURNe;
-   }
-   mdo = (SUMA_MaskDO *)ado;
-   
-   SUMA_LHv("Creating SurfaceCont for type %s, label %s\n",
-            ADO_TNAME(ado), SUMA_ADO_Label(ado));
-   if (LocalHead) {
-      SUMA_DUMP_TRACE("Creating SurfaceCont");
-   }
-   
-   SUMA_S_Warn("No controllers for Mask DOs.\n"
-               "Masks are controlled from objects they mask");
-   SUMA_RETURNe;
-}
 
 void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
 {
@@ -9459,7 +9561,55 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                            NULL, (void *)ado, 
                            SurfCont->Co_slc);
       XtManageChild(rcv);
+
+      SUMA_BuildMenuReset(0);
+      SurfCont->VTransModeMenu = SUMA_Alloc_Menu_Widget(SW_N_SurfCont_ATrans);
+      SUMA_BuildMenu (  rcv, XmMENU_OPTION, 
+                        "Trn", '\0', YUP, VTransMode_Menu, 
+                        (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
+                        "Choose the transparency for these slices.",
+                        SUMA_SurfContHelp_VTransMode, 
+                        SurfCont->VTransModeMenu );
+      XtManageChild (SurfCont->VTransModeMenu->mw[SW_SurfCont_ATrans]);
+      
       XtManageChild (SurfCont->Slice_fr);
+   }
+   
+   SUMA_LH("Volume Rendering Controls");
+   {
+      Widget rc, rcv, pb;
+      
+      /* put a frame */
+      SurfCont->VR_fr = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, rc_left,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+      
+      XtVaCreateManagedWidget ("Volume Rendering Controls",
+            xmLabelWidgetClass, SurfCont->VR_fr, 
+            XmNchildType, XmFRAME_TITLE_CHILD,
+            XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+            NULL);
+      
+      /* vertical row column */
+      rcv = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SurfCont->VR_fr,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      
+      /* Slice toys */       
+      SUMA_CreateVrFields( rcv,  "Ns",
+                  SUMA_VR_hint, SUMA_VR_help,
+                  SUMA_VO_N_Slices((SUMA_VolumeObject *)ado, "Mx"),  ado,
+                           NULL, (void *)ado, 
+                           SurfCont->VR_fld);
+      XtManageChild(rcv);
+      XtManageChild (SurfCont->VR_fr);
    }
    
    SUMA_LH("Dset Controls");
@@ -9719,10 +9869,6 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
    SUMA_LH("%s",slabel);
    SUMA_free (slabel);
 
-   /* Mark as open */
-   SUMA_MarkSurfContOpen(1,ado);
-   
-   SUMA_LHv("Marked %s's controller as open.\n", SUMA_ADO_Label(ado));
    
    /* initialize the left side 
       (no need here, that's done in SUMA_cb_viewSurfaceCont)*/
@@ -9757,6 +9903,7 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
    SUMA_LH("going home.");
 
    SUMA_MarkSurfContOpen(1, ado);
+   SUMA_LHv("Marked %s's controller as open.\n", SUMA_ADO_Label(ado));
 
    SUMA_RETURNe;
 }
@@ -10257,6 +10404,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
       SUMA_DUMP_TRACE("NULL input on ADO");
       SUMA_RETURN(NOPE);
    }
+   
    if (!(oado = SUMA_SurfCont_GetcurDOp(SurfCont))) {
       SUMA_S_Err("Failed to retrieve DO"); SUMA_RETURN(NOPE);
    }
@@ -10267,6 +10415,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
                   SUMA_ObjectTypeCode2ObjectTypeName(oado->do_type),
                   ado->do_type, 
                   SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type));
+      SUMA_DUMP_TRACE("DO type mismatch");
       SUMA_RETURN(NOPE);
    } 
    if (oado == ado) {
@@ -10284,7 +10433,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
       SUMA_S_Err("Failed to set curDOp");
       SUMA_RETURN(NOPE);
    }
-   
+                
    if (!SameObject || 
        ( SUMAg_CF->X->UseSameSurfCont && 
          !SUMA_isCurrentContPage(SUMAg_CF->X->SC_Notebook, 
@@ -10334,6 +10483,15 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
                               TDO_N_TRACTS(tdo), SUMA_ADO_N_Datum(ado)); 
                }
                break; }
+            case MASK_type: { /* Won't be used anymore, see below */
+               SUMA_MaskDO *mdo = (SUMA_MaskDO *)mdo;
+               if (lbl30) { 
+                  sprintf(slabel,"Current: %s\n ", lbl30); 
+                  SUMA_free(lbl30); lbl30 = NULL;
+               } else {
+                  sprintf(slabel,"Current: ???\n "); 
+               }
+               break; }
             default:
                if (lbl30) { 
                   sprintf(slabel,"%s\n%d data vals.",
@@ -10344,11 +10502,13 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
                }
                break;
          }
-         SUMA_LHv("Setting label to\n>>%s<<\n", slabel);
-         string = XmStringCreateLtoR (slabel, XmSTRING_DEFAULT_CHARSET);
-         XtVaSetValues( SurfCont->SurfInfo_label, 
-                        XmNlabelString, string, NULL);
-         XmStringFree (string);
+         if (SurfCont->SurfInfo_label) { /* Not used for MASK_type */
+            SUMA_LHv("Setting label to\n>>%s<<\n", slabel);
+            string = XmStringCreateLtoR (slabel, XmSTRING_DEFAULT_CHARSET);
+            XtVaSetValues( SurfCont->SurfInfo_label, 
+                           XmNlabelString, string, NULL);
+            XmStringFree (string);
+         }
 
       if (slabel) SUMA_free(slabel); slabel = NULL;
       /* Can't do much with the SurfInfo button,
@@ -12361,7 +12521,7 @@ SUMA_Boolean SUMA_Set_Menu_Widget(SUMA_MENU_WIDGET *men, int i)
    SUMA_ENTRY;
    
    if (i<1) { SUMA_S_Err("i must be >=1"); SUMA_RETURN(NOPE);   }
-   if (!men) { SUMA_S_Err("NULL widget struct"); SUMA_RETURN(NOPE); }
+   if (!men) { SUMA_DUMP_TRACE("NULL widget struct"); SUMA_RETURN(NOPE); }
    if(men->menu_type == SUMA_XmArrowFieldMenu) {
       if (!men->af || !men->af->textfield) {
          SUMA_S_Err("Null AF for arrow field menu!");  SUMA_RETURN(NOPE);
@@ -16433,6 +16593,122 @@ void SUMA_cb_SetTransMode(Widget widget, XtPointer client_data,
    SUMA_RETURNe;
 }
 
+/*!
+   \brief sets the transparency mode of a volume/slices 
+   
+   - expects a SUMA_MenuCallBackData * in  client_data
+   with ado as client_data->ContID and Menubutton in client_data->callback_data
+*/
+void SUMA_cb_SetATransMode(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetATransMode"};
+   DList *list = NULL;
+   DListElmt *Elmnt = NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int imenu = 0;
+   
+   SUMA_ENTRY;
+
+   /* get the surface object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   ado = (SUMA_ALL_DO *)datap->ContID;
+   imenu = (INT_CAST)datap->callback_data; 
+   
+   switch (imenu) {
+      case SW_SurfCont_ATransViewerDefault:
+         imenu = SATM_ViewerDefault;
+         break;
+      case SW_SurfCont_Alpha:
+         imenu = SATM_ALPHA;
+         break;
+      case SW_SurfCont_ATrans0:
+         imenu = SATM_0;
+         break;
+      case SW_SurfCont_ATrans1:
+         imenu = SATM_1;
+         break;
+      case SW_SurfCont_ATrans2:
+         imenu = SATM_2;
+         break;
+      case SW_SurfCont_ATrans3:
+         imenu = SATM_3;
+         break;
+      case SW_SurfCont_ATrans4:
+         imenu = SATM_4;
+         break;
+      case SW_SurfCont_ATrans5:
+         imenu = SATM_5;
+         break;
+      case SW_SurfCont_ATrans6:
+         imenu = SATM_6;
+         break;
+      case SW_SurfCont_ATrans7:
+         imenu = SATM_7;
+         break;
+      case SW_SurfCont_ATrans8:
+         imenu = SATM_8;
+         break;
+      case SW_SurfCont_ATrans9:
+         imenu = SATM_9;
+         break;
+      case SW_SurfCont_ATrans10:
+         imenu = SATM_10;
+         break;
+      case SW_SurfCont_ATrans11:
+         imenu = SATM_11;
+         break;
+      case SW_SurfCont_ATrans12:
+         imenu = SATM_12;
+         break;
+      case SW_SurfCont_ATrans13:
+         imenu = SATM_13;
+         break;
+      case SW_SurfCont_ATrans14:
+         imenu = SATM_14;
+         break;
+      case SW_SurfCont_ATrans15:
+         imenu = SATM_15;
+         break;
+      case SW_SurfCont_ATrans16:
+         imenu = SATM_16;
+         break;
+      default: 
+         fprintf (SUMA_STDERR, "Error %s: Unexpected widget index.\n", FuncName);
+         break;
+   }
+   
+   
+   /* make a call to SUMA_Engine */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                       SES_SumaWidget, NULL);   
+   ED = SUMA_InitializeEngineListData (SE_SetATransMode);
+   Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_i, (void *)&imenu,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+   if (!SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)ado,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_In, Elmnt)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
+               FuncName);
+      SUMA_RETURNe;                                     
+   }
+   
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+      SUMA_RETURNe;    
+   }
+   
+   SUMA_RETURNe;
+}
+
 int SUMA_TransMode2TransModeMenuItem(int Mode)
 {
    static char FuncName[]={"SUMA_TransMode2TransModeMenuItem"};
@@ -16448,6 +16724,22 @@ int SUMA_TransMode2TransModeMenuItem(int Mode)
    SUMA_RETURN(Mode);
 }      
 
+int SUMA_ATransMode2ATransModeMenuItem(int Mode)
+{
+   static char FuncName[]={"SUMA_ATransMode2ATransModeMenuItem"};
+   
+   SUMA_ENTRY;
+   
+   if ((Mode) >= SW_N_SurfCont_ATrans || 
+       (Mode) <=  SW_SurfCont_ATrans) {
+      SUMA_S_Err("Bad mode, returning 0");    
+      SUMA_RETURN(SW_SurfCont_ATrans0);
+   }
+   
+   SUMA_RETURN(Mode);
+}
+
+  
 
 int SUMA_ShowMode2ShowModeMenuItem(int Mode)
 {
@@ -17140,6 +17432,76 @@ void SUMA_cb_SetDsetEdgeStip(Widget widget, XtPointer client_data,
    imenu = (INT_CAST)datap->callback_data; 
    
    if (!SUMA_SetDsetEdgeStip(ado, imenu, 0)) {
+      SUMA_S_Err("Failed to set view mode");
+      SUMA_RETURNe;
+   }
+      
+   
+   SUMA_RETURNe;
+}
+
+int SUMA_SetTractStyle(SUMA_ALL_DO *ado, int imenu, int updatemenu) 
+{
+   static char FuncName[]={"SUMA_SetTractStyle"};
+   DList *list = NULL;
+   DListElmt *Elmnt = NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+
+   SUMA_ENTRY;
+
+   /* make a call to SUMA_Engine */
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetTractStyle);
+
+   Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_i, (void *)&imenu,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+   if (!SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)ado,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_In, Elmnt)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
+               FuncName);
+      SUMA_RETURN(NOPE);                                     
+   }
+
+
+   if (!SUMA_Engine (&list)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+      SUMA_RETURN(NOPE);    
+   }
+
+   if (updatemenu && 
+       (SurfCont = SUMA_ADO_Cont(ado)) &&
+       (curColPlane = SUMA_ADO_CurColPlane(ado))) {
+      SUMA_Set_Menu_Widget( SurfCont->TractStyleMenu,
+                            curColPlane->EdgeStip);
+   }
+
+   SUMA_RETURN(YUP);
+}
+
+void SUMA_cb_SetTractStyle(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetTractStyle"};
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int imenu = 0;
+   
+   SUMA_ENTRY;
+
+   
+   /* get the  object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   ado = (SUMA_ALL_DO *)datap->ContID;
+   imenu = (INT_CAST)datap->callback_data; 
+   
+   if (!SUMA_SetTractStyle(ado, imenu, 0)) {
       SUMA_S_Err("Failed to set view mode");
       SUMA_RETURNe;
    }

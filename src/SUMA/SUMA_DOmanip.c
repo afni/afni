@@ -458,16 +458,24 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op,
 {
    static char FuncName[] = {"SUMA_RemoveDO"};
    int i;
-   SUMA_Boolean LocalHead = NOPE, Found=NOPE;
+   SUMA_Boolean Found=NOPE, State=YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    SUMA_LH("Called");
-   
+   if (LocalHead) {
+      SUMA_LH("Before deletion, %d objects", *N_dov);
+      for (i=0; i<*N_dov; ++i) {
+         fprintf(SUMA_STDERR,"%d: Label %s Type %s\n",
+                  i, ADO_LABEL((SUMA_ALL_DO*)dov[i].OP),
+                  ADO_TNAME((SUMA_ALL_DO*)dov[i].OP));
+      }
+   }
    for (i=0; i<*N_dov; ++i) {
       if (dov[i].OP == op) {
          Found = YUP;
-         if (LocalHead) SUMA_S_Err("found object. Removing it from dov.");
+         SUMA_LH("found object. Removing it from dov.");
          if (Free_op) {
             if (LocalHead) SUMA_S_Err("Freeing object.");
             if (!SUMA_Free_Displayable_Object (&dov[i])) {
@@ -482,12 +490,87 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op,
       }
    }
 
+   if (LocalHead) {
+      SUMA_LH("At exit, %d objects", *N_dov);
+      for (i=0; i<*N_dov; ++i) {
+         fprintf(SUMA_STDERR,"%d: Label %s Type %s\n",
+                  i, ADO_LABEL((SUMA_ALL_DO*)dov[i].OP),
+                  ADO_TNAME((SUMA_ALL_DO*)dov[i].OP));
+      }
+   }
    
    if (Found) {
-      SUMA_RETURN(YUP);
+      State=YUP;
+      /* Refresh all things indexing dov */
+      if (!SUMA_AllSV_RegisteredDO_Refresh()) {
+         SUMA_S_Err("Failed to refresh all registDO vectors");
+         State=NOPE;
+      }
+      if (!SUMA_AllViewState_MembsRefresh()) {
+         SUMA_S_Err("Failed to refresh all viewstate hist vectors");
+         State=NOPE;
+      }
+      SUMA_RETURN(State);
    } else {
       SUMA_RETURN(NOPE);
    }
+}
+
+/*
+   A function that must be called each time order of objects in 
+   SUMAg_DOv is disturbed 
+*/
+SUMA_Boolean SUMA_SV_RegisteredDO_Refresh(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_SV_RegisteredDO_Refresh"};
+   int ii=0, found = -1;
+   SUMA_Boolean LocalHead = NOPE;
+   SUMA_ENTRY;
+   
+   if (!sv) SUMA_RETURN(NOPE);
+   
+   ii = 0;
+   while (ii < sv->N_DO) {
+      if ( sv->RegistDO && 
+          (found = SUMA_whichDOg(sv->RegistDO[ii].idcode_str)) >= 0) {
+         /* A good thing, refresh index mapping */
+         sv->RegistDO[ii].dov_ind = found;
+      } else {
+         SUMA_LH("A bad entry in RegistDO at index %d/%d, cleaning", 
+                     ii, sv->N_DO);
+         strcpy(sv->RegistDO[ii].idcode_str, 
+                sv->RegistDO[sv->N_DO-1].idcode_str);
+         sv->RegistDO[ii].dov_ind = sv->RegistDO[sv->N_DO-1].dov_ind;
+         sv->N_DO = sv->N_DO-1;
+      }
+      ++ii;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_AllSV_RegisteredDO_Refresh(void) 
+{
+   static char FuncName[]={"SUMA_AllSV_RegisteredDO_Refresh"};
+   int i;
+   SUMA_Boolean state = YUP;
+   
+   SUMA_ENTRY;
+   
+   state = YUP;
+   for (i=0; i<SUMAg_N_SVv; ++i) {
+      if ((SUMAg_SVv+i) && 
+          !SUMA_SV_RegisteredDO_Refresh(SUMAg_SVv+i)) state = NOPE;
+   }
+   
+   SUMA_RETURN(state);
+}
+
+int SUMA_FindFirst_dov_ind (SUMA_DO_LOCATOR *x0, SUMA_DO_LOCATOR *x1, int val)
+{/*SUMA_FindFirst_dov_ind*/
+   SUMA_DO_LOCATOR *xi=x0;
+   while(x0<x1) if ((*x0).dov_ind==val) return((int)(x0-xi)); else ++x0;
+   return(-1);
 }
 
 /*!
@@ -502,6 +585,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
 {
    static char FuncName[]={"SUMA_RegisterDO"};
    int i, is, icsvmin=0, icsvmax=0, icsv=0;
+   char *sid=NULL;
    SUMA_SurfaceViewer *cSV=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -536,7 +620,7 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
       if (LocalHead) {
          /* scan for trouble */
          for (i=0; i<cSV->N_DO; ++i) {
-            if (cSV->RegisteredDO[i] < 0) {
+            if (cSV->RegistDO[i].dov_ind < 0) {
                SUMA_DUMP_TRACE("What the what?");
                exit(1);
             }
@@ -559,13 +643,15 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                           begin to load surfaces interactively, not from
                           the initial startup */
             /* check to see if dov_id exists */
-            if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
+            if (SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                         cSV->RegistDO+cSV->N_DO,
                                          dov_id) >= 0) { /* found, do nothing */
                goto NEXT_CSV;
             }
             /* Not yet registered so add it */
-            cSV->RegisteredDO[cSV->N_DO] = dov_id;
+            cSV->RegistDO[cSV->N_DO].dov_ind = dov_id;
+            sid = iDO_idcode(dov_id);
+            strcpy(cSV->RegistDO[cSV->N_DO].idcode_str,sid);
             cSV->N_DO += 1;
             
             /* Now add the ColorList, if DO is a surface object */
@@ -604,30 +690,37 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                /* Register it also in all states of VSv that are AnatCorrect */
                for (is=0; is < cSV->N_VSv; ++is) {
                   if (cSV->VSv[is].AnatCorrect && 
-                     SUMA_FindFirst_inIntVect(cSV->VSv[is].MembDOs,
-                                  cSV->VSv[is].MembDOs+cSV->VSv[is].N_MembDOs,
+                     SUMA_FindFirst_dov_ind(cSV->VSv[is].MembDO,
+                                  cSV->VSv[is].MembDO+cSV->VSv[is].N_MembDO,
                                   dov_id) < 0) {
-                     cSV->VSv[is].N_MembDOs += 1;
-                     cSV->VSv[is].MembDOs = 
-                        (int *)SUMA_realloc(cSV->VSv[is].MembDOs,
-                                             cSV->VSv[is].N_MembDOs*sizeof(int));   
-                     cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
+                     cSV->VSv[is].N_MembDO += 1;
+                     cSV->VSv[is].MembDO = 
+                        (SUMA_DO_LOCATOR *)SUMA_realloc(cSV->VSv[is].MembDO,
+                              cSV->VSv[is].N_MembDO*sizeof(SUMA_DO_LOCATOR));
+                     cSV->VSv[is].MembDO[cSV->VSv[is].N_MembDO-1].dov_ind = 
+                                                                        dov_id;
+                     sid = iDO_idcode(dov_id);
+                     strcpy(
+                        cSV->VSv[is].MembDO[cSV->VSv[is].N_MembDO-1].idcode_str,
+                        sid);
                   }
                }
                /* if the current state is anatomical, register object also 
-                  in cSV->RegisteredDO */
+                  in cSV->RegistDO */
                if (SUMA_isViewerStateAnatomical(cSV)) {
-                  if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
+                  if (SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                         cSV->RegistDO+cSV->N_DO,
                                          dov_id) < 0) {
-                     cSV->RegisteredDO[cSV->N_DO] = dov_id;
+                     cSV->RegistDO[cSV->N_DO].dov_ind = dov_id;
+                     sid = iDO_idcode(dov_id);
+                     strcpy(cSV->RegistDO[cSV->N_DO].idcode_str,sid);
                      cSV->N_DO += 1;
                   } else {
                      SUMA_LHv("   GLDO %s, %s already in the bag at"
                               " cSV->RegisteredDO[%d]\n", 
                                  DO_label(GLDO), GLDO->variant,
-                                 SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
+                                 SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                         cSV->RegistDO+cSV->N_DO,
                                          dov_id));
                   }
                   SUMA_LH("Adding color list (if necessary)...");
@@ -650,19 +743,21 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                         GLDO->Label, SUMA_iDO_state(dov_id),
                         SUMA_iDO_group(dov_id), cSV->State);
                if (!strcmp(cSV->State, SUMA_iDO_state(dov_id))) {
-                  if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                      cSV->RegisteredDO+cSV->N_DO,
+                  if (SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                      cSV->RegistDO+cSV->N_DO,
                                       dov_id) < 0) {/* not present, add it */
                      SUMA_LHv("   GLDO %s, %s has been appended\n",
                            DO_label(GLDO), GLDO->variant);
-                  cSV->RegisteredDO[cSV->N_DO] = dov_id;
+                  cSV->RegistDO[cSV->N_DO].dov_ind = dov_id;
+                  sid = iDO_idcode(dov_id);
+                  strcpy(cSV->RegistDO[cSV->N_DO].idcode_str,sid);
                   cSV->N_DO += 1; 
                   } else {
                      SUMA_LHv("   GLDO %s, %s already in the bag at"
                            " cSV->RegisteredDO[%d]\n", 
                               DO_label(GLDO), GLDO->variant,
-                              SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                      cSV->RegisteredDO+cSV->N_DO,
+                              SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                      cSV->RegistDO+cSV->N_DO,
                                       dov_id));
                   }
                   SUMA_LH("Adding color list.");
@@ -695,30 +790,37 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
                /* Register it also in all states of VSv that are AnatCorrect */
                for (is=0; is < cSV->N_VSv; ++is) {
                   if (cSV->VSv[is].AnatCorrect && 
-                     SUMA_FindFirst_inIntVect(cSV->VSv[is].MembDOs,
-                                  cSV->VSv[is].MembDOs+cSV->VSv[is].N_MembDOs,
+                     SUMA_FindFirst_dov_ind(cSV->VSv[is].MembDO,
+                                  cSV->VSv[is].MembDO+cSV->VSv[is].N_MembDO,
                                   dov_id) < 0) {
-                     cSV->VSv[is].N_MembDOs += 1;
-                     cSV->VSv[is].MembDOs = 
-                        (int *)SUMA_realloc(cSV->VSv[is].MembDOs,
-                                             cSV->VSv[is].N_MembDOs*sizeof(int));   
-                     cSV->VSv[is].MembDOs[cSV->VSv[is].N_MembDOs-1] = dov_id;
+                     cSV->VSv[is].N_MembDO += 1;
+                     cSV->VSv[is].MembDO = 
+                        (SUMA_DO_LOCATOR *)SUMA_realloc(cSV->VSv[is].MembDO,
+                                 cSV->VSv[is].N_MembDO*sizeof(SUMA_DO_LOCATOR));   
+                     cSV->VSv[is].MembDO[cSV->VSv[is].N_MembDO-1].dov_ind = 
+                                                                        dov_id;
+                     sid = iDO_idcode(dov_id);
+                     strcpy(
+                        cSV->VSv[is].MembDO[cSV->VSv[is].N_MembDO-1].idcode_str,
+                        sid);
                   }
                }
                /* if the current state is anatomical, register object also 
-                  in cSV->RegisteredDO */
+                  in cSV->RegistDO */
                if (SUMA_isViewerStateAnatomical(cSV)) {
-                  if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
+                  if (SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                         cSV->RegistDO+cSV->N_DO,
                                          dov_id) < 0) {
-                     cSV->RegisteredDO[cSV->N_DO] = dov_id;
+                     cSV->RegistDO[cSV->N_DO].dov_ind = dov_id;
+                     sid = iDO_idcode(dov_id);
+                     strcpy(cSV->RegistDO[cSV->N_DO].idcode_str,sid);
                      cSV->N_DO += 1;
                   } else {
                      SUMA_LHv("   ADO %s, already in the bag at"
                               " cSV->RegisteredDO[%d]\n", 
                                  ADO_LABEL(ADO),
-                                 SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
+                                 SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                         cSV->RegistDO+cSV->N_DO,
                                          dov_id));
                   }
                   SUMA_LH("Adding color list for %s (id %s), viewer %p %d [%c]", 
@@ -748,11 +850,13 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
          default:
             SUMA_LHv("Just adding DO %s, no states, nothing\n",
                      iDO_label(dov_id));
-            if (SUMA_FindFirst_inIntVect(cSV->RegisteredDO,
-                                         cSV->RegisteredDO+cSV->N_DO,
+            if (SUMA_FindFirst_dov_ind(cSV->RegistDO,
+                                         cSV->RegistDO+cSV->N_DO,
                                          dov_id) < 0){
                /* just add for now */
-               cSV->RegisteredDO[cSV->N_DO] = dov_id;
+               cSV->RegistDO[cSV->N_DO].dov_ind = dov_id;
+               sid = iDO_idcode(dov_id);
+               strcpy(cSV->RegistDO[cSV->N_DO].idcode_str,sid);
                cSV->N_DO += 1;
             }
             break;
@@ -762,9 +866,10 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
          for (i=0; i< cSV->N_DO; ++i) {
             fprintf(SUMA_STDERR,
                         "RegisteredDO[%d] = %d , type=%d (%s) label %s\t", i, 
-                        cSV->RegisteredDO[i], iDO_type(cSV->RegisteredDO[i]),
-             SUMA_ObjectTypeCode2ObjectTypeName(iDO_type(cSV->RegisteredDO[i])),
-                        iDO_label(cSV->RegisteredDO[i]));
+                        cSV->RegistDO[i].dov_ind, 
+                        iDO_type(cSV->RegistDO[i].dov_ind),
+        SUMA_ObjectTypeCode2ObjectTypeName(iDO_type(cSV->RegistDO[i].dov_ind)),
+                        iDO_label(cSV->RegistDO[i].dov_ind));
          }
          fprintf(SUMA_STDERR,"\n");
       }
@@ -781,16 +886,28 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSVu)
 }
 /*!
 remove DO with I.D. dov_id from RegisteredDO list of that current viewer
-removal of dov_id element is done by replacing it with the last entry in RegisteredDO
+removal of dov_id element is done by replacing it with the last entry in RegistDO
 list. If not found, nothing happens.
 */
 SUMA_Boolean SUMA_UnRegisterDO_idcode(char *idcode_str, SUMA_SurfaceViewer *cSV)
 {
    static char FuncName[]={"SUMA_UnRegisterDO_idcode"};
-   int id = SUMA_FindDOi_byID(SUMAg_DOv, SUMAg_N_DOv, idcode_str);
+   int id = SUMA_FindDOi_byID(SUMAg_DOv, SUMAg_N_DOv, idcode_str), isv;
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
+   
+   SUMA_LH("Unregistering %s, iid %d (%s), sv %p", 
+            idcode_str, id, iDO_label(id), cSV);
    if (id >= 0) {
-      SUMA_RETURN(SUMA_UnRegisterDO(id, cSV));
+      if (cSV) {
+         SUMA_RETURN(SUMA_UnRegisterDO(id, cSV));
+      } else {
+         for (isv=0; isv<SUMAg_N_SVv; ++isv) {
+            SUMA_UnRegisterDO(id,SUMAg_SVv+isv);
+         }
+         SUMA_RETURN(YUP);
+      }
    }   
    SUMA_RETURN(YUP);
 } 
@@ -799,37 +916,63 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
 {
    int i;
    static char FuncName[]={"SUMA_UnRegisterDO"};
+   SUMA_ALL_DO *ado=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (!cSV) SUMA_RETURN(NOPE);
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: RegistDO begins (target %d -- %s):\n", 
+               FuncName, dov_id, ADO_LABEL((SUMA_ALL_DO*)SUMAg_DOv[dov_id].OP));
+      for (i=0; i< cSV->N_DO; ++i) {
+         fprintf(SUMA_STDERR,"RegistDO[%d] = %d in DOv (%s)\n", 
+            i, cSV->RegistDO[i].dov_ind, 
+            ADO_LABEL((SUMA_ALL_DO*)SUMAg_DOv[cSV->RegistDO[i].dov_ind].OP));
+      }
+      fprintf(SUMA_STDERR,"\n");
+   }
+   
    /* check to see if dov_id exists */
    i = 0;
    while (i < cSV->N_DO) {
-      if (cSV->RegisteredDO[i] == dov_id) {
+      if (cSV->RegistDO[i].dov_ind == dov_id) {
+         SUMA_LH("Removing %d", dov_id);
          /* found, replace it by the last in the list */
-         cSV->RegisteredDO[i] = cSV->RegisteredDO[cSV->N_DO-1];
+         cSV->RegistDO[i].dov_ind = cSV->RegistDO[cSV->N_DO-1].dov_ind;
+         strcpy(cSV->RegistDO[i].idcode_str, 
+                cSV->RegistDO[cSV->N_DO-1].idcode_str);
          /*remove the last element of the list */
-         cSV->RegisteredDO[cSV->N_DO-1] = 0;
+         cSV->RegistDO[cSV->N_DO-1].dov_ind = -1;
+         cSV->RegistDO[cSV->N_DO-1].idcode_str[0]='\0';
          cSV->N_DO -= 1; 
          
          /* empty the ColorList for this surface */
-         if (SUMA_isSO(SUMAg_DOv[dov_id])) {
-            SUMA_SurfaceObject *SO = NULL;
-            if (LocalHead) 
-               fprintf (SUMA_STDERR,"%s: Emptying ColorList ...\n", FuncName);
-            SO = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
-            if (!SUMA_EmptyColorList (cSV, SO->idcode_str)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_EmptyColorList\n", 
-                           FuncName);
-               SUMA_RETURN(NOPE);
-            }
+         ado = iDO_ADO(dov_id);
+         switch (ado->do_type) {
+            case SO_type:
+               SUMA_LH("Emptying ColorList ...");
+               if (!SUMA_EmptyColorList (cSV, ADO_ID(ado))) {
+                  SUMA_S_Err("Failed in SUMA_EmptyColorList\n");
+                  SUMA_RETURN(NOPE);
+               }
+               break;
+            default:
+               if (!SUMA_EmptyColorList (cSV, ADO_ID(ado))) {
+                  SUMA_S_Err("Failed to empty color list for %s, type %s\n", 
+                              ADO_LABEL(ado), ADO_TNAME(ado));
+                  SUMA_RETURN(NOPE);
+               }
+               break;
          }
          
          if (LocalHead) {
-            fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
+            fprintf (SUMA_STDERR,"%s: RegistDO is now:\n", FuncName);
             for (i=0; i< cSV->N_DO; ++i) {
-               fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", 
-                        i, cSV->RegisteredDO[i]);
+               fprintf(SUMA_STDERR,"RegistDO[%d] = %d in DOv (%s)\n", 
+                        i, cSV->RegistDO[i].dov_ind,
+               ADO_LABEL((SUMA_ALL_DO*)SUMAg_DOv[cSV->RegistDO[i].dov_ind].OP));
             }
             fprintf(SUMA_STDERR,"\n");
          }
@@ -845,11 +988,12 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
    /* Not found, nothing happens */
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: RegisteredDO is now:\n", FuncName);
+      fprintf (SUMA_STDERR,"%s: Nothing found, registeredDO still:\n", FuncName);
       for (i=0; i< cSV->N_DO; ++i) {
-         fprintf(SUMA_STDERR,"RegisteredDO[%d] = %d\t", i, cSV->RegisteredDO[i]);
+         fprintf(SUMA_STDERR,"RegistDO[%d] = %d\t", i, cSV->RegistDO[i].dov_ind);
       }
       fprintf(SUMA_STDERR,"\n");
+      SUMA_DUMP_TRACE("Why nothing found?");
    }
    
    SUMA_RETURN(YUP); 
@@ -1197,9 +1341,10 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                break; }
             case MASK_type: {
                SS = SUMA_StringAppend_va(SS,
-                        "DOv ID: %d\n\tMask  Object\n"
+                        "DOv ID: %d\tLabel: %s\n\tMask  Object\n"
                         "\tType: %d (%s), Axis Attachment %d\n", 
-                        i,dov[i].ObjectType, 
+                        i, ADO_LABEL((SUMA_ALL_DO *)dov[i].OP), 
+                        dov[i].ObjectType, 
                      SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
                      dov[i].CoordType);
                break; }
@@ -1264,7 +1409,7 @@ char *SUMA_MaskDOInfo (SUMA_MaskDO *mdo, int detail)
    
    if (mdo) {
       SS = SUMA_StringAppend_va(SS, "Mask %p\n", mdo);
-      SS = SUMA_StringAppend(SS,"Fill this function up please");
+      SS = SUMA_StringAppend(SS,"No info for masks yet.");
       SUMA_ifree(s);
    } else {
       SS = SUMA_StringAppend(SS, "NULL Mask.");
@@ -1290,7 +1435,7 @@ char *SUMA_VolumeObjectInfo (SUMA_VolumeObject *vo, int detail)
    
    if (vo) {
       SS = SUMA_StringAppend_va(SS, "VolumeObject %p\n", vo);
-      SS = SUMA_StringAppend(SS,"Fill this function up please");
+      SS = SUMA_StringAppend(SS,"No info for volumes yet.");
       SUMA_ifree(s);
    } else {
       SS = SUMA_StringAppend(SS, "NULL VO.");
@@ -1936,7 +2081,9 @@ void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type)
 
 }
 
-
+SUMA_SurfaceObject * SUMA_findanySOp(int *dov_id) {
+   return(SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv, dov_id));
+}
 SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
 {
    static char FuncName[]={"SUMA_findanySOp_inDOv"};
@@ -1958,6 +2105,9 @@ SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
    SUMA_RETURN(NULL);
 }
 
+SUMA_VolumeObject * SUMA_findanyVOp(int *dov_id) {
+   return(SUMA_findanyVOp_inDOv(SUMAg_DOv, SUMAg_N_DOv, dov_id));
+}
 SUMA_VolumeObject * SUMA_findanyVOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
 {
    static char FuncName[]={"SUMA_findanyVOp_inDOv"};
@@ -1977,6 +2127,10 @@ SUMA_VolumeObject * SUMA_findanyVOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
    }
    
    SUMA_RETURN(NULL);
+}
+
+SUMA_TractDO * SUMA_findanyTDOp(int *dov_id) {
+   return(SUMA_findanyTDOp_inDOv(SUMAg_DOv, SUMAg_N_DOv, dov_id));
 }
 
 SUMA_TractDO * SUMA_findanyTDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
@@ -2000,6 +2154,11 @@ SUMA_TractDO * SUMA_findanyTDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
    SUMA_RETURN(NULL);
 }
 
+SUMA_MaskDO * SUMA_findanyMDOp(int *dov_id) 
+{
+   return(SUMA_findanyMDOp_inDOv(SUMAg_DOv, SUMAg_N_DOv, dov_id));
+}
+
 SUMA_MaskDO * SUMA_findanyMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
 {
    static char FuncName[]={"SUMA_findanyMDOp_inDOv"};
@@ -2015,6 +2174,29 @@ SUMA_MaskDO * SUMA_findanyMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
          MDO = (SUMA_MaskDO *)dov[i].OP;
          if (dov_id) *dov_id = i;
          SUMA_RETURN (MDO);
+      }
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+SUMA_MaskDO * SUMA_findShadowMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id)
+{
+   static char FuncName[]={"SUMA_findShadowMDOp_inDOv"};
+   SUMA_MaskDO *MDO;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (dov_id) *dov_id = -1;
+   MDO = NULL;
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == MASK_type) {
+         MDO = (SUMA_MaskDO *)dov[i].OP;
+         if (MDO_IS_SHADOW(MDO)) {
+            if (dov_id) *dov_id = i;
+            SUMA_RETURN (MDO);
+         }
       }
    }
    
@@ -2499,6 +2681,8 @@ SUMA_Boolean SUMA_isRelated( SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2 , int level)
    
    if (!ado1 || !ado2) SUMA_RETURN(NOPE);
    
+   if (LocalHead) SUMA_DUMP_TRACE("Relatives!");
+   
    if (ado1 == ado2) SUMA_RETURN(YUP);
    
    switch (ado1->do_type) {
@@ -2531,7 +2715,10 @@ SUMA_Boolean SUMA_isRelated( SUMA_ALL_DO *ado1, SUMA_ALL_DO *ado2 , int level)
          SUMA_RETURN(NOPE);
          break;
       case MASK_type:
-         SUMA_S_Err("Not implemented yet, perhaps like VO and TRACT?");
+         if (ado2->do_type == ado1->do_type ||
+             ado2->do_type == TRACT_type) {
+            SUMA_RETURN(YUP);
+         }
          SUMA_RETURN(NOPE);
          break;
       default:

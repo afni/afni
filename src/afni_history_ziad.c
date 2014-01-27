@@ -65,6 +65,28 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, Jan, 2014, ZSS, "suma", MINOR, TYPE_GENERAL,
+   "Added transparency for slice displays",
+   NULL 
+ }, 
+ 
+ { 23, Jan, 2014, ZSS, "suma", MINOR, TYPE_GENERAL,
+   "Added GUI for tract mask editing",
+   NULL 
+ }, 
+ 
+ { 23, Jan, 2014, ZSS, "suma", MINOR, TYPE_GENERAL,
+   "Added volume rendering in addition to slice rendering ",
+   "No clipping planes yet." 
+ }, 
+ 
+ { 10, Jan, 2014, ZSS, "DriveSuma", MICRO, TYPE_NEW_ENV,
+   "Added SUMA_DriveSumaMaxCloseWait env ",
+   "This controls how long DriveSuma waits before it considers\n"
+   "a currently open stream lost forever. Consider also\n"
+   "env SUMA_DriveSumaMaxWait." 
+ }, 
+ 
  { 8, Jan, 2014, ZSS, "ConvertDset", MINOR, TYPE_NEW_OPT,
    "Added -graph_XYZ_LPI to flip coords to RAI for the user.",
    NULL

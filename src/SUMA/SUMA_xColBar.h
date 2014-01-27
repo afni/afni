@@ -101,6 +101,21 @@ No callback is made*/
    }  \
 }
 
+#define SUMA_CELL_ROW_COL_2_1D(m_TF, m_row, m_col) \
+   ( ((m_TF) && (m_row) >= 0 && (m_row) < (m_TF)->Ni && \
+                (m_col) >= 0 && (m_col) < (m_TF)->Nj) \
+         ? (m_row)+(m_TF)->Ni*(m_col):-1 )
+
+#define SUMA_CELL_1D_2_ROW_COL(m_TF, m_n, m_row, m_col) {\
+   (m_row) = (m_col) = -1;   \
+   if (((m_TF)) && (m_n) >= 0) {   \
+      (m_row) = (m_n) % (m_TF)->Ni; \
+      (m_col) = (m_n) / (m_TF)->Ni; \
+      if ((m_row) >= (m_TF)->Ni || (m_col) >= (m_TF)->Nj) {\
+         (m_row) = (m_col) = -1;   \
+      }\
+   }  \
+}
 
 /* scale size gets messed up, see afni_widg.c and afni.h's
 FIX_SCALE_SIZE*/
@@ -357,6 +372,8 @@ SUMA_TABLE_FIELD * SUMA_AllocTableField(void);
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF);
 SUMA_SLICE_FIELD * SUMA_AllocSliceField(void);
 SUMA_SLICE_FIELD * SUMA_FreeSliceField(SUMA_SLICE_FIELD *SF);
+SUMA_VR_FIELD * SUMA_AllocVRField(void);
+SUMA_VR_FIELD * SUMA_FreeVRField(SUMA_VR_FIELD *VrF);
 int SUMA_set_slice_label(SUMA_ALL_DO *ado, char *variant, float val);
 int SUMA_set_slice_scale(SUMA_ALL_DO *ado, char *variant, float val);
 void SUMA_cb_set_Ax_slice_label(Widget w, XtPointer clientData, XtPointer call);
@@ -374,6 +391,9 @@ void SUMA_cb_set_Co_slice(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cb_set_Sa_slice(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cb_set_Ax_slice(Widget w, XtPointer clientData, XtPointer call);
 SUMA_CELL_VARIETY SUMA_cellvariety (SUMA_TABLE_FIELD *TF, int n);
+int SUMA_RowTitCell(SUMA_TABLE_FIELD *TF, int r);
+int SUMA_ColTitCell(SUMA_TABLE_FIELD *TF, int c);
+int SUMA_ObjectID_Row(SUMA_TABLE_FIELD *TF, char *id);
 SUMA_Boolean SUMA_InitRangeTable(SUMA_ALL_DO *ado, int what);
 SUMA_Boolean SUMA_InitClustTable(SUMA_ALL_DO *ado);
 void SUMA_CreateXhairWidgets(Widget parent, SUMA_ALL_DO *ado);
@@ -438,6 +458,9 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec);
 SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
 SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado, 
                                      SUMA_SurfaceViewer *sv);
+XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
+                                 char *fontname, char *tag);
+
 /* the help strings */
 
 /* Surface Properties Block */
@@ -454,6 +477,19 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "   Fill:   Shaded rendering mode.\n"  \
    "   Line:   Mesh rendering mode.\n"    \
    "   Points: Points rendering mode."   
+
+#define  SUMA_SurfContHelp_VTransMode  \
+   "Choose the transparency for this volume.\n" \
+   "   Viewer: Surface's transparency is set\n"  \
+   "           by the viewer's setting which can\n"   \
+   "           be changed with the 'o', 'O' options.\n"  \
+   "           Cheesecloth transparency only is allowed in\n"\
+   "           this setting.\n"\
+   "   A :   Alpha blending. May look good, but not always\n"\
+   "         accurate.\n"  \
+   "   0 :   No transparency, opaque.\n"  \
+   "   ...\n"    \
+   "   16:   Maximum transparency, invisibile"   
 
 #define  SUMA_SurfContHelp_TransMode  \
    "Choose the transparency for this surface.\n" \
@@ -498,11 +534,20 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "   Const: All nodes have a radius of 1 x Gain.\n"  \
    "   Val: Nodes size equals its dset value x Gain\n"  
 
+#define  SUMA_SurfContHelp_TractStyle  \
+   "Choose the line drawing style.\n" \
+   "   Digits specify number of pixels to mask out of each 16 pixels\n"\
+   "   1 :   One pixel/16, almost solid\n"  \
+   "   ...\n"    \
+   "   15:   15/16 pixels on, almost invisible\n"   \
+   "   HDE: Hide all the tracts\n"  \
+   "   SLD: No stippling, solid line.\n"  
+
 #define  SUMA_SurfContHelp_DsetEdgeStip  \
    "Choose the stippling for edges of this graph dataset.\n" \
-   "   1 :   One pixel/16, the stippliest\n"  \
+   "   1 :   One pixel/16, almost solid\n"  \
    "   ...\n"    \
-   "   15:   15/16 pixels on, almost solid\n"   \
+   "   15:   15/16 pixels on, almost invisible\n"   \
    "   Val: Set stippling based on the dset value\n"  \
    "   XXX: No stippling, solid line.\n"  
 
@@ -938,6 +983,8 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
 
 #define SUMA_SurfContHelp_ShowSliceTgl \
    "View (ON)/Hide slice"
+#define SUMA_SurfContHelp_ShowVrFTgl \
+   "View (ON)/Hide Volume Rendering"
 
 #define SUMA_SurfContHelp_SetRngTbl_r0 \
    "Used for setting the clipping ranges."   \
@@ -1170,7 +1217,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
    "Same as 'ctrl+j' or\n"   \
    "an entry in the 'Node' cell\n"   \
    "under Xhair Info block."
-
+  
 #define SUMA_SurfContHelp_RangeTbl_r1  \
    "Range of values in intensity (I) column."
 
@@ -1180,6 +1227,30 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
 #define SUMA_SurfContHelp_RangeTbl_r3  \
    "Range of values in brightness (B) column."
 
+#define  SUMA_SurfContHelp_MaskTypeTbl_c0 \
+   "Properties of current mask."
+           
+#define SUMA_SurfContHelp_MaskTypeTbl_c1 \
+   "Label."
+
+#define SUMA_SurfContHelp_MaskTypeTbl_c2 \
+   "Type string (box or sphere allowed)."
+
+#define SUMA_SurfContHelp_MaskTypeTbl_c3 \
+   "Coordinate in mm RAI of the center of the mask \n"   \
+   "You can enter new coordinates or right click in cell to\n"   \
+   "get back to the original center.\n"
+   
+#define SUMA_SurfContHelp_MaskTypeTbl_c4 \
+   "Size along three dimensions of mask. Enter new values or right\n"\
+   "click in cell to get back to the original center.\n"
+
+#define SUMA_SurfContHelp_MaskTypeTbl_c5  \
+   "Color of mask.\n" 
+
+#define SUMA_SurfContHelp_MaskTypeTbl_r1  \
+   "Range of values in intensity (I) column."
+
 #define SUMA_SurfContHelp_GDSET_ViewBundles \
    "Show bundles instead of edges between nodes if \n"\
    "the graph dataset contains such information. For\n"\
@@ -1187,6 +1258,10 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
 
 #define SUMA_SurfContHelp_GDSET_ViewUncon \
    "Show graph nodes even if unconnected to other nodes.\n"
+
+#define  SUMA_SurfContHelp_Mask  \
+   "Opens controller for masks.\n" \
+   "Creates a default mask if none exists already."
 
 /* this one's based on AFNI's func->thr_pval_label help */
 #define SUMA_SurfContHelp_ThreshStats  \

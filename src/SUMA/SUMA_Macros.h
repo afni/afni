@@ -764,16 +764,6 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   \brief set transmode
-*/ 
-#define SUMA_SET_SO_TRANSMODE(SO,i){ \
-   if (i < 0 || i >= STM_N_TransModes) { SO->TransMode = STM_ViewerDefault; }\
-   else { SO->TransMode = i; } \
-   if (SO->TransMode == STM_16) { SO->Show = NOPE; } \
-   else { SO->Show = YUP; } \
-}
-
-/*!
    \brief calculates the average 'radius' of a surface.
    avg(dist(node_i,center));
 */
