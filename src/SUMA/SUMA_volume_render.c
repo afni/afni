@@ -715,6 +715,8 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
                         (int)SUMA_MAX_PAIR(SurfCont->Sa_slc->slice_num/2,1);
          VSaux->ShowCoSlc = 0;
          SurfCont->Co_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Co")/2.0); 
+         
+         VSaux->ShowVrSlc = 0;
       } else {
          SUMA_S_Err("Failed to initialize volume display");
       }
@@ -1465,9 +1467,6 @@ void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset,
    SUMA_RETURNe;
 }
 
-
-
-
 SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawVolumeDO_OLD"};
@@ -1505,8 +1504,6 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    }
    
    if (!VO->SOcut || !VO->SOcut[0]) SUMA_VO_InitCutPlanes(VO);
-   
-   SUMA_S_Note("HERE");
    
    
    if (0) {
@@ -1550,7 +1547,6 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    gl_dt = glIsEnabled(GL_DEPTH_TEST);
    gl_bl = glIsEnabled(GL_BLEND);  
    
-   SUMA_S_Note("JERE");
    ive = 0;   
    while (VO->VE && VO->VE[ive]) {
       if (!VO->VE[ive]->texName) {
@@ -1825,6 +1821,57 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    
 }
 
+SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
+                                    SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_GET_VR_Slice_Pack"};
+   SUMA_VOL_SAUX *VSaux=NULL;
+   SUMA_RENDERED_SLICE *rslc=NULL;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   float *cen = NULL, Eq[4], *PlOff=NULL;
+   int nn;
+   int N_slc=150;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!VO || !(VSaux = SUMA_ADO_VSaux((SUMA_ALL_DO *)VO)) ||
+       !(SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)VO))) {
+      SUMA_RETURN(NOPE);
+   }
+
+   if (  SurfCont->VR_fld->N_slice_num < 0 || 
+         SurfCont->VR_fld->N_slice_num > 2000) {
+      N_slc = 150;
+   } else N_slc = (int) SurfCont->VR_fld->N_slice_num;
+   
+   cen = SUMA_VO_Grid_Center(VO, NULL);
+   SUMA_ScreenPlane_WorldSpace(sv, cen, Eq);
+   PlOff = (float *)SUMA_calloc(N_slc, sizeof(float));
+   if (!PlOff || (SUMA_PlaneBoxSlice( sv->GVS[sv->StdView].ViewFrom, Eq, 
+                                      VO->VE[0]->bcorners, NULL, NULL,
+                                      PlOff, N_slc) < 0)) {
+      SUMA_S_Err("Failed to allocate or get %d slicing planes", N_slc);
+      SUMA_ifree(PlOff);
+      SUMA_RETURN(NOPE);                       
+   }
+   for (nn=0; nn<N_slc; ++nn) {
+      rslc = (SUMA_RENDERED_SLICE *) SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
+      rslc->Eq[0] = Eq[0]; rslc->Eq[1] = Eq[1]; rslc->Eq[2] = Eq[2];
+      rslc->Eq[3] = PlOff[nn] ;
+      /* stick plane in list, last one to be rendered goes to top */
+      SUMA_LH("Intersecting VR plane %f %f %f %f, on vol %s\n"
+              "(origin %f %f %f)",
+               rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
+               SUMA_VE_Headname(VO->VE,0),
+               VO->VE[0]->I2X[3][0], 
+               VO->VE[0]->I2X[3][1],VO->VE[0]->I2X[3][2]);
+      dlist_ins_next(VSaux->vrslcl, dlist_head(VSaux->vrslcl), rslc);
+   }
+   SUMA_ifree(PlOff);
+   SUMA_RETURN(YUP);
+}
+
 SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO, 
                                  char *variant, SUMA_SurfaceViewer *sv)
 {
@@ -1853,6 +1900,9 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
          break;
       case 'C':
          slc = SurfCont->Co_slc;
+         break;
+      case 'V': /* Volume Rendering */
+         SUMA_RETURN(SUMA_GET_VR_Slice_Pack(VO, sv));
          break;
       default:
          slc = NULL;
@@ -1943,14 +1993,25 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, 
                                SUMA_SurfaceViewer *sv)
 {
-   return(SUMA_DrawVolumeDO_safe(VO, sv));
+   static char FuncName[]={"SUMA_DrawVolumeDO"};
+   SUMA_ENTRY;
+   if (!SUMA_DrawVolumeDO_slices(VO,sv)) {
+      SUMA_S_Err("Failed to draw slices");
+      SUMA_RETURN(NOPE);
+   }
+   if (!SUMA_DrawVolumeDO_3D(VO, sv)) {
+      SUMA_S_Err("Failed to render volume");
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_RETURN(YUP);
 }
 
+
 /* Draw Volume Data, in slice mode for now */
-SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO, 
+SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO, 
                                     SUMA_SurfaceViewer *sv)
 {
-   static char FuncName[]={"SUMA_DrawVolumeDO_safe"};
+   static char FuncName[]={"SUMA_DrawVolumeDO_slices"};
    int i = 0, k = 0, j=0, ive=0;
    float iq[4]={0, 0, 0, 0}, vo0[3], voN[3];
    static int ipass=0, iplane = 0;
@@ -1964,6 +2025,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO,
    static GLfloat init_rotationMatrix[4][4];
    static GLdouble dmatrix[16], init_mv_matrix[16];
    DListElmt *el=NULL;
+   DList *st=NULL;
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)VO;
    SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
    SUMA_OVERLAYS *colp = NULL;
@@ -1971,6 +2033,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO,
    float* nlt; /*JB: temporary node list, because I do not want to type 
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
+   SUMA_ATRANS_MODES trmode=SATM_ViewerDefault;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1988,34 +2051,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO,
    
    if (!VO->Show) SUMA_RETURN(YUP);
    
-   if (sv->PolyMode != SRM_Fill) {
-      /* fill it up */
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
-   }
-   
    if (!VO->SOcut || !VO->SOcut[0]) SUMA_VO_InitCutPlanes(VO);
       
-   /* Now we need to draw the sucker */
-   SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
-   glEnable(GL_TEXTURE_3D);
-   if (!(gl_at = glIsEnabled(GL_ALPHA_TEST))) glEnable(GL_ALPHA_TEST);   
-   if (colp->AlphaThresh == 0.0f) glAlphaFunc(GL_ALWAYS, colp->AlphaThresh);
-   else glAlphaFunc(GL_GREATER, colp->AlphaThresh);
-                              /* Thresholded voxels alphas are set to 0 */
-   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
-               VO->TexEnvMode   ); /* what happens if 
-                              there is color already on a vertex (I would likely
-                              not need this for 3D textures...*/
-   
-   gl_dt = glIsEnabled(GL_DEPTH_TEST);
-   gl_bl = glIsEnabled(GL_BLEND);  
-   
-   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
-   if ((gl_bl)) glDisable(GL_BLEND);/* Can't blend properly when showing 
-                                       slices, particularly stacks and
-                                       multiple planes. Becomes a royal pain 
-                                       to render all in proper order*/
-
    if (!VO->VE || !VO->VE[0]) { 
       SUMA_S_Err("No elements?");
       SUMA_RETURN(NOPE);
@@ -2039,6 +2076,67 @@ SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO,
       }
       ++ive;
    }
+   
+   if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
+      SUMA_S_Err("Failed to create tracking list");
+      SUMA_RETURN(NOPE); 
+   }
+   
+   if (sv->PolyMode != SRM_Fill) {
+      /* fill it up */
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+   }
+   
+   /* Now we need to draw the sucker */
+   SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
+   glEnable(GL_TEXTURE_3D);
+   if (!(gl_at = glIsEnabled(GL_ALPHA_TEST))) glEnable(GL_ALPHA_TEST);   
+   if (colp->AlphaThresh == 0.0f) glAlphaFunc(GL_ALWAYS, colp->AlphaThresh);
+   else glAlphaFunc(GL_GREATER, colp->AlphaThresh);
+                              /* Thresholded voxels alphas are set to 0 */
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
+               VO->TexEnvMode   ); /* what happens if 
+                              there is color already on a vertex (I would likely
+                              not need this for 3D textures...*/
+   
+   gl_dt = glIsEnabled(GL_DEPTH_TEST);
+   gl_bl = glIsEnabled(GL_BLEND);  
+   
+   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
+   
+   glGetIntegerv(GL_SHADE_MODEL, &shmodel);
+   if (shmodel != GL_FLAT) 
+      glShadeModel(GL_FLAT);
+      
+   trmode = VSaux->TransMode;
+   if (trmode == SATM_ViewerDefault) {
+      if ((trmode = SUMA_TransMode2ATransMode(sv->TransMode)) 
+            <= SATM_ViewerDefault || trmode >= SATM_N_TransModes) {
+         SUMA_S_Warn("Bad trans mode change from %d to %d", 
+                      sv->TransMode,trmode);
+         trmode =  SATM_0;     
+      }
+   }
+   if (trmode <= SATM_ViewerDefault || trmode > SATM_N_TransModes) {
+      SUMA_S_Warn("Bad trmode %d", trmode);
+      trmode =  SATM_0;
+   }
+   if (trmode == SATM_ALPHA) {
+      /* Setup blending options */
+      /* See note below, but might be OK with few slices */
+      if ((!gl_bl)) glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   } else {
+      /* The safe way. Can't blend properly when showing 
+         slices, particularly stacks and
+         multiple planes. Becomes a royal pain 
+         to render all in proper order*/
+      if ((gl_bl)) glDisable(GL_BLEND);
+      if (trmode > SATM_0) {
+         SUMA_LHv("ATrans Mode %d\n", trmode );
+         SUMA_SET_GL_TRANS_MODE(SUMA_ATransMode2TransMode(trmode), st);
+      }
+   }
    /* empty list of rendered slices */
    while ((el = dlist_head(VSaux->slcl))) {
       dlist_remove(VSaux->slcl, el, (void **)&rslc);
@@ -2059,12 +2157,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO,
    }
    
    SUMA_LH("Have %d slices to render", dlist_size(VSaux->slcl));
-   /* Setup blending options */
-      glGetIntegerv(GL_SHADE_MODEL, &shmodel);
-      if (shmodel != GL_FLAT) 
-         glShadeModel(GL_FLAT);
-	   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
+   SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
       
       
    /* Generate the textures for all VEs. Note, no blending of textures
@@ -2146,91 +2239,232 @@ SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO,
    glFlush();
    if (!gl_at) glDisable(GL_ALPHA_TEST); 
    
-   
-   /* Here we create a texture on the cutplane from the last dset loaded
-   At the moment, without this texture, nothing shows 
-   of the overlay volume */
-   if (0 && LastTextureOnCutPlane) {
-      --ive; /* bring ive counter to last dset put into texture*/
-      SUMA_dset_tex_slice_corners( 0, SUMA_VE_dset(VO->VE, ive), 
-                                   tex_corn, slc_corn, NULL, 2, 0);
-
-      // Joachim says this is just wrong ...
-      tz = 0.5+(-VO->CutPlane[0][3])/(float)VO_NK(VO);
-
-      glEnable(GL_DEPTH_TEST);
-
-      /* If it were not for the slice textures shown here, then the overlay 
-         texture would not show up at all! */
-      #if 0 
-      SUMA_LH("Texture on the slice, with triangles");
-      glBegin(GL_TRIANGLES);
-         k = 0;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
-                                    -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
-                                    -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
-                                    -VO->CutPlane[0][3]);
-
-         k = 0;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
-                                    -VO->CutPlane[0][3]); k+=2;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
-                                    -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
-                                    -VO->CutPlane[0][3]);
-
-      glEnd();
-      #else
-      SUMA_LH("Texture on the slice, QUADS?");
-      glBegin(GL_QUADS);
-         for (k=0; k<4; ++k) {
-            glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
-                  /* this one is affected by the Texture MatrixMode */
-            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], 
-                                          -VO->CutPlane[0][3]); 
-                  /* this one is affected by the Modelview matrixMode*/
-         }
-      glEnd();
-      #endif
-      glDisable(GL_DEPTH_TEST);
-   }
    glDisable(GL_TEXTURE_3D);
    
    if (shmodel != GL_FLAT) glShadeModel(shmodel);
-   #if 0
-   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
-   glEnable(GL_COLOR_MATERIAL);
-   for (iplane=0; iplane < 6; ++iplane) {
-      if (VO->UseCutPlane[iplane]) {
-         if (iplane == VO->SelectedCutPlane) glColor3f(1.0, 1.0, 1.0);
-         else { 
-            if (ShowUnselected) {
-               if (iplane==0 || iplane == 1) glColor3f(1.0, 0.0, 0.0); 
-               if (iplane==2 || iplane == 3) glColor3f(0.0, 1.0, 0.0); 
-               if (iplane==4 || iplane == 5) glColor3f(0.0, 0.0, 1.0); 
-            } else {
-               continue;
-            }
-         }
-         glBegin(GL_LINE_LOOP);
-            nlt = VO->SOcut[iplane]->NodeList; 
-            glVertex3f( nlt[0],nlt[1],nlt[2] );
-            glVertex3f( nlt[3],nlt[4],nlt[5] );
-            glVertex3f( nlt[6],nlt[7],nlt[8] );
-            glVertex3f( nlt[9],nlt[10],nlt[11] );
-         glEnd();
-      }
+   
+   if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
+      SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    }
-   glDisable(GL_COLOR_MATERIAL);
+
+   if (gl_dt) glEnable(GL_DEPTH_TEST);
+   else glDisable(GL_DEPTH_TEST);
+   if (gl_bl) glEnable(GL_BLEND);
+   else glDisable(GL_BLEND);
+
+   SUMA_LH("Undoing state changes, should fold ones above in here someday");
+   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
+   SUMA_RETURN(YUP);
+}
+
+
+/* Draw Volume Data, in 3D this time */
+SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO, 
+                                    SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_DrawVolumeDO_3D"};
+   int i = 0, k = 0, j=0, ive=0;
+   float iq[4]={0, 0, 0, 0}, vo0[3], voN[3];
+   static int ipass=0, iplane = 0;
+   SUMA_RENDERED_SLICE *rslc=NULL;
+   GLfloat tex_corn[18] ;
+   GLfloat slc_corn[18] ;
+   GLfloat rotationMatrix[4][4], rt[4][4];
+   GLboolean gl_dt, gl_bl, gl_at;
+   int ShowUnselected = 1, shmodel, nqd, ivelast;
+   float tz = 0.0, I[3];
+   static GLfloat init_rotationMatrix[4][4];
+   static GLdouble dmatrix[16], init_mv_matrix[16];
+   DListElmt *el=NULL;
+   SUMA_ALL_DO *ado = (SUMA_ALL_DO *)VO;
+   SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+   SUMA_OVERLAYS *colp = NULL;
+   SUMA_DSET *dset=NULL;
+   float* nlt; /*JB: temporary node list, because I do not want to type 
+                  "VO->SOcut[0]->NodeList" over and over...*/
+   SUMA_Boolean LastTextureOnCutPlane=YUP;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!VO) SUMA_RETURN(NOPE);
+   if (!sv) sv = &(SUMAg_SVv[0]);
+   if (!(colp = SUMA_ADO_CurColPlane(ado))) {
+      SUMA_S_Err("Need colp here");
+      SUMA_RETURN(NOPE);
+   }
+   if (sv->DO_PickMode) {
+      SUMA_LH("No need to draw volume in DO_PickMode");
+      SUMA_RETURN(YUP);
+   }
+   
+   if (!VO->Show) SUMA_RETURN(YUP);
+
+   if (!VSaux->ShowVrSlc) SUMA_RETURN(YUP);
+      
+   if (sv->PolyMode != SRM_Fill) {
+      /* fill it up */
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+   }
+   
+   if (!VO->SOcut || !VO->SOcut[0]) SUMA_VO_InitCutPlanes(VO);
+      
+   /* Now we need to draw the sucker */
+   SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
+   glEnable(GL_TEXTURE_3D);
+   /* You need a separate control for this ALPHA_TEST, perhaps.
+      Enabling it, even at 0.1 threshold, causes ugly slice striping
+      artifacts. It is possible we might need it for something later on...*/
+   if (!(gl_at = glIsEnabled(GL_ALPHA_TEST))) glEnable(GL_ALPHA_TEST);   
+   #if 0
+   if (colp->AlphaThresh == 0.0f) glAlphaFunc(GL_ALWAYS, colp->AlphaThresh);
+   else glAlphaFunc(GL_GREATER, colp->AlphaThresh);
+                              /* Thresholded voxels alphas are set to 0 */
+   #else
+   glAlphaFunc(GL_ALWAYS, colp->AlphaThresh);
    #endif
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
+               VO->TexEnvMode   ); /* what happens if 
+                              there is color already on a vertex (I would likely
+                              not need this for 3D textures...*/
+   
+   gl_dt = glIsEnabled(GL_DEPTH_TEST);
+   gl_bl = glIsEnabled(GL_BLEND);  
+   
+   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
+   if (!(gl_bl)) glEnable(GL_BLEND);/* Can't blend properly when showing 
+                                       slices, particularly stacks and
+                                       multiple planes. Becomes a royal pain 
+                                       to render all in proper order*/
+
+   if (!VO->VE || !VO->VE[0]) { 
+      SUMA_S_Err("No elements?");
+      SUMA_RETURN(NOPE);
+   }
+
+   /* setup slices per VO's standards, dictated by the first VE */
+   dset = SUMA_VO_dset(VO);
+   if (!(dset = SUMA_VO_dset(VO))) {
+      SUMA_S_Err("No dset?");
+      SUMA_RETURN(NOPE);
+   } 
+
+   /* make sure all textures are ready */
+   ive = 0;   
+   while (VO->VE && VO->VE[ive]) {
+      if (!VO->VE[ive]->texName) {
+         if (!SUMA_CreateGL3DTexture(VO)) {
+            SUMA_S_Err("Failed to create texture");
+            SUMA_RETURN(NOPE);
+         }
+      }
+      ++ive;
+   }
+   /* empty list of rendered slices */
+   while ((el = dlist_head(VSaux->vrslcl))) {
+      dlist_remove(VSaux->vrslcl, el, (void **)&rslc);
+      SUMA_Free_SliceListDatum((void *)rslc);
+   }
+
+   /* Now create list of 3D slices */
+
+   if (VSaux->ShowVrSlc && !SUMA_Get_Slice_Pack(VO, "Vr", sv)) {
+      SUMA_S_Err("Failed to get VR slice pack");
+   }
+   
+   
+   SUMA_LH("Have %d slices to render", dlist_size(VSaux->vrslcl));
+   /* Setup blending options */
+      glGetIntegerv(GL_SHADE_MODEL, &shmodel);
+      if (shmodel != GL_FLAT) 
+         glShadeModel(GL_FLAT);
+	   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
+      
+      
+   /* Generate the textures for all VEs. Note, no blending of textures
+      is done at the moment.                                          
+      If you have multiple VEs, you will need to render one slice at a 
+      time from each of the volumes. Blend them in the accumulate buffer
+      and then return. Textures will need to be bound/unbound for each
+      VE, each slice. Clunky but I won't bother with it until it proves
+      too slow.*/
+   if (SUMA_VO_NumVE(VO) > 1) {
+      SUMA_S_Warn("Not ready to deal with multiple textures quite yet");
+   }
+
+   SUMA_LH("Have %d slices", dlist_size(VSaux->vrslcl));
+   ivelast=-1;
+   if ((el = dlist_tail(VSaux->vrslcl))) {
+      do {
+         rslc = (SUMA_RENDERED_SLICE *)el->data;
+         
+         ive = 0;   
+         while (VO->VE && VO->VE[ive]) {
+            if (ive != ivelast) {
+               glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]); 
+               ivelast = ive;
+            }                                 /* make texName be current */
+            /* compute plane intersection with VE[ive] */
+            if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom, 
+                                             rslc->Eq, VO->VE[ive]->bcorners, 
+                                             slc_corn)) > 2) {
+               SUMA_LH("Have plane %f %f %f %f, %d pts on vol %s",
+                           rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
+                           nqd,  SUMA_VE_Headname(VO->VE,ive));
+               glBegin(GL_POLYGON);
+                  for (k=0; k<6; ++k) { /* draw all 6 points always, even 
+                                           when there are repetitions. 
+                                           Don't bother trimming to unique
+                                           set unless this causes trouble */
+                     /* change mm (edge coordinate to texture coords) */
+                     AFF44_MULT_I(tex_corn, VO->VE[ive]->X2I, (slc_corn+3*k));
+                     /* offset indices because slc_corn is on edge */
+                     if (tex_corn[0] < 0) tex_corn[0] = 0;
+                     else if (tex_corn[0] > VO->VE[ive]->Ni-1) 
+                        tex_corn[0] = VO->VE[ive]->Ni-1;
+                     if (tex_corn[1] < 0) tex_corn[1] = 0;
+                     else if (tex_corn[1] > VO->VE[ive]->Nj-1) 
+                        tex_corn[1] = VO->VE[ive]->Nj-1;
+                     if (tex_corn[2] < 0) tex_corn[2] = 0;
+                     else if (tex_corn[2] > VO->VE[ive]->Nk-1) 
+                        tex_corn[2] = VO->VE[ive]->Nk-1;
+                     tex_corn[0] /= (float)(VO->VE[ive]->Ni-1);
+                     tex_corn[1] /= (float)(VO->VE[ive]->Nj-1);
+                     tex_corn[2] /= (float)(VO->VE[ive]->Nk-1);
+                     glTexCoord3f(tex_corn[0], 
+                                  tex_corn[1], tex_corn[2]);
+                           /* this one is affected by the Texture MatrixMode */
+                     glVertex3f(slc_corn[3*k], 
+                                slc_corn[3*k+1], slc_corn[3*k+2]); 
+                           /* this one is affected by the Modelview matrixMode*/
+                  }
+               glEnd();                                 
+            }
+            if (ive > 0) {
+               SUMA_S_Warn("Add blending here");
+               /* Here is where you blend slice from this VE with the previous 
+                  This should work just fine as is actually, no need to blend
+                  separately unless doing overlay on top always. In that case,
+                  render each VE separately then blend results across VEs
+               */
+            }
+            ++ive;
+         }
+            
+         if (el != dlist_head(VSaux->vrslcl)) el = dlist_prev(el);
+         else el = NULL;
+      } while (el);
+   }
+   SUMA_CHECK_GL_ERROR("OpenGL Error ddd");
+   
+   glFlush();
+   if (!gl_at) glDisable(GL_ALPHA_TEST); 
+   
+   
+   glDisable(GL_TEXTURE_3D);
+   
+   if (shmodel != GL_FLAT) glShadeModel(shmodel);
    
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);

@@ -641,7 +641,7 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    SUMA_LHv("Checking too small a surface: %f\n", SO->MaxCentDist);
    /* check for too small a surface */
    if (SO->MaxCentDist < 10.0 && !iwarn) {
-      if (!(sv = SUMA_BestViewerForDO((SUMA_ALL_DO *)SO))) sv = SUMAg_SVv;
+      if (!(sv = SUMA_BestViewerForADO((SUMA_ALL_DO *)SO))) sv = SUMAg_SVv;
       if (sv) { /* This can be null when surfaces are created on the fly,
                    No need to warn in that case though.*/
          if (sv->GVS[sv->StdView].DimSclFac < 5 && !iwarn) {

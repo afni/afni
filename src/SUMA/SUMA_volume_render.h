@@ -32,6 +32,8 @@ int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
                                              char *variant,int slider, 
                           GLfloat *tcorners, GLfloat *corners, GLfloat *slc_cen, 
                           float *PlEq, int voxcen );
+SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO, 
+                                    SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO, 
                                  char *variant, SUMA_SurfaceViewer *sv);
 void SUMA_dset_tex_slice_corners( int slc, SUMA_DSET *dset, 
@@ -48,7 +50,9 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp);
 GLubyte * SUMA_VE_to_tex3d(SUMA_VolumeElement **VE, int iVE, byte col);
 int SUMA_MoveCutplane (SUMA_VolumeObject *VO, int iplane, float d);
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv);
-SUMA_Boolean SUMA_DrawVolumeDO_safe(SUMA_VolumeObject *VO, 
+SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO, 
+                                    SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO, 
                                     SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, 
                                    SUMA_SurfaceViewer *sv);

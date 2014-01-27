@@ -2717,51 +2717,6 @@ SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO,
    SUMA_RETURN(YUP);
 }
 
-int SUMA_MDO_New_Center(SUMA_MaskDO *mdo, float *cen)
-{
-   static char FuncName[]={"SUMA_MDO_New_Center"};
-   float off[3];
-   int i, i3;
-   SUMA_ENTRY;
-   
-   if (!mdo || !cen) SUMA_RETURN(-1);
-   
-   if (MDO_IS_BOX(mdo)|| MDO_IS_SPH(mdo)) {
-      for (i=0; i<3; ++i) {/* offset everything by the center of 1st obj */
-         off[i] = cen[i] - mdo->init_cen[i];
-      }
-      i = 0;
-      while (i<3*mdo->N_obj) {
-         mdo->cen[i] = mdo->init_cen[i] + off[0]; ++i;
-         mdo->cen[i] = mdo->init_cen[i] + off[1]; ++i;
-         mdo->cen[i] = mdo->init_cen[i] + off[2]; ++i;        
-      }
-      if (mdo->SO) SUMA_Free_Surface_Object(mdo->SO); mdo->SO=NULL;
-      if (!(mdo->SO = SUMA_box_surface(mdo->hdim, mdo->cen, 
-                                       mdo->colv, mdo->N_obj))) {
-           SUMA_S_Err("Failed to create box SO!");
-           SUMA_RETURN(-1);
-      }
-      SUMA_RETURN(1);
-   } else if (MDO_IS_SURF(mdo)) {
-      SUMA_S_Warn("Not quite, you cannot revert to initial positions this way"
-                  "Need at least to store initial center somewhere...");
-      for (i=0; i<3; ++i) off[i] = cen[i] - mdo->SO->Center[i];
-      for (i=0; i<mdo->SO->N_Node; ++i) {
-         i3 = mdo->SO->NodeDim*i;
-         mdo->SO->NodeList[i3  ] += off[0];
-         mdo->SO->NodeList[i3+2] += off[1];
-         mdo->SO->NodeList[i3+3] += off[2];
-      }
-      for (i=0; i<3; ++i) mdo->SO->Center[i] = cen[i];
-      SUMA_RETURN(YUP);  
-   } 
-   
-   SUMA_S_Err("Not ready for %s", mdo->mtype);
-   
-   SUMA_RETURN(-1);
-}
-
 SUMA_Boolean SUMA_EquateSurfaceCenters (SUMA_SurfaceObject *SO, 
                                         SUMA_SurfaceObject *SOref,
                                         int recompute)
@@ -14568,13 +14523,14 @@ int SUMA_q_wrap( int npt , float * xyz , int ** ijk , int fliporient,
    cam   (float *): Coordinates of Camera location 
                     Used in concert with plane to identify closest
                     vertex of box
-   PlEq  (float *): Coordinates of slicing plane
+   PlEq  (float *): Equation of slicing plane
    cvert (float *): Coordinates of 8 vertices forming cube
    p     (float *): Coordinates of 6 points forming intersection
                     Some points may be duplicates.
    Returns nhits (int): Number of unique points hit
+   \sa SUMA_BoxSlice
 */
-int SUMA_PlaneBoxIntersect(float *cam, float *PlEq, 
+int SUMA_PlaneBoxIntersect( float *cam, float *PlEq, 
                             float *cvert, float p[18])
 {
    static char FuncName[]={"SUMA_PlaneBoxIntersect"};
@@ -14693,6 +14649,207 @@ int SUMA_PlaneBoxIntersect(float *cam, float *PlEq,
    SUMA_RETURN(nhits);
 }
 
+/*! Slice a box along a plane.
+   cam   (float *): Coordinates of Camera location 
+                    Used in concert with plane to identify closest
+                    vertex of box (3x1 vals)
+   PlEq  (float *): Equation of slicing plane (4x1 vals)
+                    Note that PlEq[3] will not be used, slicing will
+                    go from the farthest point on the screeen to the 
+                    closest.
+   cvert (float *): Coordinates of 8 vertices forming cube 
+                    (8 xyz triplets -- 24x1)
+   pv    (float *): To contain coordinates of 6 points forming intersection
+                    for each slice. Note that some slices may 
+                    have duplicate points.
+                    (xyz0_slc0 xyz1_slc0 ... xyz5_slc0
+                     xyz0_slc1 xyz1_slc1 ... xyz5_slc1
+                     ...       ...       ... ...
+                     xyz0_slcK xyz1_slcK ... xyz5_slcK)
+                     with K = N_slc -1
+                     Total space allocate for P is (18*N_slcx1)
+   hits  (int *): To contain number of hits for each slice
+                     Total space allocated for hits (N_slcx1)
+   PlOff  (float *): To contain the offset of the plane (PlEq[3])
+                     at the slice.
+   N_slc (int): Number of slices to create.
+   
+   Returns maximum nuber of hits across all slices (0--6).
+   -1 for error.
+   If only requesting PlOff (i.e. pv and hits are NULL) then
+   1 means function ran OK. -1 means bad news.
+   
+   \sa SUMA_PlaneBoxIntersect()
+*/ 
+int SUMA_PlaneBoxSlice( float *cam, float *PlEq, 
+                        float *cvert, 
+                        float *pv, int *hits, float *PlOff, int N_slc)
+{
+   static char FuncName[]={"SUMA_PlaneBoxSlice"};
+      /* Cube vertex ordering depending on closest vertex */
+   int vertord[8][8]={ { 0 , 4 , 1 , 3 , 7 , 5 , 2 , 6 },
+                       { 1 , 2 , 0 , 5 , 6 , 3 , 4 , 7 },
+                       { 2 , 6 , 3 , 1 , 5 , 7 , 0 , 4 },
+                       { 3 , 0 , 2 , 7 , 4 , 1 , 6 , 5 },
+                       { 4 , 7 , 5 , 0 , 3 , 6 , 1 , 2 },
+                       { 5 , 1 , 4 , 6 , 2 , 0 , 7 , 3 },
+                       { 6 , 5 , 7 , 2 , 1 , 4 , 3 , 0 },
+                       { 7 , 3 , 6 , 4 , 0 , 2 , 5 , 1 } };
+   
+   float *pinter, *p, Eqor3, Eqcl3, Eqfr3, *Vfr, *Vcl;
+   float dd, mindist, maxdist, *V0, *V1, *V2, *V3, *V4, *V5, *V6, *V7, stp; 
+   int ii, icl, ifr, nhits=0, hit, nn, maxhits = -1, OnlyPlOff=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!cam || !PlEq || !cvert) SUMA_RETURN(-1);
+   
+   if ((pv && !hits) || (!pv && hits)) {
+      SUMA_S_Err("Must have both or none of pv and hits");
+      SUMA_RETURN(-1);
+   }
+   if (!pv && !hits && !PlOff) {
+      SUMA_S_Err("Nothing to do!");
+      SUMA_RETURN(-1);
+   }
+   if (!pv && !hits) {
+      OnlyPlOff = 1;
+   }
+   
+   Eqor3 = PlEq[3]; /* Save original offset */
+   SUMA_SHIFT_PLANE_TO_P(PlEq, cam); /* Shift to pass by cam */
+   
+   /* Find closest vertex and farthest vertices to plane through cam */
+   ii = 0; icl = 0; ifr = 0;
+   mindist = maxdist = SUMA_DIST_FROM_PLANE_EQ(PlEq, cvert);
+   while (ii<8) {
+      pinter = cvert+3*ii;
+      dd = SUMA_DIST_FROM_PLANE_EQ(PlEq, pinter);
+      if (dd < mindist) {
+         icl = ii;
+         mindist = dd;
+      }
+      if (dd > maxdist) {
+         ifr = ii;
+         maxdist = dd;
+      }
+      ++ii; 
+   }
+
+   SUMA_LH("Closest  vertex to %f %f %f is %d"
+           "Farthest vertex to %f %f %f is %d",
+           cam[0], cam[1], cam[2], icl,
+           cam[0], cam[1], cam[2], ifr);
+   
+   
+   V0 = cvert+3*vertord[icl][0];
+   V1 = cvert+3*vertord[icl][1];
+   V2 = cvert+3*vertord[icl][2];
+   V3 = cvert+3*vertord[icl][3];
+   V4 = cvert+3*vertord[icl][4];
+   V5 = cvert+3*vertord[icl][5];
+   V6 = cvert+3*vertord[icl][6];
+   V7 = cvert+3*vertord[icl][7];
+
+   /* Shift plane to closest point */
+   Vcl = cvert+3*vertord[icl][0];
+   SUMA_SHIFT_PLANE_TO_P(PlEq, Vcl);
+   Eqcl3 = PlEq[3];
+   /* Shift plane to farthest point */
+   Vfr = cvert+3*vertord[ifr][0];
+   SUMA_SHIFT_PLANE_TO_P(PlEq, Vfr);
+   Eqfr3 = PlEq[3];
+   /* Compute the step */
+   stp = (Eqcl3 - Eqfr3)/N_slc;
+   
+   if (OnlyPlOff) {
+      for (nn=0; nn<N_slc; ++nn) {
+         PlEq[3]+=stp;
+         PlOff[nn] = PlEq[3];
+      }
+      SUMA_RETURN(1);
+   }
+   
+   for (nn=0; nn<N_slc; ++nn) {
+      PlEq[3]+=stp;
+      
+      /* Record plane location */
+      if (PlOff) PlOff[nn] = PlEq[3];
+      
+      nhits = 0;
+      
+      /* Check for P0 intersection */
+      p = pv+18*nn;
+      pinter = p;
+         SUMA_SEGMENT_PLANE_INTERSECT(V0, V1, PlEq, hit, pinter);
+      if (!hit) {
+         SUMA_SEGMENT_PLANE_INTERSECT(V1, V4, PlEq, hit, pinter);
+      }
+      if (!hit) {
+         SUMA_SEGMENT_PLANE_INTERSECT(V4, V7, PlEq, hit, pinter);
+      }
+      if (!hit) { hits[nn]=nhits; continue; }
+      ++nhits;
+
+      /* Check for P2 intersection */
+      pinter = p+6;
+         SUMA_SEGMENT_PLANE_INTERSECT(V0, V2, PlEq, hit, pinter);
+      if (!hit) {
+         SUMA_SEGMENT_PLANE_INTERSECT(V2, V5, PlEq, hit, pinter);
+      }
+      if (!hit) {
+         SUMA_SEGMENT_PLANE_INTERSECT(V5, V7, PlEq, hit, pinter);
+      }
+      if (!hit) { hits[nn]=nhits; continue; }
+      ++nhits;
+
+      /* Check for P4 intersection */
+      pinter = p+12;
+         SUMA_SEGMENT_PLANE_INTERSECT(V0, V3, PlEq, hit, pinter);
+      if (!hit) {
+         SUMA_SEGMENT_PLANE_INTERSECT(V3, V6, PlEq, hit, pinter);
+      }
+      if (!hit) {
+         SUMA_SEGMENT_PLANE_INTERSECT(V6, V7, PlEq, hit, pinter);
+      }
+      if (!hit) { hits[nn]=nhits; continue; }
+      ++nhits;
+
+      /* Check for P1 intersection */
+      pinter = p+3;
+         SUMA_SEGMENT_PLANE_INTERSECT(V1, V5, PlEq, hit, pinter);
+      if (!hit) { /* resort to P0 */
+         pinter[0] = p[0]; pinter[1] = p[1]; pinter[2] = p[2];
+      } else ++nhits;
+
+      /* Check for P3 intersection */
+      pinter = p+9;
+         SUMA_SEGMENT_PLANE_INTERSECT(V2, V6, PlEq, hit, pinter);
+      if (!hit) { /* resort to P2 */
+         pinter[0] = p[6]; pinter[1] = p[7]; pinter[2] = p[8];
+      } else ++nhits;
+
+      /* Check for P5 intersection */
+      pinter = p+15;
+         SUMA_SEGMENT_PLANE_INTERSECT(V3, V4, PlEq, hit, pinter);
+      if (!hit) { /* resort to P4 */
+         pinter[0] = p[12]; pinter[1] = p[13]; pinter[2] = p[14];
+      } else ++nhits;
+
+      if (LocalHead) {
+         for (ii=0; ii<6; ++ii) {
+            fprintf(stderr,"P%d %f %f %f\n", ii, p[3*ii], p[3*ii+1], p[3*ii+2]);
+         }
+      }
+      
+      hits[nn] = nhits;
+   }
+   maxhits = -1;
+   for (nn=0; nn<N_slc; ++nn) if (maxhits < hits[nn]) maxhits = hits[nn]; 
+   SUMA_RETURN(maxhits);
+}
+
 /* Find tracts intersecting a mask.
    TDO (SUMA_TractDO *) The tract object for which intersection is to be 
                         computed
@@ -14710,7 +14867,7 @@ int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp)
 {
    static char FuncName[]={"SUMA_TractMaskIntersect"};
    byte *IsIn=NULL;
-   int knet, io3, io, n, k, id, N_pts, N_IsIn = -1, itt1;
+   int issp = 0, knet, io3, io, n, k, id, N_pts, N_IsIn = -1, itt1;
    TAYLOR_BUNDLE *tb=NULL;
    TAYLOR_TRACT *tt=NULL;
    float t0, t1, t2;
@@ -14719,11 +14876,18 @@ int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp)
    SUMA_ENTRY;
    
    if (!TDO || !MDO || !IsInp) SUMA_RETURN(N_IsIn);
+   if (MDO_IS_SHADOW(MDO)) SUMA_RETURN(0);
    
    N_IsIn = 0;
    IsIn = *IsInp; /* can still be NULL ... */
-   if (MDO_IS_BOX(MDO)) {
+   if (MDO_IS_BOX(MDO) || MDO_IS_SPH(MDO)) {
+      if (MDO_IS_SPH(MDO)) issp=1;
+      else issp = 0;
       for (io=0; io<MDO->N_obj; ++io) {
+      SUMA_LH("Mask %s %s (%d): Cen=%f %f %f, Hdim=%f %f %f",
+               MDO->mtype, ADO_LABEL((SUMA_ALL_DO *)MDO), io,
+               MDO->cen[0], MDO->cen[1], MDO->cen[2],
+               MDO->hdim[0], MDO->hdim[1], MDO->hdim[2]);
       io3 = 3*io;
       for (knet=0; knet<TDO->net->N_tbv; ++knet) {
          tb = TDO->net->tbv[knet]; 
@@ -14735,33 +14899,39 @@ int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp)
             for (k=0; k < N_pts; ++k) {
                /* relative distance to center */
                id = 3 * k;
-               t0 =  MDO->hdim[io3] - 
-                     SUMA_ABS(tt->pts[id] - MDO->cen[io3]);   
-               if (t0 > 0) {
-                  t1 =  MDO->hdim[io3+1] - 
-                        SUMA_ABS(tt->pts[id+1] - MDO->cen[io3+1]);   
-                  if (t1 > 0) {
-                     t2 = MDO->hdim[io3+2] - 
-                        SUMA_ABS(tt->pts[id+2] - MDO->cen[io3+2]);   
-                     if (t2 > 0) {
-                        if (n == 1891 && knet == 10) {
-                           fprintf(SUMA_STDERR,"This In: %f %f %f for \n"
-                                            "cube cen %f %f %f hdims %f %f %f\n",
-                                      tt->pts[id], tt->pts[id+1],tt->pts[id+2],
-                                 MDO->cen[io3], MDO->cen[io3+1], MDO->cen[io3+2],
-                           MDO->hdim[io3], MDO->hdim[io3+1], MDO->hdim[io3+2]);
+               t0 = SUMA_ABS(tt->pts[id] - MDO->cen[io3]);   
+               if ((MDO->hdim[io3] - t0) > 0) {
+                  t1 =  SUMA_ABS(tt->pts[id+1] - MDO->cen[io3+1]);   
+                  if ((MDO->hdim[io3+1] - t1) > 0) {
+                     t2 = SUMA_ABS(tt->pts[id+2] - MDO->cen[io3+2]);   
+                     if ((MDO->hdim[io3+2] - t2) > 0) {
+                        #if 0
+                        if (n == 41 && knet == 2) {
+                           fprintf(SUMA_STDERR,
+                                         "This In: %f %f %f (P%d T%d B%d) for \n"
+                                         "cube cen %f %f %f hdims %f %f %f\n"
+                                         "Deltas %f %f %f, Mag:  %f\n",
+                                   tt->pts[id], tt->pts[id+1],tt->pts[id+2],
+                                   k, n, knet,
+                              MDO->cen[io3], MDO->cen[io3+1], MDO->cen[io3+2],
+                           MDO->hdim[io3], MDO->hdim[io3+1], MDO->hdim[io3+2],
+                           t0, t1, t2, sqrt(t0*t0+t1*t1+t2*t2));
                         }
-                        if (!IsIn) {
-                           if (!(IsIn = (byte *)SUMA_calloc(
-                                       TDO_N_TRACTS(TDO), sizeof(byte)))) {
-                              SUMA_S_Err("Failed to allocate for %d tracts",
-                                          TDO_N_TRACTS(TDO));
-                              SUMA_RETURN(N_IsIn);
+                        #endif
+                        /* Still need to verify the radius for sphere*/
+                        if (!issp || (sqrt(t0*t0+t1*t1+t2*t2)<MDO->hdim[io3])) {
+                           if (!IsIn) {
+                              if (!(IsIn = (byte *)SUMA_calloc(
+                                          TDO_N_TRACTS(TDO), sizeof(byte)))) {
+                                 SUMA_S_Err("Failed to allocate for %d tracts",
+                                             TDO_N_TRACTS(TDO));
+                                 SUMA_RETURN(N_IsIn);
+                              }
+                              *IsInp = IsIn;
                            }
-                           *IsInp = IsIn;
+                           IsIn[itt1] = 1; ++N_IsIn;
+                           break;
                         }
-                        IsIn[itt1] = 1; ++N_IsIn;
-                        break;
                      }
                   }
                }
@@ -14770,9 +14940,10 @@ int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp)
          } /* For each tract */
       } /* For each bundle */
       } /* For each mask object */
-      SUMA_LH("%d/%d tracts of %s in box %s\n", 
+      SUMA_LH("%d/%d tracts of %s in %s %s\n", 
               N_IsIn, TDO_N_TRACTS(TDO),
-              ADO_LABEL((SUMA_ALL_DO *)TDO), 
+              ADO_LABEL((SUMA_ALL_DO *)TDO),
+              MDO->mtype, 
               ADO_LABEL((SUMA_ALL_DO *)MDO));
       SUMA_RETURN(N_IsIn);
    } else {

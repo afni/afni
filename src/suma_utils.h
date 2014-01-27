@@ -282,5 +282,8 @@ double *SUMA_dreorder(double *y, int *isort, int N_isort);
 byte *SUMA_breorder(byte *y, int *isort, int N_isort);
 float *SUMA_freorder(float *y, int *isort, int N_isort);
 float *SUMA_freorder_triplets(float *y, int *isort, int N_isort);
-
+char *SUMA_floats_to_string(float *rgba, int N, float scl, char *here, int *Err,
+                            char *sep, int MVf);
+#define SUMA_RGBA_to_string SUMA_floats_to_string
+float *SUMA_string_to_RGBA(char *s, float *here, float scl, int *Err);                      
 #endif
