@@ -19,20 +19,8 @@ int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST,
 
 int CheckNotMask(int id, int br, short **amask, int AO);
 
-int ScoreTrackGrid( float ****PG,int idx, int h, int C, int B, 
-                    THD_3dim_dataset *FA, THD_3dim_dataset *MD, 
-                    THD_3dim_dataset *L1);
-
-int TrackIt( float ****CC, int *IND, float *PHYSIND, 
-             float *Edge, int *dim, float minFA, 
-             float maxAng, int arrMax, 
-             int **T, float **flT, int FB, float *physL);
-
-int TrackItP_NEW( float **CC, int *IND, float *PHYSIND, 
-                  float *Edge, int *dim, float minFA, 
-                  float maxAng, int arrMax, 
-                  int **T, float **flT, int FB, float *physL,
-                  int ***ID2);
+int ScoreTrackGrid_M( float ****PG,int idx, int h, int C, int B, 
+                      THD_3dim_dataset **inset, int bot, int top);
 
 int TrackItP_NEW_M( int NHAR, short *DirPerVox, int SEL, float **CC,
                     int *IND, float *PHYSIND, 
@@ -41,36 +29,33 @@ int TrackItP_NEW_M( int NHAR, short *DirPerVox, int SEL, float **CC,
                     int **T, float **flT, int FB, float *physL,
                     int ***ID2);
 
-int DTI_Setup_Labels_Indices_Unc( int *Dim, int ***mskd, int ***INDEX, 
-                                  int ***INDEX2, float **UNC,
-                                  float **coorded, float **copy_coorded, 
-                                  THD_3dim_dataset *insetFA, 
-                                  THD_3dim_dataset *insetV1, 
-                                  THD_3dim_dataset *insetV2, 
-                                  THD_3dim_dataset *insetV3,
-                                  THD_3dim_dataset *insetUC,
-                                  float unc_minei_std, float unc_minfa_std,
-                                  int N_nets, int *NROI,
-                                  THD_3dim_dataset *mset1, int **MAPROI, 
-                                  int **INV_LABELS, int ****NETROI);
+int Setup_Labels_Indices_Unc_M_both(int *Dim, int ***mskd, int ***INDEX, 
+                                    int ***INDEX2, float **UNC,
+                                    float **coorded, float **copy_coorded, 
+                                    THD_3dim_dataset *insetFA, 
+                                    short *DirPerVox,
+                                    int N_HAR,
+                                    THD_3dim_dataset **insetV, 
+                                    THD_3dim_dataset *insetUC,
+                                    float unc_minei_std, float unc_minfa_std,
+                                    int N_nets, int *NROI,
+                                    THD_3dim_dataset *mset1, int **MAPROI, 
+                                    int **INV_LABELS, int ****NETROI);
 
-int HARDI_Setup_Ndir_per_vox( int N_HAR, int *Dim, int ***mskd,
-                              int ***INDEX, 
-                              int ***INDEX2,
-                              THD_3dim_dataset *insetHARDIR,
-                              short *DirPerVox);
+int Setup_Ndir_per_vox( int N_HAR, int *Dim, int ***mskd,
+                        int ***INDEX, 
+                        int ***INDEX2,
+                        THD_3dim_dataset **insetHARDIR,
+                        short *DirPerVox);
 
-int DTI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
-                 float **UNC, float **coorded, float **copy_coorded, 
-                 gsl_rng *r, 
-                 THD_3dim_dataset *insetFA, THD_3dim_dataset *insetV1, 
-                 THD_3dim_dataset *insetV2, THD_3dim_dataset *insetV3);
+int DTI_Perturb_M( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
+                   float **UNC, float **coorded, float **copy_coorded, 
+                   gsl_rng *r, 
+                   THD_3dim_dataset **insetV);
 
 int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                    float **UNC, float **coorded, float **copy_coorded, 
-                   gsl_rng *r, short *DirPerVox, 
-                   THD_3dim_dataset *insetFA,
-                   THD_3dim_dataset *insetHARDIR );
+                   gsl_rng *r, short *DirPerVox);
 
 int Two_DOF_Rot( int NN, float *X, float *Y, 
                  double POL, double AZIM, float rot[3][3] );
@@ -90,6 +75,10 @@ int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int ***Prob_grid,
                          float ****Param_grid, int DUMP_TYPE,
                          int DUMP_ORIG_LABS, int **ROI_LABELS, int POST_IT);
 
+// lazy now, someday will write these unified/smarter.
+//int Write_Running_Opts_DET(logic );
+//int Write_Running_Opts_MINIP( );
+//int Write_Running_Opts_PROB( );
 
 #endif /* _DOTRACKIT_HEADER_ */
 

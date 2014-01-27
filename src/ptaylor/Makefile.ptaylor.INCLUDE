@@ -62,16 +62,16 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
 	${CC} ${CCOPT} ${WARNTOPT} ${PTAYLOR_INCLUDE_PATH} -c $*.c 
 
 ### From Paul Taylor
-3dTrackID:3dTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dProbTrackID:3dProbTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dTrackID 3dTrackID.o ${AFNI_3dOBJS} \
+	$(CC) -o 3dProbTrackID 3dProbTrackID.o ${AFNI_3dOBJS} \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH} $(LFLAGS) \
 		$(LLIBS) ${PTAYLORLIB} \
       -lgsl -lgslcblas -lm
 
-3dProbTrackID:3dProbTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+3dTrackID:3dTrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 	$(RM) $@
-	$(CC) -o 3dProbTrackID 3dProbTrackID.o  ${AFNI_3dOBJS} \
+	$(CC) -o 3dTrackID 3dTrackID.o  ${AFNI_3dOBJS} \
 		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
