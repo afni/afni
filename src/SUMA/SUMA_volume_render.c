@@ -1149,10 +1149,12 @@ int SUMA_dset_gui_slice_from_tex_slice(SUMA_VolumeElement **VE, int ive,
 
    /* Find out which dim you're closest to */
    d0 = SUMA_MT_DOT(I, Dir0); dd = d0; dim = 0;
-   if (SUMA_ABS(d1 = SUMA_MT_DOT(I, Dir1)) > SUMA_ABS(dd)) {
+   d1 = SUMA_MT_DOT(I, Dir1);
+   d2 = SUMA_MT_DOT(I, Dir2);
+   if (SUMA_ABS(d1) > SUMA_ABS(dd)) {
       dim = 1; dd = d1;
    }
-   if (SUMA_ABS(d2 = SUMA_MT_DOT(I, Dir2)) > SUMA_ABS(dd)) {
+   if (SUMA_ABS(d2) > SUMA_ABS(dd)) {
       dim = 2; dd = d2;
    }
    SUMA_LH("PlEq: %f %f %f %f\n"
@@ -1465,6 +1467,51 @@ void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset,
    }
    
    SUMA_RETURNe;
+}
+
+int SUMA_VO_SelectedSlice(SUMA_VolumeObject *vo, char *variant, float *scorners)
+{
+   static char FuncName[]={"SUMA_VO_SelectedSlice"};
+   SUMA_ALL_DO *ado=(SUMA_ALL_DO *)vo;
+   SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+   int nslc = -1, dim, k;
+   GLfloat slc_corners[12], slc_tcorners[12];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!( (VSaux = SUMA_ADO_VSaux(ado)) && 
+          variant && 
+          VSaux->PR && 
+          VSaux->PR->iAltSel[SUMA_VOL_I] >= 0 &&
+          VSaux->PR->iAltSel[SUMA_VOL_J] >= 0 &&
+          VSaux->PR->iAltSel[SUMA_VOL_K] >= 0 ) ) {
+      SUMA_RETURN(-1);
+   }
+   
+   if ((dim = SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0, 
+                                 VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0, 
+                                 0, variant,NULL))< 0) {
+      SUMA_RETURN(-1);
+   }
+   
+   
+   nslc = VSaux->PR->iAltSel[SUMA_VOL_I+dim];
+   
+   SUMA_LH("Slice variant %s, dim %d. [%ld %ld %ld] -->%d", 
+            variant, dim, 
+            VSaux->PR->iAltSel[SUMA_VOL_I], 
+            VSaux->PR->iAltSel[SUMA_VOL_J],
+            VSaux->PR->iAltSel[SUMA_VOL_K],
+            nslc);
+   if (nslc >= 0 && scorners) {
+      SUMA_dset_tex_slice_corners_gui(vo->VE, 0, variant, nslc, 
+                          slc_tcorners, slc_corners, 
+                          NULL, NULL, 0 );
+      for (k=0; k<12; ++k) scorners[k] = slc_corners[k];
+   }
+   
+   SUMA_RETURN(nslc);
 }
 
 SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
@@ -2217,7 +2264,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
                                 slc_corn[3*k+1], slc_corn[3*k+2]); 
                            /* this one is affected by the Modelview matrixMode*/
                   }
-               glEnd();                                 
+               glEnd();                            
             }
             if (ive > 0) {
                SUMA_S_Warn("Add blending here");
@@ -2254,6 +2301,37 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
 
    SUMA_LH("Undoing state changes, should fold ones above in here someday");
    SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
+
+   /* Now for the highlight */
+   #if 0 /* Works fine, but not fully tested for interactions... */
+   if (SUMA_SV_GetShowSelectedFaceSet(sv) ) { 
+      int selslice = -1;
+      float nlt[12];
+      char variant[8];
+      selslice = SUMA_VO_SelectedSlice(VO, variant, nlt);
+      if (selslice >= 0) {
+         SUMA_LH("Drawing %s Slice %d Selection Contour\n"
+                 "%f %f %f --> %f %f %f ...\n", 
+                 variant, selslice,
+                 nlt[0],nlt[1],nlt[2], nlt[3],nlt[4],nlt[5]);    
+         glColorMaterial(GL_FRONT, GL_EMISSION); 
+         glEnable(GL_COLOR_MATERIAL);
+         glColor4f(0.5, 0.5, 0.5, 1.0);
+         glBegin(GL_LINE_LOOP);
+            glVertex3f( nlt[0],nlt[1],nlt[2] );
+            glVertex3f( nlt[3],nlt[4],nlt[5] );
+            glVertex3f( nlt[6],nlt[7],nlt[8] );
+            glVertex3f( nlt[9],nlt[10],nlt[11] );
+         glEnd();
+         glDisable(GL_COLOR_MATERIAL);
+      } else {
+         SUMA_LH("Either no selection or failed to find slice");
+      }
+   } else {
+      SUMA_LH("Do not show selected faceset");
+   }
+   #endif
+   
    SUMA_RETURN(YUP);
 }
 
