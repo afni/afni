@@ -2303,8 +2303,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
 
    /* Now for the highlight */
-   #if 0 /* Works fine, but not fully tested for interactions... */
-   if (SUMA_SV_GetShowSelectedFaceSet(sv) ) { 
+   /* Works fine, but not fully tested for interactions... */
+   if (SUMAg_CF->Dev && SUMA_SV_GetShowSelectedFaceSet(sv) ) { 
       int selslice = -1;
       float nlt[12];
       char variant[8];
@@ -2316,7 +2316,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
                  nlt[0],nlt[1],nlt[2], nlt[3],nlt[4],nlt[5]);    
          glColorMaterial(GL_FRONT, GL_EMISSION); 
          glEnable(GL_COLOR_MATERIAL);
-         glColor4f(0.5, 0.5, 0.5, 1.0);
+         glColor4f(0.25, 0.25, 0.25, 1.0);
          glBegin(GL_LINE_LOOP);
             glVertex3f( nlt[0],nlt[1],nlt[2] );
             glVertex3f( nlt[3],nlt[4],nlt[5] );
@@ -2330,7 +2330,6 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    } else {
       SUMA_LH("Do not show selected faceset");
    }
-   #endif
    
    SUMA_RETURN(YUP);
 }
