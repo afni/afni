@@ -2539,9 +2539,16 @@ SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec,
    SUMA_ENTRY;
    
    if (!task) task = "update"; /* Vanilla, recreate if necessary */
-   if (!Sover || !Sover->dset_link) {
+   if (!Sover) {
       SUMA_S_Err("NULL input");
+      if (LocalHead) SUMA_DUMP_TRACE("NULL input");
       SUMA_RETURN(NOPE);
+   }
+   if (!Sover->dset_link) {
+      /* Nothing to be done, no dset link. Can happen when freeing 
+      comes from standalone program like 3dVol2Surf. Return
+      without complaining.*/
+      SUMA_RETURN(YUP);
    }
    if (!strcmp(task,"clear")) { /* just clear, and return */
       switch (vec) {

@@ -76,6 +76,7 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd);
 SUMA_ALL_DO* SUMA_whichADO(char *idcode, SUMA_DO *dov, int N_dov);
 #define SUMA_whichDOg(idcode) SUMA_whichDO((idcode), SUMAg_DOv, SUMAg_N_DOv)
 int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov);
+char *SUMA_DO_dbg_info(char *idcode);
 int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 int SUMA_findVO_inDOv(char *idcode, SUMA_DO *dov, int N_dov);
 SUMA_VolumeObject * SUMA_findVOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov);

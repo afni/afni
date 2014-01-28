@@ -962,6 +962,10 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
                   SUMA_RETURN(NOPE);
                }
                break;
+            case GRAPH_LINK_type: {
+               SUMA_DSET *dset=SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado);
+               if (dset) SUMA_RETURN(SUMA_EmptyColorList(cSV,SDSET_ID(dset)));
+               } break;
             default:
                if (!SUMA_EmptyColorList (cSV, ADO_ID(ado))) {
                   SUMA_S_Err("Failed to empty color list for %s, type %s\n", 
@@ -1638,6 +1642,32 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
       }
    }
    SUMA_RETURN(NOPE);
+}
+
+char *SUMA_DO_dbg_info(char *idcode)
+{
+   static char FuncName[]={"SUMA_DO_dbg_info"};
+   static int icall=0;
+   static char Ret[10][500];
+   char *s=NULL;
+   int doid;
+   SUMA_ALL_DO *ado=NULL;
+   
+   SUMA_ENTRY;
+   ++icall; if (icall > 9) icall = 0;
+   s = (char *)Ret[icall];
+   s[0] = '\0';
+   
+   if (!idcode) {
+      snprintf(s,499,"NULL idcode passed");
+   } else if ( (doid = SUMA_whichDOg(idcode)) < 0) {
+      snprintf(s,499,"id %s not found in global list.", idcode);
+   } else {
+      ado = iDO_ADO(doid);
+      snprintf(s,499,"id %s: %s %s",
+               idcode, ADO_LABEL(ado), ADO_TNAME(ado));
+   }
+   SUMA_RETURN(s);
 }
 
 /*!

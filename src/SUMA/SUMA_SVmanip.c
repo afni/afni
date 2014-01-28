@@ -1569,7 +1569,9 @@ SUMA_Boolean SUMA_EmptyColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
       }
       
       if (!Found) {
-         SUMA_S_Errv("item %s was not found, this should not be.\n", DO_idstr);
+         SUMA_S_Errv("item %s (%s) was not found, this should not be.\n", 
+                     DO_idstr, SUMA_DO_dbg_info(DO_idstr));
+         SUMA_DUMP_TRACE("Whence the unfound");
          SUMA_RETURN (NOPE);
       }
    }
@@ -2647,7 +2649,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    for (i=0; i< SV->N_DO; ++i) {
       SS = SUMA_StringAppend_va(SS,"[id %d] %s \n%s", 
                   SV->RegistDO[i].dov_ind, iDO_label(SV->RegistDO[i].dov_ind),
-                  (i<(SV->N_DO-1)) ? "                  ":""); 
+                  (i<(SV->N_DO-1)) ? "               ":""); 
    }
    SS = SUMA_StringAppend_va(SS,"   N_ColList = %d\n", SV->N_ColList);
    SS = SUMA_StringAppend(SS, "   ColList = ");
@@ -2669,7 +2671,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   DO in focus %d\n", SV->Focus_DO_ID);
 
    /* show some state stuff */
-   SS = SUMA_StringAppend(SS, "\nView States:\n");
+   SS = SUMA_StringAppend_va(SS, "\nView States (%d total):\n", SV->N_VSv);
    for (i=0; i < SV->N_VSv; ++i) {
       SS = SUMA_StringAppend_va(SS,
                      "\nView State %d/%d (FOV = %f) (autoFOVval = %f):\n", 
@@ -2880,13 +2882,14 @@ char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail)
    else SS = SUMA_StringAppend_va(SS, "   Group: NULL\n");
 
    if (VS->N_MembDO) {
-      SS = SUMA_StringAppend_va(SS, "   %2d MembDOs in VS->MembDO %p: ", 
+      SS = SUMA_StringAppend_va(SS, 
+                  "   %2d MembDOs in VS->MembDO %p:\n               ", 
                                  VS->N_MembDO, VS->MembDO);
       for (i=0; i < VS->N_MembDO; ++i) {
             ifound = SUMA_whichDOg(VS->MembDO[i].idcode_str);
             SS = SUMA_StringAppend_va(SS, 
-                        "DOv[%d] %s (%s) -- id check: %s\n               ", 
-                        VS->MembDO[i].dov_ind, 
+                        "id %s DOv[%d] %s (%s) -- id check: %s\n               ",
+                        VS->MembDO[i].idcode_str, VS->MembDO[i].dov_ind, 
                         iDO_label(VS->MembDO[i].dov_ind),
                         iDO_typename(VS->MembDO[i].dov_ind), 
                (ifound == VS->MembDO[i].dov_ind)?"OK":"NO - Must run Refresh");
