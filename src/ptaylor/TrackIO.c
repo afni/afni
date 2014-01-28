@@ -1177,7 +1177,7 @@ int NI_getProbTractAlgOpts_M(NI_element *nel, float *MinFA, float *MaxAngDeg,
                  (atr=NI_get_attribute(nel,"MinL"))) ) {
       *MinL = (float)strtod(atr,NULL);
    }
-   /* PROB. TRACKING VARIANT */
+
    if (NmNsFr && ( (atr=NI_get_attribute(nel,"Thresh_Frac")) ||
                    (atr=NI_get_attribute(nel,"MinHitFr"))) ) {
       *NmNsFr = (float)strtod(atr,NULL);
