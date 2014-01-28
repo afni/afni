@@ -42,6 +42,7 @@ void SUMA_dset_tex_slice_corners( int slc, SUMA_DSET *dset,
 void SUMA_dset_tex_slice_corners_card( int slc, THD_3dim_dataset *dset, 
                               GLfloat *tcorners, GLfloat *corners, int dim,
                               int voxcen);
+int SUMA_VO_SelectedSlice(SUMA_VolumeObject *vo, char *variant, float *scorners);
 SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
                         SUMA_VolumeObject *VO, int iplane );
 SUMA_SurfaceObject **SUMA_TextureClipPlaneSurfaces(int *N_SOlist);
