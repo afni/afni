@@ -679,14 +679,6 @@ int Setup_Labels_Indices_Unc_M_both(int *Dim, int ***mskd, int ***INDEX,
 }
 
 
-
-
-
-
-
-
-
-
 int Setup_Ndir_per_vox(int N_HAR, int *Dim, int ***mskd,
                        int ***INDEX, 
                        int ***INDEX2,
@@ -804,19 +796,41 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
             if(mskd[i][j][k]) {
                
                for( n=0 ; n<DirPerVox[idx] ; n++ ){
-                  nn=3*n;
-
-                  for_pol = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
+                  nn=3*n+1; // plus one b/c zeroth brick is FA
+                  
+                  // unit vect, randomly perturbed around (0,0,1)
+                  for_pol =  gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
                   for_azim = TWOPI*gsl_rng_uniform (r); // rand in 2*pi*[0,1)
+                  tempv[0] = tempv[1] = sin(for_pol);
+                  tempv[0]*= cos(for_azim);
+                  tempv[1]*= sin(for_azim);
+                  tempv[2] = cos(for_pol); 
+                  
+                  for_pol = acos( coorded[idx][nn+2] ); // acos(z)
+                  for_azim = atan2( coorded[idx][nn+1],coorded[idx][nn+0]); // atan(y,x)
 
                   // do rotation: select within func for which vec
-                  // (nn+1) because 0th brick is now FA value
-                  B = Two_DOF_Rot(nn+1, coorded[idx], copy_coorded[idx], 
+                  // (nn) because 0th brick is now FA value
+                  B = Two_DOF_Rot(tempv, copy_coorded[idx]+nn, 
                                   for_pol, for_azim, rot);
+
+                  /* printf("\n%d DP = %f; for (%f, %f, %f) and (%f, %f, %f)",n,
+                         copy_coorded[idx][nn+0]*coorded[idx][nn+0]+
+                         copy_coorded[idx][nn+1]*coorded[idx][nn+1]+
+                         copy_coorded[idx][nn+2]*coorded[idx][nn+2],
+                         coorded[idx][nn+0],
+                         coorded[idx][nn+1],
+                         coorded[idx][nn+2],
+                         copy_coorded[idx][nn+0],
+                         copy_coorded[idx][nn+1],
+                         copy_coorded[idx][nn+2]
+                         );*/
                }
+
                // for FA; n should have correct value here...
-               for_pol = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
-               copy_coorded[idx][0] = coorded[idx][0] + for_pol;
+               //for_pol = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
+               copy_coorded[idx][0] = coorded[idx][0] + 
+                  gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
             }
          }
    
@@ -824,7 +838,7 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
 }
 
 
-int Two_DOF_Rot(int NN, float *X, float *Y, 
+int Two_DOF_Rot(float *X, float *Y, 
                 double POL, double AZIM, float rot[3][3] )
 {
    int i,j,k;
@@ -835,22 +849,16 @@ int Two_DOF_Rot(int NN, float *X, float *Y,
    C1 = cos(AZIM);
    S1 = sin(AZIM);
 
-   rot[0][0] = C0*C1;
-   rot[0][1] = -C0*S1;
-   rot[0][2] = S0;
-   rot[1][0] = S1;
-   rot[1][1] = C1;
-   rot[1][2] = 0.;
-   rot[2][0] = -C1*S0;
-   rot[2][1] = S0*S1;
-   rot[2][2] = C0;
+   rot[0][0] = C0*C1;   rot[0][1] = -S1;   rot[0][2] = C1*S0;
+   rot[1][0] = C0*S1;   rot[1][1] = C1;    rot[1][2] = S0*S1;
+   rot[2][0] = -S0;     rot[2][1] = 0.;    rot[2][2] = C0;
 
    for( i=0 ; i<3 ; i++) 
-      Y[NN+i] = 0;
+      Y[i] = 0;
 
    for( i=0 ; i<3 ; i++) 
       for( j=0 ; j<3 ; j++) 
-         Y[NN+i]+= rot[i][j]*X[NN+j];
+         Y[i]+= rot[i][j]*X[j];
 
 	RETURN(1);
 }

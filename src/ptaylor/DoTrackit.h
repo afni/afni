@@ -57,7 +57,7 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                    float **UNC, float **coorded, float **copy_coorded, 
                    gsl_rng *r, short *DirPerVox);
 
-int Two_DOF_Rot( int NN, float *X, float *Y, 
+int Two_DOF_Rot( float *X, float *Y, 
                  double POL, double AZIM, float rot[3][3] );
 
 int WriteBasicProbFiles( int N_nets, int Ndata, int Nvox, 
