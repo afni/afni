@@ -12,6 +12,11 @@
 #define EDERR(str) \
  do{ ERROR_message("EDIT_dset_items[%d]: %s\n",ncall,str); errnum++; } while(0)
 
+#undef  EDERR_int
+#define EDERR_int(str,zqq) \
+ do{ ERROR_message("EDIT_dset_items[%d]: %s : %d\n",ncall,str,zqq); errnum++; } while(0)
+
+
 /* Remove +view.BRIK ness ZSS Feb 2012 */
 #define STRING_DEVIEW_DEEXT_BRICK(fname) {   \
    if (STRING_HAS_SUFFIX((fname),"+orig.BRIK") || \
@@ -771,7 +776,7 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
 
    if( new_brick_fac_one ){
       if( brick_fac_one_iv < 0 || brick_fac_one_iv >= dset->dblk->nvals ){
-         EDERR("illegal index for ADN_brick_fac_one") ;
+         EDERR_int("illegal index for ADN_brick_fac_one",brick_fac_one_iv) ;
          RETURN(errnum) ;
       }
       dset->dblk->brick_fac[ brick_fac_one_iv ] = brick_fac_one ;
@@ -781,7 +786,7 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
 
    if( new_brick_label_one ){
       if( brick_label_one_iv < 0 || brick_label_one_iv >= dset->dblk->nvals ){
-         EDERR("illegal index for ADN_brick_label_one") ;
+         EDERR_int("illegal index for ADN_brick_label_one",brick_label_one_iv) ;
          RETURN(errnum) ;
       }
 
@@ -792,7 +797,7 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
 
    if( new_brick_keywords_one ){
       if( brick_keywords_one_iv < 0 || brick_keywords_one_iv >= dset->dblk->nvals ){
-         EDERR("illegal index for ADN_brick_keywords_one") ;
+         EDERR_int("illegal index for ADN_brick_keywords_one",brick_keywords_one_iv) ;
          RETURN(errnum) ;
       }
 

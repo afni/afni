@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 15 , JAN , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+  { 29 , JAN , 2014 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+   "-brickwise allows time-dependent t-test results" ,
+   "For Stephen Robinson" } ,
+
+ { 15 , JAN , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Modified help to be more clear about -allineate" ,
    "In particular, that the output nonlinear warp also contains the affine\n"
    "warp, so you do NOT want to catenate the affine warp again when using\n"
