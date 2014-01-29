@@ -1979,7 +1979,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                break;
          }
       }
-      
       SUMA_RETURN(YUP) ;
    }
 }
