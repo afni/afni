@@ -42,6 +42,9 @@ void TT_matrix_setup( int kout ) ;  /* 30 Jul 2010 */
 static int toz    = 0 ;  /* convert t-statistics to z-scores? */
 static int twosam = 0 ;
 
+static int brickwise     = 0 ;                 /* 28 Jan 2014 */
+static int brickwise_num = 0 ;
+
 static NI_element         *covnel=NULL ;       /* covariates */
 static NI_str_array       *covlab=NULL ;
 
@@ -204,6 +207,8 @@ void display_help_menu(void)
       "  ++ Unlike 3dttest, you can specify multiple sub-bricks in a dataset:\n"
       "        -setA a+tlrc'[1..13(2)]'\n"
       "     which inputs 7 sub-bricks at once (1,3,5,7,9,11,13).\n"
+      "   *** See the '-brickwise' option (far below) for more information ***\n"
+      "   *** on how multiple sub-brick datasets will be processed herein. ***\n"
       "  ++ If multiple sub-bricks are input from a single dataset, then\n"
       "     covariates cannot be used (sorry, Charlie).\n"
       "  ++ For some limited compatibility with 3dttest, you can use '-set2' in\n"
@@ -549,14 +554,45 @@ void display_help_menu(void)
       "                 data is zero, and division by zero is forbidden by the\n"
       "                 Deities of Mathematics.\n"
       "\n"
+      " -brickwise = This option alters the way this program works with input\n"
+      "               datasets that have multiple sub-bricks (the SHORT FORM).\n"
+      "              ++ Without '-brickwise', all the input sub-bricks from all\n"
+      "                  datasets in '-setA' are gathered together to form the setA\n"
+      "                  sample.  In this case, there is no requirement that all\n"
+      "                  input datasets have the same number of sub-bricks.\n"
+      "              ++ With '-brickwise', all input datasets (in both sets)\n"
+      "                  MUST have the same number of sub-bricks.  The t-tests\n"
+      "                  are then carried out sub-brick by sub-brick; that is,\n"
+      "                  if you input a collection of datasets with 10 sub-bricks\n"
+      "                  in each dataset, then you will get 10 t-test results.\n"
+      "              ++ Each t-ttest result will be made up of more than 1 sub-brick\n"
+      "                  in the output dataset.  If you are doing a 2-sample test,\n"
+      "                  you might want to use '-no1sam' to reduce the number of\n"
+      "                  volumes in the output dataset.\n"
+      "              ++ If you input a LOT of sub-bricks, you might want to set\n"
+      "                  environment variable AFNI_AUTOMATIC_FDR to NO, in order\n"
+      "                  to suppress the automatic calculation of FDR curves for\n"
+      "                  each t-statistic sub-brick -- this FDR calculation can\n"
+      "                  be time consuming when done en masse.\n"
+      "          -->>++ The intended application of this option is to make it\n"
+      "                  easy to take a collection of time-dependent datasets\n"
+      "                  (e.g., from MEG or from moving-window RS-FMRI analyses),\n"
+      "                  and get time-dependent t-test results.  It is possible to do\n"
+      "                  the same thing with a scripted loop, but that way is painful.\n"
+      "              ++ You can use '-covariates' with '-brickwise'. You should note that\n"
+      "                  each t-test will re-use the same covariates -- that is, there\n"
+      "                  is no provision for time-dependent (or sub-brick dependent)\n"
+      "                  covariate values.\n"
+      "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
-      "          ++ For surface-based datasets, use something like:\n"
-      "              -prefix p.niml.dset or -prefix p.gii.dset \n"
-      "             Otherwise you may end up files containing numbers but\n"
-      "             not a full set of header information.\n"
+      "             ++ For surface-based datasets, use something like:\n"
+      "                 -prefix p.niml.dset or -prefix p.gii.dset \n"
+      "                Otherwise you may end up files containing numbers but\n"
+      "                not a full set of header information.\n"
       "\n"
       " -debug    = Prints out information about the analysis, which can\n"
-      "               be VERY lengthy -- not for general usage.\n"
+      "              be VERY lengthy -- not for general usage (or even for colonels).\n"
+      "             ++ Two copies of '-debug' will give even MORE output!\n"
       "\n"
 
       "-------------------------------\n"
@@ -771,10 +807,11 @@ int is_possible_filename( char * fname )
 int main( int argc , char *argv[] )
 {
    int nopt, nbad, ii,jj,kk, kout,ivox, vstep, dconst, nconst=0, nzskip=0,nzred=0  ;
+   int bb , bbase ;  /* for -brickwise -- 28 Jan 2014 */
    MRI_vectim *vimout ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
    float_pair tpair ;
-   THD_3dim_dataset *outset ;
+   THD_3dim_dataset *outset , *bbset=NULL ;
    char blab[64] , *stnam ;
    float dof_AB=0.0f , dof_A=0.0f , dof_B=0.0f ;
    int BminusA=-1 , ntwosam=0 ;  /* 05 Nov 2010 */
@@ -802,6 +839,14 @@ int main( int argc , char *argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+     /*----- brickwise -----*/
+
+     if( strcasecmp(argv[nopt],"-brickwise") == 0 ){ /* 28 Jan 2014 */
+       if( ndset_AAA > 0 || ndset_BBB > 0 )
+         ERROR_exit("-brickwise option must be BEFORE any -set option!") ;
+       brickwise = 1 ; nopt++ ; continue ;
+     }
 
      /*----- no1sam -----*/
 
@@ -991,7 +1036,20 @@ int main( int argc , char *argv[] )
              qset = THD_open_dataset( fexp[iex] ) ;
              if( !ISVALID_DSET(qset) )
                ERROR_exit("Option %s: cannot open dataset '%s'",onam,fexp[iex]) ;
-             nds++ ; nv += DSET_NVALS(qset) ;
+             if( brickwise && brickwise_num == 0 ){
+               brickwise_num = DSET_NVALS(qset) ;
+               if( brickwise_num == 1 )
+                 WARNING_message("-brickwise option used, but first dataset has only 1 sub-brick");
+             }
+             nds++ ;              /* 1 more dataset in the heap */
+             if( brickwise ){
+               if( DSET_NVALS(qset) != brickwise_num )
+                 ERROR_exit("Option %s: dataset '%s' has %d, not %d, sub-bricks (for -brickwise)",
+                            onam , fexp[iex] , DSET_NVALS(qset) , brickwise_num ) ;
+               nv++ ;             /* just 1 more 'value' in the t-test in this case */
+             } else {
+               nv += DSET_NVALS(qset) ; /* as many 'values' as there are sub-bricks */
+             }
              nams = (char **)realloc(nams,sizeof(char *)*nds) ;
              labs = (char **)realloc(labs,sizeof(char *)*nds) ;
              dset = (THD_3dim_dataset **)realloc(dset,sizeof(THD_3dim_dataset *)*nds) ;
@@ -1009,6 +1067,9 @@ int main( int argc , char *argv[] )
            ERROR_exit("Option %s (short form): need at least 2 datasets or sub-bricks",onam) ;
 
        } else {  /* not a dataset => label label dset label dset ... */
+
+         if( brickwise )
+           ERROR_exit("You can't use -brickwise and use the LONG FORM for a set of datasets") ;
 
          snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
@@ -1066,7 +1127,10 @@ int main( int argc , char *argv[] )
          for( jj=ii+1 ; jj < nds ; jj++ )
            if( strcmp(labs[ii],labs[jj]) == 0 ) nbad++ ;
        }
-       if( nbad > 0 ) allow_cov = -1 ;  /* duplicate labels */
+       if( nbad > 0 ){  /* duplicate labels :-( */
+         WARNING_message("Duplicate labels for datasets in option '%s'",onam) ;
+         allow_cov = -1 ;
+       }
 
        /* assign results to global variables */
 
@@ -1154,6 +1218,10 @@ int main( int argc , char *argv[] )
    }  /*-------------------- end of option parsing --------------------*/
 
    /*----- check some stuff -----*/
+
+   if( !brickwise ) brickwise_num = 1 ;  /* 28 Jan 2014 */
+
+   if( debug ) INFO_message("brickwise_num set to %d",brickwise_num) ;
 
    twosam = (nval_BBB > 1) ; /* 2 sample test? */
 
@@ -1269,17 +1337,6 @@ int main( int argc , char *argv[] )
      INFO_message("%s test: results are %s - %s",
                   ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
-
-   /*----- convert each input set of datasets to a vectim -----*/
-
-   INFO_message("loading input datasets") ;
-
-   vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
-
-   if( twosam )
-     vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
-
-   MEMORY_CHECK ;
 
    /*----- set up covariates in a very lengthy aside now -----*/
 
@@ -1463,7 +1520,7 @@ int main( int argc , char *argv[] )
 
    EDIT_dset_items( outset ,
                       ADN_prefix    , prefix ,
-                      ADN_nvals     , nvout  ,
+                      ADN_nvals     , nvout * brickwise_num ,
                       ADN_ntt       , 0      ,
                       ADN_brick_fac , NULL   ,
                       ADN_type      , HEAD_FUNC_TYPE ,
@@ -1474,6 +1531,9 @@ int main( int argc , char *argv[] )
      ERROR_exit("Output dataset '%s' already exists!",prefix) ;
 
    tross_Make_History( "3dttest++" , argc,argv , outset ) ;
+
+   bbset = EDIT_empty_copy( dset_AAA[0] ) ; /* temp dataset [28 Jan 2014] */
+   EDIT_dset_items( bbset, ADN_nvals,nvout, ADN_brick_fac,NULL, ADN_none ) ;
 
    /* make up some brick labels [[[man, this is tediously boring work]]] */
 
@@ -1495,88 +1555,93 @@ int main( int argc , char *argv[] )
     dof_AB = (ttest_opcode==2) ? dof_A : dof_A+dof_B ;
    }
 
+#undef  ABB
+#define ABB if(brickwise)sprintf(blab+strlen(blab),"#%d",bb)
    stnam = (toz) ? "Zscr" : "Tstat" ;
-   if( mcov <= 0 ){                    /*--- no covariates ---*/
-     if( !twosam ){
-       sprintf(blab,"%s_mean",snam_AAA);       EDIT_BRICK_LABEL(outset,0,blab);
-       sprintf(blab,"%s_%s"  ,snam_AAA,stnam); EDIT_BRICK_LABEL(outset,1,blab);
-          if( toz ) EDIT_BRICK_TO_FIZT(outset,1) ;
-          else      EDIT_BRICK_TO_FITT(outset,1,dof_A) ;
-     } else {
-       ntwosam = 2 ;
-       sprintf(blab,"%s-%s_mean",snam_PPP,snam_MMM)      ; EDIT_BRICK_LABEL(outset,0,blab);
-       sprintf(blab,"%s-%s_%s"  ,snam_PPP,snam_MMM,stnam); EDIT_BRICK_LABEL(outset,1,blab);
-          if( toz ) EDIT_BRICK_TO_FIZT(outset,1) ;
-          else      EDIT_BRICK_TO_FITT(outset,1,dof_AB) ;
-       if( do_1sam ){
-         sprintf(blab,"%s_mean",snam_AAA)                  ; EDIT_BRICK_LABEL(outset,2,blab);
-         sprintf(blab,"%s_%s"  ,snam_AAA,stnam)            ; EDIT_BRICK_LABEL(outset,3,blab);
-            if( toz ) EDIT_BRICK_TO_FIZT(outset,3) ;
-            else      EDIT_BRICK_TO_FITT(outset,3,dof_A) ;
-         sprintf(blab,"%s_mean",snam_BBB)                  ; EDIT_BRICK_LABEL(outset,4,blab);
-         sprintf(blab,"%s_%s"  ,snam_BBB,stnam)            ; EDIT_BRICK_LABEL(outset,5,blab);
-            if( toz ) EDIT_BRICK_TO_FIZT(outset,5) ;
-            else      EDIT_BRICK_TO_FITT(outset,5,dof_B) ;
+   for( bb=0 ; bb < brickwise_num ; bb++ ){
+     bbase = bb*nvout ;
+     if( mcov <= 0 ){                    /*--- no covariates ---*/
+       if( !twosam ){
+         sprintf(blab,"%s_mean",snam_AAA);       ABB;EDIT_BRICK_LABEL(outset,0+bbase,blab);
+         sprintf(blab,"%s_%s"  ,snam_AAA,stnam); ABB;EDIT_BRICK_LABEL(outset,1+bbase,blab);
+            if( toz ) EDIT_BRICK_TO_FIZT(outset,1+bbase) ;
+            else      EDIT_BRICK_TO_FITT(outset,1+bbase,dof_A) ;
+       } else {
+         ntwosam = 2 ;
+         sprintf(blab,"%s-%s_mean",snam_PPP,snam_MMM)      ; ABB;EDIT_BRICK_LABEL(outset,0+bbase,blab);
+         sprintf(blab,"%s-%s_%s"  ,snam_PPP,snam_MMM,stnam); ABB;EDIT_BRICK_LABEL(outset,1+bbase,blab);
+            if( toz ) EDIT_BRICK_TO_FIZT(outset,1+bbase) ;
+            else      EDIT_BRICK_TO_FITT(outset,1+bbase,dof_AB) ;
+         if( do_1sam ){
+           sprintf(blab,"%s_mean",snam_AAA)                  ; ABB;EDIT_BRICK_LABEL(outset,2+bbase,blab);
+           sprintf(blab,"%s_%s"  ,snam_AAA,stnam)            ; ABB;EDIT_BRICK_LABEL(outset,3+bbase,blab);
+              if( toz ) EDIT_BRICK_TO_FIZT(outset,3+bbase) ;
+              else      EDIT_BRICK_TO_FITT(outset,3+bbase,dof_A) ;
+           sprintf(blab,"%s_mean",snam_BBB)                  ; ABB;EDIT_BRICK_LABEL(outset,4+bbase,blab);
+           sprintf(blab,"%s_%s"  ,snam_BBB,stnam)            ; ABB;EDIT_BRICK_LABEL(outset,5+bbase,blab);
+              if( toz ) EDIT_BRICK_TO_FIZT(outset,5+bbase) ;
+              else      EDIT_BRICK_TO_FITT(outset,5+bbase,dof_B) ;
+         }
        }
-     }
-   } else {                            /*--- have covariates ---*/
-     kk = 0 ;
-     if( testAB ){                     /* 2-sample results */
-       ntwosam = 2*(mcov+1) ;
-       sprintf(blab,"%s-%s_mean",snam_PPP,snam_MMM);
-         EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-       sprintf(blab,"%s-%s_%s"  ,snam_PPP,snam_MMM,stnam);
-         EDIT_BRICK_LABEL(outset,kk,blab);
-         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
-         else      EDIT_BRICK_TO_FITT(outset,kk,dof_AB) ;
-         kk++;
-       for( jj=1 ; jj <= mcov ; jj++ ){
-         sprintf(blab,"%s-%s_%s",snam_PPP,snam_MMM,covlab->str[jj]) ;
-           EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-         sprintf(blab,"%s-%s_%s_%s",snam_PPP,snam_MMM,covlab->str[jj],stnam) ;
-           EDIT_BRICK_LABEL(outset,kk,blab);
-         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
-         else      EDIT_BRICK_TO_FITT(outset,kk,dof_AB) ;
-         kk++;
-       }
-     }
-     if( testA ){                      /* 1-sample results */
-       sprintf(blab,"%s_mean",snam_AAA) ;
-         EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-       sprintf(blab,"%s_%s",snam_AAA,stnam) ;
-         EDIT_BRICK_LABEL(outset,kk,blab);
-         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
-         else      EDIT_BRICK_TO_FITT(outset,kk,dof_A) ;
-         kk++;
-       for( jj=1 ; jj <= mcov ; jj++ ){
-         sprintf(blab,"%s_%s",snam_AAA,covlab->str[jj]) ;
-           EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-         sprintf(blab,"%s_%s_%s",snam_AAA,covlab->str[jj],stnam) ;
-           EDIT_BRICK_LABEL(outset,kk,blab);
-           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
-           else      EDIT_BRICK_TO_FITT(outset,kk,dof_A) ;
+     } else {                            /*--- have covariates ---*/
+       kk = 0 ;
+       if( testAB ){                     /* 2-sample results */
+         ntwosam = 2*(mcov+1) ;
+         sprintf(blab,"%s-%s_mean",snam_PPP,snam_MMM);
+           ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab); kk++;
+         sprintf(blab,"%s-%s_%s"  ,snam_PPP,snam_MMM,stnam);
+           ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab);
+           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk+bbase) ;
+           else      EDIT_BRICK_TO_FITT(outset,kk+bbase,dof_AB) ;
            kk++;
-       }
-     }
-     if( testB ){                      /* 1-sample results */
-       sprintf(blab,"%s_mean",snam_BBB) ;
-         EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-       sprintf(blab,"%s_%s",snam_BBB,stnam) ;
-         EDIT_BRICK_LABEL(outset,kk,blab);
-         if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
-         else      EDIT_BRICK_TO_FITT(outset,kk,dof_B) ;
-         kk++;
-       for( jj=1 ; jj <= mcov ; jj++ ){
-         sprintf(blab,"%s_%s",snam_BBB,covlab->str[jj]) ;
-           EDIT_BRICK_LABEL(outset,kk,blab); kk++;
-         sprintf(blab,"%s_%s_%s",snam_BBB,covlab->str[jj],stnam) ;
-           EDIT_BRICK_LABEL(outset,kk,blab);
-           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk) ;
-           else      EDIT_BRICK_TO_FITT(outset,kk,dof_B) ;
+         for( jj=1 ; jj <= mcov ; jj++ ){
+           sprintf(blab,"%s-%s_%s",snam_PPP,snam_MMM,covlab->str[jj]) ;
+             ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab); kk++;
+           sprintf(blab,"%s-%s_%s_%s",snam_PPP,snam_MMM,covlab->str[jj],stnam) ;
+             ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab);
+           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk+bbase) ;
+           else      EDIT_BRICK_TO_FITT(outset,kk+bbase,dof_AB) ;
            kk++;
+         }
        }
-     }
-   }
+       if( testA ){                      /* 1-sample results */
+         sprintf(blab,"%s_mean",snam_AAA) ;
+           ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab); kk++;
+         sprintf(blab,"%s_%s",snam_AAA,stnam) ;
+           ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab);
+           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk+bbase) ;
+           else      EDIT_BRICK_TO_FITT(outset,kk+bbase,dof_A) ;
+           kk++;
+         for( jj=1 ; jj <= mcov ; jj++ ){
+           sprintf(blab,"%s_%s",snam_AAA,covlab->str[jj]) ;
+             ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab); kk++;
+           sprintf(blab,"%s_%s_%s",snam_AAA,covlab->str[jj],stnam) ;
+             ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab);
+             if( toz ) EDIT_BRICK_TO_FIZT(outset,kk+bbase) ;
+             else      EDIT_BRICK_TO_FITT(outset,kk+bbase,dof_A) ;
+             kk++;
+         }
+       }
+       if( testB ){                      /* 1-sample results */
+         sprintf(blab,"%s_mean",snam_BBB) ;
+           ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab); kk++;
+         sprintf(blab,"%s_%s",snam_BBB,stnam) ;
+           ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab);
+           if( toz ) EDIT_BRICK_TO_FIZT(outset,kk+bbase) ;
+           else      EDIT_BRICK_TO_FITT(outset,kk+bbase,dof_B) ;
+           kk++;
+         for( jj=1 ; jj <= mcov ; jj++ ){
+           sprintf(blab,"%s_%s",snam_BBB,covlab->str[jj]) ;
+             ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab); kk++;
+           sprintf(blab,"%s_%s_%s",snam_BBB,covlab->str[jj],stnam) ;
+             ABB;EDIT_BRICK_LABEL(outset,kk+bbase,blab);
+             if( toz ) EDIT_BRICK_TO_FIZT(outset,kk+bbase) ;
+             else      EDIT_BRICK_TO_FITT(outset,kk+bbase,dof_B) ;
+             kk++;
+         }
+       }
+     } /* end of have covariates */
+   } /* end of brickwise loop */
 
    /*----- create space to store results before dataset-izing them -----*/
 
@@ -1584,133 +1649,197 @@ int main( int argc , char *argv[] )
 
    /**********==========---------- process data ----------==========**********/
 
+   /*----- convert each input set of datasets to a vectim -----*/
+
+   if( !brickwise ){
+     INFO_message("loading input datasets") ;
+     vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
+     if( twosam )
+       vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
+     MEMORY_CHECK ;
+   }
+
    vstep = (nmask_hits > 666) ? nmask_hits/50 : 0 ;
-   if( vstep > 0 ) fprintf(stderr,"++ t-testing:") ;
 
-   for( kout=ivox=0 ; ivox < nvox ; ivox++ ){
+   for( bb=0 ; bb < brickwise_num ; bb++ ){
+     bbase = bb*nvout ;
 
-     if( mask != NULL && mask[ivox] == 0 ) continue ;  /* don't process */
-
-     vimout->ivec[kout] = ivox ;  /* table of what voxels are in vimout */
-
-     if( vstep > 0 && kout%vstep==vstep/2 ) vstep_print() ;
-
-                  datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
-     if( twosam ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
-
-     resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
-
-     /* skip processing for input voxels whose data is constant */
-
-     for( ii=1 ; ii < nval_AAA && datAAA[ii] == datAAA[0] ; ii++ ) ; /*nada*/
-     dconst = (ii == nval_AAA) ;
-     if( twosam && !dconst ){
-       for( ii=1 ; ii < nval_BBB && datBBB[ii] == datBBB[0] ; ii++ ) ; /*nada*/
-       dconst = (ii == nval_BBB) ;
-     }
-     if( dconst ){
-       /** if( debug ) INFO_message("skip output voxel#%d for constancy",kout) ; **/
-       memset( resar , 0 , sizeof(float)*nvout ) ; nconst++ ; kout++ ; continue ;
+     if( brickwise ){
+       int keep[1] ; keep[0] = bb ;
+       INFO_message("++++++++++ loading input datasets, volume [%d]",bb) ;
+       if( vectim_AAA != NULL ){ VECTIM_destroy(vectim_AAA); vectim_AAA=NULL; }
+       if( vectim_BBB != NULL ){ VECTIM_destroy(vectim_BBB); vectim_BBB=NULL; }
+       vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
+                                                      mask , 1 , keep       ) ;
+       if( twosam )
+         vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
+                                                        mask , 1 , keep       ) ;
      }
 
-     if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
-       float *zAAA=datAAA, *zBBB=datBBB ; int nAAA=nval_AAA, nBBB=nval_BBB, nz,qq ;
+     if( vstep > 0 ) fprintf(stderr,"++ t-testing:") ;
+     nconst = nzred = nzskip = 0 ;
 
-       if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
-         for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
-         if( nz > 0 ){            /* copy nonzero vals to a new array */
-           nAAA = nval_AAA - nz ;
-           if( nAAA < zskip_AAA ){
-             memset( resar , 0 , sizeof(float)*nvout ) ; kout++ ; nzskip++ ; continue ;
-           }
-           zAAA = (float *)malloc(sizeof(float)*nAAA) ;
-           for( ii=qq=0 ; ii < nval_AAA ; ii++ )
-             if( datAAA[ii] != 0.0f ) zAAA[qq++] = datAAA[ii] ;
-         }
+     for( kout=ivox=0 ; ivox < nvox ; ivox++ ){
+
+       if( mask != NULL && mask[ivox] == 0 ) continue ;  /* don't process */
+
+       if( bb == 0 )
+         vimout->ivec[kout] = ivox ;  /* table of what voxels are in vimout */
+
+       if( vstep > 0 && kout%vstep==vstep/2 ) vstep_print() ;
+
+                    datAAA = VECTIM_PTR(vectim_AAA,kout) ;  /* data arrays */
+       if( twosam ) datBBB = VECTIM_PTR(vectim_BBB,kout) ;
+
+       resar = VECTIM_PTR(vimout,kout) ;                    /* results array */
+       memset( resar , 0 , sizeof(float)*nvout ) ;
+
+       if( debug > 1 ){
+         INFO_message("voxel#%d data:",kout) ;
+         fprintf(stderr,"  A =") ;
+         for( ii=0 ; ii < nval_AAA ; ii++ ) fprintf(stderr," %g",datAAA[ii]) ;
          if( twosam ){
-           for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
+           fprintf(stderr,"\n  B =") ;
+           for( ii=0 ; ii < nval_BBB ; ii++ ) fprintf(stderr," %g",datBBB[ii]) ;
+           fprintf(stderr,"\n") ;
+         }
+       }
+
+       /* skip processing for input voxels whose data is constant */
+
+       for( ii=1 ; ii < nval_AAA && datAAA[ii] == datAAA[0] ; ii++ ) ; /*nada*/
+       dconst = (ii == nval_AAA) ;
+       if( twosam && !dconst ){
+         for( ii=1 ; ii < nval_BBB && datBBB[ii] == datBBB[0] ; ii++ ) ; /*nada*/
+         dconst = (ii == nval_BBB) ;
+       }
+       if( dconst ){
+         if( debug > 1 ) INFO_message("skip output voxel#%d for constancy",kout) ;
+         nconst++ ; kout++ ; continue ;
+       }
+
+       if( mcov == 0 ){  /*--- no covariates ==> standard t-tests ---*/
+         float *zAAA=datAAA, *zBBB=datBBB ; int nAAA=nval_AAA, nBBB=nval_BBB, nz,qq ;
+
+         if( do_zskip ){  /* 06 Oct 2010: skip zero values? */
+           for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
            if( nz > 0 ){            /* copy nonzero vals to a new array */
-             nBBB = nval_BBB - nz ;
-             if( nBBB < zskip_BBB ){
-               if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
+             nAAA = nval_AAA - nz ;
+             if( nAAA < zskip_AAA ){
                memset( resar , 0 , sizeof(float)*nvout ) ; kout++ ; nzskip++ ; continue ;
              }
-             zBBB = (float *)malloc(sizeof(float)*nBBB) ;
-             for( ii=qq=0 ; ii < nval_BBB ; ii++ )
-               if( datBBB[ii] != 0.0f ) zBBB[qq++] = datBBB[ii] ;
+             zAAA = (float *)malloc(sizeof(float)*nAAA) ;
+             for( ii=qq=0 ; ii < nval_AAA ; ii++ )
+               if( datAAA[ii] != 0.0f ) zAAA[qq++] = datAAA[ii] ;
            }
+           if( twosam ){
+             for( ii=nz=0 ; ii < nval_BBB ; ii++ ) nz += (datBBB[ii] == 0.0f) ;
+             if( nz > 0 ){            /* copy nonzero vals to a new array */
+               nBBB = nval_BBB - nz ;
+               if( nBBB < zskip_BBB ){
+                 if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
+                 memset( resar , 0 , sizeof(float)*nvout ) ; kout++ ; nzskip++ ; continue ;
+               }
+               zBBB = (float *)malloc(sizeof(float)*nBBB) ;
+               for( ii=qq=0 ; ii < nval_BBB ; ii++ )
+                 if( datBBB[ii] != 0.0f ) zBBB[qq++] = datBBB[ii] ;
+             }
+           }
+           if( (zAAA != datAAA && zAAA != NULL) || (zBBB != datBBB && zBBB != NULL) )
+             nzred++ ;
          }
-         if( (zAAA != datAAA && zAAA != NULL) || (zBBB != datBBB && zBBB != NULL) )
-           nzred++ ;
+
+         if( twosam ){
+           if( do_1sam ){
+             tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , 0 ) ;
+             resar[2] = tpair.a ; resar[3] = tpair.b ;
+             tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , 0 ) ;
+             resar[4] = tpair.a ; resar[5] = tpair.b ;
+           }
+#ifdef ALLOW_RANK
+           if( do_ranks ) rank_order_2floats( nAAA,zAAA , nBBB,zBBB ) ;
+#endif
+           tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode ) ;
+           resar[0] = tpair.a ; resar[1] = tpair.b ;
+           if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
+         } else {
+           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode ) ;
+           resar[0] = tpair.a ; resar[1] = tpair.b ;
+           if( debug > 1 ) fprintf(stderr,"   resar[0]=%g  [1]=%g\n",resar[0],resar[1]) ;
+         }
+
+         if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;
+         if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
+
+       } else {          /*--- covariates ==> regression analysis ---*/
+
+         /*-- if covariate datasets are being used,
+              must fill in the Axx and Bxx matrices now --*/
+
+         if( num_covset_col > 0 ) TT_matrix_setup(kout) ;
+
+         /*-- and do the work --*/
+
+         if( nws > 0 ) memset(workspace,0,nws) ;
+
+#ifdef ALLOW_RANK
+         if( do_ranks ) rank_order_2floats( nval_AAA, datAAA, nval_BBB, datBBB ) ;
+#endif
+         regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
+                      mcov ,
+                      Axx , Axx_psinv , Axx_xtxinv ,
+                      Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
        }
 
-       if( twosam ){
-         if( do_1sam ){
-           tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , 0 ) ;
-           resar[2] = tpair.a ; resar[3] = tpair.b ;
-           tpair = ttest_toz( nBBB,zBBB , 0 ,NULL   , 0 ) ;
-           resar[4] = tpair.a ; resar[5] = tpair.b ;
-         }
-#ifdef ALLOW_RANK
-         if( do_ranks ) rank_order_2floats( nAAA,zAAA , nBBB,zBBB ) ;
-#endif
-         tpair = ttest_toz( nAAA,zAAA , nBBB,zBBB , ttest_opcode ) ;
-         resar[0] = tpair.a ; resar[1] = tpair.b ;
-       } else {
-         tpair = ttest_toz( nAAA,zAAA , 0 ,NULL   , ttest_opcode ) ;
-         resar[0] = tpair.a ; resar[1] = tpair.b ;
+       if( BminusA && ntwosam ){  /* 05 Nov 2010 */
+         for( ii=0 ; ii < ntwosam ; ii++ ) resar[ii] = -resar[ii] ;
        }
 
-       if( zBBB != datBBB && zBBB != NULL ) free(zBBB) ;
-       if( zAAA != datAAA && zAAA != NULL ) free(zAAA) ;
+       kout++ ;
+     }  /* end of loop over voxels */
 
-     } else {          /*--- covariates ==> regression analysis ---*/
+     /* print messages for this set of t-tests */
 
-       /*-- if covariate datasets are being used,
-            must fill in the Axx and Bxx matrices now --*/
+     if( vstep > 0 ) fprintf(stderr,"!\n") ;
 
-       if( num_covset_col > 0 ) TT_matrix_setup(kout) ;
+     if( nconst > 0 )
+       ININFO_message("skipped %d voxel%s completely for having constant data" ,
+                      nconst , (nconst==1) ? "\0" : "s" ) ;
 
-       /*-- and do the work --*/
+     if( nzred > 0 )
+       ININFO_message("-zskip: %d voxel%s had some values skipped in their t-tests",
+                      nzred , (nzred==1) ? "\0" : "s" ) ;
 
-       if( nws > 0 ) memset(workspace,0,nws) ;
+     if( nzskip > 0 )
+       ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
+                      nzskip , (nzskip==1) ? "\0" : "s" ) ;
 
-#ifdef ALLOW_RANK
-       if( do_ranks ) rank_order_2floats( nval_AAA, datAAA, nval_BBB, datBBB ) ;
-#endif
-       regress_toz( nval_AAA , datAAA , nval_BBB , datBBB , ttest_opcode ,
-                    mcov ,
-                    Axx , Axx_psinv , Axx_xtxinv ,
-                    Bxx , Bxx_psinv , Bxx_xtxinv , resar , workspace ) ;
+     /* load results from vimout into output dataset */
+
+     ININFO_message("saving results") ;
+
+     for( kk=0 ; kk < nvout ; kk++ )        /* load dataset with 0s */
+       EDIT_substitute_brick( bbset , kk , MRI_float , NULL ) ;
+     THD_vectim_to_dset( vimout , bbset ) ; /* put results into dataset */
+
+     for( kk=0 ; kk < nvout ; kk++ ){       /* move results into final output dataset */
+       EDIT_substitute_brick( outset , kk+bbase , MRI_float , DSET_ARRAY(bbset,kk) ) ;
+       DSET_NULL_ARRAY(bbset,kk) ;
      }
 
-     if( BminusA && ntwosam ){  /* 05 Nov 2010 */
-       for( ii=0 ; ii < ntwosam ; ii++ ) resar[ii] = -resar[ii] ;
-     }
+   } /* end of brickwise loop */
 
-     kout++ ;
-   }  /* end of loop over voxels */
-
-   if( vstep > 0 ){ fprintf(stderr,"!\n") ; MEMORY_CHECK ; }
-
-   if( nconst > 0 )
-     INFO_message("skipped %d voxel%s completely for having constant data" ,
-                  nconst , (nconst==1) ? "\0" : "s" ) ;
-
-   if( nzred > 0 )
-     INFO_message("-zskip: %d voxel%s had some values skipped in their t-tests",
-                  nzred , (nzred==1) ? "\0" : "s" ) ;
-
-   if( nzskip > 0 )
-     INFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
-                  nzskip , (nzskip==1) ? "\0" : "s" ) ;
+   INFO_message("---------- End of analyses -- freeing workspaces ----------") ;
 
    /*-------- get rid of the input data now --------*/
 
    if( workspace != NULL ) free(workspace) ;
 
-                            VECTIM_destroy(vectim_AAA) ;
+   if( vectim_AAA != NULL ) VECTIM_destroy(vectim_AAA) ;
    if( vectim_BBB != NULL ) VECTIM_destroy(vectim_BBB) ;
+   if( vimout     != NULL ) VECTIM_destroy(vimout) ;
+
+   if( bbset != NULL ) DSET_delete(bbset) ;
 
    if( covvim_AAA != NULL ){
      for( jj=0 ; jj < mcov ; jj++ )
@@ -1734,24 +1863,21 @@ int main( int argc , char *argv[] )
      free(covvec_BBB) ;
    }
 
-   /*---------- fill in the output dataset with some numbers ----------*/
+   MEMORY_CHECK ;
 
-   INFO_message("saving results") ;
+   /*---------- finalizationing ----------*/
 
-   for( kk=0 ; kk < nvout ; kk++ )
-     EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
+   if( !AFNI_noenv("AFNI_AUTOMATIC_FDR") ){
+     INFO_message("Creating FDR curves in output dataset") ;
+     mri_fdr_setmask(mask) ;
+     kk = THD_create_all_fdrcurves(outset) ;
+     if( kk > 0 )
+       ININFO_message("Added %d FDR curve%s to dataset",kk,(kk==1)?"\0":"s");
+     else
+       WARNING_message("Failed to add FDR curves to dataset?!") ;
+   }
 
-   THD_vectim_to_dset( vimout , outset ) ;
-   VECTIM_destroy( vimout ) ;
-
-   mri_fdr_setmask(mask) ;
-   kk = THD_create_all_fdrcurves(outset) ;
-   if( kk > 0 )
-     ININFO_message("Added %d FDR curve%s to dataset",kk,(kk==1)?"\0":"s");
-   else
-     WARNING_message("Failed to add FDR curves to dataset?!") ;
-
-   if( twosam ) 
+   if( twosam )
      ININFO_message("%s test: results are %s - %s",
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
 
@@ -2027,6 +2153,10 @@ ENTRY("ttest_toz") ;
      for( ii=0 ; ii < numy ; ii++ ){ val = yar[ii] - avy ; sdy += val*val ; }
 
      delta = avx - avy ; /* difference in means */
+
+     if( debug > 1 )
+       fprintf(stderr,"  ttest: Amean=%g Asq=%g  Bmean=%g Bsq=%g  Delta=%g\n",
+               avx,sdx , avy,sdy , delta ) ;
 
      if( sdx+sdy == 0.0f ){
 

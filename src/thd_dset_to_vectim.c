@@ -1184,3 +1184,36 @@ MRI_vectim * THD_dset_list_to_vectim( int nds, THD_3dim_dataset **ds, byte *mask
    for( jj=0 ; jj < nds ; jj++ ) VECTIM_destroy(vim[jj]) ;
    free(vim) ; return vout ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+MRI_vectim * THD_dset_list_censored_to_vectim( int nds, THD_3dim_dataset **ds,
+                                               byte *mask , int nkeep , int *keep )
+{
+   MRI_vectim *vout , **vim ;
+   int kk , jj ;
+
+   if( nds < 1 || ds == NULL ) return NULL ;
+
+   if( nds == 1 ) return THD_dset_censored_to_vectim( ds[0],mask,nkeep,keep );
+
+   for( kk=0 ; kk < nds ; kk++ ){
+     if( !ISVALID_DSET(ds[kk]) ) return NULL ;
+     if( DSET_NVALS(ds[kk]) != DSET_NVALS(ds[0]) ) return NULL ;
+   }
+
+#pragma omp critical (MALLOC)
+   vim = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nds) ;
+   for( kk=0 ; kk < nds ; kk++ ){
+     vim[kk] = THD_dset_censored_to_vectim( ds[kk] , mask , nkeep,keep ) ;
+     DSET_unload( ds[kk] ) ;
+     if( vim[kk] == NULL ){
+       for( jj=0 ; jj < kk ; jj++ ) VECTIM_destroy(vim[jj]) ;
+       free(vim) ; return NULL ;
+     }
+   }
+
+   vout = THD_tcat_vectims( nds , vim ) ;
+   for( jj=0 ; jj < nds ; jj++ ) VECTIM_destroy(vim[jj]) ;
+   free(vim) ; return vout ;
+}
