@@ -174,7 +174,8 @@ ENTRY("AFNI_process_environ") ;
             } else if( !AFNI_noenv("AFNI_ENVIRON_WARNINGS") &&
                         strcmp(right, eee)){
                INFO_message(  "Environment variable %s already set to '%s'. "
-                              "Value of '%s' from %s is ignored.",
+                              "Value of '%s' from %s is ignored. \n"
+                         "To kill such warnings Set AFNI_ENVIRON_WARNINGS to NO",
                               left, eee, right, fname_str);
             }
             nenv++ ;

@@ -2182,10 +2182,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             break;
 
-         case SE_SetSelectedNode:
+         case SE_SetSelectedNode: {
+            SUMA_ALL_DO *adodat=NULL;
+            char *idcode=NULL;
+            NI_element *nel=NULL;
             /* expects a node (datum) index in i and maybe a ngr in ngr
             ngr is only being used when AFNI is the src of the call*/
-            if (EngineData->i_Dest != NextComCode ||
+            if (EngineData->i_Dest   != NextComCode ||
                 EngineData->ngr_Dest != NextComCode) {
                fprintf (SUMA_STDERR,
                         "Error %s: Data not destined correctly for %s (%d).\n",
@@ -2196,7 +2199,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                /* No so in focus */
                SUMA_S_Err("No SO/DO in focus");
                break;
-            }
+            }TLH(1);
+            SUMA_ShowNel(EngineData->ngr);
+            if ( EngineData->ngr && 
+                 (nel = SUMA_FindNgrNamedElement(EngineData->ngr, 
+                                                 "SUMA_crosshair_xyz"))) {
+                  if ((idcode = NI_get_attribute(nel, "surface_idcode")) &&
+                      (adodat = iDO_ADO(SUMA_whichDOg(idcode)))) {
+                /* Make sure datum can be related to the DO in Focus 
+                   For now, all one gets is surfaces, but volume id will
+                   come next. Then you'll need to check for grid match perhaps
+                   before proceeding*/
+                      if (!SUMA_isRelated(adodat, ado,2)) {
+                        SUMA_LH("No relative of mine");
+                        break;
+                      }
+                  }
+            }TLH(0);
             if (EngineData->i >= 0 && 
                   EngineData->i <= SUMA_ADO_Max_Datum_Index(ado)) {
                switch (ado->do_type) {
@@ -2231,7 +2250,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (EngineData->i != -1) { 
                   SUMA_SLP_Err(
                         "Datum index (%d) < 0 || >= Number of data nodes (%d)",
-                        EngineData->i, SUMA_ADO_Max_Datum_Index(ado)+1);                
+                        EngineData->i, SUMA_ADO_Max_Datum_Index(ado)+1);
+                  SUMA_DUMP_TRACE("Whence the bad index");
                }
                break;
             }
@@ -2272,8 +2292,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMA_OpenSurfCont_if_other(sv->X->TOPLEVEL, ado, sv);
             
             SUMA_UpdateNodeField(ado);
-            break;
-            
+            break; }
          case SE_ToggleShowSelectedFaceSet:
             /* expects nothing ! */
             { 
