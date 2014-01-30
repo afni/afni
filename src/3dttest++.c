@@ -218,7 +218,7 @@ void display_help_menu(void)
       "     the BETA_DSET filenames, along with sub-brick selectors, to make it\n"
       "     easier to create the command line.\n"
       "     To protect the wildcards from the shell, the entire filename should be\n"
-      "     inside quote marks.  For example:\n"
+      "     inside single ' or double \" quote marks.  For example:\n"
       "       3dttest++ -setA '*.beta+tlrc.HEAD[Vrel#0_Coef]' \\\n"
       "                 -setB '*.beta+tlrc.HEAD[Arel#0_Coef]' -prefix VAtest -paired\n"
       "     will do a paired 2-sample test between the symbolically selected sub-bricks\n"
@@ -555,7 +555,7 @@ void display_help_menu(void)
       "                 Deities of Mathematics.\n"
       "\n"
       " -brickwise = This option alters the way this program works with input\n"
-      "               datasets that have multiple sub-bricks (the SHORT FORM).\n"
+      "               datasets that have multiple sub-bricks (cf. the SHORT FORM).\n"
       "              ++ If you use this option, it must appear BEFORE either '-set'\n"
       "                  option (so the program knows how to do the bookkeeping\n"
       "                  for the input datasets).\n"
@@ -605,6 +605,9 @@ void display_help_menu(void)
       "                * If '-brickwise' were NOT used, the output dataset would just\n"
       "                   get 2 sub-bricks, as all the inputs in setA would be lumped\n"
       "                   together into one super-sized sample (and similarly for setB).\n"
+      "                * Remember that with the SHORT FORM input (needed for '-brickwise'),\n"
+      "                   you can use wildcards '*' and '?' together with '[...]' sub-brick\n"
+      "                   selectors.\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
       "             ++ For surface-based datasets, use something like:\n"
@@ -1843,7 +1846,7 @@ int main( int argc , char *argv[] )
 
      /* load results from vimout into output dataset */
 
-     ININFO_message("saving results") ;
+     if( debug ) ININFO_message("saving results") ;
 
      for( kk=0 ; kk < nvout ; kk++ )        /* load dataset with 0s */
        EDIT_substitute_brick( bbset , kk , MRI_float , NULL ) ;
@@ -1859,6 +1862,9 @@ int main( int argc , char *argv[] )
    INFO_message("---------- End of analyses -- freeing workspaces ----------") ;
 
    /*-------- get rid of the input data now --------*/
+
+   for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+   for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
 
    if( workspace != NULL ) free(workspace) ;
 

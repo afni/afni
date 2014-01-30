@@ -1206,7 +1206,7 @@ MRI_vectim * THD_dset_list_censored_to_vectim( int nds, THD_3dim_dataset **ds,
    vim = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nds) ;
    for( kk=0 ; kk < nds ; kk++ ){
      vim[kk] = THD_dset_censored_to_vectim( ds[kk] , mask , nkeep,keep ) ;
-     DSET_unload( ds[kk] ) ;
+     /** DSET_unload( ds[kk] ) ; **/
      if( vim[kk] == NULL ){
        for( jj=0 ; jj < kk ; jj++ ) VECTIM_destroy(vim[jj]) ;
        free(vim) ; return NULL ;
