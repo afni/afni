@@ -459,7 +459,6 @@ void SUMA_CreateSphereList(void)
    SUMA_RETURNe;
 }
 
-
 void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER)
 {
    static char FuncName[]={"SUMA_RecordEnablingState"};
@@ -470,12 +469,15 @@ void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER)
       SUMA_S_Err("NULL SER, how am I to record?");
       SUMA_RETURNe;
    }
+   SER->ALPHA_TEST = glIsEnabled(GL_ALPHA_TEST);
    SER->DEPTH_TEST = glIsEnabled(GL_DEPTH_TEST);
    SER->TEXTURE_3D_EXT = glIsEnabled(GL_TEXTURE_3D_EXT);
    SER->TEXTURE_3D = glIsEnabled(GL_TEXTURE_3D);
+   SER->TEXTURE_2D = glIsEnabled(GL_TEXTURE_2D);
    SER->TEXTURE_GEN_S = glIsEnabled(GL_TEXTURE_GEN_S);
    SER->TEXTURE_GEN_T = glIsEnabled(GL_TEXTURE_GEN_T);
    SER->TEXTURE_GEN_R = glIsEnabled(GL_TEXTURE_GEN_R);
+   SER->COLOR_MATERIAL = glIsEnabled(GL_COLOR_MATERIAL);
    SER->CLIP_PLANE0 = glIsEnabled(GL_CLIP_PLANE0);
    SER->CLIP_PLANE1 = glIsEnabled(GL_CLIP_PLANE1);
    SER->CLIP_PLANE2 = glIsEnabled(GL_CLIP_PLANE2);
@@ -488,6 +490,7 @@ void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER)
    SER->LIGHT2 = glIsEnabled(GL_LIGHT2);
    SER->BLEND = glIsEnabled(GL_BLEND);
    SER->LINE_SMOOTH = glIsEnabled(GL_LINE_SMOOTH);
+   SER->COLOR_MATERIAL = glIsEnabled(GL_COLOR_MATERIAL);
    /* SER-> = glIsEnabled(GL_); */
    
    SUMA_RETURNe;
@@ -502,12 +505,16 @@ void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER)
       SUMA_S_Err("No pointer amigo");
       SUMA_RETURNe;
    }   
+   if (SER->ALPHA_TEST) glEnable(GL_ALPHA_TEST);
+   else glDisable(GL_ALPHA_TEST);
    if (SER->DEPTH_TEST) glEnable(GL_DEPTH_TEST);
    else glDisable(GL_DEPTH_TEST);
    if (SER->TEXTURE_3D_EXT) glEnable(GL_TEXTURE_3D_EXT);
    else glDisable(GL_TEXTURE_3D_EXT);
    if (SER->TEXTURE_3D) glEnable(GL_TEXTURE_3D);
    else glDisable(GL_TEXTURE_3D);
+   if (SER->TEXTURE_2D) glEnable(GL_TEXTURE_2D);
+   else glDisable(GL_TEXTURE_2D);
    if (SER->TEXTURE_GEN_S) glEnable(GL_TEXTURE_GEN_S);
    else glDisable(GL_TEXTURE_GEN_S);
    if (SER->TEXTURE_GEN_T) glEnable(GL_TEXTURE_GEN_T);
@@ -538,70 +545,84 @@ void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER)
    else glDisable(GL_BLEND);
    if (SER->LINE_SMOOTH) glEnable(GL_LINE_SMOOTH);
    else glDisable(GL_LINE_SMOOTH);
-   /* if (SER->) glEnable(); */
+   if (SER->COLOR_MATERIAL) glEnable(GL_COLOR_MATERIAL);
+   else glDisable(GL_COLOR_MATERIAL);
+   /* if (SER->) glEnable(); 
+      else glDisable() */
    
    SUMA_RETURNe;
 }
 
-char *SUMA_EnablingState_Info(SUMA_EnablingRecord *SER)
+char *SUMA_EnablingState_Info(SUMA_EnablingRecord *SERu)
 {
    static char FuncName[]={"SUMA_EnablingState_Info"};
    char *s=NULL;
+   SUMA_EnablingRecord SERl, *SER;
    SUMA_STRING *SS=NULL;
    
    SUMA_ENTRY;
       
    SS = SUMA_StringAppend(NULL, NULL);
-   if (!SER) {
-      SUMA_StringAppend_va(SS,"NULL SER\n");
-      SUMA_SS2S(SS,s);
-      SUMA_RETURN(s);
-   }  
-   SUMA_StringAppend_va(SS,"GL_DEPTH_TEST is %s\n", 
-                        SER->DEPTH_TEST ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_TEXTURE_3D_EXT is %s\n", 
-                        SER->TEXTURE_3D_EXT ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_TEXTURE_3D is %s\n", 
-                        SER->TEXTURE_3D ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_S is %s\n", 
-                        SER->TEXTURE_GEN_S ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_T is %s\n", 
-                        SER->TEXTURE_GEN_T ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_R is %s\n", 
-                        SER->TEXTURE_GEN_R ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_CLIP_PLANE0 is %s\n", 
-                        SER->CLIP_PLANE0 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_CLIP_PLANE1 is %s\n", 
-                        SER->CLIP_PLANE1 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_CLIP_PLANE2 is %s\n", 
-                        SER->CLIP_PLANE2 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_CLIP_PLANE3 is %s\n", 
-                        SER->CLIP_PLANE3 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_CLIP_PLANE4 is %s\n", 
-                        SER->CLIP_PLANE4 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_CLIP_PLANE5 is %s\n", 
-                        SER->CLIP_PLANE5 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_LIGHTING is %s\n", 
-                        SER->LIGHTING ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_LIGHT0 is %s\n", 
-                        SER->LIGHT0 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_LIGHT1 is %s\n", 
-                        SER->LIGHT1 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_LIGHT2 is %s\n", 
-                        SER->LIGHT2 ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_BLEND is %s\n", 
-                        SER->BLEND ? "Enabled":"Disabled"); 
-   SUMA_StringAppend_va(SS,"GL_LINE_SMOOTH is %s\n", 
-                        SER->LINE_SMOOTH ? "Enabled":"Disabled"); 
+   if (!SERu) {
+      SUMA_RecordEnablingState(&SERl); 
+      SER = &SERl;
+      SUMA_StringAppend_va(SS,"OpenGL States\n");
+   }  else {
+      SER = SERu;
+      SUMA_StringAppend_va(SS,"Enabling Record\n");
+   }
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+                       "GL_ALPHA_TEST", SER->ALPHA_TEST ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+                        "GL_DEPTH_TEST",SER->DEPTH_TEST ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+               "GL_TEXTURE_3D_EXT", SER->TEXTURE_3D_EXT ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_TEXTURE_2D", SER->TEXTURE_2D ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_TEXTURE_3D", SER->TEXTURE_3D ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_TEXTURE_GEN_S", SER->TEXTURE_GEN_S ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_TEXTURE_GEN_T", SER->TEXTURE_GEN_T ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_TEXTURE_GEN_R", SER->TEXTURE_GEN_R ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_CLIP_PLANE0", SER->CLIP_PLANE0 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_CLIP_PLANE1", SER->CLIP_PLANE1 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_CLIP_PLANE2", SER->CLIP_PLANE2 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_CLIP_PLANE3", SER->CLIP_PLANE3 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_CLIP_PLANE4", SER->CLIP_PLANE4 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_CLIP_PLANE5", SER->CLIP_PLANE5 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_LIGHTING", SER->LIGHTING ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_COLOR_MATERIAL", SER->COLOR_MATERIAL ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_LIGHT0", SER->LIGHT0 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_LIGHT1", SER->LIGHT1 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_LIGHT2", SER->LIGHT2 ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_BLEND", SER->BLEND ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_LINE_SMOOTH", SER->LINE_SMOOTH ? "+++":"---"); 
 
 /*   
-   SUMA_StringAppend_va(SS,"GL_ is %s\n", 
-                        SER-> ? "Enabled":"Disabled"); 
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_ ", SER-> ? "+++":"---"); 
                         */
    SUMA_SS2S(SS,s);
    
    SUMA_RETURN(s);
 }
+
 void SUMA_ShowEnablingState(SUMA_EnablingRecord *SER, FILE *out, 
                             char *preamble) {
    static char FuncName[]={"SUMA_ShowEnablingState"};

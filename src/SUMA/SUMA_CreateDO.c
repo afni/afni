@@ -9971,6 +9971,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             i += 1;
          }
          glEnd();
+         SUMA_CHECK_GL_ERROR("Post End");
       } else {/* slow slow slow, variable stippling, edge thickness, or both*/
          if (!sv->DO_PickMode) {
             if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
