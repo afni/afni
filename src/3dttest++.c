@@ -1686,7 +1686,7 @@ int main( int argc , char *argv[] )
      MEMORY_CHECK ;
    }
 
-   vstep = (nmask_hits > 666) ? nmask_hits/50 : 0 ;
+   vstep = (nmask_hits > 6666) ? nmask_hits/50 : 0 ;
 
    for( bb=0 ; bb < brickwise_num ; bb++ ){
      bbase = bb*nvout ;
