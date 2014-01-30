@@ -2292,7 +2292,10 @@ typedef enum {  SUMA_NO_WAX, SUMA_THREE_WAX, SUMA_THREE_TEXT_WAX, SUMA_BOX_WAX, 
 /*! structure defining the state of a viewer window */
 
 typedef struct {
+   int ALPHA_TEST;
    int DEPTH_TEST;
+   int COLOR_MATERIAL;
+   int TEXTURE_2D;
    int TEXTURE_3D_EXT;
    int TEXTURE_3D;
    int TEXTURE_GEN_S;
