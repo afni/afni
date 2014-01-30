@@ -2199,8 +2199,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                /* No so in focus */
                SUMA_S_Err("No SO/DO in focus");
                break;
-            }TLH(1);
-            SUMA_ShowNel(EngineData->ngr);
+            }
+            
             if ( EngineData->ngr && 
                  (nel = SUMA_FindNgrNamedElement(EngineData->ngr, 
                                                  "SUMA_crosshair_xyz"))) {
@@ -2215,7 +2215,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         break;
                       }
                   }
-            }TLH(0);
+            }
+            
             if (EngineData->i >= 0 && 
                   EngineData->i <= SUMA_ADO_Max_Datum_Index(ado)) {
                switch (ado->do_type) {
