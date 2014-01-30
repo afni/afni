@@ -556,16 +556,20 @@ void display_help_menu(void)
       "\n"
       " -brickwise = This option alters the way this program works with input\n"
       "               datasets that have multiple sub-bricks (the SHORT FORM).\n"
-      "              ++ Without '-brickwise', all the input sub-bricks from all\n"
+      "              ++ If you use this option, it must appear BEFORE either '-set'\n"
+      "                  option (so the program knows how to do the bookkeeping\n"
+      "                  for the input datasets).\n"
+      "              ++ WITHOUT '-brickwise', all the input sub-bricks from all\n"
       "                  datasets in '-setA' are gathered together to form the setA\n"
-      "                  sample.  In this case, there is no requirement that all\n"
-      "                  input datasets have the same number of sub-bricks.\n"
-      "              ++ With '-brickwise', all input datasets (in both sets)\n"
+      "                  sample (similarly for setB, of course).  In this case, there\n"
+      "                  is no requirement that all input datasets have the same\n"
+      "                  number of sub-bricks.\n"
+      "              ++ WITH '-brickwise', all input datasets (in both sets)\n"
       "                  MUST have the same number of sub-bricks.  The t-tests\n"
       "                  are then carried out sub-brick by sub-brick; that is,\n"
       "                  if you input a collection of datasets with 10 sub-bricks\n"
       "                  in each dataset, then you will get 10 t-test results.\n"
-      "              ++ Each t-ttest result will be made up of more than 1 sub-brick\n"
+      "              ++ Each t-test result will be made up of more than 1 sub-brick\n"
       "                  in the output dataset.  If you are doing a 2-sample test,\n"
       "                  you might want to use '-no1sam' to reduce the number of\n"
       "                  volumes in the output dataset.\n"
@@ -582,24 +586,24 @@ void display_help_menu(void)
       "              ++ You can use '-covariates' with '-brickwise'. You should note that\n"
       "                  each t-test will re-use the same covariates -- that is, there\n"
       "                  is no provision for time-dependent (or sub-brick dependent)\n"
-      "                  covariate values.\n"
+      "                  covariate values -- for that, you'd have to relapse to scripting.\n"
       "              ++ EXAMPLE:\n"
       "                  Each input dataset (meg*.nii) has 100 time points; the 'X'\n"
       "                  datasets are for one test condition and the 'Y' dataset are\n"
       "                  for another. In this example, the subjects are the same in\n"
       "                  both conditions, so the '-paired' option makes sense.\n"
-      "                    3dttest++ -setA meg01X.nii meg02X.nii meg03X.nii ... \\\n"
-      "                              -setB meg01Y.nii meg02Y.nii meg03Y.nii ... \\\n"
-      "                              -brickwise -prefix megXY.nii -no1sam -paired\n"
+      "                    3dttest++ -brickwise -prefix megXY.nii -no1sam -paired\\\n"
+      "                              -setA meg01X.nii meg02X.nii meg03X.nii ... \\\n"
+      "                              -setB meg01Y.nii meg02Y.nii meg03Y.nii ... \n"
       "                * The output dataset will have 200 sub-bricks: 100 differences\n"
       "                   of the means between 'X' and 'Y', and 100 t-statistics.\n"
       "                * You could extract the output dataset t-statistics (say)\n"
       "                   into a single dataset with a command like\n"
       "                     3dTcat -prefix megXY_tstat.nii megXY.nii'[1..$(2)]'\n"
       "                   This dataset could then be used to plot the t-statistic\n"
-      "                   vs. time, make a movie, or otherwise have lots of fun!\n"
+      "                   versus time, make a movie, or otherwise do lots of fun things.\n"
       "                * If '-brickwise' were NOT used, the output dataset would just\n"
-      "                   have 2 sub-bricks, as all the inputs in setA would be lumped\n"
+      "                   get 2 sub-bricks, as all the inputs in setA would be lumped\n"
       "                   together into one super-sized sample (and similarly for setB).\n"
       "\n"
       " -prefix p = Gives the name of the output dataset file.\n"
@@ -825,7 +829,7 @@ int is_possible_filename( char * fname )
 int main( int argc , char *argv[] )
 {
    int nopt, nbad, ii,jj,kk, kout,ivox, vstep, dconst, nconst=0, nzskip=0,nzred=0  ;
-   int bb , bbase ;  /* for -brickwise -- 28 Jan 2014 */
+   int bb , bbase ;  char *abbfmt ; /* for -brickwise -- 28 Jan 2014 */
    MRI_vectim *vimout ;
    float *workspace=NULL , *datAAA , *datBBB=NULL , *resar ; size_t nws=0 ;
    float_pair tpair ;
@@ -858,7 +862,7 @@ int main( int argc , char *argv[] )
    nopt = 1 ;
    while( nopt < argc ){
 
-     /*----- brickwise -----*/
+     /*----- brickwise [28 Jan 2014] -----*/
 
      if( strcasecmp(argv[nopt],"-brickwise") == 0 ){ /* 28 Jan 2014 */
        if( ndset_AAA > 0 || ndset_BBB > 0 )
@@ -1573,8 +1577,13 @@ int main( int argc , char *argv[] )
     dof_AB = (ttest_opcode==2) ? dof_A : dof_A+dof_B ;
    }
 
+        if( brickwise_num <=    10 ) abbfmt = "#%d"   ;
+   else if( brickwise_num <=   100 ) abbfmt = "#%02d" ;
+   else if( brickwise_num <=  1000 ) abbfmt = "#%03d" ;
+   else if( brickwise_num <= 10000 ) abbfmt = "#%04d" ;
+   else                              abbfmt = "#%05d" ;
 #undef  ABB
-#define ABB if(brickwise)sprintf(blab+strlen(blab),"#%d",bb)
+#define ABB if(brickwise)sprintf(blab+strlen(blab),abbfmt,bb)
    stnam = (toz) ? "Zscr" : "Tstat" ;
    for( bb=0 ; bb < brickwise_num ; bb++ ){
      bbase = bb*nvout ;
