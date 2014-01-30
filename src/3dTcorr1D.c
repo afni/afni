@@ -195,16 +195,17 @@ int main( int argc , char *argv[] )
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
      ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
 
-        if( ny <   10 ) kk = 1 ;  /* number of digits for */
-   else if( ny <  100 ) kk = 2 ;  /* brick label string */
-   else if( ny < 1000 ) kk = 3 ;
-   else                 kk = 4 ;
+        if( ny <    10 ) kk = 1 ;  /* number of digits for */
+   else if( ny <   100 ) kk = 2 ;  /* brick label string */
+   else if( ny <  1000 ) kk = 3 ;
+   else if( ny < 10000 ) kk = 4 ;
+   else                  kk = 5 ;
    switch( method ){              /* brick label string format */
      default:
-     case PEARSON:  sprintf(fmt,"PearCorr#%%%dd",kk) ; break ;
-     case SPEARMAN: sprintf(fmt,"SpmnCorr#%%%dd",kk) ; break ;
-     case QUADRANT: sprintf(fmt,"QuadCorr#%%%dd",kk) ; break ;
-     case KTAUB:    sprintf(fmt,"TaubCorr#%%%dd",kk) ; break ;
+     case PEARSON:  sprintf(fmt,"PearCorr#%%0%dd",kk) ; break ;
+     case SPEARMAN: sprintf(fmt,"SpmnCorr#%%0%dd",kk) ; break ;
+     case QUADRANT: sprintf(fmt,"QuadCorr#%%0%dd",kk) ; break ;
+     case KTAUB:    sprintf(fmt,"TaubCorr#%%0%dd",kk) ; break ;
    }
    if( datum == MRI_short ) cfac = 0.0001f ;  /* scale factor for -short */
 
