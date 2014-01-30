@@ -195,11 +195,11 @@ int main( int argc , char *argv[] )
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
      ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
 
-        if( ny <    10 ) kk = 1 ;  /* number of digits for */
-   else if( ny <   100 ) kk = 2 ;  /* brick label string */
-   else if( ny <  1000 ) kk = 3 ;
-   else if( ny < 10000 ) kk = 4 ;
-   else                  kk = 5 ;
+        if( ny <=    10 ) kk = 1 ;  /* number of digits for */
+   else if( ny <=   100 ) kk = 2 ;  /* brick label string */
+   else if( ny <=  1000 ) kk = 3 ;
+   else if( ny <= 10000 ) kk = 4 ;
+   else                   kk = 5 ;
    switch( method ){              /* brick label string format */
      default:
      case PEARSON:  sprintf(fmt,"PearCorr#%%0%dd",kk) ; break ;
