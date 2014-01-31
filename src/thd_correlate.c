@@ -388,18 +388,18 @@ float THD_pearson_corr( int n, float *x , float *y )
 
 double THD_pearson_corrd( int n, double *x , double *y )
 {
-   double xv=0.0f , yv=0.0f , xy=0.0f , vv,ww ;
-   double xm=0.0f , ym=0.0f ;
+   double xv=0.0 , yv=0.0 , xy=0.0 , vv,ww ;
+   double xm=0.0 , ym=0.0 ;
    register int ii ;
 
-   if( n < 2 ) return 0.0f ;
+   if( n < 2 ) return 0.0 ;
    for( ii=0 ; ii < n ; ii++ ){ xm += x[ii] ; ym += y[ii] ; }
    xm /= n ; ym /= n ;
    for( ii=0 ; ii < n ; ii++ ){
      vv = x[ii]-xm; ww = y[ii]-ym; xv += vv*vv; yv += ww*ww; xy += vv*ww;
    }
 
-   if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
+   if( xv <= 0.0 || yv <= 0.0 ) return 0.0 ;
    return xy/sqrt(xv*yv) ;
 }
 
