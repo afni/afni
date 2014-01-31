@@ -2475,8 +2475,8 @@ float *SUMA_PercFullRangeVol(float *V, int N_V, int p10, int exzero, int *Nvals)
 {
    static char FuncName[]={"SUMA_PercFullRangeVol"};
    int nval = 0, ii;
-   float *pr;
-   float *Vsort, fac, *perc;
+   float *pr=NULL;
+   float *Vsort=NULL, fac, *perc=NULL;
    
    SUMA_ENTRY;
    
