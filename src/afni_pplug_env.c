@@ -388,7 +388,7 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_string( "AFNI_IMAGE_GLOBALRANGE" ,
    "Set image viewers to use 3D global data range by slice, volume or dataset min-max?",
-              NUM_globalrange_strings , globalrange_strings , ENV_globalrange  ) ;
+              NUM_globalrange_strings , globalrange_strings , ENV_globalrange_view  ) ;
 
 
    /* 19 Nov 2003 */
@@ -881,42 +881,6 @@ ENTRY("ENV_main") ;
    RETURN( NULL );
 }
 
-/*-----------------------------------------------------------------------*/
-/* reset globalrange - called by environment GUI and plugout driver */ 
-void ENV_globalrange( char *vname ) /* no longer static definition */
-{
-   Three_D_View *im3d ;
-   int ii , gbr ;
-   char sgr_str[64];
-   
-   /* reset image_globalrange */
-   THD_set_image_globalrange(-1);
-#if 0
-   sprintf(sgr_str,"AFNI_IMAGE_GLOBALRANGE=%s",vname);
-printf("setting env %s\n",sgr_str);
-   AFNI_setenv(sgr_str);
-#endif
-
-   gbr = THD_get_image_globalrange(); /* resets from environment variable setting */
-
-   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-     im3d = GLOBAL_library.controllers[ii] ;
-     if( ! IM3D_OPEN(im3d) ) continue ;
-     if( gbr ){
-       AFNI_range_setter( im3d , im3d->s123 ) ;
-       AFNI_range_setter( im3d , im3d->s231 ) ;
-       AFNI_range_setter( im3d , im3d->s312 ) ;
-       drive_MCW_imseq( im3d->s123 , isqDR_display , (XtPointer)(-1) ) ;
-       drive_MCW_imseq( im3d->s231 , isqDR_display , (XtPointer)(-1) ) ;
-       drive_MCW_imseq( im3d->s312 , isqDR_display , (XtPointer)(-1) ) ;
-     } else {
-       drive_MCW_imseq( im3d->s123 , isqDR_setrange , (XtPointer)NULL ) ;
-       drive_MCW_imseq( im3d->s231 , isqDR_setrange , (XtPointer)NULL ) ;
-       drive_MCW_imseq( im3d->s312 , isqDR_setrange , (XtPointer)NULL ) ;
-     }
-   }
-   return ;
-}
 
 /*-----------------------------------------------------------------------*/
 
