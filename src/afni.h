@@ -1422,6 +1422,9 @@ extern "C" {
    extern PLUGIN_interface * GICOR_init(char *);         /* 22 Dec 2009 */
 #endif
 
+extern void ENV_globalrange( char *vname );
+extern void THD_set_image_globalrange_env(int ig);
+
 extern void GICOR_setup_func(NI_stream, NI_element *) ;        /* 22 Dec 2009 */
 extern void GICOR_process_dataset( NI_element *nel, int ct ) ; /* 23 Dec 2009 */
 extern void GICOR_process_message( NI_element *nel ) ;            /* Apr 2013 */
