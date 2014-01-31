@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 29 , JAN , 2014 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
+  { 31 , JAN , 2014 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+   "Make I/O more efficient and streamlined for -brickwise" ,
+   NULL } ,
+
+ { 29 , JAN , 2014 , RWC , "3dttest++" , MINOR , TYPE_NEW_OPT ,
    "-brickwise allows time-dependent t-test results" ,
    "For Stephen Robinson" } ,
 

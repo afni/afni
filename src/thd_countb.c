@@ -45,3 +45,19 @@ int THD_count_potential_databricks( THD_datablock * dblk )
 
    return count ;
 }
+
+/*---------------------------------------------------------------*/
+
+int THD_subset_loaded( THD_3dim_dataset *dset , int nb , int *bb )
+{
+   int ii,kk , nvals ;
+
+   if( !ISVALID_DSET(dset) || nb <= 0 || bb == NULL ) return 0 ;
+   nvals = DSET_NVALS(dset) ;
+
+   for( ii=0 ; ii < nb ; ii++ ){
+     kk = bb[ii] ; if( kk < 0 || kk >= nvals ) return 0 ;
+     if( !DSET_BRICK_LOADED(dset,kk) )         return 0 ;
+   }
+   return 1 ;
+}

@@ -1359,7 +1359,7 @@ int main( int argc , char *argv[] )
    if( twosam ){
      snam_PPP = (BminusA) ? snam_BBB : snam_AAA ;
      snam_MMM = (BminusA) ? snam_AAA : snam_BBB ;
-     INFO_message("%s test: results are %s - %s",
+     INFO_message("%s test: results will be %s - %s",
                   ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
    }
 
@@ -1684,14 +1684,19 @@ int main( int argc , char *argv[] )
    if( !brickwise ){
      INFO_message("loading input datasets") ;
      vectim_AAA = THD_dset_list_to_vectim( ndset_AAA , dset_AAA , mask ) ;
-     if( twosam )
+     for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
+     if( twosam ){
        vectim_BBB = THD_dset_list_to_vectim( ndset_BBB , dset_BBB , mask ) ;
+       for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
+     }
      MEMORY_CHECK ;
    }
 
+   /*--- loop and process ---*/
+
    vstep = (nmask_hits > 6666) ? nmask_hits/50 : 0 ;
 
-   for( bb=0 ; bb < brickwise_num ; bb++ ){
+   for( bb=0 ; bb < brickwise_num ; bb++ ){  /* for each 'brick' to process */
      bbase = bb*nvout ;
 
      if( brickwise ){
@@ -1701,15 +1706,18 @@ int main( int argc , char *argv[] )
        if( vectim_BBB != NULL ){ VECTIM_destroy(vectim_BBB); vectim_BBB=NULL; }
        vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
                                                       mask , 1 , keep       ) ;
-       if( twosam )
+       for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload_one(dset_AAA[ii],bb) ;
+       if( twosam ){
          vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
                                                         mask , 1 , keep       ) ;
+         for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload_one(dset_BBB[ii],bb) ;
+       }
      }
 
      if( vstep > 0 ) fprintf(stderr,"++ t-testing:") ;
      nconst = nzred = nzskip = 0 ;
 
-     for( kout=ivox=0 ; ivox < nvox ; ivox++ ){
+     for( kout=ivox=0 ; ivox < nvox ; ivox++ ){  /* for each voxel to process */
 
        if( mask != NULL && mask[ivox] == 0 ) continue ;  /* don't process */
 
@@ -1828,7 +1836,7 @@ int main( int argc , char *argv[] )
        kout++ ;
      }  /* end of loop over voxels */
 
-     /* print messages for this set of t-tests */
+     /*--- print messages for this set of t-tests ---*/
 
      if( vstep > 0 ) fprintf(stderr,"!\n") ;
 
@@ -1844,9 +1852,9 @@ int main( int argc , char *argv[] )
        ININFO_message("-zskip: skipped %d voxel%s completely for having too few nonzero values" ,
                       nzskip , (nzskip==1) ? "\0" : "s" ) ;
 
-     /* load results from vimout into output dataset */
+     /*--- load results from vimout into output dataset ---*/
 
-     if( debug ) ININFO_message("saving results") ;
+     if( debug ) ININFO_message("saving results into output volumes") ;
 
      for( kk=0 ; kk < nvout ; kk++ )        /* load dataset with 0s */
        EDIT_substitute_brick( bbset , kk , MRI_float , NULL ) ;
@@ -1859,20 +1867,18 @@ int main( int argc , char *argv[] )
 
    } /* end of brickwise loop */
 
-   INFO_message("---------- End of analyses -- freeing workspaces ----------") ;
+   /*-------- get rid of the input data and workspaces now --------*/
 
-   /*-------- get rid of the input data now --------*/
+   INFO_message("---------- End of analyses -- freeing workspaces ----------") ;
 
    for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload(dset_AAA[ii]) ;
    for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload(dset_BBB[ii]) ;
 
-   if( workspace != NULL ) free(workspace) ;
-
+   if( workspace  != NULL ) free(workspace) ;
    if( vectim_AAA != NULL ) VECTIM_destroy(vectim_AAA) ;
    if( vectim_BBB != NULL ) VECTIM_destroy(vectim_BBB) ;
    if( vimout     != NULL ) VECTIM_destroy(vimout) ;
-
-   if( bbset != NULL ) DSET_delete(bbset) ;
+   if( bbset      != NULL ) DSET_delete(bbset) ;
 
    if( covvim_AAA != NULL ){
      for( jj=0 ; jj < mcov ; jj++ )
@@ -1910,11 +1916,11 @@ int main( int argc , char *argv[] )
        WARNING_message("Failed to add FDR curves to dataset?!") ;
    }
 
+   DSET_write(outset) ; WROTE_DSET(outset) ; DSET_unload(outset) ;
+
    if( twosam )
      ININFO_message("%s test: results are %s - %s",
                     ttest_opcode == 2 ? "paired":"2-sample", snam_PPP,snam_MMM) ;
-
-   DSET_write(outset) ; WROTE_DSET(outset) ;
 
    exit(0) ;
 
