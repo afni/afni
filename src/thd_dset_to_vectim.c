@@ -113,12 +113,15 @@ MRI_vectim * THD_dset_censored_to_vectim( THD_3dim_dataset *dset,
 
 ENTRY("THD_dset_censored_to_vectim") ;
 
-                     if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
-   DSET_load(dset) ; if( !DSET_LOADED(dset)  ) RETURN(NULL) ;
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
 
    if( nkeep <= 0 || keep == NULL ){
      mrv = THD_dset_to_vectim( dset , mask , 0 ) ;
      RETURN(mrv) ;
+   }
+
+   if( THD_subset_loaded(dset,nkeep,keep) ){
+     DSET_load(dset) ; if( !DSET_LOADED(dset)  ) RETURN(NULL) ;
    }
 
    nvals = nkeep ;
@@ -1173,7 +1176,7 @@ MRI_vectim * THD_dset_list_to_vectim( int nds, THD_3dim_dataset **ds, byte *mask
    vim = (MRI_vectim **)malloc(sizeof(MRI_vectim *)*nds) ;
    for( kk=0 ; kk < nds ; kk++ ){
      vim[kk] = THD_dset_to_vectim( ds[kk] , mask , 0 ) ;
-     DSET_unload( ds[kk] ) ;
+     /** DSET_unload( ds[kk] ) ; **/
      if( vim[kk] == NULL ){
        for( jj=0 ; jj < kk ; jj++ ) VECTIM_destroy(vim[jj]) ;
        free(vim) ; return NULL ;
