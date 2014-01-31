@@ -505,6 +505,8 @@ typedef struct MCW_imseq {
      MCW_bbox *wbar_plots_bbox ;        /* 20 Sep 2001 */
      MCW_arrowval *wbar_label_av ;      /* 20 Sep 2001 */
      MCW_arrowval *wbar_labsz_av ;      /* 21 Sep 2001 */
+     MCW_arrowval *wbar_globrange_av ;  /* 30 Jan 2013 */
+
      Widget        wbar_labst_pb ;      /* 23 Dec 2011 */
 
      Widget        zoom_sep              /* 11 Mar 2002 */;
@@ -709,6 +711,7 @@ extern void ISQ_scale_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void ISQ_wbar_plots_CB( Widget , XtPointer , XtPointer ) ; /* 20 Sep 2001 */
 extern void ISQ_wbar_label_CB( MCW_arrowval * , XtPointer ) ;
+extern void ISQ_wbar_globrange_CB( MCW_arrowval * , XtPointer ) ;
 extern void ISQ_wbar_amask_CB( Widget , XtPointer , XtPointer ) ; /* 14 Jun 2010 */
 extern void ISQ_wbar_crop_CB ( Widget , XtPointer , XtPointer ) ; /* 15 Jan 2014 */
 

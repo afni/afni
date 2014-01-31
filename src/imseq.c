@@ -1760,12 +1760,34 @@ STATUS("creation: widgets created") ;
                                        "LowerLeft", "LowerRight",
                                        "UpperMid" , "LowerMid"   } ;
      static char *slabel[5] = { "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
+     static char *mlabel[3] = { "Slice", "Volume", "Dataset" };
+
      char *eee ; int iii ;
 
      (void) XtVaCreateManagedWidget( "menu",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
+     iii = THD_get_image_globalrange();
+     if( iii < 0 || iii > 3 ) iii = 0 ;
+
+     newseq->wbar_globrange_av =
+        new_MCW_arrowval( newseq->wbar_menu ,
+                          "Image Global Range" ,
+                          MCW_AV_optmenu ,      /* option menu style */
+                          0 ,                   /* first option */
+                          2 ,                   /* last option */
+                          iii ,                 /* initial selection */
+                          MCW_AV_readtext ,     /* ignored but needed */
+                          0 ,                   /* ditto */
+                          ISQ_wbar_globrange_CB , /* callback when changed */
+                          (XtPointer)newseq ,   /* data for above */
+                          MCW_av_substring_CB , /* text creation routine */
+                          mlabel                /* data for above */
+                        ) ;
+     MCW_reghint_children(newseq->wbar_globrange_av->wrowcol,
+                  "Set how images are scaled in display - sets AFNI_IMAGE_GLOBALRANGE") ;
+
 
      /*-- plots stuff --*/
 
@@ -3096,6 +3118,7 @@ MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq *seq , MRI_IMAGE *im )
    short clbot=0 , cltop=0 ;
    int must_rescale = 1 ;     /* 31 Jan 2002: always turn this on */
    int have_transform ;
+   char scalestring[8];
 
 ENTRY("ISQ_process_mri") ;
 
@@ -3269,7 +3292,9 @@ ENTRY("ISQ_process_mri") ;
                       seq->dc->ncol_im , seq->scl,seq->lev ) ;
            clbot = seq->clbot = seq->rng_bot ;
            cltop = seq->cltop = seq->rng_top ;
-           if( seq->rng_extern ) strcpy(seq->scl_label,"[Glob]") ;
+/*           if( seq->rng_extern ) strcpy(seq->scl_label,"[Glob]") ;*/
+           if( seq->rng_extern ) sprintf(seq->scl_label,"[%s]",
+              THD_get_image_globalrange_str()) ;
            else                  strcpy(seq->scl_label,"[User]") ;
          }
          break ; /* end of user input range scaling */
@@ -8668,6 +8693,20 @@ ENTRY("ISQ_wbar_label_CB") ;
    EXRETURN ;
 }
 
+void ISQ_wbar_globrange_CB( MCW_arrowval *av , XtPointer cd )
+{
+   MCW_imseq *seq = (MCW_imseq *)cd ;
+
+ENTRY("ISQ_wbar_globrange_CB") ;
+
+   if( !ISQ_REALZ(seq) ) EXRETURN ;
+
+   THD_set_image_globalrange_env(av->ival);
+
+   EXRETURN ;
+}
+
+
 /*----------------------------------------------------------------------*/
 /* Finalize the overlay label append string [23 Dec 2011] */
 
@@ -12221,7 +12260,7 @@ int ISQ_handle_keypress( MCW_imseq *seq , unsigned long key , unsigned int state
 ENTRY("ISQ_handle_keypress") ;
 
    ISQ_timer_stop(seq) ;  /* 03 Dec 2003 */
-
+ 
    if( busy || key == 0 ) RETURN(1) ;
    busy = 1 ;
 
@@ -12234,7 +12273,7 @@ ENTRY("ISQ_handle_keypress") ;
 
    if( key > 255 ){
      KeySym ks = (KeySym)key ;
-     switch( ks ){
+    switch( ks ){
 
        case XK_Home:       /* 27 Aug 2009 : center crop or pan at crosshairs */
          if( shft ){
@@ -12511,20 +12550,26 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
-     /* 22 Aug 2005: 'm' == Min-to-Max toggle */
+    /* ctrl-m to cycle globalranges */
+     case 13 :
+          THD_cycle_image_globalrange();
+       busy=0 ; RETURN(1) ;
 
+     break;
+
+     /* 22 Aug 2005: 'm' == Min-to-Max toggle */
      case 'm':{
        if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
-       switch( seq->opt.scale_range ){
-         default:
-         case ISQ_RNG_MINTOMAX: seq->opt.scale_range = ISQ_RNG_02TO98;  break;
-         case ISQ_RNG_CLIPPED:  seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
-         case ISQ_RNG_02TO98:   seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
+          switch( seq->opt.scale_range ){
+            default:
+            case ISQ_RNG_MINTOMAX: seq->opt.scale_range = ISQ_RNG_02TO98;  break;
+            case ISQ_RNG_CLIPPED:  seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
+            case ISQ_RNG_02TO98:   seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
+          }
        }
-
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        busy=0 ; RETURN(1) ;
-     }
+
      break ;
 
      /* 22 Aug 2005: 'l' == LR mirror toggle */

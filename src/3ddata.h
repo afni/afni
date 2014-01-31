@@ -3673,6 +3673,11 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 extern int THD_deathcon(void) ;             /* 06 Jun 2007 */
 extern int THD_ok_overwrite(void) ;         /* Jan 2008 */
 extern void THD_force_ok_overwrite( int ) ; /* 07 Jan 2008 */
+extern void THD_set_image_globalrange(int ii); /* 27 Jan 2014 */
+extern int THD_get_image_globalrange(void);
+extern char *THD_get_image_globalrange_str(void);
+extern void THD_cycle_image_globalrange(void);
+extern void THD_set_image_globalrange_env(int ig);
 
 /*! Write only the dataset header to disk, for dataset ds */
 
