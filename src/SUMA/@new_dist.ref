@@ -69,7 +69,11 @@ if ("$package" == "") then
       set package = linux_xorg7
       #echo "Forcing use of localX"
       #set localX = 1
-   else if ( "${thishost}" =~ gothmog* ) then
+   else if ( "${thishost}" =~ radagast* ) then
+      set package = linux_xorg7_64
+      #echo "Forcing use of localX"
+      #set localX = 1
+   else if ( "${thishost}" =~ gothmog* || "${thishost}" =~ hurin*) then
       set package = linux_openmp_64
       echo "Forcing use of localX, -expat_sh, -fontconf, -fixccold"
       set localX = 1
