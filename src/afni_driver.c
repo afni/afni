@@ -2428,7 +2428,7 @@ int AFNI_drive_setenv( char *cmd )
    /*-- turn image global ranging on or off --*/
 
    else if( strcmp(nam,"AFNI_IMAGE_GLOBALRANGE") == 0 ){
-      ENV_globalrange(val);  /*same function is used for interactive environment */
+      ENV_globalrange_view(val);  /*same function is used for interactive environment */
 #if 0
      Three_D_View *im3d ; int ii,gbr ;
    /* reset image_globalrange */

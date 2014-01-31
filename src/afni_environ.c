@@ -688,24 +688,6 @@ void THD_cycle_image_globalrange()
    ig = THD_get_image_globalrange();
    ig++;
    if(ig>2) ig = 0;
-   THD_set_image_globalrange_env(ig);
+   THD_set_image_globalrange(ig);
 }
 
-/* set environment variable too */
-void THD_set_image_globalrange_env(int ig)
-{
-   THD_set_image_globalrange(ig);
-   switch(ig) {
-      default:
-      case 0: 
-         AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=SLICE");
-         break;
-      case 1: 
-         AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=VOLUME");
-         break;
-      case 2: 
-         AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=DSET");
-         break;
-   }   
-   ENV_globalrange( "AFNI_IMAGE_GLOBALRANGE" );
-}

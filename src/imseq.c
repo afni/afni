@@ -12551,10 +12551,15 @@ ENTRY("ISQ_handle_keypress") ;
      break ;
 
     /* ctrl-m to cycle globalranges */
-     case 13 :
+     case 13 : {
+          int ig;
           THD_cycle_image_globalrange();
-       busy=0 ; RETURN(1) ;
+          ig = THD_get_image_globalrange();
+          THD_set_image_globalrange_env(ig);
+          ENV_globalrange_view( "AFNI_IMAGE_GLOBALRANGE" );
 
+       busy=0 ; RETURN(1) ;
+     }
      break;
 
      /* 22 Aug 2005: 'm' == Min-to-Max toggle */
@@ -13346,3 +13351,5 @@ ENTRY("ISQ_save_anim") ;
 
    DESTROY_SARR(agif_list) ; free(prefix) ; free(fnamep); EXRETURN ;
 }
+
+

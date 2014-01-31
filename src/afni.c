@@ -6534,6 +6534,62 @@ ENTRY("AFNI_range_setter") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------*/
+/* reset globalrange - called by environment GUI and plugout driver */ 
+void ENV_globalrange_view( char *vname ) /* no longer static definition */
+{
+   Three_D_View *im3d ;
+   int ii , gbr ;
+   char sgr_str[64];
+   
+   /* reset image_globalrange */
+   THD_set_image_globalrange(-1);
+#if 0
+   sprintf(sgr_str,"AFNI_IMAGE_GLOBALRANGE=%s",vname);
+printf("setting env %s\n",sgr_str);
+   AFNI_setenv(sgr_str);
+#endif
+
+   gbr = THD_get_image_globalrange(); /* resets from environment variable setting */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     im3d = GLOBAL_library.controllers[ii] ;
+     if( ! IM3D_OPEN(im3d) ) continue ;
+     if( gbr ){
+       AFNI_range_setter( im3d , im3d->s123 ) ;
+       AFNI_range_setter( im3d , im3d->s231 ) ;
+       AFNI_range_setter( im3d , im3d->s312 ) ;
+       drive_MCW_imseq( im3d->s123 , isqDR_display , (XtPointer)(-1) ) ;
+       drive_MCW_imseq( im3d->s231 , isqDR_display , (XtPointer)(-1) ) ;
+       drive_MCW_imseq( im3d->s312 , isqDR_display , (XtPointer)(-1) ) ;
+     } else {
+       drive_MCW_imseq( im3d->s123 , isqDR_setrange , (XtPointer)NULL ) ;
+       drive_MCW_imseq( im3d->s231 , isqDR_setrange , (XtPointer)NULL ) ;
+       drive_MCW_imseq( im3d->s312 , isqDR_setrange , (XtPointer)NULL ) ;
+     }
+   }
+   return ;
+}
+
+/* set environment variable too */
+void THD_set_image_globalrange_env(int ig)
+{
+   THD_set_image_globalrange(ig);
+   switch(ig) {
+      default:
+      case 0: 
+         AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=SLICE");
+         break;
+      case 1: 
+         AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=VOLUME");
+         break;
+      case 2: 
+         AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=DSET");
+         break;
+   }   
+  ENV_globalrange_view( "AFNI_IMAGE_GLOBALRANGE" );
+}
+
 /*------------------------------------------------------------------------*/
 /*! Define the view_setter code, which says which image viewer plane
     was used to set the current viewpoint.  [26 Feb 2003]
