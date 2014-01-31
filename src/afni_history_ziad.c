@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 31, Jan, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
+   "Lessened dependency on new libgsl to allow FATCAT build on xorg7",
+   "This necessitated creating a double version of thd_correlate()\n"
+   "and adding -DXORG7 to the xorg7 makefiles" 
+ }, 
+ 
+ { 31, Jan, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Fixed problem with graph where segments were turning black.",
+   "Problem was caused by a stale pointer copy stored in SDO->colv\n"
+   "bad bad bad!" 
+ }, 
+ 
  { 23, Jan, 2014, ZSS, "suma", MINOR, TYPE_GENERAL,
    "Added transparency for slice displays",
    NULL 
