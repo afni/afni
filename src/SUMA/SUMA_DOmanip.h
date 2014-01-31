@@ -254,8 +254,8 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb,
                                   int refresh, SUMA_ALL_DO *ado,
                                   int doall) ;
 void SUMA_FreeXformInterface(SUMA_GENERIC_XFORM_INTERFACE *gui);
-SUMA_GENERIC_XFORM_INTERFACE * SUMA_NewXformInterface(
-   SUMA_XFORM *xf);
+SUMA_GENERIC_XFORM_INTERFACE * SUMA_NewXformInterface(SUMA_XFORM *xf);
+char *SUMA_DO_dbg_info(char *idcode);
 
 #define SUMA_XFORM_STORE_AS_LAST_EVENT(nelpars) {\
          NI_set_attribute(nelpars, "last_event.new_node",   \
