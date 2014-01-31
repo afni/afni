@@ -2351,9 +2351,25 @@ values between 0.6 and 1.9 (inclusive) -- the default is 1.0.
 --------------------------------
 Variable: AFNI_IMAGE_GLOBALRANGE (editable)
 --------------------------------
-If this variable is set to YES, then the image viewer windows will be
-set to scale the bottom gray level to the minimum value in the 3D
-volume and the top gray level to the maximum value in the 3D volume.
+AFNI_IMAGE_GLOBALRANGE can be set to SLICE (default), VOLUME (SUBBRICK),
+or DSET. The GUI applies the lookup table to color the underlay with the
+range determined from the slice, sub-brick or the whole multi-sub-brick
+dataset,respectively, depending on this variable. Besides the .afnirc file,
+the GUI allows changes from the environment plugin menu, the right-click
+menu on the image viewer colorbar or by typing Control-m in an image viewer.
+The Control-m cycles among the global range types.
+
+Previous YES/NO definitions for this variable correspond to VOLUME and
+SLICE respectively and will continue to work as before. The lower right
+corner of the image viewer shows the current range setting:
+(2%-98%/Min2Max, Vol, Dset)
+
+If this variable is set to YES/VOLUME/SUBBRICK, then the image
+viewer windows will be set to scale the bottom gray level to the
+minimum value in the 3D volume and the top gray level to the maximum
+value in the 3D volume. Setting the variable to DSET similarly sets
+the minimum and maximum based on the range of the whole dataset.
+
 This setting overrides the "Min-to-Max" and "2%-to-98%" settings in
 the "Disp" control panel.  This setting also applies to all image
 viewers.  If you set this in the "Edit Environment" control, it will
@@ -2368,7 +2384,8 @@ Therefore, the info label beneath the slider shows the source of
 the bot-top grayscale values:
   [2%-98%]  = from the 2% to 98% points on the slice histogram
   [Min2Max] = from the 0% to 100% points on the slice histogram
-  [Glob]    = set from the entire volume min and max values
+  [Vol]     = set from the entire volume min and max values
+  [Dset]    = set from the min and max across all subbricks of a dataset
   [User]    = set by the user from 'Display Range'
   absent    = not applicable (e.g., underlay image is RGB)
 The popup 'hint' for the grayscale bar shows the current values
