@@ -168,7 +168,7 @@ static byte  *smask=NULL ;
 static int    nvim ;
 static float *bvim=NULL, *gvim=NULL, *xvim=NULL, *yvim=NULL, *ctvim=NULL, *stvim=NULL ;
 
-static float noise_estimate ;  /* initial estimate of noise level */
+static float noise_estimate=0.0f ;  /* initial estimate of noise level */
 
  /* these parameters define theta(x,y) */
 static int   ntheta_par=2 ;
@@ -216,7 +216,7 @@ compute_thvim(void)
 
 float find_mhat( float iy , float iyn , float ct , float st , float d )
 {
-   float mzero, ff,df, ctq=ct*ct, stq=st*st, mq, dq=d*d , mval ;
+   float mzero, ff,df, ctq=ct*ct, stq=st*st, mq, dq=d*d , mval , msd,mcd ;
 
    mzero = iy*ct  + iyn*st  ;
 
@@ -241,7 +241,7 @@ float find_mhat( float iy , float iyn , float ct , float st , float d )
 
 double theta_func( int npar , double *thpar )
 {
-   int ii ; double sum ; float mhat,e1,e2 ;
+   int ii ; double sum=0.0 ; float mhat,e1,e2 ;
 
    theta_par[0] = thpar[0] ; theta_par[1] = thpar[1] ; d_par = thpar[2] ;
    compute_thvec() ;
@@ -253,6 +253,11 @@ double theta_func( int npar , double *thpar )
      sum += e1*e1 + e2*e2 ;
    }
 
+   /** penalty for nonzero parameters **/
+
+   sum += 0.011*nvec*noise_estimate*noise_estimate
+          * ( fabs(thpar[0]) + 99.9*fabs(thpar[1]) ) ;
+
    return sum ;
 }
 
@@ -263,19 +268,24 @@ void optimize_theta(void)
    double thpar[3] , thbot[3] , thtop[3] ;
 
    thpar[0] =  0.0 ;
-   thbot[0] = -9.1 ;
-   thtop[0] =  9.1 ;
+   thbot[0] = -9.9 ;
+   thtop[0] =  9.9 ;
+
    thpar[1] =  0.000;  /* initial values */
-   thbot[1] = -0.005;  /* lower limits */
+   thbot[1] = -0.001;  /* lower limits */
    thtop[1] =  0.09 ;  /* upper limits */
-   thpar[2] =  0.1*noise_estimate ;
+
+   thpar[2] =  0.111*noise_estimate ;
    thbot[2] =  0.0 ;
-   thtop[2] =  2.2*noise_estimate ;
+   thtop[2] =  2.222*noise_estimate ;
+
    powell_newuoa_con( 3 , thpar,thbot,thtop ,
-                      243 , 0.1 , 0.001 , 999 , theta_func ) ;
+                      1999 , 0.1 , 0.001 , 4999 , theta_func ) ;
+
    theta_par[0] = thpar[0] ;
    theta_par[1] = thpar[1] ;
    d_par        = thpar[2] ;
+
    return ;
 }
 
@@ -296,15 +306,14 @@ byte * DEG_automask_image( MRI_IMAGE *im )
    iar  = MRI_FLOAT_PTR(im) ;
    cval = THD_cliplevel(im,CLFRAC) ;
 
+   THD_mask_dilate(nx,ny,nz,cmask,3) ;  /* embiggen the mask */
    THD_mask_dilate(nx,ny,nz,cmask,3) ;
    THD_mask_dilate(nx,ny,nz,cmask,3) ;
    THD_mask_dilate(nx,ny,nz,cmask,3) ;
-   THD_mask_dilate(nx,ny,nz,cmask,3) ;
-   for( ii=0 ; ii < nvox ; ii++ )
+   for( ii=0 ; ii < nvox ; ii++ )       /* enlittle it now (cromulently) */
      if( !bmask[ii] && cmask[ii] && iar[ii] < cval ) cmask[ii] = 0 ;
 
-   free(bmask) ;
-   return cmask ;
+   free(bmask) ; return cmask ;
 }
 
 /***------------------------------------------------------------------------***/
@@ -329,10 +338,12 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
    /* create brain mask */
 
    medim = THD_median_brick(inset) ;
-   bmask = DEG_automask_image(medim) ;  /* brain mask */
+   bmask = DEG_automask_image(medim) ;  /* brain mask (we hope) */
 
    nx = medim->nx ; ny = medim->ny ; nz = medim->nz ; nvox = medim->nvox ;
    nv = DSET_NVALS(inset) ;
+
+   /* estimate noise level from data outside the mask (crudely) */
 
    mar  = MRI_FLOAT_PTR(medim) ;
    cval = THD_cliplevel(medim,CLFRAC) ;
@@ -342,8 +353,9 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
      }
    }
    noise_estimate /= iim ;  /* initial estimate of noise level */
+   INFO_message("noise_estimate = %g",noise_estimate) ;
 
-   /* chop out sub-threshold voxels */
+   /* chop out all sub-threshold voxels */
 
    amask = (byte *)malloc(sizeof(byte)*nvox) ;  /* clipped brain mask */
    memcpy(amask,bmask,sizeof(byte)*nvox) ;
@@ -429,7 +441,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
           then compute theta over the entire image (in and out of smask) */
 
        optimize_theta() ;
-INFO_message("slice=%d index=%d  theta = %g  %g",ss,vv,theta_par[0],theta_par[1]) ;
+INFO_message("slice=%d index=%d  theta = %g  %g  %g",ss,vv,theta_par[0],theta_par[1],d_par) ;
        /** compute_thvim() ; **/
 
        mri_free(tim) ; tim = NULL ;
