@@ -6700,7 +6700,7 @@ SUMA_NIDO * SUMA_GDSET_matrix_nido(SUMA_DSET *dset)
    /* number of pixels in resultant image */
    M[0] = G[0]*N[0] + B[0]*(N[0]+1);
    M[1] = G[1]*N[1] + B[1]*(N[1]+1);
-   M[3] = 1;
+   M[2] = 1;
    NI_SET_INTv(GSaux->nido->ngr, "PixCount", M, 3);
 
    SUMA_LH("Coords matrix");
@@ -7693,7 +7693,7 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
             /* number of uniqe points */
             SUMA_Set_N_UnqNodes_SegmentDO(GSaux->SDO, GDSET_MAX_POINTS(dset));
          } else if (!strcmp((char *)el->data,"SDO_SetStippling")) {
-            SUMA_LH("Not ready for stippling yet");
+            SUMA_LH("stippling set");
          }else {
             usedel = 0;
             /* this may not need to be an error condition, you might just skip 
@@ -7712,6 +7712,15 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
          el = eln;
       } while (el);
    }
+   
+   /* colv is just a pointer copy for segment DOs of graph
+   links. You must always fetch them because they can 
+   be deleted and recreated as you change states.
+   It would be best to create a new class of segment DOs that
+   are just for graph links and never store colv inside SDO.
+   See SUMA_free_SegmentDO for special treatment of colv */
+   GSaux->SDO->colv = SUMA_GetColorList(sv, SDSET_ID(dset));
+   SUMA_LH("Colv for %s is %p", ADO_LABEL(ado), GSaux->SDO->colv);
    /* and draw the GSaux */   
    if (!SUMA_DrawGSegmentDO(GSaux, sv)) {
       SUMA_S_Err("Failed to draw Segment DO!");

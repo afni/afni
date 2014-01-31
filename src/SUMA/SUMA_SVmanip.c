@@ -1312,12 +1312,16 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
                        "it is of serious consequence...");
             SUMA_RETURN (NOPE);
          } else {
+            SUMA_LH("List for %s found",
+                    SUMA_DO_dbg_info(idcode));
             /* No harm done, no need to get upset. */ 
             SUMA_RETURN(YUP);
          }
       }
    }
    
+   SUMA_LH("Need to create or link to existing list." 
+           "will insert into position: %d", sv->N_ColList);
    if (sv->N_ColList >= SUMA_MAX_DISPLAYABLE_OBJECTS) {
       SUMA_SL_Crit("sv->N_ColList >= SUMA_MAX_DISPLAYABLE_OBJECTS");
       SUMA_RETURN (NOPE);
@@ -1347,9 +1351,11 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
          break;
    }
    if (clinh) {
+      SUMA_LH("Inheriting");
       sv->ColList[sv->N_ColList] = 
                   (SUMA_COLORLIST_STRUCT*)SUMA_LinkToPointer((void *)clinh);
    } else {
+      SUMA_LH("Recreating, N_points = %d", N_points);
       sv->ColList[sv->N_ColList] =
          (SUMA_COLORLIST_STRUCT *)SUMA_calloc(1, sizeof(SUMA_COLORLIST_STRUCT));
       sv->ColList[sv->N_ColList]->N_links = 0;
@@ -1390,7 +1396,8 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    }
    
    ++sv->N_ColList;
-   
+   SUMA_LH("N_ColList now %d, latest glar %p", 
+           sv->N_ColList, sv->ColList[sv->N_ColList-1]->glar_ColorList);
    SUMA_RETURN (YUP);
 }
 
@@ -1419,7 +1426,8 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
       SUMA_RETURN (NULL);
    }
    
-   
+   SUMA_LH("Looking for colorlist of %s",
+            SUMA_DO_dbg_info(DO_idstr));
    /* find the culprit */
    Found = NOPE;
    i = 0;
@@ -1458,6 +1466,8 @@ SUMA_COLORLIST_STRUCT * SUMA_GetColorListStruct (SUMA_SurfaceViewer *sv,
       SUMA_RETURN (NULL);
    }
    
+   SUMA_LH("Looking for colorlist struct of %s",
+            SUMA_DO_dbg_info(DO_idstr));
    
    /* find the culprit */
    Found = NOPE;
@@ -1489,9 +1499,13 @@ SUMA_Boolean SUMA_Free_ColorList (SUMA_COLORLIST_STRUCT *cl)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   SUMA_LH("Entered");
+   
    if (!cl) SUMA_RETURN(YUP);
-
+   
+   SUMA_LH("Entered to free colorlist of %s, (glar = %p)",
+            SUMA_DO_dbg_info(cl->idcode_str), cl->glar_ColorList);
+   if (LocalHead) SUMA_DUMP_TRACE("At Free ColorList");
+   
    if (cl->N_links) {
       SUMA_LH("Just a link release");
       cl = (SUMA_COLORLIST_STRUCT *)SUMA_UnlinkFromPointer((void *)cl);
@@ -1499,7 +1513,7 @@ SUMA_Boolean SUMA_Free_ColorList (SUMA_COLORLIST_STRUCT *cl)
    }
    
    /* no more links, go for it */
-   SUMA_LH("No more links, here we go");
+   SUMA_LH("No more links freeing time");
    SUMA_ifree(cl->idcode_str); 
    SUMA_ifree(cl->glar_ColorList);
    SUMA_ifree(cl);
