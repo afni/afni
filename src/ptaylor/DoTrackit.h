@@ -14,6 +14,15 @@
 #define EPS_L (0.00001)
 #define MINEIG (0) // minimum allowed eigenvalue
 
+#ifdef XORG7
+   #define CORR_FUN(a,b,n) (THD_pearson_corrd((n),(a),(b)))	
+   #define GSL_RAN gsl_ran_gaussian
+#else
+   #define CORR_FUN(a,b,n) (gsl_stats_correlation((a), 1, (b), 1, (n)))
+   #define GSL_RAN gsl_ran_gaussian_ziggurat
+#endif
+
+
 int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST, 
 				  int *NUMROI, int *INVROI);
 

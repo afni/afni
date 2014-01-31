@@ -384,6 +384,26 @@ float THD_pearson_corr( int n, float *x , float *y )
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Double Pearson correlation of x[] and y[] (x and y are NOT modified. */
+
+double THD_pearson_corrd( int n, double *x , double *y )
+{
+   double xv=0.0f , yv=0.0f , xy=0.0f , vv,ww ;
+   double xm=0.0f , ym=0.0f ;
+   register int ii ;
+
+   if( n < 2 ) return 0.0f ;
+   for( ii=0 ; ii < n ; ii++ ){ xm += x[ii] ; ym += y[ii] ; }
+   xm /= n ; ym /= n ;
+   for( ii=0 ; ii < n ; ii++ ){
+     vv = x[ii]-xm; ww = y[ii]-ym; xv += vv*vv; yv += ww*ww; xy += vv*ww;
+   }
+
+   if( xv <= 0.0f || yv <= 0.0f ) return 0.0f ;
+   return xy/sqrt(xv*yv) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Covariance of x[] and y[] (x and y are NOT modified).    ZSS May 18 2012*/
 
 float THD_covariance( int n, float *x , float *y )

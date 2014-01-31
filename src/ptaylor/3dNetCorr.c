@@ -418,9 +418,7 @@ int main(int argc, char *argv[]) {
     for( j=0 ; j<NROI_REF[i] ; j++ ) 
       for( k=j ; k<NROI_REF[i] ; k++ ) {
         Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = (float) 
-          gsl_stats_correlation(ROI_AVE_TS[i][j], 1, 
-                                ROI_AVE_TS[i][k], 1, 
-                                Dim[3]);
+          CORR_FUN(ROI_AVE_TS[i][j], ROI_AVE_TS[i][k], Dim[3]);
       }
   
   // **************************************************************

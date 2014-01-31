@@ -749,10 +749,10 @@ int DTI_Perturb_M( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                // each tips in the +/- direc toward/away from each evec 
                // by averaging and that's why tan of angle is taken
                //@@@
-               testang = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][0];
+               testang = GSL_RAN(r,1.0)*UNC[idx][0];
                w2 = tan(testang); 
 
-               testang = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][1];
+               testang = GSL_RAN(r,1.0)*UNC[idx][1];
                w3 = tan(testang);
 
 
@@ -768,7 +768,7 @@ int DTI_Perturb_M( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                
                // apply bias and std of FA
                copy_coorded[idx][0] = coorded[idx][0] + UNC[idx][2] +
-                  ( UNC[idx][3] * gsl_ran_gaussian_ziggurat(r,1.0) );
+                  ( UNC[idx][3] * GSL_RAN(r,1.0) );
                
             }
          }
@@ -799,7 +799,7 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                   nn=3*n+1; // plus one b/c zeroth brick is FA
                   
                   // unit vect, randomly perturbed around (0,0,1)
-                  for_pol =  gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
+                  for_pol =  GSL_RAN(r,1.0)*UNC[idx][n];
                   for_azim = TWOPI*gsl_rng_uniform (r); // rand in 2*pi*[0,1)
                   tempv[0] = tempv[1] = sin(for_pol);
                   tempv[0]*= cos(for_azim);
@@ -828,9 +828,9 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
                }
 
                // for FA; n should have correct value here...
-               //for_pol = gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
+               //for_pol = GSL_RAN(r,1.0)*UNC[idx][n];
                copy_coorded[idx][0] = coorded[idx][0] + 
-                  gsl_ran_gaussian_ziggurat(r,1.0)*UNC[idx][n];
+                  GSL_RAN(r,1.0)*UNC[idx][n];
             }
          }
    
