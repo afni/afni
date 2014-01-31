@@ -4527,7 +4527,8 @@ extern void    THD_set_freeup( generic_func * ) ;            /* 18 Oct 2001 */
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
 extern Boolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;
-extern int     THD_count_databricks( THD_datablock * dblk ) ;
+extern int     THD_count_databricks( THD_datablock * ) ;
+extern int     THD_subset_loaded( THD_3dim_dataset *, int, int * ) ;
 extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
 extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
