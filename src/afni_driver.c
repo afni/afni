@@ -2428,7 +2428,14 @@ int AFNI_drive_setenv( char *cmd )
    /*-- turn image global ranging on or off --*/
 
    else if( strcmp(nam,"AFNI_IMAGE_GLOBALRANGE") == 0 ){
-     Three_D_View *im3d ; int ii,gbr=YESSISH(val) ;
+      ENV_globalrange(val);  /*same function is used for interactive environment */
+#if 0
+     Three_D_View *im3d ; int ii,gbr ;
+   /* reset image_globalrange */
+     THD_set_image_globalrange(-1);
+
+     gbr = THD_get_image_globalrange(); /* resets from environment variable setting */
+
      for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
        im3d = GLOBAL_library.controllers[ii] ;
        if( ! IM3D_OPEN(im3d) ) continue ;
@@ -2445,6 +2452,7 @@ int AFNI_drive_setenv( char *cmd )
          drive_MCW_imseq( im3d->s312 , isqDR_setrange , (XtPointer)NULL ) ;
        }
      }
+#endif
    }
 
    /*-- display coordinate order --*/

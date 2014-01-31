@@ -5974,6 +5974,7 @@ static char * AFNI_image_help =
  "[ = time index down 1    ] = time index up 1\n"
  "> = Page Up   = forward  1 image (e.g., slice)\n"
  "< = Page Down = backward 1 image (e.g., slice)\n"
+ "Ctrl+m = cycle through image global range settings\n"
  "o = toggle (color) overlay on/off\n"
  "u = toggle background from underlay/overlay dataset\n"
  "#/3 = toggle underlay/overlay checkerboard display\n"
@@ -6467,6 +6468,7 @@ void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
    static THD_3dim_dataset *last_ds   = NULL ;
    static int               last_ival = -1 ;
    static float             last_tc   = 0.0f ;
+   float min = 0.0, max = 0.0;
 
 ENTRY("AFNI_range_setter") ;
 
@@ -6498,14 +6500,30 @@ ENTRY("AFNI_range_setter") ;
    }
    drive_MCW_imseq( seq , isqDR_settopclip , (XtPointer)(&last_tc) ) ;
 
-   if( !AFNI_yesenv("AFNI_IMAGE_GLOBALRANGE") ){ first=1; EXRETURN ; }
+   /* if default slice-based AFNI_IMAGE_GLOBALRANGE, just return */ 
+   if( !THD_get_image_globalrange() ){ first=1; EXRETURN ; }
 
-   if( ISVALID_STATISTIC(ds->stats) && ISVALID_BSTAT(ds->stats->bstat[ival]) ){
-     rng[0] = ds->stats->bstat[ival].min ;
-     rng[1] = ds->stats->bstat[ival].max ;
+   if( ISVALID_STATISTIC(ds->stats)){
+     if((THD_get_image_globalrange()==1)     /* user wants sub-brick range */
+       && ISVALID_BSTAT(ds->stats->bstat[ival])){
+        rng[0] = ds->stats->bstat[ival].min ;
+        rng[1] = ds->stats->bstat[ival].max ;
+     }
+     else {         /* user wants range scaling by whole dataset */
+       if(THD_dset_minmax(ds, 1, &min, &max)) {
+        rng[0] = min ;
+        rng[1] = max ;
+       }
+       else {  /* no good dset range, so revert to sub-brick range */
+        rng[0] = ds->stats->bstat[ival].min ;
+        rng[1] = ds->stats->bstat[ival].max ;
+       }
+     }
+
+     /* first time globalrange has been set to something? */
      if( first ){
        INFO_message(
-        "AFNI_IMAGE_GLOBALRANGE is YES ==> reset image range to %g .. %g",
+   "AFNI_IMAGE_GLOBALRANGE is no longer slice-based ==> reset image range to %g .. %g",
         rng[0],rng[1] ) ;
        first = 0 ;
      }
