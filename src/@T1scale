@@ -50,7 +50,7 @@ STATIT:
       set LSmopt = "-mask ../$PDmask"
    endif
       if ( ! -f PD.ls+orig.HEAD ) then
-   3dLocalstat -nbhd "SPHERE(25)" -stat perc:65:95:5 \
+   3dLocalstat -nbhd "SPHERE($rad)" -stat perc:65:95:5 \
             -datum short -reduce_max_vox 5 \
             ${overW} ${LSmopt} -prefix PD.ls PD+orig.
          set afh = ($afh PD.ls+orig.HEAD)
@@ -170,6 +170,7 @@ set afh = ()
 set overW = ''
 set do_align = 0
 set PDmask=''
+set rad = 25
 set divuni = 0 #Not ready for primetime
 
 if ("$1" == '') goto HELP
@@ -275,6 +276,17 @@ while ($cnt <= $Narg)
       else
          @ cnt ++
          set PD = "$argv[$cnt]"
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-rad") then
+      if ($cnt == $Narg) then
+         echo "Need a radius after -rad"
+         goto END
+      else
+         @ cnt ++
+         set rad = "$argv[$cnt]"
          set donext = 0   
       endif
    endif
