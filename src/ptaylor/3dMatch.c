@@ -18,11 +18,11 @@
 #include <mrilib.h>    
 #include <rsfc.h>    
 #include <3ddata.h>    
+#include <gsl/gsl_rng.h>
 #include <gsl/gsl_statistics_double.h>
-
+#include "DoTrackit.h"
 
 #define SILLY_EPS (1.e-5)  // thresh away from zero for to be in mask
-
 
 void usage_Match(int detail) 
 {
@@ -382,24 +382,20 @@ int main(int argc, char *argv[]) {
 			idx++;
 		
 	}
-	
+
 	if(ONLY_DICE_THR)
 		for( m=0 ; m< REFBRIKS ; m++ ) 
 			for( n=0 ; n< Dim[3] ; n++ ) 
 				if( (gsl_stats_variance(Data_In[n],1,Larray)>0) &&
 					 (gsl_stats_variance(Data_Ref[m],1,Larray)>0) ) 
 					Stats_Matr[n][m][0] = (float) 
-						gsl_stats_correlation(Data_In[n], 1, 
-													 Data_Ref[m],1, 
-													 Larray);
+						CORR_FUN(Data_In[n], Data_Ref[m], Larray);
 				else
 					Stats_Matr[n][m][0] = 0.;
 
 
 	//				Stats_Matr[n][m][0] = (float) 
-	//				gsl_stats_correlation(Data_In[n], 1, 
-	//											 Data_Ref[m],1, 
-	//											 Larray);
+	//				CORR_FUN(Data_In[n], Data_Ref[m], Larray);
 	
 	// because we squared the data!!
 	MIN_THR_IN*=dabs(MIN_THR_IN);
@@ -428,15 +424,12 @@ int main(int argc, char *argv[]) {
 				if( gsl_stats_variance(Data_In[n],1,Larray)>0 &&
 					 gsl_stats_variance(Data_Ref[m],1,Larray)>0 ) 
 					Stats_Matr[n][m][0] = (float) 
-						gsl_stats_correlation(Data_In[n], 1, 
-													 Data_Ref[m],1, 
-													 Larray);
+						CORR_FUN(Data_In[n], Data_Ref[m], Larray);
 				else
 					Stats_Matr[n][m][0] = 0.;
 			
-			//	Stats_Matr[n][m][0] =(float) gsl_stats_correlation(Data_In[n], 1, 
-			//																		Data_Ref[m],1, 
-			//																		Larray);
+			//	Stats_Matr[n][m][0] =(float)CORR_FUN(Data_In[n], 
+         //                                      Data_Ref[m], Larray);
 
 			// calc dice
 			NI = 0;
