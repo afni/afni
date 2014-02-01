@@ -1768,6 +1768,8 @@ STATUS("creation: widgets created") ;
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
+ 
+#if 0
      iii = THD_get_image_globalrange();
      if( iii < 0 || iii > 3 ) iii = 0 ;
 
@@ -1787,7 +1789,7 @@ STATUS("creation: widgets created") ;
                         ) ;
      MCW_reghint_children(newseq->wbar_globrange_av->wrowcol,
                   "Set how images are scaled in display - sets AFNI_IMAGE_GLOBALRANGE") ;
-
+#endif
 
      /*-- plots stuff --*/
 
@@ -8693,6 +8695,7 @@ ENTRY("ISQ_wbar_label_CB") ;
    EXRETURN ;
 }
 
+#if 0
 void ISQ_wbar_globrange_CB( MCW_arrowval *av , XtPointer cd )
 {
    MCW_imseq *seq = (MCW_imseq *)cd ;
@@ -8705,6 +8708,7 @@ ENTRY("ISQ_wbar_globrange_CB") ;
 
    EXRETURN ;
 }
+#endif
 
 
 /*----------------------------------------------------------------------*/
@@ -12550,6 +12554,8 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
+#if 0
+I'll try to figure out how to get this to work over the weekend
     /* ctrl-m to cycle globalranges */
      case 13 : {
           int ig;
@@ -12561,6 +12567,7 @@ ENTRY("ISQ_handle_keypress") ;
        busy=0 ; RETURN(1) ;
      }
      break;
+#endif
 
      /* 22 Aug 2005: 'm' == Min-to-Max toggle */
      case 'm':{
