@@ -5,7 +5,12 @@ static int verb = 1 ;
 #undef  FREEIF
 #define FREEIF(x) if((x)!=NULL)free((void *)(x))
 
-THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se ) ;
+THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset  ,
+                                  THD_3dim_dataset *filset ,
+                                  int pe , int fe , int se  ) ;
+void orfilt_vector( int nvec , float *vec ) ;
+
+static int orfilt_len = 13 ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -13,8 +18,8 @@ int main( int argc , char * argv[] )
 {
    char *prefix = "Deghost" ;
    int iarg ;
-   int fe=1 , pe=2 , se=3 ;
-   THD_3dim_dataset *inset=NULL , *outset ;
+   int fe=1 , pe=2 , se=3 , nvals ;
+   THD_3dim_dataset *inset=NULL , *outset , *filset=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -52,8 +57,16 @@ int main( int argc , char * argv[] )
        "                    this is how the reconstruction software will\n"
        "                    store the images.  Only in unusual cases should\n"
        "                    you need the '-FPS' option!\n"
+       "  -filt N        = Length of time series filter to apply when\n"
+       "                    estimating ghosting parameters.  Set N to 0 or 1\n"
+       "                    to turn this feature off; otherwise, N should be an\n"
+       "                    odd positive integer from 3 to 19 [default N=%d].\n"
+       "                 * Datasets with fewer than 4 time points will not\n"
+       "                    be filtered.  For longer datasets, if the filter\n"
+       "                    length is too big, it will be shortened.\n"
        "\n"
        "-- Jan 2014 - Zhark the Phantasmal\n"
+      , orfilt_len
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -70,6 +83,22 @@ int main( int argc , char * argv[] )
 
      if( strcasecmp(argv[iarg],"-quiet") == 0 ){
        verb = 0 ; iarg++ ; continue ;
+     }
+
+     /*---*/
+
+     if( strcasecmp(argv[iarg],"-filt") == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after option '%s'",argv[iarg-1]) ;
+       orfilt_len = (int)strtod(argv[iarg],NULL) ;
+       if( orfilt_len > 1 && orfilt_len%2 == 0 ){
+         orfilt_len++ ;
+         INFO_message("-filt %d has been adjusted to %d (must be odd)" ,
+                      orfilt_len-1 , orfilt_len) ;
+       }
+       if( orfilt_len > 19 )
+         WARNING_message("-filt %d is over the recommended limit of 19",orfilt_len) ;
+       iarg++ ; continue ;
      }
 
      /*---*/
@@ -144,9 +173,30 @@ int main( int argc , char * argv[] )
      DSET_load( inset ) ; CHECK_LOAD_ERROR(inset) ;
    }
 
+   /*-- filter input? --*/
+
+   nvals = DSET_NVALS(inset) ;
+   if( orfilt_len > nvals/2 ){
+     orfilt_len = nvals/2 ; if( orfilt_len%2 == 0 ) orfilt_len++ ;
+   }
+
+   if( orfilt_len > 1 && nvals > 1 ){
+     MRI_vectim *invect ; int ii ;
+     INFO_message("Filtering input dataset: filter length=%d",orfilt_len) ;
+     invect = THD_dset_to_vectim(inset,NULL,0) ;
+     THD_vectim_applyfunc( invect , orfilt_vector ) ;
+     filset = EDIT_empty_copy( inset ) ;
+     for( ii=0 ; ii < nvals ; ii++ )
+       EDIT_substitute_brick( filset , ii , MRI_float , NULL ) ;
+     THD_vectim_to_dset( invect , filset ) ;
+     VECTIM_destroy(invect) ;
+   } else {
+     INFO_message("Time series filtering is turned off") ;
+   }
+
    /***** outsource the work *****/
 
-   outset = THD_deghoster( inset , pe,fe,se ) ;
+   outset = THD_deghoster( inset , filset , pe,fe,se ) ;
    if( outset == NULL ) ERROR_exit("THD_deghoster fails :-(((") ;
 
    EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
@@ -156,6 +206,89 @@ int main( int argc , char * argv[] )
    WROTE_DSET(outset) ;
    exit(0) ;
 }
+
+/*============================================================================*/
+/*** Stuff for the time series filtering ***/
+
+#undef  DTYPE
+#define DTYPE float
+#include "cs_qsort_small.h"
+
+#undef  OFILT
+#define OFILT(j) 0.2f*(ar[j-1]+ar[j+1]+3.0f*ar[j])
+
+#undef  EFILT
+#define EFILT(j) 0.2f*(ar[j-2]+ar[j+1])+0.3f*(ar[j-1]+ar[j])
+
+static float orfilt( int n , float *ar )
+{
+   int nby2 ;
+   switch( n ){
+     case 1:   return ar[0] ;
+     case 2:   return 0.5f*(ar[0]+ar[1]) ;
+
+     case 3:   qsort3_float(ar)  ; return OFILT(1) ;
+     case 5:   qsort5_float(ar)  ; return OFILT(2) ;
+     case 7:   qsort7_float(ar)  ; return OFILT(3) ;
+     case 9:   qsort9_float(ar)  ; return OFILT(4) ;
+     case 11:  qsort11_float(ar) ; return OFILT(5) ;
+     case 13:  qsort13_float(ar) ; return OFILT(6) ;
+     case 15:  qsort15_float(ar) ; return OFILT(7) ;
+     case 17:  qsort17_float(ar) ; return OFILT(8) ;
+     case 19:  qsort19_float(ar) ; return OFILT(9) ;
+
+     case  4:  qsort4_float(ar)  ; return EFILT(2) ;
+     case  6:  qsort6_float(ar)  ; return EFILT(3) ;
+     case  8:  qsort8_float(ar)  ; return EFILT(4) ;
+     case  10: qsort10_float(ar) ; return EFILT(5) ;
+     case  12: qsort12_float(ar) ; return EFILT(6) ;
+     case  14: qsort14_float(ar) ; return EFILT(7) ;
+     case  16: qsort16_float(ar) ; return EFILT(8) ;
+     case  18: qsort18_float(ar) ; return EFILT(9) ;
+   }
+
+   qsort_float(n,ar) ;
+   nby2 = n/2 ;
+   return (n%2==0) ? EFILT(nby2) : OFILT(nby2) ;
+}
+
+#undef OFILT
+#undef EFILT
+
+/*----------------------------------------------------------------------------*/
+
+void orfilt_vector( int nvec , float *vec )
+{
+   static float *ar=NULL ; static int nar=0 ;
+   static float *vv=NULL ; static int nvv=0 ;
+   int ii , ibot,itop , nby2=orfilt_len/2 , nv1=nvec-1,nii ;
+
+   if( orfilt_len == 0 ){
+     if( ar != NULL ){ free(ar); nar = 0; }
+     if( vv != NULL ){ free(vv); nvv = 0; }
+     return ;
+   }
+   if( orfilt_len == 1 ) return ;
+
+   if( ar == NULL || nar < orfilt_len ){
+     nar = orfilt_len ; ar = (float *)realloc(ar,sizeof(float)*nar) ;
+   }
+   if( vv == NULL || nvv < nvec ){
+     nvv = nvec ; vv = (float *)realloc(vv,sizeof(float)*nvv) ;
+   }
+
+   for( ii=0 ; ii < nvec ; ii++ ){
+     ibot = ii-nby2 ; if( ibot < 0   ) ibot = 0 ;
+     itop = ii+nby2 ; if( itop > nv1 ) itop = nv1 ;
+     nii  = itop - ibot + 1 ;
+     memcpy( ar , vec+ibot , sizeof(float)*nii ) ;
+     vv[ii] = orfilt( nii , ar ) ;
+   }
+
+   memcpy( vec , vv , sizeof(float)*nvec ) ;
+   return ;
+}
+/*============================================================================*/
 
 /***------------------------------------------------------------------------***/
 
@@ -255,7 +388,7 @@ double theta_func( int npar , double *thpar )
 
    /** penalty for nonzero parameters **/
 
-   sum += 0.011*nvec*noise_estimate*noise_estimate
+   sum += 0.022*nvec*noise_estimate*noise_estimate
           * ( fabs(thpar[0]) + 99.9*fabs(thpar[1]) ) ;
 
    return sum ;
@@ -265,23 +398,25 @@ double theta_func( int npar , double *thpar )
 
 void optimize_theta(void)
 {
-   double thpar[3] , thbot[3] , thtop[3] ;
+   double thpar[3] , thbot[3] , thtop[3] ; int nite ;
 
    thpar[0] =  0.0 ;
    thbot[0] = -9.9 ;
    thtop[0] =  9.9 ;
 
    thpar[1] =  0.000;  /* initial values */
-   thbot[1] = -0.001;  /* lower limits */
+   thbot[1] = -0.002;  /* lower limits */
    thtop[1] =  0.09 ;  /* upper limits */
 
    thpar[2] =  0.111*noise_estimate ;
    thbot[2] =  0.0 ;
-   thtop[2] =  2.222*noise_estimate ;
+   thtop[2] =  3.333*noise_estimate ;
 
-   powell_newuoa_con( 3 , thpar,thbot,thtop ,
-                      1999 , 0.1 , 0.001 , 4999 , theta_func ) ;
+   nite = powell_newuoa_con( 3 , thpar,thbot,thtop ,
+                             999 , 0.1 , 0.0001 , 4999 , theta_func ) ;
 
+   if( fabs(thpar[0]) < 0.1   ) thpar[0] = 0.0 ;
+   if( fabs(thpar[1]) < 0.001 ) thpar[1] = 0.0 ;
    theta_par[0] = thpar[0] ;
    theta_par[1] = thpar[1] ;
    d_par        = thpar[2] ;
@@ -327,7 +462,9 @@ byte * DEG_automask_image( MRI_IMAGE *im )
      FREEIF(stvim);                                              \
  } while(0)
 
-THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se )
+THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
+                                  THD_3dim_dataset *filset,
+                                  int pe , int fe , int se )
 {
    MRI_IMAGE *medim=NULL , *tim=NULL ;
    float cval, *mar=NULL , *tar=NULL ;
@@ -422,7 +559,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset, int pe,int fe,int se 
 
      for( vv=0 ; vv < nv ; vv++ ){
 
-       tim = THD_extract_float_brick(vv,inset) ;
+       tim = THD_extract_float_brick(vv,filset) ;
        tar = MRI_FLOAT_PTR(tim) ;
 
        /* extract the vector of image values in smask,

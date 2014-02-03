@@ -29,6 +29,7 @@ static float median_float4(float,float,float,float) ;
 static float median_float5(float *) ;  /* 5,7,9 added 20 Oct 2000 */
 static float median_float7(float *) ;
 static float median_float9(float *) ;
+static float median_float25(float *) ;
 
 /* macro for median-of-3 */
 
@@ -59,6 +60,7 @@ float qmed_float( int n , float *ar )
       case 5: return median_float5( ar ) ;
       case 7: return median_float7( ar ) ;
       case 9: return median_float9( ar ) ;
+      /*** case 25: return median_float25( ar ) ; ***/
    }
 
    /* general case */
@@ -305,6 +307,47 @@ static float median_float9(float *p)
     SORT2(p[3],p[6]) ; SORT2(p[1],p[4]) ; SORT2(p[2],p[5]) ;
     SORT2(p[4],p[7]) ; SORT2(p[4],p[2]) ; SORT2(p[6],p[4]) ;
     SORT2(p[4],p[2]) ; return(p[4]) ;
+}
+
+/*--------------------------------------------------------------
+ * median25(A) partitions the array A[0..24] such that element
+ * A[12] is the median and subarrays A[0..11] and A[13..24]
+ * are partitions containing elements of smaller and larger
+ * value (rank), respectively.
+ *
+ * The exchange table lists element indices on the range 1..25,
+ * this accounts for the "-1" offsets in the macro S2 and in
+ * the final return value used to adjust subscripts to C-code
+ * conventions (array indices begin at zero).
+ *------- Code mildly adapted from Al Paeth's Median.c --------*
+ *//*----------------------------------------------------------*/
+
+#define S2(i,j) if(A[i-1]>A[j-1]){temp=A[i-1];A[i-1]=A[j-1];A[j-1]=temp;}
+
+static float median_float25( float *A )
+{
+  register float temp ;
+  S2( 1, 2); S2( 4, 5); S2( 3, 5); S2( 3, 4); S2( 7, 8);
+  S2( 6, 8); S2( 6, 7); S2(10,11); S2( 9,11); S2( 9,10);
+  S2(13,14); S2(12,14); S2(12,13); S2(16,17); S2(15,17);
+  S2(15,16); S2(19,20); S2(18,20); S2(18,19); S2(22,23);
+  S2(21,23); S2(21,22); S2(24,25); S2( 3, 6); S2( 4, 7);
+  S2( 1, 7); S2( 1, 4); S2( 5, 8); S2( 2, 8); S2( 2, 5);
+  S2(12,15); S2( 9,15); S2( 9,12); S2(13,16); S2(10,16);
+  S2(10,13); S2(14,17); S2(11,17); S2(11,14); S2(21,24);
+  S2(18,24); S2(18,21); S2(22,25); S2(19,25); S2(19,22);
+  S2(20,23); S2( 9,18); S2(10,19); S2( 1,19); S2( 1,10);
+  S2(11,20); S2( 2,20); S2( 2,11); S2(12,21); S2( 3,21);
+  S2( 3,12); S2(13,22); S2( 4,22); S2( 4,13); S2(14,23);
+  S2( 5,23); S2( 5,14); S2(15,24); S2( 6,24); S2( 6,15);
+  S2(16,25); S2( 7,25); S2( 7,16); S2( 8,17); S2( 8,20);
+  S2(14,22); S2(16,24); S2( 8,14); S2( 8,16); S2( 2,10);
+  S2( 4,12); S2( 6,18); S2(12,18); S2(10,18); S2( 5,11);
+  S2( 7,13); S2( 8,15); S2( 5, 7); S2( 5, 8); S2(13,15);
+  S2(11,15); S2( 7, 8); S2(11,13); S2( 7,11); S2( 7,18);
+  S2(13,18); S2( 8,18); S2( 8,11); S2(13,19); S2( 8,13);
+  S2(11,19); S2(13,21); S2(11,21); S2(11,13);
+  return(A[13-1]);
 }
 
 /*************** General purpose sorty functions ZSS 06********************/
