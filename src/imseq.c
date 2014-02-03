@@ -1769,7 +1769,7 @@ STATUS("creation: widgets created") ;
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
  
-#if 0
+#if 1
      iii = THD_get_image_globalrange();
      if( iii < 0 || iii > 3 ) iii = 0 ;
 
@@ -8695,16 +8695,24 @@ ENTRY("ISQ_wbar_label_CB") ;
    EXRETURN ;
 }
 
-#if 0
+#if 1
 void ISQ_wbar_globrange_CB( MCW_arrowval *av , XtPointer cd )
 {
    MCW_imseq *seq = (MCW_imseq *)cd ;
+   ISQ_cbs cbs ;
 
 ENTRY("ISQ_wbar_globrange_CB") ;
 
    if( !ISQ_REALZ(seq) ) EXRETURN ;
 
-   THD_set_image_globalrange_env(av->ival);
+   THD_set_image_globalrange(av->ival);
+   cbs.reason = isqCR_resetglobalrange ;
+/*       cbs.key      = ii ;*/                 /* number of points */
+
+       SEND(seq,cbs) ;   /* send this back to a callback function now in afni.c
+                            imseq doesn't have access directly to dataset info */
+
+/*   THD_set_image_globalrange_env(av->ival);*/
 
    EXRETURN ;
 }
@@ -12554,20 +12562,16 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
-#if 0
-I'll try to figure out how to get this to work over the weekend
     /* ctrl-m to cycle globalranges */
      case 13 : {
-          int ig;
-          THD_cycle_image_globalrange();
-          ig = THD_get_image_globalrange();
-          THD_set_image_globalrange_env(ig);
-          ENV_globalrange_view( "AFNI_IMAGE_GLOBALRANGE" );
+       ISQ_cbs cbs ;
+       cbs.reason = isqCR_globalrange ;
+       SEND(seq,cbs) ;   /* send this back to a callback function now in afni.c
+                            imseq doesn't have access directly to dataset info */
 
        busy=0 ; RETURN(1) ;
      }
      break;
-#endif
 
      /* 22 Aug 2005: 'm' == Min-to-Max toggle */
      case 'm':{

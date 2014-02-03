@@ -295,6 +295,8 @@ typedef struct {
 #define isqCR_setindex        602 /* 26 Apr 2007 */
 #define isqCR_deltival        603 /* 23 Feb 2011 */
 #define isqCR_raiseupthedead  604 /* 17 Jun 2011 */
+#define isqCR_globalrange     605 /* 03 Feb 2013 */
+#define isqCR_resetglobalrange  606
 
 #define COLORMAP_CHANGE(sq)                                          \
   do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \

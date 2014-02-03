@@ -4598,6 +4598,25 @@ if(PRINT_TRACING)
       }
       break ;
 
+      /*--- cycle global range [03 Feb 2013] ---*/
+      case isqCR_globalrange:{
+          int ig;
+          THD_cycle_image_globalrange();
+          ig = THD_get_image_globalrange();
+          THD_set_image_globalrange_env(ig);
+          ENV_globalrange_view( "AFNI_IMAGE_GLOBALRANGE" );
+      }
+      break ;
+
+      /*--- reset global range to use new environment value set elsewhere [03 Feb 2013] ---*/
+      case isqCR_resetglobalrange:{
+          int ig;
+          ig = THD_get_image_globalrange();
+          THD_set_image_globalrange_env(ig);
+          ENV_globalrange_view( "AFNI_IMAGE_GLOBALRANGE" );
+      }
+      break ;
+
    }  /* end of switch on reason for call */
 
    EXRETURN ;
