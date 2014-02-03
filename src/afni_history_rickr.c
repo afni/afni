@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Feb, 2014, RCR, "apsearch", MICRO, TYPE_NEW_OPT,
+   "added -global_help/-gopts_help to print help for global options",
+   NULL
+ } ,
+
  { 15,  Jan, 2014, RCR, "3dLRflip", MICRO, TYPE_BUG_FIX,
    "used bad filename without -prefix",
    "Var ext was not initialized."
