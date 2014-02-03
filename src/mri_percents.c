@@ -45,11 +45,11 @@ void qsrec_pair ( int , float * , int * , int ) ;
 /*------------------------------------------------------------------------------*/
 /*------------- insertion sort : sort an array of short in-place ---------------*/
 
-void isort_short( int n , short * ar )
+void isort_short( int n , short *ar )
 {
    register int  j , p ;  /* array indices */
    register short temp ;  /* a[j] holding place */
-   register short * a = ar ;
+   register short *a = ar ;
 
    if( n < 2 || ar == NULL ) return ;
 
@@ -70,11 +70,11 @@ void isort_short( int n , short * ar )
 
 /*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
 
-void qsrec_short( int n , short * ar , int cutoff )
+void qsrec_short( int n , short *ar , int cutoff )
 {
    register int i , j ;           /* scanning indices */
    register short temp , pivot ;  /* holding places */
-   register short * a = ar ;
+   register short *a = ar ;
 
    int left , right , mst ;
    int stack[QS_STACK] ;  /* stack for qsort "recursion" */
@@ -136,8 +136,34 @@ void qsrec_short( int n , short * ar , int cutoff )
 
 /* quick_sort :  sort an array partially recursively, and partially insertion */
 
-void qsort_short( int n , short * a )
+#undef   DTYPE
+#define  DTYPE short
+#include "cs_qsort_small.h"
+
+void qsort_short( int n , short *a )
 {
+   if( n <= 1 ) return ;
+   switch(n){
+     default:                    break ;  /* handled below */
+     case  2:  qsort2_short(a) ; return ;
+     case  3:  qsort3_short(a) ; return ;
+     case  4:  qsort4_short(a) ; return ;
+     case  5:  qsort5_short(a) ; return ;
+     case  6:  qsort6_short(a) ; return ;
+     case  7:  qsort7_short(a) ; return ;
+     case  8:  qsort8_short(a) ; return ;
+     case  9:  qsort9_short(a) ; return ;
+     case 10:  qsort10_short(a); return ;
+     case 11:  qsort11_short(a); return ;
+     case 12:  qsort12_short(a); return ;
+     case 13:  qsort13_short(a); return ;
+     case 14:  qsort14_short(a); return ;
+     case 15:  qsort15_short(a); return ;
+     case 16:  qsort16_short(a); return ;
+     case 17:  qsort17_short(a); return ;
+     case 18:  qsort18_short(a); return ;
+     case 19:  qsort19_short(a); return ;
+   }
    qsrec_short( n , a , QS_CUTOFF ) ;
    isort_short( n , a ) ;
    return ;
@@ -146,11 +172,11 @@ void qsort_short( int n , short * a )
 /*----------------------------------------------------------------------------*/
 /*------------- insertion sort : sort an array of int in-place ---------------*/
 
-void isort_int( int n , int * ar )
+void isort_int( int n , int *ar )
 {
    register int  j , p ;  /* array indices */
    register int temp ;    /* a[j] holding place */
-   register int * a = ar ;
+   register int *a = ar ;
 
    if( n < 2 || ar == NULL ) return ;
 
@@ -171,11 +197,11 @@ void isort_int( int n , int * ar )
 
 /*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
 
-void qsrec_int( int n , int * ar , int cutoff )
+void qsrec_int( int n , int *ar , int cutoff )
 {
    register int i , j ;         /* scanning indices */
    register int temp , pivot ;  /* holding places */
-   register int * a = ar ;
+   register int *a = ar ;
 
    int left , right , mst ;
    int stack[QS_STACK] ;  /* stack for qsort "recursion" */
@@ -237,8 +263,34 @@ void qsrec_int( int n , int * ar , int cutoff )
 
 /* quick_sort:  sort an array partially recursively, and partially insertion */
 
-void qsort_int( int n , int * a )
+#undef   DTYPE
+#define  DTYPE int
+#include "cs_qsort_small.h"
+
+void qsort_int( int n , int *a )
 {
+   if( n <= 1 ) return ;
+   switch(n){
+     default:                    break ;  /* handled below */
+     case  2:  qsort2_int(a) ; return ;
+     case  3:  qsort3_int(a) ; return ;
+     case  4:  qsort4_int(a) ; return ;
+     case  5:  qsort5_int(a) ; return ;
+     case  6:  qsort6_int(a) ; return ;
+     case  7:  qsort7_int(a) ; return ;
+     case  8:  qsort8_int(a) ; return ;
+     case  9:  qsort9_int(a) ; return ;
+     case 10:  qsort10_int(a); return ;
+     case 11:  qsort11_int(a); return ;
+     case 12:  qsort12_int(a); return ;
+     case 13:  qsort13_int(a); return ;
+     case 14:  qsort14_int(a); return ;
+     case 15:  qsort15_int(a); return ;
+     case 16:  qsort16_int(a); return ;
+     case 17:  qsort17_int(a); return ;
+     case 18:  qsort18_int(a); return ;
+     case 19:  qsort19_int(a); return ;
+   }
    qsrec_int( n , a , QS_CUTOFF ) ;
    isort_int( n , a ) ;
    return ;
@@ -247,11 +299,11 @@ void qsort_int( int n , int * a )
 /*------------------------------------------------------------------------------*/
 /*------------- insertion sort : sort an array of float in-place ---------------*/
 
-void isort_float( int n , float * ar )
+void isort_float( int n , float *ar )
 {
    register int  j , p ;  /* array indices */
    register float temp ;  /* a[j] holding place */
-   register float * a = ar ;
+   register float *a = ar ;
 
    if( n < 2 || ar == NULL ) return ;
 
@@ -272,11 +324,11 @@ void isort_float( int n , float * ar )
 
 /*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
 
-void qsrec_float( int n , float * ar , int cutoff )
+void qsrec_float( int n , float *ar , int cutoff )
 {
    register int i , j ;           /* scanning indices */
    register float temp , pivot ;  /* holding places */
-   register float * a = ar ;
+   register float *a = ar ;
 
    int left , right , mst ;
    int stack[QS_STACK] ;  /* stack for qsort "recursion" */
@@ -338,8 +390,34 @@ void qsrec_float( int n , float * ar , int cutoff )
 
 /* quick_sort :  sort an array partially recursively, and partially insertion */
 
+#undef   DTYPE
+#define  DTYPE float
+#include "cs_qsort_small.h"
+
 void qsort_float( int n , float *a )
 {
+   if( n <= 1 ) return ;
+   switch(n){
+     default:                    break ;  /* handled below */
+     case  2:  qsort2_float(a) ; return ;
+     case  3:  qsort3_float(a) ; return ;
+     case  4:  qsort4_float(a) ; return ;
+     case  5:  qsort5_float(a) ; return ;
+     case  6:  qsort6_float(a) ; return ;
+     case  7:  qsort7_float(a) ; return ;
+     case  8:  qsort8_float(a) ; return ;
+     case  9:  qsort9_float(a) ; return ;
+     case 10:  qsort10_float(a); return ;
+     case 11:  qsort11_float(a); return ;
+     case 12:  qsort12_float(a); return ;
+     case 13:  qsort13_float(a); return ;
+     case 14:  qsort14_float(a); return ;
+     case 15:  qsort15_float(a); return ;
+     case 16:  qsort16_float(a); return ;
+     case 17:  qsort17_float(a); return ;
+     case 18:  qsort18_float(a); return ;
+     case 19:  qsort19_float(a); return ;
+   }
    qsrec_float( n , a , QS_CUTOFF ) ;
    isort_float( n , a ) ;
    return ;
@@ -358,7 +436,7 @@ void qsort_float_rev( int n , float *a )
 /*------------------------------------------------------------------------------*/
 /*--------------- insertion sort of a float-int pair of arrays -----------------*/
 
-void isort_pair( int n , float * ar , int * iar )
+void isort_pair( int n , float *ar , int *iar )
 {
    register int  j , p ;  /* array indices */
    register float temp ;  /* a[j] holding place */
@@ -387,12 +465,12 @@ void isort_pair( int n , float * ar , int * iar )
 
 #define QS_ISWAP(x,y) (itemp=(x),(x)=(y),(y)=itemp)
 
-void qsrec_pair( int n , float * ar , int * iar , int cutoff )
+void qsrec_pair( int n , float *ar , int *iar , int cutoff )
 {
    register int i , j ;           /* scanning indices */
    register float temp , pivot ;  /* holding places */
    register int  itemp ,ipivot ;
-   register float * a = ar ;
+   register float *a = ar ;
    register int   *ia = iar ;
 
    int left , right , mst ;
@@ -503,7 +581,7 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
 
          per[0] = far[0] ;
          for( pp=1 ; pp < nper ; pp++ ){
-            fi = frac * pp ; ii = fi ; fi = fi - ii ;
+            fi = frac *pp ; ii = fi ; fi = fi - ii ;
             per[pp] = (1.0-fi) * far[ii] + fi * far[ii+1] ;
          }
          per[nper] = far[nvox-1] ;
@@ -525,7 +603,7 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
 
          per[0] = sar[0] ;
          for( pp=1 ; pp < nper ; pp++ ){
-            fi = frac * pp ; ii = fi ; fi = fi - ii ;
+            fi = frac *pp ; ii = fi ; fi = fi - ii ;
             per[pp] = (1.0-fi) * sar[ii] + fi * sar[ii+1] ;
          }
          per[nper] = sar[nvox-1] ;
@@ -544,11 +622,11 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
    image value will be 0.173.  The output image is in MRI_float format.
 *****************************************************************************/
 
-MRI_IMAGE * mri_flatten( MRI_IMAGE * im )
+MRI_IMAGE * mri_flatten( MRI_IMAGE *im )
 {
-   MRI_IMAGE * flim , * intim , * outim ;
-   float * far , * outar ;
-   int * iar ;
+   MRI_IMAGE *flim , *intim , *outim ;
+   float *far , *outar ;
+   int *iar ;
    int ii , nvox , ibot,itop , nvox1 ;
    float fac , val ;
 
@@ -595,7 +673,7 @@ printf("Entry: mri_flatten\n") ;
 
       val = far[ibot] ; itop = ibot+1 ;
       if( val != far[itop] ){
-         far[ibot] = fac * ibot ;
+         far[ibot] = fac *ibot ;
          ibot++ ; continue ;
       }
 
