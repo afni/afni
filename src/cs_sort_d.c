@@ -108,8 +108,36 @@ static void qsrec_double( int n , double * ar , int cutoff )
 
 /*------- sort an array partially recursively, and partially insertion -------*/
 
-void qsort_double( int n , double * a )
+/* quick_sort :  sort an array partially recursively, and partially insertion */
+
+#undef   DTYPE
+#define  DTYPE double
+#include "cs_qsort_small.h"
+
+void qsort_double( int n , double *a )
 {
+   if( n <= 1 ) return ;
+   switch(n){
+     default:                     break ;  /* handled below */
+     case  2:  qsort2_double(a) ; return ;
+     case  3:  qsort3_double(a) ; return ;
+     case  4:  qsort4_double(a) ; return ;
+     case  5:  qsort5_double(a) ; return ;
+     case  6:  qsort6_double(a) ; return ;
+     case  7:  qsort7_double(a) ; return ;
+     case  8:  qsort8_double(a) ; return ;
+     case  9:  qsort9_double(a) ; return ;
+     case 10:  qsort10_double(a); return ;
+     case 11:  qsort11_double(a); return ;
+     case 12:  qsort12_double(a); return ;
+     case 13:  qsort13_double(a); return ;
+     case 14:  qsort14_double(a); return ;
+     case 15:  qsort15_double(a); return ;
+     case 16:  qsort16_double(a); return ;
+     case 17:  qsort17_double(a); return ;
+     case 18:  qsort18_double(a); return ;
+     case 19:  qsort19_double(a); return ;
+   }
    qsrec_double( n , a , QS_CUTOFF ) ;
    isort_double( n , a ) ;
    return ;

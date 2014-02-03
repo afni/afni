@@ -1890,7 +1890,7 @@ cs_sort_dv.o:cs_sort_dv.c
 	$(RM) $@
 	$(CCFAST) -c cs_sort_dv.c $(INFLAGS)
 
-cs_sort_d.o:cs_sort_d.c
+cs_sort_d.o:cs_sort_d.c cs_qsort_small.h
 	$(RM) $@
 	$(CCFAST) -c cs_sort_d.c $(INFLAGS)
 

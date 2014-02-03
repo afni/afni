@@ -178,7 +178,7 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
                        double rstart , double rend ,
                        int maxcall , double (*ufunc)(int,double *) )
 {
-   integer n , npt , icode , maxfun ;
+   integer n , npt , icode , maxfun , ncall=0 ;
    doublereal rhobeg , rhoend , *w ;
    int ii ; double *x01 ;
 
@@ -234,10 +234,10 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
      xbest = (double *)malloc(sizeof(double)*ndim) ;
      xtest = (double *)malloc(sizeof(double)*ndim) ;
      memcpy(xbest,x01,sizeof(double)*ndim) ;
-     (void)calfun_(&n,xbest,&fbest) ;
+     (void)calfun_(&n,xbest,&fbest) ; ncall++ ;
      for( qq=0 ; qq < nrand ; qq++ ){
        for( ii=0 ; ii < ndim ; ii++ ) xtest[ii] = drand48() ;
-       (void)calfun_(&n,xtest,&ftest) ;
+       (void)calfun_(&n,xtest,&ftest) ; ncall++ ;
        if( ftest < fbest ){
          fbest = ftest; memcpy(xbest,xtest,sizeof(double)*ndim);
        }
@@ -250,6 +250,10 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
 
    (void)newuoa_( &n , &npt , (doublereal *)x01 ,
                   &rhobeg , &rhoend , &maxfun , w , &icode ) ;
+
+#if 0
+   if( icode > 0 ) icode += ncall ;
+#endif
 
    /*-- Rescale output back to 'true' range --*/
 
