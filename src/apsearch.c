@@ -161,6 +161,8 @@ void apsearch_usage(int detail)
 "         This option MUST PRECEDE option -popts_complete_command\n"
 "  -ci: Case insensitive search (default)\n"
 "  -cs: Case sensitive search\n"
+"  -global_help: Show help for global options.\n"
+"  -gopts_help:  Show help for global options.\n"
 "  -help: You're looking at it.\n"
 "  -max_hits MH: Return best MH hits only. Default MH = 3.\n"
 "                Use -1 to get all results back.\n"
@@ -568,11 +570,22 @@ int main(int argc, char **argv)
          continue; 
       }
 
+      /* 3 Feb 2014 [rickr] */
+      if (strcmp(argv[iarg],"-global_help") == 0 ||
+          strcmp(argv[iarg],"-gopts_help") == 0) { 
+         printf(
+      "--------------------------------------------------------------------\n"
+      "Global Options: options available to most AFNI programs, but usually\n"
+      "                not found in the -help output.\n"
+      "--------------------------------------------------------------------\n"
+             "%s", get_gopt_help());
+         return(0); 
+      }
+
       if (strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0) { 
          apsearch_usage(strlen(argv[iarg]) > 3 ? 2:1);
          return(0); 
-         continue; 
       }
 
       if (strcmp(argv[iarg],"-file") == 0) { 
