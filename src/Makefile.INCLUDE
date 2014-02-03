@@ -204,7 +204,8 @@ LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              nifti/niftilib/nifti1_io.h nifti/nifticdf/nifticdf.h             \
              nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                 \
              rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h          \
-             thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h 
+             thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h              \
+             cs_qsort_small.h
 
 ### Make everything, install it too, and cleanup
 
@@ -888,7 +889,7 @@ strblast:strblast.o
 	$(RM) $@
 	$(CC) -o 3dMedianFilter 3dMedianFilter.o $(LFLAGS) $(LLIBS)
 
-3dDeghost:3dDeghost.o
+3dDeghost:3dDeghost.o cs_qsort_small.h
 	$(RM) $@
 	$(CC) -o 3dDeghost 3dDeghost.o $(LFLAGS) $(LLIBS)
 
@@ -1738,7 +1739,7 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install 
+install: $(INSTALLDIR) $(INSTALL_PREREQ) ptaylor_install pkundu_install
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS)  $(INSTALLDIR)
 	$(CP) $(PY_DIR)/*.py  $(R_DIR)/*.R $(INSTALLDIR)
@@ -1821,7 +1822,7 @@ csfft.o:csfft.c
 	$(RM) $@
 	$(CCFAST) -c csfft.c $(INFLAGS)
 
-mri_percents.o:mri_percents.c
+mri_percents.o:mri_percents.c cs_qsort_small.h
 	$(RM) $@
 	$(CCFAST) -c mri_percents.c $(INFLAGS)
 
@@ -2950,7 +2951,7 @@ libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 #############
 #PTAYLOR directory
 
-ptaylor_all: 
+ptaylor_all:
 	( cd ptaylor ;	\
 	./@MakeLocalMake	;\
 	$(MAKE) afni_all  ;	\
