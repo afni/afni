@@ -37,10 +37,10 @@ endif
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -UDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
-CC     = icc -O2 -DDARWIN $(CEXTRA)
-CCVOL  = icc -O2 -DDARWIN $(CEXTRA)
-CCFAST = icc -O2 -DDARWIN $(CEXTRA)
-CCMIN  = icc -m64
+CC     = /usr/local/bin/gcc -O2 -DDARWIN $(CEXTRA)
+CCVOL  = /usr/local/bin/gcc -O2 -DDARWIN $(CEXTRA)
+CCFAST = /usr/local/bin/gcc -O2 -DDARWIN $(CEXTRA)
+CCMIN  = /usr/local/bin/gcc -m64
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
@@ -49,7 +49,7 @@ OMPFLAG = -openmp -openmp-link static -DUSE_OMP
 IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
 LFLAGS = -L/opt/intel/Compiler/11.0/059/lib -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
-CCSVD  = icc -m64 -O0
+CCSVD  = /usr/local/bin/gcc -m64 -O0
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -m64 -bundle -flat_namespace -undefined suppress -Wl,-x
@@ -64,7 +64,7 @@ RANLIB = /usr/bin/ranlib
 TAR    = /usr/bin/tar
 MKDIR  = /bin/mkdir
 GZIP   = /usr/bin/gzip
-LD     = icc
+LD     = /usr/local/bin/gcc
 
 RM = /bin/rm -f
 MV = /bin/mv -f
@@ -72,9 +72,9 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./macosx_10.8_icc
+INSTALLDIR = ./macosx_10.8_gcc
 LIBDIR = $(INSTALLDIR)
-SHOWOFF = -DSHOWOFF=macosx_10.8_icc
+SHOWOFF = -DSHOWOFF=macosx_10.8_gcc
 
 INSTALL_PREREQ = suma
 #INSTALL_PREREQ = suma
