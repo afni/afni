@@ -59,7 +59,7 @@
    Whether the system uses something besides the IEEE floating-point
    format to represent floating-point values.
 #endif
-#undef NO_IEEE_FLOAT
+#define NO_IEEE_FLOAT 1
 
 
 #if 0
