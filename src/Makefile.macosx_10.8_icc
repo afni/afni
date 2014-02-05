@@ -40,7 +40,7 @@ CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -UDONT_USE_MCW_MALLOC
 CC     = icc -O2 -DDARWIN $(CEXTRA)
 CCVOL  = icc -O2 -DDARWIN $(CEXTRA)
 CCFAST = icc -O2 -DDARWIN $(CEXTRA)
-CCMIN  = icc -m64
+CCMIN  = /usr/local/bin/gcc -m64
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
