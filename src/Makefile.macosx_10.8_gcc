@@ -15,7 +15,7 @@ ifdef USE_LOCAL_X_TREE
     XROOT_I = -I$(XROOT)/include
     XROOT_L = -L$(XROOT)/lib64
 else
-    XROOT = /sw
+    XROOT = /opt/X11
     XROOT_L = -L$(XROOT)/lib
 endif
 
@@ -44,10 +44,10 @@ CCMIN  = /usr/local/bin/gcc -m64
 CCD    = $(CC) $(CCDEBS)
 CCOLD  = $(CC)
 
-OMPFLAG = -openmp -openmp-link static -DUSE_OMP
+OMPFLAG = -fopenmp -DUSE_OMP
 
 IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
-LFLAGS = -L/opt/intel/Compiler/11.0/059/lib -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
 CCSVD  = /usr/local/bin/gcc -m64 -O0
 
