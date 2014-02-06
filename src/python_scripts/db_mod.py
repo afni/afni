@@ -4925,7 +4925,7 @@ g_help_string = """
     ==================================================
     EXAMPLES (options can be provided in any order):
 
-        1. Minimum use.
+        Example 1. Minimum use.
 
            Provide datasets and stim files (or stim_times files).  Note that a
            dataset suffix (e.g. HEAD) must be used with wildcards, so that
@@ -4948,8 +4948,8 @@ g_help_string = """
         The following examples can be run from the AFNI_data4 directory, and
         are examples of how one might process the data for subject sb23.
 
-        2. Very simple.  Use all defaults, except remove 3 TRs and use basis
-           function BLOCK(30,1).  The default basis function is GAM.
+        Example 2. Very simple.  Use all defaults, except remove 3 TRs and use
+           basis function BLOCK(30,1).  The default basis function is GAM.
 
                 afni_proc.py -subj_id sb23.e2.simple                       \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
@@ -4957,7 +4957,7 @@ g_help_string = """
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_basis 'BLOCK(30,1)'
 
-        3. The current class example.  This may change of course.
+        Example 3. The current class example.  This may change of course.
 
            Copy the anatomy into the results directory, register EPI data to
            the last TR, specify stimulus labels, compute blur estimates, and
@@ -4983,9 +4983,9 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        4. Similar to the class example, but specify the processing blocks,
-           adding despike and tlrc, and removing tshift.  Note that the tlrc
-           block is to run @auto_tlrc on the anat.  Ignore the GLTs.
+        Example 4. Similar to the class example, but specify the processing
+           blocks, adding despike and tlrc, and removing tshift.  Note that
+           the tlrc block is to run @auto_tlrc on the anat.  Ignore the GLTs.
 
                 afni_proc.py -subj_id sb23.e4.blocks                       \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
@@ -4999,7 +4999,7 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        5a. RETROICOR example a, resting state data.
+        Example 5a. RETROICOR example a, resting state data.
 
            Assuming the class data is for resting-state and that we have the
            appropriate slice-based regressors from RetroTS.m, apply the despike
@@ -5032,7 +5032,7 @@ g_help_string = """
 
                 -blocks despike ricor volreg regress
 
-        5b. RETROICOR example b, while running a normal regression.
+        Example 5b. RETROICOR example b, while running a normal regression.
 
            Add the ricor regressors to a normal regression-based processing
            stream.  Apply the RETROICOR regressors across runs (so using 13
@@ -5059,7 +5059,8 @@ g_help_string = """
 
            Also consider adding -regress_bandpass.
 
-        5c. RETROICOR example c (modern): censoring and bandpass filtering.
+        Example 5c. RETROICOR example c (modern): with censoring and bandpass
+           filtering.
 
            This is an example of how we might currently suggest analyzing
            resting state data.  If no RICOR regressors exist, see example 9
@@ -5098,7 +5099,7 @@ g_help_string = """
                         -regress_run_clustsim no                \\
                         -regress_est_blur_errts
                         
-        6. A modern example.  GOOD TO CONSIDER.
+        Example 6. A modern example.  GOOD TO CONSIDER.
 
            Align the EPI to the anatomy.  Also, process in standard space.
 
@@ -5141,7 +5142,7 @@ g_help_string = """
            To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
            To process as anat aligned to EPI, remove -volreg_align_e2a.
 
-        7. Similar to 6, but get a little more esoteric.
+        Example 7. Similar to 6, but get a little more esoteric.
 
            a. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
@@ -5216,7 +5217,7 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        8. Based on subject FT under AFNI_data6.
+        Example 8. Based on subject FT under AFNI_data6.
 
            Add -surf_spec and -surf_anat to provide the required spec and
            surface volume datasets.  The surface volume will be aligned to
@@ -5267,7 +5268,8 @@ g_help_string = """
                         -jobs 2                                          \\
                         -gltsym 'SYM: vis -aud' -glt_label 1 V-A
 
-        9. Resting state analysis (modern): censoring and bandpass filtering.
+        Example 9. Resting state analysis (modern): with censoring and
+           bandpass filtering.
 
            This is our suggested way to do pre-processing for resting state
            analysis, under the assumption that no cardio/physio recordings
@@ -5349,7 +5351,7 @@ g_help_string = """
                   -regress_est_blur_errts
 
 
-       10. Resting state analysis, with tissue-based regressors.
+       Example 10. Resting state analysis, with tissue-based regressors.
 
            Like example #9, but also regress eroded white matter and CSF
            averages.  The WMe and CSFe signals come from the Classes dataset,
@@ -5371,8 +5373,8 @@ g_help_string = """
                   -regress_run_clustsim no                                   \\
                   -regress_est_blur_errts
 
-       10b. Resting state analysis, with tissue-based regressors and 3dRSFC
-            (for bandpassing and computation of ALFF, etc).
+       Example 10b. Resting state analysis, with tissue-based regressors and
+            3dRSFC (for bandpassing and computation of ALFF, etc).
 
             Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
             Skip censoring because of the bandpass operation.
@@ -5398,7 +5400,7 @@ g_help_string = """
                   -regress_est_blur_errts
 
     --------------------------------------------------
-    -ask_me EXAMPLES:
+    -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated **
 
         a1. Apply -ask_me in the most basic form, with no other options.
 

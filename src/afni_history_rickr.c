@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Feb, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "-help examples start with 'Example', for searching",
+   NULL
+ } ,
+
  {  3,  Feb, 2014, RCR, "apsearch", MICRO, TYPE_NEW_OPT,
    "added -global_help/-gopts_help to print help for global options",
    NULL
