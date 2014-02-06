@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 31 , JAN , 2014 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+  { 6 , FEB , 2014 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+   "-nomeans AND -notests to shut off more of the output" ,
+   NULL } ,
+
+ { 31 , JAN , 2014 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
    "Make I/O more efficient and streamlined for -brickwise" ,
    NULL } ,
 
