@@ -4773,6 +4773,8 @@ extern int bsearch_int( int tt , int nar , int *ar ) ;
 extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
 extern void THD_vectim_to_dset_indexed( MRI_vectim *mrv ,
                                         THD_3dim_dataset *dset , int *tlist ) ; /* 06 Aug 2013 */
+extern void THD_vectim_indexed_to_dset( MRI_vectim *mrv, int nlist, int *ilist,
+                                        THD_3dim_dataset *dset ) ;              /* 06 Feb 2014 */
 
 extern int THD_vectim_data_tofile( MRI_vectim *mrv , char *fnam ) ;
 extern int THD_vectim_reload_fromfile( MRI_vectim *mrv , char *fname ) ;
