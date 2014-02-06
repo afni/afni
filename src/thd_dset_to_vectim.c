@@ -1118,6 +1118,47 @@ ENTRY("THD_vectim_to_dset_indexed") ;
    free(tar) ; EXRETURN ;
 }
 
+/*----------------------------------------------------------------------*/
+/* The ilist[jj]-th point in the vectim goes into the jj-th index
+   in the output dataset [06 Feb 2014].
+*//*--------------------------------------------------------------------*/
+
+void THD_vectim_indexed_to_dset( MRI_vectim *mrv, int nlist, int *ilist,
+                                 THD_3dim_dataset *dset )
+{
+   int nvals , nvec ,  jj,kk ;
+   float *tar , *var ;
+
+ENTRY("THD_vectim_indexed_to_dset") ;
+
+   if( mrv   == NULL || !ISVALID_DSET(dset) ||
+       nlist <= 0    || ilist == NULL       || nlist > DSET_NVALS(dset)  ){
+     ERROR_message("THD_vectim_indexed_to_dset: illegal inputs (nlist=%d)",nlist) ;
+     EXRETURN ;
+   }
+
+   nvec  = mrv->nvec ;
+   nvals = mrv->nvals ;
+
+   for( kk=0 ; kk < nlist ; kk++ ){
+     if( ilist[kk] < 0 || ilist[kk] >= nvals ){
+       ERROR_message("THD_vectim_indexed_to_dset: illegal ilist[%d]=%d",kk,ilist[kk]) ;
+       EXRETURN ;
+     }
+   }
+
+   tar = (float *)malloc(sizeof(float)*nlist) ;
+
+   for( kk=0 ; kk < nvec ; kk++ ){
+     var = VECTIM_PTR(mrv,kk) ;
+     for( jj=0 ; jj < nlist ; jj++ ) tar[jj] = var[ilist[jj]] ;
+     THD_insert_series( mrv->ivec[kk] , dset ,
+                        nlist , MRI_float , tar , 0 ) ;
+   }
+
+   free(tar) ; EXRETURN ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 MRI_vectim * THD_tcat_vectims( int nvim , MRI_vectim **vim )
