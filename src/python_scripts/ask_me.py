@@ -8,18 +8,17 @@ def ask_me_subj_proc(proc):
 
     # start by displaying overview
     print """
-    ----------------------------------------------------------------------
+    -----------------------------------------------------------------------
+    ***  The -ask_me method is no longer well supported.  Consider      ***
+    ***  following the examples from the -help output.  Or better yet,  ***
+    ***  try uber_subject.py, the graphical interface to afni_proc.py.  ***
+    -----------------------------------------------------------------------
+
     This ask_me dialogue is designed to give users a feel for the basic
     options they may want to supply when not using -ask_me.  It reviews
     only a subset of possible options.
 
     (see "afni_proc.py -help" for the full list :).
-
-    *** NOTE: this -ask_me dialog is very old (has not been updated in
-              many years.
-
-              Users are highly encouraged to use uber_subject.py, instead.
-              It is essentially a graphical interface to afni_proc.py.
 
     This program minimally requires a list of AFNI datasets to process,
     and a list of stimulus files, if regression is to be run.
@@ -31,7 +30,7 @@ def ask_me_subj_proc(proc):
 
     At the end, there will be a chance to store the complete afni_proc.py
     command in a text file for future use.
-    ----------------------------------------------------------------------
+    -----------------------------------------------------------------------
 
 """
 
@@ -291,6 +290,10 @@ def read_one_int(prompt, pos=0, nonneg=0):
         words = string.split(sys.stdin.readline())
         print # for separation
         if len(words) < 1: continue
+
+        if words[0] in ['quit', 'QUIT', 'exit', 'EXIT']:
+           print 'exiting on user request...\n'
+           sys.exit(0)
 
         try: val = int(words[0])
         except: continue
