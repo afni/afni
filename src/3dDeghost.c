@@ -10,7 +10,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset  ,
                                   int pe , int fe , int se  ) ;
 void orfilt_vector( int nvec , float *vec ) ;
 
-static int orfilt_len = 13 ;
+static int orfilt_len = 19 ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -61,9 +61,11 @@ int main( int argc , char * argv[] )
        "                    estimating ghosting parameters.  Set N to 0 or 1\n"
        "                    to turn this feature off; otherwise, N should be an\n"
        "                    odd positive integer from 3 to 19 [default N=%d].\n"
+       "                 * Longer filter lengths ARE allowed, but will be slow\n"
+       "                    (cases with N <= 19 are hand coded for speed).\n"
        "                 * Datasets with fewer than 4 time points will not\n"
        "                    be filtered.  For longer datasets, if the filter\n"
-       "                    length is too big, it will be shortened.\n"
+       "                    length is too big, it will be shortened ruthlessly.\n"
        "\n"
        "-- Jan 2014 - Zhark the Phantasmal\n"
       , orfilt_len
@@ -215,15 +217,15 @@ int main( int argc , char * argv[] )
 #include "cs_qsort_small.h"
 
 #undef  OFILT
-#define OFILT(j) 0.2f*(ar[j-1]+ar[j+1]+3.0f*ar[j])
+#define OFILT(j) 0.2f*(ar[j-1]+ar[j+1]+3.0f*ar[j])            /* odd lengths */
 
 #undef  EFILT
-#define EFILT(j) 0.2f*(ar[j-2]+ar[j+1])+0.3f*(ar[j-1]+ar[j])
+#define EFILT(j) 0.2f*(ar[j-2]+ar[j+1])+0.3f*(ar[j-1]+ar[j])  /* even lengths */
 
 static float orfilt( int n , float *ar )
 {
    int nby2 ;
-   switch( n ){
+   switch( n ){                /* fast cases */
      case 1:   return ar[0] ;
      case 2:   return 0.5f*(ar[0]+ar[1]) ;
 
@@ -246,6 +248,8 @@ static float orfilt( int n , float *ar )
      case  16: qsort16_float(ar) ; return EFILT(8) ;
      case  18: qsort18_float(ar) ; return EFILT(9) ;
    }
+
+   /* general case for n > 19 -- will be slower */
 
    qsort_float(n,ar) ;
    nby2 = n/2 ;

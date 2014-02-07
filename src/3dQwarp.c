@@ -1340,14 +1340,23 @@ STATUS("3dAllineate coming up next") ;
      qs = (char *)malloc(strlen(Qunstr)+strlen(prefix)+64) ;
      ns = (char *)malloc(strlen(Qunstr)+strlen(prefix)+64) ;
      sprintf(qs,"%s.nii",Qunstr) ;
-     if( keep_allin ){
-       sprintf(ns,"%s_Allin.nii",prefix_clean) ; rename(qs,ns) ; rs = ns ;
+     if( !THD_is_file(qs) ){     /* check for compressed output [07 Feb 2014] */
+       strcpy(ns,qs) ; strcat(ns,".gz") ;
+       if( !THD_is_file(ns) )
+         ERROR_message("Can't find 3dAllineate output '%s' or '%s' :-(",qs,ns) ;
+       else
+         strcpy(qs,ns) ;
+     }
+     if( keep_allin ){    /* if keeping 3dAllineate output, make a nicer name */
+       sprintf(ns,"%s_Allin.nii",prefix_clean) ;
+       if( STRING_HAS_SUFFIX(qs,".gz") ) strcat(ns,".gz") ;    /* 07 Feb 2014 */
+       rename(qs,ns) ; rs = ns ;
      } else {
        rs = qs ;
      }
-     INFO_message("3dQwarp: replacing source dataset with %s",rs) ;
+     INFO_message("3dQwarp: replacing source dataset with 3dAllineate result %s",rs) ;
      sset = THD_open_dataset(rs) ;                 /* get its output dataset */
-     if( sset == NULL ) ERROR_exit("Can't open replacement source??") ;
+     if( sset == NULL ) ERROR_exit("Can't open replacement source dataset %s :-(",rs) ;
      DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ; DSET_lock(sset) ;
      if( !keep_allin ) remove(qs) ;  /* erase the 3dAllineate dataset from disk */
 
