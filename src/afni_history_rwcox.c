@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 6 , FEB , 2014 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
+  { 7 , FEB , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+   "Fix problem with -allineate option" ,
+   "3dAllineate might choose to write out a .nii.gz file instead of the .nii\n"
+   "file ordered.  In that case, 3dQwarp fails to read it in.  The fix -- if\n"
+   "the .nii file doesn't exist, then add '.gz' to the end of the filename\n"
+   "and try again, before giving up and going home to mother." } ,
+
+ { 6 , FEB , 2014 , RWC , "3dttest++" , MICRO , TYPE_NEW_OPT ,
    "-nomeans AND -notests to shut off more of the output" ,
    NULL } ,
 
