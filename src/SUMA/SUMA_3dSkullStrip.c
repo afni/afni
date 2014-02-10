@@ -530,6 +530,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->permask = -1.0;
    memset(Opt->PlEq, 0, 4*sizeof(float));
    Opt->flt1 = -160.0;
+   Opt->b1 = 0;
    
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -543,6 +544,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
       
       if (!brk && (strcmp(argv[kar], "-pushout") == 0)) {
          Opt->UseExpansion = 1;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-rad_stat") == 0)) {
+         Opt->b1 = 1; /* Compute radial stats only */ 
          brk = YUP;
       }
       
@@ -1289,7 +1295,7 @@ int main (int argc,char *argv[])
    THD_3dim_dataset *dset = NULL;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz , fv2, originRAIfv;
-   THD_3dim_dataset *oset = NULL;
+   THD_3dim_dataset *oset = NULL, *radset = NULL;
    MRI_IMAGE *imin=NULL, *imout=NULL, *imout_orig=NULL  ;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -1311,7 +1317,8 @@ int main (int argc,char *argv[])
    Opt = SUMA_BrainWrap_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
-
+   if (Opt->permask >= 0.0) { Opt->b1 = 1; /* also need radset */ }
+   
    SO_name = SUMA_Prefix2SurfaceName(
                Opt->out_prefix, NULL, NULL, 
                Opt->SurfFileType, &exists);
@@ -1388,19 +1395,48 @@ int main (int argc,char *argv[])
          ps->cs->Send = NOPE;
       } 
    }
-
+   
+   /* rad stats */
+   if (Opt->b1) {
+      char *radprefix = SUMA_append_string(Opt->out_vol_prefix,"_rad");
+      if (Opt->debug) {
+         SUMA_S_Note("Loading dset");
+      }
+      if (!(Opt->iset = THD_open_dataset( Opt->in_name ))) {
+         SUMA_S_Errv("Failed to read %s\n",Opt->in_name);
+         exit(1);
+      }
+      DSET_load(Opt->iset);
+      if( !ISVALID_DSET(Opt->iset) ){
+        SUMA_S_Errv("can't open dataset %s\n",Opt->in_name) ;
+        exit(1);
+      }
+      SUMA_THD_Radial_HeadBoundary( Opt->iset, 0.0, NULL, NULL, &radset, 
+                                    1, 0.0, 0.0, 0, 0, NULL, NULL);
+      EDIT_dset_items(  radset , ADN_prefix,  radprefix, ADN_none);
+      tross_Make_History( FuncName , argc,argv , radset ) ;
+      if (Opt->debug) {
+         SUMA_S_Note("Writing radset to %s", DSET_PREFIX(radset));
+      }
+      DSET_write(radset) ;
+      if (radprefix) SUMA_free(radprefix); radprefix=NULL;
+   }
    
    /* head extraction? */
    if (Opt->permask >= 0.0) {
       SUMA_SurfaceObject *SOhh=NULL;
-      THD_3dim_dataset *headset=NULL, *radset=NULL;
+      THD_3dim_dataset *headset=NULL;
       char *hhullprefix = SUMA_append_string(Opt->out_vol_prefix,"_head");
-      char *radprefix = SUMA_append_string(Opt->out_vol_prefix,"_rad");
       char *SO_name_hhull = SUMA_Prefix2SurfaceName(hhullprefix, NULL, NULL,
                                           Opt->SurfFileType, &exists);
       char *radcon= SUMA_append_string(Opt->out_vol_prefix,"_rc");
+      if (!Opt->iset || !radset) {
+         SUMA_S_Err("iset (%p) and radset (%p) should both be here by now.",
+                     Opt->iset, radset);
+         exit(1);
+      }
       if (Opt->debug) {
-         SUMA_S_Notev("Loading dset, extracting head area, volthr=%f\n",
+         SUMA_S_Notev("extracting head area, volthr=%f\n",
                       Opt->permask);
       }
       if (!(Opt->iset = THD_open_dataset( Opt->in_name ))) {
@@ -1453,17 +1489,18 @@ int main (int argc,char *argv[])
       tross_Make_History( FuncName , argc,argv , headset ) ;
       DSET_write(headset) ;
       DSET_delete(headset); headset=NULL;
-      EDIT_dset_items(  radset , ADN_prefix,  radprefix, ADN_none);
-      tross_Make_History( FuncName , argc,argv , radset ) ;
-      DSET_write(radset) ;
-      DSET_delete(radset); radset=NULL;
       if (SOhh) SUMA_Free_Surface_Object(SOhh); SOhh=NULL;
       if (SO_name_hhull) SUMA_free(SO_name_hhull); SO_name_hhull=NULL;
       if (hhullprefix) SUMA_free(hhullprefix); hhullprefix=NULL;
-      if (radprefix) SUMA_free(radprefix); radprefix=NULL;
       exit(0);
    }
    
+   /* radset not needed anymore */
+   if (radset) DSET_delete(radset); radset=NULL;
+
+   if (Opt->permask >= 0.0 || Opt->b1) { 
+      exit(0); /* go no further for now */
+   }
    /* Load the AFNI volume and prep it*/
    if (Opt->DoSpatNorm) { /* chunk taken from 3dSpatNorm.c */
       if (Opt->debug) 

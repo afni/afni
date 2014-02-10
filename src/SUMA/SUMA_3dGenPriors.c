@@ -33,7 +33,7 @@ int GenPriors(SEG_OPTS *Opt)
          SUMA_S_Warn("Running in fast mode");
 #ifdef USE_OMP
 #pragma omp parallel
- {
+{
   if( omp_get_thread_num() == 0 )
     INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
 }
@@ -1071,6 +1071,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 
    RETURN(Opt);
 }
+
 float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats, 
                                      int method, char *tdist, 
                                      NI_str_array *featsfam, float **usethis) 

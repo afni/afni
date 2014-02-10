@@ -2058,6 +2058,111 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
    SUMA_RETURN(YUP);
 }
 
+int SUMA_Count_All_VO_Textures(void)
+{
+   static char FuncName[]={"SUMA_Count_All_VO_Textures"};
+   int i, j, c = 0;
+   SUMA_ALL_DO *ado=NULL;
+   
+   for (i=0; i<SUMAg_N_DOv; ++i) {
+      ado = iDO_ADO(i);
+      if (ado->do_type == VO_type) {
+         j=0;
+         SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
+         while (VO->VE && VO->VE[j]) {
+            ++c;
+            ++j;
+         }
+      }
+   }
+   return(c);
+}
+
+/*
+   Check if texture has been loaded for a particular viewer
+   NOTE: N_tex is only set is the texture was NOT loaded */
+SUMA_Boolean SUMA_SV_isTextureLoaded(SUMA_SurfaceViewer *sv, 
+                                     GLuint texName, int *N_tex)
+{
+   static char FuncName[]={"SUMA_SV_isTextureLoaded"};
+   int i=0;
+   
+   while (i<SUMA_MAX_DISPLAYABLE_OBJECTS && sv->LoadedTextures[i]!=-1) {
+      if (sv->LoadedTextures[i] = (int)texName) return(YUP);
+      ++i;
+   }
+   if (i == SUMA_MAX_DISPLAYABLE_OBJECTS && sv->LoadedTextures[i]!=-1) {
+      SUMA_S_Warn("Looks like LoadedTextures is not plugged");
+   }
+   return(NOPE);
+}
+
+SUMA_Boolean SUMA_SV_Mark_Textures_Status(SUMA_SurfaceViewer *sv, char *MarkAs,
+                                          SUMA_VolumeObject *VO, int j, 
+                                          int loadifneeded)
+{
+   static char FuncName[]={"SUMA_SV_Mark_Textures_Status"};
+   int N_tex = 0, i=0;
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !MarkAs) {
+      SUMA_RETURN(NOPE);
+   }
+   if (!strcmp(MarkAs, "unloaded_all")) {
+      sv->LoadedTextures[0]=-1;
+      SUMA_RETURN(YUP);
+   } else if (!strcmp(MarkAs, "loaded_for_VO")) {
+      if (!VO) SUMA_RETURN(NOPE);
+      j = 0;
+      while (VO->VE && VO->VE[j]) {
+         if (!SUMA_SV_isTextureLoaded(sv, VO->VE[j]->texName[0], &N_tex)) {
+            sv->LoadedTextures[N_tex] = VO->VE[j]->texName[0];
+            sv->LoadedTextures[N_tex+1] = -1;
+            if (loadifneeded) {
+               SUMA_VE_LoadTexture(VO->VE, j);
+            }
+         }
+         ++j;
+      }
+      SUMA_RETURN(YUP);
+   } else if (!strcmp(MarkAs, "loaded_for_VO_one")) {
+      if (!VO || j < 0 || !VO->VE || !VO->VE[j]) SUMA_RETURN(NOPE);
+      if (!SUMA_SV_isTextureLoaded(sv, VO->VE[j]->texName[0], &N_tex)) {
+         sv->LoadedTextures[N_tex] = VO->VE[j]->texName[0];
+         sv->LoadedTextures[N_tex+1] = -1;
+         if (loadifneeded) {
+            SUMA_VE_LoadTexture(VO->VE, j);
+         }
+      }
+      SUMA_RETURN(YUP);
+   } else if (!strcmp(MarkAs, "loaded_all")) {
+      SUMA_ALL_DO *ado=NULL;
+      N_tex = 0;
+      sv->LoadedTextures[N_tex]=-1;
+      for (i=0; i<SUMAg_N_DOv; ++i) {
+         ado = iDO_ADO(i);
+         if (ado->do_type == VO_type) {
+            VO = (SUMA_VolumeObject *)ado;
+            j=0;
+            while (VO->VE && VO->VE[j]) {
+               sv->LoadedTextures[N_tex] = VO->VE[j]->texName[0]; 
+               if (loadifneeded) {
+                  SUMA_VE_LoadTexture(VO->VE, j);
+               }
+               ++N_tex;
+               ++j;
+            }
+         }
+      }
+      sv->LoadedTextures[N_tex]=-1;
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_S_Err("MarkAs %s not understood", MarkAs);
+      SUMA_RETURN(NOPE);
+   }
+}
+
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, 
                                SUMA_SurfaceViewer *sv)
 {
@@ -2141,9 +2246,23 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
             SUMA_S_Err("Failed to create texture");
             SUMA_RETURN(NOPE);
          }
+         if (!SUMA_SV_Mark_Textures_Status(sv, "loaded_for_VO_one", VO, ive,0)) {
+            SUMA_S_Err("Failed to mark texture as loaded");
+            SUMA_RETURN(NOPE);
+         }
+      } else {
+         /* Need to check if textures need to be reloaded.
+         The actual loading needs to be redone only when a viewer has been
+         closed and then open again. Not sure why that must be done but without
+         a new load the textures go away after the viewer is reopened */
+         if (!SUMA_SV_Mark_Textures_Status(sv, "loaded_for_VO_one", VO, ive, 1)){
+            SUMA_S_Err("Failed to check or reload texture");
+            SUMA_RETURN(NOPE);
+         }
       }
       ++ive;
    }
+
    
    if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
       SUMA_S_Err("Failed to create tracking list");

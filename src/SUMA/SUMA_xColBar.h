@@ -175,6 +175,7 @@ SUMA_Boolean SUMA_MDO_PointXYZ_eng(SUMA_MaskDO *mo, int point,
 float *SUMA_MDO_PointXYZ(SUMA_MaskDO *mdo, int point, int *BTP, float *here);
 char *SUMA_ADO_LDP(SUMA_ALL_DO *ado);
 char * SUMA_ADO_Label(SUMA_ALL_DO *ado);
+char * SUMA_ADO_CropLabel(SUMA_ALL_DO *ado, int len);
 SUMA_Boolean SUMA_ADO_isLabel(SUMA_ALL_DO *ado, char *lbl);
 char *SUMA_ADO_sLabel(SUMA_ALL_DO *ado);
 char * SUMA_ADO_idcode(SUMA_ALL_DO *ado);

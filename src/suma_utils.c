@@ -3877,7 +3877,7 @@ static ENV_SPEC envlist[] = {
    {  "Incremental arrow rotation angle in degrees",
       "SUMA_ArrowRotAngle",
       "5" } ,
-   {  "Color pattern (AFNI, EURO, DEFAULT)",
+   {  "Color pattern (AFNI, EURO, PRINT, DEFAULT)",
       "SUMA_ColorPattern",
       "EURO" },
    {  "Swap mouse buttons 1 and 3",

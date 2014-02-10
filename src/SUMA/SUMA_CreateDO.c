@@ -6864,7 +6864,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                j* vars are for the second*/
             memset(bb, 0, sizeof(byte)*M4);
             /* get the color vector */
-            if (!(colv = colstr->glar_ColorList)) {
+            if (!(colv = SUMA_GetColorListPtr(colstr))) {
                SUMA_S_Errv("No colv for %s?\n", SDSET_LABEL(dset));
                goto BUGOUT;
             }
@@ -7081,7 +7081,9 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                                           &ii, &jj, NULL)) {
             SUMA_S_Err("What else?"); goto BUGOUT;
          }
-
+         SUMA_LH("Seg index %d is [%d %d] on matrix shape %s", 
+                 (int)GSaux->PR->datum_index, ii, jj,
+              SUMA_matrix_shape_to_matrix_shape_name(dset->Aux->matrix_shape));
          if ((cc=SUMA_GDSET_edgeij_to_GMATRIX_XYZ(dset, ii, jj, XYZ, 1)) < 0) {
             SUMA_S_Err("Failed to get square"); goto BUGOUT;
          } else if (cc == 0) {
@@ -8484,6 +8486,7 @@ int SUMA_GDSET_edgeij_to_GMATRIX_XYZ(SUMA_DSET *dset,
          break;
    }
    
+   SUMA_LH("[ei,ej]=[%d %d]", ei, ej);
    if (ei >= 0 && ej >= 0) {
       if (!ui) {
          iim = ei; jjm = ej;
@@ -9600,7 +9603,6 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    byte *mask=NULL, *wmask=NULL, showword = 0;
    GLubyte *colid=NULL, *colidballs=NULL, *colballpick=NULL;
    GLubyte green[4] = {0, 1, 0, 1};
-
    SUMA_SurfaceObject *SO1 = NULL;
    SUMA_DSET *dset=NULL;
    SUMA_DUMB_DO DDO;
@@ -9808,7 +9810,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    if (!sv->DO_PickMode &&
        GSaux->PR->datum_index == -1 && GSaux->PR->iAltSel[SUMA_ENODE_0] != -1) {
       OnlyThroughNode = GSaux->PR->iAltSel[SUMA_ENODE_0];
-      if (NodeMask) NodeMask[OnlyThroughNode] = 1;
+      if (NodeMask && OnlyThroughNode >=0) NodeMask[OnlyThroughNode] = 1;
    } else OnlyThroughNode = -1;
    
    ic0 = -1; ic1=-1; r0 = -1; r1 = -1; s0 = -1; s1 = -1;
@@ -9844,7 +9846,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
             cn13 = 3*cn1;
 
-         if (cn<DDO.N_Node && cn1 < DDO.N_Node) {
+         if (cn<DDO.N_Node && cn1 < DDO.N_Node && cn>-1 && cn1>-1) {
             if ( NodeMask &&
                  (cn != cn1)) { /* Only draw points touched by an edge 
                                    between different points (off diagonal)*/
@@ -9940,14 +9942,21 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             }
             
             /* get position of node n in NodeList */
-            cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n); 
+            if ((cn = SUMA_NodeIndex_To_Index(DDO.NodeIndex,DDO.N_Node,n))< 0){
+               SUMA_LH("Failed to get index of node %d",n);
+               ++i; continue;
+            } 
                cn3 = 3*cn;
-            cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
+            if ((cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex,DDO.N_Node,n1))< 0){
+               SUMA_LH("Failed to get index of node %d",n1);
+               ++i; continue;
+            } 
                cn13 = 3*cn1;
             #if 0
                SUMA_LHv("Rows of nodes [%d %d] are [%d %d]\n",
                      n, n1, cn, cn1);
             #endif
+            
             if (cn<DDO.N_Node && cn1 < DDO.N_Node && 
                 IN_MASK(GSaux->isColored,si)) {
                i3 = 3*i;
@@ -9960,10 +9969,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                if (colid){
                   n4 = 4*i; /* Always keep indexing tied to arrays of objects */
                   glColor4ub(colid[n4], colid[n4+1], colid[n4+2], colid[n4+3]);
-                  if (LocalHead) 
-               fprintf(SUMA_STDERR,
-                     "%s: colid for segment row %d         %d %d %d %d\n", 
-                        FuncName, i, colid[n4], colid[n4+1],
+                  SUMA_LH("colid for segment row %d         %d %d %d %d\n", 
+                          i, colid[n4], colid[n4+1],
                                   colid[n4+2], colid[n4+3]);
                } else if (SDO->colv) { /* Colv is index by datum index */
                   glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(si)]));
@@ -10056,17 +10063,18 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    /* Highlight selected Datum, ONLY if we did not go the mask route */
    if (!sv->DO_PickMode && (si=GSaux->PR->datum_index) >=0 &&
        SUMA_SV_GetShowSelectedDatum(sv) && !GSaux->isColored) {
+      r0 = SUMA_GDSET_EdgeIndex_To_Row(dset,si);
       n = SDO->NodeID[i]; 
       n1 = SDO->NodeID1[i]; 
-      SUMA_LHv("Highlight: edge %d/%d, edge index %d [%d,%d] (%d)\n", 
-               i, SDO->N_n, si, n, n1, DDO.N_Node);
+      SUMA_LHv("Highlight: i = %d edge row %d/%d, edge index %d [%d,%d] (%d)\n", 
+               i, r0, SDO->N_n, si, n, n1, DDO.N_Node);
       /* get position of node n in NodeList */
       cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n); 
          cn3 = 3*cn;
       cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
          cn13 = 3*cn1;
       
-      if (cn<DDO.N_Node && cn1 < DDO.N_Node) {
+      if (cn<DDO.N_Node && cn1 < DDO.N_Node && cn > -1 && cn1 > -1) {
          if ( NodeMask &&
               (cn != cn1)) { /* Only draw points touched by an edge 
                                       between different points (off diagonal)*/
@@ -10084,7 +10092,6 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                     glEnable(GL_LINE_STIPPLE);
             glLineStipple (1, SUMA_int_to_stipplemask(stipsel-1)); 
          }
-         i3 = 3*i;
          if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal) 
                      glLineWidth(((SUMA_ABS(curcol->V[i]))*Wfac+Wrange[0])
                                                          *curcol->EdgeThickGain); 
@@ -10107,7 +10114,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          if (stipsel && !gllst) glDisable(GL_LINE_STIPPLE);
       }
    } 
-      
+
    if (!sv->DO_PickMode) {
       switch (SDO->Stipple) {
          case SUMA_DASHED_LINE:
@@ -10190,6 +10197,19 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          GNIr = GNI;
          namesr = names;
          wmask = NodeMask;
+      }
+      
+      if (SDO->N_UnqNodes == 1) {
+         static int nwarn=0;
+         /* Just one node!!!, make drawing exception */
+         if (!nwarn) {
+            SUMA_S_Warn("Graph %s has one node!\n"
+                 "This node will be displayed regardless of thresholding, etc.\n"
+                        "Further such warnings will be muted.\n", 
+                        ADO_LABEL((SUMA_ALL_DO*)SDO));
+            ++nwarn;
+         }
+         if (wmask) wmask[0] = 1;
       }
       n4=0; 
       for (i=0; i<SDO->N_UnqNodes;++i) {
@@ -10283,7 +10303,23 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
          }
          if (fontGL && names) {
+            #if 0 /* Not working. I am not sure why
+                     this is failing. Without writing
+                     into the depth buffer, the text
+                     will get obscured by objects such as slices
+                     that are rendered later. The solution
+                     for now is to make sure graphs are rendered
+                     last and to disable GL_DEPTH_TEST for this 
+                     step altogether. */
+            if (!gl_dt) glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_ALWAYS); /* Need to write into depth buffer or risk
+                                 getting text overshadowed by other objects.
+                                 Disabling the text would render text OK
+                                 without aliasing from shadow but will
+                                 not update the depth buffer. */
+            #else
             if (gl_dt) glDisable(GL_DEPTH_TEST);
+            #endif
             if (colidballs) {
                SUMA_COPY_VEC(colballpick, col1, 4, GLbyte, GLfloat);
                SUMA_COPY_VEC(colballpick, col2, 4, GLbyte, GLfloat);
@@ -10507,7 +10543,12 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   }
                   break;
             }
+            #if 0 /* Not working, see comment above */
+            glDepthFunc(GL_LESS);
+            if (!gl_dt) glDisable(GL_DEPTH_TEST);
+            #else
             if (gl_dt) glEnable(GL_DEPTH_TEST);
+            #endif
          }               
       }
       if (xyzr != xyz) SUMA_ifree(xyzr); xyzr=NULL;
@@ -10528,6 +10569,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    glLineWidth(origwidth);
    if (mask) SUMA_free(mask); mask=NULL;
    if (gl_dt) glEnable(GL_DEPTH_TEST);
+   else glDisable(GL_DEPTH_TEST);
    
    SUMA_RETURN (YUP);
 }

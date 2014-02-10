@@ -403,16 +403,27 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
    THD_fvec3 ncoord, ndicom;
    THD_ivec3 nind3;
    int nind, istep, istepmax, nxx, nxy, nMeans[3], stopint, out;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
+   #if 0
+   if (LocalHead) {
+      SUMA_LH("On dset %s, travstp %f, under_dist %f, over_dist %f, "
+              "stop_avg_thr %f, fvecp=%p",
+              DSET_PREFIX(in_vol),
+              travstp, under_dist, over_dist, stop_avg_thr, fvecp);
+      SUMA_DUMP_TRACE("Who wants IminImax?");
+   }
+   #endif
    if (!fvecp) SUMA_RETURN(NOPE);
    else {
       if (*fvecp == NULL) {
-         if (!(*fvecp = THD_extract_to_float(0, in_vol))) {
+         if (!(fvec = THD_extract_to_float(0, in_vol))) {
             SUMA_S_Err("Failed to extract brick");
             SUMA_RETURN(NOPE);
          }
+         *fvecp = fvec;
       }
    }
    fvec = *fvecp;
@@ -440,20 +451,22 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
       /* get 1d coord of point */
       ndicom.xyz[0] = xyz[0] + travdir[0] ; 
       ndicom.xyz[1] = xyz[1]+ travdir[1]; 
-      ndicom.xyz[2] = xyz[2]+ travdir[2]; 
+      ndicom.xyz[2] = xyz[2]+ travdir[2];
       ncoord = THD_dicomm_to_3dmm(in_vol, ndicom);
       nind3 = THD_3dmm_to_3dind_warn(in_vol, ncoord, &out);
+      if (out) continue;
       nind = nind3.ijk[0] + nind3.ijk[1] * nxx + nind3.ijk[2] * nxy;
-      
-      
+
+      #if 0
       if (verb) {
          fprintf( SUMA_STDERR, 
-                  "%s: at node %d undershish[%d] \n"
+                  "%s: at node %d undershish[%d/%d] \n"
                   " nind3 = [%d %d %d] voxVal = %.3f\n", 
-                  FuncName, SUMA_getBrainWrap_NodeDbg(), istep,
+                  FuncName, SUMA_getBrainWrap_NodeDbg(), istep, istepmax,
                   nind3.ijk[0], nind3.ijk[1], nind3.ijk[2],
                   fvec[nind]);
       }
+      #endif
       if (undershish) 
          undershish[istep] = fvec[nind];   /* store values under node */
       
@@ -477,11 +490,17 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
       
       if (!out) ++istep;
    }
-   
+   #if 0
+   if (verb) {
+         fprintf( SUMA_STDERR, 
+                  "Crowning undershish[%d/%d]\n", istep, istepmax);
+   }
+   #endif
    if (1) { 
       undershish[istep] = -1; 
       if (fvecind_under) fvecind_under[istep] = -1; 
    }/* crown the shish */
+   
    
    Means[1] /= (float)nMeans[1];
    MinMax[0] = lmin;
@@ -510,9 +529,10 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
          ndicom.xyz[2] = xyz[2]+ travdir[2]; 
          ncoord = THD_dicomm_to_3dmm(in_vol, ndicom);
          nind3 = THD_3dmm_to_3dind_warn(in_vol, ncoord, &out);
+         if (out) continue;
          nind = nind3.ijk[0] + nind3.ijk[1] * nxx + nind3.ijk[2] * nxy;
          #if 0
-         if (ni == NodeDbg) {
+         if (verb) {
             fprintf(SUMA_STDERR, 
                      "%s: Node %d\n"
                      " nind3 = [%d %d %d] voxVal = %.3f\n", 
@@ -541,7 +561,12 @@ int SUMA_Find_IminImax_2 (float *xyz, float *dir,
          
          if (!out) ++istep;
       }
-      
+      #if 0
+      if (verb) {
+         fprintf( SUMA_STDERR, 
+                  "Crowning overshish[%d/%d]\n", istep, istepmax);
+      }
+      #endif
       if (1) { 
          overshish[istep] = -1; 
          if (fvecind_over) fvecind_over[istep] = -1; 
@@ -1435,7 +1460,13 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    mvoxd = SUMA_MIN_PAIR(mvoxd, SUMA_ABS(DSET_DZ(dset)));
    
    if (avgwinthick < 1) avgwinthick = 5.0;  /* skull thickness about 5mm */
-   avgwin = avgwinthick/mvoxd; doubavgwin = 2*avgwin; tripavgwin = 3.0*avgwin;
+   avgwin = avgwinthick/mvoxd; 
+   if (avgwin < 2) { /* low res voxels, for fast debugging only */
+      SUMA_S_Warn("Low res? Forcing min win of 2");
+      avgwinthick = 2*mvoxd;
+      avgwin = 2;
+   }
+   doubavgwin = 2*avgwin; tripavgwin = 3.0*avgwin;
    if (under < 1) under = 3.0*avgwinthick;
    if (over < 1) over = 3.1*avgwinthick;
    if (under < 3.0*avgwinthick || over < 2.0*avgwinthick) {
@@ -1565,7 +1596,8 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
         SUMA_S_Notev("At vox %d have val %f means=[%f %f], rat %f\n"
                      "O(0)=%f, O(w)=%f, U(0)=%f, U(w)=%f, U(2w)=%f\n"
                      "O(0)/U(w)=%f, U(w)/U(2w)=%f,U(2w)/CMavg=%f\n"
-                     "voxZ=%f, voxNZ=%f, ok %d, CMstats %f %f\n", 
+                     "voxZ=%f, voxNZ=%f, ok %d, CMstats %f %f\n"
+                     "avgwin=%d\n", 
                      vv, means[0], mu[vv], mo[vv], mr[vv], 
                      oversh[0], oversh[avgwin], 
                      undersh[0], undersh[avgwin], undersh[2*avgwin],
@@ -1573,7 +1605,7 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
                         undersh[avgwin]/undersh[doubavgwin],
                            undersh[doubavgwin]/cmstats[1],
                      voxZ, voxNZ, ok[vv], 
-                     cmstats[1], cmstats[3]);
+                     cmstats[1], cmstats[3], avgwin);
       }
       ++vv;
    }}}
@@ -1802,7 +1834,6 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    EDIT_BRICK_FACTOR (oset, sb, factor);
    EDIT_BRICK_LABEL (oset, sb, "NoizeZ");
 
-   SUMA_S_Note("Radial Diff");
    trvoff[0]=0; trvoff[1]=0;
    SUMA_THD_Radial_Avgs( oset, mr, cmask, cmdic, zeropad, 
                          8.0, 8.0, trvoff,
@@ -1822,7 +1853,6 @@ int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
    EDIT_BRICK_FACTOR (oset, sb, factor);
    EDIT_BRICK_LABEL (oset, sb, "DeltaRat");
    
-   SUMA_S_Note("Radial Peaks");
    #if 0
    trvoff[0]=0; trvoff[1]=0;
    SUMA_THD_Radial_Avgs( oset, mu, cmask, cmdic, zeropad, 

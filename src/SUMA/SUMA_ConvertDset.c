@@ -587,21 +587,26 @@ int main (int argc,char *argv[])
             SUMA_LH("Now the nodelist");
             iform = SUMA_1D;
             if (!(dseti = SUMA_LoadDset_s (graph_nodelist_1D, &iform, 0))) {
-               SUMA_S_Err("Failed to load nodelist ");
+               SUMA_S_Err("Failed to load nodelist %s", graph_nodelist_1D);
                exit(1);
             }
             if (SDSET_VECNUM(dseti) != 3) {
-               SUMA_S_Err("Bad nodelist source, only 3 column allowed");
+               SUMA_S_Err("Bad nodelist source\n"
+                          "Only 3 column allowed, have %d of them in %s", 
+                          SDSET_VECNUM(dseti), graph_nodelist_1D);
                exit(1);
             }
             if (graph_nodeindlist_1D) {
                if (!(dsetind = 
                         SUMA_LoadDset_s (graph_nodeindlist_1D, &iform, 0))) {
-                  SUMA_S_Err("Failed to load nodelist ");
+                  SUMA_S_Err("Failed to load node index list %s",
+                             graph_nodeindlist_1D);
                   exit(1);
                }
                if (SDSET_VECNUM(dsetind) != 1) {
-                  SUMA_S_Err("Bad nodelist index source, only 1 column allowed");
+                  SUMA_S_Err("Bad nodelist index source\n"
+                             "Only 1 column allowed, have %d of them in %s",
+                             SDSET_VECNUM(dsetind), graph_nodeindlist_1D);
                   exit(1);
                }
                if (SDSET_VECFILLED(dseti) != SDSET_VECFILLED(dsetind)) {

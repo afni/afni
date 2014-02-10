@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Feb, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Increased Maximum number of viewers to 10 for Javier's desire",
+   "To allow the increase without needlessly waisting memory,\n"
+   "the color lists now only created if a viewer is open.\n"
+   "That still means as many color lists for almost each type of data\n"
+   "carrying object. But the allocation is only done if the viewer is\n"
+   "open. Volume objects share the same color list and perhaps tracts\n"
+   "should do the same, in the future. \n"
+   "The downside of sharing is that coloration will\n"
+   "be the same across all viewers for the same object.\n"
+ }, 
+ 
  { 31, Jan, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
    "Lessened dependency on new libgsl to allow FATCAT build on xorg7",
    "This necessitated creating a double version of thd_correlate()\n"

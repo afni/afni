@@ -50,6 +50,12 @@ SUMA_VolumeObject *SUMA_VolumeObjectOfClipPlaneSurface(SUMA_SurfaceObject *SO);
 SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp);
 GLubyte * SUMA_VE_to_tex3d(SUMA_VolumeElement **VE, int iVE, byte col);
 int SUMA_MoveCutplane (SUMA_VolumeObject *VO, int iplane, float d);
+SUMA_Boolean SUMA_SV_Mark_Textures_Status(SUMA_SurfaceViewer *sv, char *MarkAs,
+                                          SUMA_VolumeObject *VO, int j, 
+                                          int callloader);
+SUMA_Boolean SUMA_SV_isTextureLoaded(SUMA_SurfaceViewer *sv, 
+                                     GLuint texName, int *N_tex);
+int SUMA_Count_All_VO_Textures(void);
 SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO, 
                                     SUMA_SurfaceViewer *sv);
