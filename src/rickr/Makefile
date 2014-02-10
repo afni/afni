@@ -28,28 +28,28 @@ serial_helper: serial_helper.o
 
 Imon.o: Imon.c Imon.h
 	$(RM) $@
-	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Imon.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT)  -c Imon.c -I.. $(IFLAGS)
 
 Dimon.o: Dimon.c Imon.h
 	$(RM) $@
-	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Dimon.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT)  -c Dimon.c -I.. $(IFLAGS)
 
 # no longer needed, but let's make sure...
 dimon_afni.o: dimon_afni.c ../mri_image.h
 	$(RM) $@
-	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c dimon_afni.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT)  -c dimon_afni.c -I.. $(IFLAGS)
 
 l_mcw_glob.o: l_mcw_glob.c l_mcw_glob.h
 	$(RM) $@
-	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c l_mcw_glob.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT)  -c l_mcw_glob.c -I.. $(IFLAGS)
 
 mri_dicom_hdr.o: ../mri_dicom_hdr.c
 	$(RM) $@
-	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -DFOR_DIMON -c ../mri_dicom_hdr.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT)  -DFOR_DIMON -c ../mri_dicom_hdr.c -I.. $(IFLAGS)
 
 realtime.o: realtime.c realtime.h
 	$(RM) $@
-	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c realtime.c -I.. $(IFLAGS)
+	$(CC) $(WARN_OPT)  -c realtime.c -I.. $(IFLAGS)
 # -------------- end local Imon objects --------------------------------
 
 .c.o:

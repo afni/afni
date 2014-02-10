@@ -93,8 +93,10 @@
 #define FOV_INITIAL 30.0  /*!< Leave this at 30 always, change defaults from .sumarc's SUMA_FOV_Original */
 #define FOV_MIN 0.001
 #define FOV_MAX 179
-#define FOV_IN_FACT 1.05   /*!< Still used for colormap display, Obsolete for surface viewers, see sv->KeyZoomGain */
-#define FOV_OUT_FACT 0.95  /*!< Still used for colormap display, Obsolete for surface viewers, see sv->KeyZoomGain */
+#define FOV_IN_FACT 1.05   /*!< Still used for colormap display, 
+                           Obsolete for surface viewers, see sv->KeyZoomGain */
+#define FOV_OUT_FACT 0.95  /*!< Still used for colormap display, 
+                           Obsolete for surface viewers, see sv->KeyZoomGain */
 #define MOUSE_ZOOM_FACT 30 /*!< The larger, the slower the gain on mouse movement */
 #define TRANSLATE_GAIN 50 /*!< between 40 and 80 */
 #define ARROW_TRANSLATE_DELTAX 30
@@ -102,35 +104,53 @@
 #define ARROW_ROTATION_ANGLE_DEG 15 
 #define SUMA_MAX_N_GROUPS 100 /*!< Maximum number of surface groups */
 #define SUMA_MAX_MESSAGES 100 /*!< Maximum number of messages stored in list */
-#define SUMA_MAX_MEMBER_FACE_SETS 110 /*!< Maximum number of facesets a node can be part of. 
-                                          Used to be 60 but that was not enough for a few
-                                          funky FS surfaces. ZSS Mon Mar 24 16:14:12 EST 2003*/
-#define SUMA_MAX_FACESET_EDGE_NEIGHB 3 /*!< Maximum number of adjoining FaceSets a triangular faceset can have.*/
-#define SUMA_MAX_DISPLAYABLE_OBJECTS 1000 /*!< Maximum number of displayable Objects */
-#define SUMA_MAX_SURF_VIEWERS 6 /*!< Maximum number of surface viewers allowed */
+#define SUMA_MAX_MEMBER_FACE_SETS 110 /*!< Maximum number of facesets a node can 
+                                          be part of. Used to be 60 but that was 
+                                          not enough for a few
+                                          funky FS surfaces. ZSS Mon Mar 24 
+                                          16:14:12 EST 2003*/
+#define SUMA_MAX_FACESET_EDGE_NEIGHB 3 /*!< Maximum number of adjoining FaceSets 
+                                            a triangular faceset can have.*/
+#define SUMA_MAX_DISPLAYABLE_OBJECTS 1000 /*!< Max # of displayable Objects */
+#define SUMA_MAX_SURF_VIEWERS 10 /*!< Maximum number of surface viewers allowed,
+                                     Javier needs 7 ! */
+#define SUMA_SURF_CONT_SWITCH_LABEL_LENGTH 40
 #define SUMA_DEFAULT_VIEW_FROM 300 /*!< default view from location on Z axis */
 #define SUMA_MAX_FP_NAME_LENGTH ( SUMA_MAX_DIR_LENGTH + SUMA_MAX_NAME_LENGTH )
-#define SUMA_MAX_COMMAND_LENGTH      2000/*!< Maximum number of characters in a command string */
-#define SUMA_MAX_LABEL_LENGTH 300 /*!< Maximum number of characters for labeling and naming suma fields and objects */
-#define SUMA_MAX_STRING_LENGTH 1000 /*!< Maximum number of characters in a string */ 
+#define SUMA_MAX_COMMAND_LENGTH      2000 /*!< Maximum number of characters in a 
+                                               command string */
+#define SUMA_MAX_LABEL_LENGTH 300 /*!< Maximum number of characters for labeling 
+                                       and naming suma fields and objects */
+#define SUMA_MAX_STRING_LENGTH 1000 /*!< Max number of characters in a string */ 
 #define SUMA_MAX_COLOR_NAME 50 /*!< Max. length of the name of a color */
-#define SUMA_MAX_NUMBER_NODE_NEIGHB   100 /*!< Maximum number of neighbors any one node can have.
-                                          Used to be 50 but that was not enough for a few
-                                          funky FS surfaces. ZSS Mon Mar 24 16:14:12 EST 2003*/
-#define SUMA_MAX_OVERLAYS 50 /*!< Maximum number of color overlay planes allowed */
+#define SUMA_MAX_NUMBER_NODE_NEIGHB   100 /*!< Maximum number of neighbors any 
+                                          one node can have.
+                                          Used to be 50 but that was not enough 
+                                          for a few funky FS surfaces. 
+                                          ZSS Mon Mar 24 16:14:12 EST 2003*/
+#define SUMA_MAX_OVERLAYS 50 /*!< Maximum number of color overlay planes 
+                                  allowed */
 #define SUMA_COMMAND_DELIMITER '|'
 #define SUMA_COMMAND_TERMINATOR '~'
-#define SUMA_PERSPECTIVE_NEAR   1.0   /*!< Z Near, distance from the viewer to the near clipping plane (for gluPerspective)*/
-#define SUMA_PERSPECTIVE_FAR      900 /*!< Z Far, distance from the viewer to the far clipping plane (for gluPerspective)*/
+#define SUMA_PERSPECTIVE_NEAR   1.0   /*!< Z Near, distance from the viewer to 
+                                 the near clipping plane (for gluPerspective)*/
+#define SUMA_PERSPECTIVE_FAR      900 /*!< Z Far, distance from the viewer to the
+                                 far clipping plane (for gluPerspective)*/
 #define SUMA_TESSCON_TO_MM       319.7 /*!< The mysterious Tesscon units */
-#define SUMA_TESSCON_DIFF_FLAG    1000   /*!< If aMaxDim - aMinDim > SUMA_TESSCON_DIFF_FLAG in a .iv file, scaling by SUMA_TESSCON_TO_MM is applied */
+#define SUMA_TESSCON_DIFF_FLAG    1000 /*!< Apply scaling by SUMA_TESSCON_TO_MM
+                                 If aMaxDim - aMinDim > SUMA_TESSCON_DIFF_FLAG in
+                                 a .iv file */
 
 
-#define SUMA_MAX_N_SURFACE_SPEC 500/*!< Maximum number of surfaces allowed in a spec file */
+#define SUMA_MAX_N_SURFACE_SPEC 500/*!< Max # of surfs allowed in a spec file */
 #define SUMA_MAX_N_DO_SPEC 100
 
-#define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
-#define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
+#define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when 
+                                       keeping track of allocated memory. If 
+                                       needed more space is reallocated with 
+                                       SUMA_MEMTRACE_BLOCK increments. */
+#define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the 
+                                     memory tracing capability */
 #define SUMA_PI 3.141592653589793115997963 
 #define SUMA_EPSILON 0.000001
 
@@ -565,7 +585,7 @@ typedef enum { SUMA_ROI_Undefined,
                SUMA_ROI_NodeSegment /*!< A series of connected nodes */
              } SUMA_ROI_TYPE; /* a generic types of ROI datums*/
 
-typedef enum { SXR_default, SXR_Euro, SXR_Afni , SXR_Bonaire} SUMA_XRESOURCES;   /* flags for different X resources */
+typedef enum { SXR_default, SXR_Euro, SXR_Afni , SXR_Bonaire, SXR_Print } SUMA_XRESOURCES;   /* flags for different X resources */
 
 typedef enum { SRM_ViewerDefault, SRM_Fill, SRM_Line, SRM_Points , SRM_Hide, 
                SRM_N_RenderModes} SUMA_RENDER_MODES; /*!< flags for various 
@@ -2207,7 +2227,7 @@ typedef struct {
    char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that 
                                        pointer. Might never get used.... */
    
-   GLfloat *glar_ColorList; /*!< pointer to the 1D ColorList array */
+   GLfloat *glar_ColorList_private; /*!< pointer to the 1D ColorList array */
    int N_glar_ColorList; /*!< Number of elements in glar_ColorList 4xNumber 
                               of nodes in the surface or edges in a graph */
    char *idcode_str; /*!< string containing the idcode of the surface/object to 
@@ -2547,6 +2567,8 @@ typedef struct {
    int DO_PickMode; /*! Picking mode for selecting non-surface objects */
    DList *pick_colid_list;
    GLubyte *pickrenpix4; /*! An array holding the RGBA rendering buffer */
+   
+   int LoadedTextures[SUMA_MAX_DISPLAYABLE_OBJECTS+1];
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */

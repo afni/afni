@@ -1379,7 +1379,8 @@ THD_3dim_dataset *p_C_GIV_A_omp (SEG_OPTS *Opt)
    for (ff=0; ff<N_f; ++ff) {
       SB_LABEL(Opt->sig,Opt->feats->str[ff], ia);
       if (ia<0) {
-         SUMA_S_Errv("Failed to find %s", Opt->feats->str[ff]); 
+         SUMA_S_Err("Failed to find %s. Are sub-brick labels set properly?", 
+                     Opt->feats->str[ff]); 
          SUMA_free(FDv); SUMA_free(afv); SUMA_free(iff);
          SUMA_RETURN(NULL);
       }
@@ -8000,7 +8001,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
          ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um,
          itermax1 = 50, itermax2 = 10;
    float *fvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
-   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[2], nodeval,
+   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[3], nodeval,
          area=0.0, larea=0.0, ftr=0.0, darea=0.0;
    float *fedges=NULL, edge_thr=0.0, *fnz=NULL, *inedges=NULL, inedge_thr=0.0, 
          *alt=NULL;
@@ -8388,7 +8389,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
          ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um,
          itermax1 = 50, itermax2 = 10, firstpass;
    float *rvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
-   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[2], nodeval,
+   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[3], nodeval,
          area=0.0, larea=0.0, ftr=0.0, darea=0.0, fac, *rat=NULL;
    float *fedges=NULL, edge_thr=0.0, *fnz=NULL, *inedges=NULL, inedge_thr=0.0, 
          *alt=NULL, szt=0.0, sNzt=0.0;
@@ -8775,7 +8776,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
    if (rvec) free(rvec); rvec = NULL;
    if (fedges) free(fedges); fedges = NULL;
    if (inedges) SUMA_free(inedges); inedges = NULL;
-   if (inset) DSET_delete(inset); inset=NULL;
+   if (inset) DSET_delete(inset); inset=NULL; 
    if (rset) DSET_delete(rset); rset=NULL;
    if (disp) SUMA_free(disp); disp=NULL;
    if (dispsm) SUMA_free(dispsm); dispsm=NULL;
@@ -8799,7 +8800,7 @@ SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO,
    THD_fvec3 ccc, ncoord;
    float cm[3], xyz_ijk[3], *avec=NULL, *xyz, *dir, P2[2][3], 
          travstep, shs_bot[30], shs_top[30], ovfac, unfac;
-   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[2], nodeval,
+   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[3], nodeval,
          area=0.0, larea=0.0, ftr=0.0, darea=0.0, fac, *rat=NULL;
    float *fedges=NULL, edge_thr=0.0, *fnz=NULL, *inedges=NULL, inedge_thr=0.0, 
          *alt=NULL, szt=0.0, sNzt=0.0, mvoxd, means[3], ztop=0.0;
@@ -8817,7 +8818,8 @@ SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO,
    
    SUMA_ENTRY;
 
-   SUMA_LH("Begin head shrinkage, get Zs\n");
+   SUMA_LH("Begin head shrinkage, on %s and %s get Zs\n", 
+           DSET_PREFIX(aset), DSET_PREFIX(arset));
    /* get under and over */
    un = DSET_BRICK_ARRAY(arset,0);
    if ((unfac = DSET_BRICK_FACTOR(arset,0))==0.0) unfac=1.0; 
@@ -8875,14 +8877,16 @@ SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO,
    for (in=0; in<SO->N_Node; ++in) {
       xyz = SO->NodeList+3*in;
       dir = SO->NodeNormList+3*in;
+      SUMA_LH("in=%d fvecp=%p, *fvec=%p", in, &avec, avec);
       SUMA_Find_IminImax_2(xyz, dir,
                          aset, &avec, travstep, 1*travstep, 1*travstep,
-                         0.0, (0 && LocalHead && in==ndbg)?1:0, 
+                         0.0, (1 || LocalHead && in==ndbg)?1:0, 
                          rng_bot, rdist_bot,
                          rng_top, rdist_top,
                          avg,
                          shs_bot, shs_top,
                          vxi_bot, vxi_top);
+      SUMA_LH("back fvecp=%p, *fvec=%p", &avec, avec);
       curedge[in] = SUMA_MAX_PAIR(fedges[vxi_bot[1]],fedges[vxi_bot[0]]);
       curedge[in] = SUMA_MAX_PAIR(curedge[in], fedges[vxi_top[1]]);     
    }
@@ -8940,7 +8944,7 @@ SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO,
    
   
    /* compute some stats around the center of mass */
-   SUMA_S_Note("Computing stats around new cm\n");
+   SUMA_S_Note("Computing stats around new cm");
    {
       float *nbar=NULL;
       int nbar_num;
@@ -9383,16 +9387,22 @@ SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
    SUMA_ENTRY;
    
    if (!iset) SUMA_RETURN(SOh);
-   if (urset && *urset) {
-      SUMA_S_Err("If you want rset back, need a NULL *urset");
-      SUMA_RETURN(SOh);
+   rset = NULL;
+   if (urset) {
+      if (*urset) {
+         SUMA_LH("Using user supplied radial stats");
+         rset = *urset;
+      }
    }
-   /* Compute the radial stats */
-   SUMA_THD_Radial_HeadBoundary( iset, 0.0, NULL, NULL, &rset, 
-                           1, 0.0, 0.0, 0, 0, NULL, NULL);
-   if (LocalHead) {
-      SUMA_S_Note("Writing rset");
-      DSET_overwrite(rset);
+   if (!rset) {
+      /* Compute the radial stats */
+      SUMA_THD_Radial_HeadBoundary( iset, 0.0, NULL, NULL, &rset, 
+                                    1, 0.0, 0.0, 0, 0, NULL, NULL);
+      if (LocalHead) {
+         SUMA_S_Note("Writing rset");
+         DSET_overwrite(rset);
+      }
+      if (urset) *urset = rset;
    }
    
    /* make a copy get rid of unwanted voxels */
@@ -9456,9 +9466,11 @@ SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
    }
 
    /* Get outer surface */
+   SUMA_LH("hull shrinkage");
    SUMA_ShrinkSkullHull_RS(SOi, iset, rset, 0.5, cs);
    
    /* Shrink the surface to get at the brain */
+   SUMA_LH("brain shrinkage");
    SUMA_ShrinkHeadSurf_RS(SOi, iset, rset, NULL, cs);
    
    if (SOh) SUMA_Free_Surface_Object(SOh); SOh = NULL;

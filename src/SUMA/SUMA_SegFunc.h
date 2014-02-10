@@ -663,6 +663,20 @@ SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
 SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO, 
                              THD_3dim_dataset *iset, float thr,
                              int use_rs, SUMA_COMM_STRUCT *cs);                  
+SUMA_Boolean SUMA_ShrinkHeadSurf(SUMA_SurfaceObject *SO, 
+                             THD_3dim_dataset *aset, 
+                             THD_3dim_dataset *arset,
+                             float *ucm,
+                             SUMA_COMM_STRUCT *cs);
+SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO, 
+                             THD_3dim_dataset *aset, 
+                             THD_3dim_dataset *arset, float thr,
+                             SUMA_COMM_STRUCT *cs) ;
+SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO, 
+                             THD_3dim_dataset *aset, 
+                             THD_3dim_dataset *arset,
+                             float *ucm,
+                             SUMA_COMM_STRUCT *cs);
 THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(
                      SUMA_SurfaceObject *SO, THD_3dim_dataset *iset, 
                      SUMA_VOLPAR *vp, char *vpname,

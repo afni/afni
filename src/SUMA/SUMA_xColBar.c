@@ -13048,6 +13048,32 @@ char *SUMA_ADO_sLabel(SUMA_ALL_DO *ado) {
    else return(cc);
 }
 
+char * SUMA_ADO_CropLabel(SUMA_ALL_DO *ado, int len)
+{
+   static char FuncName[]={"SUMA_ADO_CropLabel"};
+   static char s[10][130];
+   static int icall=0;
+   char *str=NULL;
+   
+   ++icall;
+   if (icall > 9) icall = 0;
+   s[icall][0]='\0';
+   
+   if (!ado) { SUMA_S_Err("NULL input"); return(s[icall]); }
+   if (len > 127) {
+      SUMA_S_Warn("Label max length is 128, will truncate");
+      len = 128;
+   }
+   
+   str = SUMA_truncate_string(SUMA_ADO_Label(ado), len);
+   if (!str) return(s[icall]);
+   
+   strcpy(s[icall], str);
+   SUMA_ifree(str);
+   
+   return(s[icall]);
+}
+
 /* compare labels, NULL=NULL --> OK */
 SUMA_Boolean SUMA_ADO_isLabel(SUMA_ALL_DO *ado, char *lbl) 
 {

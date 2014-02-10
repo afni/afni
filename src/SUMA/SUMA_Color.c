@@ -7377,6 +7377,7 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
    }
    if (!glcolar) {
       SUMA_SL_Err("Null glcolar!");
+      SUMA_DUMP_TRACE("Null glcolar!");
       SUMA_RETURN(NOPE);
    }
    if (!isColored) {
@@ -8520,7 +8521,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                            FuncName, sv->ColList[i]->idcode_str);
                SO = (SUMA_SurfaceObject *)pp;
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)SO, sv, 
-                                       sv->ColList[i]->glar_ColorList)) {
+                                       SUMA_GetColorListPtr(sv->ColList[i]))) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
@@ -8531,7 +8532,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                SUMA_LHv("Mixing Graph Dset Colors (%s), Dset %s...\n", 
                         sv->ColList[i]->idcode_str, SDSET_LABEL(dset));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)dset, sv, 
-                                       sv->ColList[i]->glar_ColorList)) {
+                                       SUMA_GetColorListPtr(sv->ColList[i]))) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
@@ -8542,7 +8543,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                SUMA_LHv("Mixing Volume Object Colors (%s), Dset %s...\n", 
                      sv->ColList[i]->idcode_str, ADO_LABEL((SUMA_ALL_DO *)VO));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)VO, sv, 
-                                       sv->ColList[i]->glar_ColorList)) {
+                                       SUMA_GetColorListPtr(sv->ColList[i]))) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
@@ -8555,7 +8556,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                         sv->ColList[i]->idcode_str, 
                         ADO_LABEL((SUMA_ALL_DO *)pp), ADO_ID((SUMA_ALL_DO *)pp));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)pp, sv, 
-                                       sv->ColList[i]->glar_ColorList)) {
+                                       SUMA_GetColorListPtr(sv->ColList[i]))) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
@@ -8567,7 +8568,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                         sv->ColList[i]->idcode_str, 
                         ADO_LABEL((SUMA_ALL_DO *)pp), ADO_ID((SUMA_ALL_DO *)pp));
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)pp, sv, 
-                                       sv->ColList[i]->glar_ColorList)) {
+                                       SUMA_GetColorListPtr(sv->ColList[i]))) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }

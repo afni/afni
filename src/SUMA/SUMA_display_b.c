@@ -318,7 +318,8 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
                            "Switch to other object controller", 
                            "Switch to other object controller",
                            SurfCont->SurfContPage);
-         xmstmp = XmStringCreateLtoR (SUMA_ADO_Label(ado), 
+         xmstmp = XmStringCreateLtoR (SUMA_ADO_CropLabel(ado,
+                                       SUMA_SURF_CONT_SWITCH_LABEL_LENGTH), 
                                       XmSTRING_DEFAULT_CHARSET);
          SurfCont->SurfContPage_label = XtVaCreateManagedWidget ("dingel", 
                xmLabelWidgetClass, rc,
