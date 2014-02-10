@@ -10,7 +10,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset  ,
                                   int pe , int fe , int se  ) ;
 void orfilt_vector( int nvec , float *vec ) ;
 
-static int orfilt_len = 19 ;
+static int orfilt_len = 11 ;
 
 /*----------------------------------------------------------------------------*/
 
@@ -198,7 +198,7 @@ int main( int argc , char * argv[] )
 
    /***** outsource the work *****/
 
-   outset = THD_deghoster( inset , filset , pe,fe,se ) ;
+   outset = THD_deghoster( inset , (filset!=NULL)?filset:inset , pe,fe,se ) ;
    if( outset == NULL ) ERROR_exit("THD_deghoster fails :-(((") ;
 
    EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
@@ -268,8 +268,8 @@ void orfilt_vector( int nvec , float *vec )
    int ii , ibot,itop , nby2=orfilt_len/2 , nv1=nvec-1,nii ;
 
    if( orfilt_len == 0 ){
-     if( ar != NULL ){ free(ar); nar = 0; }
-     if( vv != NULL ){ free(vv); nvv = 0; }
+     if( ar != NULL ){ free(ar); nar = 0; ar = NULL; }
+     if( vv != NULL ){ free(vv); nvv = 0; vv = NULL; }
      return ;
    }
    if( orfilt_len == 1 ) return ;
@@ -340,7 +340,7 @@ compute_thvim(void)
       F(M) =    Iy*cos(theta)^2 / sqrt( M^2 * cos(theta)^2 + d^2 )
              + Iyn*sin(theta)^2 / sqrt( M^2 * sin(theta)^2 + d^2 ) - 1 = 0
 
-     If d=0, M is solved for analytically (mzero).  If d > 0, then 2 steps
+     If d=0, M is solved for analytically (mzero).  If d > 0, then 3 steps
      of Newton's method are used -- unless d is too big, in which case M=0
      is the return value.
 *//*------------------------------------------------------------------------***/
@@ -362,13 +362,15 @@ float find_mhat( float iy , float iyn , float ct , float st , float d )
 
    COMPUTE_ff_df(mzero) ;
    if( ff >= 0.0f || df >= 0.0f ) return mzero ;  /* should not happen */
-
    mval = mzero - ff/df ;                         /* Newton step #1 */
 
    COMPUTE_ff_df(mval) ;
    if( df >= 0.0f ) return mval ;                 /* should not happen */
+   mval = mval - ff/df ;                          /* Newton step #2 */
 
-   mval = mzero - ff/df ;                         /* Newton step #2 */
+   COMPUTE_ff_df(mval) ;
+   if( df >= 0.0f ) return mval ;                 /* should not happen */
+   mval = mval - ff/df ;                          /* Newton step #3 */
 
    return mval ;
 }
@@ -383,18 +385,24 @@ double theta_func( int npar , double *thpar )
    theta_par[0] = thpar[0] ; theta_par[1] = thpar[1] ; d_par = thpar[2] ;
    compute_thvec() ;
 
+/** INFO_message("========== theta_func(%g,%g,%g) ==========",thpar[0],thpar[1],thpar[2]) ; **/
    for( ii=0 ; ii < nvec ; ii++ ){
      mhat = find_mhat( bvec[ii],gvec[ii] , ctvec[ii],stvec[ii] , d_par ) ;
      e1   = bvec[ii]-sqrt(mhat*mhat*ctvec[ii]*ctvec[ii]+d_par*d_par) ;
-     e1   = gvec[ii]-sqrt(mhat*mhat*stvec[ii]*stvec[ii]+d_par*d_par) ;
+     e2   = gvec[ii]-sqrt(mhat*mhat*stvec[ii]*stvec[ii]+d_par*d_par) ;
      sum += e1*e1 + e2*e2 ;
+/** ININFO_message("  bvec=%g gvec=%g ctvec=%g stvec=%g ==> mhat=%g e1=%g e2=%g",
+               bvec[ii],gvec[ii] , ctvec[ii],stvec[ii] , mhat,e1,e2) ; **/
    }
 
    /** penalty for nonzero parameters **/
 
+#if 1
    sum += 0.022*nvec*noise_estimate*noise_estimate
           * ( fabs(thpar[0]) + 99.9*fabs(thpar[1]) ) ;
+#endif
 
+/** ININFO_message("RESULT = %g",sum) ; **/
    return sum ;
 }
 
@@ -404,23 +412,22 @@ void optimize_theta(void)
 {
    double thpar[3] , thbot[3] , thtop[3] ; int nite ;
 
-   thpar[0] =  0.0 ;
-   thbot[0] = -9.9 ;
-   thtop[0] =  9.9 ;
+   thpar[0] =  0.00 ;
+   thbot[0] = -9.99 ;
+   thtop[0] =  9.99 ;
 
    thpar[1] =  0.000;  /* initial values */
    thbot[1] = -0.002;  /* lower limits */
-   thtop[1] =  0.09 ;  /* upper limits */
+   thtop[1] =  0.099;  /* upper limits */
 
    thpar[2] =  0.111*noise_estimate ;
-   thbot[2] =  0.0 ;
+   thbot[2] =  0.001*noise_estimate ;
    thtop[2] =  3.333*noise_estimate ;
 
    nite = powell_newuoa_con( 3 , thpar,thbot,thtop ,
-                             999 , 0.1 , 0.0001 , 4999 , theta_func ) ;
+                             299 , 0.111 , 0.0001 , 999 , theta_func ) ;
 
-   if( fabs(thpar[0]) < 0.1   ) thpar[0] = 0.0 ;
-   if( fabs(thpar[1]) < 0.001 ) thpar[1] = 0.0 ;
+   if( fabs(thpar[1]) < 0.00111 ) thpar[0] = thpar[1] = 0.0 ;
    theta_par[0] = thpar[0] ;
    theta_par[1] = thpar[1] ;
    d_par        = thpar[2] ;
@@ -463,7 +470,8 @@ byte * DEG_automask_image( MRI_IMAGE *im )
      FREEIF(smask); FREEIF(bvec ); FREEIF(gvec ); FREEIF(xvec ); \
      FREEIF(yvec ); FREEIF(ctvec); FREEIF(stvec); FREEIF(bvim ); \
      FREEIF(gvim ); FREEIF(xvim ); FREEIF(yvim ); FREEIF(ctvim); \
-     FREEIF(stvim);                                              \
+     FREEIF(stvim); orfilt_vector(0,NULL);                       \
+     FREEIF(xzero_t); FREEIF(thet1_t); FREEIF(dparr_t);          \
  } while(0)
 
 THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
@@ -472,6 +480,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
 {
    MRI_IMAGE *medim=NULL , *tim=NULL ;
    float cval, *mar=NULL , *tar=NULL ;
+   float *xzero_t=NULL , *thet1_t=NULL , *dparr_t=NULL , t1med,t1bmv;
    byte *bmask=NULL , *amask=NULL , sm ;
    int nvox , nx,ny,nz , dp=0,df=0,ds=0 , np=0,nf=0,ns=0,np2,nf2 ;
    int pp,ff,ss,nfp , ii , ppg , nsm,ism , vv,nv , iim ;
@@ -536,6 +545,10 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
    ctvim = (float *)malloc(sizeof(float)*nvim) ;
    stvim = (float *)malloc(sizeof(float)*nvim) ;
 
+   xzero_t = (float *)malloc(sizeof(float)*nv) ;
+   thet1_t = (float *)malloc(sizeof(float)*nv) ;
+   dparr_t = (float *)malloc(sizeof(float)*nv) ;
+
    /* loop over slices */
 
    for( ss=0 ; ss < ns ; ss++ ){
@@ -578,17 +591,35 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
          }
        }
 
-       /* fit the theta parameters from the smask region,
-          then compute theta over the entire image (in and out of smask) */
+       /* fit the theta parameters from the smask region and save them */
 
        optimize_theta() ;
-INFO_message("slice=%d index=%d  theta = %g  %g  %g",ss,vv,theta_par[0],theta_par[1],d_par) ;
-       /** compute_thvim() ; **/
+       xzero_t[vv] = theta_par[0] ;
+       thet1_t[vv] = theta_par[1] ;
+       dparr_t[vv] = d_par ;
 
        mri_free(tim) ; tim = NULL ;
      }
 
-   }
+     /* now check the slice parameters for reasonability */
+
+     if( nv > 4 ){
+       orfilt_len = 3 ;
+       orfilt_vector(nv,xzero_t) ;
+       orfilt_vector(nv,thet1_t) ;
+       orfilt_vector(nv,dparr_t) ;
+       qmedmadbmv_float(nv,thet1_t,&t1med,NULL,&t1bmv) ;
+INFO_message("t1med=%g t1bmv=%g ratio=%g",t1med,t1bmv,(t1bmv>0.0f)?t1med/t1bmv:0.0f) ;
+       if( fabsf(t1med) < 2.666f*t1bmv ){
+         for( vv=0 ; vv < nv ; vv++ ) thet1_t[vv] = 0.0f ;
+       }
+     }
+     for( vv=0 ; vv < nv ; vv++ )
+INFO_message("slice=%d index=%d  theta = %g  %g  %g",ss,vv,xzero_t[vv],thet1_t[vv],dparr_t[vv]) ;
+
+     /** compute_thvim() ; **/
+
+   } /* end of loop over slices */
 
    FREEUP ;
    return NULL ;
