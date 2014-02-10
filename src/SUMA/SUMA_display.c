@@ -144,6 +144,46 @@ static String fallbackResources_EURO[] = {
   NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
 
+static String fallbackResources_PRINT[] = {
+   "*glxarea*width: 300", "*glxarea*height: 300",
+   "*frame*x: 20", "*frame*y: 20",
+   "*frame*topOffset: 20", "*frame*bottomOffset: 20",
+   "*frame*rightOffset: 20", "*frame*leftOffset: 20",
+   "*frame*shadowType: SHADOW_IN", 
+   "*fontList:              9x15=charset1"    ,
+   "*font8*fontList:        8x13=charset1"        ,
+   "*font7*fontList:        7x13=charset1"        ,
+   "*font6*fontList:        6x10=charset1"        ,
+   "*table*fontList:        9x15bold=charset1"    ,
+   "*pbar*fontList:         6x10=charset1"        ,
+   "*imseq*fontList:        7x13=charset1"        ,
+   "*background:            white"               ,
+   "*menu*background:       gray10"               ,
+   "*borderColor:           gray10"               ,
+   "*foreground:            black"               ,
+   "*borderWidth:           0"                    ,
+   "*troughColor:           LightCyan2"                ,
+   "*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
+   "*help*background:       white"                ,
+   "*help*foreground:       gray70"               ,
+   "*help*helpborder:       False"                ,
+   "*help*waitPeriod:       1066"                 ,
+   "*help*fontList:         9x15=charset1"    ,
+   "*cluefont:              9x15"             ,
+   "*help*cancelWaitPeriod: 50"                   ,
+   "*hotcolor:              blue2"               , 
+   "*XmList.translations: #override"                /* 24 Feb 2007 */
+        "<Btn4Down>: ListPrevItem()\\n"
+        "<Btn5Down>: ListNextItem()"                  ,
+   "*XmText.translations: #override"
+        "<Btn4Down>: previous-line()\\n"
+        "<Btn5Down>: next-line()"                     ,
+   "*XmScrollBar.translations: #override"
+        "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
+        "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
+  NULL
+}; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
+
 static String fallbackResources_Bonaire[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
    "*frame*x: 20", "*frame*y: 20",
@@ -214,6 +254,9 @@ String *SUMA_get_fallbackResources ()
          break;
       case SXR_Bonaire:
          SUMA_RETURN (fallbackResources_Bonaire);
+         break;
+      case SXR_Print:
+         SUMA_RETURN (fallbackResources_PRINT);
          break;
       case SXR_default:
       default:
@@ -1738,16 +1781,99 @@ GLenum DUMMY_glCheckFramebufferStatus(GLenum dumdum) {
    return(GL_FRAMEBUFFER_COMPLETE); 
 }
 
+SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
+                                        SUMA_DO *dov)
+{
+   static char FuncName[]={"SUMA_SV_SortedRegistDO"};
+   SUMA_DO_LOCATOR *sRegistDO=NULL;
+   int i, j, k, ct, ot, otseq[N_DO_TYPES], ctseq[2],
+       ncheck=0, N_otseq=-1, N_ctseq=-1, iotseq=-1;
+   
+   SUMA_ENTRY;
+   
+   *N_regs = -1;
+   if (!csv || csv->N_DO <= 0 || !csv->RegistDO || !N_regs || !dov) {
+      SUMA_S_Err("NULL or no DOs in input");
+      SUMA_RETURN(sRegistDO);
+   }
+   
+   /* count number of total objects.
+      For now it will be the same, as N_DO, but this
+      might allow me to render something twice, perhaps, 
+      in the future, if I allow special directives to go 
+      back with the DO_LOCATOR... 
+      For now, same as csv->N_DO*/
+      
+   *N_regs = csv->N_DO;
+   sRegistDO = (SUMA_DO_LOCATOR *)
+                  SUMA_calloc(*N_regs, sizeof(SUMA_DO_LOCATOR));
+   
+   /* Squence of types to be displayed. Anything not in the list 
+      gets displayed first */
+   otseq[0] = SO_type;
+   otseq[1] = VO_type;
+   otseq[2] = GRAPH_LINK_type;
+   N_otseq = 3;
+   
+   /* Sequence of coordinate types */
+   ctseq[0] = SUMA_SCREEN;
+   ctseq[1] = SUMA_WORLD;
+   N_ctseq = 2;
+   
+   ncheck=0;
+   for (j=0; j<N_ctseq; ++j) {
+      i = 0; 
+      while (i < csv->N_DO) {
+         ct = dov[csv->RegistDO[i].dov_ind].CoordType;
+         if (ct == ctseq[j]) {
+            ot = dov[csv->RegistDO[i].dov_ind].ObjectType;
+            iotseq = SUMA_FindFirst_inIntVect(otseq, otseq+N_otseq, ot);
+            if (iotseq < 0) { /* not found, take it */
+               sRegistDO[ncheck].dov_ind = csv->RegistDO[i].dov_ind;
+               strcpy(sRegistDO[ncheck].idcode_str,
+                      csv->RegistDO[i].idcode_str);
+               ++ncheck;
+            }
+         }
+         ++i;
+      }
+      /* Now get those in otseq, in order */
+      for (k=0; k<N_otseq; ++k) {
+         i = 0;
+         while (i < csv->N_DO) {
+            ct = dov[csv->RegistDO[i].dov_ind].CoordType;
+            if (ct == ctseq[j]) {
+               ot = dov[csv->RegistDO[i].dov_ind].ObjectType;
+               if (ot == otseq[k]) { /* its time has come */
+                  sRegistDO[ncheck].dov_ind = csv->RegistDO[i].dov_ind;
+                  strcpy(sRegistDO[ncheck].idcode_str,
+                         csv->RegistDO[i].idcode_str);
+                  ++ncheck;
+               }
+            }
+            ++i;
+         }
+      }
+   }
+   if (ncheck != *N_regs) {
+      SUMA_S_Err("Mismatch, %d and %d. Adopting smaller number", 
+                  ncheck, *N_regs);
+      if (ncheck < *N_regs) *N_regs=ncheck;
+   }
+   SUMA_RETURN(sRegistDO);
+}
+
 
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {   
-   int i;
+   static char FuncName[]={"SUMA_display"};
+   SUMA_DO_LOCATOR *sRegistDO = NULL;
+   int i, N_sReg;
    static int xList[1], yList[1];
    SUMA_SurfaceObject *SO=NULL;
    SUMA_VolumeObject *VO=NULL;
    GLenum fbs;
    GLfloat rotationMatrix[4][4];
-   static char FuncName[]={"SUMA_display"};
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
     
    SUMA_ENTRY;
@@ -1873,6 +1999,20 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       }
    }
 
+   #if 1
+   SUMA_LH("Sorting DOs");
+   if (!(sRegistDO = SUMA_SV_SortedRegistDO(csv, &N_sReg, dov))) {
+      SUMA_S_Err("Failed to create sorted registered DO.\n"
+                 "Falling back on default");
+      sRegistDO = csv->RegistDO;
+      N_sReg = csv->N_DO;
+   }
+   #else
+      SUMA_S_Warn("No sorting!");
+      sRegistDO = csv->RegistDO;
+      N_sReg = csv->N_DO;
+   #endif
+   
    /* cycle through csv->RegisteredDO and display 
       those things that have a fixed CoordType*/
    if (LocalHead) 
@@ -1880,9 +2020,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                "%s: Creating objects with fixed coordinates ...\n", 
                FuncName);
    i = 0;
-   while (i < csv->N_DO) {
-      if (dov[csv->RegistDO[i].dov_ind].CoordType == SUMA_SCREEN) {
-         switch (dov[csv->RegistDO[i].dov_ind].ObjectType) {
+   while (i < N_sReg) {
+      if (dov[sRegistDO[i].dov_ind].CoordType == SUMA_SCREEN) {
+         switch (dov[sRegistDO[i].dov_ind].ObjectType) {
             case N_DO_TYPES:
                SUMA_S_Err("This is reserved for the number of types");
                break;
@@ -1903,7 +2043,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case AO_type:
                if (csv->ShowEyeAxis){
                   if (!SUMA_DrawAxis (
-                        (SUMA_Axis*)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                        (SUMA_Axis*)dov[sRegistDO[i].dov_ind].OP, csv)) {
                      fprintf( SUMA_STDERR,
                               "Error %s: Could not display EYE AXIS\n", 
                               FuncName);
@@ -1930,7 +2070,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case NBOLS_type:
             case NBLS_type:
                if (!SUMA_DrawSegmentDO (
-                     (SUMA_SegmentDO *)dov[csv->RegistDO[i].dov_ind].OP, 
+                     (SUMA_SegmentDO *)dov[sRegistDO[i].dov_ind].OP, 
                      csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawSegmentDO.\n", 
@@ -1942,7 +2082,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case VO_type:
                if (!SUMA_DrawVolumeDO (
-                     (SUMA_VolumeObject *)dov[csv->RegistDO[i].dov_ind].OP, 
+                     (SUMA_VolumeObject *)dov[sRegistDO[i].dov_ind].OP, 
                         csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawVolumeDO.\n", 
@@ -1951,7 +2091,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case NIDO_type:
                SUMA_LH("Doing Screen NIDO");
-               if (!SUMA_DrawNIDO ((SUMA_NIDO*)dov[csv->RegistDO[i].dov_ind].OP, 
+               if (!SUMA_DrawNIDO ((SUMA_NIDO*)dov[sRegistDO[i].dov_ind].OP, 
                      csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawNIDO.\n", 
@@ -1971,7 +2111,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    
    SUMA_SET_GL_MODELVIEW(csv);
 
-   /* cycle through csv->RegistDO and display 
+   /* cycle through sRegistDO and display 
       those things that have a Local CoordType*/
    if (LocalHead) 
       fprintf (SUMA_STDERR,
@@ -2003,14 +2143,14 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 
 
    i = 0;
-   while (i < csv->N_DO) {
-      if (dov[csv->RegistDO[i].dov_ind].CoordType == SUMA_WORLD) {
-         switch (dov[csv->RegistDO[i].dov_ind].ObjectType) {
+   while (i < N_sReg) {
+      if (dov[sRegistDO[i].dov_ind].CoordType == SUMA_WORLD) {
+         switch (dov[sRegistDO[i].dov_ind].ObjectType) {
             case N_DO_TYPES:
                SUMA_S_Err("N_DO_TYPES should not come up here");
                break;
             case SO_type:
-               SO = (SUMA_SurfaceObject *)dov[csv->RegistDO[i].dov_ind].OP;
+               SO = (SUMA_SurfaceObject *)dov[sRegistDO[i].dov_ind].OP;
                if (SO->Show && SO->PolyMode != SRM_Hide) {
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) || 
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
@@ -2020,7 +2160,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                }
                break;
             case VO_type:
-               VO = (SUMA_VolumeObject *)dov[csv->RegistDO[i].dov_ind].OP;
+               VO = (SUMA_VolumeObject *)dov[sRegistDO[i].dov_ind].OP;
                if (VO->Show) {
                   if (!SUMA_DrawVolumeDO (VO, csv)) {
                      SUMA_S_Err("Failed in SUMA_DrawVolumeDO.");
@@ -2030,7 +2170,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case AO_type:
                if (csv->ShowMeshAxis) {
                   if (!SUMA_DrawAxis (
-                                 (SUMA_Axis*)dov[csv->RegistDO[i].dov_ind].OP, 
+                                 (SUMA_Axis*)dov[sRegistDO[i].dov_ind].OP, 
                                        csv)) {
                      fprintf( stderr,
                               "display error: Could not display Mesh AXIS\n");
@@ -2061,7 +2201,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case MASK_type:
                if (!SUMA_DrawMaskDO (
-                     (SUMA_MaskDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                     (SUMA_MaskDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawMaskDO.\n", 
                            FuncName);
@@ -2069,7 +2209,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case TRACT_type:
                if (!SUMA_DrawTractDO (
-                     (SUMA_TractDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                     (SUMA_TractDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawTractDO.\n", 
                            FuncName);
@@ -2078,7 +2218,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case OLS_type:
             case LS_type:
                if (!SUMA_DrawSegmentDO (
-                     (SUMA_SegmentDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                     (SUMA_SegmentDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawSegmentDO.\n", 
                            FuncName);
@@ -2089,25 +2229,25 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case SP_type:
                if (!SUMA_DrawSphereDO (
-                     (SUMA_SphereDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                     (SUMA_SphereDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
                }
                break;
             case PL_type:
                if (!SUMA_DrawPlaneDO (
-                     (SUMA_PlaneDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                     (SUMA_PlaneDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf(SUMA_STDERR, 
                            "Error %s: Failed in SUMA_DrawPlaneDO.\n", FuncName);
                }
                break;
             case NIDO_type:
                if (SUMA_isNIDO_SurfBased(
-                     (SUMA_NIDO *)dov[csv->RegistDO[i].dov_ind].OP)) { 
+                     (SUMA_NIDO *)dov[sRegistDO[i].dov_ind].OP)) { 
                   /* this is done in SUMA_DrawMesh */
                } else {
                   if (!SUMA_DrawNIDO (
-                        (SUMA_NIDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                        (SUMA_NIDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                      fprintf(SUMA_STDERR, 
                               "Error %s: Failed in SUMA_DrawNIDO.\n", FuncName);
                   }
@@ -2116,7 +2256,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case GRAPH_LINK_type:
                /* find the real DO this baby points to and render that */
                if (!SUMA_DrawGraphLinkDO (
-                    (SUMA_GraphLinkDO *)dov[csv->RegistDO[i].dov_ind].OP, csv)) {
+                    (SUMA_GraphLinkDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                      fprintf(SUMA_STDERR, 
                               "Error %s: Failed in SUMA_DrawGraphLinkDO.\n", 
                               FuncName);
@@ -2245,6 +2385,12 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
   }
   /* reset rdc, if it is the last thing you'll ever do */
   csv->rdc = SUMA_RDC_NOT_SET;
+
+  if (sRegistDO && sRegistDO != csv->RegistDO) {
+     SUMA_free(sRegistDO);   
+  }
+  sRegistDO = NULL;
+
   SUMA_RETURNe;
 }
 
@@ -4234,6 +4380,18 @@ Mon Oct  5 17:48:12 eomer.nimh.nih.gov suma[4538] <Error>: unknown error code: i
                SUMA_RETURNe;
          }
 
+         /* Textures displayed before closing a viewer no longer show up after
+         the viewer is reopened. Reloading the texture with SUMA_VE_LoadTexture()
+         brings it back, but that's a slow call that should only be done when
+         necessary. This next call resets the records of which textures have 
+         been loaded already so that at the next drawing operation the loading
+         is rerun and the texture marked as loaded */
+         if (!SUMA_SV_Mark_Textures_Status(SUMAg_SVv+ic, "unloaded_all", 
+                                             NULL, 0, 0)){
+            SUMA_S_Err("Failed to mark all textures as unloaded");
+            SUMA_RETURNe;
+         }
+
          SUMAg_SVv[ic].Open = NOPE;
          --SUMAg_CF->N_OpenSV;
          if (SUMAg_CF->N_OpenSV == 0) {
@@ -6174,7 +6332,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    
    SUMA_MarkSurfContOpen(1,ado); 
 
-
    SUMA_LH("Init SurfParam");
    SUMA_Init_SurfCont_SurfParam(ado);
    SUMA_LH("Init CrossHair");
@@ -7527,7 +7684,8 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                            "Switch to other object controller", 
                            "Switch to other object controller",
                            SurfCont->SurfContPage);
-         xmstmp = XmStringCreateLtoR (SUMA_ADO_Label(ado), 
+         xmstmp = XmStringCreateLtoR (SUMA_ADO_CropLabel(ado, 
+                                          SUMA_SURF_CONT_SWITCH_LABEL_LENGTH), 
                                       XmSTRING_DEFAULT_CHARSET);
          SurfCont->SurfContPage_label = XtVaCreateManagedWidget ("dingel", 
                xmLabelWidgetClass, rc,
@@ -8355,7 +8513,8 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                            "Switch to other object controller", 
                            "Switch to other object controller",
                            SurfCont->SurfContPage);
-         xmstmp = XmStringCreateLtoR (SUMA_ADO_Label(ado), 
+         xmstmp = XmStringCreateLtoR (SUMA_ADO_CropLabel(ado, 
+                                       SUMA_SURF_CONT_SWITCH_LABEL_LENGTH), 
                                       XmSTRING_DEFAULT_CHARSET);
          SurfCont->SurfContPage_label = XtVaCreateManagedWidget ("dingel", 
                xmLabelWidgetClass, rc,
@@ -9074,7 +9233,8 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                            "Switch to other object controller", 
                            "Switch to other object controller",
                            SurfCont->SurfContPage);
-         xmstmp = XmStringCreateLtoR (SUMA_ADO_Label(ado), 
+         xmstmp = XmStringCreateLtoR (SUMA_ADO_CropLabel(ado, 
+                                          SUMA_SURF_CONT_SWITCH_LABEL_LENGTH), 
                                       XmSTRING_DEFAULT_CHARSET);
          SurfCont->SurfContPage_label = XtVaCreateManagedWidget ("dingel", 
                xmLabelWidgetClass, rc,
@@ -9834,7 +9994,8 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                            "Switch to other object controller", 
                            "Switch to other object controller",
                            SurfCont->SurfContPage);
-         xmstmp = XmStringCreateLtoR (SUMA_ADO_Label(ado), 
+         xmstmp = XmStringCreateLtoR (SUMA_ADO_CropLabel(ado, 
+                                       SUMA_SURF_CONT_SWITCH_LABEL_LENGTH), 
                                       XmSTRING_DEFAULT_CHARSET);
          SurfCont->SurfContPage_label = XtVaCreateManagedWidget ("dingel", 
                xmLabelWidgetClass, rc,
@@ -9958,7 +10119,7 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          SUMA_RETURNe;
          break;
    }
-
+   
    SUMA_MarkSurfContOpen(0,ado);
    SUMA_RETURNe;
 }
@@ -10347,7 +10508,8 @@ SUMA_Boolean SUMA_SetSurfContPageNumber(Widget NB, int i)
          SUMA_SET_TEXT_FIELD(SurfCont->SurfContPage->textfield, sbuf);
          
          string = XmStringCreateLtoR (
-                     SUMA_ADO_Label((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP), 
+               SUMA_ADO_CropLabel((SUMA_ALL_DO *)SUMAg_DOv[adolist[k]].OP, 
+                                  SUMA_SURF_CONT_SWITCH_LABEL_LENGTH), 
                      XmSTRING_DEFAULT_CHARSET);
          XtVaSetValues( SurfCont->SurfContPage_label, 
                         XmNlabelString, string, NULL);

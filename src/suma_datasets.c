@@ -14395,6 +14395,7 @@ SUMA_Boolean SUMA_Dset_to_GDSET(SUMA_DSET **pdset, char *mtype,
    dset = *pdset;
    if (!dset || !dset->ngr || !dset->dnel) SUMA_RETURN(NOPE);
    
+   SUMA_LH("Matrix type %s", mtype?mtype:"NULL");
 
    if (!SUMA_isGraphDset(dset)) {
       if (SDSET_VECNUM(dset) == SDSET_VECLEN(dset) &&
@@ -14452,7 +14453,12 @@ SUMA_Boolean SUMA_Dset_to_GDSET(SUMA_DSET **pdset, char *mtype,
       }
       /* cases where the whole matrix is packed into 1 column */
       nseg = SDSET_VECLEN(dset);
-      if ((mtype && !strcmp(mtype,"lower")) || 
+      if (npts == 1) { /* singletons are full */
+         msz[0]= msz[1] = npts;
+         NI_SET_INTv(dset->dnel,"matrix_size", msz,2);
+         NI_set_attribute(dset->dnel, "matrix_shape",
+                          SUMA_matrix_shape_to_matrix_shape_name(MAT_FULL));
+      } else if ((mtype && !strcmp(mtype,"lower")) || 
           ((!i0 && !i1) && (tt = (1+sqrt(1+8*nseg))/2.0) == (int)tt)) { 
          if (npts < 0) npts = tt;
          SUMA_LHv("Me thinks it triangular Pa, %d %d\n", 

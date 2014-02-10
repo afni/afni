@@ -278,6 +278,8 @@ int SUMA_PixelsToDisk(SUMA_SurfaceViewer *csv, int w, int h, GLvoid *pixels,
                       int colordepth, int verb, char *ufname, 
                       int autoname, int over); 
 int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback);
+SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
+                                        SUMA_DO *dov);
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
 Colormap SUMA_getShareableColormap_Eng(XVisualInfo * vi, Display *dpy);
 Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);

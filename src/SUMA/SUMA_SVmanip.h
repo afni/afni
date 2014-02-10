@@ -85,14 +85,18 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail);
 SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int N_dov);
 SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile *Spec, SUMA_DO *DOv, 
                            int N_DOv, SUMA_SurfaceViewer *cSV, int viewopt);
+SUMA_Boolean SUMA_ADO_FillColorList_Params(SUMA_ALL_DO *ADO, 
+                                     int *N_points, char **idcode);
 SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *SO);
 SUMA_Boolean SUMA_Free_ColorList (SUMA_COLORLIST_STRUCT *cl);
 SUMA_Boolean SUMA_EmptyColorList (SUMA_SurfaceViewer *sv, char *DO_idstr);
 GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr);
+GLfloat * SUMA_GetColorListPtr (SUMA_COLORLIST_STRUCT *cl);
 SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, 
                                 int N_SVv);
 SUMA_COLORLIST_STRUCT * SUMA_GetColorListStruct (SUMA_SurfaceViewer *sv, 
                                                  char *DO_idstr);
+SUMA_Boolean SUMA_BlankColorListStruct(SUMA_COLORLIST_STRUCT *cl);
 SUMA_Boolean SUMA_SetShownLocalRemixFlag (SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SetLocalRemixFlag(char *SO_idcode_str, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv);

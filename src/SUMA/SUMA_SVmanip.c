@@ -305,8 +305,14 @@ float SUMA_sv_auto_fov(SUMA_SurfaceViewer *sv)
                                  / 2.0 / CurrentDistance)*180.0/SUMA_PI;
       SUMA_LHv("Computed fov to be %f degrees\n",  fov);
    } else {
+      static int nwarn=0;
       fov = FOV_INITIAL;
-      SUMA_S_Errv("max dim too strange (%f)\nUsing default (%f).\n", mxdim, fov);
+      if (!(nwarn % SUMA_MAX_SURF_VIEWERS)) {
+         SUMA_S_Errv("max dim too strange (%f)\nUsing default (%f).\n"
+                     "Similar messages will be decimated.\n", 
+                     mxdim, fov);
+      }
+      ++nwarn;
    }
    
    /* institutional memory */
@@ -438,6 +444,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
    }
    for (i=0; i < N; ++i) {
       SV = &(SVv[i]);
+      SV->LoadedTextures[0] = -1; /* plug */
       memset(SV, 0, sizeof(SUMA_SurfaceViewer)); 
       SV->N_GVS = SUMA_N_STANDARD_VIEWS;
       SV->GVS = (SUMA_GEOMVIEW_STRUCT *)
@@ -1234,6 +1241,140 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct_Vect (SUMA_SurfaceViewer *SVv, int N
 }
 
 /*!
+\brief SUMA_ADO_FillColorList_Params(SUMA_ALL_DO *ADO, 
+                                     int *N_points, char *idcode);
+*/
+SUMA_Boolean SUMA_ADO_FillColorList_Params(SUMA_ALL_DO *ADO, 
+                                     int *N_points, char **idcode)
+{
+   static char FuncName[]={"SUMA_ADO_FillColorList_Params"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ADO || !N_points || !idcode) {
+      SUMA_RETURN(NOPE);
+   }
+   *N_points = -1; *idcode = NULL;
+   
+   switch (ADO->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ADO;
+         *N_points = SO->N_Node;
+         *idcode = SO->idcode_str;
+         SUMA_LHv("Filling a color list for surface %s (%s).\n", 
+                  SO->Label, SO->idcode_str);
+         } break;
+      case SDSET_type: {
+         SUMA_DSET *dset=(SUMA_DSET *)ADO;
+         if (!SUMA_isGraphDset(dset)) {
+            SUMA_S_Err("Dataset should be graph type");
+            SUMA_RETURN(NOPE);
+         }
+         *N_points = 1+SUMA_GDSET_Max_Edge_Index(dset);
+         *idcode = SDSET_ID(dset);
+         SUMA_LHv("Filling a color list for dset %s (%s).\n", 
+                  SDSET_LABEL(dset), SDSET_ID(dset));
+         } break;
+      case GRAPH_LINK_type: {
+         SUMA_DSET *dset=SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ADO);
+         if (dset) 
+            SUMA_RETURN(SUMA_ADO_FillColorList_Params(
+                                    (SUMA_ALL_DO *)dset, N_points, idcode));
+         } break;
+      case MASK_type:
+      case TRACT_type:
+      case VO_type: {
+         *N_points = SUMA_ADO_N_Datum(ADO);
+         *idcode = ADO_ID(ADO);
+         SUMA_LHv("Filling a color list for tract %s (%s) %d points.\n", 
+                  ADO_LABEL(ADO), ADO_ID(ADO), *N_points);
+         break; }
+      default:
+         SUMA_S_Errv("Not ready for type %d (%s)\n", 
+                     ADO->do_type,
+                     SUMA_ObjectTypeCode2ObjectTypeName(ADO->do_type));
+         SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_BlankColorListStruct(SUMA_COLORLIST_STRUCT *cl)
+{
+   static char FuncName[]={"SUMA_BlankColorListStruct"};
+   int i = 0;
+   
+   SUMA_ENTRY;
+   
+   if (!cl || !cl->glar_ColorList_private) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   /* fill up with blanks, may be unecessary ... */
+   i=0;
+   while (i < cl->N_glar_ColorList) {
+      cl->glar_ColorList_private[i] = 
+                                                SUMA_GRAY_NODE_COLOR; ++i;
+      cl->glar_ColorList_private[i] = 
+                                                SUMA_GRAY_NODE_COLOR; ++i;              
+      cl->glar_ColorList_private[i] = 
+                                                SUMA_GRAY_NODE_COLOR; ++i;
+      cl->glar_ColorList_private[i] = SUMA_NODE_ALPHA; ++i;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/* 
+   Accessor function to pointer cl->glar_ColorList_private
+*/   
+GLfloat * SUMA_GetColorListPtr (SUMA_COLORLIST_STRUCT *cl) 
+{
+   static char FuncName[]={"SUMA_GetColorListPtr"};
+   
+   if (!cl) return(NULL);
+   if (cl->glar_ColorList_private) {
+      return(cl->glar_ColorList_private);
+   } else if (cl->idcode_str) {
+      SUMA_ALL_DO *ado = SUMA_whichADOg(cl->idcode_str);
+      int N_points;
+      char *idcode=NULL;
+      SUMA_Boolean LocalHead = NOPE;
+      SUMA_LH("Found but must allocate for colorlist");
+      if (!SUMA_ADO_FillColorList_Params(ado, &N_points, &idcode)) {
+         SUMA_S_Err("Failed to initialize params");
+         return(NULL);
+      }
+      /* That previous call to get N_points may be a waste.
+         The number of values is already in cl->N_glar_ColorList
+         so just check for redundancy now */
+      if (4*N_points != cl->N_glar_ColorList) {
+         SUMA_S_Err("This should not happen: %d clashes with %d",
+                    N_points, cl->N_glar_ColorList);
+         return(NULL);
+      }
+      if (!(cl->glar_ColorList_private = 
+               (GLfloat *) SUMA_calloc (N_points*4, sizeof(GLfloat)))) {
+         SUMA_S_Crit("Failed to allocate %d floats for glar_ColorList_private",
+                     N_points*4);
+         return(NULL); 
+      }
+      if (!SUMA_BlankColorListStruct(cl)) {
+         SUMA_S_Err("Failed to fill with gray?!?");
+         return(NULL);
+      }
+      /* Will need mixing in all likelihood, go ahead, why not */
+      cl->Remix = YUP; 
+      ++cl->RemixID;
+      return(cl->glar_ColorList_private);
+   }
+   return(NULL);
+}
+
+
+
+/*!
 \brief ans = SUMA_FillColorList (sv, so);
 Creates a colorlist structure for a certain displayable.   
 
@@ -1256,44 +1397,24 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    
    SUMA_ENTRY;
    
-   switch (ADO->do_type) {
-      case SO_type: {
-         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ADO;
-         N_points = SO->N_Node;
-         idcode = SO->idcode_str;
-         SUMA_LHv("Filling a color list for surface %s (%s).\n", 
-                  SO->Label, SO->idcode_str);
-         } break;
-      case SDSET_type: {
-         SUMA_DSET *dset=(SUMA_DSET *)ADO;
-         if (!SUMA_isGraphDset(dset)) {
-            SUMA_S_Err("Dataset should be graph type");
-            SUMA_RETURN(NOPE);
-         }
-         N_points = 1+SUMA_GDSET_Max_Edge_Index(dset);
-         idcode = SDSET_ID(dset);
-         SUMA_LHv("Filling a color list for dset %s (%s).\n", 
-                  SDSET_LABEL(dset), SDSET_ID(dset));
-         } break;
+   if (!sv) {
+      SUMA_RETURN(NOPE);
+   }
+   
+   switch(ADO->do_type) {
       case GRAPH_LINK_type: {
          SUMA_DSET *dset=SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ADO);
          if (dset) SUMA_RETURN(SUMA_FillColorList(sv,(SUMA_ALL_DO *)dset));
-         } break;
-      case MASK_type:
-      case TRACT_type:
-      case VO_type: {
-         N_points = SUMA_ADO_N_Datum(ADO);
-         idcode = ADO_ID(ADO);
-         SUMA_LHv("Filling a color list for tract %s (%s) %d points.\n", 
-                  ADO_LABEL(ADO), ADO_ID(ADO), N_points);
-         break; }
-      default:
-         SUMA_S_Errv("Not ready for type %d (%s)\n", 
-                     ADO->do_type,
-                     SUMA_ObjectTypeCode2ObjectTypeName(ADO->do_type));
+         SUMA_S_Err("GLDO without dset!");
          SUMA_RETURN(NOPE);
+      } break;
    }
    
+   
+   if (!SUMA_ADO_FillColorList_Params(ADO, &N_points, &idcode) ) {
+      SUMA_S_Err("Failed to initialize variables");
+      SUMA_RETURN(NOPE);
+   }
 
    if (!idcode) {
       fprintf (SUMA_STDERR,"Error %s: idcode is NULL.\n", FuncName);
@@ -1309,7 +1430,8 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
              ADO->do_type != MASK_type) {
             SUMA_S_Err("idcode is already in sv->ColList, \n"
                        "This is an error for a SurfaceObject, though I doubt\n"
-                       "it is of serious consequence...");
+                       "it is of serious consequence. Type is question is %s\n"
+                       "for DO type %s\n", ADO_LABEL(ADO), ADO_TNAME(ADO));
             SUMA_RETURN (NOPE);
          } else {
             SUMA_LH("List for %s found",
@@ -1329,8 +1451,8 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    
    /* create the ColList struct */
    if (sv->ColList[sv->N_ColList]) {
-      SUMA_S_Err("ColorList is not NULL. Cannot reallocate.\n"
-                  "not expecting this scenario at this stage");
+      SUMA_S_Err("sv->ColorList[%d] is not NULL. Cannot reallocate.\n"
+                  "not expecting this scenario at this stage", sv->N_ColList);
       SUMA_RETURN (NOPE);
    }
    
@@ -1365,39 +1487,34 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
       sv->ColList[sv->N_ColList]->LinkedPtrType = SUMA_LINKED_COLORLIST_TYPE;
       sv->ColList[sv->N_ColList]->do_type = not_DO_type;
 
-      sv->ColList[sv->N_ColList]->glar_ColorList = 
-            (GLfloat *) SUMA_calloc (N_points*4, sizeof(GLfloat));
+      sv->ColList[sv->N_ColList]->N_glar_ColorList = N_points*4;
+
       sv->ColList[sv->N_ColList]->idcode_str = 
             (char *)SUMA_malloc((strlen(idcode)+1) * sizeof(char));
-   
-      if (!sv->ColList[sv->N_ColList]->glar_ColorList || 
-          !sv->ColList[sv->N_ColList]->idcode_str) {
-         SUMA_S_Err("Failed to allocate for glar_ColorList or idcode_str.");
+      if (!sv->ColList[sv->N_ColList]->idcode_str) {
+         SUMA_S_Err("Failed to allocate for idcode_str.");
          SUMA_RETURN (NOPE);
       }
-   
       sv->ColList[sv->N_ColList]->idcode_str = 
          strcpy (sv->ColList[sv->N_ColList]->idcode_str, idcode);
 
-      /* fill up with blanks, may be unecessary ... */
-      sv->ColList[sv->N_ColList]->N_glar_ColorList = N_points*4;
-      i=0;
-      while (i < sv->ColList[sv->N_ColList]->N_glar_ColorList) {
-         sv->ColList[sv->N_ColList]->glar_ColorList[i] = 
-                                                   SUMA_GRAY_NODE_COLOR; ++i;
-         sv->ColList[sv->N_ColList]->glar_ColorList[i] = 
-                                                   SUMA_GRAY_NODE_COLOR; ++i;              
-         sv->ColList[sv->N_ColList]->glar_ColorList[i] = 
-                                                   SUMA_GRAY_NODE_COLOR; ++i;
-         sv->ColList[sv->N_ColList]->glar_ColorList[i] = SUMA_NODE_ALPHA; ++i;
+      if (sv->Open) { /* ZSS: Feb 2014 */
+         /* Only allocate if Viewer is open, otherwise
+            don't allocate for float vector, let SUMA_GetColorList() 
+            take care of that */
+         if (!SUMA_GetColorListPtr(sv->ColList[sv->N_ColList])) {
+            SUMA_S_Err("Failed to allocate for glar_ColorList.");
+            SUMA_RETURN (NOPE);
+         }
+      } else {
+         sv->ColList[sv->N_ColList]->glar_ColorList_private = NULL;
       }
-      sv->ColList[sv->N_ColList]->Remix = YUP; 
-      ++sv->ColList[sv->N_ColList]->RemixID;
+
    }
    
    ++sv->N_ColList;
    SUMA_LH("N_ColList now %d, latest glar %p", 
-           sv->N_ColList, sv->ColList[sv->N_ColList-1]->glar_ColorList);
+           sv->N_ColList, sv->ColList[sv->N_ColList-1]->glar_ColorList_private);
    SUMA_RETURN (YUP);
 }
 
@@ -1409,13 +1526,12 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
    \param DO_idstr (char *) ID string of DO (usually a Surface Object) 
    \return glar_ColorList (GLfloat *) a pointer to the array containing 
       node colors 
-   \sa SUMA_GetColorListStruct
+   \sa SUMA_GetColorListStruct, SUMA_GetColorListPtr
 */
 GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
 {
    static char FuncName[]={"SUMA_GetColorList"};
    int i;
-   GLfloat * glar_ColorList = NULL;
    SUMA_Boolean Found = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1434,7 +1550,7 @@ GLfloat * SUMA_GetColorList (SUMA_SurfaceViewer *sv, char *DO_idstr)
    while (!Found && i < sv->N_ColList) {
       if (strcmp (DO_idstr, sv->ColList[i]->idcode_str) == 0) {
          Found = YUP;
-         SUMA_RETURN (sv->ColList[i]->glar_ColorList);      
+         SUMA_RETURN (SUMA_GetColorListPtr(sv->ColList[i]));
       }
       ++i;
    }
@@ -1475,6 +1591,9 @@ SUMA_COLORLIST_STRUCT * SUMA_GetColorListStruct (SUMA_SurfaceViewer *sv,
    while (!Found && i < sv->N_ColList) {
       if (strcmp (DO_idstr, sv->ColList[i]->idcode_str) == 0) {
          Found = YUP;
+         if (!SUMA_GetColorListPtr(sv->ColList[i])) {
+            SUMA_RETURN(NULL);
+         }
          SUMA_RETURN (sv->ColList[i]);      
       }
       ++i;
@@ -1503,7 +1622,7 @@ SUMA_Boolean SUMA_Free_ColorList (SUMA_COLORLIST_STRUCT *cl)
    if (!cl) SUMA_RETURN(YUP);
    
    SUMA_LH("Entered to free colorlist of %s, (glar = %p)",
-            SUMA_DO_dbg_info(cl->idcode_str), cl->glar_ColorList);
+            SUMA_DO_dbg_info(cl->idcode_str), cl->glar_ColorList_private);
    if (LocalHead) SUMA_DUMP_TRACE("At Free ColorList");
    
    if (cl->N_links) {
@@ -1515,7 +1634,7 @@ SUMA_Boolean SUMA_Free_ColorList (SUMA_COLORLIST_STRUCT *cl)
    /* no more links, go for it */
    SUMA_LH("No more links freeing time");
    SUMA_ifree(cl->idcode_str); 
-   SUMA_ifree(cl->glar_ColorList);
+   SUMA_ifree(cl->glar_ColorList_private);
    SUMA_ifree(cl);
    SUMA_RETURN (YUP);
 }
@@ -3813,6 +3932,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       } else if (strcmp (eee, "DEFAULT") == 0) {
          cf->X->X_Resources = SXR_default;
          if (LocalHead) fprintf(SUMA_STDERR,"%s: default resources\n", FuncName);
+      } else if (strcmp (eee, "PRINT") == 0) {
+         cf->X->X_Resources = SXR_Print;
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Print resources\n", FuncName);
       } else {
          cf->X->X_Resources = SXR_Euro;
          fprintf(SUMA_STDERR,
