@@ -967,9 +967,97 @@ SUMA_MaskDO *SUMA_SymMaskDO(char *s, char *mtype, char *hid, byte mtypeonly)
    memcpy(mdo->init_cen, mdo->cen, sizeof(float)*3*mdo->N_obj);
    memcpy(mdo->init_hdim, mdo->hdim, sizeof(float)*3*mdo->N_obj);
    
+   SUMA_MDO_SetVarName(mdo, NULL);
    SUMA_RETURN(mdo);
 }
 
+SUMA_MaskDO *SUMA_MDO_GetVar(char *vn)
+{
+   static char FuncName[]={"SUMA_MDO_GetVar"};
+   SUMA_MaskDO *mmm=NULL;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!vn) SUMA_RETURN(NULL);
+      
+   for (i=0; i<SUMAg_N_DOv; ++i) {
+      if (iDO_type(i) == MASK_type) {
+         mmm = (SUMA_MaskDO *)iDO_ADO(i);
+         if (vn[0] == mmm->varname[0]) SUMA_RETURN(mmm);
+      }
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+SUMA_Boolean SUMA_MDO_OkVarName(char *this) 
+{
+   static char FuncName[]={"SUMA_MDO_OkVarName"};
+   if (this && this[0] >= 'a' && this[0] <= 'z' && this[1] == '\0') return(YUP);
+   return(NOPE);
+}
+
+SUMA_Boolean SUMA_MDO_SetVarName(SUMA_MaskDO *mdo, char *this)
+{
+   static char FuncName[]={"SUMA_MDO_SetVarName"};
+   byte arr[256];
+   int i, ivn;
+   char vn;
+   SUMA_MaskDO *mmm=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (this) {
+      if (this[0] < 'a' || this[0] > 'z') {
+         SUMA_S_Err("Bad variable name %s", this);
+         SUMA_RETURN(NOPE);
+      }
+      /* See if variable is in use */
+      if ((mmm = SUMA_MDO_GetVar(this))) {
+         /* take it away */
+         mmm->varname[0] = '\0';
+      }
+      mdo->varname[0] = this[0];
+      mdo->varname[1] = '\0';
+      /* Reassign new name to mmm */
+      if (mmm) SUMA_MDO_SetVarName(mmm, NULL);
+   } else {
+      SUMA_LH("varname now >%s< for %s", 
+                  mdo->varname, ADO_LABEL((SUMA_ALL_DO *)mdo));
+      /* mark mdo's varname as available */
+      mdo->varname[0] = '\0';
+
+      /* mark all used variables */
+      memset(arr, 0, sizeof(byte)*256);
+      for (i=0; i<SUMAg_N_DOv; ++i) {
+         if (iDO_type(i) == MASK_type) {
+            mmm = (SUMA_MaskDO *)iDO_ADO(i);
+            vn = mmm->varname[0];
+            if (vn != '\0') {
+               ivn = vn - 'a';
+               if (ivn < 0 || ivn > 'z'-'a') {
+                  SUMA_S_Err("Bad variable name for mdo %s", iDO_label(i));
+               } else {
+                  arr[ivn] = 1;
+               }
+            }
+         }
+      }
+
+      ivn = 0;
+      while (arr[ivn] && ivn < 'z'-'a') ++ivn;
+      if (ivn < 'z'-'a') {
+         mdo->varname[0] = 'a'+ivn;
+         mdo->varname[1] = '\0';
+      }
+   
+      SUMA_LH("varname now >%s<", mdo->varname);
+   }
+   
+   SUMA_RETURN(YUP);
+}
 
 SUMA_Boolean SUMA_Set_MaskDO_Color(SUMA_MaskDO *mdo, float *col)
 {
@@ -2287,6 +2375,8 @@ SUMA_MaskDO * SUMA_ReadMaskDO (char *s, char *parent_ADO_id)
    memcpy(MDO->init_cen, MDO->cen, sizeof(float)*3*MDO->N_obj);
    memcpy(MDO->init_hdim, MDO->hdim, sizeof(float)*3*MDO->N_obj);
    
+   SUMA_MDO_SetVarName(MDO, NULL);
+
    SUMA_RETURN(MDO);
 }
 
@@ -5699,15 +5789,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    N_tmask = 0;
    if (!sv->DO_PickMode || (sv->DO_PickMode && !(MASK_MANIP_MODE(sv)))) {
       /* Apply masking if not picking or picking while in mask moving mode */
-      for (ido=0; ido<SUMAg_N_DOv; ++ido) {
-         ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
-         if (ado->do_type == MASK_type &&
-             !MDO_IS_SHADOW((SUMA_MaskDO *)ado)) {
-            SUMA_LH("Computing intersection with %s", ADO_LABEL(ado));
-            N_tmask += SUMA_TractMaskIntersect(TDO, (SUMA_MaskDO *)ado, &tmask);
-            SUMA_LH("Now have %d tracts in mask", N_tmask);
-         }
-      }
+      N_tmask = SUMA_TractMasksIntersect(TDO, &tmask, SUMA_GetMaskEvalExpr());
    }
    
    glGetFloatv(GL_LINE_WIDTH, &origwidth);

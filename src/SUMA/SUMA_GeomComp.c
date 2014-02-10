@@ -14850,6 +14850,95 @@ int SUMA_PlaneBoxSlice( float *cam, float *PlEq,
    SUMA_RETURN(maxhits);
 }
 
+int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, byte **IsInp, char *expr)
+{
+   static char FuncName[]={"SUMA_TractMasksIntersect"};      
+   int ido, N_tmask, UserPointer=0, kk=0, N_OneMask=0;
+   byte *OneMask=NULL, *IsIn=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   N_tmask = 0;
+   
+   if (!expr || expr[0]=='\0') expr = "or";
+   if (!TDO || !IsInp) SUMA_RETURN(N_tmask);
+   
+   if (*IsInp) {
+      UserPointer = 1;
+      IsIn = *IsInp;
+   } else {
+      UserPointer = 0;
+      IsIn = NULL;
+   }
+   
+   if (!strcasecmp(expr,"or")) {
+      SUMA_LH("OR combo");
+      N_tmask = 0;
+      for (ido=0; ido<SUMAg_N_DOv; ++ido) {
+         ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
+         if (ado->do_type == MASK_type &&
+             !MDO_IS_SHADOW((SUMA_MaskDO *)ado)) {
+            SUMA_LH("Computing intersection with %s", ADO_LABEL(ado));
+            N_tmask += SUMA_TractMaskIntersect(TDO, (SUMA_MaskDO *)ado, IsInp);
+            SUMA_LH("Now have %d tracts in mask", N_tmask);
+         }
+      }
+      SUMA_RETURN(N_tmask);
+   } else if (!strcasecmp(expr,"and")) {
+      SUMA_LH("AND combo");
+      N_tmask = 0;
+      OneMask = (byte *)SUMA_calloc(TDO_N_TRACTS(TDO), sizeof(byte));
+      if (!OneMask) {
+         SUMA_S_Crit("Failed to allocate");
+         SUMA_RETURN(0);
+      }
+      for (ido=0; ido<SUMAg_N_DOv; ++ido) {
+         ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
+         if (ado->do_type == MASK_type &&
+             !MDO_IS_SHADOW((SUMA_MaskDO *)ado)) {
+            SUMA_LH("Computing intersection with %s", ADO_LABEL(ado));
+            N_OneMask = SUMA_TractMaskIntersect(TDO, 
+                                                (SUMA_MaskDO *)ado, &OneMask);
+            if (N_OneMask > 0) {
+               /* something is there */
+               if (!IsIn) { /* Steal the pointer */
+                  IsIn = OneMask; OneMask = NULL;
+               } else { /* Do the and operation */
+                  for (kk=0; kk<TDO_N_TRACTS(TDO); ++kk) {
+                     if (IsIn[kk] && OneMask[kk]) IsIn[kk]=1;
+                     else IsIn[kk]=0;
+                  }
+                  memset(OneMask, 0, sizeof(byte)*TDO_N_TRACTS(TDO));
+               }
+            } else {/* Nothing to keep, get out NOW */
+               if (UserPointer) { /* user passed pointer, memset it */
+                  memset(*IsInp, 0, sizeof(byte)*TDO_N_TRACTS(TDO));
+               } else {
+                  *IsInp = NULL; /* just to be sure */
+               }
+               if (OneMask != IsIn) SUMA_ifree(OneMask);
+               if (IsIn != *IsInp) SUMA_ifree(IsIn);
+               N_tmask = 0;
+               SUMA_RETURN(N_tmask);
+            }
+         }
+      }
+      /* Count values in the mask */
+      N_tmask = 0;
+      for (kk=0; kk<TDO_N_TRACTS(TDO); ++kk) {
+         if (IsIn[kk]) ++N_tmask;
+      }
+      if (IsInp) *IsInp = IsIn;
+      SUMA_RETURN(N_tmask); 
+   } else {
+      SUMA_S_Err("Not sure what to make of expr >%s<", expr);
+   }
+   
+   SUMA_RETURN(N_tmask);
+}
+
 /* Find tracts intersecting a mask.
    TDO (SUMA_TractDO *) The tract object for which intersection is to be 
                         computed

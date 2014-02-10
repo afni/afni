@@ -13850,8 +13850,11 @@ int SUMA_suck_file( char *fname , char **fbuf )
    ii = read( fd , buf , len ) ;
    close( fd ) ;
    if( ii <= 0 ){ SUMA_free(buf) ; SUMA_RETURN(0); }
-   *fbuf = buf ; SUMA_RETURN(ii) ;
+   *fbuf = buf ; 
+   buf[ii] = '\0';
+   SUMA_RETURN(ii) ;
 }
+
 /*!
    \brief Another version of SUMA_suck_file that hopes to
    avoid the silly error on OSX 

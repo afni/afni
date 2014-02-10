@@ -799,7 +799,9 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    
    SUMA_ADVANCE_PAST(fl,eop,"EndHeader",Found,1);
 	if (!Found) {
-		fprintf(SUMA_STDERR,"Error %s: EndHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+		fprintf(SUMA_STDERR,"Error %s: EndHeader not found in %s.\n"
+                 "Perhaps you are using old versions of Caret/SureFit files.\n", 
+                 FuncName, f_name);
 		SUMA_RETURN (NOPE);
 	}
    fleh = fl;
@@ -810,9 +812,11 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    if (Found) {
       op2 = fl;
       SUMA_SKIP_LINE(op2, fleh);
-      snprintf(SF->encoding_topo, (op2-fl)*sizeof(char), "%s", fl);
+      snprintf(SF->encoding_topo, SUMA_MIN_PAIR(100,(op2-fl))*sizeof(char), 
+               "%s", fl);
       if (LocalHead) {
-         fprintf(SUMA_STDERR,"%s: Found encoding (%d) >>>%s<<<\n", FuncName, (int)(op2-fl), SF->encoding_topo);
+         fprintf(SUMA_STDERR,"%s: Found encoding (%d) >>>%s<<<\n", 
+                              FuncName, (int)(op2-fl), SF->encoding_topo);
       }  
    }
    fl = flbh;
@@ -820,9 +824,11 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    if (Found) {
       op2 = fl;
       SUMA_SKIP_LINE(op2, fleh);
-      snprintf(SF->perimeter_id, (op2-fl)*sizeof(char), "%s", fl);
+      snprintf(SF->perimeter_id, SUMA_MIN_PAIR(100,(op2-fl))*sizeof(char), 
+               "%s", fl);
       if (LocalHead) {
-         fprintf(SUMA_STDERR,"%s: Found perimeter_id >>>%s<<<\n", FuncName, SF->perimeter_id);
+         fprintf(SUMA_STDERR,"%s: Found perimeter_id >>>%s<<<\n", 
+                 FuncName, SF->perimeter_id);
       }  
    }
    
@@ -831,7 +837,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    if (Found) {
       op2 = fl;
       SUMA_SKIP_LINE(op2, fleh);
-      snprintf(SF->date, (op2-fl)*sizeof(char), "%s", fl);
+      snprintf(SF->date, SUMA_MIN_PAIR(100,(op2-fl))*sizeof(char), "%s", fl);
       if (LocalHead) {
          fprintf(SUMA_STDERR,"%s: Found date >>>%s<<<\n", FuncName, SF->date);
       }  
@@ -843,7 +849,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
    if (Found) {
       SF->N_Node_Specs = (int)tmpdbl;
-      if (LocalHead) fprintf (stdout,"Expecting %d Node_Specs .\n", SF->N_Node_Specs);
+      SUMA_LH("Expecting %d Node_Specs .\n", SF->N_Node_Specs);
       SF->N_FaceSet = -1; /* got to read it later*/
       SF->tag_version = -1; /* don't know */
       goto NODE_SPECS;
@@ -858,10 +864,11 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
          if (Found) {
             if (LocalHead) fprintf (stdout,"Found tag-version %f\n", tmpdbl);
             if ((int)tmpdbl != 1) {
-               SUMA_S_Warn("tag-version not equal to 1.\nSUMA may not know how to read this file.\n");
+               SUMA_S_Warn("tag-version not equal to 1.\n"
+                           "SUMA may not know how to read this file.\n");
             }
          } else {
-            if (LocalHead) fprintf (stdout,"Found tag-version but no number! Trying hope.\n");
+            SUMA_LH("Found tag-version but no number! Trying hope.\n");
             /* skip till end of line */
             SUMA_SKIP_LINE(fl, eop);   
          }
@@ -869,7 +876,7 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
          SUMA_ADVANCE_PAST_NUM(fl, tmpdbl, Found);
          if (Found) {
             SF->N_FaceSet = (int)tmpdbl;
-            if (LocalHead) fprintf (stdout,"Found number of FaceSets: %d\n", SF->N_FaceSet);
+            SUMA_LH("Found number of FaceSets: %d\n", SF->N_FaceSet);
          } else {
             SUMA_S_Err("No FaceSets number!");
             SUMA_RETURN (NOPE);

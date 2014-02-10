@@ -408,6 +408,8 @@ int SUMA_PlaneBoxSlice( float *cam, float *PlEq,
                                  float *cvert, 
                                  float *pv, int *hits, float *PlOff, int N_slc);
 int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp);
+int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, byte **IsInp, char *expr);
+
 /*!
    Macros to merge / join two lists together
    elements of lst2 are set to NULL and you should free lst2 
