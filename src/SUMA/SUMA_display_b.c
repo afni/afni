@@ -250,16 +250,72 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
             XmNmarginWidth , 0 ,
             NULL); 
       
+      if (!SurfCont->rcswr) {
+         /* This row column is typically for the dataset range 
+            values. For masks we repurpose the variable */
+         SurfCont->rcswr = XtVaCreateWidget ("rowcolumn",
+                  xmRowColumnWidgetClass, rc_SurfProp,
+                  XmNpacking, XmPACK_TIGHT, 
+                  XmNorientation , XmVERTICAL ,
+                  XmNtopAttachment, XmATTACH_WIDGET ,
+                  NULL);
+      }
+
+      if (SUMAg_CF->Dev) {
+         /* add the mask equation region */
+         char *row_tit[]=  {  "Eval", NULL };
+         char *row_hint[]= {  "Evaluate mask expression", NULL};
+         char *row_help[]= {  SUMA_SurfContHelp_EvalMaskExpr_r0, NULL};
+         Widget rc_maskeval;
+         rc_maskeval = XtVaCreateManagedWidget ("rowcolumn",
+                                       xmRowColumnWidgetClass, SurfCont->rcswr,
+                                                XmNorientation , XmHORIZONTAL ,
+                                                XmNmarginHeight, 0,
+                                                XmNmarginHeight, 0,
+                                                XmNmarginWidth, 0, 
+                                                NULL);
+         if (!SurfCont->MaskEvalTable->cells) {
+            int colw[6] = { 3, 24 };
+            SUMA_CreateTable( rc_maskeval,
+                              1, 2, 
+                              row_tit, NULL,  
+                              row_hint, NULL,  
+                              row_help, NULL,  
+                              colw, YUP, SUMA_string, 
+                              SUMA_cb_SetMaskEvalTableValue, NULL,
+                              SUMA_MaskEvalTableLabel_EV, NULL,  
+                              SUMA_MaskEvalTableCell_EV, NULL, 
+                              SurfCont->MaskEvalTable);
+         }
+         /* And baby toggle  */
+         SurfCont->MaskEval_tb = XtVaCreateManagedWidget("v", 
+                                 xmToggleButtonWidgetClass, rc_maskeval, NULL);
+         XtAddCallback (SurfCont->MaskEval_tb, 
+                        XmNvalueChangedCallback, SUMA_cb_UseMaskEval_toggled,
+                        NULL);
+         MCW_register_hint(SurfCont->MaskEval_tb,   
+                           "Enable (ON)/Disable Mask expression evaluation");
+         MCW_register_help(SurfCont->MaskEval_tb,   
+                           "Enable (ON)/Disable Mask expression evaluation");
+
+         SUMA_SET_SELECT_COLOR(SurfCont->MaskEval_tb);
+         XmToggleButtonSetState (SurfCont->MaskEval_tb, 
+                                 SurfCont->UseMaskEval , NOPE);
+
+      }
+      
       if (1) { /* The properties area */
-         char *col_tit[]=  {  "+", "Label", "Type", "Center", "Size", 
+         char *col_tit[]=  {  "+", " ", "Label", "Type", "Center", "Size", 
                                     "Color", NULL};
          char *col_hint[]= {  "Add new mask", 
+                              "Variable",
                               "Label",
                               "Type ('box' or 'sphere')", 
                               "Center X,Y,Z", 
                               "Size Sx,Sy,Sz", 
                               "Color R G B", NULL };
          char *col_help[]= {  SUMA_SurfContHelp_MaskTypeTbl_c0, 
+                              SUMA_SurfContHelp_MaskTypeTbl_c05,
                               SUMA_SurfContHelp_MaskTypeTbl_c1,
                               SUMA_SurfContHelp_MaskTypeTbl_c2, 
                               SUMA_SurfContHelp_MaskTypeTbl_c3, 
@@ -269,25 +325,15 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          char *row_hint[]= {  "Add new mask", "Mask Properties", NULL};
          char *row_help[]= {  SUMA_SurfContHelp_MaskTypeTbl_c0, 
                               SUMA_SurfContHelp_MaskTypeTbl_r1, NULL};
-         if (!SurfCont->rcswr) {
-            /* This row column is typically for the dataset range 
-               values. For masks we repurpose the variable */
-            SurfCont->rcswr = XtVaCreateWidget ("rowcolumn",
-                     xmRowColumnWidgetClass, rc_SurfProp,
-                     XmNpacking, XmPACK_TIGHT, 
-                     XmNorientation , XmVERTICAL ,
-                     XmNtopAttachment, XmATTACH_WIDGET ,
-                     NULL);
-         }
          if (!SurfCont->MaskTable->cells) {
-            int colw[6] = { 1, 6, 6, 11, 11, 11 };
+            int colw[10] = { 1, 1, 6, 6, 11, 11, 11 };
             SUMA_CreateTable( SurfCont->rcswr,
-                              2, 6, 
+                              2, 7, 
                               row_tit, col_tit,  
                               row_hint, col_hint,  
                               row_help, col_help,  
                               colw, YUP, SUMA_string, 
-                              SUMA_cb_SetMaskTypeTableValue, NULL,
+                              SUMA_cb_SetMaskTableValue, NULL,
                               SUMA_MaskTableLabel_EV, NULL,  
                               SUMA_MaskTableCell_EV, NULL, 
                               SurfCont->MaskTable);
@@ -370,6 +416,26 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
    SUMA_MarkSurfContOpen(1, ado);
    SUMA_RETURNe;
 }
+
+void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_UseMaskEval_toggled"};
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   
+         
+   SurfCont->UseMaskEval = XmToggleButtonGetState (SurfCont->MaskEval_tb);
+   
+   SUMA_RETURNe;
+}
+
 
 /*!
    Called when user clicks on Mask table cell
@@ -464,15 +530,17 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
       case 0:
          break;
       case 1:
-         SUMA_LH("Need to set label for mask %s", ADO_LABEL(ado));
          break;
       case 2:
-         SUMA_LH("Need to set type for mask %s", ADO_LABEL(ado));
+         SUMA_LH("Need to set label for mask %s", ADO_LABEL(ado));
          break;
       case 3:
-         SUMA_LH("Need to set center for mask %s", ADO_LABEL(ado));
+         SUMA_LH("Need to set type for mask %s", ADO_LABEL(ado));
          break;
       case 4:
+         SUMA_LH("Need to set center for mask %s", ADO_LABEL(ado));
+         break;
+      case 5:
          if (incr) {
             fv[0] = mdo->hdim[0]+(incr*0.2*mdo->init_hdim[0]); 
             fv[1] = mdo->hdim[1]+(incr*0.2*mdo->init_hdim[1]); 
@@ -485,6 +553,103 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
          SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
                                             SES_Suma, NULL); 
          if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+         break;
+      case 6:
+         SUMA_LH("Need to set color for mask %s", ADO_LABEL(ado));
+         break;
+      default:
+         SUMA_SL_Err("Did not know you had so many");
+         break;
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_MaskEvalTableCell_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+   static char FuncName[]={"SUMA_MaskEvalTableCell_EV"};
+   SUMA_ALL_DO *ado=NULL, *curDO=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   XButtonEvent * bev = (XButtonEvent *) ev ;
+   int  i, j, n, Found, incr=0;
+   float fv[4];
+   void *cv=NULL;
+   SUMA_MaskDO *mdo = NULL;
+   DList *list=NULL;
+   SUMA_TABLE_FIELD *TF = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called Button %d", bev->button);
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   curDO = SUMA_Cont_ADO(SurfCont);
+   TF = SurfCont->MaskEvalTable;
+   
+   /* see note in bbox.c optmenu_EV for the condition below*/
+   if( bev->button == Button2 ) {
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     SUMA_RETURNe ;
+   }
+   
+   if( w == NULL || TF == NULL ) { SUMA_RETURNe ; }
+
+   incr = 0;
+   switch (bev->button) {
+      case Button1:
+         SUMA_LH("Button 1");
+         break;
+      case Button2:
+         SUMA_LH("Button 2");
+         break;
+      case Button3:
+         SUMA_LH("Button 3");
+         break;
+      case Button4:
+      case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
+         SUMA_LH("Button 4/6 %d", bev->button);
+         break;
+      case Button5:
+      case 7: 
+         SUMA_LH("Button 5/7 %d", bev->button);
+         break;
+      default:
+         SUMA_RETURNe;
+   }
+   
+   /* which cell is calling? */
+   n = 0;
+   Found = -1;
+   while (n<TF->Nj*TF->Ni && Found == -1) {
+      if (TF->cells[n] == w) {
+         Found = n;
+      } else ++n;
+   }
+   
+   if (Found <0) {
+      SUMA_SL_Err("Widget not found ????");
+      SUMA_RETURNe;
+   }
+   
+   /* find out widget's place in table*/
+   i = Found % TF->Ni; j = Found / TF->Ni ;
+   n = Found; 
+   
+   switch (j) {
+      case 0:
+         break;
+      case 1:
+         SUMA_LH("Need to set label for mask %s", ADO_LABEL(ado));
+         break;
+      case 2:
+         SUMA_LH("Need to set type for mask %s", ADO_LABEL(ado));
+         break;
+      case 3:
+         SUMA_LH("Need to set center for mask %s", ADO_LABEL(ado));
+         break;
+      case 4:
          break;
       case 5:
          SUMA_LH("Need to set color for mask %s", ADO_LABEL(ado));
@@ -600,7 +765,7 @@ void SUMA_MaskTableLabel_EV ( Widget w , XtPointer cd ,
          default:
             if (bev->button == Button1) { /* delete? */
                SUMA_cb_Mask_Delete(w, (XtPointer)TF->rowobject_id[i], NULL);
-            }else if (bev->button == Button3) { /* reset to autorange values */
+            }else if (bev->button == Button3) { 
                
             }
             break;
@@ -622,9 +787,156 @@ void SUMA_MaskTableLabel_EV ( Widget w , XtPointer cd ,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_SetMaskTypeTableValue (void *data) 
+void SUMA_MaskEvalTableLabel_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
 {
-   static char FuncName[]={"SUMA_cb_SetMaskTypeTableValue"};
+   static char FuncName[]={"SUMA_MaskEvalTableLabel_EV"};
+   Dimension lw ;
+   Widget * children , wl = NULL;
+   XButtonEvent * bev = (XButtonEvent *) ev ;
+   int  num_children , i, j, Found, AutoHist;
+   DList *list=NULL;
+   SUMA_TABLE_FIELD *TF = (SUMA_TABLE_FIELD *)cd;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   /* see note in bbox.c optmenu_EV for the condition below*/
+   if( bev->button == Button2 ){
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     SUMA_RETURNe ;
+   }
+   
+   if( w == NULL || TF == NULL ) SUMA_RETURNe ;
+
+   switch (bev->button) {
+      case Button1:
+         SUMA_LH("Button 1");
+         break;
+      case Button2:
+         SUMA_LH("Button 2");
+         break;
+      case Button3:
+         SUMA_LH("Button 3");
+         break;
+      default:
+         SUMA_RETURNe;
+   }
+   
+   /* which column title (i == 0) widget is calling ? */
+   /* check the first column */
+   i = 0; j = 0;
+   Found = 0;
+   while (j<TF->Nj && !Found) {
+      if (TF->cells[j*TF->Ni+i] == w) {
+         Found = 1;
+      } else ++j;
+   }
+   
+   if (!Found) { /* maybe it is a row title */
+      i = 0; j = 0;
+      Found = 0;
+      while (i<TF->Ni && !Found) {
+         if (TF->cells[j*TF->Ni+i] == w) {
+            Found = 1;
+         } else ++i;
+      }
+   }
+   
+   if (Found >= 0) {
+      SUMA_LHv("Click on cell [%d %d]\n", i, j);
+   } else {
+      SUMA_SL_Err("CEll not found!");
+      SUMA_RETURNe;
+   }
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   
+   if (!SurfCont) {
+      SUMA_SL_Err("No  SurfCont !");
+      SUMA_RETURNe;
+   }
+   
+   /* Now do something */
+   if (j == 0) { /* clicked on one of the row's titles */
+      switch (i) {
+         case 0:
+            if (bev->button == Button1) {
+            }
+            break;
+         default:
+            if (bev->button == Button1) { 
+
+            }else if (bev->button == Button3) { 
+               
+            }
+            break;
+      }
+   }
+   if (i == 0) { /* clicked on one of the column's titles */
+      switch (j) {
+         case 1:
+            break;
+         case 2:
+            break;
+         case 3:
+            break;
+         default:
+            break;
+      }
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_SetMaskEvalTableValue (void *data) 
+{
+   static char FuncName[]={"SUMA_cb_SetMaskEvalTableValue"};
+   SUMA_ALL_DO *ado=NULL;
+   int n=-1,row=-1,col=-1, an=0;
+   void *cv=NULL; 
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   
+   TF = SurfCont->MaskEvalTable;
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, 
+         "%s:\n Entered mask eval table cell, cell modified %d \n", 
+         FuncName, TF->cell_modified);
+   }
+
+   if (TF->cell_modified<0) SUMA_RETURNe;
+   n = TF->cell_modified;
+   row = n % TF->Ni;
+   col = n / TF->Ni;
+   XtVaGetValues(TF->cells[n], XmNvalue, &cv, NULL);
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s, %s\n", 
+                           FuncName, row, col, (char *)cv, TF->str_value[n]);
+   }
+
+   an = SUMA_SetMaskEvalTableValueNew(row, col,
+                          (char *)cv,
+                          0, 1, TF->num_units);
+   if (an < 0) {
+      SUMA_BEEP; 
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_SetMaskTableValue (void *data) 
+{
+   static char FuncName[]={"SUMA_cb_SetMaskTableValue"};
    SUMA_ALL_DO *ado=NULL;
    int n=-1,row=-1,col=-1, an=0;
    void *cv=NULL; 
@@ -1096,26 +1408,28 @@ SUMA_Boolean  SUMA_InitMasksTable_row(SUMA_X_SurfCont *SurfCont,
    
    /* get rid of initial delete press */
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable,row, 0, "x");
+
+   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable,row, 1, mdo->varname);
    
-   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 1, 
+   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 2, 
                            ADO_LABEL((SUMA_ALL_DO *)mdo));
 
    if      (MDO_IS_SPH(mdo)) {
-      SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 2, "sphere");
+      SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 3, "sphere");
    } else if (MDO_IS_BOX(mdo)) {
-      SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 2, "box");
+      SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 3, "box");
    } else {
       SUMA_S_Err("Not ready for type %s, not here at least", mdo->mtype);
    }
    
-   SUMA_RGBA_to_string(mdo->cen, 3, 1.0, str, NULL, ",",3);
-   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 3,  str);
-   
-   SUMA_RGBA_to_string(mdo->hdim, 3, 1.0, str, NULL, ",",3);
+   SUMA_RGBA_to_string(mdo->cen, 3, 1.0, str, NULL, ",",4);
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 4,  str);
+   
+   SUMA_RGBA_to_string(mdo->hdim, 3, 1.0, str, NULL, ",",5);
+   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 5,  str);
 
    SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",",-1);
-   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 5,  str);
+   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 6,  str);
    
    SUMA_RETURN(YUP);
 }
@@ -1543,7 +1857,6 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
    if (!(SurfCont=SUMAg_CF->X->AllMaskCont)) {
       SUMA_RETURN(0);
    }
-   
       
    TF = SurfCont->MaskTable;
    if (!TF) setmen = 0; /* can't set nothing */
@@ -1573,7 +1886,18 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
    mdo = (SUMA_MaskDO *)ado;
    /* What are we dealing with ? */
    switch (col) {
-      case 1:  
+      case 1:
+         if (SUMA_MDO_OkVarName(s1)) {
+            if (setmen) {
+               SUMA_INSERT_CELL_STRING(TF, row, col, mdo->varname);
+            }
+            SUMA_MDO_SetVarName(mdo, s1);
+            init_row = 2;
+         } else {
+            SUMA_INSERT_CELL_STRING(TF, row, col, mdo->varname);
+         }
+         break;
+      case 2:  
          SUMA_LHv("Setting Label of %s to %s, isCur=%d [%d %d] \n", 
                    ADO_LABEL(ado), s1, isCur, row, col);
          if (SUMA_MDO_New_Label(mdo, s1)) {
@@ -1588,7 +1912,7 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
                SUMA_INSERT_CELL_STRING(TF, row, col, ADO_LABEL(ado));
          }
          break;
-      case 2:
+      case 3:
          SUMA_LHv("Setting Type of %s to %s, isCur=%d [%d %d] \n", 
                    mdo->mtype, s1, isCur, row, col);
          if (SUMA_Ok_Sym_MaskDO_Type(s1)) {
@@ -1606,7 +1930,7 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
                SUMA_INSERT_CELL_STRING(TF, row, col, mdo->mtype);
          }
          break;
-      case 3:
+      case 4:
          SUMA_LHv("Setting Center of %f %f %f to %s, isCur=%d [%d %d] \n", 
                    mdo->cen[0], mdo->cen[1], mdo->cen[2], s1, isCur, row, col);
          fv = SUMA_string_to_RGBA(s1, NULL, 1.0, &Err);
@@ -1625,7 +1949,7 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
             SUMA_INSERT_CELL_STRING(TF, row, col, str);
          }
          break;
-      case 4:
+      case 5:
          SUMA_LHv("Setting Size of %f %f %f to %s, isCur=%d [%d %d] \n", 
                   mdo->hdim[0], mdo->hdim[1], mdo->hdim[2], s1, isCur, row, col);
          fv = SUMA_string_to_RGBA(s1, NULL, 1.0, &Err);
@@ -1644,7 +1968,7 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
             SUMA_INSERT_CELL_STRING(TF, row, col, str);
          }
          break;
-      case 5:
+      case 6:
          SUMA_LHv("Setting color of %f %f %f %f to %s, isCur=%d [%d %d] \n", 
                   mdo->colv[0], mdo->colv[1], mdo->colv[2], mdo->colv[3], 
                   s1, isCur, row, col);
@@ -1669,9 +1993,122 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
          break;
    }
    
-   if (init_row) {
+   if (init_row == 1) {
       SUMA_InitMasksTable_row(SurfCont, mdo, row);
+   } else if (init_row == 2) { /* The whole table needs love */
+      SUMA_InitMasksTable(SurfCont);
    }
+   
+   /* Now, you need to redraw the deal */
+   if (redisplay) {
+      DList *list = NULL;
+      /* redisplay */
+      if (!list) list = SUMA_CreateList ();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                         SES_Suma, NULL); 
+      if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+   }   
+      
+   
+   SUMA_RETURN(1);
+}
+
+char *SUMA_GetMaskEvalExpr(void) 
+{
+   static char FuncName[]={"SUMA_GetMaskEvalExpr"};
+   static int icall=0;
+   static char expv[10][128];
+   char *exp=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   
+   SUMA_ENTRY;
+   
+   ++icall;
+   if (icall > 9) icall = 0;
+   exp = expv[icall];
+   exp[0] = '\0';
+   
+   if (!(SurfCont=SUMAg_CF->X->AllMaskCont) || 
+       !(TF = SurfCont->MaskEvalTable) ||
+       TF->Ni < 1 /* Ensure it is actually created */) {
+      SUMA_RETURN(exp);
+   }
+   
+   if (TF->str_value[1*TF->Ni+0]) {
+      strncpy(exp, TF->str_value[1*TF->Ni+0], 127);
+   }
+   SUMA_RETURN(exp);   
+}
+
+int SUMA_SetMaskEvalTableValueNew(  int row, int col,
+                                char *s1, 
+                                int setmen, 
+                                int redisplay, 
+                                SUMA_NUMERICAL_UNITS num_units) 
+{
+   static char FuncName[]={"SUMA_SetMaskEvalTableValueNew"};
+   int NewDisp=0, isCur=0, Err=0, init_row=0;
+   SUMA_MaskDO *mdo=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   float *fv;
+   SUMA_ALL_DO *ado=NULL;
+   char str[256];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (LocalHead) {
+      SUMA_LH("Called on cell[%d %d] with %s", row, col, s1?s1:"NULL");
+      SUMA_DUMP_TRACE("Who called SUMA_SetMaskEvalTableValueNew?");
+   }
+   
+   if (!(SurfCont=SUMAg_CF->X->AllMaskCont)) {
+      SUMA_RETURN(0);
+   }
+   
+      
+   TF = SurfCont->MaskEvalTable;
+   if (!TF) setmen = 0; /* can't set nothing */
+   
+   if (num_units == SUMA_PERC_VALUE_UNITS) {
+      SUMA_S_Err("No percentiles allowed here");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (row < 0) {
+      SUMA_S_Err("What is for row %d < 0?", row); SUMA_RETURN(NOPE);
+   }
+   if (col < 1) {
+      SUMA_S_Err("What is for col %d < 1?", col); SUMA_RETURN(NOPE);
+   }
+   NewDisp = NOPE;
+   
+   /* What are we dealing with ? */
+   switch (col) {
+      case 1:  
+         SUMA_LHv("Setting expression to %s [%d %d] \n"
+                  "Need function to test expression for correctness ...\n", 
+                    s1, row, col);
+         if (1) { /* Need: if (SUMA_OK_Expression(s1)) */
+            if (setmen) {
+               SUMA_INSERT_CELL_STRING(TF, row, col, s1);
+            } else { /* Just the table field */
+               if (TF->str_value) { 
+                  SUMA_STRING_REPLACE(TF->str_value[col*TF->Ni+row], s1);
+               }
+            }
+         } else { /* failed, reset string */
+            SUMA_INSERT_CELL_STRING(TF, row, col, 
+                                    TF->str_value[col*TF->Ni+row]);
+         }
+         break;
+      default:
+         SUMA_SL_Err("You make me sick");
+         break;
+   }
+   
    /* Now, you need to redraw the deal */
    if (redisplay) {
       DList *list = NULL;

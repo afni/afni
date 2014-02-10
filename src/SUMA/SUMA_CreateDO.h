@@ -300,6 +300,9 @@ SUMA_Boolean SUMA_Draw_SO_Dset_Contours(SUMA_SurfaceObject *SO,
                                SUMA_SurfaceViewer *sv);
 SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
 SUMA_MaskDO *SUMA_SymMaskDO(char *s, char *mtype, char *hid, byte mtypeonly);
+SUMA_Boolean SUMA_MDO_OkVarName(char *this);
+SUMA_Boolean SUMA_MDO_SetVarName(SUMA_MaskDO *mdo, char *this);
+SUMA_MaskDO *SUMA_MDO_GetVar(char *vn);
 SUMA_Boolean SUMA_AccessorizeMDO(SUMA_MaskDO *MDO);
 SUMA_Boolean SUMA_isSymMaskDO(char *s, char *mtype);
 SUMA_Boolean SUMA_Ok_Sym_MaskDO_Type(char *mtype);
