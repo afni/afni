@@ -771,17 +771,29 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
                 XEvent *ev , Boolean *continue_to_dispatch );
 void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data, 
                                      XtPointer callData);
-void SUMA_cb_SetMaskTypeTableValue (void *data);
+void SUMA_cb_SetMaskTableValue (void *data);
 void SUMA_MaskTableLabel_EV ( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );
 void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );
+void SUMA_MaskEvalTableCell_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch );
+void SUMA_MaskEvalTableLabel_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch );
+int SUMA_SetMaskEvalTableValueNew(  int row, int col,
+                                char *s1, 
+                                int setmen, 
+                                int redisplay, 
+                                SUMA_NUMERICAL_UNITS num_units);
+char *SUMA_GetMaskEvalExpr(void);
+void SUMA_cb_SetMaskEvalTableValue (void *data);
+void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, 
+                                 XtPointer client_data);
 SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows);
 void SUMA_delete_mask_timeout_CB( XtPointer client_data , XtIntervalId * id);
 void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs);
 SUMA_MaskDO * SUMA_findanyMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
 SUMA_MaskDO * SUMA_findanyMDOp(int *dov_id);
-SUMA_Boolean  SUMA_InitMasksTable(SUMA_X_SurfCont *SurfCont);
 DList *SUMA_AssembleMasksList(int withShadow);
 DList *SUMA_AssembleMasksList_inDOv(SUMA_DO *dov, int N_dov, int withShadow);
 SUMA_Boolean  SUMA_InitMasksTable(SUMA_X_SurfCont *SurfCont);

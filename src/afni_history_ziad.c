@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 10, Feb, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Changed ordering of objects displayed to prevent graph text masking",
+   NULL,
+ }, 
+ 
  { 6, Feb, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Increased Maximum number of viewers to 10 for Javier's desire",
    "To allow the increase without needlessly waisting memory,\n"

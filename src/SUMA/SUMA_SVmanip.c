@@ -4458,6 +4458,9 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->XhairTable = SUMA_AllocTableField();
    SurfCont->MaskTable = SUMA_AllocTableField();
+   SurfCont->MaskEvalTable = SUMA_AllocTableField();
+   SurfCont->MaskEval_tb = NULL;
+   SurfCont->UseMaskEval = 0;
    SurfCont->DeleteMask_pb = NULL;
    SurfCont->DeleteMask_first = YUP;
    SurfCont->DeleteMask_row = -1;
@@ -4603,6 +4606,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->SetRangeTable) SUMA_FreeTableField (SurfCont->SetRangeTable);
    if (SurfCont->RangeTable) SUMA_FreeTableField (SurfCont->RangeTable);
    if (SurfCont->MaskTable) SUMA_FreeTableField (SurfCont->MaskTable);
+   if (SurfCont->MaskEvalTable) SUMA_FreeTableField (SurfCont->MaskEvalTable);
    if (SurfCont->XhairTable) SUMA_FreeTableField (SurfCont->XhairTable);
    if (SurfCont->NodeTable) SUMA_FreeTableField (SurfCont->NodeTable);
    if (SurfCont->FaceTable) SUMA_FreeTableField (SurfCont->FaceTable);

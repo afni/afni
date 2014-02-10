@@ -1234,6 +1234,9 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define SUMA_SurfContHelp_MaskTypeTbl_c1 \
    "Label."
 
+#define SUMA_SurfContHelp_MaskTypeTbl_c05 \
+   "Variable symbol."
+
 #define SUMA_SurfContHelp_MaskTypeTbl_c2 \
    "Type string (box or sphere allowed)."
 
@@ -1252,6 +1255,9 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define SUMA_SurfContHelp_MaskTypeTbl_r1  \
    "Range of values in intensity (I) column."
 
+#define SUMA_SurfContHelp_EvalMaskExpr_r0 \
+   "Masking expression."
+   
 #define SUMA_SurfContHelp_GDSET_ViewBundles \
    "Show bundles instead of edges between nodes if \n"\
    "the graph dataset contains such information. For\n"\

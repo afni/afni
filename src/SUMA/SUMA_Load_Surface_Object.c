@@ -1329,7 +1329,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          
       case SUMA_SUREFIT:
          /* Allocate for SF */
-         SF = (SUMA_SureFit_struct *) SUMA_malloc(sizeof(SUMA_SureFit_struct));   
+         SF = (SUMA_SureFit_struct *) SUMA_calloc(1, 
+                                        sizeof(SUMA_SureFit_struct));   
          if (SF == NULL) {
             fprintf( SUMA_STDERR,
                      "Error %s: Failed to allocate for SF\n", FuncName);
@@ -1419,13 +1420,6 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                SO->SUMA_VolPar_Aligned = YUP;
          }
          
-         /* free SF */
-         if (!SUMA_Free_SureFit (SF)) {
-            fprintf( SUMA_STDERR,
-                     "Error %s: Failed in SUMA_Free_SureFit.\n", FuncName);
-            SUMA_RETURN (NULL);
-         }
-         
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
          SUMA_NEW_ID(SO->idcode_str, stmp);
 
@@ -1433,6 +1427,14 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          else SO->normdir = -1;
          
          /* SUMA_Show_SureFit(SF, SUMA_STDERR); */
+         
+         /* free SF */
+         if (!SUMA_Free_SureFit (SF)) {
+            fprintf( SUMA_STDERR,
+                     "Error %s: Failed in SUMA_Free_SureFit.\n", FuncName);
+            SUMA_RETURN (NULL);
+         }
+         
          break;
    } /* SO_FileType*/
    

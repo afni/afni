@@ -950,7 +950,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                SUMA_LHv("Node 0 RAI:     [%f, %f, %f]\n",
                         SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]);  
          } else {
-            float D[3];
+            float D[3]={0.0, 0.0, 0.0};
             /* Calcluate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
             SUMA_LHv("caret_version: %f\n"
@@ -1032,7 +1032,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
          break;
    }
    
-   if (!SUMA_Apply_VolReg_Trans (SO)) {
+   if (SO->VolPar && !SUMA_Apply_VolReg_Trans (SO)) {
       fprintf( SUMA_STDERR,
                "Error %s: Failed in SUMA_Apply_VolReg_Trans.\n", FuncName);
       SUMA_RETURN (NOPE);

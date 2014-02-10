@@ -1622,6 +1622,9 @@ typedef struct {
    SUMA_TABLE_FIELD *SetRangeTable; /*!< structure for range setting table */
    SUMA_TABLE_FIELD *RangeTable; /*!< structure for range  table */
    SUMA_TABLE_FIELD *MaskTable;
+   SUMA_TABLE_FIELD *MaskEvalTable;
+   Widget MaskEval_tb;
+   SUMA_Boolean UseMaskEval;
    SUMA_TABLE_FIELD *XhairTable; /*!< structure for Cross hair  table */
    SUMA_TABLE_FIELD *NodeTable; /*!< structure for node index  table */
    SUMA_TABLE_FIELD *FaceTable;
@@ -3076,6 +3079,8 @@ typedef struct {
    SUMA_SurfaceObject *SO; /* Surface defining mask shape */ 
    
    GLfloat *colv;
+   
+   char varname[3];
 } SUMA_MaskDO;
 
 
@@ -3200,7 +3205,8 @@ typedef struct {
 
 /*! structure containing a mapping of one surface to another*/
 typedef struct {
-   float *NewNodeList; /*!< N_Node x 3 vector containing new mapping of node coordinates */
+   float *NewNodeList; /*!< N_Node x 3 vector containing new mapping 
+                           of node coordinates */
    int N_Node; /*!< Number of nodes in NodeList */
    float *NodeVal; 
    float *NodeCol;
@@ -3213,7 +3219,8 @@ typedef struct {
    char name_coord[SUMA_MAX_NAME_LENGTH];
    int N_Node; /*!< Number of nodes */
    float *NodeList; /*!< N_Node x 3 vector containing node coordinates */
-   int *NodeId; /*!< Node ID, that's normaly from 0..N_Nodes-1 but since it's in .coord file, I keep it anyway */
+   int *NodeId; /*!< Node ID, that's normaly from 0..N_Nodes-1 but 
+                    since it's in .coord file, I keep it anyway */
    byte *allzerocoord;
    char encoding_coord[100];
    char configuration_id[100];
@@ -3224,13 +3231,15 @@ typedef struct {
    char date[100];
    char perimeter_id[100];
    int N_Node_Specs; /*!< Number of nodes with listed node specs */
-   int **Specs_mat; /*!< Node Specs matrix. Columns appear to be arraged as such NodeId #Neighbors ? ? NodeId ? */
+   int **Specs_mat; /*!< Node Specs matrix. Columns appear to be 
+                         arraged as such NodeId #Neighbors ? ? NodeId ? */
    SUMA_NODE_FIRST_NEIGHB FN; /*!< First order neighbor structure */
    int N_FaceSet; /*!< Number of polygons making up surface */
    int *FaceSetList; /*!< definition of polygons. Became a vector in SUMA 1.2*/
    /* Param Files */
    char name_param[SUMA_MAX_NAME_LENGTH];
-   float AC_WholeVolume[3]; /*!< XYZ (from .Orient.params file) of Anterior Comissure of whole volume */
+   float AC_WholeVolume[3]; /*!< XYZ (from .Orient.params file) 
+                               of Anterior Comissure of whole volume */
    float AC[3]; /*!< XYZ of Anterior Comissure of cropped volume */
    float CropMin[3];
    float CropMax[3];
