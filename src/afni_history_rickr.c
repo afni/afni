@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Feb, 2014, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "show TRs per run, applied and censored",
+   NULL
+ } ,
+
  {  6,  Feb, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "-help examples start with 'Example', for searching",
    NULL
