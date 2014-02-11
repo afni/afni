@@ -264,14 +264,16 @@ echo ""
 # ------------------------------------------------------------
 # note number of runs, TRs per run, and possibly censored TRs per run
 set nruns = ( `1d_tool.py -infile X.xmat.1D -show_num_runs` )
-set trs   = ( `1d_tool.py -infile X.xmat.1D -show_tr_run_counts trs` )
+set trs   = ( `1d_tool.py -infile X.xmat.1D -show_tr_run_counts trs_no_cen` )
 echo "num runs found            : $nruns"
 echo "num TRs per run           : $trs"
 
 if ( $was_censored ) then
+   set tra = ( `1d_tool.py -infile $xmat_regress -show_tr_run_counts trs`)
    set trc = ( `1d_tool.py -infile $xmat_regress -show_tr_run_counts trs_cen`)
    set trf = ( `1d_tool.py -infile $xmat_regress -show_tr_run_counts frac_cen`)
-   echo "num censored TRs per run  : $trc"
+   echo "num TRs per run (applied) : $tra"
+   echo "num TRs per run (censored): $trc"
    echo "fraction censored per run : $trf"
 endif
 
@@ -298,24 +300,26 @@ echo "degress of freedom left   : $dof_rem"
 echo ""
 """
 
-g_censor_results_str = """
+
+g_reg_counts_str = """
 # ----------------------------------------------------------------------
-# report censoring results (if applicable)
+# report TR counts per stim, and possibly censor counts
+
+# note number of regressors of interest
+set rc = ( `1d_tool.py -infile $xstim -show_rows_cols -verb 0` )
+set nint = $rc[2]
+@ nm1 = $nint - 1
+
 if ( $was_censored ) then
     set ntr_censor = `cat $censor_dset | grep 0 | wc -l`
     echo "TRs censored              : $ntr_censor"
     echo "censor fraction           : `ccalc $ntr_censor/$total_trs`"
-
-    # note number of regressors of interest
-    set rc = ( `1d_tool.py -infile $xstim -show_rows_cols -verb 0` )
-    set nint = $rc[2]
     echo "num regs of interest      : $nint"
 
     # compute fractions of stimulus TRs censored in each
     set stim_trs = ()
     set stim_trs_censor = ()
     set stim_frac_censor = ()
-    @ nm1 = $nint - 1
     foreach index ( `count -digits 1 0 $nm1` )
         # count response TRs, with and without censoring
         # (their difference is the number of TRs lost to censoring)
@@ -336,9 +340,19 @@ if ( $was_censored ) then
     echo "num TRs censored per stim : $stim_trs_censor"
     echo "fraction TRs censored     : $stim_frac_censor"
     echo ""
-endif  # $was_censored
+else
+    # no censoring - just compute num TRs per regressor
+    set stim_trs = ()
+    foreach index ( `count -digits 1 0 $nm1` )
+        set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
+        set stim_trs = ( $stim_trs $st )
+    end
+    echo "num regs of interest      : $nint"
+    echo "num TRs per stim          : $stim_trs"
+endif
 
 """
+
 
 # rcr - do not include this...
 g_basic_count_sfiles = """
@@ -558,9 +572,10 @@ g_history = """
    0.29 Dec 16, 2013: fixed use of num_trs with censoring
    0.30 Dec 26, 2013: max F (and for cluster jump) are masked, if possible
    0.31 Dec 27, 2013: also output censored TRs per run, and fractions
+   0.32 Feb 10, 2014: show TRs per run, applied and censored
 """
 
-g_version = "gen_ss_review_scripts.py version 0.31, December 27, 2013"
+g_version = "gen_ss_review_scripts.py version 0.32, February 10, 2014"
 
 g_todo_str = """
    - figure out template_space
@@ -1696,7 +1711,7 @@ class MyInterface:
       if self.basic_overview(): return 1
 
       # most of script is just raw text
-      self.text_basic += g_censor_results_str
+      self.text_basic += g_reg_counts_str
       if self.uvars.is_not_empty('mask_dset') and \
          self.uvars.is_not_empty('tsnr_dset'):
          self.text_basic += g_basic_tsnr_str
