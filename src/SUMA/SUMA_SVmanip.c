@@ -3906,6 +3906,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->SumaCont = SUMA_CreateSumaContStruct();
    cf->X->DrawROI = SUMA_CreateDrawROIStruct();
    cf->X->AllMaskCont = NULL;
+   cf->X->MaskStateID = 0;
    cf->X->DPY_controller1 = NULL;
    memset(&(cf->X->App), 0, sizeof(XtAppContext)); /* a futile effort 
                   to get rid of Conditional jump or move messages from

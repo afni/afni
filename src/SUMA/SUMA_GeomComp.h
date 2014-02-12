@@ -149,12 +149,16 @@ double SUMA_SigForFWHM(float AvgLe, double dfwhm, int *niter, double *beta);
 float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO);
 float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin, 
-                           int vpn, SUMA_INDEXING_ORDER d_order, float *fout_user,
+                        int vpn, SUMA_INDEXING_ORDER d_order, float *fout_user,
                            SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
 SUMA_Boolean SUMA_Chung_Smooth_dset (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, SUMA_DSET *dset, 
                            SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask);
 SUMA_Boolean SUMA_DotNormals(SUMA_SurfaceObject *SO, float *dir, float **dots);
+SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
+                                      SUMA_MASK_EVAL_PARAMS **mepp);
+SUMA_MASK_EVAL_PARAMS *SUMA_FreeMaskEval_Params(SUMA_MASK_EVAL_PARAMS *mep);
+SUMA_MASK_EVAL_PARAMS *SUMA_AllocMaskEval_Params(void);
 
 /* NOTE THAT x passed to the macro must be in units of distance^2 */
 #define SUMA_CHUNG_KERNEL_NUMER(x,s) (exp(-(x)/(2.0*(s)*(s)))) 
@@ -408,7 +412,7 @@ int SUMA_PlaneBoxSlice( float *cam, float *PlEq,
                                  float *cvert, 
                                  float *pv, int *hits, float *PlOff, int N_slc);
 int SUMA_TractMaskIntersect(SUMA_TractDO *TDO, SUMA_MaskDO *MDO, byte **IsInp);
-int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, byte **IsInp, char *expr);
+int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, char *expr);
 
 /*!
    Macros to merge / join two lists together

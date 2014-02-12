@@ -139,6 +139,7 @@
    #include "SUMA_prototype.h"
    #include "SUMA_ParseCommands.h"  
    #include "SUMA_niml.h"
+   #include "SUMA_ExpEval.h"
    #include "SUMA_Engine.h"
    #include "SUMA_display.h"
    #include "SUMA_input.h"   

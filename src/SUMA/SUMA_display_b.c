@@ -422,6 +422,7 @@ void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, XtPointer client_data
    static char FuncName[]={"SUMA_cb_UseMaskEval_toggled"};
    SUMA_ALL_DO *ado = NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
+   DList *list=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -430,9 +431,14 @@ void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, XtPointer client_data
    
    SurfCont = SUMAg_CF->X->AllMaskCont;
    
-         
    SurfCont->UseMaskEval = XmToggleButtonGetState (SurfCont->MaskEval_tb);
-   
+   SUMA_NEW_MASKSTATE();
+   /* redisplay */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                      SES_Suma, NULL); 
+   if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+
    SUMA_RETURNe;
 }
 
@@ -641,18 +647,14 @@ void SUMA_MaskEvalTableCell_EV ( Widget w , XtPointer cd ,
       case 0:
          break;
       case 1:
-         SUMA_LH("Need to set label for mask %s", ADO_LABEL(ado));
          break;
       case 2:
-         SUMA_LH("Need to set type for mask %s", ADO_LABEL(ado));
          break;
       case 3:
-         SUMA_LH("Need to set center for mask %s", ADO_LABEL(ado));
          break;
       case 4:
          break;
       case 5:
-         SUMA_LH("Need to set color for mask %s", ADO_LABEL(ado));
          break;
       default:
          SUMA_SL_Err("Did not know you had so many");
@@ -755,6 +757,7 @@ void SUMA_MaskTableLabel_EV ( Widget w , XtPointer cd ,
                   SUMA_S_Err("Failed to add row");
                   SUMA_RETURNe;
                }
+               SUMA_NEW_MASKSTATE();
                /* redisplay */
                if (!list) list = SUMA_CreateList ();
                SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
@@ -1651,6 +1654,8 @@ void SUMA_cb_Mask (Widget w, XtPointer client_data, XtPointer callData)
       XtSetSensitive(SurfCont->TractMaskMenu->mw[SW_SurfCont_TractMask], 1);
       XtSetSensitive(SurfCont->TractMaskGray->rc, 1);
       
+      SUMA_NEW_MASKSTATE();
+
       /* Redisplay related */
       SUMA_RedisplayAllShowing(iDO_idcode(ido), NULL, 0);
       SUMA_RETURNe;
@@ -1809,6 +1814,8 @@ void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
             SUMA_InitMasksTable(SurfCont);
          }
       
+         SUMA_NEW_MASKSTATE();
+         
          /* redisplay */
          if (!list) list = SUMA_CreateList ();
          SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
@@ -1999,6 +2006,8 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
       SUMA_InitMasksTable(SurfCont);
    }
    
+   SUMA_NEW_MASKSTATE();
+
    /* Now, you need to redraw the deal */
    if (redisplay) {
       DList *list = NULL;
@@ -2032,6 +2041,10 @@ char *SUMA_GetMaskEvalExpr(void)
    if (!(SurfCont=SUMAg_CF->X->AllMaskCont) || 
        !(TF = SurfCont->MaskEvalTable) ||
        TF->Ni < 1 /* Ensure it is actually created */) {
+      SUMA_RETURN(exp);
+   }
+   
+   if (!SurfCont->UseMaskEval) {
       SUMA_RETURN(exp);
    }
    
@@ -2108,6 +2121,8 @@ int SUMA_SetMaskEvalTableValueNew(  int row, int col,
          SUMA_SL_Err("You make me sick");
          break;
    }
+   
+   SUMA_NEW_MASKSTATE();
    
    /* Now, you need to redraw the deal */
    if (redisplay) {

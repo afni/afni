@@ -7288,6 +7288,7 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
          xyz = (*PR)->PickXYZ;
       }
       if (LocalHead) SUMA_DUMP_TRACE("Box motion");
+      SUMA_NEW_MASKSTATE();
       SUMA_RETURN(SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, xyz));
    } else {
       ado = SUMA_whichADOg((*PR)->ado_idcode_str);
