@@ -1,7 +1,6 @@
 #ifndef SUMA_SEGFUNC_INCLUDED
 #define SUMA_SEGFUNC_INCLUDED
 
-#define IN_MASK(mm,k) ( (!(mm) || (mm)[k]) )
 
 /*!
    Swap a column between two dsets.

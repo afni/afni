@@ -14850,45 +14850,191 @@ int SUMA_PlaneBoxSlice( float *cam, float *PlEq,
    SUMA_RETURN(maxhits);
 }
 
-int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, byte **IsInp, char *expr)
+SUMA_MASK_EVAL_PARAMS *SUMA_AllocMaskEval_Params(void)
 {
-   static char FuncName[]={"SUMA_TractMasksIntersect"};      
-   int ido, N_tmask, UserPointer=0, kk=0, N_OneMask=0;
-   byte *OneMask=NULL, *IsIn=NULL;
+   static char FuncName[]={"SUMA_AllocMaskEval_Params"};
+   SUMA_MASK_EVAL_PARAMS *mep = NULL;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   mep = (SUMA_MASK_EVAL_PARAMS *)
+               SUMA_calloc(1,sizeof(SUMA_MASK_EVAL_PARAMS));
+   mep->N_vals = 0;
+   memset(mep->varcol, 0,26*4*sizeof(byte));
+   memset(mep->varsused,0,26*sizeof(byte));
+   for (i=0; i<26; ++i) mep->varsmdo[i][0]='\0'; 
+   mep->mdoused[0] = '\0';
+   mep->allvarsineq[0]='\0';
+   mep->marr = NULL;
+   mep->expr=NULL;
+   SUMA_RETURN(mep);
+}
+
+SUMA_MASK_EVAL_PARAMS *SUMA_FreeMaskEval_Params(SUMA_MASK_EVAL_PARAMS *mep)
+{
+   static char FuncName[]={"SUMA_FreeMaskEval_Params"};
+   int i = 0;
+   
+   SUMA_ENTRY;
+   
+   if (!mep) SUMA_RETURN(NULL);
+   if (mep->marr) {
+      for (i=0; i<26; ++i) SUMA_ifree(mep->marr);
+      SUMA_ifree(mep->marr);
+   }
+   
+   SUMA_ifree(mep->expr);
+   SUMA_free(mep);
+   
+   SUMA_RETURN(NULL);
+}
+       
+SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
+                                      SUMA_MASK_EVAL_PARAMS **mepp)
+{
+   static char FuncName[]={"SUMA_PrepMaskEval_Params"};
+   int ido, ivar, i, n;
    SUMA_ALL_DO *ado=NULL;
+   SUMA_MaskDO *mdo=NULL;
+   char *c=NULL;
+   SUMA_MASK_EVAL_PARAMS *mep=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   N_tmask = 0;
+   if (N_vals <= 0 || !mepp || !expr) {
+      SUMA_RETURN(NOPE);   
+   }
+   if (*mepp) {
+      mep = *mepp;
+   } else {
+      mep = 
+      *mepp = mep;
+   }
+   
+   SUMA_STRING_REPLACE(mep->expr, expr);
+    
+   /* What variables are needed? */
+   c = expr;
+   memset(mep->varsused, 0, 26*sizeof(byte));
+   memset(mep->varcol, 0, 26*4*sizeof(byte));
+   while (*c != '\0') {
+      if (*c >= 'a' && *c <='z') mep->varsused[*c-'a']=1;
+      ++c;
+   }
+   mep->allvarsineq[0]='\0';
+   for (n=0,i=0; i<26; ++i) {
+      if (mep->varsused[i]) mep->allvarsineq[n]=i+'a';
+   }
+   mep->varsused[i]='\0';
+   
+   /* How does N_vals square with what was available */
+   if (N_vals != mep->N_vals) {
+      /* Must cleanup */
+      if (mep->marr) {
+         for (i=0; i<26; ++i) SUMA_ifree(mep->marr[i]);
+      }
+      mep->N_vals = N_vals;
+   }
+   
+   if (!mep->marr) {
+      mep->marr = (byte**)SUMA_calloc(26, sizeof(byte*));
+   }
+   /* Now allocate for what we need, free what we don't */
+   for (i=0; i<26; ++i) {
+      if (mep->varsused[i]) {
+         if (!mep->marr[i]) {
+            mep->marr[i] = (byte *)SUMA_calloc(mep->N_vals, sizeof(byte));
+         } else {
+            memset(mep->marr[i], 0, mep->N_vals*sizeof(byte));
+         }
+         if (!mep->marr[i]){
+            SUMA_S_Err("Failure of love or compassion.");
+            SUMA_RETURN(NOPE);
+         }
+      } else {
+         /* save space */
+         if (mep->marr[i]) SUMA_ifree(mep->marr[i]);
+      }
+   }
+      
+   mep->mdoused[0] = '\0';
+    
+   for (ido=0; ido<SUMAg_N_DOv; ++ido) {
+      ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
+      if (ado->do_type == MASK_type &&
+          !MDO_IS_SHADOW((SUMA_MaskDO *)ado)) {
+         mdo = (SUMA_MaskDO *)ado;
+         ivar = mdo->varname[0]-'a';
+         if (ivar >=0 && ivar < 26) {
+            if ( mep->varsused[ivar]) {
+               SUMA_LH("TDO %s, var. %c in use in %s\n",
+                        ADO_LABEL(ado), mdo->varname[0], expr);
+               strcpy(mep->varsmdo[ivar], ADO_ID(ado));
+               if (!strstr(mep->mdoused, ADO_ID(ado))) 
+                                 strcat(mep->mdoused,ADO_ID(ado));
+               mep->varcol[4*ivar+0] = 
+                  (byte)SUMA_MIN_PAIR(255,mdo->colv[0]*255);
+               mep->varcol[4*ivar+1] = 
+                  (byte)SUMA_MIN_PAIR(255,mdo->colv[1]*255);
+               mep->varcol[4*ivar+2] = 
+                  (byte)SUMA_MIN_PAIR(255,mdo->colv[2]*255);
+               mep->varcol[4*ivar+3] = 
+                  (byte)SUMA_MIN_PAIR(255,mdo->colv[3]*255);
+            } else {
+               mep->varsmdo[ivar][0]='\0';
+            }
+         } else {
+            SUMA_S_Warn("Bad variable name: %s", mdo->varname);
+         }
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+
+int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, char *expr)
+{
+   static char FuncName[]={"SUMA_TractMasksIntersect"};      
+   int ido, kk=0, N_OneMask=0;
+   byte *OneMask=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
    
    if (!expr || expr[0]=='\0') expr = "or";
-   if (!TDO || !IsInp) SUMA_RETURN(N_tmask);
+   if (!TDO) SUMA_RETURN(-1);
    
-   if (*IsInp) {
-      UserPointer = 1;
-      IsIn = *IsInp;
-   } else {
-      UserPointer = 0;
-      IsIn = NULL;
+   if (TDO->MaskStateID == SUMAg_CF->X->MaskStateID) {
+      SUMA_LH("MaskStateID matches, nothing to update");
+      SUMA_RETURN(TDO->N_tmask);
    }
    
    if (!strcasecmp(expr,"or")) {
       SUMA_LH("OR combo");
-      N_tmask = 0;
+      if (TDO->tmask) memset(TDO->tmask, 0, sizeof(byte)*TDO_N_TRACTS(TDO));
+      TDO->N_tmask = 0;
+      SUMA_ifree(TDO->tcols); TDO->usetcols = 0;
       for (ido=0; ido<SUMAg_N_DOv; ++ido) {
          ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
          if (ado->do_type == MASK_type &&
              !MDO_IS_SHADOW((SUMA_MaskDO *)ado)) {
             SUMA_LH("Computing intersection with %s", ADO_LABEL(ado));
-            N_tmask += SUMA_TractMaskIntersect(TDO, (SUMA_MaskDO *)ado, IsInp);
-            SUMA_LH("Now have %d tracts in mask", N_tmask);
+            TDO->N_tmask += SUMA_TractMaskIntersect(TDO, (SUMA_MaskDO *)ado, 
+                                               &TDO->tmask);
+            SUMA_LH("Now have %d tracts in mask", TDO->N_tmask);
          }
       }
-      SUMA_RETURN(N_tmask);
+      TDO->MaskStateID = SUMAg_CF->X->MaskStateID;
+      SUMA_RETURN(TDO->N_tmask);
    } else if (!strcasecmp(expr,"and")) {
       SUMA_LH("AND combo");
-      N_tmask = 0;
+      TDO->N_tmask = 0;
+      SUMA_ifree(TDO->tcols); TDO->usetcols = 0;
       OneMask = (byte *)SUMA_calloc(TDO_N_TRACTS(TDO), sizeof(byte));
       if (!OneMask) {
          SUMA_S_Crit("Failed to allocate");
@@ -14903,41 +15049,84 @@ int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, byte **IsInp, char *expr)
                                                 (SUMA_MaskDO *)ado, &OneMask);
             if (N_OneMask > 0) {
                /* something is there */
-               if (!IsIn) { /* Steal the pointer */
-                  IsIn = OneMask; OneMask = NULL;
+               if (!TDO->tmask) { /* Steal the pointer */
+                  TDO->tmask = OneMask; OneMask = NULL;
                } else { /* Do the and operation */
                   for (kk=0; kk<TDO_N_TRACTS(TDO); ++kk) {
-                     if (IsIn[kk] && OneMask[kk]) IsIn[kk]=1;
-                     else IsIn[kk]=0;
+                     if (TDO->tmask[kk] && OneMask[kk]) TDO->tmask[kk]=1;
+                     else TDO->tmask[kk]=0;
                   }
                   memset(OneMask, 0, sizeof(byte)*TDO_N_TRACTS(TDO));
                }
             } else {/* Nothing to keep, get out NOW */
-               if (UserPointer) { /* user passed pointer, memset it */
-                  memset(*IsInp, 0, sizeof(byte)*TDO_N_TRACTS(TDO));
-               } else {
-                  *IsInp = NULL; /* just to be sure */
+               if (TDO->tmask) { 
+                  memset(TDO->tmask, 0, sizeof(byte)*TDO_N_TRACTS(TDO));
                }
-               if (OneMask != IsIn) SUMA_ifree(OneMask);
-               if (IsIn != *IsInp) SUMA_ifree(IsIn);
-               N_tmask = 0;
-               SUMA_RETURN(N_tmask);
+               if (OneMask != TDO->tmask) SUMA_ifree(OneMask);
+               TDO->N_tmask = 0;
+               SUMA_RETURN(TDO->N_tmask);
             }
          }
       }
       /* Count values in the mask */
-      N_tmask = 0;
+      TDO->N_tmask = 0;
       for (kk=0; kk<TDO_N_TRACTS(TDO); ++kk) {
-         if (IsIn[kk]) ++N_tmask;
+         if (TDO->tmask[kk]) ++TDO->N_tmask;
       }
-      if (IsInp) *IsInp = IsIn;
-      SUMA_RETURN(N_tmask); 
+      SUMA_ifree(OneMask);
+      TDO->MaskStateID = SUMAg_CF->X->MaskStateID;
+      SUMA_RETURN(TDO->N_tmask); 
    } else {
-      SUMA_S_Err("Not sure what to make of expr >%s<", expr);
+      /* initialize the expression params */
+      SUMA_LH("Initializing Mask Eval Params");
+      if (!SUMA_PrepMaskEval_Params(expr, TDO_N_TRACTS(TDO), &(TDO->mep))) {
+         SUMA_S_Err("Failed to prep eval params");
+         SUMA_RETURN(0); 
+      }
+      
+      /* Now fill up the intersection masks */
+      N_OneMask=0;
+      for (kk=0; kk<26; ++kk) {
+         if (TDO->mep->varsused[kk]) {
+            if (!(ado = SUMA_whichADOg(TDO->mep->varsmdo[kk]))) {
+               SUMA_S_Err("No no no");
+               SUMA_RETURN(0);
+            }
+            SUMA_LH("Computing intersection with %s", ADO_LABEL(ado));
+            N_OneMask += SUMA_TractMaskIntersect(TDO, 
+                              (SUMA_MaskDO *)ado, &(TDO->mep->marr[kk]));
+         }
+      }
+      
+      if (N_OneMask) {
+         /* Evaluate the expression, etc, etc, */
+         SUMA_LH("Evaluating expression at all tracts");
+         if (!TDO->tcols) 
+            TDO->tcols = (byte *)SUMA_calloc(TDO_N_TRACTS(TDO)*4, sizeof(byte));
+         TDO->usetcols = 1;
+         if (!SUMA_bool_mask_eval(TDO_N_TRACTS(TDO), 26, TDO->mep->marr, 
+                                  expr, TDO->tmask, TDO->mep->varcol, 
+                                  TDO->tcols, NULL)) {
+            SUMA_S_Err("Failed to evaluate expr");
+            SUMA_RETURN(0);
+         }
+         TDO->N_tmask = 0;
+         for (kk=0; kk<TDO_N_TRACTS(TDO); ++kk) {
+            if (TDO->tmask[kk]) ++TDO->N_tmask;
+         }
+         
+         TDO->MaskStateID = SUMAg_CF->X->MaskStateID;
+         SUMA_RETURN(TDO->N_tmask); 
+      } else {
+         SUMA_LH("Nothing at all?");
+         SUMA_RETURN(TDO->N_tmask);
+      }
+      
    }
    
-   SUMA_RETURN(N_tmask);
+   SUMA_RETURN(TDO->N_tmask);
 }
+
 
 /* Find tracts intersecting a mask.
    TDO (SUMA_TractDO *) The tract object for which intersection is to be 

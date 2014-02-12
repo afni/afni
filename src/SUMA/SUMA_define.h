@@ -1886,6 +1886,8 @@ typedef struct {
    SUMA_GLCONTEXT_RECORD *Cr;
    
    SUMA_X_SurfCont *AllMaskCont;
+   int MaskStateID; /* A flag that is updated anytime masks are modified
+                       requiring a new computation of intersections */
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */
@@ -2033,6 +2035,23 @@ typedef struct {
    
 }SUMA_SphereDO;
 
+/* A structure to hold tract masking results with boolean expressions */
+typedef struct {
+   int N_vals;          /* Number of vals (tracts) in DO to be intersected */
+   byte varcol[26*4];   /* RGB colors associated with each of the 26 variables
+                           'a' to 'z' */
+   byte varsused[26];   /* varsused[k] = 1 --> variable 'a'+k is in 'expr' */
+   char varsmdo[26][1+SUMA_IDCODE_LENGTH]; /* varsmdo[k] contains the IDcode
+                                             of the object (MaskDO) corresponding
+                                             to variable 'a'+k */
+   char mdoused[26*(1+SUMA_IDCODE_LENGTH)]; /* A brute catenation of IDcodes 
+                                         of DOs referenced by the variables */
+   char allvarsineq[27]; /* A catenation of all variables in 'expr' */
+   byte **marr;          /* a pointer to 26 (byte *) pointers to arrays of
+                          N_vals bytes each. marr[k] is NULL is varsused[k]=0 */
+   char *expr;    /* The boolean expression */
+} SUMA_MASK_EVAL_PARAMS;
+
 typedef struct {
       /* FIRST VARIABLES MUST RETAIN THEIR ORDER and follow SUMA_ALL_DO */
    SUMA_DO_Types do_type; 
@@ -2058,6 +2077,13 @@ typedef struct {
                          1 elements per segment. NULL if using LineWidth */
    SUMA_STIPPLE Stipple; /*!< dashed or solid line */
 
+   SUMA_MASK_EVAL_PARAMS *mep;
+   
+   byte *tmask;
+   int N_tmask;
+   int MaskStateID;
+   byte *tcols;
+   byte usetcols;
 } SUMA_TractDO;
 
 typedef struct {
@@ -3047,6 +3073,7 @@ typedef struct {
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Load_Surface_Object in SUMA_Load_Surface_Object.c
                */  
+
 
 
 typedef struct {

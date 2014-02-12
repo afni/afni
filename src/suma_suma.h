@@ -60,7 +60,7 @@
    
       
    #define SUMA_free mcw_free
-   #define SUMA_ifree(p)  if ((p)) {SUMA_free((p));} (p)=NULL; 
+   #define SUMA_ifree(p)  { if ((p)) {SUMA_free((p));} (p)=NULL; }
    
    /* memory allocation section (SUMA_COMPILED-specific)*/
    #ifndef DONT_USE_MCW_MALLOC 
