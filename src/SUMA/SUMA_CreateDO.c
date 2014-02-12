@@ -4750,6 +4750,14 @@ SUMA_TractDO * SUMA_Alloc_TractDO (  char *Label,
 
    TDO->N_datum = -2; /* unitialized, -1 means init failed */
    
+   TDO->MaskStateID = -1;
+   TDO->N_tmask = 0;
+   TDO->tmask = NULL;
+   TDO->tcols = NULL;
+   TDO->usetcols = 0;
+   
+   TDO->mep = SUMA_AllocMaskEval_Params();
+   
    SUMA_RETURN (TDO);
 }
 
@@ -4772,8 +4780,12 @@ void SUMA_free_TractDO (SUMA_TractDO * TDO)
       } else TDO->FreeSaux(TDO->Saux);
       TDO->Saux=NULL; /* pointer freed in freeing function */
    }
-
+   
+   SUMA_ifree(TDO->tmask); SUMA_free(TDO->tcols);
+   TDO->N_tmask = 0; TDO->MaskStateID = -1;
+   
    TDO->colv = NULL; /* It is copied from the overlay colorlist */
+   TDO->mep = SUMA_FreeMaskEval_Params(TDO->mep);
    if (TDO) SUMA_free(TDO);
    
    SUMA_RETURNe;
@@ -5285,7 +5297,8 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
        !strcmp(MDO->idcode_str, sv->MouseMode_ado_idcode_str)) {
       MDO->SO->PolyMode = SRM_Line;
    } else {
-      MDO->SO->TransMode = STM_8;
+      if (!SUMAg_CF->Dev) MDO->SO->TransMode = STM_8;
+      else MDO->SO->TransMode = STM_ViewerDefault;
       MDO->SO->PolyMode = SRM_Fill;
    }
    if (MDO_IS_BOX(MDO)) {
@@ -5700,13 +5713,13 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawTractDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, i3a, i3b, n, N_pts, knet=0, n4, P, speedup = 1, N_tmask=0, ido;
+   int i, i3a, i3b, n, N_pts, knet=0, n4, P, speedup = 1, ido;
+   int usetcol=0;
    float origwidth=0.0, Un, U[4]={0.0, 0.0, 0.0, 1.0}, *pa=NULL, *pb=NULL;
    TAYLOR_TRACT *tt=NULL;
    TAYLOR_BUNDLE *tb=NULL;
    GLubyte *colid=NULL;
    byte *mask=NULL;
-   byte *tmask=NULL;
    byte color_by_mid = 0; /* this one should be interactively set ... */
    GLboolean gl_sm=FALSE, gllsm=FALSE;
    DO_PICK_VARS;
@@ -5786,10 +5799,9 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
       DO_PICK_DISABLES;
    }
    
-   N_tmask = 0;
    if (!sv->DO_PickMode || (sv->DO_PickMode && !(MASK_MANIP_MODE(sv)))) {
       /* Apply masking if not picking or picking while in mask moving mode */
-      N_tmask = SUMA_TractMasksIntersect(TDO, &tmask, SUMA_GetMaskEvalExpr());
+      SUMA_TractMasksIntersect(TDO, SUMA_GetMaskEvalExpr());
    }
    
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
@@ -5876,8 +5888,10 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
          glEnable(GL_COLOR_MATERIAL);
          glEnableClientState (GL_COLOR_ARRAY);
          glEnableClientState (GL_VERTEX_ARRAY);
-         if (!TDO->colv || colid) { /* no color list, 
-                                       or in picking mode */
+         if (!TDO->colv || colid ||
+             (TDO->tcols && TDO->usetcols)) { /* no color list, 
+                                       or in picking mode,
+                                       or using per tract color */
             glDisableClientState (GL_COLOR_ARRAY);   
             if (!colid) glColor4f(0.0, 0.0, 1.0, 1.0); /* go blue if desparate */
          }
@@ -5910,15 +5924,35 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                for (knet=0; knet<TDO->net->N_tbv; ++knet) {
                   tb = TDO->net->tbv[knet]; 
                   for (n=0; tb && n<tb->N_tracts; ++n) {
+                     usetcol=0;
                      if (colid) { /* Pick mode */
                         n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
                         glColor4ub(colid[n4], colid[n4+1], 
                                    colid[n4+2], colid[n4+3]);
+                     } else if (TDO->usetcols && TDO->tcols) {
+                        /* All this enabling and disabling will 
+                        slow things down. Consider two passes
+                        once for those with GL_COLOR_ARRAY ON
+                        and once for those with it OFF. 
+                        Alternately, consider using the gray
+                        color vector as is done for viewing the
+                        hidden bundles*/
+                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        if (!TDO->tcols[n4+3]) {
+                            usetcol = 0; /* use original coloring */
+                            glEnableClientState (GL_COLOR_ARRAY);
+                        } else {  
+                           usetcol = 1;
+                           glDisableClientState (GL_COLOR_ARRAY);
+                           glColor4ub(TDO->tcols[n4], TDO->tcols[n4+1], 
+                                      TDO->tcols[n4+2], TDO->tcols[n4+3]);
+                        }
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
-                     if (!tmask || tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
-                        if (!colid && TDO->colv) {
+                     if (!TDO->tmask || 
+                         TDO->tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                        if (!colid && TDO->colv && !usetcol) {
                            glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
                         }
                         glVertexPointer (3, GL_FLOAT, 0, tt->pts);
@@ -5948,15 +5982,32 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                for (knet=0; knet<TDO->net->N_tbv; ++knet) {
                   tb = TDO->net->tbv[knet]; 
                   for (n=0; tb && n<tb->N_tracts; ++n) {
+                     usetcol=0;
                      if (colid) { /* Pick mode */
                         n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
                         glColor4ub(colid[n4], colid[n4+1], 
                                    colid[n4+2], colid[n4+3]);
+                     } else if (TDO->usetcols && TDO->tcols) {
+                        /* All this enabling and disabling will 
+                        slow things down. Consider two passes
+                        once for those with GL_COLOR_ARRAY ON
+                        and once for those with it OFF. */
+                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        if (!TDO->tcols[n4+3]) {
+                            usetcol = 0; /* use original coloring */
+                            glEnableClientState (GL_COLOR_ARRAY);
+                        } else {  
+                           usetcol = 1;
+                           glDisableClientState (GL_COLOR_ARRAY);
+                           glColor4ub(TDO->tcols[n4], TDO->tcols[n4+1], 
+                                      TDO->tcols[n4+2], TDO->tcols[n4+3]);
+                        }
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
-                     if (!tmask || tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
-                        if (!colid && TDO->colv) {
+                     if (!TDO->tmask || 
+                         TDO->tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                        if (!colid && TDO->colv && !usetcol) {
                            glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
                         }
                         glVertexPointer (3, GL_FLOAT, 0, tt->pts);
@@ -5978,6 +6029,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                   SUMA_ifree(sbuf);
                                     
                }
+               glEnableClientState (GL_COLOR_ARRAY); /* put things back */
                /* Loop 2, draw everything not in the mask and not in stencil */
                glStencilMask(0x00); /* Don't modify stencil buffer anymore */
                                     /* Only draw where stencil is clear */
@@ -5993,7 +6045,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
-                     if (tmask && !tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                     if ( TDO->tmask && 
+                         !TDO->tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
                         if (!colid && TDO->colv) {
                            glColorPointer (4, GL_UNSIGNED_BYTE, 0, mgrayvec); 
                         }
@@ -6107,7 +6160,6 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    if (gl_sm) glEnable(GL_LINE_SMOOTH); else glDisable(GL_LINE_SMOOTH);
    if (mask) SUMA_free(mask); mask=NULL;
    SUMA_ifree(colid);
-   if (tmask) SUMA_free(tmask); tmask=NULL;
    if (!sv->DO_PickMode &&
        TDO->Stipple == SUMA_SOLID_LINE && 
        gllsm) glEnable(GL_LINE_SMOOTH); /* Put things back */
@@ -15776,6 +15828,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
    NP = SurfObj->FaceSetDim;
    switch (DRAW_METHOD) { 
       case STRAIGHT:
+         SUMA_LH("Straight");
          switch (RENDER_METHOD) {
             case TRIANGLES:
                if (NP == 3) glBegin (GL_TRIANGLES);
@@ -15816,6 +15869,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
          break;
       
       case ARRAY:
+         SUMA_LH("Array");
          /* This allows each node to follow the color 
             specified when it was drawn */ 
          glColorMaterial(Face, GL_AMBIENT_AND_DIFFUSE); 

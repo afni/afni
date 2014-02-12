@@ -739,6 +739,8 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    }  \
 }
 
+#define SUMA_NEW_MASKSTATE() (SUMAg_CF->X ? (++SUMAg_CF->X->MaskStateID):0)
+
 /*!
    \brief Get the pointer for the last visited viewer 
 */

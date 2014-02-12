@@ -169,6 +169,7 @@ typedef struct {
 #define mxvc2(mxv,i,j  )   ( mxv->cv[( (int)(i) + (int)(j) * mxv->fdfm[0]   )] )
 #define mxvc1(mxv,i  )     ( mxv->cv[( (int)(i)   )] )
 
+#define IN_MASK(mm,k) ( (!(mm) || (mm)[k]) )
 
 SUMA_MX_VEC *SUMA_FreeMxVec(SUMA_MX_VEC *mxv);
 SUMA_MX_VEC *SUMA_NewMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, 

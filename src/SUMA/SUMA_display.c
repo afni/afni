@@ -840,6 +840,7 @@ void SUMA_LoadMaskDO (char *s, void *csvp )
             SUMA_SL_Err("Failed to read tracts file.\n");
             SUMA_RETURNe;
          }
+         SUMA_NEW_MASKSTATE();
          SUMA_LH("Mask read");
          ((SUMA_MaskDO*)VDO)->do_type = dotp;
          MDO = (SUMA_MaskDO *)VDO;

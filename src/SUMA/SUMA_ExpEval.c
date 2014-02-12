@@ -50,7 +50,7 @@ char *SUMA_bool_eval( char *expr, byte *res )
   }
 }
 
-#define EVAL_DBG 1
+#define EVAL_DBG 0
 SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr,
                                  byte *res, byte *varcol, byte *rescol, 
                                  char **resstr)
@@ -59,7 +59,7 @@ SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr
    char *extmp=NULL;
    int i=0, k, A, R, G, B, ivar, n;
    float sc;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -71,8 +71,12 @@ SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr
       SUMA_S_Err("Need return pointer");
       SUMA_RETURN(NOPE);
    }
-   if ((rescol && !varcol) || (varcol && !rescol)) {
-      SUMA_S_Err("Etiher both or none");
+   if ((rescol && !varcol)) {
+      SUMA_S_Err("Need rescol for varcol");
+      SUMA_RETURN(NOPE);
+   }
+   if (resstr && !rescol) {
+      SUMA_S_Err("resstr not good without rescol");
       SUMA_RETURN(NOPE);
    }
    extmp = SUMA_copy_string(expr);
