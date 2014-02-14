@@ -36,6 +36,11 @@
 
 static Widget wwtem ;
 
+#define SWL_TMASK_DEFAULT (Mod1Mask | Mod2Mask)
+
+static int scrollwheel_tmask = SWL_TMASK_DEFAULT ;
+static int scrollwheel_debug = 0 ;
+
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog
 *************************************************************************/
@@ -1768,7 +1773,7 @@ STATUS("creation: widgets created") ;
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
- 
+
 #if 1
      iii = THD_get_image_globalrange();
      if( iii < 0 || iii > 3 ) iii = 0 ;
@@ -1986,6 +1991,26 @@ STATUS("creation: widgets created") ;
        memplot_topshell_setsaver( ".png" , memplot_to_png ) ;
        first = 0 ;
      }
+   }
+
+   /* set scrollwheel threshold modifier mask [14 Feb 2014] */
+
+   { char *eee = my_getenv("AFNI_IMAGE_SCROLLWHEEL_TMASK") ;
+     int swt = 0 ;
+     if( eee != NULL ){
+       if( strcasestr(eee,"shift")   != NULL ) swt |= ShiftMask ;
+       if( strcasestr(eee,"shft")    != NULL ) swt |= ShiftMask ;
+       if( strcasestr(eee,"ctrl")    != NULL ) swt |= ControlMask ;
+       if( strcasestr(eee,"control") != NULL ) swt |= ControlMask ;
+       if( strcasestr(eee,"mod1")    != NULL ) swt |= Mod1Mask ;
+       if( strcasestr(eee,"mod2")    != NULL ) swt |= Mod2Mask ;
+       if( strcasestr(eee,"mod3")    != NULL ) swt |= Mod3Mask ;
+       if( strcasestr(eee,"mod4")    != NULL ) swt |= Mod4Mask ;
+       if( strcasestr(eee,"mod5")    != NULL ) swt |= Mod5Mask ;
+
+       if( strcasestr(eee,"debug")   != NULL ) scrollwheel_debug = 1 ;
+     }
+     scrollwheel_tmask = (swt == 0) ? SWL_TMASK_DEFAULT : swt ;
    }
 
    RETURN(newseq) ;
@@ -2577,7 +2602,7 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
 
          } else if( event->button == Button2 ){
             XBell(XtDisplay(w),100) ;
-            MCW_popup_message( w, 
+            MCW_popup_message( w,
                                lrand48()%2 == 0 ? " \n Ooch! \n "
                                                 : "Don't\n DO\nthat!" ,
                                MCW_USER_KILL );
@@ -5758,7 +5783,12 @@ STATUS(" .. ButtonPress") ;
            }
            else if( but == Button4 || but == Button5 ){ /* Scroll Wheel */
               int ddd = (but==Button4) ? -1 : 1 ;
-              if( (event->state & (Mod1Mask|Mod2Mask)) )
+              if( scrollwheel_debug ){
+                INFO_message("Scrollwheel (wbar): button=%u ; state mask=%xx",but,event->state) ;
+                ININFO_message("  (mask: shift=%xx ctrl=%xx mod1=%xx mod2=%xx mod3=%xx mod4=%xx mod5=%xx)" ,
+                               ShiftMask , ControlMask , Mod1Mask , Mod2Mask , Mod3Mask , Mod4Mask , Mod5Mask ) ;
+              }
+              if( (event->state & scrollwheel_tmask) )
                 DC_palette_bright(  seq->dc , ddd ) ;   /* brightness */
               else
                 DC_palette_squeeze( seq->dc , ddd ) ;   /* contrast */
@@ -5785,7 +5815,13 @@ STATUS(" .. ButtonPress") ;
 
          if( but == Button4 || but == Button5 ){
            if( seq->button2_enabled ){ busy=0; EXRETURN; }  /* 10 Oct 2007 */
-           if( (event->state & (Mod1Mask|Mod2Mask)) ){ /* mod+scroll == '{}' */
+           if( scrollwheel_debug ){
+             INFO_message("Scrollwheel (imag): button=%u ; state mask=%xx",but,event->state) ;
+             ININFO_message("  (mask: shift=%xx ctrl=%xx mod1=%xx mod2=%xx mod3=%xx mod4=%xx mod5=%xx)" ,
+                            ShiftMask , ControlMask , Mod1Mask , Mod2Mask , Mod3Mask , Mod4Mask , Mod5Mask ) ;
+           }
+           if( (event->state & scrollwheel_tmask) ){ /* mod+scroll == '{}' */
+             if( scrollwheel_debug ) ININFO_message("  change threshold") ;
 STATUS("scroll wheel ==> change threshold") ;
              cbs.reason = isqCR_keypress ;
              cbs.event  = ev ;
@@ -5794,6 +5830,7 @@ STATUS("scroll wheel ==> change threshold") ;
              SEND(seq,cbs) ;
            } else {                           /* no modifiers == change slice */
              int nold=seq->im_nr , dd=(but==Button4)?-1:+1 , nnew ;
+             if( scrollwheel_debug ) ININFO_message("  change slice") ;
 STATUS("scroll wheel ==> change slice") ;
              if( AFNI_yesenv("AFNI_INDEX_SCROLLREV") ) dd = -dd ;
              nnew = nold + dd ;
@@ -12272,7 +12309,7 @@ int ISQ_handle_keypress( MCW_imseq *seq , unsigned long key , unsigned int state
 ENTRY("ISQ_handle_keypress") ;
 
    ISQ_timer_stop(seq) ;  /* 03 Dec 2003 */
- 
+
    if( busy || key == 0 ) RETURN(1) ;
    busy = 1 ;
 
