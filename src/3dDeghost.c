@@ -195,7 +195,8 @@ int main( int argc , char *argv[] )
 
    if( orfilt_len > 1 && nvals > 1 ){
      MRI_vectim *invect ; int ii ;
-     if( verb ) INFO_message("Filtering input dataset: filter length=%d",orfilt_len) ;
+     if( verb )
+       INFO_message("Filtering input dataset: filter length=%d",orfilt_len) ;
      invect = THD_dset_to_vectim(inset,NULL,0) ;
      THD_vectim_applyfunc( invect , orfilt_vector ) ;
      filset = EDIT_empty_copy( inset ) ;
@@ -204,7 +205,8 @@ int main( int argc , char *argv[] )
      THD_vectim_to_dset( invect , filset ) ;
      VECTIM_destroy(invect) ;
    } else {
-     if( verb ) INFO_message("Time series filtering is turned off") ;
+     if( verb )
+       INFO_message("Time series filtering is turned off") ;
    }
 
    /***** outsource the work *****/
@@ -411,7 +413,7 @@ float_pair find_mpair( float iy , float iyn , float ct , float st , float d )
    my  = ( iyt*ctq - iynt*stq) / den ; if( my  < 0.0f ) my  = 0.0f ;
    myn = (-iyt*stq + iynt*ctq) / den ; if( myn < 0.0f ) myn = 0.0f ;
 
-   result.a = my ; result.b = myn ; return result ;
+   result.a = sqrtf(my) ; result.b = sqrtf(myn) ; return result ;
 }
 
 
@@ -523,7 +525,7 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
    float *xzero_t=NULL , *thet1_t=NULL , *dparr_t=NULL , t1med,t1bmv;
    byte *bmask=NULL , *amask=NULL , sm ;
    int nvox , nx,ny,nz , dp=0,df=0,ds=0 , np=0,nf=0,ns=0,np2,nf2 ;
-   int pp,ff,ss,nfp , ii , ppg , nsm,ism , vv,nv , iim ;
+   int pp,ff,ss,nfp , ii , ppg , nsm,ism , vv,nv , iim , sskip ;
    THD_3dim_dataset *outset=NULL ;
    float iy,iyn ; float_pair mp ;
 
@@ -546,7 +548,8 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
    }
    if( iim < 9 ){ FREEUP; return NULL; }  /* should not happen */
    noise_estimate /= iim ;  /* initial estimate of noise level */
-   if( verb > 1 ) INFO_message("noise_estimate = %g",noise_estimate) ;
+   if( verb > 1 )
+     INFO_message("Global crude noise_estimate = %g",noise_estimate) ;
 
    /* chop out all sub-threshold voxels (amask) */
 
@@ -558,16 +561,16 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
    /* setting up slice coordinates f,p,s */
 
         if( pe == 1 ){ dp = 1     ; np = nx ; }
-   else if( pe == 2 ){ dp = ny    ; np = ny ; }
-   else if( pe == 3 ){ dp = ny*nz ; np = ns ; }
+   else if( pe == 2 ){ dp = nx    ; np = ny ; }
+   else if( pe == 3 ){ dp = nx*ny ; np = ns ; }
 
         if( fe == 1 ){ df = 1     ; nf = nx ; }
-   else if( fe == 2 ){ df = ny    ; nf = ny ; }
-   else if( fe == 3 ){ df = ny*nz ; nf = nz ; }
+   else if( fe == 2 ){ df = nx    ; nf = ny ; }
+   else if( fe == 3 ){ df = nx*ny ; nf = nz ; }
 
         if( se == 1 ){ ds = 1     ; ns = nx ; }
-   else if( se == 2 ){ ds = ny    ; ns = ny ; }
-   else if( se == 3 ){ ds = ny*nz ; ns = nz ; }
+   else if( se == 2 ){ ds = nx    ; ns = ny ; }
+   else if( se == 3 ){ ds = nx*ny ; ns = nz ; }
 
 #undef  IJK
 #define IJK(f,p,s) ((f)*df+(p)*dp+(s)*ds)
@@ -592,12 +595,13 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
    thet1_t = (float *)malloc(sizeof(float)*nv) ;
    dparr_t = (float *)malloc(sizeof(float)*nv) ;
 
-   /* copy input to output (will be ghost edited below) */
+   /* copy input to output (will be ghost edited later) */
 
    outset = EDIT_empty_copy(inset) ;
    for( vv=0 ; vv < nv ; vv++ ){
      oim = THD_extract_float_brick(vv,inset) ;
      oar = MRI_FLOAT_PTR(oim) ;
+     EDIT_BRICK_FACTOR( outset , vv , 0.0f ) ;
      EDIT_substitute_brick( outset , vv , MRI_float , oar ) ;
      mri_clear_and_free(oim) ;
    }
@@ -619,10 +623,13 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
        }
      }
      if( nsm < nfp/20 ){      /* skip this slice */
-       if( verb ) WARNING_message("THD_deghost: skipping slice #%d: nsm=%d nfp=%d",ss,nsm,nfp) ;
+       if( verb )
+         INFO_message("deghost: skipping slice #%d -- too few points in smask",ss) ;
        continue ;
      }
      nvec = nsm ;
+     if( verb )
+       INFO_message("deghost: processing slice #%d",ss) ;
 
      /* smask is now the mask of brain voxels whose
         Nyquist ghost locations are NOT in the brain mask */
@@ -659,22 +666,22 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
 
      /* now check the slice parameters for reasonability */
 
+     sskip = 0 ;
      if( nv > 4 ){
        orfilt_len = 3 ;
        orfilt_vector(nv,xzero_t) ;
        orfilt_vector(nv,thet1_t) ;
        orfilt_vector(nv,dparr_t) ;
        qmedmadbmv_float(nv,thet1_t,&t1med,NULL,&t1bmv) ;
-       if( verb > 1 )
-         INFO_message("SLICE=%d :: t1med=%g t1bmv=%g ratio=%g",ss,t1med,t1bmv,(t1bmv>0.0f)?t1med/t1bmv:0.0f) ;
-       if( fabsf(t1med) < 2.666f*t1bmv ){
-         for( vv=0 ; vv < nv ; vv++ ) thet1_t[vv] = 0.0f ;
+       if( verb )
+         ININFO_message("  slice #%d -- median(theta1)=%g stdev=%g ratio=%g",
+                        ss,t1med,t1bmv,(t1bmv>0.0f)?t1med/t1bmv:0.0f) ;
+       if( t1med == 0.0f || fabsf(t1med) <= 0.111f*t1bmv ){
+         sskip = 1 ;
+         ININFO_message("  skipping slice #%d -- theta1 too small",ss) ;
        }
      }
-     if( verb > 1 ){
-       for( vv=0 ; vv < nv ; vv++ )
-         ININFO_message("slice=%d index=%d  theta = %g  %g  %g",ss,vv,xzero_t[vv],thet1_t[vv],dparr_t[vv]) ;
-     }
+     if( sskip ) continue ;  /* skip processing this slice */
 
      /* loop over time points, estimate the un-ghosted image */
 
@@ -685,6 +692,12 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
        oar = DSET_ARRAY(outset,vv) ;             /* output data for volume */
 
        /* compute theta at each voxel */
+
+       if( thet1_t[vv] == 0.0f ) continue ; /* ghost amplitude is 0 ==> skip this time point */
+
+       if( verb > 1 )
+         ININFO_message("  slice=%d index=%d  theta = %g  %g  %g",
+                        ss,vv,xzero_t[vv],thet1_t[vv],dparr_t[vv]) ;
 
        theta_par[0] = xzero_t[vv]; theta_par[1] = thet1_t[vv]; d_par = dparr_t[vv];
        compute_thvim() ;
@@ -701,13 +714,14 @@ THD_3dim_dataset * THD_deghoster( THD_3dim_dataset *inset ,
            iyn = tar[IJK(ff,ppg,ss)] ;
            if( smask[iim] ){
              oar[IJK(ff,pp,ss)] = find_mhat( iy,iyn , ctvim[iim],stvim[iim] , d_par ) ;
-           } else if( bmask[IJK(ff,pp,ss)] ){
+             oar[IJK(ff,ppg,ss)] = 0.0f ;
+           } else if( bmask[IJK(ff,pp,ss)] && bmask[IJK(ff,ppg,ss)] ){
              if( ppg > pp ){
                mp = find_mpair( iy,iyn , ctvim[iim],stvim[iim] , d_par ) ;
                oar[IJK(ff,pp,ss)] = mp.a ; oar[IJK(ff,ppg,ss)] = mp.b ;
              }
            } else {
-             /* nada: output is alread a copy of input */
+             /* nada: output is already a copy of input */
            }
          }
        }
