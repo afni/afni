@@ -3160,6 +3160,41 @@ arrow buttons (on the right of the image viewer) to rotate the
 color circle.  The default value of 240 is purely for historical
 reasons, dating back to the old FD program from Medieval Times.
 
+--------------------------------------
+Variable: AFNI_IMAGE_SCROLLWHEEL_TMASK
+--------------------------------------
+This variable lets you control which keyboard modifier keys are
+checked when the mouse scroll wheel is used inside the image.
+If one (or more) of the selected keys is pressed while the
+scroll wheel is moved, then the AFNI controller 'Define Overlay'
+threshold slider moves -- otherwise (the normal case), the image
+slice slider moves.  The value of this variable should be contain
+one or more of these strings (NOT case sensitive):
+  Shift           = Shift key pressed
+  Ctrl or Control = Control key pressed
+  Mod1            = Alt key pressed (Linux)
+  Mod2            = Command key pressed (Mac)
+If you do NOT set this variable, it is like setting it to the
+value 'Mod1+Mod2' (so that Alt and Command work on Linux and
+Mac OS X, respectively).  However, some Linux systems seem to
+always have the Mod2 mask set for the scroll wheel, and so
+the wheel ALWAYS change the threshold slider and not the slice.
+To prevent this sad thing from happening, set this variable to
+just 'Mod1'.  Furthermore, if you include the string 'Debug'
+in this variable, when the scroll wheel is used over the image
+sub-window, some information will be printed out about what the
+program detects, which might help you set things up correctly.
+On my Mac, I get the following output when using the scroll wheel
+twice -- once with no key pressed and once with the Command key:
+  ++ Scrollwheel (imag): button=5 ; state mask=0x
+   +   (mask: shift=1x ctrl=4x mod1=8x mod2=10x mod3=20x mod4=40x mod5=80x)
+   +   change slice
+  ++ Scrollwheel (imag): button=5 ; state mask=10x
+   +   (mask: shift=1x ctrl=4x mod1=8x mod2=10x mod3=20x mod4=40x mod5=80x)
+   +   change threshold
+The second use shows that the 'state mask' (which shows the modifier
+keys) was hexadecimal '10x', which corresponds to the 'mod2' value.
+
 ----------------------------
 Variable: AFNI_DUMMY_DATASET
 ----------------------------
@@ -3167,7 +3202,7 @@ The old 'frivolous' AFNI dummy dataset was replaced with a low-resolution
 edition of the N27 dataset on 12 Feb 2010.  If for some absurd reason you
 want the old dummy dataset back, then set this variable to OLD.  (Recall
 that the dummy dataset is only created if you start the AFNI GUI without
-any input datasets at all -- AFNI is constructed so that it needs SOME
+any input datasets at all -- AFNI is so constructed that it needs SOME
 dataset present to be able to operate: hence, the dummy dataset concept.)
 
 ----------------------------
