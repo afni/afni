@@ -304,7 +304,8 @@ MAKE_ATLAS_TABLE:
                               >> $labeltable
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          if ($COG) then
-            set cogval = $n
+            # restricting range to a single value for this label line without quotes
+            set cogval = `echo $lln[1] |tr -d \"`
             set cog = `3dCM $target_dset"<$cogval>"`
             printf ' GYoAR="0"\n COG="%s %s %s"\n' $cog >> $labeltable
          else
