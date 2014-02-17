@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17 , Feb, 2014 , DRG , "@MakeLabelTable" , 
+    MICRO , TYPE_BUG_FIX, 
+    "-centers option incorrect for some atlases",
+    "incorrect centers of mass for datasets with missing ROI values\n"
+},
+
 { 31 , JAN, 2014 , DRG , "AFNI_IMAGE_GLOBALRANGE" , 
     MINOR , TYPE_NEW_ENV, 
     "New options for scaling display in afni GUI",
