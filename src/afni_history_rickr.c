@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Feb, 2014, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -test_local_timing, to look for local vs. global timing issues",
+   "- in some cases, promote married types to combine/compare them\n"
+   "- keep track of '*' entries from timing files"
+ } ,
+
+ { 18,  Feb, 2014, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "minor help update",
+   NULL
+ } ,
+
  { 10,  Feb, 2014, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "show TRs per run, applied and censored",
    NULL
