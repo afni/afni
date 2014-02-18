@@ -3088,11 +3088,6 @@ class AfniData(object):
       # we have at most 1 entry per row, and times after row 1,
       # get to the stated tests
 
-      tddwarn = '   NOTE: 3dDeconvovle versions prior to 18 Feb 2014 would\n' \
-                '         interpret this file as -global_times, while later\n'\
-                '         versions would interpret it as -local_times\n'
-                
-
       if has_alist:
          if warn:
             print "** timing file %s looks like local times from '*', but\n" \
@@ -3100,7 +3095,6 @@ class AfniData(object):
                   "   because it has only one column\n"                      \
                   "   (consider adding one '*', giving that row 2 entries)\n"\
                   % self.fname
-            print tddwarn
          return 1
 
       if len(self.run_lens) > 0:
