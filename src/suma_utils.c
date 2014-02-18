@@ -2161,7 +2161,8 @@ char *SUMA_EscapeChars(char *s1, char *ca, char *es)
    ses[l] = '\0';
    
    SUMA_RETURN(ses);
-} 
+}
+
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es)
 {
    static char FuncName[]={"SUMA_ReplaceChars"};

@@ -1080,6 +1080,39 @@ SUMA_Boolean SUMA_Set_MaskDO_Color(SUMA_MaskDO *mdo, float *col)
    SUMA_RETURN(YUP);
 }
 
+SUMA_Boolean SUMA_Set_MaskDO_Alpha(SUMA_MaskDO *mdo, float alpha)
+{
+   static char FuncName[]={"SUMA_Set_MaskDO_Alpha"};
+   int i, i4;
+   
+   SUMA_ENTRY;
+   
+   if (!mdo || !mdo->colv) SUMA_RETURN(NOPE);
+
+   i = 0;
+   while (i < mdo->N_obj) { /* all will be colored by the same color! */
+      i4 = 4*i;
+      mdo->colv[i4+3]= alpha;
+      ++i;
+   }
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_Set_MaskDO_Trans(SUMA_MaskDO *mdo, SUMA_TRANS_MODES T)
+{
+   static char FuncName[]={"SUMA_Set_MaskDO_Trans"};
+   int i, i4;
+   
+   SUMA_ENTRY;
+   
+   if (!mdo || !mdo->SO) SUMA_RETURN(NOPE);
+   
+   mdo->SO->TransMode = T;
+   
+   SUMA_RETURN(YUP);
+}
+
+
 SUMA_Boolean SUMA_Set_MaskDO_Dim(SUMA_MaskDO *mdo, float *dim)
 {
    static char FuncName[]={"SUMA_Set_MaskDO_Dim"};
@@ -1145,7 +1178,8 @@ SUMA_Boolean SUMA_Set_MaskDO_Cen(SUMA_MaskDO *mdo, float *cen)
 
 
 int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim, 
-                        float *col, char *Label, char *Type)
+                        float *col, char *Label, char *Type, 
+                        float alpha, SUMA_TRANS_MODES tran)
 {
    static char FuncName[]={"SUMA_MDO_New_Params"};
    float off[3], fdim[3], ifdim[3], *idim=NULL;
@@ -1154,7 +1188,8 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
    
    SUMA_ENTRY;
    
-   if (!mdo || !(cen || dim || col || Label || Type)) SUMA_RETURN(-1);
+   if (!mdo || !(cen || dim || col || Label || Type || alpha >= 0.0 || 
+                  tran < STM_N_TransModes)) SUMA_RETURN(-1);
    
    if (dim) {
       if (!MDO_IS_BOX(mdo) && !MDO_IS_SPH(mdo)) {
@@ -1223,6 +1258,17 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
       SUMA_Set_MaskDO_Color(mdo, col); 
    }
    
+   if (tran < STM_N_TransModes) {
+      SUMA_LH("new Trans");
+      NewSurf=1;
+      SUMA_Set_MaskDO_Trans(mdo, tran);
+   }
+   
+   if (alpha >= 0.0) {
+      SUMA_LH("new Trans");
+      NewSurf=1;
+      SUMA_Set_MaskDO_Alpha(mdo, alpha);
+   }
    if (NewSurf) {
       SUMA_LH("new surf");
       if (!SUMA_AccessorizeMDO(mdo)) {
@@ -1296,6 +1342,8 @@ SUMA_Boolean SUMA_AccessorizeMDO(SUMA_MaskDO *MDO)
       SUMA_S_Err("Type %s not ready for prime time", MDO->mtype);
       SUMA_RETURN(NOPE);
    }
+   
+   MDO->SO->TransMode = STM_8;
    
    SUMA_RETURN(YUP);
 }
@@ -5297,10 +5345,9 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
        !strcmp(MDO->idcode_str, sv->MouseMode_ado_idcode_str)) {
       MDO->SO->PolyMode = SRM_Line;
    } else {
-      if (!SUMAg_CF->Dev) MDO->SO->TransMode = STM_8;
-      else MDO->SO->TransMode = STM_ViewerDefault;
       MDO->SO->PolyMode = SRM_Fill;
    }
+   
    if (MDO_IS_BOX(MDO)) {
       /* Mess with SO to make it quads for display */
       tFaceSet = MDO->SO->glar_FaceSetList;
@@ -5726,6 +5773,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    SUMA_Boolean ans = YUP;
    static int mgray_alloc=0;
    static GLubyte *mgrayvec=NULL;
+   byte *tmask_cp=NULL;
    SUMA_TRACT_SAUX *TSaux=NULL;
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)TDO;
@@ -5802,6 +5850,13 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    if (!sv->DO_PickMode || (sv->DO_PickMode && !(MASK_MANIP_MODE(sv)))) {
       /* Apply masking if not picking or picking while in mask moving mode */
       SUMA_TractMasksIntersect(TDO, SUMA_GetMaskEvalExpr());
+   }
+   
+   /* Do we want to abide by TDO->tmask ? */
+   if (SUMA_VisibleMDOs(sv, SUMAg_DOv, NULL)) {
+      tmask_cp = TDO->tmask;
+   } else {
+      tmask_cp = NULL;
    }
    
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
@@ -5950,8 +6005,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
-                     if (!TDO->tmask || 
-                         TDO->tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                     if (!tmask_cp || 
+                          tmask_cp[Network_TB_to_1T(TDO->net, n, knet)]) {
                         if (!colid && TDO->colv && !usetcol) {
                            glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
                         }
@@ -6005,8 +6060,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
-                     if (!TDO->tmask || 
-                         TDO->tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                     if (!tmask_cp || 
+                          tmask_cp[Network_TB_to_1T(TDO->net, n, knet)]) {
                         if (!colid && TDO->colv && !usetcol) {
                            glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
                         }
@@ -6045,8 +6100,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
-                     if ( TDO->tmask && 
-                         !TDO->tmask[Network_TB_to_1T(TDO->net, n, knet)]) {
+                     if ( tmask_cp && 
+                         !tmask_cp[Network_TB_to_1T(TDO->net, n, knet)]) {
                         if (!colid && TDO->colv) {
                            glColorPointer (4, GL_UNSIGNED_BYTE, 0, mgrayvec); 
                         }

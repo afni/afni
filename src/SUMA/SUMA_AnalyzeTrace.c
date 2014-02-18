@@ -35,6 +35,9 @@ void usage_AnalyzeTrace (SUMA_GENERIC_ARGV_PARSE *ps)
 "                     Error key terms are:\n"
 "                     'Error', 'error', 'corruption'\n"
 "\n"
+"   You should also search for the string: 'Note No RETURN or exit here'.\n"
+"   Its occurrence can be an error at times.\n"
+"\n"
 "%s"
 "%s"
 "\n", sio,  s);
