@@ -3657,7 +3657,6 @@ float ** SUMA_Taubin_Desbrun_Smooth_Weights (SUMA_SurfaceObject *SO,
       nl = SO->NodeList;
    }
    
-   SUMA_SL_Note("DESBRUN!!!!");
    /* implement the Desbrun weight estimation method */
    wgt = NULL;
    if (UseThisWeight) {
@@ -14897,7 +14896,7 @@ SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
    int ido, ivar, i, n;
    SUMA_ALL_DO *ado=NULL;
    SUMA_MaskDO *mdo=NULL;
-   char *c=NULL;
+   char *c=NULL, exptmp[128]={""};
    SUMA_MASK_EVAL_PARAMS *mep=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -14913,8 +14912,32 @@ SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
       *mepp = mep;
    }
    
-   SUMA_STRING_REPLACE(mep->expr, expr);
-    
+   if (!strcmp(expr,"AND") || !strcmp(expr,"OR")) {
+      memset(mep->varsused, 0, 26*sizeof(byte));
+      n = 0;
+      for (ido=0; ido<SUMAg_N_DOv; ++ido) {
+         ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
+         if (ado->do_type == MASK_type &&
+             !MDO_IS_SHADOW((SUMA_MaskDO *)ado)) {
+            mdo = (SUMA_MaskDO *)ado;
+            ivar = mdo->varname[0]-'a';
+            if (ivar >=0 && ivar < 26 && !mep->varsused[ivar]) {
+               mep->varsused[ivar] = 1;
+               exptmp[n++] = mdo->varname[0];
+               if (expr[0]=='A') exptmp[n++] = '&';
+               else exptmp[n++] = '|';
+            }
+         }
+      }
+      if (n > 1 && (exptmp[n-1] == '|' || exptmp[n-1] == '&')) {
+         exptmp[n-1] = '\0';
+      } else exptmp[n] = '\0';
+      SUMA_STRING_REPLACE(mep->expr, expr);
+      SUMA_LH("Expression now:%s ", mep->expr);
+   } else {
+      SUMA_STRING_REPLACE(mep->expr, expr);
+   }
+   
    /* What variables are needed? */
    c = expr;
    memset(mep->varsused, 0, 26*sizeof(byte));
@@ -15089,7 +15112,11 @@ int SUMA_TractMasksIntersect(SUMA_TractDO *TDO, char *expr)
       for (kk=0; kk<26; ++kk) {
          if (TDO->mep->varsused[kk]) {
             if (!(ado = SUMA_whichADOg(TDO->mep->varsmdo[kk]))) {
-               SUMA_S_Err("No no no");
+               SUMA_SLP_Err("Variable %c has no mask associated with it."
+                            "Expression usage turned off", 
+                            'a'+kk);
+               SUMA_Set_UseMaskEval(0, 0, 1);
+               if (LocalHead) SUMA_DUMP_TRACE("Bad Equation");
                SUMA_RETURN(0);
             }
             SUMA_LH("Computing intersection with %s", ADO_LABEL(ado));

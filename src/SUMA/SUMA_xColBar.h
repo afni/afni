@@ -1252,6 +1252,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define SUMA_SurfContHelp_MaskTypeTbl_c5  \
    "Color of mask.\n" 
 
+#define SUMA_SurfContHelp_MaskTypeTbl_c6  \
+   "Alpha of mask color.\n" 
+
+#define SUMA_SurfContHelp_MaskTypeTbl_c7  \
+   "Transparency of mask\n" 
+
 #define SUMA_SurfContHelp_MaskTypeTbl_r1  \
    "Range of values in intensity (I) column."
 

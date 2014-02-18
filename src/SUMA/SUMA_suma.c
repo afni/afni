@@ -741,6 +741,16 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
 		
+      if (!brk && SUMAg_CF->Dev && (strcmp(argv[kar], "-truth_table") == 0)) {
+		   kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need expression after -truth_table \n");
+				exit (1);
+			}
+         SUMA_bool_eval_truth_table(argv[kar], 0);  exit(0);
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-niml") == 0)) {
 			Start_niml = 1;
 			brk = YUP;
@@ -895,9 +905,8 @@ int main (int argc,char *argv[])
       }
    }
    #endif
-   
+      
    /* any Specp to be found ?*/
-   
 	if (specfilename[0] == NULL && Specp[0] == NULL) {
       SUMA_SurfaceObject **SOv=NULL;
       int N_SOv = 0;

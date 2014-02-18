@@ -3257,7 +3257,8 @@ void SUMA_CreateTable(  Widget parent,
       XmNmarginWidth, 0, 
       NULL);
 
-   /* must fill up row by row, each column is a separate bloody rc to allow for alignments */
+   /* must fill up row by row, each column is a separate bloody rc 
+      to allow for alignments */
    for (i=0; i<TF->Ni; ++i) {   /* for each row */
       rcc = XtVaCreateManagedWidget ("rowcolumn",
          xmRowColumnWidgetClass, TF->rco,
@@ -3337,7 +3338,7 @@ void SUMA_CreateTable(  Widget parent,
                if (i == 0 && j != 0 && TF->HasColTit) { 
                   titw = TF->cwidth[j]; 
                   /* set the margins to meet those of cell entries */
-                  xmw = 5;
+                  xmw = 6;
                   shad = 1;
                } else {
                   titw = TF->cwidth[j];
@@ -4584,6 +4585,16 @@ void SUMA_TableF_cb_label_change (  Widget w, XtPointer client_data,
             TF->num_units = unt;
             SUMA_TableF_SetString (TF);
          }
+      } else if (TF->type == SUMA_string) {
+         XtVaGetValues (w, XmNvalue, &n, NULL);
+         cs = (char *)n;
+         if ( TF->str_value && TF->str_value[TF->cell_modified] &&
+             !strcmp(TF->str_value[TF->cell_modified],cs)) {
+               SUMA_LH("Same string"); 
+               TF->cell_modified = -1;
+               SUMA_RETURNe;    
+         }
+         SUMA_LH("Here now, modified %d \n", TF->cell_modified);
       }
    } else {
       SUMA_LH("no cells modified");

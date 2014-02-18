@@ -310,20 +310,35 @@ SUMA_Boolean SUMA_Guess_Str_MaskDO_Type(char *s, char *mtype);
 SUMA_Boolean SUMA_Set_MaskDO_Type(SUMA_MaskDO *mdo, char *mtype);
 SUMA_Boolean SUMA_Set_MaskDO_Cen(SUMA_MaskDO *mdo, float *cen);
 SUMA_Boolean SUMA_Set_MaskDO_Dim(SUMA_MaskDO *mdo, float *dim);
+SUMA_Boolean SUMA_Set_MaskDO_Trans(SUMA_MaskDO *mdo, SUMA_TRANS_MODES T);
+SUMA_Boolean SUMA_Set_MaskDO_Alpha(SUMA_MaskDO *mdo, float alpha);
 SUMA_Boolean SUMA_Set_MaskDO_Color(SUMA_MaskDO *mdo, float *col);
 SUMA_Boolean SUMA_Set_MaskDO_Label(SUMA_MaskDO *mdo, char *lab);
 #define SUMA_MDO_New_Cen(mdo, cen) \
-            SUMA_MDO_New_Params((mdo), (cen), NULL, NULL, NULL, NULL)
+            SUMA_MDO_New_Params((mdo), (cen), NULL, NULL, NULL, NULL, \
+                                 -1, STM_N_TransModes)
 #define SUMA_MDO_New_Type(mdo, ttype) \
-            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, NULL, (ttype))
+            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, NULL, (ttype), \
+                                 -1, STM_N_TransModes)
 #define SUMA_MDO_New_Label(mdo, ttype) \
-            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, (ttype), NULL)
+            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, (ttype), NULL, \
+                                 -1, STM_N_TransModes)
 #define SUMA_MDO_New_Dim(mdo, dim) \
-            SUMA_MDO_New_Params((mdo), NULL, (dim), NULL, NULL, NULL)
+            SUMA_MDO_New_Params((mdo), NULL, (dim), NULL, NULL, NULL, \
+                                 -1, STM_N_TransModes)
 #define SUMA_MDO_New_Color(mdo, col) \
-            SUMA_MDO_New_Params((mdo), NULL, NULL, (col), NULL, NULL)
+            SUMA_MDO_New_Params((mdo), NULL, NULL, (col), NULL, NULL, \
+                                 -1, STM_N_TransModes)
+#define SUMA_MDO_New_Trans(mdo, tran) \
+            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, NULL, NULL, \
+                                 -1, tran)
+#define SUMA_MDO_New_Alpha(mdo, alpha) \
+            SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, NULL, NULL, \
+                                 alpha, STM_N_TransModes)
+
 int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim, 
-                        float *col, char *Label, char *Type);
+                        float *col, char *Label, char *Type,
+                        float alpha, SUMA_TRANS_MODES tran);
 SUMA_NIDO * SUMA_Alloc_NIDO (char *idcode_str, char *Label, 
                              char *Parent_idcode_str);
 SUMA_NIDO *SUMA_free_NIDO(SUMA_NIDO *NIDO); 
