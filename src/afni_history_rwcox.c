@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , FEB , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+  { 18 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Threshold slider popup menu now pops up on p-value label" ,
+   "AND -- using the scrollwheel on the p-value label immediately pops up\n"
+   "the 'Set p-value' chooser." } ,
+
+ { 7 , FEB , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
    "Fix problem with -allineate option" ,
    "3dAllineate might choose to write out a .nii.gz file instead of the .nii\n"
    "file ordered.  In that case, 3dQwarp fails to read it in.  The fix -- if\n"

@@ -2151,13 +2151,18 @@ ENTRY("AFNI_thr_EV") ;
    switch( ev->type ){
       case ButtonPress:{
          XButtonEvent *event = (XButtonEvent *) ev ;
-         im3d->vwid->butx = event->x_root ;
-         im3d->vwid->buty = event->y_root ;
-         event->button    = Button3 ;                           /* fakeout */
-         XmMenuPosition( im3d->vwid->func->thr_menu , event ) ; /* where */
-         XtManageChild ( im3d->vwid->func->thr_menu ) ;         /* popup */
+         if( event->button != Button3 ){
+           AFNI_func_setpval_CB(w,cd,NULL) ;  /* special case */
+         } else {
+           im3d->vwid->butx = event->x_root ;
+           im3d->vwid->buty = event->y_root ;
+           event->button    = Button3 ;                           /* fakeout */
+           XmMenuPosition( im3d->vwid->func->thr_menu , event ) ; /* where */
+           XtManageChild ( im3d->vwid->func->thr_menu ) ;         /* popup */
+         }
       }
       break ;
+
    }
 
    EXRETURN ;
