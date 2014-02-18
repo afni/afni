@@ -7231,6 +7231,8 @@ ENTRY("AFNI_sesslab_EV") ;
 
        } else if( event->button == Button2 ){
          XUngrabPointer( event->display , CurrentTime ) ;
+       } else if( event->button == Button4 || event->button == Button5 ){
+         MCW_invert_widget(w) ;
        }
      }
      break ;
