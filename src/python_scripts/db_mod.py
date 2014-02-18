@@ -5450,7 +5450,8 @@ g_help_string = """
         with a lot of motion may run out of degrees of freedom (for baseline,
         censoring, bandpassing and removal of other signals of no interest).
         Many papers have been published where a lot of censoring was done,
-        followed up by bandpassing.  It is likely that many subjects ended up
+        many regressors of no interest were projected out, and there was a
+        separate bandpass operation.  It is likely that many subjects ended up
         with negative degrees of freedom, making the resulting signals useless
         (or worse, misleading garbage).  But without keeping track of it,
         researchers may not even know.
@@ -5491,6 +5492,8 @@ g_help_string = """
                 despike (shrink large spikes in time series)
                 ricor   (if applicable, remove the RetroTS regressors)
                 tshift  (correct for slice timing)
+                align   (figure out alignment between anat and EPI)
+                tlrc    (figure out alignment between anat and template)
                 volreg  (align anat and EPI together, and to standard template)
                 blur    (apply desired FWHM blur to EPI data)
                 regress (polort, motion, mot deriv, bandpass, censor)
@@ -6967,7 +6970,7 @@ g_help_string = """
         -align_epi_strip_method METHOD : specify EPI skull strip method in AEA
 
                 e.g. -align_epi_strip_method 3dAutomask
-                default: 3dSkullStrip
+                default: 3dAutomask (changed from 3dSkullStrip, 20 Aug, 2013)
 
             When align_epi_anat.py is used to align the EPI and anatomy, it
             uses 3dSkullStrip to remove non-brain tissue from the EPI dataset.
