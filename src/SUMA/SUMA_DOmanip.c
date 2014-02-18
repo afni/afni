@@ -3941,6 +3941,7 @@ SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI)
 int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_isTypicalSOforVolSurf"};
+   
    SUMA_ENTRY;
    
    switch (SO->FileType) {

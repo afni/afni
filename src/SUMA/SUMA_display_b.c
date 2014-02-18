@@ -306,29 +306,34 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
       
       if (1) { /* The properties area */
          char *col_tit[]=  {  "+", " ", "Label", "Type", "Center", "Size", 
-                                    "Color", NULL};
+                                    "RGB", "A", "T", NULL};
          char *col_hint[]= {  "Add new mask", 
                               "Variable",
                               "Label",
                               "Type ('box' or 'sphere')", 
                               "Center X,Y,Z", 
                               "Size Sx,Sy,Sz", 
-                              "Color R G B", NULL };
+                              "Color R G B (A)",
+                              "A",
+                              "T", NULL };
          char *col_help[]= {  SUMA_SurfContHelp_MaskTypeTbl_c0, 
                               SUMA_SurfContHelp_MaskTypeTbl_c05,
                               SUMA_SurfContHelp_MaskTypeTbl_c1,
                               SUMA_SurfContHelp_MaskTypeTbl_c2, 
                               SUMA_SurfContHelp_MaskTypeTbl_c3, 
                               SUMA_SurfContHelp_MaskTypeTbl_c4,
-                              SUMA_SurfContHelp_MaskTypeTbl_c5, NULL };
+                              SUMA_SurfContHelp_MaskTypeTbl_c5, 
+                              SUMA_SurfContHelp_MaskTypeTbl_c6, 
+                              SUMA_SurfContHelp_MaskTypeTbl_c7, 
+                              NULL };
          char *row_tit[]=  {  "+", "x", NULL };
          char *row_hint[]= {  "Add new mask", "Mask Properties", NULL};
          char *row_help[]= {  SUMA_SurfContHelp_MaskTypeTbl_c0, 
                               SUMA_SurfContHelp_MaskTypeTbl_r1, NULL};
          if (!SurfCont->MaskTable->cells) {
-            int colw[10] = { 1, 1, 6, 6, 11, 11, 11 };
+            int colw[15] = { 1, 1, 6, 6, 11, 11, 11, 1, 1 };
             SUMA_CreateTable( SurfCont->rcswr,
-                              2, 7, 
+                              2, 9, 
                               row_tit, col_tit,  
                               row_hint, col_hint,  
                               row_help, col_help,  
@@ -417,6 +422,39 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+SUMA_Boolean SUMA_Set_UseMaskEval(int v, int redisp, int setmen)
+{
+   static char FuncName[]={"SUMA_Set_UseMaskEval"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   DList *list=NULL;
+   int vi=0;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   if (v) v = 1;
+   else v = 0;
+   if (setmen && SurfCont->MaskEval_tb) {
+      vi = XmToggleButtonGetState (SurfCont->MaskEval_tb);
+      if (v != vi) {
+         XmToggleButtonSetState(SurfCont->MaskEval_tb, v, NOPE);
+      }
+   }
+   SurfCont->UseMaskEval = v;
+   
+   if (redisp) {
+      SUMA_NEW_MASKSTATE();
+      /* redisplay */
+      if (!list) list = SUMA_CreateList ();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                         SES_Suma, NULL); 
+      if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
 void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_UseMaskEval_toggled"};
@@ -431,13 +469,7 @@ void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, XtPointer client_data
    
    SurfCont = SUMAg_CF->X->AllMaskCont;
    
-   SurfCont->UseMaskEval = XmToggleButtonGetState (SurfCont->MaskEval_tb);
-   SUMA_NEW_MASKSTATE();
-   /* redisplay */
-   if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
-                                      SES_Suma, NULL); 
-   if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+   SUMA_Set_UseMaskEval(XmToggleButtonGetState(SurfCont->MaskEval_tb),1,0);
 
    SUMA_RETURNe;
 }
@@ -454,7 +486,7 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
    SUMA_ALL_DO *ado=NULL, *curDO=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    XButtonEvent * bev = (XButtonEvent *) ev ;
-   int  i, j, n, Found, incr=0;
+   int  i, j, n, Found, incr=0, ii;
    float fv[4];
    void *cv=NULL;
    SUMA_MaskDO *mdo = NULL;
@@ -563,12 +595,200 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
       case 6:
          SUMA_LH("Need to set color for mask %s", ADO_LABEL(ado));
          break;
+      case 7:
+         if (incr) {
+            fv[0] = mdo->colv[0]; fv[1] = mdo->colv[1]; fv[2] = mdo->colv[2];
+            ii = SUMA_A_to_1dig(mdo->colv[3])+incr;
+            fv[3] = SUMA_1dig_to_A(ii);
+            if (fv[3] != mdo->colv[3]) {
+               SUMA_MDO_New_Alpha(mdo, fv[3]);
+               SUMA_InitMasksTable_row(SurfCont,mdo, i);
+               /* redisplay */
+               if (!list) list = SUMA_CreateList ();
+               SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                                  SES_Suma, NULL); 
+               if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+            } else {
+               SUMA_InitMasksTable_row(SurfCont,mdo, i);
+            }
+         }
+         break;
+      case 8:
+         if (incr) {
+            ii = SUMA_T_to_1dig(mdo->SO->TransMode)+incr;
+            if (ii >= 0 && ii < 10) {
+               mdo->SO->TransMode = SUMA_1dig_to_T(ii);
+               SUMA_InitMasksTable_row(SurfCont,mdo, i);
+               /* redisplay */
+               if (!list) list = SUMA_CreateList ();
+               SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                                  SES_Suma, NULL); 
+               if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+            } else {
+               SUMA_InitMasksTable_row(SurfCont,mdo, i);
+            }
+         }
+         break;
       default:
          SUMA_SL_Err("Did not know you had so many");
          break;
    }
    
    SUMA_RETURNe;
+}
+
+/* 
+   Turns a user typed expression to one that the parser likes.
+   Must have spaces around vars for parser, but a little ugly for
+   typing. 
+   string expr is not changed.
+   string evale must be pre-allocated and be about twice as long as expr,
+   just to be safe.
+   string tight is perhaps a nicer to look at version of expr
+*/
+
+SUMA_Boolean SUMA_DispExpr_To_EvalExpr(char *uexpr, char *evale, char *tight)
+{
+   static char FuncName[]={"SUMA_DispExpr_To_EvalExpr"};
+   int n, k, t, havevar, nex, pad;
+   char *expr=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!uexpr || !evale) SUMA_RETURN(NOPE);
+
+   expr = SUMA_copy_string(uexpr);
+   deblank_name(expr);
+   SUMA_LH("Have %s", expr);
+   
+   if (!strcasecmp(expr,"AND")) {
+      /* All AND */
+      sprintf(evale,"AND");
+      sprintf(tight,"AND");
+      SUMA_RETURN(YUP);
+   } else if (!strcasecmp(expr,"OR")) {
+      /* All OR */
+      sprintf(evale,"OR");
+      sprintf(tight,"OR");
+      SUMA_RETURN(YUP);
+   }
+   
+   /* switch AND and OR to | and & and trim && and || */
+   nex = strlen(expr);
+   n = 0; k = 0;
+   while (expr[n] != '\0') {
+      if (expr[n]   == 'A' && n<nex-3 &&
+          expr[n+1] == 'N' && expr[n+2] == 'D') {
+          evale[k++] = '&';
+         n = n + 2;
+      } else if (expr[n]   == 'O' && n<nex-2 &&
+          expr[n+1] == 'R') {
+          evale[k++] = '|';
+         n = n + 1;
+      } else if (expr[n] == '+') {
+         evale[k++] = '|';
+      } else if (expr[n] == '*') {
+         evale[k++] = '&';
+      } else {
+         if ((k > 0 && expr[n] != evale[k]) 
+             || k == 0) { /* to skip dups of | and & */
+            evale[k++]=expr[n];
+         } else {
+         }
+      }
+      n = n + 1;
+   }
+   evale[k] = '\0';
+   SUMA_STRING_REPLACE(expr, evale);  
+   SUMA_LH("Now have %s", expr);
+
+   /* remove all blanks from expr */
+   n = 0; k = 0; t= 0;
+   while (expr[n] != '\0') {
+      if (SUMA_IS_BLANK((expr[n]))) {
+      } else {
+         evale[k++] = expr[n];
+         if (tight) tight[t++] = expr[n];
+      }
+      ++n;
+   }
+   evale[k] = '\0';
+   SUMA_STRING_REPLACE(expr, evale);  
+   SUMA_LH("No blank has %s", expr);
+   
+   /* Now insert space between each character */
+   evale[0] = expr[0];
+   n = 1; k = 1; t= 0;
+   while (expr[n] != '\0') {
+      if (SUMA_IS_BLANK((expr[n]))) {
+      } else {
+         if (!SUMA_IS_BLANK(evale[k-1])) {
+            evale[k++] = ' ';
+            evale[k++] = expr[n];
+            if (expr[n+1] != '\0') evale[k++] = ' ';
+         } else {
+            evale[k++] = expr[n];
+         }
+      }
+      ++n;
+   }
+   evale[k] = '\0';
+   SUMA_LH("And now have %s", evale);
+   
+   /* Make sure everything is blank separatd */
+   
+   
+   /* Now make sure the equation has nothing but acceptable chars */
+   k = 0;
+   while (evale[k] != '\0') {
+      if (evale[k] == '|' || evale[k] == '&'   || 
+          (evale[k] >= 'a' && evale[k] <= 'z') ||
+          evale[k] == '(' || evale[k] == ')'   ||
+          evale[k] == '!'                      ||
+          SUMA_IS_BLANK(evale[k])              ) {
+         /* all good */
+      } else {
+         SUMA_S_Err("Character %c (#%d) in %s from %s not allowed",
+                     evale[k], k, evale, expr);
+         SUMA_ifree(expr);
+         SUMA_RETURN(NOPE);
+      }
+      ++k; 
+   }
+   
+   /* And make sure the equation does not start or end with and or or */
+   k = 0; havevar = 0;
+   while (evale[k] != '\0' && !havevar) { 
+      if ((evale[k] == '|' || evale[k] == '&') && !havevar) {
+         SUMA_S_Err(
+            "Encountered operator %c before variable at char #%d in %s from %s",
+            evale[k], k, evale, expr);
+         SUMA_ifree(expr);
+         SUMA_RETURN(NOPE);
+      } else if (evale[k] >= 'a' && evale[k] <= 'z') {
+         havevar = 1;
+      }
+      ++k;
+   }
+   k = strlen(evale)-1; havevar = 0;
+   while (k >=0 && !havevar) { 
+      if ((evale[k] == '|' || evale[k] == '&') && !havevar) {
+         SUMA_S_Err(
+         "Encountered operator %c after last variable at char #%d in %s from %s",
+            evale[k], k, evale, expr);
+         SUMA_ifree(expr);
+         SUMA_RETURN(NOPE);
+      } else if (evale[k] >= 'a' && evale[k] <= 'z') {
+         havevar = 1;
+      }
+      --k;
+   }
+   
+   SUMA_LH("About to return: expr %s, tight %s, evale %s",
+            expr, tight, evale);
+   SUMA_ifree(expr);
+   SUMA_RETURN(YUP);
 }
 
 void SUMA_MaskEvalTableCell_EV ( Widget w , XtPointer cd ,
@@ -580,6 +800,7 @@ void SUMA_MaskEvalTableCell_EV ( Widget w , XtPointer cd ,
    XButtonEvent * bev = (XButtonEvent *) ev ;
    int  i, j, n, Found, incr=0;
    float fv[4];
+   char evale[256]={""}, tight[128]={""}, exp[128]={""};
    void *cv=NULL;
    SUMA_MaskDO *mdo = NULL;
    DList *list=NULL;
@@ -660,7 +881,6 @@ void SUMA_MaskEvalTableCell_EV ( Widget w , XtPointer cd ,
          SUMA_SL_Err("Did not know you had so many");
          break;
    }
-   
    SUMA_RETURNe;
 }
 
@@ -1382,6 +1602,88 @@ DList *SUMA_AssembleMasksList_inDOv(SUMA_DO *dov, int N_dov, int withShadow)
    SUMA_RETURN(dl);
 }
 
+/* Change a color alpha to range from 0 to 9 */
+int SUMA_A_to_1dig(float v)
+{
+   if (v<0) v = 0;
+   else if (v>1) v = 1.0;
+   return((int)(v*9.0));
+}
+
+float SUMA_1dig_to_A(int i)
+{
+   if (i < 0) i = 0;
+   else if (i > 9) i = 9;
+   return(i/9.0);
+}
+
+/* Change a transparency setting to a range from 0 to 9 */
+int SUMA_T_to_1dig(SUMA_TRANS_MODES stm)
+{
+   switch(stm) {
+      case STM_ViewerDefault:
+         return(0);
+      case STM_0:
+      case STM_1:
+         return(1);
+      case STM_2:
+      case STM_3:
+         return(2);
+      case STM_4:
+      case STM_5:
+         return(3);
+      case STM_6:
+      case STM_7:
+         return(4);
+      case STM_8:
+      case STM_9:
+         return(5);
+      case STM_10:
+      case STM_11:
+         return(6);
+      case STM_12:
+      case STM_13:
+         return(7);
+      case STM_14:
+      case STM_15:
+         return(8);
+      case STM_16:
+         return(9);
+      default:
+         return(0);
+   }
+   return(0);
+}
+
+SUMA_TRANS_MODES SUMA_1dig_to_T(int i)
+{
+   switch(i){
+      default:
+      case 0:
+         return(STM_ViewerDefault);
+      case 1:
+         return(STM_0);
+      case 2:
+         return(STM_2);
+      case 3:
+         return(STM_4);
+      case 4:
+         return(STM_6);
+      case 5:
+         return(STM_8);
+      case 6:
+         return(STM_10);
+      case 7:
+         return(STM_12);
+      case 8:
+         return(STM_14);
+      case 9:
+         return(STM_16);
+   }
+}
+
+
+
 SUMA_Boolean  SUMA_InitMasksTable_row(SUMA_X_SurfCont *SurfCont, 
                                       SUMA_MaskDO *mdo, int row)
 {
@@ -1433,6 +1735,12 @@ SUMA_Boolean  SUMA_InitMasksTable_row(SUMA_X_SurfCont *SurfCont,
 
    SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",",-1);
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 6,  str);
+   
+   sprintf(str,"%d", SUMA_A_to_1dig(mdo->colv[3]));
+   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 7,  str);
+   
+   sprintf(str,"%d", SUMA_T_to_1dig(mdo->SO->TransMode));
+   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 8,  str);
    
    SUMA_RETURN(YUP);
 }
@@ -1492,7 +1800,7 @@ int SUMA_NewSymMaskDO(void)
    
    ido = -1;
    sprintf(hid,"msk%d", icall); 
-   mdo = SUMA_SymMaskDO("box(0, 0, 0; 20, 20, 20)", mtype, hid, 0);
+   mdo = SUMA_SymMaskDO("sphere(0, 0, 0; 20, 20, 20)", mtype, hid, 0);
    switch(icall) {
       case 0:{
          float cc[4] = {1, 1, 1, 1};
@@ -1500,18 +1808,25 @@ int SUMA_NewSymMaskDO(void)
          break; }
       case 1:{
          float cc[4] = {1, 0, 0, 1};
+         float cen[3] = {37, -66, -19};
          SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Cen(mdo, cen);
          break; }
       case 2:{
          float cc[4] = {0, 1, 0, 1};
+         float cen[3] = {-26, -76, -6};
          SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Cen(mdo, cen);
          break; }
       case 3:{
          float cc[4] = {0, 0, 1, 1};
+         float cen[3] = {-24,-73,-8.5};
          SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Cen(mdo, cen);
          break; }
       case 4: {
          float cc[4] = {1, 1, 0, 1};
+         float cen[3] = {59.2,-7.2,-42};
          SUMA_Set_MaskDO_Color(mdo, cc);
          break; }
       case 5: {
@@ -1850,6 +2165,7 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
    float *fv;
+   int dg;
    SUMA_ALL_DO *ado=NULL;
    char str[256];
    SUMA_Boolean LocalHead = NOPE;
@@ -1989,8 +2305,42 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
                SUMA_INSERT_CELL_STRING(TF, row, col, str);
             }
          } else { /* failed, reset string */
-            SUMA_RGBA_to_string(mdo->colv, 3, 1.0, str, NULL, ",",3);
+            SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",", 4);
             SUMA_LHv("Resetting ado colv string back %s\n", 
+                     str);
+            SUMA_INSERT_CELL_STRING(TF, row, col, str);
+         }
+         break;
+      case 7:
+         dg = (int)atoi(s1);
+         if (dg < 0) dg = 0;
+         else if (dg > 9) dg = 9;
+         SUMA_LH("Setting Alpha from %s (%d, %f)(setmen is %d)\n"
+                 "%f %f %f %f\n", 
+                  s1, dg, SUMA_1dig_to_A(dg), setmen,
+                  mdo->colv[0], mdo->colv[1], mdo->colv[2], mdo->colv[3]);
+         SUMA_MDO_New_Alpha(mdo, SUMA_1dig_to_A(dg));
+         /* changing A affects the color string */
+         SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",",4);
+         SUMA_LH("Setting RGB to %s %f %f %f %f\n", 
+                  str,
+                  mdo->colv[0], mdo->colv[1], mdo->colv[2], mdo->colv[3]);
+         SUMA_INSERT_CELL_STRING(TF, row, 6, str);
+         if (setmen) {
+            sprintf(str,"%d",dg);
+            SUMA_LHv("Inserting ado A back %s\n", str);
+            SUMA_INSERT_CELL_STRING(TF, row, col, str);
+         }
+         break;
+      case 8:
+         SUMA_LH("Setting Trans from %s", s1);
+         dg = (int)atoi(s1);
+         if (dg < 0) dg = 0;
+         else if (dg > 9) dg = 9;
+         SUMA_MDO_New_Trans(mdo, SUMA_1dig_to_T(dg));
+         if (setmen) {
+            sprintf(str,"%d",dg);
+            SUMA_LHv("Inserting ado tran back %s\n", 
                      str);
             SUMA_INSERT_CELL_STRING(TF, row, col, str);
          }
@@ -2027,9 +2377,11 @@ char *SUMA_GetMaskEvalExpr(void)
    static char FuncName[]={"SUMA_GetMaskEvalExpr"};
    static int icall=0;
    static char expv[10][128];
+   char evale[256]={""}, tight[128]={""};
    char *exp=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2050,6 +2402,18 @@ char *SUMA_GetMaskEvalExpr(void)
    
    if (TF->str_value[1*TF->Ni+0]) {
       strncpy(exp, TF->str_value[1*TF->Ni+0], 127);
+      if (!SUMA_DispExpr_To_EvalExpr(exp, evale, tight)) {
+         SUMA_SLP_Warn("Parsing error encountered. Check command line");
+         exp[0] = '\0';
+         SUMA_RETURN(exp);
+      } else {
+         SUMA_LH("exp >%s<, evale >%s<, tight >%s<",
+                  exp, evale, tight);
+         /* use the eval version */
+         strncpy(exp, evale, 127);
+         /* and set the tight version for display */
+         if (strcmp(exp, tight)) SUMA_INSERT_CELL_STRING(TF, 0, 1, tight);
+      }
    }
    SUMA_RETURN(exp);   
 }
@@ -2067,6 +2431,7 @@ int SUMA_SetMaskEvalTableValueNew(  int row, int col,
    SUMA_TABLE_FIELD *TF=NULL;
    float *fv;
    SUMA_ALL_DO *ado=NULL;
+   char evale[256]={""}, tight[128]={""};
    char str[256];
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2104,17 +2469,18 @@ int SUMA_SetMaskEvalTableValueNew(  int row, int col,
          SUMA_LHv("Setting expression to %s [%d %d] \n"
                   "Need function to test expression for correctness ...\n", 
                     s1, row, col);
-         if (1) { /* Need: if (SUMA_OK_Expression(s1)) */
+         if (SUMA_DispExpr_To_EvalExpr(s1, evale, tight)) { 
             if (setmen) {
-               SUMA_INSERT_CELL_STRING(TF, row, col, s1);
+               SUMA_INSERT_CELL_STRING(TF, row, col, tight);
             } else { /* Just the table field */
                if (TF->str_value) { 
-                  SUMA_STRING_REPLACE(TF->str_value[col*TF->Ni+row], s1);
+                  SUMA_STRING_REPLACE(TF->str_value[col*TF->Ni+row], tight);
                }
             }
          } else { /* failed, reset string */
             SUMA_INSERT_CELL_STRING(TF, row, col, 
                                     TF->str_value[col*TF->Ni+row]);
+            SUMA_RETURN(NOPE);
          }
          break;
       default:

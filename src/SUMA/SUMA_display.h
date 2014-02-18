@@ -707,6 +707,11 @@ int SUMA_GDSET_ShowUncon ( SUMA_ALL_DO *ado,
 void SUMA_cb_GDSET_ShowUncon_toggled (Widget w, XtPointer data, 
                                           XtPointer client_data);
 int SUMA_FlushPickBufferForDO(SUMA_ALL_DO *curDO);
+SUMA_TRANS_MODES SUMA_1dig_to_T(int i);
+int SUMA_T_to_1dig(SUMA_TRANS_MODES stm);
+float SUMA_1dig_to_A(int i);
+int SUMA_A_to_1dig(float v);
+SUMA_Boolean SUMA_DispExpr_To_EvalExpr(char *expr, char *evale, char *tight);
 
 
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
@@ -789,6 +794,7 @@ char *SUMA_GetMaskEvalExpr(void);
 void SUMA_cb_SetMaskEvalTableValue (void *data);
 void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, 
                                  XtPointer client_data);
+SUMA_Boolean SUMA_Set_UseMaskEval(int v, int redisp, int setmen);
 SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows);
 void SUMA_delete_mask_timeout_CB( XtPointer client_data , XtIntervalId * id);
 void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs);

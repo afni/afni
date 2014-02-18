@@ -1098,9 +1098,11 @@ SUMA_Boolean SUMA_Process_Selected_ADO(SUMA_SurfaceViewer *sv, int deepfirst)
    }
 
    /* Now apply the top pick */
+   SUMA_LH("On to apply the PR");
    el = dlist_head(sv->SelAdo);
    ss = (SUMA_SEL_ADO_DATUM *)el->data;
    SUMA_Apply_PR(sv, &(ss->PR)); 
+   SUMA_LH("Returning");
    
    SUMA_RETURN(YUP);
 }
@@ -2462,9 +2464,8 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
       SV->GVS[SV->StdView].ViewFromOrig[2] = SV->GVS[SV->StdView].ViewFrom[2];
 
    SUMA_RETURN (YUP);
-   
-   
 }
+
 /*!
 Updates the Rotation Center of SV based on the contents of RegistDO
 */
