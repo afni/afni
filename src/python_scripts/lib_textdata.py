@@ -54,7 +54,7 @@ def read_1D_file(filename, nlines=-1, marry_ok=0, verb=1):
        - skip leading '#', return a 2D array of floats"""
 
 
-    data, clines = read_married_file(filename, nlines=nlines, verb=verb)
+    data, clines, alist = read_married_file(filename, nlines=nlines, verb=verb)
     if data == None:
        print '** failed to read 1D file %s' % filename
        return None
@@ -72,6 +72,7 @@ def read_1D_file(filename, nlines=-1, marry_ok=0, verb=1):
 
     del(data)
     del(clines)
+    del(alist)
 
     return retmat
 
@@ -80,7 +81,7 @@ def read_data_file(filename, nlines=-1, marry_ok=0, verb=1):
        and return the matrix and comment lines
        - skip leading '#', return a 2D array of floats and 1D array of text"""
 
-    data, clines = read_married_file(filename, nlines=nlines, verb=verb)
+    data, clines, alist = read_married_file(filename, nlines=nlines, verb=verb)
     if data == None:
        if verb > 0: print '** failed to read text data file %s' % filename
        return None, None
@@ -93,6 +94,7 @@ def read_data_file(filename, nlines=-1, marry_ok=0, verb=1):
     retmat = [[val[0] for val in row] for row in data]
 
     del(data)
+    del(alist)
 
     return retmat, clines
 
@@ -107,6 +109,11 @@ def read_married_file(filename, nlines = -1, verb = 1):
        The expected format of file element is:
           time*mod1*mod2*...*modN:duration
        Should we allow different separators?
+
+       return
+          - married data matrix
+          - comment list
+          - astcounts list (count of '*' characters per data line)
     """
 
     if filename == '-' or filename == 'stdin':
@@ -115,12 +122,13 @@ def read_married_file(filename, nlines = -1, verb = 1):
        try: fp = open(filename, 'r')
        except:
            if verb > 0: print "failed to open 1D file %s" % filename
-           return None, None
+           return None, None, None
 
     if verb > 1: print "+d reading file %s" % filename
 
     retmat = []
     clines = []
+    astcounts = []
     lnum   = 0
     data = fp.read()
     fp.close()
@@ -152,19 +160,20 @@ def read_married_file(filename, nlines = -1, verb = 1):
 
         # process the line
         if verb > 3: print '-- processing line #%d: %s' % (lind, line)
-        rv, mlist = process_one_data_line(line, verb)
-        if rv: return None, None
+        rv, mlist, acount = process_one_data_line(line, verb)
+        if rv: return None, None, None
         if verb > 4: print '++ mlist = %s' % mlist
 
         retmat.append(mlist)    # even if empty
+        astcounts.append(acount)
 
         if verb > 3: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
         lnum += 1
 
     # now just check for consistency
-    if not married_mat_is_consistent(retmat, filename): return None, None
+    if not married_mat_is_consistent(retmat, filename): return None, None, None
 
-    return retmat, clines
+    return retmat, clines, astcounts
 
 def married_mat_is_consistent(mmat, fname):
     """just check for consistency: same number of modulators and
@@ -200,28 +209,32 @@ def process_one_data_line(line, verb=1):
         - skip '*' tokens (should be only way to get empty line)
         - look for married elements
 
+      The returned acount is the number of '*' found on this line.
+
       If any tokens are married, they should all have the same format.
 
-      return result, [time tokens]      (result = 0 if OK, 1 on error)
+      return result, [time tokens] [acounts] (result = 0 if OK, 1 on error)
    """
 
    if not line:
       print '** PODL: should not have empty line'
-      return 1, []
+      return 1, [], 0
    if line.isspace():
       print '** PODL: should not have blank line'
-      return 1, []
+      return 1, [], 0
    if line[0] == '\0' or line[0] == '#':
       print '** PODL: should not have comment line'
-      return 1, []
+      return 1, [], 0
 
    tokens   = line.split()
    inc_warn = 1         # do not warn of inconsistency more than once
    res_sep  = None      # separator list result
    res_list = []        # result list
+   acount = 0
    for tok in tokens:
       if tok == '*':
          if verb > 2: print "-- data file: skipping '*'"
+         acount += 1
          continue
       vals, seps = split_token(tok)
       if verb > 3:
@@ -233,7 +246,7 @@ def process_one_data_line(line, verb=1):
       except:
          if verb > 0: print "** unusable token, bad floats : %s" % tok
          if verb > 0: print "   line = %s" % line
-         return 1, []
+         return 1, [], acount
 
       # first time, copy the sep list
       if res_sep == None: res_sep = seps[:]
@@ -249,7 +262,7 @@ def process_one_data_line(line, verb=1):
       elif seps[-1] == ':': res_list.append([fvals[0], fvals[1:-1], fvals[-1]])
       else:                 res_list.append([fvals[0], fvals[1:], 0])
 
-   return 0, res_list
+   return 0, res_list, acount
 
 def split_token(tdata, seplist=[':','*']):
    """

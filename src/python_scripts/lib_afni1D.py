@@ -2421,6 +2421,7 @@ class AfniData(object):
       self.data    = None       # actual data (array of arrays [[]])
       self.mdata   = None       # married data (elements are [time [mods] dur])
       self.clines  = None       # comment lines from file
+      self.alist   = None       # list of '*' counts per row
 
       # descriptive variables, set from data
       self.nrows     = 0
@@ -2431,6 +2432,8 @@ class AfniData(object):
       self.empty     = 0        # no data at all
       self.married   = 0        # data has modulators or durations
       self.mtype     = 0        # married type (bits, amp, dur)
+      self.minlen    = 0        # min and max row lengths
+      self.maxlen    = 0
 
       self.ready     = 0        # data is ready
 
@@ -2490,8 +2493,31 @@ class AfniData(object):
       if dur == -2: return 0    # uninitialized means 0
       return dur                # -1 or good value
 
-   def extend_data_rows(self, newdata):
-      """extend each row by the corresponding row of newdata"""
+   def get_min_max_duration(self):
+      """return -1, -1  : if empty
+                min, max: otherwise
+      """
+
+      if self.mtype == 0 or len(self.mdata) == 0: return 0
+
+      # have actual married data
+
+      dmin = -1
+      dmax = -1
+      for row in self.mdata:
+         for entry in row:
+            dur = entry[2]
+            if dmax == -1: dmin = dur # init, but not to a small thing
+            if dur < dmin: dmin = dur
+            if dur > dmax: dmax = dur
+      return dmin, dmax
+
+   def extend_data_rows(self, newdata, promote_mtype=1, promote_rows=0):
+      """extend each row by the corresponding row of newdata
+         if promote_mtypes and they differ, promote so they are the same
+         if promote_rows and they differ, promote so they are the same
+      """
+      
       if not self.ready or not newdata.ready:
          print '** timing elements not ready for extending rows (%d,%d)' % \
                (self.ready, newdata.ready)
@@ -2500,23 +2526,122 @@ class AfniData(object):
       if self.nrows != newdata.nrows:
          print '** timing nrows differ for extending (%d, %d)' % \
                (self.nrows,newdata.nrows)
-         return 1
+         if not promote_rows: return 1
+         print '   promoting nrows between %s and %s'%(self.name, newdata.name)
+         self.promote_nrows(newdata)
 
       if self.mtype != newdata.mtype:
-         print '** timing elements differ in married type (%s, %s)' % \
-               (self.married_type_string(self.mtype),
-                self.married_type_string(newdata.mtype))
-         return 1
+         print '** timing elements differ in married type (%s, %s)' \
+	       % (self.married_type_string(self.mtype),
+                  self.married_type_string(newdata.mtype))
+         if not promote_mtype: return 1
+         print '   promoting mtypes between %s and %s'%(self.name, newdata.name)
+         self.promote_mtypes(newdata)
 
       if self.verb > 1: print '++ MTiming: extending %d rows' % self.nrows
 
       for ind in range(self.nrows):
+	 if self.verb > 3:
+            print '++ edr m #%d: extending %d rows from %d cols by %d' \
+	       % (ind, self.nrows, len(self.data[ind]), len(newdata.data[ind]))
          self.data[ind].extend(newdata.data[ind])
 
       for ind in range(self.nrows):
+	 if self.verb > 3:
+            print '++ EDR M #%d: extending %d rows from %d cols by %d' \
+	       % (ind, self.nrows, len(self.mdata[ind]),len(newdata.mdata[ind]))
          self.mdata[ind].extend(newdata.mdata[ind])
 
+      # and update ncols
+      self.ncols = min([len(r) for r in self.data])
+
+      if self.verb > 3:
+         print self.make_data_string(nplaces=1, flag_empty=0, check_simple=0,
+                        mesg='\nnew mdata for %s'%self.name)
+         print '-- min, max dur = %s %s' % self.get_min_max_duration()
+
       return 0
+
+   def promote_nrows(self, newdata, dataval=None, maryval=None):
+      """if differing nrows, extend to match
+
+         if dataval == None: new rows are empty
+         else:               pad by ncols vector of dataval elements
+      """
+
+      diff = self.nrows - newdata.nrows
+
+      if diff == 0: return 0
+
+      if dataval == None: df = []
+      else:               df = [dataval for i in range(self.ncols)]
+      if maryval == None: mf = []
+      else:               mf = [maryval for i in range(self.ncols)]
+
+      if diff < 0: updater = self
+      else       : updater = newdata
+
+      for r in range(abs(diff)):
+         updater.data.append(df)
+         updater.mdata.append(mf)
+
+      return 0
+
+   def promote_mtypes(self, newdata):
+      """if married types differ, promote data to match"""
+
+      # if they are the same, there is nothing to do
+      if self.mtype == newdata.mtype: return 0
+
+      # else they will certainly be married after this,
+      # so set both to married, and mtype to the combined one
+      self.married = 1
+      newdata.married = 1
+      new_mtype = self.mtype | newdata.mtype
+      self.mtype = new_mtype
+      newdata.mtype = new_mtype
+
+      if self.verb > 2:
+         print '++ promoting married type to %d (%s from %s)' \
+               % (new_mtype, self.name, newdata.name)
+
+      # try to find some data
+      sval = []
+      for v in self.mdata:
+         if len(v) > 0:
+            sval = v[0]
+            break
+      nval = []
+      for v in newdata.mdata:
+         if len(v) > 0:
+            nval = v[0]
+            break
+
+      # if either has no data, we are done
+      if len(sval) == 0 or len(nval) == 0: return 0
+
+      # so we have data, see who has more amplitude modulators
+
+      adiff = len(sval[1]) - len(nval[1])
+      if adiff < 0:   self.pad_amp_mods(-adiff)
+      elif adiff > 0: newdata.pad_amp_mods(adiff)
+      if adiff != 0: # promote mtypes
+         self.mtype = (self.mtype | MTYPE_AMP)
+         newdata.mtype = (newdata.mtype | MTYPE_AMP)
+
+      # nothing to do for MTYPE_DUR, except promote mtype, done above
+
+      return 0
+
+   def pad_amp_mods(self, ext_len):
+      """extend the amplitudes by length ext_len list of 1"""
+      if ext_len <= 0: return
+      if self.verb > 2:
+         print '++ pad_amp_mods(%d) for %s' % (ext_len, self.name)
+      elist = [1] * ext_len
+      for row in self.mdata:
+         for val in row:
+            val[1].extend(elist)
 
    def show_married_info(self):
       print '-- modulation type: %s' % self.married_info_string()
@@ -2549,13 +2674,13 @@ class AfniData(object):
    def ave_dur_modulation(self):
       if not self.mtype & MTYPE_DUR: return 0
       if not self.mdata: return 0
-      sum, count = 0.0, 0
+      lsum, count = 0.0, 0
       for row in self.mdata:
          if len(row) == 0: continue
          count += len(row)
-         sum += UTIL.loc_sum([entry[2] for entry in row])
+         lsum += UTIL.loc_sum([entry[2] for entry in row])
       if count == 0: return 0
-      return sum*1.0/count # be wary of integers
+      return lsum*1.0/count # be wary of integers
 
    def married_type_string(self, mtype=None):
       if mtype == None: mtype = self.mtype
@@ -2594,28 +2719,42 @@ class AfniData(object):
    def transpose(self):
       """the tranpose operation requires rectangular data"""
       if not self.ready: return 1
-      if not self.is_rect():
+
+      # allow transpose if max row length is 1
+      if self.maxlen > 1 and not self.is_rect():
          print '** cannot take transpose, data is not rectangular'
          return 1
 
       if self.verb > 1: print '-- AData: taking transpose...'
 
-      # det mdata and data
-      newdata = []
-      if not self.empty:
+      if self.empty: return 0
+
+      # get mdata and data
+
+      # if column (maybe non-rectagular), allow transpose
+      # (akin to when 3dDeconvolve might mis-interpret local times as global)
+      if self.maxlen == 1 and not self.is_rect():
+         newdata = []
+         for row in self.data: newdata.extend(row)
+         self.data = [newdata]
+         newdata = []
+         for row in self.mdata: newdata.extend(row)
+         self.mdata = [newdata]
+      else: # typical rectagular case
+         newdata = []
          for col in range(len(self.data[0])):
             newdata.append([self.data[row][col] for row in range(self.nrows)])
-      del(self.data)
-      self.data = newdata
+         del(self.data)
+         self.data = newdata
 
-      newdata = []
-      if not self.empty:
+         newdata = []
          for col in range(len(self.mdata[0])):
             newdata.append([self.mdata[row][col] for row in range(self.nrows)])
-      del(self.mdata)
-      self.mdata = newdata
+         del(self.mdata)
+         self.mdata = newdata
 
       self.nrows = len(self.mdata)
+      self.ncols = len(self.mdata[0])
 
       return 0
 
@@ -2893,9 +3032,94 @@ class AfniData(object):
 
          del(row)
 
+      # no fatal errors yet
       if errors: return 1
       else:      return 0
 
+   def looks_local_but_3dD_global(self, warn=0, maxruns=20):
+      """return 1 if the timing looks local (has '*' anywhere),
+         but would be read as global by 3dDeconvolve (max cols == 1)
+
+         true if '*' entries exist, and:
+            - max entries (per row) is 1 (including '*')
+            - there is some time after row 1
+
+         true if '*' entries do not exist, and:
+            - there is exactly one time per row
+            - either of:
+               - len(run_lens) == nrows
+               - there are <= maxruns rows
+
+         if verb: warn user
+      """
+
+      if not self.ready:
+         print '** LLB3G: data not ready'
+         return 0
+
+      if self.empty: return 0
+
+      # has_alist will imply it exists, is valid and there are '*' entries
+      has_alist = (self.alist != None)
+      if has_alist: has_alist = (len(self.alist) == len(self.data))
+      if has_alist: has_alist = (UTIL.loc_sum(self.alist) > 0)
+
+      minntimes = 2 # at which point we would not care
+      maxent = 0
+      late_times = 0
+
+      # track max entries per row, including '*' chars
+      for rind, row in enumerate(self.data):
+         nent = len(row)
+         if rind > 0 and nent > 0: late_times = 1 # stim exist after row 0
+         if nent < minntimes: minntimes = nent    # min stim times per row
+         if has_alist: nent += self.alist[rind]   # total events per row
+         if nent > maxent: maxent = nent          # max events across rows
+
+         # save a little time if we are safe
+         if maxent > 1: return 0
+
+      # if maxent is not 1, there is no problem
+      if maxent != 1: return 0
+
+      # if there is no event after row 1, there is no problem
+      if not late_times: return 0
+
+      # we have at most 1 entry per row, and times after row 1,
+      # get to the stated tests
+
+      tddwarn = '   NOTE: 3dDeconvovle versions prior to 18 Feb 2014 would\n' \
+                '         interpret this file as -global_times, while later\n'\
+                '         versions would interpret it as -local_times\n'
+                
+
+      if has_alist:
+         if warn:
+            print "** timing file %s looks like local times from '*', but\n" \
+                  "   might be interpreted as global times by 3dDeconvovle\n"\
+                  "   because it has only one column\n"                      \
+                  "   (consider adding one '*', giving that row 2 entries)\n"\
+                  % self.fname
+            print tddwarn
+         return 1
+
+      if len(self.run_lens) > 0:
+         if len(self.run_lens) == self.nrows:
+            if warn:
+               print "** timing file %s looks like global times, but\n" \
+                     "   Nruns == Nstim, so maybe it is local\n"        \
+                     "   (if local, add '*' to some row)\n"             \
+                     % self.fname
+            return 1
+      elif self.nrows > 0 and self.nrows < maxruns:
+         if warn:
+            print "** timing file %s looks like global times, but\n" \
+                  "   has very few stim, so might be local\n"        \
+                  "   (if local, add '*' to some row)\n"             \
+                        % self.fname
+         return 1
+
+      return 0
 
    def file_type_warnings_local(self, run_lens=[], tr=0.0):
       """warn about any oddities in local timing
@@ -2935,11 +3159,23 @@ class AfniData(object):
             warnings.append("   - %d rows does not match %d runs" \
                            % (self.nrows, nruns))
 
+      check_alist = (self.alist != None)
+      if check_alist: check_alist = len(self.alist) == len(self.data)
+      maxent = 0
+
       wcount = [0,0,0]  # limit warnings of each type (to 2 for now)
       for rind in range(len(self.data)):
          # start with row copy
          row = self.data[rind][:]
-         if len(row) == 0: continue
+
+         # track max entries per row, including '*' chars
+         rlen = len(row)
+         nent = rlen
+         if check_alist: nent += self.alist[rind]
+         if nent > maxent: maxent = nent
+
+         if rlen == 0: continue
+
          row.sort()
          first = row[0]
          last = row[-1]
@@ -2967,6 +3203,16 @@ class AfniData(object):
       if wcount[2] > 2:
          warnings.append("   * %d row times exceed run dur %g ..." \
                          % (wcount[2], rlens[rind]))
+
+      if maxent == 1 and self.nrows > 1:
+         awarn = 0
+         if check_alist:
+            if UTIL.loc_sum(self.alist) > 0: awarn = 1
+         if awarn: warnings.append(                             \
+            "   * single column looks local from '*',\n"        \
+            "     but 3dDeconvolve would interpret as global")
+         else: warnings.append(                                 \
+            "   * 3dDeconvolve would interpret single column as global")
 
       if len(warnings) > 0:
          print '** warnings for local stim_times format of file %s' % self.fname
@@ -3007,6 +3253,7 @@ class AfniData(object):
          return 0
 
       errors = 0
+      ferrors = 0
 
       # must be one row or column
       if self.ncols != 1 and self.nrows != 1:
@@ -3018,6 +3265,12 @@ class AfniData(object):
          errors |= ERR_ANY_MISC
          if verb > 1: print "** file %s is not a rectangular" % self.fname
 
+      # this is fatal, as opposed to nrows/ncols
+      if self.maxlen > 1:
+         ferrors |= ERR_ANY_MISC
+         if verb: print '** file %s has rows longer than 1' % self.fname
+         
+
       # negative times are not errors, but warnings
 
       # possibly scale run_lengths
@@ -3028,8 +3281,9 @@ class AfniData(object):
 
       # repetition times are not errors, but warnings
 
-      if errors: return 1
-      else:      return 0
+      if  ferrors: return -1
+      elif errors: return 1
+      else:        return 0
 
    def file_type_warnings_global(self, run_lens=[], tr=0.0, verb=1):
 
@@ -3084,10 +3338,14 @@ class AfniData(object):
          For now, store complete result but focus on times only.
       """
 
-      mdata, clines = TD.read_married_file(fname, verb=self.verb)
+      mdata, clines, alist = TD.read_married_file(fname, verb=self.verb)
       if mdata == None:
          if self.verb > 0: print '** A1D: failed to read data file %s' % fname
          return 1
+
+      # init name from filename
+      aname = BASE.afni_name(self.fname)
+      self.name  = aname.pve()
 
       # note whether the data is married (modulation or duration)
       self.mtype = TD.married_type(mdata)
@@ -3098,16 +3356,21 @@ class AfniData(object):
       self.mdata    = mdata
       self.clines   = clines
       self.fname    = fname
+      self.alist    = alist
 
       self.nrows    = len(self.data)
       self.row_lens = [len(row) for row in self.data]
 
       # empty data includes existing but empty runs
-      if len(self.data) == 0: maxlen = 0
-      else:                   maxlen = max([len(drow) for drow in self.data])
+      if len(self.data) == 0:
+         self.maxlen = 0
+         self.minlen = 0
+      else:
+         self.maxlen = max([len(drow) for drow in self.data])
+         self.minlen = min([len(drow) for drow in self.data])
 
       # accept an empty file?
-      if self.nrows == 0 or maxlen == 0:
+      if self.nrows == 0 or self.maxlen == 0:
          self.empty = 1
          self.ready = 1
          return 0

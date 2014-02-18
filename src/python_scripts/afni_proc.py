@@ -392,9 +392,10 @@ g_history = """
     4.06 Dec 17, 2013: 3dDespike now defaults to -NEW
         - added -despike_new yes/no for control
     4.07 Feb 06, 2014: minor -help and -ask_me text changes
+    4.08 Feb 18, 2014: minor -help update
 """
 
-g_version = "version 4.07, February 6, 2014"
+g_version = "version 4.08, February 18, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "29 Nov 2013" # for 3dRSFC update

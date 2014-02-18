@@ -623,7 +623,7 @@ class AfniTiming(LD.AfniData):
          print '** M Timing: nothing to compute ISI stats from'
          return 1
 
-      if self.mtype != LD.MTYPE_DUR:
+      if not (self.mtype & LD.MTYPE_DUR):
          print '** warning: computing stats without duration'
 
       if self.nrows != len(self.data):
@@ -693,7 +693,7 @@ class AfniTiming(LD.AfniData):
 
          if pre < 0:
             print '** ISI error: first stimulus of run %d at negative time %s'%\
-                  (rind+1, run[sind][0])
+                  (rind+1, run[0][0])
             errs += 1
             if errs > max_errs:
                print '** bailing...'

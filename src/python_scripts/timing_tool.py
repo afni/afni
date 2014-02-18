@@ -226,6 +226,11 @@ examples:
 
              timing_tool.py -multi_timing stim*.txt -tr 2.0 -warn_tr_stats
 
+   11. Test a timing file for timing issues, which currently means having
+       times that are intended to be local but might be read as global.
+
+          timing_tool.py -multi_timing stim*.txt -test_local_timing
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -498,6 +503,16 @@ action options (apply to single timing element, only):
 
             Consider '-write_timing'.
 
+   -test_local_timing           : test for certain problems with local timing
+
+        The main purpose of this is to test for timing files that are intended
+        to be interpreted by 3dDeconvolve as being LOCAL TIMES, but might
+        actually be interpreted as being GLOBAL TIMES.
+
+        Note that as of 18 Feb, 2014, any '*' in a timing file will cause it
+        to be interpreted by 3dDeconvolve as LOCAL TIMES, even if the file is
+        only a single column.
+
    -timing_to_1D output.1D      : convert stim_times format to stim_file
 
         e.g. -timing_to_1D stim_file.1D
@@ -744,9 +759,12 @@ g_history = """
    2.01 Oct 28, 2011 - allow use of -show_isi_stats w/o stim duration
    2.02 Oct 31, 2011 - added -show_tr_stats and -warn_tr_stats options
    2.03 Oct 03, 2012 - some options do not allow dashed parameters
+   2.04 Feb 18, 2014 - added -test_local_timing, to check for local vs. global
+        - in some cases, promote married types to combine/compare them
+        - keep track of '*' entries from timing files
 """
 
-g_version = "timing_tool.py version 2.03, Oct 3, 2012"
+g_version = "timing_tool.py version 2.04, Feb 18, 2014"
 
 
 
@@ -787,6 +805,7 @@ class ATInterface:
 
       self.status = 1 # init to failure
       timing = LT.AfniTiming(fname, dur=self.stim_dur, verb=self.verb)
+
       if not timing.ready:
          print "** failed to read timing from '%s'" % fname
          return 1
@@ -969,6 +988,9 @@ class ATInterface:
 
       self.valid_opts.add_opt('-sort', 0, [], 
                          helpstr='sort the data, per row')
+
+      self.valid_opts.add_opt('-test_local_timing', 0, [], 
+                         helpstr='check timing files for local timing issues')
 
       self.valid_opts.add_opt('-timing_to_1D', 1, [], 
                          helpstr='convert stim_times to 0/1 stim_file')
@@ -1329,6 +1351,12 @@ class ATInterface:
                return 1
             if self.show_tr_stats(warn=1): return 1
 
+         elif opt.name == '-test_local_timing':
+            if not self.timing and len(self.m_timing) == 0:
+               print "** '%s' requires -timing or -multi_timing" % opt.name
+               return 1
+            self.test_local_timing()
+
          elif opt.name == '-timing_to_1D':
             if not self.timing:
                print "** '%s' requires -timing" % opt.name
@@ -1667,6 +1695,26 @@ class ATInterface:
          if rv or not warn: print rstr
 
       return 0
+
+   def test_local_timing(self):
+      """test timing files for known issues
+            - looks local, but might be treated as global
+      """
+
+      # just start with everything that might be a timing element
+      if self.timing: tlist = [self.timing]
+      else:           tlist = []
+      tlist.extend(self.m_timing)
+
+      if len(tlist) == 0:
+         print '** no timing/multi_timing, nothing to test'
+         return 1
+
+      errs = 0
+      for timing in tlist:
+         errs += timing.looks_local_but_3dD_global(warn=1)
+
+      return errs
 
    def test(self, verb=3):
       # init
