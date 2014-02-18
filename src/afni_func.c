@@ -104,13 +104,14 @@ ENTRY("AFNI_func_autothresh_CB") ;
 /*! 03 Dec 2013 */
 
 #define TFLASH(iq) \
-  do{ MCW_flash_widget(1,(iq)->vwid->func->thr_scale); BEEPIT; } while(0)
+  do{ MCW_flash_widget(2,(iq)->vwid->func->thr_scale); BEEPIT; } while(0)
 
 void AFNI_func_setpval_final_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    float pval , thresh ;
    int newdec , olddec , stop,smax , ival ;
+   char *cpt ;
 
 ENTRY("AFNI_func_setpval_final_CB") ;
 
@@ -124,8 +125,9 @@ ENTRY("AFNI_func_setpval_final_CB") ;
     TFLASH(im3d) ; EXRETURN ;
    }
 
-   pval = (float)strtod(cbs->cval,NULL) ;
-   if( pval <= 0.0 || pval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
+   pval = (float)strtod(cbs->cval,&cpt) ;
+   if( pval >  0.0f && *cpt == '%'  ) pval *= 0.01f ;
+   if( pval <= 0.0f || pval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
 
    thresh = THD_pval_to_stat( pval ,
               DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
