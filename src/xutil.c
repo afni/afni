@@ -249,6 +249,42 @@ void MCW_set_widget_bg( Widget w , char *cname , Pixel pix )
    return ;
 }
 
+/*-------------------------------------------------------------------*/
+
+void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc )
+{
+   Pixel bg_pix=0 ; byte rr,gg,bb ;
+   unsigned int nr,ng,nb ;
+   float aa , fr,fg,fb , ff ;
+
+   if( !XtIsWidget(w) || dc == NULL || fac < 0.0f || fac > 2.0f ) return ;
+
+   aa = (fac > 1.0f) ? 1.0f : 0.0f ;
+
+   XtVaGetValues( w , XmNbackground , &bg_pix , NULL ) ;
+   DC_pixel_to_rgb( dc , bg_pix , &rr,&gg,&bb ) ;
+   nr = aa+fac*rr ; ng = aa+fac*gg ; nb = aa+fac*bb ;
+   fr = fg = fb = fac ;
+   if( nr > 255 ){ nr = 255 ; fr = 255.0f/rr ; }
+   if( ng > 255 ){ ng = 255 ; fg = 255.0f/gg ; }
+   if( nb > 255 ){ nb = 255 ; fb = 255.0f/bb ; }
+   ff = MIN(fr,fac) ; ff = MIN(fg,ff) ; ff = MIN(fb,ff) ;
+   if( ff < fac ){ nr = aa+ff*rr ; ng = aa+ff*gg ; nb = aa+ff*bb ; }
+   if( nr > 255 ) nr = 255 ; else if( nr == 0 ) nr = 1 ;
+   if( ng > 255 ) ng = 255 ; else if( ng == 0 ) ng = 1 ;
+   if( nb > 255 ) nb = 255 ; else if( nb == 0 ) nb = 1 ;
+#if 0
+INFO_message("scale_bg:  %u %u %u  ==>  %u %u %u",
+             (unsigned int)rr, (unsigned int)gg, (unsigned int)bb, nr,ng,nb ) ;
+#endif
+   rr = (byte)nr ; gg = (byte)ng ; bb = (byte)nb ;
+   bg_pix = DC_rgb_to_pixel( dc , rr,gg,bb ) ;
+   MCW_set_widget_bg( w , NULL , bg_pix ) ;
+   return ;
+}
+
+/*-------------------------------------------------------------------*/
+
 void MCW_set_widget_fg( Widget w , char *cname )
 {
    Pixel bg_pix , topsh_pix , botsh_pix , fg_pix , sel_pix ;
@@ -262,7 +298,6 @@ void MCW_set_widget_fg( Widget w , char *cname )
                                      cname , strlen(cname)+1 , NULL ) ;
    return ;
 }
-
 
 /*-------------------------------------------------------------------*/
 
