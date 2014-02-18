@@ -259,10 +259,10 @@ void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc )
 
    if( !XtIsWidget(w) || dc == NULL || fac < 0.0f || fac > 2.0f ) return ;
 
-   aa = (fac > 1.0f) ? 1.0f : 0.0f ;
 
    XtVaGetValues( w , XmNbackground , &bg_pix , NULL ) ;
    DC_pixel_to_rgb( dc , bg_pix , &rr,&gg,&bb ) ;
+   aa = (fac > 1.0f) ? 1.0f : 0.0f ;
    nr = aa+fac*rr ; ng = aa+fac*gg ; nb = aa+fac*bb ;
    fr = fg = fb = fac ;
    if( nr > 255 ){ nr = 255 ; fr = 255.0f/rr ; }
@@ -270,9 +270,9 @@ void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc )
    if( nb > 255 ){ nb = 255 ; fb = 255.0f/bb ; }
    ff = MIN(fr,fac) ; ff = MIN(fg,ff) ; ff = MIN(fb,ff) ;
    if( ff < fac ){ nr = aa+ff*rr ; ng = aa+ff*gg ; nb = aa+ff*bb ; }
-   if( nr > 255 ) nr = 255 ; else if( nr == 0 ) nr = 1 ;
-   if( ng > 255 ) ng = 255 ; else if( ng == 0 ) ng = 1 ;
-   if( nb > 255 ) nb = 255 ; else if( nb == 0 ) nb = 1 ;
+   if( nr > 255 ) nr = 255 ; else if( nr == 0 ) nr = lrand48()%32 ;
+   if( ng > 255 ) ng = 255 ; else if( ng == 0 ) ng = lrand48()%16 ;
+   if( nb > 255 ) nb = 255 ; else if( nb == 0 ) nb = lrand48()%24 ;
 #if 0
 INFO_message("scale_bg:  %u %u %u  ==>  %u %u %u",
              (unsigned int)rr, (unsigned int)gg, (unsigned int)bb, nr,ng,nb ) ;
