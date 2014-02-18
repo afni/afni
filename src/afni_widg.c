@@ -2799,7 +2799,6 @@ STATUS("making func->rowcol") ;
 
    /**--------- 05 Sep 2006: create menu hidden on the thr_label ---------**/
 
-#if 1
    { static char *onofflabel[]    = { "Use Threshold?" } ;
      static char *throlayxlabel[] = { "Thr = OLay ?" , "Thr = Olay+1 ?" } ;
 
@@ -2940,7 +2939,6 @@ STATUS("making func->rowcol") ;
                       "Compute FDR curves for OLay statistical sub-bricks" ) ;
 
    } /*---- end of thr_menu creation for top of threshold slider ----*/
-#endif
 
    FIX_SCALE_VALUE(im3d) ;  /* just in case */
 
@@ -3059,8 +3057,9 @@ STATUS("making func->rowcol") ;
    ) ;
    MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel; FDR q-value" ) ;
 
-#if 0
-   /* 05 Sep 2006: duplicate popup from thr_label */
+#define PVAL_POPUP
+#ifdef  PVAL_POPUP
+   /* 05 Sep 2006: duplicate popup menu from thr_label */
 
    XtInsertEventHandler( func->thr_pval_label ,  /* handle events in label */
 
@@ -6029,10 +6028,8 @@ ENTRY("AFNI_initialize_controller") ;
 
    WAIT_for_window( im3d->vwid->top_shell ) ;
 
-#if 1
    POPUP_cursorize( im3d->vwid->func->thr_label ) ;       /* 05 Sep 2006 */
-#endif
-#if 0
+#ifdef PVAL_POPUP
    POPUP_cursorize( im3d->vwid->func->thr_pval_label ) ;  /* 05 Sep 2006 */
 #endif
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;

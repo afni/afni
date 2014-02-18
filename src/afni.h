@@ -661,7 +661,9 @@ typedef struct {
       Widget frame , rowcol ;
 
       Widget thr_rowcol , thr_label , thr_scale , thr_pval_label ;
-      MCW_arrowval * thr_top_av ;
+      MCW_arrowval *thr_top_av ;
+      Widget pval_menu ;           /* 18 Feb 2014 */
+      Widget pval_setpval_pb ;
 
       Widget thr_menu ;
       MCW_bbox *thr_onoff_bbox ;
