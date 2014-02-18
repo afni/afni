@@ -21,6 +21,7 @@
 
 #include "mcw_malloc.h"
 #include "afni_environ.h"
+#include "display.h"
 
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
@@ -56,6 +57,7 @@ extern void MCW_invert_widget( Widget ) ;
 extern void MCW_flash_widget ( int , Widget ) ;
 extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;
 extern void MCW_set_widget_fg( Widget , char * ) ;
+extern void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc ) ;  /* 18 Feb 2014 */
 
 #undef  LABELIZE
 #define LABELIZE(w)                                   \

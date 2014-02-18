@@ -6837,6 +6837,18 @@ ENTRY("AFNI_find_poem_files") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* 18 Feb 2014 */
+
+#ifdef USE_SKIT
+static void AFNI_alter_controller_bg( Three_D_View *im3d , float fac )
+{
+   if( !IM3D_OPEN(im3d) || fac < 0.0f || fac > 2.0f ) return ;
+   MCW_scale_widget_bg( im3d->vwid->top_form, fac, im3d->dc ) ;
+   return ;
+}
+#endif
+
 /*-----------------------------------------------------------------
   Event handler to find #3 button press for hidden popup
 -------------------------------------------------------------------*/
@@ -6875,6 +6887,8 @@ ENTRY("AFNI_hidden_EV") ;
 
 #ifdef USE_SKIT
          else if( !NO_frivolities && event->button == Button2 ) SKIT_popper(im3d) ;
+         else if( !NO_frivolities && event->button == Button4 ) AFNI_alter_controller_bg(im3d,0.980000f) ;
+         else if( !NO_frivolities && event->button == Button5 ) AFNI_alter_controller_bg(im3d,1.020408f) ;
 #endif
       }
       break ;
