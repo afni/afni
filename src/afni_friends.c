@@ -259,6 +259,7 @@ static mday holiday[] = {
    {FEB,22,"Saint Malgorzata's (of Cortona) Day"                     } ,
    {FEB,24,"St. Ethelbert's day"                                     } ,
    {FEB,25,"Auguste Renoir's birthday"                               } ,
+   {FEB,25,"Anniversary of Battle of Los Angeles"                    } ,
    {FEB,27,"Dominican Republic Independence Day"                     } ,
    {FEB,27,"Anniversary of Lincoln's Cooper Union Speech"            } ,
    {FEB,27,"John Steinbeck's birthday"                               } ,
