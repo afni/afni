@@ -2373,10 +2373,10 @@ SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV,
             
             if (!SUMA_IS_REAL_VARIANT(iDO_variant(do_id))) break;
             xyzr = SUMA_GDSET_XYZ_Center(dset, iDO_variant(do_id), NULL);
-            NewCenter[0] += GDSET_MAX_POINTS(dset)*xyzr[0];
-            NewCenter[1] += GDSET_MAX_POINTS(dset)*xyzr[1];
-            NewCenter[2] += GDSET_MAX_POINTS(dset)*xyzr[2];
-            TotWeight += GDSET_MAX_POINTS(dset);
+            NewCenter[0] += GDSET_N_SEG_POINTS(dset)*xyzr[0];
+            NewCenter[1] += GDSET_N_SEG_POINTS(dset)*xyzr[1];
+            NewCenter[2] += GDSET_N_SEG_POINTS(dset)*xyzr[2];
+            TotWeight += GDSET_N_SEG_POINTS(dset);
             break;
          case TRACT_type: {
             SUMA_TractDO *TDO=(SUMA_TractDO *)dov[do_id].OP;
@@ -2527,10 +2527,10 @@ SUMA_Boolean SUMA_UpdateRotaCenter (
             }
             if (!SUMA_IS_REAL_VARIANT(iDO_variant(do_id))) break;
             xyzr = SUMA_GDSET_XYZ_Center(dset, iDO_variant(do_id), NULL);
-            NewCenter[0] += GDSET_MAX_POINTS(dset)*xyzr[0];
-            NewCenter[1] += GDSET_MAX_POINTS(dset)*xyzr[1];
-            NewCenter[2] += GDSET_MAX_POINTS(dset)*xyzr[2];
-            TotWeight += GDSET_MAX_POINTS(dset);
+            NewCenter[0] += GDSET_N_SEG_POINTS(dset)*xyzr[0];
+            NewCenter[1] += GDSET_N_SEG_POINTS(dset)*xyzr[1];
+            NewCenter[2] += GDSET_N_SEG_POINTS(dset)*xyzr[2];
+            TotWeight += GDSET_N_SEG_POINTS(dset);
             break;
          case MASK_type: {
             int N_pts;

@@ -1987,9 +1987,10 @@ typedef struct {
    int Mstip;
    GLushort stip;    /* common stippling pattern */
    
-   int N_UnqNodes; /* Number of unique nodes that are used to form the segments
-                      That the number of elements in the set formed by NodeID1 
-                      and NodeID, -1 if it is not set*/
+   int N_SegNodes; /* Number of unique nodes that are used to form the segments
+                      That is the number of elements in the set formed by NodeID1
+                      and NodeID, -1 if it is not set */
+   int N_AllNodes; /* All defined nodes in parent set */
 } SUMA_SegmentDO;
 
 typedef struct {

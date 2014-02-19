@@ -1532,8 +1532,9 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
          SDO->Parent_idcode_str = NULL;
          SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
          SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
-         SDO->N_UnqNodes = -2; /* Cannot be set */
-      } else {
+         SDO->N_SegNodes = -2; /* Cannot be set */
+         SDO->N_AllNodes = -2; /* Cannot be set */
+    } else {
          if (NodeBased == 1) {
             SDO->NodeBased = 1;
             SDO->n0 = NULL;
@@ -1541,7 +1542,8 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
             SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
             SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
             SDO->NodeID1 = NULL;
-            SDO->N_UnqNodes = -1;
+            SDO->N_SegNodes = -1;
+            SDO->N_AllNodes = -1;
          } else if (NodeBased == 2) {
             SDO->NodeBased = 2;
             SDO->n0 = NULL;
@@ -1549,8 +1551,9 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
             SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
             SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
             SDO->NodeID1 = (int*) SUMA_calloc(N_n, sizeof(int));
-            SDO->N_UnqNodes = -1;
-         } 
+            SDO->N_SegNodes = -1;
+            SDO->N_AllNodes = -1;
+        } 
       }
    
       if (  (!SDO->NodeBased && !(SDO->n0 && SDO->n1)) || 
@@ -1577,8 +1580,9 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented,
       SDO->n0 = NULL;
       SDO->n1 = NULL;
       SDO->N_n = 0;
-      SDO->N_UnqNodes = -1;
-   }
+      SDO->N_SegNodes = -1;
+      SDO->N_AllNodes = -1;
+     }
    
    /* create a string to hash an idcode */
    if (Label) hs = SUMA_copy_string(Label);
@@ -1683,59 +1687,100 @@ void SUMA_free_MaskDO (SUMA_MaskDO * MDO)
 }
 
 /* Set the number of unique points in a segment DO.
-   if N is provided and is >= 0, them SDO->N_UnqNodes is set to N
+   if N is provided and is >= 0, them SDO->N_SegNodes is set to N
    and the function returns
    Otherwise, the function will figure out the number of unique points
-   if possible, and if SDO->N_UnqNodes is not = -2. A value of 
-   SDO->N_UnqNodes = -2 is meant to flag that no attempt should 
-   be made to compute N_UnqNodes.
+   if possible, and if SDO->N_SegNodes is not = -2. A value of 
+   SDO->N_SegNodes = -2 is meant to flag that no attempt should 
+   be made to compute N_SegNodes.
 */
-int SUMA_Set_N_UnqNodes_SegmentDO(SUMA_SegmentDO * SDO, int N)
+int SUMA_Set_N_SegNodes_SegmentDO(SUMA_SegmentDO * SDO, int N)
 {
-   static char FuncName[]={"SUMA_Set_N_UnqNodes_SegmentDO"};
+   static char FuncName[]={"SUMA_Set_N_SegNodes_SegmentDO"};
    int *uu=NULL, *uus=NULL;
    
    SUMA_ENTRY;
    
    if (!SDO) SUMA_RETURN(-2); /* error */
    
-   if (SDO->N_UnqNodes < -1) { /* flagged as not feasible, don't bother */
-      SUMA_RETURN(SDO->N_UnqNodes);
+   if (SDO->N_SegNodes < -1) { /* flagged as not feasible, don't bother */
+      SUMA_RETURN(SDO->N_SegNodes);
    }                           
    if (!SDO->NodeID && !SDO->NodeID1) { /* nothing possible */
-      SDO->N_UnqNodes = -2; SUMA_RETURN(SDO->N_UnqNodes);
+      SDO->N_SegNodes = -2; SUMA_RETURN(SDO->N_SegNodes);
    }
    if (N >= 0) { /* use it, no questions asked */
-      SDO->N_UnqNodes = N; SUMA_RETURN(SDO->N_UnqNodes);
+      SDO->N_SegNodes = N; SUMA_RETURN(SDO->N_SegNodes);
    }
-   if (SDO->N_UnqNodes >= 0) { /* don't bother anew, return existing answer */
-      SUMA_RETURN(SDO->N_UnqNodes);
+   if (SDO->N_SegNodes >= 0) { /* don't bother anew, return existing answer */
+      SUMA_RETURN(SDO->N_SegNodes);
    }
    
    /* Now we need to figure things out here */
    if (!SDO->NodeID && SDO->NodeID1) {
-      uu = SUMA_UniqueInt(SDO->NodeID1, SDO->N_n, &(SDO->N_UnqNodes), 0);
+      uu = SUMA_UniqueInt(SDO->NodeID1, SDO->N_n, &(SDO->N_SegNodes), 0);
       SUMA_ifree(uu);
-      SUMA_RETURN(SDO->N_UnqNodes); 
+      SUMA_RETURN(SDO->N_SegNodes); 
    } else if (SDO->NodeID && !SDO->NodeID1) {
-      uu = SUMA_UniqueInt(SDO->NodeID, SDO->N_n, &(SDO->N_UnqNodes), 0);
+      uu = SUMA_UniqueInt(SDO->NodeID, SDO->N_n, &(SDO->N_SegNodes), 0);
       SUMA_ifree(uu);
-      SUMA_RETURN(SDO->N_UnqNodes); 
+      SUMA_RETURN(SDO->N_SegNodes); 
    } else { /* Both are set */
       if (!(uu = (int *)SUMA_malloc(SDO->N_n*2 * sizeof(int)))) {
          SUMA_S_Crit("Failed to allocate");
-         SDO->N_UnqNodes = -2;
-         SUMA_RETURN(SDO->N_UnqNodes);
+         SDO->N_SegNodes = -2;
+         SUMA_RETURN(SDO->N_SegNodes);
       }
       memcpy(uu, SDO->NodeID, SDO->N_n*sizeof(int));
       memcpy(uu+SDO->N_n, SDO->NodeID1, SDO->N_n*sizeof(int));
-      uus = SUMA_UniqueInt(uu, 2*SDO->N_n, &(SDO->N_UnqNodes), 0);
+      uus = SUMA_UniqueInt(uu, 2*SDO->N_n, &(SDO->N_SegNodes), 0);
       SUMA_ifree(uus); SUMA_ifree(uu);
-      SUMA_RETURN(SDO->N_UnqNodes);
+      SUMA_RETURN(SDO->N_SegNodes);
    } 
    /* should not get here */
-   SDO->N_UnqNodes = -2;
-   SUMA_RETURN(SDO->N_UnqNodes);
+   SDO->N_SegNodes = -2;
+   SUMA_RETURN(SDO->N_SegNodes);
+}
+
+int SUMA_Set_N_AllNodes_SegmentDO(SUMA_SegmentDO * SDO, int N)
+{
+   static char FuncName[]={"SUMA_Set_N_AllNodes_SegmentDO"};
+   int *uu=NULL, *uus=NULL;
+   SUMA_DSET *dset=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SDO) SUMA_RETURN(-2); /* error */
+   
+   if (SDO->N_AllNodes < -1) { /* flagged as not feasible, don't bother */
+      SUMA_RETURN(SDO->N_AllNodes);
+   }                           
+   if (!SDO->NodeID && !SDO->NodeID1) { /* nothing possible */
+      SDO->N_AllNodes = -2; SUMA_RETURN(SDO->N_AllNodes);
+   }
+   if (N >= 0) { /* use it, no questions asked */
+      SDO->N_AllNodes = N; SUMA_RETURN(SDO->N_AllNodes);
+   }
+   if (SDO->N_AllNodes >= 0) { /* don't bother anew, return existing answer */
+      SUMA_RETURN(SDO->N_AllNodes);
+   }
+   
+   /* Now we need to figure things out here */
+   if (!(dset = SUMA_find_GLDO_Dset(
+                  (SUMA_GraphLinkDO *)SUMA_whichADOg(SDO->Parent_idcode_str)))) {
+         SUMA_S_Err("Could not find dset for GLDO!");
+         SDO->N_AllNodes = -2; SUMA_RETURN(SDO->N_AllNodes);
+   }
+   if (!SUMA_GDSET_GetPointIndexColumn(dset, 
+                                       &(SDO->N_AllNodes), NULL)) {
+      SDO->N_AllNodes = -2; SUMA_RETURN(SDO->N_AllNodes);
+   } else { /* all good */
+      SUMA_RETURN(SDO->N_AllNodes);
+   }
+   
+   /* should not get here */
+   SDO->N_AllNodes = -2;
+   SUMA_RETURN(SDO->N_AllNodes);
 }
 
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
@@ -7939,8 +7984,9 @@ SUMA_Boolean SUMA_DrawGraphDO_G3D (SUMA_GraphLinkDO *gldo,
             GSaux->SDO->colv = SUMA_GetColorList(sv, SDSET_ID(dset));
             /* thickness? */
             GSaux->SDO->thickv = NULL;
-            /* number of uniqe points */
-            SUMA_Set_N_UnqNodes_SegmentDO(GSaux->SDO, GDSET_MAX_POINTS(dset));
+            /* number of points making up segments*/
+            SUMA_Set_N_SegNodes_SegmentDO(GSaux->SDO, GDSET_N_SEG_POINTS(dset));
+            SUMA_Set_N_AllNodes_SegmentDO(GSaux->SDO, GDSET_N_ALL_POINTS(dset));
          } else if (!strcmp((char *)el->data,"SDO_SetStippling")) {
             SUMA_LH("stippling set");
          }else {
@@ -8985,10 +9031,10 @@ float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
          }
       }
       if (!(nel = SUMA_FindNgrNamedElement(dset->ngr, "disp_NodeList"))) {
-         SUMA_LHv("Need new disp_NodeList element, %ld floats long\n", 
-                  GDSET_MAX_POINTS(dset));
+         SUMA_LHv("Need new disp_NodeList element, %d floats long\n", 
+                  nelxyz->vec_len);
          if (!(nel = NI_new_data_element("disp_NodeList",
-                                          3*GDSET_MAX_POINTS(dset)))) {
+                                          3*nelxyz->vec_len))) {
             SUMA_S_Err("Failed to create disp_NodeList");
             SUMA_RETURN(NULL);
          }
@@ -8996,9 +9042,9 @@ float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
          NI_add_column( nel, NI_FLOAT, NULL);
          recompute = 1;
       }
-      if (N_Node) *N_Node = GDSET_MAX_POINTS(dset);
+      if (N_Node) *N_Node = nelxyz->vec_len;
       if (recompute) {
-         SUMA_LHv("Recomputing XYZ of %ld nodes\n", GDSET_MAX_POINTS(dset));
+         SUMA_LHv("Recomputing XYZ of %d nodes\n", nelxyz->vec_len);
 
          /* Fill the node list */
          NodeList = (float *)nel->vec[0]; 
@@ -9018,7 +9064,7 @@ float *SUMA_GDSET_NodeList(SUMA_DSET *dset, int *N_Node, int recompute,
             SUMA_RETURN(NULL);
          }
          Z = (float *)nelxyz->vec[iicoord];
-         for (ii=0, ii3=0; ii< GDSET_MAX_POINTS(dset); ++ii) {
+         for (ii=0, ii3=0; ii< nelxyz->vec_len; ++ii) {
             NodeList[ii3++] = X[ii]; NodeList[ii3++] = Y[ii];  
             NodeList[ii3++] = Z[ii];  
          }
@@ -9329,28 +9375,28 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
                SUMA_RETURN(NULL);
             }
             SUMA_RETURN(colv);
-         } else  if (!strcmp(DO_primitive,"balls")) {
-             if (SDO->N_UnqNodes < 0) {
-               if (SDO->N_UnqNodes == -1) {
-                  SUMA_S_Err("Looks like N_UnqNodes was not initialized.\n"
-                        "I can do it here with SUMA_Set_N_UnqNodes_SegmentDO()\n"
+         } else if (!strcmp(DO_primitive,"balls")) {
+             if (SDO->N_AllNodes < 0) {
+               if (SDO->N_AllNodes == -1) {
+                  SUMA_S_Err("Looks like N_AllNodes was not initialized.\n"
+                        "I can do it here with SUMA_Set_N_AllNodes_SegmentDO()\n"
                         "But for now I prefer to complain and return NULL");
                   SUMA_RETURN(NULL);
                } else {
-                  SUMA_LHv("Have SDO->N_UnqNodes = %d, nothing to do here\n", 
-                           SDO->N_UnqNodes);
+                  SUMA_LHv("Have SDO->N_AllNodes = %d, nothing to do here\n", 
+                           SDO->N_AllNodes);
                   SUMA_RETURN(NULL);
                }
              }
              if (!(colv = SUMA_New_colid(sv, SDO->Label, SDO->idcode_str,
                                  DO_primitive, DO_variant, ref_idcode_str, 
-                                 ref_do_type, SDO->N_UnqNodes))) {
+                                 ref_do_type, SDO->N_AllNodes))) {
                SUMA_S_Errv("Failed to get colid for %s\n",
                            SDO->Label);
                SUMA_RETURN(NULL);
             }
             SUMA_RETURN(colv);
-         } else  if (!strcmp(DO_primitive,"seg_balls")) { 
+         } else if (!strcmp(DO_primitive,"seg_balls")) { 
                               /* For generic segments, not those of graph DOs! */
              if (!(colv = SUMA_New_colid(sv, SDO->Label, SDO->idcode_str,
                                  DO_primitive, DO_variant, ref_idcode_str, 
@@ -10434,7 +10480,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    
    /* draw the bottom object */
    if (SDO->botobj) {
-      float *xyz=(float *)SUMA_malloc(3*SDO->N_UnqNodes*sizeof(float));
+      float *xyz=(float *)SUMA_malloc(3*SDO->N_AllNodes*sizeof(float));
       float *xyzr=NULL;
       int *GNIr=NULL;
       char **namesr=NULL;
@@ -10466,7 +10512,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       }
       
       /* Get the coords of the nodes to represent */
-      for (i=0; i<SDO->N_UnqNodes;++i) {
+      for (i=0; i<SDO->N_AllNodes;++i) {
          cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, 
                                        DDO.N_Node, GNI ? GNI[i]:i); 
          cn3 = 3*cn;
@@ -10476,17 +10522,17 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       }
             
       if (fontGL && names && depthsort) {
-         float *xyzsc= SUMA_malloc(3*SDO->N_UnqNodes*sizeof(float)), 
+         float *xyzsc= SUMA_malloc(3*SDO->N_AllNodes*sizeof(float)), 
                *xyzscr=NULL;
-         dsrt = SUMA_DepthSort(xyz, SDO->N_UnqNodes, names, 0, xyzsc);
-         xyzr = SUMA_freorder_triplets(xyz, dsrt, SDO->N_UnqNodes); 
-         xyzscr = SUMA_freorder_triplets(xyzsc, dsrt, SDO->N_UnqNodes); 
-         GNIr = SUMA_reorder(GNI, dsrt, SDO->N_UnqNodes);
-         namesr = SUMA_sreorder(names, dsrt, SDO->N_UnqNodes);
-         if (NodeMask) NodeMaskr =SUMA_breorder(NodeMask, dsrt, SDO->N_UnqNodes);
+         dsrt = SUMA_DepthSort(xyz, SDO->N_AllNodes, names, 0, xyzsc);
+         xyzr = SUMA_freorder_triplets(xyz, dsrt, SDO->N_AllNodes); 
+         xyzscr = SUMA_freorder_triplets(xyzsc, dsrt, SDO->N_AllNodes); 
+         GNIr = SUMA_reorder(GNI, dsrt, SDO->N_AllNodes);
+         namesr = SUMA_sreorder(names, dsrt, SDO->N_AllNodes);
+         if (NodeMask) NodeMaskr =SUMA_breorder(NodeMask, dsrt, SDO->N_AllNodes);
          #if 0
          fprintf(stderr,"Sorting from farthest to closest:\n");
-         for (i=0; i<SDO->N_UnqNodes;++i) {
+         for (i=0; i<SDO->N_AllNodes;++i) {
             fprintf(stderr,"dsrt[%d]=%d, namesr[%d] = %s @[%.2f %.2f %.2f],"
                            " names[%d]= %s @ [%.2f %.2f %.2f]\n",
                            i, dsrt[i], i, namesr[i], 
@@ -10495,7 +10541,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          }
          #endif
          wmask = SUMA_WordOverlapMask(sv->X->WIDTH, sv->X->HEIGHT,
-                                      SDO->N_UnqNodes, 
+                                      SDO->N_AllNodes, 
                                       namesr, fontGL, xyzscr, -1, NodeMaskr);
          SUMA_ifree(xyzsc); SUMA_ifree(xyzscr); SUMA_ifree(NodeMaskr);
       } else {
@@ -10505,7 +10551,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          wmask = NodeMask;
       }
       
-      if (SDO->N_UnqNodes == 1) {
+      if (SDO->N_SegNodes == 1) {
          static int nwarn=0;
          /* Just one node!!!, make drawing exception */
          if (!nwarn) {
@@ -10518,7 +10564,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          if (wmask) wmask[0] = 1;
       }
       n4=0; 
-      for (i=0; i<SDO->N_UnqNodes;++i) {
+      for (i=0; i<SDO->N_AllNodes;++i) {
          i3 = 3*i; i4 = 4*i;
          if (GNIr) {
             n = GNIr[i];
@@ -10530,7 +10576,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          else showword = 255;
                    
          SUMA_LHv("%d/%d, %d, showword %d\n", 
-                  i, SDO->N_UnqNodes, n, showword);
+                  i, SDO->N_AllNodes, n, showword);
          okind=-2;
          if (curcol->NodeRad >= 0) {
             if (curcol->NodeRad == SW_SurfCont_DsetNodeRadVal) {
