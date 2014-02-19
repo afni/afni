@@ -43,6 +43,7 @@ typedef struct {
 int Free_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS);
 INSTA_TRACT_SETUP *New_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS);
 
+float Tract_Length(TAYLOR_TRACT *tt);
 void Show_Taylor_Network(TAYLOR_NETWORK *network, FILE *out, int mx, int mxb);
 void Show_Taylor_Bundle(TAYLOR_BUNDLE *bundle, FILE *out, int mx);
 void Show_Taylor_Tract(TAYLOR_TRACT *tract, FILE *out, int mx);

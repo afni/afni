@@ -65,6 +65,14 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Feb, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Added tract masking with boolean expressions",
+   "This allows users to specify the masking function\n"
+   "using the various masks as variables in a boolean expression.\n"
+   "The interface also allows for the coloring of various tracts based\n"
+   "on the "
+ }, 
+ 
  { 10, Feb, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Changed ordering of objects displayed to prevent graph text masking",
    NULL,

@@ -1721,6 +1721,8 @@ typedef struct {
    Widget DeleteMask_pb;
    int DeleteMask_first;
    int DeleteMask_row;
+   float tract_length_mask[2];
+   int use_tract_length_mask;
 }SUMA_X_SurfCont;
 
 typedef struct {

@@ -321,6 +321,23 @@ void Show_Taylor_Network(TAYLOR_NETWORK *net, FILE *out,
    EXRETURN;
 }
 
+float Tract_Length(TAYLOR_TRACT *tt) 
+{
+   float l = -1.0, dx, dy, dz;
+   int i, N, i13, i03;
+   if (!tt) return(l);
+   N = tt->N_pts3/3;
+   l = 0.0;
+   for (i=1; i<N; ++i) {
+      i13 = 3*i; i03 = i13-3;
+      dx = tt->pts[i13  ]-tt->pts[i03  ];
+      dy = tt->pts[i13+1]-tt->pts[i03+1];
+      dz = tt->pts[i13+2]-tt->pts[i03+2];
+      l += sqrt(dx*dx+dy*dy+dz*dz);
+   }
+   return(l);
+}
+
 int Bundle_N_points(TAYLOR_BUNDLE *bun, byte recalc)
 {
    int it, nn;
