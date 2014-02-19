@@ -2553,7 +2553,11 @@ void ISQ_butdisp_EV( Widget w , XtPointer client_data ,
          cbs.reason = isqCR_raiseupthedead ; SEND(seq,cbs) ;
        } else if( event->button == Button2 ){
          XBell(XtDisplay(w),100) ;
-         MCW_popup_message( w, " \n Don't! \n ", MCW_USER_KILL );
+         MCW_popup_message( w, " \n Don't! \n "        , MCW_USER_KILL|MCW_TIMER_KILL );
+       } else if( event->button == Button4 ){
+         MCW_popup_message( w, " \n That tickles! \n " , MCW_USER_KILL|MCW_TIMER_KILL ) ;
+       } else if( event->button == Button5 ){
+         MCW_popup_message( w, " \n Please stop \n "   , MCW_USER_KILL|MCW_TIMER_KILL ) ;
        }
      }
      break ;
@@ -2605,7 +2609,7 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
             MCW_popup_message( w,
                                lrand48()%2 == 0 ? " \n Ooch! \n "
                                                 : "Don't\n DO\nthat!" ,
-                               MCW_USER_KILL );
+                               MCW_USER_KILL|MCW_TIMER_KILL );
             /** AFNI_speak( "Ouch!" , 0 ) ; **/
          }
       }
@@ -11257,7 +11261,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
             free(strlist) ;
          } else if( event->button == Button2 ){
             XBell(XtDisplay(w),100) ;
-            MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
+            MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
             /** AFNI_speak( "Ouch!" , 0 ) ; **/
          }
       }
@@ -12423,7 +12427,7 @@ ENTRY("ISQ_handle_keypress") ;
          if( !seq->button2_enabled ){
            MCW_popup_message( seq->wimage,
                               " \n Only when \n"
-                              " Drawing!! \n ", MCW_USER_KILL );
+                              " Drawing!! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
            XBell(seq->dc->display,100); busy=0; RETURN(0);
          }
          ISQ_set_cursor_state( seq ,
@@ -12438,7 +12442,7 @@ ENTRY("ISQ_handle_keypress") ;
          if( !seq->button2_enabled ){
            MCW_popup_message( seq->wimage,
                               " \n Only when \n"
-                              " Drawing!! \n ", MCW_USER_KILL );
+                              " Drawing!! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
            XBell(seq->dc->display,100); busy=0; RETURN(0);
          }
          cbs.reason = isqCR_button2_key ;
@@ -12462,7 +12466,7 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_F12:
 #if 0
          XBell(seq->dc->display,100) ;
-         MCW_popup_message( seq->wimage, " \n Ouch! \n ", MCW_USER_KILL );
+         MCW_popup_message( seq->wimage, " \n Ouch! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
          AFNI_speak( "Ouch!" , 0 ) ;
 #endif
        break ;
@@ -12490,7 +12494,7 @@ ENTRY("ISQ_handle_keypress") ;
        if( seq->button2_enabled ){
          MCW_popup_message( seq->wimage,
                                " \n Not when \n"
-                               " Drawing! \n ", MCW_USER_KILL );
+                               " Drawing! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
          XBell(seq->dc->display,100) ;
        } else if( seq->status->num_total > 1 ){      /* bring it on */
          seq->timer_func  = ISQ_TIMERFUNC_INDEX ;
@@ -12510,7 +12514,7 @@ ENTRY("ISQ_handle_keypress") ;
        if( seq->button2_enabled ){
          MCW_popup_message( seq->wimage,
                               " \n Not when \n"
-                              " Drawing! \n ", MCW_USER_KILL );
+                              " Drawing! \n ", MCW_USER_KILL|MCW_TIMER_KILL );
          XBell(seq->dc->display,100) ;
        } else if( seq->status->num_total > 1 ){      /* bring it on */
          seq->timer_func  = ISQ_TIMERFUNC_BOUNCE ;
