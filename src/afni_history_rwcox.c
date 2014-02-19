@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 19 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Some of the pbar 'flip' controls didn't redraw the overlay" ,
+   "Also, scroll wheel in the pbar label (atop the color bar) will now do\n"
+   "the flipping as well." } ,
+
+ { 18 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Threshold slider popup menu now pops up on p-value label" ,
    "AND -- using the scrollwheel on the p-value label immediately pops up\n"
    "the 'Set p-value' chooser." } ,
