@@ -79,6 +79,7 @@ typedef struct {
                                  by thresholds etc. */
    int TractMask;
    float MaskGray;
+   float *tract_lengths;
 } SUMA_TRACT_SAUX;
 
 /*! A Mask object's Auxiliary structure for SUMA's use */
@@ -202,6 +203,7 @@ void SUMA_Free_MSaux(void *vSaux);
 void SUMA_Free_VSaux(void *vSaux);
 void SUMA_Free_Saux_DisplayUpdates_datum(void *ddd);
 SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo);
+float SUMA_TDO_tract_length(SUMA_TractDO *tdo, int tt);
 SUMA_Boolean SUMA_AddVolSaux(SUMA_VolumeObject *vo);
 void SUMA_Free_SliceListDatum(void *data);
 SUMA_Boolean SUMA_AddMaskSaux(SUMA_MaskDO *mdo);

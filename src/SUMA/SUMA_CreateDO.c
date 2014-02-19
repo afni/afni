@@ -5774,8 +5774,11 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    static int mgray_alloc=0;
    static GLubyte *mgrayvec=NULL;
    byte *tmask_cp=NULL;
+   int use_lmask=0, T1=0;
+   float lrange[2];
    SUMA_TRACT_SAUX *TSaux=NULL;
    SUMA_OVERLAYS *Sover=NULL;
+   SUMA_X_SurfCont *SurfCont = NULL;
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)TDO;
    SUMA_Boolean LocalHead = NOPE; 
    
@@ -5786,6 +5789,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
       SUMA_RETURN (NOPE);
    }
    
+   SurfCont = SUMAg_CF->X->AllMaskCont;
    if (!TDO->net) SUMA_RETURN(YUP);
    
    if (speedup != 1) {
@@ -5858,6 +5862,28 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    } else {
       tmask_cp = NULL;
    }
+   
+   if (SurfCont && SurfCont->use_tract_length_mask &&
+       SurfCont->tract_length_mask[1]>=SurfCont->tract_length_mask[0]) {
+      use_lmask=1;
+      lrange[0] = SurfCont->tract_length_mask[0];
+      lrange[1] = SurfCont->tract_length_mask[1];
+      SUMA_LH("Length range is %f %f", lrange[0], lrange[1]);
+   } else {
+      use_lmask=0;
+      lrange[0] = lrange[1] = -123;
+   }
+   
+   if (use_lmask) {
+      SUMA_TDO_tract_length(TDO, -1);
+      if (!TSaux->tract_lengths) {
+         SUMA_S_Err("Failed to compute lengths");
+         use_lmask = 0;
+      }
+   }
+   
+   SUMA_LH("use_lmask=%d, lrange=[%f %f] TSaux->TractMask=%d",
+               use_lmask, lrange[0], lrange[1], TSaux->TractMask); 
    
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    gl_sm = glIsEnabled(GL_LINE_SMOOTH);
@@ -5979,9 +6005,10 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                for (knet=0; knet<TDO->net->N_tbv; ++knet) {
                   tb = TDO->net->tbv[knet]; 
                   for (n=0; tb && n<tb->N_tracts; ++n) {
-                     usetcol=0;
+                     usetcol=0; T1 = -1;
                      if (colid) { /* Pick mode */
-                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
+                        n4 = 4*T1;
                         glColor4ub(colid[n4], colid[n4+1], 
                                    colid[n4+2], colid[n4+3]);
                      } else if (TDO->usetcols && TDO->tcols) {
@@ -5992,7 +6019,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                         Alternately, consider using the gray
                         color vector as is done for viewing the
                         hidden bundles*/
-                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
+                        n4 = 4*T1;
                         if (!TDO->tcols[n4+3]) {
                             usetcol = 0; /* use original coloring */
                             glEnableClientState (GL_COLOR_ARRAY);
@@ -6002,17 +6030,23 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                            glColor4ub(TDO->tcols[n4], TDO->tcols[n4+1], 
                                       TDO->tcols[n4+2], TDO->tcols[n4+3]);
                         }
+                     } else if (tmask_cp || use_lmask) {/* need T1 */
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
                      if (!tmask_cp || 
-                          tmask_cp[Network_TB_to_1T(TDO->net, n, knet)]) {
-                        if (!colid && TDO->colv && !usetcol) {
-                           glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                          tmask_cp[T1]) {
+                        if (!use_lmask || 
+                            (TSaux->tract_lengths[T1] >= lrange[0] &&
+                             TSaux->tract_lengths[T1] <= lrange[1])) {
+                           if (!colid && TDO->colv && !usetcol) {
+                              glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                           }
+                           glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                           glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                            GL_UNSIGNED_INT, rampind);
                         }
-                        glVertexPointer (3, GL_FLOAT, 0, tt->pts);
-                        glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
-                                         GL_UNSIGNED_INT, rampind);
                      }
                      P += N_pts;
                   }
@@ -6037,9 +6071,10 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                for (knet=0; knet<TDO->net->N_tbv; ++knet) {
                   tb = TDO->net->tbv[knet]; 
                   for (n=0; tb && n<tb->N_tracts; ++n) {
-                     usetcol=0;
+                     usetcol=0; T1=-1;
                      if (colid) { /* Pick mode */
-                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
+                        n4 = 4*T1;
                         glColor4ub(colid[n4], colid[n4+1], 
                                    colid[n4+2], colid[n4+3]);
                      } else if (TDO->usetcols && TDO->tcols) {
@@ -6047,7 +6082,8 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                         slow things down. Consider two passes
                         once for those with GL_COLOR_ARRAY ON
                         and once for those with it OFF. */
-                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
+                        n4 = 4*T1;
                         if (!TDO->tcols[n4+3]) {
                             usetcol = 0; /* use original coloring */
                             glEnableClientState (GL_COLOR_ARRAY);
@@ -6057,17 +6093,23 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                            glColor4ub(TDO->tcols[n4], TDO->tcols[n4+1], 
                                       TDO->tcols[n4+2], TDO->tcols[n4+3]);
                         }
+                     } else if (tmask_cp || use_lmask) {/* need T1 */
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
                      if (!tmask_cp || 
-                          tmask_cp[Network_TB_to_1T(TDO->net, n, knet)]) {
-                        if (!colid && TDO->colv && !usetcol) {
-                           glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                          tmask_cp[T1]) {
+                         if (!use_lmask || 
+                             (TSaux->tract_lengths[T1] >= lrange[0] &&
+                              TSaux->tract_lengths[T1] <= lrange[1])) {
+                           if (!colid && TDO->colv && !usetcol) {
+                              glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                           }
+                           glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                           glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                            GL_UNSIGNED_INT, rampind);
                         }
-                        glVertexPointer (3, GL_FLOAT, 0, tt->pts);
-                        glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
-                                         GL_UNSIGNED_INT, rampind);
                      }
                      P += N_pts;
                   }
@@ -6092,23 +6134,31 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                P = 0;
                for (knet=0; knet<TDO->net->N_tbv; ++knet) {
                   tb = TDO->net->tbv[knet]; 
-                  for (n=0; tb && n<tb->N_tracts; ++n) {
+                  for (n=0; tb && n<tb->N_tracts; ++n) { 
+                     T1=-1;
                      if (colid) { /* Pick mode */
-                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
+                        n4 = 4*T1;
                         glColor4ub(colid[n4], colid[n4+1], 
                                    colid[n4+2], colid[n4+3]);
+                     } else if (tmask_cp || use_lmask) {/* need T1 */
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
                      if ( tmask_cp && 
-                         !tmask_cp[Network_TB_to_1T(TDO->net, n, knet)]) {
-                        if (!colid && TDO->colv) {
-                           glColorPointer (4, GL_UNSIGNED_BYTE, 0, mgrayvec); 
-                        }
-                        glVertexPointer (3, GL_FLOAT, 0, tt->pts);
-                        glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
-                                         GL_UNSIGNED_INT, rampind);
-                      }
+                         !tmask_cp[T1]) {
+                        if (!use_lmask || 
+                            (TSaux->tract_lengths[T1] >= lrange[0] &&
+                             TSaux->tract_lengths[T1] <= lrange[1]) ) {   
+                           if (!colid && TDO->colv) {
+                              glColorPointer (4, GL_UNSIGNED_BYTE, 0, mgrayvec); 
+                           }
+                           glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                           glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                            GL_UNSIGNED_INT, rampind);
+                       }
+                    }
                     P += N_pts;
                   }
                }
@@ -6119,19 +6169,27 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                for (knet=0; knet<TDO->net->N_tbv; ++knet) {
                   tb = TDO->net->tbv[knet]; 
                   for (n=0; tb && n<tb->N_tracts; ++n) {
+                     T1 = -1;
                      if (colid) { /* Pick mode */
-                        n4 = 4*Network_TB_to_1T(TDO->net, n, knet);
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
+                        n4 = 4*T1;
                         glColor4ub(colid[n4], colid[n4+1], 
                                    colid[n4+2], colid[n4+3]);
+                     } else if (use_lmask) {/* need T1 */
+                        T1 = Network_TB_to_1T(TDO->net, n, knet);
                      }
                      tt = tb->tracts+n;
                      N_pts = tt->N_pts3/3;
-                     if (!colid && TDO->colv) {
-                        glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                     if (!use_lmask || 
+                          (TSaux->tract_lengths[T1] >= lrange[0] &&
+                           TSaux->tract_lengths[T1] <= lrange[1])) {   
+                        if (!colid && TDO->colv) {
+                           glColorPointer (4, GL_FLOAT, 0, TDO->colv+4*P); 
+                        }
+                        glVertexPointer (3, GL_FLOAT, 0, tt->pts);
+                        glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
+                                         GL_UNSIGNED_INT, rampind);
                      }
-                     glVertexPointer (3, GL_FLOAT, 0, tt->pts);
-                     glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
-                                      GL_UNSIGNED_INT, rampind);
                      P += N_pts;
                   }
                }
@@ -8102,6 +8160,7 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
       if (!TSaux->PR) {
          TSaux->PR = SUMA_New_Pick_Result(NULL);
       }
+      SUMA_ifree(TSaux->tract_lengths);
    } else {
       tdo->FreeSaux = SUMA_Free_TSaux;
       tdo->Saux = (void *)SUMA_calloc(1,sizeof(SUMA_TRACT_SAUX));
@@ -8123,6 +8182,7 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
          SUMA_CreateSurfContStruct(SUMA_ADO_idcode((SUMA_ALL_DO *)tdo), 
                                    TRACT_type);
       TSaux->PR = SUMA_New_Pick_Result(NULL);
+      SUMA_ifree(TSaux->tract_lengths);
    }
 
    SUMA_LH("TSaux %p %p %p", TSaux->Overlays, TSaux->PR, TSaux->DOCont);
@@ -8131,6 +8191,63 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
    
    SUMA_RETURN(YUP);  
 }
+
+/* Return a tract's length, recompute all if necessary:
+   tt is the tract number for which the length is to be returned.
+   if tt == -1, then just make sure tract_lengths is not
+                null and return. If null, allocate and recompute
+      tt == -2, free tract_lengths and recompute all
+      
+*/
+float SUMA_TDO_tract_length(SUMA_TractDO *tdo, int tt)
+{
+   static char FuncName[]={"SUMA_TDO_tract_length"};
+   SUMA_TRACT_SAUX *TSaux;
+   float l;
+   int doall = 0.0;
+   
+   SUMA_ENTRY;
+   
+   if (!tdo || !(TSaux = TDO_TSAUX(tdo))) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(-1.0);
+   }
+   
+   doall = 0;
+   if (tt < -1 && TSaux->tract_lengths) {
+      /* Recompute for sure*/
+      SUMA_ifree(TSaux->tract_lengths);
+      doall = 1;
+   }
+   if (!TSaux->tract_lengths) {
+      TSaux->tract_lengths = (float *)SUMA_calloc(TDO_N_TRACTS(tdo), 
+                                                   sizeof(float));
+      doall = 1;
+   }
+   
+   if (tt == -1 && !doall) SUMA_RETURN(0.0);
+   
+   if (doall) {
+      int ib=0, it, TT = 0;
+      if (!tdo->net) SUMA_RETURN(-1.0);
+      for (ib=0; ib<tdo->net->N_tbv; ++ib) {
+         if (tdo->net->tbv[ib]) {
+            for (it=0; it<tdo->net->tbv[ib]->N_tracts; ++it) {
+               TSaux->tract_lengths[TT++] = 
+                     Tract_Length(tdo->net->tbv[ib]->tracts+it);
+            }
+         }
+      }
+   }
+   
+   if (tt >= 0) {
+      if (tt < TDO_N_TRACTS(tdo)) 
+            SUMA_RETURN(TSaux->tract_lengths[tt]);
+      else SUMA_RETURN(-2.0);
+   } else  SUMA_RETURN(0.0);
+   
+}
+
 
 SUMA_Boolean SUMA_AddMaskSaux(SUMA_MaskDO *mdo)
 {
