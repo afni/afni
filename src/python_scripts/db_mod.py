@@ -3389,12 +3389,13 @@ def db_cmd_regress(proc, block):
             return
         # while basis functions have one regressor, make ideals
         # (so no ideal after failure)
-        if UTIL.basis_has_one_reg(basis[0]):
+        if UTIL.basis_has_one_reg(basis[0], st=stim_types[0]):
             cmd = cmd + "# create ideal files for fixed response stim types\n"
             first = (polort+1) * proc.runs
             for ind in range(len(labels)):
                 # once unknown or multiple regs, quit
-                if not UTIL.basis_has_one_reg(basis[ind]): break
+                if not UTIL.basis_has_one_reg(basis[ind], st=stim_types[ind]):
+                   break
                 cmd = cmd + "1dcat %s'[%d]' > ideal_%s.1D\n" % \
                             (proc.xmat_nocen, first+ind, labels[ind])
             cmd = cmd + '\n'

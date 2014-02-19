@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Feb, 2014, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "if AM2 or IM, terminate extraction of ideals",
+   "Ideal extraction should be done via 1d_tool.py, using the X-matrix."
+ } ,
+
  { 19,  Feb, 2014, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
    "warn if GLOBAL times and 1 early stim per run (looks local)",
    "An early stim means t <= (NT_r-1)*TR, where NT_r is #TRs in run r.\n"
