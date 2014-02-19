@@ -563,9 +563,14 @@ ENTRY("AFNI_pbar_EV") ;
          XButtonEvent *event = (XButtonEvent *) ev ;
          im3d->vwid->butx = event->x_root ;  /* 17 May 2005 */
          im3d->vwid->buty = event->y_root ;
-         event->button    = Button3 ;                            /* fakeout */
-         XmMenuPosition( im3d->vwid->func->pbar_menu , event ) ; /* where */
-         XtManageChild ( im3d->vwid->func->pbar_menu ) ;         /* popup */
+         if( event->button == Button4 || event->button == Button5 ){ /* flip */
+           PBAR_flip(im3d->vwid->func->inten_pbar) ;          /* 19 Feb 2014 */
+           AFNI_inten_pbar_CB(im3d->vwid->func->inten_pbar,im3d,pbCR_COLOR) ;
+         } else {
+           event->button = Button3 ;                             /* fakeout */
+           XmMenuPosition( im3d->vwid->func->pbar_menu , event ) ; /* where */
+           XtManageChild ( im3d->vwid->func->pbar_menu ) ;         /* popup */
+        }
       }
       break ;
    }
@@ -625,7 +630,7 @@ ENTRY("AFNI_pbar_CB") ;
    else if( w == im3d->vwid->func->pbar_flip_pb ||
             w == im3d->vwid->func->pbar_flip_pb2  ){
      PBAR_flip(pbar) ;
-     AFNI_pbar_lock_carryout(im3d) ;
+     AFNI_inten_pbar_CB(pbar,im3d,pbCR_COLOR) ;
    }
 
    /*--- Read in a palette file ---*/
