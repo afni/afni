@@ -4065,7 +4065,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
 
    }/*locate and load all NON Mappable surfaces */
    
-   SUMA_S_Notev("Have %d DOs to load\n", Spec->N_DO);
+   SUMA_LHv("Have %d DOs to load\n", Spec->N_DO);
    for (i=0; i<Spec->N_DO; ++i) {
       switch ((SUMA_DO_Types)Spec->DO_type[i]) {
          case TRACT_type: {
