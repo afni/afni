@@ -10,7 +10,8 @@ import pdb
 
 # global lists for basis functions
 basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'SPMG1', 'WAV', 'MION']
-basis_one_regr_l   = ['GAM', 'BLOCK', 'SPMG1', 'WAV', 'EXPR', 'MION']
+basis_one_regr_l   = ['GAM', 'BLOCK', 'dmBLOCK', 'SPMG1', 'WAV', 'EXPR', 'MION']
+stim_types_one_reg = ['file', 'AM1', 'times']
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
@@ -579,12 +580,16 @@ def basis_is_married(basis):
     if starts_with(basis, 'dmBLOCK'): return 1
     else:                             return 0
 
-def basis_has_one_reg(basis):
+def basis_has_one_reg(basis, st='times'):
     """if the given basis function is known to have 1 regressor, return 1
     """
     if not basis: return 0
 
+    # only 'times' or 'AM1' are acceptable
+    if not st in stim_types_one_reg: return 0
+
     if starts_with_any_str(basis, basis_one_regr_l): return 1
+
     return 0
 
 def starts_with(word, sstr):
