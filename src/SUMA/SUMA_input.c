@@ -5958,6 +5958,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
                PR->datum_index = PR->primitive_index = -1;
             } else if (!SUMA_GDSET_PointsToSegIndex(dset, ii, jj, &si)) {
                SUMA_S_Errv("Failed to find segment for %d %d\n", ii, jj);
+               SUMA_DUMP_TRACE("Now what?");
                PR->datum_index = PR->primitive_index = -1;
             } else {
                PR->datum_index = PR->primitive_index = si;
@@ -6977,11 +6978,20 @@ int SUMA_ComputeLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    MembDOs = SUMA_ViewState_Membs(&(sv->VSv[sv->iState]), ttv, &N_MembDOs);
    for (i=0; i<N_MembDOs; ++i) {
       if ((hit = SUMA_WhatWasPicked_FrameSO(sv, MembDOs[i]))) { 
-         /* got something, leave. Perhaps in the future will need to go through
-         all stack (slices) and pick the best one ... */
-         ado = iDO_ADO(MembDOs[i]);
-         if (pado) *pado = ado;
-         break;
+         if ( hit->datum_index < 0 && (
+             ( hit->iAltSel[SUMA_ENODE_0]>=0 && 
+               hit->iAltSel[SUMA_ENODE_1]>=0)) ) {
+            /* You have selected a point pair that has no edge defined.
+               This can happen when you click on an empty cell in the matrix */
+            hit = SUMA_free_PickResult(hit);
+         } else {
+            /* got something, leave. 
+               Perhaps in the future will need to go through
+            all stack (slices) and pick the best one ... */
+            ado = iDO_ADO(MembDOs[i]);
+            if (pado) *pado = ado;
+            break;
+         }
       }
    }
    SUMA_ifree(MembDOs);
@@ -7118,8 +7128,14 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
    /* Based on what you selected, update controller */
    /* Set the Nodeselection at the closest node */
    if (PR->datum_index >= 0 ||
-       (PR->datum_index == -1 && PR->iAltSel[SUMA_ENODE_0] >= 0)) { 
-                     /* 2nd condition is when only edge node is selected */
+       (PR->datum_index == -1 && 
+        PR->iAltSel[SUMA_ENODE_0] >= 0 && 
+        PR->iAltSel[SUMA_ENODE_1] == -1) ) { 
+                     /* 2nd condition is when only edge node is selected.
+                        We insist on PR->iAltSel[SUMA_ENODE_1] == -1 otherwise
+                        we would have picked a cell in the matrix for which 
+                        there is no data, hence we have ENODE_0, and ENODE_1,
+                        but datum_index = -1 */
       it = (int)PR->datum_index;
       if (!list) list = SUMA_CreateList();
       if (PR->ignore_same_datum && 

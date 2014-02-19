@@ -2153,7 +2153,7 @@ int SUMA_AddGenGDsetNodeXYZColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp,
    } else { 
       SUMA_LH("Calculating XYZrange");
       icol = SUMA_GNODE_IXYZ_CTP2COL(ctp);
-      N_col = GDSET_MAX_POINTS(dset)*stride;
+      N_col = GDSET_N_SEG_POINTS(dset)*stride;
       stmp = SUMA_copy_string(NI_get_attribute(xyznel,"COLMS_RANGE"));
       switch (SUMA_ColType2TypeCast(ctp)) {
          case SUMA_int:           
@@ -14727,7 +14727,10 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          dset->Aux->range_edge_index[1] = dset->Aux->matrix_max_index;
          dset->Aux->range_node_index[0] = 0;
          dset->Aux->range_node_index[1] = dset->Aux->matrix_size[0]-1;
-         dset->Aux->N_uniq_nodes = dset->Aux->matrix_size[0];
+         dset->Aux->N_seg_nodes = dset->Aux->matrix_size[0];
+         if (!SUMA_GDSET_GetPointIndexColumn(dset, 
+                                       &(dset->Aux->N_all_nodes), NULL))
+            dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
          break;
       case MAT_TRI:
          dset->Aux->matrix_max_index = 
@@ -14736,7 +14739,10 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          dset->Aux->range_edge_index[1] = dset->Aux->matrix_max_index;
          dset->Aux->range_node_index[0] = 0;
          dset->Aux->range_node_index[1] = dset->Aux->matrix_size[0]-1;
-         dset->Aux->N_uniq_nodes = dset->Aux->matrix_size[0];
+         dset->Aux->N_seg_nodes = dset->Aux->matrix_size[0];
+         if (!SUMA_GDSET_GetPointIndexColumn(dset, 
+                                       &(dset->Aux->N_all_nodes), NULL))
+            dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
          break;
       case MAT_TRI_DIAG:
          dset->Aux->matrix_max_index = 
@@ -14745,7 +14751,10 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          dset->Aux->range_edge_index[1] = dset->Aux->matrix_max_index;
          dset->Aux->range_node_index[0] = 0;
          dset->Aux->range_node_index[1] = dset->Aux->matrix_size[0]-1;
-         dset->Aux->N_uniq_nodes = dset->Aux->matrix_size[0];
+         dset->Aux->N_seg_nodes = dset->Aux->matrix_size[0];
+         if (!SUMA_GDSET_GetPointIndexColumn(dset, 
+                                       &(dset->Aux->N_all_nodes), NULL))
+            dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
          break;
       case MAT_SPARSE:
          if (!dset->inel) {
@@ -14797,9 +14806,13 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          iu = UniqueInt(ii, (SDSET_VECLEN(dset)+N_iu), &N_iu, 0); 
          free(ii);
          free(iu);
-         dset->Aux->N_uniq_nodes = N_iu;
+         dset->Aux->N_seg_nodes = N_iu;
          }
          
+         if (!SUMA_GDSET_GetPointIndexColumn(dset, 
+                                       &(dset->Aux->N_all_nodes), NULL))
+            dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
+            
          SUMA_RETURN(YUP);
          break;
    }

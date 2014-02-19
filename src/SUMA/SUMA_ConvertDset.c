@@ -754,10 +754,11 @@ int main (int argc,char *argv[])
             }
 
             SUMA_LH( "Have %d node indices %d .. %d in %s\n"
-                     "Graph %s has %ld unique nodes.\n", 
+                     "Graph %s has %ld segment nodes, %d nodes defined.\n", 
                     SDSET_VECFILLED(dseti), ivec[0], 
                     ivec[SDSET_VECFILLED(dseti)-1], SDSET_LABEL(dseti),
-                    SDSET_LABEL(dset), GDSET_MAX_POINTS(dset));
+                    SDSET_LABEL(dset), GDSET_N_SEG_POINTS(dset),
+                    GDSET_N_ALL_POINTS(dset));
             if (!RAI) {
                int cnt;
                float *fvx = (float *)SDSET_VEC(dseti,0);
