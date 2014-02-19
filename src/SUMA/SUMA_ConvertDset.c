@@ -752,14 +752,12 @@ int main (int argc,char *argv[])
             }  else {
                ivec = NULL; /* SUMA_AddGDsetNodeListElement will generate one */
             }
-            if (SDSET_VECFILLED(dseti) != GDSET_MAX_POINTS(dset)) {
-               SUMA_S_Errv( "mismatch in number of values "
-                           "in nodelist source (%ld) and dataset (%d)\n",
-                           GDSET_MAX_POINTS(dset), SDSET_VECFILLED(dseti));
-               exit(1);
-            }
-            SUMA_LH("Have indices %d .. %d", 
-                    ivec[0], ivec[SDSET_VECFILLED(dseti)]-1);
+
+            SUMA_LH( "Have %d node indices %d .. %d in %s\n"
+                     "Graph %s has %ld unique nodes.\n", 
+                    SDSET_VECFILLED(dseti), ivec[0], 
+                    ivec[SDSET_VECFILLED(dseti)-1], SDSET_LABEL(dseti),
+                    SDSET_LABEL(dset), GDSET_MAX_POINTS(dset));
             if (!RAI) {
                int cnt;
                float *fvx = (float *)SDSET_VEC(dseti,0);

@@ -2986,6 +2986,126 @@ void SUMA_SetClustTableTit_EV ( Widget w , XtPointer cd ,
 
 }
 
+void SUMA_SetClustTableCell_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+   static char FuncName[]={"SUMA_SetClustTableCell_EV"};
+   Dimension lw ;
+   Widget * children , wl = NULL;
+   XButtonEvent * bev = (XButtonEvent *) ev ;
+   int  num_children , i, j, Found, incr=0, an, n;
+   float reset, newv;
+   SUMA_TABLE_FIELD *TF = (SUMA_TABLE_FIELD *)cd;
+   SUMA_SRV_DATA *srvd=(SUMA_SRV_DATA *)TF->NewValueCallbackData;
+   SUMA_ALL_DO *ado = srvd->ado;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   DList *list = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called Button %d", bev->button);
+   
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
+   /* see note in bbox.c optmenu_EV for the condition below*/
+   if( bev->button == Button2 ){
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     SUMA_RETURNe ;
+   }
+   
+   if( w == NULL || TF == NULL ) SUMA_RETURNe ;
+
+   incr = 0;
+   switch (bev->button) {
+      case Button1:
+         SUMA_LH("Button 1");
+         break;
+      case Button2:
+         SUMA_LH("Button 2");
+         break;
+      case Button3:
+         SUMA_LH("Button 3");
+         break;
+      case Button4:
+      case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
+         SUMA_LH("Button 4/6 %d", bev->button);
+         incr = -1;
+         break;
+      case Button5:
+      case 7: 
+         SUMA_LH("Button 5/7 %d", bev->button);
+         incr = 1;
+         break;
+      default:
+         SUMA_RETURNe;
+   }
+   
+   /* which cell is calling? */
+   n = 0;
+   Found = -1;
+   while (n<TF->Nj*TF->Ni && Found == -1) {
+      if (TF->cells[n] == w) {
+         Found = n;
+      } else ++n;
+   }
+   
+   if (Found <0) {
+      SUMA_SL_Err("Widget not found ????");
+      SUMA_RETURNe;
+   }
+   
+   /* find out widget's place in table*/
+   i = Found % TF->Ni; j = Found / TF->Ni ;
+   n = Found; 
+      
+   switch (j) {
+      case 0:
+         break;
+      case 1:/* radius */
+      case 2: /* area */
+         if (incr) {
+                 if (TF->num_value[n]>1000) incr = incr*100;
+            else if (TF->num_value[n]>100) incr = incr*10;
+            else if (TF->num_value[n]>50) incr = incr*5;
+            newv = TF->num_value[n]+incr;
+            SUMA_MODIFY_CELL_VALUE(TF, i, j, newv);
+            an = SUMA_SetClustValue(ado, curColPlane, i, j,
+                          TF->num_value[n], 0.0,
+                          0, 1, &reset);
+            if (an < 0) {
+               SUMA_S_Warn("Error checking not handled yet.\n"
+                           "This upcoming code chunk is from\n"
+                           "sister function: SUMA_cb_SetRangeValueNew\n");
+               if (an == -1 || an == -2) {
+                  SUMA_BEEP; 
+                  TF->num_value[n] = reset;
+                  SUMA_TableF_SetString(TF);      
+                  if (an == -1) { SUMA_SLP_Err("Doh"); }
+                  else { SUMA_SLP_Err("Duh"); }
+                  SUMA_RETURNe;
+               } else {
+                  SUMA_S_Err("Erriositation");
+                  SUMA_RETURNe;
+               }
+            }
+            /* redisplay */
+            if (!list) list = SUMA_CreateList ();
+            SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                               SES_Suma, NULL); 
+            if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");   
+         }
+         break;
+      default:
+         SUMA_SL_Err("Did not know you had so many");
+         break;
+   }
+   
+   SUMA_RETURNe;
+}
+
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF)
 {
    static char FuncName[]={"SUMA_FreeTableField"};
@@ -5872,7 +5992,9 @@ int SUMA_SetClustValue_one(SUMA_ALL_DO *ado,
                                       colp->OptScl->ClustOpt->AreaLim);
             }
          } else { SUMA_SL_Err("What's going on Jane ?"); }
-         if (isCur && colp->ShowMode > 0 && colp->OptScl->Clusterize) 
+         if (isCur && 
+              colp->ShowMode > 0 && colp->ShowMode < SW_SurfCont_DsetViewXXX &&
+              colp->OptScl->Clusterize) 
                                                             NewDisp = YUP;
          break;
       default:
@@ -6629,7 +6751,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                               colw, YUP, SUMA_float, 
                               SUMA_cb_SetClustValue, (void *)srvd,
                               SUMA_SetClustTableTit_EV, NULL,
-                              NULL, NULL,  
+                              SUMA_SetClustTableCell_EV, NULL,  
                               SurfCont->SetClustTable);
             }
             
@@ -7240,7 +7362,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                               colw, YUP, SUMA_float, 
                               SUMA_cb_SetClustValue, (void *)srvd,
                               SUMA_SetClustTableTit_EV, NULL,
-                              NULL, NULL,  
+                              SUMA_SetClustTableCell_EV, NULL,  
                               SurfCont->SetClustTable);
             }
             

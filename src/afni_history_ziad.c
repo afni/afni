@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 19, Feb, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
+   "Added -Clst and -UseClst options to DriveSuma",
+   NULL
+ }, 
+ 
+ { 19, Feb, 2014, ZSS, "ConvertDset", MICRO, TYPE_BUG_FIX,
+   "Removed stringent test on number of points in edge list",
+   "The program insisted on having the same number or points (nodes)\n"
+   "in the node list as there are unique points making up the graph.\n"
+ }, 
+ 
  { 18, Feb, 2014, ZSS, "suma", MAJOR, TYPE_MODIFY,
    "Added tract masking with boolean expressions",
    "This allows users to specify the masking function\n"
