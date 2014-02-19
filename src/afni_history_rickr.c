@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Feb, 2014, RCR, "3dDeconvolve", MICRO, TYPE_ENHANCE,
+   "warn if GLOBAL times and 1 early stim per run (looks local)",
+   "An early stim means t <= (NT_r-1)*TR, where NT_r is #TRs in run r.\n"
+   "Negative times are included, as they may be fillers for empty runs."
+ } ,
+
  { 18,  Feb, 2014, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "added -test_local_timing, to look for local vs. global timing issues",
    "- in some cases, promote married types to combine/compare them\n"
