@@ -4443,6 +4443,22 @@ STATUS("loading GLOBAL times and aux params") ;
           fprintf(stderr,"\n") ; free(psfb) ; psfb = NULL ;
         }
 
+        /* check for possibility of 1 stim per run     19 Feb 2014 [rickr] */
+        /* i.e. nRUNS>1, ny==nRUNS, nx==1, all times fit in respective run */
+        if( ny == *num_blocks && ny > 1 && nx == 1 ){
+           int ibot, itop, *bl=*block_list;
+           for( it=0; it < ny; it++ ) {
+              ibot = bl[it] ;
+              itop = (it < ny-1) ? bl[it+1] : nt;
+              if( tar[it] > (basis_TR*(itop-ibot-1)) ) break;
+           }
+           if( it == ny ) /* then might be LOCAL times */
+              WARNING_message(
+                 "'%s %d' (GLOBAL) has %d runs and %d early events;"
+                 " do you want LOCAL times?",
+                 be->option, is+1, ny, *num_blocks);
+        }
+
       } else {   /****---------- local times => 1 row per block ----------****/
         int nout ; float *psfb=NULL ;
 
