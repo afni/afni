@@ -58,7 +58,7 @@
 }
 #else
 #define SUMA_DUMP_TRACE(x) /* nada */
-#define SUMA_EDUMP_TRACE(x) /* nada */
+#define SUMA_EDUMP_TRACE( ... ) /* nada */
 #endif
 #define SUMA_T_Err SUMA_EDUMP_TRACE
 
@@ -403,7 +403,9 @@ typedef struct { /* Something to hold auxiliary datasets structs */
    long int range_edge_index[2]; /* min, max, edge index */
    long int range_node_index[2]; /* min, max, node index 
                                    (points defining edges)*/
-   long int N_uniq_nodes; /* Number of unique node indices */
+   long int N_seg_nodes; /* Number of node indices making up segments*/
+   long int N_all_nodes; /* Total number of nodes stored in nodelist of the
+                            graph dataset */
    SUMA_DSET_FLAVORS isGraph;
 } SUMA_DSET_AUX;
 
@@ -852,8 +854,10 @@ typedef struct {
                                           -1: ((dset)->Aux->matrix_size[0]) )
    #define SDSET_MATRIX_SZ1(dset) ( (!(dset) || !(dset)->Aux) ? \
                                           -1: ((dset)->Aux->matrix_size[1]) )
-   #define GDSET_MAX_POINTS(dset) ( (!(dset) || !(dset)->Aux) ? \
-                                          -1: ((dset)->Aux->N_uniq_nodes) )
+   #define GDSET_N_SEG_POINTS(dset) ( (!(dset) || !(dset)->Aux) ? \
+                                          -1: ((dset)->Aux->N_seg_nodes) )
+   #define GDSET_N_ALL_POINTS(dset) ( (!(dset) || !(dset)->Aux) ? \
+                                          -1: ((dset)->Aux->N_all_nodes) )
 #endif
 
 #define DSET_MAX_NODE_INDEX(dset, MM) {\

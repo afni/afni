@@ -356,7 +356,8 @@ SUMA_MaskDO *SUMA_Alloc_MaskDO ( int N_obj, char *Label, char *hash_label,
                                  char *parent_ADO_id, 
                                  int withcol);
 void SUMA_free_MaskDO (SUMA_MaskDO * MDO);
-int SUMA_Set_N_UnqNodes_SegmentDO(SUMA_SegmentDO * SDO, int N);
+int SUMA_Set_N_SegNodes_SegmentDO(SUMA_SegmentDO * SDO, int N);
+int SUMA_Set_N_AllNodes_SegmentDO(SUMA_SegmentDO * SDO, int N);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, 
                                   SUMA_SurfaceViewer *sv);
