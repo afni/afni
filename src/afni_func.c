@@ -6887,8 +6887,8 @@ ENTRY("AFNI_hidden_EV") ;
 
 #ifdef USE_SKIT
          else if( !NO_frivolities && event->button == Button2 ) SKIT_popper(im3d) ;
-         else if( !NO_frivolities && event->button == Button4 ) AFNI_alter_controller_bg(im3d,0.980000f) ;
-         else if( !NO_frivolities && event->button == Button5 ) AFNI_alter_controller_bg(im3d,1.020408f) ;
+         else if( !NO_frivolities && event->button == Button4 ) AFNI_alter_controller_bg(im3d,0.960000f) ;
+         else if( !NO_frivolities && event->button == Button5 ) AFNI_alter_controller_bg(im3d,1.041667f) ;
 #endif
       }
       break ;
