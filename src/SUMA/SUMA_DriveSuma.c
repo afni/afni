@@ -382,9 +382,11 @@ if (detail > 1) {
 "                         is symmetric from -|BR0| to |BR0|.\n"
 "       -B_scale BS0 BS1: Modulate brightness by BS0 factor for BR0 or lower\n"
 "                         by BS1 factor for BR1 or higher, and linearly \n"
-"                         interpolate scaling for BR0 < values < BR1\n" 
+"                         interpolate scaling for BR0 < values < BR1\n"
 "       -Dim DIM: Set the dimming factor.\n"
 "       -Opa OPA: Set the opacity factor.\n"
+"       -Clst RAD AREA: Set the clustering parameters\n"
+"       -UseClst y/n: Turn on/off clustering\n"
 "       -setSUMAenv \"'ENVname=ENVvalue'\": Set an ENV in SUMA. Note that\n"
 "                      most SUMA env need to be set at SUMA's launch time. \n"
 "                      Setting the env from DriveSuma may not achieve what \n" 
@@ -938,6 +940,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          brk = YUP;
       }
+      
       if (!brk && ( (strcmp(argt[kar], "-B_scale") == 0) ) )
       {
          if (kar+2 >= argtc)
@@ -1033,6 +1036,67 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
+      
+      if (!brk && ( (strcmp(argt[kar], "-Clst") == 0) ||
+                    (strcmp(argt[kar], "-Clust") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need two values after -Clust \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         ++kar; N = 1; stmp = NULL; nums = 0;
+         while (  kar < argtc && 
+                  argt[kar] && 
+                  SUMA_isNumString(argt[kar],(void *)((long int)N))) {
+            stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
+            argt[kar][0] = '\0'; ++kar;
+         } --kar;
+         if (!stmp || nums != 2) {
+            SUMA_S_Err( "Bad format for -Clst option values;\n"
+                        " 2 and only 2 values allowed.");
+            SUMA_RETURN(0);
+         }
+         nv = SUMA_StringToNum(stmp, (void *)dv3, 3,2);
+         if (nv < 1 || nv > 2) {
+            SUMA_S_Err("Bad Clst string.");
+            SUMA_RETURN(0);
+         }else {
+            /* have range, set it please */
+            SUMA_free(stmp); stmp = NULL; 
+            stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
+            sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
+            NI_set_attribute(ngr, "Clst", stmp);
+            SUMA_LHv("Clst of %s\n", stmp);
+            SUMA_free(stmp); stmp = NULL;
+         }
+         brk = YUP;
+      }
+      
+      if (!brk && (  (strcmp(argt[kar], "-UseClst") == 0) ||
+                     (strcmp(argt[kar], "-UseClust") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a 'y/n' after -UseClust \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+            NI_set_attribute(ngr, "UseClst", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+            NI_set_attribute(ngr, "UseClst", "n");
+         else {
+            fprintf (SUMA_STDERR, "need a 'y/n' after -UseClust \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+   
       
       if (!brk && (strcmp(argt[kar], "-viewer") == 0))
       {

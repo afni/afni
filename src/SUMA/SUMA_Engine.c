@@ -3548,28 +3548,49 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
             
-            if (NI_get_attribute(EngineData->ngr, "Clust_Opt")) {
-               SUMA_S_Warn("Not ready, just example code...");
-               /* pretend you got new values in Clust_opt string ...*/
-               SurfCont->curColPlane->OptScl->ClustOpt->DistLim = -1;
-               SurfCont->curColPlane->OptScl->ClustOpt->AreaLim = 1.0;
-               /* update table */
-               SUMA_INSERT_CELL_VALUE(SurfCont->SetClustTable, 1, 1, 
-                          SurfCont->curColPlane->OptScl->ClustOpt->DistLim);
-               SUMA_INSERT_CELL_VALUE(SurfCont->SetClustTable, 1, 1, 
-                          SurfCont->curColPlane->OptScl->ClustOpt->AreaLim);
-               SurfCont->curColPlane->OptScl->RecomputeClust = 1;
-               if (SurfCont->curColPlane->ShowMode > 0 &&
-                         SurfCont->curColPlane->ShowMode < 
-                                             SW_SurfCont_DsetViewXXX ) {
-                  if (!SUMA_ColorizePlane (SurfCont->curColPlane)) {
-                     SUMA_SLP_Err("Failed to colorize plane.\n"); 
+            if (NI_get_attribute(EngineData->ngr, "Clst")) {
+               char *stmp = NULL;
+               int an;
+               float reset;
+               NI_GET_STR_CP(EngineData->ngr, "Clst", stmp);
+               if (!stmp) { 
+                  SUMA_S_Err("Bad Clst"); 
+               } else {
+                  nn = SUMA_StringToNum(stmp, (void*)dv15, 3,2);
+                  if (nn != 2) {
+                     SUMA_S_Err("Bad Clst string.");
                   } else {
-                     SUMA_Remixedisplay(ado);
-                     SUMA_UpdateNodeValField(ado);
-                     SUMA_UpdateNodeLblField(ado);
+                     /* set radius */
+                     an = SUMA_SetClustValue(ado, SurfCont->curColPlane, 1, 1,
+                          dv15[0], 0.0,
+                          1, 0, &reset); /* don't redisp. yet */
+                     if (an < 0) {
+                        SUMA_S_Err("An error occurred setting radius");
+                     } else {
+                        /* set area */
+                        an = SUMA_SetClustValue(ado, SurfCont->curColPlane, 1, 2,
+                             dv15[1], 0.0,
+                             1, 1, &reset); /* Now redisp. */
+                        if (an < 0) {
+                           SUMA_S_Err("An error occurred setting area");
+                        }
+                     }
                   }
+               }
+            }
+            
+            if (NI_get_attribute(EngineData->ngr, "UseClst")) {
+               int tog = 0;
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "UseClst", "y")) {
+                  if (!SurfCont->curColPlane->OptScl->Clusterize) tog = 1;
+               } else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "UseClst", "n")){
+                  if (SurfCont->curColPlane->OptScl->Clusterize) tog = 1; 
+               } else { 
+                  SUMA_S_Errv("Bad value of %s for UseClst. Nothing done.\n", 
+                              NI_get_attribute(EngineData->ngr, "UseClst"));
                } 
+               if (tog) SUMA_SetClustTableTit(ado, SurfCont->curColPlane,
+                                              1, 0, Button1);
             }
             
             if (NI_get_attribute(EngineData->ngr, "shw_0")) {

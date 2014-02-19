@@ -15462,7 +15462,7 @@ NI_element *SUMA_FindGDsetNodeListElement(SUMA_DSET *dset)
 }
 
 /* Add the indices and coordinates of nodes forming graph dataset 
-   Note that I may get reodered in this function */
+   Note that I may get reordered in this function */
 NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset, 
                                         int *I, float *X, float *Y, float *Z, 
                                         char **names, int *cln, float *cols,
@@ -15491,11 +15491,6 @@ NI_element *SUMA_AddGDsetNodeListElement(SUMA_DSET *dset,
          SUMA_S_Err("Failed to set matrix shape");
          SUMA_RETURN(NULL);
       }
-   }
-   if (N_Nodes != GDSET_MAX_POINTS(dset)) {
-      SUMA_S_Errv("Mismatch in number of points (%d vs %ld)\n", 
-                 N_Nodes, GDSET_MAX_POINTS(dset));
-      SUMA_RETURN(NULL);
    }
    if (!(nel=SUMA_FindGDsetNodeListElement(dset))) {
       attname = SUMA_append_string(NEL_DSET_TYPE(dset->ngr),"_node_coordinates");
