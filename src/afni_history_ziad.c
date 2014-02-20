@@ -74,10 +74,7 @@ afni_history_struct ziad_history[] = {
  { 19, Feb, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed indexing errors in sparse matrices with certain node (point) lists.",
    "The problem occurred when point lists were supersets of the points used to\n"
-   "define the edges. The changes now allow for such node lists although some\n"
-   "tweaks might prove necessary when it comes to picking. Some pick buffer \n"
-   "regions might be getting rendered in black, perhaps at nodes that are \n"
-   "never referenced by an edge.\n"
+   "define the edges."
  },
   
  { 19, Feb, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
