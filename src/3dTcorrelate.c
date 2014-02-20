@@ -5,8 +5,11 @@
 #define PEARSON  3
 #define KTAUB    4
 #define COVAR    5
+#define YCOEF    6
 
-void usage_3dTcorrelate(int detail) 
+/*----------------------------------------------------------------------------*/
+
+void usage_3dTcorrelate(int detail)
 {
          printf(
 "Usage: 3dTcorrelate [options] xset yset\n"
@@ -26,8 +29,12 @@ void usage_3dTcorrelate(int detail)
 "  -covariance = Covariance instead of correlation. That would be \n"
 "                the pearson correlation without scaling by the product\n"
 "                of the standard deviations.\n"
+"  -ycoef      = Least squares coefficient that best fits y(t) to x(t),\n"
+"                after detrending.  That is, if yd(t) is the detrended\n"
+"                y(t) and xd(t) is the detrended x(t), then the ycoef\n"
+"                value is from the OLSQ fit to xd(t) = ycoef * y(t) + error.\n"
 "\n"
-"  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
+"  -polort m = Remove polynomical trend of order 'm', for m=-1..9.\n"
 "                [default is m=1; removal is by least squares].\n"
 "                Using m=-1 means no detrending; this is only useful\n"
 "                for data/information that has been pre-processed.\n"
@@ -64,6 +71,18 @@ void usage_3dTcorrelate(int detail)
    return;
 }
 
+/*----------------------------------------------------------------------------*/
+
+float THD_ycoef( int npt , float *xx , float *yy )  /* 20 Feb 2014 */
+{
+   float coef[1] = {0.0f} ;
+   if( THD_is_constant(npt,xx) || THD_is_constant(npt,yy) ) return 0.0f ;
+   THD_generic_detrend_LSQ(npt,xx,-1,1,&yy,coef) ;
+   return coef[0] ;
+}
+
+/*----------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *xset , *yset , *cset ;
@@ -77,7 +96,7 @@ int main( int argc , char *argv[] )
    int nort=0 ; float **fort=NULL ;
 
    /*----*/
-   
+
    if (argc == 1) { usage_3dTcorrelate(1); exit(0); } /* Bob's help shortcut */
 
    mainENTRY("3dTCorrelate main"); machdep(); AFNI_logger("3dTcorrelate",argc,argv);
@@ -121,6 +140,10 @@ int main( int argc , char *argv[] )
          method = COVAR ; nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-ycoef") == 0 ){  /* 20 Feb 2014 */
+         method = YCOEF ; nopt++ ; continue ;
+      }
+
       if( strcasecmp(argv[nopt],"-spearman") == 0 ){
          method = SPEARMAN ; nopt++ ; continue ;
       }
@@ -144,8 +167,8 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-polort") == 0 ){
          char *cpt ;
          int val = strtod(argv[++nopt],&cpt) ;
-         if( *cpt != '\0' || val < -1 || val > 3 ){
-            fprintf(stderr,"** Illegal value '%s' after -polort!",argv[nopt]);exit(1);
+         if( *cpt != '\0' || val < -1 || val > 9 ){
+           fprintf(stderr,"** Illegal value '%s' after -polort!",argv[nopt]);exit(1);
          }
          polort = val ; nopt++ ; continue ;
       }
@@ -153,14 +176,14 @@ int main( int argc , char *argv[] )
       ERROR_message("Illegal option %s\n", argv[nopt]);
       suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1);
-      
+
    }
 
    if (argc < 2) {
       ERROR_message("Too few options, use -help for details");
       exit(1);
    }
-   
+
    /*-- open datasets, check for legality --*/
 
    if( nopt+1 >= argc ){
@@ -172,7 +195,7 @@ int main( int argc , char *argv[] )
       fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
    if( DSET_NUM_TIMES(xset) < 2 ){
-      fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]); 
+      fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]);
       exit(1);
    }
    yset = THD_open_dataset( argv[++nopt] ) ;
@@ -235,13 +258,14 @@ int main( int argc , char *argv[] )
 
    switch( method ){                                   /* looks nice  */
       default:
-      case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ; 
+      case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ;
           EDIT_BRICK_TO_FICO(cset,0,nvals,1,polort+1+nort) ;  /* stat params */
                                                              break ;
       case SPEARMAN: EDIT_BRICK_LABEL(cset,0,"Spmn.Corr.") ; break ;
       case QUADRANT: EDIT_BRICK_LABEL(cset,0,"Quad.Corr.") ; break ;
       case KTAUB:    EDIT_BRICK_LABEL(cset,0,"Taub.Corr.") ; break ;
       case COVAR:    EDIT_BRICK_LABEL(cset,0,"Covariance") ; break ;
+      case YCOEF:    EDIT_BRICK_LABEL(cset,0,"Ycoef"     ) ; break ;
    }
 
    EDIT_substitute_brick( cset , 0 , MRI_float , NULL ) ; /* make array  */
@@ -264,7 +288,7 @@ int main( int argc , char *argv[] )
 
       (void)THD_generic_detrend_LSQ( nvals,xsar, polort, nort,fort,NULL ) ;  /* 13 Mar 2003 */
       (void)THD_generic_detrend_LSQ( nvals,ysar, polort, nort,fort,NULL ) ;
-      
+
       switch( method ){                    /* correlate */
          default:
          case PEARSON:  car[ii] = THD_pearson_corr ( nvals,xsar,ysar ); break;
@@ -272,6 +296,7 @@ int main( int argc , char *argv[] )
          case QUADRANT: car[ii] = THD_quadrant_corr( nvals,xsar,ysar ); break;
          case KTAUB:    car[ii] = THD_ktaub_corr   ( nvals,xsar,ysar ); break;
          case COVAR:    car[ii] = THD_covariance   ( nvals,xsar,ysar ); break;
+         case YCOEF:    car[ii] = THD_ycoef        ( nvals,xsar,ysar ); break;
       }
 
       mri_free(xsim) ; mri_free(ysim) ;    /* toss time series */
