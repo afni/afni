@@ -11985,6 +11985,9 @@ int SUMA_is_AllConsistentColType_dset(SUMA_DSET *dset, SUMA_COL_TYPE ctpi)
    
    for (i=0; i<SDSET_VECNUM(dset); ++i) {
       ctp = SUMA_TypeOfDsetColNumb(dset, i); 
+      /* SUMA_S_Note("Dset %s: Type of col %d = [%d, %s], target [%d %s]",
+                  SDSET_LABEL(dset), i, ctp, SUMA_Col_Type_Name(ctp),
+                  ctpi, SUMA_Col_Type_Name(ctpi)); */
       if (ctpi>SUMA_ERROR_COL_TYPE && ctp != ctpi) SUMA_RETURN(0);
       if (i==0) { ctp0 = ctp; }
       else if (ctp0 != ctp) SUMA_RETURN(0);
@@ -12061,6 +12064,13 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
    
    if (!dset) SUMA_RETURN(0);
    
+   SUMA_LH( "All Cons Type = %d : %d\n"
+            "SDSET_TYPE (%s) = %d\n",
+            SUMA_NODE_ILABEL,
+            SUMA_is_AllConsistentColType_dset(dset, SUMA_NODE_ILABEL),
+            SDSET_LABEL(dset),
+            SDSET_TYPE (dset));
+            
    if (!SUMA_is_AllConsistentColType_dset(dset, SUMA_NODE_ILABEL)) 
       SUMA_RETURN(0);
    
@@ -12071,7 +12081,7 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
       Both types have a dset column that is of type 
       SUMA_NODE_ILABEL*/
    
-   if (SDSET_TYPE (dset) != SUMA_NODE_LABEL) { SUMA_RETURN(0); }  
+   if (SDSET_TYPE(dset) != SUMA_NODE_LABEL) { SUMA_RETURN(0); }  
    
    /* Does the dset have a colormap ?*/
    if ((ngr = SUMA_NI_Cmap_of_Dset(dset))) {
@@ -12082,8 +12092,43 @@ int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap)
       if (NIcmap) *NIcmap = NULL;
    }
    
+   SUMA_LH("dset %s considered Label_dset", SDSET_LABEL(dset));
    SUMA_RETURN(1);
 }
+
+/* sort of like is_Label_dset, but here we just worry
+about one data column. We also require that there be 
+a colormap in the dataset somewhere. This was added
+to handle GIFTI datasets that are labels but that seem 
+to get translate to one column of labels and other columns
+of generic_ints. The dataset came from the HCP's Workbench
+and I am not sure if the problem is one of translation on our
+part or one of GIFTI formatting from Workbench. 
+For now, this function would allow for the proper display of
+such a dataset.   ZSS Feb. 20 2014 */
+int SUMA_is_Label_dset_col(SUMA_DSET *dset, int icol) 
+{
+   static char FuncName[]={"SUMA_is_Label_dset_col"};
+   int ctp, vtp, i;
+   NI_group *ngr=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || icol < 0) SUMA_RETURN(0);
+   
+   if (SUMA_TypeOfDsetColNumb(dset, icol) != SUMA_NODE_ILABEL) SUMA_RETURN(0); 
+   if (SDSET_TYPE(dset) != SUMA_NODE_LABEL) { SUMA_RETURN(0); }  
+   
+   /* Does the dset have a colormap ?*/
+   if (!(ngr = SUMA_NI_Cmap_of_Dset(dset))) {
+      /* reject out of caution */
+      SUMA_RETURN(0);
+   }
+   
+   SUMA_RETURN(1);
+}
+
 
 /*! 
    \brief requirements to be a VFR dset:

@@ -11500,17 +11500,20 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
       el = dlist_head(SUMAg_CF->DsetList);
       while (el) {
          dd = (SUMA_DSET*)el->data;
-         if (SUMA_isDsetRelated(dd, SO)) {
+         if (SUMA_isDsetRelated(dd, SO) &&
+             (colplane = SUMA_Fetch_OverlayPointerByDset (
+                                 (SUMA_ALL_DO*)SO, dd, &OverInd)) &&
+             colplane->OptScl) {
             SUMA_LHv("Have Dset %s related to SO\n", SDSET_LABEL(dd));
             /* is dd a LabelDset ? */
-            if (  SUMA_is_Label_dset(dd, NULL) && node >= 0 ) {
+            if (  (SUMA_is_Label_dset(dd, NULL) || 
+                   SUMA_is_Label_dset_col(dd,colplane->OptScl->find)) 
+                && node >= 0 ) {
                SUMA_LHv("dset %s will work with SO", SDSET_LABEL(dd));
-               key = SUMA_GetDsetNodeValInCol2( dd, 0, 
+               key = SUMA_GetDsetNodeValInCol2( dd, colplane->OptScl->find, 
                                                 node, -1);
                /* get the overlay for that dset */
-               if (key >= 0 &&
-                   (colplane = SUMA_Fetch_OverlayPointerByDset (
-                        (SUMA_ALL_DO*)SO, dd, &OverInd))) {
+               if (key >= 0) {
                   /* get the colormap for that colplane */
                   if ((CM = SUMA_FindNamedColMap (colplane->cmapname)) &&
                       CM->cname) {
