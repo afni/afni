@@ -8,6 +8,18 @@
 
 /*-------------------------------------------------------------------------*/
 
+int THD_is_zero( int npt , float *xx )  /* 20 May 2011 */
+{
+   int ii ;
+
+   if( npt <= 0 || xx == NULL ) return 1 ;
+   
+   for( ii=0 ; ii < npt ; ii++ ) if( xx[ii] != 0.0f ) return 0 ;
+   return 1 ;
+}
+
+/*-------------------------------------------------------------------------*/
+
 int THD_is_constant( int npt , float *xx )  /* 20 May 2011 */
 {
    int ii ; float val ;
