@@ -1484,21 +1484,24 @@ MPROBE ;
     } /* end of loop over nnn = NN degree */
 
     if( amesg != NULL ){
-      WARNING_message("Simulation not effective for these cases:\n\n"
-                      "%s\n"
-                      "*+ This means that not enough clusters, of any size, +*\n"
-                      "     of voxels at or below each pthr threshold, were +*\n"
-                      "     found to estimate at each alpha level.          +*\n"
-                      "*+ In other words, the probability that noise-only   +*\n"
-                      "     data (of the given smoothness) will cause       +*\n"
-                      "     above-threshold (at the given pthr) clusters is +*\n"
-                      "     smaller than the desired alpha levels.          +*\n"
-                      "*+ This problem can arise when the masked region     +*\n"
-                      "     being simulated is small and at the same time   +*\n"
-                      "     the smoothness (FWHM) is large.                 +*\n"
-                      "*+ Read the 'CAUTION and CAVEAT' section at the end  +*\n"
-                      "   of the '-help' output for a longer explanation.   +*\n\n"
-                    , amesg ) ;
+      /* WARNING_message cannot handle "%s" with a very long string (>16K),
+         so break this up a little                      20 Feb 2014 [rickr] */
+      /* option: change to vsnprintf() in output_message()?                 */
+      WARNING_message("Simulation not effective for these cases:\n\n");
+      fprintf(stderr, "%s\n", amesg);
+      fprintf(stderr, 
+                "*+ This means that not enough clusters, of any size, +*\n"
+                "     of voxels at or below each pthr threshold, were +*\n"
+                "     found to estimate at each alpha level.          +*\n"
+                "*+ In other words, the probability that noise-only   +*\n"
+                "     data (of the given smoothness) will cause       +*\n"
+                "     above-threshold (at the given pthr) clusters is +*\n"
+                "     smaller than the desired alpha levels.          +*\n"
+                "*+ This problem can arise when the masked region     +*\n"
+                "     being simulated is small and at the same time   +*\n"
+                "     the smoothness (FWHM) is large.                 +*\n"
+                "*+ Read the 'CAUTION and CAVEAT' section at the end  +*\n"
+                "   of the '-help' output for a longer explanation.   +*\n\n");
       free(amesg) ;
     }
 

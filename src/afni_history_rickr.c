@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  Feb, 2014, RCR, "3dClustSim", MICRO, TYPE_BUG_FIX,
+   "break WARNING_message(amesg) up, until W_m gets enhanced",
+   "Strings applied via the format are limited to 16K."
+ } ,
+
  { 19,  Feb, 2014, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "if AM2 or IM, terminate extraction of ideals",
    "Ideal extraction should be done via 1d_tool.py, using the X-matrix."
