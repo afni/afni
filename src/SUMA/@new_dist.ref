@@ -789,7 +789,7 @@ USAGE:
    echo "   [-fixccold]: Turn of -V 34 for gcc"
    echo "   [-expat_sh]: Use .so for libexpat"
    echo "   [-fontconf]: Add -lfontconfig"
-   echo "   [-jpega]: Add  $(XROOT)/lib/libjpeg.a"
+   echo "   [-jpega]: Add  '$(XROOT)/lib/libjpeg.a'"
    echo "   [-mcwmalloc]: Make sure MCW_MALLOC is used"
    echo "   [-no_mcwmalloc]: Make sure MCW_MALLOC is NOT used."
    goto END

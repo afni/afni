@@ -5958,7 +5958,7 @@ SUMA_PICK_RESULT *SUMA_WhatWasPicked_FrameSO(SUMA_SurfaceViewer *sv, int ido)
                PR->datum_index = PR->primitive_index = -1;
             } else if (!SUMA_GDSET_PointsToSegIndex(dset, ii, jj, &si)) {
                SUMA_S_Errv("Failed to find segment for %d %d\n", ii, jj);
-               SUMA_DUMP_TRACE("Now what?");
+               if (LocalHead) SUMA_DUMP_TRACE("Now what?");
                PR->datum_index = PR->primitive_index = -1;
             } else {
                PR->datum_index = PR->primitive_index = si;

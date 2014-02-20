@@ -7146,6 +7146,8 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
          break;
    }
    
+   SUMA_LH("ui = %p, N[0]=%d, uj = %p, N[1]=%d", ui, N[0], uj, N[1]);
+   
    if (dlist_size(GSaux->DisplayUpdates)) {/* GSaux->nido needs updating */
       el = dlist_head(GSaux->DisplayUpdates);
       do {
@@ -7439,15 +7441,19 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
       int nl, tw, th, bh, bw, skpv, skph,
           lh = SUMA_glutBitmapFontHeight(fontGL), kkk=0, SGN=-1;
       float off = -lh, vrat, hrat;
-      float Sz[3];
+      float Sz[3]={0.001, 0.001, 0.001};
 
       bh = SUMA_glutBitmapFontHeight(fontGL); /* Height of font, in pixels */
       bw = glutBitmapWidth(fontGL, 'M'); /* M's a fat letter, width in pixels*/
       SUMA_GDSET_GMATRIX_CellPixSize(dset, sv, Sz);
+      if (Sz[1] < 0.01) Sz[1] = 0.01;
+      if (Sz[0] < 0.01) Sz[0] = 0.01;
       vrat = Sz[1]/(float)bh;
       hrat = Sz[0]/(float)bw;
       skpv = (int)(1.0/vrat);
       skph = (int)(1.0/hrat);
+      if (skpv < 0 || skpv > 1000000) skpv = 1000000; /* safety valve */
+      if (skph < 0 || skph > 1000000) skph = 1000000; /* in case denom is <=0 */
       SUMA_LHv("Height %.2f pixels/cell, Font height %d, Rat:%f, skip %d\n"
                "Width  %.2f pixels/cell, Font Width  %d, Rat:%f, skip %d\n"
                "  GB = [%d %d]\n",
