@@ -3057,7 +3057,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    
    /* colorizing */
    if ( (Opt->interpmode == SUMA_DIRECT)&& 
-        (SUMA_is_Label_dset(Sover->dset_link,NULL)) ) {
+        (SUMA_is_Label_dset(Sover->dset_link,NULL) ||
+         SUMA_is_Label_dset_col(Sover->dset_link, Opt->find)) ) {
       SUMA_LH("Scaling a la HASH");
       if (!SUMA_ScaleToMap_alaHASH (Sover->V, SDSET_VECFILLED(Sover->dset_link), 
                                     ColMap, Opt,
@@ -6011,7 +6012,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
       Sover->Font = SW_SurfCont_DsetFont9;
       Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
       Sover->NodeRadGain = 1.0;
-      Sover->NodeCol = SW_SurfCont_DsetNodeColWhite;
+      Sover->NodeCol = SW_SurfCont_DsetNodeColYellow;
       Sover->BordFrac = SW_SurfCont_DsetGmatBord0;
       Sover->EdgeThick = SW_SurfCont_DsetEdgeThickConst;
       Sover->EdgeThickGain = 1.0;
@@ -6109,7 +6110,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
          }
          if (SUMA_is_VFR_dset(dset)) {
             Sover->OptScl->interpmode = SUMA_NO_INTERP;
-         } else if (SUMA_is_Label_dset(dset, NULL)) {
+         } else if (SUMA_is_Label_dset(dset, NULL) ||
+                    SUMA_is_Label_dset_col(dset, 0)) {
             Sover->OptScl->interpmode = SUMA_DIRECT; /* default for such dsets */
          }
       }
@@ -10760,7 +10762,8 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
    if (!cp->dset_link) SUMA_RETURN(NOPE);
    
    if (!SV) {
-      if (SUMA_is_Label_dset(cp->dset_link,NULL)) {
+      if (SUMA_is_Label_dset(cp->dset_link,NULL) ||
+          SUMA_is_Label_dset_col(cp->dset_link, cp->OptScl->find)) {
          SUMA_LHv("Creating countours for %s\n",SDSET_LABEL(cp->dset_link));
          if (cp->Contours) {
             /* this should only happen when users reload a label dset.
@@ -10773,7 +10776,7 @@ SUMA_Boolean SUMA_ContourateDsetOverlay(SUMA_OVERLAYS *cp,
          }
          
          ind = SDSET_NODE_INDEX_COL(cp->dset_link);
-         key = SDSET_VEC(cp->dset_link, 0);
+         key = SDSET_VEC(cp->dset_link, cp->OptScl->find);
          cp->Contours = 
             SUMA_MultiColumnsToDrawnROI( SDSET_VECLEN(cp->dset_link),
                   (void *)ind, SUMA_int,

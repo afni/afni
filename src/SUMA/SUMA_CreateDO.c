@@ -9956,7 +9956,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    float origwidth=0.0, radconst = 0.0, rad = 0.0, 
          gain = 1.0, constcol[4], edgeconst=1.0, group_col[4],
          vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0, cdim=1/3.0,
-         *GNr=NULL, *GNg=NULL, *GNb=NULL;
+         *GNr=NULL, *GNg=NULL, *GNb=NULL, dimmer = 1.0;
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
    byte *mask=NULL, *wmask=NULL, showword = 0;
    GLubyte *colid=NULL, *colidballs=NULL, *colballpick=NULL;
@@ -9973,6 +9973,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
        *dsrt=NULL, *dsrt_ind=NULL, *GNI=NULL, wbox=0, *GNG=NULL;
    int stipsel = 0; /* flag for stippling of selected edge */
    int depthsort = 1; /* Sort text and draw from farthest to closest */
+   byte ShadeBalls = 1;
+   
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -10099,6 +10101,15 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       }
    }
 
+   if (ShadeBalls) {
+      /* Dim the colors a little and turn off the emissivity to get a 3D effect 
+         on the rendered balls */
+      dimmer = 2.0;
+      for (n=0; n<3; ++n) {
+         constcol[n] /= dimmer;
+      }
+   }
+   
    if (!sv->DO_PickMode && !GSaux->ShowUncon) {
       SUMA_LH("Masking unconnected nodes");
       NodeMask = (byte *)SUMA_calloc(DDO.N_Node, sizeof(byte));
@@ -10597,12 +10608,17 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                rad = radconst;
             }
             if (OnlyThroughNode == n) {
-               selcol[0] = 1-sv->clear_color[0];
-               selcol[1] = 1-sv->clear_color[1];
-               selcol[2] = 1-sv->clear_color[2];
+               selcol[0] = (1-sv->clear_color[0])/dimmer;
+               selcol[1] = (1-sv->clear_color[1])/dimmer;
+               selcol[2] = (1-sv->clear_color[2])/dimmer;
                selcol[3] = 1-sv->clear_color[3]; 
-               glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
-               glMaterialfv(GL_FRONT, GL_EMISSION, selcol);
+               if (!ShadeBalls) {
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, selcol);
+               } else {
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+               }
             } else {
                if (colidballs) {
                   if (dsrt) {
@@ -10614,22 +10630,36 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                } else if (GNG && curcol->NodeCol == SW_SurfCont_DsetNodeColGrp) {
                   if (n>=0) {
                      if (GNr) {
-                        group_col[0] = GNr[n];
-                        group_col[1] = GNg[n];
-                        group_col[2] = GNb[n];
+                        group_col[0] = GNr[n]/dimmer;
+                        group_col[1] = GNg[n]/dimmer;
+                        group_col[2] = GNb[n]/dimmer;
                         group_col[3] = 1.0;
                         SUMA_LH("Point %d group %d: %f %f %f\n", 
                               n, GNG[n], 
                               group_col[0], group_col[1],  group_col[2]);
                      } else {
                         SUMA_a_good_col("ROI_i256", GNG[n], group_col);
+                        if (ShadeBalls) {
+                           group_col[0] /= dimmer;
+                           group_col[1] /= dimmer;
+                           group_col[2] /= dimmer;
+                        }
                      }
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
-                     glMaterialfv(GL_FRONT, GL_EMISSION, group_col);
+                     if (!ShadeBalls) {
+                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+                        glMaterialfv(GL_FRONT, GL_EMISSION, group_col);
+                     } else {
+                        glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE, group_col);
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                     }
                   } else {
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                                          constcol);
-                     glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                     if (!ShadeBalls) {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                     } else {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                     }
                   }
                } else if (SDO->colv && 
                           curcol->NodeCol == SW_SurfCont_DsetNodeColVal) {
@@ -10642,16 +10672,28 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   if (okind>0) {
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                                       &(SDO->colv[si*4]));
-                     glMaterialfv(GL_FRONT, GL_EMISSION, 
+                     if (!ShadeBalls) {
+                       glMaterialfv(GL_FRONT, GL_EMISSION, 
                                                       &(SDO->colv[si*4]));
+                     } else {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                     }
                   } else {
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                                          constcol);
-                     glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                     if (!ShadeBalls) {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                     } else {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                     }
                   }
                } else {
                   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, constcol);
-                  glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                  if (!ShadeBalls) {
+                     glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                  } else {
+                     glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                  }
                }
             }
             glTranslatef ( xyzr[i3]  , xyzr[i3+1]  , xyzr[i3+2]  );
