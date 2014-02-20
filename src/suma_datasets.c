@@ -14687,7 +14687,7 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
 {
    static char FuncName[]={"SUMA_GDSET_Set_Aux_matrix_shape"};
    double range[2];
-   int loc[2];
+   int loc[2], buff=0;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
@@ -14729,8 +14729,9 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          dset->Aux->range_node_index[1] = dset->Aux->matrix_size[0]-1;
          dset->Aux->N_seg_nodes = dset->Aux->matrix_size[0];
          if (!SUMA_GDSET_GetPointIndexColumn(dset, 
-                                       &(dset->Aux->N_all_nodes), NULL))
+                                       &buff, NULL)) {
             dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
+         } else dset->Aux->N_all_nodes = buff;
          break;
       case MAT_TRI:
          dset->Aux->matrix_max_index = 
@@ -14741,8 +14742,9 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          dset->Aux->range_node_index[1] = dset->Aux->matrix_size[0]-1;
          dset->Aux->N_seg_nodes = dset->Aux->matrix_size[0];
          if (!SUMA_GDSET_GetPointIndexColumn(dset, 
-                                       &(dset->Aux->N_all_nodes), NULL))
+                                       &buff, NULL)) {
             dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
+         } else dset->Aux->N_all_nodes = buff;
          break;
       case MAT_TRI_DIAG:
          dset->Aux->matrix_max_index = 
@@ -14753,8 +14755,9 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          dset->Aux->range_node_index[1] = dset->Aux->matrix_size[0]-1;
          dset->Aux->N_seg_nodes = dset->Aux->matrix_size[0];
          if (!SUMA_GDSET_GetPointIndexColumn(dset, 
-                                       &(dset->Aux->N_all_nodes), NULL))
+                                       &buff, NULL)){
             dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
+         } else dset->Aux->N_all_nodes = buff;
          break;
       case MAT_SPARSE:
          if (!dset->inel) {
@@ -14810,9 +14813,9 @@ SUMA_Boolean SUMA_GDSET_Set_Aux_matrix_shape(SUMA_DSET *dset)
          }
          
          if (!SUMA_GDSET_GetPointIndexColumn(dset, 
-                                       &(dset->Aux->N_all_nodes), NULL))
+                                       &buff, NULL)){
             dset->Aux->N_all_nodes = dset->Aux->N_seg_nodes;
-            
+         } else dset->Aux->N_all_nodes = buff;    
          SUMA_RETURN(YUP);
          break;
    }

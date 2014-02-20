@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 19, Feb, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Fixed crash during crazy matrix rotations.",
+   "The problem was caused by divisions by very small sizes under certain\n"
+   "projection (viewing) angles\n"
+ },
+  
+ { 19, Feb, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Fixed indexing errors in sparse matrices with certain node (point) lists.",
+   "The problem occurred when point lists were supersets of the points used to\n"
+   "define the edges. The changes now allow for such node lists although some\n"
+   "tweaks might prove necessary when it comes to picking. Some pick buffer \n"
+   "regions might be getting rendered in black, perhaps at nodes that are \n"
+   "never referenced by an edge.\n"
+ },
+  
  { 19, Feb, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
    "Added -Clst and -UseClst options to DriveSuma",
    NULL
