@@ -6137,14 +6137,18 @@ int SUMA_OpenCloseSurfaceCont(Widget w,
 
 
    /* Now close it quick. Maybe should put a delayed closing for nicer effect */
-   SUMA_LH("Destructurism")
-   #if 0 /* Not a good idea to do this because widgets get unrealized and
-   	The main reason for calling this function is to be sure that
-	the widgets are alive and well for setting and queries ZSS Nov 9 2012 */
-   SUMA_cb_closeSurfaceCont(NULL, (XtPointer) ado, NULL);
-   #else
-   XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SurfCont->TLS), 0);
-   #endif
+   if (!SUMAg_CF->X->UseSameSurfCont) { /* Don't minimize when using one surfcont
+                                          it is more annoying than useful */
+      SUMA_LH("Closism")
+      #if 0 /* Not a good idea to do this because widgets get unrealized and
+   	   The main reason for calling this function is to be sure that
+	   the widgets are alive and well for setting and queries ZSS Nov 9 2012 */
+      SUMA_cb_closeSurfaceCont(NULL, (XtPointer) ado, NULL);
+      #else
+      XIconifyWindow(SUMAg_CF->X->DPY_controller1, XtWindow(SurfCont->TLS), 0);
+      #endif
+   }
+   
    SUMA_LH("Returnism")
    SUMA_RETURN(1);
 }
@@ -8365,6 +8369,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                 SUMA_SurfContHelp_DsetNodeCol, 
                 SurfCont->DsetNodeColMenu );
       XtManageChild (SurfCont->DsetNodeColMenu->mw[SW_SurfCont_DsetNodeCol]);
+      SUMA_Set_Menu_Widget( SurfCont->DsetNodeColMenu, curColPlane->NodeCol);
       
       SUMA_BuildMenuReset(0);
       SurfCont->DsetTxtShadMenu =

@@ -29,6 +29,10 @@ void usage_SUMA_quickspec(SUMA_GENERIC_ARGV_PARSE *ps)
 "        MARKER: A niml.do Displayable Object (DO) to put at every\n"
 "                node of the surface. See @DO.examples for information\n"
 "                about displayable objects\n"
+"   -tsnadl TYPE STATE NAME ANATFLAG LDP LABELDSET: \n"
+"                 specify surface type, state, name, anatomical correctness, \n"
+"                 Local Domain Parent, and a label dataset file.\n"
+"        LABELDSET: A surface dataset containing node labels.\n"
 "   -spec specfile: Name of spec file output.\n"
 "                   Default is quick.spec\n"
 "                   The program will only overwrite \n"
@@ -61,7 +65,8 @@ int main (int argc,char *argv[])
          *Name_topo[SUMA_MAX_N_SURFACE_SPEC],
          Anat[SUMA_MAX_N_SURFACE_SPEC],
          *LDP[SUMA_MAX_N_SURFACE_SPEC],
-         *MARK[SUMA_MAX_N_SURFACE_SPEC];
+         *MARK[SUMA_MAX_N_SURFACE_SPEC],
+         *LABEL[SUMA_MAX_N_SURFACE_SPEC];
    SUMA_GENERIC_ARGV_PARSE *ps;
    SUMA_Boolean brk;
    
@@ -259,6 +264,7 @@ int main (int argc,char *argv[])
          ++N_surf; 
 			brk = YUP;
 		}
+      
       if (!brk && (strcmp(argv[kar], "-tsnadm") == 0)) {
          if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
             SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
@@ -330,6 +336,81 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
          MARK[N_surf] = argv[kar];
+         ++N_surf; 
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-tsnadl") == 0)) {
+         if (N_surf >= SUMA_MAX_N_SURFACE_SPEC) {
+            SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+            exit(1);   
+         }
+         /* get the type */
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "TYPE argument must follow -tsnad \n");
+				exit (1);
+			}
+         TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
+         if (  TypeC[N_surf] == SUMA_FT_ERROR || 
+               TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
+            fprintf (SUMA_STDERR, "%s is a bad file TYPE.\n", argv[kar]);
+            exit(1);
+         }
+         /* get the state */
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, 
+                     "STATE argument must follow TYPE with -tsnad \n");
+				exit (1);
+			}
+         State[N_surf] = argv[kar];
+         
+         /* get the name */
+         if (  TypeC[N_surf] == SUMA_SUREFIT || 
+               TypeC[N_surf] == SUMA_VEC) N_name = 2;
+         else N_name = 1;
+         if (kar+N_name >= argc)  {
+		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
+				exit (1);
+			}
+         kar ++; Name_coord[N_surf] = argv[kar];
+         if (N_name == 2) {
+            kar ++; Name_topo[N_surf] = argv[kar];
+         } else { 
+            Name_topo[N_surf] = NULL;
+         }
+         
+         
+         /* get the anatomical flag */
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, 
+                     "Anatomical flag must follow NAME with -tsnad \n");
+				exit (1);
+			}
+         Anat[N_surf] = SUMA_TO_UPPER_C(argv[kar][0]);
+         if (Anat[N_surf] != 'Y' && Anat[N_surf] != 'N') {
+            SUMA_S_Err("Anatomical flag must be either 'y' or 'n'");
+            exit (1);
+         }
+         /* get the LDP */
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, 
+                 "LocalDomainParent must follow Anatomical flag with -tsnad \n");
+				exit (1);
+			}
+         LDP[N_surf] = argv[kar];
+         
+         /* get the nodeMarker */
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, 
+                 "LocalDomainParent must follow Anatomical flag with -tsnad \n");
+				exit (1);
+			}
+         LABEL[N_surf] = argv[kar];
          ++N_surf; 
 			brk = YUP;
 		}
@@ -426,6 +507,7 @@ int main (int argc,char *argv[])
       else fprintf(fid, "\tAnatomical = Y\n");
       /* add nodeMarker */
       if (MARK[i]) fprintf(fid, "\tNodeMarker = %s\n", MARK[i]);
+      if (LABEL[i]) fprintf(fid, "\tLabelDset = %s\n", LABEL[i]);
       
       /* binary ? */
       switch (TypeC[i]) {

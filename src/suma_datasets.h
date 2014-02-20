@@ -1766,6 +1766,7 @@ SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id,
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
 int SUMA_dset_to_Label_dset(SUMA_DSET *dset); 
 int SUMA_is_Label_dset(SUMA_DSET *dset, NI_group **NIcmap); 
+int SUMA_is_Label_dset_col(SUMA_DSET *dset, int icol);
 int SUMA_is_Phase_dset(SUMA_DSET *dset); 
 int SUMA_is_RetinoAngle_dset(SUMA_DSET *dset); 
 int SUMA_is_VFR_dset(SUMA_DSET *dset); 
