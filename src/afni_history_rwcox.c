@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+  { 24 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Add index step size popup to 'Index' arrowval" ,
+   "For Stephen Robinson" } ,
+
+ { 19 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "Some of the pbar 'flip' controls didn't redraw the overlay" ,
    "Also, scroll wheel in the pbar label (atop the color bar) will now do\n"
    "the flipping as well." } ,

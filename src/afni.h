@@ -1646,6 +1646,9 @@ extern void AFNI_clus_popdown( Three_D_View *im3d ) ;
 extern int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z ) ;
 extern void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs ) ;
 
+extern void AFNI_time_index_EV( Widget, XtPointer, XEvent *, Boolean * ) ; /* 24 Feb 2014 */
+extern void AFNI_time_index_set_fstep( Three_D_View *im3d , int istep ) ;
+
 extern void AFNI_update_dataset_viewing( THD_3dim_dataset * ); /* 21 Jul 2009 */
 extern void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab);
 

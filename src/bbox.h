@@ -64,7 +64,7 @@ typedef struct {
 extern "C" {
 #endif
 
-extern MCW_bbox * new_MCW_bbox( Widget , int , char * lab[] , int , int ,
+extern MCW_bbox * new_MCW_bbox( Widget , int , char *lab[] , int , int ,
                                 XtCallbackProc , XtPointer ) ;
 
 extern void MCW_set_bbox( MCW_bbox * , int ) ;
@@ -94,7 +94,7 @@ typedef struct {
       int ival , imin,imax , decimals ;  /* value, min & max, decim shift */
       float fval , fmin,fmax ;           /* float values (includes decim) */
 
-      char * sval ;        /* current string value from TextField */
+      char *sval ;        /* current string value from TextField */
 
       int old_ival ;       /* values just before the last change */
       float old_fval ;
@@ -115,7 +115,7 @@ typedef struct {
 
       XtPointer parent , aux ;
 
-      float fstep ;  /* 16 Feb 1999 */
+      float fstep ;                    /* 16 Feb 1999 */
       int optmenu_call_if_unchanged ;  /* 10 Oct 2007 */
 } MCW_arrowval ;
 

@@ -5927,6 +5927,90 @@ ENTRY("AFNI_crosshair_gap_CB") ;
 
 /*------------------------------------------------------------------------*/
 
+void AFNI_time_index_set_fstep( Three_D_View *im3d , int istep )
+{
+   MCW_arrowval *av ; char lll[16] ;
+
+ENTRY("AFNI_time_index_set_fstep") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   if( istep < 1 ) istep = 1 ; else if( istep > 9 ) istep = 9 ;
+
+   av = im3d->vwid->imag->time_index_av ;
+
+   if( istep == 1 ) strcpy(lll, "Index ") ;
+   else             sprintf(lll,"Idx[%d]",istep) ;
+
+   MCW_set_widget_label( av->wlabel , lll ) ;
+   av->fstep = (istep == 1) ? 0.0f : (float)istep ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_time_index_step_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_time_index_step_CB") ;
+
+   if( ! IM3D_OPEN(im3d) || cbs == NULL || cbs->reason != mcwCR_integer ) EXRETURN ;
+
+   AFNI_time_index_set_fstep( im3d , cbs->ival ) ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_time_index_EV( Widget w , XtPointer cd ,
+                         XEvent *ev , Boolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_time_index_EV") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   /*** handle events ***/
+
+   switch( ev->type ){
+
+     /*----- take button press -----*/
+
+     case ButtonPress:{
+       XButtonEvent *event = (XButtonEvent *)ev ;
+
+       if( event->button == Button3 ){
+         int istep = (int)im3d->vwid->imag->time_index_av->fstep ;
+         if( istep < 1 ) istep = 1 ; else if( istep > 9 ) istep = 9 ;
+         MCW_choose_integer( im3d->vwid->imag->time_index_av->wlabel ,
+                             "Index Step" ,
+                             1 , 9 , istep , AFNI_time_index_step_CB , im3d ) ;
+       } else if( event->button == Button4 ){
+         int istep = (int)im3d->vwid->imag->time_index_av->fstep ;
+         if( istep < 1 ) istep = 1 ; else if( istep > 9 ) istep = 9 ;
+         AFNI_time_index_set_fstep( im3d , istep-1 ) ;
+       } else if( event->button == Button5 ){
+         int istep = (int)im3d->vwid->imag->time_index_av->fstep ;
+         if( istep < 1 ) istep = 1 ; else if( istep > 9 ) istep = 9 ;
+         AFNI_time_index_set_fstep( im3d , istep+1 ) ;
+       } else {
+         (void) MCW_popup_message(
+                   im3d->vwid->imag->time_index_av->wlabel ,
+                   " \n I really wish you "
+                    "\n wouldn't do that! \n " ,
+                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       }
+     }
+     break ;
+   }
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
 void AFNI_time_index_CB( MCW_arrowval *av ,  XtPointer client_data )
 {
    Three_D_View *im3d = (Three_D_View *) client_data ;

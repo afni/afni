@@ -1407,6 +1407,12 @@ STATUS("making imag->time_index_av") ;
 
    ADDTO_KILL(im3d->kl,imag->time_index_av) ;
 
+   /* [24 Feb 2014] Right-click event handler for Index label */
+
+   XtInsertEventHandler( imag->time_index_av->wlabel ,
+                           ButtonPressMask , FALSE ,
+                           AFNI_time_index_EV , (XtPointer)im3d , XtListTail ) ;
+
    /*--- frame to hold all viewing control stuff ---*/
 
 STATUS("imag->view_frame") ;
@@ -6036,6 +6042,7 @@ ENTRY("AFNI_initialize_controller") ;
    POPUP_cursorize( im3d->vwid->picture ) ;
    POPUP_cursorize( imag->crosshair_label ) ;
    POPUP_cursorize( im3d->vwid->func->thr_label ) ;
+   POPUP_cursorize( im3d->vwid->imag->time_index_av->wlabel ) ;
 
    if( im3d->vwid->view->marks_enabled )
      SHIFT_TIPS( im3d , TIPS_MINUS_SHIFT ) ;
