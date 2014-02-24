@@ -74,6 +74,10 @@ realtime_receiver.py - program to receive and display real-time plugin data
 
         step 2. start realtime afni: demo.2.fback.2.afni
 
+             Note: func_slim+orig is only loaded to ensure a multiple
+                   volume overlay dataset, so that the rtfeedme command
+                   "DRIVE_AFNI SET_SUBBRICKS 0 1 1" finds sub-brick 1.
+
              # set many REALTIME env vars or in afni's realtime plugin
              setenv AFNI_REALTIME_Registration  3D:_realtime
              setenv AFNI_REALTIME_Base_Image    2
@@ -89,8 +93,9 @@ realtime_receiver.py - program to receive and display real-time plugin data
                   -com "SWITCH_UNDERLAY epi_r1+orig"   \\
                   -com "SWITCH_OVERLAY func_slim+orig" &
 
-             # at this point, the user should open a graph window and
-             # FIM->Ignore->2 and FIM->Pick Ideal->epi_r1_ideal.1D
+             # at this point, the user should open a graph window and:
+             #    FIM->Ignore->2 
+             #    FIM->Pick Ideal->epi_r1_ideal.1D
 
         step 3. feed data to afni (can be repeated): demo.2.fback.3.feedme
 
