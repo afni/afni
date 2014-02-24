@@ -4408,6 +4408,7 @@ ENTRY("MCW_stuff_CB") ;
    where ITEM is one of the following lists specifying something to choose:
       MSTUF_INT    , label , bot , top , init
       MSTUF_STRING , label
+      MSTUF_STRLIST, label, string_array (which ends in NULL), init_index
 
    The call_func is called like so
 
@@ -4580,6 +4581,20 @@ ENTRY("MCW_choose_stuff") ;
        break ;
 
        case MSTUF_STRLIST:{  /* string list */
+         char *lab ; char **strlist ; MCW_arrowval *av ; int nstr , init ;
+         lab     = va_arg( vararg_ptr , char *  ) ; if( lab     == NULL ) break ;
+         strlist = va_arg( vararg_ptr , char ** ) ; if( strlist == NULL ) break ;
+         init    = va_arg( vararg_ptr , int     ) ;
+         for( nstr=0 ; strlist[nstr] != NULL ; nstr++ ) ; /*nada*/
+         av = new_MCW_arrowval( wrc , lab , MCW_AV_optmenu ,
+                                0 , nstr-1 , init ,
+                                MCW_AV_readtext , 0 ,
+                                NULL,NULL, NULL,NULL ) ;
+         CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
+         CS_sav[CS_nsav] = (void *)av ;
+         CS_scod = (int *)realloc( CS_scod , sizeof(int)*(CS_nsav+1) ) ;
+         CS_scod[CS_nsav] = scode ;
+         CS_nsav++ ;
        }
        break ;
      }
