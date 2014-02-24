@@ -1571,11 +1571,12 @@ void AFNI_sigfunc_alrm(int sig)
      Three_D_View *im3d = AFNI_find_open_controller() ;
      char *eee = getenv("AFNI_SPLASH_MELT") ;
      if( eee == NULL ) eee = "?" ; else eee[0] = toupper(eee[0]) ;
-     if( im3d != NULL && eee[0] != 'N' && (eee[0] == 'Y' || lrand48()%9==0) ){
+     if( im3d   != NULL  && MCW_widget_visible(im3d->vwid->top_shell) &&
+         eee[0] != 'N'   && (eee[0] == 'Y' || lrand48()%19==0)           ){
+       int jj ;
        XMapRaised( XtDisplay(im3d->vwid->top_shell) ,
                    XtWindow(im3d->vwid->top_shell)   ) ; /* raise controller */
-       XSync( im3d->dc->display , False ) ;
-       AFNI_sleep(200) ;   /* msec */
+       AFNI_sleep(111);
        MCW_melt_widget( im3d->vwid->top_form ) ;
      }
    }
@@ -6526,7 +6527,7 @@ ENTRY("AFNI_range_setter") ;
    }
    drive_MCW_imseq( seq , isqDR_settopclip , (XtPointer)(&last_tc) ) ;
 
-   /* if default slice-based AFNI_IMAGE_GLOBALRANGE, just return */ 
+   /* if default slice-based AFNI_IMAGE_GLOBALRANGE, just return */
    if( !THD_get_image_globalrange() ){ first=1; EXRETURN ; }
 
    if( ISVALID_STATISTIC(ds->stats)){
@@ -6561,13 +6562,13 @@ ENTRY("AFNI_range_setter") ;
 }
 
 /*-----------------------------------------------------------------------*/
-/* reset globalrange - called by environment GUI and plugout driver */ 
+/* reset globalrange - called by environment GUI and plugout driver */
 void ENV_globalrange_view( char *vname ) /* no longer static definition */
 {
    Three_D_View *im3d ;
    int ii , gbr ;
    char sgr_str[64];
-   
+
    /* reset image_globalrange */
    THD_set_image_globalrange(-1);
 #if 0
@@ -6603,16 +6604,16 @@ void THD_set_image_globalrange_env(int ig)
    THD_set_image_globalrange(ig);
    switch(ig) {
       default:
-      case 0: 
+      case 0:
          AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=SLICE");
          break;
-      case 1: 
+      case 1:
          AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=VOLUME");
          break;
-      case 2: 
+      case 2:
          AFNI_setenv("AFNI_IMAGE_GLOBALRANGE=DSET");
          break;
-   }   
+   }
   ENV_globalrange_view( "AFNI_IMAGE_GLOBALRANGE" );
 }
 
