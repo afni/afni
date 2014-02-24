@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Feb, 2014, RCR, "realtime_receiver.py", MICRO, TYPE_ENHANCE,
+   "added a little more detail to the demo example",
+   NULL
+ } ,
+
  { 20,  Feb, 2014, RCR, "3dClustSim", MICRO, TYPE_BUG_FIX,
    "break WARNING_message(amesg) up, until W_m gets enhanced",
    "Strings applied via the format are limited to 16K."
