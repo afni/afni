@@ -1411,14 +1411,17 @@ typedef struct {
    SUMA_Boolean preserve; 
 } SUMA_PROMPT_DIALOG_STRUCT; /*!< \sa similar fields in SUMA_SELECTION_DIALOG_STRUCT */
 
-typedef enum { SUMA_FILE_OPEN, SUMA_FILE_SAVE } SUMA_FILE_SELECT_MODE; /*!< mode of file selection dialog */
+typedef enum { SUMA_FILE_OPEN, SUMA_FILE_SAVE } 
+            SUMA_FILE_SELECT_MODE; /*!< mode of file selection dialog */
 
 typedef struct {
    SUMA_FILE_SELECT_MODE Mode; 
-   void (*SelectCallback)(char *filename, void *data); /*!< function called when a selection is made 
-                                            See note for Preserve field*/
+   void (*SelectCallback)(char *filename, void *data); /*!< function called 
+                                    when a selection is made 
+                                    See note for Preserve field*/
    void *SelectData; /*!< data sent along to SelectCallback */
-   void (*CancelCallback)(void *data); /*!< function called when cancel or kill is called */
+   void (*CancelCallback)(void *data); /*!< function called when cancel or 
+                                            kill is called */
    void *CancelData; /*!< data sent along to CancelCallback */
    Widget dlg_w; /*!< widget of dialog */
    Widget daddy; /*!< widget of parent */
@@ -1427,13 +1430,13 @@ typedef struct {
    char *FilePattern; /*!< Pattern for filename filtering
                            Only relevant when window is opened */
    SUMA_Boolean preserve; /*!< If YUP, then widget is only unmanaged when 
-                              selection is made or cancel is pressed. In 
-                              this case, you should take care of dlg's safekeeping
-                              and eventual destruction.
-                              If Nope, then the widget is destroyed after selection
-                              and/or cancel and the dlg structure is destroyed.
-                              Be careful, if Preserve is NOPE, that your callbacks
-                              do not return before being done with this structure*/ 
+                     selection is made or cancel is pressed. In 
+                     this case, you should take care of dlg's safekeeping
+                     and eventual destruction.
+                     If Nope, then the widget is destroyed after selection
+                     and/or cancel and the dlg structure is destroyed.
+                     Be careful, if Preserve is NOPE, that your callbacks
+                     do not return before being done with this structure*/ 
 } SUMA_SELECTION_DIALOG_STRUCT;
 
 /*!
@@ -3115,7 +3118,7 @@ typedef struct {
    GLfloat *colv;
    
    char varname[3];
-   SUMA_TRANS_MODES Trans;
+   SUMA_TRANS_MODES trans;
 } SUMA_MaskDO;
 
 

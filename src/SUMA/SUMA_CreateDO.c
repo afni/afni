@@ -1107,7 +1107,7 @@ SUMA_Boolean SUMA_Set_MaskDO_Trans(SUMA_MaskDO *mdo, SUMA_TRANS_MODES T)
    
    if (!mdo || !mdo->SO) SUMA_RETURN(NOPE);
    
-   mdo->Trans = T;
+   mdo->trans = T;
    mdo->SO->TransMode = T;
    
    SUMA_RETURN(YUP);
@@ -1344,7 +1344,7 @@ SUMA_Boolean SUMA_AccessorizeMDO(SUMA_MaskDO *MDO)
       SUMA_RETURN(NOPE);
    }
    
-   MDO->SO->TransMode = MDO->Trans;
+   MDO->SO->TransMode = MDO->trans;
    
    SUMA_RETURN(YUP);
 }
@@ -1668,7 +1668,7 @@ SUMA_MaskDO * SUMA_Alloc_MaskDO (int N_n, char *Label, char *label_for_hash,
       MDO->Label = NULL;
    }
       
-   MDO->Trans = STM_8;
+   MDO->trans = STM_8;
       
    SUMA_RETURN (MDO);
 }
@@ -20834,6 +20834,7 @@ NI_group *SUMA_MDO_to_NIMDO(SUMA_MaskDO *mdo, NI_group *cont)
    NI_SET_FLOATv(ngr,"init_cen", mdo->init_cen, 3);
    NI_SET_FLOATv(ngr,"init_hdim", mdo->init_hdim, 3);
    NI_SET_FLOATv(ngr,"colv", mdo->colv,4);
+   NI_SET_INT(ngr,"trans", mdo->trans);
    NI_set_attribute(ngr,"varname", mdo->varname);
    if (mdo->Parent_idcode_str) 
       NI_set_attribute(ngr,"Parent_idcode_str", mdo->Parent_idcode_str);
@@ -20851,7 +20852,7 @@ SUMA_MaskDO *SUMA_NIMDO_to_MDO(NI_group *ngr)
    int i;
    static int icall=0;
    char hid[32];
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -20890,8 +20891,7 @@ SUMA_MaskDO *SUMA_NIMDO_to_MDO(NI_group *ngr)
    NI_GET_FLOATv(ngr, "cen", mdo->cen, 3, LocalHead);
    NI_GET_FLOATv(ngr, "hdim", mdo->hdim, 3, LocalHead);
    NI_GET_FLOATv(ngr, "colv", mdo->colv, 4, LocalHead);
-   
-   SUMA_S_Warn("Must check for duplicate varnames and duplicate labels here");
+   NI_GET_INT(ngr, "trans", mdo->trans);
    SUMA_MDO_SetVarName(mdo, NI_get_attribute(ngr,"varname"));
    
    SUMA_LH("Returning mdo");
