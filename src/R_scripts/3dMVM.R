@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.1, Feb 6, 2014
+Version 3.0.2, Feb 20, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.1, Feb 6, 2014
+Version 3.0.2, Feb 20, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -339,7 +339,22 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         differ significantly in the average value of the covariate.",
    "         3) Within-subject covariates vary across the levels of a",
    "         within-subject factor, and can be analyzed with 3dLME,",
-   "         but not 3dLME.\n",
+   "         but not 3dMVM.\n",
+             sep = '\n'
+             ) ),
+
+      '-vVars' = apl(n=c(1,100), d=NA, h = paste(
+   "-vVars variable_list: Identify voxel-wise covariates with this option.",
+   "         Currently one voxel-wise covariate is allowed only, but this",
+   "         may change if demand occurs...",
+  # "         The list with more than one variable has to be",
+  # "         separaated with comma (,) without any other characters such as",
+  # "         spaces and should be surrounded within (single or double) quotes.",
+  # "         For example, -qVars \"Var1,Var2\".
+   "         By default mean centering is performed voxel-wise across all",
+   "         subjects. Alternatively centering can be specified through a",
+   "         global value under -vVarsCenters. If the voxel-wise covariates",
+   "         have already been centered, set the centers at 0 with -vVarsCenters.",
              sep = '\n'
              ) ),
 
@@ -352,6 +367,18 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         average of the variable across ALL subjects regardless their",
    "         grouping. If within-group centering is desirable, center the",
    "         variable YOURSELF first before the values are fed into -dataTable.\n",
+             sep = '\n'
+                     ) ),
+
+     '-vVarCenters' = apl(n=1, d=NA, h = paste(
+   "-vVarCenters VALUES: Specify centering values for voxel-wise covariates",
+   "         identified under -vVars. Multiple centers are separated by ",
+   "         commas (,) within (single or double) quotes. The order of the",
+   "         values should match that of the quantitative variables in -qVars.",
+   "         Default (absence of option -vVarsCetners) means centering on the",
+   "         average of the variable across ALL subjects regardless their",
+   "         grouping. If within-group centering is desirable, center the",
+   "         variable YOURSELF first before the files are fed into -dataTable.\n",
              sep = '\n'
                      ) ),
 
@@ -434,7 +461,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       lop$wsVars <- NA
       lop$mVar   <- NA
       lop$qVars  <- NA
+      lop$vVars  <- NA
       lop$qVarCenters    <- NA
+      lop$vVarCenters    <- NA
       lop$num_glt <- 0
       lop$gltLabel <- NULL
       lop$gltCode  <- NULL
@@ -457,7 +486,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              wsVars = lop$wsVars  <- ops[[i]],
              mVar = lop$mVar  <- ops[[i]],
              qVars  = lop$qVars <- ops[[i]],
+             vVars  = lop$vVars <- ops[[i]],
              qVarCenters = lop$qVarCenters <- ops[[i]],
+             vVarCenters = lop$vVarCenters <- ops[[i]],
              num_glt = lop$num_glt <- ops[[i]],
              gltLabel = lop$gltLabel <- ops[[i]],
              gltCode  = lop$gltCode <- ops[[i]],
@@ -528,6 +559,7 @@ process.MVM.opts <- function (lop, verb = 0) {
                    'format other than BRIK'))
 
    if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
+   if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
 
    if(!is.null(lop$gltLabel)) {
       sq <- as.numeric(unlist(lapply(lop$gltLabel, '[', 1)))
@@ -561,18 +593,23 @@ process.MVM.opts <- function (lop, verb = 0) {
       #if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(lop$dataStr[,jj])
       if(!is.na(lop$qVars[1])) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(as.character(lop$dataStr[,jj]))
       # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
+      if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
 
    
    if (lop$num_glt > 0) {
       lop$gltList    <- vector('list', lop$num_glt)
       lop$slpList    <- vector('list', lop$num_glt)
-      for (n in 1:lop$num_glt) {
+      for (n in 1:lop$num_glt) { # assuming each GLT has one slope involved
          #if(!is.na(lop$qVars)) { if(any(lop$QV %in% lop$gltCode[[n]])) {
          if(!is.na(lop$qVars) & any(lop$QV %in% lop$gltCode[[n]])) {
             QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
             lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
             lop$slpList[[n]] <- lop$gltCode[[n]][QVpos]   
+         } else if(!is.na(lop$vVars) & any(lop$vQV %in% lop$gltCode[[n]])) {
+            vQVpos <- which(lop$gltCode[[n]] %in% lop$vQV)
+            lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+            lop$slpList[[n]] <- lop$gltCode[[n]][vQVpos]   
          } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
          #} else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
       }
@@ -635,10 +672,34 @@ maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to 
 runAOV <- function(inData, dataframe, ModelForm, pars) {
    maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to remove the intercept: -1 below
       return(stats:::Pillai(Re(eigen(qr.coef(qr(SSPE), SSP), symmetric = FALSE)$values), DF, error.DF)) 
+
+   # assign voxel-wise covariate values
+   assVV <- function(DF, vQV, value, c) {
+      # centering
+      if(is.na(c)) cvalue <- scale(value, center=TRUE, scale=F) else
+         cvalue <- scale(value, center=c, scale=F)
+      for(ii in 1:length(unique(DF[,vQV]))) {                                   
+         # ii-th subject's rows
+         fn <- paste(vQV, '_fn', sep='')
+         sr <- which(unique(DF[,fn])[ii] == DF[,fn])
+         #browser()
+         DF[sr, vQV] <- rep(cvalue[ii], length(sr))
+     }
+     DF[, vQV] <- as.numeric(DF[, vQV])
+     return(DF)
+   }  #pars[[10]] <- list(lop$vQV, ?) 
+
+   #lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], inData[ii,jj,kk,(NoFile+1):(NoFile+nSubj)])
    out <- pars[[1]]
    options(warn = -1)
+   #browser()
    if (!all(abs(inData) < 10e-8)) {       
-      dataframe$Beta<-inData
+      dataframe$Beta<-inData[1:pars[[10]][[3]]]
+      if(any(!is.na(pars[[10]][[1]]))) {
+         dataframe <- assVV(dataframe, pars[[10]][[1]], inData[(pars[[10]][[3]]+1):(pars[[10]][[3]]+pars[[10]][[4]])], pars[[10]][[2]])
+         #if(pars[[10]][[3]]) dataframe[,pars[[10]][[1]]] <- scale(dataframe[,pars[[10]][[1]]], center=TRUE, scale=F) else
+         #   dataframe[,pars[[10]][[1]]] <- scale(dataframe[,pars[[10]][[1]]], center=pars[[10]][[2]], scale=F)
+      }
       fm <- NULL
       try(fm <- aov.car(ModelForm, data=dataframe, factorize=FALSE, return='full'), silent=TRUE)
       if(!is.null(fm)) {
@@ -815,6 +876,7 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 ########################################################################
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
+if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(lop$vVarCenters), '\\,')[[1]])
                                                 
 require("afex")
 require("phia")
@@ -843,13 +905,13 @@ if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters)))
    lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
    lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$qVarCenters, scale=F)
 
-
 cat('\n++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
 cat('***** Summary information of data structure *****\n')
 #print(sprintf('%i subjects: ', nlevels(lop$dataStr$Subj)))
 #for(ii in 1:nlevels(lop$dataStr$Subj)) print(sprintf('%s ', levels(lop$dataStr$Subj)[ii]))
 
-cat(nlevels(lop$dataStr$Subj), 'subjects : ', levels(lop$dataStr$Subj), '\n')
+nSubj <- nlevels(lop$dataStr$Subj)                                                
+cat(nSubj, 'subjects : ', levels(lop$dataStr$Subj), '\n')
 cat(length(lop$dataStr$InputFile), 'response values\n')
 for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
    cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
@@ -903,12 +965,56 @@ head <- inData
 inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh), '[[', 1))
 dim(inData) <- c(dimx, dimy, dimz, NoFile)
 
+# voxel-wise covariate files
+if(any(!is.na(lop$vVars))) {
+   for(ii in lop$vQV)
+   if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
+      errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
+                "allowed to have one volume; that is, the covariate has to be at the\n",
+                "subject level.")) else {  # currently consider one voxel-wise covariate only: may generalize later?
+      vQV <- unlist(lapply(lapply(unique(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh), '[[', 1))
+      dim(vQV) <- c(dimx, dimy, dimz, length(unique(lop$dataStr[,lop$vQV[1]])))
+      inData <- c(inData, vQV)
+      dim(inData) <- c(dimx, dimy, dimz, NoFile+nSubj)
+   }
+} else vQV <- NULL
+
 if (!is.na(lop$maskFN)) {
-	Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh)$brk[,,,1]
-	inData <- array(apply(inData, 4, function(x) x*read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh)$brk[,,,1]),
-      dim=c(dimx,dimy,dimz,NoFile))
+   Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh)$brk[,,,1]
+   inData <- array(apply(inData, 4, function(x) x*Mask),
+      dim=c(dimx,dimy,dimz,NoFile+(!is.na(lop$vQV[1]))*nSubj))
+}
+                                                
+# assign voxel-wise covariate values
+assVV <- function(DF, vQV, value, c) {
+   if(is.na(c)) cvalue <- scale(value, center=TRUE, scale=F) else
+      cvalue <- scale(value, center=c, scale=F)
+   for(ii in 1:length(unique(DF[,vQV]))) {                                   
+   # ii-th subject's rows
+      fn <- paste(lop$vQV[1], '_fn', sep='')
+      sr <- which(unique(DF[,fn])[ii] == DF[,fn])
+      #browser()
+      DF[sr, vQV] <- rep(cvalue[ii], length(sr))
+    }
+    DF[, vQV] <- as.numeric(DF[, vQV])
+    return(DF)
 }
 
+#      if(all(is.na(lop$vVarCenters))) 
+#         lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
+#         lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$vVarCenters, scale=F)
+                                                
+
+# add a new column to store the voxel-wise filenames
+if(any(!is.na(lop$vVars))) {
+   lop$dataStr <- cbind(lop$dataStr, lop$dataStr[, lop$vQV[1]])                                                
+   names(lop$dataStr)[length(names(lop$dataStr))] <- paste(lop$vQV[1], '_fn', sep='')
+}                                             
+#lop$dataStr <- assVV(lop$dataStr, paste(lop$vQV[1], '_fn', sep=''), vQV[20,20,20,])
+                                                
+# DF: lop$dataStr[,lop$vQV[1]]
+                                                
+                                                
 # try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
 # for t tests (and catch potential problems as well)
 #ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
@@ -931,7 +1037,14 @@ cat('is likely inappropriate.\n\n')
 while(is.null(fm)) {
    fm<-NULL
    if (all(abs(inData[ii, jj, kk,]) < 10e-8)) fm<-NULL else {
-   lop$dataStr$Beta<-inData[ii, jj, kk,]
+   lop$dataStr$Beta<-inData[ii, jj, kk,1:NoFile]
+   if(any(!is.na(lop$vVars))) {
+      #lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], vQV[ii,jj,kk,])
+      lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], inData[ii,jj,kk,(NoFile+1):(NoFile+nSubj)], lop$vVarCenters[1])
+      #if(all(is.na(lop$vVarCenters))) 
+      #   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
+      #   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$vVarCenters, scale=F)
+   }   
    options(warn=-1)     
    try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, return='full'), silent=TRUE)
 #   if(!is.null(fm)) if(!is.na(lop$mVar)) {
@@ -1085,7 +1198,7 @@ if(nFm > 0) for(ii in 1:nFm) {
    
 ###############################
 
-pars <- vector("list", 9)
+pars <- vector("list", 10)
 #pars[[1]] <- NoBrick
 pars[[1]] <- outInit                                              
 #pars[[2]] <- nF
@@ -1097,10 +1210,12 @@ pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT) # any within-subject factor
 pars[[7]] <- is.na(lop$mVar)   # any real multivariate modeling: currently for basis functions
 pars[[8]] <- list(0.75, numDF, denDF) # switching threshold between GG and HF: 0.6
 pars[[9]] <- !is.null(mvtInd)
+pars[[10]] <- list(lop$vQV, all(is.na(lop$vVarCenters)), NoFile, nSubj)                                            
 # only run wsMVT for those terms associated with a within-subject factor:
 # which(names(fm$Anova$SSPE) %in% dimnames(uvfm$sphericity.correction)[[1]])
-
-     
+                                                
+#if(any(!is.na(lop$vVars))) lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], vQV[ii,jj,kk,])
+                                                
 #runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
