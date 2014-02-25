@@ -1869,7 +1869,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 {   
    static char FuncName[]={"SUMA_display"};
    SUMA_DO_LOCATOR *sRegistDO = NULL;
-   int i, N_sReg;
+   int i, N_sReg, iflush=1000;
    static int xList[1], yList[1];
    SUMA_SurfaceObject *SO=NULL;
    SUMA_VolumeObject *VO=NULL;
@@ -2143,7 +2143,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
 
 
-   i = 0;
+   i = 0; iflush = N_sReg;
    while (i < N_sReg) {
       if (dov[sRegistDO[i].dov_ind].CoordType == SUMA_WORLD) {
          switch (dov[sRegistDO[i].dov_ind].ObjectType) {
@@ -2255,6 +2255,18 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                }
                break;
             case GRAPH_LINK_type:
+               if (SUMAg_CF->Dev && SUMA_isEnv("JAVIER_DEPTH_SPECIAL","YES") &&
+                   i < iflush) {
+                  SUMA_LH("Flushing depth buffer");
+                  /* This trick, and a dirty one it is, allows Javier to see
+                  all the connections, unimpeded by any other objects that might
+                  obscure it. This simple trick will only work if graphs
+                  are rendered at the very end of all other objects.
+                  Not sure what the implications, if any, will be for 
+                  the matrix display...*/
+                  glClear(GL_DEPTH_BUFFER_BIT);
+                  iflush = i;
+               }
                /* find the real DO this baby points to and render that */
                if (!SUMA_DrawGraphLinkDO (
                     (SUMA_GraphLinkDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
