@@ -1051,7 +1051,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          if (MDO_IS_BOX(MDO)) {
             SUMA_LH("Forming SO for box");
             if (!(MDO->SO = SUMA_box_surface(MDO->hdim, MDO->cen, 
-                                             MDO->colv, MDO->N_obj))) {
+                                             MDO->dcolv, MDO->N_obj))) {
                SUMA_S_Err("Failed to create box SO!");
                SUMA_RETURNe;
             }

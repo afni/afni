@@ -3115,7 +3115,10 @@ typedef struct {
    
    SUMA_SurfaceObject *SO; /* Surface defining mask shape */ 
    
-   GLfloat *colv;
+   float *init_col;
+   float dim;
+   
+   GLfloat *dcolv;
    
    char varname[3];
    SUMA_TRANS_MODES trans;
