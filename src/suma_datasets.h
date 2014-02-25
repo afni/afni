@@ -1618,6 +1618,7 @@ SUMA_Boolean SUMA_isDsetNelAttr(NI_element *nel);
 char * SUMA_CreateDsetColRangeCompString( SUMA_DSET *dset, int col_index, 
                                           SUMA_COL_TYPE ctp);
 int SUMA_UpdateDsetColRange(SUMA_DSET *dset, int icol);
+int SUMA_UpdateDsetColLabel(SUMA_DSET *dset, int icol, char *label);
 char * SUMA_GetDsetColStringAttr( SUMA_DSET *dset, int col_index, 
                                     char *attrname);
 char * SUMA_GetNgrColStringAttr( NI_group *ngr, int col_index, 

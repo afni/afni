@@ -1898,7 +1898,7 @@ void AV_timer_CB( XtPointer client_data , XtIntervalId *id )
 void AV_assign_ival( MCW_arrowval *av , int nval )
 {
    int newival = nval ;
-   char *cval ;
+   char *cval = NULL ;
 
 ENTRY("AV_assign_ival") ;
 
