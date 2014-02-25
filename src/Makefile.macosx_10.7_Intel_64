@@ -105,6 +105,7 @@ GLw_IPATH  = -IGLw_local
 GLw_LIB = libGLws.a
 
 
+SUMA_GLIB_VER = -2.0
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I${SW_ROOT}/lib/glib-2.0/include -I${SW_ROOT}/include/glib-2.0 
 SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 
