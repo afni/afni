@@ -52,7 +52,7 @@ if ("$package" == "") then
          set b64 = '_64'
          echo "Using -64 as default for `hostname`"
       endif 
-      set package = macosx_10.5_Intel${b64}
+      set package = macosx_10.8_gcc
       if ($lesstifing == 0) then
          echo "Using -motif as default for `hostname`"
          set lesstifing = -1

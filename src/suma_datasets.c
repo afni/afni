@@ -15265,8 +15265,11 @@ int *SUMA_GDSET_GetPointIndexColumn(SUMA_DSET *dset, int *N_vals,
    if (nelxyzr) *nelxyzr = NULL;
    
    if (!(nelxyz = SUMA_FindGDsetNodeListElement(dset))) {
-      SUMA_S_Errv("Failed to find Dset %s's NodeListElement\n", 
-                        SDSET_LABEL(dset));
+      /* Just fine if calling function knows what to do 
+         about this */
+      SUMA_LHv("Failed to find Dset %s's NodeListElement.\n", 
+                SDSET_LABEL(dset));
+      if (LocalHead) SUMA_DUMP_TRACE("Who dun that?");
       SUMA_RETURN(NULL);
    }
    if (nelxyzr) *nelxyzr = nelxyz;

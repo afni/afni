@@ -795,6 +795,19 @@ void SUMA_cb_SetMaskEvalTableValue (void *data);
 void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, 
                                  XtPointer client_data);
 SUMA_Boolean SUMA_Set_UseMaskEval(int v, int redisp, int setmen);
+void SUMA_MaskLenTableCell_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch );
+void SUMA_MaskLenTableLabel_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch );
+int SUMA_SetMaskLenTableValueNew(  int row, int col,
+                                float, 
+                                int setmen, 
+                                int redisplay, 
+                                SUMA_NUMERICAL_UNITS num_units);
+void SUMA_cb_SetMaskLenTableValue (void *data);
+void SUMA_cb_UseMaskLen_toggled(Widget w, XtPointer data, 
+                                 XtPointer client_data);
+SUMA_Boolean SUMA_Set_UseMaskLen(int v, int redisp, int setmen);
 SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows);
 void SUMA_delete_mask_timeout_CB( XtPointer client_data , XtIntervalId * id);
 void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs);
@@ -827,7 +840,15 @@ int SUMA_SetMaskTableValueNew(int row, int col,
                               int redisplay,
                               SUMA_NUMERICAL_UNITS num_units);
 SUMA_Boolean SUMA_Set_ADO_TransMode(SUMA_ALL_DO *ado, int i);
-                   
+void SUMA_cb_Masks_Save (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_Masks_Load(Widget w, XtPointer data, XtPointer client_data);
+SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename, 
+                              int SetupOverlay, 
+                              int LaunchDisplay);
+void SUMA_LoadMultiMasks (char *filename, void *data);
+void SUMA_SaveMultiMasks (char *filename, void *data);
+SUMA_Boolean SUMA_SaveMultiMasks_eng (char *filename);
+                  
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"
 
