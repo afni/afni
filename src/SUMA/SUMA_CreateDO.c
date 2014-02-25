@@ -948,6 +948,7 @@ SUMA_MaskDO *SUMA_SymMaskDO(char *s, char *mtype, char *hid, byte mtypeonly)
    
    /* fill up mdo */
    SUMA_LH("Fill up mdo (%d obj)", mdo->N_obj);
+   mdo->dim = 1.0;
    i = 0;
    while (i < mdo->N_obj) {/* Have 1 object, for now...*/
       i3 = 3*i; i4 = 4*i;
@@ -957,10 +958,14 @@ SUMA_MaskDO *SUMA_SymMaskDO(char *s, char *mtype, char *hid, byte mtypeonly)
       mdo->hdim[i3]  = dim[0];
       mdo->hdim[i3+1]= dim[1];
       mdo->hdim[i3+2]= dim[2];
-      mdo->colv[i4]  = col[0];
-      mdo->colv[i4+1]= col[1];
-      mdo->colv[i4+2]= col[2];
-      mdo->colv[i4+3]= col[3];
+      mdo->init_col[i4]  = col[0];
+      mdo->init_col[i4+1]= col[1];
+      mdo->init_col[i4+2]= col[2];
+      mdo->init_col[i4+3]= col[3];
+      mdo->dcolv[i4]  = col[0]*mdo->dim;
+      mdo->dcolv[i4+1]= col[1]*mdo->dim;
+      mdo->dcolv[i4+2]= col[2]*mdo->dim;
+      mdo->dcolv[i4+3]= col[3];
       ++i;
    }
    
@@ -1059,22 +1064,29 @@ SUMA_Boolean SUMA_MDO_SetVarName(SUMA_MaskDO *mdo, char *this)
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_Set_MaskDO_Color(SUMA_MaskDO *mdo, float *col)
+SUMA_Boolean SUMA_Set_MaskDO_Color(SUMA_MaskDO *mdo, float *col, float dim)
 {
    static char FuncName[]={"SUMA_Set_MaskDO_Color"};
    int i, i4;
    
    SUMA_ENTRY;
    
-   if (!mdo || !col) SUMA_RETURN(NOPE);
+   if (!mdo || (!col && dim < 0)) SUMA_RETURN(NOPE);
+   
+   if (dim >= 0) mdo->dim = dim;
+   if (!col) col = mdo->init_col; /* just use first 4 */
    
    i = 0;
    while (i < mdo->N_obj) { /* all will be colored by the same color! */
       i4 = 4*i;
-      mdo->colv[i4]  = col[0];
-      mdo->colv[i4+1]= col[1];
-      mdo->colv[i4+2]= col[2];
-      mdo->colv[i4+3]= col[3];
+      mdo->init_col[i4]  = col[0];
+      mdo->init_col[i4+1]= col[1];
+      mdo->init_col[i4+2]= col[2];
+      mdo->init_col[i4+3]= col[3];
+      mdo->dcolv[i4]  = col[0]*mdo->dim;
+      mdo->dcolv[i4+1]= col[1]*mdo->dim;
+      mdo->dcolv[i4+2]= col[2]*mdo->dim;
+      mdo->dcolv[i4+3]= col[3];
       ++i;
    }
    SUMA_RETURN(YUP);
@@ -1087,12 +1099,13 @@ SUMA_Boolean SUMA_Set_MaskDO_Alpha(SUMA_MaskDO *mdo, float alpha)
    
    SUMA_ENTRY;
    
-   if (!mdo || !mdo->colv) SUMA_RETURN(NOPE);
+   if (!mdo || !mdo->dcolv || !mdo->init_col) SUMA_RETURN(NOPE);
 
    i = 0;
    while (i < mdo->N_obj) { /* all will be colored by the same color! */
       i4 = 4*i;
-      mdo->colv[i4+3]= alpha;
+      mdo->dcolv[i4+3]= alpha;
+      mdo->init_col[i4+3] = alpha;
       ++i;
    }
    SUMA_RETURN(YUP);
@@ -1180,7 +1193,7 @@ SUMA_Boolean SUMA_Set_MaskDO_Cen(SUMA_MaskDO *mdo, float *cen)
 
 int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim, 
                         float *col, char *Label, char *Type, 
-                        float alpha, SUMA_TRANS_MODES tran)
+                        float alpha, SUMA_TRANS_MODES tran, float colb)
 {
    static char FuncName[]={"SUMA_MDO_New_Params"};
    float off[3], fdim[3], ifdim[3], *idim=NULL;
@@ -1190,7 +1203,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
    SUMA_ENTRY;
    
    if (!mdo || !(cen || dim || col || Label || Type || alpha >= 0.0 || 
-                  tran < STM_N_TransModes)) SUMA_RETURN(-1);
+                  tran < STM_N_TransModes || colb >=0.0)) SUMA_RETURN(-1);
    
    if (dim) {
       if (!MDO_IS_BOX(mdo) && !MDO_IS_SPH(mdo)) {
@@ -1256,7 +1269,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
    if (col) {
       SUMA_LH("new Col");
       NewSurf=1;
-      SUMA_Set_MaskDO_Color(mdo, col); 
+      SUMA_Set_MaskDO_Color(mdo, col, -1); 
    }
    
    if (tran < STM_N_TransModes) {
@@ -1270,6 +1283,12 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
       NewSurf=1;
       SUMA_Set_MaskDO_Alpha(mdo, alpha);
    }
+   if (colb >= 0.0) {
+      SUMA_LH("new dim factor");
+      NewSurf=1;
+      SUMA_Set_MaskDO_Color(mdo, NULL, colb);
+   }
+   
    if (NewSurf) {
       SUMA_LH("new surf");
       if (!SUMA_AccessorizeMDO(mdo)) {
@@ -1324,7 +1343,7 @@ SUMA_Boolean SUMA_AccessorizeMDO(SUMA_MaskDO *MDO)
       SUMA_LH("Forming SO for box");
       if (MDO->SO) SUMA_Free_Surface_Object(MDO->SO); MDO->SO=NULL;
       if (!(MDO->SO = SUMA_box_surface(MDO->hdim, MDO->cen, 
-                                       MDO->colv, MDO->N_obj))) {
+                                       MDO->dcolv, MDO->N_obj))) {
          SUMA_S_Err("Failed to create box SO!");
          SUMA_RETURN(NOPE);
       }
@@ -1335,7 +1354,7 @@ SUMA_Boolean SUMA_AccessorizeMDO(SUMA_MaskDO *MDO)
       }
       if (MDO->SO) SUMA_Free_Surface_Object(MDO->SO); MDO->SO=NULL;
       if (!(MDO->SO = SUMA_ball_surface(MDO->hdim, MDO->cen, 
-                                       MDO->colv, MDO->N_obj))) {
+                                       MDO->dcolv, MDO->N_obj))) {
          SUMA_S_Err("Failed to create sphere SO!");
          SUMA_RETURN(NOPE);
       }
@@ -1638,7 +1657,9 @@ SUMA_MaskDO * SUMA_Alloc_MaskDO (int N_n, char *Label, char *label_for_hash,
          SUMA_RETURN (MDO);
    }
    MDO->do_type = MASK_type;
-   MDO->colv = NULL;
+   MDO->dcolv = NULL;
+   MDO->init_col = NULL;
+   MDO->dim = 0.5;
    MDO->N_obj = N_n;
    if (Parent_idcode_str) 
       MDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
@@ -1647,8 +1668,10 @@ SUMA_MaskDO * SUMA_Alloc_MaskDO (int N_n, char *Label, char *label_for_hash,
       MDO->hdim =(float *)SUMA_calloc (3*N_n, sizeof(float));
       MDO->init_cen =(float *)SUMA_calloc (3*N_n, sizeof(float));
       MDO->init_hdim =(float *)SUMA_calloc (3*N_n, sizeof(float));
-      if (withcol) 
-         MDO->colv = (GLfloat *)SUMA_calloc (4*N_n, sizeof(GLfloat));
+      if (withcol) { 
+         MDO->dcolv = (GLfloat *)SUMA_calloc (4*N_n, sizeof(GLfloat));
+         MDO->init_col = (float *)SUMA_calloc (4*N_n, sizeof(float));
+      }
    }
    
    /* create a string to hash an idcode */
@@ -1683,6 +1706,8 @@ void SUMA_free_MaskDO (SUMA_MaskDO * MDO)
       SUMA_ifree(MDO->Label); SUMA_ifree(MDO->Parent_idcode_str);
       SUMA_ifree(MDO->idcode_str);
       if (MDO->SO) SUMA_Free_Surface_Object(MDO->SO);
+      SUMA_ifree(MDO->init_col);
+      SUMA_ifree(MDO->dcolv);
       SUMA_free(MDO); MDO = NULL;
    }
    SUMA_RETURNe;
@@ -2448,8 +2473,9 @@ SUMA_MaskDO * SUMA_ReadMaskDO (char *s, char *parent_ADO_id)
    }
    
    if (icol_col > 0) {
-      MDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*MDO->N_obj);
-      if (!MDO->colv) {
+      MDO->dcolv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*MDO->N_obj);
+      MDO->init_col = (float *)SUMA_malloc(4*sizeof(float)*MDO->N_obj);
+      if (!MDO->dcolv || !MDO->init_col) {
          SUMA_SL_Crit("Failed in to allocate for colv.");
          SUMA_RETURN(NULL);
       }
@@ -2457,10 +2483,14 @@ SUMA_MaskDO * SUMA_ReadMaskDO (char *s, char *parent_ADO_id)
       itmp = 0;
       while (itmp < MDO->N_obj) {
          itmp2 = 4*itmp;
-         MDO->colv[itmp2]     = far[itmp+(icol_col  )*ncol];
-         MDO->colv[itmp2+1]   = far[itmp+(icol_col+1)*ncol];
-         MDO->colv[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
-         MDO->colv[itmp2+3]   = 1.0;
+         MDO->init_col[itmp2]     = far[itmp+(icol_col  )*ncol];
+         MDO->init_col[itmp2+1]   = far[itmp+(icol_col+1)*ncol];
+         MDO->init_col[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
+         MDO->init_col[itmp2+3]   = 1.0;
+         MDO->dcolv[itmp2]     = MDO->init_col[itmp2]*MDO->dim;
+         MDO->dcolv[itmp2+1]   = MDO->init_col[itmp2+1]*MDO->dim;
+         MDO->dcolv[itmp2+2]   = MDO->init_col[itmp2+2]*MDO->dim;
+         MDO->dcolv[itmp2+3]   = 1.0;
          ++itmp;
       } 
    }
@@ -20779,7 +20809,7 @@ SUMA_SurfaceObject *SUMA_ball_surface(float *hd3, float *cen, float *col,
       SUMA_RETURN(NULL);
    }
    /* create a surface */
-   if (!(SO = SUMA_CreateIcosahedron(hd3[0], 2, cen, "n", 1))) {
+   if (!(SO = SUMA_CreateIcosahedron(hd3[0], 5, cen, "n", 1))) {
          SUMA_S_Err("Failed to create sphere SO!");
          SUMA_RETURN(NOPE);
    }   
@@ -20833,7 +20863,8 @@ NI_group *SUMA_MDO_to_NIMDO(SUMA_MaskDO *mdo, NI_group *cont)
    NI_SET_FLOATv(ngr,"hdim", mdo->hdim, 3);
    NI_SET_FLOATv(ngr,"init_cen", mdo->init_cen, 3);
    NI_SET_FLOATv(ngr,"init_hdim", mdo->init_hdim, 3);
-   NI_SET_FLOATv(ngr,"colv", mdo->colv,4);
+   NI_SET_FLOATv(ngr,"init_col", mdo->init_col,4);
+   NI_SET_FLOAT(ngr,"dim", mdo->dim);
    NI_SET_INT(ngr,"trans", mdo->trans);
    NI_set_attribute(ngr,"varname", mdo->varname);
    if (mdo->Parent_idcode_str) 
@@ -20890,7 +20921,13 @@ SUMA_MaskDO *SUMA_NIMDO_to_MDO(NI_group *ngr)
    NI_GET_FLOATv(ngr, "init_hdim", mdo->init_hdim, 3, LocalHead);
    NI_GET_FLOATv(ngr, "cen", mdo->cen, 3, LocalHead);
    NI_GET_FLOATv(ngr, "hdim", mdo->hdim, 3, LocalHead);
-   NI_GET_FLOATv(ngr, "colv", mdo->colv, 4, LocalHead);
+   NI_GET_FLOAT(ngr, "dim", mdo->dim);
+   NI_GET_FLOATv(ngr, "init_col", mdo->init_col, 4, LocalHead);
+   mdo->dcolv[0] = mdo->init_col[0]*mdo->dim;
+   mdo->dcolv[1] = mdo->init_col[1]*mdo->dim;
+   mdo->dcolv[2] = mdo->init_col[2]*mdo->dim;
+   mdo->dcolv[3] = mdo->init_col[3];
+   
    NI_GET_INT(ngr, "trans", mdo->trans);
    SUMA_MDO_SetVarName(mdo, NI_get_attribute(ngr,"varname"));
    

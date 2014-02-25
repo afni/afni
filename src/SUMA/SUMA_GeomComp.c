@@ -14998,13 +14998,13 @@ SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
                if (!strstr(mep->mdoused, ADO_ID(ado))) 
                                  strcat(mep->mdoused,ADO_ID(ado));
                mep->varcol[4*ivar+0] = 
-                  (byte)SUMA_MIN_PAIR(255,mdo->colv[0]*255);
+                  (byte)SUMA_MIN_PAIR(255,mdo->dcolv[0]*255);
                mep->varcol[4*ivar+1] = 
-                  (byte)SUMA_MIN_PAIR(255,mdo->colv[1]*255);
+                  (byte)SUMA_MIN_PAIR(255,mdo->dcolv[1]*255);
                mep->varcol[4*ivar+2] = 
-                  (byte)SUMA_MIN_PAIR(255,mdo->colv[2]*255);
+                  (byte)SUMA_MIN_PAIR(255,mdo->dcolv[2]*255);
                mep->varcol[4*ivar+3] = 
-                  (byte)SUMA_MIN_PAIR(255,mdo->colv[3]*255);
+                  (byte)SUMA_MIN_PAIR(255,mdo->dcolv[3]*255);
             } else {
                mep->varsmdo[ivar][0]='\0';
             }

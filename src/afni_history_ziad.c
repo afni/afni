@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25, Feb, 2014, ZSS, "afni-general", MICRO, TYPE_BUG_FIX,
+   "Modified Makefile.macosx* to start building SurfMesh again.",
+   NULL
+ },
+  
+ { 25, Feb, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added loading/saving of masks and evaluation expressions to GUI.",
+   NULL
+ },
+  
+ { 25, Feb, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added tract length masking in Masks GUI.",
+   NULL
+ },
+  
  { 19, Feb, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed crash during crazy matrix rotations.",
    "The problem was caused by divisions by very small sizes under certain\n"
