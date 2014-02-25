@@ -671,7 +671,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
 
                /* wildcard selection */
-               sprintf(sbuf, "*.mask.*.do");
+               sprintf(sbuf, "*.*.mo");
 
                /*Load data from file */
                if (!sv) sv = &(SUMAg_SVv[0]);
@@ -723,7 +723,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
 
                /* wildcard selection */
-               sprintf(sbuf, "*.mask.*.do");
+               sprintf(sbuf, "*.*.mo");
 
                /*Load data from file */
                if (!sv) sv = &(SUMAg_SVv[0]);

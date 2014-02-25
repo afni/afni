@@ -345,7 +345,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
       
       if (1) { /* The properties area */
          char *col_tit[]=  {  "+", " ", "Label", "Type", "Center", "Size", 
-                                    "RGB", "A", "T", NULL};
+                                    "RGB", "A", "T", "D", NULL};
          char *col_hint[]= {  "Add new mask", 
                               "Variable",
                               "Label",
@@ -354,7 +354,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
                               "Size Sx,Sy,Sz", 
                               "Color R G B (A)",
                               "A",
-                              "T", NULL };
+                              "T", "D", NULL };
          char *col_help[]= {  SUMA_SurfContHelp_MaskTypeTbl_c0, 
                               SUMA_SurfContHelp_MaskTypeTbl_c05,
                               SUMA_SurfContHelp_MaskTypeTbl_c1,
@@ -364,15 +364,16 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
                               SUMA_SurfContHelp_MaskTypeTbl_c5, 
                               SUMA_SurfContHelp_MaskTypeTbl_c6, 
                               SUMA_SurfContHelp_MaskTypeTbl_c7, 
+                              SUMA_SurfContHelp_MaskTypeTbl_c8, 
                               NULL };
          char *row_tit[]=  {  "+", "x", NULL };
          char *row_hint[]= {  "Add new mask", "Mask Properties", NULL};
          char *row_help[]= {  SUMA_SurfContHelp_MaskTypeTbl_c0, 
                               SUMA_SurfContHelp_MaskTypeTbl_r1, NULL};
          if (!SurfCont->MaskTable->cells) {
-            int colw[15] = { 1, 1, 6, 6, 11, 11, 11, 1, 1 };
+            int colw[15] = { 1, 1, 6, 6, 11, 11, 11, 1, 1, 1};
             SUMA_CreateTable( SurfCont->rcswr,
-                              2, 9, 
+                              2, 10, 
                               row_tit, col_tit,  
                               row_hint, col_hint,  
                               row_help, col_help,  
@@ -712,6 +713,8 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
             SUMA_MDO_New_Dim(mdo, fv);
          }
          SUMA_InitMasksTable_row(SurfCont,mdo, i);
+         
+         SUMA_NEW_MASKSTATE();
          /* redisplay */
          if (!list) list = SUMA_CreateList ();
          SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
@@ -723,12 +726,15 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
          break;
       case 7:
          if (incr) {
-            fv[0] = mdo->colv[0]; fv[1] = mdo->colv[1]; fv[2] = mdo->colv[2];
-            ii = SUMA_A_to_1dig(mdo->colv[3])+incr;
+            fv[0] = mdo->init_col[0]; fv[1] = mdo->init_col[1]; 
+            fv[2] = mdo->init_col[2];
+            ii = SUMA_A_to_1dig(mdo->init_col[3])+incr;
             fv[3] = SUMA_1dig_to_A(ii);
-            if (fv[3] != mdo->colv[3]) {
+            if (fv[3] != mdo->init_col[3]) {
                SUMA_MDO_New_Alpha(mdo, fv[3]);
                SUMA_InitMasksTable_row(SurfCont,mdo, i);
+               
+               if (SurfCont->UseMaskEval) SUMA_NEW_MASKSTATE();
                /* redisplay */
                if (!list) list = SUMA_CreateList ();
                SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
@@ -745,6 +751,27 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
             if (ii >= 0 && ii < 10) {
                SUMA_Set_MaskDO_Trans(mdo,(SUMA_TRANS_MODES)SUMA_1dig_to_T(ii));
                SUMA_InitMasksTable_row(SurfCont,mdo, i);
+               /* redisplay */
+               if (!list) list = SUMA_CreateList ();
+               SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                                  SES_Suma, NULL); 
+               if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+            } else {
+               SUMA_InitMasksTable_row(SurfCont,mdo, i);
+            }
+         }
+         break;
+      case 9:
+         if (incr) {
+            fv[0] = mdo->init_col[0]; fv[1] = mdo->init_col[1]; 
+            fv[2] = mdo->init_col[2];
+            ii = SUMA_A_to_1dig(mdo->dim)+incr;
+            fv[3] = SUMA_1dig_to_A(ii);
+            if (fv[3] != mdo->dim) {
+               SUMA_MDO_New_CDim(mdo, fv[3]);
+               SUMA_InitMasksTable_row(SurfCont,mdo, i);
+               
+               if (SurfCont->UseMaskEval) SUMA_NEW_MASKSTATE();
                /* redisplay */
                if (!list) list = SUMA_CreateList ();
                SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
@@ -2110,14 +2137,17 @@ SUMA_Boolean  SUMA_InitMasksTable_row(SUMA_X_SurfCont *SurfCont,
    SUMA_RGBA_to_string(mdo->hdim, 3, 1.0, str, NULL, ",",5);
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 5,  str);
 
-   SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",",-1);
+   SUMA_RGBA_to_string(mdo->init_col, 4, 1.0, str, NULL, ",",-1);
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 6,  str);
    
-   sprintf(str,"%d", SUMA_A_to_1dig(mdo->colv[3]));
+   sprintf(str,"%d", SUMA_A_to_1dig(mdo->init_col[3]));
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 7,  str);
    
    sprintf(str,"%d", SUMA_T_to_1dig(mdo->trans));
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 8,  str);
+   
+   sprintf(str,"%d", SUMA_A_to_1dig(mdo->dim));
+   SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 9,  str);
    
    SUMA_RETURN(YUP);
 }
@@ -2183,43 +2213,43 @@ int SUMA_NewSymMaskDO(void)
    switch(icall) {
       case 0:{
          float cc[4] = {1, 1, 1, 1};
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          break; }
       case 1:{
          float cc[4] = {1, 0, 0, 1};
          float cen[3] = {37, -66, -19};
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          SUMA_Set_MaskDO_Cen(mdo, cen);
          break; }
       case 2:{
          float cc[4] = {0, 1, 0, 1};
          float cen[3] = {-26, -76, -6};
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          SUMA_Set_MaskDO_Cen(mdo, cen);
          break; }
       case 3:{
          float cc[4] = {0, 0, 1, 1};
          float cen[3] = {-24,-73,-8.5};
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          SUMA_Set_MaskDO_Cen(mdo, cen);
          break; }
       case 4: {
          float cc[4] = {1, 1, 0, 1};
          float cen[3] = {59.2,-7.2,-42};
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          break; }
       case 5: {
          float cc[4] = {0, 1, 1, 1};
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          break; }
       case 6: {
          float cc[4] = {1, 0, 1, 1};
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          break; }
       default: {
          float cc[4] = {1, 0, 1, 1};
          SUMA_a_good_col("ROI_i256", icall-6,cc);
-         SUMA_Set_MaskDO_Color(mdo, cc);
+         SUMA_Set_MaskDO_Color(mdo, cc, -1);
          break; }
    }
    if (!SUMA_AccessorizeMDO(mdo)) {
@@ -2472,7 +2502,8 @@ void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
          SurfCont->DeleteMask_row = -1;
          SUMA_RETURNe;
       } else {  
-         /* delete mask */
+         /* delete mask SEE ALSO function SUMA_DeleteMask(), might want to use
+            it instead of this chunk */
          ErrCnt = 0;
          SUMA_LHv("Should be deleting Masks here ...\n");
          if (SurfCont->MaskTable->Ni>1) {
@@ -2530,6 +2561,82 @@ void SUMA_delete_mask_timeout_CB( XtPointer client_data , XtIntervalId * id )
    SUMA_cb_Mask_Delete(NULL, client_data, NULL);
 
    SUMA_RETURNe; 
+}
+
+/* Delete a MaskDO from everything and everywhere.
+   Make sure changes here, parallel those in function SUMA_cb_Mask_Delete()
+   right where SUMA_DeleteMask() is mentioned.*/
+SUMA_Boolean SUMA_DeleteMask(char *ado_id)
+{
+   static char FuncName[]= {"SUMA_DeleteMask"};
+   SUMA_ALL_DO *ado = NULL, *curDO = NULL;
+   int found = -1, OKtable=0, ii;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!ado_id) SUMA_RETURN(YUP); /* Don't complain, nothing to delete */
+   
+   if (ado = SUMA_whichADOg(ado_id)) {
+      SUMA_LH("ado_id is for %s", ADO_LABEL(ado));
+      if (ado->do_type != MASK_type) {
+         SUMA_S_Err("ADOid not for mask type");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      SUMA_LH("ado_id does not exist, return without complaint");
+      SUMA_RETURN(YUP);
+   }
+         
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+
+   found = -1;
+   if (SurfCont && SurfCont->MaskTable) {
+      if ((found = SUMA_ObjectID_Row(SurfCont->MaskTable, ado_id))< 0) {
+         SUMA_LH("ado not in table");
+      } else {
+         SUMA_LH("Making sure current is OK");
+         if (SurfCont->MaskTable->Ni>1) {
+            curDO = SUMA_SurfCont_GetcurDOp(SurfCont);
+            if (curDO == ado) {
+               /* Need to find another DO */
+               for (ii=SurfCont->MaskTable->Ni-1; ii<=0; ++ii) {
+                  if (SurfCont->MaskTable->rowobject_id[ii] &&
+                      strcmp(SurfCont->MaskTable->rowobject_id[ii],ado_id)) {
+                   curDO = SUMA_whichADOg(SurfCont->MaskTable->rowobject_id[ii]);
+                     SUMA_SurfCont_SetcurDOp(SurfCont, curDO);
+                     SUMA_LH("CurDO now %s", ADO_LABEL(curDO));
+                  }
+               }
+            }
+         }
+      }
+   }
+   
+   /* unregister do from all viewers */
+   SUMA_UnRegisterDO_idcode(ado_id,NULL);
+
+   /* delelte the current mask from DOv */
+   if (!SUMA_RemoveDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)ado, 1)){
+      SUMA_S_Err("Failed to dump DO");
+      SUMA_RETURNe;
+   }
+
+   if (found >= 0 && SurfCont && SurfCont->MaskTable) {
+      if (!SUMA_ModifyTable(SurfCont->MaskTable, 
+                           SurfCont->MaskTable->Ni-1)) {
+         SUMA_S_Err("Failed to delete table row");
+         SUMA_RETURN(NOPE);
+      } else {
+         SUMA_InitMasksTable(SurfCont);         
+      }
+   }
+         
+      
+   SUMA_NEW_MASKSTATE();
+   
+   SUMA_RETURN(YUP);
 }
 
 int SUMA_SetMaskTableValueNew(  int row, int col,
@@ -2672,19 +2779,20 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
          break;
       case 6:
          SUMA_LHv("Setting color of %f %f %f %f to %s, isCur=%d [%d %d] \n", 
-                  mdo->colv[0], mdo->colv[1], mdo->colv[2], mdo->colv[3], 
+                  mdo->init_col[0], mdo->init_col[1], 
+                  mdo->init_col[2], mdo->init_col[3], 
                   s1, isCur, row, col);
          fv = SUMA_string_to_RGBA(s1, NULL, 1.0, &Err);
          if (!Err) {
             SUMA_MDO_New_Color(mdo, fv);
             if (setmen) {
-               SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",",4);
+               SUMA_RGBA_to_string(mdo->init_col, 4, 1.0, str, NULL, ",",4);
                SUMA_LHv("Inserting ado col back %s\n", 
                         str);
                SUMA_INSERT_CELL_STRING(TF, row, col, str);
             }
          } else { /* failed, reset string */
-            SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",", 4);
+            SUMA_RGBA_to_string(mdo->init_col, 4, 1.0, str, NULL, ",", 4);
             SUMA_LHv("Resetting ado colv string back %s\n", 
                      str);
             SUMA_INSERT_CELL_STRING(TF, row, col, str);
@@ -2697,13 +2805,15 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
          SUMA_LH("Setting Alpha from %s (%d, %f)(setmen is %d)\n"
                  "%f %f %f %f\n", 
                   s1, dg, SUMA_1dig_to_A(dg), setmen,
-                  mdo->colv[0], mdo->colv[1], mdo->colv[2], mdo->colv[3]);
+                  mdo->init_col[0], mdo->init_col[1], 
+                  mdo->init_col[2], mdo->init_col[3]);
          SUMA_MDO_New_Alpha(mdo, SUMA_1dig_to_A(dg));
          /* changing A affects the color string */
-         SUMA_RGBA_to_string(mdo->colv, 4, 1.0, str, NULL, ",",4);
+         SUMA_RGBA_to_string(mdo->init_col, 4, 1.0, str, NULL, ",",4);
          SUMA_LH("Setting RGB to %s %f %f %f %f\n", 
                   str,
-                  mdo->colv[0], mdo->colv[1], mdo->colv[2], mdo->colv[3]);
+                  mdo->init_col[0], mdo->init_col[1], 
+                  mdo->init_col[2], mdo->init_col[3]);
          SUMA_INSERT_CELL_STRING(TF, row, 6, str);
          if (setmen) {
             sprintf(str,"%d",dg);
@@ -2721,6 +2831,22 @@ int SUMA_SetMaskTableValueNew(  int row, int col,
             sprintf(str,"%d",dg);
             SUMA_LHv("Inserting ado tran back %s\n", 
                      str);
+            SUMA_INSERT_CELL_STRING(TF, row, col, str);
+         }
+         break;
+      case 9:
+         dg = (int)atoi(s1);
+         if (dg < 0) dg = 0;
+         else if (dg > 9) dg = 9;
+         SUMA_LH("Setting dim from %s (%d, %f)(setmen is %d)\n"
+                 "%f %f %f %f\n", 
+                  s1, dg, SUMA_1dig_to_A(dg), setmen,
+                  mdo->init_col[0], mdo->init_col[1], 
+                  mdo->init_col[2], mdo->init_col[3]);
+         SUMA_MDO_New_CDim(mdo, SUMA_1dig_to_A(dg));
+         if (setmen) {
+            sprintf(str,"%d",dg);
+            SUMA_LHv("Inserting ado Dim back %s\n", str);
             SUMA_INSERT_CELL_STRING(TF, row, col, str);
          }
          break;
@@ -3512,6 +3638,8 @@ SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename,
         case NI_GROUP_TYPE:
             ngr = (NI_group *)NIcont->part[ip] ;
             if (!strcmp(ngr->name, "Mask")) {
+               /* wipe out existing masks with the same idcode */
+               SUMA_DeleteMask(NI_get_attribute(ngr,"idcode_str"));
                if (!(mdo = SUMA_NIMDO_to_MDO(ngr))) {
                   SUMA_S_Err("Failed to translate mask for %s",
                               ngr->name);
@@ -3648,11 +3776,15 @@ SUMA_Boolean SUMA_SaveMultiMasks_eng (char *filename)
    }
 
    /* find out if file exists and how many values it contains */
-   fname = SUMA_Extension(filename, ".niml.do", 0);
+   fname = SUMA_Extension(filename, ".niml.mo", 0);
    if (SUMA_filexists(fname)) {
-      SUMA_SLP_Err("File %s exists, won't overwrite just yet", fname);
-      SUMA_ifree(fname);
-      SUMA_RETURN(NOPE);
+      if (SUMA_ForceUser_YesNo(SUMAg_SVv[0].X->TOPLEVEL, 
+                                 "Overwrite existing file?", SUMA_YES, 
+                                 SWP_DONT_CARE) != SUMA_YES) {
+         SUMA_S_Note("File %s exists, user chose not to overwrite", fname);
+         SUMA_ifree(fname);
+         SUMA_RETURN(NOPE);
+      }
    }
    fname = SUMA_append_replace_string("file:", fname, "", 2);
    if (!(ns = NI_stream_open(fname, "w"))) {
