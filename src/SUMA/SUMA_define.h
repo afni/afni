@@ -3115,6 +3115,7 @@ typedef struct {
    GLfloat *colv;
    
    char varname[3];
+   SUMA_TRANS_MODES Trans;
 } SUMA_MaskDO;
 
 

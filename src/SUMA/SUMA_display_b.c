@@ -2118,7 +2118,7 @@ SUMA_Boolean  SUMA_InitMasksTable_row(SUMA_X_SurfCont *SurfCont,
    sprintf(str,"%d", SUMA_A_to_1dig(mdo->colv[3]));
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 7,  str);
    
-   sprintf(str,"%d", SUMA_T_to_1dig(mdo->SO->TransMode));
+   sprintf(str,"%d", SUMA_T_to_1dig(mdo->Trans));
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 8,  str);
    
    SUMA_RETURN(YUP);
