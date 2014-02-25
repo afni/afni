@@ -384,7 +384,6 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          }
       }
       
-      if (SUMAg_CF->Dev) {
       XtVaCreateManagedWidget (  "sep", 
                                  xmSeparatorWidgetClass, SurfCont->rcswr, 
                                  XmNorientation, XmHORIZONTAL,NULL);
@@ -417,7 +416,6 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          XtManageChild (pb);
  
       XtManageChild (rc);
-      }
       
       XtManageChild (rc_SurfProp);
       if (!XtIsManaged(SurfCont->rcswr)) XtManageChild (SurfCont->rcswr);
@@ -745,7 +743,7 @@ void SUMA_MaskTableCell_EV ( Widget w , XtPointer cd ,
          if (incr) {
             ii = SUMA_T_to_1dig(mdo->SO->TransMode)+incr;
             if (ii >= 0 && ii < 10) {
-               mdo->SO->TransMode = SUMA_1dig_to_T(ii);
+               SUMA_Set_MaskDO_Trans(mdo,(SUMA_TRANS_MODES)SUMA_1dig_to_T(ii));
                SUMA_InitMasksTable_row(SurfCont,mdo, i);
                /* redisplay */
                if (!list) list = SUMA_CreateList ();
@@ -1504,7 +1502,7 @@ void SUMA_cb_SetMaskLenTableValue (void *data)
    void *cv=NULL; 
    SUMA_TABLE_FIELD *TF=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2118,7 +2116,7 @@ SUMA_Boolean  SUMA_InitMasksTable_row(SUMA_X_SurfCont *SurfCont,
    sprintf(str,"%d", SUMA_A_to_1dig(mdo->colv[3]));
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 7,  str);
    
-   sprintf(str,"%d", SUMA_T_to_1dig(mdo->Trans));
+   sprintf(str,"%d", SUMA_T_to_1dig(mdo->trans));
    SUMA_INSERT_CELL_STRING(SurfCont->MaskTable, row, 8,  str);
    
    SUMA_RETURN(YUP);
@@ -3486,7 +3484,7 @@ SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename,
    form = SUMA_GuessFormatFromExtension(filename, NULL);
    
    /* Read the container group */
-   fname = SUMA_append_replace_string("file:", filename, "", 2);
+   fname = SUMA_append_replace_string("file:", filename, "", 0);
    if (!(ns = NI_stream_open(fname, "r"))) {
       SUMA_SLP_Err("Failed to open %s", fname);
       goto OUT;

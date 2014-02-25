@@ -76,7 +76,7 @@ INSTALLDIR = ./macosx_10.8_icc
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=macosx_10.8_icc
 
-INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
 #INSTALL_PREREQ = suma
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
 # GSLPROGS = balloon
@@ -106,10 +106,10 @@ GLw_LIB = libGLws.a
 
 
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I/usr/local64/glib-2.0 -I/usr/local64/glib-2.0/include
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include 
 SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 
-SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx /usr/local64/lib/libglib-2.0.a $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lf2c -lmx -L/sw/lib -lglib-2.0  $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 SUMA_MDEFS = -DSUMA_GL_NO_CHECK_FRAME_BUFFER
