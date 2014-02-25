@@ -4561,10 +4561,10 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
    SurfCont->BrtRangeLocked = 0;
    SurfCont->rcclust = NULL;
    
-   SurfCont->tract_length_mask[0] = 
-      SUMA_floatEnv("TEMP_MIN_LENGTH", 0.0); 
-   SurfCont->tract_length_mask[1] = 
-      SUMA_floatEnv("TEMP_MAX_LENGTH", -1.0);
+   SurfCont->tract_length_mask[0] = 0.0;
+      /* SUMA_floatEnv("TEMP_MIN_LENGTH", 0.0); */
+   SurfCont->tract_length_mask[1] = -1.0;
+      /* SUMA_floatEnv("TEMP_MAX_LENGTH", -1.0); */
    if (SurfCont->tract_length_mask[1]>=
        SurfCont->tract_length_mask[0])
       SurfCont->UseMaskLen = 0; /* leave it off, let it be activated in GUI */
