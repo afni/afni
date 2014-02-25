@@ -805,6 +805,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "For example 0.001p.\n" \
    "For percentile thresholding, append a '%' to\n"\
    "the value, such as 25%\n"
+
+#define SUMA_SurfContHelp_MasksLoad  \
+   "Load a set of masks.\n"   
+
+#define SUMA_SurfContHelp_MasksSave  \
+   "Save a set of masks.\n"   
    
 #define SUMA_SurfContHelp_DsetLoad  \
    "Load a new dataset (Dset).\n"   \
@@ -1263,6 +1269,9 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define SUMA_SurfContHelp_EvalMaskExpr_r0 \
    "Masking expression."
+
+#define SUMA_SurfContHelp_DistMask_r0 \
+   "Set Min Max length for tract masking"
    
 #define SUMA_SurfContHelp_GDSET_ViewBundles \
    "Show bundles instead of edges between nodes if \n"\

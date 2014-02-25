@@ -254,6 +254,8 @@ typedef enum { SE_Empty,
                SE_SetDsetNodeCol, SE_SetDsetEdgeThick, SE_SetDsetEdgeStip,
                SE_SetDsetGmatBord, SE_SetDsetTxtShad, SE_SetTractMask,
                SE_SetDsetAlphaVal, SE_SetTractStyle, SE_SetATransMode,
+               SE_OpenMaskFileSelection, SE_SaveMaskFileSelection, 
+               SE_OpenMaskFile,
                SE_BadCode} SUMA_ENGINE_CODE; 
                         /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,
@@ -1625,6 +1627,8 @@ typedef struct {
    SUMA_TABLE_FIELD *MaskEvalTable;
    Widget MaskEval_tb;
    SUMA_Boolean UseMaskEval;
+   SUMA_TABLE_FIELD *MaskLenTable;
+   Widget MaskLen_tb;
    SUMA_TABLE_FIELD *XhairTable; /*!< structure for Cross hair  table */
    SUMA_TABLE_FIELD *NodeTable; /*!< structure for node index  table */
    SUMA_TABLE_FIELD *FaceTable;
@@ -1722,7 +1726,7 @@ typedef struct {
    int DeleteMask_first;
    int DeleteMask_row;
    float tract_length_mask[2];
-   int use_tract_length_mask;
+   int UseMaskLen;
 }SUMA_X_SurfCont;
 
 typedef struct {

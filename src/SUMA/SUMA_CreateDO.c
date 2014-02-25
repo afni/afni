@@ -5908,7 +5908,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
       tmask_cp = NULL;
    }
    
-   if (SurfCont && SurfCont->use_tract_length_mask &&
+   if (SurfCont && SurfCont->UseMaskLen &&
        SurfCont->tract_length_mask[1]>=SurfCont->tract_length_mask[0]) {
       use_lmask=1;
       lrange[0] = SurfCont->tract_length_mask[0];
@@ -20807,3 +20807,92 @@ SUMA_SurfaceObject *SUMA_ball_surface(float *hd3, float *cen, float *col,
    SUMA_RETURN(SO);
 }
 
+
+NI_group *SUMA_MDO_to_NIMDO(SUMA_MaskDO *mdo, NI_group *cont)
+{
+   static char FuncName[]={"SUMA_MDO_to_NIMDO"};
+   NI_group *ngr = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!mdo) SUMA_RETURN(ngr);
+   
+   if (!mdo->mtype) {
+      SUMA_S_Err("NULL mtype"); SUMA_RETURN(ngr);
+   }
+   
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr, "Mask");
+   
+   NI_set_attribute(ngr,"idcode_str",mdo->idcode_str);
+   NI_set_attribute(ngr,"label",mdo->Label);
+   NI_set_attribute(ngr,"mtype",mdo->mtype);
+   NI_SET_FLOATv(ngr,"cen", mdo->cen, 3);
+   NI_SET_FLOATv(ngr,"hdim", mdo->hdim, 3);
+   NI_SET_FLOATv(ngr,"init_cen", mdo->init_cen, 3);
+   NI_SET_FLOATv(ngr,"init_hdim", mdo->init_hdim, 3);
+   NI_SET_FLOATv(ngr,"colv", mdo->colv,4);
+   NI_set_attribute(ngr,"varname", mdo->varname);
+   if (mdo->Parent_idcode_str) 
+      NI_set_attribute(ngr,"Parent_idcode_str", mdo->Parent_idcode_str);
+   
+   if (cont) NI_add_to_group(cont, ngr);
+   
+   SUMA_RETURN(ngr);
+}
+
+SUMA_MaskDO *SUMA_NIMDO_to_MDO(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_NIMDO_to_MDO"};
+   SUMA_MaskDO *mdo = NULL;
+   char *att=NULL, *attL;
+   int i;
+   static int icall=0;
+   char hid[32];
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!ngr) SUMA_RETURN(mdo);
+   
+   if (strcmp(ngr->name, "Mask")) SUMA_RETURN(mdo);
+   
+   if (!(att=NI_get_attribute(ngr,"mtype")) || 
+       (strcmp(att,"ball") && strcmp(att,"box"))) {
+      SUMA_S_Err("Unexpected mtype %s", att?att:"NULL");
+      SUMA_RETURN(mdo);   
+   }
+   
+   SUMA_LH("Creating mask");
+   if (!(attL = NI_get_attribute(ngr,"label"))) {
+      sprintf(hid,"Lmsk%d", icall); ++icall;
+      attL = hid; 
+   }
+   if (!(mdo = SUMA_Alloc_MaskDO (1, attL, attL, 
+                  NI_get_attribute(ngr,"idcode_str"), 1))) {
+      SUMA_S_Err("Failed in SUMA_Allocate_MaskDO.");
+      SUMA_RETURN(NULL);
+   }
+   strcpy(mdo->mtype, att);
+   
+   if (!SUMA_AddMaskSaux(mdo)) {
+      SUMA_S_Err("Failed to add Mask Saux");
+      SUMA_free_MaskDO(mdo);
+      SUMA_RETURN(NULL);
+   }
+   
+   /* fill up mdo */
+   SUMA_LH("Fill up mdo (%d obj)", mdo->N_obj);
+   NI_GET_FLOATv(ngr, "init_cen", mdo->init_cen, 3, LocalHead);
+   NI_GET_FLOATv(ngr, "init_hdim", mdo->init_hdim, 3, LocalHead);
+   NI_GET_FLOATv(ngr, "cen", mdo->cen, 3, LocalHead);
+   NI_GET_FLOATv(ngr, "hdim", mdo->hdim, 3, LocalHead);
+   NI_GET_FLOATv(ngr, "colv", mdo->colv, 4, LocalHead);
+   
+   SUMA_S_Warn("Must check for duplicate varnames and duplicate labels here");
+   SUMA_MDO_SetVarName(mdo, NI_get_attribute(ngr,"varname"));
+   
+   SUMA_LH("Returning mdo");
+   
+   SUMA_RETURN(mdo);
+}
