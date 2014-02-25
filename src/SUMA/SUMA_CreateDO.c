@@ -1107,6 +1107,7 @@ SUMA_Boolean SUMA_Set_MaskDO_Trans(SUMA_MaskDO *mdo, SUMA_TRANS_MODES T)
    
    if (!mdo || !mdo->SO) SUMA_RETURN(NOPE);
    
+   mdo->Trans = T;
    mdo->SO->TransMode = T;
    
    SUMA_RETURN(YUP);
@@ -1343,7 +1344,7 @@ SUMA_Boolean SUMA_AccessorizeMDO(SUMA_MaskDO *MDO)
       SUMA_RETURN(NOPE);
    }
    
-   MDO->SO->TransMode = STM_8;
+   MDO->SO->TransMode = MDO->Trans;
    
    SUMA_RETURN(YUP);
 }
@@ -1667,6 +1668,7 @@ SUMA_MaskDO * SUMA_Alloc_MaskDO (int N_n, char *Label, char *label_for_hash,
       MDO->Label = NULL;
    }
       
+   MDO->Trans = STM_8;
       
    SUMA_RETURN (MDO);
 }
