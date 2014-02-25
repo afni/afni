@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
+   "Secret option for Javier to make graph dsets display on top of everything",
+   "The option is hidden for now, requiring the use of both -dev and \n"
+   "a temporary env. The two can be combined on the command line with:\n"
+   "  suma -dev -setenv \"'JAVIER_DEPTH_SPECIAL = YES'\" ... "
+ },
+  
+ { 25, Feb, 2014, ZSS, "ConvertDset", MINOR, TYPE_NEW_OPT,
+   "Added -dset_labels option to label dset sub-bricks.",
+   "Normally 3drefit would handle that, but not for graph dsets, not yet \n"
+   "at least"
+ },
+  
  { 25, Feb, 2014, ZSS, "afni-general", MICRO, TYPE_BUG_FIX,
    "Modified Makefile.macosx* to start building SurfMesh again.",
    NULL

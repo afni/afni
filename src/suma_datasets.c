@@ -1991,7 +1991,7 @@ int SUMA_UpdateDsetColRange(SUMA_DSET *dset, int icol)
    
    if (!dset) SUMA_RETURN(0);
    if (icol < 0) { istrt=0; iend=SDSET_VECNUM(dset); }
-   else { istrt = icol; iend=icol; }
+   else { istrt = icol; iend=icol+1; }
    if (istrt < 0 || istrt > SDSET_VECNUM(dset)) SUMA_RETURN(0);
    if (iend  < 0 || iend > SDSET_VECNUM(dset)) SUMA_RETURN(0);
    
@@ -2010,6 +2010,33 @@ int SUMA_UpdateDsetColRange(SUMA_DSET *dset, int icol)
    }
    SUMA_RETURN(1);
 }
+
+int SUMA_UpdateDsetColLabel(SUMA_DSET *dset, int icol, char *label) 
+{
+   static char FuncName[]={"SUMA_UpdateDsetColLabel"};
+   int ic=0, istrt=0, iend=0;
+   char *sbuf=NULL;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+      
+   if (!dset || !label) SUMA_RETURN(0);
+   if (icol < 0) { istrt=0; iend=SDSET_VECNUM(dset); }
+   else { istrt = icol; iend=icol+1; }
+   if (istrt < 0 || istrt > SDSET_VECNUM(dset)) SUMA_RETURN(0);
+   if (iend  < 0 || iend > SDSET_VECNUM(dset)) SUMA_RETURN(0);
+   
+   for (ic=istrt; ic<iend; ++ic) {
+      {
+         NI_element *nelb = 
+            SUMA_FindDsetAttributeElement(dset, "COLMS_LABS");
+         SUMA_LH("%d: %s", ic, label);
+         SUMA_AddColAtt_CompString(nelb, ic, label, SUMA_NI_CSS,0);
+      }
+   }
+   SUMA_RETURN(1);
+}
+
 /*!
    \brief A special case of  SUMA_AddGenDsetColAttr for node indices
    
