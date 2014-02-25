@@ -1455,6 +1455,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Mathesar, Activate the Omega-13!"                              ,
      "No time for pleasantries, Kyle; we have a Level 5 emergency!"  ,
      "Digitize me, Fred"                                             ,
+     "Well, nobody's perfect"                                        ,
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
      "Ever returning spring, trinity sure to me you bring"           ,
@@ -5949,15 +5950,33 @@ ENTRY("AFNI_time_index_set_fstep") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_time_index_step_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
+static char *yesno[2] = { "No" , "Yes" } ;
+static char *throx[3] = { "free" , " == " , " +1 " } ;
+
+void AFNI_time_index_step_CB( Widget w, XtPointer cd, int nval , void **val )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
+   char *cpt , cmd[128] ; MCW_bbox *bb ; int ib ;
 
 ENTRY("AFNI_time_index_step_CB") ;
 
-   if( ! IM3D_OPEN(im3d) || cbs == NULL || cbs->reason != mcwCR_integer ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || nval != 3 || val == NULL ) EXRETURN ;
 
-   AFNI_time_index_set_fstep( im3d , cbs->ival ) ;
+   AFNI_time_index_set_fstep( im3d , (int)(intptr_t)val[0] ) ;
+
+   sprintf(cmd,"AFNI_SLAVE_FUNCTIME %s",(char *)val[1]) ;
+   (void)AFNI_setenv(cmd) ;
+
+   cpt = (char *)val[2] ;
+   bb  = im3d->vwid->func->thr_olayx_bbox ; ib = MCW_val_bbox(bb) ;
+   if( strcmp(cpt,throx[1]) == 0 ){        /* Thr = OLay */
+     if( ib != 1 ) MCW_set_bbox(bb,1) ;
+   } else if( strcmp(cpt,throx[2]) == 0 ){ /* Thr = Olay + 1 */
+     if( ib != 2 ) MCW_set_bbox(bb,2) ;
+   } else {                                /* Thr = free and wild */
+     if( ib != 0 ) MCW_set_bbox(bb,0) ;
+   }
+   AFNI_throlayx_change_CB(NULL,im3d,NULL) ;
    EXRETURN ;
 }
 
@@ -5983,10 +6002,19 @@ ENTRY("AFNI_time_index_EV") ;
 
        if( event->button == Button3 ){
          int istep = (int)im3d->vwid->imag->time_index_av->fstep ;
+         int sftin , thrin ;
+
          if( istep < 1 ) istep = 1 ; else if( istep > 9 ) istep = 9 ;
-         MCW_choose_integer( im3d->vwid->imag->time_index_av->wlabel ,
-                             "Index Step" ,
-                             1 , 9 , istep , AFNI_time_index_step_CB , im3d ) ;
+         sftin = ( !AFNI_noenv("AFNI_SLAVE_FUNCTIME") ) ? 1 : 0 ;
+         thrin = im3d->vinfo->thr_olayx ; if( thrin < 0 || thrin > 2 ) thrin = 0 ;
+
+         MCW_choose_stuff( im3d->vwid->imag->time_index_av->wlabel ,
+                             "Time Index Stepping" ,
+                             AFNI_time_index_step_CB , im3d ,
+                             MSTUF_INT ,     "Index Step     " , 1 , 9     , istep ,
+                             MSTUF_STRLIST , "SLAVE_FUNCTIME " , 2 , sftin , yesno ,
+                             MSTUF_STRLIST , "Thr = Olay?+1? " , 3 , thrin , throx ,
+                           MSTUF_END ) ;
        } else if( event->button == Button4 ){
          int istep = (int)im3d->vwid->imag->time_index_av->fstep ;
          if( istep < 1 ) istep = 1 ; else if( istep > 9 ) istep = 9 ;
@@ -5998,9 +6026,11 @@ ENTRY("AFNI_time_index_EV") ;
        } else {
          (void) MCW_popup_message(
                    im3d->vwid->imag->time_index_av->wlabel ,
-                   " \n I really wish you "
-                    "\n wouldn't do that! \n " ,
-                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
+                   (event->button == Button1) ?  " \n I really wish you "
+                                                 "\n wouldn't do that! \n "
+                                              :  " \n   Why do you "
+                                                 "\n torment me so? \n "
+                 , MCW_USER_KILL | MCW_TIMER_KILL ) ;
        }
      }
      break ;
