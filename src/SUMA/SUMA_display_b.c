@@ -261,9 +261,9 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
                   NULL);
       }
 
-      if (SUMAg_CF->Dev) {
+      if (1) {
          /* add the mask equation region */
-         char *row_tit[]=  {  "Eval", NULL };
+         char *row_tit[]=  {  "Mask Eval", NULL };
          char *row_hint[]= {  "Evaluate mask expression", NULL};
          char *row_help[]= {  SUMA_SurfContHelp_EvalMaskExpr_r0, NULL};
          Widget rc_maskeval;
@@ -302,6 +302,45 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          XmToggleButtonSetState (SurfCont->MaskEval_tb, 
                                  SurfCont->UseMaskEval , NOPE);
 
+         if (!SurfCont->MaskLenTable->cells) {
+            int colw[6] = { 3, 4, 4 };  
+            char *row_tit[]=  {  " Tract Length", NULL };
+            char *row_hint[]= {  "Mask based on tract length", NULL};
+            char *row_help[]= {  SUMA_SurfContHelp_DistMask_r0, NULL};
+            
+            XtVaCreateManagedWidget (  "sep", 
+                              xmSeparatorWidgetClass, rc_maskeval, 
+                              XmNorientation, XmVERTICAL,NULL);
+            
+            SUMA_CreateTable( rc_maskeval,
+                              1, 3, 
+                              row_tit, NULL,  
+                              row_hint, NULL,  
+                              row_help, NULL,  
+                              colw, YUP, SUMA_float, 
+                              SUMA_cb_SetMaskLenTableValue, NULL,
+                              SUMA_MaskLenTableLabel_EV, NULL,  
+                              SUMA_MaskLenTableCell_EV, NULL, 
+                              SurfCont->MaskLenTable);
+            SUMA_INSERT_CELL_VALUE(SurfCont->MaskLenTable, 0, 1, 
+                                      SurfCont->tract_length_mask[0]);
+            SUMA_INSERT_CELL_VALUE(SurfCont->MaskLenTable, 0, 2, 
+                                      SurfCont->tract_length_mask[1]);
+         }
+         /* And baby toggle  */
+         SurfCont->MaskLen_tb = XtVaCreateManagedWidget("v", 
+                                 xmToggleButtonWidgetClass, rc_maskeval, NULL);
+         XtAddCallback (SurfCont->MaskLen_tb, 
+                        XmNvalueChangedCallback, SUMA_cb_UseMaskLen_toggled,
+                        NULL);
+         MCW_register_hint(SurfCont->MaskLen_tb,   
+                           "Enable (ON)/Disable Mask expression evaluation");
+         MCW_register_help(SurfCont->MaskLen_tb,   
+                           "Enable (ON)/Disable Mask expression evaluation");
+
+         SUMA_SET_SELECT_COLOR(SurfCont->MaskLen_tb);
+         XmToggleButtonSetState (SurfCont->MaskLen_tb, 
+                                 SurfCont->UseMaskLen , NOPE);
       }
       
       if (1) { /* The properties area */
@@ -345,10 +384,46 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          }
       }
       
+      if (SUMAg_CF->Dev) {
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, SurfCont->rcswr, 
+                                 XmNorientation, XmHORIZONTAL,NULL);
+
+      /* row column for Switch, Load, Delete */
+      rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, SurfCont->rcswr,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         NULL);
+         
+      pb = XtVaCreateWidget ("Load Masks", 
+            xmPushButtonWidgetClass, rc, 
+            NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_Masks_Load, (XtPointer) ado);
+         MCW_register_hint(pb ,  
+                  "Load the masks (much more with BHelp)" ) ;
+         MCW_register_help(pb ,  SUMA_SurfContHelp_MasksLoad ) ;
+         XtManageChild (pb);
+ 
+      pb = XtVaCreateWidget ("Save Masks", 
+            xmPushButtonWidgetClass, rc, 
+            NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_Masks_Save, (XtPointer) ado);
+         MCW_register_hint(pb ,  
+                  "Save the masks (much more with BHelp)" ) ;
+         MCW_register_help(pb ,  SUMA_SurfContHelp_MasksSave ) ;
+         XtManageChild (pb);
+ 
+      XtManageChild (rc);
+      }
+      
       XtManageChild (rc_SurfProp);
       if (!XtIsManaged(SurfCont->rcswr)) XtManageChild (SurfCont->rcswr);
       XtManageChild (SurfFrame);
    }
+   
    if (!SUMA_InitMasksTable(SurfCont)) {
       SUMA_S_Err("Failed to initialize table");
       SUMA_RETURNe;
@@ -470,6 +545,59 @@ void SUMA_cb_UseMaskEval_toggled(Widget w, XtPointer data, XtPointer client_data
    SurfCont = SUMAg_CF->X->AllMaskCont;
    
    SUMA_Set_UseMaskEval(XmToggleButtonGetState(SurfCont->MaskEval_tb),1,0);
+
+   SUMA_RETURNe;
+}
+
+
+SUMA_Boolean SUMA_Set_UseMaskLen(int v, int redisp, int setmen)
+{
+   static char FuncName[]={"SUMA_Set_UseMaskLen"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   DList *list=NULL;
+   int vi=0;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   if (v) v = 1;
+   else v = 0;
+   if (setmen && SurfCont->MaskLen_tb) {
+      vi = XmToggleButtonGetState (SurfCont->MaskLen_tb);
+      if (v != vi) {
+         XmToggleButtonSetState(SurfCont->MaskLen_tb, v, NOPE);
+      }
+   }
+   SurfCont->UseMaskLen = v;
+   
+   if (redisp) {
+      SUMA_NEW_MASKSTATE();
+      /* redisplay */
+      if (!list) list = SUMA_CreateList ();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                         SES_Suma, NULL); 
+      if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+void SUMA_cb_UseMaskLen_toggled(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_UseMaskLen_toggled"};
+   SUMA_ALL_DO *ado = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   DList *list=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   
+   SUMA_Set_UseMaskLen(XmToggleButtonGetState(SurfCont->MaskLen_tb),1,0);
 
    SUMA_RETURNe;
 }
@@ -884,6 +1012,111 @@ void SUMA_MaskEvalTableCell_EV ( Widget w , XtPointer cd ,
    SUMA_RETURNe;
 }
 
+void SUMA_MaskLenTableCell_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+   static char FuncName[]={"SUMA_MaskLenTableCell_EV"};
+   SUMA_ALL_DO *ado=NULL, *curDO=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   XButtonEvent * bev = (XButtonEvent *) ev ;
+   int  i, j, n, Found, incr=0;
+   float fv[4];
+   char evale[256]={""}, tight[128]={""}, exp[128]={""};
+   void *cv=NULL;
+   SUMA_MaskDO *mdo = NULL;
+   DList *list=NULL;
+   SUMA_TABLE_FIELD *TF = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called Button %d", bev->button);
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   curDO = SUMA_Cont_ADO(SurfCont);
+   TF = SurfCont->MaskLenTable;
+   
+   /* see note in bbox.c optmenu_EV for the condition below*/
+   if( bev->button == Button2 ) {
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     SUMA_RETURNe ;
+   }
+   
+   if( w == NULL || TF == NULL ) { SUMA_RETURNe ; }
+
+   incr = 0;
+   switch (bev->button) {
+      case Button1:
+         SUMA_LH("Button 1");
+         break;
+      case Button2:
+         SUMA_LH("Button 2");
+         break;
+      case Button3:
+         SUMA_LH("Button 3");
+         break;
+      case Button4:
+      case 6:  /* This is shift and wheel on mac, Button6 is not in X.h ! */
+         SUMA_LH("Button 4/6 %d", bev->button);
+         incr = -1;
+         break;
+      case Button5:
+      case 7: 
+         SUMA_LH("Button 5/7 %d", bev->button);
+         incr = 1;
+         break;
+      default:
+         SUMA_RETURNe;
+   }
+   
+   /* which cell is calling? */
+   n = 0;
+   Found = -1;
+   while (n<TF->Nj*TF->Ni && Found == -1) {
+      if (TF->cells[n] == w) {
+         Found = n;
+      } else ++n;
+   }
+   
+   if (Found <0) {
+      SUMA_SL_Err("Widget not found ????");
+      SUMA_RETURNe;
+   }
+   
+   /* find out widget's place in table*/
+   i = Found % TF->Ni; j = Found / TF->Ni ;
+   n = Found; 
+   
+   switch (j) {
+      case 0:
+         break;
+      case 1:
+      case 2:
+         if (incr) {
+              if (TF->num_value[n]>1000) incr = incr*100;
+            else if (TF->num_value[n]>100) incr = incr*10;
+            else if (TF->num_value[n]>50) incr = incr*5;
+            else if (TF->num_value[n]>10) incr = incr*2;
+            SUMA_SetMaskLenTableValueNew(i, j,
+                          TF->num_value[n]+incr,
+                          1, 1, TF->num_units);
+         }
+         break;
+      case 3:
+         break;
+      case 4:
+         break;
+      case 5:
+         break;
+      default:
+         SUMA_SL_Err("Did not know you had so many");
+         break;
+   }
+   
+   
+   SUMA_RETURNe;
+}
+
 /*!
    Called when user clicks on table title 
    Expects SUMA_SRV_DATA in TF->NewValueCallbackData
@@ -1149,6 +1382,152 @@ void SUMA_cb_SetMaskEvalTableValue (void *data)
 
    an = SUMA_SetMaskEvalTableValueNew(row, col,
                           (char *)cv,
+                          0, 1, TF->num_units);
+   if (an < 0) {
+      SUMA_BEEP; 
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_MaskLenTableLabel_EV ( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+   static char FuncName[]={"SUMA_MaskLenTableLabel_EV"};
+   Dimension lw ;
+   Widget * children , wl = NULL;
+   XButtonEvent * bev = (XButtonEvent *) ev ;
+   int  num_children , i, j, Found, AutoHist;
+   DList *list=NULL;
+   SUMA_TABLE_FIELD *TF = (SUMA_TABLE_FIELD *)cd;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   /* see note in bbox.c optmenu_EV for the condition below*/
+   if( bev->button == Button2 ){
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     SUMA_RETURNe ;
+   }
+   
+   if( w == NULL || TF == NULL ) SUMA_RETURNe ;
+
+   switch (bev->button) {
+      case Button1:
+         SUMA_LH("Button 1");
+         break;
+      case Button2:
+         SUMA_LH("Button 2");
+         break;
+      case Button3:
+         SUMA_LH("Button 3");
+         break;
+      default:
+         SUMA_RETURNe;
+   }
+   
+   /* which column title (i == 0) widget is calling ? */
+   /* check the first column */
+   i = 0; j = 0;
+   Found = 0;
+   while (j<TF->Nj && !Found) {
+      if (TF->cells[j*TF->Ni+i] == w) {
+         Found = 1;
+      } else ++j;
+   }
+   
+   if (!Found) { /* maybe it is a row title */
+      i = 0; j = 0;
+      Found = 0;
+      while (i<TF->Ni && !Found) {
+         if (TF->cells[j*TF->Ni+i] == w) {
+            Found = 1;
+         } else ++i;
+      }
+   }
+   
+   if (Found >= 0) {
+      SUMA_LHv("Click on cell [%d %d]\n", i, j);
+   } else {
+      SUMA_SL_Err("CEll not found!");
+      SUMA_RETURNe;
+   }
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   
+   if (!SurfCont) {
+      SUMA_SL_Err("No  SurfCont !");
+      SUMA_RETURNe;
+   }
+   
+   /* Now do something */
+   if (j == 0) { /* clicked on one of the row's titles */
+      switch (i) {
+         case 0:
+            if (bev->button == Button1) {
+            }
+            break;
+         default:
+            if (bev->button == Button1) { 
+
+            }else if (bev->button == Button3) { 
+               
+            }
+            break;
+      }
+   }
+   if (i == 0) { /* clicked on one of the column's titles */
+      switch (j) {
+         case 1:
+            break;
+         case 2:
+            break;
+         case 3:
+            break;
+         default:
+            break;
+      }
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_SetMaskLenTableValue (void *data) 
+{
+   static char FuncName[]={"SUMA_cb_SetMaskLenTableValue"};
+   SUMA_ALL_DO *ado=NULL;
+   int n=-1,row=-1,col=-1, an=0;
+   void *cv=NULL; 
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   SurfCont = SUMAg_CF->X->AllMaskCont;
+   
+   TF = SurfCont->MaskLenTable;
+   if (LocalHead) {
+      fprintf(SUMA_STDERR, 
+         "%s:\n Entered mask dist table cell, cell modified %d \n", 
+         FuncName, TF->cell_modified);
+   }
+
+   if (TF->cell_modified<0) SUMA_RETURNe;
+   n = TF->cell_modified;
+   row = n % TF->Ni;
+   col = n / TF->Ni;
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%f\n", 
+                           FuncName, row, col, TF->num_value[n]);
+   }
+
+   an = SUMA_SetMaskLenTableValueNew(row, col,
+                          TF->num_value[n],
                           0, 1, TF->num_units);
    if (an < 0) {
       SUMA_BEEP; 
@@ -1783,6 +2162,8 @@ SUMA_Boolean  SUMA_InitMasksTable(SUMA_X_SurfCont *SurfCont)
       }
       ++cnt;
    } while (el != dlist_tail(dl));
+   
+   dlist_destroy(dl);SUMA_free(dl);
    
    SUMA_RETURN(YUP);
 }
@@ -2466,8 +2847,7 @@ int SUMA_SetMaskEvalTableValueNew(  int row, int col,
    /* What are we dealing with ? */
    switch (col) {
       case 1:  
-         SUMA_LHv("Setting expression to %s [%d %d] \n"
-                  "Need function to test expression for correctness ...\n", 
+         SUMA_LHv("Setting expression to %s [%d %d] \n", 
                     s1, row, col);
          if (SUMA_DispExpr_To_EvalExpr(s1, evale, tight)) { 
             if (setmen) {
@@ -2504,6 +2884,119 @@ int SUMA_SetMaskEvalTableValueNew(  int row, int col,
    SUMA_RETURN(1);
 }
 
+int SUMA_SetMaskLenTableValueNew(  int row, int col,
+                                float v, 
+                                int setmen, 
+                                int redisplay, 
+                                SUMA_NUMERICAL_UNITS num_units) 
+{
+   static char FuncName[]={"SUMA_SetMaskLenTableValueNew"};
+   int NewDisp=0, isCur=0, Err=0, init_row=0;
+   SUMA_MaskDO *mdo=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   float *fv;
+   SUMA_ALL_DO *ado=NULL;
+   char evale[256]={""}, tight[128]={""};
+   char str[256];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (LocalHead) {
+      SUMA_LH("Called on cell[%d %d] with %f", row, col, v);
+      SUMA_DUMP_TRACE("Who called SUMA_SetMaskLenTableValueNew?");
+   }
+   
+   if (!(SurfCont=SUMAg_CF->X->AllMaskCont)) {
+      SUMA_RETURN(0);
+   }
+   
+      
+   TF = SurfCont->MaskLenTable;
+   if (!TF) setmen = 0; /* can't set nothing */
+   
+   if (num_units == SUMA_PERC_VALUE_UNITS) {
+      SUMA_S_Err("No percentiles allowed here");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (row < 0) {
+      SUMA_S_Err("What is for row %d < 0?", row); SUMA_RETURN(NOPE);
+   }
+   if (col < 1) {
+      SUMA_S_Err("What is for col %d < 1?", col); SUMA_RETURN(NOPE);
+   }
+   NewDisp = NOPE;
+   
+   /* What are we dealing with ? */
+   switch (col) {
+      case 1:  
+         SUMA_LHv("Setting min to %f [%d %d] (%f)\n", 
+                   v, row, col, SurfCont->tract_length_mask[1]);
+         if (v>=0.0 && v<=2000) {
+            if (v > SurfCont->tract_length_mask[1]-1)
+                                 v = SurfCont->tract_length_mask[1]-1;
+            if (SurfCont->tract_length_mask[0] == v) {
+               SUMA_BEEP;
+               /* floor, get out */
+               SUMA_RETURN(YUP);
+            }
+            SurfCont->tract_length_mask[0] = v;
+            if (setmen) {
+               SUMA_INSERT_CELL_VALUE(TF, 0, col, 
+                                      SurfCont->tract_length_mask[0]);
+            }
+         } else { /* failed, reset string */
+            SUMA_BEEP;
+            SUMA_INSERT_CELL_VALUE(TF, 0, col, SurfCont->tract_length_mask[0]);
+            SUMA_RETURN(NOPE);
+         }
+         break;
+      case 2:
+         SUMA_LHv("Setting max to %f [%d %d] (%f)\n", 
+                   v, row, col, SurfCont->tract_length_mask[0]);
+         if (v>=0.0 && v<=2000) { 
+            if (v < SurfCont->tract_length_mask[0]+1)
+                                 v = SurfCont->tract_length_mask[0]+1;
+            if (SurfCont->tract_length_mask[1] == v) {
+               SUMA_BEEP;
+               /* ceiling, get out */
+               SUMA_RETURN(YUP);
+            }
+            SurfCont->tract_length_mask[1] = v;
+            if (setmen) {
+               SUMA_INSERT_CELL_VALUE(TF, 0, col, 
+                                      SurfCont->tract_length_mask[1]);
+            }
+         } else { /* failed, reset string */
+            SUMA_BEEP;
+            SUMA_INSERT_CELL_VALUE(TF, 0, col, SurfCont->tract_length_mask[1]);
+            SUMA_RETURN(NOPE);
+         }
+         break;
+      default:
+         SUMA_SL_Err("You make me sick");
+         break;
+   }
+   
+   if (0) { /* Should not need this */
+      SUMA_NEW_MASKSTATE();
+   }
+   
+   /* Now, you need to redraw the deal */
+   if (redisplay) {
+      DList *list = NULL;
+      /* redisplay */
+      if (!list) list = SUMA_CreateList ();
+      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                         SES_Suma, NULL); 
+      if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+   }   
+      
+   
+   SUMA_RETURN(1);
+}
 
 
 /*!
@@ -2843,3 +3336,377 @@ SUMA_TRANS_MODES SUMA_ATransMode2TransMode(SUMA_ATRANS_MODES ii)
    }
    return(STM_ViewerDefault);
 }
+
+/*!
+   Load Masks
+*/
+void SUMA_cb_Masks_Load(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_Masks_Load"};
+   SUMA_LIST_WIDGET *LW=NULL;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+    
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+      
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_OpenMaskFileSelection);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_vp, (void *)data,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf (SUMA_STDERR, 
+         "Error %s: Failed to register command.\n", FuncName);
+   }
+   if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, (int *)w,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_In, NextElm)) {
+      fprintf (SUMA_STDERR, 
+         "Error %s: Failed to register command.\n", FuncName);
+   }
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, 
+         "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Save the masks to disk
+*/
+void SUMA_cb_Masks_Save (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_Masks_Save"};
+   SUMA_DRAWN_ROI *dROI=NULL;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_SaveMaskFileSelection);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_vp, (void *)data,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf (SUMA_STDERR, 
+         "Error %s: Failed to register command.\n", FuncName);
+   }
+   if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, (int *)w,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_In, NextElm)) {
+      fprintf (SUMA_STDERR, 
+         "Error %s: Failed to register command.\n", FuncName);
+   }
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, 
+         "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+ 
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Loads masks into SUMA land
+   
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+*/
+void SUMA_LoadMultiMasks (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_LoadMultiMasks"};
+   
+   SUMA_ENTRY;
+
+   if (!filename) {
+      SUMA_SLP_Err("Null filename"); 
+      SUMA_RETURNe;
+   }
+      
+   if (!SUMA_LoadMultiMasks_eng(filename, 1, 1)) {
+      SUMA_SLP_Err("Failed loading, and processing masks"); 
+      SUMA_RETURNe;
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   Function that does the work of loading masks saved in a file 
+*/
+SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename, 
+                              int SetupTable, 
+                              int LaunchDisplay)
+{
+   static char FuncName[]={"SUMA_LoadMultiMasks_eng"};
+   SUMA_DSET_FORMAT form;
+   char *fname = NULL, *att=NULL;
+   SUMA_Boolean ans = NOPE;
+   NI_stream ns;
+   int ip, good, ido, an;
+   SUMA_MaskDO *mdo=NULL;
+   NI_group *NIcont=NULL, *ngr=NULL;
+   NI_element *nel=NULL;
+   DList *list = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+
+   if (!filename) {
+      SUMA_S_Err("Null filename"); 
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,
+               "%s: Received request to load %s.\n", 
+               FuncName, filename);
+   }
+
+   /* find out if file exists and how many values it contains */
+   if (!SUMA_filexists(filename)) {
+      SUMA_SLP_Err("File not found");
+      SUMA_RETURN(NOPE);
+   }
+
+   /* take a stab at the format */
+   form = SUMA_GuessFormatFromExtension(filename, NULL);
+   
+   /* Read the container group */
+   fname = SUMA_append_replace_string("file:", filename, "", 2);
+   if (!(ns = NI_stream_open(fname, "r"))) {
+      SUMA_SLP_Err("Failed to open %s", fname);
+      goto OUT;
+   }
+   
+   /* read the whole thing */
+   if (!(NIcont = NI_read_element(ns, 1))) {
+      SUMA_SLP_Err("Failed to read element from %s", fname);
+      goto OUT;  
+   }
+   if (NI_element_type(NIcont) != NI_GROUP_TYPE) {
+      SUMA_SLP_Err("Failed to NI element %s not group type", fname);
+      goto OUT;  
+   }
+   if (strcmp(NIcont->name, "MaskObjects")) {
+      SUMA_SLP_Err("Unexpected NI name of %s, wanted %s", 
+                   NIcont->name, "MaskObjects" );
+      goto OUT;
+   }
+   
+   /* extract content */
+   good = 0; ido = -1;
+   for (ip=0; ip<NIcont->part_num; ++ip) {
+      switch( NIcont->part_typ[ip] ){
+        case NI_GROUP_TYPE:
+            ngr = (NI_group *)NIcont->part[ip] ;
+            if (!strcmp(ngr->name, "Mask")) {
+               if (!(mdo = SUMA_NIMDO_to_MDO(ngr))) {
+                  SUMA_S_Err("Failed to translate mask for %s",
+                              ngr->name);
+                  break;
+               }
+               if (!SUMA_AccessorizeMDO(mdo)) {
+                  SUMA_S_Err("No accessorizing");
+                  SUMA_free_MaskDO(mdo); break;
+               }
+               /* Now add mdo into dov */
+               SUMA_LH("Adding DO");
+               if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, 
+                               (void *)mdo, MASK_type, SUMA_WORLD)) {
+                  SUMA_S_Err("Failed in SUMA_AddDO.");
+                  SUMA_free_MaskDO(mdo); break;
+               }
+               ido = SUMAg_N_DOv-1;
+               /* register DO with viewer */
+               SUMA_LH("Registrar");
+               if (!SUMA_RegisterDO(ido, NULL)) {
+                  SUMA_S_Err("Failed in SUMA_RegisterDO.");
+                  break;
+               }
+               ++good;
+            } else {
+               SUMA_S_Warn("Don't know what to make of %s",
+                          ngr->name);
+            }
+            break ;
+         case NI_ELEMENT_TYPE:
+            nel = (NI_element *)NIcont->part[ip] ;
+            SUMA_S_Warn("Don't know what to make of %s",
+                          nel->name);
+            break;
+         default:
+            break;
+      }
+   }
+
+   if (good) {
+      SurfCont=SUMAg_CF->X->AllMaskCont;
+      if (NI_get_attribute(NIcont, "TractLength")) {
+         NI_GET_FLOATv(NIcont, "TractLength", 
+                       SurfCont->tract_length_mask, 2, LocalHead);
+         NI_GET_INT(NIcont, "UseTractLength", SurfCont->UseMaskLen);
+      }
+      if (SurfCont->MaskEvalTable &&
+          (att=NI_get_attribute(NIcont, "MaskEval"))) {
+         an = SUMA_SetMaskEvalTableValueNew(0, 1, att,
+                          1, 0, SurfCont->MaskEvalTable->num_units);
+         if (an < 0) {
+            SUMA_S_Err("Failed to set %s as mask expression",
+                        att);
+            SUMA_Set_UseMaskEval(0, 0, 1);
+         } else {
+            NI_GET_INT(NIcont, "UseMaskEval", SurfCont->UseMaskEval);
+            SUMA_Set_UseMaskEval(SurfCont->UseMaskEval, 0, 1);
+         }
+      }
+      if (SetupTable && SurfCont) {
+         SUMA_InitMasksTable(SurfCont);
+      }
+      if (LaunchDisplay) {
+         SUMA_NEW_MASKSTATE();
+         /* redisplay */
+         if (!list) list = SUMA_CreateList ();
+         SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                            SES_Suma, NULL); 
+         if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+      }
+   }
+   
+   ans = YUP;
+   
+   OUT:
+   if (ns) NI_stream_close(ns); ns=NULL;
+   SUMA_ifree(fname);
+   NI_free(NIcont); NIcont = NULL;
+   
+   SUMA_RETURN(ans);
+}
+
+/*!
+   \brief Loads masks into SUMA land
+   
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+*/
+void SUMA_SaveMultiMasks (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_SaveMultiMasks"};
+   
+   SUMA_ENTRY;
+
+   if (!filename) {
+      SUMA_SLP_Err("Null filename"); 
+      SUMA_RETURNe;
+   }
+      
+   if (!SUMA_SaveMultiMasks_eng(filename)) {
+      SUMA_SLP_Err("Failed saving masks"); 
+      SUMA_RETURNe;
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   Function that does the work of loading masks saved in a file */
+SUMA_Boolean SUMA_SaveMultiMasks_eng (char *filename)
+{
+   static char FuncName[]={"SUMA_SaveMultiMasks_eng"};
+   SUMA_DSET_FORMAT form;
+   SUMA_Boolean LocalHead = NOPE;
+   DList *dl=NULL;
+   DListElmt *el=NULL;
+   int cnt;
+   char *fname=NULL, *sss;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   NI_stream ns;
+   SUMA_MaskDO *mdo=NULL;
+   NI_group *NIcont=NULL;
+      
+   SUMA_ENTRY;
+
+   if (!filename) {
+      SUMA_S_Err("Null data"); 
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,
+               "%s: Received request to save %s .\n", 
+               FuncName, filename);
+   }
+
+   /* find out if file exists and how many values it contains */
+   fname = SUMA_Extension(filename, ".niml.do", 0);
+   if (SUMA_filexists(fname)) {
+      SUMA_SLP_Err("File %s exists, won't overwrite just yet", fname);
+      SUMA_ifree(fname);
+      SUMA_RETURN(NOPE);
+   }
+   fname = SUMA_append_replace_string("file:", fname, "", 2);
+   if (!(ns = NI_stream_open(fname, "w"))) {
+      SUMA_SLP_Err("Failed to open %s for writing", fname);
+      SUMA_ifree(fname);
+      SUMA_RETURN(NOPE);
+   }  
+   
+   /* Check on all masks and save them */
+   dl = SUMA_AssembleMasksList_inDOv(SUMAg_DOv, SUMAg_N_DOv, 0);
+   if (!dl || dlist_size(dl) == 0) {
+      SUMA_S_Note("No masks, nothing written");
+      SUMA_RETURN(YUP);
+   }
+   
+   NIcont = NI_new_group_element();
+   NI_rename_group(NIcont, "MaskObjects");
+   
+   /* Some overall attributes */
+   SurfCont=SUMAg_CF->X->AllMaskCont;
+   
+   sss = SUMA_GetMaskEvalExpr();
+   if (sss[0] != '\0') {
+      NI_set_attribute(NIcont,"MaskEval", sss);
+      if (SurfCont) NI_SET_INT(NIcont,"UseMaskEval",SurfCont->UseMaskEval);
+   }
+      
+   if (SurfCont) {
+      NI_SET_FLOATv(NIcont, "TractLength", SurfCont->tract_length_mask, 2);
+      NI_SET_INT(NIcont,"UseTractLength", SurfCont->UseMaskLen);
+   }
+   
+   cnt = 0; el = NULL;
+   do {
+      if (!el) el = dlist_head(dl);
+      else el = dlist_next(el);
+      mdo = (SUMA_MaskDO *)el->data;
+      if (!SUMA_MDO_to_NIMDO(mdo, NIcont)) {
+         SUMA_S_Err("Failed to transform mdo %s, continuing",
+                    ADO_LABEL((SUMA_ALL_DO *)mdo));
+      }
+      ++cnt;
+   } while (el != dlist_tail(dl));
+
+   /* Now write the beast */
+   NI_write_element( ns , NIcont , NI_TEXT_MODE ) ;
+   
+   NI_stream_close(ns); ns=NULL;
+   SUMA_ifree(fname);
+   NI_free(NIcont); NIcont = NULL;
+   dlist_destroy(dl);SUMA_free(dl);
+
+   SUMA_RETURN(YUP);
+}
+

@@ -228,6 +228,12 @@ int SUMA_CommandCode(char *Scom)
       SUMA_RETURN(SE_OpenColFileSelection);
    if (!strcmp(Scom,"OpenDsetFileSelection")) 
       SUMA_RETURN(SE_OpenDsetFileSelection);
+   if (!strcmp(Scom,"OpenMaskFile")) 
+      SUMA_RETURN(SE_OpenMaskFile);
+   if (!strcmp(Scom,"OpenMaskFileSelection")) 
+      SUMA_RETURN(SE_OpenMaskFileSelection);
+   if (!strcmp(Scom,"SaveMaskFileSelection")) 
+      SUMA_RETURN(SE_SaveMaskFileSelection);
    if (!strcmp(Scom,"OpenCmapFileSelection")) 
       SUMA_RETURN(SE_OpenCmapFileSelection);
    if (!strcmp(Scom,"SaveDrawnROIFileSelection"))
@@ -469,6 +475,12 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("OpenColFileSelection");      
       case SE_OpenDsetFileSelection:
          SUMA_RETURN("OpenDsetFileSelection");      
+      case SE_OpenMaskFileSelection:
+         SUMA_RETURN("OpenMaskFileSelection");      
+      case SE_OpenMaskFile:
+         SUMA_RETURN("OpenMaskFile");      
+      case SE_SaveMaskFileSelection:
+         SUMA_RETURN("SaveMaskFileSelection");      
       case SE_OpenCmapFileSelection:
          SUMA_RETURN("OpenCmapFileSelection");      
       case SE_SaveXformOptsFileSelection:

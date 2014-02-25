@@ -4462,6 +4462,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
    SurfCont->MaskTable = SUMA_AllocTableField();
    SurfCont->MaskEvalTable = SUMA_AllocTableField();
    SurfCont->MaskEval_tb = NULL;
+   SurfCont->MaskLenTable = SUMA_AllocTableField();
+   SurfCont->MaskLen_tb = NULL;
    SurfCont->UseMaskEval = 0;
    SurfCont->DeleteMask_pb = NULL;
    SurfCont->DeleteMask_first = YUP;
@@ -4562,12 +4564,12 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
    SurfCont->tract_length_mask[0] = 
       SUMA_floatEnv("TEMP_MIN_LENGTH", 0.0); 
    SurfCont->tract_length_mask[1] = 
-      SUMA_floatEnv("TEMP_MAX_LENGTH", -1.0); ;
+      SUMA_floatEnv("TEMP_MAX_LENGTH", -1.0);
    if (SurfCont->tract_length_mask[1]>=
        SurfCont->tract_length_mask[0])
-      SurfCont->use_tract_length_mask = 1;
+      SurfCont->UseMaskLen = 0; /* leave it off, let it be activated in GUI */
    else
-      SurfCont->use_tract_length_mask = 0;
+      SurfCont->UseMaskLen = 0;
   return (SurfCont);
 }
 
@@ -4617,6 +4619,7 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    if (SurfCont->RangeTable) SUMA_FreeTableField (SurfCont->RangeTable);
    if (SurfCont->MaskTable) SUMA_FreeTableField (SurfCont->MaskTable);
    if (SurfCont->MaskEvalTable) SUMA_FreeTableField (SurfCont->MaskEvalTable);
+   if (SurfCont->MaskLenTable) SUMA_FreeTableField (SurfCont->MaskLenTable);
    if (SurfCont->XhairTable) SUMA_FreeTableField (SurfCont->XhairTable);
    if (SurfCont->NodeTable) SUMA_FreeTableField (SurfCont->NodeTable);
    if (SurfCont->FaceTable) SUMA_FreeTableField (SurfCont->FaceTable);

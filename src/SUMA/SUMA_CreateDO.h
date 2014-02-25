@@ -589,7 +589,9 @@ GLubyte *SUMA_DO_get_pick_colid(SUMA_ALL_DO *DO, char *idcode_str,
                                    SUMA_SurfaceViewer *sv);
 NI_element *SUMA_GDSET_Edge_Bundle(SUMA_DSET *gset, SUMA_GRAPH_SAUX *GSaux, 
                                    int edge_id, int alt_edge_id);
-                                   
+NI_group *SUMA_MDO_to_NIMDO(SUMA_MaskDO *mdo, NI_group *cont);
+SUMA_MaskDO *SUMA_NIMDO_to_MDO(NI_group *);
+     
 /*! Following DO_ macros are for setting states up for colorid picking
     and restoring states at exit.
     Note that some of these are overkill. They were added in a attempt

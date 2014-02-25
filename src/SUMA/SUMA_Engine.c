@@ -653,6 +653,122 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMA_LoadDsetOntoSO(EngineData->cp, EngineData->vp);
             break;
 
+         case SE_SaveMaskFileSelection:
+             {
+               char sbuf[128];  
+               /* save the mask file selection window. 
+                  Expects NULL in vp for now. Kept vp here
+                  in case I need it in the future.
+                  Also needs a position reference 
+                  widget typecast to ip, the latter can be null.*/
+
+               if (  EngineData->vp_Dest != NextComCode || 
+                     EngineData->ip_Dest != NextComCode ) {
+                  fprintf (SUMA_STDERR,
+                     "Error %s: Data not destined correctly for %s (%d).\n", 
+                     FuncName, NextCom, NextComCode);
+                  break;
+               }
+
+               /* wildcard selection */
+               sprintf(sbuf, "*.mask.*.do");
+
+               /*Load data from file */
+               if (!sv) sv = &(SUMAg_SVv[0]);
+               if (!EngineData->ip) {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct ( 
+                        sv->X->TOPLEVEL,
+                        SUMA_FILE_SAVE, YUP,
+                        SUMA_SaveMultiMasks,
+                        (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               } else {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct (
+                        (Widget) EngineData->ip, 
+                        SUMA_FILE_SAVE, YUP,
+                        SUMA_SaveMultiMasks, 
+                        (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               }
+               
+               sprintf(sbuf,"Enter Masks Filename");
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialog (
+                     sbuf, 
+                     &SUMAg_CF->X->FileSelectDlg);
+            }
+            break;
+
+         case SE_OpenMaskFileSelection:
+             {
+               char sbuf[128];  
+               /* opens the mask file selection window. 
+                  Expects NULL in vp for now. Kept vp here
+                  in case I need it in the future.
+                  Also needs a position reference 
+                  widget typecast to ip, the latter can be null.*/
+
+               if (  EngineData->vp_Dest != NextComCode || 
+                     EngineData->ip_Dest != NextComCode ) {
+                  fprintf (SUMA_STDERR,
+                     "Error %s: Data not destined correctly for %s (%d).\n", 
+                     FuncName, NextCom, NextComCode);
+                  break;
+               }
+
+               /* wildcard selection */
+               sprintf(sbuf, "*.mask.*.do");
+
+               /*Load data from file */
+               if (!sv) sv = &(SUMAg_SVv[0]);
+               if (!EngineData->ip) {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct ( 
+                        sv->X->TOPLEVEL,
+                        SUMA_FILE_OPEN, YUP,
+                        SUMA_LoadMultiMasks,
+                        (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               } else {
+                  SUMAg_CF->X->FileSelectDlg = 
+                     SUMA_CreateFileSelectionDialogStruct (
+                        (Widget) EngineData->ip, 
+                        SUMA_FILE_OPEN, YUP,
+                        SUMA_LoadMultiMasks, 
+                        (void *)EngineData->vp,
+                        NULL, NULL,
+                        sbuf,
+                        SUMAg_CF->X->FileSelectDlg);
+               }
+               
+               sprintf(sbuf,"Select Masks File");
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialog (
+                     sbuf, 
+                     &SUMAg_CF->X->FileSelectDlg);
+            }
+            break;
+            
+         case SE_OpenMaskFile:
+            /* opens the dataset file, Expects nothing in vp and a name in cp*/
+            if (  EngineData->vp_Dest != NextComCode || 
+                  EngineData->cp_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
+               break;
+            }
+            SUMA_LoadMultiMasks(EngineData->cp, EngineData->vp);
+            break;
+
          case SE_OpenColFile:
             /* opens the color file, Expects SO in vp and a name in cp*/
             if (  EngineData->vp_Dest != NextComCode || 
@@ -4591,6 +4707,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
             if (!NI_get_attribute(ngr, "View_Surf_Cont"))  
                NI_set_attribute(ngr, "View_Surf_Cont", "n");      
          }
+         
          if ((name = NI_get_attribute(ngr,"Dset_FileName"))) {
             /* Have a dset to load */
             ED = SUMA_InitializeEngineListData (SE_OpenDsetFile);
@@ -4611,6 +4728,28 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                            "Error %s: Failed to register command.\n", FuncName);
             }
          }
+         
+         if ((name = NI_get_attribute(ngr,"Mask_FileName"))) {
+            /* Have a Mask to load */
+            ED = SUMA_InitializeEngineListData (SE_OpenMaskFile);
+            if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_vp, (void *)ado,
+                                                      SES_SumaFromAny, 
+                                                      (void *)sv, NOPE,
+                                                      SEI_Tail, NULL))) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
+            }
+            if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_cp, (void *)name,
+                                                      SES_SumaFromAny, 
+                                                      (void *)sv, NOPE,
+                                                      SEI_In, el)) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
+            }
+         }
+         
          if ((name = NI_get_attribute(ngr,"Col_FileName"))) {
             /* Have a color file to load */
             ED = SUMA_InitializeEngineListData (SE_OpenColFile);
