@@ -962,6 +962,7 @@ ENTRY("new_MCW_optmenu_orig") ;
 
    /** create the menu window **/
 
+STATUS("creating menu window") ;
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , MENU , NULL , 0 ) ;
    av->optmenu_call_if_unchanged = 0 ;  /* 10 Oct 2007 */
 
@@ -981,6 +982,7 @@ ENTRY("new_MCW_optmenu_orig") ;
    xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
 
+STATUS("creating option menu") ;
    av->wrowcol = XmCreateOptionMenu( parent , DIALOG , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
@@ -1919,6 +1921,7 @@ ENTRY("AV_assign_ival") ;
    /* change text display, if present */
 
    if( av->text_CB != NULL ){
+STATUS("adjust text") ;
 #if 0
       cval = av->text_CB( av , av->text_data ) ;            /* save   */
 #else
@@ -1939,7 +1942,7 @@ ENTRY("AV_assign_ival") ;
 
       Widget *children=NULL , wbut=NULL ;
       int  num_children=0 , ic ;
-
+STATUS("adjust optmenu history") ;
       XtVaGetValues( av->wmenu ,
                         XmNchildren    , &children ,
                         XmNnumChildren , &num_children ,
@@ -4366,6 +4369,8 @@ void MCW_stuff_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 ENTRY("MCW_stuff_CB") ;
 
+   if( CS_wpop == NULL || CS_nsav == 0 ) EXRETURN ;  /* should not happen */
+
    done = (strcmp(wname,OVC_apply_label) != 0) ;
    call = (strcmp(wname,OVC_quit_label)  != 0) ;
    if( done  ) RWC_XtPopdown(CS_wpop) ;
@@ -4384,6 +4389,12 @@ ENTRY("MCW_stuff_CB") ;
        case MSTUF_STRING:{
          Widget wtf = (Widget)CS_sav[iss] ;
          outval[iss] = (void *)TEXT_GET(wtf) ;
+       }
+       break ;
+
+       case MSTUF_STRLIST:{
+         MCW_arrowval *av = (MCW_arrowval *)CS_sav[iss] ;
+         outval[iss] = (void *)(av->sval) ;
        }
        break ;
      }
@@ -4408,7 +4419,7 @@ ENTRY("MCW_stuff_CB") ;
    where ITEM is one of the following lists specifying something to choose:
       MSTUF_INT    , label , bot , top , init
       MSTUF_STRING , label
-      MSTUF_STRLIST, label, string_array (which ends in NULL), init_index
+      MSTUF_STRLIST, label, nstring , init_index , string_array
 
    The call_func is called like so
 
@@ -4516,14 +4527,14 @@ ENTRY("MCW_choose_stuff") ;
      switch( scode ){
 
        default:  ERROR_message("Illegal code %d in MCW_choose_stuff()",scode) ;
-                 return ;
+                 EXRETURN ;
 
-       case MSTUF_INT:{      /* integer */
+       case MSTUF_INT:{      /* label, bot, top, init */
          int bot, top, init ; char *lab ; MCW_arrowval *av ;
          lab  = va_arg( vararg_ptr , char * ) ;
-         bot  = va_arg( vararg_ptr , int ) ;
-         top  = va_arg( vararg_ptr , int ) ;
-         init = va_arg( vararg_ptr , int ) ;
+         bot  = va_arg( vararg_ptr , int    ) ;
+         top  = va_arg( vararg_ptr , int    ) ;
+         init = va_arg( vararg_ptr , int    ) ;
          if( bot >= top ) top = bot+1 ;
          if( init < bot ) init = bot ; else if( init > top ) init = top ;
          av = new_MCW_arrowval( wrc ,
@@ -4540,7 +4551,7 @@ ENTRY("MCW_choose_stuff") ;
        }
        break ;
 
-       case MSTUF_STRING:{   /* string */
+       case MSTUF_STRING:{   /* label */
          char *lab ; Widget hrc, wlab, wtf ; int ncol=16 ;
          hrc  = XtVaCreateWidget(                 /* RowColumn to hold all */
                   MENU , xmRowColumnWidgetClass , wrc ,
@@ -4580,16 +4591,18 @@ ENTRY("MCW_choose_stuff") ;
        }
        break ;
 
-       case MSTUF_STRLIST:{  /* string list */
+       case MSTUF_STRLIST:{  /* label, nstring , init_index , string_array */
          char *lab ; char **strlist ; MCW_arrowval *av ; int nstr , init ;
          lab     = va_arg( vararg_ptr , char *  ) ; if( lab     == NULL ) break ;
-         strlist = va_arg( vararg_ptr , char ** ) ; if( strlist == NULL ) break ;
+         nstr    = va_arg( vararg_ptr , int     ) ; if( nstr    <= 1    ) break ;
          init    = va_arg( vararg_ptr , int     ) ;
-         for( nstr=0 ; strlist[nstr] != NULL ; nstr++ ) ; /*nada*/
-         av = new_MCW_arrowval( wrc , lab , MCW_AV_optmenu ,
-                                0 , nstr-1 , init ,
-                                MCW_AV_readtext , 0 ,
-                                NULL,NULL, NULL,NULL ) ;
+         strlist = va_arg( vararg_ptr , char ** ) ; if( strlist == NULL ) break ;
+
+         av = new_MCW_optmenu( wrc , lab ,
+                                0 , nstr-1 , init , 0 ,
+                                NULL , NULL ,
+                                MCW_av_substring_CB , strlist ) ;
+
          CS_sav = (void **)realloc( CS_sav , sizeof(void *)*(CS_nsav+1) ) ;
          CS_sav[CS_nsav] = (void *)av ;
          CS_scod = (int *)realloc( CS_scod , sizeof(int)*(CS_nsav+1) ) ;
