@@ -298,6 +298,7 @@ typedef struct {
 
       float func_pval ;  /* 06 Feb 2004 */
       float func_qval ;  /* 23 Jan 2008 */
+      float fixed_qval ; /* 26 Feb 2014 */
 
       int stats_anat_ok,     /* 29 Mar 2005: set in AFNI_range_label() */
           stats_func_ok,     /*   to indicate if the sub-brick range  */
@@ -662,14 +663,13 @@ typedef struct {
 
       Widget thr_rowcol , thr_label , thr_scale , thr_pval_label ;
       MCW_arrowval *thr_top_av ;
-      Widget pval_menu ;           /* 18 Feb 2014 */
-      Widget pval_setpval_pb ;
 
       Widget thr_menu ;
       MCW_bbox *thr_onoff_bbox ;
       MCW_bbox *thr_olayx_bbox ;
       Widget thr_autothresh_pb ;
       Widget thr_setpval_pb ;      /* 03 Dec 2013 */
+      Widget thr_setqval_pb ;      /* 26 Feb 2014 */
       MCW_arrowval *thr_sign_av ;  /* 08 Aug 2007 */
       Widget thr_fdr_pb ;          /* 29 Jan 2008 */
 
@@ -741,6 +741,7 @@ typedef struct {
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
 extern void AFNI_func_setpval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
+extern void AFNI_func_setqval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
 extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007 */
 extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008 */
 
