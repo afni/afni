@@ -6072,6 +6072,7 @@ ENTRY("AFNI_time_index_CB") ;
        im3d->vinfo->fim_index = DSET_NVALS(im3d->fim_now) - 1 ;
      AV_assign_ival( im3d->vwid->func->fim_buck_av , im3d->vinfo->fim_index ) ;
 
+#if 0
      if( AFNI_yesenv("AFNI_SLAVE_THRTIME") ){   /* 24 Jan 2005 - RWCox */
        im3d->vinfo->thr_index = ipx ;
        if( im3d->vinfo->thr_index >= DSET_NVALS(im3d->fim_now) )
@@ -6080,6 +6081,9 @@ ENTRY("AFNI_time_index_CB") ;
      } else {
        AFNI_enforce_throlayx(im3d) ;  /* 13 Aug 2010 */
      }
+#else
+       AFNI_enforce_throlayx(im3d) ;
+#endif
    }
 
    im3d->vinfo->tempflag = 1 ;
