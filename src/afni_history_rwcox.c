@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+  { 26 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Add ability to set q-value (in addition to p-value)" ,
+   "From threshold slider popup menu (top or bottom labels)." } ,
+
+ { 26 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "Remove AFNI_SLAVE_THRTIME and AFNI_SLAVE_BUCKETS_TOO variables" ,
    "The functionality of AFNI_SLAVE_THRTIME is improved via the newer\n"
    "'Thr=OLay?' controls.\n"
