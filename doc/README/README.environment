@@ -2597,7 +2597,7 @@ you want the time index control to change ONLY the underlay sub-brick,
 then set this variable to NO.
 
 ----------------------------
-Variable: AFNI_SLAVE_THRTIME (editable)
+Variable: AFNI_SLAVE_THRTIME       *** THIS VARIABLE IS NO LONGER USED ***
 ----------------------------
 When the underlay and overlay datasets both are time-dependent, switching
 the time index will change both the underlay and overlay sub-bricks, but
@@ -2605,7 +2605,7 @@ NOT the threshold sub-brick.  If you want the time index control to change
 the threshold sub-brick, then set this variable to YES.
 
 --------------------------------
-Variable: AFNI_SLAVE_BUCKETS_TOO
+Variable: AFNI_SLAVE_BUCKETS_TOO   *** THIS VARIABLE IS NO LONGER USED ***
 --------------------------------
 Set this to YES if you want to make changing the time index in the underlay
 dataset change the sub-brick index in the overlay dataset even when the

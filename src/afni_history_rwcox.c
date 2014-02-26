@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 26 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+   "Remove AFNI_SLAVE_THRTIME and AFNI_SLAVE_BUCKETS_TOO variables" ,
+   "The functionality of AFNI_SLAVE_THRTIME is improved via the newer\n"
+   "'Thr=OLay?' controls.\n"
+   "The functionality of AFNI_SLAVE_BUCKETS_TOO is simply now subsumed by\n"
+   "AFNI_SLAVE_FUNCTIME." } ,
+
+ { 24 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Add index step size popup to 'Index' arrowval" ,
    "For Stephen Robinson" } ,
 

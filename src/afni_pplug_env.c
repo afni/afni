@@ -432,7 +432,9 @@ PLUGIN_interface * ENV_init(void)
 
    /* 22 Mar 2004 [RWCox] */
    ENV_add_yesno( "AFNI_SLAVE_FUNCTIME" , "Time Index affects functional overlay?" ) ;
+#if 0
    ENV_add_yesno( "AFNI_SLAVE_THRTIME"  , "Time Index affects threshold overlay?" ) ;
+#endif
 
    ENV_add_string( "AFNI_REALTIME_MP_HOST_PORT" ,     /* 31 Mar 2004 [rickr] */
                    "Supply host:port string for realtime motion parameters." ,
