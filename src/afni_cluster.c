@@ -2151,8 +2151,10 @@ ENTRY("AFNI_thr_EV") ;
    switch( ev->type ){
       case ButtonPress:{
          XButtonEvent *event = (XButtonEvent *) ev ;
-         if( event->button != Button3 ){
+         if( event->button == Button4 ){
            AFNI_func_setpval_CB(w,cd,NULL) ;  /* special case */
+         } else if( event->button == Button5 ){
+           AFNI_func_setqval_CB(w,cd,NULL) ;  /* special case */
          } else {
            im3d->vwid->butx = event->x_root ;
            im3d->vwid->buty = event->y_root ;

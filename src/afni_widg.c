@@ -2892,7 +2892,7 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_autothresh_pb ,
                       "Compute ad hoc threshold automatically NOW" ) ;
 
-   /*-- Set pval button [03 Aug 2013] --*/
+   /*-- Set pval button [03 Dec 2013] --*/
 
    func->thr_setpval_pb =
       XtVaCreateManagedWidget(
@@ -2905,6 +2905,22 @@ STATUS("making func->rowcol") ;
                   AFNI_func_setpval_CB , im3d ) ;
    MCW_register_hint( func->thr_setpval_pb ,
                       "Enter p-value to set threshold" ) ;
+
+   /*-- Set qval button [26 Feb 2014] --*/
+
+   func->thr_setqval_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("Set q-value") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_setqval_pb , XmNactivateCallback ,
+                  AFNI_func_setqval_CB , im3d ) ;
+   MCW_register_hint( func->thr_setqval_pb ,
+                      "Enter q-value to set threshold" ) ;
+
+   im3d->vinfo->fixed_qval = 0.0f ;
 
    /* Threshold sign arrowval [08 Aug 2007] */
 
