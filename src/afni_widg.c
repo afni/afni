@@ -5672,7 +5672,8 @@ ENTRY("new_AFNI_controller") ;
    im3d->opened = 0 ;          /* not yet opened up */
    im3d->dc     = dc ;
    im3d->vinfo  = myXtNew( AFNI_view_info ); ADDTO_KILL(im3d->kl,im3d->vinfo);
-      flush_vinfo_sort(im3d->vinfo, NULL);     /* ZSS April 26 2012 */
+
+   flush_vinfo_sort(im3d->vinfo, NULL);     /* ZSS April 26 2012 */
 
    im3d->brand_new = 1 ; /* 07 Dec 2001 */
 
@@ -6046,6 +6047,12 @@ ENTRY("AFNI_initialize_controller") ;
 
    if( im3d->vwid->view->marks_enabled )
      SHIFT_TIPS( im3d , TIPS_MINUS_SHIFT ) ;
+
+   /* Set index step from environment [26 Feb 2014] */
+
+                 ii = (int)AFNI_numenv("AFNI_INDEX_STEP"  ) ;
+   if( ii <= 0 ) ii = (int)AFNI_numenv("AFNI_INDEX_STRIDE") ;
+   if( ii >  0 ) AFNI_time_index_set_fstep(im3d,ii) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;

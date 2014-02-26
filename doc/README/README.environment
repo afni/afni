@@ -3295,6 +3295,20 @@ tapering function, and a couple of other useless options.
 ** N.B.: You can turn off the message that the wsinc5 code prints out
 detailing the parameter setup by setting AFNI_WSINC5_SILENT to YES.
 
+-------------------------
+Variable: AFNI_INDEX_STEP
+-------------------------
+This numeric variable (between 1 and 9, inclusive) sets the step size
+used when you press the up/down arrows on the 'Index' control in the
+left column of the main AFNI controller.  Setting this value to 2 (say)
+let's you scroll through an image time series seeing alternate time
+points.  This feature can be useful when looking at datasets where
+sub-bricks alternate in type -- for example, from 3dttest++, where the
+even-numbered volumes are effect size estimates, and the odd-numbered
+volumes are the corresponding t-statistics.  (This value can also be
+set interactively from a popup chooser activated by right-clicking
+on the 'Index' label to the left of the up/down arrows.)
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
