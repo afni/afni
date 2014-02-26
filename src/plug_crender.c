@@ -3875,10 +3875,20 @@ ENTRY( "RCREND_xhair_recv" );
             ind       != func_color_ival && DSET_NVALS(func_dset) > ind ){
           AV_assign_ival( wfunc_color_av , ind ) ;
           RCREND_choose_av_CB( wfunc_color_av , NULL ) ;
+#if 0
           if( AFNI_yesenv("AFNI_SLAVE_THRTIME") ){         /* 31 Jan 2008   */
             AV_assign_ival( wfunc_thresh_av , ind ) ;      /* change thresh */
             RCREND_choose_av_CB( wfunc_thresh_av , NULL ); /* if ordered to */
           }
+#else
+          if( im3d->vinfo->thr_olayx == 1 ){               /* 26 Feb 2014:  */
+            AV_assign_ival( wfunc_thresh_av , ind ) ;      /* use setting   */
+            RCREND_choose_av_CB( wfunc_thresh_av , NULL ); /* Thr = OLay?   */
+          } else if( im3d->vinfo->thr_olayx == 2 ){        /* instead of    */
+            AV_assign_ival( wfunc_thresh_av , ind+1 ) ;    /* SLAVE_THRTIME */
+            RCREND_choose_av_CB( wfunc_thresh_av , NULL );
+          }
+#endif
           red = 1 ;
         }
         if( red ){ FREE_VOLUMES; RCREND_draw_CB(NULL,NULL,NULL); }
@@ -5326,7 +5336,7 @@ ENTRY( "RCREND_func_widgets" );
    #else
       wfunc_vsep = SEP_VER(top_rowcol) ;
    #endif
-   
+
    wfunc_frame = XtVaCreateWidget(
                    "AFNI" , xmFrameWidgetClass , top_rowcol ,
                       XmNshadowType , XmSHADOW_ETCHED_IN ,
@@ -6851,7 +6861,7 @@ void RCREND_reload_func_dset(void)
    int         ival_func, ival_thr;
    void      * car , * tar ;
    float       cfac ,  tfac ;
-   float       bbot,  btop=1.0, bdelta=1.0; /* ZSS: initialized bdelta, 
+   float       bbot,  btop=1.0, bdelta=1.0; /* ZSS: initialized bdelta,
                                               and btop 01/07/09*/
    int         ii , nvox , num_lp , lp , bindex ;
    byte     *  ovar ;
@@ -7214,7 +7224,7 @@ void RCREND_overlay_ttatlas(void)
    float *f0=NULL;
    MRI_IMAGE *b0im;
    int gwin , fwin , nreg , ii,jj , nov ;
-   int at_sbi, fim_type, at_nsb; 
+   int at_sbi, fim_type, at_nsb;
    byte at_vox;
 
 ENTRY( "RCREND_overlay_ttatlas" );
@@ -7239,7 +7249,7 @@ ENTRY( "RCREND_overlay_ttatlas" );
       already exist */
 
 /*   atlas_ovdset = current_atlas_ovdset();*/
-   if((!atlas_ovdset) || 
+   if((!atlas_ovdset) ||
       ( DSET_NVOX(atlas_ovdset) != nvox)){
        if(atlas_ovdset)     /* reset the atlas overlay dataset */
           DSET_unload(atlas_ovdset);
@@ -7247,7 +7257,7 @@ ENTRY( "RCREND_overlay_ttatlas" );
        if( dseTT == NULL ) RET("no atlas dataset\n") ;
        DSET_load(dseTT) ;
        /* resample dataset to match underlay (consequently overlay dataset )*/
-       atlas_ovdset = r_new_resam_dset ( dseTT, dset,  0, 0, 0, NULL, 
+       atlas_ovdset = r_new_resam_dset ( dseTT, dset,  0, 0, 0, NULL,
                                        MRI_NN, NULL, 1, 0);
        if(!atlas_ovdset) RET("could not resample atlas dataset\n");
    }

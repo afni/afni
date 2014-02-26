@@ -1399,9 +1399,10 @@ STATUS("making imag->time_index_av") ;
    imag->time_index_av->allow_wrap = 1 ;
 
    MCW_reghelp_children( imag->time_index_av->wrowcol ,
-                         "Controls the time index\n"
-                         "of the images being viewed.\n"
-                         "[For time-dependent datasets.]" ) ;
+                         "* Controls the time index\n"
+                         "  of the images being viewed.\n"
+                         "* Right click on 'Index' for\n"
+                         "  a menu of extra options." ) ;
    MCW_reghint_children( imag->time_index_av->wrowcol ,
                          "Set index in time" ) ;
 
