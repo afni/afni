@@ -62,11 +62,24 @@ float interp_floatvec( floatvec *fv , float x )
 }
 
 /*----------------------------------------------------------*/
+
+static float regula_falsi_step( floatvec *fv, float y, float x0, float x1 )
+{
+   float y0 , y1 , dy ;
+
+   y0 = interp_floatvec(fv,x0) ;
+   y1 = interp_floatvec(fv,x1) ; dy = y1-y0 ;
+   if( fabsf(dy) < 0.01f*(fabsf(y0)+fabsf(y1)) ) return x0 ;
+
+   dy = x0 + (x1-x0)/dy * (y-y0) ; return dy ;
+}
+
+/*----------------------------------------------------------*/
 /* Inverse interpolation in a floatvec (assumed monotonic). */
 
 float interp_inverse_floatvec( floatvec *fv , float y )
 {
-   int ip,itop ; float ym,yp,dx ;
+   int ip,itop ; float ym,yp,dx , x0,x1,x2 , xm,xp,y0 ;
 
    /* check for stupid inputs */
 
@@ -90,7 +103,20 @@ float interp_inverse_floatvec( floatvec *fv , float y )
      ym = fv->ar[ip-1] ; yp = fv->ar[ip] ;
      if( (y-ym) * (y-yp) <= 0.0f ){
        dx = (y-ym) / (yp-ym) ;
+#if 0
        return( fv->x0 + fv->dx *(ip-1.0+dx) ) ;
+#else
+       x0 = fv->x0 + fv->dx *(ip-1.0+dx) ;  y0 = interp_floatvec(fv,x0) ;
+       x1 = x1 + 0.05f * fv->dx ;
+       x2 = x0 - 0.05f * fv->dx ;
+       xp = regula_falsi_step(fv,y,x0,x1) ; yp = interp_floatvec(fv,xp) ;
+       xm = regula_falsi_step(fv,y,x0,x1) ; ym = interp_floatvec(fv,xm) ;
+       yp = fabsf(yp-y) ; ym = fabsf(ym-y) ; y0 = fabsf(y0-y) ;
+       if( y0 <= ym && y0 <= yp ) return x0 ;
+       if( ym <= y0 && ym <= yp ) return xm ;
+       if( yp <= y0 && yp <= ym ) return xp ;
+       return x0 ; /* should be impossible */
+#endif
      }
    }
 

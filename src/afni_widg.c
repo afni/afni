@@ -2920,7 +2920,8 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_setqval_pb ,
                       "Enter q-value to set threshold" ) ;
 
-   im3d->vinfo->fixed_qval = 0.0f ;
+   im3d->vinfo->fix_pval   = im3d->vinfo->fix_qval   = 0    ; /* 27 Feb 2014 */
+   im3d->vinfo->fixed_pval = im3d->vinfo->fixed_qval = 0.0f ;
 
    /* Threshold sign arrowval [08 Aug 2007] */
 

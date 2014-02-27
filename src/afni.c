@@ -1514,7 +1514,13 @@ void AFNI_sigfunc_alrm(int sig)
      "I am not bound to please thee with my statistics"              ,
      "I will praise any man that will praise me"                     ,
      "If you have tears, prepare to shed them now"                   ,
+     "Remember -- nothing is always absolutely so"                   ,
+     "Remember -- 90% of everything is cr*p"                         ,
+     "Remember -- Good things always take longer than you expect"    ,
+     "Remember -- 'New and Improved' is neither"                     ,
+     "Remember -- Murphy was an optimist"                            ,
 
+     "Wirth's law -- software gets slower faster than hardware gets faster"           ,
      "How wouldst thou worst, I wonder, than thou dost, defeat, thwart me?"           ,
      "Meet me at the Torre Pendente di Pisa on the feast of St Rainerius"             ,
      "One martini is just right; two is too many; three is never enough"              ,
@@ -6088,6 +6094,11 @@ ENTRY("AFNI_time_index_CB") ;
 
    im3d->vinfo->tempflag = 1 ;
    AFNI_modify_viewing( im3d , False ) ;  /* setup new bricks to view */
+
+   if( im3d->vinfo->fix_pval && im3d->vinfo->fixed_pval > 0.0f )
+     AFNI_set_pval(im3d,im3d->vinfo->fixed_pval) ;
+   else if( im3d->vinfo->fix_qval && im3d->vinfo->fixed_qval > 0.0f )
+     AFNI_set_qval(im3d,im3d->vinfo->fixed_qval) ;
 
    if( ISVALID_DSET(im3d->fim_now)       &&   /* if time index on */
        DSET_NUM_TIMES(im3d->fim_now) > 1   )  /* function changed */
