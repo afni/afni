@@ -5713,6 +5713,11 @@ ENTRY("AFNI_closedown_3dview") ;
    if( im3d->vwid->view->swid != NULL )
      XtUnmapWidget( im3d->vwid->view->swid->wtop ) ;
 
+   im3d->vinfo->fix_qval   = 0 ;    /* 27 Feb 2014 */
+   im3d->vinfo->fixed_qval = 0.0f ;
+   im3d->vinfo->fix_pval   = 0 ;    /* 27 Feb 2014 */
+   im3d->vinfo->fixed_pval = 0.0f ;
+
    MPROBE ;
    EXRETURN ;
 }
