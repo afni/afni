@@ -462,6 +462,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       lop$mVar   <- NA
       lop$qVars  <- NA
       lop$vVars  <- NA
+      lop$vQV    <- NA
       lop$qVarCenters    <- NA
       lop$vVarCenters    <- NA
       lop$num_glt <- 0
