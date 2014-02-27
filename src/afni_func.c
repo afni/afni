@@ -106,6 +106,28 @@ ENTRY("AFNI_func_autothresh_CB") ;
 #define TFLASH(iq) \
   do{ MCW_flash_widget(2,(iq)->vwid->func->thr_scale); BEEPIT; } while(0)
 
+void AFNI_set_pval( Three_D_View *im3d , float pval )
+{
+   float thresh ;
+
+ENTRY("AFNI_set_pval") ;
+
+   if( !IM3D_OPEN(im3d) || pval <= 0.0f || pval >= 1.0f ) EXRETURN ;
+   if( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) <= 0 ){
+     TFLASH(im3d) ; EXRETURN ;
+   }
+
+   thresh = THD_pval_to_stat( pval ,
+              DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
+              DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
+   if( thresh < 0.0 ){ TFLASH(im3d); EXRETURN; }
+
+   AFNI_set_threshold(im3d,thresh) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
 void AFNI_func_setpval_final_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
@@ -129,33 +151,7 @@ ENTRY("AFNI_func_setpval_final_CB") ;
    if( pval >  0.0f && *cpt == '%'  ) pval *= 0.01f ;
    if( pval <= 0.0f || pval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
 
-   thresh = THD_pval_to_stat( pval ,
-              DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
-              DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
-   if( thresh < 0.0 ){ TFLASH(im3d); EXRETURN; }
-
-   olddec = (int)rint( log10(im3d->vinfo->func_thresh_top) ) ;
-        if( olddec < 0             ) olddec = 0 ;
-   else if( olddec > THR_top_expon ) olddec = THR_top_expon ;
-
-   newdec = (int)( log10(thresh) + 1.0 ) ;
-        if( newdec < 0             ) newdec = 0 ;
-   else if( newdec > THR_top_expon ) newdec = THR_top_expon ;
-
-   IM3D_CLEAR_TMASK(im3d) ;
-   if( newdec != olddec )
-     AFNI_set_thresh_top( im3d , Thval[newdec] ) ;
-
-   smax = (int)rint( pow(10.0,THR_top_expon) ) ;
-   stop = smax - 1 ;                             /* max slider value */
-   ival = rint( thresh/(THR_factor*Thval[newdec]) ) ;
-        if( ival < 0    ) ival = 0    ;
-   else if( ival > stop ) ival = stop ;
-
-   XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
-
-   AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
-
+   AFNI_set_pval(im3d,pval) ;
    EXRETURN ;
 }
 
@@ -175,6 +171,27 @@ ENTRY("AFNI_func_setpval_CB") ;
 
 /*-----------------------------------------------------------------------*/
 /*! 26 Feb 2014 */
+
+void AFNI_set_qval( Three_D_View *im3d , float qval )
+{
+   float zval , thresh ;
+
+ENTRY("AFNI_set_qval") ;
+
+   if( !IM3D_OPEN(im3d) || qval <= 0.0f || qval >= 1.0f ) EXRETURN ;
+   if( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) <= 0 ){
+     TFLASH(im3d) ; EXRETURN ;
+   }
+
+   zval   = qginv(0.5*qval) ;
+   thresh = THD_fdrcurve_zqtot( im3d->fim_now , im3d->vinfo->thr_index , zval ) ;
+   if( thresh <= 0.0 ){ TFLASH(im3d); EXRETURN; }
+
+   AFNI_set_threshold(im3d,thresh) ;
+   EXRETURN ;
+}
+#if 0
+/*-----------------------------------------------------------------------*/
 
 void AFNI_func_setqval_final_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
@@ -199,33 +216,7 @@ ENTRY("AFNI_func_setqval_final_CB") ;
    if( qval >  0.0f && *cpt == '%'  ) qval *= 0.01f ;
    if( qval <= 0.0f || qval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
 
-   zval   = qginv(0.5*qval) ;
-   thresh = THD_fdrcurve_zqtot( im3d->fim_now , im3d->vinfo->thr_index , zval ) ;
-
-   if( thresh <= 0.0 ){ TFLASH(im3d); EXRETURN; }
-
-   olddec = (int)rint( log10(im3d->vinfo->func_thresh_top) ) ;
-        if( olddec < 0             ) olddec = 0 ;
-   else if( olddec > THR_top_expon ) olddec = THR_top_expon ;
-
-   newdec = (int)( log10(thresh) + 1.0 ) ;
-        if( newdec < 0             ) newdec = 0 ;
-   else if( newdec > THR_top_expon ) newdec = THR_top_expon ;
-
-   IM3D_CLEAR_TMASK(im3d) ;
-   if( newdec != olddec )
-     AFNI_set_thresh_top( im3d , Thval[newdec] ) ;
-
-   smax = (int)rint( pow(10.0,THR_top_expon) ) ;
-   stop = smax - 1 ;                             /* max slider value */
-   ival = rint( thresh/(THR_factor*Thval[newdec]) ) ;
-        if( ival < 0    ) ival = 0    ;
-   else if( ival > stop ) ival = stop ;
-
-   XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
-
-   AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
-
+   AFNI_set_qval(im3d,qval) ;
    EXRETURN ;
 }
 
@@ -242,6 +233,54 @@ ENTRY("AFNI_func_setqval_CB") ;
    MCW_choose_string( w, "Enter q-value", NULL, AFNI_func_setqval_final_CB,cd ) ;
    EXRETURN ;
 }
+#else
+/*-----------------------------------------------------------------------*/
+
+static char *yesno[2] = { "No" , "Yes" } ;
+
+void AFNI_func_setqval_final_CB( Widget w, XtPointer cd, int nval , void **val )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   float qval , zval , thresh ;
+   char *cpt ;
+
+ENTRY("AFNI_func_setqval_final_CB") ;
+
+   if( !IM3D_OPEN(im3d) || nval != 2 || val == NULL ) EXRETURN ;
+
+   if( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) <= 0 ){
+    TFLASH(im3d) ; EXRETURN ;
+   }
+
+   qval = (float)strtod((char *)val[0],&cpt) ;
+   if( qval >  0.0f && *cpt == '%'  ) qval *= 0.01f ;
+   if( qval <= 0.0f || qval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
+
+   im3d->vinfo->fix_qval   = ( strcmp((char *)val[1],yesno[1]) == 0 ) ;
+   im3d->vinfo->fixed_qval = (im3d->vinfo->fix_qval) ? qval : 0.0f ;
+
+   AFNI_set_qval(im3d,qval) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void AFNI_func_setqval_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_func_setqval_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   MCW_choose_stuff( w , "FDR q-value Settings" ,
+                     AFNI_func_setqval_final_CB , im3d ,
+                       MSTUF_STRING  , "Set q-value"  ,
+                       MSTUF_STRLIST , "Keep fixed? " , 2 , 0 , yesno ,
+                     MSTUF_END ) ;
+   EXRETURN ;
+}
+#endif
 
 /*-----------------------------------------------------------------------*/
 /*! 29 Jan 2008: add FDR curves to the functional dataset */
@@ -507,7 +546,6 @@ ENTRY("AFNI_set_thr_pval") ;
 
    if( ! IM3D_VALID(im3d) || ! ISVALID_3DIM_DATASET(im3d->fim_now) ) EXRETURN ;
 
-
    thresh = get_3Dview_func_thresh(im3d,1);
 
    /* get the p-value that goes with this threshold, for this functional dataset */
@@ -543,6 +581,8 @@ if(PRINT_TRACING)
      }
      if( im3d->vedset.code > 0 && im3d->fim_now->dblk->vedim != NULL )
        strcat(buf,"*") ;  /* mark that are in clustering mode [05 Sep 2006] */
+     else if( im3d->vinfo->fix_pval )
+       strcat(buf,"f") ;
    }
 
    /* 23 Jan 2007: q-value from FDR curve? */
@@ -562,6 +602,7 @@ if(PRINT_TRACING)
            else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
          }
          strcat(buf,"\nq=") ; strcat(buf,qbuf+1) ;
+         if( im3d->vinfo->fix_qval ) strcat(buf,"f") ;
        }
      } else {
        strcat(buf,"\nq=N/A") ;
@@ -5817,7 +5858,13 @@ ENTRY("AFNI_bucket_CB") ;
    if( dothr && AFNI_yesenv("AFNI_THRESH_AUTO") ){    /* 05 Mar 2007 */
      float new_thresh = AFNI_get_autothresh(im3d) ;
      if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
+   } else if( dothr ){
+     if( im3d->vinfo->fix_pval && im3d->vinfo->fixed_pval > 0.0f )
+       AFNI_set_pval(im3d,im3d->vinfo->fixed_pval) ;
+     else if( im3d->vinfo->fix_qval && im3d->vinfo->fixed_qval > 0.0f )
+       AFNI_set_qval(im3d,im3d->vinfo->fixed_qval) ;
    }
+
 
    FIX_SCALE_SIZE(im3d) ;
    EXRETURN ;

@@ -298,7 +298,9 @@ typedef struct {
 
       float func_pval ;  /* 06 Feb 2004 */
       float func_qval ;  /* 23 Jan 2008 */
-      float fixed_qval ; /* 26 Feb 2014 */
+
+      int   fix_pval   , fix_qval   ;  /* 27 Feb 2014 */
+      float fixed_pval , fixed_qval ;
 
       int stats_anat_ok,     /* 29 Mar 2005: set in AFNI_range_label() */
           stats_func_ok,     /*   to indicate if the sub-brick range  */
@@ -744,6 +746,9 @@ extern void AFNI_func_setpval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013
 extern void AFNI_func_setqval_CB   (Widget,XtPointer,XtPointer) ; /* 03 Dec 2013 */
 extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007 */
 extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008 */
+
+extern void AFNI_set_pval( struct Three_D_View * , float ) ;      /* 27 Feb 2014 */
+extern void AFNI_set_qval( struct Three_D_View * , float ) ;      /* 27 Feb 2014 */
 
 #define PBAR_MODEBUT  0
 #define PBAR_MODEPOS  (1 << PBAR_MODEBUT)
