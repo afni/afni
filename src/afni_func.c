@@ -151,6 +151,9 @@ ENTRY("AFNI_func_setpval_final_CB") ;
    if( pval >  0.0f && *cpt == '%'  ) pval *= 0.01f ;
    if( pval <= 0.0f || pval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
 
+   im3d->vinfo->fix_qval   = 0 ;
+   im3d->vinfo->fixed_qval = 0.0f ;
+
    AFNI_set_pval(im3d,pval) ;
    EXRETURN ;
 }
@@ -190,50 +193,7 @@ ENTRY("AFNI_set_qval") ;
    AFNI_set_threshold(im3d,thresh) ;
    EXRETURN ;
 }
-#if 0
-/*-----------------------------------------------------------------------*/
 
-void AFNI_func_setqval_final_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
-{
-   Three_D_View *im3d = (Three_D_View *)cd ;
-   float qval , zval , thresh ;
-   int newdec , olddec , stop,smax , ival ;
-   char *cpt ;
-
-ENTRY("AFNI_func_setqval_final_CB") ;
-
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
-
-   if( cbs->reason  != mcwCR_string ||
-       cbs->cval    == NULL         ||
-       cbs->cval[0] == '\0'           ){ TFLASH(im3d); EXRETURN; }
-
-   if( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) <= 0 ){
-    TFLASH(im3d) ; EXRETURN ;
-   }
-
-   qval = (float)strtod(cbs->cval,&cpt) ;
-   if( qval >  0.0f && *cpt == '%'  ) qval *= 0.01f ;
-   if( qval <= 0.0f || qval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
-
-   AFNI_set_qval(im3d,qval) ;
-   EXRETURN ;
-}
-
-/*-----------------------------------------------------------------------*/
-
-void AFNI_func_setqval_CB( Widget w, XtPointer cd, XtPointer cb)
-{
-   Three_D_View *im3d = (Three_D_View *)cd ;
-
-ENTRY("AFNI_func_setqval_CB") ;
-
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
-
-   MCW_choose_string( w, "Enter q-value", NULL, AFNI_func_setqval_final_CB,cd ) ;
-   EXRETURN ;
-}
-#else
 /*-----------------------------------------------------------------------*/
 
 static char *yesno[2] = { "No" , "Yes" } ;
@@ -259,6 +219,9 @@ ENTRY("AFNI_func_setqval_final_CB") ;
    im3d->vinfo->fix_qval   = ( strcmp((char *)val[1],yesno[1]) == 0 ) ;
    im3d->vinfo->fixed_qval = (im3d->vinfo->fix_qval) ? qval : 0.0f ;
 
+   im3d->vinfo->fix_pval   = 0 ;
+   im3d->vinfo->fixed_pval = 0.0f ;
+
    AFNI_set_qval(im3d,qval) ;
    EXRETURN ;
 }
@@ -268,19 +231,21 @@ ENTRY("AFNI_func_setqval_final_CB") ;
 void AFNI_func_setqval_CB( Widget w, XtPointer cd, XtPointer cb)
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
+   int ifix ;
 
 ENTRY("AFNI_func_setqval_CB") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
+   ifix = (im3d->vinfo->fix_qval) ? 1 : 0 ;
+
    MCW_choose_stuff( w , "FDR q-value Settings" ,
                      AFNI_func_setqval_final_CB , im3d ,
                        MSTUF_STRING  , "Set q-value"  ,
-                       MSTUF_STRLIST , "Keep fixed? " , 2 , 0 , yesno ,
+                       MSTUF_STRLIST , "Keep fixed? " , 2 , ifix , yesno ,
                      MSTUF_END ) ;
    EXRETURN ;
 }
-#endif
 
 /*-----------------------------------------------------------------------*/
 /*! 29 Jan 2008: add FDR curves to the functional dataset */
