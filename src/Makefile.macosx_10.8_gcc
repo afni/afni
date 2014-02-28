@@ -73,6 +73,22 @@ CP = /bin/cp -f
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./macosx_10.8_gcc
+EXTRA_INSTALL_FILES = /usr/local/lib/libgomp.1.dylib                \
+                      /sw/lib/libglib-2.0.0.dylib                   \
+                      /usr/local/lib/libgomp.la                     \
+                      /sw/lib/libglib-2.0.la                        \
+                      /sw/lib/libiconv.2.dylib                      \
+                      /sw/lib/libiconv.la                           \
+                      /sw/lib/fontconfig2/lib/libfontconfig.1.dylib \
+                      /sw/lib/fontconfig2/lib/libfontconfig.la      \
+                      /sw/lib/freetype219/lib/libfreetype.6.dylib
+
+EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
+                           ln -sf libglib-2.0.0.dylib   libglib-2.0.dylib ;   \
+                           ln -sf libiconv.2.dylib  libiconv.dylib ;      \
+                           ln -sf libfontconfig.1.dylib libfontconfig.dylib ; \
+                           if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
+
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=macosx_10.8_gcc
 
