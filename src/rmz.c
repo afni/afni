@@ -26,7 +26,7 @@ int main( int argc , char * argv[] )
       }
 
       irep = strtol( argv[iarg] , NULL , 10 ) ;
-      if( irep < 0 ){
+      if( irep <= 0 ){
         nrep = -irep ; iarg++ ; continue ;
       } else {
         fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]) ; exit(1) ;

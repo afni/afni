@@ -85,42 +85,48 @@ float interp_inverse_floatvec( floatvec *fv , float y )
 
    if( fv == NULL ) return 0.0f ;
    itop = fv->nar - 1 ;
-   if( fv->ar == NULL || itop <= 1 || fv->dx == 0.0 ) return(fv->x0) ;
+   if( fv->ar == NULL || itop <= 1 || fv->dx == 0.0 )
+     return(fv->x0) ;
 
    /* off the left edge? */
 
    if( (fv->ar[0] < fv->ar[itop] && y <= fv->ar[0]) ||
-       (fv->ar[0] > fv->ar[itop] && y >= fv->ar[0])   ) return(fv->x0) ;
+       (fv->ar[0] > fv->ar[itop] && y >= fv->ar[0])   )
+     return(fv->x0) ;
 
    /* off the right edge? */
 
    if( (fv->ar[0] < fv->ar[itop] && y >= fv->ar[itop]) ||
-       (fv->ar[0] > fv->ar[itop] && y <= fv->ar[itop])   ) return(fv->x0+fv->dx*itop) ;
+       (fv->ar[0] > fv->ar[itop] && y <= fv->ar[itop])   )
+      return(fv->x0+fv->dx*itop) ;
 
    /* find the intermediate point that brackets the desired result */
+   /* [27 Feb 2014] -- replace simple linear interpolation with
+      linear interpolation plus a regula falsi step for improvement
+      (since the forward interpolation method is cubic, not linear). */
 
    for( ip=1 ; ip < itop ; ip++ ){
      ym = fv->ar[ip-1] ; yp = fv->ar[ip] ;
-     if( (y-ym) * (y-yp) <= 0.0f ){
+     if( (y-ym) * (y-yp) <= 0.0f ){    /* the desired y is now bracketed */
        dx = (y-ym) / (yp-ym) ;
 #if 0
-       return( fv->x0 + fv->dx *(ip-1.0+dx) ) ;
+       return( fv->x0 + fv->dx *(ip-1.0+dx) ) ;  /* old way */
 #else
        x0 = fv->x0 + fv->dx *(ip-1.0+dx) ;  y0 = interp_floatvec(fv,x0) ;
-       x1 = x1 + 0.05f * fv->dx ;
+       x1 = x1 + 0.05f * fv->dx ;   /* try nearby points above and below */
        x2 = x0 - 0.05f * fv->dx ;
        xp = regula_falsi_step(fv,y,x0,x1) ; yp = interp_floatvec(fv,xp) ;
        xm = regula_falsi_step(fv,y,x0,x1) ; ym = interp_floatvec(fv,xm) ;
        yp = fabsf(yp-y) ; ym = fabsf(ym-y) ; y0 = fabsf(y0-y) ;
-       if( y0 <= ym && y0 <= yp ) return x0 ;
+       if( y0 <= ym && y0 <= yp ) return x0 ;        /* pick the bestest */
        if( ym <= y0 && ym <= yp ) return xm ;
        if( yp <= y0 && yp <= ym ) return xp ;
-       return x0 ; /* should be impossible */
+       return x0 ;                               /* should be impossible */
 #endif
      }
    }
 
-   /* should not happen */
+   /* should never happen */
 
-   return( fv->x0 + fv->dx * 0.5*itop ) ;
+   return( fv->x0 + fv->dx * 0.5*itop ) ;  /* the midpoint */
 }
