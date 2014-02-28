@@ -1129,6 +1129,15 @@ void gather_stats_NN3( int ipthr , float *fim , byte *bfim , int *mtab , int ith
   return ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+static char * prob6(float p)
+{
+   static char str[16] ;
+   sprintf(str,"%7.5f",p) ;
+   return (str+1) ;
+}
+
 /*===========================================================================*/
 
 int main( int argc , char **argv )
@@ -1406,7 +1415,11 @@ MPROBE ;
          commandline ,
          nx,ny,nz , dx,dy,dz ,
          mask_ngood , (mask_ngood < nxyz) ? " in mask" : "\0" , nnn ) ;
+#if 0
         for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," %6.3f",athr[iathr]) ;
+#else
+        for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," %s",prob6(athr[iathr])) ;
+#endif
         fprintf(fp,"\n"
          "# ------ |" ) ;
         for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," ------") ;
