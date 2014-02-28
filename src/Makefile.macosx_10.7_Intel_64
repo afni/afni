@@ -36,14 +36,21 @@ INSTALLDIR = macosx_10.7_Intel_64
 EXTRA_INSTALL_FILES = /usr/local/lib/libgomp.1.dylib                \
                       /usr/local/lib/libgcc_s.1.dylib               \
                       /sw/lib/libglib.dylib                         \
+                      /sw/lib/libglib-2.0.0.dylib                   \
                       /usr/local/lib/libgomp.la                     \
                       /sw/lib/libglib.la                            \
+                      /sw/lib/libglib-2.0.la                        \
+                      /sw/lib/libiconv.2.4.0.dylib                  \
+                      /sw/lib/libiconv.la                           \
                       /sw/lib/fontconfig2/lib/libfontconfig.1.dylib \
                       /sw/lib/fontconfig2/lib/libfontconfig.la      \
                       /sw/lib/freetype219/lib/libfreetype.6.dylib
 
 EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                                 \
                            ln -sf libglib.dylib         libglib-1.2.0.dylib ; \
+                           ln -sf libglib-2.0.0.dylib   libglib-2.0.dylib ;   \
+                           ln -sf libiconv.2.4.0.dylib  libiconv.dylib ;      \
+                           ln -sf libiconv.2.4.0.dylib  libiconv.2.dylib ;    \
                            ln -sf libfontconfig.1.dylib libfontconfig.dylib ; \
                            if [ -d $(HOME)/EXTRAPROGS ]; then $(CP) $(HOME)/EXTRAPROGS/* . ; fi ; )
 
