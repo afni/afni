@@ -121,6 +121,7 @@ SUMA_Boolean SUMA_ScaleToMap_alaHASH ( float *V, int N_V,
                                        SUMA_SCALE_TO_MAP_OPT *Opt, 
                                        SUMA_COLOR_SCALED_VECT * SV);
 SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover );
+SUMA_Boolean SUMA_DSET_ClearOverlay_Vecs(SUMA_DSET *dset);
 SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec, 
                                   int colind, char *task, int perc);
 SUMA_AFNI_COLORS * SUMA_Get_AFNI_Default_Color_Maps ();

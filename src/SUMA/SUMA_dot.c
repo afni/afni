@@ -675,6 +675,12 @@ void SUMA_dot_product_CB( void *params)
          SUMA_RETURNe;
       }
       
+      /* Make sure color overlay datacopies get rest */
+      if (!SUMA_DSET_ClearOverlay_Vecs(out_dset)) {         
+         SUMA_S_Err("Failed to clear overlay copies");
+         SUMA_RETURNe;
+      }
+      
 	   snprintf(ident,298*sizeof(char), "filename:%s", SDSET_FILENAME(out_dset));
       
       {

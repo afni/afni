@@ -2513,6 +2513,31 @@ float *SUMA_PercFullRangeVol(float *V, int N_V, int p10, int exzero, int *Nvals)
    SUMA_RETURN(perc);
 }
 
+SUMA_Boolean SUMA_DSET_ClearOverlay_Vecs(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_DSET_ClearOverlay_Vecs"};
+   SUMA_OVERLAYS **over=NULL;
+   SUMA_ALL_DO *ado=NULL;
+   int N_over, i, k;
+   
+   SUMA_ENTRY;
+   
+   if (!dset) SUMA_RETURN(NOPE);
+   
+   for (i=0; i<SUMAg_N_DOv; ++i) {
+      ado = iDO_ADO(i);
+      if ((over = SUMA_ADO_Overlays(ado, &N_over))) {
+         for (k=0; k<N_over; ++k) {
+            if (over[k]->dset_link == dset) {
+               SUMA_SetOverlay_Vecs(over[k],'A', -1, "clear", -1);  
+            }
+         }
+      }
+   }
+    
+   SUMA_RETURN(YUP);
+}
+
 /*!
    A function that setsup vectors V, T and their ilk in the overlay plane.
    The function is intended to figure out whether the old version of the
@@ -2533,7 +2558,7 @@ SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec,
                                   int colind, char *task, int perc)
 {
    static char FuncName[]={"SUMA_SetOverlay_Vecs"};
-   char thisid[32+SUMA_IDCODE_LENGTH]={""};
+   char thisid[32+SUMA_IDCODE_LENGTH]={""}, *attr=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2549,7 +2574,16 @@ SUMA_Boolean SUMA_SetOverlay_Vecs(SUMA_OVERLAYS *Sover, char vec,
       comes from standalone program like 3dVol2Surf. Return
       without complaining.*/
       SUMA_RETURN(YUP);
+   } else {
+      if (Sover->dset_link->dnel && 
+          (attr=NI_get_attribute(Sover->dset_link->dnel, "ResetOverlay_Vecs"))) {
+         if (!strcmp(attr,"yes")) {
+            NI_set_attribute(Sover->dset_link->dnel,"ResetOverlay_Vecs", "nope");
+            SUMA_DSET_ClearOverlay_Vecs(Sover->dset_link);
+         }
+      }
    }
+   
    if (!strcmp(task,"clear")) { /* just clear, and return */
       switch (vec) {
          case 'V':
