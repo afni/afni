@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 27 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 4 , MAR , 2014 , RWC , "3dClustSim" , MICRO , TYPE_GENERAL ,
+   "Change format of pthr and athr to allow for tiny values - for Gang" ,
+   NULL } ,
+
+ { 27 , FEB , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Add control to set (and fix) q-value" ,
    NULL } ,
 
