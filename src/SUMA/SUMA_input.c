@@ -4670,7 +4670,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
             
-         case Button3:
+         case Button3: {
                SUMA_LHv("Button 3 down plain jane, "
                             "viewer #%d : X=%f, Y = %f\n", 
                             SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
@@ -4707,7 +4707,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_LH("Yoking intensity to node selection");
                   SUMAg_CF->YokeIntToNode = 1;
                } else {
-                  SUMA_LH("Holding back callbacks");
+                  SUMA_LH("Holding back yoking");
                   SUMAg_CF->YokeIntToNode = 0;
                }
 
@@ -4898,7 +4898,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                OUT:
                /* reset hold on xforms */
                SUMAg_CF->HoldClickCallbacks = 0;
-            break;
+            break; }
       } /* switch type of button Press */
       break;
       
