@@ -1305,7 +1305,7 @@ static yymmdd EasterDate[] = {
 } ;
 
 #define EASTER_FIRST 2011
-#define EASTER_LAST  2123  /* if AFNI last this long -- wow! */
+#define EASTER_LAST  2123  /* if AFNI lasts this long -- wow! */
 
 int AFNI_is_Easter( int yy , int mm , int dd )
 {
@@ -1330,6 +1330,54 @@ int AFNI_is_Diwali( int yy , int mm , int dd )
    if( yy < DIWALI_FIRST || yy > DIWALI_LAST ) return 0 ;
    yy = yy - DIWALI_FIRST ;
    return ( mm == DiwaliDate[yy].mm && dd == DiwaliDate[yy].dd ) ;
+}
+
+/*------------------------------------------------------------------------------*/
+typedef struct { int mm,dd,yy; } mmddyy ;
+
+static mmddyy YomKippurDate[] = {
+  {OCT,4,2014}, {SEP,23,2015}, {OCT,12,2016}, {SEP,30,2017},
+  {SEP,19,2018}, {OCT,9,2019}, {SEP,28,2020}, {SEP,16,2021},
+  {OCT,5,2022}, {SEP,25,2023}, {OCT,12,2024}, {OCT,2,2025},
+  {SEP,21,2026}, {OCT,11,2027}, {SEP,30,2028}, {SEP,19,2029},
+  {OCT,7,2030}, {SEP,27,2031}, {SEP,15,2032}, {OCT,3,2033},
+  {SEP,23,2034}, {OCT,13,2035}, {OCT,1,2036}, {SEP,19,2037},
+  {OCT,9,2038}, {SEP,28,2039}, {SEP,17,2040}, {OCT,5,2041},
+  {SEP,24,2042}, {OCT,14,2043}, {OCT,1,2044}, {SEP,21,2045},
+  {OCT,10,2046}, {SEP,30,2047}, {SEP,17,2048}, {OCT,6,2049}
+} ;
+
+#define YOMKIPPUR_FIRST 2014
+#define YOMKIPPUR_LAST  2049
+
+int AFNI_is_YomKippur( int yy , int mm , int dd )
+{
+   if( yy < YOMKIPPUR_FIRST || yy > YOMKIPPUR_LAST ) return 0 ;
+   yy = yy - YOMKIPPUR_FIRST ;
+   return ( mm == YomKippurDate[yy].mm && dd == YomKippurDate[yy].dd ) ;
+}
+
+/*------------------------------------------------------------------------------*/
+
+static mmddyy EidDate[] = {
+  {JUL,29,2014}, {JUL,18,2015}, {JUL,7,2016}, {JUN,26,2017}, {JUN,15,2018},
+  {JUN,5,2019}, {MAY,24,2020}, {MAY,13,2021}, {MAY,3,2022}, {APR,22,2023},
+  {APR,10,2024}, {MAR,31,2025}, {MAR,20,2026}, {MAR,10,2027}, {FEB,27,2028},
+  {FEB,15,2029}, {FEB,5,2030}, {JAN,25,2031}, {JAN,14,2032}, {JAN,3,2033},
+  {DEC,23,2033}, {DEC,12,2034}, {DEC,2,2035}, {NOV,20,2036}, {NOV,10,2037},
+  {OCT,30,2038}, {OCT,19,2039}, {OCT,8,2040}, {SEP,27,2041}, {SEP,16,2042},
+  {SEP,6,2043}, {AUG,25,2044}, {AUG,15,2045}, {AUG,4,2046}, {JUL,24,2047},
+  {JUL,13,2048}, {JUL,2,2049}
+} ;
+
+#define EID_FIRST 2014
+#define EID_LAST  2049
+
+int AFNI_is_Eid( int yy , int mm , int dd )
+{
+   if( yy < EID_FIRST || yy > EID_LAST ) return 0 ;
+   yy = yy - EID_FIRST ;
+   return ( mm == EidDate[yy].mm && dd == EidDate[yy].dd ) ;
 }
 
 /*------------------------------------------------------------------------------*/
@@ -1402,6 +1450,16 @@ char * AFNI_get_date_trivia(void)
 
    if( ntar < NTMAX && AFNI_is_Diwali(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
       tar[ntar++] = "Diwali / Deepavali" ;
+
+   /* Yom Kippur? */
+
+   if( ntar < NTMAX && AFNI_is_YomKippur(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
+      tar[ntar++] = "start of Yom Kippur" ;
+
+   /* Eid? */
+
+   if( ntar < NTMAX && AFNI_is_Eid(lt->tm_year+1900,lt->tm_mon+1,lt->tm_mday) )
+      tar[ntar++] = "Eid al-Fitr" ;
 
    ncall++ ;
    if( ntar == 0 || (ntar < NTMAX && ncall > 3) ){  /* 04 Oct 2007 */
