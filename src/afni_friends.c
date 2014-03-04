@@ -98,7 +98,10 @@ static AFNI_friend afni_friends[] = {
   { "J Gonzalez-Castillo" , (    4 | 8                | 128             ) } ,
   { "J Evans"        ,      (    4 | 8                | 128             ) } ,
   { "S Inati"        ,      (    4 | 8                                  ) } ,
-  { "P Taylor"       ,      (                      64                   ) }
+  { "P Taylor"       ,      (                      64                   ) } ,
+  { "P Kundu"        ,      (                      64                   ) } ,
+  { "S Gotts"        ,      (    8 |          32                        ) } ,
+  { "S Japee"        ,      (                           128             ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
