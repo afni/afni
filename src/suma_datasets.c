@@ -6274,6 +6274,9 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          dset->inel = NULL;
          #endif
          SUMA_free(dset);
+         /* Put a flag up to state that all overlays of this dataset need 
+            to have column copied refreshed */
+         NI_set_attribute(dprev->dnel,"ResetOverlay_Vecs", "yes");
          /*make the switch so that on return, dset becomes the previous dset*/
          *dsetp = dprev;
       } else {
@@ -14337,6 +14340,11 @@ int SUMA_PopulateDsetsFromGICORnel(NI_element *nel, GICOR_setup *giset,
             if (!SUMA_UpdateDsetColRange(sdsetv[id],-1)) {
                SUMA_S_Err("Failed to update range");
                SUMA_RETURN(NOPE);
+            }
+            /* Put a flag up to state that all overlays of this dataset need 
+            to have column copied refreshed */
+            if (sdsetv[id]->dnel) { 
+               NI_set_attribute(sdsetv[id]->dnel,"ResetOverlay_Vecs", "yes");
             }
          } /* if (giset->nnode_domain[id]) */
       } /* for (ipair ...) */

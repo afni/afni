@@ -10900,8 +10900,9 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado)
       SUMA_RETURN(YUP);
    }
    Sover = SUMA_ADO_CurColPlane(ado); 
-   SUMA_LHv("Sover %p, ado type %d %s\n", 
-         Sover, ado->do_type, SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type)); 
+   SUMA_LHv("Sover %p, ado type %d %s, callbacks %p, HoldClickCallbacks %d\n", 
+         Sover, ado->do_type, SUMA_ObjectTypeCode2ObjectTypeName(ado->do_type),
+         SUMAg_CF->callbacks, SUMAg_CF->HoldClickCallbacks); 
    switch (ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *curSO=NULL, *targetSO=NULL, *SO=NULL;

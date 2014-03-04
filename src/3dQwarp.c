@@ -894,7 +894,7 @@ int main( int argc , char *argv[] )
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
-   if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){ Qhelp(); exit(0); }
+   if( argc == 1 ) { Qhelp(); exit(0); }
 
    /*---------- startup bureaucracy --------*/
 
@@ -930,7 +930,10 @@ int main( int argc , char *argv[] )
    nopt = 1 ;
    Hblur_b = Hblur_s = 2.345f ;
    while( nopt < argc && argv[nopt][0] == '-' ){
-
+     if( strcasecmp(argv[nopt],"-help") == 0 ||
+         strcmp(argv[nopt],"-h") == 0) {
+       Qhelp(); exit(0);
+     }
      if( strcasecmp(argv[nopt],"-verb") == 0 ){
        Hverb++ ; nopt++ ; continue ;
      }
@@ -1210,9 +1213,15 @@ int main( int argc , char *argv[] )
        Hlocalstat = 1 ; nopt++ ; continue ;
      }
 
-     ERROR_exit("Totally bogus option '%s'",argv[nopt]) ;
+     ERROR_message("Totally bogus option '%s'",argv[nopt]) ;
+     /*Bob: Activate if you want suggest_best_prog_option(argv[0], argv[nopt]);*/
+     exit(1);
    }
 
+   if (argc < 3) {
+      ERROR_exit("Too few options, use -help for details");
+   }
+   
    /*-- make a 'clean' prefix --*/
 
    { char *ns ;
