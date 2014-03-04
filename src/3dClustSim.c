@@ -1131,11 +1131,32 @@ void gather_stats_NN3( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 
 /*---------------------------------------------------------------------------*/
 
-static char * prob6(float p)
+static char * prob6(float p)   /* format p-value into 6 char */
 {
    static char str[16] ;
-   sprintf(str,"%7.5f",p) ;
+   if( p >= 0.00010f ){
+     sprintf(str,"%7.5f",p) ;
+   } else {
+     int   dec = (int)(0.9999-log10(p)) ;
+     float man = p * pow( 10.0 , (double)dec ) ;
+     sprintf(str,"%4.1fe-%1d",man,dec) ;
+   }
    return (str+1) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static char * prob9(float p)   /* format p-value into 9 char */
+{
+   static char str[16] ;
+   if( p >= 0.00010f ){
+     sprintf(str,"%9.6f",p) ;
+   } else {
+     int   dec = (int)(0.9999-log10(p)) ;
+     float man = p * pow( 10.0 , (double)dec ) ;
+     sprintf(str,"%6.3fe-%1d",man,dec) ;
+   }
+   return str ;
 }
 
 /*===========================================================================*/
@@ -1415,17 +1436,13 @@ MPROBE ;
          commandline ,
          nx,ny,nz , dx,dy,dz ,
          mask_ngood , (mask_ngood < nxyz) ? " in mask" : "\0" , nnn ) ;
-#if 0
-        for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," %6.3f",athr[iathr]) ;
-#else
         for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," %s",prob6(athr[iathr])) ;
-#endif
         fprintf(fp,"\n"
          "# ------ |" ) ;
         for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," ------") ;
         fprintf(fp,"\n") ;
         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-          fprintf(fp,"%9.6f ",pthr[ipthr]) ;
+          fprintf(fp,"%s ",prob9(pthr[ipthr])) ;
           for( iathr=0 ; iathr < nathr ; iathr++ ){
             if( nodec )
               fprintf(fp,"%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
