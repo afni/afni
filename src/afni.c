@@ -1526,6 +1526,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I can prove anything with statistics, except the truth"        ,
      "The chief function of the body is to carry the brain around"   ,
      "Humor is the most significant activity of the human brain"     ,
+     "I'm off to get some hot chocolate -- want to join me?"         ,
 
      "In ancient times, there were no statistics, so they just had to lie"            ,
      "If your experiment needs statistics, you need a better experiment"              ,
