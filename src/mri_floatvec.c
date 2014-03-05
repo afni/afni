@@ -69,7 +69,7 @@ static float regula_falsi_step( floatvec *fv, float y, float x0, float x1 )
 
    y0 = interp_floatvec(fv,x0) ;
    y1 = interp_floatvec(fv,x1) ; dy = y1-y0 ;
-   if( fabsf(dy) < 0.01f*(fabsf(y0)+fabsf(y1)) ) return x0 ;
+   if( dy == 0.0f || fabsf(dy) < 0.00666f*(fabsf(y-y0)+fabsf(y-y1)) ) return x0;
 
    dy = x0 + (x1-x0)/dy * (y-y0) ; return dy ;
 }
@@ -77,28 +77,27 @@ static float regula_falsi_step( floatvec *fv, float y, float x0, float x1 )
 /*----------------------------------------------------------*/
 /* Inverse interpolation in a floatvec (assumed monotonic). */
 
+#undef DO_FIVE
+
 float interp_inverse_floatvec( floatvec *fv , float y )
 {
-   int ip,itop ; float ym,yp,dx , x0,x1,x2 , xm,xp,y0 ;
+   int ip,itop ; float ym,yp,dx , x0,x1,x2 , xm,xp,y0,y1,y2 , xx[5],yy[5] ;
 
-   /* check for stupid inputs */
+   /* check for stoopid inputs */
 
    if( fv == NULL ) return 0.0f ;
    itop = fv->nar - 1 ;
-   if( fv->ar == NULL || itop <= 1 || fv->dx == 0.0 )
-     return(fv->x0) ;
+   if( fv->ar == NULL || itop <= 1 || fv->dx == 0.0 )      return(fv->x0) ;
 
    /* off the left edge? */
 
    if( (fv->ar[0] < fv->ar[itop] && y <= fv->ar[0]) ||
-       (fv->ar[0] > fv->ar[itop] && y >= fv->ar[0])   )
-     return(fv->x0) ;
+       (fv->ar[0] > fv->ar[itop] && y >= fv->ar[0])   )    return(fv->x0) ;
 
    /* off the right edge? */
 
    if( (fv->ar[0] < fv->ar[itop] && y >= fv->ar[itop]) ||
-       (fv->ar[0] > fv->ar[itop] && y <= fv->ar[itop])   )
-      return(fv->x0+fv->dx*itop) ;
+       (fv->ar[0] > fv->ar[itop] && y <= fv->ar[itop])   ) return(fv->x0+fv->dx*itop) ;
 
    /* find the intermediate point that brackets the desired result */
    /* [27 Feb 2014] -- replace simple linear interpolation with
@@ -110,18 +109,29 @@ float interp_inverse_floatvec( floatvec *fv , float y )
      if( (y-ym) * (y-yp) <= 0.0f ){    /* the desired y is now bracketed */
        dx = (y-ym) / (yp-ym) ;
 #if 0
-       return( fv->x0 + fv->dx *(ip-1.0+dx) ) ;  /* old way */
+       return( fv->x0 + fv->dx *(ip-1.0+dx) ) ;  /* old way = linear interp */
 #else
+                                    /* x0 = linear interp result */
        x0 = fv->x0 + fv->dx *(ip-1.0+dx) ;  y0 = interp_floatvec(fv,x0) ;
-       x1 = x1 + 0.05f * fv->dx ;   /* try nearby points above and below */
-       x2 = x0 - 0.05f * fv->dx ;
+       x1 = x0 + 0.05f * fv->dx ;   /* try nearby points above and below */
+       x2 = x0 - 0.05f * fv->dx ;   /* and then regula falsi from them  */
        xp = regula_falsi_step(fv,y,x0,x1) ; yp = interp_floatvec(fv,xp) ;
-       xm = regula_falsi_step(fv,y,x0,x1) ; ym = interp_floatvec(fv,xm) ;
+       xm = regula_falsi_step(fv,y,x0,x2) ; ym = interp_floatvec(fv,xm) ;
+#ifdef DO_FIVE  /* extra regula falsi steps (not needed IMHO) */
+       x1 = regula_falsi_step(fv,y,x0,xp) ; y1 = interp_floatvec(fv,x1) ;
+       x2 = regula_falsi_step(fv,y,x0,xm) ; y2 = interp_floatvec(fv,x2) ;
        yp = fabsf(yp-y) ; ym = fabsf(ym-y) ; y0 = fabsf(y0-y) ;
-       if( y0 <= ym && y0 <= yp ) return x0 ;        /* pick the bestest */
-       if( ym <= y0 && ym <= yp ) return xm ;
-       if( yp <= y0 && yp <= ym ) return xp ;
-       return x0 ;                               /* should be impossible */
+       y1 = fabsf(y1-y) ; y2 = fabsf(y2-y) ;
+       xx[0] = x0 ; xx[1] = x1 ; xx[2] = x2 ; xx[3] = xm ; xx[4] = xp ;
+       yy[0] = y0 ; yy[1] = y1 ; yy[2] = y2 ; yy[3] = ym ; yy[4] = yp ;
+       qsort_floatfloat(5,yy,xx) ;
+#else /* not DO_FIVE */
+       yp = fabsf(yp-y) ; ym = fabsf(ym-y) ; y0 = fabsf(y0-y) ;
+       xx[0] = x0 ; xx[1] = xm ; xx[2] = xp ;  /* candidate x values */
+       yy[0] = y0 ; yy[1] = ym ; yy[2] = yp ;  /* residuals at them */
+       qsort_floatfloat(3,yy,xx) ;             /* find smallest residual */
+#endif /* DO_FIVE */
+       return xx[0] ;              /* x value with the smallest residual */
 #endif
      }
    }
