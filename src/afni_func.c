@@ -577,8 +577,13 @@ if(PRINT_TRACING)
    MCW_set_widget_label( im3d->vwid->func->thr_pval_label , buf ) ;
 
    if( im3d->vinfo->func_pval >= 0.0f && im3d->vinfo->func_pval <= 1.0f ){
+#define EEEE 2.718282f /* e */
+#define EINV 0.367879f /* 1/e */
      char pstr[128] ; float mval ;
      sprintf( pstr , "Uncorrected p=%.4e" , im3d->vinfo->func_pval ) ;
+     if( im3d->vinfo->func_pval > 0.0f && im3d->vinfo->func_pval < EINV )
+       sprintf(pstr+strlen(pstr)," alpha(p)=%.4e",
+               1/(1-1/(EEEE*im3d->vinfo->func_pval*log(im3d->vinfo->func_pval))) ) ;
      if( im3d->vinfo->func_qval >= 0.0f && im3d->vinfo->func_qval <= 1.0f )
        sprintf(pstr+strlen(pstr),"; FDR q=%.4e",im3d->vinfo->func_qval) ;
      else
