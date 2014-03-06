@@ -1581,6 +1581,7 @@ typedef struct {
    Widget SurfInfo_pb; /*!< More info push button */
    Widget SurfInfo_label; /*!< Le label */
    Widget Mask_pb; /*!< Mask push button */
+   Widget VSliceAtXYZ_tb; /*!< Make slices jump to crosshair location */
    SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing 
                         widgets and options of the surface info text shell */
    SUMA_MENU_WIDGET *RenderModeMenu; /*!<[SW_N_SurfCont_Render] widgets 

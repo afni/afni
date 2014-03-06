@@ -3988,7 +3988,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    }
    cf->X->SC_Notebook = NULL;
    cf->X->SameSurfContOpen = 0;
-   {
+   {  /* Changed default to YES March 05 2014 */
       char *eee = getenv("SUMA_SameSurfCont");
       if (eee) {
          if (strcmp(eee,"NO") == 0) cf->X->UseSameSurfCont = NOPE;
@@ -3997,10 +3997,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
             fprintf (SUMA_STDERR,   
                      "Warning %s:\n"
                      "Bad value for environment variable UseSameSurfCont\n"
-                     "Assuming default of NOPE", FuncName);
-            cf->X->UseSameSurfCont = NOPE;
+                     "Assuming default of YES", FuncName);
+            cf->X->UseSameSurfCont = YUP;
          }
-      } else cf->X->UseSameSurfCont = NOPE;
+      } else cf->X->UseSameSurfCont = YUP;
    } 
    {
       char *eee = getenv("SUMA_NumForeSmoothing");

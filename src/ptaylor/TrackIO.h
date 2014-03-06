@@ -1,6 +1,14 @@
 #ifndef TRACKIO_INCLUDED
 #define TRACKIO_INCLUDED
 
+// temporary candidate for NIML string reading based on ZSS's
+// int/float-reading definitions in */suma_afni_surface.h
+#define NI_SETA_STR_tmp(ngr, name, val)  {\
+   char m_stmp[200]; sprintf(m_stmp,"%s", (val));   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+
+
 typedef struct {
    int id;     /* some identifier */
    int N_pts3;  /* total number of values in pts */
@@ -167,7 +175,12 @@ int SimpleWriteDetNetTr_M(int N_HAR, FILE *file, int ***idx,
                            int *TV, int *Dim, float *Ledge);
 
 
-
-
+NI_element * ReadDTI_inputs(char *fname);
+int NI_getDTI_inputs( NI_element *nel, 
+                      char **NameVEC, //[3],
+                      char *NameXF, 
+                      char **NameSCAL, //[3], 
+                      char **NameP, //[4],
+                      int *extrafile, int *pars_top);
 
 #endif

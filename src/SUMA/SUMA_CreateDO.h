@@ -66,6 +66,13 @@ typedef struct {
    SUMA_Boolean ShowBundles; /*!< Show bundles instead of edge if possible */
    SUMA_Boolean ShowUncon; /*!< Show graph points (nodes) even if not 
                                   connected */
+                                  
+   float *Center_G3D; /* Geometric center of all points in 3D variant*/
+   float *Range_G3D;  /* Min Max of X, Y, and Z of all points in 3D variant*/
+   float *Center_GMATRIX; /* Geometric center of all points in MATRIX 
+                             variant*/
+   float *Range_GMATRIX;  /* Min Max of X, Y, and Z of all points in MATRIX 
+                             variant*/
 } SUMA_GRAPH_SAUX;
 
 /*! A Tract object's Auxiliary structure for SUMA's use */
@@ -80,6 +87,9 @@ typedef struct {
    int TractMask;
    float MaskGray;
    float *tract_lengths;
+   
+   float *Center; /* Geometric center of all points */
+   float *Range;  /* Min Max of X, Y, and Z of all points */
 } SUMA_TRACT_SAUX;
 
 /*! A Mask object's Auxiliary structure for SUMA's use */
@@ -130,6 +140,7 @@ typedef struct {
    int ShowCoSlc;
    int ShowVrSlc;
    
+   int SlicesAtCrosshair; /* Make three slices jump to location of crosshair */
    SUMA_ATRANS_MODES TransMode; /*!< polygon transparency  */
 } SUMA_VOL_SAUX;
 
@@ -366,6 +377,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux,
                                   SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawMaskDO (SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv);
+float *SUMA_ADO_Center(SUMA_ALL_DO *ado, float *here);
+float *SUMA_ADO_Range(SUMA_ALL_DO *ado, float *here);
 float *SUMA_TDO_Grid_Center(SUMA_TractDO *tdo, float *here);
 float *SUMA_MDO_Center(SUMA_MaskDO *MDO, float *here);
 float *SUMA_VO_Grid_Center(SUMA_VolumeObject *vo, float *here);

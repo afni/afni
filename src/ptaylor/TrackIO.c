@@ -1354,3 +1354,102 @@ INSTA_TRACT_SETUP *New_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS)
    
    RETURN(ITS);
 }
+
+
+// *****************-> NIMLly reading in DTI input  <-*********************
+
+NI_element * ReadDTI_inputs(char *fname) 
+{
+   NI_stream ns=NULL;
+   NI_element *nel=NULL;
+   char *strm=NULL;
+   FILE *fin4=NULL;
+   
+   ENTRY("ReadDTI_inputs");  
+       
+   if (!fname || !THD_is_file(fname)) RETURN(NULL);
+   
+   if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
+      strm = (char *)calloc(strlen(fname)+20, sizeof(char));
+      sprintf(strm,"file:%s",fname);
+      if (!(ns = NI_stream_open( strm , "r" ))) {
+         ERROR_message("Failed to open %s\n", strm);
+         free(strm); RETURN(NULL);
+      }
+      if (!(nel = NI_read_element( ns , 2 ))) {
+         ERROR_message("Failed to read element from \n", strm);
+         free(strm); RETURN(NULL);
+      }
+      NI_stream_close(ns); free(strm); strm = NULL;
+   } else {
+      ERROR_message("Failed to get DTI inputs from %s",fname);
+      RETURN(NULL);
+   }
+   
+   RETURN(nel);
+}      
+
+int NI_getDTI_inputs( NI_element *nel, 
+                      char **NameVEC,
+                      char *NameXF, 
+                      char **NameSCAL, 
+                      char **NameP,
+                      int *extrafile, int *pars_top)
+{
+   char *atr=NULL;
+   int ct_ex = 0;
+
+   ENTRY("NI_getDTI_inputs");
+   if (!nel) RETURN(1);
+   
+   if (NameVEC[0] && (atr=NI_get_attribute(nel,"dti_V1"))) {
+      snprintf(NameVEC[0],100,"%s", atr);
+   }
+   if (NameVEC[1] && (atr=NI_get_attribute(nel,"dti_V2"))) {
+      snprintf(NameVEC[1],100,"%s", atr);
+   }
+   if (NameVEC[2] && (atr=NI_get_attribute(nel,"dti_V3"))) {
+      snprintf(NameVEC[2],100,"%s", atr);
+   }
+   if (NameXF && (atr=NI_get_attribute(nel,"dti_XF"))) {
+      snprintf(NameXF,100,"%s", atr); *extrafile = 1;
+   }
+   else
+      NameXF = NULL;
+   if (NameSCAL[0] && (atr=NI_get_attribute(nel,"dti_FA"))) {
+      snprintf(NameSCAL[0],100,"%s", atr);
+   }
+   if (NameSCAL[1] && (atr=NI_get_attribute(nel,"dti_MD"))) {
+      snprintf(NameSCAL[1],100,"%s", atr);
+   }
+   if (NameSCAL[2] && (atr=NI_get_attribute(nel,"dti_L1"))) {
+      snprintf(NameSCAL[2],100,"%s", atr);
+   }
+   // allow up to four extra files
+   if (NameP[0] && (atr=NI_get_attribute(nel,"dti_P1"))) {
+      snprintf(NameP[0],100,"%s", atr);  ct_ex++;
+   }
+   else snprintf(NameP[0],100,"%s", "\0");
+   if (NameP[1] && (atr=NI_get_attribute(nel,"dti_P2"))) {
+      snprintf(NameP[1],100,"%s", atr);  ct_ex++;
+   }
+   else snprintf(NameP[1],100,"%s", "\0");
+   if (NameP[2] && (atr=NI_get_attribute(nel,"dti_P3"))) {
+      snprintf(NameP[2],100,"%s", atr);  ct_ex++;
+   }
+   else snprintf(NameP[2],100,"%s", "\0");
+   if (NameP[3] && (atr=NI_get_attribute(nel,"dti_P4"))) {
+      snprintf(NameP[3],100,"%s", atr);  ct_ex++;
+      printf("\nHERE! %d\n",ct_ex);
+   }
+   else snprintf(NameP[3],100,"%s", "\0");
+   
+   *pars_top = 2 + 3 + ct_ex; // RD and extra; FA,MD;extras
+
+   printf("\nLISTED: PARS_TOP=%d with ct_ex=%d\n", *pars_top, ct_ex);
+   printf("\nLISTED: NameSCAL[0]=%s\n", NameSCAL[0]);
+
+
+   RETURN(0);
+}
+

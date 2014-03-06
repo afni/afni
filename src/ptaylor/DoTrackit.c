@@ -153,7 +153,7 @@ int ScoreTrackGrid_M( float ****PG,int idx, int h, int C, int B,
 
 // *******************************************************************
 
-// basic format for writing out tracking results of 3dProbTrackID:
+// basic format for writing out tracking results of 3dTrackID:
 // + a file of individual ROI intercepts
 // + a file of the pairwise combinations
 int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox, 
@@ -281,7 +281,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(networkMAPS)) )
 			ERROR_exit("Can't overwrite existing dataset '%s'",
 						  DSET_HEADNAME(networkMAPS));
-		tross_Make_History("3dProbTrackID", argc, argv, networkMAPS);
+		tross_Make_History("3dTrackID", argc, argv, networkMAPS);
 		THD_write_3dim_dataset(NULL, NULL, networkMAPS, True);
 		DSET_delete(networkMAPS); 
 		for( i=0 ; i<NROI[hh]+1 ; i++) // free all
@@ -308,7 +308,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(networkMAPS2)) )
 			ERROR_exit("Can't overwrite existing dataset '%s'",
 						  DSET_HEADNAME(networkMAPS2));
-		tross_Make_History("3dProbTrackID", argc, argv, networkMAPS2);
+		tross_Make_History("3dTrackID", argc, argv, networkMAPS2);
 		THD_write_3dim_dataset(NULL, NULL, networkMAPS2, True);
 		DSET_delete(networkMAPS2); 
 		for( i=0 ; i<NROI[hh]+1 ; i++) // free all
@@ -332,7 +332,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 	RETURN(1);
 }
 
-// second format for writing out tracking results of 3dProbTrackID:
+// second format for writing out tracking results of 3dTrackID:
 // each pairwise map in own file
 // (will be in new directory with prefix name)
 int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
@@ -512,7 +512,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int ***Prob_grid,
 								 THD_is_ondisk(DSET_HEADNAME(networkMAPS)) )
 								ERROR_exit("Can't overwrite existing dataset '%s'",
 											  DSET_HEADNAME(networkMAPS));
-							tross_Make_History("3dProbTrackID", argc, argv, networkMAPS);
+							tross_Make_History("3dTrackID", argc, argv, networkMAPS);
 							THD_write_3dim_dataset(NULL, NULL, networkMAPS, True);
 						}
 

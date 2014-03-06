@@ -48,7 +48,12 @@
    + Instatract stuff better, ZSS work.
    + '-cut_at_rois' now default behavior; added '-uncut_at_rois' switch
    + can switch off *.trk format
+
+   Feb 2014:
+   + couple option name switches, and how TROSS name is saved
    
+   Mar 2014:
+   + '-dti_list' input option added at user request.
 */
 
 
@@ -72,6 +77,7 @@
 #define N_dti_scal (3) 
 #define N_dti_scal_tot (6) // 1+2+3, matches with N_dti_scal
 #define N_dti_vect (3) 
+#define N_plus_dtifile (4) // number of allowed additional param files in NIMLver
 
 void usage_TrackID(int detail) 
 {
@@ -241,55 +247,59 @@ void usage_TrackID(int detail)
 "     model or mode are marked with a single asterisk (*); the options under\n"
 "     the /ALL/ column are necessary in any mode. Thus, to run deterministic\n"
 "     tracking with DTI data, one *NEEDS* to select, at a minimum:\n"
-"         '-dti_in', '-netrois', '-prefix', '-logic';\n"
-"     if desired, one could also use '-dti_extra', '-mask', '-alg_Nseed_Y',\n"
+"         '-mode DET', '-netrois', '-prefix', '-logic';\n"
+"     and then there is a choice of loading DTI data, with either:\n"
+"         '-dti_in' or '-dti_list',\n"
+"     and then one can also use '-dti_extra', '-mask', '-alg_Nseed_Y',\n"
 "     et al. from the /ALL/ and DET colums; one canNOT specify '-unc_min_FA'\n"
 "     here -> the option is in an unmatched mode column.\n"
 "     Exact usages of each option, plus formats for any arguments, are listed\n"
 "     below. Default values for optional arguments are also described.\n"
 "\n"
-"         +--------------------------------------------------------------+\n"
-"         |        COMMAND OPTIONS FOR TRACKING MODES AND MODELS         |\n"
-"         +--------------------------------------------------------------+\n"
-"         |     /ALL/      |     DET     |    MINIP    |      PROB       |\n"
-"+--------+----------------+-------------+-------------+-----------------+\n"
-"         | dti_in*        |             |             |                 |\n"
-"  DTI    | dti_extra      |             |             |                 |\n"
-"         | dti_search_NO  |             |             |                 |\n"
-"+-~or~---+----------------+-------------+-------------+-----------------+\n"
-"         | hardi_gfa*     |             |             |                 |\n"
-"  HARDI  | hardi_dirs*    |             |             |                 |\n"
-"         | hardi_pars     |             |             |                 |\n"
-"==~and~==+================+=============+=============+=================+\n"
-"         | netrois*       |             |             |                 |\n"
-" OPTIONS | prefix*        |             |             |                 |\n"
-"         | mask           |             |             |                 |\n"
-"         |                | logic*      | logic*      |                 |\n"
-"         |                |             | mini_num*   |                 |\n"
-"         |                |             | uncert*     | uncert*         |\n"
-"         |                |             | unc_min_FA  | unc_min_FA      |\n"
-"         |                |             | unc_min_V   | unc_min_V       |\n"
-"         | algopt         |             |             |                 |\n"
-"         | alg_Thresh_FA  |             |             |                 |\n"
-"         | alg_Thresh_ANG |             |             |                 |\n"
-"         | alg_Thresh_Len |             |             |                 |\n"
-"         |                | alg_Nseed_X | alg_Nseed_X |                 |\n"
-"         |                | alg_Nseed_Y | alg_Nseed_Y |                 |\n"
-"         |                | alg_Nseed_Z | alg_Nseed_Z |                 |\n"
-"         |                |             |             | alg_Thresh_Frac |\n"
-"         |                |             |             | alg_Nseed_Vox   |\n"
-"         |                |             |             | alg_Nmonte      |\n"
-"         | uncut_at_rois  |             |             |                 |\n"
-"         | no_trk_out     |             |             |                 |\n"
-"         | dump_rois      |             |             |                 |\n"
-"         | lab_orig_rois  |             |             |                 |\n"
-"         | posteriori     |             |             |                 |\n"
-"         | rec_orig       |             |             |                 |\n"
-"         | tract_out_mode |             |             |                 |\n"
-"         | write_opts     |             |             |                 |\n"
-"         | write_rois     |             |             |                 |\n"
-"+--------+----------------+-------------+-------------+-----------------+\n"
+"         +-----------------------------------------------------------------+\n"
+"         |          COMMAND OPTIONS FOR TRACKING MODES AND MODELS          |\n"
+"         +-----------------------------------------------------------------+\n"
+"         |     /ALL/         |     DET     |    MINIP    |      PROB       |\n"
+"+--------+-------------------+-------------+-------------+-----------------+\n"
+"         |{dti_in, dti_list}*|             |             |                 |\n"
+"   DTI   | dti_extra         |             |             |                 |\n"
+"         | dti_search_NO     |             |             |                 |\n"
+"+-~or~---+-------------------+-------------+-------------+-----------------+\n"
+"         | hardi_gfa*        |             |             |                 |\n"
+"  HARDI  | hardi_dirs*       |             |             |                 |\n"
+"         | hardi_pars        |             |             |                 |\n"
+"==~and~==+===================+=============+=============+=================+\n"
+"         | mode*             |             |             |                 |\n"
+" OPTIONS | netrois*          |             |             |                 |\n"
+"         | prefix*           |             |             |                 |\n"
+"         | mask              |             |             |                 |\n"
+"         |                   | logic*      | logic*      |                 |\n"
+"         |                   |             | mini_num*   |                 |\n"
+"         |                   |             | uncert*     | uncert*         |\n"
+"         |                   |             | unc_min_FA  | unc_min_FA      |\n"
+"         |                   |             | unc_min_V   | unc_min_V       |\n"
+"         | algopt            |             |             |                 |\n"
+"         | alg_Thresh_FA     |             |             |                 |\n"
+"         | alg_Thresh_ANG    |             |             |                 |\n"
+"         | alg_Thresh_Len    |             |             |                 |\n"
+"         |                   | alg_Nseed_X | alg_Nseed_X |                 |\n"
+"         |                   | alg_Nseed_Y | alg_Nseed_Y |                 |\n"
+"         |                   | alg_Nseed_Z | alg_Nseed_Z |                 |\n"
+"         |                   |             |             | alg_Thresh_Frac |\n"
+"         |                   |             |             | alg_Nseed_Vox   |\n"
+"         |                   |             |             | alg_Nmonte      |\n"
+"         | uncut_at_rois     |             |             |                 |\n"
+"         | no_trk_out        |             |             |                 |\n"
+"         | dump_rois         |             |             |                 |\n"
+"         | lab_orig_rois     |             |             |                 |\n"
+"         | posteriori        |             |             |                 |\n"
+"         | rec_orig          |             |             |                 |\n"
+"         | tract_out_mode    |             |             |                 |\n"
+"         | write_opts        |             |             |                 |\n"
+"         | write_rois        |             |             |                 |\n"
+"+--------+-------------------+-------------+-------------+-----------------+\n"
 "*above, asterisked options are REQUIRED for running the given '-mode'.\n"
+" With DTI data, one must use either '-dti_in' *or* '-dti_list' for input.\n"
 "\n"
 " FOR MODEL DTI:\n"
 "    -dti_in  INPREF :basename of DTI volumes output by, e.g., 3dDWItoDT.\n"
@@ -323,6 +333,14 @@ void usage_TrackID(int detail)
 "                     brik) files with INPREF*, for including stats in output\n"
 "                     GRID file. Will only go for FA, MD, and L1 scalars with\n"
 "                     INPREF (and RD is still calculated internally).\n"
+"    -dti_list FILE  :an alternative way to specify DTI input files, where\n"
+"                     FILE is a NIML-formatted text file that lists the\n"
+"                     explicit/specific files for DTI input.  This option is\n"
+"                     used in place of '-dti_in' and '-dti_extra' for loading\n"
+"                     data sets of FA, MD, L1, etc.  An 'extra' set (XF) can\n"
+"                     be loaded in the file, as well as supplementary scalar\n"
+"                     data sets for extra WM-ROI statistics.\n"
+"                     See below for a 'DTI LIST FILE EXAMPLE'.\n"
 " FOR MODEL HARDI:\n"
 "    -hardi_gfa GFA  :single brik data set with generalized FA (GFA) info.\n" 
 "                     In reality, it doesn't *have* to be a literal GFA, esp.\n"
@@ -348,6 +366,10 @@ void usage_TrackID(int detail)
 "                     PREF_DOG.nii.gz, they will be labelled in the GRID file\n"
 "                     as 'PD', 'CAT' and 'DOG' (that '_' will be cut out).\n"
 " MODEL-INDEPENDENT OPTIONS:\n"
+"    -mode  MODUS    :this necessary option is used to define whether one is\n"
+"                     performing deterministic, mini-probabilistic or full-\n"
+"                     probabilistic tractography, by selecting one of three\n"
+"                     respective modes:  DET, MINIP, or PROB.\n"
 "    -netrois ROIS   :mask(s) of target ROIs- single file can have multiple\n"
 "                     briks, one per network. The target ROIs through which\n"
 "                     tracks will be kept should have index values >0. It is\n"
@@ -368,7 +390,7 @@ void usage_TrackID(int detail)
 "                     When using AND here, default behavior is to only keep\n"
 "                     voxels in tracks between the ROIs they connect (i.e.,\n"
 "                     cut off track bits which run beyond ROIs).\n"
-"    -mini_prob NUM  :will run a small number NUM of whole brain Monte Carlo\n"
+"    -mini_num NUM   :will run a small number NUM of whole brain Monte Carlo\n"
 "                     iterations perturbing relevant tensor values in accord\n"
 "                     with their uncertainty values (hence, the need for also\n"
 "                     using `-uncert' with this option). This might be useful\n"
@@ -537,7 +559,40 @@ void usage_TrackID(int detail)
 "         Nmonte=\"1000\" />\n"
 "  Again, those represent the default values, and could be given as a plain\n"
 "  column of numbers, in that order.\n"
-
+"\n"
+"* * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * **\n"
+"\n"
+"+ DTI LIST FILE EXAMPLE:\n"
+"     Consider, for example, if you hadn't used the '-sep_dsets' option when\n"
+"     outputting all the tensor information from 3dDWItoDT.  Then one could\n"
+"     specify the DTI inputs for this program with a file called, e.g., \n"
+"     FILE_DTI_IN.niml.opts (the name *must* end with '.niml.opts'):\n"
+"       <DTIFILE_opts    \n"
+"         dti_V1=\"SINGLEDT+orig[9..11]\"\n"
+"         dti_V2=\"SINGLEDT+orig[12..14]\"\n"
+"         dti_V3=\"SINGLEDT+orig[15..17]\"\n"
+"         dti_FA=\"SINGLEDT+orig[18]\"\n"
+"         dti_MD=\"SINGLEDT+orig[19]\"\n"
+"         dti_L1=\"SINGLEDT+orig[6]\" />\n"
+"     This represents the *minimum* set of input files needed when running\n"
+"     3dTrackID.  (RD gets calculated internally automatically.)\n"
+"     One could also input extra data: an 'extra file' (XF) to take the place\n"
+"     of an FA map for determining where tracks can propagate; and up to four\n"
+"     other data sets (P1, P2, P3 and P4, standing for 'plus one' etc.) for\n"
+"     calculating mean/stdev properties in the obtained WM-ROIs:\n"
+"       <DTIFILE_opts    \n"
+"         dti_V1=\"SINGLEDT+orig[9..11]\"\n"
+"         dti_V2=\"SINGLEDT+orig[12..14]\"\n"
+"         dti_V3=\"SINGLEDT+orig[15..17]\"\n"
+"         dti_XF=\"Segmented_WM.nii.gz\"\n"
+"         dti_FA=\"SINGLEDT+orig[18]\"\n"
+"         dti_MD=\"SINGLEDT+orig[19]\"\n"
+"         dti_L1=\"SINGLEDT+orig[6]\"\n"
+"         dti_P1=\"SINGLEDT+orig[7]\"\n"
+"         dti_P2=\"SINGLEDT+orig[8]\"\n"
+"         dti_P3=\"T1_map.nii.gz\"\n"
+"         dti_P4=\"PD_map.nii.gz\" />\n"
+"\n"
 "****************************************************************************\n"
 "\n"
 "+ EXAMPLES:\n"
@@ -667,13 +722,14 @@ int main(int argc, char *argv[]) {
 	char *prefix="tracky" ;
 	char *infix=NULL ;
    char *algopt_file_name=NULL;
+   char *dti_listname=NULL;
 
    char *hardi_dir=NULL;
    char *hardi_gfa=NULL;
    char *hardi_pars=NULL;
 	char *DTI_SCAL_INS[N_dti_scal] = {"FA", "MD", "L1"}; // match with PARLABS later
 	char *DTI_VECT_INS[N_dti_vect] = {"V1", "V2", "V3"};
-
+   char *DTI_PLUS_INS[N_plus_dtifile] = {"P1", "P2", "P3", "P4"};
 
 	char *in_EXTRA=NULL;//[300];
 	int EXTRAFILE=0; // switch for whether other file is input as WM map
@@ -840,7 +896,6 @@ int main(int argc, char *argv[]) {
 
    char tprefix[THD_MAX_PREFIX];
    int nfiles;
-   char **listfiles;   
    int NO_NONDTI_SEARCH = 0 ;  // won't keep scalar, nonDTI pars; default=OFF
 
 	// for random number generation
@@ -1009,6 +1064,16 @@ int main(int argc, char *argv[]) {
 			NO_NONDTI_SEARCH = 1;
 			iarg++ ; continue ;
 		}
+
+      if( strcmp(argv[iarg],"-dti_list") == 0 ){
+			iarg++ ; 
+			if( iarg >= argc ) 
+				ERROR_exit("Need argument after '-dti_list'");
+         dti_listname = strdup(argv[iarg]) ;
+
+			iarg++ ; continue ;
+		}
+
 
 		if( strcmp(argv[iarg],"-algopt") == 0 ){
 			iarg++ ; 
@@ -1395,16 +1460,16 @@ int main(int argc, char *argv[]) {
          Free_Network(net); net = NULL;
          
          INFO_message(
-                      "All done. Demo graph dset is called toy.niml.dset."
-                      "graph dset with external network spec is toy.link.niml.dset\n"
-                      "Try:\n"
-                      "       suma -gdset toy.link.niml.dset\n\n"
-                      "* Open a new controller (ctrl+n), switch states ('>') to\n"
-                      "see graph dset in complementary forms.\n"
-                      "* Open 'Surface Controller' to colorize graph data, etc.\n"
-                      "Interacting with such data is possible, but not \n"
-                      "yet documented. This will come soon.\n"
-                      );   
+                 "All done. Demo graph dset is called toy.niml.dset."
+                 "graph dset with external network spec is toy.link.niml.dset\n"
+                 "Try:\n"
+                 "       suma -gdset toy.link.niml.dset\n\n"
+                 "* Open a new controller (ctrl+n), switch states ('>') to\n"
+                 "see graph dset in complementary forms.\n"
+                 "* Open 'Surface Controller' to colorize graph data, etc.\n"
+                 "Interacting with such data is possible, but not \n"
+                 "yet documented. This will come soon.\n"
+                 );   
          exit(0);
       }*/
       
@@ -1413,7 +1478,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
    
-   // * * * * * * * * * * * * * * check HARDI vs DTI * * * * * * * * * * * * * *
+   // * * * * * * * * * * * * * * check HARDI vs DTI * * * * * * * * * * * *
 
    
    if( ARE_OPTS_IN ) {
@@ -1467,11 +1532,13 @@ int main(int argc, char *argv[]) {
       }
    }
 
-
-
-
-   if (DEF_DTI && !infix){
+   if (DEF_DTI && !(infix || dti_listname) ){
       ERROR_exit("Looks like DTI, but -dti_in was NULL.\n") ;
+		exit(5);
+   }
+
+   if ( infix && dti_listname ) {
+      ERROR_exit("Pick using either '-dti_listname' *or* '-dti_in'.\n") ;
 		exit(5);
    }
 
@@ -1481,8 +1548,8 @@ int main(int argc, char *argv[]) {
 		exit(5);
    }
 
-   if ( infix && ( hardi_dir || hardi_pars || hardi_gfa ) ) {
-      ERROR_exit("Looks like a combo of -dti_in and -hardi_* options was used.\n") ;
+   if ( (infix  || dti_listname) && ( hardi_dir || hardi_pars || hardi_gfa )) {
+      ERROR_exit("Looks like a combo of -dti_* and -hardi_* was used.\n") ;
 		exit(5);
    }
 
@@ -1501,18 +1568,18 @@ int main(int argc, char *argv[]) {
          ERROR_exit("in '-mode %s', one needs '-mini_num D' with D>0 as well.\n",
                     list_modes[TR_MODE]);
 
-   if( TR_MODE==1 || TR_MODE==2 ) // minip
+   if( (TR_MODE==1) || (TR_MODE==2) ) // minip
       if(!insetUC)
          ERROR_exit("ERROR: in '-mode %s', one needs '-uncert FILE' as well.\n",
                        list_modes[TR_MODE]);
    
-   if( TR_MODE==0 && insetUC )
+   if( (TR_MODE==0) && insetUC )
       ERROR_exit("ERROR: in '-mode %s', one doesn't use '-uncert FILE'.\n"
                     "\t--> Do you mean to be using '-mode %s' or '-mode %s', "
                     "which require uncertainty?\n",
                     list_modes[TR_MODE],list_modes[1],list_modes[2]);
 
-   if( TR_MODE==2 && MINI_PROB_NM )
+   if( (TR_MODE==2) && MINI_PROB_NM )
       ERROR_exit("ERROR: in '-mode %s', one doesn't assign '-mini_num' values.\n",
                  list_modes[TR_MODE]);
 
@@ -1520,10 +1587,217 @@ int main(int argc, char *argv[]) {
       ERROR_exit("ERROR: in '-mode %s', one doesn't assign '-logic' values.\n",
                  list_modes[TR_MODE]);
 
-   // ** * ** * ** * ** * figure out size of vec and scal files * ** * ** * ** *
+   // ** * ** * ** * ** * figure out size of vec and scal files * ** * ** *
 
    if(DEF_DTI) { 
-      
+       if( dti_listname ) {
+         char **NameVEC=NULL;
+         char *NameXF=NULL;
+         char **NameSCAL=NULL;
+         char **NameP=NULL; // 4 of these
+
+         NameVEC = calloc( N_dti_vect,sizeof(NameVEC));  
+         for(i=0 ; i<N_dti_vect ; i++) 
+            NameVEC[i] = calloc( 100,sizeof(char)); 
+         NameSCAL = calloc( N_dti_scal,sizeof(NameSCAL));  
+         for(i=0 ; i<N_dti_scal ; i++) 
+            NameSCAL[i] = calloc( 100,sizeof(char)); 
+         NameP = calloc( N_plus_dtifile,sizeof(NameP));  
+         for(i=0 ; i<N_plus_dtifile ; i++) 
+            NameP[i] = calloc( 100,sizeof(char)); 
+         NameXF = (char *)calloc(100, sizeof(char)); 
+
+         if( (NameVEC == NULL) || (NameSCAL == NULL) ||
+             (NameXF == NULL) || (NameP == NULL)  ) {
+				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+				exit(126);
+			}
+		  
+         if (!(nel = ReadDTI_inputs(dti_listname))) {
+				ERROR_message("Failed to read options in %s\n",
+                           dti_listname);
+				exit(19);
+			}
+         
+			if (NI_getDTI_inputs( nel,
+                               NameVEC,
+                               NameXF,
+                               NameSCAL,
+                               NameP,
+                               &EXTRAFILE, &PARS_TOP)) {
+				ERROR_message("Failed to get DTI list of files.");
+				exit(1);
+			}
+			NI_free_element(nel); nel=NULL;
+         printf("extrafile:%d , string = %s\n",EXTRAFILE,NameXF );
+
+
+         if ( EXTRAFILE )
+            PARS_BOT = 0;
+         PARS_N = PARS_TOP -1 + EXTRAFILE;
+         Noutmat = 3 + 2*(PARS_N); // number of output matrices in GRID file
+         // ParLab has length Noutmat
+         // param_grid has 2*PARS_N+1 = Noutmat-2 blocks
+         
+         insetPARS = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *) 
+                                                 * PARS_TOP);
+         if(  (insetPARS == NULL)  ){
+            fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+            exit(123);
+         }
+
+         fprintf(stderr,"SCALAR FINDINGS:\n\t");
+         if( EXTRAFILE ) {
+            insetPARS[0] = THD_open_dataset(NameXF);
+            if( (insetPARS[0] == NULL ) )
+               ERROR_exit("Can't open listed dataset '%s': for extra set.",
+                          NameXF);
+            DSET_load(insetPARS[0]) ; CHECK_LOAD_ERROR(insetPARS[0]) ;
+            snprintf(wild_names[0],31,"%s", "XF"); // default eXtraFile name
+            fprintf(stderr," Extra file '%s' to be labeled '%s'\n\t",
+                    NameXF,wild_names[0]);
+            // set uncert of this param to be ~2% of max, unless user
+            // expresses value
+            if( !USER_UNC_FA )
+               unc_minfa_std*= THD_subbrick_max( insetPARS[0] , 0, 1);
+         }
+
+         for( ii=0 ; ii<N_dti_scal ; ii++) {
+            insetPARS[1+ii] = THD_open_dataset(NameSCAL[ii]);
+            if( (insetPARS[1+ii] == NULL ) )
+               ERROR_exit("Can't open listed dataset '%s': for required scalar.",
+                          NameSCAL[ii]);
+            DSET_load(insetPARS[1+ii]) ; CHECK_LOAD_ERROR(insetPARS[1+ii]) ;
+            snprintf(wild_names[1+ii],31,"%s", DTI_SCAL_INS[ii]); // default eXtraFile name
+            fprintf(stderr," Found file '%s' to be labeled '%s'\n\t",
+                    NameSCAL[ii],wild_names[1+ii]);
+         }
+
+         // for RD
+         insetPARS[N_dti_scal+1] = EDIT_empty_copy(insetPARS[PARS_BOT] ) ; 
+         snprintf(wild_names[N_dti_scal+1],31,"%s", "RD");
+         
+         jj = 0;
+         for( ii=0 ; ii<N_plus_dtifile ; ii++) 
+            if( strcmp(NameP[ii],"\0") ) {
+               fprintf(stderr,"TESTING NAMEP: T=%d, %s",(NameP[ii] != "\0"),NameP[ii]);
+               jj++;
+               i = N_dti_scal + jj + 1; //extra plus one because of RD getting added
+               insetPARS[i] = THD_open_dataset(NameP[ii]);
+               if( (insetPARS[i] == NULL ) )
+                  ERROR_exit("Can't open [%d]-listed dataset '%s': for additional scalar.",
+                             ii,NameP[ii]);
+               DSET_load(insetPARS[i]) ; CHECK_LOAD_ERROR(insetPARS[i]) ;
+               snprintf(wild_names[i],31,"%s", DTI_PLUS_INS[ii]); // default eXtraFile name
+               fprintf(stderr," Found file '%s' to be labeled '%s'\n\t",
+                       NameP[ii], wild_names[i]);
+            }
+         
+         ParLab = (char **)calloc(Noutmat, sizeof(char *));
+         for (j=0; j<Noutmat; ++j) 
+            ParLab[j] = (char *)calloc(32, sizeof(char));
+         if( (ParLab == NULL) ) {
+            fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+            exit(121);
+         }
+         
+         ParLab[0] = strdup("NT");
+         ParLab[1] = strdup("fNT");
+         ParLab[2] = strdup("NV");
+         for( i=PARS_BOT ; i<PARS_TOP ; i++ ){
+            snprintf(ParLab[1+2*(i+EXTRAFILE)],31,"%s", wild_names[i]);
+            snprintf(ParLab[1+2*(i+EXTRAFILE)+1],31,"s%s", wild_names[i]);
+         }
+         
+         if ( insetPARS[PARS_BOT] ) {
+            Nvox = DSET_NVOX(insetPARS[PARS_BOT]) ;
+
+            Dim = (int *)calloc(3, sizeof(int)); 
+            Dim[0] = DSET_NX(insetPARS[PARS_BOT]); 
+            Dim[1] = DSET_NY(insetPARS[PARS_BOT]); 
+            Dim[2] = DSET_NZ(insetPARS[PARS_BOT]); 
+            Ledge[0] = fabs(DSET_DX(insetPARS[PARS_BOT])); 
+            Ledge[1] = fabs(DSET_DY(insetPARS[PARS_BOT])); 
+            Ledge[2] = fabs(DSET_DZ(insetPARS[PARS_BOT])); 
+            Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); 
+            Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
+            Orig[2] = DSET_ZORG(insetPARS[PARS_BOT]);
+            
+            // this stores the original data file orientation for later use,
+            // as well since we convert everything to RAI temporarily, as
+            // described below
+            voxel_order = (char *)calloc(4, sizeof(char)); 
+            TV_switch = (int *)calloc(3, sizeof(int)); 
+            voxel_order[0]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->xxorient][0];
+            voxel_order[1]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->yyorient][0];
+            voxel_order[2]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->zzorient][0];
+            voxel_order[3]='\0';
+            
+            headerDTI.voxel_order[0]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->xxorient][0]; // @)
+            headerDTI.voxel_order[1]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->yyorient][0];
+            headerDTI.voxel_order[2]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->zzorient][0];
+            
+            for( i=0 ; i<3 ; i++) {
+               headerDTI.dim[i] = Dim[i];
+               headerDTI.voxel_size[i] = Ledge[i];
+               // will want this when outputting file later for TrackVis.
+               TV_switch[i] = !(dset_or[i]==voxel_order[i]);
+            }  
+         }
+
+         {
+            INFO_message("Calculating RD");
+            float *temp_arr=NULL;
+            temp_arr = (float *)calloc(Nvox, sizeof(float)); 
+            if(( temp_arr== NULL)) {
+               fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+               exit(122);
+            }
+
+            ii = 0;
+            for( k=0 ; k<Dim[2] ; k++ ) 
+               for( j=0 ; j<Dim[1] ; j++ ) 
+                  for( i=0 ; i<Dim[0] ; i++ ) {
+                     temp_arr[ii] = 0.5*(3.0*THD_get_voxel(insetPARS[N_dti_scal-1],ii,0)-
+                                         THD_get_voxel(insetPARS[N_dti_scal],ii,0));
+                     ii++;
+                  }
+            EDIT_substitute_brick(insetPARS[N_dti_scal+1], 0, MRI_float, temp_arr);
+            temp_arr = NULL; free(temp_arr);
+         }
+         
+         
+         insetVECS = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *) * 3 );
+         if(  (insetVECS == NULL)  ){
+            fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+            exit(123);
+         }
+
+         for( ii=0 ; ii<N_dti_vect ; ii++) {
+            insetVECS[ii] = THD_open_dataset(NameVEC[ii]);
+            if( (insetVECS[ii] == NULL ) )
+               ERROR_exit("Can't open dataset '%s': for required vector dir.",
+                          NameVEC[ii]);
+            DSET_load(insetVECS[ii]) ; CHECK_LOAD_ERROR(insetVECS[ii]) ;
+            fprintf(stderr," Found file '%s' to be labeled '%s'\n\t",
+                    NameVEC[ii],DTI_VECT_INS[ii]);
+         }
+            
+         
+         for(i=0 ; i<N_dti_vect ; i++)
+            free(NameVEC[i]);
+         free(NameVEC);
+         for(i=0 ; i<N_dti_scal ; i++) 
+            free(NameSCAL[i]);
+         free(NameSCAL);
+         for(i=0 ; i<N_plus_dtifile ; i++) 
+            free(NameP[i]);
+         free(NameP);
+         free(NameXF);
+
+      }
+      else {
+
       // GLOB for file names, because we don't know endings/types, nor
       // number for HARDI
       sprintf(tprefix,"%s*",infix);
@@ -1656,7 +1930,8 @@ int main(int argc, char *argv[]) {
             Dim = (int *)calloc(3, sizeof(int)); 
             Dim[0] = DSET_NX(insetPARS[PARS_BOT]); Dim[1] = DSET_NY(insetPARS[PARS_BOT]); 
             Dim[2] = DSET_NZ(insetPARS[PARS_BOT]); 
-            Ledge[0] = fabs(DSET_DX(insetPARS[PARS_BOT])); Ledge[1] = fabs(DSET_DY(insetPARS[PARS_BOT])); 
+            Ledge[0] = fabs(DSET_DX(insetPARS[PARS_BOT])); 
+            Ledge[1] = fabs(DSET_DY(insetPARS[PARS_BOT])); 
             Ledge[2] = fabs(DSET_DZ(insetPARS[PARS_BOT])); 
             Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
             Orig[2] = DSET_ZORG(insetPARS[PARS_BOT]);
@@ -1761,12 +2036,6 @@ int main(int argc, char *argv[]) {
             if(nsort)
                insetVECS[ii+j] = THD_open_dataset(wglob[isrt[0]]);   
             
-            //for (i=0; i<nsort; ++i) {
-            //  fprintf(stdout,"TESTSORT[%d]:\t %s\t\t%s\n",i,wsort[i], 
-            //  wglob[isrt[i]]);
-            // fprintf(stdout,"%s\n", wsort[i]);
-            // }
-            
             if (isrt) free(isrt); isrt = NULL;
             for (i=0; i<nglob; ++i) if (wsort[i]) free(wsort[i]);
             free(wsort); wsort = NULL;
@@ -1787,6 +2056,44 @@ int main(int argc, char *argv[]) {
          fprintf(stderr,"'%s'\t",DTI_VECT_INS[j]);
        }
        fprintf(stderr,"\n");
+      }
+
+      // setting values for either type of input data:
+      /*    if ( insetPARS[PARS_BOT] ) {
+            Nvox = DSET_NVOX(insetPARS[PARS_BOT]) ;
+            
+            Dim = (int *)calloc(3, sizeof(int)); 
+            Dim[0] = DSET_NX(insetPARS[PARS_BOT]); Dim[1] = DSET_NY(insetPARS[PARS_BOT]); 
+            Dim[2] = DSET_NZ(insetPARS[PARS_BOT]); 
+            Ledge[0] = fabs(DSET_DX(insetPARS[PARS_BOT])); 
+            Ledge[1] = fabs(DSET_DY(insetPARS[PARS_BOT])); 
+            Ledge[2] = fabs(DSET_DZ(insetPARS[PARS_BOT])); 
+            Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
+            Orig[2] = DSET_ZORG(insetPARS[PARS_BOT]);
+            
+            // this stores the original data file orientation for later use,
+            // as well since we convert everything to RAI temporarily, as
+            // described below
+            voxel_order = (char *)calloc(4, sizeof(char)); 
+            TV_switch = (int *)calloc(3, sizeof(int)); 
+            voxel_order[0]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->xxorient][0];
+            voxel_order[1]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->yyorient][0];
+            voxel_order[2]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->zzorient][0];
+            voxel_order[3]='\0';
+            
+            headerDTI.voxel_order[0]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->xxorient][0]; // @)
+            headerDTI.voxel_order[1]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->yyorient][0];
+            headerDTI.voxel_order[2]=ORIENT_typestr[insetPARS[PARS_BOT]->daxes->zzorient][0];
+            
+            for( i=0 ; i<3 ; i++) {
+               headerDTI.dim[i] = Dim[i];
+               headerDTI.voxel_size[i] = Ledge[i];
+               // will want this when outputting file later for TrackVis.
+               TV_switch[i] = !(dset_or[i]==voxel_order[i]);
+            }  
+      }*/
+
+
    }
    else { // HARDI section
       
@@ -2050,7 +2357,7 @@ int main(int argc, char *argv[]) {
 	}
 
    if(nvox_unc && DETNET && ( MINI_PROB_NM == 0 ) ){ // @)
-      ERROR_message("Don't -detnet AND -uncert together without -mini_prob.\n");
+      ERROR_message("Don't -detnet AND -uncert together without -mini_num.\n");
       exit(1);
    }
 

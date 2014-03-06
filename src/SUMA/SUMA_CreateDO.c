@@ -3440,6 +3440,7 @@ float *SUMA_TDO_Points_Center(SUMA_TractDO *tdo, float *here)
    
    SUMA_RETURN(here);
 }
+
 float *SUMA_TDO_XYZ_Range(SUMA_TractDO *tdo, float *here) 
 {
    static char FuncName[]={"SUMA_TDO_XYZ_Range"};
@@ -3576,6 +3577,205 @@ float *SUMA_MDO_XYZ_Range(SUMA_MaskDO *MDO, float *here)
       }
    } else {
       SUMA_S_Err("Not ready for MDO->type=%s", MDO->mtype);
+   }
+   SUMA_RETURN(here);
+}
+
+float *SUMA_ADO_Center(SUMA_ALL_DO *ado, float *here)
+{
+   static char FuncName[]={"SUMA_ADO_Center"};
+   static int icall=0;
+   static float fv[10][3];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   here[0] = here[1] = here[2] =  0.0;
+   
+   if (!ado) SUMA_RETURN(here);
+
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+         here[0] = SO->Center[0]; 
+         here[1] = SO->Center[1];  
+         here[2] = SO->Center[2];
+         SUMA_RETURN(here);
+         break; } 
+      case TRACT_type: {
+         SUMA_TractDO *tdo = (SUMA_TractDO *)ado;
+         SUMA_TRACT_SAUX *TSaux=NULL;
+         if (!tdo || !tdo->net || !tdo->net->tbv 
+             || !(TSaux = TDO_TSAUX(tdo))) SUMA_RETURN(here);
+         if (!TSaux->Center) {
+            TSaux->Center = (float *)SUMA_malloc(3*sizeof(float));
+            SUMA_TDO_Points_Center(tdo, TSaux->Center);
+         }
+         here[0] = TSaux->Center[0]; 
+         here[1] = TSaux->Center[1];
+         here[2] = TSaux->Center[2];
+         SUMA_RETURN(here);
+         break; }
+      case MASK_type: {
+         SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+         SUMA_MDO_Center(mdo, here);
+         SUMA_RETURN(here);
+         break;}
+      case VO_type: {
+         SUMA_VolumeObject *vo = (SUMA_VolumeObject *)ado;
+         SUMA_VO_Grid_Center(vo, here);
+         SUMA_RETURN(here);
+         break; }
+      case GRAPH_LINK_type: {
+         char *variant = NULL;
+         SUMA_DSET *dset=NULL;
+         SUMA_GRAPH_SAUX *GSaux=NULL;
+         if(!(dset=SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado))){
+            SUMA_S_Err("Gildaaaaaaaaaaaaaaaaaa");
+            SUMA_RETURN(here);
+         }
+         variant = SUMA_ADO_variant(ado);
+         if (!SUMA_IS_REAL_VARIANT(variant) ||
+             !(GSaux = SDSET_GSAUX(dset))) {
+            SUMA_RETURN(here);
+         }
+         if (!strcmp(variant,"G3D")) {   
+            if (!GSaux->Center_G3D) {
+               GSaux->Center_G3D = (float *)SUMA_malloc(3*sizeof(float));
+               SUMA_GDSET_XYZ_Center(dset, variant, GSaux->Center_G3D);
+            }
+            here[0] = GSaux->Center_G3D[0];
+            here[1] = GSaux->Center_G3D[1];
+            here[2] = GSaux->Center_G3D[2];
+            SUMA_RETURN(here);
+         } else if (!strcmp(variant,"GMATRIX")) {   
+            if (!GSaux->Center_GMATRIX) {
+               GSaux->Center_GMATRIX = (float *)SUMA_malloc(3*sizeof(float));
+               SUMA_GDSET_XYZ_Center(dset, variant, GSaux->Center_GMATRIX);
+            }
+            here[0] = GSaux->Center_GMATRIX[0];
+            here[1] = GSaux->Center_GMATRIX[1];
+            here[2] = GSaux->Center_GMATRIX[2];
+            SUMA_RETURN(here);
+         } else {
+            SUMA_S_Err("Not ready for variant %s", variant);
+            SUMA_RETURN(here);
+         }
+         break; }
+      default:
+         SUMA_S_Err("Not ready to return center for type %s", ADO_TNAME(ado));
+         SUMA_RETURN(here);
+         break;
+   }
+   SUMA_RETURN(here);
+}
+
+float *SUMA_ADO_Range(SUMA_ALL_DO *ado, float *here)
+{
+   static char FuncName[]={"SUMA_ADO_Range"};
+   static int icall=0;
+   static float fv[10][6];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!here) {
+      ++icall; if (icall > 9) icall = 0;
+      here = (float *)(&fv[icall]);
+   }
+   /* An error inspiring range */
+   here[0] = here[2] = here[4] =   2000000000000;
+   here[1] = here[3] = here[5] =  -2000000000000;
+   
+   if (!ado) SUMA_RETURN(here);
+
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado;
+         here[0] = SO->MinDims[0]; 
+         here[1] = SO->MaxDims[0]; 
+         here[2] = SO->MinDims[1];  
+         here[3] = SO->MaxDims[1];  
+         here[4] = SO->MinDims[2];
+         here[5] = SO->MaxDims[2];
+         SUMA_RETURN(here);
+         break; } 
+      case TRACT_type: {
+         SUMA_TractDO *tdo = (SUMA_TractDO *)ado;
+         SUMA_TRACT_SAUX *TSaux=NULL;
+         if (!tdo || !tdo->net || !tdo->net->tbv 
+             || !(TSaux = TDO_TSAUX(tdo))) SUMA_RETURN(here);
+         if (!TSaux->Range) {
+            TSaux->Range = (float *)SUMA_malloc(6*sizeof(float));
+            SUMA_TDO_XYZ_Range(tdo, TSaux->Range);
+         }
+         here[0] = TSaux->Range[0]; 
+         here[1] = TSaux->Range[1];
+         here[2] = TSaux->Range[2];
+         here[3] = TSaux->Range[3];
+         here[4] = TSaux->Range[4];
+         here[5] = TSaux->Range[5];
+         SUMA_RETURN(here);
+         break; }
+      case MASK_type: {
+         SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+         SUMA_MDO_XYZ_Range(mdo, here);
+         SUMA_RETURN(here);
+         break;}
+      case VO_type: {
+         SUMA_VolumeObject *vo = (SUMA_VolumeObject *)ado;
+         SUMA_VO_XYZ_Range(vo, here);
+         SUMA_RETURN(here);
+         break; }
+      case GRAPH_LINK_type: {
+         char *variant = NULL;
+         SUMA_DSET *dset=NULL;
+         SUMA_GRAPH_SAUX *GSaux=NULL;
+         if(!(dset=SUMA_find_GLDO_Dset((SUMA_GraphLinkDO *)ado))){
+            SUMA_S_Err("Gildaaaaaaaaaaaaaaaaaa");
+            SUMA_RETURN(here);
+         }
+         variant = SUMA_ADO_variant(ado);
+         if (!SUMA_IS_REAL_VARIANT(variant) ||
+             !(GSaux = SDSET_GSAUX(dset))) {
+            SUMA_RETURN(here);
+         }
+         if (!strcmp(variant,"G3D")) {   
+            if (!GSaux->Range_G3D) {
+               GSaux->Range_G3D = (float *)SUMA_malloc(6*sizeof(float));
+               SUMA_GDSET_XYZ_Range(dset, variant, GSaux->Range_G3D);
+            }
+            here[0] = GSaux->Range_G3D[0];
+            here[1] = GSaux->Range_G3D[1];
+            here[2] = GSaux->Range_G3D[2];
+            here[3] = GSaux->Range_G3D[3];
+            here[4] = GSaux->Range_G3D[4];
+            here[5] = GSaux->Range_G3D[5];
+            SUMA_RETURN(here);
+         } else if (!strcmp(variant,"GMATRIX")) {   
+            if (!GSaux->Range_GMATRIX) {
+               SUMA_GDSET_XYZ_Range(dset, variant, GSaux->Range_GMATRIX);
+            }
+            here[0] = GSaux->Range_GMATRIX[0];
+            here[1] = GSaux->Range_GMATRIX[1];
+            here[2] = GSaux->Range_GMATRIX[2];
+            here[3] = GSaux->Range_GMATRIX[3];
+            here[4] = GSaux->Range_GMATRIX[4];
+            here[5] = GSaux->Range_GMATRIX[5];
+            SUMA_RETURN(here);
+         } else {
+            SUMA_S_Err("Not ready for variant %s", variant);
+            SUMA_RETURN(here);
+         }
+         break; }
+      default:
+         SUMA_S_Err("Not ready to return center for type %s", ADO_TNAME(ado));
+         SUMA_RETURN(here);
+         break;
    }
    SUMA_RETURN(here);
 }
@@ -8173,6 +8373,10 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          if (GSaux->DOCont) {
             SUMA_S_Warn("Have controller already. Keep it.");
          }
+         SUMA_ifree(GSaux->Center_G3D);
+         SUMA_ifree(GSaux->Range_G3D);
+         SUMA_ifree(GSaux->Center_GMATRIX);
+         SUMA_ifree(GSaux->Range_GMATRIX);
       } else {
          dset->Aux->FreeSaux = SUMA_Free_GSaux;
          dset->Aux->Saux = (void *)SUMA_calloc(1,sizeof(SUMA_GRAPH_SAUX));
@@ -8190,6 +8394,11 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          GSaux->net = NULL;
          GSaux->ShowBundles = 0;
          GSaux->ShowUncon = 0;
+         
+         GSaux->Center_G3D = NULL;
+         GSaux->Range_G3D = NULL;
+         GSaux->Center_GMATRIX = NULL;
+         GSaux->Range_GMATRIX = NULL;
       }
       
       SUMA_DrawDO_UL_FullMonty(GSaux->DisplayUpdates);
@@ -8245,6 +8454,8 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
          TSaux->PR = SUMA_New_Pick_Result(NULL);
       }
       SUMA_ifree(TSaux->tract_lengths);
+      SUMA_ifree(TSaux->Center);
+      SUMA_ifree(TSaux->Range);
    } else {
       tdo->FreeSaux = SUMA_Free_TSaux;
       tdo->Saux = (void *)SUMA_calloc(1,sizeof(SUMA_TRACT_SAUX));
@@ -8266,7 +8477,10 @@ SUMA_Boolean SUMA_AddTractSaux(SUMA_TractDO *tdo)
          SUMA_CreateSurfContStruct(SUMA_ADO_idcode((SUMA_ALL_DO *)tdo), 
                                    TRACT_type);
       TSaux->PR = SUMA_New_Pick_Result(NULL);
+      
+      SUMA_ifree(TSaux->Center);
       SUMA_ifree(TSaux->tract_lengths);
+      SUMA_ifree(TSaux->Range);
    }
 
    SUMA_LH("TSaux %p %p %p", TSaux->Overlays, TSaux->PR, TSaux->DOCont);
@@ -8640,6 +8854,11 @@ void SUMA_Free_GSaux(void *vSaux)
    if (Saux->thd) SUMA_DestroyNgrHashDatum(Saux->thd); Saux->thd = NULL;
    if (Saux->net) Saux->net = NULL; /* never free this pointer copy */
    
+   SUMA_ifree(Saux->Range_G3D);
+   SUMA_ifree(Saux->Center_G3D);
+   SUMA_ifree(Saux->Range_GMATRIX);
+   SUMA_ifree(Saux->Center_GMATRIX);
+   
    SUMA_ifree(Saux);
    return; 
 }
@@ -8673,6 +8892,10 @@ void SUMA_Free_TSaux(void *vSaux)
    
    if (Saux->PR) Saux->PR = SUMA_free_PickResult(Saux->PR);
    
+   SUMA_ifree(Saux->Center);
+   SUMA_ifree(Saux->Range);
+   SUMA_ifree(Saux->tract_lengths);
+
    SUMA_ifree(Saux);
    return; 
 }
