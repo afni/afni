@@ -315,7 +315,19 @@ if ( $was_censored ) then
     echo "TRs censored              : $ntr_censor"
     echo "censor fraction           : `ccalc $ntr_censor/$total_trs`"
     echo "num regs of interest      : $nint"
+else
+    # no censoring - just compute num TRs per regressor
+    set stim_trs = ()
+    foreach index ( `count -digits 1 0 $nm1` )
+        set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
+        set stim_trs = ( $stim_trs $st )
+    end
+    echo "num regs of interest      : $nint"
+    echo "num TRs per stim          : $stim_trs"
+endif
 
+# report per-stim censoring
+if ( $was_censored && $num_stim > 0 ) then
     # compute fractions of stimulus TRs censored in each
     set stim_trs = ()
     set stim_trs_censor = ()
@@ -336,19 +348,10 @@ if ( $was_censored ) then
         set stim_frac_censor = ( $stim_frac_censor $ff )
     end
 
-    echo "num TRs per stim          : $stim_trs"
+    echo "num TRs per stim (orig)   : $stim_trs"
     echo "num TRs censored per stim : $stim_trs_censor"
     echo "fraction TRs censored     : $stim_frac_censor"
     echo ""
-else
-    # no censoring - just compute num TRs per regressor
-    set stim_trs = ()
-    foreach index ( `count -digits 1 0 $nm1` )
-        set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
-        set stim_trs = ( $stim_trs $st )
-    end
-    echo "num regs of interest      : $nint"
-    echo "num TRs per stim          : $stim_trs"
 endif
 
 """
@@ -556,12 +559,12 @@ g_history = """
         - use 3 decimal places for TR censor fractions
    0.18 Apr 12, 2012: replace enumerate(), for backport to python 2.2
    0.19 May 01, 2012: added -prefix option; added censoring to 1dplot commands
-   0.20 May 09, 2012: accomodate more than 99 runs
+   0.20 May 09, 2012: accommodate more than 99 runs
    0.21 May 11, 2012: also output average censored motion (per TR)
    0.22 Jun 14, 2012: use afni -com instead of plugout_drive
                       (avoids issue on systems with multiple users)
                       Thanks to V Razdan and N Adleman for noting the issue.
-   0.23 Jun 25, 2012: ick, fixed uninitilaized cpad1,2 (if no censoring)
+   0.23 Jun 25, 2012: ick, fixed uninitialized cpad1,2 (if no censoring)
    0.24 Jul 17, 2012:
         - add checks for volreg and uncensored X-mat
         - probably init view from volreg
@@ -573,9 +576,13 @@ g_history = """
    0.30 Dec 26, 2013: max F (and for cluster jump) are masked, if possible
    0.31 Dec 27, 2013: also output censored TRs per run, and fractions
    0.32 Feb 10, 2014: show TRs per run, applied and censored
+   0.33 Mar 06, 2014:
+        - if censoring, create X.stim.xmat.1D from uncensored matrix
+        - if no censor, still report num regs of interest and TRs per stim
+        - report per-stim censoring only with stim classes
 """
 
-g_version = "gen_ss_review_scripts.py version 0.32, February 10, 2014"
+g_version = "gen_ss_review_scripts.py version 0.33, March 6, 2014"
 
 g_todo_str = """
    - figure out template_space
@@ -1747,10 +1754,16 @@ class MyInterface:
       txt += \
         '# ------------------------------------------------------------\n'   \
         '# make non-basline X-matrix, if one is not already here\n'          \
+        'if ( $?xmat_uncensored ) then\n'                                    \
+        '    set xmat = $xmat_uncensored\n'                                  \
+        'else\n'                                                             \
+        '    set xmat = $xmat_regress\n'                                     \
+        'endif\n'                                                            \
+        '\n'                                                                 \
         'set xstim = %s\n'                                                   \
         'if ( ! -f $xstim ) then\n'                                          \
-        '   set reg_cols = `1d_tool.py -infile $xmat_regress -show_indices_interest`\n'\
-        '   1d_tool.py -infile $xmat_regress"[$reg_cols]" -overwrite -write $xstim\n'  \
+        '   set reg_cols = `1d_tool.py -infile $xmat -show_indices_interest`\n'\
+        '   1d_tool.py -infile $xmat"[$reg_cols]" -overwrite -write $xstim\n'  \
         'endif\n' % self.cvars.xstim
 
       self.text_basic += txt
