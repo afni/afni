@@ -6567,7 +6567,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
       case MASK_type: {
          static int ncnt = 0;
          if (!ncnt) {
-            SUMA_S_Warn("Nothing being done here."); ++ncnt;
+            SUMA_LH("Nothing to be done here."); ++ncnt;
          }
          SUMA_RETURN(YUP);
          break; }

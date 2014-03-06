@@ -65,6 +65,32 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added option to make rendered slices jump to new cross hair location",
+   "See new function SUMA_VO_set_slices_XYZ() for details"
+ },
+  
+ { 5, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Fixed initial setting of masks to be relative to center of tracts object",
+   "This required creation of SUMA_ADO_Center() and SUMA_ADO_Range() functions."
+ },
+  
+ { 5, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Opening surf controller after selecting voxel on slice caused crash in demo",
+   "This happened in FATCAT_DEMO's Do_09* script, example 1 (SET1). While I am\n"
+   "still unsure what caused the Bad Window error, I now trap for it and keep\n"
+   "the program from getting shutdown. Some day I'll track the source of the\n"
+   "message, for now, recovery seems complete."
+ },
+  
+ { 4, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Surface-based InstaCorr stopped refreshing with new click.",
+   "The problem was caused by the failure to update the copies of I and \n"
+   "T columns in the overlay structure when a new dataset replaced an older\n"
+   "version. For the fix, search for 'ResetOverlay_Vecs' string, and see \n"
+   "function SUMA_DSET_ClearOverlay_Vecs()"
+ },
+  
  { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Secret option for Javier to make graph dsets display on top of everything",
    "The option is hidden for now, requiring the use of both -dev and \n"

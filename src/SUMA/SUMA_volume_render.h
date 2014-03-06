@@ -32,6 +32,8 @@ int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
                                              char *variant,int slider, 
                           GLfloat *tcorners, GLfloat *corners, GLfloat *slc_cen, 
                           float *PlEq, int voxcen );
+float* SUMA_XYZ_to_gui_slices(SUMA_VolumeElement **VE, int ive, 
+                                    float *xyz, float *here);
 SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO, 
                                     SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO, 
@@ -68,4 +70,5 @@ SUMA_VolumeObject *SUMA_VOof3DTextureNIDOnel(NI_element *nel);
 SUMA_Boolean SUMA_Colorize_dset(SUMA_DSET *dset, 
                                  byte *tex3ddata, byte colopt);
 int iPlane2Dim(int iplane);
+int SUMA_VO_SlicesAtCrosshair(SUMA_VolumeObject *VO);
 #endif

@@ -3759,6 +3759,23 @@ int SUMA_XtErr_handler( Display *d , XErrorEvent *x ){
 }
 
 
+/* Report error but don't die */
+int SUMA_XErrHandler( Display *d , XErrorEvent *x )
+{
+   static char FuncName[]={"SUMA_XErrHandler"};
+   char buf[256] = "(null)" ;
+   
+   SUMA_ENTRY;
+   
+   if( x != NULL && d != NULL ) XGetErrorText( d,x->error_code , buf,255 ) ;
+   SUMA_S_Warn( "Intercepted X11 error: %s\n"                
+                "Will attempt to proceed but trouble might ensue.",buf) ;
+   SUMA_DUMP_TRACE("Trace At Xerr");
+  
+   SUMA_RETURN(0) ;
+}
+
+
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 {
    static char FuncName[]={"SUMA_X_SurfaceViewer_Create"};
@@ -3816,6 +3833,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       SUMAg_CF->X->DPY_controller1 = SUMAg_SVv[ic].X->DPY;
       NewCreation = YUP;
       Inherit = NOPE;
+      
+      (void)XSetErrorHandler(SUMA_XErrHandler);
+      
    } else {/* not the first call, new controller is required */
       SUMA_LH("Entered subsequent viewers creation");
       ic = 0;
@@ -9697,7 +9717,7 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
 
    SUMA_LH("Slice Controls");
    {
-      Widget rc, rcv, pb;
+      Widget rc, rcv, pb, rch;
       
       /* put a frame */
       SurfCont->Slice_fr = XtVaCreateWidget ("dialog",
@@ -9738,11 +9758,17 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                   SUMA_VO_N_Slices((SUMA_VolumeObject *)ado, "Co"), "Co", ado,
                            NULL, (void *)ado, 
                            SurfCont->Co_slc);
-      XtManageChild(rcv);
-
+      
+      rch = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
       SUMA_BuildMenuReset(0);
       SurfCont->VTransModeMenu = SUMA_Alloc_Menu_Widget(SW_N_SurfCont_ATrans);
-      SUMA_BuildMenu (  rcv, XmMENU_OPTION, 
+      SUMA_BuildMenu (  rch, XmMENU_OPTION, 
                         "Trn", '\0', YUP, VTransMode_Menu, 
                         (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
                         "Choose the transparency for these slices.",
@@ -9750,9 +9776,25 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                         SurfCont->VTransModeMenu );
       XtManageChild (SurfCont->VTransModeMenu->mw[SW_SurfCont_ATrans]);
       
+      /* Now for the toggle button */
+      SurfCont->VSliceAtXYZ_tb = XtVaCreateManagedWidget("Slices At +", 
+                        xmToggleButtonWidgetClass, rch, NULL);
+      XtAddCallback (SurfCont->VSliceAtXYZ_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_VSliceAtXYZ_toggled, ado);
+      MCW_register_hint(SurfCont->VSliceAtXYZ_tb,   
+                        "Make slices jump to crosshair location");
+      MCW_register_help(SurfCont->VSliceAtXYZ_tb,   
+                        "Make slices jump to crosshair location");
+
+      SUMA_SET_SELECT_COLOR(SurfCont->VSliceAtXYZ_tb);
+      XmToggleButtonSetState (SurfCont->VSliceAtXYZ_tb, 
+                  SUMA_VO_SlicesAtCrosshair((SUMA_VolumeObject *)ado) , NOPE);
+      
+      XtManageChild (rch);
+      XtManageChild (rcv);
       XtManageChild (SurfCont->Slice_fr);
    }
-   
+
    SUMA_LH("Volume Rendering Controls");
    {
       Widget rc, rcv, pb;

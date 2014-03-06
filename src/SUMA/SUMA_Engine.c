@@ -2543,6 +2543,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                sv->Ch->c_noVisX[2]=sv->Ch->c[2];
             }
 
+            /* Make slices go to same location */
+            SUMA_VO_set_slices_XYZ(NULL, sv->Ch->c_noVisX);
+      
             /* Attempt to update crosshair corrdinates 
                in open surface controllers */
             SUMA_UpdateXhairField(sv); 

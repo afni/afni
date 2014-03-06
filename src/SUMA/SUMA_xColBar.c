@@ -4267,6 +4267,18 @@ int SUMA_SetShowSlice(SUMA_VolumeObject *vdo, char *variant, int val)
          #endif        
       }
       SUMA_LH("ShowVrSlc now %d", VSaux->ShowVrSlc);
+   } else if (!strcmp(variant, "AtXYZ")) {
+      if (VSaux->SlicesAtCrosshair != val) {
+         VSaux->SlicesAtCrosshair = val;
+         SUMA_Remixedisplay(ado);
+         #if SUMA_SEPARATE_SURF_CONTROLLERS
+            SUMA_UpdateColPlaneShellAsNeeded(ado);
+         #endif        
+      }
+      SUMA_LH("SlicesAtCrosshair now %d", VSaux->SlicesAtCrosshair);
+   } else {
+      SUMA_S_Err("And what is variant %s for?", variant);
+      SUMA_RETURN(NOPE);
    }
    SUMA_RETURN(1);
 }
@@ -12164,7 +12176,7 @@ SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado)
          static int ncnt;
          if (!ncnt) {
             ++ncnt;
-            SUMA_S_Warn("Anything for masks?");
+            SUMA_LH("Nothing to be done for masks here");
          }
          break; }
       case VO_type: {
@@ -13984,7 +13996,7 @@ float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here)
    
    if (!here) {
       ++icall; if (icall > 9) icall = 0;
-      here = (float *)(&fv[icall]);;
+      here = (float *)(&fv[icall]);
    }
       
    SUMA_GDSET_EdgeXYZ_eng(dset, isel, variant, here);

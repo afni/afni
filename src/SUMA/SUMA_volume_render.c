@@ -738,6 +738,7 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
          SurfCont->Co_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Co")/2.0); 
          
          VSaux->ShowVrSlc = 0;
+         VSaux->SlicesAtCrosshair = 0;
       } else {
          SUMA_S_Err("Failed to initialize volume display");
       }
@@ -1323,6 +1324,134 @@ int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
    SUMA_RETURN(dim);
 }
 
+/* Take an XYZ in RAI and return Ax, Sa, and Co GUI slider positions */
+float* SUMA_XYZ_to_gui_slices(SUMA_VolumeElement **VE, int ive, 
+                                    float *xyz, float *here)
+{
+   static char FuncName[]={"SUMA_XYZ_to_gui_slices"};
+   static float n[10][3];
+   int icall=0;
+   char *orcode;
+   int dim=0, nslc=0, *dims;
+   float I[3]={0.0, 0.0, 0.0}, C[3]={0.0, 0.0, 0.0};
+   SUMA_DSET *dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+    
+   SUMA_ENTRY;  
+   
+   if (icall > 9) icall=0;
+   else ++icall;
+   
+   if (!here) here = (float *)(n[icall]);
+   here[0] = here[1] = here[2] = -1;
+   
+   if (ive < 0) ive = 0;
+   if (!xyz || !(dset = SUMA_VE_dset(VE, ive)) || 
+       !(dims = SUMA_GetDatasetDimensions(dset)) ) {
+      SUMA_S_Err("no dset or no variant") ;
+      SUMA_RETURN(here);
+   }
+   
+   orcode = SUMA_Dset_orcode(dset);
+   if (orcode[0] == 'X') { SUMA_S_Err("No orcode"); SUMA_RETURN(here); }
+   
+   /* Change XYZ to I */
+   AFF44_MULT_I(I, VE[ive]->X2I, xyz);
+   
+   /* Get the slider values for A, S, C, in this order */
+   /* First the Ax slice number */
+   dim = 0;
+   if (orcode[0] == 'I' || orcode[0] == 'S') { 
+      if (orcode[0] == 'S') here[dim] = VE[ive]->Ni-1-SUMA_ROUND(I[0]);
+      else here[dim] = SUMA_ROUND(I[0]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Ni) here[dim] = VE[ive]->Ni-1;
+   } else if (orcode[1] == 'I' || orcode[1] == 'S') { 
+      if (orcode[1] == 'S') here[dim] = VE[ive]->Nj-1-SUMA_ROUND(I[1]);
+      else here[dim] = SUMA_ROUND(I[1]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Nj) here[dim] = VE[ive]->Nj-1;
+   } else if (orcode[2] == 'I' || orcode[2] == 'S') { 
+      if (orcode[2] == 'S') here[dim] = VE[ive]->Nk-1-SUMA_ROUND(I[2]);
+      else here[dim] = SUMA_ROUND(I[2]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;      
+   }
+   dim = 1;  /* Now look for Sag */
+   if (orcode[0] == 'R' || orcode[0] == 'L') { 
+      if (orcode[0] == 'L') here[dim] = VE[ive]->Ni-1-SUMA_ROUND(I[0]);
+      else here[dim] = SUMA_ROUND(I[0]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Ni) here[dim] = VE[ive]->Ni-1;
+   } else if (orcode[1] == 'R' || orcode[1] == 'L') { 
+      if (orcode[1] == 'L') here[dim] = VE[ive]->Nj-1-SUMA_ROUND(I[1]);
+      else here[dim] = SUMA_ROUND(I[1]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Nj) here[dim] = VE[ive]->Nj-1;
+   } else if (orcode[2] == 'R' || orcode[2] == 'L') { 
+      if (orcode[2] == 'L') here[dim] = VE[ive]->Nk-1-SUMA_ROUND(I[2]);
+      else here[dim] = SUMA_ROUND(I[2]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;      
+   } 
+   dim = 2;  /* Now look for Co */
+   if (orcode[0] == 'A' || orcode[0] == 'P') { 
+      if (orcode[0] == 'P') here[dim] = VE[ive]->Ni-1-SUMA_ROUND(I[0]);
+      else here[dim] = SUMA_ROUND(I[0]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Ni) here[dim] = VE[ive]->Ni-1;
+   } else if (orcode[1] == 'A' || orcode[1] == 'P') { 
+      if (orcode[1] == 'P') here[dim] = VE[ive]->Nj-1-SUMA_ROUND(I[1]);
+      else here[dim] = SUMA_ROUND(I[1]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Nj) here[dim] = VE[ive]->Nj-1;
+   } else if (orcode[2] == 'A' || orcode[2] == 'P') { 
+      if (orcode[2] == 'P') here[dim] = VE[ive]->Nk-1-SUMA_ROUND(I[2]);
+      else here[dim] = SUMA_ROUND(I[2]);
+      if (here[dim] < 0) here[dim] = 0;
+      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;      
+   }
+   SUMA_RETURN(here); 
+}
+
+/* Set slices of VO at location xyz */
+SUMA_Boolean SUMA_VO_set_slices_XYZ(SUMA_VolumeObject *VOu, float *xyz)
+{
+   static char FuncName[]={"SUMA_VO_set_slices_XYZ"};
+   float *slices;
+   int i;
+   SUMA_VOL_SAUX *VSaux=NULL;
+   SUMA_VolumeObject *VO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!xyz) SUMA_RETURN(NOPE);
+
+   for (i=0; i<SUMAg_N_DOv; ++i) {
+      if (VOu) VO = VOu;
+      else if (iDO_type(i) == VO_type) {
+         VO = (SUMA_VolumeObject *)iDO_ADO(i);
+      }else VO = NULL;
+      VSaux = (SUMA_VOL_SAUX *)VDO_VSAUX(VO);
+      if ((VO && VSaux->SlicesAtCrosshair) || VOu) { /* Do this if user
+                                               supplies volume or
+                                               if volumes request it */
+         slices = SUMA_XYZ_to_gui_slices(VO->VE, 0, xyz, NULL);
+         SUMA_LH("Jumping to slices Ax%f Sa%f Co%f", 
+                  slices[0], slices[1], slices[2]);
+         SUMA_set_slice((SUMA_ALL_DO *)VO, "Ax", 
+                                  slices, "EngXYZ", 0);
+         SUMA_set_slice((SUMA_ALL_DO *)VO, "Sa", 
+                                  slices+1, "EngXYZ", 0);
+         SUMA_set_slice((SUMA_ALL_DO *)VO, "Co", 
+                                  slices+2, "EngXYZ", 0);
+      }
+      if (VOu) break; 
+   }
+   SUMA_RETURN(YUP);
+}
+
 void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset, 
                            GLfloat *tcorners, GLfloat *corners, GLfloat *slc_cen,
                               int dim, int voxcen)
@@ -1534,6 +1663,7 @@ int SUMA_VO_SelectedSlice(SUMA_VolumeObject *vo, char *variant, float *scorners)
    
    SUMA_RETURN(nslc);
 }
+
 
 SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv)
 {
@@ -3728,3 +3858,11 @@ SUMA_VolumeObject *SUMA_VolumeObjectOfClipPlaneSurface(SUMA_SurfaceObject *SO)
    
    SUMA_RETURN(VOr);
 }
+
+int SUMA_VO_SlicesAtCrosshair(SUMA_VolumeObject *VO)
+{
+   SUMA_VOL_SAUX *VSaux = VDO_VSAUX(VO);
+   if (VSaux) return(VSaux->SlicesAtCrosshair);
+   return(0);
+}   
+

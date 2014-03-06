@@ -286,6 +286,7 @@ Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);
 void SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_expose(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_resize(Widget w, XtPointer clientData, XtPointer call);
+int SUMA_XErrHandler( Display *d , XErrorEvent *x );
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void);
 void SUMA_ButtOpen_pushed (Widget w, XtPointer cd1, XtPointer cd2);
 void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2);
@@ -819,7 +820,7 @@ DList *SUMA_AssembleMasksList_inDOv(SUMA_DO *dov, int N_dov, int withShadow);
 SUMA_Boolean  SUMA_InitMasksTable(SUMA_X_SurfCont *SurfCont);
 SUMA_Boolean  SUMA_InitMasksTable_row(SUMA_X_SurfCont *SurfCont, 
                                       SUMA_MaskDO *mdo, int row);
-int SUMA_NewSymMaskDO(void); 
+int SUMA_NewSymMaskDO(SUMA_ALL_DO *ado); 
 int SUMA_ShadowMaskDO(SUMA_MaskDO **mdop);
 int SUMA_SetTractStyle(SUMA_ALL_DO *ado, int imenu, int updatemenu);
 void SUMA_cb_SetTractStyle(Widget widget, XtPointer client_data, 
@@ -830,6 +831,7 @@ void SUMA_CreateVrFields(  Widget parent,
                         void (*NewValueCallback)(void * data), void *cb_data,
                         SUMA_VR_FIELD *VrF);
 void SUMA_cb_ShowVrF_toggled(Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_VSliceAtXYZ_toggled(Widget w, XtPointer data,XtPointer client_data);
 void SUMA_leave_NslcField( Widget w , XtPointer client_data ,
                             XEvent * ev , Boolean * continue_to_dispatch );
 void SUMA_VrF_cb_N_slc_change (  Widget w, XtPointer client_data, 
