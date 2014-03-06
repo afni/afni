@@ -6758,6 +6758,18 @@ ENTRY("AFNI_misc_button") ;
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_readme_env_pb,"Display README.environment file" );
 
+   dmode->misc_pvalue_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Meaning of p-values") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_pvalue_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_pvalue_pb,"How to think about p-values" );
+
    dmode->misc_license_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,

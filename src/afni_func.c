@@ -5968,7 +5968,7 @@ ENTRY("AFNI_tips_CB") ;
 #endif
 
    for( ii=0 ; readme_afnigui[ii] != NULL ; ii++ ){
-     inf = THD_zzprintf( inf , "%s" , readme_afnigui[ii] ) ;
+     inf = THD_zzprintf( inf , " %s" , readme_afnigui[ii] ) ;
    }
    (void)new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
    free(inf) ; EXRETURN ;
@@ -6074,9 +6074,8 @@ STATUS("got func info") ;
    else if( w == im3d->vwid->dmode->misc_license_pb ){  /* 03 Dec 2000 */
 #include "license.h"
       char *inf=NULL ; int ii ;
-
       for( ii=0 ; license[ii] != NULL ; ii++ )
-         inf = THD_zzprintf( inf , "%s" , license[ii] ) ;
+         inf = THD_zzprintf( inf , " %s" , license[ii] ) ;
       (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
       free(inf) ;
    }
@@ -6087,7 +6086,18 @@ STATUS("got func info") ;
 #include "readme_env.h"
       char *inf=NULL ; int ii ;
       for( ii=0 ; readme_env[ii] != NULL ; ii++ )
-        inf = THD_zzprintf( inf , "%s" , readme_env[ii] ) ;
+        inf = THD_zzprintf( inf , " %s" , readme_env[ii] ) ;
+      (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+      free(inf) ;
+   }
+
+   /*.........................................................*/
+
+   else if( w == im3d->vwid->dmode->misc_pvalue_pb ){  /* 06 Mar 2014 */
+#include "PvalueStuff.h"
+      char *inf=NULL ; int ii ;
+      for( ii=0 ; PvalueStuff[ii] != NULL ; ii++ )
+        inf = THD_zzprintf( inf , " %s" , PvalueStuff[ii] ) ;
       (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
       free(inf) ;
    }
@@ -6662,7 +6672,7 @@ ENTRY("AFNI_hidden_CB") ;
    else if( w == im3d->vwid->prog->hidden_uscon_pb ){  /* 30 Dec 2010 */
      char *inf=NULL ; int ii ;
      for( ii=0 ; uscon[ii] != NULL ; ii++ )
-       inf = THD_zzprintf( inf , "%s" , uscon[ii] ) ;
+       inf = THD_zzprintf( inf , " %s" , uscon[ii] ) ;
      (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
      free(inf) ;
    }
@@ -6670,7 +6680,7 @@ ENTRY("AFNI_hidden_CB") ;
    else if( w == im3d->vwid->prog->hidden_usdecl_pb ){  /* 06 Jan 2011 */
      char *inf=NULL ; int ii ;
      for( ii=0 ; usdecl[ii] != NULL ; ii++ )
-       inf = THD_zzprintf( inf , "%s" , usdecl[ii] ) ;
+       inf = THD_zzprintf( inf , " %s" , usdecl[ii] ) ;
      (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
      free(inf) ;
    }
