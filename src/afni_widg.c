@@ -2962,6 +2962,24 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_fdr_pb ,
                       "Compute FDR curves for OLay statistical sub-bricks" ) ;
 
+   /* p-value stuff button [06 Mar 2014] */
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->thr_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
+   func->thr_pvalue_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+               LABEL_ARG("Meaning of p-values") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( func->thr_pvalue_pb , XmNactivateCallback ,
+                  AFNI_pvalue_CB , im3d ) ;
+   MCW_register_hint( func->thr_pvalue_pb,"How to think about p-values" );
+
    } /*---- end of thr_menu creation for top of threshold slider ----*/
 
    FIX_SCALE_VALUE(im3d) ;  /* just in case */
@@ -5555,6 +5573,19 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
+      prog->hidden_pvalue_pb =             /* 06 Mar 2014 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+               LABEL_ARG("Meaning of p-values") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( prog->hidden_pvalue_pb , XmNactivateCallback ,
+                     AFNI_pvalue_CB , im3d ) ;
+
+      /*----------*/
+
       (void) XtVaCreateManagedWidget(
                "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
                   XmNseparatorType , XmSINGLE_LINE ,
@@ -6767,7 +6798,7 @@ ENTRY("AFNI_misc_button") ;
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
    XtAddCallback( dmode->misc_pvalue_pb , XmNactivateCallback ,
-                  AFNI_misc_CB , im3d ) ;
+                  AFNI_pvalue_CB , im3d ) ;
    MCW_register_hint( dmode->misc_pvalue_pb,"How to think about p-values" );
 
    dmode->misc_license_pb =

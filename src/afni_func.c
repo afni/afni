@@ -5974,6 +5974,25 @@ ENTRY("AFNI_tips_CB") ;
    free(inf) ; EXRETURN ;
 }
 
+/*---------------------------------------------------------------*/
+
+#include "PvalueStuff.h"
+
+void AFNI_pvalue_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   char *inf=NULL ; int ii ;
+
+ENTRY("AFNI_pvalue_CB") ;
+   if( !IM3D_OPEN(im3d) || w == NULL ) EXRETURN ;
+
+   for( ii=0 ; PvalueStuff[ii] != NULL ; ii++ )
+     inf = THD_zzprintf( inf , " %s" , PvalueStuff[ii] ) ;
+   (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
+   free(inf) ;
+   EXRETURN ;
+}
+
 /*---------------------------------------------------------------
   Callback for all actions in the misc menu
 -----------------------------------------------------------------*/
@@ -6087,17 +6106,6 @@ STATUS("got func info") ;
       char *inf=NULL ; int ii ;
       for( ii=0 ; readme_env[ii] != NULL ; ii++ )
         inf = THD_zzprintf( inf , " %s" , readme_env[ii] ) ;
-      (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
-      free(inf) ;
-   }
-
-   /*.........................................................*/
-
-   else if( w == im3d->vwid->dmode->misc_pvalue_pb ){  /* 06 Mar 2014 */
-#include "PvalueStuff.h"
-      char *inf=NULL ; int ii ;
-      for( ii=0 ; PvalueStuff[ii] != NULL ; ii++ )
-        inf = THD_zzprintf( inf , " %s" , PvalueStuff[ii] ) ;
       (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
       free(inf) ;
    }
