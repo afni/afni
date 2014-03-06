@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6,  Mar, 2014, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
+   "changed some censoring and per-stim behavior",
+   "- if censoring, create X.stim.xmat.1D from uncensored matrix\n"
+   "- if no censor, still report num regs of interest and TRs per stim\n"
+   "- report per-stim censoring only with stim classes"
+ } ,
+
  { 24,  Feb, 2014, RCR, "realtime_receiver.py", MICRO, TYPE_ENHANCE,
    "added a little more detail to the demo example",
    NULL
