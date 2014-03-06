@@ -840,6 +840,7 @@ typedef struct {
       Widget         misc_runscript_pb ;  /* 22 Jan 2003 */
 
       Widget         misc_readme_env_pb ; /* 05 Aug 2004 */
+      Widget         misc_pvalue_pb ;     /* 06 Mar 2014 */
 
       Widget         misc_motd_pb ;       /* 29 Nov 2005 */
       Widget         misc_hist_pb ;       /* 05 Mar 2008 */
