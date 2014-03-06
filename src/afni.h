@@ -674,6 +674,7 @@ typedef struct {
       Widget thr_setqval_pb ;      /* 26 Feb 2014 */
       MCW_arrowval *thr_sign_av ;  /* 08 Aug 2007 */
       Widget thr_fdr_pb ;          /* 29 Jan 2008 */
+      Widget thr_pvalue_pb ;       /* 06 Mar 2014 */
 
       Widget inten_rowcol , inten_label ;
       MCW_pbar     *inten_pbar ;
@@ -891,6 +892,7 @@ typedef struct {
    Widget hidden_uscon_pb   ;  /* 30 Dec 2010 */
    Widget hidden_usdecl_pb  ;  /* 06 Jan 2011 */
    Widget hidden_melter_pb  ;  /* 18 Feb 2011 */
+   Widget hidden_pvalue_pb  ;  /* 06 Mar 2014 */
 
 #endif  /* USE_HIDDEN */
 
@@ -1962,6 +1964,7 @@ extern void AFNI_lock_button( Three_D_View * ) ;
 extern void AFNI_misc_button( Three_D_View * ) ;
 extern void AFNI_misc_CB    ( Widget , XtPointer , XtPointer );
 extern void AFNI_editenv_CB ( Widget , XtPointer , XtPointer );
+extern void AFNI_pvalue_CB  ( Widget , XtPointer , XtPointer );
 
 extern void AFNI_add_timeseries( MRI_IMAGE * ) ;
 extern void AFNI_replace_timeseries( MRI_IMAGE * ) ; /* 10 May 2009 */
