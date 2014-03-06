@@ -59,7 +59,7 @@ void usage_ROIMaker(int detail)
 "  and/or input a white matter skeleton (such as could be defined from a \n"
 "  segmented T1 image or an FA map) and use this as an additional guide for\n"
 "  inflating the GM ROIs.  The output of this program can be used directly\n"  
-"  for guiding tractography, such as with 3dProbTrackID.\n"
+"  for guiding tractography, such as with 3dTrackID.\n"
 "\n"
 "  OUTPUTS:\n"
 "   + `GM' map of ROIs  :based on value- and volume-thresholding, would\n"

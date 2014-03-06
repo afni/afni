@@ -67,6 +67,50 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 6, Mar , 2014 , PT , "3dTrackID" , SUPERDUPER , TYPE_MODIFY,
+   "Have Cordelialy unified the three kingdoms of tracking, cLearing usage.",
+   "This program does all tracking, including HARDI and mini-probabilistic.\n"
+},
+
+{ 6, Mar , 2014 , PT , "3dProbTrackID" , SUPERDUPER , TYPE_MODIFY,
+   "Put out to pasture.",
+   "This program is now retired, with usage cleanly transferred to 3dTrackID.\n"
+},
+
+{ 6, Mar , 2014 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
+   "Reformatted output a bit.",
+   "Make output easier to read, labelled, and matching *GRID files.\n"
+},
+
+{ 6, Mar , 2014 , PT , "3dROIMaker" , MICRO , TYPE_BUG_FIX,
+   "Make parameter appear in help file correctly.",
+   "Fixed silly Spoonerism in option names usage/help-representation.\n"
+},
+
+{ 6, Mar , 2014 , PT , "1dDW_Grad_o_Mat" , MAJOR , TYPE_NEW_PROG,
+   "Manipulate gradient/bmatrix files.",
+   "Convert row/col and grad/bmatrix/gmatrix, use bval info, filter or not.\n"
+},
+
+{ 6, Mar , 2014 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
+   "Changes for reading in DTI files.",
+   "Allow NIML-formatted input file, as well as globbing in ordinary case.\n"
+},
+
+{ 6, Mar , 2014 , PT , "3dDWUncert" , MINOR , TYPE_NEW_OPT,
+   "Changes for reading in DTI files.",
+   "Allow NIML-formatted input file, as well as globbing in ordinary case.\n"
+},
+
+{ 6, Mar , 2014 , PT , "3dDWUncert" , MINOR , TYPE_BUG_FIX,
+   "Silly bug-- order of options not free.",
+   "Changed how options were processed so they weren't order-dependent.\n"
+},
+
+{ 3, Mar , 2014 , PT , "3dROIMaker" , MICRO , TYPE_MODIFY,
+  "Fixing option name agreement with help file.",
+  "Modernizing language."
+},
 
 { 28, Oct , 2013 , PT , "3dROIMaker" , MINOR , TYPE_MODIFY,
   "Allow multiple-brick masks.",

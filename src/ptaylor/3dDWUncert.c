@@ -10,6 +10,8 @@
        + counter stuff, nicer output for user
        + cap MAXBAD at 8; only affects cases of >67 grads
 
+   Feb. 2014:
+       + getting rid of more order dependence in the commandline opts
 */
 
 #include <stdio.h>
@@ -33,10 +35,15 @@
 #include <DoTrackit.h>
 #include "editvol.h"
 #include "thd.h"
+#include "suma_suma.h"
+
+#define N_dti_scal (3) // @@@
+#define N_dti_scal_tot (6) // 1+2+3, matches with N_dti_scal
+#define N_dti_vect (3) 
+#define N_plus_dtifile (4) // number of allowed additional param files in NIMLver
 
 
-
-struct data {
+/*struct data {
 	size_t n;
 	float *tt;
 	float *y;
@@ -50,7 +57,7 @@ void LevMarq( float *xS, float *xB, int m, float *A, float *sigma);
 int expb_f (const gsl_vector *x, void *data, gsl_vector *f);
 int expb_df (const gsl_vector *x, void *data,  gsl_matrix *J);
 int expb_fdf(const gsl_vector *x, void *data, gsl_vector *f, gsl_matrix *J);
-
+*/
 // from Numerical Recipes by Press, Teukolsky, Vetterling and Flannery
 void piksr2(int n, unsigned int arr[], int brr[]); 
 
@@ -61,9 +68,9 @@ void usage_DWUncert(int detail)
 "  Use jackknifing to estimate uncertainty of DTI parameters which are\n"
 "    important for probabilistic tractography on per voxel basis.\n"
 "\n"
-"  Produces useful input for 3dProbTrackID, which does probabilistic\n"
-"    tractography for GM ROIs in networks, part of FATCAT (Taylor & Saad,\n"
-"    2013) in AFNI.\n"
+"  Produces useful input for 3dTrackID, which does both mini- and full\n"
+"    probabilistic tractography for GM ROIs in networks, part of \n"
+"    FATCAT (Taylor & Saad, 2013) in AFNI.\n"
 "\n"
 "\n"
 "  COMMAND: 3dDWUncert -inset FILE -input [base of FA/MD/etc.] \\\n"
@@ -87,7 +94,12 @@ void usage_DWUncert(int detail)
 "                      e.g., 3dDWItoDT or TORTOISE. Assumes format of name\n"
 "                      is, e.g.:  INPREF_FA+orig.HEAD or INPREF_FA.nii.gz .\n"
 "                      Files needed with same prefix are:\n"
-"                      *_FA*, *_L1*, *_V1*, *_V2*, *_V3* .\n"
+"                      *FA*, *L1*, *V1*, *V2*, *V3* .\n"
+"    -input_list FILE :an alternative way to specify DTI input files, where\n"
+"                      FILE is a NIML-formatted text file that lists the\n"
+"                      explicit/specific files for DTI input.  This option is\n"
+"                      used in place of '-input INPREF'.\n"
+"                      See below for a 'INPUT LIST FILE EXAMPLE'.\n"
 "    -grads  FILE     :file with 3 columns for x-, y-, and z-comps\n"
 "                      of DW-gradients (which have unit magnitude).\n"
 "                      NB: this option also assumes that only 1st DWI\n"
@@ -115,6 +127,27 @@ void usage_DWUncert(int detail)
 "                      Default value of this matches 3dDWItoDT value of\n"
 "                      csf_fa=0.012345678.\n"
 "\n\n"
+"* * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * **\n"
+"\n"
+"+ DTI LIST FILE EXAMPLE:\n"
+"     Consider, for example, if you hadn't used the '-sep_dsets' option when\n"
+"     outputting all the tensor information from 3dDWItoDT.  Then one could\n"
+"     specify the DTI inputs for this program with a file called, e.g., \n"
+"     FILE_DTI_IN.niml.opts (the name *must* end with '.niml.opts'):\n"
+"       <DTIFILE_opts    \n"
+"         dti_V1=\"SINGLEDT+orig[9..11]\"\n"
+"         dti_V2=\"SINGLEDT+orig[12..14]\"\n"
+"         dti_V3=\"SINGLEDT+orig[15..17]\"\n"
+"         dti_FA=\"SINGLEDT+orig[18]\"\n"
+"         dti_L1=\"SINGLEDT+orig[6]\" />\n"
+"     This represents the *minimum* set of input files needed when running\n"
+"     3dDWUncert. (Note that MD isn't needed here.)  You can also recycle a\n"
+"     NIMLly formatted file from '3dTrackID -dti_list'-- the extra inputs\n"
+"     needed for the latter are a superset of those needed here, and won't\n"
+"     affect anything detrimentally (I hope).\n"
+"\n"
+"****************************************************************************\n"
+"\n"
 "  + EXAMPLE (NB: for now, you will need to have -inset as first option,\n"
 "    i.e., the order of commands matters a bit for running successfully...):\n"
 "      3dDWUncert \\\n"
@@ -141,12 +174,10 @@ int main(int argc, char *argv[]) {
 	int i,j,k,n,b,ii,jj;
 	int iarg;
 	
-	THD_3dim_dataset *insetV1 = NULL,*insetV2 = NULL,*insetV3 = NULL;
-	THD_3dim_dataset *insetL1 = NULL;
-	THD_3dim_dataset *insetFA = NULL;
 	THD_3dim_dataset *dwset1=NULL; 
 	THD_3dim_dataset *UNC_OUT=NULL;
 	char *prefix="tracky" ;
+   char *gradmat_in=NULL;
 
 	THD_3dim_dataset *MASK=NULL;
 	char in_mask[300];
@@ -207,7 +238,7 @@ int main(int argc, char *argv[]) {
 	gsl_rng *r;
          /* ZSS2PT: Don't decalre variables in the middle of a scope
                 Older compilers won't like it */
-	int BMAT = 0; // switch about whether using grads or bmatr input 
+	int BMAT = -1; // switch about whether using grads or bmatr input 
                  // with potentially several b-vals
 	int FOUND =-1;
 	int Min=0,Nb0=0;
@@ -220,8 +251,25 @@ int main(int argc, char *argv[]) {
 	// for testing names...
 	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
 	
+	char *DTI_SCAL_INS[N_dti_scal] = {"FA", "MD", "L1"};  // @@@
+	char *DTI_VECT_INS[N_dti_vect] = {"V1", "V2", "V3"};
+   char *wild_list=NULL;
+   char **wglob=NULL, **wsort=NULL;
+   int nglob, nsort, *isrt=NULL;
+   int wild_all_files = 0, wild_ci=0;
+   int wild_noext=2; // "-wild_files_noAext_noAview"
+   int wild_orig_name = 1; // "-wild_files_orig_name"
+   char tprefix[THD_MAX_PREFIX];
+   int nfiles;
+ 	char *infix=NULL ;
+   THD_3dim_dataset **insetPARS=NULL; // [0] FA, [1] MD, [2] L1
+   THD_3dim_dataset **insetVECS=NULL; // for DEF_DTI, [0] V1, [1] V2, [2] V3
+   char temp_name[32];
+   int hardi_pref_len=0;
+   int pref_offset = 0;
+   char *dti_listname=NULL;
+	NI_element *nel=NULL;
 
-	
    // for random number generation
 	srand(time(0));
 	seed = time(NULL) ;
@@ -277,134 +325,30 @@ int main(int argc, char *argv[]) {
 			iarg++ ; if( iarg >= argc ) 
 							ERROR_exit("Need argument after '-input'");
 
-			for( i=0 ; i<4 ; i++) {
-				sprintf(in_FA,"%s_FA%s", argv[iarg],postfix[i]); 
-				if(THD_is_ondisk(in_FA)) {
-					FOUND = i;
-					break;
-				}
-			}
-			
-			insetFA = THD_open_dataset(in_FA) ;
-			if( (insetFA == NULL ) || (FOUND==-1))
-				ERROR_exit("Can't open dataset '%s': for FA.",in_FA);
-			DSET_load(insetFA) ; CHECK_LOAD_ERROR(insetFA) ;
-			Nvox = DSET_NVOX(insetFA) ;
-			Dim[0] = DSET_NX(insetFA); Dim[1] = DSET_NY(insetFA); 
-			Dim[2] = DSET_NZ(insetFA); 
-			
-			if( (Dim[0] != xmask1) || (Dim[1] != ymask1) || (Dim[2] != zmask1))
-				ERROR_exit("Input dataset does not match both mask volumes!");
+         infix = strdup(argv[iarg]) ;
+         // for naming stuff later
+         hardi_pref_len = strlen(infix); // assume an underscore
 
-			FOUND = -1;
-			for( i=0 ; i<4 ; i++) {
-				sprintf(in_V1,"%s_V1%s", argv[iarg],postfix[i]); 
-				if(THD_is_ondisk(in_V1)) {
-					FOUND = i;
-					break;
-				}
-			}
-			insetV1 = THD_open_dataset(in_V1);
-			if( insetV1 == NULL ) 
-				ERROR_exit("Can't open dataset '%s':V1",in_V1);
-			DSET_load(insetV1) ; CHECK_LOAD_ERROR(insetV1) ;
-
-			// probably could use the ending of the first data set to get
-			// all... but not too bad to keep checking, I guess.
-
-			FOUND = -1;
-			for( i=0 ; i<4 ; i++) {
-				sprintf(in_V2,"%s_V2%s", argv[iarg],postfix[i]); 
-				if(THD_is_ondisk(in_V2)) {
-					FOUND = i;
-					break;
-				}
-			}
-			insetV2 = THD_open_dataset(in_V2);
-			if( insetV2 == NULL ) 
-				ERROR_exit("Can't open dataset '%s':V2",in_V2);
-			DSET_load(insetV2) ; CHECK_LOAD_ERROR(insetV2) ;
-
-			FOUND = -1;
-			for( i=0 ; i<4 ; i++) {
-				sprintf(in_V3,"%s_V3%s", argv[iarg],postfix[i]); 
-				if(THD_is_ondisk(in_V3)) {
-					FOUND = i;
-					break;
-				}
-			}
-			insetV3 = THD_open_dataset(in_V3);
-			if( insetV3 == NULL ) 
-				ERROR_exit("Can't open dataset '%s':V3",in_V3);
-			DSET_load(insetV3) ; CHECK_LOAD_ERROR(insetV3) ;
-
-			FOUND = -1;
-			for( i=0 ; i<4 ; i++) {
-				sprintf(in_L1,"%s_L1%s", argv[iarg],postfix[i]); 
-				if(THD_is_ondisk(in_L1)) {
-					FOUND = i;
-					break;
-				}
-			}
-			insetL1 = THD_open_dataset(in_L1);
-			if( insetL1 == NULL ) 
-				ERROR_exit("Can't open dataset '%s':L1",in_L1);
-			DSET_load(insetL1) ; CHECK_LOAD_ERROR(insetL1) ;
-			
 			iarg++ ; continue ;
 		}
 	 
+      if( strcmp(argv[iarg],"-input_list") == 0 ){
+			iarg++ ; 
+			if( iarg >= argc ) 
+				ERROR_exit("Need argument after '-input_list'");
+         dti_listname = strdup(argv[iarg]) ;
+
+			iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-grads") == 0 ){ 
 			iarg++ ; 
 			if( iarg >= argc ) 
 				ERROR_exit("Need argument after '-grads'");
 			
-			// 3cols of grad vecs
-			M = DSET_NVALS(dwset1)-1; // because 1st one is b=0
-			Mj = (int) floor(0.7*M);
-			if(Mj<7)
-				Mj=7;
-			INFO_message("Input format: grads. Number of DWI in inset=%d."
-                      " Jackknife sample size=%d", M, Mj);
-			MAXBAD = (int) (0.125*M);
-         // for some really large numbers of gradients, >100, the number is 
-         // just too big; Jan, 2014
-         if( MAXBAD>8)
-            MAXBAD = 8; 
-         if(Mj-MAXBAD<6)
-				MAXBAD=Mj-6;
-			
-			grads = calloc(M,sizeof(grads)); 
-			for(i=0 ; i<M ; i++) 
-				grads[i] = calloc(3,sizeof(float)); 
-			grads_dyad = calloc(M,sizeof(grads_dyad)); 
-			for(i=0 ; i<M ; i++) 
-				grads_dyad[i] = calloc(6,sizeof(float)); 
-			
-			if( (grads == NULL) || (grads_dyad == NULL) ) {
-				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-				exit(1254);
-			}
-			
-			if( (fin4 = fopen(argv[iarg], "r")) == NULL) {
-				fprintf(stderr, "Error opening file %s.",argv[iarg]);
-				exit(19);
-			}
-			for(i=0 ; i<M ; i++) 
-				for(j=0 ; j<3 ; j++) 
-					fscanf(fin4, "%f",&grads[i][j]);
-			fclose(fin4);
-			
-			// these are what go into the fitting matrices
-			// diagonals and then UHT
-			for(i=0 ; i<M ; i++) {
-				for(j=0 ; j<3 ; j++)
-						grads_dyad[i][j] = grads[i][j]*grads[i][j];
-				grads_dyad[i][3] = 2.*grads[i][0]*grads[i][1];
-				grads_dyad[i][4] = 2.*grads[i][0]*grads[i][2];
-				grads_dyad[i][5] = 2.*grads[i][2]*grads[i][1];
-			}
-			
+         BMAT = 0;
+         gradmat_in = strdup(argv[iarg]) ;
+
 			iarg++ ; continue ;
 		}
 		else if( strcmp(argv[iarg],"-bmatr") == 0 ){ 
@@ -415,96 +359,7 @@ int main(int argc, char *argv[]) {
 			// if b-matrix is being used as input,
 			// have to find out still which one(s) are b=0.
 			BMAT = 1;
-			Min = DSET_NVALS(dwset1); 
-			
-			DWcheck = (int *)calloc(Min,sizeof(int)); 
-			DWs = (float *)calloc(Min,sizeof(float)); //DWs
-			// just use this to read in all
-			grads = calloc(Min,sizeof(grads)); 
-			for(i=0 ; i<Min ; i++) 
-				grads[i] = calloc(6,sizeof(float)); 
-			
-			if( (grads == NULL) || (DWs == NULL) || (DWcheck == NULL) ) {
-				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-				exit(1254);
-			}
-			// Opening/Reading in FACT params
-			if( (fin4 = fopen(argv[iarg], "r")) == NULL) {
-				fprintf(stderr, "Error opening file %s.",argv[iarg]);
-				exit(19);
-			}
-
-			for(i=0 ; i<Min ; i++) {
-				for(j=0 ; j<6 ; j++) {
-					fscanf(fin4, "%f",&grads[i][j]);
-				}
-				// trace of bmatr is DWval
-				DWval = grads[i][0]+grads[i][3]+grads[i][5];
-				if( DWval<EPS_MASK ) {
-					DWcheck[i] = 1; // flag b=0 ones
-					Nb0+=1;
-				}
-				else {
-					DWs[M] = DWval;
-					if(DWval>DWmax)
-						DWmax = DWval;// check for max DW, in case mult DWval
-					M+=1;
-				}			
-			}
-		  			
-			fclose(fin4);
-			if(Nb0<1)
-				ERROR_exit("There appear to be no b=0 bricks!");
-
-			Mj = (int) floor(0.7*M);
-			if(Mj<7)
-				Mj=7;
-			INFO_message("Input format: bmatrs. Number of DWI in inset=%d."
-                      " Jackknife sample size=%d", M, Mj);
-			MAXBAD = (int) (0.125*M);
-         // for some really large numbers of gradients, >100, the number is 
-         // just too big; Jan, 2014
-         if( MAXBAD>8)
-            MAXBAD = 8; 
-			if(Mj-MAXBAD<6)
-				MAXBAD=Mj-6;
-			
-			grads_dyad = calloc(M,sizeof(grads_dyad)); 
-			for(i=0 ; i<M ; i++) 
-				grads_dyad[i] = calloc(6,sizeof(float)); 
-			// start to restructure DWIs in a copy, 
-			// averaging all b=0 bricks together
-			rearr_dwi = calloc(Nvox,sizeof(rearr_dwi)); 
-			for(i=0 ; i<Nvox ; i++) 
-				rearr_dwi[i] = calloc(M+1,sizeof(float)); 
-			
-			if( (grads_dyad == NULL) || (rearr_dwi == NULL) ) {
-				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-				exit(125);
-			}
-			
-			M=0;
-			for( j=0 ; j<Min ; j++) 
-				if(DWcheck[j] == 0) {// is not a b=0
-					grads_dyad[M][0] = grads[j][0];
-					grads_dyad[M][1] = grads[j][3];
-					grads_dyad[M][2] = grads[j][5];
-					grads_dyad[M][3] = grads[j][1];
-					grads_dyad[M][4] = grads[j][2];
-					grads_dyad[M][5] = grads[j][4];
-					M+=1; 
-					for(i=0 ; i<Nvox ; i++)
-						if( THD_get_voxel(insetL1,i,0)>EPS_V)  // as below
-							rearr_dwi[i][M] = THD_get_voxel(dwset1,i,j);
-				}
-				else 
-					for(i=0 ; i<Nvox ; i++)
-						if( THD_get_voxel(insetL1,i,0)>EPS_V) 
-							rearr_dwi[i][0]+= THD_get_voxel(dwset1,i,j);
-			
-			// because this was an average
-			for(i=0 ; i<Nvox ; i++)
-				rearr_dwi[i][0]/= 1.0*Nb0;
+         gradmat_in = strdup(argv[iarg]) ;
 
 			iarg++ ; continue ;
 		}
@@ -555,6 +410,355 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
   
+   if( infix && dti_listname ) {
+		ERROR_message("Use *either* '-input' or '-input_list'.\n");
+		exit(1);
+	}
+   else {
+      
+      insetPARS = (THD_3dim_dataset **)calloc(N_dti_scal, sizeof(THD_3dim_dataset *));
+      
+      insetVECS = (THD_3dim_dataset **)calloc(N_dti_vect, sizeof(THD_3dim_dataset *)); 
+      
+      if(  (insetPARS == NULL) || (insetVECS == NULL) ){
+         fprintf(stderr,"\n\nMemAlloc failure: prepping to store sets.\n\n");
+         exit(123);
+      }
+      
+      if(infix){
+         
+      
+         sprintf(tprefix,"%s*",infix);
+      
+         // this island of coding, globbing and sorting due to ZSS;
+         // see apsearch.c program for original.
+         wild_list = SUMA_append_replace_string(wild_list, tprefix, " ", 1); 
+      
+         INFO_message("SEARCHING for files with prefix '%s'",tprefix);
+      
+         MCW_wildcards(wild_list, &nglob, &wglob ); 
+         if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext, 
+                                 &nsort, &isrt))) {
+         
+            for( ii=0 ; ii<nsort ; ii++) {
+            
+               // check for first char being an underscore; if so, remove
+               pref_offset = 0;
+               if( *(wsort[ii]+hardi_pref_len) == '_')
+                  pref_offset = 1;
+            
+               snprintf(temp_name,31,"%s", 
+                        wsort[ii]+hardi_pref_len+pref_offset);
+            
+               for( i=0 ; i<N_dti_scal ; i++ ) {
+                  if ( !strcmp(DTI_SCAL_INS[i], temp_name) ) {
+                     fprintf(stderr," '%s' ",DTI_SCAL_INS[i]);
+                     insetPARS[i] = THD_open_dataset(wglob[isrt[ii]]);
+                     if( insetPARS[i] == NULL ) 
+                        ERROR_exit("Can't open dataset '%s'",wglob[isrt[ii]] );
+                     DSET_load(insetPARS[i]) ; CHECK_LOAD_ERROR(insetPARS[i]) ;
+                     break;
+                  }
+                  else continue;
+               }
+            
+               for( i=0 ; i<N_dti_vect ; i++ ) {
+                  if ( !strcmp(DTI_VECT_INS[i], temp_name) ) {
+                     fprintf(stderr," '%s' ",DTI_VECT_INS[i]);
+                     insetVECS[i] = THD_open_dataset(wglob[isrt[ii]]);
+                     if( insetVECS[i] == NULL ) 
+                        ERROR_exit("Can't open dataset '%s'",wglob[isrt[ii]] );
+                     DSET_load(insetVECS[i]) ; CHECK_LOAD_ERROR(insetVECS[i]) ;
+                     break;
+                  }
+                  else continue;
+               }
+            }
+         
+            // double check all got filled:
+            for( i=0 ; i<N_dti_scal ; i++ ) 
+               if( (insetPARS[i] == NULL) && !(i == 1) ) // b/c MD is not nec 
+                  ERROR_exit("Can't open dataset: '%s' file",DTI_SCAL_INS[i] );
+            for( i=0 ; i<N_dti_vect ; i++ ) 
+               if( insetVECS[i] == NULL ) 
+                  ERROR_exit("Can't open dataset: '%s' file",DTI_VECT_INS[i] );
+            fprintf(stderr,"\n");			
+         
+            if (isrt) free(isrt); isrt = NULL;
+            for (i=0; i<nglob; ++i) if (wsort[i]) free(wsort[i]);
+            free(wsort); wsort = NULL;
+            SUMA_ifree(wild_list);
+            MCW_free_wildcards( nglob , wglob ) ;
+         } 
+         else {
+            ERROR_message("Failed to sort");
+            SUMA_ifree(wild_list);
+            MCW_free_wildcards( nglob , wglob ) ;
+            exit(1);
+         }
+      }
+      else if(dti_listname) {
+         char **NameVEC=NULL;
+         char *NameXF=NULL;
+         char **NameSCAL=NULL;
+         char **NameP=NULL; // 4 of these
+
+         NameVEC = calloc( N_dti_vect,sizeof(NameVEC));  
+         for(i=0 ; i<N_dti_vect ; i++) 
+            NameVEC[i] = calloc( 100,sizeof(char)); 
+         NameSCAL = calloc( N_dti_scal,sizeof(NameSCAL));  
+         for(i=0 ; i<N_dti_scal ; i++) 
+            NameSCAL[i] = calloc( 100,sizeof(char)); 
+         NameP = calloc( N_plus_dtifile,sizeof(NameP));  
+         for(i=0 ; i<N_plus_dtifile ; i++) 
+            NameP[i] = calloc( 100,sizeof(char)); 
+         NameXF = (char *)calloc(100, sizeof(char)); 
+
+         if( (NameVEC == NULL) || (NameSCAL == NULL) ||
+             (NameXF == NULL) || (NameP == NULL)  ) {
+				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+				exit(126);
+			}
+
+         if( (NameVEC == NULL) || (NameSCAL == NULL) ||
+             (NameXF == NULL) || (NameP == NULL)  ) {
+				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+				exit(126);
+			}
+		  
+         if (!(nel = ReadDTI_inputs(dti_listname))) {
+				ERROR_message("Failed to read options in %s\n",
+                           dti_listname);
+				exit(19);
+			}
+         
+			if (NI_getDTI_inputs( nel,
+                               NameVEC,
+                               NameXF,
+                               NameSCAL,
+                               NameP,
+                               &i, &j)) {
+				ERROR_message("Failed to get DTI list of files.");
+				exit(1);
+			}
+			NI_free_element(nel); nel=NULL;
+
+         for( ii=0 ; ii<N_dti_scal ; ii++) {
+            if( !(ii == 1)) { // because we don't use MD
+               insetPARS[ii] = THD_open_dataset(NameSCAL[ii]);
+               if( (insetPARS[ii] == NULL ) )
+                  ERROR_exit("Can't open listed dataset '%s': for required scalar.",
+                             NameSCAL[ii]);
+               DSET_load(insetPARS[ii]) ; CHECK_LOAD_ERROR(insetPARS[ii]) ;
+               fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
+                       NameSCAL[ii],DTI_SCAL_INS[ii]);
+            }
+         }
+
+         for( ii=0 ; ii<N_dti_vect ; ii++) {
+            insetVECS[ii] = THD_open_dataset(NameVEC[ii]);
+            if( (insetVECS[ii] == NULL ) )
+               ERROR_exit("Can't open dataset '%s': for required vector dir.",
+                          NameVEC[ii]);
+            DSET_load(insetVECS[ii]) ; CHECK_LOAD_ERROR(insetVECS[ii]) ;
+            fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
+                    NameVEC[ii],DTI_VECT_INS[ii]);
+         }
+
+         // double check all got filled:
+         for( i=0 ; i<N_dti_scal ; i++ ) 
+            if( (insetPARS[i] == NULL) && !(i == 1) ) // b/c MD is not nec 
+               ERROR_exit("Can't open dataset: '%s' file",DTI_SCAL_INS[i] );
+         for( i=0 ; i<N_dti_vect ; i++ ) 
+            if( insetVECS[i] == NULL ) 
+               ERROR_exit("Can't open dataset: '%s' file",DTI_VECT_INS[i] );
+         fprintf(stderr,"\n");			
+         
+
+
+
+         for(i=0 ; i<N_dti_vect ; i++)
+            free(NameVEC[i]);
+         free(NameVEC);
+         for(i=0 ; i<N_dti_scal ; i++) 
+            free(NameSCAL[i]);
+         free(NameSCAL);
+         for(i=0 ; i<N_plus_dtifile ; i++) 
+            free(NameP[i]);
+         free(NameP);
+         free(NameXF);
+      }
+      else{
+         for( i=0 ; i<N_dti_scal ; i++){
+            DSET_delete(insetPARS[i]);
+            free(insetPARS[i]);
+         }
+         free(insetPARS);
+         for( i=0 ; i<N_dti_vect ; i++){
+            DSET_delete(insetVECS[i]);
+            free(insetVECS[i]);
+         }
+         free(insetVECS);
+         ERROR_message("Failed to read input.");
+      }
+   }
+      
+   Nvox = DSET_NVOX(insetPARS[0]);
+   Dim[0] = DSET_NX(insetPARS[0]); 
+   Dim[1] = DSET_NY(insetPARS[0]); 
+   Dim[2] = DSET_NZ(insetPARS[0]); 
+   
+   
+   
+   if( (Dim[0] != xmask1) || (Dim[1] != ymask1) || (Dim[2] != zmask1))
+      ERROR_exit("Input dataset does not match both mask volumes!");
+
+
+
+   if(BMAT == 0) {
+      // 3cols of grad vecs
+      M = DSET_NVALS(dwset1)-1; // because 1st one is b=0
+      Mj = (int) floor(0.7*M);
+      if(Mj<7)
+         Mj=7;
+      INFO_message("Input format: grads. Number of DWI in inset=%d."
+                   " Jackknife sample size=%d", M, Mj);
+      MAXBAD = (int) (0.125*M);
+      // for some really large numbers of gradients, >100, the number is 
+      // just too big; Jan, 2014
+      if( MAXBAD>10)
+         MAXBAD = 10; 
+      if(Mj-MAXBAD<6)
+         MAXBAD=Mj-6;
+      
+      grads = calloc(M,sizeof(grads)); 
+      for(i=0 ; i<M ; i++) 
+         grads[i] = calloc(3,sizeof(float)); 
+      grads_dyad = calloc(M,sizeof(grads_dyad)); 
+      for(i=0 ; i<M ; i++) 
+         grads_dyad[i] = calloc(6,sizeof(float)); 
+      
+      if( (grads == NULL) || (grads_dyad == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(1254);
+      }
+		
+      if( (fin4 = fopen(gradmat_in, "r")) == NULL) {
+         fprintf(stderr, "Error opening file %s.",gradmat_in);
+         exit(19);
+      }
+      for(i=0 ; i<M ; i++) 
+         for(j=0 ; j<3 ; j++) 
+            fscanf(fin4, "%f",&grads[i][j]);
+      fclose(fin4);
+      
+      // these are what go into the fitting matrices
+      // diagonals and then UHT
+      for(i=0 ; i<M ; i++) {
+         for(j=0 ; j<3 ; j++)
+            grads_dyad[i][j] = grads[i][j]*grads[i][j];
+         grads_dyad[i][3] = 2.*grads[i][0]*grads[i][1];
+         grads_dyad[i][4] = 2.*grads[i][0]*grads[i][2];
+         grads_dyad[i][5] = 2.*grads[i][2]*grads[i][1];
+      }
+   }
+   else if( BMAT==1) {
+      Min = DSET_NVALS(dwset1); 
+		
+      DWcheck = (int *)calloc(Min,sizeof(int)); 
+      DWs = (float *)calloc(Min,sizeof(float)); //DWs
+      // just use this to read in all
+      grads = calloc(Min,sizeof(grads)); 
+      for(i=0 ; i<Min ; i++) 
+         grads[i] = calloc(6,sizeof(float)); 
+      
+      if( (grads == NULL) || (DWs == NULL) || (DWcheck == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(1254);
+      }
+      // Opening/Reading in FACT params
+      if( (fin4 = fopen(gradmat_in, "r")) == NULL) {
+         fprintf(stderr, "Error opening file %s.",gradmat_in);
+         exit(19);
+      }
+      
+      for(i=0 ; i<Min ; i++) {
+         for(j=0 ; j<6 ; j++) {
+            fscanf(fin4, "%f",&grads[i][j]);
+         }
+         // trace of bmatr is DWval
+         DWval = grads[i][0]+grads[i][3]+grads[i][5];
+         if( DWval<EPS_MASK ) {
+            DWcheck[i] = 1; // flag b=0 ones
+            Nb0+=1;
+         }
+         else {
+            DWs[M] = DWval;
+            if(DWval>DWmax)
+               DWmax = DWval;// check for max DW, in case mult DWval
+            M+=1;
+         }			
+      }
+		  			
+      fclose(fin4);
+      if(Nb0<1)
+         ERROR_exit("There appear to be no b=0 bricks!");
+
+      Mj = (int) floor(0.7*M);
+      if(Mj<7) 
+         Mj=7;
+      INFO_message("Input format: bmatrs. Number of DWI in inset=%d."
+                   " Jackknife sample size=%d", M, Mj);
+      MAXBAD = (int) (0.125*M);
+      // for some really large numbers of gradients, >100, the number is 
+      // just too big; Jan, 2014
+      if( MAXBAD>10)
+         MAXBAD = 10; 
+      if(Mj-MAXBAD<6)
+         MAXBAD=Mj-6;
+			
+      grads_dyad = calloc(M,sizeof(grads_dyad)); 
+      for(i=0 ; i<M ; i++) 
+         grads_dyad[i] = calloc(6,sizeof(float)); 
+      // start to restructure DWIs in a copy, 
+      // averaging all b=0 bricks together
+      rearr_dwi = calloc(Nvox,sizeof(rearr_dwi)); 
+      for(i=0 ; i<Nvox ; i++) 
+         rearr_dwi[i] = calloc(M+1,sizeof(float)); 
+			
+      if( (grads_dyad == NULL) || (rearr_dwi == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(125);
+      }
+			
+      M=0;
+      for( j=0 ; j<Min ; j++) 
+         if(DWcheck[j] == 0) {// is not a b=0
+            grads_dyad[M][0] = grads[j][0];
+            grads_dyad[M][1] = grads[j][3];
+            grads_dyad[M][2] = grads[j][5];
+            grads_dyad[M][3] = grads[j][1];
+            grads_dyad[M][4] = grads[j][2];
+            grads_dyad[M][5] = grads[j][4];
+            M+=1; 
+            for(i=0 ; i<Nvox ; i++)
+               if( THD_get_voxel(insetPARS[2],i,0)>EPS_V)  // as below
+                  rearr_dwi[i][M] = THD_get_voxel(dwset1,i,j);
+         }
+         else 
+            for(i=0 ; i<Nvox ; i++)
+               if( THD_get_voxel(insetPARS[2],i,0)>EPS_V) 
+                  rearr_dwi[i][0]+= THD_get_voxel(dwset1,i,j);
+			
+      // because this was an average
+      for(i=0 ; i<Nvox ; i++)
+         rearr_dwi[i][0]/= 1.0*Nb0;
+   }
+   else
+      ERROR_exit("Neither Grads nor Bmatr were successfully input!");
+
+
+
 	// just general array storage creation stuff
 	StoreRandInd = calloc(Nj,sizeof(StoreRandInd)); 
 	for(i=0 ; i<Nj ; i++) 
@@ -630,7 +834,7 @@ int main(int argc, char *argv[]) {
   
    for( i=0 ; i<Nvox ; i++ ) 
       if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
-			 ( (HAVE_MASK==0) && (THD_get_voxel(insetL1,i,0)<EPS_V) ) ) 
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) 
          continue;
       else
          Ndata++;
@@ -642,7 +846,7 @@ int main(int argc, char *argv[]) {
    
    /*   for( i=0 ; i<Nvox ; i++ ) 
       if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
-			 ( (HAVE_MASK==0) && (THD_get_voxel(insetL1,i,0)<EPS_V) ) ) 
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) 
          continue;
       else{
          nprog++;
@@ -655,12 +859,12 @@ int main(int argc, char *argv[]) {
 
 	for(i=0 ; i<Nvox ; i++) 
 		if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
-			 ( (HAVE_MASK==0) && (THD_get_voxel(insetL1,i,0)<EPS_V) ) ) {
+			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) {
 			//for(j=0 ; j<6 ; j++) 
 			//	OUT[j][i] = 0.0;
          continue;
 		}
-		else if(THD_get_voxel(insetFA,i,0)==CSF_FA) {
+		else if(THD_get_voxel(insetPARS[0],i,0)==CSF_FA) {
 			OUT[0][i] = OUT[2][i] = OUT[4][i] = 0.0; // zero mean
 			OUT[1][i] = OUT[3][i] = PIo2; // max uncert, but prob doesn't matter.
 			OUT[5][i] = 1.0; // max uncert
@@ -899,17 +1103,17 @@ int main(int argc, char *argv[]) {
 				// done calculating; now store for later calculation of mean/stdev
 
 				// dot prod of new E1 with answer e1,e2,e3
-				E1e1 = sortedout[i][3]*THD_get_voxel(insetV1,i,0) 
-					+ sortedout[i][4]*THD_get_voxel(insetV1,i,1)
-					+ sortedout[i][5]*THD_get_voxel(insetV1,i,2);
+				E1e1 = sortedout[i][3]*THD_get_voxel(insetVECS[0],i,0) 
+					+ sortedout[i][4]*THD_get_voxel(insetVECS[0],i,1)
+					+ sortedout[i][5]*THD_get_voxel(insetVECS[0],i,2);
 				if (E1e1 <0)
 					E1e1*=-1;
-				E1e2 = sortedout[i][3]*THD_get_voxel(insetV2,i,0) 
-					+ sortedout[i][4]*THD_get_voxel(insetV2,i,1)
-					+ sortedout[i][5]*THD_get_voxel(insetV2,i,2);
-				E1e3 = sortedout[i][3]*THD_get_voxel(insetV3,i,0) 
-					+ sortedout[i][4]*THD_get_voxel(insetV3,i,1) 
-					+ sortedout[i][5]*THD_get_voxel(insetV3,i,2);
+				E1e2 = sortedout[i][3]*THD_get_voxel(insetVECS[1],i,0) 
+					+ sortedout[i][4]*THD_get_voxel(insetVECS[1],i,1)
+					+ sortedout[i][5]*THD_get_voxel(insetVECS[1],i,2);
+				E1e3 = sortedout[i][3]*THD_get_voxel(insetVECS[2],i,0) 
+					+ sortedout[i][4]*THD_get_voxel(insetVECS[2],i,1) 
+					+ sortedout[i][5]*THD_get_voxel(insetVECS[2],i,2);
 		  
 				ang = E1e1/sqrt(E1e1*E1e1+E1e2*E1e2);
 				if(ang>1.0)
@@ -931,7 +1135,7 @@ int main(int argc, char *argv[]) {
 					pow(sortedout[i][2]-md,2);
 				temp/= pow(sortedout[i][0],2)+pow(sortedout[i][1],2) +
 					pow(sortedout[i][2],2);
-				delFA[jj] = sqrt(1.5*temp)-THD_get_voxel(insetFA,i,0);
+				delFA[jj] = sqrt(1.5*temp)-THD_get_voxel(insetPARS[0],i,0);
 			}
       
 			meanE1e2 = 0;
@@ -984,7 +1188,7 @@ int main(int argc, char *argv[]) {
            "[", 100.,"]", (float) difftime( time(NULL) ,t_start)/60.);
 
 	sprintf(evalevecs,"%s_UNC",prefix); 
-	UNC_OUT = EDIT_empty_copy( insetL1 ) ; 
+	UNC_OUT = EDIT_empty_copy( insetPARS[2] ) ; 
   
 	EDIT_add_bricklist(UNC_OUT,
 							 5, NULL , NULL , NULL );
@@ -1023,7 +1227,8 @@ int main(int argc, char *argv[]) {
 	// ************************************************************
 	// ************************************************************
     
-  
+   free(gradmat_in);
+
 	gsl_matrix_free(H);
 	gsl_matrix_free(HTW);
 	gsl_matrix_free(HTWH);
@@ -1083,20 +1288,22 @@ int main(int argc, char *argv[]) {
    //	free(bmatr);
 	free(testS);
   
-	DSET_delete(insetFA);
-	DSET_delete(insetL1);
-	DSET_delete(insetV1);
-	DSET_delete(insetV2);
-	DSET_delete(insetV3);
 	DSET_delete(dwset1);
   	DSET_delete(MASK);
 
 	free(prefix);
-	free(insetV1);
-	free(insetV2);
-	free(insetV3);
-	free(insetL1);
-	free(insetFA);
+   for( i=0 ; i<N_dti_scal ; i++){
+      DSET_delete(insetPARS[i]);
+      free(insetPARS[i]);
+   }
+   free(insetPARS);
+   for( i=0 ; i<N_dti_vect ; i++){
+      DSET_delete(insetVECS[i]);
+      free(insetVECS[i]);
+   }
+   free(insetVECS);
+   free(infix);
+
 	free(dwset1);
   	free(MASK);
 
@@ -1109,7 +1316,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-
+/*
 // fitting program, with adaptation from:
 // GNU Scientific Library Reference Manual
 // Edition 1.15, for GSL Version 1.15, (Galassi et al. 2011) 
@@ -1178,8 +1385,8 @@ void LevMarq( float *xS, float *xB, int N, float *A, float *sigma)
 	//#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
   
    //	{ 
-      //		float chi = gsl_blas_dnrm2(s->f);  /* ZSS2PT: Unused variable chi */
-      //		float dof = n - p;   /* ZSS2PT: Unused variable dof */
+      //		float chi = gsl_blas_dnrm2(s->f);  // ZSS2PT: Unused variable chi 
+      //		float dof = n - p;   // ZSS2PT: Unused variable dof 
 		//    float c = GSL_MAX_DBL(1, chi / sqrt(dof)); 
     
 		//printf("chisq/dof = %g\n",  pow(chi, 2.0) / dof);
@@ -1229,7 +1436,7 @@ int expb_f (const gsl_vector *x, void *data, gsl_vector *f)
 					fact = 1.;
 				dotp+= fact * D[j] * tt[6*i+j];
 			}
-			/* Model Yi = A * exp(-lambda * i) + b */
+			// Model Yi = A * exp(-lambda * i) + b 
 			//float t = i;
 			float Yi = exp(-dotp);
 			gsl_vector_set (f, i, (Yi - y[i])/sigma[i]);
@@ -1255,10 +1462,10 @@ int expb_df (const gsl_vector *x, void *data,  gsl_matrix *J)
   
 	for (i = 0; i < n; i++)
 		{      
-			/* Jacobian matrix J(i,j) = dfi / dxj, */
-			/* where fi = (Yi - yi)/sigma[i],      */
-			/*       Yi = exp(-b:D)   */
-			/* and the xj are the parameters (D_xx,...) */
+			// Jacobian matrix J(i,j) = dfi / dxj, 
+			// where fi = (Yi - yi)/sigma[i],      
+			//       Yi = exp(-b:D)   
+			// and the xj are the parameters (D_xx,...) 
 			dotp = 0;
 			for( j=0 ; j<6 ; j++) {
 				if( j>2)
@@ -1295,15 +1502,15 @@ int expb_fdf(const gsl_vector *x, void *data, gsl_vector *f, gsl_matrix *J)
 }
 
 
-
+*/
 
 
 // from Numerical Recipes by Press, Teukolsky, Vetterling and Flannery
 // (indices adjusted to modern C)
 void piksr2(int n, unsigned int arr[], int brr[])
-/*Sorts an array arr[1..n] into ascending numerical order, by straight
-  insertion, while making the corresponding rearrangement of the array
-  brr[1..n].*/
+//Sorts an array arr[1..n] into ascending numerical order, by straight
+//  insertion, while making the corresponding rearrangement of the array
+//  brr[1..n].
 {
 	int i,j;
 	unsigned int a;
@@ -1321,3 +1528,4 @@ void piksr2(int n, unsigned int arr[], int brr[])
 		brr[i+1]=b;
 	}
 }
+
