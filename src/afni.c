@@ -392,6 +392,7 @@ void AFNI_syntax(void)
      "   -nomall      Disables use of the mcw_malloc() library routines.\n"
 #endif
      "   -motif_ver   Show the applied motif version string.\n"
+     "   -no_detach   Do not detach from the terminal.\n"
      "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
      "   -goodbye     Print a 'goodbye' message and exit (just for fun).\n"
@@ -1212,6 +1213,12 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -no_detach option -----*/
+
+      if( strncmp(argv[narg],"-no_detach",7) == 0 ){/* was handled in main() */
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -q option -----*/
 
       if( strcmp(argv[narg],"-q") == 0 ){            /* was handled in main() */
@@ -1473,6 +1480,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Some cause happiness wherever they go; others whenever they go",
      "A man who does not think for himself does not think at all"    ,
      "The truth is rarely pure and never simple"                     ,
+     "Remember this: Everything popular is wrong"                    ,
      "I have nothing to declare except my genius"                    ,
      "In matters of opinion, all my adversaries are insane"          ,
      "Go to Heaven for the climate, Hell for the company"            ,
@@ -1513,14 +1521,13 @@ void AFNI_sigfunc_alrm(int sig)
      "I am not bound to please thee with my statistics"              ,
      "I will praise any man that will praise me"                     ,
      "If you have tears, prepare to shed them now"                   ,
-     "Remember -- Nothing is always absolutely so"                   ,
+     "Remember -- nothing is always absolutely so"                   ,
      "Remember -- 90% of everything is cr*p"                         ,
      "Remember -- Good things always take longer than you expect"    ,
      "Remember -- 'New and Improved' is neither"                     ,
      "Remember -- Murphy was an optimist"                            ,
      "Remember -- Statistics are no substitute for judgment"         ,
-     "Remember -- A thing can be true, and still be desperate folly" ,
-     "Remember -- Everything popular is wrong"                       ,
+     "Remember -- a thing can be true, and still be desperate folly" ,
      "If the facts don't fit the theory, change the facts"           ,
      "All generalizations are false, including this one"             ,
      "Facts are stubborn, but statistics are pliable"                ,
@@ -1535,13 +1542,7 @@ void AFNI_sigfunc_alrm(int sig)
      "An ounce of practice is worth more than a ton of preaching"    ,
      "Even if you a minority of one, the truth is still the truth"   ,
      "Money talks, but usually just to say 'Goodbye'"                ,
-     "Time is an illusion. Lunchtime doubly so."                     ,
-     "I'd far rather be happy than right, any day"                   ,
-     "So long, and thanks for all the fish"                          ,
-     "Five exclamation points, the sure sigh of an insane mind!!!!"  ,
-     "Real stupidity beats artificial intelligence, every time"      ,
 
-     "Only in our dreams are we free; the rest of the time, we need wages"            ,
      "In ancient times, there were no statistics, so they just had to lie"            ,
      "If your experiment needs statistics, you need a better experiment"              ,
      "Wirth's law -- software gets slower faster than hardware gets faster"           ,
@@ -1731,16 +1732,21 @@ int main( int argc , char *argv[] )
 
    /*** otherwise, perhaps become all detached from reality ***/
 
-   PUTENV("AFNI_DETACH","YES") ;            /* Apr 2013 */
-   { char *eee = getenv("AFNI_DETACH") ;    /* 31 May 2011 */
-     if( YESSISH(eee) ){
-       ii = (int)fork();
-       if( ii != 0 ){         /* parent process dies now */
-         AFNI_sleep(2345) ;   /* msec */
-         fprintf(stderr,"++ AFNI is detached from terminal.\n") ;
-         _exit(0) ;
-       }
-     }
+   /* Since AFNI_DETACH is applied before machdep() or other my_getenv
+      calls, -D cannot be used to apply this env var, so add an option.
+                                                     7 Mar 2014 [rickr] */
+   if( ! check_string("-no_detach",argc,argv) ) {
+      PUTENV("AFNI_DETACH","YES") ;            /* Apr 2013 */
+      { char *eee = getenv("AFNI_DETACH") ;    /* 31 May 2011 */
+        if( YESSISH(eee) ){
+          ii = (int)fork();
+          if( ii != 0 ){         /* parent process dies now */
+            AFNI_sleep(2345) ;   /* msec */
+            fprintf(stderr,"++ AFNI is detached from terminal.\n") ;
+            _exit(0) ;
+          }
+        }
+      }
    }
 
    /*--- Initialize some stuff ---*/
