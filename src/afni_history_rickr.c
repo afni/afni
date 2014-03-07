@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7,  Mar, 2014, RCR, "afni", MICRO, TYPE_NEW_OPT,
+   "added -no_detach, to prevent detaching from the terminal",
+   "Useful since -DAFNI_DETACH=NO cannot work as written."
+ } ,
+
  {  6,  Mar, 2014, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_MODIFY,
    "changed some censoring and per-stim behavior",
    "- if censoring, create X.stim.xmat.1D from uncensored matrix\n"

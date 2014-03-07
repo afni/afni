@@ -5069,13 +5069,13 @@ g_help_string = """
 
            Censoring due to motion has long been considered appropriate in
            BOLD FMRI analysis, but is less common for those doing bandpass
-           filtering in RC FMRI because the FFT requires one to either break
+           filtering in RS FMRI because the FFT requires one to either break
            the time axis (evil) or to replace the censored data with something
            probably inapproprate.
 
            Instead, it is slow (no FFT, but maybe SFT :) but effective to
-           regress frequencies within the regression model, where censored is
-           simple.
+           regress frequencies within the regression model, where censoring
+           is simple.
 
            Note: bandpassing in the face of RETROICOR processing is questionable.
                  There is no strong opinion on it (at least within our group).
@@ -5218,7 +5218,10 @@ g_help_string = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-        Example 8. Based on subject FT under AFNI_data6.
+        Example 8. Surface-based analysis.
+
+           This example is intended to be run from AFNI_data6/FT_analysis.
+           It is provided with the class data in file s03.ap.surface.
 
            Add -surf_spec and -surf_anat to provide the required spec and
            surface volume datasets.  The surface volume will be aligned to
@@ -5248,8 +5251,8 @@ g_help_string = """
                 -surf_anat      : volume aligned with surface
                 -surf_spec      : spec file(s) for surface
 
-           This example is intended to be run from AFNI_data6/FT_analysis.
-           It is provided with the class data in file s03.ap.surface.
+           Note: one would probably want to use standard mesh surfaces here.
+                 This example will be udpated with them in the future.
 
                 afni_proc.py -subj_id FT.surf                            \\
                     -blocks tshift align volreg surf blur scale regress  \\
@@ -5278,13 +5281,13 @@ g_help_string = """
 
            Censoring due to motion has long been considered appropriate in
            BOLD FMRI analysis, but is less common for those doing bandpass
-           filtering in RC FMRI because the FFT requires one to either break
+           filtering in RS FMRI because the FFT requires one to either break
            the time axis (evil) or to replace the censored data with something
            probably inapproprate.
 
            Instead, it is slow (no FFT, but maybe SFT :) but effective to
-           regress frequencies within the regression model, where censored is
-           simple.
+           regress frequencies within the regression model, where censoring
+           is simple.
 
            inputs: anat, EPI
            output: errts dataset (to be used for correlation)
