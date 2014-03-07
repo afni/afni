@@ -87,6 +87,7 @@ typedef char * str_func() ;
 typedef struct {
       Widget wrowcol ,                   /* Container */
              wlabel , wdown,wup , wtext ;/* left-to-right widgets */
+      Widget wname ;
 
       Widget wmenu ;                     /* for optmenu style only! */
       int block_assign_actions ;
