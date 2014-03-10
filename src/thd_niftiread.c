@@ -748,6 +748,11 @@ ENTRY("THD_load_nifti") ;
 
    dkptr = dblk->diskptr ;
 
+   /* purge any existing bricks [10 Mar 2014] */
+
+   STATUS("purging existing data bricks (if any)") ;
+   THD_purge_datablock(dblk,DATABLOCK_MEM_ANY) ;
+
    STATUS("calling nifti_image_read_bricks") ;
    NBL.nbricks = 0 ;
 

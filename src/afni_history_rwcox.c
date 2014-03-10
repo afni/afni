@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , MAR , 2014 , RWC , "3dClustSim" , MICRO , TYPE_GENERAL ,
+  { 10 , MAR , 2014 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+   "Fix memory handling errors" ,
+   "(1) when loading a NIfTI dataset, it should be unloaded first to avoid\n"
+   "memory leakage\n"
+   "(2) when creating a vectim from a censored list, the correct check is if\n"
+   "the subset is NOT loaded -- the test was backwards :-(" } ,
+
+ { 4 , MAR , 2014 , RWC , "3dClustSim" , MICRO , TYPE_GENERAL ,
    "Change format of pthr and athr to allow for tiny values - for Gang" ,
    NULL } ,
 
