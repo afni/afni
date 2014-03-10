@@ -740,6 +740,8 @@ ENTRY("new_MCW_arrowval") ;
 
    }
 
+   av->wname = NULL ;
+
    XtManageChild( av->wrowcol ) ;
 
    if( minval < maxval ){
@@ -996,6 +998,7 @@ STATUS("creating option menu") ;
    av->wdown  = XmOptionButtonGadget(av->wrowcol) ;
    av->wup    = NULL ;
    av->wtext  = NULL ;  /* signal that this is NOT really an arrowval */
+   av->wname  = NULL ;
 
    XtVaSetValues( av->wlabel ,              /* label next to menu button */
                      XmNmarginWidth  , 0 ,
