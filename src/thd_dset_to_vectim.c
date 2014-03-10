@@ -120,7 +120,7 @@ ENTRY("THD_dset_censored_to_vectim") ;
      RETURN(mrv) ;
    }
 
-   if( THD_subset_loaded(dset,nkeep,keep) ){
+   if( ! THD_subset_loaded(dset,nkeep,keep) ){
      DSET_load(dset) ; if( !DSET_LOADED(dset)  ) RETURN(NULL) ;
    }
 

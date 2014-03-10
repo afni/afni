@@ -1859,11 +1859,15 @@ int main( int argc , char *argv[] )
        if( vectim_BBB != NULL ){ VECTIM_destroy(vectim_BBB); vectim_BBB=NULL; }
        vectim_AAA = THD_dset_list_censored_to_vectim( ndset_AAA , dset_AAA ,
                                                       mask , 1 , keep       ) ;
+#if 1
        for( ii=0 ; ii < ndset_AAA ; ii++ ) DSET_unload_one(dset_AAA[ii],bb) ;
+#endif
        if( twosam ){
          vectim_BBB = THD_dset_list_censored_to_vectim( ndset_BBB , dset_BBB ,
                                                         mask , 1 , keep       ) ;
+#if 1
          for( ii=0 ; ii < ndset_BBB ; ii++ ) DSET_unload_one(dset_BBB[ii],bb) ;
+#endif
        }
        if( debug ) MEMORY_CHECK ;
      }
