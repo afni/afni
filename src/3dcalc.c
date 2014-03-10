@@ -227,7 +227,7 @@ void CALC_read_opts( int argc , char * argv[] )
    int ids ;
    int ii, kk;
    char *srcspace=NULL;
-      
+
    for( ids=0 ; ids < 26 ; ids++ ){
       CALC_dset[ids]   = NULL ;
       CALC_type[ids]   = -1 ;
@@ -245,13 +245,13 @@ void CALC_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-trace",5) == 0 ){ DBG_trace=1; nopt++; continue; }
       if( strncmp(argv[nopt],"-TRACE",5) == 0 ){ DBG_trace=2; nopt++; continue; }
 #endif
-      
+
       /**** -help ****/
       if (!strcmp(argv[nopt], "-help")) {
          CALC_Syntax();
          exit(0);
       }
-      
+
       /**** -dicom, -RAI, -LPI, -SPM [18 May 2005] ****/
 
       if( strcasecmp(argv[nopt],"-dicom") == 0 || strcasecmp(argv[nopt],"-rai") == 0 ){
@@ -656,7 +656,7 @@ void CALC_read_opts( int argc , char * argv[] )
             /* set space for any atlas datasets */
             srcspace = THD_get_space(dset); /* update default space */
             set_out_space(srcspace);   /* make output space for mask dset */
-         } 
+         }
          else{
             if(!equivalent_space(THD_get_space(dset))){
                WARNING_message(
@@ -1377,6 +1377,13 @@ void CALC_Syntax(void)
     "                                                                        \n"
     " specifies that variable 'a' be assigned to a 1D time series of 35,     \n"
     " alternating in blocks between values 0 and value 1.                    \n"
+    "\n"
+    " You can combine 3dUndump with 3dcalc to create an all zero 3D+time     \n"
+    " dataset from 'thin air', as in the commands                            \n"
+    "    3dUndump -dimen 128 128 32 -prefix AllZero_A -datum float           \n"
+    "    3dcalc -a AllZero_A+orig -b '1D: 100@' -expr 0 -prefix AllZero_B    \n"
+    " If you replace the '0' expression with 'gran(0,1)', you'd get a        \n"
+    " random 3D+time dataset, which might be useful for testing purposes.    \n"
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "'I:*.1D' and 'J:*.1D' and 'K:*.1D' INPUT:                               \n"
@@ -1543,7 +1550,7 @@ void CALC_Syntax(void)
     "   it works - somewhat slowly - but hey, computers are fast these days.)\n"
    ) ;
 
-   PRINT_COMPILE_DATE ; 
+   PRINT_COMPILE_DATE ;
 }
 
 /*------------------------------------------------------------------*/
@@ -1574,11 +1581,11 @@ int main( int argc , char *argv[] )
    mainENTRY("3dcalc main"); machdep() ;
    PRINT_VERSION("3dcalc") ; AUTHOR("A cast of thousands") ;
    THD_check_AFNI_version("3dcalc") ;
-   
-   if(argc == 1){ CALC_Syntax(); exit(0); } /* Bob's help shortcut */   
-   
+
+   if(argc == 1){ CALC_Syntax(); exit(0); } /* Bob's help shortcut */
+
    set_obliquity_report(0); /* silence obliquity */
-   
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -1591,7 +1598,7 @@ int main( int argc , char *argv[] )
    if( AFNI_yesenv("AFNI_FLOATIZE") ) CALC_datum = MRI_float ;
 
    CALC_read_opts( argc , argv ) ;
-   
+
    if( argc < 2) ERROR_message("Too few options, use -help for details");
 
    /*** make output dataset ***/
@@ -1616,7 +1623,7 @@ int main( int argc , char *argv[] )
          WARNING_message("dataset '%c'=%s grid mismatch with %s\n",
                       'a'+iii , DSET_BRIKNAME(CALC_dset[iii]) ,
                                 DSET_BRIKNAME(CALC_dset[ids]) ) ;
-      
+
        }
        angle = dset_obliquity_angle_diff(new_dset, CALC_dset[iii], -1.0);
        if (angle > 0.0) {
