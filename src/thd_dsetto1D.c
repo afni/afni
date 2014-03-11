@@ -260,6 +260,59 @@ int THD_extract_float_array( int ind, THD_3dim_dataset *dset, float *far )
    return(0);
 }
 
+/*---------------------------------------------------------------------------*/
+
+float THD_get_float_value( int ind , int ival , THD_3dim_dataset *dset )
+{
+   MRI_TYPE typ ; float val=0.0f ;
+
+   if( ind < 0 || ival < 0 || !ISVALID_DSET(dset) ||
+       ival >= DSET_NVALS(dset) || ind >= DSET_NVOX(dset) ) return val ;
+
+   typ = DSET_BRICK_TYPE(dset,ival) ;  /* raw data type */
+
+   switch( typ ){
+
+      default:           /* don't know what to do --> return nada */
+         return(-1);
+      break ;
+
+      case MRI_byte:{
+         byte *bar ;
+         bar = (byte *) DSET_ARRAY(dset,ival) ;
+         if( bar != NULL ) val = (float)bar[ind] ;
+      }
+      break ;
+
+      case MRI_short:{
+         short *bar ;
+         bar = (short *) DSET_ARRAY(dset,ival) ;
+         if( bar != NULL ) val = (float)bar[ind] ;
+      }
+      break ;
+
+      case MRI_float:{
+         float *bar ;
+         bar = (float *) DSET_ARRAY(dset,ival) ;
+         if( bar != NULL ) val = bar[ind] ;
+      }
+      break ;
+
+      case MRI_complex:{
+         complex *bar ;
+         bar = (complex *) DSET_ARRAY(dset,ival) ;
+         if( bar != NULL ) val = CABS(bar[ind]) ;
+      }
+      break ;
+
+   }
+
+   if( DSET_BRICK_FACTOR(dset,ival) > 0.0f )
+     val *= DSET_BRICK_FACTOR(dset,ival) ;
+
+   return val ;
+}
+
 /*----------------------------------------------------------------------------*/
 
 int THD_voxel_is_constant( int ind , THD_3dim_dataset *dset )
