@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Mar, 2014, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "added gen_ss_review_scripts.py command comment at bottom of _basic script",
+   NULL
+ } ,
+
  { 7,  Mar, 2014, RCR, "afni", MICRO, TYPE_NEW_OPT,
    "added -no_detach, to prevent detaching from the terminal",
    "Useful since -DAFNI_DETACH=NO cannot work as written."
