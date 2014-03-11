@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , MAR , 2014 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
+  { 11 , MAR , 2014 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+   "Modify way copy of data into vectim works for -brickwise" ,
+   "Makes it run much faster -- change is actually in thd_dset_to_vectim.c" } ,
+
+ { 10 , MAR , 2014 , RWC , "3dttest++" , MICRO , TYPE_BUG_FIX ,
    "Fix memory handling errors" ,
    "(1) when loading a NIfTI dataset, it should be unloaded first to avoid\n"
    "memory leakage\n"
