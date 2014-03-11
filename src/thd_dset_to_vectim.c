@@ -173,9 +173,13 @@ ENTRY("THD_dset_censored_to_vectim") ;
     float *vpt ;
      for( kk=iv=0 ; iv < nvox ; iv++ ){
        if( mmm[iv] == 0 ) continue ;
-       (void)THD_extract_array( iv , dset , 0 , var ) ;
        vpt = VECTIM_PTR(mrv,kk) ; kk++ ;
-       for( jj=0 ; jj < nkeep ; jj++ ) vpt[jj] = var[keep[jj]] ;
+       if( nkeep > 1 ){
+         (void)THD_extract_array( iv , dset , 0 , var ) ;
+         for( jj=0 ; jj < nkeep ; jj++ ) vpt[jj] = var[keep[jj]] ;
+       } else {
+         vpt[0] = THD_get_float_value(iv,keep[0],dset) ;
+       }
      }
      free(var) ;
    }
@@ -1239,7 +1243,8 @@ MRI_vectim * THD_dset_list_censored_to_vectim( int nds, THD_3dim_dataset **ds,
 
    if( nds < 1 || ds == NULL ) return NULL ;
 
-   if( nds == 1 ) return THD_dset_censored_to_vectim( ds[0],mask,nkeep,keep );
+   if( nds == 1 )   /* trivial case */
+     return THD_dset_censored_to_vectim( ds[0],mask,nkeep,keep );
 
    for( kk=0 ; kk < nds ; kk++ ){
      if( !ISVALID_DSET(ds[kk]) ) return NULL ;
