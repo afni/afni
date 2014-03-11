@@ -511,6 +511,7 @@ g_cvars_defs.scr_basic  = '@ss_review_basic'
 g_cvars_defs.scr_drive  = '@ss_review_driver'
 g_cvars_defs.cmds_drive = '@ss_review_driver_commands'
 g_cvars_defs.xstim      = 'X.stim.xmat.1D'
+g_cvars_defs.basic_command = 'yes' # if set, include command in review_basic
 g_cvars_defs.out_prefix = ''    # if set, use as prefix to cvar files
 g_cvars_defs.exit0      = 0     # if set, return 0 even on errors
 
@@ -580,9 +581,10 @@ g_history = """
         - if censoring, create X.stim.xmat.1D from uncensored matrix
         - if no censor, still report num regs of interest and TRs per stim
         - report per-stim censoring only with stim classes
+   0.34 Mar 11, 2014: added GSSRS command comment at bottom of _basic script
 """
 
-g_version = "gen_ss_review_scripts.py version 0.33, March 6, 2014"
+g_version = "gen_ss_review_scripts.py version 0.34, March 11, 2014"
 
 g_todo_str = """
    - figure out template_space
@@ -1734,6 +1736,8 @@ class MyInterface:
 
       self.text_basic += g_basic_finish_str
 
+      self.basic_add_command_string()
+
       return 0
 
    def basic_overview(self):
@@ -1867,6 +1871,11 @@ class MyInterface:
       self.text_basic += txt + '\n'
 
       return 0
+
+   def basic_add_command_string(self):
+      if self.cvars.val('basic_command') != 'yes': return
+
+      self.text_basic += '\n' + UTIL.get_command_str(comment=1) + '\n'
 
    def make_drive_script(self):
       # init script and commands-only text
