@@ -924,8 +924,8 @@ void display_help_menu(void)
       "   \\rm ZZ*\n"
       "The expected value of the t-statistic with 14 samples in setA and\n"
       "10 samples in setB is calculated below:\n"
-      "   sigma / sqrt( 1/NA + 1/NB ) / (1 - 3/(4*NA+4*NB-9) )\n"
-      " =   1   / sqrt( 1/14 + 1/10 ) / (1 - 3/87            ) = 2.50149\n"
+      "   delta_mean / sigma / sqrt( 1/NA + 1/NB ) / (1 - 3/(4*NA+4*NB-9) )\n"
+      " =      1     / 1     / sqrt( 1/14 + 1/10 ) / (1 - 3/87            ) = 2.50149\n"
       "where division by (1-3/(4*NA+4*NB-9)) is the correction factor\n"
       "for the skewness of the non-central t-distribution\n"
       "(see http://en.wikipedia.org/wiki/Noncentral_t-distribution).\n"
@@ -938,9 +938,9 @@ void display_help_menu(void)
       "* http://www.statsoft.com/textbook/basic-statistics/\n"
       "* http://en.wikipedia.org/wiki/Mutatis_mutandis\n"
       "\n"
-      "----------------------------------------------------\n"
-      "AUTHOR -- RW Cox -- don't whine TO me; wine WITH me.\n"
-      "----------------------------------------------------\n"
+      "---------------------------------------------------\n"
+      "AUTHOR -- RW Cox -- don't whine TO me; wine WITH me (e.g., a nice Pinot Noir)\n"
+      "---------------------------------------------------\n"
   ) ;
 
   PRINT_COMPILE_DATE ; exit(0) ;
