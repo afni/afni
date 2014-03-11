@@ -4845,6 +4845,7 @@ extern int         THD_instacorr_cmeth_needs_normalize( int cmeth );
 
 extern int THD_extract_array      ( int, THD_3dim_dataset *, int, void * ) ;
 extern int THD_extract_float_array( int, THD_3dim_dataset *, float * ) ;
+extern float THD_get_float_value( int, int, THD_3dim_dataset * ) ;
 
 extern MRI_IMAGE * THD_extract_float_brick( int , THD_3dim_dataset * ) ;
 extern MRI_IMAGE * THD_extract_double_brick( int , THD_3dim_dataset * ) ;
