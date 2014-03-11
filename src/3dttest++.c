@@ -902,6 +902,34 @@ void display_help_menu(void)
       "non-technical words.\n"
       "\n"
       "((***** What does this all mean for FMRI?  I'm still thinking about it. *****))\n"
+
+      "\n"
+      "--------------------\n"
+      "TESTING THIS PROGRAM\n"
+      "--------------------\n"
+      "A simple 2-sample test of this program is given by the script below,\n"
+      "which creates 2 datasets with standard deviation (sigma) of 1; the\n"
+      "first one (ZZ_1) has mean 1 and the second one (ZZ_0) has mean 0;\n"
+      "then the program tests these datasets to see if their means are different,\n"
+      "and finally prints out the average value of the estimated differences\n"
+      "in their means, and the average value of the associated t-statistic:\n"
+      "   3dUndump -dimen 128 128 32 -prefix ZZ\n"
+      "   3dcalc -a ZZ+orig -b '1D: 14@0' -expr 'gran(1,1)' -prefix ZZ_1.nii -datum float\n"
+      "   3dcalc -a ZZ+orig -b '1D: 10@0' -expr 'gran(0,1)' -prefix ZZ_0.nii -datum float\n"
+      "   3dttest++ -setA ZZ_1.nii -setB ZZ_0.nii -prefix ZZtest.nii -no1sam\n"
+      "   echo '=== mean of mean estimates follows, should be about 1 ==='\n"
+      "   3dBrickStat -mean ZZtest.nii'[0]'\n"
+      "   echo '=== mean of t-statistics follows, should be about 2.50149 ==='\n"
+      "   3dBrickStat -mean ZZtest.nii'[1]'\n"
+      "   \\rm ZZ*\n"
+      "The expected value of the t-statistic with 14 samples in setA and\n"
+      "10 samples in setB is calculated below:\n"
+      "   sigma / sqrt( 1/NA + 1/NB ) / (1 - 3/(4*NA+4*NB-9) )\n"
+      " =   1   / sqrt( 1/14 + 1/10 ) / (1 - 3/87            ) = 2.50149\n"
+      "where division by (1-3/(4*NA+4*NB-9)) is the correction factor\n"
+      "for the skewness of the non-central t-distribution\n"
+      "(see http://en.wikipedia.org/wiki/Noncentral_t-distribution).\n"
+
       "\n"
       "-------------------------\n"
       "VARIOUS LINKS OF INTEREST\n"
@@ -2297,6 +2325,24 @@ ENTRY("regress_toz") ;
    - opcode = 1 for unpaired test with unpooled variance
    - opcode = 2 for paired test (numx == numy is required)
    - The return value is the Z-score of the t-statistic.
+
+   A simple 2-sample test of this function:
+      3dUndump -dimen 128 128 32 -prefix ZZ
+      3dcalc -a ZZ+orig -b '1D: 14@0' -expr 'gran(1,1)' -prefix ZZ_1.nii -datum float
+      3dcalc -a ZZ+orig -b '1D: 10@0' -expr 'gran(0,1)' -prefix ZZ_0.nii -datum float
+      3dttest++ -setA ZZ_1.nii -setB ZZ_0.nii -prefix ZZtest.nii -no1sam
+      echo "=== mean of mean estimates follows, should be 1 ==="
+      3dBrickStat -mean ZZtest.nii'[0]'
+      echo "=== mean of t-statistics follows, should be 2.50149 ==="
+      3dBrickStat -mean ZZtest.nii'[1]'
+      \rm ZZ*
+   The mean t-statistic with 14 samples in setA and 10 samples in setB
+   is calculated as
+      sigma / sqrt( 1/NA + 1/NB ) / (1 - 3/(4*NA+4*NB-9) )
+    =   1   / sqrt( 1/14 + 1/10 ) / (1 - 3/87            ) = 2.50149
+   where division by (1-3/(4*NA+4*NB-9)) is the correction factor
+   for the skewness of the non-central t-distribution
+   (see http://en.wikipedia.org/wiki/Noncentral_t-distribution).
 *//*--------------------------------------------------------------------------*/
 
 float_pair ttest_toz( int numx, float *xar, int numy, float *yar, int opcode )
