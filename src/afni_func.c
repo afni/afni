@@ -213,16 +213,16 @@ ENTRY("AFNI_func_setqval_final_CB") ;
    }
 
    qval = (float)strtod((char *)val[0],&cpt) ;
-   if( qval >  0.0f && *cpt == '%'  ) qval *= 0.01f ;
-   if( qval <= 0.0f || qval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
+   if( qval > 0.0f && *cpt == '%'  ) qval *= 0.01f ;
+   if( qval < 0.0f || qval >= 1.0f ){ TFLASH(im3d); EXRETURN; }
 
-   im3d->vinfo->fix_qval   = ( strcmp((char *)val[1],yesno[1]) == 0 ) ;
+   im3d->vinfo->fix_qval   = ( qval > 0.0f && strcmp((char *)val[1],yesno[1]) == 0 ) ;
    im3d->vinfo->fixed_qval = (im3d->vinfo->fix_qval) ? qval : 0.0f ;
 
    im3d->vinfo->fix_pval   = 0 ;
    im3d->vinfo->fixed_pval = 0.0f ;
 
-   AFNI_set_qval(im3d,qval) ;
+   if( qval > 0.0f ) AFNI_set_qval(im3d,qval) ;
    EXRETURN ;
 }
 
@@ -546,7 +546,7 @@ if(PRINT_TRACING)
      }
      if( im3d->vedset.code > 0 && im3d->fim_now->dblk->vedim != NULL )
        strcat(buf,"*") ;  /* mark that are in clustering mode [05 Sep 2006] */
-     else if( im3d->vinfo->fix_pval )
+     else if( im3d->vinfo->fix_pval && fabsf(im3d->vinfo->fixed_pval-pval)<1.e-4f )
        strcat(buf,"f") ;
    }
 
@@ -567,7 +567,8 @@ if(PRINT_TRACING)
            else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
          }
          strcat(buf,"\nq=") ; strcat(buf,qbuf+1) ;
-         if( im3d->vinfo->fix_qval ) strcat(buf,"f") ;
+         if( im3d->vinfo->fix_qval && fabsf(im3d->vinfo->fixed_qval-qval)<1.e-4f )
+           strcat(buf,"f") ;
        }
      } else {
        strcat(buf,"\nq=N/A") ;
