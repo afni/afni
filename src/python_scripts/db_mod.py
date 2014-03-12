@@ -1874,10 +1874,24 @@ def db_cmd_blur(proc, block):
        if not opt or not opt.parlist: other_opts = ''
        else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
-       cstr = "    3dmerge %s %s -doall -prefix %s \\\n"        \
-              "%s"                                              \
-              "            %s\n"                                \
-              % (filter, str(size), prefix, other_opts, prev)
+       # if we have an extents mask, apply it if no scale block
+       do_mask = proc.mask_extents != None and \
+                 proc.find_block('scale',proc.bindex) == None
+
+       if do_mask: tprefix = 'rm.%s' % prefix
+       else:       tprefix = prefix
+
+       cstr = "    3dmerge %s %s -doall -prefix %s \\\n"       \
+              "%s"                                             \
+              "            %s\n"                               \
+              % (filter, str(size), tprefix, other_opts, prev)
+
+       if do_mask:
+          cstr += "\n"                                                   \
+                  "    # and apply extents mask, since no scale block\n" \
+                  "    3dcalc -a %s%s -b %s \\\n"                        \
+                  "           -expr 'a*b' -prefix %s\n"                  \
+                  % (tprefix, proc.view, proc.mask_extents.shortinput(), prefix)
 
     cmd = "# %s\n" % block_header('blur')
 
@@ -3195,7 +3209,6 @@ def db_cmd_regress(proc, block):
     if nregs == 0 or (not opt.parlist and (bluropt or tsnropt)):
         opt.parlist = ['errts.${subj}%s' % suff]
 
-    proc.errts_pre = ''
     if not opt or not opt.parlist: errts = ''
     else:
         proc.errts_pre = opt.parlist[0]
@@ -3590,6 +3603,8 @@ def db_cmd_regress_tfitter(proc, block):
            '3dcalc -a %s%s%s -b %s%s \\\n'      \
            '       -expr a-b -prefix %s\n\n'  \
            % (proc.all_runs, proc.view, substr, fitts, proc.view, rset.prefix)
+
+    proc.errts_pre = rset.prefix
 
     return 0, cmd
 
@@ -4733,18 +4748,11 @@ def block_header(hname, maxlen=74, hchar='=', endchar=''):
     """return a title string of 'hchar's with the middle chars set to 'name'
        if endchar is set, put at both ends of header
        e.g. block_header('volreg', endchar='##') """
-    if len(hname) > 0: name = ' %s ' % hname
-    else:              name = ''
 
-    if endchar != '': maxlen -= 2*len(endchar)
-    rmlen = len(name)
-    if rmlen >= maxlen:
-        print "** block_header, rmlen=%d exceeds maxlen=%d" % (rmlen, maxlen)
-        return name
-    prelen  = (maxlen - rmlen) // 2     # basically half the chars
-    postlen = maxlen - rmlen - prelen   # other 'half'
+    # move this function out
 
-    return endchar + prelen*hchar + name + postlen*hchar + endchar
+    return UTIL.section_divider(hname=hname, maxlen=maxlen, hchar=hchar,
+                                endchar=endchar)
 
 # ----------------------------------------------------------------------
 # global help string (see end global help string)

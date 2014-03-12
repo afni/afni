@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Mar, 2014, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "set errts_pre in anaticor block; apply extends in blur no scale",
+   NULL
+ } ,
+
  { 11,  Mar, 2014, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
    "added gen_ss_review_scripts.py command comment at bottom of _basic script",
    NULL
