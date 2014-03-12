@@ -1542,6 +1542,7 @@ void AFNI_sigfunc_alrm(int sig)
      "An ounce of practice is worth more than a ton of preaching"    ,
      "Even if you a minority of one, the truth is still the truth"   ,
      "Money talks, but usually just to say 'Goodbye'"                ,
+     "Are you a Bayesian Heretic or a Frequentist True Believer?"    ,
 
      "In ancient times, there were no statistics, so they just had to lie"            ,
      "If your experiment needs statistics, you need a better experiment"              ,
