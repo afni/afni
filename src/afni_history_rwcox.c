@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , MAR , 2014 , RWC , "fdrval" , MICRO , TYPE_BUG_FIX ,
+  { 13 , MAR , 2014 , RWC , "AFNI" , MICRO , TYPE_BUG_FIX ,
+   "Didn't properly turn off dplot in Boxed graphing mode" ,
+   NULL } ,
+
+ { 13 , MAR , 2014 , RWC , "fdrval" , MICRO , TYPE_BUG_FIX ,
    "two changes" ,
    "(a) bug fix in interp_inverse_floatvec(), where the last interval wasn't\n"
    "used -- in the context of fdrval, tiny qval (big zval at end of range)\n"
