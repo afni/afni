@@ -120,11 +120,13 @@ float THD_fdrcurve_zval( THD_3dim_dataset *dset , int iv , float thresh )
 }
 
 /*-------------------------------------------------------------------------*/
-/* convert z(q) to thresh by inverse interpolation */
+/* convert z(q) to thresh by inverse interpolation
+   (I don't recall why I set the suffix of this function to 'zqtot'.)
+*//*-----------------------------------------------------------------------*/
 
 float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval )
 {
-   floatvec *fv ;
+   floatvec *fv ; float thr ;
 
    if( !ISVALID_DSET(dset) || iv < 0 || iv >= DSET_NVALS(dset) ) return 0.0f ;
 
@@ -135,7 +137,24 @@ float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval )
      if( fv == NULL ) return 0.0f ;
    }
 
-   return ( interp_inverse_floatvec(fv,zval) ) ;
+   if( zval > fv->ar[fv->nar-1] ){           /* larger than the largest value */
+     float mab = DSET_BSTAT_MAXABS(dset,iv) ; /* (that is, qval is too small) */
+     thr = fv->x0 + fv->dx*fv->nar ;
+     if( mab >= thr ) thr = mab*1.000002f ;
+   } else if( zval < fv->ar[0] ){                /* smaller than the smallest */
+     thr = 0.0f ;                               /* (that is, qval is too big) */
+   } else {
+     thr = interp_inverse_floatvec(fv,zval) ;            /* qval is copasetic */
+   }
+
+#if 0
+{ int itop = fv->nar - 1 ;
+INFO_message("zqtot: zval=%g  x0=%g z0=%g  xtop=%g ztop=%g  thr=%g",
+              zval , fv->x0,fv->ar[0] , fv->x0+fv->dx*itop,fv->ar[itop] , thr ) ;
+}
+#endif
+
+   return thr ;
 }
 
 /*-------------------------------------------------------------------------*/

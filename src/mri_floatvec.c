@@ -104,7 +104,7 @@ float interp_inverse_floatvec( floatvec *fv , float y )
       linear interpolation plus a regula falsi step for improvement
       (since the forward interpolation method is cubic, not linear). */
 
-   for( ip=1 ; ip < itop ; ip++ ){
+   for( ip=1 ; ip <= itop ; ip++ ){
      ym = fv->ar[ip-1] ; yp = fv->ar[ip] ;
      if( (y-ym) * (y-yp) <= 0.0f ){    /* the desired y is now bracketed */
        dx = (y-ym) / (yp-ym) ;
