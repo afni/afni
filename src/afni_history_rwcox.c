@@ -43,7 +43,17 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 11 , MAR , 2014 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+  { 13 , MAR , 2014 , RWC , "fdrval" , MICRO , TYPE_BUG_FIX ,
+   "two changes" ,
+   "(a) bug fix in interp_inverse_floatvec(), where the last interval wasn't\n"
+   "used -- in the context of fdrval, tiny qval (big zval at end of range)\n"
+   "would be missed, giving bogus output\n"
+   "(b) alteration in THD_fdrcurve_zqtot(), where if the input zval is past\n"
+   "the end of the range, then the largest value in the threshold sub-brick\n"
+   "is returned if it is bigger than the value returned by\n"
+   "interp_inverse_floatvec()" } ,
+
+ { 11 , MAR , 2014 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
    "Modify way copy of data into vectim works for -brickwise" ,
    "Makes it run much faster -- change is actually in thd_dset_to_vectim.c" } ,
 
