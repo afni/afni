@@ -55,7 +55,7 @@ void machdep()
 
 char * GetAfniWebBrowser(void)
 {
-   char *awb=NULL;
+   static char *awb=NULL;
    awb = getenv("AFNI_WEB_BROWSER") ;
 #ifdef DARWIN
    if( awb == NULL ) awb = "open" ;  /* for Mac OS X */
@@ -72,7 +72,7 @@ char * GetAfniWebBrowser(void)
 
 char * GetAfniTextEditor(void)
 {
-   char *ate=NULL;
+   static char *ate=NULL;
    ate = getenv("AFNI_GUI_EDITOR");
 
    if( ate ) return ate;
@@ -94,13 +94,13 @@ char * GetAfniTextEditor(void)
 
 char * GetAfniWebDownloader(void)
 {
-   char *ate=NULL;
+   static char *ate=NULL;
    ate = getenv("AFNI_WEB_DOWNLOADER");
 
    if( ate ) return ate;
    
    /* else, hunt */
-   if( ate == NULL ) ate = THD_find_executable( "curl" )   ;
+   if( ate == NULL ) if (THD_find_executable( "curl" )) ate = "curl -O -f" ;
    if( ate == NULL ) ate = THD_find_executable( "wget" )   ;
 
    return(ate);
@@ -110,7 +110,7 @@ char * GetAfniWebDownloader(void)
 
 char * GetAfniPDFViewer(void)
 {
-   char *ate=NULL;
+   static char *ate=NULL;
    ate = getenv("AFNI_PDF_VIEWER");
 
    if( ate ) return ate;
@@ -128,7 +128,7 @@ char * GetAfniPDFViewer(void)
 
 char * GetAfniImageViewer(void)
 {
-   char *ate=NULL;
+   static char *ate=NULL;
    ate = getenv("AFNI_IMAGE_VIEWER");
 
    if( ate ) return ate;

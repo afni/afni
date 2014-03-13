@@ -969,6 +969,7 @@ SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out)
       SS = SUMA_StringAppend_va(SS, "HeadName      :%s\n", pn->HeadName);
       SS = SUMA_StringAppend_va(SS, "BrikName      :%s\n", pn->BrikName);
       SS = SUMA_StringAppend_va(SS, "OnDisk        :%d\n", pn->OnDisk);
+      SS = SUMA_StringAppend_va(SS, "Size          :%d\n", pn->Size);
       SS = SUMA_StringAppend_va(SS, "NameAsParsed  :%s\n", pn->NameAsParsed);
       SS = SUMA_StringAppend_va(SS, "cwdAsParsed   :%s\n", pn->cwdAsParsed);
       
@@ -1370,7 +1371,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
       NewName->BrikName = SUMA_append_string(NewName->Path,NewName->FileName);
    }
    NewName->OnDisk = THD_is_file(NewName->HeadName);
-   
+   NewName->Size = THD_filesize(NewName->HeadName);
    if (LocalHead) {
       SUMA_ShowParsedFname(NewName, NULL);
    }

@@ -15945,7 +15945,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    if (trmode != STM_0) {
      /* not the default, do the deed */
      SUMA_LHv("Trans Mode %d\n", trmode);
-     SUMA_SET_GL_TRANS_MODE(trmode, st); 
+     SUMA_SET_GL_TRANS_MODE(trmode, st, SO_type); 
    }
 
    /* any texture for this surface? */
@@ -16356,7 +16356,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
    if (trmode != STM_0) {
      /* not the default, do the deed */
      SUMA_LHv("Trans Mode %d\n", trmode);
-     SUMA_SET_GL_TRANS_MODE(trmode, st); 
+     SUMA_SET_GL_TRANS_MODE(trmode, st, -1); 
    }
 
 
@@ -20451,6 +20451,11 @@ static int stippleMask_shft[17] = { 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 
                                     0, 0, 0, 0, 0, 
                                     0, 0 };
+static int shift_by_type[17] = { -2, -2, -2, -2, -2, 
+                                    -2, -2, -2, -2, -2, 
+                                    -2, -2, -2, -2, -2, 
+                                    -2, -2 };;
+
 static GLubyte stippleMask[17][128] =
 {
   /* NOTE: 0% opaqueness is faster to set and probably faster to render with:
@@ -20779,6 +20784,7 @@ void SUMA_StippleMaskResest(void) {
       if (stippleMask_shft[n]) {
          memcpy(stippleMask[n], stippleMask_init[n], 128*sizeof(GLubyte));
          stippleMask_shft[n] = 0;
+         shift_by_type[n]=-2;
       }
    }
    return;
@@ -20830,16 +20836,37 @@ const GLubyte *SUMA_StippleMask(int transp) {
    return((const GLubyte *)stippleMask[16-transp]);
 }
 
-const GLubyte *SUMA_StippleMask_shift(int transp) {
+/* If btp >=0, then a mask shift is done only if the last call
+   performed a shift with the same btp . 
+   This option is useful is you're grouping object types and
+   want the shifting to be done the same way for a particular
+   type of objects. 
+   The ideal case of shifting with each new object is problematic
+   because we can't shift a whole lot for certain masks without creating
+   differing overlaps. For instance, say you have two surfaces and a
+   volume. If you use a different mask for each object at 50% shifts,
+   and with rendering order surf1, surf2, vol, then vol will end up 
+   obscuring surf1 because two shifts get you back to the same mask.
+   One could do with random mask patterns and be better off in terms of 
+   occlusion, but random mask patterns are ugly, though they may work once I
+   introduce convolution options for the final image. For now, deciding on shifts
+   by object type might work a little better, as long as the types are grouped 
+   together */
+const GLubyte *SUMA_StippleMask_shift(int transp, int btp) {
    const GLubyte *mm=NULL;
    if (transp < STM_0 || transp > STM_16) {
       fprintf(stderr,"Error SUMA_StippleMask: Bad transp %d\n", transp); 
       transp = STM_0;
    }
    transp = transp - STM_0;
-   
-   mm = (const GLubyte *)SUMA_StippleMaskShift(stippleMask[16-transp]);
-   ++stippleMask_shft[16-transp];
+   if (btp >= 0 && shift_by_type[16-transp] == btp) {
+      /* don't shift any more, same type as last time */
+      mm = (const GLubyte *)stippleMask[16-transp];
+   } else {
+      mm = (const GLubyte *)SUMA_StippleMaskShift(stippleMask[16-transp]);
+      ++stippleMask_shft[16-transp];
+      shift_by_type[16-transp] = btp;
+   }
    return(mm);
 }
 

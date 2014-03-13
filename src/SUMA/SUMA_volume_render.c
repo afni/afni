@@ -2451,7 +2451,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
       if ((gl_bl)) glDisable(GL_BLEND);
       if (trmode > SATM_0) {
          SUMA_LHv("ATrans Mode %d\n", trmode );
-         SUMA_SET_GL_TRANS_MODE(SUMA_ATransMode2TransMode(trmode), st);
+         SUMA_SET_GL_TRANS_MODE(SUMA_ATransMode2TransMode(trmode), st, -1);
       }
    }
    /* empty list of rendered slices */
@@ -2728,7 +2728,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
       /* The safe way. */
       if (trmode > SATM_0) {
          SUMA_LHv("ATrans Mode %d\n", trmode );
-         SUMA_SET_GL_TRANS_MODE(SUMA_ATransMode2TransMode(trmode), st);
+         SUMA_SET_GL_TRANS_MODE(SUMA_ATransMode2TransMode(trmode), st, VO_type);
       }
    }
    }

@@ -1882,11 +1882,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) {
       SUMA_DUMP_TRACE("Trace At display call");
    }
+   
    if (!csv->Open) {
       SUMA_S_Errv("Very weird to be here with Open flag = %d\n", csv->Open);
       SUMA_RETURNe;
    }
-   
    
    if (csv->DO_PickMode && !csv->pick_colid_list) { /* get ready */
       csv->pick_colid_list = (DList *)SUMA_calloc(1,sizeof(DList));

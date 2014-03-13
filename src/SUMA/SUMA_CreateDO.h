@@ -583,7 +583,7 @@ int SUMA_NodeRange_DrawnROI (SUMA_DRAWN_ROI *ROI, int *min, int *max);
 int SUMA_NIDO_TexEnvMode(NI_element *nel, int def);
 const GLubyte *SUMA_StippleMask(int transp);
 const GLubyte *SUMA_StippleMask_rand(int transp);
-const GLubyte *SUMA_StippleMask_shift(int transp);
+const GLubyte *SUMA_StippleMask_shift(int transp, int btp);
 GLushort SUMA_StippleLineMask_rand(int transp, int chunkwidth, int rseed);
 void SUMA_StippleMaskResest(void);
 SUMA_GL_STEL *SUMA_FindStateTrackEl(char *state, DList *stu);
