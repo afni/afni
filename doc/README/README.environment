@@ -3737,6 +3737,17 @@ Variable:  AFNI_GUI_EDITOR
 --------------------------
 Set this variable to your favorite GUI text editor.
 
+----------------------------
+Variable:  AFNI_IMAGE_VIEWER
+----------------------------
+Set this variable to your favorite image viewer.
+
+----------------------------
+Variable:  AFNI_PDF_VIEWER
+----------------------------
+Set this variable to your favorite pdf viewer.
+
+
 ------------------------------------
 Variable:  AFNI_LOG_BEST_PROG_OPTION
 ------------------------------------
