@@ -285,8 +285,8 @@ void AFNI_syntax(void)
      "-----------------------------------------------------\n"
      "USAGE 2: read in images for 'quick and dirty' viewing\n"
      "-----------------------------------------------------\n"
-     "(Most advanced features of AFNI will be disabled.)\n"
-     "(The aiv program can be used now instead of AFNI.)\n"
+     "** Most advanced features of AFNI will be disabled **\n"
+     "** The aiv program can be used now instead of AFNI **\n"
      "\n"
      "   afni -im [options] im1 im2 im3 ...\n"
      "\n"
@@ -347,6 +347,10 @@ void AFNI_syntax(void)
      "where 'dname1' is the name of a dataset, etc.  With this option, only\n"
      "the chosen datasets are read in, and they are all put in the same\n"
      "'session'.  Follower datasets are not created.\n"
+     "* If you wish to be very tricksy, you can read in .1D files as datasets\n"
+     "  using the \\' transpose syntax, as in\n"
+     "     afni Fred.1D\\'\n"
+     "  However, this isn't very useful (IMHO).\n"
      "\n"
     MASTER_HELP_STRING
      "\n"
@@ -1546,6 +1550,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Are you ready for the Big Rip?"                                ,
      "I hereby declare the Null Hypothesis to be ........ Falsified" ,
      "I'm sick of thinking about p-values -- how about you?"         ,
+     "Did you fail to negate the opposite of the null hypothesis?"   ,
 
      "In ancient times, there were no statistics, so they just had to lie"            ,
      "If your experiment needs statistics, you need a better experiment"              ,
