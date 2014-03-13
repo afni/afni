@@ -2047,14 +2047,16 @@ ENTRY("plot_graphs") ;
 
      static int first=1 ;
 
-     if( DATA_BOXED(grapher) && first ){
+     if( DATA_BOXED(grapher) ){
        MCW_set_bbox( grapher->opt_dplot_bbox , DPLOT_OFF ) ;
-       (void) MCW_popup_message(
-                 grapher->option_rowcol ,
-                 "'Double Plot' being turned off\n"
-                 "  in 'Boxes' graphing mode!"     ,
-                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
-       first = 0 ;
+       if( first ){
+         (void) MCW_popup_message(
+                   grapher->option_rowcol ,
+                   "'Double Plot' gets turned off\n"
+                   "  in 'Boxes' graphing mode!"     ,
+                   MCW_USER_KILL | MCW_TIMER_KILL ) ;
+         first = 0 ;
+       }
      } else {
        INIT_IMARR(dplot_imar) ;
        dplot = MCW_val_bbox(grapher->opt_dplot_bbox) ; /* 07 Aug 2001 */
