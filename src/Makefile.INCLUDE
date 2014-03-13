@@ -789,6 +789,10 @@ apsearch:apsearch.c
 	$(RM) $@
 	$(CC) -o apsearch apsearch.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
+afni_open:afni_open.c
+	$(RM) $@
+	$(CC) -o afni_open afni_open.c $(INFLAGS) $(LFLAGS) $(LLIBS)
+
 3dSegment:3dSegment.c
 	$(RM) $@
 	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(LLIBS)

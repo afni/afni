@@ -2443,6 +2443,7 @@ void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
    int found=0, ii, rownum=-1;
    char *ado_id = NULL;
    SUMA_X_SurfCont *SurfCont = NULL;
+   SUMA_SurfaceViewer *sv=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2547,6 +2548,23 @@ void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
                   }
                }
             }
+            
+            /* Make sure  object is not the one selected for mouse movement */
+            for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+               sv = SUMAg_SVv+ii;
+               if ( sv && sv->MouseMode_ado_idcode_str) {
+                  if ( !strcmp(sv->MouseMode_ado_idcode_str, ado_id)) {
+                     SUMA_LH("Mask selected mask will be deleted, leave mask"
+                             "manip mode.");
+                     if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,NULL)) {
+                        SUMA_S_Warn("Mask manip mode could not be set");
+                     }
+                  } 
+               }
+            }
+   
+
+            
             /* unregister do from all viewers */
             SUMA_UnRegisterDO_idcode(ado_id,NULL);
       
@@ -2600,6 +2618,7 @@ SUMA_Boolean SUMA_DeleteMask(char *ado_id)
    SUMA_ALL_DO *ado = NULL, *curDO = NULL;
    int found = -1, OKtable=0, ii;
    SUMA_X_SurfCont *SurfCont = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2642,6 +2661,19 @@ SUMA_Boolean SUMA_DeleteMask(char *ado_id)
       }
    }
    
+   /* Make sure this object is not the one selected for mouse movement */
+   for (ii=0; ii<SUMAg_N_SVv; ++ii) {
+      sv = SUMAg_SVv+ii;
+      if ( sv && sv->MouseMode_ado_idcode_str) {
+         if ( !strcmp(sv->MouseMode_ado_idcode_str, ado_id)) {
+            SUMA_LH("Woops, can't be in mask manip mode any more");
+            if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,NULL)) {
+               SUMA_S_Warn("Mask manip mode could not be set");
+            }
+         } 
+      }
+   }
+   
    /* unregister do from all viewers */
    SUMA_UnRegisterDO_idcode(ado_id,NULL);
 
@@ -2650,7 +2682,7 @@ SUMA_Boolean SUMA_DeleteMask(char *ado_id)
       SUMA_S_Err("Failed to dump DO");
       SUMA_RETURNe;
    }
-
+   
    if (found >= 0 && SurfCont && SurfCont->MaskTable) {
       if (!SUMA_ModifyTable(SurfCont->MaskTable, 
                            SurfCont->MaskTable->Ni-1)) {

@@ -3536,29 +3536,38 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
    
    /* if brightness factor is given, apply it to color map and mask color */
    Mbuf = NULL;
-   if (Opt->BrightFact <= 0 || Opt->BrightFact > 1) {
-      fprintf (SUMA_STDERR,
-               "Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
-      SUMA_RETURN (NOPE);
-   }else {
-      if (Opt->BrightFact != 1) { 
+   if (Opt->BrightFact <= 0 || Opt->BrightFact > 2) {
+      SUMA_S_Warn("Opt->BrightFact must be between ]0 2]. Defaulting to 1\n");
+      Opt->BrightFact = 1.0f;
+   }
+   {
+      if (Opt->BrightFact != 1.0f) { 
          Mbuf = ColMap->M; /* save pointer */
          ColMap->M = (float **)SUMA_allocate2D( ColMap->N_M[0], 
                                                 ColMap->N_M[1], sizeof(float));
          for (i=0; i < ColMap->N_M[0]; ++i) {
             ColMap->M[i][0] = Mbuf[i][0] * Opt->BrightFact;
+               if (ColMap->M[i][0] > 1.0) ColMap->M[i][0] = 1.0; /* Bright Fact 
+                                                            could be > 1.0 now */
             ColMap->M[i][1] = Mbuf[i][1] * Opt->BrightFact;
+               if (ColMap->M[i][1] > 1.0) ColMap->M[i][1] = 1.0; 
             ColMap->M[i][2] = Mbuf[i][2] * Opt->BrightFact;
+               if (ColMap->M[i][2] > 1.0) ColMap->M[i][2] = 1.0; 
             if (ColMap->N_M[1] == 4) {
             ColMap->M[i][3] = Mbuf[i][3] * Opt->BrightFact;
+               if (ColMap->M[i][3] > 1.0) ColMap->M[i][3] = 1.0; 
             }
          }
          /* now for the mask color */
          Opt->MaskColor[0] *= Opt->BrightFact;
+            if (Opt->MaskColor[0] > 1.0) Opt->MaskColor[0] = 1.0;
          Opt->MaskColor[1] *= Opt->BrightFact;
+            if (Opt->MaskColor[1] > 1.0) Opt->MaskColor[1] = 1.0;
          Opt->MaskColor[2] *= Opt->BrightFact;
+            if (Opt->MaskColor[2] > 1.0) Opt->MaskColor[2] = 1.0;
          if (ColMap->N_M[1] == 4) { /* MaskColor[3] is never used, oh well...*/
          Opt->MaskColor[3] *= Opt->BrightFact;
+            if (Opt->MaskColor[3] > 1.0) Opt->MaskColor[3] = 1.0;
          }
       }
    }
@@ -4486,28 +4495,36 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    
    /* if brightness factor is given, apply it to color map and mask color */
    Mbuf = NULL;
-   if (Opt->BrightFact <= 0 || Opt->BrightFact > 1) {
-      fprintf (SUMA_STDERR,
-               "Error %s: Opt->BrightFact must be between ]0 1]\n", FuncName);
-      SUMA_RETURN (NOPE);
-   }else {
-      if (Opt->BrightFact != 1) {
+   if (Opt->BrightFact <= 0 || Opt->BrightFact > 2) {
+      SUMA_S_Warn("Opt->BrightFact must be between ]0 2], Defaulting to 1\n");
+      Opt->BrightFact = 1.0;
+   }
+   {
+      if (Opt->BrightFact != 1.0) {
          SUMA_LH("Modulating brightness of map");
          Mbuf = ColMap->M; /* save pointer */
          ColMap->M = (float **)
                SUMA_allocate2D(ColMap->N_M[0], ColMap->N_M[1], sizeof(float));
          for (i=0; i < ColMap->N_M[0]; ++i) {
             ColMap->M[i][0] = Mbuf[i][0] * Opt->BrightFact;
+               if (ColMap->M[i][0] > 1.0) ColMap->M[i][0] = 1.0; /* Bright Fact 
+                                                            could be > 1.0 now */
             ColMap->M[i][1] = Mbuf[i][1] * Opt->BrightFact;
+               if (ColMap->M[i][1] > 1.0) ColMap->M[i][1] = 1.0; 
             ColMap->M[i][2] = Mbuf[i][2] * Opt->BrightFact;
+               if (ColMap->M[i][2] > 1.0) ColMap->M[i][2] = 1.0; 
             if (ColMap->N_M[1] == 4) {
             ColMap->M[i][3] = Mbuf[i][3] * Opt->BrightFact;
+               if (ColMap->M[i][3] > 1.0) ColMap->M[i][3] = 1.0; 
             }
          }
          /* now for the mask color */
          Opt->MaskColor[0] *= Opt->BrightFact;
+            if (Opt->MaskColor[0] > 1.0) Opt->MaskColor[0] = 1.0;
          Opt->MaskColor[1] *= Opt->BrightFact;
+            if (Opt->MaskColor[1] > 1.0) Opt->MaskColor[1] = 1.0;
          Opt->MaskColor[2] *= Opt->BrightFact;
+            if (Opt->MaskColor[2] > 1.0) Opt->MaskColor[2] = 1.0;
       }
    }
    
