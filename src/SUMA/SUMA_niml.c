@@ -2238,7 +2238,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
    float *XYZmap;
    int I_C = -1, ip, ivsel[SUMA_N_IALTSEL_TYPES];
    SUMA_ALL_DO *ado = NULL;
-   SUMA_SurfaceObject *SO;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -2251,10 +2251,13 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
       SUMA_RETURN (NULL);
    }
 
-   if (!(ado=SUMA_SV_Focus_ADO(sv))) SUMA_RETURN(NULL);
-   
+   if (!(ado=SUMA_SV_Focus_ADO(sv))) {
+      SUMA_S_Warn("No ADO in focus.");
+      SUMA_RETURN(NULL);
+   }
    switch(ado->do_type) {
-      case SO_type:
+      case SO_type: {
+         SUMA_SurfaceObject *SO=NULL;
          SO = (SUMA_SurfaceObject *)ado;
          I_C = SO->SelectedNode;
          XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c_noVisX, SO, 
@@ -2286,7 +2289,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          NI_add_column( nel , NI_FLOAT , XYZmap );
 
          if (XYZmap) SUMA_free(XYZmap);
-         break;
+         break; }
       case TRACT_type:
          if (!(nel= NI_new_data_element( "SUMA_crosshair_xyz" , 3))) {
             SUMA_S_Err("Failed to allocate for nel");
@@ -2347,6 +2350,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          NI_add_column( nel , NI_FLOAT , sv->Ch->c_noVisX );
          break;
       default:
+         SUMA_LH("No nel for type %s", ADO_TNAME(ado));
          break;
    }
    SUMA_RETURN (nel);

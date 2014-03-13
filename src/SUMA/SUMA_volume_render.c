@@ -2569,12 +2569,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    if (gl_bl) glEnable(GL_BLEND);
    else glDisable(GL_BLEND);
 
-   SUMA_LH("Undoing state changes, should fold ones above in here someday");
-   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
-
    /* Now for the highlight */
-   /* Works fine, but not fully tested for interactions... */
-   if (SUMAg_CF->Dev && SUMA_SV_GetShowSelectedFaceSet(sv) ) { 
+   if (SUMA_SV_GetShowSelectedFaceSet(sv)) { 
       int selslice = -1;
       float nlt[12];
       char variant[8];
@@ -2601,6 +2597,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
       SUMA_LH("Do not show selected faceset");
    }
    
+   SUMA_LH("Undoing state changes, should fold ones above in here someday");
+   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
+
    SUMA_RETURN(YUP);
 }
 
@@ -2619,10 +2618,11 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    GLfloat rotationMatrix[4][4], rt[4][4];
    GLboolean gl_dt, gl_bl, gl_at;
    int ShowUnselected = 1, shmodel, nqd, ivelast;
+   DListElmt *el=NULL;
+   DList *st=NULL;
    float tz = 0.0, I[3];
    static GLfloat init_rotationMatrix[4][4];
    static GLdouble dmatrix[16], init_mv_matrix[16];
-   DListElmt *el=NULL;
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)VO;
    SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
    SUMA_OVERLAYS *colp = NULL;
@@ -2630,6 +2630,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    float* nlt; /*JB: temporary node list, because I do not want to type 
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
+   SUMA_ATRANS_MODES trmode=SATM_ViewerDefault;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2649,6 +2650,12 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
 
    if (!VSaux->ShowVrSlc) SUMA_RETURN(YUP);
       
+   if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
+      SUMA_S_Err("Failed to create tracking list");
+      SUMA_RETURN(NOPE); 
+   }
+   
+
    if (sv->PolyMode != SRM_Fill) {
       /* fill it up */
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
@@ -2679,10 +2686,52 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    gl_bl = glIsEnabled(GL_BLEND);  
    
    if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
-   if (!(gl_bl)) glEnable(GL_BLEND);/* Can't blend properly when showing 
-                                       slices, particularly stacks and
-                                       multiple planes. Becomes a royal pain 
-                                       to render all in proper order*/
+   if (!(gl_bl)) glEnable(GL_BLEND);
+
+   if (SUMAg_CF->Dev) { /* Not ready for prime time, not yet*/
+      SUMA_S_Warn("Setting tran. for whole viewer, with 'o' and with\n"
+                  "vol rendering on results in one surface getting barely \n"
+                  "shown. And the other not quite being transparent to the \n"
+                  "tracts within. Something fishy is going on here.\n"
+                  "Use Do_09... example 0 to test the case.\n"
+                  "Also, with volume rendered, it looks like one does not\n"
+                  "cycle back properly to no transparency.\n"
+                  "This happens even if I set the transparency separately\n"
+                  "for each DO....\n"
+                  "Problem seems to be one of depth test. But I don't \n"
+                  "understand why one surface renders OK, but not the other.\n"
+                  "Should check to see if there is anything different between\n"
+                  "states when rendering surf A followed by surf B... Also\n"
+                  "check on overall rendering order.\n"
+                  "It does look like the unrendered surface is still there,\n"
+                  "but barely (try the walnut prying) and you'll see traces\n"
+                  "of it there.\n"
+                  "Problem might also be related to Alpha blending of some \n"
+                  "sort.\n");
+   trmode = VSaux->TransMode;
+   if (trmode == SATM_ViewerDefault) {
+      if ((trmode = SUMA_TransMode2ATransMode(sv->TransMode)) 
+            <= SATM_ViewerDefault || trmode >= SATM_N_TransModes) {
+         SUMA_S_Warn("Bad trans mode change from %d to %d", 
+                      sv->TransMode,trmode);
+         trmode =  SATM_0;     
+      }
+   }
+   if (trmode <= SATM_ViewerDefault || trmode > SATM_N_TransModes) {
+      SUMA_S_Warn("Bad trmode %d", trmode);
+      trmode =  SATM_0;
+   }
+   if (trmode == SATM_ALPHA) {
+      /* Setup blending options, override initial setting above */
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   } else {
+      /* The safe way. */
+      if (trmode > SATM_0) {
+         SUMA_LHv("ATrans Mode %d\n", trmode );
+         SUMA_SET_GL_TRANS_MODE(SUMA_ATransMode2TransMode(trmode), st);
+      }
+   }
+   }
 
    if (!VO->VE || !VO->VE[0]) { 
       SUMA_S_Err("No elements?");
@@ -2808,7 +2857,6 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    glFlush();
    if (!gl_at) glDisable(GL_ALPHA_TEST); 
    
-   
    glDisable(GL_TEXTURE_3D);
    
    if (shmodel != GL_FLAT) glShadeModel(shmodel);
@@ -2821,8 +2869,12 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    else glDisable(GL_DEPTH_TEST);
    if (gl_bl) glEnable(GL_BLEND);
    else glDisable(GL_BLEND);
-   SUMA_RETURN(YUP);
    
+   /* This method should eventually replace the individual tests done above...*/
+   SUMA_LH("Undoing state changes, should fold ones above in here someday");
+   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
+
+   SUMA_RETURN(YUP);
 }
 
 /* Draw Volume Data, exp version */

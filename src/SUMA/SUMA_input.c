@@ -2140,7 +2140,7 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          if (SUMA_CTRL_KEY(key)) {
          
          } else {   
-            sv->TransMode = ((sv->TransMode-4) % (STM_N_TransModes));
+            sv->TransMode = ((sv->TransMode-4) % (STM_N_TransModes-2));
             if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_16;
            
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
@@ -7291,7 +7291,11 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
       SUMA_ifree(sv->LastSel_ado_idcode_str);
       sv->LastSel_ado_idcode_str = SUMA_copy_string((*PR)->ado_idcode_str);
       /* Just move the selected mask */
-      ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+      if (!(ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str))) {
+         SUMA_S_Err("Yikes, got not ado for MouseMode_ado_idcode_str %s",
+              sv->MouseMode_ado_idcode_str?sv->MouseMode_ado_idcode_str:"NULL");
+         SUMA_RETURN(-1);
+      }
       if (ado->do_type != MASK_type) {
          SUMA_S_Err("Bad ID for mouse mode value");
          SUMA_RETURN(-1);

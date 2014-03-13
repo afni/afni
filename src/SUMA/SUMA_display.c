@@ -7587,7 +7587,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          NULL);
    
       SUMA_CreateArrowField ( rc, "Dim",
-                           1, 0.1, 1, 0.1,
+                           1, 0.1, 2, 0.1,
                            3, SUMA_float,
                            YUP,
                            SUMA_cb_ColPlane_NewDimFact, (void *)ado, 
@@ -8304,7 +8304,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
          NULL);
    
       SUMA_CreateArrowField ( rc, "Dim",
-                           1, 0.1, 1, 0.1,
+                           1, 0.1, 2, 0.1,
                            3, SUMA_float,
                            YUP,
                            SUMA_cb_ColPlane_NewDimFact, (void *)ado, 
@@ -9083,7 +9083,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
          NULL);
    
       SUMA_CreateArrowField ( rc, "Dim",
-                           1, 0.1, 1, 0.1,
+                           1, 0.1, 2, 0.1,
                            3, SUMA_float,
                            YUP,
                            SUMA_cb_ColPlane_NewDimFact, (void *)ado, 
@@ -9897,7 +9897,7 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
          NULL);
    
       SUMA_CreateArrowField ( rc, "Dim",
-                           1, 0.1, 1, 0.1,
+                           1, 0.1, 2, 0.1,
                            3, SUMA_float,
                            YUP,
                            SUMA_cb_ColPlane_NewDimFact, (void *)ado, 

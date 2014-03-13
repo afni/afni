@@ -10225,7 +10225,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    SUMA_OVERLAYS *curcol = NULL;
    void *fontGL=NULL;
    int ic0, ic1, s0, r0, s1, r1, TxtShadeMode=1, okind, ri, 
-       *dsrt=NULL, *dsrt_ind=NULL, *GNI=NULL, wbox=0, *GNG=NULL;
+       *dsrt=NULL, *dsrt_ind=NULL, *GNI=NULL, wbox=0, *GNG=NULL,
+       NoEdges=0;
    int stipsel = 0; /* flag for stippling of selected edge */
    int depthsort = 1; /* Sort text and draw from farthest to closest */
    byte ShadeBalls = 1;
@@ -10431,9 +10432,19 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       DO_PICK_DISABLES;
    }
    
+   NoEdges = 0;
    if (!sv->DO_PickMode &&
        GSaux->PR->datum_index == -1 && GSaux->PR->iAltSel[SUMA_ENODE_0] != -1) {
       OnlyThroughNode = GSaux->PR->iAltSel[SUMA_ENODE_0];
+      NoEdges = 0; /* Rudimentary mode for not showing edges, but
+                      making ball size reflect connection weight instead.
+                      Works in principle, but needs to get lots fancier.
+                      Probably want to show non-connected points for reference,
+                      but in gray scale, smaller size, and possibly without text.
+                      Also, shown balls should possibly have their size grow
+                      based on edge value, and/or perhaps set their colors based
+                      on the value too... 
+                      For now, NoEdges should be left at 0 unless testing*/
       if (NodeMask && OnlyThroughNode >=0) NodeMask[OnlyThroughNode] = 1;
    } else OnlyThroughNode = -1;
    
@@ -10564,7 +10575,6 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   (OnlyThroughNode != n &&  OnlyThroughNode != n1)) {
                      ++i; continue;
             }
-            
             /* get position of node n in NodeList */
             if ((cn = SUMA_NodeIndex_To_Index(DDO.NodeIndex,DDO.N_Node,n))< 0){
                SUMA_LH("Failed to get index of node %d",n);
@@ -10588,6 +10598,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                    (cn != cn1)) { /* Only draw points touched by an edge 
                                    between different points (off diagonal)*/
                    NodeMask[cn] = 1; NodeMask[cn1] = 1; 
+               }
+               
+               if (NoEdges) { /* Don't draw the edge, just continue */
+                  ++i; continue;
                }
                
                if (colid){
@@ -10861,6 +10875,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   rad = SUMA_ABS(curcol->V[ri])*curcol->NodeRadGain;
             } else {
                rad = radconst;
+            }
+            if (NoEdges && OnlyThroughNode != n) {
+               rad = rad * 2;
             }
             if (OnlyThroughNode == n) {
                selcol[0] = (1-sv->clear_color[0])/dimmer;

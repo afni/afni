@@ -106,6 +106,39 @@ char * GetAfniWebDownloader(void)
    return(ate);
 }
 
+/*-------------------------------------------------------------------*/
+
+char * GetAfniPDFViewer(void)
+{
+   char *ate=NULL;
+   ate = getenv("AFNI_PDF_VIEWER");
+
+   if( ate ) return ate;
+   
+   /* else, hunt */
+   if( ate == NULL ) ate = THD_find_executable( "Preview" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "evince" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "acroread" )   ;
+   if( ate == NULL ) ate = GetAfniWebBrowser()   ; /* last resort? */
+
+   return(ate);
+}
+
+/*-------------------------------------------------------------------*/
+
+char * GetAfniImageViewer(void)
+{
+   char *ate=NULL;
+   ate = getenv("AFNI_IMAGE_VIEWER");
+
+   if( ate ) return ate;
+   
+   /* else, hunt */
+   if( ate == NULL ) ate = THD_find_executable( "Preview" )   ;
+   if( ate == NULL ) ate = THD_find_executable( "aiv" )   ;
+
+   return(ate);
+}
 
 /*-------------------------------------------------------------------*/
 
