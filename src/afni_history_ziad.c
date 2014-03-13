@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, Mar, 2014, ZSS, "afni_open", MINOR, TYPE_NEW_OPT,
+   "A few more tweaks, like -aw and -d",
+   "See afni_open -help for details"
+ },
+  
  { 12, Mar, 2014, ZSS, "afni_open", MINOR, TYPE_NEW_PROG,
    "A simple program to help us open certain files on typical machines",
    "There is no help for the program yet, it is also not part of the\n"

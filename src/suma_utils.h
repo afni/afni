@@ -67,6 +67,7 @@ typedef struct {
    char *RangeSelect;
    int only_index;
    int OnDisk;
+   unsigned long Size;
    char *HeadName;
    char *BrikName;
    char *NameAsParsed;
