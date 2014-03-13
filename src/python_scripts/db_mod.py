@@ -5389,7 +5389,8 @@ g_help_string = """
             3dRSFC (for bandpassing and computation of ALFF, etc).
 
             Like example #10, but add -regress_RSFC to bandpass via 3dRSFC.
-            Skip censoring because of the bandpass operation.
+            Skip censoring and regression bandpassing because of the bandpass
+            operation in 3dRSFC.
 
             To correspond to common tractography, this example stays in orig
             space (no 'tlrc' block, no -volreg_tlrc_warp option).  Of course,
@@ -5404,7 +5405,6 @@ g_help_string = """
                   -blur_size 6.0                                             \\
                   -mask_apply epi                                            \\
                   -mask_segment_anat yes                                     \\
-                  -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe CSFe                                      \\
                   -regress_RSFC                                              \\
