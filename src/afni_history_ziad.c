@@ -76,6 +76,11 @@ afni_history_struct ziad_history[] = {
    "AFNI_IMAGE_VIEWER and AFNI_PDF_VIEWER for you know what.",
  },
   
+ { 12, Mar, 2014, ZSS, "suma", MICRO, TYPE_BUG_FIX,
+   "SUMA crashed if you deleted a tract mask that was being moved.",
+   "This is now a thing of the past."
+ },
+  
  { 6, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added option to make rendered slices jump to new cross hair location",
    "See new function SUMA_VO_set_slices_XYZ() for details"

@@ -355,6 +355,7 @@ int main(int argc, char **argv)
             ERROR_message("Not ready for %s", argv[iarg]);
             exit(1);
          }
+         ++iarg;
          continue;  
       }
       
