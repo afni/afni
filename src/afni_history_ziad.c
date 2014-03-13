@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 12, Mar, 2014, ZSS, "afni_open", MINOR, TYPE_NEW_PROG,
+   "A simple program to help us open certain files on typical machines",
+   "There is no help for the program yet, it is also not part of the\n"
+   "compiled binaries yet. New functions such as GetAfniWebDownloader(),\n"
+   "GetAfniPDFViewer(), and GetAfniImageViewer() were added to machdep.c"
+ },
+  
+ { 12, Mar, 2014, ZSS, "afni-general", MICRO, TYPE_NEW_ENV,
+   "AFNI_IMAGE_VIEWER and AFNI_PDF_VIEWER for you know what.",
+ },
+  
  { 6, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added option to make rendered slices jump to new cross hair location",
    "See new function SUMA_VO_set_slices_XYZ() for details"
