@@ -704,7 +704,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
             }  \
    }
          
-#define SUMA_SET_GL_TRANS_MODE(m_TransMode, m_ust)  \
+#define SUMA_SET_GL_TRANS_MODE(m_TransMode, m_ust, btp)  \
    {  DList *m_st=m_ust; \
       if (m_TransMode == STM_0) { \
          /* classic rendering, no polygon stippling*/ \
@@ -712,15 +712,16 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
          SUMA_GLStateTrack("set", &m_st, FuncName, \
                       "GL_POLYGON_STIPPLE", (void *)0); \
                   /* glDisable(GL_POLYGON_STIPPLE);  */ \
-         SUMA_LH("Setting GL_DEPTH_TEST on");   \
-         SUMA_GLStateTrack("set", &m_st, FuncName, \
+         if (0) {/* ZSS March 11 2014 */  \
+            SUMA_LH("Setting GL_DEPTH_TEST on");   \
+            SUMA_GLStateTrack("set", &m_st, FuncName, \
                       "GL_DEPTH_TEST", (void *)1); \
-                  /* glEnable(GL_DEPTH_TEST); */  \
+                  /* glEnable(GL_DEPTH_TEST); */  } \
       } else { \
          SUMA_LH("Setting GL_POLYGON_STIPPLE on");\
          SUMA_GLStateTrack("set", &m_st, FuncName, \
                       "GL_POLYGON_STIPPLE", (void *)1); \
-         glPolygonStipple(SUMA_StippleMask_shift(m_TransMode));   \
+         glPolygonStipple(SUMA_StippleMask_shift(m_TransMode, btp));   \
          if (0) { SUMA_LH("Setting GL_DEPTH_TEST off");   \
                   SUMA_GLStateTrack("set", &m_st,  \
                       FuncName, "GL_DEPTH_TEST", (void *)0); }\
