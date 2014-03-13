@@ -10,34 +10,6 @@
 
 
          
-void afni_open_usage(int detail) 
-{
-   int i = 0;
-   
-   ENTRY("afni_open_usage");
-   /* print help message in three sections */
-   fprintf(stdout,
-   "\n"
-   "A program to open various AFNI/SUMA files\n"
-   "\n"
-   "  afni_open FILE\n"
-   "\n%s", detail ? "":"use -h or -help for more help detail.\n");
-   if (detail) {
-      printf ( 
-"Parameters:\n"
-"===========\n"
-"  -e: Open for editing\n"
-"  -v: Open for viewing\n"
-"  -d: Download if possible\n"
-"\n"
-"Global Options:\n"
-"===============\n"
-"%s", 
-   detail > 1 ? get_gopt_help():""); 
-   PRINT_COMPILE_DATE ;
-   }
-   return;
-}
 
 int is_archive(char *name)
 {
@@ -132,6 +104,7 @@ int is_url_pn(SUMA_PARSED_NAME *FN)
    if (FN->OnDisk) return(0); /* should not be on disk */
    if (strstr(FN->NameAsParsed,"http:")==FN->NameAsParsed) return(1);
    if (strstr(FN->NameAsParsed,"file:")==FN->NameAsParsed) return(1);
+   if (strstr(FN->NameAsParsed,"afni.nimh.nih.gov")==FN->NameAsParsed) return(1);
    return(0);
 }
 
@@ -163,93 +136,151 @@ int ao_with_editor(char *fname)
 {
    char cmd[1024];
    static char *viewer=NULL;
+   int s;
    if (!viewer && !(viewer=GetAfniTextEditor())) {
       ERROR_message("No text editor");
-      return(0);
+      return(-1);
    }
-   if (!fname) return(0);
+   if (!fname) return(-2);
    
    snprintf(cmd,1023*sizeof(char),"%s %s &", viewer, fname);
-   system(cmd);
-   return(1);
+   s = system(cmd);
+   return(s);
 }
 
-int ao_with_downloader(char *fname)
+int ao_with_browser(char *fname)
+{
+   if (!fname) return(-2);
+   
+   return(whereami_browser(fname));
+}
+
+int ao_with_downloader(char *fname, byte back)
 {
    char cmd[1024];
+   int s;
    static char *downloader=NULL;
    if (!downloader && !(downloader=GetAfniWebDownloader())) {
-      ERROR_message("No text editor");
+      ERROR_message("No downloader");
+      return(-1);
+   }
+   if (!fname) return(-2);
+   
+   snprintf(cmd,1023*sizeof(char),"%s %s %c", 
+            downloader, fname, back ? '&' : ' ');
+   s = system(cmd);
+   return(s);
+}
+
+int ao_with_afniweb(char *fname)
+{
+   char ww[1024];
+   int s=-3;
+   if (!fname) return(-2);
+   if (is_url(fname) ) return(ao_with_downloader(fname, 0));
+   
+   /* Try different locations */
+   if (is_pdf(fname)) {
+      snprintf(ww,1023*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/"
+               "edu/data/CD.expanded/afni_handouts/%s",fname);
+      if (!(s = ao_with_downloader(ww, 0))) return(ao_with_pdf_viewer(fname));
+      else {
+         fprintf(stderr,"Status %d on %s\n", s, ww);
+      }
+      /* repeat for other locations, maybe papers? (Nothing for now...) */
+      return(s);   
+   }
+   if (is_archive(fname)) {
+      snprintf(ww,1023*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/"
+               "tgz/%s",fname);
+      return(ao_with_downloader(ww, 0));   
+   }
+   
+}
+
+int ao_with_readme(char *fname)
+{
+   char *rout=NULL;
+   int s=-3;
+   
+   if (!fname) return(-2);
+   
+   if ((rout = find_readme_file(fname))) {
+      view_text_file(rout); free(rout);
       return(0);
    }
-   if (!fname) return(0);
-   
-   snprintf(cmd,1023*sizeof(char),"%s %s &", downloader, fname);
-   system(cmd);
-   return(1);
+   return(s);
 }
 
 int ao_with_pdf_viewer(char *fname)
 {
    char cmd[1024];
    static char *pdfviewer=NULL;
+   int s;
+   
    if (!pdfviewer && !(pdfviewer=GetAfniPDFViewer())) {
       ERROR_message("No pdf viewer");
-      return(0);
+      return(-1);
    }
-   if (!fname) return(0);
+   if (!fname) return(-2);
    
    snprintf(cmd,1023*sizeof(char),"%s %s &", pdfviewer, fname);
-   system(cmd);
-   return(1);
+   s = system(cmd);
+   return(s);
 }
                            
 int ao_with_image_viewer(char *fname)
 {
    char cmd[1024];
    static char *imageviewer=NULL;
+   int s;
+   
    if (!imageviewer && !(imageviewer=GetAfniImageViewer())) {
       ERROR_message("No image viewer");
-      return(0);
+      return(-1);
    }
-   if (!fname) return(0);
+   if (!fname) return(-2);
    
    snprintf(cmd,1023*sizeof(char),"%s %s &", imageviewer, fname);
-   system(cmd);
+   s = system(cmd);
    return(1);
 }
                            
 int ao_with_afni(char *fname)
 {
    char cmd[1024];
+   int s;
    
-   if (!fname) return(0);
+   if (!fname) return(-2);
    
    snprintf(cmd,1023*sizeof(char),"afni %s &", fname);
-   system(cmd);
-   return(1);
+   s = system(cmd);
+   return(s);
 }
 
 int ao_with_1dplot(char *fname)
 {
    char cmd[1024];
+   int s;
    
-   if (!fname) return(0);
+   if (!fname) return(-2);
    
    snprintf(cmd,1023*sizeof(char),"1dplot %s &", fname);
-   system(cmd);
-   return(1);
+   s = system(cmd);
+   return(s);
 }
 
 int ao_with_ExamineXmat(char *fname)
 {
    char cmd[1024];
-   
-   if (!fname) return(0);
+   int s;
+   if (!fname) return(-2);
    
    snprintf(cmd,1023*sizeof(char),"ExamineXmat -input %s &", fname);
-   system(cmd);
-   return(1);
+   s = system(cmd);
+   return(s);
 }
 
 int ao_with_suma(char *name)
@@ -258,9 +289,9 @@ int ao_with_suma(char *name)
    int a;
    SUMA_PARSED_NAME *pn;
    
-   if (!name) return(0);
+   if (!name) return(-2);
    if (!(pn = SUMA_ParseFname (name,NULL))) {
-      return(0);
+      return(-3);
    }
    
    a = ao_with_suma_pn(pn);
@@ -272,15 +303,16 @@ int ao_with_suma(char *name)
 
 int ao_with_suma_pn(SUMA_PARSED_NAME *FN) 
 {
-   int a = 0;
+   int a = 0, s;
    char cmd[1024];
-   if (!FN) return(0);
-   if (!FN->OnDisk) return(0); /* should be on disk */
+   if (!FN) return(-2);
+   if (!FN->OnDisk) return(-3); /* should be on disk */
    
+   s = -4;
    if (FN->StorageMode == STORAGE_BY_NI_TRACT || !strcmp(FN->Ext, ".tract")) {
       snprintf(cmd,1023*sizeof(char),
                "suma -noniml -tract %s &", FN->NameAsParsed);
-      system(cmd);
+      s = system(cmd);
    } else if (!strcmp(FN->Ext, ".dset")) {
       ERROR_message("Not quite ready yet, have to differentiate between gdset\n"
                     "and surface dsets, and for those, we need to know the std\n"
@@ -291,20 +323,81 @@ int ao_with_suma_pn(SUMA_PARSED_NAME *FN)
       /* You still need to check if gii is a dset, rather than a surface... */
       snprintf(cmd,1023*sizeof(char),
                "suma -noniml -i %s &", FN->NameAsParsed);
-      system(cmd);    
+      s = system(cmd);    
    } else {
       /* Hail Mary ... */
       snprintf(cmd,1023*sizeof(char),
                "suma -noniml -i %s &", FN->NameAsParsed);
-      system(cmd);  
+      s = system(cmd);  
    }
    
-   return(1); 
+   return(s); 
 }
+
 /*----------------------------------------------------------------------------*/
+void afni_open_usage(int detail) 
+{
+   int i = 0;
+   
+   ENTRY("afni_open_usage");
+   /* print help message in three sections */
+   fprintf(stdout,
+   "\n"
+   "A program to open various AFNI/SUMA files\n"
+   "\n"
+   "  afni_open [OPTIONS] FILE1 [FILE2 ...]\n"
+   "\n"
+   "Examples:\n"
+   "  afni_open  xmat.1D.xmat\n"
+   "  afni_open -aw roi_11.pdf\n"
+   "  afni_open -r driv\n"
+   "\n%s", detail ? "":"use -h or -help for more help detail.\n");
+   if (detail) {
+      printf ( 
+"Options:\n"
+"===========\n"
+"  -w METHOD: Use METHOD to open FILES.\n"
+"             Acceptable values for METHOD are:\n"
+"             editor: Open with text editor.\n"
+"             downloader: Fetch with wget or curl.\n"
+"             browser: Open in browser\n"
+"             afni: Open with AFNI\n"
+"             suma: Open with SUMA\n"
+"             1dplot: Open with 1dplot\n"
+"             ExamineXmat: Open with ExamineXmat\n"
+"             iviewer: Open with image viewer\n"
+"             afniweb: Get from afni website.\n"
+"             readme: Search for appropriate README\n"
+"                     This option is in the same spirit of \n"
+"                     apsearch -view_readme option. To see a list of\n"
+"                     all readme files, run:\n"
+"                     apsearch -list_all_afni_readmes\n"
+"  -e: Same as -w editor\n"
+"  -d: Same as -w downloader\n"
+"  -x: Same as -w ExamineXmat\n"
+"  -b: Same as -w browser\n"
+"  -r: Same as -w readme\n"
+"  -aw: Same as -w afniweb\n"
+"\n"
+"     If no method is specifed, the program tries to guess\n"
+"     from the filename.\n"
+"\n"
+"  -global_help: Show help for global options.\n"
+"  -gopts_help:  Show help for global options.\n"
+"  -help: You're looking at it.\n"
+"\n"
+"Global Options:\n"
+"===============\n"
+"%s", 
+   detail > 1 ? get_gopt_help():""); 
+   PRINT_COMPILE_DATE ;
+   }
+   return;
+}
+
 int main(int argc, char **argv)
 {
-   int iarg, mode, i;
+   int iarg, i;
    char *fname=NULL, *uprog=NULL;
    THD_string_array *fnamev = NULL;
    SUMA_PARSED_NAME *FN;
@@ -312,7 +405,6 @@ int main(int argc, char **argv)
 
    mainENTRY("afni_open main"); machdep() ; 
       
-   mode=0;
    if (argc <= 1) {
       afni_open_usage(0);
       return(1); 
@@ -320,20 +412,43 @@ int main(int argc, char **argv)
    
    iarg = 1 ; 
    while( iarg < argc ){
+      if (strcmp(argv[iarg],"-global_help") == 0 ||
+          strcmp(argv[iarg],"-gopts_help") == 0) { 
+         printf(
+      "--------------------------------------------------------------------\n"
+      "Global Options: options available to most AFNI programs, but usually\n"
+      "                not found in the -help output.\n"
+      "--------------------------------------------------------------------\n"
+             "%s", get_gopt_help());
+         return(0); 
+      }      
+      
+      if (strcmp(argv[iarg],"-help") == 0 ||
+          strcmp(argv[iarg],"-h") == 0) { 
+         afni_open_usage(strlen(argv[iarg]) > 3 ? 2:1);
+         return(0); 
+      }
+      
       if (strcmp(argv[iarg],"-e") == 0) { 
-         mode = 1; 
+         uprog = "editor";
          ++iarg;
          continue; 
       }
       
-      if (strcmp(argv[iarg],"-v") == 0) { 
-         mode = 2; 
+      if (strcmp(argv[iarg],"-d") == 0) { 
+         uprog = "downloader"; 
          ++iarg;
          continue; 
       }
-
-      if (strcmp(argv[iarg],"-d") == 0) { 
-         mode = 3; 
+      
+      if (strcmp(argv[iarg],"-r") == 0) { 
+         uprog = "readme"; 
+         ++iarg;
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-aw") == 0) { 
+         uprog = "afniweb"; 
          ++iarg;
          continue; 
       }
@@ -350,8 +465,12 @@ int main(int argc, char **argv)
              strcmp(argv[iarg],"editor") &&
              strcmp(argv[iarg],"suma") &&
              strcmp(argv[iarg],"afni") &&
+             strcmp(argv[iarg],"downloader") &&
              strcmp(argv[iarg],"ExamineXmat") &&
-             strcmp(argv[iarg],"1dplt") ) {
+             strcmp(argv[iarg],"iviewer") &&
+             strcmp(argv[iarg],"afniweb") &&
+             strcmp(argv[iarg],"readme") &&
+             strcmp(argv[iarg],"1dplot") ) {
             ERROR_message("Not ready for %s", argv[iarg]);
             exit(1);
          }
@@ -403,7 +522,7 @@ int main(int argc, char **argv)
       }
       if (uprog) {
                 if (!strcmp(uprog,"browser")) {
-            whereami_browser(FN->NameAsParsed);
+            ao_with_browser(FN->NameAsParsed);
          } else if (!strcmp(uprog,"editor")) {
             ao_with_editor(FN->NameAsParsed);
          } else if (!strcmp(uprog,"afni")) {
@@ -414,6 +533,14 @@ int main(int argc, char **argv)
             ao_with_1dplot(FN->NameAsParsed);
          } else if (!strcmp(uprog,"ExamineXmat")) {
             ao_with_ExamineXmat(FN->NameAsParsed);
+         } else if (!strcmp(uprog,"downloader")) {
+            ao_with_downloader(FN->NameAsParsed, 0);
+         } else if (!strcmp(uprog,"iviewer")) {
+            ao_with_image_viewer(FN->NameAsParsed);
+         } else if (!strcmp(uprog,"afniweb")) {
+            ao_with_afniweb(FN->NameAsParsed);
+         } else if (!strcmp(uprog,"readme")) {
+            ao_with_readme(FN->NameAsParsed);
          } else {
             ERROR_message("Not ready for %s", uprog);
             exit(1);
@@ -435,9 +562,9 @@ int main(int argc, char **argv)
       */
       if (is_url_pn(FN)) {
          if (!is_archive_pn(FN)) {
-            whereami_browser(FN->NameAsParsed);
+            ao_with_browser(FN->NameAsParsed);
          } else {
-            ao_with_downloader(FN->NameAsParsed);
+            ao_with_downloader(FN->NameAsParsed, 0);
          }
       } else if (FN->StorageMode == STORAGE_BY_1D) {
          ao_with_editor(FN->NameAsParsed);
