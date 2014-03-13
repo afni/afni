@@ -1,5 +1,3 @@
-/*** Whereami.c modified 1/11/05 -- main function by Mike Angstadt of U Chicago ***/
-
 #define MAIN
 #define SUMA_noFunc
 
