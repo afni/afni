@@ -3594,6 +3594,22 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
   do{ if( DSET_VALID_BSTAT(dset,ii) )                             \
          INVALIDATE_BSTAT((dset)->stats->bstat[(ii)]) ; } while(0)
 
+/*! Return the ii-th volume's min value from bstat, if present */
+
+#define DSET_BSTAT_MIN(dset,ii)  \
+  ( DSET_VALID_BSTAT(dset,ii) ? (dset)->stats->bstat[(ii)].min : 0.0f )
+
+/*! Return the ii-th volume's max value from bstat, if present */
+
+#define DSET_BSTAT_MAX(dset,ii)  \
+  ( DSET_VALID_BSTAT(dset,ii) ? (dset)->stats->bstat[(ii)].max : 0.0f )
+
+/*! Return the ii-th volume's max abs value from bstat, if present */
+
+#define DSET_BSTAT_MAXABS(dset,ii)  \
+  ( DSET_VALID_BSTAT(dset,ii) ?     \
+      MAX(fabsf((dset)->stats->bstat[(ii)].max),fabsf((dset)->stats->bstat[(ii)].min)) : 0.0f )
+
 /*! Delete all the sub-brick statistics for dataset ds. */
 
 #define DSET_KILL_STATS(ds)                                \
