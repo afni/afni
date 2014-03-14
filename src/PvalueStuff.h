@@ -71,7 +71,7 @@ static char * PvalueStuff[] = {
    "Another example: to reduce the likelihood of the null hypothesis being the\n" ,
    "source of your t-statistic to 10%, you have to have p = 0.008593 -- a value\n" ,
    "more stringent than usually seen in scientific publications.  To get the null\n" ,
-      "hypothesis likelihood below 5%%, you have to get p below 0.003408.\n" ,
+   "hypothesis likelihood below 5%, you have to get p below 0.003408.\n" ,
    "\n" ,
    "Finally, none of the discussion above is limited to the case of p-values that\n" ,
    "come from 2-sided t-tests.  The function alpha(p) applies (approximately) to\n" ,
