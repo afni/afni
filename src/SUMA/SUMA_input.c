@@ -967,7 +967,7 @@ int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             SUMA_STRING *SS = NULL;
             FILE *fout=NULL;
 
-            if (callmode && strcmp(callmode, "drivesuma")) {
+            if (callmode && !strcmp(callmode, "drivesuma")) {
                fout = fopen(fnameout,"w");
             }
             SS = SUMA_StringAppend (NULL, NULL);
