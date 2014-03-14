@@ -444,6 +444,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
    }
    for (i=0; i < N; ++i) {
       SV = &(SVv[i]);
+      SV->C_mode = SUMA_CONV_NONE;
+      SV->C_filter = SUMA_C_newfilter(1, 1);
+      
       SV->LoadedTextures[0] = -1; /* plug */
       memset(SV, 0, sizeof(SUMA_SurfaceViewer)); 
       SV->N_GVS = SUMA_N_STANDARD_VIEWS;
@@ -1168,6 +1171,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    SUMA_ENTRY;
 
    if (SV->WAx) SUMA_Free_Axis(SV->WAx);
+   if (SV->C_filter) SUMA_C_free(SV->C_filter); SV->C_filter=NULL;
    if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
    if (SV->SelAdo) dlist_destroy(SV->SelAdo); SUMA_ifree(SV->SelAdo);
    SUMA_ifree(SV->LastSel_ado_idcode_str);
@@ -2692,6 +2696,22 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
                                  SV->GVS[SV->StdView].RotaCenter[0], 
                                  SV->GVS[SV->StdView].RotaCenter[1], 
                                  SV->GVS[SV->StdView].RotaCenter[2]);
+   SS = SUMA_StringAppend_va(SS, "   Convolution Filter = %d\n      [ ",
+                                 SV->C_mode); 
+   if (SV->C_filter) {
+      int ii, jj;
+      for(jj = 0; jj < SV->C_filter->rows; jj++) {
+         for(ii = 0; ii < SV->C_filter->cols; ii++) {
+           SS = SUMA_StringAppend_va(SS, "%.3f ",
+                            SV->C_filter->array[ii + jj * SV->C_filter->cols]);
+         }
+         if (jj < SV->C_filter->rows-1) 
+            SS = SUMA_StringAppend(SS, "\n        ");
+         else SS = SUMA_StringAppend(SS, " ]\n" );
+      }
+   } else {
+      SS = SUMA_StringAppend_va(SS, " NULL! ]\n");
+   }
    SS = SUMA_StringAppend_va(SS,
                   "   light0_position = [%f %f %f %f] (lit for %d)\n", 
                                  SV->light0_position[0], 

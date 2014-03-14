@@ -281,6 +281,7 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback);
 SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
                                         SUMA_DO *dov);
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
+void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov);
 Colormap SUMA_getShareableColormap_Eng(XVisualInfo * vi, Display *dpy);
 Colormap SUMA_getShareableColormap(SUMA_SurfaceViewer * csv);
 void SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call);
@@ -851,6 +852,23 @@ SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename,
 void SUMA_LoadMultiMasks (char *filename, void *data);
 void SUMA_SaveMultiMasks (char *filename, void *data);
 SUMA_Boolean SUMA_SaveMultiMasks_eng (char *filename);
+
+/* 
+   *************** Convolution utilities *************** 
+   based on example in glut's convolve.c by  
+   Tom McReynolds, SGI 
+   *****************************************************
+*/
+void SUMA_C_identity(SUMA_C_FILTER *mat);
+SUMA_C_FILTER * SUMA_C_newfilter(int rows, int cols);
+void SUMA_C_free(SUMA_C_FILTER *mat);
+void SUMA_C_resize(SUMA_C_FILTER *mat, int rows, int cols);
+void SUMA_C_box(SUMA_C_FILTER *mat);
+void SUMA_C_sobel(SUMA_C_FILTER *mat);
+void SUMA_C_laplace(SUMA_C_FILTER *mat);
+void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat);
+
+/* *************** End Convolution utilities *************** */
                   
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"

@@ -2421,6 +2421,33 @@ typedef struct {
                                  start using something bigger than
                                  fv15 in SUMA_Engine Calls */
 
+/* 
+   *************** Convolution utilities *************** 
+   based on example in glut's convolve.c by  
+   Tom McReynolds, SGI 
+   *****************************************************
+*/
+/* convolution choices */
+typedef enum {
+      SUMA_CONV_NONE, 
+      SUMA_CONV_BOX_3X3,
+      SUMA_CONV_BOX_5X5,
+      SUMA_CONV_SOBEL_X,
+      SUMA_CONV_LAPLACE,
+      SUMA_N_CONV_MODES,
+} SUMA_CONV_MODES;
+
+/* Filter contents and size */
+typedef struct {
+  GLfloat scale; /* 1/scale applied to image to prevent overflow */
+  GLfloat bias; /* for biasing images */
+  int rows;
+  int cols;
+  GLfloat *array;
+} SUMA_C_FILTER;
+
+/* *************** End Convolution utilities *************** */
+
 typedef struct {
    char *ado_idcode_str;   /* id of ado that was picked */
    char *primitive;        /* Type of object selected, for graphs, for 
@@ -2609,6 +2636,9 @@ typedef struct {
    GLubyte *pickrenpix4; /*! An array holding the RGBA rendering buffer */
    
    int LoadedTextures[SUMA_MAX_DISPLAYABLE_OBJECTS+1];
+   
+   SUMA_C_FILTER *C_filter;
+   SUMA_CONV_MODES C_mode;
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
