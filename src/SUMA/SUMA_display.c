@@ -1906,7 +1906,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    
    if (SUMAg_CF->Dev) {
       #if MULTICONV 
-         /* Obsolete! */
+         /* Obsolete! No longer works on newer machines. Need to use GLSL 
+            to do perform such trickery. This is here for historical reasons */
       csv->C_mode = SUMA_CONV_BOX_5X5;
       if (l_C_mode != csv->C_mode) {
          switch(csv->C_mode) {
@@ -1919,11 +1920,8 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             SUMA_C_box(csv->C_filter);
             break;
           case SUMA_CONV_BOX_5X5:
-            SUMA_S_Note("A");
             SUMA_C_resize(csv->C_filter, 5, 5);
-            SUMA_S_Note("B");
             SUMA_C_box(csv->C_filter);
-            SUMA_S_Note("C");
             break;
           case SUMA_CONV_SOBEL_X:
             SUMA_C_sobel(csv->C_filter);
@@ -1939,7 +1937,6 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             SUMA_display_one(csv, dov);
             break;
          default:
-            SUMA_S_Note("D");
             glClearAccum(csv->C_filter->bias,
                     csv->C_filter->bias,
                     csv->C_filter->bias,
@@ -1947,15 +1944,14 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 
             glClear(GL_ACCUM_BUFFER_BIT);
 
-            SUMA_S_Note("E");
             SUMA_C_convolve(csv, dov, csv->C_filter);
-            SUMA_S_Note("F");
 
             glAccum(GL_RETURN, csv->C_filter->scale);
-            SUMA_S_Note("G");
             break;
       }
       #elif MULTISAMPLE
+      /* Does not do much, left here to prove it does
+      not do much at all. */
       glEnable(GL_MULTISAMPLE);
       glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
       if (0) {
@@ -1963,7 +1959,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          GLint iNumSamples = 0;
          glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
          glGetIntegerv(GL_SAMPLES, &iNumSamples);
-         SUMA_S_Note("HERE %d %d", iMultiSample, iNumSamples);
+         SUMA_LH("HERE %d %d", iMultiSample, iNumSamples);
       }
       SUMA_display_one(csv, dov);
       #else

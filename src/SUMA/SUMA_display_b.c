@@ -3953,7 +3953,7 @@ SUMA_C_FILTER * SUMA_C_newfilter(int rows, int cols)
   mat->array = (GLfloat *)malloc(rows * cols * sizeof(GLfloat));
   SUMA_C_identity(mat);
   
-  return mat;
+  return(mat);
 }
 
 void SUMA_C_free(SUMA_C_FILTER *mat)
@@ -3969,7 +3969,6 @@ void SUMA_C_resize(SUMA_C_FILTER *mat, int rows, int cols)
 {
   if(mat->rows != rows ||
      mat->cols != cols) {
-    free(mat->array);
     mat->array = (GLfloat *)realloc(mat->array, rows * cols * sizeof(GLfloat));
   }
   mat->rows = rows;
