@@ -444,11 +444,11 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
    }
    for (i=0; i < N; ++i) {
       SV = &(SVv[i]);
+      memset(SV, 0, sizeof(SUMA_SurfaceViewer)); 
+      
       SV->C_mode = SUMA_CONV_NONE;
       SV->C_filter = SUMA_C_newfilter(1, 1);
-      
       SV->LoadedTextures[0] = -1; /* plug */
-      memset(SV, 0, sizeof(SUMA_SurfaceViewer)); 
       SV->N_GVS = SUMA_N_STANDARD_VIEWS;
       SV->GVS = (SUMA_GEOMVIEW_STRUCT *)
                   SUMA_calloc(SV->N_GVS, sizeof(SUMA_GEOMVIEW_STRUCT));
