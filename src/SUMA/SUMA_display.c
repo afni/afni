@@ -22,10 +22,33 @@ static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
              Without it, there was always what looked like antialiasing that
              resulted in more colors rendered than specified, no matter 
              what I disabled                                            */
+
+#define MULTICONV 0        /* Obsolete */
+#define MULTISAMPLE 0      /* Does not make any difference relative to
+                              current defaults */
+
+#if MULTICONV
+/* No more GLX_ACCUM business, no longer supported GL3.0+  */
 static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
   GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_ALPHA_SIZE, 1, 
-  GLX_DOUBLEBUFFER, GLX_STENCIL_SIZE, 1,
+  GLX_DOUBLEBUFFER, GLX_STENCIL_SIZE, 1, 
+  GLX_ACCUM_RED_SIZE, 1,   GLX_ACCUM_GREEN_SIZE, 1,   
+  GLX_ACCUM_BLUE_SIZE, 1,   GLX_ACCUM_ALPHA_SIZE, 1,      
   None};
+#elif MULTISAMPLE
+/* Makes no difference to regular situation. I need blurring, not 
+   just multisampling. For that, I'll need to use GLSL */
+static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
+  GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_ALPHA_SIZE, 1, 
+  GLX_DOUBLEBUFFER, GLX_STENCIL_SIZE, 1, 
+  GLX_SAMPLE_BUFFERS, 1, GLX_SAMPLES, 8,      
+  None};
+#else
+static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
+  GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_ALPHA_SIZE, 1, 
+  GLX_DOUBLEBUFFER, GLX_STENCIL_SIZE, 1,     
+  None};
+#endif
 
 static String fallbackResources_default[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
@@ -1811,8 +1834,8 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
    
    /* Squence of types to be displayed. Anything not in the list 
       gets displayed first */
-   otseq[0] = SO_type;
-   otseq[1] = VO_type;
+   otseq[0] = VO_type;
+   otseq[1] = SO_type;
    otseq[2] = GRAPH_LINK_type;
    N_otseq = 3;
    
@@ -1864,10 +1887,180 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
    SUMA_RETURN(sRegistDO);
 }
 
-
 void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
-{   
+{
    static char FuncName[]={"SUMA_display"};
+   static SUMA_CONV_MODES l_C_mode=SUMA_CONV_NONE;
+   SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
+    
+   SUMA_ENTRY;
+   
+   if (LocalHead) {
+      SUMA_DUMP_TRACE("Trace At display call");
+   }
+   
+   if (!csv->Open) {
+      SUMA_S_Errv("Very weird to be here with Open flag = %d\n", csv->Open);
+      SUMA_RETURNe;
+   }
+   
+   if (SUMAg_CF->Dev) {
+      #if MULTICONV 
+         /* Obsolete! */
+      csv->C_mode = SUMA_CONV_BOX_5X5;
+      if (l_C_mode != csv->C_mode) {
+         switch(csv->C_mode) {
+          case SUMA_CONV_NONE:
+            SUMA_C_resize(csv->C_filter, 1,1);
+            SUMA_C_identity(csv->C_filter);
+            break;
+          case SUMA_CONV_BOX_3X3:
+            SUMA_C_resize(csv->C_filter, 3, 3);
+            SUMA_C_box(csv->C_filter);
+            break;
+          case SUMA_CONV_BOX_5X5:
+            SUMA_S_Note("A");
+            SUMA_C_resize(csv->C_filter, 5, 5);
+            SUMA_S_Note("B");
+            SUMA_C_box(csv->C_filter);
+            SUMA_S_Note("C");
+            break;
+          case SUMA_CONV_SOBEL_X:
+            SUMA_C_sobel(csv->C_filter);
+            break;
+          case SUMA_CONV_LAPLACE:
+            SUMA_C_laplace(csv->C_filter);
+            break;
+         }
+         l_C_mode = csv->C_mode;
+      }
+      switch (csv->C_mode) {
+         case SUMA_CONV_NONE:
+            SUMA_display_one(csv, dov);
+            break;
+         default:
+            SUMA_S_Note("D");
+            glClearAccum(csv->C_filter->bias,
+                    csv->C_filter->bias,
+                    csv->C_filter->bias,
+                    1.0);
+
+            glClear(GL_ACCUM_BUFFER_BIT);
+
+            SUMA_S_Note("E");
+            SUMA_C_convolve(csv, dov, csv->C_filter);
+            SUMA_S_Note("F");
+
+            glAccum(GL_RETURN, csv->C_filter->scale);
+            SUMA_S_Note("G");
+            break;
+      }
+      #elif MULTISAMPLE
+      glEnable(GL_MULTISAMPLE);
+      glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+      if (0) {
+         GLint iMultiSample=0;
+         GLint iNumSamples = 0;
+         glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
+         glGetIntegerv(GL_SAMPLES, &iNumSamples);
+         SUMA_S_Note("HERE %d %d", iMultiSample, iNumSamples);
+      }
+      SUMA_display_one(csv, dov);
+      #else
+      SUMA_display_one(csv, dov);
+      #endif
+   } else {
+      SUMA_display_one(csv, dov);
+   }
+   /* FLUSH_AND_OUT: */
+   SUMA_LHv("Flushing or swapping on %p\n", csv->X->GLXAREA);
+   /* SUMA_HOLD_IT; Not used anymore */
+   
+   SUMA_GLX_BUF_SWAP(csv);
+   SUMA_LHv("Done Flushing or swapping on %p\n", csv->X->GLXAREA);
+
+  /* Avoid indirect rendering latency from queuing. */
+  if (!glXIsDirect(csv->X->DPY, csv->X->GLXCONTEXT))
+    glFinish();
+   
+  /*  if recording, take a snap 
+      Note that the buffer swap has been done, it might have
+      been better to snap before then.
+      This way I could have used SUMA_grabPixels
+      instead of SUMA_grabRenderedPixels. 
+      Consider this in the future. ZSS Feb 2012*/
+  if (csv->Record == 1 && !csv->DO_PickMode) {
+      if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
+         if (0) {/* problem should be fixed by SUMA_grabRenderedPixels
+                              Throw section out if no new problems arise.
+                              Search for KILL_DOUBLE_RENDERING to locate
+                              other chunks for removal 
+                                       ZSS Feb 2012 */
+           /*
+            Combination below helps partial coverage 
+            problem under linux when recording.
+            But it does not fix the coverage problem 
+            entirely.
+
+            SUMA_S_Note("Raising the dead");
+            XtPopup (csv->X->TOPLEVEL, XtGrabExclusive);
+            XRaiseWindow(XtDisplay(csv->X->TOPLEVEL), 
+                        XtWindow(csv->X->TOPLEVEL));
+          */  
+            glFinish();
+            glXWaitX();
+         #ifdef DARWIN
+
+            { GLvoid *pixels;
+              int holdrdc = csv->rdc;
+              /* see justification for this SUMA_handleRedisplay in function
+                  SUMA_R_Key(). You need to change rdc to avoid getting into
+                  recorder when SUMA_handleRedisplay ends up calling this
+                  function again. */
+              csv->rdc = SUMA_RDC_X_EXPOSE; /* any thing that avoids a record
+                                               operation ... */
+              SUMA_handleRedisplay((XtPointer)csv->X->GLXAREA);
+              csv->rdc=holdrdc;
+              pixels = SUMA_grabPixels(3, csv->X->WIDTH, csv->X->HEIGHT);
+              if (pixels) {
+                ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
+                              (unsigned char *)pixels, csv->X->GLXAREA );
+                SUMA_free(pixels);
+              }
+            }
+         #else
+            ISQ_snapshot ( csv->X->GLXAREA );
+         #endif
+         } else { /* better approach after fixing buffer swaping bug Feb 2012*/
+            GLvoid *pixels=NULL;
+            pixels = SUMA_grabRenderedPixels(csv, 3, 
+                                          csv->X->WIDTH, csv->X->HEIGHT, 0);
+            if (pixels) {
+              ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
+                           (unsigned char *)pixels, csv->X->GLXAREA );
+              SUMA_free(pixels);
+            }
+         }
+      }
+   } else if (csv->Record == 2 && !csv->DO_PickMode) {
+      if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
+         SUMA_SnapToDisk(csv,0,0);
+      }
+   }
+   /* reset rdc, if it is the last thing you'll ever do */
+   csv->rdc = SUMA_RDC_NOT_SET;
+   
+   if (SUMAg_CF->Dev) {
+      #ifdef MULTISAMP
+      glDisable(GL_MULTISAMPLE);
+      #endif
+   } 
+   SUMA_RETURNe;
+}
+
+void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
+{   
+   static char FuncName[]={"SUMA_display_one"};
    SUMA_DO_LOCATOR *sRegistDO = NULL;
    int i, N_sReg, iflush=1000;
    static int xList[1], yList[1];
@@ -1880,7 +2073,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    SUMA_ENTRY;
    
    if (LocalHead) {
-      SUMA_DUMP_TRACE("Trace At display call");
+      SUMA_DUMP_TRACE("Trace At display_one call");
    }
    
    if (!csv->Open) {
@@ -2316,95 +2509,15 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
    #endif
  
-   
-   
-   /* FLUSH_AND_OUT: */
-      
+   /* Pop matrix and scrimooche */   
    glPopMatrix();   
    
-   SUMA_LHv("Flushing or swapping on %p\n", csv->X->GLXAREA);
-   /* SUMA_HOLD_IT; Not used anymore */
-   
-   SUMA_GLX_BUF_SWAP(csv);
-   SUMA_LHv("Done Flushing or swapping on %p\n", csv->X->GLXAREA);
-
-  /* Avoid indirect rendering latency from queuing. */
-  if (!glXIsDirect(csv->X->DPY, csv->X->GLXCONTEXT))
-    glFinish();
-   
-  /*  if recording, take a snap 
-      Note that the buffer swap has been done, it might have
-      been better to snap before then.
-      This way I could have used SUMA_grabPixels
-      instead of SUMA_grabRenderedPixels. 
-      Consider this in the future. ZSS Feb 2012*/
-  if (csv->Record == 1 && !csv->DO_PickMode) {
-      if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
-         if (0) {/* problem should be fixed by SUMA_grabRenderedPixels
-                              Throw section out if no new problems arise.
-                              Search for KILL_DOUBLE_RENDERING to locate
-                              other chunks for removal 
-                                       ZSS Feb 2012 */
-           /*
-            Combination below helps partial coverage 
-            problem under linux when recording.
-            But it does not fix the coverage problem 
-            entirely.
-
-            SUMA_S_Note("Raising the dead");
-            XtPopup (csv->X->TOPLEVEL, XtGrabExclusive);
-            XRaiseWindow(XtDisplay(csv->X->TOPLEVEL), 
-                        XtWindow(csv->X->TOPLEVEL));
-          */  
-            glFinish();
-            glXWaitX();
-         #ifdef DARWIN
-
-            { GLvoid *pixels;
-              int holdrdc = csv->rdc;
-              /* see justification for this SUMA_handleRedisplay in function
-                  SUMA_R_Key(). You need to change rdc to avoid getting into
-                  recorder when SUMA_handleRedisplay ends up calling this
-                  function again. */
-              csv->rdc = SUMA_RDC_X_EXPOSE; /* any thing that avoids a record
-                                               operation ... */
-              SUMA_handleRedisplay((XtPointer)csv->X->GLXAREA);
-              csv->rdc=holdrdc;
-              pixels = SUMA_grabPixels(3, csv->X->WIDTH, csv->X->HEIGHT);
-              if (pixels) {
-                ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
-                              (unsigned char *)pixels, csv->X->GLXAREA );
-                SUMA_free(pixels);
-              }
-            }
-         #else
-            ISQ_snapshot ( csv->X->GLXAREA );
-         #endif
-         } else { /* better approach after fixing buffer swaping bug Feb 2012*/
-            GLvoid *pixels=NULL;
-            pixels = SUMA_grabRenderedPixels(csv, 3, 
-                                          csv->X->WIDTH, csv->X->HEIGHT, 0);
-            if (pixels) {
-              ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
-                           (unsigned char *)pixels, csv->X->GLXAREA );
-              SUMA_free(pixels);
-            }
-         }
-      }
-  } else if (csv->Record == 2 && !csv->DO_PickMode) {
-      if (csv->rdc < SUMA_RDC_X_START || csv->rdc > SUMA_RDC_X_END) {
-         SUMA_SnapToDisk(csv,0,0);
-      }
-  }
-  /* reset rdc, if it is the last thing you'll ever do */
-  csv->rdc = SUMA_RDC_NOT_SET;
-
-  if (sRegistDO && sRegistDO != csv->RegistDO) {
+   if (sRegistDO && sRegistDO != csv->RegistDO) {
      SUMA_free(sRegistDO);   
-  }
-  sRegistDO = NULL;
+   }
+   sRegistDO = NULL;
 
-  SUMA_RETURNe;
+   SUMA_RETURNe;
 }
 
 void

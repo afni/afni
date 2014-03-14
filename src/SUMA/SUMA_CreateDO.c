@@ -20851,7 +20851,7 @@ const GLubyte *SUMA_StippleMask(int transp) {
    occlusion, but random mask patterns are ugly, though they may work once I
    introduce convolution options for the final image. For now, deciding on shifts
    by object type might work a little better, as long as the types are grouped 
-   together */
+   together                                        ZSS March 13 2014    */
 const GLubyte *SUMA_StippleMask_shift(int transp, int btp) {
    const GLubyte *mm=NULL;
    if (transp < STM_0 || transp > STM_16) {

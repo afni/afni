@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "More improvements to multiple object transparency.",
+   "There's lots more than meets the eye. See comment in functions \n"
+   "SUMA_DrawVolumeDO_3D() and SUMA_StippleMask_shift()"
+ },
+  
  { 13, Mar, 2014, ZSS, "afni_open", MINOR, TYPE_NEW_OPT,
    "A few more tweaks, like -aw and -d",
    "See afni_open -help for details"

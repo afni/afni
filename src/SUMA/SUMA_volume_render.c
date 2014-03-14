@@ -2688,26 +2688,20 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
    if (!(gl_bl)) glEnable(GL_BLEND);
 
-   if (SUMAg_CF->Dev) { /* Not ready for prime time, not yet*/
-      SUMA_S_Warn("Setting tran. for whole viewer, with 'o' and with\n"
-                  "vol rendering on results in one surface getting barely \n"
-                  "shown. And the other not quite being transparent to the \n"
-                  "tracts within. Something fishy is going on here.\n"
-                  "Use Do_09... example 0 to test the case.\n"
-                  "Also, with volume rendered, it looks like one does not\n"
-                  "cycle back properly to no transparency.\n"
-                  "This happens even if I set the transparency separately\n"
-                  "for each DO....\n"
-                  "Problem seems to be one of depth test. But I don't \n"
-                  "understand why one surface renders OK, but not the other.\n"
-                  "Should check to see if there is anything different between\n"
-                  "states when rendering surf A followed by surf B... Also\n"
-                  "check on overall rendering order.\n"
-                  "It does look like the unrendered surface is still there,\n"
-                  "but barely (try the walnut prying) and you'll see traces\n"
-                  "of it there.\n"
-                  "Problem might also be related to Alpha blending of some \n"
-                  "sort.\n");
+   { /* Transparency games */
+   /* Beware of the trickery of transparency.
+   For cheese cloth transp, rendering multiple objects in a transparent
+   fashion is tricky. 
+   The bitmask autoshifting is not enough when many objects are in use.
+   The stricking case is when you have two surfs and a volume, at 50% transp.
+   If you shift for each object, then the first surface will get obscured by
+   the volume (third object) because the twice shifted pattern will overlap
+   with that of the first surf. One solution, now implemented, is to use the same
+   mask shifting per class of objects. But then surfs won't be transparent
+   between them (not a big deal). The other option is to set the transparency 
+   differently for different objects (i.e. not using the viewer-wide 
+   transparency). Other options might help under certain cases (see 
+   comment for function SUMA_StippleMask_shift().     ZSS March 13 2014    */
    trmode = VSaux->TransMode;
    if (trmode == SATM_ViewerDefault) {
       if ((trmode = SUMA_TransMode2ATransMode(sv->TransMode)) 
