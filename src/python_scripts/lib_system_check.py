@@ -18,10 +18,15 @@ import afni_util as UTIL
 class SysInfo:
    """system info class"""
 
-   def __init__(self):
+   def __init__(self, data_root='', verb=1):
 
       self.system          = platform.system()
       self.home_dir        = os.environ['HOME']
+      self.data_root       = data_root
+      self.verb            = verb
+
+      self.afni_ver        = ''
+      self.os_dist         = ''
 
    def get_afni_dir(self):
       s, so, se = BASE.simple_shell_exec('which afni', capture=1)
@@ -43,6 +48,7 @@ class SysInfo:
 
       # check distributions by type
       checkdist = 0
+      dstr = ''
       if   self.system == 'Linux':
          try:    dstr = tostr(platform.linux_distribution())
          except: checkdist = 1
@@ -51,6 +57,7 @@ class SysInfo:
          except: checkdist = 1
       else: checkdist = 1
       if checkdist: dstr = tostr(platform.dist())
+      self.os_dist = dstr       # save result
       print 'distribution:         %s' % dstr
          
       print 'number of CPUs:       %s' % self.get_cpu_count()
@@ -63,6 +70,100 @@ class SysInfo:
 
       print 'apparent login shell: %s%s' % (logshell, note)
       print
+
+   def show_data_info(self, header=1):
+      """checks that are specific to data
+            - class data existence and tree root
+               - assume $HOME if not found
+            - disk space under data root
+               - maybe check for mounted file system
+            - atlases (maybe just @Find TT_N27+tlrc?)
+      """
+
+      if header: print UTIL.section_divider('data checks', hchar='-')
+
+      for ddir in ['AFNI_data6', 'suma_demo']:
+          if self.show_data_dir(ddir): break
+
+      evar = 'AFNI_ATLAS_DIR'
+      if os.environ.has_key(evar):
+         print "atlas var %s = %s" % (evar, os.environ[evar])
+      atlas = 'TT_N27+tlrc'
+      cmd = '@FindAfniDsetPath %s' % atlas
+      s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
+      if not s:
+         print 'found atlas %s under %s' % (atlas, so[0])
+
+      print
+
+   def show_data_dir(self, ddir):
+      """check for and show the existence of ddir in common locations
+         return status (0 = success)
+      """
+
+      # if we do not have a data root, check in a few places
+      if self.data_root != '':
+         hdir = self.data_root
+         plist = [self.data_root]
+         root_str = hdir
+      else: 
+         hdir = self.home_dir
+         plist = [ hdir, '%s/Desktop'%hdir, '%s/*data*' % hdir]
+         root_str = '$HOME'
+
+      dpath = self.find_data_dir(ddir=ddir, gdirs=plist)
+      if dpath == None:
+         print '** did not find data dir %s' % ddir
+         return 1
+      else:
+         dpath = '%s/%s' % (root_str, dpath[len(hdir)+1:])
+         print 'found data dir %s' % dpath
+         return 0
+
+   def find_data_dir(self, ddir, gdirs=[], depth=2):
+      """search under a list of glob directories for the given ddir"""
+      if ddir == '' or len(gdirs) == 0: return None
+
+      dlist = []
+      for pdir in gdirs:
+         droot = pdir
+         for d in range(depth+1):
+            dlist.extend(glob.glob('%s/%s' % (droot, ddir)))
+            droot += '/*'
+      if self.verb > 3: print '-- found %s dirs %s' % (ddir, dlist)
+      dlist = UTIL.get_unique_sublist(dlist)
+      if self.verb > 2: print '-- found trimmed %s dirs %s' % (ddir, dlist)
+      
+      if len(dlist) == 0: return None
+      return dlist[0]
+
+   def show_os_specific(self, header=1):
+      """checks that are specific to one OS or another"""
+
+      if self.system not in ['Linux', 'Darwin']: return
+
+      if header: print UTIL.section_divider('OS specific', hchar='-')
+
+      if   self.system == 'Linux':  self.show_spec_linux()
+      elif self.system == 'Darwin': self.show_spec_mac()
+
+      print
+
+   def show_spec_linux(self):
+      """linux specific checks
+            - is Ubuntu
+               - has Ubuntu AFNI installed
+               - atlas directory
+      """
+
+      if self.os_dist.find('buntu') < 0: return
+
+      print 'have Ubuntu system: %s' % self.os_dist
+      if self.afni_ver.find('buntu') >= 0:
+         print 'have Ubuntu afni  : %s' % self.afni_ver
+
+   def show_spec_mac(self):
+      pass
 
    def show_python_lib_info(self, plibs, header=1, verb=2):
       if header: print UTIL.section_divider('python libs', hchar='-')
@@ -98,7 +199,9 @@ class SysInfo:
          else:
             print '%-20s : %s' % (cmd, so.strip())
             s, v = self.get_prog_version(prog)
-            if s: print '%-20s : %s' % ('%s version'%prog, v)
+            if s:
+                print '%-20s : %s' % ('%s version'%prog, v)
+                if prog == 'afni': self.afni_ver = v # save result
       print
 
       # make generic but pretty
@@ -118,7 +221,7 @@ class SysInfo:
       indn = '\n%8s' % ' '
       print 'testing ability to start various programs...'
       for prog in ['afni', 'suma', '3dSkullStrip', 'uber_subject.py',
-                   '3dAllineate']:
+                   '3dAllineate', '3dRSFC', 'SurfMesh']:
          st, so, se = BASE.shell_exec2('%s -help'%prog, capture=1)
          if st:
             print '    %-20s : FAILURE' % prog

@@ -62,15 +62,33 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     return 0
 
-def read_text_file(fname, lines=0):
+def wrap_file_text(infile='stdin', outfile='stdout'):
+   """make a new file with line wrappers                14 Mar 2014
+
+      The default parameters makes it easy to process as a stream:
+
+          afni_util.py -eval 'wrap_file_text()' < INPUT > OUTPUT
+                or
+          afni_util.py -eval 'wrap_file_text("INPUT", "OUTPUT")'
+                or
+          afni_util.py -eval "wrap_file_text('$f1', '$f2')"
+   """
+
+   tdata = read_text_file(fname=infile)
+   if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
+   
+
+def read_text_file(fname='stdin', lines=0):
    """return the text text from the given file as either one string
       or as an array of lines"""
 
-   try: fp = open(fname, 'r')
-   except:
-     print "** read_text_file: failed to open '%s'" % fname
-     if lines: return []
-     else:     return ''
+   if fname == 'stdin' or fname == '-': fp = sys.stdin
+   else:
+      try: fp = open(fname, 'r')
+      except:
+        print "** read_text_file: failed to open '%s'" % fname
+        if lines: return []
+        else:     return ''
 
    if lines: tdata = fp.readlines()
    else:     tdata = fp.read()
