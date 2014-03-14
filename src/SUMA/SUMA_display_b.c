@@ -3920,3 +3920,128 @@ SUMA_Boolean SUMA_SaveMultiMasks_eng (char *filename)
    SUMA_RETURN(YUP);
 }
 
+/* 
+   *************** Convolution functions *************** 
+   based on example in glut's convolve.c by  
+   Tom McReynolds, SGI 
+   *****************************************************
+*/
+
+/* identity filter */
+void SUMA_C_identity(SUMA_C_FILTER *mat)
+{
+  int n, size;
+  size = mat->rows * mat->cols;
+
+  mat->array[0] = 1.f;
+  for(n = 1; n < size; n++)
+    mat->array[n] = 0.f;
+
+  mat->scale = 1.f;
+  mat->bias = 0.f;
+}
+
+
+/* create a new filter with identity filter in it */
+SUMA_C_FILTER * SUMA_C_newfilter(int rows, int cols)
+{
+  SUMA_C_FILTER *mat;
+
+  mat = (SUMA_C_FILTER *)malloc(sizeof(SUMA_C_FILTER));
+  mat->rows = rows;
+  mat->cols = cols;
+  mat->array = (GLfloat *)malloc(rows * cols * sizeof(GLfloat));
+  SUMA_C_identity(mat);
+  
+  return mat;
+}
+
+void SUMA_C_free(SUMA_C_FILTER *mat)
+{
+   if (!mat) return;
+   if (mat->array) free(mat->array);
+   free(mat);
+   return;
+}
+
+/* doesn't re-initialize matrix */
+void SUMA_C_resize(SUMA_C_FILTER *mat, int rows, int cols)
+{
+  if(mat->rows != rows ||
+     mat->cols != cols) {
+    free(mat->array);
+    mat->array = (GLfloat *)realloc(mat->array, rows * cols * sizeof(GLfloat));
+  }
+  mat->rows = rows;
+  mat->cols = cols;
+}
+
+
+/* box filter blur */
+void SUMA_C_box(SUMA_C_FILTER *mat)
+{
+  int n, count;
+  GLfloat blur;
+
+  count = mat->cols * mat->rows;
+  blur = 1.f/count;
+  for(n = 0; n < count; n++)
+     mat->array[n] = blur;
+
+  mat->scale = 1.f;
+  mat->bias = 0.f;
+}
+
+/* sobel filter */
+void SUMA_C_sobel(SUMA_C_FILTER *mat)
+{
+  static GLfloat sobel[] = {-.5f, 0.f, .5f,
+                            -1.f, 0.f, 1.f,
+                            -.5f, 0.f, .5f};
+
+  /* sobel is fixed size */
+  SUMA_C_resize(mat, 3, 3); /* will do nothing if size is right already */
+  
+  memcpy(mat->array, sobel, sizeof(sobel));
+
+  mat->scale = 2.f;
+  mat->bias = 0.f;
+}
+
+/* laplacian filter */
+void SUMA_C_laplace(SUMA_C_FILTER *mat)
+{
+  static GLfloat laplace[] = {  0.f, -.25f,   0.f,
+                              -.25f,   1.f, -.25f,
+                                0.f, -.25f,   0.f};
+
+  /* sobel is fixed size */
+  SUMA_C_resize(mat, 3, 3); /* will do nothing if size is right already */
+  
+  memcpy(mat->array, laplace, sizeof(laplace));
+
+  mat->scale = 4.f;
+  mat->bias = .125f;
+}
+
+void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat)
+{
+  int i, j;
+  int imax, jmax;
+
+  imax = mat->cols;
+  jmax = mat->rows;
+  for(j = 0; j < jmax; j++) {
+      for(i = 0; i < imax; i++) {
+        glViewport(-i, -j, csv->WindWidth - i, csv->WindHeight - j);
+        SUMA_display_one(csv, dov);
+        glAccum(GL_ACCUM, mat->array[i + j * imax]);
+      }
+  }
+  if (jmax > 0 && imax > 0) {
+   glViewport(0, 0, csv->WindWidth, csv->WindHeight);
+  }
+}
+
+
+/* *************** End Convolution utilities *************** */
