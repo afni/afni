@@ -2967,39 +2967,32 @@ int *SUMA_ViewState_Membs(SUMA_ViewState *VS, SUMA_DO_Types *ttv,
             SUMA_LHv("Checking %s type %s \n",
                      iDO_label(VS->MembDO[ii].dov_ind), 
                      SUMA_ObjectTypeCode2ObjectTypeName(tt));
+      if (iDO_type(VS->MembDO[ii].dov_ind) == tt) {
       switch (tt) {
          case SO_type:
-            if (iDO_isSO(VS->MembDO[ii].dov_ind)) {
                if (!Membs) Membs = (int *)
                         SUMA_malloc(N_ttv*(VS->N_MembDO+1)*sizeof(int));
                Membs[N_Membs++] = VS->MembDO[ii].dov_ind; 
                Membs[N_Membs]=-1;/* a plug, if uN_Membs is NULL*/
-            }
             break;
          case GRAPH_LINK_type:
-            if (iDO_isGLDO(VS->MembDO[ii].dov_ind)) {
                if (!Membs) Membs = (int *)
                         SUMA_malloc(N_ttv*(VS->N_MembDO+1)*sizeof(int));
                Membs[N_Membs++] = VS->MembDO[ii].dov_ind; 
                Membs[N_Membs]=-1;/* a plug, if uN_Membs is NULL*/
-            }
             break;
          case TRACT_type:
          case MASK_type:
          case VO_type:
-            if (iDO_isTDO(VS->MembDO[ii].dov_ind)||
-                iDO_isVO(VS->MembDO[ii].dov_ind) ||
-                iDO_isMDO(VS->MembDO[ii].dov_ind)) {
                if (!Membs) Membs = (int *)
                         SUMA_malloc(N_ttv*(VS->N_MembDO+1)*sizeof(int));
                Membs[N_Membs++] = VS->MembDO[ii].dov_ind; 
                Membs[N_Membs]=-1;/* a plug, if uN_Membs is NULL*/
-            }
             break;
          default:
             SUMA_S_Err("Not ready for this type");
             break;
-        }
+        } }
    } ++jj;}
    if (uN_Membs) *uN_Membs = N_Membs;
    
