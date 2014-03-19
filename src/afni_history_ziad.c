@@ -65,6 +65,25 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Improved selection logic on slices and for graphs.",
+   "Graph selection was changed so that what is rendered is selectable.\n"
+   "The alternate was too confusing.\n"
+   "Fixed bug with selctions on matrix where selections at times were \n"
+   "going to the volume, even though it is not displayed with the matrix.\n"
+   "Fixed slice highlighting when in montage mode.\n"
+   "Added alpha value threshold condition to slice picking. This slows the\n"
+   "selection process a little, but it keeps one from selecting 'air' when\n"
+   "when clicking on voxels that meet the threshold but are alpha masked.\n"
+ },
+  
+ { 17, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Fixed residual surface shading after volume is selected.",
+   "Problem was caused by residual emissivitiy colored left over \n"
+   "from the highlighting of the selected slice. Also wrote functions\n"
+   "SUMA_DiffEnablingState*() to help identify such problems." 
+ },
+  
  { 13, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "More improvements to multiple object transparency.",
    "There's lots more than meets the eye. See comment in functions \n"

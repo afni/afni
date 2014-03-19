@@ -828,10 +828,10 @@ int main (int argc,char *argv[])
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
    
    /* Now do the deed */
-   SUMA_LH (MetricList->s);
+   SUMA_LH ("%s",MetricList->s);
    if (strlen(MetricList->s)) {
       if (!SUMA_SurfaceMetrics (SO, MetricList->s, NULL)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+         SUMA_S_Err("Failed in SUMA_SurfaceMetrics.");
          exit(1);
       }
    }
