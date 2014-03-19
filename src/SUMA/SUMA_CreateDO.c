@@ -10230,7 +10230,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    int stipsel = 0; /* flag for stippling of selected edge */
    int depthsort = 1; /* Sort text and draw from farthest to closest */
    byte ShadeBalls = 1;
-   
+   int PickAsShown = 1; /* 1 = Pick only from what is displayed. 
+                           0 = Pick from entire graph */
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -10366,7 +10367,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       }
    }
    
-   if (!sv->DO_PickMode && !GSaux->ShowUncon) {
+   if ((PickAsShown || !sv->DO_PickMode) && !GSaux->ShowUncon) {
       SUMA_LH("Masking unconnected nodes");
       NodeMask = (byte *)SUMA_calloc(DDO.N_Node, sizeof(byte));
    } else {
@@ -10433,7 +10434,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    }
    
    NoEdges = 0;
-   if (!sv->DO_PickMode &&
+   if ((PickAsShown || !sv->DO_PickMode) &&
        GSaux->PR->datum_index == -1 && GSaux->PR->iAltSel[SUMA_ENODE_0] != -1) {
       OnlyThroughNode = GSaux->PR->iAltSel[SUMA_ENODE_0];
       NoEdges = 0; /* Rudimentary mode for not showing edges, but
@@ -10627,6 +10628,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          glEnd();
          SUMA_CHECK_GL_ERROR("Post End");
       } else {/* slow slow slow, variable stippling, edge thickness, or both*/
+         SUMA_S_Warn("This block has not been kept up and should be deleted");
          if (!sv->DO_PickMode) {
             if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
             glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
@@ -10880,16 +10882,25 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                rad = rad * 2;
             }
             if (OnlyThroughNode == n) {
-               selcol[0] = (1-sv->clear_color[0])/dimmer;
-               selcol[1] = (1-sv->clear_color[1])/dimmer;
-               selcol[2] = (1-sv->clear_color[2])/dimmer;
-               selcol[3] = 1-sv->clear_color[3]; 
-               if (!ShadeBalls) {
-                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
-                  glMaterialfv(GL_FRONT, GL_EMISSION, selcol);
+               if (colidballs) {
+                  if (dsrt) {
+                     i4 = 4*dsrt[i];
+                  } else i4 = 4*i;
+                  colballpick = colidballs+i4;
+                  glColor4ub( colidballs[i4  ], colidballs[i4+1], 
+                              colidballs[i4+2], colidballs[i4+3]);
                } else {
-                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
-                  glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                  selcol[0] = (1-sv->clear_color[0])/dimmer;
+                  selcol[1] = (1-sv->clear_color[1])/dimmer;
+                  selcol[2] = (1-sv->clear_color[2])/dimmer;
+                  selcol[3] = 1-sv->clear_color[3]; 
+                  if (!ShadeBalls) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, selcol);
+                  } else {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, selcol);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                  }
                }
             } else {
                if (colidballs) {
@@ -11017,6 +11028,24 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                  for debugging the pick buffer, block
                                  this if statement and let function
                                  proceed below */
+               if (PickAsShown) { 
+                   switch(TxtShadeMode) { /* See same switch below */
+                     case SW_SurfCont_DsetTxtShad1:
+                     case SW_SurfCont_DsetTxtShad5:
+                        if (!(showword > 128 || TxtShadeMode == 5)) continue;
+                        break;
+                     case SW_SurfCont_DsetTxtShad2:
+                        break;
+                     case SW_SurfCont_DsetTxtShad6:
+                     case SW_SurfCont_DsetTxtShad3:
+                        if (!(showword > 128 || TxtShadeMode == 6)) continue;
+                        break;
+                     case SW_SurfCont_DsetTxtShad4:
+                        break;
+                     default:
+                        break;
+                  }
+               }
                glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                glMaterialfv(GL_FRONT, GL_EMISSION, col1);
                glRasterPos3d(xyzr[i3]  +rad , 
@@ -11043,7 +11072,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                continue; /* On to the next point */        
             }
             /* do some text action */
-            switch(TxtShadeMode) {
+            switch(TxtShadeMode) { /* Make sure you mirror conditions in 
+                                    similar switch above */
                case SW_SurfCont_DsetTxtShad1:
                case SW_SurfCont_DsetTxtShad5:
                   if (showword > 128 || TxtShadeMode == 5) {
@@ -15902,6 +15932,12 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_ENTRY;
    
    SUMA_LH("Entered DrawMesh");
+   
+   if (LocalHead) {
+      SUMA_EnablingRecord SER;
+      SUMA_RecordEnablingState(&SER, SurfObj->Label);
+      SUMA_DiffEnablingState(&SER, NULL, NULL, NULL);
+   }
    
    if (  SurfObj->PolyMode == SRM_Hide || 
          sv->PolyMode == SRM_Hide ||

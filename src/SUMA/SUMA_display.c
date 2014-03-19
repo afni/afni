@@ -5392,7 +5392,7 @@ SUMA_Boolean SUMA_World2ScreenCoordsF (
             }
          }
          /* Set all output to zero and proceed */
-         SUMA_S_Warn("Failed in gluProject, skipping");
+         SUMA_LH("Failed in gluProject, skipping");
          memset(ScreenList, 0, 3*N_List*sizeof(float));
          break;               
       }

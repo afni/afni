@@ -4268,8 +4268,13 @@ int SUMA_SetShowSlice(SUMA_VolumeObject *vdo, char *variant, int val)
       }
       SUMA_LH("ShowVrSlc now %d", VSaux->ShowVrSlc);
    } else if (!strcmp(variant, "AtXYZ")) {
+      SUMA_SurfaceViewer *sv=NULL;
       if (VSaux->SlicesAtCrosshair != val) {
          VSaux->SlicesAtCrosshair = val;
+         if (VSaux->SlicesAtCrosshair && (sv=SUMA_OneViewerWithADOVisible(ado))
+             && sv->Ch){
+            SUMA_VO_set_slices_XYZ(vdo, sv->Ch->c_noVisX);
+         }
          SUMA_Remixedisplay(ado);
          #if SUMA_SEPARATE_SURF_CONTROLLERS
             SUMA_UpdateColPlaneShellAsNeeded(ado);

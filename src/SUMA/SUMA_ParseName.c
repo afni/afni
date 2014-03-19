@@ -207,7 +207,7 @@ int main (int argc,char *argv[])
          fprintf(SUMA_STDOUT, "%d\n", 
                      Test->OnDisk);
       } else if (strcmp(out,"Size") == 0) {
-         fprintf(SUMA_STDOUT, "%d\n", 
+         fprintf(SUMA_STDOUT, "%ld\n", 
                      Test->Size);
       } else if (strcmp(out,"FNameNoAfniExt") == 0) {
          fprintf(SUMA_STDOUT, "%s\n", 

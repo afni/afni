@@ -62,7 +62,7 @@ STATIT:
       
 SCALEIT:
    cd $odir
-   set med = `3dBrickStat -non-zero -median -mask amask+orig T1+orig.`
+   set med = `3dBrickStat -non-zero -median -mask umask+orig T1+orig.`
    if ("$menh" == 0.0) then
       if ( $imask != '') then
          set mm = umask+orig.HEAD

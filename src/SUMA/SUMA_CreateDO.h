@@ -121,6 +121,8 @@ typedef struct {
 
 typedef struct {
    float Eq[4];
+   int slc_num;
+   char variant[16];
 } SUMA_RENDERED_SLICE; /*!< Information about a rendered slice */
 
 /*! A volume object's Aux structure for SUMA's use */
