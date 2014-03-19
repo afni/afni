@@ -2352,6 +2352,7 @@ typedef enum {  SUMA_NO_WAX, SUMA_THREE_WAX, SUMA_THREE_TEXT_WAX, SUMA_BOX_WAX, 
 /*! structure defining the state of a viewer window */
 
 typedef struct {
+   char Label[256];
    int ALPHA_TEST;
    int DEPTH_TEST;
    int COLOR_MATERIAL;
@@ -2373,6 +2374,9 @@ typedef struct {
    int LIGHT2;
    int BLEND;
    int LINE_SMOOTH;
+   int ColMatParam;
+   int ColMatFace;
+   GLfloat CurCol[4];
 } SUMA_EnablingRecord;
 
 /* a structure for the list of pickable objects (excluding surfaces) */
@@ -2389,23 +2393,25 @@ typedef struct {
    long int idatum;
 } SUMA_COLID_OFFSET_DATUM;
 
-#define SUMA_NET_BUN    0  /* selectedNetworkBundle */
-#define SUMA_VOL_I      0  /* selectedVoxelI */
-#define SUMA_SURF_TRI   0  /* selected triangle */
-#define SUMA_ENODE_0    0  /* 1st point/node forming edge */
+#define SUMA_NET_BUN          0  /* selectedNetworkBundle */
+#define SUMA_VOL_I            0  /* selectedVoxelI */
+#define SUMA_SURF_TRI         0  /* selected triangle */
+#define SUMA_ENODE_0          0  /* 1st point/node forming edge */
 
-#define SUMA_BUN_TRC    1  /* selectedBundleTract */
-#define SUMA_VOL_J      1  /* selectedVoxelJ */
-#define SUMA_ENODE_1    1  /* 2st point/node forming edge */
+#define SUMA_BUN_TRC          1  /* selectedBundleTract */
+#define SUMA_VOL_J            1  /* selectedVoxelJ */
+#define SUMA_ENODE_1          1  /* 2st point/node forming edge */
 
-#define SUMA_TRC_PNT    2  /* selectedTractPoint */
-#define SUMA_VOL_K      2  /* selectedVoxelK */
+#define SUMA_TRC_PNT          2  /* selectedTractPoint */
+#define SUMA_VOL_K            2  /* selectedVoxelK */
 
-#define SUMA_NET_TRC    3  /* selectedNetworkTract */
-#define SUMA_VOL_IJK    3  /* selectedVoxelIJK, 1D index */
+#define SUMA_NET_TRC          3  /* selectedNetworkTract */
+#define SUMA_VOL_IJK          3  /* selectedVoxelIJK, 1D index */
 
- 
-#define SUMA_N_IALTSEL_TYPES 4 /* If this goes over 15, make sure you 
+#define SUMA_VOL_SLC_NUM      4  /* selected slice, 1D index */
+#define SUMA_VOL_SLC_VARIANT  5  /* selected slice, 1D index */
+
+#define SUMA_N_IALTSEL_TYPES  6 /* If this goes over 15, make sure you 
                                  start using something bigger than
                                  iv15 in SUMA_Engine Calls */
 

@@ -459,7 +459,7 @@ void SUMA_CreateSphereList(void)
    SUMA_RETURNe;
 }
 
-void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER)
+void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER, char *Label)
 {
    static char FuncName[]={"SUMA_RecordEnablingState"};
    
@@ -469,6 +469,7 @@ void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER)
       SUMA_S_Err("NULL SER, how am I to record?");
       SUMA_RETURNe;
    }
+   snprintf(SER->Label,255, "%s", Label ? Label:"Unabeled");
    SER->ALPHA_TEST = glIsEnabled(GL_ALPHA_TEST);
    SER->DEPTH_TEST = glIsEnabled(GL_DEPTH_TEST);
    SER->TEXTURE_3D_EXT = glIsEnabled(GL_TEXTURE_3D_EXT);
@@ -490,8 +491,10 @@ void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER)
    SER->LIGHT2 = glIsEnabled(GL_LIGHT2);
    SER->BLEND = glIsEnabled(GL_BLEND);
    SER->LINE_SMOOTH = glIsEnabled(GL_LINE_SMOOTH);
-   SER->COLOR_MATERIAL = glIsEnabled(GL_COLOR_MATERIAL);
    /* SER-> = glIsEnabled(GL_); */
+   glGetFloatv(GL_CURRENT_COLOR, SER->CurCol);
+   glGetIntegerv(GL_COLOR_MATERIAL_PARAMETER, &(SER->ColMatParam));
+   glGetIntegerv(GL_COLOR_MATERIAL_FACE, &(SER->ColMatFace));
    
    SUMA_RETURNe;
 }
@@ -547,6 +550,9 @@ void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER)
    else glDisable(GL_LINE_SMOOTH);
    if (SER->COLOR_MATERIAL) glEnable(GL_COLOR_MATERIAL);
    else glDisable(GL_COLOR_MATERIAL);
+   
+   /* For now, do not bother setting colors, etc. */
+   
    /* if (SER->) glEnable(); 
       else glDisable() */
    
@@ -564,13 +570,13 @@ char *SUMA_EnablingState_Info(SUMA_EnablingRecord *SERu)
       
    SS = SUMA_StringAppend(NULL, NULL);
    if (!SERu) {
-      SUMA_RecordEnablingState(&SERl); 
+      SUMA_RecordEnablingState(&SERl, FuncName); 
       SER = &SERl;
-      SUMA_StringAppend_va(SS,"OpenGL States\n");
    }  else {
       SER = SERu;
-      SUMA_StringAppend_va(SS,"Enabling Record\n");
    }
+   
+   SUMA_StringAppend_va(SS,"OpenGL State Record for %s\n", SER->Label);
    SUMA_StringAppend_va(SS,"% 24s is %s\n", 
                        "GL_ALPHA_TEST", SER->ALPHA_TEST ? "+++":"---"); 
    SUMA_StringAppend_va(SS,"% 24s is %s\n", 
@@ -603,6 +609,13 @@ char *SUMA_EnablingState_Info(SUMA_EnablingRecord *SERu)
            "GL_LIGHTING", SER->LIGHTING ? "+++":"---"); 
    SUMA_StringAppend_va(SS,"% 24s is %s\n", 
            "GL_COLOR_MATERIAL", SER->COLOR_MATERIAL ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"% 24s is %d\n", 
+           "COLOR_MATERIAL_PARAMETER", SER->ColMatParam); 
+   SUMA_StringAppend_va(SS,"% 24s is %d\n", 
+           "COLOR_MATERIAL_FACE", SER->ColMatFace);
+   SUMA_StringAppend_va(SS,"% 24s is %.3f %.3f %.3f %.3f\n", 
+           "CURRENT_COLOR", 
+           SER->CurCol[0], SER->CurCol[1], SER->CurCol[2], SER->CurCol[3] ); 
    SUMA_StringAppend_va(SS,"% 24s is %s\n", 
            "GL_LIGHT0", SER->LIGHT0 ? "+++":"---"); 
    SUMA_StringAppend_va(SS,"% 24s is %s\n", 
@@ -639,6 +652,224 @@ void SUMA_ShowEnablingState(SUMA_EnablingRecord *SER, FILE *out,
    SUMA_RETURNe;
 }
 
+char *SUMA_DiffEnablingState_Info(SUMA_EnablingRecord *SERnew,
+                                  SUMA_EnablingRecord *SERref)
+{
+   static char FuncName[]={"SUMA_DiffEnablingState_Info"};
+   char *s=NULL;
+   static SUMA_EnablingRecord SER, *SER_last=NULL;
+   SUMA_EnablingRecord now;
+   SUMA_STRING *SS=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SERref) { /* Use last record */
+      if (!SER_last) { /* No last record */
+         SUMA_RecordEnablingState(&SER, "From Diff");
+         SER_last = &SER;
+      }
+      SERref = SER_last;
+   }
+   if (!SERnew) { /* Nothing given get current */
+      SUMA_RecordEnablingState(&now, "From Diff");
+      SERnew = &now;
+   }
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   SUMA_StringAppend_va(SS,"OpenGL State Diff: %s vs. %s\n",
+                        SERnew->Label, SERref->Label);
+   if (SERnew->ALPHA_TEST != SERref->ALPHA_TEST) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_ALPHA_TEST", 
+                              SERnew->ALPHA_TEST , SERref->ALPHA_TEST); 
+   }
+   if (SERnew->DEPTH_TEST != SERref->DEPTH_TEST) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_DEPTH_TEST", 
+                              SERnew->DEPTH_TEST , SERref->DEPTH_TEST); 
+   }
+   if (SERnew->TEXTURE_3D_EXT != SERref->TEXTURE_3D_EXT) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_TEXTURE_3D_EXT", 
+                              SERnew->TEXTURE_3D_EXT , SERref->TEXTURE_3D_EXT); 
+   }   
+   if (SERnew->TEXTURE_2D != SERref->TEXTURE_2D) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_TEXTURE_2D", 
+                              SERnew->TEXTURE_2D , SERref->TEXTURE_2D); 
+   }
+   if (SERnew->TEXTURE_3D != SERref->TEXTURE_3D) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_TEXTURE_3D", 
+                              SERnew->TEXTURE_3D , SERref->TEXTURE_3D); 
+   }
+   if (SERnew->TEXTURE_GEN_S != SERref->TEXTURE_GEN_S) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_TEXTURE_GEN_S", 
+                              SERnew->TEXTURE_GEN_S , SERref->TEXTURE_GEN_S); 
+   }
+   if (SERnew->TEXTURE_GEN_T != SERref->TEXTURE_GEN_T) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_TEXTURE_GEN_T", 
+                              SERnew->TEXTURE_GEN_T , SERref->TEXTURE_GEN_T); 
+   }
+   if (SERnew->TEXTURE_GEN_R != SERref->TEXTURE_GEN_R) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_TEXTURE_GEN_R", 
+                              SERnew->TEXTURE_GEN_R , SERref->TEXTURE_GEN_R); 
+   }
+   if (SERnew->CLIP_PLANE0 != SERref->CLIP_PLANE0) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_CLIP_PLANE0", 
+                              SERnew->CLIP_PLANE0 , SERref->CLIP_PLANE0); 
+   }
+   if (SERnew->CLIP_PLANE1 != SERref->CLIP_PLANE1) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_CLIP_PLANE1", 
+                              SERnew->CLIP_PLANE1 , SERref->CLIP_PLANE1); 
+   }
+   if (SERnew->CLIP_PLANE2 != SERref->CLIP_PLANE2) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_CLIP_PLANE2", 
+                              SERnew->CLIP_PLANE2 , SERref->CLIP_PLANE2); 
+   }
+   if (SERnew->ALPHA_TEST != SERref->ALPHA_TEST) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_ALPHA_TEST", 
+                              SERnew->ALPHA_TEST , SERref->ALPHA_TEST); 
+   }
+   if (SERnew->CLIP_PLANE4 != SERref->CLIP_PLANE4) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_CLIP_PLANE4", 
+                              SERnew->CLIP_PLANE4 , SERref->CLIP_PLANE4); 
+   }
+   if (SERnew->CLIP_PLANE5 != SERref->CLIP_PLANE5) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_CLIP_PLANE5", 
+                              SERnew->CLIP_PLANE5 , SERref->CLIP_PLANE5); 
+   }
+   if (SERnew->LIGHTING != SERref->LIGHTING) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_LIGHTING", 
+                              SERnew->LIGHTING , SERref->LIGHTING); 
+   }
+   if (SERnew->COLOR_MATERIAL != SERref->COLOR_MATERIAL) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "GL_COLOR_MATERIAL", 
+                              SERnew->COLOR_MATERIAL , SERref->COLOR_MATERIAL); 
+   }
+   if (SERnew->CurCol[0] != SERnew->CurCol[0] ||
+       SERnew->CurCol[1] != SERnew->CurCol[1] ||
+       SERnew->CurCol[2] != SERnew->CurCol[2] ||
+       SERnew->CurCol[3] != SERnew->CurCol[3]) {
+       SUMA_StringAppend_va(SS,
+                  "% 24s is %.3f %.3f %.3f %.3f vs %.3f %.3f %.3f %.3f\n", 
+                  "CURRENT_COL", 
+                  SERnew->CurCol[0], SERnew->CurCol[1], 
+                  SERnew->CurCol[2], SERnew->CurCol[3],
+                  SERref->CurCol[0], SERref->CurCol[1], 
+                  SERref->CurCol[2], SERref->CurCol[3] );  
+   }
+   if (SERnew->ColMatParam != SERref->ColMatParam) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "COLOR_MATERIAL_PARAMETER", 
+                              SERnew->ColMatParam , SERref->ColMatParam);
+   }
+   if (SERnew->ColMatFace != SERref->ColMatFace) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "COLOR_MATERIAL_FACE", 
+                              SERnew->ColMatFace , SERref->ColMatFace);
+   }
+   if (SERnew->LIGHT0 != SERref->LIGHT0) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "LIGHT0", 
+                              SERnew->LIGHT0 , SERref->LIGHT0); 
+   }
+   if (SERnew->LIGHT1 != SERref->LIGHT1) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "LIGHT1", 
+                              SERnew->LIGHT1 , SERref->LIGHT1); 
+   }
+   if (SERnew->LIGHT2 != SERref->LIGHT2) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "LIGHT2", 
+                              SERnew->LIGHT2 , SERref->LIGHT2); 
+   }
+   if (SERnew->BLEND != SERref->BLEND) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "BLEND", 
+                              SERnew->BLEND , SERref->BLEND); 
+   }
+   if (SERnew->LINE_SMOOTH != SERref->LINE_SMOOTH) {
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
+                              "LINE_SMOOTH", 
+                              SERnew->LINE_SMOOTH , SERref->LINE_SMOOTH); 
+   }
+
+/*   
+   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
+           "GL_ ", SER-> ? "+++":"---"); 
+                        */
+   SUMA_StringAppend_va(SS,"End of Diff.\n\n"); 
+   SUMA_SS2S(SS,s);
+   
+   /* Keep track of last visited */
+   SUMA_CopyEnablingState(SER_last, SERnew);
+   SUMA_RETURN(s);
+}
+
+void SUMA_DiffEnablingState(SUMA_EnablingRecord *SERnew, 
+                            SUMA_EnablingRecord *SERref, FILE *out, 
+                            char *preamble) {
+   static char FuncName[]={"SUMA_DiffEnablingState"};
+   char *s=NULL;
+   SUMA_ENTRY;
+   if (!out) out = SUMA_STDOUT;
+   
+   s = SUMA_DiffEnablingState_Info(SERnew, SERref);
+   
+   fprintf(out, "%s%s", preamble ? preamble:"", s);
+   
+   SUMA_free(s); s = NULL;
+   
+   SUMA_RETURNe;
+}
+
+int SUMA_CopyEnablingState(SUMA_EnablingRecord *SERnew,
+                           SUMA_EnablingRecord *SERref)
+{
+   static char FuncName[]={"SUMA_CopyEnablingState"};
+   
+   SUMA_ENTRY;
+   
+   if (!SERnew || !SERref) SUMA_RETURN(NOPE);
+   
+   strcpy(SERnew->Label,SERref->Label);
+   SERnew->ALPHA_TEST = SERref->ALPHA_TEST ;
+   SERnew->DEPTH_TEST = SERref->DEPTH_TEST ;
+   SERnew->COLOR_MATERIAL = SERref->COLOR_MATERIAL ;
+   SERnew->TEXTURE_2D = SERref->TEXTURE_2D ;
+   SERnew->TEXTURE_3D = SERref->TEXTURE_3D ;
+   SERnew->TEXTURE_3D_EXT = SERref->TEXTURE_3D_EXT ;
+   SERnew->TEXTURE_GEN_S = SERref->TEXTURE_GEN_S ;
+   SERnew->TEXTURE_GEN_T = SERref->TEXTURE_GEN_T ;
+   SERnew->TEXTURE_GEN_R = SERref->TEXTURE_GEN_R ;
+   SERnew->CLIP_PLANE0 = SERref->CLIP_PLANE0 ;
+   SERnew->CLIP_PLANE1 = SERref->CLIP_PLANE1 ;
+   SERnew->CLIP_PLANE2 = SERref->CLIP_PLANE2 ;
+   SERnew->CLIP_PLANE3 = SERref->CLIP_PLANE3 ;
+   SERnew->CLIP_PLANE4 = SERref->CLIP_PLANE4 ;
+   SERnew->CLIP_PLANE5 = SERref->CLIP_PLANE5 ;
+   SERnew->LIGHTING = SERref->LIGHTING ;
+   SERnew->LIGHT0 = SERref->LIGHT0 ;
+   SERnew->LIGHT1 = SERref->LIGHT1 ;
+   SERnew->LIGHT2 = SERref->LIGHT2 ;
+   SERnew->BLEND = SERref->BLEND ;
+   SERnew->LINE_SMOOTH = SERref->LINE_SMOOTH ;
+   SUMA_COPY_VEC(SERref->CurCol,SERnew->CurCol,4,GLfloat, GLfloat);
+      
+   SUMA_RETURN(YUP);   
+}
 
 void SUMA_dset_slice_corners( int slc, float *orig, float *del, 
                               int *nvox, float *corners)
@@ -1639,6 +1870,8 @@ int SUMA_VO_SelectedSlice(SUMA_VolumeObject *vo, char *variant, float *scorners)
       SUMA_RETURN(-1);
    }
    
+   #if 0 /* Old way, does not work when in montage mode.
+            Keep for the record */
    if ((dim = SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0, 
                                  VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0, 
                                  0, variant,NULL))< 0) {
@@ -1660,7 +1893,23 @@ int SUMA_VO_SelectedSlice(SUMA_VolumeObject *vo, char *variant, float *scorners)
                           NULL, NULL, 0 );
       for (k=0; k<12; ++k) scorners[k] = slc_corners[k];
    }
-   
+   #else
+   SUMA_SlcCodeToVariant(VSaux->PR->iAltSel[SUMA_VOL_SLC_VARIANT], 
+                         variant);
+   nslc = VSaux->PR->iAltSel[SUMA_VOL_SLC_NUM];
+   SUMA_LH("Slice variant %s, [%ld %ld %ld] -->%d", 
+            variant,  
+            VSaux->PR->iAltSel[SUMA_VOL_I], 
+            VSaux->PR->iAltSel[SUMA_VOL_J],
+            VSaux->PR->iAltSel[SUMA_VOL_K],
+            nslc);
+   if (nslc >= 0 && scorners) {
+      SUMA_dset_tex_slice_corners_gui(vo->VE, 0, variant, nslc, 
+                          slc_tcorners, slc_corners, 
+                          NULL, NULL, 0 );
+      for (k=0; k<12; ++k) scorners[k] = slc_corners[k];
+   }
+   #endif
    SUMA_RETURN(nslc);
 }
 
@@ -2070,6 +2319,48 @@ SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
    SUMA_RETURN(YUP);
 }
 
+SUMA_VOL_REN_VARIANTS SUMA_SlcVariantToCode(char *variant)
+{
+   
+   static char FuncName[]={"SUMA_SlcVariantToCode"};
+   if (!variant) {
+      SUMA_S_Err("NULL variant");
+      return(SUMA_ERR_VARIANT);
+   }
+   if (!strcmp(variant,"Ax")) return(SUMA_AX_VARIANT);
+   if (!strcmp(variant,"Sa")) return(SUMA_SA_VARIANT);
+   if (!strcmp(variant,"Co")) return(SUMA_CO_VARIANT);
+   if (!strcmp(variant,"Vr")) return(SUMA_VR_VARIANT);
+   SUMA_S_Err("Variant >%s< not recognized", variant);
+   return(SUMA_ERR_VARIANT);
+}
+
+void SUMA_SlcCodeToVariant(SUMA_VOL_REN_VARIANTS v, char *variant) 
+{
+   static char FuncName[]={"SUMA_SlcCodeToVariant"};
+   variant[0] = '\0';
+   switch (v) {
+      default:
+         SUMA_S_Err("Variant code %d unrecognized", v);
+         variant[0] = '\0';
+         break;
+      case SUMA_AX_VARIANT:
+         variant[0] = 'A'; variant[1] = 'x'; variant[2] = '\0';
+         break;
+      case SUMA_SA_VARIANT:
+         variant[0] = 'S'; variant[1] = 'a'; variant[2] = '\0';
+         break;
+      case SUMA_CO_VARIANT:
+         variant[0] = 'C'; variant[1] = 'o'; variant[2] = '\0';
+         break;
+      case SUMA_VR_VARIANT:
+         variant[0] = 'V'; variant[1] = 'r'; variant[2] = '\0';
+         break;
+   }
+   return;
+}       
+
+
 SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO, 
                                  char *variant, SUMA_SurfaceViewer *sv)
 {
@@ -2144,13 +2435,15 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
                               SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
                SUMA_dset_tex_slice_corners_gui(VO->VE, 0, variant, ii0,
                                                NULL, NULL, NULL, rslc->Eq, 0);
+               rslc->slc_num = ii0; snprintf(rslc->variant, 15, "%s", variant);
                /* stick plane in list, last one rendered goes to top */
                SUMA_LH("Intersecting plane %f %f %f %f, on vol %s\n"
-                       "(origin %f %f %f)",
+                       "(origin %f %f %f), variant %s",
                         rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
                         SUMA_VE_Headname(VO->VE,0),
                         VO->VE[0]->I2X[3][0], 
-                        VO->VE[0]->I2X[3][1],VO->VE[0]->I2X[3][2]);
+                        VO->VE[0]->I2X[3][1],VO->VE[0]->I2X[3][2],
+                        rslc->variant);
                dlist_ins_prev(VSaux->slcl, dlist_head(VSaux->slcl), rslc);
             }
             ++i;
@@ -2170,6 +2463,7 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
                               SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
                SUMA_dset_tex_slice_corners_gui(VO->VE, 0, variant, ii0,
                                                NULL, NULL, NULL, rslc->Eq, 0);
+               rslc->slc_num = ii0; snprintf(rslc->variant, 15, "%s", variant);
                dlist_ins_prev(VSaux->slcl, dlist_head(VSaux->slcl), rslc);
             }
             ++i;
@@ -2182,6 +2476,8 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
                            SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
       SUMA_dset_tex_slice_corners_gui(VO->VE, 0, variant, (int)slc->slice_num,
                                       NULL, NULL, NULL, rslc->Eq, 0);
+      rslc->slc_num = (int)slc->slice_num; 
+      snprintf(rslc->variant, 15, "%s", variant);
       dlist_ins_prev(VSaux->slcl, dlist_head(VSaux->slcl), rslc);
       
    }
@@ -2574,12 +2870,14 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
       int selslice = -1;
       float nlt[12];
       char variant[8];
+      GLfloat No_Color[4] = { 0.0, 0.0, 0.0, 0.0 };
       selslice = SUMA_VO_SelectedSlice(VO, variant, nlt);
       if (selslice >= 0) {
          SUMA_LH("Drawing %s Slice %d Selection Contour\n"
                  "%f %f %f --> %f %f %f ...\n", 
                  variant, selslice,
                  nlt[0],nlt[1],nlt[2], nlt[3],nlt[4],nlt[5]);    
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, No_Color);             
          glColorMaterial(GL_FRONT, GL_EMISSION); 
          glEnable(GL_COLOR_MATERIAL);
          glColor4f(0.25, 0.25, 0.25, 1.0);
@@ -2589,6 +2887,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
             glVertex3f( nlt[6],nlt[7],nlt[8] );
             glVertex3f( nlt[9],nlt[10],nlt[11] );
          glEnd();
+         glColor4f(0, 0, 0, 0); /* Kill emission,        ZSS. March 2014 
+                        or risk hurting functions that expect it to be off. */
          glDisable(GL_COLOR_MATERIAL);
       } else {
          SUMA_LH("Either no selection or failed to find slice");
@@ -2675,7 +2975,13 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    else glAlphaFunc(GL_GREATER, colp->AlphaThresh);
                               /* Thresholded voxels alphas are set to 0 */
    #else
-   glAlphaFunc(GL_ALWAYS, colp->AlphaThresh);
+   glAlphaFunc(GL_GREATER, 0.01); /* Might want to add a separate AlphaThresh
+                                     for this. Usually you want it very small,
+                                     or else you'll get ugly striping artifacts.
+                                     But if you use the slice's alpha threshold,
+                                     you'll need to reduce it low enough to make 
+                                     the volume look nice but that give the 
+                                     slices an ugly rim. */
    #endif
    glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
                VO->TexEnvMode   ); /* what happens if 

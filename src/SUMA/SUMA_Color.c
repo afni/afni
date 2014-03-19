@@ -11156,6 +11156,41 @@ int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
    SUMA_RETURN(Found);
 }
 
+int SUMA_GetSortedNodeOverInd (SUMA_OVERLAYS *Sover, int node)
+{
+   static char FuncName[]={"SUMA_GetSortedNodeOverInd"};
+   int Found, i;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   /* Now look for the node's location in the color overlay plane.
+   Nodes that are not colored will be absent ... */
+   if (node < 0) SUMA_RETURN(-1);
+   
+   Found = -1;
+   if (SDSET_VECFILLED(Sover->dset_link) > node) { /* try the straight shot */
+      if (Sover->NodeDef[node] == node) {
+         SUMA_LH("Good, found it easily");
+         /* make sure node is not outside number of defined nodes */
+         if (node >= Sover->N_NodeDef) {
+            /* this one's masked but it was left over from the previous pass 
+            Must go search below to make sure whether it is truly masked or not*/
+            SUMA_LH("Can't tell for sure");
+         } else {
+            SUMA_RETURN(node);
+         }
+      }
+   }
+  
+   if (Found < 0) {
+      SUMA_LH("The hard way, but sorted");
+      SUMA_RETURN(SUMA_ibinFind(Sover->NodeDef, Sover->N_NodeDef, node));    
+   }   
+
+   SUMA_RETURN(Found);
+}
+
 /*-----------------------------------------------------------*/
 /* 
    Activate callbacks pertinent to SO->SelectedNode and Sover

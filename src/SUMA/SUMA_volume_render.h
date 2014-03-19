@@ -1,6 +1,15 @@
 #ifndef SUMA_VOLUME_INCLUDED
 #define SUMA_VOLUME_INCLUDED
 
+typedef enum {
+   SUMA_ERR_VARIANT = -1,
+   SUMA_AX_VARIANT,
+   SUMA_SA_VARIANT,
+   SUMA_CO_VARIANT,
+   SUMA_VR_VARIANT,
+   SUMA_N_VARIANTS } SUMA_VOL_REN_VARIANTS;
+   
+
 
 SUMA_Boolean SUMA_Draw3DTextureNIDOnel(  NI_element *nel, 
                                     SUMA_SurfaceObject *SO, 
@@ -13,9 +22,16 @@ SUMA_Boolean SUMA_VO_InitCutPlanes(SUMA_VolumeObject *VO);
 SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO);
 SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
                                  SUMA_DO_CoordUnits coordtype);
-void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER);
+void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER, char *Label);
 void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER);
 void SUMA_ShowEnablingState(SUMA_EnablingRecord *SER, FILE *out, char *preamble);
+void SUMA_DiffEnablingState(SUMA_EnablingRecord *SERnew, 
+                            SUMA_EnablingRecord *SERref,  FILE *out, 
+                            char *preamble);
+int SUMA_CopyEnablingState(SUMA_EnablingRecord *SERnew,
+                           SUMA_EnablingRecord *SERref);
+char *SUMA_DiffEnablingState_Info(SUMA_EnablingRecord *SERnew,
+                                  SUMA_EnablingRecord *SERref);
 char *SUMA_EnablingState_Info(SUMA_EnablingRecord *SER);
 SUMA_Boolean SUMA_dset_box_corners( SUMA_DSET *dset, 
                                     float * corners, int voxcen);
@@ -71,4 +87,7 @@ SUMA_Boolean SUMA_Colorize_dset(SUMA_DSET *dset,
                                  byte *tex3ddata, byte colopt);
 int iPlane2Dim(int iplane);
 int SUMA_VO_SlicesAtCrosshair(SUMA_VolumeObject *VO);
+void SUMA_SlcCodeToVariant(SUMA_VOL_REN_VARIANTS v, char *variant);
+SUMA_VOL_REN_VARIANTS SUMA_SlcVariantToCode(char *variant);
+
 #endif

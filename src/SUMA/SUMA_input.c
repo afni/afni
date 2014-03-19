@@ -6706,6 +6706,20 @@ SUMA_Boolean SUMA_ADO_StorePickResult(SUMA_ALL_DO *ado, SUMA_PICK_RESULT **PRP)
       case SDSET_type: {
          SUMA_DSET *dset=(SUMA_DSET *)ado;
          SUMA_GRAPH_SAUX *Saux = SDSET_GSAUX(dset);
+         /* Is the selection type changed? If so, then
+         you need to flush the pick buffer */
+
+         if (Saux->PR) {
+            if ( (Saux->PR->datum_index * (*PRP)->datum_index < 0) ||
+                 ((*PRP)->datum_index == -1 && 
+                  (Saux->PR->iAltSel[SUMA_ENODE_0] != 
+                              (*PRP)->iAltSel[SUMA_ENODE_0])) )  {
+               /* Going from edge selection to node selection, in general
+                  But there is no need to get picky */
+              SUMA_FlushPickBufferForDO((SUMA_ALL_DO *)SUMA_find_Dset_GLDO(dset, 
+                                                 "G3D",NULL));            
+            }
+         }
          SUMA_free_PickResult(Saux->PR);
          Saux->PR = *PRP; *PRP = NULL;
          SUMA_RETURN(YUP);
@@ -8107,10 +8121,13 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
 {/* determine intersection */
    static char FuncName[]={"SUMA_ComputeLineVOslicesIntersect"};
    float P0f[3], P1f[3], pinter[3], I[3];
-   int NP, N_Hit; 
+   int NP, N_Hit, okinten=0; 
    float delta_t_tmp, dmin, val; 
    struct timeval tt_tmp; 
-   int ip, it, id, ii, imin, I1d, Irw, Hit, ive, icolplane;
+   int ip, it, id, ii, imin, I1d, Irw, Hit, ive, icolplane, indef=-1;
+   int *MembDOs=NULL, N_MembDOs, UseAlphaTresh=1;
+   float valpha=0.0;
+   SUMA_DO_Types ttv[12];
    char sfield[100], sdestination[100], CommString[SUMA_MAX_COMMAND_LENGTH];
    SUMA_VolumeObject *VO=NULL;
    SUMA_Boolean NodeIgnored = NOPE;
@@ -8131,15 +8148,17 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    P1f[0] = sv->Pick1[0];
    P1f[1] = sv->Pick1[1];
    P1f[2] = sv->Pick1[2];
-   
+
+   ttv[0] = VO_type; ttv[1] = NOT_SET_type;
+   MembDOs = SUMA_ViewState_Membs(&(sv->VSv[sv->iState]), ttv, &N_MembDOs);
    SUMA_LHv("Searching for hit: %f %f %f --> %f %f %f\n", 
             P0f[0], P0f[1], P0f[2], P1f[0], P1f[1], P1f[2]);   
    N_Hit = 0;
-   for (ii=0; ii<SUMAg_N_DOv; ++ii) {
-      if (SUMA_isVO(SUMAg_DOv[ii])) {
-         VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
+   for (ii=0; ii<N_MembDOs; ++ii) {
+      {
+         VO = (SUMA_VolumeObject *)(dov[MembDOs[ii]].OP);
          ado = (SUMA_ALL_DO *)VO;
-         VSaux = SUMA_ADO_VSaux(ado);
+         if (!(VSaux = SUMA_ADO_VSaux(ado))) continue;
          SUMA_LH("%d slices on %s", dlist_size(VSaux->slcl), ADO_LABEL(ado));
          if (!dlist_size(VSaux->slcl)) continue;
          /* now compute intersection from the top down */
@@ -8185,16 +8204,44 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                               colplane->OptScl->ThreshRange[0], 
                               colplane->OptScl->ThreshRange[1]);
                       
+                      /* Do we meet intensity thresholds? */
+                      okinten = 0;
                       if ( SUMA_VAL_MEETS_THRESH(val, 
                                     colplane->OptScl->ThreshRange,
                                     colplane->OptScl->ThrMode ) && 
-                           (val != 0.0f || !colplane->OptScl->MaskZero) ) {
-                           SUMA_LH("FOUND IT, on VE %s, IJK [%d %d %d], val %f," 
-                                   "thresh[%f %f]",
+                           (val != 0.0f || !colplane->OptScl->MaskZero)) {
+                        okinten = 1;
+                      }
+                      
+                      indef = -1;
+                      UseAlphaTresh = 1;/* control from interface someday */
+                      valpha = 2.0; /* no masking */
+                      if (UseAlphaTresh && okinten && colplane->ColAlpha) {
+                        /* Also mask if value is below alpha thresh 
+                           This is a slow search... So you may not want
+                           to use it all the time. 
+                           Problem is finding the row of the voxel in
+                           NodeDef, and that's too slow for a big 
+                           volume to be run repeatedly...Would
+                           be easier if I had a function to recompute
+                           a voxel's alpha, rather than search for it
+                           in ColAlpha. Oh, well, someday I guess. For
+                           now we search*/
+                        if ((indef=SUMA_GetSortedNodeOverInd(colplane, I1d))>=0){
+                           valpha = colplane->ColAlpha[indef]/255.0;
+                        }
+                      }
+                      
+                      if ( okinten && (valpha > colplane->AlphaThresh) ) {
+                        SUMA_LH("FOUND IT, on VE %s, IJK [%d %d %d], val %f," 
+                               "thresh[%f %f], UseAlphaTresh = %d, "
+                               "valpha=%f, ColAlphaThresh=%f\n",
                                    SUMA_VE_Headname(VO->VE, ive), 
                                    (int)I[0], (int)I[1], (int)I[2], val,
                                    colplane->OptScl->ThreshRange[0], 
-                                   colplane->OptScl->ThreshRange[1]);
+                                   colplane->OptScl->ThreshRange[1],
+                                   UseAlphaTresh,
+                                   valpha, colplane->AlphaThresh*255);
                            PR = SUMA_New_Pick_Result(NULL);
                            PR->ado_idcode_str = SUMA_replace_string(
                                            PR->ado_idcode_str, ADO_ID(ado));
@@ -8211,6 +8258,9 @@ int SUMA_ComputeLineVOslicesIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                            PR->iAltSel[SUMA_VOL_J] = I[1];
                            PR->iAltSel[SUMA_VOL_K] = I[2];
                            PR->iAltSel[SUMA_VOL_IJK] = I1d;
+                           PR->iAltSel[SUMA_VOL_SLC_NUM] = rslc->slc_num;
+                           PR->iAltSel[SUMA_VOL_SLC_VARIANT] = 
+                                 (int)SUMA_SlcVariantToCode(rslc->variant);
                            PR->dAltSel[SUMA_VOL_SLC_EQ0] = rslc->Eq[0];
                            PR->dAltSel[SUMA_VOL_SLC_EQ1] = rslc->Eq[1];
                            PR->dAltSel[SUMA_VOL_SLC_EQ2] = rslc->Eq[2];
