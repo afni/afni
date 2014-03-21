@@ -398,9 +398,12 @@ g_history = """
         - set errts_pre in anaticor block, e.g. for use in RSFC or blur est
         - if no scale block and gaussian blur, re-apply extents mask
         - quiet change to writing command to script
+    4.11 Mar 21, 2014:
+        - applied errts_REML where appropriate (over just errts)
+        - if anaticor and censoring, do not remove censored TRs again for blur est
 """
 
-g_version = "version 4.10, March 12, 2014"
+g_version = "version 4.11, March 21, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "29 Nov 2013" # for 3dRSFC update
@@ -505,6 +508,8 @@ class SubjProcSream:
         self.e2final_mv = []            # matvec list takes epi base to final
         self.e2final    = ''            # aff12.1D file for e2final_mv
         self.errts_pre  = ''            # possibly changing errts prefix
+        self.errts_reml = ''            # prefix for any REML errts
+        self.errts_cen  = 0             # flag: current errts has censored TRs removed
         self.align_ebase= None          # external EPI for align_epi_anat.py
         self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)

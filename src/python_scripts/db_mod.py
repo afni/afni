@@ -3326,9 +3326,10 @@ def db_cmd_regress(proc, block):
         if not rcmd: return
         cmd = cmd + rcmd + '\n\n'
 
-    # if REML, -x1D_stop and errts_pre, append _REML to errts_pre
-    if block.opts.find_opt('-regress_reml_exec') and \
-        stop_opt and proc.errts_pre: proc.errts_pre = proc.errts_pre + '_REML'
+    # if REML and errts_pre, append _REML to errts_pre
+    if block.opts.find_opt('-regress_reml_exec') and stop_opt \
+       and proc.errts_pre:
+        if not proc.surf_anat: proc.errts_pre = proc.errts_pre + '_REML'
 
     # create all_runs dataset
     proc.all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
@@ -3354,7 +3355,9 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_compute_tsnr')
     if opt.parlist[0] == 'yes':
        if proc.errts_pre:
-          tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, proc.errts_pre)
+          if proc.errts_reml: errts = proc.errts_reml
+          else:               errts = proc.errts_pre
+          tcmd = db_cmd_regress_tsnr(proc, block, proc.all_runs, errts)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        else: print '-- no errts, will not compute final TSNR'
@@ -3364,7 +3367,9 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_compute_gcor')
     if opt.parlist[0] == 'yes':
        if proc.errts_pre and proc.mask_epi and not proc.surf_anat:
-          tcmd = db_cmd_regress_gcor(proc, block, proc.errts_pre)
+          if proc.errts_reml: errts = proc.errts_reml
+          else:               errts = proc.errts_pre
+          tcmd = db_cmd_regress_gcor(proc, block, errts)
           if tcmd == None: return  # error
           if tcmd != '': cmd += tcmd
        elif proc.verb > 1:
@@ -3385,11 +3390,14 @@ def db_cmd_regress(proc, block):
 
         # if reml_exec, make one for the REML fitts, too
         if block.opts.find_opt('-regress_reml_exec'):
+            if not proc.errts_reml:
+               print '** missing errts_reml for computation of fitts'
+               return
             if stop_opt: fstr += '\n'
             fstr += "%s# create fitts from REML errts\n" % istr
-            fstr += "%s3dcalc -a %s%s -b %s\_REML%s -expr a-b \\\n" \
+            fstr += "%s3dcalc -a %s%s -b %s%s -expr a-b \\\n" \
                     "%s       -prefix %s\_REML%s\n"                 \
-                    % (istr, proc.all_runs, vstr, proc.errts_pre, vstr,
+                    % (istr, proc.all_runs, vstr, proc.errts_reml, vstr,
                        istr, fitts_pre, suff)
         cmd = cmd + fstr + feh_end + '\n'
 
@@ -3461,6 +3469,7 @@ def db_cmd_reml_exec(proc, block, short=0):
 
     cmd = '%s# -- execute the 3dREMLfit script, written by 3dDeconvolve --\n' \
           '%stcsh -x stats.REML_cmd %s\n' % (istr, istr, reml_opts)
+    if not proc.surf_anat: proc.errts_reml = proc.errts_pre + '_REML'
 
     # if 3dDeconvolve fails, terminate the script
     if not short:
@@ -3567,6 +3576,8 @@ def db_cmd_regress_tfitter(proc, block):
     lset = BASE.afni_name('WMeLocal_rall')
     lset.view = proc.view
 
+    proc.errts_pre = rset.prefix
+
     cmd = '# --------------------------------------------------\n' \
           '# generate ANATICOR result: %s\n\n' % rset.shortinput()
     # rcr - if motion, add a comment...
@@ -3578,6 +3589,7 @@ def db_cmd_regress_tfitter(proc, block):
             % (proc.xmat, '-show_trs_uncensored encoded')
        cmd += cs
        substr = '"[$keep_trs]"'
+       proc.errts_cen = 1       # proc.errts_pre has TRs removed
     else: substr = ''
 
     rv, cs = db_cmd_anaticor(proc, block, lset, select=substr)
@@ -3603,8 +3615,6 @@ def db_cmd_regress_tfitter(proc, block):
            '3dcalc -a %s%s%s -b %s%s \\\n'      \
            '       -expr a-b -prefix %s\n\n'  \
            % (proc.all_runs, proc.view, substr, fitts, proc.view, rset.prefix)
-
-    proc.errts_pre = rset.prefix
 
     return 0, cmd
 
@@ -3792,18 +3802,14 @@ def db_cmd_blur_est(proc, block):
         if not bstr: return
         cmd = cmd + bstr
 
-    opt = block.opts.find_opt('-regress_errts_prefix')
-    if opt and opt.parlist: errts_pre = opt.parlist[0]
-    else:   errts_pre = 'errts.${subj}'
-
     if eopt and not sopt: # want errts, and 3dD was not stopped
         bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_pre, proc.view), 
-                    mask_dset, 'errts', blur_file)
+                    mask_dset, 'errts', blur_file, proc.errts_cen)
         if not bstr: return
         cmd = cmd + bstr
-    if eopt and ropt: # want errts and reml was executed
+    if eopt and ropt and proc.errts_reml: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
-        bstr = blur_est_loop_str(proc, '%s_REML%s' % (errts_pre, proc.view), 
+        bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_reml, proc.view), 
                     mask_dset, 'err_reml', blur_file)
         if not bstr: return
         cmd = cmd + bstr
@@ -3878,13 +3884,14 @@ def make_clustsim_commands(proc, block, blur_file, mask_dset,
 
     return 0, cstr
 
-def blur_est_loop_str(proc, dname, mname, label, outfile):
+def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0):
     """return tcsh command string to compute blur from this dset
         proc     : afni_proc SubjProcStream (for reps or reps_all)
         dname    : dataset name to estimate blur on
         mname    : mask dataset name
         label    : text label for comments
         outfile  : final output filename
+        trs_cen  : were censored TRs removed from this data?
     """
     dset  = BASE.afni_name(dname)
     inset = dset.shortinput()
@@ -3903,16 +3910,25 @@ def blur_est_loop_str(proc, dname, mname, label, outfile):
     cmd = '# -- estimate blur for each run in %s --\n'          \
           'touch %s\n\n' % (label, tmpfile)
 
+    if trs_cen:
+       tstr1 = ''
+       tstr2 = ''
+    else:
+       tstr1 = '    set trs = `1d_tool.py -infile %s '                  \
+               '-show_trs_uncensored encoded \\\n'                      \
+               '                          -show_trs_run $run`\n'        \
+               '    if ( $trs == "" ) continue\n' % proc.xmat
+       tstr2 = '"[$trs]"'
+       
+
     cmd = cmd +                                                 \
       '# restrict to uncensored TRs, per run\n'                 \
       'foreach run ( $runs )\n'                                 \
-      '    set trs = `1d_tool.py -infile %s -show_trs_uncensored encoded \\\n'\
-      '                          -show_trs_run $run`\n'         \
-      '    if ( $trs == "" ) continue\n'                        \
+      '%s'                                                      \
       '    3dFWHMx -detrend -mask %s \\\n'                      \
-      '        %s"[$trs]" >> %s\n'                              \
+      '        %s%s >> %s\n'                                    \
       'end\n\n'                                                 \
-      % (proc.xmat, mask, inset, tmpfile)
+      % (tstr1, mask, inset, tstr2, tmpfile)
 
     # how to get the blurs differs if there is only 1 run
     if proc.runs > 1: blur_str = "3dTstat -mean -prefix - %s\\\'" % tmpfile
