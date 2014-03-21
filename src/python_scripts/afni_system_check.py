@@ -37,6 +37,7 @@ action options:
 
    -check_all           : perform all system checks
                           - see section, "details displayed via -check_all"
+   -data_root DDIR      : search for class data under DDIR
    -find_prog PROG      : search PATH for PROG
                           - default is *PROG*, case-insensitive
                           - see also -casematch, -exact
@@ -95,6 +96,9 @@ g_history = """
         - added -find_prog to search for PROG in PATH
         - added -casematch and -exact as options for -find_prog
    0.6  Mar 14, 2014 - added some data and OS-specific tests
+   0.7  Mar 21, 2014
+        - improved class data search
+        - added -data_root for class data search
 """
 
 g_version = "afni_system_check.py version 0.6, March 14, 2014"
