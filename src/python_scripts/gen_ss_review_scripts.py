@@ -582,6 +582,9 @@ g_history = """
         - if no censor, still report num regs of interest and TRs per stim
         - report per-stim censoring only with stim classes
    0.34 Mar 11, 2014: added GSSRS command comment at bottom of _basic script
+   0.35 Mar 21, 2014: removed -e option from "tcsh -ef @ss_review_basic"
+        - grep commands are killing it when not finding matches
+        - linux systems are not terminating there, while macs do
 """
 
 g_version = "gen_ss_review_scripts.py version 0.34, March 11, 2014"
@@ -1880,7 +1883,7 @@ class MyInterface:
    def make_drive_script(self):
       # init script and commands-only text
       self.text_drive = ''
-      self.commands_drive = 'tcsh -ef %s\n' % self.cvars.val('scr_basic')
+      self.commands_drive = 'tcsh -f %s\n' % self.cvars.val('scr_basic')
 
       if self.drive_init(): return 1
       if self.drive_motion(): return 1
@@ -1903,7 +1906,7 @@ class MyInterface:
        '\n'                                                                 \
        'if ( -f %s ) then\n'                                                \
        '   echo ------------------- %s --------------------\n'              \
-       '   tcsh -ef %s\n'                                                   \
+       '   tcsh -f %s\n'                                                    \
        '   echo ---------------------------------------------------------\n'\
        '\n'                                                                 \
        '   prompt_user -pause "                      \\\n'                  \
