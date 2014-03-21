@@ -292,6 +292,7 @@ static mday holiday[] = {
    {MAR,19,"Liechtenstein National Day"                              } ,
    {MAR,20,"Anniversary of Uncle Tom's Cabin"                        } ,
    {MAR,20,"International Day of Happiness"                          } ,
+   {MAR,20,"Extraterrestrial Abduction Day!"                         } ,
    {MAR,21,"Jean Baptiste Joseph Fourier's birthday"                 } ,
    {MAR,21,"World Poetry Day"                                        } ,
    {MAR,23,"Emmy Noether's birthday"                                 } ,
