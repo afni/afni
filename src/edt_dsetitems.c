@@ -669,8 +669,9 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
      if( !redo_daxes && !new_ijk_to_dicom ){
        THD_set_daxes_bbox(daxes) ;
-       if( !ISVALID_MAT44(daxes->ijk_to_dicom) ) THD_daxes_to_mat44(daxes) ;
-       else                                      THD_set_dicom_box (daxes) ;
+       THD_daxes_to_mat44(daxes) ;
+       dset->daxes->ijk_to_dicom_real = dset->daxes->ijk_to_dicom ;
+       THD_set_dicom_box (daxes) ;
      }
    }
 
@@ -689,13 +690,22 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
    if( redo_daxes ){
      THD_dataxes *daxes = dset->daxes ;
+#if 0
+INFO_message("old geometry string = %s",EDIT_get_geometry_string(dset)) ;
+#endif
 
      /** copy new stuff into the daxes structure **/
 
      if( new_xyzorg ){
+#if 0
+INFO_message("old daxes org = %g %g %g",daxes->xxorg,daxes->yyorg,daxes->zzorg) ;
+#endif
        daxes->xxorg = xyzorg.xyz[0] ;
        daxes->yyorg = xyzorg.xyz[1] ;
        daxes->zzorg = xyzorg.xyz[2] ;
+#if 0
+INFO_message("new daxes org = %g %g %g",daxes->xxorg,daxes->yyorg,daxes->zzorg) ;
+#endif
      }
 
      if( new_xyzdel ){
@@ -713,8 +723,14 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
      /*-- set bounding box and to_dicomm matrix for this dataset --*/
 
      THD_set_daxes_bbox     ( daxes ) ; /* 20 Dec 2005 */
-     THD_set_daxes_to_dicomm( daxes ) ; /* 20 Dec 2005 */
      THD_daxes_to_mat44     ( daxes ) ; /* 19 Dec 2005 */
+     dset->daxes->ijk_to_dicom_real = dset->daxes->ijk_to_dicom ;
+     THD_set_dicom_box      ( daxes ) ;
+     THD_set_daxes_to_dicomm( daxes ) ; /* 20 Dec 2005 */
+
+#if 0
+INFO_message("new geometry string = %s",EDIT_get_geometry_string(dset)) ;
+#endif
    }
 
    /**---------- Need to reconfigure the sub-bricks? ----------**/

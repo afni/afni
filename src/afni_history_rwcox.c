@@ -43,7 +43,19 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , MAR , 2014 , RWC , "AFNI" , MICRO , TYPE_BUG_FIX ,
+  { 21 , MAR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+   "problem with zeropadding plus -iniwarp" ,
+   "Zeropad produces a warp that is bigger than the dataset.  That's OK\n"
+   "(even in 3dNwarpApply), but 3dQwarp would cut it off when writing it\n"
+   "out.  That's still OK for 3dNwarpApply, but NOT OK for re-start with\n"
+   "-iniwarp -- the zeropadded initial warp will have a discontinuity at the\n"
+   "edge of the volume, and that's bad.  The fix is to allow input of the\n"
+   "initial warp to be either at the dataset size OR at the zeropadded size.\n"
+   "\n"
+   "Also add the -pencut option, to give finer control over the penalty. \n"
+   "This needs some experimentation." } ,
+
+ { 13 , MAR , 2014 , RWC , "AFNI" , MICRO , TYPE_BUG_FIX ,
    "Didn't properly turn off dplot in Boxed graphing mode" ,
    NULL } ,
 

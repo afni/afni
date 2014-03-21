@@ -880,8 +880,7 @@ static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d10
 /*----------------------------------------------------------------------------*/
 /* Load the deformation energies for all voxels */
 
-#undef  Hpen_cut
-#define Hpen_cut 1.0
+static float Hpen_cut = 1.0f ;
 
 float IW3D_load_energy( IndexWarp3D *AA )
 {
@@ -923,8 +922,8 @@ STATUS("start the work") ;
      ijk = IJK(ip,jp,kp) ; E2F(ijk,x7) ;
      ijk = qq            ; E2F(ijk,x0) ;
      en  = hexahedron_energy(x0,x1,x2,x3,x4,x5,x6,x7); jea[qq] = en.a; sea[qq] = en.b;
-     ev  = jea[qq]-Hpen_cut ; if( ev > 0.0 ) esum += (ev*ev)*(ev*ev) ;
-     ev  = sea[qq]-Hpen_cut ; if( ev > 0.0 ) esum += (ev*ev)*(ev*ev) ;
+     ev  = jea[qq]-Hpen_cut ; if( ev > 0.0f ) esum += (ev*ev)*(ev*ev) ;
+     ev  = sea[qq]-Hpen_cut ; if( ev > 0.0f ) esum += (ev*ev)*(ev*ev) ;
    }
 #ifdef USE_OMP
    ith = omp_get_thread_num() ;
@@ -4409,8 +4408,8 @@ static float **bbbqar = NULL ;
 
 /*--- local (small) warp over region we are optimizing ---*/
 
-static IndexWarp3D *Hwarp   = NULL ;
-static IndexWarp3D *AHwarp  = NULL ;
+static IndexWarp3D *Hwarp   = NULL ; /* Hermite patch increment = H(x) */
+static IndexWarp3D *AHwarp  = NULL ; /* local version of global warp = A(H(x)) */
 static int          need_AH = 1 ;
 static int          Hflags  = 0 ;          /* flags for this patch */
 static int          Hgflags = 0 ;          /* flags for global warp */
@@ -4462,7 +4461,7 @@ static int          Hforce      = 0    ;
 static float        Hfactor     = 0.44f;
 static float        Hshrink     = 0.749999f ;
 static int          Hngmin      = 25 ;
-static IndexWarp3D *Haawarp     = NULL ; /* initial warp we are modifying (global) */
+static IndexWarp3D *Haawarp     = NULL ; /* global warp we are improving = A(x) */
 static void        *Hincor      = NULL ; /* INCOR 'correlation' struct */
 static MRI_IMAGE   *Haasrcim    = NULL ; /* warped source image (global) */
 

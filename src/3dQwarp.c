@@ -889,6 +889,7 @@ int main( int argc , char *argv[] )
    char appendage[THD_MAX_NAME] ;
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
    int nxold=0,nyold=0,nzold=0 ;
+   int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -923,7 +924,7 @@ int main( int argc , char *argv[] )
    (void)COX_clock_time() ;  /* initialize the clock timer */
    putenv("AFNI_WSINC5_SILENT=YES") ;
 
-   LOAD_IDENT_MAT44(allin_matrix); /* Just to quite initialization warning */
+   LOAD_IDENT_MAT44(allin_matrix); /* Just to quiet initialization warning */
 
    /*--- options ---*/
 
@@ -954,6 +955,9 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-nopad") == 0 ){  /* 13 Sep 2013 */
        zeropad = 0 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-nopadWARP") == 0 ){ /* 19 Mar 2014 */
+       zeropad_warp = 0 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-allineate") == 0 ||       /* 15 Jul 2013 */
@@ -1176,6 +1180,20 @@ int main( int argc , char *argv[] )
          INFO_message("-penfac turns the penalty off") ;  Hpen_fac = 0.0 ;
        } else {
          Hpen_fac = Hpen_fbase * val ;
+       }
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-pencut") == 0 ){  /* 21 Mar 2014 */
+       double val ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after -pencut") ;
+       val = strtod(argv[nopt],NULL) ;
+       if( val < 0.0 || val > 10.0 ){
+         INFO_message("-pencut %g is illegal -- replaced with 1.0",val) ;  Hpen_cut = 1.0f ;
+       } else if( val > 1.0f ){
+         Hpen_cut = (float)(0.1*val) ;
+       } else {
+         Hpen_cut = (float)val ;
        }
        nopt++ ; continue ;
      }
@@ -1403,7 +1421,7 @@ STATUS("check dataset for stupid errors") ;
    if(  EQUIV_DSETS  (bset,sset) )
      ERROR_exit("base & source datasets are identical :-( : are you trying something sneaky?");
 
-   /* construct the initial warp, if any [altered somewhat: 15 Jul 2013] */
+   /* construct the initial warp dataset, if any [altered somewhat: 15 Jul 2013] */
 
    if( iwname != NULL ){
 STATUS("construct initial warp") ;
@@ -1418,9 +1436,6 @@ STATUS("construct initial warp") ;
      if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
        ERROR_exit("-iniwarp %s is not in the right format :-(",argv[nopt]) ;
    }
-
-   if( iwset != NULL && !EQUIV_GRIDXYZ(bset,iwset) )
-     ERROR_exit("-iniwarp dataset grid mismatch with base dataset :-(") ;
 
 STATUS("load datasets") ;
 
@@ -1532,12 +1547,36 @@ STATUS("load datasets") ;
 
    } /*--------- end of zeropad for base, source, and emask inputs ---------*/
 
+   if( !zeropad ) zeropad_warp = 0 ;
+
    /*--- setup initial warp? ---*/
 
    if( iwset != NULL ){
+     int nxiw,nyiw,nziw , mm ;
      DSET_load(iwset) ; CHECK_LOAD_ERROR(iwset) ;
-     if( zeropad ){ /* 13 Sep 2013 -- also zeropad the initial displacements */
+
+     if( !EQUIV_DELTAXYZ(bset,iwset) )  /* check delta x,y,z for match */
+       ERROR_exit("-iniwarp dataset grid spacing mismatch with base dataset :-(") ;
+
+     /* Grid dimensions of iwset should be same as n{xyz} or n{xyz}old [19 Mar 2014] */
+
+     nxiw = DSET_NX(iwset) ; nyiw = DSET_NY(iwset) ; nziw = DSET_NZ(iwset) ;
+#if 0
+INFO_message("nxold = %d nyold = %d nzold = %d",nxold,nyold,nzold) ;
+INFO_message("nx    = %d ny    = %d nz    = %d",nx   ,ny   ,nz   ) ;
+INFO_message("nxiw  = %d nyiw  = %d nziw  = %d",nxiw ,nyiw ,nziw ) ;
+#endif
+     mm   = (nxiw != nx || nyiw != ny || nziw != nz ) ;
+     if( !zeropad && mm )
+       ERROR_exit("-iniwarp dataset grid dimensions mismatch with base dataset :-(") ;
+     else if( zeropad && !mm && Hverb)
+       ININFO_message("-iniwarp dataset does not need zero-pad") ;
+
+     if( zeropad && mm ){ /* 13 Sep 2013 -- also zeropad the initial displacements */
        THD_3dim_dataset *qset ;
+       if( nxiw != nxold || nyiw != nyold || nziw != nzold )
+         ERROR_exit("-iniwarp dataset grid dimension mismatch for zero-pad operation :-(") ;
+       if( Hverb ) ININFO_message("zero-padding -iniwarp dataset") ;
        qset = THD_zeropad( iwset ,
                            pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
                            "IWSET_ZP" , ZPAD_IJK ) ;
@@ -1549,6 +1588,8 @@ STATUS("load datasets") ;
      if( S2BIM_iwarp == NULL )
        ERROR_exit("Cannot create 3D warp from -iniwarp dataset :-(") ;
      DSET_delete(iwset) ; iwset = NULL ;
+     if( Hverb > 1 )
+       INFO_message("-iniwarp energy = %g",IW3D_load_energy(S2BIM_iwarp)) ;
    } else {
      S2BIM_iwarp = NULL ;
    }
@@ -1670,21 +1711,34 @@ STATUS("construct weight/mask volume") ;
      qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
                                              -pad_zm,-pad_zp , oiw->im ) ;
      mri_free(oiw->im) ; oiw->im = qim ;
-     QQ = IW3D_zeropad( oiw->warp , -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
+     if( !zeropad_warp ){
+       QQ = IW3D_zeropad( oiw->warp , -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
                                                       -pad_zm,-pad_zp  ) ;
-     IW3D_destroy(oiw->warp) ; oiw->warp = QQ ;
+       IW3D_destroy(oiw->warp) ; oiw->warp = QQ ;
+     }
 
      if( qiw != NULL ){
        qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
                                                -pad_zm,-pad_zp , qiw->im ) ;
        mri_free(qiw->im) ; qiw->im = qim ;
-       QQ = IW3D_zeropad( qiw->warp , -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
-                                                        -pad_zm,-pad_zp  ) ;
-       IW3D_destroy(qiw->warp) ; qiw->warp = QQ ;
+       if( !zeropad_warp ){
+         QQ = IW3D_zeropad( qiw->warp , -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
+                                                          -pad_zm,-pad_zp  ) ;
+         IW3D_destroy(qiw->warp) ; qiw->warp = QQ ;
+       }
      }
    }
 
-   oim = oiw->im ; oww = oiw->warp ; IW3D_adopt_dataset( oww , bset ) ;
+   oim = oiw->im ; oww = oiw->warp ;
+   if( !zeropad_warp )
+     adset = bset ;
+   else
+     adset = THD_zeropad( bset ,
+                          pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
+                          "BSET_ZP" , ZPAD_IJK | ZPAD_EMPTY ) ;
+
+   IW3D_adopt_dataset( oww , adset ) ;
+   if( qiw != NULL ) IW3D_adopt_dataset( qiw->warp , adset ) ;
 
    /*----- Special case of pre-3dAllineate: adjust warp and image -----*/
 
@@ -1725,6 +1779,9 @@ STATUS("adjust for 3dAllineate matrix") ;
      }
 
    } /*--------- end of patchup for input from 3dAllineate ---------*/
+
+   if( Hverb > 1)
+     INFO_message("output warp energy = %g",IW3D_load_energy(oww)) ;
 
    /*-----------------------------------------------------------*/
    /*----- finally, output some results to pacify the user -----*/
@@ -1784,6 +1841,9 @@ STATUS("output warp") ;
        qprefix = modify_afni_prefix(prefix,NULL,"_WARP") ;
      }
      qset = IW3D_to_dataset( oww , qprefix ) ;
+#if 0
+INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSET_ZORG(qset)) ;
+#endif
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
@@ -1792,7 +1852,6 @@ STATUS("output warp") ;
      if( do_plusminus && qiw != NULL ){
        sprintf(appendage,"_%s_WARP",minusname) ;
        qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
-       IW3D_adopt_dataset( qiw->warp , bset ) ;
        qset = IW3D_to_dataset( qiw->warp , qprefix ) ;
        tross_Copy_History( bset , qset ) ;
        tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
@@ -1805,7 +1864,7 @@ STATUS("output warp") ;
      if( Hverb ) ININFO_message("Inverting warp for output") ;
 
      owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
-     IW3D_adopt_dataset( owwi , bset ) ;
+     IW3D_adopt_dataset( owwi , adset ) ;
      qset = IW3D_to_dataset( owwi , modify_afni_prefix(prefix,NULL,"_WARPINV")) ;
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
