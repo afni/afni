@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2014, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "if anaticor and censor, do not use keep_trs for blur est from errts",
+   "Thanks to J Stoddard for noting the problem."
+ } ,
+
  { 21,  Mar, 2014, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "removed -e from 'tcsh -ef @ss_review_basic', for grep failures",
    "Macs terminate (correctly) when grep/wc return non-zero status, but\n"
