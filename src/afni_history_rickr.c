@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2014, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
+   "added -data_root and enhancements for class data search",
+   NULL
+ } ,
+
  { 20,  Mar, 2014, RCR, "1dUpsample", MINOR, TYPE_BUG_FIX,
    "fix reporting of file name in error messages; enhance said messages",
    NULL

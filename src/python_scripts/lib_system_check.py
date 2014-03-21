@@ -83,22 +83,49 @@ class SysInfo:
       if header: print UTIL.section_divider('data checks', hchar='-')
 
       for ddir in ['AFNI_data6', 'suma_demo']:
-          if self.show_data_dir(ddir): break
+          status, droot = self.find_data_root(ddir)
+          if status: print 'data dir : missing %s' % ddir
+          else:      print 'data dir : found %-12s under %s' % (ddir, droot)
 
       evar = 'AFNI_ATLAS_DIR'
-      if os.environ.has_key(evar):
-         print "atlas var %s = %s" % (evar, os.environ[evar])
+      tryenv = 0                        # do we set 'esuggest'?
+      esuggest = ''                     # maybe suggest env var to users
+      haveenv = os.environ.has_key(evar)
+      if haveenv: edir = os.environ[evar]
+      else:       edir = ''
+
+      # look for atlases in multiple directories
       atlas = 'TT_N27+tlrc'
+      if os.path.isfile('%s/%s.HEAD'%(edir,atlas)): glist = [edir]
+      else: glist = []
+
       cmd = '@FindAfniDsetPath %s' % atlas
       s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
-      if not s:
-         print 'found atlas %s under %s' % (atlas, so[0])
+      if s: tryenv = 1  # failed
+      else: glist.append(so[0])
+
+      for ddir in ['/usr/share/afni/atlases', '/usr/local/afni/atlases']:
+         if os.path.isfile('%s/%s.HEAD'%(ddir,atlas)):
+            glist.append(ddir)
+            if tryenv: esuggest = '* consider setting %s to %s' % (evar,ddir)
+
+      # fix to work with found after the fact
+      glist = UTIL.get_unique_sublist(glist)
+
+      if len(glist) == 0:
+         print 'atlas    : did not find %s %s' % (atlas, estr)
+      else:
+         for ddir in glist:
+            print 'atlas    : found %-12s under %s' % (atlas, ddir)
+         if esuggest: print esuggest
+
+      if haveenv: print "\natlas var: %s = %s" % (evar, edir)
 
       print
 
-   def show_data_dir(self, ddir):
-      """check for and show the existence of ddir in common locations
-         return status (0 = success)
+   def find_data_root(self, ddir):
+      """try to find ddir in common locations
+         return status (0 = success) and path to (parent of) ddir
       """
 
       # if we do not have a data root, check in a few places
@@ -112,13 +139,17 @@ class SysInfo:
          root_str = '$HOME'
 
       dpath = self.find_data_dir(ddir=ddir, gdirs=plist)
-      if dpath == None:
-         print '** did not find data dir %s' % ddir
-         return 1
+
+      if dpath != None:
+         return 0, dpath.replace(self.home_dir, '$HOME')
+         # return 0, '%s%s' % (root_str, dpath[len(hdir):])
+
+      # and check the current directory
+      dpath = self.find_data_dir(ddir=ddir, gdirs=['.'])
+      if dpath == None: return 1, ''
       else:
-         dpath = '%s/%s' % (root_str, dpath[len(hdir)+1:])
-         print 'found data dir %s' % dpath
-         return 0
+         dpath = os.path.realpath(dpath)
+         return 0, dpath.replace(self.home_dir, '$HOME')
 
    def find_data_dir(self, ddir, gdirs=[], depth=2):
       """search under a list of glob directories for the given ddir"""
@@ -135,7 +166,8 @@ class SysInfo:
       if self.verb > 2: print '-- found trimmed %s dirs %s' % (ddir, dlist)
       
       if len(dlist) == 0: return None
-      return dlist[0]
+      dlen = len(ddir)+1
+      return dlist[0][0:-dlen]
 
    def show_os_specific(self, header=1):
       """checks that are specific to one OS or another"""
@@ -163,6 +195,7 @@ class SysInfo:
          print 'have Ubuntu afni  : %s' % self.afni_ver
 
    def show_spec_mac(self):
+      """look for fink, macports, homebrew"""
       pass
 
    def show_python_lib_info(self, plibs, header=1, verb=2):
@@ -227,6 +260,14 @@ class SysInfo:
             print '    %-20s : FAILURE' % prog
             print ind + indn.join(se)
          else: print '    %-20s : success' % prog
+      print
+
+      print 'checking for $HOME files...'
+      flist = ['.afnirc', '.sumarc', '.afni/help/all_progs.COMP']
+      for ff in flist:
+         if os.path.isfile('%s/%s'%(self.home_dir, ff)): fstr = 'found'
+         else:                                           fstr = 'missing'
+         print '    %-25s : %s' % (ff, fstr)
 
       print
 
