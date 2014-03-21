@@ -6,12 +6,12 @@
     add_I = number of zero planes to add at inferior edge
             (if < 0, number of data planes to cut off inferior edge)
 
-  09 Feb 2001 - added "flag" input, which is the OR of
+  09 Feb 2001 - added "flag" input, which is the OR (|) of
     ZPAD_EMPTY = produce only an padded "empty copy" of the input
     ZPAD_PURGE = purge input dataset bricks after they are copied
     ZPAD_MM    = increments are mm instead of slice counts
                  (at least 'add_?' mm will be added/subtracted)
-    ZPAD_IJK   = increments are relative to dset axes I0--I1 J0-- J1 
+    ZPAD_IJK   = increments are relative to dset axes I0--I1 J0--J1 
                  K0--K1 not I--S A--P L---R
   14 May 2002: if inputs crops are all zero, return something anyway
 ---------------------------------------------------------------------*/
@@ -159,6 +159,13 @@ ENTRY("THD_zeropad") ;
    LOAD_FVEC3( fv_xyzorg, inset->daxes->xxorg - nxbot * inset->daxes->xxdel,
                           inset->daxes->yyorg - nybot * inset->daxes->yydel,
                           inset->daxes->zzorg - nzbot * inset->daxes->zzdel );
+
+#if 0
+DUMP_IVEC3("THD_zeropad new dimensions",iv_nxyz) ;
+DUMP_FVEC3("            new origin    ",fv_xyzorg) ;
+INFO_message("         grid spacings = %g %g %g",
+             inset->daxes->xxdel,inset->daxes->yydel,inset->daxes->zzdel) ;
+#endif
 
 STATUS("setting new dimensions") ;
 
