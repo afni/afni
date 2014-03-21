@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Mar, 2014, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "removed -e from 'tcsh -ef @ss_review_basic', for grep failures",
+   "Macs terminate (correctly) when grep/wc return non-zero status, but\n"
+   "Linux systems do not.  Maybe tcsh authors did not like grep killing\n"
+   "scripts, either...\n"
+ } ,
+
  { 21,  Mar, 2014, RCR, "afni_system_check.py", MINOR, TYPE_NEW_OPT,
    "added -data_root and enhancements for class data search",
    NULL
