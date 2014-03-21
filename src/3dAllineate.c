@@ -3615,16 +3615,16 @@ STATUS("zeropad weight dataset") ;
 
      mri_get_cmass_3D( im_base , &xc,&yc,&zc ) ;
      MAT44_VEC( base_cmat , xc,yc,zc , xbase,ybase,zbase ) ;
-     if( verb > 2 )
+     if( verb > 1 )
        INFO_message("base center of mass = %.3f %.3f %.3f (index)",xc,yc,zc) ;
      im_targ = THD_median_brick( dset_targ ) ;
      mri_get_cmass_3D( im_targ , &xc,&yc,&zc ) ; mri_free(im_targ) ;
-     if( verb > 2 )
-       INFO_message("source center of mass = %.3f %.3f %.3f (index)",xc,yc,zc) ;
+     if( verb > 1 )
+       ININFO_message("source center of mass = %.3f %.3f %.3f (index)",xc,yc,zc) ;
      MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
      xc = xtarg-xbase ; yc = ytarg-ybase ; zc = ztarg-zbase ;
-     if( verb > 2 )
-       INFO_message("source-target CM = %.3f %.3f %.3f (xyz)",xc,yc,zc) ;
+     if( verb > 1 )
+       ININFO_message("source-target CM = %.3f %.3f %.3f (xyz)",xc,yc,zc) ;
      if (do_cmass < 0) {
          /* try to figure what is OK, for partial coverage */
          if (fabs(xc) >= fabs(yc) && fabs(xc) >= fabs(zc)) {
@@ -3651,8 +3651,8 @@ STATUS("zeropad weight dataset") ;
         if( (do_cmass & 2) == 0 ) yc = 0.0f ;
         if( (do_cmass & 4) == 0 ) zc = 0.0f ;
      }
-     if( verb > 2 && apply_mode == 0 ){
-       INFO_message("center of mass shifts = %.3f %.3f %.3f",xc,yc,zc) ;
+     if( verb > 1 && apply_mode == 0 ){
+       ININFO_message("center of mass shifts = %.3f %.3f %.3f",xc,yc,zc) ;
      }
    } else {
      xc = yc = zc = 0.0f ;
@@ -3661,7 +3661,7 @@ STATUS("zeropad weight dataset") ;
    yyy_p = yc + yyy ; yyy_m = yc - yyy ;
    zzz_p = zc + zzz ; zzz_m = zc - zzz ;
 
-   if( verb > 2 && apply_mode == 0 )
+   if( verb > 1 && apply_mode == 0 )
      INFO_message("shift param auto-range: %.1f..%.1f %.1f..%.1f %.1f..%.1f",
                   xxx_m,xxx_p , yyy_m,yyy_p , zzz_m,zzz_p ) ;
 
