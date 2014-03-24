@@ -38,7 +38,7 @@
 
 /** constants for the mri_weightize() function (liberated from 3dAllineate) **/
 
-static int auto_weight    = 2 ;
+static int auto_weight    = 1 ;      /* 1=weighted 2=binary 3=binary+box */
 static float auto_wclip   = 0.0f ;
 static float auto_wpow    = 1.0f ;
 static int auto_dilation  = 5 ;
@@ -310,7 +310,7 @@ void Qhelp(void)
     "                -source anatT1_US+orig -twopass -cost lpa \\\n"
     "                -1Dmatrix_save anatT1_USA.aff12.1D        \\\n"
     "                -autoweight -fineblur 3 -cmass\n"
-    "    3dQwarp -prefix anatT1_USAQ -duplo -useweight -blur 0 3 \\\n"
+    "    3dQwarp -prefix anatT1_USAQ -duplo -blur 0 3 \\\n"
     "            -base TEMPLATE+tlrc -source anatT1_USA+tlrc\n"
     "\n"
     "  You can then use the anatT1_USAQ_WARP+tlrc dataset to transform other\n"
@@ -323,6 +323,7 @@ void Qhelp(void)
     "  For example, if you want a warped copy of the original anatT1+orig dataset\n"
     "  (without the 3dUnifize and 3dSkullStrip modifications), put 'anatT1' in\n"
     "  place of 'NEWSOURCE' in the above command.\n"
+    "\n"
     "  Note that the '-nwarp' option to 3dNwarpApply has TWO filenames inside\n"
     "  single quotes.  This feature tells that program to compose (catenate) those\n"
     "  2 spatial transformations before applying the resulting warp.  See the -help\n"
@@ -368,9 +369,9 @@ void Qhelp(void)
     "  Various functions, such as volume change fraction (Jacobian determinant)\n"
     "  can be calculated from the warp dataset via program 3dNwarpFuncs.\n"
     "\n"
-    "-------\n"
-    "OPTIONS\n"
-    "-------\n"
+    "--------------------\n"
+    "COMMAND LINE OPTIONS\n"
+    "--------------------\n"
     " -base   base_dataset   = Alternative way to specify the base dataset.\n"
     " -source source_dataset = Alternative way to specify the source dataset.\n"
     "                         * You can either use both '-base' and '-source',\n"
@@ -415,8 +416,8 @@ void Qhelp(void)
     " -allineate   = This option will make 3dQwarp run 3dAllineate first, to align\n"
     "   *OR*         the source dataset to the base with an affine transformation.\n"
     " -allin         It will then use that alignment as a starting point for the\n"
-    "                nonlinear warping.\n"
-    "               * With -allineate, the source dataset does NOT have to be on\n"
+    "   *OR*         nonlinear warping.\n"
+    " -allinfast    * With -allineate, the source dataset does NOT have to be on\n"
     "                 the same 3D grid as the base, since the intermediate output\n"
     "                 of 3dAllineate (the substitute source) will be on the grid\n"
     "                 as the base.\n"
@@ -432,7 +433,7 @@ void Qhelp(void)
     "                 output by the '-allineate' option in combination with the\n"
     "                 nonlinear warp output by 3dQwarp (say, when using 3dNwarpApply),\n"
     "                 since the affine warp would then be applied twice -- which would\n"
-    "                 be WRONG.\n"
+    "                 be WRONG WRONG WRONG.\n"
     "          -->>** The final output warped dataset is warped directly from the\n"
     "                 original source dataset, NOT from the substitute source.\n"
     "               * The intermediate files from 3dAllineate (the substitute source\n"
@@ -497,10 +498,13 @@ void Qhelp(void)
     "\n"
     " -nopenalty   = Don't use a penalty on the cost function; the goal\n"
     "                of the penalty is to reduce grid distortions.\n"
+    "               * If there penalty is turned off AND you warp down to\n"
+    "                 a fine scale (e.g., '-minpatch 11'), you will probably\n"
+    "                 get strange-looking results.\n"
     " -penfac ff   = Use the number 'ff' to weight the penalty.\n"
     "                The default value is 1.  Larger values of 'ff' mean the\n"
     "                penalty counts more, reducing grid distortions,\n"
-    "                insha'Allah. '-nopenalty' is the same as '-penfac 0'.\n"
+    "                insha'Allah; '-nopenalty' is the same as '-penfac 0'.\n"
     "           -->>* [23 Sep 2013] -- Zhark increased the default value of\n"
     "                 the penalty by a factor of 5, and also made it get\n"
     "                 progressively larger with each level of refinement.\n"
@@ -513,13 +517,14 @@ void Qhelp(void)
     "                 reason (e.g., to keep compatibility with older results),\n"
     "                 use the option '-penold'.  To be completely compatible with\n"
     "                 the older 3dQwarp, you'll also have to use '-penfac 0.2'.\n"
-    " -useweight   = Normally, each voxel in the automask of the base dataset\n"
-    "                counts the same.  With '-useweight', each voxel is weighted\n"
+    "\n"
+    " -useweight   = With '-useweight', each voxel in the base automask is weighted\n"
     "                by the intensity of the (blurred) base image.  This makes\n"
     "                white matter count more in T1-weighted volumes, for example.\n"
-    "           -->>* This option is generally recommended, and may become the\n"
-    "                 default someday soon.\n"
-    "\n"
+    "           -->>* [24 Mar 2014] This option is is now the default.\n"
+    " -noweight    = If you want a binary weight (the old default), use this option.\n"
+    "                That is, each voxel in the base volume automask will be\n"
+    "                weighted the same in the computation of the cost functional.\n"
     " -weight www  = Instead of computing the weight from the base dataset,\n"
     "                directly input the weight volume from dataset 'www'.\n"
     "               * Useful if you know what over parts of the base image you\n"
@@ -559,7 +564,7 @@ void Qhelp(void)
     "                 [ phase if '-emask' is used here in 3dQwarp.             ]\n"
     "               * Applications: exclude a tumor or resected region\n"
     "                 (e.g., draw a mask in the AFNI Drawing plugin).\n"
-    "               * Note that the emask applies to the base dataset,\n"
+    "           -->>* Note that the emask applies to the base dataset,\n"
     "                 so if you are registering a pre- and post-surgery\n"
     "                 volume, you would probably use the post-surgery\n"
     "                 dataset as the base.  If you eventually want the\n"
@@ -607,9 +612,9 @@ void Qhelp(void)
     "               * The combination of -inilev and -iniwarp lets you take the\n"
     "                 results of a previous 3dQwarp run and refine them further:\n"
     "                   3dQwarp -prefix Q25 -source SS+tlrc -base TEMPLATE+tlrc \\\n"
-    "                           -duplo -minpatch 25 -useweight -blur 0 3\n"
+    "                           -duplo -minpatch 25 -blur 0 3\n"
     "                   3dQwarp -prefix Q11 -source SS+tlrc -base TEMPLATE+tlrc \\\n"
-    "                           -inilev 7 -iniwarp Q25_WARP+tlrc -useweight -blur 0 2\n"
+    "                           -inilev 7 -iniwarp Q25_WARP+tlrc -blur 0 2\n"
     "                 Note that the source dataset in the second run is the SAME as\n"
     "                 in the first run.  If you don't see why this is necessary,\n"
     "                 then you probably need to seek help from an AFNI guru.\n"
@@ -1170,6 +1175,10 @@ int main( int argc , char *argv[] )
        if( argv[nopt][10] == '*' && argv[nopt][11] == '*' && isnumeric(argv[nopt][12]) )
          auto_wpow = (float)strtod(argv[nopt]+12,NULL) ;
        nopt++ ; continue ;
+     }
+
+	  if( strcasecmp(argv[nopt],"-noweight") == 0 ){
+       auto_weight = 2 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-penfac") == 0 ){
