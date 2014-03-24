@@ -401,9 +401,10 @@ g_history = """
     4.11 Mar 21, 2014:
         - applied errts_REML where appropriate (over just errts)
         - if anaticor and censoring, do not remove censored TRs again for blur est
+    4.12 Mar 24, 2014: added the -regress_anaticor_radius option
 """
 
-g_version = "version 4.11, March 21, 2014"
+g_version = "version 4.12, March 24, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "29 Nov 2013" # for 3dRSFC update
@@ -857,6 +858,8 @@ class SubjProcSream:
                         helpstr="stop 3dDeconvolve after matrix generation")
         self.valid_opts.add_opt('-regress_anaticor', 0, [],
                         helpstr="apply ANATICOR: regress WMeLocal time series")
+        self.valid_opts.add_opt('-regress_anaticor_radius', 1, [],
+                        helpstr="specify radius for WMeLocal extraction")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],

@@ -2452,6 +2452,7 @@ def db_mod_regress(block, proc, user_opts):
     errs = 0  # allow errors to accumulate
 
     apply_uopt_to_block('-regress_anaticor', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -3512,7 +3513,7 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
     return cmd
 
 # run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
-def db_cmd_anaticor(proc, block, rset, select=''):
+def db_cmd_anaticor(proc, block, rset, select='', radius=45):
     """return a string for running 3dTfitter
 
        inputs: 
@@ -3540,10 +3541,11 @@ def db_cmd_anaticor(proc, block, rset, select=''):
     if select and proc.censor_file:
        cmd += '# (exclude censored TRs at this point to save time)\n'
 
-    cmd += "3dLocalstat -stat mean -nbhd 'SPHERE(45)' -prefix %s \\\n" \
+    cmd += "3dLocalstat -stat mean -nbhd 'SPHERE(%g)' -prefix %s \\\n" \
            "            -mask %s -use_nonmask \\\n"                    \
            "            %s%s%s\n\n"                                    \
-           % (rset.out_prefix(), mset.shortinput(), vall, proc.view, select)
+           % (radius, rset.out_prefix(), mset.shortinput(),
+              vall, proc.view, select)
 
     return 0, cmd
 
@@ -3578,6 +3580,14 @@ def db_cmd_regress_tfitter(proc, block):
 
     proc.errts_pre = rset.prefix
 
+    # set radius
+    val, err = block.opts.get_type_opt(float, '-regress_anaticor_radius')
+    if err:
+        print '** error: -regress_anaticor_radius requires float argument'
+        return 1, ''
+    elif val != None and val > 0.0: radius = val
+    else:                           radius = 45.0
+
     cmd = '# --------------------------------------------------\n' \
           '# generate ANATICOR result: %s\n\n' % rset.shortinput()
     # rcr - if motion, add a comment...
@@ -3592,7 +3602,7 @@ def db_cmd_regress_tfitter(proc, block):
        proc.errts_cen = 1       # proc.errts_pre has TRs removed
     else: substr = ''
 
-    rv, cs = db_cmd_anaticor(proc, block, lset, select=substr)
+    rv, cs = db_cmd_anaticor(proc, block, lset, select=substr, radius=radius)
     if rv: return 1, ''
     cmd += cs
 
