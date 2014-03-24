@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Mar, 2014, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_anaticor_radius",
+   "This specifies the radius for the local white matter average."
+ } ,
+
  { 21,  Mar, 2014, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "if anaticor and censor, do not use keep_trs for blur est from errts",
    "Thanks to J Stoddard for noting the problem."
