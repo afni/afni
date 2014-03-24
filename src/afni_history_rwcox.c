@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , MAR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+  { 24 , MAR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "-useweight is now the default; -noweight turns it off" ,
+   NULL } ,
+
+ { 21 , MAR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
    "problem with zeropadding plus -iniwarp" ,
    "Zeropad produces a warp that is bigger than the dataset.  That's OK\n"
    "(even in 3dNwarpApply), but 3dQwarp would cut it off when writing it\n"
