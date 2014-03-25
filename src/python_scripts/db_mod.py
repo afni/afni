@@ -124,16 +124,81 @@ def db_cmd_tcat(proc, block):
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
 
-    # now that the 'output' index and label are set, maybe get outlier counts
-    opt = proc.user_opts.find_opt('-outlier_count')
-    if not opt or OL.opt_is_yes(opt):
+    if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
+
+    return cmd
+
+# --------------- post-data ---------------
+
+# modify the tcat block options according to the user options
+def db_mod_postdata(block, proc, user_opts):
+    """This block is for initial processing before anything that
+       affects the EPI data.
+       This block will probably never get named options.
+    """
+
+    if len(block.opts.olist) == 0: pass
+    block.valid = 1
+
+def db_cmd_postdata(proc, block):
+    """add any sub-blocks with their oun headers"""
+    block.index = proc.bindex   # save
+
+    cmd = ''
+
+    # consider applying a uniformity correction
+    umeth, rv = proc.user_opts.get_string_opt('-anat_uniform_method',
+                                              default='none')
+    if umeth != 'none' and proc.anat:
+       rv, oc = make_uniformity_commands(proc, umeth)
+       if rv: return   # failure (error has been printed)
+       cmd = cmd + oc
+
+    # probaby get outlier fractions
+    if not proc.user_opts.have_no_opt('-outlier_count'):
         rv, oc = make_outlier_commands(proc)
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
 
-    if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
+    # no update, unless EPI data is modified
+    # proc.bindex += 1            # increment block index
+    # proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
+
+def make_uniformity_commands(proc, umeth):
+    """apply uniformity correction to the anat, based on umeth"""
+
+    # right now, we only work on 'unifize'
+    if umeth != 'unifize': return 0, ''
+    if not proc.anat:      return 0, ''
+
+    if proc.verb > 1: print '-- unifizing anat...'
+
+    # see if the user has provided other options
+    other_opts = proc.user_opts.get_joined_strings('-anat_opts_unif',prefix=' ')
+
+    opre = proc.anat.prefix + '_unif'
+    oset = proc.anat.new(new_pref=opre)
+
+    cmd  = "# %s\n"                                                       \
+           "# perform '%s' uniformity correction on anatomical dataset\n" \
+           % (block_header('uniformity correction'), umeth)
+
+    cmd += "3dUnifize -prefix %s%s %s\n\n" % (opre, other_opts, proc.anat.pv())
+
+    # update prefix for anat and tlrcanat
+    if proc.verb > 2:
+       if proc.tlrcanat:
+          print '++ updating anat and tlrcanat prefix from %s, %s to %s' \
+                % (proc.anat.prefix, proc.tlrcanat.prefix, opre)
+       else:
+          print '++ updating anat prefix from %s to %s'%(proc.anat.prefix,opre)
+
+    proc.anat.prefix = opre
+    if proc.tlrcanat: proc.tlrcanat.prefix = opre
+
+    return 0, cmd
 
 # could do this from any block, but expect to do at end of tcat
 # return error code (0 = success) and string
@@ -5350,6 +5415,8 @@ g_help_string = """
                  time series before the blur step, or remove blur from the list
                  of blocks (and apply any desired blur after the regression).
 
+           Other options to consider: -tlrc_NL_warp, -anat_uniform_method
+
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
@@ -6235,6 +6302,29 @@ g_help_string = """
             Use this option to block any skull-stripping operations, likely
             either in the align or tlrc processing blocks.
 
+        -anat_uniform_method METHOD : specify uniformity correction method
+
+                e.g. -anat_uniform_method unifize
+
+            Specify the method for anatomical intensity uniformity correction.
+            At the moment, there is only 1 useful method to supply.
+
+                none    : do not do uniformity correction (default)
+                unifize : use 3dUnifize to do the correction
+
+            Please see '3dUnifize -help' for details.
+            See also -anat_opts_unif.
+
+        -anat_opts_unif OPTS ... : specify extra options for unifize command
+
+                e.g. -anat_opts_unif -GM
+
+            Specify options to be applied to the command used for anatomical
+            intensity uniformity correction, such as 3dUnifize.
+
+            Please see '3dUnifize -help' for details.
+            See also -anat_uniform_method.
+
         -ask_me                 : ask the user about the basic options to apply
 
             When this option is used, the program will ask the user how they
@@ -6897,8 +6987,10 @@ g_help_string = """
 
             Options can be added to auto_warp.py via -tlrc_opts_at.
 
+            Consider use of -anat_uniform_method along with this option.
+
             Please see 'auto_warp.py -help' for more information.
-            See also '-tlrc_opts_at'.
+            See also -tlrc_opts_at, -anat_uniform_method.
 
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 
@@ -7534,8 +7626,11 @@ g_help_string = """
             regression.  Note that for such a use, the ROI time series should
             come from the volreg data, before any blur.
 
-            Please see '3dSeg -help' for more information
-            See also -mask_rm_segsy.
+            Consider use of -anat_uniform_method along with this option.
+
+            Please see '3dSeg -help' for more information.
+            Please see '3dUnifize -help' for more information.
+            See also -mask_rm_segsy, -anat_uniform_method.
 
         -mask_segment_erode Y/N
 
@@ -7634,7 +7729,23 @@ g_help_string = """
 
             This option implies -mask_segment_anat and -mask_segment_erode.
 
+            Please see "@ANATICOR -help" for more detail, including the paper
+            reference for the method.
             See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+
+        -regress_anaticor_radius RADIUS : specify RADIUS for 3dLocalstat
+
+            To go with -regress_anaticor, use this option to specify the radius
+            of spheres within which local white matter is averaged.  A small
+            radius means the white matter is more local.  It is also faster.
+
+            If no white matter is found within the specified distance of some
+            voxel, the effect is that ANATICOR will simply not happen at that
+            voxel.  That is a reasonable "failure" case, in that it says there
+            is simply no white matter close enough to regress out (again, at
+            the given voxel).
+
+            See also -regress_anaticor.
 
         -regress_apply_mask     : apply the mask during scaling and regression
 

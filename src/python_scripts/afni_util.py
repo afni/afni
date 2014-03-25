@@ -155,7 +155,7 @@ def make_single_row_string(data, row, nplaces=3, flag_empty=0):
 
    return rstr + '\n'
 
-def quotize_list(list, opt_prefix='', skip_first=0, quote_wild=0,
+def quotize_list(inlist, opt_prefix='', skip_first=0, quote_wild=0,
                  quote_chars='', ok_chars=''):
     """given a list of text elements, return a new list where any existing
        quotes are escaped, and then if there are special characters, put the
@@ -167,7 +167,7 @@ def quotize_list(list, opt_prefix='', skip_first=0, quote_wild=0,
 
        add quote_chars to quote list, remove ok_chars
     """
-    if not list or len(list) < 1: return list
+    if not inlist or len(inlist) < 1: return inlist
 
     # okay, we haven't yet escaped any existing quotes...
 
@@ -183,7 +183,7 @@ def quotize_list(list, opt_prefix='', skip_first=0, quote_wild=0,
 
     newlist = []
     first = 1   # ugly, but easier for option processing
-    for qstr in list:
+    for qstr in inlist:
         prefix = ''
         if skip_first and first: first = 0       # use current (empty) prefix
         elif len(qstr) == 0: pass
