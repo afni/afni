@@ -58,6 +58,8 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    byte *mmm ;
    MRI_IMAGE *qim , *wim ;
 
+   if( Hverb ) INFO_message("Weightizing the base image") ;
+
    /*-- copy input image --*/
 
    qim = mri_to_float(im) ; wf = MRI_FLOAT_PTR(qim) ;
@@ -75,7 +77,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    if( 5*yfade >= qim->ny ) yfade = (qim->ny-1)/5 ;
    if( 5*zfade >= qim->nz ) zfade = (qim->nz-1)/5 ;
    if( Hverb > 1 )
-     ININFO_message("Weightize: xfade=%d yfade=%d zfade=%d",xfade,yfade,zfade);
+     ININFO_message("  xfade=%d yfade=%d zfade=%d",xfade,yfade,zfade);
    for( jj=0 ; jj < ny ; jj++ )
     for( ii=0 ; ii < nx ; ii++ )
      for( ff=0 ; ff < zfade ; ff++ ) WW(ii,jj,ff) = WW(ii,jj,nz-1-ff) = 0.0f;
@@ -93,14 +95,15 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
          if( wf[ii] < aclip ){ nclip++; wf[ii] = 0.0f; } else nleft++ ;
        }
      }
-     if( Hverb > 1 ) ININFO_message("Weightize: user clip=%g #clipped=%d #left=%d",
-                                   aclip,nclip,nleft) ;
+     if( Hverb > 1 )
+       ININFO_message("  user clip=%g #clipped=%d #left=%d",
+                      aclip,nclip,nleft) ;
    }
 
    /*-- squash super-large values down to reasonability --*/
 
    clip = 3.0f * THD_cliplevel(qim,0.5f) ;
-   if( Hverb > 1 ) ININFO_message("Weightize: (unblurred) top clip=%g",clip) ;
+   if( Hverb > 1 ) ININFO_message("  (unblurred) top clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] > clip ) wf[ii] = clip ;
 
    /*-- blur a little: median then Gaussian;
@@ -126,7 +129,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    clip  = 0.05f * mri_max(wim) ;
    clip2 = 0.33f * THD_cliplevel(wim,0.33f) ;
    clip  = MAX(clip,clip2) ;
-   if( Hverb > 1 ) ININFO_message("Weightize: (blurred) bot clip=%g",clip) ;
+   if( Hverb > 1 ) ININFO_message("  (blurred) bot clip=%g",clip) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] >= clip) ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
    THD_mask_erode( nx,ny,nz, mmm, 1 ) ;  /* cf. thd_automask.c */
@@ -146,7 +149,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    /*-- power? --*/
 
    if( apow > 0.0f && apow != 1.0f ){
-     if( Hverb > 1 ) ININFO_message("Weightize: raising to %g power",apow) ;
+     if( Hverb > 1 ) ININFO_message("  raising to %g power",apow) ;
      for( ii=0 ; ii < nxyz ; ii++ )
        if( wf[ii] > 0.0f ) wf[ii] = powf( wf[ii] , apow ) ;
    }
@@ -156,11 +159,11 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 #undef  BPAD
 #define BPAD 4
    if( acod == 2 || acod == 3 ){  /* binary weight: mask=2 or maskbox=3 */
-     if( Hverb > 1 ) ININFO_message("Weightize: binarizing") ;
+     if( Hverb > 1 ) ININFO_message("  binarizing") ;
      for( ii=0 ; ii < nxyz ; ii++ ) if( wf[ii] != 0.0f ) wf[ii] = 1.0f ;
      if( ndil > 0 ){  /* 01 Mar 2007: dilation */
        byte *mmm = (byte *)malloc(sizeof(byte)*nxyz) ;
-       if( Hverb > 1 ) ININFO_message("Weightize: dilating") ;
+       if( Hverb > 1 ) ININFO_message("  dilating") ;
        for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] != 0.0f) ;
        for( ii=0 ; ii < ndil ; ii++ ){
          THD_mask_dilate     ( nx,ny,nz , mmm , 3 ) ;
@@ -180,7 +183,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
        yp += BPAD ; if( yp > ny-2 ) yp = ny-2 ;
        zp += BPAD ; if( zp > nz-2 ) zp = nz-2 ;
        if( Hverb > 1 )
-         ININFO_message("Weightize: box=%d..%d X %d..%d X %d..%d = %d voxels",
+         ININFO_message("  box=%d..%d X %d..%d X %d..%d = %d voxels",
                         xm,xp , ym,yp , zm,zp , (xp-xm+1)*(yp-ym+1)*(zp-zm+1) ) ;
        for( kk=zm ; kk <= zp ; kk++ )
         for( jj=ym ; jj <= yp ; jj++ )
@@ -1174,6 +1177,7 @@ int main( int argc , char *argv[] )
        auto_weight = 1 ;
        if( argv[nopt][10] == '*' && argv[nopt][11] == '*' && isnumeric(argv[nopt][12]) )
          auto_wpow = (float)strtod(argv[nopt]+12,NULL) ;
+       if( Hverb && auto_wpow != 1.0f ) INFO_message("-useweight is now the default") ;
        nopt++ ; continue ;
      }
 

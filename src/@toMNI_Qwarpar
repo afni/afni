@@ -139,7 +139,7 @@ echo 'echo $argv'                                           >> BBwarp_script
 echo 'foreach lucy ( $argv )'                               >> BBwarp_script
 echo '   set bbb = `basename $lucy _uni+tlrc.HEAD`'         >> BBwarp_script
 echo '   nice 3dQwarp -prefix ${bbb}_uniB  -blur 0 9    \'  >> BBwarp_script
-echo '                -minpatch 101 -useweight -nodset  \'  >> BBwarp_script
+echo '                -minpatch 101            -nodset  \'  >> BBwarp_script
 echo "                $AAbasename" '$lucy'                  >> BBwarp_script
 echo '   nice gzip -9v ${bbb}_uniB*.BRIK'                   >> BBwarp_script
 echo 'end'                                                  >> BBwarp_script
@@ -226,7 +226,7 @@ echo "setenv OMP_NUM_THREADS $qcpu"                                    >  CCwarp
 echo 'foreach fred ( $argv )'                                          >> CCwarp_script
 echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                    >> CCwarp_script
 echo '   nice 3dQwarp -prefix ${bbb}_uniC  -blur 1 6               \'  >> CCwarp_script
-echo '                -inilev 2  -minpatch 49 -nodset  -useweight  \'  >> CCwarp_script
+echo '                -inilev 2  -minpatch 49 -nodset              \'  >> CCwarp_script
 echo '                -iniwarp ${bbb}_uniB_WARP+tlrc.HEAD          \'  >> CCwarp_script
 echo '                Qwarp_meanB+tlrc.HEAD $fred'                     >> CCwarp_script
 echo '   nice gzip -9v ${bbb}_uniC*.BRIK'                              >> CCwarp_script
@@ -303,7 +303,7 @@ echo "setenv OMP_NUM_THREADS $qcpu"                                       >  DDw
 echo 'foreach fred ( $argv )'                                             >> DDwarp_script
 echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                       >> DDwarp_script
 echo '   nice 3dQwarp -prefix ${bbb}_uniD  -blur 0 4                 \'   >> DDwarp_script
-echo '                -inilev 5  -minpatch 23 -nodset    -useweight  \'   >> DDwarp_script
+echo '                -inilev 5  -minpatch 23 -nodset                \'   >> DDwarp_script
 echo '                -iniwarp ${bbb}_uniC_WARP+tlrc.HEAD            \'   >> DDwarp_script
 echo '                Qwarp_meanC+tlrc.HEAD $fred'                        >> DDwarp_script
 echo '   nice gzip -9v ${bbb}_uniD*.BRIK'                                 >> DDwarp_script
@@ -380,7 +380,7 @@ echo "setenv OMP_NUM_THREADS $qcpu"                                      >  EEwa
 echo 'foreach fred ( $argv )'                                            >> EEwarp_script
 echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                      >> EEwarp_script
 echo '   nice 3dQwarp -prefix ${bbb}_uniE  -blur 0 -2                \'  >> EEwarp_script
-echo '                -inilev 7  -minpatch 13 -nodset   -useweight   \'  >> EEwarp_script
+echo '                -inilev 7  -minpatch 13 -nodset                \'  >> EEwarp_script
 echo '                -iniwarp ${bbb}_uniD_WARP+tlrc.HEAD            \'  >> EEwarp_script
 echo '                Qwarp_meanD+tlrc.HEAD $fred'                       >> EEwarp_script
 echo '   nice gzip -9v ${bbb}_uniE*.BRIK'                                >> EEwarp_script
@@ -464,7 +464,7 @@ echo "setenv OMP_NUM_THREADS $qcpu"                                     >  FFwar
 echo 'foreach fred ( $argv )'                                           >> FFwarp_script
 echo '   set bbb = `basename $fred _uni+tlrc.HEAD`'                     >> FFwarp_script
 echo '   nice 3dQwarp -prefix ${bbb}_uniF  -blur 0 -2              \'   >> FFwarp_script
-echo '                -inilev 9  -minpatch 9  -nodset   -useweight \'   >> FFwarp_script
+echo '                -inilev 9  -minpatch 9  -nodset              \'   >> FFwarp_script
 echo '                -iniwarp ${bbb}_uniE_WARP+tlrc.HEAD          \'   >> FFwarp_script
 echo '                Qwarp_meanE+tlrc.HEAD $fred'                      >> FFwarp_script
 echo '   nice gzip -9v ${bbb}_uniF*.BRIK'                               >> FFwarp_script
