@@ -1442,6 +1442,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Little by little, one travels far"                             ,
      "Beyond all hope, set free to light"                            ,
      "Divide By Cucumber Error; Please Reinstall Universe and Reboot",
+     "Please re-inflate the multiverse and try again later"          ,
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
      "Out of Cheese Error; Please Install Stilton and Try Again"     ,
      "Out of Wine Error: Please Install Port and Try Again"          ,
