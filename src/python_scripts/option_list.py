@@ -166,6 +166,18 @@ class OptionList:
             return default, 1
         return opt.parlist[0], 0
 
+    def get_joined_strings(self, opt_name=None, opt=None, prefix=''):
+        """like get_string_list(), but join any list together and only
+           return a string
+
+           only apply 'prefix' if something is found"""
+        olist, rv = self.get_string_list(opt_name=opt_name, opt=opt)
+        if rv or olist == None: return ''
+        if len(olist) < 1:      return ''
+
+        # we have something
+        return prefix + ' '.join(UTIL.quotize_list(olist))
+
     def get_string_list(self, opt_name=None, opt=None):
         """return the option parameter string and an error code
            (if opt is passed, we don't need to find it)"""

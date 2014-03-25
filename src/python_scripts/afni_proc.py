@@ -400,11 +400,15 @@ g_history = """
         - quiet change to writing command to script
     4.11 Mar 21, 2014:
         - applied errts_REML where appropriate (over just errts)
-        - if anaticor and censoring, do not remove censored TRs again for blur est
+        - if anaticor and censoring, do not remove censored TRs again
+          for blur est
     4.12 Mar 24, 2014: added the -regress_anaticor_radius option
+    4.13 Mar 24, 2014:
+        - added options -anat_uniform_method and -anat_opts_unif
+        - move toutcount to new (hidden) postdata block
 """
 
-g_version = "version 4.12, March 24, 2014"
+g_version = "version 4.13, March 25, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "29 Nov 2013" # for 3dRSFC update
@@ -412,16 +416,18 @@ g_requires_afni = "29 Nov 2013" # for 3dRSFC update
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 
-BlockLabels  = ['tcat', 'despike', 'ricor', 'tshift', 'align', 'volreg',
-                'surf', 'blur', 'mask', 'scale', 'regress', 'tlrc', 'empty']
-BlockModFunc  = {'tcat'   : db_mod_tcat,     'despike': db_mod_despike,
+BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'align',
+                'volreg', 'surf', 'blur', 'mask', 'scale', 'regress', 'tlrc', 'empty']
+BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
+                 'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
                  'align'  : db_mod_align,    'volreg' : db_mod_volreg,
                  'surf'   : db_mod_surf,     'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
                  'regress': db_mod_regress,  'tlrc'   : db_mod_tlrc,
                  'empty'  : db_mod_empty}
-BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'despike': db_cmd_despike,
+BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'postdata' : db_cmd_postdata,
+                 'despike': db_cmd_despike,
                  'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
                  'align'  : db_cmd_align,    'volreg' : db_cmd_volreg,
                  'surf'   : db_cmd_surf,     'blur'   : db_cmd_blur,
@@ -431,8 +437,8 @@ BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'despike': db_cmd_despike,
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # default block labels, and other labels (along with the label they follow)
-DefLabels   = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
-OtherDefLabels = {'despike':'tcat', 'align':'tcat', 'ricor':'despike',
+DefLabels = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
+OtherDefLabels = {'despike':'postdata', 'align':'postdata', 'ricor':'despike',
                   'surf':'volreg'}
 OtherLabels    = ['empty']
 DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
@@ -655,6 +661,11 @@ class SubjProcSream:
         self.valid_opts.add_opt('-anat_has_skull', 1, [],
                         acplist=['yes','no'],
                         helpstr='does the anat have a skull (to be stripped)')
+        self.valid_opts.add_opt('-anat_uniform_method', 1, [],
+                        acplist=['none','unifize'],
+                        helpstr='specify uniformity method (default=none)')
+        self.valid_opts.add_opt('-anat_opts_unif', -1, [],
+                        helpstr='additional options passed to 3dUnifize')
         self.valid_opts.add_opt('-ask_me', 0, [],       # QnA session
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
@@ -1196,6 +1207,14 @@ class SubjProcSream:
         elif self.surf_anat: blocks = DefSurfLabs  # surface defaults
         else:                blocks = DefLabels    # volume defaults
 
+        # and insert automatic postdata block at postion 1 (after tcat)
+        blocks.insert(1, 'postdata')
+
+        # just do a quick check after all of the confusion
+        if blocks[0] != 'tcat' or blocks[1] != 'postdata':
+           print '** block list should start with tcat,postdata, have:\n   %s' % blocks
+           return 1
+
         # check for -do_block options
         opt = self.user_opts.find_opt('-do_block')
         if opt and opt.parlist and len(opt.parlist) > 0:
@@ -1302,7 +1321,7 @@ class SubjProcSream:
             except: ind = -1
             if ind >= 0: return 1, 'despike'    # after despike
 
-            return 1, 'tcat'                    # else, just after tcat
+            return 1, 'postdata'                # else, just after postdata
 
         if bname == 'align':
             try: ind = blocks.index('tlrc')
@@ -1315,7 +1334,7 @@ class SubjProcSream:
             except: ind = -1
             if ind >= 0: return 1, 'tshift'     # after tshift
 
-            return  1, 'tcat'                   # else, stick at beginning
+            return  1, 'postdata'               # else, stick at beginning
 
         if bname == 'tlrc':
             try: ind = blocks.index('volreg')
@@ -1325,6 +1344,7 @@ class SubjProcSream:
             except: ind = -1
             if ind >= 0: return 1, 'align'      # after align
             return 1, blocks[-1]                # stick it at the end
+
 
         # if those didn't apply, go with the OtherDefLabels array
 
