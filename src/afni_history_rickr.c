@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26,  Mar, 2014, RCR, "auto_warp.py", MINOR, TYPE_BUG_FIX,
+   "in 3dNwarpApply, use the base dataset as the -master, rather than WARP",
+   "The WARP dataset is now often bigger, to handle warps to the dataset\n"
+   "edges.  The result from auto_warp.py should match the template/base.\n"
+   "Note: the problem applies to binaries from 3/21 until 3/25 (now).\n"
+   "Thanks to V Zachariou for noting the problem."
+ } ,
+
  { 25,  Mar, 2014, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added options -anat_uniform_method and -anat_opts_unif",
    "This correction may be particularly useful along with either\n"

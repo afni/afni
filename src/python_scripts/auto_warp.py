@@ -683,7 +683,7 @@ class RegWrap:
       
       return (n,w)
       
-   def qwarp_applying(self, a, aff, wrp, prefix=None, dxyz=0.0):
+   def qwarp_applying(self, a, aff, wrp, prefix=None, dxyz=0.0, master=None):
       self.info_msg( "Applying warps to %s" % \
            ( a.input() ))
       if (prefix==None):
@@ -700,15 +700,20 @@ class RegWrap:
             dxopt = ""
          else:
             dxopt = "-dxyz %f" % dxyz
+
+         # warp datasets may need to grow, so allow for a different master
+         if master == None: mast_str = "NWARP"
+         else:              mast_str = "%s" % master.input()
+
          com = shell_com(  \
                 "3dNwarpApply          "\
                 "-nwarp %s             "\
-                "-master NWARP         "\
+                "-master %s            "\
                 "     %s   %s          "\
                 "-source %s            "\
                 "-prefix %s            "\
-                % ( wrp.input(), waff, dxopt, a.input(), n.input()), \
-                ps.oexec)
+                % ( wrp.input(), mast_str, waff, dxopt, a.input(), n.input()),
+                    ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
             n.show()
@@ -781,7 +786,9 @@ if __name__ == '__main__':
    a, ps.warp_input_xform = ps.qwarping(a=a, b=b)
    
    #apply warps
-   aw = ps.qwarp_applying(a=ps.input, aff=ps.affine_input_xmat, wrp=ps.warp_input_xform)
+   # warp datasets may grow, so pass base as master     26 Mar 2014 [rcr/zss]
+   aw = ps.qwarp_applying(a=ps.input, aff=ps.affine_input_xmat,
+                          wrp=ps.warp_input_xform, master=b)
    
    ps.save_history(aw, ps.oexec)
    
