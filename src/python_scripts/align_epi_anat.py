@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.44" # software version (update for changes)
+      self.align_version = "1.45" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -613,6 +613,7 @@ class RegWrap:
 # box, bin and fat mask are not used for now
 
    def init_opts(self):
+      
       self.valid_opts = OptionList('init_opts')
        
       self.valid_opts.add_opt('-epi',  1, [], \
@@ -1098,6 +1099,7 @@ class RegWrap:
 
      
    def get_user_opts(self):
+      self.valid_opts.check_special_opts(sys.argv) #ZSS March 2014
       self.user_opts = read_options(sys.argv, self.valid_opts)
       if self.user_opts == None: return 1 #bad
       # no options: apply -help
