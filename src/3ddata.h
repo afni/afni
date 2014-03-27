@@ -1407,7 +1407,7 @@ typedef struct {
       float yydel ;  /*!< Spacings between voxel centers (mm) - may be negative */
       float zzdel ;  /*!< Spacings between voxel centers (mm) - may be negative */
 
-      float xxmin ;  /*!< Bounding box for grid */
+      float xxmin ;  /*!< Bounding box for grid [cf THD_set_daxes_bbox()] */
       float xxmax ;  /*!< Bounding box for grid */
       float yymin ;  /*!< Bounding box for grid */
       float yymax ;  /*!< Bounding box for grid */
@@ -1421,7 +1421,7 @@ typedef struct {
       THD_mat33 to_dicomm ; /*!< Orthogonal matrix transforming from
                                 dataset coordinates to DICOM coordinates */
 
-      /*** 06 Dec 2005: extensions to allow arbitrarily oriented volumes ***/
+      /*** 06 Dec 2005: extensions to allow arbitrarily oriented volumes [cf thd_matdaxes.c] ***/
 
       mat44 ijk_to_dicom ;  /* matrix taking ijk indexes to DICOM xyz coords */
       mat44 dicom_to_ijk ;  /* inverse of above */
