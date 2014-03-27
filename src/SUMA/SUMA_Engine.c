@@ -95,10 +95,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       SUMA_RETURN (NOPE);
    }
    
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: ", FuncName);
+   SUMA_LH("Cycling through %d list elements", list->size);
    while (list->size) {/* cycle through NextComs */
-      if (LocalHead) 
-         fprintf (SUMA_STDERR,"%s: Fetching next element\n", FuncName);
+      SUMA_LH("Fetching next element\n");
      /* get the next command from the head of the list */
       NextElem_CANT_TOUCH_THIS = dlist_head(list);
       EngineData = (SUMA_EngineData *)NextElem_CANT_TOUCH_THIS->data;
@@ -124,7 +123,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          SUMA_RETURN (NOPE);
       } 
       NextCom = SUMA_CommandString (NextComCode);
-      if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
+      SUMA_LH("->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
          case SE_SendColorMapToAfni:
             /* expects in i the code of one of SUMA's standard colormaps */
@@ -2381,7 +2380,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMA_LHv("Have %d, %d and %d\n",
                SUMAg_CF->YokeIntToNode,
                SDSET_VECNUM(curColPlane->dset_link),
-               SO->N_Node);
+               SUMA_ADO_N_Datum(ado));
             if (SUMAg_CF->YokeIntToNode   &&
                 !(SDSET_VECNUM(curColPlane->dset_link) % 
                                              SUMA_ADO_N_Datum(ado))) {
@@ -2398,6 +2397,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                followed by a similar one in SUMA_UpdateNodeField
                Check for possible duplications ... */
             if (SUMAg_CF->callbacks && !SUMAg_CF->HoldClickCallbacks) {
+               SUMA_LH("Activating callbacks");
                if (!SUMA_Selected_Node_Activate_Callbacks (
                         ado, curColPlane,
                         EngineData->Src, EngineData->ngr)) {
@@ -2406,9 +2406,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             
             /* get the controller up if it is not, and the mood is right*/
+            SUMA_LH("Get controller up");
             SUMA_OpenSurfCont_if_other(sv->X->TOPLEVEL, ado, sv);
             
+            SUMA_LH("Update node field");
             SUMA_UpdateNodeField(ado);
+            SUMA_LH("Done with SE_SetSelectedNode");
             break; }
          case SE_ToggleShowSelectedFaceSet:
             /* expects nothing ! */
@@ -2674,7 +2677,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_LockCrossHair:
             /* expects nothing in EngineData */
-
             /* calls other viewers and determine if the cross hair 
                needs to be locked to the calling sv */
 
@@ -2687,9 +2689,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             if (SUMAg_CF->Locked[ii]) { /* This one's locked, find out which 
                                        other viewers are locked to this one */
+               SUMA_LH("SV %d locked to something, maybe", ii);
                for (i=0; i < SUMAg_N_SVv; ++i) {
                   svi = &SUMAg_SVv[i];
                   if (i != ii) {
+                     SUMA_LH("Tiz locked %d to sv %d", SUMAg_CF->Locked[i], i);
                      switch (SUMAg_CF->Locked[i]) { 
                         case SUMA_No_Lock:
                            if (LocalHead) 
@@ -2886,11 +2890,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }else{
                /* not locked to anything */
+               SUMA_LH("SV %d not locked to anything", ii);
             }
             break;
                         
          case SE_SetAfniCrossHair:
-            /* expects nothing in EngineData */
+            /* expects a Do_icor flag in i  */
+            if (EngineData->i_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,
+                  "Error %s: Data not destined correctly for %s (%d).\n",
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
             if (  SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
                   sv->LinkAfniCrossHair) {
                SUMA_LH("Sending cross hair nel: SUMA_crosshair_xyz") ;
@@ -2898,6 +2909,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Err("SUMA_makeNI_CrossHair failed");
                   break;
                }
+               if (EngineData->i) NI_set_attribute(nel,"Do_icor", "y");
                if ( (nn = NI_write_element( 
                         SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
                                  nel , NI_TEXT_MODE)) < 0) {

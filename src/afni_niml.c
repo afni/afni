@@ -79,19 +79,6 @@ static int ns_flags[NUM_NIML] ;
 
 #define NS_SUMA 0
 
-/*--------------------------------*/
-/*! If 1, won't send info to SUMA */
-
-static int dont_tell_suma = 1 ;
-
-/*! If 1, won't send func overlay to SUMA */
-
-static int dont_overlay_suma = 1 ;
-
-/*---------------------------------------*/
-/*! If 1, won't listen to info from SUMA */
-
-static int dont_hear_suma = 0 ;
 
 /*----------------------------------------------------------*/
 /*! if 1, display some messages as popups, else to terminal */
@@ -525,8 +512,8 @@ ENTRY("AFNI_niml_workproc") ;
 
    } /* end of loop over input NIML streams */
 
-   dont_tell_suma = 0 ;                              /* talk to SUMA */
-   dont_overlay_suma = 0 ;
+   TELL_SUMA ;                              /* talk to SUMA */
+   OVERLAY_SUMA ;
    AFNI_block_rescan(0) ;  /* 10 Nov 2005 */
 
    /* hopefully the following will never happen */
@@ -663,12 +650,6 @@ ENTRY("AFNI_process_NIML_data") ;
    EXRETURN ;
 }
 
-/*--------------------------------------------------------------------*/
-
-void AFNI_disable_suma_overlay( int aa )
-{
-   dont_overlay_suma = aa ;
-}
 
 /*--------------------------------------------------------------------*/
 /*! Receives notice when user redisplays the functional overlay.
@@ -691,8 +672,8 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    /* check inputs for reasonability 
       Do Not return here if function not visible    ZSS: Oct 2011 */
-   if( dont_tell_suma            ||
-       dont_overlay_suma         ||
+   if( NOT_TELLING_SUMA          ||
+       NOT_OVERLAYING_SUMA       ||
        !IM3D_OPEN(im3d)           ) EXRETURN ;
    
    sess  = im3d->ss_now   ; if( sess->su_num  == 0    ) EXRETURN ;
@@ -1282,7 +1263,7 @@ static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
 
 ENTRY("AFNI_niml_viewpoint_CB") ;
 
-   if( dont_tell_suma                  ||
+   if( NOT_TELLING_SUMA                ||
        !IM3D_OPEN(im3d)                ||
        im3d->ss_now->su_num     == 0   ||
        im3d->ss_now->su_surf[0] == NULL  ) EXRETURN ;
@@ -1543,7 +1524,7 @@ static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
 
 ENTRY("process_NIML_SUMA_ixyz");
 
-   if( dont_hear_suma ) RETURN(0) ;
+   if( NOT_HEARING_SUMA ) RETURN(0) ;
 
    if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
 
@@ -1785,9 +1766,9 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    AFNI_update_all_surface_widgets( sess ) ;  /* 19 Aug 2002 */
 
-   dont_tell_suma = 1 ;
+   DONT_TELL_SUMA ;
    PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
-   dont_tell_suma = 0 ;
+   TELL_SUMA ;
 
 #if 0
    XtSetSensitive( im3d->vwid->imag->pop_sumato_pb, True  ) ;
@@ -1810,7 +1791,7 @@ static int process_NIML_SUMA_ijk( NI_element * nel, int ct_start )
 
 ENTRY("process_NIML_SUMA_ijk");
 
-   if( dont_hear_suma ) RETURN(0) ;
+   if( NOT_HEARING_SUMA ) RETURN(0) ;
 
    if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
 
@@ -1946,9 +1927,9 @@ ENTRY("process_NIML_SUMA_ijk");
 
    SHOW_MESSAGE(msg) ;
 
-   dont_tell_suma = 1 ;
+   DONT_TELL_SUMA ;
    PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
-   dont_tell_suma = 0 ;
+   TELL_SUMA ;
 
    RETURN(0) ;
 }
@@ -1969,7 +1950,7 @@ static int process_NIML_SUMA_node_normals( NI_element * nel, int ct_start )
 
 ENTRY("process_NIML_SUMA_node_normals");
 
-   if( dont_hear_suma ) RETURN(0) ;
+   if( NOT_HEARING_SUMA ) RETURN(0) ;
 
    if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
 
@@ -2103,9 +2084,9 @@ ENTRY("process_NIML_SUMA_node_normals");
 
    SHOW_MESSAGE(msg) ;
 
-   dont_tell_suma = 1 ;
+   DONT_TELL_SUMA ;
    PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
-   dont_tell_suma = 0 ;
+   TELL_SUMA ;
 
    RETURN(0) ;
 }
@@ -2118,7 +2099,7 @@ static int process_NIML_SUMA_crosshair_xyz(NI_element * nel)
 
 ENTRY("process_NIML_SUMA_crosshair_xyz");
 
-   if( dont_hear_suma ) RETURN(0) ;
+   if( NOT_HEARING_SUMA ) RETURN(0) ;
 
    if( nel->vec_len    <  3        ||
        nel->vec_filled <  3        ||
@@ -2132,9 +2113,13 @@ ENTRY("process_NIML_SUMA_crosshair_xyz");
    }
 
    xyz = (float *) nel->vec[0] ;
-   dont_tell_suma = 1 ;
-   AFNI_jumpto_dicom( AFNI_find_open_controller(), xyz[0],xyz[1],xyz[2] );
-   dont_tell_suma = 0 ;
+   if (NI_get_attribute(nel, "Do_icor")) {
+      AFNI_jump_and_seed( AFNI_find_open_controller(), xyz[0],xyz[1],xyz[2]);
+   } else { 
+      DONT_TELL_SUMA ;
+      AFNI_jumpto_dicom( AFNI_find_open_controller(), xyz[0],xyz[1],xyz[2] );
+      TELL_SUMA ;
+   }
    RETURN(0) ;
 }
 
@@ -2159,7 +2144,7 @@ static int process_NIML_Node_ROI( NI_element * nel, int ct_start )
 
 ENTRY("process_NIML_Node_ROI");
 
-   if( dont_hear_suma ) RETURN(0) ;
+   if( NOT_HEARING_SUMA ) RETURN(0) ;
 
    if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
 
@@ -2436,7 +2421,7 @@ STATUS("no nodes in Node_ROI input") ;
 
    DSET_write( dset_func ) ;  /* save to disk */
 
-   dont_overlay_suma = 1 ;
+   DONT_OVERLAY_SUMA ;
 
 STATUS("redisplay Node_ROI function") ;
    MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;

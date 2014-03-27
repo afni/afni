@@ -205,6 +205,8 @@ int SUMA_ParseInput_basics_eng (char *argv[], int argc);
 void WorkErrLog_ns(void);
 SUMA_FileName SUMA_StripPath (char *FileName);
 SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *cwd);
+SUMA_PARSED_NAME * SUMA_ParseFname_eng (char *FileName, char *ucwd, 
+                                        int diskcheck);
 SUMA_PARSED_NAME * SUMA_DuplicateParsedName(SUMA_PARSED_NAME *pn);
 SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn, 
                                           char *what, char *val);

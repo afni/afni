@@ -65,6 +65,42 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27, Mar, 2014, ZSS, "suma-general", MICRO, TYPE_NEW_ENV,
+   "Added SUMA_ObjectDisplayOrder to control object display sequence",
+   "This only affects the rendering in the few instances where alpha\n"
+   "blending is used. Run suma -update_env then search for env in \n"
+   "~/.sumarc for details." 
+ },
+  
+ { 27, Mar, 2014, ZSS, "@auto_tlrc", MICRO, TYPE_NEW_OPT,
+   "Added -overwrite for Stephen Robinson",
+   NULL
+ },
+  
+ { 26, Mar, 2014, ZSS, "afni-general", MINOR, TYPE_NEW_OPT,
+   "Shift+Control+right click in SUMA will trigger Instacorr refresh in AFNI",
+   "This way you can click on an object in SUMA and still get AFNI to \n"
+   "so a volumetric ICOR computation, with all accompnaying talk back to SUMA.\n"
+   "etc.\n"
+ },
+  
+ { 26, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Made double-click right click outside of objects turn off mask movement",
+   NULL
+ },
+  
+ { 26, Mar, 2014, ZSS, "suma-general", MINOR, TYPE_NEW_OPT,
+   "Wrote a new function to handle input events",
+   "New function SUMA_RecordEvent() records X events into a structure\n"
+   "that I can clone and attach into the Pick Results struct. Without\n"
+   "this, I can't tell down the line if a pick was with shift+control\n"
+   "or without it. A problem when deciding what to tell AFNI, for example\n"
+   "The new functions (see also SUMA_ShftCont_Event() and other functions\n"
+   "around it should replace all queries in SUMA_input() about event\n"
+   "qualifiers. Still need to check about handling of button swap, or \n"
+   "conditions when drawing, etc."
+ },
+  
  { 18, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Improved selection logic on slices and for graphs.",
    "Graph selection was changed so that what is rendered is selectable.\n"

@@ -996,10 +996,17 @@ char *SUMA_getcwd(void)
    SUMA_RETURN(cwd);
 }
 
+SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
+{
+   return(SUMA_ParseFname_eng(FileName, ucwd, 1));  
+}
+
 /*!
-   \brief ans = SUMA_ParseFname (FileName, cwd);
+   \brief ans = SUMA_ParseFname (FileName, cwd, diskcheck);
    parses a file name into its elements
    \param FileName (char *) obvious ...
+   \param ucwd (char *) if not null, this is the user supplied current work. dir.
+   \param diskcheck (int) if not 0 check for file's size and existence on disk
    \return ans (SUMA_PARSED_NAME *) pointer to structure with following fields:
       .FileName (char *) containing filename without path and without selectors (see below). 
                         if empty .FileName[0] = '\0'
@@ -1020,9 +1027,10 @@ char *SUMA_getcwd(void)
       
       \sa SUMA_Free_Parsed_Name, SUMA_ShowParsedFname
 */
-SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
+SUMA_PARSED_NAME * SUMA_ParseFname_eng (char *FileName, char *ucwd, 
+                                        int diskcheck)
 {/*SUMA_ParseFname*/
-   static char FuncName[]={"SUMA_ParseFname"};
+   static char FuncName[]={"SUMA_ParseFname_eng"};
    char PathDelimiter='/';
    char *cwd=NULL; 
    int   i, j, iExt , iFile, iPath, iColSel, iRowSel, iNodeSel, 
@@ -1370,15 +1378,23 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
       NewName->HeadName = SUMA_append_string(NewName->Path,NewName->FileName);
       NewName->BrikName = SUMA_append_string(NewName->Path,NewName->FileName);
    }
-   NewName->OnDisk = THD_is_file(NewName->HeadName);
-   NewName->Size = THD_filesize(NewName->HeadName);
+   NewName->OnDisk = -1;
+   NewName->Size = -1;
+   if (diskcheck) {
+      SUMA_LH("Setting OnDisk for %s...", NewName->HeadName);
+      NewName->OnDisk = THD_is_file(NewName->HeadName);
+      if (NewName->OnDisk) {
+         SUMA_LH("Setting filesize for %s...",  NewName->HeadName);
+         NewName->Size = THD_filesize(NewName->HeadName);
+      }
+   }
    if (LocalHead) {
       SUMA_ShowParsedFname(NewName, NULL);
    }
    if (cwd) SUMA_free(cwd);
    
 	SUMA_RETURN (NewName);
-}/*SUMA_ParseFname*/
+}/*SUMA_ParseFname_eng*/
 
 /*!
    \brief Lazy function calls to get at various parts of a file name without the
@@ -3606,7 +3622,9 @@ SUMA_Boolean SUMA_Set_Sub_String(char **cs, char *sep, int ii, char *str)
    SUMA_ENTRY;
    
    if (ii < 0) { SUMA_SL_Err("Bad index"); SUMA_RETURN(NOPE); }
-   if (!cs || !str) { SUMA_SL_Err("NULL input"); SUMA_RETURN(NOPE); }
+   if (!cs || !str) { SUMA_SL_Err("NULL input %p %p", cs, str); 
+                      if (LocalHead) SUMA_DUMP_TRACE("Why"); 
+                      SUMA_RETURN(NOPE); }
    if (!*cs && ii != 0) { 
       SUMA_S_Errv("Bad spot %d with NULL string", ii); SUMA_RETURN(NOPE); }
    if (!*cs && ii == 0) {
@@ -4156,6 +4174,15 @@ static ENV_SPEC envlist[] = {
       "in seconds. See also env SUMA_DriveSumaMaxWait\n",
       "SUMA_DriveSumaMaxCloseWait",
       "5" },
+   {  "Set order in which object types are rendered. This order will affect\n"
+      "the resultant image in the few instances where alpha transparency is\n"
+      "used. The order can be specified for only three types of objects for \n"
+      "now: graphs, surfaces, and volumes. If you want to render graphs first,\n"
+      "followed by volumes then surfaces then set SUMA_ObjectDisplayOrder to\n"
+      "something like: 'graph,vol,surf'. Note the lack of spaces between the\n"
+      "type names.",
+      "SUMA_ObjectDisplayOrder",
+      "vol,graph,surf" },
    
    {  NULL, NULL, NULL  }
 };
