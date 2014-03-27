@@ -863,6 +863,37 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->pick_colid_list = NULL;
       SV->PickPix[0] = SV->PickPix[1] = -1;
       SV->pickrenpix4 = NULL;
+      
+      /* Squence of types to be displayed. Anything not in the list 
+         gets displayed first */
+      SV->otseq[0] = VO_type;
+      SV->otseq[1] = SO_type;
+      SV->otseq[2] = GRAPH_LINK_type;
+      SV->N_otseq = 3;
+      {
+         NI_str_array *sar = NULL;
+         int iii, cnt = 0;
+         char *eee = getenv("SUMA_ObjectDisplayOrder");
+         if (eee && (sar = SUMA_NI_decode_string_list( eee , ",;"))) {
+            for (iii=0; iii<sar->num; ++iii) {
+               if (sar->str[iii]) {
+                         if (strcasestr(sar->str[iii],"sur")==sar->str[iii]) {
+                     SV->otseq[cnt++] = SO_type;
+                  } else if (strcasestr(sar->str[iii],"vol")==sar->str[iii]) {
+                     SV->otseq[cnt++] = VO_type;
+                  } else if (strcasestr(sar->str[iii],"gra")==sar->str[iii]) {
+                     SV->otseq[cnt++] = GRAPH_LINK_type;
+                  } else {
+              SUMA_S_Warn("Object type %s in env SUMA_ObjectDisplayOrder\n"
+                          "was not recognized. For now only 'surface'\n"
+                          "'volume', and 'graph' are allowed.\n", sar->str[iii]);
+                  }
+               }
+            }
+            if (cnt) SV->N_otseq = cnt;
+            sar = SUMA_free_NI_str_array(sar);
+         }
+      } 
    }
    SUMA_RETURN (SVv);
 }
@@ -4222,6 +4253,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->SaveList = NULL;
    
    cf->YokeIntToNode = 0;
+   
+   cf->lev = NULL;
    return (cf);
 
 }
@@ -4583,7 +4616,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
       SurfCont->UseMaskLen = 0; /* leave it off, let it be activated in GUI */
    else
       SurfCont->UseMaskLen = 0;
-  return (SurfCont);
+      
+   return (SurfCont);
 }
 
 SUMA_X_SurfCont *SUMA_GlobalMaskContStruct(char *idcode)
@@ -4781,6 +4815,10 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    
    if (cf->SaveList) {
       dlist_destroy(cf->SaveList); SUMA_free(cf->SaveList);
+   }
+   
+   if (cf->lev) {
+      SUMA_free(cf->lev); cf->lev = NULL;
    }
    
    /* if (cf) free(cf); */ /* don't free this stupid pointer since it is used

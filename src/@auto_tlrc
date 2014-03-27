@@ -41,6 +41,8 @@ PARSE:
    set copy_base = ""
    set out_space = ""
    set delete_pre = 0
+   set over = 0
+   set OW = ' '
    
    if ("$1" == '') goto HELP
 
@@ -53,6 +55,12 @@ PARSE:
 
       if ($donext && "$argv[$cnt]" == "-echo") then
          set echo
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-overwrite") then
+         set over = 1
+         set OW = '-overwrite '
          set donext = 0   
       endif
 
@@ -388,7 +396,7 @@ PARSE:
       set NIpref = `echo "$prs_in[2]" | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
       set RNS = `3dnewid -hash NIpref`
       echo "Copying NIFTI volume to $prs_in[1]/${NIpref}_${RNS}"
-      3dcopy "$anat_in" $prs_in[1]/${NIpref}_${RNS}
+      3dcopy -overwrite "$anat_in" $prs_in[1]/${NIpref}_${RNS}
       set anat_in = ($prs_in[1]/${NIpref}_${RNS}+????.HEAD)
       if ($#anat_in != 1) then
          echo "Failed to copy NIFTI input ($anat_in)"
@@ -405,7 +413,7 @@ PARSE:
    if ($#prs_in > 3) then
       set anat_in2 = $prs_in[1]/$prs_in[2]"_$prs_in[4]"$prs_in[3]
       echo "Copying sub-brick $prs_in[3] to $anat_in2"
-      3dcalc -a "$anat_in" -expr "a" -prefix $anat_in2
+      3dcalc ${OW} -a "$anat_in" -expr "a" -prefix $anat_in2
       if ( `@CheckForAfniDset ${anat_in2}` != 2 ) then
          echo "Error: Anatomical dset copy ${anat_in2} not found."
          goto END
@@ -436,7 +444,7 @@ PARSE:
          set prexform = (`ls ${pp}_shft.1D`)
          1dmatcalc "&read4x4Xform($prexform) &write(stdout:)" > ${pp}_44.1D
          mv ${pp}_44.1D $prexform
-         3drename ${pp}_shft ${tmppref}_${pp}_shft
+         3drename ${OW} ${pp}_shft ${tmppref}_${pp}_shft
          if ( ! -f $prexform ) then
             echo "Failed to create AUTO_CENTER xform"
             goto BEND
@@ -517,7 +525,7 @@ PARSE:
    if ("$isNIFTI" == 1) then
       if ($suf == '') set suf = '_at'
       set out_pref = ${NIpref}${suf}
-      if ( -f ${out_pref}.nii) then
+      if ( -f ${out_pref}.nii && $over == 0) then
          echo "ERROR: ${out_pref}.nii exists already"
          goto BEND
       endif
@@ -580,26 +588,29 @@ if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
 endif 
 
 if ($KeepView == 1) then
-   if ( `@CheckForAfniDset ${tt_pref}${anat_view}` != 0 ) then
+   if ( `@CheckForAfniDset ${tt_pref}${anat_view}` != 0 && ${over} == 0) then
       echo "Error: Output dset ${tt_pref}${anat_view} exists"
       set estat = 1
       goto END
    endif
    if ($acpciate == 1) then
-      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${anat_view}` != 0 ) then
+      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${anat_view}` != 0 \
+           && ${over} == 0) then
          echo "Error: Output dset ${tt_pref}.Xat.rigid${anat_view} exists"
          set estat = 1
          goto END
       endif
    endif
 else
-   if ( `@CheckForAfniDset ${tt_pref}${ref_view}` != 0 ) then
+   if ( `@CheckForAfniDset ${tt_pref}${ref_view}` != 0 \
+        && ${over} == 0 ) then
       echo "Error: Output dset ${tt_pref}${ref_view} exists"
       set estat = 1
       goto END
    endif
    if ($acpciate == 1) then
-      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${ref_view}` != 0 ) then
+      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${ref_view}` != 0  \
+            && ${over} == 0) then
          echo "Error: Output dset ${tt_pref}.Xat.rigid${ref_view} exists"
          set estat = 1
          goto END
@@ -678,13 +689,14 @@ AUTO_TLRC_MODE:
    endif
 
    SS:
-   if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 ) then
+   if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 || \
+        ($RemoveSkull == 1 && $over == 1) ) then
       if ("$ss_opt" != "") then
          echo "Skull Stripping (with options ${ss_opt})..."
       else 
          echo "Skull Stripping ..."
       endif
-      3dSkullStrip   -input ${anat_path}/${anat_pref}${anat_view} \
+      3dSkullStrip   ${OW} -input ${anat_path}/${anat_pref}${anat_view} \
                      -prefix ${ns_pref} ${ss_opt}
       if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 ) then
          echo "Error: Failed to create skull stripped brain"
@@ -722,20 +734,20 @@ AUTO_TLRC_MODE:
       #  since it will be used in registration.
       #But that causes edge artifacts from interpolation. 
       #  Use a resampled mask to cleanup
-      3dresample -rmode Cu -master ${ref_pref_pad}${ref_view} \
+      3dresample ${OW} -rmode Cu -master ${ref_pref_pad}${ref_view} \
                   -inset ${ns_pref}${anat_view} \
                   -prefix ./${tmppref}_resamp_edge_art
       if ($status) then
             echo "Failed to resample"
             goto BEND  
       endif            
-      3dcalc   -a "${ns_pref}${anat_view}" \
+      3dcalc   ${OW} -a "${ns_pref}${anat_view}" \
                -expr "step(a)*10000" \
                -prefix ./${tmppref}_resamp_step
-      3dresample  -rmode Linear -master ${ref_pref_pad}${ref_view} \
+      3dresample  ${OW} -rmode Linear -master ${ref_pref_pad}${ref_view} \
                   -inset ${tmppref}_resamp_step${anat_view} \
                   -prefix ./${tmppref}_resamp_NN
-      3dcalc   -a "${tmppref}_resamp_edge_art${ref_view}." \
+      3dcalc   ${OW} -a "${tmppref}_resamp_edge_art${ref_view}." \
                -b "${tmppref}_resamp_NN${ref_view}." \
                -expr "a*step(b-5000)" -prefix ./${tmppref}_resamp
       if ( `@CheckForAfniDset ${tmppref}_resamp${ref_view}` != 2 ) then
@@ -748,11 +760,25 @@ AUTO_TLRC_MODE:
       set min = `ccalc -eval "$range[1] - 0.0001"`
       set max = `ccalc -eval "$range[2] + 0.0001"`
       echo "Clipping $min $max ..."
-      3dcalc   -a ${tmppref}_resamp${ref_view} \
+      3dcalc   ${OW} -a ${tmppref}_resamp${ref_view} \
                -expr "a*step(a-$min)*step($max-a) + $range[1]*step($range[1]-a) + $range[2]*step(a-$range[2])" \
                -prefix ${rs_pref} 
+      if ( -f ${rs_pref}${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${rs_pref}${anat_view}.HEAD ${rs_pref}${anat_view}.BRIK* 
+      endif
       3drefit -view ${anat_view} ${rs_pref}${ref_view}.HEAD
+      if ( -f ${tmppref}_resamp_NN${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmppref}_resamp_NN${anat_view}.HEAD \
+                ${tmppref}_resamp_NN${anat_view}.BRIK* 
+      endif
       3drefit -view ${anat_view} ${tmppref}_resamp_NN${ref_view}.HEAD
+      if ( -f ${tmppref}_resamp_edge_art${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmppref}_resamp_edge_art${anat_view}.HEAD \
+                ${tmppref}_resamp_edge_art${anat_view}.BRIK* 
+      endif
       3drefit -view ${anat_view} ${tmppref}_resamp_edge_art${ref_view}.HEAD
       if ( $KeepTmp == 0) \rm -f ${tmppref}_resamp* >& /dev/null 
       if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
@@ -780,7 +806,7 @@ AUTO_TLRC_MODE:
    set Converged = 0
    while ($Converged == 0 && $pass < 3)
       \rm -f ${ns_pref}_WarpDrive.log >& /dev/null
-      3dWarpDrive ${maxite} ${spopt}  ${npass} \
+      3dWarpDrive ${OW} ${maxite} ${spopt}  ${npass} \
                   -${xform_type} -cubic  \
                   -final ${rmode} -1Dmatrix_save ${ns_pref}.Xaff12.1D \
                   -base ${ref_pref_pad}${ref_view} \
@@ -823,7 +849,7 @@ AUTO_TLRC_MODE:
                echo "registration without shearing."
                echo ""
                set xform_type = 'shift_rotate_scale'
-               3drename ${tmppref}_reg_warpdriveout${anat_view}   \
+               3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
                         ${tmppref}_reg_warpdriveout_NoConvergence
                set Converged = 0
                set pass = 2
@@ -873,7 +899,7 @@ AUTO_TLRC_MODE:
                echo "been reached. "
                echo "Doubling number of iterations"
                echo ""
-               3drename ${tmppref}_reg_warpdriveout${anat_view}   \
+               3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
                         ${tmppref}_reg_warpdriveout_maxed_iters
                set ans = `ccalc -form int "2 * $nitermax"`
                set maxite = "-maxite $ans"
@@ -976,7 +1002,7 @@ AUTO_TLRC_MODE:
    endif
    
    WARP_INPUT_BY_XFORM:
-   3dWarp   -matvec_out2in ${out_pref}.Xat.1D \
+   3dWarp  ${OW} -matvec_out2in ${out_pref}.Xat.1D \
                -${rmode} -prefix ./${tt_prefpad} \
                -gridset ${tmppref}_gridout${anat_view} \
                ${nopre_anat_in}
@@ -1026,6 +1052,10 @@ AUTO_TLRC_MODE:
    
    if ($KeepView == 0) then
       echo "Changing view of transformed anatomy"
+      if ( -f ${tt_prefupad}${ref_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tt_prefupad}${ref_view}.HEAD ${tt_prefupad}${ref_view}.BRIK* 
+      endif
       3drefit -view ${ref_view} ${tt_prefupad}${anat_view}.HEAD
       if ("${ref_view}" == "+tlrc" && "${anat_view}" == "+orig") then
          #Now add a 3drefit line to specify the warp parent
@@ -1034,15 +1064,15 @@ AUTO_TLRC_MODE:
       endif
       #finally, rename the damned thing
       if ("$isNIFTI" == 1) then
-         3dAFNItoNIFTI -prefix ${out_pref}.nii ${tt_prefupad}${ref_view} 
+         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii ${tt_prefupad}${ref_view} 
       else
-         3drename ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
+         3drename ${OW} ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
       endif
    else
       if ("$isNIFTI" == 1) then
-         3dAFNItoNIFTI -prefix ${out_pref}.nii ${tt_prefupad}${anat_view} 
+         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii ${tt_prefupad}${anat_view} 
       else
-         3drename ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
+         3drename ${OW} ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
       endif
    endif
    
@@ -1053,7 +1083,7 @@ AUTO_TLRC_MODE:
       #create a version witout scaling
       cat_matvec  ${out_pref}${ref_view}::WARPDRIVE_MATVEC_FOR_000000 -P \
                   > ${out_pref}.Xat.rigid.1D
-      3dWarp   -matvec_out2in ${out_pref}.Xat.rigid.1D \
+      3dWarp   ${OW} -matvec_out2in ${out_pref}.Xat.rigid.1D \
                -gridset ${out_pref}${ref_view} \
                -${rmode} -prefix ${out_pref}.Xat.rigid \
                ${nopre_anat_in}
@@ -1068,22 +1098,27 @@ AUTO_TLRC_MODE:
       endif
 
       # reset the space of the output to be ACPC
-      3drefit -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
+      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
 
       3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
                -h "Dataset created via: `basename $0` $argv[*]" \
                ${out_pref}.Xat.rigid${anat_view}
       if ($KeepView == 0) then
          echo "Changing view of rigid_equiv anatomy"
+         if ( -f ${out_pref}.Xat.rigid${ref_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+            \rm -f ${out_pref}.Xat.rigid${ref_view}.HEAD \
+                   ${out_pref}.Xat.rigid${ref_view}.BRIK*
+         endif
          3drefit -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
          if ("$isNIFTI" == 1) then
-            3dAFNItoNIFTI -prefix $NIpref.Xat.rigid.nii \
+            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii \
                      ${out_pref}.Xat.rigid${ref_view}.HEAD 
             \rm -f ${out_pref}.Xat.rigid${ref_view}.*
          endif
       else
          if ("$isNIFTI" == 1) then
-            3dAFNItoNIFTI -prefix $NIpref.Xat.rigid.nii \
+            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii \
                           ${out_pref}.Xat.rigid${anat_view}.HEAD 
             \rm -f ${out_pref}.Xat.rigid${anat_view}.*
          endif
@@ -1106,14 +1141,14 @@ APAR_MODE:
    endif
    
    echo "Padding the input data before warping"
-   3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm \
+   3dZeropad   ${OW} -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm \
                -prefix ./${tmppref}_ipad ${ns_pref}${anat_view}
    if ($status) then
          echo "Failed to pad"
          goto BEND  
    endif  
    echo "Creating grid at (${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]})mm RAI resolution..."
-   3dresample  -master ${ref_in} \
+   3dresample  ${OW} -master ${ref_in} \
                -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
                -prefix ./${tmppref}_warp_grid \
                -inset ${ref_in} \
@@ -1124,7 +1159,7 @@ APAR_MODE:
    endif            
    if ($OneWarp) then
       echo "Direct warping per parent transform ($rmode interpolation) ..."
-      3dWarp   -matparent ${ref_nopad} \
+      3dWarp  ${OW}  -matparent ${ref_nopad} \
             -gridset ${tmppref}_warp_grid${ref_view} \
             -prefix ./${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
@@ -1136,13 +1171,18 @@ APAR_MODE:
       #Keep old way involving two interpolations for backward
       #compatibility
       echo "Warping per parent transform ($rmode interpolation) and resampling with $resam interpolation (use -onewarp for single interpolation) ..."
-      3dWarp   -matparent ${ref_nopad} \
+      3dWarp ${OW} -matparent ${ref_nopad} \
             -prefix ./${tmp_out_pref} -${rmode} \
             ${tmppref}_ipad${anat_view}
       #Change view of master or else 3dresample will force a change
       
       if (${ref_view} == '') then
          set ref_view = `3dinfo -av_space ${ref_in}`
+      endif
+      if ( -f ${tmppref}_warp_grid${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmppref}_warp_grid${anat_view}.HEAD \
+                ${tmppref}_warp_grid${anat_view}.BRIK*
       endif
       3drefit -view ${anat_view} ${tmppref}_warp_grid${ref_view}
       3dresample  -master ${tmppref}_warp_grid${anat_view} \
@@ -1198,12 +1238,19 @@ APAR_MODE:
    
    if ($KeepView == 0) then
       echo "Changing view of xformed volumes"
+      if ( -f ${tmp_out_pref}${ref_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmp_out_pref}${ref_view}.HEAD \
+                ${tmp_out_pref}${ref_view}.BRIK*
+      endif
       3drefit -view ${ref_view} ${tmp_out_pref}${anat_view}.HEAD
       if ("$isNIFTI" == 1) then
-            3dAFNItoNIFTI -prefix ${out_pref}.nii ${tmp_out_pref}${ref_view} 
+            3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii \
+                          ${tmp_out_pref}${ref_view} 
       else
-         if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1) then
-            3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}
+         if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1 || \
+              $over == 1) then
+            3drename ${OW} ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}
          else
             echo "ERROR: Final output ${out_pref}${ref_view} is already on disk"
             echo "   Aborted command:"
@@ -1214,10 +1261,11 @@ APAR_MODE:
       endif
    else
       if ("$isNIFTI" == 1) then
-         3dAFNItoNIFTI -prefix ${out_pref}.nii ${tmp_out_pref}${anat_view}
+         3dAFNItoNIFTI $OW -prefix ${out_pref}.nii ${tmp_out_pref}${anat_view}
       else
-         if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1) then
-            3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}
+         if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1 || \
+              $over == 1) then
+            3drename ${OW} ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}
          else
             echo "ERROR: Final output ${out_pref}${anat_view} is already on disk"
             echo "   Aborted command:"
@@ -1252,7 +1300,7 @@ if ($KeepTmp != 1) then
       set kl = (`\ls *_${RNS}+????.HEAD *_${RNS}_shft+????.HEAD`)
       foreach kk ($kl)
          set k = `echo $kk | sed "s/_${RNS}//"`
-         3drename $kk $k
+         3drename ${OW} $kk $k
       end
       set kl = (`\ls *_${RNS}_shft.1D`)
       foreach kk ($kl)
@@ -1514,6 +1562,14 @@ echo "      -out_space spacename: Set output to a particular space"
 echo "                       Usually, output space is determined by the space"
 echo "                       of the input template and does not need to set"
 echo "                       explicitly here"
+echo ""
+echo "      -overwrite: Overwrite existing output. "
+echo "                  With this option, 3dSkullstrip will get rerun even"
+echo "                  if skull stripped volume is found on disk, unless of"
+echo "                  course you use the -no_ss option."
+echo "                  This option has not been fully tested under the myriad"
+echo "                  combinations possible. So check closely the first"
+echo "                  time you use it, if use it you must" 
 echo ""                      
 echo "Note on the subject of transforms:"
 echo "   The script will output the final transform in a 1D file with the"
@@ -1728,14 +1784,14 @@ COPY_FIELDS:
    
 APPLY_MASK:      
    echo "Applying brain mask"
-   3dcalc   -a "${mskvol}" -overwrite \
+   3dcalc   ${OW} -a "${mskvol}" -overwrite \
             -expr "step(a)*10000" -prefix ./${tmppref}_reg_braintlrcstep
-   3dWarp   -matparent ${mskwrppar} -overwrite \
+   3dWarp   ${OW} -matparent ${mskwrppar} -overwrite \
             -gridset ${ttvolpref}${anat_view}   \
             -linear -prefix ./${tmppref}_reg_braintlrcmask \
             ${tmppref}_reg_braintlrcstep${anat_view}    
-   3drename ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
-   3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
+   3drename ${OW} ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
+   3dcalc   ${OW} -a "${tmppref}_reg_braintlrcmask${anat_view}" \
             -b "${ttvolpref}${nomskpref}${anat_view}" \
             -expr "step(a-5000)*b" \
             -prefix ./${ttvolpref}${anat_view}

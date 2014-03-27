@@ -1190,6 +1190,33 @@ SUMA_Boolean SUMA_Set_MaskDO_Cen(SUMA_MaskDO *mdo, float *cen)
    SUMA_RETURN(YUP);   
 }
 
+int SUMA_MDO_New_parent(SUMA_MaskDO *mdo, char *parent, int parent_datum_index)
+{
+   if (!mdo) return(0);
+   SUMA_ifree(mdo->Parent_idcode_str);
+   if (parent) {
+      mdo->Parent_idcode_str = SUMA_copy_string(parent);
+      mdo->Parent_datum_index = parent_datum_index;
+   } else {
+      mdo->Parent_datum_index = -1;
+   }
+   return(1);
+}
+
+int SUMA_MDO_New_Doppel(SUMA_MaskDO *mdo, float *xyz)
+{
+   if (!mdo) return(0);
+   if (!xyz) {
+      mdo->dodop = 0;
+      mdo->dopxyz[0] = mdo->dopxyz[1] =  mdo->dopxyz[2] = 0.0;
+   } else {
+      mdo->dodop = 1;
+      mdo->dopxyz[0] = xyz[0];
+      mdo->dopxyz[1] = xyz[1];
+      mdo->dopxyz[2] = xyz[2];
+   }
+   return(1);
+}
 
 int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim, 
                         float *col, char *Label, char *Type, 
@@ -1692,7 +1719,10 @@ SUMA_MaskDO * SUMA_Alloc_MaskDO (int N_n, char *Label, char *label_for_hash,
    }
       
    MDO->trans = STM_8;
-      
+   MDO->dodop = 0;
+   MDO->dopxyz[0] = MDO->dopxyz[1] = MDO->dopxyz[2] = 0;
+   MDO->Parent_datum_index = -1;
+        
    SUMA_RETURN (MDO);
 }
 
@@ -5633,6 +5663,24 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
       MDO->SO->FaceSetDim = 4;
    }
    SUMA_SimpleDrawMesh(MDO->SO,NULL,sv);
+   if (MDO->dodop && SV_IN_PRYING(sv)) {
+      float delta[3], psize;
+      int pmode;
+      delta[0] = MDO->cen[0]-MDO->dopxyz[0];
+      delta[1] = MDO->cen[1]-MDO->dopxyz[1];
+      delta[2] = MDO->cen[2]-MDO->dopxyz[2];
+      
+      glPushMatrix();
+      glTranslatef(-delta[0], -delta[1], -delta[2]);
+      pmode = MDO->SO->PolyMode;
+      psize = MDO->SO->PointSize;
+      MDO->SO->PolyMode = SRM_Points;
+      MDO->SO->PointSize = 4.0;
+      SUMA_SimpleDrawMesh(MDO->SO,NULL,sv);
+      MDO->SO->PolyMode = pmode;
+      MDO->SO->PointSize = psize;
+      glPopMatrix();
+   }
    if (MDO_IS_BOX(MDO)) {
       /* Return SO to triangles */
       MDO->SO->glar_FaceSetList = tFaceSet;
@@ -10627,8 +10675,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          }
          glEnd();
          SUMA_CHECK_GL_ERROR("Post End");
-      } else {/* slow slow slow, variable stippling, edge thickness, or both*/
-         SUMA_S_Warn("This block has not been kept up and should be deleted");
+      } else {/* variable stippling, edge thickness, or both */
          if (!sv->DO_PickMode) {
             if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
             glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
@@ -10655,9 +10702,15 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             }
             
             /* get position of node n in NodeList */
-            cn  = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n); 
+            if ((cn = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n))< 0){
+               SUMA_LH("Failed to get index of node %d",n);
+               ++i; continue;
+            }  
                cn3 = 3*cn;
-            cn1 = SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1); 
+            if ((cn1=SUMA_NodeIndex_To_Index(DDO.NodeIndex, DDO.N_Node, n1))< 0){
+               SUMA_LH("Failed to get index of node %d",n1);
+               ++i; continue;
+            }
                cn13 = 3*cn1;
             
             if (cn<DDO.N_Node && cn1 < DDO.N_Node && 
@@ -10665,6 +10718,11 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                i3 = 3*i;
                if (NodeMask && 
                    (cn != cn1)) { NodeMask[cn] = 1; NodeMask[cn1] = 1; }
+               
+               if (NoEdges) { /* Don't draw the edge, just continue */
+                  ++i; continue;
+               }
+               
                if (curcol->EdgeStip == SW_SurfCont_DsetEdgeStipVal) {
                   istip = 16-(int)((SUMA_ABS(curcol->V[i]))*Sfac);
                   
@@ -16468,7 +16526,7 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
          glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
          SUMA_LH("Ready to draw Elements %d, %p, %p %p\n", 
                   SurfObj->N_FaceSet, SurfObj->glar_NodeList,
-                  SurfObj->glar_NodeNormList, SurfObj->glar_FaceSetList); 
+                  SurfObj->glar_NodeNormList, SurfObj->glar_FaceSetList);                  if (SurfObj->PointSize >= 0.0) glPointSize(SurfObj->PointSize);
          switch (RENDER_METHOD) {
             case TRIANGLES:
                if (NP==3) {
@@ -16505,6 +16563,9 @@ void SUMA_SimpleDrawMesh(SUMA_SurfaceObject *SurfObj,
          /*fprintf(stdout, "Out SUMA_DrawMesh, ARRAY mode\n");*/
          
          glDisable(GL_COLOR_MATERIAL);
+         
+         /* reset point size */
+         if (SurfObj->PointSize >= 0.0) glPointSize(1.0);
          
          break;
 
@@ -18005,7 +18066,8 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       }  
       
-      sprintf (stmp,"RenderMode: %d\n", SO->PolyMode);
+      sprintf (stmp,"RenderMode: %d (pointsize %f)\n", 
+               SO->PolyMode, SO->PointSize);
       SS = SUMA_StringAppend (SS,stmp);
 
       sprintf (stmp,"TransMode: %d\n", SO->TransMode);
@@ -19091,6 +19153,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].NodeNIDOObjects = NULL;
       SO[i].NodeAreas = NULL;
       
+      SO[i].PointSize = -1.0;
       SUMA_EmptyVisXform(&(SO[i].VisX0));
       SUMA_EmptyVisXform(&(SO[i].VisX));
      }

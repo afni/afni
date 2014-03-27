@@ -234,6 +234,9 @@ sets the select color of the widget to its foreground color */
 #define SUMA_SV_CHAR(csv) \
    (char)( csv ? (65+SUMA_WhichSV((csv), SUMAg_SVv, SUMA_MAX_SURF_VIEWERS)):'-' )
 
+#define SV_IN_PRYING(sv) (( (sv) && \
+                            ((sv)->GVS[(sv)->StdView].LHpry  != 0.0f ) ) ? 1:0)
+
 /* Make sure recording path is legit */
 #define SUMA_VALIDATE_RECORD_PATH(autorecord) {\
    if (!THD_mkdir((autorecord)->Path)) {  \

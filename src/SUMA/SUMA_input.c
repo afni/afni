@@ -2580,6 +2580,8 @@ int SUMA_Add_to_SaveList(DList **SLp, char *type,
       SL = (DList*)SUMA_malloc(sizeof(DList));
       dlist_init(SL, SUMA_free_Save_List_El);
    }
+   SUMA_LH("Searching for possible identifier >%s<", 
+            identifier?identifier:"NULL");
    /* first make sure identifier is not there already */
    el = dlist_head(SL);
    while (el && identifier) {
@@ -3321,8 +3323,425 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
 #define SUMA_ALTHELL ( (Kev.state & Mod1Mask) || \
                        (Kev.state & Mod2Mask) ||  \
                        (Kev.state & SUMA_APPLE_AltOptMask) )
-                       
-/*! Mouse and Keyboard input handler function for SUMA's viewer*/
+
+char *SUMA_Butts2String(SUMA_EVENT *ev)
+{
+   static char ccs[10][32];
+   static int icall=0;
+   char *cc;
+   int nb=0, mot;
+   
+   ++icall; if (icall>9) icall=0;
+   cc = (char *)ccs[icall]; cc[0]='\0';
+   
+   if (ev->b1) {cc[nb++]='1'; cc[nb++]='&'; mot = 0;}
+   if (ev->b2) {cc[nb++]='2'; cc[nb++]='&'; mot = 0;}
+   if (ev->b3) {cc[nb++]='3'; cc[nb++]='&'; mot = 0;}
+   if (ev->b4) {cc[nb++]='4'; cc[nb++]='&'; mot = 0;}
+   if (ev->b5) {cc[nb++]='5'; cc[nb++]='&'; mot = 0;}
+   if (ev->b6) {cc[nb++]='6'; cc[nb++]='&'; mot = 0;}
+   if (ev->b7) {cc[nb++]='6'; cc[nb++]='&'; mot = 0;}
+   if (ev->b1m) {cc[nb++]='1'; cc[nb++]='&'; mot = 1;}
+   if (ev->b2m) {cc[nb++]='2'; cc[nb++]='&'; mot = 1;}
+   if (ev->b3m) {cc[nb++]='3'; cc[nb++]='&'; mot = 1;}
+   if (ev->b4m) {cc[nb++]='4'; cc[nb++]='&'; mot = 1;}
+   if (ev->b5m) {cc[nb++]='5'; cc[nb++]='&'; mot = 1;}
+   
+   if (nb>1) nb = nb-1; /* Get rid of last & */
+   cc[nb] = '\0';
+   return(cc);
+}
+
+char *SUMA_KeyType2String(int kt) 
+{
+   switch(kt) {
+      case KeyPress:
+         return("key");
+      case ButtonRelease:
+         return("release");
+      case ButtonPress:
+         return("press");
+      case MotionNotify:
+         return("motion");
+      default:
+         return("UNKNOWN");
+   }
+}
+
+void SUMA_ShowEvent(SUMA_EVENT *ev, int opt, char *pre) 
+{
+   static char FuncName[]={"SUMA_ShowEvent"};
+   static int icall=0;
+   char *s = NULL;
+   SUMA_STRING *SS = NULL;
+   FILE *out = stderr;
+   
+   SUMA_ENTRY;
+
+   SS = SUMA_StringAppend(NULL, NULL);
+
+   if (pre) SUMA_StringAppend(SS,pre);
+   if (!ev) {
+      SUMA_StringAppend(SS,"NULL ev\n"); goto OUT;
+   }
+   ++icall;
+   if (!opt) {
+      SUMA_StringAppend_va(SS,"Event Struct (set %d, callid %d)\n"
+                        "   ktype %d kstate %d transl %s\n"
+                        "   keysym %d mtype %d mstate %d\n"
+                        "   bButton %d mButton %d\n"
+                        "   bTime %ld  mTime %ld\n"
+                        "   mX %d mY %d bX %d bY %d\n"
+                        "   mDelta %d, mDeltaX %d, mDeltaY %d\n"
+               "   shift %d control %d mod1 %d mod2 %d mod3 %d mod4 %d mod5 %d\n"
+                        "   ApplAltOpt %d DoubleClick %d\n"
+                        "   b1 %d b2 %d b3 %d b4 %d b5 %d b6 %d b7 %d\n"
+                        "   b1m %d b2m %d b3m %d b4m %d b5m %d\n",
+                        ev->set, icall,
+                        ev->ktype, ev->kstate, ev->transl,
+                        ev->keysym, ev->mtype, ev->mstate,
+                        ev->bButton, ev->mButton,
+                        ev->bTime, ev->mTime,
+                        ev->mX, ev->mY, ev->bX, ev->bY,
+                        ev->mDelta, ev->mDeltaX, ev->mDeltaY,
+      ev->Shift, ev->Control, ev->Mod1, ev->Mod2, ev->Mod3, ev->Mod4, ev->Mod5,
+                        ev->AppleAltOpt, ev->DoubleClick,
+                        ev->b1, ev->b2, ev->b3, ev->b4, ev->b5, ev->b6, ev->b7,
+                        ev->b1m, ev->b2m, ev->b3m, ev->b4m, ev->b5m);
+   } else {
+      /* More readable mode */
+      SUMA_StringAppend_va(SS,"Input Event %d: %s   \n", 
+            icall, ev->set ? "":"WARNING Event Struct Not Set!" );
+      if (ev->ktype == KeyPress) {
+         SUMA_StringAppend_va(SS,"%s: char>>%s<< sym>>%d<< ", 
+                           SUMA_KeyType2String(ev->ktype),
+                           ev->transl, (int)ev->keysym);
+      } else {
+         SUMA_StringAppend_va(SS,"Mouse %s %s%s: ", 
+            SUMA_Butts2String(ev),
+            SUMA_KeyType2String(ev->ktype), 
+            ev->DoubleClick ? " double click":"");
+         if (ev->b1) SUMA_StringAppend_va(SS,"b1 ",ev->b1);
+         if (ev->b2) SUMA_StringAppend_va(SS,"b2 ",ev->b2);
+         if (ev->b3) SUMA_StringAppend_va(SS,"b3 ",ev->b3);
+         if (ev->b4) SUMA_StringAppend_va(SS,"b4 ",ev->b4);
+         if (ev->b5) SUMA_StringAppend_va(SS,"b5 ",ev->b5);
+         if (ev->b6) SUMA_StringAppend_va(SS,"b6 ",ev->b6);
+         if (ev->b7) SUMA_StringAppend_va(SS,"b7 ",ev->b7);
+         if (ev->b1m) SUMA_StringAppend_va(SS,"m1 ",ev->b1m);
+         if (ev->b2m) SUMA_StringAppend_va(SS,"m2 ",ev->b2m);
+         if (ev->b3m) SUMA_StringAppend_va(SS,"m3 ",ev->b3m);
+         if (ev->b4m) SUMA_StringAppend_va(SS,"m4 ",ev->b4m);
+         if (ev->b5m) SUMA_StringAppend_va(SS,"m5 ",ev->b5m);
+      }
+      if (ev->Shift) {
+         SUMA_StringAppend_va(SS,"Shift ");
+      }
+      if (ev->Control){
+         SUMA_StringAppend_va(SS,"Control ");
+      }
+      if (ev->Mod1){
+         SUMA_StringAppend_va(SS,"alt ");
+      }
+      if (ev->Mod2){
+         SUMA_StringAppend_va(SS,"Mod2 (command on mac) ");
+      }
+      if (ev->Mod3){
+         SUMA_StringAppend_va(SS,"Mod3 ");
+      }
+      if (ev->Mod4){
+         SUMA_StringAppend_va(SS,"Mod4 ");
+      }
+      if (ev->Mod5){
+         SUMA_StringAppend_va(SS,"Mod5 ");
+      }
+      if (ev->Mod2){
+         SUMA_StringAppend_va(SS,"Mod2 ");
+      }
+      if (ev->AppleAltOpt){
+        SUMA_StringAppend_va(SS,"Apple Alt/Opt ");
+      }
+      SUMA_StringAppend_va(SS,"k/mstate [%d/%d]\n\n", ev->kstate, ev->mstate);
+   }
+   OUT:
+   SUMA_SS2S(SS,s);
+   
+   fprintf(out,"%s",s);
+   
+   SUMA_ifree(s);
+   
+   SUMA_RETURNe;
+}
+
+#define evALT ((ev->Mod1 || ev->Mod2 || ev->AppleAltOpt))
+int SUMA_ShftCont_Event(SUMA_EVENT *ev) 
+{
+   if (!ev || !ev->set) return(0);
+   if (ev->Shift && ev->Control && !evALT) return(1);
+   return(0);
+}
+int SUMA_Cont_Event(SUMA_EVENT *ev) 
+{
+   if (!ev || !ev->set) return(0);
+   if (!ev->Shift && ev->Control && !evALT) return(1);
+   return(0);
+}
+int SUMA_Shft_Event(SUMA_EVENT *ev) 
+{
+   if (!ev || !ev->set) return(0);
+   if (ev->Shift && !ev->Control && !evALT) return(1);
+   return(0);
+}
+int SUMA_ShftContAlt_Event(SUMA_EVENT *ev) 
+{
+   if (!ev || !ev->set) return(0);
+   if (ev->Shift && ev->Control && evALT ) return(1);
+   return(0);
+}
+int SUMA_ContAlt_Event(SUMA_EVENT *ev) 
+{
+   if (!ev || !ev->set) return(0);
+   if (!ev->Shift && ev->Control && evALT ) return(1);
+   return(0);
+}
+int SUMA_ShftAlt_Event(SUMA_EVENT *ev) 
+{
+   if (!ev || !ev->set) return(0);
+   if (ev->Shift && !ev->Control && evALT ) return(1);
+   return(0);
+}
+int SUMA_Alt_Event(SUMA_EVENT *ev) 
+{
+   if (!ev || !ev->set) return(0);
+   if (!ev->Shift && !ev->Control && evALT) return(1);
+   return(0);
+}
+
+/*! Get a record of events.
+    Contents based on logic used in SUMA_input()
+    Ideally, all should be done here and SUMA_input()
+    should use the results of this call. But we're not
+    there yet....
+    Once I start using this one call, then the logic
+    can be revisited at varied points in there.
+*/                       
+SUMA_EVENT *SUMA_RecordEvent( XEvent *event, 
+                              SUMA_EVENT *ev)
+{
+   static char FuncName[]={"SUMA_RecordEvent"};
+   XKeyEvent Kev;
+   XButtonEvent Bev;
+   XMotionEvent Mev;
+   static SUMA_EVENT lev;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!event) {
+      SUMA_S_Err("Null event");
+      if (ev) memset(ev, 0, sizeof(SUMA_EVENT));
+      SUMA_RETURN(ev);
+   }
+   
+   if (!ev) {
+      if (!(ev = SUMAg_CF->lev)) {
+         memset(&lev, 0, sizeof(SUMA_EVENT));
+         SUMAg_CF->lev = (SUMA_EVENT *)SUMA_malloc(1*sizeof(SUMA_EVENT));   
+      }
+      ev = SUMAg_CF->lev;
+   }
+   if (!ev) SUMA_RETURN(NULL);
+   memset(ev, 0, sizeof(SUMA_EVENT));
+   
+   Kev = *(XKeyEvent *) &event->xkey; /* RickR's suggestion to comply with 
+                                 ANSI C, no type casting of structures  July 04*/
+   Bev = *(XButtonEvent *) &event->xbutton;
+   Mev = *(XMotionEvent *) &event->xmotion;
+
+   ev->set = 1;
+   /* The copied parameters */
+   ev->ktype = Kev.type;
+   ev->kstate = Kev.state;
+   ev->mtype = Mev.type;
+   ev->mstate = Mev.state;
+   ev->bTime = Bev.time;
+   ev->mTime = Mev.time;
+   ev->bButton = Bev.button;
+   ev->mButton = 0; /* Not sure this one was all that necessary */
+   ev->mX = Mev.x;
+   ev->mY = Mev.y;
+   ev->bX = Bev.x;
+   ev->bY = Bev.y;
+   
+   /* The inferred parameters */
+   if ((Kev.state & ShiftMask) || (Bev.state & ShiftMask)) ev->Shift = 1;
+   if ((Kev.state & ControlMask) || (Bev.state & ControlMask)) ev->Control = 1;
+   if (Kev.state & Mod1Mask) ev->Mod1 = 1;
+   if (Kev.state & Mod2Mask) ev->Mod2 = 1;
+   if (Kev.state & Mod3Mask) ev->Mod3 = 1;
+   if (Kev.state & Mod4Mask) ev->Mod4 = 1;
+   if (Kev.state & Mod5Mask) ev->Mod5 = 1;
+   if (Kev.state & SUMA_APPLE_AltOptMask) ev->AppleAltOpt = 1;
+   
+   switch(ev->ktype) {
+      case KeyPress:
+         ev->transl[0] = ev->transl[15] = '\0';
+         XLookupString( (XKeyEvent *)event, ev->transl, 14, 
+                              &ev->keysym, NULL);
+         break;
+         break;
+      case ButtonPress:
+         if (Bev.state & Button1Mask) ev->b1 = 1;
+         if (Bev.state & Button2Mask) ev->b2 = 1;
+         if (Bev.state & Button3Mask) ev->b3 = 1;
+         if (Bev.state & Button4Mask) ev->b4 = 1;
+         if (Bev.state & Button5Mask) ev->b5 = 1;
+         if (ev->bButton == 6) ev->b6 = 1; /* on macs Button6 not in X.h */
+         if (ev->bButton == 7) ev->b7 = 1; /* on macs Button7 not in X.h */
+         
+         switch (ev->bButton) {
+            case Button1:
+            case Button2:
+            case Button3:
+            case Button4:
+            case Button5:
+            case 6: 
+            case 7:
+            default:
+               SUMA_LH("ButtonPress %d not known", ev->bButton);
+               break;
+         }
+         
+         /* trap for double click */
+         if (Bev.time - lev.bTime < SUMA_DOUBLE_CLICK_MAX_DELAY) {
+            ev->DoubleClick = YUP;
+         } else {
+            ev->DoubleClick = NOPE;
+         }
+         
+         if (  SUMAg_CF->SwapButtons_1_3 || 
+               (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+            int kk=ev->b1;
+            ev->b1 = ev->b3;
+            ev->b3 = kk;
+         }
+
+         break;
+      case ButtonRelease:
+         ev->mTime = 0;
+         if (Bev.state & Button1Mask) ev->b1 = 1;
+         if (Bev.state & Button2Mask) ev->b2 = 1;
+         if (Bev.state & Button3Mask) ev->b3 = 1;
+         if (Bev.state & Button4Mask) ev->b4 = 1;
+         if (Bev.state & Button5Mask) ev->b5 = 1;
+         if (ev->bButton == 6) ev->b6 = 1; /* on macs Button6 not in X.h */
+         if (ev->bButton == 7) ev->b7 = 1; /* on macs Button7 not in X.h */
+         
+         if (SUMAg_CF->SwapButtons_1_3 || 
+             (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+            int kk=ev->b1;
+            ev->b1 = ev->b3;
+            ev->b3 = kk;
+         }
+         break;
+         
+      case MotionNotify:
+         if (Mev.state & Button1MotionMask) ev->b1m = 1;
+         if (Mev.state & Button2MotionMask) ev->b2m = 1;
+         if (Mev.state & Button3MotionMask) ev->b3m = 1;
+         if (Mev.state & Button4MotionMask) ev->b4m = 1;
+         if (Mev.state & Button5MotionMask) ev->b5m = 1;
+         if (Mev.state) { SUMA_LH("   Something mot\n"); }
+         
+         /* The conditions and new assignments of mButton
+         below is stupid. But I won't touch it until I 
+         have to. Reassignments should be to b1m, b2m, etc.
+         mButton should not be touched. 
+         Also, there should be no need for these numerous
+         conditions. If swapping is needed, b1m and b3m 
+         values should be swaped. Things like SUMA_Button_12_Motion
+         should be made into functions that return an answer
+         based on ev's contents */
+         if (  SUMAg_CF->SwapButtons_1_3 || 
+               (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+           if (((Mev.state & Button3MotionMask) && 
+                                             (Mev.state & Button2MotionMask)) 
+            || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+               int kk=ev->b1m;
+               ev->b1m = ev->b3m;
+               ev->b3m = kk;
+               ev->mButton = SUMA_Button_12_Motion;
+            } else if(Mev.state & Button3MotionMask) {
+               ev->mButton = SUMA_Button_1_Motion;
+               int kk=ev->b1m;
+               ev->b1m = ev->b3m;
+               ev->b3m = kk;
+            }else if(Mev.state & Button2MotionMask) { 
+               ev->mButton = SUMA_Button_2_Motion;
+            }else if(Mev.state & Button1MotionMask) {
+                
+               ev->mButton = SUMA_Button_3_Motion;
+            }else {
+               break;
+            } 
+         } else {
+            if (((Mev.state & Button1MotionMask) && 
+                                                (Mev.state & Button2MotionMask))
+             || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+               ev->mButton = SUMA_Button_12_Motion;
+            } else if(Mev.state & Button1MotionMask) {
+               ev->mButton = SUMA_Button_1_Motion;
+            }else if(Mev.state & Button2MotionMask) { 
+               ev->mButton = SUMA_Button_2_Motion;
+            } else if(Mev.state & Button3MotionMask) { 
+               ev->mButton = SUMA_Button_3_Motion;
+            }else {
+               break;
+            }
+         }
+         switch (ev->mButton) {
+            case SUMA_Button_12_Motion:
+            case SUMA_Button_2_Shift_Motion:
+               if (ev->mTime) {
+                  ev->mDelta = Mev.time - lev.mTime;
+                  ev->mDeltaX = Mev.x - lev.mX;
+                  ev->mDeltaY = Mev.y - lev.mY;
+               } else {
+                  ev->mDelta  = 0;
+                  ev->mDeltaX = 0;
+                  ev->mDeltaY = 0;
+               }
+               break;
+            case SUMA_Button_2_Motion:
+               break;
+            case SUMA_Button_3_Motion:
+               break;
+      }
+               
+   }
+   if (LocalHead) {
+      SUMA_ShowEvent(ev, 0, "EventRecord:\n");
+      SUMA_ShowEvent(ev, 1, "EventRecord:\n");
+   } else if (SUMAg_CF->Echo_KeyPress) {
+      SUMA_ShowEvent(ev, 1, "EventRecord:\n");
+   }
+   
+   /* keep local copy of last event */
+   memcpy(&lev, ev, sizeof(SUMA_EVENT));
+   
+   SUMA_RETURN(ev);   
+}
+
+/*! Mouse and Keyboard input handler function for SUMA's viewer 
+    START shifting to SUMA_RecordEvent() and its helper functions
+    like SUMA_Alt_Event(), etc. 
+    You should also split SUMA_input() into SUMA_input_Xevent()
+    and SUMA_input_eng(). Where SUMA_input_Xevent() just sets
+    SUMAg_CF->lev and SUMA_input_eng() works entirely off of
+    SUMAg_CF->lev . This way you would be able to completely
+    drive SUMA_input_eng() without any mouse movement/X structs
+    etc. All you need is to manipulate the content of lev.
+*/
 void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 {
    static char FuncName[]= {"SUMA_input"};
@@ -3368,7 +3787,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    }
    SUMA_LH("A call from SUMA_SurfaceViewer[%d], Pointer %p\n", isv, sv);
    
-
+   /* ******** ABOUT EVENT HANDLING ************** */
+   /* Eventually you should use the structure
+      created by RecordEvent to decide on what was clicked
+      and how. While a little less efficient than 
+      what is done below, RecordEvent will eventually
+      be considerably more flexible, and easier to debug.
+      But for now, so that visible progress can be made,
+      I will leave button processing and queries below
+      as is, and try to make the switch gradually */
+   
+   SUMAg_CF->lev = SUMA_RecordEvent( cd->event, SUMAg_CF->lev);
+                              
    Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with 
                                  ANSI C, no type casting of structures  July 04*/
    Bev = *(XButtonEvent *) &cd->event->xbutton;
@@ -4653,6 +5083,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                }
             }
             break;
+
          case Button2:
             if (Bev.state & ShiftMask) {
                /* setup initial zooming conditions */
@@ -4758,6 +5189,13 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,NULL)) {
                            SUMA_S_Warn("Mask manip mode could not be set");
                         }
+                     }
+                     /* Not much else to do */
+                     goto REDISP;
+                  } else if (MASK_MANIP_MODE(sv)) { /* turn it off */
+                     SUMA_S_Note("Turning off mask manip mode");
+                     if (!SUMA_SetMouseMode(sv,SUMA_MASK_MANIP_MMODE,NULL)) {
+                        SUMA_S_Warn("Mask manip mode could not be set");
                      }
                      /* Not much else to do */
                      goto REDISP;
@@ -6672,9 +7110,13 @@ SUMA_PICK_RESULT *SUMA_New_Pick_Result(SUMA_PICK_RESULT *PR)
    for (i=0; i<SUMA_N_DALTSEL_TYPES; ++i) PR->dAltSel[i] = 0.0;
    SUMA_ifree(PR->primitive);
    SUMA_ifree(PR->ado_idcode_str);
-
+   /* Imprint with event structure */
+   PR->evr = (SUMA_EVENT *)malloc(sizeof(SUMA_EVENT));
+   if (SUMAg_CF->lev) memcpy(PR->evr, SUMAg_CF->lev, sizeof(SUMA_EVENT));
+   else memset(PR->evr, 0, sizeof(SUMA_EVENT));
+   /* SUMA_ShowEvent(PR->evr, 0, "From New Pick Result\n"); */
    return(PR);
-}   
+}
 
 SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
 {
@@ -6685,6 +7127,7 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
    SUMA_ifree(PR->ado_idcode_str);
    SUMA_ifree(PR->dset_idcode_str);
    SUMA_free(PR);
+   SUMA_ifree(PR->evr);
    SUMA_RETURN(NULL);
 }
 
@@ -7249,8 +7692,16 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
                   "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
       /* register a call to SetAfniCrossHair */
       if (!list) list = SUMA_CreateList();
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
-                                          SES_Suma, sv);
+      it = SUMA_ShftCont_Event(PR->evr);
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+      
       if (!SUMA_Engine (&list)) {
          fprintf( SUMA_STDERR, 
                   "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -7314,19 +7765,24 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
          SUMA_S_Err("Bad ID for mouse mode value");
          SUMA_RETURN(-1);
       }
+      /* Set the parent as the ado_pick */
+      SUMA_MDO_New_parent((SUMA_MaskDO *)ado, (*PR)->ado_idcode_str,
+                          (*PR)->datum_index);
+      
       if (ado_pick->do_type == SO_type) {
          SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado_pick;
          /* PickXYZ might be under VisX */
          xyz = SO->NodeList+SO->NodeDim* (*PR)->datum_index;
+         SUMA_MDO_New_Doppel((SUMA_MaskDO *)ado, (*PR)->PickXYZ);
       } else {
          xyz = (*PR)->PickXYZ;
+         SUMA_MDO_New_Doppel((SUMA_MaskDO *)ado, NULL);
       }
       if (LocalHead) SUMA_DUMP_TRACE("Box motion");
       SUMA_NEW_MASKSTATE();
       SUMA_RETURN(SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, xyz));
    } else {
       ado = SUMA_whichADOg((*PR)->ado_idcode_str);
-      SUMA_LH("Here %s", ADO_LABEL(ado));
       SUMA_ifree(sv->LastSel_ado_idcode_str);
       sv->LastSel_ado_idcode_str = SUMA_copy_string((*PR)->ado_idcode_str);
       switch (ado->do_type) {
@@ -7479,7 +7935,7 @@ int SUMA_ComputeLineMaskIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          SUMA_S_Err("NULL ado at this point? imin = %d", imin);
          SUMA_RETURN(-1);
       }
-      PR = (SUMA_PICK_RESULT *)SUMA_calloc(1, sizeof(SUMA_PICK_RESULT));
+      PR = SUMA_New_Pick_Result(NULL);
       if (pado) *pado = ado; /* user want answer back */
       PR->ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
       PR->datum_index = MTI->inodemin;
@@ -7642,7 +8098,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          SUMA_S_Err("NULL ado at this point?");
          SUMA_RETURN(-1);
       }
-      PR = (SUMA_PICK_RESULT *)SUMA_calloc(1, sizeof(SUMA_PICK_RESULT));
+      PR = SUMA_New_Pick_Result(NULL);
       if (pado) *pado = ado; /* user want answer back */
       PR->ado_idcode_str = SUMA_copy_string(ADO_ID(ado));
       PR->datum_index = MTI->inodemin;
@@ -7679,7 +8135,7 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   SUMA_LH("Here");
+
    if (!sv || !SO || !PRi || !*PRi) { SUMA_S_Err("Niente"); SUMA_RETURN(-1); }
     
    /* Mark intersection Facsets */
@@ -7798,8 +8254,16 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
                   "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
       /* register a call to SetAfniCrossHair */
       if (!list) list = SUMA_CreateList();
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
-                                          SES_Suma, sv);
+      it = SUMA_ShftCont_Event(PR->evr);
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+
       if (!SUMA_Engine (&list)) {
          fprintf( SUMA_STDERR, 
                   "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -7835,6 +8299,7 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
       NOTE: You do not always have SetNodeElem because the list might 
       get emptied in the call to AFNI notification.
       You should just put the next call at the end of the list.*/
+   SUMA_LH("Cross hair locking");
    if (!list) list = SUMA_CreateList();
    ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
    if (!SUMA_RegisterEngineListCommand (  list, ED, 
@@ -7845,11 +8310,12 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
       SUMA_RETURN (-1);
    }
 
+   SUMA_LH("Cross hair locking Engine call");
    if (!SUMA_Engine (&list)) {
       fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
       SUMA_RETURN (-1);
    }
-    
+   SUMA_LH("Returning"); 
    SUMA_RETURN (1); /* OK */
 }/* determine intersection */
 
@@ -8038,8 +8504,15 @@ int SUMA_MarkLineCutplaneIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
                      "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
          /* register a call to SetAfniCrossHair */
          if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
-                                             SES_Suma, sv);
+         it = 0; /* Might want someday: SUMA_ShftCont_Event(PR->evr); */
+         ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+         if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_i, (void*)&it,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_Tail, NULL)) {
+            SUMA_S_Err("Failed to register element\n");
+            SUMA_RETURN (-1);
+         }
          if (!SUMA_Engine (&list)) {
             fprintf( SUMA_STDERR, 
                      "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -8431,11 +8904,20 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
    /* check to see if AFNI needs to be notified */
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
        sv->LinkAfniCrossHair) {
+      int it;
       SUMA_LH("Notifying Afni of CrossHair XYZ");
       /* register a call to SetAfniCrossHair */
       if (!list) list = SUMA_CreateList();
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
-                              SE_SetAfniCrossHair, SES_Suma, sv);
+      it = SUMA_ShftCont_Event(PR->evr);
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURN (-1);
+      }
+
       if (!SUMA_Engine (&list)) {
          fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN(-1);
@@ -10598,8 +11080,16 @@ void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
       /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
-                              SE_SetAfniCrossHair, SES_Suma, sv);
+      it = 0; /* Set to 1 if you want instacorr notice to AFNI */
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURNe;
+      }
+
    }
 
    /* and if GICOR needs some love */
@@ -10727,9 +11217,16 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-      /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
-                              SE_SetAfniCrossHair, SES_Suma, sv);
+      it = 0;
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURNe;
+      }
+
    }
 
    /* call with the list */
@@ -10888,9 +11385,16 @@ void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv,
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-      /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
-                              SE_SetAfniCrossHair, SES_Suma, sv);
+      it = 0;
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURNe;
+      }
+
    }
 
    /* call with the list */
@@ -11057,9 +11561,16 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-      /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
-                              SE_SetAfniCrossHair, SES_Suma, sv);
+      it = 0;
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURNe;
+      }
+
    }
 
    /* call with the list */
@@ -11221,9 +11732,16 @@ void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo)
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-      /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
-                              SE_SetAfniCrossHair, SES_Suma, sv);
+      it = 0;
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURNe;
+      }
+
    }
 
    /* call with the list */
@@ -11312,11 +11830,19 @@ void SUMA_JumpXYZ (char *s, void *data)
 
    /* check to see if AFNI needs to be notified */
    if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
+      int it;
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-      /* register a call to SetAfniCrossHair */
-      SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, 
-                                         SES_Suma, sv);
+      it = 0;
+      ED = SUMA_InitializeEngineListData (SE_SetAfniCrossHair);
+      if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_i, (void*)&it,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_Tail, NULL)) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+         SUMA_RETURNe;
+      }
+
    }
 
    /* call with the list */

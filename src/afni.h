@@ -1519,6 +1519,10 @@ typedef struct {
    RT_status *realtime_status ;                  /* 01 Jun 2009 */
    gen_func  *realtime_callback ;
 
+   int dont_tell_suma ;            /* 1 = won't send SUMA info  */
+   int dont_overlay_suma ;  /* 1 = won't send SUMA func overlay */
+   int dont_hear_suma ;     /* 1 = I can't hear you SUMA        */
+
 } AFNI_library_type ;
 
 #define BROWN_COLOR "#553319"
@@ -1538,6 +1542,21 @@ extern void AFNI_display_hist( Widget w ) ;       /* 05 Mar 2008 */
 
 #define FIM_THR          (0.01*GLOBAL_library.fim_bkthr_perc)  /* 02 Jun 1999 */
 #define SET_FIM_bkthr(v) (GLOBAL_library.fim_bkthr_perc = (v))
+
+#define NOT_TELLING_SUMA (GLOBAL_library.dont_tell_suma==1)
+#define     TELLING_SUMA (GLOBAL_library.dont_tell_suma==0)
+#define DONT_TELL_SUMA  (GLOBAL_library.dont_tell_suma=1)
+#define      TELL_SUMA  (GLOBAL_library.dont_tell_suma=0)
+
+#define NOT_OVERLAYING_SUMA (GLOBAL_library.dont_overlay_suma==1)
+#define     OVERLAYING_SUMA (GLOBAL_library.dont_overlay_suma==0)
+#define DONT_OVERLAY_SUMA  (GLOBAL_library.dont_overlay_suma=1)
+#define      OVERLAY_SUMA  (GLOBAL_library.dont_overlay_suma=0)
+
+#define NOT_HEARING_SUMA (GLOBAL_library.dont_hear_suma==1)
+#define     HEARING_SUMA (GLOBAL_library.dont_hear_suma==0)
+#define DONT_HEAR_SUMA  (GLOBAL_library.dont_hear_suma=1)
+#define      HEAR_SUMA  (GLOBAL_library.dont_hear_suma=0)
 
 #define DISABLE_LOCK    (GLOBAL_library.ignore_lock=1)
 #define ENABLE_LOCK     (GLOBAL_library.ignore_lock=0)
@@ -1714,6 +1733,7 @@ extern void AFNI_do_many_writes      ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_finalize_dataset_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_jumpto_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
+extern int  AFNI_jump_and_seed       ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_creepto_dicom       ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
