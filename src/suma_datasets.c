@@ -2939,12 +2939,12 @@ int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label,
    } 
    
    
-   SUMA_LH("Cheking generic attributes");
+   SUMA_LH("Setting index attributes");
    /* set some generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, col, stride, -1, 0);
    /* add the attributes of that column */
-   SUMA_AddDsetColAttr (dset, col_label, ctp, col_attr, -1, 0);
-   
+   SUMA_AddDsetColAttr (dset, col_label?col_label:"node index", 
+                        ctp, col_attr, -1, 0);
    if (LocalHead) SUMA_ShowNel((void*)dset->inel);
    
    

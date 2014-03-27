@@ -1810,8 +1810,8 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
 {
    static char FuncName[]={"SUMA_SV_SortedRegistDO"};
    SUMA_DO_LOCATOR *sRegistDO=NULL;
-   int i, j, k, ct, ot, otseq[N_DO_TYPES], ctseq[2],
-       ncheck=0, N_otseq=-1, N_ctseq=-1, iotseq=-1;
+   int i, j, k, ct, ot, ctseq[2],
+       ncheck=0, N_ctseq=-1, iotseq=-1;
    
    SUMA_ENTRY;
    
@@ -1832,12 +1832,6 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
    sRegistDO = (SUMA_DO_LOCATOR *)
                   SUMA_calloc(*N_regs, sizeof(SUMA_DO_LOCATOR));
    
-   /* Squence of types to be displayed. Anything not in the list 
-      gets displayed first */
-   otseq[0] = VO_type;
-   otseq[1] = SO_type;
-   otseq[2] = GRAPH_LINK_type;
-   N_otseq = 3;
    
    /* Sequence of coordinate types */
    ctseq[0] = SUMA_SCREEN;
@@ -1851,7 +1845,8 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
          ct = dov[csv->RegistDO[i].dov_ind].CoordType;
          if (ct == ctseq[j]) {
             ot = dov[csv->RegistDO[i].dov_ind].ObjectType;
-            iotseq = SUMA_FindFirst_inIntVect(otseq, otseq+N_otseq, ot);
+            iotseq = 
+               SUMA_FindFirst_inIntVect(csv->otseq, csv->otseq+csv->N_otseq, ot);
             if (iotseq < 0) { /* not found, take it */
                sRegistDO[ncheck].dov_ind = csv->RegistDO[i].dov_ind;
                strcpy(sRegistDO[ncheck].idcode_str,
@@ -1861,14 +1856,14 @@ SUMA_DO_LOCATOR *SUMA_SV_SortedRegistDO(SUMA_SurfaceViewer *csv, int *N_regs,
          }
          ++i;
       }
-      /* Now get those in otseq, in order */
-      for (k=0; k<N_otseq; ++k) {
+      /* Now get those in csv->otseq, in order */
+      for (k=0; k<csv->N_otseq; ++k) {
          i = 0;
          while (i < csv->N_DO) {
             ct = dov[csv->RegistDO[i].dov_ind].CoordType;
             if (ct == ctseq[j]) {
                ot = dov[csv->RegistDO[i].dov_ind].ObjectType;
-               if (ot == otseq[k]) { /* its time has come */
+               if (ot == csv->otseq[k]) { /* its time has come */
                   sRegistDO[ncheck].dov_ind = csv->RegistDO[i].dov_ind;
                   strcpy(sRegistDO[ncheck].idcode_str,
                          csv->RegistDO[i].idcode_str);

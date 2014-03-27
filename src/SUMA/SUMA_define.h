@@ -2455,6 +2455,54 @@ typedef struct {
 /* *************** End Convolution utilities *************** */
 
 typedef struct {
+      /* variables copied from the event structs */
+   int ktype;         /* Event type (Kev.type) */
+   int kstate;        /* Event state (Kev.state) */
+   char transl[16];  /* Translated event characters (buffer) */
+   KeySym keysym;       /* key symbol (keysym) */
+   int mtype;         /* Event type (Mev.type) */
+   int mstate;        /* Event state (Mev.state) */
+   int bButton;      /* (Bev.button) */
+   int mButton;      /* (Mev.button) */
+   Time bTime;       /* (Bev.time) */
+   Time mTime;       /* (Mev.time) */
+   int mX;
+   int mY;
+   int bX;
+   int bY;
+      /* inferred variables */
+   int set;
+   byte b1;
+   byte b2;
+   byte b3;
+   byte b4;
+   byte b5;
+   byte b6;
+   byte b7;
+   byte b1m;
+   byte b2m;
+   byte b3m;
+   byte b4m;
+   byte b5m;
+   byte Shift;
+   byte Control;
+   byte Mod1;
+   byte Mod2;
+   byte Mod3;
+   byte Mod4;
+   byte Mod5;
+   byte AppleAltOpt;
+   byte DoubleClick;
+   Time mDelta;
+   int mDeltaX;
+   int mDeltaY;
+   int bDeltaX;
+   int bDeltaY;
+} SUMA_EVENT; /* A record of last event sent to SUMA_input.
+                 comments in () above refer to equiv. variables
+                 in SUMA_input() function */
+
+typedef struct {
    char *ado_idcode_str;   /* id of ado that was picked */
    char *primitive;        /* Type of object selected, for graphs, for 
                               example, it could be an edge, or a node 
@@ -2472,6 +2520,7 @@ typedef struct {
    
    char *dset_idcode_str; /* ID of volume where selection was made, 
                       if a volume was selected */
+   SUMA_EVENT *evr; /* A record of the pick event at the time PR was created */
 } SUMA_PICK_RESULT; /* Structure holding results of pointer selection*/
 
 
@@ -2645,6 +2694,13 @@ typedef struct {
    
    SUMA_C_FILTER *C_filter;
    SUMA_CONV_MODES C_mode;
+   
+   int otseq[N_DO_TYPES]; /* Object type sequence 
+                             This is used to control the order in which 
+                             different object types are rendered.
+                             Default is: VO_type, SO_type, GRAPH_LINK_type*/
+   int N_otseq;           /* Number of types specified in otseq, 
+                             Default is 3 types*/
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -3115,6 +3171,7 @@ typedef struct {
    
    float *NodeList_swp; /*!< A temporary pointer copy for swapping NodeList with
                              VisX's transformed coordinates. Use sparingly */
+   float PointSize; /*! Set to negative to make it so it has no effect */
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
@@ -3136,7 +3193,8 @@ typedef struct {
    int N_datum; /* Here number of control points forming tracts */
    
       /* Begin specific fields */
-   char *Parent_idcode_str;
+   char *Parent_idcode_str;   /* Object a mask is attached to (positioned on)*/
+   int Parent_datum_index;    /* Datum index a mask is attached to */
    
    char mtype[64]; /* A string defining mask subtypes 
                       cube --> box
@@ -3159,6 +3217,9 @@ typedef struct {
    
    char varname[3];
    SUMA_TRANS_MODES trans;
+   
+   float dopxyz[3];
+   int dodop;
 } SUMA_MaskDO;
 
 
@@ -3587,7 +3648,9 @@ typedef struct {
    double lastcall;
    struct timeval tt;
 } SUMA_TIMER;
+
 #define SUMA_MAX_N_TIMER 50
+
 /*! structure containing information global to all surface viewers */
 typedef struct {
    SUMA_Boolean Dev; /*!< Flag for developer option 
@@ -3731,6 +3794,8 @@ typedef struct {
    DList *SaveList; /*!< List of objects set to be saved when user chooses to */
    
    SUMA_Boolean YokeIntToNode;
+   
+   SUMA_EVENT *lev; /*!< A record of the last input event */
 } SUMA_CommonFields;
 
 

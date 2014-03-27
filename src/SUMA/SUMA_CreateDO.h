@@ -353,7 +353,8 @@ SUMA_Boolean SUMA_Set_MaskDO_Label(SUMA_MaskDO *mdo, char *lab);
 #define SUMA_MDO_New_CDim(mdo, cdim) \
             SUMA_MDO_New_Params((mdo), NULL, NULL, NULL, NULL, NULL, \
                                  -1, STM_N_TransModes, cdim)
-
+int SUMA_MDO_New_Doppel(SUMA_MaskDO *mdo, float *xyz);
+int SUMA_MDO_New_parent(SUMA_MaskDO *mdo, char *parent_id, int parent_datum_id);
 int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim, 
                         float *col, char *Label, char *Type,
                         float alpha, SUMA_TRANS_MODES tran, float cdim);

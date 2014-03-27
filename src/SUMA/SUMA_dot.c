@@ -486,7 +486,7 @@ void SUMA_dot_product_CB( void *params)
    
    SUMA_ENTRY;
    
-   if (0 && LocalHead) {
+   if (LocalHead) {
       SUMA_LH("Callbacks upon entering");
       SUMA_Show_Callbacks(SUMAg_CF->callbacks, SUMA_STDERR, 1);
    }
@@ -535,11 +535,13 @@ void SUMA_dot_product_CB( void *params)
    if (LocalHead) {
       int suc=0;
       sprintf(stmp,"file:%s.nelpars.1D", FuncName);
+      SUMA_LH("Writing %s", stmp);
       NEL_WRITE_1D(nelpars, stmp, suc);
    }
    if (LocalHead) {
       int suc=0;
       sprintf(stmp,"file:%s.dotopts.1D", FuncName);
+      SUMA_LH("Writing %s", stmp);
       NEL_WRITE_1D(dotopts, stmp, suc);
    }
       
@@ -661,6 +663,7 @@ void SUMA_dot_product_CB( void *params)
          char stmp[1000];
          if (!SDSET_LABEL(in_dset)) SUMA_LabelDset(in_dset, NULL);
          sprintf(stmp,"%s.ts.%d.1D", SDSET_LABEL(in_dset), ts_node);
+         SUMA_LH("Writing %s", stmp);
          SUMA_WRITE_ARRAY_1D(ts, N_ts, 1, stmp);
       }
       SUMA_LHv("  Calculating dot for %d/%d: \n"
@@ -675,7 +678,8 @@ void SUMA_dot_product_CB( void *params)
          SUMA_RETURNe;
       }
       
-      /* Make sure color overlay datacopies get rest */
+      SUMA_LH("Now clearing overlay vecs");
+      /* Make sure color overlay datacopies get reset */
       if (!SUMA_DSET_ClearOverlay_Vecs(out_dset)) {         
          SUMA_S_Err("Failed to clear overlay copies");
          SUMA_RETURNe;
@@ -683,12 +687,13 @@ void SUMA_dot_product_CB( void *params)
       
 	   snprintf(ident,298*sizeof(char), "filename:%s", SDSET_FILENAME(out_dset));
       
+      SUMA_LH("Adding to save list");
       {
       	SUMA_PARSED_NAME *p1p, *p2p;
-      p1p = SUMA_ParseFname(SDSET_FILENAME(in_dset), SUMAg_CF->cwd);
+      p1p = SUMA_ParseFname_eng(SDSET_FILENAME(in_dset), SUMAg_CF->cwd, 0);
       p1 = SUMA_RemoveDsetExtension_s(p1p->FileName_NoExt,
                                         SUMA_NO_DSET_FORMAT);
-      p2p = SUMA_ParseFname(SDSET_FILENAME(ts_src_dset), SUMAg_CF->cwd);
+      p2p = SUMA_ParseFname_eng(SDSET_FILENAME(ts_src_dset), SUMAg_CF->cwd, 0);
       p2 = SUMA_RemoveDsetExtension_s(p2p->FileName_NoExt,
                                         SUMA_NO_DSET_FORMAT);
       SUMA_Free_Parsed_Name(p1p); p1p = NULL;
@@ -711,6 +716,7 @@ void SUMA_dot_product_CB( void *params)
    /* Now clear callback specific elements for caution 
       This way I'll know if this function 
       is being called repeatedly by mistake*/
+   SUMA_LH("Clearing callback specific elements");
    if (nelts) {
       NI_remove_from_group(ngr, nelts); NI_free_element(nelts); nelts = NULL;
    }
@@ -1016,12 +1022,13 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
                      par[2] );
          par[2] = 2; /* something ... */
       }
+      SUMA_LH("Adding ort stuff");
       SUMA_AddColAtt_CompString( nelb, 0, 
                                  NI_stat_encode(NI_STAT_CORREL, 
                                                 par[0], par[1], par[2]),
                                  SUMA_NI_CSS, 0);
    }
-   
+   SUMA_LH("Heading out");
    if (0 && LocalHead) {
       ic = 0;
       for (ir=0; ir<SDSET_VECLEN(in_dset) && ic < 10; ++ir) {
@@ -1046,9 +1053,7 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
       SUMA_free(s);
    }
    
-   
    SUMA_RETURN(YUP);
-   
 }
 
 /* *************************************************************************** */
