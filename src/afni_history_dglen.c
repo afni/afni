@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 27 , MAR, 2014 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "h_view help added"
+} ,
 { 17 , Feb, 2014 , DRG , "@MakeLabelTable" , 
     MICRO , TYPE_BUG_FIX, 
     "-centers option incorrect for some atlases",
