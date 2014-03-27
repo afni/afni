@@ -8,6 +8,11 @@
 #include "mri_genalign.c"
 #include "mri_nwarp.c"
 
+/* prototypes */
+
+int THD_conformant_dataxes( THD_dataxes *ax , THD_dataxes *bx ) ;
+THD_dataxes * THD_superset_dataxes( THD_dataxes *ax , THD_dataxes *bx ) ;
+
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -160,7 +165,7 @@ int main( int argc , char *argv[] )
          } else if( DSET_NX(dset_src[kk]) != nxs ||
                     DSET_NY(dset_src[kk]) != nys ||
                     DSET_NZ(dset_src[kk]) != nzs   ){
-           ERROR_exit("warp dataset '%s' doesn't match with grid size %dx%dx%d",argv[iarg+kk],nxs,nys,nzs) ;
+           ERROR_exit("source dataset '%s' doesn't match with grid size %dx%dx%d",argv[iarg+kk],nxs,nys,nzs) ;
          }
        }
        iarg += nsset ; continue ;
@@ -270,4 +275,96 @@ int main( int argc , char *argv[] )
    if( verb ) INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
                            COX_cpu_time() , COX_clock_time() ) ;
    exit(0) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int THD_conformant_dataxes( THD_dataxes *ax , THD_dataxes *bx )
+{
+   float xo,yo,zo ;
+
+   if( ax->xxorient != bx->xxorient ||
+       ax->yyorient != bx->yyorient ||
+       ax->zzorient != bx->zzorient   ) return 0 ;
+
+   if( fabsf(ax->xxdel-bx->xxdel) > 0.001f ) return 0 ;
+   if( fabsf(ax->yydel-bx->yydel) > 0.001f ) return 0 ;
+   if( fabsf(ax->zzdel-bx->zzdel) > 0.001f ) return 0 ;
+
+   xo = (ax->xxorg - bx->xxorg) / ax->xxdel ;
+   yo = (ax->yyorg - bx->yyorg) / ax->yydel ;
+   zo = (ax->zzorg - bx->zzorg) / ax->zzdel ;
+
+   if( fabsf(xo-rintf(xo)) > 0.01f ||
+       fabsf(yo-rintf(yo)) > 0.01f ||
+       fabsf(zo-rintf(zo)) > 0.01f   ) return 0 ;
+
+   return 1 ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+THD_dataxes * THD_superset_dataxes( THD_dataxes *ax , THD_dataxes *bx )
+{
+   THD_dataxes *cx ;
+   float dx,dy,dz , axo,ayo,azo , bxo,byo,bzo , ae,be ;
+   int nxa,nya,nza , nxb,nyb,nzb , ndif ;
+   float cxo,cyo,czo ;
+   int   nxc,nyc,nzc ;
+
+   if( !THD_conformant_dataxes(ax,bx) ) return NULL ;
+
+   /* create new dataxes as copy of first one */
+
+   cx = myXtNew(THD_dataxes) ; *cx = *ax ;
+   cx->parent = NULL ;
+   if( EQUIV_DATAXES(ax,bx) ) return cx ;
+
+   /* load some variables from the input structs */
+
+   dx  = ax->xxdel ; dy  = ax->yydel ; dz  = ax->zzdel ;  /* same for ax & bx */
+   axo = ax->xxorg ; ayo = ax->yyorg ; azo = ax->zzorg ;  /* ax origins */
+   bxo = bx->xxorg ; byo = bx->yyorg ; bzo = bx->zzorg ;  /* bx origins */
+   nxa = ax->nxx   ; nya = ax->nyy   ; nza = ax->nzz   ;  /* ax grid lengths */
+   nxb = bx->nxx   ; nyb = bx->nyy   ; nzb = bx->nzz   ;  /* bx grid lengths */
+
+   /* extend origins to the outermost */
+
+   ndif = (int)rintf((axo-bxo)/dx) ; cxo = (ndif <= 0) ? axo : bxo ;
+   ndif = (int)rintf((ayo-byo)/dy) ; cyo = (ndif <= 0) ? ayo : byo ;
+   ndif = (int)rintf((azo-bzo)/dz) ; czo = (ndif <= 0) ? azo : bzo ;
+
+   cx->xxorg = cxo ; cx->yyorg = cyo ; cx->zzorg = czo ;
+
+   /* extend grid lengths to the outermost */
+
+   ae = axo + nxa*dx ; be = bxo + nxb*dx ;
+   ndif = (int)rintf((ae-be)/dx) ; if( ndif < 0 ) ae = be ;
+   nxc  = (int)rintf((ae-cxo)/dx) ;
+
+   ae = ayo + nya*dy ; be = byo + nyb*dy ;
+   ndif = (int)rintf((ae-be)/dy) ; if( ndif < 0 ) ae = be ;
+   nyc  = (int)rintf((ae-cyo)/dy) ;
+
+   ae = azo + nza*dz ; be = bzo + nzb*dz ;
+   ndif = (int)rintf((ae-be)/dz) ; if( ndif < 0 ) ae = be ;
+   nzc  = (int)rintf((ae-czo)/dz) ;
+
+   cx->nxx   = nxc ; cx->nyy   = nyc ; cx->nzz   = nzc ;
+
+#if 0
+fprintf(stderr,"\n") ;
+INFO_message("ax: nxyz=%d %d %d  org=%g %g %g  del=%g %g %g",ax->nxx,ax->nyy,ax->nzz,ax->xxorg,ax->yyorg,ax->zzorg,ax->xxdel,ax->yydel,ax->zzdel) ;
+INFO_message("bx: nxyz=%d %d %d  org=%g %g %g  del=%g %g %g",bx->nxx,bx->nyy,bx->nzz,bx->xxorg,bx->yyorg,bx->zzorg,bx->xxdel,bx->yydel,bx->zzdel) ;
+INFO_message("cx: nxyz=%d %d %d  org=%g %g %g  del=%g %g %g",cx->nxx,cx->nyy,cx->nzz,cx->xxorg,cx->yyorg,cx->zzorg,cx->xxdel,cx->yydel,cx->zzdel) ;
+#endif
+
+   /* fix the matrices etc (probably not needed) */
+
+   LOAD_ZERO_MAT(cx->to_dicomm) ;
+   THD_daxes_to_mat44(cx) ;
+   THD_set_daxes_bbox(cx) ;
+   cx->ijk_to_dicom_real = cx->ijk_to_dicom ;
+
+   return cx ;
 }

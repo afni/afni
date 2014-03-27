@@ -1594,7 +1594,10 @@ void AFNI_sigfunc_alrm(int sig)
      "  They mean: Ignore everyone else's ideas and just use mine"                      ,
 
      "\n  When someone says: Any other comments on this?\n"
-     "  They mean: Will everyone please, for the love of all that is holy, shut up?"
+     "  They mean: Will everyone please, for the love of all that is holy, shut up?"    ,
+
+     "\n  When someone says: I agree 100% with your the concept,\n"
+     "  They mean: I am implacably opposed to your proposal"
    } ;
 #undef NTOP
 #ifdef USE_SONNETS
