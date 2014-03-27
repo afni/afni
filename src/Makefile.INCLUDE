@@ -440,6 +440,10 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dZeropad 3dZeropad.o $(LFLAGS) $(LLIBS)
 
+3dConformist:3dConformist.o
+	$(RM) $@
+	$(CC) -o 3dConformist 3dConformist.o $(LFLAGS) $(LLIBS)
+
 3dnvals:3dnvals.o
 	$(RM) $@
 	$(CC) -o 3dnvals 3dnvals.o $(LFLAGS) $(LLIBS)

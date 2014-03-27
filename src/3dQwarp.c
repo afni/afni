@@ -898,6 +898,7 @@ int main( int argc , char *argv[] )
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
    int nxold=0,nyold=0,nzold=0 ;
    int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
+   int zp_xm=0,zp_xp=0 , zp_ym=0,zp_yp=0 , zp_zm=0,zp_zp=0 ; float zp_frac=-1.0f ;
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -966,6 +967,14 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[nopt],"-nopadWARP") == 0 ){ /* 19 Mar 2014 */
        zeropad_warp = 0 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-zpad") == 0 ){  /* 26 Mar 2014 */
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       zp_frac = (float)strtod(argv[nopt],NULL) ;
+       if( zp_frac < 0.0f || zp_frac > 0.2f )
+         ERROR_message("Illegal value after option %s",argv[nopt-1]) ;
+       if( zp_frac == 0.0f ) zeropad = 0 ;
+       nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-allineate") == 0 ||       /* 15 Jul 2013 */
@@ -1497,11 +1506,17 @@ STATUS("load datasets") ;
      int spad_xm,spad_xp, spad_ym,spad_yp, spad_zm,spad_zp ;
      int mpad_x , mpad_y , mpad_z , ii ;
 
-     cv = 0.33f * THD_cliplevel(bim,0.22f) ;       /* set threshold on base */
-     qim = mri_copy(bim); qar = MRI_FLOAT_PTR(qim);
-     for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
-     MRI_autobbox( qim, &bpad_xm,&bpad_xp, &bpad_ym,&bpad_yp, &bpad_zm,&bpad_zp ) ;
-     mri_free(qim) ;
+     if( zp_frac > 0.0f ){
+       bpad_xm = bpad_xp = (int)rintf(zp_frac*bim->nx) ;
+       bpad_ym = bpad_yp = (int)rintf(zp_frac*bim->ny) ;
+       bpad_zm = bpad_zp = (int)rintf(zp_frac*bim->nz) ;
+     } else {
+       cv = 0.33f * THD_cliplevel(bim,0.22f) ;       /* set threshold on base */
+       qim = mri_copy(bim); qar = MRI_FLOAT_PTR(qim);
+       for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
+       MRI_autobbox( qim, &bpad_xm,&bpad_xp, &bpad_ym,&bpad_yp, &bpad_zm,&bpad_zp ) ;
+       mri_free(qim) ;
+     }
 #if 0
      cv = 0.33f * THD_cliplevel(sim,0.22f) ;       /* set threshold on source */
      qim = mri_copy(sim); qar = MRI_FLOAT_PTR(qim);

@@ -11,12 +11,12 @@
     ZPAD_PURGE = purge input dataset bricks after they are copied
     ZPAD_MM    = increments are mm instead of slice counts
                  (at least 'add_?' mm will be added/subtracted)
-    ZPAD_IJK   = increments are relative to dset axes I0--I1 J0--J1 
+    ZPAD_IJK   = increments are relative to dset axes I0--I1 J0--J1
                  K0--K1 not I--S A--P L---R
   14 May 2002: if inputs crops are all zero, return something anyway
 ---------------------------------------------------------------------*/
 
-THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * inset ,
+THD_3dim_dataset * THD_zeropad( THD_3dim_dataset *inset ,
                                 int add_I , int add_S , int add_A ,
                                 int add_P , int add_L , int add_R ,
                                 char * prefix , int flag )
@@ -30,12 +30,12 @@ THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * inset ,
    int purge_flag = (flag & ZPAD_PURGE) ;  /* 09 Feb 2001 */
    int mm_flag    = (flag & ZPAD_MM   ) ;  /* 13 Feb 2001 */
    int ijk_flag   = (flag & ZPAD_IJK   );  /* ZSS: 23 Dec The year of the war on Christmas */
-   
+
    THD_ivec3 iv_nxyz ;
    THD_fvec3 fv_xyzorg ;
 
-   MRI_IMAGE * oldim ;
-   void * vnew ;
+   MRI_IMAGE *oldim ;
+   void *vnew ;
 
 ENTRY("THD_zeropad") ;
 
@@ -67,7 +67,7 @@ ENTRY("THD_zeropad") ;
    } else {
       /* comput n?top and n?bot, the number of planes to add at
          the top and bottom of the ? direction, for ? = x, y, or z */
-      
+
       switch( inset->daxes->xxorient ){
          default:
            fprintf(stderr,"*** THD_zeropad: Unknown orientation codes!\n") ;
@@ -259,8 +259,7 @@ STATUS("padding") ;
 
       oldim = DSET_BRICK(inset,iv) ;  /* image structure of old brick */
 
-      vnew  = (void*)calloc( nxnew*nynew*nznew , 
-			     oldim->pixel_size ) ; /* new brick */
+      vnew  = (void*)calloc( nxnew*nynew*nznew , oldim->pixel_size ) ; /* new brick */
       if( vnew == NULL ){
          fprintf(stderr,
                  "*** THD_zeropad: Can't malloc space for new sub-brick %d\n",
