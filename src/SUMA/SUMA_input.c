@@ -872,6 +872,7 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
       case XK_F8:
          sv->ortho = !sv->ortho;
          {
+            static int inote = 0;
             char stmp[200];
             if (sv->ortho) {
                sprintf(stmp,"Using orthographic projection viewing");
@@ -880,7 +881,8 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                sprintf(stmp,"Using perspective viewing");
                sv->FOV[sv->iState] = sv->FOV[sv->iState] * 2.0;
             }
-            if (callmode && strcmp(callmode, "interactive") == 0) { 
+            ++inote;
+            if (callmode && strcmp(callmode, "interactive") == 0 && inote < 3) { 
                   SUMA_SLP_Note("%s",stmp); }
             else { SUMA_S_Note("%s",stmp); }
          }
@@ -5497,13 +5499,20 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          break;
          case Button1:
             SUMA_LH("In Button 1 release\n");
-            if (sv->GVS[sv->StdView].LHpry0 != sv->GVS[sv->StdView].LHpry) {
+            if (sv->GVS[sv->StdView].vLHpry0[0] != 
+                                          sv->GVS[sv->StdView].vLHpry[0] ||
+                sv->GVS[sv->StdView].vLHpry0[1] != 
+                                          sv->GVS[sv->StdView].vLHpry[1] ||
+                sv->GVS[sv->StdView].vLHpry0[2] != 
+                                          sv->GVS[sv->StdView].vLHpry[2] ){
                /* update the normals just now, this would not be needed if
                  SUMA_ApplyPrying has set recompute_normals = 1*/
                SUMA_RecomputeNormsPrying(sv);
                SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
             }
-            sv->GVS[sv->StdView].LHpry0 = sv->GVS[sv->StdView].LHpry;
+            sv->GVS[sv->StdView].vLHpry0[0] = sv->GVS[sv->StdView].vLHpry[0];
+            sv->GVS[sv->StdView].vLHpry0[1] = sv->GVS[sv->StdView].vLHpry[1];
+            sv->GVS[sv->StdView].vLHpry0[2] = sv->GVS[sv->StdView].vLHpry[2];
          break;
       } /* switch type of button Press */
       break;
@@ -5683,8 +5692,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                               sv->GVS[sv->StdView].currentQuat, 
                               sv->GVS[sv->StdView].currentQuat);
                } if (Mev.state & ControlMask) {
-                  SUMA_ApplyPrying(sv, sv->GVS[sv->StdView].spinDeltaX, 
-                                   "mouse", 0); /* update normals at release */
+                  float val[3];
+                  val[0] = sv->GVS[sv->StdView].spinDeltaX;
+                  val[1] = sv->GVS[sv->StdView].spinDeltaY;
+                  val[2] = 0.0;
+                  SUMA_ApplyPrying(sv, val, "mouse", 0); 
+                                       /* update normals at release */
                } else {
                   trackball(  sv->GVS[sv->StdView].deltaQuat, 
                               (2*sv->GVS[sv->StdView].spinBeginX - wwid) /
