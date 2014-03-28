@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.3, March 13, 2014
+Version 3.0.4, March 28, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.3, March 13, 2014
+Version 3.0.4, March 28, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -925,7 +925,8 @@ if(is.na(lop$mVar)) if(is.na(lop$wsVars)) showTab <- paste('~', lop$model) else
    showTab <- paste('~', gsub("\\*", "+", lop$model), '+', gsub("\\*", "+", lop$wsVars)) else
 if(is.na(lop$wsVars)) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$model), "+", gsub("\\*", "+", lop$mVar))) else
    showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar))
-if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV)) showTab <- gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab)
+if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
+   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
 print(xtabs(showTab, data=lop$dataStr))                                           
                                                
 cat('\nTabulation of subjects against each of the categorical variables:')
