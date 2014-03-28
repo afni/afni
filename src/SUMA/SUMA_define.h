@@ -2249,8 +2249,8 @@ typedef struct {
    float lastQuat[4]; /*!< Quaternion last time we displayed*/
    Boolean ApplyMomentum;   /*!< Turn momentum ON/OFF */
    
-   float LHpry;
-   float LHpry0;
+   float vLHpry[3];
+   float vLHpry0[3];
    int LHlol;           /*!< if 1 then the left hemi starts up displayed
                              on the left side of the screen.
                              if -1 then left starts on the right.

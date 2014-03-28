@@ -269,7 +269,7 @@ float *SUMA_VisX_CoordPointer(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_VisX_Pointers4Display(SUMA_SurfaceObject *SO, int fordisp);
 int SUMA_AllowPrying(SUMA_SurfaceViewer *sv, int *RegSO);
 SUMA_Boolean SUMA_ResetPrying(SUMA_SurfaceViewer *svu);
-SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val, char *units,
+SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val[3], char *units,
                               int recompute_norm);
 SUMA_Boolean SUMA_RecomputeNormsPrying(SUMA_SurfaceViewer *svu);
 int SUMA_LeftShownOnLeft(SUMA_SurfaceViewer *sv, 

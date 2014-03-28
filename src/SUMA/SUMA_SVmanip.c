@@ -414,9 +414,13 @@ SUMA_Boolean SUMA_DiffGeomViewStruct(SUMA_GEOMVIEW_STRUCT gvs1,
       if (gvs1.spinBeginX != gvs2.spinBeginX) SUMA_RETURN(21);
       if (gvs1.spinBeginY != gvs2.spinBeginY) SUMA_RETURN(22);
       if (gvs1.MinIdleDelta != gvs2.MinIdleDelta) SUMA_RETURN(23);
-      if (gvs1.LHpry != gvs2.LHpry) SUMA_RETURN(27);
-      if (gvs1.LHpry0 != gvs2.LHpry0) SUMA_RETURN(28);
-      if (gvs1.LHlol != gvs2.LHlol) SUMA_RETURN(29);
+      if (gvs1.vLHpry[0] != gvs2.vLHpry[0]) SUMA_RETURN(27);
+      if (gvs1.vLHpry0[0] != gvs2.vLHpry0[0]) SUMA_RETURN(28);
+      if (gvs1.vLHpry[1] != gvs2.vLHpry[1]) SUMA_RETURN(29);
+      if (gvs1.vLHpry0[1] != gvs2.vLHpry0[1]) SUMA_RETURN(30);
+      if (gvs1.vLHpry[2] != gvs2.vLHpry[2]) SUMA_RETURN(31);
+      if (gvs1.vLHpry0[2] != gvs2.vLHpry0[2]) SUMA_RETURN(32);
+      if (gvs1.LHlol != gvs2.LHlol) SUMA_RETURN(33);
    }
    
    /* if (gvs1. != gvs2.) SUMA_RETURN(); */
@@ -684,9 +688,13 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
                SUMA_HOME_QUAT(j, SV->GVS[j].currentQuat);
                SV->GVS[j].ApplyMomentum = False;
 
-               SV->GVS[j].LHpry = 0.0;
+               SV->GVS[j].vLHpry[0] = 0.0;
+               SV->GVS[j].vLHpry0[0] = 0.0;
+               SV->GVS[j].vLHpry[1] = 0.0;
+               SV->GVS[j].vLHpry0[1] = 0.0;
+               SV->GVS[j].vLHpry[2] = 0.0;
+               SV->GVS[j].vLHpry0[2] = 0.0;
                SV->GVS[j].LHlol = 0;
-               SV->GVS[j].LHpry0 = 0.0;
                SV->GVS[j].MinIdleDelta = 1;
                SV->GVS[j].TranslateGain = TRANSLATE_GAIN;
                SV->GVS[j].ArrowtranslateDeltaX = ARROW_TRANSLATE_DELTAX;
@@ -714,9 +722,13 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 
                SV->GVS[j].ApplyMomentum = False;
 
-               SV->GVS[j].LHpry = 0.0;
+               SV->GVS[j].vLHpry[0] = 0.0;
+               SV->GVS[j].vLHpry0[0] = 0.0;
+               SV->GVS[j].vLHpry[1] = 0.0;
+               SV->GVS[j].vLHpry0[1] = 0.0;
+               SV->GVS[j].vLHpry[2] = 0.0;
+               SV->GVS[j].vLHpry0[2] = 0.0;
                SV->GVS[j].LHlol = 0;
-               SV->GVS[j].LHpry0 = 0.0;
                SV->GVS[j].MinIdleDelta = 1;
                SV->GVS[j].TranslateGain = TRANSLATE_GAIN;
                SV->GVS[j].ArrowtranslateDeltaX = ARROW_TRANSLATE_DELTAX;
@@ -2963,9 +2975,14 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   translateVec = [%f %f 0.0]\n", 
                SV->GVS[SV->StdView].translateVec[0], 
                SV->GVS[SV->StdView].translateVec[1]);
-   SS = SUMA_StringAppend_va(SS,"   LHpry = %f, LHpry0 = %f, LHlol = %d\n",
-                             SV->GVS[SV->StdView].LHpry, 
-                             SV->GVS[SV->StdView].LHpry0,
+   SS = SUMA_StringAppend_va(SS,
+            "   LHpry = [%f %f %f], LHpry0 = [%f %f %f], LHlol = %d\n",
+            SV->GVS[SV->StdView].vLHpry[0],
+            SV->GVS[SV->StdView].vLHpry[1],
+            SV->GVS[SV->StdView].vLHpry[2], 
+            SV->GVS[SV->StdView].vLHpry0[0],
+            SV->GVS[SV->StdView].vLHpry0[1],
+            SV->GVS[SV->StdView].vLHpry0[2],
                              SV->GVS[SV->StdView].LHlol); 
    SS = SUMA_StringAppend_va(SS,"   Show Mesh Axis %d\n", SV->ShowMeshAxis);
    SS = SUMA_StringAppend_va(SS,"   Show Eye Axis %d\n", SV->ShowEyeAxis);
