@@ -139,6 +139,7 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       if (SUMA_iswordsame_ci(keyname,"f7") == 1) SUMA_RETURN(XK_F7);
       if (SUMA_iswordsame_ci(keyname,"f8") == 1) SUMA_RETURN(XK_F8);
       if (SUMA_iswordsame_ci(keyname,"f9") == 1) SUMA_RETURN(XK_F9);
+      if (SUMA_iswordsame_ci(keyname,"f11") == 1) SUMA_RETURN(XK_F11);
       if (SUMA_iswordsame_ci(keyname,"f12") == 1) SUMA_RETURN(XK_F12);
 
       SUMA_S_Errv("Key '%s' not yet supported, complain to author.\n", keyname);
@@ -929,6 +930,60 @@ int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break; 
+      default:
+         SUMA_S_Err("Il ne faut pas etre hawn");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F11_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, 
+                 char *strgval)
+{
+   static char FuncName[]={"SUMA_F11_Key"};
+   char tk[]={"F11"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   static int inote = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F11: {
+         if ( (callmode && strcmp(callmode, "interactive") == 0) ||
+             !strgval /* why not? this way the 
+                        Driver can pop the interactive window */) {     
+            sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialogStruct(
+                                 SUMA_OK_APPLY_CLEAR_CANCEL, 
+                            "Set Object Display Order:\n"
+                            "(e.g. VSG for: Volume, Surface, Graph)):", 
+                                 "VSG",
+                                 sv->X->TOPLEVEL, YUP,
+                                 SUMA_APPLY_BUTTON,
+                                 SUMA_SV_SetRenderOrder, (void *)sv,
+                                 NULL, NULL,
+                                 NULL, NULL,
+                                 SUMA_VerifyRenderOrder, NULL,  
+                                 sv->X->SetRenderOrder_prmpt);
+
+            sv->X->SetRenderOrder_prmpt = SUMA_CreatePromptDialog(
+                              sv->X->Title, sv->X->SetRenderOrder_prmpt);
+         } else {
+            if (!strgval) {
+               SUMA_S_Err("Have NULL string");
+               SUMA_RETURN(0);
+            }
+            SUMA_SV_SetRenderOrder(strgval, (void *)sv);
+         }   
+         break; } 
       default:
          SUMA_S_Err("Il ne faut pas etre hawn");
          SUMA_RETURN(0);
@@ -4732,7 +4787,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_S_Err("Failed in key func.");
             }
             break;
-            
+         case XK_F11: /* F11 */
+            if (!SUMA_F11_Key(sv, "F11", "interactive", NULL)) {
+               SUMA_S_Err("Failed in key func.");
+            }
+            break;   
          case XK_F12: /* F12 */
             if (!SUMA_F12_Key(sv, "F12", "interactive")) {
                SUMA_S_Err("Failed in key func.");
@@ -10914,6 +10973,27 @@ void SUMA_LookAtCoordinates (char *s, void *data)
       fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
 
+   SUMA_RETURNe;
+}
+
+void SUMA_SV_SetRenderOrder(char *s, void *data)
+{
+   static char FuncName[]={"SUMA_SV_SetRenderOrder"};
+   SUMA_SurfaceViewer *sv = NULL;
+   SUMA_Boolean LocalHead = NOPE; 
+
+   SUMA_ENTRY;
+
+   if (!s) SUMA_RETURNe;
+   
+   sv = (SUMA_SurfaceViewer *)data;
+   if (!sv) {
+      SUMA_S_Err("Null sv");
+      SUMA_RETURNe;
+   }
+   
+   sv->N_otseq = SUMA_SetObjectDisplayOrder(s, sv->otseq);
+      
    SUMA_RETURNe;
 }
 

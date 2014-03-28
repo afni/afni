@@ -5663,12 +5663,25 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
       MDO->SO->FaceSetDim = 4;
    }
    SUMA_SimpleDrawMesh(MDO->SO,NULL,sv);
-   if (MDO->dodop && SV_IN_PRYING(sv)) {
-      float delta[3], psize;
+   
+   /* Any doppleganger ? */
+   if (MDO->Parent_idcode_str && MDO->dodop && SV_IN_PRYING(sv)) {
+      float delta[3], psize, *xyz, *ffv=NULL;
       int pmode;
-      delta[0] = MDO->cen[0]-MDO->dopxyz[0];
-      delta[1] = MDO->cen[1]-MDO->dopxyz[1];
-      delta[2] = MDO->cen[2]-MDO->dopxyz[2];
+      SUMA_ALL_DO *ado=NULL;
+      ado = SUMA_whichADOg(MDO->Parent_idcode_str);
+      xyz = MDO->dopxyz;
+      if (ado->do_type == SO_type) {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         if (MDO->Parent_datum_index >= 0 && 
+             MDO->Parent_datum_index < SO->N_Node) {
+            ffv = SUMA_VisX_CoordPointer(SO);
+            if (ffv) xyz = ffv+SO->NodeDim*MDO->Parent_datum_index;
+         }
+      }
+      delta[0] = MDO->cen[0]-xyz[0];
+      delta[1] = MDO->cen[1]-xyz[1];
+      delta[2] = MDO->cen[2]-xyz[2];
       
       glPushMatrix();
       glTranslatef(-delta[0], -delta[1], -delta[2]);
@@ -5681,6 +5694,7 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
       MDO->SO->PointSize = psize;
       glPopMatrix();
    }
+   
    if (MDO_IS_BOX(MDO)) {
       /* Return SO to triangles */
       MDO->SO->glar_FaceSetList = tFaceSet;

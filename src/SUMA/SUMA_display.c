@@ -19745,19 +19745,22 @@ void SUMA_PromptApply_cb (Widget w, XtPointer data, XtPointer calldata)
    }
    XtFree (text);
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Read %s\n", FuncName, prmpt->selection);
+   SUMA_LH("Read %s\n", prmpt->selection);
 
    /* verify the input */
    if (prmpt->VerifyFunction) {
       if (!prmpt->VerifyFunction(prmpt->selection, prmpt->VerifyData)) {
-         SUMA_SLP_Err("Gibberish! try again.\nSyntax error or wrong\nnumber/type of arguments.");
+         SUMA_SLP_Err("Gibberish! try again.\n"
+                      "Syntax error or wrong\n"
+                      "number/type of arguments.\n"
+                      "See command line for more specific errors.");
          SUMA_RETURNe;
       }
    }
    
    /* do your selectcallback */
    if (prmpt->SelectCallback) {
-      prmpt->SelectCallback (prmpt->selection, prmpt->SelectData);
+      prmpt->SelectCallback(prmpt->selection, prmpt->SelectData);
    }
    
    
