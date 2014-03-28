@@ -899,6 +899,7 @@ int main( int argc , char *argv[] )
    int nxold=0,nyold=0,nzold=0 ;
    int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
    int zp_xm=0,zp_xp=0 , zp_ym=0,zp_yp=0 , zp_zm=0,zp_zp=0 ; float zp_frac=-1.0f ;
+   int expad=0 ;
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -974,6 +975,12 @@ int main( int argc , char *argv[] )
        if( zp_frac < 0.0f || zp_frac > 0.2f )
          ERROR_message("Illegal value after option %s",argv[nopt-1]) ;
        if( zp_frac == 0.0f ) zeropad = 0 ;
+       nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-expad") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       expad = (int)strtod(argv[nopt],NULL) ;
+       if( expad < 0 ) expad = 0 ;
        nopt++ ; continue ;
      }
 
@@ -1500,6 +1507,8 @@ STATUS("load datasets") ;
 
    /*--- Do we need to zeropad the datasets? [Friday the 13th of September 2013] ---*/
 
+   if( expad > 0 ) zeropad = 1 ;
+
    if( zeropad ){   /* adapted from 3dAllineate */
      float cv , *qar  ; MRI_IMAGE *qim ;
      int bpad_xm,bpad_xp, bpad_ym,bpad_yp, bpad_zm,bpad_zp ;
@@ -1543,6 +1552,13 @@ STATUS("load datasets") ;
      pad_xp = mpad_x - (bim->nx-1 - pad_xp) ; if( pad_xp < 0 ) pad_xp = 0 ;
      pad_yp = mpad_y - (bim->ny-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
      pad_zp = mpad_z - (bim->nz-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
+
+     if( expad > 0 ){
+       pad_xm += expad ; pad_xp += expad ;
+       pad_ym += expad ; pad_yp += expad ;
+       pad_zm += expad ; pad_zp += expad ;
+     }
+
      if( bim->nz == 1 ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
 
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
