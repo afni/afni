@@ -65,6 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 28, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added 'F11' to allow users to set the object rendering order",
+   "This is an interactive version of env: SUMA_ObjectDisplayOrder" 
+ },
+  
+ { 28, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Implemented doppleganger for masks on pried surfaces",
+   NULL 
+ },
+  
+ { 28, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added prying along the horizontal direction too",
+   "This is most handy when you want to travel along the \n"
+   "lateral surface and still see what gives in tracts or on\n"
+   "slices." 
+ },
+  
  { 27, Mar, 2014, ZSS, "suma-general", MICRO, TYPE_NEW_ENV,
    "Added SUMA_ObjectDisplayOrder to control object display sequence",
    "This only affects the rendering in the few instances where alpha\n"
