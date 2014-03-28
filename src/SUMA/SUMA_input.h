@@ -54,6 +54,7 @@ int SUMA_F6_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F7_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
+int SUMA_F11_Key(SUMA_SurfaceViewer *sv,char *key,char *callmode, char *strgval);
 int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
@@ -162,6 +163,7 @@ void SUMA_SetScreenClip (char *s, void *data);
 void SUMA_SetObjectClip (char *s, void *data);
 void SUMA_SetClip (char *s, SUMA_SurfaceViewer *data, SUMA_CLIP_PLANE_TYPES tp);
 void SUMA_SetLight0 (char *s, void *data);
+void SUMA_SV_SetRenderOrder(char *s, void *data);
 void SUMA_JumpIndex (char *s, void *data);
 void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO);
 void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv, 
