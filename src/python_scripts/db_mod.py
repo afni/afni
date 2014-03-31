@@ -181,11 +181,15 @@ def make_uniformity_commands(proc, umeth):
     opre = proc.anat.prefix + '_unif'
     oset = proc.anat.new(new_pref=opre)
 
+    if proc.user_opts.have_yes_opt('-anat_unif_GM', default=1): gmstr = ' -GM'
+    else:                                                       gmstr = ''
+
     cmd  = "# %s\n"                                                       \
            "# perform '%s' uniformity correction on anatomical dataset\n" \
            % (block_header('uniformity correction'), umeth)
 
-    cmd += "3dUnifize -prefix %s%s %s\n\n" % (opre, other_opts, proc.anat.pv())
+    cmd += "3dUnifize -prefix %s%s%s %s\n\n" \
+           % (opre, gmstr, other_opts, proc.anat.pv())
 
     # update prefix for anat and tlrcanat
     if proc.verb > 2:
@@ -195,6 +199,7 @@ def make_uniformity_commands(proc, umeth):
        else:
           print '++ updating anat prefix from %s to %s'%(proc.anat.prefix,opre)
 
+    proc.anat_unifized = 1      # note that this has been done
     proc.anat.prefix = opre
     if proc.tlrcanat: proc.tlrcanat.prefix = opre
 
@@ -650,11 +655,25 @@ def db_cmd_ricor(proc, block):
         return
     nsr_labs = adata.labs_matching_str('s0.')
     nsliregs = adata.nvec // nslices
+    nlab = len(nsr_labs)
+    if nlab > 0: nrslices = adata.nvec/nlab
+    else:        nrslices = 0
+    # if not evenly divided by nslices
     if nsliregs * nslices != adata.nvec:
-        print "** ERROR: ricor nsliregs x nslices != nvec (%d,%d,%d)\n" \
-              "   (# slice 0 labels found = %d)"                        \
-              % (nsliregs, nslices, adata.nvec, len(nsr_labs))
+        print "** ERROR: ricor nsliregs x nslices != nvec (%d, %d, %d)\n"   \
+              "   (%d ricor slices, %d volume slices, %d slice 0 labels)\n" \
+              % (nsliregs, nslices, adata.nvec, nrslices, nslices, nlab)
         return
+
+    # if have apparent slices, but they seem to differ
+    if nrslices > 0 and nrslices != nslices:
+        print "** ERROR: %d apparent ricor slices but %d EPI slices" \
+              % (nrslices, nslices)
+        return
+
+    if nlab > 0 and nlab != 13:
+        print "** WARNING: have %d regressors per slice (13 is typical)" % nlab
+
     if proc.verb > 1: print '-- ricor: nsliregs = %d, # slice 0 labels = %d' \
                             % (nsliregs, len(nsr_labs))
     if proc.verb > 2: print '-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs)
@@ -4497,6 +4516,7 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
           PREFIX.aw.nii           : final NL-warped anat
           anat.un.aff.qw_WARP.nii : final NL warp
           anat.un.aff.Xat.1D      : @auto_tlrc warp (not -ONELINE)
+          (or anat.aff.Xat.1D)
        and copy back to results dir in AFNI format?
           - use 3dbucket to "rename" anat result, preserving history
           - move the warp files out of awpy
@@ -4518,6 +4538,10 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
 
     if strip: sstr = ' -skull_strip_input yes'
     else:     sstr = ' -skull_strip_input no'
+
+    # allow (default) unifize, if not already done
+    if proc.anat_unifized: ustr = ' -unifize_input no'
+    else:                  ustr = ''
 
     if suffix:
        suf = suffix
@@ -4542,10 +4566,10 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
 
     cmd += "# warp anatomy to standard space (non-linear warp)\n" \
            "auto_warp.py -base %s -input %s \\\n"                 \
-           "            %s%s"                                     \
+           "            %s%s%s"                                   \
            "%s"                                                   \
            "\n\n"                                                 \
-           % (base, aset.pv(), sstr, sufstr, exstr)
+           % (base, aset.pv(), sstr, sufstr, ustr, exstr)
 
     # add commands to move or copy results out of awpy directory
 
@@ -4559,8 +4583,12 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     #    - by default, remove the awpy directory
 
     proc.tlrcanat = proc.anat.new(apre+suf, '+tlrc')
-    proc.nlw_aff_mat = 'anat.un.aff.Xat.1D'
-    proc.nlw_NL_mat = 'anat.un.aff.qw_WARP.nii'
+
+    # if no unifize, xmat strings will not have .un
+    if proc.anat_unifized: uxstr = ''
+    else:                  uxstr = 'un.'
+    proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
+    proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr
 
     pstr = '# move results up out of the awpy directory\n'  \
            '# (NL-warped anat, affine warp, NL warp)\n'     \
@@ -6317,13 +6345,27 @@ g_help_string = """
 
         -anat_opts_unif OPTS ... : specify extra options for unifize command
 
-                e.g. -anat_opts_unif -GM
+                e.g. -anat_opts_unif -Urad 14
 
             Specify options to be applied to the command used for anatomical
             intensity uniformity correction, such as 3dUnifize.
 
             Please see '3dUnifize -help' for details.
             See also -anat_uniform_method.
+
+        -anat_unif_GM yes/no    : also unifize gray matter (lower intensities)
+                                  the default is 'yes'
+
+                e.g. -anat_unif_GM no
+                default -anat_unif_GM yes
+
+            If this is set to yes (which is the default), 3dUnifize will not
+            only apply uniformity correction across the volume, but it will
+            also perform a correction to voxels that look like gray matter.
+            That is to say '-GM' will be added to the 3dUnifize command.
+
+            Please see '3dUnifize -help' for details.
+            See also -anat_uniform_method, -anat_opts_unif.
 
         -ask_me                 : ask the user about the basic options to apply
 
