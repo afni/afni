@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , MAR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+  { 31 , MAR , 2014 , RWC , "messages" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_MESSAGE_PREFIX will go before program messages to stderr" ,
+   "The purpose of this is to allow the user to distinguish between messages\n"
+   "from various instances of programs running in parallel, as in\n"
+   "  foreach fred ( 1 2 3 )\n"
+   "    setenv AFNI_MESSAGE_PREFIX case$fred\n"
+   "    run_some_program -option $fred &\n"
+   "  end" } ,
+
+ { 24 , MAR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "-useweight is now the default; -noweight turns it off" ,
    NULL } ,
 

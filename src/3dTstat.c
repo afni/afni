@@ -291,6 +291,10 @@ int main( int argc , char *argv[] )
          usage_3dTstat(strlen(argv[nopt]) > 3 ? 2:1);
          exit(0);
       }
+
+      if( strcmp(argv[nopt],"-verb") == 0 ){
+        verb++ ; nopt++ ; continue ;
+      }
       
       /*-- methods --*/
 
