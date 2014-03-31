@@ -30,7 +30,7 @@ static void fputs_messfp( char *msg )
 
 static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr )
 {
-   char *ifmt , *msg ; int ll ;
+   char *ifmt , *msg , *epr ; int ll ;
 
    if( fmt == NULL || *fmt == '\0' ) return ;
    if( prefix == NULL || *prefix == '\0' ){
@@ -41,8 +41,11 @@ static void output_message( int ump, char *prefix, char *fmt, va_list vararg_ptr
      strcat(ifmt,fmt) ;
    }
    ll = strlen(ifmt) ; if( ll < 1024 ) ll = 1024 ;
+   epr = getenv("AFNI_MESSAGE_PREFIX") ;
+   if( epr != NULL ) ll += strlen(epr)+1 ;
    msg = malloc(sizeof(char)*16*ll+1) ; msg[0] = '\0' ;
-   vsprintf(msg,ifmt,vararg_ptr) ; ll = strlen(msg) ;
+   if( epr != NULL ){ strcpy(msg,epr); strcat(msg,"::"); }
+   vsprintf(msg+strlen(msg),ifmt,vararg_ptr) ; ll = strlen(msg) ;
    if( msg[ll-1] != '\n' ){ msg[ll] = '\n' ; msg[ll+1] = '\0' ; }
    fputs(msg,stderr) ;
    if( ump ) fputs_messfp(msg) ;  /* 12 Mar 2007 */
