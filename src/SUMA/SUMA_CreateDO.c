@@ -5665,8 +5665,6 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
    SUMA_SimpleDrawMesh(MDO->SO,NULL,sv);
    
    /* Any doppleganger ? */
-   SUMA_S_Note("%s, %d, %d",
-            MDO->Parent_idcode_str, MDO->dodop, SV_IN_PRYING(sv));
    if (MDO->Parent_idcode_str && MDO->dodop && SV_IN_PRYING(sv)) {
       float delta[3], psize, *xyz, *ffv=NULL;
       int pmode;
