@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31,  Mar, 2014, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -anat_unif_GM (def=yes); improved message for bad ricor input",
+   NULL
+ } ,
+
+ { 31,  Mar, 2014, RCR, "auto_warp.py", MICRO, TYPE_MODIFY,
+   "some help text indentation and fix for display of non-string defaults",
+   NULL
+ } ,
+
  { 26,  Mar, 2014, RCR, "auto_warp.py", MINOR, TYPE_BUG_FIX,
    "in 3dNwarpApply, use the base dataset as the -master, rather than WARP",
    "The WARP dataset is now often bigger, to handle warps to the dataset\n"
