@@ -7844,6 +7844,7 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
       if (ado_pick->do_type == SO_type) {
          SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado_pick;
          /* PickXYZ might be under VisX */
+         SUMA_S_Note("HERE, %p", (*PR)->PickXYZ);
          xyz = SO->NodeList+SO->NodeDim* (*PR)->datum_index;
          SUMA_MDO_New_Doppel((SUMA_MaskDO *)ado, (*PR)->PickXYZ);
       } else {
