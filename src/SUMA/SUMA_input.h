@@ -78,6 +78,7 @@ SUMA_EVENT *SUMA_RecordEvent( XEvent *event, SUMA_EVENT *ev);
 void SUMA_ShowEvent(SUMA_EVENT *ev, int opt, char *pre); 
 char *SUMA_KeyType2String(int kt);
 char *SUMA_Butts2String(SUMA_EVENT *ev);
+int SUMA_Plain_Event(SUMA_EVENT *ev);
 int SUMA_Alt_Event(SUMA_EVENT *ev);
 int SUMA_ShftAlt_Event(SUMA_EVENT *ev);
 int SUMA_ContAlt_Event(SUMA_EVENT *ev);

@@ -3533,44 +3533,58 @@ void SUMA_ShowEvent(SUMA_EVENT *ev, int opt, char *pre)
 #define evALT ((ev->Mod1 || ev->Mod2 || ev->AppleAltOpt))
 int SUMA_ShftCont_Event(SUMA_EVENT *ev) 
 {
+   if (!ev) ev = SUMAg_CF->lev;
    if (!ev || !ev->set) return(0);
    if (ev->Shift && ev->Control && !evALT) return(1);
    return(0);
 }
 int SUMA_Cont_Event(SUMA_EVENT *ev) 
 {
+   if (!ev) ev = SUMAg_CF->lev;
    if (!ev || !ev->set) return(0);
    if (!ev->Shift && ev->Control && !evALT) return(1);
    return(0);
 }
 int SUMA_Shft_Event(SUMA_EVENT *ev) 
 {
+   if (!ev) ev = SUMAg_CF->lev;
    if (!ev || !ev->set) return(0);
    if (ev->Shift && !ev->Control && !evALT) return(1);
    return(0);
 }
 int SUMA_ShftContAlt_Event(SUMA_EVENT *ev) 
 {
+   if (!ev) ev = SUMAg_CF->lev;
    if (!ev || !ev->set) return(0);
    if (ev->Shift && ev->Control && evALT ) return(1);
    return(0);
 }
 int SUMA_ContAlt_Event(SUMA_EVENT *ev) 
 {
+   if (!ev) ev = SUMAg_CF->lev;
    if (!ev || !ev->set) return(0);
    if (!ev->Shift && ev->Control && evALT ) return(1);
    return(0);
 }
 int SUMA_ShftAlt_Event(SUMA_EVENT *ev) 
 {
+   if (!ev) ev = SUMAg_CF->lev;
    if (!ev || !ev->set) return(0);
    if (ev->Shift && !ev->Control && evALT ) return(1);
    return(0);
 }
 int SUMA_Alt_Event(SUMA_EVENT *ev) 
 {
+   if (!ev) ev = SUMAg_CF->lev;
    if (!ev || !ev->set) return(0);
    if (!ev->Shift && !ev->Control && evALT) return(1);
+   return(0);
+}
+int SUMA_Plain_Event(SUMA_EVENT *ev) 
+{
+   if (!ev) ev = SUMAg_CF->lev;
+   if (!ev || !ev->set) return(0);
+   if (!ev->Shift && !ev->Control && !evALT) return(1);
    return(0);
 }
 
@@ -5084,6 +5098,37 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                } 
                #endif
+            } else if (pButton==6 || Bev.state & ControlMask) {
+               SUMA_ALL_DO *ado=NULL;
+               SUMA_X_SurfCont *SurfCont;
+               if (MASK_MANIP_MODE(sv)) {
+                  ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+                  if (ado && ado->do_type == MASK_type) {
+                     SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+                     float fv[3];
+                     int irow=-1;
+                     {
+                        fv[0] = mdo->hdim[0]-(0.2*mdo->init_hdim[0]); 
+                        fv[1] = mdo->hdim[1]-(0.2*mdo->init_hdim[1]); 
+                        fv[2] = mdo->hdim[2]-(0.2*mdo->init_hdim[2]);
+                        if (fv[0] < 0 || fv[1] < 0 || fv[2] < 0) {
+                           SUMA_BEEP;
+                           break;
+                        }
+                        SUMA_MDO_New_Dim(mdo, fv);
+                     }
+                     if ((SurfCont=SUMA_ADO_Cont(ado))) {
+                        irow = SUMA_ObjectID_Row(SurfCont->MaskTable, 
+                                                 ADO_ID(ado));
+                        if (irow >= 0) {
+                           SUMA_InitMasksTable_row(SurfCont,mdo, irow);
+                        }
+                     }
+                     SUMA_NEW_MASKSTATE();
+                     /* enough for now */
+                     goto REDISP;
+                  }
+               }
             } else {
                if (!SUMA_Z_Key(sv, "z", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
@@ -5138,6 +5183,33 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
                #endif
+            } else if (pButton==6 || Bev.state & ControlMask) {
+               SUMA_ALL_DO *ado=NULL;
+               SUMA_X_SurfCont *SurfCont;
+               if (MASK_MANIP_MODE(sv)) {
+                  ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+                  if (ado && ado->do_type == MASK_type) {
+                     SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+                     float fv[3];
+                     int irow=-1;
+                     {
+                        fv[0] = mdo->hdim[0]+(0.2*mdo->init_hdim[0]); 
+                        fv[1] = mdo->hdim[1]+(0.2*mdo->init_hdim[1]); 
+                        fv[2] = mdo->hdim[2]+(0.2*mdo->init_hdim[2]);
+                        SUMA_MDO_New_Dim(mdo, fv);
+                     }
+                     if ((SurfCont=SUMA_ADO_Cont(ado))) {
+                        irow = SUMA_ObjectID_Row(SurfCont->MaskTable, 
+                                                 ADO_ID(ado));
+                        if (irow >= 0) {
+                           SUMA_InitMasksTable_row(SurfCont,mdo, irow);
+                        }
+                     }
+                     SUMA_NEW_MASKSTATE();
+                     /* enough for now */
+                     goto REDISP;
+                  }
+               }
             } else {
                if (!SUMA_Z_Key(sv, "Z", "interactive")) {
                   SUMA_S_Err("Failed in key func.");
@@ -5679,7 +5751,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             mvx_fac = mvy_fac = 1.0;
             if (sv->GVS[sv->StdView].spinDeltaX || 
                 sv->GVS[sv->StdView].spinDeltaY){
-               if (Mev.state & ShiftMask) {
+               if (SUMA_Shft_Event(SUMAg_CF->lev)) {
                   float a[3], cQ[4];
                   /* rotate about Z axis   */
                   a[0] = 0.0; a[1] = 0.0; a[2] = 1.0;
@@ -5691,14 +5763,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   add_quats ( cQ, 
                               sv->GVS[sv->StdView].currentQuat, 
                               sv->GVS[sv->StdView].currentQuat);
-               } if (Mev.state & ControlMask) {
+               } else if (SUMA_Cont_Event(SUMAg_CF->lev)) {
                   float val[3];
                   val[0] = sv->GVS[sv->StdView].spinDeltaX;
                   val[1] = sv->GVS[sv->StdView].spinDeltaY;
                   val[2] = 0.0;
                   SUMA_ApplyPrying(sv, val, "mouse", 0); 
                                        /* update normals at release */
-               } else {
+               } else if (SUMA_Plain_Event(SUMAg_CF->lev)){
                   trackball(  sv->GVS[sv->StdView].deltaQuat, 
                               (2*sv->GVS[sv->StdView].spinBeginX - wwid) /
                               wwid*zc_fac*mvx_fac, 
@@ -5712,6 +5784,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   add_quats ( sv->GVS[sv->StdView].deltaQuat, 
                               sv->GVS[sv->StdView].currentQuat, 
                               sv->GVS[sv->StdView].currentQuat);
+               } else {
+                  SUMA_LH("Not ready for event flavor");
+                  break;
                }
                ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
                if (ii < 0) {
@@ -7852,8 +7927,10 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
       }
       if (LocalHead) SUMA_DUMP_TRACE("Box motion");
       SUMA_NEW_MASKSTATE();
-      SUMA_RETURN(SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, xyz));
-   } else {
+      SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, xyz);
+      /* let it be SUMA_RETURN(); */
+   } 
+   {
       ado = SUMA_whichADOg((*PR)->ado_idcode_str);
       SUMA_ifree(sv->LastSel_ado_idcode_str);
       sv->LastSel_ado_idcode_str = SUMA_copy_string((*PR)->ado_idcode_str);
