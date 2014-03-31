@@ -406,9 +406,13 @@ g_history = """
     4.13 Mar 24, 2014:
         - added options -anat_uniform_method and -anat_opts_unif
         - move toutcount to new (hidden) postdata block
+    4.14 Mar 31, 2014:
+        - added -anat_unif_GM (default is yes)
+        - added detail to ricor slices warning/error
+        - if anat_uniform_method of unifize, turn of in auto_warp.py
 """
 
-g_version = "version 4.13, March 25, 2014"
+g_version = "version 4.14, March 31, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "29 Nov 2013" # for 3dRSFC update
@@ -503,6 +507,7 @@ class SubjProcSream:
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.anat_has_skull = 1         # does the input anat have a skull
                                         # also updated in db_cmd_align
+        self.anat_unifized = 0          # has the anat been unifized
         self.anat_final = None          # anat assumed aligned with stats
         self.nlw_aff_mat= ''
         self.nlw_NL_mat = ''
@@ -666,6 +671,9 @@ class SubjProcSream:
                         helpstr='specify uniformity method (default=none)')
         self.valid_opts.add_opt('-anat_opts_unif', -1, [],
                         helpstr='additional options passed to 3dUnifize')
+        self.valid_opts.add_opt('-anat_unif_GM', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='also unifize gray matter (def=yes)')
         self.valid_opts.add_opt('-ask_me', 0, [],       # QnA session
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],

@@ -135,11 +135,11 @@ class RegWrap:
              helpstr="Resolution used for computing initial transform (cubic only)\n")
       self.valid_opts.add_opt('-affine_input_xmat', 1,deflist=['AUTO'],\
              helpstr="Affine transform to put input in standard space.\n"\
-                     "Special values are 'AUTO' to use @auto_tlrc\n"\
-                     "                   'ID' to do nothing\n"\
-                     "                   'FILE.1D' for a pre-computed matrix\n"\
-                     "                             FILE.1D will get applied to\n"\
-                     "                             the input before Qwarping\n")
+                     "Special values are:\n"\
+                     "    'AUTO' to use @auto_tlrc\n"\
+                     "    'ID' to do nothing\n"\
+                     "    'FILE.1D' for a pre-computed matrix FILE.1D will\n"\
+                     "              get applied to the input before Qwarping\n")
       self.valid_opts.add_opt('-smooth_anat', -1,[],\
              helpstr="Smooth anatomy before registration\n")
       self.valid_opts.add_opt('-smooth_base', -1,[],\
@@ -340,8 +340,11 @@ class RegWrap:
                print "   %-20s   %s" % \
                   ("   allowed:" , string.join(opt.acceptlist,', '))
             if (opt.deflist):
-               print "   %-20s   %s" % \
-                  ("   default:",string.join(opt.deflist,' '))
+               if type(opt.deflist[0]) != str:  # 31 Mar 2014 [rickr]
+                  print "   %-20s   %s" % ("   default:",opt.deflist)
+               else:
+                  print "   %-20s   %s" % \
+                     ("   default:",string.join(opt.deflist,' '))
       return 1
    
    # remove all the temporary files for epi and anat base names
