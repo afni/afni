@@ -1788,7 +1788,17 @@ char * SUMA_help_message_Info(void)
       "                          many sub-bricks as the surface has nodes. \n"
       "                          K is an integer.\n"
       "     Shift+Ctrl+Button 3-Press: Pick and initiate call in Dot xform\n"
-      "                               mode, or to GroupInCorr\n");
+      "                               mode, or to GroupInCorr\n"
+      "     Button 3-DoubleClick: If double clicking on a tract mask, select\n"
+      "                           the tract mask and turn the viewer into Mask\n"
+      "                           Manipulation Mode. In this mode, the mask is\n"
+      "                           shown as a wiremesh, and selections on any \n"
+      "                           object will move the mask to that location.\n"
+      "                           New tract/masks intersections are computed\n"
+      "                           at the new location.\n"
+      "                           To leave Mask Manipulation Mode, double \n"
+      "                           click with button 3 either on the mask or \n"
+      "                           in an area void of any objects.\n" );
    SS = SUMA_StringAppend (SS, 
       "     Button 3-Motion: continuous picking whenever surface are present.\n"
       "                      No calls for dot product (InstaCorr)\n"
@@ -1805,7 +1815,11 @@ char * SUMA_help_message_Info(void)
       );
    SS = SUMA_StringAppend(SS,
       "     Wheel/Scroll: Zoom in/out\n"
-      "     Shift+Wheel/Scroll: change selected slice if applicable\n"
+      "     Shift+Wheel/Scroll: change selected slice if current selected\n"
+      "                         object is a volume.\n"
+      "     Ctrl+Wheel/Scroll: change the size of the currently selected \n"
+      "                        tract mask. This only works when you're in\n"
+      "                        mask manipulation mode.\n"
       );
    SS = SUMA_StringAppend (SS, 
       "    \n");
