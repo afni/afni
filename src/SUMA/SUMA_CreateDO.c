@@ -16939,7 +16939,6 @@ SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val[3], char *units,
          sv->GVS[sv->StdView].vLHpry[0] = sv->GVS[sv->StdView].vLHpry0[0]+
                      sv->GVS[sv->StdView].LHlol*
                (90*2.5*val[0]/(float)(sv->WindWidth+1.0)) ; 
-         if (SUMAg_CF->Dev) { /* For the daring for now */
          /* instead of the 300, below, you want something related to the
             thickness along the LR axis of a hemisphere... */
          sv->GVS[sv->StdView].vLHpry[1] = sv->GVS[sv->StdView].vLHpry0[1]+
@@ -16947,13 +16946,10 @@ SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val[3], char *units,
                (300*val[1]/(float)(sv->WindWidth+1.0)) ; 
          
          sv->GVS[sv->StdView].vLHpry[2] = val[2];
-         }
       } else { /* assume degrees */
          sv->GVS[sv->StdView].vLHpry[0] = val[0];
-         if (SUMAg_CF->Dev) { /* For the daring for now */
          sv->GVS[sv->StdView].vLHpry[1] = val[1];
          sv->GVS[sv->StdView].vLHpry[2] = val[2];
-         }
       }
       
       /* just to be safe */
