@@ -7198,8 +7198,8 @@ SUMA_PICK_RESULT *SUMA_free_PickResult(SUMA_PICK_RESULT *PR)
    SUMA_ifree(PR->primitive);
    SUMA_ifree(PR->ado_idcode_str);
    SUMA_ifree(PR->dset_idcode_str);
-   SUMA_free(PR);
    SUMA_ifree(PR->evr);
+   SUMA_free(PR);
    SUMA_RETURN(NULL);
 }
 
