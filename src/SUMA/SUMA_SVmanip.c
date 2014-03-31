@@ -466,7 +466,7 @@ int SUMA_SetObjectDisplayOrder(char *ord, int *otseq)
          if (sar->str[iii]) deblank_name(sar->str[iii]);
          if (sar->str[iii]) {
             bad = 0;
-                   if (strcasestr(sar->str[iii],"sur")==sar->str[iii]) {
+                   if (!strncasecmp(sar->str[iii],"sur", 3)) {
                if (!used[SO_type]) { 
                   otseq[cnt++] = SO_type;
                   used[SO_type] = 1;
@@ -475,7 +475,7 @@ int SUMA_SetObjectDisplayOrder(char *ord, int *otseq)
                              sar->str[iii]);
                   bad = 1;
                }
-            } else if (strcasestr(sar->str[iii],"vol")==sar->str[iii]) {
+            } else if (!strncasecmp(sar->str[iii],"vol", 3)) {
                if (!used[VO_type]) { 
                   otseq[cnt++] = VO_type;
                   used[VO_type] = 1;
@@ -484,7 +484,7 @@ int SUMA_SetObjectDisplayOrder(char *ord, int *otseq)
                              sar->str[iii]);
                   bad = 1;
                }
-            } else if (strcasestr(sar->str[iii],"gra")==sar->str[iii]) {
+            } else if (!strncasecmp(sar->str[iii],"gra", 3)) {
                if (!used[GRAPH_LINK_type]) { 
                   otseq[cnt++] = GRAPH_LINK_type;
                   used[GRAPH_LINK_type] = 1;
