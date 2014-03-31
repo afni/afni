@@ -140,6 +140,19 @@ piles of paper in my office, though.)
  AFNI_FIM_BKTHR           = 25.0    //                       |
  AFNI_SPLASHTIME          = 3.0     //                       v
 
+-----------------------------
+Variable: AFNI_MESSAGE_PREFIX
+-----------------------------
+Most AFNI programs output various messages prefixed by '++', '**', and
+divers variations.  If you are running several programs at once, you can
+pre-pend a string to these prefixes to distinguish them in the output
+terminal stream.  For example, a csh script might look like so:
+  foreach fred ( 1 2 3 4 )
+    setenv AFNI_MESSAGE_PREFIX case$fred
+    run_some_program -option $fred ... |& tee out${fred}.txt &
+  end
+  wait
+
 ------------------------------------
 Variable: AFNI_DONT_SORT_ENVIRONMENT
 ------------------------------------
