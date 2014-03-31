@@ -888,7 +888,9 @@ int main( int argc , char *argv[] )
    int meth = GA_MATCH_PEARCLP_SCALAR ;
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg = 0 ;
+   float dx,dy,dz ;
    int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
+   float dxal=0.0f,dyal=0.0f,dzal=0.0f ;
    int do_resam=0 ; int keep_allin=1 ;
    int flags = 0 , nbad = 0 ;
    double cput = 0.0 ;
@@ -1428,6 +1430,7 @@ STATUS("3dAllineate coming up next") ;
        LOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
                                qar[4],qar[5],qar[ 6],qar[ 7],
                                qar[8],qar[9],qar[10],qar[11] ) ;
+       dxal = fabsf(qar[3]) ; dyal = fabsf(qar[7]) ; dzal = fabsf(qar[11]) ;
        if( !keep_allin ){
          remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
          if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
@@ -1504,13 +1507,14 @@ STATUS("load datasets") ;
    /*- dimensions of the universe -*/
 
    nxold = nx = DSET_NX(bset); nyold = ny = DSET_NY(bset); nzold = nz = DSET_NZ(bset);
+   dx = fabsf(DSET_DX(bset)) ; dy = fabsf(DSET_DY(bset)) ; dz = fabsf(DSET_DZ(bset)) ;
 
    /*--- Do we need to zeropad the datasets? [Friday the 13th of September 2013] ---*/
 
    if( expad > 0 ) zeropad = 1 ;
 
    if( zeropad ){   /* adapted from 3dAllineate */
-     float cv , *qar  ; MRI_IMAGE *qim ;
+     float cv , *qar  ; MRI_IMAGE *qim ; int mpad_min=9 ;
      int bpad_xm,bpad_xp, bpad_ym,bpad_yp, bpad_zm,bpad_zp ;
      int spad_xm,spad_xp, spad_ym,spad_yp, spad_zm,spad_zp ;
      int mpad_x , mpad_y , mpad_z , ii ;
@@ -1540,9 +1544,16 @@ STATUS("load datasets") ;
      pad_ym = MIN(bpad_ym,spad_ym) ; pad_yp = MAX(bpad_yp,spad_yp) ;
      pad_zm = MIN(bpad_zm,spad_zm) ; pad_zp = MAX(bpad_zp,spad_zp) ;
 
-     mpad_x = (int)rintf(0.0666f*bim->nx) ; mpad_x = MAX(mpad_x,6) ;
-     mpad_y = (int)rintf(0.0666f*bim->ny) ; mpad_y = MAX(mpad_y,6) ;
-     mpad_z = (int)rintf(0.0666f*bim->nz) ; mpad_z = MAX(mpad_z,6) ;
+     if( do_allin ){
+       float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;
+       dxal /= dm ; dyal /= dm ; dzal /= dm ;
+       dm = MAX(dxal,dyal) ; dm = MAX(dm,dzal) ; mpad_min = 9 + (int)rintf(1.05f*dm) ;
+INFO_message("mpad_min = %d",mpad_min) ;
+     }
+
+     mpad_x = (int)rintf(0.1666f*bim->nx) ; mpad_x = MAX(mpad_x,mpad_min) ;
+     mpad_y = (int)rintf(0.1666f*bim->ny) ; mpad_y = MAX(mpad_y,mpad_min) ;
+     mpad_z = (int)rintf(0.1666f*bim->nz) ; mpad_z = MAX(mpad_z,mpad_min) ;
 
      /* compute padding so that at least mpad_Q all-zero slices on each Q */
 

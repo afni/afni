@@ -6153,10 +6153,9 @@ ENTRY("IW3D_warpomatic") ;
      RETURN(NULL) ;
    }
 
-   if( Hverb ){
-         INFO_message("AFNI warpomatic start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
-       ININFO_message("            autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
-   }
+   if( Hverb )
+     INFO_message("AFNI warpomatic start: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d",
+                  Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax) ;
 
    if( Hlev_start == 0 ){            /* top level = global warps */
      nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
@@ -7644,10 +7643,9 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      RETURN(NULL) ;
    }
 
-   if( Hverb ){
-         INFO_message("AFNI +-warpomatic start: %d x %d x %d volume",Hnx,Hny,Hnz) ;
-       ININFO_message("              autobbox = %d..%d %d..%d %d..%d",imin,imax,jmin,jmax,kmin,kmax) ;
-   }
+   if( Hverb )
+     INFO_message("AFNI warpomatic start: %d x %d x %d volume ; autobbox = %d..%d %d..%d %d..%d",
+                  Hnx,Hny,Hnz, imin,imax,jmin,jmax,kmin,kmax) ;
 
    if( Hlev_start == 0 ){            /* top level = global warps */
 #ifdef USE_PLUSMINUS_INITIALWARP
