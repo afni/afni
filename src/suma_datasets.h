@@ -793,10 +793,16 @@ typedef struct {
    #define SDSET_VECNUM(dset) dset->nel->vec_num
    #define SDSET_VECFILLED(dset) dset->nel->vec_filled
 #else
-   #define SDSET_FILENAME(dset) ((dset && dset->ngr) ? \
-                              NI_get_attribute(dset->ngr,"filename"):NULL )
-   #define SDSET_LABEL(dset) ((dset && dset->ngr) ? \
-                              NI_get_attribute(dset->ngr,"label"):NULL )
+   #define SDSET_FILENAME(dset) NI_get_attribute(dset->ngr,"filename")
+      /* A safer version than SDSET_FILENAME */
+   #define SDSET_FILENAME_s(dset) SUMA_sdset_filename(dset)
+   
+   /* This macro can return NULL, use it wisely, or use the safer macro */
+   #define SDSET_LABEL(dset) NI_get_attribute(dset->ngr,"label")
+   #define SDSET_LABEL_s(dset) SUMA_sdset_label(dset)
+   
+   /* This macro can return NULL, can't change behavior of SUMA_sdset_id() 
+   unless I check usage of SDSET_ID everywhere in the code... */
    #define SDSET_ID(dset) SUMA_sdset_id(dset) 
    #define SDSET_IDGDOM(dset) \
             NI_get_attribute(dset->ngr,"geometry_parent_idcode") 
@@ -1820,6 +1826,8 @@ SUMA_Boolean SUMA_Append_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col,
 void *SUMA_Copy_Part_Column(void *col,  NI_rowtype *rt, int N_col, 
                             byte *rowmask, int masked_only, int *n_incopy);
 char* SUMA_sdset_id(SUMA_DSET *dset);
+char *SUMA_sdset_label(SUMA_DSET *dset);
+char *SUMA_sdset_filename(SUMA_DSET *dset);
 char* SUMA_sdset_idmdom(SUMA_DSET *dset);
 char *SUMA_Dset_orcode(SUMA_DSET *dset);
 SUMA_DATUM_LEVEL SUMA_sdset_datum_level(SUMA_DSET *dset);

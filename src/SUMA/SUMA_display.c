@@ -21100,11 +21100,10 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
             }         
             if (ii==0) snprintf (sbuf, sizeof(char)*3*SUMA_MAX_LABEL_LENGTH,
                                  "TS Parents:\n"
-                                 "%s", SDSET_LABEL(in_dset));
+                                 "%s", SUMA_sdset_label(in_dset));
             else if (ii<10)      {
                strcat(sbuf,"\n");
-               strcat(sbuf,
-                      SDSET_LABEL(in_dset));
+               strcat(sbuf,SUMA_sdset_label(in_dset));
             }  else {
                SUMA_S_Err("Fatten sbuf");
             }
