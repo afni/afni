@@ -11341,3 +11341,31 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
    SUMA_RETURN(YUP);
 }  
 
+char *SUMA_RGB_to_hex(float *fv, char *here)
+{
+   static char FuncName[]={"SUMA_RGB_to_hex"};
+   static char ans[10][32];
+   static int icall=0;
+   char *s;
+   
+   if (here) s = here;
+   else { 
+      ++icall; 
+      if (icall > 9) icall = 0; 
+      s = (char *)ans[icall];
+   }
+   s[0] = '\0';
+   
+   if (!fv) return(s);
+   
+   sprintf(s,"#");
+   r_sprintf_long_to_hex (s+strlen(s), 
+                     (unsigned long)rint((fv[0]*255)), 1, 0);
+   r_sprintf_long_to_hex (s+strlen(s), 
+                     (unsigned long)rint((fv[1]*255)), 1, 0);
+   r_sprintf_long_to_hex (s+strlen(s), 
+                     (unsigned long)rint((fv[2]*255)), 1, 0);
+   
+   return(s);
+}
+

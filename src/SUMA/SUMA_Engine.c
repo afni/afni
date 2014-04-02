@@ -1966,6 +1966,157 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                             SEI_Head, NULL); 
             break;
             
+         case SE_SetAfniMask:
+            if (SUMAg_CF->Dev) { /* Send a mask surface to AFNI */
+               int nels_sent=0;
+               SUMA_ALL_DO *ado = NULL;
+               SUMA_MaskDO *mdo = NULL;
+               if ( EngineData->s_Dest != NextComCode ||
+                    EngineData->fv3_Dest != NextComCode) {
+                  fprintf (SUMA_STDERR,
+                     "Error %s: Data not destined correctly for %s (%d).\n",
+                     FuncName, NextCom, NextComCode);
+                  break;
+               }
+               ado = SUMA_whichADOg(EngineData->s);
+               if (!ado || ado->do_type != MASK_type) {
+                  SUMA_S_Warn("Mask not found or ado of wrong type");
+                  break;
+               }
+               mdo = (SUMA_MaskDO*)ado;
+               if (!(SO = mdo->SO)) {
+                  SUMA_S_Warn("No mask SO");
+                  break;
+               }
+               SUMA_S_Note("Sending mask %s's surface, SO = %p...", 
+                           ADO_LABEL(ado), SO);
+               if (!SO->SentToAfni) {
+                  SUMA_S_Note("Sending the whole thing, SO = %p", SO);
+                  nel = NI_new_data_element("mask", 0);
+                  NI_set_attribute(nel, "idcode", ADO_ID(ado));
+                  NI_SET_FLOATv(nel, "init_cen", mdo->init_cen, 3);
+                  if (EngineData->fv3) 
+                     NI_SET_FLOATv(nel, "new_cen", EngineData->fv3, 3);
+                  if ((nn = NI_write_element( 
+                              SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , 
+                                             NI_TALK_MODE ))<0) {
+                          SUMA_S_Err("NI_write_element failed\n");
+                  }
+                  NI_free_element(nel);
+                  nel = NULL;
+                  ++nels_sent;
+                  if (1) {
+                     nel = SUMA_makeNI_SurfIXYZ (SO);
+                     /* label this object as being the surface of a mask */
+                     if (!nel) {
+                        fprintf(SUMA_STDERR,
+                                 "Error %s: SUMA_makeNI_SurfIXYZ failed\n", 
+                                 FuncName);
+                        break;
+                     }
+                     NI_set_attribute(nel,"parent_type", "mask");
+                     NI_set_attribute(nel,"parent_idcode", ADO_ID(ado));
+                     /* set up some defaults color 
+                        (see matlab's rgbdectohex for visual aid) 
+                        info for AFNI interface */
+                           NI_set_attribute(nel,
+                              "afni_surface_controls_toggle", "on");
+                           NI_set_attribute(nel,
+                              "afni_surface_controls_nodes","none");
+                           NI_set_attribute(nel,
+                              "afni_surface_controls_lines",
+                                 SUMA_RGB_to_hex(mdo->init_col, NULL));
+                           NI_set_attribute(nel,
+                              "afni_surface_controls_plusminus","none");
+
+                     /* send surface nel */
+                     if (LocalHead) 
+                        fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ",                                                FuncName) ;
+                     nn = NI_write_element( 
+                              SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , 
+                                             NI_TALK_MODE ) ;
+
+                     if( nn < 0 ){
+                          SUMA_S_Err("NI_write_element failed\n");
+                     }
+
+                     NI_free_element(nel);
+                     nel = NULL;
+                     ++nels_sent;
+                  }
+                  if (1) {
+                     /* send node normals       ZSS Oct 05 04 */
+                     nel = SUMA_makeNI_SurfINORM (SO);
+                     if (!nel) {
+                        SUMA_S_Err("SUMA_makeNI_SurfINORM failed");
+                        break;
+                     }
+                     NI_set_attribute(nel,"parent_type", "mask");
+                     NI_set_attribute(nel,"parent_idcode", ADO_ID(ado));
+                     /* send surface nel */
+                     if (LocalHead)    
+                        fprintf(SUMA_STDERR,
+                                "%s: Sending SURF_NORM nel ...\n", FuncName) ;
+                     nn = NI_write_element( 
+                              SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , 
+                                             NI_TALK_MODE ) ;
+                     if( nn < 0 ){
+                          SUMA_S_Err("NI_write_element failed");
+                     }
+                     NI_free_element(nel);
+                     nel = NULL;
+                     ++nels_sent;
+                  }
+
+                  if (1) {
+                     /* send triangles */
+                     nel = SUMA_makeNI_SurfIJK (SO);
+                     if (!nel) {
+                        SUMA_S_Err("SUMA_makeNI_SurfIJK failed");
+                        break;
+                     }
+                     NI_set_attribute(nel,"parent_type", "mask");
+                     NI_set_attribute(nel,"parent_idcode", ADO_ID(ado));
+                     /* send surface nel */
+                     if (LocalHead)    
+                        fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", 
+                                            FuncName) ;
+                     nn = NI_write_element( 
+                              SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , 
+                                             NI_TALK_MODE ) ;
+
+                     if( nn < 0 ){
+                        SUMA_S_Err("NI_write_element failed");
+                     }
+                     NI_free_element(nel);
+                     nel = NULL;
+                     ++nels_sent;
+                  }
+                  if (nels_sent) {
+                     /* mark surface as sent to afni */
+                     SO->SentToAfni = YUP;
+                  } else {
+                     SUMA_SL_Warn("Nothing sent dude, what's happening?");
+                  }
+               }
+               
+               if (EngineData->fv3) {
+                  SUMA_S_Note("Sending new center, SO = %p", SO);
+                  nel = NI_new_data_element("mask", 0);
+                  NI_set_attribute(nel, "idcode", ADO_ID(ado));
+                  NI_SET_FLOATv(nel, "new_cen", EngineData->fv3, 3);
+                  if ((nn = NI_write_element( 
+                              SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , 
+                                             NI_TALK_MODE ))<0) {
+                          SUMA_S_Err("NI_write_element failed\n");
+                  }
+                  NI_free_element(nel);
+                  nel = NULL;
+                  ++nels_sent;
+               }
+            
+            } break;
+            
          case SE_SetAfniSurfList:
             /* expects ivec in EngineData and a string in s saying what is to be 
                sent, a flag in i 1=report transmission, 0 = be quiet*/
@@ -2916,6 +3067,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Err("NI_write_element failed");   
                }
                NI_free_element(nel); nel = NULL;
+               if (MASK_MANIP_MODE(sv)) {
+                  
+               }
             }
             
             if ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE] ) {
