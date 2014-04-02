@@ -13169,6 +13169,29 @@ char* SUMA_sdset_id(SUMA_DSET *dset)
    SUMA_RETURN(id);
 }
 
+char *SUMA_sdset_label(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_sdset_label"};
+   char *s;
+      
+   if (!dset || !dset->ngr || !(s=NI_get_attribute(dset->ngr,"label"))) {
+      return("");
+   }
+   return(s);
+}
+
+char *SUMA_sdset_filename(SUMA_DSET *dset)
+{
+   static char FuncName[]={"SUMA_sdset_filename"};
+   char *s;
+      
+   if (!dset || !dset->ngr || !(s=NI_get_attribute(dset->ngr,"filename"))) {
+      return("");
+   }
+   return(s);
+}
+
+
 SUMA_DATUM_LEVEL SUMA_sdset_datum_level(SUMA_DSET *dset)
 {
    static char FuncName[]={"SUMA_sdset_datum_level"};
