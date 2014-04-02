@@ -1624,7 +1624,17 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                      SUMA_RETURN(NOPE);
                   }
 
-
+                  /* Are we in Mask manip mode? */
+                  if (MASK_MANIP_MODE(svi)) {
+                     SUMA_ALL_DO *ado=NULL;
+                     if ((ado=SUMA_whichADOg(svi->MouseMode_ado_idcode_str)) && 
+                           ado->do_type == MASK_type) {
+                        SUMA_NEW_MASKSTATE();
+                        SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, 
+                                          (float *)nel->vec[0]);
+                     }
+                  }
+                  
                   /* nodeid is supplied, even if the distance from the cross hair 
                      to the node is large,  set a limit */
                   if (nodeid >= 0) {
@@ -2089,7 +2099,6 @@ NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
       fprintf(SUMA_STDERR,"Error %s: No normals in SO.\n", FuncName);
       SUMA_RETURN (NULL);
    }
-   
    /* make a new data element, to be filled by columns */
    nel = NI_new_data_element( "SUMA_node_normals" , SO->N_Node) ;
    
@@ -2127,11 +2136,12 @@ NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO)
    NI_add_column( nel , NI_FLOAT , xc ) ; SUMA_free(xc) ;
    NI_add_column( nel , NI_FLOAT , yc ) ; SUMA_free(yc) ;
    NI_add_column( nel , NI_FLOAT , zc ) ; SUMA_free(zc) ;
-
-   NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
-   NI_set_attribute (nel, "volume_headname", SO->VolPar->headname);
-   NI_set_attribute (nel, "volume_filecode", SO->VolPar->filecode);
-   NI_set_attribute (nel, "volume_dirname", SO->VolPar->dirname);
+   if (SO->VolPar) {
+      NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
+      NI_set_attribute (nel, "volume_headname", SO->VolPar->headname);
+      NI_set_attribute (nel, "volume_filecode", SO->VolPar->filecode);
+      NI_set_attribute (nel, "volume_dirname", SO->VolPar->dirname);
+   }
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
@@ -2194,7 +2204,10 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
    NI_add_column( nel , NI_INT   , J ) ; SUMA_free(J) ;
    NI_add_column( nel , NI_INT   , K ) ; SUMA_free(K) ;
 
-   NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
+   if (SO->VolPar) {
+      NI_set_attribute (nel, "volume_idcode", SO->VolPar->vol_idcode_str);
+   } 
+   
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
@@ -2238,6 +2251,8 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
    float *XYZmap;
    int I_C = -1, ip, ivsel[SUMA_N_IALTSEL_TYPES];
    SUMA_ALL_DO *ado = NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_DSET *curDset=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2285,7 +2300,8 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          NI_SETA_INT(nel, "surface_nodeid", SO->SelectedNode);
          NI_set_attribute( nel, "surface_idcode", SO->idcode_str);
          NI_set_attribute( nel, "surface_label", SO->Label);
-
+         /* Add info about overlay */
+         
          NI_add_column( nel , NI_FLOAT , XYZmap );
 
          if (XYZmap) SUMA_free(XYZmap);
@@ -2353,6 +2369,22 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
          SUMA_LH("No nel for type %s", ADO_TNAME(ado));
          break;
    }
+   
+   /* add dset of current colplane (ZSS April 2014, for NNO) */
+   if (  nel && (curColPlane = SUMA_ADO_CurColPlane(ado)) && 
+         (curDset = curColPlane->dset_link) && !SDSET_IS_VOL(curDset) ) {
+      char *s=NULL;
+      if ((s = SDSET_FILENAME(curDset))) {
+         NI_set_attribute(nel, "current_overlay_dset_id",
+                               SDSET_ID(curDset));      
+         NI_set_attribute(nel, "current_overlay_dset_filename", s);
+         if (LocalHead) {
+            SUMA_LH("Nel with overlay info");
+            SUMA_ShowNel(nel);
+         }
+      }      
+   }
+   
    SUMA_RETURN (nel);
 }
 

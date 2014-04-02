@@ -1224,7 +1224,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
 {
    static char FuncName[]={"SUMA_MDO_New_Params"};
    float off[3], fdim[3], ifdim[3], *idim=NULL;
-   int i, i3, NewSurf=0;
+   int i, i3, NewSurf=0, ResendToAfni=0, oldsent = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1240,6 +1240,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
    }
    
    NewSurf = 0;
+   ResendToAfni = 0;
    
    if (Type) {
       if (!SUMA_Ok_Sym_MaskDO_Type(Type)) {
@@ -1254,6 +1255,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
          idim = ifdim;
       }
       NewSurf = 1;
+      ResendToAfni = 1;
    }
    
    if (Label) {
@@ -1289,6 +1291,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
    if (dim) {
       SUMA_LH("new Dim");
       NewSurf = 1;
+      ResendToAfni = 1;
       SUMA_Set_MaskDO_Dim(mdo, dim);
       if (idim) SUMA_Set_MaskDO_InitDim(mdo, idim);
    }
@@ -1296,6 +1299,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
    if (col) {
       SUMA_LH("new Col");
       NewSurf=1;
+      ResendToAfni = 1;
       SUMA_Set_MaskDO_Color(mdo, col, -1); 
    }
    
@@ -1316,6 +1320,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
       SUMA_Set_MaskDO_Color(mdo, NULL, colb);
    }
    
+   if (mdo->SO) oldsent = mdo->SO->SentToAfni;
    if (NewSurf) {
       SUMA_LH("new surf");
       if (!SUMA_AccessorizeMDO(mdo)) {
@@ -1323,6 +1328,7 @@ int SUMA_MDO_New_Params(SUMA_MaskDO *mdo, float *cen, float *dim,
          SUMA_RETURN(-1);
       } 
    }
+   if (!ResendToAfni) mdo->SO->SentToAfni = oldsent;
    
    SUMA_RETURN(1);
 }

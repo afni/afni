@@ -194,6 +194,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetAfniSurf")) SUMA_RETURN (SE_SetAfniSurf);
    if (!strcmp(Scom,"SetAfniThisSurf")) SUMA_RETURN (SE_SetAfniThisSurf);
    if (!strcmp(Scom,"SetAfniSurfList")) SUMA_RETURN (SE_SetAfniSurfList);
+   if (!strcmp(Scom,"SetAfniMask")) SUMA_RETURN (SE_SetAfniMask);
    if (!strcmp(Scom,"BindCrossHair")) SUMA_RETURN(SE_BindCrossHair);
    if (!strcmp(Scom,"ToggleForeground")) SUMA_RETURN (SE_ToggleForeground);
    if (!strcmp(Scom,"ToggleBackground")) SUMA_RETURN (SE_ToggleBackground);
@@ -413,6 +414,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetAfniThisSurf");      
       case SE_SetAfniSurf: 
          SUMA_RETURN("SetAfniSurf");      
+      case SE_SetAfniMask: 
+         SUMA_RETURN("SetAfniMask");      
       case SE_SetAfniSurfList: 
          SUMA_RETURN("SetAfniSurfList");      
       case SE_BindCrossHair:

@@ -671,7 +671,6 @@ int main (int argc,char *argv[])
             }
          } else {
             fprintf (stdout, "\n***COLORS\n");
-
             for (i=0; i < Ncols; ++i) {
                /* Now create the hex form */
                r_sprintf_long_to_hex (h, 

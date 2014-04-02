@@ -793,8 +793,10 @@ typedef struct {
    #define SDSET_VECNUM(dset) dset->nel->vec_num
    #define SDSET_VECFILLED(dset) dset->nel->vec_filled
 #else
-   #define SDSET_FILENAME(dset) NI_get_attribute(dset->ngr,"filename")
-   #define SDSET_LABEL(dset) NI_get_attribute(dset->ngr,"label")
+   #define SDSET_FILENAME(dset) ((dset && dset->ngr) ? \
+                              NI_get_attribute(dset->ngr,"filename"):NULL )
+   #define SDSET_LABEL(dset) ((dset && dset->ngr) ? \
+                              NI_get_attribute(dset->ngr,"label"):NULL )
    #define SDSET_ID(dset) SUMA_sdset_id(dset) 
    #define SDSET_IDGDOM(dset) \
             NI_get_attribute(dset->ngr,"geometry_parent_idcode") 
