@@ -7848,6 +7848,26 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
+      if (0 && MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
+         SUMA_ALL_DO *ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+         DListElmt *Location=NULL;
+         SUMA_S_Note("Might be telling afni about mask...");
+         if (ado && ado->do_type == MASK_type) {
+            SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+            ED = SUMA_InitializeEngineListData (SE_SetAfniMask);
+            if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
+                                                SEF_fv3, (void*)mdo->cen,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Tail, NULL))) {
+               SUMA_S_Err("Failed to register element\n");
+               SUMA_RETURN (-1);
+            }
+            SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_s, (void *)(ADO_ID(ado)),
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+         }
+      }
       
       if (!SUMA_Engine (&list)) {
          fprintf( SUMA_STDERR, 
@@ -7928,8 +7948,8 @@ int SUMA_Apply_PR(SUMA_SurfaceViewer *sv, SUMA_PICK_RESULT **PR)
       if (LocalHead) SUMA_DUMP_TRACE("Box motion");
       SUMA_NEW_MASKSTATE();
       SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, xyz);
-      /* let it be SUMA_RETURN(); */
-   } 
+   }
+   
    {
       ado = SUMA_whichADOg((*PR)->ado_idcode_str);
       SUMA_ifree(sv->LastSel_ado_idcode_str);
@@ -8412,7 +8432,24 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
-
+      if (0 && MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
+         SUMA_ALL_DO *ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+         if (ado && ado->do_type == MASK_type) {
+            SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+            ED = SUMA_InitializeEngineListData (SE_SetAfniMask);
+            if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
+                                                SEF_fv3, (void*)mdo->cen,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Tail, NULL))) {
+               SUMA_S_Err("Failed to register element\n");
+               SUMA_RETURN (-1);
+            }
+            SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_s, (void *)(ADO_ID(ado)),
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+         }
+      }
       if (!SUMA_Engine (&list)) {
          fprintf( SUMA_STDERR, 
                   "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -9066,7 +9103,25 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
-
+      if (0 && MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
+         SUMA_ALL_DO *ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
+         DListElmt *Location=NULL;
+         if (ado && ado->do_type == MASK_type) {
+            SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
+            ED = SUMA_InitializeEngineListData (SE_SetAfniMask);
+            if (!(Location=SUMA_RegisterEngineListCommand (  list, ED, 
+                                                SEF_fv3, (void*)mdo->cen,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Tail, NULL))) {
+               SUMA_S_Err("Failed to register element\n");
+               SUMA_RETURN (-1);
+            }
+            SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_s, (void *)(ADO_ID(ado)),
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, Location);
+         }
+      }
       if (!SUMA_Engine (&list)) {
          fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN(-1);
