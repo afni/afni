@@ -1988,10 +1988,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Warn("No mask SO");
                   break;
                }
-               SUMA_S_Note("Sending mask %s's surface, SO = %p...", 
+               SUMA_LH("Sending mask %s's surface, SO = %p...", 
                            ADO_LABEL(ado), SO);
                if (!SO->SentToAfni) {
-                  SUMA_S_Note("Sending the whole thing, SO = %p", SO);
+                  SUMA_LH("Sending the whole thing, SO = %p", SO);
                   nel = NI_new_data_element("mask", 0);
                   NI_set_attribute(nel, "idcode", ADO_ID(ado));
                   NI_SET_FLOATv(nel, "init_cen", mdo->init_cen, 3);
@@ -2002,6 +2002,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              NI_TALK_MODE ))<0) {
                           SUMA_S_Err("NI_write_element failed\n");
                   }
+                  if (LocalHead) SUMA_ShowNel(nel);
                   NI_free_element(nel);
                   nel = NULL;
                   ++nels_sent;
@@ -2040,6 +2041,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                           SUMA_S_Err("NI_write_element failed\n");
                      }
 
+                     if (LocalHead) SUMA_ShowNel(nel);
                      NI_free_element(nel);
                      nel = NULL;
                      ++nels_sent;
@@ -2101,7 +2103,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                
                if (EngineData->fv3) {
-                  SUMA_S_Note("Sending new center, SO = %p", SO);
+                  SUMA_LH("Sending new center, SO = %p", SO);
                   nel = NI_new_data_element("mask", 0);
                   NI_set_attribute(nel, "idcode", ADO_ID(ado));
                   NI_SET_FLOATv(nel, "new_cen", EngineData->fv3, 3);
@@ -2110,6 +2112,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              NI_TALK_MODE ))<0) {
                           SUMA_S_Err("NI_write_element failed\n");
                   }
+                  if (LocalHead) SUMA_ShowNel(nel);
                   NI_free_element(nel);
                   nel = NULL;
                   ++nels_sent;
@@ -3067,9 +3070,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Err("NI_write_element failed");   
                }
                NI_free_element(nel); nel = NULL;
-               if (MASK_MANIP_MODE(sv)) {
-                  
-               }
             }
             
             if ( SUMAg_CF->Connected_v[SUMA_HALLO_SUMA_LINE] ) {

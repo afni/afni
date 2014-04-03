@@ -4179,10 +4179,14 @@ static ENV_SPEC envlist[] = {
       "used. The order can be specified for only three types of objects for \n"
       "now: graphs, surfaces, and volumes. If you want to render graphs first,\n"
       "followed by volumes then surfaces then set SUMA_ObjectDisplayOrder to\n"
-      "something like: 'graph,vol,surf'. Note the lack of spaces between the\n"
+      "something like: 'graph,vol,surf'. Do not include spaces between the\n"
       "type names.",
       "SUMA_ObjectDisplayOrder",
-      "vol,graph,surf" },
+      "vol,surf,graph" },
+   {  "Font for datasets in SUMA viewer\n"
+      "Choose one of: f8 f9 tr10 tr24 he10 he12 he18\n",
+      "SUMA_Dset_Font",
+      "f9" }, 
    
    {  NULL, NULL, NULL  }
 };
