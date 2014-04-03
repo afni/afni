@@ -1396,6 +1396,7 @@ void AFNI_sigfunc_alrm(int sig)
 #undef  NMSG
 #define NMSG (sizeof(msg)/sizeof(char *))
    static char *msg[] = {
+     "All suspicion points to a Frost-Bellgowan conspiracy"          ,
      "Farewell, my friend"                                           ,
      "Farewell?  A long farewell to all my greatness"                ,
      "Sweet is the memory of distant friends"                        ,
@@ -1552,6 +1553,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I hereby declare the Null Hypothesis to be ........ Falsified" ,
      "I'm sick of thinking about p-values -- how about you?"         ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
+     "All suspicion points to a Frost-Bellgowan plot"                ,
 
      "In ancient times, there were no statistics, so they just had to lie"            ,
      "If your experiment needs statistics, you need a better experiment"              ,

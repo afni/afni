@@ -256,7 +256,7 @@ int main( int argc , char *argv[] )
      if( dset_src != NULL ){
        THD_3dim_dataset *dset_www ; float *bb ;
        dset_www = THD_nwarp_dataset( dset_nwarp[kk] , dset_src[kk] , NULL ,
-                                     "JamesBond" , MRI_WSINC5 , MRI_WSINC5 , 0.0f,1.0f,1,NULL ) ;
+                                     "BondJamesBond" , MRI_WSINC5 , MRI_WSINC5 , 0.0f,1.0f,1,NULL ) ;
        bb = (float *)DSET_ARRAY(dset_www,0) ;
        for( ii=0 ; ii < nxyz ; ii++ ) sbar[ii] += bb[ii] ;
        DSET_delete(dset_www) ; DSET_delete(dset_src[kk]) ;
