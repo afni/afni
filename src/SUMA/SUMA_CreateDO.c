@@ -10983,6 +10983,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
 
                if (r1>=0) rad = SUMA_ABS(curcol->V[r1])*curcol->NodeRadGain;
                else rad = rad * 2.0;
+               if (rad <= 0.0f) rad = 0.005;
             }
             if (OnlyThroughNode == n) {
                if (colidballs) {
