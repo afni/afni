@@ -10271,6 +10271,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
        cn13=0, ncross=-1, ndraw=-1, tw=0, th=0, nl=0, istip=0;
    GLfloat rpos[4], col1[4], col2[4], clw=0.1, cbw=0.1;
    long int n4;
+   /* long int NodeIndRange[2]; */
    char **names=NULL;
    GLboolean valid;
    int gllst=0, gllsm=0, OnlyThroughNode = -1;
@@ -10289,7 +10290,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    SUMA_DUMB_DO DDO;
    SUMA_SegmentDO *SDO = NULL;
    DO_PICK_VARS;
-   GLfloat selcol[4], Wrange[2];
+   GLfloat selcol[4], Wrange[2], ghostcol[4];
    SUMA_OVERLAYS *curcol = NULL;
    void *fontGL=NULL;
    int ic0, ic1, s0, r0, s1, r1, TxtShadeMode=1, okind, ri, 
@@ -10300,6 +10301,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    byte ShadeBalls = 1;
    int PickAsShown = 1; /* 1 = Pick only from what is displayed. 
                            0 = Pick from entire graph */
+   int OverThr = 210; /* Maximum overlap of text allowed. 255 = 100% overlap */
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -10426,6 +10428,16 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       }
    }
 
+   /* Copy the range of node indices */
+   #if 0
+   NodeIndRange[0] = dset->Aux->range_node_index[0];
+   NodeIndRange[1] = dset->Aux->range_node_index[1];
+   if (NodeIndRange[1] < NodeIndRange[0] || NodeIndRange[1] < 1) {
+      SUMA_S_Err("Bad node index range %ld %ld %d", 
+                  NodeIndRange[0], NodeIndRange[1], DDO.N_Node);
+      SUMA_RETURN(NOPE);
+   }
+   #endif
    if (ShadeBalls) {
       /* Dim the colors a little and turn off the emissivity to get a 3D effect 
          on the rendered balls */
@@ -10514,7 +10526,14 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                       based on edge value, and/or perhaps set their colors based
                       on the value too... 
                       For now, NoEdges should be left at 0 unless testing*/
-      if (NodeMask && OnlyThroughNode >=0) NodeMask[OnlyThroughNode] = 1;
+      if (NodeMask && OnlyThroughNode >=0) {
+         if ((cn = SUMA_NodeIndex_To_Index(DDO.NodeIndex, 
+                                       DDO.N_Node, OnlyThroughNode))>=0) {
+            NodeMask[cn] = 1;
+         } else {
+            SUMA_S_Warn("Hmm, node %d not in nodelist?", OnlyThroughNode);
+         }
+      }
    } else OnlyThroughNode = -1;
    
    ic0 = -1; ic1=-1; r0 = -1; r1 = -1; s0 = -1; s1 = -1;
@@ -10539,7 +10558,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             /* Now do the highlight for edge s0, why wait till the end ?*/
          n = SDO->NodeID[r0]; 
          n1 = SDO->NodeID1[r0];
-         SUMA_LHv("Highlight: edge row %d/%d edge index %d, [%d,%d] (%d)\n"
+         SUMA_LHv("Highlight: edge row %d/%d edge index %d, [%d,%d] (%d nodes)\n"
                   "Reverse edge: row %d, index %d\n", 
                   r0, SDO->N_n, s0, n, n1, DDO.N_Node,
                   r1, s1);
@@ -10589,6 +10608,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    }                                          
                                                     
    if (  SDO->NodeBased == 2 ) {
+      if (LocalHead) SUMA_CHECK_GL_ERROR("Pre Edges\n");
       if (curcol->EdgeThick != SW_SurfCont_DsetEdgeThickVal &&
           curcol->EdgeStip != SW_SurfCont_DsetEdgeStipVal) {
          glBegin(GL_LINES);
@@ -10603,7 +10623,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          SUMA_LHv("two-node vectors\n"
                   "    DDO.NodeIndex %p, DDO.N_Node %d\n"
                   "    GSaux->isColored %p, OnlyThroughNode=%d\n",
-                  DDO.NodeIndex, DDO.N_Node, GSaux->isColored,
+                  DDO.NodeIndex, DDO.N_Node,  GSaux->isColored,
                   OnlyThroughNode);
          i = 0;
          gain = 1.0; n4=0;
@@ -10694,7 +10714,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             i += 1;
          }
          glEnd();
-         SUMA_CHECK_GL_ERROR("Post End");
+         if (LocalHead) SUMA_CHECK_GL_ERROR("Post End\n");
       } else {/* variable stippling, edge thickness, or both */
          if (!sv->DO_PickMode) {
             if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
@@ -10851,6 +10871,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       int *GNIr=NULL;
       char **namesr=NULL;
       SUMA_LH("Drawing bottom");
+      if (LocalHead) SUMA_CHECK_GL_ERROR("Pre bottom\n");
       glLineWidth(0.5);
       if (!SDO->colv) {
          glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, SDO->LineCol);
@@ -10929,7 +10950,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          }
          if (wmask) wmask[0] = 1;
       }
-      n4=0; 
+      n4=0;
       for (i=0; i<SDO->N_AllNodes;++i) {
          i3 = 3*i; i4 = 4*i;
          if (GNIr) {
@@ -10957,7 +10978,11 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                rad = radconst;
             }
             if (NoEdges && OnlyThroughNode != n) {
-               rad = rad * 2;
+               SUMA_GDSET_PointsToSegRow(dset, OnlyThroughNode, n, &r1);
+                                       /* get the n1-->n edge to get its value*/
+
+               if (r1>=0) rad = SUMA_ABS(curcol->V[r1])*curcol->NodeRadGain;
+               else rad = rad * 2.0;
             }
             if (OnlyThroughNode == n) {
                if (colidballs) {
@@ -11061,6 +11086,23 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             if (showword) gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
                         /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
                         10, 10);
+            else if (NoEdges){
+               ghostcol[0] = (1-sv->clear_color[0])/2.0/dimmer;
+               ghostcol[1] = (1-sv->clear_color[1])/2.0/dimmer;
+               ghostcol[2] = (1-sv->clear_color[2])/2.0/dimmer;
+               ghostcol[3] = 1-sv->clear_color[3]; 
+               if (!ShadeBalls) {
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ghostcol);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, ghostcol);
+               } else {
+                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ghostcol);
+                  glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+               }
+               /* Show ghosts, for clickability */
+               gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad/4.0, 0.005) 
+                        /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
+                        10, 10);
+            }
             glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
          }
          if (fontGL && names) {
@@ -11110,13 +11152,13 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                    switch(TxtShadeMode) { /* See same switch below */
                      case SW_SurfCont_DsetTxtShad1:
                      case SW_SurfCont_DsetTxtShad5:
-                        if (!(showword > 128 || TxtShadeMode == 5)) continue;
+                        if (!(showword > OverThr || TxtShadeMode == 5)) continue;
                         break;
                      case SW_SurfCont_DsetTxtShad2:
                         break;
                      case SW_SurfCont_DsetTxtShad6:
                      case SW_SurfCont_DsetTxtShad3:
-                        if (!(showword > 128 || TxtShadeMode == 6)) continue;
+                        if (!(showword > OverThr || TxtShadeMode == 6)) continue;
                         break;
                      case SW_SurfCont_DsetTxtShad4:
                         break;
@@ -11154,7 +11196,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                     similar switch above */
                case SW_SurfCont_DsetTxtShad1:
                case SW_SurfCont_DsetTxtShad5:
-                  if (showword > 128 || TxtShadeMode == 5) {
+                  if (showword > OverThr || TxtShadeMode == 5) {
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                      glMaterialfv(GL_FRONT, GL_EMISSION, col1);
                      glRasterPos3d(xyzr[i3]  +rad , 
@@ -11225,7 +11267,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                case SW_SurfCont_DsetTxtShad3:
                   /* Black box behind white font, hide if more than
                      half is masked */
-                  if (showword > 128 || TxtShadeMode == 6) {
+                  if (showword > OverThr || TxtShadeMode == 6) {
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                      glMaterialfv(GL_FRONT, GL_EMISSION, col1);
                      /* Must come AFTER glMaterialfv */
@@ -11248,7 +11290,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                      if (wbox) memset(bbox, 255, 4*(tw+2)*(th+2)*sizeof(byte));
                      glBitmap( 0, 0, 0, 0,  
                                0.0, -th/4.0,  NULL );
-                     glDrawPixels(tw, th, GL_RGBA, GL_UNSIGNED_BYTE, bbox);
+                     glDrawPixels(tw+1, th+1, GL_RGBA, GL_UNSIGNED_BYTE, bbox);
                      SUMA_ifree(bbox);
                      /* Now draw the text */
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
@@ -11288,7 +11330,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
 
                      glBitmap( 0, 0, 0, 0,  
                                0.0, -th/4.0,  NULL );
-                     glDrawPixels(tw, th, GL_RGBA, GL_UNSIGNED_BYTE, bbox);
+                     glDrawPixels(tw+1, th+1, GL_RGBA, GL_UNSIGNED_BYTE, bbox);
                      SUMA_ifree(bbox);
                   } else { /* dim the text to reduce clutter */
                      col2[0] = col2[0]*cdim;
@@ -11331,6 +11373,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             #endif
          }               
       }
+      if (LocalHead) SUMA_CHECK_GL_ERROR("Pre bottom\n");
       if (xyzr != xyz) SUMA_ifree(xyzr); xyzr=NULL;
       if (namesr != names) SUMA_ifree(namesr); namesr=NULL;
       if (GNIr != GNI) SUMA_ifree(GNIr); GNIr = NULL;

@@ -6060,7 +6060,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    if (!Recycle) {
       Sover->GlobalOpacity = -1.0; /* no factor applied */
       Sover->ShowMode = -SW_SurfCont_DsetViewCol;
-      Sover->Font = SW_SurfCont_DsetFont9;
+      Sover->Font = SUMA_FontStr2FontMenuItem(SUMA_EnvVal("SUMA_Dset_Font"));
       Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
       Sover->NodeRadGain = 1.0;
       Sover->NodeCol = SW_SurfCont_DsetNodeColYellow;

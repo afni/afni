@@ -1498,6 +1498,38 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                svi = &(SUMAg_SVv[iview]);
                SUMA_LHv("Processing viewer %c\n", 65+iview); 
                if (svi->LinkAfniCrossHair) {/* link cross hair */
+                  
+                  /* Are we in Mask manip mode? */
+                  if (MASK_MANIP_MODE(svi)) {
+                     SUMA_ALL_DO *ado=NULL;
+                     SUMA_LH("Moving mask");
+                     if ((ado=SUMA_whichADOg(svi->MouseMode_ado_idcode_str)) && 
+                           ado->do_type == MASK_type && 
+                           nel->vec[0] && nel->vec_len == 3 && 
+                           nel->vec_typ[0] == NI_FLOAT ) {
+                        SUMA_NEW_MASKSTATE();
+                        SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, 
+                                          (float *)nel->vec[0]);
+                     }
+                     if (!list) list = SUMA_CreateList();
+                     svi->ResetGLStateVariables = YUP; 
+
+                     SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, 
+                                                        SES_SumaFromAfni, svi);
+                     if (!SUMA_Engine (&list)) {
+                        fprintf( SUMA_STDERR, 
+                            "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     }
+                     
+                     /* Don't proceed, for now, if we're in mask nudging mode,
+                     no need to parse for surfaces/node indices with all what
+                     comes along. If you choose to go down that route, you
+                     will need better handling of cases where there are no 
+                     surfaces specified with the cross hair location.
+                     Talking no longer requires surfaces.... Apr. 2014 */
+                     continue;
+                  }
+                  
                   /* look for the surface idcode */
                   nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
                   if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
@@ -1516,8 +1548,9 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                      SOaf = SUMA_findSOp_inDOv (nel_surfidcode, 
                                                 SUMAg_DOv, SUMAg_N_DOv);
                      if (!SOaf) {
-                        SUMA_S_Warn("AFNI sending unkown id, "
-                                    "taking default for viewer");
+                        SUMA_S_Warn("AFNI sending unkown id %s, "
+                                    "taking default for viewer",
+                                    nel_surfidcode?nel_surfidcode:"NULL");
                         if (!(SOaf = SUMA_SV_Focus_any_SO(svi, NULL))) { 
                            SUMA_S_Err("No surface I can work with");
                            SUMA_RETURN(NOPE);
@@ -1624,17 +1657,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                      SUMA_RETURN(NOPE);
                   }
 
-                  /* Are we in Mask manip mode? */
-                  if (MASK_MANIP_MODE(svi)) {
-                     SUMA_ALL_DO *ado=NULL;
-                     if ((ado=SUMA_whichADOg(svi->MouseMode_ado_idcode_str)) && 
-                           ado->do_type == MASK_type) {
-                        SUMA_NEW_MASKSTATE();
-                        SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, 
-                                          (float *)nel->vec[0]);
-                     }
-                  }
-                  
                   /* nodeid is supplied, even if the distance from the cross hair 
                      to the node is large,  set a limit */
                   if (nodeid >= 0) {
@@ -1712,7 +1734,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   iv3[2] = -1;
                   if (!list) list = SUMA_CreateList();
 
-
                   /* set the SO in Focus, if surface was visible */                                                                    /*ZSS Added this Aug. 06 */
                   if (found_type == 1 || found_type == 2) { 
                      /* To set a surface in focus, it must be in the viewer.
@@ -1789,7 +1810,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
                   svi->ResetGLStateVariables = YUP; 
 
-
+                  
                   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, 
                                                      SES_SumaFromAfni, svi);
                   if (!SUMA_Engine (&list)) {

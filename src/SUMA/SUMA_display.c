@@ -8493,7 +8493,8 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                 SUMA_SurfContHelp_DsetFont, 
                 SurfCont->DsetFontMenu );
       XtManageChild (SurfCont->DsetFontMenu->mw[SW_SurfCont_DsetFont]);
-
+      SUMA_Set_Menu_Widget(SurfCont->DsetFontMenu, 
+                           SUMA_Font2FontMenuItem(curColPlane->Font));
       
       SUMA_BuildMenuReset(0);
       SurfCont->DsetNodeColMenu =
@@ -17310,28 +17311,26 @@ int SUMA_FontStr2FontMenuItem(char *str)
       SUMA_S_Err("NULL str, returning Font 9");    
       SUMA_RETURN(SW_SurfCont_DsetFont9);
    }
-   SUMA_TO_LOWER(str);
-   if (!strcmp(str,"xxx")) 
+   if (!strcasecmp(str,"xxx")) 
        SUMA_RETURN(SW_SurfCont_DsetFontXXX);
-   else if (!strcmp(str,"8")) 
+   else if (!strcasecmp(str,"8") || !strcasecmp(str,"f8")) 
        SUMA_RETURN(SW_SurfCont_DsetFont8);
-   else if (!strcmp(str,"9")) 
+   else if (!strcasecmp(str,"9") || !strcasecmp(str,"f9")) 
        SUMA_RETURN(SW_SurfCont_DsetFont9);
-   else if (!strcmp(str,"T10")) 
+   else if (!strcasecmp(str,"T10") || !strcasecmp(str,"TR10") ) 
        SUMA_RETURN(SW_SurfCont_DsetFontTR10);
-   else if (!strcmp(str,"T24")) 
+   else if (!strcasecmp(str,"T24") || !strcasecmp(str,"TR24")) 
        SUMA_RETURN(SW_SurfCont_DsetFontTR24);
-   else if (!strcmp(str,"H10")) 
+   else if (!strcasecmp(str,"H10") || !strcasecmp(str,"He10")) 
        SUMA_RETURN(SW_SurfCont_DsetFontHE10);
-   else if (!strcmp(str,"H12")) 
+   else if (!strcasecmp(str,"H12") || !strcasecmp(str,"He12")) 
        SUMA_RETURN(SW_SurfCont_DsetFontHE12);
-   else if (!strcmp(str,"H18")) 
+   else if (!strcasecmp(str,"H18") || !strcasecmp(str,"He18")) 
        SUMA_RETURN(SW_SurfCont_DsetFontHE18);
    else {
       SUMA_S_Errv("'%s' is not a valid Font, returning Font 9", str);
       SUMA_RETURN(SW_SurfCont_DsetFont9);
    }
-      
 }
 /*!
    \brief sets the dataset viewing mode of the current dset  on SO
