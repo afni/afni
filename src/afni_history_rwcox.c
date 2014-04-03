@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 31 , MAR , 2014 , RWC , "messages" , MICRO , TYPE_NEW_ENV ,
+  { 2 , APR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Changes to way warps are combined" ,
+   "In particular, outside their domain, warp displacements are now linearly\n"
+   "extrapolated rather than set to zero.  Also, a number of smaller tweaks\n"
+   "to the zero padding and iterative process." } ,
+
+ { 31 , MAR , 2014 , RWC , "messages" , MICRO , TYPE_NEW_ENV ,
    "AFNI_MESSAGE_PREFIX will go before program messages to stderr" ,
    "The purpose of this is to allow the user to distinguish between messages\n"
    "from various instances of programs running in parallel, as in\n"
