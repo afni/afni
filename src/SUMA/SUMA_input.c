@@ -7851,7 +7851,7 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
       if (MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
          SUMA_ALL_DO *ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
          DListElmt *Location=NULL;
-         SUMA_S_Note("Might be telling afni about mask...");
+         SUMA_LH("Might be telling afni about mask...");
          if (ado && ado->do_type == MASK_type) {
             SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
             ED = SUMA_InitializeEngineListData (SE_SetAfniMask);

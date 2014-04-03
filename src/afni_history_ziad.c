@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 3, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
+   "SUMA_Dset_Font to initialize text in graph datasets",
+   "See ~/.sumarc for details, run suma -update_env if variable is missing."
+ },
+  
+ { 2, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Made AFNI's crosshair changes move tract mask in SUMA",
+   "This happens when the viewer is in Mask Manipulation Mode."
+ },
+  
+ { 2, Apr, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Made SUMA_crosshair_xyz carry information on overlay dataset",
+   "This is in response to a request by Nick Oosterhoff"
+ },
+  
  { 28, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added 'F11' to allow users to set the object rendering order",
    "This is an interactive version of env: SUMA_ObjectDisplayOrder" 
