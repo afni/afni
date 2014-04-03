@@ -7848,7 +7848,7 @@ int SUMA_Apply_PR_DO(SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ado,
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
-      if (0 && MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
+      if (MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
          SUMA_ALL_DO *ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
          DListElmt *Location=NULL;
          SUMA_S_Note("Might be telling afni about mask...");
@@ -8432,7 +8432,7 @@ int SUMA_Apply_PR_SO(SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO,
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
-      if (0 && MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
+      if (MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
          SUMA_ALL_DO *ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
          if (ado && ado->do_type == MASK_type) {
             SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
@@ -9103,7 +9103,7 @@ int SUMA_Apply_PR_VO(SUMA_SurfaceViewer *sv, SUMA_VolumeObject *VO,
          fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
          SUMA_RETURN (-1);
       }
-      if (0 && MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
+      if (MASK_MANIP_MODE(sv) && SUMAg_CF->Dev) {
          SUMA_ALL_DO *ado = SUMA_whichADOg(sv->MouseMode_ado_idcode_str);
          DListElmt *Location=NULL;
          if (ado && ado->do_type == MASK_type) {
