@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.4, March 28, 2014
+Version 3.0.5, April 3, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.4, March 28, 2014
+Version 3.0.5, April 3, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -508,7 +508,8 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
 }# end of read.MVM.opts.batch
 
 # construct a glt list for testInteraction in phia
-# how to deal with basis functions?????????????
+# NEED to solve the problem when a quantitative variable is tested alone:
+# with pairwise = NULL!!!                                                
 gltConstr <- function(cStr, dataStr) {
    pos <- which(cStr==":")
    vars  <- cStr[pos-1]
@@ -612,7 +613,6 @@ process.MVM.opts <- function (lop, verb = 0) {
             lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
             lop$slpList[[n]] <- lop$gltCode[[n]][vQVpos]   
          } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
-         #} else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
       }
    }
    
@@ -927,6 +927,7 @@ if(is.na(lop$wsVars)) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$mode
    showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar))
 if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
    showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
+showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
 print(xtabs(showTab, data=lop$dataStr))                                           
                                                
 cat('\nTabulation of subjects against each of the categorical variables:')
