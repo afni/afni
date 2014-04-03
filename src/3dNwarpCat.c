@@ -365,8 +365,6 @@ void CNW_load_warp( int nn , char *cp )
        BB = IW3D_invert(AA,NULL,MRI_WSINC5); IW3D_destroy(AA); AA = BB;
      }
 
-     AA->use_emat = 0 ;
-
      iwarp[nn-1] = AA ; free(wp) ; return ;
    }
 
