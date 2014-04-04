@@ -1992,7 +1992,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            ADO_LABEL(ado), SO);
                if (!SO->SentToAfni) {
                   SUMA_LH("Sending the whole thing, SO = %p", SO);
-                  nel = NI_new_data_element("mask", 0);
+                  nel = NI_new_data_element("suma_mask", 0);
                   NI_set_attribute(nel, "idcode", ADO_ID(ado));
                   NI_SET_FLOATv(nel, "init_cen", mdo->init_cen, 3);
                   if (EngineData->fv3) 
@@ -2015,7 +2015,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  FuncName);
                         break;
                      }
-                     NI_set_attribute(nel,"parent_type", "mask");
+                     NI_set_attribute(nel,"parent_type", "suma_mask");
                      NI_set_attribute(nel,"parent_idcode", ADO_ID(ado));
                      /* set up some defaults color 
                         (see matlab's rgbdectohex for visual aid) 
@@ -2053,7 +2053,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         SUMA_S_Err("SUMA_makeNI_SurfINORM failed");
                         break;
                      }
-                     NI_set_attribute(nel,"parent_type", "mask");
+                     NI_set_attribute(nel,"parent_type", "suma_mask");
                      NI_set_attribute(nel,"parent_idcode", ADO_ID(ado));
                      /* send surface nel */
                      if (LocalHead)    
@@ -2077,7 +2077,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         SUMA_S_Err("SUMA_makeNI_SurfIJK failed");
                         break;
                      }
-                     NI_set_attribute(nel,"parent_type", "mask");
+                     NI_set_attribute(nel,"parent_type", "suma_mask");
                      NI_set_attribute(nel,"parent_idcode", ADO_ID(ado));
                      /* send surface nel */
                      if (LocalHead)    
@@ -2104,7 +2104,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                if (EngineData->fv3) {
                   SUMA_LH("Sending new center, SO = %p", SO);
-                  nel = NI_new_data_element("mask", 0);
+                  nel = NI_new_data_element("suma_mask", 0);
                   NI_set_attribute(nel, "idcode", ADO_ID(ado));
                   NI_SET_FLOATv(nel, "new_cen", EngineData->fv3, 3);
                   if ((nn = NI_write_element( 
