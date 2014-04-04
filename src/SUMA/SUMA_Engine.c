@@ -1026,6 +1026,29 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }  
             break;
 
+         case SE_SetDsetThrough:
+            { /* sets the sphere radius for nodes of a (graph) dset, 
+               expects ADO in vp and rendering mode in i*/
+               ado = (SUMA_ALL_DO *)EngineData->vp;
+               if (!(curColPlane = SUMA_ADO_CurColPlane(ado)) ||
+                   !(SurfCont = SUMA_ADO_Cont(ado))) {
+                  SUMA_S_Err("No cur plane");
+                  break;
+               }
+                              
+               if (EngineData->i == SW_SurfCont_DsetThroughXXX) {
+                  curColPlane->Through = 
+                     -SUMA_ABS(curColPlane->Through);
+               } else {
+                  curColPlane->Through = EngineData->i;
+               }
+               SUMA_ADO_Flush_Pick_Buffer(ado, sv);
+               if (!SUMA_Remixedisplay (ado)) {
+                  SUMA_S_Err("Dunno what happened here");
+               }
+            }  
+            break;
+            
          case SE_SetDsetNodeRad:
             { /* sets the sphere radius for nodes of a (graph) dset, 
                expects ADO in vp and rendering mode in i*/

@@ -4187,7 +4187,11 @@ static ENV_SPEC envlist[] = {
       "Choose one of: f8 f9 tr10 tr24 he10 he12 he18\n",
       "SUMA_Dset_Font",
       "f9" }, 
-   
+   {  "Method for representing connections to a certain node in a graph"
+      " dataset.\n"
+      "Choose one of: Edge, Color, Radius, C&R, XXX\n",
+      "SUMA_Dset_NodeConnections",
+      "Edge" }, 
    {  NULL, NULL, NULL  }
 };
       
