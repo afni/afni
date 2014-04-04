@@ -251,6 +251,7 @@ typedef enum { SE_Empty,
                SE_OpenDsetFile, SE_OpenColFile, SE_OneOnly, SE_OpenSurfCont,
                SE_SetSurfCont, SE_SetViewerCont, SE_SetRecorderCont,
                SE_SetDsetViewMode, SE_SetDsetFont, SE_SetDsetNodeRad, 
+               SE_SetDsetThrough, 
                SE_SetDsetNodeCol, SE_SetDsetEdgeThick, SE_SetDsetEdgeStip,
                SE_SetDsetGmatBord, SE_SetDsetTxtShad, SE_SetTractMask,
                SE_SetDsetAlphaVal, SE_SetTractStyle, SE_SetATransMode,
@@ -413,6 +414,15 @@ typedef enum { SW_SurfCont_DsetNodeRad,
                SW_SurfCont_DsetNodeRadXXX,
                SW_N_SurfCont_DsetNodeRad }
                                           SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD;
+
+typedef enum { SW_SurfCont_DsetThrough,
+               SW_SurfCont_DsetThroughEdge,
+               SW_SurfCont_DsetThroughCol,
+               SW_SurfCont_DsetThroughRad,
+               SW_SurfCont_DsetThroughCaR,
+               SW_SurfCont_DsetThroughXXX,
+               SW_N_SurfCont_DsetThrough }
+                                          SUMA_WIDGET_INDEX_SURFCONT_DSETTHROUGH;
 
 typedef enum { SW_SurfCont_DsetEdgeThick,
                SW_SurfCont_DsetEdgeThickConst,
@@ -638,7 +648,8 @@ typedef enum {  SWP_DONT_CARE,
                 SWP_TOP_LEFT,
                 SWP_POINTER, /*!< Position centered to the pointer */
                 SWP_POINTER_OFF,
-                SWP_POINTER_LEFT_BOTTOM
+                SWP_POINTER_LEFT_BOTTOM,
+                SWP_TOP_BEST /*!< Top right, else top left with no overlap */
              } SUMA_WINDOW_POSITION; /*!< Types of relative window positions */
 
 typedef enum {    SAR_Undefined,
@@ -960,6 +971,10 @@ typedef struct {
                NodeRad can be +/- most of SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD
                   It cannot be +/-SW_SurfCont_DsetNodeRadXXX
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETNODERAD */
+   int Through; /*!< negative do not show, postive, 
+               Through can be +/- most of SUMA_WIDGET_INDEX_SURFCONT_DSETTHROUGH
+                  It cannot be +/-SW_SurfCont_DsetThroughXXX
+                  see SUMA_WIDGET_INDEX_SURFCONT_DSETTHROUGH */
    float NodeRadGain;
    int NodeCol; /*!< Node colors, either constant or from dset 
                   see SUMA_WIDGET_INDEX_SURFCONT_DSETNODECOL */
@@ -1597,6 +1612,7 @@ typedef struct {
    SUMA_MENU_WIDGET *DsetTxtShadMenu; /*!<[SW_N_SurfCont_DsetTxtShad] widgets                                   controlling the shading/shadowing of txt */
    SUMA_MENU_WIDGET *DsetGmatBordMenu; /*!<[SW_N_SurfCont_DsetGmatBord] widgets                                   controlling the border thickness in GMATRIX */
    SUMA_MENU_WIDGET *DsetNodeRadMenu; /*!<[SW_N_SurfCont_DsetNodeRad] widgets                                   controlling the sizing of graph nodes */
+   SUMA_MENU_WIDGET *DsetThroughMenu; /*!<[SW_N_SurfCont_DsetThrough] widgets                          controlling the way connections from a node are displayed */
    SUMA_MENU_WIDGET *DsetEdgeThickMenu; /*!<[SW_N_SurfCont_DsetEdgeThick] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *DsetEdgeStipMenu; /*!<[SW_N_SurfCont_DsetEdgeStip] widgets                                   controlling the sizing of graph nodes */
    SUMA_MENU_WIDGET *TractStyleMenu; /*!<[SW_N_SurfCont_TractStyle] widgets                                   controlling the sizing of graph nodes */

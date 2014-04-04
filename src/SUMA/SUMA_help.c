@@ -1746,6 +1746,9 @@ char * SUMA_help_message_Info(void)
       "       about the Y axis passing through its center. Also, prying\n"
       "       is only enabled when the state you are viewing contains two \n"
       "       surfaces, one on the left and one on the right.\n"
+      "       in 3D views, left right mouse movement cause a rotation about\n"
+      "       the front or rear I/S axis. Up down movements cause a shift\n"
+      "       along the left/right direction.\n" 
       "     Control+Button 1-DoubleClick to get back to original setting\n"
       "       You can select nodes (Button 3) on pried surfaces and still\n"
       "       have AFNI jump to the proper location, and vice versa. However\n"
@@ -1798,7 +1801,13 @@ char * SUMA_help_message_Info(void)
       "                           at the new location.\n"
       "                           To leave Mask Manipulation Mode, double \n"
       "                           click with button 3 either on the mask or \n"
-      "                           in an area void of any objects.\n" );
+      "                           in an area void of any objects.\n" 
+      "                           If double clicking with a graph object in \n"
+      "                           focus and only connections from one node  \n"
+      "                           are shown, then revert to showing all graph\n"
+      "                           connections. Without this, you can loose all\n"
+      "                           other clickables if a certain node is not \n"
+      "                           connected to anything.\n");
    SS = SUMA_StringAppend (SS, 
       "     Button 3-Motion: continuous picking whenever surface are present.\n"
       "                      No calls for dot product (InstaCorr)\n"

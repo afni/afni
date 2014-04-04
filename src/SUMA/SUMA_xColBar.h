@@ -530,6 +530,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   Val: Nodes size equals its dset value x Gain\n"  \
    "   XXX: Show no balls.\n"  
 
+#define  SUMA_SurfContHelp_DsetThrough  \
+   "Choose how connections to the selected node are displayed.\n" \
+   "   Edg: Show with edges, a subset of the whole graph\n"  \
+   "   Col: Change the color of the connecting nodes, based on edge value\n"  \
+   "   Rad: Change the radius of the connecting nodes, based on edge value\n"\
+   "   CaR: Both Col and Rad\n"\
+   "   XXX: Do nothing special, keep showing whole graph.\n"  
+
 #define  SUMA_SurfContHelp_DsetEdgeThick  \
    "Choose the thickness sizing for edges of this graph dataset.\n" \
    "   Const: All nodes have a radius of 1 x Gain.\n"  \

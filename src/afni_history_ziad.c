@@ -65,6 +65,34 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 4, Apr, 2014, ZSS, "suma", MICRO, TYPE_MODIFY,
+   "Improved autopositioning of surf. controller. Better with dual displays.",
+   "Also canceled repositioning after very first opening of controllers"
+ },
+  
+ { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Made prying do both hinge rotation and translation",
+   "Difference is in the direction of mouse motion.\n"
+   "Also made vertical prying cause rotation about screen x axis for spheres"
+ },
+  
+ { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
+   "SUMA_Dset_NodeConnections controls how connections to a node are displayed",
+   "See ~/.sumarc for details, run suma -update_env if variable is missing."
+ },
+  
+ { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added three modes for controlling how connections to a node are shown.",
+   "This makes it possible to greatly reduce the clutter of the display.\n"
+   "See menu 'CN' that controls this"
+ },
+  
+ { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "A double select click makes all graph edges appear.",
+   "This only has an effect if the current object in focus is a\n"
+   "graph object"
+ },
+  
  { 3, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
    "SUMA_Dset_Font to initialize text in graph datasets",
    "See ~/.sumarc for details, run suma -update_env if variable is missing."

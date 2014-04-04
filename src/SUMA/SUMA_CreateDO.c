@@ -8467,6 +8467,7 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          GSaux->Range_G3D = NULL;
          GSaux->Center_GMATRIX = NULL;
          GSaux->Range_GMATRIX = NULL;
+         GSaux->IgnoreSelection = 0;
       }
       
       SUMA_DrawDO_UL_FullMonty(GSaux->DisplayUpdates);
@@ -10277,7 +10278,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    int gllst=0, gllsm=0, OnlyThroughNode = -1;
    byte *bbox=NULL, *NodeMask=NULL, *NodeMaskr=NULL;
    NI_element *nelitp = NULL;
-   float origwidth=0.0, radconst = 0.0, rad = 0.0, 
+   float origwidth=0.0, radconst = 0.0, rad = 0.0, radgain = 0.0,
          gain = 1.0, constcol[4], edgeconst=1.0, group_col[4],
          vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0, cdim=1/3.0,
          *GNr=NULL, *GNg=NULL, *GNb=NULL, dimmer = 1.0;
@@ -10514,18 +10515,14 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    }
    
    NoEdges = 0;
-   if ((PickAsShown || !sv->DO_PickMode) &&
+   if ((PickAsShown || !sv->DO_PickMode) && !GSaux->IgnoreSelection &&
+       curcol->Through >= 0 &&
        GSaux->PR->datum_index == -1 && GSaux->PR->iAltSel[SUMA_ENODE_0] != -1) {
       OnlyThroughNode = GSaux->PR->iAltSel[SUMA_ENODE_0];
-      NoEdges = 0; /* Rudimentary mode for not showing edges, but
-                      making ball size reflect connection weight instead.
-                      Works in principle, but needs to get lots fancier.
-                      Probably want to show non-connected points for reference,
-                      but in gray scale, smaller size, and possibly without text.
-                      Also, shown balls should possibly have their size grow
-                      based on edge value, and/or perhaps set their colors based
-                      on the value too... 
-                      For now, NoEdges should be left at 0 unless testing*/
+      
+      if (curcol->Through != SW_SurfCont_DsetThroughEdge) {
+         NoEdges = 1; 
+      }
       if (NodeMask && OnlyThroughNode >=0) {
          if ((cn = SUMA_NodeIndex_To_Index(DDO.NodeIndex, 
                                        DDO.N_Node, OnlyThroughNode))>=0) {
@@ -10867,8 +10864,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    /* draw the bottom object */
    if (SDO->botobj) {
       float *xyz=(float *)SUMA_malloc(3*SDO->N_AllNodes*sizeof(float));
-      float *xyzr=NULL;
+      float *xyzr=NULL, toff = 0.0;
       int *GNIr=NULL;
+      int NoEdges_DynamicRadius = 0;
+      int NoEdges_DynamicColor = 0;
       char **namesr=NULL;
       SUMA_LH("Drawing bottom");
       if (LocalHead) SUMA_CHECK_GL_ERROR("Pre bottom\n");
@@ -10877,9 +10876,39 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, SDO->LineCol);
       }
       
-      if (DDO.AvgLe != 0.0f) radconst = DDO.AvgLe/4.0*curcol->NodeRadGain;
-      else radconst = 1.0/4.0*curcol->NodeRadGain;
-            
+      NoEdges_DynamicRadius = 0;
+      NoEdges_DynamicColor = 0;
+      if (curcol->Through >= 0) {
+         switch (curcol->Through) {
+            case SW_SurfCont_DsetThroughEdge:
+               NoEdges_DynamicRadius = 0;
+               NoEdges_DynamicColor = 0;
+               break;
+            case SW_SurfCont_DsetThroughCol:
+               NoEdges_DynamicRadius = 0;
+               NoEdges_DynamicColor = 1;
+               break;
+            case SW_SurfCont_DsetThroughRad:
+               NoEdges_DynamicRadius = 1;
+               NoEdges_DynamicColor = 0;
+               break;
+            case SW_SurfCont_DsetThroughCaR:
+               NoEdges_DynamicRadius = 1;
+               NoEdges_DynamicColor = 1;
+               break;
+            default:
+               NoEdges_DynamicRadius = 0;
+               NoEdges_DynamicColor = 0;
+               break;
+         }
+      }
+      
+      radgain = curcol->NodeRadGain;
+      if (DDO.AvgLe != 0.0f) {
+         radconst = DDO.AvgLe/4.0;
+      } else {
+         radconst = 1.0/4.0;
+      }      
       gluQuadricDrawStyle (SDO->botobj, GLU_FILL); 
       gluQuadricNormals (SDO->botobj , GLU_SMOOTH);
 
@@ -10973,17 +11002,19 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   } else okind = 1;
                }
                if (okind>0) 
-                  rad = SUMA_ABS(curcol->V[ri])*curcol->NodeRadGain;
+                  rad = SUMA_ABS(curcol->V[ri]);
             } else {
                rad = radconst;
             }
-            if (NoEdges && OnlyThroughNode != n) {
+            r1 = -1;
+            if (NoEdges && OnlyThroughNode != n ) {
                SUMA_GDSET_PointsToSegRow(dset, OnlyThroughNode, n, &r1);
                                        /* get the n1-->n edge to get its value*/
 
-               if (r1>=0) rad = SUMA_ABS(curcol->V[r1])*curcol->NodeRadGain;
-               else rad = rad * 2.0;
-               if (rad <= 0.0f) rad = 0.005;
+               if (NoEdges_DynamicRadius) {
+                  if (r1>=0) rad = SUMA_ABS(curcol->V[r1]);
+                  else radgain = 2.0;
+               }
             }
             if (OnlyThroughNode == n) {
                if (colidballs) {
@@ -11014,6 +11045,25 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   colballpick = colidballs+i4;
                   glColor4ub( colidballs[i4  ], colidballs[i4+1], 
                               colidballs[i4+2], colidballs[i4+3]);
+               } else if (NoEdges && NoEdges_DynamicColor) {
+                  if (r1>=0) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                      &(SDO->colv[r1*4]));
+                     if (!ShadeBalls) {
+                       glMaterialfv(GL_FRONT, GL_EMISSION, 
+                                                      &(SDO->colv[r1*4]));
+                     } else {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                     }
+                  } else {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                                         constcol);
+                     if (!ShadeBalls) {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, constcol);
+                     } else {
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                     }
+                  }                  
                } else if (GNG && curcol->NodeCol == SW_SurfCont_DsetNodeColGrp) {
                   if (n>=0) {
                      if (GNr) {
@@ -11084,10 +11134,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                }
             }
             glTranslatef ( xyzr[i3]  , xyzr[i3+1]  , xyzr[i3+2]  );
-            if (showword) gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad, 0.005) 
-                        /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
-                        10, 10);
-            else if (NoEdges){
+            if (showword) {
+               gluSphere(SDO->botobj, 
+                                    SUMA_MAX_PAIR(rad*radgain, 0.005), 10, 10);
+            } else if (NoEdges){
                ghostcol[0] = (1-sv->clear_color[0])/2.0/dimmer;
                ghostcol[1] = (1-sv->clear_color[1])/2.0/dimmer;
                ghostcol[2] = (1-sv->clear_color[2])/2.0/dimmer;
@@ -11100,9 +11150,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                }
                /* Show ghosts, for clickability */
-               gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad/4.0, 0.005) 
-                        /* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06) */ , 
-                        10, 10);
+               if (NoEdges_DynamicRadius) radgain = 0.25;
+               else radgain = 1.0;
+               gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad*radgain, 0.005), 10, 10);
             }
             glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
          }
@@ -11142,6 +11192,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                      , xyzr[i3], xyzr[i3+1], xyzr[i3+2],
                      TxtShadeMode, fontGL, col1[0], col1[1], col1[2],
                      col2[0], col2[1], col2[2], sizeof(GLbyte), sizeof(byte));
+            toff = rad*radgain;
             if (colidballs) { /* No need to allow selection with different
                                  shadow modes, just put a box where the 
                                  text is to go and let the picking be based
@@ -11169,9 +11220,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                }
                glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                glMaterialfv(GL_FRONT, GL_EMISSION, col1);
-               glRasterPos3d(xyzr[i3]  +rad , 
-                       xyzr[i3+1]+rad , 
-                       xyzr[i3+2] +rad );
+               glRasterPos3d(xyzr[i3]  +toff , 
+                       xyzr[i3+1]+toff , 
+                       xyzr[i3+2] +toff );
                glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
                glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
                if (!valid) continue;
@@ -11200,9 +11251,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   if (showword > OverThr || TxtShadeMode == 5) {
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                      glMaterialfv(GL_FRONT, GL_EMISSION, col1);
-                     glRasterPos3d(xyzr[i3]  +rad , 
-                             xyzr[i3+1]+rad , 
-                             xyzr[i3+2] +rad );
+                     glRasterPos3d( xyzr[i3]  +toff , 
+                                    xyzr[i3+1]+toff , 
+                                    xyzr[i3+2]+toff );
                      glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
                      glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
                      if (!valid) break;
@@ -11219,9 +11270,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                                          col2);
                      glMaterialfv(GL_FRONT, GL_EMISSION, col2);
-                     glRasterPos3d(xyzr[i3]  +rad , 
-                                   xyzr[i3+1]+rad , 
-                                   xyzr[i3+2] +rad );
+                     glRasterPos3d(xyzr[i3]  +toff , 
+                                   xyzr[i3+1]+toff , 
+                                   xyzr[i3+2]+toff );
                      /* offset rel. to  shadow */
                      glBitmap( 0, 0, 0, 0,  
                                -1.0, -1.0,  NULL );
@@ -11240,9 +11291,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                   glMaterialfv(GL_FRONT, GL_EMISSION, col1);
                      /* Must come AFTER glMaterialfv */
-                  glRasterPos3d( xyzr[i3]  +rad , 
-                                 xyzr[i3+1]+rad , 
-                                 xyzr[i3+2] +rad );
+                  glRasterPos3d( xyzr[i3]  +toff , 
+                                 xyzr[i3+1]+toff , 
+                                 xyzr[i3+2]+toff );
                   glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
                   glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
                   if (!valid) break;
@@ -11253,9 +11304,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                                       col2);
                   glMaterialfv(GL_FRONT, GL_EMISSION, col2);
-                  glRasterPos3d(xyzr[i3]  +rad , 
-                                xyzr[i3+1]+rad , 
-                                xyzr[i3+2] +rad );
+                  glRasterPos3d(xyzr[i3]  +toff , 
+                                xyzr[i3+1]+toff , 
+                                xyzr[i3+2]+toff );
                   SUMA_TextBoxSize (namesr[i], &tw, &th, &nl, fontGL);
                   /* offset rel. to  shadow */
                   glBitmap( 0, 0, 0, 0,  
@@ -11272,9 +11323,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                      glMaterialfv(GL_FRONT, GL_EMISSION, col1);
                      /* Must come AFTER glMaterialfv */
-                     glRasterPos3d( xyzr[i3]  +rad , 
-                                    xyzr[i3+1]+rad , 
-                                    xyzr[i3+2] +rad );
+                     glRasterPos3d( xyzr[i3]  +toff , 
+                                    xyzr[i3+1]+toff , 
+                                    xyzr[i3+2]+toff );
                      glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
                      glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
                      if (!valid) break;
@@ -11297,9 +11348,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                                          col2);
                      glMaterialfv(GL_FRONT, GL_EMISSION, col2);
-                     glRasterPos3d(xyzr[i3]  +rad , 
-                                   xyzr[i3+1]+rad , 
-                                   xyzr[i3+2] +rad );
+                     glRasterPos3d(xyzr[i3]  +toff , 
+                                   xyzr[i3+1]+toff , 
+                                   xyzr[i3+2]+toff );
                      for (iii=0; namesr[i][iii] != '\0'; iii++) {
                         glutBitmapCharacter(fontGL, namesr[i][iii]);
                      }
@@ -11315,9 +11366,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, col1);
                   glMaterialfv(GL_FRONT, GL_EMISSION, col1);
                   /* Must come AFTER glMaterialfv */
-                  glRasterPos3d( xyzr[i3]  +rad , 
-                                 xyzr[i3+1]+rad , 
-                                 xyzr[i3+2] +rad );
+                  glRasterPos3d( xyzr[i3]  +toff , 
+                                 xyzr[i3+1]+toff , 
+                                 xyzr[i3+2]+toff );
                   glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
                   glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
                   if (!valid) break;
@@ -11342,9 +11393,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
                                                       col2);
                   glMaterialfv(GL_FRONT, GL_EMISSION, col2);
-                  glRasterPos3d(xyzr[i3]  +rad , 
-                                xyzr[i3+1]+rad , 
-                                xyzr[i3+2] +rad );
+                  glRasterPos3d(xyzr[i3]  +toff , 
+                                xyzr[i3+1]+toff , 
+                                xyzr[i3+2]+toff );
                   for (iii=0; namesr[i][iii] != '\0'; iii++) {
                      glutBitmapCharacter(fontGL, namesr[i][iii]);
                   }
@@ -11355,9 +11406,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   
                   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, textcolor);
                   glMaterialfv(GL_FRONT, GL_EMISSION, textcolor);
-                  glRasterPos3d(xyzr[i3]  +rad , 
-                          xyzr[i3+1]+rad , 
-                          xyzr[i3+2] +rad );
+                  glRasterPos3d( xyzr[i3]  +toff , 
+                                 xyzr[i3+1]+toff , 
+                                 xyzr[i3+2]+toff );
                   glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
                   glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
                   if (!valid) break;
@@ -17263,7 +17314,7 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
    int splitx = 0, regdeal = 0;
    int i, state;
    double A[3], B[3], C[3], D[3], AC[3], AD[3], BC[3], BD[3];
-   double dot1, dot2, doti;
+   double dot1, dot2, doti, sgn=-1.0;
    double Pt[3], Pb[3], C1[3], rotax[3], rotmag, rot=25;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -17433,7 +17484,7 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
             SUMA_RETURN(0);
          }
       }
-   } else if (!strcmp(which,"VisX")){ 
+   } else if (!strcmp(which,"VisX")){
       /* if Prying is to be added, it should be after CoordBias */
       x0 = SUMA_Fetch_VisX_Datum ("Prying", SOv[0]->VisX.Xchain, 
                                   ADD_AFTER,"CoordBias");
@@ -17441,6 +17492,7 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                                   ADD_AFTER, "CoordBias");
 
       /* open up the gap */
+      sgn = -1.0; 
       regdeal = 0;
       rot = sv->GVS[sv->StdView].vLHpry[0];
       if (!(SUMA_IS_GEOM_SYMM(SOv[0]->isSphere) && 
@@ -17496,9 +17548,23 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
          C1[0] = SOv[1]->Center[0];  C1[1] = SOv[1]->Center[1]; 
                                      C1[2] = SOv[1]->Center[2]; 
          SUMA_LH("Spheres!");
-               /* transform screen Y axis to world axis */
-         SUMA_NormScreenToWorld(sv, 0, 0, Pb, NULL, 1);   
-         SUMA_NormScreenToWorld(sv, 0, 1, Pt, NULL, 1);   
+         if (  sv->GVS[sv->StdView].vLHpry[1] >
+               1.3*sv->GVS[sv->StdView].vLHpry[0]){
+            /* stronger vertical movement, rotate about the screen X axis*/
+            SUMA_NormScreenToWorld(sv, 0, 0, Pb, NULL, 1);   
+            SUMA_NormScreenToWorld(sv, 1, 0, Pt, NULL, 1);
+            rot = sv->GVS[sv->StdView].vLHpry[1];
+            sgn = 1.0;
+         } else if (sv->GVS[sv->StdView].vLHpry[0] >
+                    1.3*sv->GVS[sv->StdView].vLHpry[1]){
+            /* stronger horizontal movement, rotate about the screen Y axis*/
+            SUMA_NormScreenToWorld(sv, 0, 0, Pb, NULL, 1);   
+            SUMA_NormScreenToWorld(sv, 0, 1, Pt, NULL, 1);
+            rot = sv->GVS[sv->StdView].vLHpry[0];
+         } else {
+            /* don't rotate */
+            rot = 0;
+         }   
          SUMA_UNIT_VEC(Pb, Pt, rotax, rotmag);
          rot = rot*2.0; /* go to +/- 180 */
       } else if ( SOv[0]->EmbedDim == 2 && SOv[1]->EmbedDim == 2 ) { 
@@ -17522,7 +17588,7 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
             SUMA_S_Err("Failed to build rotation for surface 0");
             SUMA_RETURN(0);
          } 
-         if (!SUMA_BuildRotationMatrix(C1, rotax, -rot*SUMA_PI/180.0, 
+         if (!SUMA_BuildRotationMatrix(C1, rotax, sgn*rot*SUMA_PI/180.0, 
                                        x1->Xform)) {
             SUMA_S_Err("Failed to build rotation for surface 0");
             SUMA_RETURN(0);
