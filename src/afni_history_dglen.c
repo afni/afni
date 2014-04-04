@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 04 , APR, 2014 , DRG , "whereami -linkrbrain" , 
+    MINOR , TYPE_NEW_OPT, 
+    "New option for getting task or gene correlation with coordinate list",
+    "Linkrbrain.org support is available in alpha form from whereami and\n"
+    "the Clusterize GUI. AFNI_LINKRBRAIN needs to be set to YES to use new\n"
+    "features."
+} ,
+
 { 27 , MAR, 2014 , DRG , "align_epi_anat.py" , 
     MICRO , TYPE_BUG_FIX, 
     "h_view help added"

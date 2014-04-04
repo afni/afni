@@ -461,6 +461,7 @@ char *find_atlas_niml_file(char * nimlname, int nini);
 ATLAS_LIST *env_atlas_list(void);
 char **env_space_list(int *);
 int env_dec_places(void);
+char * search_quotes(char *in_str);
 
 char *Current_Atlas_Default_Name(void);
 char **Atlas_Names_List(ATLAS_LIST *atl);
@@ -472,7 +473,7 @@ char *elsevier_query(float xx, float yy, float zz, ATLAS *atlas);
 char *elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_type);
 void wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami);
 
-char * whereami_XML_get(char *data, char *name);
+char * whereami_XML_get(char *data, char *name, char **next);
 int whereami_browser(char *url);
 char *cleanup_url(char *url);
 void set_wami_web_found(int found);
@@ -489,7 +490,12 @@ void set_wami_minprob(float val);
 float get_wami_minprob(void);
 float Get_PMap_Factor(void);
 int show_neurosynth_link();
+int show_linkrbrain_link();
 char * neurosynth_coords_link(float x, float y, float z);
+int make_linkrbrain_xml(float *coords, int ncoords, 
+    char *src_space, char *dest_space, char *linkrbrain_xml, int linkr_corr_type);
+int send_linkrbrain_xml(char *linkrbrain_xml, char *linkrbrain_results);
+
 /* Transforms for going from one space to another */
 #if 0
 static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc was obtained by transforming N27 from MNI 

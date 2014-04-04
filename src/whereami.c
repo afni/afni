@@ -29,6 +29,7 @@
 
 int compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
   int N_atlas_names, char **atlas_names, ATLAS_LIST *atlas_alist);
+static float *make_coord_list(char *coord_file, int *nxyz, int dicom);
 
 
 char *PrettyRef(char *ref) {
@@ -124,6 +125,10 @@ void whereami_usage(ATLAS_LIST *atlas_alist, int detail)
 "           whereami -coord_file out.1D'[1,2,3]' -tab\n"
 "               NOTE: You cannot use -coord_file AND specify x,y,z on\n"
 "                     command line.\n" 
+" -linkrbrain: get report from linkrbrain.org from list of coordinates\n"
+"           only with -coord_file and -space or -dset_space\n"
+" -linkr_type tasks/genes: report for correlation with tasks or genes\n"
+"           Default is tasks\n"
 " -lpi/-spm: Input coordinates' orientation is in LPI or SPM format. \n"
 " -rai/-dicom: Input coordinates' orientation is in RAI or DICOM format.\n"
 " NOTE: The default format for input coordinates' orientation is set by \n"
@@ -404,10 +409,14 @@ printf(
 "             needed to go from one space to another\n"
 " -calc_chain srcspace destspace : compute the chain of transformations\n"
 "             combining and inverting transformations where possible\n"
-" -xform_xyz  used with calc_chain, takes the x,y,z coordinates and \n"
+" -xform_xyz : used with calc_chain, takes the x,y,z coordinates and \n"
 "             applies the combined chain of transformations to compute\n"
 "             a new x,y,z coordinate\n"
-" -xform_xyz_quiet Same as -xform_xyz but only ouputs the final result\n"
+" -xform_xyz_quiet : Same as -xform_xyz but only ouputs the final result\n"
+" -coord_out  outfile : with -xform_xyz, -coord_file and -calc_chain, \n"
+"             specifies an output file for transformed coordinates\n"
+"             If not specified, coord_files will be transformed and printed\n"
+"             to stdout \n"
 "Note setting the environment variable AFNI_WAMI_DEBUG will show detailed\n"
 " progress throughout the various functions called within whereami.\n"
 " For spaces defined using a NIML table, a Dijkstra search is used to find\n"
@@ -468,8 +477,17 @@ int main(int argc, char **argv)
    int show_atlas_templates = 0, show_atlas_xforms = 0;
    int show_xform_chain = 0, calc_xform_chain=0, show_avail_space=0;
    int show_atlas_point_lists = 0;
-
+   int linkrbrain_output = 0;
+   /* coordinates translated to send to linkrbrain */
+   char *linkrbrain_xml = "__temp_linkrbrain.xml"; 
+   /* unparsed XML response from linkrbrain */
+   char *temp_linkrbrain_results = "__temp_linkrbrain_results.xml";
+   char *linkrbrain_str = NULL;
+   char *linkrbrain_corr_test = NULL;
+   int linkr_corr_type = 0; /* linkrbrain correlation for tasks by default */
    char *srcspace=NULL, *destspace=NULL;
+   char *coord_outfile=NULL;
+
    ATLAS_XFORM_LIST *xfl = NULL, *cxfl = NULL;
    float xout, yout, zout;
    int xform_xyz = 0, xform_xyz_quiet = 0;
@@ -706,13 +724,70 @@ int main(int argc, char **argv)
          if (strcmp(argv[iarg],"-coord_file") == 0) {
             ++iarg;
             if (iarg >= argc) {
-               fprintf(stderr,"** Error: Need parameter after -coord_file\n"); 
+               fprintf(stderr,
+                "** Error: Need 1D file with coordinates after -coord_file\n"); 
                return(1);
             }
             coord_file = argv[iarg];
             ++iarg;
             continue;             
          }
+
+         if (strcmp(argv[iarg],"-coord_out") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,
+                "** Error: Need 1D file with coordinates after -coord_out\n"); 
+               return(1);
+            }
+            coord_outfile = argv[iarg];
+            ++iarg;
+            continue;             
+         }
+
+         if (strcmp(argv[iarg],"-linkrbrain") == 0) {
+            ++iarg;
+            linkrbrain_output = 1;
+            set_AFNI_wami_output_mode(1);
+            continue;             
+         }
+
+         if (strcmp(argv[iarg],"-linkr_type") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,
+                "** Error: Need the word \"tasks\" or \"genes\" after linkr_type\n"); 
+               return(1);
+            }
+            if(strcmp(argv[iarg],"tasks")==0)
+               linkr_corr_type = 0;
+            else {
+               if(strcmp(argv[iarg],"genes")==0)
+                  linkr_corr_type = 1;
+               else{
+                  fprintf(stderr,
+                   "** Error: Need the word \"tasks\" or \"genes\" after linkr_type\n"); 
+                  return(1);
+               }
+            } 
+            ++iarg;
+            continue;             
+         }
+
+         if (strcmp(argv[iarg],"-linkrbrain_corr_test") == 0) {
+            ++iarg;
+            if (iarg >= argc) {
+               fprintf(stderr,
+             "** Error: Need filename for test XML to send"
+             " after -linkrbrain_corr_test\n"); 
+               return(1);
+            }
+            linkrbrain_output = 1;
+            linkrbrain_corr_test = argv[iarg];
+            ++iarg;
+            continue;             
+         }
+         
          
          if (strcmp(argv[iarg],"-max_areas") == 0) {
             ++iarg;
@@ -1030,6 +1105,12 @@ int main(int argc, char **argv)
                   xi,yi,zi,xout,yout,zout);
          }
       }
+
+      if (coord_file) { /* load the XYZ coordinates from a 1D file */
+         coord_list = make_coord_list(coord_file, &nxyz, dicom);
+         wami_xform_coords_print(coord_list, nxyz, srcspace, destspace, coord_outfile);
+      }
+
       if(xfl)
         free_xform_list(xfl);
       if(cxfl)
@@ -1139,7 +1220,7 @@ int main(int argc, char **argv)
    }
    
    if (nakedarg < 3 && !Show_Atlas_Code && !shar && !bmsk && !coord_file) {
-      ERROR_message("Bad option combinations");
+      ERROR_message("Missing useful options. See full help or simple usage below");
       whereami_usage(atlas_alist, 0);
       return 1;
    }
@@ -1258,55 +1339,79 @@ int main(int argc, char **argv)
    }
 
    if (coord_file) { /* load the XYZ coordinates from a 1D file */
-      MRI_IMAGE * XYZ_im=NULL;
-      float *XYZv = NULL;
-
-      XYZ_im = mri_read_1D( coord_file ) ;
-      if( XYZ_im == NULL ){
-         fprintf(stderr,"** Error: Can't read XYZ.1D file %s\n",coord_file);
-         return(1) ;
-      }
-      if (XYZ_im->ny != 3) {
-         fprintf(stderr,"** Error: Need three columns as input.\n"
-                        "   Found %d columns\n", XYZ_im->ny);
-         return(1) ;
-      }
-      XYZv = MRI_FLOAT_PTR(XYZ_im) ;
-      coord_list = (float *)calloc(3*XYZ_im->nx, sizeof(float));
-      if (!coord_list) {
-         fprintf(stderr,"** Error: Failed to allocate\n");
-         return(1) ;
-      }
-      /* copy to me own vectors */
-      nxyz = XYZ_im->nx;
-      for (ixyz=0; ixyz<nxyz; ++ixyz) {
-         coord_list[3*ixyz]   = XYZv[ixyz];
-         coord_list[3*ixyz+1] = XYZv[ixyz+XYZ_im->nx];
-         coord_list[3*ixyz+2] = XYZv[ixyz+XYZ_im->nx*2];
-      }
-      mri_free(XYZ_im); XYZ_im = NULL;
-   } else {
+      coord_list = make_coord_list(coord_file, &nxyz, dicom);
+   }
+   else {
       coord_list = (float *)calloc(3, sizeof(float));
-      coord_list[0] = xi; coord_list[1] = yi; coord_list[2] = zi; 
+      if (!dicom) {
+         coord_list[0] = -xi; coord_list[1] =-yi;
+      }
+      else {
+         coord_list[0] = xi; coord_list[1] = yi; 
+      }
+      coord_list[2] = zi; 
       nxyz = 1;
    }
+
    
    if (!coord_list) {
       fprintf(stderr,"** Error: No coords!\n");
       return(1) ;
    }
    
+   /* linkrbrain.org output */
+   if (linkrbrain_output){
+     /* if just testing parsing linkrbrain output, just parse and exit*/
+     /* for debugging only really */
+     if(linkrbrain_corr_test){
+        linkrbrain_XML_simple_report(linkrbrain_corr_test, 0);
+        exit(0);  
+     }
+
+     if(srcspace==NULL) {
+        ERROR_message("No source space specified. Use -space or -dset_space\n");
+        exit(1);
+     }
+     if(coord_list==NULL) {
+        ERROR_message("No coordinate list given. Use -coord_file\n");
+        exit(1);
+     }
+     /* make XML input coordinate file for linkrbrain (convert to MNI if needed) */
+     if(make_linkrbrain_xml(coord_list, nxyz, srcspace, "MNI", linkrbrain_xml,
+         linkr_corr_type)!=0) {
+         fprintf(stderr,"** Error: could not make XML file for linkrbrain\n");
+         exit(1);
+     }
+     else {
+        if(send_linkrbrain_xml(linkrbrain_xml, temp_linkrbrain_results)!=0) {
+           fprintf(stderr,"** Error: could not link to linkrbrain.org."
+                        "   Check web connections\n");
+           exit(1);
+        }
+        else {
+        /* parse the output here. For now just say it's there */
+           printf(
+        "Query of coordinates to linkrbrain.org correlations\n\n");
+           linkrbrain_XML_simple_report(temp_linkrbrain_results,
+              linkr_corr_type);
+/*           linkrbrain_str = parse_linkrbrain("linkrbrain.xml");*/
+        }
+     } 
+     exit(0);
+   }
+
    for (ixyz = 0; ixyz < nxyz; ++ixyz) {
       x = coord_list[3*ixyz];
       y = coord_list[3*ixyz+1];
       z = coord_list[3*ixyz+2];
       
+#if 0
       if (!dicom) {
          /* go from lpi to rai */
          x = -x;
          y = -y; 
       }
-
+#endif
       if (!OldMethod) {
          /* the new whereami */
          if (atlas_sort) {
@@ -1611,4 +1716,47 @@ compute_overlap(char *bmsk, byte *cmask, int ncmask, int dobin,
       DSET_delete(mset_orig); mset_orig = NULL;
 
       return(0);
+}
+
+/* make coordinate list from file */
+static float *make_coord_list(char *coord_file, int *nxyz, int dicom)
+{
+      MRI_IMAGE * XYZ_im=NULL;
+      float *XYZv = NULL;
+      float *fcoord_list = NULL;
+      int ixyz;
+
+
+   XYZ_im = mri_read_1D( coord_file ) ;
+   if( XYZ_im == NULL ){
+      fprintf(stderr,"** Error: Can't read XYZ.1D file %s\n",coord_file);
+      return(NULL) ;
+   }
+   if (XYZ_im->ny != 3) {
+      fprintf(stderr,"** Error: Need three columns as input.\n"
+                     "   Found %d columns\n", XYZ_im->ny);
+      return(NULL) ;
+   }
+   XYZv = MRI_FLOAT_PTR(XYZ_im) ;
+   fcoord_list = (float *)calloc(3*XYZ_im->nx, sizeof(float));
+   if (!fcoord_list) {
+      fprintf(stderr,"** Error: Failed to allocate\n");
+      return(NULL) ;
+   }
+   /* copy to me own vectors */
+   *nxyz = XYZ_im->nx;
+   for (ixyz=0; ixyz<*nxyz; ++ixyz) {
+      if (!dicom) {
+         fcoord_list[3*ixyz]   = -XYZv[ixyz];
+         fcoord_list[3*ixyz+1] = -XYZv[ixyz+XYZ_im->nx];
+      }
+      else {
+         fcoord_list[3*ixyz]   = XYZv[ixyz];
+         fcoord_list[3*ixyz+1] = XYZv[ixyz+XYZ_im->nx];
+      } 
+      fcoord_list[3*ixyz+2] = XYZv[ixyz+XYZ_im->nx*2];
+   }
+   mri_free(XYZ_im); XYZ_im = NULL;
+ 
+   return(fcoord_list);
 }
