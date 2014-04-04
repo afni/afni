@@ -262,6 +262,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetDsetViewMode")) SUMA_RETURN(SE_SetDsetViewMode);
    if (!strcmp(Scom,"SetDsetFont")) SUMA_RETURN(SE_SetDsetFont);
    if (!strcmp(Scom,"SetDsetNodeRad")) SUMA_RETURN(SE_SetDsetNodeRad);
+   if (!strcmp(Scom,"SetDsetThrough")) SUMA_RETURN(SE_SetDsetThrough);
    if (!strcmp(Scom,"SetDsetEdgeThick")) SUMA_RETURN(SE_SetDsetEdgeThick);
    if (!strcmp(Scom,"SetDsetEdgeStip")) SUMA_RETURN(SE_SetDsetEdgeStip);
    if (!strcmp(Scom,"SetTractStyle")) SUMA_RETURN(SE_SetTractStyle);
@@ -524,6 +525,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetDsetFont"); 
       case SE_SetDsetNodeRad:
          SUMA_RETURN("SetDsetNodeRad"); 
+      case SE_SetDsetThrough:
+         SUMA_RETURN("SetDsetThrough"); 
       case SE_SetDsetEdgeStip:
          SUMA_RETURN("SetDsetEdgeStip"); 
       case SE_SetTractStyle:

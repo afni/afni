@@ -3621,6 +3621,26 @@ SUMA_MenuItem DsetNodeRad_Menu[] = {
    {NULL},
 };
 
+SUMA_MenuItem DsetThrough_Menu[] = {
+   { "Edg", &xmPushButtonWidgetClass, 
+      'E', NULL, NULL, 
+      SUMA_cb_SetDsetThrough, (XtPointer) SW_SurfCont_DsetThroughEdge, NULL},
+   {  "Col", &xmPushButtonWidgetClass, 
+      'C', NULL, NULL, 
+      SUMA_cb_SetDsetThrough, (XtPointer) SW_SurfCont_DsetThroughCol, NULL},
+   { "Rad", &xmPushButtonWidgetClass, 
+      'R', NULL, NULL, 
+      SUMA_cb_SetDsetThrough, (XtPointer) SW_SurfCont_DsetThroughRad, NULL},    
+   { "C&R", &xmPushButtonWidgetClass, 
+      'B', NULL, NULL, 
+      SUMA_cb_SetDsetThrough, (XtPointer) SW_SurfCont_DsetThroughCaR, NULL},    
+   { "XXX", &xmPushButtonWidgetClass, 
+      'X', NULL, NULL, 
+      SUMA_cb_SetDsetThrough, (XtPointer) SW_SurfCont_DsetThroughXXX, NULL},    
+   
+   {NULL},
+};
+
 SUMA_MenuItem DsetEdgeThick_Menu[] = {
    { "Cst", &xmPushButtonWidgetClass, 
       'C', NULL, NULL, 
@@ -6471,6 +6491,18 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
       SUMA_RETURN(YUP);
    }
    
+   SUMA_LH("Init Position %p %p", SurfCont->PosRef, sv->X->TOPLEVEL);
+   if (SurfCont->PosRef != sv->X->TOPLEVEL) {
+      SurfCont->PosRef = sv->X->TOPLEVEL;
+      if (!SUMAg_CF->X->UseSameSurfCont ||
+          SUMA_NotebookLastPageNumber(SUMAg_CF->X->SC_Notebook) == 1) { 
+         /* Only reposition if not using same surf cont, or if
+         using same surf cont but have only 1 page in it */
+         SUMA_PositionWindowRelative ( SurfCont->TLS, 
+                                       SurfCont->PosRef, SWP_TOP_BEST);    
+      }
+   }
+   
    SUMA_MarkSurfContOpen(1,ado); 
 
    SUMA_LH("Init SurfParam");
@@ -6480,12 +6512,6 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    SUMA_LH("Dset goodies");
    SUMA_InitializeColPlaneShell(ado, SurfCont->curColPlane);
    
-   SUMA_LH("Init Position");
-   if (SurfCont->PosRef != sv->X->TOPLEVEL) {
-      SurfCont->PosRef = sv->X->TOPLEVEL;
-      SUMA_PositionWindowRelative ( SurfCont->TLS, 
-                                    SurfCont->PosRef, SWP_TOP_RIGHT);   
-   }
    
    SUMA_LH("Returning");
    
@@ -8432,6 +8458,19 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
       MCW_register_hint(SurfCont->GDSET_ShowBundles_tb , 
                         "Show bundles instead of edges if possible.") ;
       SUMA_SET_SELECT_COLOR(SurfCont->GDSET_ShowBundles_tb);
+      
+      SUMA_BuildMenuReset(0);
+      SurfCont->DsetThroughMenu =
+         SUMA_Alloc_Menu_Widget(SW_N_SurfCont_DsetThrough);
+      SUMA_BuildMenu (rc, XmMENU_OPTION, 
+                "CN", '\0', YUP, DsetThrough_Menu,
+                (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
+                "How to display connection to selected graph node.",
+                SUMA_SurfContHelp_DsetThrough, 
+                SurfCont->DsetThroughMenu );
+      XtManageChild (SurfCont->DsetThroughMenu->mw[SW_SurfCont_DsetThrough]);
+      SUMA_Set_Menu_Widget(SurfCont->DsetThroughMenu, 
+                           SUMA_Through2ThroughMenuItem(curColPlane->Through));
            
       /* manage  rc */
       XtManageChild (rc);
@@ -17096,14 +17135,13 @@ int SUMA_ShowModeStr2ShowModeMenuItem(char *str)
       SUMA_S_Err("NULL str, returning view color");    
       SUMA_RETURN(SW_SurfCont_DsetViewCol);
    }
-   SUMA_TO_LOWER(str);
-   if (!strcmp(str,"xxx")) 
+   if (!strcasecmp(str,"xxx")) 
        SUMA_RETURN(SW_SurfCont_DsetViewXXX);
-   else if (!strcmp(str,"col")) 
+   else if (!strcasecmp(str,"col")) 
        SUMA_RETURN(SW_SurfCont_DsetViewCol);
-   else if (!strcmp(str,"con")) 
+   else if (!strcasecmp(str,"con")) 
        SUMA_RETURN(SW_SurfCont_DsetViewCon);
-   else if (!strcmp(str,"c&c")) 
+   else if (!strcasecmp(str,"c&c")) 
        SUMA_RETURN(SW_SurfCont_DsetViewCaC);
    else {
       SUMA_S_Errv("'%s' is not a valid show mode, returning view col", str);
@@ -17139,16 +17177,59 @@ int SUMA_NodeRadStr2NodeRadMenuItem(char *str)
       SUMA_S_Err("NULL str, returning Const");    
       SUMA_RETURN(SW_SurfCont_DsetNodeRadConst);
    }
-   SUMA_TO_LOWER(str);
-   if (!strcmp(str,"xxx")) 
+   if (!strcasecmp(str,"xxx")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeRadXXX);
-   else if (!strcmp(str,"cst") || !strcmp(str,"const")) 
+   else if (!strcasecmp(str,"cst") || !strcasecmp(str,"const")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeRadConst);
-   else if (!strcmp(str,"val")) 
+   else if (!strcasecmp(str,"val")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeRadVal);
-  else {
+   else {
       SUMA_S_Errv("'%s' is not a valid show mode, returning Const", str);
       SUMA_RETURN(SW_SurfCont_DsetNodeRadConst);
+   }
+      
+}
+
+int SUMA_Through2ThroughMenuItem(int Mode)
+{
+   static char FuncName[]={"SUMA_Through2ThroughMenuItem"};
+   
+   SUMA_ENTRY;
+   
+   if (SUMA_ABS(Mode) >= SW_N_SurfCont_DsetThrough || 
+       SUMA_ABS(Mode) <= SW_SurfCont_DsetThrough ) {
+      SUMA_S_Err("Bad mode, returning Edge");    
+      SUMA_RETURN(SW_SurfCont_DsetThroughEdge);
+   }
+   if (Mode < 0) {
+      SUMA_RETURN(SW_SurfCont_DsetThroughXXX);
+   } else {
+      SUMA_RETURN(Mode);
+   }
+}      
+
+int SUMA_ThroughStr2ThroughMenuItem(char *str) 
+{
+   static char FuncName[]={"SUMA_ThroughStr2ThroughMenuItem"};
+   
+   SUMA_ENTRY;
+   if (!str) {
+      SUMA_S_Err("NULL str, returning Edge");    
+      SUMA_RETURN(SW_SurfCont_DsetThroughEdge);
+   }
+   if (!strcasecmp(str,"xxx")) 
+       SUMA_RETURN(SW_SurfCont_DsetThroughXXX);
+   else if (!strcasecmp(str,"edg") || !strcasecmp(str,"edge")) 
+       SUMA_RETURN(SW_SurfCont_DsetThroughEdge);
+   else if (!strcasecmp(str,"col") || !strcasecmp(str,"color")) 
+       SUMA_RETURN(SW_SurfCont_DsetThroughCol);
+   else if (!strcasecmp(str,"rad") || !strcasecmp(str,"radius")) 
+       SUMA_RETURN(SW_SurfCont_DsetThroughRad);
+   else if (!strcasecmp(str,"c&r")) 
+       SUMA_RETURN(SW_SurfCont_DsetThroughCaR);
+   else {
+      SUMA_S_Errv("'%s' is not a valid show mode, returning Edge", str);
+      SUMA_RETURN(SW_SurfCont_DsetThroughEdge);
    }
       
 }
@@ -17181,24 +17262,23 @@ int SUMA_NodeColStr2NodeColMenuItem(char *str)
       SUMA_S_Err("NULL str, returning White");    
       SUMA_RETURN(SW_SurfCont_DsetNodeColWhite);
    }
-   SUMA_TO_LOWER(str);
-   if (!strcmp(str,"wht") || !strcmp(str,"white")) 
+   if (!strcasecmp(str,"wht") || !strcasecmp(str,"white")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColWhite);
-   else if (!strcmp(str,"blk") || !strcmp(str,"black")) 
+   else if (!strcasecmp(str,"blk") || !strcasecmp(str,"black")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColBlack);
-   else if (!strcmp(str,"red")) 
+   else if (!strcasecmp(str,"red")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColRed);
-   else if (!strcmp(str,"grn") || !strcmp(str,"green")) 
+   else if (!strcasecmp(str,"grn") || !strcasecmp(str,"green")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColGreen);
-   else if (!strcmp(str,"blu") || !strcmp(str,"blue")) 
+   else if (!strcasecmp(str,"blu") || !strcasecmp(str,"blue")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColBlue);
-   else if (!strcmp(str,"yel") ||!strcmp(str,"yellow")) 
+   else if (!strcasecmp(str,"yel") ||!strcasecmp(str,"yellow")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColYellow);
-   else if (!strcmp(str,"g50") || !strcmp(str,"gray50")) 
+   else if (!strcasecmp(str,"g50") || !strcasecmp(str,"gray50")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColGray50);
-   else if (!strcmp(str,"val")) 
+   else if (!strcasecmp(str,"val")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColVal);
-   else if (!strcmp(str,"grp")) 
+   else if (!strcasecmp(str,"grp")) 
        SUMA_RETURN(SW_SurfCont_DsetNodeColGrp);
    else {
       SUMA_S_Errv("'%s' is not a valid node color, returning White", str);
@@ -17547,6 +17627,76 @@ void SUMA_cb_SetDsetNodeRad(Widget widget, XtPointer client_data,
    imenu = (INT_CAST)datap->callback_data; 
    
    if (!SUMA_SetDsetNodeRad(ado, imenu, 0)) {
+      SUMA_S_Err("Failed to set view mode");
+      SUMA_RETURNe;
+   }
+      
+   
+   SUMA_RETURNe;
+}
+
+int SUMA_SetDsetThrough(SUMA_ALL_DO *ado, int imenu, int updatemenu) 
+{
+   static char FuncName[]={"SUMA_SetDsetThrough"};
+   DList *list = NULL;
+   DListElmt *Elmnt = NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+
+   SUMA_ENTRY;
+
+   /* make a call to SUMA_Engine */
+   if (!list) list = SUMA_CreateList ();
+   ED = SUMA_InitializeEngineListData (SE_SetDsetThrough);
+
+   Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_i, (void *)&imenu,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+   if (!SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)ado,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_In, Elmnt)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_RegisterEngineListCommand.\n", 
+               FuncName);
+      SUMA_RETURN(NOPE);                                     
+   }
+
+
+   if (!SUMA_Engine (&list)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Engine.\n", FuncName);
+      SUMA_RETURN(NOPE);    
+   }
+
+   if (updatemenu && 
+       (SurfCont = SUMA_ADO_Cont(ado)) &&
+       (curColPlane = SUMA_ADO_CurColPlane(ado))) {
+      SUMA_Set_Menu_Widget( SurfCont->DsetThroughMenu,
+                            curColPlane->Through);
+   }
+
+   SUMA_RETURN(YUP);
+}
+
+void SUMA_cb_SetDsetThrough(Widget widget, XtPointer client_data, 
+                           XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_cb_SetDsetThrough"};
+   SUMA_MenuCallBackData *datap=NULL;
+   SUMA_ALL_DO *ado = NULL;
+   int imenu = 0;
+   
+   SUMA_ENTRY;
+
+   
+   /* get the  object that the setting belongs to */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   ado = (SUMA_ALL_DO *)datap->ContID;
+   imenu = (INT_CAST)datap->callback_data; 
+   
+   if (!SUMA_SetDsetThrough(ado, imenu, 0)) {
       SUMA_S_Err("Failed to set view mode");
       SUMA_RETURNe;
    }
@@ -19015,14 +19165,19 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
    ScrW = WidthOfScreen (XtScreen(New));
    ScrH = HeightOfScreen (XtScreen(New));
    
-   SUMA_LH("Getting New Positions");
+   SUMA_LH("Getting New Positions: screen w%d, h%d", ScrW, ScrH);
    XtVaGetValues (New,           /* get the positions of New */
          XmNwidth, &NewW,
          XmNheight, &NewH,
          XmNx, &NewX,
          XmNy, &NewY,
          NULL);
-
+   /* For some reason, all the New parameters are 0 or close to 0 
+   when the  controller is open in the absence of surfaces. Not
+   sure why that is the case yet, but going down that route might
+   provide a clue */ 
+   SUMA_LH("Current New Position: x%d, y%d, w%d, h%d", NewX, NewY, NewW, NewH);
+   
    if (Ref) { /* get the positions of Ref */
       XtVaGetValues (Ref,
          XmNwidth, &RefW,
@@ -19059,8 +19214,8 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
     that this is a quartz problem... Will live with this for now...*/
       /* Get the root position*/
       XtTranslateCoords(Ref, RefX, RefY, &RootX, &RootY);
-      SUMA_LHv("Got Ref Positions,  %d %d, %d %d\n"
-               "    Root Positions, %d %d\n",
+      SUMA_LHv("Got Ref Positions,  x%d y%d, W%d H%d\n"
+               "    Root Positions, x%d y%d\n",
                   RefX, RefY, RefW, RefH, 
                   RootX, RootY);
       /* RefX = RootX; RefY=RootY; Does not work, at least on macs... */
@@ -19132,6 +19287,19 @@ void SUMA_PositionWindowRelative_current (  Widget New, Widget Ref,
       case SWP_TOP_LEFT:
          NewX = (Position)(RefW + Dx - SUMAg_CF->X->roffx);
          NewY = (Position)(RefY - SUMAg_CF->X->roffy);
+         break;
+      case SWP_TOP_BEST:
+         /* aim for TOP_RIGHT */
+         NewX = (Position)(RefW + RefX + Dx - SUMAg_CF->X->roffx);
+         NewY = (Position)(RefY - SUMAg_CF->X->roffy);
+         SUMA_LH("NewX  %d", NewX);
+         if (NewX >= ScrW-NewW) { /* Try TOP_LEFT side with no overlap */
+            NewX = (Position)(RefX + Dx - SUMAg_CF->X->roffx - NewW);
+         }
+         SUMA_LH("NewX now %d", NewX);
+         if (NewX < 0) NewX = MinOK;
+         if (NewY >= ScrH ) NewY = ScrH-MinOK;
+         if (NewY < 0) NewY = MinOK;
          break;
       case SWP_STEP_DOWN_RIGHT:
          NewY = RefY + 10;
@@ -22053,7 +22221,8 @@ void SUMA_CreateXformInterface(SUMA_XFORM *xf)
    
    SUMA_RETURNe;
 
-}      
+}
+   
 /*!
    \brief Supposed to suggest a good wildcard string
    \param filetype: Not used now. It should be used to 

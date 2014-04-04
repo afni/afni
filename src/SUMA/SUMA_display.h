@@ -407,6 +407,7 @@ void SUMA_cb_SetATransMode(Widget widget, XtPointer client_data,
 int SUMA_SetDsetViewMode(SUMA_ALL_DO *ado, int imenu, int update_menu) ;
 int SUMA_SetDsetFont(SUMA_ALL_DO *ado, int imenu, int updatemenu);
 int SUMA_SetDsetNodeRad(SUMA_ALL_DO *ado, int imenu, int updatemenu);
+int SUMA_SetDsetThrough(SUMA_ALL_DO *ado, int imenu, int updatemenu);
 int SUMA_SetDsetNodeCol(SUMA_ALL_DO *ado, int imenu, int updatemenu);
 void SUMA_cb_SetDsetViewMode(Widget widget, XtPointer client_data, 
                               XtPointer call_data);
@@ -415,6 +416,8 @@ void SUMA_cb_SetDsetFont(Widget widget, XtPointer client_data,
 void SUMA_cb_SetDsetNodeCol(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 void SUMA_cb_SetDsetNodeRad(Widget widget, XtPointer client_data, 
+                           XtPointer call_data);
+void SUMA_cb_SetDsetThrough(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
 void SUMA_cb_SetDsetGmatBord(Widget widget, XtPointer client_data, 
                            XtPointer call_data);
@@ -684,6 +687,8 @@ int SUMA_ShowModeStr2ShowModeMenuItem(char *str);
 int SUMA_Font2FontMenuItem(int Mode);
 int SUMA_FontStr2FontMenuItem(char *str); 
 void * SUMA_Font2GLFont(int Mode);
+int SUMA_Through2ThroughMenuItem(int Mode);
+int SUMA_ThroughStr2ThroughMenuItem(char *str); 
 int SUMA_NodeRad2NodeRadMenuItem(int Mode);
 int SUMA_NodeRadStr2NodeRadMenuItem(char *str);
 int SUMA_NodeCol2NodeColMenuItem(int Mode);

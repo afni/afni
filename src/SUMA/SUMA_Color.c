@@ -6062,6 +6062,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
       Sover->ShowMode = -SW_SurfCont_DsetViewCol;
       Sover->Font = SUMA_FontStr2FontMenuItem(SUMA_EnvVal("SUMA_Dset_Font"));
       Sover->NodeRad = SW_SurfCont_DsetNodeRadConst;
+      Sover->Through = 
+       SUMA_ThroughStr2ThroughMenuItem(SUMA_EnvVal("SUMA_Dset_NodeConnections"));
       Sover->NodeRadGain = 1.0;
       Sover->NodeCol = SW_SurfCont_DsetNodeColYellow;
       Sover->BordFrac = SW_SurfCont_DsetGmatBord0;

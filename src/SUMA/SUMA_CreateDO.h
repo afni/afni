@@ -66,7 +66,9 @@ typedef struct {
    SUMA_Boolean ShowBundles; /*!< Show bundles instead of edge if possible */
    SUMA_Boolean ShowUncon; /*!< Show graph points (nodes) even if not 
                                   connected */
-                                  
+   SUMA_Boolean IgnoreSelection; /*!< Ignore selection mode when displaying
+                                      Currently used to show all graph, even
+                                      when one node is selected */
    float *Center_G3D; /* Geometric center of all points in 3D variant*/
    float *Range_G3D;  /* Min Max of X, Y, and Z of all points in 3D variant*/
    float *Center_GMATRIX; /* Geometric center of all points in MATRIX 
