@@ -727,7 +727,8 @@ int main( int argc , char * argv[] )
                                ADN_nvals  , 1 ,
                              ADN_none ) ;
             EDIT_substitute_brick(qset,0,MRI_short,mmm) ; mmm = NULL ;
-            tross_Make_History( "3dclust" , argc , argv , dset ) ;
+            tross_Copy_History( dset , qset ) ;
+            tross_Make_History( "3dclust" , argc , argv , qset ) ;
             DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
           }
 

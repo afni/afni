@@ -39,6 +39,7 @@ static int wami_web_found = 0;
 static int wami_web_reqtype = 0;
 static char wami_url[MAX_URL];
 static int neurosynth_link = -1;
+static int linkrbrain_link = -1;
 
 /* global web browser is used here, not sure where else to put it...      */
 char *GLOBAL_browser = NULL ;   /* 30 Dec 2005, moved 22 Feb 2012 [rickr] */
@@ -1586,6 +1587,7 @@ show_neurosynth_link()
      neurosynth_link = 1;
   else
      neurosynth_link = 0;
+  return(neurosynth_link);
 }
 
 /* format a coordinates link string the Neurosynth website */
@@ -1599,6 +1601,121 @@ neurosynth_coords_link(float x, float y, float z)
    
    sprintf(neurosynthpage, "http://neurosynth.org/locations/%d_%d_%d",ix,iy,iz);
    return(neurosynthpage);
+}
+
+/* show links out to neurosynth.org */
+int
+show_linkrbrain_link()
+{
+  if(linkrbrain_link >=0)
+     return(neurosynth_link);
+     
+  if (AFNI_yesenv("AFNI_LINKRBRAIN"))
+     linkrbrain_link = 1;
+  else
+     linkrbrain_link = 0;
+  return(linkrbrain_link);
+}
+
+/* make linkrbrain xml query  - remote query */
+/* Prepare input coordinates for transfer to linkrbrain.org site.
+   the input coordinates should be RAI order */
+int
+make_linkrbrain_xml(float *coords, int ncoords, char *srcspace, char *destspace,
+    char *linkrbrain_xml, int linkr_corr_type)
+{
+   int i;
+   FILE *tempout;
+   float *fptr;
+   float xi,yi,zi,xout,yout,zout;
+   ATLAS_XFORM_LIST *xfl = NULL, *cxfl = NULL;
+
+   ENTRY("make_linkrbrain_xml");
+
+   if(ncoords<=0)
+     RETURN(-1);
+
+   tempout = fopen(linkrbrain_xml, "w");
+   if(!tempout) RETURN(-1);
+
+   if(strcmp(srcspace, destspace)==0)
+      cxfl = NULL;   /* data already in destination space for linkrbrain (MNI) */
+   else {
+      xfl = report_xform_chain(srcspace, destspace, 0);
+      cxfl = calc_xform_list(xfl);
+      if(!cxfl){
+         WARNING_message("Could not compute xform between spaces for linkrbrain\n");
+         free(xfl);
+         RETURN(-1);
+      }
+   }
+
+   fprintf(tempout, "xml=<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+   if(linkr_corr_type == 0)
+      fprintf(tempout, 
+      "<query title=\"Query importation test\" correlate-with=\"tasks\">\n");
+   else
+      fprintf(tempout, 
+      "<query title=\"Query importation test\" correlate-with=\"genes\">\n");
+
+   fprintf(tempout, "  <group title=\"Group test\">\n");
+   fprintf(tempout, "	 <pointset title=\"Pointset test\">\n");
+
+   /* convert coordinates to LPI */
+   for(i=0;i<ncoords;i++){
+         fptr = coords+(i*3);
+         if(cxfl) {
+            xi = *fptr; yi = *fptr+1; zi = *fptr+2;
+            apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
+         }
+         else {
+            xi = *fptr; yi = *fptr+1; zi = *fptr+2;            
+            xout = *fptr; yout = *fptr+1; zout = *fptr+2;
+         }
+ 
+         fprintf(tempout, "<point x=\"%.1f\" y=\"%.1f\" z=\"%.1f\" />\n",
+                -xout, -yout, zout);
+/*printf("%d: %f %f %f --> %f %f %f\n", i, xi, yi, zi, xout, yout, zout); */
+   }
+   fprintf(tempout,"     </pointset>\n");
+   fprintf(tempout,"   </group>\n");
+   fprintf(tempout,"</query>\n");
+ 
+   fclose(tempout);
+   free(cxfl);
+   free(xfl);
+
+/* xml=<?xml version="1.0" encoding="UTF-8"?>
+<query title="Query importation test" correlate-with="tasks">
+	<group title="Group test">
+		<pointset title="Pointset test">
+			<point x="-11.0" y="+64.2" z="+25.9" />
+			<point x="+29.5" y="+77.0" z="+16.1" />
+			<point x="+52.3" y="+7.5" z="+10.1" />
+			<point x="-3.5" y="-77.8" z="+11.7" />
+			<point x="-60.0" y="-3.4" z="+9.2" />
+			<point x="-32.6" y="-47.8" z="+62.2" />
+		</pointset>
+	</group>
+</query>
+ */
+   RETURN(0);
+}
+
+/* send linkrbrain xml query  - remote query */
+/* redirect output to results file */ 
+int
+send_linkrbrain_xml(char *linkrbrain_xml, char *linkrbrain_results)
+{
+   char cmd[1024];
+
+   sprintf(cmd, 
+     "curl -y 100 --retry 10 --retry-delay 1 --connect-timeout 5 -m 10"
+     " --retry-max-time 25 -d @%s http://api.linkrbrain.org/ > %s",
+           linkrbrain_xml, linkrbrain_results);
+/* --keepalive-time seconds --keepalive */
+   return(system(cmd));
+
 }
 
 int find_coords_in_space(ATLAS_COORD *acl, int N_acl, char *space_name) 
@@ -9162,7 +9279,7 @@ elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_ty
 
       /* open browser*/
       case(WAMI_WEB_BROWSER):
-         if ((sss = whereami_XML_get(page, "bn_uri"))) {
+         if ((sss = whereami_XML_get(page, "bn_uri",NULL))) {
             if(wami_verb())
                fprintf(stdout, "open %s\n", sss);
             whereami_browser(sss);
@@ -9173,7 +9290,7 @@ elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_ty
       /* print structure only at xyz */
       default:
       case(WAMI_WEB_STRUCT):
-         if ((sss = whereami_XML_get(page, "structure_name"))) {
+         if ((sss = whereami_XML_get(page, "structure_name", NULL))) {
             if(wami_verb())
                fprintf(stdout, "BrainNavigator Structure: %s\n", sss);
             /* flag string for no ROI there */
@@ -9188,7 +9305,7 @@ elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_ty
             }
 
             /* update url with string in XML code - even if bad location */
-            temppage = whereami_XML_get(page,"bn_uri");
+            temppage = whereami_XML_get(page,"bn_uri", NULL);
             set_wami_webpage(temppage);
             free(temppage);
          }
@@ -9285,12 +9402,21 @@ wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
    }
 #endif /* CURL illustration */
 
-char * whereami_XML_get(char *data, char *name) {
+char * whereami_XML_get(char *data, char *name, char **next) {
    char n0[512], n1[512], *s0, *s1, *sout=NULL;
+
+   *next = data;
+
    if (strlen(name) > 500) return(NULL);
    snprintf(n0,510,"<%s>", name);
    snprintf(n1,510,"</%s>", name);
-   if (!(s0 = strstr(data, n0))) return(NULL);
+   if (!(s0 = strstr(data, n0))) {
+      /* no XML field with closing '>', look for "<field " with space instead */ 
+      snprintf(n0,510,"<%s ", name);
+      if (!(s0 = strstr(data, n0))) {
+         return(NULL);
+      }
+   }
    if (!(s1 = strstr(s0, n1))) return(NULL);
    s0 = s0+strlen(n0);
    if (s1 > s0) {
@@ -9298,8 +9424,120 @@ char * whereami_XML_get(char *data, char *name) {
       memcpy(sout,s0,sizeof(char)*(s1-s0));
       sout[s1-s0]='\0';
    }
+
+   /* advance to next entry */
+/*   if(strlen(data)>(s1-s0+1))*/
+      *next = s1+1;
+/*   else
+      next = NULL;*/
    return(sout);
 }
+
+/* find first sub-string that starts and ends in quotes and
+   return copy of the string between the quotes */
+char * search_quotes(char *in_str)
+{
+   char qt ='\"';
+   char *s0,*s1, *sout=NULL;
+
+   if (!(s0 = strchr(in_str, qt))) {
+      /* no starting quote */ 
+         return(NULL);
+   }
+   s0++;
+
+   if (!(s1 = strchr(s0, qt))){
+      return(NULL);
+   }
+   sout = (char *)calloc(s1-s0+1, sizeof(char));
+   memcpy(sout,s0,sizeof(char)*(s1-s0));
+   sout[s1-s0]='\0';
+   return(sout);
+}
+
+/* print columns of preset, correlation values from linkrbrain results*/
+int linkrbrain_XML_simple_report(char *xml_results_file,
+    int linkr_corr_type)
+{
+   FILE *xml_file;
+   char *task_str, tempbuffer[2048];
+   char *preset, *corr_str_ptr, *tempstr = NULL, *next = NULL;
+   float corr;
+   int len, found_correlation, temp;
+   char tasktype_str[] = "Task type";
+   char genetype_str[] = "Gene";
+   char corr_str[] = "Correlation";
+   int found_atleast_one = 0;
+
+   ENTRY("linkrbrain_XML_simple_report");
+   xml_file = fopen(xml_results_file, "r");
+   if(!xml_file){
+      printf("No response from linkrbrain.org\n");
+      RETURN(1);
+   }
+   /* try to read the first 2048 bytes from the XML file */
+   len = fread(tempbuffer,1,2048,xml_file);
+   if(len<=0) {
+      printf("Response from linkrbrain.org is zero length\n");
+      RETURN(1);   /* take what we can get */
+   }
+   tempstr = tempbuffer;
+   if(linkr_corr_type)
+      printf("%-25s %-7s\n", genetype_str, corr_str);
+   else
+      printf("%-25s %-7s\n", tasktype_str, corr_str);
+   printf("--------------------------------------\n");
+
+   found_correlation = 1;
+/* find "correlation" fields */
+   while(found_correlation) {
+      found_correlation = 0;
+      if(tempstr)
+         corr_str_ptr = whereami_XML_get(tempstr, "correlation", &next);
+      else
+         corr_str_ptr = NULL;
+      if(corr_str_ptr) {
+          preset = strstr(corr_str_ptr, "preset=");
+          if(preset) {
+             preset += strlen("preset=");
+             task_str = search_quotes(preset);
+             preset = strstr(preset, "overall score=");
+             if(task_str && preset) {
+                preset += 1+ strlen("overall score=");
+                temp = sscanf(preset,"%f", &corr);
+
+/*                corr = strtod(preset, NULL); */
+                if(temp) {
+                     printf("%-25s  %5.5f\n", task_str, corr);
+                   if((corr>0.0) &&  (corr<=1.0)) {
+                      found_atleast_one = 1;
+                      found_correlation = 1;
+                   }
+                }
+                free(task_str);
+             }
+          }
+          tempstr = next;  /* advance buffer past current corr.value */
+          free(corr_str_ptr); 
+      }
+   }
+   fclose(xml_file);
+
+   if(found_atleast_one==0)
+      printf("Didn't find any matches in linkrbrain.org's databases\n");
+   printf("\nFor more information, please visit linkrbrain.org\n");
+
+   RETURN(0);
+}
+
+/* get the correlation group "preset" and correlation value 
+   from the linkrbrain text */
+char *linkrbrain_XML_get(char *data, FILE *fp, int offset)
+{
+
+   return("linkrbrain_corr");
+}
+
 
 int whereami_browser(char *url)
 {
@@ -9468,3 +9706,59 @@ float get_wami_minprob()
       wami_min_prob = TINY_NUMBER;
    return(wami_min_prob);
 }
+
+int
+wami_xform_coords_print(float *coords, int ncoords,
+   char *srcspace, char *destspace, char *outfile)
+{
+   int i;
+   FILE *tempout;
+   float *fptr;
+   float xi,yi,zi,xout,yout,zout;
+   ATLAS_XFORM_LIST *xfl = NULL, *cxfl = NULL;
+
+   ENTRY("wami_xform_coords_print");
+
+   if(ncoords<=0)
+     RETURN(-1);
+
+   if(outfile!=NULL) {   /* null output, print to stdout */
+      tempout = fopen(outfile, "w");
+      if(!tempout) RETURN(-1);
+   }
+   else tempout = stdout;
+
+   if(strcmp(srcspace, destspace)==0)
+      cxfl = NULL;   /* data already in destination space*/
+   else {
+      xfl = report_xform_chain(srcspace, destspace, 0);
+      cxfl = calc_xform_list(xfl);
+      if(!cxfl){
+         WARNING_message("Could not compute xform between spaces\n");
+         free(xfl);
+         RETURN(-1);
+      }
+   }
+
+   /* convert coordinates to LPI */
+   for(i=0;i<ncoords;i++){
+         fptr = coords+(i*3);
+         if(cxfl) {
+            xi = *fptr++; yi = *fptr++; zi = *fptr;
+            apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
+         }
+         else {
+            xi = *fptr++; yi = *fptr++; zi = *fptr;            
+            xout = xi; yout = yi; zout = zi;
+         }
+ 
+         fprintf(tempout, "%.3f %.3f %.3f\n", xout, yout, zout);
+
+   }
+ 
+   fclose(tempout);
+   free(cxfl);
+   free(xfl);
+   RETURN(0);
+}
+

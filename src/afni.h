@@ -447,7 +447,8 @@ typedef struct {
   Widget clust3d_pb, savetable_pb, index_lab, prefix_tf, done_pb ;
   Widget savemask_pb ;      /* 01 May 2008 */
   Widget whermask_pb ;      /* 04 Aug 2010 */
-
+  Widget linkrbrain_pb;     /* 21 Jan 2014 */
+  MCW_arrowval *linkrbrain_av;     /* 31 Mar 2014 */
   Widget dataset_pb ;       /* second row of controls */
   MCW_arrowval *from_av, *to_av, *aver_av ;
 
