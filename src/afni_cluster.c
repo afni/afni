@@ -6,6 +6,8 @@ static void AFNI_cluster_widgize( Three_D_View *im3d , int force ) ;
 static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl ) ;
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
 static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts ) ;
+static char * AFNI_cluster_write_coord_table(Three_D_View *im3d);
+static void AFNI_linkrbrain_av_CB( MCW_arrowval *av , XtPointer cd );
 
 #undef  SET_INDEX_LAB
 #define SET_INDEX_LAB(iq) \
@@ -393,9 +395,9 @@ ENTRY("AFNI_clus_dsetlabel") ;
 static void AFNI_clus_make_widgets( Three_D_View *im3d, int num )
 {
    AFNI_clu_widgets *cwid ;
-   Widget ww , rc ;
+   Widget rc ;
    XmString xstr ;
-   char str[32] , *eee ;
+   char str[32] ;
    int ii ;
    Widget shtop , swtop=NULL ;
 
@@ -555,6 +557,46 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_set_bbox( cwid->usemask_bbox , !im3d->vednomask ) ;
      SENSITIZE(cwid->usemask_bbox->wrowcol,(im3d->vwid->func->clu_mask!=NULL)) ;
    }
+
+   VLINE(rc) ;
+   wherprog = THD_find_executable("whereami") ;
+   if( show_linkrbrain_link() && wherprog != NULL ){
+     int  showlinkr;
+     xstr = XmStringCreateLtoR( "LinkrBrain" , XmFONTLIST_DEFAULT_TAG ) ;
+     cwid->linkrbrain_pb = XtVaCreateManagedWidget(
+             "menu" , xmPushButtonWidgetClass , rc ,
+              XmNlabelString , xstr ,
+              XmNtraversalOn , True  ,
+           NULL ) ;
+     XmStringFree(xstr) ;
+     XtAddCallback( cwid->linkrbrain_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+     MCW_register_hint( cwid->linkrbrain_pb , 
+                         "Write cluster table, then 'whereami -linkrbrain'") ;
+     MCW_register_help( cwid->linkrbrain_pb ,
+                         "Query linkrbrain.org website for\n"
+                         "correlations of cluster coordinates\n"
+                         "with known tasks or genes"
+                      ) ;
+     showlinkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) && show_linkrbrain_link());
+     SENSITIZE(cwid->linkrbrain_pb, (showlinkr) ) ;
+
+       { static char *clab[2] = { "Tasks" , "Genes" } ;
+         cwid->linkrbrain_av = new_MCW_optmenu( rc , "type" , 0,1,0,0 ,
+                            AFNI_linkrbrain_av_CB,im3d , MCW_av_substring_CB,clab ) ;
+         MCW_reghint_children( cwid->linkrbrain_av->wrowcol , 
+                                "Correlate coordinates with tasks or genes" ) ;
+         MCW_reghelp_children( cwid->linkrbrain_av->wrowcol ,
+                                "Choose whether to show the correlation or\n"
+                                "of cluster coordinates with either tasks or\n"
+                                "genes from the linkrbrain.org database.\n"
+                             ) ;
+         AV_SENSITIZE(cwid->linkrbrain_av, (showlinkr));
+       }
+   } else {
+/* WARNING_message("No whereami program in Unix path ==> no linkrbrain button in Clusterize!") ;*/
+     cwid->linkrbrain_pb = cwid->savemask_pb ;
+   }
+
 
    XtManageChild(rc) ;  /* finished with row #0 setup */
 
@@ -1307,9 +1349,15 @@ ENTRY("AFNI_clus_update_widgets") ;
      cwid->receive_on = 1 ;
    }
 
-   if( do_wami ) SENSITIZE( cwid->whermask_pb ,                /* 04 Aug 2010 */
+   if( do_wami ) { 
+       Boolean show_linkr;
+       SENSITIZE( cwid->whermask_pb ,                /* 04 Aug 2010 */
                             (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
-
+       show_linkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) && 
+                             show_linkrbrain_link() );
+       SENSITIZE( cwid->linkrbrain_pb , show_linkr);         /* 31 Mar 2014 */
+       AV_SENSITIZE( cwid->linkrbrain_av , show_linkr);       /* 31 Mar 2014 */
+   }
    EXRETURN ;
 }
 
@@ -1374,7 +1422,7 @@ static void AFNI_clus_finalize_scat1D_CB( Widget w, XtPointer cd, MCW_choose_cbs
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
    AFNI_clu_widgets *cwid ;
-   MRI_IMAGE *tim ; int ival ;
+   int ival ;
 
 ENTRY("AFNI_clus_finalize_scat1D_CB") ;
    if( !IM3D_OPEN(im3d) || cbs == NULL ){ POPDOWN_timeseries_chooser; EXRETURN; }
@@ -1458,50 +1506,13 @@ ENTRY("AFNI_clus_action_CB") ;
    /*--------- SaveTabl button ---------*/
 
    if( w == cwid->savetable_pb ){
-     char fnam[128+THD_MAX_NAME] , *ppp ; FILE *fp ; int ff ;
-     float px,py,pz , mx,my,mz , xx,yy,zz ;
+     char *temp;
 
      nclu = im3d->vwid->func->clu_num ;
      cld  = im3d->vwid->func->clu_det ;
      if( nclu == 0 || cld == NULL ) EXRETURN ;
-
-     ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
-     if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
-     if( strcmp(ppp,"-") != 0 ){
-       char *dnam = DSET_DIRNAME(im3d->fim_now) ;
-       sprintf(fnam,"%s%s_table.1D",dnam,ppp) ;
-       ff = THD_is_file(fnam) ;
-       fp = fopen(fnam,"w") ;
-     } else {
-       fp = stdout ; ff = 0 ;
-     }
-     if( fp == NULL ){
-       ERROR_message("Can't open file %s for writing",fnam) ;
-     } else {
-       ppp = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
-       if( ppp != NULL )
-         fprintf(fp,"# AFNI interactive cluster table\n# %s\n" , ppp ) ;
-       fprintf(fp, "#Coordinate order = %s\n"
-                   "#Voxels  CM x   CM y   CM z  Peak x Peak y Peak z\n"
-                   "#------ ------ ------ ------ ------ ------ ------\n" ,
-                  (GLOBAL_library.cord.xxsign < 0) ? "LPI" : "RAI" ) ;
-       for( ii=0 ; ii < nclu ; ii++ ){
-         xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk;
-         MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
-         xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm;
-         MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , mx,my,mz ) ;
-         px *= GLOBAL_library.cord.xxsign ; mx *= GLOBAL_library.cord.xxsign ;
-         py *= GLOBAL_library.cord.yysign ; my *= GLOBAL_library.cord.yysign ;
-         pz *= GLOBAL_library.cord.zzsign ; mz *= GLOBAL_library.cord.zzsign ;
-         fprintf(fp,"%7d %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f\n" ,
-                 cld[ii].nvox , mx,my,mz , px,py,pz ) ;
-       }
-       if( fp != stdout ){
-         fclose(fp) ;
-         if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
-         else     INFO_message   ("Wrote file %s"     ,fnam) ;
-       }
-     }
+     temp = AFNI_cluster_write_coord_table(im3d);
+     free(temp);
      EXRETURN ;
    }
 
@@ -1649,7 +1660,7 @@ ENTRY("AFNI_clus_action_CB") ;
          case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
        }
        MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
-       if( 666 == (int)cbs ) AFNI_creepto_dicom( im3d , px,py,pz ) ;
+       if( (int) 666 == (int)cbs ) AFNI_creepto_dicom( im3d , px,py,pz ) ;
        else                  AFNI_jumpto_dicom ( im3d , px,py,pz ) ;
        EXRETURN ;
 
@@ -2008,11 +2019,136 @@ ENTRY("AFNI_clus_action_CB") ;
 
      } /* end of flash */
 
+     /* linkrbrain.org website link ****************************************/
+     if(w == cwid->linkrbrain_pb) {  /* 11 Feb 2014 */
+     char *fnam;
+     MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
+     int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
+     int jtop , coord_colx, coord_coly, coord_colz;
+     char *wout , ct[64] ; FILE *fp ; int inv ;
+
+     nclu = im3d->vwid->func->clu_num ;
+     cld  = im3d->vwid->func->clu_det ;
+
+     if( nclu == 0 || cld == NULL || do_linkrbrain == 0) EXRETURN ;
+
+     /* write out the coordinates to file first as in SaveTabl function*/
+     fnam = AFNI_cluster_write_coord_table(im3d);
+     if(fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
+#undef  WSIZ
+#define WSIZ 4096
+printf("wrote cluster table to %s\n", fnam);
+       SHOW_AFNI_PAUSE ;
+       MCW_invert_widget(cwid->linkrbrain_pb) ; inv = 1 ;
+       wout = (char *)malloc(sizeof(char)*WSIZ) ;
+       if(cwid->coord_mode == 1){  /* cmass columns */
+           coord_colx = 4; coord_coly = 5; coord_colz = 6;
+       }
+       else{   /* peak columns */
+           coord_colx = 1; coord_coly = 2; coord_colz = 3;
+       }
+
+       if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
+          sprintf(wout,"%s -linkrbrain -coord_file %s\'\[%d,%d,%d]\' -space %s",
+             wherprog,fnam, coord_colx, coord_coly, coord_colz, 
+             THD_get_space(im3d->fim_now)) ;
+       else   /* gene correlation */
+          sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s\'\[%d,%d,%d]\' -space %s",
+             wherprog,fnam, coord_colx, coord_coly, coord_colz,
+             THD_get_space(im3d->fim_now)) ;
+
+       if( jtop >= clar->num_clu ) strcpy (ct," ") ;
+       else                        sprintf(ct," [first %d clusters]",jtop) ;
+       INFO_message("Running WamI linkrbrain command:%s",ct) ;
+       ININFO_message("%s",wout) ;
+printf("opening pipe to run and redirect output\n");
+       fp = popen( wout , "r" ) ;
+       if( fp == NULL ){
+         (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
+                                 MCW_USER_KILL) ;
+       } else {
+         wout[0] = '\0' ;
+         while( afni_fgets(wout+strlen(wout),WSIZ-2,fp) != NULL ){
+           wout = (char *)realloc(wout,sizeof(char)*(strlen(wout)+WSIZ)) ;
+           MCW_invert_widget(cwid->linkrbrain_pb) ; inv = !inv ;
+         }
+         (void)pclose(fp) ;
+         MCW_textwin_setbig(0) ;
+         (void)new_MCW_textwin(w,wout,TEXT_READONLY) ;
+
+       free(fnam);
+       free(wout) ;
+       if( inv ) MCW_invert_widget(cwid->linkrbrain_pb) ;
+       SHOW_AFNI_READY ;
+     } /* end of linkrbrain */
+
+     EXRETURN ;
+   }
+
    } /*---------- end of loop over button rows ----------*/
 
    /* this should never be reached, unless the code is haunted */
 
    fprintf(stderr,"** Unknown button? **\n\a") ; EXRETURN ;
+}
+
+/* write coordinate table to file - used by itself and with linkrbrain output */
+static char * AFNI_cluster_write_coord_table(Three_D_View *im3d)
+{
+     char fnam[128+THD_MAX_NAME] , *ppp ; FILE *fp ; int ff ;
+     float px,py,pz , mx,my,mz , xx,yy,zz ;
+     int nclu , ii ;
+     mri_cluster_detail *cld ;
+     AFNI_clu_widgets *cwid ;
+     char *coord_table;
+
+     cwid = im3d->vwid->func->cwid ;
+     nclu = im3d->vwid->func->clu_num ;
+     cld  = im3d->vwid->func->clu_det ;
+
+     if( nclu == 0 || cld == NULL ) RETURN(NULL) ;
+
+     ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
+     if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
+     if( strcmp(ppp,"-") != 0 ){
+       char *dnam = DSET_DIRNAME(im3d->fim_now) ;
+       sprintf(fnam,"%s%s_table.1D",dnam,ppp) ;
+       ff = THD_is_file(fnam) ;
+       fp = fopen(fnam,"w") ;
+     } else {
+       fp = stdout ; ff = 0 ;
+     }
+     if( fp == NULL ){
+       ERROR_message("Can't open file %s for writing",fnam) ;
+     } else {
+       ppp = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
+       if( ppp != NULL )
+         fprintf(fp,"# AFNI interactive cluster table\n# %s\n" , ppp ) ;
+       fprintf(fp, "#Coordinate order = %s\n"
+                   "#Voxels  CM x   CM y   CM z  Peak x Peak y Peak z\n"
+                   "#------ ------ ------ ------ ------ ------ ------\n" ,
+                  (GLOBAL_library.cord.xxsign < 0) ? "LPI" : "RAI" ) ;
+       for( ii=0 ; ii < nclu ; ii++ ){
+         xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk;
+         MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
+         xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm;
+         MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , mx,my,mz ) ;
+         px *= GLOBAL_library.cord.xxsign ; mx *= GLOBAL_library.cord.xxsign ;
+         py *= GLOBAL_library.cord.yysign ; my *= GLOBAL_library.cord.yysign ;
+         pz *= GLOBAL_library.cord.zzsign ; mz *= GLOBAL_library.cord.zzsign ;
+         fprintf(fp,"%7d %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f\n" ,
+                 cld[ii].nvox , mx,my,mz , px,py,pz ) ;
+       }
+       if( fp != stdout ){
+         fclose(fp) ;
+         if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
+         else     INFO_message   ("Wrote file %s"     ,fnam) ;
+         coord_table = NI_strdup(fnam); 
+         RETURN(coord_table);
+       }
+     }
+
+   RETURN(NULL);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2042,6 +2178,36 @@ ENTRY("AFNI_cluster_timeseries") ;
    free((void *)ind) ;
    RETURN(imar) ;
 }
+
+
+/*---------------------------------------------------------------------------*/
+/* Callback for arrowvals on the linkrbrain correlation type (tasks/genes) report panel
+   just dummy function for now */
+static void AFNI_linkrbrain_av_CB( MCW_arrowval *av , XtPointer cd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   AFNI_clu_widgets *cwid ;
+
+ENTRY("AFNI_linkrbrain_av_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   EXRETURN;
+
+#if 0
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+
+   if( av == cwid->linkrbrain_av ){
+     cwid->coord_mode = av->ival ;
+     AFNI_clus_update_widgets(im3d) ; */ /* redisplay coordinates */
+     EXRETURN ;
+   }
+
+   fprintf(stderr,"** Unknown button? **\n") ; EXRETURN ;
+#endif
+
+}
+
 
 /*---------------------------------------------------------------------------*/
 /* Callback for arrowvals on the cluster report panel. */
