@@ -468,8 +468,6 @@ ENTRY("THD_open_nifti") ;
    /*-- make an AFNI dataset! --*/
 
    dset = EDIT_empty_copy(NULL) ;
-   /* copy transformation matrix to dataset structure */
-   dset->daxes->ijk_to_dicom_real = ijk_to_dicom44;
 
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
@@ -505,6 +503,10 @@ ENTRY("THD_open_nifti") ;
                       ADN_type        , (statcode != 0) ? HEAD_FUNC_TYPE
                                                         : HEAD_ANAT_TYPE ,
                     ADN_none ) ;
+
+   /* copy transformation matrix to dataset structure */
+   /* moved after setting grid     4 Apr 2014 [rickr,drg] */
+   dset->daxes->ijk_to_dicom_real = ijk_to_dicom44;
 
    /* not a time dependent dataset */
 
