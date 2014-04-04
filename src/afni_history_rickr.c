@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4,  Apr, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "fixed reading NIFTI obliquity w/dglen (lost Mar 22)",
+   "Thanks to P Kundu for noting the problem."
+ } ,
+
  { 31,  Mar, 2014, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -anat_unif_GM (def=yes); improved message for bad ricor input",
    NULL
