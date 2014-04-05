@@ -43,6 +43,16 @@ NEWMASK:
    endif
    cd $idir
 
+STMASK:
+   cd $odir
+   if ( $STmask != 0 && ! -f T1PD.ns.dmsk+orig.HEAD ) then
+      3dcalc -a T1+orig -b PD+orig -expr "sqrt(a*b)"  \
+             -prefix T1PD
+      3dSkullStrip -input T1PD+orig -prefix T1PD.ns
+      3dAutomask -prefix T1PD.ns.msk -dilate 3 T1PD.ns+orig
+      3dAutomask -prefix T1PD.msk -dilate 3 T1PD+orig
+   endif
+   
 STATIT:
    cd $odir
    set LSmopt = ''
@@ -62,7 +72,6 @@ STATIT:
       
 SCALEIT:
    cd $odir
-   set med = `3dBrickStat -non-zero -median -mask umask+orig T1+orig.`
    if ("$menh" == 0.0) then
       if ( $imask != '') then
          set mm = umask+orig.HEAD
@@ -74,6 +83,7 @@ SCALEIT:
       set mm = hmask+orig.HEAD
       set meq = 'step(c)'
    endif
+   set med = `3dBrickStat -non-zero -median -mask $mm T1+orig.`
    if ($unmasked_output == 1) set meq = '1'
    
    if ( ! -f T1.uni+orig.HEAD) then
@@ -171,6 +181,7 @@ set overW = ''
 set do_align = 0
 set PDmask=''
 set rad = 25
+set STmask = 0 #Not ready for primetime
 set divuni = 0 #Not ready for primetime
 
 if ("$1" == '') goto HELP
@@ -188,6 +199,16 @@ while ($cnt <= $Narg)
  
    if ($donext && ("$argv[$cnt]" == "-align")) then
       set do_align = 1
+      set donext = 0   
+   endif
+
+   if ($donext && ("$argv[$cnt]" == "-divuni")) then
+      set divuni = 1
+      set donext = 0   
+   endif
+
+   if ($donext && ("$argv[$cnt]" == "-STmask")) then
+      set STmask = 1 #Mask tested on Sam Torrsi's data
       set donext = 0   
    endif
 
