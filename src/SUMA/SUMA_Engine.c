@@ -2011,7 +2011,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Warn("No mask SO");
                   break;
                }
-               SUMA_LH("Sending mask %s's surface, SO = %p...", 
+               SUMA_S_Note("Sending mask %s's surface, SO = %p...", 
                            ADO_LABEL(ado), SO);
                if (!SO->SentToAfni) {
                   SUMA_LH("Sending the whole thing, SO = %p", SO);
@@ -2057,6 +2057,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_RGB_to_hex(mdo->init_col, NULL));
                            NI_set_attribute(nel,
                               "afni_surface_controls_plusminus","none");
+                           NI_SET_INT(nel,
+                                 "afni_surface_controls_linewidth", 10 );
 
                      /* send surface nel */
                      if (LocalHead) 
@@ -2130,7 +2132,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                }
                
-               if (EngineData->fv3) {
+               if (1) {
                   SUMA_LH("Sending new center, SO = %p", SO);
                   nel = NI_new_data_element("SUMA_mask", 0);
                   NI_set_attribute(nel, "idcode", ADO_ID(ado));
