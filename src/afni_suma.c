@@ -9,6 +9,56 @@
 #define SUMA_EXTEND_FAC 1.05
 
 /*------------------------------------------------------------------*/
+/*! Create an empty surface mask description.
+--------------------------------------------------------------------*/
+
+SUMA_mask * SUMA_create_empty_mask(void)
+{
+   SUMA_mask *msk ;
+
+ENTRY("SUMA_create_empty_mask") ;
+
+   msk       = (SUMA_mask *)calloc(1,sizeof(SUMA_mask)) ;
+   msk->type = SUMA_MASK_TYPE ;
+
+   msk->idcode[0]   = '\0' ;
+   msk->num_surf    = 0 ;
+   msk->idcode_surf = NULL ;
+   msk->surf        = NULL ;
+   LOAD_FVEC3( msk->init_cen , 0,0,0 ) ;
+   LOAD_FVEC3( msk->show_cen , 0,0,0 ) ;
+
+   RETURN(msk) ;
+}
+
+/*------------------------------------------------------------------*/
+
+void SUMA_destroy_mask( SUMA_mask *msk , int kill_surfaces_too )
+{
+   int ss ;
+
+ENTRY("SUMA_destroy_mask") ;
+
+   if( msk == NULL ) EXRETURN ;
+
+   if( msk->idcode_surf != NULL ){
+     for( ss=0 ; ss < msk->num_surf ; ss++ )
+       if( msk->idcode_surf[ss] != NULL ) free(msk->idcode_surf[ss]) ;
+     free(msk->idcode_surf) ;
+   }
+
+   if( msk->surf != NULL ){
+     if( kill_surfaces_too ){
+       for( ss=0 ; ss < msk->num_surf ; ss++ )
+         SUMA_destroy_surface(msk->surf[ss]) ;
+     }
+     free(msk->surf) ;
+   }
+
+   free(msk) ; EXRETURN ;
+}
+
+/*------------------------------------------------------------------*/
 /*! Create an empty surface description.
 --------------------------------------------------------------------*/
 
@@ -27,9 +77,8 @@ ENTRY("SUMA_create_empty_surface") ;
    ag->ijk  = (SUMA_ijk *)  malloc(sizeof(SUMA_ijk) ) ; /* 1 of each */
    ag->norm = NULL ;                                  ; /* none of this */
 
-   if( ag->ixyz == NULL || ag->ijk == NULL ){
-      fprintf(stderr,"SUMA_create_empty_surface: can't malloc!\n"); EXIT(1);
-   }
+   if( ag->ixyz == NULL || ag->ijk == NULL )
+     ERROR_exit("SUMA_create_empty_surface: can't malloc") ;
 
    ag->idcode[0] = ag->idcode_dset[0] = ag->idcode_ldp[0] =
       ag->label[0] = ag->label_ldp[0] = '\0' ;
@@ -42,6 +91,13 @@ ENTRY("SUMA_create_empty_surface") ;
 
    ag->vv = NULL ;  /* 16 Jun 2003 */
    ag->vn = NULL ;  /* 22 Jan 2004 */
+
+   ag->mask_code             = 0    ;  /* mask stuff [04 Apr 2014] */
+   ag->mask_parent_idcode[0] = '\0' ;
+   ag->line_color[0]         = '\0' ;
+   ag->box_color[0]          = '\0' ;
+   ag->mask                  = NULL ;
+   ag->parent                = NULL ;
 
    RETURN( ag ) ;
 }
@@ -157,6 +213,34 @@ ENTRY("SUMA_add_norms_xyz") ;
 void SUMA_add_node_ixyz( SUMA_surface *ag , int i,float x,float y,float z )
 {
    SUMA_add_nodes_ixyz( ag , 1 , &i,&x,&y,&z ) ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Erase all triangles from a surface.
+--------------------------------------------------------------------*/
+
+void SUMA_clear_triangles( SUMA_surface *ag )
+{
+
+ENTRY("SUMA_clear_triangles") ;
+
+   if( ag == NULL || ag->num_ijk <= 0 ) EXRETURN ;
+
+   free(ag->ijk) ; ag->ijk = NULL ; ag->num_ijk = 0 ;
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------*/
+
+void SUMA_clear_normals( SUMA_surface *ag )
+{
+
+ENTRY("SUMA_clear_normals") ;
+
+   if( ag == NULL || ag->norm == NULL ) EXRETURN ;
+
+   free(ag->norm) ; ag->norm = NULL ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------*/
