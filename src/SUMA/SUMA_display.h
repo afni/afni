@@ -23,6 +23,12 @@
 #define SUMA_WITHDRAW   2
 #define SUMA_UNREALIZE  3
 
+/* Flags to move sub-bricks up or down using 
+   same functions to set a particular index 
+   Values must be < 0 and != -1 */
+#define SUMA_FORWARD_ONE_SUBBRICK    -444
+#define SUMA_BACK_ONE_SUBBRICK       -555 
+
 #define SUMA_XmArrowFieldMenu -123
 
 #define SUMA_CLOSE_MODE       SUMA_WITHDRAW
