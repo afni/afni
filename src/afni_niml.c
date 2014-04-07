@@ -1561,6 +1561,20 @@ ENTRY("process_NIML_SUMA_mask") ;
 
    msk = find_SUMA_mask(idc) ;
    if( msk != NULL ){           /*--- pre-existing mask ---*/
+     char *aaa ; int ss ;
+     aaa = NI_get_attribute( nel , "afni_surface_controls_lines" ) ;
+     if( aaa != NULL ){
+INFO_message("SUMA_mask: line_color = %s",aaa) ;
+       for( ss=0 ; ss < msk->num_surf ; ss++ )
+         MCW_strncpy( msk->surf[ss]->line_color , aaa , 32 ) ;
+     }
+     aaa = NI_get_attribute( nel , "afni_surface_controls_linewidth" ) ;
+     if( aaa != NULL ){
+       int ww = (int)strtod(aaa,NULL) ;
+       if( ww < 0 ) ww = 0 ; else if( ww > 22 ) ww = 22 ;
+INFO_message("SUMA_mask: line_width = %d",ww) ;
+       for( ss=0 ; ss < msk->num_surf ; ss++ ) msk->surf[ss]->line_width = ww ;
+     }
      cent = NI_get_attribute( nel , "new_cen" ) ;
      if( cent != NULL ){
         sscanf(cent,"%f%f%f",&xcen,&ycen,&zcen) ;
@@ -1611,7 +1625,7 @@ static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
    int nss = GLOBAL_library.sslist->num_sess ;
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;
-   char *scon_tog , *scon_box , *scon_lin , *scon_plm , *vname;
+   char *scon_tog, *scon_box, *scon_lin, *scon_plm, *scon_wid, *vname;
 
    SUMA_mask *msk=NULL ;                /* added 04 Apr 2014 */
    char *parent_idcode , *parent_type ;
@@ -1820,6 +1834,7 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    scon_box = NI_get_attribute( nel , "afni_surface_controls_nodes"     ) ;
    scon_lin = NI_get_attribute( nel , "afni_surface_controls_lines"     ) ;
+   scon_wid = NI_get_attribute( nel , "afni_surface_controls_linewidth" ) ;
 #if 0
    scon_tog = NI_get_attribute( nel , "afni_surface_controls_toggle"    ) ;
    scon_plm = NI_get_attribute( nel , "afni_surface_controls_plusminus" ) ;
@@ -1830,6 +1845,12 @@ ENTRY("process_NIML_SUMA_ixyz");
 
    MCW_strncpy( ag->line_color , scon_lin , 32 ) ;  /* save in struct */
    MCW_strncpy( ag->box_color  , scon_box , 32 ) ;  /* [Apr 2014] */
+
+   if( scon_wid != NULL ){
+     int ww = (int)strtod(scon_wid,NULL) ;
+     if( ww < 0 ) ww = 0 ; else if( ww > 22 ) ww = 22 ;
+     ag->line_width = ww ;
+   }
 
    /*-- pointers to the data columns in the NI_element --*/
 
