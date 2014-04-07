@@ -144,6 +144,7 @@ typedef struct {
   struct SUMA_mask *mask ;     /*!< pointer to SUMA_mask owner */
   char line_color[32] ;        /*!< line color set from SUMA */
   char box_color[32] ;         /*!< box color set from SUMA */
+  int  line_width ;            /*!< line width set from SUMA */
   int   parent_type ;
   void *parent ;               /*!< pointer to enclosing object */
 } SUMA_surface ;
