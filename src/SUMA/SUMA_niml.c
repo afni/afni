@@ -1501,6 +1501,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   
                   /* Are we in Mask manip mode? */
                   if (MASK_MANIP_MODE(svi)) {
+                     SUMA_MaskDO *mdo=NULL;
                      SUMA_ALL_DO *ado=NULL;
                      SUMA_LH("Moving mask");
                      if ((ado=SUMA_whichADOg(svi->MouseMode_ado_idcode_str)) && 
@@ -1510,15 +1511,31 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                         SUMA_NEW_MASKSTATE();
                         SUMA_MDO_New_Cen((SUMA_MaskDO *)ado, 
                                           (float *)nel->vec[0]);
-                     }
-                     if (!list) list = SUMA_CreateList();
-                     svi->ResetGLStateVariables = YUP; 
+                        if (!list) list = SUMA_CreateList();
+                        svi->ResetGLStateVariables = YUP; 
 
-                     SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, 
-                                                        SES_SumaFromAfni, svi);
-                     if (!SUMA_Engine (&list)) {
-                        fprintf( SUMA_STDERR, 
-                            "Error %s: SUMA_Engine call failed.\n", FuncName);
+                        /* Tell AFNI of new position */
+                        ED = SUMA_InitializeEngineListData (SE_SetAfniMask);
+                        mdo = (SUMA_MaskDO *)ado;
+                        if (!(Location=
+                                    SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_fv3, (void*)mdo->cen,
+                                                      SES_Suma, (void *)sv, NOPE,
+                                                      SEI_Tail, NULL))) {
+                           SUMA_S_Err("Failed to register element\n");
+                           SUMA_RETURN (NOPE);
+                        }
+                        SUMA_RegisterEngineListCommand (  list, ED, 
+                                              SEF_s, (void *)(ADO_ID(ado)),
+                                              SES_Suma, (void *)sv, NOPE,
+                                              SEI_In, Location);
+
+                        SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, 
+                                                     SES_SumaFromAfni, svi);
+                        if (!SUMA_Engine (&list)) {
+                           fprintf( SUMA_STDERR, 
+                               "Error %s: SUMA_Engine call failed.\n", FuncName);
+                        }
                      }
                      
                      /* Don't proceed, for now, if we're in mask nudging mode,

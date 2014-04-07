@@ -2011,7 +2011,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_S_Warn("No mask SO");
                   break;
                }
-               SUMA_S_Note("Sending mask %s's surface, SO = %p...", 
+               SUMA_LH("Sending mask %s's surface, SO = %p...", 
                            ADO_LABEL(ado), SO);
                if (!SO->SentToAfni) {
                   SUMA_LH("Sending the whole thing, SO = %p", SO);
