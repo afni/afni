@@ -8,6 +8,7 @@ typedef struct {
 
 int SUMA_init_ports_assignments(SUMA_CommonFields *cf);
 NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO);
+int SUMA_offset_NI_SurfIXYZ (NI_element *nel, float *delta);
 NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO);
 NI_element * SUMA_makeNI_SurfINORM (SUMA_SurfaceObject *SO);
 Boolean SUMA_niml_workproc( XtPointer thereiselvis );
