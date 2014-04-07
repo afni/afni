@@ -3941,6 +3941,9 @@ typedef struct {
       int su_numgroup ;                  /*!< Number of surface groups */
       SUMA_surfacegroup **su_surfgroup ; /*!< Surface group array */
 
+      int su_nummask ;          /*!< Number of SUMA masks (moveable surfaces) */
+      SUMA_mask **su_mask ;     /*!< array of pointers to SUMA masks */
+
       XtPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
@@ -3982,22 +3985,20 @@ int get_nspaces(void);
       int id , vv ;                                                           \
       (ss)->num_dsset = 0 ;                                                   \
       (ss)->su_num    = 0 ; (ss)->su_surf = NULL ;                            \
+      (ss)->su_nummask= 0 ; (ss)->su_mask = NULL ;                            \
       (ss)->su_numgroup = 0 ; (ss)->su_surfgroup = NULL ;                     \
       (ss)->warptable = NULL ; (ss)->dsrow = NULL;                            \
       for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
-        for( vv=0 ; vv < get_nspaces() ; vv++ )                              \
+        for( vv=0 ; vv < get_nspaces() ; vv++ )                               \
            SET_SESSION_DSET(NULL, ss, id, vv);                                \
   }
 
-/*      for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
-        for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )                             \
-           SET_SESSION_DSET(NULL, ss, id, vv);                       \*/
-
 /*! Determine if session has SUMA surface data attached. */
 
-#define SESSION_HAS_SUMA(ss) ( (ss)!=NULL           &&  \
-                               (ss)->su_surf!=NULL  &&  \
-                               (ss)->su_num > 0        )
+#define SESSION_HAS_SUMA(ss) ( (ss) != NULL &&                                         \
+                               ( ( (ss)->su_surf != NULL && (ss)->su_num     > 0 ) ||  \
+                                 ( (ss)->su_mask != NULL && (ss)->su_nummask > 0 )   ) \
+                             )
 
 #define SESSIONLIST_TYPE 107
 
@@ -4008,7 +4009,7 @@ int get_nspaces(void);
 
 typedef struct {
       int type , num_sess ;
-      THD_session * ssar[THD_MAX_NUM_SESSION] ;
+      THD_session *ssar[THD_MAX_NUM_SESSION] ;
       XtPointer parent ;
 } THD_sessionlist ;
 

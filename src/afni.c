@@ -3072,17 +3072,35 @@ STATUS("creating memplot for image overlay") ;
      create_memplot_surely( "SUMA_plot" , 1.0 ) ;
      mp = get_active_memplot() ;
 
-     /* plot surface stuff, if any */
+     /* plot surface stuff, if any (this is long) */
 
     if( do_surf ){
-     int ks ;
-     int kbest=-1 , ibest=-1 ;          /* 24 Feb 2003 */
+     int ks , qs , rs ;
+     int kbest=-1 , ibest=-1 ;              /* 24 Feb 2003 */
+     int nsurf; SUMA_surface **aglist=NULL; /* 07 Apr 2014 */
 
      AFNI_get_xhair_node( im3d , &kbest , &ibest ) ;   /* 24 Feb 2003 */
 
-     for( ks=0 ; ks < suss->su_num ; ks++ ){  /* 14 Aug 2002: loop over surfaces */
-      SUMA_surface *ag = suss->su_surf[ks] ;
-      int nn , ii,jj ;
+     /* Find all the surfaces to draw -- more complex after 07 Apr 2014 */
+
+     nsurf = suss->su_num ;
+     for( qs=0 ; qs < suss->su_nummask ; qs++ )
+       nsurf += suss->su_mask[qs]->num_surf ;
+
+     aglist = (SUMA_surface **)calloc(nsurf,sizeof(SUMA_surface *)) ;
+
+     for( qs=0 ; qs < suss->su_num ; qs++ ){
+       aglist[qs] = suss->su_surf[qs] ;
+     }
+     for( ks=qs,qs=0 ; qs < suss->su_nummask ; qs++ ){
+       for( rs=0 ; rs < suss->su_mask[qs]->num_surf ; rs++ ){
+         aglist[ks] = suss->su_mask[qs]->surf[rs] ;
+       }
+     }
+
+     for( ks=0 ; ks < nsurf ; ks++ ){      /* 14 Aug 2002: loop over surfaces */
+      SUMA_surface *ag = aglist[ks] ; SUMA_mask *msk = NULL ;
+      int nn , ii,jj , relxyz=0 ;
       SUMA_ixyz *nod ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
@@ -3097,10 +3115,19 @@ STATUS("creating memplot for image overlay") ;
       int skip_boxes=1 , skip_lines=0 , skip_lcen=0, skip_ledg=1 ;
       float boxsize=RX , linewidth=0.0 ;      /* 23 Feb 2003 */
       int firstb ;                            /* 23 Jan 2004 */
+      float xrel=0.0f,yrel=0.0f,zrel=0.0f ;
 
       if( ag == NULL ) continue ;             /* skip this non-existent one */
       nn = ag->num_ixyz ; nod = ag->ixyz ;
-      if( nn < 1 || nod == NULL ) continue ;  /* nothing to do */
+      if( nn < 1 || nod == NULL ) continue ;  /* nothing can be done */
+
+      if( ag->parent_type == SUMA_MASK_TYPE ){        /* relative coords */
+        relxyz = 1 ; msk = (SUMA_mask *)ag->parent ;  /* in a mask surf? */
+        xrel = msk->show_cen.xyz[0] - msk->init_cen.xyz[0] ;
+        yrel = msk->show_cen.xyz[1] - msk->init_cen.xyz[1] ;
+        zrel = msk->show_cen.xyz[2] - msk->init_cen.xyz[2] ;
+INFO_message("SUMA_mask draw: xyz rel = %g %g %g",xrel,yrel,zrel) ;
+      }
 
       /* define parameters for node boxes and triangle lines */
 
@@ -3138,6 +3165,12 @@ STATUS("defining surface drawing parameters") ;
           boxsize   = swid->boxsize_av->ival   * 0.1   ;  /* 23 Feb 2003 */
           linewidth = swid->linewidth_av->ival * 0.002 ;
         }
+
+      } else if( msk != NULL ){ /* set from inside the surf struct [Apr 2014] */
+
+        DC_parse_color( im3d->dc , ag->line_color , &rr_lin,&gg_lin,&bb_lin ) ;
+        DC_parse_color( im3d->dc , ag->box_color  , &rr_box,&gg_box,&bb_box ) ;
+		  skip_boxes = 1 ; skip_lines = 0 ; skip_lcen = 0; skip_ledg = 1 ;
 
       } else {                                   /* the old way    */
                                                  /* to set colors:  */
@@ -3225,13 +3258,16 @@ STATUS("defining surface drawing parameters") ;
 
       if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){               /* search x */
          float xb=fvm.xyz[0] , xt=fvp.xyz[0] , xm,xw ;        /* range of  */
+         float nodx,nody,nodz ;
          if( xb > xt ){ float t=xb ; xb=xt ; xt=t ; }         /* x in slice */
          xm = 0.5*(xb+xt); xw = 0.25*(xt-xb); xb = xm-xw; xt = xm+xw;
 STATUS(" - x plane") ;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
-            if( nod[ii].x >= xb && nod[ii].x <= xt ){         /* inside?  */
-               LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ; /* convert  */
+            nodx = nod[ii].x ; nody = nod[ii].y ; nodz = nod[ii].z ;
+            if( relxyz ){ nodx += xrel ; nody += yrel ; nodz += zrel ; }
+            if( nodx >= xb && nodx <= xt ){         /* inside?  */
+               LOAD_FVEC3(fv,nodx,nody,nodz) ;                /* convert  */
                fv = THD_dicomm_to_3dmm( udset , fv ) ;        /* coords   */
                fv = THD_3dmm_to_3dfind( udset , fv ) ;        /* to slice */
                fv = THD_3dfind_to_fdfind( br , fv ) ;         /* indexes  */
@@ -3262,13 +3298,16 @@ STATUS(" - x plane") ;
       }
       else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){          /* search y */
          float yb=fvm.xyz[1] , yt=fvp.xyz[1] , ym,yw ;
+         float nodx,nody,nodz ;
          if( yb > yt ){ float t=yb ; yb=yt ; yt=t ; }
          ym = 0.5*(yb+yt); yw = 0.25*(yt-yb); yb = ym-yw; yt = ym+yw;
 STATUS(" - y plane") ;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
-            if( nod[ii].y >= yb && nod[ii].y <= yt ){
-               LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
+            nodx = nod[ii].x ; nody = nod[ii].y ; nodz = nod[ii].z ;
+            if( relxyz ){ nodx += xrel ; nody += yrel ; nodz += zrel ; }
+            if( nody >= yb && nody <= yt ){
+               LOAD_FVEC3(fv,nodx,nody,nodz) ;
                fv = THD_dicomm_to_3dmm( udset , fv ) ;
                fv = THD_3dmm_to_3dfind( udset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
@@ -3299,12 +3338,15 @@ STATUS(" - y plane") ;
       }
       else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){          /* search z */
          float zb=fvm.xyz[2] , zt=fvp.xyz[2] , zm,zw ;
+         float nodx,nody,nodz ;
          if( zb > zt ){ float t=zb ; zb=zt ; zt=t ; }
          zm = 0.5*(zb+zt); zw = 0.25*(zt-zb); zb = zm-zw; zt = zm+zw;
 STATUS(" - z plane") ;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
-            if( nod[ii].z >= zb && nod[ii].z <= zt ){
+            nodx = nod[ii].x ; nody = nod[ii].y ; nodz = nod[ii].z ;
+            if( relxyz ){ nodx += xrel ; nody += yrel ; nodz += zrel ; }
+            if( nodz >= zb && nodz <= zt ){
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
                fv = THD_dicomm_to_3dmm( udset , fv ) ;
                fv = THD_3dmm_to_3dfind( udset , fv ) ;
@@ -3380,6 +3422,12 @@ STATUS("drawing triangle lines") ;
             LOAD_FVEC3(fvijk[0], nod[id].x, nod[id].y, nod[id].z) ;
             LOAD_FVEC3(fvijk[1], nod[jd].x, nod[jd].y, nod[jd].z) ;
             LOAD_FVEC3(fvijk[2], nod[kd].x, nod[kd].y, nod[kd].z) ;
+
+            if( relxyz ){  /* 07 Apr 2014 */
+              fvijk[0].xyz[0] += xrel; fvijk[1].xyz[0] += xrel; fvijk[2].xyz[0] += xrel;
+              fvijk[0].xyz[1] += yrel; fvijk[1].xyz[1] += yrel; fvijk[2].xyz[1] += yrel;
+              fvijk[0].xyz[2] += zrel; fvijk[1].xyz[2] += zrel; fvijk[2].xyz[2] += zrel;
+            }
 
             /* want 1 node on one size of plane, and 2 on the other */
 
@@ -10227,7 +10275,7 @@ int AFNI_jump_and_seed( Three_D_View *im3d , float xx, float yy, float zz )
    THD_fvec3 fv ; THD_ivec3 iv ;
    int ii,jj,kk,qq ;
    static int iil = -1, jjl = -1, kkl = -1;
-   
+
 ENTRY("AFNI_jump_and_seed") ;
 
    LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
@@ -10254,7 +10302,7 @@ ENTRY("AFNI_jump_and_seed") ;
       }
       RETURN(1) ;
    } else {
-      BEEPIT ; 
+      BEEPIT ;
       WARNING_message("AFNI_icor_seed_SUMA failed -- bad coordinates?!") ;
       RETURN(-1) ;
    }
