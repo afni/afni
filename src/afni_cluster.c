@@ -2024,7 +2024,8 @@ ENTRY("AFNI_clus_action_CB") ;
      char *fnam;
      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
      int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
-     int jtop = 0 , coord_colx, coord_coly, coord_colz;
+
+     int jtop , etop, coord_colx, coord_coly, coord_colz;
      char *wout , ct[64] ; FILE *fp ; int inv ;
 
      nclu = im3d->vwid->func->clu_num ;
@@ -2056,6 +2057,12 @@ printf("wrote cluster table to %s\n", fnam);
           sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s\'\[%d,%d,%d]\' -space %s",
              wherprog,fnam, coord_colx, coord_coly, coord_colz,
              THD_get_space(im3d->fim_now)) ;
+
+       jtop = clar->num_clu ;
+       etop = (int)AFNI_numenv("AFNI_CLUSTER_WAMIMAX") ;
+       if( etop <  1 ) etop = 20 ;
+       else if( etop > 99 ) etop = 99 ;
+       if( jtop > etop ) jtop = etop ;
 
        if( jtop >= clar->num_clu ) strcpy (ct," ") ;
        else                        sprintf(ct," [first %d clusters]",jtop) ;
@@ -2186,7 +2193,7 @@ ENTRY("AFNI_cluster_timeseries") ;
 static void AFNI_linkrbrain_av_CB( MCW_arrowval *av , XtPointer cd )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
-   AFNI_clu_widgets *cwid ;
+/*   AFNI_clu_widgets *cwid ; */
 
 ENTRY("AFNI_linkrbrain_av_CB") ;
 
