@@ -95,6 +95,8 @@ typedef struct {
        free(vv) ;                                   \
  }} while(0)
 
+struct SUMA_mask ;  /* incomplete type definition for use below */
+
 /*! A surface structure in 3D space:
      - a bunch of SUMA_ixyz's
      - a bunch of SUMA_ijk's linking them together
@@ -136,6 +138,14 @@ typedef struct {
 
   SUMA_vvlist *vv ;            /*!< For ROIs from SUMA */
   SUMA_vnlist *vn ;            /*!< Voxel-to-node mapping, for overlays */
+
+  int  mask_code ;             /*!< 0 if not part of a mask */
+  char mask_parent_idcode[32]; /*!< idcode of the SUMA_mask owner */
+  struct SUMA_mask *mask ;     /*!< pointer to SUMA_mask owner */
+  char line_color[32] ;        /*!< line color set from SUMA */
+  char box_color[32] ;         /*!< box color set from SUMA */
+  int   parent_type ;
+  void *parent ;               /*!< pointer to enclosing object */
 } SUMA_surface ;
 
 /*! Macro for node count in a SUMA_surface struct */
@@ -175,7 +185,26 @@ typedef struct {
   char idcode[32] ;            /*!< IDCODE for this group of surfaces */
 } SUMA_surfacegroup ;
 
+/*! type for a SUMA_mask [04 Apr 2014 -- RWCox] */
+
+#define SUMA_MASK_TYPE 53005
+
+typedef struct SUMA_mask {
+  int type            ;        /*!< better be SUMA_MASK_TYPE */
+  char idcode[32]     ;        /*!< idcode of this mask */
+  int num_surf        ;        /*!< number of surfaces contained herein */
+  char **idcode_surf  ;        /*|< idcodes for each surface */
+  SUMA_surface **surf ;        /*!< pointers to each surface */
+  THD_fvec3 init_cen  ;        /*!< DICOM xyz for initial center */
+  THD_fvec3 show_cen  ;        /*!< DICOM xyz for displayed center */
+  int   parent_type   ;        /*!< probably a session */
+  void *parent        ;        /*!< pointer to enclosing object */
+} SUMA_mask ;
+
 /*------------------------ function prototypes -----------------------*/
+
+extern SUMA_mask * SUMA_create_empty_mask(void) ;
+void SUMA_destroy_mask( SUMA_mask *msk , int kill_surfaces_too ) ;
 
 extern SUMA_surface * SUMA_create_empty_surface(void) ;
 extern void SUMA_destroy_surface( SUMA_surface * ) ;
@@ -191,6 +220,9 @@ extern void SUMA_add_triangle( SUMA_surface *, int, int, int ) ;
 extern void SUMA_truncate_memory ( SUMA_surface * ) ;
 extern void SUMA_ixyzsort_surface( SUMA_surface * ) ;
 extern int  SUMA_find_node_id    ( SUMA_surface *, int ) ;
+
+extern void SUMA_clear_triangles( SUMA_surface *ag ) ;  /* Apr 2014 */
+extern void SUMA_clear_normals  ( SUMA_surface *ag ) ;
 
 extern SUMA_surface * SUMA_read_surface( char * , struct THD_3dim_dataset * ) ;
 
