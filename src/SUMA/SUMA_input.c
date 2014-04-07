@@ -5128,6 +5128,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      /* enough for now */
                      goto REDISP;
                   }
+               } else if ((ado = SUMA_SV_Focus_ADO(sv)) && 
+                           ado->do_type == GRAPH_LINK_type &&
+                           !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
+                  SUMA_OVERLAYS *Sover = NULL;
+                  SUMA_LH("Going forward one sub-brick");
+                  Sover = SUMA_ADO_CurColPlane(ado);
+                  SUMA_SwitchColPlaneIntensity( ado, Sover, 
+                                                SUMA_FORWARD_ONE_SUBBRICK, 1);   
+                  /* redisplay done in function above ... */
+                  SUMA_RETURNe;
                }
             } else {
                if (!SUMA_Z_Key(sv, "z", "interactive")) {
@@ -5183,7 +5193,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                }
                #endif
-            } else if (pButton==6 || Bev.state & ControlMask) {
+            } else if (pButton==7 || Bev.state & ControlMask) {
                SUMA_ALL_DO *ado=NULL;
                SUMA_X_SurfCont *SurfCont;
                if (MASK_MANIP_MODE(sv)) {
@@ -5209,6 +5219,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      /* enough for now */
                      goto REDISP;
                   }
+               } else if ((ado = SUMA_SV_Focus_ADO(sv)) && 
+                           ado->do_type == GRAPH_LINK_type &&
+                           !strcmp(SUMA_ADO_variant(ado),"GMATRIX")) {
+                  SUMA_OVERLAYS *Sover = NULL;
+                  SUMA_LH("Switching overlay back one");
+                  Sover = SUMA_ADO_CurColPlane(ado);
+                  SUMA_SwitchColPlaneIntensity( ado, Sover, 
+                                                SUMA_BACK_ONE_SUBBRICK, 1);   
+                  /* redisplay done in function above ... */
+                  SUMA_RETURNe;
                }
             } else {
                if (!SUMA_Z_Key(sv, "Z", "interactive")) {

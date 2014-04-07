@@ -7321,9 +7321,9 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
 {
    static char FuncName[]={"SUMA_DrawGraphDO_GMATRIX"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   static float txcol[3] = {1, 1, 1};
+   static float txcol[4] = {1, 1, 1, 1};
    int iseg, N_seg, usedel=0, M4, ii, jj, iim, jjm, si, pof = 0, rid,
-       *ui, *uj, cc, ee, eem, *GNI=NULL, iname=0;
+       *ui, *uj, cc, ee, eem, *GNI=NULL, *GNG=NULL, iname=0;
    int M[3], G[3], B[3], GB[3], N[3], is4, ii4, iipix, jjpix, iipixMax, jjpixMax;
    double Aff[4][4], I[3];
    DListElmt *el=NULL, *eln=NULL;
@@ -7338,7 +7338,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    SUMA_GRAPH_SAUX *GSaux = NULL;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_COLORLIST_STRUCT *colstr=NULL;
-   float XYZ[27];
+   float XYZ[27], *GNr=NULL, *GNg=NULL, *GNb=NULL;
    GLfloat sq_col[] = {1, 1, 1, 1.0};
    GLfloat per_col[] = {0.5, 0.5, 0.5, 1.0};
    GLboolean valid;
@@ -7772,6 +7772,22 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
             goto BUGOUT;
          }
       }
+      if (!(GNG = SUMA_GDSET_GetPointGroupColumn(dset, &ii, NULL))) {
+         SUMA_LH("No Group!"); /* No need to weep */
+      }
+      if (!(GNr = SUMA_GDSET_GetPointColumn_f(dset, &ii, NULL, "Gnode R"))) {
+         SUMA_LH("No R!"); /* No need to weep */
+      } else {
+         if (!(GNg = SUMA_GDSET_GetPointColumn_f(dset, &ii, NULL, "Gnode G"))) {
+            SUMA_S_Err("What? Have R but not G?");
+            SUMA_RETURN(NOPE);
+         }
+         if (!(GNb = SUMA_GDSET_GetPointColumn_f(dset, &ii, NULL, "Gnode B"))) {
+            SUMA_S_Err("What? Have R but not B?");
+            SUMA_RETURN(NOPE);
+         }
+      }
+
       if (!(SUMA_GDSET_GMATRIX_Aff(dset, Aff, 1))) {
          SUMA_S_Err("No Aff!!");
          goto BUGOUT;
@@ -7808,6 +7824,16 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
       
          /* do some text action */
          if (valid) {
+            if (0 && /* Not ready for prime time */
+                GNG && GNr && curcol->NodeCol == SW_SurfCont_DsetNodeColGrp && 
+                iname >=0) {
+                  txcol[0] = GNr[iname];
+                  txcol[1] = GNg[iname];
+                  txcol[2] = GNb[iname];
+                  txcol[3] = 1.0;
+               SUMA_S_Note("%f %f %f %f", 
+                           txcol[0], txcol[1], txcol[2], txcol[3]);
+            }
             glColor3fv(txcol); 
                /* offset for right align */
             glBitmap( 0, 0, 0, 0,  -(float)tw, -(float)th/4.0,  NULL );
@@ -11150,8 +11176,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                }
                /* Show ghosts, for clickability */
-               if (NoEdges_DynamicRadius) radgain = 0.25;
-               else radgain = 1.0;
+               if (NoEdges_DynamicRadius) radgain = 0.25*radgain;
+               else radgain = 1.0*radgain;
                gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad*radgain, 0.005), 10, 10);
             }
             glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
