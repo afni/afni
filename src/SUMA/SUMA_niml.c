@@ -2049,7 +2049,7 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    zc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
 
    if (!nel || !ic || !xc || !yc || !zc) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel, ic, xc, yc or zc.\n", FuncName);
+      SUMA_S_Err("Failed to allocate for nel, ic, xc, yc or zc.\n");
       SUMA_RETURN (NULL);
    }
    
@@ -2089,6 +2089,31 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    else NI_set_attribute (nel, "surface_specfile_path", "Unknown");
    
    SUMA_RETURN (nel);
+}
+
+int SUMA_offset_NI_SurfIXYZ (NI_element *nel, float *del) 
+{
+   static char FuncName[]={"SUMA_offset_NI_SurfIXYZ"};
+   float *x, *y, *z;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!nel || !del || nel->vec_num != 4 || nel->vec_len < 1) SUMA_RETURN(0);
+   
+   x = (float *)nel->vec[1];
+   y = (float *)nel->vec[2];
+   z = (float *)nel->vec[3];
+   
+   if (!x || !y || !z) SUMA_RETURN(0);
+   
+   for (i=0; i<nel->vec_len; ++i) {
+      x[i] += del[0];
+      y[i] += del[1];
+      z[i] += del[2];
+   }
+   
+   SUMA_RETURN(1);
 }
 
 /*------------------------------------------------------------------*/

@@ -2018,10 +2018,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   nel = NI_new_data_element("SUMA_mask", 0);
                   NI_set_attribute(nel, "idcode", ADO_ID(ado));
                   NI_SET_FLOATv(nel, "init_cen", mdo->init_cen, 3);
-                  /* Useless in first call... 
-                  if (EngineData->fv3) 
-                     NI_SET_FLOATv(nel, "new_cen", EngineData->fv3, 3);
-                  */
+                  NI_SET_FLOATv(nel, "new_cen", EngineData->fv3, 3);
                   if ((nn = NI_write_element( 
                               SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , 
                                              NI_TALK_MODE ))<0) {
@@ -2032,7 +2029,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   nel = NULL;
                   ++nels_sent;
                   if (1) {
+                     float delta[3] = {0, 0, 0};
+                     delta[0] = mdo->init_cen[0] - EngineData->fv3[0];
+                     delta[1] = mdo->init_cen[1] - EngineData->fv3[1];
+                     delta[2] = mdo->init_cen[2] - EngineData->fv3[2];
                      nel = SUMA_makeNI_SurfIXYZ (SO);
+                     /* Undo the offset in the surface coords ... */
+                     SUMA_offset_NI_SurfIXYZ(nel, delta);
                      /* label this object as being the surface of a mask */
                      if (!nel) {
                         fprintf(SUMA_STDERR,

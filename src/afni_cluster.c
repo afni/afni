@@ -2024,7 +2024,7 @@ ENTRY("AFNI_clus_action_CB") ;
      char *fnam;
      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
      int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
-     int jtop , coord_colx, coord_coly, coord_colz;
+     int jtop = 0 , coord_colx, coord_coly, coord_colz;
      char *wout , ct[64] ; FILE *fp ; int inv ;
 
      nclu = im3d->vwid->func->clu_num ;
