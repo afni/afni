@@ -353,7 +353,7 @@ fprintf(stderr,"Changing thickness: old=%f  new=%f\n",old_thick,new_thick) ;
 
          gcv.line_width = lw ;
          gcv.join_style = JoinBevel ;
-         gcv.cap_style  = (lw > 3) ? CapRound : CapButt ;
+         gcv.cap_style  = (lw > 2) ? CapRound : CapButt ;
          XChangeGC( old_dpy , old_GC , GCLineWidth | GCJoinStyle | GCCapStyle , &gcv ) ;
          old_thick = new_thick ;
       }

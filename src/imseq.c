@@ -12641,6 +12641,7 @@ ENTRY("ISQ_handle_keypress") ;
 
      /* 22 Aug 2005: 'a' = fix aspect ratio */
 
+     case 'A':
      case 'a':{
        int bx = seq->opt.free_aspect ; seq->opt.free_aspect = 0 ;
        ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
