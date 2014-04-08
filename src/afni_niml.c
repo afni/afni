@@ -1276,10 +1276,10 @@ static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
 
 ENTRY("AFNI_niml_viewpoint_CB") ;
 
-   if( NOT_TELLING_SUMA                ||
-       !IM3D_OPEN(im3d)                ||
-       im3d->ss_now->su_num     == 0   ||
-       im3d->ss_now->su_surf[0] == NULL  ) EXRETURN ;
+   if( NOT_TELLING_SUMA || !IM3D_OPEN(im3d) ) EXRETURN ;
+#if 0
+   if( !SESSION_HAS_SUMA(im3d->ss_now) ) EXRETURN ;
+#endif
 
    if( sendit ){
      if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
@@ -1300,6 +1300,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    if( kbest < 0 ) kbest = 0 ;  /* default surface */
 
    /* now send info to SUMA */
+
    ngr = NI_new_group_element();
    NI_rename_group(ngr, "SUMA_crosshair");
 
@@ -1330,6 +1331,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;  /* save old point */
 
    /* April 2009: Get the values at that voxel from the underlay and overlay */
+
    nel = NI_new_data_element( "underlay_array", DSET_NVALS(im3d->anat_now));
    NI_set_attribute( nel,  "underlay_idcode" , im3d->anat_now->idcode.str ) ;
    vv = (float*)calloc(DSET_NVALS(im3d->anat_now),sizeof(float));
@@ -1337,7 +1339,8 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    i1d = im3d->vinfo->i1 +
          im3d->vinfo->j2*DSET_NX(im3d->anat_now) +
          im3d->vinfo->k3*DSET_NX(im3d->anat_now)*DSET_NY(im3d->anat_now);
-   if (THD_extract_array( i1d, im3d->anat_now, 0, vv ) < 0) {
+
+   if( THD_extract_array( i1d, im3d->anat_now, 0, vv ) < 0 ){
       fprintf(stderr,"Failed to get underlay array\n");
    } else {
       NI_add_column(nel, NI_FLOAT, vv); free(vv); vv=NULL;
@@ -1353,6 +1356,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    NI_add_to_group( ngr, nel);
 
    /* get vol2surf underlay time series at this node     29 Apr 2009 [rickr] */
+
    do { /* cheat: break on error (until data has been allocated) */
       int sA, sB, usev2s;
 
@@ -1563,18 +1567,19 @@ ENTRY("process_NIML_SUMA_mask") ;
    if( msk != NULL ){           /*--- pre-existing mask ---*/
      char *aaa ; int ss ;
      aaa = NI_get_attribute( nel , "afni_surface_controls_lines" ) ;
-     if( aaa != NULL ){
+     if( aaa != NULL ){  /* set color inside all owned surfaces */
 INFO_message("SUMA_mask: line_color = %s",aaa) ;
        for( ss=0 ; ss < msk->num_surf ; ss++ )
          MCW_strncpy( msk->surf[ss]->line_color , aaa , 32 ) ;
      }
      aaa = NI_get_attribute( nel , "afni_surface_controls_linewidth" ) ;
-     if( aaa != NULL ){
+     if( aaa != NULL ){  /* set linewidth inside all owned surfaces */
        int ww = (int)strtod(aaa,NULL) ;
        if( ww < 0 ) ww = 0 ; else if( ww > 22 ) ww = 22 ;
 INFO_message("SUMA_mask: line_width = %d",ww) ;
        for( ss=0 ; ss < msk->num_surf ; ss++ ) msk->surf[ss]->line_width = ww ;
      }
+     /* get new_cen coordinates and redraw if present */
      cent = NI_get_attribute( nel , "new_cen" ) ;
      if( cent != NULL ){
         sscanf(cent,"%f%f%f",&xcen,&ycen,&zcen) ;
