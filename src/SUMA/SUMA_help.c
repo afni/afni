@@ -1711,6 +1711,19 @@ char * SUMA_help_message_Info(void)
       "     F9: Labels at cross hair, toggle.\n"
       );
    SS = SUMA_StringAppend (SS, 
+      "     F10: Toggle prying axis between surfaces' Z and Y axes.\n"
+      );
+   SS = SUMA_StringAppend (SS, 
+      "     F11: Change object rendering order.\n"
+      "          This order will affect the resultant image in\n"
+      "          the few instances where alpha transparency is\n"
+      "          used. The order can be specified for only three types of \n"
+      "          objects for now: graphs, surfaces, and volumes. \n"
+      "          If you want to render graphs first, followed by volumes then\n"
+      "          surfaces then set SUMA_ObjectDisplayOrder to something like:\n"
+      "          'graph,vol,surf', or 'GVS'"
+      );
+   SS = SUMA_StringAppend (SS, 
       "     F12: Time 20 scene renderings.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     HOME: reset zoom and recenter surfaces.\n"

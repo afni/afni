@@ -2718,6 +2718,7 @@ typedef struct {
                              Default is: VO_type, SO_type, GRAPH_LINK_type*/
    int N_otseq;           /* Number of types specified in otseq, 
                              Default is 3 types*/
+   int PryAx;             /* Prying axis. 3 == Z axis, 2 == Y axis */
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */

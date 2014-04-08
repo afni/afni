@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 8, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added 'F10' to toggle prying axis between Z and Y",
+   NULL 
+ },
+  
+ { 8, Apr, 2014, ZSS, "afni", MICRO, TYPE_NEW_ENV,
+   "AFNI_ICORR_UBER_USER allows access to special InstaCorr distance measures",
+   "Set variable to YES to have access to special distance measures in\n"
+   "the plugin"
+ },
+  
+ { 8, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
+   "SUMA_VO_InitSlices controls how volumes slices are shown at startup",
+   "See ~/.sumarc for details, run suma -update_env if variable is missing."
+ },
+  
  { 4, Apr, 2014, ZSS, "suma", MICRO, TYPE_MODIFY,
    "Improved autopositioning of surf. controller. Better with dual displays.",
    "Also canceled repositioning after very first opening of controllers"

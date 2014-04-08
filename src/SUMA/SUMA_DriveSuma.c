@@ -239,7 +239,7 @@ if (detail > 1) {
 "                         ~ Available keys and their variants are:\n"
 "                         [, ], comma (or ','), period (or '.'), space,\n"
 "                         a, b, d, G, j, m, n, p, r, t, z, \n"
-"                         up, down, left, right, and F1 to F9.\n"
+"                         up, down, left, right, and F1 to F12.\n"
 "                         ~ Key variants are specified this way:\n"
 "                         ctrl+Up or ctrl+alt+Down etc.\n"
 "                         ~ For help on key actions consult SUMA's\n"

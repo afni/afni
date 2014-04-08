@@ -956,6 +956,7 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
       VO->TexEnvMode = GL_REPLACE;
       if ((SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)VO)) && 
           (VSaux = SUMA_ADO_VSaux((SUMA_ALL_DO *)VO))) {
+         /* Do the defaults, then modify per env */
          VSaux->ShowAxSlc = 1;
          SurfCont->Ax_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Ax")/2.0);
          SurfCont->Ax_slc->mont_inc = 1;
@@ -970,6 +971,8 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
          
          VSaux->ShowVrSlc = 0;
          VSaux->SlicesAtCrosshair = 0;
+         /* Maybe params froms the env? */
+         SUMA_Set_VO_Slice_Params(SUMA_EnvVal("SUMA_VO_InitSlices"), VO);
       } else {
          SUMA_S_Err("Failed to initialize volume display");
       }
@@ -982,6 +985,161 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
    }
    
    SUMA_RETURN(YUP);
+}
+
+int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO) 
+{
+   static char FuncName[]={"SUMA_Set_VO_Slice_Params"};
+   NI_str_array *sar=NULL, *sub=NULL;
+   int err=0, val, kk;
+   float fval;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   SUMA_VOL_SAUX *VSaux=NULL;
+            
+   SUMA_ENTRY;
+   if (!params || params[0]=='\0') SUMA_RETURN(1);
+   if (!VO) { SUMA_S_Err("NO VO"); SUMA_RETURN(0); }
+   if (!(SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)VO)) ||
+       !(VSaux = SUMA_ADO_VSaux((SUMA_ALL_DO *)VO))) {
+      SUMA_S_Err("Too early for this!");
+      SUMA_RETURN(0);
+   }
+   if (!(sar = SUMA_NI_decode_string_list( params , ",; "))) {
+      SUMA_S_Err("Huh?"); SUMA_RETURN(0);
+   }
+               
+   /* Each string should be the form: variant:sn:num:inc */
+   err = 0;
+   VSaux->ShowAxSlc = 0;
+   VSaux->ShowSaSlc = 0;
+   VSaux->ShowCoSlc = 0;
+   VSaux->ShowVrSlc = 0;
+   for (kk=0; kk<sar->num && !err; ++kk) {
+      if ((sub = SUMA_NI_decode_string_list( sar->str[kk] , ":")) &&
+          (sub->num > 0)) {
+               if (!strcasecmp(sub->str[0], "Ax") ||
+                   !strcasecmp(sub->str[0], "hAx")) {
+                  if (sub->str[0][0] == 'h') VSaux->ShowAxSlc = 0;
+                  else VSaux->ShowAxSlc = 1;
+                  if (sub->num > 1) {
+                     fval = (float)strtod(sub->str[1], NULL);
+                     if (fval > 0.0 && fval < 1.0) {
+                        val = fval * (SUMA_VO_N_Slices(VO, "Ax")-1);
+                     } else val = (int)fval;
+                     if (val >= 0 &&
+                         val < SUMA_VO_N_Slices(VO, "Ax")) {
+                        SurfCont->Ax_slc->slice_num = val;
+                     }
+                  }
+                  if (sub->num > 2) {
+                     val = (int)strtod(sub->str[2], NULL);
+                     if (val > 0 && 
+                         val < SUMA_VO_N_Slices(VO, "Ax")) {
+                         SurfCont->Ax_slc->mont_num = val;
+                     }
+                  }
+                  if (sub->num > 3) {
+                     fval = (float)strtod(sub->str[3], NULL);
+                     if (fval > 0.0 && fval < 1.0) {
+                        val = fval * (SUMA_VO_N_Slices(VO, "Ax")-1);
+                     } else val = (int)fval;
+                     if (val > 0 && 
+                         val < SUMA_VO_N_Slices(VO, "Ax")) {
+                         SurfCont->Ax_slc->mont_inc = val;
+                     }
+                  }
+         } else if (!strcasecmp(sub->str[0], "Sa") ||
+                    !strcasecmp(sub->str[0], "hSa")) {
+                  if (sub->str[0][0] == 'h') VSaux->ShowSaSlc = 0;
+                  else VSaux->ShowSaSlc = 1;
+                  if (sub->num > 1) {
+                     fval = (float)strtod(sub->str[1], NULL);
+                     if (fval > 0.0 && fval < 1.0) {
+                        val = fval * (SUMA_VO_N_Slices(VO, "Sa")-1);
+                     } else val = (int)fval;
+                     if (val >= 0 &&
+                         val < SUMA_VO_N_Slices(VO, "Sa")) {
+                        SurfCont->Sa_slc->slice_num = val;
+                     }
+                  }
+                  if (sub->num > 2) {
+                     val = (int)strtod(sub->str[2], NULL);
+                     if (val > 0 && 
+                         val < SUMA_VO_N_Slices(VO, "Sa")) {
+                         SurfCont->Sa_slc->mont_num = val;
+                     }
+                  }
+                  if (sub->num > 3) {
+                     fval = (float)strtod(sub->str[3], NULL);
+                     if (fval > 0.0 && fval < 1.0) {
+                        val = fval * (SUMA_VO_N_Slices(VO, "Sa")-1);
+                     } else val = (int)fval;
+                     if (val > 0 && 
+                         val < SUMA_VO_N_Slices(VO, "Sa")) {
+                         SurfCont->Sa_slc->mont_inc = val;
+                     }
+                  }
+         } else if (!strcasecmp(sub->str[0], "Co") ||
+                    !strcasecmp(sub->str[0], "hCo")) {
+                  if (sub->str[0][0] == 'h') VSaux->ShowCoSlc = 0;
+                  else VSaux->ShowCoSlc = 1;
+                  if (sub->num > 1) {
+                     fval = (float)strtod(sub->str[1], NULL);
+                     if (fval > 0.0 && fval < 1.0) {
+                        val = fval * (SUMA_VO_N_Slices(VO, "Co")-1);
+                     } else val = (int)fval;
+                     if (val >= 0 &&
+                         val < SUMA_VO_N_Slices(VO, "Co")) {
+                        SurfCont->Co_slc->slice_num = val;
+                     }
+                  }
+                  if (sub->num > 2) {
+                     val = (int)strtod(sub->str[2], NULL);
+                     if (val > 0 && 
+                         val < SUMA_VO_N_Slices(VO, "Co")) {
+                         SurfCont->Co_slc->mont_num = val;
+                     }
+                  }
+                  if (sub->num > 3) {
+                     fval = (float)strtod(sub->str[3], NULL);
+                     if (fval > 0.0 && fval < 1.0) {
+                        val = fval * (SUMA_VO_N_Slices(VO, "Co")-1);
+                     } else val = (int)fval;
+                     if (val > 0 && 
+                         val < SUMA_VO_N_Slices(VO, "Co")) {
+                         SurfCont->Co_slc->mont_inc = val;
+                     }
+                  }
+         } else if (!strcasecmp(sub->str[0], "Vr") ||
+                    !strcasecmp(sub->str[0], "hVr")) {
+                  if (sub->str[0][0] == 'h') VSaux->ShowVrSlc = 0;
+                  else VSaux->ShowVrSlc = 1;
+         } else {
+            SUMA_S_Err(
+      "Slice variant %s not recognized for env SUMA_VO_InitSlices.\n"
+      "Defaults will prevail.", sub->str[0]);
+            err = 1;
+            /* Just put the 'show' flags back where they were */
+            VSaux->ShowAxSlc = 1;
+            VSaux->ShowSaSlc = 1;
+            VSaux->ShowCoSlc = 0;
+            VSaux->ShowVrSlc = 0;
+         }
+         
+      }
+      sub = SUMA_free_NI_str_array(sub);
+   }
+   sar = SUMA_free_NI_str_array(sar); 
+   
+   /* You must have something showing for now because otherwise you can't open
+   a volume controller! */
+   if (!VSaux->ShowAxSlc && !VSaux->ShowSaSlc && 
+       !VSaux->ShowCoSlc && !VSaux->ShowVrSlc ) {
+      SUMA_S_Note("For now, must force something to show");
+      VSaux->ShowAxSlc = 1;
+   }
+   
+   SUMA_RETURN(1);
 }
 
 SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel, 
