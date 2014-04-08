@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , APR , 2014 , RWC , "afni" , MINOR , TYPE_GENERAL ,
+  { 8 , APR , 2014 , RWC , "coxplot" , MICRO , TYPE_GENERAL ,
+   "Change to X11 line drawing for thick lines" ,
+   "Use 'CAP_ROUND' style of drawing for thicker lines, so that drawn\n"
+   "figures (like SUMA surfaces) look better in AFNI interface -- the weird\n"
+   "disjunction between short thick lines is mostly gone now." } ,
+
+ { 8 , APR , 2014 , RWC , "afni" , MINOR , TYPE_GENERAL ,
    "Draw mask surface sent from SUMA, for delectation." ,
    "Add a SUMA_mask struct type to afni_suma.h, and then process its\n"
    "corresponding NIML element in afni_niml.c.  Masks are stored in the\n"
