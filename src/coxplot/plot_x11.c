@@ -264,7 +264,8 @@ void memplot_to_X11_sef( Display *dpy , Window w , MEM_plotdata *mp ,
 
    gcv.line_width = 0 ;
    gcv.join_style = JoinBevel ;
-   XChangeGC( old_dpy , old_GC , GCLineWidth | GCJoinStyle , &gcv ) ;
+   gcv.cap_style  = CapButt ;
+   XChangeGC( old_dpy , old_GC , GCLineWidth | GCJoinStyle | GCCapStyle , &gcv ) ;
 
    /*--- loop over lines, scale and plot ---*/
 
@@ -352,7 +353,8 @@ fprintf(stderr,"Changing thickness: old=%f  new=%f\n",old_thick,new_thick) ;
 
          gcv.line_width = lw ;
          gcv.join_style = JoinBevel ;
-         XChangeGC( old_dpy , old_GC , GCLineWidth | GCJoinStyle , &gcv ) ;
+         gcv.cap_style  = (lw > 3) ? CapRound : CapButt ;
+         XChangeGC( old_dpy , old_GC , GCLineWidth | GCJoinStyle | GCCapStyle , &gcv ) ;
          old_thick = new_thick ;
       }
 
@@ -378,6 +380,12 @@ fprintf(stderr,"Changing thickness: old=%f  new=%f\n",old_thick,new_thick) ;
 
    draw_xseg() ;
    set_memplot_X11_box(0,0,0,0) ; /* 26 Feb 2001: clear box */
+
+   gcv.line_width = 0 ;
+   gcv.join_style = JoinBevel ;
+   gcv.cap_style  = CapButt ;
+   XChangeGC( old_dpy , old_GC , GCLineWidth | GCJoinStyle | GCCapStyle , &gcv ) ;
+
    return ;
 }
 
