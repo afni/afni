@@ -242,7 +242,8 @@ PLUGIN_interface * ICOR_init( char *lab )
      PLUTO_add_string( plint , "Method" ,
                        (un != NULL &&
                         (strstr(un,"cox")  != NULL ||
-                         strstr(un,"ziad") != NULL)  ) ? 10 : 4 ,
+                         strstr(un,"ziad") != NULL)||
+                         AFNI_yesenv("AFNI_ICORR_UBER_USER")  ) ? 10 : 4 ,
                        meth_string , 0 ) ;
    }
 
