@@ -1282,6 +1282,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
 #endif
 
    if( sendit ){
+STATUS("check stream") ;
      if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
    }
 
@@ -1289,15 +1290,19 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    xyz[1] = im3d->vinfo->yj ;
    xyz[2] = im3d->vinfo->zk ;
 
+STATUS("check distance") ;
    if( fabs(xyz[0]-xold) < EPS &&
        fabs(xyz[1]-yold) < EPS &&
        fabs(xyz[2]-zold) < EPS    ) EXRETURN ;  /* too close to old point */
 
    /* 20 Feb 2003: find closest node */
 
+STATUS("call get_xhair_node") ;
    AFNI_get_xhair_node( im3d , &kbest , &ibest ) ;
 
+#if 0
    if( kbest < 0 ) kbest = 0 ;  /* default surface */
+#endif
 
    /* now send info to SUMA */
 
@@ -1310,8 +1315,9 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
 
    /* 13 Mar 2002: add idcodes of what we are looking at right now */
 
-   NI_set_attribute( nel,  "surface_idcode",
-                           im3d->ss_now->su_surf[kbest]->idcode ) ;
+   if( kbest >= 0 )
+     NI_set_attribute( nel,  "surface_idcode",
+                             im3d->ss_now->su_surf[kbest]->idcode ) ;
    /*
       SUMA does not expect to receive volume_idcode attribute
       If it needs it, it will use underlay_idcode instead      Apr. 09
@@ -1341,7 +1347,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
          im3d->vinfo->k3*DSET_NX(im3d->anat_now)*DSET_NY(im3d->anat_now);
 
    if( THD_extract_array( i1d, im3d->anat_now, 0, vv ) < 0 ){
-      fprintf(stderr,"Failed to get underlay array\n");
+      ERROR_message("Failed to get underlay array for SUMA");
    } else {
       NI_add_column(nel, NI_FLOAT, vv); free(vv); vv=NULL;
       sprintf(stmp,"%d %d %d",
@@ -1568,7 +1574,7 @@ ENTRY("process_NIML_SUMA_mask") ;
      char *aaa ; int ss ;
      aaa = NI_get_attribute( nel , "afni_surface_controls_lines" ) ;
      if( aaa != NULL ){  /* set color inside all owned surfaces */
-INFO_message("SUMA_mask: line_color = %s",aaa) ;
+/** INFO_message("SUMA_mask: line_color = %s",aaa) ; **/
        for( ss=0 ; ss < msk->num_surf ; ss++ )
          MCW_strncpy( msk->surf[ss]->line_color , aaa , 32 ) ;
      }
@@ -1576,7 +1582,7 @@ INFO_message("SUMA_mask: line_color = %s",aaa) ;
      if( aaa != NULL ){  /* set linewidth inside all owned surfaces */
        int ww = (int)strtod(aaa,NULL) ;
        if( ww < 0 ) ww = 0 ; else if( ww > 22 ) ww = 22 ;
-INFO_message("SUMA_mask: line_width = %d",ww) ;
+/** INFO_message("SUMA_mask: line_width = %d",ww) ; **/
        for( ss=0 ; ss < msk->num_surf ; ss++ ) msk->surf[ss]->line_width = ww ;
      }
      /* get new_cen coordinates and redraw if present */
@@ -1584,7 +1590,7 @@ INFO_message("SUMA_mask: line_width = %d",ww) ;
      if( cent != NULL ){
         sscanf(cent,"%f%f%f",&xcen,&ycen,&zcen) ;
         LOAD_FVEC3(msk->show_cen,xcen,ycen,zcen) ;
-INFO_message("SUMA_mask: new_cen = %g %g %g",xcen,ycen,zcen) ;
+/** INFO_message("SUMA_mask: new_cen = %g %g %g",xcen,ycen,zcen) ; **/
         PLUTO_force_redisplay() ;
      }
      RETURN(0) ;
@@ -1602,7 +1608,7 @@ INFO_message("SUMA_mask: new_cen = %g %g %g",xcen,ycen,zcen) ;
    if( cent != NULL ) sscanf(cent,"%f%f%f",&xcen,&ycen,&zcen) ;
    LOAD_FVEC3(msk->init_cen,xcen,ycen,zcen) ;
    LOAD_FVEC3(msk->show_cen,xcen,ycen,zcen) ;
-INFO_message("SUMA_mask: init_cen = %g %g %g",xcen,ycen,zcen) ;
+/** INFO_message("SUMA_mask: init_cen = %g %g %g",xcen,ycen,zcen) ; **/
 
    /*-- insert new mask into session for later use --*/
 
@@ -1864,7 +1870,7 @@ ENTRY("process_NIML_SUMA_ixyz");
    yc = (float *) nel->vec[2] ;  /* y coordinate */
    zc = (float *) nel->vec[3] ;  /* z coordinate */
 
-#if 1
+#if 0
    if( msk != NULL ){
      float xb=0.0f,yb=0.0f,zb=0.0f ; int ib ;
      for( ib=0 ; ib < nel->vec_filled ; ib++ ){
