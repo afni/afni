@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , APR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+  { 8 , APR , 2014 , RWC , "afni" , MINOR , TYPE_GENERAL ,
+   "Draw mask surface sent from SUMA, for delectation." ,
+   "Add a SUMA_mask struct type to afni_suma.h, and then process its\n"
+   "corresponding NIML element in afni_niml.c.  Masks are stored in the\n"
+   "THD_session struct, and are re-drawn when their center is altered by a\n"
+   "simple command (unlike normal surfaces).  Also changed -- always send\n"
+   "change of crosshairs to SUMA even if no surfaces are present -- let SUMA\n"
+   "figure out what to do with it (e.g., move the mask)." } ,
+
+ { 2 , APR , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Changes to way warps are combined" ,
    "In particular, outside their domain, warp displacements are now linearly\n"
    "extrapolated rather than set to zero.  Also, a number of smaller tweaks\n"

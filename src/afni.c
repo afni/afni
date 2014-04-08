@@ -3126,7 +3126,7 @@ STATUS("creating memplot for image overlay") ;
         xrel = msk->show_cen.xyz[0] - msk->init_cen.xyz[0] ;
         yrel = msk->show_cen.xyz[1] - msk->init_cen.xyz[1] ;
         zrel = msk->show_cen.xyz[2] - msk->init_cen.xyz[2] ;
-INFO_message("SUMA_mask draw: xyz rel = %g %g %g",xrel,yrel,zrel) ;
+/** INFO_message("SUMA_mask draw: xyz rel = %g %g %g",xrel,yrel,zrel) ; **/
       }
 
       /* define parameters for node boxes and triangle lines */
@@ -10347,7 +10347,6 @@ int AFNI_jumpto_dicom( Three_D_View *im3d , float xx, float yy, float zz )
      ii = AFNI_jumpto_dicom_OLD(im3d,xx,yy,zz) ;
    return ii ;
 }
-
 
 /*----------- the two functions below date to 19 Aug 1999 -------------*/
 
