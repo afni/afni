@@ -3170,6 +3170,7 @@ STATUS("defining surface drawing parameters") ;
 
         DC_parse_color( im3d->dc , ag->line_color , &rr_lin,&gg_lin,&bb_lin ) ;
         DC_parse_color( im3d->dc , ag->box_color  , &rr_box,&gg_box,&bb_box ) ;
+        linewidth = ag->line_width * 0.002f ;
 		  skip_boxes = 1 ; skip_lines = 0 ; skip_lcen = 0; skip_ledg = 1 ;
 
       } else {                                   /* the old way    */
