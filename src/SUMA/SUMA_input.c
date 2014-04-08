@@ -139,6 +139,7 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       if (SUMA_iswordsame_ci(keyname,"f7") == 1) SUMA_RETURN(XK_F7);
       if (SUMA_iswordsame_ci(keyname,"f8") == 1) SUMA_RETURN(XK_F8);
       if (SUMA_iswordsame_ci(keyname,"f9") == 1) SUMA_RETURN(XK_F9);
+      if (SUMA_iswordsame_ci(keyname,"f10") == 1) SUMA_RETURN(XK_F10);
       if (SUMA_iswordsame_ci(keyname,"f11") == 1) SUMA_RETURN(XK_F11);
       if (SUMA_iswordsame_ci(keyname,"f12") == 1) SUMA_RETURN(XK_F12);
 
@@ -934,6 +935,52 @@ int SUMA_F9_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          break; 
       default:
          SUMA_S_Err("Il ne faut pas etre hawn");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+int SUMA_F10_Key(SUMA_SurfaceViewer *sv,char *key, char *callmode, char *strgval)
+{
+   static char FuncName[]={"SUMA_F10_Key"};
+   char tk[]={"F10"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   static int inote = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_F10:
+         if (sv->PryAx == 2) sv->PryAx = 3;
+         else if (sv->PryAx == 3) sv->PryAx = 2;
+         else { 
+            SUMA_S_Err("Bad PryAx of %d. Reverting to 3", sv->PryAx);
+            sv->PryAx = 3;
+         }
+         {
+            char stmp[200];
+            if (sv->PryAx == 3) {
+               sprintf(stmp,"Prying about Z axis");
+            } else {
+               sprintf(stmp,"Prying about Y axis");
+            }
+            if (callmode && strcmp(callmode, "interactive") == 0 && inote < 2) { 
+               SUMA_SLP_Note("%s",stmp); ++inote;}
+            else { SUMA_S_Note("%s",stmp); }
+         }
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break; 
+      default:
+         SUMA_S_Err("Il ne faut pas etre la dessous");
          SUMA_RETURN(0);
          break;
    }
@@ -4800,6 +4847,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          
          case XK_F9: /*F9 */
             if (!SUMA_F9_Key(sv, "F9", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
+            break;
+            
+         case XK_F10: /*F10 */
+            if (!SUMA_F10_Key(sv, "F10", "interactive", NULL)) {
                SUMA_S_Err("Failed in key func.");
             }
             break;
