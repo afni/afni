@@ -3775,3 +3775,9 @@ header of AFNI datasets at write time. The value of the attribute is that of
 the variable AFNI_HISTDB_SCRIPT.
 At the moment, this variable is solely for Tom Ross's nefarious history
 databasing schemes.
+
+------------------------------------
+Variable:  AFNI_ICORR_UBER_USER
+------------------------------------
+If set to YES, enable distance measures that are not ready for prime time in the 
+instacorr interface.
