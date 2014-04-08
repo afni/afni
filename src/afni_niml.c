@@ -1328,7 +1328,7 @@ STATUS("call get_xhair_node") ;
 
    /* 20 Feb 2003: set attribute showing closest node ID */
 
-   if( ibest >= 0 ){
+   if( kbest >= 0 && ibest >= 0 ){
      char str[32] ;
      sprintf(str,"%d",ibest) ;
      NI_set_attribute( nel, "surface_nodeid" , str ) ;
