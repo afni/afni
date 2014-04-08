@@ -634,6 +634,7 @@ void SUMA_SaveVisualState(char *fname, void *csvp);
 void SUMA_LoadSegDO (char *s, void *csvp);
 SUMA_Boolean SUMA_LoadVolDO (char *fname, 
                         SUMA_DO_CoordUnits coord_type, SUMA_VolumeObject **VOp);
+int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO);
 void SUMA_SiSi_I_Insist(void);
 void SUMA_BuildMenuReset(int nchar);
 void SUMA_MenuArrowFieldCallback (void *CB);

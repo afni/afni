@@ -1054,7 +1054,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
                SV->N_otseq = SUMA_SetObjectDisplayOrder("DEFAULT", SV->otseq);
             }
          }
-      } 
+      }
+      
+      SV->PryAx = 3; 
    }
    SUMA_RETURN (SVv);
 }

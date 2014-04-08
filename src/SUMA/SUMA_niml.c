@@ -1503,7 +1503,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   if (MASK_MANIP_MODE(svi)) {
                      SUMA_MaskDO *mdo=NULL;
                      SUMA_ALL_DO *ado=NULL;
-                     SUMA_LH("Moving mask");
+                     SUMA_LH("Moving mask, from AFNI");
                      if ((ado=SUMA_whichADOg(svi->MouseMode_ado_idcode_str)) && 
                            ado->do_type == MASK_type && 
                            nel->vec[0] && nel->vec_len == 3 && 
@@ -1513,10 +1513,13 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                                           (float *)nel->vec[0]);
                         if (!list) list = SUMA_CreateList();
                         svi->ResetGLStateVariables = YUP; 
-
+                        
                         /* Tell AFNI of new position */
                         ED = SUMA_InitializeEngineListData (SE_SetAfniMask);
                         mdo = (SUMA_MaskDO *)ado;
+
+                        /* turn off dopplegangeriness */
+                        SUMA_MDO_New_Doppel(mdo, NULL);
                         if (!(Location=
                                     SUMA_RegisterEngineListCommand (  list, ED, 
                                                       SEF_fv3, (void*)mdo->cen,
@@ -1558,7 +1561,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                                "%s: surface_idcode missing in nel (%s), "
                                "using svi->Focus_DO_ID.\n", FuncName, nel->name);
                      if (!(SOaf = SUMA_SV_Focus_any_SO(svi, &dest_SO_ID))) { 
-                        SUMA_S_Err("No surface I can work with");
+                        SUMA_LH("No surface I can work with.\n"
+                          "This happens in error or when talking without surfs");
                         SUMA_RETURN(NOPE);
                      }
                   } else {

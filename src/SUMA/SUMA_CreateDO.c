@@ -5694,7 +5694,7 @@ SUMA_Boolean SUMA_DrawMaskDO(SUMA_MaskDO *MDO, SUMA_SurfaceViewer *sv)
       pmode = MDO->SO->PolyMode;
       psize = MDO->SO->PointSize;
       MDO->SO->PolyMode = SRM_Points;
-      MDO->SO->PointSize = 4.0;
+      MDO->SO->PointSize = 2.0;
       SUMA_SimpleDrawMesh(MDO->SO,NULL,sv);
       MDO->SO->PolyMode = pmode;
       MDO->SO->PointSize = psize;
@@ -17526,8 +17526,9 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
           !(SOv[0]->EmbedDim == 2 && SOv[1]->EmbedDim == 2) ) {
          SUMA_LH("Regular deal");
          regdeal = 1;
+                     if (sv->PryAx == 3) {
          if (rot*sv->GVS[sv->StdView].LHlol >= 0) {/*rot. about posterior axes */
-            /* Compute average medial Y axis (Box segment 12 from left hemi +
+            /* Compute average medial Z axis (Box segment 12 from left hemi +
                                                   segment 11 from right hemi )
                (see SUMA_SortedAxisSegmentList() and labbook NIH-IV, pp 21)*/
             Pb[0] = (SOv[0]->MeshAxis->BR[0][1] +    /* pt B, left hemi (xmax)*/
@@ -17544,7 +17545,7 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
             Pt[2] = (SOv[0]->MeshAxis->BR[2][1] +    /* pt F, left hemi (zmax)*/
                      SOv[1]->MeshAxis->BR[2][1])/2.0;/* pt E, right hemi (zmax)*/
          } else {
-            /* Compute average medial Y axis (Box segment 10 from left hemi +
+            /* Compute average medial Z axis (Box segment 10 from left hemi +
                                                   segment 9 from right hemi )
                (see  SUMA_SortedAxisSegmentList() and labbook NIH-IV, pp 21)*/
             Pb[0] = (SOv[0]->MeshAxis->BR[0][1] +    /* pt D, left hemi (xmax)*/
@@ -17561,6 +17562,46 @@ int SUMA_ComputeVisX(SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
             Pt[2] = (SOv[0]->MeshAxis->BR[2][1] +    /* pt H, left hemi (zmax)*/
                      SOv[1]->MeshAxis->BR[2][1])/2.0;/* pt G, right hemi (zmax)*/
          } 
+                     } else if (sv->PryAx == 2) {
+         if (rot*sv->GVS[sv->StdView].LHlol <= 0) {/*rot. about top axes */
+            /* Compute average medial Y axis (Box segment 12 from left hemi +
+                                                  segment 11 from right hemi )
+               (see SUMA_SortedAxisSegmentList() and labbook NIH-IV, pp 21)*/
+            Pb[0] = (SOv[0]->MeshAxis->BR[0][1] +    /* pt B, left hemi (xmax)*/
+                     SOv[1]->MeshAxis->BR[0][0])/2.0;/* pt A, right hemi (xmin)*/
+            Pb[1] = (SOv[0]->MeshAxis->BR[1][0] +    /* pt B, left hemi (ymin)*/
+                     SOv[1]->MeshAxis->BR[1][0])/2.0;/* pt A, right hemi (ymin)*/
+            Pb[2] = (SOv[0]->MeshAxis->BR[2][0] +    /* pt B, left hemi (zmin)*/
+                     SOv[1]->MeshAxis->BR[2][0])/2.0;/* pt A, right hemi (zmin)*/
+
+            Pt[0] = (SOv[0]->MeshAxis->BR[0][1] +    /* pt F, left hemi (xmax)*/
+                     SOv[1]->MeshAxis->BR[0][0])/2.0;/* pt E, right hemi (xmin)*/
+            Pt[1] = (SOv[0]->MeshAxis->BR[1][1] +    /* pt F, left hemi (ymax)*/
+                     SOv[1]->MeshAxis->BR[1][1])/2.0;/* pt E, right hemi (ymax)*/
+            Pt[2] = (SOv[0]->MeshAxis->BR[2][0] +    /* pt F, left hemi (zmin)*/
+                     SOv[1]->MeshAxis->BR[2][0])/2.0;/* pt E, right hemi (zmin)*/
+         } else {
+            /* Compute average medial Y axis (Box segment 10 from left hemi +
+                                                  segment 9 from right hemi )
+               (see  SUMA_SortedAxisSegmentList() and labbook NIH-IV, pp 21)*/
+            Pb[0] = (SOv[0]->MeshAxis->BR[0][1] +    /* pt D, left hemi (xmax)*/
+                     SOv[1]->MeshAxis->BR[0][0])/2.0;/* pt C, right hemi (xmin)*/
+            Pb[1] = (SOv[0]->MeshAxis->BR[1][0] +    /* pt D, left hemi (ymin)*/
+                     SOv[1]->MeshAxis->BR[1][0])/2.0;/* pt C, right hemi (ymin)*/
+            Pb[2] = (SOv[0]->MeshAxis->BR[2][1] +    /* pt D, left hemi (zmax)*/
+                     SOv[1]->MeshAxis->BR[2][1])/2.0;/* pt C, right hemi (zmax)*/
+
+            Pt[0] = (SOv[0]->MeshAxis->BR[0][1] +    /* pt H, left hemi (xmax)*/
+                     SOv[1]->MeshAxis->BR[0][0])/2.0;/* pt G, right hemi (xmin)*/
+            Pt[1] = (SOv[0]->MeshAxis->BR[1][1] +    /* pt H, left hemi (ymax)*/
+                     SOv[1]->MeshAxis->BR[1][1])/2.0;/* pt G, right hemi (ymax)*/
+            Pt[2] = (SOv[0]->MeshAxis->BR[2][1] +    /* pt H, left hemi (zmax)*/
+                     SOv[1]->MeshAxis->BR[2][1])/2.0;/* pt G, right hemi (zmax)*/
+         }             
+                     } else {
+            SUMA_S_Err("Bad pry axis value, %d", sv->PryAx);
+            SUMA_RETURN(0);
+                     }
          SUMA_UNIT_VEC(Pb, Pt, rotax, rotmag);
          C[0] = C1[0] = (Pt[0] + Pb[0])/2.0;
          C[1] = C1[1] = (Pt[1] + Pb[1])/2.0;

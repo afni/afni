@@ -4191,7 +4191,25 @@ static ENV_SPEC envlist[] = {
       " dataset.\n"
       "Choose one of: Edge, Color, Radius, C&R, XXX\n",
       "SUMA_Dset_NodeConnections",
-      "Edge" }, 
+      "Edge" },
+   {  "Set which slices should be shown when a volume is first loaded"
+      "You can set parameters for each of the Ax, Sa, and Co planes, and\n"
+      "the volume rendering.\n"
+      "Each plane gets its own string formatted as such: PL:SL:MON:INC\n"
+      "where PL is the plane (Ax, Co, Sa, or Vr)\n"
+      "      SL is the slice number, you can also set the number as \n"
+      "         a fraction of the number of slices in the volume.\n"
+      "      MON is the number of montage slices\n"
+      "      INC is the increment between montage slices. You can use \n"
+      "          fractions for this parameter also.\n"
+      "If you want to set parameters for a certain plane, but do not\n"
+      "want to see it, prepend the plane name with 'h' (for hide) as in 'hAx'\n"
+      "Note that for Vr, there are no SL, MON, and INC qualifiers\n"
+      "Also, SUMA will force the display of at least one plane because\n"
+      "otherwise you have no way of opening a volume controller\n"
+      "Example: 'Ax:0.5:3:10 Co:123:2:50'",
+      "SUMA_VO_InitSlices",
+      "Ax:0.5 Sa:0.5:2:0.5 hCo:0.5" }, 
    {  NULL, NULL, NULL  }
 };
       
