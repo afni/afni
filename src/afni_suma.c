@@ -96,6 +96,7 @@ ENTRY("SUMA_create_empty_surface") ;
    ag->mask_parent_idcode[0] = '\0' ;
    ag->line_color[0]         = '\0' ;
    ag->box_color[0]          = '\0' ;
+   ag->line_width            = 0    ;
    ag->mask                  = NULL ;
    ag->parent                = NULL ;
 
