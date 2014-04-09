@@ -258,7 +258,10 @@ OPEN_WINDOW [c.]windowname [options]
                            example: "keypress=Z keypress=Z"
                            to zoom in twice in an image viewer.
   For image windows, other options available are:
-    ifrac=number     -> set image fraction in window to number (<= 1.0)
+    ifrac=number     -> set image fraction in window to number (<= 1.0);
+                        setting this to exactly 1 will turn off the
+                        image viewer 'widgets' in the same way that
+                        the 'Image display' GUI menu item does
     mont=PxQ:R       -> montage P across, Q down, every R'th slice
     opacity=X        -> where X is from 0..9
     crop=x1:x2,y1:y2 -> crop images from voxels x1 to x2, and y1 to y2
