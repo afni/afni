@@ -4827,7 +4827,8 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    if (!sv) {
       sv = &(SUMAg_SVv[0]);
    }
-
+   SUMA_LH("Viewer id %s, isv=%d sv=%p",svid?svid:"NULL", isv, sv);
+   
    ado = NULL;
    if (!(adoid = NI_get_attribute(ngr,"SO_idcode")) &&
        !(adoid = NI_get_attribute(ngr,"DO_idcode"))) 
