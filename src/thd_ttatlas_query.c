@@ -1336,7 +1336,20 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                     hiend);
                            } else {
                               SS('t');
-                              sprintf(lbuf, "%s   Within %1d mm: %s%s",
+                              if(AFNI_wami_output_mode() &&
+                                 (wami->zone[iq]->webpage[il]) &&
+                                 (strcmp(wami->zone[iq]->webpage[il],"")!=0))
+                              {
+                                 sprintf(lbuf,
+                                 "%s      Within %1d mm: <a href=\"%s\">%s</a>%s",
+                                    histart,
+                                    (int)wami->zone[iq]->radius[il], 
+                                    wami->zone[iq]->webpage[il],
+                                    Clean_Atlas_Label(wami->zone[iq]->label[il]),
+                                    hiend);
+                              }
+                              else
+                                 sprintf(lbuf, "%s   Within %1d mm: %s%s",
                                     histart,
                                     (int)wami->zone[iq]->radius[il], 
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
@@ -1345,7 +1358,19 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                            newzone = 0;
                         } else {
                            SS('u');
-                           sprintf(lbuf, "%s          -AND- %s%s", histart,
+                           if(AFNI_wami_output_mode() &&
+                              (wami->zone[iq]->webpage[il]) &&
+                              (strcmp(wami->zone[iq]->webpage[il],"")!=0))
+                           {
+                              sprintf(lbuf,
+                              "%s      -AND-: <a href=\"%s\">%s</a>%s",
+                                 histart,
+                                 wami->zone[iq]->webpage[il],
+                                 Clean_Atlas_Label(wami->zone[iq]->label[il]),
+                                 hiend);
+                           }
+                           else
+                              sprintf(lbuf, "%s          -AND- %s%s", histart,
                                  Clean_Atlas_Label(wami->zone[iq]->label[il]), hiend);
                         }
 
@@ -6315,8 +6340,9 @@ ATLAS_ZONE *Atlas_Zone( ATLAS_ZONE *zn, int level, char *label,
       zno->radius = (float *)realloc(zno->radius, sizeof(float)*zno->N_label);
       zno->radius[zno->N_label-1] = within;
       zno->webpage = (char **)realloc(zno->webpage, sizeof(char *)*zno->N_label);
-      if(webpage)
+      if(webpage) {
          zno->webpage[zno->N_label-1] = nifti_strdup(webpage);
+      }
       else
          zno->webpage[zno->N_label-1] = NULL;
 
@@ -7617,6 +7643,7 @@ int whereami_in_atlas(  char *aname,
    int LocalHead = wami_lh();
    float fval = 0;
    static char find_warn = 0, nolabel_warn = 1;
+   char *webpage = NULL;
 
    ENTRY("whereami_in_atlas");
       if (wami_verb()){
@@ -7836,6 +7863,7 @@ int whereami_in_atlas(  char *aname,
       for( ff=0 ; ff < nfind ; ff++ ){
          baf = b_find[ff] ; blab = NULL ;
          blab = atlas_key_label(atlas, baf, &ac);
+
          if( blab == NULL && is_atlas_key_labeled(atlas, baf)) {
             if(nolabel_warn) {
                WARNING_message(
@@ -7849,9 +7877,13 @@ int whereami_in_atlas(  char *aname,
 
          zn = Get_Atlas_Zone (*wamip, (int)rr_find[ff] ); 
                   /* zone levels are based on search radius */
+
+         webpage = atlas_suppinfo_webpage(atlas,blab);
          zn = Atlas_Zone(  zn, zn->level,
                            blab, baf, atlas->adh->probkey, rr_find[ff], 
-                           Atlas_Name(atlas), NULL);  /* null for no webpage here */
+                           Atlas_Name(atlas), webpage);
+         if(webpage) free(webpage);
+
          if (LocalHead) 
             INFO_message("Adding zone on %s to wami\n", 
                             Atlas_Name(atlas)); 
@@ -7907,9 +7939,11 @@ int whereami_in_atlas(  char *aname,
                   blab = prob_atlas_sb_to_label(atlas, sb, &baf); 
                   if (blab) {
                      if (LocalHead) fprintf(stderr," blabing: %s\n", blab);
+                     webpage = atlas_suppinfo_webpage(atlas,blab);
                      zn = Atlas_Zone(zn, 0, blab, baf , 
                                     fval, 0, 
-                            Atlas_Name(atlas), NULL); /* null for no webpage here */
+                            Atlas_Name(atlas), webpage);
+                     if(webpage) free(webpage);
                   } else {
                      if (LocalHead) fprintf(stderr," no blabing:\n");
                      zn = Atlas_Zone(  zn, 0, "Unexpected trouble.", 
@@ -8088,6 +8122,7 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
    ATLAS *atlas=NULL;
    int LocalHead = wami_lh();
    int dset_kind;
+   char *webpage = NULL;
    float fbaf;
    static int iwarn = 0;
    
@@ -8355,10 +8390,12 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                    INFO_message("Adding zone to query results (%d, %s, %d)",
                                  baf, STR_PRINT(blab), 
                                  is_atlas_key_labeled(atlas,baf));
+               webpage = atlas_suppinfo_webpage(atlas,blab);
+
                zn = Atlas_Zone(  zn, zn->level,
                      blab, baf, (float) atlas->adh->probkey, 
-                     rr_find[ff], Atlas_Name(atlas), NULL);
-               
+                     rr_find[ff], Atlas_Name(atlas), webpage);
+               if(webpage) free(webpage);
                wami = Add_To_Atlas_Query(wami, zn);
                rff = rr_find[ff] ;  /* save for next time around */
             }
@@ -8402,9 +8439,12 @@ int whereami_9yards(  ATLAS_COORD aci, ATLAS_QUERY **wamip,
                      blab = prob_atlas_sb_to_label(atlas, ii, &baf);
                      if (blab) {
                         if (LocalHead) fprintf(stderr," blabing: %s\n", blab);
+                        webpage = atlas_suppinfo_webpage(atlas,blab);
+
                         zn = Atlas_Zone(  zn, 0, blab, baf , 
                                           fbaf, 0, 
-                                          Atlas_Name(atlas), NULL);
+                                          Atlas_Name(atlas), webpage);
+                        if(webpage) free(webpage);
                      } else {
                         if (LocalHead) fprintf(stderr," no blabing:\n");
                         zn = Atlas_Zone(zn, 0, "Unexpected trouble.",
@@ -9687,6 +9727,27 @@ void set_AFNI_wami_output_mode(int webflag)
       AFNI_setenv("AFNI_WEBBY_WAMI=NO");
 }
 
+/* return webpage name with supplemental information for a particular label -
+   the name is based on label itself and the atlas supp_web_info base site name and
+   an extension type (.pdf, .html, ...) */ 
+char * atlas_suppinfo_webpage(ATLAS *atlas, char *blab)
+{
+/*    static char webpage[256];*/
+
+   char *webpage;
+
+    if(ATL_SUPP_WEB_INFO(atlas) == 0) return(NULL);
+
+/*    webpage = calloc(strlen(atlas->supp_web_info)+strlen(blab)+strlen(atlas->supp_web_type),sizeof(char));*/
+    webpage = calloc(256,sizeof(char));
+    if(webpage==NULL) return(NULL);
+
+    if(atlas->supp_web_type != NULL)
+       sprintf(webpage, "%s/%s%s", atlas->supp_web_info, blab, atlas->supp_web_type);
+    else
+       sprintf(webpage, "%s/%s.html", atlas->supp_web_info, blab);
+    return (webpage);
+}
 
 /* set minimum probabilty to use in probabilistic atlases */
 void set_wami_minprob(float val)
@@ -9761,4 +9822,5 @@ wami_xform_coords_print(float *coords, int ncoords,
    free(xfl);
    RETURN(0);
 }
+
 
