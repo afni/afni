@@ -100,6 +100,7 @@ void print_atlas_table(ATLAS_LIST *xal);
 void print_atlas(ATLAS *xa, int level) ;
 void print_atlas_comment(ATLAS *xa) ;
 void print_atlas_type(ATLAS *xa) ;
+void print_atlas_supp_web_info(ATLAS *xa);
 void print_atlas_orient(ATLAS *xa) ;
 void print_point_lists(ATLAS_LIST *xal);
 void print_template_list(ATLAS_TEMPLATE_LIST *xtl);

@@ -166,6 +166,8 @@ typedef struct {
    char *comment;
    char *atlas_type;  /* web or NULL for now, for web type, dset is http webpage address */
    char *orient;  /* string to specify xyz order requests - Elsevier's web version uses "RSA"*/
+   char *supp_web_info; /* string specifying base webpage for supplemental structure info */
+   char *supp_web_type; /* extension suffix for webpages - pdf, html,... */
    int atlas_found;
    ATLAS_DSET_HOLDER *adh;
 } ATLAS; /*!< All char * should be initialized when .niml file is loaded,
@@ -208,6 +210,14 @@ typedef struct {
                               (xa)->atlas_type : "None" )
 /* is the atlas a web type */
 #define ATL_WEB_TYPE(xa) (strcasecmp((ATL_TYPE_S(xa)),"web")== 0)
+
+/* is there supplemental information on Internet */
+#define ATL_SUPP_WEB_INFO(xa) ((xa) && (xa)->supp_web_info ? 1: 0)
+#define ATL_SUPP_WEB_INFO_S(xa) ( (ATL_SUPP_WEB_INFO(xa)) ? \
+          ((xa)->supp_web_info)   : "No supplemental info " )
+#define ATL_SUPP_WEB_TYPE(xa) ((xa)->supp_web_type ? 1: 0)
+#define ATL_SUPP_WEB_TYPE_S(xa) ( (ATL_SUPP_WEB_TYPE(xa)) ? \
+          ((xa)->supp_web_type)   : ".html" )
 
 #define ATL_FOUND(xa) ( (xa)  ? \
                            ((xa)->atlas_found) : 0 )
@@ -485,6 +495,8 @@ char * get_wami_webpage(void);
 void open_wami_webpage(void);
 int AFNI_wami_output_mode(void);
 void set_AFNI_wami_output_mode(int webflag);
+char * atlas_suppinfo_webpage(ATLAS *atlas, char *blab);
+
 size_t CURL_read_URL_http ( char *url, char **data);
 void set_wami_minprob(float val);
 float get_wami_minprob(void);
