@@ -247,8 +247,9 @@ int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          if (!Nwarn_bracket && callmode && 
                strcmp(callmode, "interactive") == 0) { 
-            SUMA_SLP_Note("%s",stmp); ++Nwarn_bracket;
+            SUMA_SLP_Note("%s",stmp); 
          } else { SUMA_S_Note("%s",stmp); } 
+         ++Nwarn_bracket;
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
@@ -291,8 +292,9 @@ int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          if (!Nwarn_bracket && callmode && 
                strcmp(callmode, "interactive") == 0) { 
-            SUMA_SLP_Note("%s",stmp); ++Nwarn_bracket;
+            SUMA_SLP_Note("%s",stmp); 
          } else { SUMA_S_Note("%s",stmp); } 
+         ++Nwarn_bracket;
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre la");
