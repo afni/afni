@@ -585,9 +585,10 @@ g_history = """
    0.35 Mar 21, 2014: removed -e option from "tcsh -ef @ss_review_basic"
         - grep commands are killing it when not finding matches
         - linux systems are not terminating there, while macs do
+   0.36 Apr 09, 2014: for GCOR files, give priority to having 'out' in name
 """
 
-g_version = "gen_ss_review_scripts.py version 0.34, March 11, 2014"
+g_version = "gen_ss_review_scripts.py version 0.36, April 9, 2014"
 
 g_todo_str = """
    - figure out template_space
@@ -1492,7 +1493,14 @@ class MyInterface:
          print '** failed to find gcor dset, continuing...'
          return 0 # failure is not terminal
 
-      self.uvars.gcor_dset = glist[0]
+      # search for files containing 'out', but default to first
+      guse = glist[0]
+      for gfile in glist:
+         if gfile.find('out') >= 0:
+            guse = gfile
+            break
+
+      self.uvars.gcor_dset = guse
 
       return 0
 
