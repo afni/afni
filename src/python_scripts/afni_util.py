@@ -638,6 +638,36 @@ def run_time_to_polort(run_time):
     """direct computation: 1+floor(run_time/150)"""
     return 1+math.floor(run_time/150.0)
 
+def index_to_run_tr(index, rlens, rstyle=1, whine=1):
+    """given index and a list of run lengths,
+       return the corresponding run and TR index
+
+       rstyle: 0/1 whether the run index is 0-based or 1-based
+
+       any negative return indicates an error
+    """
+    if index < 0:
+       if whine: print '** ind2run_tr: illegal negative index: %d' % index
+       return 1, index
+    if len(rlens) == 0:
+       if whine: print '** ind2run_tr: missing run lengths'
+       return 1, index
+
+    cind = index
+    for rind, nt in enumerate(rlens):
+       if nt < 0:
+          if whine:
+             print '** ind2run_tr: have negative run length in %s'%rlens
+          return -1, -1
+       if cind < nt:
+          if rstyle: return rind+1, cind
+          else:      return rind, cind
+       cind -= nt
+
+    if whine: print '** ind2run_tr, index %d outside run list %s'%(index,rlens)
+    return rind, cind+nt
+
+
 def get_num_warp_pieces(dset, verb=1):
     """return the number of pieces in the the WARP_DATA transformation
        for this dataset
@@ -2070,7 +2100,7 @@ def glob_form_matches_list(slist, ordered=1):
    return 1
    
 
-def list_minus_glob_form(slist, hpad=0, tpad=0, keep_dent_pre=0):
+def list_minus_glob_form(inlist, hpad=0, tpad=0, keep_dent_pre=0, strip=''):
    """given a list of strings, return the inner part of the list that varies
       (i.e. remove the consistent head and tail elements)
 
@@ -2080,6 +2110,7 @@ def list_minus_glob_form(slist, hpad=0, tpad=0, keep_dent_pre=0):
       hpad NPAD         : number of characters to pad at prefix
       tpad NPAD         : number of characters to pad at suffix
       keep_dent_pre Y/N : (flag) keep entire prefix from directory entry
+      strip             : one of ['', 'dir', 'file', 'ext', 'fext']
 
       If hpad > 0, then pad with that many characters back into the head
       element.  Similarly, tpad pads forward into the tail.
@@ -2099,7 +2130,37 @@ def list_minus_glob_form(slist, hpad=0, tpad=0, keep_dent_pre=0):
       Somewhat opposite glob_form_from_list().
    """
 
-   if len(slist) <= 1: return slist
+   if len(inlist) <= 1: return inlist
+
+   # init with original
+   slist = inlist
+
+   # maybe make a new list of stripped elements
+   stripnames = ['dir', 'file', 'ext', 'fext']
+   if strip != '' and strip not in stripnames:
+      print '** LMGF: bad strip %s' % strip
+      strip = ''
+
+   if strip in stripnames:
+      ss = []
+      for inname in inlist:
+         if strip == 'dir':
+            dname, fname = os.path.split(inname)
+            ss.append(fname)
+         elif strip == 'file':
+            dname, fname = os.path.split(inname)
+            ss.append(dname)
+         elif strip == 'ext':
+            fff, ext = os.path.splittext(inname)
+            ss.append(fff)
+         elif strip == 'fext':
+            fff, ext = os.path.splittext(inname)
+            ss.append(fff)
+         else:
+            print '** LMGF: doubly bad strip %s' % strip
+            break
+      # check for success
+      if len(ss) == len(slist): slist = ss
 
    if hpad < 0 or tpad < 0:
       print '** list_minus_glob_form: hpad/tpad must be non-negative'
@@ -2139,6 +2200,46 @@ def glob_list_minus_pref_suf(pref, suf):
    slen = len(suf)
 
    return [d[plen:-slen] for d in glist]
+
+def list_minus_pref_suf(slist, pref, suf, stripdir=1):
+   """just strip the prefix and suffix from string list elements
+
+      if stripdir, remove leading directories
+
+      return status, stripped list
+
+      status =  0 : all strings have prefix and suffix
+                1 : not all do
+               -1 : on error
+   """
+
+   plen = len(pref)
+   slen = len(suf)
+
+   # possibly strip of directory names
+   if stripdir:
+      flist = []
+      for sname in slist:
+         dd, ff = os.path.split(sname)
+         flist.append(ff)
+   else: flist = slist
+
+   
+   rv = 0
+   rlist = []
+   for fname in flist:
+      if fname.startswith(pref): poff = plen
+      else:                      poff = 0
+
+      if fname.endswith(suf): soff = slen
+      else:                   soff = 0
+
+      if soff: rlist.append(fname[poff:-soff])
+      else:    rlist.append(fname[poff:])
+
+      if not poff or not soff: rv = 1
+
+   return rv, rlist
 
 def okay_as_lr_spec_names(fnames, verb=0):
    """check that names are okay as surface spec files, e.g. for afni_proc.py

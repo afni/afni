@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Apr, 2014, RCR, "gen_ss_review_table.py", MAJOR, TYPE_NEW_PROG,
+   "parse output from @ss_review_basic text into spreadsheet format",
+   "This makes it easy to flag outlier subject values.\n"
+   "Thanks to J Jarcho for encouragement."
+ } ,
+
+ {  9,  Apr, 2014, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "give priority to GCOR files with 'out' in the name",
+   NULL
+ } ,
+
  {  4,  Apr, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "fixed reading NIFTI obliquity w/dglen (lost Mar 22)",
    "Thanks to P Kundu for noting the problem."
