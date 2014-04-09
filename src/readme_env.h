@@ -3776,5 +3776,11 @@ static char * readme_env[] = {
    "the variable AFNI_HISTDB_SCRIPT.\n" ,
    "At the moment, this variable is solely for Tom Ross's nefarious history\n" ,
    "databasing schemes.\n" ,
+   "\n" ,
+   "------------------------------------\n" ,
+   "Variable:  AFNI_ICORR_UBER_USER\n" ,
+   "------------------------------------\n" ,
+   "If set to YES, enable distance measures that are not ready for prime time in the \n" ,
+   "instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 3777
+#define NUM_readme_env 3783
