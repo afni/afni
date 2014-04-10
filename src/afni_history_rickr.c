@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Apr, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "@afni.run.me never made it into Makefile.INCLUDE for distribution",
+   NULL
+ } ,
+
  { 10,  Apr, 2014, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -index_to_run_tr, intended for use by afni_proc.py",
    NULL
