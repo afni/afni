@@ -653,18 +653,27 @@ def index_to_run_tr(index, rlens, rstyle=1, whine=1):
        if whine: print '** ind2run_tr: missing run lengths'
        return 1, index
 
+    # if there is only 1 run and it is short, compute modulo
+    rlengths = rlens
+    if len(rlens) == 1 and index >= rlens[0]:
+       rind = index // rlens[0]
+       cind = index % rlens[0]
+       if rstyle: return rind+1, cind
+       else:      return rind, cind
+
     cind = index
-    for rind, nt in enumerate(rlens):
+    for rind, nt in enumerate(rlengths):
        if nt < 0:
           if whine:
-             print '** ind2run_tr: have negative run length in %s'%rlens
+             print '** ind2run_tr: have negative run length in %s' % rlengths
           return -1, -1
        if cind < nt:
           if rstyle: return rind+1, cind
           else:      return rind, cind
        cind -= nt
 
-    if whine: print '** ind2run_tr, index %d outside run list %s'%(index,rlens)
+    if whine: print '** ind2run_tr, index %d outside run list %s' \
+                    % (index, rlengths)
     return rind, cind+nt
 
 
