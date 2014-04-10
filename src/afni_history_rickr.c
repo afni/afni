@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Apr, 2014, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -index_to_run_tr, intended for use by afni_proc.py",
+   NULL
+ } ,
+
  {  9,  Apr, 2014, RCR, "gen_ss_review_table.py", MAJOR, TYPE_NEW_PROG,
    "parse output from @ss_review_basic text into spreadsheet format",
    "This makes it easy to flag outlier subject values.\n"
