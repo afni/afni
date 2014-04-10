@@ -28,18 +28,18 @@ g_help_string = """
 ---------------------------------------------------------------------------
 examples (very basic for now):
 
-   1.  Select by rows and columns, akin to 1dcat.
+   Example 1.  Select by rows and columns, akin to 1dcat.
 
          1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
 
-   2.  Compare with selection by separate options.
+   Example 2.  Compare with selection by separate options.
 
          1d_tool.py -infile data/X.xmat.1D                  \\
                     -select_cols '0..3' -select_rows '0..5' \\
                     -write t2.1D
          diff t1.1D t2.1D
 
-   2b. Select or remove columns by label prefixes.
+   Example 2b. Select or remove columns by label prefixes.
 
        Keep only bandpass columns:
 
@@ -58,7 +58,7 @@ examples (very basic for now):
                     -label_prefix_keep Run d a b          \\
                     -label_prefix_drop bandpass
 
-   2c. Select columns by group values, 3 examples.
+   Example 2c. Select columns by group values, 3 examples.
 
        First be sure of what the group labels represent.
 
@@ -76,24 +76,24 @@ examples (very basic for now):
 
          1d_tool.py -infile X.xmat.1D -select_groups POS 0, -1 -write order.1D
 
-   3.  Transpose a dataset, akin to 1dtranspose.
+   Example 3.  Transpose a dataset, akin to 1dtranspose.
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
 
-   4a. Pad a file of regressors for a single run (#2) with zeros, so
+   Example 4a. Pad a file of regressors for a single run (#2) with zeros, so
        that it becomes run 2 of 7 (runs are 1-based).
 
          1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
                     -write ricor_r02_all.1D
 
-   4b. Similar to 4a, but specify varying TRs per run.  The number of
+   Example 4b. Similar to 4a, but specify varying TRs per run.  The number of
        runs must match the number of run_lengths parameters.
 
          1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
                     -set_run_lengths 64 61 67 61 67 61 67        \\
                     -write ricor_r02_all.1D
 
-   5.  Display small details about a 1D dataset:
+   Example 5.  Display small details about a 1D dataset:
 
        a. Display number of rows and columns for a 1D dataset.
 
@@ -107,57 +107,58 @@ examples (very basic for now):
 
          1d_tool.py -infile X.xmat.1D -show_group_labels
 
-   6a.  Show correlation matrix warnings for this matrix.
+   Example 6a.  Show correlation matrix warnings for this matrix.
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings
 
-   6b.  Show entire correlation matrix.
+   Example 6b.  Show entire correlation matrix.
 
          1d_tool.py -infile X.xmat.1D -show_cormat
 
-   7a. Output temporal derivative of motion regressors.  There are 9 runs in
-       dfile_rall.1D, and derivatives are applied per run.
+   Example 7a. Output temporal derivative of motion regressors.  There are
+       9 runs in dfile_rall.1D, and derivatives are applied per run.
 
          1d_tool.py -infile dfile_rall.1D -set_nruns 9 \\
                     -derivative -write motion.deriv.1D
 
-   7b. Similar to 7a, but let the run lengths vary.  The sum of run lengths
-       should equal the number of time points.
+   Example 7b. Similar to 7a, but let the run lengths vary.  The sum of run
+       lengths should equal the number of time points.
 
          1d_tool.py -infile dfile_rall.1D                       \\
                     -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
                     -derivative -write motion.deriv.rlens.1D
 
-   7c. Use forward differences, instead of the default backward differences.
+   Example 7c. Use forward differences, instead of the default backward
+       differences.
 
          1d_tool.py -infile dfile_rall.1D                       \\
                     -set_run_lengths 64 64 64 64 64 64 64 64 64 \\
                     -forward_diff -write motion.deriv.rlens.1D
 
-   8.  Verify whether labels show slice-major ordering (where all slice0
-       regressors come first, then all slice1 regressors, etc).  Either
+   Example 8.  Verify whether labels show slice-major ordering (where all
+       slice0 regressors come first, then all slice1 regressors, etc).  Either
        show the labels and verify visually, or print whether it is true.
 
          1d_tool.py -infile scan_2.slibase.1D'[0..12]' -show_labels
          1d_tool.py -infile scan_2.slibase.1D -show_labels
          1d_tool.py -infile scan_2.slibase.1D -show_label_ordering
 
-   9a. Given motion.1D, take the derivative (ignoring run breaks) and the
-       Euclidean Norm, and write as e.norm.1D.  This might be plotted to show
-       show sudden motion as a single time series.
+   Example 9a. Given motion.1D, take the derivative (ignoring run breaks) and
+       the Euclidean Norm, and write as e.norm.1D.  This might be plotted to
+       show show sudden motion as a single time series.
 
          1d_tool.py -infile motion.1D -set_nruns 9              \\
                     -derivative  -collapse_cols euclidean_norm  \\
                     -write e.norm.1D
 
-   9b. Similar to 9a, but supposing the run lengths vary (still 576 TRs).
+   Example 9b. Like 9a, but supposing the run lengths vary (still 576 TRs).
 
          1d_tool.py -infile motion.1D                           \\
                     -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                     -derivative  -collapse_cols euclidean_norm  \\
                     -write e.norm.rlens.1D
 
-   9c. Similar to 9b, but weight the rotations as 0.9 mm.
+   Example 9c. Like 9b, but weight the rotations as 0.9 mm.
 
          1d_tool.py -infile motion.1D                           \\
                     -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
@@ -165,10 +166,11 @@ examples (very basic for now):
                     -weight_vec .9 .9 .9 1 1 1                  \\
                     -write e.norm.weighted.1D
 
-  10.  Given motion.1D, create censor files to use in 3dDeconvolve, where a
-       TR is censored if the derivative values have a Euclidean Norm above 1.2.
-       It is common to also censor each previous TR, as motion may span both
-       (previous because "derivative" is actually a backward difference).
+  Example 10.  Given motion.1D, create censor files to use in 3dDeconvolve,
+       where a TR is censored if the derivative values have a Euclidean Norm
+       above 1.2.  It is common to also censor each previous TR, as motion may
+       span both (previous because "derivative" is actually a backward
+       difference).
 
        The file created by -write_censor can be used with 3dD's -censor option.
        The file created by -write_CENSORTR can be used with -CENSORTR.  They
@@ -208,7 +210,7 @@ examples (very basic for now):
 
        Consider also '-censor_prev_TR' and '-censor_first_trs'.
 
-  11.  Demean the data.  Use motion parameters as an example.
+  Example 11.  Demean the data.  Use motion parameters as an example.
 
        The demean operation is done per run (default is 1 when 1d_tool.py
        does not otherwise know).
@@ -228,7 +230,7 @@ examples (very basic for now):
                 -set_run_lengths 64 61 67 61 67 61 67 61 67 \\
                 -demean -write motion.demean.c.1D
 
-  12.  "Uncensor" the data, zero-padding previously censored TRs.
+  Example 12.  "Uncensor" the data, zero-padding previously censored TRs.
 
        Note that an X-matrix output by 3dDeconvolve contains censor
        information in GoodList, which is the list of uncensored TRs.
@@ -242,7 +244,7 @@ examples (very basic for now):
          1d_tool.py -infile sum.ideal.1D -censor_fill_parent X.xmat.1D \\
                     -write sum.ideal.uncensored.1D
 
-  13. Show whether the input file is valid as a numeric data file.
+  Example 13. Show whether the input file is valid as a numeric data file.
 
        a. as any generic 1D file
 
@@ -272,10 +274,10 @@ examples (very basic for now):
           1d_tool.py -infile data.txt -looks_like_test_all \\
                      -set_run_lengths 64 64 64 -set_tr 2
 
-   14. Split motion parameters across runs, but keep them at the original
-       length so they apply to the same multi-run regression.  Each file will
-       be the same as the original for the run it applies to, but zero across
-       all other runs.
+   Example 14. Split motion parameters across runs, but keep them at the
+       original length so they apply to the same multi-run regression.  Each
+       file will be the same as the original for the run it applies to, but
+       zero across all other runs.
 
        Note that -split_into_pad_runs takes the output prefix as a parameter.
 
@@ -292,8 +294,8 @@ examples (very basic for now):
                     -set_nruns 3                        \\
                     -split_into_pad_runs mot.padded
 
-   15a. Show the maximum pairwise displacement in the motion parameter file.
-       So over all TRs pairs, find the biggest displacement.
+   Example 15a. Show the maximum pairwise displacement in the motion parameter
+       file.  So over all TRs pairs, find the biggest displacement.
 
        In one direction it is easy (AP say).  If the minimum AP shift is -0.8
        and the maximum is 1.5, then the maximum displacement is 2.3 mm.  It
@@ -303,12 +305,12 @@ examples (very basic for now):
 
         1d_tool.py -infile dfile_rall.1D -show_max_displace
 
-   15b. Similar to 15a, but do not include displacement from censored TRs.
+   Example 15b. Like 15a, but do not include displacement from censored TRs.
 
         1d_tool.py -infile dfile_rall.1D -show_max_displace \\
                    -censor_infile motion_censor.1D
 
-   16. Randomize a list of numbers, say, those from 1..40.
+   Example 16. Randomize a list of numbers, say, those from 1..40.
 
        The numbers can come from 1deval, with the result piped to
        '1d_tool.py -input stdin -randomize_trs ...'.
@@ -318,7 +320,7 @@ examples (very basic for now):
 
         See also -seed.
 
-   17. Display min, mean, max, stdev of 1D file.
+   Example 17. Display min, mean, max, stdev of 1D file.
 
         1d_tool.py -show_mmms -infile data.1D
 
@@ -329,7 +331,7 @@ examples (very basic for now):
         cat subject_results/group.*/sub*/*.results/blur.errts.1D \\
                 | 1d_tool.py -show_mmms -infile -
 
-   18. Just output censor count for default method.
+   Example 18. Just output censor count for default method.
 
        This will output nothing but the number of TRs that would be censored,
        akin to using -censor_motion and -censor_prev_TR.
@@ -339,7 +341,7 @@ examples (very basic for now):
         1d_tool.py -infile dfile_rall.1D -set_run_lengths 100 80 120 \
                    -quick_censor_count 0.3
 
-   19. Compute GCOR from some 1D file.
+   Example 19. Compute GCOR from some 1D file.
 
        * Note, time should be in the vertical direction of the file
          (else use -transpose).
@@ -351,7 +353,7 @@ examples (very basic for now):
         1d_tool.py -infile data.1D -show_gcor_doc
         1d_tool.py -infile data.1D -show_gcor_all
 
-   20. Display censored or uncensored TRs lists (maybe for use in 3dTcat).
+   Example 20. Display censored or uncensored TRs lists (for use in 3dTcat).
 
        TRs which were censored:
 
@@ -366,7 +368,7 @@ examples (very basic for now):
           1d_tool.py -infile X.xmat.1D -show_trs_uncensored encoded \\
                      -show_trs_run 2
 
-   21. Convert to rank order.
+   Example 21. Convert to rank order.
 
        a. show rank order of slice times from a 1D file
 
@@ -381,16 +383,16 @@ examples (very basic for now):
          3dinfo -slice_timing epi+orig \\
                 | 1d_tool.py -infile - -rank_style competition -write -
 
-   22. Guess volreg base index from motion parameters.
+   Example 22. Guess volreg base index from motion parameters.
 
          1d_tool.py -infile dfile_rall.1D -collapse_cols enorm -show_argmin
 
-   23. Convert volreg parameters to those suitable for 3dAllineate.
+   Example 23. Convert volreg parameters to those suitable for 3dAllineate.
 
          1d_tool.py -infile dfile_rall.1D -volreg2allineate \\
                     -write allin_rall_aff12.1D
 
-   24. Show TR counts per run.
+   Example 24. Show TR counts per run.
 
         a. list the number of TRs in each run
 
@@ -413,9 +415,22 @@ examples (very basic for now):
           1d_tool.py -infile X.xmat.1D -show_tr_run_counts frac_cen \\
                      -show_trs_run 3
 
-   25. Show number of runs.
+   Example 25. Show number of runs.
 
           1d_tool.py -infile X.xmat.1D -show_num_runs
+
+   Example 26. Convert global index to run and TR index.
+
+       Note that run indices are 1-based, while TR indices are 0-based,
+       as usual.  Confusion is key.
+
+       a. explicitly, given run lengths
+
+          1d_tool.py -set_run_lengths 100 80 120 -index_to_run_tr 217
+
+       b. implicitly, given an X-matrix (** be careful about censoring **)
+
+          1d_tool.py -infile X.nocensor.xmat.1D -index_to_run_tr 217
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -559,6 +574,13 @@ general options:
 
         See also -backward_diff, -derivative, -set_nruns, -set_run_lens.
 
+   -index_to_run_tr INDEX       : convert global INDEX to run and TR indices
+
+        Given a list of run lengths, convert INDEX to a run and TR index pair.
+
+        This option requires -set_run_lens or maybe an Xmat.
+        
+        See also -set_run_lens example 26.
 
    -moderate_mask MIN MAX       : make mask of moderate values
 
@@ -948,9 +970,10 @@ g_history = """
         - added -show_tr_run_counts in various styles
         - added -show_num_runs
    1.21 Dec 30, 2013 - skip polort against polort in -show_cormat_warnings
+   1.22 Apr 10, 2014 - added -index_to_run_tr
 """
 
-g_version = "1d_tool.py version 1.21, Dec 30, 2013"
+g_version = "1d_tool.py version 1.22, April 10, 2014"
 
 
 class A1DInterface:
@@ -962,6 +985,7 @@ class A1DInterface:
       self.user_opts       = None
 
       self.infile          = None       # main input file
+      self.incheck         = 1          # require infile, unless cleared
       self.adata           = None       # main Afni1D class instance
       self.dtype           = 0          # 1=Afni1D, 2=AfniData
 
@@ -982,6 +1006,7 @@ class A1DInterface:
       self.demean          = 0          # demean the data
       self.derivative      = 0          # take temporal derivative
       self.direct          = 0          # for deriv: 0=backward diff, 1=forward
+      self.global_index    = -1         # for -index_to_run_tr
       self.overwrite       = 0          # whether to allow overwriting
       self.pad_to_runs     = []         # pad as run #A out of #B runs
       self.rand_trs        = 0          # randomize order of data over time
@@ -1107,7 +1132,7 @@ class A1DInterface:
                       helpstr='display the current version number')
 
       # required parameter
-      self.valid_opts.add_opt('-infile', 1, [], req=1, 
+      self.valid_opts.add_opt('-infile', 1, [],
                       helpstr='read the given 1D file')
 
       # general options
@@ -1157,6 +1182,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-forward_diff', 0, [], 
                       helpstr='compute first forward differences')
+
+      self.valid_opts.add_opt('-index_to_run_tr', 1, [], 
+                      helpstr='convert global index to run and TR indices')
 
       self.valid_opts.add_opt('-moderate_mask', 2, [], 
                       helpstr='create mask for values within [MIN,MAX]')
@@ -1376,6 +1404,10 @@ class A1DInterface:
             if err: return 1
             self.infile = val
 
+         # ----- already processed options -----
+
+         elif opt.name == '-verb': pass
+
          # ----- general options -----
 
          elif opt.name == '-add_cols':
@@ -1423,7 +1455,7 @@ class A1DInterface:
          elif opt.name == '-reverse_rank':
             self.reverse_rank = 1
 
-         if opt.name == '-censor_infile':
+         elif opt.name == '-censor_infile':
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
             self.censor_infile = val
@@ -1691,15 +1723,15 @@ class A1DInterface:
             if err: return 1
             self.show_trs_censored = val
 
-         elif opt.name == '-show_trs_uncensored':
-            val, err = uopts.get_string_opt('', opt=opt)
-            if err: return 1
-            self.show_trs_uncensored = val
-
          elif opt.name == '-show_trs_run':
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if err: return 1
             self.show_trs_run = val-1 # convert 1-based to 0-based
+
+         elif opt.name == '-show_trs_uncensored':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.show_trs_uncensored = val
 
          elif opt.name == '-sort':
             self.sort = 1
@@ -1732,6 +1764,18 @@ class A1DInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
             self.censortr_file = val
+
+         # options that do not require -infile
+
+         elif opt.name == '-index_to_run_tr':
+            val, err = uopts.get_type_opt(int, '', opt=opt)
+            if err: return 1
+            self.global_index = val
+            self.incheck = 0
+
+         else:
+            print "** unknown option: %s" % opt.name
+            return 1
 
       return
 
@@ -1773,10 +1817,10 @@ class A1DInterface:
 
       # ---- data input options -----
 
-      if not self.infile:
+      if self.incheck and not self.infile:
          print '** missing -infile option'
          return 1
-      elif self.init_from_file(self.infile): return 1
+      elif self.infile and self.init_from_file(self.infile): return 1
 
       # process AfniData separately
       if self.dtype == 2: return self.process_afnidata()
@@ -1823,7 +1867,8 @@ class A1DInterface:
 
       # pad_to_runs is special case, do not set run info
       if len(self.set_run_lengths) > 0 and not self.pad_to_runs:
-         if self.adata.set_nruns(run_lens=self.set_run_lengths): return 1
+         if self.adata != None:
+            if self.adata.set_nruns(run_lens=self.set_run_lengths): return 1
 
       if self.set_tr > 0: self.adata.tr = self.set_tr
 
@@ -1894,8 +1939,9 @@ class A1DInterface:
       if self.show_label_ord: self.adata.show_major_order_of_labels()
       if self.show_labels: self.adata.show_labels()
       if self.show_group_labels: self.adata.show_group_labels()
+      if self.global_index >= 0: self.show_index_to_run_tr()
 
-      # treat reverse as a toggl
+      # treat reverse as a toggle
       if self.reverse_rank:
          if self.rank: style = self.rank
          else:         style = 'dense'
@@ -1971,6 +2017,17 @@ class A1DInterface:
          if self.write_1D(self.write_file): return 1
 
       return
+
+   def show_index_to_run_tr(self):
+      if len(self.set_run_lengths) == 0 and len(self.adata.run_len) > 0:
+         rlens = self.adata.run_len
+      else: rlens = self.set_run_lengths
+
+      run, tr = UTIL.index_to_run_tr(self.global_index, rlens)
+
+      if self.verb > 1:
+         print 'global index %d = run %d, TR %d'%(self.global_index,run,tr)
+      else: print '%02d %d' % (run, tr)
 
    def show_nruns(self):
       """display the number of runs"""
