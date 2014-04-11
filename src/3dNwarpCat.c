@@ -132,7 +132,13 @@ void CNW_help(void)
     "                   is like using '-warp3 C+tlrc'.\n"
     "                ++ At most 99 warps can be used.  If you need more,\n"
     "                   PLEASE back away from the computer slowly, and\n"
-    "                   get professional therapy.\n"
+    "                   get professional counseling.\n"
+    "\n"
+    " -expad PP   == Pad the nonlinear warps by 'PP' voxels in all directions.\n"
+    "                The warp displacements are extended by linear extrapolation\n"
+    "                from the faces of the input grid.\n"
+    "                ++ This option has only limited utility, and is here mostly\n"
+    "                   for obscure testing purposes.\n"
    ) ;
 
    printf(
@@ -384,6 +390,7 @@ int main( int argc , char *argv[] )
    mat44        wmat      , tmat , smat , qmat ;
    IndexWarp3D *warp=NULL , *tarp=NULL ;
    THD_3dim_dataset *oset ;
+   int expad=0 , pad_xm=0,pad_xp=0,pad_ym=0,pad_yp=0,pad_zm=0,pad_zp=0 ;
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
@@ -424,6 +431,27 @@ int main( int argc , char *argv[] )
      }
      if( strncasecmp(argv[iarg],"-wsinc",5) == 0 ){
        interp_code = MRI_WSINC5 ; iarg++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[iarg],"-expad") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
+       if( strstr(argv[iarg],",") == NULL ){
+         expad = (int)strtod(argv[iarg],NULL) ;
+         if( expad < 0 ){
+           WARNING_message("-expad %d is illegal and is set to zero",expad) ;
+           expad = 0 ;
+         }
+         pad_xm = pad_xp = pad_ym = pad_yp = pad_zm = pad_zp = expad ;
+       } else {
+         sscanf(argv[iarg],"%d,%d,%d,%d,%d,%d",&pad_xm,&pad_xp,&pad_ym,&pad_yp,&pad_zm,&pad_zp) ;
+         if( pad_xm < 0 ) pad_xm = 0 ; if( pad_xp < 0 ) pad_xp = 0 ;
+         if( pad_ym < 0 ) pad_ym = 0 ; if( pad_yp < 0 ) pad_yp = 0 ;
+         if( pad_zm < 0 ) pad_zm = 0 ; if( pad_zp < 0 ) pad_zp = 0 ;
+         expad = (pad_xm > 0 || pad_xp > 0 || pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0 ) ;
+       }
+       iarg++ ; continue ;
      }
 
      /*---------------*/
@@ -513,6 +541,11 @@ int main( int argc , char *argv[] )
 
    for( ii=0 ; ii < nwtop ; ii++ ){
 
+     if( iwarp[ii] != NULL && expad > 0 ){
+       IndexWarp3D *QQ = IW3D_zeropad( iwarp[ii] , pad_xm,pad_xp,pad_ym,pad_yp,pad_zm,pad_zp ) ;
+       IW3D_destroy(iwarp[ii]) ; iwarp[ii] = QQ ;
+     }
+
      if( awarp[ii] != NULL ){  /* matrix to apply */
 
        qmat = *(awarp[ii]) ;
@@ -594,7 +627,17 @@ int main( int argc , char *argv[] )
 
    /** write a nonlinear warp dataset **/
 
-   IW3D_adopt_dataset( warp , inset ) ;
+   if( expad == 0 ){
+     IW3D_adopt_dataset( warp , inset ) ;
+   } else {
+     THD_3dim_dataset *adset ;
+     INFO_message("-expad: expanding output warp size") ;
+     adset = THD_zeropad( inset , pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
+                          "PanZaglobaRocks" , ZPAD_IJK | ZPAD_EMPTY ) ;
+     IW3D_adopt_dataset( warp , adset ) ;
+     DSET_delete(adset) ;
+   }
+
    oset = IW3D_to_dataset( warp , prefix ) ;
    tross_Copy_History( inset , oset ) ;
    tross_Make_History( "3dNwarpCat" , argc,argv , oset ) ;

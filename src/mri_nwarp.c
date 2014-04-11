@@ -395,6 +395,47 @@ ENTRY("IW3D_zeropad") ;
    if( AA->zd != NULL )
      BB->zd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
                                     nxold,nyold,nzold , MRI_float , AA->zd ) ;
+
+   /* Use external slopes to extend in a nonzero way outside the box [Apr 2014] */
+
+#undef  AR
+#undef  BR
+#define AR(qd,i,j,k) AA->qd[(i)+(j)*nxold+(k)*nxyold]  /* (i,j,k) in AA array */
+#define BR(qd,i,j,k) BB->qd[(i)+(j)*nxnew+(k)*nxynew]  /* (i,j,k) in BB array */
+
+   if( nxbot > 0 || nxtop > 0 || nybot > 0 || nytop > 0 || nzbot > 0 || nztop > 0 ){
+     int nxyold=nxold*nyold, nxynew=nxnew*nynew, nxo1=nxold-1, nyo1=nyold-1, nzo1=nzold-1 ;
+
+     IW3D_load_external_slopes(AA) ;
+
+ /*** AFNI_OMP_START ;
+      #pragma omp parallel if( nznew > 16 ) ***/
+     { int ii,jj,kk, iq,jq,kq, di,dj,dk ;
+       float Exx,Exy,Exz, Eyx,Eyy,Eyz, Ezx,Ezy,Ezz ;
+         for( kk=0 ; kk < nznew ; kk++ ){
+           kq = kk-nzbot ; dk = 0 ; Exz = Eyz = Ezz = 0.0f ;
+                if( kq < 0 )   { dk = kq     ; kq = 0 ; Exz=AA->es_xd_zm*dk; Eyz=AA->es_yd_zm*dk; Ezz=AA->es_zd_zm*dk; }
+           else if( kq > nzo1 ){ dk = kq-nzo1; kq=nzo1; Exz=AA->es_xd_zp*dk; Eyz=AA->es_yd_zp*dk; Ezz=AA->es_zd_zp*dk; }
+           for( jj=0 ; jj < nynew ; jj++ ){
+             jq = jj-nybot ; dj = 0 ; Exy = Eyy = Ezy = 0.0f ;
+                  if( jq < 0 )   { dj = jq     ; jq = 0 ; Exy=AA->es_xd_ym*dj; Eyy=AA->es_yd_ym*dj; Ezy=AA->es_zd_ym*dj; }
+             else if( jq > nyo1 ){ dj = jq-nyo1; jq=nyo1; Exy=AA->es_xd_yp*dj; Eyy=AA->es_yd_yp*dj; Ezy=AA->es_zd_yp*dj; }
+             for( ii=0 ; ii < nxnew ; ii++ ){
+               iq = ii-nybot ; di = 0 ; Exx = Eyx = Ezx = 0.0f ;
+                    if( iq < 0 )   { di = iq     ; iq = 0 ; Exx=AA->es_xd_xm*di; Eyx=AA->es_yd_xm*di; Ezx=AA->es_zd_xm*di; }
+               else if( iq > nxo1 ){ di = iq-nxo1; iq=nxo1; Exx=AA->es_xd_xp*di; Eyx=AA->es_yd_xp*di; Ezx=AA->es_zd_xp*di; }
+               if( di || dj || dk ){
+                 BR(xd,ii,jj,kk) = AR(xd,iq,jq,kq) + Exx + Exy + Exz ;
+                 BR(yd,ii,jj,kk) = AR(yd,iq,jq,kq) + Eyx + Eyy + Eyz ;
+                 BR(zd,ii,jj,kk) = AR(zd,iq,jq,kq) + Ezx + Ezy + Ezz ;
+               }
+       } } }
+     }
+ /*** AFNI_OMP_END ; ***/
+   }
+#undef  AR
+#undef  BR
+
    IW3D_load_external_slopes(BB) ; RETURN(BB) ;
 }
 
