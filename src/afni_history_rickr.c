@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Apr, 2014, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "added optional 'pid' parameter to the get_process_stack() functions",
+   NULL
+ } ,
+
  { 10,  Apr, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "@afni.run.me never made it into Makefile.INCLUDE for distribution",
    NULL
