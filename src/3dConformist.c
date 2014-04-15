@@ -34,7 +34,7 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(dset[ii],argv[ii+1]) ;
    }
 
-   ii = THD_conformist(ndset,dset,CONFORM_REWRITE) ;
+   ii = THD_conformist(ndset,dset,CONFORM_REWRITE,NULL) ;
 
    switch(ii){
      default: INFO_message ("3dConformist: Re-wrote %d datasets",ii) ; break ;

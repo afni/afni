@@ -47,7 +47,9 @@ ENTRY("THD_delete_datablock") ;
 
          case DATABLOCK_MEM_MALLOC:
          case DATABLOCK_MEM_MMAP:
+STATUS("call purge") ;
             THD_purge_datablock( dblk , dblk->malloc_type ) ;
+STATUS("destroy imarr") ;
             DESTROY_IMARR( dblk->brick ) ;
          break ;
 
