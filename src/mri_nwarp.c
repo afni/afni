@@ -295,6 +295,36 @@ ENTRY("IW3D_zero_fill") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------------*/
+/* Make the geometry fields of an index warp match that of a dataset. */
+
+void IW3D_adopt_dataset( IndexWarp3D *AA , THD_3dim_dataset *dset )
+{
+   mat44 cmat , imat ; char *gstr ;
+
+ENTRY("IW3D_adopt_dataset") ;
+
+   if( AA == NULL || !ISVALID_DSET(dset) ) EXRETURN ;
+
+   if( DSET_NX(dset) != AA->nx || DSET_NY(dset) != AA->ny || DSET_NZ(dset) != AA->nz ){
+     ERROR_message("IW3D_adopt_dataset: grid mismatch") ; EXRETURN ;
+   }
+
+   if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset->daxes) ;
+
+   cmat = dset->daxes->ijk_to_dicom ;  /* takes ijk to xyz */
+   imat = MAT44_INV(cmat) ;            /* takes xyz to ijk */
+
+   AA->cmat = cmat ; AA->imat = imat ;
+   gstr = EDIT_get_geometry_string(dset) ;
+   if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
+   else               AA->geomstring = NULL ;
+   AA->view = dset->view_type ;
+
+   EXRETURN ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 IndexWarp3D_pair * IW3D_pair_insert( IndexWarp3D *AA , IndexWarp3D *BB )
@@ -367,16 +397,18 @@ ENTRY("IW3D_destroy") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* 13 Sep 2013 */
+/* Extend (and/or truncate) an index warp.
+   Extension is via linear extrapolation, unless zpad != 0.
+*//*-------------------------------------------------------------------------*/
 
-IndexWarp3D * IW3D_zeropad( IndexWarp3D *AA , int nxbot , int nxtop ,
-                                              int nybot , int nytop ,
-                                              int nzbot , int nztop  )
+IndexWarp3D * IW3D_extend( IndexWarp3D *AA , int nxbot , int nxtop ,
+                                             int nybot , int nytop ,
+                                             int nzbot , int nztop , int zpad )
 {
    IndexWarp3D *BB ;
    int nxold,nyold,nzold , nxnew,nynew,nznew ;
 
-ENTRY("IW3D_zeropad") ;
+ENTRY("IW3D_extend") ;
 
    if( AA == NULL ) RETURN(NULL) ;
 
@@ -386,6 +418,9 @@ ENTRY("IW3D_zeropad") ;
    nznew = nzold + nzbot + nztop ; if( nznew < 1 ) RETURN(NULL) ;
 
    BB = IW3D_create_vacant( nxnew , nynew , nznew ) ;
+
+   /* here, any extension is zero-padded */
+
    if( AA->xd != NULL )
      BB->xd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
                                     nxold,nyold,nzold , MRI_float , AA->xd ) ;
@@ -403,7 +438,7 @@ ENTRY("IW3D_zeropad") ;
 #define AR(qd,i,j,k) AA->qd[(i)+(j)*nxold+(k)*nxyold]  /* (i,j,k) in AA array */
 #define BR(qd,i,j,k) BB->qd[(i)+(j)*nxnew+(k)*nxynew]  /* (i,j,k) in BB array */
 
-   if( nxbot > 0 || nxtop > 0 || nybot > 0 || nytop > 0 || nzbot > 0 || nztop > 0 ){
+   if( !zpad && (nxbot > 0 || nxtop > 0 || nybot > 0 || nytop > 0 || nzbot > 0 || nztop > 0) ){
      int nxyold=nxold*nyold, nxynew=nxnew*nynew, nxo1=nxold-1, nyo1=nyold-1, nzo1=nzold-1 ;
 
      IW3D_load_external_slopes(AA) ;
@@ -436,7 +471,50 @@ ENTRY("IW3D_zeropad") ;
 #undef  AR
 #undef  BR
 
-   IW3D_load_external_slopes(BB) ; RETURN(BB) ;
+   if( AA->geomstring != NULL ){
+     THD_3dim_dataset *qset , *adset ;
+     qset = EDIT_geometry_constructor(AA->geomstring,"TweedleDum") ;
+     adset = THD_zeropad( qset , nxbot,nxtop , nybot,nytop , nzbot,nztop ,
+                          "TweedleDee" , ZPAD_IJK | ZPAD_EMPTY ) ;
+     IW3D_adopt_dataset( BB , adset ) ;
+     DSET_delete(adset) ; DSET_delete(qset) ;
+   }
+
+   IW3D_load_external_slopes(BB) ;
+   RETURN(BB) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+IndexWarp3D * IW3D_zeropad( IndexWarp3D *AA , int nxbot , int nxtop ,
+                                              int nybot , int nytop ,
+                                              int nzbot , int nztop  )
+{
+  return IW3D_extend( AA, nxbot,nxtop,nybot,nytop,nzbot,nztop , 1 ) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Extend (and/or truncate) a dataset that represents a warp. */
+
+THD_3dim_dataset * THD_nwarp_extend( THD_3dim_dataset *dset_nwarp ,
+                                     int nxbot , int nxtop ,
+                                     int nybot , int nytop ,
+                                     int nzbot , int nztop  )
+{
+   IndexWarp3D *AA , *BB ;
+   THD_3dim_dataset *qset ;
+
+ENTRY("THD_nwarp_extend") ;
+
+   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
+   DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
+
+   AA = IW3D_from_dataset( dset_nwarp , 0 , 0 ) ;
+   BB = IW3D_extend( AA , nxbot,nxtop,nybot,nytop,nzbot,nztop , 0 ) ;
+
+   qset = IW3D_to_dataset( BB , "ExtendedWarp" ) ;
+   IW3D_destroy(AA) ; IW3D_destroy(BB) ; DSET_unload(dset_nwarp) ;
+   RETURN(qset) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -703,35 +781,6 @@ void IW3D_7smooth( IndexWarp3D *AA )
 #endif
 
 /*----------------------------------------------------------------------------*/
-/* Make the geometry fields of an index warp match that of a dataset. */
-
-void IW3D_adopt_dataset( IndexWarp3D *AA , THD_3dim_dataset *dset )
-{
-   mat44 cmat , imat ; char *gstr ;
-
-ENTRY("IW3D_adopt_dataset") ;
-
-   if( AA == NULL || !ISVALID_DSET(dset) ) EXRETURN ;
-
-   if( DSET_NX(dset) != AA->nx || DSET_NY(dset) != AA->ny || DSET_NZ(dset) != AA->nz ){
-     ERROR_message("IW3D_adopt_dataset: grid mismatch") ; EXRETURN ;
-   }
-
-   if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset->daxes) ;
-
-   cmat = dset->daxes->ijk_to_dicom ;  /* takes ijk to xyz */
-   imat = MAT44_INV(cmat) ;            /* takes xyz to ijk */
-
-   AA->cmat = cmat ; AA->imat = imat ;
-   gstr = EDIT_get_geometry_string(dset) ;
-   if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
-   AA->view = dset->view_type ;
-
-   EXRETURN ;
-}
-
-/*----------------------------------------------------------------------------*/
 /* Convert a 3D dataset of displacments in mm to an index warp.
      empty != 0 ==> displacements will be all zero
      ivs   != 0 ==> extract sub-bricks [ivs..ivs+2] for the displacments
@@ -770,6 +819,7 @@ ENTRY("IW3D_from_dataset") ;
    AA->cmat = cmat ; AA->imat = imat ;
    gstr = EDIT_get_geometry_string(dset) ;
    if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
+   else               AA->geomstring = NULL ;
 
    AA->view = dset->view_type ;
 
@@ -3711,7 +3761,7 @@ THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
 {
    MRI_IMARR *imar_nwarp=NULL , *im_src=NULL ;
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
-   THD_3dim_dataset *dset_out ;
+   THD_3dim_dataset *dset_out , *dset_qwarp ;
    MRI_IMAGE *fim , *wim ; float *ip=NULL,*jp=NULL,*kp=NULL ;
    int nx,ny,nz,nxyz , nvals , kk,iv ;
    float *amatar=NULL ; int nxa=0,nya=0 ; mat44 amat ;
@@ -3746,15 +3796,22 @@ ENTRY("THD_nwarp_dataset") ;
      strcat( prefix , "_nwarp" ) ; if( cpt != NULL ) strcat(prefix,".nii") ;
    }
 
+   /*----- extend the warp dataset to allow for outliers [15 Apr 2014] -----*/
+
+   dset_qwarp = THD_nwarp_extend( dset_nwarp , 32,32,32,32,32,32 ) ;
+   if( dset_qwarp == NULL ){  /* should never happen */
+     ERROR_message("Can't extend nwarp dataset ?!?") ; RETURN(NULL) ;
+   }
+
    /*---------- manufacture the empty shell of the output dataset ----------*/
 
    if( !ISVALID_MAT44(dset_src->daxes->ijk_to_dicom) )
      THD_daxes_to_mat44(dset_src->daxes) ;
    src_cmat = dset_src->daxes->ijk_to_dicom ;
 
-   if( !ISVALID_MAT44(dset_nwarp->daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44(dset_nwarp->daxes) ;
-   nwarp_cmat = dset_nwarp->daxes->ijk_to_dicom ;
+   if( !ISVALID_MAT44(dset_qwarp->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset_qwarp->daxes) ;
+   nwarp_cmat = dset_qwarp->daxes->ijk_to_dicom ;
 
    if( dxyz_mast > 0.0f ){
      THD_3dim_dataset *qset ; double dxyz = (double)dxyz_mast ;
@@ -3802,10 +3859,10 @@ ENTRY("THD_nwarp_dataset") ;
    /*----- create warping indexes from warp dataset -----*/
 
    INIT_IMARR(imar_nwarp) ;
-   fim = THD_extract_float_brick(0,dset_nwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
-   fim = THD_extract_float_brick(1,dset_nwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
-   fim = THD_extract_float_brick(2,dset_nwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
-   DSET_unload(dset_nwarp) ;
+   fim = THD_extract_float_brick(0,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
+   fim = THD_extract_float_brick(1,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
+   fim = THD_extract_float_brick(2,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
+   DSET_delete(dset_qwarp) ;
 
    nx = DSET_NX(dset_out) ;
    ny = DSET_NY(dset_out) ;
@@ -4557,7 +4614,7 @@ ENTRY("IW3D_read_catenated_warp") ;
      RETURN(oset) ;
    }
 
-   /*-- multiple input datsets (or INV operations) --*/
+   /*-- multiple input datasets (or INV operations) --*/
 
    for( ii=0 ; ii < csar->num ; ii++ )           /* read them in */
      CW_load_one_warp( ii+1 , csar->str[ii] ) ;
@@ -6019,7 +6076,8 @@ ENTRY("IW3D_setup_for_improvement") ;
      }
      if( Hwbar == 0.0f || nwb == 0 )
        ERROR_exit("IW3D_setup_for_improvement: all zero wbim input") ;
-     if( Hverb > 1 ) ININFO_message(   "%d voxels in mask (out of %d)",nwb,Hnxyz) ;
+     if( Hverb > 1 ) ININFO_message("   %d voxels in mask (out of %d = %.2f%%)",
+                                     nwb,Hnxyz,(100.0*nwb)/Hnxyz ) ;
      Hwbar /= nwb ;  /* average value of all nonzero weights */
      nmask = nwb ;
      if( nexc > 0 ) ININFO_message("-emask excluded %d voxels",nexc) ;
@@ -7713,7 +7771,8 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
      }
      if( Hwbar == 0.0f || nwb == 0 )
        ERROR_exit("IW3D_setup_for_improvement_plusminus: all zero wbim input") ;
-     if( Hverb > 1 ) ININFO_message(   "%d voxels in mask (out of %d)",nwb,Hnxyz) ;
+     if( Hverb > 1 ) ININFO_message("   %d voxels in mask (out of %d = %.2f%%)",
+                                     nwb,Hnxyz,(100.0*nwb)/Hnxyz ) ;
      Hwbar /= nwb ;  /* average value of all nonzero weights */
      nmask = nwb ;
      if( nexc > 0 ) ININFO_message("-emask excluded %d voxels",nexc) ;

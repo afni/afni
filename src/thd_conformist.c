@@ -2,23 +2,27 @@
 
 /* prototypes */
 
-int THD_conformant_dataxes( THD_dataxes *ax , THD_dataxes *bx ) ;
-THD_dataxes * THD_superset_dataxes( THD_dataxes *ax , THD_dataxes *bx ) ;
-static int_pair zpadax_pm( int nx_super , float xorg_super ,
-                           int nx_input , float xorg_input , float dx ) ;
-int THD_conformist( int ndset , THD_3dim_dataset **dset , int flags ) ;
+int THD_conformant_dataxes( THD_dataxes *ax, THD_dataxes *bx ) ;
+THD_dataxes * THD_superset_dataxes( THD_dataxes *ax, THD_dataxes *bx ) ;
+static int_pair zpadax_pm( int nx_super, float xorg_super,
+                           int nx_input, float xorg_input, float dx ) ;
+int THD_conformist( int ndset, THD_3dim_dataset **dset, int flags, int *ijkpad ) ;
 
 #define CONFORM_REWRITE 1
+#define CONFORM_NOREFIT 2
 
 /*----------------------------------------------------------------------------*/
+/* For finding and extending a collection of datasets to have the same grid. */
 
-int THD_conformist( int ndset , THD_3dim_dataset **dset , int flags )
+int THD_conformist( int ndset, THD_3dim_dataset **dset, int flags , int *ijkpad )
 {
    int iset , xpad_m,xpad_p , ypad_m,ypad_p , zpad_m,zpad_p , nwrit ;
    THD_dataxes *cx , *dx ;
    THD_3dim_dataset *qset ;
    int_pair pm ;
-   int do_rewrite = (flags & CONFORM_REWRITE) ;
+   int do_norefit = (flags & CONFORM_NOREFIT) ;
+   int do_rewrite = (flags & CONFORM_REWRITE) && !do_norefit ;
+   int do_ijkpad  = (ijkpad != NULL) ;
 
 ENTRY("THD_conformist") ;
 
@@ -33,7 +37,12 @@ ENTRY("THD_conformist") ;
    for( iset=1 ; iset < ndset ; iset++ ){
      if( ! EQUIV_DATAXES(dset[0]->daxes,dset[iset]->daxes) ) break ;
    }
-   if( iset == ndset ) RETURN(0) ;
+   if( iset == ndset ){
+     if( do_ijkpad ){
+       for( iset=0 ; iset < 6*ndset ; iset++ ) ijkpad[iset] = 0 ;
+     }
+     RETURN(0) ;
+   }
 
    /* construct the dataxes that encloses all the input datasets */
 
@@ -62,6 +71,9 @@ ENTRY("THD_conformist") ;
    for( nwrit=iset=0 ; iset < ndset ; iset++ ){
      if( EQUIV_DATAXES(cx,dset[iset]->daxes) ){ /* already OK */
        if( do_rewrite ) fprintf(stderr,"-") ;
+       if( do_ijkpad )
+          ijkpad[6*iset+0] = ijkpad[6*iset+1] = ijkpad[6*iset+2]
+        = ijkpad[6*iset+3] = ijkpad[6*iset+4] = ijkpad[6*iset+5] = 0 ;
        continue ;
      }
      pm = zpadax_pm( cx->nxx , cx->xxorg ,
@@ -76,6 +88,12 @@ ENTRY("THD_conformist") ;
                      dset[iset]->daxes->nzz , dset[iset]->daxes->zzorg ,
                      cx->zzdel ) ;
      zpad_m = pm.i ; zpad_p = pm.j ;
+     if( do_ijkpad ){
+       ijkpad[6*iset+0] = xpad_m; ijkpad[6*iset+1] = xpad_p;
+       ijkpad[6*iset+2] = ypad_m; ijkpad[6*iset+3] = ypad_p;
+       ijkpad[6*iset+4] = zpad_m; ijkpad[6*iset+5] = zpad_p;
+     }
+     if( do_norefit ) continue ;
      qset = THD_zeropad( dset[iset] ,
                          xpad_m,xpad_p , ypad_m,ypad_p , zpad_m,zpad_p ,
                          "BertieWooster" , ZPAD_PURGE | ZPAD_IJK ) ;
@@ -105,7 +123,7 @@ ENTRY("THD_conformist") ;
 
 int THD_conformant_dataxes( THD_dataxes *ax , THD_dataxes *bx )
 {
-   float xo,yo,zo ;
+   double xo,yo,zo ;
 
    if( ax->xxorient != bx->xxorient ||
        ax->yyorient != bx->yyorient ||
@@ -115,13 +133,13 @@ int THD_conformant_dataxes( THD_dataxes *ax , THD_dataxes *bx )
    if( fabsf(ax->yydel-bx->yydel) > 0.001f ) return 0 ;
    if( fabsf(ax->zzdel-bx->zzdel) > 0.001f ) return 0 ;
 
-   xo = (ax->xxorg - bx->xxorg) / ax->xxdel ;
-   yo = (ax->yyorg - bx->yyorg) / ax->yydel ;
-   zo = (ax->zzorg - bx->zzorg) / ax->zzdel ;
+   xo = ((double)ax->xxorg - (double)bx->xxorg) / (double)ax->xxdel ;
+   yo = ((double)ax->yyorg - (double)bx->yyorg) / (double)ax->yydel ;
+   zo = ((double)ax->zzorg - (double)bx->zzorg) / (double)ax->zzdel ;
 
-   if( fabsf(xo-rintf(xo)) > 0.01f ||
-       fabsf(yo-rintf(yo)) > 0.01f ||
-       fabsf(zo-rintf(zo)) > 0.01f   ) return 0 ;
+   if( fabs(xo-rint(xo)) > 0.01 ||
+       fabs(yo-rint(yo)) > 0.01 ||
+       fabs(zo-rint(zo)) > 0.01   ) return 0 ;
 
    return 1 ;
 }
