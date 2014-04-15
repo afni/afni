@@ -43,7 +43,21 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 8 , APR , 2014 , RWC , "coxplot" , MICRO , TYPE_GENERAL ,
+  { 15 , APR , 2014 , RWC , "3dQwarp" , MINOR , TYPE_GENERAL ,
+   "and other warping functions" ,
+   "Changes to index warps, to extend them past their defining box by linear\n"
+   "extrapolation from the last 5 layers on each face (vs. the previous\n"
+   "method of just constant extrapolation).  Also use this in 3dNwarpApply\n"
+   "to extend the warp before using it, so as to deal with peculiar results\n"
+   "with non-padded inverse warps from 3dQwarp when there was a big\n"
+   "displacement via '-allin'.  Speaking of which, I also extended the\n"
+   "zero-padding in 3dQwarp to allow for the large displacments.  By\n"
+   "default, WARP outputs from 3dQwarp are not truncated any more, but can\n"
+   "be with the new '-nopadWARP' option.  Next up -- changes to\n"
+   "@toMNI_Qwarpar to allow for collections of warps that may be on\n"
+   "different grids." } ,
+
+ { 8 , APR , 2014 , RWC , "coxplot" , MICRO , TYPE_GENERAL ,
    "Change to X11 line drawing for thick lines" ,
    "Use 'CAP_ROUND' style of drawing for thicker lines, so that drawn\n"
    "figures (like SUMA surfaces) look better in AFNI interface -- the weird\n"
