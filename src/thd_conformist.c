@@ -93,7 +93,7 @@ ENTRY("THD_conformist") ;
        ijkpad[6*iset+2] = ypad_m; ijkpad[6*iset+3] = ypad_p;
        ijkpad[6*iset+4] = zpad_m; ijkpad[6*iset+5] = zpad_p;
      }
-     if( do_norefit ) continue ;
+     if( do_norefit ) continue ;   /* just wanted ijkpad, I guess */
      qset = THD_zeropad( dset[iset] ,
                          xpad_m,xpad_p , ypad_m,ypad_p , zpad_m,zpad_p ,
                          "BertieWooster" , ZPAD_PURGE | ZPAD_IJK ) ;
