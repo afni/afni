@@ -263,7 +263,7 @@ def write_afni_com_history(fname, length=0, wrap=1):
    write_text_to_file(fname, script, wrap=wrap)
 
 # get/show_process_stack(), get/show_login_shell()   28 Jun 2013 [rickr]
-def get_process_stack(verb=1):
+def get_process_stack(pid=-1, verb=1):
    """the stack of processes up to init
 
       return an array of [pid, ppid, user, command] elements
@@ -279,15 +279,16 @@ def get_process_stack(verb=1):
          return -1
       return pind
 
-   def get_ancestry_indlist(pids, ppids, plist):
+   def get_ancestry_indlist(pids, ppids, plist, pid=-1):
       """return bad status if index() fails"""
-      pid = os.getpid()
-      pind = get_pid_index(pids, plist, pid)
+      if pid >= 0: mypid = pid
+      else:        mypid = os.getpid()
+      pind = get_pid_index(pids, plist, mypid)
       if pind < 0: return 1, []
       indtree = [pind]
-      while pid > 1:
-         pid = ppids[pind]
-         pind = get_pid_index(pids, plist, pid)
+      while mypid > 1:
+         mypid = ppids[pind]
+         pind = get_pid_index(pids, plist, mypid)
          if pind < 0: return 1, []
          indtree.append(pind)
       return 0, indtree
@@ -312,17 +313,19 @@ def get_process_stack(verb=1):
       return []
 
    # maybe the ps list is too big of a buffer, so have a backup plan
-   rv, indlist = get_ancestry_indlist(pids, ppids, plist)
+   rv, indlist = get_ancestry_indlist(pids, ppids, plist, pid=pid)
    # if success, set stack, else get it from backup function
    if rv == 0: stack = [plist[i] for i in indlist]
-   else:       stack = get_process_stack_slow()
+   else:       stack = get_process_stack_slow(pid=pid)
    stack.reverse()
 
    return stack
 
-def get_process_stack_slow(verb=1):
+def get_process_stack_slow(pid=-1, verb=1):
    """use repeated calls to get stack:
         ps h -o pid,ppid,user,comm -p PID
+
+        if pid >= 0, use as seed, else use os.getpid()
    """
    base_cmd = 'ps h -o pid,ppid,user,comm -p'
 
@@ -332,10 +335,10 @@ def get_process_stack_slow(verb=1):
       if ac.status:
          print '** GPSS command failure for: %s\n' % cmd
          print 'error output:\n%s' % '\n'.join(ac.se)
-         return 1, None
+         return 1, []
       ss = ac.so[0]
       entries = ss.split()
-      if len(entries) == 0: return 1, None
+      if len(entries) == 0: return 1, []
       
       return 0, entries
 
@@ -349,27 +352,31 @@ def get_process_stack_slow(verb=1):
       return 0, pid, ppid
 
    # get pid and ppid
-   pid = os.getpid()
-   cmd = '%s %s' % (base_cmd, pid)
+   if pid >= 0: mypid = pid
+   else:        mypid = os.getpid()
+   cmd = '%s %s' % (base_cmd, mypid)
    rv, entries = get_cmd_entries(cmd)
-   if rv: return []
-   rv, pid, ppid = get_ppids(cmd, entries)
+   if rv:
+      if mypid == pid: print '** process ID %d not found' % pid
+      else:            print '** getpid() process ID %d not found' % pid
+      return []
+   rv, mypid, ppid = get_ppids(cmd, entries)
    if rv: return []
 
    stack = [entries] # entries is valid, so init stack
-   while pid > 1:
+   while mypid > 1:
       cmd = '%s %s' % (base_cmd, ppid)
       rv, entries = get_cmd_entries(cmd)
       if rv: return []
-      rv, pid, ppid = get_ppids(cmd, entries)
+      rv, mypid, ppid = get_ppids(cmd, entries)
       if rv: return []
       stack.append(entries)
 
    return stack
 
-def show_process_stack():
+def show_process_stack(pid=-1,fast=1):
    """print stack of processes up to init"""
-   pstack = get_process_stack()
+   pstack = get_process_stack(pid=pid)
    if len(pstack) == 0:
       print '** empty process stack'
       return
@@ -3355,13 +3362,17 @@ def main():
       if argv[1] == '-eval':
          eval(' '.join(argv[2:]))
          return 0
+      elif argv[1] == '-lprint':
+         ret = eval(' '.join(argv[2:]))
+         print '\n'.join(['%s'%rent for rent in ret])
+         return 0
       elif argv[1] == '-print':
          print eval(' '.join(argv[2:]))
          return 0
       elif argv[1] == '-listfunc':
          do_join = 0
          argbase = 3
-         if len(argv) < argbase :
+         if len(argv) <= argbase :
             print '** -listfunc usage requires at least 3 args'
             return 1
          if argv[argbase] == '-join':
