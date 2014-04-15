@@ -931,7 +931,7 @@ int main( int argc , char *argv[] )
    int nxold=0,nyold=0,nzold=0 ;
    int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
    float zp_frac=-1.0f ;
-   int expad=0 ;
+   int expad=0 , minpad=0 ;
    int iwpad_xm=0,iwpad_xp=0, iwpad_ym=0,iwpad_yp=0, iwpad_zm=0,iwpad_zp=0 ;
 
    /*---------- enlighten the supplicant ----------*/
@@ -1012,10 +1012,18 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 #endif
+
      if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* secret option */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        expad = (int)strtod(argv[nopt],NULL) ;
        if( expad < 0 ) expad = 0 ;
+       nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-minpad") == 0 ){  /* secret option */
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       minpad = (int)strtod(argv[nopt],NULL) ;
+       if( minpad < 0 ) minpad = 0 ;
        nopt++ ; continue ;
      }
 
@@ -1570,7 +1578,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
 
    /*------ Do we need to zeropad datasets? [Friday the 13th, Sep 2013] ------*/
 
-   if( expad > 0 ) zeropad = 1 ;
+   if( expad > 0 || minpad > 0 ) zeropad = 1 ;
 
    if( zeropad ){   /* adapted/stolen from 3dAllineate */
      float cv , *qar  ; MRI_IMAGE *qim ; int mpad_min=9 ;
@@ -1629,9 +1637,16 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      if( pad_zm < iwpad_zm ) pad_zm = iwpad_zm ;
      if( pad_zp < iwpad_zp ) pad_zp = iwpad_zp ;
 
+     if( pad_xm < minpad   ) pad_xm = minpad ;  /* minimum padding allowed? */
+     if( pad_xp < minpad   ) pad_xp = minpad ;
+     if( pad_ym < minpad   ) pad_ym = minpad ;
+     if( pad_yp < minpad   ) pad_yp = minpad ;
+     if( pad_zm < minpad   ) pad_zm = minpad ;
+     if( pad_zp < minpad   ) pad_zp = minpad ;
+
      if( expad > 0 ){                             /* extra padding */
        pad_xm += expad ; pad_xp += expad ;        /* ordered by the */
-       pad_ym += expad ; pad_yp += expad ;        /* the cautious user */
+       pad_ym += expad ; pad_yp += expad ;        /* cautious user */
        pad_zm += expad ; pad_zp += expad ;
      }
 
