@@ -1252,6 +1252,14 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -c 3dQwarp.c $(INFLAGS)
 
+3dQwarp_new:3dQwarp_new.o mri_genalign.c mri_genalign_util.c mri_nwarp.c thd_incorrelate.c
+	$(RM) $@
+	$(CCOMP) -o 3dQwarp_new 3dQwarp_new.o $(LFLAGS) $(LLIBS)
+
+3dQwarp_new.o:3dQwarp_new.c mri_genalign.c mri_genalign_util.c thd_incorrelate.c mri_nwarp.c
+	$(RM) $@
+	$(CCOMP) -c 3dQwarp_new.c $(INFLAGS)
+
 3dNwarpApply:3dNwarpApply.o
 	$(RM) $@
 	$(CCOMP) -o 3dNwarpApply 3dNwarpApply.o $(LFLAGS) $(LLIBS)

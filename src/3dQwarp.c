@@ -1,14 +1,19 @@
 #include "mrilib.h"
+#include "thd_conformist.c"
 
 /*---------------------------------------------------------------------------*/
 /* Features to ruminate about:
     - NN interpolation of data, for matching label datasets      [not hard]
-    - allow user-input weight volume                             [not hard]
-    - symmetric mapping,                                         [hard]
-      with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
+
+    - allow user-input weight volume                             [done]
+
     - plusminus mapping                                          [done]
       with Src(x-w(x)) = Bas(x+w(x)) instead of Src(x+w(x))=B(x)
+
     - initial 3dAllineate phase (-allineate or -resample)        [done]
+
+    - symmetric mapping,                                         [hard]
+      with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
 *//*-------------------------------------------------------------------------*/
 
 #ifdef USE_OMP       /* OpenMP */
@@ -21,9 +26,9 @@
 
 /** include the warping functions, and enable the warp-optimizing functions **/
 
-#define ALLOW_QWARP                 /* this must be defined!! */
-#define ALLOW_QMODE
-#define ALLOW_PLUSMINUS
+#define ALLOW_QWARP                 /* this must be defined, or nothing works! */
+#define ALLOW_QMODE                 /* allows -Qfinal and -Qonly options */
+#define ALLOW_PLUSMINUS             /* allows -plusminus option */
 #undef  USE_PLUSMINUS_INITIALWARP   /* don't do this */
 #include "mri_nwarp.c"
 
@@ -432,8 +437,8 @@ void Qhelp(void)
     "                 the original source dataset and the base (i.e., the catenation\n"
     "                 of the affine matrix from 3dAllineate and the nonlinear warp\n"
     "                 from the 'warpomatic' procedure in 3dQwarp).\n"
-    "              ** The above point means that you should NOT use the affine warp\n"
-    "                 output by the '-allineate' option in combination with the\n"
+    "              ** The above point means that you should NOT NOT NOT use the affine\n"
+    "                 warp output by the '-allineate' option in combination with the\n"
     "                 nonlinear warp output by 3dQwarp (say, when using 3dNwarpApply),\n"
     "                 since the affine warp would then be applied twice -- which would\n"
     "                 be WRONG WRONG WRONG.\n"
@@ -578,9 +583,13 @@ void Qhelp(void)
     " -noYdis      = displace in the given direction.  For example, combining\n"
     " -noZdis      = -noXdis and -noZdis would mean only warping along the\n"
     "                y-direction would be allowed.\n"
+    "               * Here, 'x' refers to the first coordinate in the dataset,\n"
+    "                 which is usually the Right-to-Left direction.  Et cetera.\n"
+#if 0
     "               * xyz coordinates herein refer to the DICOM order, where\n"
     "                   -x = Right  -y = Anterior   -z = Inferior\n"
     "                   +x = Left   +y = Posterior  +z = Superior\n"
+#endif
     "\n"
     " -iniwarp ww  = 'ww' is a dataset with an initial nonlinear warp to use.\n"
     "               * If this option is not used, the initial warp is the identity.\n"
@@ -647,6 +656,8 @@ void Qhelp(void)
     "               * Then scales back up to register the full volumes.\n"
     "                 The goal is greater speed, and it seems to help this\n"
     "                 positively piggish program to be more expeditious.\n"
+    "               * However, accuracy is somewhat lower with '-duplo',\n"
+    "                 for reasons that currenly elude Zhark.\n"
     "\n"
     " -workhard    = Iterate more times, which can help when the volumes are\n"
     "                hard to align at all, or when you hope to get a more precise\n"
@@ -714,7 +725,7 @@ void Qhelp(void)
     "               * With the above formulas, it is possible to compute Wp(x) from\n"
     "                 V(x) and vice-versa, using program 3dNwarpCalc.  The requisite\n"
     "                 commands are left as an exercise for the aspiring AFNI Jedi Master.\n"
-    "               * Alas: -plusminus does not work with -duplo :-(\n"
+    "               * Alas: -plusminus does not work with -duplo or -allineate :-(\n"
 #ifdef USE_PLUSMINUS_INITIALWARP
     "               * If -plusminus is used, the -plusminus warp is initialized by\n"
     "                 a coarse warping of the source to the base, then these warp\n"
@@ -747,9 +758,20 @@ void Qhelp(void)
     "                significant data near an edge of the volume, then it won't\n"
     "                get displaced much, and so the results might not be good.\n"
     "              * Zero padding is designed as a way to work around this potential\n"
-    "                problem.  You should not need the '-nopad' option for any\n"
+    "                problem.  You should NOT need the '-nopad' option for any\n"
     "                reason that Zhark can think of, but it is here to be symmetrical\n"
     "                with 3dAllineate.\n"
+    "              * Note that the output (warped from source) dataset will be on the\n"
+    "                base dataset grid whether or not zero-padding is allowed.  However,\n"
+    "                unless you use the following option, allowing zero-padding (i.e.,\n"
+    "                the default operation) will make the output WARP dataset(s) be\n"
+    "                on a larger grid.\n"
+    " -nopadWARP   = If you do NOT use '-nopad' (that is, you DO allow zero-padding\n"
+    "                during the warp computations), then the computed warp will often\n"
+    "                be bigger than the base volume.  This situation is normally not\n"
+    "                an issue, but if for some reason you require the warp volume to\n"
+    "                match the base volume, then use '-nopadWARP' to have the output\n"
+    "                WARP dataset(s) truncated.\n"
 #ifdef USE_SAVER
     "              * Zero-padding turns off the -qsave option, since implementing\n"
     "                this combination seemed too much like work for Zhark.\n"
@@ -842,6 +864,14 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
    if( allopt != NULL && *allopt != '\0' )
      sprintf( cmd+strlen(cmd) , " %s"        , allopt) ;
 
+   if( allopt == NULL || strstr(allopt,"-fineblur") == NULL )
+     strcat(cmd," -fineblur 4.44") ;
+
+#if 0
+   if( allopt == NULL || strstr(allopt,"-onepass") == NULL )
+     strcat(cmd," -norefinal") ;
+#endif
+
    INFO_message("Starting 3dAllineate (affine register) command:\n  %s\n ",cmd);
    INFO_message("###########################################################") ;
    ss = system(cmd) ;
@@ -882,8 +912,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
    char *bsname=NULL , *iwname=NULL , *ssname=NULL , *esname=NULL ;
-   MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim ; float bmin,smin ;
-   IndexWarp3D *oww , *owwi ; Image_plus_Warp *oiw=NULL ;
+   MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
+   IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
    char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
    int meth = GA_MATCH_PEARCLP_SCALAR ;
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
@@ -900,8 +930,9 @@ int main( int argc , char *argv[] )
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
    int nxold=0,nyold=0,nzold=0 ;
    int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
-   int zp_xm=0,zp_xp=0 , zp_ym=0,zp_yp=0 , zp_zm=0,zp_zp=0 ; float zp_frac=-1.0f ;
+   float zp_frac=-1.0f ;
    int expad=0 ;
+   int iwpad_xm=0,iwpad_xp=0, iwpad_ym=0,iwpad_yp=0, iwpad_zm=0,iwpad_zp=0 ;
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -971,6 +1002,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-nopadWARP") == 0 ){ /* 19 Mar 2014 */
        zeropad_warp = 0 ; nopt++ ; continue ;
      }
+#if 0
      if( strcasecmp(argv[nopt],"-zpad") == 0 ){  /* 26 Mar 2014 */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        zp_frac = (float)strtod(argv[nopt],NULL) ;
@@ -979,7 +1011,8 @@ int main( int argc , char *argv[] )
        if( zp_frac == 0.0f ) zeropad = 0 ;
        nopt++ ; continue ;
      }
-     if( strcasecmp(argv[nopt],"-expad") == 0 ){
+#endif
+     if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* secret option */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        expad = (int)strtod(argv[nopt],NULL) ;
        if( expad < 0 ) expad = 0 ;
@@ -1277,10 +1310,11 @@ int main( int argc , char *argv[] )
      prefix_clean = strdup(prefix) ;
      ns = strstr(prefix_clean,".nii" ) ; if( ns != NULL ) *ns = '\0' ;
      ns = strstr(prefix_clean,"+orig") ; if( ns != NULL ) *ns = '\0' ;
+     ns = strstr(prefix_clean,"+acpc") ; if( ns != NULL ) *ns = '\0' ;
      ns = strstr(prefix_clean,"+tlrc") ; if( ns != NULL ) *ns = '\0' ;
    }
 
-   /*----- check for errorororors -----*/
+   /*----- check for errorororors --------------------------------------------*/
 
 STATUS("check for errors") ;
 
@@ -1363,7 +1397,7 @@ STATUS("source dataset opened") ;
      do_resam = 0 ;
    }
 
-   /*---- Run 3dAllineate first and replace source dataset [15 Jul 2013] ----*/
+   /*---- Run 3dAllineate first, replace source dataset [15 Jul 2013] --------*/
 
    if( !do_allin && allopt != NULL ){
      WARNING_message("-allineate_opts is ignored: no -allineate option was given!") ;
@@ -1444,18 +1478,20 @@ STATUS("3dAllineate coming up next") ;
 
      free(qs) ; free(ns) ;
 
-   } /*--- end of 3dAllineate prolegomenon ----------------------------------*/
+   } /*--- end of 3dAllineate prolegomenon -----------------------------------*/
 
-STATUS("check dataset for stupid errors") ;
+STATUS("check dataset for stupid errors") ; /*--------------------------------*/
 
    if( !EQUIV_GRIDXYZ(bset,sset) )
      ERROR_exit("base-source dataset grid mismatch :-( : try the -resample option") ;
    if(  EQUIV_DSETS  (bset,sset) )
      ERROR_exit("base & source datasets are identical :-( : are you trying something sneaky?");
 
-   /* construct the initial warp dataset, if any [altered somewhat: 15 Jul 2013] */
+   /*--------------- construct the initial warp dataset, if any
+                     [altered somewhat: 15 Jul 2013]            --------------*/
 
    if( iwname != NULL ){
+     int ijkpad[12] , qq ; THD_3dim_dataset *qsar[2] ;
 STATUS("construct initial warp") ;
      if( strstr(iwname,".1D") != NULL && strchr(iwname,' ') == NULL ){
        char *qstr = (char *)malloc(strlen(iwname)+strlen(bsname)+64) ;
@@ -1467,9 +1503,32 @@ STATUS("construct initial warp") ;
        ERROR_exit("Cannot open -iniwarp %s",iwname) ;
      if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
        ERROR_exit("-iniwarp %s is not in the right format :-(",argv[nopt]) ;
+
+     /* compute how much bset must be padded to fit the iniwarp  [11 Apr 2014] */
+
+     qsar[0] = iwset ; qsar[1] = bset ;
+     qq = THD_conformist( 2 , qsar , CONFORM_NOREFIT , ijkpad ) ;
+     if( qq < 0 )
+       ERROR_exit("-iniwarp grid does not conform with base dataset grid") ;
+     if( ijkpad[0] > 0 || ijkpad[1] > 0 || ijkpad[2] > 0 ||
+         ijkpad[3] > 0 || ijkpad[4] > 0 || ijkpad[5] > 0   )
+       ERROR_exit("-iniwarp grid conforms to but does not contain base dataset grid") ;
+
+     iwpad_xm=ijkpad[6]; iwpad_xp=ijkpad[ 7]; iwpad_ym=ijkpad[ 8];
+     iwpad_yp=ijkpad[9]; iwpad_zm=ijkpad[10]; iwpad_zp=ijkpad[11];
+     if( !zeropad &&
+         (iwpad_xm > 0 || iwpad_xp > 0 || iwpad_ym > 0 ||
+          iwpad_yp > 0 || iwpad_zm > 0 || iwpad_zp > 0   ) )
+       ERROR_exit("-iniwarp grid is bigger than base dataset grid AND you used -nopad") ;
+
+     if( Hverb &&
+         (iwpad_xm > 0 || iwpad_xp > 0 || iwpad_ym > 0 ||
+          iwpad_yp > 0 || iwpad_zm > 0 || iwpad_zp > 0   ) )
+       INFO_message("-iniwarp requires minimum padding of %d %d  %d %d  %d %d",
+                    iwpad_xm, iwpad_xp, iwpad_ym, iwpad_yp, iwpad_zm, iwpad_zp ) ;
    }
 
-STATUS("load datasets") ;
+STATUS("load datasets") ; /*--------------------------------------------------*/
 
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
    bim = THD_extract_float_brick(0,bset) ; DSET_unload(bset) ;
@@ -1483,7 +1542,7 @@ STATUS("load datasets") ;
    if( nevox > 0 && nevox != DSET_NVOX(bset) )
      ERROR_exit("-emask doesn't match base dataset grid :-(") ;
 
-   /*- deal with negative values [24 May 2013] -*/
+   /*---------------- deal with negative values [24 May 2013] ----------------*/
 
    bmin = mri_min(bim) ;
    if( bmin < 0.0f && noneg ){
@@ -1504,28 +1563,28 @@ STATUS("load datasets") ;
                    : (bmin < 0.0f)                ? "base"            : "source" ) ;
    }
 
-   /*- dimensions of the universe -*/
+   /*----------- dimensions of the universe (as it is now, anyhoo) -----------*/
 
    nxold = nx = DSET_NX(bset); nyold = ny = DSET_NY(bset); nzold = nz = DSET_NZ(bset);
    dx = fabsf(DSET_DX(bset)) ; dy = fabsf(DSET_DY(bset)) ; dz = fabsf(DSET_DZ(bset)) ;
 
-   /*--- Do we need to zeropad the datasets? [Friday the 13th of September 2013] ---*/
+   /*------ Do we need to zeropad datasets? [Friday the 13th, Sep 2013] ------*/
 
    if( expad > 0 ) zeropad = 1 ;
 
-   if( zeropad ){   /* adapted from 3dAllineate */
+   if( zeropad ){   /* adapted/stolen from 3dAllineate */
      float cv , *qar  ; MRI_IMAGE *qim ; int mpad_min=9 ;
      int bpad_xm,bpad_xp, bpad_ym,bpad_yp, bpad_zm,bpad_zp ;
      int spad_xm,spad_xp, spad_ym,spad_yp, spad_zm,spad_zp ;
      int mpad_x , mpad_y , mpad_z , ii ;
 
      if( zp_frac > 0.0f ){
-       bpad_xm = bpad_xp = (int)rintf(zp_frac*bim->nx) ;
-       bpad_ym = bpad_yp = (int)rintf(zp_frac*bim->ny) ;
-       bpad_zm = bpad_zp = (int)rintf(zp_frac*bim->nz) ;
+       bpad_xm = bpad_xp = (int)rintf(zp_frac*bim->nx) ;  /* brute force:  */
+       bpad_ym = bpad_yp = (int)rintf(zp_frac*bim->ny) ;  /* zeropad based */
+       bpad_zm = bpad_zp = (int)rintf(zp_frac*bim->nz) ;  /* on dimensions */
      } else {
-       cv = 0.33f * THD_cliplevel(bim,0.22f) ;       /* set threshold on base */
-       qim = mri_copy(bim); qar = MRI_FLOAT_PTR(qim);
+       cv = 0.33f * THD_cliplevel(bim,0.22f) ;        /* set threshold on base, */
+       qim = mri_copy(bim); qar = MRI_FLOAT_PTR(qim); /* then pad on bounding box */
        for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
        MRI_autobbox( qim, &bpad_xm,&bpad_xp, &bpad_ym,&bpad_yp, &bpad_zm,&bpad_zp ) ;
        mri_free(qim) ;
@@ -1544,18 +1603,17 @@ STATUS("load datasets") ;
      pad_ym = MIN(bpad_ym,spad_ym) ; pad_yp = MAX(bpad_yp,spad_yp) ;
      pad_zm = MIN(bpad_zm,spad_zm) ; pad_zp = MAX(bpad_zp,spad_zp) ;
 
-     if( do_allin ){
-       float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;
+     if( do_allin ){                              /* extend pad size for */
+       float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;  /* 3dAllineate shifts? */
        dxal /= dm ; dyal /= dm ; dzal /= dm ;
-       dm = MAX(dxal,dyal) ; dm = MAX(dm,dzal) ; mpad_min = 9 + (int)rintf(1.05f*dm) ;
-INFO_message("mpad_min = %d",mpad_min) ;
+       dm = MAX(dxal,dyal) ; dm = MAX(dm,dzal) ; mpad_min += (int)rintf(1.0111f*dm) ;
      }
 
-     mpad_x = (int)rintf(0.1666f*bim->nx) ; mpad_x = MAX(mpad_x,mpad_min) ;
-     mpad_y = (int)rintf(0.1666f*bim->ny) ; mpad_y = MAX(mpad_y,mpad_min) ;
-     mpad_z = (int)rintf(0.1666f*bim->nz) ; mpad_z = MAX(mpad_z,mpad_min) ;
+     mpad_x = (int)rintf(0.1111f*bim->nx) ; mpad_x = MAX(mpad_x,mpad_min) ;
+     mpad_y = (int)rintf(0.1111f*bim->ny) ; mpad_y = MAX(mpad_y,mpad_min) ;
+     mpad_z = (int)rintf(0.1111f*bim->nz) ; mpad_z = MAX(mpad_z,mpad_min) ;
 
-     /* compute padding so that at least mpad_Q all-zero slices on each Q */
+     /* compute padding so that at least mpad_Q all-zero slices on each Q-face */
 
      pad_xm = mpad_x - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
      pad_ym = mpad_y - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
@@ -1564,36 +1622,53 @@ INFO_message("mpad_min = %d",mpad_min) ;
      pad_yp = mpad_y - (bim->ny-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
      pad_zp = mpad_z - (bim->nz-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
 
-     if( expad > 0 ){
-       pad_xm += expad ; pad_xp += expad ;
-       pad_ym += expad ; pad_yp += expad ;
+     if( pad_xm < iwpad_xm ) pad_xm = iwpad_xm ;  /* make sure padding */
+     if( pad_xp < iwpad_xp ) pad_xp = iwpad_xp ;  /* is at least what */
+     if( pad_ym < iwpad_ym ) pad_ym = iwpad_ym ;  /* is needed to fit */
+     if( pad_yp < iwpad_yp ) pad_yp = iwpad_yp ;  /* the initial warp */
+     if( pad_zm < iwpad_zm ) pad_zm = iwpad_zm ;
+     if( pad_zp < iwpad_zp ) pad_zp = iwpad_zp ;
+
+     if( expad > 0 ){                             /* extra padding */
+       pad_xm += expad ; pad_xp += expad ;        /* ordered by the */
+       pad_ym += expad ; pad_yp += expad ;        /* the cautious user */
        pad_zm += expad ; pad_zp += expad ;
      }
 
-     if( bim->nz == 1 ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
+     if( bim->nz == 1 ){ pad_zm = pad_zp = 0 ; } /* but don't z-pad 2D image! */
 
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
 
+#ifdef USE_SAVER
      if( zeropad && qsave ){  /* too much trouble to do both */
        INFO_message("-qsave is turned off because zero-padding is happening!") ;
        qsave = 0 ;
      }
+#endif
 
-     if( zeropad ){
+     if( zeropad ){  /*----- print a report and actually do it -----*/
        if( Hverb )
          INFO_message("Zero-pad: xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d",
                       pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ) ;
 
-       nxold=bim->nx ; nyold=bim->ny ; nzold=bim->nz ;
+       /* replace base image */
+
+       nxold=bim->nx ; nyold=bim->ny ; nzold=bim->nz ;  /* orginal dimensions */
+
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
                                              pad_zm,pad_zp , bim ) ;
        mri_free(bim) ; bim = qim ;
+
+       /* replace source image */
+
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
                                              pad_zm,pad_zp , sim ) ;
        mri_free(sim) ; sim = qim ;
 
-       if( Hemask != NULL ){           /* also zeropad emask */
+       /* also zeropad emask */
+
+       if( Hemask != NULL ){
          byte *ezp = (byte *)EDIT_volpad( pad_xm,pad_xp ,
                                           pad_ym,pad_yp ,
                                           pad_zm,pad_zp ,
@@ -1603,66 +1678,72 @@ INFO_message("mpad_min = %d",mpad_min) ;
          free(Hemask) ; Hemask = ezp ; nevox = bim->nvox ;
        }
      }
-     nx = bim->nx ; ny = bim->ny ; nz = bim->nz ;
+
+     nx = bim->nx ; ny = bim->ny ; nz = bim->nz ;  /* altered dimensions */
 
    } /*--------- end of zeropad for base, source, and emask inputs ---------*/
 
+#if 0
    if( !zeropad ) zeropad_warp = 0 ;
+#endif
 
-   /*--- setup initial warp? ---*/
+   /*------- setup initial warp, if any (e.g., make it match bset) -------*/
 
    if( iwset != NULL ){
+
      int nxiw,nyiw,nziw , mm ;
      DSET_load(iwset) ; CHECK_LOAD_ERROR(iwset) ;
 
-     if( !EQUIV_DELTAXYZ(bset,iwset) )  /* check delta x,y,z for match */
-       ERROR_exit("-iniwarp dataset grid spacing mismatch with base dataset :-(") ;
+     /* Compute how much iwset must be padded to fit bset [11 Apr 2014] */
+     /* Remember, at this point, bset might be zeropaded to be bigger.  */
+     /* By construction above, iwpad_?? <= pad_?? for all 6 ?? values,  */
+     /* so we need to pad the initial warp by pad_?? - iwpad_??, OK?    */
 
-     /* Grid dimensions of iwset should be same as n{xyz} or n{xyz}old [19 Mar 2014] */
+     iwpad_xm = pad_xm - iwpad_xm ; iwpad_xp = pad_xp - iwpad_xp ;
+     iwpad_ym = pad_ym - iwpad_ym ; iwpad_yp = pad_yp - iwpad_yp ;
+     iwpad_zm = pad_zm - iwpad_zm ; iwpad_zp = pad_zp - iwpad_zp ;
 
-     nxiw = DSET_NX(iwset) ; nyiw = DSET_NY(iwset) ; nziw = DSET_NZ(iwset) ;
-#if 0
-INFO_message("nxold = %d nyold = %d nzold = %d",nxold,nyold,nzold) ;
-INFO_message("nx    = %d ny    = %d nz    = %d",nx   ,ny   ,nz   ) ;
-INFO_message("nxiw  = %d nyiw  = %d nziw  = %d",nxiw ,nyiw ,nziw ) ;
-#endif
-     mm   = (nxiw != nx || nyiw != ny || nziw != nz ) ;
-     if( !zeropad && mm )
-       ERROR_exit("-iniwarp dataset grid dimensions mismatch with base dataset :-(") ;
-     else if( zeropad && !mm && Hverb)
-       ININFO_message("-iniwarp dataset does not need zero-pad") ;
+     /* convert input dataset to warp */
 
-     if( zeropad && mm ){ /* 13 Sep 2013 -- also zeropad the initial displacements */
-       THD_3dim_dataset *qset ;
-       if( nxiw != nxold || nyiw != nyold || nziw != nzold )
-         ERROR_exit("-iniwarp dataset grid dimension mismatch for zero-pad operation :-(") ;
-       if( Hverb ) ININFO_message("zero-padding -iniwarp dataset") ;
-       qset = THD_zeropad( iwset ,
-                           pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
-                           "IWSET_ZP" , ZPAD_IJK ) ;
-       if( qset == NULL )
-         ERROR_exit("Cannot zeropad -iniwarp dataset for some reason :-(") ;
-       DSET_delete(iwset) ; iwset = qset ;
-     }
      S2BIM_iwarp = IW3D_from_dataset(iwset,0,0) ;
      if( S2BIM_iwarp == NULL )
        ERROR_exit("Cannot create 3D warp from -iniwarp dataset :-(") ;
      DSET_delete(iwset) ; iwset = NULL ;
+
+     /* pad (actually, extend in size by linear extrapolation), if needed */
+
+     if( iwpad_xm > 0 || iwpad_xp > 0 || iwpad_ym > 0 ||
+         iwpad_yp > 0 || iwpad_zm > 0 || iwpad_zp > 0   ){
+       IndexWarp3D *QQ = IW3D_extend(S2BIM_iwarp, iwpad_xm,iwpad_xp,
+                                                  iwpad_ym,iwpad_yp, iwpad_zm,iwpad_zp , 0 ) ;
+       IW3D_destroy(S2BIM_iwarp) ; S2BIM_iwarp = QQ ;
+       if( Hverb )
+         INFO_message("extended iniwarp to match base volume: %d %d  %d %d  %d %d",
+                      iwpad_xm,iwpad_xp, iwpad_ym,iwpad_yp, iwpad_zm,iwpad_zp ) ;
+     }
+#if 0
      if( Hverb > 1 )
        INFO_message("-iniwarp energy = %g",IW3D_load_energy(S2BIM_iwarp)) ;
-   } else {
+#endif
+
+   } else {  /*------- no initial warp (that was easy) -----------------------*/
+
      S2BIM_iwarp = NULL ;
+
    }
+
+   /*----------------------- other initial setup stuff -----------------------*/
 
    S2BIM_ilev = ilev ;
    S2BIM_mlev = MAX(mlev,ilev) ;
 
    nnn = 0 ;
-   if( nx >= NGMIN             ) nnn = nx ;
-   if( ny >= NGMIN && ny > nnn ) nnn = ny ;
-   if( nz >= NGMIN && nz > nnn ) nnn = nz ;
+   if( nx >= NGMIN             ) nnn = nx ;  /* find largest dimension */
+   if( ny >= NGMIN && ny > nnn ) nnn = ny ;  /* bigger than min grid  */
+   if( nz >= NGMIN && nz > nnn ) nnn = nz ;  /* allowed for warping  */
    if( nnn == 0 )
      ERROR_exit("dataset grid size %d x %d x %d is too small for warping",nx,ny,nz) ;
+
 #if 0
    if( minpatch > 0 && minpatch > nnn/2 && minpatch > NGMIN ){
      WARNING_message("-minpatch %d is too large for dataset grid %d x %d x %d",
@@ -1673,6 +1754,7 @@ INFO_message("nxiw  = %d nyiw  = %d nziw  = %d",nxiw ,nyiw ,nziw ) ;
      WARNING_message("minpatch is reduced to %d",minpatch) ;
    }
 #endif
+
    if( minpatch > 0 ) Hngmin = minpatch ;
 
    if( duplo && (nx < 3*Hngmin || ny < 3*Hngmin || nz < 3*Hngmin) ){
@@ -1698,11 +1780,16 @@ INFO_message("nxiw  = %d nyiw  = %d nziw  = %d",nxiw ,nyiw ,nziw ) ;
    }
 #endif
 
+   /*-------------------- weight volume --------------------------------------*/
+
 STATUS("construct weight/mask volume") ;
 
-   if( wbim == NULL ){
+   if( wbim == NULL ){  /* construct */
+
      wbim = mri_weightize(bim,auto_weight,auto_dilation,auto_wclip,auto_wpow) ;
-   } else {
+
+   } else {             /* user input */
+
      if( zeropad ){
        MRI_IMAGE *qim ;
        qim = mri_zeropad_3D( pad_xm,pad_xp , pad_ym,pad_yp ,
@@ -1711,8 +1798,10 @@ STATUS("construct weight/mask volume") ;
      }
      if( wbim->nx != nx || wbim->ny != ny || wbim->nz != nz )
        ERROR_exit("-weight image doesn't match -base image grid") ;
+
    }
-   { float fac , *wt ; int ii ;
+
+   { float fac , *wt ; int ii ;   /* scale weight volume so max is 1 */
      fac = (float)mri_max(wbim) ;
      if( fac <= 0.0f ) ERROR_exit("weight volume is not positive?!") ;
      fac = 1.0f / fac ; wt = MRI_FLOAT_PTR(wbim) ;
@@ -1720,7 +1809,7 @@ STATUS("construct weight/mask volume") ;
        wt[ii] = ( wt[ii] <= 0.0f ) ? 0.0f : fac * wt[ii] ;
    }
 
-   /* blur base here if so ordered */
+   /*----- blur base here if so ordered (source is blurred in warpomatic) ----*/
 
    if( Hblur_b >= 0.5f && !do_plusminus ){
      MRI_IMAGE *qim ;
@@ -1734,11 +1823,12 @@ STATUS("construct weight/mask volume") ;
      mri_free(bim) ; bim = qim ;
    }
 
-   /*--- do some actual work! ---*/
+   /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+   /*-------------------------- do the actual work! --------------------------*/
 
    if( Hverb )
-     INFO_message("Begin warp optimization:  base=%s  source=%s" ,
-                  DSET_HEADNAME(bset) , DSET_HEADNAME(sset)  ) ;
+     INFO_message("+++++++++++ Begin warp optimization:  base=%s  source=%s" ,
+                  DSET_HEADNAME(bset) , DSET_HEADNAME(sset) ) ;
 
    if( do_plusminus ){   /*--- special case of plusminus warp ---*/
 #ifndef ALLOW_PLUSMINUS
@@ -1756,97 +1846,115 @@ STATUS("construct weight/mask volume") ;
        oiw = IW3D_warp_s2bim( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
    }
 
-   /** check for errorosities **/
+   /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+   /**----------------------- check for errorosities ------------------------**/
 
    if( oiw == NULL ) ERROR_exit("s2bim fails") ;
 
-   INFO_message("===== total number of parameters 'optimized' = %d",Hnpar_sum) ;
+   INFO_message("========== total number of parameters 'optimized' = %d",Hnpar_sum) ;
 
    mri_free(wbim) ; wbim = NULL ;  /* not needed after here [17 Oct 2013] */
 
-   /*--------- un-zeropad the output stuff, if needed [13 Sep 2013] ---------*/
+   /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+   /*--------- Post-processing to get the datasets to write to disk ----------*/
+
+   /*---------- un-zeropad the output stuff, if needed and desired -----------*/
 
    if( zeropad ){
      MRI_IMAGE *qim ; IndexWarp3D *QQ ;
-     qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
-                                             -pad_zm,-pad_zp , oiw->im ) ;
-     mri_free(oiw->im) ; oiw->im = qim ;
+
+     /* crop the output image (maybe) */
+     if( oiw->im->nx > nxold || oiw->im->ny > nyold || oiw->im->nz > nzold ){
+       if( Hverb > 1 ) INFO_message("un-zero-padding output volume back to original base grid") ;
+       qim = mri_zeropad_3D( -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp, oiw->im ) ;
+       mri_free(oiw->im) ; oiw->im = qim ;
+     }
+
+     /* crop the output warp (maybe) */
      if( !zeropad_warp ){
-       QQ = IW3D_zeropad( oiw->warp , -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
-                                                      -pad_zm,-pad_zp  ) ;
+       if( Hverb > 1 ) ININFO_message("un-zero-padding warp back to original base grid") ;
+       QQ = IW3D_extend( oiw->warp, -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
        IW3D_destroy(oiw->warp) ; oiw->warp = QQ ;
      }
 
+     /* same stuff for the plusminus warp results as well */
      if( qiw != NULL ){
-       qim = mri_zeropad_3D( -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
-                                               -pad_zm,-pad_zp , qiw->im ) ;
-       mri_free(qiw->im) ; qiw->im = qim ;
+       if( qiw->im->nx > nxold || qiw->im->ny > nyold || qiw->im->nz > nzold ){
+         qim = mri_zeropad_3D( -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp, qiw->im ) ;
+         mri_free(qiw->im) ; qiw->im = qim ;
+       }
        if( !zeropad_warp ){
-         QQ = IW3D_zeropad( qiw->warp , -pad_xm,-pad_xp , -pad_ym,-pad_yp ,
-                                                          -pad_zm,-pad_zp  ) ;
+         QQ = IW3D_extend( qiw->warp, -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
          IW3D_destroy(qiw->warp) ; qiw->warp = QQ ;
        }
      }
-   }
+
+   }  /*---------- end of patching up for zeropad ----------*/
+
+   /*--- make the warps adopt a dataset to specify their extrinsic geometry --*/
 
    oim = oiw->im ; oww = oiw->warp ;
    if( !zeropad_warp )
-     adset = bset ;
+     adset = bset ;      /* adset = adoption parent */
    else
      adset = THD_zeropad( bset ,
                           pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
-                          "BSET_ZP" , ZPAD_IJK | ZPAD_EMPTY ) ;
+                          "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
 
-   IW3D_adopt_dataset( oww , adset ) ;
-   if( qiw != NULL ) IW3D_adopt_dataset( qiw->warp , adset ) ;
+                      IW3D_adopt_dataset( oww       , adset ) ;
+   if( qiw  != NULL ) IW3D_adopt_dataset( qiw->warp , adset ) ;
 
-   /*----- Special case of pre-3dAllineate: adjust warp and image -----*/
+   /*-------------------------------------------------------------------------*/
+   /*-- Special case of pre-3dAllineate: adjust output warp and image (oiw) --*/
 
    if( do_allin || do_resam ){
 
-     /** adjust warp for 3dAllineate matrix **/
+     /** adjust warp for 3dAllineate matrix that came earlier **/
+     /** (don't have to adjust plusminus warp since it can't be run with -allin) **/
 
      if( do_allin ){
        mat44 tmat,smat,qmat ; IndexWarp3D *tarp ;
 STATUS("adjust for 3dAllineate matrix") ;
-       qmat = allin_matrix ;                      /* convert matrix to */
-       tmat = MAT44_MUL(qmat,oww->cmat) ;         /* index space from  */
-       smat = MAT44_MUL(oww->imat,tmat) ;         /* coordinate space  */
-       tarp = IW3D_compose_w1m2(oww,smat,MRI_WSINC5) ;  /* adjust warp */
-       IW3D_destroy(oww) ; oww = tarp ;
+       qmat = allin_matrix ;                            /* convert matrix to */
+       tmat = MAT44_MUL(qmat,oiw->warp->cmat) ;         /* index space from  */
+       smat = MAT44_MUL(oiw->warp->imat,tmat) ;         /* coordinate space  */
+       tarp = IW3D_compose_w1m2(oiw->warp,smat,MRI_WSINC5) ;  /* adjust warp */
+       IW3D_destroy(oiw->warp) ; oww = oiw->warp = tarp ;
+       IW3D_adopt_dataset(oww,adset) ;
      }
 
      /** directly warp from original source dataset to output image **/
-     /** (and then replace existing oim with this re-warped image)  **/
+     /** (then replace existing oiw->im with this re-warped image)  **/
 
      if( !nodset ){
-       THD_3dim_dataset *wset, *iset ; MRI_IMAGE *iim ; float omin ;
-       wset = IW3D_to_dataset( oww , "ZharkTheGlorious" ) ;
+       THD_3dim_dataset *wset, *iset ; MRI_IMAGE *iim ;
+       wset = IW3D_to_dataset( oiw->warp , "ZharkTheGlorious" ) ;
        iset = THD_nwarp_dataset( wset , sstrue , bset , "WhoTheHellCares" ,
                                  MRI_WSINC5,MRI_WSINC5, 0.0f,1.0f, 1, NULL ) ;
        if( iset == NULL )  /* should be impossible */
          ERROR_exit("Can't warp from original dataset for some reason :-(") ;
        iim = THD_extract_float_brick(0,iset) ;
-       mri_free(oim) ; oim = iim ; DSET_delete(iset) ; DSET_delete(wset) ;
+       mri_free(oiw->im) ; oim = oiw->im = iim ; DSET_delete(iset) ; DSET_delete(wset) ;
 
-       omin = mri_min(oim) ;
-       if( omin < 0.0f && noneg ){
-         float *oar = MRI_FLOAT_PTR(oim) ; int ii ;
-         for( ii=0 ; ii < oim->nvox ; ii++ ){
-           if( oar[ii] < 0.0f ){ oar[ii] = 0.0; }
+       if( noneg && mri_min(oiw->im) < 0.0f ){   /* clipping */
+         float *oar = MRI_FLOAT_PTR(oiw->im) ; int ii ;
+         for( ii=0 ; ii < oiw->im->nvox ; ii++ ){
+           if( oar[ii] < 0.0f ) oar[ii] = 0.0 ;
          }
        }
      }
 
    } /*--------- end of patchup for input from 3dAllineate ---------*/
 
-   if( Hverb > 1)
+#if 0
+   if( Hverb > 1 )
      INFO_message("output warp energy = %g",IW3D_load_energy(oww)) ;
+#endif
 
-   /*-----------------------------------------------------------*/
-   /*----- finally, output some results to pacify the user -----*/
+   /*-------------------------------------------------------------------------*/
+   /*------------ finally, output some results to pacify the user ------------*/
 
-   if( !nodset ){
+   if( !nodset ){                    /*----- output warped dataset -----*/
      char *qprefix = prefix ;
 STATUS("output warped dataset") ;
      if( do_plusminus ){
@@ -1864,7 +1972,9 @@ STATUS("output warped dataset") ;
                       ADN_none ) ;
      EDIT_BRICK_FACTOR(oset,0,0.0) ;
      EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(oim) ) ;
-     DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
+     DSET_write(oset) ;
+     WROTE_DSET(oset) ;
+     DSET_delete(oset) ;
 
      if( do_plusminus && qiw != NULL ){
        sprintf(appendage,"_%s",minusname) ;
@@ -1884,14 +1994,14 @@ STATUS("output warped dataset") ;
      }
    } /* end of writing warped datasets */
 
-#ifdef  USE_SAVER
+#ifdef USE_SAVER
    if( qset != NULL && DSET_NVALS(qset) > 1 ){
      EDIT_dset_items( qset , ADN_ntt , DSET_NVALS(qset) , ADN_ttdel , 1.0f , ADN_none ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
    }
 #endif
 
-   if( !nowarp ){
+   if( !nowarp ){                 /*----- output the warp itself -----*/
      char *qprefix ;
 STATUS("output warp") ;
      if( do_plusminus){
@@ -1920,21 +2030,21 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      }
    } /* end of output of warp dataset */
 
-   if( !nowarpi && !do_plusminus ){
-     if( Hverb ) ININFO_message("Inverting warp for output") ;
-
-     owwi = IW3D_invert( oww , NULL , MRI_WSINC5 ) ;
+   if( !nowarpi && !do_plusminus ){      /*----- output the inverse warp -----*/
+     if( Hverb ) INFO_message("Inverting warp") ;
+     owwi = IW3D_invert( oiw->warp , NULL , MRI_WSINC5 ) ;
      IW3D_adopt_dataset( owwi , adset ) ;
-     qset = IW3D_to_dataset( owwi , modify_afni_prefix(prefix,NULL,"_WARPINV")) ;
+     qset = IW3D_to_dataset( owwi, modify_afni_prefix(prefix,NULL,"_WARPINV")) ;
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+     IW3D_destroy(owwi) ; owwi = NULL ;
    }
 
-   /*--- go back to watching Matlock reruns ---*/
+   /*------------- go back to watching Matlock reruns ------------------------*/
 
-STATUS("watch Matlock reruns") ;
+STATUS("watching Matlock reruns") ;
 
    cput = COX_cpu_time() ;
    if( cput > 0.05 )

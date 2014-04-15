@@ -138,7 +138,7 @@ void CNW_help(void)
     "                The warp displacements are extended by linear extrapolation\n"
     "                from the faces of the input grid.\n"
     "                ++ This option has only limited utility, and is here mostly\n"
-    "                   for obscure testing purposes.\n"
+    "                   for historically and hysterically obscure testing purposes.\n"
    ) ;
 
    printf(
@@ -542,7 +542,7 @@ int main( int argc , char *argv[] )
    for( ii=0 ; ii < nwtop ; ii++ ){
 
      if( iwarp[ii] != NULL && expad > 0 ){
-       IndexWarp3D *QQ = IW3D_zeropad( iwarp[ii] , pad_xm,pad_xp,pad_ym,pad_yp,pad_zm,pad_zp ) ;
+       IndexWarp3D *QQ = IW3D_extend( iwarp[ii] , pad_xm,pad_xp,pad_ym,pad_yp,pad_zm,pad_zp , 0 ) ;
        IW3D_destroy(iwarp[ii]) ; iwarp[ii] = QQ ;
      }
 
