@@ -7,11 +7,7 @@
 #include "mri_genalign_util.c"
 #include "mri_genalign.c"
 #include "mri_nwarp.c"
-
-/* prototypes */
-
-int THD_conformant_dataxes( THD_dataxes *ax , THD_dataxes *bx ) ;
-THD_dataxes * THD_superset_dataxes( THD_dataxes *ax , THD_dataxes *bx ) ;
+#include "thd_conformist.c"
 
 /*----------------------------------------------------------------------------*/
 
@@ -21,9 +17,10 @@ int main( int argc , char *argv[] )
    char *prefix = "AdjMean" ;
    int iarg , ii,kk , verb=1 , iv ;
    THD_3dim_dataset *dset_sbar=NULL , *dset_wbar , *dset_twarp ;
-   int nx=0,ny=0,nz=0,nxyz=0, nxs=0,nys=0,nzs=0;
+   int nx=0,ny=0,nz=0,nxyz=0, nxs=0,nys=0,nzs=0,nxyzs=0;
    IndexWarp3D *AA,*BB , *WWbin ;
    float *sbar=NULL , fac , Anorm,Bnorm ;
+   int *ijkpad=NULL ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -126,6 +123,7 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-nwarp") == 0 || strcasecmp(argv[iarg],"-warp") == 0 ){
+       int pad_xm,pad_xp,pad_ym,pad_yp,pad_zm,pad_zp , npad ;
        if( nwset > 0 ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        for( kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++,nwset++ ) ; /*nada*/
@@ -136,6 +134,7 @@ int main( int argc , char *argv[] )
          if( dset_nwarp[kk] == NULL )
            ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg+kk]);
          if( DSET_NVALS(dset_nwarp[kk]) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg+kk]);
+#if 0
          if( kk == 0 ){
            nx = DSET_NX(dset_nwarp[0]); ny = DSET_NY(dset_nwarp[0]); nz = DSET_NZ(dset_nwarp[0]); nxyz = nx*ny*nz;
          } else if( DSET_NX(dset_nwarp[kk]) != nx ||
@@ -143,7 +142,34 @@ int main( int argc , char *argv[] )
                     DSET_NZ(dset_nwarp[kk]) != nz   ){
            ERROR_exit("warp dataset '%s' doesn't match with grid size %dx%dx%d",argv[iarg+kk],nx,ny,nz) ;
          }
+#endif
        }
+       ijkpad = (int *)calloc(sizeof(int),6*nwset) ;
+       kk = THD_conformist( nwset , dset_nwarp , CONFORM_NOREFIT , ijkpad ) ;
+       if( kk < 0 )
+         ERROR_exit("warp datasets grid do not conform to one another") ;
+       for( npad=kk=0 ; kk < nwset ; kk++ ){
+         pad_xm = ijkpad[6*kk+0] ; pad_xp = ijkpad[6*kk+1] ;
+         pad_ym = ijkpad[6*kk+2] ; pad_yp = ijkpad[6*kk+3] ;
+         pad_zm = ijkpad[6*kk+4] ; pad_zp = ijkpad[6*kk+5] ;
+         if( pad_xm > 0 || pad_xp > 0 || pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0 ){
+           THD_3dim_dataset *qset = THD_nwarp_extend( dset_nwarp[kk] ,
+                                                      pad_xm,pad_xp,pad_ym,pad_yp,pad_zm,pad_zp ) ;
+           if( qset == NULL )
+             ERROR_exit("Cannot extend warp dataset %s to match containing grid",DSET_HEADNAME(dset_nwarp[kk])) ;
+
+           EDIT_dset_items( qset , ADN_prefix , DSET_prefix_noext(dset_nwarp[kk]) , ADN_none ) ;
+           DSET_delete(dset_nwarp[kk]) ; DSET_lock(qset) ; dset_nwarp[kk] = qset ; npad++ ;
+         }
+       }
+       nx = DSET_NX(dset_nwarp[0]); ny = DSET_NY(dset_nwarp[0]); nz = DSET_NZ(dset_nwarp[0]); nxyz = nx*ny*nz;
+       if( npad == 0 & verb )
+         INFO_message("All %d input warp datasets matched grid %dx%dx%d",nwset,nx,ny,nz) ;
+       else
+         INFO_message("%d input warp dataset%s (out of %d) %s padded to match grid %dx%dx%d",
+                      npad  , (npad > 1) ? "s"    : "\0"  ,
+                      nwset , (npad > 1) ? "were" : "was" ,
+                      nx,ny,nz ) ;
        iarg += nwset ; continue ;
      }
 
@@ -161,7 +187,7 @@ int main( int argc , char *argv[] )
            ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg+kk]);
          if( DSET_NVALS(dset_src[kk]) > 1 ) ERROR_exit("dataset '%s' has more than 1 sub-brick",argv[iarg+kk]);
          if( kk == 0 ){
-           nxs = DSET_NX(dset_src[0]); nys = DSET_NY(dset_src[0]); nzs = DSET_NZ(dset_src[0]);
+           nxs = DSET_NX(dset_src[0]); nys = DSET_NY(dset_src[0]); nzs = DSET_NZ(dset_src[0]); nxyzs = nxs*nys*nzs;
          } else if( DSET_NX(dset_src[kk]) != nxs ||
                     DSET_NY(dset_src[kk]) != nys ||
                     DSET_NZ(dset_src[kk]) != nzs   ){
@@ -184,15 +210,16 @@ int main( int argc , char *argv[] )
    if( nsset > 0 && nsset != nwset )
      ERROR_exit("Number of -source datasets %d doesn't match number of -nwarp datasets %d",nsset,nwset) ;
 
-   if( nsset > 0 && ( nxs != nx || nys != ny || nzs != nz ) )
-     ERROR_exit("-source datasets grid %dx%dx%d doesn't match -nwarp grid %dx%dx%d",
-                nxs,nys,nzs , nx,ny,nz ) ;
+
+   if( verb && nsset > 0 && ( nx != nxs || ny != nys || nz != nzs ) )
+     INFO_message("warp grid = %dx%dx%d is padded from source grid = %dx%dx%d (this is not a problem)",
+                  nx,ny,nz , nxs,nys,nzs ) ;
 
    /*--- the actual work (bow your head in reverence) ---*/
 
    /* mean of input displacements */
 
-   if( verb ) fprintf(stderr,"++ Mean warp") ;
+   if( verb ) fprintf(stderr,"++ Computing mean warp") ;
 
    dset_wbar = THD_mean_dataset( nwset , dset_nwarp , 0,2 , verb ) ;
 
@@ -203,7 +230,7 @@ int main( int argc , char *argv[] )
 
    /* convert to an index warp and invert that */
 
-   if( verb ) fprintf(stderr,"++ Invert mean warp") ;
+   if( verb ) fprintf(stderr,"++ Inverting mean warp") ;
 
    AA    = IW3D_from_dataset( dset_wbar , 0,0 ); Anorm = IW3D_normL1(AA   ,NULL);
    WWbin = IW3D_invert( AA, NULL , MRI_WSINC5 ); Bnorm = IW3D_normL1(WWbin,NULL);
@@ -227,144 +254,68 @@ int main( int argc , char *argv[] )
                         ADN_prefix , prefix ,
                         ADN_brick_fac , NULL ,
                       ADN_none ) ;
-     sbar = (float *)calloc(sizeof(float),nxyz) ;
+     sbar = (float *)calloc(sizeof(float),nxyzs) ;
      EDIT_substitute_brick( dset_sbar , 0 , MRI_float , sbar ) ;
    }
 
-   if( verb ) fprintf(stderr,"++ Adjusting") ;
+   if( verb == 1 ) fprintf(stderr,"++ Adjusting") ;
+   else if( verb > 1 ) INFO_message("========== Beginning adjustment process ==========") ;
 
    for( kk=0 ; kk < nwset ; kk++ ){
+     if( verb > 1 ) INFO_message("convert dataset warp #%d to index warp",kk) ;
      AA = IW3D_from_dataset( dset_nwarp[kk] , 0,0 ) ;
      if( AA == NULL ) continue ;  /* should not happen */
+     if( verb > 1 ) ININFO_message("  compose with mean inverse") ;
      BB = IW3D_compose( AA , WWbin , MRI_WSINC5 ) ;
      IW3D_destroy(AA) ;
+     if( verb > 1 ) ININFO_message("  convert back to dataset warp") ;
      dset_twarp = IW3D_to_dataset( BB , "WeLoveTheLeader" ) ;
      IW3D_destroy(BB) ;
 
-     if( verb ) fprintf(stderr,".") ;
+     if( verb == 1 ) fprintf(stderr,".") ;
 
+     if( verb > 1 ) ININFO_message("  load input dataset warp again (just to be safe)") ;
      DSET_load( dset_nwarp[kk] ) ;
+     if( verb > 1 ) ININFO_message("  substitute brick #0") ;
      EDIT_substitute_brick( dset_nwarp[kk] , 0 , MRI_float , DSET_ARRAY(dset_twarp,0) ) ;
+     if( verb > 1 ) ININFO_message("  substitute brick #1") ;
      EDIT_substitute_brick( dset_nwarp[kk] , 1 , MRI_float , DSET_ARRAY(dset_twarp,1) ) ;
+     if( verb > 1 ) ININFO_message("  substitute brick #2") ;
      EDIT_substitute_brick( dset_nwarp[kk] , 2 , MRI_float , DSET_ARRAY(dset_twarp,2) ) ;
+     if( verb > 1 ) ININFO_message("  delete temporary warp dataset") ;
      DSET_NULL_ARRAY(dset_twarp,0) ;
      DSET_NULL_ARRAY(dset_twarp,1) ;
      DSET_NULL_ARRAY(dset_twarp,2) ; DSET_delete(dset_twarp) ;
      tross_Make_History( "3dNwarpAdjust" , argc,argv , dset_nwarp[kk] ) ;
+     if( verb > 1 ) ININFO_message("  write out adjusted warp dataset") ;
      DSET_write( dset_nwarp[kk] ) ;
 
      if( dset_src != NULL ){
        THD_3dim_dataset *dset_www ; float *bb ;
+       if( verb > 1 ) ININFO_message("  re-warp from source") ;
        dset_www = THD_nwarp_dataset( dset_nwarp[kk] , dset_src[kk] , NULL ,
                                      "BondJamesBond" , MRI_WSINC5 , MRI_WSINC5 , 0.0f,1.0f,1,NULL ) ;
        bb = (float *)DSET_ARRAY(dset_www,0) ;
-       for( ii=0 ; ii < nxyz ; ii++ ) sbar[ii] += bb[ii] ;
-       DSET_delete(dset_www) ; DSET_delete(dset_src[kk]) ;
+       if( verb > 1 ) ININFO_message("  add to mean") ;
+       for( ii=0 ; ii < nxyzs ; ii++ ) sbar[ii] += bb[ii] ;
+       if( verb > 1 ) ININFO_message("  delete www dataset") ;
+       DSET_delete(dset_www) ;
+       if( verb > 1 ) ININFO_message("  delete src dataset") ;
+       DSET_delete(dset_src[kk]) ;
      }
 
+     if( verb > 1 ) ININFO_message("  delete warp dataset from memory") ;
      DSET_delete( dset_nwarp[kk] ) ;
    }
 
-   if( verb ) fprintf(stderr,"\n") ;
+   if( verb == 1 ) fprintf(stderr,"\n") ;
 
    fac = 1.0f / nwset ;
-   for( ii=0 ; ii < nxyz ; ii++ ) sbar[ii] *= fac ;
+   for( ii=0 ; ii < nxyzs ; ii++ ) sbar[ii] *= fac ;
 
    DSET_write(dset_sbar) ;
    if( verb ) WROTE_DSET(dset_sbar) ;
    if( verb ) INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
                            COX_cpu_time() , COX_clock_time() ) ;
    exit(0) ;
-}
-
-/*----------------------------------------------------------------------------*/
-
-int THD_conformant_dataxes( THD_dataxes *ax , THD_dataxes *bx )
-{
-   float xo,yo,zo ;
-
-   if( ax->xxorient != bx->xxorient ||
-       ax->yyorient != bx->yyorient ||
-       ax->zzorient != bx->zzorient   ) return 0 ;
-
-   if( fabsf(ax->xxdel-bx->xxdel) > 0.001f ) return 0 ;
-   if( fabsf(ax->yydel-bx->yydel) > 0.001f ) return 0 ;
-   if( fabsf(ax->zzdel-bx->zzdel) > 0.001f ) return 0 ;
-
-   xo = (ax->xxorg - bx->xxorg) / ax->xxdel ;
-   yo = (ax->yyorg - bx->yyorg) / ax->yydel ;
-   zo = (ax->zzorg - bx->zzorg) / ax->zzdel ;
-
-   if( fabsf(xo-rintf(xo)) > 0.01f ||
-       fabsf(yo-rintf(yo)) > 0.01f ||
-       fabsf(zo-rintf(zo)) > 0.01f   ) return 0 ;
-
-   return 1 ;
-}
-
-/*----------------------------------------------------------------------------*/
-
-THD_dataxes * THD_superset_dataxes( THD_dataxes *ax , THD_dataxes *bx )
-{
-   THD_dataxes *cx ;
-   float dx,dy,dz , axo,ayo,azo , bxo,byo,bzo , ae,be ;
-   int nxa,nya,nza , nxb,nyb,nzb , ndif ;
-   float cxo,cyo,czo ;
-   int   nxc,nyc,nzc ;
-
-   if( !THD_conformant_dataxes(ax,bx) ) return NULL ;
-
-   /* create new dataxes as copy of first one */
-
-   cx = myXtNew(THD_dataxes) ; *cx = *ax ;
-   cx->parent = NULL ;
-   if( EQUIV_DATAXES(ax,bx) ) return cx ;
-
-   /* load some variables from the input structs */
-
-   dx  = ax->xxdel ; dy  = ax->yydel ; dz  = ax->zzdel ;  /* same for ax & bx */
-   axo = ax->xxorg ; ayo = ax->yyorg ; azo = ax->zzorg ;  /* ax origins */
-   bxo = bx->xxorg ; byo = bx->yyorg ; bzo = bx->zzorg ;  /* bx origins */
-   nxa = ax->nxx   ; nya = ax->nyy   ; nza = ax->nzz   ;  /* ax grid lengths */
-   nxb = bx->nxx   ; nyb = bx->nyy   ; nzb = bx->nzz   ;  /* bx grid lengths */
-
-   /* extend origins to the outermost */
-
-   ndif = (int)rintf((axo-bxo)/dx) ; cxo = (ndif <= 0) ? axo : bxo ;
-   ndif = (int)rintf((ayo-byo)/dy) ; cyo = (ndif <= 0) ? ayo : byo ;
-   ndif = (int)rintf((azo-bzo)/dz) ; czo = (ndif <= 0) ? azo : bzo ;
-
-   cx->xxorg = cxo ; cx->yyorg = cyo ; cx->zzorg = czo ;
-
-   /* extend grid lengths to the outermost */
-
-   ae = axo + nxa*dx ; be = bxo + nxb*dx ;
-   ndif = (int)rintf((ae-be)/dx) ; if( ndif < 0 ) ae = be ;
-   nxc  = (int)rintf((ae-cxo)/dx) ;
-
-   ae = ayo + nya*dy ; be = byo + nyb*dy ;
-   ndif = (int)rintf((ae-be)/dy) ; if( ndif < 0 ) ae = be ;
-   nyc  = (int)rintf((ae-cyo)/dy) ;
-
-   ae = azo + nza*dz ; be = bzo + nzb*dz ;
-   ndif = (int)rintf((ae-be)/dz) ; if( ndif < 0 ) ae = be ;
-   nzc  = (int)rintf((ae-czo)/dz) ;
-
-   cx->nxx   = nxc ; cx->nyy   = nyc ; cx->nzz   = nzc ;
-
-#if 0
-fprintf(stderr,"\n") ;
-INFO_message("ax: nxyz=%d %d %d  org=%g %g %g  del=%g %g %g",ax->nxx,ax->nyy,ax->nzz,ax->xxorg,ax->yyorg,ax->zzorg,ax->xxdel,ax->yydel,ax->zzdel) ;
-INFO_message("bx: nxyz=%d %d %d  org=%g %g %g  del=%g %g %g",bx->nxx,bx->nyy,bx->nzz,bx->xxorg,bx->yyorg,bx->zzorg,bx->xxdel,bx->yydel,bx->zzdel) ;
-INFO_message("cx: nxyz=%d %d %d  org=%g %g %g  del=%g %g %g",cx->nxx,cx->nyy,cx->nzz,cx->xxorg,cx->yyorg,cx->zzorg,cx->xxdel,cx->yydel,cx->zzdel) ;
-#endif
-
-   /* fix the matrices etc (probably not needed) */
-
-   LOAD_ZERO_MAT(cx->to_dicomm) ;
-   THD_daxes_to_mat44(cx) ;
-   THD_set_daxes_bbox(cx) ;
-   cx->ijk_to_dicom_real = cx->ijk_to_dicom ;
-
-   return cx ;
 }
