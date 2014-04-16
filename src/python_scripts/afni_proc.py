@@ -410,9 +410,10 @@ g_history = """
         - added -anat_unif_GM (default is yes)
         - added detail to ricor slices warning/error
         - if anat_uniform_method of unifize, turn of in auto_warp.py
+    4.15 April 16, 2014: internal re-org, should have no effect
 """
 
-g_version = "version 4.14, March 31, 2014"
+g_version = "version 4.15, April 15, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "29 Nov 2013" # for 3dRSFC update
@@ -447,6 +448,10 @@ OtherDefLabels = {'despike':'postdata', 'align':'postdata', 'ricor':'despike',
 OtherLabels    = ['empty']
 DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
                   'scale','regress']
+
+# names for blocks that do NOT process (make new) EPI data
+#   --> these do not need index increments
+EPImodLabs = ['postdata', 'align', 'tlrc', 'mask']
 
 # --------------------------------------------------------------------------
 # data processing stream class
@@ -602,7 +607,7 @@ class SubjProcSream:
 
         # updated throughout processing...
         self.bindex     = 0             # current block index
-        self.pblabel    = ''            # previous block label
+        self.pblabel    = 'xxx'            # previous block label
         self.surf_names = 0             # make surface I/O dset names
 
         return
@@ -1220,7 +1225,8 @@ class SubjProcSream:
 
         # just do a quick check after all of the confusion
         if blocks[0] != 'tcat' or blocks[1] != 'postdata':
-           print '** block list should start with tcat,postdata, have:\n   %s' % blocks
+           print '** block list should start with tcat,postdata, have:\n   %s'\
+                 % blocks
            return 1
 
         # check for -do_block options
@@ -1261,9 +1267,15 @@ class SubjProcSream:
             return 1
 
         # call db_mod_functions
+
+        self.bindex = 0
+        self.pblabels = []
         for label in blocks:
             rv = self.add_block(label)
             if rv != None: return rv
+            if label not in EPImodLabs:
+                self.pblabels.append(label)
+                self.bindex += 1
 
         # maybe the user wants to be quizzed for options
         uopt = self.user_opts.find_opt('-ask_me')
@@ -1434,7 +1446,6 @@ class SubjProcSream:
 
         errs = 0
         for block in self.blocks:
-            if not block.apply: continue        # skip such blocks
             cmd_str = BlockCmdFunc[block.label](self, block)
             if cmd_str == None:
                 print "** script creation failure for block '%s'" % block.label
@@ -2010,6 +2021,14 @@ class SubjProcSream:
         if self.script and os.path.isfile(self.script):
             os.chmod(self.script, 0755)
 
+    def prev_lab(self, block):
+        bind = block.index
+        if bind <= 0:
+           print '** asking for prev lab on block %s (ind %d)' \
+                 % (block.label, bind)
+           return block.label
+        return self.pblabels[bind-1]
+
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
     # if surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
@@ -2025,14 +2044,10 @@ class SubjProcSream:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
-        if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.%s.%s%s' %    \
-                  (self.bindex, self.subj_label, hstr, rstr, block.label, vstr)
-        else:
-           s = self.sep_char
-           return 'pb%02d%s%s%s%s%s%s%s%s' %    \
-                  (self.bindex, s, self.subj_label, hstr, s, rstr, s,
-                   block.label, vstr)
+        s = self.sep_char
+        return 'pb%02d%s%s%s%s%s%s%s%s' %    \
+               (block.index, s, self.subj_label, hstr, s, rstr, s,
+                block.label, vstr)
 
     # same, but leave run as a variable
     def prefix_form_run(self, block, view=0, surf_names=-1):
@@ -2044,18 +2059,17 @@ class SubjProcSream:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
-        if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r$run.%s%s' %    \
-               (self.bindex, self.subj_label, hstr, block.label, vstr)
-        else:
-           s = self.sep_char
-           return 'pb%02d%s%s%s%sr${run}%s%s%s' %    \
-               (self.bindex, s, self.subj_label, hstr, s, s, block.label, vstr)
+        if self.sep_char == '.': rvstr = '$run'
+        else:                    rvstr = '${run}'
+        s = self.sep_char
+        return 'pb%02d%s%s%s%sr%s%s%s%s' %    \
+            (block.index, s, self.subj_label, hstr, s, rvstr, s,
+             block.label, vstr)
 
     # same as prefix_form, but use previous block values (index and label)
     # (so we don't need the block)
     # if self.surf_names: pbNN.SUBJ.rMM.BLABEL.HEMI.niml.dset
-    def prev_prefix_form(self, run, view=0, surf_names=-1):
+    def prev_prefix_form(self, run, block, view=0, surf_names=-1):
         if self.runs > 99: rstr = 'r%03d' % run
         else:              rstr = 'r%02d' % run
         if view: vstr = self.view
@@ -2066,17 +2080,13 @@ class SubjProcSream:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
-        if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.%s.%s%s' %    \
-                  (self.bindex-1, self.subj_label,hstr,rstr, self.pblabel,vstr)
-        else:
-           s = self.sep_char
-           return 'pb%02d%s%s%s%s%s%s%s%s' %    \
-                  (self.bindex-1, s, self.subj_label, hstr, s, rstr, s,
-                  self.pblabel, vstr)
+        s = self.sep_char
+        return 'pb%02d%s%s%s%s%s%s%s%s' %    \
+               (block.index-1, s, self.subj_label, hstr, s, rstr, s,
+               self.prev_lab(block), vstr)
 
     # same, but leave run as a variable
-    def prev_prefix_form_run(self, view=0, surf_names=-1):
+    def prev_prefix_form_run(self, block, view=0, surf_names=-1):
         if view: vstr = self.view
         else:    vstr = ''
         # if surface, change view to hemisphere and dataset suffix
@@ -2085,17 +2095,15 @@ class SubjProcSream:
            vstr = '.niml.dset'
            hstr = '%s%s' % (self.sep_char, self.surf_svi_ref)
         else: hstr = ''
-        if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r$run.%s%s' %    \
-                  (self.bindex-1, self.subj_label, hstr, self.pblabel, vstr)
-        else:
-           s = self.sep_char
-           return 'pb%02d%s%s%s%sr${run}%s%s%s' %    \
-                  (self.bindex-1, s, self.subj_label, hstr, s, s,
-                  self.pblabel, vstr)
+        if self.sep_char == '.': rvstr = '$run'
+        else:                    rvstr = '${run}'
+        s = self.sep_char
+        return 'pb%02d%s%s%s%sr%s%s%s%s' %    \
+               (block.index-1, s, self.subj_label, hstr, s, rvstr, s,
+               self.prev_lab(block), vstr)
 
     # same, but leave run wild
-    def prev_dset_form_wild(self, view=0, surf_names=-1):
+    def prev_dset_form_wild(self, block, view=0, surf_names=-1):
         # if surface, change view to hemisphere and dataset suffix
         if surf_names == -1: surf_names = self.surf_names
         if surf_names:
@@ -2104,14 +2112,10 @@ class SubjProcSream:
         else:      # view option is not really handled...
            vstr = '%s.HEAD' % self.view
            hstr = ''
-        if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r*.%s%s' %    \
-                (self.bindex-1, self.subj_label, hstr, self.pblabel, vstr)
-        else:
-           s = self.sep_char
-           return 'pb%02d%s%s%s%sr*%s%s%s' %    \
-                (self.bindex-1, s, self.subj_label,hstr, s, s,
-                self.pblabel, vstr)
+        s = self.sep_char
+        return 'pb%02d%s%s%s%sr*%s%s%s' %    \
+             (block.index-1, s, self.subj_label,hstr, s, s,
+             self.prev_lab(block), vstr)
 
     # like prefix, but list the whole dset form, in wildcard format
     def dset_form_wild(self, blabel, view=None, surf_names=-1):
@@ -2131,19 +2135,15 @@ class SubjProcSream:
         else:
            vstr = '%s.HEAD' % self.view
            hstr = ''
-        if self.sep_char == '.': # default
-           return 'pb%02d.%s%s.r*.%s%s' %      \
-               (bind, self.subj_label, hstr, blabel, vstr)
-        else:
-           s = self.sep_char
-           return 'pb%02d%s%s%s%sr*%s%s%s' %      \
-               (bind, s, self.subj_label, hstr, s, s, blabel, vstr)
+        s = self.sep_char
+        return 'pb%02d%s%s%s%sr*%s%s%s' %      \
+            (bind, s, self.subj_label, hstr, s, s, blabel, vstr)
 
 class ProcessBlock:
     def __init__(self, label, proc):
         self.label = label      # label is block type
         self.valid = 0          # block is not yet valid
-        self.apply = 1          # apply block to output script
+        self.index = proc.bindex
         self.verb  = proc.verb  # verbose level
         if not label in BlockModFunc: return
 
