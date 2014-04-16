@@ -880,6 +880,8 @@ extern MRI_IMAGE * mri_read_ascii_ragged_complex(char *,float); /* 08 Mar 2007 *
 extern MRI_IMAGE * mri_read_ascii_ragged_fvect( char *, float, int ) ;
 extern MRI_IMARR * mri_fvect_to_imarr( MRI_IMAGE *inim ) ;
 extern MRI_IMAGE * mri_imarr_to_fvect( MRI_IMARR *imar ) ;
+extern MRI_IMAGE * mri_float_arrays_to_image(float **vecs, int vec_len, 
+                                             int vec_num); /* 16 Apr 2014 */
 extern MRI_IMAGE * mri_pair_to_fvect( MRI_IMAGE *, MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_triple_to_fvect( MRI_IMAGE *, MRI_IMAGE *, MRI_IMAGE *) ;
 extern MRI_IMAGE * mri_fvect_subimage( MRI_IMAGE *inim , int kk ) ;
