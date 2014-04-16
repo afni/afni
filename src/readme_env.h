@@ -2611,6 +2611,22 @@ static char * readme_env[] = {
    "then set this variable to NO.\n" ,
    "\n" ,
    "----------------------------\n" ,
+   "Variable: AFNI_SLAVE_THROLAY\n" ,
+   "----------------------------\n" ,
+   "This variable allows you to control the INITIAL setting of the widgets\n" ,
+   "that slave (or not) the threshold index to the overlay index.  (These\n" ,
+   "widgets are on the 'Index' right-click popup chooser and on the threshold\n" ,
+   "slider right-click popup menu.)  The values you can set for this variable,\n" ,
+   "and their effects, are listed below (not case sensitive):\n" ,
+   "   'OLay'    *or*  '=='  *or*  '0'  ==> threshold index = overlay index\n" ,
+   "   'OLay+1'  *or*  '+1'  *or*  '1'  ==> threshold index = overlay index + 1\n" ,
+   "   ANYTHING ELSE                    ==> threshold index is free and wild\n" ,
+   "This variable replaces the 2 variables listed below.  Again, this only\n" ,
+   "controls the INITIAL setting of the widgets -- you can change them in the\n" ,
+   "AFNI GUI later at any time.  Setting this variable after AFNI starts\n" ,
+   "(e.g., from plugout_drive) will have little discernable effect.\n" ,
+   "\n" ,
+   "----------------------------\n" ,
    "Variable: AFNI_SLAVE_THRTIME       *** THIS VARIABLE IS NO LONGER USED ***\n" ,
    "----------------------------\n" ,
    "When the underlay and overlay datasets both are time-dependent, switching\n" ,
@@ -3783,4 +3799,4 @@ static char * readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in the \n" ,
    "instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 3783
+#define NUM_readme_env 3799
