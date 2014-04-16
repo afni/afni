@@ -4,21 +4,18 @@
 #include <omp.h>
 #endif
 
-#define SPEARMAN 1
-#define QUADRANT 2
-#define PEARSON  3
-#define KTAUB    4
+#ifdef USE_OMP
+#include "thd_Tcorr1D.c"
+#endif
+
 
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *xset=NULL , *cset ;
-   int nopt=1 , method=PEARSON , do_autoclip=0 ;
-   int nvox , nvals , ii ;
+   int nopt=1, datum=MRI_float, nvals;
    MRI_IMAGE *ysim=NULL ;
-   char *prefix = "Tcorr1D" ;
+   char *prefix = "Tcorr1D", *smethod="pearson";
    char *xnam=NULL , *ynam=NULL ;
-   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f ;
-   float (*corfun)(int,float *,float *) = NULL ;  /* ptr to correlation function */
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , nmask=0 ;
 
    /*----*/
@@ -102,19 +99,19 @@ int main( int argc , char *argv[] )
       }
 
       if( strcasecmp(argv[nopt],"-pearson") == 0 ){
-        method = PEARSON ; nopt++ ; continue ;
+        smethod = "pearson" ; nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-spearman") == 0 || strcasecmp(argv[nopt],"-rank") == 0 ){
-        method = SPEARMAN ; nopt++ ; continue ;
+        smethod = "spearman" ; nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-quadrant") == 0 ){
-        method = QUADRANT ; nopt++ ; continue ;
+        smethod = "quadrant" ; nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-ktaub") == 0 || strcasecmp(argv[nopt],"-taub") == 0 ){
-        method = KTAUB ; nopt++ ; continue ;
+        smethod = "ktaub" ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -157,6 +154,7 @@ int main( int argc , char *argv[] )
    }
 
    nvals = DSET_NVALS(xset) ;  /* number of time points */
+
    if( nvals < 3 )
      ERROR_exit("Input dataset %s length is less than 3?!",xnam) ;
 
@@ -170,120 +168,13 @@ int main( int argc , char *argv[] )
    if( mri_allzero(ysim) )
      ERROR_exit("1D file %s is all zero!",ynam) ;
 
-   ny = ysim->ny ;
-   if( ny > 1 )
+   if( ysim->ny > 1 )
      INFO_message("1D file %s has %d columns: correlating with ALL of them!",
-                   ynam,ny) ;
+                   ynam,ysim->ny) ;
 
-   ININFO_message("loading dataset %s into memory",DSET_BRIKNAME(xset)) ;
-   DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
-
-   nvox = DSET_NVOX(xset) ;
-   if( mask == NULL ) nmask = nvox ;
-
-   /*-- create output dataset --*/
-
-   cset = EDIT_empty_copy( xset ) ;
-   EDIT_dset_items( cset ,
-                      ADN_prefix    , prefix         ,
-                      ADN_nvals     , ny             ,
-                      ADN_ntt       , 0              , /* no time axis */
-                      ADN_type      , HEAD_FUNC_TYPE ,
-                      ADN_func_type , FUNC_BUCK_TYPE ,
-                    ADN_none ) ;
-
-   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
-     ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
-
-        if( ny <=    10 ) kk = 1 ;  /* number of digits for */
-   else if( ny <=   100 ) kk = 2 ;  /* brick label string */
-   else if( ny <=  1000 ) kk = 3 ;
-   else if( ny <= 10000 ) kk = 4 ;
-   else                   kk = 5 ;
-   switch( method ){              /* brick label string format */
-     default:
-     case PEARSON:  sprintf(fmt,"PearCorr#%%0%dd",kk) ; break ;
-     case SPEARMAN: sprintf(fmt,"SpmnCorr#%%0%dd",kk) ; break ;
-     case QUADRANT: sprintf(fmt,"QuadCorr#%%0%dd",kk) ; break ;
-     case KTAUB:    sprintf(fmt,"TaubCorr#%%0%dd",kk) ; break ;
-   }
-   if( datum == MRI_short ) cfac = 0.0001f ;  /* scale factor for -short */
-
-   /* for each sub-brick in output file */
-
-   for( kk=0 ; kk < ny ; kk++ ){
-     EDIT_substitute_brick(cset,kk,datum,NULL) ; /* make brick */
-     EDIT_BRICK_TO_FICO(cset,kk,nvals,1,1) ;    /* stat params */
-     EDIT_BRICK_FACTOR(cset,kk,cfac) ;     /* set brick factor */
-     sprintf(str,fmt,kk) ;
-     EDIT_BRICK_LABEL(cset,kk,str) ;         /* labelize brick */
-   }
-
+   cset = THD_Tcorr1D(xset, mask, nmask, ysim, smethod, prefix);
    tross_Make_History( "3dTcorr1D" , argc,argv , cset ) ;
 
-   switch( method ){               /* set correlation function */
-     default:
-     case PEARSON:  corfun = THD_pearson_corr  ; break ;
-     case SPEARMAN: corfun = THD_spearman_corr ; break ;
-     case QUADRANT: corfun = THD_quadrant_corr ; break ;
-     case KTAUB:    corfun = THD_ktaub_corr    ; break ;
-   }
-
-   /* 27 Jun 2010: OpenMP-ize over columns in ysim */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( ny > 1 )
- { float *ysar, *xsar, *fcar = NULL, *ydar, val ;
-   int ii, kk, jj ; short *scar = NULL;
-
-#ifdef USE_OMP
-   if( omp_get_thread_num() == 0 )
-     INFO_message("Start correlations: %d voxels X %d time series(%d); %d threads",
-                  nmask , ny , nvals , omp_get_num_threads() ) ;
-#else
-   INFO_message("Start correlations: %d voxels X %d time series(%d)",nmask,ny,nvals) ;
-#endif
-
-   ydar = (float *)malloc(sizeof(float)*nvals) ;  /* 1D data duplicate */
-   xsar = (float *)malloc(sizeof(float)*nvals) ;  /* 3D data duplicate */
-
-   /* 27 Jun 2010: loop over columns in ysim */
-
-#pragma omp for
-   for( kk=0 ; kk < ny ; kk++ ){  /* loop over ysim columns */
-     if( datum == MRI_short ) scar = DSET_ARRAY(cset,kk) ; /* output array */
-     else                     fcar = DSET_ARRAY(cset,kk) ;
-     ysar = MRI_FLOAT_PTR(ysim) + (kk * ysim->nx) ;     /* 1D data pointer */
-
-     /* loop over voxels, correlate */
-
-     for( ii=0 ; ii < nvox ; ii++ ){
-
-       if( mask != NULL && mask[ii] == 0 ) continue ;    /* skip this'n */
-
-       /* get time series to correlate */
-
-       (void)THD_extract_array(ii,xset,0,xsar) ;             /* 3D data */
-       for( jj=0 ; jj < nvals && xsar[jj]==0.0f ; jj++ ) ;      /* nada */
-       if( jj == nvals ) continue ;                /* data was all zero */
-       for( jj=0 ; jj < nvals ; jj++ ) ydar[jj] = ysar[jj] ; /* 1D data */
-
-       val = corfun( nvals , xsar , ydar ) ;         /* !! correlate !! */
-
-       if( datum == MRI_short ) scar[ii] = (short)(10000.4f*val) ;
-       else                     fcar[ii] = val ;
-
-     } /* end of loop over voxels */
-
-#pragma omp critical
-     { if( ny > 1 ) fprintf(stderr,"[%d]",kk) ; }
-   } /* end of loop over ysim columns */
-
-   free(ydar) ; free(xsar) ;
- } /* end OpenMP */
- AFNI_OMP_END ;
-
-   if( ny > 1 ) fprintf(stderr,"\n") ;
    DSET_unload(xset) ;  /* no longer needful */
 
    /* finito */
