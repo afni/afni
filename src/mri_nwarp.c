@@ -2593,7 +2593,7 @@ ENTRY("IW3D_invert") ;
      /* take a Newton step */
 
      CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
-   
+
      if( !verb_nww && Hverb ) fprintf(stderr,".") ;  /* for 3dNwarpAdjust */
 
      /* how close are they now? */
@@ -3805,6 +3805,7 @@ ENTRY("THD_nwarp_dataset") ;
    }
 
    /*----- extend the warp dataset to allow for outliers [15 Apr 2014] -----*/
+   /*........ ((( this is kind of arbitrary, but helps sometimes ))) .......*/
 
    dset_qwarp = THD_nwarp_extend( dset_nwarp , 32,32,32,32,32,32 ) ;
    if( dset_qwarp == NULL ){  /* should never happen */
