@@ -72,8 +72,6 @@ def db_mod_tcat(block, proc, user_opts):
 # do not rely on the form of input filenames
 # use 3dtcat to copy each file to od_var, then 'cd' into it
 def db_cmd_tcat(proc, block):
-    block.index = proc.bindex   # save
-
     cmd = ''
     opt = block.opts.find_opt('-tcat_remove_first_trs')
     first = opt.parlist[0]
@@ -121,9 +119,6 @@ def db_cmd_tcat(proc, block):
                 '# enter the results directory (can begin processing data)\n' \
                 'cd %s\n\n\n' % proc.od_var
 
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
-
     if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
     return cmd
@@ -142,7 +137,6 @@ def db_mod_postdata(block, proc, user_opts):
 
 def db_cmd_postdata(proc, block):
     """add any sub-blocks with their oun headers"""
-    block.index = proc.bindex   # save
 
     cmd = ''
 
@@ -156,13 +150,9 @@ def db_cmd_postdata(proc, block):
 
     # probaby get outlier fractions
     if not proc.user_opts.have_no_opt('-outlier_count'):
-        rv, oc = make_outlier_commands(proc)
+        rv, oc = make_outlier_commands(proc, block)
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
-
-    # no update, unless EPI data is modified
-    # proc.bindex += 1            # increment block index
-    # proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -207,7 +197,7 @@ def make_uniformity_commands(proc, umeth):
 
 # could do this from any block, but expect to do at end of tcat
 # return error code (0 = success) and string
-def make_outlier_commands(proc):
+def make_outlier_commands(proc, block):
     # ----------------------------------------
     # check for any censoring
     val, err = proc.user_opts.get_type_opt(float, '-regress_censor_outliers')
@@ -268,7 +258,7 @@ def make_outlier_commands(proc):
     if not opt or OL.opt_is_yes(opt): lstr = ' -legendre'
     else:                             lstr = ''
 
-    prev_prefix = proc.prev_prefix_form_run(view=1)
+    prev_prefix = proc.prev_prefix_form_run(block, view=1)
     ofile = 'outcount.r$run.1D'
     warn  = '** TR #0 outliers: possible pre-steady state TRs in run $run'
     proc.out_wfile = 'out.pre_ss_warn.txt'
@@ -355,8 +345,6 @@ def db_mod_align(block, proc, user_opts):
 # (adjust prefix of proc.anat and proc.tlrcanat)
 # set a2e xform matrix
 def db_cmd_align(proc, block):
-    block.index = proc.bindex   # save
-
     if not proc.anat:
         print '** ERROR: missing anat for align block (consider -copy_anat)\n'
         return
@@ -374,7 +362,7 @@ def db_cmd_align(proc, block):
         if rind < 0:
             print '** align base index failure: %d, %d' % (rind, bind)
             return     # error message is printed
-        basevol = proc.prev_prefix_form(rind+1, view=1)
+        basevol = proc.prev_prefix_form(rind+1, block, view=1)
 
     # check for EPI skull strip method
     opt = block.opts.find_opt('-align_epi_strip_method')
@@ -476,7 +464,6 @@ def db_mod_despike(block, proc, user_opts):
 
 # apply 3dDespike to each run
 def db_cmd_despike(proc, block):
-    block.index = proc.bindex   # save
 
     cmd = ''
 
@@ -487,7 +474,7 @@ def db_cmd_despike(proc, block):
                ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
 
     prefix = proc.prefix_form_run(block)
-    prev   = proc.prev_prefix_form_run(view=1)
+    prev   = proc.prev_prefix_form_run(block, view=1)
 
     # maybe the user wants to mask here (to speed this step up)
     if block.opts.find_opt('-despike_opts_mask'): mstr = ''
@@ -504,9 +491,6 @@ def db_cmd_despike(proc, block):
                 '    3dDespike%s%s%s -prefix %s %s\n'   \
                 'end\n\n' %                             \
                 (newstr, other_opts, mstr, prefix, prev)
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -606,8 +590,6 @@ def db_mod_ricor(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_ricor(proc, block):
-    block.index = proc.bindex   # save
-
     #----- check for problems -----
     # check regressors against num runs
     if len(proc.ricor_regs) != proc.runs:
@@ -710,9 +692,6 @@ def db_cmd_ricor(proc, block):
         cmd = ricor_process_across_runs(proc, block, polort, solver,
                                         nsliregs, rdatum)
 
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
-
     return cmd
 
 def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
@@ -724,9 +703,9 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
        - for each run: 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
     """
 
-    prev_dsets = proc.prev_dset_form_wild(view=1)
+    prev_dsets = proc.prev_dset_form_wild(block, view=1)
     cur_prefix = proc.prefix_form_run(block)
-    prefix     = 'pb%02d.ricor' % proc.bindex
+    prefix     = 'pb%02d.ricor' % block.index
     matrix     = '%s.xmat.1D' % prefix
 
     # we have a regressor file to pass to the regress processing block
@@ -820,9 +799,9 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     """
     
 
-    prev_prefix = proc.prev_prefix_form_run(view=1)
+    prev_prefix = proc.prev_prefix_form_run(block, view=1)
     cur_prefix  = proc.prefix_form_run(block)
-    prefix      = 'pb%02d.ricor' % proc.bindex
+    prefix      = 'pb%02d.ricor' % block.index
     matrix      = '%s.r$run.xmat.1D' % prefix
 
     # we have a regressor file to pass to the regress processing block
@@ -924,8 +903,6 @@ def db_mod_tshift(block, proc, user_opts):
 
 # run 3dTshift for each run
 def db_cmd_tshift(proc, block):
-    block.index = proc.bindex   # save
-
     cmd = ''
     # get the base options
     opt = block.opts.find_opt('-tshift_align_to')
@@ -935,7 +912,7 @@ def db_cmd_tshift(proc, block):
 
     # note cur and prev prefix forms (with $run)
     cur_prefix = proc.prefix_form_run(block)
-    prev_prefix = proc.prev_prefix_form_run(view=1)
+    prev_prefix = proc.prev_prefix_form_run(block, view=1)
 
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-tshift_opts_ts')
@@ -953,9 +930,6 @@ def db_cmd_tshift(proc, block):
                 'end\n\n'                                               \
                 % (align_to, resam, cur_prefix, other_opts, prev_prefix)
     
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
-
     return cmd
 
 def db_mod_volreg(block, proc, user_opts):
@@ -1098,11 +1072,12 @@ def db_mod_volreg(block, proc, user_opts):
     bopt = block.opts.find_opt('-volreg_compute_tsnr')
     if uopt: bopt.parlist = uopt.parlist
 
+    # proc.vr_ext_base = 'min_outlier_vol'
+    # proc.vr_ext_pre =
+
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
-    block.index = proc.bindex   # save
-
     cmd = ''
     # get the base options
     opt = block.opts.find_opt('-volreg_base_ind')
@@ -1127,7 +1102,7 @@ def db_cmd_volreg(proc, block):
                           (block.label,dset_ind,sub)
 
     # get base prefix (run is index+1)
-    base = proc.prev_prefix_form(dset_ind+1, view=1)
+    base = proc.prev_prefix_form(dset_ind+1, block, view=1)
 
     # get the interpolation value
     opt = block.opts.find_opt('-volreg_interp')
@@ -1184,7 +1159,7 @@ def db_cmd_volreg(proc, block):
         if doadwarp: cstr = cstr + ', adwarp to tlrc space'
         prefix = cur_prefix
         matstr = ''
-    prev_prefix = proc.prev_prefix_form_run(view=1)
+    prev_prefix = proc.prev_prefix_form_run(block, view=1)
 
     cmd = cmd + "# %s\n" \
                 "# align each dset to base volume%s\n" \
@@ -1404,7 +1379,7 @@ def db_cmd_volreg(proc, block):
             print '** -volreg_motsim not valid with surface analysis'
             return
         # mot base: if external, use 0[0], else use bstr
-        if basevol: bvol = '%s"[0]"' % proc.prev_prefix_form(1, view=1)
+        if basevol: bvol = '%s"[0]"' % proc.prev_prefix_form(1, block, view=1)
         else:       bvol = bstr
         rv, tcmd = db_cmd_volreg_motsim(proc, block, bstr)
         if rv: return
@@ -1412,9 +1387,6 @@ def db_cmd_volreg(proc, block):
 
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -1686,8 +1658,6 @@ def db_cmd_surf(proc, block):
          - set variable for sv_dir (maybe spec_dir, maybe nothing)
     """
 
-    block.index = proc.bindex   # save
-
     if proc.surf_anat == None:
         print '** error: missing surf_anat'
         return None
@@ -1717,9 +1687,6 @@ def db_cmd_surf(proc, block):
 
     # add a command script for running suma
     if proc.suma_cmd_file: cmd += write_suma_script(proc, block)
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -1760,7 +1727,7 @@ def cmd_vol2surf(proc, block):
     if proc.surf_svd_var == '': svd_str = proc.surf_sv.pv()
     else: svd_str = '$%s/%s' % (proc.surf_svd_var, proc.surf_sv.pv())
 
-    prev   = proc.prev_prefix_form_run(view=1)
+    prev   = proc.prev_prefix_form_run(block, view=1)
     proc.surf_names = 1 # from now on, we want surface based dset names
     prefix = proc.prefix_form_run(block)
 
@@ -1863,8 +1830,6 @@ def db_mod_blur(block, proc, user_opts):
     block.valid = 1
 
 def db_cmd_blur(proc, block):
-    block.index = proc.bindex   # save
-
     # handle surface data separately
     if proc.surf_anat: return cmd_blur_surf(proc, block)
 
@@ -1879,7 +1844,7 @@ def db_cmd_blur(proc, block):
         havesize = 0
         
     prefix = proc.prefix_form_run(block)
-    prev   = proc.prev_prefix_form_run(view=1)
+    prev   = proc.prev_prefix_form_run(block, view=1)
 
     try: fsize = float(size)
     except:
@@ -1960,7 +1925,7 @@ def db_cmd_blur(proc, block):
 
        # if we have an extents mask, apply it if no scale block
        do_mask = proc.mask_extents != None and \
-                 proc.find_block('scale',proc.bindex) == None
+                 proc.find_block('scale',block.index) == None
 
        if do_mask: tprefix = 'rm.%s' % prefix
        else:       tprefix = prefix
@@ -1983,9 +1948,6 @@ def db_cmd_blur(proc, block):
                 "foreach run ( $runs )\n"               \
                 "%s"                                    \
                 "end\n\n" % (cstr)
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -2015,7 +1977,7 @@ def cmd_blur_surf(proc, block):
     # string for -spec
     spec_str = '$%s/%s' % (proc.surf_spd_var, proc.surf_spec_var)
 
-    prev   = proc.prev_prefix_form_run()
+    prev   = proc.prev_prefix_form_run(block)
     prefix = proc.prefix_form_run(block)
     param_file = 'surf.smooth.params.1D'
 
@@ -2048,9 +2010,6 @@ def cmd_blur_surf(proc, block):
              param_file, spec_str, proc.surf_A, prev,
              proc.surf_blur_fwhm, prev, prefix, param_file,
              param_file, spec_str, proc.surf_A, prev, prefix)
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -2113,8 +2072,6 @@ def mask_created(mask):
 #     (this would override -regress_apply_mask)
 # if have anat_final, segment it and resample to match EPI
 def db_cmd_mask(proc, block):
-    block.index = proc.bindex   # save
-
     cmd = ''
     opt = block.opts.find_opt('-mask_type')
     type = opt.parlist[0]
@@ -2131,7 +2088,7 @@ def db_cmd_mask(proc, block):
     opt = block.opts.find_opt('-mask_dilate')
     nsteps = opt.parlist[0]
 
-    prev = proc.prev_prefix_form_run(view=1)
+    prev = proc.prev_prefix_form_run(block, view=1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
                 "foreach run ( $runs )\n"                               \
@@ -2210,7 +2167,7 @@ def mask_segment_anat(proc, block):
 
     cin  = BASE.afni_name('Segsy/Classes%s' % proc.view)
     cres = BASE.afni_name('Classes_resam%s' % proc.view)
-    mset = proc.prev_prefix_form(1, view=1)
+    mset = proc.prev_prefix_form(1, block, view=1)
 
     # maybe we will take more classes in some option...
     sclasses = ['CSF', 'GM', 'WM']
@@ -2429,8 +2386,6 @@ def db_mod_scale(block, proc, user_opts):     # no options at this time
     block.valid = 1
 
 def db_cmd_scale(proc, block):
-    block.index = proc.bindex   # save
-
     cmd = ''
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
@@ -2476,7 +2431,7 @@ def db_cmd_scale(proc, block):
     if max > 100: maxstr = '# (subject to a range of [0,%d])\n' % max
     else        : maxstr = ''
 
-    prev = proc.prev_prefix_form_run(view=1)
+    prev = proc.prev_prefix_form_run(block, view=1)
     prefix = proc.prefix_form_run(block)
     cmd += "# %s\n"                                                     \
            "# scale each voxel time series to have a mean of 100\n"     \
@@ -2501,9 +2456,6 @@ def db_cmd_scale(proc, block):
     cmd += feh_end + '\n'
 
     proc.have_rm = 1            # rm.* files exist
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -2949,8 +2901,6 @@ def db_mod_regress(block, proc, user_opts):
 # without stim_times, use stim_files to generate stim_times
 # without stim_labels, use stim_times to create labels
 def db_cmd_regress(proc, block):
-    block.index = proc.bindex   # save
-
     cmd = ''
     opt = block.opts.find_opt('-regress_basis')
     basis = opt.parlist  # as a list, to incorporate -regress_basis_multi
@@ -3143,7 +3093,7 @@ def db_cmd_regress(proc, block):
     #    init c3d, add O3dd elements, finalize c3d
     #    (O3dd = list of 3dd option lines, which may need an extra indent)
 
-    O3dd = ['%s3dDeconvolve -input %s' % (istr, proc.prev_dset_form_wild()),
+    O3dd = ['%s3dDeconvolve -input %s'%(istr, proc.prev_dset_form_wild(block)),
             mask, censor_str]
     O3dd.extend(reg_orts)
     O3dd.extend([ '    -polort %d%s' % (polort, datum),
@@ -3420,7 +3370,7 @@ def db_cmd_regress(proc, block):
     proc.all_runs = 'all_runs%s$subj%s' % (proc.sep_char, suff)
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
     cmd = cmd + feh_str + "%s3dTcat -prefix %s %s\n" % \
-          (istr, proc.all_runs, proc.prev_dset_form_wild()) + feh_end + '\n'
+          (istr, proc.all_runs, proc.prev_dset_form_wild(block)) + feh_end+'\n'
 
     # maybe add the 3dTfitter block
     if block.opts.find_opt('-regress_anaticor') or \
@@ -3528,8 +3478,6 @@ def db_cmd_regress(proc, block):
     bcmd = db_cmd_blur_est(proc, block)
     if bcmd == None: return  # error
     if bcmd: cmd += bcmd
-
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
@@ -4458,8 +4406,6 @@ def db_mod_tlrc(block, proc, user_opts):
 def db_cmd_tlrc(proc, block):
     """warp proc.anat to standard space"""
 
-    block.index = proc.bindex   # save
-
     if not proc.anat.pv() :
         print "** missing dataset name for tlrc operation"
         return None
@@ -4821,19 +4767,14 @@ def db_mod_empty(block, proc, user_opts):
 
 # create a placeholder command using 3dTcat to copy the EPI data
 def db_cmd_empty(proc, block):
-    block.index = proc.bindex   # save
-
     prefix = proc.prefix_form_run(block)
-    prev   = proc.prev_prefix_form_run(view=1)
+    prev   = proc.prev_prefix_form_run(block, view=1)
 
     cmd = "# %s\n"                                                      \
           "# empty block: use '3dTcat' as a placeholder command\n"      \
           "foreach run ( $runs )\n"                                     \
           "    3dTcat -prefix %s %s\n"                                  \
           "end\n\n" % (block_header('empty'), prefix, prev)
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
 
     return cmd
 
