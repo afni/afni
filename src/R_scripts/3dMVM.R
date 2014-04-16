@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.5, April 3, 2014
+Version 3.0.6, April 16, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.5, April 3, 2014
+Version 3.0.6, April 16, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -536,9 +536,10 @@ gltConstr <- function(cStr, dataStr) {
    } else errex.AFNI(paste("Incorrect variable name in GLT coding: ", vars[which(!varsOK)], " \n   "))
 }
 
-# test
+# test: pairwise = NULL
 # gltConstr(clist[[1]], lop$dataStr)
-
+# QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
+# gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
 
 #Change options list to 3dMVM variable list 
 process.MVM.opts <- function (lop, verb = 0) {
@@ -597,20 +598,21 @@ process.MVM.opts <- function (lop, verb = 0) {
       # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
       if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
-
-   
+  
    if (lop$num_glt > 0) {
       lop$gltList    <- vector('list', lop$num_glt)
       lop$slpList    <- vector('list', lop$num_glt)
-      for (n in 1:lop$num_glt) { # assuming each GLT has one slope involved
+      for (n in 1:lop$num_glt) { # assuming each GLT has one slope involved and placed last
          #if(!is.na(lop$qVars)) { if(any(lop$QV %in% lop$gltCode[[n]])) {
          if(!is.na(lop$qVars) & any(lop$QV %in% lop$gltCode[[n]])) {
             QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
-            lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+            if(QVpos > 1) lop$gltList[[n]]  <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+            if(QVpos == 1) lop$gltList[[n]] <- NA
             lop$slpList[[n]] <- lop$gltCode[[n]][QVpos]   
          } else if(!is.na(lop$vVars) & any(lop$vQV %in% lop$gltCode[[n]])) {
             vQVpos <- which(lop$gltCode[[n]] %in% lop$vQV)
-            lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+            if(vQVpos > 1) lop$gltList[[n]]  <- gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+            if(vQVpos == 1) lop$gltList[[n]] <- NULL 
             lop$slpList[[n]] <- lop$gltCode[[n]][vQVpos]   
          } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
       }
@@ -747,8 +749,10 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
                   maov(mvfm$SSPE, mvfm$SSP[[ii]], mvfm$df[ii], mvfm$error.df)[2], error=function(e) NULL)
          }  #if(!pars[[7]])                            
          if(pars[[3]]>=1) for(ii in 1:pars[[3]]) {
+            if(is.na(pars[[4]][[ii]])) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=pars[[5]][[ii]], 
+               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
-               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)           
+               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
             if(!is.null(glt)) {
                out[pars[[2]][1]+2*ii-1] <- glt[1,1]
 	       out[pars[[2]][1]+2*ii]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
@@ -1064,7 +1068,9 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-        gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
+         if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pair=NULL,
+            slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NA) else
+         gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
             adjustment="none", idata = fm[["idata"]]), error=function(e) NA)
          if(is.na(gltRes[[n]])) fm <- NULL
          n <- n+1
