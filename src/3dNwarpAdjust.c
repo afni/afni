@@ -202,6 +202,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-( :-( :-(",argv[iarg]) ;
    }
 
+   Hverb = (verb > 0) ;  /* for IW3D_invert */
+
    /*-------- check inputs to see if the user is completely demented ---------*/
 
    if( dset_nwarp == NULL )
@@ -212,7 +214,7 @@ int main( int argc , char *argv[] )
 
 
    if( verb && nsset > 0 && ( nx != nxs || ny != nys || nz != nzs ) )
-     INFO_message("warp grid = %dx%dx%d is padded from source grid = %dx%dx%d (this is not a problem)",
+     INFO_message("warp grid = %dx%dx%d is bigger than source grid = %dx%dx%d (this is NOT a problem)",
                   nx,ny,nz , nxs,nys,nzs ) ;
 
    /*--- the actual work (bow your head in reverence) ---*/
