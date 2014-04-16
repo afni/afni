@@ -730,6 +730,9 @@ parse.AFNI.args <- function ( args, params = NULL,
       allowed_options <- vector('character');
    }
    
+   #Add global args like -overwrite
+   allowed_options <- c(allowed_options, "-overwrite")
+   
    #find locations of -*
    ii <- grep ('^-.*', args);
    iflg <- vector('numeric')
@@ -840,6 +843,19 @@ parse.AFNI.args <- function ( args, params = NULL,
    } else {
       return(ops);
    }
+}
+
+AFNI.new.options.list <- function(history = '', parsed_args = NULL) {
+   lop <- list (com_history = history);
+   #Look for defaults
+   lop$overwrite <- FALSE
+   for (i in 1:length(parsed_args)) {
+      opname <- strsplit(names(parsed_args)[i],'^-')[[1]];
+      opname <- opname[length(opname)];
+      switch(opname,
+             overwrite = lop$overwrite <- TRUE )
+   }
+   return(lop)
 }
 
 #------------------------------------------------------------------
@@ -2898,7 +2914,6 @@ minmax <- function(y) {
    return(r);
 }
 
-
 newid.AFNI.old <- function(ext=0) {
    if (ext) { #in house
       return(
@@ -2919,6 +2934,25 @@ AFNI.view2viewtype <- function(view="+orig"){
    return(0)
 }
 
+AFNI.viewtype2view <- function(view=0){
+   if (is.null(view)) return("+orig")
+   if (view == 0) return("+orig")
+   if (view == 1) return("+acpc")
+   if (view == 2) return("+tlrc")
+   return("+orig")
+}
+
+dset.view <- function(dset) {
+   dd <- dset.attr(dset$NI_head, "SCENE_DATA")
+   return( AFNI.viewtype2view(dd[1]))          
+}
+
+dset.gridmatch <- function(mdset, idset) {
+   if (is.null(mdset) || is.null(idset)) return(FALSE)
+   if (dset.nvox(mdset) != dset.nvox(idset)) return(FALSE)
+   return(TRUE);
+}
+
 write.c.AFNI <- function( filename, dset=NULL, label=NULL, 
                         note=NULL, origin=NULL, delta=NULL,
                         orient=NULL, 
@@ -2926,7 +2960,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
                         verb = 1,
                         maskinf=0, scale = TRUE, 
                         overwrite=FALSE, addFDR=0,
-                        statsym=NULL, view="+tlrc",
+                        statsym=NULL, view=NULL,
                         com_hist=NULL, type=NULL) {
   
    an <- parse.AFNI.name(filename);
@@ -2953,6 +2987,16 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
       return(NULL);
    } 
    
+   if (is.null(view)) {
+      if (is.null(defhead)) {
+         view <- "+tlrc"
+      }else {
+         view <- dset.view(defhead)
+      }
+   }
+   
+      #Revert to old default if view is still not set
+   if (is.null(view)) view <- "+tlrc"
          #Setup the basics (might be repetitive, oh well)
    dset$NI_head <- dset.attr(dset$NI_head, "dim", val = dset.dimBRKarray(dset))
                               #Make sure TYPESTRING and SCENE_DATA are coherent
@@ -3032,8 +3076,9 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
                         verb = 0,
                         maskinf=0, scale = TRUE, 
                         meth='AUTO', addFDR=FALSE, 
-                        statsym=NULL, view="+tlrc",
-                        com_hist=NULL, type=NULL) {
+                        statsym=NULL, view=NULL,
+                        com_hist=NULL, type=NULL,
+                        overwrite=FALSE) {
 
   if (meth == 'AUTO') {
    if (class(brk) == 'AFNI_R_dataset') {
@@ -3064,9 +3109,11 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
                         verb = verb,
                         maskinf=maskinf, scale = scale, addFDR=addFDR,
                         statsym=statsym, view=view, com_hist=com_hist,
-                        type=type))
+                        type=type, overwrite=overwrite))
   }
-
+   #Switch to old default for view if not using write.c.AFNI
+  if (is.null(view)) view <- "+tlrc"
+  
   if (is.na(an$view)) {
    err.AFNI('Bad filename for old writing method. Need view');
    show.AFNI.name(an);
