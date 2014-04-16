@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *MASK=NULL;
 	char in_mask[300];
 	int HAVE_MASK=0;
-
+   int HAVEPREFIX=0;
 
 	char in_REF[300];
 	char prefix_GM[300];
@@ -274,6 +274,7 @@ int main(int argc, char *argv[]) {
 			if( !THD_filename_ok(prefix) ) 
 				ERROR_exit("Illegal name after '-prefix'");
 
+         HAVEPREFIX = 1;
 			iarg++ ; continue ;
 		}
 

@@ -7,6 +7,8 @@
 
 	Dec. 2012: fixed silly bug in indices.
 
+   Apr 2014: fixed something that caused errors on Linux machines, but 
+             not on other machines.  Weird. 
 */
 
 
@@ -122,6 +124,7 @@ int main(int argc, char *argv[]) {
 	char in_name[300];
 	int THR=0.;
 	char *prefix="NAME_Match";
+   int HAVEPREFIX=0;
 	THD_3dim_dataset *insetREF = NULL;
 	THD_3dim_dataset *insetMASK = NULL;
 	THD_3dim_dataset *outset=NULL;
@@ -145,6 +148,7 @@ int main(int argc, char *argv[]) {
 	int Nvox=0, Larray=0; 
 
 	int *Dim=NULL; 
+   short *minimask=NULL;
 	int REFBRIKS=0;
 	double **Data_Ref=NULL, **Data_In=NULL;
 	// just really big magn numbers, essentially `no bounds'
@@ -168,6 +172,7 @@ int main(int argc, char *argv[]) {
 
    //	INFO_message("version: BETA");
 	Dim = (int *)calloc(4,sizeof(int));
+   INFO_message("Loading data.");
 
 	// scan args
 	if (argc == 1) { usage_Match(1); exit(0); }
@@ -248,6 +253,7 @@ int main(int argc, char *argv[]) {
 
 			if( !THD_filename_ok(prefix) ) 
 				ERROR_exit("Illegal name after '-prefix'");
+         HAVEPREFIX=1;
 
 			iarg++ ; continue ;
 		}
@@ -275,15 +281,7 @@ int main(int argc, char *argv[]) {
 							ERROR_exit("Need argument after '-mask'");
 			
 			sprintf(in_MASK,"%s", argv[iarg]); 
-			insetMASK = THD_open_dataset(in_MASK) ;
-			if( (insetMASK == NULL ))
-				ERROR_exit("Can't open time series dataset '%s'.",in_MASK);
 			
-			DSET_load(insetMASK); CHECK_LOAD_ERROR(insetMASK);
-			if((Dim[0] != DSET_NX(insetMASK)) || (Dim[1] != DSET_NY(insetMASK)) ||
-				(Dim[2] != DSET_NZ(insetMASK)) )
-				ERROR_exit("The xyz-dimensions of maskset and inset don't match");
-
 			HAVEMASK=1;
 
 			iarg++ ; continue ;
@@ -315,26 +313,53 @@ int main(int argc, char *argv[]) {
 		ERROR_message("Too few options. Try -help for details.\n");
 		exit(1);
 	}
-
-			if((Dim[0] != DSET_NX(insetREF)) || (Dim[1] != DSET_NY(insetREF)) ||
-				(Dim[2] != DSET_NZ(insetREF)) )
-				ERROR_exit("The xyz-dimensions of refset and inset don't match");
-
-
+   
+   if((Dim[0] != DSET_NX(insetREF)) || (Dim[1] != DSET_NY(insetREF)) ||
+      (Dim[2] != DSET_NZ(insetREF)) )
+      ERROR_exit("The xyz-dimensions of refset and inset don't match");
+   
+   
 	// ****************************************************************
 	// ****************************************************************
 	//                    make inset storage
 	// ****************************************************************
 	// ****************************************************************
+   
+   minimask = (short *)calloc(Nvox,sizeof(short));
+   INFO_message("Setting up arrays.");
 
 	if(HAVEMASK) {
+
+      insetMASK = THD_open_dataset(in_MASK) ;
+      if( (insetMASK == NULL ))
+         ERROR_exit("Can't open time series dataset '%s'.",in_MASK);
+      
+      DSET_load(insetMASK); CHECK_LOAD_ERROR(insetMASK);
+      if((Dim[0] != DSET_NX(insetMASK)) || (Dim[1] != DSET_NY(insetMASK)) ||
+         (Dim[2] != DSET_NZ(insetMASK)) )
+         ERROR_exit("The xyz-dimensions of maskset and inset don't match");
+
+
 		Larray=0;
 		for ( i = 0 ; i < Nvox ; i++ ) 
-			if( THD_get_voxel(insetMASK,i,0)>0 ) 
+			if( THD_get_voxel(insetMASK,i,0)>0 ) {
+            minimask[i]=1;
 				Larray++;
+         }
+
+      DSET_delete(insetMASK);
+      free(insetMASK);
+      
 	}
-	else
+	else {		
+      for ( i = 0 ; i < Nvox ; i++ ) 
+         minimask[i]=1;
 		Larray=Nvox;
+   }
+      
+   
+
+
 
 	Data_Ref = calloc( REFBRIKS, sizeof(double *) );
 	for ( j = 0 ; j < REFBRIKS ; j++ ) 
@@ -370,18 +395,20 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 
-	idx=0;
-	for ( i = 0 ; i < Nvox ; i++ ) {
-		for( m=0 ; m<REFBRIKS ; m++ ) {
-			Data_Ref[m][idx] = THD_get_voxel(insetREF,i,m)*dabs(THD_get_voxel(insetREF,i,m));
-		}
-		for( m=0 ; m<Dim[3] ; m++ ) 
-			Data_In[m][idx] = THD_get_voxel(inset,i,m)*
-				dabs(THD_get_voxel(inset,i,m));
-		if( (HAVEMASK && ( THD_get_voxel(insetMASK,i,0)>0 )) || (HAVEMASK==0) )
-			idx++;
-		
-	}
+   
+	for ( i = 0 ; i < Nvox ; i++ ) 
+      if( minimask[i] ) {
+         for( m=0 ; m<REFBRIKS ; m++ ) {
+            Data_Ref[m][idx] = THD_get_voxel(insetREF,i,m)*
+               dabs(THD_get_voxel(insetREF,i,m));
+         }
+         for( m=0 ; m<Dim[3] ; m++ ) 
+            Data_In[m][idx] = THD_get_voxel(inset,i,m)*
+               dabs(THD_get_voxel(inset,i,m));
+         idx++;
+      }
+   
+   INFO_message("Correlating.");
 
 	if(ONLY_DICE_THR)
 		for( m=0 ; m< REFBRIKS ; m++ ) 
@@ -457,6 +484,7 @@ int main(int argc, char *argv[]) {
 			printf("\t%.4f",Stats_Matr[n][m][0]);
 		}}
 		printf("\n");*/
+   INFO_message("Final counting and writing.");
 
 		
 	// to find where any unmatches are
@@ -518,10 +546,12 @@ int main(int argc, char *argv[]) {
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(outset));
 	
-	temp_arr = calloc( REFBRIKS,sizeof(temp_arr));//+Nunmatch_IN,sizeof(temp_arr));//@@
+	temp_arr = calloc( REFBRIKS,sizeof(temp_arr));
+   //+Nunmatch_IN,sizeof(temp_arr));//@@
 	for(i=0 ; i<REFBRIKS ; i++) //+Nunmatch_IN ; i++) 
 		temp_arr[i] = calloc( Nvox,sizeof(float) ); 
-	MatchCC = calloc( Dim[3],sizeof(MatchCC));//+Nunmatch_IN,sizeof(MatchCC));//@@
+	MatchCC = calloc( Dim[3],sizeof(MatchCC));
+   //+Nunmatch_IN,sizeof(MatchCC));//@@
 	for(i=0 ; i<Dim[3] ; i++) //+Nunmatch_IN ; i++) 
 		MatchCC[i] = calloc( Nvox,sizeof(float) ); 
 
@@ -640,6 +670,19 @@ int main(int argc, char *argv[]) {
 	fclose(fout1);    
 
 
+   INFO_message("DONE.  You can now check your outputs as follows:");
+   INFO_message("%s is a reorganized form of the refset -> best match per "
+                "inset brick.\n"
+                "\t Overlay on the inset '%s' to check matches visually.\n"
+                "\t The associated correlation & Dice quantities are in '%s'.",
+                prefix2, in_name, out_corr2);
+   INFO_message("%s is a reorganized form of the inset -> best match per "
+                "refset brick.\n"
+                "\t Overlay on the refset '%s' to check matches visually.\n"
+                "\t The associated correlation & Dice quantities are in '%s'.",
+                prefix1, in_REF, out_corr);
+
+
 	// ************************************************************
 	// ************************************************************
 	//                    Freeing
@@ -652,8 +695,6 @@ int main(int argc, char *argv[]) {
 	free(insetREF);
 	free(outset);
 	free(outset2);
-	DSET_delete(insetMASK);
-	free(insetMASK);
 
 	for( i=0 ; i<Dim[3] ; i++)
 		for( j=0 ; j<REFBRIKS ; j++)
@@ -674,7 +715,9 @@ int main(int argc, char *argv[]) {
 	free(InvMatchList2);
 
 	free(Dim); 
-	free(prefix);
+   if( HAVEPREFIX )
+      free(prefix);
+	free(minimask);
 
 	return 0;
 }
