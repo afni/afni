@@ -5580,7 +5580,10 @@ extern float THD_covariance( int n, float *x , float *y );
 extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
-
+extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset, 
+                              byte *mask, int nmask,
+                              MRI_IMAGE *ysim,
+                              char *smethod, char *prefix); /* Apr. 2014 */
 extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
 extern float quantile_corr( int n , float *x , float rv , float *r ) ;
 extern void THD_quantile_corr_setup( int ) ;
