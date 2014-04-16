@@ -2808,6 +2808,7 @@ STATUS("making func->rowcol") ;
 
    { static char *onofflabel[]    = { "Use Threshold?" } ;
      static char *throlayxlabel[] = { "Thr = OLay ?" , "Thr = Olay+1 ?" } ;
+     char *eee ;
 
 #ifdef BAD_BUTTON3_POPUPS
    func->thr_menu = XmCreatePopupMenu( func->thr_rowcol, "menu", NULL, 0 ) ;
@@ -2870,7 +2871,14 @@ STATUS("making func->rowcol") ;
                                         AFNI_throlayx_change_CB ,
                                         (XtPointer)im3d ) ;
    im3d->vinfo->thr_olayx = 0 ;
-   MCW_set_bbox( func->thr_olayx_bbox , 0 ) ;
+   eee = getenv("AFNI_SLAVE_THROLAY") ;
+   if( eee != NULL && *eee != '\0' ){
+     if( *eee == '0' || strcasecmp(eee,"OLay")   == 0 || strcasecmp(eee,"==") == 0 )
+       im3d->vinfo->thr_olayx = 1 ;
+     if( *eee == '1' || strcasecmp(eee,"OLay+1") == 0 || strcasecmp(eee,"+1") == 0 )
+       im3d->vinfo->thr_olayx = 2 ;
+   }
+   MCW_set_bbox( func->thr_olayx_bbox , im3d->vinfo->thr_olayx ) ;
    MCW_reghint_children( func->thr_olayx_bbox->wrowcol ,
                          "Lock Thr to depend on OLay sub-brick?" ) ;
 
