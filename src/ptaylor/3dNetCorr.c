@@ -5,7 +5,12 @@
    Jan. 2014
      + changed output format of *.netcc files to match that of 
        .grid files from Tracking
-
+       
+   Apr. 2014
+     + changed output format of *.netts files to match that of 
+       .grid files from Tracking (oops, should have done earlier)
+     + new options:  insert ROI integer label into file, and have
+                     time series as individual files
 */
 
 
@@ -55,7 +60,21 @@ void usage_NetCorr(int detail)
 "    -ts_out          :switch to output the mean time series of the ROIs that\n"
 "                      have been used to generate the correlation matrices.\n"
 "                      Output filenames mirror those of the correlation\n"
-"                      matrix files, with a '.netts' postfix.\n\n"
+"                      matrix files, with a '.netts' postfix.\n"
+"    -ts_label        :additional switch when using '-ts_out'. Using this\n"
+"                      option will insert the integer ROI label at the start\n"
+"                      of each line of the *.netts file created. Thus, for\n"
+"                      a time series of length N, each line will have N+1\n"
+"                      numbers, where the first is the integer ROI label\n"
+"                      and the subsequent N are scientific notation values.\n"
+"    -ts_indiv        :switch to create a directory for each network that\n"
+"                      contains the average time series for each ROI in\n"
+"                      individual files (each file has one line).\n"
+"                      The directories are labelled PREFIX_000_INDIV/,\n"
+"                      PREFIX_001_INDIV/, etc. (one per network). Within each\n"
+"                      directory, the files are labelled ROI_001.netts,\n"
+"                      ROI_002.netts, etc., with the numbers given by the\n"
+"                      actual ROI integer labels.\n\n"
 "  + OUTPUT: \n"
 "        Output will be a simple text file, first with the number N of ROIs\n"
 "        in the set, then an empty line, then a list of the ROI labels in the\n"
@@ -87,6 +106,8 @@ int main(int argc, char *argv[]) {
   char in_mask[300];
   char in_rois[300];
   char OUT_grid[300];
+  char OUT_indiv[300];
+  char OUT_indiv0[300];
   //  int *SELROI=NULL; // if selecting subset of ROIs
   //  int HAVE_SELROI=0;
 
@@ -95,6 +116,8 @@ int main(int argc, char *argv[]) {
   int HAVE_ROIS=0;
   int FISH_OUT=0;
   int TS_OUT=0;
+  int TS_LABEL=0;
+  int TS_INDIV=0;
   int *NROI_REF=NULL,*INVROI_REF=NULL;
   int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL,**ROI_COUNT=NULL;
   int ***ROI_LISTS=NULL;
@@ -106,7 +129,7 @@ int main(int argc, char *argv[]) {
   int *Nlist;
 
   int idx;
-  FILE *fout1,*fin;
+  FILE *fout1,*fin,*fout2;
 
   mainENTRY("3dNetCorr"); machdep(); 
   
@@ -117,7 +140,8 @@ int main(int argc, char *argv[]) {
   // ****************************************************************
 
   //  INFO_message("version: BETA");
-	
+  INFO_message("Reading in.");
+
   /** scan args **/
   if (argc == 1) { usage_NetCorr(1); exit(0); }
   iarg = 1; 
@@ -196,6 +220,18 @@ int main(int argc, char *argv[]) {
       iarg++ ; continue ;
     }
     
+    if( strcmp(argv[iarg],"-ts_label") == 0) {
+      TS_LABEL=1;
+      iarg++ ; continue ;
+    }
+
+    if( strcmp(argv[iarg],"-ts_indiv") == 0) {
+      TS_INDIV=1;
+      iarg++ ; continue ;
+    }
+
+
+
     /*  if( strcmp(argv[iarg],"-sel_roi") == 0 ){
       iarg++ ; if( iarg >= argc ) 
                  ERROR_exit("Need argument after '-in_rois'");
@@ -229,6 +265,11 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   
+  if( !TS_OUT && TS_LABEL) {
+    ERROR_message("with '-ts_label', you also need '-ts_out'.\n");
+    exit(1);
+  }
+
   if (iarg < 3) {
     ERROR_message("Too few options. Try -help for details.\n");
     exit(1);
@@ -240,12 +281,14 @@ int main(int argc, char *argv[]) {
   }
 
   if(Nvox != DSET_NVOX(ROIS)) {
-    ERROR_message("Data sets of `-inset' and `in_rois' have different numbers of voxels per brik!\n");
+    ERROR_message("Data sets of `-inset' and `in_rois' have "
+                  "different numbers of voxels per brik!\n");
     exit(1);
   }
 	
   if( (HAVE_MASK>0) && (Nvox != DSET_NVOX(MASK)) ) {
-    ERROR_message("Data sets of `-inset' and `mask' have different numbers of voxels per brik!\n");
+    ERROR_message("Data sets of `-inset' and `mask' have "
+                  "different numbers of voxels per brik!\n");
     exit(1);
   }
 
@@ -276,6 +319,8 @@ int main(int argc, char *argv[]) {
   // *************************************************************
   // *************************************************************
 	
+  INFO_message("Allocating...");
+
   // go through once: define data vox, and calc rank for each
   idx = 0;
   for( k=0 ; k<Dim[2] ; k++ ) 
@@ -316,12 +361,14 @@ int main(int argc, char *argv[]) {
     for(i=0 ; i<HAVE_ROIS ; i++) 
       INV_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int)); 
      
-    if( (ROI_LABELS_REF == NULL) || (ROI_LABELS_REF == NULL) 
+    if( (ROI_LABELS_REF == NULL) || (INV_LABELS_REF == NULL) 
         ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
     }
-     
+
+    INFO_message("Labelling regions internally.");
+
     // Step 3A-2: find out the labels in the ref, organize them
     //            both backwards and forwards.
     i = ViveLeRoi(ROIS, 
@@ -381,7 +428,8 @@ int main(int argc, char *argv[]) {
       for ( j=0 ; j<NROI_REF[i] ; j++ ) 
         Corr_Matr[i][j] = (float *) calloc( NROI_REF[i], sizeof(float) );
 
-    if( (ROI_LISTS == NULL) || (ROI_AVE_TS == NULL)|| (Corr_Matr == NULL)) {
+    if( (ROI_LISTS == NULL) || (ROI_AVE_TS == NULL) 
+        || (Corr_Matr == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
     }
@@ -390,6 +438,8 @@ int main(int argc, char *argv[]) {
     for( i=0 ; i<HAVE_ROIS ; i++ ) 
       for( j=0 ; j<NROI_REF[i] ; j++ )
         ROI_COUNT[i][j] = 0;
+
+    INFO_message("Getting volumes.");
 
     for( m=0 ; m<HAVE_ROIS ; m++ ) {
       idx=0;
@@ -406,6 +456,9 @@ int main(int argc, char *argv[]) {
     }
   }	
   
+  INFO_message("Calculating average time series.");
+
+
   // ROI values
   for(i=0 ; i<HAVE_ROIS ; i++) 
     for( j=0 ; j<NROI_REF[i] ; j++ ) {
@@ -414,6 +467,8 @@ int main(int argc, char *argv[]) {
                     insetTIME, Dim, Nlist);
     }
   
+  INFO_message("Calculating correlation matrix.");
+
   for(i=0 ; i<HAVE_ROIS ; i++) 
     for( j=0 ; j<NROI_REF[i] ; j++ ) 
       for( k=j ; k<NROI_REF[i] ; k++ ) {
@@ -427,6 +482,8 @@ int main(int argc, char *argv[]) {
   // **************************************************************
   // **************************************************************
   
+  INFO_message("Writing output.");
+
   for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
      sprintf(OUT_grid,"%s_%03d.netcc",prefix,k); // zero counting now
@@ -440,7 +497,7 @@ int main(int argc, char *argv[]) {
      fprintf(fout1,"# %d  # Number of matrices\n",FISH_OUT+1); // Num of params
      //    fprintf(fout1,"%d\n\n",NROI_REF[k]);
     for( i=1 ; i<NROI_REF[k] ; i++ ) // labels of ROIs
-      fprintf(fout1,"%8d    \t",ROI_LABELS_REF[k][i]); // because at =NROI, -> \n
+      fprintf(fout1,"%8d    \t",ROI_LABELS_REF[k][i]);// because at =NROI, ->\n
     fprintf(fout1,"%8d\n# %s\n",ROI_LABELS_REF[k][i],"CC");
     for( i=0 ; i<NROI_REF[k] ; i++ ) {
       for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last one.
@@ -463,23 +520,43 @@ int main(int argc, char *argv[]) {
   if(TS_OUT) {
     for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
-      sprintf(OUT_grid,"%s_%03d.netts",prefix,k+1);
+      sprintf(OUT_grid,"%s_%03d.netts",prefix,k);
       if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
         fprintf(stderr, "Error opening file %s.",OUT_grid);
         exit(19);
       }
       for( i=0 ; i<NROI_REF[k] ; i++ ) {
-        for( j=0 ; j<Dim[3]-1 ; j++ ) // b/c we put '\n' after last one.
-          fprintf(fout1,"%.3e\t",ROI_AVE_TS[k][i][j]);
-        fprintf(fout1,"%.3e\n",ROI_AVE_TS[k][i][j]);
+         if(TS_LABEL)
+            fprintf(fout1,"%d\t",ROI_LABELS_REF[k][i+1]); // labels go 1...M
+         for( j=0 ; j<Dim[3]-1 ; j++ ) // b/c we put '\n' after last one.
+            fprintf(fout1,"%.3e\t",ROI_AVE_TS[k][i][j]);
+         fprintf(fout1,"%.3e\n",ROI_AVE_TS[k][i][j]);
       }
       fclose(fout1);  
 
     }
   }
 
-  
-  INFO_message("Correlation calculated.");
+  if(TS_INDIV) {
+    for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
+       sprintf(OUT_indiv0,"%s_%03d_INDIV", prefix, k);
+       mkdir(OUT_indiv0, 0777);
+       for( i=0 ; i<NROI_REF[k] ; i++ ) {
+          sprintf(OUT_indiv,"%s/ROI_%03d.netts",
+                  OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+          if( (fout2 = fopen(OUT_indiv, "w")) == NULL) {
+             fprintf(stderr, "\nError opening file '%s'.\n",OUT_indiv);
+             exit(19);
+          }
+
+          for( j=0 ; j<Dim[3]-1 ; j++ ) // b/c we put '\n' after last one.
+             fprintf(fout2,"%.3e\t",ROI_AVE_TS[k][i][j]);
+          fprintf(fout2,"%.3e\n",ROI_AVE_TS[k][i][j]);
+          
+          fclose(fout2);  
+       }
+    }
+  }
   
   
   // ************************************************************
@@ -489,11 +566,13 @@ int main(int argc, char *argv[]) {
   // ************************************************************
 	
   DSET_delete(insetTIME);
-  DSET_delete(MASK);
   DSET_delete(ROIS);
-  free(MASK);
   free(ROIS);
   free(insetTIME);
+  if (HAVE_MASK) {
+     DSET_delete(MASK);
+     free(MASK);
+  }
 
   for( i=0 ; i<Dim[0] ; i++) 
     for( j=0 ; j<Dim[1] ; j++) {

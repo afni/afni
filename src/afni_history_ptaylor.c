@@ -66,6 +66,20 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, Apr , 2014 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
+   "Reformatted output a bit, added features for J. Rajendra.",
+   "Can output time series with labels, and as individual files.\n"
+},
+
+{ 16, Apr , 2014 , PT , "3dROIMaker" , MICRO , TYPE_BUG_FIX,
+   "Hadn't made a problem if user didn't input 'prefix'.",
+   "Fixed aforementioned loophole..\n"
+},
+
+{ 16, Apr , 2014 , PT , "3dMatch" , MINOR , TYPE_BUG_FIX,
+   "Bug when using mask on *some* files with Linux.",
+   "Seems to be more stable criteria now.\n"
+},
 
 { 6, Mar , 2014 , PT , "3dTrackID" , SUPERDUPER , TYPE_MODIFY,
    "Have Cordelialy unified the three kingdoms of tracking, cLearing usage.",
