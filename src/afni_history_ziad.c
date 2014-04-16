@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16, Apr, 2014, ZSS, "3dTcorr1D", MINOR, TYPE_MODIFY,
+   "Turned heart of main() into a standalone function in thd_Tcorr1D.c",
+   "This way we can run the equivalent of 3dTcorr1D from other C programs\n"
+   "such as 3dNetCorr"
+ },
+  
+ { 16, Apr, 2014, ZSS, "3dRprogDemo", MINOR, TYPE_NEW_PROG,
+   "A toy program to show how to write a command line R program with AFNI",
+   "Created to help Cesar Caballero and Natalia Petridou implement their\n"
+   "Paradigm Free Mapping method."
+ },
+  
  { 8, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added 'F10' to toggle prying axis between Z and Y",
    NULL 
