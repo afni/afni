@@ -25,6 +25,10 @@
 
 /*---------------------------------------------------------------------------*/
 
+static int Hverb = 1 ;   /* mostly for QWARP (far below) */
+
+/*---------------------------------------------------------------------------*/
+
 #define SLOPE_3(x0,x1,x2) ( -0.5f*(x0+x1+x2)                            \
                            + 0.5f*(x1+2.0f*x2) )
 
@@ -2569,6 +2573,8 @@ ENTRY("IW3D_invert") ;
 
    if( verb_nww )
      ININFO_message("  - start iterations: normAA=%f inewtfac=%f",normAA,inewtfac) ;
+   else if( Hverb )
+     fprintf(stderr,".") ;  /* for 3dNwarpAdjust */
 
    /* iterate some, until convergence or exhaustion */
 
@@ -2587,6 +2593,8 @@ ENTRY("IW3D_invert") ;
      /* take a Newton step */
 
      CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
+   
+     if( !verb_nww && Hverb ) fprintf(stderr,".") ;  /* for 3dNwarpAdjust */
 
      /* how close are they now? */
 
@@ -2631,7 +2639,7 @@ ENTRY("IW3D_invert") ;
 
    /* failed to converge, return latest result anyhoo */
 
-   WARNING_message("invert: iterations failed to converge") ;
+   WARNING_message("IW3D_invert: iterations failed to converge") ;
    RETURN(BB) ;
 }
 
@@ -4835,8 +4843,6 @@ static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
 static float Hcost  = 666.666f ;
 static float Hpenn  = 0.0f ;
 static float Hcostt = 0.0f ;
-
-static int Hverb = 1 ;
 
 #undef  SRCIM
 #define SRCIM ( (Hsrcim_blur != NULL ) ? Hsrcim_blur : Hsrcim )

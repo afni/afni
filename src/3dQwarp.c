@@ -930,7 +930,6 @@ int main( int argc , char *argv[] )
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
    int nxold=0,nyold=0,nzold=0 ;
    int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
-   float zp_frac=-1.0f ;
    int expad=0 , minpad=0 ;
    int iwpad_xm=0,iwpad_xp=0, iwpad_ym=0,iwpad_yp=0, iwpad_zm=0,iwpad_zp=0 ;
 
@@ -1002,16 +1001,6 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-nopadWARP") == 0 ){ /* 19 Mar 2014 */
        zeropad_warp = 0 ; nopt++ ; continue ;
      }
-#if 0
-     if( strcasecmp(argv[nopt],"-zpad") == 0 ){  /* 26 Mar 2014 */
-       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
-       zp_frac = (float)strtod(argv[nopt],NULL) ;
-       if( zp_frac < 0.0f || zp_frac > 0.2f )
-         ERROR_message("Illegal value after option %s",argv[nopt-1]) ;
-       if( zp_frac == 0.0f ) zeropad = 0 ;
-       nopt++ ; continue ;
-     }
-#endif
 
      if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* secret option */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
@@ -1529,10 +1518,10 @@ STATUS("construct initial warp") ;
           iwpad_yp > 0 || iwpad_zm > 0 || iwpad_zp > 0   ) )
        ERROR_exit("-iniwarp grid is bigger than base dataset grid AND you used -nopad") ;
 
-     if( Hverb &&
+     if( Hverb > 1 &&
          (iwpad_xm > 0 || iwpad_xp > 0 || iwpad_ym > 0 ||
           iwpad_yp > 0 || iwpad_zm > 0 || iwpad_zp > 0   ) )
-       INFO_message("-iniwarp requires minimum padding of %d %d  %d %d  %d %d",
+       INFO_message("-iniwarp requires dataset to be padded at least %d %d  %d %d  %d %d voxels",
                     iwpad_xm, iwpad_xp, iwpad_ym, iwpad_yp, iwpad_zm, iwpad_zp ) ;
    }
 
@@ -1586,23 +1575,23 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      int spad_xm,spad_xp, spad_ym,spad_yp, spad_zm,spad_zp ;
      int mpad_x , mpad_y , mpad_z , ii ;
 
-     if( zp_frac > 0.0f ){
-       bpad_xm = bpad_xp = (int)rintf(zp_frac*bim->nx) ;  /* brute force:  */
-       bpad_ym = bpad_yp = (int)rintf(zp_frac*bim->ny) ;  /* zeropad based */
-       bpad_zm = bpad_zp = (int)rintf(zp_frac*bim->nz) ;  /* on dimensions */
-     } else {
-       cv = 0.33f * THD_cliplevel(bim,0.22f) ;        /* set threshold on base, */
-       qim = mri_copy(bim); qar = MRI_FLOAT_PTR(qim); /* then pad on bounding box */
-       for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
-       MRI_autobbox( qim, &bpad_xm,&bpad_xp, &bpad_ym,&bpad_yp, &bpad_zm,&bpad_zp ) ;
-       mri_free(qim) ;
-     }
+     cv = 0.33f * THD_cliplevel(bim,0.22f) ;        /* set threshold on base, */
+     qim = mri_copy(bim); qar = MRI_FLOAT_PTR(qim); /* then pad on bounding box */
+     for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
+     MRI_autobbox( qim, &bpad_xm,&bpad_xp, &bpad_ym,&bpad_yp, &bpad_zm,&bpad_zp ) ;
+     mri_free(qim) ;
+     if( Hverb > 1 )
+       INFO_message("Zero-pad: base dataset autobox = %d..%d  %d..%d  %d..%d",
+                    bpad_xm,bpad_xp , bpad_ym,bpad_yp , bpad_zm,bpad_zp ) ;
 #if 0
      cv = 0.33f * THD_cliplevel(sim,0.22f) ;       /* set threshold on source */
      qim = mri_copy(sim); qar = MRI_FLOAT_PTR(qim);
      for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
      MRI_autobbox( qim, &spad_xm,&spad_xp, &spad_ym,&spad_yp, &spad_zm,&spad_zp ) ;
      mri_free(qim) ;
+     if( Hverb > 1 )
+       ININFO_message("Zero-pad: source dataset autobox = %d..%d  %d..%d  %d..%d",
+                      bpad_xm,bpad_xp , bpad_ym,bpad_yp , bpad_zm,bpad_zp ) ;
 #else
      spad_xm = bpad_xm ; spad_ym = bpad_ym ; spad_zm = bpad_zm ;
      spad_xp = bpad_xp ; spad_yp = bpad_yp ; spad_zp = bpad_zp ;
@@ -1630,6 +1619,12 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      pad_yp = mpad_y - (bim->ny-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
      pad_zp = mpad_z - (bim->nz-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
 
+     if( Hverb > 1 &&
+         (pad_xm > 0 || pad_xp > 0 || pad_ym > 0 ||
+          pad_yp > 0 || pad_zm > 0 || pad_zp > 0   ) )
+       ININFO_message("dataset padding needs at least %d %d  %d %d  %d %d voxels",
+                      pad_xm, pad_xp, pad_ym, pad_yp, pad_zm, pad_zp ) ;
+
      if( pad_xm < iwpad_xm ) pad_xm = iwpad_xm ;  /* make sure padding */
      if( pad_xp < iwpad_xp ) pad_xp = iwpad_xp ;  /* is at least what */
      if( pad_ym < iwpad_ym ) pad_ym = iwpad_ym ;  /* is needed to fit */
@@ -1644,13 +1639,17 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      if( pad_zm < minpad   ) pad_zm = minpad ;
      if( pad_zp < minpad   ) pad_zp = minpad ;
 
-     if( expad > 0 ){                             /* extra padding */
-       pad_xm += expad ; pad_xp += expad ;        /* ordered by the */
-       pad_ym += expad ; pad_yp += expad ;        /* cautious user */
-       pad_zm += expad ; pad_zp += expad ;
+     if( expad > 0 ){                             /* extra padding   */
+       pad_xm += expad ; pad_xp += expad ;        /* ordered by the  */
+       pad_ym += expad ; pad_yp += expad ;        /* cautious user   */
+       pad_zm += expad ; pad_zp += expad ;        /* (secret option) */
      }
 
-     if( bim->nz == 1 ){ pad_zm = pad_zp = 0 ; } /* but don't z-pad 2D image! */
+     if( bim->nz == 1 ){
+       pad_zm = pad_zp = 0 ;
+       if( iwpad_zm > 0 || iwpad_zp > 0 )
+         ERROR_exit("-iniwarp required padding in 3D but base dataset is 2D ?!?") ;
+     } /* but don't z-pad 2D image! */
 
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
@@ -1664,8 +1663,8 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
 
      if( zeropad ){  /*----- print a report and actually do it -----*/
        if( Hverb )
-         INFO_message("Zero-pad: xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d",
-                      pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ) ;
+         INFO_message("Dataset zero-pad: xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d voxels",
+                       pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ) ;
 
        /* replace base image */
 
@@ -1733,8 +1732,8 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
                                                   iwpad_ym,iwpad_yp, iwpad_zm,iwpad_zp , 0 ) ;
        IW3D_destroy(S2BIM_iwarp) ; S2BIM_iwarp = QQ ;
        if( Hverb )
-         INFO_message("extended iniwarp to match base volume: %d %d  %d %d  %d %d",
-                      iwpad_xm,iwpad_xp, iwpad_ym,iwpad_yp, iwpad_zm,iwpad_zp ) ;
+         ININFO_message("Extended/padded iniwarp to match base volume: %d %d  %d %d  %d %d voxels",
+                        iwpad_xm,iwpad_xp, iwpad_ym,iwpad_yp, iwpad_zm,iwpad_zp ) ;
      }
 #if 0
      if( Hverb > 1 )
