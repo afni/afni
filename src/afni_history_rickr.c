@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Apr, 2014, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "internal re-org, should have no effect",
+   NULL
+ } ,
+
  { 15,  Apr, 2014, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
    "added optional 'pid' parameter to the get_process_stack() functions",
    NULL
