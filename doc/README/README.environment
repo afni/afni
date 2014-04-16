@@ -2610,6 +2610,22 @@ you want the time index control to change ONLY the underlay sub-brick,
 then set this variable to NO.
 
 ----------------------------
+Variable: AFNI_SLAVE_THROLAY
+----------------------------
+This variable allows you to control the INITIAL setting of the widgets
+that slave (or not) the threshold index to the overlay index.  (These
+widgets are on the 'Index' right-click popup chooser and on the threshold
+slider right-click popup menu.)  The values you can set for this variable,
+and their effects, are listed below (not case sensitive):
+   'OLay'    *or*  '=='  *or*  '0'  ==> threshold index = overlay index
+   'OLay+1'  *or*  '+1'  *or*  '1'  ==> threshold index = overlay index + 1
+   ANYTHING ELSE                    ==> threshold index is free and wild
+This variable replaces the 2 variables listed below.  Again, this only
+controls the INITIAL setting of the widgets -- you can change them in the
+AFNI GUI later at any time.  Setting this variable after AFNI starts
+(e.g., from plugout_drive) will have little discernable effect.
+
+----------------------------
 Variable: AFNI_SLAVE_THRTIME       *** THIS VARIABLE IS NO LONGER USED ***
 ----------------------------
 When the underlay and overlay datasets both are time-dependent, switching
