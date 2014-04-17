@@ -149,7 +149,7 @@ def db_cmd_postdata(proc, block):
        cmd = cmd + oc
 
     # probaby get outlier fractions
-    if not proc.user_opts.have_no_opt('-outlier_count'):
+    if proc.user_opts.have_yes_opt('-outlier_count', default=1):
         rv, oc = make_outlier_commands(proc, block)
         if rv: return   # failure (error has been printed)
         cmd = cmd + oc
@@ -354,7 +354,7 @@ def db_cmd_align(proc, block):
     if proc.align_ebase != None:
         basevol = "%s%s" % (proc.align_epre,proc.view)
         bind = 0
-    elif proc.vr_ext_base != None:
+    elif proc.vr_ext_base != None or proc.vr_int_name != '':
         basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
         bind = 0
     else:
@@ -932,6 +932,49 @@ def db_cmd_tshift(proc, block):
     
     return cmd
 
+def vr_do_min_outlier(block, proc, user_opts):
+   # set up use of min outlier volume as volreg base
+   # 1. if not computing doing outliers, whine and return
+   # 2. after outlier command: set $minoutrun, $minouttr
+   # 3. after previous (to volreg) block command: extract 'min_outlier_volume'
+   #    --> set that as vr_ext_pre
+
+   # 1. are we computing outliers?
+   if not proc.user_opts.have_yes_opt('outlier_count', default=1):
+      print '** cannot use min outlier volume without outlier counts'
+      print "   (consider '-outlier_count yes')"
+      return 1
+
+   # let the user know, and init vr vars
+   if proc.verb: print "-- will use min outlier volume as motion base"
+   proc.vr_int_name = 'pb%02d.$subj.r$minoutrun.%s%s"[$minouttr]"' \
+                      % (block.index-1, proc.prev_lab(block), proc.view)
+   proc.vr_ext_pre = 'min_outlier_volume'
+
+   # 2. assign $minout{run,tr}
+   pblock = proc.find_block('postdata')
+   if not block:
+      print '** vr_do_min_outlier: missing postdata block'
+      return 1
+   outtxt = 'out.min_outlier.txt'
+   pblock.post_cstr += \
+      "# get run number and TR index for minimum outlier volume\n"      \
+      "set minindex = `3dTstat -argmin -prefix - outcount_rall.1D\\'`\n"\
+      "set ovals = ( `1d_tool.py -set_run_lengths $tr_counts \\\n"      \
+      "                          -index_to_run_tr $minindex` )\n"       \
+      "# save run and TR indices for extraction of %s\n"                \
+      "set minoutrun = $ovals[1]\n"                                     \
+      "set minouttr  = $ovals[2]\n"                                     \
+      'echo "min outlier: run $minoutrun, TR $minouttr" | tee %s\n\n'   \
+      % (proc.vr_ext_pre, outtxt)
+
+   # 3. extract registration base
+   
+   prev_block = proc.find_block(proc.prev_lab(block))
+   prev_block.post_cstr += \
+      '# copy min outlier volume as registration base\n' \
+      '3dbucket -prefix %s %s\n\n' % (proc.vr_ext_pre, proc.vr_int_name)
+
 def db_mod_volreg(block, proc, user_opts):
     if len(block.opts.olist) == 0:   # init dset/brick indices to defaults
         block.opts.add_opt('-volreg_base_ind', 2, [0, 2], setpar=1)
@@ -958,7 +1001,14 @@ def db_mod_volreg(block, proc, user_opts):
             print "** cannot use -volreg_base_ind or _align_to with _base_dset"
             print "   (use sub-brick selection with -volreg_base_dset DSET)"
             return 1
-        proc.vr_ext_base = baseopt.parlist[0]
+        bset = baseopt.parlist[0]
+
+        # baseopt can be either MIN_OUTLIER or typical case of dataset
+        if bset == 'MIN_OUTLIER': 
+           # min outlier setup is actually applied in other blocks,
+           # done via block.post_cstr commands
+           if vr_do_min_outlier(block, proc, user_opts): return 1
+        else: proc.vr_ext_base = baseopt.parlist[0]
 
     if uopt and bopt:
         # copy new params as ints
@@ -1072,9 +1122,6 @@ def db_mod_volreg(block, proc, user_opts):
     bopt = block.opts.find_opt('-volreg_compute_tsnr')
     if uopt: bopt.parlist = uopt.parlist
 
-    # proc.vr_ext_base = 'min_outlier_vol'
-    # proc.vr_ext_pre =
-
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
@@ -1093,7 +1140,8 @@ def db_cmd_volreg(proc, block):
               '   aligning EPI to end the runs, this looks fishy...'
 
     # get any base_vol option
-    if proc.vr_ext_base != None: basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
+    if proc.vr_ext_base != None or proc.vr_int_name != '':
+       basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
     else: basevol = None
 
     if proc.verb > 0:
@@ -5211,6 +5259,9 @@ g_help_string = """
            To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
            To process as anat aligned to EPI, remove -volreg_align_e2a.
 
+         * Also, consider '-volreg_base_dset MIN_OUTLIER', to use the volume
+           with the minimum outlier fraction as the registration base.
+
         Example 7. Similar to 6, but get a little more esoteric.
 
            a. Blur only within the brain, as far as an automask can tell.  So
@@ -5861,6 +5912,8 @@ g_help_string = """
         Alignment of the EPI data to a single volume is based on the 3 options
         -volreg_align_to, -volreg_base_dset and -volreg_base_ind, where the
         first option is by far the most commonly used.
+
+        Note that a good alternative is: '-volreg_base_dset MIN_OUTLIER'.
 
         The logic of EPI alignment in afni_proc.py is:
 
@@ -7149,6 +7202,9 @@ g_help_string = """
             Note that unless -align_epi_ext_dset is also applied, this volume
             will be used for anatomical to EPI alignment (assuming that is
             being done at all).
+
+          * A special case is if DSET is the string MIN_OUTLIER, in which
+            case the volume with the minimum outlier fraction would be used.
 
             See also -align_epi_ext_dset, -volreg_align_to and -volreg_base_ind.
 

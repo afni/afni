@@ -411,12 +411,15 @@ g_history = """
         - added detail to ricor slices warning/error
         - if anat_uniform_method of unifize, turn of in auto_warp.py
     4.15 April 16, 2014: internal re-org, should have no effect
+    4.16 April 17, 2014:
+        - allow a special case of MIN_OUTLIER as the -volreg_base_dset, as
+          recommended by T. Ross
 """
 
-g_version = "version 4.15, April 15, 2014"
+g_version = "version 4.16, April 17, 2014"
 
 # version of AFNI required for script execution
-g_requires_afni = "29 Nov 2013" # for 3dRSFC update
+g_requires_afni = "10 Apr 2014" # for 1d_tool.py -index_to_run_tr
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -451,7 +454,7 @@ DefSurfLabs    = ['tcat','tshift','align','volreg','surf','blur',
 
 # names for blocks that do NOT process (make new) EPI data
 #   --> these do not need index increments
-EPImodLabs = ['postdata', 'align', 'tlrc', 'mask']
+EPInomodLabs = ['postdata', 'align', 'tlrc', 'mask']
 
 # --------------------------------------------------------------------------
 # data processing stream class
@@ -475,6 +478,7 @@ class SubjProcSream:
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
+        self.vr_int_name= ''            # other internal volreg dset name
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)
         self.mot_labs   = []            # labels for motion params
@@ -1273,7 +1277,7 @@ class SubjProcSream:
         for label in blocks:
             rv = self.add_block(label)
             if rv != None: return rv
-            if label not in EPImodLabs:
+            if label not in EPInomodLabs:
                 self.pblabels.append(label)
                 self.bindex += 1
 
@@ -1451,6 +1455,11 @@ class SubjProcSream:
                 print "** script creation failure for block '%s'" % block.label
                 errs += 1
             else:
+                if block.post_cstr != '':
+                   if self.verb > 2:
+                      print '++ adding post_cstr to block %s:\n%s=======' \
+                            (block.label, block.post_cstr)
+                   cmd_str += block.post_cstr
                 self.write_text(add_line_wrappers(cmd_str))
                 if self.verb>3: block.show('+d post command creation: ')
                 if self.verb>4: print '+d %s cmd: \n%s'%(block.label, cmd_str)
@@ -2022,12 +2031,16 @@ class SubjProcSream:
             os.chmod(self.script, 0755)
 
     def prev_lab(self, block):
-        bind = block.index
-        if bind <= 0:
-           print '** asking for prev lab on block %s (ind %d)' \
-                 % (block.label, bind)
-           return block.label
-        return self.pblabels[bind-1]
+       if block.index <= 0:
+          print '** asking for prev lab on block %s (ind %d)' \
+                % (block.label, block.index)
+       return self.block_index_label(block.index-1)
+
+    def block_index_label(self, index):
+       if index < 0 or index >= len(self.pblabels):
+          print '** invalid index for block label: %d' % index
+          return 'NO_LABEL'
+       return self.pblabels[index]
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
@@ -2145,6 +2158,7 @@ class ProcessBlock:
         self.valid = 0          # block is not yet valid
         self.index = proc.bindex
         self.verb  = proc.verb  # verbose level
+        self.post_cstr = ''     # extra commands to run at the end of the block
         if not label in BlockModFunc: return
 
         self.opts = OptionList(label)                   # init option list
