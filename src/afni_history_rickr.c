@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  Apr, 2014, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "added MIN_OUTLIER parameter option for -volreg_base_dset",
+   "Using '-volreg_base_dset MIN_OUTLIER' will result in the volume with\n"
+   "the minimum outlier fraction to be extracted as the volreg base.\n"
+   "Thanks to T Ross for the good suggestion, so long ago"
+ } ,
+
  { 16,  Apr, 2014, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "internal re-org, should have no effect",
    NULL
