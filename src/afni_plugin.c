@@ -4978,7 +4978,7 @@ int AFNI_append_dset_to_session( char *fname, int sss )
    if( this_ss->num_dsset < THD_MAX_SESSION_SIZE ){
       if (!(new_dset = THD_open_dataset( fname ))) {
          /* now try looking for it */
-         new_dset = THD_open_dataset(find_afni_file(fname, 0));
+         new_dset = THD_open_dataset(find_afni_file(fname, 0, NULL));
       }
       if (!new_dset) { /* try again, this works better if name
                          is not complete */
