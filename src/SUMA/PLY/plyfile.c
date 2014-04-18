@@ -38,15 +38,21 @@ WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 #include <string.h>
 #include <ply.h>
 
+/* Keep in sync with PLY_CHAR, etc. definitions in ply.h */
 char *type_names[] = {
 "invalid",
-"char", "short", "int",
+"char", "uint8", "short", 
+"int", "int32",
 "uchar", "ushort", "uint",
-"float", "double",
+"float", "float32", "double",
 };
 
 int ply_type_size[] = {
-  0, 1, 2, 4, 1, 2, 4, 4, 8
+  0, 
+  1, 1, 2, 
+  4, 4,
+  1, 2, 4, 
+  4, 4, 8
 };
 
 #define NO_OTHER_PROPS  -1
@@ -1840,6 +1846,7 @@ double get_item_value(char *item, int type)
       pchar = (char *) item;
       int_value = *pchar;
       return ((double) int_value);
+    case PLY_UINT8:
     case PLY_UCHAR:
       puchar = (unsigned char *) item;
       int_value = *puchar;
@@ -1852,6 +1859,7 @@ double get_item_value(char *item, int type)
       pushort = (unsigned short int *) item;
       int_value = *pushort;
       return ((double) int_value);
+    case PLY_INT32:
     case PLY_INT:
       pint = (int *) item;
       int_value = *pint;
@@ -1861,6 +1869,7 @@ double get_item_value(char *item, int type)
       uint_value = *puint;
       return ((double) uint_value);
     case PLY_FLOAT:
+    case PLY_FLOAT32:
       pfloat = (float *) item;
       double_value = *pfloat;
       return (double_value);
@@ -1909,9 +1918,11 @@ void write_binary_item(
       short_val = int_val;
       fwrite (&short_val, 2, 1, fp);
       break;
+    case PLY_INT32:
     case PLY_INT:
       fwrite (&int_val, 4, 1, fp);
       break;
+    case PLY_UINT8:
     case PLY_UCHAR:
       uchar_val = uint_val;
       fwrite (&uchar_val, 1, 1, fp);
@@ -1924,6 +1935,7 @@ void write_binary_item(
       fwrite (&uint_val, 4, 1, fp);
       break;
     case PLY_FLOAT:
+    case PLY_FLOAT32:
       float_val = double_val;
       fwrite (&float_val, 4, 1, fp);
       break;
@@ -1960,13 +1972,16 @@ void write_ascii_item(
     case PLY_CHAR:
     case PLY_SHORT:
     case PLY_INT:
+    case PLY_INT32:
       fprintf (fp, "%d ", int_val);
       break;
     case PLY_UCHAR:
     case PLY_USHORT:
+    case PLY_UINT8:
     case PLY_UINT:
       fprintf (fp, "%u ", uint_val);
       break;
+    case PLY_FLOAT32:
     case PLY_FLOAT:
     case PLY_DOUBLE:
       fprintf (fp, "%g ", double_val);
@@ -2010,6 +2025,7 @@ double old_write_ascii_item(FILE *fp, char *item, int type)
       int_value = *pchar;
       fprintf (fp, "%d ", int_value);
       return ((double) int_value);
+    case PLY_UINT8:
     case PLY_UCHAR:
       puchar = (unsigned char *) item;
       int_value = *puchar;
@@ -2025,6 +2041,7 @@ double old_write_ascii_item(FILE *fp, char *item, int type)
       int_value = *pushort;
       fprintf (fp, "%d ", int_value);
       return ((double) int_value);
+    case PLY_INT32:
     case PLY_INT:
       pint = (int *) item;
       int_value = *pint;
@@ -2035,6 +2052,7 @@ double old_write_ascii_item(FILE *fp, char *item, int type)
       uint_value = *puint;
       fprintf (fp, "%u ", uint_value);
       return ((double) uint_value);
+    case PLY_FLOAT32:
     case PLY_FLOAT:
       pfloat = (float *) item;
       double_value = *pfloat;
@@ -2080,6 +2098,7 @@ void get_stored_item(
       *uint_val = *int_val;
       *double_val = *int_val;
       break;
+    case PLY_UINT8:
     case PLY_UCHAR:
       *uint_val = *((unsigned char *) ptr);
       *int_val = *uint_val;
@@ -2095,6 +2114,7 @@ void get_stored_item(
       *int_val = *uint_val;
       *double_val = *uint_val;
       break;
+    case PLY_INT32:
     case PLY_INT:
       *int_val = *((int *) ptr);
       *uint_val = *int_val;
@@ -2105,6 +2125,7 @@ void get_stored_item(
       *int_val = *uint_val;
       *double_val = *uint_val;
       break;
+    case PLY_FLOAT32:
     case PLY_FLOAT:
       *double_val = *((float *) ptr);
       *int_val = *double_val;
@@ -2156,6 +2177,7 @@ void get_binary_item(
       *uint_val = *int_val;
       *double_val = *int_val;
       break;
+    case PLY_UINT8:
     case PLY_UCHAR:
       fread (ptr, 1, 1, fp);
       *uint_val = *((unsigned char *) ptr);
@@ -2174,6 +2196,7 @@ void get_binary_item(
       *int_val = *uint_val;
       *double_val = *uint_val;
       break;
+    case PLY_INT32:
     case PLY_INT:
       fread (ptr, 4, 1, fp);
       *int_val = *((int *) ptr);
@@ -2186,6 +2209,7 @@ void get_binary_item(
       *int_val = *uint_val;
       *double_val = *uint_val;
       break;
+    case PLY_FLOAT32:
     case PLY_FLOAT:
       fread (ptr, 4, 1, fp);
       *double_val = *((float *) ptr);
@@ -2230,9 +2254,11 @@ void get_ascii_item(
   switch (type) {
     case PLY_CHAR:
     case PLY_UCHAR:
+    case PLY_UINT8:
     case PLY_SHORT:
     case PLY_USHORT:
     case PLY_INT:
+    case PLY_INT32:
       *int_val = atoi (word);
       *uint_val = *int_val;
       *double_val = *int_val;
@@ -2245,6 +2271,7 @@ void get_ascii_item(
       break;
 
     case PLY_FLOAT:
+    case PLY_FLOAT32:
     case PLY_DOUBLE:
       *double_val = atof (word);
       *int_val = (int) *double_val;
@@ -2292,6 +2319,7 @@ void store_item (
     case PLY_CHAR:
       *item = int_val;
       break;
+    case PLY_UINT8:
     case PLY_UCHAR:
       puchar = (unsigned char *) item;
       *puchar = uint_val;
@@ -2304,6 +2332,7 @@ void store_item (
       pushort = (unsigned short *) item;
       *pushort = uint_val;
       break;
+    case PLY_INT32:
     case PLY_INT:
       pint = (int *) item;
       *pint = int_val;
@@ -2312,6 +2341,7 @@ void store_item (
       puint = (unsigned int *) item;
       *puint = uint_val;
       break;
+    case PLY_FLOAT32:
     case PLY_FLOAT:
       pfloat = (float *) item;
       *pfloat = double_val;
@@ -2378,6 +2408,7 @@ int get_prop_type(char *type_name)
       return (i);
 
   /* if we get here, we didn't find the type */
+  fprintf(stderr,"Type_name %s is not supported\n", type_name);
   return (0);
 }
 
