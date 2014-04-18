@@ -2390,30 +2390,32 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          } else {
             GLvoid *pixels=NULL;
             double rat;
-            int oh=-1,ow=-1;
+            int oareah=-1,oareaw=-1, owindh=-1, owindw=-1;
             /* Control for GL_MAX_VIEWPORT_DIMS */
             if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {
                glGetIntegerv(GL_MAX_VIEWPORT_DIMS,&k);
                mm = SUMA_MAX_PAIR(
-                     SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->HEIGHT,          
-                     SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH);
+                     SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aHEIGHT, 
+                     SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aWIDTH);
                if (mm > k) { /* too big, find best new dimesnions */
                   rat = (double)mm/(double)k; 
                      /*window shrinking factor to allow for stitching*/
                   SUMA_S_Notev(  "%d/%d (H/W) Too big for oversampling\n"
                                  " reducing resolution by %f.\n", 
-                                 sv->X->HEIGHT, sv->X->WIDTH, rat);
+                                 sv->X->aHEIGHT, sv->X->aWIDTH, rat);
                   /* store original size */
-                  ow = sv->X->WIDTH; oh = sv->X->HEIGHT;
-                  sv->WindHeight = sv->X->HEIGHT = 
-                     (int)((double)sv->X->HEIGHT/rat)-1;
-                  sv->WindWidth = sv->X->WIDTH = 
-                     (int)((double)sv->X->WIDTH/rat)-1;
+                  oareaw = sv->X->aWIDTH; oareah = sv->X->aHEIGHT;
+                  owindw = sv->wWindWidth; owindh = sv->wWindHeight;  
+                  sv->X->aHEIGHT = 
+                     (int)((double)sv->X->aHEIGHT/rat)-1;
+                  sv->X->aWIDTH = 
+                     (int)((double)sv->X->aWIDTH/rat)-1;
+                  SUMA_SV_WindDims_From_DrawAreaDims(sv);
                   SUMA_WidgetResize (sv->X->TOPLEVEL , 
-                                     sv->X->WIDTH, sv->X->HEIGHT);
+                                     sv->wWindWidth, sv->wWindHeight);
                   sv->rdc = SUMA_RDC_X_RESIZE;
                   glViewport( 0, 0, 
-                                 sv->X->WIDTH, sv->X->HEIGHT);  
+                                 sv->X->aWIDTH, sv->X->aHEIGHT);  
                   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA); 
                } else {
                   SUMA_S_Note("Size OK");
@@ -2437,8 +2439,8 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                               SUMAg_CF->SUMA_SnapshotOverSampling,
                            k,
                            SUMA_MAX_PAIR( SUMAg_CF->SUMA_SnapshotOverSampling * 
-                              sv->X->HEIGHT,
-                           SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH)  );
+                              sv->X->aHEIGHT,
+                           SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aWIDTH)  );
                      } else {
                         /* sometimes you have repeated black areas when 
                         oversampling, allow that after very first 'tant' */
@@ -2446,12 +2448,12 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                      }
                      /* start from top left, move to right then go down 
                         one row (Row Major, starting on top left ) */
-                     glViewport(-ii*sv->X->WIDTH,  
+                     glViewport(-ii*sv->X->aWIDTH,  
                                 -(SUMAg_CF->SUMA_SnapshotOverSampling - jj - 1) *
-                                  sv->X->HEIGHT, 
-                                SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->WIDTH,
+                                  sv->X->aHEIGHT, 
+                               SUMAg_CF->SUMA_SnapshotOverSampling*sv->X->aWIDTH,
                                 SUMAg_CF->SUMA_SnapshotOverSampling * 
-                                 sv->X->HEIGHT);
+                                 sv->X->aHEIGHT);
                      SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
                      #if 0 /* problem should be fixed by SUMA_grabRenderedPixels
                               Throw section out if no new problems arise.
@@ -2509,9 +2511,9 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                      #endif
                   }
                   pixels = SUMA_grabRenderedPixels(sv, 3, 
-                                       sv->X->WIDTH, sv->X->HEIGHT, 0);
+                                       sv->X->aWIDTH, sv->X->aHEIGHT, 0);
                   if (pixels) {
-                    ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, 
+                    ISQ_snapsave (sv->X->aWIDTH, -sv->X->aHEIGHT, 
                                   (unsigned char *)pixels, sv->X->GLXAREA ); 
                     SUMA_free(pixels);
                   }else {
@@ -2523,14 +2525,16 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             }
             if (SUMAg_CF->SUMA_SnapshotOverSampling > 1) {  
                         /* Now return the window to its previous size */
-               if (ow > 0) {
-                  sv->WindHeight = sv->X->HEIGHT = oh;
-                  sv->WindWidth = sv->X->WIDTH = ow;
-                  SUMA_WidgetResize (sv->X->TOPLEVEL , ow, oh);   
+               if (owindw > 0) {
+                  sv->wWindHeight = owindh;
+                  sv->X->aHEIGHT = oareah;
+                  sv->wWindWidth = owindw;
+                  sv->X->aWIDTH = oareaw;
+                  SUMA_WidgetResize (sv->X->TOPLEVEL , owindw, owindh);   
                }
                sv->rdc = SUMA_RDC_X_RESIZE;
                glViewport( 0, 0, 
-                           sv->X->WIDTH, sv->X->HEIGHT);
+                           sv->X->aWIDTH, sv->X->aHEIGHT);
                SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
             }
             if (SUMAg_CF->NoDuplicatesInRecorder) SNAP_NoDuplicates();
@@ -3006,7 +3010,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                /*fprintf (SUMA_STDERR,"%s: Shift up\n", FuncName);*/
                sv->GVS[sv->StdView].translateVec[1] += 
                 (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY / 
-                (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+                (float)sv->X->aHEIGHT*sv->GVS[sv->StdView].TranslateGain;
                SUMA_postRedisplay(w, NULL, NULL);
             }else if (SUMA_CTRL_KEY(key)){
                /*fprintf (SUMA_STDERR,"%s: Control Up\n", FuncName);*/
@@ -3078,7 +3082,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                }
                sv->GVS[sv->StdView].spinDeltaX = 0;
                sv->GVS[sv->StdView].spinDeltaY = 
-                                    2.0*ArrowDeltaRot*sv->WindHeight;
+                                    2.0*ArrowDeltaRot*sv->X->aHEIGHT;
                SUMA_postRedisplay(w, NULL, NULL);
                   
             }
@@ -3133,7 +3137,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                /*sv->GVS[sv->StdView].translateVec[0] += 0;*/
                sv->GVS[sv->StdView].translateVec[1] -=  
                   (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY /           
-                  (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+                  (float)sv->X->aHEIGHT*sv->GVS[sv->StdView].TranslateGain;
                SUMA_postRedisplay(w, NULL, NULL);
             }else if (SUMA_CTRL_KEY(key)){
                /*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
@@ -3194,7 +3198,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                  fprintf(stdout,"\n");*/
                sv->GVS[sv->StdView].spinDeltaX = 0;
                sv->GVS[sv->StdView].spinDeltaY = 
-                           -2.0*ArrowDeltaRot*sv->WindHeight;
+                           -2.0*ArrowDeltaRot*sv->X->aHEIGHT;
                SUMA_postRedisplay(w, NULL, NULL);
             }
             
@@ -3248,7 +3252,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
                sv->GVS[sv->StdView].translateVec[0] -=
                   (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaX       /     
-                  (float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+                  (float)sv->X->aWIDTH*sv->GVS[sv->StdView].TranslateGain;
                /*sv->GVS[sv->StdView].translateVec[1] -= 0;*/
                SUMA_postRedisplay(w, NULL, NULL);
             }else if (SUMA_CTRL_KEY(key)){
@@ -3301,7 +3305,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                            sv->GVS[sv->StdView].currentQuat, 
                            sv->GVS[sv->StdView].currentQuat);
                sv->GVS[sv->StdView].spinDeltaX = 
-                              -2.0*ArrowDeltaRot*sv->WindWidth;
+                              -2.0*ArrowDeltaRot*sv->X->aWIDTH;
                sv->GVS[sv->StdView].spinDeltaY = 0;
                SUMA_postRedisplay(w, NULL, NULL);
             }
@@ -3356,7 +3360,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
                sv->GVS[sv->StdView].translateVec[0] += 
                   (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaX /
-                  (float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+                  (float)sv->X->aWIDTH*sv->GVS[sv->StdView].TranslateGain;
                /*sv->GVS[sv->StdView].translateVec[1] -= 0;*/
                SUMA_postRedisplay(w,  NULL, NULL);
             }else if (SUMA_CTRL_KEY(key)){
@@ -3408,7 +3412,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                add_quats (sv->GVS[sv->StdView].deltaQuat, 
                           sv->GVS[sv->StdView].currentQuat, 
                           sv->GVS[sv->StdView].currentQuat);
-               sv->GVS[sv->StdView].spinDeltaX = 2.0*ArrowDeltaRot*sv->WindWidth;
+               sv->GVS[sv->StdView].spinDeltaX = 2.0*ArrowDeltaRot*sv->X->aWIDTH;
                sv->GVS[sv->StdView].spinDeltaY = 0;
                SUMA_postRedisplay(w,  NULL, NULL);
             }
@@ -5780,8 +5784,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
             mevx = (float)Mev.x;
             mevy = (float)Mev.y;
-            wwid = (float)sv->WindWidth;
-            whei = (float)sv->WindHeight;
+            wwid = (float)sv->X->aWIDTH;
+            whei = (float)sv->X->aHEIGHT;
             /* spinning mode */
             if (sv->ZoomCompensate) {
                zc_fac = sv->ZoomCompensate;
@@ -5818,8 +5822,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            "spinBeginY %f \n"
                            "spinDeltaX %f \n"
                            "spinDeltaY %f \n"
-                           "WindWidth %d  \n"
-                           "WindHeight %d\n"
+                           "X->aWIDTH %d  \n"
+                           "X->aHEIGHT %d\n"
                            "ZoomCompensate %f\n"
                            "mv[xy]last [%d %d]\n"
                            "mvdelta[xy]last [%d %d]\n"
@@ -5829,7 +5833,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         sv->GVS[sv->StdView].spinBeginY, 
                         sv->GVS[sv->StdView].spinDeltaX, 
                         sv->GVS[sv->StdView].spinDeltaY, 
-                        sv->WindWidth, sv->WindHeight, sv->ZoomCompensate,
+                        sv->X->aWIDTH, sv->X->aHEIGHT, sv->ZoomCompensate,
                         mvxlast, mvylast,
                         mvdeltax, mvdeltay,
                         mvx_fac, mvy_fac
@@ -5948,10 +5952,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             } else {
                sv->GVS[sv->StdView].translateDeltaX =  
                   (mevx - sv->GVS[sv->StdView].translateBeginX) /
-                  (float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+                  (float)sv->X->aWIDTH*sv->GVS[sv->StdView].TranslateGain;
                sv->GVS[sv->StdView].translateDeltaY = 
                   -(mevy - sv->GVS[sv->StdView].translateBeginY) /
-                   (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+                   (float)sv->X->aHEIGHT*sv->GVS[sv->StdView].TranslateGain;
 
                if (  sv->GVS[sv->StdView].translateDeltaX || 
                      sv->GVS[sv->StdView].translateDeltaY){
@@ -6238,7 +6242,7 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
    p2[0] = -1;
    p3[0] = -1;
             
-   n4 = sv->PickPix[1]*sv->X->WIDTH + sv->PickPix[0];
+   n4 = sv->PickPix[1]*sv->X->aWIDTH + sv->PickPix[0];
    n4 = 4*n4;
    SUMA_LHv("User pixel selection from whole buffer:"
                   " at %d %d is: %d %d %d %d\n", 
@@ -6246,7 +6250,7 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
                   sv->pickrenpix4[n4] , sv->pickrenpix4[n4+1],
                   sv->pickrenpix4[n4+2] , sv->pickrenpix4[n4+3]);
    if (sv->PickPix[1] > 0) {
-      n4 = (sv->PickPix[1]-1)*sv->X->WIDTH + sv->PickPix[0];
+      n4 = (sv->PickPix[1]-1)*sv->X->aWIDTH + sv->PickPix[0];
       n4 = 4*n4;
       p0[0] = n4; p0[1] = sv->pickrenpix4[n4  ]; p0[2] = sv->pickrenpix4[n4+1]; 
                   p0[3] = sv->pickrenpix4[n4+2]; p0[4] = sv->pickrenpix4[n4+3];
@@ -6254,23 +6258,23 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
          sv->pickrenpix4[n4+2] = sv->pickrenpix4[n4+3] = 255;    
    }
    if (sv->PickPix[0] > 0) {
-      n4 = sv->PickPix[1]*sv->X->WIDTH + sv->PickPix[0]-1;
+      n4 = sv->PickPix[1]*sv->X->aWIDTH + sv->PickPix[0]-1;
       n4 = 4*n4;
       p1[0] = n4; p1[1] = sv->pickrenpix4[n4  ]; p1[2] = sv->pickrenpix4[n4+1]; 
                   p1[3] = sv->pickrenpix4[n4+2]; p1[4] = sv->pickrenpix4[n4+3];
       sv->pickrenpix4[n4] = sv->pickrenpix4[n4+1] =
          sv->pickrenpix4[n4+2] = sv->pickrenpix4[n4+3] = 255;    
    }
-   if (sv->PickPix[1] < (sv->X->HEIGHT-1)) {
-      n4 = (sv->PickPix[1]+1)*sv->X->WIDTH + sv->PickPix[0];
+   if (sv->PickPix[1] < (sv->X->aHEIGHT-1)) {
+      n4 = (sv->PickPix[1]+1)*sv->X->aWIDTH + sv->PickPix[0];
       n4 = 4*n4;
       p2[0] = n4; p2[1] = sv->pickrenpix4[n4  ]; p2[2] = sv->pickrenpix4[n4+1]; 
                   p2[3] = sv->pickrenpix4[n4+2]; p2[4] = sv->pickrenpix4[n4+3];
       sv->pickrenpix4[n4] = sv->pickrenpix4[n4+1] =
          sv->pickrenpix4[n4+2] = sv->pickrenpix4[n4+3] = 255;    
    }
-   if (sv->PickPix[0] < (sv->X->WIDTH-1)) {
-      n4 = sv->PickPix[1]*sv->X->WIDTH + sv->PickPix[0]+1;
+   if (sv->PickPix[0] < (sv->X->aWIDTH-1)) {
+      n4 = sv->PickPix[1]*sv->X->aWIDTH + sv->PickPix[0]+1;
       n4 = 4*n4;
       p3[0] = n4; p3[1] = sv->pickrenpix4[n4  ]; p3[2] = sv->pickrenpix4[n4+1]; 
                   p3[3] = sv->pickrenpix4[n4+2]; p3[4] = sv->pickrenpix4[n4+3];
@@ -6278,20 +6282,20 @@ SUMA_Boolean SUMA_MarkPickInBuffer4(SUMA_SurfaceViewer *sv, int InViewer,
          sv->pickrenpix4[n4+2] = sv->pickrenpix4[n4+3] = 255;    
    }
    if (InViewer) { /* show me the money in the interactive viewer */
-      GLubyte *pp3 = (GLubyte *)SUMA_calloc(sv->X->WIDTH*sv->X->HEIGHT*3, 
+      GLubyte *pp3 = (GLubyte *)SUMA_calloc(sv->X->aWIDTH*sv->X->aHEIGHT*3, 
                                             sizeof(GLubyte));
-      for (n3=0,n=0; n<sv->X->WIDTH*sv->X->HEIGHT; ++n) {
+      for (n3=0,n=0; n<sv->X->aWIDTH*sv->X->aHEIGHT; ++n) {
          n4=4*n;
          pp3[n3++]= sv->pickrenpix4[n4++];
          pp3[n3++]= sv->pickrenpix4[n4++];
          pp3[n3++]= sv->pickrenpix4[n4++]; n4++;
       }
-      ISQ_snapsave(sv->X->WIDTH, -sv->X->HEIGHT,
+      ISQ_snapsave(sv->X->aWIDTH, -sv->X->aHEIGHT,
                     (unsigned char *)pp3, sv->X->GLXAREA );
       SUMA_ifree(pp3);
    }
    if (OnDisk) {
-      if (!SUMA_PixelsToDisk(sv, sv->X->WIDTH, -sv->X->HEIGHT,
+      if (!SUMA_PixelsToDisk(sv, sv->X->aWIDTH, -sv->X->aHEIGHT,
                           (GLvoid *)sv->pickrenpix4, 4, 1, OnDisk, 1, 0)) {
          SUMA_S_Err("Failed to write pix to disk");
       }
@@ -6438,7 +6442,7 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
       sv->DO_PickMode = 1;
       SUMA_display(sv, dov);
       if (!(sv->pickrenpix4 = 
-               SUMA_grabPixels(4, sv->X->WIDTH, sv->X->HEIGHT))) {
+               SUMA_grabPixels(4, sv->X->aWIDTH, sv->X->aHEIGHT))) {
          SUMA_S_Err("Failed to grab pixels");
       }
       sv->DO_PickMode = 0;
@@ -7658,11 +7662,11 @@ int SUMA_ComputeLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    SUMA_LH("DO pickin");
    
    if (sv->PickPix[0] < 0 || sv->PickPix[1] < 0 ||
-       sv->PickPix[0] >= sv->X->WIDTH ||  sv->PickPix[1] >= sv->X->HEIGHT) {
+       sv->PickPix[0] >= sv->X->aWIDTH ||  sv->PickPix[1] >= sv->X->aHEIGHT) {
       /* This happens when you select and drag outside of the viewing area
       Don't return in error */
       SUMA_LHv("Bad PickPix=[%d %d] for viewport %d %d\n",
-                 sv->PickPix[0], sv->PickPix[1], sv->X->WIDTH, sv->X->HEIGHT); 
+                 sv->PickPix[0], sv->PickPix[1], sv->X->aWIDTH, sv->X->aHEIGHT); 
       SUMA_RETURN(0);
    }
 
@@ -7706,7 +7710,7 @@ int SUMA_ComputeLineDOsIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
          /* get pixel at click */
          i = sv->PickPix[0]; j = sv->PickPix[1];
          if (SUMA_GetColidInPickBuffer4(sv->pickrenpix4, 
-                              sv->X->WIDTH, sv->X->HEIGHT,
+                              sv->X->aWIDTH, sv->X->aHEIGHT,
                               &i, &j, 2, colans)) {
             if (LocalHead) { 
                /* Just for debugging, draw the crosshair point */

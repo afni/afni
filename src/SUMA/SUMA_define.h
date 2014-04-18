@@ -1831,7 +1831,8 @@ typedef struct {
    Bool DOUBLEBUFFER;
    char *Title; 
    int REDISPLAYPENDING, CrappyDrawable;
-   int WIDTH, HEIGHT;
+   int aWIDTH, aHEIGHT; /* These are the widths and heights of the drawing area, 
+                         rather than the whole window */
    XtWorkProcId REDISPLAYID;
    XtIntervalId MOMENTUMID;
    GC gc;
@@ -2583,8 +2584,12 @@ typedef struct {
    int ortho; /*!< Orthographic (1) or perspective (0, default) projection */
    int ShowLabelAtXhair; /*!< Show label at location of cross hair */
    float Aspect;   /*!< Aspect ratio of the viewer*/
-   int WindWidth;   /*!< Width of window */
-   int WindHeight;   /*!< Height of window */
+   int wWindWidth;   /*!< Width of whole window */
+   int wWindHeight;   /*!< Height of whole window */
+   int DrawAreaHeightOffset; /*!< Offset of GLX draw area height from enclosing
+                                  window */
+   int DrawAreaWidthOffset; /*!< Offset of GLX draw area width from enclosing
+                                  window */
    float ZoomCompensate; /*!< Compensate mouse movements by zoom factor */
    float *FOV; /*!< Field of View (affects zoom level, there is a 
                     separate FOV for each ViewState)*/

@@ -292,6 +292,8 @@ if (detail > 1) {
 "        -viewer_size WIDTH HEIGHT : Convenient combo of -viewer_width \n"
 "                                    and -viewer_height\n"
 "        -viewer_position X Y: Set position on the screen\n"
+"        -controller_position X Y: Set position of the object (surface)\n"
+"                                  controller on the screen\n"
 "        -inout_notify y/n: Turn on or off function call tracing\n"
 "        -N_foreg_smooth n: Number of foreground smoothing iterations\n"
 "                           Same as suma's interactive '8' key or what\n"
@@ -1706,6 +1708,34 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }
          NI_set_attribute(ngr, "WindY", argt[kar]);
+         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
+                                                      need to setup viewer, 
+                                                      a la vvs */
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      if (  !brk && 
+            (  (strcmp(argt[kar], "-controller_position") == 0)  ) )
+      {
+         if (kar+2 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need 2 numbers after %s \n", argt[kar]);
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';++kar;
+         if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
+            fprintf (SUMA_STDERR, 
+               "Have %d for X in pixels. Range [0 4000].! \n", atoi(argt[kar]));
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "ContX", argt[kar]);
+         argt[kar][0] = '\0';++kar;
+         if (atoi(argt[kar]) < 0 || atoi(argt[kar]) > 4000) {
+            fprintf (SUMA_STDERR, 
+               "Have %d for Y in pixels!  Range [0 4000].\n", atoi(argt[kar]));
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "ContY", argt[kar]);
          NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
                                                       need to setup viewer, 
                                                       a la vvs */

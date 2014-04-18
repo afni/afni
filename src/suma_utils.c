@@ -1940,7 +1940,7 @@ int SUMA_search_file(char **fnamep, char *epath)
          if( epath == NULL ) SUMA_RETURN(NOPE) ; /* nothing left to do */
       #else
          /* Search in AFNI's standard locations */
-         af = find_afni_file(*fnamep, 0);
+         af = find_afni_file(*fnamep, 0, NULL);
          if (af[0] != '\0') {
             SUMA_free(*fnamep); 
             *fnamep = SUMA_copy_string(af);
