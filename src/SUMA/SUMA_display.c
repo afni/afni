@@ -2781,7 +2781,7 @@ SUMA_resize(Widget w,
    SUMA_SurfaceViewer *sv;
    char buf[32];
    int isv;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
