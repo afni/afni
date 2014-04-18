@@ -65,6 +65,38 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 18, Apr, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Allow graph dataset bundle references to be located based on gdset's path",
+   "This way if a graph dataset named GDSET refers to a tract file TRACT \n"
+   "using a relative path (./TRACT) and you use suma -gdset SOMEPATH/GDSET\n"
+   "to load the graph, then the search for TRACT will also consider SOMEPATH/\n"
+   "as an option"
+ },
+  
+ { 18, Apr, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Color map changes/thresholding changes now working with multi-viewers",
+   "This was not the case before. Problem was that Texture had to be reloaded\n"
+   "for all viewers displaying the volume, once the viewer's rendering context\n"
+   "is current. That's all handled via per_sv_extra[]"
+ },
+  
+ { 17, Apr, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
+   "Added -controller_position to position object controller window",
+   NULL
+ },
+  
+ { 17, Apr, 2014, ZSS, "suma", MICRO, TYPE_MODIFY,
+   "Distinguishing  window size and glxarea size in SUMA_SurfaceViewer struct",
+   "The two are slightly different in size because of window decorations.\n"
+   "This correct a silly resizing of the SUMA window when a new view state is\n"
+   "loaded."
+ },
+  
+ { 16, Apr, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
+   "Fixed problem with opening new controllers when cont. window is closed",
+   "See Apr. 16 2014 note in function SUMA_viewSurfaceCont()\n"
+ },
+  
  { 16, Apr, 2014, ZSS, "3dTcorr1D", MINOR, TYPE_MODIFY,
    "Turned heart of main() into a standalone function in thd_Tcorr1D.c",
    "This way we can run the equivalent of 3dTcorr1D from other C programs\n"

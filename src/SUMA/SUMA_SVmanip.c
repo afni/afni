@@ -860,8 +860,10 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          } 
       }
       
-      SV->WindWidth = 350;
-      SV->WindHeight = 350;
+      SV->wWindWidth  = 350;
+      SV->wWindHeight = 350;
+      SV->DrawAreaHeightOffset = -1; /* Not known yet */
+      SV->DrawAreaWidthOffset = -1; /* Not known yet */
       {
          char *eee = getenv("SUMA_ArrowRotAngle");
          if (eee) {
@@ -964,8 +966,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->X->MOMENTUMID = 0;
       SV->X->REDISPLAYPENDING = 0;
       SV->X->DOUBLEBUFFER = True;
-      SV->X->WIDTH = SV->X->HEIGHT = 300; /* if you change this, make sure you do
-                                    so for fallbackResources in SUMA_display */
+      SV->X->aWIDTH = SV->X->aHEIGHT = 300; /* if you change this, make sure you 
+                                   do so for fallbackResources in SUMA_display */
       SV->X->ViewCont = SUMA_CreateViewContStruct();
       SV->X->DPY = NULL;
       SV->X->FORM = SV->X->FRAME = SV->X->GLXAREA = NULL;
@@ -1683,7 +1685,7 @@ SUMA_Boolean SUMA_FillColorList (SUMA_SurfaceViewer *sv, SUMA_ALL_DO *ADO)
       sv->ColList[sv->N_ColList] =
          (SUMA_COLORLIST_STRUCT *)SUMA_calloc(1, sizeof(SUMA_COLORLIST_STRUCT));
       sv->ColList[sv->N_ColList]->N_links = 0;
-      memset(sv->ColList[sv->N_ColList]->per_sv_extra, 0, 
+      memset(sv->ColList[sv->N_ColList]->per_sv_extra, PSV_NOTHING, 
              SUMA_MAX_SURF_VIEWERS*sizeof(int));
       sv->ColList[sv->N_ColList]->owner_id[0] = '\0';
       sv->ColList[sv->N_ColList]->LinkedPtrType = SUMA_LINKED_COLORLIST_TYPE;
@@ -2921,10 +2923,10 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
                                  SV->light1_position[2], 
                                  SV->light1_position[3]);
    SS = SUMA_StringAppend_va(SS,"   ZoomCompensate = %f\n", SV->ZoomCompensate);
-   SS = SUMA_StringAppend_va(SS,"   WindWidth/WIDTH = %d/%d\n", 
-                                    SV->WindWidth, SV->X->WIDTH);
-   SS = SUMA_StringAppend_va(SS,"   WindHeight/HEIGHT = %d/%d\n", 
-                                    SV->WindHeight, SV->X->HEIGHT);
+   SS = SUMA_StringAppend_va(SS,"   WindWidth/WIDTH/Offset = %d/%d/%d\n", 
+                        SV->wWindWidth, SV->X->aWIDTH, SV->DrawAreaWidthOffset);
+   SS = SUMA_StringAppend_va(SS,"   WindHeight/HEIGHT/Offset = %d/%d/%d\n", 
+                      SV->wWindHeight, SV->X->aHEIGHT, SV->DrawAreaHeightOffset);
    SS = SUMA_StringAppend_va(SS,"   ShowWorldAxis = %d\n", SV->ShowWorldAxis);
    if (SV->WAx) {
       SS = SUMA_StringAppend_va(SS, "   WorldAxis: Center = [%f %f %f] \n"
@@ -5415,7 +5417,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile *Spec, SUMA_DO *DOv,
    SUMA_SurfaceObject *SO;
    SUMA_Axis *EyeAxis;
    SUMA_DO_Types ttv[10]={SO_type, GRAPH_LINK_type, TRACT_type, 
-                          MASK_type, NOT_SET_type};
+                          MASK_type, VO_type, NOT_SET_type};
    int EyeAxis_ID, *MembDOs=NULL, N_MembDOs=0;
    int haveSpec=0;
    SUMA_Boolean LocalHead = NOPE;
@@ -6306,6 +6308,54 @@ SUMA_ALL_DO *SUMA_SV_Focus_any_ADO(SUMA_SurfaceViewer *sv, int *dov_id)
    return(ado);
 }
 
+SUMA_ALL_DO *SUMA_SV_any_ADO_WithSurfContWidget(SUMA_SurfaceViewer *sv, 
+                                                int *dov_id)
+{
+   static char FuncName[]={"SUMA_SV_any_ADO_WithSurfContWidget"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   int ii;
+   
+   if (dov_id) *dov_id = -1;
+   
+   if (sv && sv->Focus_DO_ID >= 0 && 
+       (SurfCont = SUMA_ADO_Cont(
+                        (SUMA_ALL_DO *)(SUMAg_DOv[sv->Focus_DO_ID].OP))) &&
+       SurfCont->TLS) {
+      if (dov_id) *dov_id = sv->Focus_DO_ID;
+      return((SUMA_ALL_DO *)(SUMAg_DOv[sv->Focus_DO_ID].OP));
+   }
+   
+   /* give me anything */
+   ado = SUMA_findany_ADO_WithSurfContWidget(dov_id);
+   return(ado);
+}
+
+SUMA_ALL_DO *SUMA_findany_ADO_WithSurfContWidget(int *dov_id)
+{
+   static char FuncName[]={"SUMA_findany_ADO_WithSurfContWidget"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_DO_Types ttv[N_DO_TYPES] = { SO_type, GRAPH_LINK_type, 
+                                     VO_type, TRACT_type,  
+                                     NOT_SET_type };
+   int ii, tt;
+   void *pp;
+   SUMA_X_SurfCont *SurfCont=NULL;
+      
+   if (dov_id) *dov_id = -1;
+   tt = 0;
+   while (ttv[tt] != NOT_SET_type) {
+      for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+         if (iDO_type(ii) == ttv[tt]) {
+            ado = iDO_ADO(ii);
+            if ((SurfCont = SUMA_ADO_Cont(ado)) &&
+                SurfCont->TLS) return(ado);
+         }
+      }
+      ++tt;
+   }
+   return(NULL);
+}
 
 SUMA_ALL_DO *SUMA_SurfCont_GetcurDOp(SUMA_X_SurfCont *SurfCont)
 {

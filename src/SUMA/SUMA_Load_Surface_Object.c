@@ -5491,14 +5491,12 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
       }
    }
    
-   SUMA_LH("aa");
    if (!template && leftover) { /* Not a standard name */
       SUMA_free_NI_str_array(nisa); nisa = NULL;
       if (upar) *upar = -1;
       SUMA_RETURN(0);
    }
    
-   SUMA_LH("bb");
    if (!template) {
       SUMA_free_NI_str_array(nisa); nisa = NULL;
       if (upar) *upar = par;
@@ -5524,7 +5522,7 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
             specname = SUMA_append_replace_string(specname,"_both.spec",spref,1);
             break;
       }
-      ss = find_afni_file(specname, 0);
+      ss = find_afni_file(specname, 0, NULL);
       if (ss[0] == '\0') {
          SUMA_S_Errv("Spec file %s not found despite effort\n", specname);
          SUMA_ifree(specname); specname = NULL;
@@ -5535,13 +5533,13 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
          SUMA_free(specname); specname = SUMA_copy_string(ss);
          tp = 3;
       }
-   SUMA_LH("bbcc %s", specname);
+   
       svname = SUMA_append_replace_string(template,spref,"/",0);
       svname = SUMA_append_replace_string(svname,"_SurfVol.nii","",1);
-      ss = find_afni_file(svname, 0);
+      ss = find_afni_file(svname, 0, NULL);
       if (ss[0] == '\0') {/* try one more time */
          svname = SUMA_append_replace_string(svname,".gz","",1);
-         ss = find_afni_file(svname, 0);
+         ss = find_afni_file(svname, 0, NULL);
       }
       if (ss[0] == '\0') {
          SUMA_S_Warnv("No sv found for %s\n", specname);
@@ -5550,7 +5548,7 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
          SUMA_free(svname); svname=SUMA_copy_string(ss);
       }
    }
-   SUMA_LH("cc %s, leftover %s", svname, leftover);
+
    /* So now we have a template spec, do we have a request for a particular 
       surface ? */
    if (leftover) {

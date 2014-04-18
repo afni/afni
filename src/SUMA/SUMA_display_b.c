@@ -4032,13 +4032,13 @@ void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat)
   jmax = mat->rows;
   for(j = 0; j < jmax; j++) {
       for(i = 0; i < imax; i++) {
-        glViewport(-i, -j, csv->WindWidth - i, csv->WindHeight - j);
+        glViewport(-i, -j, csv->X->aWIDTH - i, csv->X->aHEIGHT - j);
         SUMA_display_one(csv, dov);
         glAccum(GL_ACCUM, mat->array[i + j * imax]);
       }
   }
   if (jmax > 0 && imax > 0) {
-   glViewport(0, 0, csv->WindWidth, csv->WindHeight);
+   glViewport(0, 0, csv->X->aWIDTH, csv->X->aHEIGHT);
   }
 }
 

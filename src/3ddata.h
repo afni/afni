@@ -4228,7 +4228,7 @@ extern char *THD_get_helpdir(byte withslash);
 extern char *THD_datadir(byte withslash);
 extern char *THD_get_datadir(byte withslash);
 extern char *THD_abindir(byte withslash);
-extern char *find_afni_file(char * nimlname, int niname);
+extern char *find_afni_file(char * nimlname, int niname, char *altpath);
 char *THD_helpsearchlog(int createpath);
 
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;

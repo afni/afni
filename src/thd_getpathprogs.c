@@ -146,8 +146,11 @@ ENTRY("THD_find_regular_file") ;
    Find a file somewhere afniish
    Do not free returned pointer
    Empty string means nothing was found
+   if altpath is not NULL, and nimlname does not
+   have an absolute path, altpath is considere before diving into the
+   default locations
 */
-char *find_afni_file(char * nimlname, int niname)
+char *find_afni_file(char * nimlname, int niname, char *altpath)
 {
    static char filestr[5][1024];
    static int icall = -1;
@@ -178,7 +181,13 @@ char *find_afni_file(char * nimlname, int niname)
    if (nimlname[0] == '/') { /* not found and have abs path, get out */
       RETURN(filestr[icall]);
    }
-     
+   
+   if (altpath) {
+      fstr = THD_find_regular_file(nimlname, altpath);
+      snprintf(namebuf, 1000*sizeof(char), "%s", fstr);
+      if (THD_is_file(namebuf)) goto GOTIT;
+   }
+   
    /* okay that didn't work, try the AFNI plugin directory */
    kk = 0;
    while (envlist[kk]) {
