@@ -8550,7 +8550,7 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_ALL_DO *ado, SUMA_OVERLAYS *Overlay,
 SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv) 
 {
    static char FuncName[]={"SUMA_MixColors"};
-   int i, dov_id, isv;
+   int i, dov_id, isv, kk;
    void *pp=NULL;
    SUMA_DO_Types tp;
    SUMA_DSET *dset=NULL;
@@ -8559,7 +8559,12 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    
    SUMA_ENTRY;
    
+   
    isv = SUMA_WhichSVg(sv); 
+   
+   if (LocalHead) SUMA_DUMP_TRACE("Mixing of the colors, sv %d, N_ColList = %d", 
+                                  isv, sv->N_ColList);
+   
    for (i=0; i<sv->N_ColList; ++i) {
       
       if (!(pp = SUMA_find_any_object(sv->ColList[i]->idcode_str, &tp))) {
@@ -8595,15 +8600,19 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                break;
             case VO_type: {
                SUMA_VolumeObject *VO = (SUMA_VolumeObject *)pp;
-               SUMA_LHv("Mixing Volume Object Colors (%s), Dset %s...\n", 
-                     sv->ColList[i]->idcode_str, ADO_LABEL((SUMA_ALL_DO *)VO));
+               SUMA_LHv("Mixing Volume Object Colors (%s), Dset %s, sv %d ...\n",
+                  sv->ColList[i]->idcode_str, ADO_LABEL((SUMA_ALL_DO *)VO), isv);
                if (!SUMA_Overlays_2_GLCOLAR4((SUMA_ALL_DO *)VO, sv, 
                                        SUMA_GetColorListPtr(sv->ColList[i]))) {
                   SUMA_S_Err("Failed in SUMA_Overlays_2_GLCOLAR4.");
                   SUMA_RETURN(NOPE);
                }
                sv->ColList[i]->Remix = NOPE;
-               sv->ColList[i]->per_sv_extra[isv] = 1;
+               for(kk=0; kk<SUMA_MAX_SURF_VIEWERS; ++kk) {
+                  if (kk != isv) {
+                     sv->ColList[i]->per_sv_extra[kk] |= PSV_BIND_VOL;
+                  }
+               }
                break; }
             case TRACT_type: {
                SUMA_TractDO *tdo=(SUMA_TractDO *)pp;
@@ -8634,16 +8643,20 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
                            tp, SUMA_ObjectTypeCode2ObjectTypeName(tp));
                SUMA_RETURN(NOPE); 
          }   
-      } else {/* No remix, but a couple of extra steps might be in order */
+      } 
+      SUMA_LH("ColList[%d](%p)->per_sv_extra[%d]=%d",
+               i, sv->ColList[i], isv, sv->ColList[i]->per_sv_extra[isv]);
+      {/* Check on extras */
          switch (tp) {
-            case VO_type: {
+            case VO_type: { 
                SUMA_VolumeObject *vo = (SUMA_VolumeObject *)pp;
-               if (!sv->ColList[i]->per_sv_extra[isv]) {
+               if (sv->ColList[i]->per_sv_extra[isv] & PSV_BIND_VOL) {
+                  SUMA_LH("Loading texture for viewer %d", isv);
                   if (!SUMA_VE_LoadTexture(vo->VE, 0)){
-                     SUMA_S_Err("Failed to GL load texture");
+                     SUMA_S_Err("Failed to GL load texture for sv %d", isv);
                      SUMA_RETURN(NOPE);
                   }
-                  sv->ColList[i]->per_sv_extra[isv]=1;
+                  sv->ColList[i]->per_sv_extra[isv] &= ~PSV_BIND_VOL;
                }
                break; }
             default: 
@@ -8655,6 +8668,9 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    SUMA_RETURN (YUP);
 
 }
+
+
+
 
 SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_ALL_DO *ado, 
                                  char *Name, SUMA_OVERLAY_PLANE_DATA *sopd, 
@@ -10064,7 +10080,8 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                   (NI_group *)SUMA_FindNgrNamedAny(dset->ngr, "network_link");
                if (nilink) {
                   ss = find_afni_file(
-                           NI_get_attribute(nilink,"network_file"), 1);
+                           NI_get_attribute(nilink,"network_file"), 1, 
+                           SUMA_FnameGet(SDSET_FILENAME(dset),"pa",NULL));
                   if (ss[0] != '\0') {
                      SUMA_LHv("Reading network from %s\n", ss);
                      NEL_READ(GSaux->net, ss);

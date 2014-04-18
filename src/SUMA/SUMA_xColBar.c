@@ -9248,7 +9248,7 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM)
    SUMA_cmap_wid_handleRedisplay((XtPointer)ado);
    #endif
    
-   SUMA_LH("Calling SUMA_Remixedisplay ");          
+   SUMA_LH("Calling SUMA_Remixedisplay on %s", ADO_LABEL(ado));          
    SUMA_Remixedisplay(ado);
 
    SUMA_LH("Returning");

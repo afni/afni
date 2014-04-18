@@ -3515,15 +3515,15 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                int ij; float ijmin, ijmax;
                GLfloat *uidb=NULL, *fff=NULL;
                /* grab depth buffer DOES NOT WORK*/
-               dbuf = SUMA_grabPixels(5, sv->X->WIDTH, sv->X->HEIGHT);
+               dbuf = SUMA_grabPixels(5, sv->X->aWIDTH, sv->X->aHEIGHT);
                fff = (GLfloat *)dbuf;
                uidb = (GLfloat *)
-                     SUMA_malloc(sv->X->WIDTH*sv->X->HEIGHT*sizeof(GLfloat));
-               glReadPixels(0, 0, sv->X->WIDTH, sv->X->HEIGHT, 
+                     SUMA_malloc(sv->X->aWIDTH*sv->X->aHEIGHT*sizeof(GLfloat));
+               glReadPixels(0, 0, sv->X->aWIDTH, sv->X->aHEIGHT, 
                             GL_DEPTH_COMPONENT, GL_FLOAT, uidb);
                
                ijmin = ijmax = (float)uidb[0];
-               for (ij=0; ij<sv->X->WIDTH*sv->X->HEIGHT; ++ij) {
+               for (ij=0; ij<sv->X->aWIDTH*sv->X->aHEIGHT; ++ij) {
                   if (ijmin > uidb[ij]) {
                      ijmin = (float)uidb[ij];
                      fprintf(stderr,"min %f\n", (float)uidb[ij]);
@@ -3536,12 +3536,12 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                fprintf(stderr, "range %f %f\n", ijmin, ijmax);
                fprintf(stderr, "%f versus %f\n", fff[0], uidb[0]);
                /* grab luminance buffer */
-               dlum = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
+               dlum = SUMA_grabPixels(1, sv->X->aWIDTH, sv->X->aHEIGHT);
                /* reset anything dark */
                /* rewrite depth buffer */
-               SUMA_PixelsToDisk(sv, sv->X->WIDTH, sv->X->HEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
                                  uidb, 5, 1, "dbuf.jpg", 1, 1);
-               SUMA_PixelsToDisk(sv, sv->X->WIDTH, sv->X->HEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
                                  dlum, 1, 1, "dlum.jpg", 1, 1);
                /* free buffers */
                SUMA_ifree(dbuf); SUMA_ifree(dlum);
@@ -3554,11 +3554,11 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                float ijmin, ijmax;
                /* grab depth buffer DOES NOT WORK*/
                dbuf = (GLfloat *)
-                     SUMA_malloc(sv->X->WIDTH*sv->X->HEIGHT*sizeof(GLfloat));
-               glReadPixels(0, 0, sv->X->WIDTH, sv->X->HEIGHT, 
+                     SUMA_malloc(sv->X->aWIDTH*sv->X->aHEIGHT*sizeof(GLfloat));
+               glReadPixels(0, 0, sv->X->aWIDTH, sv->X->aHEIGHT, 
                             GL_DEPTH_COMPONENT, GL_FLOAT, dbuf);
                ijmin = ijmax = (float)dbuf[0];
-               for (ij=0; ij<sv->X->WIDTH*sv->X->HEIGHT; ++ij) {
+               for (ij=0; ij<sv->X->aWIDTH*sv->X->aHEIGHT; ++ij) {
                   if (ijmin > dbuf[ij]) {
                      ijmin = (float)dbuf[ij];
                      fprintf(stderr,"min %f\n", (float)dbuf[ij]);
@@ -3570,9 +3570,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                }
                fprintf(stderr, "depth range %f %f\n", ijmin, ijmax);
                /* grab luminance buffer */
-               lbuf = (GLubyte *)SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
+               lbuf = (GLubyte *)SUMA_grabPixels(1,sv->X->aWIDTH,sv->X->aHEIGHT);
                ijmin = ijmax = (float)lbuf[0];
-               for (ij=0; ij<sv->X->WIDTH*sv->X->HEIGHT; ++ij) {
+               for (ij=0; ij<sv->X->aWIDTH*sv->X->aHEIGHT; ++ij) {
                   if (ijmin > lbuf[ij]) {
                      ijmin = (float)lbuf[ij];
                      fprintf(stderr,"min %f\n", (float)lbuf[ij]);
@@ -3584,12 +3584,12 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                }
                fprintf(stderr, "luminance range %f %f\n", ijmin, ijmax);
                /* reset anything dark */
-               for (ij=0; ij<sv->X->WIDTH*sv->X->HEIGHT; ++ij) {
+               for (ij=0; ij<sv->X->aWIDTH*sv->X->aHEIGHT; ++ij) {
                   if (lbuf[ij]<20) dbuf[ij]=-1.0; /* max it out */
                }
                /* rewrite depth buffer */
                glWindowPos2s(0,0); /* specify raster position */
-               glDrawPixels(sv->X->WIDTH, sv->X->HEIGHT, 
+               glDrawPixels(sv->X->aWIDTH, sv->X->aHEIGHT, 
                             GL_DEPTH_COMPONENT, GL_FLOAT, dbuf);
                /* render last slice again */
                if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom, 
@@ -3628,9 +3628,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                glEnd();                                 
                }               
                /* junk it */
-               SUMA_PixelsToDisk(sv, sv->X->WIDTH, sv->X->HEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
                                  dbuf, 5, 1, "dbuf.jpg", 1, 1);
-               SUMA_PixelsToDisk(sv, sv->X->WIDTH, sv->X->HEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
                                  lbuf, 1, 1, "dlum.jpg", 1, 1);
                /* free buffers */
                SUMA_ifree(dbuf); SUMA_ifree(lbuf);

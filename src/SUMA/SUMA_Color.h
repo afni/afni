@@ -2,6 +2,9 @@
 #define SUMA_COLOR_INCLUDED
 
 #define SUMA_DUNNO_GRAY 0.54321
+/* Bitmasks for per_sv_extra */
+#define PSV_NOTHING 0
+#define PSV_BIND_VOL    1
 
 
 int SUMA_a_good_col(char *name, int i, float *acol);

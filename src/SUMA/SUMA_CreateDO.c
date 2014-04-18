@@ -6464,9 +6464,9 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                   GLvoid *sbuf;
                   sbuf = 
                      SUMA_grabPixels(GL_STENCIL_INDEX, 
-                                     sv->X->WIDTH, sv->X->HEIGHT);
+                                     sv->X->aWIDTH, sv->X->aHEIGHT);
                   SUMA_CHECK_GL_ERROR("Just read stencil 1");
-                  SUMA_PixelsToDisk(sv, sv->X->WIDTH, sv->X->HEIGHT, 
+                  SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
                                     sbuf, SUMA_F, 1, "dsten1.jpg", 1, 1);
                   SUMA_ifree(sbuf);
                                     
@@ -10982,7 +10982,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                            xyz[3*i], xyz[3*i+1], xyz[3*i+2]);
          }
          #endif
-         wmask = SUMA_WordOverlapMask(sv->X->WIDTH, sv->X->HEIGHT,
+         wmask = SUMA_WordOverlapMask(sv->X->aWIDTH, sv->X->aHEIGHT,
                                       SDO->N_AllNodes, 
                                       namesr, fontGL, xyzscr, -1, NodeMaskr);
          SUMA_ifree(xyzsc); SUMA_ifree(xyzscr); SUMA_ifree(NodeMaskr);
@@ -12934,7 +12934,7 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv,
 
    SUMA_ENTRY;
    
-   LLC[1] = (double)sv->WindHeight;
+   LLC[1] = (double)sv->X->aHEIGHT;
    if (Ax->atype != SUMA_SCALE_BOX) {
       SUMA_S_Err("Nothing to be done here.\nFor Scale Box type axis only.");
       SUMA_RETURN(NULL);
@@ -17065,12 +17065,12 @@ SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val[3], char *units,
       if (units[0] == 'm') { /* mouse movememt to degrees */
          sv->GVS[sv->StdView].vLHpry[0] = sv->GVS[sv->StdView].vLHpry0[0]+
                      sv->GVS[sv->StdView].LHlol*
-               (90*2.5*val[0]/(float)(sv->WindWidth+1.0)) ; 
+               (90*2.5*val[0]/(float)(sv->X->aWIDTH+1.0)) ; 
          /* instead of the 300, below, you want something related to the
             thickness along the LR axis of a hemisphere... */
          sv->GVS[sv->StdView].vLHpry[1] = sv->GVS[sv->StdView].vLHpry0[1]+
                      sv->GVS[sv->StdView].LHlol*
-               (300*val[1]/(float)(sv->WindWidth+1.0)) ; 
+               (300*val[1]/(float)(sv->X->aWIDTH+1.0)) ; 
          
          sv->GVS[sv->StdView].vLHpry[2] = val[2];
       } else { /* assume degrees */

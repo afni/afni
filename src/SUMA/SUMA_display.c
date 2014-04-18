@@ -87,7 +87,7 @@ static String fallbackResources_default[] = {
         "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
         "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
-}; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
+}; /* if you change default width and height, make sure you change SV->X->aWIDTH & SV->X->aHEIGHT in SUMA_SVmanip */
 
 static String fallbackResources_AFNI[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
@@ -125,7 +125,7 @@ static String fallbackResources_AFNI[] = {
         "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
         "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
-}; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
+}; /* if you change default width and height, make sure you change SV->X->aWIDTH & SV->X->aHEIGHT in SUMA_SVmanip */
 
 static String fallbackResources_EURO[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
@@ -165,7 +165,7 @@ static String fallbackResources_EURO[] = {
         "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
         "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
-}; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
+}; /* if you change default width and height, make sure you change SV->X->aWIDTH & SV->X->aHEIGHT in SUMA_SVmanip */
 
 static String fallbackResources_PRINT[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
@@ -205,7 +205,7 @@ static String fallbackResources_PRINT[] = {
         "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
         "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
-}; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
+}; /* if you change default width and height, make sure you change SV->X->aWIDTH & SV->X->aHEIGHT in SUMA_SVmanip */
 
 static String fallbackResources_Bonaire[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
@@ -245,7 +245,7 @@ static String fallbackResources_Bonaire[] = {
         "<Btn4Down>: IncrementUpOrLeft(0) IncrementUpOrLeft(1)\\n"
         "<Btn5Down>: IncrementDownOrRight(1) IncrementDownOrRight(0)" ,
   NULL
-}; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
+}; /* if you change default width and height, make sure you change SV->X->aWIDTH & SV->X->aHEIGHT in SUMA_SVmanip */
 
 /* DO NOT USE THESE, keep here for record */
 static char SUMA_TEXT_WIDGET_TRANSLATIONS[] = 
@@ -1292,11 +1292,13 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    NI_set_attribute (nel, "FOV", stmp);
    sprintf(stmp, "%f", csv->Aspect);
    NI_set_attribute (nel, "Aspect", stmp);
-   sprintf(stmp, "%d", csv->WindWidth);
+   sprintf(stmp, "%d", csv->wWindWidth);
    NI_set_attribute (nel, "WindWidth", stmp);
-   sprintf(stmp, "%d", csv->WindHeight);
+   sprintf(stmp, "%d", csv->wWindHeight);
    NI_set_attribute (nel, "WindHeight", stmp);
    if (csv->X && csv->X->TOPLEVEL) {            
+      SUMA_ALL_DO *ado=NULL;
+      SUMA_X_SurfCont *SurfCont=NULL;
       ScrW = WidthOfScreen (XtScreen(csv->X->TOPLEVEL));
       ScrH = HeightOfScreen (XtScreen(csv->X->TOPLEVEL));
       XtVaGetValues (csv->X->TOPLEVEL, /* Get the positions of New */
@@ -1314,6 +1316,25 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
       } else {
          SUMA_S_Warnv("Y position is %d, outside of [0,%d[\n",
                       Y, ScrH);
+      }
+      if ((ado = SUMA_SV_any_ADO_WithSurfContWidget(csv,NULL))) {
+         SurfCont = SUMA_ADO_Cont(ado);
+         XtVaGetValues (SurfCont->TLS, /* Get the positions of New */
+            XmNx, &X,
+            XmNy, &Y,
+            NULL);
+         if ((int)X >= 0 && (int)X < ScrW ) { 
+            NI_SET_INT (nel, "ContX", (int)X);
+         } else {
+            SUMA_S_Warnv("X position is %d, outside of [0,%d[\n",
+                         X, ScrW);
+         }
+         if ((int)Y >= 0 && (int)Y < ScrH ) { 
+            NI_SET_INT (nel, "ContY", (int)Y);
+         } else {
+            SUMA_S_Warnv("Y position is %d, outside of [0,%d[\n",
+                         Y, ScrH);
+         }
       }
    }
    sprintf(stmp, "%d", (int)csv->BF_Cull);
@@ -1368,7 +1389,7 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
          BF_Cull[1], Back_Modfact[1], PolyMode[1], ShowEyeAxis[1], 
          ShowWorldAxis[1], DO_DrawMask[1],
          ShowMeshAxis[1], ShowCrossHair[1], ShowForeground[1], 
-         ShowBackground[1], WindX[1], WindY[1];
+         ShowBackground[1], WindX[1], WindY[1], ContX[1], ContY[1];
    Dimension ScrW, ScrH;   
    char *atmp;
    SUMA_Boolean LocalHead = NOPE;
@@ -1401,15 +1422,17 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       }
    SUMA_S2FV_ATTR(nel, "WindWidth", WindWidth, 1, feyl); 
       if (!feyl) {
-         csv->WindWidth = (int)WindWidth[0];
+         csv->wWindWidth = (int)WindWidth[0];
             /* gets set when SUMA_resize is called */
       }
    SUMA_S2FV_ATTR(nel, "WindHeight", WindHeight, 1, feyl); 
       if (!feyl) {
-         csv->WindHeight = (int)WindHeight[0]; 
+         csv->wWindHeight = (int)WindHeight[0]; 
             /* That gets recalculated when SUMA_resize is called */
       }
    if (csv->X && csv->X->TOPLEVEL) {
+      SUMA_ALL_DO *ado=NULL;
+      SUMA_X_SurfCont *SurfCont=NULL;
       Position Xi, Yi;            
       ScrW = WidthOfScreen (XtScreen(csv->X->TOPLEVEL));
       ScrH = HeightOfScreen (XtScreen(csv->X->TOPLEVEL));
@@ -1430,13 +1453,47 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
          }
       } else WindY[0] = -1.0;
       
-      if (WindY[0] >= 0 && WindY[0] >= 0) {
-         XtVaSetValues (csv->X->TOPLEVEL, /* Get the positions of New */
+      if (WindX[0] >= 0 && WindY[0] >= 0) {
+         SUMA_LH("Setting viewer window at positions %d %d", 
+                 (int)WindX[0], (int)WindY[0]);
+         XtVaSetValues (csv->X->TOPLEVEL, /* Set the positions of New */
             XmNx, (Position)((int)WindX[0]),
             XmNy, (Position)((int)WindY[0]),
             NULL);
        }
+      if ((ado = SUMA_SV_Focus_any_ADO(csv, NULL))) {
+         /* possible to set things for controller */
+         SUMA_S2FV_ATTR(nel, "ContX", ContX, 1, feyl); 
+         if (!feyl) {
+            if ((int)ContX[0] < 0 && (int)ContX[0] >= ScrW ) { 
+               SUMA_S_Warnv("X position is %d, outside of [0,%d[\n",
+                      (int)ContX[0], ScrW);
+               ContX[0] = -1.0;
+            }
+         } else ContX[0] = -1.0;
+         SUMA_S2FV_ATTR(nel, "ContY", ContY, 1, feyl); 
+         if (!feyl) {
+            if ((int)ContY[0] < 0 && (int)ContY[0] >= ScrW ) { 
+               SUMA_S_Warnv("Y position is %d, outside of [0,%d[\n",
+                      (int)ContY[0], ScrW);
+               ContY[0] = -1.0;
+            }
+         } else ContY[0] = -1.0;
+
+         if (ContX[0] >= 0 && ContY[0] >= 0 && 
+             (SurfCont = SUMA_ADO_Cont(ado))&& 
+             SUMA_viewSurfaceCont(NULL, ado, csv)) {
+            SUMA_LH("Setting controller window at positions %d %d", 
+                 (int)ContX[0], (int)ContY[0]);
+            XtVaSetValues (SurfCont->TLS, /* Set the positions of New */
+               XmNx, (Position)((int)ContX[0]),
+               XmNy, (Position)((int)ContY[0]),
+               NULL);
+          }
+      }
    }
+   
+      
 
    SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl); 
       if (!feyl) {
@@ -1484,10 +1541,11 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
       }
    
    /* do a resize (does not matter if dimensions did not change, call is simple.
-   This call will also generate a SUMA_resize call */
-   SUMA_LH("Resizing");
-   
-   SUMA_WidgetResize (csv->X->TOPLEVEL , csv->WindWidth, csv->WindHeight); 
+   This call will also generate a SUMA_resize call, which will provide adjusted 
+   values to reflect size of the GLXAREA */
+   SUMA_S_Note("Resizing main window to %d x %d",
+            csv->wWindWidth, csv->wWindHeight);
+   SUMA_WidgetResize (csv->X->TOPLEVEL , csv->wWindWidth, csv->wWindHeight); 
    
    SUMA_RETURN(1);   
 }
@@ -1744,10 +1802,10 @@ int SUMA_SnapToDisk(SUMA_SurfaceViewer *csv, int verb, int getback)
       #endif
    #endif
    glXWaitX();
-   pixels = SUMA_grabRenderedPixels(csv, 3, csv->X->WIDTH, csv->X->HEIGHT,
+   pixels = SUMA_grabRenderedPixels(csv, 3, csv->X->aWIDTH, csv->X->aHEIGHT,
                                     getback);
    if (pixels) {
-      if (!SUMA_PixelsToDisk(csv, csv->X->WIDTH, -csv->X->HEIGHT,
+      if (!SUMA_PixelsToDisk(csv, csv->X->aWIDTH, -csv->X->aHEIGHT,
                              pixels, 3, verb, NULL, 1, 0)) {
          SUMA_S_Err("Failed to write pix to disk");
          SUMA_free(pixels);
@@ -2012,9 +2070,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                                                operation ... */
               SUMA_handleRedisplay((XtPointer)csv->X->GLXAREA);
               csv->rdc=holdrdc;
-              pixels = SUMA_grabPixels(3, csv->X->WIDTH, csv->X->HEIGHT);
+              pixels = SUMA_grabPixels(3, csv->X->aWIDTH, csv->X->aHEIGHT);
               if (pixels) {
-                ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
+                ISQ_snapsave( csv->X->aWIDTH, -csv->X->aHEIGHT,
                               (unsigned char *)pixels, csv->X->GLXAREA );
                 SUMA_free(pixels);
               }
@@ -2025,9 +2083,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          } else { /* better approach after fixing buffer swaping bug Feb 2012*/
             GLvoid *pixels=NULL;
             pixels = SUMA_grabRenderedPixels(csv, 3, 
-                                          csv->X->WIDTH, csv->X->HEIGHT, 0);
+                                          csv->X->aWIDTH, csv->X->aHEIGHT, 0);
             if (pixels) {
-              ISQ_snapsave( csv->X->WIDTH, -csv->X->HEIGHT,
+              ISQ_snapsave( csv->X->aWIDTH, -csv->X->aHEIGHT,
                            (unsigned char *)pixels, csv->X->GLXAREA );
               SUMA_free(pixels);
             }
@@ -2115,9 +2173,9 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    
    /* calculate Pcenter_close for the axis positioning */
    if (csv->ShowMeshAxis || csv->ShowWorldAxis) {
-      yList[0] = csv->WindHeight;
+      yList[0] = csv->X->aHEIGHT;
       xList[0] = 0;
-      SUMA_GetSelectionLine ( csv, csv->WindWidth/2, csv->WindHeight/2, 
+      SUMA_GetSelectionLine ( csv, csv->X->aWIDTH/2, csv->X->aHEIGHT/2, 
                               csv->Pcenter_close, csv->Pcenter_far, 1, 
                               xList, yList, csv->Plist_close);
    }
@@ -2627,6 +2685,92 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
 
 }
 
+SUMA_Boolean SUMA_SV_WindDims_From_DrawAreaDims(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_SV_WindDims_From_DrawAreaDims"};
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !sv->X) {
+      SUMA_S_Err("sv or sv->X is NULL");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (sv->DrawAreaWidthOffset < 0 || sv->DrawAreaHeightOffset < 0) {
+      if (!(SUMA_SV_InitDrawAreaOffset(sv))) {
+         SUMA_S_Err("Offset not initialized (%d %d)!\n", 
+                   sv->DrawAreaWidthOffset, sv->DrawAreaHeightOffset);
+         SUMA_RETURN(NOPE);
+      }
+   }
+   sv->wWindWidth = sv->DrawAreaWidthOffset+sv->X->aWIDTH;
+   sv->wWindHeight = sv->DrawAreaHeightOffset+sv->X->aHEIGHT;
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_SV_InitDrawAreaOffset(SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_SV_WindDims_From_DrawAreaDims"};
+   Dimension awidth, aheight;
+   Dimension wwidth, wheight;
+   int dd;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !sv->X || !sv->X->TOPLEVEL || !sv->X->GLXAREA) {
+      SUMA_S_Err("sv or sv->X or widgets is/are NULL");
+      SUMA_RETURN(NOPE);
+   }
+         
+   XtVaGetValues (sv->X->GLXAREA,
+      XmNwidth, &awidth,
+      XmNheight, &aheight,
+      NULL);
+   SUMA_LH("GLXAREA dims: %d %d", awidth, aheight);
+   XtVaGetValues (sv->X->TOPLEVEL,
+      XmNwidth, &wwidth,
+      XmNheight, &wheight,
+      NULL);
+   SUMA_LH("Window dims: %d %d", wwidth, wheight);
+   dd = (wwidth - awidth);
+   if (dd > 0 && dd < 100) { /* sometimes values returned are crraazy, 
+                                so just to be sure */
+      sv->DrawAreaWidthOffset = dd;
+   }
+   dd = (wheight - aheight);
+   if (dd > 0 && dd < 100) { /* sometimes values returned are crraazy, 
+                                so just to be sure */
+      sv->DrawAreaHeightOffset = dd;
+   }
+   if (sv->DrawAreaWidthOffset > 0 && sv->DrawAreaHeightOffset > 0) {
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_RETURN(NOPE);
+   }
+}
+
+SUMA_Boolean SUMA_SV_DrawAreaDims_From_WindDims(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_SV_DrawAreaDims_From_WindDims"};
+   
+   SUMA_ENTRY;
+   
+   if (!sv || !sv->X) {
+      SUMA_S_Err("sv or sv->X is NULL");
+      SUMA_RETURN(NOPE);
+   }
+   if (sv->DrawAreaWidthOffset < 0 || sv->DrawAreaHeightOffset < 0) {
+      if (!(SUMA_SV_InitDrawAreaOffset(sv))) {
+         SUMA_S_Err("Offset not initialized (%d %d)!\n", 
+                     sv->DrawAreaWidthOffset, sv->DrawAreaHeightOffset);
+         SUMA_RETURN(NOPE);
+      }
+   }
+   sv->X->aWIDTH  = sv->wWindWidth - sv->DrawAreaWidthOffset;
+   sv->X->aHEIGHT = sv->wWindHeight - sv->DrawAreaHeightOffset;
+   SUMA_RETURN(YUP);
+}
    
 void
 SUMA_resize(Widget w,
@@ -2637,7 +2781,7 @@ SUMA_resize(Widget w,
    SUMA_SurfaceViewer *sv;
    char buf[32];
    int isv;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
@@ -2649,8 +2793,10 @@ SUMA_resize(Widget w,
       SUMA_RETURNe;
    }
 
-   SUMA_LH("Resizing sv %d", isv);
    callData = (GLwDrawingAreaCallbackStruct *) call;
+   SUMA_LH("Resizing sv %d to %dx%d from %dx%d", isv,
+                  callData->width, callData->height,
+               sv->X->aWIDTH, sv->X->aHEIGHT);
    /* SUMA_HOLD_IT; Not used anymore */
    sprintf(buf,"Resize sv %d", isv);
    if (!SUMA_glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT,
@@ -2666,8 +2812,8 @@ SUMA_resize(Widget w,
    /* SUMA_HOLD_IT; Not used anymore */
    
    glXWaitX();
-   sv->X->WIDTH = callData->width;
-   sv->X->HEIGHT = callData->height;
+   sv->X->aWIDTH = callData->width;
+   sv->X->aHEIGHT = callData->height;
    glViewport(0, 0, callData->width, callData->height);
 
    glMatrixMode(GL_MODELVIEW);
@@ -2682,7 +2828,13 @@ SUMA_resize(Widget w,
                sv->GVS[sv->StdView].ViewCamUp[1], 
                sv->GVS[sv->StdView].ViewCamUp[2]);
    sv->Aspect = (GLfloat) callData->width/(GLfloat) callData->height;
-   sv->WindWidth = callData->width; sv->WindHeight = callData->height;
+   if (!(SUMA_SV_WindDims_From_DrawAreaDims(sv))) {
+      SUMA_S_Err("Failed to set window dims. This should not happen");
+      SUMA_DUMP_TRACE("How did you get here?");
+      SUMA_S_Warn("Assuming offset is 0, but that's not cool");
+      sv->wWindWidth = sv->X->aWIDTH;
+      sv->wWindHeight = sv->X->aHEIGHT;
+   }
    
    sv->rdc = SUMA_RDC_X_RESIZE;
    SUMA_postRedisplay(w, clientData, call);
@@ -4180,6 +4332,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          SUMA_SetSVForegroundColor (&SUMAg_SVv[ic], "Green");
       }
       
+      
       /* keep track of count */
       SUMAg_N_SVv += 1;
       SUMA_LH("Repos");
@@ -4231,7 +4384,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          }
       
       }
-      
+      SUMA_SV_InitDrawAreaOffset(SUMAg_SVv+ic); 
+
       SUMA_LH("Done with new window setup");  
    } else {    /* widget already set up, just undo whatever 
                   was done in SUMA_ButtClose_pushed */
@@ -4261,7 +4415,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMAg_SVv[ic].Open = YUP;
    ++SUMAg_CF->N_OpenSV; 
    ++CallNum;
-   
+         
    SUMA_LH("Updates");  
    SUMA_UpdateViewerCursor (&(SUMAg_SVv[ic]));
    SUMA_UpdateViewerTitle (&(SUMAg_SVv[ic]));
@@ -4943,7 +5097,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             "Error %s: could not create rendering context", FuncName);
 
    pmap = XCreatePixmap(dpy, RootWindow(dpy, vi->screen),
-    csv->X->WIDTH, csv->X->HEIGHT, vi->depth);
+    csv->X->aWIDTH, csv->X->aHEIGHT, vi->depth);
    glxpmap = glXCreateGLXPixmap(dpy, vi, pmap);
    isv = SUMA_WhichSV(csv, SUMAg_SVv, SUMAg_N_SVv);
    sprintf(buf,"pixmap of sv %d", isv);
@@ -4957,7 +5111,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
 
    SUMA_context_Init(csv);
-   glViewport(0, 0, csv->X->WIDTH, csv->X->HEIGHT);
+   glViewport(0, 0, csv->X->aWIDTH, csv->X->aHEIGHT);
    SUMA_display(csv, dov);
 
    glFinish (); /* make sure you wait until rendering is over */
@@ -4997,7 +5151,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       }
 
      fprintf (SUMA_STDOUT,"%s: Writing image to %s ...", FuncName, padname);
-     SUMA_generateEPS(padname, /* color */ 1, csv->X->WIDTH, csv->X->HEIGHT);
+     SUMA_generateEPS(padname, /* color */ 1, csv->X->aWIDTH, csv->X->aHEIGHT);
      fprintf (SUMA_STDOUT,"Done.\n");
      SUMA_free(padname);
    }
@@ -5265,12 +5419,12 @@ SUMA_Boolean SUMA_World2ScreenCoords (
       }
 
       if (Quad) {
-         if (ScreenList[i3] < sv->WindWidth/2) {
-            if (ScreenList[i3+1] > sv->WindHeight/2) 
+         if (ScreenList[i3] < sv->X->aWIDTH/2) {
+            if (ScreenList[i3+1] > sv->X->aHEIGHT/2) 
                Quad[i] = SUMA_LOWER_LEFT_SCREEN;
             else Quad[i] = SUMA_UPPER_LEFT_SCREEN;
          } else {
-            if (ScreenList[i3+1] > sv->WindHeight/2) 
+            if (ScreenList[i3+1] > sv->X->aHEIGHT/2) 
                Quad[i] = SUMA_LOWER_RIGHT_SCREEN;
             else Quad[i] = SUMA_UPPER_RIGHT_SCREEN;
          }
@@ -5421,12 +5575,12 @@ SUMA_Boolean SUMA_World2ScreenCoordsF (
       ScreenList[i3+2] = scd[2];
        
       if (Quad) {
-         if (ScreenList[i3] < sv->WindWidth/2) {
-            if (ScreenList[i3+1] > sv->WindHeight/2) 
+         if (ScreenList[i3] < sv->X->aWIDTH/2) {
+            if (ScreenList[i3+1] > sv->X->aHEIGHT/2) 
                Quad[i] = SUMA_LOWER_LEFT_SCREEN;
             else Quad[i] = SUMA_UPPER_LEFT_SCREEN;
          } else {
-            if (ScreenList[i3+1] > sv->WindHeight/2) 
+            if (ScreenList[i3+1] > sv->X->aHEIGHT/2) 
                Quad[i] = SUMA_LOWER_RIGHT_SCREEN;
             else Quad[i] = SUMA_UPPER_RIGHT_SCREEN;
          }
@@ -6421,6 +6575,48 @@ SUMA_Boolean SUMA_MarkSurfContOpen(int Open, SUMA_ALL_DO *ado)
    }
    SUMA_RETURN(YUP);
 }
+
+SUMA_Boolean SUMA_BringUpSurfContTLS(Widget TLS) 
+{
+   static char FuncName[]={"SUMA_BringUpSurfContTLS"};
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!TLS) SUMA_RETURN(NOPE);
+
+   /* controller already created, need to bring it up again */
+   switch (SUMA_GL_CLOSE_MODE)   {/* open GL drawables in this widget*/
+      case SUMA_WITHDRAW:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Controller already created, Raising it.\n", 
+                     FuncName);
+         XMapRaised( SUMAg_CF->X->DPY_controller1, 
+                     XtWindow(TLS));
+         break;
+      case SUMA_UNREALIZE:
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Controller already created, realizing it.\n", 
+                     FuncName);
+         XtRealizeWidget(TLS);
+         XSync(SUMAg_CF->X->DPY_controller1, 0);
+         /* now do Raise, so that we can see the damned thing if it 
+            behind other windows, and hope it does not crash*/
+         SUMA_LH("Rise and do not crash");
+         XMapRaised( SUMAg_CF->X->DPY_controller1, 
+                     XtWindow(TLS)); 
+
+         break;
+      default:
+         SUMA_S_Err("No setup for this close mode");
+         SUMA_RETURN(NOPE);
+         break;     
+   }
+   SUMA_RETURN(YUP);
+}
+
  
 /*! if calling this function from outside interface, set w to NULL 
 */
@@ -6448,41 +6644,46 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
             SUMA_ADO_Label(ado), w, sv);
       
    if (!SUMA_isADO_Cont_Created(ado)) {
+      if (SUMAg_CF->X->UseSameSurfCont && 
+          SUMAg_CF->X->CommonSurfContTLW && 
+          !SUMAg_CF->X->SameSurfContOpen) {
+         /* If you don't do this, then bad things will happen when:
+         Launch SUMA with 2 types of objects (say one vol and one surf).
+         Select the surf, open the surface controller. 
+         Close the controller.
+         Select the vol, open the surface controller and you'll get some 
+         variant on:
+         
+         oo     Warning SUMA_XErrHandler (SUMA_display.c:3896):
+         Intercepted X11 error: BadWindow (invalid Window parameter)
+         Will attempt to proceed but trouble might ensue.
+         ++     Notice SUMA_XErrHandler (SUMA_display.c:3897 @19:57:15):
+         Trace At Xerr
+                SUMA_XErrHandler
+               SUMA_cb_createSurfaceCont_VO
+              SUMA_cb_createSurfaceCont
+             SUMA_viewSurfaceCont
+            SUMA_cb_viewSurfaceCont
+           suma
+          Bottom of Debug Stack
+         
+         The error handler catches it and you can recover from the crash,
+         however the close (x) button no longer works on that controller
+         and that's just not cool. 
+         The fix is in the call below. So all is well for now. Apr. 16 2014 */
+         SUMA_LH("Must bring controller parent up first");
+         SUMA_BringUpSurfContTLS(SUMAg_CF->X->CommonSurfContTLW);
+      }
+      
       if (LocalHead) 
          SUMA_LH("Calling SUMA_cb_createSurfaceCont.");
       if (w) SUMA_cb_createSurfaceCont( w, (XtPointer)ado, NULL);
       else SUMA_cb_createSurfaceCont( sv->X->TOPLEVEL, (XtPointer)ado, NULL);
-   }else {
-      /* controller already created, need to bring it up again */
-      switch (SUMA_GL_CLOSE_MODE)   {/* open GL drawables in this widget*/
-         case SUMA_WITHDRAW:
-            if (LocalHead) 
-               fprintf (SUMA_STDERR,
-                        "%s: Controller already created, Raising it.\n", 
-                        FuncName);
-            XMapRaised( SUMAg_CF->X->DPY_controller1, 
-                        XtWindow(SurfCont->TLS));
-            break;
-         case SUMA_UNREALIZE:
-            if (LocalHead) 
-               fprintf (SUMA_STDERR,
-                        "%s: Controller already created, realizing it.\n", 
-                        FuncName);
-            XtRealizeWidget( SurfCont->TLS);
-            XSync(SUMAg_CF->X->DPY_controller1, 0);
-            /* now do Raise, so that we can see the damned thing if it 
-               behind other windows, and hope it does not crash*/
-            SUMA_LH("Rise and do not crash");
-            XMapRaised( SUMAg_CF->X->DPY_controller1, 
-                        XtWindow(SurfCont->TLS)); 
-
-            break;
-         default:
-            SUMA_S_Err("No setup for this close mode");
-            SUMA_RETURN(NOPE);
-            break;     
+   } else {
+      if (!SUMA_BringUpSurfContTLS(SurfCont->TLS)) {
+         SUMA_S_Err("Failed to raise the roof");
+         SUMA_RETURN(NOPE);
       }
-
    }
    
    if (!SUMA_ADO_Cont(ado)) { /* This can happen when attempting to open a
@@ -9545,8 +9746,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
       SUMA_RETURNe;
    }
    
+   SUMA_LH("Getting TL of %p", w);
    tl = SUMA_GetTopShell(w); /* top level widget */
+   SUMA_LH("Got tl = %p", tl);
    dpy = XtDisplay(tl);
+   SUMA_LH("Got dpy %p", dpy);
    
    slabel = (char *)SUMA_malloc(sizeof(char) * 
                                  (strlen(SUMA_ADO_Label(ado)) + 100));
@@ -10219,6 +10423,8 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
    XtManageChild (SurfCont->Mainform);
    if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SurfCont->Page);
    
+   
+   SUMA_LH("Popup maybe and Notebook management");
    #if SUMA_CONTROLLER_AS_DIALOG    
    #else
    /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, 
@@ -10228,7 +10434,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
    #endif
    
    /* realize the widget */
-   if (SUMAg_CF->X->UseSameSurfCont) XtManageChild (SUMAg_CF->X->SC_Notebook);
+   if (SUMAg_CF->X->UseSameSurfCont) {
+      XtManageChild (SUMAg_CF->X->SC_Notebook);
+   }
+   SUMA_LH("Realize TLS widget %p, closed %d", 
+            SurfCont->TLS, !SUMAg_CF->X->SameSurfContOpen);
    XtRealizeWidget (SurfCont->TLS);
    
    SUMA_LH("%s",slabel);
@@ -18900,14 +19110,17 @@ void SUMA_DrawROI_NewLabel (void *data)
    
    if (DrawnROI->DrawStatus != SUMA_ROI_Finished) {
       SUMA_LH("unFinished");
-      /* YOU DO NOT WANT TO FREE n because n is not a copy of the string in the widget! */
+      /* YOU DO NOT WANT TO FREE n because n is not a copy of the string 
+         in the widget! */
       if (DrawnROI->Label) {
-         if (LocalHead) 
-            fprintf (SUMA_STDERR, "%s: Changing ROI label from %s to %s\n", FuncName, DrawnROI->Label, (char *)n);         
-         DrawnROI->Label = (char *)SUMA_realloc(DrawnROI->Label, sizeof(char)*(strlen((char *)n)+1));
+         SUMA_LH("Changing ROI label from %s to %s\n", 
+                 DrawnROI->Label, (char *)n);         
+         DrawnROI->Label = (char *)SUMA_realloc(DrawnROI->Label, 
+                                          sizeof(char)*(strlen((char *)n)+1));
       }  else {
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting ROI label to %s\n", FuncName, (char *)n);
-         DrawnROI->Label = (char *)SUMA_malloc(sizeof(char) * (strlen((char *)n)+1));
+         SUMA_LH("Setting ROI label to %s\n", (char *)n);
+         DrawnROI->Label = (char *)SUMA_malloc(sizeof(char) * 
+                                                (strlen((char *)n)+1));
       }
       DrawnROI->Label = strcpy(DrawnROI->Label, (char *)n);   
       ErrCnt = 0;
@@ -18915,19 +19128,27 @@ void SUMA_DrawROI_NewLabel (void *data)
       /* check if list window is open and update it if need be */
       SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
       if (!Shaded) {
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: updating switch ROI window ...\n", FuncName);
-         SUMA_cb_DrawROI_SwitchROI(NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+         SUMA_LH("updating switch ROI window ...\n");
+         SUMA_cb_DrawROI_SwitchROI(NULL, (XtPointer) 
+                                 SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
       }
    } else {
       SUMA_LH("Finished");
-      if (!ErrCnt) SUMA_SLP_Err("ROI maked as finished.\nNew label cannot be applied.");
+      if (!ErrCnt) SUMA_SLP_Err("ROI maked as finished.\n"
+                                "New label cannot be applied.");
       ++ErrCnt;
-      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, DrawnROI->Label);
+      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, 
+                        DrawnROI->Label);
    }
    
    SUMA_RETURNe;
 }
 
+/* 
+Children of New are always called with a resize if they want one.
+When  New is sv->X->TOPLEVEL a resize  callback is initiated on 
+the GLXAREA with adjusted width and height values. 
+*/
 void SUMA_WidgetResize (Widget New, int width, int height)
 {
    static char FuncName[]={"SUMA_WidgetResize"};

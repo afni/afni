@@ -31,14 +31,9 @@
 
 
 #ifdef USE_TRACING
-#define SUMA_DUMP_TRACE(ihead) { /* taken from dbtrace.h */\
+#define SUMA_DUMP_TRACE( ... ) { /* taken from dbtrace.h */\
    int m_ii;  \
-   char *head=(char*)ihead; /* a trick to quiet compiler warnings about \
-               fixed length   strings addresses always evaluating to true */\
-   if (head) { \
-      SUMA_S_Note("%s",head);\
-   } else {SUMA_S_Note("Dumping Trace:");\
-   }   \
+   SUMA_S_Note( __VA_ARGS__ );\
    if( DBG_num >= 0 ){  \
       for( m_ii=DBG_num-1; m_ii >= 0 ; m_ii-- ) \
          fprintf(stderr,"%*.*s%s\n",m_ii+1,m_ii+1," ",DBG_rout[m_ii]) ; \
