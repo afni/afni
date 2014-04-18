@@ -1,9 +1,12 @@
 clean:
 	$(RM) *.o *.a
    
-libply.a: 
+objs:
 	$(CC) ${CCOPT} ${WARNOPT} -I./ -c plyfile.c
-	ar q $@ plyfile.o
+	$(CC) ${CCOPT} ${WARNOPT} -I./ -c obj_io.c
+   
+libply.a:  objs
+	ar q $@ plyfile.o obj_io.o
 	$(RANLIB) $@
    
 plytest: 

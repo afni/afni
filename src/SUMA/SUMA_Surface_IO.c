@@ -3836,6 +3836,7 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    SUMA_RETURN(YUP);
 }
 
+#define USE_PLY_VERTEX
 
 /*** Code to read ply format data 
 Ply functions are based on code by Greg Turk. 
@@ -3919,7 +3920,7 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
    int nprops;
    int num_elems;
    PlyProperty **plist = NULL;
-   Vertex **vlist = NULL;
+   Vertex vert;
    Face **flist = NULL;
    char *elem_name;
    int num_comments;
@@ -3959,12 +3960,6 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
 
     /* if we're on vertex elements, read them in */
     if (equal_strings ("vertex", elem_name)) {
-
-      /* create a vertex list to hold all the vertices */
-      #ifdef USE_PLY_VERTEX
-      vlist = (Vertex **) SUMA_malloc (sizeof (Vertex *) * num_elems);
-      #endif
-      
       SO->NodeList = (float *) SUMA_calloc (3*num_elems, sizeof(float));
       if (!SO->NodeList) {
          fprintf (SUMA_STDERR, 
@@ -3983,19 +3978,16 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       SO->N_Node = num_elems;
       /* grab all the vertex elements */
       for (j = 0; j < num_elems; j++) {
-
         /* grab and element from the file */
         #ifdef USE_PLY_VERTEX
-        //vlist[j] = (Vertex *) SUMA_malloc (sizeof (Vertex));
-        //ply_get_element (ply, (void *) vlist[j]);
+        ply_get_element (ply, (void *) (&vert));
         /* print out vertex x,y,z for debugging */
-        if (LocalHead) fprintf (SUMA_STDERR, "%s vertex: %g %g %g\n", FuncName, vlist[j]->x, vlist[j]->y, vlist[j]->z);
+        SUMA_LH("vertex: %g %g %g",vert.x, vert.y, vert.z);
         /* copy to NodeList */
         j3 = SO->NodeDim*j;
-        SO->NodeList[j3] = vlist[j]->x;
-        SO->NodeList[j3+1] = vlist[j]->y;
-        SO->NodeList[j3+2] = vlist[j]->z;
-        
+        SO->NodeList[j3] = vert.x;
+        SO->NodeList[j3+1] = vert.y;
+        SO->NodeList[j3+2] = vert.z;
         #else
         j3 = SO->NodeDim*j;
         ply_get_element (ply, (void *) &(SO->NodeList[j3]));
@@ -4021,13 +4013,14 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       /* grab all the face elements */
       for (j = 0; j < num_elems; j++) {
 
-        /* grab and element from the file */
+        /* grab an element from the file */
         flist[j] = (Face *) SUMA_malloc (sizeof (Face));
         ply_get_element (ply, (void *) flist[j]);
 
         /* print out face info, for debugging */
         if (LocalHead) {
-         fprintf (SUMA_STDERR,"%s face: %d, list = ", FuncName, flist[j]->intensity);
+         fprintf (SUMA_STDERR,"%s face: %d, list = ", 
+                              FuncName, flist[j]->intensity);
          for (k = 0; k < flist[j]->nverts; k++)
             fprintf (SUMA_STDERR,"%d ", flist[j]->verts[k]);
          fprintf (SUMA_STDERR,"\n");
@@ -4037,16 +4030,17 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       /* copy face elements to SO structure */
       SO->FaceSetDim = flist[0]->nverts;
       SO->N_FaceSet = num_elems;
-      SO->FaceSetList = (int *) SUMA_calloc (SO->FaceSetDim * num_elems, sizeof(int));
+      SO->FaceSetList = (int *) SUMA_calloc (SO->FaceSetDim * num_elems, 
+                                             sizeof(int));
       if (!SO->FaceSetList) {
-         fprintf (SUMA_STDERR, "Error %s: Failed to allocate for SO->NodeList.\n", FuncName);
+         SUMA_S_Err("Failed to allocate for SO->NodeList.\n");
          if (SO->NodeList) SUMA_free(SO->NodeList); 
          SUMA_RETURN(NOPE);
       }
       
       for (j = 0; j < num_elems; j++) {
          if (flist[j]->nverts != SO->FaceSetDim) {
-            fprintf (SUMA_STDERR, "Error %s: All FaceSets must have the same dimension for SUMA.\n", FuncName);
+            SUMA_S_Err("All FaceSets must have the same dimension for SUMA.\n");
             if (SO->NodeList) SUMA_free(SO->NodeList); 
             if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
             SO->NodeList = NULL;
@@ -4065,7 +4059,7 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       else if (file_type == PLY_BINARY_BE) SO->FileFormat = SUMA_BINARY_BE;
          else if (file_type == PLY_BINARY_LE) SO->FileFormat = SUMA_BINARY_LE;
             else {
-               fprintf (SUMA_STDERR, "Error %s: PLY_TYPE %d not recognized.\n", FuncName, file_type);
+               SUMA_S_Err("PLY_TYPE %d not recognized.\n", file_type);
             }
             
    SO->Name = SUMA_StripPath(f_name);
@@ -4097,12 +4091,7 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
    }
    SUMA_free(flist); flist = NULL;
    
-   #ifdef USE_PLY_VERTEX
-   for (j = 0; j < SO->N_Node; j++) {
-      SUMA_free(vlist[j]);
-   }
-   SUMA_free(vlist); vlist = NULL;
-   #endif
+   
    /* close the PLY file, ply structure is freed within*/
    ply_close (ply);
    
