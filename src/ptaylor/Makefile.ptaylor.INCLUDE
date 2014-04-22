@@ -2,7 +2,7 @@
 
 PTAYLORLIB = libtracktools.a
 
-PTAYLOR_SRCS = DoTrackit.c TrackIO.c rsfc.c 
+PTAYLOR_SRCS = DoTrackit.c TrackIO.c rsfc.c diffusiony.c 
        
 PTAYLOR_OBJS = ${PTAYLOR_SRCS:.c=.o}
 
@@ -14,7 +14,7 @@ PTAYLOR_INCLUDE_PATH = ${IFLAGS} -I/usr/local/include \
 PTAYLOR_LINK_PATH = ${LFLAGS} -L/usr/lib -L/usr/local/lib -L../ 
 PTAYLOR_LINK_LIB = ${LLIBS} -lmri
 
-PTAYLOR_HDRS = DoTrackit.h TrackIO.h rsfc.h 
+PTAYLOR_HDRS = DoTrackit.h TrackIO.h rsfc.h diffusiony.h
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
@@ -83,6 +83,27 @@ cluster_floatNOMASK.o:cluster_floatNOMASK.c
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
+3dEigsToDT:3dEigsToDT.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dEigsToDT 3dEigsToDT.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
+
+3dDTtoNoisyDWI:3dDTtoNoisyDWI.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dDTtoNoisyDWI 3dDTtoNoisyDWI.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
+
+3dTORTOISEtoHere:3dTORTOISEtoHere.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dTORTOISEtoHere 3dTORTOISEtoHere.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
+
 3dReHo: 3dReHo.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 	$(RM) $@
 	$(CC) -o 3dReHo 3dReHo.o  ${AFNI_3dOBJS} \
@@ -135,7 +156,8 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
       -lgsl -lgslcblas -lm
 
 progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC map_TrackID \
-       3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat
+       3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat 3dEigsToDT \
+       3dDTtoNoisyDWI 3dTORTOISEtoHere
 
 all: ${PTAYLORLIB} progs install 
 
@@ -156,6 +178,9 @@ install:
 	@if [ -f  3dMatch ]; then mv 3dMatch ${INSTALLDIR}; fi; 
 	@if [ -f  3dNetCorr ]; then mv 3dNetCorr ${INSTALLDIR}; fi;
 	@if [ -f  1dDW_Grad_o_Mat ]; then mv 1dDW_Grad_o_Mat ${INSTALLDIR}; fi;
+	@if [ -f  3dEigsToDT ]; then mv 3dEigsToDT ${INSTALLDIR}; fi;
+	@if [ -f  3dDTtoNoisyDWI ]; then mv 3dDTtoNoisyDWI ${INSTALLDIR}; fi;
+	@if [ -f  3dTORTOISEtoHere ]; then mv 3dTORTOISEtoHere ${INSTALLDIR}; fi;
 
 afni_install:
 	@echo Installing Binaries...
@@ -170,3 +195,6 @@ afni_install:
 	@if [ -f  3dMatch ]; then mv 3dMatch ${INSTALLDIR}; fi; 
 	@if [ -f  3dNetCorr ]; then mv 3dNetCorr ${INSTALLDIR}; fi;
 	@if [ -f  1dDW_Grad_o_Mat ]; then mv 1dDW_Grad_o_Mat ${INSTALLDIR}; fi;
+	@if [ -f  3dEigsToDT ]; then mv 3dEigsToDT ${INSTALLDIR}; fi;
+	@if [ -f  3dDTtoNoisyDWI ]; then mv 3dDTtoNoisyDWI ${INSTALLDIR}; fi;
+	@if [ -f  3dTORTOISEtoHere ]; then mv 3dTORTOISEtoHere ${INSTALLDIR}; fi;
