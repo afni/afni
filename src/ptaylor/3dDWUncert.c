@@ -148,24 +148,25 @@ void usage_DWUncert(int detail)
 "\n"
 "****************************************************************************\n"
 "\n"
-"  + EXAMPLE (NB: for now, you will need to have -inset as first option,\n"
-"    i.e., the order of commands matters a bit for running successfully...):\n"
-"      3dDWUncert \\\n"
-"      -inset TEST_FILES/DTI/fin2_DTI_3mm_1+orig \\\n"
-"      -prefix TEST_FILES/DTI/o.UNCERT \\\n"
-"      -input TEST_FILES/DTI/DT \\\n"
-"      -grads TEST_FILES/Siemens_d30_GRADS.dat \\\n"
+"  + EXAMPLE:\n"
+"      3dDWUncert                                 \\\n"
+"      -inset TEST_FILES/DTI/fin2_DTI_3mm_1+orig  \\\n"
+"      -prefix TEST_FILES/DTI/o.UNCERT            \\\n"
+"      -input TEST_FILES/DTI/DT                   \\\n"
+"      -grads TEST_FILES/Siemens_d30_GRADS.dat    \\\n"
 "      -iters 50\n\n"
 "  If you use this program, please reference the jackknifing algorithm done\n"
 "  with nonlinear fitting described in: \n"
-"    Jackknifing done with nonlinear fitting described in: \n"
-"    Taylor PA, Biswal BB (2011). Geometric analysis of the b-dependent\n"
-"    effects of Rician signal noise on diffusion tensor imaging\n"
-"    estimates and determining an optimal b value. MRI 29:777–788.\n"
+"        Taylor PA, Biswal BB (2011). Geometric analysis of the b-dependent\n"
+"        effects of Rician signal noise on diffusion tensor imaging\n"
+"        estimates and determining an optimal b value. MRI 29:777–788.\n"
 "  and the introductory/description paper for the FATCAT toolbox:\n"
-"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
-"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
-	return;
+"        Taylor PA, Saad ZS (2013).  FATCAT: (An Efficient) Functional\n"
+"        And Tractographic Connectivity Analysis Toolbox. Brain \n"
+"        Connectivity 3(5):523-535.\n"
+"____________________________________________________________________________\n"
+);	
+   return;
 }
 
 
@@ -226,6 +227,7 @@ int main(int argc, char *argv[]) {
 	int BADNESS;
 	float randmagn;
 	float CSF_FA = 0.012345678; // afni-set version
+   float jknife_val = 0.7; // default jackknife fraction
 
 	char evalevecs[300]; 
 	
@@ -400,6 +402,21 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 	 
+      if( strcmp(argv[iarg],"-pt_jkval") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need integer argument after '-csf_fa'");
+			jknife_val = atof(argv[iarg]);
+         INFO_message("(PT) Internal option: "
+                      "jackknife fraction being set to: %.5f.",jknife_val);
+
+         if( (jknife_val >= 1 ) || (jknife_val <=0 ) )
+				ERROR_exit("Jackknife fraction must be between 0 and 1, not %f.",
+                       jknife_val);
+			
+			iarg++ ; continue ;
+		}
+
+
 		ERROR_message("Bad option '%s'\n",argv[iarg]) ;
 		suggest_best_prog_option(argv[0], argv[iarg]);
 		exit(1);
@@ -618,7 +635,7 @@ int main(int argc, char *argv[]) {
    if(BMAT == 0) {
       // 3cols of grad vecs
       M = DSET_NVALS(dwset1)-1; // because 1st one is b=0
-      Mj = (int) floor(0.7*M);
+      Mj = (int) floor(jknife_val*M);
       if(Mj<7)
          Mj=7;
       INFO_message("Input format: grads. Number of DWI in inset=%d."
@@ -704,7 +721,7 @@ int main(int argc, char *argv[]) {
       if(Nb0<1)
          ERROR_exit("There appear to be no b=0 bricks!");
 
-      Mj = (int) floor(0.7*M);
+      Mj = (int) floor(jknife_val*M);
       if(Mj<7) 
          Mj=7;
       INFO_message("Input format: bmatrs. Number of DWI in inset=%d."

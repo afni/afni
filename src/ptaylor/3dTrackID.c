@@ -81,10 +81,13 @@
 
 void usage_TrackID(int detail) 
 {
-	printf("\n"
+	printf(
+"\n"
 "  FACTID-based tractography code, from Taylor, Cho, Lin and Biswal (2012),\n"
 "  and part of FATCAT (Taylor & Saad, 2013) in AFNI. Version 2.1 (Jan. 2014),\n"
 "  written by PA Taylor and ZS Saad.\n"
+"\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  Estimate locations of WM associated with target ROIs, particularly between\n"
 "  pairs of GM in a network;  can process several networks in a given run.\n"
@@ -98,6 +101,7 @@ void usage_TrackID(int detail)
 "  quickly (all courtesy of ZS Saad).\n"
 "\n"
 "****************************************************************************\n"
+"\n"
 "+ NOTE that this program runs in three separate modes, each with its own\n"
 "   subset of commandline options and outputs:\n"
 "   $ 3dTrackID -mode {DET | MINIP | PROB} ... \n"
@@ -110,7 +114,9 @@ void usage_TrackID(int detail)
 "   produce quantitative statistical output of WM-ROIs; etc. In some cases,\n"
 "   using a combination of all three might even be variously useful in a\n"
 "   particular study.\n"
+"\n"
 "****************************************************************************\n"
+"\n"
 "  For DTI, this program reads in tensor-related data from, e.g., 3dDWItoDTI,\n"
 "  and also uses results from 3dDWUncert for uncertainty measures when\n"
 "  necessary.\n"
@@ -560,7 +566,7 @@ void usage_TrackID(int detail)
 "  Again, those represent the default values, and could be given as a plain\n"
 "  column of numbers, in that order.\n"
 "\n"
-"* * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * **\n"
+"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "+ DTI LIST FILE EXAMPLE:\n"
 "     Consider, for example, if you hadn't used the '-sep_dsets' option when\n"
@@ -656,16 +662,18 @@ void usage_TrackID(int detail)
 "\n"
 "  If you use this program, please reference the workhorse FACTID\n"
 "  tractography algorithm:\n"
-"    Taylor PA, Cho K-H, Lin C-P, Biswal BB (2012). Improving DTI\n"
-"    Tractography by including Diagonal Tract Propagation. PLoS ONE\n"
-"    7(9): e43415. \n"
+"        Taylor PA, Cho K-H, Lin C-P, Biswal BB (2012). Improving DTI\n"
+"        Tractography by including Diagonal Tract Propagation. PLoS ONE\n"
+"        7(9): e43415,\n"
 "  and the introductory/description paper for FATCAT:\n"
-"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
-"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
+"        Taylor PA, Saad ZS (2013).  FATCAT: (An Efficient) Functional\n"
+"        And Tractographic Connectivity Analysis Toolbox. Brain \n"
+"        Connectivity 3(5):523-535.\n"
+"____________________________________________________________________________\n"
+);
 	return;
 }
-		
-		
+
 
 int main(int argc, char *argv[]) {
    int i,j,k,m,n,ii,jj,kk,mm,gg,nn,hh,bb,cc,rr,ss,uu,vv,ll;

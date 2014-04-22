@@ -66,6 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 21, Apr , 2014 , PT , "3dEigsToDT" , SUPER , TYPE_NEW_PROG,
+   "New program: take in eigen{values,vectors} and calculate DT.",
+   "This also allows flipping/rescaling to be done.\n"
+},
+
+{ 21, Apr , 2014 , PT , "TORTOISEtoHere" , SUPER , TYPE_NEW_PROG,
+   "New program: convert TORTOISE DTs to AFNI format.",
+   "This also allows flipping/rescaling to be done.\n"
+},
+
+{ 21, Apr , 2014 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "Added new feature: do whole brain correlations.",
+   "Can output individual WB maps of ROI average time series correlations.\n"
+},
+
 { 16, Apr , 2014 , PT , "3dNetCorr" , MINOR , TYPE_MODIFY,
    "Reformatted output a bit, added features for J. Rajendra.",
    "Can output time series with labels, and as individual files.\n"
