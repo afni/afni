@@ -10654,7 +10654,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             n = SDO->NodeID[i];  
             n1 = SDO->NodeID1[i];
             si = SUMA_GDSET_EdgeRow_To_Index(dset,i);
-            
+            if (n==79 || n1==79) LocalHead=YUP;
+            else LocalHead = NOPE;
             /* Do we have a tract for this monster ? */
             if (GSaux->ShowBundles) 
                nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, si, -1);
@@ -10666,7 +10667,6 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                         FuncName, i, SDO->N_n, 
                         si, n, n1, IN_MASK(GSaux->isColored,si));
                if (nelitp) {
-                  
                   fprintf(SUMA_STDERR,
                      "   Have special tract of segment %d at '%s %s'\n",
                      si, nelitp ? nelitp->name:"nothing", 
@@ -10684,7 +10684,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                #endif
             }
             if (OnlyThroughNode>=0 && 
-                  (OnlyThroughNode != n &&  OnlyThroughNode != n1)) {
+                  (OnlyThroughNode != n)) {
+                  /* See comment dated April 21 2014 for change to
+                     condition above. */
                      ++i; continue;
             }
             /* get position of node n in NodeList */
@@ -10760,7 +10762,31 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                fprintf(SUMA_STDERR,"%s: %d/%d, edge index %d [%d,%d]\n", 
                         FuncName, i, SDO->N_n, si, n, n1);
             if (OnlyThroughNode>=0 && 
-                  (OnlyThroughNode != n &&  OnlyThroughNode != n1)) {
+                  (OnlyThroughNode != n)) {
+               /* Condition "OnlyThroughNode != n" used to be 
+                  "OnlyThroughNode != n &&  OnlyThroughNode != n1" ,
+               The change was done so that only edges starting at 
+               node OnlyThroughNode are shown. Including the second
+               half would also show edges terminating at node OnlyThroughNode.
+               
+               This change was done for clarity of usage. Showing edges 
+               that emanate or terminate at a node can be confusing, especially
+               when replacing edges with a coloring of the target node. For non
+               symmetrical matrices the results can be confusing under the 
+               current implementation where non-equal reciprocal edges overlap
+               with no particular order. 
+               Also, when no drawing edges and colorizing nodes instead, both
+               NodeMask[cn] and NodeMask[cn1] get set to 1 if either of cn-->cn1
+               or cn1--cn exists and the corresponding balls do get drawn with 
+               the default color. 
+               All of this can be fixed if one truly wants 'through node' 
+               connections, rather than the current 'from node' implementation.
+               Should you decide to do this, put that second condition back in
+               at the two locations in this function (search for April 21 2014).
+               And make sure that NodeMask[cn1] does not get set if 
+               cn1 == OnlyThroughNode
+                                                   ZSS April 21 2014 
+               */ 
                      ++i; continue;
             }
             
@@ -10827,6 +10853,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       r0 = SUMA_GDSET_EdgeIndex_To_Row(dset,si);
       n = SDO->NodeID[i]; 
       n1 = SDO->NodeID1[i]; 
+            if (n==79 || n1==79) LocalHead=YUP;
+            else LocalHead = NOPE;
       SUMA_LHv("Highlight: i = %d edge row %d/%d, edge index %d [%d,%d] (%d)\n", 
                i, r0, SDO->N_n, si, n, n1, DDO.N_Node);
       /* get position of node n in NodeList */
@@ -11014,6 +11042,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             n = i;
          }
          
+            if (n==79 || n==2 || n==7) LocalHead=YUP;
+            else LocalHead = NOPE;
          if (wmask) showword = wmask[i];
          else showword = 255;
                    
