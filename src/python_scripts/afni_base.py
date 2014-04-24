@@ -839,8 +839,8 @@ def shell_exec2(s, capture=0):
       if(not capture):
          os.system("%s"%s)
          status = 0; #Don't got status here 
-         so = ""
-         se = ""
+         so = []     # should return arrays    24 Apr, 2014 [rickr]
+         se = []
       else:
          i,o,e = os.popen3(s) #captures stdout in o,  stderr in e and stdin in i      
          #The readlines seems to hang below despite all the attempts at limiting the size
@@ -858,8 +858,8 @@ def shell_exec2(s, capture=0):
          pipe = SP.Popen(s,shell=True, stdout=None, stderr=None, close_fds=True)
 #         pipe = SP.Popen(s,shell=True, executable='/bin/tcsh', stdout=None, stderr=None, close_fds=True)
          status = pipe.wait() #Wait till it is over and store returncode
-         so = ""
-         se = ""
+         so = []
+         se = []
       else:
          pipe = SP.Popen(s,shell=True, stdout=SP.PIPE, stderr=SP.PIPE, close_fds=True)
          o,e = pipe.communicate()   #This won't return until command is over

@@ -49,6 +49,28 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Apr, 2014, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -multi_timing_to_event_list",
+   "This allows one to generate simple or details event lists, or to\n"
+   "partition one event class by its predecessors.\n"
+   "Partitioning added for W Tseng."
+ } ,
+
+ { 24,  Apr, 2014, RCR, "afni_base.py", MICRO, TYPE_MODIFY,
+   "shell_exec2() should always set so,se as arrays",
+   NULL
+ } ,
+
+ { 24,  Apr, 2014, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "changed use of nlines in limited_shell_exec()",
+   NULL
+ } ,
+
+ { 24,  Apr, 2014, RCR, "afni_history", MICRO, TYPE_BUG_FIX,
+   "added proto for restrict_hlist()",
+   NULL
+ } ,
+
  { 16,  Apr, 2014, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "added MIN_OUTLIER parameter option for -volreg_base_dset",
    "Using '-volreg_base_dset MIN_OUTLIER' will result in the volume with\n"

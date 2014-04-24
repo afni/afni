@@ -282,7 +282,9 @@ class SysInfo:
       if prog == 'afni':
          cmd = 'afni -ver'
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=2)
-         if s: return 1, se[0]
+         if s:
+            if len(se) > 0: return 1, se[0]
+            else:           return 1, ''
          off1 = so[1].find('[[')
          off2 = so[1].find(']]')
          if off1 >= 0 and off2 >= 0: return 1, so[1][off1+2:off2]
