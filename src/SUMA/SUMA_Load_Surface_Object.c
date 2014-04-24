@@ -5539,7 +5539,7 @@ int SUMA_is_predefined_SO_name(char *name, int *upar,
                   !strcasecmp(nisa->str[ii],"rl") ) {  /* side */
          side = SUMA_LR;           
       } else if (!leftover) { /* state/surf name, potentially */
-         leftover = nisa->str[ii];
+         if (nisa->str[ii] && nisa->str[ii][0] != '\0') leftover = nisa->str[ii];
       } else { /* Uncool, get out */
          StdOK = 0;
       }
