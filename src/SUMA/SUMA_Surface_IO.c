@@ -70,6 +70,13 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
          SO = SUMA_Load_Surface_Object (  SO_name, SUMA_OPENDX_MESH, 
                                           SUMA_ASCII, sv_name);
          break;  
+      case SUMA_OBJ_MESH:
+         SO_name = (void *)if_name; 
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_OBJ_MESH, 
+                                          SUMA_ASCII, sv_name);
+         break;  
       case SUMA_PREDEFINED:
          SO_name = (void *)if_name; 
          if (debug > 0) 
@@ -159,6 +166,9 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
          break;  
       case SUMA_OPENDX_MESH:
          noex  =  SUMA_Extension(Name,".dx" , YUP); 
+         break;  
+      case SUMA_OBJ_MESH:
+         noex  =  SUMA_Extension(Name,".obj" , YUP); 
          break;  
       case SUMA_INVENTOR_GENERIC:
          noex  =  SUMA_Extension(Name,".iv" , YUP); 
@@ -325,6 +335,11 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
          break;  
       case SUMA_OPENDX_MESH:
          SO_name = (void *)SUMA_append_string(ppref,".dx"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;  
+      case SUMA_OBJ_MESH:
+         SO_name = (void *)SUMA_append_string(ppref,".obj"); 
          if (SUMA_filexists((char*)SO_name)) *exists = YUP;
          else *exists = NOPE;
          break;  
@@ -1757,7 +1772,7 @@ SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins,
       ct->fname = (char *)SUMA_malloc((len + 1)*sizeof(char));
       if (!ct->bins || !ct->fname) {
          SUMA_SL_Crit("Failed to allocate for ct fields");
-         SUMA_DUMP_TRACE(FuncName);
+         SUMA_DUMP_TRACE("%s",FuncName);
          if (ct->bins) SUMA_free(ct->bins);
          if (ct->fname) SUMA_free(ct->fname);
          SUMA_free(ct);
@@ -8992,7 +9007,8 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_OpenDX_Read_SO"};
    int i = 0, nf, iop;
-   SUMA_OPEN_DX_STRUCT **dxv=NULL, *dxp=NULL, *dxc = NULL, *dxf = NULL, *dxo = NULL;
+   SUMA_OPEN_DX_STRUCT **dxv=NULL, *dxp=NULL, *dxc = NULL, *dxf = NULL, 
+                       *dxo = NULL;
    SUMA_Boolean ans = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -9013,21 +9029,32 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    
    SUMA_LH("Checking for field object");
    dxf = SUMA_Find_OpenDX_Object_Class(dxv, iop, "field", &nf);
-   if (!dxf || nf != 1) { SUMA_SL_Err("Failed to find one and only one field object"); goto CLEAN_EXIT; }
+   if (!dxf || nf != 1) { 
+      SUMA_SL_Err("Failed to find one and only one field object"); 
+      goto CLEAN_EXIT; }
    /* get names of objects that contain positions and connections */
    dxp = dxc = dxo = NULL;   
    for (i=0; i<dxf->n_comp; ++i) {
       if (strstr(dxf->comp_name[i],"positions")) {
          dxp = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
-         if (!dxp || nf != 1) { SUMA_SL_Err("Failed to find one and only one positions object"); goto CLEAN_EXIT; }
+         if (!dxp || nf != 1) { 
+            SUMA_SL_Err("Failed to find one and only one positions object"); 
+            goto CLEAN_EXIT;
+         }
       }
       if (strstr(dxf->comp_name[i],"connections")) {
          dxc = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
-         if (!dxc || nf != 1) { SUMA_SL_Err("Failed to find one and only one connections object"); goto CLEAN_EXIT; }
+         if (!dxc || nf != 1) { 
+            SUMA_SL_Err("Failed to find one and only one connections object"); 
+            goto CLEAN_EXIT;
+         }
       }
       if (strstr(dxf->comp_name[i],"origin")) {
          dxo = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
-         if (!dxo || nf != 1) { SUMA_SL_Err("Failed to find one and only one origin object.\nOrigin ignored"); }
+         if (!dxo || nf != 1) { 
+            SUMA_SL_Err("Failed to find one and only one origin object.\n"
+                        "Origin ignored");
+         }
       }
    }
    
@@ -9075,11 +9102,11 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    SO->FileFormat = SUMA_ASCII;
    
    SO->NodeDim = dxp->shape;
-   SO->NodeList = (float *)dxp->datap; dxp->datap = NULL; /* datap will not be freed at end anymore */
+   SO->NodeList = (float *)dxp->datap; dxp->datap = NULL; 
    SO->N_Node = dxp->items;
    
    SO->FaceSetDim = dxc->shape;
-   SO->FaceSetList = (int *)dxc->datap; dxc->datap = NULL; /* datap will not be freed at end anymore */
+   SO->FaceSetList = (int *)dxc->datap; dxc->datap = NULL; 
    SO->N_FaceSet = dxc->items;;
    SO->Name = SUMA_StripPath(fname);
    
@@ -9105,4 +9132,340 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    if (dxv) SUMA_free(dxv); dxv = NULL;
    SUMA_RETURN(YUP);
 }
-/*  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> END OpenDX functions <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< */
+/*  >>>>>>>>>>>>>>> END OpenDX functions <<<<<<<<<<<<<<<<<<<<< */
+
+/*  >>>>>>>>>>>>>>> Begin OBJ functions <<<<<<<<<<<<<<<<<<<<< */
+
+
+SUMA_OBJ_STRUCT *SUMA_Free_OBJ(SUMA_OBJ_STRUCT *obj) 
+{
+   static char FuncName[]={"SUMA_Free_OBJ"};
+   
+   SUMA_ENTRY;
+   
+   if (!obj) SUMA_RETURN(NULL);
+   SUMA_ifree(obj->Vert);
+   SUMA_ifree(obj->Face);
+   SUMA_ifree(obj->Point);
+   SUMA_free(obj); 
+   
+   SUMA_RETURN(NULL);
+}
+
+/*!
+   \sa http://en.wikipedia.org/wiki/Wavefront_.obj_file
+*/
+SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
+{
+   static char FuncName[]={"SUMA_OBJ_Read"};
+   int nread = 0, i = 0,  good=0;
+   char *fl=NULL, *op = NULL,sbuf[256]={""}, 
+        *oc, *op2;
+   SUMA_OBJ_STRUCT *obj=NULL;
+   double num=0.0;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+      
+   SUMA_LH("Sucking file");
+   nread = SUMA_suck_file( fname , &fl ) ;
+   if (!fl) {
+      SUMA_SL_Err("Failed to read file.");
+      SUMA_RETURN(obj);
+   }
+
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Read in %d chars\n", FuncName, nread);
+   
+   obj = (SUMA_OBJ_STRUCT *)SUMA_calloc(1, sizeof(SUMA_OBJ_STRUCT));
+   
+   op = fl;
+   do {
+      SUMA_IS_COMMENT_LINE(op, NULL, '#', good);
+      if (good) {
+         oc = op;
+         SUMA_SKIP_LINE(op, NULL);
+         if (LocalHead && op > oc) {
+            SUMA_PRINT_STRING(oc, op, NULL,"Comment Line:", "\n");
+            fprintf(SUMA_STDERR,"\n");
+         }
+         continue; 
+      }
+      SUMA_SKIP_BLANK(op,NULL);
+      SUMA_NPRINT_STRING(op, NULL, NULL, 10, "\nTop:", "\n");
+      SUMA_GET_BETWEEN_BLANKS(op, NULL, op2);
+      SUMA_NPRINT_STRING(op2, NULL, NULL, 10, "\nAfter 1st word:", "\n");
+      oc = op;
+      if (op2 > op) {
+         if (!strncmp(op, "v ", 2)) {
+            if (!obj->N_Vert) SUMA_LH("Have vert");
+            if (obj->N_Vert >= obj->N_Vert_alloc) {
+               obj->N_Vert_alloc += 1000;
+               obj->Vert = (float *)SUMA_realloc(obj->Vert, 
+                                             sizeof(float)*3*obj->N_Vert_alloc);
+            }
+            op = op2;
+            SUMA_SKIP_LINE(op2, NULL); /* op2 is now at next line */
+            SUMA_ADVANCE_PAST_NUM(op, num, good);
+            if (good) {
+               obj->Vert[3*obj->N_Vert  ] = (float)num;
+            } else {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Failed to get X coord at %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj)); 
+            }
+            SUMA_ADVANCE_PAST_NUM(op, num, good);
+            if (good) {
+               obj->Vert[3*obj->N_Vert+1] = (float)num;
+            } else {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Failed to get Y coord at %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj)); 
+            }
+            SUMA_ADVANCE_PAST_NUM(op, num, good);
+            if (good) {
+               obj->Vert[3*obj->N_Vert+2] = (float)num;
+            } else {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Failed to get Z coord at %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj)); 
+            }
+            ++obj->N_Vert;
+            SUMA_SKIP_PURE_BLANK(op, NULL);
+            if (!SUMA_IS_EOL(*op)) {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Unexplained jibberish on line %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj));
+            }
+         } else if (!strncmp(op,"f ",2)) {
+            if (!obj->N_Face) SUMA_LH("Have face");
+            if (obj->N_Face >= obj->N_Face_alloc) {
+               obj->N_Face_alloc += 1000;
+               obj->Face = (int *)SUMA_realloc(obj->Face, 
+                                             sizeof(int)*3*obj->N_Face_alloc);
+            }
+            op = op2;
+            SUMA_SKIP_LINE(op2, NULL); /* op2 is now at next line */
+            SUMA_ADVANCE_PAST_NUM(op, num, good);
+            if (good) {
+               obj->Face[3*obj->N_Face  ] = (int)num;
+            } else {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Failed to get node 1 at %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj)); 
+            }
+            if (*op == '/') {
+               SUMA_S_Warn("Ignoring additional face parameters");
+               SUMA_SKIP_TO_NEXT_BLANK(op, NULL);
+            }
+            SUMA_ADVANCE_PAST_NUM(op, num, good);
+            if (good) {
+               obj->Face[3*obj->N_Face+1] = (int)num;
+            } else {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Failed to get node 2 at %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj)); 
+            }
+            if (*op == '/') {
+               SUMA_S_Warn("Ignoring additional face parameters");
+               SUMA_SKIP_TO_NEXT_BLANK(op, NULL);
+            }
+            SUMA_ADVANCE_PAST_NUM(op, num, good);
+            if (good) {
+               obj->Face[3*obj->N_Face+2] = (int)num;
+            } else {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Failed to get node 3 at %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj)); 
+            }
+            if (*op == '/') {
+               SUMA_S_Warn("Ignoring additional face parameters");
+               SUMA_SKIP_TO_NEXT_BLANK(op, NULL);
+            }
+            SUMA_SKIP_PURE_BLANK(op, NULL);
+            if (!SUMA_IS_EOL(*op)) {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Face is not for triangle %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj));
+            }
+            ++obj->N_Face;
+         } else if (!strncmp(op, "p ", 2)) {
+            if (!obj->N_Point) SUMA_LH("Have point");
+            if (obj->N_Point >= obj->N_Point_alloc) {
+               obj->N_Point_alloc += 1000;
+               obj->Point = (int *)SUMA_realloc(obj->Point, 
+                                             sizeof(int)*obj->N_Point_alloc);
+            }
+            op = op2;
+            SUMA_SKIP_LINE(op2, NULL); /* op2 is now at next line */
+            SUMA_ADVANCE_PAST_NUM(op, num, good);
+            if (good) {
+               obj->Point[obj->N_Point  ] = (int)num;
+            } else {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Failed to get point index at %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj)); 
+            }
+            ++obj->N_Point;
+            SUMA_SKIP_PURE_BLANK(op, NULL);
+            if (!SUMA_IS_EOL(*op)) {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_S_Err("Unexplained jibberish on line %s ...", sbuf);
+               SUMA_RETURN(SUMA_Free_OBJ(obj));
+            }
+         } else {
+            SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+            SUMA_S_Warn("Ignoring entry %s (%ld)", sbuf, fl-op);
+         }
+         op = op2; 
+      }
+   } while (*op != '\0');
+   
+   if (obj) {
+      if (obj->N_Vert && obj->N_Vert != obj->N_Vert_alloc) {
+         obj->Vert = (float *)SUMA_realloc(obj->Vert,
+                                 3*obj->N_Vert*sizeof(float));
+         obj->N_Vert_alloc = obj->N_Vert;
+      }
+      if (obj->N_Face && obj->N_Face != obj->N_Face_alloc) {
+         obj->Face = (int *)SUMA_realloc(obj->Face,
+                                 3*obj->N_Face*sizeof(int));
+         obj->N_Face_alloc = obj->N_Face;
+      }
+      if (obj->N_Point && obj->N_Point != obj->N_Point_alloc) {
+         obj->Point = (int *)SUMA_realloc(obj->Point,
+                                 obj->N_Point*sizeof(int));
+         obj->N_Point_alloc = obj->N_Point;
+      }
+   }
+   SUMA_RETURN(obj);   
+}
+
+SUMA_SurfaceObject *SUMA_OBJ_2_SO(SUMA_OBJ_STRUCT *obj) 
+{
+   static char FuncName[]={"SUMA_OBJ_2_SO"};
+   SUMA_SurfaceObject *SO = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!obj) SUMA_RETURN(SO);
+   if (!(SO = SUMA_NewSO ( &(obj->Vert), obj->N_Vert, 
+                           &(obj->Face), obj->N_Face,
+                           NULL))) {
+      SUMA_S_Err("Failed to get new SO");
+      SUMA_RETURN(SO);
+   }
+   SO->FileType = SUMA_OBJ_MESH;
+   SO->FileFormat = SUMA_ASCII;
+      
+   SUMA_RETURN(SO);
+}
+
+SUMA_Boolean SUMA_OBJ_Read_SO(char *fname, SUMA_SurfaceObject *SO, 
+                              SUMA_SphereDO **sphdo)
+{
+   static char FuncName[]={"SUMA_OBJ_Read_SO"};
+   SUMA_OBJ_STRUCT *obj=NULL;
+   int i;
+   SUMA_Boolean LocalHead=YUP;
+   SUMA_ENTRY;
+   
+   if (!fname || !SO) SUMA_RETURN(NOPE);
+   if (sphdo && *sphdo) {
+      SUMA_S_Err("*sphdo must be NULL at input");
+      SUMA_RETURN(NOPE);
+   }
+   if (!(obj = SUMA_OBJ_Read(fname))) {
+      SUMA_S_Err("Failed in SUMA_OBJ_Read");
+      SUMA_RETURN(NOPE);
+   }
+   if (LocalHead) SUMA_Show_OBJ(obj, "OBJ read", 0, NULL);
+   
+   SO->FileType = SUMA_OBJ_MESH;
+   SO->FileFormat = SUMA_ASCII;
+   
+   SO->NodeDim = 3;
+   SO->NodeList = obj->Vert; 
+   SO->N_Node = obj->N_Vert;
+   
+   SO->FaceSetDim = 3;
+   SO->FaceSetList = obj->Face; 
+   SO->N_FaceSet = obj->N_Face;
+   for (i=0; i<3*SO->N_FaceSet; ++i) {
+      SO->FaceSetList[i] -= 1;
+   }
+   
+   SO->Name = SUMA_StripPath(fname);
+   SUMA_NEW_ID(SO->idcode_str,fname); 
+
+   if (sphdo && obj->N_Point) {
+      SUMA_SphereDO *SDO=NULL;
+      int ip3 = 0, i3 = 0;
+      
+      SUMA_S_Warn("Loosing link of points to node ids here");
+      SDO = SUMA_Alloc_SphereDO (  obj->N_Point, fname, 
+                                   NULL, SP_type);
+      i = 0;
+      while (i < SDO->N_n) {
+         ip3 = (obj->Point[i]-1)*3;
+         i3 = 3*i;
+         SDO->cxyz[i3]   = SO->NodeList[ip3];
+         SDO->cxyz[i3+1] = SO->NodeList[ip3+1];
+         SDO->cxyz[i3+2] = SO->NodeList[ip3+2];
+         ++i;
+      }
+      *sphdo = SDO; SDO=NULL;   
+   }
+   
+   obj->Vert = NULL; /* pointer copied above */
+   obj->Face = NULL; /* pointer copied above */
+   obj = SUMA_Free_OBJ(obj);
+   
+   SUMA_RETURN(YUP);
+} 
+
+char *SUMA_OBJ_Info(SUMA_OBJ_STRUCT *obj, char *Header, int level) 
+{
+   static char FuncName[]={"SUMA_OBJ_Info"};
+   SUMA_STRING *SS=NULL;
+   char *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (Header) SS = SUMA_StringAppend_va(SS,"%s\n", Header);
+   
+   if (!obj) SS = SUMA_StringAppend(SS,"NULL obj");
+   else {
+      SS = SUMA_StringAppend_va(SS, "%d vertices at %p (%d alloc)\n",
+                              obj->N_Vert, obj->Vert, obj->N_Vert_alloc);
+      SS = SUMA_StringAppend_va(SS, "%d faces at %p (%d alloc)\n",
+                              obj->N_Face, obj->Face, obj->N_Face_alloc);
+      SS = SUMA_StringAppend_va(SS, "%d points at %p (%d alloc)\n",
+                              obj->N_Point, obj->Point, obj->N_Point_alloc);
+   }
+
+   SS = SUMA_StringAppend(SS,NULL);
+   s = SS->s; 
+   SUMA_free(SS);   
+
+   SUMA_RETURN(s);
+}
+
+void SUMA_Show_OBJ(SUMA_OBJ_STRUCT *obj, char *Header, int level, FILE *out) 
+{
+   static char FuncName[]={"SUMA_Show_OBJ"};
+   char *s = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!out) out = SUMA_STDERR;
+   
+   s = SUMA_OBJ_Info(obj, Header, level);
+   fprintf(out, "%s", s);
+   SUMA_free(s); s = NULL;
+   
+   SUMA_RETURNe;
+}
+
+/*  >>>>>>>>>>>>>>> End OBJ functions <<<<<<<<<<<<<<<<<<<<< */

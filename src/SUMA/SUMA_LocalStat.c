@@ -1339,7 +1339,7 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
                                                 SO, Opt);
       } else {
          SUMA_S_Errv("No Such Method (%d)!\n", BuildMethod);
-         SUMA_DUMP_TRACE(FuncName);
+         SUMA_DUMP_TRACE("%s", FuncName);
          SUMA_RETURN(list);
       }
       if (!Clust) {

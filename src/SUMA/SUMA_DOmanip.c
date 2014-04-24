@@ -2599,6 +2599,7 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv( char *coordnamei,
             case SUMA_FREE_SURFER:
             case SUMA_FREE_SURFER_PATCH:
             case SUMA_INVENTOR_GENERIC:
+            case SUMA_OBJ_MESH:
             case SUMA_OPENDX_MESH:
             case SUMA_PREDEFINED:
             case SUMA_BRAIN_VOYAGER:
