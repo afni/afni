@@ -2407,7 +2407,14 @@ dset.attr <- function (dset, name=NULL, colwise=FALSE, num=FALSE,
          } else if (name == "statsym") {
             hatr <- set.c.AFNI.attribute(hatr, "BRICK_STATSYM",
                                  statsym.list2code(statsym=val), strsep=';')
-         } else {
+         } else if (name == "TR") {
+            dd <- get.c.AFNI.attribute(hatr, "TAXIS_NUMS");
+            ee <- get.c.AFNI.attribute(hatr, "TAXIS_FLOATS");
+            dd[2] <- 77002; #seconds
+            ee[2] <- val;
+            hatr <- set.c.AFNI.attribute(hatr, "TAXIS_NUMS", val=dd);
+            hatr <- set.c.AFNI.attribute(hatr, "TAXIS_FLOATS", val = ee);
+         } else{
             hatr <- set.c.AFNI.attribute(hatr, name, val, tp=tp)
          }
          if (!is.null(dset$NI_head)) {
