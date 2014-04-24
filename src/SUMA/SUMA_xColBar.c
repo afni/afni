@@ -14128,7 +14128,7 @@ SUMA_SurfaceObject *SUMA_GDSET_FrameSO(SUMA_DSET *dset)
    }
    if (!GSaux->nido && !(GSaux->nido = SUMA_GDSET_matrix_nido(dset))) {
       SUMA_S_Err("No milk!");
-      SUMA_DUMP_TRACE(FuncName);
+      SUMA_DUMP_TRACE("%s", FuncName);
       SUMA_RETURN(NULL);
    }
    

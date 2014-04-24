@@ -700,6 +700,9 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp)
       case SUMA_OPENDX_MESH:
          SUMA_RETURN("OpenDX");
          break;
+      case SUMA_OBJ_MESH:
+         SUMA_RETURN("OBJ");
+         break;
       case SUMA_PREDEFINED:
          SUMA_RETURN("Predefined");
          break;
@@ -747,6 +750,9 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    if (  !strcmp(cd, "DX") || !strcmp(cd, "dx") || 
          !strcmp(cd, "OpenDX") || !strcmp(cd, "opendx")) { 
       SUMA_RETURN( SUMA_OPENDX_MESH); 
+   }
+   if (  !strcmp(cd, "OBJ") || !strcmp(cd, "obj") ) { 
+      SUMA_RETURN( SUMA_OBJ_MESH); 
    }
    if (  !strcmp(cd, "Predefined") || !strcmp(cd, "PREDEFINED") || 
          !strcmp(cd, "pre") || !strcmp(cd, "Pre")) { 
@@ -2932,6 +2938,8 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
       SUMA_RETURN( SUMA_INVENTOR_GENERIC );
    if (SUMA_iswordin_ci(str, "dx")  == 1 ) 
       SUMA_RETURN( SUMA_OPENDX_MESH );
+   if (SUMA_iswordin_ci(str, "obj")  == 1 ) 
+      SUMA_RETURN( SUMA_OBJ_MESH );
    if (SUMA_iswordin_ci(str, "pre")  == 1 ) 
       SUMA_RETURN( SUMA_PREDEFINED );
    if (SUMA_iswordin_ci(str, "ply")  == 1 ) 
@@ -2994,6 +3002,7 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name,
          SUMA_isExtension(Name, ".coord") ) form = SUMA_SUREFIT;
    else if (  SUMA_isExtension(Name, ".iv") ) form = SUMA_INVENTOR_GENERIC;
    else if (  SUMA_isExtension(Name, ".dx")) form = SUMA_OPENDX_MESH; 
+   else if (  SUMA_isExtension(Name, ".obj")) form = SUMA_OBJ_MESH; 
    else if (  SUMA_isExtension(Name, ".ply")) form = SUMA_PLY; 
    else if (  SUMA_isExtension(Name, ".obj")) form = SUMA_MNI_OBJ; 
    else if (  SUMA_isExtension(Name, ".srf")) form = SUMA_BRAIN_VOYAGER;
@@ -4377,6 +4386,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                case SUMA_OPENDX_MESH:
                   tmp_i = SUMA_copy_string("-i_dx");
                   break;
+               case SUMA_OBJ_MESH:
+                  tmp_i = SUMA_copy_string("-i_obj");
+                  break;
                case SUMA_BYU:
                   tmp_i = SUMA_copy_string("-i_byu");
                   break;
@@ -4648,6 +4660,32 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ++ps->i_N_surfnames;
             brk = YUP;
          }
+         if (!brk && (  (strcmp(tmp_i, "-i_OBJ") == 0) || 
+                        (strcmp(tmp_i, "-i_obj") == 0) 
+                     || (strcmp(tmp_i, "-i_Obj") == 0))) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -i_obj ");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            if (pdsname) {
+               ps->i_surfnames[ps->i_N_surfnames] = pdsname; pdsname = NULL;
+            } else {
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
+            if (pdsv) {
+               ps->sv[ps->i_N_surfnames] = pdsv; pdsv = NULL;
+            }
+            ps->i_FT[ps->i_N_surfnames] = SUMA_OBJ_MESH;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
+            ++ps->i_N_surfnames;
+            brk = YUP;
+         }
          if (!brk && (  (strcmp(tmp_i, "-i_PRE") == 0) || 
                         (strcmp(tmp_i, "-i_pre") == 0) 
                      || (strcmp(tmp_i, "-i_Pre") == 0))) {
@@ -4908,6 +4946,26 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
             ++ps->ipar_N_surfnames;
             brk = YUP;
          }
+         if (!brk && (  (strcmp(argv[kar], "-ipar_OBJ") == 0) || 
+                        (strcmp(argv[kar], "-ipar_obj") == 0) || 
+                        (strcmp(argv[kar], "-ipar_Obj") == 0))) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -ipar_dx ");
+	            exit (1);
+            }
+            if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                       SUMA_copy_string(argv[kar]);
+            ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_OBJ_MESH;
+            ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
+            ++ps->ipar_N_surfnames;
+            brk = YUP;
+         }
          if (!brk && (  (strcmp(argv[kar], "-ipar_iv") == 0) || 
                         (strcmp(argv[kar], "-ipar_IV") == 0) )) {
             ps->arg_checked[kar]=1;
@@ -5043,6 +5101,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   ps->t_FT[ps->t_N_surfnames] == SUMA_VEC ||
                   ps->t_FT[ps->t_N_surfnames] == SUMA_INVENTOR_GENERIC || 
                   ps->t_FT[ps->t_N_surfnames] == SUMA_OPENDX_MESH ||
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_OBJ_MESH ||
                   ps->t_FT[ps->t_N_surfnames] == SUMA_BYU ) 
                   ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_GIFTI )
@@ -5098,6 +5157,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
                   break;
                case SUMA_OPENDX_MESH:
                   tmp_o = SUMA_copy_string("-o_dx");
+                  break;
+               case SUMA_OBJ_MESH:
+                  tmp_o = SUMA_copy_string("-o_obj");
                   break;
                case SUMA_BYU:
                   tmp_o = SUMA_copy_string("-o_byu");
@@ -5238,6 +5300,26 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[],
 			   ps->o_surfnames[ps->o_N_surfnames] = 
                SUMA_RemoveSurfNameExtension(argv[kar], SUMA_OPENDX_MESH); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_OPENDX_MESH;
+            ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
+			   ++ps->o_N_surfnames;  
+			   brk = YUP;
+		   }         
+         if (!brk && (  (strcmp(tmp_o, "-o_obj") == 0) || 
+                        (strcmp(tmp_o, "-o_OBJ") == 0) 
+                     || (strcmp(tmp_o, "-o_Obj") == 0)) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+		  		   SUMA_S_Err( "need argument after -o_obj \n");
+				   exit (1);
+			   }
+			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+			   ps->o_surfnames[ps->o_N_surfnames] = 
+               SUMA_RemoveSurfNameExtension(argv[kar], SUMA_OBJ_MESH); 
+            ps->o_FT[ps->o_N_surfnames] = SUMA_OBJ_MESH;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
