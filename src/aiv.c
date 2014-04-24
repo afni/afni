@@ -398,6 +398,7 @@ ENTRY("AIVVV_imseq_popup") ;
                      "v/V = Video image sequence up/down\n"
                      "r/R = Ricochet image sequence up/down\n"
                      "i/I = image fraction down/up\n"
+                     "e = toggle edge detection in image\n"
                    ) ;
 
    RETURN( (void *)psq ) ;

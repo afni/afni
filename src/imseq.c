@@ -12666,6 +12666,20 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
+     /* 24 Apr 2014: 'e' = edge detect toggle */
+
+     case 'e':{
+       if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
+       if( !(seq->opt.improc_code & ISQ_IMPROC_SOBEL) ){
+         seq->opt.improc_code |= ISQ_IMPROC_SOBEL ;   /* turn on edge detection */
+       } else {
+         seq->opt.improc_code &= !ISQ_IMPROC_SOBEL ;  /* turn off edge detection */
+       }
+       ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       busy=0 ; RETURN(1) ;
+     }
+     break ;
+
      /* 26 Apr 2007: time indexing */
 
      case '[':
