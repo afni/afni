@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
    int HAVE_BMAX_REF=0 ; // referring to user input value
    int count_in=0, count_out=0;
 
-	mainENTRY("3dTrackID"); machdep();
+	mainENTRY("1dDW_Grad_o_Mat"); machdep();
     
    if (argc == 1) { usage_1dDW_Grad_o_Mat(1); exit(0); }
 
