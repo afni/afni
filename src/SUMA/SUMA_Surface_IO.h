@@ -19,6 +19,26 @@ typedef struct {
    SUMA_COLOR_MAP_HASH_DATUM *chd;
 } SUMA_FS_COLORTABLE;
 
+typedef struct {
+   int N_Vert;
+   int N_Vert_alloc;
+   float *Vert;
+
+   int N_Face;
+   int N_Face_alloc;
+   int *Face;
+
+   int N_Point;
+   int N_Point_alloc;
+   int *Point;
+} SUMA_OBJ_STRUCT;
+void SUMA_Show_OBJ(SUMA_OBJ_STRUCT *obj, char *Header, int level, FILE *out);
+char *SUMA_OBJ_Info(SUMA_OBJ_STRUCT *obj, char *Header, int level); 
+SUMA_Boolean SUMA_OBJ_Read_SO(char *fname, SUMA_SurfaceObject *SO, 
+                              SUMA_SphereDO **sphdo);
+SUMA_SurfaceObject *SUMA_OBJ_2_SO(SUMA_OBJ_STRUCT *obj);
+SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname);
+SUMA_OBJ_STRUCT *SUMA_Free_OBJ(SUMA_OBJ_STRUCT *obj);
 
 SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( 
                         char *if_name, char *if_name2, char *vp_name, 

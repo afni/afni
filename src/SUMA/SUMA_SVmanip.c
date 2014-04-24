@@ -5357,7 +5357,8 @@ SUMA_Boolean
    if (cSV->lit_for == 0) { /* olde way */
       /* if surface is SureFit , flip lights */
       if (SO->normdir == 0 && (  SO->FileType == SUMA_SUREFIT || 
-                                 SO->FileType == SUMA_OPENDX_MESH || 
+                                 SO->FileType == SUMA_OPENDX_MESH ||
+                                 SO->FileType == SUMA_OBJ_MESH || 
                                  SO->FileType == SUMA_BRAIN_VOYAGER)) {
          SUMA_LH("Flippo for safety");
          cSV->light0_position[0] *= -1;

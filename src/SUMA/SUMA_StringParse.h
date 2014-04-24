@@ -308,18 +308,71 @@
 }
 
 /*!
-   \brief Fills characters between [op,op2[ into a preallocated string str
+   \brief Fills characters between [m_op,m_op2[ into a preallocated string str
 */
-#define SUMA_FILL_STRING(op,op2,strinp){   \
+#define SUMA_FILL_STRING(m_op,m_op2,strinp){   \
    char *sval = strinp;\
-   if (!op2) { /* copy till end */  \
-      while (*op != '\0') { *sval = *op; ++sval; ++op; } \
+   if (!m_op2) { /* cm_opy till end */  \
+      while (*m_op != '\0') { *sval = *m_op; ++sval; ++m_op; } \
    } else { \
-      while (*op != '\0' && op < (char*)op2) {  \
-         *sval = *op; ++sval; ++op; \
+      while (*m_op != '\0' && m_op < (char*)m_op2) {  \
+         *sval = *m_op; ++sval; ++m_op; \
       } \
    }  \
    *sval = '\0'; \
+}
+
+/*!
+   \brief Fills N characters between [m_op,m_op2[ into a preallocated string str
+   Make sure str can take N+1 chars
+*/
+#define SUMA_NFILL_STRING(m_op,m_op2,strinp,N){   \
+   char *sval = strinp; int m_n=0;\
+   if (!m_op2) { /* cm_opy till end */  \
+      while (*m_op != '\0' && m_n < N) { *sval = *m_op; ++sval; ++m_op; ++m_n;} \
+   } else { \
+      while (*m_op != '\0' && m_op < (char*)m_op2 && m_n < N) {  \
+         *sval = *m_op; ++sval; ++m_op; ++m_n;\
+      } \
+   }  \
+   *sval = '\0'; \
+}
+
+/*!
+   \brief print N characters between [op,op2[ into file pointer out
+   Leaves op and op2 in place
+*/
+#define SUMA_NPRINT_STRING(opi,op2,out,N, head, foot){   \
+   int m_n=0; FILE *m_outp=SUMA_STDERR; char *m_op=opi, *m_op2=op2;\
+   if (out) m_outp=out; \
+   if (head) fprintf(m_outp,"%s", head);  \
+   if (!m_op2) { /* write till end */  \
+      while (*m_op != '\0' && m_n < N) { \
+         fprintf(m_outp,"%c", *m_op); ++m_op; ++m_n;\
+      } \
+   } else { \
+      while (*m_op != '\0' && m_op < (char*)m_op2 && m_n < N) {  \
+         fprintf(m_outp,"%c", *m_op); ++m_op; ++m_n;\
+      } \
+   }  \
+   if (foot) fprintf(m_outp,"%s", foot);  \
+}
+/*!
+   \brief print characters between [op,op2[ into file pointer out
+   Leaves op and op2 in place
+*/
+#define SUMA_PRINT_STRING(opi,opi2,out,head, foot){   \
+   FILE *m_outp=SUMA_STDERR; char *m_op=opi, *m_op2 = opi2;\
+   if (out) m_outp=out; \
+   if (head) fprintf(m_outp,"%s", head);  \
+   if (!m_op2) { /* write till end */  \
+      while (*m_op != '\0') { fprintf(m_outp,"%c", *m_op); ++m_op;} \
+   } else { \
+      while (*m_op != '\0' && m_op < (char*)m_op2) {  \
+         fprintf(m_outp,"%c", *m_op); ++m_op;\
+      } \
+   }  \
+   if (foot) fprintf(m_outp,"%s", foot);  \
 }
 
 #define SUMA_DEBLANK_RHS(s) {\
@@ -329,6 +382,7 @@
    }\
 }\
 
-/* >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> End string parsing macros <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< */
+
+/* >>>>>>>>>>>>>>>>>>>>>>> End string parsing macros <<<<<<<<<<<<<<<<<<<<<<<< */
 
 #endif

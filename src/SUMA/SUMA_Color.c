@@ -4208,7 +4208,7 @@ SUMA_Boolean SUMA_CreateCmapHash(SUMA_COLOR_MAP *SM)
    
    if (!SM || !SM->idvec) {
       SUMA_S_Err("Null colormap or no id vector");
-      SUMA_DUMP_TRACE(FuncName);
+      SUMA_DUMP_TRACE("%s",FuncName);
       SUMA_RETURN(NOPE);
    }
    

@@ -10654,8 +10654,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
             n = SDO->NodeID[i];  
             n1 = SDO->NodeID1[i];
             si = SUMA_GDSET_EdgeRow_To_Index(dset,i);
-            if (n==79 || n1==79) LocalHead=YUP;
-            else LocalHead = NOPE;
+            /* 
+               if (n==79 || n1==79) LocalHead=YUP;
+               else LocalHead = NOPE; 
+            */
             /* Do we have a tract for this monster ? */
             if (GSaux->ShowBundles) 
                nelitp = SUMA_GDSET_Edge_Bundle(dset, GSaux, si, -1);
@@ -10853,8 +10855,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       r0 = SUMA_GDSET_EdgeIndex_To_Row(dset,si);
       n = SDO->NodeID[i]; 
       n1 = SDO->NodeID1[i]; 
-            if (n==79 || n1==79) LocalHead=YUP;
-            else LocalHead = NOPE;
+            /* if (n==79 || n1==79) LocalHead=YUP;
+               else LocalHead = NOPE; */
       SUMA_LHv("Highlight: i = %d edge row %d/%d, edge index %d [%d,%d] (%d)\n", 
                i, r0, SDO->N_n, si, n, n1, DDO.N_Node);
       /* get position of node n in NodeList */
@@ -11041,9 +11043,10 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          } else {
             n = i;
          }
-         
+         /*
             if (n==79 || n==2 || n==7) LocalHead=YUP;
             else LocalHead = NOPE;
+         */
          if (wmask) showword = wmask[i];
          else showword = 255;
                    
@@ -16832,7 +16835,7 @@ int SUMA_ApplyVisXform(SUMA_SurfaceObject *SO, char *which,
    SUMA_LHv("SO %s, which %s, direction %d, recompute_norm %d\n", 
             SO->Label, CHECK_NULL_STR(which), direction, recompute_norm);
    if (LocalHead) {
-      SUMA_DUMP_TRACE(FuncName);
+      SUMA_DUMP_TRACE("%s",FuncName);
    }
    /* select transform to apply */
    if (!strcmp(which,"VisX0")) {
@@ -18192,6 +18195,11 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
             break;
          case SUMA_OPENDX_MESH: 
             SS = SUMA_StringAppend_va (SS,"OpenDX surface.\n");
+            SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
+            break;
+         case SUMA_OBJ_MESH: 
+            SS = SUMA_StringAppend_va (SS,"OBJ surface.\n");
             SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
             SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
             break;

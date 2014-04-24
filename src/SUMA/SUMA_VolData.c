@@ -886,6 +886,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:
       case SUMA_OPENDX_MESH:
+      case SUMA_OBJ_MESH:
       case SUMA_PREDEFINED:
       case SUMA_PLY:
       case SUMA_BYU:
@@ -1081,6 +1082,7 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:
       case SUMA_OPENDX_MESH:
+      case SUMA_OBJ_MESH:
       case SUMA_PREDEFINED:
       case SUMA_PLY:
       case SUMA_BYU:
