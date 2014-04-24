@@ -995,8 +995,6 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
      case SUMA_OBJ_MESH:
          { 
-            SUMA_OBJ_STRUCT *obj=NULL;
-            
             if (!(SUMA_OBJ_Read_SO((char *)SO_FileName_vp, SO, NULL))) {
                SUMA_S_Err("Failed to read %s", (char *)SO_FileName_vp);
                SUMA_RETURN(NULL);
@@ -3735,8 +3733,8 @@ SUMA_Boolean SUMA_Load_SO_NodeMarker(SUMA_SurfaceObject *SO,
          if (SO->NodeNIDOObjects[i]) SUMA_free_NIDO(SO->NodeNIDOObjects[i]);
       SUMA_free(SO->NodeNIDOObjects);   SO->NodeNIDOObjects = NULL;
    }
-   SO->NodeNIDOObjects = SUMA_Multiply_NodeNIDOObjects( 
-                                                SO,  SO->CommonNodeObject);
+   SO->NodeNIDOObjects = 
+      SUMA_Multiply_NodeNIDOObjects(SO,  SO->CommonNodeObject, NULL, -1);
    #endif
    
    SUMA_RETURN(YUP);
