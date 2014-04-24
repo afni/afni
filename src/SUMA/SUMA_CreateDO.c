@@ -4378,14 +4378,14 @@ At rendering time, instead of making one call to DrawNIDO, one calls
 DrawNIDO for each node that has a NIDO 
 */
 SUMA_NIDO ** SUMA_Multiply_NodeNIDOObjects ( SUMA_SurfaceObject *SO, 
-                                      SUMA_DO *DO )
+                                      SUMA_DO *DO, int *NodeID, int N_NodeID )
 {
    static char FuncName[]={"SUMA_Multiply_NodeNIDOObjects"};
    SUMA_NIDO **NIDOv = NULL;
    SUMA_NIDO *nido=NULL, *niout=NULL;
    void *vel=NULL;
    char *atr=NULL;
-   int i=0;
+   int i=0, N_Nodes=0, node=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -4406,14 +4406,30 @@ SUMA_NIDO ** SUMA_Multiply_NodeNIDOObjects ( SUMA_SurfaceObject *SO,
          /* drawNIDO without much headaches */
          
          /* Now for each node, create a new copy of that element */
-         for (i=0; i<SO->N_Node; ++i) {
+         if (NodeID) N_Nodes = N_NodeID;
+         else N_Nodes = SO->N_Node;
+         for (i=0; i<N_Nodes; ++i) {
+            if (!NodeID) node = i;
+            else {
+               node = NodeID[i]; 
+               if (node >= SO->N_Node || node < 0) {
+                  static int nwarn = 0;
+                  if (!nwarn) {
+                     SUMA_S_Warn("Node %d is outside range for surface\n"
+                              "This node and others like it will be ignored\n",
+                              node);
+                  }
+                  ++nwarn;
+                  continue;
+               }
+            }
             if ((vel = NI_duplicate(nido->ngr, 1))) {
                /* assign object to the node */
-               NI_SET_INT((NI_element *)vel, "default_node", i);
+               NI_SET_INT((NI_element *)vel, "default_node", node);
                niout = SUMA_Alloc_NIDO(NULL, 
                         "from_CommonNodeObject", SO->idcode_str);
                niout->ngr = vel;
-               NIDOv[i] = niout; niout = NULL;
+               NIDOv[node] = niout; niout = NULL;
             } else {
                SUMA_S_Err("Failed to create duplicate element");
                SUMA_RETURN(NULL);
@@ -16499,7 +16515,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                SUMA_S_Err("Failed to apply data to node objects2");
             }
             for (i=0; i<SurfObj->N_Node; ++i) {
-               if (!(SUMA_DrawNIDO (SurfObj->NodeNIDOObjects[i], sv) ) ) {
+               if (SurfObj->NodeNIDOObjects[i] &&
+                   !(SUMA_DrawNIDO (SurfObj->NodeNIDOObjects[i], sv) ) ) {
                   SUMA_S_Err("Failed to draw NodeObjects");
                }
             }

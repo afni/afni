@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 24, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Reading of OBJ file format for triangular meshes.",
+   NULL
+ },
+  
+ { 24, Apr, 2014, ZSS, "AFNIio.R", MICRO, TYPE_MODIFY,
+   "Improvements for write.AFNI & read.AFNI to handle 1D files more smoothly",
+   "Also added 'TR' to dset.attr() function."
+ },
+  
  { 18, Apr, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Allow graph dataset bundle references to be located based on gdset's path",
    "This way if a graph dataset named GDSET refers to a tract file TRACT \n"
