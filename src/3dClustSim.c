@@ -51,6 +51,15 @@ static int   niter  = 10000 ;
 static float sigmax , sigmay , sigmaz ;
 static int do_blur = 0 ;
 
+static int                 do_ssave = 0 ;     /* 24 Apr 2014 */
+static char           *ssave_prefix = NULL ;
+static int             ssave_index  = 0 ;
+static THD_3dim_dataset *ssave_dset = NULL ;
+
+#define SSAVE_BLURRED   1
+#define SSAVE_MASKED    2
+#define SSAVE_ABSOLUTE  3
+
 static int nodec   = 0 ;
 static int do_niml = 0 ;
 static int do_1D   = 1 ;
@@ -146,9 +155,10 @@ void display_help_menu()
    "-------\n"
    "OPTIONS  [at least 1 option is required, or you'll get this help message!]\n"
    "-------\n"
-   " ***** Specify the volume over which the simulation will occur *****\n"
+   " ******* Specify the volume over which the simulation will occur *******\n"
    "\n"
-   "  --** (a) Directly give the spatial domain that will be used **--\n"
+   "  -----** (a) Directly give the spatial domain that will be used **-----\n"
+   "\n"
    "-nxyz n1 n2 n3 = Size of 3D grid to use for simulation\n"
    "                  [default values = 64 64 32]\n"
    "-dxyz d1 d2 d3 = give all 3 voxel sizes at once\n"
@@ -158,7 +168,7 @@ void display_help_menu()
    "                  this will keep about 1/2 the points in the 3D grid.\n"
    "                  [default = use all voxels in the 3D grid]\n"
    "\n"
-   "  --** OR: (b) Specify the spatial domain using a dataset mask **--\n"
+   "  -----** OR: (b) Specify the spatial domain using a dataset mask **-----\n"
    "\n"
    "-mask mset     = Use the 0 sub-brick of dataset 'mset' as a mask\n"
    "                  to indicate which voxels to analyze (a sub-brick\n"
@@ -174,6 +184,8 @@ void display_help_menu()
    "                 * Also read the 'CAUTION and CAVEAT' section, far below.\n"
    "\n"
    "    ** '-mask' means that '-nxyz' & '-dxyz' & '-BALL' will be ignored. **\n"
+   "\n"
+   "  ---** the remaining options control how the simulation is done **---\n"
    "\n"
    "-fwhm s        = Gaussian filter width (all 3 dimensions)\n"
    "                  [default = 0.0 = no smoothing]\n"
@@ -274,6 +286,21 @@ void display_help_menu()
    "\n"
    "-quiet         = Don't print out the progress reports, etc.\n"
    "                  * Put this option first to quiet most informational messages.\n"
+   "\n"
+   " -ssave:TYPE ssprefix = Save the generated random volumes into datasets\n"
+   "                        ('-iter' of them).  Here, 'TYPE' is one of the following\n"
+   "                          * blurred == save the blurred 3D volume before masking\n"
+   "                          * masked  == save the blurred volume after masking\n"
+   "                          * absolute == if '-2sided' was given, save the blurred\n"
+   "                                        volume after the absolute value is taken;\n"
+   "                                        if '-2sided' was NOT given, this is the\n"
+   "                                        same as 'masked'\n"
+   "                        The output datasets will actually get prefixes generated\n"
+   "                        with the string 'ssprefix' being appended by a 6 digit\n"
+   "                        integer (the iteration index), starting at 000000.\n"
+   "                        (You can use SOMETHING.nii as a prefix; it will work OK.)\n"
+   "                        N.B.: This option will slow the program down a lot,\n"
+   "                              and is intended to help just one specific user.\n"
    "\n"
    "------\n"
    "NOTES:\n"
@@ -717,6 +744,25 @@ void get_options( int argc , char **argv )
       verb = 0 ; nopt++ ; continue ;
     }
 
+    /*-----   -ssave   -----*/
+
+    if( strncasecmp(argv[nopt],"-ssave:",7) == 0 ){
+      if( nopt+1 >= argc ) ERROR_exit("need argument after %s",argv[nopt]) ;
+      if( strcasecmp(argv[nopt]+7,"blurred") == 0 ){
+        do_ssave = SSAVE_BLURRED ;
+      } else if( strcasecmp(argv[nopt]+7,"masked") == 0 ){
+        do_ssave = SSAVE_MASKED ;
+      } else if( strcasecmp(argv[nopt]+7,"absolute") == 0 ){
+        do_ssave = SSAVE_ABSOLUTE ;
+      } else {
+        ERROR_exit("this form of '-ssave' is unknown: '%s'",argv[nopt]) ;
+      }
+      ssave_prefix = strdup(argv[++nopt]) ;
+      if( !THD_filename_ok(ssave_prefix) )
+        ERROR_exit("bad prefix after option '%s'",argv[nopt-1]) ;
+      nopt++ ; continue ;
+    }
+
     /*----- unknown option -----*/
 
     ERROR_exit("3dClustSim -- unknown option '%s'",argv[nopt]) ;
@@ -731,6 +777,21 @@ void get_options( int argc , char **argv )
     dx = fabsf(DSET_DX(mask_dset)) ;
     dy = fabsf(DSET_DY(mask_dset)) ;
     dz = fabsf(DSET_DZ(mask_dset)) ;
+    if( do_ssave > 0 ){                            /* 24 Apr 2014 */
+      ssave_dset = EDIT_empty_copy( mask_dset ) ;
+      EDIT_dset_items( ssave_dset ,
+                         ADN_nvals , 1 ,
+                         ADN_prefix , "RandomJunk" ,
+                       ADN_none ) ;
+    }
+  }
+
+  if( do_ssave > 0 && ssave_dset == NULL ){        /* 24 Apr 2014 */
+    char gstr[128] ; float xorg,yorg,zorg ;
+    xorg = -0.5*dx*(nx-1); yorg = -0.5*dy*(ny-1); zorg = -0.5*dz*(nz-1);
+    sprintf(gstr,"RAI:D:%d,%f,%f,%d,%f,%f,%d,%f,%f",
+            nx,xorg,dx , ny,yorg,dy , nz,zorg,dz ) ;
+    ssave_dset = EDIT_geometry_constructor(gstr,"RandomJunque") ;
   }
 
   nxy = nx*ny ; nxyz = nxy*nz ; nxyz1 = nxyz - nxy ;
@@ -789,6 +850,23 @@ void get_options( int argc , char **argv )
 }
 
 /*---------------------------------------------------------------------------*/
+
+void ssave_dataset( float *fim )  /* 24 Apr 2014 */
+{
+#pragma omp critical
+   { char *spr , sbuf[16] ;
+     sprintf(sbuf,"_%06d",ssave_index) ; ssave_index++ ;
+     spr = modify_afni_prefix(ssave_prefix,NULL,sbuf) ;
+     EDIT_substitute_brick(ssave_dset,0,MRI_float,fim) ;
+     EDIT_dset_items(ssave_dset,ADN_prefix,spr,ADN_none) ;
+     ssave_dset->idcode = MCW_new_idcode() ;
+     DSET_write(ssave_dset) ;
+     DSET_NULL_ARRAY(ssave_dset,0) ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Generate random smoothed masked image, with stdev=1. */
 
 void generate_image( float *fim , unsigned short xran[] )
@@ -808,17 +886,23 @@ void generate_image( float *fim , unsigned short xran[] )
     for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] *= sum ;
   }
 
+  if( do_ssave == SSAVE_BLURRED ) ssave_dataset(fim) ;
+
   /* maskizing */
 
   if( mask_vol != NULL ){
     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask_vol[ii] ) fim[ii] = 0.0f ;
   }
 
+  if( do_ssave == SSAVE_MASKED ) ssave_dataset(fim) ;
+
   /* absolution? */
 
   if( do_2sid ){
     for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = fabsf(fim[ii]) ;
   }
+
+  if( do_ssave == SSAVE_ABSOLUTE ) ssave_dataset(fim) ;
 
   return ;
 }
@@ -1293,6 +1377,8 @@ int main( int argc , char **argv )
  } /* end OpenMP parallelization */
  AFNI_OMP_END ;
 
+   if( do_ssave > 0 ) DSET_delete(ssave_dset) ; /* 24 Apr 2014 */
+
    /*-------- sum tables from various threads into one result ----------*/
 
 #ifdef USE_OMP
@@ -1519,7 +1605,7 @@ MPROBE ;
       /* option: change to vsnprintf() in output_message()?                 */
       WARNING_message("Simulation not effective for these cases:\n\n");
       fprintf(stderr, "%s\n", amesg);
-      fprintf(stderr, 
+      fprintf(stderr,
                 "*+ This means that not enough clusters, of any size, +*\n"
                 "     of voxels at or below each pthr threshold, were +*\n"
                 "     found to estimate at each alpha level.          +*\n"
