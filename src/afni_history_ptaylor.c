@@ -66,6 +66,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Apr , 2014 , PT , "1dDW_Grad_o_Mat" , MICRO , TYPE_NEW_OPT,
+   "Output grads as rows-- new option switch.",
+   "Done at user request.\n"
+},
 
 { 21, Apr , 2014 , PT , "3dEigsToDT" , SUPER , TYPE_NEW_PROG,
    "New program: take in eigen{values,vectors} and calculate DT.",

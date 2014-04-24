@@ -9163,7 +9163,7 @@ SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
         *oc, *op2;
    SUMA_OBJ_STRUCT *obj=NULL;
    double num=0.0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
       
@@ -9191,9 +9191,9 @@ SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
          continue; 
       }
       SUMA_SKIP_BLANK(op,NULL);
-      SUMA_NPRINT_STRING(op, NULL, NULL, 10, "\nTop:", "\n");
+      /* SUMA_NPRINT_STRING(op, NULL, NULL, 10, "\nTop:", "\n"); */
       SUMA_GET_BETWEEN_BLANKS(op, NULL, op2);
-      SUMA_NPRINT_STRING(op2, NULL, NULL, 10, "\nAfter 1st word:", "\n");
+      /* SUMA_NPRINT_STRING(op2, NULL, NULL, 10, "\nAfter 1st word:", "\n"); */
       oc = op;
       if (op2 > op) {
          if (!strncmp(op, "v ", 2)) {
@@ -9313,8 +9313,10 @@ SUMA_OBJ_STRUCT *SUMA_OBJ_Read(char *fname)
                SUMA_RETURN(SUMA_Free_OBJ(obj));
             }
          } else {
-            SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
-            SUMA_S_Warn("Ignoring entry %s (%ld)", sbuf, fl-op);
+            if (LocalHead) {
+               SUMA_NFILL_STRING(oc, NULL, sbuf, 100);
+               SUMA_LH("Ignoring entry %s (%ld)", sbuf, fl-op);
+            }
          }
          op = op2; 
       }
@@ -9366,7 +9368,7 @@ SUMA_Boolean SUMA_OBJ_Read_SO(char *fname, SUMA_SurfaceObject *SO,
    static char FuncName[]={"SUMA_OBJ_Read_SO"};
    SUMA_OBJ_STRUCT *obj=NULL;
    int i;
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    SUMA_ENTRY;
    
    if (!fname || !SO) SUMA_RETURN(NOPE);
@@ -9397,27 +9399,68 @@ SUMA_Boolean SUMA_OBJ_Read_SO(char *fname, SUMA_SurfaceObject *SO,
    SO->Name = SUMA_StripPath(fname);
    SUMA_NEW_ID(SO->idcode_str,fname); 
 
-   if (sphdo && obj->N_Point) {
-      SUMA_SphereDO *SDO=NULL;
-      int ip3 = 0, i3 = 0;
+   if (obj->N_Point) {
+      char sbuf[1024]={""};
+      SUMA_DO *DO = NULL;
+      for (i=0; i<obj->N_Point; ++i) obj->Point[i] -= 1;
+      DO = (SUMA_DO *)SUMA_calloc(1,sizeof(SUMA_DO));
+      snprintf(sbuf, 1023, "<nido_head coord_type = 'mobile'\n"
+                     "default_SO_label = '%s'\n"
+                     "bond = 'surface'\n"
+                     "idcode_str = '%s' />\n"
+                     "<S rad = '0.1' col = '0.9 0.1 0.61' />", 
+                     SO->Label, SO->idcode_str);
+      if (!(DO->OP = (void *)SUMA_ReadNIDO(sbuf, SO->idcode_str))) {
+         SUMA_S_Err("Failed to create ball datum");
+         
+      } else {     
+         DO->ObjectType = NIDO_type;
+         DO->CoordType = SUMA_WORLD;
+         SO->NodeNIDOObjects = 
+            SUMA_Multiply_NodeNIDOObjects( SO,  DO, obj->Point, obj->N_Point);
+      } 
+      SUMA_Free_Displayable_Object(DO); DO = NULL;
+      if (LocalHead) {
+         int ip3;
+         FILE *fout=fopen("junk.1D.do", "w");
+         if (fout) {
+            SUMA_LH("Writing SCALED junk.1D.do");
+            fprintf(fout, "#spheres\n");
+            i = 0;
+            while (i < obj->N_Point) {
+               ip3 = obj->Point[i]*3;
+               fprintf(fout, "%f %f %f\n", 
+                        SO->NodeList[ip3  ]/319.7, 
+                        SO->NodeList[ip3+1]/319.7, 
+                        SO->NodeList[ip3+2]/319.7);
+               ++i;
+            }
+            fclose(fout); fout=NULL;
+         }
+      } 
+      if (sphdo) {
+         SUMA_SphereDO *SDO=NULL;
+         int ip3 = 0, i3 = 0;
       
-      SUMA_S_Warn("Loosing link of points to node ids here");
-      SDO = SUMA_Alloc_SphereDO (  obj->N_Point, fname, 
-                                   NULL, SP_type);
-      i = 0;
-      while (i < SDO->N_n) {
-         ip3 = (obj->Point[i]-1)*3;
-         i3 = 3*i;
-         SDO->cxyz[i3]   = SO->NodeList[ip3];
-         SDO->cxyz[i3+1] = SO->NodeList[ip3+1];
-         SDO->cxyz[i3+2] = SO->NodeList[ip3+2];
-         ++i;
+         SUMA_S_Warn("Loosing link of points to node ids here");
+         SDO = SUMA_Alloc_SphereDO (  obj->N_Point, fname, 
+                                       NULL, SP_type);
+         i = 0;
+         while (i < SDO->N_n) {
+            ip3 = obj->Point[i]*3;
+            i3 = 3*i;
+            SDO->cxyz[i3]   = SO->NodeList[ip3];
+            SDO->cxyz[i3+1] = SO->NodeList[ip3+1];
+            SDO->cxyz[i3+2] = SO->NodeList[ip3+2];
+            ++i;
+         }
+         *sphdo = SDO; SDO=NULL;  
       }
-      *sphdo = SDO; SDO=NULL;   
    }
-   
-   obj->Vert = NULL; /* pointer copied above */
-   obj->Face = NULL; /* pointer copied above */
+      
+      
+   obj->Vert = NULL; /* pointer copied into SO above */
+   obj->Face = NULL; /* pointer copied into SO above */
    obj = SUMA_Free_OBJ(obj);
    
    SUMA_RETURN(YUP);
