@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , APR , 2014 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
+  { 24 , APR , 2014 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
+   "add -ssave:TYPE option for saving the volumes as dataset" ,
+   NULL } ,
+
+ { 16 , APR , 2014 , RWC , "afni GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_SLAVE_THROLAY sets up Thr=OLay or Thr=OLay+1, for Paul Taylor" ,
    NULL } ,
 
