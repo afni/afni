@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 24 , APR, 2014 , DRG , "edge detect button in afni viewer" , 
+    MICRO , TYPE_GENERAL, 
+    "Toggle edge detection with 'e' key in viewer",
+    "Can toggle with keypress from viewer allowing plugout to drive\n"
+    "edge detection."
+} ,
+
 { 04 , APR, 2014 , DRG , "whereami -linkrbrain" , 
     MINOR , TYPE_NEW_OPT, 
     "New option for getting task or gene correlation with coordinate list",
@@ -129,7 +136,7 @@ afni_history_struct dglen_history[] = {
 } ,
 { 29 , MAR, 2013 , DRG , "general compression" , 
     MINOR , TYPE_NEW_ENV, 
-    "pigz for faster gzip-like compression"
+    "pigz for faster gzip-like compression",
     "pigz is a gzip utility that makes use of multiple CPU's.\n"
     "It produces and uses .gz files. To use, set AFNI_COMPRESSOR to PIGZ."
 } ,
@@ -328,7 +335,7 @@ afni_history_struct dglen_history[] = {
     "Added trivial ability to invert identity transformation"
 } ,
 
-{ 06 , SEP, 2011 , DRG , "align_epi_anat.py" , 
+{ 6 , SEP, 2011 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, 
     "save_skullstrip option saved obliqued and skullstripped data",
     "Fixed to save only skullstripped"

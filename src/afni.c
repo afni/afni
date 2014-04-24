@@ -6264,6 +6264,7 @@ static char * AFNI_image_help =
  "Ctrl+m = cycle through image global range settings\n"
  "o = toggle (color) overlay on/off\n"
  "u = toggle background from underlay/overlay dataset\n"
+ "e = toggle edge detection in underlay\n"
  "#/3 = toggle underlay/overlay checkerboard display\n"
  "v/V = Video image sequence up/down\n"
  "r/R = Ricochet image sequence up/down\n"
