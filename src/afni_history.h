@@ -146,6 +146,7 @@ typedef struct {
       } while(0)
 
 /* main protos */
+
 int add_to_hlist        (hist_type *** hlist, hist_type * hadd,
                          int addlen, int * newlen);
 int check_date          (global_data * gd, hist_type ** hlist, int len);
@@ -161,6 +162,7 @@ int restrict_by_date    (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_level   (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_program (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_type    (global_data * gd, hist_type *** hlist, int * len);
+int restrict_hlist      (hist_type *** hlist, int first, int oldlen, int newlen);
 int restrict_results    (global_data * gd, hist_type *** hlist, int * len);
 int set_dates           (global_data * gd, int * dd, int * mm, int * yy );
 int show_author_list    (void);

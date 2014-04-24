@@ -244,12 +244,12 @@ def exec_tcsh_command(cmd, lines=0, noblank=0):
 
     return status, otext
 
-def limited_shell_exec(command, nlines=-1):
+def limited_shell_exec(command, nlines=0):
    """run a simple shell command, returning the top nlines"""
    st, so, se = BASE.shell_exec2(command, capture=1)
-   if nlines >= 0:
-      so = so[0:nlines+1]
-      se = se[0:nlines+1]
+   if nlines > 0:
+      so = so[0:nlines]
+      se = se[0:nlines]
    return st, so, se
 
 def write_afni_com_history(fname, length=0, wrap=1):
