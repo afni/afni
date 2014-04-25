@@ -1249,6 +1249,12 @@ int main( int argc , char *argv[] )
          if( brickwise )
            ERROR_exit("You can't use -brickwise and use the LONG FORM for a set of datasets") ;
 
+         if( strstr(argv[nopt],"+orig") != NULL ||  /* 25 Apr 2014 */
+             strstr(argv[nopt],"+tlrc") != NULL ||
+             strstr(argv[nopt],".nii" ) != NULL   )
+           WARNING_message("-set%c: group label '%s' looks like a dataset name but isn't -- is this OK ?!?",
+                           cc , argv[nopt] ) ;
+
          snam = strdup(argv[nopt]) ; LTRUNC(snam) ;
          for( nopt++ ; nopt < argc && argv[nopt][0] != '-' ; nopt+=2 ){
            if( nopt+1 >= argc || argv[nopt+1][0] == '-' ){
@@ -1259,6 +1265,16 @@ int main( int argc , char *argv[] )
                ,onam, argv[nopt], argv[0]) ;
              exit(1);
            }
+
+           /* Check if the label looks like a dataset name;
+               if so, warn the luser s/he's being an idjit [25 Apr 2014] */
+
+           if( strstr(argv[nopt],"+orig") != NULL ||
+               strstr(argv[nopt],"+tlrc") != NULL ||
+               strstr(argv[nopt],".nii" ) != NULL   )
+             WARNING_message("-set%c: dataset label '%s' looks like a dataset name -- is this OK ?!?",
+                             cc , argv[nopt] ) ;
+
            qset = THD_open_dataset( argv[nopt+1] ) ;
            if( !ISVALID_DSET(qset) )
              ERROR_exit("Option %s: can't open dataset '%s'",onam,argv[nopt+1]) ;

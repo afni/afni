@@ -861,7 +861,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt == NULL ) cpt = strstr(cmd,"opacity:") ;
       if( cpt != NULL ){
         int opaval = -1 ;
-        sscanf( cpt+7 , "%d" , &opaval ) ;
+        sscanf( cpt+8 , "%d" , &opaval ) ;
         drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer)ITOP(opaval) ) ;
       }
 
