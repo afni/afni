@@ -823,12 +823,12 @@ for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
    cat(length(lop$dataStr[,ii]), 'centered values for numeric variable', names(lop$dataStr)[ii], ':', lop$dataStr[,ii], '\n')
 cat(lop$num_glt, 'post hoc tests\n')
 
-#cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
-#showTab <- as.formula(paste('~', gsub("\\*", "+", lop$model), "+", gsub("\\*", "+", lop$mVar)))
-#if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
-#   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
-#showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
-#print(xtabs(showTab, data=lop$dataStr))                                           
+cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
+showTab <- as.formula(paste('~', gsub("\\*", "+", lop$model)))
+if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
+   showTab <- gsub(paste('\\*',lop$QV[ii], sep=' '), '', gsub(paste('\\+',lop$QV[ii], sep=' '), '', showTab))
+showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
+print(xtabs(showTab, data=lop$dataStr))                                           
 
 cat('\nTabulation of subjects against all categorical variables')
 all_vars <- names(lop$dataStr)
@@ -879,6 +879,10 @@ if (!is.na(lop$maskFN)) {
 #ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
 
 ###############################
+
+cat('If the program hangs here for more than, for example, half an hour,\n')
+cat('kill the process because the model specification or the GLT coding\n')
+cat('is likely inappropriate.\n\n')
 
 xinit <- dimx%/%3
 if(dimy==1) yinit <- 1 else yinit <- dimy%/%2
@@ -931,14 +935,14 @@ while(is.null(fm)) {
       ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
       cat('Possible reasons:\n\n')
-      cat('0) Make sure that R packages nlme and phia have been installed. See the 3dMVM\n')
+      cat('0) Make sure that R packages nlme and phia have been installed. See the 3dLME\n')
       cat('help documentation for more details.\n\n')
-      cat('1)  Inappropriate model specification with options -model, or -qVars.\n')
-      cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
+      cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
+      cat('2) In correct specifications in general linear test coding with -gltCode.\n\n')
       cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
       cat('whether there are any inconsistencies.\n\n')
       cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
-      cat('named Group in model specifiction and then listed as group in the table hader\n')
+      cat('named Group in model specification and then listed as group in the table hader\n')
       cat('would cause grief for 3dLME.\n')
       errex.AFNI("Quitting due to model test failure...")     
       #break
@@ -947,7 +951,8 @@ while(is.null(fm)) {
 
 
 # number of terms (or F-stats): the output structure is different without within-subject variables
-nF      <- ifelse(is.na(lop$corStr[1]), nrow(anova(fm))-1, nrow(anova(fm)))
+#nF      <- ifelse(is.na(lop$corStr[1]), nrow(anova(fm))-1, nrow(anova(fm)))
+nF      <- nrow(anova(fm))
 nBasis  <- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)
 nT      <- 2*(lop$num_glt + nBasis)
 #if(is.null(lop$QV)) nCovVal <- 0 else nCovVal <- length(unique(unlist(sapply(lop$QV, grep, dimnames(summary(fm)$tTable)[[1]]))))
@@ -970,9 +975,9 @@ pars[[8]] <- ranEff
 pars[[9]] <- corStr                 # correlation structure for basis function modeling
 pars[[10]]<- ifelse(lop$SS_type==3, 'marginal', 'sequential')
 pars[[11]]<- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)   # number of basis functions
-if(is.null(lop$QV)) pars[[12]] <- NULL else
+if(is.null(lop$QV)) pars[[12]] <- 1:nF else pars[[12]]<- (1:nF)+is.na(lop$corStr[1]) 
 #pars[[12]]<- unique(unlist(sapply(lop$QV, grep, dimnames(summary(fm)$tTable)[[1]])))    # row numbers involving covariate values
-pars[[12]]<- (1:nF)+is.na(lop$corStr[1])                        # row sequence for F-values
+#pars[[12]]<- (1:nF)+is.na(lop$corStr[1])                        # row sequence for F-values
 
 # test if it works
 #runLME(inData[1,2,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)
@@ -1094,7 +1099,8 @@ if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
 #}
 
 statpar <- "3drefit"
-IdxAdj <- as.integer(!is.na(lop$corStr[1]))
+IdxAdj <- 1
+#IdxAdj <- as.integer(!is.na(lop$corStr[1]))
 for (i in (2-IdxAdj):(nF+1-IdxAdj)) {  # has an intercept or not
    # DFs are acquired from the last solvable voxel 
         statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
