@@ -227,4 +227,120 @@ int IntSpherSha(int **HS,int *RD, float *NR){
 
 
 
+int WB_netw_corr(int Do_r, 
+                 int Do_Z,
+                 int HAVE_ROIS, 
+                 char *prefix, 
+                 int *NROI_REF,
+                 int *Dim,
+                 double ***ROI_AVE_TS,
+                 int **ROI_LABELS_REF,
+                 THD_3dim_dataset *insetTIME,
+                 byte *mskd2,
+                 int Nmask,
+                 int argc,
+                 char *argv[])
+{
+   int i,j,k;
+   float **AVE_TS_fl=NULL;    // not great, but another format of TS
+   char OUT_indiv0[300];
+   char OUT_indiv[300];
+   char OUT_indivZ[300];
+   MRI_IMAGE *mri=NULL;
+   THD_3dim_dataset *OUT_CORR_MAP=NULL;
+   THD_3dim_dataset *OUT_Z_MAP=NULL;
+   float *zscores=NULL;
+   int Nvox;
 
+
+   Nvox = Dim[0]*Dim[1]*Dim[2];
+
+   // make average time series per voxel
+   AVE_TS_fl = calloc( 1,sizeof(AVE_TS_fl));  
+   for(i=0 ; i<1 ; i++) 
+      AVE_TS_fl[i] = calloc(Dim[3],sizeof(float)); 
+   
+   if( (AVE_TS_fl == NULL) ) {
+      fprintf(stderr, "\n\n MemAlloc failure (time series out).\n\n");
+      exit(123);
+   }
+
+   fprintf(stderr,"\nHAVE_ROIS=%d",HAVE_ROIS);
+   for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
+      sprintf(OUT_indiv0,"%s_%03d_INDIV", prefix, k);
+      mkdir(OUT_indiv0, 0777);
+      for( i=0 ; i<NROI_REF[k] ; i++ ) {
+         fprintf(stderr,"\nNROI_REF[%d]= %d",k,NROI_REF[k]);
+         for( j=0 ; j<Dim[3] ; j++)
+            AVE_TS_fl[0][j] = (float) ROI_AVE_TS[k][i][j];
+         sprintf(OUT_indiv,"%s/WB_CORR_ROI_%03d",
+                 OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+         mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
+         OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
+                                    mri,
+                                    "pearson", OUT_indiv);
+         if(Do_r){
+            THD_load_statistics(OUT_CORR_MAP);
+            tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;
+            tross_Make_History( "3dNetcorr", argc, argv, OUT_CORR_MAP );
+            if( !THD_ok_overwrite() && 
+                THD_is_ondisk(DSET_HEADNAME(OUT_CORR_MAP)) )
+               ERROR_exit("Can't overwrite existing dataset '%s'",
+                          DSET_HEADNAME(OUT_CORR_MAP));
+            THD_write_3dim_dataset(NULL, NULL, OUT_CORR_MAP, True);
+            INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(OUT_CORR_MAP));
+
+         }
+         if(Do_Z){
+            sprintf(OUT_indivZ,"%s/WB_Z_ROI_%03d",
+                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+            
+            OUT_Z_MAP = EDIT_empty_copy(OUT_CORR_MAP);
+            EDIT_dset_items( OUT_Z_MAP,
+                             ADN_nvals, 1,
+                             ADN_datum_all , MRI_float , 
+                             ADN_prefix    , OUT_indivZ,
+                             ADN_none ) ;
+            if( !THD_ok_overwrite() && 
+                THD_is_ondisk(DSET_HEADNAME(OUT_Z_MAP)) )
+               ERROR_exit("Can't overwrite existing dataset '%s'",
+                          DSET_HEADNAME(OUT_Z_MAP));
+
+            zscores = (float *)calloc(Nvox,sizeof(float)); 
+            if( (zscores == NULL) ) {
+               fprintf(stderr, "\n\n MemAlloc failure (zscores).\n\n");
+               exit(123);
+            }
+
+            for( j=0 ; j<Nvox ; j++ )
+               if( mskd2[j] )
+                  zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));
+            
+            EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores); 
+            zscores=NULL;
+
+            THD_load_statistics(OUT_Z_MAP);
+            tross_Copy_History(insetTIME, OUT_Z_MAP);
+            tross_Make_History("3dNetcorr", argc, argv, OUT_Z_MAP);
+            THD_write_3dim_dataset(NULL, NULL, OUT_Z_MAP, True);
+            INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(OUT_Z_MAP));
+
+            DSET_delete(OUT_Z_MAP);
+            free(OUT_Z_MAP);
+            OUT_Z_MAP=NULL;
+         }
+
+         DSET_delete(OUT_CORR_MAP);
+         free(OUT_CORR_MAP);
+         OUT_CORR_MAP=NULL;
+      }
+   }
+   
+   free(zscores);
+   mri_free(mri);
+   for( i=0 ; i<1 ; i++) 
+      free(AVE_TS_fl[i]);
+   free(AVE_TS_fl);
+
+   RETURN(1);
+}
