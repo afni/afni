@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29,  Apr, 2014, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
+   "micro fix to clarify 'initialization' help",
+   "Thanks to Ziad for noting it"
+ } ,
+
+ { 29,  Apr, 2014, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "update to run number display in case of -multi_timing_to_event_list",
+   NULL
+ } ,
+
  { 24,  Apr, 2014, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "added -multi_timing_to_event_list",
    "This allows one to generate simple or details event lists, or to\n"

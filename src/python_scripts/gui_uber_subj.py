@@ -2936,9 +2936,14 @@ Analysis initialization:
       Specifying the analysis type and data domain allows for more appropriate
       initialization of processing defaults.
 
-      There is direct effect on variables when changing the type unless the
-      APPLY button is then pressed, at which point all relevant defaults are
-      changed.
+      Setting the 'type' has no effect until the 'APPLY' button is pressed, at
+      which point the relevant defaults are changed and applied.
+
+      This implies that 'analysis initialization' should be done first (as one
+      might expect), otherwise it could undo user changes.  For example, if
+      the user sets the motion censor limit to 0.7 and then initializes the
+      'type' to "rest", the 0.7 will be changed to 0.2, the default for resting
+      state analysis.
 """
 
 g_help_anat = """

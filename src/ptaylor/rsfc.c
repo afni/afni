@@ -4,8 +4,6 @@
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_permutation.h>
 
-
-
 float FisherZ( double Rcorr)
 {
   float Z=0.; 
@@ -313,8 +311,13 @@ int WB_netw_corr(int Do_r,
             }
 
             for( j=0 ; j<Nvox ; j++ )
-               if( mskd2[j] )
-                  zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));
+              if( mskd2[j] ) // control for r ==1
+                 if( THD_get_voxel(OUT_CORR_MAP, j, 0) > MAX_R )
+                   zscores[j] = (float) atanh(MAX_R);
+                 else if ( THD_get_voxel(OUT_CORR_MAP, j, 0) < -MAX_R )
+                   zscores[j] =  (float) atanh(-MAX_R);
+                 else
+                   zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));
             
             EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores); 
             zscores=NULL;
