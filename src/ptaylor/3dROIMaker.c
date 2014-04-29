@@ -19,6 +19,11 @@
 
    Sept. 2013:
         allow negative ROIs to be used in refset
+
+   Apr. 2014:
+        can redefine how tight the definition of neighbors is
+        also put in HOT_POINTS option:  threshold based on vol to get
+        max values.
 */
 
 
@@ -36,6 +41,11 @@
 #define DEP (1)              // search rad of defining ROIs
 #define BASE_DVAL (-1)       // intermed values for ROI-finding
 #define ALLOWED_NROI (150)   // buffer size for array of refset...
+
+int compfunc_desc(const void * a, const void * b) 
+{
+   return (*(float*)b > *(float*)a) - (*(float*)a > *(float*)b);
+}
 
 void usage_ROIMaker(int detail) 
 {
@@ -105,6 +115,10 @@ void usage_ROIMaker(int detail)
 "                       the values have been thresholded.  Number might be\n"
 "                       estimated with 3dAlphaSim, or otherwise, to reduce\n"
 "                       number of `noisy' clusters.\n"
+"     -only_some_top N :after '-volthr' but before any ref-matching or\n"
+"                       inflating, one can restrict each found region\n"
+"                       to keep only N voxels with the highest inset values.\n"
+"                       (If an ROI has <N voxels, then all would be kept.)\n"
 "     -inflate  N_INFL :number of voxels which with to pad each found ROI in\n"
 "                       order to turn GM ROIs into inflated (GMI) ROIs.\n"
 "                       ROIs won't overlap with each other, and a WM skeleton\n"
@@ -142,6 +156,14 @@ void usage_ROIMaker(int detail)
 "                       often matter too much.\n"
 "                       For an N-brick inset, one can input an N- or 1-brick\n"
 "                       mask.\n"
+"    -neigh_face_only  :can tighten the definition of neighbors, so that\n"
+"                       voxels must share a face to be grouped into same ROI\n"
+"                       (default is that neighbors share at least one edge).\n"
+"                       This should match up with default usage of the\n"
+"                       clusterize function in the AFNI window.\n"
+"    -neigh_upto_vert  :can loosen the definition of neighbors, so that\n"
+"                       voxels can be grouped into the same ROI if they share\n"
+"                       at least one vertex (see above for default).\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -181,6 +203,9 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *insetCSF_SKEL=NULL;
 	THD_3dim_dataset *outsetGM=NULL, *outsetGMI=NULL;
 
+   int NEIGHBOR_LIMIT = 3; // default setting: neighbor shares face or
+                           // at least one edge
+
 	THD_3dim_dataset *MASK=NULL;
 	char in_mask[300];
 	int HAVE_MASK=0;
@@ -191,12 +216,15 @@ int main(int argc, char *argv[]) {
 	char prefix_GMI[300];
 	char voxel_order[4]="---";
 
+   float *fl_sort=NULL;
+
 	int HAVEREF = 0; // switch if an external ref file for ROI labels is present
 	int HAVESKEL = 0; // switch if an external ref file for ROI labels is present
 	int HAVE_CSFSKEL = 0; // similar to above...
 	int SKEL_STOP=0; // switch if inflation will be stopped in WM skeleton
 	int TRIM_OFF_WM=0; // switch if WM_skel will be used to trim initial input map
 	int idx = 0;
+   int count;
 	int VOLTHR = 0; // switch about thresholding GM ROI volume size
 	int val=0,Nvox=0;
 	int max_nroi=0, index1=0;
@@ -215,8 +243,10 @@ int main(int argc, char *argv[]) {
 	float SKEL_THR=0.5;// default, such as if input SKEL is a mask
 
 	int *Dim=NULL; 
-	int *NROI_IN=NULL,*NROI_IN_b=NULL,*INVROI_IN=NULL; // num of rois per brik, and inv labels
-	int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL; // allow labels to be non-consecutive.
+   // num of rois per brik, and inv labels
+	int *NROI_IN=NULL,*NROI_IN_b=NULL,*INVROI_IN=NULL;
+   // allow labels to be non-consecutive.
+	int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL; 
 	int *NROI_REF=NULL,*NROI_REF_b=NULL,*INVROI_REF=NULL;
 	int ****OLAP_RI=NULL; // info of overlap WRT ref and T inset
 	int **N_olap_RI=NULL,**N_olap_IR=NULL; // nums of rois per olap
@@ -227,6 +257,9 @@ int main(int argc, char *argv[]) {
 	int **ROI_LABELS_GM=NULL, **INV_LABELS_GM=NULL; 
 	int *NROI_GM=NULL,*INVROI_GM=NULL;
 	int ***COUNT_GM=NULL;
+
+   int HOT_POINTS=0;
+   float hot_val=0;
 
    int *RESCALES=NULL; // will be used if negative values in refset mask
    short int **temp_ref=NULL; // for holding rescaled values
@@ -325,6 +358,20 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+      if( strcmp(argv[iarg],"-only_some_top") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-only_some_top'");
+			HOT_POINTS = atoi(argv[iarg]);
+			
+			if(HOT_POINTS<=0)
+				ERROR_exit("The number of (high-value) voxels to keep per ROI=%d: must be >0!",
+							  HOT_POINTS);
+			
+			iarg++ ; continue ;
+		}
+
+
+
 		// can determine size of expansion based on this
 		if( strcmp(argv[iarg],"-inflate") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
@@ -385,7 +432,15 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+		if( strcmp(argv[iarg],"-neigh_face_only") == 0) {
+			NEIGHBOR_LIMIT=2;
+			iarg++ ; continue ;
+		}
 
+		if( strcmp(argv[iarg],"-neigh_upto_vert") == 0) {
+			NEIGHBOR_LIMIT=4;
+			iarg++ ; continue ;
+		}
 
 		if( strcmp(argv[iarg],"-mask") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
@@ -417,9 +472,12 @@ int main(int argc, char *argv[]) {
 			ERROR_exit("The xyz-dimensions of refset and inset don't match");
 		
 		if( Dim[3] == HAVEREF )
-			INFO_message("Each subrik of refset will be applied to corresponding inset brik.");
+			INFO_message("Each subrik of refset will be applied to corresponding"
+                      " inset brik.");
 		else
-			ERROR_exit("The number of inset and refset briks must match: here, ref=%d, inset=%d",HAVEREF,Dim[3]);
+			ERROR_exit("The number of inset and refset briks must match: "
+                    " here, ref=%d, inset=%d",
+                    HAVEREF,Dim[3]);
 
 		if( voxel_order[0] != ORIENT_typestr[insetREF->daxes->xxorient][0] ||
 			 voxel_order[1] != ORIENT_typestr[insetREF->daxes->yyorient][0] ||
@@ -433,11 +491,14 @@ int main(int argc, char *argv[]) {
 			ERROR_exit("The xyz-dimensions of mask and inset don't match");
 		
 		if( Dim[3] == HAVE_MASK )
-			INFO_message("Each subrik of mask will be applied to corresponding inset brik.");
+			INFO_message("Each subrik of mask will be applied to corresponding "
+                      "inset brik.");
       else if( HAVE_MASK == 1)
          INFO_message("Will apply single mask to the multiple inset briks.");
 		else
-			ERROR_exit("The number of mask briks must be either one or match the number of  inset briks.  Here: here, mask=%d, inset=%d",HAVE_MASK,Dim[3]);
+			ERROR_exit("The number of mask briks must be either one or match the"
+                    " number of inset briks.\n"
+                    "\t  Here: mask=%d, inset=%d",HAVE_MASK,Dim[3]);
 
 		if( voxel_order[0] != ORIENT_typestr[MASK->daxes->xxorient][0] ||
 			 voxel_order[1] != ORIENT_typestr[MASK->daxes->yyorient][0] ||
@@ -477,12 +538,16 @@ int main(int argc, char *argv[]) {
 
 
 	if( (!HAVESKEL) && SKEL_STOP) {
-		INFO_message("*+ You asked to stop inflation at the WM skeleton, but didn't give a skeleton using `-wm_skel'-- will just ignore that.");
+		INFO_message("*+ You asked to stop inflation at the WM skeleton, but\n"
+                   "\t didn't give a skeleton using `-wm_skel'-- will just"
+                   " ignore that.");
 		SKEL_STOP=0; //reset
 	}
 
 	if( (!HAVESKEL) && TRIM_OFF_WM) {
-		INFO_message("*+ You asked to trim GM input with WM skeleton, but didn't give a skeleton using `-wm_skel'-- will just ignore that.");
+		INFO_message("*+ You asked to trim GM input with WM skeleton, but \n"
+                   "\t didn't give a skeleton using `-wm_skel'-- will just"
+                   " ignore that.");
 		TRIM_OFF_WM = 0; //reset
 	}
 
@@ -520,18 +585,19 @@ int main(int argc, char *argv[]) {
 	}
 
 	// make skeleton: either with file input, or just put 1s everywhere.
-	idx = 0;
+	//idx = 0;
 	// should preserve relative ordering of data
 	for( k=0 ; k<Dim[2] ; k++ ) 
 		for( j=0 ; j<Dim[1] ; j++ ) 
 			for( i=0 ; i<Dim[0] ; i++ ) {
+            idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 				if( ((HAVESKEL==1) && (THD_get_voxel(insetSKEL,idx,0)>SKEL_THR)) 
 					 || (HAVESKEL==0) ) 
 					SKEL[i][j][k] = 1;
 				if( ((HAVE_CSFSKEL==1) && (THD_get_voxel(insetCSF_SKEL,idx,0)>0.5)) 
 					 || (HAVE_CSFSKEL==0) ) 
 					CSF_SKEL[i][j][k] = 1;
-				idx+= 1; 			
+				//idx+= 1; 			
 			}
 
 
@@ -562,7 +628,8 @@ int main(int argc, char *argv[]) {
 	if( (DATA == NULL) || (N_thr == NULL) || (NROI_IN == NULL)
 		 || (temp_arr == NULL) || (VOX == NULL) ) { 
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-		exit(14);
+		exit(14);	
+
 	}
 
 	// STEP 1: go through brik by brik to apply thresholding -> prod bin mask
@@ -571,11 +638,12 @@ int main(int argc, char *argv[]) {
          aaa = m;
       else
          aaa = 0;
-		idx = 0;
+		//idx = 0;
 		// should preserve relative ordering of data
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
 				for( i=0 ; i<Dim[0] ; i++ ) {
+               idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 					if( (HAVE_MASK==0) || 
 						 (HAVE_MASK && ( THD_get_voxel(MASK,idx,aaa)>0 ) ) )
 						if( THD_get_voxel(inset,idx,m) > THR  ) 
@@ -587,7 +655,7 @@ int main(int argc, char *argv[]) {
 										DATA[i][j][k][m] = BASE_DVAL;
 										N_thr[m]+= 1;
 									}
-					idx+= 1; 					
+					//idx+= 1; 					
 				}
 	}
 	
@@ -604,9 +672,6 @@ int main(int argc, char *argv[]) {
 	for ( j = 0 ; j < max_nroi ; j++ ) 
 		list1[j] = (int *) calloc( 3, sizeof(int) );
 	
-	list1 = calloc( max_nroi, sizeof(int *) );
-	for ( j = 0 ; j < max_nroi ; j++ ) 
-		list1[j] = (int *) calloc( 3, sizeof(int) );
 	// as big as could be needed for labelling...  probably way bigger
 	// than necessary (could buffer/realloc, but just start with this, 
 	// at least for time being)
@@ -630,6 +695,10 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 	
+   if(HOT_POINTS)
+      INFO_message("Will shrink large clusters to keep at most %d voxels"
+                   " of high values.", HOT_POINTS);
+
 	// STEP 2: label separate ROIs with ints
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		// make it bigger than any final index possibly could be
@@ -657,13 +726,13 @@ int main(int argc, char *argv[]) {
 								for( jj=-DEP ; jj<=DEP ; jj++)
 									for( kk=-DEP ; kk<=DEP ; kk++)
 										// need to share face or edge, not only vertex
-										if(abs(ii)+abs(jj)+abs(kk)<3)
+										if(abs(ii)+abs(jj)+abs(kk)<NEIGHBOR_LIMIT)
 											// keep in bounds
 											if((0 <= X+ii) && (X+ii < Dim[0]) && 
 												(0 <= Y+jj) && (Y+jj < Dim[1]) && 
 												(0 <= Z+kk) && (Z+kk < Dim[2])) {
 												// if a neighbor has value of -one...
-												if( DATA[X+ii][Y+jj][Z+kk][m] == BASE_DVAL) {
+												if(DATA[X+ii][Y+jj][Z+kk][m]==BASE_DVAL){
 													DATA[X+ii][Y+jj][Z+kk][m] = index1; // change
 													list1[found][0] = X+ii; // keep the coors
 													list1[found][1] = Y+jj;
@@ -684,10 +753,43 @@ int main(int argc, char *argv[]) {
 							NROI_IN[m]-=1; // reset index value
 						}
 						else {
-							ROI_LABELS_pre[m][NROI_IN[m]] = found; // !! hold value of Nvox in the ROI; ROI_LABEL for the ith NROI is i+N_thr[m].... //index1; // Xth ROI gets value Y
+                     // at this point, put in an optional search through all 'current'
+                     // ROIs to threshold based on value
+                     if( found > HOT_POINTS) {
+
+                        count = found;
+                        fl_sort = (float *)calloc(found,sizeof(float)); 
+                        if( fl_sort == NULL) {
+                           fprintf(stderr, "\n\n MemAlloc failure (fl_sort).\n\n");
+                           exit(14);	
+                        }
+
+                        for( mm=0 ; mm<found ; mm++ ) {
+                           idx = THREE_TO_IJK(list1[mm][0],list1[mm][1],list1[mm][2],
+                                              Dim[0],Dim[0]*Dim[1]);
+                           fl_sort[mm] = THD_get_voxel(inset,idx,m);
+                        }
+                        qsort(fl_sort, count, sizeof(float), compfunc_desc);
+                        hot_val = fl_sort[HOT_POINTS];
+
+                        for( mm=0 ; mm<count ; mm++ ) {
+                           idx = THREE_TO_IJK(list1[mm][0],list1[mm][1],list1[mm][2],
+                                              Dim[0],Dim[0]*Dim[1]);
+                           if( !(THD_get_voxel(inset,idx,m) > hot_val) ) {
+                              DATA[list1[mm][0]][list1[mm][1]][list1[mm][2]][m] = 0;
+                              found--;
+                           }
+                        }
+                        free(fl_sort);
+                     }
+
+                     // !! hold value of Nvox in the ROI; ROI_LABEL
+                     // for the ith NROI is
+                     // i+N_thr[m].... //index1; // Xth ROI gets value Y
+							ROI_LABELS_pre[m][NROI_IN[m]] = found; 
 							VOX[m]+=found;
 						}
-
+                  
 						// so, we found a 1, grew it out and changed all assoc.
 						// indices-- keep track of how many voxels there were...
 						// numperroi1(index1) = found;
@@ -728,10 +830,11 @@ int main(int argc, char *argv[]) {
 
       // rescale values as necessary
       for( m=0 ; m<Dim[3] ; m++ ) {
-			idx=0;
+			//idx=0;
 			for( k=0 ; k<Dim[2] ; k++ ) 
 				for( j=0 ; j<Dim[1] ; j++ ) 
 					for( i=0 ; i<Dim[0] ; i++ ) {
+                  idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 						if( THD_get_voxel(insetREF,idx,m)>0.5 ||
                       THD_get_voxel(insetREF,idx,m)<-0.5 ) {
                      temp_ref[m][idx] = (short int) 
@@ -739,7 +842,7 @@ int main(int argc, char *argv[]) {
                      if( RESCALES[m] )
                         temp_ref[m][idx]+= RESCALES[m];
                   }
-                  idx++;
+                  //idx++;
                }
       }
       set_REFSCAL = EDIT_empty_copy( insetREF ) ; 
@@ -815,10 +918,11 @@ int main(int argc, char *argv[]) {
 		// Also, count number of vox per refset ROI
 		for( m=0 ; m<Dim[3] ; m++ ) {
 
-			idx=0;
+			//idx=0;
 			for( k=0 ; k<Dim[2] ; k++ ) 
 				for( j=0 ; j<Dim[1] ; j++ ) 
 					for( i=0 ; i<Dim[0] ; i++ ) {
+                  idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 						if( THD_get_voxel(set_REFSCAL,idx,m)>0 ) {
 							// for ease/shortcut, define X, the compact form of
 							// the refROI label index, and Y, the inset ROI smallval
@@ -829,7 +933,7 @@ int main(int argc, char *argv[]) {
 								OLAP_RI[m][X][Y][0]+=1;
 							}
 						}
-						idx++;
+						//idx++;
 					}
 		}
 		
@@ -909,10 +1013,11 @@ int main(int argc, char *argv[]) {
 		for( m=0 ; m<Dim[3] ; m++ ) {
 			
 			relab_vox[m]=0;
-			idx=0;
+			//idx=0;
 			for( k=0 ; k<Dim[2] ; k++ ) 
 				for( j=0 ; j<Dim[1] ; j++ ) 
 					for( i=0 ; i<Dim[0] ; i++ ) {
+                  idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 						if( DATA[i][j][k][m]>0 ) {
 							Y = DATA[i][j][k][m] - N_thr[m];
 							if( OLAP_RI[m][0][Y][1]<0 ) {// was neg val when stored
@@ -932,7 +1037,7 @@ int main(int argc, char *argv[]) {
 								}
 							}
 						}
-						idx++;
+						//idx++;
 					}
 		}
 

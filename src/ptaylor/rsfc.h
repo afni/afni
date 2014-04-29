@@ -1,6 +1,9 @@
 #ifndef _RSFC_HEADER_
 #define _RSFC_HEADER_
 
+
+#define MAX_R (0.9999999999999999)
+
 /*
   Fisher Z transform of correlation value R
 */
