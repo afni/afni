@@ -11,6 +11,11 @@
    .grid files from Tracking (oops, should have done earlier)
    + new options:  insert ROI integer label into file, and have
    time series as individual files
+
+   Apr. 2014, part II: revenge of the WB correlation
+   + add in some individual file outputs
+   + add in ability to do WB correlations
+   
 */
 
 
@@ -56,7 +61,7 @@ void usage_NetCorr(int detail)
 "\n"
 "  + COMMAND: 3dNetCorr -prefix PREFIX {-mask MASK} {-fish_z}        \\\n"
 "                -inset FILE -in_rois INROIS {-ts_out} {-ts_label} \\\n"
-"                {-ts_indiv} {-ts_wb_corr}  \n"
+"                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} \n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -73,6 +78,11 @@ void usage_NetCorr(int detail)
 "        number of subbricks in the `in_rois' option (i.e., 000, 001,...).\n"
 "        If the `-ts_out' option is used, the mean time series per ROI, one\n"
 "        line, are output in PREFIX_\?\?\?.netts files.\n"
+"\n"
+"        It is now also possible to output whole brain correlation maps,\n"
+"        generated from the average time series of each ROI,\n"
+"        as either Pearson r or Fisher-transformed Z-scores (or both); see\n"
+"        the '-ts_wb*' options below.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -111,11 +121,16 @@ void usage_NetCorr(int detail)
 "    -ts_wb_corr      :switch to perform whole brain correlation for each\n"
 "                      ROI's average time series; this will automatically\n"
 "                      create a directory for each network that contains the\n"
-"                      set of whole brain correlation maps.\n"
+"                      set of whole brain correlation maps (Pearson 'r's).\n"
 "                      The directories are labelled as above for '-ts_indiv'\n"
 "                      Within each directory, the files are labelled\n"
 "                      WB_CORR_ROI_001+orig, WB_CORR_ROI_002+orig, etc., with\n"
-"                      the numbers given by the actual ROI integer labels.\n\n"
+"                      the numbers given by the actual ROI integer labels.\n"
+"    -ts_wb_Z         :same as above in '-ts_wb_corr_r', except that the maps\n"
+"                      have been Fisher transformed to Z-scores the relation:\n"
+"                      Z=atanh(r).\n"
+"                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
+"\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -146,8 +161,6 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *insetTIME = NULL;
    THD_3dim_dataset *MASK=NULL;
    THD_3dim_dataset *ROIS=NULL;
-   THD_3dim_dataset *OUT_CORR_MAP=NULL;
-   MRI_IMAGE *mri=NULL;
    char *prefix="NETCORR" ;
    char in_name[300];
    char in_mask[300];
@@ -158,7 +171,7 @@ int main(int argc, char *argv[]) {
    //  int *SELROI=NULL; // if selecting subset of ROIs
    //  int HAVE_SELROI=0;
 
-   int ***mskd=NULL; // define mask of where time series are nonzero
+   byte ***mskd=NULL; // define mask of where time series are nonzero
    byte *mskd2=NULL; // not great, but another format of mask
    int HAVE_MASK=0;
    int HAVE_ROIS=0;
@@ -166,12 +179,12 @@ int main(int argc, char *argv[]) {
    int TS_OUT=0;
    int TS_LABEL=0;
    int TS_INDIV=0;
-   int TS_WBCORR=0;
+   int TS_WBCORR_r=0;
+   int TS_WBCORR_Z=0;
    int *NROI_REF=NULL,*INVROI_REF=NULL;
    int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL,**ROI_COUNT=NULL;
    int ***ROI_LISTS=NULL;
    double ***ROI_AVE_TS=NULL; // double because of GSL 
-   float **AVE_TS_fl=NULL;    // not great, but another format of TS
    float ***Corr_Matr=NULL; 
 
    int Nvox=-1;   // tot number vox
@@ -282,10 +295,14 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-ts_wb_corr") == 0) {
-         TS_WBCORR=1;
+         TS_WBCORR_r=1;
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-ts_wb_Z") == 0) {
+         TS_WBCORR_Z=1;
+         iarg++ ; continue ;
+      }
 
 
       /*  if( strcmp(argv[iarg],"-sel_roi") == 0 ){
@@ -322,7 +339,6 @@ int main(int argc, char *argv[]) {
    }
   
    INFO_message("Reading in.");
-
 
    if( !TS_OUT && TS_LABEL) {
       ERROR_message("with '-ts_label', you also need '-ts_out'.\n");
@@ -361,12 +377,12 @@ int main(int argc, char *argv[]) {
    Nlist = (int *)calloc(1,sizeof(int)); 
    mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
 
-   mskd = (int ***) calloc( Dim[0], sizeof(int **) );
+   mskd = (byte ***) calloc( Dim[0], sizeof(byte **) );
    for ( i = 0 ; i < Dim[0] ; i++ ) 
-      mskd[i] = (int **) calloc( Dim[1], sizeof(int *) );
+      mskd[i] = (byte **) calloc( Dim[1], sizeof(byte *) );
    for ( i = 0 ; i < Dim[0] ; i++ ) 
       for ( j = 0 ; j < Dim[1] ; j++ ) 
-         mskd[i][j] = (int *) calloc( Dim[2], sizeof(int) );
+         mskd[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
    if( (mskd == NULL) || (Nlist == NULL) || (mskd2 == NULL)) { 
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
@@ -406,6 +422,12 @@ int main(int argc, char *argv[]) {
          }
    
    
+   if (HAVE_MASK) {
+      DSET_delete(MASK);
+      free(MASK);
+   }
+
+
    // obviously, this should always be TRUE at this point...
    if(HAVE_ROIS>0) {
      
@@ -520,7 +542,19 @@ int main(int argc, char *argv[]) {
                }
       }
    }	
-  
+
+   // bit of freeing
+   for( i=0 ; i<Dim[0] ; i++) 
+      for( j=0 ; j<Dim[1] ; j++) {
+         free(mskd[i][j]);
+      }
+   for( i=0 ; i<Dim[0] ; i++) {
+      free(mskd[i]);
+   }
+   free(mskd);
+   DSET_delete(ROIS);
+   free(ROIS);
+
    INFO_message("Calculating average time series.");
 
 
@@ -623,77 +657,33 @@ int main(int argc, char *argv[]) {
       }
    }
   
-   if( TS_WBCORR ) {
-      INFO_message("Starting whole brain correlations.");
-      // make average time series per voxel
-      AVE_TS_fl = calloc( 1,sizeof(AVE_TS_fl));  
-      for(i=0 ; i<1 ; i++) 
-         AVE_TS_fl[i] = calloc(Dim[3],sizeof(float)); 
+   INFO_message("Starting whole brain correlations.");
 
-      if( (AVE_TS_fl == NULL) ) {
-         fprintf(stderr, "\n\n MemAlloc failure (time series out).\n\n");
-         exit(123);
-      }
-
-      for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
-         sprintf(OUT_indiv0,"%s_%03d_INDIV", prefix, k);
-         mkdir(OUT_indiv0, 0777);
-         for( i=0 ; i<NROI_REF[k] ; i++ ) {
-            for( j=0 ; j<Dim[3] ; j++)
-               AVE_TS_fl[0][j] = (float) ROI_AVE_TS[k][i][j];
-            sprintf(OUT_indiv,"%s/WB_CORR_ROI_%03d",
-                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
-            mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
-            OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
-                                       mri,
-                                       "pearson", OUT_indiv);
-
-				tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;
-            tross_Make_History( "3dTcorr1D" , argc,argv , OUT_CORR_MAP );
-            if( !THD_ok_overwrite() && 
-                THD_is_ondisk(DSET_HEADNAME(OUT_CORR_MAP)) )
-               ERROR_exit("Can't overwrite existing dataset '%s'",
-                          DSET_HEADNAME(OUT_CORR_MAP));
-            THD_write_3dim_dataset(NULL, NULL, OUT_CORR_MAP, True);
-            INFO_message("Wrote dataset: %s\n",DSET_BRIKNAME(OUT_CORR_MAP));
-            DSET_delete(OUT_CORR_MAP);
-            free(OUT_CORR_MAP);
-            OUT_CORR_MAP=NULL;
-
-         }
-      }
-
-      mri_free(mri);
-      for( i=0 ; i<1 ; i++) 
-         free(AVE_TS_fl[i]);
-      free(AVE_TS_fl);
+   if( TS_WBCORR_r || TS_WBCORR_Z ) {  
+      i = WB_netw_corr( TS_WBCORR_r, 
+                        TS_WBCORR_Z,                 
+                        HAVE_ROIS, 
+                        prefix, 
+                        NROI_REF,
+                        Dim,
+                        ROI_AVE_TS,
+                        ROI_LABELS_REF,
+                        insetTIME,
+                        mskd2,
+                        Nmask,
+                        argc,
+                        argv);
    }
-  
-  
-  
+   
    // ************************************************************
    // ************************************************************
    //                    Freeing
    // ************************************************************
    // ************************************************************
-
+   
    DSET_delete(insetTIME);
-   DSET_delete(ROIS);
-   free(ROIS);
    free(insetTIME);
-   if (HAVE_MASK) {
-      DSET_delete(MASK);
-      free(MASK);
-   }
 
-   for( i=0 ; i<Dim[0] ; i++) 
-      for( j=0 ; j<Dim[1] ; j++) {
-         free(mskd[i][j]);
-      }
-   for( i=0 ; i<Dim[0] ; i++) {
-      free(mskd[i]);
-   }
-   free(mskd);
    free(mskd2);
    free(Nlist);
 
