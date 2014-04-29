@@ -842,9 +842,10 @@ g_history = """
         - keep track of '*' entries from timing files
    2.05 Apr 24, 2014 - added -multi_timing_to_event_list
         - generates simple event lists, partitions, and detailed event lists
+   2.06 Apr 29, 2014 - micro change to text output
 """
 
-g_version = "timing_tool.py version 2.05, April 24, 2014"
+g_version = "timing_tool.py version 2.06, April 29, 2014"
 
 
 
@@ -1589,7 +1590,7 @@ class ATInterface:
          allevents.sort() # sort by times, which are the first elements
 
          if s1d_type and self.verb > 0:
-            fp.write('# have %d events in run %d\n' % (len(allevents),rind))
+            fp.write('# have %d events in run %d\n' % (len(allevents),rind+1))
             etlist.append(self.make_s1d_ehdr_list(s1d_type))
 
          # and output

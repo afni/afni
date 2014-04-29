@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Apr , 2014 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
+   "Freedom in neighbor defs; also can keep just N peak values per ROI.",
+   "User can specify face, edge or vertex ngbs. Also, search for N max vals.\n"
+},
+
 { 29, Apr , 2014 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "Added new feature: output WB correlations as Zscores.",
    "Can output WB maps of ROI average time series correlations as Z-scores.\n"
