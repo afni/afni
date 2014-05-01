@@ -24,6 +24,7 @@
         can redefine how tight the definition of neighbors is
         also put in HOT_POINTS option:  threshold based on vol to get
         max values.
+        --> bug fixed version; forgot a logical test in IF statement 
 */
 
 
@@ -370,8 +371,8 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
-
-
+      
+      
 		// can determine size of expansion based on this
 		if( strcmp(argv[iarg],"-inflate") == 0 ){
 			iarg++ ; if( iarg >= argc ) 
@@ -755,7 +756,7 @@ int main(int argc, char *argv[]) {
 						else {
                      // at this point, put in an optional search through all 'current'
                      // ROIs to threshold based on value
-                     if( found > HOT_POINTS) {
+                     if( HOT_POINTS && (found > HOT_POINTS) ) {
 
                         count = found;
                         fl_sort = (float *)calloc(found,sizeof(float)); 
@@ -763,7 +764,7 @@ int main(int argc, char *argv[]) {
                            fprintf(stderr, "\n\n MemAlloc failure (fl_sort).\n\n");
                            exit(14);	
                         }
-
+                        
                         for( mm=0 ; mm<found ; mm++ ) {
                            idx = THREE_TO_IJK(list1[mm][0],list1[mm][1],list1[mm][2],
                                               Dim[0],Dim[0]*Dim[1]);
@@ -781,20 +782,22 @@ int main(int argc, char *argv[]) {
                            }
                         }
                         free(fl_sort);
+                        
+                        found = count;// just reset for resetting list1 next
                      }
-
+                     
                      // !! hold value of Nvox in the ROI; ROI_LABEL
                      // for the ith NROI is
                      // i+N_thr[m].... //index1; // Xth ROI gets value Y
 							ROI_LABELS_pre[m][NROI_IN[m]] = found; 
 							VOX[m]+=found;
 						}
-                  
+      
 						// so, we found a 1, grew it out and changed all assoc.
 						// indices-- keep track of how many voxels there were...
 						// numperroi1(index1) = found;
 						for( ii=0 ; ii<found ; ii++) // clean up list for use again
-							for( j=0 ; jj<3 ; jj++ )
+							for( jj=0 ; jj<3 ; jj++ )
 								list1[ii][jj]=0;
 					}
 				}
@@ -1065,7 +1068,7 @@ int main(int argc, char *argv[]) {
 									for( jj=-DEP ; jj<=DEP ; jj++)
 										for( kk=-DEP ; kk<=DEP ; kk++)
 											// need to share face or edge, not only vertex
-											if(abs(ii)+abs(jj)+abs(kk)<3)
+											if(abs(ii)+abs(jj)+abs(kk)<NEIGHBOR_LIMIT) //3)
 												
 												// keep in bounds
 												if((0 <= i+ii) && (i+ii < Dim[0]) && 
@@ -1239,7 +1242,7 @@ int main(int argc, char *argv[]) {
 									for( jj=-DEP ; jj<=DEP ; jj++)
 										for( kk=-DEP ; kk<=DEP ; kk++)
 											// need to share face or edge, not only vertex
-											if(abs(ii)+abs(jj)+abs(kk)<3)
+											if(abs(ii)+abs(jj)+abs(kk)<NEIGHBOR_LIMIT) //3)
 												
 												// keep in bounds
 												if((0 <= i+ii) && (i+ii < Dim[0]) && 
