@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1,  May, 2014, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
+   "added -quick option; fixed recursive backups",
+   NULL
+ } ,
+
  { 29,  Apr, 2014, RCR, "uber_subject.py", MICRO, TYPE_MODIFY,
    "micro fix to clarify 'initialization' help",
    "Thanks to Ziad for noting it"

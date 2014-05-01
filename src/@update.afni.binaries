@@ -24,6 +24,7 @@
 # 01 Dec 2013 : added -prog_list for Ziad
 # 18 Dec 2013 : added check for system programs, -sys_ok and -help_system_progs
 # 14 Jan 2014 : added more system programs
+# 01 May 2014 : added -quick option; fixed sync of backup, was nesting
 # ----------------------------------------------------------------------
 
 
@@ -53,6 +54,7 @@ set testing     = 0
 set use_curl    = 0
 set do_apsearch = 1     # run apserach -update_all_afni_help
 set do_recur    = 1     # download a new version of @uab, first
+set quick       = 0     # no fancies (recur, apsearch)
 
 set ac = 1
 while ( $ac <= $#argv )
@@ -107,6 +109,8 @@ while ( $ac <= $#argv )
         continue
     else if ( "$argv[$ac]" == "-no_recur" ) then
         set do_recur = 0
+    else if ( "$argv[$ac]" == "-quick" ) then
+        set quick = 1
     else if ( "$argv[$ac]" == "-sys_ok" ) then
         set sys_ok = 1
     else if ( "$argv[$ac]" == "-test" ) then
@@ -120,6 +124,12 @@ while ( $ac <= $#argv )
     endif
     @ ac ++
 end
+
+# in quick mode, turn off fancies, even if requested    1 May, 2014 [rickr]
+if ( $quick ) then
+   set do_recur = 0
+   set do_apsearch = 0
+endif
 
 
 # if requested, show help and exit
@@ -181,6 +191,14 @@ if ( $help ) then
     echo ""
     echo "        In this case, suma and the individual python files would all"
     echo "        end up in abin, with no directories."
+    echo ""
+    echo "    -quick                : quick mode, no fancies"
+    echo ""
+    echo "        This option blocks unwanted or unneeded actions, mostly for"
+    echo "        testing.  It basically applies:"
+    echo ""
+    echo "           -no_recur"
+    echo "           -apsearch no"
     echo ""
     echo "    -sys_ok               : OK to update, even if system progs found"
     echo ""
@@ -577,6 +595,7 @@ else if ( $make_backup ) then
           if ( -f ../$prog ) \mv ../$prog $backup_dir
        end
     else
+       # might nest backups here, check on remove
        \mv ../* $backup_dir
     endif
 
@@ -584,6 +603,9 @@ else if ( $make_backup ) then
     if ( -d ../$backup_dir ) then
         echo nuking old backup directory, $backup_dir ...
         \rm -fr ../$backup_dir
+    else if ( -d $backup_dir/$backup_dir ) then
+        echo nuking previous backup directory, $backup_dir ...
+        \rm -fr $backup_dir/$backup_dir
     endif
 
     \mv $backup_dir ..
