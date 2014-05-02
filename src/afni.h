@@ -894,6 +894,7 @@ typedef struct {
    Widget hidden_usdecl_pb  ;  /* 06 Jan 2011 */
    Widget hidden_melter_pb  ;  /* 18 Feb 2011 */
    Widget hidden_pvalue_pb  ;  /* 06 Mar 2014 */
+   Widget hidden_papers_pb  ;  /* 02 May 2014 */
 
 #endif  /* USE_HIDDEN */
 
@@ -1986,6 +1987,9 @@ extern void AFNI_misc_button( Three_D_View * ) ;
 extern void AFNI_misc_CB    ( Widget , XtPointer , XtPointer );
 extern void AFNI_editenv_CB ( Widget , XtPointer , XtPointer );
 extern void AFNI_pvalue_CB  ( Widget , XtPointer , XtPointer );
+
+extern void AFNI_papers_CB  ( Widget , XtPointer , XtPointer );
+extern void AFNI_list_papers( Widget w ) ; /* 02 May 2014 */
 
 extern void AFNI_add_timeseries( MRI_IMAGE * ) ;
 extern void AFNI_replace_timeseries( MRI_IMAGE * ) ; /* 10 May 2009 */
