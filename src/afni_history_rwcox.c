@@ -43,6 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+  { 02 , MAY , 2014 , RWC , "afni" , MICRO , TYPE_NEW_OPT ,
+   "add -papers option, to list AFNI papers" ,
+   "The list of papers is maintained in file afni_papers.txt\n"
+   "which is turned into afni_papers.h via program quotize." } ,
+
   { 24 , APR , 2014 , RWC , "3dClustSim" , MICRO , TYPE_NEW_OPT ,
    "add -ssave:TYPE option for saving the volumes as dataset" ,
    NULL } ,

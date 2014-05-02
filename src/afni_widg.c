@@ -5594,6 +5594,19 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
+      prog->hidden_papers_pb =             /* 02 May 2014 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+               LABEL_ARG("List of AFNI papers") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( prog->hidden_papers_pb , XmNactivateCallback ,
+                     AFNI_papers_CB , im3d ) ;
+
+      /*----------*/
+
       (void) XtVaCreateManagedWidget(
                "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
                   XmNseparatorType , XmSINGLE_LINE ,
