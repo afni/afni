@@ -5994,6 +5994,38 @@ ENTRY("AFNI_pvalue_CB") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------*/
+/* Print list of AFNI papers [02 May 2014] */
+
+void AFNI_list_papers( Widget w )
+{
+#include "afni_papers.h"
+   int ii ;
+   if( w != (Widget)NULL && XtIsWidget(w) ){
+     char *inf=NULL ;
+     for( ii=0 ; afni_papers[ii] != NULL ; ii++ )
+       inf = THD_zzprintf( inf , " %s" , afni_papers[ii] ) ;
+     (void) new_MCW_textwin( w , inf , TEXT_READONLY ) ;
+     free(inf) ;
+   } else {
+     for( ii=0 ; afni_papers[ii] != NULL ; ii++ )
+       fputs(afni_papers[ii],stdout) ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void AFNI_papers_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+   if( IM3D_OPEN(im3d) )
+     AFNI_list_papers( im3d->vwid->imag->topper ) ;
+
+   return ;
+}
+
 /*---------------------------------------------------------------
   Callback for all actions in the misc menu
 -----------------------------------------------------------------*/

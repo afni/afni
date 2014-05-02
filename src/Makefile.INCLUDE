@@ -35,6 +35,8 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_version.o afni_lock.o afni_vol2surf.o             \
             afni_pplug_instacorr.o afni_pplug_instacalc.o
 
+AFHEADS  = quotize readmes
+
 SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
              afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o   \
              parser.o pbar_color_defs.o afni_ports.o
@@ -42,13 +44,13 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 T3OBJS  = to3d.o
 
 MISC    = AFNI_atlas_spaces.niml AFNI.Xdefaults AFNI.afnirc AFNI.sumarc \
-          3d*.lib gmovie*
+          3d*.lib gmovie* afni_papers.txt
 
 ## The following programs are "extras" not really part of the
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat $(EXPROGS)
+EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat quotize $(EXPROGS)
 
 # mpegtoppm in above list
 
@@ -189,7 +191,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_FATCAT_DEMO @Install_RSFMRI_Motion_Group_Demo                  \
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	  \
-	  @afni.run.me 3dRprogDemo 
+	  @afni.run.me 3dRprogDemo
 
 
 PY_DIR = python_scripts
@@ -261,13 +263,16 @@ quotize:quotize.o
 license.h:../doc/README/README.copyright
 	quotize license < ../doc/README/README.copyright > license.h
 
-readmes:readme_env.h readme_afnigui.h
+readmes:readme_env.h readme_afnigui.h afni_papers.h
 
 readme_env.h:../doc/README/README.environment
 	quotize readme_env < ../doc/README/README.environment > readme_env.h
 
 readme_afnigui.h:../doc/README/README.afnigui
 	quotize readme_afnigui < ../doc/README/README.afnigui > readme_afnigui.h
+
+afni_papers.h:afni_papers.txt
+	quotize afni_papers < afni_papers.txt > afni_papers.h
 
 Ifile:Ifile.o
 	$(CC) -o Ifile Ifile.o $(LFLAGS) $(LLIBS)
