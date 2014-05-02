@@ -1189,10 +1189,13 @@ class RegWrap:
       if opt == None :
          opt = self.user_opts.find_opt('-dset2')
       e = afni_name(opt.parlist[0]) 
+      e.to_afni(new_view=dset_view(e.ppve()))
       opt = self.user_opts.find_opt('-anat')
       if opt == None :
          opt = self.user_opts.find_opt('-dset1')
       a = afni_name(opt.parlist[0])
+      a.to_afni(new_view=dset_view(a.ppve()))
+
       self.fresh_start( \
           ("%s" % (e.out_prefix())), \
           ("%s" % (a.out_prefix())), rmold = rmold, \
@@ -1338,7 +1341,6 @@ class RegWrap:
 
       e = afni_name(opt.parlist[0]) 
       ps.epi = e
-
       opt = self.user_opts.find_opt('-anat')
       if opt == None: 
          opt = self.user_opts.find_opt('-dset1')
@@ -2085,7 +2087,7 @@ class RegWrap:
 
       self.info_msg(" Aligning %s to %s" % (e.input(), ps.dset1_generic_name))
  
-      o = e.new("%s%s" % (self.epi.out_prefix(), suf))
+      o = e.new("%s%s" % (self.epi_afniformat.out_prefix(), suf))
 #      o = afni_name("%s%s" % (self.epi.out_prefix(), suf)) # was e.out_prefix() here
       if(self.master_epi_dset == 'SOURCE'):
           o.view = "%s" % e.view
@@ -2108,7 +2110,7 @@ class RegWrap:
          o.delete(ps.oexec)
          o.view = eview
          # anat_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.out_prefix(),suf)
-         epi_mat = "%s%s%s_mat.aff12.1D" %  (e.p(), self.epi.out_prefix(),suf)
+         epi_mat = "%s%s%s_mat.aff12.1D" %  (e.p(), self.epi_afniformat.out_prefix(),suf)
          self.info_msg("Inverting %s to %s matrix" % \
                     (ps.dset1_generic_name, ps.dset2_generic_name ))
 
@@ -2128,7 +2130,7 @@ class RegWrap:
                           "to %s transformations" % \
                          (ps.dset2_generic_name, ps.dset1_generic_name ))
 
-            epi_mat = "%s%s%s_reg_mat.aff12.1D" % (e.p(), self.epi.out_prefix(), suf)
+            epi_mat = "%s%s%s_reg_mat.aff12.1D" % (e.p(), self.epi_afniformat.out_prefix(), suf)
             com = shell_com(  \
                      "cat_matvec -ONELINE %s %s -I %s > %s" % \
                      (oblique_mat, ps.anat_mat, self.reg_mat, epi_mat), ps.oexec)
@@ -2165,7 +2167,7 @@ class RegWrap:
             
             if(ps.post_matrix != ""):
                 anat_tlrc_mat = ps.post_matrix
-                epi_mat = "%s%s%s_post_mat.aff12.1D" % (e.p(),self.epi.out_prefix(), suf)
+                epi_mat = "%s%s%s_post_mat.aff12.1D" % (e.p(),self.epi_afniformat.out_prefix(), suf)
 
             if(ps.tlrc_apar != ""): # tlrc parent trumps post_matrix
                com = shell_com(  \
@@ -2174,7 +2176,7 @@ class RegWrap:
                com.run();
                if(com.status != 0) :
                   self.error_msg("Warp type not defined for this dataset: %s" % \
-                            anat_tlrc.input())
+                            ps.tlrc_apar.input())
                   return o
 
                tlrc_type = int(com.val(0,0))
@@ -2184,7 +2186,7 @@ class RegWrap:
                   return o
 
                anat_tlrc_mat = "%s::WARP_DATA" % (ps.tlrc_apar.input())
-               epi_mat = "%s%s%s_tlrc_mat.aff12.1D" % (e.p(),self.epi.out_prefix(), suf)
+               epi_mat = "%s%s%s_tlrc_mat.aff12.1D" % (e.p(),self.epi_afniformat.out_prefix(), suf)
 
             # note registration matrix, reg_mat, can be blank and ignored
             com = shell_com(  \
@@ -2194,7 +2196,7 @@ class RegWrap:
             com.run();
 
             if(ps.tlrc_apar!=""):
-               tlrc_dset = afni_name("%s%s_tlrc%s" % (e.p(), self.epi.out_prefix(), suf))
+               tlrc_dset = afni_name("%s%s_tlrc%s" % (e.p(), self.epi_afniformat.out_prefix(), suf))
                # tlrc_dset.view = ps.tlrc_apar.view  '+tlrc'
                if(self.master_tlrc_dset=='SOURCE'):
                    tlrc_dset.view = e.view
@@ -2218,7 +2220,7 @@ class RegWrap:
                    ps.master_tlrc_option, alopt), ps.oexec)
 
             else:
-               tlrc_orig_dset = afni_name("%s%s_post%s" % (e.p(), self.epi.out_prefix(), suf))
+               tlrc_orig_dset = afni_name("%s%s_post%s" % (e.p(), self.epi_afniformat.out_prefix(), suf))
                tlrc_orig_dset.view = '+orig'
                base_dset = a
                if(self.master_tlrc_dset=='SOURCE'):
@@ -2270,6 +2272,7 @@ class RegWrap:
    # reduce EPI dataset to a single representative sub-brick
    def tstat_epi(self, e=None, tstat_opt="", prefix = "temp_ts"  ):
       o = afni_name(prefix)
+      o.to_afni(new_view=dset_view(o.ppve()))
       if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          # if more than 1 sub-brick
@@ -2486,11 +2489,11 @@ class RegWrap:
          # choose a statistic as representative
          # if an integer, choose a single sub-brick
          if(childflag) :   # or (vrcom != "3dvolreg") :
-            base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
+            base = "%s'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
          elif(ps.volreg_base.isdigit()):
             base = "%s" % ps.volreg_base
             if(vrcom != '3dvolreg'):
-                 base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
+                 base = "%s'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
 
          # otherwise median, mean or max
          else:          
@@ -2501,7 +2504,7 @@ class RegWrap:
               base = "0"
            else:
               ots = e.new("%s_ts_tempalpha" % prefix)
-              base = "%s.'[0]'" % ots.input()
+              base = "%s'[0]'" % ots.input()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
 
@@ -2519,7 +2522,7 @@ class RegWrap:
               ovr_alpha = e.new("%s_vr_tempalpha" % prefix)
 
               if((vrcom != '3dvolreg') and (ps.volreg_base.isdigit())):
-                 base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
+                 base = "%s'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
               com = shell_com(                                       \
                     "%s -prefix %s%s -base %s %s %s "  %               \
                 ( vrcom, ovr_alpha.p(), ovr_alpha.out_prefix(), base,               \
@@ -2527,7 +2530,7 @@ class RegWrap:
               com.run()
 
               ots = e.new("%s_vrt" % prefix)
-              base = "%s.'[0]'" % ots.input()
+              base = "%s'[0]'" % ots.input()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
 
@@ -2609,10 +2612,8 @@ class RegWrap:
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
-                  "3dAutomask -prefix %s %s && 3dcalc -a %s "\
-                  "-b %s -prefix %s -expr 'step(b)*a'" \
-                  % (   j.pp(), e.input(), e.input(), 
-                        j.input(), n.pp()), ps.oexec)
+                  "3dAutomask -apply_prefix %s %s" \
+                  % (   n.pp(), e.input()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print "** ERROR: Could not strip skull with automask\n"
@@ -2726,11 +2727,35 @@ class RegWrap:
          basepath = self.epi.p()
       else:
          basepath = self.epi_dir
-         
-      basename = self.epi.out_prefix()
-      baseviewext = "%s%s" % (self.epi.view, self.epi.extension)
-      o = self.epi;
-#      if childflag:    # no temporary files for children with exceptions below
+
+      if(self.epi.type == 'NIFTI'):
+         #copy original epi to a temporary file
+         o = afni_name("%s__tt_%s%s" % \
+                     (basepath, self.epi.out_prefix(),self.epi.view))
+         o.to_afni(new_view=dset_view(self.epi.ppve()))
+
+         self.info_msg("Copying NIFTI EPI input to AFNI format")
+         if (not o.exist() or ps.rewrite or ps.dry_run()):
+            com = shell_com( "3dcopy %s %s%s" % \
+              (self.epi.input(), o.p(), o.pv()), ps.oexec)
+            com.run();
+         basename = o.out_prefix()
+         baseviewext = "%s%s" % (o.view, o.extension)
+         basepathname = "%s%s" % (basepath, basename) 
+         tempbasepathname = basepathname
+         #make filename output without .nii.gz
+         self.epi_afniformat = afni_name("%s%s%s" % \
+                     (basepath, self.epi.out_prefix(),self.epi.view))
+         self.epi_afniformat.to_afni(new_view=dset_view(self.epi.ppve()))
+      else:
+         o = self.epi;
+         basename = o.out_prefix()
+         baseviewext = "%s%s" % (o.view, o.extension)
+         basepathname = "%s%s" % (basepath, basename) 
+         tempbasepathname = "%s__tt_%s" % (basepath, basename)
+         self.epi_afniformat = self.epi
+
+#      if Childflag:    # no temporary files for children with exceptions below
 #         prepre = ""
 #      else:
 #         prepre = "__tt_"
@@ -2741,10 +2766,10 @@ class RegWrap:
          if(self.tshiftable_dset(o)) :
             basesuff = "%s_tsh" % basesuff
             if(ps.save_tsh):
-                prefix = "%s%s%s%s" % (basepath,basename,basesuff,baseviewext)
+                prefix = "%s%s%s" % (basepathname,basesuff,baseviewext)
             else:
-                prefix = "%s__tt_%s%s%s" \
-                % (basepath,basename,basesuff,baseviewext)
+                prefix = "%s%s%s" \
+                % (tempbasepathname,basesuff,baseviewext)
             o = self.tshift_epi( o, ps.tshift_opt, prefix=prefix)
          else:
             self.info_msg("Can not do time shifting of slices. "
@@ -2759,10 +2784,10 @@ class RegWrap:
 	   (not ps.dry_run() and (dset_dims(o.input())[3] > 1))) :
              basesuff = "%s_vr" % basesuff
              if(ps.save_vr):
-                prefix = "%s%s%s%s" % (basepath,basename,basesuff,baseviewext)
+                prefix = "%s%s%s" % (basepathname,basesuff,baseviewext)
              else:
-                prefix = "%s__tt_%s%s%s" \
-                % (basepath,basename,basesuff,baseviewext)
+                prefix = "%s%s%s" \
+                % (tempbasepathname,basesuff,baseviewext)
              # if aligning epi to anat or saving volreg output, save motion parameters
              # if(ps.epi2anat):
              motion_prefix = "%s%s%s" % (basepath,basename,basesuff)
@@ -2787,8 +2812,8 @@ class RegWrap:
       if(ps.save_rep):
           prefix = "%s%s%s%s" % (basepath,basename,basesuff,baseviewext)
       else:
-          prefix = "%s__tt_%s%s%s" \
-          % (basepath,basename,basesuff,baseviewext)
+          prefix = "%s%s%s" \
+          % (tempbasepathname,basesuff,baseviewext)
 
       o = self.tstat_epi(o, ps.tstat_opt, prefix)
 
@@ -2798,8 +2823,8 @@ class RegWrap:
          if(ps.save_resample):
             prefix = "%s%s%s%s" % (basepath,basename,basesuff,baseviewext)
          else:
-            prefix = "%s__tt_%s%s%s" \
-            % (basepath,basename,basesuff,baseviewext)
+            prefix = "%s%s%s" \
+            % (tempbasepathname,basesuff,baseviewext)
          
          e = self.resample_epi( o,"", prefix)
       else:
@@ -2808,10 +2833,10 @@ class RegWrap:
       # remove outside brain or skull
       basesuff = "%s_ns" % basesuff
       if(self.save_epi_ns) :
-         prefix = "%s%s%s%s" % (basepath,basename,basesuff,baseviewext)
+         prefix = "%s%s%s" % (basepathname,basesuff,baseviewext)
       else:
-         prefix = "%s__tt_%s%s%s" \
-         % (basepath,basename,basesuff,baseviewext)
+         prefix = "%s%s%s" \
+         % (tempbasepathname,basesuff,baseviewext)
        
       skullstrip_o = self.skullstrip_data( e, use_ss, ps.skullstrip_opt, prefix)
 
@@ -2819,9 +2844,9 @@ class RegWrap:
       if(ps.edge) :
          basesuff = "%s_edge" % (basesuff)
          if(ps.save_rep):
-            prefix = "%s%s%s" % (basepath,basename,basesuff)
+            prefix = "%s%s%s" % (basepathname,basesuff)
          else:
-            prefix = "%s__tt_%s%s" % (basepath,basename,basesuff)
+            prefix = "%s%s" % (tempbasepathname,basesuff)
 
          skullstrip_o = self.edge_dset(skullstrip_o, prefix, binarize=0,
             erodelevel=ps.erodelevel)
@@ -2834,20 +2859,28 @@ class RegWrap:
          basepath = self.anat0.p()
       else:
          basepath = self.anat_dir
+         
+      self.anat0_master = self.anat0
 
       #copy original anat to a temporary file
       self.anat = afni_name("%s__tt_%s%s" % \
                   (basepath, self.anat0.out_prefix(),self.anat0.view))
-      
+      self.anat.to_afni(new_view=dset_view(self.anat.ppve()))
+
       if (not self.anat.exist() or ps.rewrite or ps.dry_run()):
          com = shell_com( "3dcopy %s %s%s" % \
-           (self.anat0.input(), self.anat.p(), self.anat.out_prefix()), ps.oexec)
+           (self.anat0.input(), self.anat.p(), self.anat.pv()), ps.oexec)
          com.run();
          if (not self.anat.exist() and not ps.dry_run()):
             print "** ERROR: Could not copy anat (%d)" % self.anat.exist()
             ps.ciao(1)
       else:
          self.exists_msg(self.anat.input())
+
+      # now that we have the data in AFNI format, use the AFNI format copy names
+      self.anat0 = afni_name("%s%s%s" % \
+                  (basepath, self.anat0.out_prefix(),self.anat0.view))
+      self.anat0.to_afni(new_view=dset_view(self.anat.ppve()))
 
       a = self.anat;
 
@@ -3057,6 +3090,7 @@ class RegWrap:
       child = copy.copy(ps)      
       
       child.epi = childepi
+      
       self.info_msg("Parent %s:  Child: %s" % 
           (ps.epi.input(), child.epi.input()))
             
@@ -3066,7 +3100,7 @@ class RegWrap:
          child.ciao(1)
 
       e = child.epi_ns
-      a = ps.anat0       # use parent anat
+      a = ps.anat0_master       # use parent anat
 
       if(ps.prep_only):  # if preprocessing only, exit now
          return
@@ -3111,7 +3145,6 @@ if __name__ == '__main__':
       ps.ciao(1)
    
    e = ps.epi_ns
-   a = ps.anat_ns
       
    #Create a weight for final pass
    if(not(ps.edge)):
@@ -3129,13 +3162,16 @@ if __name__ == '__main__':
          suff = ps.suffix
       else:
          suff = "%s_%s" % (ps.suffix, mcost)
+
+      a = ps.anat_ns
+
       ps.anat_alnd, ps.anat_alndwt = \
          ps.align_anat2epi(e, a, ps.epi_wt, ps.AlOpt, suff, mcost)
       if (not ps.anat_alnd):
          ps.ciao(1)
       if (ps.epi2anat) :   # does the user want the epi aligned to the anat
          # compute transformation just from applying inverse
-         a = ps.anat0      # especially important for oblique datasets
+         a = ps.anat0_master      # especially important for oblique datasets
          ps.epi_alnd = \
             ps.align_epi2anat(ps.epi_ts, a, ps.AlOpt, suf=suff)
          if (not ps.epi_alnd):

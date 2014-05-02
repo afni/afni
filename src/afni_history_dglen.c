@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 2 , MAY, 2014 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_GENERAL, 
+    "NIFTI dataset input",
+    "align_epi_anat.py modified to allow NIFTI input for anat,epi,\n"
+    "child_epi datasets. Output continues to be AFNI format."
+} ,
+
 { 24 , APR, 2014 , DRG , "edge detect button in afni viewer" , 
     MICRO , TYPE_GENERAL, 
     "Toggle edge detection with 'e' key in viewer",
