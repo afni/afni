@@ -1157,11 +1157,6 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
-      if( strcmp(argv[narg],"-papers") == 0 ){   /* 02 May 2014 */
-        AFNI_list_papers(NULL) ;
-        exit(0) ;
-      }
-
       /*----- -- option -----*/
 
       if( strcmp(argv[narg],"--") == 0 ){
@@ -1704,6 +1699,10 @@ int main( int argc , char *argv[] )
    if( check_string("-global_opts",argc,argv) ) {
      fputs(get_gopt_help(), stdout);
      dienow++ ;
+   }
+
+   if( check_string("-papers",argc,argv) ){
+     AFNI_list_papers(NULL) ; dienow++ ;
    }
 
    /*** if ordered, die right now ***/
