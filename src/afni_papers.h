@@ -1,8 +1,8 @@
-static char *afni_papers[] = {
+static char * afni_papers[] = {
    "\n" ,
-   "            *****************************************************\n" ,
-   "            **** This is a list of papers about AFNI, SUMA,  ****\n" ,
-   "            **** and various algorithms implemented therein  ****\n" ,
+   "            ****************************************************\n" ,
+   "           ***** This is a list of papers about AFNI, SUMA, *****\n" ,
+   "          ****** and various algorithms implemented therein ******\n" ,
    "----------------------------------------------------------------------------\n" ,
    "RW Cox.\n" ,
    "  AFNI: Software for analysis and visualization of functional\n" ,
