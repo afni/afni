@@ -1,7 +1,7 @@
 
-            *****************************************************
-            **** This is a list of papers about AFNI, SUMA,  ****
-            **** and various algorithms implemented therein  ****
+            ****************************************************
+           ***** This is a list of papers about AFNI, SUMA, *****
+          ****** and various algorithms implemented therein ******
 ----------------------------------------------------------------------------
 RW Cox.
   AFNI: Software for analysis and visualization of functional
