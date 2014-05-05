@@ -4210,6 +4210,13 @@ static ENV_SPEC envlist[] = {
       "Example: 'Ax:0.5:3:10 Co:123:2:50'",
       "SUMA_VO_InitSlices",
       "Ax:0.5 Sa:0.5:2:0.5 hCo:0.5" }, 
+   {  "Perform 'Home' call in SUMA after each prying.\n"
+      "If YES, objects are repositioned to stay in the middle of the viewer\n"
+      "as you pry the surfaces apart. This behavior is desired in general, \n"
+      "unless you don't like the initial positioning in the first place.\n"
+      "Choose from YES or NO",
+      "SUMA_HomeAfterPrying",
+      "YES" },
    {  NULL, NULL, NULL  }
 };
       

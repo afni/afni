@@ -17158,7 +17158,7 @@ SUMA_Boolean SUMA_ApplyPrying(SUMA_SurfaceViewer *sv, float val[3], char *units,
       
       SUMA_UpdateRotaCenter (sv, SUMAg_DOv, SUMAg_N_DOv);
       SUMA_UpdateViewPoint(sv, SUMAg_DOv, SUMAg_N_DOv, 0);
-      SUMA_SetGLHome(sv);
+      if (SUMAg_CF->Home_After_Prying) SUMA_SetGLHome(sv);
    }
    SUMA_RETURN(YUP);
 }
@@ -17250,7 +17250,7 @@ SUMA_Boolean SUMA_ResetPrying(SUMA_SurfaceViewer *svu)
          
          SUMA_UpdateRotaCenter (sv, SUMAg_DOv, SUMAg_N_DOv);
          SUMA_UpdateViewPoint(sv, SUMAg_DOv, SUMAg_N_DOv, 0);
-         SUMA_SetGLHome(sv);
+         if (SUMAg_CF->Home_After_Prying) SUMA_SetGLHome(sv);
          SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
       }
    }

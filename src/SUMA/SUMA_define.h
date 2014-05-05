@@ -3771,7 +3771,8 @@ typedef struct {
    DList *DsetList;  /*!< List containing datasets */
    SUMA_Boolean Allow_Dset_Replace; 
       /*!< Allow replacement of old dset with new dset having same id */
-   
+   SUMA_Boolean Home_After_Prying; 
+      /*!< Call 'Home' callback as prying is applied */
    int SUMA_ThrScalePowerBias;
    int SUMA_SnapshotOverSampling; 
    SUMA_Boolean IgnoreVolreg; 
