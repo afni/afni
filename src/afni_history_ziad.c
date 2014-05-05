@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ 
+ { 05, May, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
+   "SUMA_HomeAfterPrying to avoid a 'home' reset with prying",
+   NULL
+ },
+  
  { 24, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Reading of OBJ file format for triangular meshes.",
    NULL

@@ -4228,6 +4228,20 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          }
       } else cf->X->UseSameSurfCont = YUP;
    } 
+   { 
+      char *eee = getenv("SUMA_HomeAfterPrying");
+      if (eee) {
+         if (strcmp(eee,"NO") == 0) cf->Home_After_Prying = NOPE;
+         else if (strcmp(eee,"YES") == 0) cf->Home_After_Prying = YUP;
+         else {
+            fprintf (SUMA_STDERR,   
+                     "Warning %s:\n"
+                     "Bad value for environment variable SUMA_HomeAfterPrying\n"
+                     "Assuming default of YES", FuncName);
+            cf->Home_After_Prying = YUP;
+         }
+      } else cf->Home_After_Prying = YUP;
+   } 
    {
       char *eee = getenv("SUMA_NumForeSmoothing");
       if (eee) {
@@ -4271,6 +4285,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          }
       } else cf->SUMA_ThrScalePowerBias = 2; 
    }
+   
+   
    {
       char *eee = getenv("SUMA_SnapshotOverSampling");
       if (eee) {
