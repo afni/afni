@@ -40,6 +40,9 @@ if __name__ == '__main__':
 #
 #   27 Feb 2013 [rickr]:
 #     - added Ziad's apsearch options: -all_opts, -h_find, -h_view
+#
+#   09 May 2014 [rickr]:
+#     - added find_opt_index, which allows for popping
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -104,6 +107,19 @@ class OptionList:
                 index += 1
                 if index == nth: return com
         return None
+
+    def find_opt_index(self, name, nth=1): # same, but return the index
+        """return nth comopt index where name=name, else -1
+           same as find_opt, but return index
+        """
+        index = 0
+        cind = 0        # avoid enumerate, since python might be old?
+        for com in self.olist:
+            if com.name == name:
+                index += 1
+                if index == nth: return cind
+            cind += 1
+        return -1
 
     def find_all_opts(self, name):
         """return all comopts where name=name"""

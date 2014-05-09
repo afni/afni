@@ -263,8 +263,8 @@ examples:
    Example 14. Partition one stimulus class based on others.
 
       Class '1' (from the first input) is partitioned based on the class that
-      precedes it.  If none precede an early class 1 event, event 2 is used as
-      the default.
+      precedes it.  If none precede an early class 1 event, event 0 is used as
+      the default (else consider '-part_init 2', for example).
 
           timing_tool.py -multi_timing stimes.*.txt            \\
                -multi_timing_to_event_list part part1.pred.txt
@@ -278,8 +278,8 @@ examples:
 --------------------------------------------------------------------------
 Notes:
 
-   1. Action options are performed in the order of the options.  If the -chrono
-      option is given, everything (but -chrono) is.
+   1. Action options are performed in the order of the options.
+      Note: -chrono has been removed.
 
    2. Either -timing or -multi_timing is required for processing.
 
@@ -378,7 +378,6 @@ options with both single and multi versions (all single first):
 action options (apply to single timing element, only):
 
    ** Note that these options are processed in the order they are read.
-      See '-chrono' for similar notions.
 
    -add_offset OFFSET           : add OFFSET to every time in main element
 
@@ -712,10 +711,7 @@ general options:
 
    -chrono                      : process options chronologically
 
-        While the action options are already processed in order, general and
-        -timing options are not, unless the chrono option is given.  This 
-        allows one to do things like scripting a sequence of operations
-        within a single command.
+        This option has been removed.
 
    -min_frac FRAC               : specify minimum TR fraction
 
@@ -737,6 +733,14 @@ general options:
 
             Consider -timing_to_1D.
 
+   -part_init VALUE             : specify a default partition VALUE
+
+        e.g. -part_init 2
+
+        This option applies to '-multi_timing_to_event_list part'.  In the
+        case of generating a partition based on the previous events, this
+        option allow the user to specify the partition class to be used when
+        the class in question comes first (i.e. there is no previous event).
 
    -nplaces NPLACES             : specify # decimal places used in printing
 
@@ -843,6 +847,10 @@ g_history = """
    2.05 Apr 24, 2014 - added -multi_timing_to_event_list
         - generates simple event lists, partitions, and detailed event lists
    2.06 Apr 29, 2014 - micro change to text output
+   2.07 May  9, 2014
+        - added -part_init option for WL Tseng
+        - removed -chrono option
+          (action items are still processed chronologically)
 """
 
 g_version = "timing_tool.py version 2.06, April 29, 2014"
@@ -859,7 +867,6 @@ class ATInterface:
       self.all_edtypes     = ['i', 'p', 't', 'o', 'd', 'f']
 
       # user options
-      self.chrono          = 0          # are options processed chronologically
       self.nplaces         = -1         # num decimal places for writing
       self.run_len         = [0]        # time per run (for single/multi)
       self.verb            = verb
@@ -867,6 +874,7 @@ class ATInterface:
       self.min_frac        = 0.3        # applies to timing_to_1D
       self.tr              = 0          # applies to some output
       self.per_run         = 0          # conversions done per run
+      self.part_init       = 0          # default for -part_init
 
       # user options - single var
       self.timing          = None       # main timing element
@@ -1056,6 +1064,9 @@ class ATInterface:
       self.valid_opts.add_opt('-partition', 2, [], 
                          helpstr='partition the events into multiple files')
 
+      self.valid_opts.add_opt('-part_init', 1, [], 
+                         helpstr='initial index for event list part (def=0)')
+
       self.valid_opts.add_opt('-round_times', 1, [], 
                          helpstr='round times up if past FRAC of TR')
 
@@ -1114,8 +1125,6 @@ class ATInterface:
 
 
       # general options (including multi)
-      self.valid_opts.add_opt('-chrono', 0, [], 
-                         helpstr='process options chronologically')
       self.valid_opts.add_opt('-min_frac', 1, [], 
                          helpstr='min tr fraction (in [0,1.0])')
       self.valid_opts.add_opt('-nplaces', 1, [], 
@@ -1163,21 +1172,26 @@ class ATInterface:
       # ============================================================
       # read options specified by the user
       self.user_opts = OL.read_options(sys.argv, self.valid_opts)
-      uopts = self.user_opts            # convenience variable
+
+      # for convenience and popping
+      uopts = copy.deepcopy(self.user_opts)
+
       if not uopts: return 1            # error condition
 
       # ------------------------------------------------------------
       # check general options, esp. chrono
 
-      if uopts.find_opt('-chrono'): self.chrono = 1
+      # ------------------------------------------------------------
+      # process general options first (so -show options are still in order)
 
-      # if options are not chronological, process general options now
-      # (so -show options are still in order)
-      if not self.chrono:
-
-         val, err = self.user_opts.get_type_opt(int, '-verb')
+      oind = uopts.find_opt_index('-verb')
+      if oind >= 0:
+         val, err = uopts.get_type_opt(int, '-verb')
          if val != None and not err: self.verb = val
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-min_frac')
+      if oind >= 0:
          val, err = uopts.get_type_opt(float, '-min_frac')
          if val and not err:
             self.min_frac = val
@@ -1185,125 +1199,86 @@ class ATInterface:
             print '** invalid -min_frac = %g' % self.min_frac
             print '   (should be in [0,1])'
             return 1
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-nplaces')
+      if oind >= 0:
          val, err = uopts.get_type_opt(int, '-nplaces')
          if val and not err:
             self.nplaces = val
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-part_init')
+      if oind >= 0:
+         val, err = uopts.get_type_opt(int, '-part_init')
+         if val and not err:
+            self.part_init = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-per_run')
+      if oind >= 0:
          if uopts.find_opt('-per_run'): self.per_run = 1
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-tr')
+      if oind >= 0:
          val, err = uopts.get_type_opt(float, '-tr')
          if val and not err:
             self.tr = val
             if self.tr <= 0.0:
                print '** invalid (non-positive) -tr = %g' % self.tr
                return 1
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-run_len')
+      if oind >= 0:
          val, err = uopts.get_type_list(float, '-run_len')
          if type(val) == type([]) and not err:
             self.run_len = val
+         uopts.olist.pop(oind)
 
-         # main timing options
+      # main timing options
 
+      oind = uopts.find_opt_index('-timing')
+      if oind >= 0:
          val, err = uopts.get_string_opt('-timing')
          if val and not err:
             if self.set_timing(val): return 1
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-stim_dur')
+      if oind >= 0:
          val, err = uopts.get_type_opt(float, '-stim_dur')
          if val and not err:
             self.set_stim_dur(val)
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-multi_timing')
+      if oind >= 0:
          val, err = uopts.get_string_list('-multi_timing')
          if type(val) == type([]) and not err:
             if self.multi_set_timing(val): return 1
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-multi_stim_dur')
+      if oind >= 0:
          val, err = uopts.get_type_list(float, '-multi_stim_dur')
          if type(val) == type([]) and not err:
             self.multi_set_stim_durs(val)
+         uopts.olist.pop(oind)
 
+      oind = uopts.find_opt_index('-write_all_rest_times')
+      if oind >= 0:
          val, err = uopts.get_string_opt('-write_all_rest_times')
          if val and not err:
             self.all_rest_file = val
+         uopts.olist.pop(oind)
 
       # ------------------------------------------------------------
       # selection and process options:
       #    process sequentially, to make them like a script
 
       for opt in uopts.olist:
-
-         # if all options are chronological, check load and general, too
-
-         if self.chrono:
-
-            # continue after any found option
-
-            if opt.name == '-chrono': continue
-
-            # main timing options
-            if opt.name == '-timing':
-               if self.set_timing(opt.parlist[0]): return 1
-               continue
-
-            elif opt.name == '-multi_timing':
-               if self.multi_set_timing(opt.parlist): return 1
-               continue
-
-            elif opt.name == '-stim_dur':
-               val, err = self.user_opts.get_type_opt(float, opt=opt)
-               if val != None and err: return 1
-               else: self.set_stim_dur(val)
-               continue
-
-            elif opt.name == '-multi_stim_dur':
-               val, err = self.user_opts.get_type_list(float, opt=opt)
-               if val != None and err: return 1
-               else: self.multi_set_stim_durs(val)
-               continue
-
-            # general options
-
-            val, err = uopts.get_type_opt(float, '-min_frac')
-            if val and not err:
-               self.min_frac = val
-            if self.min_frac < 0.0 or self.min_frac > 1.0:
-               print '** invalid -min_frac = %g' % self.min_frac
-               print '   (should be in [0,1])'
-               return 1
-
-            elif opt.name == '-nplaces':
-               val, err = self.user_opts.get_type_opt(int, '', opt=opt)
-               if val != None and err: return 1
-               else: self.nplaces = val
-               continue
-
-            elif opt.name == '-per_run':
-               self.per_run = 1
-               continue
-
-            elif opt.name == '-run_len':
-               val, err = self.user_opts.get_type_list(float, opt=opt)
-               if val != None and err: return 1
-               else: self.run_len = val
-               continue
-
-            val, err = uopts.get_type_opt(float, '-tr')
-            if val and not err:
-               self.tr = val
-               if self.tr <= 0.0:
-                  print '** invalid -tr = %g' % self.tr
-                  return 1
-
-            elif opt.name == '-verb':
-               val, err = self.user_opts.get_type_opt(int, '', opt=opt)
-               if val != None and err: return 1
-               else: self.verb = val
-               continue
-
-            elif opt.name == '-write_all_rest_times':
-               val, err = self.user_opts.get_string_opt('', opt=opt)
-               if val != None and err: return 1
-               else: self.all_rest_file = val
-               continue
 
          #---------- action options, always chronological ----------
 
@@ -1313,7 +1288,7 @@ class ATInterface:
             self.show_multi()
             continue
 
-         if opt.name == '-add_rows':
+         elif opt.name == '-add_rows':
             if not self.timing:
                print "** '%s' requires -timing" % opt.name
                return 1
@@ -1515,6 +1490,10 @@ class ATInterface:
             if val != None and err: return 1
             self.write_timing(val)
 
+         else:
+            print '** unknown option: %s' % opt.name
+            return 1
+
       return 0
 
    def multi_timing_to_event_list(self, fname='stdout', style='index'):
@@ -1598,7 +1577,7 @@ class ATInterface:
             cind = event[3]
             # track previous class and event times
             if eind == 0:
-               cprev = 2
+               cprev = self.part_init
                tprev = 0
             else:
                 cprev  = allevents[eind-1][3]

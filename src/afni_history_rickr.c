@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  May, 2014, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -part_init option; removed -chrono option",
+   NULL
+ } ,
+
  {  1,  May, 2014, RCR, "@update.afni.binaries", MINOR, TYPE_BUG_FIX,
    "added -quick option; fixed recursive backups",
    NULL
@@ -3647,7 +3652,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 22, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_OPT,
+ { 22, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_PROG,
    "python replacement for serial helper",
    "New 'data_choice' options can be added to compute_data_for_serial_port\n"
    "for sending results of a different computation to the serial port."
@@ -3655,11 +3660,6 @@ afni_history_struct rickr_history[] = {
 
  { 16, JUL, 2009, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "check for 'wget' and whine to user if missing",
-   NULL
- } ,
-
- { 16, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_PROG,
-   "replacement for serial_helper",
    NULL
  } ,
 
