@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  May, 2014, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
+   "-part_init 0 is not appropriate for -partition",
+   "Text labels now apply, and the default is '-part_init INIT'."
+ } ,
+
  {  9,  May, 2014, RCR, "timing_tool.py", MICRO, TYPE_NEW_OPT,
    "added -part_init option; removed -chrono option",
    NULL
