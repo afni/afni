@@ -263,8 +263,8 @@ examples:
    Example 14. Partition one stimulus class based on others.
 
       Class '1' (from the first input) is partitioned based on the class that
-      precedes it.  If none precede an early class 1 event, event 0 is used as
-      the default (else consider '-part_init 2', for example).
+      precedes it.  If none precede an early class 1 event, event INIT is used
+      as the default (else consider '-part_init 2', for example).
 
           timing_tool.py -multi_timing stimes.*.txt            \\
                -multi_timing_to_event_list part part1.pred.txt
@@ -733,14 +733,19 @@ general options:
 
             Consider -timing_to_1D.
 
-   -part_init VALUE             : specify a default partition VALUE
+   -part_init NAME             : specify a default partition NAME
 
-        e.g. -part_init 2
+        e.g.     -part_init 2
+        e.g.     -part_init frogs
+        default: -part_init INIT
 
         This option applies to '-multi_timing_to_event_list part'.  In the
         case of generating a partition based on the previous events, this
         option allow the user to specify the partition class to be used when
         the class in question comes first (i.e. there is no previous event).
+
+        The default class is the label INIT (the other classes will be
+        small integers, from 1 to #inputs).
 
    -nplaces NPLACES             : specify # decimal places used in printing
 
@@ -851,9 +856,10 @@ g_history = """
         - added -part_init option for WL Tseng
         - removed -chrono option
           (action items are still processed chronologically)
+   2.08 May 12, 2014 - default -part_init to INIT (0 not valid for -partition)
 """
 
-g_version = "timing_tool.py version 2.06, April 29, 2014"
+g_version = "timing_tool.py version 2.08, May 12, 2014"
 
 
 
@@ -874,7 +880,7 @@ class ATInterface:
       self.min_frac        = 0.3        # applies to timing_to_1D
       self.tr              = 0          # applies to some output
       self.per_run         = 0          # conversions done per run
-      self.part_init       = 0          # default for -part_init
+      self.part_init       = 'INIT'     # default for -part_init
 
       # user options - single var
       self.timing          = None       # main timing element
@@ -1210,7 +1216,7 @@ class ATInterface:
 
       oind = uopts.find_opt_index('-part_init')
       if oind >= 0:
-         val, err = uopts.get_type_opt(int, '-part_init')
+         val, err = uopts.get_string_opt('-part_init')
          if val and not err:
             self.part_init = val
          uopts.olist.pop(oind)
@@ -1590,9 +1596,9 @@ class ATInterface:
             elif style == 'part':
                if cind != 1: continue # only write predecessors of class 1
                if cprev == 1 and self.verb > 0:
-                  print '** run %d, event %d: class %d preceded by class %d' \
+                  print '** run %d, event %d: class %d preceded by class %s' \
                         % (rind, eind, cind, cprev)
-               fp.write('%d ' % cprev)
+               fp.write('%s ' % cprev)
             else:
                print '** invalid style %s' % style
                return 1
@@ -1635,7 +1641,7 @@ class ATInterface:
       elist = []
       for st in etypes:
          if   st == 'i': astr = '%d' % cind
-         elif st == 'p': astr = '%d' % cprev
+         elif st == 'p': astr = '%s' % cprev
          elif st == 'f': astr = '%-*s' % (maxfilelen,tlist[cind-1].fname)
          elif st == 'd': astr = '%8.3f' % dur
          elif st == 'o':
