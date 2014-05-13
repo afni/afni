@@ -414,12 +414,14 @@ g_history = """
     4.16 April 17, 2014:
         - allow a special case of MIN_OUTLIER as the -volreg_base_dset, as
           recommended by T. Ross
+    4.17 May 12, 2014: added -regress_use_tproject
+        - default to 'yes' if there are no stim files
 """
 
-g_version = "version 4.16, April 17, 2014"
+g_version = "version 4.17, May 12, 2014"
 
 # version of AFNI required for script execution
-g_requires_afni = "10 Apr 2014" # for 1d_tool.py -index_to_run_tr
+g_requires_afni = "12 May 2014" # for multiple -inputs names to 3dTproject
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -945,6 +947,9 @@ class SubjProcSream:
                         helpstr="specify times/AM1/AM2/IM for each stim class")
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [],
                         helpstr="do not convert stim_files to timing")
+        self.valid_opts.add_opt('-regress_use_tproject', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="use 3dTproject instead of 3dDeconvolve")
 
         self.valid_opts.add_opt('-regress_apply_mot_types', -1, [],
                         acplist=['basic','demean','deriv'],

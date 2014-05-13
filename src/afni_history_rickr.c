@@ -49,6 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  May, 2014, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_use_tproject, and made the default=yes",
+   "This will apply 3dTproject instead of 3dDeconvolve for resting\n"
+   "state analysis.  It is much faster, and creates the same result."
+ } ,
+
+ { 12,  May, 2014, RCR, "3dTproject", MICRO, TYPE_ENHANCE,
+   "allow for multiple -input dataset, without requiring quotes around them",
+   NULL
+ } ,
+
  { 12,  May, 2014, RCR, "timing_tool.py", MICRO, TYPE_BUG_FIX,
    "-part_init 0 is not appropriate for -partition",
    "Text labels now apply, and the default is '-part_init INIT'."
