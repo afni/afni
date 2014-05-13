@@ -10,6 +10,8 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "r_misc.h"
 
 /* -- locals */
@@ -127,5 +129,38 @@ ulong_size ( unsigned long l )
         return 2;
 
     return 1;
+}
+
+/* allocate and catenate the strings into one long one, using the
+ * given separator string                    12 May, 2014 [rickr] */
+char * cat_strings(char * slist[], int nstr, char * sepstr)
+{
+   char * newstr, * localsep = " ";
+   int    sind, total, seplen = 0;
+
+   if( !slist || nstr <= 0 ) return NULL;
+
+   /* so localsep points to something */
+   if( sepstr ) localsep = sepstr;
+   seplen = strlen(sepstr);
+
+   /* first compute total space */
+   if( slist[0] ) total = strlen(slist[0]);
+   else           total = 0;
+   for( sind = 1; sind < nstr; sind++ )
+      if( slist[sind] ) total += strlen(slist[0]) + seplen;
+
+   /* allocate and dupe... */
+   newstr = (char *)calloc(total, sizeof(char));
+   if( slist[0] ) strcpy(newstr, slist[0]);
+
+   /* append the rest */
+   for( sind = 1; sind < nstr; sind++ ) {
+      if( ! slist[sind] ) continue;
+      strcat(newstr, localsep);
+      strcat(newstr, slist[sind]);
+   }
+
+   return newstr;
 }
 
