@@ -2937,6 +2937,9 @@ def db_mod_regress(block, proc, user_opts):
     # maybe do bandpass filtering in the regression
     apply_uopt_to_block('-regress_RSFC', user_opts, block)
 
+    # mayber replace 3dDeconvolve with 3dTproject
+    apply_uopt_to_block('-regress_use_tproject', user_opts, block)
+
     # prepare to return
     if errs > 0:
         block.valid = 0
@@ -3029,6 +3032,10 @@ def db_cmd_regress(proc, block):
             print '** error: have %d basis functions but %d stim classes' \
                   % (len(basis), len(proc.stims))
             return
+
+    # if no stim files, default to using 3dTproject
+    use_tproj = block.opts.have_yes_opt('-regress_use_tproject',
+                                        default=(len(proc.stims) == 0))
 
     # create a stim_type list to match the stims
     opt = block.opts.find_opt('-regress_stim_types')
@@ -3317,9 +3324,10 @@ def db_cmd_regress(proc, block):
           ' '.join(UTIL.quotize_list(opt.parlist, '\\\n%s    '%istr, 1))
 
     # are we going to stop with the 1D matrix?
+    # (either explicit option or if using 3dTproject)
     opt = block.opts.find_opt('-regress_3dD_stop')
-    if opt: stop_opt = '    -x1D_stop'
-    else  : stop_opt = ''
+    if opt or use_tproj: stop_opt = '    -x1D_stop'
+    else:                stop_opt = ''
 
     # do we want F-stats
     opt = block.opts.find_opt('-regress_fout')
@@ -3343,6 +3351,21 @@ def db_cmd_regress(proc, block):
     O3dd.extend([fitts, errts, stop_opt, cbuck_str])
     O3dd.append("    -bucket %sstats.$subj%s\n" % (tmp_prefix, suff))
 
+    # possibly run 3dTproject (instead of 3dDeconvolve)
+    if use_tproj:
+        # inputs, -censor, -cenmode, -ort Xmat, -prefix
+        if proc.censor_file: xmat = '%s%s' % (tmp_prefix, newmat)
+        else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
+        if errts: epre = proc.errts_pre
+        else:     epre = 'errts.$subj'
+        tprefix = '%s%s.tproject' % (tmp_prefix, epre)
+
+        tpcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
+                maskstr=mask, censtr=censor_str, xmat=xmat, prefix=tprefix)
+        if not tpcmd: return
+        tpcmd = '\n' + tpcmd
+    else: tpcmd = ''
+
     # possibly run the REML script (only here in the case of surfaces)
     if block.opts.find_opt('-regress_reml_exec') and proc.surf_anat:
         rcmd = db_cmd_reml_exec(proc, block, short=1)
@@ -3356,7 +3379,7 @@ def db_cmd_regress(proc, block):
     jstr = ' \\\n%s' % istr
     c3d  = '# run the regression analysis\n' + feh_str + \
            jstr.join([s for s in O3dd if s])
-    c3d += rcmd + feh_end + '\n\n'
+    c3d += tpcmd + rcmd + feh_end + '\n\n'
 
     # done creating 3dDeconvolve command c3d, add to cmd string
     cmd += c3d
@@ -3526,6 +3549,41 @@ def db_cmd_regress(proc, block):
     bcmd = db_cmd_blur_est(proc, block)
     if bcmd == None: return  # error
     if bcmd: cmd += bcmd
+
+    return cmd
+
+# Run 3dTproject, akin to 3dDeconvolve.
+# 
+# Use the same -input option and -censor options, and possibly add
+# -cenmode ZERO.  Include -ort with the X-matrix and use errts prefix.
+#
+# return None on failure
+def db_cmd_tproject(proc, block, insets, maskstr='', censtr='',
+                    xmat='X.xmat.1D', prefix='errts.tproject'):
+    """generate a simple 3dTproject command
+    """
+
+    if proc.verb > 1: print '++ creating 3dTproject command string'
+
+    if proc.surf_anat: istr = '    '
+    else:              istr = ''
+
+    # for now, create output to match that of 3dDeconvolve
+
+    if maskstr: mstr = maskstr.strip()
+    else:       mstr = ''
+    if mstr != '': mstr = '%s           %s \\\n' % (istr, mstr)
+
+    cstr = censtr.strip()
+    if cstr != '': cstr = '%s           %s -cenmode ZERO \\\n' % (istr, cstr)
+
+    cmd = '%s# -- use 3dTproject to project out regression matrix --\n' \
+          '%s3dTproject -polort 0 -input %s \\\n'                       \
+          '%s%s'                                                        \
+          '%s           -ort %s -prefix %s\n\n'                         \
+          % (istr, istr, insets, mstr, cstr, istr, xmat, prefix)
+
+    proc.errts_pre = prefix
 
     return cmd
 

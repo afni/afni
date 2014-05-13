@@ -1087,11 +1087,27 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcasecmp(argv[iarg],"-input") == 0 ){
-       if( tinp->inset != NULL ) ERROR_exit("Can't use option '%s' twice!",argv[iarg]) ;
-       if( ++iarg      >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
-       tinp->inset = THD_open_dataset(argv[iarg]) ;
-       CHECK_OPEN_ERROR(tinp->inset,argv[iarg]) ;
-       iarg++ ; continue ;
+       char * dname;
+       int    nname;
+       if( tinp->inset != NULL )
+          ERROR_exit("Can't use option '%s' twice!",argv[iarg]) ;
+       if( ++iarg      >= argc )
+          ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
+
+       /* allow for multiple dataset names   12 May, 2014 [rickr] */
+       for( nname=0; iarg+nname < argc && argv[iarg+nname][0] != '-'; nname++)
+          ;
+       dname = cat_strings(argv+iarg, nname, " ");
+       if( ! dname )
+          ERROR_exit("cannot cat %d dset names, starting with %d, '%s'",
+                     nname, iarg, argv[iarg]);
+
+       if( nname > 1 ) INFO_message("have %d input dataset names", nname);
+
+       tinp->inset = THD_open_dataset(dname);
+       CHECK_OPEN_ERROR(tinp->inset,dname);
+       free(dname);
+       iarg+=nname ; continue ;
      }
 
      /*-----*/
