@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13,  May, 2014, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "allow for no stats dset",
+   "With resting state and 3dTproject, afni_proc.py will not create stats."
+ } ,
+
  { 12,  May, 2014, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_use_tproject, and made the default=yes",
    "This will apply 3dTproject instead of 3dDeconvolve for resting\n"
