@@ -421,7 +421,7 @@ g_history = """
 g_version = "version 4.17, May 12, 2014"
 
 # version of AFNI required for script execution
-g_requires_afni = "12 May 2014" # for multiple -inputs names to 3dTproject
+g_requires_afni = "13 May 2014" # no stats for gen_ss_review_scripts.py
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
