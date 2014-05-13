@@ -76,7 +76,6 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       motion_dset          dfile_rall.1D
       volreg_dset          pb02.FT.r01.volreg+tlrc.HEAD
       xmat_regress         X.xmat.1D
-      stats_dset           stats.FT+tlrc.HEAD
       final_anat           FT_anat+tlrc.HEAD
 
    optional files/datasets (censor files are required if censoring was done):
@@ -84,6 +83,7 @@ gen_ss_review_scripts.py - generate single subject analysis review scripts
       mask_dset            full_mask.FT+tlrc.HEAD
       censor_dset          motion_FT_censor.1D
       sum_ideal            sum_ideal.1D
+      stats_dset           stats.FT+tlrc.HEAD
       xmat_uncensored      X.nocensor.xmat.1D
       tsnr_dset            TSNR.ft+tlrc.HEAD
       gcor_dset            out.gcor.1D
@@ -387,7 +387,7 @@ endif
 g_basic_fstat_str = """
 # ------------------------------------------------------------
 # note maximum F-stat
-if ( -f $stats_dset ) then
+if ( -f "$stats_dset" ) then
   set fmax = `3dBrickStat -slow -max $stats_dset"[Full_Fstat]"`
   echo "maximum F-stat            : $fmax"
 endif
@@ -396,7 +396,7 @@ endif
 g_basic_fstat_mask_str = """
 # ------------------------------------------------------------
 # note maximum masked F-stat
-if ( -f $stats_dset && -f $mask_dset ) then
+if ( -f "$stats_dset" && -f $mask_dset ) then
   set fmax = `3dBrickStat -slow -max -mask $mask_dset $stats_dset"[Full_Fstat]"`
   echo "maximum F-stat (masked)   : $fmax"
 endif
@@ -586,9 +586,10 @@ g_history = """
         - grep commands are killing it when not finding matches
         - linux systems are not terminating there, while macs do
    0.36 Apr 09, 2014: for GCOR files, give priority to having 'out' in name
+   0.37 May 13, 2014: allow no stats, in case of rest and 3dTproject
 """
 
-g_version = "gen_ss_review_scripts.py version 0.36, April 9, 2014"
+g_version = "gen_ss_review_scripts.py version 0.37, May 13, 2014"
 
 g_todo_str = """
    - figure out template_space
@@ -842,8 +843,8 @@ class MyInterface:
       if self.guess_rm_trs():      return 1
       if self.guess_stats_dset():  return 1
       if self.guess_sum_ideal():   return 1
-      if self.guess_final_view():  return 1
       if self.guess_volreg_dset(): return 1
+      if self.guess_final_view():  return 1
       if self.guess_enorm_dset():  return 1
       if self.guess_motion_dset(): return 1
       if self.guess_outlier_dset():return 1
@@ -1147,13 +1148,14 @@ class MyInterface:
             print '-- already set: final_view = %s' % self.uvars.final_view
          return 0
 
-      if not self.dsets.is_empty('volreg_dset'):
+      if self.dsets.is_not_empty('volreg_dset'):
          view = self.dsets.volreg_dset.view
-      elif not self.dsets.is_empty('stats_dset'):
+      elif self.dsets.is_not_empty('stats_dset'):
          view = self.dsets.stats_dset.view
       else:
          print '** no stats_dset to get final_view from'
          view = ''
+         print '== rcr - vr = %s' % self.dsets.val('volreg_dset')
 
       if len(view) != 5: # maybe surface, go after volreg explicitly for now
          vv = "+orig"
@@ -1608,9 +1610,10 @@ class MyInterface:
       dlist = [d for d in dlist if d.find('_REMLvar+') < 0]
 
       if len(dlist) < 1:
-         print '** failed to guess at any stats dset, globstr = "%s"' % gform
-         print '   (X-matrix file "%s" may not apply)' % ax.fname
-         return 1
+         print '** failed to guess at any stats dset, resting state?'
+         print '   (else X-matrix file "%s" may not apply)' % ax.fname
+         self.uvars.stats_dset = 'NO_STATS'
+         return 0
       if len(dlist) == 1:
          sset = dlist[0]
       else:     # must pare down the list
@@ -1635,8 +1638,7 @@ class MyInterface:
 
       sb = BASE.afni_name(sname)
       if not sb.exist():
-         print '** stats dataset not found: %s' % xname
-         return 1
+         print "** warning: stats dataset not found: '%s'" % sname
 
       # set corresponding dset items and then go after uncensored
       self.dsets.stats_dset = sb
@@ -1757,8 +1759,7 @@ class MyInterface:
          astr = 'echo "final anatomy dset        : $final_anat"\n'
       else: astr = ''
 
-      sset = self.uvars.val('stats_dset')
-      if sset != None:
+      if self.uvars.is_not_empty('stats_dset'):
          sstr = 'echo "final stats dset          : $stats_dset"\n' \
                 'echo "final voxel resolution    : '               \
                                         '`3dinfo -ad3 $stats_dset`"\n'
@@ -1847,11 +1848,10 @@ class MyInterface:
          errs += 1
 
       var = 'stats_dset'
-      if self.uvars.is_not_empty(var):
+      val = self.uvars.val(var)
+      if val != None:
          txt += form % (var, self.uvars.val(var))
-      else:
-         print '** basic script: missing variable %s' % var
-         errs += 1
+      # else: okay - not required (resting state)
 
       var = 'censor_dset'
       if self.uvars.is_not_empty(var):
@@ -2144,7 +2144,7 @@ class MyInterface:
          if mesg: print '** no %s dset, %s' % (dname, mesg)
          return 1
       if not dset.exist():
-         if mesg: print '** missing %s %s, %s' % (dname, dset, mesg)
+         if mesg: print '** missing %s %s, %s' % (dname, dset.prefix, mesg)
          return 1
       return 0
 
