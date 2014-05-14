@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.6, April 16, 2014
+Version 3.0.7, May 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.6, April 16, 2014
+Version 3.0.7, May 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1088,12 +1088,12 @@ while(is.null(fm)) {
       cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
       cat('Note that within-subject or repeated-measures variables have to be declared\n')
       cat('with -wsVars.\n\n')
-      cat('2) Misspecifications in general linear test coding with -gltCode.\n\n')
+      cat('2) Incorrect specifications in general linear test coding with -gltCode.\n\n')
       cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
       cat('whether there are any inconsistencies.\n\n')
       cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
-      cat('named Group in model specifiction and then listed as group in the table hader\n')
-      cat('would cause grief for 3dMVM.\n')
+      cat('named Group in model specification and then listed as group in the table hader\n')
+      cat('would cause grief for 3dMVM.\n\n')
       cat('5) Not enough number of subjects. This may happen when there are two or more\n')
       cat('withi-subject factors. For example, a model with two within-subject factors with\n')
       cat('m and n levels respectively requires more than (m-1)*(n-1) subjects to be able to\n')
@@ -1218,7 +1218,8 @@ pars[[5]] <- lop$slpList
 pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT) # any within-subject factors?
 pars[[7]] <- is.na(lop$mVar)   # any real multivariate modeling: currently for basis functions
 pars[[8]] <- list(0.75, numDF, denDF) # switching threshold between GG and HF: 0.6
-pars[[9]] <- !is.null(mvtInd)
+pars[[9]] <- mvtInd   # which indices for wsMVT
+#pars[[9]] <- !is.null(mvtInd)   # which indices for wsMVT
 pars[[10]] <- list(lop$vQV, all(is.na(lop$vVarCenters)), NoFile, nSubj)                                            
 # only run wsMVT for those terms associated with a within-subject factor:
 # which(names(fm$Anova$SSPE) %in% dimnames(uvfm$sphericity.correction)[[1]])
