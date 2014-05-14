@@ -21,7 +21,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1, April 23, 2014
+Version 1.2, May 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -37,7 +37,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1, April 23, 2014
+Version 1.2, May 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -975,7 +975,8 @@ pars[[8]] <- ranEff
 pars[[9]] <- corStr                 # correlation structure for basis function modeling
 pars[[10]]<- ifelse(lop$SS_type==3, 'marginal', 'sequential')
 pars[[11]]<- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)   # number of basis functions
-if(is.null(lop$QV)) pars[[12]] <- 1:nF else pars[[12]]<- (1:nF)+is.na(lop$corStr[1]) 
+pars[[12]] <- 1:nF
+#if(is.null(lop$QV)) pars[[12]] <- 1:nF else pars[[12]]<- (1:nF)+is.na(lop$corStr[1]) 
 #pars[[12]]<- unique(unlist(sapply(lop$QV, grep, dimnames(summary(fm)$tTable)[[1]])))    # row numbers involving covariate values
 #pars[[12]]<- (1:nF)+is.na(lop$corStr[1])                        # row sequence for F-values
 
