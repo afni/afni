@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  May, 2014, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "a few updates:",
+   "  - if no AFNI binaries in path, try path to ASC.py\n"
+   "  - look for history files in data directories\n"
+   "  - print comments at end, so they are easier to notice"
+ } ,
+
  { 13,  May, 2014, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "allow for no stats dset",
    "With resting state and 3dTproject, afni_proc.py will not create stats."

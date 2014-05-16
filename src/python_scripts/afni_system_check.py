@@ -99,9 +99,13 @@ g_history = """
    0.7  Mar 21, 2014
         - improved class data search
         - added -data_root for class data search
+   0.8  May 16, 2014
+        - if no AFNI binaries found, try path to this program
+        - look for history files in data directories
+        - print comments at the end, so they are easier to notice
 """
 
-g_version = "afni_system_check.py version 0.6, March 14, 2014"
+g_version = "afni_system_check.py version 0.8, May 16, 2014"
 
 
 class CmdInterface:
@@ -248,17 +252,9 @@ class CmdInterface:
 
    def show_system_info(self):
 
-      print UTIL.section_divider(g_version, hchar='=')
-      print 
-
       self.sinfo = SC.SysInfo(verb=self.verb, data_root=self.data_root)
 
-      self.sinfo.show_general_sys_info()
-      self.sinfo.show_general_afni_info()
-      self.sinfo.show_python_lib_info(['PyQt4'], verb=3)
-      self.sinfo.show_path_vars()
-      self.sinfo.show_data_info()
-      self.sinfo.show_os_specific()
+      self.sinfo.show_all_sys_info()
 
    def execute(self):
 

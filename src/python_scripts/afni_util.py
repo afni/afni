@@ -97,6 +97,13 @@ def read_text_file(fname='stdin', lines=0):
 
    return tdata
 
+def read_top_lines(fname='stdin', nlines=1, strip=0):
+   """use read_text_file, but return only the first 'nlines' lines"""
+   tdata = read_text_file(fname, lines=1)
+   tdata = tdata[0:nlines]
+   if strip: tdata = [l.strip() for l in tdata]
+   return tdata
+
 def write_to_timing_file(data, fname='', nplaces=-1, verb=1):
    """write the data in stim_times format, over rows
       (this is not for use with married timing, but for simple times)"""
@@ -2411,6 +2418,15 @@ def glob_form_has_match(form):
    del(glist)
    if glen > 0: return 1
    return 0
+
+def executable_dir(ename=''):
+   """return the directory whre the ename program is located
+      (by default, use argv[0])"""
+   if ename == '': ee = sys.argv[0]
+   else:           ee = ename
+
+   dname = os.path.dirname(ee)
+   return os.path.abspath(dname)
 
 def common_dir(flist):
    """return the directory name that is common to all files (unless trivial)"""
