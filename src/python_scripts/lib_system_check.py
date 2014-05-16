@@ -27,6 +27,7 @@ class SysInfo:
 
       self.afni_ver        = ''
       self.os_dist         = ''
+      self.comments        = [] # comments to print at the end
 
    def get_afni_dir(self):
       s, so, se = BASE.simple_shell_exec('which afni', capture=1)
@@ -71,6 +72,33 @@ class SysInfo:
       print 'apparent login shell: %s%s' % (logshell, note)
       print
 
+   def show_top_line(self, fname, prefix=''):
+      htxt = UTIL.read_top_lines(fname, nlines=1, strip=1)
+      if len(htxt) == 0: htxt = 'NONE FOUND'
+      else:              htxt = htxt[0]
+      print '%s%s' % (prefix, htxt)
+
+   def show_data_dir_info(self, ddir, histfile=''):
+      """try to locate and display the given data directory
+         if histfile, display the top line
+      """
+
+      status, droot = self.find_data_root(ddir, hvar=0)
+      if status:
+         print 'data dir : missing %s' % ddir
+         return
+
+      # have a directory, show it
+      dhome = droot.replace(self.home_dir, '$HOME')
+      print 'data dir : found %-12s under %s' % (ddir, dhome)
+
+      # possibly show histfile
+      if histfile == '': return
+
+      prefix = '           top history: '
+      hname = '%s/%s/%s' % (droot, ddir, histfile)
+      self.show_top_line(hname, prefix=prefix)
+
    def show_data_info(self, header=1):
       """checks that are specific to data
             - class data existence and tree root
@@ -82,14 +110,12 @@ class SysInfo:
 
       if header: print UTIL.section_divider('data checks', hchar='-')
 
-      for ddir in ['AFNI_data6', 'suma_demo']:
-          status, droot = self.find_data_root(ddir)
-          if status: print 'data dir : missing %s' % ddir
-          else:      print 'data dir : found %-12s under %s' % (ddir, droot)
+      # locate various data trees, and possibly show recent history
+      self.show_data_dir_info('AFNI_data6', 'history.txt')
+      self.show_data_dir_info('suma_demo', 'README.archive_creation')
 
       evar = 'AFNI_ATLAS_DIR'
-      tryenv = 0                        # do we set 'esuggest'?
-      esuggest = ''                     # maybe suggest env var to users
+      tryenv = 0                        # might suggest setting evar
       haveenv = os.environ.has_key(evar)
       if haveenv: edir = os.environ[evar]
       else:       edir = ''
@@ -107,7 +133,8 @@ class SysInfo:
       for ddir in ['/usr/share/afni/atlases', '/usr/local/afni/atlases']:
          if os.path.isfile('%s/%s.HEAD'%(ddir,atlas)):
             glist.append(ddir)
-            if tryenv: esuggest = '* consider setting %s to %s' % (evar,ddir)
+            if tryenv:
+               self.comments.append('consider setting %s to %s' % (evar,ddir))
 
       # fix to work with found after the fact
       glist = UTIL.get_unique_sublist(glist)
@@ -117,14 +144,16 @@ class SysInfo:
       else:
          for ddir in glist:
             print 'atlas    : found %-12s under %s' % (atlas, ddir)
-         if esuggest: print esuggest
 
       if haveenv: print "\natlas var: %s = %s" % (evar, edir)
 
       print
 
-   def find_data_root(self, ddir):
+   def find_data_root(self, ddir, hvar=1):
       """try to find ddir in common locations
+
+         if hvar, use $HOME for home directory
+
          return status (0 = success) and path to (parent of) ddir
       """
 
@@ -141,15 +170,16 @@ class SysInfo:
       dpath = self.find_data_dir(ddir=ddir, gdirs=plist)
 
       if dpath != None:
-         return 0, dpath.replace(self.home_dir, '$HOME')
-         # return 0, '%s%s' % (root_str, dpath[len(hdir):])
+         if hvar: return 0, dpath.replace(self.home_dir, '$HOME')
+         else:    return 0, dpath
 
       # and check the current directory
       dpath = self.find_data_dir(ddir=ddir, gdirs=['.'])
       if dpath == None: return 1, ''
       else:
          dpath = os.path.realpath(dpath)
-         return 0, dpath.replace(self.home_dir, '$HOME')
+         if hvar: return 0, dpath.replace(self.home_dir, '$HOME')
+         else:    return 0, dpath
 
    def find_data_dir(self, ddir, gdirs=[], depth=2):
       """search under a list of glob directories for the given ddir"""
@@ -248,19 +278,40 @@ class SysInfo:
             elif len(files) > 0: fstr = '  (%s)' % files[0]
             else:                fstr = ''
             print '    %-*s : %d %s' % (ml, prog, len(files), fstr)
+
+            if prog == 'afni' and len(files) > 1:
+               self.comments.append("consider only 1 version of AFNI in PATH")
       print
 
+      print 'testing ability to start various programs...'
       ind = '%8s' % ' '
       indn = '\n%8s' % ' '
-      print 'testing ability to start various programs...'
-      for prog in ['afni', 'suma', '3dSkullStrip', 'uber_subject.py',
-                   '3dAllineate', '3dRSFC', 'SurfMesh']:
+      proglist = ['afni', 'suma', '3dSkullStrip', 'uber_subject.py',
+                   '3dAllineate', '3dRSFC', 'SurfMesh']
+      fcount = 0
+      for prog in proglist:
          st, so, se = BASE.shell_exec2('%s -help'%prog, capture=1)
          if st:
             print '    %-20s : FAILURE' % prog
             print ind + indn.join(se)
+            fcount += 1
          else: print '    %-20s : success' % prog
       print
+
+      ascdir = UTIL.executable_dir()
+      if fcount == len(proglist) and self.get_afni_dir() != ascdir:
+         fcount = 0
+         print 'none working, testing programs under implied %s...' % ascdir
+         for prog in proglist:
+            st, so, se = BASE.shell_exec2('%s/%s -help'%(ascdir,prog),capture=1)
+            if st:
+               print '    %-20s : FAILURE' % prog
+               print ind + indn.join(se)
+               fcount += 1
+            else: print '    %-20s : success' % prog
+         print
+         if fcount < len(proglist):
+            self.comments.append('consider adding %s to your PATH' % ascdir)
 
       print 'checking for $HOME files...'
       flist = ['.afnirc', '.sumarc', '.afni/help/all_progs.COMP']
@@ -269,7 +320,23 @@ class SysInfo:
          else:                                           fstr = 'missing'
          print '    %-25s : %s' % (ff, fstr)
 
+      # add to comments
+      self.add_file_comment(None, '.afnirc',
+                            'consider copying AFNI.afnirc to ~/.afnirc')
+      self.add_file_comment(None, '.sumarc',
+                            'consider running "suma -update_env" for .sumarc')
+      self.add_file_comment(None, '.afni/help/all_progs.COMP',
+                            'consider running "apsearch -update_all_afni_help"')
+
       print
+
+   def add_file_comment(self, fdir, fname, comment):
+      if   fdir == None: pre = '%s/' % self.home_dir
+      elif fdir:         pre = '%s/' % fdir
+      else:              pre = ''
+
+      if not os.path.isfile('%s%s' % (pre, fname)):
+         self.comments.append(comment)
 
    def get_prog_version(self, prog):
       """return a simple string with program version
@@ -398,6 +465,21 @@ class SysInfo:
        print '** Can not determine number of CPUs on this system'
        return 1
 
+   def show_comments(self):
+      print UTIL.section_divider('general comments', hchar='-')
+      for cc in self.comments: print '*  %s' % cc
+      print ''
+
+   def show_all_sys_info(self):
+
+      self.show_general_sys_info()
+      self.show_general_afni_info()
+      self.show_python_lib_info(['PyQt4'], verb=3)
+      self.show_path_vars()
+      self.show_data_info()
+      self.show_os_specific()
+
+      self.show_comments()
 
 if __name__ == '__main__':
    print 'lib_system_check.py: not intended as a main program'
