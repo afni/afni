@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.7, May 14, 2014
+Version 3.0.7, May 16, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.7, May 14, 2014
+Version 3.0.7, May 16, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -110,7 +110,7 @@ Usage:
 Example 1 --- three between-subjects (genotype, sex, and scanner) and two 
 within-subject (condition and emotion) variables:
    3dMVM  -prefix Example1 -jobs 4            \\
-          -model  'genotype*sex+scanner'      \\
+          -bsVars  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
           -num_glt 14                         \\
           -gltLabel 1 face_pos_vs_neg -gltCode  1 'condition : 1*face emotion : 1*pos -1*neg'            \\
@@ -144,7 +144,7 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
 (emotion) factor, plus two quantitative variables (age and IQ).f
 
    3dMVM -prefix Example2 -jobs 24        \\
-          -model  \"genotype*sex+age+IQ\"  \\
+          -bsVars  \"genotype*sex+age+IQ\"  \\
           -wsVars emotion                \\
           -qVars  \"age,IQ\"               \\
           -qVarCenters '25,105'          \\
@@ -184,7 +184,7 @@ Condition:Time are of specific interest. And these interactions can be further
 explored with GLTs in 3dMVM.
 
    3dMVM -prefix Example3 -jobs 12   \\
-         -model Group               \\
+         -bsVars Group               \\
          -wsVars 'Condition*Time'   \\
          -num_glt 32                \\
          -gltLabel 1 old_t0 -gltCode 1 'Group : 1*old Time : 1*t0' \\
@@ -256,7 +256,22 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-model' = apl(n = 1, d = 1, h = paste(
-   "-model FORMULA: Specify the fixed effects for between-subjects factors ",
+   "-model FORMULA: This option will phase out at some point. So use -bsVars",
+   "         instead. Specify the fixed effects for between-subjects factors ",
+   "         and quantitative variables. When no between-subject factors",
+   "         are present, simply put 1 for FORMULA. The expression FORMULA",
+   "         with more than one variable has to be surrounded within (single or double)",
+   "         quotes. Variable names in the formula should be consistent with",
+   "         the ones used in the header of -dataTable. A+B represents the",
+   "         additive effects of A and B, A:B is the interaction between A",
+   "         and B, and A*B = A+B+A:B. The effects of within-subject",
+   "         factors, if present under -wsVars are automatically assumed",
+   "         to interact with the ones specified here. Subject as a variable",
+   "         should not occur in the model specifiction here.\n", sep = '\n'
+             ) ),
+
+      '-bsVars' = apl(n = 1, d = 1, h = paste(
+   "-bsVars FORMULA: Specify the fixed effects for between-subjects factors ",
    "         and quantitative variables. When no between-subject factors",
    "         are present, simply put 1 for FORMULA. The expression FORMULA",
    "         with more than one variable has to be surrounded within (single or double)",
@@ -273,11 +288,11 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-wsVars FORMULA: Within-subject factors, if present, have to be listed",
    "         here; otherwise the program will choke. If no within-subject ",
    "         exists, don't include this option in the script. Coding for",
-   "         additive effects and interactions is the same as in -model. The",
+   "         additive effects and interactions is the same as in -bsVars. The",
    "         FORMULA with more than one variable has to be surrounded ",
    "         within (single or double) quotes. Note that the within-subject",
    "         variables are assumed to interact with those between-subjects",
-   "         variables specified under -model. The hemodynamic response",
+   "         variables specified under -bsVars. The hemodynamic response",
    "         time course are better modeled as simultaneous outcomes through",
    "         option -mVar, and not as the levels of a within-subject factor.",
    "         The varialbes under -wsVars and -mVar are exclusive from each",
@@ -484,6 +499,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              mask = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
              model  = lop$model  <- ops[[i]],
+             bsVars = lop$model  <- ops[[i]],
              wsVars = lop$wsVars  <- ops[[i]],
              mVar = lop$mVar  <- ops[[i]],
              qVars  = lop$qVars <- ops[[i]],
@@ -1085,7 +1101,7 @@ while(is.null(fm)) {
       cat('Possible reasons:\n\n')
       cat('0) Make sure that R packages afex and phia have been installed. See the 3dMVM\n')
       cat('help documentation for more details.\n\n')
-      cat('1) Inappropriate model specification with options -model, -wsVars, or -qVars.\n')
+      cat('1) Inappropriate model specification with options -bsVars, -wsVars, or -qVars.\n')
       cat('Note that within-subject or repeated-measures variables have to be declared\n')
       cat('with -wsVars.\n\n')
       cat('2) Incorrect specifications in general linear test coding with -gltCode.\n\n')
