@@ -288,7 +288,10 @@ FILE * COMPRESS_fopen_read( char * fname )
    buf = fname ;
 #endif
 
-   cmd = AFMALL(char, sizeof(char) * (strlen(buf)+32) ) ;
+   /* allow for longer program names            16 May, 2014 [rickr] */
+   /* (problem noted by D. Thompson)                                 */
+   cmd = AFMALL(char,  sizeof(char) *
+                       (strlen(buf)+strlen(COMPRESS_unprogram[mm])+4) ) ;
    sprintf(cmd,COMPRESS_unprogram[mm],buf) ;
 
    fp = popen(cmd,"r") ;    /* open a pipe to read the file */
@@ -333,7 +336,10 @@ FILE * COMPRESS_fopen_write( char * fname , int mm )
    buf = fname ;
 #endif
 
-   cmd = AFMALL(char,  sizeof(char) * (strlen(buf)+32) ) ;
+   /* allow for longer program names            16 May, 2014 [rickr] */
+   /* (problem noted by D. Thompson)                                 */
+   cmd = AFMALL(char,  sizeof(char) *
+                       (strlen(buf)+strlen(COMPRESS_program[mm])+4) ) ;
    sprintf(cmd,COMPRESS_program[mm],buf) ;
 
    fp = popen(cmd,"w") ;    /* open a pipe to write the file */
