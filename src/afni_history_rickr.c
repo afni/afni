@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16,  May, 2014, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "change default of -anat_unif_GM to no",
+   "It was leading to some failures, reported by J Stoddard."
+ } ,
+
+ { 16,  May, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "make space in case compression programs have longer paths",
+   "Thanks to D Thompson for finding the problematic code."
+ } ,
+
  { 16,  May, 2014, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "a few updates:",
    "  - if no AFNI binaries in path, try path to ASC.py\n"
