@@ -171,7 +171,8 @@ def make_uniformity_commands(proc, umeth):
     opre = proc.anat.prefix + '_unif'
     oset = proc.anat.new(new_pref=opre)
 
-    if proc.user_opts.have_yes_opt('-anat_unif_GM', default=1): gmstr = ' -GM'
+    # -GM can lead to failures, default to off
+    if proc.user_opts.have_yes_opt('-anat_unif_GM', default=0): gmstr = ' -GM'
     else:                                                       gmstr = ''
 
     cmd  = "# %s\n"                                                       \
@@ -6408,13 +6409,15 @@ g_help_string = """
         -anat_unif_GM yes/no    : also unifize gray matter (lower intensities)
                                   the default is 'yes'
 
-                e.g. -anat_unif_GM no
-                default -anat_unif_GM yes
+                e.g. -anat_unif_GM yes
+                default -anat_unif_GM no
 
             If this is set to yes (which is the default), 3dUnifize will not
             only apply uniformity correction across the volume, but it will
             also perform a correction to voxels that look like gray matter.
             That is to say '-GM' will be added to the 3dUnifize command.
+
+          * The default was changed from yes to no 2014, May 16.
 
             Please see '3dUnifize -help' for details.
             See also -anat_uniform_method, -anat_opts_unif.
