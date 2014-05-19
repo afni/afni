@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19 , MAY, 2014 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "NIFTI dataset input and save_skullstrip",
+    "Fixed bug with both NIFTI input and save_skullstrip"
+} ,
+
 { 2 , MAY, 2014 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_GENERAL, 
     "NIFTI dataset input",
