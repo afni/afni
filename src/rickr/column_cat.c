@@ -28,6 +28,7 @@
 typedef struct
 {
     int    num_files;
+    int    line;
     char   separator[MAX_SEP];
     char * fnames[MAX_FILES];
     FILE * flist [MAX_FILES];
@@ -67,10 +68,13 @@ int cat_files( info_s * I )
     FILE * fp;
     int    done = 0, close_stage = 0;
     int    c, filec;
+    int    linec = 0, show;
     
     while( !done )
     {
 	done = 1;
+
+        show = I->line >= 0 && I->line == linec;
 
         for ( filec = 0; filec < I->num_files; filec++ )
 	{
@@ -83,7 +87,7 @@ int cat_files( info_s * I )
 	    c = fgetc(fp);
 	    if ( !feof(fp) && (c != '\n') && !done )	/* print separator? */
 	    {
-		fputs( I->separator, stdout );
+		if( show ) fputs( I->separator, stdout );
 	    }
 
 	    while ( !feof(fp) && (c != '\n') )
@@ -92,7 +96,7 @@ int cat_files( info_s * I )
 		    close_stage = 2;
 
 		/* done = 0;  rickr - move to not closed */
-		putchar(c);
+                if( show ) putchar(c);
 		c = fgetc(fp);
             }
 
@@ -108,8 +112,10 @@ int cat_files( info_s * I )
 		done = 0;
 	}
 
-	if ( !done )
-	    putchar( '\n' );
+	if ( !done ) {
+	    if( show ) putchar( '\n' );
+            linec++;
+        }
     }
 
     if ( close_stage == 2 )
@@ -159,6 +165,7 @@ int read_args( int argc, char * argv [], info_s * I )
 
     /* defaults */
     I->num_files = 0;
+    I->line = -1;
     I->separator[0] = ' ';
     I->separator[1] = '\0';
 
@@ -184,6 +191,18 @@ int read_args( int argc, char * argv [], info_s * I )
 	    strcpy( I->separator, argv[ac] );
 	    fix_tabs( I->separator );
 	}
+	else if ( strcmp( argv[ac], "-line" ) == 0 )
+        {
+	    if ( ++ac >= argc ) {
+		fprintf(stderr, "error: missing argument to '-line'\n" );
+		return( P_FAILURE );
+	    }
+	    I->line = atoi(argv[ac]);
+            if( I->line < 0 ) {
+                fprintf(stderr,"** -line (%s) should be >= 0\n", argv[ac]);
+		return( P_FAILURE );
+            }
+        }
 	else 
         {
             if ( I->num_files >= MAX_FILES ) {
@@ -214,6 +233,7 @@ int usage ( char * prog, int style )
 	       "  such as a tab, please use the -sep option.\n"
 	       "\n"
 	       "  Optionos:\n"
+	       "     -line LINE_NUM : print only line #LINE_NUM (0-based)\n"
 	       "     -sep sep_str   : use sep_str as separation string\n"
 	       "\n"
 	       "  Examples:\n"
@@ -221,13 +241,14 @@ int usage ( char * prog, int style )
 	       "     %s -help\n"
 	       "     %s file_a file_b\n"
 	       "     %s file_a file_b file_c > output_file\n"
+	       "     %s -line 17 file_a file_b file_c > output_file\n"
 	       "     %s -sep : file_a file_b > output_file\n"
 	       "     %s -sep '\\t' file_a file_b > output_file\n"
 	       "     %s -sep ' : ' file_a file_b > output_file\n"
 	       "\n"
 	       "R Reynolds    Jan, 2002 (distributed Aug, 2012)\n"
 	       "\n",
-               prog, prog, prog, prog, prog, prog
+               prog, prog, prog, prog, prog, prog, prog
               );
     }
     else
