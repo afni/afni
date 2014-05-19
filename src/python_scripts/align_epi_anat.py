@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.46" # software version (update for changes)
+      self.align_version = "1.47" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2925,7 +2925,7 @@ class RegWrap:
             # set default output spacing if not already set with user options
             opt = self.user_opts.find_opt('-master_anat') 
             if opt == None: 
-                min_d =  self.min_dim_dset(ps.anat0)
+                min_d =  self.min_dim_dset(ps.anat_ns0)
                 self.master_3dAl_option = "-mast_dxyz %f" % min_d
                 self.info_msg(
                   "Spacing for %s to oblique %s alignment is %f" %
