@@ -49,9 +49,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  May, 2014, RCR, "column_cat", MICRO, TYPE_NEW_OPT,
+   "added -line option, e.g. to print only (0-based) line 17",
+   NULL
+ } ,
+
  { 16,  May, 2014, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
-   "change default of -anat_unif_GM to no",
-   "It was leading to some failures, reported by J Stoddard."
+   "changed default of -anat_unif_GM to no",
+   "Use of -GM in 3dUnifiize was leading to some skull stripping failures.\n"
+   "Thanks to J Stoddard for noting the problem."
  } ,
 
  { 16,  May, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
