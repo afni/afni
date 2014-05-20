@@ -1523,7 +1523,7 @@ ENTRY("AFNI_clus_action_CB") ;
      THD_3dim_dataset  *fset = im3d->fim_now , *mset ;
      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
      MCW_cluster *cl ;
-     short *mask ; int ii,jj,nx,ny,nxy,nz,ijk ;
+     short *mask ; int ii,jj,nx,ny,nxy,ijk ;
      int do_wami = (w == cwid->whermask_pb && wherprog != NULL) ;
      int jtop ;
 
@@ -1548,7 +1548,7 @@ ENTRY("AFNI_clus_action_CB") ;
                         ADN_type      , HEAD_FUNC_TYPE ,
                         ADN_func_type , FUNC_BUCK_TYPE ,
                       ADN_none ) ;
-     nx = DSET_NX(mset); ny = DSET_NY(mset); nxy = nx*ny; nz = DSET_NZ(mset);
+     nx = DSET_NX(mset); ny = DSET_NY(mset); nxy = nx*ny;
      EDIT_substitute_brick( mset , 0 , MRI_short , NULL ) ;
      mask = DSET_BRICK_ARRAY( mset , 0 ) ;
      jtop = clar->num_clu ;
@@ -2100,7 +2100,7 @@ printf("opening pipe to run and redirect output\n");
 }
 
 /* write coordinate table to file - used by itself and with linkrbrain output */
-static char * AFNI_cluster_write_coord_table(Three_D_View *im3d)
+char * AFNI_cluster_write_coord_table(Three_D_View *im3d)
 {
      char fnam[128+THD_MAX_NAME] , *ppp ; FILE *fp ; int ff ;
      float px,py,pz , mx,my,mz , xx,yy,zz ;
