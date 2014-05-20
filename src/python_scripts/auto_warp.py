@@ -150,9 +150,9 @@ class RegWrap:
              helpstr="Set directory for output datasets\n")
       
       self.valid_opts.add_opt('-followers', npar=-1, deflist=[],\
-             helpstr="Spercify follower datasets\n")
+             helpstr="Specify follower datasets\n")
       self.valid_opts.add_opt('-affine_followers_xmat', npar=-1, deflist=[],\
-             helpstr="Spercify follower datasets' affine transforms\n")    
+             helpstr="Specify follower datasets' affine transforms\n")    
       self.valid_opts.trailers = 0   # do not allow unknown options
         
   
