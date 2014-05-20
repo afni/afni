@@ -27,10 +27,10 @@ def change_path_basename(orig, prefix, suffix):
     return "%s/%s%s" % (head, prefix, suffix)
 
 # write text to a file
-def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\\\n', exe=0):
-    """write the given text to the given file
+def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
+    """write the given text (tdata) to the given file
           fname   : file name to write (or append) to
-          text    : text to write
+          dtata   : text to write
           mode    : optional write mode 'w' or 'a' [default='w']
           wrap    : optional wrap flag [default=0]
           wrapstr : optional wrap string: if wrap, apply this string
@@ -39,11 +39,11 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\\\n', exe=0):
        return 0 on success, 1 on error
     """
 
-    if not text or not fname:
+    if not tdata or not fname:
         print "** WTTF: missing text or filename"
         return 1
 
-    if wrap: text = add_line_wrappers(text, wrapstr)
+    if wrap: tdata = add_line_wrappers(tdata, wrapstr)
     
     if fname == 'stdout':   fp = sys.stdout
     elif fname == 'stderr': fp = sys.stderr
@@ -54,7 +54,7 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\\\n', exe=0):
            print "** failed to open text file '%s' for writing" % fname
            return 1
 
-    fp.write(text)
+    fp.write(tdata)
 
     if fname != 'stdout' and fname != 'stderr':
        fp.close()
@@ -78,7 +78,7 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
    if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
    
 
-def read_text_file(fname='stdin', lines=0):
+def read_text_file(fname='stdin', lines=0, verb=1):
    """return the text text from the given file as either one string
       or as an array of lines"""
 
@@ -86,7 +86,7 @@ def read_text_file(fname='stdin', lines=0):
    else:
       try: fp = open(fname, 'r')
       except:
-        print "** read_text_file: failed to open '%s'" % fname
+        if verb: print "** read_text_file: failed to open '%s'" % fname
         if lines: return []
         else:     return ''
 
@@ -97,9 +97,9 @@ def read_text_file(fname='stdin', lines=0):
 
    return tdata
 
-def read_top_lines(fname='stdin', nlines=1, strip=0):
+def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
-   tdata = read_text_file(fname, lines=1)
+   tdata = read_text_file(fname, lines=1, verb=verb)
    tdata = tdata[0:nlines]
    if strip: tdata = [l.strip() for l in tdata]
    return tdata

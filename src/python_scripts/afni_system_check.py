@@ -103,9 +103,10 @@ g_history = """
         - if no AFNI binaries found, try path to this program
         - look for history files in data directories
         - print comments at the end, so they are easier to notice
+   0.9  May 20, 2014 - macs: look for PyQt4 from homebrew and fink
 """
 
-g_version = "afni_system_check.py version 0.8, May 16, 2014"
+g_version = "afni_system_check.py version 0.9, May 20, 2014"
 
 
 class CmdInterface:

@@ -73,7 +73,7 @@ class SysInfo:
       print
 
    def show_top_line(self, fname, prefix=''):
-      htxt = UTIL.read_top_lines(fname, nlines=1, strip=1)
+      htxt = UTIL.read_top_lines(fname, nlines=1, strip=1, verb=0)
       if len(htxt) == 0: htxt = 'NONE FOUND'
       else:              htxt = htxt[0]
       print '%s%s' % (prefix, htxt)
@@ -140,7 +140,7 @@ class SysInfo:
       glist = UTIL.get_unique_sublist(glist)
 
       if len(glist) == 0:
-         print 'atlas    : did not find %s %s' % (atlas, estr)
+         print 'atlas    : did not find %s' % atlas
       else:
          for ddir in glist:
             print 'atlas    : found %-12s under %s' % (atlas, ddir)
@@ -226,7 +226,16 @@ class SysInfo:
 
    def show_spec_mac(self):
       """look for fink, macports, homebrew"""
-      pass
+      # if no pyqt4, check for brew and fink packages
+      if MT.test_import('PyQt4', verb=0):
+         glist = glob.glob('/usr/local/lib/python2*/site-packages/PyQt4')
+         if len(glist) == 0:
+            glist = glob.glob('/sw/lib/qt4*/lib/python2*/site-packages/PyQt4')
+         if len(glist) > 0:
+            gdir = glist[-1]
+            ghead = os.path.dirname(gdir)
+            print '++ found PyQt4 under %s' % ghead
+            print '   (consider adding %s to PYTHONPATH)' % ghead
 
    def show_python_lib_info(self, plibs, header=1, verb=2):
       if header: print UTIL.section_divider('python libs', hchar='-')

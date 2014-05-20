@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  May, 2014, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "macs: look for PyQt4 from homebrew and fink",
+   NULL
+ } ,
+
  { 19,  May, 2014, RCR, "column_cat", MICRO, TYPE_NEW_OPT,
    "added -line option, e.g. to print only (0-based) line 17",
    NULL
