@@ -74,6 +74,7 @@ void Syntax(void)
 "   -smode: Dset storage mode string.\n"
 "   -header_name: Value of dset structure (sub)field 'header_name'\n"
 "   -brick_name: Value of dset structure (sub)field 'brick_name'\n"
+"   -iname: Name of dset as input on the command line\n"
 "   -orient: Value of orientation string.\n"
 "            For example, LPI means:\n"
 "               i direction grows from Left(negative) to Right(positive).\n"
@@ -204,7 +205,7 @@ typedef enum {
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
    SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
-   VOXVOL,
+   VOXVOL, INAME,
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -227,7 +228,7 @@ char Field_Names[][32]={
    {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
    {"=obl?"}, {"sDval"}, {"Dval"}, {"=dim_delta_orient_center_obl"}, 
    {"id"}, {"smode"}, 
-   {"voxvol"},
+   {"voxvol"}, {"iname"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
 
 char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
@@ -376,6 +377,8 @@ int main( int argc , char *argv[] )
          continue;
       } else if( strcasecmp(argv[iarg],"-voxvol") == 0) {
          sing[N_sing++] = VOXVOL; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-iname") == 0) {
+         sing[N_sing++] = INAME; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-oi") == 0) {
          sing[N_sing++] = OI; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-oj") == 0) {
@@ -590,7 +593,7 @@ int main( int argc , char *argv[] )
             if( dset == NULL ){  /* still not open? */
                ERROR_exit("Can't open dataset %s\n", argv[iarg]) ;
             }
-         } else if (sing[iis] != DSET_EXISTS) {
+         } else if (sing[iis] != DSET_EXISTS && sing[iis] != INAME) {
             fprintf(stdout, "NO-DSET");
             SPIT_DELIM(iis, N_sing, atrdelim);
             continue;  
@@ -768,6 +771,9 @@ int main( int argc , char *argv[] )
          case VOXVOL:
             fprintf(stdout,"%f", fabs(DSET_DX(dset))*
                                  fabs(DSET_DY(dset))*fabs(DSET_DZ(dset)));
+            break;
+         case INAME:
+            fprintf(stdout,"%s", argv[iarg]);
             break;
          case LTABLE:
             {

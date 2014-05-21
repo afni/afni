@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 21, May, 2014, ZSS, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "Option -iname to give filename as appearing on the command line",
+   NULL
+ },
+  
  { 05, May, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
    "SUMA_HomeAfterPrying to avoid a 'home' reset with prying",
    NULL
