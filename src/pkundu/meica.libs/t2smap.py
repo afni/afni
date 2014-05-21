@@ -19,8 +19,33 @@ import numpy as np
 import nibabel as nib
 from sys import stdout
 
+def scoreatpercentile(a, per, limit=(), interpolation_method='lower'):
+    """
+    This function is grabbed from scipy
+
+    """
+    values = np.sort(a, axis=0)
+    if limit:
+        values = values[(limit[0] <= values) & (values <= limit[1])]
+
+    idx = per /100. * (values.shape[0] - 1)
+    if (idx % 1 == 0):
+        score = values[idx]
+    else:
+        if interpolation_method == 'fraction':
+            score = _interpolate(values[int(idx)], values[int(idx) + 1],
+                                 idx % 1)
+        elif interpolation_method == 'lower':
+            score = values[np.floor(idx)]
+        elif interpolation_method == 'higher':
+            score = values[np.ceil(idx)]
+        else:
+            raise ValueError("interpolation_method can only be 'fraction', " \
+                             "'lower' or 'higher'")
+    return score
 
 def niwrite(data,affine, name , header=None):
+	data[np.isnan(data)]=0
 	stdout.write(" + Writing file: %s ...." % name) 
 	
 	thishead = header
@@ -163,6 +188,37 @@ def t2smap(catd,mask,tes):
 
 	return out
 
+def optcom(data,t2s,tes,mask):
+	"""
+	out = optcom(data,t2s)
+
+
+	Input:
+
+	data.shape = (nx,ny,nz,Ne,Nt)
+	t2s.shape  = (nx,ny,nz)
+	tes.shape  = (Ne,)
+
+	Output:
+
+	out.shape = (nx,ny,nz,Nt)
+	"""
+	nx,ny,nz,Ne,Nt = data.shape 
+
+	fdat = fmask(data,mask)
+	ft2s = fmask(t2s,mask)
+	
+	tes = tes[np.newaxis,:]
+	ft2s = ft2s[:,np.newaxis]
+	
+	alpha = tes * np.exp(-tes /ft2s)
+	alpha = np.tile(alpha[:,:,np.newaxis],(1,1,Nt))
+
+	fout  = np.average(fdat,axis = 1,weights=alpha)
+	out = unmask(fout,mask)
+	print 'Out shape is ', out.shape
+	return out
+
 ###################################################################################################
 # 						Begin Main
 ###################################################################################################
@@ -171,6 +227,7 @@ if __name__=='__main__':
 
 	parser=OptionParser()
 	parser.add_option('-d',"--orig_data",dest='data',help="Spatially Concatenated Multi-Echo Dataset",default=None)
+	parser.add_option('-l',"--label",dest='label',help="Optional label to tag output files with",default=None)
 	parser.add_option('-e',"--TEs",dest='tes',help="Echo times (in ms) ex: 15,39,63",default=None)
 
 	(options,args) = parser.parse_args()
@@ -200,9 +257,34 @@ if __name__=='__main__':
 	print "++ Computing T2* map"
 	t2s,s0   = np.array(t2smap(catd,mask,tes),dtype=np.float)
 	t2s[t2s>500] = 500
+	t2sm = t2s.copy()
 
-	niwrite(s0,aff,'s0v.nii')
-	niwrite(t2s,aff,'t2sv.nii')
+	s0_maskmin = scoreatpercentile(np.unique(s0),98)/10
+	t2sm[s0<s0_maskmin] = 0
+
+	print "++ Computing optimal combination"
+	#import ipdb
+	#ipdb.set_trace()
+	tsoc = np.array(optcom(catd,t2s,tes,mask),dtype=float)
+
+	if options.label!=None:
+		suf='_%s' % str(options.label)
+	else:
+		suf=''
+
+	#Clean up numerical errors
+	tsoc[np.isnan(tsoc)]=0
+	s0[np.isnan(s0)]=0
+	s0[s0<0]=0
+	t2s[np.isnan(t2s)]=0
+	t2s[t2s<0]=0
+	t2sm[np.isnan(t2sm)]=0
+	t2sm[t2sm<0]=0
+
+	niwrite(tsoc,aff,'ocv%s.nii' % suf)
+	niwrite(s0,aff,'s0v%s.nii' % suf)
+	niwrite(t2s,aff,'t2sv%s.nii' % suf )
+	niwrite(t2sm,aff,'t2svm%s.nii' % suf )
 	
 	
 
