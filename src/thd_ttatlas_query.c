@@ -1663,8 +1663,10 @@ make_linkrbrain_xml(float *coords, int ncoords, char *srcspace, char *destspace,
    tempout = fopen(linkrbrain_xml, "w");
    if(!tempout) RETURN(-1);
 
-   if(strcmp(srcspace, destspace)==0)
+   if(strcmp(srcspace, destspace)==0){
       cxfl = NULL;   /* data already in destination space for linkrbrain (MNI) */
+/*      printf("No transformation needed to go to space:%s\n", destspace);*/
+   }
    else {
       xfl = report_xform_chain(srcspace, destspace, 0);
       cxfl = calc_xform_list(xfl);
@@ -1690,6 +1692,15 @@ make_linkrbrain_xml(float *coords, int ncoords, char *srcspace, char *destspace,
    for(i=0;i<ncoords;i++){
          fptr = coords+(i*3);
          if(cxfl) {
+            xi = *fptr++; yi = *fptr++; zi = *fptr;
+            apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
+         }
+         else {
+            xi = *fptr++; yi = *fptr++; zi = *fptr;            
+            xout = xi; yout = yi; zout = zi;
+         }
+#if 0
+         if(cxfl) {
             xi = *fptr; yi = *fptr+1; zi = *fptr+2;
             apply_xform_chain(cxfl, xi, yi, zi, &xout, &yout, &zout);
          }
@@ -1697,10 +1708,10 @@ make_linkrbrain_xml(float *coords, int ncoords, char *srcspace, char *destspace,
             xi = *fptr; yi = *fptr+1; zi = *fptr+2;            
             xout = *fptr; yout = *fptr+1; zout = *fptr+2;
          }
+#endif
  
          fprintf(tempout, "<point x=\"%.1f\" y=\"%.1f\" z=\"%.1f\" />\n",
                 -xout, -yout, zout);
-/*printf("%d: %f %f %f --> %f %f %f\n", i, xi, yi, zi, xout, yout, zout); */
    }
    fprintf(tempout,"     </pointset>\n");
    fprintf(tempout,"   </group>\n");
@@ -1733,13 +1744,20 @@ int
 send_linkrbrain_xml(char *linkrbrain_xml, char *linkrbrain_results)
 {
    char cmd[1024];
+   int curl_stat, retry = 0;
 
-   sprintf(cmd, 
-     "curl -y 100 --retry 10 --retry-delay 1 --connect-timeout 5 -m 10"
-     " --retry-max-time 25 -d @%s http://api.linkrbrain.org/ > %s",
-           linkrbrain_xml, linkrbrain_results);
+   while(retry<5) {
+      printf("Sending linkrbrain.org request\n");
+      sprintf(cmd, 
+        "curl -y 100 --retry 10 --retry-delay 1 --connect-timeout 5 -m 10"
+        " --retry-max-time 25 -d @%s http://api.linkrbrain.org/ > %s",
+             linkrbrain_xml, linkrbrain_results);
+      curl_stat = system(cmd);
+      if(curl_stat) retry++;
+      else return(0);
+   }
 /* --keepalive-time seconds --keepalive */
-   return(system(cmd));
+   return(1);
 
 }
 
