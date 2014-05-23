@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 23 , MAY, 2014 , DRG , "whereami linkrbrain" , 
+    MINOR , TYPE_BUG_FIX, 
+    "Fixed linkrbrain coordinates and malloc/free error",
+    "Coordinates were not transformed properly from TLRC to MNI\n"
+    "space. Crashes from clusterize in afni GUI caused by mismatched\n"
+    "AFNI-friendly malloc, free in strdup function"
+} ,
+
 { 19 , MAY, 2014 , DRG , "align_epi_anat.py" , 
     MICRO , TYPE_BUG_FIX, 
     "NIFTI dataset input and save_skullstrip",

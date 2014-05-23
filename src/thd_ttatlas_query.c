@@ -1747,8 +1747,7 @@ send_linkrbrain_xml(char *linkrbrain_xml, char *linkrbrain_results)
    int curl_stat, retry = 0;
 
    while(retry<5) {
-/*      printf("Sending linkrbrain.org request\n");
-*/
+      fprintf(stderr,"Sending linkrbrain.org request\n");
       sprintf(cmd, 
         "curl -y 100 --retry 10 --retry-delay 1 --connect-timeout 5 -m 10"
         " --retry-max-time 25 -d @%s http://api.linkrbrain.org/ > %s",

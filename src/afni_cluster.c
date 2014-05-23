@@ -2021,7 +2021,7 @@ ENTRY("AFNI_clus_action_CB") ;
 
      /* linkrbrain.org website link ****************************************/
      if(w == cwid->linkrbrain_pb) {  /* 11 Feb 2014 */
-     char *fnam;
+     char *lb_fnam;
      MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
      int do_linkrbrain = (w == cwid->linkrbrain_pb && wherprog != NULL) ;
 
@@ -2034,11 +2034,11 @@ ENTRY("AFNI_clus_action_CB") ;
      if( nclu == 0 || cld == NULL || do_linkrbrain == 0) EXRETURN ;
 
      /* write out the coordinates to file first as in SaveTabl function*/
-     fnam = AFNI_cluster_write_coord_table(im3d);
-     if(fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
+     lb_fnam = AFNI_cluster_write_coord_table(im3d);
+     if(lb_fnam == NULL) EXRETURN;  /* couldn't create coordinate table */
 #undef  WSIZ
 #define WSIZ 4096
-printf("wrote cluster table to %s\n", fnam);
+printf("wrote cluster table to %s\n", lb_fnam);
        SHOW_AFNI_PAUSE ;
        MCW_invert_widget(cwid->linkrbrain_pb) ; inv = 1 ;
        wout = (char *)malloc(sizeof(char)*WSIZ) ;
@@ -2051,11 +2051,11 @@ printf("wrote cluster table to %s\n", fnam);
 
        if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
           sprintf(wout,"%s -linkrbrain -coord_file %s\'\[%d,%d,%d]\' -space %s",
-             wherprog,fnam, coord_colx, coord_coly, coord_colz, 
+             wherprog,lb_fnam, coord_colx, coord_coly, coord_colz, 
              THD_get_space(im3d->fim_now)) ;
        else   /* gene correlation */
           sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s\'\[%d,%d,%d]\' -space %s",
-             wherprog,fnam, coord_colx, coord_coly, coord_colz,
+             wherprog,lb_fnam, coord_colx, coord_coly, coord_colz,
              THD_get_space(im3d->fim_now)) ;
 
        jtop = clar->num_clu ;
@@ -2068,7 +2068,6 @@ printf("wrote cluster table to %s\n", fnam);
        else                        sprintf(ct," [first %d clusters]",jtop) ;
        INFO_message("Running WamI linkrbrain command:%s",ct) ;
        ININFO_message("%s",wout) ;
-printf("opening pipe to run and redirect output\n");
        fp = popen( wout , "r" ) ;
        if( fp == NULL ){
          (void)MCW_popup_message(w," \n*** Can't run whereami command? ***\n ",
@@ -2083,7 +2082,7 @@ printf("opening pipe to run and redirect output\n");
          MCW_textwin_setbig(0) ;
          (void)new_MCW_textwin(w,wout,TEXT_READONLY) ;
 
-       free(fnam);
+       if(lb_fnam) free(lb_fnam);
        free(wout) ;
        if( inv ) MCW_invert_widget(cwid->linkrbrain_pb) ;
        SHOW_AFNI_READY ;
@@ -2150,7 +2149,7 @@ char * AFNI_cluster_write_coord_table(Three_D_View *im3d)
          fclose(fp) ;
          if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
          else     INFO_message   ("Wrote file %s"     ,fnam) ;
-         coord_table = NI_strdup(fnam); 
+         coord_table = nifti_strdup(fnam); 
          RETURN(coord_table);
        }
      }
