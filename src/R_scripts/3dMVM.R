@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.7, May 16, 2014
+Version 3.0.8, May 23, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,7 +44,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.7, May 16, 2014
+Version 3.0.8, May 23, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -241,7 +241,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-prefix PREFIX: Output file name. For AFNI format, provide prefix only,",
    "         no view+suffix needed. Filename for NIfTI format should have",
    "         .nii attached, while file name for surface data is expected",
-   "         to end with .niml.dset\n", sep = '\n'
+   "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
+   "         if present, should be interpreted as the overall average",
+   "         across factor levels.\n", sep = '\n'
                      ) ),
 
       '-mask' = apl(n=1,  d = NA, h = paste(
