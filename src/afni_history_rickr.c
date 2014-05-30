@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30,  May, 2014, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "if PREFIX ends in .nii, all saved datasets will be in NIFTI format",
+   "Added for V Roopchansingh."
+ } ,
+
  { 20,  May, 2014, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "macs: look for PyQt4 from homebrew and fink",
    NULL
