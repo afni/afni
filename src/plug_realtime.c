@@ -175,6 +175,7 @@ typedef struct {
    char  buf[RT_NBUF] ;           /* buffer for reading command strings */
 
    char root_prefix[THD_MAX_PREFIX] ;  /* name of dataset (sort of) */
+   char storage_mode;             /* if implied by specified prefix */
 
    /* 01 Aug 2002: these items are now indexed by MAX_CHAN
                    to allow for multiple channel acquisitions */
@@ -620,6 +621,8 @@ void RT_registration_3D_close( RT_input * rtin ) ;
 void RT_registration_3D_onevol( RT_input * rtin , int tt ) ;
 void RT_registration_3D_realtime( RT_input * rtin ) ;
 
+int  RT_registration_set_vr_base(RT_input * rtin);
+
 static int  RT_mp_comm_alive    ( int, int, char * );
 static int  RT_mp_comm_close    ( RT_input * rtin, int );
 static int  RT_mp_comm_init     ( RT_input * rtin );
@@ -640,6 +643,9 @@ static int  RT_show_duration    ( char * mesg ) ;
 static int add_to_rt_slist    ( rt_string_list * slist, char * str );
 static int free_rt_string_list( rt_string_list * slist );
 static int rt_run_drive_wait_commands( rt_string_list * slist );
+
+static int remove_SM_suffix(char prefix[]);
+static char * ends_at(char * text, char * suffix);
 
 int  RT_parser_init         ( RT_input * rtin );
 void RT_set_grapher_pinnums ( int pinnum );
@@ -1895,6 +1901,12 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->cur_chan = 0 ;   /* current channel index */
 
    strcpy( rtin->root_prefix , root ) ;
+   /* nuke any .nii, say, and note for later          30 May, 2014 [rickr] 
+    *   This will be set after any ADN_prefix adjustment, because the
+    *   root_prefix is appended to in many and compounding ways.
+    *   Unfortunately, this method cannot distinguish between .nii
+    *   and .nii.gz, which might be what Vinai would prefer.               */
+   rtin->storage_mode = remove_SM_suffix(rtin->root_prefix) ;
 
    /** setup realtime function evaluation **/
 
@@ -2023,6 +2035,48 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
 
    return rtin ;
 }
+
+/* remove any storage mode suffix           30 May 2014 [rickr] */
+/* return the implied storage mode (0 means to ignore)          */
+static int remove_SM_suffix(char prefix[])
+{
+   char * sp = NULL;
+   int    smode = 0;
+
+   ENTRY("remove_SM_suffix");
+
+   if( (sp = ends_at(prefix, ".nii")) != NULL ) {
+      *sp = '\0';
+      smode = STORAGE_BY_NIFTI;
+   } else if( (sp = ends_at(prefix, ".nii.gz")) != NULL ) {
+      *sp = '\0';
+      smode = STORAGE_BY_NIFTI;
+   }
+
+   if( smode && verbose )
+      fprintf(stderr,"RT: will apply storage mode %d (%s)\n",
+              smode, storage_mode_str(smode));
+
+   RETURN(smode);
+}
+
+/* if 'text' ends with 'suffix', return a pointer to that
+ * position within 'text' */
+static char * ends_at(char * text, char * suffix)
+{
+   int tlen, slen;
+   if( !text || !suffix ) return 0;
+
+   tlen = strlen(text);
+   slen = strlen(suffix);
+
+   if( tlen < slen || tlen == 0 || slen == 0 ) return 0;
+
+   if ( ! strcmp(text+tlen-slen, suffix) ) return text+tlen-slen;
+   else                                    return NULL;
+}
+
+
 
 /*-------------------------------------------------------------------------
    Create a child process to run a command that will send header info
@@ -2902,7 +2956,6 @@ static int RT_mp_comm_init_vars( RT_input * rtin )
 int RT_mp_check_env_for_mask( void )
 {
     char * ept = getenv("AFNI_REALTIME_Mask_Dset");
-    int    len = 0;
     
     /* if no env mask, nuke any that is set and return */
     if( !ept || !strcmp(ept, "None") || !strcmp(ept, "NONE") || !strlen(ept) ){
@@ -3112,16 +3165,20 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          char npr[THD_MAX_PREFIX] = "\0" ;
          /* RT_MAX_PREFIX is used here, currently 100 */
          sscanf( buf , "NAME %100s" , npr ) ; /* 31->100  29 Jan 2004 [rickr] */
-         if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
-         else
+         if( THD_filename_pure(npr) ) {
+            strcpy( rtin->root_prefix , npr ) ;
+            rtin->storage_mode = remove_SM_suffix(rtin->root_prefix) ;
+         } else
               BADNEWS ;
 
       } else if( STARTER("PREFIX") ){           /* 01 Aug 2002 */
          char npr[THD_MAX_PREFIX] = "\0" ;
          /* RT_MAX_PREFIX is used here, currently 100 */
          sscanf( buf , "PREFIX %100s" , npr ) ;
-         if( THD_filename_pure(npr) ) strcpy( rtin->root_prefix , npr ) ;
-         else
+         if( THD_filename_pure(npr) ) {
+            strcpy( rtin->root_prefix , npr ) ;
+            rtin->storage_mode = remove_SM_suffix(rtin->root_prefix) ;
+         } else
               BADNEWS ;
 
       } else if( STARTER("NOTE") ) {            /* 01 Oct 2002: notes list */
@@ -3764,6 +3821,10 @@ void RT_start_dataset( RT_input * rtin )
                          ADN_func_type   , ANAT_EPI_TYPE ,
                       ADN_none ) ;
 
+      /* and set the mode based on what was passed */
+      if( rtin->storage_mode )
+         rtin->dset[cc]->dblk->diskptr->storage_mode = rtin->storage_mode;
+
       /******************************************/
       /** add time axis information, if needed **/
 
@@ -3846,6 +3907,10 @@ void RT_start_dataset( RT_input * rtin )
      strcpy(ccpr,npr) ; strcat(ccpr,"%mrg_") ;
      strcat(ccpr,RT_chmrg_labels[RT_chmrg_mode]) ;
      EDIT_dset_items( rtin->mrg_dset , ADN_prefix , ccpr , ADN_none ) ;
+      /* and set the mode based on what was passed */
+     if( rtin->storage_mode )
+        rtin->mrg_dset->dblk->diskptr->storage_mode = rtin->storage_mode;
+
      DSET_lock(rtin->mrg_dset) ;
 
      if( rtin->datum == MRI_complex && RT_chmrg_mode == RT_CHMER_SUM )
@@ -3901,6 +3966,10 @@ void RT_start_dataset( RT_input * rtin )
       else                                 strcat(ccpr,"%reg"  ) ;
 
       EDIT_dset_items( rtin->reg_dset , ADN_prefix , ccpr , ADN_none ) ;
+      /* and set the mode based on what was passed */
+      if( rtin->storage_mode )
+         rtin->reg_dset->dblk->diskptr->storage_mode = rtin->storage_mode;
+
       DSET_lock(rtin->reg_dset) ;
 
       if( rtin->num_note > 0 && rtin->note != NULL ){  /* 01 Oct 2002 */
@@ -3925,6 +3994,10 @@ void RT_start_dataset( RT_input * rtin )
         sprintf(qbuf, "%s_%02d", ccpr, cc+1);
 
         EDIT_dset_items( dset , ADN_prefix , qbuf , ADN_none ) ;
+        /* and set the mode based on what was passed */
+        if( rtin->storage_mode )
+           dset->dblk->diskptr->storage_mode = rtin->storage_mode;
+
         DSET_lock(dset);
 
         if( rtin->num_note > 0 && rtin->note != NULL ){
@@ -4418,6 +4491,10 @@ void RT_process_image( RT_input * rtin )
                             rtin->dset[cc]->dblk->diskptr->prefix,
                             cc, RT_sub_brick_id[1] ) ;
                   EDIT_dset_items(tmp_dset, ADN_prefix, RT_prefix, ADN_none);
+                  /* and set the mode based on what was passed */
+                  if( rtin->storage_mode )
+                     tmp_dset->dblk->diskptr->storage_mode = rtin->storage_mode;
+
 
                   if( verbose > 0 )
                      fprintf(stderr,"RT: writing acquired volume %s\n",
@@ -4448,6 +4525,9 @@ void RT_process_image( RT_input * rtin )
                             rtin->reg_dset->dblk->diskptr->prefix,
                             RT_written[0] ) ;
                   EDIT_dset_items(tmp_dset, ADN_prefix, RT_prefix, ADN_none);
+                  /* and set the mode based on what was passed */
+                  if( rtin->storage_mode )
+                     tmp_dset->dblk->diskptr->storage_mode = rtin->storage_mode;
 
                   if( verbose > 0 )
                      fprintf(stderr,"RT: writing registered volume %s\n",
@@ -4479,6 +4559,9 @@ void RT_process_image( RT_input * rtin )
                             rtin->mrg_dset->dblk->diskptr->prefix,
                             RT_sub_brick_id[1] ) ;
                   EDIT_dset_items(tmp_dset, ADN_prefix, RT_prefix, ADN_none);
+                  /* and set the mode based on what was passed */
+                  if( rtin->storage_mode )
+                     tmp_dset->dblk->diskptr->storage_mode = rtin->storage_mode;
 
                   if( verbose > 0 )
                      fprintf(stderr,"RT: writing merged volume %s\n",RT_prefix);
@@ -6572,6 +6655,9 @@ int RT_fim_recurse( RT_input *rtin , int mode )
                                ADN_datum_all   , MRI_short ,
                                ADN_ntt         , 0 ,
                             ADN_none ) ;
+      /* and set the mode based on what was passed */
+      if( rtin->storage_mode )
+         new_dset->dblk->diskptr->storage_mode = rtin->storage_mode;
 
       if( it > 0 )
          fprintf(stderr,"RTfim: WARNING -- %d errors in dataset creation!\a\n",it) ;
