@@ -2263,6 +2263,7 @@ void AFNI_make_wid2( Three_D_View *im3d )
 {
    int ii ;
    Widget hrc ;  /* 30 Mar 2001 */
+   Widget qsep=NULL ;
 
 ENTRY("AFNI_make_wid2") ;
 
@@ -3499,10 +3500,9 @@ STATUS("making func->rowcol") ;
 
    MCW_register_hint( func->inten_label ,
                       "Control overlay colors" ) ;
-
-   (void) XtVaCreateManagedWidget(
+   qsep = XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->inten_rowcol ,
-                XmNseparatorType , XmSINGLE_LINE ,
+              XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
    BBOX_set_wtype("font8") ;
@@ -4346,6 +4346,16 @@ STATUS("making func->rowcol") ;
    XtManageChild( func->fim_rowcol ) ;
 #endif
    XtManageChild( func->rowcol ) ;
+
+#if 0
+   { Widget qwid[2] ; Window qwin[2] ;
+     qwid[0] = func->inten_pbar->top ;
+     qwid[1] = qsep ;
+     qwin[0] = XtWindow(qwid[0]) ;
+     qwin[1] = XtWindow(qwid[1]) ;
+     XRestackWindows( XtDisplay(qwid[0]) , qwin , 2 ) ;
+   }
+#endif
 
    EXRETURN ;
 }

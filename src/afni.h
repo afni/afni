@@ -1870,6 +1870,12 @@ extern void AFNI_see_ttatlas_CB( Widget, XtPointer, XtPointer ) ; /* 25 Jul 2001
 extern void AFNI_range_rotate_av_CB( MCW_arrowval *, XtPointer ); /* 30 Mar 2001 */
 extern void AFNI_hintize_pbar( MCW_pbar * ,  float ) ;            /* 30 Mar 2001 */
 
+#define AFNI_pbar_topset(iq,val)           \
+ do{ MCW_choose_cbs cb ;                   \
+     cb.fval = val ;                       \
+     AFNI_set_pbar_top_CB(NULL,(iq),&cb) ; \
+ } while(0)
+
 #define HINTIZE_pbar(iq)                            \
   AFNI_hintize_pbar( (iq)->vwid->func->inten_pbar , \
                     ((iq)->vinfo->fim_range != 0.0) \
