@@ -1137,17 +1137,29 @@ void PBAR_labelize( float val , char *buf )
    float aval = fabsf(val) ;
    char prefix[4] ;
 
-   if( val == 0.0f  ){ strcpy(buf," 0") ; return ; }
+   if( aval == 0.0f  ){ strcpy(buf," 0") ; return ; }
 
    if( val > 0.0f ) strcpy(prefix," ") ;
    else             strcpy(prefix,"-") ;
 
-   if( aval <=  0.9994f ){
+   if( aval <   0.0010f ){
+     int dec = (int)(0.999 - log10(aval)) ;
+     float zval = aval * pow( 10.0 , (double)dec ) ;  /* between 1 and 10 */
+     if( dec < 10 ) sprintf(buf,"%s%3.1f-%1d",prefix,          zval ,dec) ;
+     else           sprintf(buf,"%s%1d.-%2d" ,prefix,(int)rint(zval),dec) ;
+   } else if( aval <=  0.9994f ){
      sprintf(buf,"%6.4f",aval) ; buf[0] = prefix[0] ;
    }
    else if( aval <=  9.994f ) sprintf(buf,"%s%5.3f",prefix,aval) ;
    else if( aval <= 99.94f  ) sprintf(buf,"%s%5.2f",prefix,aval) ;
-   else                       sprintf(buf,"%s%5f"  ,prefix,aval) ;
+   else if( aval <= 999.4f  ) sprintf(buf,"%s%5.1f",prefix,aval) ;
+   else if( aval <= 99999   ) sprintf(buf,"%s%5f"  ,prefix,aval) ;
+   else {
+     int dec = (int)( log10(aval) ) ;
+     float zval = aval * pow( 10.0 , -(double)dec ) ;
+     if( dec < 10 ) sprintf(buf,"%s%3.1f+%1d",prefix,          zval ,dec) ;
+     else           sprintf(buf,"%s%1d.+%2d" ,prefix,(int)rint(zval),dec) ;
+   }
    return ;
 }
 
