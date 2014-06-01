@@ -621,7 +621,7 @@ ENTRY("AFNI_pbar_CB") ;
 
    else if( w == im3d->vwid->func->pbar_settop_pb ){
       MCW_choose_integer( im3d->vwid->func->options_label ,
-                          "Pbar Top" , 0 , 99999 , 1 ,
+                          "Pbar Top" , 0 , 999999 , 1 ,
                           AFNI_set_pbar_top_CB , cd   ) ;
    }
 
@@ -840,6 +840,7 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Also see macro AFNI_pbar_topset() */
 
 void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
