@@ -19,6 +19,8 @@ extern MRI_IMAGE * AFNI_dataset_slice( THD_3dim_dataset * , int,int,int,int ) ;
 extern MRI_IMAGE * FD_warp_to_mri( int,int , FD_brick * ) ;
 extern void AFNI_set_ignore_vedit( int ) ; /* 28 Jan 2008 */
 
+extern MRI_IMAGE * AFNI_dataset_displayim( THD_3dim_dataset *dset , int ival ) ;
+
 extern MRI_IMAGE * AFNI_slice_flip(int,int,int,int,int,int, THD_3dim_dataset *);
 
 /***********************************************************************/

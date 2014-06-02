@@ -520,6 +520,12 @@ typedef struct MRI_IMARR {
 
 extern MRI_IMARR * mri_to_imarr( MRI_IMAGE *imin ) ; /* 06 Dec 2007 */
 
+/*----------------- Misc other types -------------------------------------*/
+
+typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
+typedef struct { int i,j,k; } int_triple ;
+typedef struct { int i; float a; } intfloat ; /* 02 Jun 2014 */
+
 /******* macros for complex arithmetic, using comma operator *******/
 
 static float   MRI_fla ;                      /* float temporaries   */
@@ -833,6 +839,9 @@ extern double mri_min( MRI_IMAGE * ) ;
 extern double mri_maxabs( MRI_IMAGE * ) ;
 extern double_pair mri_minmax   ( MRI_IMAGE *im ) ;  /* Apr 2013 */
 extern double_pair mri_minmax_nz( MRI_IMAGE *im ) ;  /* Apr 2013 */
+
+intfloat mri_indmax_nz( MRI_IMAGE * ) ;  /* 02 Jun 2014 */
+intfloat mri_indmin_nz( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
 extern int mri_cut_many_2D(MRI_IMARR *,  int,int,int,int );
@@ -1315,11 +1324,6 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 #ifdef  __cplusplus
 }
 #endif
-
-/*----------------- Misc other types -------------------------------------*/
-
-typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
-typedef struct { int i,j,k; } int_triple ;
 
 /*----------*/
 

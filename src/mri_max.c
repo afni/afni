@@ -9,6 +9,8 @@
 
 /*** 7D SAFE ***/
 
+/*---------------------------------------------------------------------------*/
+
 double mri_max( MRI_IMAGE *im )
 {
    register int ii , npix ;
@@ -84,6 +86,8 @@ ENTRY("mri_max") ;
    RETURN( 0.0 );
 }
 
+/*---------------------------------------------------------------------------*/
+
 double mri_maxabs( MRI_IMAGE * im )
 {
    register int ii , npix ;
@@ -147,6 +151,8 @@ ENTRY("mri_maxabs") ;
    }
    RETURN( 0 );
 }
+
+/*---------------------------------------------------------------------------*/
 
 double mri_min( MRI_IMAGE *im )
 {
@@ -223,6 +229,8 @@ ENTRY("mri_min") ;
    RETURN( 0 );
 }
 
+/*---------------------------------------------------------------------------*/
+
 double_pair mri_minmax( MRI_IMAGE *im )
 {
    register int ii , npix ;
@@ -276,6 +284,8 @@ ENTRY("mri_minmax") ;
    }
    RETURN( dp );
 }
+
+/*---------------------------------------------------------------------------*/
 
 double_pair mri_minmax_nz( MRI_IMAGE *im )
 {
@@ -332,4 +342,182 @@ ENTRY("mri_minmax_nz") ;
          fprintf( stderr , "mri_minmax_nz:  unknown image kind\n" ) ;
    }
    RETURN( dp );
+}
+
+/*---------------------------------------------------------------------------*/
+
+intfloat mri_indmax_nz( MRI_IMAGE *im )
+{
+   register int ii , npix ;
+   byte   byte_max   = 0 ;
+   short  short_max  = -32767 ;       /* 23 Oct 1998: changed from 0 */
+   int    int_max    = -2147483647 ;  /* ditto */
+   float  float_max  = -1.e+38 ;      /* changed from -9999999.0 */
+   double double_max = -1.e+38 ;      /* ditto */
+   intfloat result   = { -1 , 0.0f } ; int imax=-1 ;
+
+ENTRY("mri_indmax_nz") ;
+
+   npix = im->nvox ;
+
+   switch( im->kind ){
+
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            if( qar[ii] > byte_max ){ byte_max = qar[ii]; imax = ii; }
+         }
+         result.i = imax; result.a = (float)byte_max; RETURN(result);
+      }
+
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            if( qar[ii] > short_max ){ short_max = qar[ii]; imax = ii; }
+         }
+         result.i = imax; result.a = (float)short_max; RETURN(result);
+      }
+
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            if( qar[ii] > int_max ){ int_max = qar[ii]; imax = ii; }
+         }
+         result.i = imax; result.a = (float)int_max; RETURN(result);
+      }
+
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0.0f ) continue ;
+            if( qar[ii] > float_max ){ float_max = qar[ii]; imax = ii; }
+         }
+         result.i = imax; result.a = float_max; RETURN(result);
+      }
+
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0.0 ) continue ;
+            if( qar[ii] > double_max ){ double_max = qar[ii]; imax = ii; }
+         }
+         result.i = imax; result.a = (float)double_max; RETURN(result);
+      }
+
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(im) ; float aval ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            aval = CABS(qar[ii]) ;
+            if( aval == 0.0f ) continue ;
+            if( aval > float_max ){ float_max = aval; imax = ii; }
+         }
+         result.i = imax; result.a = float_max; RETURN(result);
+      }
+
+      case MRI_rgb:{
+         byte *rgb = MRI_RGB_PTR(im) ;
+         double val , top=0.0 ;
+         for( ii=0 ; ii < npix ; ii++ ){  /* scale to brightness */
+            val =  0.299 * rgb[3*ii]      /* between 0 and 255   */
+                 + 0.587 * rgb[3*ii+1]
+                 + 0.114 * rgb[3*ii+2] ;
+            if( val != 0.0 && val > top ){ top = val; imax = ii; }
+         }
+         result.i = imax; result.a = (float)top; RETURN(result);
+      }
+
+   }
+   RETURN(result);
+}
+
+/*---------------------------------------------------------------------------*/
+
+intfloat mri_indmin_nz( MRI_IMAGE *im )
+{
+   register int ii , npix ;
+   byte   byte_min   = 255 ;
+   short  short_min  = 32767 ;       /* 23 Oct 1998: changed from 0 */
+   int    int_min    = 2147483647 ;  /* ditto */
+   float  float_min  = 1.e+38 ;      /* changed from -9999999.0 */
+   double double_min = 1.e+38 ;      /* ditto */
+   intfloat result   = { -1 , 0.0f } ; int imin=-1 ;
+
+ENTRY("mri_indmin_nz") ;
+
+   npix = im->nvox ;
+
+   switch( im->kind ){
+
+      case MRI_byte:{
+         byte *qar = MRI_BYTE_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            if( qar[ii] < byte_min ){ byte_min = qar[ii]; imin = ii; }
+         }
+         result.i = imin; result.a = (float)byte_min; RETURN(result);
+      }
+
+      case MRI_short:{
+         short *qar = MRI_SHORT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            if( qar[ii] < short_min ){ short_min = qar[ii]; imin = ii; }
+         }
+         result.i = imin; result.a = (float)short_min; RETURN(result);
+      }
+
+      case MRI_int:{
+         int *qar = MRI_INT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0 ) continue ;
+            if( qar[ii] < int_min ){ int_min = qar[ii]; imin = ii; }
+         }
+         result.i = imin; result.a = (float)int_min; RETURN(result);
+      }
+
+      case MRI_float:{
+         float *qar = MRI_FLOAT_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0.0f ) continue ;
+            if( qar[ii] < float_min ){ float_min = qar[ii]; imin = ii; }
+         }
+         result.i = imin; result.a = float_min; RETURN(result);
+      }
+
+      case MRI_double:{
+         double *qar = MRI_DOUBLE_PTR(im) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            if( qar[ii] == 0.0 ) continue ;
+            if( qar[ii] < double_min ){ double_min = qar[ii]; imin = ii; }
+         }
+         result.i = imin; result.a = (float)double_min; RETURN(result);
+      }
+
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(im) ; float aval ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            aval = CABS(qar[ii]) ;
+            if( aval == 0.0f ) continue ;
+            if( aval < float_min ){ float_min = aval; imin = ii; }
+         }
+         result.i = imin; result.a = float_min; RETURN(result);
+      }
+
+      case MRI_rgb:{
+         byte *rgb = MRI_RGB_PTR(im) ;
+         double val , bot=255.0 ;
+         for( ii=0 ; ii < npix ; ii++ ){  /* scale to brightness */
+            val =  0.299 * rgb[3*ii]      /* between 0 and 255   */
+                 + 0.587 * rgb[3*ii+1]
+                 + 0.114 * rgb[3*ii+2] ;
+            if( val != 0.0 && val < bot ){ bot = val; imin = ii; }
+         }
+         result.i = imin; result.a = (float)bot; RETURN(result);
+      }
+
+   }
+   RETURN(result);
 }
