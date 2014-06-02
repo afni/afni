@@ -16,6 +16,8 @@ quick.alpha.vals.py   - make an alpha table from slow_surf_clustsim.py results
 
        -niter: number of iterations that should be in the z file
 
+            ** Note: -niter should match that from slow_surf_clustsim.py.
+
    This pathetic program will surely be enhanced.  Someday.
 
    R Reynolds
