@@ -16,6 +16,41 @@
 static int ignore_vedit = 0 ;   /* 28 Jan 2008 */
 void AFNI_set_ignore_vedit( int ii ){ ignore_vedit = ii; return; }
 
+/*------------------------------------------------------------------------*/
+/* return pointer to the 3D image that would be displayed for the
+   ival-th sub-brick of the dataset -- includes the possibility for
+   vedit (on-the-fly volume editing; currently == clusterize-ation).
+*//*----------------------------------------------------------------------*/
+
+MRI_IMAGE * AFNI_dataset_displayim( THD_3dim_dataset *dset , int ival )
+{
+   int do_vedit ;
+   MRI_TYPE typ ;
+   MRI_IMAGE *im ;
+
+   if( !ISVALID_DSET(dset)                  ) return NULL ;
+   if( ival < 0 || ival >= DSET_NVALS(dset) ) return NULL ;
+   if( dset->wod_flag                       ) return NULL ;
+   if( !DSET_INMEMORY(dset)                 ) return NULL ;
+
+   typ = DSET_BRICK_TYPE(dset,ival) ;
+   if( ! AFNI_GOOD_DTYPE(typ)               ) return NULL ;
+
+   do_vedit = ( !ignore_vedit                   &&
+                DSET_VEDIT_IVAL(dset)   == ival &&
+                dset->dblk->vedim       != NULL &&
+                dset->dblk->vedim->kind == typ    ) ;
+
+   if( do_vedit ){
+     im = dset->dblk->vedim ;
+   } else {
+     im = DSET_BRICK(dset,ival) ;
+     if( mri_data_pointer(im) == NULL ) DSET_load(dset) ;
+   }
+
+   return im ;
+}
+
 /*------------------------------------------------------------------------
    Return a slice from a dataset, possibly to be warped on-the-fly
    from its parent:
