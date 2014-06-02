@@ -1155,7 +1155,7 @@ void PBAR_labelize( float val , char *buf )
    else if( aval <= 999.4f  ) sprintf(buf,"%s%5.1f",prefix,aval) ;
    else if( aval <= 99999   ) sprintf(buf,"%s%5f"  ,prefix,aval) ;
    else {
-     int dec = (int)( log10(aval) ) ;
+     int dec = (int)( log10(aval) + 0.004365 ) ;
      float zval = aval * pow( 10.0 , -(double)dec ) ;
      if( dec < 10 ) sprintf(buf,"%s%3.1f+%1d",prefix,          zval ,dec) ;
      else           sprintf(buf,"%s%1d.+%2d" ,prefix,(int)rint(zval),dec) ;

@@ -622,7 +622,9 @@ void AFNI_hintize_pbar( MCW_pbar *pbar ,  float fac )
 
 ENTRY("AFNI_hintize_pbar") ;
 
-   if( pbar == NULL || fac == 0.0 ) EXRETURN ;  /* bad */
+   if( pbar == NULL || fac == 0.0f ) EXRETURN ;  /* bad */
+
+   if( AFNI_yesenv("AFNI_PBAR_FULLRANGE") ) fac = 1.0f ;  /* 03 Jun 2014 */
 
    if( pbar->bigmode ){
      MCW_register_hint( pbar->panes[0] ,
@@ -1493,7 +1495,7 @@ ENTRY("AFNI_func_overlay") ;
      }
      scale_factor = im3d->vinfo->fim_range ;
      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
-     if( scale_factor == 0.0 ) scale_factor = 1.0f ;
+     if( scale_factor == 0.0 || AFNI_yesenv("AFNI_PBAR_FULLRANGE") ) scale_factor = 1.0f ;
 
      AFNI_set_valabel( br_fim , n , im_fim , im3d->vinfo->func_val ) ;
    }
