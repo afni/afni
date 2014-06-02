@@ -31,8 +31,10 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -uvar vol_mask mask_3mm+orig                        \\
 
    2. more advanced, but still based on EPI analysis
-      (specify p-values, blur size and number of iterations, along with
-      the script name and results directory)
+
+      Specify p-values, blur size and number of iterations, along with the
+      script name and results directory, use 10000 iterations, instead of
+      the default 1000.
 
         slow_surf_clustsim.py -save_script surf.clustsim        \\
             -uvar spec_file sb23_lh_141_std.spec                \\
@@ -40,9 +42,9 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -uvar vol_mask mask_3mm+orig                        \\
             -uvar pthr_list 0.05 0.01 0.002 0.001 0.0002 0.0001 \\
             -uvar blur 8.0                                      \\
-            -uvar niter 1000                                    \\
-            -save_script csim.1000                              \\
-            -uvar results_dir clust.results.1000
+            -uvar niter 10000                                   \\
+            -save_script csim.10000                             \\
+            -uvar results_dir clust.results.10000
 
    3. basic, but on the surface (so no vol_mask is provided)
 
@@ -51,11 +53,13 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
             -uvar spec_file sb23_lh_141_std.spec                \\
             -uvar surf_vol sb23_SurfVol_aligned+orig
 
-
    Note: it is appropriate to use a volume mask on the same grid as the data to
          be analyzed, which is to say either the EPI grid (for functional
          analysis) or perhaps the anatomical grid (for anatomical analysis,
          such as of thickness measures).
+
+   Note: the niter values should match between this program and
+         quick.alpha.vals.py.
 
 ------------------------------------------
 
@@ -76,6 +80,8 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
       might show that a minimum cluster size of 113 mm^2 would correspond to a
       corrected p=0.05.
+
+      Use of -niter should match that from slow_surf_clustsim.py.
 
 ------------------------------------------
 

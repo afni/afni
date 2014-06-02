@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Jun, 2014, RCR, "slow_surf_clustsim.py", MICRO, TYPE_MODIFY,
+   "niter defaults to 1000, to match recommendations and 'quick' example",
+   NULL
+ } ,
+
  { 30,  May, 2014, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
    "if PREFIX ends in .nii, all saved datasets will be in NIFTI format",
    "Added for V Roopchansingh."

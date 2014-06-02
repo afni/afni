@@ -31,9 +31,11 @@ g_history = """
     0.9  08 Aug, 2012: pass along surf vol even for on_surface
                        (plan to remove this later)
     0.10 21 Aug, 2012: added 'sigma' uvar, for SurfSmooth
+    0.11 02 Jun, 2014: changed default niter from 20 to 1000
+                       (20 was more of a quick test, but 1000 is appropriate)
 """
 
-g_version = '0.10 (August 21, 2012)'
+g_version = '0.11 (June 2, 2014)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -70,7 +72,7 @@ g_user_defs.surf_vol       = ''
 g_user_defs.vol_mask       = ''  # required only if not on_surface
 
 # other inputs
-g_user_defs.niter          = 20         # total number of iterations
+g_user_defs.niter          = 1000       # total number of iterations
 g_user_defs.itersize       = 10         # iteration block size (speed-up)
 
 g_user_defs.pthr_list      = [ 0.1, 0.05, 0.02, 0.01 ]
