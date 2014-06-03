@@ -658,8 +658,8 @@ ENTRY("AFNI_range_lock_carryout") ;
    val = im3d->vinfo->fim_range ;
    if( val <= 0.0 )                   EXRETURN;  /* shouldn't happen */
 
-   /* count how OTHER controllers are are open and locked;
-      if none of them, there is nothing to do [29 Apr 2005] */
+   /* count how many OTHER controllers are are open and locked;
+      if none of them are, there is nothing to do [29 Apr 2005] */
 
    for( nn=cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
      qq3d = GLOBAL_library.controllers[cc] ;

@@ -840,21 +840,29 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Also see macro AFNI_pbar_topset() */
+static int ignore_pbar_top = 0 ;
+void AFNI_ignore_pbar_top(int ig){ ignore_pbar_top = ig ; }
 
-void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
+/*----------------------------------------------------------------------------*/
+/* Also see macro AFNI_pbar_topset() */
+/*----------------------------------------------------------------------------*/
+
+void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   MCW_pbar * pbar ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   MCW_pbar *pbar ;
    float pval[NPANE_MAX+1] ;
    float pmin,pmax , fac ;
    int ii ;
+   static int busy=0 ;  /* prevent recursion */
 
 ENTRY("AFNI_set_pbar_top_CB") ;
 
-   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+   if( ignore_pbar_top || busy || !IM3D_OPEN(im3d) ) EXRETURN ;
 
    pmax = cbs->fval ; if( pmax <= 0.0f ) EXRETURN ;
+
+   busy = 1 ;
    pbar = im3d->vwid->func->inten_pbar ;
 
    HIDE_SCALE(im3d) ;
@@ -873,6 +881,7 @@ ENTRY("AFNI_set_pbar_top_CB") ;
    }
    FIX_SCALE_SIZE(im3d) ;
 
+   busy = 0 ;
    EXRETURN ;
 }
 

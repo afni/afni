@@ -2128,9 +2128,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      }
      pbar->bigmode = 0 ;
      alter_MCW_pbar( pbar , npan , pval ) ;
-     AFNI_hintize_pbar( pbar , (im3d->vinfo->fim_range != 0.0)
-                                ? im3d->vinfo->fim_range
-                                : im3d->vinfo->fim_autorange ) ;
+     AFNI_hintize_pbar( pbar , FIM_RANGE(im3d) ) ;
      NORMAL_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    } else {    /* set the colorscale */
      float pmax, pmin ;
@@ -2268,10 +2266,10 @@ ENTRY("AFNI_set_func_range") ;
    im3d = GLOBAL_library.controllers[ic] ;
    if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
 
-   val = strtod( cmd+dadd , NULL ) ;
-   if( val <  0.0 ) RETURN(-1) ;
+   val = (float)strtod( cmd+dadd , NULL ) ;
+   if( val < 0.0f ) RETURN(-1) ;
 
-   if( val == 0.0 ){
+   if( val == 0.0f ){
      char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
      char str[8] ;
      sprintf(str,"%c.+",clabel[ic]) ;

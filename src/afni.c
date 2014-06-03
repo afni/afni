@@ -1619,10 +1619,14 @@ static int check_string( char *targ , int ns , char *ss[] )
    return 0 ;
 }
 
-/*=========================================================================
+/*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/*=============================================================================
   The new AFNI main program.
     02 Aug 1999: Have moved much of the startup into a work process.
-===========================================================================*/
+==============================================================================*/
+/*----------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -1863,6 +1867,9 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_RESCAN_AT_SWITCH","YES") ; /* 16 Nov 2007 */
    PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
+#if 0
+   PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
+#endif
 
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
@@ -1893,6 +1900,8 @@ int main( int argc , char *argv[] )
      THR_factor    = 1.0f / tval[ii] ;
      THR_top_value = tval[ii] - 1.0f ;
    }
+
+   PBAR_FULLRANGE = AFNI_yesenv("AFNI_PBAR_FULLRANGE") ; /* 03 Jun 2014 */
 
    AFNI_load_defaults( MAIN_shell ) ;
 
@@ -6620,10 +6629,13 @@ ENTRY("AFNI_viewbut_EV") ;
 
 /*------------------------------------------------------------------------*/
 
+static int ignore_redisplay_func = 0 ;  /* 03 Jun 2014 */
+void AFNI_redisplay_func_ignore( int ig ){ ignore_redisplay_func = ig ; }
+
 void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 {
 ENTRY("AFNI_redisplay_func") ;
-   if( IM3D_OPEN(im3d) && IM3D_IMAGIZED(im3d) ){
+   if( !ignore_redisplay_func && IM3D_OPEN(im3d) && IM3D_IMAGIZED(im3d) ){
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }

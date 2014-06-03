@@ -43,7 +43,20 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 02 , MAY , 2014 , RWC , "afni" , MICRO , TYPE_NEW_OPT ,
+  { 3 , JUN , 2014 , RWC , "afni GUI" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_PBAR_FULLRANGE" ,
+   "If this variable is set to YES, then the color pbar in Define Overlay\n"
+   "will reflect the range set by the user for the colorization process.  At\n"
+   "some point, this feature will become the default, and then you'll have\n"
+   "to set this variable to NO to get the old behavior -- where the range\n"
+   "set by the user is shown only at the bottom right of the Define Overlay\n"
+   "panel, and it then multiplies the independently set top value of the\n"
+   "pbar to get the colorization scale.  In the new method, the top value of\n"
+   "the pbar cannot be set by the user independently of the range (or\n"
+   "autorange) parameter.  The intention of this change is to make the\n"
+   "number -> colors process somewhat more blatant." } ,
+
+ { 02 , MAY , 2014 , RWC , "afni" , MICRO , TYPE_NEW_OPT ,
    "add -papers option, to list AFNI papers" ,
    "The list of papers is maintained in file afni_papers.txt\n"
    "which is turned into afni_papers.h via program quotize." } ,
