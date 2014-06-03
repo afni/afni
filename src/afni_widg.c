@@ -3257,6 +3257,7 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->pbar_settop_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
    MCW_register_hint( func->pbar_settop_pb , "Is scaled by 'range' controls" ) ;
+   XtSetSensitive( func->pbar_settop_pb , !PBAR_FULLRANGE ) ;
 
    func->pbar_flip_pb =
       XtVaCreateManagedWidget(

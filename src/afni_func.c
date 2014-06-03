@@ -624,7 +624,7 @@ ENTRY("AFNI_hintize_pbar") ;
 
    if( pbar == NULL || fac == 0.0f ) EXRETURN ;  /* bad */
 
-   if( AFNI_yesenv("AFNI_PBAR_FULLRANGE") ) fac = 1.0f ;  /* 03 Jun 2014 */
+   if( PBAR_FULLRANGE ) fac = 1.0f ;     /* 03 Jun 2014 */
 
    if( pbar->bigmode ){
      MCW_register_hint( pbar->panes[0] ,
@@ -665,9 +665,7 @@ ENTRY("AFNI_inten_pbar_CB") ;
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
-   AFNI_hintize_pbar( pbar ,
-                      (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
-                                                      : im3d->vinfo->fim_autorange ) ;
+   AFNI_hintize_pbar( pbar , FIM_RANGE(im3d) ) ;
 
    FIX_SCALE_SIZE(im3d) ;
 
@@ -834,6 +832,8 @@ void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
 
    if( !IM3D_OPEN(im3d) ) return ;
 
+   if( PBAR_FULLRANGE ) AFNI_redisplay_func_ignore(1) ;
+
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    HIDE_SCALE(im3d) ;
    if( av->ival > NPANE_MAX ){
@@ -850,14 +850,23 @@ void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
      NORMAL_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    }
    FIX_SCALE_SIZE(im3d) ;
+
+   if( PBAR_FULLRANGE ) AFNI_redisplay_func_ignore(0) ;
+
+   if( PBAR_FULLRANGE ) AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+   else                 HINTIZE_pbar(im3d) ;
+
+   return ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 char * AFNI_inten_av_texter( MCW_arrowval *av , XtPointer cd )
 {
    static char buf[4] ;
-   if( av->ival > NPANE_MAX ) strcpy (buf,"**") ;
-   else                       sprintf(buf,"%d",av->ival) ;
-   return buf ;
+   if( av->ival > NPANE_MAX ) strcpy (buf,"**") ;           /* label for  */
+   else                       sprintf(buf,"%d",av->ival) ;  /* number of  */
+   return buf ;                                             /* pbar panes */
 }
 
 /*---------------------------------------------------------------------
@@ -1493,9 +1502,8 @@ ENTRY("AFNI_func_overlay") ;
        STATUS("fetch im_fim") ;
        im_fim = FD_warp_to_mri( n, ind, br_fim ) ;  /* get func image */
      }
-     scale_factor = im3d->vinfo->fim_range ;
-     if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
-     if( scale_factor == 0.0 || AFNI_yesenv("AFNI_PBAR_FULLRANGE") ) scale_factor = 1.0f ;
+     scale_factor = FIM_RANGE(im3d) ;
+     if( scale_factor == 0.0 || PBAR_FULLRANGE ) scale_factor = 1.0f ;
 
      AFNI_set_valabel( br_fim , n , im_fim , im3d->vinfo->func_val ) ;
    }
@@ -5590,9 +5598,12 @@ ENTRY("AFNI_range_bbox_CB") ;
       im3d->vinfo->fim_range = (new_auto) ? (im3d->vinfo->fim_autorange)
                                           : (im3d->vwid->func->range_av->fval) ;
 
-      AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
-                         (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
-                                                         : im3d->vinfo->fim_autorange );
+      if( PBAR_FULLRANGE ){
+        AFNI_redisplay_func_ignore(1) ;
+        AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+        AFNI_redisplay_func_ignore(0) ;
+      }
+      else HINTIZE_pbar(im3d) ;
 
       AV_SENSITIZE( im3d->vwid->func->range_av , ! new_auto ) ;
 
@@ -5640,13 +5651,18 @@ ENTRY("AFNI_range_av_CB") ;
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    im3d->vinfo->fim_range = av->fval ;
+
+   if( PBAR_FULLRANGE ){
+     AFNI_redisplay_func_ignore(1) ;
+     AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+     AFNI_redisplay_func_ignore(0) ;
+   }
+   else HINTIZE_pbar(im3d) ;
+
    AFNI_redisplay_func( im3d ) ;
 
    AFNI_range_lock_carryout(im3d) ;  /* 23 Feb 2004 */
 
-   AFNI_hintize_pbar( im3d->vwid->func->inten_pbar ,
-                      (im3d->vinfo->fim_range != 0.0) ? im3d->vinfo->fim_range
-                                                      : im3d->vinfo->fim_autorange );
    EXRETURN ;
 }
 
@@ -5677,6 +5693,8 @@ ENTRY("AFNI_inten_bbox_CB") ;
 
       /* re-panel the pbar befitting its new mode */
 
+      AFNI_redisplay_func_ignore(1) ;
+
       HIDE_SCALE(im3d) ;
       if( pbar->bigmode ){               /* 30 Jan 2003 */
         int npane=pbar->num_panes ;
@@ -5700,6 +5718,11 @@ ENTRY("AFNI_inten_bbox_CB") ;
       else
         AV_assign_ival( im3d->vwid->func->inten_av, pbar->npan_save[jm] ) ;
 
+
+      if( PBAR_FULLRANGE ) AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+      else                 HINTIZE_pbar(im3d) ;
+
+      AFNI_redisplay_func_ignore(0) ;
       AFNI_redisplay_func( im3d ) ;
    }
 
@@ -5756,7 +5779,12 @@ ENTRY("AFNI_reset_func_range") ;
       (im3d->vinfo->use_autorange) ? (im3d->vinfo->fim_autorange)
                                    : (im3d->vwid->func->range_av->fval) ;
 
-   HINTIZE_pbar(im3d) ; /* 22 Aug 2001 */
+   if( PBAR_FULLRANGE ){
+     AFNI_redisplay_func_ignore(1) ;
+     AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+     AFNI_redisplay_func_ignore(0) ;
+   }
+   else HINTIZE_pbar(im3d) ;
 
    EXRETURN ;
 }

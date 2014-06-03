@@ -62,7 +62,7 @@ typedef struct {
 
       Boolean read_dsets ;    /* 17 Mar 2000 */
 
-      char * layout_fname ;   /* 23 Sep 2000 */
+      char *layout_fname ;    /* 23 Sep 2000 */
 
       int enable_suma ;       /* 29 Aug 2001 */
 
@@ -74,7 +74,7 @@ typedef struct {
                /* port_niml no longer in use. ZSS June 2011 */
                /* int port_niml ;         10 Dec 2002 */
 
-      char * script_fname ;   /* 21 Jan 2003 */
+      char *script_fname ;    /* 21 Jan 2003 */
 } AF_options ;
 
 #ifdef MAIN
@@ -1525,6 +1525,8 @@ typedef struct {
    int dont_overlay_suma ;  /* 1 = won't send SUMA func overlay */
    int dont_hear_suma ;     /* 1 = I can't hear you SUMA        */
 
+   int pbar_fullrange ;                          /* 03 Jun 2014 */
+
 } AFNI_library_type ;
 
 #define BROWN_COLOR "#553319"
@@ -1577,6 +1579,8 @@ extern void AFNI_display_hist( Widget w ) ;       /* 05 Mar 2008 */
 # define SUMA_ENABLED   GLOBAL_argopt.enable_suma
 
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
+
+#define PBAR_FULLRANGE  GLOBAL_library.pbar_fullrange
 
 #define UNDUMMYIZE                                                              \
  do { GLOBAL_library.have_dummy_dataset = 0 ;                                   \
@@ -1851,6 +1855,7 @@ extern void AFNI_set_index_viewpoint( Three_D_View *, int, int );
 extern void AFNI_redisplay_func( Three_D_View * ) ;          /* 05 Mar 2002 */
 extern void AFNI_view_setter( Three_D_View *, MCW_imseq *) ; /* 26 Feb 2003 */
 extern void AFNI_range_setter( Three_D_View *, MCW_imseq *); /* 04 Nov 2003 */
+extern void AFNI_redisplay_func_ignore( int ) ;              /* 03 Jun 2014 */
 
 extern void AFNI_coord_filer_setup( Three_D_View *im3d ) ;   /* 07 May 2010 */
 
@@ -1876,11 +1881,13 @@ extern void AFNI_hintize_pbar( MCW_pbar * ,  float ) ;            /* 30 Mar 2001
      AFNI_set_pbar_top_CB(NULL,(iq),&cb) ; \
  } while(0)
 
-#define HINTIZE_pbar(iq)                            \
-  AFNI_hintize_pbar( (iq)->vwid->func->inten_pbar , \
-                    ((iq)->vinfo->fim_range != 0.0) \
-                     ? (iq)->vinfo->fim_range       \
-                     : (iq)->vinfo->fim_autorange )    /* 15 Aug 2001 */
+#define FIM_RANGE(iq)              \
+ ( ((iq)->vinfo->fim_range != 0.0) \
+   ? (iq)->vinfo->fim_range        \
+   : (iq)->vinfo->fim_autorange )
+
+#define HINTIZE_pbar(iq)  \
+  AFNI_hintize_pbar( (iq)->vwid->func->inten_pbar , FIM_RANGE(iq) )
 
 extern void AFNI_reset_func_range( Three_D_View * ) ;
 
