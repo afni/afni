@@ -2,11 +2,9 @@
 
 ##!/usr/bin/env afni_run_R
 
-
 # Command line to run this script: 3dMVM.R dataStr.txt diary.txt &
 # (Output is a file in which the running progress including 
 # error messages will be stored)
-
 
 first.in.path <- function(file) {
    ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
@@ -17,24 +15,21 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dMVM'
 
-
 #################################################################################
 ##################### Begin MVM Input functions ################################
 #################################################################################
-
 
 greeting.MVM <- function ()
    return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.8, May 23, 2014
+Version 3.0.9, June 3, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
-
 
 #The help function for 3dMVM batch (AFNI-style script mode)
 help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
@@ -44,7 +39,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.8, May 23, 2014
+Version 3.0.9, June 3, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1367,10 +1362,16 @@ out[out < (-Top)] <- -Top
 #   outLabel <- append(outLabel, sprintf("%s:t", lop$gltLabel[ii]))
 #}  
 
-statpar <- "3drefit"
-for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ", F_DF[[ii]][1], F_DF[[ii]][2])
+#statpar <- "3drefit"
+statsym <- NULL
+
+#for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ", F_DF[[ii]][1], F_DF[[ii]][2])
+for(ii in 1:nF) statsym <- c(statsym, list(list(sb=ii-1, 
+                typ="fift", par=c(F_DF[[ii]][1], F_DF[[ii]][2]))))
+                                                
 if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-   statpar <- paste(statpar, " -substatpar ", nF+2*ii-1, " fitt", t_DF[ii])
+   statsym <- c(statsym, list(list(sb=nF+2*ii-1, typ="fitt", par=t_DF[ii])))        
+#   statpar <- paste(statpar, " -substatpar ", nF+2*ii-1, " fitt", t_DF[ii])
    
 #if(is.na(lop$mVar)) {
 #   if(is.na(lop$wsVars)) for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ",
@@ -1387,12 +1388,13 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt)
 
 #if(lop$num_glt>0) for(ii in 1:lop$num_glt) statpar <- paste(statpar, " -substatpar ", nF+2*ii-1, " fitt", 
 #   ifelse(is.na(lop$wsVars) & is.na(lop$mVar), gltRes[[ii]][2,2], gltRes[[ii]][,6]))    
-statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
+#statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
    
 #write.AFNI(lop$outFN, out, outLabel, note=myHist, origin=myOrig, delta=myDelta, idcode=newid.AFNI())
 #write.AFNI(lop$outFN, out, outLabel, defhead=head, idcode=newid.AFNI(), type='MRI_short')
-write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(), type='MRI_short')
-                                                
-system(statpar)
+#write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(), type='MRI_short')
+write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+             
+#system(statpar)
 print(sprintf("Congratulations! You have got an output %s", lop$outFN))
-                                                      
