@@ -10,24 +10,21 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dLME'
 
-
 #################################################################################
 ##################### Begin 3dLME Input functions ################################
 #################################################################################
-
 
 greeting.lme <- function ()
    return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3, May 30, 2014
+Version 1.3, June 3, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
       )
-
 
 #The help function for 3dLME batch (AFNI-style script mode)
 help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
@@ -1102,16 +1099,22 @@ if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
 #   outLabel <- append(outLabel, paste(dimnames(summary(fm)$tTable)[[1]][pars[[12]][n]], "t"))
 #}
 
-statpar <- "3drefit"
+#for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ", F_DF[[ii]][1], F_DF[[ii]][2])
+#statpar <- "3drefit"
+statsym <- NULL
 IdxAdj <- 1
 #IdxAdj <- as.integer(!is.na(lop$corStr[1]))
 for (i in (2-IdxAdj):(nF+1-IdxAdj)) {  # has an intercept or not
    # DFs are acquired from the last solvable voxel 
-        statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
-           " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
+   #     statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
+   #        " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
+        statsym <- c(statsym, list(list(sb=i-2+IdxAdj, 
+                typ="fift", par=c( anova(fm)$numDF[i], anova(fm)$denDF[i]))))
+        
 }  # from 0 to NoF-1
 
-if(lop$num_glt > 0) for (n in 1:lop$num_glt) statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fizt ")
+if(lop$num_glt > 0) for (n in 1:lop$num_glt) #statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fizt ")
+   statsym <- c(statsym, list(list(sb=nF+2*n-1, typ="fizt", par=NULL)))
    #statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ",gltDF[n])
 
 #if(!is.null(lop$QV)) if(nCovVal>0) for (n in 1:nCovVal) 
@@ -1119,10 +1122,12 @@ if(lop$num_glt > 0) for (n in 1:lop$num_glt) statpar <- paste(statpar, " -substa
 bb <- as.numeric(strsplit(as.character(ModelForm), "\\+", fixed=F)[[3]][1])
 
 if(!is.na(bb)) if(bb==0 | bb == -1) for (n in 1:dim(summary(fm)$tTable)[1])  # basis functions
-   statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
+   statsym <- c(statsym, list(list(sb=nF+2*n-1, typ="fitt", par=summary(fm)$tTable[n,"DF"])))
+   #statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
 
-statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
-
-write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(), type='MRI_short')
-system(statpar)
+#statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
+write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(),
+   com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+#system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
+
