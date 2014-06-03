@@ -29,6 +29,8 @@ PLUGIN_interface * GICOR_init(char *lab)
 
 static int ncall=0 ;
 
+static int called_before[26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} ;
+
 /*--------------------- string to 'help' the user --------------------*/
 
 static char i_helpstring[] =
@@ -538,13 +540,15 @@ ENTRY("AFNI_icor_setref_anatijk") ;
 
 int AFNI_icor_setref_xyz( Three_D_View *im3d , float xx,float yy,float zz )
 {
-   MRI_IMAGE *iim; float *iar, rng; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk;
+   MRI_IMAGE *iim; float *iar, rng; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ic ;
    THD_3dim_dataset *icoset ; THD_slist_find slf ; int nds=0 ;
    double etim ;
 
 ENTRY("AFNI_icor_setref_xyz") ;
 
    if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   ic = AFNI_controller_index(im3d) ; if( ic < 0 || ic > 25 ) RETURN(-1) ;
 
    /**** divert to Group InstaCorr? ****/
 
@@ -709,19 +713,22 @@ ENTRY("AFNI_icor_setref_xyz") ;
    }
 
    /* redisplay overlay */
+   if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
    if( im3d->fim_now != icoset ||
        im3d->iset->change ){  /* switch to this dataset */
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      cbs.ival = nds ;
+   
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,0) ;
 
-     sprintf(cmd,"SET_FUNC_RANGE %c.%.2f",cpt[1], rng) ;
+     if( !called_before[ic] ) sprintf(cmd,"SET_FUNC_RANGE %c.%.2f",cpt[1], rng) ;
      AFNI_driver(cmd) ;
    }
-   AFNI_reset_func_range(im3d) ;
+   AFNI_reset_func_range(im3d) ; called_before[ic] = 1 ;
+   AFNI_ignore_pbar_top(0) ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
@@ -1062,7 +1069,7 @@ void GICOR_process_dataset( NI_element *nel , int ct_start )
    Three_D_View *im3d = A_CONTROLLER , *qq3d ;
    GICOR_setup *giset = im3d->giset ;
    float *nelar , *dsdar ;
-   int nvec,nn,vv , vmul ; float thr ;
+   int nvec,nn,vv , vmul , ic ; float thr ;
 
 ENTRY("GICOR_process_dataset") ;
 
@@ -1070,6 +1077,8 @@ ENTRY("GICOR_process_dataset") ;
      ERROR_message("badly formatted dataset from 3dGroupInCorr!") ;
      EXRETURN ;
    }
+
+   ic = AFNI_controller_index(im3d) ; if( ic < 0 || ic > 25 ) EXRETURN ;
 
    if( giset->toplabel != NULL )
      PLUTO_set_toplabel( GICOR_plint , giset->toplabel ) ;
@@ -1174,6 +1183,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
 
    /* redisplay overlay */
 
+   if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay = off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
@@ -1182,7 +1192,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
    } else {                                                  /* overlay = on */
      AFNI_redisplay_func(im3d) ;
    }
-   AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
+   AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ; called_before[ic] = 1 ;
 
    for( vv=1 ; vv < MAX_CONTROLLERS ; vv++ ){  /* other controllers need redisplay? */
      qq3d = GLOBAL_library.controllers[vv] ;
@@ -1191,6 +1201,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
        AFNI_reset_func_range(qq3d) ; AFNI_redisplay_func(qq3d) ;
      }
    }
+   AFNI_ignore_pbar_top(0) ;
 
    giset->busy = 0 ; /* Not busy waiting anymore [18 Mar 2010] */
    GRPINCORR_LABEL_ON(im3d) ;                  /* 07 Apr 2010 */

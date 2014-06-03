@@ -5565,7 +5565,6 @@ ENTRY( "RCREND_func_widgets" );
             XmNtraversalOn , True ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( wfunc_pbar_settop_pb , XmNactivateCallback ,
                   RCREND_pbarmenu_CB , im3d ) ;
 
@@ -6745,7 +6744,7 @@ ENTRY( "RCREND_pbarmenu_CB" );
    /*--- Set top value ---*/
 
    else if( w == wfunc_pbar_settop_pb ){
-      MCW_choose_integer( wfunc_choices_label ,
+      MCW_choose_integer( wfunc_choices_rowcol,
                           "Pbar Top" , 0 , 99999 , 1 ,
                           RCREND_set_pbar_top_CB , NULL  ) ;
    }
@@ -6753,7 +6752,7 @@ ENTRY( "RCREND_pbarmenu_CB" );
    /*--- Save pbar into image file ---*/
 
    else if( w == wfunc_pbar_saveim_pb ){
-      MCW_choose_string( wfunc_choices_label,
+      MCW_choose_string( wfunc_choices_rowcol,
                          "PPM file prefix\n"
                          "  * end in .jpg or .png *\n"
                          "  * for those formats   *"
