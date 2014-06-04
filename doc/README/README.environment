@@ -2573,6 +2573,22 @@ of tick marks allowed is 63, which should be enough.
   into 10 intervals).  For this bar, the number of tick marks is
   fixed: it is either 0 or 9.
 
+-----------------------------
+Variable: AFNI_PBAR_FULLRANGE  [03 Jun 2014]
+-----------------------------
+If this variable is set to YES, then the color pbar in Define Overlay
+will reflect the range set by the user for the colorization process.  At
+some point, this feature will become the default, and then you'll have
+to set this variable to NO to get the old behavior -- where the range
+set by the user is shown only at the bottom right of the Define Overlay
+panel, and it then multiplies the independently set top value of the
+pbar to get the colorization scale.  In the new method, the top value of
+the pbar cannot be set by the user independently of the range (or
+autorange) parameter.  The intention of this change is to make the
+number -> colors process somewhat more blatant.  This variable's value
+must be set at startup (e.g., in .afnirc), and changing it later will
+have no effect.
+
 -------------------------
 Variable: AFNI_RANGE_LOCK (editable)
 -------------------------
