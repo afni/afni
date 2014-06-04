@@ -6412,9 +6412,12 @@ ENTRY("AFNI_lock_button") ;
 
    /*** button box to control the threshold lock ***/
 
-   { static char *thr_lock_label[3] = { "Free Thr.",
-                                        "Lock V." ,
-                                        "Lock P."  } ;
+   { static char *thr_lock_label[3] = { "Free Thresh",
+                                        "Lock Val" ,
+                                        "Lock pVal"  } ;
+     static char *rng_lock_label[1] = { "Lock Range" } ; int rr=0 ;
+     static char *pbar_lock_label[1]= { "Lock Pbar"  } ; int pp=0 ;
+
      GLOBAL_library.thr_lock = AFNI_thresh_lock_env_val();
      dmode->thr_lock_bbox =
             new_MCW_bbox( menu ,
@@ -6426,7 +6429,33 @@ ENTRY("AFNI_lock_button") ;
                           (XtPointer)im3d );
      MCW_set_bbox( dmode->thr_lock_bbox, 1<<GLOBAL_library.thr_lock);
      MCW_reghint_children( dmode->thr_lock_bbox->wrowcol ,
-                            "Lock thresholds?" ) ;
+                            "Lock overlay thresholds?" ) ;
+
+     rr = AFNI_yesenv("AFNI_RANGE_LOCK") ;
+     dmode->rng_lock_bbox =
+            new_MCW_bbox( menu ,
+                          1 ,
+                          rng_lock_label ,
+                          MCW_BB_radio_zero ,
+                          MCW_BB_frame ,
+                          AFNI_func_rnglock_change_CB,
+                          (XtPointer)im3d );
+     MCW_set_bbox( dmode->rng_lock_bbox, rr ) ;
+     MCW_reghint_children( dmode->rng_lock_bbox->wrowcol ,
+                            "Lock overlay ranges?" ) ;
+
+     pp = AFNI_check_pbar_lock() ;
+     dmode->pbar_lock_bbox =
+            new_MCW_bbox( menu ,
+                          1 ,
+                          pbar_lock_label ,
+                          MCW_BB_radio_zero ,
+                          MCW_BB_frame ,
+                          AFNI_func_pbarlock_change_CB,
+                          (XtPointer)im3d );
+     MCW_set_bbox( dmode->pbar_lock_bbox, pp ) ;
+     MCW_reghint_children( dmode->pbar_lock_bbox->wrowcol ,
+                            "Lock overlay color pbars?" ) ;
     }
 
    /*** pushbuttons ***/

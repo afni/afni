@@ -832,7 +832,9 @@ typedef struct {
       Widget         misc_1dchain_pb ;  /* 07 Aug 2001 */
 #endif
 
-      MCW_bbox     * thr_lock_bbox;     /* 16 Nov 2011 */
+      MCW_bbox     * thr_lock_bbox ;    /* 16 Nov 2011 */
+      MCW_bbox     * rng_lock_bbox ;    /* 04 Jun 2014 */
+      MCW_bbox     * pbar_lock_bbox;    /* 04 Jun 2014 */
       MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */
 
       Widget         misc_savelayout_pb ; /* 23 Sep 2000 */
@@ -1648,6 +1650,14 @@ extern void AFNI_ijk_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 extern int AFNI_thresh_lock_env_val( void );
 extern void AFNI_func_thrlock_change_CB( Widget , XtPointer , XtPointer );
 extern void AFNI_set_all_thrlock_bboxes(Three_D_View *im3d, int bval) ;
+
+extern void AFNI_func_rnglock_change_CB( Widget , XtPointer , XtPointer );
+extern void AFNI_set_all_rnglock_bboxes(Three_D_View *im3d, int bval) ;
+extern int  AFNI_check_range_lock() ;
+
+extern void AFNI_func_pbarlock_change_CB( Widget , XtPointer , XtPointer );
+extern void AFNI_set_all_pbarlock_bboxes(Three_D_View *im3d, int bval) ;
+extern int  AFNI_check_pbar_lock() ;
 
 extern XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br );
 
