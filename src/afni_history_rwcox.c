@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , JUN , 2014 , RWC , "afni GUI" , MINOR , TYPE_NEW_ENV ,
+  { 4 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "AFNI_PBAR_FULLRANGE fixes" ,
+   "Made it work better with Range and Pbar locks.  Also added buttons for\n"
+   "these types of locks to the Datamode->Lock menu for ease of use (instead\n"
+   "of having to set environment variables in EditEnv)." } ,
+
+ { 3 , JUN , 2014 , RWC , "afni GUI" , MINOR , TYPE_NEW_ENV ,
    "AFNI_PBAR_FULLRANGE" ,
    "If this variable is set to YES, then the color pbar in Define Overlay\n"
    "will reflect the range set by the user for the colorization process.  At\n"

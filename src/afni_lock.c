@@ -303,7 +303,9 @@ ENTRY("AFNI_ijk_lock_change_CB") ;
    EXRETURN ;
 }
 
-int AFNI_bbox_thrlock_mask2val(int bval) 
+/*------------------------------------------------------------------------*/
+
+int AFNI_bbox_thrlock_mask2val(int bval)
 {
    int ii;
    for (ii=0; ii<3; ++ii) {
@@ -314,24 +316,28 @@ int AFNI_bbox_thrlock_mask2val(int bval)
    return(0);
 }
 
-void AFNI_set_all_thrlock_bboxes(Three_D_View *im3d, int bval) 
+/*------------------------------------------------------------------------*/
+
+void AFNI_set_all_thrlock_bboxes(Three_D_View *im3d, int bval)
 {
    int ii;
    Three_D_View *qq3d ;
-    
+
    if (bval < 0) bval = 1<<AFNI_thresh_lock_env_val();
-   
+
    /* set all other controller lock boxes to the same value */
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
      qq3d = GLOBAL_library.controllers[ii] ;
      if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
-     MCW_set_bbox( qq3d->vwid->dmode->thr_lock_bbox , bval ) ; 
+     MCW_set_bbox( qq3d->vwid->dmode->thr_lock_bbox , bval ) ;
    }
-   
+
    GLOBAL_library.thr_lock = AFNI_bbox_thrlock_mask2val(bval);
-   
+
    return;
 }
+
+/*------------------------------------------------------------------------*/
 
 void AFNI_func_thrlock_change_CB ( Widget w , XtPointer cd , XtPointer calld  )
 {
@@ -347,24 +353,24 @@ ENTRY("AFNI_func_thrlock_change_CB") ;
 
    if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
 
-   
    /* new value --> save in global setting */
 
    GLOBAL_library.thr_lock = AFNI_bbox_thrlock_mask2val(bval) ;
-   
+
    /* And apply it to other controllers */
    AFNI_set_all_thrlock_bboxes(im3d, bval);
-   
+
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
-
 }
+
 /*------------------------------------------------------------------------*/
+
 int AFNI_thresh_lock_env_val(void)
 {
    int i=0;
    char *eee=NULL;
-   
+
    eee = getenv( "AFNI_THRESH_LOCK" ) ;          /* determine how to lock */
    if( eee == NULL ) return(0) ;
    if(*eee == 'V' || *eee == 'v') return(1);
@@ -372,13 +378,15 @@ int AFNI_thresh_lock_env_val(void)
    return(0);
 }
 
+/*------------------------------------------------------------------------*/
+
 void AFNI_thresh_lock_carryout( Three_D_View *im3d )
 {
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
    int glock , cc,ii , dopval,dothresh ;
    float thresh , pval=0.0f , tval ;
-   char cmd[64] , *eee ;
+   char cmd[64] ;
 
 ENTRY("AFNI_thresh_lock_carryout") ;
 
@@ -496,7 +504,6 @@ void AFNI_pbar_lock_carryout( Three_D_View *im3d )
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
    int glock , cc,ii ;
-   char *eee ;
 
 ENTRY("AFNI_pbar_lock_carryout") ;
 
@@ -508,10 +515,7 @@ ENTRY("AFNI_pbar_lock_carryout") ;
    if( glock == 0 )                   EXRETURN;  /* nothing to do */
    if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
    if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
-
-   eee = getenv( "AFNI_PBAR_LOCK" ) ;            /* determine how to lock */
-   if( eee == NULL ) EXRETURN ;
-   if( *eee != 'Y' && *eee != 'y' ) EXRETURN ;
+   if( !AFNI_check_pbar_lock() )      EXRETURN;  /* not locked? */
 
    ii = AFNI_controller_index(im3d) ;           /* which one am I? */
 
@@ -547,7 +551,6 @@ void AFNI_thrdrag_lock_carryout( Three_D_View *im3d )
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
    int glock , cc,ii , dothresh,dopval , ival , stop ;
    float thresh , pval=0.0f , tval ;
-   char *eee ;
 
 ENTRY("AFNI_thrdrag_lock_carryout") ;
 
@@ -625,13 +628,29 @@ ENTRY("AFNI_thrdrag_lock_carryout") ;
 
 /*------------------------------------------------------------------------*/
 
+int AFNI_check_pbar_lock()
+{
+   return AFNI_yesenv("AFNI_PBAR_LOCK") ;
+}
+
+/*------------------------------------------------------------------------*/
+
+int AFNI_check_range_lock()
+{
+   if( AFNI_yesenv("AFNI_RANGE_LOCK")           ) return 1 ;
+   if( PBAR_FULLRANGE && AFNI_check_pbar_lock() ) return 1 ;
+   return 0 ;
+}
+
+/*------------------------------------------------------------------------*/
+
 void AFNI_range_lock_carryout( Three_D_View *im3d )
 {
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
-   int glock , cc,ii,nn ;
+   int glock , cc,ii,nn , qdone=0 ;
    float val ;
-   char cmd[64] , *eee ;
+   char cmd[64] ;
 
 ENTRY("AFNI_range_lock_carryout") ;
 
@@ -643,10 +662,7 @@ ENTRY("AFNI_range_lock_carryout") ;
    if( glock == 0 )                   EXRETURN;  /* nothing to do */
    if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
    if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
-
-   eee = getenv( "AFNI_RANGE_LOCK" );            /* determine how to lock */
-   if( eee == NULL )                  EXRETURN;
-   if( *eee != 'Y' && *eee != 'y' )   EXRETURN;
+   if( !AFNI_check_range_lock() )     EXRETURN;  /* not locked? */
 
    ii = AFNI_controller_index(im3d);             /* which one am I? */
 
@@ -689,5 +705,101 @@ ENTRY("AFNI_range_lock_carryout") ;
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_set_all_rnglock_bboxes(Three_D_View *im3d, int bval)
+{
+   int ii;
+   Three_D_View *qq3d ;
+
+   if( bval < 0 || bval > 1 )
+     bval = MCW_val_bbox( im3d->vwid->dmode->rng_lock_bbox ) ;
+
+   /* set all other controller lock boxes to the same value */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+     MCW_set_bbox( qq3d->vwid->dmode->rng_lock_bbox , bval ) ;
+   }
+
+   if( AFNI_check_range_lock() != bval )
+     AFNI_setenv( bval ? "AFNI_RANGE_LOCK=YES" : "AFNI_RANGE_LOCK=NO" ) ;
+
+   return;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_func_rnglock_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   int           bval , bold ;
+
+ENTRY("AFNI_func_rnglock_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   bold = AFNI_check_range_lock() ;
+   bval = MCW_val_bbox( im3d->vwid->dmode->rng_lock_bbox ) ;
+
+   if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
+
+   /* New value ==> apply it to other controllers */
+
+   AFNI_set_all_rnglock_bboxes(im3d,bval);
+   AFNI_range_lock_carryout(im3d) ;
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_set_all_pbarlock_bboxes(Three_D_View *im3d, int bval)
+{
+   int ii;
+   Three_D_View *qq3d ;
+
+   if( bval < 0 || bval > 1 )
+     bval = MCW_val_bbox( im3d->vwid->dmode->pbar_lock_bbox ) ;
+
+   /* set all other controller lock boxes to the same value */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+     MCW_set_bbox( qq3d->vwid->dmode->pbar_lock_bbox , bval ) ;
+   }
+
+   if( AFNI_check_pbar_lock() != bval )
+     AFNI_setenv( bval ? "AFNI_PBAR_LOCK=YES" : "AFNI_PBAR_LOCK=NO" ) ;
+
+   return;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_func_pbarlock_change_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   int           bval , bold ;
+
+ENTRY("AFNI_func_pbarlock_change_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   bold = AFNI_check_pbar_lock() ;
+   bval = MCW_val_bbox( im3d->vwid->dmode->pbar_lock_bbox ) ;
+
+   if( bval == bold ) EXRETURN ;                     /* same --> nothing to do */
+
+   /* New value ==> apply it to other controllers */
+
+   AFNI_set_all_pbarlock_bboxes(im3d,bval);
+   AFNI_pbar_lock_carryout(im3d) ;
+
    EXRETURN ;
 }
