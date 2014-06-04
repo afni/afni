@@ -2587,7 +2587,8 @@ the pbar cannot be set by the user independently of the range (or
 autorange) parameter.  The intention of this change is to make the
 number -> colors process somewhat more blatant.  This variable's value
 must be set at startup (e.g., in .afnirc), and changing it later will
-have no effect.
+have no effect. Also note that if this variable is YES, then setting
+AFNI_PBAR_LOCK to YES will imply AFNI_RANGE_LOCK is YES as well.
 
 -------------------------
 Variable: AFNI_RANGE_LOCK (editable)
