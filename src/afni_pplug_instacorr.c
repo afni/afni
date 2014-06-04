@@ -29,7 +29,7 @@ PLUGIN_interface * GICOR_init(char *lab)
 
 static int ncall=0 ;
 
-static int called_before[26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} ;
+static unsigned int called_before[26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} ;
 
 /*--------------------- string to 'help' the user --------------------*/
 
@@ -474,6 +474,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->cmeth    = cmeth ;   /* 01 Mar 2010 */
    iset->prefix   = (char *)malloc(sizeof(char)*16) ;
    iset->change   = 2; /* 07 May 2012 ZSS */
+
    cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
 
    etim = PLUTO_elapsed_time() ;
@@ -713,6 +714,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
    }
 
    /* redisplay overlay */
+
    if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
    if( im3d->fim_now != icoset ||
        im3d->iset->change ){  /* switch to this dataset */
@@ -724,10 +726,19 @@ ENTRY("AFNI_icor_setref_xyz") ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,0) ;
 
-     if( !called_before[ic] ) sprintf(cmd,"SET_FUNC_RANGE %c.%.2f",cpt[1], rng) ;
-     AFNI_driver(cmd) ;
+     if( !called_before[ic] ){
+       sprintf(cmd,"SET_FUNC_RANGE %c.%.2f",cpt[1], rng) ;
+       AFNI_driver(cmd) ;
+     }
    }
-   AFNI_reset_func_range(im3d) ; called_before[ic] = 1 ;
+   if( MCW_val_bbox(im3d->vwid->func->range_bbox) ){
+     char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+     AFNI_ignore_pbar_top(0) ;
+     sprintf(cmd,"SET_FUNC_RANGE %c.%f",cpt[1],im3d->vinfo->fim_autorange) ;
+     AFNI_driver(cmd) ;
+     AFNI_ignore_pbar_top(1) ;
+   }
+   AFNI_reset_func_range(im3d) ; called_before[ic]++ ;
    AFNI_ignore_pbar_top(0) ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
@@ -740,7 +751,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
    }
    AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
 
-   im3d->iset->change = 0;    /* resset change flag */
+   im3d->iset->change = 0;    /* reset change flag */
 
    if( ncall <= 1 )
      ININFO_message(" InstaCorr elapsed time = %.2f sec: redisplay" ,
@@ -1192,7 +1203,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
    } else {                                                  /* overlay = on */
      AFNI_redisplay_func(im3d) ;
    }
-   AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ; called_before[ic] = 1 ;
+   AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ; called_before[ic]++ ;
 
    for( vv=1 ; vv < MAX_CONTROLLERS ; vv++ ){  /* other controllers need redisplay? */
      qq3d = GLOBAL_library.controllers[vv] ;
