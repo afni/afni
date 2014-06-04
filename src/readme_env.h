@@ -2588,7 +2588,8 @@ static char *readme_env[] = {
    "autorange) parameter.  The intention of this change is to make the\n" ,
    "number -> colors process somewhat more blatant.  This variable's value\n" ,
    "must be set at startup (e.g., in .afnirc), and changing it later will\n" ,
-   "have no effect.\n" ,
+   "have no effect. Also note that if this variable is YES, then setting\n" ,
+   "AFNI_PBAR_LOCK to YES will imply AFNI_RANGE_LOCK is YES as well.\n" ,
    "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_RANGE_LOCK (editable)\n" ,
@@ -3815,4 +3816,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in the \n" ,
    "instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 3815
+#define NUM_readme_env 3816

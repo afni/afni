@@ -263,7 +263,7 @@ int AFNI_setenv( char *cmd )
    if( nam[0] == '\0' || val[0] == '\0' ) return(-1) ;
 
    sprintf(eqn,"%s=%s",nam,val) ;
-   eee = strdup(eqn) ; putenv(eee) ;
+   eee = strdup(eqn) ; putenv(eee) ;  /* note that eee is never free()-ed */
 
 #ifdef USE_TRACING  /* else DBG_trace is #defined to 0   2 Jan 2008 [rickr] */
    if( strcmp(nam,"AFNI_DEBUG") == 0 ){  /* 29 Dec 2008 */
