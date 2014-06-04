@@ -1,4 +1,4 @@
-static char * readme_env[] = {
+static char *readme_env[] = {
    "Unix Environment Variables Used by AFNI\n" ,
    "=======================================\n" ,
    "The AFNI program allows you to use several Unix environment variables\n" ,
@@ -2574,6 +2574,22 @@ static char * readme_env[] = {
    "  into 10 intervals).  For this bar, the number of tick marks is\n" ,
    "  fixed: it is either 0 or 9.\n" ,
    "\n" ,
+   "-----------------------------\n" ,
+   "Variable: AFNI_PBAR_FULLRANGE  [03 Jun 2014]\n" ,
+   "-----------------------------\n" ,
+   "If this variable is set to YES, then the color pbar in Define Overlay\n" ,
+   "will reflect the range set by the user for the colorization process.  At\n" ,
+   "some point, this feature will become the default, and then you'll have\n" ,
+   "to set this variable to NO to get the old behavior -- where the range\n" ,
+   "set by the user is shown only at the bottom right of the Define Overlay\n" ,
+   "panel, and it then multiplies the independently set top value of the\n" ,
+   "pbar to get the colorization scale.  In the new method, the top value of\n" ,
+   "the pbar cannot be set by the user independently of the range (or\n" ,
+   "autorange) parameter.  The intention of this change is to make the\n" ,
+   "number -> colors process somewhat more blatant.  This variable's value\n" ,
+   "must be set at startup (e.g., in .afnirc), and changing it later will\n" ,
+   "have no effect.\n" ,
+   "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_RANGE_LOCK (editable)\n" ,
    "-------------------------\n" ,
@@ -3799,4 +3815,4 @@ static char * readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in the \n" ,
    "instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 3799
+#define NUM_readme_env 3815
