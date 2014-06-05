@@ -1374,7 +1374,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Please re-inflate the multiverse and try again later"          ,
      "Out of Cheese Error; Please Install Wensleydale and Try Again" ,
      "Out of Cheese Error; Please Install Stilton and Try Again"     ,
-     "Out of Wine Error: Please Install Port and Try Again"          ,
+     "Out of Wine Error: Please Install Merlot and Try Again"        ,
+     "Out of Wine Error: Please Install Chardonnay and Try Again"    ,
      "Out of Beer Error: No Further Progress Can Be Expected"        ,
      "Have you read Crime and Punishment, by Fido Dogstoyevski?"     ,
      "More cheese, Gromit!"                                          ,
@@ -1492,7 +1493,11 @@ void AFNI_sigfunc_alrm(int sig)
      "Life is hard; after all, it kills you"                         ,
      "I'm sorry; if you were right, I'd agree with you"              ,
      "Like dreams, statistics are a form of wish fulfillment"        ,
+     "I wish I were in Lobuche right now"                            ,
+     "Next stop: Bora Bora"                                          ,
 
+     "The important things about a statistical model are what it does NOT include"    ,
+     "You're going to like the way your brain activation maps look -- I guarantee it" ,
      "A p-value of 0.05 means the null hypothesis is 29% likely to be correct"        ,
      "There are lots of people who mistake their imagination for their memory"        ,
      "I'm off to get some hot chocolate in Warsaw -- want to join me?"                ,
@@ -2593,7 +2598,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
              "++ the right of the 'done' button, and from the resulting    ++\n"
              "++ popup menu, choose the 'Web Browser: Help' item.          ++\n"
            ) ;
-    (void) MCW_popup_message( MAIN_im3d->vwid->prog->quit_pb, hstr, MCW_USER_KILL ) ;
+     (void)MCW_popup_message( MAIN_im3d->vwid->prog->quit_pb,hstr,MCW_USER_KILL ) ;
      MCW_flash_widget_list( 9 , MAIN_im3d->vwid->view->sess_lab ,
                                 MAIN_im3d->vwid->view->choose_sess_pb ,
                                 MAIN_im3d->vwid->view->read_sess_pb ,
