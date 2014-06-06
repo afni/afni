@@ -32,7 +32,8 @@ g_help_string = """
     OTHER OPTIONS:
 
     -qblur bB bS : specify 3dQwarp blurs for base and source volumes
-
+    -qworkhard i0 i1: set the two values for 3dQwarp's -workhard option
+    -qw_opts 'OPTS': Pass all of OPTS as extra options directly to 3dQwarp 
 """   
 
 ## BEGIN common functions across scripts (loosely of course)
@@ -54,6 +55,8 @@ class RegWrap:
       self.deoblique_flag = 1  # deoblique datasets first
       self.deoblique_opt = "" # deobliquing/obliquing options
       self.at_opt = "" # @auto_tlrc options
+      self.qw_opts = "" # 3dQwarp extra options
+      self.qworkhard = [0, 1]
       self.qblur = [-3, -3]# blurs for 3dQwarp
       self.output_dir = '' # user assigned path for anat and EPI
       
@@ -129,6 +132,13 @@ class RegWrap:
       self.valid_opts.add_opt('-qblur', 2, [],
              helpstr="3dQwarp base and source blurs (FWHM)\n")
 
+      # June 2nd 2014 [ZSS]
+      self.valid_opts.add_opt('-qw_opts', -1, [],
+             helpstr="3dQwarp miscellaneous options.\n"  \
+                     "Parameters will get passed directly to 3dQwarp.\n")
+      self.valid_opts.add_opt('-qworkhard', 2, [0, 1],
+             helpstr="3dQwarp -workhard values\n")
+             
       self.valid_opts.add_opt('-warp_dxyz', 1,[0.0],\
              helpstr="Resolution used for computing warp (cubic only)\n")
       self.valid_opts.add_opt('-affine_dxyz', 1,[0.0],\
@@ -209,6 +219,21 @@ class RegWrap:
       vals, rv = opt_list.get_type_list(float, '-qblur', length=2)
       if rv: ps.ciao(1)
       if vals != None: self.qblur = vals
+      
+      
+      vals, rv = opt_list.get_type_list(float, '-qworkhard', length=2)
+      if rv: ps.ciao(1)
+      if vals != None: 
+         if len(vals) == 2:
+            self.qworkhard = vals
+         else:
+            ps.ciao(1)
+         
+      opt = opt_list.find_opt('-qw_opts')
+      istr = '  '
+      if opt != None:
+         self.qw_opts = '    %s' % \
+          ' '.join(UTIL.quotize_list(opt.parlist, '\\\n%s    '%istr, 1))
       
       opt = opt_list.find_opt('-warp_dxyz')    
       if opt != None: 
@@ -650,7 +675,7 @@ class RegWrap:
             self.error_msg("Failed in affine step");
             ps.ciao(1)
          xmat = "%s.Xat.1D" % n.prefix
-         if (not os.path.isfile(xmat)):
+         if (not os.path.isfile(xmat) and not ps.dry_run()):
             self.error_msg("Failed to find xmat %s" % xmat);
             ps.ciao(1)
       else:
@@ -668,13 +693,17 @@ class RegWrap:
       n = a.new(new_pref=prefix, parse_pref=1)
       if (not n.exist() or ps.rewrite or ps.dry_run()):
          n.delete(ps.oexec)
+         if self.qworkhard[0] < 0:
+            whopt = '-workhard'
+         else: whopt = "-workhard:%d:%d" % (self.qworkhard[0], self.qworkhard[1])
          com = shell_com(  \
                 "3dQwarp                                       "\
                 "         -prefix %s                           "\
-                "         -blur %s %s -workhard:0:1            "\
-                "         -useweight %s %s                     "\
+                "         -blur %s %s %s             "\
+                "         -useweight %s %s  %s                 "\
                 % ( n.input(), self.qblur[0], self.qblur[1],
-                    b.input(), a.input()), ps.oexec)
+                    whopt,
+                    b.input(), a.input(), self.qw_opts), ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
             self.error_msg("Failed in warping step");
