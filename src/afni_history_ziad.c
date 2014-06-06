@@ -66,7 +66,7 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
- { 2, June, 2014, ZSS, "auto_warp", MINOR, TYPE_NEW_OPT,
+ { 2, Jun, 2014, ZSS, "auto_warp", MINOR, TYPE_NEW_OPT,
    "Added -qworkhard and -qw_opts for finer control of 3dQwarp step ",
    NULL
  },
