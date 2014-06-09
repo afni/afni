@@ -54,6 +54,14 @@
    
    Mar 2014:
    + '-dti_list' input option added at user request.
+
+   May/June 2014:
+   + structified call to tracking, for ZSS
+   + redoing what reaching arrMax does: throw an error, but don't stop
+   + more stats in grid: frac and phys volumes included
+   + extra through mask ('-thru_mask')
+   + some nicer output-- file name prefix at end, count miniprob
+
 */
 
 
@@ -70,24 +78,29 @@
 #include <gsl/gsl_rng.h>
 #include <DoTrackit.h>
 #include <TrackIO.h>
+#include <FuncTrac.h>
 
 #include "suma_suma.h"
 
-#define MAX_PARAMS (10) // for *.trk output
+
+#define MAX_PARAMS (11) // for *.trk output
 #define N_dti_scal (3) 
 #define N_dti_scal_tot (6) // 1+2+3, matches with N_dti_scal
 #define N_dti_vect (3) 
-#define N_plus_dtifile (4) // number of allowed additional param files in NIMLver
+#define N_plus_dtifile (4) // num of allowed additional param files in NIMLver
+#define PreCalcParLabs (5) // we define a few things initially
+
+int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
+                        int argc, char *argv[]);
+
+
 
 void usage_TrackID(int detail) 
 {
-	printf(
-"\n"
+	printf("\n"
 "  FACTID-based tractography code, from Taylor, Cho, Lin and Biswal (2012),\n"
 "  and part of FATCAT (Taylor & Saad, 2013) in AFNI. Version 2.1 (Jan. 2014),\n"
 "  written by PA Taylor and ZS Saad.\n"
-"\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  Estimate locations of WM associated with target ROIs, particularly between\n"
 "  pairs of GM in a network;  can process several networks in a given run.\n"
@@ -101,7 +114,6 @@ void usage_TrackID(int detail)
 "  quickly (all courtesy of ZS Saad).\n"
 "\n"
 "****************************************************************************\n"
-"\n"
 "+ NOTE that this program runs in three separate modes, each with its own\n"
 "   subset of commandline options and outputs:\n"
 "   $ 3dTrackID -mode {DET | MINIP | PROB} ... \n"
@@ -114,9 +126,7 @@ void usage_TrackID(int detail)
 "   produce quantitative statistical output of WM-ROIs; etc. In some cases,\n"
 "   using a combination of all three might even be variously useful in a\n"
 "   particular study.\n"
-"\n"
 "****************************************************************************\n"
-"\n"
 "  For DTI, this program reads in tensor-related data from, e.g., 3dDWItoDTI,\n"
 "  and also uses results from 3dDWUncert for uncertainty measures when\n"
 "  necessary.\n"
@@ -212,10 +222,14 @@ void usage_TrackID(int detail)
 "                      then N_ROI lines of the N_ROI-by-N_ROI matrix of that\n"
 "                      property;\n"
 "                      /repeat/\n"
-"     The first three matrices are always:\n"
+"     The first *five* matrices are currently (this may change over time):\n"
 "         NT = number of tracks in that WM-ROI\n"
 "         fNT = fractional number of tracks in that WM-ROI, defined as NT\n"
 "               divided by total number of tracts found (may not be relevant)\n"
+"         PV = physical volume of tracks, in mm^3\n"
+"         fNV = fractional volume of tracks compared to masked (internally or\n"
+"               '-mask'edly) total volume; would perhaps be useful if said\n"
+"               mask represents the whole brain volume well.\n"
 "         NV = number of voxels in that WM-ROI.\n"
 "     Then, there can be a great variety in the remaining matrices, depending\n"
 "     on whether one is in DTI or HARDI mode and how many scalar parameter\n"
@@ -279,6 +293,7 @@ void usage_TrackID(int detail)
 " OPTIONS | netrois*          |             |             |                 |\n"
 "         | prefix*           |             |             |                 |\n"
 "         | mask              |             |             |                 |\n"
+"         | thru_mask         |             |             |                 |\n"
 "         |                   | logic*      | logic*      |                 |\n"
 "         |                   |             | mini_num*   |                 |\n"
 "         |                   |             | uncert*     | uncert*         |\n"
@@ -386,6 +401,14 @@ void usage_TrackID(int detail)
 "    -prefix  PREFIX :output file name part.\n"
 "    -mask   MASK    :can include a brainmask within which to calculate \n"
 "                     things. Otherwise, data should be masked already.\n"
+"    -thru_mask TM   :optional extra restrictor mask, through which paths are\n"
+"                     (strictly) required to pass in order to be included\n"
+"                     when passing through or connecting targets. It doesn't\n"
+"                     discriminate based on target ROI number, so it's\n"
+"                     probably mostly useful in examining specific pairwise\n"
+"                     connections. It is also not like one of the target\n"
+"                     '-netrois' in that no statistics are calculated for it.\n"
+"                     Must be same number of briks as '-netrois' set.\n"
 "\n"
 "    -logic {OR|AND} :when in one of '-mode {DET | MINIP}', one will look for\n"
 "                     either OR- or AND-logic connections among target ROIs\n"
@@ -566,7 +589,7 @@ void usage_TrackID(int detail)
 "  Again, those represent the default values, and could be given as a plain\n"
 "  column of numbers, in that order.\n"
 "\n"
-"* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+"* * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * ** * **\n"
 "\n"
 "+ DTI LIST FILE EXAMPLE:\n"
 "     Consider, for example, if you hadn't used the '-sep_dsets' option when\n"
@@ -662,27 +685,417 @@ void usage_TrackID(int detail)
 "\n"
 "  If you use this program, please reference the workhorse FACTID\n"
 "  tractography algorithm:\n"
-"        Taylor PA, Cho K-H, Lin C-P, Biswal BB (2012). Improving DTI\n"
-"        Tractography by including Diagonal Tract Propagation. PLoS ONE\n"
-"        7(9): e43415,\n"
+"    Taylor PA, Cho K-H, Lin C-P, Biswal BB (2012). Improving DTI\n"
+"    Tractography by including Diagonal Tract Propagation. PLoS ONE\n"
+"    7(9): e43415. \n"
 "  and the introductory/description paper for FATCAT:\n"
-"        Taylor PA, Saad ZS (2013).  FATCAT: (An Efficient) Functional\n"
-"        And Tractographic Connectivity Analysis Toolbox. Brain \n"
-"        Connectivity 3(5):523-535.\n"
-"____________________________________________________________________________\n"
-);
+"    Taylor PA, Saad ZS (2013). FATCAT: (An Efficient) Functional And\n"
+"    Tractographic Connectivity Analysis Toolbox. Brain Connectivity.\n\n");
 	return;
+}
+		
+
+
+int main(int argc, char *argv[]) 
+{
+
+   TRACK_RUN_PARAMS InOpts;
+   int i;
+   int iarg;
+   
+   // fill option struct with defaults
+   InOpts = SetInitialTrackingDefaults();
+
+	// ****************************************************************
+	// ****************************************************************
+	//                    load AFNI stuff
+	// ****************************************************************
+	// ****************************************************************
+  
+	//	INFO_message("version: CHI");
+	mainENTRY("3dTrackID"); machdep(); 
+  
+	// scan args 
+	if (argc == 1) { usage_TrackID(1); exit(0); }
+	iarg = 1;
+	while( iarg < argc && argv[iarg][0] == '-' ){
+		if( strcmp(argv[iarg],"-help") == 0 || 
+			 strcmp(argv[iarg],"-h") == 0 ) {
+			usage_TrackID(strlen(argv[iarg])>3 ? 2:1);
+			exit(0);
+		}
+
+		if( strcmp(argv[iarg],"-verb") == 0) {
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-verb'") ;
+			set_tract_verb(atoi(argv[iarg]));
+			iarg++ ; continue ;
+		}
+	 
+		if( strcmp(argv[iarg],"-write_opts") == 0) {
+			InOpts.dump_opts=1;
+			iarg++ ; continue ;
+		}
+    
+		if( strcmp(argv[iarg],"-write_rois") == 0) {
+			InOpts.ROIS_OUT=1;
+			iarg++ ; continue ;
+		}
+		
+		if( strcmp(argv[iarg],"-lab_orig_rois") == 0) {
+			InOpts.DUMP_ORIG_LABS=1;
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-netrois") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-netrois'") ;
+
+         InOpts.NAMEIN_netrois = strdup(argv[iarg]); 
+			
+			iarg++ ; continue ;
+		}
+    
+		if( strcmp(argv[iarg],"-uncert") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-uncert'") ;
+
+         InOpts.NAMEIN_uncert = strdup(argv[iarg]); 
+
+			iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-unc_min_FA") == 0) {
+         if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-unc_min_FA'") ;
+
+         InOpts.NAMEIN_uncFA = strdup(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-unc_min_V") == 0) {		
+         if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-unc_min_V'") ;
+
+         InOpts.NAMEIN_uncEI = strdup(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+
+    
+		if( strcmp(argv[iarg],"-prefix") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-prefix'");
+			InOpts.prefix = strdup(argv[iarg]) ;
+			if( !THD_filename_ok(InOpts.prefix) ) 
+				ERROR_exit("Illegal name after '-prefix'");
+			iarg++ ; continue ;
+		}
+      
+		if( strcmp(argv[iarg],"-dti_in") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-in_dti'");
+         InOpts.dti_inpref = strdup(argv[iarg]) ;
+
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-dti_search_NO") == 0) {
+			InOpts.NO_NONDTI_SEARCH = 1;
+			iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-dti_list") == 0 ){
+			iarg++ ; 
+			if( iarg >= argc ) 
+				ERROR_exit("Need argument after '-dti_list'");
+         InOpts.dti_listname = strdup(argv[iarg]) ;
+
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-algopt") == 0 ){
+			iarg++ ; 
+			if( iarg >= argc ) 
+				ERROR_exit("Need argument after '-algopt'");
+         InOpts.algopt_file_name = strdup(argv[iarg]) ;
+
+			iarg++ ; continue ;
+		}
+
+      // can also set options at commandline
+      if( strcmp(argv[iarg],"-alg_Thresh_FA") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Thresh_FA'");
+
+         InOpts.MinFA = atof(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-alg_Thresh_ANG") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Thresh_Ang'");
+         InOpts.MaxAngDeg = atof(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-alg_Thresh_Len") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Thresh_Len'");
+         InOpts.MinL = atof(argv[iarg]);
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-alg_Thresh_Frac") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Thresh_Frac'");
+         InOpts.NmNsFr = atof(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-alg_Nseed_Vox") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Nseed_Vox'");
+         InOpts.Nseed = atoi(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-alg_Nmonte") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Nmonte'");
+         InOpts.Nmonte = atoi(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-alg_Nseed_X") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Nseed_X'");
+         InOpts.SeedPerV[0] = atoi(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+		if( strcmp(argv[iarg],"-alg_Nseed_Y") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Nseed_Y'");
+         InOpts.SeedPerV[1] = atoi(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-alg_Nseed_Z") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-alg_Nseed_Z'");
+         InOpts.SeedPerV[2] = atoi(argv[iarg]);
+
+         iarg++ ; continue ;
+      }
+
+      // Not in main code for now
+      if( strcmp(argv[iarg],"-choose_seed") == 0) {
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-choose_seed'");
+         InOpts.CHOOSE_SEED = atoi(argv[iarg]);
+         
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-no_trk_out") == 0) {
+         InOpts.OUTPUT_TRK = 0;
+         iarg++ ; continue ;
+      }
+
+		if( strcmp(argv[iarg],"-dti_extra") == 0) {
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-dti_extra'");
+
+         InOpts.in_EXTRA = strdup(argv[iarg]) ;
+         
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-mask") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-mask'");
+			
+         InOpts.NAMEIN_mask = strdup( argv[iarg]);
+			
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-thru_mask") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-thru_mask'");
+			
+         InOpts.NAMEIN_thru = strdup( argv[iarg]);
+			
+			iarg++ ; continue ;
+		}
+
+
+		if( strcmp(argv[iarg],"-uncut_at_rois") == 0) {
+			InOpts.ONLY_BT=0;
+			iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-posteriori") == 0) {
+         InOpts.POST=1;
+         iarg++ ; continue ;
+		} 
+
+      if( strcmp(argv[iarg],"-mode") == 0) { // @)
+         iarg++ ; 
+         if( iarg >= argc ) 
+            ERROR_exit("Need argument after '-mode'");
+
+         InOpts.NAMEIN_mode = strdup(argv[iarg]);
+
+         iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-logic") == 0) { // @)
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-logic'");
+
+         INFO_message("ROI logic type is: %s",argv[iarg]);
+         if( strcmp(argv[iarg],"AND") == 0 ) 
+            InOpts.LOG_TYPE = 1;
+         else if( strcmp(argv[iarg],"OR") == 0 )
+            InOpts.LOG_TYPE = 0;
+         else 
+            ERROR_exit("Illegal after '-logic': need 'OR' or 'AND'");
+
+         iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-hardi_dirs") == 0) { // @)
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-hardi_dirs'");
+         InOpts.hardi_dir = strdup(argv[iarg]) ;
+
+         iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-hardi_gfa") == 0) { // @)
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-hardi_gfa'");
+         InOpts.hardi_gfa = strdup(argv[iarg]) ;
+
+         iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-hardi_pars") == 0) { // @)
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-hardi_pars'");
+         InOpts.hardi_pars = strdup(argv[iarg]) ;
+         
+         iarg++ ; continue ;
+		}
+
+      // can do a mini monte carlo if you want; for example, use 1
+      // seed per ROI and then see more locs to tracks possibly; prob
+      // don't want to make tooo large for visualization stuff.
+      if( strcmp(argv[iarg],"-mini_num") == 0) { // @)
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-mini_num'");
+        
+         InOpts.MINI_PROB_NM = atoi(argv[iarg]);
+         
+         iarg++ ; continue ;
+		}
+
+      /*    TURNED OFF FOR MOMENT, WORK IN PROGRESS
+            if( strcmp(argv[iarg],"-jump_les") == 0) { // @)) prop check
+            JUMPLES=1;
+            iarg++ ; continue ;
+            } */
+      
+		if( strcmp(argv[iarg],"-rec_orig") == 0) { // @)
+			InOpts.RECORD_ORIG=1;
+			iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-tract_out_mode") == 0) { // @)
+         if( ++iarg >= argc ) 
+            ERROR_exit("Need argument after '-tract_out_mode'") ;
+
+         InOpts.NAMEIN_outmode = strdup(argv[iarg]);
+
+         iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-dump_rois") == 0) {
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-dump_rois'");
+
+			if( strcmp(argv[iarg],"DUMP") == 0 ) 
+				InOpts.DUMP_TYPE = 1;
+			else if( strcmp(argv[iarg],"AFNI") == 0 ) 
+				InOpts.DUMP_TYPE = 2;
+			else if( strcmp(argv[iarg],"BOTH") == 0 )
+				InOpts.DUMP_TYPE = 3;
+			else 
+				ERROR_exit("Illegal after '-dump_rois': need 'DUMP',"
+                       " 'AFNI' or 'BOTH'.");
+
+			iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-cut_at_rois") == 0) {
+         ERROR_exit("No longer used! Default behavior now to cut_at_rois;"
+                    " turn *off* with '-uncut_at_rois', if desired");
+			iarg++ ; continue ;
+		}
+      if( strcmp(argv[iarg],"-det_net") == 0) {
+         ERROR_exit("No longer used! use '-logic {AND | OR}', instead.");
+			iarg++ ; continue ;
+		}
+
+		ERROR_message("Bad option '%s'\n",argv[iarg]) ;
+		suggest_best_prog_option(argv[0], argv[iarg]);
+		exit(1);
+	}
+
+	if (iarg < 5) {
+		ERROR_message("Too few options. Try -help for details.\n");
+		exit(1);
+	}
+
+   // DONE FILLING, now call
+
+
+   i = RunTrackingMaestro(1, InOpts, argc, argv);
+
+   if( !i )
+      ERROR_message("Error in run?");
+
+
+
+   RETURN(1);
 }
 
 
-int main(int argc, char *argv[]) {
+// BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+
+
+int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
+                        int argc, char *argv[])
+{
+
    int i,j,k,m,n,ii,jj,kk,mm,gg,nn,hh,bb,cc,rr,ss,uu,vv,ll;
-	int iarg;
 	int nvox_rois=0;
 	int nvox_unc=0;
 	THD_3dim_dataset *insetUC = NULL;
-   THD_3dim_dataset **insetPARS=NULL; // for DEF_DTI, [0] EXTR, [1] FA, [2] MD, [3] L1
-   THD_3dim_dataset **insetVECS=NULL; // for DEF_DTI, [0] V1, [1] V2, [2] V3
+   THD_3dim_dataset **insetPARS=NULL; // DEF_DTI: [0] X, [1] FA, [2] MD, [3] L1
+   THD_3dim_dataset **insetVECS=NULL; // DEF_DTI: [0] V1, [1] V2, [2] V3
    MRI_IMAGE *temp_vec=NULL;
 
    // default for DTI, but easily changed for HARDI
@@ -690,7 +1103,7 @@ int main(int argc, char *argv[]) {
    int PARS_TOP = 0; // number of bricks.
    int PARS_N = 0;
    int Noutmat = 0; // number of output matrices in GRID file
-   char **ParLab=NULL; // default: {"tNTR","fNTR","mFA","sFA","mMD","sMD","mRD","sRD","mL1","sL1","tNV"}CHANGED
+   char **ParLab=NULL; 
    int DEF_DTI = 1; // default mode, mainly for # of params
    char wild_names[MAX_PARAMS][32]; // get names
    int pref_offset = 0;
@@ -698,13 +1111,11 @@ int main(int argc, char *argv[]) {
    int hardi_pref_len=0;
    int FOUND_DTI;
    int tot_FOUND_DTI=0;
-   int OUTPUT_TRK = 1;
    int TR_MODE = -1; // -1=ERR; 0=DET; 1=MINIP; 2=PROB;
    char *list_modes[3] = {"DET", "MINIP", "PROB"}; // match with PARLABS later
 
 	THD_3dim_dataset *ROI_set=NULL; 
 
-   // @#$ 
    char ***gdset_roi_names=NULL;
    SUMA_DSET *gset=NULL;
    float ***flat_matr=NULL;
@@ -713,33 +1124,20 @@ int main(int argc, char *argv[]) {
    NI_group *GDSET_netngrlink=NULL;
    char *NAME_gdset;
 
-	short **antimask=NULL;
-	int NOTMASK=0; // switch for whether other file is input as WM map
-	int ALLorONE=0; // switch for whether NOTMASK==N_nets
-	int NM=0; // switched off, unless mask puts one on
+   THD_3dim_dataset *thrumask=NULL;
+   int doesnt_pass;
 	int KEEP_GOING=1;
-   int POST=0; // switch about having no min threshold,and dumping ROIs
 
 	THD_3dim_dataset *MASK=NULL;
-	char in_mask[300];
 	int HAVE_MASK=0;
 	int ***mskd; // define mask of where time series are nonzero
    int ni=0;
    time_t t_start;
 
-	char *prefix="tracky" ;
-	char *infix=NULL ;
-   char *algopt_file_name=NULL;
-   char *dti_listname=NULL;
-
-   char *hardi_dir=NULL;
-   char *hardi_gfa=NULL;
-   char *hardi_pars=NULL;
-	char *DTI_SCAL_INS[N_dti_scal] = {"FA", "MD", "L1"}; // match with PARLABS later
+	char *DTI_SCAL_INS[N_dti_scal] = {"FA", "MD", "L1"}; // match PARLABS later
 	char *DTI_VECT_INS[N_dti_vect] = {"V1", "V2", "V3"};
    char *DTI_PLUS_INS[N_plus_dtifile] = {"P1", "P2", "P3", "P4"};
 
-	char *in_EXTRA=NULL;//[300];
 	int EXTRAFILE=0; // switch for whether other file is input as WM map
 
 	char OUT_grid[300];
@@ -748,23 +1146,15 @@ int main(int argc, char *argv[]) {
 	char OUT_rois[300];
 	FILE *fin4, *fout1;
 
-	// FACTID algopts
-	float MinFA=0.2,MaxAngDeg=60.,MinL=20.,NmNsFr=0.001;
-   int Nmonte=1000;
-   int SeedPerV[3]={2,2,2}; // default detnet seedopts
-   int Nseed=5;//,M=30,bval=1000;
 	float MaxAng=0.;
 	int NmNsThr=0;
 	int ArrMax=0;
-	int ROIS_OUT=0;
 	float unc_minfa_std=0.015, unc_minei_std=0.06; // min uncert stds.
    int USER_UNC_FA=0, USER_UNC_EI=0; // whether user has input explicit vals
-   //   float OPTS_IN0=1; // some defaults
-   //int OPTS_IN1=1, OPTS_IN2=1;
-   int ARE_OPTS_IN=0;
 
 	int Nvox=-1;   // tot number vox
 	int Ndata=-1;
+   float VoxVol=0;
 	int *Dim=NULL; //[3]={0,0,0}; // dim in each dir
 	float **LocSeed=NULL; // fractional locations within voxel, 
 	float Ledge[3]; // voxel edge lengths
@@ -781,9 +1171,6 @@ int main(int argc, char *argv[]) {
 	int len_forw, len_back; // int count of num of squares through
 	float phys_forw[1], phys_back[1];
 	int idx,idx2;
-
-	int DUMP_TYPE=-1; // switch about whether to dump ascii/afni/both
-	int DUMP_ORIG_LABS=0;
 
 	int in[3]; // to pass to trackit
 	float physin[3]; // also for trackit, physical loc, 
@@ -814,12 +1201,7 @@ int main(int argc, char *argv[]) {
 
 	int *NROI=NULL,*INVROI=NULL;
 	int **ROI_LABELS=NULL, **INV_LABELS=NULL; // allow labels to be non-consec
-	long seed;   
-	const gsl_rng_type * T=NULL;
-	gsl_rng *r=NULL;
 	NI_element *nel=NULL;
-	int dump_opts=0;
-	int ONLY_BT = 1; // default now TO cut off tracks at ROI endpts
 	char *postfix[4]={"+orig.HEAD\0",".nii.gz\0",".nii\0","+tlrc.HEAD\0"};
 	int  FOUND = -1;
 
@@ -831,15 +1213,15 @@ int main(int argc, char *argv[]) {
 	TAYLOR_TRACT **tt=NULL;  
 	char *mode = "NI_fast_binary";
    int *id=NULL;
-	float **flTtot=NULL, **cutTot=NULL;
-   int **cutTotI=NULL;
+	float **flTtot=NULL;
+   int start_loc=0;
    int trL=0;
    char **prefix_det=NULL;
 	char OUT_bin[300];
    FILE **fout0=NULL;
    tv_io_header headerDTI = {.id_string = "TRACK\0", 
                              .origin = {0,0,0},   
-                             .n_scalars = 3,   // eventually can adjust; but niml has all data anyways
+                             .n_scalars = 3,   // eventually can adjust; 
                              .scal_n[0] = "FA",
                              .scal_n[1] = "MD",
                              .scal_n[2] = "L1",
@@ -859,7 +1241,7 @@ int main(int argc, char *argv[]) {
                              .hdr_size = 1000};
    tv_io_header headerHAR = {.id_string = "TRACK\0", 
                              .origin = {0,0,0},   
-                             .n_scalars = 1,   // eventually can adjust; but niml has all data anyways
+                             .n_scalars = 1, // niml has all data anyways...
                              //.scal_n[0] = "FA",
                              //.scal_n[1] = "MD",
                              //.scal_n[2] = "L1",
@@ -878,17 +1260,14 @@ int main(int argc, char *argv[]) {
                              .version = 2,
                              .hdr_size = 1000};
    
-	int RECORD_ORIG = 0; 
 	float Orig[3] = {0.0,0.0,0.0};
-   int LOG_TYPE=-1; // default is OR logic
-   int MINI_PROB_NM=0; // default: no mini monte carloing for det_net
 
    int vA,vA0,vB,vB0,vB1; // will be indices along tracks in NOT-ROI checking
    int TESTCOUNT=0;
 
    int N_HAR = 0;
    int N_uncert = 0;
-   short *DirPerVox=NULL; // can have diff num of dir per vox; only on for HARDI
+   short *DirPerVox=NULL; // can have diff num of dir/vox
    int N_HARPARS=0;
 
    // @)) jump lesion searching stuff, to be used prob only with DETNET
@@ -904,608 +1283,197 @@ int main(int argc, char *argv[]) {
 
    char tprefix[THD_MAX_PREFIX];
    int nfiles;
-   int NO_NONDTI_SEARCH = 0 ;  // won't keep scalar, nonDTI pars; default=OFF
 
 	// for random number generation
-	srand(time(0));
-	seed = time(NULL) ;
+	const gsl_rng_type * T=NULL;
+	gsl_rng *r=NULL;
+	long seed1, seed2;   
+  
+
+   // * * * * * * * * * * * * * * Load general stuff in * * * * * * * * * *
+   // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+   // Use random seeds, unless special repeat option is on
+   if( opts.CHOOSE_SEED )
+      seed1 = seed2 = opts.CHOOSE_SEED;
+   else {
+   seed1 = time(NULL);
+	seed2 = time(NULL) ;
+   }
+      
+
+   srand(seed1);
 	gsl_rng_env_setup();
 	T = gsl_rng_default;
 	r = gsl_rng_alloc (T);
-	gsl_rng_set (r, seed);
-  
-	mainENTRY("3dTrackID"); machdep(); 
-  
-	// ****************************************************************
-	// ****************************************************************
-	//                    load AFNI stuff
-	// ****************************************************************
-	// ****************************************************************
-  
-	//	INFO_message("version: CHI");
+	gsl_rng_set (r, seed2);
 
-	// scan args 
-	if (argc == 1) { usage_TrackID(1); exit(0); }
-	iarg = 1;
-	while( iarg < argc && argv[iarg][0] == '-' ){
-		if( strcmp(argv[iarg],"-help") == 0 || 
-			 strcmp(argv[iarg],"-h") == 0 ) {
-			usage_TrackID(strlen(argv[iarg])>3 ? 2:1);
-			exit(0);
-		}
-
-		if( strcmp(argv[iarg],"-verb") == 0) {
-			if( ++iarg >= argc ) 
-				ERROR_exit("Need argument after '-verb'") ;
-			set_tract_verb(atoi(argv[iarg]));
-			iarg++ ; continue ;
-		}
-	 
-		if( strcmp(argv[iarg],"-write_opts") == 0) {
-			dump_opts=1;
-			iarg++ ; continue ;
-		}
-    
-		if( strcmp(argv[iarg],"-write_rois") == 0) {
-			ROIS_OUT=1;
-			iarg++ ; continue ;
-		}
-		
-		if( strcmp(argv[iarg],"-lab_orig_rois") == 0) {
-			DUMP_ORIG_LABS=1;
-			iarg++ ; continue ;
-		}
-
-		if( strcmp(argv[iarg],"-netrois") == 0 ){
-			if( ++iarg >= argc ) 
-				ERROR_exit("Need argument after '-netrois'") ;
-			ROI_set = THD_open_dataset( argv[iarg] ) ;
-			if( ROI_set == NULL ) 
-				ERROR_exit("Can't open netrois dataset '%s'", argv[iarg]) ;
-			DSET_load(ROI_set) ; CHECK_LOAD_ERROR(ROI_set) ;
-			nvox_rois = DSET_NVOX(ROI_set) ;
-			N_nets = DSET_NVALS(ROI_set) ;
-      
-			NROI = (int *)calloc(N_nets, sizeof(int)); 
-			INVROI = (int *)calloc(N_nets, sizeof(int)); 
-
-			if( (NROI == NULL) || (INVROI == NULL) ) {
-				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-				exit(122);
-			}
-      
-			for( i=0 ; i<N_nets ; i++) {
-				// NROI[i] = (int) THD_subbrick_max(ROI_set, i, 1);
-				INVROI[i] = (int) THD_subbrick_max(ROI_set, i, 1);
-				//if( NROI[i]>MAXNROI )
-				//	MAXNROI = NROI[i];
-			}
-			
-			ROI_LABELS = calloc( N_nets,sizeof(ROI_LABELS));  
-			for(i=0 ; i<N_nets ; i++) 
-				ROI_LABELS[i] = calloc(INVROI[i]+1,sizeof(int)); 
-			INV_LABELS = calloc( N_nets,sizeof(INV_LABELS));  
-			for(i=0 ; i<N_nets ; i++) 
-				INV_LABELS[i] = calloc(INVROI[i]+1,sizeof(int)); 
-			if( (ROI_LABELS == NULL) || (ROI_LABELS == NULL) ) {
-				fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-				exit(123);
-			}
-			
-			// after this, ROI_LABELS will have network labels store compactly
-			// and NROI will have the actual number of ROI per netw, not just 
-			// the max label value
-			// INV_LABELS has compact index labels at input label locations,
-			// hence is inverse of ROI_LABELS
-			// ** This function allows us to switch to talk about with i-th index
-			// label is used, using NROI to define sizes of things
-			bb = ViveLeRoi(ROI_set, ROI_LABELS, INV_LABELS, NROI, INVROI);
-			if( bb != 1)
-				ERROR_exit("Problem loading/assigning ROI labels");
-			
-			for( i=0 ; i<N_nets ; i++) {
-				if( NROI[i]>MAXNROI )
-					MAXNROI = NROI[i];
-			}
-
-         fprintf(stdout,"\n");
-         for( bb=0 ; bb<N_nets ; bb++)
-				INFO_message("Number of ROIs in netw[%d]=%d",bb,NROI[bb]);
-      
-			iarg++ ; continue ;
-		}
-    
-		if( strcmp(argv[iarg],"-uncert") == 0 ){
-			if( ++iarg >= argc ) 
-				ERROR_exit("Need argument after '-uncert'") ;
-			insetUC = THD_open_dataset( argv[iarg] ) ;
-			if( insetUC == NULL ) 
-				ERROR_exit("Can't open uncert dataset '%s'",
-							  argv[iarg]) ;
-			DSET_load(insetUC) ; CHECK_LOAD_ERROR(insetUC);
-			nvox_unc = DSET_NVOX(insetUC);
-         N_uncert = DSET_NVALS(insetUC); // needed if HARDI input now
-			iarg++ ; continue ;
-      }
-
-      if( strcmp(argv[iarg],"-unc_min_FA") == 0) {
-         if( ++iarg >= argc ) 
-				ERROR_exit("Need argument after '-unc_min_FA'") ;
-
-         unc_minfa_std = atof(argv[iarg]);
-         USER_UNC_FA = 1;
-         iarg++ ; continue ;
-      }
-
-      if( strcmp(argv[iarg],"-unc_min_V") == 0) {		
-         if( ++iarg >= argc ) 
-				ERROR_exit("Need argument after '-unc_min_V'") ;
-
-         unc_minei_std = atof(argv[iarg]);
-         unc_minei_std*= CONV;
-         USER_UNC_EI = 1;
-         iarg++ ; continue ;
-      }
-
-    
-		if( strcmp(argv[iarg],"-prefix") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
-							ERROR_exit("Need argument after '-prefix'");
-			prefix = strdup(argv[iarg]) ;
-			if( !THD_filename_ok(prefix) ) 
-				ERROR_exit("Illegal name after '-prefix'");
-			iarg++ ; continue ;
-		}
-      
-		if( strcmp(argv[iarg],"-dti_in") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
-							ERROR_exit("Need argument after '-in_dti'");
-         infix = strdup(argv[iarg]) ;
-
-         // for naming stuff later
-         hardi_pref_len = strlen(infix); // assume an underscore
-
-			iarg++ ; continue ;
-		}
-
-		if( strcmp(argv[iarg],"-dti_search_NO") == 0) {
-			NO_NONDTI_SEARCH = 1;
-			iarg++ ; continue ;
-		}
-
-      if( strcmp(argv[iarg],"-dti_list") == 0 ){
-			iarg++ ; 
-			if( iarg >= argc ) 
-				ERROR_exit("Need argument after '-dti_list'");
-         dti_listname = strdup(argv[iarg]) ;
-
-			iarg++ ; continue ;
-		}
-
-
-		if( strcmp(argv[iarg],"-algopt") == 0 ){
-			iarg++ ; 
-			if( iarg >= argc ) 
-				ERROR_exit("Need argument after '-algopt'");
-         algopt_file_name = strdup(argv[iarg]) ;
-
-         ARE_OPTS_IN = 1;
-
-			iarg++ ; continue ;
-		}
-
-      // can also set options at commandline
-      if( strcmp(argv[iarg],"-alg_Thresh_FA") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Thresh_FA'");
-
-         MinFA = atof(argv[iarg]);
-         iarg++ ; continue ;
-      }
-      if( strcmp(argv[iarg],"-alg_Thresh_ANG") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Thresh_Ang'");
-         MaxAngDeg = atof(argv[iarg]);
-         iarg++ ; continue ;
-      }
-      if( strcmp(argv[iarg],"-alg_Thresh_Len") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Thresh_Len'");
-         MinL = atof(argv[iarg]);
-         iarg++ ; continue ;
-      }
-      if( strcmp(argv[iarg],"-alg_Thresh_Frac") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Thresh_Frac'");
-         NmNsFr = atof(argv[iarg]);
-         iarg++ ; continue ;
-      }
-      if( strcmp(argv[iarg],"-alg_Nseed_Vox") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Nseed_Vox'");
-         Nseed = atoi(argv[iarg]);
-         iarg++ ; continue ;
-      }
-      if( strcmp(argv[iarg],"-alg_Nmonte") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Nmonte'");
-         Nmonte = atoi(argv[iarg]);
-         iarg++ ; continue ;
-      }
-      if( strcmp(argv[iarg],"-alg_Nseed_X") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Nseed_X'");
-         SeedPerV[0] = atoi(argv[iarg]);
-         iarg++ ; continue ;
-      }
-		if( strcmp(argv[iarg],"-alg_Nseed_Y") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Nseed_Y'");
-         SeedPerV[1] = atoi(argv[iarg]);
-         iarg++ ; continue ;
-      }
-      if( strcmp(argv[iarg],"-alg_Nseed_Z") == 0) {
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-alg_Nseed_Z'");
-         SeedPerV[2] = atoi(argv[iarg]);
-         iarg++ ; continue ;
-      }
-
-      if( strcmp(argv[iarg],"-no_trk_out") == 0) {
-         OUTPUT_TRK = 0;
-         iarg++ ; continue ;
-      }
-
-		if( strcmp(argv[iarg],"-dti_extra") == 0) {
-			if( ++iarg >= argc ) 
-				ERROR_exit("Need argument after '-dti_extra'");
-			EXTRAFILE = 1; // switch on
-         PARS_BOT = 0;
-         in_EXTRA = strdup(argv[iarg]) ;
-         
-			iarg++ ; continue ;
-		}
-
-		if( strcmp(argv[iarg],"-mask") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
-							ERROR_exit("Need argument after '-mask'");
-			HAVE_MASK=1;
-			
-			sprintf(in_mask,"%s", argv[iarg]); 
-			MASK = THD_open_dataset(in_mask) ;
-			if( (MASK == NULL ))
-				ERROR_exit("Can't open time series dataset '%s'.",in_mask);
-			
-			DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
-			iarg++ ; continue ;
-		}
-
-		if( strcmp(argv[iarg],"-uncut_at_rois") == 0) {
-			ONLY_BT=0;
-			iarg++ ; continue ;
-		}
-
-      if( strcmp(argv[iarg],"-posteriori") == 0) {
-         POST=1;
-         iarg++ ; continue ;
-		} 
-
-      if( strcmp(argv[iarg],"-mode") == 0) { // @)
-         iarg++ ; 
-         if( iarg >= argc ) 
-            ERROR_exit("Need argument after '-mode'");
-
-         INFO_message("Tracking mode: %s",argv[iarg]);
-         if( strcmp(argv[iarg],list_modes[0]) == 0 ) { // det
-            DETNET = 1;
-            TR_MODE = 0;
-         }
-         else if( strcmp(argv[iarg],list_modes[1]) == 0 ) { // minip
-            DETNET = 1;
-            TR_MODE = 1;
-         }
-         else if( strcmp(argv[iarg],list_modes[2]) == 0 ) { //prob
-            DETNET = 0;
-            TR_MODE = 2;
-         }
-         else 
-            ERROR_exit("Illegal after '-mode': need '%s' or '%s' or '%s'",
-                       list_modes[0], list_modes[1], list_modes[2]);
-
-         iarg++ ; continue ;
-		}
-
-      if( strcmp(argv[iarg],"-logic") == 0) { // @)
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-logic'");
-
-         INFO_message("ROI logic type is: %s",argv[iarg]);
-         if( strcmp(argv[iarg],"AND") == 0 ) 
-            LOG_TYPE = 1;
-         else if( strcmp(argv[iarg],"OR") == 0 )
-            LOG_TYPE = 0;
-         else 
-            ERROR_exit("Illegal after '-logic': need 'OR' or 'AND'");
-
-         iarg++ ; continue ;
-		}
-
-      if( strcmp(argv[iarg],"-hardi_dirs") == 0) { // @)
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-hardi_dirs'");
-         hardi_dir = strdup(argv[iarg]) ;
-
-         DEF_DTI = 0;
-
-         iarg++ ; continue ;
-		}
-
-      if( strcmp(argv[iarg],"-hardi_gfa") == 0) { // @)
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-hardi_gfa'");
-         hardi_gfa = strdup(argv[iarg]) ;
-         DEF_DTI = 0;
-         PARS_BOT = 0; 
-
-         iarg++ ; continue ;
-		}
-
-      if( strcmp(argv[iarg],"-hardi_pars") == 0) { // @)
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-hardi_pars'");
-         hardi_pars = strdup(argv[iarg]) ;
-         DEF_DTI = 0;
-         hardi_pref_len = strlen(hardi_pars);
-         
-         iarg++ ; continue ;
-		}
-
-      // can do a mini monte carlo if you want; for example, use 1
-      // seed per ROI and then see more locs to tracks possibly; prob
-      // don't want to make tooo large for visualization stuff.
-      if( strcmp(argv[iarg],"-mini_num") == 0) { // @)
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-mini_num'");
-        
-         MINI_PROB_NM = atoi(argv[iarg]);
-         if( MINI_PROB_NM<1 )
-            ERROR_exit("Need >0 number after '-mini_num'") ;
-
-         iarg++ ; continue ;
-		}
-
-      /*    TURNED OFF FOR MOMENT, WORK IN PROGRESS
-            if( strcmp(argv[iarg],"-jump_les") == 0) { // @)) prop check
-            JUMPLES=1;
-            iarg++ ; continue ;
-            } */
-      
-		if( strcmp(argv[iarg],"-rec_orig") == 0) { // @)
-			RECORD_ORIG=1;
-			iarg++ ; continue ;
-		}
-      if( strcmp(argv[iarg],"-tract_out_mode") == 0) { // @)
-         if( ++iarg >= argc ) 
-            ERROR_exit("Need argument after '-tract_out_mode'") ;
-         if (strcmp(argv[iarg], "NI_fast_binary") &&
-             strcmp(argv[iarg], "NI_fast_text") &&
-             strcmp(argv[iarg], "NI_slow_binary") &&
-             strcmp(argv[iarg], "NI_slow_text") ) {
-            ERROR_message("Bad value (%s) for -tract_out_mode",argv[iarg]);
-				exit(1);
-         }  
-         mode = argv[iarg];
-         iarg++ ; continue ;
-		}
-
-		if( strcmp(argv[iarg],"-dump_rois") == 0) {
-			iarg++ ; if( iarg >= argc ) 
-							ERROR_exit("Need argument after '-dump_rois'");
-
-			if( strcmp(argv[iarg],"DUMP") == 0 ) 
-				DUMP_TYPE = 1;
-			else if( strcmp(argv[iarg],"AFNI") == 0 ) 
-				DUMP_TYPE = 2;
-			else if( strcmp(argv[iarg],"BOTH") == 0 )
-				DUMP_TYPE = 3;
-			else 
-				ERROR_exit("Illegal after '-dump_rois': need 'DUMP',"
-                       " 'AFNI' or 'BOTH'.");
-
-			iarg++ ; continue ;
-		}
-
-      if( strcmp(argv[iarg],"-cut_at_rois") == 0) {
-         ERROR_exit("No longer used! Default behavior now to cut_at_rois;"
-                    " turn *off* with '-uncut_at_rois', if desired");
-			iarg++ ; continue ;
-		}
-      if( strcmp(argv[iarg],"-det_net") == 0) {
-         ERROR_exit("No longer used! use '-logic {AND | OR}', instead.");
-			iarg++ ; continue ;
-		}
-
-
-
-
-      /*  if ( strcmp(argv[iarg],"-gdset_toy") == 0 ) {
-         float x[3]={-40, 38, 4.7};
-         float y[3]={-27, -34, 14.4};
-         float z[3]={26, 41, 55};
-         // alternate coordinate specification 
-         float xyz[9]={ x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]};
-         float **mv=NULL;
-         int i,j,k=0;
-         char **labs, *NameOut;
-         SUMA_DSET *gset=NULL;
-         TAYLOR_TRACT *tt=NULL;
-         TAYLOR_BUNDLE *tb=NULL;
-         TAYLOR_NETWORK *net=NULL;
-         NI_group *netngrlink=NULL, *netngr=NULL;
-         
-         int onexyz = 1; // set to 1 to specify coords by xyz triplets 
-                         //  in demo. 0 to specify x,y, and z as separate
-                         // vectors 
-
-         INFO_message("A demonstration for creating/writing graph dset\n"
-                      "The vast majority of this content is for creating\n"
-                      "dummy data.\n"
-                      "Non dummy sections are marked with -->\n");
-
-         // Create 2 matrices and some matrix labels 
-         mv = (float **)calloc(2, sizeof(float*));
-         for (i=0; i<2; ++i) mv[i] = (float *)calloc(9, sizeof(float));
-         labs = (char **)calloc(2, sizeof(char*));
-         for (i=0; i<2; ++i) labs[i]=calloc(64, sizeof(char));
-
-         for (i=0; i<2; ++i) {
-            for (j=0; j<9; ++j) {
-               mv[i][j] = k++;
-            }
-            sprintf(labs[i],"Label Of Matrix %d", i);
-         }
-         
-         // --> Create a graph dataset out of these two matrices 
-         gset = SUMA_FloatVec_to_GDSET(mv, 2, 9, "full", labs, 
-                                       NULL, NULL, NULL);
-         
-         // --> Now add the XYZ of each graph point, two ways are possible
-         if (onexyz) { // for when your ROI centroid coords 
-                       // and in one vector of XYZ triplets 
-                       if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
-                       xyz, NULL, NULL,NULL, NULL, NULL, 3))) { // jan. 2014
-                       ERROR_message("Failed to add node list");
-                       exit(1);  
-                       }                                     
-         } else {
-            if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
-                                               x, y, z, NULL, NULL, 
-                                               NULL, 3))) { // jan. 2014
-               ERROR_message("Failed to add node list");
-               exit(1);     
-            }
-         }
-
-         // Create some dummy bundles representing edge 1-2=5, or 2-1=7
-         tb = NULL; net = NULL; tt = NULL;
-         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
-         tt->id=77; tt->N_pts3=12; 
-         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
-         tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
-         tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
-         tt->pts[6]=22;   tt->pts[7]=33;   tt->pts[8]=49;
-         tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
-         tb = AppCreateBundle(tb, 1, tt);
-         tt = Free_Tracts(tt, 1);
-         // put another track in 
-         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
-         tt->id=78; tt->N_pts3=12; 
-         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
-         tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
-         tt->pts[3]=23;   tt->pts[4]=35;   tt->pts[5]=42;
-         tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
-         tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
-         tb = AppCreateBundle(tb, 1, tt);
-         tt = Free_Tracts(tt, 1);
-         // add it to network 
-         net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL);
-         // make another one for edge 0-1=1 and 1-0=3
-         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
-         tt->id=77; tt->N_pts3=15; 
-         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
-         tt->pts[0]=x[0]; tt->pts[1]=y[0];  tt->pts[2]=z[0];
-         tt->pts[3]=5;    tt->pts[4]=12;    tt->pts[5]=17;
-         tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
-         tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
-         tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
-         tb = AppCreateBundle(tb, 1, tt);
-         tt = Free_Tracts(tt, 1);
-         // add bundle to network 
-         net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
-
-         // --> Now put network in graph dset 
-         netngr = Network_2_NIgr(net, 1);
-         NI_add_to_group(gset->ngr, netngr);
-
-         // --> Write the graph dataset 
-         NameOut = SUMA_WriteDset_ns ("toy", gset, SUMA_ASCII_NIML, 1, 0);
-         if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
-            ERROR_message("Failed to write dataset."); exit(1); 
-         } else {
-            if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
-         }
-         
-         // --> Now alternately you can leave the network outside of the 
-         //     graph dataset and just put a link element to it           
-         NI_remove_from_group(gset->ngr, netngr);
-         netngrlink = Network_link("toy.network");
-         NI_add_to_group(gset->ngr, netngrlink);
-         NameOut = SUMA_WriteDset_ns ("toy.link",
-                                      gset, SUMA_ASCII_NIML, 1, 0);
-         if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
-            ERROR_message("Failed to write dataset."); exit(1); 
-         } else {
-            if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
-         }
-         // And of course you need to write the tract 
-         Write_NI_Network(netngr, "toy.network", NI_TEXT_MODE);
-         // free netngr since it is no longer tucked into dset 
-         NI_free_element(netngr); netngr = NULL;
-               
-         // cleanup for good manners 
-         for(i=0;i<2; ++i) free(mv[i]); free(mv);
-         for(i=0;i<2; ++i) free(labs[i]); free(labs);
-         Free_Network(net); net = NULL;
-         
-         INFO_message(
-                 "All done. Demo graph dset is called toy.niml.dset."
-                 "graph dset with external network spec is toy.link.niml.dset\n"
-                 "Try:\n"
-                 "       suma -gdset toy.link.niml.dset\n\n"
-                 "* Open a new controller (ctrl+n), switch states ('>') to\n"
-                 "see graph dset in complementary forms.\n"
-                 "* Open 'Surface Controller' to colorize graph data, etc.\n"
-                 "Interacting with such data is possible, but not \n"
-                 "yet documented. This will come soon.\n"
-                 );   
-         exit(0);
-      }*/
-      
-		ERROR_message("Bad option '%s'\n",argv[iarg]) ;
-		suggest_best_prog_option(argv[0], argv[iarg]);
-		exit(1);
-	}
    
+   // from '-mode'
+   if( opts.NAMEIN_mode ) {
+      INFO_message("Tracking mode: %s",opts.NAMEIN_mode);
+      if( strcmp(opts.NAMEIN_mode,list_modes[0]) == 0 ) { // det
+         DETNET = 1;
+         TR_MODE = 0;
+      }
+      else if( strcmp(opts.NAMEIN_mode,list_modes[1]) == 0 ) { // minip
+         DETNET = 1;
+         TR_MODE = 1;
+      }
+      else if( strcmp(opts.NAMEIN_mode,list_modes[2]) == 0 ) { //prob
+         DETNET = 0;
+         TR_MODE = 2;
+      }
+      else 
+         ERROR_exit("Illegal after '-mode': need '%s' or '%s' or '%s'",
+                    list_modes[0], list_modes[1], list_modes[2]);
+   }
+   else {
+      ERROR_message("Failed to load '-mode' option correctly.");
+      exit(3);
+   }
+   
+   if( opts.hardi_dir ||  opts.hardi_gfa || opts.hardi_pars )
+      DEF_DTI = 0;
+
+   if( opts.hardi_gfa )
+      PARS_BOT = 0; 
+
+   // from '-netrois'
+   if( opts.NAMEIN_netrois ) {
+      ROI_set = THD_open_dataset( opts.NAMEIN_netrois );
+      if( ROI_set == NULL ) 
+         ERROR_exit("Can't open netrois dataset '%s'", opts.NAMEIN_netrois);
+      DSET_load(ROI_set) ; CHECK_LOAD_ERROR(ROI_set) ;
+      nvox_rois = DSET_NVOX(ROI_set) ;
+      N_nets = DSET_NVALS(ROI_set) ;
+      
+      NROI = (int *)calloc(N_nets, sizeof(int)); 
+      INVROI = (int *)calloc(N_nets, sizeof(int)); 
+      
+      if( (NROI == NULL) || (INVROI == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(122);
+      }
+      
+      for( i=0 ; i<N_nets ; i++) 
+         INVROI[i] = (int) THD_subbrick_max(ROI_set, i, 1);
+      
+      ROI_LABELS = calloc( N_nets,sizeof(ROI_LABELS));  
+      for(i=0 ; i<N_nets ; i++) 
+         ROI_LABELS[i] = calloc(INVROI[i]+1,sizeof(int)); 
+      INV_LABELS = calloc( N_nets,sizeof(INV_LABELS));  
+      for(i=0 ; i<N_nets ; i++) 
+         INV_LABELS[i] = calloc(INVROI[i]+1,sizeof(int)); 
+      if( (ROI_LABELS == NULL) || (ROI_LABELS == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(123);
+      }
+			
+      // after this, ROI_LABELS will have network labels store compactly
+      // and NROI will have the actual number of ROI per netw, not just 
+      // the max label value
+      // INV_LABELS has compact index labels at input label locations,
+      // hence is inverse of ROI_LABELS
+      // ** This function allows us to switch to talk about with i-th index
+      // label is used, using NROI to define sizes of things
+      bb = ViveLeRoi(ROI_set, ROI_LABELS, INV_LABELS, NROI, INVROI);
+      if( bb != 1)
+         ERROR_exit("Problem loading/assigning ROI labels");
+			
+      for( i=0 ; i<N_nets ; i++) {
+         if( NROI[i]>MAXNROI )
+            MAXNROI = NROI[i];
+      }
+
+      fprintf(stdout,"\n");
+      for( bb=0 ; bb<N_nets ; bb++)
+         INFO_message("Number of ROIs in netw[%d]=%d",bb,NROI[bb]); 
+   }
+   else
+      {
+         ERROR_message("Failed to load '-netrois' options.");
+         exit(2);
+      }
+   
+   // from '-uncert'
+   if( opts.NAMEIN_uncert ) {
+      insetUC = THD_open_dataset( opts.NAMEIN_uncert );
+      if( insetUC == NULL ) 
+         ERROR_exit("Can't open uncert dataset '%s'",
+                    opts.NAMEIN_uncert) ;
+      DSET_load(insetUC) ; CHECK_LOAD_ERROR(insetUC);
+      nvox_unc = DSET_NVOX(insetUC);
+      N_uncert = DSET_NVALS(insetUC); // needed if HARDI input now
+   }
+
+   if( opts.NAMEIN_uncFA ){
+      unc_minfa_std = atof(opts.NAMEIN_uncFA);
+      USER_UNC_FA = 1;
+   }
+
+   if( opts.NAMEIN_uncEI ){
+      unc_minei_std = atof(opts.NAMEIN_uncEI);
+      unc_minei_std*= CONV;
+      USER_UNC_EI = 1;
+   }
+
+   // for naming stuff later
+   if( opts.dti_inpref )
+      hardi_pref_len = strlen(opts.dti_inpref); // assume an underscore
+   else if( opts.hardi_pars )
+      hardi_pref_len = strlen(opts.hardi_pars);
+   
+   if( opts.NAMEIN_mask ){
+      MASK = THD_open_dataset(opts.NAMEIN_mask) ;
+      if( (MASK == NULL ))
+         ERROR_exit("Can't open time series dataset '%s'.",opts.NAMEIN_mask);
+      
+      DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
+      HAVE_MASK=1; // kind of needless switch...
+   }
+
+   if( opts.in_EXTRA ){
+      EXTRAFILE = 1; // switch on
+      PARS_BOT = 0;
+   }
+
+   if( opts.NAMEIN_outmode ) {
+      if (strcmp(opts.NAMEIN_outmode, "NI_fast_binary") &&
+          strcmp(opts.NAMEIN_outmode, "NI_fast_text") &&
+          strcmp(opts.NAMEIN_outmode, "NI_slow_binary") &&
+          strcmp(opts.NAMEIN_outmode, "NI_slow_text") ) {
+         ERROR_message("Bad value (%s) for -tract_out_mode",
+                       opts.NAMEIN_outmode);
+         exit(1);
+      }  
+      mode = opts.NAMEIN_outmode;//argv[iarg];
+   }
+
+
    // * * * * * * * * * * * * * * check HARDI vs DTI * * * * * * * * * * * *
 
    
-   if( ARE_OPTS_IN ) {
+   if( opts.algopt_file_name ) {
 
       if( (TR_MODE == 0) || (TR_MODE == 1) ) { // DET or MINIP
-         if (!(nel = ReadTractAlgOpts_M(algopt_file_name))) {
+         if (!(nel = ReadTractAlgOpts_M(opts.algopt_file_name))) {
 				ERROR_message("Failed to read options in %s\n",
-                          algopt_file_name);
+                          opts.algopt_file_name);
 				exit(19);
 			}
          
-			if (NI_getTractAlgOpts_M(nel, &MinFA,&MaxAngDeg,&MinL,
-                                  SeedPerV)) {
+			if (NI_getTractAlgOpts_M(nel, &(opts.MinFA),&(opts.MaxAngDeg),
+                                  &(opts.MinL),
+                                  opts.SeedPerV)) {
 				ERROR_message("Failed to get options");
 				exit(1);
 			}
 			NI_free_element(nel); nel=NULL;
 
-         if( (MinFA<0.001) && (MaxAngDeg<0.001) && (MinL<0.001) ) 
+         if( (opts.MinFA<0.001) && 
+             (opts.MaxAngDeg<0.001) && 
+             (opts.MinL<0.001) ) 
             ERROR_exit("All of alg_MinFA, alg_MaxAngDeg and alg_MinL"
                        " are <0.001.  This looks suspicious.  Is your\n"
                        "'-algopt' file %s written in the niml.opts"
@@ -1513,26 +1481,30 @@ int main(int argc, char *argv[]) {
                        "but it doesn't end with .niml.opts, so it's being"
                        " treated like the old school, plain-numbers-in-a-\n"
                        "column format, and thus causing an error here?",
-                       algopt_file_name);
+                       opts.algopt_file_name);
 
-         if( (SeedPerV[0] < 1) || (SeedPerV[1] < 1) || (SeedPerV[2] < 1) ) {
+         if( (opts.SeedPerV[0] < 1) || 
+             (opts.SeedPerV[1] < 1) || 
+             (opts.SeedPerV[2] < 1) ) {
             WARNING_message("One of the dimensions of seeds was <1\n"
                             "Perhaps you input a probabilistic algopt file?\n"
                             "Since you are chose the deterministic switch, I\n"
                             "am going to use 1 seed per vox.");
-            SeedPerV[0] = SeedPerV[1] = SeedPerV[2] = 1;
+            opts.SeedPerV[0] = opts.SeedPerV[1] = opts.SeedPerV[2] = 1;
          }
 
       }
       else { // PROB
-			if (!(nel = ReadProbTractAlgOpts_M(algopt_file_name))) {
+			if (!(nel = ReadProbTractAlgOpts_M(opts.algopt_file_name))) {
 				ERROR_message("Failed to read options in %s\n",
-                          algopt_file_name);
+                          opts.algopt_file_name);
 				exit(19);
 			}
 
-			if (NI_getProbTractAlgOpts_M(nel, &MinFA,&MaxAngDeg,&MinL,
-                                      &NmNsFr,&Nseed,&Nmonte)) {
+			if (NI_getProbTractAlgOpts_M(nel, &(opts.MinFA),&(opts.MaxAngDeg),
+                                      &(opts.MinL),
+                                      &(opts.NmNsFr),&(opts.Nseed),
+                                      &(opts.Nmonte))) {
 				ERROR_message("Failed to get options");
 				exit(1);
 			}
@@ -1540,23 +1512,23 @@ int main(int argc, char *argv[]) {
       }
    }
 
-   if (DEF_DTI && !(infix || dti_listname) ){
+   if (DEF_DTI && !(opts.dti_inpref || opts.dti_listname) ){
       ERROR_exit("Looks like DTI, but -dti_in was NULL.\n") ;
 		exit(5);
    }
 
-   if ( infix && dti_listname ) {
+   if ( opts.dti_inpref && opts.dti_listname ) {
       ERROR_exit("Pick using either '-dti_listname' *or* '-dti_in'.\n") ;
 		exit(5);
    }
 
-   //   if ( !DEF_DTI && ( !hardi_dir || !hardi_pars || !hardi_gfa ) ) {
-   if ( !DEF_DTI && ( !hardi_dir || !hardi_gfa ) ) {
+   if ( !DEF_DTI && ( !opts.hardi_dir || !opts.hardi_gfa ) ) {
       ERROR_exit("Looks like HARDI, but one of -hardi_* was NULL.\n") ;
 		exit(5);
    }
 
-   if ( (infix  || dti_listname) && ( hardi_dir || hardi_pars || hardi_gfa )) {
+   if ( (opts.dti_inpref  || opts.dti_listname) && 
+        ( opts.hardi_dir || opts.hardi_pars || opts.hardi_gfa )) {
       ERROR_exit("Looks like a combo of -dti_* and -hardi_* was used.\n") ;
 		exit(5);
    }
@@ -1572,9 +1544,12 @@ int main(int argc, char *argv[]) {
                  list_modes[0],list_modes[1],list_modes[2]);
 
    if( TR_MODE==1) // minip
-      if( !MINI_PROB_NM )
-         ERROR_exit("in '-mode %s', one needs '-mini_num D' with D>0 as well.\n",
+      if( opts.MINI_PROB_NM<1 )
+         ERROR_exit("in '-mode %s', one needs '-mini_num D' with D>0.\n",
                     list_modes[TR_MODE]);
+      else
+         INFO_message("Running with %d mini-prob iterations",
+                      opts.MINI_PROB_NM);
 
    if( (TR_MODE==1) || (TR_MODE==2) ) // minip
       if(!insetUC)
@@ -1587,18 +1562,18 @@ int main(int argc, char *argv[]) {
                     "which require uncertainty?\n",
                     list_modes[TR_MODE],list_modes[1],list_modes[2]);
 
-   if( (TR_MODE==2) && MINI_PROB_NM )
-      ERROR_exit("ERROR: in '-mode %s', one doesn't assign '-mini_num' values.\n",
+   if( (TR_MODE==2) && opts.MINI_PROB_NM )
+      ERROR_exit("ERROR: in '-mode %s', don't assign '-mini_num' values.\n",
                  list_modes[TR_MODE]);
 
-   if( (TR_MODE==2) && (LOG_TYPE>=0) )
+   if( (TR_MODE==2) && (opts.LOG_TYPE>=0) )
       ERROR_exit("ERROR: in '-mode %s', one doesn't assign '-logic' values.\n",
                  list_modes[TR_MODE]);
 
    // ** * ** * ** * ** * figure out size of vec and scal files * ** * ** *
 
    if(DEF_DTI) { 
-       if( dti_listname ) {
+       if( opts.dti_listname ) {
          char **NameVEC=NULL;
          char *NameXF=NULL;
          char **NameSCAL=NULL;
@@ -1621,9 +1596,9 @@ int main(int argc, char *argv[]) {
 				exit(126);
 			}
 		  
-         if (!(nel = ReadDTI_inputs(dti_listname))) {
+         if (!(nel = ReadDTI_inputs(opts.dti_listname))) {
 				ERROR_message("Failed to read options in %s\n",
-                           dti_listname);
+                           opts.dti_listname);
 				exit(19);
 			}
          
@@ -1643,7 +1618,7 @@ int main(int argc, char *argv[]) {
          if ( EXTRAFILE )
             PARS_BOT = 0;
          PARS_N = PARS_TOP -1 + EXTRAFILE;
-         Noutmat = 3 + 2*(PARS_N); // number of output matrices in GRID file
+         Noutmat = PreCalcParLabs + 2*(PARS_N); // number of output matrices in GRID file
          // ParLab has length Noutmat
          // param_grid has 2*PARS_N+1 = Noutmat-2 blocks
          
@@ -1654,7 +1629,7 @@ int main(int argc, char *argv[]) {
             exit(123);
          }
 
-         fprintf(stderr,"SCALAR FINDINGS:\n\t");
+         INFO_message("SCALAR FINDINGS:");
          if( EXTRAFILE ) {
             insetPARS[0] = THD_open_dataset(NameXF);
             if( (insetPARS[0] == NULL ) )
@@ -1662,7 +1637,7 @@ int main(int argc, char *argv[]) {
                           NameXF);
             DSET_load(insetPARS[0]) ; CHECK_LOAD_ERROR(insetPARS[0]) ;
             snprintf(wild_names[0],31,"%s", "XF"); // default eXtraFile name
-            fprintf(stderr," Extra file '%s' to be labeled '%s'\n\t",
+            fprintf(stderr,"\tExtra file '%s' to be labeled '%s'\n",
                     NameXF,wild_names[0]);
             // set uncert of this param to be ~2% of max, unless user
             // expresses value
@@ -1677,7 +1652,7 @@ int main(int argc, char *argv[]) {
                           NameSCAL[ii]);
             DSET_load(insetPARS[1+ii]) ; CHECK_LOAD_ERROR(insetPARS[1+ii]) ;
             snprintf(wild_names[1+ii],31,"%s", DTI_SCAL_INS[ii]); // default eXtraFile name
-            fprintf(stderr," Found file '%s' to be labeled '%s'\n\t",
+            fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
                     NameSCAL[ii],wild_names[1+ii]);
          }
 
@@ -1688,7 +1663,7 @@ int main(int argc, char *argv[]) {
          jj = 0;
          for( ii=0 ; ii<N_plus_dtifile ; ii++) 
             if( strcmp(NameP[ii],"\0") ) {
-               fprintf(stderr,"TESTING NAMEP: T=%d, %s",(NameP[ii] != "\0"),NameP[ii]);
+               //fprintf(stderr,"TESTING NAMEP: T=%d, %s",(NameP[ii] != "\0"),NameP[ii]);
                jj++;
                i = N_dti_scal + jj + 1; //extra plus one because of RD getting added
                insetPARS[i] = THD_open_dataset(NameP[ii]);
@@ -1697,11 +1672,11 @@ int main(int argc, char *argv[]) {
                              ii,NameP[ii]);
                DSET_load(insetPARS[i]) ; CHECK_LOAD_ERROR(insetPARS[i]) ;
                snprintf(wild_names[i],31,"%s", DTI_PLUS_INS[ii]); // default eXtraFile name
-               fprintf(stderr," Found file '%s' to be labeled '%s'\n\t",
+               fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
                        NameP[ii], wild_names[i]);
             }
          
-         ParLab = (char **)calloc(Noutmat, sizeof(char *));
+         ParLab = (char **)calloc(Noutmat, sizeof(char *)); //AAAA
          for (j=0; j<Noutmat; ++j) 
             ParLab[j] = (char *)calloc(32, sizeof(char));
          if( (ParLab == NULL) ) {
@@ -1711,10 +1686,14 @@ int main(int argc, char *argv[]) {
          
          ParLab[0] = strdup("NT");
          ParLab[1] = strdup("fNT");
-         ParLab[2] = strdup("NV");
+         ParLab[2] = strdup("PV");
+         ParLab[3] = strdup("fNV");
+         ParLab[4] = strdup("NV");
          for( i=PARS_BOT ; i<PARS_TOP ; i++ ){
-            snprintf(ParLab[1+2*(i+EXTRAFILE)],31,"%s", wild_names[i]);
-            snprintf(ParLab[1+2*(i+EXTRAFILE)+1],31,"s%s", wild_names[i]);
+            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)],31,"%s", 
+                     wild_names[i]);
+            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)+1],31,"s%s", 
+                     wild_names[i]);
          }
          
          if ( insetPARS[PARS_BOT] ) {
@@ -1730,7 +1709,8 @@ int main(int argc, char *argv[]) {
             Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); 
             Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
             Orig[2] = DSET_ZORG(insetPARS[PARS_BOT]);
-            
+            VoxVol = DSET_VOXVOL(insetPARS[PARS_BOT]);
+
             // this stores the original data file orientation for later use,
             // as well since we convert everything to RAI temporarily, as
             // described below
@@ -1787,7 +1767,7 @@ int main(int argc, char *argv[]) {
                ERROR_exit("Can't open dataset '%s': for required vector dir.",
                           NameVEC[ii]);
             DSET_load(insetVECS[ii]) ; CHECK_LOAD_ERROR(insetVECS[ii]) ;
-            fprintf(stderr," Found file '%s' to be labeled '%s'\n\t",
+            fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
                     NameVEC[ii],DTI_VECT_INS[ii]);
          }
             
@@ -1808,14 +1788,14 @@ int main(int argc, char *argv[]) {
 
       // GLOB for file names, because we don't know endings/types, nor
       // number for HARDI
-      sprintf(tprefix,"%s*",infix);
+      sprintf(tprefix,"%s*",opts.dti_inpref);
       
       // this island of coding, globbing and sorting due to ZSS;
       // see apsearch.c program for original.
       wild_list = SUMA_append_replace_string(wild_list, tprefix, " ", 1); 
       
-      INFO_message("SEARCHING for files with prefix '%s'",tprefix);
-      if( NO_NONDTI_SEARCH )
+      INFO_message("\n++ SEARCHING for files with prefix '%s'",tprefix);
+      if( opts.NO_NONDTI_SEARCH )
          INFO_message("... but just getting the basics, no more.");
 
       MCW_wildcards(wild_list, &nglob, &wglob ); 
@@ -1830,7 +1810,7 @@ int main(int argc, char *argv[]) {
 
             if(nsort < N_dti_scal)
                ERROR_exit("Too few data sets with prefix %s-- only %d of them",
-                          infix,nsort);
+                          opts.dti_inpref,nsort);
 
             insetPARS = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *) 
                                                     * PARS_TOP);
@@ -1839,16 +1819,16 @@ int main(int argc, char *argv[]) {
                exit(123);
             }
 
-            fprintf(stderr,"SCALAR FINDINGS:\n\t");
+            fprintf(stderr,"\n++ SCALAR FINDINGS:\n\t");
             if( EXTRAFILE ) {
-               insetPARS[0] = THD_open_dataset(in_EXTRA);
+               insetPARS[0] = THD_open_dataset(opts.in_EXTRA);
                if( (insetPARS[0] == NULL ) )
                   ERROR_exit("Can't open dataset '%s': for extra set.",
-                             in_EXTRA);
+                             opts.in_EXTRA);
                DSET_load(insetPARS[0]) ; CHECK_LOAD_ERROR(insetPARS[0]) ;
-               snprintf(wild_names[0],31,"%s", "XF"); // default eXtraFile name
+               snprintf(wild_names[0], 31, "%s", "XF"); // default eXtraFile name
                fprintf(stderr," Extra file '%s' to be labeled '%s'\n\t",
-                            in_EXTRA,wild_names[0]);
+                            opts.in_EXTRA, wild_names[0]);
                // set uncert of this param to be ~2% of max, unless user
                // expresses value
                if( !USER_UNC_FA )
@@ -1883,22 +1863,33 @@ int main(int argc, char *argv[]) {
 
                if( !FOUND_DTI ) {
                   dsetn = THD_open_dataset(wglob[isrt[ii]]);
-                  // check if it's a vec or scal;
-                  // and now extra criterion: user can turn of NON-FOUND_DTI scalar keepers
-                  if( (DSET_NVALS(dsetn) > 1) || NO_NONDTI_SEARCH ) {
-                     DSET_delete(dsetn);
-                     dsetn=NULL;
+
+                  if( dsetn == NULL ) {
+                     fprintf(stderr,"\n");
+                     WARNING_message("Found an unloadable file (%s) masquerading"
+                                     " with the '-dti_in' prefix.\n"
+                                     "\tThis imposter/non-dataset won't be loaded.",
+                                     wglob[isrt[ii]]);
                      PARS_N--;
                   }
-                  else {
-                     insetPARS[jj] = dsetn;
-                     snprintf(wild_names[jj],31,"%s",temp_name);// wsort[ii]+hardi_pref_len);
-                     fprintf(stderr," '%s' ",wild_names[jj]);
-                     dsetn=NULL;
-                     if( insetPARS[jj] == NULL ) 
-                        ERROR_exit("Can't open dataset '%s'", wglob[isrt[ii]]);
-                     DSET_load(insetPARS[jj]) ; CHECK_LOAD_ERROR(insetPARS[jj]) ;
-                     jj++;
+                  else{  
+                     // check if it's a vec or scal;
+                     // and now extra criterion: user can turn of NON-FOUND_DTI scalar keepers
+                     if( (DSET_NVALS(dsetn) > 1) || opts.NO_NONDTI_SEARCH ) {
+                        DSET_delete(dsetn);
+                        dsetn=NULL;
+                        PARS_N--;
+                     }
+                     else {
+                        insetPARS[jj] = dsetn;
+                        snprintf(wild_names[jj],31,"%s",temp_name);// wsort[ii]+hardi_pref_len);
+                        fprintf(stderr," '%s' ",wild_names[jj]);
+                        dsetn=NULL;
+                        if( insetPARS[jj] == NULL ) 
+                           ERROR_exit("Can't open dataset '%s'", wglob[isrt[ii]]);
+                        DSET_load(insetPARS[jj]) ; CHECK_LOAD_ERROR(insetPARS[jj]) ;
+                        jj++;
+                     }
                   }
                }
                if( jj == MAX_PARAMS ) {
@@ -1914,19 +1905,21 @@ int main(int argc, char *argv[]) {
                //               free(insetPARS[i]); 
                insetPARS[i]=NULL;
             }
-            PARS_TOP = PARS_N + 1 - EXTRAFILE; // extra one, calculate RD automatically
-            Noutmat = 3 + 2*(PARS_N); // number of output matrices in GRID file
+            PARS_TOP = PARS_N + 1 - EXTRAFILE; // extra, calc RD automatically
+            Noutmat = PreCalcParLabs + 2*(PARS_N); // num of output matr in GRID
                                                 // ParLab has length Noutmat
-                                                // param_grid has 2*PARS_N+1 = Noutmat-2 blocks
+                                                // param_grid has
             fprintf(stderr,"\n");
-            INFO_message("Done with scalar search, found: %d parameters (well, including internal RD calc)\n"
-                         "\t--> so will have %d output data matrices.",PARS_N, Noutmat);
+            INFO_message("Done with scalar search, found: %d parameters"
+                         " (well, including internal RD calc)\n"
+                         "\t--> so will have %d output data matrices.",
+                         PARS_N, Noutmat);
 
             if( tot_FOUND_DTI != N_dti_scal_tot)
                ERROR_exit("Didn't find all necessary DTI set: FA, MD and L1."
                           " Please check about this.");
             else { // to be RD
-               insetPARS[N_dti_scal+1] = EDIT_empty_copy(insetPARS[PARS_BOT] ) ; 
+               insetPARS[N_dti_scal+1] = EDIT_empty_copy(insetPARS[PARS_BOT]); 
                snprintf(wild_names[N_dti_scal+1],31,"%s", "RD");
             }
 
@@ -1936,14 +1929,17 @@ int main(int argc, char *argv[]) {
             Nvox = DSET_NVOX(insetPARS[PARS_BOT]) ;
             
             Dim = (int *)calloc(3, sizeof(int)); 
-            Dim[0] = DSET_NX(insetPARS[PARS_BOT]); Dim[1] = DSET_NY(insetPARS[PARS_BOT]); 
+            Dim[0] = DSET_NX(insetPARS[PARS_BOT]); 
+            Dim[1] = DSET_NY(insetPARS[PARS_BOT]); 
             Dim[2] = DSET_NZ(insetPARS[PARS_BOT]); 
             Ledge[0] = fabs(DSET_DX(insetPARS[PARS_BOT])); 
             Ledge[1] = fabs(DSET_DY(insetPARS[PARS_BOT])); 
             Ledge[2] = fabs(DSET_DZ(insetPARS[PARS_BOT])); 
-            Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
+            Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); 
+            Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
             Orig[2] = DSET_ZORG(insetPARS[PARS_BOT]);
-            
+            VoxVol = DSET_VOXVOL(insetPARS[PARS_BOT]);
+
             // this stores the original data file orientation for later use,
             // as well since we convert everything to RAI temporarily, as
             // described below
@@ -1967,7 +1963,7 @@ int main(int argc, char *argv[]) {
          }
 
 
-         ParLab = (char **)calloc(Noutmat, sizeof(char *));
+         ParLab = (char **)calloc(Noutmat, sizeof(char *)); // BBBB
          for (j=0; j<Noutmat; ++j) 
             ParLab[j] = (char *)calloc(32, sizeof(char));
          if( (ParLab == NULL) ) {
@@ -1977,10 +1973,12 @@ int main(int argc, char *argv[]) {
          
          ParLab[0] = strdup("NT");
          ParLab[1] = strdup("fNT");
-         ParLab[2] = strdup("NV");
+         ParLab[2] = strdup("PV");
+         ParLab[3] = strdup("fNV");
+         ParLab[4] = strdup("NV");
          for( i=PARS_BOT ; i<PARS_TOP ; i++ ){
-            snprintf(ParLab[1+2*(i+EXTRAFILE)],31,"%s", wild_names[i]);
-            snprintf(ParLab[1+2*(i+EXTRAFILE)+1],31,"s%s", wild_names[i]);
+            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)],31,"%s", wild_names[i]);
+            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)+1],31,"s%s", wild_names[i]);
          }
          
          if (isrt) free(isrt); isrt = NULL;
@@ -2028,10 +2026,10 @@ int main(int argc, char *argv[]) {
       // and now just the direction vectors
       for( j=0 ; j<N_dti_vect ; j++ ) {
          // first check about whether underscore is included
-         if(  *(infix+hardi_pref_len-1) == '_' )
-            sprintf(tprefix,"%s%s*",infix, DTI_VECT_INS[j]); 
+         if(  *(opts.dti_inpref+hardi_pref_len-1) == '_' )
+            sprintf(tprefix,"%s%s*",opts.dti_inpref, DTI_VECT_INS[j]); 
          else
-            sprintf(tprefix,"%s_%s*",infix, DTI_VECT_INS[j]); 
+            sprintf(tprefix,"%s_%s*",opts.dti_inpref, DTI_VECT_INS[j]); 
          
          // this island of coding, globbing and sorting due to ZSS;
          // see apsearch.c program for original.
@@ -2059,7 +2057,7 @@ int main(int argc, char *argv[]) {
       
          if( insetVECS[ii+j] == NULL ) 
             ERROR_exit("Can't open dataset '%s' for vector '%s'", 
-                       infix, DTI_VECT_INS[j]);
+                       opts.dti_inpref, DTI_VECT_INS[j]);
          DSET_load(insetVECS[ii+j]) ; CHECK_LOAD_ERROR(insetVECS[ii+j]) ;
          fprintf(stderr,"'%s'\t",DTI_VECT_INS[j]);
        }
@@ -2110,14 +2108,14 @@ int main(int argc, char *argv[]) {
 
       // GLOB for file names, because we don't know endings/types, nor
       // number for HARDI
-      if(hardi_pars) {
-         sprintf(tprefix,"%s*",hardi_pars);
+      if(opts.hardi_pars) {
+         sprintf(tprefix,"%s*",opts.hardi_pars);
 
          // this island of coding, globbing and sorting due to ZSS;
          // see apsearch.c program for original.
          wild_list = SUMA_append_replace_string(wild_list, tprefix, " ", 1); 
-         fprintf(stderr,"\nSEARCHING for HARDI parts with: %s\n",wild_list);
-         fprintf(stdout,"++ SCALAR FINDINGS:\n\t");
+         fprintf(stderr,"\n++ SEARCHING for HARDI parts with: %s",wild_list);
+         fprintf(stdout,"\n++ SCALAR FINDINGS:\n\t");
          MCW_wildcards(wild_list, &nglob, &wglob ); 
          if(nglob)
             if( !(wsort = unique_str(wglob, nglob, wild_ci, wild_noext, 
@@ -2141,12 +2139,12 @@ int main(int argc, char *argv[]) {
          exit(123);
       }
       
-      insetPARS[0] = THD_open_dataset( hardi_gfa );
+      insetPARS[0] = THD_open_dataset( opts.hardi_gfa );
       if( insetPARS[0] == NULL ) 
-         ERROR_exit("Can't open dataset '%s'", hardi_gfa);
+         ERROR_exit("Can't open dataset '%s'", opts.hardi_gfa);
       DSET_load(insetPARS[0]) ; CHECK_LOAD_ERROR(insetPARS[0]) ;
       snprintf(wild_names[0],31,"GFA");
-      fprintf(stdout," '%s' ",wild_names[0]);
+      fprintf(stdout,"\t '%s' ",wild_names[0]);
       
       // set uncert of this param to be ~2% of max, unless user
       // expresses value
@@ -2154,7 +2152,7 @@ int main(int argc, char *argv[]) {
          unc_minfa_std*= THD_subbrick_max( insetPARS[0] , 0, 1);
       
 
-      if (hardi_pars) {
+      if (opts.hardi_pars) {
          
          jj = 1;
          for( ii=1 ; ii<PARS_TOP ; ii++ ) {
@@ -2219,7 +2217,7 @@ int main(int argc, char *argv[]) {
       // exit(1);
       //}
       
-      Noutmat = 3 + 2*PARS_N; // number of output matrices in GRID file
+      Noutmat = PreCalcParLabs + 2*PARS_N; // number of output matrs in GRID
       // ParLab has length Noutmat
       // param_grid has 2*PARS_N+1 = Noutmat-2 blocks
       INFO_message("Done with scalar search, found: %d parameters\n"
@@ -2237,7 +2235,8 @@ int main(int argc, char *argv[]) {
          Ledge[2] = fabs(DSET_DZ(insetPARS[0])); 
          Orig[0] = DSET_XORG(insetPARS[0]); Orig[1] = DSET_YORG(insetPARS[0]); 
          Orig[2] = DSET_ZORG(insetPARS[0]);
-         
+         VoxVol = DSET_VOXVOL(insetPARS[0]);
+
          // this stores the original data file orientation for later use,
          // as well since we convert everything to RAI temporarily, as
          // described below
@@ -2269,12 +2268,14 @@ int main(int argc, char *argv[]) {
          exit(121);
       }
       
-      ParLab[0] = strdup("NT");
+      ParLab[0] = strdup("NT");  // CCCC
       ParLab[1] = strdup("fNT");
-      ParLab[2] = strdup("NV");
+      ParLab[2] = strdup("PV");
+      ParLab[3] = strdup("fNV");
+      ParLab[4] = strdup("NV");
       for( i=0 ; i<PARS_N ; i++ ){
-         snprintf(ParLab[3+2*i],31,"%s", wild_names[i]);
-         snprintf(ParLab[3+2*i+1],31,"s%s", wild_names[i]);
+         snprintf(ParLab[PreCalcParLabs+2*i],31,"%s", wild_names[i]);
+         snprintf(ParLab[PreCalcParLabs+2*i+1],31,"s%s", wild_names[i]);
       }
       sprintf(headerHAR.scal_n[0],"%s", wild_names[0]);
       
@@ -2285,9 +2286,9 @@ int main(int argc, char *argv[]) {
       
       // need to find out max number of vectors per voxel
       // single file
-      dsetn = THD_open_dataset(hardi_dir);   
+      dsetn = THD_open_dataset(opts.hardi_dir);   
       if( dsetn == NULL ) 
-         ERROR_exit("Can't open dataset '%s'", hardi_dir);
+         ERROR_exit("Can't open dataset '%s'", opts.hardi_dir);
       DSET_load(dsetn) ; CHECK_LOAD_ERROR(dsetn) ;
       
       N_HAR = DSET_NVALS(dsetn);
@@ -2327,7 +2328,7 @@ int main(int argc, char *argv[]) {
       }
       INFO_message("FOUND vector '%s', with %d subbricks\n"
                    "\t--> at most %d direction(s) per voxel.",
-                   hardi_dir,3*N_HAR,N_HAR);
+                   opts.hardi_dir,3*N_HAR,N_HAR);
 
       DSET_delete(dsetn);
       free(dsetn);
@@ -2352,19 +2353,15 @@ int main(int argc, char *argv[]) {
             (Dim[2] == DSET_NZ(insetPARS[0]))))
          ERROR_exit("Dimensions of extra set '%s' don't match those of"
                     " the DTI prop (prefix '%s').",
-                    in_EXTRA, infix);
+                    opts.in_EXTRA, opts.dti_inpref);
 
    if( ( N_HAR>0 ) && ( N_uncert>0 ) && (N_HAR+1 != N_uncert ) )
       ERROR_exit("Number of `-hardi_dir's is %d, while the number of\n" 
                  " uncertainty values for the directions appears to be %d.\n"
                  " These must match.", N_HAR, N_uncert);
                  
-	if (iarg < 5) {
-		ERROR_message("Too few options. Try -help for details.\n");
-		exit(1);
-	}
 
-   if(nvox_unc && DETNET && ( MINI_PROB_NM == 0 ) ){ // @)
+   if(nvox_unc && DETNET && ( opts.MINI_PROB_NM == 0 ) ){ // @)
       ERROR_message("Don't -detnet AND -uncert together without -mini_num.\n");
       exit(1);
    }
@@ -2374,15 +2371,15 @@ int main(int argc, char *argv[]) {
    // exit(1);
    //}
 
-   if(DETNET && (LOG_TYPE==0) && ONLY_BT){
+   if(DETNET && (opts.LOG_TYPE==0) && opts.ONLY_BT){
       INFO_message("With '-logic OR', the '-cut_at_rois' option will"
                    " be automically turned off ('-uncut_at_rois').");
-      ONLY_BT=0;
+      opts.ONLY_BT=0;
    }
 
-	if(ROIS_OUT) {
+	if(opts.ROIS_OUT) {
 		for( k=0 ; k<N_nets ; k++ ) { // each netw gets own file
-			sprintf(OUT_rois,"%s_%03d.roi.labs",prefix,k);
+			sprintf(OUT_rois,"%s_%03d.roi.labs",opts.prefix,k);
 			if( (fout1 = fopen(OUT_rois, "w")) == NULL) {
 				fprintf(stderr, "Error opening file %s.",OUT_rois);
 				exit(19);
@@ -2413,7 +2410,7 @@ int main(int argc, char *argv[]) {
    }
    
    // convert to cos of rad value for comparisons, instead of using acos()
-   MaxAng = cos(CONV*MaxAngDeg); 
+   MaxAng = cos(CONV*opts.MaxAngDeg); 
    
 	// for temp storage array, just a multiple of longest dimension!
 	// essentially, a buffer size per tract we're making
@@ -2426,7 +2423,7 @@ int main(int argc, char *argv[]) {
   
    // switch to add header-- option for now, added Sept. 2012
 	// for use with map_TrackID to map tracks to different space
-	if(RECORD_ORIG) { // @)
+	if(opts.RECORD_ORIG) { // @)
 		for( i=0 ; i<3 ; i++) {
          if(N_HAR)
             headerHAR.origin[i] = Orig[i];
@@ -2445,28 +2442,15 @@ int main(int argc, char *argv[]) {
                        " You should divide up the networks below this max,\n"
                        "or spring for a better computer.\n",N_nets,FOPEN_MAX);
 
-      // these are either default 1,1,1 or the user-input
-      //if( ARE_OPTS_IN) {
-      // if( (OPTS_IN0 >= 1) && (OPTS_IN1 >= 1) && (OPTS_IN2 >= 1) ) {
-      //    SeedPerV[0] = (int) OPTS_IN0;
-      //    SeedPerV[1] = (int) OPTS_IN1;
-      //    SeedPerV[2] = (int) OPTS_IN2;
-      // } 
-      // else // just have 2x2x2
-         //    INFO_message("Perhaps you are using a probabilistic algopt file.\n"
-      //              "Since you are chose the deterministic switch,\n"
-      //                 "am going to use 8 evenly spaced seeds per vox.");
-      //}
-      
-      if(MINI_PROB_NM)
-         Nmonte = MINI_PROB_NM; // only doing 1 it
+      if(opts.MINI_PROB_NM)
+         opts.Nmonte = opts.MINI_PROB_NM; // only doing 1 it
       else
-         Nmonte = 1;
+         opts.Nmonte = 1;
 
-      Nseed = SeedPerV[0]*SeedPerV[1]*SeedPerV[2];
+      opts.Nseed = opts.SeedPerV[0]*opts.SeedPerV[1]*opts.SeedPerV[2];
      
-      LocSeed = calloc(Nseed,sizeof(LocSeed)); 
-      for(i=0 ; i<Nseed ; i++) 
+      LocSeed = calloc(opts.Nseed,sizeof(LocSeed)); 
+      for(i=0 ; i<opts.Nseed ; i++) 
          LocSeed[i] = calloc(3,sizeof(float)); 
      
       if( (LocSeed == NULL) ){
@@ -2476,12 +2460,12 @@ int main(int argc, char *argv[]) {
      
       // regularly spaced seeds
       i = 0; 
-      for( ii=0 ; ii<SeedPerV[0] ; ii++ ) 
-         for( jj=0 ; jj<SeedPerV[1] ; jj++ ) 
-            for( kk=0 ; kk<SeedPerV[2] ; kk++ ) {
-               LocSeed[i][0] = (0.5 + (float) ii)/SeedPerV[0];
-               LocSeed[i][1] = (0.5 + (float) jj)/SeedPerV[1];
-               LocSeed[i][2] = (0.5 + (float) kk)/SeedPerV[2];
+      for( ii=0 ; ii<opts.SeedPerV[0] ; ii++ ) 
+         for( jj=0 ; jj<opts.SeedPerV[1] ; jj++ ) 
+            for( kk=0 ; kk<opts.SeedPerV[2] ; kk++ ) {
+               LocSeed[i][0] = (0.5 + (float) ii)/opts.SeedPerV[0];
+               LocSeed[i][1] = (0.5 + (float) jj)/opts.SeedPerV[1];
+               LocSeed[i][2] = (0.5 + (float) kk)/opts.SeedPerV[2];
                i++;
             }
      
@@ -2494,7 +2478,7 @@ int main(int argc, char *argv[]) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
-      if(LOG_TYPE) //just for AND logic
+      if(opts.LOG_TYPE) //just for AND logic
          for( i=0 ; i<N_nets ; i++)
             N_bund[i] = (NROI[i]*(NROI[i]+1))/2;
       else
@@ -2511,24 +2495,18 @@ int main(int argc, char *argv[]) {
       flTtot = calloc(2*ArrMax,sizeof(flTtot)); 
       for(i=0 ; i<2*ArrMax ; i++) 
          flTtot[i] = calloc(3,sizeof(float)); 
-      cutTot = calloc(2*ArrMax,sizeof(cutTot)); 
-      for(i=0 ; i<2*ArrMax ; i++) 
-         cutTot[i] = calloc(3,sizeof(float)); 
-      cutTotI = calloc(2*ArrMax,sizeof(cutTotI)); 
-      for(i=0 ; i<2*ArrMax ; i++) 
-         cutTotI[i] = calloc(3,sizeof(float)); 
 
       prefix_det = calloc( N_nets,sizeof(prefix_det));  
       for(i=0 ; i<N_nets ; i++) 
          prefix_det[i] = calloc( 300,sizeof(char)); 
 
-      if( OUTPUT_TRK)
+      if( opts.OUTPUT_TRK)
          fout0 = (FILE **)calloc(N_nets, sizeof(FILE)); 
 
-      if(  (prefix_det == NULL) || (flTtot == NULL) || (cutTot == NULL) 
+      if(  (prefix_det == NULL) || (flTtot == NULL) 
            || (tb == NULL) || (tt == NULL) || (id == NULL) 
            || (tnet == NULL)
-           || ( OUTPUT_TRK && (fout0 == NULL)) || (cutTotI == NULL) ){
+           || ( opts.OUTPUT_TRK && (fout0 == NULL)) ) { 
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
@@ -2536,58 +2514,53 @@ int main(int argc, char *argv[]) {
    }
    else {
 
-      //if( ARE_OPTS_IN) {
-      // NmNsFr = OPTS_IN0;
-      // Nseed = OPTS_IN1;
-      // Nmonte = OPTS_IN2;
-      //}
-
       // Process the options a little 
-      LocSeed = calloc(Nseed,sizeof(LocSeed)); 
-      for(i=0 ; i<Nseed ; i++) 
+      LocSeed = calloc(opts.Nseed,sizeof(LocSeed)); 
+      for(i=0 ; i<opts.Nseed ; i++) 
          LocSeed[i] = calloc(3,sizeof(float)); 
      
       // initial value in this case 
-      for( k=0 ; k<Nseed ; k++ ) 
+      for( k=0 ; k<opts.Nseed ; k++ ) 
          for( j=0 ; j<3 ; j++ ) 
             LocSeed[k][j] = rand()*1.0/RAND_MAX; 
      
       // will take stats on voxels with number of tracts >=NmNsThr
-      NmNsThr =  (int) floor(NmNsFr*Nseed*Nmonte); 
+      NmNsThr =  (int) floor(opts.NmNsFr*opts.Nseed*opts.Nmonte); 
       // lower bound is 1, and also force to be 1 if posteriori is chosen
-      if( (NmNsThr<1) || POST ) 
+      if( (NmNsThr<1) || opts.POST ) 
          NmNsThr=1;
       
    }
 
-   if (dump_opts) {
-		//nel = NI_setProbTractAlgOpts(NULL, &MinFA, &MaxAngDeg, &MinL, 
-		//									  &NmNsFr,&Nseed,&Nmonte, &M, &bval);
+   if (opts.dump_opts) {
       if (DETNET)
-         nel = NI_setTractAlgOpts_M(NULL, &MinFA, &MaxAngDeg, &MinL, 
-                                    SeedPerV);
+         nel = NI_setTractAlgOpts_M(NULL, &(opts.MinFA), &(opts.MaxAngDeg),
+                                    &(opts.MinL), 
+                                    (opts.SeedPerV));
       else
-         nel = NI_setProbTractAlgOpts_M(NULL, &MinFA, &MaxAngDeg, &MinL, 
-                                        &NmNsFr,&Nseed,&Nmonte);
+         nel = NI_setProbTractAlgOpts_M(NULL, &(opts.MinFA), &(opts.MaxAngDeg),
+                                        &(opts.MinL), 
+                                        &(opts.NmNsFr),&(opts.Nseed),
+                                        &(opts.Nmonte) );
 
-		WriteTractAlgOpts(prefix, nel);
+		WriteTractAlgOpts(opts.prefix, nel);
 		NI_free_element(nel); nel=NULL;
 	}
 
 
-   if(POST){
-      if(DUMP_TYPE==1) {
+   if(opts.POST){
+      if(opts.DUMP_TYPE==1) {
          INFO_message("You asked for '-dump_rois DUMP', but also chose\n"
                       "\t'-posteriori', so you will get binary mask DUMP,\n"
                       "\tas well as AFNI files of numbers of tracks/voxel.");
-         DUMP_TYPE=3;
+         opts.DUMP_TYPE=3;
       }
-      if(DUMP_TYPE== -1){
+      if(opts.DUMP_TYPE== -1){
          INFO_message("You did NOT ask for individual dump of ROIs by using\n"
                       "\t'-dump_rois {option}' but then you DID choose\n"
                       "\t'-posteriori', so you will get a set of AFNI files\n"
                       "having numbers of tracks/voxel.");
-         DUMP_TYPE=2;
+         opts.DUMP_TYPE=2;
       }
    }
 
@@ -2740,7 +2713,7 @@ int main(int argc, char *argv[]) {
       INFO_message("Effective Monte iterations: %d."
                    " Fraction threshold set: %.5f\n"
                    "\t--> Ntrack voxel threshold: %d.",
-                   Nseed*Nmonte,NmNsFr,NmNsThr);
+                   opts.Nseed*opts.Nmonte,opts.NmNsFr,NmNsThr);
 
    // 3 comp of V1 and FA for each data voxel
    // ragged for HARDI to save mem
@@ -2771,17 +2744,6 @@ int main(int argc, char *argv[]) {
 		 || (NETROI == NULL) || (MAPROI == NULL)) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(122);
-	}
-
-	if(NOTMASK>0){
-		antimask = calloc( (Ndata+1),sizeof(antimask)); 
-		for(i=0 ; i<=Ndata ; i++) // to have all ind be >=1
-			antimask[i] = calloc(NOTMASK,sizeof(short));
- 
-		if( (antimask == NULL) ) {
-			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
-			exit(127);
-		}
 	}
 
 	Prob_grid = (int ***) calloc( N_nets, sizeof(int **));
@@ -2834,7 +2796,7 @@ int main(int argc, char *argv[]) {
    ArrMax-= 1;
 
    // @))
-   if(JUMPLES){
+   if(JUMPLES) {
 
       // right now, this contains space for:
       //     + a growing param,
@@ -2888,9 +2850,9 @@ int main(int argc, char *argv[]) {
          for( i=0 ; i<N_bund[hh] ; i++)
             tb[hh][i] = AppCreateBundle(NULL, 0, NULL); // start bundle
       
-      if( OUTPUT_TRK )
+      if( opts.OUTPUT_TRK )
          for( hh=0 ; hh<N_nets ; hh++) {
-            sprintf(OUT_bin,"%s_%03d.trk",prefix,hh); // !! match brick number
+            sprintf(OUT_bin,"%s_%03d.trk",opts.prefix,hh); // match brick num
             if( (fout0[hh] = fopen(OUT_bin, "w")) == NULL) {
                fprintf(stderr, "Error opening file %s.",OUT_bin);
                exit(16);
@@ -2907,18 +2869,47 @@ int main(int argc, char *argv[]) {
       }
    }
 
-   ni = (int) Nmonte / 10.;
-   if (ni < 2)
-      ni = Nmonte;
-   if( ni<Nmonte )
+   if(opts.NAMEIN_thru) {
+
+      thrumask = THD_open_dataset(opts.NAMEIN_thru);
+      if( thrumask == NULL ) 
+         ERROR_exit("Can't open dataset '%s': for extra set.",
+                    opts.NAMEIN_thru);
+      DSET_load(thrumask) ; CHECK_LOAD_ERROR(thrumask) ;
+      if( !(Dim[0] == (int) DSET_NX(thrumask) && 
+            Dim[1] == (int) DSET_NY(thrumask) && 
+            Dim[2] == (int) DSET_NZ(thrumask) && 
+            N_nets == (int) DSET_NVALS(thrumask) ) ) 
+         ERROR_exit("The thru_mask '%s' doesn't match up fully with the data.\n"
+                    "\tCheck the number of bricks, spatial dimensions and origin.",
+                    opts.NAMEIN_thru);      
+
+      if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
+         
+         dsetn = r_new_resam_dset( thrumask, NULL, 0.0, 0.0, 0.0,
+                                   dset_or, RESAM_NN_TYPE, NULL, 1, 0);
+         DSET_delete(thrumask); 
+         thrumask=dsetn;
+         dsetn=NULL;
+      }
+   }
+
+   if(TR_MODE ==2) {
+      ni = (int) opts.Nmonte / 10.;
+      if (ni < 2)
+         ni = opts.Nmonte;
+   }
+   else if(TR_MODE==1)
+      ni = 1;
+   if( ni<opts.Nmonte )
       fprintf(stderr,"++ Tracking progress count: start ...\n");
    t_start = time(NULL);
 
-	for (gg=0 ; gg<Nmonte ; gg++) {
+	for (gg=0 ; gg<opts.Nmonte ; gg++) {
 
       if( gg>0) {// first time through is no change
          // relative location of each seed within voxel for this iter
-         for( k=0 ; k<Nseed ; k++ ) // @) had just minorly rearr. here
+         for( k=0 ; k<opts.Nseed ; k++ ) // @) had just minorly rearr. here
             for( j=0 ; j<3 ; j++ ) 
                LocSeed[k][j] = rand()*1.0/RAND_MAX;
 
@@ -2940,8 +2931,8 @@ int main(int argc, char *argv[]) {
       for( k=0 ; k<Dim[2] ; k++ ) 
          for( j=0 ; j<Dim[1] ; j++ ) 
             for( i=0 ; i<Dim[0] ; i++ ) 
-               if( copy_coorded[INDEX2[i][j][k]][0]>=MinFA ) 
-						for( kk=0 ; kk<Nseed ; kk++ ) 
+               if( copy_coorded[INDEX2[i][j][k]][0]>=opts.MinFA ) 
+						for( kk=0 ; kk<opts.Nseed ; kk++ ) 
                      for( ll=0 ; ll<DirPerVox[INDEX2[i][j][k]] ; ll++ ) {
 
                      in[0] = i;
@@ -2954,7 +2945,8 @@ int main(int argc, char *argv[]) {
                      len_forw = TrackItP_NEW_M( N_HAR, DirPerVox,
                                                 ll, copy_coorded, 
                                                 in, physin, Ledge, Dim, 
-                                                MinFA, MaxAng, ArrMax, Tforw, 
+                                                opts.MinFA, MaxAng, 
+                                                ArrMax, Tforw, 
                                                 flTforw, 1, phys_forw,INDEX2);
 
                      in[0] = i; // reset, because it's changed in TrackIt func
@@ -2967,13 +2959,14 @@ int main(int argc, char *argv[]) {
                      len_back = TrackItP_NEW_M( N_HAR, DirPerVox,
                                                 ll, copy_coorded,
                                                 in, physin, Ledge, Dim, 
-                                                MinFA, MaxAng, ArrMax, Tback, 
+                                                opts.MinFA, MaxAng, 
+                                                ArrMax, Tback, 
                                                 flTback, -1, phys_back,INDEX2);
                      // b/c of overlap of starts; includes 2ends
                      totlen = len_forw+len_back-1; 
                      totlen_phys = phys_forw[0] + phys_back[0];
 
-                     if( totlen_phys >= MinL ) {
+                     if( totlen_phys >= opts.MinL ) {
                         Numtract += 1; //keeping tally of tot num of tracts
 
                         // glue together for simpler notation later
@@ -3075,24 +3068,31 @@ int main(int argc, char *argv[]) {
                                     temp_list[m] = n-1; 
                                     m = m+1;
                                  }
-
+                              
+                              if ( opts.NAMEIN_thru ) 
+                                 if( m>0 ) {
+                                    doesnt_pass = 1;
+                                    for( mm=vA ; mm<=vB ; mm++) { 
+                                       rr = INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]];
+                                       if ( THD_get_voxel(thrumask,rr,hh) ) {
+                                          doesnt_pass = 0;
+                                          break;
+                                       }
+                                    }
+                                    if( doesnt_pass )
+                                       m=0; // and this will not go into next section!
+                                 }
+                              
+                              
                               // let's keep track of where tracts connecting 
                               // regions go.
                               // we'll keep stats on individ ROI tracks
                               if( m>0) {
-                                 if( (ONLY_BT==0) || (m==1) ) {
+                                 
+                                 if( (opts.ONLY_BT==0) || (m==1) ) {
 
-                                    trL = 0; // @) counter of len of flTtot
+                                    trL = vB-vA+1; // @) counter of len of flTtot
                                     for( mm=vA ; mm<=vB ; mm++) { // @@@
-                                       
-                                       // @) keep both float loc and ind
-                                       if(DETNET){
-                                          for( uu=0 ; uu<3 ; uu++) {
-                                             cutTot[trL][uu] = flTtot[mm][uu];
-                                             cutTotI[trL][uu] = Ttot[mm][uu];
-                                          }
-                                          trL++;
-                                       }
                     
                                        rr = INDEX2[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]];// @@@
                                        for( bb=0 ; bb<m ; bb++)
@@ -3107,19 +3107,18 @@ int main(int argc, char *argv[]) {
                                        //	}
                                     }// @@@
                                     
-                                    if(DETNET && (trL>0) && LOG_TYPE==0){
+                                    if(DETNET && (trL>0) && opts.LOG_TYPE==0){
                                        // @) if created, it will be kept; data set is just for orient/orig
-                                       tt[hh] = Create_Tract_NEW(0,trL-1, cutTot,id[hh], insetPARS[PARS_BOT]); ++id[hh]; 
+                                       tt[hh] = Create_Tract_NEW(0,trL-1, flTtot+vA,id[hh], insetPARS[PARS_BOT]); ++id[hh]; 
                                        tb[hh][0] = AppCreateBundle(tb[hh][0], 1, tt[hh]); 
                                        tt[hh] = Free_Tracts(tt[hh], 1);
                                        
-                                       if( OUTPUT_TRK )
+                                       if( opts.OUTPUT_TRK )
                                           ss = SimpleWriteDetNetTr_M(N_HAR, fout0[hh], INDEX, 
                                                                      insetPARS, PARS_BOT, PARS_TOP,
-                                                                     cutTot, cutTotI, trL,
+                                                                     flTtot+vA, Ttot+vA, trL,
                                                                      TV_switch, Dim, Ledge);
-                                       //fprintf(stdout,"Totlens:  %d and %f\n",totlen,totlen_phys);
-                                       
+
                                     }
 
                                  } // end of 'if only_bt or m==1'
@@ -3192,10 +3191,9 @@ int main(int argc, char *argv[]) {
 
                                                 // @) keep both float loc and ind
                                                 if(DETNET){
-                                                   for( uu=0 ; uu<3 ; uu++) {
-                                                      cutTot[trL][uu] = flTtot[mm][uu];
-                                                      cutTotI[trL][uu] = Ttot[mm][uu];
-                                                   }
+                                                   // catch this on the first one
+                                                   if( trL==0 )
+                                                      start_loc=mm;
                                                    trL++;
                                                 }
 
@@ -3223,11 +3221,12 @@ int main(int argc, char *argv[]) {
                                              //}
                                           } // end of mm
 
-                                          if(DETNET && (trL>0) && LOG_TYPE==1){
+                                          if(DETNET && (trL>0) && opts.LOG_TYPE==1){
                                              int lll;
                                              // @) if created, it will be kept
-                                             tt[hh] = Create_Tract_NEW(0,trL-1, cutTot,id[hh], 
+                                             tt[hh] = Create_Tract_NEW(0,trL-1, flTtot+start_loc,id[hh], 
                                                                        insetPARS[PARS_BOT]); ++id[hh]; 
+
                                              lll = temp_list[cc]+temp_list[bb]*NROI[hh]; // sq matr coor
                                              lll -= (temp_list[bb]*(temp_list[bb]+1))/2; // fix for tridiag.
                                              //if(lll>N_bund[hh])
@@ -3235,11 +3234,12 @@ int main(int argc, char *argv[]) {
                                              tb[hh][lll] = AppCreateBundle(tb[hh][lll], 1, tt[hh]); 
                                              tt[hh] = Free_Tracts(tt[hh], 1);
                           
-                                             if( OUTPUT_TRK )
+                                             if( opts.OUTPUT_TRK )
                                                 ss = SimpleWriteDetNetTr_M(N_HAR, fout0[hh], INDEX, 
                                                                            insetPARS, PARS_BOT, PARS_TOP,
-                                                                           cutTot, cutTotI, trL,
+                                                                           flTtot+start_loc, Ttot+start_loc, trL,
                                                                            TV_switch, Dim, Ledge);
+
                                           }                        
                                        } // end of cc
                                  } // end of an else
@@ -3259,20 +3259,29 @@ int main(int argc, char *argv[]) {
                   }
 
 
-      if (gg && (gg % ni == 0) ) {
-         fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
-                 "[", gg *10./ni,"]", (float) difftime(time(NULL),t_start)/60.);
+      if( TR_MODE == 2 ) {
+         if (gg && (gg % ni == 0) ) 
+            fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
+                    "[", gg *10./ni,"]", (float) difftime(time(NULL),t_start)/60.);
       }
+      else if( TR_MODE ==1 )
+         fprintf(stderr,"\t%s %2d/%-2d %s -> %.2f min\n",
+                 "[", gg+1,opts.Nmonte,"]", (float) difftime(time(NULL),t_start)/60.);
+      
       
 	} // end of Monte Carlo loop
 	
-   if( ni<Nmonte )
-      fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
-              "[", 100.,"]", (float) difftime( time(NULL) ,t_start)/60.);
+   if( TR_MODE == 2 )
+      if( ni<opts.Nmonte )
+         fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
+                 "[", 100.,"]", (float) difftime( time(NULL) ,t_start)/60.);
+      else if( TR_MODE ==1 )
+         fprintf(stderr,"\t%s %2d/%-2d %s -> %.2f min\n",
+                 "[", opts.Nmonte,opts.Nmonte,"]", (float) difftime(time(NULL),t_start)/60.);
 
    if(DETNET){
       for( i=0 ; i<N_nets ; i++){
-         if( OUTPUT_TRK )
+         if( opts.OUTPUT_TRK )
             fclose(fout0[i]); // !important to do...
          k=0;
          for( j=0 ; j<N_bund[i] ; j++)
@@ -3289,12 +3298,6 @@ int main(int argc, char *argv[]) {
             }
       }
      
-      //      for( i=0 ; i<N_nets ; i++){
-      // for (j=0; j<N_bund[i]; j++) {
-      //    tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][j]), 
-      //                                    b_tags[i][j], -1, insetPARS[0]); 
-      // }
-      //}
       for( i=0 ; i<N_nets ; i++){
          ii = 0;
          for (j=0; j<NROI[i]; j++) 
@@ -3303,12 +3306,13 @@ int main(int argc, char *argv[]) {
                kk = j + k*NROI[i];
                tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][ii]), 
                                                jj,kk, insetPARS[PARS_BOT]); 
+               Free_Bundle(tb[i][ii]);  // pretty sure I should free here...
                ii+=1;
             }
       }
 
       for( i=0 ; i<N_nets ; i++){
-         sprintf(prefix_det[i],"%s_%03d",prefix,i); 
+         sprintf(prefix_det[i],"%s_%03d",opts.prefix,i); 
        
          if (!Write_Network(tnet[i],prefix_det[i],mode)) 
             ERROR_message("Failed to write the network.");
@@ -3353,33 +3357,48 @@ int main(int argc, char *argv[]) {
 		for( k=0 ; k<N_nets ; k++) { // each netw gets own file
 			
 			// print out prob grid
-			sprintf(OUT_grid,"%s_%03d.grid",prefix,k); // matches brick number
+			sprintf(OUT_grid,"%s_%03d.grid",opts.prefix,k); // matches brick number
 			if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
 				fprintf(stderr, "Error opening file %s.",OUT_grid);
 				exit(19);
 			}
     
 			fprintf(fout1,"# %d  # Number of network ROIs\n",NROI[k]); // N_ROIs
-			fprintf(fout1,"# %d  # Number of grid matrices (=fNT+NT+NV+2*N_par)\n"
+			fprintf(fout1,"# %d  # Number of grid matrices (=NT+fNT+PV+fNV+NV+2*N_par)\n"
                  ,Noutmat); // Num of matrices
          for( i=1 ; i<NROI[k] ; i++ ) // labels of ROIs
             fprintf(fout1,"%8d    \t",ROI_LABELS[k][i]); // at =NROI, -> \n
-         fprintf(fout1,"%8d\n# %s\n",ROI_LABELS[k][i],  ParLab[0]);
+
+         fprintf(fout1,"%8d\n# %s\n",ROI_LABELS[k][i],  ParLab[0]); // NT 
 			for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) // b/c we put '\n' after last one.
 					fprintf(fout1,"%12d\t",Prob_grid[k][i][j]);
 				fprintf(fout1,"%12d\n",Prob_grid[k][i][j]);
 			}
 
-			fprintf(fout1,"# %s\n",ParLab[1]);    
+			fprintf(fout1,"# %s\n",ParLab[1]); // fNT = frac num of tracts
          for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) 
 					fprintf(fout1,"%e\t",Prob_grid[k][i][j]*1.0/Numtract);
 				fprintf(fout1,"%e\n",Prob_grid[k][i][j]*1.0/Numtract);
 			}
 
-			for( m=0 ; m<Noutmat-2 ; m++) {
-            fprintf(fout1,"# %s\n",ParLab[2+m]);    
+			fprintf(fout1,"# %s\n",ParLab[2]); // PV = phys vol
+         for( i=0 ; i<NROI[k] ; i++ ) {
+				for( j=0 ; j<NROI[k]-1 ; j++ ) 
+					fprintf(fout1,"%e\t",Param_grid[k][i][j][0]*VoxVol);
+				fprintf(fout1,"%e\n",Param_grid[k][i][j][0]*VoxVol);
+			}
+
+			fprintf(fout1,"# %s\n",ParLab[3]); // fNV = frac num of vox
+         for( i=0 ; i<NROI[k] ; i++ ) {
+				for( j=0 ; j<NROI[k]-1 ; j++ ) 
+					fprintf(fout1,"%e\t",Param_grid[k][i][j][0]/Ndata);
+				fprintf(fout1,"%e\n",Param_grid[k][i][j][0]/Ndata);
+			}
+
+			for( m=0 ; m<Noutmat-PreCalcParLabs+1 ; m++) {
+            fprintf(fout1,"# %s\n",ParLab[PreCalcParLabs-1+m]);    
 				for( i=0 ; i<NROI[k] ; i++ ) {
 					for( j=0 ; j<NROI[k]-1 ; j++ ) 
 						fprintf(fout1,"%e\t",Param_grid[k][i][j][m]);
@@ -3397,7 +3416,11 @@ int main(int argc, char *argv[]) {
                   flat_matr[k][0][i*NROI[k]+j] = Prob_grid[k][i][j];
                   flat_matr[k][1][i*NROI[k]+j] = 
                      Prob_grid[k][i][j]*1.0/Numtract;
-                  for( m=0 ; m<Noutmat-2 ; m++) 
+                  flat_matr[k][2][i*NROI[k]+j] = 
+                     Param_grid[k][i][j][0]*VoxVol;
+                  flat_matr[k][3][i*NROI[k]+j] = 
+                     Param_grid[k][i][j][0]*Ndata;
+                  for( m=0 ; m<Noutmat-PreCalcParLabs+1 ; m++) 
                      flat_matr[k][2+m][i*NROI[k]+j] = Param_grid[k][i][j][m];
                }
             gset = SUMA_FloatVec_to_GDSET(flat_matr[k], Noutmat, 
@@ -3420,7 +3443,7 @@ int main(int argc, char *argv[]) {
                ERROR_message("Failed in THD_roi_cmass"); exit(1);
             }
 
-            sprintf(OUT_gdset,"%s_%03d",prefix,k);
+            sprintf(OUT_gdset,"%s_%03d",opts.prefix,k);
             GDSET_netngrlink = 
                Network_link(SUMA_FnameGet( OUT_gdset, "f",NULL));
             NI_add_to_group(gset->ngr, GDSET_netngrlink);
@@ -3449,20 +3472,20 @@ int main(int argc, char *argv[]) {
 		
 		
 		// output AFNI files mapping WM		
-		INFO_message("Writing output (%s, same as your input).",
-                   voxel_order);
-		i = WriteBasicProbFiles(N_nets, Ndata, Nvox, prefix, 
+		INFO_message("Writing output (%s, same as your input): %s ...",
+                   voxel_order,opts.prefix);
+		i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
 										insetPARS[PARS_BOT],TV_switch,voxel_order,
 										NROI, NETROI,mskd,INDEX2,Dim,
 										dsetn,argc,argv,ROI_LABELS);
-		if(DUMP_TYPE>=0)
+		if(opts.DUMP_TYPE>=0)
 			i = WriteIndivProbFiles(N_nets,Ndata,Nvox,Prob_grid,
-											prefix,insetPARS[PARS_BOT],
+											opts.prefix,insetPARS[PARS_BOT],
 											TV_switch,voxel_order,NROI,
 											NETROI,mskd,INDEX2,Dim,
 											dsetn,argc,argv,
-											Param_grid,DUMP_TYPE,
-											DUMP_ORIG_LABS,ROI_LABELS,POST);
+											Param_grid,opts.DUMP_TYPE,
+											opts.DUMP_ORIG_LABS,ROI_LABELS,opts.POST);
 		
 	
 
@@ -3471,7 +3494,7 @@ int main(int argc, char *argv[]) {
 	else{
 		INFO_message(" No Tracts Found!!!");
     
-		sprintf(OUT_map,"%s.pmap",prefix);
+		sprintf(OUT_map,"%s.pmap",opts.prefix);
 		if( (fout1 = fopen(OUT_map, "w")) == NULL) {
 			fprintf(stderr, "Error opening file %s.",OUT_map);
 			exit(19);
@@ -3480,7 +3503,7 @@ int main(int argc, char *argv[]) {
 		fprintf(fout1,"0!\n");    
 		fclose(fout1);
 
-		sprintf(OUT_grid,"%s.grid",prefix);
+		sprintf(OUT_grid,"%s.grid",opts.prefix);
 		if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
 			fprintf(stderr, "Error opening file %s.",OUT_grid);
 			exit(19);
@@ -3533,9 +3556,26 @@ int main(int argc, char *argv[]) {
 
 	DSET_delete(ROI_set);
 
-	free(prefix);
-   free(infix);
 	free(ROI_set);
+   /*	free(opts.prefix);
+   free(opts.dti_inpref);
+   free(NAMEIN_netrois);
+   if ( NAMEIN_uncert ) 
+      free(NAMEIN_uncert);
+   if ( NAMEIN_mask ) 
+      free(NAMEIN_mask);
+   if( in_EXTRA )
+      free( in_EXTRA );
+   if( opts.algopt_file_name ) 
+      free( opts.algopt_file_name );
+   if ( NAMEIN_mode ) 
+      free(NAMEIN_mode);
+   if ( NAMEIN_uncEI )
+      free( NAMEIN_uncEI );
+   if ( NAMEIN_uncFA )
+      free( NAMEIN_uncFA );
+   if ( NAMEIN_outmode ) 
+   free(NAMEIN_outmode);*/
 
    free(DirPerVox);
    if(HAVE_MASK) {
@@ -3557,17 +3597,14 @@ int main(int argc, char *argv[]) {
 	free(Tback);
 	free(flTforw);
 	free(flTback);
-
+   
    if(DETNET){ // @) freeing
       for( i=0 ; i<2*ArrMax ; i++) {
          free(flTtot[i]);
-         free(cutTot[i]);
-         free(cutTotI[i]);
       }
       free(flTtot);
-      free(cutTot);
-      free(cutTotI);
-     
+      
+      
       for( i=0 ; i<N_nets ; i++) 
          for ( j=0 ; j<N_bund[i] ; j++ ) // halftri+diag notation!!!
             free(tb[i][j]);
@@ -3595,7 +3632,7 @@ int main(int argc, char *argv[]) {
 
    }
 
-	for( i=0 ; i<Nseed ; i++) 
+	for( i=0 ; i<opts.Nseed ; i++) 
 		free(LocSeed[i]);
 	free(LocSeed);
   
@@ -3622,12 +3659,6 @@ int main(int argc, char *argv[]) {
    if(N_uncert)
       free(UNC);
 
-	if(NOTMASK>0){
-		for( k=0 ; k<=Ndata ; k++) 
-			free(antimask[k]);
-		free(antimask);
-	}
-
 	for( i=0 ; i<Dim[0] ; i++) 
 		for( j=0 ; j<Dim[1] ; j++) {
 			free(INDEX[i][j]);
@@ -3639,6 +3670,16 @@ int main(int argc, char *argv[]) {
 	}
 	free(INDEX);
 	free(mskd);
+
+	/*if(THRU_MASK>0){
+		for( k=0 ; k<=Ndata ; k++) 
+			free(thrumask[k]);
+		free(thrumask);
+	}*/
+   if(opts.NAMEIN_thru) {
+      DSET_delete(thrumask);
+      free(thrumask);
+   }
 
 	for( i=0 ; i<Dim[0] ; i++) 
 		for( j=0 ; j<Dim[1] ; j++) 
@@ -3680,7 +3721,156 @@ int main(int argc, char *argv[]) {
 	free(TV_switch);
 	free(voxel_order);
 
-	return 0;
+	return 1;
 }
 
 
+
+
+
+// ORIGINAL GDSET_TOY example, moved from it's place among other
+// command line input options
+
+/*  if ( strcmp(argv[iarg],"-gdset_toy") == 0 ) {
+         float x[3]={-40, 38, 4.7};
+         float y[3]={-27, -34, 14.4};
+         float z[3]={26, 41, 55};
+         // alternate coordinate specification 
+         float xyz[9]={ x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2]};
+         float **mv=NULL;
+         int i,j,k=0;
+         char **labs, *NameOut;
+         SUMA_DSET *gset=NULL;
+         TAYLOR_TRACT *tt=NULL;
+         TAYLOR_BUNDLE *tb=NULL;
+         TAYLOR_NETWORK *net=NULL;
+         NI_group *netngrlink=NULL, *netngr=NULL;
+         
+         int onexyz = 1; // set to 1 to specify coords by xyz triplets 
+                         //  in demo. 0 to specify x,y, and z as separate
+                         // vectors 
+
+         INFO_message("A demonstration for creating/writing graph dset\n"
+                      "The vast majority of this content is for creating\n"
+                      "dummy data.\n"
+                      "Non dummy sections are marked with -->\n");
+
+         // Create 2 matrices and some matrix labels 
+         mv = (float **)calloc(2, sizeof(float*));
+         for (i=0; i<2; ++i) mv[i] = (float *)calloc(9, sizeof(float));
+         labs = (char **)calloc(2, sizeof(char*));
+         for (i=0; i<2; ++i) labs[i]=calloc(64, sizeof(char));
+
+         for (i=0; i<2; ++i) {
+            for (j=0; j<9; ++j) {
+               mv[i][j] = k++;
+            }
+            sprintf(labs[i],"Label Of Matrix %d", i);
+         }
+         
+         // --> Create a graph dataset out of these two matrices 
+         gset = SUMA_FloatVec_to_GDSET(mv, 2, 9, "full", labs, 
+                                       NULL, NULL, NULL);
+         
+         // --> Now add the XYZ of each graph point, two ways are possible
+         if (onexyz) { // for when your ROI centroid coords 
+                       // and in one vector of XYZ triplets 
+                       if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
+                       xyz, NULL, NULL,NULL, NULL, NULL, 3))) { // jan. 2014
+                       ERROR_message("Failed to add node list");
+                       exit(1);  
+                       }                                     
+         } else {
+            if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
+                                               x, y, z, NULL, NULL, 
+                                               NULL, 3))) { // jan. 2014
+               ERROR_message("Failed to add node list");
+               exit(1);     
+            }
+         }
+
+         // Create some dummy bundles representing edge 1-2=5, or 2-1=7
+         tb = NULL; net = NULL; tt = NULL;
+         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+         tt->id=77; tt->N_pts3=12; 
+         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+         tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+         tt->pts[3]=22;   tt->pts[4]=36;   tt->pts[5]=40;
+         tt->pts[6]=22;   tt->pts[7]=33;   tt->pts[8]=49;
+         tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+         tb = AppCreateBundle(tb, 1, tt);
+         tt = Free_Tracts(tt, 1);
+         // put another track in 
+         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+         tt->id=78; tt->N_pts3=12; 
+         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+         tt->pts[0]=x[1]; tt->pts[1]=y[1]; tt->pts[2]=z[1];
+         tt->pts[3]=23;   tt->pts[4]=35;   tt->pts[5]=42;
+         tt->pts[6]=20;   tt->pts[7]=32;   tt->pts[8]=51;
+         tt->pts[9]=x[2]; tt->pts[10]=y[2];tt->pts[11]=z[2];
+         tb = AppCreateBundle(tb, 1, tt);
+         tt = Free_Tracts(tt, 1);
+         // add it to network 
+         net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL);
+         // make another one for edge 0-1=1 and 1-0=3
+         tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
+         tt->id=77; tt->N_pts3=15; 
+         tt->pts = (float *)calloc(tt->N_pts3,sizeof(float));
+         tt->pts[0]=x[0]; tt->pts[1]=y[0];  tt->pts[2]=z[0];
+         tt->pts[3]=5;    tt->pts[4]=12;    tt->pts[5]=17;
+         tt->pts[6]=16;   tt->pts[7]=13;    tt->pts[8]=12;
+         tt->pts[9]=20;   tt->pts[10]=16;   tt->pts[11]=16;
+         tt->pts[12]=x[1];tt->pts[13]=y[1]; tt->pts[14]=z[1];
+         tb = AppCreateBundle(tb, 1, tt);
+         tt = Free_Tracts(tt, 1);
+         // add bundle to network 
+         net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
+
+         // --> Now put network in graph dset 
+         netngr = Network_2_NIgr(net, 1);
+         NI_add_to_group(gset->ngr, netngr);
+
+         // --> Write the graph dataset 
+         NameOut = SUMA_WriteDset_ns ("toy", gset, SUMA_ASCII_NIML, 1, 0);
+         if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
+            ERROR_message("Failed to write dataset."); exit(1); 
+         } else {
+            if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
+         }
+         
+         // --> Now alternately you can leave the network outside of the 
+         //     graph dataset and just put a link element to it           
+         NI_remove_from_group(gset->ngr, netngr);
+         netngrlink = Network_link("toy.network");
+         NI_add_to_group(gset->ngr, netngrlink);
+         NameOut = SUMA_WriteDset_ns ("toy.link",
+                                      gset, SUMA_ASCII_NIML, 1, 0);
+         if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
+            ERROR_message("Failed to write dataset."); exit(1); 
+         } else {
+            if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
+         }
+         // And of course you need to write the tract 
+         Write_NI_Network(netngr, "toy.network", NI_TEXT_MODE);
+         // free netngr since it is no longer tucked into dset 
+         NI_free_element(netngr); netngr = NULL;
+               
+         // cleanup for good manners 
+         for(i=0;i<2; ++i) free(mv[i]); free(mv);
+         for(i=0;i<2; ++i) free(labs[i]); free(labs);
+         Free_Network(net); net = NULL;
+         
+         INFO_message(
+                 "All done. Demo graph dset is called toy.niml.dset."
+                 "graph dset with external network spec is toy.link.niml.dset\n"
+                 "Try:\n"
+                 "       suma -gdset toy.link.niml.dset\n\n"
+                 "* Open a new controller (ctrl+n), switch states ('>') to\n"
+                 "see graph dset in complementary forms.\n"
+                 "* Open 'Surface Controller' to colorize graph data, etc.\n"
+                 "Interacting with such data is possible, but not \n"
+                 "yet documented. This will come soon.\n"
+                 );   
+         exit(0);
+      }*/
+      
