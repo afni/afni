@@ -48,6 +48,7 @@ void mri_free( MRI_IMAGE *im )
 
 ENTRY("mri_free") ;
    if( im == NULL ) EXRETURN ;
+   STATUS("call killpurge") ;
    mri_killpurge(im) ;  /* 20 Dec 2006 */
    if( im->fname != NULL ){ STATUS("free fname"); free(im->fname); im->fname = NULL; }
    im->fondisk = 0 ;

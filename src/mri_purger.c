@@ -256,13 +256,12 @@ ENTRY("mri_unpurge") ;
 
 void mri_killpurge( MRI_IMAGE *im )
 {
+ENTRY("mri_killpurge") ;
    if( MRI_IS_PURGED(im) ){
-     ENTRY("mri_killpurge") ;             /* only do traceback if work to do */
      remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
      if( PRINT_TRACING ){
        char str[256]; sprintf(str,"removed file %s",im->fname); STATUS(str);
      }
-     EXRETURN ;
    }
-   return ;
+   EXRETURN ;
 }
