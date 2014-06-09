@@ -1440,14 +1440,14 @@ int NI_getDTI_inputs( NI_element *nel,
    else snprintf(NameP[2],100,"%s", "\0");
    if (NameP[3] && (atr=NI_get_attribute(nel,"dti_P4"))) {
       snprintf(NameP[3],100,"%s", atr);  ct_ex++;
-      printf("\nHERE! %d\n",ct_ex);
+      //printf("\nHERE! %d\n",ct_ex);
    }
    else snprintf(NameP[3],100,"%s", "\0");
    
    *pars_top = 2 + 3 + ct_ex; // RD and extra; FA,MD;extras
 
-   printf("\nLISTED: PARS_TOP=%d with ct_ex=%d\n", *pars_top, ct_ex);
-   printf("\nLISTED: NameSCAL[0]=%s\n", NameSCAL[0]);
+   //printf("\nLISTED: PARS_TOP=%d with ct_ex=%d\n", *pars_top, ct_ex);
+   //   printf("\nLISTED: NameSCAL[0]=%s\n", NameSCAL[0]);
 
 
    RETURN(0);

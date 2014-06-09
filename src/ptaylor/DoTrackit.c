@@ -1119,10 +1119,11 @@ int TrackItP_NEW_M(int NHAR, short *DirPerVox, int SEL, float **CC,
       }
       tracL+= 1;
    }
-   if(tracL >= arrMax) {
-      fprintf (stderr,"\n\tErr in data set; or need longer max arr len!\n");
-      exit(101);
-   }
+   if(tracL >= arrMax) //{
+      WARNING_message("Err in data set or run conditions:\n"
+                      "\t half-tract reached max arr len! Truncating it.\n");
+      //exit(101);
+   //   }
   
    physL[0] = physdist;
   

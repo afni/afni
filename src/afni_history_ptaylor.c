@@ -66,6 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Jun , 2014 , PT , "3dTrackID" , MINOR , TYPE_GENERAL,
+   "Changed how it runs, mainly under the hood; added '-thru_mask' option.",
+   "Cleared some old arrays; make runable as function; user wanted thru_masks.\n"
+},
+
+{ 6, Jun , 2014 , PT , "3dEigsToDT" , MICRO , TYPE_BUG_FIX,
+   "Make help file option match with actual usage.",
+   "Fixed a minor mismatch of helpfile name and actual option name.\n"
+},
+
+{ 6, Jun , 2014 , PT , "3dEigsToDT" , MICRO , TYPE_MODIFY,
+   "Helpfile micro correction.",
+   "Need parentheses around a couple entries.\n"
+},
+
+
 { 29, Apr , 2014 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
    "Freedom in neighbor defs; also can keep just N peak values per ROI.",
    "User can specify face, edge or vertex ngbs. Also, search for N max vals.\n"
