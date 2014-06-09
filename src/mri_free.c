@@ -49,12 +49,12 @@ void mri_free( MRI_IMAGE *im )
 ENTRY("mri_free") ;
    if( im == NULL ) EXRETURN ;
    mri_killpurge(im) ;  /* 20 Dec 2006 */
-   if( im->fname != NULL ){ free(im->fname) ; im->fname = NULL ; }
+   if( im->fname != NULL ){ STATUS("free fname"); free(im->fname); im->fname = NULL; }
    im->fondisk = 0 ;
-   if( im->name != NULL ){ free(im->name) ; im->name = NULL ; }
+   if( im->name != NULL ){ STATUS("free name"); free(im->name); im->name = NULL; }
    ptr = mri_data_pointer(im) ;
-   if( ptr != NULL ) free(ptr) ;
-   free(im) ;
+   if( ptr != NULL ){ STATUS("free ptr"); free(ptr); }
+   STATUS("free im"); free(im) ;
    EXRETURN ;
 }
 

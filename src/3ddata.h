@@ -4712,9 +4712,9 @@ typedef struct FD_brick {
 #define TMASK_INDEX(fdb) ((fdb)->ntmask)
 
 #define CLEAR_TMASK(fdb)                                        \
- do{ if( fdb != NULL ){                                         \
+ do{ if( fdb != NULL && fdb->tmask != NULL ){                   \
        mri_free(fdb->tmask); fdb->tmask=NULL; fdb->ntmask=-666; \
- } } while(0)
+     } } while(0)
 
 #define DESTROY_FD_BRICK(fdb) \
  do{ if( fdb != NULL ){ mri_free(fdb->tmask); myXtFree(fdb); } } while(0)
@@ -5580,7 +5580,7 @@ extern float THD_covariance( int n, float *x , float *y );
 extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */
 extern float THD_eta_squared  ( int,float *,float *) ;  /* 25 Jun 2010 */
 extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
-extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset, 
+extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
                               byte *mask, int nmask,
                               MRI_IMAGE *ysim,
                               char *smethod, char *prefix); /* Apr. 2014 */

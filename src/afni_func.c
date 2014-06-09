@@ -662,6 +662,7 @@ ENTRY("AFNI_inten_pbar_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
+   STATUS("clear tmask") ;
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
