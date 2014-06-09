@@ -216,13 +216,13 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-S0_val") == 0) {
+      if( strcmp(argv[iarg],"-S0") == 0) {
 			if( ++iarg >= argc ) 
-				ERROR_exit("Need numerical argument after '-S0_val'");
+				ERROR_exit("Need numerical argument after '-S0'");
 
          S0 = atof(argv[iarg]);
          if(S0 <= 0 )
-            ERROR_exit("The '-S0_val' value must be >0.");
+            ERROR_exit("The '-S0' value must be >0.");
          iarg++ ; continue ;
       }
 
