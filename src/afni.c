@@ -2911,7 +2911,7 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
       grstat->transforms0D = & (GLOBAL_library.registered_0D) ;
       grstat->transforms1D = & (GLOBAL_library.registered_1D) ;
 
-      strcpy( grstat->namecode , br->namecode ) ;
+      MCW_strncpy( grstat->namecode , br->namecode , 32 ) ;
 
       RETURN( (XtPointer) grstat ) ;
    }
@@ -2930,12 +2930,14 @@ INFO_message("thresh_fade: nsl=%d",nsl) ;
         if( br->ntmask != nsl ){
           FD_brick *br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;
           MRI_IMAGE *fov = AFNI_func_overlay(nsl,br_fim) ;
+          STATUS("clear overlay tmask") ;
           CLEAR_TMASK(br) ;
 #if 0
 ININFO_message("  get new tmask") ;
 #endif
           if( fov != NULL ){
             br->tmask  = ISQ_binarize_overlay(fov) ;
+            STATUSp("new tmask",br->tmask) ;
             br->ntmask = nsl ; mri_free(fov) ;
           }
         }
@@ -6338,6 +6340,12 @@ ENTRY("AFNI_view_xyz_CB") ;
     m2m = AFNI_yesenv("AFNI_IMAGE_MINTOMAX") ;
     c2c = AFNI_yesenv("AFNI_IMAGE_CLIPPED") ;  /* 17 Sep 2007 */
 
+    if( !IM3D_ULAY_COHERENT(im3d) ){           /* 10 Jun 2014 */
+      STATUS("incoherent ulay -- patching") ;
+      ERROR_message("AFNI_view_xyz_CB: incoherent ulay -- patching") ;
+      AFNI_assign_ulay_bricks(im3d) ;
+    }
+
     if( w == pb_xyz && sxyz == NULL ){         /* axial image */
        snew  = &(im3d->s123) ;
        brnew = im3d->b123_ulay ;
@@ -6711,6 +6719,12 @@ ENTRY("AFNI_range_setter") ;
 
    if( !IM3D_OPEN(im3d) || !ISQ_VALID(seq) ) EXRETURN ;
 
+   if( !IM3D_ULAY_COHERENT(im3d) ){           /* 10 Jun 2014 */
+     STATUS("AFNI_range_setter: incoherent ulay -- patching") ;
+     ERROR_message("incoherent ulay -- patching") ;
+     AFNI_assign_ulay_bricks(im3d) ;
+   }
+
    br = (FD_brick *)im3d->b123_ulay ; if( br == NULL ) EXRETURN ;
    ds = br->dset ;                    if( ds == NULL ) EXRETURN ;
 
@@ -7021,6 +7035,12 @@ DUMP_IVEC3("  new_id",new_id) ;
    /*--- redraw images now ---*/
 
    im3d->ignore_seq_callbacks = AFNI_IGNORE_EVERYTHING ;
+
+   if( !IM3D_ULAY_COHERENT(im3d) ){           /* 10 Jun 2014 */
+     STATUS("AFNI_set_viewpoint: incoherent ulay -- patching") ;
+     ERROR_message("incoherent ulay -- patching") ;
+     AFNI_assign_ulay_bricks(im3d) ;
+   }
 
    if( im3d->s123 != NULL || im3d->g123 != NULL ){
       int xyzm[4] ;
@@ -8512,7 +8532,7 @@ STATUS("setting anatmode_bbox back to 'View ULay Data Brick'") ;
 
    fbr = THD_setup_bricks( im3d->anat_now ) ;
    if( fbr == NULL ){
-     fprintf(stderr,"THD_setup_bricks of anat_now fails!\n") ; EXRETURN ;
+     ERROR_message("THD_setup_bricks of anat_now fails!") ; EXRETURN ;
    }
    DESTROY_FD_BRICK(im3d->b123_anat) ; im3d->b123_anat = fbr[0] ;
    DESTROY_FD_BRICK(im3d->b231_anat) ; im3d->b231_anat = fbr[1] ;
@@ -8832,6 +8852,8 @@ STATUS(" -- function underlay widgets") ;
 
    MCW_set_bbox( im3d->vwid->func->underlay_bbox ,
                  1 << im3d->vinfo->underlay_type ) ;
+
+   AFNI_assign_ulay_bricks(im3d) ;   /* 10 Jun 2014 */
 
    /*--------------------------------------------------------*/
    /*--- 3/24/95: deal with the new range widgets in func ---*/

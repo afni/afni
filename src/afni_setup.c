@@ -523,7 +523,7 @@ ENTRY("load_PBAR_palette_array") ;
    }
 
    if( nn > 0 && !pbar->bigmode ){
-      Three_D_View * im3d = (Three_D_View *) pbar->parent ;
+      Three_D_View * im3d = (Three_D_View *)pbar->parent ;
       if( fixim && IM3D_OPEN(im3d) ){ HIDE_SCALE(im3d) ; }
       alter_MCW_pbar( pbar , 0 , NULL ) ;
       if( fixim && IM3D_OPEN(im3d) ){ FIX_SCALE_SIZE(im3d) ; }
@@ -861,6 +861,12 @@ ENTRY("AFNI_set_pbar_top_CB") ;
    if( ignore_pbar_top || busy || !IM3D_OPEN(im3d) ) EXRETURN ;
 
    pmax = cbs->fval ; if( pmax <= 0.0f ) EXRETURN ;
+
+   if( !IM3D_ULAY_COHERENT(im3d) ){           /* 10 Jun 2014 */
+     STATUS("incoherent ulay -- patching") ;
+     ERROR_message("AFNI_set_pbar_top_CB: incoherent ulay -- patching") ;
+     AFNI_assign_ulay_bricks(im3d) ;
+   }
 
    busy = 1 ;
    pbar = im3d->vwid->func->inten_pbar ;

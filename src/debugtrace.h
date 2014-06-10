@@ -226,6 +226,19 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       if(!DBG_stoff){strncpy(last_status,str,1023); last_status[1023]='\0';}  \
   } while(0)
 
+#define STATUSp(str,p)                                                           \
+  do{ char qss[1024] ;                                                           \
+      sprintf(qss,"%s ptr=%p",(str),(p)) ;                                       \
+      if( mcw_malloc_enabled() )                                                 \
+        strcat(qss, mcw_malloc_OK(p) ? "  OK" : "  not OK") ;                    \
+      if( PRINT_TRACING ){                                                       \
+        MCHECK ; if( DBG_fp==NULL ) DBG_fp=stdout;                               \
+        fprintf(DBG_fp,"%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,qss);        \
+        fflush(DBG_fp) ;                                                         \
+      }                                                                          \
+      if(!DBG_stoff){strncpy(last_status,qss,1023); last_status[1023]='\0';}     \
+  } while(0)
+
 /*********************************************************************/
 #else /* don't USE_TRACING */
 
@@ -239,6 +252,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #  define TRACEBACK     /* nada */
 #  define PRINT_TRACING 0
 #  define DBG_trace     0          /* 09 Dec 1999 */
+#  define STATUSp(str,p) /* nada */
 
 #  ifdef _DEBUGTRACE_MAIN_
       void DBG_sigfunc(int sig){} /* does nada */
