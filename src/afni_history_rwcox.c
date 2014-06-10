@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 4 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 10 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix crashing bug with PBAR_FULLRANGE" ,
+   "b..._ulay pointers could become deranged via AFNI_setup_viewing() call\n"
+   "to AFNI_reset_func_range() -- patched this, and also check for this type\n"
+   "of derangement in various other places -- ERROR_message should appear if\n"
+   "it raises its ugly head again." } ,
+
+ { 4 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "AFNI_PBAR_FULLRANGE fixes" ,
    "Made it work better with Range and Pbar locks.  Also added buttons for\n"
    "these types of locks to the Datamode->Lock menu for ease of use (instead\n"

@@ -15,7 +15,6 @@ See SUMA_Makefile_NoDev
 #include "../niml/niml_private.h"
 #include "xutil.h"
 
-
 #include "suma_suma.h"
 
 int SUMA_AddDsetNelIndexCol ( SUMA_DSET *dset, char *col_label, 

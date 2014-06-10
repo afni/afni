@@ -37,6 +37,9 @@ extern "C" {
 #undef  mcw_malloc
 #define mcw_malloc  malloc
 
+#undef  mcw_malloc_OK
+#define mcw_malloc_OK(p) 1
+
 #undef  mcw_realloc
 #define mcw_realloc realloc
 
@@ -78,6 +81,7 @@ extern int    mcw_malloc_enabled(void) ;
 extern void   pause_mcw_malloc(void);
 extern void   resume_mcw_malloc(void);
 extern int    mcw_malloc_paused(void);
+extern int    mcw_malloc_OK(void *);      /* 10 Jun 2014 */
 
 extern long long mcw_malloc_total(void) ; /* 01 Feb 2007 */
 
