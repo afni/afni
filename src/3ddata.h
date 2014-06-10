@@ -4716,6 +4716,9 @@ typedef struct FD_brick {
        mri_free(fdb->tmask); fdb->tmask=NULL; fdb->ntmask=-666; \
      } } while(0)
 
+#define STATUS_TMASK(sss,fdb)                                   \
+ do{ if( fdb != NULL ) STATUSp(sss,fdb->tmask) ; } while(0)
+
 #define DESTROY_FD_BRICK(fdb) \
  do{ if( fdb != NULL ){ mri_free(fdb->tmask); myXtFree(fdb); } } while(0)
 

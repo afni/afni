@@ -1136,11 +1136,36 @@ typedef struct Three_D_View {
       int cont_perc_thr;       /* ZSS percentile thresholding. April 26 2012 */
 } Three_D_View ;
 
+#define IM3D_ULAY_COHERENT(iq)                                                    \
+ (( (iq)->b123_ulay == (iq)->b123_anat || (iq)->b123_ulay == (iq)->b123_fim ) &&  \
+  ( (iq)->b231_ulay == (iq)->b231_anat || (iq)->b231_ulay == (iq)->b231_fim ) &&  \
+  ( (iq)->b312_ulay == (iq)->b312_anat || (iq)->b312_ulay == (iq)->b312_fim ))
+
 #define IM3D_CLEAR_TMASK(iq)                                                                   \
  do{ CLEAR_TMASK((iq)->b123_anat); CLEAR_TMASK((iq)->b231_anat); CLEAR_TMASK((iq)->b312_anat); \
      CLEAR_TMASK((iq)->b123_fim) ; CLEAR_TMASK((iq)->b231_fim) ; CLEAR_TMASK((iq)->b312_fim) ; \
      CLEAR_TMASK((iq)->b123_ulay); CLEAR_TMASK((iq)->b231_ulay); CLEAR_TMASK((iq)->b312_ulay); \
  } while(0)
+
+#define STATUS_IM3D_TMASK(iq)                           \
+ do{ STATUSp     ("b123_anat"      ,(iq)->b123_anat) ;  \
+     STATUS_TMASK("b123_anat tmask",(iq)->b123_anat) ;  \
+     STATUSp     ("b231_anat"      ,(iq)->b231_anat) ;  \
+     STATUS_TMASK("b231_anat tmask",(iq)->b231_anat) ;  \
+     STATUSp     ("b312_anat"      ,(iq)->b312_anat) ;  \
+     STATUS_TMASK("b312_anat tmask",(iq)->b312_anat) ;  \
+     STATUSp     ("b123_fim "      ,(iq)->b123_fim ) ;  \
+     STATUS_TMASK("b123_fim  tmask",(iq)->b123_fim ) ;  \
+     STATUSp     ("b231_fim "      ,(iq)->b231_fim ) ;  \
+     STATUS_TMASK("b231_fim  tmask",(iq)->b231_fim ) ;  \
+     STATUSp     ("b312_fim "      ,(iq)->b312_fim ) ;  \
+     STATUS_TMASK("b312_fim  tmask",(iq)->b312_fim ) ;  \
+     STATUSp     ("b123_ulay"      ,(iq)->b123_ulay) ;  \
+     STATUS_TMASK("b123_ulay tmask",(iq)->b123_ulay) ;  \
+     STATUSp     ("b231_ulay"      ,(iq)->b231_ulay) ;  \
+     STATUS_TMASK("b231_ulay tmask",(iq)->b231_ulay) ;  \
+     STATUSp     ("b312_ulay"      ,(iq)->b312_ulay) ;  \
+     STATUS_TMASK("b312_ulay tmask",(iq)->b312_ulay) ; } while(0)
 
 /*! Force re-volume-editing when this viewer is redisplayed */
 
@@ -1741,6 +1766,7 @@ extern void AFNI_write_many_dataset_CB( Widget , XtPointer , XtPointer ) ; /* 23
 extern void AFNI_anatmode_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_funcmode_CB          ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_raiseup_CB           ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_assign_ulay_bricks   ( Three_D_View *im3d ) ;             /* 10 Jun 2014 */
 
 extern void AFNI_saveas_dataset_CB   ( Widget , XtPointer , XtPointer ) ;  /* 18 Oct 2010 */
 extern void AFNI_saveas_finalize_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;

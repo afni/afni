@@ -82,9 +82,9 @@ FD_brick ** THD_setup_bricks( THD_3dim_dataset * dset )
       br[2] = THD_3dim_dataset_to_brick(dset, r2l,-i2s, a2p); /* cor */
 #endif
 
-   strcpy( br[0]->namecode , "Axial" ) ;
-   strcpy( br[1]->namecode , "Sagittal" ) ;
-   strcpy( br[2]->namecode , "Coronal" ) ;
+   MCW_strncpy( br[0]->namecode , "Axial"    , 32 ) ;
+   MCW_strncpy( br[1]->namecode , "Sagittal" , 32 ) ;
+   MCW_strncpy( br[2]->namecode , "Coronal"  , 32 ) ;
 
    return br ;
 }

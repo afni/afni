@@ -257,7 +257,23 @@ ENTRY("mri_unpurge") ;
 void mri_killpurge( MRI_IMAGE *im )
 {
 ENTRY("mri_killpurge") ;
+#if 0
+   STATUSp("check if im==NULL",im) ; if( im == NULL ) EXRETURN ;
+   if( PRINT_TRACING ){
+     char str[256] ;
+     STATUS("check fondisk") ; sprintf(str,"fondisk = %d",im->fondisk) ; STATUS(str) ;
+   }
+   if( PRINT_TRACING ){
+     char str[256] ;
+     STATUS("check fname") ; sprintf(str,"fname = %s",(im->fname!=NULL) ? im->fname : "NULL") ; STATUS(str) ;
+   }
+   STATUS("check if purged") ;
+#endif
    if( MRI_IS_PURGED(im) ){
+#if 0
+     STATUS("is purged to following filename") ;
+     STATUS(im->fname) ;
+#endif
      remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
      if( PRINT_TRACING ){
        char str[256]; sprintf(str,"removed file %s",im->fname); STATUS(str);
