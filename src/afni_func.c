@@ -357,7 +357,7 @@ void AFNI_thr_scale_CB( Widget w, XtPointer client_data, XtPointer call_data )
    Three_D_View *im3d = (Three_D_View *) client_data ;
    XmScaleCallbackStruct *cbs = (XmScaleCallbackStruct *) call_data ;
    float fff ;
-   int redisplay , ival ;
+   int ival ;
 
 ENTRY("AFNI_thr_scale_CB") ;
 
@@ -372,8 +372,6 @@ ENTRY("AFNI_thr_scale_CB") ;
    FIX_SCALE_VALUE(im3d) ;
    FIX_SCALE_SIZE(im3d) ;   /* 09 May 2001 */
 
-   redisplay = (im3d->vinfo->func_visible) ? REDISPLAY_OVERLAY
-                                           : REDISPLAY_OPTIONAL ;
    AFNI_set_thr_pval( im3d ) ;
 
    MCW_discard_events_all( w , ButtonPressMask ) ;  /* 20 Mar 2007 */
@@ -496,6 +494,7 @@ ENTRY("AFNI_thresh_top_CB") ;
   Used to set the pval (significance) label at the bottom of the
   threshold scale.
 -------------------------------------------------------------------------*/
+
 float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
 {
    float *fv, thresh=0.0;
