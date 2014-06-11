@@ -3170,7 +3170,7 @@ STATUS("making func->rowcol") ;
    func->inten_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , func->inten_rowcol ,
-            LABEL_ARG("Inten") ,
+            LABEL_ARG("OLay ") ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    LABELIZE(func->inten_label) ;

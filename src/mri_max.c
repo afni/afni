@@ -81,7 +81,7 @@ ENTRY("mri_max") ;
       }
 
       default:
-        fprintf( stderr , "mri_max:  unknown image kind\n" ) ;
+        ERROR_message("mri_max: unknown image kind") ;
    }
    RETURN( 0.0 );
 }
@@ -147,7 +147,7 @@ ENTRY("mri_maxabs") ;
          RETURN( mri_max( im ) );
 
       default:
-         fprintf( stderr , "mri_max:  unknown image kind\n" ) ;
+         ERROR_message("mri_max: unknown image kind") ;
    }
    RETURN( 0 );
 }
@@ -224,7 +224,7 @@ ENTRY("mri_min") ;
       }
 
       default:
-         fprintf( stderr , "mri_min:  unknown image kind\n" ) ;
+         ERROR_message("mri_min: unknown image kind") ;
    }
    RETURN( 0 );
 }
@@ -280,7 +280,7 @@ ENTRY("mri_minmax") ;
       }
 
       default:
-         fprintf( stderr , "mri_minmax:  unknown image kind\n" ) ;
+         ERROR_message("mri_minmax: unknown image kind") ;
    }
    RETURN( dp );
 }
@@ -315,7 +315,10 @@ ENTRY("mri_minmax_nz") ;
             byte_min = MIN( byte_min , qar[ii] ) ;
             byte_max = MAX( byte_max , qar[ii] ) ;
          }
-         dp.a = (double)byte_min ; dp.b = (double)byte_max ; RETURN(dp) ;
+         if( byte_min <= byte_max ){
+           dp.a = (double)byte_min ; dp.b = (double)byte_max ;
+         }
+         RETURN(dp) ;
       }
 
       case MRI_short:{
@@ -325,7 +328,10 @@ ENTRY("mri_minmax_nz") ;
             short_min = MIN( short_min , qar[ii] ) ;
             short_max = MAX( short_max , qar[ii] ) ;
          }
-         dp.a = (double)short_min ; dp.b = (double)short_max ; RETURN(dp) ;
+         if( short_min <= short_max ){
+           dp.a = (double)short_min ; dp.b = (double)short_max ;
+         }
+         RETURN(dp) ;
       }
 
       case MRI_float:{
@@ -335,11 +341,43 @@ ENTRY("mri_minmax_nz") ;
             float_min = MIN( float_min , qar[ii] ) ;
             float_max = MAX( float_max , qar[ii] ) ;
          }
-         dp.a = (double)float_min ; dp.b = (double)float_max ; RETURN(dp) ;
+         if( float_min <= float_max ){
+           dp.a = (double)float_min ; dp.b = (double)float_max ;
+         }
+         RETURN(dp) ;
+      }
+
+      case MRI_complex:{
+         complex *qar = MRI_COMPLEX_PTR(im) ; float aval ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            aval = CABS(qar[ii]) ; if( aval == 0.0f ) continue ;
+            float_min = MIN( float_min , aval ) ;
+            float_max = MAX( float_max , aval ) ;
+         }
+         if( float_min <= float_max ){
+           dp.a = (double)float_min ; dp.b = (double)float_max ;
+         }
+         RETURN(dp) ;
+      }
+
+      case MRI_rgb:{
+         byte *rgb = MRI_RGB_PTR(im) ;
+         double val ;
+         for( ii=0 ; ii < npix ; ii++ ){  /* scale to brightness */
+            val =  0.299 * rgb[3*ii]      /* between 0 and 255   */
+                 + 0.587 * rgb[3*ii+1]
+                 + 0.114 * rgb[3*ii+2] ; if( val == 0.0f ) continue ;
+            float_min = MIN( float_min , val ) ;
+            float_max = MAX( float_max , val ) ;
+         }
+         if( float_min <= float_max ){
+           dp.a = (double)float_min ; dp.b = (double)float_max ;
+         }
+         RETURN(dp) ;
       }
 
       default:
-         fprintf( stderr , "mri_minmax_nz:  unknown image kind\n" ) ;
+         ERROR_message("mri_minmax_nz: unknown image kind") ;
    }
    RETURN( dp );
 }
