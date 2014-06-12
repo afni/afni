@@ -1143,6 +1143,10 @@ typedef struct Three_D_View {
       float fim_thresh_max ;
 } Three_D_View ;
 
+#define IM3D_CLEAR_THRSTAT(iq)                                                    \
+  do{ (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f;              \
+      (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f; } while(0)
+
 #define IM3D_ULAY_COHERENT(iq)                                                    \
  (( (iq)->b123_ulay == (iq)->b123_anat || (iq)->b123_ulay == (iq)->b123_fim ) &&  \
   ( (iq)->b231_ulay == (iq)->b231_anat || (iq)->b231_ulay == (iq)->b231_fim ) &&  \
@@ -1197,6 +1201,10 @@ typedef struct Three_D_View {
        (iq)->vwid->func->clu_tabNN3 = NULL ;                               \
      (iq)->vednomask = 0 ;                                                 \
      if( (iq)->vedset.code ) redis++ ;                                     \
+     if( redis ){                                                          \
+       (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f;      \
+       (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f;      \
+     }                                                                     \
      (iq)->vedset.flags = (iq)->vedset.code = 0; AFNI_set_thr_pval((iq));  \
      if( (iq)->vinfo->func_visible && redis ) AFNI_redisplay_func((iq)) ;  \
  } while(0) ;
