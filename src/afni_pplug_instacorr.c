@@ -742,6 +742,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
    AFNI_ignore_pbar_top(0) ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
@@ -1054,6 +1055,7 @@ ENTRY("GICOR_setup_func") ;
    ININFO_message("----- AFNI is connnected to 3dGroupInCorr -----") ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    GICOR_refit_stat_menus() ;  /* 14 May 2010 */
 
    EXRETURN ;
@@ -1196,6 +1198,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
 
    if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay = off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;

@@ -39,11 +39,13 @@ ENTRY("AFNI_see_func_CB") ;
      STATUS("clear tmask") ;
 #endif
      IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+     IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
      im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
      if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){            /* 29 Apr 1997 */
        im3d->vinfo->func_visible = False ;
        MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
      }
+     IM3D_CLEAR_THRSTAT(im3d) ;       /* 12 Jun 2014 */
      OVERLAY_SUMA ;                   /* 16 Jun 2003 */
      AFNI_redisplay_func( im3d ) ;    /* 05 Mar 2002 */
      im3d->vinfo->func_visible_count++ ; /* 03 Aug 2007 */
@@ -103,6 +105,7 @@ ENTRY("AFNI_func_autothresh_CB") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    new_thresh = AFNI_get_autothresh(im3d) ;
    if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
    EXRETURN ;
@@ -294,6 +297,7 @@ ENTRY("AFNI_func_thrsign_CB") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    AFNI_redisplay_func( im3d ) ;
    AFNI_set_window_titles( im3d ) ;
    EXRETURN ;
@@ -338,6 +342,7 @@ ENTRY("AFNI_set_threshold") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
    AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
    FIX_SCALE_SIZE(im3d) ;
@@ -381,6 +386,7 @@ ENTRY("AFNI_thr_scale_CB") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    if( ! DOING_REALTIME_WORK ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_thresh_lock_carryout(im3d) ;  /* 06 Feb 2004 */
@@ -443,6 +449,7 @@ ENTRY("AFNI_set_thresh_top") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    FIX_SCALE_VALUE(im3d) ;
    FIX_SCALE_SIZE(im3d) ;   /* 09 May 2001 */
    AFNI_set_thr_pval( im3d ) ;
@@ -696,6 +703,7 @@ ENTRY("AFNI_inten_pbar_CB") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_hintize_pbar( pbar , FIM_RANGE(im3d) ) ;
@@ -878,6 +886,7 @@ void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    HIDE_SCALE(im3d) ;
    if( av->ival > NPANE_MAX ){
      int npane=pbar->num_panes , jm=pbar->mode ;
@@ -2205,6 +2214,7 @@ ENTRY("AFNI_resam_av_CB") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    im3d->vinfo->tempflag = 1 ;
    AFNI_modify_viewing( im3d , False ) ;  /* redisplay */
    SHOW_AFNI_READY ;
@@ -2364,6 +2374,7 @@ ENTRY("AFNI_underlay_CB") ;
       STATUS("clear tmask") ;
 #endif
       IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+      IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
 
       if( im3d->s123 != NULL )
          drive_MCW_imseq( im3d->s123 , isqDR_newseq ,
@@ -2866,6 +2877,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
 
    /*--- switch sessions ---*/
 
@@ -5888,6 +5900,7 @@ ENTRY("AFNI_bucket_CB") ;
    STATUS("clear tmask") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
+   IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
 
    /** Anat sub-brick [29 Jul 2003: lock to time_index controller as well] **/
 

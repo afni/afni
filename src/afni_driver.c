@@ -527,6 +527,7 @@ void AFNI_set_fim_index( Three_D_View *im3d , int nfun )
      MCW_arrowval *aav = im3d->vwid->func->fim_buck_av ;
      AV_assign_ival( aav, nfun ) ;
      IM3D_CLEAR_TMASK(im3d) ;
+     IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
      AFNI_bucket_CB( aav, im3d ) ;
    }
 }
@@ -544,6 +545,7 @@ void AFNI_set_thr_index( Three_D_View *im3d , int nthr )
      MCW_arrowval *aav = im3d->vwid->func->thr_buck_av ;
      AV_assign_ival( aav, nthr ) ;
      IM3D_CLEAR_TMASK(im3d) ;
+     IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
      AFNI_bucket_CB( aav, im3d ) ;
    }
 }
@@ -566,6 +568,7 @@ static int AFNI_drive_set_subbricks( char *cmd )
    if( nfun  >= 0 ) AFNI_set_fim_index ( im3d , nfun  ) ;
    if( nthr  >= 0 ) AFNI_set_thr_index ( im3d , nthr  ) ;
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    RETURN(0) ;
 }
 
@@ -692,6 +695,7 @@ ENTRY("AFNI_switch_function") ;
    /* same callback as Switch Function */
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                              (XtPointer)im3d ,  &cbs          ) ;
 
@@ -1849,6 +1853,7 @@ ENTRY("AFNI_drive_set_threshold") ;
    sscanf(cpt,"%d",&dec) ;
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    if( dec >= 0 && dec <= THR_top_expon )
      AFNI_set_thresh_top( im3d , tval[dec] ) ;
 
@@ -1921,6 +1926,7 @@ ENTRY("AFNI_drive_set_threshnew") ;
    }
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    if( newdec != olddec )
      AFNI_set_thresh_top( im3d , tval[newdec] ) ;
 
@@ -1965,6 +1971,7 @@ ENTRY("AFNI_drive_set_pbar_number") ;
    AV_assign_ival( im3d->vwid->func->inten_av , num ) ;
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    HIDE_SCALE(im3d) ;
    if( num <= NPANE_MAX ){
      pbar->bigmode = 0 ;
@@ -2016,6 +2023,7 @@ ENTRY("AFNI_drive_set_pbar_sign") ;
    }
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    MCW_set_bbox( im3d->vwid->func->inten_bbox , val ) ;
 
    AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
@@ -2116,6 +2124,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
    /* now set pbar values (and other widgets) */
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    im3d->vinfo->use_posfunc = pbar->mode = pos ;
    MCW_set_bbox( im3d->vwid->func->inten_bbox , pos ) ;
    AV_assign_ival( im3d->vwid->func->inten_av , npan ) ;
@@ -2176,6 +2185,7 @@ ENTRY("AFNI_drive_pbar_rotate") ;
    }
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    rotate_MCW_pbar( im3d->vwid->func->inten_pbar , nn ) ;
    RETURN(0) ;
 }
@@ -2352,6 +2362,7 @@ ENTRY("AFNI_set_func_resam") ;
    }
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    AV_assign_ival( im3d->vwid->dmode->func_resam_av , fr ) ;
    im3d->vinfo->func_resam_mode = fr ;
    if( im3d->b123_fim != NULL )
@@ -2856,6 +2867,7 @@ static int AFNI_drive_set_view( char *cmd )
    if( !XtIsSensitive(im3d->vwid->view->view_bbox->wbut[vv]) ) return -1 ;
 
    IM3D_CLEAR_TMASK(im3d) ;
+   IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    MCW_set_bbox( im3d->vwid->view->view_bbox , 1 << vv ) ;
    AFNI_switchview_CB( NULL , (XtPointer)im3d , NULL ) ;
    return 0 ;
@@ -3063,6 +3075,7 @@ static int AFNI_drive_instacorr( char *cmd )
      float x,y,z ; int good=0 ; char cj='N' ;
 
      IM3D_CLEAR_TMASK(im3d) ;
+     IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
      if( cmd[dadd+3] != '\0' ) good = sscanf(cmd+dadd+3,"%f %f %f %c",&x,&y,&z,&cj) ;
      if( good < 3 ){
         AFNI_icor_setref(im3d) ;  /* no x,y,z ==> use current xhair point */
@@ -3087,6 +3100,7 @@ static int AFNI_drive_instacorr( char *cmd )
          GICOR_apair_mirror_bit(im3d->giset)  ) return -1 ;  /* bad choice */
 
      IM3D_CLEAR_TMASK(im3d) ;
+     IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
      if( cmd[dadd+5] != '\0' ) good = sscanf(cmd+dadd+5,"%f %f %f %c",&x,&y,&z,&cj) ;
      if( good < 3 ){
         AFNI_gicor_setapair_xyz(im3d,
