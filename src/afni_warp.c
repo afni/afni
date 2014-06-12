@@ -30,11 +30,14 @@ MRI_IMAGE * AFNI_dataset_displayim( THD_3dim_dataset *dset , int ival )
 
    if( !ISVALID_DSET(dset)                  ) return NULL ;
    if( ival < 0 || ival >= DSET_NVALS(dset) ) return NULL ;
-   if( dset->wod_flag                       ) return NULL ;
    if( !DSET_INMEMORY(dset)                 ) return NULL ;
 
    typ = DSET_BRICK_TYPE(dset,ival) ;
    if( ! AFNI_GOOD_DTYPE(typ)               ) return NULL ;
+
+#if 0
+   if( dset->wod_flag                       ) return NULL ;
+#endif
 
    do_vedit = ( !ignore_vedit                   &&
                 DSET_VEDIT_IVAL(dset)   == ival &&

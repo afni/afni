@@ -7027,6 +7027,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          im3d->vwid->func->clu_list = mri_clusterize_array(1) ;
          AFNI_cluster_dispize(im3d,0);  /* display the results */
        }
+       IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
      } else {
        UNCLUSTERIZE(im3d) ;  /* macro-ized 13 Feb 2008 */
      }
@@ -7047,16 +7048,22 @@ DUMP_IVEC3("  new_id",new_id) ;
      if( FLDIF(thbot,im3d->fim_thrbot) || FLDIF(thtop,im3d->fim_thrtop) ){
        ovim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->fim_index) ;
        thim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->thr_index) ;
-       im3d->fim_thrbot = thbot ; im3d->fim_thrtop = thtop ;
        if( ovim == NULL || thim == NULL ){
-         im3d->fim_thresh_min = 666.0f ; im3d->fim_thresh_max = -666.0f ;
+#if 0
+INFO_message("ovim and/or thim == NULL : %p %p",ovim,thim) ;
+#endif
+         IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
        } else {
+         im3d->fim_thrbot = thbot ; im3d->fim_thrtop = thtop ;
          fac = DSET_BRICK_FACTOR(im3d->fim_now,im3d->vinfo->thr_index) ;
          if( fac > 0.0f ){ thbot /= fac ; thtop /= fac ; }
          ovmm = mri_threshold_minmax(thbot,thtop,thim,ovim) ;
          im3d->fim_thresh_min = ovmm.a ; im3d->fim_thresh_max = ovmm.b ;
          fac = DSET_BRICK_FACTOR(im3d->fim_now,im3d->vinfo->fim_index) ;
          if( fac > 0.0f ){ im3d->fim_thresh_min *= fac ; im3d->fim_thresh_max *= fac ; }
+#if 0
+INFO_message("fim_thresh min=%f max=%f",im3d->fim_thresh_min,im3d->fim_thresh_max) ;
+#endif
        }
        if( im3d->fim_thresh_min < im3d->fim_thresh_max ){
          char str[256] ;
@@ -7066,9 +7073,11 @@ DUMP_IVEC3("  new_id",new_id) ;
          MCW_register_hint( im3d->vwid->func->range_label , "OLay thresholded range: unknown" ) ;
        }
      }
+#if 0
+else INFO_message("threshold unchanged") ;
+#endif
    } else {
-     im3d->fim_thrbot     = 666.0f ; im3d->fim_thrtop     = -666.0f ;
-     im3d->fim_thresh_min = 666.0f ; im3d->fim_thresh_max = -666.0f ;
+     IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
      MCW_register_hint( im3d->vwid->func->range_label , "OLay thresholded range: unknowable" ) ;
    }
 
@@ -9099,6 +9108,8 @@ STATUS(" -- turning time index control off") ;
      old_func_nvals = DSET_NVALS(im3d->fim_now) ;
    else
      old_func_nvals = -1 ;
+
+   IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
 
    AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
 
