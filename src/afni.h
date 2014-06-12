@@ -1134,6 +1134,13 @@ typedef struct Three_D_View {
       int cont_pbar_index, int_pbar_index;
       int first_integral;
       int cont_perc_thr;       /* ZSS percentile thresholding. April 26 2012 */
+
+      /* record current threshold and fim statistics as thresholded [12 Jun 2014] */
+
+      float fim_thrbot ;
+      float fim_thrtop ;
+      float fim_thresh_min ;
+      float fim_thresh_max ;
 } Three_D_View ;
 
 #define IM3D_ULAY_COHERENT(iq)                                                    \
