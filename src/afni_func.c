@@ -1455,7 +1455,7 @@ static int reject_zero = 0 ;
 #undef  THBOT
 #undef  THTOP
 #undef  THBIG
-#define THBIG    1.e+9f
+#define THBIG    1.e+37f
 #define THBOT(t) ((thrsign==0 || thrsign==2) ? (-(t)) : (-THBIG))
 #define THTOP(t) ((thrsign==0 || thrsign==1) ? (t)    :  (THBIG))
 

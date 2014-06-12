@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+  { 12 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Add OLay thresholded range hint" ,
+   NULL } ,
+
+ { 10 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "Fix crashing bug with PBAR_FULLRANGE" ,
    "b..._ulay pointers could become deranged via AFNI_setup_viewing() call\n"
    "to AFNI_reset_func_range() -- patched this, and also check for this type\n"

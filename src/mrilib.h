@@ -997,6 +997,8 @@ extern MRI_IMAGE *mri_scale_to_float( float , MRI_IMAGE * ) ;
 extern void mri_threshold( double , double , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_mult_to_float( float * , MRI_IMAGE * ) ;
 
+extern float_pair mri_threshold_minmax( double,double, MRI_IMAGE *, MRI_IMAGE * ) ;
+
 extern void mri_maskify( MRI_IMAGE *im , byte *mask ) ; /* Jul 2010 */
 
 extern MRI_IMAGE * mri_scalize( MRI_IMAGE *, int, float * ) ; /* 20 Oct 2003 */

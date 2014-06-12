@@ -5912,6 +5912,9 @@ ENTRY("new_AFNI_controller") ;
    im3d->cont_range_fval = 1.0;
    im3d->first_integral = -1;
    im3d->cont_perc_thr = 0; /* No percentile thresholding. ZSS: April 27 2012 */
+
+   im3d->fim_thrbot     = 666.0f ; im3d->fim_thrtop     = -666.0f ; /* 12 Jun 2014 */
+   im3d->fim_thresh_min = 666.0f ; im3d->fim_thresh_max = -666.0f ;
    RETURN(im3d) ;
 }
 
