@@ -7032,6 +7032,50 @@ DUMP_IVEC3("  new_id",new_id) ;
      }
    }
 
+   /*--- 12 Jun 2014: thresholded statistics on fim ---*/
+
+#undef  THBOT
+#undef  THTOP
+#undef  THBIG
+#define THBIG    1.e+37f
+#define THBOT(t) ((im3d->vinfo->thr_sign==0 || im3d->vinfo->thr_sign==2) ? (-(t)) : (-THBIG))
+#define THTOP(t) ((im3d->vinfo->thr_sign==0 || im3d->vinfo->thr_sign==1) ? (t)    :  (THBIG))
+
+   if( im3d->vinfo->func_visible ){
+     float thr,thbot,thtop,fac ; MRI_IMAGE *thim , *ovim ; float_pair ovmm ;
+     thr = get_3Dview_func_thresh(im3d,1) ; thbot = THBOT(thr) ; thtop = THTOP(thr) ;
+     if( FLDIF(thbot,im3d->fim_thrbot) || FLDIF(thtop,im3d->fim_thrtop) ){
+       ovim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->fim_index) ;
+       thim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->thr_index) ;
+       im3d->fim_thrbot = thbot ; im3d->fim_thrtop = thtop ;
+       if( ovim == NULL || thim == NULL ){
+         im3d->fim_thresh_min = 666.0f ; im3d->fim_thresh_max = -666.0f ;
+       } else {
+         fac = DSET_BRICK_FACTOR(im3d->fim_now,im3d->vinfo->thr_index) ;
+         if( fac > 0.0f ){ thbot /= fac ; thtop /= fac ; }
+         ovmm = mri_threshold_minmax(thbot,thtop,thim,ovim) ;
+         im3d->fim_thresh_min = ovmm.a ; im3d->fim_thresh_max = ovmm.b ;
+         fac = DSET_BRICK_FACTOR(im3d->fim_now,im3d->vinfo->fim_index) ;
+         if( fac > 0.0f ){ im3d->fim_thresh_min *= fac ; im3d->fim_thresh_max *= fac ; }
+       }
+       if( im3d->fim_thresh_min < im3d->fim_thresh_max ){
+         char str[256] ;
+         sprintf(str,"OLay thresholded range: %f : %f",im3d->fim_thresh_min,im3d->fim_thresh_max ) ;
+         MCW_register_hint( im3d->vwid->func->range_label , str ) ;
+       } else {
+         MCW_register_hint( im3d->vwid->func->range_label , "OLay thresholded range: unknown" ) ;
+       }
+     }
+   } else {
+     im3d->fim_thrbot     = 666.0f ; im3d->fim_thrtop     = -666.0f ;
+     im3d->fim_thresh_min = 666.0f ; im3d->fim_thresh_max = -666.0f ;
+     MCW_register_hint( im3d->vwid->func->range_label , "OLay thresholded range: unknowable" ) ;
+   }
+
+#undef  THBOT
+#undef  THTOP
+#undef  THBIG
+
    /*--- redraw images now ---*/
 
    im3d->ignore_seq_callbacks = AFNI_IGNORE_EVERYTHING ;

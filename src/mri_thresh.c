@@ -53,6 +53,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_byte:{
                register byte *ar = MRI_BYTE_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
                EXRETURN ;
@@ -78,6 +79,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_int:{
                register int *ar = MRI_INT_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
                EXRETURN ;
@@ -93,6 +95,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_double:{
                register double *ar = MRI_DOUBLE_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0 ;
                EXRETURN ;
@@ -100,6 +103,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_complex:{
                register complex *ar = MRI_COMPLEX_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii].r = ar[ii].i = 0.0f ;
                EXRETURN ;
@@ -128,6 +132,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_rgb:{                             /* 20 Dec 2004 */
                register byte *ar = MRI_RGB_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ){
                     ar[3*ii] = ar[3*ii+1] = ar[3*ii+2] = 0 ;
@@ -145,6 +150,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_int:{
                register int *ar = MRI_INT_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0 ;
                EXRETURN ;
@@ -160,6 +166,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_double:{
                register double *ar = MRI_DOUBLE_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii] = 0.0 ;
                EXRETURN ;
@@ -167,6 +174,7 @@ ENTRY("mri_threshold") ;
 
             case MRI_complex:{
                register complex *ar = MRI_COMPLEX_PTR(im) ;
+               if( ar == NULL ) EXRETURN ;
                for( ii=0 ; ii < npix ; ii++ )
                   if( thar[ii] > th1 && thar[ii] < th2 ) ar[ii].r = ar[ii].i = 0.0f ;
                EXRETURN ;
@@ -239,4 +247,212 @@ ENTRY("mri_maskify") ;
    }
 
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Return the min and max of the thresholded image [12 Jun 2014] */
+
+float_pair mri_threshold_minmax( double thbot, double thtop, MRI_IMAGE *thrim, MRI_IMAGE *im )
+{
+   int ii , npix ;
+   float bot=1.e38 , top=-1.e38 ;
+   float_pair result = {666.0f,-666.0f} ;
+
+ENTRY("mri_threshold_minmax") ;
+
+   if( thrim == NULL           || im == NULL ||
+       thrim->nvox != im->nvox || thbot >= thtop ) RETURN(result) ;
+
+   npix = im->nvox ;
+
+   switch( thrim->kind ){
+
+      default:{                                  /* stoopid, but works */
+        MRI_IMAGE *qim = mri_to_float(thrim) ;
+        result = mri_threshold_minmax( thbot,thtop , qim , im ) ;
+        mri_free(qim) ;
+        RETURN(result) ;
+      }
+
+      case MRI_byte:{      /* 20 Dec 2004: very stupid way to do bytes */
+        MRI_IMAGE *qim = mri_to_short(1.0,thrim) ;
+        result = mri_threshold_minmax( thbot,thtop , qim , im ) ;
+        mri_free(qim) ;
+        RETURN(result) ;
+      }
+
+      case MRI_short:{                     /* threshold image is shorts */
+         register short th1 , th2 ;
+         register short *thar = MRI_SHORT_PTR(thrim) ;
+         th1 = SHORTIZE(thbot) ; th2 = SHORTIZE(thtop) ;
+
+         if( thar == NULL ) RETURN(result) ;
+
+         switch( im->kind ){
+
+            default: RETURN(result) ;  /* unknown type of data image */
+
+            case MRI_byte:{
+               register byte *ar = MRI_BYTE_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_rgb:{                             /* 20 Dec 2004 */
+               register byte *ar = MRI_RGB_PTR(im) ; float aval ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { aval = 0.299f*ar[3*ii] + 0.587f*ar[3*ii+1] + 0.114f*ar[3*ii+2] ;
+                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_short:{
+               register short *ar = MRI_SHORT_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_int:{
+               register int *ar = MRI_INT_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_float:{
+               register float *ar = MRI_FLOAT_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_double:{
+               register double *ar = MRI_DOUBLE_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_complex:{
+               register complex *ar = MRI_COMPLEX_PTR(im) ; float aval ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { aval = CABS(ar[ii]) ;
+                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+         }
+      } /* end of short thrim */
+
+      case MRI_float:{                /* threshold image is floats */
+         register float th1 , th2 ;
+         register float *thar = MRI_FLOAT_PTR(thrim) ;
+         th1 = thbot ; th2 = thtop ;
+
+         if( thar == NULL ) RETURN(result) ;
+
+         switch( im->kind ){
+
+            default: RETURN(result) ;
+
+            case MRI_byte:{
+               register byte *ar = MRI_BYTE_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_rgb:{                             /* 20 Dec 2004 */
+               register byte *ar = MRI_RGB_PTR(im) ; float aval ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { aval = 0.299f*ar[3*ii] + 0.587f*ar[3*ii+1] + 0.114f*ar[3*ii+2] ;
+                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
+                    ar[3*ii] = ar[3*ii+1] = ar[3*ii+2] = 0 ;
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_short:{
+               register short *ar = MRI_SHORT_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_int:{
+               register int *ar = MRI_INT_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_float:{
+               register float *ar = MRI_FLOAT_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_double:{
+               register double *ar = MRI_DOUBLE_PTR(im) ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+
+            case MRI_complex:{
+               register complex *ar = MRI_COMPLEX_PTR(im) ; float aval ;
+               if( ar == NULL ) RETURN(result) ;
+               for( ii=0 ; ii < npix ; ii++ )
+                  if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
+                  else { aval = CABS(ar[ii]) ;
+                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
+               if( bot <= top ){ result.a = bot; result.b = top;}
+               RETURN(result) ;
+            }
+         }
+      } /* end of float thrim */
+
+   }
+
+   RETURN(result) ;  /* should not be reached! */
 }
