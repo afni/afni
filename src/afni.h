@@ -582,6 +582,8 @@ extern float  get_3Dview_func_thresh(struct Three_D_View *im3d,
                                      int apply_power);
 extern float AFNI_thresh_from_percentile(struct Three_D_View *im3d, float perc);
 
+extern void reset_mnito(struct Three_D_View *im3d);
+
 #define OPEN_PANEL(iq,panel)                                            \
    {  XtManageChild( (iq)->vwid->  panel  ->frame ) ;                    \
       if( ! (iq)->vwid->view->  panel ## _pb_inverted ){                  \

@@ -440,6 +440,10 @@ int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname);
 int find_coords_in_space(ATLAS_COORD *acl, int N_acl, char *space_name); 
 int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces, 
                            int N_out_spaces, ATLAS_COORD *acl, char *orcodeout); 
+int wami_xform_xyz(float xi,float yi,float zi,
+   float *xout, float *yout, float *zout,
+   char *srcspace, char *destspace);
+
 void set_wami_verb(int lev);
 int wami_verb(void);
 int wami_lh(void);

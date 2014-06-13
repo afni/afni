@@ -3661,6 +3661,14 @@ Variable: AFNI_ATLAS_COLORS (editable)
 This variable sets which atlas to use in the AFNI GUI for "Atlas Colors",
 "Go to Atlas location", "Draw Dataset" and "Renderer" functions.
 
+----------------------------
+Variable: AFNI_JUMPTO_SPACE (editable)
+----------------------------
+This variable sets which space to use in the AFNI GUI for "Jump to (spacename)"
+function where this would default to "MNI". Choose a valid spacename from the
+current list of spaces in "whereami -show_spaces". The jump function transforms
+the user input coordinates from that space to the space of the dataset.
+
 -------------------------
 Variable: AFNI_PLUGINPATH
 -------------------------

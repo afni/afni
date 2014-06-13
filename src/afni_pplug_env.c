@@ -132,6 +132,7 @@ static void ENV_setjpegquality(char *);   /* 11 May 2006 */
 static void ENV_wami_maxrad(char *vname); /* 27 Jun 2011 */
 static void ENV_wami_maxfind(char *vname); /* 27 Jun 2011 */
 static void ENV_atlas_reset(char *atlas); /* 05 Jul 2011 */
+static void ENV_jumpspace_reset(char *spacename); /* 13 Jun 2014 */
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * ) ;
 #endif
@@ -585,6 +586,9 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_RECENTER_VIEWING" ,
                   "Re-center xhairs when switching UnderLay?" ) ;
   
+   ENV_add_string( "AFNI_JUMPTO_SPACE" ,
+          "Space name to use in Jump to (spacename)" ,
+                 0, NULL, ENV_jumpspace_reset ) ;
 
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
@@ -1078,6 +1082,24 @@ static void ENV_atlas_reset(char *atlas)
 {
    TTRR_resetup();
    reset_atlas_ovdset();
+   return ;
+}
+
+/* reset the space used in the Jump to (MNI) menu */
+static void ENV_jumpspace_reset(char *vname)
+{
+   char *spacename;
+   int ii;
+
+   spacename = getenv(vname);
+   set_jump_space(spacename);
+
+  /* relabel controller windows */
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+      if( IM3D_OPEN(GLOBAL_library.controllers[ii]) )
+         reset_mnito( GLOBAL_library.controllers[ii] ) ;
+
    return ;
 }
 
