@@ -9842,3 +9842,40 @@ wami_xform_coords_print(float *coords, int ncoords,
 }
 
 
+int
+wami_xform_xyz(float xi, float yi, float zi, 
+   float *xout, float *yout, float *zout,
+   char *srcspace, char *destspace)
+{
+   float *fptr;
+   ATLAS_XFORM_LIST *xfl = NULL, *cxfl = NULL;
+
+   ENTRY("wami_xform_coords_xyz");
+
+
+   if(strcmp(srcspace, destspace)==0)
+      cxfl = NULL;   /* data already in destination space*/
+   else {
+      xfl = report_xform_chain(srcspace, destspace, 0);
+      cxfl = calc_xform_list(xfl);
+      if(!cxfl){
+         WARNING_message("Could not compute xform between spaces\n");
+         free(xfl);
+         RETURN(-1);
+      }
+   }
+
+   if(cxfl) {
+      apply_xform_chain(cxfl, xi, yi, zi, xout, yout, zout);
+   }
+   else {
+      *xout = xi; *yout = yi; *zout = zi;
+   }
+
+   free(cxfl);
+   free(xfl);
+   RETURN(0);
+}
+
+
+

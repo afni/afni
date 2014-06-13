@@ -9624,6 +9624,7 @@ static char *last_jumpto_xyz_string = NULL ;  /* 23 Sep 2008 */
 static char *last_jumpto_ijk_string = NULL ;
 static char *last_mnito_string      = NULL ;
 static char *last_sumato_string     = NULL ;
+static char jumpstring[128];                  /* 13 Jun 2014 */
 
 void AFNI_crosshair_pop_CB( Widget w ,
                             XtPointer client_data , XtPointer call_data )
@@ -9743,9 +9744,10 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    else if( w == im3d->vwid->imag->pop_mnito_pb &&
             im3d->type == AFNI_3DDATA_VIEW        ){
-
+      /* configure menu to show what space coordinates might be in */
       if( ISQ_REALZ(seq) && CAN_TALTO(im3d) ){
-         MCW_choose_string( seq->wbar , "Enter MNI x,y,z (LPI mm):" ,
+         sprintf(jumpstring,"Enter %s x,y,z (LPI mm):", get_jump_space());
+         MCW_choose_string( seq->wbar , jumpstring ,
                             last_mnito_string ,
                             AFNI_mnito_CB , (XtPointer) im3d ) ;
       } else {
@@ -10210,7 +10212,7 @@ void AFNI_see_ttatlas_CB( Widget w, XtPointer cd, XtPointer cb)
 void AFNI_mnito_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
-   float xx,yy,zz ;
+   float xx,yy,zz, xout, yout, zout;
    char dum1[32],dum2[32];
    int nn ;
    THD_fvec3 tv ;
@@ -10231,17 +10233,22 @@ ENTRY("AFNI_mnito_CB") ;
    nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
    if( nn != 5 ){ BEEPIT ; WARNING_message("bad 'MNI To' entries!?") ; EXRETURN ; }
 
+   xx = -xx, yy = -yy;  /* LPI to RAI coordinates */
    LOAD_ANAT_VIEW(im3d) ;
-
-   LOAD_FVEC3(tv,xx,yy,zz) ;    /* MNI coords */
-   tv = THD_mni_to_tta( tv ) ;  /* Talairach coords */
-
-   /* transform from Talairach to current view, if needed */
-
+/*  tv = THD_mni_to_tta( tv ) ; */ /* Talairach coords */
+   /* transform the MNI coordinates to whatever space the +tlrc view is in */
+   if(wami_xform_xyz(xx, yy, zz, &xout, &yout, &zout, get_jump_space(),
+      THD_get_space(im3d->anat_dset[VIEW_TALAIRACH_TYPE]))!=0) {
+         BEEPIT ; WARNING_message("'MNI To' failed!?") ;
+   }
+   LOAD_FVEC3(tv,xout,yout,zout) ;    /* load vector with new coordinates
+                                         in dset's std space of tlrc view */
+ 
+   /* transform from +tlrc view space to current view (maybe orig) if needed */
    if( im3d->anat_now->view_type != VIEW_TALAIRACH_TYPE )
       tv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
                                   tv , im3d->anat_now ) ;
-
+     
    nn = AFNI_jumpto_dicom( im3d , tv.xyz[0], tv.xyz[1], tv.xyz[2] ) ;
    if( nn < 0 ){ BEEPIT ; WARNING_message("'MNI To' failed!?") ; }
 
@@ -12288,3 +12295,4 @@ ENTRY("AFNI_replace_timeseries") ;
    mri_free(tsim) ;
    EXRETURN ;
 }
+

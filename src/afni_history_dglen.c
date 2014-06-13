@@ -49,6 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 13 , JUN, 2014 , DRG , "afni" , 
+    MINOR , TYPE_GENERAL, 
+    "Jump to MNI or any space coordinates",
+    "Jump to MNI in afni GUI enhanced to recognize current dataset\n"
+    "space and not assume MNI to TLRC transformation. Also can jump\n"
+    "to other space coordinates by setting AFNI_JUMPTO_SPACE in\n"
+    ".afnirc or Environment plugin"
+} ,
+
+
 { 23 , MAY, 2014 , DRG , "whereami linkrbrain" , 
     MINOR , TYPE_BUG_FIX, 
     "Fixed linkrbrain coordinates and malloc/free error",
@@ -75,6 +85,14 @@ afni_history_struct dglen_history[] = {
     "Toggle edge detection with 'e' key in viewer",
     "Can toggle with keypress from viewer allowing plugout to drive\n"
     "edge detection."
+} ,
+
+{ 9 , APR, 2014 , DRG , "whereami supplemental web-based info" , 
+    MINOR , TYPE_GENERAL, 
+    "Atlases may have supplemental information available from a website",
+    "Further information can be opened through a web browser for individual\n"
+    "structures. This feature is implemented initially for the support of the \n"
+    "Saleem macaque atlas."
 } ,
 
 { 04 , APR, 2014 , DRG , "whereami -linkrbrain" , 

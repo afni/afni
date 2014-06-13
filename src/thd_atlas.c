@@ -23,6 +23,7 @@ static ATLAS_POINT_LIST *AFNI_atlas_list_to_atlas_point_list(
 static int **FirstNeighb=NULL;
 static float **FirstNeighbDist=NULL; 
 static int *N_Neighb = NULL;
+static char *jumpspace_name = NULL;
 
 char * THD_get_space(THD_3dim_dataset *dset)
 {
@@ -2991,4 +2992,32 @@ read_niml_string()    /* Now pretend we got encstr from our label table, by usin
      EXRETURN;
 }
 #endif
+
+/* get default jump to space, usually "jump to MNI" for AFNI gui */
+char *get_jump_space()
+{
+   char *spacename;
+
+   if(jumpspace_name)
+      return(jumpspace_name);
+
+   spacename = getenv("AFNI_JUMPTO_SPACE") ;   
+   if(spacename && (strlen(spacename)>0) && (strlen(spacename)<110)){
+      jumpspace_name = nifti_strdup(spacename);
+   }
+   else
+      jumpspace_name = nifti_strdup("MNI");
+
+   return(jumpspace_name);
+}
+
+/* get default jump to space, usually "jump to MNI" */
+void set_jump_space(char *spacename)
+{
+   if(spacename && (strlen(spacename)>0) && (strlen(spacename)<110)){
+      if(jumpspace_name) free(jumpspace_name);
+      jumpspace_name = nifti_strdup(spacename);
+   }
+}
+
 
