@@ -315,6 +315,7 @@ void AFNI_make_wid2 (Three_D_View *) ;
 void AFNI_make_wid3 (Three_D_View *) ;
 
 static Widget wtemp ;
+static char jumpstring[128];                  /* 13 Jun 2014 */
 
 /*--------------------------------------------------------------------*/
 
@@ -896,10 +897,11 @@ STATUS("making imag->rowcol") ;
    /*--- mnito button in menu [01 May 2002] ---*/
 
    if( im3d->type == AFNI_3DDATA_VIEW ){
+      sprintf(jumpstring, "Jump to (%s)", get_jump_space());
       imag->pop_mnito_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-               LABEL_ARG("Jump to (MNI)") ,
+               LABEL_ARG(jumpstring) ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
@@ -7503,4 +7505,15 @@ ENTRY("get_3Dview_func_thresh") ;
    }
 
    RETURN(thresh);
+}
+
+void reset_mnito(struct Three_D_View *im3d)
+{
+   if(!im3d) return;
+   if(!im3d->vwid->imag->pop_mnito_pb) return;
+
+   sprintf(jumpstring, "Jump to (%s)", get_jump_space());
+
+   MCW_set_widget_label( im3d->vwid->imag->pop_mnito_pb, jumpstring ) ;
+   XtManageChild( im3d->vwid->imag->pop_mnito_pb ) ;
 }

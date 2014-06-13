@@ -154,4 +154,8 @@ int genx_load_atlas_dset(ATLAS *atlas);
 int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas);
 int atlas_max_label_length(ATLAS_POINT *ap, int n_points);
 int atlas_level(ATLAS_POINT *ap, int n_points);
+
+char *get_jump_space(void);
+void set_jump_space(char *spacename);
+
 #endif
