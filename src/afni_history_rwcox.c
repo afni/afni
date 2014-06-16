@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 12 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 16 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Add SAVE_OVERLAY and SAVE_UNDERLAY commands to afni_driver.c" ,
+   NULL } ,
+
+ { 12 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Add OLay thresholded range hint" ,
    NULL } ,
 

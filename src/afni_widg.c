@@ -4737,10 +4737,8 @@ STATUS("making dmode->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( dmode->saveas_anat_pb , XmNactivateCallback ,
                   AFNI_saveas_dataset_CB , im3d ) ;
-
    MCW_register_hint( dmode->saveas_anat_pb ,
                       "Write current underlay to disk at its internal resolution" ) ;
 
@@ -4751,10 +4749,8 @@ STATUS("making dmode->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( dmode->saveas_func_pb , XmNactivateCallback ,
                   AFNI_saveas_dataset_CB , im3d ) ;
-
    MCW_register_hint( dmode->saveas_func_pb ,
                       "Write current overlay to disk at its internal resolution" ) ;
 
