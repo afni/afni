@@ -355,6 +355,18 @@ SAVE_RAWMONT [c.]imagewindowname filename
     (The montage gap is ignored.)  Same as 'SAVE_RAW' if the montage
     isn't on.
 
+SAVE_UNDERLAY  [c] prefix
+WRITE_UNDERLAY [c] prefix
+  These synonomous commands write a copy of the current underlay dataset for
+  the given image viewer to disk, using the given prefix.
+
+SAVE_OVERLAY  [c] prefix
+WRITE_OVERLAY [c] prefix
+  These synonomous commands write a copy of the current overlay dataset for
+  the given image viewer to disk, using the given prefix.
+     ** Note that these WRITE_ commands will over-write existing **
+     ** datasets with the same name, so you must use care here!  **
+
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
 SET_IJK       [c] i j k
@@ -395,6 +407,9 @@ INSTACORR [c] order
   second form, with 'x y z', if you place the character J after the z value,
   the crosshairs will also Jump to that new seed location.  Note that SET
   can be used with individual or group InstaCorr.
+
+  You can use the WRITE_OVERLAY command to save the computed correlation
+  dataset to disk.
 
   The second INSTACORR 'order' that is implemented [Apr 2013] pertains to
   the new 3dGroupInCorr '-Apair' option.  This order sets the 'Apair' seed:

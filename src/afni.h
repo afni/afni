@@ -1787,6 +1787,7 @@ extern void AFNI_assign_ulay_bricks   ( Three_D_View *im3d ) ;             /* 10
 
 extern void AFNI_saveas_dataset_CB   ( Widget , XtPointer , XtPointer ) ;  /* 18 Oct 2010 */
 extern void AFNI_saveas_finalize_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void AFNI_writeout_dataset    ( THD_3dim_dataset * , char * ) ;     /* 16 Jun 2014 */
 
 extern void AFNI_do_many_writes      ( Widget , XtPointer , MCW_choose_cbs * ) ; /* 23 Nov 1996 */
 extern void AFNI_finalize_dataset_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
