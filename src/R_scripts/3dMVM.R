@@ -24,7 +24,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.9, June 3, 2014
+Version 3.0.9, June 16, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -39,7 +39,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.9, June 3, 2014
+Version 3.0.9, June 16, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -66,8 +66,9 @@ Usage:
  
  If you want to cite the analysis approach, use the following at this moment:
  
- Chen, G., Saad, Z.S., Britton, J.C., Pine, D.S., Cox, R.W. (2013). Linear 
- Mixed-Effects Modeling Approach to FMRI Group Analysis. NeuroImage 73:176-190.
+ Chen, G., Adleman, N.E., Saad, Z.S., Leibenluft, E., Cox, R.W. (in press). 
+ Applications of Multivariate Modeling to Neuroimaging Group Analysis: A
+ Comprehensive Alternative to Univariate General Linear Model. NeuroImage.
 
  In addition to R installtion, the following two R packages need to be acquired
  in R first before running 3dMVM:
