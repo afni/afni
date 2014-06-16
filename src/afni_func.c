@@ -4899,6 +4899,26 @@ ENTRY("AFNI_saveas_finalize_CB") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+
+void AFNI_writeout_dataset( THD_3dim_dataset *dset , char *prefix )
+{
+   THD_3dim_dataset *oset ;
+
+ENTRY("AFNI_writeout_dataset") ;
+
+   if( !ISVALID_DSET(dset) || !THD_filename_ok(prefix) ) EXRETURN ;
+   DSET_load(dset) ;            if( !DSET_LOADED(dset) ) EXRETURN ;
+
+   oset = EDIT_full_copy( dset , prefix ) ;
+   THD_force_ok_overwrite(1) ;
+   DSET_write(oset) ;
+   THD_force_ok_overwrite(0) ;
+   WROTE_DSET(oset) ; DSET_delete(oset) ;
+
+   EXRETURN ;
+}
+
 /*-----------------------------------------------------------------
     Obey the command to write out the current dataset
 -------------------------------------------------------------------*/
