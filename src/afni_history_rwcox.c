@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 16 , JUN , 2014 , RWC , "afni Clusterize GUI" , MICRO , TYPE_MODIFY ,
+   "Save->Mask??" ,
+   "Toggle switch added to hidden popup on top part of report window.  If\n"
+   "switched on, the cluster-wise 'Save' buttons become 'Mask' buttons,\n"
+   "which lets the user save a single-cluster mask dataset (instead of the\n"
+   "multi-cluster dataset of 'SaveMsk')." } ,
+
+ { 16 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Add SAVE_OVERLAY and SAVE_UNDERLAY commands to afni_driver.c" ,
    NULL } ,
 

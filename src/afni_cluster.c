@@ -91,6 +91,52 @@ ENTRY("AFNI_clus_usemask_CB") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------*/
+/* 14 Jun 2014 */
+
+void AFNI_clus_relabel_save_buttons( AFNI_clu_widgets *cwid )
+{
+   int ii ; char *lab , *hint ;
+
+   if( cwid == NULL ) return ;
+
+   lab  = (cwid->save_as_mask == 0 ) ? "Save" : "Mask" ;
+   hint = (cwid->save_as_mask == 0 )
+           ? "Save average Aux dataset timeseries to 1D file"
+           : "Save mask dataset for this single cluster"      ;
+
+   for( ii=0 ; ii < cwid->nall ; ii++ ){
+     MCW_set_widget_label( cwid->clu_save_pb[ii] , lab ) ;
+     MCW_register_hint( cwid->clu_save_pb[ii] , hint ) ;
+   }
+
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+/* Callback from the save_as_mask toggle button [14 Jun 2014] */
+
+void AFNI_clus_save_as_mask_CB( Widget w ,
+                               XtPointer client_data , XtPointer call_data )
+{
+   Three_D_View *im3d = (Three_D_View *)client_data ;
+   AFNI_clu_widgets *cwid ;
+   int bval ;
+
+ENTRY("AFNI_clus_save_as_mask_CB") ;
+
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   cwid = im3d->vwid->func->cwid ; if( cwid == NULL ) EXRETURN ;
+
+   bval = MCW_val_bbox( cwid->save_as_mask_bbox ) ;
+   if( bval == cwid->save_as_mask ) EXRETURN ;
+
+   cwid->save_as_mask = bval ;
+   AFNI_clus_relabel_save_buttons( cwid ) ;
+
+   EXRETURN ;
+}
+
 /*---------------------------------------------------------------*/
 /* Callback from the clusterize parameter chooser.               */
 
@@ -505,13 +551,21 @@ ENTRY("AFNI_clus_make_widgets") ;
    MCW_register_hint( cwid->histrange_pb , "Set Histogram data range" ) ;
    cwid->hbot = cwid->htop = 0.0f ;
 
-   { char *blab = "SqrtHist?" ;
+   { char *blab = "Save->Mask??" ;   /* 14 Jun 2014 */
+     cwid->save_as_mask_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
+                                             MCW_BB_check , MCW_BB_noframe ,
+                                             AFNI_clus_save_as_mask_CB , (XtPointer)im3d ) ;
+     MCW_reghint_children( cwid->save_as_mask_bbox->wrowcol , "Change Save buttons to Mask buttons?" ) ;
+     cwid->save_as_mask = 0 ;
+   }
+
+   { char *blab = "SqrtHist??" ;
      cwid->histsqrt_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
                                          MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
      MCW_reghint_children( cwid->histsqrt_bbox->wrowcol , "Plot square root of histogram?" ) ;
    }
 
-   { char *blab = "Spearman?" ; int sval ;
+   { char *blab = "Spearman??" ; int sval ;
      cwid->spearman_bbox = new_MCW_bbox( cwid->top_menu , 1,&blab ,
                                          MCW_BB_check , MCW_BB_noframe , NULL,NULL ) ;
      MCW_reghint_children( cwid->spearman_bbox->wrowcol , "Scatterplot uses Spearman?") ;
@@ -572,7 +626,7 @@ ENTRY("AFNI_clus_make_widgets") ;
            NULL ) ;
      XmStringFree(xstr) ;
      XtAddCallback( cwid->linkrbrain_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
-     MCW_register_hint( cwid->linkrbrain_pb , 
+     MCW_register_hint( cwid->linkrbrain_pb ,
                          "Write cluster table, then 'whereami -linkrbrain'") ;
      MCW_register_help( cwid->linkrbrain_pb ,
                          "Query linkrbrain.org website for\n"
@@ -585,7 +639,7 @@ ENTRY("AFNI_clus_make_widgets") ;
        { static char *clab[2] = { "Tasks" , "Genes" } ;
          cwid->linkrbrain_av = new_MCW_optmenu( rc , "type" , 0,1,0,0 ,
                             AFNI_linkrbrain_av_CB,im3d , MCW_av_substring_CB,clab ) ;
-         MCW_reghint_children( cwid->linkrbrain_av->wrowcol , 
+         MCW_reghint_children( cwid->linkrbrain_av->wrowcol ,
                                 "Correlate coordinates with tasks or genes" ) ;
          MCW_reghelp_children( cwid->linkrbrain_av->wrowcol ,
                                 "Choose whether to show the correlation or\n"
@@ -1343,6 +1397,8 @@ ENTRY("AFNI_clus_update_widgets") ;
 
    } /* end of loop over widget rows */
 
+   AFNI_clus_relabel_save_buttons( cwid ) ;  /* 14 Jun 2014 */
+
    SET_INDEX_LAB(im3d) ;
 
    if( !cwid->receive_on ){
@@ -1351,11 +1407,11 @@ ENTRY("AFNI_clus_update_widgets") ;
      cwid->receive_on = 1 ;
    }
 
-   if( do_wami ) { 
+   if( do_wami ) {
        Boolean show_linkr;
        SENSITIZE( cwid->whermask_pb ,                /* 04 Aug 2010 */
                             (im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) ) ;
-       show_linkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) && 
+       show_linkr = ((im3d->vinfo->view_type == VIEW_TALAIRACH_TYPE) &&
                              show_linkrbrain_link() );
        SENSITIZE( cwid->linkrbrain_pb , show_linkr);         /* 31 Mar 2014 */
        AV_SENSITIZE( cwid->linkrbrain_av , show_linkr);       /* 31 Mar 2014 */
@@ -1662,8 +1718,49 @@ ENTRY("AFNI_clus_action_CB") ;
          case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
        }
        MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
-       if( (int) 666 == (int)cbs ) AFNI_creepto_dicom( im3d , px,py,pz ) ;
-       else                  AFNI_jumpto_dicom ( im3d , px,py,pz ) ;
+       if( (intptr_t)666 == (intptr_t)cbs ) AFNI_creepto_dicom( im3d , px,py,pz ) ;
+       else                                 AFNI_jumpto_dicom ( im3d , px,py,pz ) ;
+       EXRETURN ;
+
+     /*----------- Save a single cluster's mask ----------*/
+
+     } else if( w == cwid->clu_save_pb[ii] && cwid->save_as_mask ){ /* 14 Jun 2014 */
+       char pref[128] , *ppp ;
+       THD_3dim_dataset  *fset = im3d->fim_now , *mset ;
+       MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
+       MCW_cluster *cl ;
+       short *mask ; int nx,ny,nxy,ijk,jj ;
+
+       nclu = im3d->vwid->func->clu_num ;
+       cld  = im3d->vwid->func->clu_det ;
+       if( nclu == 0 || cld == NULL ) EXRETURN ;
+
+       ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
+       if( !THD_filename_pure(ppp) || strcmp(ppp,"-") == 0 ) ppp = "Clust" ;
+       sprintf(pref,"%s_mask_%04d",ppp,ii+1) ;
+
+       mset = EDIT_empty_copy(fset) ;
+       tross_Copy_History(fset,mset) ;
+       tross_Append_History(mset,"== Interactive clusterize mask") ;
+       EDIT_dset_items( mset ,
+                          ADN_prefix    , pref ,
+                          ADN_nvals     , 1    ,
+                          ADN_ntt       , 0    ,
+                          ADN_type      , HEAD_FUNC_TYPE ,
+                          ADN_func_type , FUNC_BUCK_TYPE ,
+                        ADN_none ) ;
+       nx = DSET_NX(mset); ny = DSET_NY(mset); nxy = nx*ny;
+       EDIT_substitute_brick( mset , 0 , MRI_short , NULL ) ;
+       mask = DSET_BRICK_ARRAY( mset , 0 ) ;
+       cl = clar->clar[ii] ;
+       for( jj=0 ; jj < cl->num_pt ; jj++ ){
+         ijk = THREE_TO_IJK( cl->i[jj] , cl->j[jj] , cl->k[jj] , nx,nxy ) ;
+         mask[ijk] = ii+1 ;
+       }
+       THD_force_ok_overwrite(1) ;
+       INFO_message("Writing mask dataset %s",DSET_BRIKNAME(mset)) ;
+       DSET_write(mset) ; DSET_delete(mset) ;
+       THD_force_ok_overwrite(0) ;
        EXRETURN ;
 
      /*----------- Process the cluster data -----------*/
@@ -2052,11 +2149,11 @@ printf("wrote cluster table to %s\n", lb_fnam);
        }
 
        if(cwid->linkrbrain_av->ival == 0)   /* task correlation = default */
-          sprintf(wout,"%s -linkrbrain -coord_file %s\'\[%d,%d,%d]\' -space %s",
-             wherprog,lb_fnam, coord_colx, coord_coly, coord_colz, 
+          sprintf(wout,"%s -linkrbrain -coord_file %s'[%d,%d,%d]' -space %s",
+             wherprog,lb_fnam, coord_colx, coord_coly, coord_colz,
              THD_get_space(im3d->fim_now)) ;
        else   /* gene correlation */
-          sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s\'\[%d,%d,%d]\' -space %s",
+          sprintf(wout,"%s -linkrbrain -linkr_type genes -coord_file %s'[%d,%d,%d]' -space %s",
              wherprog,lb_fnam, coord_colx, coord_coly, coord_colz,
              THD_get_space(im3d->fim_now)) ;
 
@@ -2151,7 +2248,7 @@ char * AFNI_cluster_write_coord_table(Three_D_View *im3d)
          fclose(fp) ;
          if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
          else     INFO_message   ("Wrote file %s"     ,fnam) ;
-         coord_table = nifti_strdup(fnam); 
+         coord_table = nifti_strdup(fnam);
          RETURN(coord_table);
        }
      }

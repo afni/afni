@@ -438,6 +438,7 @@ typedef struct {
   Widget wtop, rowcol;      /* containers */
   Widget top_lab;           /* overall report text */
   Widget top_menu , histrange_pb ;
+  MCW_bbox *save_as_mask_bbox ; /* 16 Jun 2014 */
   MCW_bbox *histsqrt_bbox ;
   MCW_bbox *spearman_bbox ; /* 02 Jan 2013 */
 
@@ -467,6 +468,7 @@ typedef struct {
   THD_3dim_dataset *dset ;  /* selected from dataset_pb */
   int coord_mode ;
   int receive_on ;
+  int save_as_mask ;
   float hbot,htop ;
 
   Widget     splot_pb , splot_clear_pb ;
