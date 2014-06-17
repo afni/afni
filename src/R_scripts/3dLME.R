@@ -383,7 +383,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              num_glt = lop$num_glt <- ops[[i]],
              gltLabel = lop$gltLabel <- ops[[i]],
              gltCode  = lop$gltCode <- ops[[i]],
-             dataTable  = lop$dataTable <- ops[[i]],
+             dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
              
              help = help.LME.opts(params, adieu=TRUE),
 
@@ -519,7 +519,7 @@ process.LME.opts <- function (lop, verb = 0) {
    hi <- len / wd - 1
    
    if(len %% wd != 0)
-      errex.AFNI('The content under -dataTable is not rectangular!') else {
+      errex.AFNI(paste('The content under -dataTable is not rectangular !', len, wd)) else {
       lop$dataStr <- NULL
       #browser()
       for(ii in 1:wd) 

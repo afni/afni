@@ -386,6 +386,29 @@ exists.AFNI.name <- function(an) {
    return(ans);
 }
 
+#Read parameters for -dataTable options (e.g. 3dLME)
+#If opts is just one string starting with '@' such as
+#@PPP, the parameters are read from text file PPP and
+#returned as if they were found on the command line  
+dataTable.AFNI.parse <- function(opts) {
+   if (is.null(opts) || length(opts) ==  0) {
+      return(NULL);
+   }
+   if (length(opts) == 1 && length(grep('^@.*$',opts))) {
+      ff <- strsplit(opts, '')[[1]]
+      ff <- paste(ff[2:length(ff)], sep='', collapse='')
+      if (!file.exists(ff)) {
+         err.AFNI(paste("table file", ff, "does not exist"));
+         return(NULL)
+      }
+      #Can't read as table because users might have EOL \ from shell command
+      opts <- scan(ff, what='character')    
+      opts <- opts[grep('[^\\\\]',opts)]
+   }
+   browser()
+   return(opts);
+}
+
 used.AFNI.prefix <- function(an) {
    if (is.character(an)) an <- parse.AFNI.name(an);
    

@@ -112,7 +112,7 @@ Example 1 --- Read a dataset, scale it, then write the results:
       }
    }
    ss <- paste(ss, sep='\n');
-   cat(intro, ex1, sep='\n');
+   cat(intro, ex1, ss, sep='\n');
    
    if (adieu) exit.AFNI();
 }
