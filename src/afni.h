@@ -1411,6 +1411,9 @@ extern void   AFNI_start_version_check(void) ;   /* 21 Nov 2002 */
 extern int    AFNI_version_check      (void) ;
 extern char * AFNI_make_update_script (void) ;   /* 20 Nov 2003 */
 
+extern void   AFNI_start_compile_date_check(void) ;  /* 17 Jun 2014 */
+extern int    AFNI_compile_date_check      (void) ;
+
 extern char * AFNI_get_friend(void) ;      /* 26 Feb 2001 */
 extern char * AFNI_get_date_trivia(void) ; /* 25 Nov 2002 */
 extern int AFNI_get_todays_trivia( char *** ) ; /* 27 Nov 2007 */
