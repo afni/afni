@@ -1,4 +1,4 @@
-static char * afni_papers[] = {
+static char *afni_papers[] = {
    "\n" ,
    "            ****************************************************\n" ,
    "           ***** This is a list of papers about AFNI, SUMA, *****\n" ,
@@ -227,5 +227,15 @@ static char * afni_papers[] = {
    "  * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3791700/\n" ,
    "  * http://dx.doi.org/10.1073/pnas.1301725110\n" ,
    "----------------------------------------------------------------------------\n" ,
+   "PA Taylor and ZS Saad.\n" ,
+   "  FATCAT: (An Efficient) Functional And Tractographic Connectivity Analysis\n" ,
+   "  Toolbox.  Brain Connectivity 3:523-535, 2013.\n" ,
+   "\n" ,
+   "  * Introducing diffusion-based tractography tools in AFNI, with particular\n" ,
+   "    emphases on complementing FMRI analysis and in performing interactive\n" ,
+   "    visualization with SUMA.\n" ,
+   "  * http://www.ncbi.nlm.nih.gov/pubmed/23980912\n" ,
+   "  * http://dx.doi.org/10.1089/brain.2013.0154\n" ,
+   "----------------------------------------------------------------------------\n" ,
    NULL } ;
-#define NUM_afni_papers 228
+#define NUM_afni_papers 238

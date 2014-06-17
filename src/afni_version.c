@@ -14,12 +14,16 @@ static int disabled = 0 ;
 #define AFNI_HOST   "http://afni.nimh.nih.gov/pub/dist/"
 #define VSIZE       1024
 
+#define COMPILE_URL "http://afni.nimh.nih.gov/pub/dist/AFNI.compile_date"
+
 static pid_t vc_child_pid = (pid_t)(-1) ;
 static IOCHAN *vc_ioc     = NULL ;
 static char *motd_old     = NULL ;  /* 29 Nov 2005 */
 static char *motd_new     = NULL ;
 
 #undef VERBOSE   /* print messages on failure? */
+
+void AFNI_start_fetching_url( char *urlstring ) ;
 
 /*------------------------------------------------------------------------*/
 /*!  This is only called from within the child process. */
@@ -47,6 +51,20 @@ static void vc_exit(void){ iochan_close(vc_ioc) ; }  /* 12 Dec 2002 */
 --------------------------------------------------------------------------*/
 
 void AFNI_start_version_check(void)
+{
+   AFNI_start_fetching_url( VERSION_URL ) ;
+   return ;
+}
+
+void AFNI_start_compile_date_check(void)
+{
+   AFNI_start_fetching_url( COMPILE_URL ) ;
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_start_fetching_url( char *urlstring )
 {
    pid_t child_pid ;
 
@@ -120,7 +138,6 @@ void AFNI_start_version_check(void)
        vc_child_pid = (pid_t)(-1) ;
        FAIL_MESSAGE("can't open connection to child") ;
      } else {
-       fprintf(stderr,"\n** Version check: " VERSION_URL "\n" ); /* 13 Jan 2003 */
        atexit( vc_exit ) ;                                       /* 12 Dec 2002 */
      }
      return ;
@@ -176,7 +193,7 @@ void AFNI_start_version_check(void)
 
      THD_death_setup( 34567 ) ;  /* die if 34.567 seconds passes away */
 
-     nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* may take a while */
+     nbuf = read_URL( urlstring , &vbuf ) ;  /* may take a while */
 
      set_HTTP_10( 0 ) ;
 
@@ -353,6 +370,119 @@ int AFNI_version_check(void)
           , AVERZHN, AFNI_HOST , vv ) ;
 
    return 1 ;
+
+#endif /* CYGWIN */
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Complete the compile date check -- return number of days difference.
+------------------------------------------------------------------------------*/
+
+static char *monlist[12] =
+  { "JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC" } ;
+
+int AFNI_compile_date_check(void)
+{
+   int jj , nbuf=0 , day_diff=0 ;
+   char *vbuf=NULL , *qbuf ;
+   int  new_day    =-666    , old_day     =-666    ;
+   int  new_year   =-666    , old_year    =-666    ;
+   char new_mon[8] = "Zork" , old_mon[8]  = "Zork" ;
+   int  new_imm             , old_imm           ;
+
+#ifdef CYGWIN   /* 30 Jun 2005 [rickr] */
+
+   return 0;
+
+#else
+
+   /* if something is rotten, then toss it out */
+
+   if( GLOBAL_argopt.allow_rt || disabled ) return 0 ;   /* 27 Jan 2003 */
+
+   if( vc_ioc == NULL || vc_child_pid == (pid_t)(-1) ) KAPUT("bad child state");
+
+   jj = kill(vc_child_pid,0) ;                /* is child alive? */
+   if( jj < 0 ){
+     IOCHAN_CLOSE(vc_ioc); vc_child_pid=(pid_t)(-1);
+     KAPUT("child not alive");
+   }
+
+   jj = iochan_readcheck( vc_ioc , 333 ) ;    /* is iochan open yet? */
+   if( jj <= 0 ){
+     IOCHAN_CLOSE(vc_ioc); kill(vc_child_pid,SIGTERM); vc_child_pid=(pid_t)(-1);
+     KAPUT("connection to child gone bad");
+   }
+
+   /* if here, have data ready to read from child! */
+
+   nbuf = 0 ;
+   vbuf = AFMALL(char, VSIZE) ;
+   while(1){
+     jj = iochan_recv( vc_ioc , vbuf+nbuf , VSIZE-nbuf ) ;
+     if( jj < 1 ) break ;
+     nbuf += jj ;
+     if( nbuf >= VSIZE-1 ) break ;
+     jj = iochan_readcheck( vc_ioc , 5 ) ;
+     if( jj < 1 ) break ;
+   }
+
+   /* now wait for child to kill itself */
+
+   waitpid(vc_child_pid,NULL,WNOHANG); vc_child_pid = (pid_t)(-1);
+   IOCHAN_CLOSE(vc_ioc);
+
+   /* no data? */
+
+   if( nbuf < 11 ){ free(vbuf); vbuf = NULL; KAPUT("bad compile date data"); } /* unlikely */
+
+   /* extract date info from string [e.g., "16 Jun 2014"] */
+
+   qbuf = strcasestr(vbuf,"Content-Length:") ;
+   if( qbuf != NULL ){
+     char *zbuf = strstr(qbuf,"\r\n\r\n") ;
+     if( zbuf != NULL ) qbuf = zbuf + 4 ;
+   } else {
+     qbuf = vbuf ;
+   }
+
+   sscanf( qbuf     , "%d %s %d" , &new_day ,  new_mon , &new_year ) ;
+   sscanf( __DATE__ , "%s %d %d" ,  old_mon , &old_day , &old_year ) ;  /* day/mon invert */
+
+   free(vbuf) ;  /* done with the input data from the child */
+
+   /* bad results? */
+
+   if( new_day < 0 || new_mon[0] == 'Z' || new_year < 0 ) return 0 ;
+   if( old_day < 0 || old_mon[0] == 'Z' || old_year < 0 ) return 0 ;
+
+   /* compare dates */
+
+   for( jj=0 ; jj < 12 ; jj++ ) if( strcasecmp(new_mon,monlist[jj]) == 0 ) break ;
+   if( jj < 12 ) new_imm = jj ; else return 0 ;
+
+   for( jj=0 ; jj < 12 ; jj++ ) if( strcasecmp(old_mon,monlist[jj]) == 0 ) break ;
+   if( jj < 12 ) old_imm = jj ; else return 0 ;
+
+   day_diff = (new_year-old_year)*365 + (new_imm-old_imm)*31 + (new_day-old_day) ;
+
+   /* record the current time, so we don't check too often */
+
+   { char *home=getenv("HOME") , mname[VSIZE]="file:" ;
+     NI_stream ns ;
+     if( home != NULL ) strcat(mname,home) ;
+     strcat(mname,"/.afni.vctime") ;
+     ns = NI_stream_open( mname , "w" ) ;
+     if( ns != NULL ){
+       NI_element *nel=NI_new_data_element("AFNI_vctime",0); char rhs[32];
+       sprintf(rhs,"%d",(int)time(NULL)) ;
+       NI_set_attribute( nel , "version_check_time" , rhs ) ;
+       NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+       NI_stream_close(ns) ;
+     }
+   }
+
+   return day_diff ;
 
 #endif /* CYGWIN */
 }

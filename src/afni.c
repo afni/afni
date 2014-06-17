@@ -1767,7 +1767,11 @@ int main( int argc , char *argv[] )
    GLOBAL_argopt.allow_rt = check_string("-rt",argc,argv) ;
 
    if( !GLOBAL_argopt.quiet && !ALLOW_realtime )
+#if 0
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
+#else
+     AFNI_start_compile_date_check() ;          /* 17 Jun 2014 */
+#endif
 
 #ifdef DARWIN
    if( 0 && !THD_is_directory("/sw/bin") && !AFNI_noenv("AFNI_IMSAVE_WARNINGS") )
@@ -2612,6 +2616,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* 21 Nov 2002: check the AFNI version */
 
+#if 0
    vv = AFNI_version_check() ; /* nada if AFNI_start_version_check() inactive */
 
    if( vv && vers_pixmap != XmUNSPECIFIED_PIXMAP )     /* 08 Aug 2005 */
@@ -2658,6 +2663,22 @@ ENTRY("AFNI_startup_timeout_CB") ;
                "*   You want file " SHSTRING ".tgz\n"
                "*==================================================\n" ) ;
      }
+   }
+#endif /* SHSTRING */
+
+#else
+
+   vv = AFNI_compile_date_check() ;  /* 17 Jun 2014 */
+   if( vv >= 93 ){
+     WARNING_message("Your copy of AFNI is over 3 months old -- please update it (if practicable).") ;
+     if( im3d->vwid->tips_pb != NULL )
+       (void) MCW_popup_message( im3d->vwid->tips_pb ,
+                                   " \n"
+                                   " Your copy of AFNI is over 3 months old.\n"
+                                   "   Please update it (if practicable).\n "  ,
+                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   } else if( vv < 0 ){
+     INFO_message("You are %d days AHEAD of the official AFNI compile date -- impressive!",-vv) ;
    }
 #endif
 
@@ -10244,12 +10265,12 @@ ENTRY("AFNI_mnito_CB") ;
    }
    LOAD_FVEC3(tv,xout,yout,zout) ;    /* load vector with new coordinates
                                          in dset's std space of tlrc view */
- 
+
    /* transform from +tlrc view space to current view (maybe orig) if needed */
    if( im3d->anat_now->view_type != VIEW_TALAIRACH_TYPE )
       tv = AFNI_transform_vector( im3d->anat_dset[VIEW_TALAIRACH_TYPE] ,
                                   tv , im3d->anat_now ) ;
-     
+
    nn = AFNI_jumpto_dicom( im3d , tv.xyz[0], tv.xyz[1], tv.xyz[2] ) ;
    if( nn < 0 ){ BEEPIT ; WARNING_message("'MNI To' failed!?") ; }
 

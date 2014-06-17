@@ -226,3 +226,13 @@ PA Bandettini, and ET Bullmore.
   * http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3791700/
   * http://dx.doi.org/10.1073/pnas.1301725110
 ----------------------------------------------------------------------------
+PA Taylor and ZS Saad.
+  FATCAT: (An Efficient) Functional And Tractographic Connectivity Analysis
+  Toolbox.  Brain Connectivity 3:523-535, 2013.
+
+  * Introducing diffusion-based tractography tools in AFNI, with particular
+    emphases on complementing FMRI analysis and in performing interactive
+    visualization with SUMA.
+  * http://www.ncbi.nlm.nih.gov/pubmed/23980912
+  * http://dx.doi.org/10.1089/brain.2013.0154
+----------------------------------------------------------------------------
