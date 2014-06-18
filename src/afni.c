@@ -4549,9 +4549,13 @@ if(PRINT_TRACING)
           case 'u':{
             int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
             uu = (uu+1) % (LAST_UNDERLAY_TYPE+1) ;
+#ifdef USE_UNDERLAY_BBOX
             MCW_set_bbox( im3d->vwid->func->underlay_bbox , 1<<uu ) ;
-            AFNI_underlay_CB( im3d->vwid->func->underlay_bbox->wbut[0] ,
-                              im3d , NULL ) ;
+            AFNI_underlay_CB( im3d->vwid->func->underlay_bbox->wbut[0] , im3d , NULL ) ;
+#else
+            im3d->vinfo->underlay_type = uu ;
+            AFNI_underlay_CB( NULL , im3d , (XtPointer)666 ) ;
+#endif
           }
           break ;
 
@@ -8846,8 +8850,9 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
 
       /* turn on various ways of making function into underlay */
 
-      SENSITIZE( im3d->vwid->func->underlay_bbox->wbut[UNDERLAY_ALLFUNC],
-                      have_fim ) ;
+#ifdef USE_UNDERLAY_BBOX
+      SENSITIZE( im3d->vwid->func->underlay_bbox->wbut[UNDERLAY_ALLFUNC], have_fim ) ;
+#endif
 
       /* set underlay type back to anat if no function */
 
@@ -8933,8 +8938,9 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
 
 STATUS(" -- function underlay widgets") ;
 
-   MCW_set_bbox( im3d->vwid->func->underlay_bbox ,
-                 1 << im3d->vinfo->underlay_type ) ;
+#ifdef USE_UNDERLAY_BBOX
+   MCW_set_bbox( im3d->vwid->func->underlay_bbox , 1 << im3d->vinfo->underlay_type ) ;
+#endif
 
    AFNI_assign_ulay_bricks(im3d) ;   /* 10 Jun 2014 */
 
@@ -9100,7 +9106,7 @@ STATUS(" -- turning time index control off") ;
    /*------------------------------------------*/
    /*--- attach to viewing windows (if any) ---*/
 
-   AFNI_underlay_CB( NULL , (XtPointer) im3d , NULL ) ;
+   AFNI_underlay_CB( NULL , im3d , NULL ) ;
 
    /* 04 Nov 2003: set range for image grayscaling? */
 

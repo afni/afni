@@ -3590,16 +3590,16 @@ STATUS("making func->rowcol") ;
    func->options_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , func->options_top_rowcol ,
-            LABEL_ARG("Background ") ,
+            LABEL_ARG("Edit OLay  ") ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    LABELIZE(func->options_label) ;
 
 #define VEDIT_COLOR_A "#000066"
 #define VEDIT_COLOR_B "#004466"
-#define VEDIT_NOPT  4
+#define VEDIT_NOPT    (VEDIT_LAST_VALUE+1)
    { static char *options_vedit_label[] =
-       { "Clusters" , "InstaCorr" , "InstaCalc" , "GrpInCorr" } ;
+       { "InstaCorr" , "InstaCalc" , "GrpInCorr" } ;
      int nopt = (num_entry==1) ? VEDIT_NOPT : VEDIT_NOPT-1 ;  /* no GrpInCorr after [A] */
      int ibut ;
      func->options_vedit_av = new_MCW_arrowval(
@@ -3655,8 +3655,9 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   /*-- underlay type --*/
+   /*--- underlay type [now available only via 'u' keypress: 18 Jun 2014] ---*/
 
+#ifdef USE_UNDERLAY_BBOX  /* don't reactivate this code without deep thought */
    func->underlay_bbox =
       new_MCW_bbox( func->ulaclu_rowcol ,
                     LAST_UNDERLAY_TYPE+1 , UNDERLAY_typestr ,
@@ -3677,19 +3678,15 @@ STATUS("making func->rowcol") ;
                            "Use thresholded overlay dataset for background" } ;
      MCW_bbox_hints( func->underlay_bbox , 3 , hh ) ;
    }
+#else
+   func->underlay_bbox = NULL ;
+#endif
 
-   /*--- 26 Mar 2007: clustering stuff moved here ---*/
-
-   func->vedit_frame = XtVaCreateWidget(
-           "dialog" , xmFrameWidgetClass , func->ulaclu_rowcol ,
-              XmNshadowType , XmSHADOW_ETCHED_IN ,
-              XmNshadowThickness , 2 ,
-              XmNinitialResourcesPersistent , False ,
-           NULL ) ;
+   /*--- 18 Jun 2014: Clusterize separated to be where underlay_bbox used to live ---*/
 
    func->clu_rowcol =
-      XtVaCreateWidget(
-         "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
+      XtVaCreateManagedWidget(
+         "dialog" , xmRowColumnWidgetClass , func->ulaclu_rowcol ,
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
             XmNmarginHeight, 0 ,
@@ -3699,7 +3696,7 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    im3d->vedset.code = 0 ; im3d->vedset.ival = -1 ;
-   im3d->vedskip = 0 ;  /* 20 Dec 2007 */
+   im3d->vedskip = 0 ;   /* 20 Dec 2007 */
    im3d->vednomask = 0 ; /* 01 Aug 2011 */
 
    func->clu_cluster_pb =
@@ -3768,10 +3765,19 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->clu_report_pb , "Open cluster report window" ) ;
    XtManageChild( hrc ) ;
 
+   /*--- 26 Mar 2007: other Insta stuff moved here [18 Jun 2014: clustering moved above] ---*/
+
+   func->vedit_frame = XtVaCreateManagedWidget(
+           "dialog" , xmFrameWidgetClass , func->ulaclu_rowcol ,
+              XmNshadowType , XmSHADOW_ETCHED_IN ,
+              XmNshadowThickness , 2 ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+
    /*--- 05 May 2009: InstaCorr stuff ---*/
 
    func->icor_rowcol =
-      XtVaCreateWidget(
+      XtVaCreateManagedWidget(
          "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
@@ -4342,6 +4348,7 @@ STATUS("making func->rowcol") ;
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
    XtManageChild( func->clu_rowcol ) ;
+   XtManageChild( func->icor_rowcol ) ;
    XtManageChild( func->vedit_frame ) ;
    XtManageChild( func->ulaclu_rowcol ) ;
    XtManageChild( func->options_rowcol ) ;
@@ -7054,6 +7061,7 @@ ENTRY("AFNI_vedit_CB") ;
    XtUnmanageChild( im3d->vwid->func->vedit_frame ) ;
 
    switch( av->ival ){
+#if 0
      /* switch to Clusters */
      case 0:
        DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
@@ -7066,26 +7074,35 @@ ENTRY("AFNI_vedit_CB") ;
          XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
      break ;
+#endif
 
      /* switch to InstaCorr */
-     case 1:
+     case VEDIT_INSTACORR:
+#if 0
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
+#endif
        DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
+#if 0
        XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+#endif
        if( im3d->vwid->func->gicor_rowcol != NULL )
          XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
      break ;
 
      /* switch to InstaCalc [18 Sep 2009] */
-     case 2:
+     case VEDIT_INSTACALC:
+#if 0
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
+#endif
        DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
        DESTROY_ICOR_setup(im3d->iset) ;
        DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
+#if 0
        XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+#endif
        XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
        if( im3d->vwid->func->gicor_rowcol != NULL )
          XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
@@ -7093,13 +7110,15 @@ ENTRY("AFNI_vedit_CB") ;
      break ;
 
      /* switch to Group InstaCorr [22 Dec 2009] */
-     case 3:
+     case VEDIT_GRINCORR:
        if( im3d->vwid->func->gicor_rowcol != NULL ){
          DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
          DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
          DESTROY_ICOR_setup(im3d->iset) ;
+#if 0
          UNCLUSTERIZE(im3d) ;                               /* Clusters off */
          XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+#endif
          XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
          XtManageChild  ( im3d->vwid->func->gicor_rowcol) ;

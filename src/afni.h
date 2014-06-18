@@ -665,6 +665,8 @@ extern float THR_top_value ;
 
 #undef USE_FUNC_FIM              /* 09 Dec 1997 */
 
+#undef USE_UNDERLAY_BBOX         /* 18 Jun 2014 */
+
 typedef struct {
       Widget frame , rowcol ;
 
@@ -1219,6 +1221,11 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 #define GO_COLOR   "#005500"
 #define WORK_COLOR "#888800"
 
+#define VEDIT_INSTACORR  0
+#define VEDIT_INSTACALC  1
+#define VEDIT_GRINCORR   2
+#define VEDIT_LAST_VALUE 2
+
 #define INSTACORR_LABEL_ON(iq)                                          \
  do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"** Ready **") ; \
      MCW_set_widget_bg   ((iq)->vwid->func->icor_label,GO_COLOR,0   ) ; \
@@ -1296,7 +1303,7 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 
 #define GRPINCORR_LABEL_ON(iq)                                             \
  do{ if( (iq)->vwid->func->gicor_rowcol != NULL ){                         \
-       MCW_set_widget_label((iq)->vwid->func->gicor_label,"** Ready **") ; \
+       MCW_set_widget_label((iq)->vwid->func->gicor_label,"*GIC Ready*") ; \
        MCW_set_widget_bg   ((iq)->vwid->func->gicor_label,GO_COLOR,0   ) ; \
      } } while(0)
 

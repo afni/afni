@@ -280,7 +280,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
    ncall = 0 ;
 
-   if( !IM3D_OPEN(im3d) || im3d->vwid->func->options_vedit_av->ival != 1 ){
+   if( !IM3D_OPEN(im3d) || im3d->vwid->func->options_vedit_av->ival != VEDIT_INSTACORR ){
      XtUnmapWidget(plint->wid->shell); return NULL;
    }
 
@@ -716,8 +716,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
    /* redisplay overlay */
 
    if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
-   if( im3d->fim_now != icoset ||
-       im3d->iset->change ){  /* switch to this dataset */
+   if( im3d->fim_now != icoset || im3d->iset->change ){  /* switch to this dataset */
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      cbs.ival = nds ;
    
@@ -743,6 +742,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
+   if( VEDIT_good(im3d->vedset) ) im3d->vedset.flags = 1 ;  /* 18 Jun 2014 */
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay is off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
@@ -1056,7 +1056,12 @@ ENTRY("GICOR_setup_func") ;
 
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
-   GICOR_refit_stat_menus() ;  /* 14 May 2010 */
+   GICOR_refit_stat_menus() ; /* 14 May 2010 */
+
+   if( im3d->vwid->func->options_vedit_av->ival != VEDIT_GRINCORR ){
+     AV_assign_ival( im3d->vwid->func->options_vedit_av , VEDIT_GRINCORR ) ;
+     AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
+   }
 
    EXRETURN ;
 }
@@ -1199,6 +1204,7 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
    if( called_before[ic] ) AFNI_ignore_pbar_top(1) ;  /* 03 Jun 2014 */
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
+   if( VEDIT_good(im3d->vedset) ) im3d->vedset.flags = 1 ;  /* 18 Jun 2014 */
    if( MCW_val_bbox(im3d->vwid->view->see_func_bbox) == 0 ){ /* overlay = off */
      char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      sprintf(cmd,"SEE_OVERLAY %c.+",cpt[1]) ;
@@ -1212,10 +1218,16 @@ INFO_message("AFNI received %d vectors, length=%d",nel->vec_num,nvec) ;
      qq3d = GLOBAL_library.controllers[vv] ;
      if( !IM3D_OPEN(qq3d) ) continue ;
      if( qq3d->fim_now == giset->dset && MCW_val_bbox(qq3d->vwid->view->see_func_bbox) ){
+       if( VEDIT_good(qq3d->vedset) ) qq3d->vedset.flags = 1 ;  /* 18 Jun 2014 */
        AFNI_reset_func_range(qq3d) ; AFNI_redisplay_func(qq3d) ;
      }
    }
    AFNI_ignore_pbar_top(0) ;
+
+   if( im3d->vwid->func->options_vedit_av->ival != VEDIT_GRINCORR ){
+     AV_assign_ival( im3d->vwid->func->options_vedit_av , VEDIT_GRINCORR ) ;
+     AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
+   }
 
    giset->busy = 0 ; /* Not busy waiting anymore [18 Mar 2010] */
    GRPINCORR_LABEL_ON(im3d) ;                  /* 07 Apr 2010 */

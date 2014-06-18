@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , JUN , 2014 , RWC , "afni Clusterize GUI" , MICRO , TYPE_MODIFY ,
+  { 18 , JUN , 2014 , RWC , "afni GUI" , MINOR , TYPE_MODIFY ,
+   "Move Clusterize outside of Instastuff menu" ,
+   "So Clusterize is now available for InstaCorr, etc.  The bkgd:xxxx box is\n"
+   "gone, its functionality living on only in the 'u' image keypress." } ,
+
+ { 16 , JUN , 2014 , RWC , "afni Clusterize GUI" , MICRO , TYPE_MODIFY ,
    "Save->Mask??" ,
    "Toggle switch added to hidden popup on top part of report window.  If\n"
    "switched on, the cluster-wise 'Save' buttons become 'Mask' buttons,\n"

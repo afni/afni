@@ -232,6 +232,7 @@ ENTRY("AFNI_clu_CB") ;
      float fvec[2] ;
      MCW_arrowval **vav ; int nav ;
 
+#if 0
      if( im3d->giset != NULL && im3d->giset->ready ){  /* 20 Oct 2010 */
        (void)MCW_popup_message( w ,
                                  " You can't use Clusterize \n"
@@ -241,6 +242,7 @@ ENTRY("AFNI_clu_CB") ;
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
        BEEPIT ; EXRETURN ;
      }
+#endif
 
      if( im3d->vedset.code == VEDIT_CLUST ){
        fvec[0] = -im3d->vedset.param[2];
