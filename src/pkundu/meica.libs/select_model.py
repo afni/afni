@@ -1,3 +1,18 @@
+__version__="v2.5 beta8"
+welcome_block="""
+# Multi-Echo ICA, Version %s
+#
+# Kundu, P., Brenowitz, N.D., Voon, V., Worbe, Y., Vertes, P.E., Inati, S.J., Saad, Z.S., 
+# Bandettini, P.A. & Bullmore, E.T. Integrated strategy for improving functional 
+# connectivity mapping using multiecho fMRI. PNAS (2013).
+#
+# Kundu, P., Inati, S.J., Evans, J.W., Luh, W.M. & Bandettini, P.A. Differentiating 
+#   BOLD and non-BOLD signals in fMRI time series using multi-echo EPI. NeuroImage (2011).
+# http://dx.doi.org/10.1016/j.neuroimage.2011.12.028
+#
+# PROCEDURE 2a: Model fitting and component selection routines
+"""
+
 import numpy as np
 
 def fitmodels_direct(catd,mmix,mask,t2s,tes,fout=None,reindex=False,mmixN=None,full_sel=True,debugout=False):
@@ -182,7 +197,7 @@ def fitmodels_direct(catd,mmix,mask,t2s,tes,fout=None,reindex=False,mmixN=None,f
 	return seldict,comptab,betas,mmix_new
 
 
-def selcomps(seldict,debug=False,olevel=1,oversion=99):
+def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 
 	#import ipdb
 
@@ -191,7 +206,7 @@ def selcomps(seldict,debug=False,olevel=1,oversion=99):
 
 	#List of components
 	midk = []
-	empty = []
+	ign = []
 	nc = np.arange(len(Kappas))
 	ncl = np.arange(len(Kappas))
 
@@ -201,9 +216,22 @@ def selcomps(seldict,debug=False,olevel=1,oversion=99):
 			acc = sorted([int(vv) for vv in options.manacc.split(',')])
 			midk = []
 			rej = sorted(np.setdiff1d(ncl,acc))
-			return acc,rej,midk #Add string for empty
+			return acc,rej,midk #Add string for ign
 	except: 
 		pass
+
+	"""
+	Set knobs
+	"""
+	LOW_PERC=25
+	HIGH_PERC=90
+	EXTEND_FACTOR=2
+	try:
+		if nt<100: EXTEND_FACTOR=3
+	except: pass
+	RESTRICT_FACTOR=2
+	if knobargs!='': 
+		for knobarg in ''.join(knobargs).split(','): exec(knobarg)
 
 	"""
 	Do some tallies for no. of significant voxels
@@ -212,7 +240,6 @@ def selcomps(seldict,debug=False,olevel=1,oversion=99):
 	countsigFS0 = F_S0_clmaps.sum(0)
 	countsigFR2 = F_R2_clmaps.sum(0)
 	countnoise = np.zeros(len(nc))
-	countsvn = np.zeros(len(nc))
 
 	"""
 	Make table of dice values
@@ -233,100 +260,107 @@ def selcomps(seldict,debug=False,olevel=1,oversion=99):
 	for ii in nc:
 		comp_noise_sel = andb([np.abs(Z_maps[:,ii])>1.95,Z_clmaps[:,ii]==0])==2
 		countnoise[ii] = np.array(comp_noise_sel,dtype=np.int).sum()
-		countsvn[ii] = np.array(Z_clmaps[:,ii]==1,dtype=np.int).sum()/countnoise[ii]
 		noise_FR2_Z = np.log10(np.unique(F_R2_maps[comp_noise_sel,ii]))
 		signal_FR2_Z  = np.log10(np.unique(F_R2_maps[Z_clmaps[:,ii]==1,ii]))
 		counts_FR2_Z[ii,:] = [len(signal_FR2_Z),len(noise_FR2_Z)]
-		tt_table[ii,:2] = stats.ttest_ind(signal_FR2_Z,noise_FR2_Z,equal_var=False) 
+		tt_table[ii,:2] = stats.ttest_ind(signal_FR2_Z,noise_FR2_Z,equal_var=False)
+	tt_table[np.isnan(tt_table)]=0
 	
 	"""
 	Assemble decision table
 	"""
-	d_table_full = np.vstack([Kappas,Rhos,dice_table.T,tt_table[:,0]]).T
 	d_table_rank = np.vstack([len(nc)-rankvec(Kappas), len(nc)-rankvec(dice_table[:,0]), \
-		 len(nc)-rankvec(tt_table[:,0]), rankvec(countnoise) ]).T
+		 len(nc)-rankvec(tt_table[:,0]), rankvec(countnoise), len(nc)-rankvec(countsigFR2) ]).T
 	d_table_score = d_table_rank.sum(1)
 
 	"""
 	Step 1: Reject anything that's obviously an artifact
 	a. Estimate a null variance
 	"""
-	rej = ncl[andb([Rhos*1.1>Kappas,countsigFS0*1.1>countsigFR2])>0]
+	rej = ncl[andb([Rhos>Kappas,countsigFS0>countsigFR2])>0]
 	rej = np.union1d(rej,ncl[andb([dice_table[:,1]>dice_table[:,0],varex>np.median(varex)])==2])
+	rej = np.union1d(rej,ncl[andb([tt_table[ncl,0]<0,varex[ncl]>np.median(varex)])==2])
 	ncl = np.setdiff1d(ncl,rej)
-	varex_ub_p = np.median(varex)
+	varex_ub_p = np.median(varex[Kappas>Kappas[getelbow(Kappas)]])
 
 	"""
-	Step 2: Make a  guess for what the good components are, and good component properties
+	Step 2: Make a  guess for what the good components are, in order to estimate good component properties
 	a. Not outlier variance
 	b. Kappa>kappa_elbow
 	c. Rho<Rho_elbow
 	d. High R2* dice compared to S0 dice
 	e. Gain of F_R2 in clusters vs noise
-	f. Estimate a low and high variance, and number of sig. voxels
+	f. Estimate a low and high variance
 	"""
 	ncls = ncl.copy()
 	for nn in range(3): ncls = ncls[1:][(varex[ncls][1:]-varex[ncls][:-1])<varex_ub_p] #Step 2a
-	Kappas_lim = Kappas[Kappas<100]
-	Kappas_elbow = min(scoreatpercentile(F_R2_maps.flatten(),95),Kappas[getelbow(Kappas)],Kappas_lim[getelbow(Kappas_lim)])
-	Rhos_lim = Rhos[ncls]
-	Rhos_elbow = Rhos_lim[getelbow(Rhos_lim)]
-	good_guess = ncls[andb([Kappas[ncls]>=Kappas_elbow, Rhos[ncls]<Rhos_elbow, dice_table[ncls,0]>2*dice_table[ncls,1],tt_table[ncls,0]>0 ])==4]
-	varex_lb = scoreatpercentile(varex[good_guess],25)
-	varex_ub = scoreatpercentile(varex[good_guess],90)
-	countsigZ_lb = scoreatpercentile(countsigZ[rej],25)
-
-	"""
-	Step 3: Get rid of drift components based on emptiness and 
-	 ultra high variance
-	"""
-	midkadd = ncl[varex[ncl]>7.5*varex_ub]
-	midk = np.union1d(midkadd, ncl[andb([varex[ncl]>3*varex_ub, countsigZ[ncl]<countsigZ_lb])==2  ]  )
-	ncl = np.setdiff1d(ncl,midk)
+	Kappas_lim = Kappas[Kappas<getfbounds(ne)[-1]]
+	Rhos_lim = np.array(sorted(Rhos[ncls])[::-1])
+	Rhos_sorted = np.array(sorted(Rhos)[::-1])
+	Kappas_elbow = min(Kappas_lim[getelbow(Kappas_lim)],Kappas[getelbow(Kappas)])
+	Rhos_elbow = np.median([Rhos_lim[getelbow(Rhos_lim)]  , Rhos_sorted[getelbow(Rhos_sorted)], getfbounds(ne)[0]])
+	good_guess = ncls[andb([Kappas[ncls]>=Kappas_elbow, Rhos[ncls]<Rhos_elbow])==2]
+	Kappa_rate = (max(Kappas[good_guess])-min(Kappas[good_guess]))/(max(varex[good_guess])-min(varex[good_guess]))
+	Kappa_ratios = Kappa_rate*varex/Kappas
+	varex_lb = scoreatpercentile(varex[good_guess],LOW_PERC )
+	varex_ub = scoreatpercentile(varex[good_guess],HIGH_PERC)
 
 	if debug:
 		import ipdb
 		ipdb.set_trace()
 
 	"""
-	Step 4: Get rid of midk components which have higher than max decision score and high variance
+	Step 3: Get rid of midk components - those with higher than max decision score and high variance
 	"""
-	max_good_d_score = 1.25*len(good_guess)*d_table_rank.shape[1] #25% leniency factor
-	midkadd = ncl[andb([d_table_score[ncl] > max_good_d_score, varex[ncl] > varex_ub])==2]
-	midkadd = np.intersect1d(ncl[varex[ncl]>varex_lb],ncl[tt_table[ncl,0]<0])
-	midk = np.union1d(midkadd, midk  )
+	max_good_d_score = EXTEND_FACTOR*len(good_guess)*d_table_rank.shape[1]
+	midkadd = ncl[andb([d_table_score[ncl] > max_good_d_score, varex[ncl] > EXTEND_FACTOR*varex_ub])==2]
+	midk = np.union1d(midkadd, midk)
 	ncl = np.setdiff1d(ncl,midk)
 
 	"""
-	Step 5: Find components to ignore
+	Step 4: Find components to ignore
 	"""
-	emptycand = np.setdiff1d(ncl,np.union1d(good_guess, ncl[varex[ncl]>varex_lb]))
-	emptycand = np.setdiff1d(emptycand, emptycand[d_table_score[emptycand]<scoreatpercentile(d_table_score[good_guess],90)]) 
-	empty = np.array(np.union1d(empty,emptycand),dtype=np.int)
-	ncl = np.setdiff1d(ncl,empty)
+	good_guess = np.setdiff1d(good_guess,midk)
+	loaded = np.union1d(good_guess, ncl[varex[ncl]>varex_lb])
+	igncand = np.setdiff1d(ncl,loaded)
+	igncand = np.setdiff1d(igncand, igncand[d_table_score[igncand]<max_good_d_score])
+	igncand = np.setdiff1d(igncand,igncand[Kappas[igncand]>Kappas_elbow])
+	ign = np.array(np.union1d(ign,igncand),dtype=np.int)
+	ncl = np.setdiff1d(ncl,ign)
 
 	if debug:
 		import ipdb
 		ipdb.set_trace()
 
 	"""
-	Step 6: Scrub the tail and remove low Kappa spike components
+	Step 5: Scrub the set
 	"""
+
 	if len(ncl)>len(good_guess):
-		tail = ncl[len(good_guess):]
-		midkadd = np.intersect1d(tail,ncl[rankvec(varex[ncl])-rankvec(Kappas[ncl])>len(ncl)/2])
-		try:
-			kurts = stats.kurtosis(mmix)
-			tail_scrub = np.intersect1d(tail,ncl[kurts[ncl]>4*scoreatpercentile(kurts[good_guess],90)])
-			midkadd = np.union1d(midkadd,tail_scrub)
-		except:
-			pass
-	midk = np.union1d(midk,midkadd)
-	ncl = np.setdiff1d(ncl,midk)
+		#Recompute the midk steps on the limited set to clean up the tail
+		d_table_rank = np.vstack([len(ncl)-rankvec(Kappas[ncl]), len(ncl)-rankvec(dice_table[ncl,0]),len(ncl)-rankvec(tt_table[ncl,0]), rankvec(countnoise[ncl]), rankvec(Rhos[ncl]), len(ncl)-rankvec(countsigFR2[ncl])]).T
+		d_table_score = d_table_rank.sum(1)
+		num_acc_guess = np.mean([np.sum(andb([Kappas[ncl]>Kappas_elbow,Rhos[ncl]<Rhos_elbow])==2), np.sum(Kappas[ncl]>Kappas_elbow)])
+		candartA = np.intersect1d(ncl[d_table_score>num_acc_guess*d_table_rank.shape[1]/RESTRICT_FACTOR],ncl[Kappa_ratios[ncl]>EXTEND_FACTOR*2])
+		midkadd = np.union1d(midkadd,np.intersect1d(candartA,candartA[varex[candartA]>varex_ub*EXTEND_FACTOR]))
+		candartB = ncl[d_table_score>num_acc_guess*d_table_rank.shape[1]*HIGH_PERC/100.]
+		midkadd = np.union1d(midkadd,np.intersect1d(candartB,candartB[varex[candartB]>varex_lb*EXTEND_FACTOR]))
+		midk = np.union1d(midk,midkadd)
+		#Find comps to ignore
+		new_varex_lb = scoreatpercentile(varex[ncl[:num_acc_guess]],LOW_PERC)
+		candart = np.setdiff1d(ncl[d_table_score>num_acc_guess*d_table_rank.shape[1]],midk)
+		ignadd = np.intersect1d(candart,candart[varex[candart]>new_varex_lb])
+		ignadd = np.union1d(ignadd,np.intersect1d(ncl[Kappas[ncl]<=Kappas_elbow],ncl[varex[ncl]>new_varex_lb]))
+		ign = np.setdiff1d(np.union1d(ign,ignadd),midk)
+		ncl = np.setdiff1d(ncl,np.union1d(midk,ign))
+		#Get rid of comps with very disproportionate Kappa vs varex
+		candartC = ncl[rankvec(varex[ncl])-rankvec(Kappas[ncl])>len(ncl)/RESTRICT_FACTOR]
+		midk = np.union1d(midk,np.intersect1d(candartC,ncl[Kappa_ratios[ncl]>EXTEND_FACTOR]))
+		ncl = np.setdiff1d(ncl,midk)
 
 	if debug:
 		import ipdb
 		ipdb.set_trace()
 
-	return list(sorted(ncl)),list(sorted(rej)),list(sorted(midk)),list(sorted(empty))
+	return list(sorted(ncl)),list(sorted(rej)),list(sorted(midk)),list(sorted(ign))
 
