@@ -2252,7 +2252,11 @@ ENTRY("AFNI_assign_ulay_bricks") ;
          im3d->b123_ulay = im3d->b123_anat ;
          im3d->b231_ulay = im3d->b231_anat ;
          im3d->b312_ulay = im3d->b312_anat ;
+#ifdef USE_UNDERLAY_BBOX
          MCW_set_bbox( im3d->vwid->func->underlay_bbox , 1<<UNDERLAY_ANAT ) ;
+#else
+         im3d->vinfo->underlay_type = UNDERLAY_ANAT ;
+#endif
        }
      break ;
    }
@@ -2271,17 +2275,21 @@ ENTRY("AFNI_assign_ulay_bricks") ;
 
 void AFNI_underlay_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
-   int bval ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   int bval , force_redraw=(cb != NULL) ;
    Boolean seq_exist ;
 
 ENTRY("AFNI_underlay_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
+#ifdef USE_UNDERLAY_BBOX
    if( w != NULL ) bval = AFNI_first_tog( LAST_UNDERLAY_TYPE+1 ,
                                           im3d->vwid->func->underlay_bbox->wbut ) ;
    else            bval = im3d->vinfo->underlay_type ;
+#else
+   bval = im3d->vinfo->underlay_type ;
+#endif
 
    if( bval == im3d->vinfo->underlay_type && w != NULL && IM3D_ULAY_COHERENT(im3d) ) EXRETURN ;
 
@@ -2421,7 +2429,7 @@ ENTRY("AFNI_underlay_CB") ;
 
       im3d->ignore_seq_callbacks = AFNI_IGNORE_NOTHING ;
 
-      if( w != NULL ){            /* a real callback */
+      if( w != NULL || force_redraw ){  /* a real callback */
           SHOW_AFNI_PAUSE ;
           AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
           SHOW_AFNI_READY ;
