@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__="v2.5 beta5"
+__version__="v2.5 beta6"
 """
 # Multi-Echo ICA, Version %s
 # See http://dx.doi.org/10.1016/j.neuroimage.2011.12.028
@@ -35,6 +35,7 @@ parser.add_option('-t',"",dest='t2s',help="T2* volume",default='')
 parser.add_option('-s',"",dest='s0',help="Skull-stripped S0 weighted volume, optional, for masking T2*",default='')
 parser.add_option('-a',"",dest='anat',help="Anatomical volume",default='')
 parser.add_option('-p',"",dest='prefix',help="Alignment matrix prefix" ,default='')
+parser.add_option('',"--cmass",action='store_true',dest='cmass',help="Align cmass before main co-registration" ,default=False)
 parser.add_option('',"--maxrot",dest='maxrot',help="Maximum rotation, default 30" ,default='30')
 parser.add_option('',"--maxshift",dest='maxshf',help="Maximum shift, default 30" ,default='30')
 parser.add_option('',"--maxscl",dest='maxscl',help="Maximum shift, default 30" ,default='1.2')
@@ -122,7 +123,9 @@ def allineate(sourcevol, weight, targetvol, prefix, maxrot, maxshf,maxscl):
 	"""
 	outvol_prefix = "%s_al"  % prefix
 	outmat_prefix = "%s_al_mat"  % prefix
-	align_opts = "-lpc -weight %s -maxshf %s -maxrot %s -maxscl %s" % (weightvol, maxrot, maxshf,maxscl)
+	cmass_opt = ''
+	if options.cmass: cmass_opt = '-cmass'
+	align_opts = "-lpc -weight %s -maxshf %s -maxrot %s -maxscl %s %s" % (weightvol, maxrot, maxshf,maxscl,cmass_opt)
 	sl.append("3dAllineate -overwrite -weight_frac 1.0 -VERB -warp aff -source_automask+2 -master SOURCE -source %s -base %s -prefix ./%s -1Dmatrix_save ./%s %s " \
 		% (sourcevol,targetvol,outvol_prefix,outmat_prefix,align_opts))
 	outvol_name = niibrik(outvol_prefix)
