@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__="v2.5 beta5"
+__version__="v2.5 beta8"
 welcome_block="""
 # Multi-Echo ICA, Version %s
 #
@@ -604,7 +604,7 @@ if __name__=='__main__':
 		mmix_orig = tedica(dd,cost=options.initcost)
 		np.savetxt('__meica_mix.1D',mmix_orig)
 		seldict,comptable,betas,mmix = fitmodels_direct(catd,mmix_orig,mask,t2s,tes,options.fout,reindex=True)
-		acc,rej,midk,empty = selcomps(seldict)
+		acc,rej,midk,empty = selcomps(seldict,knobargs=args)
 		np.savetxt('meica_mix.1D',mmix)
 		del dd
 	else:
@@ -612,7 +612,7 @@ if __name__=='__main__':
 		eim = eimask(np.float64(fmask(catd,mask)))==1
 		eimum = np.array(np.squeeze(unmask(np.array(eim,dtype=np.int).prod(1),mask)),dtype=np.bool)
 		seldict,comptable,betas,mmix = fitmodels_direct(catd,mmix_orig,mask,t2s,tes,options.fout)
-		acc,rej,midk,empty = selcomps(seldict)
+		acc,rej,midk,empty = selcomps(seldict,knobargs=args)
             
 	
 	print "++ Writing optimally combined time series"

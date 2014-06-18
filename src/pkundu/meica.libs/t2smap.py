@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-
-"""
-# Multi-Echo ICA, Version 2.0
+__version__="v2.5 beta6"
+welcome_block="""
+# Multi-Echo ICA, Version %s
 # See http://dx.doi.org/10.1016/j.neuroimage.2011.12.028
 # Kundu, P., Inati, S.J., Evans, J.W., Luh, W.M. & Bandettini, P.A. Differentiating 
 #	BOLD and non-BOLD signals in fMRI time series using multi-echo EPI. NeuroImage (2011).
 #
-# tedana.py version 2.0 	(c) 2012 Prantik Kundu, Noah Brenowitz, Souheil Inati
-# tedana.py version 1.0		(c) 2012 Noah Brenowitz, Prantik Kundu, Souheil Inati
-# tedana.py version 0.5		(c) 2011 Prantik Kundu, Souheil Inati
+# Kundu, P., Inati, S.J., Evans, J.W., Luh, W.M. & Bandettini, P.A. Differentiating 
+#   BOLD and non-BOLD signals in fMRI time series using multi-echo EPI. NeuroImage (2011).
+# http://dx.doi.org/10.1016/j.neuroimage.2011.12.028
+#
+# t2smap.py version 2.5 	(c) 2014 Prantik Kundu, Noah Brenowitz, Souheil Inati
 #
 #Computes T2* map
 """
