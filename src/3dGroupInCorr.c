@@ -1591,6 +1591,13 @@ int main( int argc , char *argv[] )
       "\n"
       "-----------*** Group InstaCorr and AFNI's Clusterize function ***-----------\n"
       "\n"
+#if 1
+      "In the past, you could not use Clusterize in the AFNI A controller at the\n"
+      "same time that 3dGroupInCorr was actively connected.\n"
+      "           ***** This situation is no longer the case:   *****\n"
+      "          ****** Clusterize is available with InstaCorr! ******\n"
+      "In particular, the 'Rpt' (report) button is very useful with 3dGroupInCorr.\n"
+#else
       "At this moment in history, you can't use Clusterize in the AFNI A controller at\n"
       "the same time that 3dGroupInCorr is actively connected.  If you also want to\n"
       "Clusterize the maps from this program, there are 2 slightly clumsy methods\n"
@@ -1622,6 +1629,7 @@ int main( int argc , char *argv[] )
       "      your GrpInCorr seed in the A image viewers but view the results\n"
       "      you want to see in the B image viewers.  And scrolling around in\n"
       "      the unlocked image viewers can also be annoying.\n"
+#endif
       "\n"
       "If you use '-covariates' and '-sendall', 3dGroupInCorr will send to AFNI\n"
       "a set of 1D files containing the covariates.  You can use one of these\n"
