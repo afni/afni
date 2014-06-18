@@ -405,7 +405,7 @@ dataTable.AFNI.parse <- function(opts) {
       opts <- scan(ff, what='character')    
       opts <- opts[grep('[^\\\\]',opts)]
    }
-   browser()
+
    return(opts);
 }
 
