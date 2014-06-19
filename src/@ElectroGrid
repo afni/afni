@@ -73,7 +73,7 @@ TWOD:
    
 MERGE_COORDS:
    ConvexHull -input_1D /tmp/${RNS}.xyielec.1D -q_opt triangulate_xy \
-              $tcopt  -o_gii $prefix
+              $tcopt  -o $prefix
 
 goto END
 
@@ -81,7 +81,7 @@ COORDS_BASED:
    1dcat "$coords" > /tmp/${RNS}.xyz.1D
    ConvexHull  -input_1D /tmp/${RNS}.xyz.1D \
                -q_opt triangulate_xy -proj_xy -orig_coord \
-               -o_gifti_asc $prefix
+               -o $prefix
 goto END
 
 PARSE:
