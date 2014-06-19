@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 19 , JUN , 2014 , RWC , "@Install_ClustScat_Demo" , MINOR , TYPE_NEW_PROG ,
+   "Installs demo for Clusterize scatter plotting" ,
+   NULL } ,
+
+ { 19 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Modify shft+ctrl+drag InstaCorr slightly" ,
    "So that Clusterize report table is NOT updated until the user releases\n"
    "the mouse button -- otherwise, the constant table updating slows things\n"
