@@ -1,0 +1,104 @@
+#!/bin/tcsh -f
+
+set stat = 0
+set sdir = $PWD
+
+set cdir = `\pwd | \grep AFNI_ClustScatDemo`
+if ($status == 0 && ${cdir} != '') then
+   echo "You should not run this command from a directory under AFNI_ClustScatDemo"
+   set sugdir = `echo $cdir | sed 's/AFNI_ClustScatDemo/ /g' | cut -f 1 -d ' '`
+   echo "Consider running this script again with: "
+   echo "   cd $sugdir"
+   echo "   `basename $0` $argv[*]"
+   echo ""
+   goto END
+endif
+
+goto PARSE
+RET_PARSE:
+
+if ( -f AFNI_ClustScatDemo/AAA_README.txt ) then
+  echo "** NOTICE **"
+  echo "  AFNI_ClustScatDemo directory already exists"
+  echo "  If you need to reinstall, remove both AFNI_ClustScatDemo and"
+  echo "   AFNI_ClustScatDemo.tgz with the command:"
+  echo "\rm -rf AFNI_ClustScatDemo.tgz AFNI_ClustScatDemo"
+  echo "   then run `basename $0` $argv[*] again."
+  goto END
+endif
+
+if ( ! -f AFNI_ClustScatDemo.tgz) then
+   which curl
+   if ($status) then
+      wget http://afni.nimh.nih.gov/pub/dist/data/AFNI_ClustScatDemo.tgz
+   else
+      curl -O http://afni.nimh.nih.gov/pub/dist/data/AFNI_ClustScatDemo.tgz
+   endif
+   tar xvzf AFNI_ClustScatDemo.tgz
+else
+   echo "Re-using existing AFNI_ClustScatDemo.tgz"
+   tar xvzf AFNI_ClustScatDemo.tgz
+endif
+
+if( ! -f AFNI_ClustScatDemo/AAA_README.txt ) then
+   echo "** ERROR **"
+   echo "  Installation failed :-("
+   goto BEND
+endif
+
+set ret_coms = END
+
+SHOW_COM:
+   echo "*****************"
+   echo ""
+   echo "The instructions for interactive graphing of"
+   echo "Clusterize ROI averages vs. an external 1D"
+   echo "file (e.g., a subject-level covariate) are"
+   echo "in file $PWD/AFNI_ClustScatDemo/AAA_README.txt"
+   echo ""
+   echo "*****************"
+goto $ret_coms
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set donext = 0;	 goto NEXT	
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+goto RET_PARSE
+
+HELP:
+   echo "Installs and sets up AFNI's ClustScat demo archive"
+   echo "After setup, read file $PWD/AFNI_ClustScatDemo/AAA_README.txt"
+   echo "for further instructions."
+   set ret_coms = HELP_COM
+   goto SHOW_COM
+   HELP_COM:
+   echo ""
+   echo "It takes a while to download and unpack the data archive."
+   echo ""
+   goto END
+
+BEND:
+   echo "** Failed **"
+   set stat = 1
+   goto END
+   
+END:
+   exit $stat
