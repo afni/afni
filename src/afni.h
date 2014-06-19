@@ -1081,6 +1081,11 @@ typedef struct {
 #define IM3D_HAVEGR(ii) ((ii)->g123 != NULL || (ii)->g231 != NULL || (ii)->g312 != NULL)
 #define IM3D_FUNKY(ii)  (IM3D_OPEN(ii) && IM3D_HAVEIM(ii) && (ii)->vinfo->func_visible)
 
+#define IM3D_SHFT_CTRL_DRAG(iq)                                \
+ ( ( (iq)->s123 != NULL && (iq)->s123->shft_ctrl_dragged ) ||  \
+   ( (iq)->s231 != NULL && (iq)->s231->shft_ctrl_dragged ) ||  \
+   ( (iq)->s312 != NULL && (iq)->s312->shft_ctrl_dragged )   )
+
 #define ISVALID_IM3D(ii) IM3D_VALID(ii)
 
 #define AFNI_IGNORE_NOTHING    0
