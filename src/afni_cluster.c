@@ -1129,6 +1129,7 @@ static void AFNI_cluster_widgize( Three_D_View *im3d , int force )
    if( !force ){
      if( im3d->vwid->func->cwid == NULL ) return ;
      if( !MCW_widget_visible(im3d->vwid->func->cwid->wtop) ) return ;
+     if( IM3D_SHFT_CTRL_DRAG(im3d) ) return ;
    }
    AFNI_clus_update_widgets( im3d ) ;
    if( im3d->vwid->func->cwid != NULL ){
@@ -1963,7 +1964,7 @@ ENTRY("AFNI_clus_action_CB") ;
            for( kk=0 ; kk < niy ; kk++ ){
              for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = spar[jj+sbot] ;
            }
-           sprintf(xlab,"%.62s[%d..%d]",cwid->splotim->name,sbot,sbot+nix-1) ;
+           sprintf(xlab,"\\noesc %.62s[%d..%d]",cwid->splotim->name,sbot,sbot+nix-1) ;
          } else {
            for( kk=0 ; kk < niy ; kk++ )
              for( jj=0 ; jj < nix ; jj++ ) xar[jj+kk*nix] = jj+ibot ;
@@ -1996,11 +1997,11 @@ ENTRY("AFNI_clus_action_CB") ;
                        "\\esc\\red  %s=%.2f\\in[%.2f..%.2f]_{95%%}",rlab,pcor,p025,p975) ;
              else
                sprintf(tlab+strlen(tlab),
-                       "\\esc\\red  R=%.3f\\in[%.3f..%.3f]_{95%%}",pcor,p025,p975) ;
+                       "\\esc\\red  %s=%.3f\\in[%.3f..%.3f]_{95%%}",rlab,pcor,p025,p975) ;
              if( p025*p975 > 0.0f )
                strcat(tlab,"^{*}") ;
            } else {
-               sprintf(tlab+strlen(tlab),"\\esc\\red  R=%.3f\\black",pcor) ;
+               sprintf(tlab+strlen(tlab),"\\esc\\red  %s=%.3f\\black",rlab,pcor) ;
            }
            strcat(tlab,"\\black") ;
          }

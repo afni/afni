@@ -2912,7 +2912,7 @@ ENTRY("ISQ_make_image") ;
 
       switch( seq->render_mode ){
         default:
-          tim = ISQ_getimage( seq->im_nr , seq ) ;
+          tim = ISQ_getimage( seq->im_nr , seq ) ;  /* might be cropped */
           if( tim == NULL ) EXRETURN ;
           seq->last_image_type = tim->kind ;
           seq->set_orim = (seq->need_orim != 0) ;  /* 30 Dec 1998 */
@@ -5168,9 +5168,9 @@ ENTRY("ISQ_show_image") ;
 
    if( seq->given_xbar == NULL ) ISQ_show_bar( seq ) ;  /* 22 Aug 1998 */
 
-   if( seq->given_xim == NULL ) ISQ_make_image( seq ) ;
+   if( seq->given_xim == NULL )  ISQ_make_image( seq ) ;
 
-   if( seq->given_xim == NULL ) STATUS("bad news: given_xim == NULL!") ;
+   if( seq->given_xim == NULL )  STATUS("bad news: given_xim == NULL!") ;
 
    if( ! MCW_widget_visible(seq->wimage) ) EXRETURN ;  /* 03 Jan 1999 */
 
@@ -5203,6 +5203,8 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
   DBG_traceback() ;
 }
 #endif
+
+     /**** actually put the image to the screen ****/
 
      XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
                 seq->sized_xim , 0,0,0,0,
@@ -5527,7 +5529,9 @@ ENTRY("ISQ_drawing_EV") ;
          /* Button1 release: turn off zoom-pan mode, if it was on */
 
          if( event->button == Button1 && w == seq->wimage ){
-           int xrel=event->x , yrel=event->y ;
+           int xrel=event->x , yrel=event->y ; int scd=seq->shft_ctrl_dragged ;
+
+           seq->shft_ctrl_dragged = 0 ;  /* 17 Mar 2010 */
 
            if( seq->zoom_button1 && !AFNI_yesenv("AFNI_KEEP_PANNING") ){
              seq->zoom_button1 = 0 ;
@@ -5541,13 +5545,14 @@ ENTRY("ISQ_drawing_EV") ;
                  plotkill_topshell( seq->graymap_mtd ) ;
                  seq->graymap_mtd = NULL ;
                }
-             } else if( seq->shft_ctrl_dragged ){        /* 17 Mar 2010 */
-               seq->shft_ctrl_dragged = 0 ;
              } else if( seq->status->send_CB != NULL ){  /* 04 Nov 2003 */
                 int imx,imy,nim;
                 seq->wimage_width = -1 ;
-                if( abs(seq->last_bx-xrel)+abs(seq->last_by-yrel) < 8 ){
-                  ISQ_mapxy( seq , seq->last_bx,seq->last_by , &imx,&imy,&nim ) ;
+                if( scd || abs(seq->last_bx-xrel)+abs(seq->last_by-yrel) < 8 ){
+                  int xuse,yuse ;
+                  if( scd ){ xuse = xrel        ; yuse = yrel        ; }
+                  else     { xuse = seq->last_bx; yuse = seq->last_by; }
+                  ISQ_mapxy( seq , xuse,yuse , &imx,&imy,&nim ) ;
                   cbs.reason = isqCR_buttonpress ;
                   cbs.event  = ev ;
                   cbs.xim    = imx ;       /* delayed send of Button1 */

@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , JUN , 2014 , RWC , "afni GUI" , MINOR , TYPE_MODIFY ,
+  { 19 , JUN , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Modify shft+ctrl+drag InstaCorr slightly" ,
+   "So that Clusterize report table is NOT updated until the user releases\n"
+   "the mouse button -- otherwise, the constant table updating slows things\n"
+   "down too much (per Ziad)." } ,
+
+ { 18 , JUN , 2014 , RWC , "afni GUI" , MINOR , TYPE_MODIFY ,
    "Move Clusterize outside of Instastuff menu" ,
    "So Clusterize is now available for InstaCorr, etc.  The bkgd:xxxx box is\n"
    "gone, its functionality living on only in the 'u' image keypress." } ,
