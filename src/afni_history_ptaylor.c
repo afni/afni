@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Jun , 2014 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "Added new feature: output partial correlation matrices.",
+   "Can output r-like and beta-like partial correlation matrices.\n"
+},
+
 { 6, Jun , 2014 , PT , "3dTrackID" , MINOR , TYPE_GENERAL,
    "Changed how it runs, mainly under the hood; added '-thru_mask' option.",
    "Cleared some old arrays; make runable as function; user wanted thru_masks.\n"

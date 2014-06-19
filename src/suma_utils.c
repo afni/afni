@@ -4217,6 +4217,13 @@ static ENV_SPEC envlist[] = {
       "Choose from YES or NO",
       "SUMA_HomeAfterPrying",
       "YES" },
+   {  "Assume surface in TESSCON units if range is extreme\n"
+      "If YES, surfaces with a big difference between max and min dims are\n"
+      "scaled by 319.7. Don't set this env to YES unless this jibber jabber \n"
+      "means.\n"
+      "Choose from YES or NO",
+      "SUMA_SUMA_TESSCON_AutoScale",
+      "NO" },
    {  NULL, NULL, NULL  }
 };
       

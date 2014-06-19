@@ -61,5 +61,12 @@ int WB_netw_corr(int Do_r,
                  int argc,
                  char *argv[]);
 
+/* 
+   Take a MxM matrix of Pearson correlation values, invert it, and
+   calculate the partial correlation matrix (both r-like and beta-like).
+*/
+int CalcPartCorrMatr( float **OUT, float **OUTB, float **IN, int M);
+
+
 
 #endif /* _RSFC_HEADER_ */

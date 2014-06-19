@@ -605,40 +605,47 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    /* Now do some scaling */
    SUMA_LH("In scale section");
    if ( (SO->aMaxDims - SO->aMinDims) > SUMA_TESSCON_DIFF_FLAG) {
-      fprintf (stdout,  "\n"
-                        "\n"
-                        "WARNING %s:\n"
-                        " Assuming surface to be in tesscon units,\n"
-                        " scaling down by %f.\n"
-                        "\aYou might have abnormally large or small \n"
-                        "freakish vertex coordinates.\n"
-                        "Max/Min Dims = %f/%f\n"
-                        "\n",
-         FuncName, SUMA_TESSCON_TO_MM,
-         SO->aMaxDims, SO->aMinDims);
-      ND = SO->NodeDim;
-      for (k=0; k < SO->N_Node; k++)
-      {
-         id = ND * k;
-         SO->NodeList[id] /= SUMA_TESSCON_TO_MM;
-         SO->NodeList[id+1] /= SUMA_TESSCON_TO_MM;
-         SO->NodeList[id+2] /= SUMA_TESSCON_TO_MM;
+      if (AFNI_yesenv("SUMA_TESSCON_AutoScale")) {
+         fprintf (stdout,  "\n"
+                           "\n"
+                           "WARNING %s:\n"
+                           " Assuming surface to be in tesscon units,\n"
+                           " scaling down by %f.\n"
+                           "\aYou might have abnormally large or small \n"
+                           "freakish vertex coordinates.\n"
+                           "Max/Min Dims = %f/%f\n"
+                           "\n",
+            FuncName, SUMA_TESSCON_TO_MM,
+            SO->aMaxDims, SO->aMinDims);
+         ND = SO->NodeDim;
+         for (k=0; k < SO->N_Node; k++)
+         {
+            id = ND * k;
+            SO->NodeList[id] /= SUMA_TESSCON_TO_MM;
+            SO->NodeList[id+1] /= SUMA_TESSCON_TO_MM;
+            SO->NodeList[id+2] /= SUMA_TESSCON_TO_MM;
+         }
+
+         SO->Center[0] /= SUMA_TESSCON_TO_MM;
+         SO->Center[1] /= SUMA_TESSCON_TO_MM;
+         SO->Center[2] /= SUMA_TESSCON_TO_MM;
+
+         SO->MinDims[0] /= SUMA_TESSCON_TO_MM;
+         SO->MinDims[1] /= SUMA_TESSCON_TO_MM;
+         SO->MinDims[2] /= SUMA_TESSCON_TO_MM;
+
+         SO->MaxDims[0] /= SUMA_TESSCON_TO_MM;
+         SO->MaxDims[1] /= SUMA_TESSCON_TO_MM;
+         SO->MaxDims[2] /= SUMA_TESSCON_TO_MM;
+
+         SO->aMinDims /= SUMA_TESSCON_TO_MM;
+         SO->aMaxDims /= SUMA_TESSCON_TO_MM;
+      } else {
+         SUMA_S_Note("Surface dim range a little strange.\n"
+                     "Make sure dimensions are OK.\n"
+                     "Max/Min Dims = %f/%f\n",
+                     SO->aMaxDims, SO->aMinDims);
       }
-
-      SO->Center[0] /= SUMA_TESSCON_TO_MM;
-      SO->Center[1] /= SUMA_TESSCON_TO_MM;
-      SO->Center[2] /= SUMA_TESSCON_TO_MM;
-
-      SO->MinDims[0] /= SUMA_TESSCON_TO_MM;
-      SO->MinDims[1] /= SUMA_TESSCON_TO_MM;
-      SO->MinDims[2] /= SUMA_TESSCON_TO_MM;
-
-      SO->MaxDims[0] /= SUMA_TESSCON_TO_MM;
-      SO->MaxDims[1] /= SUMA_TESSCON_TO_MM;
-      SO->MaxDims[2] /= SUMA_TESSCON_TO_MM;
-
-      SO->aMinDims /= SUMA_TESSCON_TO_MM;
-      SO->aMaxDims /= SUMA_TESSCON_TO_MM;
    } 
    #endif
    
