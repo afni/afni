@@ -3,6 +3,9 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_permutation.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_linalg.h>
 
 float FisherZ( double Rcorr)
 {
@@ -344,6 +347,70 @@ int WB_netw_corr(int Do_r,
    for( i=0 ; i<1 ; i++) 
       free(AVE_TS_fl[i]);
    free(AVE_TS_fl);
+
+   RETURN(1);
+}
+
+
+int CalcPartCorrMatr( float **OUT, float **OUTB, float **IN, int M)
+{
+   int BAD=0, BADB=0; // in case of badness in inversion
+   int i,j,k;
+   float aa,bb;
+   gsl_matrix *PC = gsl_matrix_alloc(M,M); // part corr
+   gsl_matrix *CC = gsl_matrix_alloc(M,M); // input corr
+	gsl_permutation *P = gsl_permutation_alloc(M);
+
+   // Initialize
+   gsl_matrix_set_zero(PC);
+   for( i=0 ; i<M ; i++)
+      for( j=0 ; j<M ; j++)
+         gsl_matrix_set(CC, i, j, IN[i][j]);
+   
+   // perform the LU decomp + inversion
+   j = gsl_linalg_LU_decomp(CC, P, &k);
+   j = gsl_linalg_LU_invert(CC, P, PC);
+   
+   
+   for( i=0 ; i<M ; i++)
+      for( j=0 ; j<M ; j++) {
+         OUT[i][j] = OUTB[i][j] = - ((float) gsl_matrix_get(PC, i, j));
+         bb = (float) gsl_matrix_get(PC, i, i);
+         if( bb )
+            OUTB[i][j]/= bb;
+         else {
+            WARNING_message("Badness in partial correlation beta calculation.\n"
+                            "\tNormalizing factor is =0 (how to divide?)!\n"
+                            "\t-> making all zeros.");
+            BADB = 1;
+         }
+         aa = (float) gsl_matrix_get(PC, i, i) * 
+            (float) gsl_matrix_get(PC, j, j);
+         if(aa>0)
+            OUT[i][j]/= sqrt(aa);
+         else {
+            WARNING_message("Badness in partial correlation calculation.\n"
+                            "\tNormalizing factor is <=0 (how to take sqrt?)!\n"
+                            "\t-> making all zeros.");
+            BAD = 1;
+         }
+      }
+   
+   if(BAD)
+      for( i=0 ; i<M ; i++)
+         for( j=0 ; j<M ; j++) 
+            OUT[i][j] = 0.;
+   if(BADB)
+      for( i=0 ; i<M ; i++)
+         for( j=0 ; j<M ; j++) 
+            OUTB[i][j] = 0.;
+
+
+   // free
+   gsl_matrix_free(PC);
+   gsl_matrix_free(CC);
+	gsl_permutation_free(P);
+
 
    RETURN(1);
 }

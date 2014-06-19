@@ -66,6 +66,13 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 7, Jun, 2014, ZSS, "auto_warp", MINOR, TYPE_NEW_OPT,
+   "Made -dataTable options take text file instead of command line opts ",
+   "This makes it possible to have very large tables without exceeding\n"
+   "limit on command line length. File name has to begin with '@'\n"
+   "in keeping with some C-language 3d progs."
+ },
+  
  { 2, Jun, 2014, ZSS, "auto_warp", MINOR, TYPE_NEW_OPT,
    "Added -qworkhard and -qw_opts for finer control of 3dQwarp step ",
    NULL

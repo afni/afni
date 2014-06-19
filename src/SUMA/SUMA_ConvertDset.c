@@ -450,7 +450,7 @@ int main (int argc,char *argv[])
                strcmp(argv[kar], "-o_") == 0 ) )
       {
          if (kar+1 >= argc) {
-            SUMA_SL_Err("Need argument after -prefix");
+            SUMA_SL_Err("Need argument after -prefix/-o* options");
             exit(1);
          }
          ++kar;
