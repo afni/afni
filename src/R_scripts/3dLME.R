@@ -824,7 +824,7 @@ for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
 cat(lop$num_glt, 'post hoc tests\n')
 
 cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
-showTab <- as.formula(paste('~', gsub("\\*", "+", lop$model)))
+showTab <- as.formula(paste('~', gsub("\\:", "+", gsub("\\*", "+", lop$model))))
 if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
    showTab <- gsub(paste('\\*',lop$QV[ii], sep=' '), '', gsub(paste('\\+',lop$QV[ii], sep=' '), '', showTab))
 showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
