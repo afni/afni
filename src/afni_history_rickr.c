@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25,  Jun, 2014, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+   "removed SUMA/SUMA_MakeColorMap, SUMA/SUMA_MakeConsistent from source tree",
+   "Thanks to Y Halchenko for bringing it up."
+ } ,
+
+ { 25,  Jun, 2014, RCR, "to3d", MINOR, TYPE_ENHANCE,
+   "allow -zorigin with x/y SLAB/FOV, particularly in case of nz==1",
+   NULL
+ } ,
+
  {  2,  Jun, 2014, RCR, "slow_surf_clustsim.py", MICRO, TYPE_MODIFY,
    "niter defaults to 1000, to match recommendations and 'quick' example",
    NULL
