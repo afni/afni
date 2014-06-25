@@ -368,10 +368,12 @@ DUMP_MAT44("MRILIB_dicom_matrix",MRILIB_dicom_matrix) ;
 
    /** Mar 1997: if any FOV or SLAB command line inputs are used,
                  then require that they all be given.            **/
+   /** Jun 2014: but only if given axis has nvals > 1    [rickr] **/
 
    if( all_good ){
-      int iii =  (user_inputs.xincode > 0)
-               + (user_inputs.yincode > 0) + (user_inputs.zincode > 0) ;
+      int iii =  (user_inputs.xincode > 0 || user_inputs.nx == 1 )
+               + (user_inputs.yincode > 0 || user_inputs.ny == 1 )
+               + (user_inputs.zincode > 0 || user_inputs.nz == 1 ) ;
 
       if( iii > 0 && iii < 3 ) all_good = False ;
    }
@@ -4791,6 +4793,9 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
          user_inputs.xyz_centered |= ZCENTERED ;
       else
          user_inputs.xyz_centered &= ~ZCENTERED ;
+   } else if( use_zoff ) { /* single slice dset:   25 Jun 2014 [rickr] */
+        user_inputs.zorigin = zoff ;
+        user_inputs.xyz_centered &= ~ZCENTERED ;
    }
 
    dset->taxis = NULL ;  /* will be patched later, if necessary */
