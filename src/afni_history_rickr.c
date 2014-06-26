@@ -49,7 +49,28 @@
 
 afni_history_struct rickr_history[] = {
 
- { 25,  Jun, 2014, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+ { 26,  Jun, 2014, RCR, "3dresample", MINOR, TYPE_NEW_OPT,
+   "added -bound_type FOV/SLAB option (FOV is orig and default)",
+   "FOV preserves the field of view, SLAB preserved the SLAB\n"
+   "(so with SLAB the extents should not change)"
+ } ,
+
+ { 26,  Jun, 2014, RCR, "gen_ss_review_table.py", MICRO, TYPE_ENHANCE,
+   "track 'degress of freedom' as 'degrees ...'",
+   NULL
+ } ,
+
+ { 26,  Jun, 2014, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "note any anat/EPI mask correlation value; correct 'degress' as 'degrees'",
+   "Typo noted by J Stoddard."
+ } ,
+
+ { 26,  Jun, 2014, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "full_mask is now byte (via 3dmask_tool); note correlation with anat mask",
+   NULL
+ } ,
+
+ { 25,  Jun, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "removed SUMA/SUMA_MakeColorMap, SUMA/SUMA_MakeConsistent from source tree",
    "Thanks to Y Halchenko for bringing it up."
  } ,

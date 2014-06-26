@@ -70,29 +70,19 @@ int resam_str2mode ( char * modestr )
     return FAIL;
 }
 
+/* we can get more fancy later, but convert string to bound_type value */
+int resam_str2bound ( char * str )
+{
+    if( ! strcasecmp( str, "FOV"  ) ) return 0;
+    if( ! strcasecmp( str, "SLAB" ) ) return 1;
 
-/*----------------------------------------------------------------------
- * r_new_resam_dset - create a new dataset by resampling an existing one
- *
- * inputs:
- *   - din      : input dataset
- *   - min      : master dataset - overrides dxyz and orient input
- *   - dx,dy,dz : new deltas
- *   - orient   : new orientation string
- *   - resam    : resampling mode
- *   - sublist  : list of sub-bricks to resample (all if NULL)
- *                {first element of sublist is the number of sub-bricks}
- *   - get_data : if set, fill output dataset with data
- *
- * output       : a pointer to the resulting THD_3dim_dataset
- *                (or NULL, on failure)
- *
- * notes:
- *   - if (min != NULL)          , dx, dy, dz and orient are ignored
- *   - if (dx == dy == dz == 0.0), no resampling will be done
- *   - if (orient == NULL),        no reorienting will be done
- *----------------------------------------------------------------------
-*/
+    fprintf(stderr,"** illegal bound_type string '%s'\n", str);
+
+    return -1;  /* bad value, man */
+}
+
+
+/* call _eng with bound_type == 0 (FOV bound) */
 THD_3dim_dataset * r_new_resam_dset
     (
         THD_3dim_dataset * din,         /* original dataset to resample */
@@ -105,6 +95,49 @@ THD_3dim_dataset * r_new_resam_dset
         int              * sublist,     /* list of sub-bricks to resam  */
         int                get_data,    /* do we include data with dset */
         int                killwarpinfo   /* kill default warp field values */
+    )
+{
+   return r_new_resam_dset_eng(din, min, dx, dy, dz, orient, resam, sublist,
+                               get_data, killwarpinfo, 0 /* bound_type */);
+}
+
+/*----------------------------------------------------------------------
+ * r_new_resam_dset_eng - create a new dataset by resampling an existing one
+ *
+ * inputs:
+ *   - din      : input dataset
+ *   - min      : master dataset - overrides dxyz and orient input
+ *   - dx,dy,dz : new deltas
+ *   - orient   : new orientation string
+ *   - resam    : resampling mode
+ *   - sublist  : list of sub-bricks to resample (all if NULL)
+ *                {first element of sublist is the number of sub-bricks}
+ *   - get_data : if set, fill output dataset with data
+ *   - killwarpinfo : if set, delete warp field values
+ *   - bound_type : 0=FOV bound preserving, 1=SLAB bound preserving
+ *
+ * output       : a pointer to the resulting THD_3dim_dataset
+ *                (or NULL, on failure)
+ *
+ * notes:
+ *   - if (min != NULL)          , dx, dy, dz and orient are ignored
+ *   - if (dx == dy == dz == 0.0), no resampling will be done
+ *   - if (orient == NULL),        no reorienting will be done
+ *----------------------------------------------------------------------
+*/
+THD_3dim_dataset * r_new_resam_dset_eng
+    (
+        THD_3dim_dataset * din,         /* original dataset to resample */
+        THD_3dim_dataset * min,         /* master dataset to align to   */
+        double             dx,          /* delta for new x-axis         */
+        double             dy,          /* delta for new y-axis         */
+        double             dz,          /* delta for new z-axis         */
+        char               orient [],   /* new orientation code         */
+        int                resam,       /* mode to resample with        */
+        int              * sublist,     /* list of sub-bricks to resam  */
+        int                get_data,    /* do we include data with dset */
+        int                killwarpinfo,/* kill default warp field values */
+        int                bound_type   /* 0=FOV, 1=SLAB boundardy limit  */
     )
 {
     THD_3dim_dataset * dout;
@@ -183,7 +216,8 @@ THD_3dim_dataset * r_new_resam_dset
             /* possibly start with master (must have master's orient) */
             if ( min ) *dout->daxes = *min->daxes;
 
-            if ( r_dxyz_mod_dataxes(dx, dy, dz, dout->daxes, &new_daxes) != 0 )
+            if ( r_dxyz_mod_dataxes(dx,dy,dz, dout->daxes, &new_daxes, 
+                                    bound_type) != 0 )
             {
                 THD_delete_3dim_dataset( dout, FALSE );
                 return NULL;
@@ -329,10 +363,15 @@ int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
  *
  * This is identical to THD_edit_dataxes(), except that the requirement
  * for cubical voxels has been lifted.
+ *
+ * bound_type   0 : FOV-style boundary limits, which is the
+ *                  THD_edit_dataxes() method
+ *              1 : SLAB-style limits, to preserve outer coordinates
  *----------------------------------------------------------------------
 */
 int r_dxyz_mod_dataxes( double dx, double dy, double dz,
-                        THD_dataxes * daxin, THD_dataxes * daxout
+                        THD_dataxes * daxin, THD_dataxes * daxout,
+                        int bound_type
                       )
 {
     double    rex, rey, rez;
@@ -351,23 +390,51 @@ int r_dxyz_mod_dataxes( double dx, double dy, double dz,
     rey = (daxout->yydel > 0) ? dy : -dy;
     rez = (daxout->zzdel > 0) ? dz : -dz;
 
-    lxx = daxin->nxx * daxin->xxdel;          /* signed lengths of data box */
-    lyy = daxin->nyy * daxin->yydel;
-    lzz = daxin->nzz * daxin->zzdel;
+    /* preserve either SLAB or FOV     26 Jun 2014 [rickr] */
+    /* (SLAB might be better going from high-res to low)   */
 
-    daxout->nxx = (int)( lxx/rex + 0.499 );     /* so this is > 0 */
-    daxout->nyy = (int)( lyy/rey + 0.499 );
-    daxout->nzz = (int)( lzz/rez + 0.499 );
+    if( bound_type == 1 ) {
+       /* optional way, preserve SLAB */
 
-    /* go from old edge to old center, then back out to new edge */
-    daxout->xxorg = daxin->xxorg + 0.5*(lxx - daxin->xxdel)
-                                 - 0.5*(daxout->nxx - 1)*rex;
+       lxx = (daxin->nxx-1) * daxin->xxdel;    /* signed lengths of SLAB */
+       lyy = (daxin->nyy-1) * daxin->yydel;
+       lzz = (daxin->nzz-1) * daxin->zzdel;
 
-    daxout->yyorg = daxin->yyorg + 0.5*(lyy - daxin->yydel)
-                                 - 0.5*(daxout->nyy - 1)*rey;
+       daxout->nxx = (int)( lxx/rex + 0.499 + 1 ); /* so this is > 0 */
+       daxout->nyy = (int)( lyy/rey + 0.499 + 1 );
+       daxout->nzz = (int)( lzz/rez + 0.499 + 1 );
 
-    daxout->zzorg = daxin->zzorg + 0.5*(lzz - daxin->zzdel)
-                                 - 0.5*(daxout->nzz - 1)*rez;
+       /* go from old edge to old center, then back out to new edge */
+       /* (ignore lxx, just to be clear about the symmetry) */
+       daxout->xxorg = daxin->xxorg + 0.5*(daxin->nxx -1)*daxin->xxdel
+                                    - 0.5*(daxout->nxx-1)*rex;
+
+       daxout->yyorg = daxin->yyorg + 0.5*(daxin->nyy -1)*daxin->yydel
+                                    - 0.5*(daxout->nyy-1)*rey;
+
+       daxout->zzorg = daxin->zzorg + 0.5*(daxin->nzz -1)*daxin->zzdel
+                                    - 0.5*(daxout->nzz-1)*rez;
+    } else {
+       /* original way, preserve FOV */
+
+       lxx = daxin->nxx * daxin->xxdel;        /* signed lengths of data box */
+       lyy = daxin->nyy * daxin->yydel;
+       lzz = daxin->nzz * daxin->zzdel;
+
+       daxout->nxx = (int)( lxx/rex + 0.499 ); /* so this is > 0 */
+       daxout->nyy = (int)( lyy/rey + 0.499 );
+       daxout->nzz = (int)( lzz/rez + 0.499 );
+
+       /* go from old edge to old center, then back out to new edge */
+       daxout->xxorg = daxin->xxorg + 0.5*(lxx - daxin->xxdel)
+                                    - 0.5*(daxout->nxx - 1)*rex;
+
+       daxout->yyorg = daxin->yyorg + 0.5*(lyy - daxin->yydel)
+                                    - 0.5*(daxout->nyy - 1)*rey;
+
+       daxout->zzorg = daxin->zzorg + 0.5*(lzz - daxin->zzdel)
+                                    - 0.5*(daxout->nzz - 1)*rez;
+    }
 
     /* dave new dimensions */
     daxout->xxdel = rex;
