@@ -109,9 +109,10 @@ g_history = """
    0.0  Apr 07, 2014    - initial version: does the basic job
    0.1  Apr 08, 2014    - try to parse SID/GID from input file names
    0.2  Apr 09, 2014    - help update, separators, parents
+   0.3  Jun 26, 2014    - label typos: track 'degress of freedom' as 'degrees'
 """
 
-g_version = "gen_ss_review_table.py version 0.2, April 9, 2014"
+g_version = "gen_ss_review_table.py version 0.3, June 26, 2014"
 
 
 class MyInterface:
@@ -359,6 +360,10 @@ class MyInterface:
          return 'num TRs per run (censored)'
       if label == 'num TRs per stim':
          return 'num TRs per stim (orig)'
+      if label == 'degress of freedom left':    # typo (fixed 6/25/14)
+         return 'degrees of freedom left'
+      if label == 'degress of freedom used':    # typo (fixed 6/25/14)
+         return 'degrees of freedom used'
 
       return label
 

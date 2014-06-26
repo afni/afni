@@ -29,6 +29,8 @@
  *
  *              -rmode RESAM      : one of {"NN", "Li", "Cu", "Bk"}
  *
+ *              -bound_type TYPE  : one of {"FOV", "SLAB"}
+ *
  *    examples:
  *      3dresample -orient "asl" -rmode NN -prefix asl.dset -inset inset+orig
  *      3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset some.input+tlrc
@@ -57,9 +59,10 @@ static char g_history[] =
  " 1.7a Mar 22, 2005 - removed tabs\n"
  " 1.8  Aug 02, 2005 - allow dxyz to override those from master\n"
  " 1.9  Apr 27, 2009 - small help update (also, show help if no args)\n"
+ " 1.10 Jun 26, 2014 - added -bound_type FOV/SLAB\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION "Version 1.9 <April 27, 2009>"
+#define VERSION "Version 1.10 <June 26, 2014>"
 
 
 /*--- local stuff ------------------------------------------------------*/
@@ -84,6 +87,7 @@ typedef struct
     char             * orient;
     char             * prefix;
     int                resam;
+    int                bound_type;
     int                debug;
 } options_t;
 
@@ -109,8 +113,9 @@ int main( int argc , char * argv[] )
         return ret_val;
 
     /* actually resample and/or reorient the dataset */
-    dout = r_new_resam_dset( opts.dset, opts.mset, opts.dx, opts.dy, opts.dz,
-                             opts.orient, opts.resam, NULL, 1, 0);
+    dout = r_new_resam_dset_eng(opts.dset, opts.mset, opts.dx,opts.dy,opts.dz,
+                                opts.orient, opts.resam, NULL, 1, 0,
+                                opts.bound_type);
     if ( dout == NULL )
     {
         fprintf( stderr, "failure to resample dataset, exiting...\n" );
@@ -153,6 +158,21 @@ int init_options ( options_t * opts, int argc, char * argv [] )
         {
             usage( argv[0], USE_VERSION );
             return FAIL;
+        }
+        else if ( ! strncmp(argv[ac], "-bound_type", 6) ) /* 26 Jun 2014 */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -bound_type FOV/SLAB\n", stderr );
+                usage( argv[0], USE_SHORT );
+                return FAIL;
+            }
+
+            if ( (opts->bound_type = resam_str2bound(argv[++ac])) < 0 )
+            {
+                fprintf( stderr, "invalid -bound_type <%s>\n", argv[ac] );
+                return FAIL;
+            }
         }
         else if ( ! strncmp(argv[ac], "-debug", 6) )
         {
@@ -504,6 +524,24 @@ int usage ( char * progg, int level )
             "          default level is 0, max is 2\n"
             "\n"
             "    -version         : show version information\n"
+            "\n"
+            "    -bound_type TYPE : specify which boundary is preserved\n"
+            "          e.g.  -bound_type SLAB\n"
+            "          default is FOV (field of view)\n"
+            "\n"
+            "          The default and original use preserves the field of\n"
+            "          of view when resampling, allowing the extents (SLABs)\n"
+            "          to grow or shrink by half of the difference in the\n"
+            "          dimension size (big voxels to small will cause the\n"
+            "          extents to expand, for example, while small to big\n"
+            "          will cause them to shrink).\n"
+            "\n"
+            "          Using -bound_type SLAB will have the opposite effect.\n"
+            "          The extents should be unchanged, while the FOV will\n"
+            "          grow or shrink in the opposite way as above).\n"
+            "\n"
+            "          Note that when using SLAB, edge voxels should be\n"
+            "          mostly unaffected by the interpolation.\n"
             "\n"
             "    -dxyz DX DY DZ   : resample to new dx, dy and dz\n"
             "          e.g.  -dxyz 1.0 1.0 0.9\n"
