@@ -417,9 +417,12 @@ g_history = """
     4.17 May 12, 2014: added -regress_use_tproject
         - default to 'yes' if there are no stim files
     4.18 May 16, 2014: changed default of -anat_unif_GM from yes to no
+    4.19 Jun 26, 2014:
+        - full_mask (EPI mask) is now byte (via 3dmask_tool)
+        - note correlation with anat mask (in out.mask_ae_corr.txt)
 """
 
-g_version = "version 4.18, May 16, 2014"
+g_version = "version 4.19, Jun 26, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "13 May 2014" # no stats for gen_ss_review_scripts.py

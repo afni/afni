@@ -2137,6 +2137,7 @@ def db_cmd_mask(proc, block):
     opt = block.opts.find_opt('-mask_dilate')
     nsteps = opt.parlist[0]
 
+    prev = proc.prev_dset_form_wild(block)
     prev = proc.prev_prefix_form_run(block, view=1)
     cmd = cmd + "# %s\n"                                                \
                 "# create 'full_mask' dataset (%s mask)\n"              \
@@ -2145,17 +2146,10 @@ def db_cmd_mask(proc, block):
                 "end\n\n" % (block_header('mask'), type, nsteps, prev)
     proc.have_rm = 1            # rm.* files exist
 
-    if proc.runs > 1:  # if more than 1 run, create union mask
-        cmd = cmd + "# get mean and compare it to %s for taking '%s'\n"      \
-                    "3dMean -datum short -prefix rm.mean rm.mask*.HEAD\n"    \
-                    "3dcalc -a rm.mean%s -expr 'ispositive(a-%s)' "          \
-                    "-prefix %s\n\n" %                                       \
-                    (str(minv), type, proc.view, str(minv),
-                     proc.mask_epi.prefix)
-    else:  # just copy the one
-        cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
-                    "3dcopy rm.mask_r01%s %s\n\n"                            \
-                    % (proc.view, proc.mask_epi.prefix)
+    # make the mask (3dMean/3dcalc/3dcopy -> 3dmask_tool 26 Jun 2014 [rickr])
+    cmd = cmd + "# create union of inputs, output type is byte\n"            \
+                "3dmask_tool -inputs rm.mask_r*%s.HEAD -union -prefix %s\n\n"\
+                % (proc.view, proc.mask_epi.prefix)
     proc.mask_epi.created = 1  # so this mask 'exists' now
 
     # if possible make a subject anat mask, resampled to EPI
@@ -2400,12 +2394,16 @@ def anat_mask_command(proc, block):
                 "            -prefix %s\n\n"                                \
                 % (tanat.pv(), proc.mask_anat.prefix)
 
-    opt = block.opts.find_opt('-mask_test_overlap')
-    if not opt or OL.opt_is_yes(opt):  # so default to 'yes'
+    if block.opts.have_yes_opt('-mask_test_overlap', default=1):
         if proc.mask_epi and proc.mask_anat:
             rcmd = "# compute overlaps between anat and EPI masks\n"  \
                    "3dABoverlap -no_automask %s %s \\\n"              \
-                   "            |& tee out.mask_overlap.txt\n\n"      \
+                   "            |& tee out.mask_ae_overlap.txt\n\n"   \
+                   % (proc.mask_epi.pv(), proc.mask_anat.pv())
+            cmd = cmd + rcmd
+
+            rcmd = "# note correlation as well\n"                     \
+                   "3ddot %s %s |& tee out.mask_ae_corr.txt\n\n"      \
                    % (proc.mask_epi.pv(), proc.mask_anat.pv())
             cmd = cmd + rcmd
 
