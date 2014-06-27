@@ -49,9 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Jun, 2014, RCR, "model_conv_PRF", MAJOR, TYPE_NEW_PROG,
+   "population receptive field estimate model",
+   "For E Silson and C Baker."
+ } ,
+
  { 26,  Jun, 2014, RCR, "3dresample", MINOR, TYPE_NEW_OPT,
    "added -bound_type FOV/SLAB option (FOV is orig and default)",
-   "FOV preserves the field of view, SLAB preserved the SLAB\n"
+   "FOV preserves the field of view, SLAB preserves the SLAB\n"
    "(so with SLAB the extents should not change)"
  } ,
 

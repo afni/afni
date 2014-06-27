@@ -49,6 +49,8 @@ byte * THD_makemask( THD_3dim_dataset *mask_dset ,
 
    switch( DSET_BRICK_TYPE(mask_dset,miv) ){
       default:
+         WARNING_message("makemask: bad brick type %d",
+                         DSET_BRICK_TYPE(mask_dset,miv));
          free(mmm) ; DSET_unload(mask_dset) ; return NULL ;
 
       case MRI_short:{
@@ -194,11 +196,13 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
             for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = 0;
          } else if (cmask)  {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) { mar[ii]=1; ++nonzero; }
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0
+                                   && cmask[ii]) { mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
          } else {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) { mar[ii]=1; ++nonzero; }
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 )
+                    { mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
          }
       }
@@ -225,11 +229,13 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
             for( ii=0 ; ii < nvox ; ii++ ) mar[ii] = 0;
          } else if (cmask) {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]){ mar[ii]=1; ++nonzero; }
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0
+                                   && cmask[ii]){ mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
          } else {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ){ mar[ii]=1; ++nonzero; }
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 )
+                    { mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
          }
       }
@@ -249,11 +255,13 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
          }
          if (cmask) {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 && cmask[ii]) { mar[ii]=1; ++nonzero; }
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0
+                                   && cmask[ii]) { mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
          } else {
             for( ii=0 ; ii < nvox ; ii++ )
-               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 ) { mar[ii]=1; ++nonzero; }
+               if( mar[ii] >= mbot && mar[ii] <= mtop && mar[ii] != 0 )
+                    { mar[ii]=1; ++nonzero; }
                else { mar[ii] = 0; }
          }
       }
@@ -264,6 +272,47 @@ int THD_makedsetmask( THD_3dim_dataset *mask_dset ,
    EDIT_BRICK_FACTOR(mask_dset,miv , 0.0);
 
    return (nonzero) ;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*!  Convert an entire dataset of MRI_byte, and all values to binary
+     (set or not).
+
+     return 1 on failure, 0 on success           3 Jun, 2014 [rickr]
+*/
+
+int THD_dset_to_mask(THD_3dim_dataset * dset, float mask_bot, float mask_top)
+{
+   byte * bvol = NULL;
+   int    ivol;
+
+   ENTRY("THD_dset_to_mask");
+
+   if( !ISVALID_DSET(dset) ) {
+      ERROR_message("dset_to_mask: dset not valid");
+      RETURN(1);
+   }
+
+   DSET_mallocize(dset); DSET_load(dset) ;
+   if( !DSET_LOADED(dset) ) {
+      ERROR_message("dset_to_mask: dset not loaded");
+      RETURN(1);
+   }
+
+   for( ivol = 0; ivol < DSET_NVALS(dset); ivol++ ) {
+
+      bvol = THD_makemask(dset, ivol, mask_bot, mask_top);
+      if( !bvol ) {
+         ERROR_message("dset_to_mask: failed to mask vol %d", ivol);
+         RETURN(1);
+      }
+
+      EDIT_substitute_brick(dset, ivol, MRI_byte, bvol);
+      EDIT_BRICK_FACTOR(dset, ivol, 0.0);
+   }
+
+   RETURN(0);
 }
 
 /*
