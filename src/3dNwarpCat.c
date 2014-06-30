@@ -287,7 +287,7 @@ void CNW_load_warp( int nn , char *cp )
        if( eset == NULL ){
          ERROR_message("Can't open dataset from file '%s'",up); free(wp); EXRETURN;
        }
-       DSET_load(eset) ;
+       DSET_load(eset) ; DSET_COPYOVER_REAL(eset) ;
        if( !DSET_LOADED(eset) ){
          ERROR_message("Can't load dataset from file '%s'",up); free(wp); DSET_delete(eset); EXRETURN;
        }
@@ -325,13 +325,14 @@ void CNW_load_warp( int nn , char *cp )
        if( dset == NULL ){
          ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
        }
-       do_fac = 1 ;
+       do_fac = 1 ; DSET_COPYOVER_REAL(dset) ;
 
      } else {  /*--- standard 3-brick warp ---*/
 
        dset = THD_open_dataset(wp) ;
        if( dset == NULL )
          ERROR_exit("can't open dataset from file '%s'",wp);
+       DSET_COPYOVER_REAL(dset) ;
      }
 
      /*-- convert dataset to warp --*/
@@ -346,6 +347,9 @@ void CNW_load_warp( int nn , char *cp )
        geomstring = strdup(AA->geomstring) ;
        sname      = strdup(dset->atlas_space) ;
        nx = AA->nx; ny = AA->ny; nz = AA->nz; cmat = AA->cmat; imat = AA->imat;
+#if 0
+INFO_message("set geomstring = %s  atlas_space = %s",geomstring,sname) ;
+#endif
      } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){ /* check them */
        ERROR_exit("warp from dataset '%s' doesn't match earlier inputs in grid size",wp) ;
      }
@@ -368,9 +372,13 @@ void CNW_load_warp( int nn , char *cp )
        free(YZ) ;
 #endif
      } else if( do_inv ){
+       if( Hverb ) fprintf(stderr," + inverting warp ") ;
        BB = IW3D_invert(AA,NULL,MRI_WSINC5); IW3D_destroy(AA); AA = BB;
      }
 
+#if 0
+ININFO_message("AA->geomstring = %s",AA->geomstring) ;
+#endif
      iwarp[nn-1] = AA ; free(wp) ; return ;
    }
 
@@ -628,6 +636,9 @@ int main( int argc , char *argv[] )
    /** write a nonlinear warp dataset **/
 
    if( expad == 0 ){
+#if 0
+INFO_message("output geomstring = %s",warp->geomstring) ;
+#endif
      IW3D_adopt_dataset( warp , inset ) ;
    } else {
      THD_3dim_dataset *adset ;

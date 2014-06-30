@@ -143,7 +143,7 @@ int main( int argc , char *argv[] )
        if( nwset < 5 ) ERROR_exit("Need at least 5 datasets after '%s'",argv[iarg-1]) ;
        dset_nwarp = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*nwset) ;
        for( kk=0 ; kk < nwset ; kk++ ){
-         dset_nwarp[kk] = THD_open_dataset( argv[iarg+kk] ) ;
+         dset_nwarp[kk] = THD_open_dataset( argv[iarg+kk] ) ; DSET_COPYOVER_REAL(dset_nwarp[kk]) ;
          if( dset_nwarp[kk] == NULL )
            ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg+kk]);
          if( DSET_NVALS(dset_nwarp[kk]) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg+kk]);
@@ -195,7 +195,7 @@ int main( int argc , char *argv[] )
        if( nsset < 5 ) ERROR_exit("Need at least 5 datasets after '%s'",argv[iarg-1]) ;
        dset_src = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*nsset) ;
        for( kk=0 ; kk < nsset ; kk++ ){
-         dset_src[kk] = THD_open_dataset( argv[iarg+kk] ) ;
+         dset_src[kk] = THD_open_dataset( argv[iarg+kk] ) ; DSET_COPYOVER_REAL(dset_src[kk]) ;
          if( dset_src[kk] == NULL )
            ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg+kk]);
          if( DSET_NVALS(dset_src[kk]) > 1 ) ERROR_exit("dataset '%s' has more than 1 sub-brick",argv[iarg+kk]);
