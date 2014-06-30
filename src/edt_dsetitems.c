@@ -709,15 +709,27 @@ INFO_message("new daxes org = %g %g %g",daxes->xxorg,daxes->yyorg,daxes->zzorg) 
      }
 
      if( new_xyzdel ){
+#if 0
+INFO_message("old daxes del = %g %g %g",daxes->xxdel,daxes->yydel,daxes->zzdel) ;
+#endif
        daxes->xxdel = xyzdel.xyz[0] ;
        daxes->yydel = xyzdel.xyz[1] ;
        daxes->zzdel = xyzdel.xyz[2] ;
+#if 0
+INFO_message("new daxes del = %g %g %g",daxes->xxdel,daxes->yydel,daxes->zzdel) ;
+#endif
      }
 
      if( new_xyzorient ){
+#if 0
+INFO_message("old daxes orient = %d %d %d",daxes->xxorient,daxes->yyorient,daxes->zzorient) ;
+#endif
        daxes->xxorient = xyzorient.ijk[0] ;
        daxes->yyorient = xyzorient.ijk[1] ;
        daxes->zzorient = xyzorient.ijk[2] ;
+#if 0
+INFO_message("new daxes orient = %d %d %d",daxes->xxorient,daxes->yyorient,daxes->zzorient) ;
+#endif
      }
 
      /*-- set bounding box and to_dicomm matrix for this dataset --*/

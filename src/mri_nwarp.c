@@ -317,6 +317,8 @@ ENTRY("IW3D_adopt_dataset") ;
    if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )
      THD_daxes_to_mat44(dset->daxes) ;
 
+   DSET_CHECKAXES_REAL(dset) ;
+
    cmat = dset->daxes->ijk_to_dicom ;  /* takes ijk to xyz */
    imat = MAT44_INV(cmat) ;            /* takes xyz to ijk */
 
@@ -325,6 +327,11 @@ ENTRY("IW3D_adopt_dataset") ;
    if( gstr != NULL ) AA->geomstring = strdup(gstr) ;
    else               AA->geomstring = NULL ;
    AA->view = dset->view_type ;
+
+#if 0
+INFO_message("IW3D_adopt_dataset geomstring = %s",AA->geomstring) ;
+DUMP_MAT44("IW3D_adopt_dataset cmat",cmat) ;
+#endif
 
    EXRETURN ;
 }
@@ -904,6 +911,7 @@ ENTRY("IW3D_to_dataset") ;
 
 STATUS("create dataset") ;
    dset = EDIT_geometry_constructor( AA->geomstring , prefix ) ;
+   DSET_CHECKAXES_REAL(dset) ;
 
    EDIT_dset_items( dset ,
                       ADN_nvals     , (save_aux_volumes) ? 6 : 3 ,
@@ -922,6 +930,12 @@ STATUS("create dataset") ;
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
    nxyz = AA->nx * AA->ny * AA->nz ;
    cmat = AA->cmat ; imat = AA->imat ;
+
+#if 0
+DUMP_MAT44("IW3D_to_dataset cmat",cmat) ;
+DUMP_MAT44("IW3D_to_dataset dset ijk_to_dicom",dset->daxes->ijk_to_dicom) ;
+DUMP_MAT44("IW3D_to_dataset dset ijk_to_dicom_real",dset->daxes->ijk_to_dicom_real) ;
+#endif
 
    xar = (float *)malloc(sizeof(float)*nxyz) ;
    yar = (float *)malloc(sizeof(float)*nxyz) ;
@@ -4012,7 +4026,7 @@ ENTRY("NwarpCalcRPN") ;
        buf = strdup(bp+1) ;
        for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
        if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
-       dset = THD_open_dataset(buf) ;
+       dset = THD_open_dataset(buf) ; DSET_COPYOVER_REAL(dset) ;
        if( dset == NULL ){
          sprintf(mess,"Can't read file '%s'",buf); free(buf); ERREX(mess);
        }
@@ -4036,7 +4050,7 @@ ENTRY("NwarpCalcRPN") ;
        char *buf=strdup(cmd+11) , *bp ; THD_3dim_dataset *dset ;
        for( bp=buf ; *bp != '\0' && *bp != ')' ; bp++ ) ; /*nada*/
        if( *bp == ')' ) *bp = '\0' ;  /* delete trailing ) */
-       dset = THD_open_dataset(buf) ;
+       dset = THD_open_dataset(buf) ; DSET_COPYOVER_REAL(dset) ;
        if( dset == NULL ){
          sprintf(mess,"Can't read file '%s'",buf); free(buf); ERREX(mess);
        }
@@ -4281,7 +4295,7 @@ ENTRY("NwarpCalcRPN") ;
        if( !THD_filename_ok(pref) ){ free(buf); ERREX("illegal prefix"); }
        AA = iwstk[nstk-1] ; FREEIFNN(AA->geomstring) ;
        AA->geomstring = strdup(geomstring) ; AA->cmat = cmat ; AA->imat = imat ;
-       iset = THD_open_dataset(buf) ;
+       iset = THD_open_dataset(buf) ; DSET_COPYOVER_REAL(iset) ;
        if( iset == NULL ){
          sprintf(mess,"Can't read file '%s'",buf); free(buf); ERREX(mess);
        }
@@ -4480,7 +4494,7 @@ ENTRY("CW_load_one_warp") ;
 
        /* now read dataset and do surgery on it */
 
-       eset = THD_open_dataset(up) ;
+       eset = THD_open_dataset(up) ; DSET_COPYOVER_REAL(eset) ;
        if( eset == NULL ){
          ERROR_message("Can't open dataset from file '%s'",up); free(wp); EXRETURN;
        }
@@ -4518,7 +4532,7 @@ ENTRY("CW_load_one_warp") ;
          ERROR_message("warp '%s': no dataset to read?",wp) ;
          free(wp) ; EXRETURN ;
        }
-       dset = THD_open_dataset(vp+1) ;
+       dset = THD_open_dataset(vp+1) ; DSET_COPYOVER_REAL(dset) ;
        if( dset == NULL ){
          ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
        }
@@ -4526,7 +4540,7 @@ ENTRY("CW_load_one_warp") ;
 
      } else {  /*--- standard 3-brick warp ---*/
 
-       dset = THD_open_dataset(wp) ;
+       dset = THD_open_dataset(wp) ; DSET_COPYOVER_REAL(dset) ;
        if( dset == NULL ){
          ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
        }
@@ -4606,7 +4620,7 @@ ENTRY("IW3D_read_catenated_warp") ;
    /*-- simple case of a single dataset input --*/
 
    if( csar->num == 1 && strchr(csar->str[0],'(') == NULL && strchr(csar->str[0],':') == NULL ){
-     oset = THD_open_dataset(csar->str[0]) ;
+     oset = THD_open_dataset(csar->str[0]) ; DSET_COPYOVER_REAL(oset) ;
      if( oset == NULL ){
        ERROR_message("Can't open warp dataset '%s'",csar->str[0]) ;
        NI_delete_str_array(csar) ; RETURN(NULL) ;
@@ -4759,7 +4773,8 @@ static double Hbasis_parmax = 0.0 ;  /* max warp parameter allowed */
 
 static floatvec *Hmpar = NULL ;
 
-static int Hlocalstat = 0 ;
+static const int Hlocalstat = 0 ;
+
 static int Hskipped   = 0 ;
 static int Hdone      = 0 ;
 
@@ -4793,6 +4808,7 @@ static MRI_IMAGE   *Hsrcim_blur = NULL ;
 static float        Hblur_b     = 0.0f ;
 static float        Hblur_s     = 0.0f ;
 static int          Hforce      = 0    ;
+static int          Hzeasy      = 0    ; /* 26 Jun 2014 */
 static float        Hfactor     = 0.44f;
 static float        Hshrink     = 0.749999f ;
 static int          Hngmin      = 25 ;
@@ -5942,6 +5958,9 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 #endif
 
    /* compute the rest of the cost function */
+   /* -- the first case in the '?' expressions is when then patch
+         is smaller than the whole volume;
+      -- the second case is when the patch covers the entire universe */
 
    cost = INCOR_evaluate( Hincor , Hnval ,
                           (Hbval != NULL ) ? Hbval : MRI_FLOAT_PTR(Hbasim),
@@ -5988,6 +6007,7 @@ ENTRY("IW3D_cleanup_improvement") ;
    IW3D_destroy(AHwarp)  ; AHwarp  = NULL ;
    IW3D_destroy(Haawarp) ; Haawarp = NULL ;
 
+   INCOR_set_lpc_mask(NULL) ;  /* 25 Jun 2014 */
    INCOR_destroy(Hincor) ; Hincor = NULL ; KILL_floatvec(Hmpar) ;
    FREEIFNN(Hpar) ; FREEIFNN(Hwval) ; FREEIFNN(Haawt) ; FREEIFNN(Hbval) ;
    FREEIFNN(Hparmap) ; Hnparmap = Hnpar = 0 ; Hbasis_code = -666 ;
@@ -6116,7 +6136,8 @@ ENTRY("IW3D_setup_for_improvement") ;
    switch( meth_code ){
      default:                           Hnegate = 0 ; break ;
 
-     case GA_MATCH_HELLINGER_SCALAR:
+     case GA_MATCH_PEARSON_LOCALA:      /* lpa (but NOT lpc) */
+     case GA_MATCH_HELLINGER_SCALAR:    /* hel */
      case GA_MATCH_CRAT_USYM_SCALAR:
      case GA_MATCH_CRAT_SADD_SCALAR:
      case GA_MATCH_CORRATIO_SCALAR:
@@ -6145,7 +6166,7 @@ ENTRY("IW3D_setup_for_improvement") ;
      xyc = INCOR_2Dhist_xyclip( kk , xar , yar ) ;
      if( xar != bar ){ free(xar) ; free(yar) ; }
      MAKE_floatvec(Hmpar,9) ;
-     if( iii == 2 ){
+     if( iii == 2 ){              /* histogram parameter setup */
        INCOR_setup_good(Hnxyz) ;
        Hmpar->ar[0] = (float)INCOR_2Dhist_compute_nbin(nmask) ;
        Hmpar->ar[1] = xym.a ; Hmpar->ar[2] = xym.b ;  /* xbot  xtop  */
@@ -6159,7 +6180,7 @@ ENTRY("IW3D_setup_for_improvement") ;
          ININFO_message("           ybot=%g ycbot=%g yctop=%g ytop=%g",
                         Hmpar->ar[3], Hmpar->ar[7], Hmpar->ar[8], Hmpar->ar[4] ) ;
        }
-     } else if( iii == 3 ){
+     } else if( iii == 3 ){       /* clipped Pearson setup */
        float d1 , d2 , dif ;
        d2 = 0.05f*(xyc.b-xyc.a) ; /* 5% of x clip range */
        d1 = 0.5f*(xyc.a-xym.a) ;  /* half of x clip bot to x min */
@@ -6179,6 +6200,9 @@ ENTRY("IW3D_setup_for_improvement") ;
        }
 #endif
      }
+   } else if( iii == 4 ){         /* Local Pearson setup [25 Jun 2014] */
+     INCOR_set_lpc_mask(Hbmask) ;
+     MAKE_floatvec(Hmpar,9) ;     /* to be filled in later, for each patch */
    }
 
    Hgflags = IW3D_munge_flags(Hnx,Hny,Hnz,warp_flags) ;
@@ -6295,8 +6319,15 @@ ENTRY("IW3D_improve_warp") ;
 
    /*-- setup to do incremental 'correlation' on the local region --*/
 
+   if( INCOR_check_meth_code(Hmatch_code) == 4 ){ /* set LPC bounds [25 Jun 2014] */
+     Hmpar->ar[0] = (float)Hnx; Hmpar->ar[1] = (float)Hny; Hmpar->ar[2] = (float)Hnz;
+     Hmpar->ar[3] = (float)Hibot ; Hmpar->ar[4] = (float)Hitop ;
+     Hmpar->ar[5] = (float)Hjbot ; Hmpar->ar[6] = (float)Hjtop ;
+     Hmpar->ar[7] = (float)Hkbot ; Hmpar->ar[8] = (float)Hktop ;
+   }
+
    INCOR_destroy(Hincor) ;
-   Hincor = INCOR_create( Hmatch_code , Hmpar ) ;
+   Hincor = INCOR_create( Hmatch_code , Hmpar ) ; /* struct for correlations */
 
    FREEIFNN(Haawt) ; FREEIFNN(Hbval) ;
 
@@ -6336,12 +6367,13 @@ ENTRY("IW3D_improve_warp") ;
      }
 
      /* initialize the 'correlation' from the data that won't
-        be changing (i.e., data from outside the local patch) */
+        be changing (i.e., data from outside the local patch)
+        -- note that wbfar is set to 0 for voxels INSIDE the local patch */
 
      if( !Hlocalstat )
      INCOR_addto( Hincor , Hnxyz ,
                   MRI_FLOAT_PTR(Hbasim) , MRI_FLOAT_PTR(Haasrcim) , wbfar ) ;
-     RESTORE_WBFAR ;
+     RESTORE_WBFAR ;  /* fix wbfar inside local patch */
 
      /* also init penalty from non-changing part of Haawarp, if needed */
 
@@ -6496,7 +6528,10 @@ ENTRY("IW3D_warpomatic") ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
-     (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     if( !Hzeasy )
+       (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     else
+       nlevr = 1 ;
      for( iii=0 ; iii < nlevr ; iii++ ){
        Hcostold = Hcost ;
        (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -7684,6 +7719,7 @@ ENTRY("IW3D_cleanup_improvement_plusminus") ;
    IW3D_destroy(AHwarp)  ; AHwarp  = NULL ;
    IW3D_destroy(Haawarp) ; Haawarp = NULL ;
 
+   INCOR_set_lpc_mask(NULL) ;  /* 25 Jun 2014 */
    INCOR_destroy(Hincor) ; Hincor = NULL ; KILL_floatvec(Hmpar) ;
    FREEIFNN(Hpar) ; FREEIFNN(Hwval) ; FREEIFNN(Haawt) ; FREEIFNN(Hbval) ;
    FREEIFNN(Hparmap) ; Hnparmap = Hnpar = 0 ; Hbasis_code = -666 ;
@@ -7811,6 +7847,7 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
    switch( meth_code ){
      default:                           Hnegate = 0 ; break ;
 
+     case GA_MATCH_PEARSON_LOCALA:
      case GA_MATCH_HELLINGER_SCALAR:
      case GA_MATCH_CRAT_USYM_SCALAR:
      case GA_MATCH_CRAT_SADD_SCALAR:
@@ -7876,6 +7913,9 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
        }
 #endif
      }
+   } else if( iii == 4 ){   /* Local Pearson setup [25 Jun 2014] */
+     INCOR_set_lpc_mask(Hbmask) ;
+     MAKE_floatvec(Hmpar,9) ;     /* to be filled in later */
    }
 
    Hgflags = IW3D_munge_flags(Hnx,Hny,Hnz,warp_flags) ;

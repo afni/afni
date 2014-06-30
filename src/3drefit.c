@@ -186,6 +186,11 @@ void Syntax(int detail)
 "                  Note that this does not change the .BRIK file!\n"
 "                  This is done by programs 2swap and 4swap.\n"
 "\n"
+"  -checkaxes      Doesn't alter the input dataset; rather, this just\n"
+"                  checks the dataset axes orientation codes and the\n"
+"                  axes matrices for consistency.  (This option was\n"
+"                  added primarily to check for bugs in various codes.)\n"
+"\n"
 "  -appkey ll      Appends the string 'll' to the keyword list for the\n"
 "                  whole dataset.\n"
 "  -repkey ll      Replaces the keyword list for the dataset with the\n"
@@ -459,6 +464,7 @@ int main( int argc , char *argv[] )
    int cmap = -1;                    /* colormap handling */
    NI_str_array *sar_relab=NULL ;    /* 18 Apr 2011 */
    int geom_change = 0;              /* 04 Nov 2011 [drg] */
+   int do_checkaxes = 0 ;            /* 27 Jun 2014 [RWCox] */
 
 #define VINFO(x) if(verb)ININFO_message(x)
 
@@ -512,6 +518,12 @@ int main( int argc , char *argv[] )
       if(strcmp(argv[iarg],"-h") == 0 ||
          strncmp(argv[iarg],"-help",4) == 0 )
          Syntax(strlen(argv[iarg]) > 3 ? 2:1) ;
+
+      /*----- -checkaxes [27 Jun 2014] -----*/
+
+      if( strcasecmp(argv[iarg],"-checkaxes") == 0 ){
+        do_checkaxes = 1 ;  new_stuff++ ; iarg++ ; continue ;
+      }
 
       /*----- -addFDR [23 Jan 2008] -----*/
 
@@ -1469,6 +1481,49 @@ int main( int argc , char *argv[] )
       }
 
       INFO_message("Processing AFNI dataset %s\n",argv[iarg]) ;
+
+      /*-- First off: check the axes for consistency --*/
+
+      if( do_checkaxes ){
+        THD_dataxes *copy_dax , *orig_dax ; float dif ;
+        orig_dax = dset->daxes ;
+        copy_dax = (THD_dataxes *)malloc(sizeof(THD_dataxes)) ;
+        memcpy( copy_dax , orig_dax , sizeof(THD_dataxes) ) ;
+        LOAD_ZERO_MAT( copy_dax->to_dicomm ) ;
+        THD_daxes_to_mat44( copy_dax ) ;
+
+        dif = MAT44_FLDIF( orig_dax->ijk_to_dicom , copy_dax->ijk_to_dicom ) ;
+        if( dif > 0.001f ){
+          WARNING_message("===== ijk_to_dicom from dataset header and from axes differ") ;
+          DUMP_MAT44("ijk_to_dicom from dataset header",orig_dax->ijk_to_dicom) ;
+          DUMP_MAT44("ijk_to_dicom from dataset axes"  ,copy_dax->ijk_to_dicom) ;
+        } else {
+          INFO_message   ("===== ijk_to_dicom from dataset header and from axes are equivalent") ;
+          DUMP_MAT44("ijk_to_dicom from dataset header",orig_dax->ijk_to_dicom) ;
+        }
+
+        dif = MAT44_FLDIF( orig_dax->dicom_to_ijk , copy_dax->dicom_to_ijk ) ;
+        if( dif > 0.001f ){
+          WARNING_message("===== dicom_to_ijk from dataset header and from axes differ") ;
+          DUMP_MAT44("dicom_to_ijk from dataset header",orig_dax->dicom_to_ijk) ;
+          DUMP_MAT44("dicom_to_ijk from dataset axes"  ,copy_dax->dicom_to_ijk) ;
+        } else {
+          INFO_message   ("===== dicom_to_ijk from dataset header and from axes are equivalent") ;
+          DUMP_MAT44("dicom_to_ijk from dataset header",orig_dax->dicom_to_ijk) ;
+        }
+
+        dif = MAT44_FLDIF( orig_dax->ijk_to_dicom , orig_dax->ijk_to_dicom_real ) ;
+        if( dif > 0.001f ){
+          WARNING_message("===== ijk_to_dicom and ijk_to_dicom_real from dataset header differ") ;
+          DUMP_MAT44("ijk_to_dicom      from dataset header",orig_dax->ijk_to_dicom) ;
+          DUMP_MAT44("ijk_to_dicom_real from dataset header",orig_dax->ijk_to_dicom_real) ;
+        } else {
+          DUMP_MAT44("ijk_to_dicom      from dataset header",orig_dax->ijk_to_dicom) ;
+          INFO_message   ("===== ijk_to_dicom and ijk_to_dicom_real from dataset header are equivalent") ;
+        }
+
+        if( new_stuff == 1 ){ DSET_delete(dset) ; continue ; }  /* nothing else to do */
+      }
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;
 

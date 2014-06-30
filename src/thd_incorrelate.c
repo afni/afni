@@ -1,6 +1,8 @@
 #include "mrilib.h"
 
+/***---------------------------------------------------------***/
 /*** This file is intended to be #include-d into mri_nwarp.c ***/
+/***---------------------------------------------------------***/
 
 /***
      #ifdef USE_OMP
@@ -34,12 +36,597 @@ typedef struct {
   float xcbot , xctop , ycbot , yctop ;
 } INCOR_2Dhist ;
 
+typedef struct {
+  int numblok , *nelm ;
+  int nx,ny,nz, *blkn ;
+  int *nsum ; float *sx,*sxx, *sy,*syy, *sxy,*sw , *pval ;
+  float psum , wsum ;
+} INCORR_BLOK_set ;     /* 25 Jun 2014 */
+
+typedef struct {
+  int meth ;
+  int iibot,iitop , jjbot,jjtop , kkbot,kktop ;
+  int nii         , njj         , nkk         ;
+  INCORR_BLOK_set *ibs ;
+} INCOR_localpearson ;  /* 25 Jun 2014 */
+
+#define ALLOW_DEBUG_LPC
+#ifdef  ALLOW_DEBUG_LPC
+static int debug_lpc = 0 ;
+#else
+#define debug_lpc 0
+#endif
+
 #undef  INCOR_methcode
 #define INCOR_methcode(vp) ( ((vp) != NULL) ? ((INCOR_generic *)vp)->meth : 0 )
 
 #undef  MYatanh
 #define MYatanh(x) ( ((x)<-0.9993293) ? -4.0                \
                     :((x)>+0.9993293) ? +4.0 : atanh(x) )
+
+/****************************************************************************/
+/*** Local Pearson correlation [25 Jun 2014 -- at long last!]             ***/
+/****************************************************************************/
+
+#undef  MINCOR
+#define MINCOR 9 /* min number of points to correlate */
+
+#undef  CMAX
+#define CMAX 0.99f
+
+/* is abs(a) <= s ?? */
+
+#undef  FAS
+#define FAS(a,s) ( (a) <= (s) && (a) >= -(s) )
+
+/** define inside of a ball; is point (a,b,c) inside?  **/
+/** volume of ball = 4*PI/3 * siz**3 = 4.1888 * siz**3 **/
+
+#define IB_BLOK_inside_ball(a,b,c,siz) \
+  ( ((a)*(a)+(b)*(b)+(c)*(c)) <= (siz) )
+
+/** define inside of a cube **/
+/** volume of cube = 8 * siz**3 **/
+/** lattice vectors = [2*siz,0,0]  [0,2*siz,0]  [0,0,2*siz] **/
+
+#define IB_BLOK_inside_cube(a,b,c,siz) \
+  ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz)) )
+
+/** define inside of a rhombic dodecahedron (RHDD) **/
+/** volume of RHDD = 2 * siz**3 **/
+/** lattice vectors = [siz,siz,0]  [0,siz,siz]  [siz,0,siz] **/
+
+#define IB_BLOK_inside_rhdd(a,b,c,siz)              \
+  ( FAS((a)+(b),(siz)) && FAS((a)-(b),(siz)) &&     \
+    FAS((a)+(c),(siz)) && FAS((a)-(c),(siz)) &&     \
+    FAS((b)+(c),(siz)) && FAS((b)-(c),(siz))   )
+
+/** define inside of a truncated octahedron (TOHD) **/
+/** volume of TOHD = 4 * siz**3 **/
+/** lattice vectors = [-siz,siz,siz]  [siz,-siz,siz]  [siz,siz,-siz] **/
+
+#define IB_BLOK_inside_tohd(a,b,c,siz)                              \
+  ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz))         &&   \
+    FAS((a)+(b)+(c),1.5f*(siz)) && FAS((a)-(b)+(c),1.5f*(siz)) &&   \
+    FAS((a)+(b)-(c),1.5f*(siz)) && FAS((a)-(b)-(c),1.5f*(siz))   )
+
+/** define inside of an arbitrary blok type **/
+
+#define IB_BLOK_inside(bt,a,b,c,s)                              \
+ (  ((bt)==GA_BLOK_BALL) ? IB_BLOK_inside_ball((a),(b),(c),(s)) \
+  : ((bt)==GA_BLOK_CUBE) ? IB_BLOK_inside_cube((a),(b),(c),(s)) \
+  : ((bt)==GA_BLOK_RHDD) ? IB_BLOK_inside_rhdd((a),(b),(c),(s)) \
+  : ((bt)==GA_BLOK_TOHD) ? IB_BLOK_inside_tohd((a),(b),(c),(s)) \
+  : 0 )
+
+/** add 1 value to a dynamically allocated integer array **/
+
+#define IB_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
+ do{ if( (nar) == (nal) ){                                                  \
+       (nal) = 1.5*(nal)+16; (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+     }                                                                      \
+     (ar)[(nar)++] = (val);                                                 \
+ } while(0)
+
+/** truncate dynamically allocated integer array down to size **/
+
+#define IB_BLOK_CLIP_intar(nar,nal,ar)                               \
+ do{ if( (nar) < (nal) && (nar) > 0 ){                               \
+       (nal) = (nar); (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+ }} while(0)
+
+/*----------------------------------------------------------------------------*/
+/*! Fill a struct with list of points contained in sub-bloks of the base.
+
+    - nx,ny,nz = 3D grid dimensions
+    - dx,dy,dz = 3D grid spacings
+    - mask     = byte mask of points to use (can be NULL)
+    - bloktype = one of GA_BLOK_BALL, GA_BLOK_CUBE, GA_BLOK_RHDD, GA_BLOK_TOHD
+    - blokrad  = radius parameter for the bloks to be built
+    - minel    = minimum number of points to put in a blok
+                 (if 0, function will pick a value)
+*//*--------------------------------------------------------------------------*/
+
+INCORR_BLOK_set * create_INCORR_BLOK_set(
+                     int   nx , int   ny , int   nz ,
+                     float dx , float dy , float dz ,
+                     byte *mask ,
+                     int bloktype , float blokrad , int minel )
+{
+   INCORR_BLOK_set *ibs ;
+   float dxp,dyp,dzp , dxq,dyq,dzq , dxr,dyr,dzr , xt,yt,zt ;
+   float xx,yy,zz , uu,vv,ww , siz ;
+   THD_mat33 latmat , invlatmat ; THD_fvec3 pqr , xyz ;
+   int pb,pt , qb,qt , rb,rt , pp,qq,rr , tnblok,nball , ii , nxy,nxyz ;
+   int aa,bb,cc , dd,ss , np,nq,nr,npq , *nelm,*nalm,**elm ;
+   int ntot,nsav,nblok , sgood , maxel ;
+   int *ilist ;
+   const float shfac = 1.0f ;
+
+ENTRY("create_INCORR_BLOK_set") ;
+
+   if( nx < 3 || ny < 3 || nz < 1 ) RETURN(NULL) ;
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+
+   /* Create lattice vectors to generate translated bloks:
+      The (p,q,r)-th blok -- for integral p,q,r -- is at (x,y,z) offset
+        (dxp,dyp,dzp)*p + (dxq,dyq,dzq)*q + (dxr,dyr,dzr)*r
+      Also set the 'siz' parameter for the blok, to test for inclusion. */
+
+   switch( bloktype ){
+
+     /* balls go on a hexagonal close packed lattice,
+        but with lattice spacing reduced to avoid gaps
+        (of course, then the balls overlap -- c'est la geometrie) */
+
+     case GA_BLOK_BALL:{
+       float s3=1.73205f ,           /* sqrt(3) */
+             s6=2.44949f ,           /* sqrt(6) */
+             a =blokrad*0.866025f ;  /* shrink spacing to avoid gaps */
+       siz = blokrad*blokrad ;
+       /* hexagonal close packing basis vectors for sphere of radius a */
+       a *= shfac ;
+       dxp = 2.0f * a ; dyp = 0.0f  ; dzp = 0.0f             ;
+       dxq = a        ; dyq = a * s3; dzq = 0.0f             ;
+       dxr = a        ; dyr = a / s3; dzr = a * 0.666667f*s6 ;
+     }
+     break ;
+
+     /* cubes go on a simple cubical lattice, spaced so faces touch */
+
+     case GA_BLOK_CUBE:{
+       float a =  blokrad ;
+       siz = a ; a *= shfac ;
+       dxp = 2*a ; dyp = 0.0f; dzp = 0.0f ;
+       dxq = 0.0f; dyq = 2*a ; dzq = 0.0f ;
+       dxr = 0.0f; dyr = 0.0f; dzr = 2*a  ;
+     }
+     break ;
+
+     /* rhombic dodecahedra go on a FCC lattice,
+        spaced so that faces touch (i.e., no volumetric overlap) */
+
+     case GA_BLOK_RHDD:{
+       float a = blokrad ;
+       siz = a ; a *= shfac ;
+       dxp = a   ; dyp = a   ; dzp = 0.0f ;
+       dxq = 0.0f; dyq = a   ; dzq = a    ;
+       dxr = a   ; dyr = 0.0f; dzr = a    ;
+     }
+     break ;
+
+     /* truncated octahedra go on a BCC lattice,
+        spaced so that faces touch (i.e., no volumetric overlap) */
+
+     case GA_BLOK_TOHD:{
+       float a = blokrad ;
+       siz = a ; a *= shfac ;
+       dxp = -a ; dyp =  a ; dzp =  a ;
+       dxq =  a ; dyq = -a ; dzq =  a ;
+       dxr =  a ; dyr =  a ; dzr = -a ;
+     }
+     break ;
+
+     default:  RETURN(NULL) ;  /** should not happen! **/
+   }
+
+   /* find range of (p,q,r) indexes needed to cover volume,
+      by checking out all 7 corners besides (0,0,0) (where p=q=r=0) */
+
+   LOAD_MAT( latmat, dxp , dxq , dxr ,
+                     dyp , dyq , dyr ,
+                     dzp , dzq , dzr  ) ; invlatmat = MAT_INV(latmat) ;
+
+   xt = (nx-1)*dx ; yt = (ny-1)*dy ; zt = (nz-1)*dz ;
+   pb = pt = qb = qt = rb = rt = 0 ;  /* initialize (p,q,r) bot, top values */
+
+   LOAD_FVEC3(xyz , xt,0.0f,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , xt,yt,0.0f )  ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , xt,0.0f,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , xt,yt,zt )    ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , 0.0f,yt,0.0f ); pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , 0.0f,0.0f,zt ); pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   LOAD_FVEC3(xyz , 0.0f,yt,zt )  ; pqr = MATVEC( invlatmat , xyz ) ;
+   pp = (int)floorf( pqr.xyz[0] ) ; pb = MIN(pb,pp) ; pp++ ; pt = MAX(pt,pp) ;
+   qq = (int)floorf( pqr.xyz[1] ) ; qb = MIN(qb,qq) ; qq++ ; qt = MAX(qt,qq) ;
+   rr = (int)floorf( pqr.xyz[2] ) ; rb = MIN(rb,rr) ; rr++ ; rt = MAX(rt,rr) ;
+
+   /* Lattice index range is (p,q,r) = (pb..pt,qb..qt,rb..rt) inclusive */
+
+   np = pt-pb+1 ;                /* number of p values to consider */
+   nq = qt-qb+1 ; npq = np*nq ;
+   nr = rt-rb+1 ;
+   tnblok = npq*nr ;             /* total number of bloks to consider */
+
+   /* Now have list of bloks, so put points into each blok list */
+
+   nelm = (int *) calloc(sizeof(int)  ,tnblok) ;  /* # pts in each blok */
+   nalm = (int *) calloc(sizeof(int)  ,tnblok) ;  /* # malloc-ed in each blok */
+   elm  = (int **)calloc(sizeof(int *),tnblok) ;  /* list of pts in each blok */
+
+   nxy = nx*ny ; nxyz = nxy*nz ;
+
+   /* macro to test if (xx,yy,zz) goes into blok (ta,tb,tc), and put it there */
+
+#undef  TEST_BLOK_xyz
+#define TEST_BLOK_xyz(ta,tb,tc)                                      \
+ do{ LOAD_FVEC3( pqr , ta,tb,tc ) ;                                  \
+     xyz = MATVEC( latmat , pqr ) ;                                  \
+     uu = xx-xyz.xyz[0] ; vv = yy-xyz.xyz[1] ; ww = zz-xyz.xyz[2] ;  \
+     if( IB_BLOK_inside( bloktype , uu,vv,ww , siz ) ){              \
+       dd = (ta-pb) + (tb-qb)*np + (tc-rb)*npq ; /* blok index */    \
+       IB_BLOK_ADDTO_intar( nelm[dd], nalm[dd], elm[dd], ss ) ;      \
+       ntot++ ; sgood = 1 ;                                          \
+     }                                                               \
+ } while(0) ;
+
+   /* loop over points to insert; each point goes in (at most) ONE blok */
+
+   for( ntot=ii=0 ; ii < nxyz ; ii++ ){
+     if( mask != NULL && !mask[ii] ) continue ;       /* bad point */
+     pp = ii%nx ; rr = ii/nxy ; qq = (ii-rr*nxy)/nx ; /* 3D indexes (pp,qq,rr) */
+     sgood = 0 ; ss = ii ;                            /* index in 1D array */
+     xx = pp*dx ; yy = qq*dy ; zz = rr*dz ;           /* xyz spatial coordinates */
+     LOAD_FVEC3( xyz , xx,yy,zz ) ;
+     pqr = MATVEC( invlatmat , xyz ) ;                /* float lattice coords */
+     pp = (int)floorf(pqr.xyz[0]+.499f) ;             /* integer lattice coords */
+     qq = (int)floorf(pqr.xyz[1]+.499f) ;
+     rr = (int)floorf(pqr.xyz[2]+.499f) ;
+     /* test if this blok holds the current point */
+     if( pp >= pb && pp <= pt && qq >= qb && qq <= qt && rr >= rb && rr <= rt ){
+       TEST_BLOK_xyz(pp,qq,rr) ; if( sgood ) goto TEST_BLOK_DONE ;
+     }
+     /* otherwise, search nearby bloks for inclusion of (xx,yy,zz) */
+     for( cc=rr-1 ; cc <= rr+1 ; cc++ ){
+       if( cc < rb || cc > rt ) continue ;
+       for( bb=qq-1 ; bb <= qq+1 ; bb++ ){
+         if( bb < qb || bb > qt ) continue ;
+         for( aa=pp-1 ; aa <= pp+1 ; aa++ ){
+           if( aa < pb || aa > pt ) continue ;
+           if( aa==pp && bb==qq && cc==rr ) continue ;  /* already tested */
+           TEST_BLOK_xyz(aa,bb,cc) ; if( sgood ) goto TEST_BLOK_DONE ;
+         }
+       }
+     }
+     TEST_BLOK_DONE: /*nada*/ ;
+   }
+#undef TEST_BLOK_xyz
+
+   /* compute the min number of points allowed per blok? */
+
+   if( minel < MINCOR ){
+     for( minel=dd=0 ; dd < tnblok ; dd++ ) minel = MAX(minel,nelm[dd]) ;
+     minel = (int)(0.321f*minel)+1 ; if( minel < MINCOR ) minel = MINCOR ;
+   }
+   for( maxel=dd=0 ; dd < tnblok ; dd++ ) maxel = MAX(maxel,nelm[dd]) ;
+
+   /* now cast out bloks that have too few points */
+
+   for( ntot=nblok=dd=0 ; dd < tnblok ; dd++ ){
+     if( nelm[dd] < minel ){
+       if( elm[dd] != NULL ){ free(elm[dd]); elm[dd] = NULL; }
+       nelm[dd] = 0 ;      /* mark as an unsaved blok */
+     } else {
+       nblok++ ;           /* count of saved bloks */
+       ntot += nelm[dd] ;  /* count of saved points */
+     }
+   }
+   free(nalm) ;
+
+   if( nblok == 0 ){  /* didn't find any arrays to keep!? */
+     ERROR_message("create_INCORR_BLOK_set can't find bloks with at least %d nodes",minel);
+     free(nelm) ; free(elm) ; RETURN(NULL) ;
+   }
+
+   /* make a map from point index to (saved) blok index */
+
+   ilist = (int *)malloc(sizeof(int)*nxyz) ;
+   for( pp=0 ; pp < nxyz ; pp++ ) ilist[pp] = -666 ;  /* mark as not in any blok */
+   for( rr=qq=dd=0 ; dd < tnblok ; dd++ ){
+     if( nelm[dd] == 0 ) continue ;  /* not a saved blok */
+     for( pp=0 ; pp < nelm[dd] ; pp++ ) ilist[ elm[dd][pp] ] = rr ;
+     free(elm[dd]) ;  /* no longer needed */
+     rr++ ;           /* increment saved blok index */
+   }
+
+   /* create output struct */
+
+   ibs = (INCORR_BLOK_set *)malloc(sizeof(INCORR_BLOK_set)) ;
+   ibs->numblok  = nblok ;
+   ibs->nelm     = (int *)  calloc(sizeof(int)  ,nblok) ;
+   ibs->nsum     = (int *)  calloc(sizeof(int)  ,nblok) ;
+   ibs->sx       = (float *)calloc(sizeof(float),nblok) ;
+   ibs->sxx      = (float *)calloc(sizeof(float),nblok) ;
+   ibs->sy       = (float *)calloc(sizeof(float),nblok) ;
+   ibs->syy      = (float *)calloc(sizeof(float),nblok) ;
+   ibs->sxy      = (float *)calloc(sizeof(float),nblok) ;
+   ibs->sw       = (float *)calloc(sizeof(float),nblok) ;
+   ibs->pval     = (float *)calloc(sizeof(float),nblok) ;
+
+   ibs->nx = nx ; ibs->ny = ny ; ibs->nz = nz ; ibs->blkn = ilist ;
+   ibs->psum = ibs->wsum = 0.0f ;
+
+   for( rr=dd=0 ; dd < tnblok ; dd++ ){
+     if( nelm[dd] > 0 ) ibs->nelm[rr++] = nelm[dd] ;
+   }
+
+   free(nelm) ; free(elm) ;
+
+   RETURN(ibs) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void destroy_INCORR_BLOK_set( INCORR_BLOK_set *ibs )
+{
+   if( ibs == NULL ) return ;
+
+   if( ibs->nelm != NULL ) free(ibs->nelm) ;
+   if( ibs->blkn != NULL ) free(ibs->blkn) ;
+   if( ibs->nsum != NULL ) free(ibs->nsum) ;
+   if( ibs->sx   != NULL ) free(ibs->sx  ) ;
+   if( ibs->sxx  != NULL ) free(ibs->sxx ) ;
+   if( ibs->sy   != NULL ) free(ibs->sy  ) ;
+   if( ibs->syy  != NULL ) free(ibs->syy ) ;
+   if( ibs->sxy  != NULL ) free(ibs->sxy ) ;
+   if( ibs->sw   != NULL ) free(ibs->sw  ) ;
+   if( ibs->pval != NULL ) free(ibs->pval) ;
+   free(ibs) ;                                            \
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void clear_INCORR_BLOK_set( INCORR_BLOK_set *ibs )
+{
+   if( ibs == NULL ) return ;
+
+   AAmemset(ibs->nsum,0,sizeof(int)  *ibs->numblok) ;
+   AAmemset(ibs->sx  ,0,sizeof(float)*ibs->numblok) ;
+   AAmemset(ibs->sxx ,0,sizeof(float)*ibs->numblok) ;
+   AAmemset(ibs->sy  ,0,sizeof(float)*ibs->numblok) ;
+   AAmemset(ibs->syy ,0,sizeof(float)*ibs->numblok) ;
+   AAmemset(ibs->sxy ,0,sizeof(float)*ibs->numblok) ;
+   AAmemset(ibs->sw  ,0,sizeof(float)*ibs->numblok) ;
+   AAmemset(ibs->pval,0,sizeof(float)*ibs->numblok) ;
+   ibs->psum = ibs->wsum = 0.0f ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Insert data into the struct. */
+
+void addto_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
+                            int ibot , int itop ,  /* indexes are inclusive */
+                            int jbot , int jtop ,
+                            int kbot , int ktop ,
+                            float *xval , float *yval , float *wt )
+{
+   int ii,jj,kk , nx,ny,nz,nxy , pp,dd , nblok=ibs->numblok ;
+   int *nelm=ibs->nelm , *nsum=ibs->nsum , *blkn=ibs->blkn ;
+   float *sx   = ibs->sx  , *sxx  = ibs->sxx , *sy   = ibs->sy  ,
+         *syy  = ibs->syy , *sxy  = ibs->sxy , *sw   = ibs->sw  ,
+         *pval = ibs->pval ;
+   double xx,yy,xy,ww ; float rval ;
+
+   nx = ibs->nx ; ny = ibs->ny ; nz = ibs->nz ; nxy = nx*ny ;
+
+   if( wt == NULL ){
+     for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
+      for( jj=jbot ; jj <= jtop ; jj++ ){
+       for( ii=ibot ; ii <= itop ; ii++,pp++ ){
+         dd = blkn[ii + jj*nx + kk*nxy] ;
+         if( dd >= 0 && nsum[dd] < nelm[dd] ){  /* in incomplete blok? */
+           xx = (double)xval[pp] ; yy = (double)yval[pp] ;
+           sx[dd] += xx ; sxx[dd] += xx*xx ;
+           sy[dd] += yy ; syy[dd] += yy*yy ; sxy[dd] += xx*yy ; sw[dd] += 1.0 ;
+           nsum[dd]++ ;
+         }
+     }}}
+   } else {
+     for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
+      for( jj=jbot ; jj <= jtop ; jj++ ){
+       for( ii=ibot ; ii <= itop ; ii++,pp++ ){
+         dd = blkn[ii + jj*nx + kk*nxy] ;
+         if( dd >= 0 && nsum[dd] < nelm[dd] ){  /* in incomplete blok? */
+           ww = wt[pp] ; if( ww <= 0.0 ) continue ;      /* no weight? */
+           xx = (double)xval[pp] ; yy = (double)yval[pp] ;
+           sx[dd] += xx*ww; sxx[dd] += xx*xx*ww;
+           sy[dd] += yy*ww; syy[dd] += yy*yy*ww; sxy[dd] += xx*yy*ww; sw[dd] += ww;
+           nsum[dd]++ ;
+         }
+     }}}
+   }
+
+   /* find newly completed bloks and sum them up */
+
+   for( dd=0 ; dd < nblok ; dd++ ){
+     if( nsum[dd] == nelm[dd] && sw[dd] > 0.0f ){ /* now completed? */
+       ww = 1.0 / sw[dd] ;
+       xx = sxx[dd] - sx[dd] * sx[dd] * ww ;
+       yy = syy[dd] - sy[dd] * sy[dd] * ww ;
+       xy = sxy[dd] - sx[dd] * sy[dd] * ww ;
+       if( xx <= 0.0 || yy <= 0.0 ){
+         pval[dd] = 0.0f ;
+       } else {
+         rval = (float)(xy/sqrt(xx*yy)) ;
+              if( rval >  CMAX ) rval =  CMAX ;
+         else if( rval < -CMAX ) rval = -CMAX ;
+         pval[dd] = logf( (1.0f+rval)/(1.0f-rval) ) ;
+         ibs->psum += (float)sw[dd] * pval[dd] * fabsf(pval[dd]) ;
+         ibs->wsum += (float)sw[dd] ;
+       }
+       sw[dd] = 0.0f ;  /* marked as completed and summed up */
+     }
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Compute correlation, including the extra data, if any
+   (but this extra data is not stored into the struct).
+   The intended usage is
+     (1) setup struct with unchanging data with calls to addto_INCORR_BLOK_set
+     (2) finalize the correlation with calls to correlate_INCORR_BLOK_set
+         with data that changes -- from the warp patch currently being
+         optimized, that is
+*//*-------------------------------------------------------------------------*/
+
+float correlate_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
+                                 int ibot , int itop ,
+                                 int jbot , int jtop ,
+                                 int kbot , int ktop ,
+                                 float *xval , float *yval , float *wt )
+{
+   int dd , nblok=ibs->numblok ;
+   int *nelm=ibs->nelm , *nsum=NULL ;
+   float *sx , *sxx , *sy , *syy , *sxy , *sw ;
+   double xx,yy,xy,ww ; float rval , wsum,psum ;
+
+   if( xval == NULL || yval == NULL ){  /* no extra data to add in */
+
+     sx   = ibs->sx   ;  /* pointers to external struct data */
+     sxx  = ibs->sxx  ;  /* this data will not be altered herein */
+     sy   = ibs->sy   ;
+     syy  = ibs->syy  ;
+     sxy  = ibs->sxy  ;
+     sw   = ibs->sw   ;
+
+   } else {    /* add the extra data into a local copy of the struct's data */
+
+     int *blkn = ibs->blkn ;  /* spatial index to blok index array */
+     int nx,ny,nz,nxy , ii,jj,kk , pp ;
+
+     nx = ibs->nx ; ny = ibs->ny ; nz = ibs->nz ; nxy = nx*ny ;
+
+     sx   = (float *)malloc(sizeof(float)*nblok) ;  /* local copies */
+     sxx  = (float *)malloc(sizeof(float)*nblok) ;
+     sy   = (float *)malloc(sizeof(float)*nblok) ;
+     syy  = (float *)malloc(sizeof(float)*nblok) ;
+     sxy  = (float *)malloc(sizeof(float)*nblok) ;
+     sw   = (float *)malloc(sizeof(float)*nblok) ;
+     nsum = (int *  )malloc(sizeof(int)  *nblok) ;
+     AAmemcpy(sxx ,ibs->sxx ,sizeof(float)*nblok) ;
+     AAmemcpy(sy  ,ibs->sy  ,sizeof(float)*nblok) ;
+     AAmemcpy(syy ,ibs->syy ,sizeof(float)*nblok) ;
+     AAmemcpy(sxy ,ibs->sxy ,sizeof(float)*nblok) ;
+     AAmemcpy(sw  ,ibs->sw  ,sizeof(float)*nblok) ;
+     AAmemcpy(nsum,ibs->nsum,sizeof(int)  *nblok) ;
+
+     if( wt == NULL ){
+       for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
+        for( jj=jbot ; jj <= jtop ; jj++ ){
+         for( ii=ibot ; ii <= itop ; ii++,pp++ ){
+           dd = blkn[ii + jj*nx + kk*nxy] ;
+           if( dd >= 0 && nsum[dd] < nelm[dd] ){  /* in incomplete blok? */
+             xx = (double)xval[pp] ; yy = (double)yval[pp] ;
+             sx[dd] += xx ; sxx[dd] += xx*xx ;
+             sy[dd] += yy ; syy[dd] += yy*yy ; sxy[dd] += xx*yy ; sw[dd] += 1.0 ;
+             nsum[dd]++ ;
+           }
+       }}}
+     } else {
+       for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
+        for( jj=jbot ; jj <= jtop ; jj++ ){
+         for( ii=ibot ; ii <= itop ; ii++,pp++ ){
+           dd = blkn[ii + jj*nx + kk*nxy] ;
+           if( dd >= 0 && nsum[dd] < nelm[dd] ){  /* in incomplete blok? */
+             ww = wt[pp] ; if( ww <= 0.0 ) continue ;      /* no weight? */
+             xx = (double)xval[pp] ; yy = (double)yval[pp] ;
+             sx[dd] += xx*ww; sxx[dd] += xx*xx*ww;
+             sy[dd] += yy*ww; syy[dd] += yy*yy*ww; sxy[dd] += xx*yy*ww; sw[dd] += ww;
+             nsum[dd]++ ;
+           }
+       }}}
+     }
+
+   }  /* end of putting data into local copy */
+
+   /*-- now finalize the summation --*/
+
+   psum = ibs->psum ; wsum = ibs->wsum ;
+
+   if( debug_lpc )
+     fprintf(stderr,"++++++++++ Debug LPC output: %d bloks  init psum=%g wsum=%g\n  pvals:",nblok,psum,wsum) ;
+
+   for( dd=0 ; dd < nblok ; dd++ ){  /* scan and finish incomplete bloks */
+     if( sw[dd] > 0.0f ){            /* incomplete but with data? */
+       ww = 1.0 / sw[dd] ;
+       xx = sxx[dd] - sx[dd] * sx[dd] * ww ;
+       yy = syy[dd] - sy[dd] * sy[dd] * ww ;
+       xy = sxy[dd] - sx[dd] * sy[dd] * ww ;
+       if( xx > 0.0 && yy > 0.0 ){
+         rval = (float)(xy/sqrt(xx*yy)) ;
+              if( rval >  CMAX ) rval =  CMAX ;
+         else if( rval < -CMAX ) rval = -CMAX ;
+         rval  = logf( (1.0f+rval)/(1.0f-rval) ) ;
+         psum += (float)sw[dd] * rval * fabsf(rval) ;
+         wsum += (float)sw[dd] ;
+         if( debug_lpc ) fprintf(stderr," %g",rval) ;
+       }
+     } else if( debug_lpc ){
+       fprintf(stderr," %g",ibs->pval[dd]) ;
+     }
+   }
+
+   if( sx != ibs->sx ){  /* free local copies */
+     free(sx); free(sxx); free(sy); free(syy); free(sxy); free(sw); free(nsum);
+   }
+
+   rval = (wsum <= 0.0f) ? 0.0f : psum/wsum ;
+
+   if( debug_lpc )
+     fprintf(stderr,"\n--------- final psum=%g wsum=%g rval=%g ----------------------------\n",psum,wsum,rval) ;
+
+   return rval ;
+}
 
 /****************************************************************************/
 /*** Histogram-based measurements of dependence between two float arrays. ***/
@@ -1103,9 +1690,45 @@ int INCOR_check_meth_code( int meth )
      case GA_MATCH_HELLINGER_SCALAR:
      case GA_MATCH_CRAT_SADD_SCALAR:
      case GA_MATCH_CRAT_USYM_SCALAR:  return 2 ;  /* uses 2Dhist */
+
+     case GA_MATCH_PEARSON_LOCALS:
+     case GA_MATCH_PEARSON_LOCALA:    return 4 ;  /* 25 Jun 2014 */
   }
 
   return 0 ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static byte *lpc_mask = NULL ;
+
+void INCOR_set_lpc_mask( byte *mmm ){ lpc_mask = mmm ; }
+
+/*----------------------------------------------------------------------------*/
+
+static INCORR_BLOK_set *lpc_ibs = NULL ;
+
+void INCOR_reset_lpc_ibs( int nx , int ny , int nz )
+{
+   int need_new ;
+
+   need_new = (lpc_ibs     == NULL) ||
+              (lpc_ibs->nx != nx  ) ||
+              (lpc_ibs->ny != ny  ) ||
+              (lpc_ibs->nz != nz  )   ;
+
+   if( need_new ){
+     if( lpc_ibs != NULL ) destroy_INCORR_BLOK_set(lpc_ibs) ;
+     if( nx > 3 && ny > 3 && nz > 0 )
+       lpc_ibs = create_INCORR_BLOK_set( nx,ny,nz, 1.0f,1.0f,1.0f,
+                                         lpc_mask, GA_BLOK_TOHD, 6.54321f, 0 ) ;
+     else
+       lpc_ibs = NULL ;
+   } else {
+     clear_INCORR_BLOK_set( lpc_ibs ) ;
+   }
+
+   return ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -1136,7 +1759,11 @@ int INCOR_check_meth_code( int meth )
            In addition, you can use function INCOR_2Dhist_xyclip() to compute
            xcbot, xctop, ycbot, and yctop.
 
-      At this time, the local correlation methods are not supported by INCOR.
+       For meth == Local Pearson method, mpar is used as follows:
+         mpar->ar[0] = nx   ar[1] = ny  ar[2] = nz  (of total volume)
+               ar[3] = ibot ar[4] = itop            (of small volume)
+               ar[5] = jbot ar[6] = jtop
+               ar[7] = kbot ar[8] = ktop
 *//*--------------------------------------------------------------------------*/
 
 void * INCOR_create( int meth , floatvec *mpar )
@@ -1190,6 +1817,29 @@ ENTRY("INCOR_create") ;
      }
      break ;
 
+     case GA_MATCH_PEARSON_LOCALS:   /* local Pearson stuff [25 Jun 2014] */
+     case GA_MATCH_PEARSON_LOCALA:{
+       INCOR_localpearson *ilp ;
+       int nx,ny,nz ;
+       if( mpar == NULL || mpar->nar < 9 ) RETURN(vinc) ;  /* bad */
+       ilp = (INCOR_localpearson *)calloc(1,sizeof(INCOR_localpearson)) ;
+       ilp->meth  = meth ;
+       ilp->iibot = (int)mpar->ar[3] ; ilp->iitop = (int)mpar->ar[4] ;
+       ilp->jjbot = (int)mpar->ar[5] ; ilp->jjtop = (int)mpar->ar[6] ;
+       ilp->kkbot = (int)mpar->ar[7] ; ilp->kktop = (int)mpar->ar[8] ;
+       ilp->nii   = ilp->iitop - ilp->iibot + 1 ;
+       ilp->njj   = ilp->jjtop - ilp->jjbot + 1 ;
+       ilp->nkk   = ilp->kktop - ilp->kkbot + 1 ;
+       nx = (int)mpar->ar[0] ; ny = (int)mpar->ar[1] ; nz = (int)mpar->ar[2] ;
+       INCOR_reset_lpc_ibs(nx,ny,nz) ; ilp->ibs = lpc_ibs ;
+       vinc = (void *)ilp ;
+
+#ifdef ALLOW_DEBUG_LPC
+       debug_lpc = AFNI_yesenv("AFNI_DEBUG_LPC") ;
+#endif
+     }
+     break ;
+
    }
 
    RETURN(vinc) ;
@@ -1221,6 +1871,16 @@ ENTRY("INCOR_destroy") ;
      case GA_MATCH_CRAT_SADD_SCALAR:
      case GA_MATCH_CRAT_USYM_SCALAR:
        INCOR_destroy_2Dhist(vp) ;
+     break ;
+
+     case GA_MATCH_PEARSON_LOCALS:   /* 25 Jun 2014 */
+     case GA_MATCH_PEARSON_LOCALA:{
+       if( lpc_mask == NULL ){
+         INCOR_localpearson *ilp = (INCOR_localpearson *)vp ;
+         destroy_INCORR_BLOK_set(ilp->ibs) ;
+         free(ilp) ; lpc_ibs = NULL ;
+       }
+     }
      break ;
 
    }
@@ -1320,6 +1980,19 @@ ENTRY("INCOR_addto") ;
        INCOR_addto_2Dhist( vin , n , x , y, w ) ;
      break ;
 
+     case GA_MATCH_PEARSON_LOCALS:  /* 25 Jun 2014 */
+     case GA_MATCH_PEARSON_LOCALA:{
+       INCOR_localpearson *ilp = (INCOR_localpearson *)vin ;
+       if( n != ilp->ibs->nx * ilp->ibs->ny * ilp->ibs->nz )
+         ERROR_exit("INCOR_addto mismatch for localpearson: n=%d nx=%d ny=%d nz=%d",
+                    n,ilp->ibs->nx,ilp->ibs->ny,ilp->ibs->nz) ;
+       addto_INCORR_BLOK_set( ilp->ibs ,
+                              0 , ilp->ibs->nx-1 ,
+                              0 , ilp->ibs->ny-1 ,
+                              0 , ilp->ibs->nz-1 , x , y , w ) ;
+     }
+     break ;
+
    }
 
    EXRETURN ;
@@ -1336,17 +2009,21 @@ ENTRY("INCOR_addto") ;
 
 double INCOR_evaluate( void *vin , int n , float *x , float *y , float *w )
 {
-   void *vtmp ; double val=0.0 ;
+   void *vtmp=NULL ; double val=0.0 ; int meth ;
 
 ENTRY("INCOR_evaluate") ;
 
-   if( vin == NULL ) RETURN(val) ;
+   if( vin == NULL ) RETURN(val) ;  /* should never transpire */
 
-   vtmp = INCOR_create( INCOR_methcode(vin) , NULL ) ;
-   INCOR_copyover( vin , vtmp ) ;
-   INCOR_addto( vtmp , n , x , y , w ) ;
+   meth = INCOR_methcode(vin) ;
 
-   switch( INCOR_methcode(vtmp) ){
+   if( !(meth == GA_MATCH_PEARSON_LOCALA || meth == GA_MATCH_PEARSON_LOCALS) ){
+     vtmp = INCOR_create( meth , NULL ) ;
+     INCOR_copyover( vin , vtmp ) ;
+     INCOR_addto( vtmp , n , x , y , w ) ;
+   }
+
+   switch( meth ){
      case GA_MATCH_PEARSON_SCALAR:   val = INCOR_incomplete_pearson(vtmp); break;
      case GA_MATCH_PEARCLP_SCALAR:   val = INCOR_incomplete_pearclp(vtmp); break;
      case GA_MATCH_MUTINFO_SCALAR:   val = INCOR_mutual_info(vtmp) ;       break;
@@ -1355,8 +2032,21 @@ ENTRY("INCOR_evaluate") ;
      case GA_MATCH_CORRATIO_SCALAR:  val = INCOR_corr_ratio(vtmp,0) ;      break;
      case GA_MATCH_CRAT_SADD_SCALAR: val = INCOR_corr_ratio(vtmp,2) ;      break;
      case GA_MATCH_CRAT_USYM_SCALAR: val = INCOR_corr_ratio(vtmp,1) ;      break;
+
+     case GA_MATCH_PEARSON_LOCALS:  /* 25 Jun 2014 */
+     case GA_MATCH_PEARSON_LOCALA:{
+       INCOR_localpearson *ilp = (INCOR_localpearson *)vin ;
+       if( n != ilp->nii * ilp->njj * ilp->nkk )
+         ERROR_exit("INCOR_evaluate mismatch for localpearson: n=%d nii=%d njj=%d nkk=%d",
+                    n,ilp->nii,ilp->njj,ilp->nkk ) ;
+       val = correlate_INCORR_BLOK_set( ilp->ibs ,
+                                        ilp->iibot , ilp->iitop ,
+                                        ilp->jjbot , ilp->jjtop ,
+                                        ilp->kkbot , ilp->kktop , x,y,w ) ;
+     }
+     break ;
    }
 
-   INCOR_destroy(vtmp) ;
+   if( vtmp != NULL ) INCOR_destroy(vtmp) ;
    RETURN(val) ;
 }

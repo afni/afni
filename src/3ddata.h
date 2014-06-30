@@ -1434,6 +1434,22 @@ typedef struct {
       XtPointer parent ;    /*!< Dataset that "owns" this struct */
 } THD_dataxes ;
 
+#define DAXES_COPYOVER_REAL(dax)                  \
+  (dax)->ijk_to_dicom_real = (dax)->ijk_to_dicom  /* 27 Jun 2014 */
+
+#define DSET_COPYOVER_REAL(ds)                               \
+  do{ if( ISVALID_DSET(ds) && ISVALID_DATAXES((ds)->daxes) ) \
+        DAXES_COPYOVER_REAL((ds)->daxes) ;                   \
+  } while(0)
+
+#define DSET_CHECKAXES_REAL(ds)                                                               \
+  do{ if( ISVALID_DSET(ds) && ISVALID_DATAXES((ds)->daxes) ){                                 \
+        float dif = MAT44_FLDIF((ds)->daxes->ijk_to_dicom,(ds)->daxes->ijk_to_dicom_real);    \
+        if( dif > 0.001f )                                                                    \
+          WARNING_message("-*-*-*- ijk_to_dicom and ijk_to_dicom_real differ for dataset %s", \
+                          DSET_HEADNAME(ds) ) ;                                               \
+      } } while(0)
+
 /*! Center of grid in x-direction. */
 #define DAXES_XCEN(dax) ((dax)->xxorg + 0.5*((dax)->nxx - 1) * (dax)->xxdel)
 
@@ -1660,6 +1676,22 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
    FLEQ(AA.m[2][2],BB.m[2][2]) && FLEQ(AA.m[2][3],BB.m[2][3]) && \
    FLEQ(AA.m[3][0],BB.m[3][0]) && FLEQ(AA.m[3][1],BB.m[3][1]) && \
    FLEQ(AA.m[3][2],BB.m[3][2]) && FLEQ(AA.m[3][3],BB.m[3][3])   )
+
+/* compute sum of diffs of 2 mat44 matrices */
+
+#undef  FLDIF
+#define FLDIF(a,b) fabsf((a)-(b))
+
+#undef  MAT44_FLDIF
+#define MAT44_FLDIF(AA,BB)                                       \
+ ( FLDIF(AA.m[0][0],BB.m[0][0]) + FLDIF(AA.m[0][1],BB.m[0][1]) + \
+   FLDIF(AA.m[0][2],BB.m[0][2]) + FLDIF(AA.m[0][3],BB.m[0][3]) + \
+   FLDIF(AA.m[1][0],BB.m[1][0]) + FLDIF(AA.m[1][1],BB.m[1][1]) + \
+   FLDIF(AA.m[1][2],BB.m[1][2]) + FLDIF(AA.m[1][3],BB.m[1][3]) + \
+   FLDIF(AA.m[2][0],BB.m[2][0]) + FLDIF(AA.m[2][1],BB.m[2][1]) + \
+   FLDIF(AA.m[2][2],BB.m[2][2]) + FLDIF(AA.m[2][3],BB.m[2][3]) + \
+   FLDIF(AA.m[3][0],BB.m[3][0]) + FLDIF(AA.m[3][1],BB.m[3][1]) + \
+   FLDIF(AA.m[3][2],BB.m[3][2]) + FLDIF(AA.m[3][3],BB.m[3][3])    )
 
 /* load the top 3 rows of a mat44 matrix,
    and set the 4th row to [ 0 0 0 1], as required */

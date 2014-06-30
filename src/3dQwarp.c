@@ -265,8 +265,36 @@ void Qhelp(void)
     "      '-nmi' for Normalized Mutual Information\n"
     "    These options have NOT been extensively tested for usefulness,\n"
     "    and should be considered experimental at this infundibulum.\n"
+    " ++ The 'local' correlation options are also now available:\n"
+    "      '-lpc' for Local Pearson minimization\n"
+    "      '-lpa' for Local Pearson maximization\n"
+    "    For aligning EPI to T1, the '-lpc' option can be used, but my advice\n"
+    "    would be to do something like the following:\n"
+    "      3dSkullStrip -input SUBJ_anat+orig -prefix SUBJ_anatSS\n"
+    "      3dbucket -prefix SUBJ_epiz SUBJ_epi+orig'[0]'\n"
+    "      align_epi_anat.py -anat SUBJ_anat+orig                            \\\n"
+    "                        -epi SUBJ_epiz+orig -epi_base 0 -partial_axial  \\\n"
+    "                        -epi2anat -master_epi SUBJ_anat+orig            \\\n"
+    "                        -big_move\n"
+    "      3dQwarp -source SUBJ_anatSS+orig.HEAD   \\\n"
+    "                -base   SUBJ_epiz_al+orig     \\\n"
+    "                -prefix SUBJ_anatSSQ          \\\n"
+    "                -maxlev 0 -lpc -verb -iwarp\n"
+    "      3dNwarpApply -nwarp  SUBJ_anatSSQ_WARPINV+orig  \\\n"
+    "                   -source SUBJ_epiz_al+orig          \\\n"
+    "                   -prefix SUBJ_epiz_alQ\n"
+    "    First, the EPI is aligned to the T1 using the affine 3dAllineate, and\n"
+    "    at the same time resampled to the T1 grid.  Then it is nonlinearly\n"
+    "    aligned ONLY using the global ('-maxlev 0') warping -- it is futile to\n"
+    "    try to align such dissimilar image types more precisely.  The EPI is\n"
+    "    used as the base in 3dQwarp so that it provides the weighting, and so\n"
+    "    partial brain coverage should not cause a problem (we hope).  Then\n"
+    "    3dNwarpApply is used to take the inverse warp from 3dQwarp to transform\n"
+    "    the EPI to the T1 space, since 3dQwarp transformed the T1 to EPI space.\n"
+    "    [Someday, this procedure may be incorporated into align_epi_anat.py :-]\n"
+    "  ** It is vitally important to visually look at the results of this process! **\n"
 #if defined(USE_OMP) && defined(__GNU_C__)
-    " ++ Note that these 3 'adventurous' options may cause trouble with\n"
+    " ++ Note that these 'adventurous' matching options may cause trouble with\n"
     "    OpenMP compiled with GNU gcc, due to a bug in gcc's OpenMP library\n"
     "    -- and this binary is compiled that way!\n"
     "    -- this issue is one reason these options are labeled 'adventurous'.\n"
@@ -657,7 +685,8 @@ void Qhelp(void)
     "                 The goal is greater speed, and it seems to help this\n"
     "                 positively piggish program to be more expeditious.\n"
     "               * However, accuracy is somewhat lower with '-duplo',\n"
-    "                 for reasons that currenly elude Zhark.\n"
+    "                 for reasons that currenly elude Zhark; for this reason,\n"
+    "                 the Emperor does not usually use '-duplo'.\n"
     "\n"
     " -workhard    = Iterate more times, which can help when the volumes are\n"
     "                hard to align at all, or when you hope to get a more precise\n"
@@ -915,7 +944,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
    char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
-   int meth = GA_MATCH_PEARCLP_SCALAR ;
+   int meth = GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
    int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg = 0 ;
    float dx,dy,dz ;
@@ -1132,6 +1161,10 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-zeasy") == 0 ){     /* 26 Jun 2014 */
+       Hzeasy = 1 ; nopt++ ; continue ;
+     }
+
      if( strcasecmp(argv[nopt],"-superhard") == 0 ){  /* 30 Apr 2013 */
        char *wpt = argv[nopt]+9 ;
        Hsuperhard1 = 0 ; Hsuperhard2 = 66 ;
@@ -1179,7 +1212,7 @@ int main( int argc , char *argv[] )
        if( bset   != NULL ) ERROR_exit("Can't use -base twice!") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -base") ;
        bset = THD_open_dataset(argv[nopt]) ; if( bset == NULL ) ERROR_exit("Can't open -base") ;
-       bsname = strdup(argv[nopt]) ;
+       bsname = strdup(argv[nopt]) ; DSET_COPYOVER_REAL(bset) ;
        nopt++ ; continue ;
      }
 
@@ -1187,7 +1220,7 @@ int main( int argc , char *argv[] )
        if( sset   != NULL ) ERROR_exit("Can't use -source twice!") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -source") ;
        sset = THD_open_dataset(argv[nopt]) ; if( sset == NULL ) ERROR_exit("Can't open -source") ;
-       ssname = strdup(argv[nopt]) ; sstrue = sset ;
+       ssname = strdup(argv[nopt]) ; sstrue = sset ; DSET_COPYOVER_REAL(sset) ;
        nopt++ ; continue ;
      }
 
@@ -1288,9 +1321,19 @@ int main( int argc , char *argv[] )
        meth = GA_MATCH_PEARSON_SCALAR ; nopt++ ; continue ;
      }
 
+     if( strcasecmp(argv[nopt],"-lpc") == 0 ){
+       meth = GA_MATCH_PEARSON_LOCALS ; Hzeasy = meth_is_lpc = 1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-lpa") == 0 ){
+       meth = GA_MATCH_PEARSON_LOCALA ; Hzeasy = 1 ; nopt++ ; continue ;
+     }
+
+#if 0
      if( strcasecmp(argv[nopt],"-localstat") == 0 ){  /* 09 Sep 2013 */
        Hlocalstat = 1 ; nopt++ ; continue ;
      }
+#endif
 
      ERROR_message("Totally bogus option '%s'",argv[nopt]) ;
      suggest_best_prog_option(argv[0], argv[nopt]) ;
@@ -1316,20 +1359,14 @@ int main( int argc , char *argv[] )
 STATUS("check for errors") ;
 
    nbad = 0 ;
-
-   if( Hlocalstat && meth != GA_MATCH_PEARCLP_SCALAR && meth != GA_MATCH_PEARSON_SCALAR ){
-     Hlocalstat = 0 ;
-     INFO_message("the cost functional choice disables -localstat") ;
-   }
+   ct   = NI_clock_time() ;
 
    if( flags == NWARP_NODISP_FLAG ){
      ERROR_message("too many -no?dis flags ==> nothing to warp!") ; nbad++ ;
    }
 
-   ct = NI_clock_time() ;
-
    if( bset == NULL && sset == NULL && nopt+1 >= argc ){
-     ERROR_message("need 2 args for base and source") ; nbad++ ;
+     ERROR_message("need 2 args after all options, for base and source dataset names") ; nbad++ ;
    }
 
    if( do_allin && do_resam ){
@@ -1344,11 +1381,6 @@ STATUS("check for errors") ;
    }
    if( do_allin && ilev > 0 ){
      ERROR_message("You cannot use -allineate and -inilev together :-(") ; nbad++ ;
-   }
-
-   if( do_plusminus && duplo ){
-     WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
-     duplo = 0 ;
    }
 
    if( iwname != NULL && duplo ){
@@ -1367,12 +1399,29 @@ STATUS("check for errors") ;
    if( nbad > 0 )
      ERROR_exit("Cannot continue after above error%s" , (nbad==1) ? "\0" : "s" ) ;
 
+   /*--- other checks that aren't fatal, just to let the user beware ---*/
+
+   if( meth_is_lpc && mlev > 0 )
+     WARNING_message("Use of '-maxlev 0' is recommended with '-lpc'") ;
+
+   if( do_plusminus && duplo ){
+     duplo = 0 ;
+     WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
+   }
+
+#if 0
+   if( Hlocalstat && meth != GA_MATCH_PEARCLP_SCALAR && meth != GA_MATCH_PEARSON_SCALAR ){
+     Hlocalstat = 0 ;
+     WARNING_message("the cost functional choice disables -localstat") ;
+   }
+#endif
+
    /*--- get the input datasts, check for errors ---*/
 
 STATUS("read inputs") ;
 
    if( bset == NULL ){
-     bset = THD_open_dataset(argv[nopt++]) ;
+     bset = THD_open_dataset(argv[nopt++]) ; DSET_COPYOVER_REAL(bset) ;
      if( bset == NULL ) ERROR_exit("Can't open base dataset") ;
      bsname = strdup(argv[nopt-1]) ;
 STATUS("base dataset opened") ;
@@ -1381,7 +1430,7 @@ STATUS("base dataset opened") ;
      INFO_message("base dataset has more than 1 sub-brick: ignoring all but the first") ;
 
    if( sset == NULL ){
-     sset = THD_open_dataset(argv[nopt++]) ;
+     sset = THD_open_dataset(argv[nopt++]) ; DSET_COPYOVER_REAL(sset) ;
      if( sset == NULL ) ERROR_exit("Can't open source dataset") ;
      ssname = strdup(argv[nopt-1]) ; sstrue = sset ;
 STATUS("source dataset opened") ;
@@ -1446,7 +1495,7 @@ STATUS("3dAllineate coming up next") ;
      INFO_message("3dQwarp: replacing source dataset with 3dAllineate result %s",rs) ;
      sset = THD_open_dataset(rs) ;                 /* get its output dataset */
      if( sset == NULL ) ERROR_exit("Can't open replacement source dataset %s :-(",rs) ;
-     DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ; DSET_lock(sset) ;
+     DSET_load(sset) ; CHECK_LOAD_ERROR(sset) ; DSET_lock(sset) ; DSET_COPYOVER_REAL(sset) ;
      if( !keep_allin ) remove(qs) ;  /* erase the 3dAllineate dataset from disk */
 
      if( do_allin ){
@@ -2045,8 +2094,9 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
    } /* end of output of warp dataset */
 
    if( !nowarpi && !do_plusminus ){      /*----- output the inverse warp -----*/
-     if( Hverb ) INFO_message("Inverting warp") ;
+     if( Hverb ) fprintf(stderr,"++ Inverting warp ") ;
      owwi = IW3D_invert( oiw->warp , NULL , MRI_WSINC5 ) ;
+     if( Hverb ) fprintf(stderr,"\n") ;
      IW3D_adopt_dataset( owwi , adset ) ;
      qset = IW3D_to_dataset( owwi, modify_afni_prefix(prefix,NULL,"_WARPINV")) ;
      tross_Copy_History( bset , qset ) ;
