@@ -43,7 +43,16 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 19 , JUN , 2014 , RWC , "@Install_ClustScat_Demo" , MINOR , TYPE_NEW_PROG ,
+  { 30 , JUN , 2014 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add -lpc and -lpa options" ,
+   "Sounds simple, but was really a lot of work to make these reasonably\n"
+   "efficient.  And to work at all, for that matter.  Ugh." } ,
+
+ { 27 , JUN , 2014 , RWC , "3drefti" , MICRO , TYPE_NEW_OPT ,
+   "Add -checkaxes option" ,
+   NULL } ,
+
+ { 19 , JUN , 2014 , RWC , "@Install_ClustScat_Demo" , MINOR , TYPE_NEW_PROG ,
    "Installs demo for Clusterize scatter plotting" ,
    NULL } ,
 

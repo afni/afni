@@ -1500,6 +1500,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Like dreams, statistics are a form of wish fulfillment"        ,
      "I wish I were in Lobuche right now"                            ,
      "Next stop: Bora Bora and Rangiroa"                             ,
+     "Do you still miss the NIH Bear?  I do"                         ,
+     "Advice from the NIH Bear -- honey goes good with brains"       ,
 
      "The important things about a statistical model are what it does NOT include"    ,
      "You're going to like the way your brain activation maps look -- I guarantee it" ,

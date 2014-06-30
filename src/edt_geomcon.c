@@ -92,6 +92,10 @@ ENTRY("EDIT_geometry_constructor") ;
 
    /*--- decode MATRIX geometry string ---*/
 
+#if 0
+INFO_message("EDIT_geometry_constructor: string = %s",lstr) ;
+#endif
+
    for( cpt=lstr ; *cpt != '\0' ; cpt++ ) if( *cpt == ',' ) *cpt = ' ' ;
    ii = sscanf(lstr+7,"%f%f%f%f%f%f%f%f%f%f%f%f):%d%d%d",
                &a11,&a12,&a13,&a14 ,
@@ -108,6 +112,9 @@ ENTRY("EDIT_geometry_constructor") ;
    LOAD_MAT44( ijk_to_dicom44 ,
                a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
 
+#if 0
+DUMP_MAT44("EDIT_geometry_constructor ijk_to_dicom",ijk_to_dicom44) ;
+#endif
    dset->daxes->ijk_to_dicom_real = ijk_to_dicom44 ;
    dset->daxes->ijk_to_dicom      = ijk_to_dicom44 ;
 
@@ -123,6 +130,10 @@ ENTRY("EDIT_geometry_constructor") ;
    LOAD_MAT( R , a11,a12,a13 , a21,a22,a23 , a31,a32,a33 ) ;
 
    orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
+
+#if 0
+INFO_message("EDIT_geometry_constructor: orientation codes = %d %d %d",orixyz.ijk[0],orixyz.ijk[1],orixyz.ijk[2]) ;
+#endif
 
    orgx = ijk_to_dicom44.m[ORIENT_xyzint[orixyz.ijk[0]]-1][3] ;
    orgy = ijk_to_dicom44.m[ORIENT_xyzint[orixyz.ijk[1]]-1][3] ;
@@ -170,6 +181,10 @@ char * EDIT_get_geometry_string( THD_3dim_dataset *dset )
      THD_daxes_to_mat44(dset->daxes) ;
      dset->daxes->ijk_to_dicom_real = dset->daxes->ijk_to_dicom ;
    }
+
+#if 0
+DUMP_MAT44("EDIT_get_geometry_string: using ijk_to_dicom_real",dset->daxes->ijk_to_dicom_real) ;
+#endif
 
    ggg = EDIT_imat_to_geometry_string( dset->daxes->ijk_to_dicom_real ,
                                        DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset) ) ;

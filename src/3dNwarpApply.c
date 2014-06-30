@@ -277,6 +277,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        dset_src = THD_open_dataset( argv[iarg] ) ;
        if( dset_src == NULL ) ERROR_exit("can't open -source dataset '%s' :-(",argv[iarg]);
+       DSET_COPYOVER_REAL(dset_src) ;
        iarg++ ; continue ;
      }
 
@@ -290,6 +291,7 @@ int main( int argc , char *argv[] )
        } else {
          dset_mast = THD_open_dataset( argv[iarg] ) ;
          if( dset_mast == NULL ) ERROR_exit("can't open -master dataset '%s' :-(",argv[iarg]);
+         DSET_COPYOVER_REAL(dset_mast) ;
        }
        iarg++ ; continue ;
      }
@@ -387,6 +389,7 @@ int main( int argc , char *argv[] )
        dset_src = THD_open_dataset( argv[iarg] ) ;
        if( dset_src == NULL )
          ERROR_exit("Can't open source dataset '%s' :-(",argv[iarg]);
+       DSET_COPYOVER_REAL(dset_src) ;
      } else {
        ERROR_exit("No source dataset?  What do you want to warp? :-(") ;
      }

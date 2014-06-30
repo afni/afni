@@ -709,6 +709,7 @@ void THD_make_cardinal(THD_3dim_dataset *dset)
       tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
       tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
    dset->daxes->ijk_to_dicom_real = Tc;
+DUMP_MAT44("thd_coords: set ijk_to_dicom_real",Tc) ;
 }
 
 /* check the obliquity transformation field to see if it's valid */
