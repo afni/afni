@@ -40,7 +40,7 @@ typedef struct {
   int numblok , *nelm ;
   int nx,ny,nz, *blkn ;
   int *nsum ; float *sx,*sxx, *sy,*syy, *sxy,*sw , *pval ;
-  float psum , wsum ;
+  float psum , wsum ; int ninserted ;
 } INCORR_BLOK_set ;     /* 25 Jun 2014 */
 
 typedef struct {
@@ -390,7 +390,7 @@ ENTRY("create_INCORR_BLOK_set") ;
    ibs->pval     = (float *)calloc(sizeof(float),nblok) ;
 
    ibs->nx = nx ; ibs->ny = ny ; ibs->nz = nz ; ibs->blkn = ilist ;
-   ibs->psum = ibs->wsum = 0.0f ;
+   ibs->psum = ibs->wsum = 0.0f ; ibs->ninserted = 0 ;
 
    for( rr=dd=0 ; dd < tnblok ; dd++ ){
      if( nelm[dd] > 0 ) ibs->nelm[rr++] = nelm[dd] ;
@@ -435,7 +435,7 @@ void clear_INCORR_BLOK_set( INCORR_BLOK_set *ibs )
    AAmemset(ibs->sxy ,0,sizeof(float)*ibs->numblok) ;
    AAmemset(ibs->sw  ,0,sizeof(float)*ibs->numblok) ;
    AAmemset(ibs->pval,0,sizeof(float)*ibs->numblok) ;
-   ibs->psum = ibs->wsum = 0.0f ;
+   ibs->psum = ibs->wsum = 0.0f ; ibs->ninserted = 0 ;
    return ;
 }
 
@@ -466,7 +466,7 @@ void addto_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
            xx = (double)xval[pp] ; yy = (double)yval[pp] ;
            sx[dd] += xx ; sxx[dd] += xx*xx ;
            sy[dd] += yy ; syy[dd] += yy*yy ; sxy[dd] += xx*yy ; sw[dd] += 1.0 ;
-           nsum[dd]++ ;
+           nsum[dd]++ ; ibs->ninserted++ ;
          }
      }}}
    } else {
@@ -479,7 +479,7 @@ void addto_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
            xx = (double)xval[pp] ; yy = (double)yval[pp] ;
            sx[dd] += xx*ww; sxx[dd] += xx*xx*ww;
            sy[dd] += yy*ww; syy[dd] += yy*yy*ww; sxy[dd] += xx*yy*ww; sw[dd] += ww;
-           nsum[dd]++ ;
+           nsum[dd]++ ; ibs->ninserted++ ;
          }
      }}}
    }
@@ -500,8 +500,8 @@ void addto_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
          else if( rval < -CMAX ) rval = -CMAX ;
          pval[dd] = logf( (1.0f+rval)/(1.0f-rval) ) ;
          ibs->psum += (float)sw[dd] * pval[dd] * fabsf(pval[dd]) ;
-         ibs->wsum += (float)sw[dd] ;
        }
+       ibs->wsum += (float)sw[dd] ;
        sw[dd] = 0.0f ;  /* marked as completed and summed up */
      }
    }
@@ -546,19 +546,25 @@ float correlate_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
 
      nx = ibs->nx ; ny = ibs->ny ; nz = ibs->nz ; nxy = nx*ny ;
 
-     sx   = (float *)malloc(sizeof(float)*nblok) ;  /* local copies */
-     sxx  = (float *)malloc(sizeof(float)*nblok) ;
-     sy   = (float *)malloc(sizeof(float)*nblok) ;
-     syy  = (float *)malloc(sizeof(float)*nblok) ;
-     sxy  = (float *)malloc(sizeof(float)*nblok) ;
-     sw   = (float *)malloc(sizeof(float)*nblok) ;
-     nsum = (int *  )malloc(sizeof(int)  *nblok) ;
-     AAmemcpy(sxx ,ibs->sxx ,sizeof(float)*nblok) ;
-     AAmemcpy(sy  ,ibs->sy  ,sizeof(float)*nblok) ;
-     AAmemcpy(syy ,ibs->syy ,sizeof(float)*nblok) ;
-     AAmemcpy(sxy ,ibs->sxy ,sizeof(float)*nblok) ;
-     AAmemcpy(sw  ,ibs->sw  ,sizeof(float)*nblok) ;
-     AAmemcpy(nsum,ibs->nsum,sizeof(int)  *nblok) ;
+     sx   = (float *)calloc(sizeof(float),nblok) ;  /* local copies */
+     sxx  = (float *)calloc(sizeof(float),nblok) ;  /* to be thrown */
+     sy   = (float *)calloc(sizeof(float),nblok) ;  /* away at end */
+     syy  = (float *)calloc(sizeof(float),nblok) ;
+     sxy  = (float *)calloc(sizeof(float),nblok) ;
+     sw   = (float *)calloc(sizeof(float),nblok) ;
+     nsum = (int *  )calloc(sizeof(int)  ,nblok) ;
+     if( ibs->ninserted > 0 ){
+       AAmemcpy(sxx ,ibs->sxx ,sizeof(float)*nblok) ;
+       AAmemcpy(sy  ,ibs->sy  ,sizeof(float)*nblok) ;
+       AAmemcpy(syy ,ibs->syy ,sizeof(float)*nblok) ;
+       AAmemcpy(sxy ,ibs->sxy ,sizeof(float)*nblok) ;
+       AAmemcpy(sw  ,ibs->sw  ,sizeof(float)*nblok) ;
+       AAmemcpy(nsum,ibs->nsum,sizeof(int)  *nblok) ;
+     }
+
+     if( debug_lpc )
+       fprintf(stderr,"++++++++++ Debug LPC output: %d bloks  inserting x=%d..%d y=%d..%d z=%d..%d  wt=%p\n",
+                      nblok,ibot,itop,jbot,jtop,kbot,ktop,(void *)wt) ;
 
      if( wt == NULL ){
        for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
@@ -587,6 +593,9 @@ float correlate_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
        }}}
      }
 
+     if( debug_lpc )
+       fprintf(stderr,"  inserted %d points in temp copies\n",pp) ;
+
    }  /* end of putting data into local copy */
 
    /*-- now finalize the summation --*/
@@ -608,9 +617,12 @@ float correlate_INCORR_BLOK_set( INCORR_BLOK_set *ibs ,
          else if( rval < -CMAX ) rval = -CMAX ;
          rval  = logf( (1.0f+rval)/(1.0f-rval) ) ;
          psum += (float)sw[dd] * rval * fabsf(rval) ;
-         wsum += (float)sw[dd] ;
          if( debug_lpc ) fprintf(stderr," %g",rval) ;
+       } else if( debug_lpc ){
+         fprintf(stderr," {sx=%g sxx=%g sy=%g syy=%g sxy=%g sw=%g xx=%g yy=%g xy=%g}",
+                 sx[dd],sxx[dd],sy[dd],syy[dd],sxy[dd],sw[dd],xx,yy,xy) ;
        }
+       wsum += (float)sw[dd] ;
      } else if( debug_lpc ){
        fprintf(stderr," %g",ibs->pval[dd]) ;
      }
