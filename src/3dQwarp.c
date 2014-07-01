@@ -266,9 +266,12 @@ void Qhelp(void)
     "    These options have NOT been extensively tested for usefulness,\n"
     "    and should be considered experimental at this infundibulum.\n"
     " ++ The 'local' correlation options are also now available:\n"
-    "      '-lpc' for Local Pearson minimization\n"
+    "      '-lpc' for Local Pearson minimization (i.e., EPI-T1 registration)\n"
     "      '-lpa' for Local Pearson maximization\n"
-    "    For aligning EPI to T1, the '-lpc' option can be used, but my advice\n"
+    " ** If you use '-lpc', then '-maxlev 0' is automatically set.  If you want\n"
+    "    to go to more refined levels, you can set '-maxlev' AFTER '-lpc' on the\n"
+    "    command line.\n"
+    " ** For aligning EPI to T1, the '-lpc' option can be used; my advice\n"
     "    would be to do something like the following:\n"
     "      3dSkullStrip -input SUBJ_anat+orig -prefix SUBJ_anatSS\n"
     "      3dbucket -prefix SUBJ_epiz SUBJ_epi+orig'[0]'\n"
@@ -279,19 +282,23 @@ void Qhelp(void)
     "      3dQwarp -source SUBJ_anatSS+orig.HEAD   \\\n"
     "                -base   SUBJ_epiz_al+orig     \\\n"
     "                -prefix SUBJ_anatSSQ          \\\n"
-    "                -maxlev 0 -lpc -verb -iwarp\n"
+    "                -lpc -verb -iwarp -blur 0 3\n"
     "      3dNwarpApply -nwarp  SUBJ_anatSSQ_WARPINV+orig  \\\n"
     "                   -source SUBJ_epiz_al+orig          \\\n"
     "                   -prefix SUBJ_epiz_alQ\n"
-    "    First, the EPI is aligned to the T1 using the affine 3dAllineate, and\n"
-    "    at the same time resampled to the T1 grid.  Then it is nonlinearly\n"
-    "    aligned ONLY using the global ('-maxlev 0') warping -- it is futile to\n"
-    "    try to align such dissimilar image types more precisely.  The EPI is\n"
-    "    used as the base in 3dQwarp so that it provides the weighting, and so\n"
-    "    partial brain coverage should not cause a problem (we hope).  Then\n"
-    "    3dNwarpApply is used to take the inverse warp from 3dQwarp to transform\n"
-    "    the EPI to the T1 space, since 3dQwarp transformed the T1 to EPI space.\n"
-    "    [Someday, this procedure may be incorporated into align_epi_anat.py :-]\n"
+    "    * Zeroth, the T1 is prepared by skull stripping and the EPI is prepared\n"
+    "      by extracting just the 0th sub-brick for registration purposes.\n"
+    "    * First, the EPI is aligned to the T1 using the affine 3dAllineate, and\n"
+    "      at the same time resampled to the T1 grid (via align_epi_anat.py).\n"
+    "    * Second, it is nonlinearly aligned ONLY using the global warping -- it is\n"
+    "      futile to try to align such dissimilar image types more precisely.\n"
+    "    * The EPI is used as the base in 3dQwarp so that it provides the weighting,\n"
+    "      and so partial brain coverage (as long as it covers MOST of the brain)\n"
+    "      should not cause a problem (we hope).\n"
+    "    * Third, 3dNwarpApply is used to take the inverse warp from 3dQwarp to\n"
+    "      transform the EPI to the T1 space, since 3dQwarp transformed the T1 to\n"
+    "      EPI space.\n"
+    "    * Someday, this procedure may be incorporated into align_epi_anat.py :-)\n"
     "  ** It is vitally important to visually look at the results of this process! **\n"
 #if defined(USE_OMP) && defined(__GNU_C__)
     " ++ Note that these 'adventurous' matching options may cause trouble with\n"
@@ -1164,6 +1171,9 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-zeasy") == 0 ){     /* 26 Jun 2014 */
        Hzeasy = 1 ; nopt++ ; continue ;
      }
+     if( strcasecmp(argv[nopt],"-noQ") == 0 ){       /* 01 Jul 2014 */
+       Hznoq = 1 ; nopt++ ; continue ;
+     }
 
      if( strcasecmp(argv[nopt],"-superhard") == 0 ){  /* 30 Apr 2013 */
        char *wpt = argv[nopt]+9 ;
@@ -1322,11 +1332,12 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[nopt],"-lpc") == 0 ){
-       meth = GA_MATCH_PEARSON_LOCALS ; Hzeasy = meth_is_lpc = 1 ; nopt++ ; continue ;
+       meth = GA_MATCH_PEARSON_LOCALS ;
+       Hzeasy = meth_is_lpc = 1 ; mlev = 0 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-lpa") == 0 ){
-       meth = GA_MATCH_PEARSON_LOCALA ; Hzeasy = 1 ; nopt++ ; continue ;
+       meth = GA_MATCH_PEARSON_LOCALA ; nopt++ ; continue ;
      }
 
 #if 0
@@ -1407,6 +1418,14 @@ STATUS("check for errors") ;
    if( do_plusminus && duplo ){
      duplo = 0 ;
      WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
+   }
+
+   if( Hznoq && Hqonly ){
+     Hznoq = 0 ;
+     WARNING_message("-znoQ and -Qonly cannot be combined: turning off -znoQ") ;
+   } else if( Hznoq && Hqfinal ){
+     Hznoq = 0 ;
+     WARNING_message("-znoQ and -Qfinal cannot be combined: turning off -znoQ") ;
    }
 
 #if 0
