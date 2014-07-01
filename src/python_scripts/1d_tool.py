@@ -338,7 +338,7 @@ examples (very basic for now):
 
         1d_tool.py -infile dfile_rall.1D -set_nruns 3 -quick_censor_count 0.3
 
-        1d_tool.py -infile dfile_rall.1D -set_run_lengths 100 80 120 \
+        1d_tool.py -infile dfile_rall.1D -set_run_lengths 100 80 120 \\
                    -quick_censor_count 0.3
 
    Example 19. Compute GCOR from some 1D file.
