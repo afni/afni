@@ -306,8 +306,6 @@ void Qhelp(void)
     "    -- and this binary is compiled that way!\n"
     "    -- this issue is one reason these options are labeled 'adventurous'.\n"
 #endif
-    " ++ At this time, the 'local Pearson' statistics have not been\n"
-    "    implemented in this program :-(\n"
     "\n"
     "* For aligning T1-weighted anatomical volumes, Zhark recommends that\n"
     "  you use the 3dUnifize program to (approximately) spatially uniformize\n"
