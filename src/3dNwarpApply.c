@@ -261,9 +261,9 @@ int main( int argc , char *argv[] )
        if( dset_nwarp != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
 #if 0
-       dset_nwarp = THD_open_dataset( argv[iarg] ) ;
+       dset_nwarp = THD_open_dataset( argv[iarg] ) ;          /* the simple way */
 #else
-       dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;
+       dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
 #endif
        if( dset_nwarp == NULL ) ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg]);
        if( DSET_NVALS(dset_nwarp) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg]);
