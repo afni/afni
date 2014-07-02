@@ -21,13 +21,59 @@
   static double dhffr[1] ;
 #endif
 
-#include "thd_incorrelate.c"
+/** note that the functions for 3dQwarp (about 4000 lines of code)
+    are only compiled if macro ALLOW_QWARP is #define-d -- see 3dQwarp.c **/
+
+#ifdef ALLOW_QWARP
+#include "thd_incorrelate.c"   /* for the 3dQwarp cost functions */
+#endif
 
 /*---------------------------------------------------------------------------*/
 
 static int Hverb = 1 ;   /* mostly for QWARP (far below) */
 
 /*===========================================================================*/
+
+/*---------------------------------------------------------------------------*/
+/* The following macros are for loading and unloading the extra slope
+   variables for extending a warp outside its domain of definition.
+*//*-------------------------------------------------------------------------*/
+
+#define ES_PACK(AA,eqq)                                                            \
+ do{ int qw=0 ;                                                                    \
+     eqq[qw++] = AA->es_xd_xp; eqq[qw++] = AA->es_xd_xm; eqq[qw++] = AA->es_xd_yp; \
+     eqq[qw++] = AA->es_xd_ym; eqq[qw++] = AA->es_xd_zp; eqq[qw++] = AA->es_xd_zm; \
+     eqq[qw++] = AA->es_yd_xp; eqq[qw++] = AA->es_yd_xm; eqq[qw++] = AA->es_yd_yp; \
+     eqq[qw++] = AA->es_yd_ym; eqq[qw++] = AA->es_yd_zp; eqq[qw++] = AA->es_yd_zm; \
+     eqq[qw++] = AA->es_zd_xp; eqq[qw++] = AA->es_zd_xm; eqq[qw++] = AA->es_zd_yp; \
+     eqq[qw++] = AA->es_zd_ym; eqq[qw++] = AA->es_zd_zp; eqq[qw++] = AA->es_zd_zm; \
+ } while(0)
+
+#define ES_PACKVEC(eqq)                                                \
+ do{ int qw=0 ;                                                        \
+     eqq[qw++] = es_xd_xp; eqq[qw++] = es_xd_xm; eqq[qw++] = es_xd_yp; \
+     eqq[qw++] = es_xd_ym; eqq[qw++] = es_xd_zp; eqq[qw++] = es_xd_zm; \
+     eqq[qw++] = es_yd_xp; eqq[qw++] = es_yd_xm; eqq[qw++] = es_yd_yp; \
+     eqq[qw++] = es_yd_ym; eqq[qw++] = es_yd_zp; eqq[qw++] = es_yd_zm; \
+     eqq[qw++] = es_zd_xp; eqq[qw++] = es_zd_xm; eqq[qw++] = es_zd_yp; \
+     eqq[qw++] = es_zd_ym; eqq[qw++] = es_zd_zp; eqq[qw++] = es_zd_zm; \
+ } while(0)
+
+#define ES_DECLARE_FLOATS \
+  float es_xd_xp=0.0f, es_xd_xm=0.0f, es_xd_yp=0.0f, es_xd_ym=0.0f, es_xd_zp=0.0f, es_xd_zm=0.0f, \
+        es_yd_xp=0.0f, es_yd_xm=0.0f, es_yd_yp=0.0f, es_yd_ym=0.0f, es_yd_zp=0.0f, es_yd_zm=0.0f, \
+        es_zd_xp=0.0f, es_zd_xm=0.0f, es_zd_yp=0.0f, es_zd_ym=0.0f, es_zd_zp=0.0f, es_zd_zm=0.0f
+
+#define ES_UNPACKVEC(eqq)                                              \
+ do{ int qw=0 ;                                                        \
+     es_xd_xp = eqq[qw++]; es_xd_xm = eqq[qw++]; es_xd_yp = eqq[qw++]; \
+     es_xd_ym = eqq[qw++]; es_xd_zp = eqq[qw++]; es_xd_zm = eqq[qw++]; \
+     es_yd_xp = eqq[qw++]; es_yd_xm = eqq[qw++]; es_yd_yp = eqq[qw++]; \
+     es_yd_ym = eqq[qw++]; es_yd_zp = eqq[qw++]; es_yd_zm = eqq[qw++]; \
+     es_zd_xp = eqq[qw++]; es_zd_xm = eqq[qw++]; es_zd_yp = eqq[qw++]; \
+     es_zd_ym = eqq[qw++]; es_zd_zp = eqq[qw++]; es_zd_zm = eqq[qw++]; \
+ } while(0)
+
 /*---------------------------------------------------------------------------*/
 /* The following code is for providing a linear extension to a warp,
     based on the final 3..5 layers in the warp.
@@ -258,6 +304,176 @@ ENTRY("IW3D_load_external_slopes") ;
    AA->use_es = 1 ;
    EXRETURN ;
 }
+
+/*---------------------------------------------------------------------------*/
+/* Similar to above, but for warps stored in a dataset; here, the
+   external slopes (in mm per voxel) are stored in the output vector.
+*//*-------------------------------------------------------------------------*/
+
+floatvec * THD_nwarp_external_slopes( THD_3dim_dataset *dset_nwarp )
+{
+   int nx,ny,nz,nxy , veclen,nvec , pp,qq,rr,ss , nbig ;
+   float **vec , *dar ;
+   floatvec *esv=NULL ;
+   ES_DECLARE_FLOATS ;
+
+ENTRY("THD_nwarp_external_slopes") ;
+
+   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
+   if( DSET_BRICK_TYPE(dset_nwarp,0) != MRI_float       ) RETURN(NULL) ;
+   DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
+
+   nx = DSET_NX(dset_nwarp); ny = DSET_NY(dset_nwarp); nz = DSET_NZ(dset_nwarp); nxy = nx*ny;
+
+   /* make space for the vectors to extract */
+
+   nbig = MAX(nx,ny) ; nbig = MAX(nbig,nz) ; nbig = nbig*nbig ;
+   vec = (float **)malloc(sizeof(float *)*5) ;
+   for( pp=0 ; pp < 5 ; pp++ ) vec[pp] = (float *)malloc(sizeof(float)*nbig) ;
+
+#define DD(i,j,k) dar[(i)+(j)*nx+(k)*nxy]
+
+   /* x=0 and x=nx-1 faces */
+
+   nvec = nx/3 ; if( nvec > 5 ) nvec = 5 ; else if( nvec < 3 ) nvec = 0 ;
+   veclen = ny*nz ;
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,0) ;  /* x displacements */
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < ny ; qq++ ){
+       for( rr=0 ; rr < nz ; rr++ ) vec[pp][ss++] = DD(pp,qq,rr) ;
+   }}
+   es_xd_xm = mean_slope( nvec , veclen , vec ) ; /* x minus face */
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < ny ; qq++ ){
+       for( rr=0 ; rr < nz ; rr++ ) vec[pp][ss++] = DD(nx-1-pp,qq,rr) ;
+   }}
+   es_xd_xp = - mean_slope( nvec , veclen , vec ) ; /* x plus face */
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,1) ;  /* y displacements */
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < ny ; qq++ ){
+       for( rr=0 ; rr < nz ; rr++ ) vec[pp][ss++] = DD(pp,qq,rr) ;
+   }}
+   es_yd_xm = mean_slope( nvec , veclen , vec ) ; /* x minus face */
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < ny ; qq++ ){
+       for( rr=0 ; rr < nz ; rr++ ) vec[pp][ss++] = DD(nx-1-pp,qq,rr) ;
+   }}
+   es_yd_xp = - mean_slope( nvec , veclen , vec ) ; /* x plus face */
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,2) ;  /* z displacements */
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < ny ; qq++ ){
+       for( rr=0 ; rr < nz ; rr++ ) vec[pp][ss++] = DD(pp,qq,rr) ;
+   }}
+   es_zd_xm = mean_slope( nvec , veclen , vec ) ; /* x minus face */
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < ny ; qq++ ){
+       for( rr=0 ; rr < nz ; rr++ ) vec[pp][ss++] = DD(nx-1-pp,qq,rr) ;
+   }}
+   es_zd_xp = - mean_slope( nvec , veclen , vec ) ; /* x plus face */
+
+   /* repeat the above for the y=0 and y=ny-1 faces */
+
+   nvec = ny/3 ; if( nvec > 5 ) nvec = 5 ; else if( nvec < 3 ) nvec = 0 ;
+   veclen = nz*nx ;
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,0) ;
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nz ; qq++ ){
+       for( rr=0 ; rr < nx ; rr++ ) vec[pp][ss++] = DD(rr,pp,qq) ;
+   }}
+   es_xd_ym = mean_slope( nvec , veclen , vec ) ;
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nz ; qq++ ){
+       for( rr=0 ; rr < nx ; rr++ ) vec[pp][ss++] = DD(rr,ny-1-pp,qq) ;
+   }}
+   es_xd_yp = - mean_slope( nvec , veclen , vec ) ;
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,1) ;
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nz ; qq++ ){
+       for( rr=0 ; rr < nx ; rr++ ) vec[pp][ss++] = DD(rr,pp,qq) ;
+   }}
+   es_yd_ym = mean_slope( nvec , veclen , vec ) ;
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nz ; qq++ ){
+       for( rr=0 ; rr < nx ; rr++ ) vec[pp][ss++] = DD(rr,ny-1-pp,qq) ;
+   }}
+   es_yd_yp = - mean_slope( nvec , veclen , vec ) ;
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,2) ;
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nz ; qq++ ){
+       for( rr=0 ; rr < nx ; rr++ ) vec[pp][ss++] = DD(rr,pp,qq) ;
+   }}
+   es_zd_ym = mean_slope( nvec , veclen , vec ) ;
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nz ; qq++ ){
+       for( rr=0 ; rr < nx ; rr++ ) vec[pp][ss++] = DD(rr,ny-1-pp,qq) ;
+   }}
+   es_zd_yp = - mean_slope( nvec , veclen , vec ) ;
+
+   /* and for the z=0 and z=nz-1 faces */
+
+   nvec = nz/3 ; if( nvec > 5 ) nvec = 5 ; else if( nvec < 3 ) nvec = 0 ;
+   veclen = nx*ny ;
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,0) ;
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nx ; qq++ ){
+       for( rr=0 ; rr < ny ; rr++ ) vec[pp][ss++] = DD(qq,rr,pp) ;
+   }}
+   es_xd_zm = mean_slope( nvec , veclen , vec ) ;
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nx ; qq++ ){
+       for( rr=0 ; rr < ny ; rr++ ) vec[pp][ss++] = DD(qq,rr,nz-1-pp) ;
+   }}
+   es_xd_zp = - mean_slope( nvec , veclen , vec ) ;
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,1) ;
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nx ; qq++ ){
+       for( rr=0 ; rr < ny ; rr++ ) vec[pp][ss++] = DD(qq,rr,pp) ;
+   }}
+   es_yd_zm = mean_slope( nvec , veclen , vec ) ;
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nx ; qq++ ){
+       for( rr=0 ; rr < ny ; rr++ ) vec[pp][ss++] = DD(qq,rr,nz-1-pp) ;
+   }}
+   es_yd_zp = - mean_slope( nvec , veclen , vec ) ;
+
+   dar = (float *)DSET_ARRAY(dset_nwarp,2) ;
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nx ; qq++ ){
+       for( rr=0 ; rr < ny ; rr++ ) vec[pp][ss++] = DD(qq,rr,pp) ;
+   }}
+   es_zd_zm = mean_slope( nvec , veclen , vec ) ;
+
+   for( pp=0 ; pp < nvec ; pp++ ){
+     for( ss=qq=0 ; qq < nx ; qq++ ){
+       for( rr=0 ; rr < ny ; rr++ ) vec[pp][ss++] = DD(qq,rr,nz-1-pp) ;
+   }}
+   es_zd_zp = - mean_slope( nvec , veclen , vec ) ;
+
+#undef DD
+
+   for( pp=0 ; pp < 5 ; pp++ ) free(vec[pp]) ;
+   free(vec) ;
+
+   MAKE_floatvec(esv,18) ; ES_PACKVEC(esv->ar) ;
+   RETURN(esv) ;
+}
+
 /* End of external slope calculation stuff */
 /*===========================================================================*/
 
@@ -1557,36 +1773,6 @@ void IW3D_load_hexvol_box( IndexWarp3D *AA ,
 #define AJK(aaa,j,k) ((aaa)+(j)*nx+(k)*nxy)
 
 /*---------------------------------------------------------------------------*/
-/* The following macros are for loading and unloading the extra slope
-   variables for extending a warp outside its domain of definition.
-*//*-------------------------------------------------------------------------*/
-
-#define ES_PACK(AA,eqq)                                                            \
- do{ int qw=0 ;                                                                    \
-     eqq[qw++] = AA->es_xd_xp; eqq[qw++] = AA->es_xd_xm; eqq[qw++] = AA->es_xd_yp; \
-     eqq[qw++] = AA->es_xd_ym; eqq[qw++] = AA->es_xd_zp; eqq[qw++] = AA->es_xd_zm; \
-     eqq[qw++] = AA->es_yd_xp; eqq[qw++] = AA->es_yd_xm; eqq[qw++] = AA->es_yd_yp; \
-     eqq[qw++] = AA->es_yd_ym; eqq[qw++] = AA->es_yd_zp; eqq[qw++] = AA->es_yd_zm; \
-     eqq[qw++] = AA->es_zd_xp; eqq[qw++] = AA->es_zd_xm; eqq[qw++] = AA->es_zd_yp; \
-     eqq[qw++] = AA->es_zd_ym; eqq[qw++] = AA->es_zd_zp; eqq[qw++] = AA->es_zd_zm; \
- } while(0)
-
-#define ES_DECLARE_FLOATS \
-  float es_xd_xp=0.0f, es_xd_xm=0.0f, es_xd_yp=0.0f, es_xd_ym=0.0f, es_xd_zp=0.0f, es_xd_zm=0.0f, \
-        es_yd_xp=0.0f, es_yd_xm=0.0f, es_yd_yp=0.0f, es_yd_ym=0.0f, es_yd_zp=0.0f, es_yd_zm=0.0f, \
-        es_zd_xp=0.0f, es_zd_xm=0.0f, es_zd_yp=0.0f, es_zd_ym=0.0f, es_zd_zp=0.0f, es_zd_zm=0.0f
-
-#define ES_UNPACK(eqq)                                                 \
- do{ int qw=0 ;                                                        \
-     es_xd_xp = eqq[qw++]; es_xd_xm = eqq[qw++]; es_xd_yp = eqq[qw++]; \
-     es_xd_ym = eqq[qw++]; es_xd_zp = eqq[qw++]; es_xd_zm = eqq[qw++]; \
-     es_yd_xp = eqq[qw++]; es_yd_xm = eqq[qw++]; es_yd_yp = eqq[qw++]; \
-     es_yd_ym = eqq[qw++]; es_yd_zp = eqq[qw++]; es_yd_zm = eqq[qw++]; \
-     es_zd_xp = eqq[qw++]; es_zd_xm = eqq[qw++]; es_zd_yp = eqq[qw++]; \
-     es_zd_ym = eqq[qw++]; es_zd_zp = eqq[qw++]; es_zd_zm = eqq[qw++]; \
- } while(0)
-
-/*---------------------------------------------------------------------------*/
 /*! Interpolate displacements using linear method.
       nxx, nyy, nzz = grid dimensions of displacment arrays
       aar, bar, car = displacement arrays
@@ -1623,7 +1809,7 @@ void IW3D_interp_linear( int nxx , int nyy , int nzz ,
 
    /* if using external slopes, load internal variables */
 
-   if( ues ) ES_UNPACK(esar) ;
+   if( ues ) ES_UNPACKVEC(esar) ;
 
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){              /* loop over output points */
@@ -1772,7 +1958,7 @@ ENTRY("IW3D_interp_wsinc5") ;
    float eex=0.0f,eey=0.0f,eez=0.0f , Exx=0.0f,Exy=0.0f,Exz=0.0f ,
          Eyx=0.0f,Eyy=0.0f,Eyz=0.0f , Ezx=0.0f,Ezy=0.0f,Ezz=0.0f ;
 
-   if( ues ) ES_UNPACK(esar) ;
+   if( ues ) ES_UNPACKVEC(esar) ;
 
    /*----- loop over points -----*/
 
@@ -1959,7 +2145,7 @@ void IW3D_interp_quintic( int nxx , int nyy , int nzz ,
    float eex=0.0f,eey=0.0f,eez=0.0f , Exx=0.0f,Exy=0.0f,Exz=0.0f ,
          Eyx=0.0f,Eyy=0.0f,Eyz=0.0f , Ezx=0.0f,Ezy=0.0f,Ezz=0.0f ;
 
-   if( ues ) ES_UNPACK(esar) ;
+   if( ues ) ES_UNPACKVEC(esar) ;
 
 #pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
@@ -3853,6 +4039,131 @@ ENTRY("THD_setup_nwarp") ;
    ADDTO_IMARR(wimar,wxim) ; ADDTO_IMARR(wimar,wyim) ; ADDTO_IMARR(wimar,wzim) ;
 
    RETURN(wimar) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*  Forward warp a collection of DICOM xyz coordinates.
+    Return value is number of points computed (should be npt).
+    Negative is an error code.
+*//*--------------------------------------------------------------------------*/
+
+int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
+                           int npt ,
+                           float *xin , float *yin , float *zin ,
+                           float *xut , float *yut , float *zut  )
+{
+   floatvec *esv ;
+   ES_DECLARE_FLOATS ;
+   mat44 nwarp_cmat , nwarp_imat ;
+   int nx,ny,nz , nx1,ny1,nz1 , nxy , nx2,ny2,nz2 ;
+   float *xdar , *ydar , *zdar ;
+
+   /* check inputs */
+
+   if( npt <= 0 ) RETURN(-1) ;
+
+   if( xin == NULL || yin == NULL || zin == NULL ||
+       xut == NULL || yut == NULL || zut == NULL   ) RETURN(-2) ;
+
+   /* get external slopes and check if dataset is any good */
+
+   esv = THD_nwarp_external_slopes( dset_nwarp ) ;
+   if( esv == NULL ) RETURN(-3) ;
+   ES_UNPACKVEC(esv->ar) ;
+
+   /* matrices */
+
+   nwarp_cmat = dset_nwarp->daxes->ijk_to_dicom ;  /* convert ijk to xyz */
+   nwarp_imat = MAT44_INV(nwarp_cmat) ;            /* convert xyz to ijk */
+
+   /* initialize other stuff */
+
+   nx = DSET_NX(dset_nwarp); ny = DSET_NY(dset_nwarp); nz = DSET_NZ(dset_nwarp);
+   nx1 = nx-1 ; ny1 = ny-1 ; nz1 = nz-1 ; nxy = nx*ny ;
+   nx2 = nx-2 ; ny2 = ny-2 ; nz2 = nz-2 ;
+
+   xdar = (float *)DSET_BRICK_ARRAY(dset_nwarp,0) ;
+   ydar = (float *)DSET_BRICK_ARRAY(dset_nwarp,1) ;
+   zdar = (float *)DSET_BRICK_ARRAY(dset_nwarp,2) ;
+
+   AFNI_OMP_START ;
+#pragma omp parallel if( npt > 333 )
+   { int pp ;
+     float xx,yy,zz , fx,fy,fz ; int ix,jy,kz , aem ;
+     float eex=0.0f,eey=0.0f,eez=0.0f , Exx=0.0f,Exy=0.0f,Exz=0.0f ,
+           Eyx=0.0f,Eyy=0.0f,Eyz=0.0f , Ezx=0.0f,Ezy=0.0f,Ezz=0.0f , uex,vex,wex ;
+     int ix_00,ix_p1 , jy_00,jy_p1 , kz_00,kz_p1 ;
+     float wt_00,wt_p1 ;
+     float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
+     float g_j00_k00, g_jp1_k00, g_j00_kp1, g_jp1_kp1, g_k00, g_kp1 ;
+     float h_j00_k00, h_jp1_k00, h_j00_kp1, h_jp1_kp1, h_k00, h_kp1 ;
+
+     /* loop over input points, transforming them to indexes, interpolating
+        to that location, then adding the displacments to get the outputs  */
+
+#pragma omp for
+     for( pp=0 ; pp < npt ; pp++ ){
+       MAT44_VEC( nwarp_imat , xin[pp],yin[pp],zin[pp] , xx,yy,zz ) ;  /* convert to index coords */
+       /* find location in or out of dataset grid, and deal with external slopes if need be */
+       aem=0 ;
+            if( xx < 0.0f ){ eex = xx    ; ix = 0      ; fx = 0.0f; aem++; Exx=es_xd_xm; Eyx=es_yd_xm; Ezx=es_zd_xm; }
+       else if( xx < nx1  ){ eex = 0.0f  ; ix = (int)xx; fx = xx-ix;       }
+       else                { eex = xx-nx1; ix = nx2    ; fx = 1.0f; aem++; Exx=es_xd_xp; Eyx=es_yd_xp; Ezx=es_zd_xp; }
+            if( yy < 0.0f ){ eey = yy    ; jy = 0      ; fy = 0.0f; aem++; Exy=es_xd_ym; Eyy=es_yd_ym; Ezy=es_zd_ym; }
+       else if( yy < ny1  ){ eey = 0.0f  ; jy = (int)yy; fy = yy-jy;       }
+       else                { eey = yy-ny1; jy = ny2    ; fy = 1.0f; aem++; Exy=es_xd_yp; Eyy=es_yd_yp; Ezy=es_zd_yp; }
+            if( zz < 0.0f ){ eez = zz    ; kz = 0      ; fz = 0.0f; aem++; Exz=es_xd_zm; Eyz=es_yd_zm; Ezz=es_zd_zm; }
+       else if( zz < nz1  ){ eez = 0.0f  ; kz = (int)zz; fz = zz-kz;       }
+       else                { eez = zz-nz1; kz = nz2    ; fz = 1.0f; aem++; Exz=es_xd_zp; Eyz=es_yd_zp; Ezz=es_zd_zp; }
+       if( aem ){
+         uex = Exx*eex + Exy*eey + Exz*eez ;  /* eex = how far past edge of warp, in x-direction (etc.) */
+         vex = Eyx*eex + Eyy*eey + Eyz*eez ;  /* Eab = external slope for 'a' displacement, */
+         wex = Ezx*eex + Ezy*eey + Ezz*eez ;  /*       along the 'b' direction, for a and b = x or y or z */
+       } else {
+         uex = vex = wex = 0.0f ;
+       }
+       /* now linearly interpolate inside the dataset grid */
+       ix_00 = ix ; ix_p1 = ix_00+1 ;  /* at this point, we are 'fx' between indexes ix_00 and ix_p1 */
+       jy_00 = jy ; jy_p1 = jy_00+1 ;
+       kz_00 = kz ; kz_p1 = kz_00+1 ;
+       wt_00 = 1.0f-fx ; wt_p1 = fx ;  /* weights for ix_00 and ix_p1 points */
+
+#undef  IJK
+#define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
+
+#undef  XINT  /* linear interpolation macro in array 'aaa' at plane jk */
+#define XINT(aaa,j,k) wt_00*aaa[IJK(ix_00,j,k)]+wt_p1*aaa[IJK(ix_p1,j,k)]
+
+       /* interpolate to location ix+fx at each jy,kz level */
+
+       f_j00_k00 = XINT(xdar,jy_00,kz_00) ; f_jp1_k00 = XINT(xdar,jy_p1,kz_00) ;
+       f_j00_kp1 = XINT(xdar,jy_00,kz_p1) ; f_jp1_kp1 = XINT(xdar,jy_p1,kz_p1) ;
+       g_j00_k00 = XINT(ydar,jy_00,kz_00) ; g_jp1_k00 = XINT(ydar,jy_p1,kz_00) ;
+       g_j00_kp1 = XINT(ydar,jy_00,kz_p1) ; g_jp1_kp1 = XINT(ydar,jy_p1,kz_p1) ;
+       h_j00_k00 = XINT(zdar,jy_00,kz_00) ; h_jp1_k00 = XINT(zdar,jy_p1,kz_00) ;
+       h_j00_kp1 = XINT(zdar,jy_00,kz_p1) ; h_jp1_kp1 = XINT(zdar,jy_p1,kz_p1) ;
+
+       /* interpolate to jy+fy at each kz level */
+
+       wt_00 = 1.0f-fy ; wt_p1 = fy ;
+       f_k00 =  wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
+       f_kp1 =  wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
+       g_k00 =  wt_00 * g_j00_k00 + wt_p1 * g_jp1_k00 ;
+       g_kp1 =  wt_00 * g_j00_kp1 + wt_p1 * g_jp1_kp1 ;
+       h_k00 =  wt_00 * h_j00_k00 + wt_p1 * h_jp1_k00 ;
+       h_kp1 =  wt_00 * h_j00_kp1 + wt_p1 * h_jp1_kp1 ;
+
+       /* interpolate to kz+fz to get output */
+
+       xut[pp] = (1.0f-fz) * f_k00 + fz * f_kp1 + uex + xin[pp] ;  /* note add-in of values */
+       yut[pp] = (1.0f-fz) * g_k00 + fz * g_kp1 + vex + yin[pp] ;  /* from external slope */
+       zut[pp] = (1.0f-fz) * h_k00 + fz * h_kp1 + wex + zin[pp] ;  /* calculation above */
+
+     } /* end of loop over input/output points */
+   } /* end of parallel code */
+   AFNI_OMP_END ;
+
+   RETURN(npt) ;
 }
 
 /*----------------------------------------------------------------------------*/

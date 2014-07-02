@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , JUN , 2014 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+  { 2 , JUL , 2014 , RWC , "3dNwarpXYZ" , MINOR , TYPE_NEW_PROG ,
+   "Nonlinear transform of xyz coordinate triples -- for Ziad" ,
+   NULL } ,
+
+ { 30 , JUN , 2014 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
    "Add -lpc and -lpa options" ,
    "Sounds simple, but was really a lot of work to make these reasonably\n"
    "efficient.  And to work at all, for that matter.  Ugh." } ,
