@@ -58,7 +58,7 @@ static float * g_exp_ts  = NULL;  /* exp(-x) for x at index VAL*pieces */
 static THD_3dim_dataset * g_saset=NULL; /* stimulus aperature dataset */
 
 /* prototypes */
-int signal_model( float * , int , float ** , float *, int );
+static int signal_model( float * , int , float ** , float *, int );
 int reset_stim_aperature_dset(int);
 int reset_exp_time_series(void);
 
@@ -766,7 +766,7 @@ MODEL_interface * initialize_model ()
   The resulting returned time series will be convolved in the 
   parent function.
 */
-int signal_model
+static int signal_model
 (
   float  * gs,          /* parameters for signal model */
   int      ts_length,   /* length of time series data */
@@ -783,7 +783,8 @@ int signal_model
   A = gs[0];
   x = gs[1]; y = gs[2]; sigma = gs[3];
 
-  if( debug ) fprintf(stderr, "-d A = %f, x = %f, y = %f, sigma = %f\n"
+  if( debug ) fprintf(stderr, "-d model_conv_PRF parameters: "
+                              "A = %f, x = %f, y = %f, sigma = %f\n"
                               "   nz = %d, nvals = %d, ts_len = %d\n",
                       A, x, y, sigma,
                       DSET_NZ(g_saset), DSET_NVALS(g_saset), ts_length);
