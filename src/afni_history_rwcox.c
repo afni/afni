@@ -43,7 +43,17 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , JUL , 2014 , RWC , "3dNwarpXYZ" , MINOR , TYPE_NEW_PROG ,
+  { 3 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "'u' keypress failed when OLay and ULay datasets were the same" ,
+   "Toggling between overlay and underlay as grayscale with 'u' failed when\n"
+   "the 2 datasets were the same.  Problem devolved to a function Ziad put\n"
+   "in to make the selection of sub-brick index to use -- which always\n"
+   "favored the anat_index if the 2 datasets were the same, regardless of\n"
+   "the image type requested.  Now it should work properly -- when the 2\n"
+   "datasets are the same (fim and anat), then the sub-brick index will be\n"
+   "chosen based on the type of image requested." } ,
+
+ { 2 , JUL , 2014 , RWC , "3dNwarpXYZ" , MINOR , TYPE_NEW_PROG ,
    "Nonlinear transform of xyz coordinate triples -- for Ziad" ,
    NULL } ,
 

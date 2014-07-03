@@ -11676,11 +11676,11 @@ MRI_IMAGE *ISQ_getchecked( int nn , MCW_imseq *seq )
 
 ENTRY("ISQ_getchecked") ;
 
-   qim = ISQ_getimage(nn,seq) ; if( qim == NULL ) RETURN(NULL) ;
+   qim = ISQ_getulay(nn,seq) ; if( qim == NULL ) RETURN(NULL) ;
    dx  = qim->dx ; dy = qim->dy ;
    uim = ISQ_process_mri(nn,seq,qim) ; mri_free(qim) ;
 
-   qim = ISQ_getolay (nn,seq) ; if( qim == NULL ) RETURN(uim) ;
+   qim = ISQ_getolay(nn,seq) ; if( qim == NULL ) RETURN(uim) ;
    oim = ISQ_process_mri(nn,seq,qim) ; mri_free(qim) ;
 
    if( uim->kind == MRI_rgb && oim->kind == MRI_short ){
