@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
   { 3 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "pbar locks didn't work right all the time" ,
+   "Needed to force things to happen more violently, and also to force\n"
+   "overlay redraws.  Also, make a new controller be locked at startup\n"
+   "instead of when the user does something." } ,
+
+ { 3 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "'u' keypress failed when OLay and ULay datasets were the same" ,
    "Toggling between overlay and underlay as grayscale with 'u' failed when\n"
    "the 2 datasets were the same.  Problem devolved to a function Ziad put\n"
