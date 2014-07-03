@@ -37,6 +37,7 @@ ENTRY("AFNI_time_lock_change_CB") ;
 }
 
 /*------------------------------------------------------------------------*/
+/* Do the locking of time indexes */
 
 void AFNI_time_lock_carryout( Three_D_View *im3d )
 {
@@ -187,6 +188,7 @@ ENTRY("AFNI_lock_setall_CB") ;
 }
 
 /*------------------------------------------------------------------------*/
+/* Do the locking of spatial coordinates */
 
 void AFNI_lock_carryout( Three_D_View *im3d )
 {
@@ -379,6 +381,7 @@ int AFNI_thresh_lock_env_val(void)
 }
 
 /*------------------------------------------------------------------------*/
+/* Do the locking of thresholds */
 
 void AFNI_thresh_lock_carryout( Three_D_View *im3d )
 {
@@ -498,6 +501,7 @@ ENTRY("AFNI_equate_pbars") ;
 }
 
 /*---------------------------------------------------------------*/
+/* Do the locking of pbars */
 
 void AFNI_pbar_lock_carryout( Three_D_View *im3d )
 {
@@ -522,6 +526,11 @@ ENTRY("AFNI_pbar_lock_carryout") ;
    if( ii < 0 ) EXRETURN ;                      /* nobody? bad input! */
    if( ((1<<ii) & glock) == 0 ) EXRETURN ;      /* input not locked */
 
+#if 0
+INFO_message("AFNI_pbar_lock_carryout( %d ) ******************* ",ii) ;
+TRACEBACK ;
+#endif
+
    /* something to do? */
 
    busy = 1 ;  /* don't let this routine be called recursively */
@@ -534,7 +543,9 @@ ENTRY("AFNI_pbar_lock_carryout") ;
      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
 
      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
-
+#if 0
+ININFO_message(" equate_pbars( %d )",cc) ;
+#endif
        AFNI_equate_pbars( qq3d , im3d ) ;
      }
    }
@@ -544,6 +555,7 @@ ENTRY("AFNI_pbar_lock_carryout") ;
 }
 
 /*------------------------------------------------------------------------*/
+/* Do the dynamic locking of dragging thresholds */
 
 void AFNI_thrdrag_lock_carryout( Three_D_View *im3d )
 {
@@ -643,6 +655,7 @@ int AFNI_check_range_lock()
 }
 
 /*------------------------------------------------------------------------*/
+/* Do the locking of OLay ranges */
 
 void AFNI_range_lock_carryout( Three_D_View *im3d )
 {
@@ -802,4 +815,29 @@ ENTRY("AFNI_func_pbarlock_change_CB") ;
    AFNI_pbar_lock_carryout(im3d) ;
 
    EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+/* Enforce all locks at the same time [03 Jul 2014] */
+
+void AFNI_all_locks_carryout( Three_D_View *im3d )
+{
+   static int busy = 0 ;  /* !=0 if this routine is "busy" */
+
+ENTRY("AFNI_all_locks_carryout") ;
+
+   if( busy || !IM3D_VALID(im3d)  ) EXRETURN ;
+   if( GLOBAL_library.ignore_lock ) EXRETURN ;
+
+#if 0
+INFO_message("AFNI_all_locks_carryout: im3d index = %d",AFNI_controller_index(im3d)) ;
+#endif
+
+   AFNI_lock_carryout       ( im3d ) ;
+   AFNI_time_lock_carryout  ( im3d ) ;
+   AFNI_thresh_lock_carryout( im3d ) ;
+   AFNI_pbar_lock_carryout  ( im3d ) ;
+   AFNI_range_lock_carryout ( im3d ) ;
+
+   AFNI_sleep(1) ; busy = 0 ; EXRETURN ;
 }

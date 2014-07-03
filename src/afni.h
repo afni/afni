@@ -1696,6 +1696,8 @@ extern void AFNI_lock_clear_CB  ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_setall_CB ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_lock_carryout  ( Three_D_View * ) ;
 
+extern void AFNI_all_locks_carryout( Three_D_View *im3d ) ; /* 03 Jul 2014 */
+
 extern void AFNI_time_lock_carryout( Three_D_View * ) ;  /* 03 Nov 1998 */
 extern void AFNI_time_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 
@@ -1927,6 +1929,7 @@ extern void AFNI_redisplay_func( Three_D_View * ) ;          /* 05 Mar 2002 */
 extern void AFNI_view_setter( Three_D_View *, MCW_imseq *) ; /* 26 Feb 2003 */
 extern void AFNI_range_setter( Three_D_View *, MCW_imseq *); /* 04 Nov 2003 */
 extern void AFNI_redisplay_func_ignore( int ) ;              /* 03 Jun 2014 */
+extern void AFNI_redisplay_func_all( Three_D_View *im3d ) ;  /* 03 Jul 2014 */
 
 extern void AFNI_coord_filer_setup( Three_D_View *im3d ) ;   /* 07 May 2010 */
 
