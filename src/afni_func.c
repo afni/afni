@@ -2297,6 +2297,11 @@ ENTRY("AFNI_underlay_CB") ;
 
    AFNI_assign_ulay_bricks(im3d) ;  /* 10 Jun 2014 */
 
+INFO_message("AFNI_underlay_CB: anat:%p %p %p  fim:%p %p %p  ulay:%p %p %p" ,
+             im3d->b123_anat , im3d->b231_anat , im3d->b312_anat ,
+             im3d->b123_fim  , im3d->b231_fim  , im3d->b312_fim  ,
+             im3d->b123_ulay , im3d->b231_ulay , im3d->b312_ulay  ) ;
+
    /*--- May 1996: destroy useless graph windows ---*/
 
    im3d->ignore_seq_callbacks = AFNI_IGNORE_REDRAWS ;  /* 16 Feb 97 */
