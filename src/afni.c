@@ -2780,22 +2780,32 @@ FD_brick *Get_FD_Brick_As_Selected(FD_brick *br, int type, int *rival)
 {
    Three_D_View *im3d = (Three_D_View *)br->parent ;
    FD_brick *brr=NULL ;
-   int ival , banat ;
+   int ival , banat , uu=im3d->vinfo->underlay_type ;
 
    banat = EQUIV_DSETS(br->dset,im3d->anat_now) ;
    switch( type ){
      case isqCR_getulayim: brr = (banat) ? br : br->brother ; break ;
      case isqCR_getolayim: brr = (banat) ? br->brother : br ; break ;
    }
-   if( brr == NULL ) brr = br ;
+   if( brr == NULL ) brr = br ; /* I wish it was 'brr' right now -- July 2014 */
+
    /*** decide which 3D brick to extract data from (ival) ***/
 
-   if( EQUIV_DSETS(brr->dset,im3d->anat_now) )      /* underlay dataset */
-     ival = im3d->vinfo->anat_index ;
-   else if( EQUIV_DSETS(brr->dset,im3d->fim_now) )  /* overlay dataset */
-     ival = im3d->vinfo->fim_index ;
-   else
-     ival = 0 ;                                     /* shouldn't happen */
+   if( EQUIV_DSETS(im3d->anat_now,im3d->fim_now) ){ /* RWCox [03 Jul 2014] */
+     if( type == isqCR_getolayim )                /* datasets are the same */
+       ival = im3d->vinfo->fim_index ;  /* so need to be careful with ival */
+     else if( type == isqCR_getulayim || uu == UNDERLAY_ANAT )
+       ival = im3d->vinfo->anat_index ;
+     else
+       ival = im3d->vinfo->fim_index ;
+    } else {                                      /* the old (Ziad's) way */
+     if( EQUIV_DSETS(brr->dset,im3d->anat_now) )      /* underlay dataset */
+       ival = im3d->vinfo->anat_index ;
+     else if( EQUIV_DSETS(brr->dset,im3d->fim_now) )   /* overlay dataset */
+       ival = im3d->vinfo->fim_index ;
+     else
+       ival = 0 ;                                     /* shouldn't happen */
+   }
 
    if( br->deltival != 0 && DSET_NVALS(brr->dset) > 1 ){  /* 23 Feb 2011 */
             /*    This is for allowing montage to cycle trough sub-bricks */
@@ -3765,6 +3775,12 @@ STATUS("drawing crosshairs") ;
       int ival;
 
       if (!(brr = Get_FD_Brick_As_Selected(br, type, &ival))) RETURN(NULL);
+
+INFO_message("%s: brr=%p  ival=%d",
+              (type == isqCR_getimage ) ? "isqCR_getimage"
+            : (type == isqCR_getqimage) ? "isqCR_getqimage"
+            : (type == isqCR_getulayim) ? "isqCR_getulayim"
+            : (type == isqCR_getolayim) ? "isqCR_getolayim" : "unknown" , brr , ival ) ;
 
 if(PRINT_TRACING)
 { char str[256] ;
