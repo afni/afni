@@ -6178,7 +6178,7 @@ void AFNI_clone_controller_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
    int ii , xx , yy ;
    Three_D_View *im3d ;
-   Three_D_View *caller_im3d = (Three_D_View *) cd ;
+   Three_D_View *caller_im3d = (Three_D_View *)cd ;
    MCW_DC *new_dc , *old_dc ;
 
 ENTRY("AFNI_clone_controller_CB") ;
@@ -6228,13 +6228,13 @@ ENTRY("AFNI_clone_controller_CB") ;
       if( new_dc == NULL ) new_dc = old_dc ;
 
       GLOBAL_library.controllers[ii] =
-           new_AFNI_controller( NULL , new_dc , AFNI_3DDATA_VIEW ) ;
+        new_AFNI_controller( NULL , new_dc , AFNI_3DDATA_VIEW ) ;
 
       if( caller_im3d != NULL ){
-         MCW_widget_geom( caller_im3d->vwid->top_shell , NULL,NULL , &xx,&yy ) ;
-         xx += 15 ; yy += 15 ;
-         XtVaSetValues( GLOBAL_library.controllers[ii]->vwid->top_shell ,
-                           XmNx , xx , XmNy , yy , NULL ) ;
+        MCW_widget_geom( caller_im3d->vwid->top_shell , NULL,NULL , &xx,&yy ) ;
+        xx += 15 ; yy += 15 ;
+        XtVaSetValues( GLOBAL_library.controllers[ii]->vwid->top_shell ,
+                       XmNx , xx , XmNy , yy , NULL ) ;
       }
    }
 
@@ -6242,15 +6242,23 @@ ENTRY("AFNI_clone_controller_CB") ;
 
    im3d = GLOBAL_library.controllers[ii] ;
 
-   OPEN_CONTROLLER( im3d ) ;
+   if( caller_im3d != NULL ) DISABLE_LOCK ;
+
+   OPEN_CONTROLLER( im3d ) ; /* will return when window is open */
+
    AFNI_initialize_controller( im3d ) ;  /* decide what to see */
-   AFNI_initialize_view( NULL , im3d ) ; /* set up to see it */
+   AFNI_initialize_view( NULL , im3d ) ;   /* set up to see it */
 
    AFNI_controller_clonify() ;
 
-   AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;  /* 05 May 2009 */
+   AFNI_vedit_CB( im3d->vwid->func->options_vedit_av, im3d ) ; /* 05 May 2009 */
 
    AFNI_coord_filer_setup(im3d) ; /* 07 May 2010 */
+
+   if( caller_im3d != NULL ){     /* 03 Jul 2014 */
+     ENABLE_LOCK ;
+     AFNI_all_locks_carryout( caller_im3d ) ;
+   }
 
    PICTURE_OFF(im3d) ; SHOW_AFNI_READY ; EXRETURN ;
 }
