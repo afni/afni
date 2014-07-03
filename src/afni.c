@@ -3776,11 +3776,13 @@ STATUS("drawing crosshairs") ;
 
       if (!(brr = Get_FD_Brick_As_Selected(br, type, &ival))) RETURN(NULL);
 
+#if 0
 INFO_message("%s: brr=%p  ival=%d",
               (type == isqCR_getimage ) ? "isqCR_getimage"
             : (type == isqCR_getqimage) ? "isqCR_getqimage"
             : (type == isqCR_getulayim) ? "isqCR_getulayim"
             : (type == isqCR_getolayim) ? "isqCR_getolayim" : "unknown" , brr , ival ) ;
+#endif
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -6704,6 +6706,26 @@ ENTRY("AFNI_redisplay_func") ;
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_redisplay_func_all( Three_D_View *im3d )  /* 03 Jul 2014 */
+{
+   Three_D_View *qq3d ; int ii ;
+
+ENTRY("AFNI_redisplay_func_all") ;
+
+   ignore_redisplay_func = 0 ;
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      qq3d = GLOBAL_library.controllers[ii] ;
+      if( !IM3D_OPEN(qq3d) || qq3d == im3d ) continue ;
+      IM3D_CLEAR_TMASK(qq3d) ;
+      IM3D_CLEAR_THRSTAT(qq3d) ;
+      AFNI_redisplay_func(qq3d) ;
+   }
+
    EXRETURN ;
 }
 

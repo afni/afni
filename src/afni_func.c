@@ -704,6 +704,10 @@ ENTRY("AFNI_inten_pbar_CB") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
+
+#if 0
+INFO_message("AFNI_inten_pbar_CB(%d)",AFNI_controller_index(im3d)) ;
+#endif
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_hintize_pbar( pbar , FIM_RANGE(im3d) ) ;
@@ -2297,10 +2301,12 @@ ENTRY("AFNI_underlay_CB") ;
 
    AFNI_assign_ulay_bricks(im3d) ;  /* 10 Jun 2014 */
 
+#if 0
 INFO_message("AFNI_underlay_CB: anat:%p %p %p  fim:%p %p %p  ulay:%p %p %p" ,
              im3d->b123_anat , im3d->b231_anat , im3d->b312_anat ,
              im3d->b123_fim  , im3d->b231_fim  , im3d->b312_fim  ,
              im3d->b123_ulay , im3d->b231_ulay , im3d->b312_ulay  ) ;
+#endif
 
    /*--- May 1996: destroy useless graph windows ---*/
 
@@ -5843,6 +5849,8 @@ ENTRY("AFNI_inten_bbox_CB") ;
 
       AFNI_redisplay_func_ignore(0) ;
       AFNI_redisplay_func( im3d ) ;
+      if( AFNI_count_controllers() > 1 && AFNI_check_pbar_lock() ) /* 03 Jul 2014 */
+        AFNI_redisplay_func_all( im3d ) ;
    }
 
    EXRETURN ;

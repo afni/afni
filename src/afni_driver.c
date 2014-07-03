@@ -1990,9 +1990,9 @@ ENTRY("AFNI_drive_set_pbar_number") ;
      float pmax=pbar->pval_save[npane][0][jm] ,
            pmin=pbar->pval_save[npane][npane][jm] ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
-     AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
      POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    }
+   AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
    FIX_SCALE_SIZE(im3d) ;
 
    RETURN(0) ;
@@ -2155,9 +2155,9 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      PBAR_set_bigmap( pbar , str ) ;
      rotate_MCW_pbar( pbar , rota ) ;  /* 07 Feb 2004 */
      if( flip ) PBAR_flip( pbar ) ;    /* 07 Feb 2004 */
-     AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
      POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    }
+   AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
    FIX_SCALE_SIZE(im3d) ;
 
    RETURN(0) ;
