@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Jul, 2014, RCR, "model_conv_PRF", MINOR, TYPE_BUG_FIX,
+   "fixed a name space problem on macs",
+   NULL
+ } ,
+
+ {  2,  Jul, 2014, RCR, "afni-general", MICRO, TYPE_GENERAL,
+   "added model_conv_PRF in Makefile.INCLUDE for distribution",
+   NULL
+ } ,
+
  { 27,  Jun, 2014, RCR, "model_conv_PRF", MAJOR, TYPE_NEW_PROG,
    "population receptive field estimate model",
    "For E Silson and C Baker."
