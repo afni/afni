@@ -5194,6 +5194,10 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
      if( dset_out != NULL ){
        MRI_IMAGE *aim = (stup.ajimor != NULL) ? stup.ajimor : stup.ajim ;
+       /* lose obliquity if using 3dWarp for any transformation */
+       /* recompute Tc (Cardinal transformation matrix for new grid output */
+       THD_make_cardinal(dset_out);    /* needed for oblique NIFTI datasets - 07/03/14 drg */
+
        if( verb > 1 ) INFO_message("Computing output image") ;
 #if 0
 mri_genalign_set_pgmat(1) ;

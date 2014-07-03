@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 3 , JUL, 2014 , DRG , "3dAllineate" , 
+    MINOR , TYPE_BUG_FIX, 
+    "oblique NIFTI dataset handling",
+    "NIFTI datasets with oblique orientations were written\n"
+    "with incorrect (original) orientations after alignment. Dataset is\n"
+    "now cardinalized and input obliquity is ignored"
+} ,
+
 { 13 , JUN, 2014 , DRG , "afni" , 
     MINOR , TYPE_GENERAL, 
     "Jump to MNI or any space coordinates",
