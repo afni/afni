@@ -178,7 +178,7 @@ ENTRY("THD_set_dataset_attributes") ;
                   tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
                   tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
               daxes->ijk_to_dicom_real = Tc;
-DUMP_MAT44("thd_dsetatr: set ijk_to_dicom_real",daxes->ijk_to_dicom_real) ;
+/* DUMP_MAT44("thd_dsetatr: set ijk_to_dicom_real",daxes->ijk_to_dicom_real) ; */
            }
       }
    }
