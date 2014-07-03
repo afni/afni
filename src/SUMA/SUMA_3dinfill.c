@@ -222,6 +222,20 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
 
+      if (!brk && (strcmp(argv[kar], "-minhits") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need value between 1 and 3 after -minhits \n");
+				exit (1);
+			}
+			Opt->i4 = (int)strtod(argv[kar],NULL);
+         if (Opt->i4 < 1 || Opt->i4 > 3) {
+            fprintf (stderr, "need value between 1 and 3 after -minhits \n");
+				exit (1);
+         }
+         brk = 1;
+		}
+
       if (!brk && (strcmp(argv[kar], "-blend") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -233,12 +247,13 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             Opt->Other = 0;
          else if (!strcmp(argv[kar], "AUTO")) 
             Opt->Other = -1;
+         else if (!strcmp(argv[kar], "SOLID")) 
+            Opt->Other = 2;
          else {
             ERROR_exit("Bad value (%s) for -blend", argv[kar]);
          }
          brk = 1;
 		}
-      
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
@@ -287,7 +302,7 @@ void Infill_usage()
    printf( 
 "A program to fill holes in a volumes.\n"
 "\n"
-"     3dInfill    <-input DSET> \n"
+"     3dinfill    <-input DSET> \n"
 "\n"
 "Options:\n"
 "   -input  DSET: Fill volume DSET\n"
@@ -301,6 +316,13 @@ void Infill_usage()
 "                      filling integral valued data such as ROIs or atlases.\n"
 "                AVG: Fill with average of neighboring values.\n"
 "                AUTO: Use MODE if DSET is integral, AVG otherwise.\n"
+"                SOLID: No blending, brutish fill. See also -minhits\n"
+"   -minhits MH: Crietrion for considering a zero voxel to be a hole\n"
+"                MH refers to the total number of directions alogn which a\n"
+"                zero voxel is considered surrounded by non zero values.\n"
+"                a value of 1 is the least strict criterion, and a value of 3\n"
+"                is the strictest. \n"
+"                This parameter can only be used with -blend SOLID\n"
 /*
 " The following set of options are used to fill the outside of a volume \n"
 " using radial linear interpolation:\n"
@@ -330,6 +352,8 @@ void Infill_usage()
 */
 "\n"
 "This program will be slow for high res datasets with large holes.\n"
+"If you are trying to fill holes in masks, consider instead:\n"
+"  3dmask_tool -fill_holes \n"
 "\n"
         );
    
@@ -361,6 +385,7 @@ SEG_OPTS *Infill_Default(char *argv[], int argc)
    Opt->i1 = -1;
    Opt->i2 = 9;
    Opt->i3 = -1;
+   Opt->i4 = -1;
    Opt->f1 = 0.0;
    Opt->VoxDbg = -1;
    Opt->VoxDbg3[0] = Opt->VoxDbg3[1] = Opt->VoxDbg3[2] = -1;
@@ -412,7 +437,7 @@ int main(int argc, char **argv)
    SUMA_set_SegFunc_debug( Opt->debug, Opt->VoxDbg, Opt->VoxDbg3, 
                            Opt->VoxDbgOut);
    
-   if (Opt->fmode) {
+   if (Opt->fmode > 0) {
       if (Opt->f1 == -1.0f) Opt->f1 = Opt->fmode;
       if (Opt->i1 == -1) Opt->i1 = 6*Opt->fmode;
       if (Opt->i1 < Opt->fmode) {
@@ -428,10 +453,24 @@ int main(int argc, char **argv)
          SUMA_RETURN(1);
       }
    } else {
-      if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 1,
-                             Opt->Other, Opt->N_main, -1)) {
-         SUMA_S_Err("Failed to fill volume");
-         SUMA_RETURN(1);
+      switch (Opt->Other) {
+         default:
+            /* using method 1: SUMA_mri_volume_infill_zoom */
+            if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 1,
+                                   Opt->Other, Opt->N_main, -1)) {
+               SUMA_S_Err("Failed to fill volume");
+               SUMA_RETURN(1);
+            }
+            break;
+         case 2:
+            /* using method 2: SUMA_mri_volume_infill_solid */
+            if (Opt->i4 < 0) Opt->i4 = 3;
+            if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 2,
+                                   Opt->Other, Opt->N_main, Opt->i4)) {
+               SUMA_S_Err("Failed to fill volume with solid method");
+               SUMA_RETURN(1);
+            }
+            break;
       }
    }
       
