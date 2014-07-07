@@ -105,6 +105,8 @@ MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
 void alter_MCW_pbar( MCW_pbar * , int , float * ) ;
 void update_MCW_pbar( MCW_pbar * ) ;
 
+int MCW_pbars_equivalent( MCW_pbar *, MCW_pbar * ) ; /* 07 Jul 2014 */
+
 MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar *,int,int ) ; /* 15 Jun 2000 */
 
 void rotate_MCW_pbar( MCW_pbar * , int ) ; /* 30 Mar 2001 */

@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+  { 7 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Check if 2 pbars are equivalent before locking them" ,
+   "Prevents unneeded flicker and redisplay" } ,
+
+ { 3 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "pbar locks didn't work right all the time" ,
    "Needed to force things to happen more violently, and also to force\n"
    "overlay redraws.  Also, make a new controller be locked at startup\n"
