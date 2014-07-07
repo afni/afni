@@ -341,7 +341,7 @@ void AFNI_set_all_thrlock_bboxes(Three_D_View *im3d, int bval)
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_func_thrlock_change_CB ( Widget w , XtPointer cd , XtPointer calld  )
+void AFNI_func_thrlock_change_CB( Widget w , XtPointer cd , XtPointer calld )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
    int           bval , bold ;
