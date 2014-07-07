@@ -43,7 +43,10 @@ void print_usage(void)
     "\n"
     "July 2014 - Zhark the Coordinated\n"
    ) ;
-   PRINT_AFNI_OMP_USAGE("3dNwarpXYZ",NULL) ; PRINT_COMPILE_DATE ; exit(0) ;
+#if 0
+   PRINT_AFNI_OMP_USAGE("3dNwarpXYZ",NULL) ;
+#endif
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*----------------------------------------------------------------------------*/
