@@ -13,16 +13,33 @@
 void print_usage(void)
 {
    printf(
-    "Usage: 3dNwarpXYZ -nwarp 'warp specification' XYZfile.1D > Output.1D\n"
+    "Usage: 3dNwarpXYZ [options] -nwarp 'warp specification' XYZfile.1D > Output.1D\n"
     "\n"
     "Transforms the DICOM xyz coordinates in the input XYZfile.1D (3 columns)\n"
-    "based on the '-nwarp' specification -- which is as in 3dNwarpApply.\n"
+    "based on the '-nwarp' specification -- which is as in 3dNwarpApply\n"
+    "(e.g., allows inversion, catenation, et cetera).\n"
     "\n"
     "If this warp is the _WARP output from 3dQwarp, then it takes XYZ values\n"
     "from the base dataset and transforms them to the corresponding source\n"
-    "dataset location.  To do the reverse operation, either use the _WARPINV\n"
-    "output from 3dQwarp, or using the 'INV(dataset)' form for '-nwarp'\n"
-    "(however, full warp inversion is somewhat slow).\n"
+    "dataset location.\n"
+    "\n"
+    "To do the reverse operation -- to take an XYZ in the source dataset\n"
+    "and find out where it goes to in the base dataset -- do one of these:\n"
+    "  * use the _WARPINV output from 3dQwarp instead of the _WARP output;\n"
+    "  * use the 'INV(dataset)' form fo '-nwarp' (somewhat slow);\n"
+    "  * use the '-iwarp' option described below.\n"
+    "The first 2 choices should be equivalent.  The third choice will give\n"
+    "slightly different results, since the method used for warp inversion\n"
+    "for just a few discrete points is very different than the full warp\n"
+    "inversion algorithm -- this difference is for speed.\n"
+    "\n"
+    "-------------\n"
+    "OTHER OPTIONS (i.e., besides the mandatory '-nwarp')\n"
+    "-------------\n"
+    " -iwarp    = Compute the inverse warp for each input (x,y,z) triple.\n"
+    "\n"
+    " -wfac fff = Scale displacments by factor 'fff' before using.\n"
+    "             It is hard to see that this has any value, but here it is.\n"
     "\n"
     "July 2014 - Zhark the Coordinated\n"
    ) ;
@@ -35,13 +52,13 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_nwarp=NULL ;
    MRI_IMAGE *xyz_in , *xyz_out ;
-   int npt , code , iarg ;
+   int npt , code , iarg , do_inv=0 ;
+   float dfac=1.0f ;
    float *xin,*yin,*zin , *xut,*yut,*zut ;
 
    AFNI_SETUP_OMP(0) ;
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) print_usage() ;
-
 
    /**--- bookkeeping and marketing ---**/
 
@@ -62,6 +79,17 @@ int main( int argc , char *argv[] )
        dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
        if( dset_nwarp == NULL ) ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg]);
        if( DSET_NVALS(dset_nwarp) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg]);
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-iwarp") == 0 ){
+       do_inv = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-wfac") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
+       dfac = (float)strtod(argv[iarg],NULL) ;
+       if( dfac == 0.0f ) dfac = 1.0f ;
        iarg++ ; continue ;
      }
 
@@ -91,8 +119,13 @@ int main( int argc , char *argv[] )
    yut = xut + npt ;
    zut = yut + npt ;
 
-   code = THD_nwarp_forward_xyz( dset_nwarp ,
-                                 npt , xin,yin,zin , xut,yut,zut ) ;
+   if( do_inv ){
+     code = THD_nwarp_inverse_xyz( dset_nwarp ,
+                                   dfac,npt , xin,yin,zin , xut,yut,zut ) ;
+   } else {
+     code = THD_nwarp_forward_xyz( dset_nwarp ,
+                                   dfac,npt , xin,yin,zin , xut,yut,zut ) ;
+   }
 
    if( code < 0 )
      ERROR_exit("THD_nwarp_forward_xyz returns error code = %d",code) ;
