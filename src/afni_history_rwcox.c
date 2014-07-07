@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 7 , JUL , 2014 , RWC , "3dNwarpXYZ" , MICRO , TYPE_NEW_OPT ,
+   "Add -iwarp option to allow for warp inversion" ,
+   "For a few points, should be MUCH faster than using 'INV(warp)' for the\n"
+   "-nwarp option." } ,
+
+ { 7 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Check if 2 pbars are equivalent before locking them" ,
    "Prevents unneeded flicker and redisplay" } ,
 

@@ -1,12 +1,18 @@
+
+/***********************************************************************/
+/*** Generally, this set of functions is designed to be #include-d   ***/
+/*** and compiled with OpenMP enabled (USE_OMP #define-d), for speed ***/
+/***********************************************************************/
+
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
 
 #ifdef USE_OMP
 # include <omp.h>
 # define NUM_DHARRAY 6
-  static int    nthmax=1 ;
-  static double *dhaar=NULL ;
-  static double *dhbbr=NULL ;
+  static int    nthmax=1 ;      /* size of temp arrays below:  */
+  static double *dhaar=NULL ;   /* must be set in main program */
+  static double *dhbbr=NULL ;   /* see 3dQwarp.c for example   */
   static double *dhccr=NULL ;
   static double *dhddr=NULL ;
   static double *dheer=NULL ;
@@ -4042,49 +4048,30 @@ ENTRY("THD_setup_nwarp") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*  Forward warp a collection of DICOM xyz coordinates.
-    Return value is number of points computed (should be npt).
-    Negative is an error code.
-*//*--------------------------------------------------------------------------*/
 
-int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
-                           int npt ,
-                           float *xin , float *yin , float *zin ,
-                           float *xut , float *yut , float *zut  )
+int THD_nwarp_im_xyz( MRI_IMAGE *xdim , MRI_IMAGE *ydim , MRI_IMAGE *zdim ,
+                      float dfac , int npt ,
+                      float *xin , float *yin , float *zin ,
+                      float *xut , float *yut , float *zut ,
+                      mat44 imat , floatvec *esv )
 {
-   floatvec *esv ;
    ES_DECLARE_FLOATS ;
-   mat44 nwarp_cmat , nwarp_imat ;
    int nx,ny,nz , nx1,ny1,nz1 , nxy , nx2,ny2,nz2 ;
    float *xdar , *ydar , *zdar ;
 
-   /* check inputs */
+ENTRY("THD_nwarp_im_xyz") ;
 
-   if( npt <= 0 ) RETURN(-1) ;
+   if( esv != NULL ) ES_UNPACKVEC(esv->ar) ;
 
-   if( xin == NULL || yin == NULL || zin == NULL ||
-       xut == NULL || yut == NULL || zut == NULL   ) RETURN(-2) ;
-
-   /* get external slopes and check if dataset is any good */
-
-   esv = THD_nwarp_external_slopes( dset_nwarp ) ;
-   if( esv == NULL ) RETURN(-3) ;
-   ES_UNPACKVEC(esv->ar) ;
-
-   /* matrices */
-
-   nwarp_cmat = dset_nwarp->daxes->ijk_to_dicom ;  /* convert ijk to xyz */
-   nwarp_imat = MAT44_INV(nwarp_cmat) ;            /* convert xyz to ijk */
-
-   /* initialize other stuff */
-
-   nx = DSET_NX(dset_nwarp); ny = DSET_NY(dset_nwarp); nz = DSET_NZ(dset_nwarp);
+   nx = xdim->nx ; ny = xdim->ny ; nz = zdim->nz ;
    nx1 = nx-1 ; ny1 = ny-1 ; nz1 = nz-1 ; nxy = nx*ny ;
    nx2 = nx-2 ; ny2 = ny-2 ; nz2 = nz-2 ;
 
-   xdar = (float *)DSET_BRICK_ARRAY(dset_nwarp,0) ;
-   ydar = (float *)DSET_BRICK_ARRAY(dset_nwarp,1) ;
-   zdar = (float *)DSET_BRICK_ARRAY(dset_nwarp,2) ;
+   xdar = MRI_FLOAT_PTR(xdim) ;  /* displacement arrays */
+   ydar = MRI_FLOAT_PTR(ydim) ;
+   zdar = MRI_FLOAT_PTR(zdim) ;
+
+   /* parallel-ized linear interpolation (and extrapolation) */
 
    AFNI_OMP_START ;
 #pragma omp parallel if( npt > 333 )
@@ -4103,9 +4090,9 @@ int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
 
 #pragma omp for
      for( pp=0 ; pp < npt ; pp++ ){
-       MAT44_VEC( nwarp_imat , xin[pp],yin[pp],zin[pp] , xx,yy,zz ) ;  /* convert to index coords */
+       MAT44_VEC( imat , xin[pp],yin[pp],zin[pp] , xx,yy,zz ) ;  /* convert to index coords */
        /* find location in or out of dataset grid, and deal with external slopes if need be */
-       aem=0 ;
+       aem=0 ;  /* flag for usage of external slopes */
             if( xx < 0.0f ){ eex = xx    ; ix = 0      ; fx = 0.0f; aem++; Exx=es_xd_xm; Eyx=es_yd_xm; Ezx=es_zd_xm; }
        else if( xx < nx1  ){ eex = 0.0f  ; ix = (int)xx; fx = xx-ix;       }
        else                { eex = xx-nx1; ix = nx2    ; fx = 1.0f; aem++; Exx=es_xd_xp; Eyx=es_yd_xp; Ezx=es_zd_xp; }
@@ -4119,16 +4106,17 @@ int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
          uex = Exx*eex + Exy*eey + Exz*eez ;  /* eex = how far past edge of warp, in x-direction (etc.) */
          vex = Eyx*eex + Eyy*eey + Eyz*eez ;  /* Eab = external slope for 'a' displacement, */
          wex = Ezx*eex + Ezy*eey + Ezz*eez ;  /*       along the 'b' direction, for a and b = x or y or z */
+         uex *= dfac ; vex *= dfac ; wex *= dfac ;
        } else {
          uex = vex = wex = 0.0f ;
        }
-       /* now linearly interpolate inside the dataset grid */
+       /* now linearly interpolate displacements inside the dataset grid */
        ix_00 = ix ; ix_p1 = ix_00+1 ;  /* at this point, we are 'fx' between indexes ix_00 and ix_p1 */
-       jy_00 = jy ; jy_p1 = jy_00+1 ;
+       jy_00 = jy ; jy_p1 = jy_00+1 ;  /* et cetera */
        kz_00 = kz ; kz_p1 = kz_00+1 ;
-       wt_00 = 1.0f-fx ; wt_p1 = fx ;  /* weights for ix_00 and ix_p1 points */
+       wt_00 = (1.0f-fx)*dfac ; wt_p1 = fx*dfac ;  /* weights for ix_00 and ix_p1 points for linear interp */
 
-#undef  IJK
+#undef  IJK  /* 1D index from 3D index */
 #define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
 
 #undef  XINT  /* linear interpolation macro in array 'aaa' at plane jk */
@@ -4153,7 +4141,7 @@ int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
        h_k00 =  wt_00 * h_j00_k00 + wt_p1 * h_jp1_k00 ;
        h_kp1 =  wt_00 * h_j00_kp1 + wt_p1 * h_jp1_kp1 ;
 
-       /* interpolate to kz+fz to get output */
+       /* interpolate to kz+fz to get output, plus add in original coords */
 
        xut[pp] = (1.0f-fz) * f_k00 + fz * f_kp1 + uex + xin[pp] ;  /* note add-in of values */
        yut[pp] = (1.0f-fz) * g_k00 + fz * g_kp1 + vex + yin[pp] ;  /* from external slope */
@@ -4163,6 +4151,173 @@ int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
    } /* end of parallel code */
    AFNI_OMP_END ;
 
+   RETURN(npt) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*  Forward warp a collection of DICOM xyz coordinates.
+    Return value is number of points computed (should be npt).
+    Negative is an error code.
+*//*--------------------------------------------------------------------------*/
+
+int THD_nwarp_forward_xyz( THD_3dim_dataset *dset_nwarp ,
+                           float dfac , int npt ,
+                           float *xin , float *yin , float *zin ,
+                           float *xut , float *yut , float *zut  )
+{
+   int pp ;
+   floatvec *esv ;
+   mat44 nwarp_cmat , nwarp_imat ;
+   MRI_IMAGE *xdim , *ydim , *zdim ;
+
+ENTRY("THD_nwarp_forward_xyz") ;
+
+   /* check inputs */
+
+   if( npt <= 0 ) RETURN(-1) ;
+
+   if( xin == NULL || yin == NULL || zin == NULL ||
+       xut == NULL || yut == NULL || zut == NULL   ) RETURN(-2) ;
+
+   /* get external slopes and check if dataset is any good */
+
+   esv = THD_nwarp_external_slopes( dset_nwarp ) ;
+   if( esv == NULL ) RETURN(-3) ;
+
+   /* matrices */
+
+   nwarp_cmat = dset_nwarp->daxes->ijk_to_dicom ;  /* convert ijk to xyz */
+   nwarp_imat = MAT44_INV(nwarp_cmat) ;            /* convert xyz to ijk */
+
+   xdim = DSET_BRICK(dset_nwarp,0) ;  /* displacement images */
+   ydim = DSET_BRICK(dset_nwarp,1) ;
+   zdim = DSET_BRICK(dset_nwarp,2) ;
+
+   /* outsource all the actual work */
+
+   pp = THD_nwarp_im_xyz( xdim , ydim , zdim ,
+                          dfac , npt ,
+                          xin , yin , zin , xut , yut , zut , nwarp_imat , esv ) ;
+
+   RETURN(pp) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*  Inverse warp a collection of DICOM xyz coordinates.
+    Return value is number of points computed (should be npt).
+    Negative is an error code.
+*//*--------------------------------------------------------------------------*/
+
+int THD_nwarp_inverse_xyz_step( MRI_IMAGE *xdim , MRI_IMAGE *ydim , MRI_IMAGE *zdim ,
+                                float dfac , int npt ,
+                                float *xin , float *yin , float *zin ,
+                                float *xut , float *yut , float *zut ,
+                                mat44 imat , floatvec *esv , int nstep )
+{
+   float qfac ;
+   float *qx , *qy , *qz ; int qq ;
+
+ENTRY("THD_nwarp_inverse_xyz_step") ;
+
+   /* check inputs */
+
+   if( npt <= 0 ) RETURN(-1) ;
+
+   if( xin == NULL || yin == NULL || zin == NULL ||
+       xut == NULL || yut == NULL || zut == NULL   ) RETURN(-2) ;
+
+   if( nstep < 1 ) nstep = 1 ;
+   qfac = -dfac / nstep ;
+
+   qx = (float *)malloc(sizeof(float)*npt) ; memcpy(qx,xin,sizeof(float)*npt) ;
+   qy = (float *)malloc(sizeof(float)*npt) ; memcpy(qy,yin,sizeof(float)*npt) ;
+   qz = (float *)malloc(sizeof(float)*npt) ; memcpy(qz,zin,sizeof(float)*npt) ;
+
+   for( qq=0 ; qq < nstep ; qq++ ){
+      THD_nwarp_im_xyz( xdim , ydim , zdim ,
+                        qfac , npt ,
+                        qx , qy , qz , xut , yut , zut , imat , esv ) ;
+      if( qq < nstep-1 ){
+        memcpy(qx,xut,sizeof(float)*npt) ;
+        memcpy(qy,yut,sizeof(float)*npt) ;
+        memcpy(qz,zut,sizeof(float)*npt) ;
+      }
+   }
+
+   free(qz); free(qy); free(qx) ;
+   RETURN(npt) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
+                           float dfac , int npt ,
+                           float *xin , float *yin , float *zin ,
+                           float *xut , float *yut , float *zut  )
+{
+   int pp , nstep ;
+   floatvec *esv ;
+   mat44 nwarp_cmat , nwarp_imat ;
+   MRI_IMAGE *xdim , *ydim , *zdim ;
+   float *qx,*qy,*qz , *px,*py,*pz ; int qq ;
+   float pqdif , vx,vy,vz,vq , tol ;
+
+ENTRY("THD_nwarp_forward_xyz") ;
+
+   /* check inputs */
+
+   if( npt <= 0 ) RETURN(-1) ;
+
+   if( xin == NULL || yin == NULL || zin == NULL ||
+       xut == NULL || yut == NULL || zut == NULL   ) RETURN(-2) ;
+
+   /* get external slopes and check if dataset is any good */
+
+   esv = THD_nwarp_external_slopes( dset_nwarp ) ;
+   if( esv == NULL ) RETURN(-3) ;
+
+   /* matrices */
+
+   nwarp_cmat = dset_nwarp->daxes->ijk_to_dicom ;  /* convert ijk to xyz */
+   nwarp_imat = MAT44_INV(nwarp_cmat) ;            /* convert xyz to ijk */
+
+   xdim = DSET_BRICK(dset_nwarp,0) ;  /* displacement images */
+   ydim = DSET_BRICK(dset_nwarp,1) ;
+   zdim = DSET_BRICK(dset_nwarp,2) ;
+
+   vx = DSET_DX(dset_nwarp) ;
+   vy = DSET_DY(dset_nwarp) ;
+   vz = DSET_DZ(dset_nwarp) ; tol = (vx*vx + vy*vy + vz*vz) * 1.e-4f ;
+
+   px = (float *)malloc(sizeof(float)*npt) ; qx = (float *)malloc(sizeof(float)*npt) ;
+   py = (float *)malloc(sizeof(float)*npt) ; qy = (float *)malloc(sizeof(float)*npt) ;
+   pz = (float *)malloc(sizeof(float)*npt) ; qz = (float *)malloc(sizeof(float)*npt) ;
+
+   THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , dfac,npt ,
+                               xin,yin,zin , qx,qy,qz , nwarp_imat,esv , 4 ) ;
+
+   for( nstep=6 ; nstep < 99 ; nstep = (int)rint(1.37*nstep) ){
+     memcpy(px,qx,sizeof(float)*npt) ;
+     memcpy(py,qy,sizeof(float)*npt) ;
+     memcpy(pz,qz,sizeof(float)*npt) ;
+     THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , dfac,npt ,
+                                 xin,yin,zin , qx,qy,qz , nwarp_imat,esv , nstep ) ;
+     pqdif = 0.0f ;
+     for( qq=0 ; qq < npt ; qq++ ){
+       vx = qx[qq]-px[qq] ; vy = qy[qq]-py[qq] ; vz = qz[qq]-pz[qq] ;
+       vq = vx*vx + vy*vy + vz*vz ;
+       if( vq > pqdif ) pqdif = vq ;
+     }
+#if 0
+INFO_message("nstep=%d pqdif=%g pqdif/tol=%g XYZ=%g %g %g",nstep,pqdif,pqdif/tol,qx[0],qy[0],qz[0]) ;
+#endif
+     if( pqdif <= tol ) break ;
+   }
+
+   memcpy(xut,qx,sizeof(float)*npt) ;
+   memcpy(yut,qy,sizeof(float)*npt) ;
+   memcpy(zut,qz,sizeof(float)*npt) ;
+   free(qz); free(qy); free(qx) ; free(pz); free(py); free(px) ;
    RETURN(npt) ;
 }
 
