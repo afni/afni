@@ -470,6 +470,8 @@ ENTRY("AFNI_equate_pbars") ;
    lbar = lh3d->vwid->func->inten_pbar ;
    rbar = rh3d->vwid->func->inten_pbar ;
 
+   if( MCW_pbars_equivalent(lbar,rbar) ) EXRETURN ;  /* 07 Jul 2014 */
+
    cc = AFNI_controller_index(lh3d) ; if( cc < 0 ) EXRETURN ;
 
    if( !rbar->bigmode ){

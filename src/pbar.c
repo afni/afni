@@ -1808,3 +1808,35 @@ ENTRY("MCW_pbar_to_mri") ;
 
    RETURN(im) ;
 }
+
+/*---------------------------------------------------------------*/
+/* Return 1 if the 2 pbars are set to be equivalent at this
+   moment, and return 0 if anything differs [07 Jul 2014].
+*//*-------------------------------------------------------------*/
+
+int MCW_pbars_equivalent( MCW_pbar *lbar , MCW_pbar *rbar )
+{
+   if( lbar == rbar ) return 1 ;
+
+   if( lbar->bigmode   != rbar->bigmode   ) return 0 ;
+   if( lbar->mode      != rbar->mode      ) return 0 ;
+   if( ! lbar->bigmode ){
+     int ii ;
+     if( lbar->num_panes != rbar->num_panes ) return 0 ;
+     for( ii=0 ; ii < lbar->num_panes ; ii++ ){
+       if( lbar->pval[ii]     != rbar->pval[ii]     ) return 0 ;
+       if( lbar->ov_index[ii] != rbar->ov_index[ii] ) return 0 ;
+     }
+   } else {
+     char *lmap = PBAR_get_bigmap(lbar) , *rmap = PBAR_get_bigmap(rbar) ;
+     if( strcmp(lmap,rmap) != 0         ) return 0 ;
+     if( lbar->big30   != rbar->big30   ) return 0 ;
+     if( lbar->big31   != rbar->big31   ) return 0 ;
+     if( lbar->big32   != rbar->big32   ) return 0 ;
+     if( lbar->bigflip != rbar->bigflip ) return 0 ;
+     if( lbar->bigrota != rbar->bigrota ) return 0 ;
+     if( lbar->bigtop  != rbar->bigtop  ) return 0 ;
+     if( lbar->bigbot  != rbar->bigbot  ) return 0 ;
+   }
+   return 1;
+}
