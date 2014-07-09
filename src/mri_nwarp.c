@@ -4048,7 +4048,9 @@ ENTRY("THD_setup_nwarp") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/** Interpolation in 3 displacement fields **/
 
+#if 0  /*----------------------------- via linear interp ---------------------*/
 int THD_nwarp_im_xyz( MRI_IMAGE *xdim , MRI_IMAGE *ydim , MRI_IMAGE *zdim ,
                       float dfac , int npt ,
                       float *xin , float *yin , float *zin ,
@@ -4153,6 +4155,239 @@ ENTRY("THD_nwarp_im_xyz") ;
 
    RETURN(npt) ;
 }
+#else  /*------------------------ via quintic interp -------------------------*/
+int THD_nwarp_im_xyz( MRI_IMAGE *xdim , MRI_IMAGE *ydim , MRI_IMAGE *zdim ,
+                      float dfac , int npt ,
+                      float *xin , float *yin , float *zin ,
+                      float *xut , float *yut , float *zut ,
+                      mat44 imat , floatvec *esv )
+{
+   ES_DECLARE_FLOATS ;
+   int nx,ny,nz , nx1,ny1,nz1 , nxy , nx2,ny2,nz2 ;
+   float *xdar , *ydar , *zdar ;
+
+ENTRY("THD_nwarp_im_xyz") ;
+
+   if( esv != NULL ) ES_UNPACKVEC(esv->ar) ;
+
+   nx = xdim->nx ; ny = xdim->ny ; nz = zdim->nz ;
+   nx1 = nx-1 ; ny1 = ny-1 ; nz1 = nz-1 ; nxy = nx*ny ;
+   nx2 = nx-2 ; ny2 = ny-2 ; nz2 = nz-2 ;
+
+   xdar = MRI_FLOAT_PTR(xdim) ;  /* displacement arrays */
+   ydar = MRI_FLOAT_PTR(ydim) ;
+   zdar = MRI_FLOAT_PTR(zdim) ;
+
+   /* quintic interpolation */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( npt > 333 )
+ { int pp ;
+   float xx,yy,zz , fx,fy,fz ; int ix,jy,kz , aem ;
+   float eex=0.0f,eey=0.0f,eez=0.0f , Exx=0.0f,Exy=0.0f,Exz=0.0f ,
+         Eyx=0.0f,Eyy=0.0f,Eyz=0.0f , Ezx=0.0f,Ezy=0.0f,Ezz=0.0f , uex,vex,wex ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1 ;
+   int nx2=nx-2,ny2=ny-2,nz2=nz-2 ;
+   int ix_m2,ix_m1,ix_00,ix_p1,ix_p2,ix_p3 ; /* interpolation indices */
+   int jy_m2,jy_m1,jy_00,jy_p1,jy_p2,jy_p3 ; /* (input image) */
+   int kz_m2,kz_m1,kz_00,kz_p1,kz_p2,kz_p3 ;
+
+   float wt_m2,wt_m1,wt_00,wt_p1,wt_p2,wt_p3 ; /* interpolation weights */
+
+   float f_jm2_km2, f_jm1_km2, f_j00_km2, f_jp1_km2, f_jp2_km2, f_jp3_km2,
+         f_jm2_km1, f_jm1_km1, f_j00_km1, f_jp1_km1, f_jp2_km1, f_jp3_km1,
+         f_jm2_k00, f_jm1_k00, f_j00_k00, f_jp1_k00, f_jp2_k00, f_jp3_k00,
+         f_jm2_kp1, f_jm1_kp1, f_j00_kp1, f_jp1_kp1, f_jp2_kp1, f_jp3_kp1,
+         f_jm2_kp2, f_jm1_kp2, f_j00_kp2, f_jp1_kp2, f_jp2_kp2, f_jp3_kp2,
+         f_jm2_kp3, f_jm1_kp3, f_j00_kp3, f_jp1_kp3, f_jp2_kp3, f_jp3_kp3,
+         f_km2    , f_km1    , f_k00    , f_kp1    , f_kp2    , f_kp3     ;
+   float g_jm2_km2, g_jm1_km2, g_j00_km2, g_jp1_km2, g_jp2_km2, g_jp3_km2,
+         g_jm2_km1, g_jm1_km1, g_j00_km1, g_jp1_km1, g_jp2_km1, g_jp3_km1,
+         g_jm2_k00, g_jm1_k00, g_j00_k00, g_jp1_k00, g_jp2_k00, g_jp3_k00,
+         g_jm2_kp1, g_jm1_kp1, g_j00_kp1, g_jp1_kp1, g_jp2_kp1, g_jp3_kp1,
+         g_jm2_kp2, g_jm1_kp2, g_j00_kp2, g_jp1_kp2, g_jp2_kp2, g_jp3_kp2,
+         g_jm2_kp3, g_jm1_kp3, g_j00_kp3, g_jp1_kp3, g_jp2_kp3, g_jp3_kp3,
+         g_km2    , g_km1    , g_k00    , g_kp1    , g_kp2    , g_kp3     ;
+   float h_jm2_km2, h_jm1_km2, h_j00_km2, h_jp1_km2, h_jp2_km2, h_jp3_km2,
+         h_jm2_km1, h_jm1_km1, h_j00_km1, h_jp1_km1, h_jp2_km1, h_jp3_km1,
+         h_jm2_k00, h_jm1_k00, h_j00_k00, h_jp1_k00, h_jp2_k00, h_jp3_k00,
+         h_jm2_kp1, h_jm1_kp1, h_j00_kp1, h_jp1_kp1, h_jp2_kp1, h_jp3_kp1,
+         h_jm2_kp2, h_jm1_kp2, h_j00_kp2, h_jp1_kp2, h_jp2_kp2, h_jp3_kp2,
+         h_jm2_kp3, h_jm1_kp3, h_j00_kp3, h_jp1_kp3, h_jp2_kp3, h_jp3_kp3,
+         h_km2    , h_km1    , h_k00    , h_kp1    , h_kp2    , h_kp3     ;
+
+#pragma omp for
+   for( pp=0 ; pp < npt ; pp++ ){
+     MAT44_VEC( imat , xin[pp],yin[pp],zin[pp] , xx,yy,zz ) ;  /* convert to index coords */
+     /* find location in or out of dataset grid, and deal with external slopes if need be */
+     aem=0 ;  /* flag for usage of external slopes */
+          if( xx < 0.0f ){ eex = xx    ; ix = 0      ; fx = 0.0f; aem++; Exx=es_xd_xm; Eyx=es_yd_xm; Ezx=es_zd_xm; }
+     else if( xx < nx1  ){ eex = 0.0f  ; ix = (int)xx; fx = xx-ix;       }
+     else                { eex = xx-nx1; ix = nx2    ; fx = 1.0f; aem++; Exx=es_xd_xp; Eyx=es_yd_xp; Ezx=es_zd_xp; }
+          if( yy < 0.0f ){ eey = yy    ; jy = 0      ; fy = 0.0f; aem++; Exy=es_xd_ym; Eyy=es_yd_ym; Ezy=es_zd_ym; }
+     else if( yy < ny1  ){ eey = 0.0f  ; jy = (int)yy; fy = yy-jy;       }
+     else                { eey = yy-ny1; jy = ny2    ; fy = 1.0f; aem++; Exy=es_xd_yp; Eyy=es_yd_yp; Ezy=es_zd_yp; }
+          if( zz < 0.0f ){ eez = zz    ; kz = 0      ; fz = 0.0f; aem++; Exz=es_xd_zm; Eyz=es_yd_zm; Ezz=es_zd_zm; }
+     else if( zz < nz1  ){ eez = 0.0f  ; kz = (int)zz; fz = zz-kz;       }
+     else                { eez = zz-nz1; kz = nz2    ; fz = 1.0f; aem++; Exz=es_xd_zp; Eyz=es_yd_zp; Ezz=es_zd_zp; }
+     if( aem ){
+       uex = Exx*eex + Exy*eey + Exz*eez ;  /* eex = how far past edge of warp, in x-direction (etc.) */
+       vex = Eyx*eex + Eyy*eey + Eyz*eez ;  /* Eab = external slope for 'a' displacement, */
+       wex = Ezx*eex + Ezy*eey + Ezz*eez ;  /*       along the 'b' direction, for a and b = x or y or z */
+       uex *= dfac ; vex *= dfac ; wex *= dfac ;
+     } else {
+       uex = vex = wex = 0.0f ;
+     }
+
+     /* compute indexes from which to interpolate (-2,-1,0,+1,+2,+3),
+        but clipped to lie inside input image volume                 */
+
+     ix_m1 = ix-1    ; ix_00 = ix      ; ix_p1 = ix+1    ; ix_p2 = ix+2    ;
+     CLIP(ix_m1,nx1) ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ; CLIP(ix_p2,nx1) ;
+     ix_m2 = ix-2    ; ix_p3 = ix+3 ;
+     CLIP(ix_m2,nx1) ; CLIP(ix_p3,nx1) ;
+
+     jy_m1 = jy-1    ; jy_00 = jy      ; jy_p1 = jy+1    ; jy_p2 = jy+2    ;
+     CLIP(jy_m1,ny1) ; CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ; CLIP(jy_p2,ny1) ;
+     jy_m2 = jy-2    ; jy_p3 = jy+3 ;
+     CLIP(jy_m2,ny1) ; CLIP(jy_p3,ny1) ;
+
+     kz_m1 = kz-1    ; kz_00 = kz      ; kz_p1 = kz+1    ; kz_p2 = kz+2    ;
+     CLIP(kz_m1,nz1) ; CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ; CLIP(kz_p2,nz1) ;
+     kz_m2 = kz-2    ; kz_p3 = kz+3 ;
+     CLIP(kz_m2,nz1) ; CLIP(kz_p3,nz1) ;
+
+     wt_m1 = Q_M1(fx)*dfac ; wt_00 = Q_00(fx)*dfac ;  /* interpolation weights */
+     wt_p1 = Q_P1(fx)*dfac ; wt_p2 = Q_P2(fx)*dfac ;  /* in x-direction        */
+     wt_m2 = Q_M2(fx)*dfac ; wt_p3 = Q_P3(fx)*dfac ;
+
+#undef  XINT
+#define XINT(aaa,j,k) wt_m2*aaa[IJK(ix_m2,j,k)]+wt_m1*aaa[IJK(ix_m1,j,k)] \
+                     +wt_00*aaa[IJK(ix_00,j,k)]+wt_p1*aaa[IJK(ix_p1,j,k)] \
+                     +wt_p2*aaa[IJK(ix_p2,j,k)]+wt_p3*aaa[IJK(ix_p3,j,k)]
+
+     /* interpolate to location ix+fx at each jy,kz level */
+
+     f_jm2_km2 = XINT(xdar,jy_m2,kz_m2) ; f_jm1_km2 = XINT(xdar,jy_m1,kz_m2) ;
+     f_j00_km2 = XINT(xdar,jy_00,kz_m2) ; f_jp1_km2 = XINT(xdar,jy_p1,kz_m2) ;
+     f_jp2_km2 = XINT(xdar,jy_p2,kz_m2) ; f_jp3_km2 = XINT(xdar,jy_p3,kz_m2) ;
+     f_jm2_km1 = XINT(xdar,jy_m2,kz_m1) ; f_jm1_km1 = XINT(xdar,jy_m1,kz_m1) ;
+     f_j00_km1 = XINT(xdar,jy_00,kz_m1) ; f_jp1_km1 = XINT(xdar,jy_p1,kz_m1) ;
+     f_jp2_km1 = XINT(xdar,jy_p2,kz_m1) ; f_jp3_km1 = XINT(xdar,jy_p3,kz_m1) ;
+     f_jm2_k00 = XINT(xdar,jy_m2,kz_00) ; f_jm1_k00 = XINT(xdar,jy_m1,kz_00) ;
+     f_j00_k00 = XINT(xdar,jy_00,kz_00) ; f_jp1_k00 = XINT(xdar,jy_p1,kz_00) ;
+     f_jp2_k00 = XINT(xdar,jy_p2,kz_00) ; f_jp3_k00 = XINT(xdar,jy_p3,kz_00) ;
+     f_jm2_kp1 = XINT(xdar,jy_m2,kz_p1) ; f_jm1_kp1 = XINT(xdar,jy_m1,kz_p1) ;
+     f_j00_kp1 = XINT(xdar,jy_00,kz_p1) ; f_jp1_kp1 = XINT(xdar,jy_p1,kz_p1) ;
+     f_jp2_kp1 = XINT(xdar,jy_p2,kz_p1) ; f_jp3_kp1 = XINT(xdar,jy_p3,kz_p1) ;
+     f_jm2_kp2 = XINT(xdar,jy_m2,kz_p2) ; f_jm1_kp2 = XINT(xdar,jy_m1,kz_p2) ;
+     f_j00_kp2 = XINT(xdar,jy_00,kz_p2) ; f_jp1_kp2 = XINT(xdar,jy_p1,kz_p2) ;
+     f_jp2_kp2 = XINT(xdar,jy_p2,kz_p2) ; f_jp3_kp2 = XINT(xdar,jy_p3,kz_p2) ;
+     f_jm2_kp3 = XINT(xdar,jy_m2,kz_p3) ; f_jm1_kp3 = XINT(xdar,jy_m1,kz_p3) ;
+     f_j00_kp3 = XINT(xdar,jy_00,kz_p3) ; f_jp1_kp3 = XINT(xdar,jy_p1,kz_p3) ;
+     f_jp2_kp3 = XINT(xdar,jy_p2,kz_p3) ; f_jp3_kp3 = XINT(xdar,jy_p3,kz_p3) ;
+
+     g_jm2_km2 = XINT(ydar,jy_m2,kz_m2) ; g_jm1_km2 = XINT(ydar,jy_m1,kz_m2) ;
+     g_j00_km2 = XINT(ydar,jy_00,kz_m2) ; g_jp1_km2 = XINT(ydar,jy_p1,kz_m2) ;
+     g_jp2_km2 = XINT(ydar,jy_p2,kz_m2) ; g_jp3_km2 = XINT(ydar,jy_p3,kz_m2) ;
+     g_jm2_km1 = XINT(ydar,jy_m2,kz_m1) ; g_jm1_km1 = XINT(ydar,jy_m1,kz_m1) ;
+     g_j00_km1 = XINT(ydar,jy_00,kz_m1) ; g_jp1_km1 = XINT(ydar,jy_p1,kz_m1) ;
+     g_jp2_km1 = XINT(ydar,jy_p2,kz_m1) ; g_jp3_km1 = XINT(ydar,jy_p3,kz_m1) ;
+     g_jm2_k00 = XINT(ydar,jy_m2,kz_00) ; g_jm1_k00 = XINT(ydar,jy_m1,kz_00) ;
+     g_j00_k00 = XINT(ydar,jy_00,kz_00) ; g_jp1_k00 = XINT(ydar,jy_p1,kz_00) ;
+     g_jp2_k00 = XINT(ydar,jy_p2,kz_00) ; g_jp3_k00 = XINT(ydar,jy_p3,kz_00) ;
+     g_jm2_kp1 = XINT(ydar,jy_m2,kz_p1) ; g_jm1_kp1 = XINT(ydar,jy_m1,kz_p1) ;
+     g_j00_kp1 = XINT(ydar,jy_00,kz_p1) ; g_jp1_kp1 = XINT(ydar,jy_p1,kz_p1) ;
+     g_jp2_kp1 = XINT(ydar,jy_p2,kz_p1) ; g_jp3_kp1 = XINT(ydar,jy_p3,kz_p1) ;
+     g_jm2_kp2 = XINT(ydar,jy_m2,kz_p2) ; g_jm1_kp2 = XINT(ydar,jy_m1,kz_p2) ;
+     g_j00_kp2 = XINT(ydar,jy_00,kz_p2) ; g_jp1_kp2 = XINT(ydar,jy_p1,kz_p2) ;
+     g_jp2_kp2 = XINT(ydar,jy_p2,kz_p2) ; g_jp3_kp2 = XINT(ydar,jy_p3,kz_p2) ;
+     g_jm2_kp3 = XINT(ydar,jy_m2,kz_p3) ; g_jm1_kp3 = XINT(ydar,jy_m1,kz_p3) ;
+     g_j00_kp3 = XINT(ydar,jy_00,kz_p3) ; g_jp1_kp3 = XINT(ydar,jy_p1,kz_p3) ;
+     g_jp2_kp3 = XINT(ydar,jy_p2,kz_p3) ; g_jp3_kp3 = XINT(ydar,jy_p3,kz_p3) ;
+
+     h_jm2_km2 = XINT(zdar,jy_m2,kz_m2) ; h_jm1_km2 = XINT(zdar,jy_m1,kz_m2) ;
+     h_j00_km2 = XINT(zdar,jy_00,kz_m2) ; h_jp1_km2 = XINT(zdar,jy_p1,kz_m2) ;
+     h_jp2_km2 = XINT(zdar,jy_p2,kz_m2) ; h_jp3_km2 = XINT(zdar,jy_p3,kz_m2) ;
+     h_jm2_km1 = XINT(zdar,jy_m2,kz_m1) ; h_jm1_km1 = XINT(zdar,jy_m1,kz_m1) ;
+     h_j00_km1 = XINT(zdar,jy_00,kz_m1) ; h_jp1_km1 = XINT(zdar,jy_p1,kz_m1) ;
+     h_jp2_km1 = XINT(zdar,jy_p2,kz_m1) ; h_jp3_km1 = XINT(zdar,jy_p3,kz_m1) ;
+     h_jm2_k00 = XINT(zdar,jy_m2,kz_00) ; h_jm1_k00 = XINT(zdar,jy_m1,kz_00) ;
+     h_j00_k00 = XINT(zdar,jy_00,kz_00) ; h_jp1_k00 = XINT(zdar,jy_p1,kz_00) ;
+     h_jp2_k00 = XINT(zdar,jy_p2,kz_00) ; h_jp3_k00 = XINT(zdar,jy_p3,kz_00) ;
+     h_jm2_kp1 = XINT(zdar,jy_m2,kz_p1) ; h_jm1_kp1 = XINT(zdar,jy_m1,kz_p1) ;
+     h_j00_kp1 = XINT(zdar,jy_00,kz_p1) ; h_jp1_kp1 = XINT(zdar,jy_p1,kz_p1) ;
+     h_jp2_kp1 = XINT(zdar,jy_p2,kz_p1) ; h_jp3_kp1 = XINT(zdar,jy_p3,kz_p1) ;
+     h_jm2_kp2 = XINT(zdar,jy_m2,kz_p2) ; h_jm1_kp2 = XINT(zdar,jy_m1,kz_p2) ;
+     h_j00_kp2 = XINT(zdar,jy_00,kz_p2) ; h_jp1_kp2 = XINT(zdar,jy_p1,kz_p2) ;
+     h_jp2_kp2 = XINT(zdar,jy_p2,kz_p2) ; h_jp3_kp2 = XINT(zdar,jy_p3,kz_p2) ;
+     h_jm2_kp3 = XINT(zdar,jy_m2,kz_p3) ; h_jm1_kp3 = XINT(zdar,jy_m1,kz_p3) ;
+     h_j00_kp3 = XINT(zdar,jy_00,kz_p3) ; h_jp1_kp3 = XINT(zdar,jy_p1,kz_p3) ;
+     h_jp2_kp3 = XINT(zdar,jy_p2,kz_p3) ; h_jp3_kp3 = XINT(zdar,jy_p3,kz_p3) ;
+
+     /* interpolate to jy+fy at each kz level */
+
+     wt_m1 = Q_M1(fy) ; wt_00 = Q_00(fy) ; wt_p1 = Q_P1(fy) ;
+     wt_p2 = Q_P2(fy) ; wt_m2 = Q_M2(fy) ; wt_p3 = Q_P3(fy) ;
+
+     f_km2 =  wt_m2 * f_jm2_km2 + wt_m1 * f_jm1_km2 + wt_00 * f_j00_km2
+            + wt_p1 * f_jp1_km2 + wt_p2 * f_jp2_km2 + wt_p3 * f_jp3_km2 ;
+     f_km1 =  wt_m2 * f_jm2_km1 + wt_m1 * f_jm1_km1 + wt_00 * f_j00_km1
+            + wt_p1 * f_jp1_km1 + wt_p2 * f_jp2_km1 + wt_p3 * f_jp3_km1 ;
+     f_k00 =  wt_m2 * f_jm2_k00 + wt_m1 * f_jm1_k00 + wt_00 * f_j00_k00
+            + wt_p1 * f_jp1_k00 + wt_p2 * f_jp2_k00 + wt_p3 * f_jp3_k00 ;
+     f_kp1 =  wt_m2 * f_jm2_kp1 + wt_m1 * f_jm1_kp1 + wt_00 * f_j00_kp1
+            + wt_p1 * f_jp1_kp1 + wt_p2 * f_jp2_kp1 + wt_p3 * f_jp3_kp1 ;
+     f_kp2 =  wt_m2 * f_jm2_kp2 + wt_m1 * f_jm1_kp2 + wt_00 * f_j00_kp2
+            + wt_p1 * f_jp1_kp2 + wt_p2 * f_jp2_kp2 + wt_p3 * f_jp3_kp2 ;
+     f_kp3 =  wt_m2 * f_jm2_kp3 + wt_m1 * f_jm1_kp3 + wt_00 * f_j00_kp3
+            + wt_p1 * f_jp1_kp3 + wt_p2 * f_jp2_kp3 + wt_p3 * f_jp3_kp3 ;
+
+     g_km2 =  wt_m2 * g_jm2_km2 + wt_m1 * g_jm1_km2 + wt_00 * g_j00_km2
+            + wt_p1 * g_jp1_km2 + wt_p2 * g_jp2_km2 + wt_p3 * g_jp3_km2 ;
+     g_km1 =  wt_m2 * g_jm2_km1 + wt_m1 * g_jm1_km1 + wt_00 * g_j00_km1
+            + wt_p1 * g_jp1_km1 + wt_p2 * g_jp2_km1 + wt_p3 * g_jp3_km1 ;
+     g_k00 =  wt_m2 * g_jm2_k00 + wt_m1 * g_jm1_k00 + wt_00 * g_j00_k00
+            + wt_p1 * g_jp1_k00 + wt_p2 * g_jp2_k00 + wt_p3 * g_jp3_k00 ;
+     g_kp1 =  wt_m2 * g_jm2_kp1 + wt_m1 * g_jm1_kp1 + wt_00 * g_j00_kp1
+            + wt_p1 * g_jp1_kp1 + wt_p2 * g_jp2_kp1 + wt_p3 * g_jp3_kp1 ;
+     g_kp2 =  wt_m2 * g_jm2_kp2 + wt_m1 * g_jm1_kp2 + wt_00 * g_j00_kp2
+            + wt_p1 * g_jp1_kp2 + wt_p2 * g_jp2_kp2 + wt_p3 * g_jp3_kp2 ;
+     g_kp3 =  wt_m2 * g_jm2_kp3 + wt_m1 * g_jm1_kp3 + wt_00 * g_j00_kp3
+            + wt_p1 * g_jp1_kp3 + wt_p2 * g_jp2_kp3 + wt_p3 * g_jp3_kp3 ;
+
+     h_km2 =  wt_m2 * h_jm2_km2 + wt_m1 * h_jm1_km2 + wt_00 * h_j00_km2
+            + wt_p1 * h_jp1_km2 + wt_p2 * h_jp2_km2 + wt_p3 * h_jp3_km2 ;
+     h_km1 =  wt_m2 * h_jm2_km1 + wt_m1 * h_jm1_km1 + wt_00 * h_j00_km1
+            + wt_p1 * h_jp1_km1 + wt_p2 * h_jp2_km1 + wt_p3 * h_jp3_km1 ;
+     h_k00 =  wt_m2 * h_jm2_k00 + wt_m1 * h_jm1_k00 + wt_00 * h_j00_k00
+            + wt_p1 * h_jp1_k00 + wt_p2 * h_jp2_k00 + wt_p3 * h_jp3_k00 ;
+     h_kp1 =  wt_m2 * h_jm2_kp1 + wt_m1 * h_jm1_kp1 + wt_00 * h_j00_kp1
+            + wt_p1 * h_jp1_kp1 + wt_p2 * h_jp2_kp1 + wt_p3 * h_jp3_kp1 ;
+     h_kp2 =  wt_m2 * h_jm2_kp2 + wt_m1 * h_jm1_kp2 + wt_00 * h_j00_kp2
+            + wt_p1 * h_jp1_kp2 + wt_p2 * h_jp2_kp2 + wt_p3 * h_jp3_kp2 ;
+     h_kp3 =  wt_m2 * h_jm2_kp3 + wt_m1 * h_jm1_kp3 + wt_00 * h_j00_kp3
+            + wt_p1 * h_jp1_kp3 + wt_p2 * h_jp2_kp3 + wt_p3 * h_jp3_kp3 ;
+
+     /* interpolate to kz+fz to get output */
+
+     wt_m1 = Q_M1(fz) ; wt_00 = Q_00(fz) ; wt_p1 = Q_P1(fz) ;
+     wt_p2 = Q_P2(fz) ; wt_m2 = Q_M2(fz) ; wt_p3 = Q_P3(fz) ;
+
+     xut[pp] =  wt_m2 * f_km2 + wt_m1 * f_km1 + wt_00 * f_k00
+              + wt_p1 * f_kp1 + wt_p2 * f_kp2 + wt_p3 * f_kp3 + uex + xin[pp] ;
+
+     yut[pp] =  wt_m2 * g_km2 + wt_m1 * g_km1 + wt_00 * g_k00
+              + wt_p1 * g_kp1 + wt_p2 * g_kp2 + wt_p3 * g_kp3 + vex + yin[pp] ;
+
+     zut[pp] =  wt_m2 * h_km2 + wt_m1 * h_km1 + wt_00 * h_k00
+              + wt_p1 * h_kp1 + wt_p2 * h_kp2 + wt_p3 * h_kp3 + wex + zin[pp] ;
+   }
+
+ } /* end OpenMP */
+ AFNI_OMP_END ;
+}
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*  Forward warp a collection of DICOM xyz coordinates.
@@ -4249,20 +4484,69 @@ ENTRY("THD_nwarp_inverse_xyz_step") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Use Powell's NEWUOA to invert a warp */
+
+static double ww_xtarg , ww_ytarg , ww_ztarg ;
+static MRI_IMAGE *ww_xdim , *ww_ydim , *ww_zdim ;
+static mat44 ww_imat ;
+static floatvec *ww_esv ;
+
+double NW_invert_costfunc( int npar , double *par )
+{
+   float xin=par[0] , yin=par[1] , zin=par[2] , xut,yut,zut , a,b,c ;
+
+   THD_nwarp_im_xyz( ww_xdim , ww_ydim , ww_zdim ,
+                     1.0f , 1 ,
+                     &xin,&yin,&zin, &xut,&yut,&zut , ww_imat , ww_esv ) ;
+
+   a = ww_xtarg-xut ; b = ww_ytarg-yut ; c = ww_ztarg-zut ;
+   return (double)(a*a+b*b+c*c) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Use Powell's NEWUOA to invert a warp */
+
+float_triple NW_invert_xyz( float xg , float yg , float zg ,
+                            MRI_IMAGE *xdim , MRI_IMAGE *ydim , MRI_IMAGE *zdim ,
+                            mat44 imat , floatvec *esv )
+{
+   float xin,yin,zin , xut,yut,zut ;
+   double par[3] ; float_triple xyz ;
+
+   /* initialize by backwards stream tracing with 10 steps */
+
+   xin = xg ; yin = yg ; zin = zg ;
+
+   THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , -1.0f , 1 ,
+                               &xin,&yin,&zin , &xut,&yut,&zut , imat,esv , 10 ) ;
+
+   /* setup and use Powell */
+
+   ww_xtarg = xg  ; ww_ytarg = yg  ; ww_ztarg = zg  ;
+   par[0]   = xut ; par[1]   = yut ; par[2]   = zut ;
+
+   ww_xdim = xdim ; ww_ydim = ydim ; ww_zdim = zdim ; ww_imat = imat ; ww_esv = esv ;
+
+   powell_newuoa( 3 , par , 0.555 , 0.0444 , 66 , NW_invert_costfunc ) ;
+
+   /* return the results */
+
+   xyz.a = par[0] ; xyz.b = par[1] ; xyz.c = par[2] ; return xyz ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* NOTE that dfac is not used in this implementation!!! */
 
 int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
                            float dfac , int npt ,
                            float *xin , float *yin , float *zin ,
                            float *xut , float *yut , float *zut  )
 {
-   int pp , nstep ;
    floatvec *esv ;
    mat44 nwarp_cmat , nwarp_imat ;
    MRI_IMAGE *xdim , *ydim , *zdim ;
-   float *qx,*qy,*qz , *px,*py,*pz ; int qq ;
-   float pqdif , vx,vy,vz,vq , tol ;
 
-ENTRY("THD_nwarp_forward_xyz") ;
+ENTRY("THD_nwarp_inverse_xyz") ;
 
    /* check inputs */
 
@@ -4285,39 +4569,49 @@ ENTRY("THD_nwarp_forward_xyz") ;
    ydim = DSET_BRICK(dset_nwarp,1) ;
    zdim = DSET_BRICK(dset_nwarp,2) ;
 
-   vx = DSET_DX(dset_nwarp) ;
-   vy = DSET_DY(dset_nwarp) ;
-   vz = DSET_DZ(dset_nwarp) ; tol = (vx*vx + vy*vy + vz*vz) * 1.e-4f ;
+#if 0   /*--- the old way, using only backward stream tracing ---*/
+   { float *qx,*qy,*qz , *px,*py,*pz ; int qq , nstep ;
+     float pqdif , vx,vy,vz,vq , tol ;
+     px = (float *)malloc(sizeof(float)*npt) ; qx = (float *)malloc(sizeof(float)*npt) ;
+     py = (float *)malloc(sizeof(float)*npt) ; qy = (float *)malloc(sizeof(float)*npt) ;
+     pz = (float *)malloc(sizeof(float)*npt) ; qz = (float *)malloc(sizeof(float)*npt) ;
 
-   px = (float *)malloc(sizeof(float)*npt) ; qx = (float *)malloc(sizeof(float)*npt) ;
-   py = (float *)malloc(sizeof(float)*npt) ; qy = (float *)malloc(sizeof(float)*npt) ;
-   pz = (float *)malloc(sizeof(float)*npt) ; qz = (float *)malloc(sizeof(float)*npt) ;
+     vx = DSET_DX(dset_nwarp) ;
+     vy = DSET_DY(dset_nwarp) ;
+     vz = DSET_DZ(dset_nwarp) ; tol = (vx*vx + vy*vy + vz*vz) * 1.e-5f ;
 
-   THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , dfac,npt ,
-                               xin,yin,zin , qx,qy,qz , nwarp_imat,esv , 4 ) ;
-
-   for( nstep=6 ; nstep < 99 ; nstep = (int)rint(1.37*nstep) ){
-     memcpy(px,qx,sizeof(float)*npt) ;
-     memcpy(py,qy,sizeof(float)*npt) ;
-     memcpy(pz,qz,sizeof(float)*npt) ;
      THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , dfac,npt ,
-                                 xin,yin,zin , qx,qy,qz , nwarp_imat,esv , nstep ) ;
-     pqdif = 0.0f ;
-     for( qq=0 ; qq < npt ; qq++ ){
-       vx = qx[qq]-px[qq] ; vy = qy[qq]-py[qq] ; vz = qz[qq]-pz[qq] ;
-       vq = vx*vx + vy*vy + vz*vz ;
-       if( vq > pqdif ) pqdif = vq ;
-     }
-#if 0
-INFO_message("nstep=%d pqdif=%g pqdif/tol=%g XYZ=%g %g %g",nstep,pqdif,pqdif/tol,qx[0],qy[0],qz[0]) ;
-#endif
-     if( pqdif <= tol ) break ;
-   }
+                                 xin,yin,zin , qx,qy,qz , nwarp_imat,esv , 4 ) ;
 
-   memcpy(xut,qx,sizeof(float)*npt) ;
-   memcpy(yut,qy,sizeof(float)*npt) ;
-   memcpy(zut,qz,sizeof(float)*npt) ;
-   free(qz); free(qy); free(qx) ; free(pz); free(py); free(px) ;
+     for( nstep=6 ; nstep < 99 ; nstep = (int)rint(1.37*nstep) ){
+       memcpy(px,qx,sizeof(float)*npt) ;
+       memcpy(py,qy,sizeof(float)*npt) ;
+       memcpy(pz,qz,sizeof(float)*npt) ;
+       THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , dfac,npt ,
+                                   xin,yin,zin , qx,qy,qz , nwarp_imat,esv , nstep ) ;
+       pqdif = 0.0f ;
+       for( qq=0 ; qq < npt ; qq++ ){
+         vx = qx[qq]-px[qq] ; vy = qy[qq]-py[qq] ; vz = qz[qq]-pz[qq] ;
+         vq = vx*vx + vy*vy + vz*vz ;
+         if( vq > pqdif ) pqdif = vq ;
+       }
+       if( pqdif <= tol ) break ;
+     }
+
+     memcpy(xut,qx,sizeof(float)*npt) ;
+     memcpy(yut,qy,sizeof(float)*npt) ;
+     memcpy(zut,qz,sizeof(float)*npt) ;
+     free(qz); free(qy); free(qx) ; free(pz); free(py); free(px) ;
+   }
+#else  /*--- the new way, using Powell's NEWUOA to solve for the inverse ---*/
+   { float_triple xyz ; int qq ;
+     for( qq=0 ; qq < npt ; qq++ ){
+       xyz = NW_invert_xyz( xin[qq] , yin[qq] , zin[qq] ,
+                            xdim , ydim , zdim , nwarp_imat , esv ) ;
+       xut[qq] = xyz.a ; yut[qq] = xyz.b ; zut[qq] = xyz.c ;
+     }
+   }
+#endif
    RETURN(npt) ;
 }
 
