@@ -79,6 +79,8 @@ static int verbose = 0;         /* print out info every verbose number of voxels
 static int afnitalk_flag = 0;   /* show convergence in AFNI graph - user option */
 static int bmatrix_given = 0;   /* user input file is b matrix (instead of gradient direction matrix) with 6 columns: Bxx, Byy, Bzz, Bxy, Bxz, Byz */
 static int BMAT_NZ = 0;         /* non-zero bmatrix supplied */
+static int use_mean_b0 = 0;     /* compute initial linear estimate with first b=0 volume rather than mean
+                                   of all b=0 volumes */
 static int opt_method = 2;      /* use gradient descent instead of Powell's new optimize method*/
 static int voxel_opt_method = 0; /* hybridize optimization between Powell and gradient descent */
 static int Powell_npts = 1;     /* number of points in input dataset for Powell optimization function */
@@ -215,6 +217,8 @@ main (int argc, char *argv[])
 	      "    MJD Powell, \"The NEWUOA software for unconstrained optimization without\n"
          "    derivatives\", Technical report DAMTP 2004/NA08, Cambridge University\n"
          "    Numerical Analysis Group -- http://www.damtp.cam.ac.uk/user/na/reports.html\n\n"
+         "   -mean_b0 = use mean of all b=0 volumes for linear computation and initial linear\n"
+         "    for nonlinear method\n\n"
          " Example:\n"
          "  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
          "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
@@ -322,6 +326,12 @@ main (int argc, char *argv[])
 
       if (strcmp(argv[nopt], "-bmatrix_NZ") == 0) { // input bmatrix without first B=0 line
 	      BMAT_NZ = 1;
+	      nopt++;
+	      continue;
+      }
+
+      if (strcmp(argv[nopt], "-mean_b0") == 0) {   //  compute mean across b=0 vols for init. linear 
+	      use_mean_b0 = 1;
 	      nopt++;
 	      continue;
       }
@@ -952,7 +962,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 {
   int i, converge_step, converge, trialstep, ntrial, adjuststep, recordflag;
   double orig_deltatau, best_deltatau, EDold, J;
-  static int nvox, ncall, noisecall;
+  static int ncall, noisecall;
   register double i0;
   register double dv, dv0;
   vector lnvector;
@@ -975,7 +985,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
       if (npts > 0)
 	   {			/* the "start notification" */
-	     nvox = npts;		/* keep track of   */
+	     /*nvox = npts;*/		/* keep track of   */
 	     ncall = 0;		/* number of calls */
              noisecall = 0;
 	   }
@@ -1011,7 +1021,12 @@ DWItoDT_tsfunc (double tzero, double tdelta,
    /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
    vector_initialize (&lnvector);
    vector_create_noinit (npts - 1, &lnvector);
-   dv0 = ts[0];
+   if(use_mean_b0)
+      dv0 = compute_mean_B0(npts, ts, 1);
+   else
+      dv0 = ts[0];
+
+
    if (dv0 > 0.0)
      i0 = log (dv0);
    else
