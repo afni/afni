@@ -26,7 +26,7 @@ void print_usage(void)
     "To do the reverse operation -- to take an XYZ in the source dataset\n"
     "and find out where it goes to in the base dataset -- do one of these:\n"
     "  * use the _WARPINV output from 3dQwarp instead of the _WARP output;\n"
-    "  * use the 'INV(dataset)' form fo '-nwarp' (somewhat slow);\n"
+    "  * use the 'INV(dataset)' form for '-nwarp' (will be slow);\n"
     "  * use the '-iwarp' option described below.\n"
     "The first 2 choices should be equivalent.  The third choice will give\n"
     "slightly different results, since the method used for warp inversion\n"
@@ -38,9 +38,11 @@ void print_usage(void)
     "-------------\n"
     " -iwarp    = Compute the inverse warp for each input (x,y,z) triple.\n"
     "\n"
+#if 0
     " -wfac fff = Scale displacments by factor 'fff' before using.\n"
     "             It is hard to see that this has any value, but here it is.\n"
     "\n"
+#endif
     "July 2014 - Zhark the Coordinated\n"
    ) ;
 #if 0
@@ -89,12 +91,14 @@ int main( int argc , char *argv[] )
        do_inv = 1 ; iarg++ ; continue ;
      }
 
+#if 0  /*** note that -wfac does not work with -iwarp !!! ***/
      if( strcasecmp(argv[iarg],"-wfac") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        dfac = (float)strtod(argv[iarg],NULL) ;
        if( dfac == 0.0f ) dfac = 1.0f ;
        iarg++ ; continue ;
      }
+#endif
 
      ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-( :-( :-(",argv[iarg]) ;
    }
