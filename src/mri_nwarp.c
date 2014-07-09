@@ -4386,6 +4386,8 @@ ENTRY("THD_nwarp_im_xyz") ;
 
  } /* end OpenMP */
  AFNI_OMP_END ;
+
+ RETURN(npt) ;
 }
 #endif
 
@@ -4513,6 +4515,8 @@ float_triple NW_invert_xyz( float xg , float yg , float zg ,
    float xin,yin,zin , xut,yut,zut ;
    double par[3] ; float_triple xyz ;
 
+ENTRY("NW_invert_xyz") ;
+
    /* initialize by backwards stream tracing with 10 steps */
 
    xin = xg ; yin = yg ; zin = zg ;
@@ -4531,7 +4535,7 @@ float_triple NW_invert_xyz( float xg , float yg , float zg ,
 
    /* return the results */
 
-   xyz.a = par[0] ; xyz.b = par[1] ; xyz.c = par[2] ; return xyz ;
+   xyz.a = par[0] ; xyz.b = par[1] ; xyz.c = par[2] ; RETURN(xyz) ;
 }
 
 /*----------------------------------------------------------------------------*/
