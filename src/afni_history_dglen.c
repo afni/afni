@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9 , JUL, 2014 , DRG , "3dDWItoDT" , 
+    MINOR , TYPE_NEW_OPT, 
+    "Mean b=0 values computed for linear estimate",
+    "New -mean_b0 option allows for averaging of b=0 values\n"
+    "used in linear model and initial linear estimate for nonlinear\n"
+    "method."
+} ,
+
 { 3 , JUL, 2014 , DRG , "3dAllineate" , 
     MINOR , TYPE_BUG_FIX, 
     "oblique NIFTI dataset handling",
