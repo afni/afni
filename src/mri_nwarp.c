@@ -4492,6 +4492,7 @@ static double ww_xtarg , ww_ytarg , ww_ztarg ;
 static MRI_IMAGE *ww_xdim , *ww_ydim , *ww_zdim ;
 static mat44 ww_imat ;
 static floatvec *ww_esv ;
+static float ww_tol ;
 
 double NW_invert_costfunc( int npar , double *par )
 {
@@ -4514,6 +4515,7 @@ float_triple NW_invert_xyz( float xg , float yg , float zg ,
 {
    float xin,yin,zin , xut,yut,zut ;
    double par[3] ; float_triple xyz ;
+   int pp ;
 
 ENTRY("NW_invert_xyz") ;
 
@@ -4531,7 +4533,10 @@ ENTRY("NW_invert_xyz") ;
 
    ww_xdim = xdim ; ww_ydim = ydim ; ww_zdim = zdim ; ww_imat = imat ; ww_esv = esv ;
 
-   powell_newuoa( 3 , par , 0.555 , 0.0444 , 66 , NW_invert_costfunc ) ;
+   pp = powell_newuoa( 3 , par , 0.555 , ww_tol , 66 , NW_invert_costfunc ) ;
+#if 0
+INFO_message("powell count = %d",pp) ;
+#endif
 
    /* return the results */
 
@@ -4549,6 +4554,7 @@ int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
    floatvec *esv ;
    mat44 nwarp_cmat , nwarp_imat ;
    MRI_IMAGE *xdim , *ydim , *zdim ;
+   float vx,vy,vz ;
 
 ENTRY("THD_nwarp_inverse_xyz") ;
 
@@ -4573,16 +4579,18 @@ ENTRY("THD_nwarp_inverse_xyz") ;
    ydim = DSET_BRICK(dset_nwarp,1) ;
    zdim = DSET_BRICK(dset_nwarp,2) ;
 
+   vx = DSET_DX(dset_nwarp) ;
+   vy = DSET_DY(dset_nwarp) ;
+   vz = DSET_DZ(dset_nwarp) ;
+
 #if 0   /*--- the old way, using only backward stream tracing ---*/
    { float *qx,*qy,*qz , *px,*py,*pz ; int qq , nstep ;
-     float pqdif , vx,vy,vz,vq , tol ;
+     float pqdif , vq , tol ;
      px = (float *)malloc(sizeof(float)*npt) ; qx = (float *)malloc(sizeof(float)*npt) ;
      py = (float *)malloc(sizeof(float)*npt) ; qy = (float *)malloc(sizeof(float)*npt) ;
      pz = (float *)malloc(sizeof(float)*npt) ; qz = (float *)malloc(sizeof(float)*npt) ;
 
-     vx = DSET_DX(dset_nwarp) ;
-     vy = DSET_DY(dset_nwarp) ;
-     vz = DSET_DZ(dset_nwarp) ; tol = (vx*vx + vy*vy + vz*vz) * 1.e-5f ;
+     tol = (vx*vx + vy*vy + vz*vz) * 1.e-5f ;
 
      THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , dfac,npt ,
                                  xin,yin,zin , qx,qy,qz , nwarp_imat,esv , 4 ) ;
@@ -4609,6 +4617,7 @@ ENTRY("THD_nwarp_inverse_xyz") ;
    }
 #else  /*--- the new way, using Powell's NEWUOA to solve for the inverse ---*/
    { float_triple xyz ; int qq ;
+     ww_tol = (fabsf(vx)+fabsf(vy)+fabsf(vz)) * (0.0111f/3.0f) ;
      for( qq=0 ; qq < npt ; qq++ ){
        xyz = NW_invert_xyz( xin[qq] , yin[qq] , zin[qq] ,
                             xdim , ydim , zdim , nwarp_imat , esv ) ;
