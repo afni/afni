@@ -107,6 +107,8 @@ void usage_1dplot(int detail)
      "               program 3dhistog; for example\n"
      "                3dhistog -nbin 50 -notitle -min 0 -max .04 err.1D > eh.1D\n"
      "                1dplot -hist -x eh.1D'[0]' -xlabel err -ylabel hist eh.1D'[1]'\n"
+     "               or, for something a little more fun looking:\n"
+     "                1dplot -hist -dashed 1:2 -x eh.1D'[0]' -xlabel err -ylabel hist eh.1D'[1]' eh.1D'[1]'\n"
      "\n"
      "           ** The '-norm' options below can be useful for plotting data\n"
      "               with different value ranges on top of each other via '-one':\n"
