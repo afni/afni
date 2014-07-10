@@ -193,6 +193,7 @@ extern void           plotline_memplot( float , float , float , float ) ;
 extern void           set_color_memplot( float , float , float ) ;
 extern void           set_thick_memplot( float ) ;
 extern float          get_thick_memplot(void) ;
+extern void           plot_ts_dohist(int) ;                         /* 10 Jun 2014 */
 extern int            nline_active_memplot(void) ;
 extern void           plotrect_memplot( float,float,float,float ) ; /* 21 Mar 2001 */
 extern void           plotfrect_memplot( float,float,float,float) ; /* 24 Apr 2012 */

@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , JUL , 2014 , RWC , "3dNwarpXYZ" , MICRO , TYPE_MODIFY ,
+  { 10 , JUL , 2014 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "-hist option for plotting histogram style" ,
+   NULL } ,
+
+ { 9 , JUL , 2014 , RWC , "3dNwarpXYZ" , MICRO , TYPE_MODIFY ,
    "Modify the way -iwarp works" ,
    "Use backwards stream tracing only to initialize a search via Powell's\n"
    "NEWUOA.  Also, use quintic interpolation for the forward warp, instead\n"
