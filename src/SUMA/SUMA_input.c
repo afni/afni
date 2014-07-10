@@ -1926,7 +1926,7 @@ int SUMA_L_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
                                                 SEI_Head, NULL )) {
                   fprintf( SUMA_STDERR,
                            "Error %s: Failed to register command\n", FuncName);
-                  SUMA_RETURNe;
+                  SUMA_RETURN(0);
                }
                if (!SUMA_Engine (&list)) {
                   fprintf(stderr, 
