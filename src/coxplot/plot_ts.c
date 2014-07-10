@@ -705,15 +705,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          if( !noline ){
            if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
            if( dohist ){
-             float xp ;
-             plotpak_line( xx[0],ybot , xx[0],yy[0] ) ;
+             float xp , yb=ybot ;
+             plotpak_line( xx[0],yb , xx[0],yy[0] ) ;
              for( ii=1 ; ii < ixtop ; ii++ ){
                plotpak_line( xx[ii-1],yy[ii-1],xx[ii],yy[ii-1]) ;
                plotpak_line( xx[ii]  ,yy[ii-1],xx[ii],yy[ii]  ) ;
              }
              xp = xx[ixtop-1] + (xx[ixtop-1]-xx[ixtop-2]) ;
              plotpak_line( xx[ixtop-1],yy[ixtop-1] , xp,yy[ixtop-1] ) ;
-             plotpak_line( xp         ,yy[ixtop-1] , xp,ybot        ) ;
+             plotpak_line( xp         ,yy[ixtop-1] , xp,yb          ) ;
            } else {
              for( ii=1 ; ii < ixtop ; ii++ ){
                if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
@@ -846,15 +846,15 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          if( !noline ){
            if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
            if( dohist ){
-             float xp ;
-             plotpak_line( xx[0],ylo[jj] , xx[0],yy[0] ) ;
+             float xp , yb=ylo[jj] ;
+             plotpak_line( xx[0],yb , xx[0],yy[0] ) ;
              for( ii=1 ; ii < ixtop ; ii++ ){
                plotpak_line( xx[ii-1],yy[ii-1],xx[ii],yy[ii-1]) ;
                plotpak_line( xx[ii]  ,yy[ii-1],xx[ii],yy[ii]  ) ;
              }
              xp = xx[ixtop-1] + (xx[ixtop-1]-xx[ixtop-2]) ;
              plotpak_line( xx[ixtop-1],yy[ixtop-1] , xp,yy[ixtop-1] ) ;
-             plotpak_line( xp         ,yy[ixtop-1] , xp,ylo[jj]     ) ;
+             plotpak_line( xp         ,yy[ixtop-1] , xp,yb          ) ;
            } else {
              for( ii=1 ; ii < ixtop ; ii++ ){
                 if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
