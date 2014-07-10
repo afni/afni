@@ -19,7 +19,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3, June 3, 2014
+Version 1.3.1, July 10, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -34,7 +34,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3, May 30, 2014
+Version 1.3.1, July 10, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -565,11 +565,13 @@ process.LME.opts <- function (lop, verb = 0) {
          #if(!is.na(lop$qVars)) { if(any(lop$QV %in% lop$gltCode[[n]])) {
          if(!is.na(lop$qVars) & any(lop$QV %in% lop$gltCode[[n]])) {
             QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
-            lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+            if(QVpos > 1)  lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+            if(QVpos == 1) lop$gltList[[n]] <- NA
             lop$slpList[[n]] <- lop$gltCode[[n]][QVpos]   
          } else if(!is.na(lop$vVars) & any(lop$vQV %in% lop$gltCode[[n]])) {
             vQVpos <- which(lop$gltCode[[n]] %in% lop$vQV)
-            lop$gltList[[n]]   <- gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+            if(vQVpos > 1)  lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+            if(vQVpos == 1) lop$gltList[[n]] <- NA
             lop$slpList[[n]] <- lop$gltCode[[n]][vQVpos]   
          } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
          #} else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr)
@@ -648,8 +650,11 @@ runLME <- function(inData, dataframe, ModelForm, pars) {
             #try(con <- contrast(fm, pars[[4]][[n]][[1]], pars[[4]][[n]][[2]], type="average"),silent=TRUE) 
 	    #if(!is.null(con)) Stat[(pars[[2]]+2*n-1):(pars[[2]]+2*n)] <- c(con$Contrast, con$testStat)
             glt <- NULL
+            if(is.na(pars[[4]][[ii]])) glt <- tryCatch(testInteractions(fm, pair=NULL, slope=pars[[6]][[ii]], 
+               adjustment="none"), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm, custom=pars[[4]][[ii]], slope=pars[[6]][[ii]], 
                adjustment="none"), error=function(e) NULL)
+            
             #glt <- testInteractions(fm, custom=pars[[4]][[ii]], slope=pars[[6]][[ii]], adjustment="none")
             if(!is.null(glt)) {
                Stat[pars[[2]][1]+2*ii-1] <- glt[1,1]
@@ -924,7 +929,10 @@ while(is.null(fm)) {
       while(!is.null(fm) & (n <= lop$num_glt)) {
         #gltDF[n] <- tryCatch(contrast(fm, lop$gltContrList[[n]][[1]], lop$gltContrList[[n]][[2]], type="average")$df,
         #    error=function(e) NA)
-        gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
+         if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pair=NULL,
+            slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
+         gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
+            slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
          if(is.na(gltRes[[n]])) fm <- NULL
          n <- n+1
       }
