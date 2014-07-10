@@ -102,9 +102,14 @@ void usage_1dplot(int detail)
      "               plotting order; for example:\n"
      "        1dplot -DAFNI_1DPLOT_RANBOX=YES -one -x X.1D -noline Y1.1D Y2.1D Y3.1D\n"
      "\n"
-     "           ** The '-norm' options below can be useful for\n"
-     "               plotting data with different value ranges on\n"
-     "               top of each other using '-one':\n"
+     " -hist      = Plot graphs in histogram style (i.e., vertical boxes).\n"
+     "             * Histograms can be generated from 3D or 1D files using\n"
+     "               program 3dhistog; for example\n"
+     "                3dhistog -nbin 50 -notitle -min 0 -max .04 err.1D > eh.1D\n"
+     "                1dplot -hist -x eh.1D'[0]' -xlabel err -ylabel hist eh.1D'[1]'\n"
+     "\n"
+     "           ** The '-norm' options below can be useful for plotting data\n"
+     "               with different value ranges on top of each other via '-one':\n"
      " -norm2     = Independently scale each time series plotted to\n"
      "              have L_2 norm = 1 (sum of squares).\n"
      " -normx     = Independently scale each time series plotted to\n"
@@ -524,6 +529,10 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 #endif
+
+     if( strcmp(argv[iarg],"-hist") == 0 ){   /* 14 Jul 2014 */
+       plot_ts_dohist(1) ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-") == 0 ){  /* 23 Aug 2006: null option */
        iarg++ ; continue ;

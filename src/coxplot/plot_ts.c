@@ -43,9 +43,11 @@ static float thik = 0.002f ;  /* 02 Apr 2012: for labels */
 /*----------------------------------------------------------------------*/
 static float tsbox  = 0.0f ;      /* 23 May 2011 */
 static float noline = 0 ;
+static int   dohist = 0 ;         /* 10 Jul 2014 */
 
 void plot_ts_dobox( float a ){ tsbox = a ; }
 void plot_ts_noline( int a ){ noline = a ; }
+void plot_ts_dohist( int a ){ dohist = a ; }
 
 static void plot_one_diamond( float xx , float yy )
 {
@@ -702,10 +704,22 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          yy = y[jj] ;
          if( !noline ){
            if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
-           for( ii=1 ; ii < ixtop ; ii++ ){
-              if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                  yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
-                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+           if( dohist ){
+             float xp ;
+             plotpak_line( xx[0],ybot , xx[0],yy[0] ) ;
+             for( ii=1 ; ii < ixtop ; ii++ ){
+               plotpak_line( xx[ii-1],yy[ii-1],xx[ii],yy[ii-1]) ;
+               plotpak_line( xx[ii]  ,yy[ii-1],xx[ii],yy[ii]  ) ;
+             }
+             xp = xx[ixtop-1] + (xx[ixtop-1]-xx[ixtop-2]) ;
+             plotpak_line( xx[ixtop-1],yy[ixtop-1] , xp,yy[ixtop-1] ) ;
+             plotpak_line( xp         ,yy[ixtop-1] , xp,ybot        ) ;
+           } else {
+             for( ii=1 ; ii < ixtop ; ii++ ){
+               if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
+                   yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+               plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+             }
            }
            if( use_ddd ) plotpak_setlin(1) ;
          }
@@ -831,10 +845,22 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          yy = y[jj] ;
          if( !noline ){
            if( use_ddd ) plotpak_setlin(ddd[jj%NCLR]) ;
-           for( ii=1 ; ii < ixtop ; ii++ ){
-              if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
-                  yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
-                plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+           if( dohist ){
+             float xp ;
+             plotpak_line( xx[0],ylo[jj] , xx[0],yy[0] ) ;
+             for( ii=1 ; ii < ixtop ; ii++ ){
+               plotpak_line( xx[ii-1],yy[ii-1],xx[ii],yy[ii-1]) ;
+               plotpak_line( xx[ii]  ,yy[ii-1],xx[ii],yy[ii]  ) ;
+             }
+             xp = xx[ixtop-1] + (xx[ixtop-1]-xx[ixtop-2]) ;
+             plotpak_line( xx[ixtop-1],yy[ixtop-1] , xp,yy[ixtop-1] ) ;
+             plotpak_line( xp         ,yy[ixtop-1] , xp,ylo[jj]     ) ;
+           } else {
+             for( ii=1 ; ii < ixtop ; ii++ ){
+                if( xx[ii-1] < WAY_BIG && xx[ii] < WAY_BIG &&
+                    yy[ii-1] < WAY_BIG && yy[ii] < WAY_BIG   )
+                  plotpak_line( xx[ii-1] , yy[ii-1] , xx[ii] , yy[ii] ) ;
+             }
            }
            set_thick_memplot( thik ) ;
            if( use_ddd ) plotpak_setlin(1) ;
