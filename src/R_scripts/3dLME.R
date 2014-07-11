@@ -407,7 +407,7 @@ gltConstr <- function(cStr, dataStr) {
    varsOK <- vars %in% colnames(dataStr)
    if(all(varsOK)) {
       gltList <- vector('list', nvar)      
-      for(ii in 1:nvar) {
+      for(ii in seq_len(nvar)) {
          #browser()
 	      lvl  <- levels(dataStr[,vars[ii]])
          gltList[[ii]] <- rep(0, length(lvl))
@@ -748,7 +748,7 @@ read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      save(args, rfile, file=".3dLME.dbg.AFNI.args", ascii = TRUE) 
+      try(save(args, rfile, file=".3dLME.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
