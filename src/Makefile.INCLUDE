@@ -54,6 +54,12 @@ EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat quotize $
 
 # mpegtoppm in above list
 
+# this is the list of nonlinear warping program, and is here just for Zhark
+
+QWARP = 3dNwarpAdjust 3dNwarpApply 3dNwarpCalc 3dNwarpCat 3dNwarpFuncs 3dNwarpXYZ 3dQwarp
+
+qwarp: libmri.a libf2c.a $(QWARP)
+
 ## This list is the core AFNI package:
 ## other programs are experimental and/or outsiders.
 
