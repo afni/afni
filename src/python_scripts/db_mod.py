@@ -821,6 +821,7 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
         "    1dtranspose rm.ricor.$run.1D stimuli/ricor_det_r$run.1D\n\n"  \
         "    # pad slice0 regressors across all runs (for 'regress' block)\n" \
         "    1d_tool.py -infile stimuli/ricor_det_r$run.1D'[0..%d]' \\\n"  \
+        "               -set_run_lengths $tr_counts \\\n"                  \
         "               -pad_into_many_runs $run $#runs \\\n"              \
         "               -write rm.ricor_s0_r$run.1D\n\n"                 % \
         (polort, nsliregs-1)
@@ -4247,6 +4248,7 @@ def db_cmd_regress_bandpass(proc, block):
                '    1dBport -nodata $nt %g -band %g %g -invert -nozero > %s\n'\
                % (proc.tr, freq[0], freq[1], tfile)
         cmd += '    1d_tool.py -infile %s -pad_into_many_runs $run $#runs \\\n'\
+               '               -set_run_lengths $tr_counts \\\n'              \
                '               -write bpass%sr$run.1D\n'                      \
                'end\n' % (tfile, proc.sep_char)
         cmd += '1dcat bpass.r*1D > bandpass_rall.1D\n\n'

@@ -420,9 +420,11 @@ g_history = """
     4.19 Jun 26, 2014:
         - full_mask (EPI mask) is now byte (via 3dmask_tool)
         - note correlation with anat mask (in out.mask_ae_corr.txt)
+    4.20 Jul 11, 2014: fixed 1d_tool.py -pad_into_many_runs for bandpassing
+          when run lengths vary
 """
 
-g_version = "version 4.19, Jun 26, 2014"
+g_version = "version 4.20, Jul 11, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "13 May 2014" # no stats for gen_ss_review_scripts.py

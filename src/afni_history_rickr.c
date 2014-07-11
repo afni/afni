@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Jul, 2014, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed 1d_tool.py -pad_into_many_runs for bpass w/varying run lengths",
+   "Thanks to d6anders for noting the problem."
+ } ,
+
  {  3,  Jul, 2014, RCR, "model_conv_PRF", MINOR, TYPE_BUG_FIX,
    "fixed a name space problem on macs",
    NULL
