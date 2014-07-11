@@ -2103,7 +2103,7 @@ tTop <- 100   # upper bound for t-statistic
    if (!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      save(args, rfile, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE) 
+      try(save(args, rfile, file=".3dMEMA.dbg.AFNI.args", ascii = TRUE), silent=TRUE)
    } else {
       note.AFNI("Using .DBG_args resident in workspace");
       args <- .DBG_args
