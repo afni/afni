@@ -318,7 +318,7 @@ read.MEMA.opts.interactive <- function (verb = 0) {
          if(lop$centerType2 == 2 | lop$centerType2 == 3) {  # different center 
             if(lop$centerType == 0) lop$covData <- rbind(apply(as.matrix(lop$covData[1:lop$nSubj[1],]), 2, scale, scale=F), 
                apply(as.matrix(lop$covData[(lop$nSubj[1]+1):(lop$nSubj[1]+lop$nSubj[2]),]), 2, scale, scale=F))
-            if(lop$centerType == 1) {
+            if(lop$centerType == 1) {  # user-specified center
                covList <- vector('list', lop$nGrp)               
                for(ii in 1:lop$nGrp) {
                   lop$centerVal <- vector(mode = "numeric", length = lop$nCov)
@@ -506,7 +506,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.3.0, March 7, 2014
+Version 0.2.2, July 11, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -539,7 +539,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.3.0 (March 7, 2014). If you want to cite the analysis
+ desirable. Version 0.2.2 (July 11, 2014). If you want to cite the analysis
  approach, use the following at this moment:
 
  Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
@@ -692,8 +692,15 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
       
       '-groups' = apl(n = c(1,2), d = 'G1', h = paste(
-   "-groups GROUP1 [GROUP2]: Name of 1 or 2 groups.\n",
-   "                         Default is one group named 'G1'\n"
+   "-groups GROUP1 [GROUP2]: Name of 1 or 2 groups. Default is one group\n",
+   "                         named 'G1'. The labels here are used to name\n",
+   "                         the sub-bricks in the output. When there are\n",
+   "                         two groups, the 1st and 2nd labels here are\n",
+   "                         associated with the 1st and 2nd datasets\n",
+   "                         specified respectively through option -set,\n",
+   "                         and their group difference is the second group\n",
+   "                         minus the first one, similar to 3dttest but\n",
+   "                         different from 3dttest++.\n"
                      ) ),
                      
       '-set' = apl (n = c(4, Inf), d = NA, dup = TRUE, h = paste (
@@ -704,7 +711,13 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
    "              SUBJ_N BETA_DSET T_DSET \\\n",
    "     Specify the data for one of two test variables (either group,\n",
    "             contrast/GLTs) A & B. \n",
-   "     SETNAME is the name assigned to the set. \n",
+   "     SETNAME is the name assigned to the set, which is only for the\n",
+   "             user's information, and not used by the program. When\n",
+   "             there are two groups, the 1st and 2nd datasets are\n",
+   "             associated with the 1st and 2nd labels specified\n",
+   "             through option -set, and the group difference is\n",
+   "             the second group minus the first one, similar to\n",
+   "             3dttest but different from 3dttest++.\n",   
    "     SUBJ_K is the label for the subject K whose datasets will be \n",
    "            listed next\n",
    "     BETA_DSET is the name of the dataset of the beta coefficient or GLT.\n",
@@ -1349,14 +1362,14 @@ process.MEMA.opts <- function (lop, verb = 0) {
          } # if(lop$centerType2 == 0 | lop$centerType2 == 1)
         
          if(lop$centerType2 == 2 | lop$centerType2 == 3) {  # different center 
-            if(lop$centerType == 0) 
+            if(lop$centerType == 0) # mean centering
                lop$covData <- 
                         rbind(apply(as.matrix(lop$covData[1:lop$nSubj[1],]), 
                                     2, scale, scale=F),
                               apply(as.matrix(lop$covData[
                                  (lop$nSubj[1]+1):(lop$nSubj[1]+lop$nSubj[2]),]),
                                     2, scale, scale=F))
-            if(lop$centerType == 1) {
+            if(lop$centerType == 1) { # user-specified centers
                covList <- vector('list', lop$nGrp)               
                for(ii in 1:lop$nGrp) {
                   centerVal <- 
@@ -2029,9 +2042,8 @@ runRMA <- function(  inData, nGrp, n, p, xMat, outData,
       
       # more concise than above
       #if(KHtest)  outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl[c(1,2,3)]
-      if(KHtest) if(!is.na(resList$scl)) if(!any(is.nan(resList$scl)))
-         if(all(resList$scl>tol)) outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl
-
+      if(KHtest & all(resList$scl>tol)) outData[c(2,4,6)] <- outData[c(2,4,6)]/resList$scl
+   
       if(resZout==0) {
          outData[nBrick-5] <- resList$tau2[1]
          outData[nBrick-3]   <- resList$tau2[2]
@@ -2230,7 +2242,8 @@ tTop <- 100   # upper bound for t-statistic
    
    # each subject has two number: one for lambda, and the other, deviation, 
    # for outlier identificaiton - need to do the same for type 4
-   
+  
+   if(is.null(lop$myDim)) lop$myDim <- c(1,1,1) 
    nBrick0 <- 4*lop$nGrp+(anyCov)*2*lop$nCov   
                         # no. sub-bricks in the main output
    nBrick <- 4*lop$nGrp+(anyCov)*2*lop$nCov+2*sum(lop$nSubj)*lop$resZout  
@@ -2292,6 +2305,12 @@ tTop <- 100   # upper bound for t-statistic
    } 
 
    if(lop$anaType==4) {
+      if(prod(lop$myDim)==1) outArr <- runRMA(comArr,
+         nGrp=lop$nGrp, n=c(lop$nSubj[1], sum(lop$nSubj)),
+               p=dim(lop$xMat)[2], xMat=lop$xMat, outData=outData,
+               mema=rmaB2, lapMod=lop$lapMod, KHtest=lop$KHtest,
+               nNonzero=nNonzero, nCov=lop$nCov, nBrick=nBrick,
+               anaType=lop$anaType, resZout=lop$resZout, tol=tolL) else {
       if(lop$nNodes==1) 
          for (ii in 1:lop$myDim[3]) {
             tmp_oarr <- apply(comArr[,,ii,], marg, runRMA, 
@@ -2324,7 +2343,14 @@ tTop <- 100   # upper bound for t-statistic
          }
          stopCluster(cl)
       }  # if(lop$nNodes>1)
-   } else {
+   }} else {
+      if(prod(lop$myDim)==1) outArr <- runRMA(comArr,
+         nGrp=lop$nGrp, n=sum(lop$nSubj),
+               p=dim(lop$xMat)[2], xMat=lop$xMat,
+               outData=outData, mema=rmaB, lapMod=lop$lapMod,
+               KHtest=lop$KHtest, nNonzero=nNonzero, nCov=lop$nCov,
+               nBrick=nBrick, anaType=lop$anaType, resZout=lop$resZout,
+               tol=tolL) else { 
       if(lop$nNodes==1) for (ii in 1:lop$myDim[3]) {
          tmp_oarr <- apply(comArr[,,ii,], marg, runRMA, 
                nGrp=lop$nGrp, n=sum(lop$nSubj), 
@@ -2359,7 +2385,7 @@ tTop <- 100   # upper bound for t-statistic
          stopCluster(cl)
       }  # if(lop$nNodes>1)
             
-   } # if(lop$anaType==4)
+   }} # if(lop$anaType==4)
 
    print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
    print("#++++++++++++++++++++++++++++++++++++++++++++")
