@@ -14,13 +14,13 @@
   static double *dhaar=NULL ;   /* must be set in main program */
   static double *dhbbr=NULL ;   /* see 3dQwarp.c for example   */
   static double *dhccr=NULL ;
-  static double *dhddr=NULL ;
-  static double *dheer=NULL ;
-  static double *dhffr=NULL ;
+  static double *dhddr=NULL ;   /* these arrays are used to store */
+  static double *dheer=NULL ;   /* cumulative values on a per-thread */
+  static double *dhffr=NULL ;   /* basis for final summation later */
 #else
 # define nthmax 1
-  static double dhaar[1] ;
-  static double dhbbr[1] ;
+  static double dhaar[1] ;      /* with only 1 'thread' in OpenMP-free */
+  static double dhbbr[1] ;      /* code, these arrays can be fixed size */
   static double dhccr[1] ;
   static double dhddr[1] ;
   static double dheer[1] ;
@@ -31,14 +31,130 @@
     are only compiled if macro ALLOW_QWARP is #define-d -- see 3dQwarp.c **/
 
 #ifdef ALLOW_QWARP
-#include "thd_incorrelate.c"   /* for the 3dQwarp cost functions */
+#include "thd_incorrelate.c"   /* for the 3dQwarp cost (INCOR) functions */
 #endif
-
-/*---------------------------------------------------------------------------*/
 
 static int Hverb = 1 ;   /* mostly for QWARP (far below) */
 
 /*===========================================================================*/
+/*!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!*/
+/*----------------------------------------------------------------------------
+--------------- Definition of an Index Warp Struct ---------------------------
+
+   The functions herein mostly operate on IndexWarp3D structs.  Such a struct
+   represents an "index warp in 3D" -- that is, it maps indexes and not
+   coordinates.  Most functions that operate on these things start with
+   the string 'IW3D_'.  The basic struct is pretty simple (from mrilib.h):
+
+      typedef struct {
+        int    nx ,  ny ,  nz ;
+        float *xd , *yd , *zd , *hv , *je , *se ;
+        int   use_es ;
+        float es_xd_xp, es_xd_xm, es_xd_yp, es_xd_ym, es_xd_zp, es_xd_zm,
+              es_yd_xp, es_yd_xm, es_yd_yp, es_yd_ym, es_yd_zp, es_yd_zm,
+              es_zd_xp, es_zd_xm, es_zd_yp, es_zd_ym, es_zd_zp, es_zd_zm ;
+        mat44 cmat , imat ;
+        char *geomstring ;
+        int view ;
+      } IndexWarp3D ;
+
+      nx, ny, nz = dimensions of the grid arrays
+      xd, yd, zd = index displacements = arrays of size nx*ny*nz;
+                   the voxel at 3D index (i,j,k) is mapped to
+                     i + xd[i+j*nx+k*nx*ny]
+                     j + yd[i+j*nx+k*nx*ny]
+                     k + zd[i+j*nx+k*nx*ny]
+      hv         = volume of the warped cube (hexahedron)
+                     [i,i+1] X [j,j+1] X [k,k+1]
+      je         = bulk volume distortion energy (part of 3dQwarp penalty)
+      se         = shear and vorticity energy (other part of penalty);
+                     hv, je, se are usually NULL, and are what gets calculated
+                     in 3dNwarpFuncs via function IW3D_load_bsv()
+      use_es     = flag to use external slopes;
+                     if this is nonzero, then for (i,j,k) outside the grid,
+                     the es_* variables are used to linearly extrapolate the
+                     edge displacements -- this helps in warp inversion
+      es_Ad_BS   = external slope for displacement Ad (A=x or y or z),
+       where         at the B face (B=x or y or z) in the S direction
+       A=x,y, or z   (S=m or p).  For example, es_xd_ym is the external
+       B=x,y, or z   slope for the xd displacement at the y-minus face
+       S=m or p      (y=0) -- so that if the displacement is needed
+                     at (i,j,k) for j < 0, then the value returned is
+                     xd[i+0*nx+k*nx*ny] + es_xd_ym*j -- assuming i and k
+                     are inside the grid ranges 0..nx-1 and 0..nz-1.
+                     These external slopes are calculated via function
+                     IW3D_load_external_slopes() by taking the outer
+                     5 layers along each face and computing the mean
+                     slope in the face direction (j=0..4 in the example
+                     above).
+      cmat       = matrix to get DICOM x,y,z coordinates from i,j,k
+      imat       = inverse of cmat (convert index to coordinate)
+      geomstring = string to represent geometry of 3D dataset that
+                     corresponds to this index warp; if the index warp
+                     was created directly from a dataset via function
+                     IW3D_from_dataset(), then that's when geomstring is
+                     set, otherwise it will be set using function
+                     IW3D_adopt_dataset() -- along with the other
+                     dataset-ish stuff (cmat, imat, view).
+      view       = view code for that dataset
+
+   There is also a struct IndexWarp3D_pair, which holds 2 warps, one the
+   forward warp and one the inverse warp via function IW3D_invert().  This
+   struct doesn't get used much, as it turns out.
+
+--------------- Warps stored as 3D Datasets -----------------------------------
+   Externally, warps are stored as 3D datasets, with (at least) 3 sub-bricks:
+   one for each of the x, y, and z displacements.  A warp dataset is created
+   from an IndexWarp3D struct using function IW3D_to_dataset(), with the
+   geomstring component providing the key information about how to lay out
+   the 3D dataset grid.  The xd, yd, zd index displacements are converted
+   to DICOM x,y,z displacments in mm using the cmat component.  Note, however,
+   that the dataset itself may not be stored in DICOM RAI order, but that the
+   displacments are always refer to DICOM ordered displacments.
+
+   Incidentally, storing a warp as a set of displacements has a number of
+   advantages over storing the actual displaced locations (i.e., indexes or
+   coordinates).  For one, the identity warp is just a big collection of
+   zeros.  For another, interpolation to a different grid is simpler.
+
+   Since warps are stored as displacements, the actual transformation of
+   coordinates is
+
+     i -> i + xd[i,j,k]  (loosely speaking)
+     j -> j + yd[i,j,k]
+     k -> k + zd[i,j,k]
+
+   so you will see various places where the addition of the original
+   coordinates is needed; for example, when composing 2 warps in function
+   IW3D_compose(), we have to compute B(A(x)), where the warps are defined
+   by A(x) = x + a(x) and B(x) = x + b(x), so B(A(x)) = x+a(x) + b(x+a(x))
+   -- and so b() must be interpolated at these non-integer index values --
+   which explains why the output warp is computed as a(x)+b(x+a(x)) -- the
+   double appearance of a(x) is required by this storage mechanism.
+
+   In a more complicated case, in inverting an index warp, the following
+   composition is needed in function IW3D_invert_newt(): B(2x-A(B(x))).
+   This computation is carried out by the following sequence of steps
+      A(x)              = x + a(x)  [by definition]
+      B(x)              = x + b(x)  [by definition]
+      A(B(x))           = x + b(x) + a(x+b(x))
+      2x - A(B(x))      = x - b(x) - a(x+b(x))
+      B( 2x - A(B(x)) ) = x - b(x) - a(x+b(x)) + b(x-b(x)-a(x+b(x)))
+   You should understand how this expansion works in order to be able to
+   understand any of the warp manipulation functions.
+
+--------------- OpenMP code ---------------------------------------------------
+   A large number of compute intensive functions use OpenMP to parallelize
+   the lengthy computations.  This makes the source code somewhat more
+   complicated and less transparent than it could otherwise be.  If you
+   need some tutorial on OpenMP, start with
+     http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html
+-----------------------------------------------------------------------------*/
+/*!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!*/
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Functions below are for computing the external slopes for a warp. */
 
 /*---------------------------------------------------------------------------*/
 /* The following macros are for loading and unloading the extra slope
@@ -483,6 +599,9 @@ ENTRY("THD_nwarp_external_slopes") ;
 /* End of external slope calculation stuff */
 /*===========================================================================*/
 
+/*===========================================================================*/
+/* Functions below are for elementary operations on warps. */
+
 /*---------------------------------------------------------------------------*/
 
 #undef  FREEIFNN
@@ -662,7 +781,9 @@ ENTRY("IW3D_create_vacant") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Into the valley of death rode the warp! */
+/* Into the valley of death rode the warp!
+   mallocs to the left of them, callocs to the right!
+*//*-------------------------------------------------------------------------*/
 
 void IW3D_destroy( IndexWarp3D *AA )
 {
@@ -674,244 +795,6 @@ ENTRY("IW3D_destroy") ;
      free(AA);
    }
    EXRETURN ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* Extend (and/or truncate) an index warp.
-   Extension is via linear extrapolation, unless zpad != 0.
-*//*-------------------------------------------------------------------------*/
-
-IndexWarp3D * IW3D_extend( IndexWarp3D *AA , int nxbot , int nxtop ,
-                                             int nybot , int nytop ,
-                                             int nzbot , int nztop , int zpad )
-{
-   IndexWarp3D *BB ;
-   int nxold,nyold,nzold , nxnew,nynew,nznew ;
-
-ENTRY("IW3D_extend") ;
-
-   if( AA == NULL ) RETURN(NULL) ;
-
-   nxold = AA->nx ; nyold = AA->ny ; nzold = AA->nz ;
-   nxnew = nxold + nxbot + nxtop ; if( nxnew < 1 ) RETURN(NULL) ;
-   nynew = nyold + nybot + nytop ; if( nynew < 1 ) RETURN(NULL) ;
-   nznew = nzold + nzbot + nztop ; if( nznew < 1 ) RETURN(NULL) ;
-
-   BB = IW3D_create_vacant( nxnew , nynew , nznew ) ;
-
-   /* here, any extension is zero-padded */
-
-   if( AA->xd != NULL )
-     BB->xd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
-                                    nxold,nyold,nzold , MRI_float , AA->xd ) ;
-   if( AA->yd != NULL )
-     BB->yd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
-                                    nxold,nyold,nzold , MRI_float , AA->yd ) ;
-   if( AA->zd != NULL )
-     BB->zd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
-                                    nxold,nyold,nzold , MRI_float , AA->zd ) ;
-
-   /* Use external slopes to extend in a nonzero way outside the box [Apr 2014] */
-
-#undef  AR
-#undef  BR
-#define AR(qd,i,j,k) AA->qd[(i)+(j)*nxold+(k)*nxyold]  /* (i,j,k) in AA array */
-#define BR(qd,i,j,k) BB->qd[(i)+(j)*nxnew+(k)*nxynew]  /* (i,j,k) in BB array */
-
-   if( !zpad && (nxbot > 0 || nxtop > 0 || nybot > 0 || nytop > 0 || nzbot > 0 || nztop > 0) ){
-     int nxyold=nxold*nyold, nxynew=nxnew*nynew, nxo1=nxold-1, nyo1=nyold-1, nzo1=nzold-1 ;
-
-     IW3D_load_external_slopes(AA) ;
-
- /*** AFNI_OMP_START ;
-      #pragma omp parallel if( nznew > 16 ) ***/
-     { int ii,jj,kk, iq,jq,kq, di,dj,dk ;
-       float Exx,Exy,Exz, Eyx,Eyy,Eyz, Ezx,Ezy,Ezz ;
-         for( kk=0 ; kk < nznew ; kk++ ){
-           kq = kk-nzbot ; dk = 0 ; Exz = Eyz = Ezz = 0.0f ;
-                if( kq < 0 )   { dk = kq     ; kq = 0 ; Exz=AA->es_xd_zm*dk; Eyz=AA->es_yd_zm*dk; Ezz=AA->es_zd_zm*dk; }
-           else if( kq > nzo1 ){ dk = kq-nzo1; kq=nzo1; Exz=AA->es_xd_zp*dk; Eyz=AA->es_yd_zp*dk; Ezz=AA->es_zd_zp*dk; }
-           for( jj=0 ; jj < nynew ; jj++ ){
-             jq = jj-nybot ; dj = 0 ; Exy = Eyy = Ezy = 0.0f ;
-                  if( jq < 0 )   { dj = jq     ; jq = 0 ; Exy=AA->es_xd_ym*dj; Eyy=AA->es_yd_ym*dj; Ezy=AA->es_zd_ym*dj; }
-             else if( jq > nyo1 ){ dj = jq-nyo1; jq=nyo1; Exy=AA->es_xd_yp*dj; Eyy=AA->es_yd_yp*dj; Ezy=AA->es_zd_yp*dj; }
-             for( ii=0 ; ii < nxnew ; ii++ ){
-               iq = ii-nybot ; di = 0 ; Exx = Eyx = Ezx = 0.0f ;
-                    if( iq < 0 )   { di = iq     ; iq = 0 ; Exx=AA->es_xd_xm*di; Eyx=AA->es_yd_xm*di; Ezx=AA->es_zd_xm*di; }
-               else if( iq > nxo1 ){ di = iq-nxo1; iq=nxo1; Exx=AA->es_xd_xp*di; Eyx=AA->es_yd_xp*di; Ezx=AA->es_zd_xp*di; }
-               if( di || dj || dk ){
-                 BR(xd,ii,jj,kk) = AR(xd,iq,jq,kq) + Exx + Exy + Exz ;
-                 BR(yd,ii,jj,kk) = AR(yd,iq,jq,kq) + Eyx + Eyy + Eyz ;
-                 BR(zd,ii,jj,kk) = AR(zd,iq,jq,kq) + Ezx + Ezy + Ezz ;
-               }
-       } } }
-     }
- /*** AFNI_OMP_END ; ***/
-   }
-#undef  AR
-#undef  BR
-
-   /* the extended warp requires a modified geometry string */
-
-   if( AA->geomstring != NULL ){
-     THD_3dim_dataset *qset , *adset ;
-     qset = EDIT_geometry_constructor(AA->geomstring,"TweedleDum") ;
-     adset = THD_zeropad( qset , nxbot,nxtop , nybot,nytop , nzbot,nztop ,
-                          "TweedleDee" , ZPAD_IJK | ZPAD_EMPTY ) ;
-     IW3D_adopt_dataset( BB , adset ) ;
-     DSET_delete(adset) ; DSET_delete(qset) ;
-   }
-
-   IW3D_load_external_slopes(BB) ;
-   RETURN(BB) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* This function used to be more impressive, but now just calls the
-   one above to do its work -- but there is no extrapolation.
-*//*-------------------------------------------------------------------------*/
-
-IndexWarp3D * IW3D_zeropad( IndexWarp3D *AA , int nxbot , int nxtop ,
-                                              int nybot , int nytop ,
-                                              int nzbot , int nztop  )
-{
-  return IW3D_extend( AA, nxbot,nxtop,nybot,nytop,nzbot,nztop , 1 ) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* Extend (and/or truncate) a dataset that represents a warp. */
-
-THD_3dim_dataset * THD_nwarp_extend( THD_3dim_dataset *dset_nwarp ,
-                                     int nxbot , int nxtop ,
-                                     int nybot , int nytop ,
-                                     int nzbot , int nztop  )
-{
-   IndexWarp3D *AA , *BB ;
-   THD_3dim_dataset *qset ;
-
-ENTRY("THD_nwarp_extend") ;
-
-   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
-   DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
-
-   AA = IW3D_from_dataset( dset_nwarp , 0 , 0 ) ;
-   BB = IW3D_extend( AA , nxbot,nxtop,nybot,nytop,nzbot,nztop , 0 ) ;
-
-   qset = IW3D_to_dataset( BB , "ExtendedWarp" ) ;
-   IW3D_destroy(AA) ; IW3D_destroy(BB) ; DSET_unload(dset_nwarp) ;
-   RETURN(qset) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* If BB == NULL, just the L1 norm of AA.  Otherwise, the norm of AA-BB. */
-
-float IW3D_normL1( IndexWarp3D *AA , IndexWarp3D *BB )
-{
-   int qq , nxyz ; float sum , *xda,*yda,*zda ;
-
-   if( AA == NULL ){
-     if( BB == NULL ) return 0.0f ;
-     AA = BB ; BB = NULL ;
-   }
-
-   nxyz = AA->nx * AA->ny * AA->nz ;
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
-
-   sum = 0.0f ;
-   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
-     for( qq=0 ; qq < nxyz ; qq++ )
-       sum += fabsf(xda[qq])+fabsf(yda[qq])+fabsf(zda[qq]) ;
-   } else {
-     float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
-     for( qq=0 ; qq < nxyz ; qq++ )
-       sum += fabsf(xda[qq]-xdb[qq])+fabsf(yda[qq]-ydb[qq])+fabsf(zda[qq]-zdb[qq]) ;
-   }
-
-   return (sum/nxyz) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* If BB == NULL, just the L2 norm of AA.  Otherwise, the norm of AA-BB. */
-
-float IW3D_normL2( IndexWarp3D *AA , IndexWarp3D *BB )
-{
-   int qq , nxyz ; float sum , *xda,*yda,*zda ;
-
-   if( AA == NULL ){
-     if( BB == NULL ) return 0.0f ;
-     AA = BB ; BB = NULL ;
-   }
-
-   nxyz = AA->nx * AA->ny * AA->nz ;
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
-
-   sum = 0.0f ;
-   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
-     for( qq=0 ; qq < nxyz ; qq++ )
-       sum += SQR(xda[qq])+SQR(yda[qq])+SQR(zda[qq]) ;
-   } else {
-     float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
-     for( qq=0 ; qq < nxyz ; qq++ )
-       sum += SQR(xda[qq]-xdb[qq])+SQR(yda[qq]-ydb[qq])+SQR(zda[qq]-zdb[qq]) ;
-   }
-
-   return sqrtf(sum/nxyz) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* If BB == NULL, the L-infinity norm of AA.  Otherwise, the norm of AA-BB. */
-
-float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB )
-{
-   int qq , nxyz ; float vmax,val , *xda,*yda,*zda ;
-
-   if( AA == NULL ){
-     if( BB == NULL ) return 0.0f ;
-     AA = BB ; BB = NULL ;
-   }
-
-   nxyz = AA->nx * AA->ny * AA->nz ;
-   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
-
-   vmax = 0.0f ;
-   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
-     for( qq=0 ; qq < nxyz ; qq++ ){
-       val = SQR(xda[qq])+SQR(yda[qq])+SQR(zda[qq]) ;
-       if( val > vmax ) vmax = val ;
-     }
-   } else {
-     float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
-     for( qq=0 ; qq < nxyz ; qq++ ){
-       val = SQR(xda[qq]-xdb[qq])+SQR(yda[qq]-ydb[qq])+SQR(zda[qq]-zdb[qq]) ;
-       if( val > vmax ) vmax = val ;
-     }
-   }
-
-   return sqrtf(vmax) ;
-}
-
-/*---------------------------------------------------------------------------*/
-/* Same setup as IW3D_copy(), but contents are zero. */
-
-IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
-{
-   IndexWarp3D *BB ; int nxyz ;
-
-ENTRY("IW3D_empty_copy") ;
-
-   if( AA == NULL ) RETURN(NULL) ;
-
-   BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
-
-   BB->cmat = AA->cmat ; BB->imat = AA->imat ;
-   IW3D_zero_external_slopes(BB) ;
-
-   if( AA->geomstring != NULL )
-     BB->geomstring = strdup(AA->geomstring) ;
-
-   BB->view = AA->view ;
-
-   RETURN(BB) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -947,7 +830,31 @@ ENTRY("IW3D_copy") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Same as above, but for pairs -- this probably makes no sense */
+/* Same setup as IW3D_copy(), but contents are zero. */
+
+IndexWarp3D * IW3D_empty_copy( IndexWarp3D *AA )
+{
+   IndexWarp3D *BB ; int nxyz ;
+
+ENTRY("IW3D_empty_copy") ;
+
+   if( AA == NULL ) RETURN(NULL) ;
+
+   BB = IW3D_create( AA->nx , AA->ny , AA->nz ) ;
+
+   BB->cmat = AA->cmat ; BB->imat = AA->imat ;
+   IW3D_zero_external_slopes(BB) ;
+
+   if( AA->geomstring != NULL )
+     BB->geomstring = strdup(AA->geomstring) ;
+
+   BB->view = AA->view ;
+
+   RETURN(BB) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Same as IW3D_copy(), but for pairs -- this probably makes no sense */
 
 IndexWarp3D_pair * IW3D_pair_copy( IndexWarp3D_pair *AA , float fac )
 {
@@ -1040,6 +947,233 @@ ENTRY("IW3D_sum") ;
    RETURN(CC) ;
 }
 
+/*===========================================================================*/
+/* The functions below extend or truncate a warp. */
+
+/*---------------------------------------------------------------------------*/
+/* Extend (and/or truncate) an index warp.
+   Extension is via linear extrapolation, unless zpad != 0.
+*//*-------------------------------------------------------------------------*/
+
+IndexWarp3D * IW3D_extend( IndexWarp3D *AA , int nxbot , int nxtop ,
+                                             int nybot , int nytop ,
+                                             int nzbot , int nztop , int zpad )
+{
+   IndexWarp3D *BB ;
+   int nxold,nyold,nzold , nxnew,nynew,nznew ;
+
+ENTRY("IW3D_extend") ;
+
+   if( AA == NULL ) RETURN(NULL) ;
+
+   nxold = AA->nx ; nyold = AA->ny ; nzold = AA->nz ;
+   nxnew = nxold + nxbot + nxtop ; if( nxnew < 1 ) RETURN(NULL) ;
+   nynew = nyold + nybot + nytop ; if( nynew < 1 ) RETURN(NULL) ;
+   nznew = nzold + nzbot + nztop ; if( nznew < 1 ) RETURN(NULL) ;
+
+   BB = IW3D_create_vacant( nxnew , nynew , nznew ) ;
+
+   /* here, any extension is zero-padded */
+
+   if( AA->xd != NULL )
+     BB->xd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
+                                    nxold,nyold,nzold , MRI_float , AA->xd ) ;
+   if( AA->yd != NULL )
+     BB->yd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
+                                    nxold,nyold,nzold , MRI_float , AA->yd ) ;
+   if( AA->zd != NULL )
+     BB->zd = (float *)EDIT_volpad( nxbot,nxtop, nybot,nytop, nzbot,nztop,
+                                    nxold,nyold,nzold , MRI_float , AA->zd ) ;
+
+   /* Use external slopes to extend in a nonzero way outside the box [Apr 2014] */
+
+#undef  AR
+#undef  BR
+#define AR(qd,i,j,k) AA->qd[(i)+(j)*nxold+(k)*nxyold]  /* (i,j,k) in AA array */
+#define BR(qd,i,j,k) BB->qd[(i)+(j)*nxnew+(k)*nxynew]  /* (i,j,k) in BB array */
+
+   if( !zpad && (nxbot > 0 || nxtop > 0 || nybot > 0 || nytop > 0 || nzbot > 0 || nztop > 0) ){
+     int nxyold=nxold*nyold, nxynew=nxnew*nynew, nxo1=nxold-1, nyo1=nyold-1, nzo1=nzold-1 ;
+
+     IW3D_load_external_slopes(AA) ;
+
+ /*** AFNI_OMP_START ;
+      #pragma omp parallel if( nznew > 16 ) ***/
+     { int ii,jj,kk, iq,jq,kq, di,dj,dk ;
+       float Exx,Exy,Exz, Eyx,Eyy,Eyz, Ezx,Ezy,Ezz ;
+         for( kk=0 ; kk < nznew ; kk++ ){
+           kq = kk-nzbot ; dk = 0 ; Exz = Eyz = Ezz = 0.0f ;
+                if( kq < 0 )   { dk = kq     ; kq = 0 ; Exz=AA->es_xd_zm*dk; Eyz=AA->es_yd_zm*dk; Ezz=AA->es_zd_zm*dk; }
+           else if( kq > nzo1 ){ dk = kq-nzo1; kq=nzo1; Exz=AA->es_xd_zp*dk; Eyz=AA->es_yd_zp*dk; Ezz=AA->es_zd_zp*dk; }
+           for( jj=0 ; jj < nynew ; jj++ ){
+             jq = jj-nybot ; dj = 0 ; Exy = Eyy = Ezy = 0.0f ;
+                  if( jq < 0 )   { dj = jq     ; jq = 0 ; Exy=AA->es_xd_ym*dj; Eyy=AA->es_yd_ym*dj; Ezy=AA->es_zd_ym*dj; }
+             else if( jq > nyo1 ){ dj = jq-nyo1; jq=nyo1; Exy=AA->es_xd_yp*dj; Eyy=AA->es_yd_yp*dj; Ezy=AA->es_zd_yp*dj; }
+             for( ii=0 ; ii < nxnew ; ii++ ){
+               iq = ii-nybot ; di = 0 ; Exx = Eyx = Ezx = 0.0f ;
+                    if( iq < 0 )   { di = iq     ; iq = 0 ; Exx=AA->es_xd_xm*di; Eyx=AA->es_yd_xm*di; Ezx=AA->es_zd_xm*di; }
+               else if( iq > nxo1 ){ di = iq-nxo1; iq=nxo1; Exx=AA->es_xd_xp*di; Eyx=AA->es_yd_xp*di; Ezx=AA->es_zd_xp*di; }
+               if( di || dj || dk ){
+                 BR(xd,ii,jj,kk) = AR(xd,iq,jq,kq) + Exx + Exy + Exz ;
+                 BR(yd,ii,jj,kk) = AR(yd,iq,jq,kq) + Eyx + Eyy + Eyz ;
+                 BR(zd,ii,jj,kk) = AR(zd,iq,jq,kq) + Ezx + Ezy + Ezz ;
+               }
+       } } }
+     }
+ /*** AFNI_OMP_END ; ***/
+   }
+#undef  AR
+#undef  BR
+
+   /* the extended warp requires a modified geometry string,
+      done in the most brute force way anyone could ever imagine */
+
+   if( AA->geomstring != NULL ){
+     THD_3dim_dataset *qset , *adset ;
+     qset = EDIT_geometry_constructor(AA->geomstring,"TweedleDum") ;
+     adset = THD_zeropad( qset , nxbot,nxtop , nybot,nytop , nzbot,nztop ,
+                          "TweedleDee" , ZPAD_IJK | ZPAD_EMPTY ) ;
+     IW3D_adopt_dataset( BB , adset ) ;
+     DSET_delete(adset) ; DSET_delete(qset) ;
+   }
+
+   IW3D_load_external_slopes(BB) ;
+   RETURN(BB) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* This function used to be more impressive, but now just calls the
+   one above to do its work -- but there is no extrapolation.
+*//*-------------------------------------------------------------------------*/
+
+IndexWarp3D * IW3D_zeropad( IndexWarp3D *AA , int nxbot , int nxtop ,
+                                              int nybot , int nytop ,
+                                              int nzbot , int nztop  )
+{
+  return IW3D_extend( AA, nxbot,nxtop,nybot,nytop,nzbot,nztop , 1 ) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Extend (and/or truncate) a dataset that represents a warp;
+   this is done the brute force way, by conversion to an index warp,
+   extension of that, and then conversion back to a dataset struct.
+*//*-------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_nwarp_extend( THD_3dim_dataset *dset_nwarp ,
+                                     int nxbot , int nxtop ,
+                                     int nybot , int nytop ,
+                                     int nzbot , int nztop  )
+{
+   IndexWarp3D *AA , *BB ;
+   THD_3dim_dataset *qset ;
+
+ENTRY("THD_nwarp_extend") ;
+
+   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
+   DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
+
+   AA = IW3D_from_dataset( dset_nwarp , 0 , 0 ) ;
+   BB = IW3D_extend( AA , nxbot,nxtop,nybot,nytop,nzbot,nztop , 0 ) ;
+
+   qset = IW3D_to_dataset( BB , "ExtendedWarp" ) ;
+   IW3D_destroy(AA) ; IW3D_destroy(BB) ; DSET_unload(dset_nwarp) ;
+   RETURN(qset) ;
+}
+
+/*===========================================================================*/
+/* The functions below compute various 'norms' (size estimates)
+   of an index warp.
+*//*-------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+/* If BB == NULL, just the L1 norm of AA.  Otherwise, the norm of AA-BB. */
+
+float IW3D_normL1( IndexWarp3D *AA , IndexWarp3D *BB )
+{
+   int qq , nxyz ; float sum , *xda,*yda,*zda ;
+
+   if( AA == NULL ){
+     if( BB == NULL ) return 0.0f ;
+     AA = BB ; BB = NULL ;
+   }
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   sum = 0.0f ;
+   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
+     for( qq=0 ; qq < nxyz ; qq++ )
+       sum += fabsf(xda[qq])+fabsf(yda[qq])+fabsf(zda[qq]) ;
+   } else {
+     float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
+     for( qq=0 ; qq < nxyz ; qq++ )
+       sum += fabsf(xda[qq]-xdb[qq])+fabsf(yda[qq]-ydb[qq])+fabsf(zda[qq]-zdb[qq]) ;
+   }
+
+   return (sum/nxyz) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* If BB == NULL, just the L2 norm of AA.  Otherwise, the norm of AA-BB. */
+
+float IW3D_normL2( IndexWarp3D *AA , IndexWarp3D *BB )
+{
+   int qq , nxyz ; float sum , *xda,*yda,*zda ;
+
+   if( AA == NULL ){
+     if( BB == NULL ) return 0.0f ;
+     AA = BB ; BB = NULL ;
+   }
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   sum = 0.0f ;
+   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
+     for( qq=0 ; qq < nxyz ; qq++ )
+       sum += SQR(xda[qq])+SQR(yda[qq])+SQR(zda[qq]) ;
+   } else {
+     float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
+     for( qq=0 ; qq < nxyz ; qq++ )
+       sum += SQR(xda[qq]-xdb[qq])+SQR(yda[qq]-ydb[qq])+SQR(zda[qq]-zdb[qq]) ;
+   }
+
+   return sqrtf(sum/nxyz) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* If BB == NULL, the L-infinity norm of AA.  Otherwise, the norm of AA-BB. */
+
+float IW3D_normLinf( IndexWarp3D *AA , IndexWarp3D *BB )
+{
+   int qq , nxyz ; float vmax,val , *xda,*yda,*zda ;
+
+   if( AA == NULL ){
+     if( BB == NULL ) return 0.0f ;
+     AA = BB ; BB = NULL ;
+   }
+
+   nxyz = AA->nx * AA->ny * AA->nz ;
+   xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
+
+   vmax = 0.0f ;
+   if( BB == NULL || BB->nx != AA->nx || BB->ny != AA->ny || BB->nz != AA->nz ){
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       val = SQR(xda[qq])+SQR(yda[qq])+SQR(zda[qq]) ;
+       if( val > vmax ) vmax = val ;
+     }
+   } else {
+     float *xdb=BB->xd , *ydb = BB->yd , *zdb = BB->zd ;
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       val = SQR(xda[qq]-xdb[qq])+SQR(yda[qq]-ydb[qq])+SQR(zda[qq]-zdb[qq]) ;
+       if( val > vmax ) vmax = val ;
+     }
+   }
+
+   return sqrtf(vmax) ;
+}
+
+/*===========================================================================*/
 #if 0
 /*----------------------------------------------------------------------------*/
 /* smooth locally (obviously not implemented!) */
@@ -1053,6 +1187,10 @@ void IW3D_7smooth( IndexWarp3D *AA )
 }
 /*----------------------------------------------------------------------------*/
 #endif
+/*===========================================================================*/
+
+/*===========================================================================*/
+/* Functions below do conversions between index warps and dataset warps. */
 
 /*----------------------------------------------------------------------------*/
 /* Convert a 3D dataset of displacments in mm to an index warp.
@@ -1257,6 +1395,13 @@ STATUS("done") ;
    RETURN(dset) ;
 }
 
+/*===========================================================================*/
+/* This function was put here for computation of the eigenvalues of the
+   strain tensor, but wasn't actually needed -- since all that is needed
+   is the sum of their squares, which is more easily computed as the trace
+   of the square of the matrix.  Left in here as a curiosity.
+   (And remember Ziad's rule: NEVER throw code away!)
+*//*-------------------------------------------------------------------------*/
 #if 0
 /*---------------------------------------------------------------------------*/
 /* Return the 3 eigenvalues of a 3x3 symmetric matrix.
@@ -1337,22 +1482,27 @@ static INLINE double_triple eigval_sym3x3( double *a )
 }
 #endif
 
+/*============================================================================*/
+/* Functions below compute auxiliary functions of an index warp, including
+   stuff for the 3dQwarp penalties, and the 3dNwarpFuncs stuff.
+*//*--------------------------------------------------------------------------*/
+
 /*----------------------------------------------------------------------------*/
-/* computation of the volume of a hexahedron (distorted cube) */
+/* macros to ease the computation of volume of a hexahedron (distorted cube) */
 
 #undef  DA
 #undef  DB
 #undef  DC
-#define DA(p,q) (p.a-q.a)
-#define DB(p,q) (p.b-q.b)
-#define DC(p,q) (p.c-q.c)
+#define DA(p,q) (p.a-q.a)  /* difference in a direction */
+#define DB(p,q) (p.b-q.b)  /* difference in b direction */
+#define DC(p,q) (p.c-q.c)  /* difference in c direction */
 
 #undef  TRIPROD  /* triple product */
 #define TRIPROD(ax,ay,az,bx,by,bz,cx,cy,cz) ( (ax)*((by)*(cz)-(bz)*(cy)) \
                                              +(bx)*((cy)*(az)-(cz)*(ay)) \
                                              +(cx)*((ay)*(bz)-(az)*(by))  )
 
-#undef  IJK
+#undef  IJK      /* 1D index from 3D indexes */
 #define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
 
 #undef  C2F
@@ -1366,7 +1516,9 @@ static INLINE double_triple eigval_sym3x3( double *a )
 
 /*----------------------------------------------------------------------------*/
 /* Compute the bulk and shear energies from DISPLACEMENTS at corners.
-   Loosely based on http://en.wikipedia.org/wiki/Neo-Hookean_solid    */
+   Loosely based on http://en.wikipedia.org/wiki/Neo-Hookean_solid.
+     d000 is the 3D displacement at corner 000, etc.
+*//*--------------------------------------------------------------------------*/
 
 static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d100 ,
                                             float_triple d010 , float_triple d110 ,
@@ -1377,7 +1529,7 @@ static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d10
    float II , JJ , VV , jcb ;
    float_pair en ;
 
-   /* load strain matrix (differential displacements in various directions) */
+   /* load 3x3 strain matrix (differential displacements) */
 
    fxx = ( DA(d100,d000) + DA(d111,d011) ) * 0.5f + 1.0f ;
    fxy = ( DB(d100,d000) + DB(d111,d011) ) * 0.5f ;
@@ -1391,24 +1543,25 @@ static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d10
    fzy = ( DB(d001,d000) + DB(d111,d110) ) * 0.5f ;
    fzz = ( DC(d001,d000) + DC(d111,d110) ) * 0.5f + 1.0f ;
 
-   /* determinant = bulk volume (1=unchanged) */
+   /* determinant = bulk volume (1==unchanged) */
 
    JJ = TRIPROD( fxx,fxy,fxz, fyx,fyy,fyz, fzx,fzy,fzz ) ;
    if( JJ < 0.1f ) JJ = 0.1f ; else if( JJ > 10.0f ) JJ = 10.0f ;  /* limits */
 
-   /* trace of matrix square = shear energy */
+   /* trace of matrix square = sum of eigenvalue squares of matrix,
+      which in turn gives the shear energy of the displacement tensor */
 
    II = (  fxx*fxx + fyy*fyy + fzz*fzz
          + fxy*fxy + fyx*fyx + fxz*fxz
          + fzx*fzx + fyz*fyz + fzy*fzy ) ;
 
-   /* "vorticity" penalty added in, for fun (to avoid "twistiness") */
+   /* "vorticity" penalty added in, for fun (to avoid warp "twistiness") */
 
    fxx = fyz - fzy ; fyy = fxz - fzx ; fzz = fxy - fyx ;
    VV = 2.0f*( fxx*fxx + fyy*fyy + fzz*fzz ) ;
 
 #if 1
-   jcb = cbrtf(JJ*JJ) ;
+   jcb = cbrtf(JJ*JJ) ;   /* J^(2/3) */
 #else
 # define CBQ(x) ((x)*(1.5f-0.5f*(x)))
    if( JJ <= 1.0f ){ jcb = CBQ(JJ) ; }
@@ -1431,7 +1584,7 @@ static INLINE float_pair hexahedron_energy( float_triple d000 , float_triple d10
    return value is the sum of all the energies (AKA the warp penalty)
 *//*--------------------------------------------------------------------------*/
 
-static float Hpen_cut = 1.0f ;
+static float Hpen_cut = 1.0f; /* voxel-wise penalties below this are excluded */
 
 float IW3D_load_energy( IndexWarp3D *AA )
 {
@@ -1452,7 +1605,7 @@ STATUS("get je/se arrays") ;
    sea = AA->se; if( sea == NULL ) sea = AA->se = (float *)calloc(nxyz,sizeof(float));
 
 STATUS("dhhar -> 0") ;
-   AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
+   AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ; /* initialize per thread sums */
 
 STATUS("start the work") ;
  AFNI_OMP_START ;
@@ -1479,12 +1632,12 @@ STATUS("start the work") ;
 #ifdef USE_OMP
    ith = omp_get_thread_num() ;
 #endif
-   dhaar[ith] = (double)esum ;
+   dhaar[ith] = (double)esum ;  /* per thread save of sum */
  }
  AFNI_OMP_END ;
 STATUS("work is done") ;
 
-  for( ii=0 ; ii < nthmax ; ii++ ) enout += dhaar[ii] ;
+  for( ii=0 ; ii < nthmax ; ii++ ) enout += dhaar[ii] ;  /* final summation */
   RETURN(enout) ;
 }
 
@@ -1592,13 +1745,13 @@ ENTRY("IW3D_load_bsv") ;
 /* sum up the warp penalties */
 
 #ifdef USE_OMP
-double HPEN_addup( int njs , float *je , float *se )
+double HPEN_addup( int njs , float *je , float *se )  /* parallelized version */
 {
-   double esum ; int qq ;
+   double esum ; int qq ;              /* these are function global variables */
 
    AAmemset( dhaar , 0 , sizeof(double)*nthmax ) ;
 #pragma omp parallel
-   { int ii , ith ; double ev , dh=0.0 ;
+   { int ii , ith ; double ev , dh=0.0 ;    /* these are per-thread variables */
 #pragma omp for
      for( ii=0 ; ii < njs ; ii++ ){
        ev = je[ii]-Hpen_cut ; if( ev > 0.0 ) dh += (ev*ev)*(ev*ev) ;
@@ -1613,7 +1766,7 @@ double HPEN_addup( int njs , float *je , float *se )
 
 #else  /*---------------------------------------------------------------------*/
 
-double HPEN_addup( int njs , float *je , float *se )
+double HPEN_addup( int njs , float *je , float *se )       /* simpler version */
 {
    int ii ; double ev , esum=0.0 ;
    for( ii=0 ; ii < njs ; ii++ ){
@@ -1714,8 +1867,9 @@ ENTRY("IW3D_load_hexvol") ;
   RETURN(hvm) ;
 }
 
-/*---------------------------------------------------------------------------*/
 #if 0
+/*---------------------------------------------------------------------------*/
+/* Load hexahedron volumes over just PART of the warp (never used). */
 void IW3D_load_hexvol_box( IndexWarp3D *AA ,
                            int ibot,int itop, int jbot,int jtop, int kbot,int ktop )
 {
@@ -1764,9 +1918,10 @@ void IW3D_load_hexvol_box( IndexWarp3D *AA ,
 }
 #endif
 
-/*---------------------------------------------------------------------------*/
+/*============================================================================*/
 /* The following functions are for interpolating all 3 components of an index
-   warp at one time, and are shamelessly ripped off from mri_genalign_util.c
+   warp at one time, and are shamelessly ripped off from mri_genalign_util.c;
+   however, since Zhark wrote those, Zhark can steal them (right?).
 *//*-------------------------------------------------------------------------*/
 
 #undef  CLIP
@@ -2373,13 +2528,19 @@ void IW3D_interp( int icode ,
    return ;
 }
 
+/*============================================================================*/
+/* Functions below carry out various operations on warps. */
+
 /*---------------------------------------------------------------------------*/
 
 #undef  NPER
-#define NPER 262144  /* 1 Mbyte per temp float array */
+#define NPER 1048576  /* 4 Mbyte per temp float array */
+
+#undef  NALL
+#define NALL(nnn) (((nnn) > NPER+12345) ? NPER : (nnn))
 
 /*---------------------------------------------------------------------------*/
-/* B(A(x)) where B = matrix, A = warp
+/* B(A(x)) where B = matrix, A = warp, icode = unused
    -- no interpolation is needed for this operation
 *//*-------------------------------------------------------------------------*/
 
@@ -2422,7 +2583,7 @@ ENTRY("IW3D_compose_w1m2") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* A(B(x)) where B = matrix, A = warp */
+/* A(B(x)) where B = matrix, A = warp, icode = interpolation method */
 
 IndexWarp3D * IW3D_compose_m1w2( mat44 BB , IndexWarp3D *AA , int icode )
 {
@@ -2445,10 +2606,10 @@ ENTRY("IW3D_compose_m1w2") ;
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
    xdc = CC->xd ; ydc = CC->yd ; zdc = CC->zd ;
 
-   nall = MIN(nxyz,NPER) ;
+   nall = NALL(nxyz) ;
 
-   xq = (float *)malloc(sizeof(float)*nall) ;
-   yq = (float *)malloc(sizeof(float)*nall) ;
+   xq = (float *)malloc(sizeof(float)*nall) ;  /* indexes at which to */
+   yq = (float *)malloc(sizeof(float)*nall) ;  /* interpolate the AA warp */
    zq = (float *)malloc(sizeof(float)*nall) ;
 
    for( pp=0 ; pp < nxyz ; pp+=nall ){  /* loop over segments */
@@ -2460,8 +2621,8 @@ ENTRY("IW3D_compose_m1w2") ;
  { int qq , ii,jj,kk ;
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       MAT44_VEC(BL,ii,jj,kk,xq[qq-pp],yq[qq-pp],zq[qq-pp]) ;
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;  /* compute xq, */
+       MAT44_VEC(BL,ii,jj,kk,xq[qq-pp],yq[qq-pp],zq[qq-pp]) ;  /* yq, and zd */
      }
  }
  AFNI_OMP_END ;
@@ -2515,10 +2676,10 @@ ENTRY("IW3D_compose") ;
 
    if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
 
-   nall = MIN(nxyz,NPER) ;
+   nall = NALL(nxyz) ;
 
-   xq = (float *)malloc(sizeof(float)*nall) ;
-   yq = (float *)malloc(sizeof(float)*nall) ;
+   xq = (float *)malloc(sizeof(float)*nall) ;  /* workspaces */
+   yq = (float *)malloc(sizeof(float)*nall) ;  /* for x+A(x) */
    zq = (float *)malloc(sizeof(float)*nall) ;
 
    CC = IW3D_empty_copy(AA) ;  /* output warp */
@@ -2595,7 +2756,7 @@ ENTRY("IW3D_2pow") ;
 
    nx = BB->nx ; ny = BB->ny ; nz = BB->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
-   nall = MIN(nxyz,NPER) ;
+   nall = NALL(nxyz) ;
 
    xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
    yq = (float *)malloc(sizeof(float)*nall) ;
@@ -2666,11 +2827,14 @@ ENTRY("IW3D_2pow") ;
 }
 #endif
 
+/*============================================================================*/
+/* Functions to invert an index warp in its entirety. */
+
 /*---------------------------------------------------------------------------*/
 /* Compute B( 2x - A(B(x)) ) = Newton step for computing Ainv(x) */
 
-static float inewtfac = 0.5f ; /* damping factor */
-static int   inewtfix = 0 ;
+static float inewtfac = 0.5f ; /* damping factor for iteration */
+static int   inewtfix = 0 ;    /* is damping factor to be fixed? */
 
 IndexWarp3D * IW3D_invert_newt( IndexWarp3D *AA, IndexWarp3D *BB, int icode )
 {
@@ -2687,7 +2851,7 @@ ENTRY("IW3D_invert_newt") ;
 
    if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
 
-   nall = MIN(nxyz,NPER) ;                /* workspace size */
+   nall = NALL(nxyz) ;                /* workspace size */
 
    xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
    yq = (float *)malloc(sizeof(float)*nall) ;
@@ -2705,7 +2869,7 @@ ENTRY("IW3D_invert_newt") ;
 
    /* Warps are stored as voxel index displacements, so we have
         A(x)              = x + a(x)  [not needed below]
-        B(x)              = x + b(x),
+        B(x)              = x + b(x)
         A(B(x))           = x + b(x) + a(x+b(x))
         2x - A(B(x))      = x - b(x) - a(x+b(x))
         B( 2x - A(B(x)) ) = x - b(x) - a(x+b(x)) + b(x-b(x)-a(x+b(x)))
@@ -2828,7 +2992,7 @@ ENTRY("IW3D_invert") ;
 
    if( verb_nww ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
 
-   if( BBinit == NULL ){
+   if( BBinit == NULL ){  /* approximate inverse by power iteration */
      int pp = 1+(int)ceil(log2(normAA)) ; float qq ;
      if( pp < 2 ) pp = 2 ;
      qq = pow(0.5,pp) ;
@@ -2839,7 +3003,7 @@ ENTRY("IW3D_invert") ;
        CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
      }
    } else {
-     BB = IW3D_copy( BBinit , 1.0f ) ;
+     BB = IW3D_copy( BBinit , 1.0f ) ;  /* that was easy */
    }
 
    normAA  = IW3D_normL1( AA , NULL ) ;
@@ -2851,7 +3015,7 @@ ENTRY("IW3D_invert") ;
    if( verb_nww )
      ININFO_message("  - start iterations: normAA=%f inewtfac=%f",normAA,inewtfac) ;
    else if( Hverb )
-     fprintf(stderr,".") ;  /* for 3dNwarpAdjust */
+     fprintf(stderr,".") ;  /* for 3dNwarpAdjust user pacification */
 
    /* iterate some, until convergence or exhaustion */
 
@@ -2865,9 +3029,9 @@ ENTRY("IW3D_invert") ;
 
    nrat = 666.666f ;
 
-   for( nii=nss=ii=0 ; ii < 69 ; ii++ ){
+   for( nii=nss=ii=0 ; ii < 69 ; ii++ ){ /* shouldn't take so many iterations */
 
-     /* take a Newton step [linear interp to start] */
+     /* take a Newton step [linear interp to start, higher order later] */
 
      CC = BB ; BB = IW3D_invert_newt(AA,CC,jcode) ;
 
@@ -2916,11 +3080,21 @@ ENTRY("IW3D_invert") ;
 
    /* failed to converge, return latest result anyhoo */
 
-   WARNING_message("IW3D_invert: iterations failed to converge") ;
+   WARNING_message("IW3D_invert: iterations failed to converge :-(") ;
    RETURN(BB) ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*============================================================================*/
+/* Functions to compute the 'square root' of a warp.  There are various
+   flavors here, because this is a difficult problem that may not always
+   have an exact solution.  On the other hand, the square root is probably
+   not actually very useful (especially given the 3dQwarp -plusminus option).
+*//*--------------------------------------------------------------------------*/
+
+#define USE_SQRTPAIR  /* this enables the better code (farther below) */
+
+#ifndef USE_SQRTPAIR  /* the olden and worser method */
+/*----------------------------------------------------------------------------*/
 /* Iteration step for sqrt:  Bnew(x) = B( 1.5*x - 0.5*A(B(B(x))) )
    This is actually a step to produce the square root of inverse(A).
    [This method can be unstable -- the IW3D_sqrtpair functions are better.]
@@ -2946,7 +3120,7 @@ ENTRY("IW3D_sqrtinv_step") ;
 
    if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
 
-   nall = MIN(nxyz,NPER) ;
+   nall = NALL(nxyz) ;
 
    xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
    yq = (float *)malloc(sizeof(float)*nall) ;
@@ -3100,7 +3274,7 @@ ENTRY("IW3D_sqrtinv_stepQ") ;
 
    if( nx != BB->nx || ny != BB->ny || nz != BB->nz ) RETURN(NULL) ;
 
-   nall = MIN(nxyz,NPER) ;
+   nall = NALL(nxyz) ;
 
    xq = (float *)malloc(sizeof(float)*nall) ;  /* workspace */
    yq = (float *)malloc(sizeof(float)*nall) ;
@@ -3344,9 +3518,8 @@ ENTRY("IW3D_sqrtinv") ;
    WARNING_message("sqrtinv: iterations failed to converge beautifully") ;
    RETURN(BB) ;
 }
-
-#define USE_SQRTPAIR
-#ifdef  USE_SQRTPAIR
+/*---------------------------------------------------------------------------*/
+#else /* USE_SQRTPAIR is defined!!! */
 /*---------------------------------------------------------------------------*/
 /* The following iterates on pairs of matrices to produce the sqrt and
    sqrtinv at the same time.  It is slower but more stable than the
@@ -3447,10 +3620,12 @@ IndexWarp3D_pair * IW3D_sqrtpair( IndexWarp3D *AA , int icode )
    inewtfix = 0 ;
    return YYZZ ;
 }
-#endif
+#endif  /* USE_SQRTPAIR */
 
-/****************************************************************************/
-/****************************************************************************/
+/*============================================================================*/
+/* These functions are for taking stuff from 3dAllineate -nwarp output.
+   Since that option is obsolete, these functions are probably useless.
+*//*--------------------------------------------------------------------------*/
 
 #undef AFF_PARAM
 #undef AFF_MATRIX
@@ -3511,7 +3686,7 @@ ENTRY("IW3D_from_poly") ;
    /* setup the output warp */
 
    nx = WW->nx ; ny = WW->ny ; nz = WW->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
-   nxyz = nx*ny*nz ; nall = MIN(nxyz,NPER) ;
+   nxyz = nx*ny*nz ; nall = NALL(nxyz) ;
 
    AA = IW3D_empty_copy( WW ) ;
    xda = AA->xd ; yda = AA->yd ; zda = AA->zd ;
@@ -3590,9 +3765,8 @@ IndexWarp3D * IW3D_from_mat44( mat44 mm , THD_3dim_dataset *mset )
    IW3D_load_external_slopes(AA) ; return AA ;
 }
 
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
+/*============================================================================*/
+/* Various functions for interpolating images */
 
 /*--------------------------------------------------------------------------*/
 /* interpolate from a float image to a set of indexes;
@@ -3896,158 +4070,10 @@ ENTRY("THD_interp") ;
 }
 #endif
 
-/*----------------------------------------------------------------------------*/
-/* Do the setup to warp images given
-     bimar    = array of DICOM (x,y,z) deltas
-                  = 3D warp displacment function in base image space;
-     use_amat = if nonzero, use the amat matrix
-     amat     = matrix to transform (x,y,z) AFTER the bimar deltas
-     cmat_bim = matrix to transform indexes (ib,jb,kb) to DICOM (xb,yb,zb),
-                  in base image space
-     cmat_src = similar matrix for source dataset (to be warped from)
-     cmat_out = similar matrix for output dataset (to be warped to);
-                  for most purposes, cmat_out will either be cmat_bim
-                  (to get the source image warped to the base grid)
-                  or will be cmat_src (warp the source image on its own grid)
-
-   foreach (io,jo,ko) in output dataset do {
-     (xo,yo,zo) =    [cmat_out](io,jo,ko)     -- transform indexes to coords
-     (ib,jb,kb) = inv[cmat_bim](xo,yo,zo)     -- transform coords to indexes
-     (xs,ys,zs) =  (xo,yo,zo)                 -- compute warped coords
-                 + bimar interpolated at (ib,jb,kb)
-     (is,js,ks) = inv[cmat_src](xs,ys,zs)     -- compute warped indexes
-   }
-
-   The output is the array of images of (is,js,ks) = indexes in the source
-   dataset, for each point to interpolate to in the output dataset (io,jo,ko).
-   (N.B.: this is NOT an IndexWarp3D struct!).
-   This set of images can be used, in turn, to interpolate a src grid image
-   to an output grid warped image via THD_interp_floatim().
+/*============================================================================*/
+/* Functions used in 3dNwarpXYZ to warp a limited number of points given
+   by x,y,z triples, rather than warping a whole grid at once.
 *//*--------------------------------------------------------------------------*/
-
-MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar,
-                             int use_amat    , mat44 amat ,
-                             mat44 cmat_bim  ,
-                             int incode      , float wfac ,
-                             mat44 cmat_src  ,
-                             mat44 cmat_out  ,
-                             int nx_out      , int ny_out , int nz_out  )
-{
-   int nx,ny,nz,nxy,nxyz ;
-   float *xp, *yp, *zp , *wx, *wy, *wz ;
-   MRI_IMAGE *wxim, *wyim, *wzim ; MRI_IMARR *wimar ; mat44 tmat ;
-
-ENTRY("THD_setup_nwarp") ;
-
-   nx = nx_out ; ny = ny_out ; nz = nz_out ; nxy = nx*ny ; nxyz = nxy*nz ;
-
-   /* make space for indexes/coordinates in output space */
-
-   xp = (float *)malloc(sizeof(float)*nxyz) ;
-   yp = (float *)malloc(sizeof(float)*nxyz) ;
-   zp = (float *)malloc(sizeof(float)*nxyz) ;
-
-   /* compute indexes of each point in output image
-      (the _out grid) in the warp space (the _bim grid) */
-
-   if( !MAT44_FLEQ(cmat_bim,cmat_out) ){ /* output & base grids not the same */
-     mat44 imat_out_to_bim ;
-
-     /* cmat_out takes (i,j,k):out to (x,y,z)
-        tmat     takes (x,y,z)     to (i,j,k):base
-        so imat_out_to_bim takes (i,j,k):out to (i,j,k):base */
-
-     tmat = MAT44_INV(cmat_bim) ; imat_out_to_bim = MAT44_MUL(tmat,cmat_out) ;
-
- AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-     for( qq=0 ; qq < nxyz ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       MAT44_VEC( imat_out_to_bim , ii,jj,kk , xp[qq],yp[qq],zp[qq] ) ;
-     }
- }
- AFNI_OMP_END ;
-
-   } else {   /* case where cmat_bim and cmat_out are equal */
-                       /* so (i,j,k):out == (i,j,k):base */
- AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 1111 )
- { int qq , ii,jj,kk ;
-#pragma omp for
-     for( qq=0 ; qq < nxyz ; qq++ ){
-       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-       xp[qq] = ii ; yp[qq] = jj ; zp[qq] = kk ;
-     }
- }
- AFNI_OMP_END ;
-
-   }
-
-   /* now interpolate the warp delta volumes from the bim grid
-      to the out grid, using the indexes computed just above;
-      note that these deltas are still in mm, not in indexes! */
-
-   wxim = mri_new_vol(nx,ny,nz,MRI_float) ; wx = MRI_FLOAT_PTR(wxim) ;
-   wyim = mri_new_vol(nx,ny,nz,MRI_float) ; wy = MRI_FLOAT_PTR(wyim) ;
-   wzim = mri_new_vol(nx,ny,nz,MRI_float) ; wz = MRI_FLOAT_PTR(wzim) ;
-
-   THD_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp, incode, wx ) ;
-   THD_interp_floatim( IMARR_SUBIM(bimar,1), nxyz,xp,yp,zp, incode, wy ) ;
-   THD_interp_floatim( IMARR_SUBIM(bimar,2), nxyz,xp,yp,zp, incode, wz ) ;
-
-   /* affinely transform these deltas, if ordered to use amat we are */
-
-   if( use_amat ){
-     mat44 aamat=amat , aimat=amat , iimat ;
-     /* aimat = amat - Identity */
-     aimat.m[0][0] -= 1.0f ; aimat.m[1][1] -= 1.0f ; aimat.m[2][2] -= 1.0f ;
-     /* iimat = matrix that takes (i,j,k) to (x,y,z) and then transforms via aimat */
-     iimat = MAT44_MUL(aimat,cmat_out) ;
- AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 1111 )
-     { int qq , ii,jj,kk ; float xb,yb,zb , xm,ym,zm ;
-#pragma omp for
-         for( qq=0 ; qq < nxyz ; qq++ ){
-           ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-           MAT33_VEC(aamat,wx[qq],wy[qq],wz[qq],xb,yb,zb) ;  /* just the 3x3 part */
-           MAT44_VEC(iimat,ii    ,jj    ,kk    ,xm,ym,zm) ;  /* all of the matrix */
-           wx[qq] = xb+xm ; wy[qq] = yb+ym ; wz[qq] = zb+zm ; /* add pieces parts */
-         }
-     }
- AFNI_OMP_END ;
-   }
-
-   free(zp) ; free(yp) ; free(xp) ;
-
-   /* now convert to index warp from src to out space */
-
-   tmat = MAT44_INV(cmat_src) ;  /* takes (x,y,z) to (i,j,k) in src space */
-
- AFNI_OMP_START ;
-#pragma omp parallel if( nxyz > 1111 )
- { int qq,ii,jj,kk ; float xx,yy,zz , fac ;
-   fac = (wfac == 0.0f) ? 1.0f : wfac ;
-#pragma omp for
-   for( qq=0 ; qq < nxyz ; qq++ ){
-     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
-     MAT44_VEC( cmat_out , ii,jj,kk , xx,yy,zz ) ;         /* compute (xo,yo,zo) */
-     xx += fac*wx[qq]; yy += fac*wy[qq]; zz += fac*wz[qq]; /* add in the deltas */
-     MAT44_VEC( tmat, xx,yy,zz, wx[qq],wy[qq],wz[qq] ) ;   /* ==> to (is,js,ks) */
-   }
- }
- AFNI_OMP_END ;
-
-   /* package results for delivery to the (ab)user */
-
-   INIT_IMARR(wimar) ;
-   ADDTO_IMARR(wimar,wxim) ; ADDTO_IMARR(wimar,wyim) ; ADDTO_IMARR(wimar,wzim) ;
-
-   RETURN(wimar) ;
-}
-
-/*----------------------------------------------------------------------------*/
 /** Interpolation in 3 displacement fields **/
 
 #if 0  /*----------------------------- via linear interp ---------------------*/
@@ -4443,6 +4469,9 @@ ENTRY("THD_nwarp_forward_xyz") ;
 /*  Inverse warp a collection of DICOM xyz coordinates.
     Return value is number of points computed (should be npt).
     Negative is an error code.
+    This code is now just used as the initialization for the final iteration
+    to find the best inverse point.  The method used herein is backward
+    tracing, nstep short steps.
 *//*--------------------------------------------------------------------------*/
 
 int THD_nwarp_inverse_xyz_step( MRI_IMAGE *xdim , MRI_IMAGE *ydim , MRI_IMAGE *zdim ,
@@ -4464,19 +4493,19 @@ ENTRY("THD_nwarp_inverse_xyz_step") ;
        xut == NULL || yut == NULL || zut == NULL   ) RETURN(-2) ;
 
    if( nstep < 1 ) nstep = 1 ;
-   qfac = -dfac / nstep ;
+   qfac = -dfac / nstep ;      /* short step size */
 
    qx = (float *)malloc(sizeof(float)*npt) ; memcpy(qx,xin,sizeof(float)*npt) ;
    qy = (float *)malloc(sizeof(float)*npt) ; memcpy(qy,yin,sizeof(float)*npt) ;
    qz = (float *)malloc(sizeof(float)*npt) ; memcpy(qz,zin,sizeof(float)*npt) ;
 
-   for( qq=0 ; qq < nstep ; qq++ ){
+   for( qq=0 ; qq < nstep ; qq++ ){       /* take nstep short steps backwards */
       THD_nwarp_im_xyz( xdim , ydim , zdim ,
                         qfac , npt ,
                         qx , qy , qz , xut , yut , zut , imat , esv ) ;
       if( qq < nstep-1 ){
-        memcpy(qx,xut,sizeof(float)*npt) ;
-        memcpy(qy,yut,sizeof(float)*npt) ;
+        memcpy(qx,xut,sizeof(float)*npt) ;  /* copy output into input */
+        memcpy(qy,yut,sizeof(float)*npt) ;  /* for next step backwards */
         memcpy(qz,zut,sizeof(float)*npt) ;
       }
    }
@@ -4486,13 +4515,15 @@ ENTRY("THD_nwarp_inverse_xyz_step") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Use Powell's NEWUOA to invert a warp */
 
 static double ww_xtarg , ww_ytarg , ww_ztarg ;
 static MRI_IMAGE *ww_xdim , *ww_ydim , *ww_zdim ;
 static mat44 ww_imat ;
 static floatvec *ww_esv ;
 static float ww_tol ;
+
+/* Cost function for better inversion:
+   forward warp input, see how far it is from target point */
 
 double NW_invert_costfunc( int npar , double *par )
 {
@@ -4526,7 +4557,7 @@ ENTRY("NW_invert_xyz") ;
    THD_nwarp_inverse_xyz_step( xdim,ydim,zdim , -1.0f , 1 ,
                                &xin,&yin,&zin , &xut,&yut,&zut , imat,esv , 10 ) ;
 
-   /* setup and use Powell */
+   /* setup and use Powell for the better result */
 
    ww_xtarg = xg  ; ww_ytarg = yg  ; ww_ztarg = zg  ;
    par[0]   = xut ; par[1]   = yut ; par[2]   = zut ;
@@ -4544,7 +4575,9 @@ INFO_message("powell count = %d",pp) ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* NOTE that dfac is not used in this implementation!!! */
+/* Find the inverse warp of the set of input x,y,z coordinates.
+   NOTE that dfac is not used in this implementation (assumed to be 1)!!!
+*//*--------------------------------------------------------------------------*/
 
 int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
                            float dfac , int npt ,
@@ -4626,6 +4659,162 @@ ENTRY("THD_nwarp_inverse_xyz") ;
    }
 #endif
    RETURN(npt) ;
+}
+
+/*============================================================================*/
+/* Functions to warp a dataset: a setup function and then the actual warper.
+   Note that index warps are not really used in this computation!
+*//*--------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/* Do the setup to warp images given
+     bimar    = array of DICOM (x,y,z) deltas
+                  = 3D warp displacment function in base image space;
+     use_amat = if nonzero, use the amat matrix
+     amat     = matrix to transform (x,y,z) AFTER the bimar deltas
+     cmat_bim = matrix to transform indexes (ib,jb,kb) to DICOM (xb,yb,zb),
+                  in base image space
+     cmat_src = similar matrix for source dataset (to be warped from)
+     cmat_out = similar matrix for output dataset (to be warped to);
+                  for most purposes, cmat_out will either be cmat_bim
+                  (to get the source image warped to the base grid)
+                  or will be cmat_src (warp the source image on its own grid)
+
+   foreach (io,jo,ko) in output dataset do {
+     (xo,yo,zo) =    [cmat_out](io,jo,ko)     -- transform indexes to coords
+     (ib,jb,kb) = inv[cmat_bim](xo,yo,zo)     -- transform coords to indexes
+     (xs,ys,zs) =  (xo,yo,zo)                 -- compute warped coords
+                 + bimar interpolated at (ib,jb,kb)
+     (is,js,ks) = inv[cmat_src](xs,ys,zs)     -- compute warped indexes
+   }
+
+   The output is the array of images of (is,js,ks) = indexes in the source
+   dataset, for each point to interpolate to in the output dataset (io,jo,ko).
+   (N.B.: this is NOT an IndexWarp3D struct!).
+   This set of images can be used, in turn, to interpolate a src grid image
+   to an output grid warped image via THD_interp_floatim().
+*//*--------------------------------------------------------------------------*/
+
+MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar,
+                             int use_amat    , mat44 amat ,
+                             mat44 cmat_bim  ,
+                             int incode      , float wfac ,
+                             mat44 cmat_src  ,
+                             mat44 cmat_out  ,
+                             int nx_out      , int ny_out , int nz_out  )
+{
+   int nx,ny,nz,nxy,nxyz ;
+   float *xp, *yp, *zp , *wx, *wy, *wz ;
+   MRI_IMAGE *wxim, *wyim, *wzim ; MRI_IMARR *wimar ; mat44 tmat ;
+
+ENTRY("THD_setup_nwarp") ;
+
+   nx = nx_out ; ny = ny_out ; nz = nz_out ; nxy = nx*ny ; nxyz = nxy*nz ;
+
+   /* make space for indexes/coordinates in output space */
+
+   xp = (float *)malloc(sizeof(float)*nxyz) ;
+   yp = (float *)malloc(sizeof(float)*nxyz) ;
+   zp = (float *)malloc(sizeof(float)*nxyz) ;
+
+   /* compute indexes of each point in output image
+      (the _out grid) in the warp space (the _bim grid) */
+
+   if( !MAT44_FLEQ(cmat_bim,cmat_out) ){ /* output & base grids not the same */
+     mat44 imat_out_to_bim ;
+
+     /* cmat_out takes (i,j,k):out to (x,y,z)
+        tmat     takes (x,y,z)     to (i,j,k):base
+        so imat_out_to_bim takes (i,j,k):out to (i,j,k):base */
+
+     tmat = MAT44_INV(cmat_bim) ; imat_out_to_bim = MAT44_MUL(tmat,cmat_out) ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 1111 )
+ { int qq , ii,jj,kk ;
+#pragma omp for
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       MAT44_VEC( imat_out_to_bim , ii,jj,kk , xp[qq],yp[qq],zp[qq] ) ;
+     }
+ }
+ AFNI_OMP_END ;
+
+   } else {   /* case where cmat_bim and cmat_out are equal */
+                       /* so (i,j,k):out == (i,j,k):base */
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 1111 )
+ { int qq , ii,jj,kk ;
+#pragma omp for
+     for( qq=0 ; qq < nxyz ; qq++ ){
+       ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+       xp[qq] = ii ; yp[qq] = jj ; zp[qq] = kk ;
+     }
+ }
+ AFNI_OMP_END ;
+
+   }
+
+   /* now interpolate the warp delta volumes from the bim grid
+      to the out grid, using the indexes computed just above;
+      note that these deltas are still in mm, not in indexes! */
+
+   wxim = mri_new_vol(nx,ny,nz,MRI_float) ; wx = MRI_FLOAT_PTR(wxim) ;
+   wyim = mri_new_vol(nx,ny,nz,MRI_float) ; wy = MRI_FLOAT_PTR(wyim) ;
+   wzim = mri_new_vol(nx,ny,nz,MRI_float) ; wz = MRI_FLOAT_PTR(wzim) ;
+
+   THD_interp_floatim( IMARR_SUBIM(bimar,0), nxyz,xp,yp,zp, incode, wx ) ;
+   THD_interp_floatim( IMARR_SUBIM(bimar,1), nxyz,xp,yp,zp, incode, wy ) ;
+   THD_interp_floatim( IMARR_SUBIM(bimar,2), nxyz,xp,yp,zp, incode, wz ) ;
+
+   /* affinely transform these deltas, if ordered to use amat we are */
+
+   if( use_amat ){
+     mat44 aamat=amat , aimat=amat , iimat ;
+     /* aimat = amat - Identity */
+     aimat.m[0][0] -= 1.0f ; aimat.m[1][1] -= 1.0f ; aimat.m[2][2] -= 1.0f ;
+     /* iimat = matrix that takes (i,j,k) to (x,y,z) and then transforms via aimat */
+     iimat = MAT44_MUL(aimat,cmat_out) ;
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 1111 )
+     { int qq , ii,jj,kk ; float xb,yb,zb , xm,ym,zm ;
+#pragma omp for
+         for( qq=0 ; qq < nxyz ; qq++ ){
+           ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+           MAT33_VEC(aamat,wx[qq],wy[qq],wz[qq],xb,yb,zb) ;  /* just the 3x3 part */
+           MAT44_VEC(iimat,ii    ,jj    ,kk    ,xm,ym,zm) ;  /* all of the matrix */
+           wx[qq] = xb+xm ; wy[qq] = yb+ym ; wz[qq] = zb+zm ; /* add pieces parts */
+         }
+     }
+ AFNI_OMP_END ;
+   }
+
+   free(zp) ; free(yp) ; free(xp) ;
+
+   /* now convert to index warp from src to out space */
+
+   tmat = MAT44_INV(cmat_src) ;  /* takes (x,y,z) to (i,j,k) in src space */
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz > 1111 )
+ { int qq,ii,jj,kk ; float xx,yy,zz , fac ;
+   fac = (wfac == 0.0f) ? 1.0f : wfac ;
+#pragma omp for
+   for( qq=0 ; qq < nxyz ; qq++ ){
+     ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
+     MAT44_VEC( cmat_out , ii,jj,kk , xx,yy,zz ) ;         /* compute (xo,yo,zo) */
+     xx += fac*wx[qq]; yy += fac*wy[qq]; zz += fac*wz[qq]; /* add in the deltas */
+     MAT44_VEC( tmat, xx,yy,zz, wx[qq],wy[qq],wz[qq] ) ;   /* ==> to (is,js,ks) */
+   }
+ }
+ AFNI_OMP_END ;
+
+   /* package results for delivery to the (ab)user */
+
+   INIT_IMARR(wimar) ;
+   ADDTO_IMARR(wimar,wxim) ; ADDTO_IMARR(wimar,wyim) ; ADDTO_IMARR(wimar,wzim) ;
+
+   RETURN(wimar) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -4807,9 +4996,8 @@ ENTRY("THD_nwarp_dataset") ;
    RETURN(dset_out) ;
 }
 
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
+/*============================================================================*/
+/* Reverse Polish Notation warp calculator (3dNwarpCalc program). */
 
 #undef  KILL_iwstk
 #define KILL_iwstk                                                   \
@@ -5190,8 +5378,9 @@ ENTRY("NwarpCalcRPN") ;
    RETURN(oset) ;
 }
 
-/*----------------------------------------------------------------------------*/
+/*============================================================================*/
 /**** Functions for reading warps and inverting/catenating them right away ****/
+/**** (for the '-nwarp' input of various 3dNwarp programs)                 ****/
 /*----------------------------------------------------------------------------*/
 
 #define CW_NMAX 99  /* max number of warps allowed in input expression */
@@ -5568,20 +5757,23 @@ ENTRY("IW3D_read_catenated_warp") ;
 }
 
 /******************************************************************************/
-/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 /******************************************************************************/
-#ifdef ALLOW_QWARP          /** this code is for 3dQwarp **/
+#ifdef ALLOW_QWARP       /** the following code is for 3dQwarp (duh) **/
 /******************************************************************************/
-/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
 /******************************************************************************/
 
 /*============================================================================*/
 /********** Functions for optimizing an nwarp for image registration **********/
 /*============================================================================*/
 
+/** many global variables below start with 'H',
+    which is my notation for the warp patch being optimized;
+    however, not all 'H' variables are about the patch itself;
+    some of these get set in 3dQwarp.c to control the warp optimization **/
+
 /*----------------------------------------------------------------------------*/
 
-/*--- flag masks for types of displacement allowed ---*/
+/*--- flag masks for types of displacement allowed (for Hflags) ---*/
 
 #define NWARP_NOXDIS_FLAG  1  /* no displacment in X direction? */
 #define NWARP_NOYDIS_FLAG  2
@@ -5593,21 +5785,27 @@ ENTRY("IW3D_read_catenated_warp") ;
 #define NWARP_NOYDEP_FLAG 16
 #define NWARP_NOZDEP_FLAG 32
 
+/*** We allow 2 types of polynomial patches: cubics and quintics. ***/
+
 /*--- Hermite polynomial basis arrays for each direction: x,y,z. ---*/
       /* ('c' for cubic, 'q' for quintic) */
 
 static int nbcx=0, nbcy=0, nbcz=0 , nbcxy ;  /* dimensions of patch */
 static int nbqx=0, nbqy=0, nbqz=0 , nbqxy ;  /* dimensions of patch */
 
-static int Hbmode = -666 ;
+/* 1D basis arrays for 2 cubics (#0 and #1) */
 
 static float *bc0x=NULL, *bc1x=NULL,             dxci=0.0f ;
 static float *bc0y=NULL, *bc1y=NULL,             dyci=0.0f ;
 static float *bc0z=NULL, *bc1z=NULL,             dzci=0.0f ;
 
+/* 1D basis arrays for 3 quintics (#0, #1, and #2) */
+
 static float *bq0x=NULL, *bq1x=NULL, *bq2x=NULL, dxqi=0.0f ;
 static float *bq0y=NULL, *bq1y=NULL, *bq2y=NULL, dyqi=0.0f ;
 static float *bq0z=NULL, *bq1z=NULL, *bq2z=NULL, dzqi=0.0f ;
+
+/* 3D basis arrays for cubics and quintics (used for 'small' patches) */
 
 static int    nbbcxyz = 0 ;
 static float **bbbcar = NULL ;
@@ -5615,7 +5813,7 @@ static int    nbbqxyz = 0 ;
 static float **bbbqar = NULL ;
 
 #undef  MEGA
-#define MEGA 1048576   /* 2^20 */
+#define MEGA 1048576   /* 2^20 = definition of 'small' */
 
 /*--- local (small) warp over region we are optimizing ---*/
 
@@ -5626,16 +5824,20 @@ static int          Hflags  = 0 ;          /* flags for this patch */
 static int          Hgflags = 0 ;          /* flags for global warp */
 static int          Himeth  = MRI_LINEAR ; /* interpolation method for data */
 
-static int Hibot,Hitop , Hjbot,Hjtop , Hkbot,Hktop ;  /* patch region indexes */
+/* defines the patch region index ranges (inclusive) */
+
+static int Hibot,Hitop , Hjbot,Hjtop , Hkbot,Hktop ;
 
 static int Hmatch_code  = 0 ;  /* how 'correlation' is computed */
 static int Hbasis_code  = 0 ;  /* quintic or cubic? */
 
 static double Hbasis_parmax = 0.0 ;  /* max warp parameter allowed */
 
-static floatvec *Hmpar = NULL ;      /* parameters for 'correlation' */
+static floatvec *Hmpar = NULL ;      /* parameters for 'correlation' match */
 
-static const int Hlocalstat = 0 ;    /* this should not be used */
+static const int Hlocalstat = 0 ;    /* this should not be used !!! */
+
+/* these values are for the purpose of printing out some statistics */
 
 static int Hskipped   = 0 ;          /* number of patches skipped */
 static int Hdone      = 0 ;          /* number of patches optimized */
@@ -5643,7 +5845,8 @@ static int Hdone      = 0 ;          /* number of patches optimized */
 /*--- Other stuff for incremental warping ---*/
 
 #undef USE_HLOADER  /* define this for 'all-at-once' Hwarp load vs. incremental */
-                    /* tests show incremental is about 10% faster, with OpenMP */
+                    /* tests show incremental is about 10% faster, with OpenMP. */
+                    /* (incremental means to compute as needed, vs. pre-compute */
 
 #ifdef USE_HLOADER
 static void (*Hloader)(float *) = NULL ; /* function to make warp from params */
@@ -5651,7 +5854,7 @@ static void (*Hloader)(float *) = NULL ; /* function to make warp from params */
 
 static int          Hnpar       = 0    ; /* num params for warp */
 static int          Hnpar_sum   = 0    ; /* total num params used */
-static float       *Hpar        = NULL ; /* param vector for warp */
+static float       *Hpar        = NULL ; /* param vector for local warp definition */
 static float       *Hxpar ;              /* sub-array for x displacements */
 static float       *Hypar ;
 static float       *Hzpar ;
@@ -5661,7 +5864,7 @@ static int          Hdoz ;
 static int         *Hparmap     = NULL ; /* map from active to all params */
 static int          Hnparmap    = 0    ;
 static int          Hnegate     = 0    ; /* negate correlation function? */
-static int          Hnval       = 0    ; /* number of values in local patch */
+static int          Hnval       = 0    ; /* number of voxels in local patch */
 static float       *Hwval       = NULL ; /* warped image values in local patch */
 static float       *Haawt       = NULL ; /* weight iamge (sic) in local patch */
 static float       *Hbval       = NULL ; /* base image in local patch */
@@ -5699,24 +5902,24 @@ static int Hfinal     =   0 ;    /* is this the final level we are working on no
 static int Hworkhard1 =   0 ;    /* workhard stuff (but who wants to work hard?) */
 static int Hworkhard2 =  -1 ;
 
-static int   Hfirsttime = 0 ;    /* for fun only */
+static int   Hfirsttime = 0 ;    /* for fun only (to print stuff out in cost func) */
 static float Hfirstcost = 666.0f;
 
 static int Hsuperhard1 =  0 ;    /* Oh come on, who want to work super hard? */
-static int Hsuperhard2 = -1 ;
+static int Hsuperhard2 = -1 ;    /* certainly not us government employees!!! */
 
 #ifdef ALLOW_QMODE
 static int Hqfinal  = 0 ;  /* do quintic at the final level? */
-static int Hqonly   = 0 ;  /* do quintic at all levels? */
+static int Hqonly   = 0 ;  /* do quintic at all levels? (very slow) */
 #else
 # define   Hqfinal    0
 # define   Hqonly     0
 #endif
 
-#undef  WORKHARD
+#undef  WORKHARD  /* work hard at level #lll? */
 #define WORKHARD(lll) ( !Hduplo && (lll) >= Hworkhard1 && (lll) <= Hworkhard2 )
 
-#undef  SUPERHARD
+#undef  SUPERHARD /* work superhard at level #lll? */
 #define SUPERHARD(lll) ( !Hduplo && (lll) >= Hsuperhard1 && (lll) <= Hsuperhard2 )
 
 static int Hnx=0,Hny=0,Hnz=0,Hnxy=0,Hnxyz=0 ;  /* dimensions of base image */
@@ -5732,7 +5935,7 @@ static float Hcostt = 0.0f ;
 #define BASIM ( (Hbasim_blur != NULL ) ? Hbasim_blur : Hbasim )
 
 /*----------------------------------------------------------------------------*/
-/* Make the displacement flags coherent.  If impossible, return -1. */
+/* Make the displacement flags coherent and legal.  If impossible, return -1. */
 
 int IW3D_munge_flags( int nx , int ny , int nz , int flags )
 {
@@ -5821,6 +6024,9 @@ static INLINE float_triple HQwarp_eval_basis( float x )
    * The rightmost index (that maps to x=+1) is IRGHT(n), where 'n' is the
      number of grid points, indexed from i=0 to i=n-1.
    * Output is ca and cb such that x = ca +cb*i.
+   * This function is so we can use the cubic and quintic eval_basis()
+     funcs above, which are defined over the domain [-1,1], when setting
+     up the warp basis arrays over a range of integer indexes.
 *//*--------------------------------------------------------------------------*/
 
 /* Rational possibilities here are:
@@ -5846,12 +6052,16 @@ ENTRY("HCwarp_setup_basis") ;
 
    /* if not going to use all 3D displacements,
       create map from active set of parameters to total set of parameters:
-        Hparmap[j] = index into list 0..23 of the 'true' parameter location */
+        Hparmap[j] = index into list 0..23 of the 'true' parameter location;
+      We have to do this since the Powell optimization function requires
+      input of all parameters in a contiguous array, but we want to keep
+      them in their logical place even if some of them aren't being used,
+      so this mapping will let us translate between these arrays (if needed) */
 
    Hflags = IW3D_munge_flags(nx,ny,nz,flags) ;
    FREEIFNN(Hparmap) ;
 
-   if( (Hflags & NWARP_NODISP_FLAG) != 0 ){
+   if( (Hflags & NWARP_NODISP_FLAG) != 0 ){  /* not all params being used */
      int pm = 0 ;
      Hparmap = (int *)calloc(sizeof(int),24) ;
      if( !(Hflags & NWARP_NOXDIS_FLAG) ){
@@ -5866,16 +6076,18 @@ ENTRY("HCwarp_setup_basis") ;
      Hnparmap = pm ;
      if( Hnparmap == 24 ){ free(Hparmap) ; Hparmap = NULL ; }
    } else {
-     Hnparmap = 24 ; Hparmap = NULL ;
+     Hnparmap = 24 ; Hparmap = NULL ;  /* no translation needed */
    }
 
-   /* cleanup old stuff (recall that the 'c' arrays are for cubics) */
+   /* if everything is already cool, just zero out warp patches and exit */
 
    if( nx == nbcx      && ny == nbcy      && nz == nbcz      &&
        Hwarp != NULL   && AHwarp != NULL  &&
        nx == Hwarp->nx && ny == Hwarp->ny && nz == Hwarp->nz   ){
      IW3D_zero_fill(Hwarp) ; IW3D_zero_fill(AHwarp) ; EXRETURN ;
    }
+
+   /* cleanup old stuff (recall that the 'c' arrays are for cubics) */
 
    if(  Hwarp != NULL ){ IW3D_destroy( Hwarp);  Hwarp = NULL; }
    if( AHwarp != NULL ){ IW3D_destroy(AHwarp); AHwarp = NULL; }
@@ -5889,12 +6101,12 @@ ENTRY("HCwarp_setup_basis") ;
      free(bbbcar) ; nbbcxyz = 0 ; bbbcar = NULL ;
    }
 
-   if( Hflags < 0 ) EXRETURN ;
+   if( Hflags < 0 ) EXRETURN ;  /* this should not happen */
 
    /* create new stuff */
 
    nbcx = nx ;
-   bc0x = (float *)malloc(sizeof(float)*nbcx) ;
+   bc0x = (float *)malloc(sizeof(float)*nbcx) ;  /* 1D basis arrays */
    bc1x = (float *)malloc(sizeof(float)*nbcx) ;
    nbcy = ny ;
    bc0y = (float *)malloc(sizeof(float)*nbcy) ;
@@ -5903,9 +6115,9 @@ ENTRY("HCwarp_setup_basis") ;
    bc0z = (float *)malloc(sizeof(float)*nbcz) ;
    bc1z = (float *)malloc(sizeof(float)*nbcz) ;
 
-   nbcxy = nbcx*nbcy ;
+   nbcxy = nbcx*nbcy ;  /* for indexing */
 
-   /* arrays for x direction */
+   /* fill arrays for x direction */
 
    if( Hflags & NWARP_NOXDEP_FLAG ){
      dxci = 0.0f ;
@@ -5920,7 +6132,7 @@ ENTRY("HCwarp_setup_basis") ;
      }
    }
 
-   /* arrays for y direction */
+   /* fill arrays for y direction */
 
    if( Hflags & NWARP_NOYDEP_FLAG ){
      dyci = 0.0f ;
@@ -5935,7 +6147,7 @@ ENTRY("HCwarp_setup_basis") ;
      }
    }
 
-   /* arrays for z direction */
+   /* fill arrays for z direction */
 
    if( Hflags & NWARP_NOZDEP_FLAG ){
      dzci = 0.0f ;
@@ -5960,7 +6172,7 @@ ENTRY("HCwarp_setup_basis") ;
        bbbcar[ii] = (float *)malloc(sizeof(float)*nbbcxyz) ;
      for( qq=kk=0 ; kk < nbcz ; kk++ ){
       for( jj=0 ; jj < nbcy ; jj++ ){
-#pragma ivdep
+#pragma ivdep  /* for the Intel icc compiler */
         for( ii=0 ; ii < nbcx ; ii++,qq++ ){
           bbbcar[0][qq] = bc0z[kk]*bc0y[jj]*bc0x[ii] ; /* this saves */
           bbbcar[1][qq] = bc1z[kk]*bc0y[jj]*bc0x[ii] ; /* having to */
@@ -5973,8 +6185,8 @@ ENTRY("HCwarp_setup_basis") ;
      }}}
    }
 
-   /* create empty warp, to be populated in HCwarp_load,
-      given these basis function arrays and the parameters */
+   /* create empty patch warp, to be populated in HCwarp_load,
+      given these basis function arrays and the warp parameters */
 
    Hwarp  = IW3D_create(nbcx,nbcy,nbcz) ;
    AHwarp = IW3D_create(nbcx,nbcy,nbcz) ;
@@ -6136,6 +6348,11 @@ ENTRY("HQwarp_setup_basis") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/** Note that USE_HLOADER is not defined any more;
+    this older code loads the entire 3D warp patch given the parameters;
+    the newer way is to compute the patch displacement only as needed,
+    which is faster when compiled with OpenMP.
+**//*-------------------------------------------------------------------------*/
 
 #ifdef USE_HLOADER  /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /*----------------------------------------------------------------------------*/
@@ -6392,6 +6609,11 @@ ENTRY("HQwarp_load") ;
 
 #else /* not USE_HLOADER */  /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/*** Compute warp displacements at one voxel (ndex = qq);
+     There are 4 routines here:
+       for cubic and quintic,
+       for using 1D basis arrays or 3D basis arrays. **/
+
 /*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
 /* evaluate cubic warp the harder way (from 1D basis arrays) */
 
@@ -6404,7 +6626,8 @@ static void HCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
    /* in this function, the 'b' values (3D warp components) are
       evaluated as tensor products of the underlying 1D functions */
 
-   ii = qq % nbcx ; kk = qq / nbcxy ; jj = (qq-kk*nbcxy) / nbcx ;
+   ii = qq % nbcx ; kk = qq / nbcxy ; jj = (qq-kk*nbcxy) / nbcx ;  /* get 3D index */
+
    b0zb0yb0x = bc0z[kk]*bc0y[jj]*bc0x[ii]; b1zb0yb0x = bc1z[kk]*bc0y[jj]*bc0x[ii];
    b0zb1yb0x = bc0z[kk]*bc1y[jj]*bc0x[ii]; b1zb1yb0x = bc1z[kk]*bc1y[jj]*bc0x[ii];
    b0zb0yb1x = bc0z[kk]*bc0y[jj]*bc1x[ii]; b1zb0yb1x = bc1z[kk]*bc0y[jj]*bc1x[ii];
@@ -6579,10 +6802,18 @@ static void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 /* Evaluate Hsrcim[ Haawarp(Hwarp(x)) ] into the val[] array.
      Note that Haawarp is a global warp for Hsrcim, whereas Hwarp is just
      a local patch.
-   The val[] array contains the linearly interpolated warped image values over
-     this patch.
-   Also evaluate Haawarp[Hwarp(x)] into AHwarp for future utility.
-     AHwarp is a local patch that fits into Haawarp later.
+   On output, the val[] array contains the linearly interpolated warped image
+     values over this patch.
+   Also evaluate the composed warp Haawarp[Hwarp(x)] into AHwarp for future
+     utility.  AHwarp is a local patch that fits into Haawarp later, when
+     it needs to be updated at the end of a patch optimization step.
+   This function is a key part of the 3dQwarp empire -- it is where the
+     source image is warped so it can be compared to the base image,
+     so it will be called ** A LOT **.
+   It was cloned into Hwarp_apply_plusminus() for warping the base and
+     source images together (in opposite directions).  If one wanted to
+     match vector-valued images in some way, one central necessity would
+     be to generalize this function to deal with such beasts.
 *//*--------------------------------------------------------------------------*/
 
 void Hwarp_apply( float *val )
@@ -6597,6 +6828,8 @@ void Hwarp_apply( float *val )
 ENTRY("Hwarp_apply") ;
 
    if( Hsrcim == NULL || Haawarp == NULL || val == NULL || Hwarp == NULL ) EXRETURN ;
+
+   /* get local pointers to the various displacement arrays */
 
    hxd = Hwarp->xd  ; hyd = Hwarp->yd  ; hzd = Hwarp->zd  ; /* Hwarp delta */
    Axd = Haawarp->xd; Ayd = Haawarp->yd; Azd = Haawarp->zd; /* Haawarp */
@@ -6616,6 +6849,8 @@ ENTRY("Hwarp_apply") ;
    }
 #endif
 
+   /* global dimensions */
+
    nAx  = Haawarp->nx; nAy  = Haawarp->ny; nAz  = Haawarp->nz; nAxy = nAx*nAy;
    nAx1 = nAx-1      ; nAy1 = nAy-1      ; nAz1 = nAz-1      ;
    nAxh = nAx-0.501f ; nAyh = nAy-0.501f ; nAzh = nAz-0.501f ;
@@ -6624,10 +6859,10 @@ ENTRY("Hwarp_apply") ;
 
 STATUS("start loop") ;
 
-#undef  IJK
+#undef  IJK   /* 3D index to 1D index */
 #define IJK(i,j,k) ((i)+(j)*nAx+(k)*nAxy)
 
-#undef  XINT
+#undef  XINT  /* linear interpolation */
 #define XINT(aaa,j,k) wt_00*aaa[IJK(ix_00,j,k)]+wt_p1*aaa[IJK(ix_p1,j,k)]
 
 AFNI_OMP_START ;
@@ -6686,7 +6921,9 @@ AFNI_OMP_START ;
      kz_00 = kz ; kz_p1 = kz_00+1 ; QLIP(kz_00,nAz1) ; QLIP(kz_p1,nAz1) ;
 #endif
 
-     /* linearly interpolate in Haawarp to get Haawarp displacements */
+     /* linearly interpolate in Haawarp to get Haawarp
+        displacements at this Hwarp warped location; later,
+        we then interpolate at THESE displacments to get the warped image value */
 
      wt_00 = 1.0f-fx ; wt_p1 = fx ;   /* x interpolations */
      f_j00_k00 = XINT(Axd,jy_00,kz_00) ; f_jp1_k00 = XINT(Axd,jy_p1,kz_00) ;
@@ -6709,13 +6946,15 @@ AFNI_OMP_START ;
      /* bxd = x-displacments for AHwarp = Awarp(Hwarp())
         xq  = index in srcim for output interpolation to get val */
 
-     bxd[qq] = wt_00 * f_k00 + fz * f_kp1 + hxd[qq] ;
+     bxd[qq] = wt_00 * f_k00 + fz * f_kp1 + hxd[qq] ;  /* saved into AHwarp */
      byd[qq] = wt_00 * g_k00 + fz * g_kp1 + hyd[qq] ;
      bzd[qq] = wt_00 * h_k00 + fz * h_kp1 + hzd[qq] ;
 
-     /* if not in the global mask, don't bother to compute val */
+     /* if not in the global mask, don't bother to interpolate val */
 
      if( !need_val ){ val[qq] = 0.0f; continue; }
+
+     /* locations at which to interpolate to source image to get val */
 
      xq = bxd[qq]+ii+Hibot ; yq = byd[qq]+jj+Hjbot ; zq = bzd[qq]+kk+Hkbot ;
 
@@ -6763,6 +7002,7 @@ AFNI_OMP_END ;
 }
 
 /*----------------------------------------------------------------------------*/
+/** Penalty parameters **/
 
 #define Hpen_fbase 0.033333         /* increased by factor of 5 [23 Sep 2013] */
 
@@ -6774,6 +7014,9 @@ static int    Hpen_use = 1 ;
 static int    Hpen_old = 0 ;              /* don't increase with lev */
 
 /*----------------------------------------------------------------------------*/
+/* Compute the penalty as the pre-computed penalty for the part of the
+   warp outside the current patch, plus the penalty in the current patch.
+*//*-------------------------------------------------------------------------*/
 
 double HPEN_penalty(void)
 {
@@ -6784,6 +7027,7 @@ double HPEN_penalty(void)
 }
 
 /*----------------------------------------------------------------------------*/
+/* if everything is the same, we usually don't like this array */
 
 static INLINE int is_float_array_constant( int n , float *v )
 {
@@ -6801,10 +7045,13 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 
    /* compute Hwarp given the params */
 
-   if( Hparmap != NULL ){
+   if( Hparmap != NULL ){  /* expand via the parameter map to a full list */
+
      for( ii=0 ; ii < Hnpar ; ii++ ) Hpar[ii] = 0.0f ;
      for( ii=0 ; ii < npar  ; ii++ ) Hpar[ Hparmap[ii] ] = (float)dpar[ii] ;
-   } else {
+
+   } else {                /* we received a full list of parameters */
+
      for( ii=0 ; ii < Hnpar ; ii++ ){
        Hpar[ii] = (float)dpar[ii] ;
        if( !isfinite(Hpar[ii]) ){
@@ -6812,10 +7059,11 @@ double IW3D_scalar_costfun( int npar , double *dpar )
          Hpar[ii] = dpar[ii] = 0.0 ;
        }
      }
+
    }
 
 #ifdef USE_HLOADER
-   Hloader(Hpar) ;  /* loads Hwarp */
+   Hloader(Hpar) ;  /* loads Hwarp prior to Hwarp_apply() */
 #endif
 
    /* compute warped image over the patch, into Hwval array */
@@ -6827,7 +7075,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
     fprintf(stderr," costfun: Hwval is constant %g\n",Hwval[0]) ;
 #endif
 
-   /* compute the rest of the cost function */
+   /* now compute the cost function */
    /* -- the first case in the '?' expressions is when then patch
          is smaller than the whole volume;
       -- the second case is when the patch covers the entire universe */
@@ -6838,12 +7086,12 @@ double IW3D_scalar_costfun( int npar , double *dpar )
                           (Haawt != NULL ) ? Haawt : MRI_FLOAT_PTR(Hwtim) ) ;
    if( Hnegate ) cost = -cost ;
 
-   if( !isfinite(cost) ){
+   if( !isfinite(cost) ){  /* bad bad Leroy Brown */
      ERROR_message("Warpomatic cost = %g -- input parameters:",cost) ;
      for( ii=0 ; ii < npar ; ii++ ) fprintf(stderr," %g",dpar[ii]) ;
      fprintf(stderr,"\n") ;
    }
-   Hcostt = cost ;
+   Hcostt = cost ;  /* store globally for reporting/debugging purposes */
 
    if( Hpen_use ){
      Hpenn = HPEN_penalty() ; cost += Hpenn ;  /* penalty is saved in Hpenn */
@@ -6851,7 +7099,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
      Hpenn = 0.0f ;
    }
 
-   if( Hfirsttime ){
+   if( Hfirsttime ){  /* just for fun fun fun in the sun sun sun */
      if( Hverb ) fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
      Hfirsttime = 0 ; Hfirstcost = (float)cost ;
    }
@@ -6860,7 +7108,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 }
 
 /*----------------------------------------------------------------------------*/
-/* Delete various workspaces */
+/* Delete various workspaces created for warp improvement */
 
 void IW3D_cleanup_improvement(void)
 {
