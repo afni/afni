@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , JUL , 2014 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+  { 14 , JUL , 2014 , RWC , "mri_nwarp.c" , MICRO , TYPE_GENERAL ,
+   "Add a boatload of comments to explain how warping works" ,
+   NULL } ,
+
+ { 10 , JUL , 2014 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "-hist option for plotting histogram style" ,
    NULL } ,
 
