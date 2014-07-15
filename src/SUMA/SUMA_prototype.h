@@ -4,8 +4,8 @@
 /* functions that have yet to be prototyped in a particular spot */
 void SUMA_mapStateChanged(Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 void SUMA_help(void);
-void SUMA_help_message(FILE *Out);
-char * SUMA_help_message_Info(void);
+void SUMA_help_message(FILE *Out, int targ);
+char * SUMA_help_message_Info(int targ);
 char * SUMA_help_xform_dot_message_Info(void);
 char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP *Cmp);
 char * SUMA_help_Plot_message_Info(void);

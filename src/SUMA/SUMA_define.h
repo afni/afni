@@ -484,6 +484,8 @@ typedef enum { SW_SurfCont_DsetAlphaVal,
 typedef enum { SW_SurfCont_TractMask,
                SW_SurfCont_TractMaskHide,
                SW_SurfCont_TractMaskGray,
+               SW_SurfCont_TractMaskDim,
+               SW_SurfCont_TractMaskHair,
                SW_SurfCont_TractMaskIgnore,
                SW_N_SurfCont_TractMask }
                                        SUMA_WIDGET_INDEX_SURFCONT_TRACT_MASK;

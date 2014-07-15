@@ -66,6 +66,17 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 15, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
+   "Added different ways to highlight masked tracts",
+   NULL
+ },
+  
+ { 11, Jul, 2014, ZSS, "suma", MICRO, TYPE_MODIFY,
+   "Changes to help functions to create Sphinx friendly keypress docs ",
+   "See hidden options suma -help_interactive and -help_sphinx_interactive\n"
+   "for sample output."
+ },
+  
  { 7, Jun, 2014, ZSS, "auto_warp", MINOR, TYPE_NEW_OPT,
    "Made -dataTable options take text file instead of command line opts ",
    "This makes it possible to have very large tables without exceeding\n"

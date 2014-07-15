@@ -15,6 +15,11 @@ PARSE:
    while ($cnt <= $Narg)
       set donext = 1
 
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0 
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
          goto HELP
       endif
@@ -265,7 +270,7 @@ goto END
 HELP:
    echo ""
    echo "Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] "
-   echo "                     [-child CHILD_2 ... CHILD_N] "
+   echo "                     [-child CHILD_2 ... CHILD_N] [-echo]"
    echo ""
    echo "   Moves the center of DSET to the center of BASE."
    echo "   By default, center refers to the center of the volume's voxel grid."
@@ -277,6 +282,7 @@ HELP:
    echo "                    -prefix PREFIX -master BASE \"
    echo "                    -input DSET"
    echo ""
+   echo "   -echo: Echo all commands to terminal for debugging"
    echo "   -1Dmat_only: Only output the transfrom needed to align"
    echo "                the centers. Do not shift the volumes."
    echo "                The transform is named DSET_shft.1D"
