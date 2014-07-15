@@ -738,6 +738,8 @@ typedef struct {
 }
 
 #define SUMA_TO_LOWER_C(c) ( (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A'): c )
+#define SUMA_IS_UPPER_C(c) ( (c >= 'A' && c <= 'Z') )
+#define SUMA_IS_LOWER_C(c) ( (c >= 'a' && c <= 'z') )
 
 #define SUMA_TO_LOWER(s) { \
    int m_i, m_d; \

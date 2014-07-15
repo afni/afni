@@ -1249,7 +1249,47 @@ char * SUMA_help_Plot_message_Info(void)
 
 }
 
-char * SUMA_help_message_Info(void)
+/* Format help key string */
+char * SUMA_hkf(char *keyi, int target)
+{
+   static char FuncName[]={"SUMA_hkf"};
+   static char ss[10][64];
+   char key[64];
+   static int c;
+   char *s;
+   ++c;
+   if (c > 9) c = 0;
+   s = (char *)ss[c++]; s[0] = s[63] = '\0';
+   if (!keyi) return(s);
+   snprintf(key, 63, keyi);
+   switch (target) {
+      default:
+      case 0: /* SUMA */
+         snprintf(s, 63, "  %s", key);
+         return(s);
+         break;
+      case 1: /* Sphinx */
+         if (key[1] == '\0') { 
+            if (SUMA_IS_UPPER_C(key[0])) {
+               snprintf(s, 63, "\n.. _UC_%s:\n\n:kbd:`%s`"
+                  , deblank_name(key), deblank_name(key));
+            } else if (SUMA_IS_UPPER_C(key[0])) {
+            
+            } else { 
+               snprintf(s, 63, "\n.. _LC_%s:\n\n:kbd:`%s`"
+                  , deblank_name(key), deblank_name(key));
+            }
+         } else {
+            snprintf(s, 63, "\n.. _%s:\n\n:kbd:`%s`"
+                  , deblank_name(key), deblank_name(key));
+         }
+         return(s);
+         break;
+   }
+   return(s);
+}
+
+char * SUMA_help_message_Info(int targ)
 {
    static char FuncName[]={"SUMA_help_message_Info"};
    char stmp[1000], *s = NULL;
@@ -1257,26 +1297,38 @@ char * SUMA_help_message_Info(void)
    
    SUMA_ENTRY;
    
+   if (targ != 0 && targ != 1) targ = 0;
+   
    SS = SUMA_StringAppend (NULL, NULL);
 
    #if 0 /* not maintained any more */
    s = SUMA_New_Additions (0, 1);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    #endif
+   if (targ == 0) {
+      SS = SUMA_StringAppend (SS,
+            "Keyboard Controls:\n");
+   } else if (targ == 1) {
+      SS = SUMA_StringAppend (SS,
+            ".. _KeyboardControls:\n\n"
+            "Keyboard Controls:\n"
+            "------------------\n\n");
+   }
    SS = SUMA_StringAppend (SS, 
-      "\nKeyboard Controls\n"
       "   Note: On MACs, Alt is the Apple/Command key.\n"
       "   If it is commandeered by OS, and you can't get it back, then\n"
       "   try the alt/option key instead.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     a: attenuation by background, toggle.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     B: Backface/Frontface/Noface culling, toggle.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     b: background color, toggle.\n\n");
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: attenuation by background, toggle.\n\n", 
+      SUMA_hkf("a", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Backface/Frontface/Noface culling, toggle.\n", 
+      SUMA_hkf("B", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: background color, toggle.\n\n", SUMA_hkf("b", targ));
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
-      "     Ctrl+C: Set screen-coordinate-based clipping planes\n"
-      "      Alt+C: Set object-coordinate-based clipping planes\n"
+      "   %s: Set screen-coordinate-based clipping planes\n"
+      "   %s: Set object-coordinate-based clipping planes\n"
       "           o Planes are defined by a string of the format:\n"
       "             NAME: a, b, c, d\n"
       "             Where NAME is a user-given short name,\n"
@@ -1289,14 +1341,14 @@ char * SUMA_help_message_Info(void)
       "             they are assumed to be the c and d parameters,\n"
       "             a and b are set to 0.\n"
       "           o You are allowed a maximum of %d planes\n"
-      "\n",
+      "\n", SUMA_hkf("Ctrl+C", targ), SUMA_hkf(" Alt+C", targ),
       SUMA_MAX_N_CLIP_PLANES);
-   SS = SUMA_StringAppend (SS, 
-      "     c: load a node color file.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+d: draw ROI controller.\n\n");
-   SS = SUMA_StringAppend (SS, 
-   "     D: Attch to the current dataset 'parent' a dot product\n"
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: load a node color file.\n\n", SUMA_hkf("c", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: draw ROI controller.\n\n", SUMA_hkf("Ctrl+d", targ));
+   SS = SUMA_StringAppend_va (SS, 
+   "   %s: Attch to the current dataset 'parent' a dot product\n"
    "        transform. The 'child' (transformed) dataset\n"
    "        is created by calculating the dot product between\n"
    "        each node time series and the time series of the current\n"
@@ -1319,90 +1371,91 @@ char * SUMA_help_message_Info(void)
    "        That script will download and setup demo data for resting-state\n"
    "        correlations. In particular, script @RunSingleSurfInstaCorr of the\n"
    "        demo illustrates the 'D' feature.\n"
-      "\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     d: Show all DO objects in DOv.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     Ctrl+e: Look for OpenGL errors.\n\n"); 
-   SS = SUMA_StringAppend (SS, 
-      "     F: Flip light position between +z and -z.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     f: functional overlay, toggle.\n\n");
+      "\n\n", SUMA_hkf("D", targ));
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "   %s: Show all DO objects in DOv.\n\n", SUMA_hkf("d", targ));
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "   %s: Look for OpenGL errors.\n\n", SUMA_hkf("Ctrl+r", targ)); 
    SS = SUMA_StringAppend_va (SS, 
-      "     g: graph data.\n"
-      "%s\n", PlotCommonHelp); 
-   SS = SUMA_StringAppend (SS, 
-      "     H: Highlight nodes inside a specified box.\n"
+      "   %s: Flip light position between +z and -z.\n", SUMA_hkf("F", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: functional overlay, toggle.\n\n", SUMA_hkf("f", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: graph data.\n"
+      "%s\n", SUMA_hkf("g", targ), PlotCommonHelp); 
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Highlight nodes inside a specified box.\n"
       "        Does not update other viewers\n"
       "        Paints into existing colors\n"
       "        Highlight is wiped out with new\n"
-      "        colors.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     h: NO LONGER USED.\n"
-      "        Please use Ctrl+h instead.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+h: help message\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     J: Set the selected FaceSet on Surface Object\n"
+      "        colors.\n\n", SUMA_hkf("H", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: help message\n\n", SUMA_hkf("Ctrl+h", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Set the selected FaceSet on Surface Object\n"
       "        in Focus. Does not update in other viewers\n"
-      "        or in AFNI.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     j: Set the cross hair to a certain node on SO in Focus.\n"
+      "        or in AFNI.\n", SUMA_hkf("J", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Set the cross hair to a certain node on SO in Focus.\n"
       "        Append/prepend L or R to switch hemispheres.\n"
       "        Does update in other viewers if linked by index\n"
-      "        and AFNI if connected\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+j: Set the cross hair's XYZ location. \n"
+      "        and AFNI if connected\n", SUMA_hkf("j", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Set the cross hair's XYZ location. \n"
       "        Does update in other viewers\n"
       "        if linked by XYZ"
-      "        and AFNI if connected\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Alt+j: Set the Focus node. \n"
+      "        and AFNI if connected\n", SUMA_hkf("Ctrl+j", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Set the Focus node. \n"
       "        Cross hair's XYZ remain unchanged.\n"
       "        Does not update in other viewers\n"
-      "        or in AFNI\n\n");
+      "        or in AFNI\n\n", SUMA_hkf("Alt+j", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "     L: Light's XYZ coordinates.\n"
-      "        Default setting is 0.0 0.0 %.1f \n", 
+      "   %s: Light's XYZ coordinates.\n"
+      "        Default setting is 0.0 0.0 %.1f \n", SUMA_hkf("L", targ), 
       1.0 * SUMA_INTITIAL_LIGHT0_SWITCH);
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     Ctrl+L: Dim all lights and colors by a factor of 0.8\n" );
-   SS = SUMA_StringAppend (SS, 
-      "     l: look at point\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Alt+l: look at cross hair\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+l: Switch locking mode for all viewers \n"
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "   %s: Dim all lights and colors by a factor of 0.8\n", 
+            SUMA_hkf("Ctrl+L", targ) );
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: look at point\n", SUMA_hkf("l", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: look at cross hair\n", SUMA_hkf("Alt+l", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Switch locking mode for all viewers \n"
       "             between: No Lock, Index Lock and \n"
       "             XYZ Lock. The switching is order is \n"
-      "             based on the lock of the first viewer.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Alt+Ctrl+M: Dumps memory trace to file \n"
+      "             based on the lock of the first viewer.\n\n", 
+      SUMA_hkf("Ctrl+l", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Dumps memory trace to file \n"
       "                 called malldump.NNN where NNN\n"
       "                 is the smallest number between\n"
-      "                 001 and 999 that has not been used.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     m: momentum, toggle\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     n: bring a node to direct view (does not work AT ALL)\n");
-   SS = SUMA_StringAppend (SS, 
-      "     O: Increase opacity of all surfaces in viewer by 4 levels.\n"
+      "                 001 and 999 that has not been used.\n", 
+      SUMA_hkf("Alt+Ctrl+M", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: momentum, toggle\n\n", SUMA_hkf("m", targ));
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "   %s: bring a node to direct view (does not work AT ALL)\n", 
+      SUMA_hkf("n", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Increase opacity of all surfaces in viewer by 4 levels.\n"
       "        Transparency levels accessible are: \n"
       "        0 (opaque), 25%, 50%, 75%, 100% (invisible)\n"
-      "\n");
-   SS = SUMA_StringAppend (SS, 
-      "     o: Decrease opacity of all surfaces in viewer by 4 levels.\n"
-      "\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+o: Set new center of rotation.\n"
+      "\n", SUMA_hkf("O", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Decrease opacity of all surfaces in viewer by 4 levels.\n"
+      "\n", SUMA_hkf("o", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Set new center of rotation.\n"
       "            Enter nothing to go back to default.\n"
-      "\n");
-   SS = SUMA_StringAppend (SS, 
+      "\n", SUMA_hkf("Ctrl+o", targ));
+   SS = SUMA_StringAppend_va (SS, 
       "     Ctrl+n: Open a new surface viewer window.\n\n");
-   SS = SUMA_StringAppend (SS, 
-"     p: Viewer rendering mode  \n"
+   SS = SUMA_StringAppend_va (SS, 
+"   %s: Viewer rendering mode  \n"
 "        (Fill, Line, Points, Hide), switch.\n\n"
-"     Ctrl+p: Cycle between restrictions of where DO node-based \n"
+"   %s: Cycle between restrictions of where DO node-based \n"
 "             objects are displayed. Available modes are:\n"
 "         All: No restrictions\n"
 "         n3Crosshair: Crosshair node + 3 neighboring layers\n"
@@ -1415,20 +1468,20 @@ char * SUMA_help_message_Info(void)
 "        ** For the moment, 'Ctrl+p' only applies to segment \n"
 "        and sphere DOs  that are node based. \n"
 "        If you need it applied to other DOs, let me know.\n"
-      );
-   SS = SUMA_StringAppend (SS, 
-      "     P: Reset viewer and all surfaces to Fill  \n"
-      "        rendering mode.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     r: record current image\n"
+      , SUMA_hkf("p", targ), SUMA_hkf("Ctrl+p", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Reset viewer and all surfaces to Fill  \n"
+      "        rendering mode.\n\n", SUMA_hkf("P", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: record current image\n"
       "        in an a la AFNI image viewer.\n"
       "        Identical images are rejected.\n"
       "        If you just save one image, the recording\n"
       "        window has no visible controls for saving\n"
       "        the image. Either take another picture, or\n"
-      "        use 'Shift+right click' to get a menu.\n\n");
+      "        use 'Shift+right click' to get a menu.\n\n", SUMA_hkf("r", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "     Ctrl+r: Record current image directly to disk.\n"
+      "   %s: Record current image directly to disk.\n"
    "             Images are saved with a date stamp of the\n"
    "             format PREFIX.X.yymmdd_hhmmss.MMM.jpg where:\n"
    "          PREFIX controlled with SUMA_AutoRecordPrefix.\n"
@@ -1445,9 +1498,10 @@ char * SUMA_help_message_Info(void)
    "             without running out of memory in the recorder GUI. \n"
    "\n"
    "             Your current PREFIX is: %s%s\n"
-   "\n", SUMAg_CF->autorecord->Path, SUMAg_CF->autorecord->FileName);
-   SS = SUMA_StringAppend (SS, 
-      "     Alt+r: Increase the image oversampling factor.\n"
+   "\n", SUMA_hkf("Ctrl+r", targ), 
+   SUMAg_CF->autorecord->Path, SUMAg_CF->autorecord->FileName);
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Increase the image oversampling factor.\n"
       "             By increasing this factor, you can create\n"
       "             images at a resolution higher than that \n"
       "             of the SUMA window. This is done by subdividing \n"
@@ -1463,23 +1517,21 @@ char * SUMA_help_message_Info(void)
       "             on the number of pixels in the final image.\n"
       "             This limitation is due to the graphics card\n"
       "             on your system. SUMA will take care not to exceed\n"
-      "             this limit.\n");
-   SS = SUMA_StringAppend(SS, 
-   "     Ctrl+R: Toggle continuous jpeg saving to disk.\n"
+      "             this limit.\n", SUMA_hkf("Alt+r", targ));
+   SS = SUMA_StringAppend_va(SS, 
+   "   %s: Toggle continuous jpeg saving to disk.\n"
    "             Naming of output images is automatic, same as in Ctrl+r.\n"
    "             See help for Ctrl+r above for more info.\n"
-   "     R: Toggle continuous recording \n"
+   "   %s: Toggle continuous recording \n"
    "        to an a la AFNI image viewer.\n"
-   "        Identical images are rejected.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     s: NO LONGER IN USE. \n"
-      "        View the surface's structure contents.\n"
-      "        Use:View->Surface Controller->More.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+s: Open controller for \n"
-      "             surface in Focus.\n");
-   SS = SUMA_StringAppend (SS, 
-"     Ctrl+Alt+s: Input filename containing displayable objects.\n"
+   "        Identical images are rejected.\n\n"
+   , SUMA_hkf("Ctrl+R", targ), SUMA_hkf("R", targ));
+
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Open controller for \n"
+      "             surface in Focus.\n", SUMA_hkf("Ctrl+s", targ));
+   SS = SUMA_StringAppend_va (SS, 
+"   %s: Input filename containing displayable objects.\n"
 "                 Files are of 1D format with a necessary comment\n"
 "                 at the top to indicate the type of objects in \n"
 "                 the file.\n"
@@ -1487,7 +1539,7 @@ char * SUMA_help_message_Info(void)
 "                 name will replace currently loaded versions.\n"
 "                 Note 2: Node-based (Types 3 and 4) objects\n"
 "                 will follow a node when its coordinates change.\n"
-"                 Note 3: See also 'ctrl+p' for restricting which \n"
+"                 Note 3: See also 'Ctrl+p' for restricting which \n"
 "                 node-based objects get displayed.\n"
 "          Type 1:Segments between (x0,y0,z0) and (x1,y1,z1) \n"
 "                 1st line must be '#segments' (without quotes),\n"
@@ -1594,127 +1646,139 @@ char * SUMA_help_message_Info(void)
 "                  script\n"
 "                 @DO.examples. This new class allows for displaying \n"
 "                 text and figures in both screen and world space.\n"
-      );
-   SS = SUMA_StringAppend (SS, 
-      "     Alt+s: Switch mouse buttons 1 and 3.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     S: Show all surface objects registered in DOv.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     t: talk to AFNI, toggle.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+t: Force a resend of \n"
-      "            surfaces to AFNI.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     T: Start listening for niml connections\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+u: Open SUMA controller.\n\n");   
-   SS = SUMA_StringAppend (SS, 
-      "     v: NO LONGER IN USE. \n"
-      "        View the viewer's structure contents.\n"
-      "        Use: View->Viewer Controller->More.\n"
-      "\n");
-   SS = SUMA_StringAppend (SS, 
-      "     w: Whereami window of little use at the moment.\n"
-      "\n"        );
-   SS = SUMA_StringAppend (SS, 
-      "     ctrl+W: Write items stowed in SUMA's save list.\n"
+      , SUMA_hkf("Ctrl+Alt+s", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Switch mouse buttons 1 and 3.\n\n", SUMA_hkf("Alt+s", targ));
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "   %s: Show all surface objects registered in DOv.\n\n", 
+      SUMA_hkf("S", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: talk to AFNI, toggle.\n", SUMA_hkf("t", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Force a resend of \n"
+      "            surfaces to AFNI.\n\n", SUMA_hkf("Ctrl+t", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Start listening for niml connections\n\n", SUMA_hkf("T", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Open SUMA controller.\n\n", SUMA_hkf("Ctrl+u", targ));   
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Whereami window of little use at the moment.\n"
+      "\n"        , SUMA_hkf("w", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Write items stowed in SUMA's save list.\n"
       "             This is used to write temporary dsets that\n"
       "             are created on the fly in SUMA. Such sets include\n"
       "             those created via the 'D' option above,\n"
       "             or the results sent by 3dGroupInCorr\n"
-      "\n");
-   SS = SUMA_StringAppend (SS, 
-      "     W: Write ascii files containing the NodeList,\n"
+      "\n", SUMA_hkf("Ctrl+W", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Write ascii files containing the NodeList,\n"
       "        the FaceSetList and the nodecolors of the \n"
-      "        surface in focus.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Z/z: Zoom in/out\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     [: Show/Hide left hemisphere.\n"
-      "     ]: Show/Hide right hemisphere.\n"
+      "        surface in focus.\n\n", SUMA_hkf("W", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Zoom in\n", SUMA_hkf("Z", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Zoom out\n", SUMA_hkf("z", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Show/Hide left hemisphere.\n"
+      "   %s: Show/Hide right hemisphere.\n"
       "        Window title shows which \n"
       "        hemispheres are shown :LR:\n"
-      "        :-R: :L-: or :--:\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "  8: Set the number of smoothing iterations\n"
+      "        :-R: :L-: or :--:\n\n", SUMA_hkf("[", targ), SUMA_hkf("]", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "  %s: Set the number of smoothing iterations\n"
       "     to be applied to the foreground colors.\n"
       "     This setting will be applied to all subsequent\n"
-      "     color sets.\n");
-   SS = SUMA_StringAppend (SS, 
-      "  *: Smooth node colors by averaging with neighbors.\n"
+      "     color sets.\n", SUMA_hkf("8", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "  %s: Smooth node colors by averaging with neighbors.\n"
       "     The smoothing is only applied to the current colors,\n"
-      "     and will be not be applied to new color sets.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     @: Compute curvatures along principal directions \n"
-      "        on the surface, results written to disk.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "     (: Compute convexity of surface, \n"
-      "        results written to disk.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     ,/. (think </>): Switch to next/previous view state.\n"
+      "     and will be not be applied to new color sets.\n\n", 
+      SUMA_hkf("*", targ));
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "   %s: Compute curvatures along principal directions \n"
+      "        on the surface, results written to disk.\n\n", 
+      SUMA_hkf("@", targ));
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
+      "   %s: Compute convexity of surface, \n"
+      "        results written to disk.\n\n", SUMA_hkf("(", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "     %s/%s (think </>): Switch to next/previous view state.\n"
       "                      Viewing angle is reset only when switching to\n"
-      "                      a state with flat surfaces.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     SPACE: Toggle between Mapping Reference and\n"
+      "                      a state with flat surfaces.\n", 
+      SUMA_hkf(",", targ), SUMA_hkf(".", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Toggle between Mapping Reference and\n"
       "            Current view state.\n"
       "            Viewing angle is reset only when switching to\n"
-      "                      a state with flat surfaces.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     L-R arrows: rotate about screen's Y axis\n");
-   SS = SUMA_StringAppend (SS, 
-      "     U-D arrows: rotate about screen's X axis\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Shift+L-R arrows: translate along screen's \n"
-      "                       X axis\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Shift+U-D arrows: translate along screen's \n"
-      "                       Y axis\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+L-R arrows: LR cardinal views\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+U-D arrows: IS cardinal views\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+Shift+U-D arrows: AP cardinal views\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Ctrl+Shift+L-R arrows: rotate CCW and CW about Z screen axis\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Alt+L-R arrows: Move selected node to neighboring nodes\n"
+      "                      a state with flat surfaces.\n\n"
+      , SUMA_hkf("SPACE", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: rotate about screen's Y axis\n"
+      , SUMA_hkf("L-R arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: rotate about screen's X axis\n"
+      , SUMA_hkf("U-D arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: translate along screen's \n"
+      "                       X axis\n", SUMA_hkf("Shift+L-R arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "     %s arrows: translate along screen's \n"
+      "                       Y axis\n", SUMA_hkf("Shift+U-D arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: LR cardinal views\n"
+      , SUMA_hkf("Ctrl+L-R arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: IS cardinal views\n"
+      , SUMA_hkf("Ctrl+U-D arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: AP cardinal views\n\n"
+      , SUMA_hkf("Ctrl+Shift+U-D arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: rotate CCW and CW about Z screen axis\n\n"
+      , SUMA_hkf("Ctrl+Shift+L-R arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Move selected node to neighboring nodes\n"
       "                     in the direction of the screen's \n"
       "                     X axis. The default is to move one\n"
       "                     node at a time. You can alter this\n"
       "                     setting with the environment variable:\n"
-      "                     SUMA_KeyNodeJump in your ~/.sumarc file.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Alt+U-D arrows: Same as Alt+L-R but in the direction \n"
-      "                     of the screen's Y axis\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     F1: screen axis (X-Red, Y-Green), toggle. \n");
-   SS = SUMA_StringAppend (SS, 
-      "     F2: surface axis (X-Red, Y-Green, Z-Blue), \n"
-      "         switch. \n");
-   SS = SUMA_StringAppend (SS, 
-      "     F3: cross hair, toggle. \n");
-   SS = SUMA_StringAppend (SS, 
-      "     F4: node selection highlight, toggle. \n");
-   SS = SUMA_StringAppend (SS, 
-      "     F5: FaceSet selection highlight, toggle.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     F6: Viewer background color, toggle.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     F7: Switch between color mixing modes.\n"
+      "                     SUMA_KeyNodeJump in your ~/.sumarc file.\n"
+      , SUMA_hkf("Alt+L-R arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Same as Alt+L-R but in the direction \n"
+      "                     of the screen's Y axis\n\n"
+      , SUMA_hkf("Alt+U-D arrows", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: screen axis (X-Red, Y-Green), toggle. \n"
+      , SUMA_hkf("F1", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: surface axis (X-Red, Y-Green, Z-Blue), \n"
+      "         switch. \n", SUMA_hkf("F2", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: cross hair, toggle. \n", SUMA_hkf("F3", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: node selection highlight, toggle. \n", SUMA_hkf("F4", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: FaceSet selection highlight, toggle.\n", SUMA_hkf("F5", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Viewer background color, toggle.\n", SUMA_hkf("F6", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Switch between color mixing modes.\n"
       "         ORIG: Col = ( 1 - opacity ) * OldCol + opacity * NewCol \n"
-      "         MOD1: Col = ( 1 - opacity ) * OldCol +           NewCol \n");
-   SS = SUMA_StringAppend (SS, 
-      "     F8: Viewing mode (Perspective or Orthographic Projection), toggle.\n"
-      );
-   SS = SUMA_StringAppend (SS, 
-      "     F9: Labels at cross hair, toggle.\n"
-      );
-   SS = SUMA_StringAppend (SS, 
-      "     F10: Toggle prying axis between surfaces' Z and Y axes.\n"
-      );
-   SS = SUMA_StringAppend (SS, 
-      "     F11: Change object rendering order.\n"
+      "         MOD1: Col = ( 1 - opacity ) * OldCol +           NewCol \n"
+      , SUMA_hkf("F7", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Viewing mode (Perspective or Orthographic Projection), toggle.\n"
+      , SUMA_hkf("F8", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Labels at cross hair, toggle.\n"
+      , SUMA_hkf("F9", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Toggle prying axis between surfaces' Z and Y axes.\n"
+      , SUMA_hkf("F10", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Change object rendering order.\n"
       "          This order will affect the resultant image in\n"
       "          the few instances where alpha transparency is\n"
       "          used. The order can be specified for only three types of \n"
@@ -1722,18 +1786,30 @@ char * SUMA_help_message_Info(void)
       "          If you want to render graphs first, followed by volumes then\n"
       "          surfaces then set SUMA_ObjectDisplayOrder to something like:\n"
       "          'graph,vol,surf', or 'GVS'"
-      );
-   SS = SUMA_StringAppend (SS, 
-      "     F12: Time 20 scene renderings.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     HOME: reset zoom and recenter surfaces.\n"
-      "           rest view angle for flat surfaces only.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     ESCAPE: close the surface viewer window.\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Shift+ESCAPE: close all surface viewer windows.\n\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Mouse Controls:\n");
+      , SUMA_hkf("F11", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Time 20 scene renderings.\n\n", SUMA_hkf("F12", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: reset zoom and recenter surfaces.\n"
+      "           rest view angle for flat surfaces only.\n\n"
+      , SUMA_hkf("HOME", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: close the surface viewer window.\n", 
+      SUMA_hkf("ESCAPE", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: close all surface viewer windows.\n\n"
+      , SUMA_hkf("Shift+ESCAPE", targ));
+   
+   if (targ == 0) {
+      SS = SUMA_StringAppend (SS,
+            "Mouse Controls:\n");
+   } else if (targ == 1) {
+      SS = SUMA_StringAppend (SS,
+            ".. _MouseControls:\n\n"
+            "Mouse Controls:\n"
+            "---------------\n\n");
+   }
+
    SS = SUMA_StringAppend (SS, 
       "     Button 1-Motion: For 3D scenes, rotation as if you were \n"
       "                      using a trackball. For matrix displays \n"
@@ -2002,7 +2078,7 @@ char * SUMA_help_xform_dot_message_Info(void)
 /*!
 Controls help message
 */
-void SUMA_help_message(FILE *Out)
+void SUMA_help_message(FILE *Out, int targ)
 {
 	char *s=NULL;
    static char FuncName[]={"SUMA_help_message"};
@@ -2013,9 +2089,9 @@ void SUMA_help_message(FILE *Out)
 		Out = stdout;
 	}
    
-   s = SUMA_help_message_Info();
+   s = SUMA_help_message_Info(targ);
    if (!s) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_help_message_Info.\n", FuncName);
+      SUMA_S_Err("Failed in SUMA_help_message_Info.\n");
    }else {
       fprintf (Out, "%s\n", s);
       SUMA_free(s);

@@ -1301,7 +1301,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                }
                   
-               s = SUMA_help_message_Info();
+               s = SUMA_help_message_Info(0);
                if (!s) {
                   fprintf (SUMA_STDERR, 
                            "Error %s: Failed in SUMA_help_message_Info.\n", 
