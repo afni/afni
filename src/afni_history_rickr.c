@@ -49,7 +49,7 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15,  Jul, 2014, RCR, "3dClustSim", MINOR, TYPE_GENERAL,
+ { 15,  Jul, 2014, RCR, "3dClustSim", MICRO, TYPE_GENERAL,
    "check for bad floats read for -fwhm[xyz]",
    "Requested by shanusmagnus."
  } ,
