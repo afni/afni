@@ -474,6 +474,7 @@ void display_help_menu()
 
 void get_options( int argc , char **argv )
 {
+  char * ep;
   int nopt=1 , ii ;
 
   /*----- add to program log -----*/
@@ -554,28 +555,33 @@ void get_options( int argc , char **argv )
 
     if( strcasecmp(argv[nopt],"-fwhm") == 0 ){
       nopt++; if( nopt >= argc ) ERROR_exit("need argument after -fwhm");
-      fwhm_x = (float)strtod(argv[nopt],NULL) ;
-      if( fwhm_x < 0.0f ) ERROR_exit("illegal value after -fwhm") ;
+      fwhm_x = (float)strtod(argv[nopt],&ep) ;
+      if( fwhm_x < 0.0f || ep == argv[nopt] )
+         ERROR_exit("illegal value after -fwhm") ;
       fwhm_y = fwhm_z = fwhm_x ; nopt++; continue;
     }
 
     /*-----   -fwhmxyz s s s   -----*/
 
     if( strcasecmp(argv[nopt],"-fwhmxyz") == 0 ){
-      nopt++; if( nopt+2 >= argc ) ERROR_exit("need 3 arguments after -fwhmxyz");
-      fwhm_x = (float)strtod(argv[nopt++],NULL) ;
-      if( fwhm_x < 0.0f ) ERROR_exit("illegal value after -fwhmxyz") ;
-      fwhm_y = (float)strtod(argv[nopt++],NULL) ;
-      if( fwhm_y < 0.0f ) ERROR_exit("illegal value after -fwhmxyz") ;
-      fwhm_z = (float)strtod(argv[nopt++],NULL) ;
-      if( fwhm_z < 0.0f ) ERROR_exit("illegal value after -fwhmxyz") ;
+      nopt++; if(nopt+2 >= argc) ERROR_exit("need 3 arguments after -fwhmxyz");
+      fwhm_x = (float)strtod(argv[nopt++],&ep) ;
+      if( fwhm_x < 0.0f || ep == argv[nopt-1] )
+         ERROR_exit("illegal x value after -fwhmxyz") ;
+      fwhm_y = (float)strtod(argv[nopt++],&ep) ;
+      if( fwhm_y < 0.0f || ep == argv[nopt-1] )
+         ERROR_exit("illegal y value after -fwhmxyz") ;
+      fwhm_z = (float)strtod(argv[nopt++],&ep) ;
+      if( fwhm_z < 0.0f || ep == argv[nopt-1] )
+         ERROR_exit("illegal z value after -fwhmxyz") ;
       continue;
     }
 
     /*-----   -iter n  -----*/
 
     if( strcmp(argv[nopt],"-iter") == 0 || strncmp(argv[nopt],"-nite",5) == 0 ){
-      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      nopt++;
+      if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
       niter = (int)strtod(argv[nopt],NULL) ;
       if( niter < 2000 ){
         WARNING_message("-iter %d replaced by 2000",niter) ; niter = 2000 ;
