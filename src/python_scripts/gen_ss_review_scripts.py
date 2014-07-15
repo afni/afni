@@ -337,7 +337,7 @@ if ( $was_censored && $num_stim > 0 ) then
         # count response TRs, with and without censoring
         # (their difference is the number of TRs lost to censoring)
         set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
-        set sc = `1deval -a $xstim"[$index]" -b $censor_dset -expr 'bool(a*b)'\
+        set sc = `1deval -a $xstim"[$index]" -b $censor_dset -expr 'bool(a*b)'\\
                          | grep 1 | wc -l`
         set sc = `ccalc -i "$st-$sc"`           # change to num censored
         set ff = `ccalc -form '%.3f' "$sc/$st"` # and the fraction censored
@@ -352,8 +352,50 @@ if ( $was_censored && $num_stim > 0 ) then
     echo "num TRs per stim (orig)   : $stim_trs"
     echo "num TRs censored per stim : $stim_trs_censor"
     echo "fraction TRs censored     : $stim_frac_censor"
-    echo ""
 endif
+
+"""
+
+# rcr - probably replace this with average motion per stim (not response)
+g_ave_mot_sresp_str = """
+# ----------------------------------------------------------------------
+# compute average motion per stim response
+
+if ( $was_censored && $num_stim > 0 ) then
+    set sresp_mot = ()
+    set sresp_mot_cen = ()
+    foreach index ( `count -digits 1 0 $nm1` )
+        set st  = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
+        set snc = `1deval -a $xstim"[$index]" -b $censor_dset   \\
+                   -expr 'bool(a*b)' | grep 1 | wc -l`
+        set sm  = `1deval -a $xstim"[$index]" -b $enorm_dset -expr 'bool(a)*b'\\
+                   | 3dTstat -sum -prefix - 1D:stdin\\' |& tail -n 1`
+        set smc = `1deval -a $xstim"[$index]" -b $enorm_dset -c $censor_dset \\
+                   -expr 'bool(a)*b*c' | 3dTstat -sum -prefix - 1D:stdin\\'  \\
+                   |& tail -n 1`
+        set sm  = `ccalc $sm/$st`
+        set smc = `ccalc $smc/$snc`
+
+        set sresp_mot = ( $sresp_mot $sm )
+        set sresp_mot_cen = ( $sresp_mot_cen $smc )
+    end
+
+    echo "ave mot per sresp (orig)  : $sresp_mot"
+    echo "ave mot per sresp (cens)  : $sresp_mot_cen"
+
+else if ( $num_stim > 0 ) then
+    set sresp_mot = ()
+    foreach index ( `count -digits 1 0 $nm1` )
+        set st = `1deval -a $xstim"[$index]" -expr 'bool(a)' | grep 1 | wc -l`
+        set sm = `1deval -a $xstim"[$index]" -b $enorm_dset -expr 'bool(a)*b'\\
+                  | 3dTstat -sum -prefix - 1D:stdin\\' |& tail -n 1`
+        set sm = `ccalc $sm/$st`
+        set sresp_mot = ( $sresp_mot $sm )
+    end
+    echo "ave mot per sresp         : $sresp_mot"
+endif
+
+echo ""
 
 """
 
@@ -602,12 +644,14 @@ g_history = """
    0.38 Jun 26, 2014:
         - fixed degrees (was degress) in text (track in gen_ss_review_table.py)
         - if out.mask_ae_corr.txt, note correlation
+   0.39 Jul 15, 2014: added average motion per stim response 
+                      (probably change to per stim, later)
 """
 
-g_version = "gen_ss_review_scripts.py version 0.38, Jun 26, 2014"
+g_version = "gen_ss_review_scripts.py version 0.39, Jul 1:, 2014"
 
 g_todo_str = """
-   - figure out template_space
+   - figure out template_space (should we output 3dinfo -space?)
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
    - execute basic?  save output?
 """
@@ -1767,6 +1811,8 @@ class MyInterface:
 
       # most of script is just raw text
       self.text_basic += g_reg_counts_str
+      self.text_basic += g_ave_mot_sresp_str
+
       if self.uvars.is_not_empty('mask_dset') and \
          self.uvars.is_not_empty('tsnr_dset'):
          self.text_basic += g_basic_tsnr_str
