@@ -15,6 +15,10 @@ first.in.path <- function(file) {
 source(first.in.path('AFNIio.R'))
 ExecName <- '3dMVM'
 
+# Global variables
+iterPar <- 'matrPar'
+respVar <- c('InputFile', 'Inputfile', 'Ausgang_val', 'ausgang_val')
+
 #################################################################################
 ##################### Begin MVM Input functions ################################
 #################################################################################
@@ -24,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.9, June 16, 2014
+Version 3.1.1, July 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -39,7 +43,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.0.9, June 16, 2014
+Version 3.1.1, July 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -69,6 +73,7 @@ Usage:
  Chen, G., Adleman, N.E., Saad, Z.S., Leibenluft, E., Cox, R.W. (in press). 
  Applications of Multivariate Modeling to Neuroimaging Group Analysis: A
  Comprehensive Alternative to Univariate General Linear Model. NeuroImage.
+ http://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
  In addition to R installtion, the following two R packages need to be acquired
  in R first before running 3dMVM:
@@ -272,9 +277,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-bsVars FORMULA: Specify the fixed effects for between-subjects factors ",
    "         and quantitative variables. When no between-subject factors",
    "         are present, simply put 1 for FORMULA. The expression FORMULA",
-   "         with more than one variable has to be surrounded within (single or double)",
-   "         quotes. Variable names in the formula should be consistent with",
-   "         the ones used in the header of -dataTable. A+B represents the",
+   "         with more than one variable has to be surrounded within (single or",
+   "         double) quotes. No spaces are allowed in the FORMULA expression.",
+   "         Variable names in the formula should be consistent with the ones",
+   "         used in the header underneath -dataTable. A+B represents the",
    "         additive effects of A and B, A:B is the interaction between A",
    "         and B, and A*B = A+B+A:B. The effects of within-subject",
    "         factors, if present under -wsVars are automatically assumed",
@@ -298,7 +304,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                              ) ),
 
        '-wsMVT' = apl(n=0, h = paste(
-   "-wsMVT: If at least a within-subject factor is involved in the model, this",
+   "-wsMVT: If at least one within-subject factor is involved in the model, this",
    "         option provides within-subject multivariate testing for any effect",
    "         associated with a within-subject. The testing strategy is different",
    "         from the conventional univariate GLM, see more details in",
@@ -415,15 +421,15 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         requests for a test of comparing 2 times House condition",
    "         with 3 times Face condition while Emotion is held at positive",
    "         valence.\n",
-   "         NOTICE:",
-   "         1) The weights for a variable do not have to add up to 0.",   
+   "         NOTE:\n",
+   "         1) The weights for a variable do not have to add up to 0.\n",   
    "         2) When a quantitative variable is present, other effects are",
-   "         tested at the center value of the covariate.",
+   "         tested at the center value of the covariate.\n",
    "         3) The effect for a quantitative variable can be specified with,",
    "         for example, 'Group : 1*Old Age : ', or ",
-   "         'Group : 1*Old - 1*Young Age : '", 
+   "         'Group : 1*Old - 1*Young Age : '\n", 
    "         4) The absence of a categorical variable in a coding means the",
-   "         levels of that factor are averaged (or collapsed) for the GLT.",
+   "         levels of that factor are averaged (or collapsed) for the GLT.\n",
    "         5) The appearance of a categorial variable has to be followed",
    "         by the linear combination of its levels. Only a quantitative",
    "         is allowed to have a dangling coding as seen in 'Age :'\n",         
@@ -431,19 +437,28 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              ) ),
 
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
-   "-dataTable TABLE: List the data structure with a header as the first line.",
-   "         NOTE: this option has to occur last; that is, no other options are",
+   "-dataTable TABLE: List the data structure with a header as the first line.\n",
+   "         NOTE:\n",
+   "         1) This option has to occur last; that is, no other options are",
    "         allowed thereafter. Each line should end with a backslash except for",
    "         the last line.\n",
-   "         The first column is fixed with 'Subj', and the last is reserved",
-   "         for 'InputFile'. Each row should contain only one effect estimate",
-   "         in the table of long format (cf. wide format) as defined in R. The",
-   "         level labels of a factor should contain at least one character.",
-   "         Input files can be in AFNI, NIfTI or surface format. AFNI files",
-   "         can be specified with sub-brick selector(square brackets [] within",
-   "         quotes) specified with a number oflabel. Unequal number of subjects",
-   "         across groups is allowed, butsituations with missing data for a",
-   "         within-subject factor are better handled with 3dLME.\n", 
+   "         2) The first column is fixed and reserved with label 'Subj', and the",
+   "         last is reserved for 'InputFile'. Each row should contain only one",
+   "         effect estimate in the table of long format (cf. wide format) as",
+   "         defined in R. The level labels of a factor should contain at least",
+   "         one character. Input files can be in AFNI, NIfTI or surface format.",
+   "         AFNI files can be specified with sub-brick selector (square brackets",
+   "         [] within quotes) specified with a number or label. Unequal number of",
+   "         subjects across groups is allowed, but situations with missing data",
+   "         for a within-subject factor are better handled with 3dLME.\n",
+   "         3) It is fine to have variabiles (or columns) in the table that are",
+   "         not modeled in the analysis.\n",
+   "         4) The context of the table can be saved as a separate file, e.g.,",
+   "         called table.txt. Do not foget to include a backslash at the end of",
+   "         each row. In the script specify the data with '-dataTable table.txt'.",
+   "         This option is useful: (a) when there are many input files so that",
+   "         the program complains with an 'Arg list too long' error; (b) when",
+   "         you want to try different models with the same dataset.\n",
              sep = '\n'
                      ) ),
 
@@ -507,7 +522,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              num_glt = lop$num_glt <- ops[[i]],
              gltLabel = lop$gltLabel <- ops[[i]],
              gltCode  = lop$gltCode <- ops[[i]],
-             dataTable  = lop$dataTable <- ops[[i]],
+             dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
              
              help = help.MVM.opts(params, adieu=TRUE),
 
@@ -597,11 +612,13 @@ process.MVM.opts <- function (lop, verb = 0) {
    }         
 
    len <- length(lop$dataTable)
-   wd <- which(lop$dataTable == "InputFile")
+   # in case the user misspells
+   #wd <- which(lop$dataTable == "InputFile" | lop$dataTable == "Inputfile")
+   wd <- which(lop$dataTable %in% respVar)
    hi <- len / wd - 1
    #browser()
    if(len %% wd != 0)
-      errex.AFNI('The content under -dataTable is not rectangular!') else {
+      errex.AFNI(paste('The content under -dataTable is not rectangular !', len, wd)) else {
       lop$dataStr <- NULL
       for(ii in 1:wd) 
          lop$dataStr <- data.frame(cbind(lop$dataStr, lop$dataTable[seq(wd+ii, len, wd)]))
@@ -854,7 +871,7 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))  
-      save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE) 
+      try(save(args, rfile, file=".3dMVM.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
@@ -906,6 +923,9 @@ require("phia")
 #modFile <- comArgs[6]
 #paste(commandArgs())
 
+wd <- which(lop$dataTable %in% respVar)
+# update respVar
+respVar <- lop$dataTable[wd]
 
 # even if lop$wsVars is NA (no within-subject factors), it would be still OK for Error(Subj/NA)
 if(is.na(lop$mVar)) {
@@ -917,7 +937,7 @@ if(is.na(lop$mVar)) {
                                                 
 # Maybe not list for these two, or yes?
 lop$dataStr$Subj <-  as.factor(lop$dataStr$Subj)
-lop$dataStr$InputFile <-  as.character(lop$dataStr$InputFile)
+lop$dataStr[[respVar]] <-  as.character(lop$dataStr[[respVar]])
 
 # center on user-speficied value or mean
 if(any(!is.na(lop$qVars))) if(all(is.na(lop$qVarCenters))) 
@@ -931,7 +951,7 @@ cat('***** Summary information of data structure *****\n')
 
 nSubj <- nlevels(lop$dataStr$Subj)                                                
 cat(nSubj, 'subjects : ', levels(lop$dataStr$Subj), '\n')
-cat(length(lop$dataStr$InputFile), 'response values\n')
+cat(length(lop$dataStr[[respVar]]), 'response values\n')
 for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
    cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
    levels(lop$dataStr[,ii]), '\n') else if(class(lop$dataStr[,ii]) == 'matrix' | class(lop$dataStr[,ii]) == 'numeric')  # numeric may not work
@@ -972,6 +992,8 @@ NoFile <- dim(lop$dataStr[1])[1]
 
 cat('Reading input files now...\n\n')
 
+if(!is.numeric(lop$dataStr[, FileCol])) {
+                                                
 # Read in the 1st input file so that we have the dimension information
 inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
 dimx <- inData$dim[1]
@@ -1396,6 +1418,89 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt)
 #write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(), type='MRI_short')
 write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
-             
-#system(statpar)
-print(sprintf("Congratulations! You have got an output %s", lop$outFN))
+
+cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
+
+} else { # the last column is values insteadof input file names
+   lop$dataStr$Beta <- as.numeric(lop$dataStr[, FileCol]) # convert characters to values
+   lop$outFN <- paste(strsplit(lop$outFN, '\\+tlrc')[[1]], '.txt', sep='')
+   capture.output(cat(''), file = lop$outFN, append = FALSE)
+   if(iterPar %in% dimnames(lop$dataStr)[[2]]) nPar <- nlevels(as.factor(lop$dataStr[[iterPar]])) else nPar <- 1
+   maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to remove the intercept: -1 below
+      return(stats:::Pillai(Re(eigen(qr.coef(qr(SSPE), SSP), symmetric = FALSE)$values), DF, error.DF))
+   for(nn in 1:nPar) {
+   fm <- NULL
+   if(nPar == 1) inData <- lop$dataStr else
+       inData <- lop$dataStr[lop$dataStr[[iterPar]] == levels(as.factor(lop$dataStr[[iterPar]]))[nn],]
+   try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full'), silent=TRUE)
+   if(!is.null(fm)) {
+      uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model
+      nTerms <- nrow(uvfm$anova); outTerms <- nTerms/2
+      # UVT p-values
+      uvP <- univ(fm$Anova)$anova[,'Pr(>F)']
+      # within-subject MVT: one set
+      p_wsmvt <- rep(0, nTerms)
+      for(ii in 1:nTerms) {
+         wsmvt <- maov(fm$Anova$SSPE[[ii]], fm$Anova$SSP[[ii]], fm$Anova$df[ii], fm$Anova$error.df)
+         #p-value for upper F
+         p_wsmvt[ii] <- pf(wsmvt[2], wsmvt[3], wsmvt[4], lower.tail = FALSE)
+      }
+      # true MVT
+      mvfm <- Anova(fm$lm, type=3, test='Pillai'); p_mvt <- rep(0, outTerms)
+      for(kk in 1:outTerms) {
+         mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df)
+         #p-value for upper F
+         p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
+         #out_numDF[kk] <-  mvt[3]; out_denDF[kk] <-  mvt[4]
+      }
+      out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
+         p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)
+      # chisq 
+      out_chisq <- qchisq(apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
+         p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)/2, 1, lower.tail = FALSE)
+      out <- cbind(out_chisq, 1, out_p)
+      dimnames(out)[[2]] <- c('# Chisq', 'DF', 'Pr(>Chisq)')
+      dimnames(out)[[1]] <- sprintf('# %s', dimnames(out)[[1]])
+      nC <- max(nchar(row.names(out)))
+      term <- formatC(row.names(out), width=-nC)
+      #or term <- sprintf("%-11s", row.names(out))
+      out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
+      if(lop$num_glt>=1) for(ii in 1:lop$num_glt) {
+         if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
+            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
+         glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
+            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+         if(!is.null(glt)) {
+            out_post[ii,1]   <- glt[1,1]
+            out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
+            out_post[ii,3]   <- glt[1,6]
+            out_post[ii,4]   <- glt[1,7] 
+         } #if(!is.null(glt))
+      } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
+      dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
+      dimnames(out_post)[[2]] <- c('# value', 't-stat', 'DF', '2-sided-P')
+      nC2 <- max(nchar(row.names(out_post)))
+      term2 <- formatC(row.names(out_post), width=-nC2)
+      if(nPar==1) cat('# RESULTS: ANOVA table\n')  else
+         cat('# RESULTS: ANOVA table -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n')
+      cat('-------------------------------------\n')
+      print(setNames(data.frame(unname(out), term,stringsAsFactors=F), c(colnames(out), formatC("",width=-nC))), row.names=F)
+      if(nPar==1) cat('\n# RESULTS: Post hoc tests\n') else
+         cat('\n# RESULTS: Post hoc tests -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n')
+      cat('-------------------------------------\n')
+      print(setNames(data.frame(unname(out_post), term2,stringsAsFactors=F), c(colnames(out_post), formatC("",width=-nC2))), row.names=F)
+      cat('-------------------------------------\n\n')     
+      if(nPar==1) capture.output(cat('\n# RESULTS: ANOVA table\n'), file = lop$outFN, append = TRUE) else
+         capture.output(cat('\n# RESULTS: ANOVA table -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n'), file = lop$outFN, append = TRUE)
+      capture.output(cat(dim(out)[1], '# Number of effects\n'), file = lop$outFN, append = TRUE)
+      capture.output(print(setNames(data.frame(unname(out), term,stringsAsFactors=F),
+         c(colnames(out), formatC("",width=-nC))), row.names=F), file = lop$outFN, append = TRUE)
+      if(nPar==1) capture.output(cat('\n# RESULTS: Post hoc tests\n'), file = lop$outFN, append = TRUE) else
+         capture.output(cat('\n# RESULTS: Post hoc tests -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n'), file = lop$outFN, append = TRUE)
+      capture.output(cat(dim(out_post)[1], '# Number of tests\n'), file = lop$outFN, append = TRUE)
+      capture.output(print(setNames(data.frame(unname(out_post), term2,stringsAsFactors=F),
+         c(colnames(out_post), formatC("",width=-nC2))), row.names=F), file = lop$outFN, append = TRUE)
+   } # if(!is.null(fm))
+   } # for(nn in unique(lop$dataStr[[iterPar]]))
+   cat("\nCongratulations! The above results are saved in file ", lop$outFN, ".\n\n", sep='')
+}
