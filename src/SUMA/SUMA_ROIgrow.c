@@ -25,7 +25,7 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
 "                             integer labels of ROIs.\n"
 "                             Each integer label gets\n"
 "                             grown separately.\n"
-"                             If ROI_LABELS is in niml\n"
+"                             If ROI_LABELS is a dataset in niml\n"
 "                             format, then you need not\n"
 "                             use -roi_nodes because node \n"
 "                             indices are stored with the \n"

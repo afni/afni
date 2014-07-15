@@ -533,7 +533,7 @@ int Network_1B_to_1P(TAYLOR_NETWORK *net, int BB, int *PP1)
 {
    int ib, PP0;
    
-   ENTRY("Network_1B_to_Prange");
+   ENTRY("Network_1B_to_1P");
    
    if (!net || BB < 0 || BB >= net->N_tbv) RETURN(-1);
    

@@ -632,6 +632,28 @@ int main (int argc,char *argv[])
           exit (0);
 		}
       
+      if (strcmp(argv[kar], "-help_sphinx_interactive") == 0) {
+			 FILE *fout = fopen("Mouse_Keyboard_Controls.rst","w");
+          if (!fout) {
+            SUMA_S_Err("Failed to open Mouse_Keyboard_Controls.rst for writing");
+            exit(1);
+          }
+          SUMA_help_message(fout,1);
+          fclose(fout); fout = NULL;
+          exit (0);
+		}
+      
+      if (strcmp(argv[kar], "-help_interactive") == 0) {
+			 FILE *fout = fopen("Mouse_Keyboard_Controls.txt","w");
+          if (!fout) {
+            SUMA_S_Err("Failed to open Mouse_Keyboard_Controls.txt for writing");
+            exit(1);
+          }
+          SUMA_help_message(fout,0);
+          fclose(fout); fout = NULL;
+          exit (0);
+		}
+      
       if (strcmp(argv[kar], "-environment") == 0) {
 			 s = SUMA_env_list_help (0);
           fprintf (SUMA_STDOUT,  
