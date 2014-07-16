@@ -9,6 +9,7 @@
 #include "mri_nwarp.c"
 
 /*----------------------------------------------------------------------------*/
+/* This program is mostly a wrapper for function IW3D_load_bsv() */
 
 int main( int argc , char *argv[] )
 {
@@ -140,7 +141,10 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     ERROR_exit("Unknown and Bogus option '%s' :-( :-( :-(",argv[iarg]) ;
+     ERROR_message("Bogusly Unknown option '%s' :-( :-( :-(",argv[iarg]) ;
+     suggest_best_prog_option(argv[0],argv[iarg]) ;
+     exit(1) ;
+
    }
 
    /*-------- check inputs to see if the user is completely demented ---------*/

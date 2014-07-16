@@ -9,6 +9,8 @@
 #include "mri_nwarp.c"
 
 /*----------------------------------------------------------------------------*/
+/* This program is basically a wrapper for function THD_nwarp_dataset() */
+/*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -376,7 +378,10 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-( :-( :-(",argv[iarg]) ;
+     ERROR_message("Mysteriously Unknown option '%s' :-( :-( :-(",argv[iarg]) ;
+     suggest_best_prog_option(argv[0],argv[iarg]) ;
+     exit(1) ;
+
    }
 
    /*-------- check inputs to see if the user is completely demented ---------*/

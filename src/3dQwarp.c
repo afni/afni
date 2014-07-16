@@ -1048,42 +1048,62 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){   /* loop over cmd line args */
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-help") == 0 ||
          strcmp    (argv[nopt],"-h"   ) == 0   ){
        Qhelp(); exit(0);
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-verb") == 0 ){
        Hverb++ ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-quiet") == 0 ){
        Hverb = 0 ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nowarp") == 0 ){
        nowarp =  1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-iwarp") == 0 ){
        nowarpi = 0 ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nodset") == 0 ){
        nodset =  1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-noneg") == 0 ){  /* 24 May 2013 */
        noneg =  1 ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nopad") == 0 ){  /* 13 Sep 2013 */
        zeropad = 0 ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nopadWARP") == 0 ){ /* 19 Mar 2014 */
        zeropad_warp = 0 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* SECRET OPTION */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
@@ -1092,6 +1112,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-minpad") == 0 ){  /* SECRET OPTION */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        minpad = (int)strtod(argv[nopt],NULL) ;
@@ -1099,23 +1121,33 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-allineate") == 0 ||       /* 15 Jul 2013 */
          strcasecmp(argv[nopt],"-allin"    ) == 0   ){
        do_allin =  1 ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-allinkeep") == 0 ){       /* 27 Aug 2013 */
        keep_allin = 1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-allinkill") == 0 ){       /* 27 Aug 2013 */
        keep_allin = 0 ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-allinfast") == 0 ||       /* 19 Jul 2013 */
          strcasecmp(argv[nopt],"-allfast"  ) == 0   ){
        do_allin =  2 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-allineate_opts") == 0 ||  /* 16 Jul 2013 */
          strcasecmp(argv[nopt],"-allopt")         == 0   ){
@@ -1124,10 +1156,14 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-resample") == 0 ||
          strcasecmp(argv[nopt],"-resam"   ) == 0   ){      /* 17 Jul 2013 */
        do_resam = 1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-plusminus") == 0 || strcmp(argv[nopt],"+-") == 0 ){
 #ifdef ALLOW_PLUSMINUS
@@ -1137,19 +1173,28 @@ int main( int argc , char *argv[] )
 #endif
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-pmNAMES") == 0 ){
        if( ++nopt >= argc-1 ) ERROR_exit("need 2 args after %s",argv[nopt-1]) ;
        plusname = argv[nopt++] ; minusname = argv[nopt++] ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nowarps") == 0 ){  /* these 2 options */
        WARNING_message("-nowarps option is now deprecated: see the -help output") ;
        nowarpi = nowarp = 1 ; nopt++ ; continue ;   /* are just for backward */
      }                                              /* compatibility */
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nowarpi") == 0 ){
        WARNING_message("-nowarpi option is now deprecated: see the -help output") ;
        nowarpi = 1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-patchmin") == 0 || strcasecmp(argv[nopt],"-minpatch") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
@@ -1157,6 +1202,8 @@ int main( int argc , char *argv[] )
        if( minpatch < NGMIN ) minpatch = NGMIN ; else if( minpatch%2 == 0 ) minpatch-- ;
        nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-inilev") == 0 ){
        if( duplo          ) ERROR_exit("Cannot use -inilev with -duplo :-(") ;
@@ -1166,6 +1213,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-maxlev") == 0 ){
        if( duplo          ) ERROR_exit("Cannot use -maxlev with -duplo :-(") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
@@ -1174,6 +1223,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-iniwarp") == 0 ){
        char *apt=NULL ;
        if( duplo )          ERROR_exit("Cannot use -iniwarp with -duplo :-(") ;
@@ -1181,6 +1232,8 @@ int main( int argc , char *argv[] )
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        iwname = strdup(argv[nopt]) ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-weight") == 0 ){  /* 17 Oct 2013 - Open Up Day */
        THD_3dim_dataset *qset ;
@@ -1193,6 +1246,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
        if( iwname != NULL )
          ERROR_exit("Cannot use -duplo with -iniwarp :-(") ;
@@ -1200,6 +1255,8 @@ int main( int argc , char *argv[] )
          ERROR_exit("Cannot use -duplo with -inilev or -maxlev :-(") ;
        duplo = 1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strncasecmp(argv[nopt],"-workhard",9) == 0 ){
        char *wpt = argv[nopt]+9 ;
@@ -1216,12 +1273,19 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-zeasy") == 0 ){     /* 26 Jun 2014 */
        Hzeasy = 1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-noQ") == 0 ){       /* 01 Jul 2014 */
        Hznoq = 1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-superhard") == 0 ){  /* 30 Apr 2013 */
        char *wpt = argv[nopt]+9 ;
@@ -1238,6 +1302,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
 #ifdef ALLOW_QMODE
      if( strcasecmp(argv[nopt],"-Qfinal") == 0 ){     /* 07 May 2013 */
        Hqfinal = 1 ; nopt++ ; continue ;
@@ -1247,6 +1313,8 @@ int main( int argc , char *argv[] )
      }
 #endif
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-qsave") == 0 ){
 #ifndef USE_SAVER
        WARNING_message("-qsave option is not compiled into this copy of 3dQwarp :-(") ;
@@ -1255,6 +1323,8 @@ int main( int argc , char *argv[] )
 #endif
        nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-noXdis") == 0 ){
        flags |= NWARP_NOXDIS_FLAG ; nopt++ ; continue ;
@@ -1266,6 +1336,8 @@ int main( int argc , char *argv[] )
        flags |= NWARP_NOZDIS_FLAG ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-base") == 0 ){
        if( bset   != NULL ) ERROR_exit("Can't use -base twice!") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -base") ;
@@ -1274,6 +1346,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-source") == 0 ){
        if( sset   != NULL ) ERROR_exit("Can't use -source twice!") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -source") ;
@@ -1281,6 +1355,8 @@ int main( int argc , char *argv[] )
        ssname = strdup(argv[nopt]) ; sstrue = sset ; DSET_COPYOVER_REAL(sset) ;
        nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-emask") == 0 ){
        THD_3dim_dataset *eset ;
@@ -1295,6 +1371,8 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-blur") == 0 ){
        float val1,val2 ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -blur") ;
@@ -1307,9 +1385,13 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nopenalty") == 0 ){
        Hpen_fac = 0.0 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strncasecmp(argv[nopt],"-useweight",10) == 0 ||
          strcasecmp (argv[nopt],"-use_weight"  ) == 0   ){
@@ -1320,9 +1402,13 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-noweight") == 0 ){
        auto_weight = 2 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-penfac") == 0 ){
        double val ;
@@ -1335,6 +1421,8 @@ int main( int argc , char *argv[] )
        }
        nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-pencut") == 0 ){  /* 21 Mar 2014 [SECRET OPTION] */
        double val ;
@@ -1350,43 +1438,63 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-penold") == 0 ){
        Hpen_old = 1 ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need arg after -prefix") ;
        prefix = strdup(argv[nopt]) ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-hel") == 0 ){
        meth = GA_MATCH_HELLINGER_SCALAR ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-mi") == 0 ){
        meth = GA_MATCH_KULLBACK_SCALAR ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nmi") == 0 ){
        meth = GA_MATCH_NORMUTIN_SCALAR ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-pcl") == 0 ){
        meth = GA_MATCH_PEARCLP_SCALAR ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-pear") == 0 ){
        meth = GA_MATCH_PEARSON_SCALAR ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
      if( strcasecmp(argv[nopt],"-lpc") == 0 ){
        meth = GA_MATCH_PEARSON_LOCALS ;
        Hzeasy = meth_is_lpc = 1 ; mlev = 0 ; nopt++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-lpa") == 0 ){
        meth = GA_MATCH_PEARSON_LOCALA ; nopt++ ; continue ;
      }
+
+     /*---------------*/
 
 #if 0  /* this should NOT be enabled! */
      if( strcasecmp(argv[nopt],"-localstat") == 0 ){  /* 09 Sep 2013 */
@@ -1394,18 +1502,18 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-     /*--- maybe we should just tell them to use SPM? ---*/
+     /*----- maybe we should just tell them to use SPM? -----*/
 
      ERROR_message("Totally bogus option '%s'",argv[nopt]) ;
-     suggest_best_prog_option(argv[0], argv[nopt]) ;
-     exit(1);
+     suggest_best_prog_option(argv[0],argv[nopt]) ;
+     exit(1) ;
 
-   } /*----- end of loop over command line args -----*/
+   } /*--------------- end of loop over command line args --------------------*/
 
    if( argc < 3 )
      ERROR_exit("Too few options, use -help for details");
 
-   /*----- make a 'clean' prefix -----*/
+   /*----- make a 'clean' prefix (in case we got a dirty one?) -----*/
 
    { char *ns ;
      prefix_clean = strdup(prefix) ;

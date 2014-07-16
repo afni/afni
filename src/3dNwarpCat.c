@@ -533,7 +533,10 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-(",argv[iarg]) ;
+     ERROR_message("Confusingly Unknown option '%s' :-(",argv[iarg]) ;
+     suggest_best_prog_option(argv[0],argv[iarg]) ;
+     exit(1) ;
+
    }
 
    /*-- load any warps left on the command line, after options --*/
