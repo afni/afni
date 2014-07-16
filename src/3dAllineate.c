@@ -1112,7 +1112,7 @@ int main( int argc , char *argv[] )
       "  -parang 7 0.833 1.20     to allow x-scaling\n"
       "  -parang 9 0.833 1.20     to allow z-scaling\n"
       "You could also fix some of the other parameters, if that makes sense\n"
-      "in your situation; for example, to disable out of slice rotations:\n"
+      "in your situation; for example, to disable out-of-slice rotations:\n"
       "  -parfix 5 0  -parfix 6 0\n"
       "and to disable out of slice translation:\n"
       "  -parfix 3 0\n"
@@ -2634,7 +2634,7 @@ int main( int argc , char *argv[] )
        epi_targ = (aaa[4] != '\0' && toupper(aaa[4]) == 'B') ? 0 : 1 ;
 
        if( aaa[1] == 'F' ){   /* -FPS code */
-         if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]);
+         if( ++iarg >= argc )  ERROR_exit("no argument after '%s' :-(",argv[iarg-1]);
          fps = argv[iarg] ;
          if( strlen(fps) < 3 ) ERROR_exit("Too short %4.4s codes '%s' :-(",aaa,fps);
        } else {
@@ -3684,9 +3684,22 @@ STATUS("zeropad weight dataset") ;
    DEFPAR( 7, "y-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
    DEFPAR( 8, "z-scale" , 0.833 , 1.20 , 1.0 , 0.0 , 0.0 ) ;
 
-   DEFPAR(  9, "y/x-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
-   DEFPAR( 10, "z/x-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
-   DEFPAR( 11, "z/y-shear" , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
+   /* the code below (for shear params) was modified 16 Jul 2014, to
+      correct the labels (per user Mingbo) for the various EPI/FPS cases;
+      see the usage of the 'a', 'b', 'c' parameters in defining the shear
+      matrix 'ss' in function GA_setup_affine() in file mri_genalign.c.  */
+
+   { char *alab , *blab , *clab ;
+     switch( smat ){
+       default:       alab = "y/x-shear" ; blab = "z/x-shear" ; clab = "z/y-shear" ; break ;
+       case SMAT_XXX: alab = "y/x-shear" ; blab = "z/x-shear" ; clab = "unused"    ; break ;
+       case SMAT_YYY: alab = "y/x-shear" ; blab = "z/y-shear" ; clab = "unused"    ; break ;
+       case SMAT_ZZZ: alab = "z/x-shear" ; blab = "z/y-shear" ; clab = "unused"    ; break ;
+     }
+     DEFPAR(  9, alab , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
+     DEFPAR( 10, blab , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
+     DEFPAR( 11, clab , -0.1111 , 0.1111 , 0.0 , 0.0 , 0.0 ) ;
+   }
 
    if( twodim_code > 0 ){               /* 03 Dec 2010 */
      int i1=0,i2=0,i3=0,i4=0,i5=0,i6=0 ;

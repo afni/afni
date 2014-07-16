@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 14 , JUL , 2014 , RWC , "mri_nwarp.c" , MICRO , TYPE_GENERAL ,
+  { 16 , JUL , 2014 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Modify labels of shear parameters when '-EPI' is used" ,
+   "Per user Mingbo on the message board" } ,
+
+ { 14 , JUL , 2014 , RWC , "mri_nwarp.c" , MICRO , TYPE_GENERAL ,
    "Add a boatload of comments to explain how warping works" ,
    NULL } ,
 
