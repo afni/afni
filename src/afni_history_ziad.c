@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 16, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
+   "Fixed bug with computation of tract_P0_offset_private values",
+   NULL
+ },
+  
  { 15, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Added different ways to highlight masked tracts",
    NULL
