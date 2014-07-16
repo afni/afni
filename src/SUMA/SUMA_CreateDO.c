@@ -6144,6 +6144,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
    static GLubyte *mgrayvec=NULL;
    byte *tmask_cp=NULL;
    int use_lmask=0, T1=0;
+   static int LastTractMask=-1;
    float lrange[2];
    SUMA_TRACT_SAUX *TSaux=NULL;
    SUMA_OVERLAYS *Sover=NULL;
@@ -6364,7 +6365,9 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                   TSaux->TractMask = SW_SurfCont_TractMaskHide;
                }
             }
-            if ((byte)(TSaux->MaskGray*2.55) != mgrayvec[3]) {
+            if ((byte)(TSaux->MaskGray*2.55) != mgrayvec[3] || 
+                TSaux->TractMask != LastTractMask) {
+               LastTractMask = TSaux->TractMask;
                switch (TSaux->TractMask) {
                   default:
                      break;
@@ -6518,7 +6521,6 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                   SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
                                     sbuf, SUMA_F, 1, "dsten1.jpg", 1, 1);
                   SUMA_ifree(sbuf);
-                                    
                }
                glEnableClientState (GL_COLOR_ARRAY); /* put things back */
                /* Loop 2, draw everything not in the mask and not in stencil */
@@ -6548,8 +6550,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                            if (!colid && TDO->colv) {
                               if (TSaux->TractMask == SW_SurfCont_TractMaskDim) {
                                  int N4, icl; float fac = TSaux->MaskGray*2.55;
-                                 icl = 
-                                    4*Network_PTB_to_1P(TDO->net, 0, n, knet);
+                                 icl = 4*P;
                                  i = 0; N4 = 4*N_pts;
                                  while (i<N4) {
                                     mgrayvec[i++] = 
@@ -6562,7 +6563,7 @@ SUMA_Boolean SUMA_DrawTractDO (SUMA_TractDO *TDO, SUMA_SurfaceViewer *sv)
                                              (byte)(fac); ++icl;
                                  }
                               }
-                              glColorPointer (4, GL_UNSIGNED_BYTE, 0, mgrayvec); 
+                              glColorPointer (4, GL_UNSIGNED_BYTE, 0, mgrayvec);
                            }
                            glVertexPointer (3, GL_FLOAT, 0, tt->pts);
                            glDrawElements ( GL_LINE_STRIP, (GLsizei)N_pts, 
