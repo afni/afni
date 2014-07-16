@@ -1,3 +1,8 @@
+
+/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
+/*   This is the mother goddess of all FMRI programs, so bow down before it.  */
+/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
+
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
@@ -28,6 +33,9 @@
 /*   + Sean and Alex Bellgowan have contributed in their own way.     */
 /**********************************************************************/
 
+/* the definition below is used in some header files,
+   and it indicates that the main() program is in this file */
+
 #define MAIN
 
 #include "afni.h"
@@ -35,6 +43,9 @@
 #include "afni_plugout.h"
 
 /*------------------------------------------------------*/
+/* if the compiler wants to 'show off' the name of this
+   edition of AFNI, then turn that macro into a string. */
+
 #ifdef SHOWOFF
 # undef  SHSH
 # undef  SHSHSH
@@ -48,6 +59,7 @@
 /*------------------------------------------------------*/
 
 #ifdef SHSTRING
+
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
  "This is Version " VERSION               "\n"                                 \
@@ -67,7 +79,9 @@
  "    SUMA: An Interface For Surface-Based Intra- And Inter-Subject Analysis\n"\
  "    With AFNI. 2nd IEEE International Symposium on Biomedical Imaging:\n"    \
  "    Macro to Nano 2, 1510-1513, 2004.\n\n"
+
 #else
+
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
  "This is Version " AVERZHN " -- compiled " __DATE__  "\n\n"                   \
@@ -86,25 +100,32 @@
  "    SUMA: An Interface For Surface-Based Intra- And Inter-Subject Analysis\n"\
  "    With AFNI. 2nd IEEE International Symposium on Biomedical Imaging:\n"    \
  "    Macro to Nano 2, 1510-1513, 2004.\n\n"
-#endif
+
+#endif /* SHSTRING */
+
+/*------------------------------------------------------*/
 
 #ifdef AFNI_DEBUG
+#  define USE_TRACING
 #  define REPORT_PROGRESS(str)  /* nada */
 #else
 #  define REPORT_PROGRESS(str)  \
     do{ if(AFNI_VERBOSE){fputs(str,stderr);fflush(stderr);} } while(0)
 #endif
 
-#define EMPTY_STRING(str) ((str)[0] = '\0')
+/*------------------------------------------------------*/
 
-#ifdef AFNI_DEBUG
-#  define USE_TRACING
-#endif
+#define EMPTY_STRING(str) ((str)[0] = '\0')
 
 #undef IMAGEIZE_CROSSHAIRS  /* disable crosshairs drawn into overlay pixels */
 
+#define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
+                   /* labels with "sides" labels.        */
+
 /*----------------------------------------------------------------
-   Global variables that used to be local variables in main()
+   Global variables that used to be local variables in main(),
+   but since the advent of the splash screen and startup code
+   in MAIN_workprocess().
 ------------------------------------------------------------------*/
 
 static XtAppContext   MAIN_app ;
@@ -116,17 +137,14 @@ static int            MAIN_argc ;
 static char         **MAIN_argv ;
 static Boolean        MAIN_workprocess( XtPointer ) ;
 
-#define USE_SIDES  /* 01 Dec 1999: replace "left is xxx" */
-                   /* labels with "sides" labels.        */
-
 /*----- Stuff saved from the '-com' command line arguments [29 Jul 2005] -----*/
 
-static int   COM_num = 0 ;
+static int COM_num = 0 ;
 #define MAX_N_COM 1024
 static char *COM_com[MAX_N_COM] ;  /* max of 1024 commands allowed!!! */
-static char comsep = ';' ;    /* command separator: 22 Feb 2007 */
+static char comsep = ';' ;         /* command separator: 22 Feb 2007 */
 
-static int   recursed_ondot = 0 ;  /* 18 Feb 2007 */
+static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 
 /********************************************************************
    Print out some help information and then quit quit quit
@@ -1207,7 +1225,7 @@ fprintf(stderr,"\ncoorder: signs = %d %d %d  order = %d %d %d\n" ,
 
 /*-----------------------------------------------------------------------
    This routine is used if hiding Xt warnings is enabled.
-   It simply does nothing -- it replaces the default Xt warning handler.
+   It does very little -- it replaces the default Xt warning handler.
 -------------------------------------------------------------------------*/
 
 void AFNI_handler(char *msg){
@@ -1221,8 +1239,7 @@ void AFNI_handler(char *msg){
 }
 
 /*-----------------------------------------------------------------------*/
-
-/*! Avoid fatal X11 errors. */
+/*! Avoid fatal X11 errors.  Stupid thing is so touchy sometimes. */
 
 int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
   if( GLOBAL_argopt.xtwarns > 0 ){
@@ -1238,34 +1255,35 @@ int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
    Fallback resources for AFNI.  May be overridden by the user's
    .Xdefaults file, or other resource sources.  AFNI does not come
    with an "app-defaults" file, since that would be too much like work.
+   (And would require sysadmin privileges to install.)
 -------------------------------------------------------------------------*/
 
 static char *FALLback[] =
-  {   "AFNI*fontList:              9x15bold=charset1"    ,
-      "AFNI*pbar*fontList:         6x10=charset1"        ,
-      "AFNI*imseq*fontList:        7x13=charset1"        ,
-      "AFNI*font8*fontList:        8x13bold=charset1"    ,
-      "AFNI*font7*fontList:        7x13=charset1"        ,
-      "AFNI*font6*fontList:        6x10=charset1"        ,
-      "AFNI*background:            gray19"               ,
-      "AFNI*menu*background:       gray5"                ,
-      "AFNI*menu*foreground:       #ffdd22"              ,
-      "AFNI*borderColor:           gray19"               ,
-      "AFNI*foreground:            yellow"               ,
-      "AFNI*borderWidth:           0"                    ,
-      "AFNI*troughColor:           blue3"                ,
+  {   "AFNI*fontList:              9x15bold=charset1"    , /* normal font */
+      "AFNI*pbar*fontList:         6x10=charset1"        , /* next to pbar */
+      "AFNI*imseq*fontList:        7x13=charset1"        , /* on imseq */
+      "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
+      "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
+      "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
+      "AFNI*background:            gray19"               , /* background clr */
+      "AFNI*menu*background:       gray5"                , /* bkgd in menus */
+      "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
+      "AFNI*borderColor:           gray19"               , /* same as bkgd! */
+      "AFNI*foreground:            yellow"               , /* normal text */
+      "AFNI*borderWidth:           0"                    , /* don't change! */
+      "AFNI*troughColor:           blue3"                , /* in sliders */
       "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
-      "AFNI*help*background:       black"                ,
+      "AFNI*help*background:       black"                , /* for help */
       "AFNI*help*foreground:       #ffffff"              ,
       "AFNI*help*helpborder:       False"                ,
       "AFNI*help*waitPeriod:       1066"                 ,
       "AFNI*help*fontList:         9x15bold=charset1"    ,
-      "AFNI*cluefont:              9x15bold"             ,
-      "AFNI*bigtext*fontList:      10x20=charset1"       ,
+      "AFNI*cluefont:              9x15bold"             , /* for popup */
+      "AFNI*bigtext*fontList:      10x20=charset1"       ,  /* hints */
       "AFNI*help*cancelWaitPeriod: 333"                  ,
 
       "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
-           "<Btn4Down>: ListPrevItem()\\n"
+           "<Btn4Down>: ListPrevItem()\\n"                /* for scrollwheel */
            "<Btn5Down>: ListNextItem()"                  ,
 
       "AFNI*XmText.translations: #augment"
@@ -1283,9 +1301,10 @@ static char *FALLback[] =
    above is to separate them not with '\n' but with '\\n'.  Ugghhhhhhh.  */
 
 /*-----------------------------------------------------------------------*/
+/* Signal handler for fatal errors; prints out some info before death. */
 
 #include <signal.h>
-void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
+void AFNI_sigfunc(int sig)
 {
    char *sname ;
    static volatile int fff=0 ;
@@ -1316,8 +1335,9 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
 /* The functions below implement the delayed quit feature:
      - when signal SIGQUIT==3 is sent to AFNI, AFNI_sigfunc_quit() gets called
      - which uses alarm() to send signal SIGALRM after 5 sec
-     - which invokes AFNI_sigfunc_alrm()
+     - which invokes AFNI_sigfunc_alrm() == this function
      - which says something cute and dies
+   This catenation of events is for Jerzy 'the Mad Pole' Bodurka.
 ------------------------------------------------------------------------------*/
 
 void AFNI_sigfunc_alrm(int sig)
@@ -1605,6 +1625,7 @@ void AFNI_sigfunc_alrm(int sig)
 #undef NMSG
 
 /*-------------------------------------------------------------------------*/
+/* Called for sig=3 (cf. main() function) */
 
 void AFNI_sigfunc_quit(int sig)
 {
@@ -1612,8 +1633,8 @@ void AFNI_sigfunc_quit(int sig)
   if( nsec == 0 || nsec > 30 ) nsec = 5 ;
   fprintf(stderr,
           "\n** AFNI received QUIT signal ==> exit in %u seconds! **\n",nsec) ;
-  signal(SIGALRM,AFNI_sigfunc_alrm) ;
-  (void)alarm(nsec) ;
+  signal(SIGALRM,AFNI_sigfunc_alrm) ;  /* call the actual death dealer */
+  (void)alarm(nsec) ;                  /* in a while, that is */
   return ;
 }
 
@@ -1632,12 +1653,12 @@ static int check_string( char *targ , int ns , char *ss[] )
 }
 
 /*----------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
+/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*=============================================================================
-  The new AFNI main program.
+  The new (and improved) AFNI main program.
     02 Aug 1999: Have moved much of the startup into a work process.
 ==============================================================================*/
-/*----------------------------------------------------------------------------*/
+/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -1699,6 +1720,7 @@ int main( int argc , char *argv[] )
 
    /* check the processed environment, the afni way: machdep/prefilter
     * and the common main() way: prefilter/machdep  19 Sep 2013 [rickr] */
+
    if( check_string("-get_processed_env_afni",argc,argv) ) {
      AFNI_prefilter_args( &argc , argv );
      machdep();
@@ -1712,24 +1734,25 @@ int main( int argc , char *argv[] )
      dienow++ ;
    }
 
-   if( check_string("-global_opts",argc,argv) ) {
-     fputs(get_gopt_help(), stdout);
+   if( check_string("-global_opts",argc,argv) ) {      /* list global */
+     fputs(get_gopt_help(), stdout);   /* opts used by all AFNI progs */
      dienow++ ;
    }
 
-   if( check_string("-papers",argc,argv) ){
+   if( check_string("-papers",argc,argv) ){  /* list AFNI papers */
      AFNI_list_papers(NULL) ; dienow++ ;
    }
 
    /*** if ordered, die right now ***/
 
-   if( dienow ) exit(0) ;
+   if( dienow ) exit(0) ;  /* farewell, cruel world */
 
-   /*** otherwise, perhaps become all detached from reality ***/
+   /***----- otherwise, perhaps become all detached from reality -----***/
 
    /* Since AFNI_DETACH is applied before machdep() or other my_getenv
       calls, -D cannot be used to apply this env var, so add an option.
                                                      7 Mar 2014 [rickr] */
+
    if( ! check_string("-no_detach",argc,argv) ) {
       PUTENV("AFNI_DETACH","YES") ;            /* Apr 2013 */
       { char *eee = getenv("AFNI_DETACH") ;    /* 31 May 2011 */
@@ -1744,7 +1767,7 @@ int main( int argc , char *argv[] )
       }
    }
 
-   /*--- Initialize some stuff ---*/
+   /*------------- Initialize some more stuff -------------*/
 
    machdep() ;
    AFNI_prefilter_args( &argc , argv ) ;  /* 11 Dec 2007 */
@@ -1791,7 +1814,7 @@ int main( int argc , char *argv[] )
 
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
 
-   signal(SIGQUIT,AFNI_sigfunc_quit) ;  /* 09 Jan 2008 */
+   signal(SIGQUIT,AFNI_sigfunc_quit) ;  /* For Jerzy -- 09 Jan 2008 */
 
    /** set the function to call if run out of memory when creating datasets **/
 
@@ -1905,7 +1928,7 @@ int main( int argc , char *argv[] )
      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
 
-   /* set top exponent for threshold slider [04 Nov 2010] */
+   /* set top exponent for threshold slider [04 Nov 2010] -- for Allison */
 
    { static float tval[9] = { 1.0f , 10.0f , 100.0f , 1000.0f , 10000.0f ,
                               100000.0f , 1000000.0f , 10000000.0f , 100000000.0f } ;
@@ -1943,9 +1966,11 @@ int main( int argc , char *argv[] )
       REPORT_PROGRESS( "[skip .afnirc]" ) ;
    }
 
+   /*--- finally, read the command line for other options ---*/
+
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
 
-   /* disable X11 and Xt error messages and crashes (we hope) */
+   /*-- disable X11 and Xt error messages and crashes (we hope) --*/
 
    (void) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
    (void) XtAppSetErrorHandler(MAIN_app,AFNI_handler) ;
@@ -1982,6 +2007,8 @@ int main( int argc , char *argv[] )
 
    memplot_to_X11_set_DC(MAIN_dc) ; /* 30 Apr 2012 */
 
+   /* for the old PseudoColor world (does anyone live there anymore?) */
+
    if( MAIN_dc->depth < 9 && MAIN_dc->visual_class != TrueColor && GLOBAL_argopt.unique_dcs ){
      GLOBAL_argopt.unique_dcs = False ;
      REPORT_PROGRESS("[-unique off]") ;
@@ -1994,7 +2021,7 @@ int main( int argc , char *argv[] )
 #if 0
    (void) XtAppAddWorkProc( MAIN_app, MAIN_workprocess, NULL ) ;
 #else
-   PLUTO_register_workproc( MAIN_workprocess , NULL ) ;
+   PLUTO_register_workproc( MAIN_workprocess , NULL ) ; /* rest of startup */
 #endif
 
    MCW_disable_help() ;
@@ -2007,7 +2034,7 @@ STATUS("start XtAppMainLoop") ;
 
 #undef HUBERIZE
 #ifdef HUBERIZE
-#include "huber.c"
+#include "huber.c"  /* this is useless drivel */
 #endif
 
 /*---------------------------------------------------------------------------------
@@ -2037,7 +2064,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
       default:{
 STATUS("default call") ;
 
-         RETURN(True) ;
+         RETURN(True) ;  /* I hope this keeps you happy, Ziad :-) */
       }
       break ;
 
@@ -2080,7 +2107,7 @@ STATUS("call 0") ;
       case 9:
       case 10:
 STATUS("sleep call") ;
-        if( !nosplash) AFNI_sleep(1) ; /* waste time to let splash popup */
+        if( !nosplash) AFNI_sleep(1) ; /* burn some time to let splash windo popup */
       break ;
 
       /*============================================================================
@@ -2117,7 +2144,8 @@ STATUS("call 11") ;
       break ;
 
       /*============================================================================
-         Next, read the input files (may take a while).
+         Next, read the input files -- may take a while --
+         which is one reason why we need a splash screen (the other is it's fun)
         ============================================================================*/
 
       case 12:{
@@ -2144,6 +2172,8 @@ STATUS("call 12") ;
       case 13:{
 
 STATUS("call 13") ;
+
+        /* registered transformation functions, etc. */
 
         GLOBAL_library.registered_0D.num = 0 ;               /* initialize registry */
         GLOBAL_library.registered_1D.num = 0 ;               /* initialize registry */
@@ -2201,7 +2231,7 @@ STATUS("call 13") ;
         AFNI_register_1D_funcstr( "Huber Fit" , huber_func ) ;
 #endif
 
-        /** plugins at last! **/
+        /** find and load the plugins at last! **/
 
 #ifdef ALLOW_PLUGINS
         if( MAIN_im3d->type == AFNI_3DDATA_VIEW ){
@@ -2248,7 +2278,7 @@ STATUS("call 14") ;
         OPEN_CONTROLLER( MAIN_im3d ) ;
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
-        AFNI_initialize_view( NULL , MAIN_im3d ) ; /* set up to see it */
+        AFNI_initialize_view( NULL, MAIN_im3d ) ;  /* set up to see it */
 
         /*--- Other small and quick startup stuff before AFNI can go ---*/
 
@@ -2284,7 +2314,7 @@ STATUS("call 14") ;
           REPORT_PROGRESS("\nRT: AFNI realtime plugin is active; cf. README.realtime document") ;
 
         /* 23 Sep 2000: this function will be called 0.123 seconds
-                        from now to initialize the window layouts  */
+                        from now to initialize the window layouts, if any  */
 
         if( GLOBAL_argopt.layout_fname != NULL &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
@@ -2293,13 +2323,14 @@ STATUS("call 14") ;
                                   AFNI_startup_layout_CB , GLOBAL_argopt.layout_fname ) ;
 
         } else if (MAIN_im3d->type == AFNI_3DDATA_VIEW){ /* ZSS Dec 02 2010. */
+
           (void) XtAppAddTimeOut( MAIN_app , 123 ,
                                   AFNI_startup_layout_CB ,
                                   "GIMME_SOMETHING" ) ;
         }
 
         /* 21 Jan 2003: this function will be called 0.246 seconds
-                        from now to run the startup script, if any */
+                        from now to run the startup script commands, if any */
 
         if( GLOBAL_argopt.script_fname != NULL &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
