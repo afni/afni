@@ -310,6 +310,8 @@ void NWC_help(void)
 }
 
 /*----------------------------------------------------------------------------*/
+/* This program is basically a wrapper for function NwarpCalcRPN() */
+/*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -367,6 +369,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strncasecmp(argv[iarg],"-ainterp",6)==0 ){
        char *inam ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
@@ -387,13 +391,18 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*---------------*/
+
      if( strcasecmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
      }
 
      /*---------------*/
 
-     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-(",argv[iarg]) ;
+     ERROR_message("Bizarre and Unknown option '%s' :-(",argv[iarg]) ;
+     suggest_best_prog_option(argv[0],argv[iarg]) ;
+     exit(1) ;
+
    }
 
    if( iarg >= argc ) ERROR_exit("No command line expression :-(") ;

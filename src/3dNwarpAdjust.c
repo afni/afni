@@ -10,6 +10,8 @@
 #include "thd_conformist.c"
 
 /*----------------------------------------------------------------------------*/
+/* This program's function is probably limited to its usage in @toMNI_Qwarpar */
+/*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -212,7 +214,10 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-( :-( :-(",argv[iarg]) ;
+     ERROR_message("Weird and Unknown option '%s' :-( :-( :-(",argv[iarg]) ;
+     suggest_best_prog_option(argv[0],argv[iarg]) ;
+     exit(1) ;
+
    }
 
    Hverb = (verb > 0) ;  /* for IW3D_invert */
