@@ -72,8 +72,11 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
          }
          memcpy(tt->pts, tracts_buff[nn].pts, tt->N_pts3*sizeof(float));
          if (tinb == 0) tb->tract_P0_offset_private[tinb] = 0;
-         else tb->tract_P0_offset_private[tinb] = 
+         else {
+            --tt; /* get previous tract */
+            tb->tract_P0_offset_private[tinb] = 
                   tb->tract_P0_offset_private[tinb-1]+tt->N_pts3/3;
+         }
       }
       tb->N_tracts += N_tractsbuf;
    } 
@@ -458,7 +461,7 @@ int Network_PTB_to_1P(TAYLOR_NETWORK *net, int p, int t, int b)
       }
    } else {
       /* use the precomputed offsets */
-      if (t > 0) PP += net->tbv[b]->tract_P0_offset_private[t-1];
+      if (t > 0) PP += net->tbv[b]->tract_P0_offset_private[t];
    }
    PP += p;
    
