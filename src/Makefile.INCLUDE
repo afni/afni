@@ -54,15 +54,6 @@ EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz aiv mycat quotize $
 
 # mpegtoppm in above list
 
-# this is the list of nonlinear warping program, and is here just for Zhark
-
-QWARP = 3dNwarpAdjust 3dNwarpApply 3dNwarpCalc 3dNwarpCat 3dNwarpFuncs 3dNwarpXYZ 3dQwarp
-QWARPOBJ = 3dNwarpAdjust.o 3dNwarpApply.o 3dNwarpCalc.o 3dNwarpCat.o 3dNwarpFuncs.o 3dNwarpXYZ.o 3dQwarp.o
-
-qwarp: libmri.a libf2c.a $(QWARP)
-
-qwarpobj: $(QWARPOBJ)
-
 ## This list is the core AFNI package:
 ## other programs are experimental and/or outsiders.
 
@@ -1128,6 +1119,17 @@ mri_nstats.o:mri_nstats.c
 3dLocalSVD:3dLocalSVD.o
 	$(RM) $@
 	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS)
+
+# --------------------------------------------------------------------------
+# this is the list of nonlinear warping program, and is here just for Zhark
+# --------------------------------------------------------------------------
+
+QWARP    = 3dNwarpAdjust 3dNwarpApply 3dNwarpCalc 3dNwarpCat 3dNwarpFuncs 3dNwarpXYZ 3dQwarp
+QWARPOBJ = 3dNwarpAdjust.o 3dNwarpApply.o 3dNwarpCalc.o 3dNwarpCat.o 3dNwarpFuncs.o 3dNwarpXYZ.o 3dQwarp.o
+
+qwarp:    libmri.a libf2c.a $(QWARP)
+
+qwarpobj: $(QWARPOBJ)
 
 ## ------- Things to be compiled or linked with OpenMP -------
 
