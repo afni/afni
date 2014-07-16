@@ -65,6 +65,9 @@ static float_triple *censor_rgb   = NULL ;
 static float_triple  censor_rgbAA = { 1.0f , 0.9f , 0.4f } ;
 
 /*-----------------------------------------------------------------*/
+/* Help the pitifully ignorant users out there (most of them). */
+/*-----------------------------------------------------------------*/
+
 void usage_1dplot(int detail)
 {
    printf(
@@ -446,6 +449,10 @@ void usage_1dplot(int detail)
    return;
 }
 
+/*---------------------------------------------------------------------------*/
+/* This program is a very elaborate wrapper for the plot_ts.c functions. */
+/*---------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    int iarg , ii , ny , ignore=0 , use=0 , install=0 ;
@@ -467,15 +474,12 @@ int main( int argc , char *argv[] )
    char autotitle[512]={""}; /* 23 March 2009 */
    float tsbox=0.0f , boxsiz ; int noline=0 ;
 
+   /*---------- startup bureaucracy ----------*/
+
    mainENTRY("1dplot main"); machdep();
    PRINT_VERSION("1dplot"); AUTHOR("RWC et al.");
 
-   boxsiz = AFNI_numenv("AFNI_1DPLOT_BOXSIZE") ;
-        if( boxsiz <= 0.0f   ) boxsiz = 0.006f ;
-   else if( boxsiz <  0.001f ) boxsiz = 0.001f ;
-   else if( boxsiz >  0.020f ) boxsiz = 0.020f ;
-
-   /* 29 Nov 2002: scan for things that make us skip X11 */
+   /*----- 29 Nov 2002: scan for things that make us skip X11 -----*/
 
    for( ii=1 ; ii < argc ; ii++ ){
      if( strcasecmp(argv[ii],"-ps")   == 0 ){ skip_x11 = 1; break; }
@@ -487,21 +491,22 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[ii],"-pngs") == 0 ){ skip_x11 = 1; break; }
      if( strcasecmp(argv[ii],"-help") == 0 ){ skip_x11 = 1; break; }
    }
-   if( argc == 1 ) skip_x11 = 1 ;  /* this is because Ziad is trouble */
-   /** set_opacity_memplot( 0.666f ) ; **/
+   if( argc == 1 ) skip_x11 = 1 ; /*-- this is because Ziad is trouble --*/
+
+   /*----- check for the '-title' option now, since X11 will eat it -----*/
 
    if( !skip_x11 ){
      for( ii=1 ; ii < argc ; ii++ ){
        if( strcmp(argv[ii],"-title") == 0 ){
 #if 0
-         WARNING_message("-title used with X11 plotting: use -plabel instead!") ;
+         WARNING_message("-title used with X11 plotting: use -plabel instead!");
 #endif
          title = argv[ii+1] ; break ;
        }
      }
    }
 
-   /* open X11 */
+   /*----- open X11 (don't do anything with it until the very end) ------*/
 
    if( !skip_x11 ){
      shell = XtVaAppInitialize(
@@ -509,12 +514,20 @@ int main( int argc , char *argv[] )
      if( shell == NULL ) ERROR_exit("Cannot initialize X11!") ;
    }
 
+   /*--- other pre-scan setup stuff ---*/
+
    cpt = my_getenv("TMPDIR") ;  /* just for fun */
 
-   /*-- scan arguments that X11 didn't eat --*/
+   boxsiz = AFNI_numenv("AFNI_1DPLOT_BOXSIZE") ;
+        if( boxsiz <= 0.0f   ) boxsiz = 0.006f ;
+   else if( boxsiz <  0.001f ) boxsiz = 0.001f ;
+   else if( boxsiz >  0.020f ) boxsiz = 0.020f ;
+
+   /*------------ scan arguments that X11 didn't eat ------------*/
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
       /*-- help? --*/
 
       if(strcmp(argv[iarg],"-help") == 0 ||
@@ -522,6 +535,8 @@ int main( int argc , char *argv[] )
          usage_1dplot(strlen(argv[iarg])>3?2:1);
          exit(0) ;
       }
+
+      /*----------*/
 
 #if 0
      if( strcmp(argv[iarg],"-vbox") == 0 ){   /* HIDDEN: just for testing */
@@ -537,14 +552,20 @@ int main( int argc , char *argv[] )
        plot_ts_dohist(1) ; iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-") == 0 ){  /* 23 Aug 2006: null option */
        iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strncasecmp(argv[iarg],"-thi",4) == 0 ){  /* 15 Apr 2009: thickness */
        thik += 0.004f ; if( argv[iarg][1] == 'T' ) thik += 0.004f ;
        iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-norm2") == 0 ){  /* 26 Mar 2008 */
        do_norm = 2 ; iarg++ ; continue ;
@@ -555,6 +576,8 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-normx") == 0 ){
        do_norm = 666 ; iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcasecmp(argv[iarg],"-x") == 0 ){   /* ZSS: April 2007 */
        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
@@ -577,6 +600,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-yaxis") == 0 ){   /* 22 Jul 2003 */
        if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
        sscanf(argv[++iarg],"%f:%f:%d:%d",&ybot,&ytop,&nnay,&mmay) ;
@@ -587,6 +612,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-ytran") == 0 ){   /* 16 Jun 2009 */
        ytran = strdup(argv[++iarg]) ; iarg++ ; continue ;
      }
@@ -595,10 +622,14 @@ int main( int argc , char *argv[] )
        xtran = strdup(argv[++iarg]) ; iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-nopush") == 0 ){  /* 12 Mar 2003 */
        plot_ts_xypush( 0 , 0 ) ;
        iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcasecmp(argv[iarg],"-ps") == 0 ){
         out_ps = 1 ; imsave = 0 ;
@@ -615,6 +646,8 @@ int main( int argc , char *argv[] )
           strcat(imfile,".jpg") ;
         iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcasecmp(argv[iarg],"-jpegs") == 0 ||
          strcasecmp(argv[iarg],"-jpgs" ) == 0   ){
@@ -639,6 +672,8 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcasecmp(argv[iarg],"-png") == 0 ){
         out_ps = 0 ; imsave = PNG_MODE ;
         iarg++ ; if( iarg >= argc ) ERROR_exit("need argument after '%s'",argv[iarg-1]) ;
@@ -647,6 +682,8 @@ int main( int argc , char *argv[] )
           strcat(imfile,".png") ;
         iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcasecmp(argv[iarg],"-pngs") == 0 ){
         int isize; static char sss[256]={""} ;
@@ -669,13 +706,19 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-install") == 0 ){
        install++ ; iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-stdin") == 0 ){  /* 01 Aug 2001 */
        use_stdin++ ; iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-ynames") == 0 ){
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
@@ -687,6 +730,8 @@ int main( int argc , char *argv[] )
         if( iarg < argc && strcmp(argv[iarg],"-") == 0 ) iarg++ ;
         continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-xmulti") == 0 || strcmp(argv[iarg],"-multix") == 0 ){  /* 21 Oct 2013 */
         MRI_IMAGE *qim ; float *qar ; int qq ;
@@ -704,6 +749,8 @@ int main( int argc , char *argv[] )
         continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-dashed") == 0 || strcmp(argv[iarg],"-dash") == 0 ){
        int ddd[99] ; int ii , nd=0 ;
        if( ++iarg < argc && isdigit(argv[iarg][0]) ){
@@ -719,11 +766,15 @@ int main( int argc , char *argv[] )
        plot_ts_setdash(nd,ddd) ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-volreg") == 0 ){
         int ii ;
         for( ii=0 ; ii < 6 ; ii++ ) ynar[nyar++] = dfile_nar[ii] ;
         iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-plabel") == 0 ){
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
@@ -731,11 +782,15 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-wintitle") == 0 ){
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         wintitle = argv[++iarg] ;
         iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-title") == 0 ){ /* normally eaten by XtVaAppInitialize */
 #if 0
@@ -748,17 +803,23 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-xlabel") == 0 ){
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         xlabel = argv[++iarg] ;
         iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-ylabel") == 0 ){
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         ylabel = argv[++iarg] ;
         iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-ignore") == 0 ){
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
@@ -767,12 +828,16 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-use") == 0 || strcmp(argv[iarg],"-num") == 0 ){
         if( iarg == argc-1 ) ERROR_exit("need argument after option %s",argv[iarg]) ;
         use = strtod( argv[++iarg] , NULL ) ;
         if( use < 2 ) ERROR_exit("Illegal -use value!\n") ;
         iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-dx" ) == 0 ||
          strcmp(argv[iarg],"-del") == 0 ||
@@ -784,6 +849,8 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strcmp(argv[iarg],"-xzero") == 0 || strcmp(argv[iarg],"-start") == 0 ||
          strcmp(argv[iarg],"-tzero") == 0   ){
 
@@ -791,6 +858,8 @@ int main( int argc , char *argv[] )
         xzero = strtod( argv[++iarg] , NULL ) ;
         iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strcmp(argv[iarg],"-sep") == 0 ){
         sep = 1 ; iarg++ ; continue ;
@@ -803,9 +872,13 @@ int main( int argc , char *argv[] )
         sep = 0 ; iarg++ ; continue ;
      }
 
+      /*----------*/
+
      if( strncmp(argv[iarg],"-boxes",4) == 0 ){
        tsbox = boxsiz ; iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strncmp(argv[iarg],"-noline",4) == 0 ){
        noline = 1 ; tsbox = boxsiz ; iarg++ ; continue ;
@@ -814,6 +887,8 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-NOLINE",4) == 0 ){
        noline = 2 ; tsbox = boxsiz ; iarg++ ; continue ;
      }
+
+      /*----------*/
 
 #if 0
      if( strncmp(argv[iarg],"-D",2) == 0 && strchr(argv[iarg],'=') != NULL ){
@@ -870,6 +945,8 @@ int main( int argc , char *argv[] )
        rgb_NOW.a = rf ; rgb_NOW.b = gf ; rgb_NOW.c = bf ;
        iarg++ ; continue ;
      }
+
+      /*----------*/
 
      if( strncmp(argv[iarg],"-CENSOR",7)   == 0 ||
          strncmp(argv[iarg],"-censorTR",9) == 0   ){
@@ -978,7 +1055,8 @@ int main( int argc , char *argv[] )
      ERROR_message("Unknown option: %s\n",argv[iarg]) ;
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1);
-   }
+
+   } /*--------- end of scan over command line args ----------*/
 
    if( argc < 2 ){ usage_1dplot(0); exit(0) ; }
 
@@ -1311,7 +1389,7 @@ int main( int argc , char *argv[] )
 
    plot_ts_dobox(tsbox) ; plot_ts_noline(noline) ; /* 23 May 2011 */
 
-   /*--- start X11 ---*/
+   /*--- start X11, plot will appear after a timeout ---*/
 
    if( !skip_x11 ){
      set_wintitle_memplot(wintitle);  /* ZSS Oct. 7 2009 */
@@ -1343,7 +1421,13 @@ int main( int argc , char *argv[] )
 }
 
 /*-----------------------------------------------------------------*/
+/* This function is called when the plot window (below) dies. */
+/*-----------------------------------------------------------------*/
+
 void killfunc(void *fred){ exit(0) ; }
+
+/*-----------------------------------------------------------------*/
+/* Actually plot the data, after the timeout to let X11 start. */
 /*-----------------------------------------------------------------*/
 
 void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
