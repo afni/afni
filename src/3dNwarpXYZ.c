@@ -58,6 +58,9 @@ void print_usage(void)
 }
 
 /*----------------------------------------------------------------------------*/
+/* This program is basically a wrapper for functions THD_nwarp_forward_xyz()
+   and THD_nwarp_inverse_xyz().
+*//*--------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -84,6 +87,8 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     /*---------*/
+
      if( strcasecmp(argv[iarg],"-nwarp") == 0 || strcasecmp(argv[iarg],"-warp") == 0 ){
        if( dset_nwarp != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
@@ -93,9 +98,13 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*---------*/
+
      if( strcasecmp(argv[iarg],"-iwarp") == 0 ){
        do_inv = 1 ; iarg++ ; continue ;
      }
+
+     /*---------*/
 
 #if 0  /*** note that -wfac does not work with -iwarp !!! ***/
      if( strcasecmp(argv[iarg],"-wfac") == 0 ){
@@ -106,7 +115,12 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-     ERROR_exit("Unknown, Illegal, and Fattening option '%s' :-( :-( :-(",argv[iarg]) ;
+     /*---------*/
+
+     ERROR_message("Criminally Unknown option '%s' :-( :-( :-(",argv[iarg]) ;
+     suggest_best_prog_option(argv[0],argv[iarg]) ;
+     exit(1) ;
+
    }
 
    if( dset_nwarp == NULL )
