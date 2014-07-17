@@ -992,7 +992,7 @@ NoFile <- dim(lop$dataStr[1])[1]
 
 cat('Reading input files now...\n\n')
 
-if(!is.numeric(lop$dataStr[, FileCol])) {
+if(is.numeric(lop$dataStr[, FileCol])) {
                                                 
 # Read in the 1st input file so that we have the dimension information
 inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
