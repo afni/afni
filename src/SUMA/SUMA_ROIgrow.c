@@ -35,6 +35,23 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
 "                One with node indices and one with the label.\n"
 "                When this option is not used, you get one\n"
 "                column out containing node indices only.\n"
+"\n"
+"        You can also use the key word PER_NODE (i.e. -roi_labels PER_NODE)\n"
+"        to tell the program to consider each node to be a separate ROI.\n"
+"        If you do not use the option -roi_nodes (see below), then each node\n"
+"        forming the surface is considered to be an ROI on its own and a \n"
+"        region will be grown around it accordingly. Under this scenario you \n"
+"        would get as many files out as you have nodes in the surface.\n"
+"        If you do specify the option -roi_nodes, then growth is done \n"
+"        separately from each node index found in ROI_INDICES below.\n"
+"        \n"
+"        Example: ROIgrow -i ld20 -roi_labels PER_NODE -prefix toy -lim 10\n"
+"\n"
+"                 #launch suma with:\n"
+"                 suma -i ld20 &\n"
+"                 #Visualize grown neighborhood around node 1484 for example.\n"
+"                 DriveSuma -com surf_cont -load_dset toy.1484.1D -I_sb 1\n"
+"\n"
 "     -full_list: Output a row for each node on the surface.\n"
 "                 Nodes not in the grown ROI, receive a 0 for\n"
 "                 a label. This option is ONLY for use with\n"
@@ -473,27 +490,48 @@ int main (int argc,char *argv[])
    nodelabels = NULL; N_nodelabels = 0;
    if (Opt->in_name) {
       SUMA_DSET_FORMAT form=SUMA_NO_DSET_FORMAT;
-      if (!(lbls_dset = SUMA_LoadDset_s(Opt->in_name, &form, 0))) {
-         SUMA_S_Errv("Failed to load -roi_labels %s\n", Opt->in_name);
-         exit(1);
-      }
-      if (SDSET_VECNUM(lbls_dset) != 1) {
-         SUMA_S_Errv(
-            "Node labels dset (%s) has more than one column.\n",
-            Opt->in_name);
-         exit(1);   
-      }
-      if (!(nodelabels = SUMA_DsetCol2Int(lbls_dset, 0, 1))) {
-         SUMA_S_Err("Failed to extract nodelabels");
-         exit(1);
-      }
-      N_nodelabels = SDSET_VECFILLED(lbls_dset);
-      if (!nodeind) {/* node indices are from the node index of the dset */
-         if (!(nodeind = SUMA_GetNodeDef(lbls_dset))) {
-            SUMA_S_Err("No node indices to go with node labels!");
+      if (!strcmp(Opt->in_name,"PER_NODE")) {
+         if (nodeind) {
+            /* user already specified the nodes */
+            SUMA_S_Note("Will grow each of %d nodes from %s\n",
+                        N_nodeind, Opt->in_nodeindices);
+            nodelabels = (int *)SUMA_calloc(N_nodeind, sizeof(int));
+            memcpy(nodelabels, nodeind, N_nodeind*sizeof(int));
+            N_nodelabels = N_nodeind;
+         } else {
+            /* Get all nodes of surface */
+            SUMA_S_Note("Will grow each of %d nodes forming the surface\n",
+                        SO->N_Node);
+            N_nodelabels = N_nodeind = SO->N_Node;
+            nodelabels = (int *)SUMA_calloc(N_nodeind, sizeof(int));
+            nodeind = (int *)SUMA_calloc(N_nodeind, sizeof(int));
+            for (i=0;i<N_nodeind;++i) {
+               nodelabels[i] = nodeind[i] = i;
+            } 
+         }
+      } else {  
+         if (!(lbls_dset = SUMA_LoadDset_s(Opt->in_name, &form, 0))) {
+            SUMA_S_Errv("Failed to load -roi_labels %s\n", Opt->in_name);
             exit(1);
          }
-         N_nodeind = SDSET_VECFILLED(lbls_dset); free_nodeind = 0;
+         if (SDSET_VECNUM(lbls_dset) != 1) {
+            SUMA_S_Errv(
+               "Node labels dset (%s) has more than one column.\n",
+               Opt->in_name);
+            exit(1);   
+         }
+         if (!(nodelabels = SUMA_DsetCol2Int(lbls_dset, 0, 1))) {
+            SUMA_S_Err("Failed to extract nodelabels");
+            exit(1);
+         }
+         N_nodelabels = SDSET_VECFILLED(lbls_dset);
+         if (!nodeind) {/* node indices are from the node index of the dset */
+            if (!(nodeind = SUMA_GetNodeDef(lbls_dset))) {
+               SUMA_S_Err("No node indices to go with node labels!");
+               exit(1);
+            }
+            N_nodeind = SDSET_VECFILLED(lbls_dset); free_nodeind = 0;
+         }
       }
    }
    
