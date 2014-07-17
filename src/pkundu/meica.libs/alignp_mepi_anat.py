@@ -84,9 +84,12 @@ def import_datasets(dsets):
 	outnames = []
 	for dset in dsets:
 		if dset!='' and dset!=None: 
-			sl.append("3dcopy -overwrite %s/%s ./%s" % (startdir,dset,dsprefix(dset)))
-			sl.append("3drefit -view orig `ls %s+*.HEAD`" % (dsprefix(dset)))
-			outnames.append(niibrik(dset))	
+			indir=''
+			if dset[0]!='/': indir = startdir
+			sl.append("3dcopy -overwrite %s/%s %s/%s/%s" % (indir,dset,startdir,walignp_dirname,dsprefix(os.path.basename(dset))))
+			sl.append("3drefit -view orig `ls %s/%s/%s+*.HEAD`" % (startdir,walignp_dirname,dsprefix(os.path.basename(dset))))
+			impdset = '%s+orig' % dsprefix(os.path.basename(dset))
+			outnames.append(niibrik(impdset))	
 		else: 
 			outnames.append('')
 	return outnames
@@ -116,7 +119,7 @@ def graywt(t2sname,s0name):
 	sl.append("3dcalc -overwrite -a 'Segsy.t2svm/Posterior+orig[2]' -prefix %s -expr 'a' " % weightvol)
 	return basevol,weightvol
 
-def allineate(sourcevol, weight, targetvol, prefix, maxrot, maxshf,maxscl):
+def allineate(sourcevol, weight, targetvol, prefix, maxrot, maxshf,maxscl,do_cmass):
 	"""
 	source should be anatomical
 	target should be T2* 
@@ -124,15 +127,13 @@ def allineate(sourcevol, weight, targetvol, prefix, maxrot, maxshf,maxscl):
 	outvol_prefix = "%s_al"  % prefix
 	outmat_prefix = "%s_al_mat"  % prefix
 	cmass_opt = ''
-	if options.cmass: cmass_opt = '-cmass'
+	if do_cmass: cmass_opt = '-cmass'
 	align_opts = "-lpc -weight %s -maxshf %s -maxrot %s -maxscl %s %s" % (weightvol, maxrot, maxshf,maxscl,cmass_opt)
 	sl.append("3dAllineate -overwrite -weight_frac 1.0 -VERB -warp aff -source_automask+2 -master SOURCE -source %s -base %s -prefix ./%s -1Dmatrix_save ./%s %s " \
 		% (sourcevol,targetvol,outvol_prefix,outmat_prefix,align_opts))
 	outvol_name = niibrik(outvol_prefix)
 	outmat_name = outmat_prefix + 'blah'
 	return outvol_name, outmat_name
-
-#def catmat(alcen_matrix,allin_matrix):
 
 def aligntest(target,source,testname):
 	sl.append("3dresample -overwrite -master %s -inset %s -prefix altestA -rmode NN" % (target,source))
@@ -152,7 +153,7 @@ t2s_name,s0_name,anat_name = import_datasets([options.t2s,options.s0,options.ana
 basevol,weightvol = graywt(t2s_name,s0_name)
 
 """Run 3dAllineate"""
-allin_volume,allin_matrix = allineate(anat_name,weightvol,basevol,options.prefix,options.maxrot,options.maxshf,options.maxscl)
+allin_volume,allin_matrix = allineate(anat_name,weightvol,basevol,options.prefix,options.maxrot,options.maxshf,options.maxscl,options.cmass)
 
 """Run procedure"""
 runproc(options.prefix, sl)
