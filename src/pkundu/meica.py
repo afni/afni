@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-__version__="v2.5 beta8"
+__version__="v2.5 beta9"
 welcome_block="""
 # Multi-Echo ICA, Version %s
 #
@@ -151,8 +151,8 @@ extopts.add_option('',"--align_base",dest='align_base',help="Explicitly specify 
 extopts.add_option('',"--TR",dest='TR',help="The TR. Default read from input dataset header",default='')
 extopts.add_option('',"--tpattern",dest='tpattern',help="Slice timing (i.e. alt+z, see 3dTshift -help). Default from header. (N.B. This is important!)",default='')
 extopts.add_option('',"--daw",dest='daw',help="Weight to increase ICA dimensionality, default 10. Use -1 for low tSNR data",default='10')
-extopts.add_option('',"--select_extend",dest='select_extend',help="Component selection factor, default 2. Try 3 or greater for more conservative selection.",default='2')
-extopts.add_option('',"--align_args",dest='align_args',help=SUPPRESS_HELP,default='')
+extopts.add_option('',"--align_args",dest='align_args',help="Additional arguments to anatomical-functional co-registration routine",default='')
+extopts.add_option('',"--ted_args",dest='ted_args',help="Additional arguments to TE-dependence analysis routine",default='')
 extopts.add_option('',"--tlrc",dest='space',help=SUPPRESS_HELP,default=False) #For backwards compat. with existing scripts
 extopts.add_option('',"--highpass",dest='highpass',help=SUPPRESS_HELP,default=0.0)
 extopts.add_option('',"--detrend",dest='detrend',help=SUPPRESS_HELP,default=0.)
@@ -392,6 +392,7 @@ for echo_ii in range(len(datasets)):
 	echo = datasets[echo_ii]
 	indata = getdsname(echo_ii)
 	dsin = 'e'+echo
+	if echo_ii==0: e1_dsin = dsin
 	logcomment("Preliminary preprocessing dataset %s of TE=%sms to produce %s_ts+orig" % (indata,str(tes[echo_ii]),dsin) )
 	#Pre-treat datasets: De-spike, RETROICOR in the future?
 	intsname = "%s%s" % (indata,isf)
@@ -411,6 +412,9 @@ for echo_ii in range(len(datasets)):
 		sl.append("3daxialize  -overwrite -prefix ./%s_ts+orig ./%s_ts+orig" % (dsin,dsin))
 	if oblique_mode: sl.append("3drefit -deoblique -TR %s %s_ts+orig" % (options.TR,dsin))
 	else: sl.append("3drefit -TR %s %s_ts+orig" % (options.TR,dsin))
+#Compute grand mean scaling factor
+sl.append("3dBrickStat -mask eBbase.nii.gz -percentile 50 1 50 %s_ts+orig[%i] > gms.1D" % (e1_dsin,basebrik))
+sl.append("gms=`cat gms.1D`; gmsa=($gms); p50=${gmsa[1]}")
 
 #Compute T2*, S0, and OC volumes from raw data
 logcomment("Prepare T2* and S0 volumes for use in functional masking and (optionally) anatomical-functional coregistration (takes a little while).",level=1)
@@ -439,8 +443,6 @@ if options.anat!='':
 	#Copy in anatomical and make sure its in +orig space
 	logcomment("Copy anatomical into ME-ICA directory and process warps",level=1)
 	sl.append("cp %s/%s* ." % (startdir,nsmprage))
-	if not options.no_axialize:
-		sl.append("3daxialize  -overwrite -prefix %s %s "  % (nsmprage,nsmprage))
 	abmprage = nsmprage
 	refanat = nsmprage
 	if options.space:
@@ -469,7 +471,7 @@ if options.anat!='':
 			sl.append("if [ ! -e %s/%s ]; then " % (startdir,nlatnsmprage))
 			logcomment("Compute non-linear warp to standard space using 3dQwarp (get lunch, takes a while) ")
 			sl.append("3dUnifize -overwrite -GM -prefix ./%su.nii.gz %s/%s" % (dsprefix(atnsmprage),startdir,atnsmprage))  
-			sl.append("3dQwarp -iwarp -overwrite -resample -duplo -useweight -blur 2 2 -workhard -base ${templateloc}/%s -prefix %s/%snl.nii.gz -source ./%su.nii.gz" % (options.space,startdir,dsprefix(atnsmprage),dsprefix(atnsmprage)))
+			sl.append("3dQwarp -iwarp -overwrite -resample -useweight -blur 2 2 -workhard -base ${templateloc}/%s -prefix %s/%snl.nii.gz -source ./%su.nii.gz" % (options.space,startdir,dsprefix(atnsmprage),dsprefix(atnsmprage)))
 			sl.append("fi")
 			sl.append("ln -s %s/%s ." % (startdir,nlatnsmprage))
 			refanat = '%s/%snl.nii.gz' % (startdir,dsprefix(atnsmprage))
@@ -479,14 +481,18 @@ if options.anat!='':
 	else: alnsmprage = "%s/%s" % (startdir,nsmprage)
 	if options.coreg_mode=='lp-t2s': 
 		logcomment("Using alignp_mepi_anat.py to drive T2*-map weighted anatomical-functional coregistration")
+		ama_alnsmprage = alnsmprage
+		if not options.no_axialize:
+			ama_alnsmprage = os.path.basename(alnsmprage)
+			sl.append("3daxialize -overwrite -prefix ./%s %s" % (ama_alnsmprage,alnsmprage))
 		t2salignpath = 'meica.libs/alignp_mepi_anat.py'
 		sl.append("%s %s -t t2svm_ss.nii.gz -a %s -p mepi %s" % \
-			(sys.executable, '/'.join([meicadir,t2salignpath]),alnsmprage,options.align_args))
+			(sys.executable, '/'.join([meicadir,t2salignpath]),ama_alnsmprage,options.align_args))
 		sl.append("cp alignp.mepi/mepi_al_mat.aff12.1D ./%s_al_mat.aff12.1D" % anatprefix)
 	elif options.coreg_mode=='aea':
 		logcomment("Using AFNI align_epi_anat.py to drive anatomical-functional coregistration ")
 		sl.append("3dcopy %s ./ANAT_ns+orig " % alnsmprage)
-		sl.append("align_epi_anat.py -anat2epi -giant_move -volreg off -tshift off -deoblique off -anat_has_skull no -save_script aea_anat_to_ocv.tcsh -anat ANAT_ns+orig -epi ocv_uni+orig -epi_base 0 %s" % (options.align_args) )
+		sl.append("align_epi_anat.py -anat2epi -volreg off -tshift off -deoblique off -anat_has_skull no -save_script aea_anat_to_ocv.tcsh -anat ANAT_ns+orig -epi ocv_uni+orig -epi_base 0 %s" % (options.align_args) )
 		sl.append("cp ANAT_ns_al_mat.aff12.1D %s_al_mat.aff12.1D" % (anatprefix))
 	if options.space: 
 		tlrc_opt = "%s/%s::WARP_DATA -I" % (startdir,atnsmprage)
@@ -574,9 +580,6 @@ for echo_ii in range(len(datasets)):
 		sl.append("3dcalc -float -overwrite -a eBvrmask.nii.gz -b ./%s_vr%s[%i..$] -expr 'step(a)*b' -prefix ./%s_sm%s " % (dsin,osf,basebrik,dsin,osf))
 	else: 
 		sl.append("3dBlurInMask -fwhm %s -mask eBvrmask%s -prefix ./%s_sm%s ./%s_vr%s[%i..$]" % (options.FWHM,osf,dsin,osf,dsin,osf,basebrik))
-	#Do grand mean scaling
-	sl.append("3dBrickStat -mask eBvrmask.nii.gz -percentile 50 1 50 %s_sm%s[%i] > gms.1D" % (dsin,osf,basebrik))
-	sl.append("gms=`cat gms.1D`; gmsa=($gms); p50=${gmsa[1]}")
 	sl.append("3dcalc -float -overwrite -a ./%s_sm%s -expr \"a*10000/${p50}\" -prefix ./%s_sm%s" % (dsin,osf,dsin,osf))
 	sl.append("3dTstat -prefix ./%s_mean%s ./%s_sm%s" % (dsin,osf,dsin,osf))
 	if options.detrend: sl.append("3dDetrend -polort %s -overwrite -prefix ./%s_sm%s ./%s_sm%s " % (options.detrend,dsin,osf,dsin,osf) )
@@ -609,9 +612,7 @@ else: tedflag = ''
 if os.path.exists('%s/meica.libs' % (meicadir)): tedanapath = 'meica.libs/tedana.py'
 else: tedanapath = 'tedana.py'
 logcomment("Perform TE-dependence analysis (takes a good while)",level=1)
-extend_arg=''
-if options.select_extend!='': extend_arg = 'EXTEND_FACTOR=%s' % (options.select_extend)
-sl.append("%s%s %s -e %s  -d %s --sourceTEs=%s --kdaw=%s --rdaw=1 --initcost=%s --finalcost=%s --conv=2.5e-5 %s" % (tedflag,sys.executable, '/'.join([meicadir,tedanapath]),options.tes,ica_input,options.sourceTEs,options.daw,options.initcost,options.finalcost,extend_arg))
+sl.append("%s%s %s -e %s  -d %s --sourceTEs=%s --kdaw=%s --rdaw=1 --initcost=%s --finalcost=%s --conv=2.5e-5 %s" % (tedflag,sys.executable, '/'.join([meicadir,tedanapath]),options.tes,ica_input,options.sourceTEs,options.daw,options.initcost,options.finalcost,options.ted_args))
 sl.append("#")
 if outprefix=='': outprefix=setname
 

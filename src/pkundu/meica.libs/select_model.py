@@ -1,4 +1,4 @@
-__version__="v2.5 beta8"
+__version__="v2.5 beta9"
 welcome_block="""
 # Multi-Echo ICA, Version %s
 #
@@ -298,7 +298,7 @@ def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 	Rhos_lim = np.array(sorted(Rhos[ncls])[::-1])
 	Rhos_sorted = np.array(sorted(Rhos)[::-1])
 	Kappas_elbow = min(Kappas_lim[getelbow(Kappas_lim)],Kappas[getelbow(Kappas)])
-	Rhos_elbow = np.median([Rhos_lim[getelbow(Rhos_lim)]  , Rhos_sorted[getelbow(Rhos_sorted)], getfbounds(ne)[0]])
+	Rhos_elbow = np.mean([Rhos_lim[getelbow(Rhos_lim)]  , Rhos_sorted[getelbow(Rhos_sorted)], getfbounds(ne)[0]])
 	good_guess = ncls[andb([Kappas[ncls]>=Kappas_elbow, Rhos[ncls]<Rhos_elbow])==2]
 	Kappa_rate = (max(Kappas[good_guess])-min(Kappas[good_guess]))/(max(varex[good_guess])-min(varex[good_guess]))
 	Kappa_ratios = Kappa_rate*varex/Kappas
@@ -338,7 +338,7 @@ def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 
 	if len(ncl)>len(good_guess):
 		#Recompute the midk steps on the limited set to clean up the tail
-		d_table_rank = np.vstack([len(ncl)-rankvec(Kappas[ncl]), len(ncl)-rankvec(dice_table[ncl,0]),len(ncl)-rankvec(tt_table[ncl,0]), rankvec(countnoise[ncl]), rankvec(Rhos[ncl]), len(ncl)-rankvec(countsigFR2[ncl])]).T
+		d_table_rank = np.vstack([len(ncl)-rankvec(Kappas[ncl]), len(ncl)-rankvec(dice_table[ncl,0]),len(ncl)-rankvec(tt_table[ncl,0]), rankvec(countnoise[ncl]), len(ncl)-rankvec(countsigFR2[ncl])]).T
 		d_table_score = d_table_rank.sum(1)
 		num_acc_guess = np.mean([np.sum(andb([Kappas[ncl]>Kappas_elbow,Rhos[ncl]<Rhos_elbow])==2), np.sum(Kappas[ncl]>Kappas_elbow)])
 		candartA = np.intersect1d(ncl[d_table_score>num_acc_guess*d_table_rank.shape[1]/RESTRICT_FACTOR],ncl[Kappa_ratios[ncl]>EXTEND_FACTOR*2])
@@ -353,10 +353,6 @@ def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 		ignadd = np.union1d(ignadd,np.intersect1d(ncl[Kappas[ncl]<=Kappas_elbow],ncl[varex[ncl]>new_varex_lb]))
 		ign = np.setdiff1d(np.union1d(ign,ignadd),midk)
 		ncl = np.setdiff1d(ncl,np.union1d(midk,ign))
-		#Get rid of comps with very disproportionate Kappa vs varex
-		candartC = ncl[rankvec(varex[ncl])-rankvec(Kappas[ncl])>len(ncl)/RESTRICT_FACTOR]
-		midk = np.union1d(midk,np.intersect1d(candartC,ncl[Kappa_ratios[ncl]>EXTEND_FACTOR]))
-		ncl = np.setdiff1d(ncl,midk)
 
 	if debug:
 		import ipdb
