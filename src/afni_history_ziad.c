@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 17, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
+   "Made ROIgrow work with single node ROIs, see help for -node_labels PER_NODE",
+   NULL
+ },
+  
  { 16, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Fixed bug with computation of tract_P0_offset_private values",
    NULL
