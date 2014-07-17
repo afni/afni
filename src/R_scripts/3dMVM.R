@@ -1464,42 +1464,50 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
       nC <- max(nchar(row.names(out)))
       term <- formatC(row.names(out), width=-nC)
       #or term <- sprintf("%-11s", row.names(out))
-      out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
-      if(lop$num_glt>=1) for(ii in 1:lop$num_glt) {
-         if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
-            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
-         glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
-            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
-         if(!is.null(glt)) {
-            out_post[ii,1]   <- glt[1,1]
-            out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
-            out_post[ii,3]   <- glt[1,6]
-            out_post[ii,4]   <- glt[1,7] 
-         } #if(!is.null(glt))
-      } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
-      dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
-      dimnames(out_post)[[2]] <- c('# value', 't-stat', 'DF', '2-sided-P')
-      nC2 <- max(nchar(row.names(out_post)))
-      term2 <- formatC(row.names(out_post), width=-nC2)
+      if(lop$num_glt>=1) {
+         out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
+         for(ii in 1:lop$num_glt) {
+            if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
+               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
+            glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
+               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+            if(!is.null(glt)) {
+               out_post[ii,1]   <- glt[1,1]
+               out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
+               out_post[ii,3]   <- glt[1,6]
+               out_post[ii,4]   <- glt[1,7] 
+            } #if(!is.null(glt))
+         } # for(ii in 1:lop$num_glt)
+      
+         dimnames(out_post)[[1]] <- sprintf('# %s', lop$gltLabel)
+         dimnames(out_post)[[2]] <- c('# value', 't-stat', 'DF', '2-sided-P')
+         nC2 <- max(nchar(row.names(out_post)))
+         term2 <- formatC(row.names(out_post), width=-nC2)
+      } # if(lop$num_glt>=1)
       if(nPar==1) cat('# RESULTS: ANOVA table\n')  else
          cat('# RESULTS: ANOVA table -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n')
       cat('-------------------------------------\n')
       print(setNames(data.frame(unname(out), term,stringsAsFactors=F), c(colnames(out), formatC("",width=-nC))), row.names=F)
-      if(nPar==1) cat('\n# RESULTS: Post hoc tests\n') else
-         cat('\n# RESULTS: Post hoc tests -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n')
-      cat('-------------------------------------\n')
-      print(setNames(data.frame(unname(out_post), term2,stringsAsFactors=F), c(colnames(out_post), formatC("",width=-nC2))), row.names=F)
-      cat('-------------------------------------\n\n')     
+      if(lop$num_glt>=1) {
+         if(nPar==1) cat('\n# RESULTS: Post hoc tests\n') else
+            cat('\n# RESULTS: Post hoc tests -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n')
+         cat('-------------------------------------\n')
+         print(setNames(data.frame(unname(out_post), term2,stringsAsFactors=F), c(colnames(out_post), formatC("",width=-nC2))), row.names=F)
+      }
+      #cat('-------------------------------------\n\n')
+      cat('#####################################\n\n')
       if(nPar==1) capture.output(cat('\n# RESULTS: ANOVA table\n'), file = lop$outFN, append = TRUE) else
          capture.output(cat('\n# RESULTS: ANOVA table -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n'), file = lop$outFN, append = TRUE)
       capture.output(cat(dim(out)[1], '# Number of effects\n'), file = lop$outFN, append = TRUE)
       capture.output(print(setNames(data.frame(unname(out), term,stringsAsFactors=F),
          c(colnames(out), formatC("",width=-nC))), row.names=F), file = lop$outFN, append = TRUE)
-      if(nPar==1) capture.output(cat('\n# RESULTS: Post hoc tests\n'), file = lop$outFN, append = TRUE) else
-         capture.output(cat('\n# RESULTS: Post hoc tests -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n'), file = lop$outFN, append = TRUE)
-      capture.output(cat(dim(out_post)[1], '# Number of tests\n'), file = lop$outFN, append = TRUE)
-      capture.output(print(setNames(data.frame(unname(out_post), term2,stringsAsFactors=F),
-         c(colnames(out_post), formatC("",width=-nC2))), row.names=F), file = lop$outFN, append = TRUE)
+      if(lop$num_glt>=1) {
+         if(nPar==1) capture.output(cat('\n# RESULTS: Post hoc tests\n'), file = lop$outFN, append = TRUE) else
+            capture.output(cat('\n# RESULTS: Post hoc tests -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n'), file = lop$outFN, append = TRUE)
+         capture.output(cat(dim(out_post)[1], '# Number of tests\n'), file = lop$outFN, append = TRUE)
+         capture.output(print(setNames(data.frame(unname(out_post), term2,stringsAsFactors=F),
+            c(colnames(out_post), formatC("",width=-nC2))), row.names=F), file = lop$outFN, append = TRUE)
+     }
    } # if(!is.null(fm))
    } # for(nn in unique(lop$dataStr[[iterPar]]))
    cat("\nCongratulations! The above results are saved in file ", lop$outFN, ".\n\n", sep='')
