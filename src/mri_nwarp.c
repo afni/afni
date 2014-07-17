@@ -59,10 +59,10 @@ void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 static int Hverb = 1 ;
 
 /*-------------------------------------------------------------------------*/
-/*######   Blocks of code indicated in the Table of Contents below    #####*/
-/*######   are all surrounded by #if 1 ... #endif pairs, to make it   #####*/
-/*######   easy to skip between the beginning and end of code blocks. #####*/
-/*######   (At least, easy using vi and the % key for match-jumping.) #####*/
+/*######  Blocks of code indicated in the Table of Contents below     #####*/
+/*######  are each surrounded by #if 1 ... #endif pairs, to make it   #####*/
+/*######  easy to skip between the beginning and end of code blocks.  #####*/
+/*######  (At least, easy using vi and the % key for match-jumping.)  #####*/
 /*-------------------------------------------------------------------------*/
 
 #if 1 /*(TOC)*/
@@ -93,7 +93,8 @@ static int Hverb = 1 ;
     (C17) Functions for reading warps and inverting/catenating them right away
           (for the '-nwarp' input of various 3dNwarp programs)
 
-     (Q1) Global variables for 3dQwarp-ing
+     (Q1) Introduction to 3dQwarp, and Global variables for 3dQwarp-ing
+          (includes an outline of the sequence of function calls for 3dQwarp)
      (Q2) Basis functions (cubic and quintic) for warping
      (Q3) Functions to create a patch warp from basis functions and parameters
      (Q4) Evaluate the incrementally warped source image at the combination
@@ -103,9 +104,8 @@ static int Hverb = 1 ;
      (Q7) Function that actually optimizes one incremental patch warp
      (Q8) Functions that drive the warp searching process
      (Q9) Functions for duplo-ing a warp or image (up and down in size)
-    (Q10) Function for warp optimization with duplo-ing
+    (Q10) Function for warp optimization with duplo-ization
     (Q11) All the above functions copied and edited for plusminus warping
-
 -----------------------------------------------------------------------------*/
 /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
 /*===========================================================================*/
@@ -6011,15 +6011,66 @@ ENTRY("IW3D_read_catenated_warp") ;
 
 #if 1
 /*============================================================================*/
-/** (Q1) Global variables for 3dQwarp-ing                                    **/
+/** (Q1) Introduction to 3dQwarp, and Global variables for 3dQwarp-ing       **/
 /*============================================================================*/
 
-/** many global variables below start with 'H',
+/**--------------------------------------------------------------------------**/
+/** The basic 3dQwarp run is an invocation of function IW3D_warp_s2bim()
+    (s2bim == "source to base image"), which returns a struct combining the
+    final index warp and warped source image.  The outline of function calls
+    follows (some minor calls are omitted -- I'm sure you'll figure them out):
+
+     (0) 3dQwarp main() == sets up the global variables (cf. infra) from
+                           the options and inputs, calls IW3D_warp_s2bim(),
+                           and then writes the outputs
+      (1) IW3D_warp_s2bim() == driver function for IW3D_warpomatic()
+       (2a) IW3D_warpomatic() == produces the warp
+        (3a) IW3D_setup_for_improvement() == sets up data for warp optimizing
+         (4) IW3D_load_energy() == compute 'energy' fields for global warp
+                                   as it is now, for warp penalty later
+        (3b) IW3D_improve_warp() == many many calls over shrinking patches
+         (4a) H?warp_setup_basis() == sets up basis polynomials for patch warp
+                                      (? == Q for quintic, C for cubic)
+         (4b) INCOR_create() == sets up struct for incremental 'correlation'
+                                calculations -- first computes with the data
+                                outside the optimizing patch and later gets
+                                finalized each time the patch is updated
+         (4c) HPEN_addup() == initialize warp penalty sum for points outside
+                              the current patch (from the 'energy' fields)
+         (4c) powell_newuoa_con() == Powell NEWUOA constrained optimizer
+          (5) IW3D_scalar_costfun() == function being optimized
+           (5a) Hwarp_apply() == computes patch warp, composes it with current
+                                 global warp (the one being optimized now)
+                                 and then applies it to source image to produce
+                                 the patch data (using linear interpolation)
+            (6) H?warp_eval_X() == evaluate the patch warp given the current
+                                   parameters (? == Q or C; X == A or B,
+                                   depending on the size of the patch); uses
+                                   data setup from H?warp_setup_basis()
+           (5b) INCOR_evaluate() == completes the 'incomplete' correlation
+                                    using the patch data just computed
+           (5c) HPEN_penalty() == finalizes the penalty given the patch warp
+            (6) IW3D_load_energy() = computes the 'energy' of the patch warp
+        (3c) IW3D_cleanup_improvement() == free workspaces created in
+                                           IW3D_setup_for_improvement()
+       (2b) IW3D_warp_floatim() == produces the warped source image
+
+    Separate functions for duplo [starting at IW3D_warp_s2bim_duplo()] and
+    plusminus [starting at IW3D_warp_s2bim_plusminus()] exist, but their
+    structure is the same as above, with only details to set them apart.
+
+    There is an incomplete function THD_warpomatic() which was intended to
+    provide a simple way to warp one dataset to another, but that was never
+    finished.  At present, you have to use IW3D_warp_s2bim(), which requires
+    MRI_IMAGEs as the inputs, not datasets.
+*//**------------------------------------------------------------------------**/
+
+/**--------------------------------------------------------------------------**/
+/** Many global variables below start with 'H',
     which is my notation for the warp patch being optimized;
     however, not all 'H' variables are about the patch itself;
     some of these get set in 3dQwarp.c to control the warp optimization **/
-
-/*----------------------------------------------------------------------------*/
+/**--------------------------------------------------------------------------**/
 
 /*--- flag masks for types of displacement allowed (for Hflags, etc.) ---*/
 
@@ -7683,6 +7734,7 @@ ENTRY("IW3D_setup_for_improvement") ;
      Haawarp  = IW3D_create(Hnx,Hny,Hnz) ;  /* initialized to 0 displacements */
      Haasrcim = mri_to_float(SRCIM) ;       /* 'warped' source image */
    }
+
    (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
    EXRETURN ;
@@ -7915,7 +7967,8 @@ ENTRY("IW3D_improve_warp") ;
    Hcost = IW3D_scalar_costfun( Hnparmap , parvec ) ; /* evaluate at final params */
    (void)IW3D_load_energy(AHwarp) ;                     /* for Hverb output below */
 
-   /* AHwarp gets loaded into Haawarp and Hwval into Haasrcim */
+   /* AHwarp gets loaded into Haawarp and Hwval into Haasrcim;
+      the patch local energy fields get loaded into Haawarp's energy fields */
 
    sar = MRI_FLOAT_PTR(Haasrcim) ;
    Axd = Haawarp->xd; Ayd = Haawarp->yd; Azd = Haawarp->zd; Aje = Haawarp->je; Ase = Haawarp->se;
