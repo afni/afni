@@ -1680,7 +1680,8 @@ static INLINE double_triple eigval_sym3x3( double *a )
      corner offset by l in the x direction,
                    by m in the y direction,
                and by n in the z direction, from the 000 corner.
-   This function is used in computation of the 3dQwarp penalty.
+   This function is used in computation of the 3dQwarp penalty;
+   see function IW3D_load_energy() below.
 *//*--------------------------------------------------------------------------*/
 
 static INLINE float_pair hexahedron_energy( float_triple d000, float_triple d100,
@@ -1748,7 +1749,16 @@ static INLINE float_pair hexahedron_energy( float_triple d000, float_triple d100
 
 /*----------------------------------------------------------------------------*/
 /* Load the deformation energies for all voxels, using hexahedron_energy();
-   return value is the sum of all the energies (AKA the warp penalty)
+   return value is the sum of all the energies (AKA the warp penalty).
+   There are two optional deformation energy arrays stored inside an
+   index warp:
+     je = Jacobian energy = energy of bulk compression or dilation
+     se = Shear energy = energy of shearing and twisting
+   The penalty for 3dQwarp is computed from each voxel energy E by
+     max(je-1,0)^4 + max(se-1,0)^4
+   In this way, small deformations are penalty-free, and then voxel-wise
+   energies over 1 become heavily penalized. Search below for the "HPEN_"
+   variables and "Hpen_" functions to see exactly how these values are used.
 *//*--------------------------------------------------------------------------*/
 
 static float Hpen_cut = 1.0f; /* voxel-wise penalties below this are excluded */
@@ -6024,11 +6034,18 @@ ENTRY("IW3D_read_catenated_warp") ;
                            the options and inputs, calls IW3D_warp_s2bim(),
                            and then writes the outputs
       (1) IW3D_warp_s2bim() == driver function for IW3D_warpomatic()
-       (2a) IW3D_warpomatic() == produces the warp
+                               and applies the warp to the source image
+       (2a) IW3D_warpomatic() == produces the optimized warp
         (3a) IW3D_setup_for_improvement() == sets up data for warp optimizing
          (4) IW3D_load_energy() == compute 'energy' fields for global warp
                                    as it is now, for warp penalty later
-        (3b) IW3D_improve_warp() == many many calls over shrinking patches
+                                   -- if the inital warp (S2BIM_iwarp) is
+                                      not NULL, then this step is important
+        (3b) IW3D_improve_warp() == called many many times over shrinking
+                                    patches; this function optimizes the
+                                    incremental warp Hwarp and then updates
+                                    the global warp Haawarp -- the eventual
+                                    output of IW3D_warpomatic()
          (4a) H?warp_setup_basis() == sets up basis polynomials for patch warp
                                       (? == Q for quintic, C for cubic)
          (4b) INCOR_create() == sets up struct for incremental 'correlation'
@@ -6038,30 +6055,35 @@ ENTRY("IW3D_read_catenated_warp") ;
          (4c) HPEN_addup() == initialize warp penalty sum for points outside
                               the current patch (from the 'energy' fields)
          (4c) powell_newuoa_con() == Powell NEWUOA constrained optimizer
+                                     which actually optimizes Hwarp by
+                                     playing with the coefficients of
+                                     the warp basis polynomials
           (5) IW3D_scalar_costfun() == function being optimized
-           (5a) Hwarp_apply() == computes patch warp, composes it with current
-                                 global warp (the one being optimized now)
-                                 and then applies it to source image to produce
-                                 the patch data (using linear interpolation)
+           (5a) Hwarp_apply() == computes patch warp Hwarp, composes it with
+                                 current global warp Haawarp, and then applies
+                                 it to source image to produce the patch data
+                                 (using linear interpolation)
             (6) H?warp_eval_X() == evaluate the patch warp given the current
                                    parameters (? == Q or C; X == A or B,
                                    depending on the size of the patch); uses
                                    data setup from H?warp_setup_basis()
            (5b) INCOR_evaluate() == completes the 'incomplete' correlation
-                                    using the patch data just computed
+                                    using the patch data just computed;
+                                    this is the measurement of image matching
            (5c) HPEN_penalty() == finalizes the penalty given the patch warp
             (6) IW3D_load_energy() = computes the 'energy' of the patch warp
         (3c) IW3D_cleanup_improvement() == free workspaces created in
                                            IW3D_setup_for_improvement()
        (2b) IW3D_warp_floatim() == produces the warped source image
+                                   (using wsinc5 interpolation)
 
-    Separate functions for duplo [starting at IW3D_warp_s2bim_duplo()] and
+    Parallel functions for duplo [starting at IW3D_warp_s2bim_duplo()] and
     plusminus [starting at IW3D_warp_s2bim_plusminus()] exist, but their
     structure is the same as above, with only details to set them apart.
 
-    There is an incomplete function THD_warpomatic() which was intended to
+    There is an unfinished function THD_warpomatic() which was intended to
     provide a simple way to warp one dataset to another, but that was never
-    finished.  At present, you have to use IW3D_warp_s2bim(), which requires
+    completed.  At present, you have to use IW3D_warp_s2bim(), which requires
     MRI_IMAGEs as the inputs, not datasets.
 *//**------------------------------------------------------------------------**/
 
@@ -6121,9 +6143,9 @@ static float **bbbqar = NULL ;
 
 /*--- local (small) warp over region we are optimizing ---*/
 
-static IndexWarp3D *Hwarp   = NULL ; /* Hermite patch increment = H(x) */
+static IndexWarp3D *Hwarp   = NULL ; /* Hermite patch increment = H(x) = 'patch warp' */
 static IndexWarp3D *AHwarp  = NULL ; /* local version of global warp = A(H(x)) */
-static int          need_AH = 1 ;    /* flag to compute AHwarp */
+static int          need_AH = 1 ;    /* flag to compute AHwarp (not always needed) */
 static int          Hflags  = 0 ;          /* flags for this patch */
 static int          Hgflags = 0 ;          /* flags for global warp */
 static int          Himeth  = MRI_LINEAR ; /* interpolation method for warped data */
