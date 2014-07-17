@@ -146,6 +146,8 @@ int main( int argc , char *argv[] )
    yut = xut + npt ;
    zut = yut + npt ;
 
+   DSET_COPYOVER_REAL(dset_nwarp) ;  /* 17 Jul 2014 */
+
    if( do_inv ){
      code = THD_nwarp_inverse_xyz( dset_nwarp ,
                                    dfac,npt , xin,yin,zin , xut,yut,zut ) ;
