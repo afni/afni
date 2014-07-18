@@ -992,7 +992,7 @@ NoFile <- dim(lop$dataStr[1])[1]
 
 cat('Reading input files now...\n\n')
 
-if(is.numeric(lop$dataStr[, FileCol])) {
+if(any(is.na(as.numeric(lop$dataStr[, FileCol])))) {  # not elegant because "NAs introduced by coercion"
                                                 
 # Read in the 1st input file so that we have the dimension information
 inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
@@ -1421,7 +1421,7 @@ write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
 
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 
-} else { # the last column is values insteadof input file names
+} else { # if(is.numeric(lop$dataStr[, FileCol])): the last column is values insteadof input file names
    lop$dataStr$Beta <- as.numeric(lop$dataStr[, FileCol]) # convert characters to values
    lop$outFN <- paste(strsplit(lop$outFN, '\\+tlrc')[[1]], '.txt', sep='')
    capture.output(cat(''), file = lop$outFN, append = FALSE)
@@ -1467,7 +1467,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
       if(lop$num_glt>=1) {
          out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
          for(ii in 1:lop$num_glt) {
-            if(is.na(lop$gltList[[ii]])) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
+            if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
                adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
                adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
