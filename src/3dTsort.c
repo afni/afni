@@ -165,7 +165,8 @@ int main( int argc , char *argv[] )
                     nvals ,                /* number of briks */
                     SORTS_tsfunc ,         /* timeseries processor */
                     NULL,                  /* data for tsfunc */
-                    NULL                   /* mask */
+                    NULL,                  /* mask */
+                    0                      /* Allow auto scaling of output */
                  ) ;
    } else if (rank == 1) {
       new_dset = MAKER_4D_to_typed_fbuc(
@@ -177,7 +178,8 @@ int main( int argc , char *argv[] )
                     nvals ,                /* number of briks */
                     SORTS_itsfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
-                    NULL                   /* mask */  
+                    NULL,                  /* mask */  
+                    0                      /* Allow auto scaling of output */
                  ) ;
    } else {
       new_dset = MAKER_4D_to_typed_fbuc(
@@ -189,7 +191,8 @@ int main( int argc , char *argv[] )
                     nvals ,                /* number of briks */
                     SORTS_rtsfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
-                    NULL                   /* mask */ 
+                    NULL,                  /* mask */ 
+                    0                      /* Allow auto scaling of output */
                  ) ;
    } 
    if( new_dset != NULL ){

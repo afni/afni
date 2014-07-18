@@ -1460,7 +1460,8 @@ Bring them back after testing. */
                           2 ,                   /* number of briks */
                           RP_tsfunc,          /* timeseries processor */
                           (void *)(&rpud),    /* data for tsfunc */
-                          mmm
+                          mmm,
+                          0   /* Allow auto scaling of output */
                        ) ;
             
             if( new_dset[stype] != NULL ){
@@ -1483,7 +1484,8 @@ Bring them back after testing. */
                              2 ,                   /* number of briks */
                              DEL_tsfunc,          /* timeseries processor */
                              (void *)(&rpud),    /* data for tsfunc */
-                             mmm
+                             mmm,
+                             0   /* Allow auto scaling of output */
                           ))) {
                   ERROR_exit("Unable to compute %d output dataset!\n", 
                               rpud.iref) ;        

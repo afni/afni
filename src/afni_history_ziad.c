@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 18, Jul, 2014, ZSS, "3dTstat", MICRO, TYPE_NEW_OPT,
+   "Added option -nscale to avoid scaling with byte/short output",
+   NULL
+ },
+  
  { 17, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Made ROIgrow work with single node ROIs, see help for -node_labels PER_NODE",
    NULL

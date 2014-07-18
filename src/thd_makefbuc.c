@@ -98,7 +98,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
                                            char * new_prefix , int new_datum ,
                                            int ignore , int detrend ,
                                            int nbrik , generic_func * user_func ,
-                                           void * user_data , byte *mmm)
+                                           void * user_data , byte *mmm,
+                                           int nscale)
 {
    THD_3dim_dataset * new_dset ;  /* output dataset */
 
@@ -456,12 +457,18 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
                 "\nFinal malloc error in MAKER_4D_to_fbuc - is memory exhausted?\n\a");
                EXIT(1) ;
             }
-            sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
-            if( sfac > 0.0 ){
-               sfac = 32767.0 / sfac ;
-               EDIT_coerce_scale_type( nvox,sfac ,
-                                       MRI_float,fout[iv] , MRI_short,bout ) ;
-               sfac = 1.0 / sfac ;
+            if (nscale) {
+               sfac = 0.0;
+               EDIT_coerce_scale_type( nvox, MRI_float, fout[iv] , 
+                                             MRI_short, bout ) ;
+            } else {
+               sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
+               if( sfac > 0.0 ){
+                  sfac = 32767.0 / sfac ;
+                  EDIT_coerce_scale_type( nvox,sfac ,
+                                          MRI_float,fout[iv] , MRI_short,bout ) ;
+                  sfac = 1.0 / sfac ;
+               }
             }
             val[iv] = sfac ;
             EDIT_substitute_brick( new_dset , iv , MRI_short , bout ) ;
@@ -484,12 +491,18 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
                 "\nFinal malloc error in MAKER_4D_to_fbuc - is memory exhausted?\n\a");
                EXIT(1) ;
             }
-            sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
-            if( sfac > 0.0 ){
-               sfac = 255.0 / sfac ;
-               EDIT_coerce_scale_type( nvox,sfac ,
-                                       MRI_float,fout[iv] , MRI_byte,bout ) ;
-               sfac = 1.0 / sfac ;
+            if (nscale) {
+               sfac = 0.0;
+               EDIT_coerce_scale_type( nvox, MRI_float, fout[iv] , 
+                                             MRI_byte,  bout ) ;
+            } else {
+               sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
+               if( sfac > 0.0 ){
+                  sfac = 255.0 / sfac ;
+                  EDIT_coerce_scale_type( nvox,sfac ,
+                                          MRI_float,fout[iv] , MRI_byte,bout ) ;
+                  sfac = 1.0 / sfac ;
+               }
             }
             val[iv] = sfac ;
             EDIT_substitute_brick( new_dset , iv , MRI_byte , bout ) ;

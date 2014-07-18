@@ -704,7 +704,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
           NBUCKETS,					/*Number of values at each voxel*/
 			 DELAY_tsfuncV2 ,         /* timeseries processor (bucket version)*/
 			 (void *)ud,          /* data for tsfunc */
-			 NULL							) ; 
+			 NULL, 0							) ; 
 										 
    /* Setup the label, keywords and types of subbricks */
 	i = 0;
