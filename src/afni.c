@@ -1492,6 +1492,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Statistics are no substitute for judgment"         ,
      "Remember -- A thing can be true, and still be desperate folly" ,
      "Remember -- Everything popular is wrong"                       ,
+     "Remember -- Aquaman cares"                                     ,
      "Forgive your enemy -- but remember the bastard's name"         ,
      "If the facts don't fit the theory, change the facts"           ,
      "All generalizations are false, including this one"             ,
