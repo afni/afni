@@ -20,7 +20,7 @@ int main( int argc , char *argv[] )
    float dxyz_mast  = 0.0f ;
    int interp_code  = MRI_WSINC5 ;
    int ainter_code  = -666 ;
-   int iarg , kk , verb=1 , iv , do_wmast=0 ;
+   int iarg , kk , verb=1 , iv , do_wmast=0 , do_iwarp=0 ;
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
    THD_3dim_dataset *dset_out ;
    MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
@@ -44,6 +44,19 @@ int main( int argc , char *argv[] )
       "--------\n"
       " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
       "                (this is a mandatory option!)\n"
+      "\n"
+      " -iwarp       = After the warp specified in '-nwarp' is read in,\n"
+      "                invert it.  If the input warp would take a dataset\n"
+      "                from space A to B, then the inverted warp will do\n"
+      "                the reverse.\n"
+      "                ++ Note that '-iwarp' does NOT apply to the\n"
+      "                   '-affter' option!\n"
+      "                ++ Also note that '-wfac' applies to the warp AFTER\n"
+      "                   it is inverted!\n"
+      "                ++ The combination \"-iwarp -nwarp 'A B C'\" is equivalent\n"
+      "                   to \"-nwarp 'INV(C) INV(B) INV(A)'\" -- that is, inverting\n"
+      "                   each warp/matrix in the list and reversing their order.\n"
+      "                   The '-iwarp' option is provided for convenience.\n"
       "\n"
       " -affter aaa  = 'aaa' is the name of an optional file containing\n"
       "                an affine matrix to apply to the nonlinear warp,\n"
@@ -265,7 +278,9 @@ int main( int argc , char *argv[] )
 #if 0
        dset_nwarp = THD_open_dataset( argv[iarg] ) ;          /* the simple way */
 #else
+       if( verb ) fprintf(stderr,"Reading -nwarp") ;
        dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
+       if( verb ) fprintf(stderr,"\n") ;
 #endif
        if( dset_nwarp == NULL ) ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg]);
        if( DSET_NVALS(dset_nwarp) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg]);
@@ -378,6 +393,12 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[iarg],"-iwarp") == 0 ){
+       do_iwarp = 1 ; iarg++ ; continue ;
+     }
+
+     /*---------------*/
+
      ERROR_message("Mysteriously Unknown option '%s' :-( :-( :-(",argv[iarg]) ;
      suggest_best_prog_option(argv[0],argv[iarg]) ;
      exit(1) ;
@@ -403,6 +424,15 @@ int main( int argc , char *argv[] )
    if( ainter_code < 0 ) ainter_code = interp_code ;  /* default interp codes */
 
    /*--- the actual work (bow your head in reverence) ---*/
+
+   if( do_iwarp ){            /* 18 Jul 2014 */
+     THD_3dim_dataset *qwarp ;
+     if( verb ) fprintf(stderr,"Applying -iwarp option = inverting -nwarp input") ;
+     qwarp = THD_nwarp_invert(dset_nwarp) ;
+     DSET_delete(dset_nwarp) ;
+     dset_nwarp = qwarp ;
+     if( verb ) fprintf(stderr,"\n") ;
+   }
 
    if( do_wmast && dset_mast == NULL ) dset_mast = dset_nwarp ;
 

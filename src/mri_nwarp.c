@@ -1215,6 +1215,7 @@ ENTRY("THD_nwarp_extend") ;
    IW3D_destroy(AA) ; IW3D_destroy(BB) ; DSET_unload(dset_nwarp) ;
    RETURN(qset) ;
 }
+
 #endif /*(C4)*/ /*###########################################################*/
 
 #if 1
@@ -3206,6 +3207,7 @@ ENTRY("IW3D_invert") ;
      BB = IW3D_copy( AA,-qq ) ;
      for( ii=0 ; ii < pp ; ii++ ){
        if( verb_nww > 1 ) ININFO_message("  - init step %d",ii+1) ;
+       else if( Hverb )   fprintf(stderr,"*") ;
        CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
      }
    } else {
@@ -3294,6 +3296,31 @@ ENTRY("IW3D_invert") ;
 
    WARNING_message("IW3D_invert: iterations failed to converge :-(") ;
    RETURN(BB) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Invert a dataset that represents a warp.
+   This is done the brute force way, by conversion to an index warp,
+   inversion of that, and then conversion back to a dataset struct.
+*//*-------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_nwarp_invert( THD_3dim_dataset *dset_nwarp )
+{
+   IndexWarp3D *AA , *BB ;
+   THD_3dim_dataset *qset ;
+
+ENTRY("THD_nwarp_extend") ;
+
+   if( dset_nwarp == NULL || DSET_NVALS(dset_nwarp) < 3 ) RETURN(NULL) ;
+   DSET_load(dset_nwarp) ; if( !DSET_LOADED(dset_nwarp) ) RETURN(NULL) ;
+
+   AA = IW3D_from_dataset( dset_nwarp , 0 , 0 ) ;  DSET_unload(dset_nwarp) ;
+   BB = IW3D_extend( AA ,  32, 32, 32, 32, 32, 32 , 0 ) ; IW3D_destroy(AA) ;
+   AA = IW3D_invert( BB , NULL , MRI_QUINTIC ) ;          IW3D_destroy(BB) ;
+   BB = IW3D_extend( AA , -32,-32,-32,-32,-32,-32 , 0 ) ; IW3D_destroy(AA) ;
+
+   qset = IW3D_to_dataset( BB , "InvertedWarp" ) ;        IW3D_destroy(BB) ;
+   RETURN(qset) ;
 }
 
 #endif /*(C10)*/ /*###########################################################*/

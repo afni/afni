@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 16 , JUL , 2014 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+  { 18 , JUL , 2014 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
+   "Add -iwarp option, to invert the result from -nwarp" ,
+   NULL } ,
+
+ { 16 , JUL , 2014 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Modify labels of shear parameters when '-EPI' is used" ,
    "Per user Mingbo on the message board" } ,
 
