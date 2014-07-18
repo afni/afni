@@ -134,6 +134,8 @@ void CNW_help(void)
     "                   PLEASE back away from the computer slowly, and\n"
     "                   get professional counseling.\n"
     "\n"
+    " -iwarp      == Invert the final warp before output.\n"
+    "\n"
     " -expad PP   == Pad the nonlinear warps by 'PP' voxels in all directions.\n"
     "                The warp displacements are extended by linear extrapolation\n"
     "                from the faces of the input grid.\n"
@@ -393,7 +395,7 @@ ININFO_message("AA->geomstring = %s",AA->geomstring) ;
 
 int main( int argc , char *argv[] )
 {
-   int iarg=1 , ii ;
+   int iarg=1 , ii , do_iwarp=0 ;
    char *prefix = "NwarpCat" ;
    mat44        wmat      , tmat , smat , qmat ;
    IndexWarp3D *warp=NULL , *tarp=NULL ;
@@ -420,6 +422,12 @@ int main( int argc , char *argv[] )
    /*-- scan args --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*---------------*/
+
+     if( strcasecmp(argv[iarg],"-iwarp") == 0 ){
+       do_iwarp = 1 ; iarg++ ; continue ;
+     }
 
      /*---------------*/
 
@@ -627,6 +635,9 @@ int main( int argc , char *argv[] )
        fp = fopen(fname,"w") ;
        if( fp == NULL ) ERROR_exit("Can't open output file %s",fname) ;
      }
+     if( do_iwarp ){
+       mat44 qmat = MAT44_INV(wmat) ; wmat = qmat ;  /* 18 Jul 2014 */
+     }
      UNLOAD_MAT44(wmat,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34) ;
      fprintf(fp,
              " %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g %13.6g\n",
@@ -653,6 +664,15 @@ INFO_message("output geomstring = %s",warp->geomstring) ;
    }
 
    oset = IW3D_to_dataset( warp , prefix ) ;
+   IW3D_destroy(warp) ;
+   if( do_iwarp ){            /* 18 Jul 2014 */
+     THD_3dim_dataset *qwarp ;
+     if( verb ) fprintf(stderr,"Applying -iwarp option") ;
+     qwarp = THD_nwarp_invert(oset) ;
+     DSET_delete(oset) ;
+     oset = qwarp ;
+     if( verb ) fprintf(stderr,"\n") ;
+   }
    tross_Copy_History( inset , oset ) ;
    tross_Make_History( "3dNwarpCat" , argc,argv , oset ) ;
    if( sname != NULL ) MCW_strncpy( oset->atlas_space , sname , THD_MAX_NAME ) ;
