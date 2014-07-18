@@ -516,7 +516,8 @@ int main( int argc , char * argv[] )
                  nbriks ,               /* number of briks */
 		 Max_tsfunc ,         /* timeseries processor */
                  NULL,                   /* data for tsfunc */
-                 NULL  /* mask */
+                 NULL,  /* mask */
+                 0   /* Allow auto scaling of output */
               ) ;
    if(min_flag)
      printf("%-13.6g ", minvalue); 

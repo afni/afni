@@ -4688,7 +4688,7 @@ ENTRY("PLUTO_4D_to_typed_fbuc") ;
 
    new_dset = MAKER_4D_to_typed_fbuc( old_dset , new_prefix , new_datum ,
                                       ignore , detrend , nbrik , user_func ,
-                                      user_data, NULL ) ;
+                                      user_data, NULL, 0 ) ;
 
    RETURN(new_dset) ;
 }
