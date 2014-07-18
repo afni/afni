@@ -459,8 +459,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
             }
             if (nscale) {
                sfac = 0.0;
-               EDIT_coerce_scale_type( nvox, MRI_float, fout[iv] , 
-                                             MRI_short, bout ) ;
+               EDIT_coerce_type( nvox, MRI_float, fout[iv] , 
+                                       MRI_short, bout ) ;
             } else {
                sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
                if( sfac > 0.0 ){
@@ -493,8 +493,8 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
             }
             if (nscale) {
                sfac = 0.0;
-               EDIT_coerce_scale_type( nvox, MRI_float, fout[iv] , 
-                                             MRI_byte,  bout ) ;
+               EDIT_coerce_type( nvox, MRI_float, fout[iv] , 
+                                       MRI_byte,  bout ) ;
             } else {
                sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
                if( sfac > 0.0 ){

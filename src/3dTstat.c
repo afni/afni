@@ -78,6 +78,7 @@ static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
+static int nscale                  = 0;
 static float basepercent           = 0.5;  /* 50% assumed for duration unless user specified */
 
 static int do_tdiff = 0 ;  /* 25 May 2011 */
