@@ -659,7 +659,8 @@ main (int argc, char *argv[])
 				     nbriks,	/* number of briks */
 				     DWItoDT_tsfunc,	/* timeseries processor */
 				     NULL,	/* data for tsfunc */
-                 NULL   /* mask */
+                 NULL,  /* mask */
+                 0   /* Allow auto scaling of output */
     );
 
 

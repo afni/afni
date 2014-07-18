@@ -126,7 +126,8 @@ int main( int argc , char *argv[] )
                     nvals ,                /* number of briks in output */
                     NORM_tsfunc ,          /* timeseries processor */
                     NULL,                  /* data for tsfunc */
-                    NULL                   /* mask */
+                    NULL,                  /* mask */
+                    0   /* Allow auto scaling of output */
                  ) ;
 
    if( new_dset != NULL ){

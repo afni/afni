@@ -343,7 +343,8 @@ THD_3dim_dataset * Voxelwise_Operations(THD_3dim_dataset *dset,
             2 ,                /* number of values expected in output */
             toy_tsfunc,        /* timeseries processor */
             (void *)(&ud),     /* user data for tsfunc */
-            voxmask            /* byte mask of voxels to process */
+            voxmask,           /* byte mask of voxels to process */
+            0                  /* Allow auto scaling of output */
                                  ) ;
    EDIT_BRICK_LABEL(oset , 0, "FFTpow6");
    EDIT_BRICK_LABEL(oset , 1, "FFTpow");

@@ -188,7 +188,8 @@ int main( int argc , char *argv[] )
                     nbin ,                 /* number of briks in output */
                     PGRAM_tsfunc ,         /* timeseries processor function */
                     NULL,                  /* extra data for tsfunc */
-                    NULL                   /* mask */
+                    NULL,                  /* mask */
+                    0                      /* Allow auto scaling of output */
                  ) ;
 
    if( new_dset != NULL ){
