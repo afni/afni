@@ -252,20 +252,26 @@ ENTRY("mri_maskify") ;
 /*----------------------------------------------------------------------------*/
 /* Return the min and max of the thresholded image [12 Jun 2014] */
 
+static int_pair mm_ijk = {-666,-777} ;
+
+int_pair mri_threshold_minmax_indexes(void){ return mm_ijk ; }  /* and locations */
+
 float_pair mri_threshold_minmax( double thbot, double thtop, MRI_IMAGE *thrim, MRI_IMAGE *im )
 {
-   int ii , npix ;
+   int ii , npix , min_ijk=-666,max_ijk=-777 ;
    float bot=1.e38 , top=-1.e38 ;
    float_pair result = {666.0f,-666.0f} ;
 
 ENTRY("mri_threshold_minmax") ;
+
+   mm_ijk.i = -666 ; mm_ijk.j = -777 ;
 
    if( thrim == NULL           || im == NULL ||
        thrim->nvox != im->nvox || thbot >= thtop ) RETURN(result) ;
 
    npix = im->nvox ;
 
-   switch( thrim->kind ){
+   switch( thrim->kind ){  /* various kinds of data in threshold */
 
       default:{                                  /* stoopid, but works */
         MRI_IMAGE *qim = mri_to_float(thrim) ;
@@ -288,81 +294,96 @@ ENTRY("mri_threshold_minmax") ;
 
          if( thar == NULL ) RETURN(result) ;
 
-         switch( im->kind ){
+         switch( im->kind ){           /* various kinds of data in image */
 
             default: RETURN(result) ;  /* unknown type of data image */
 
             case MRI_byte:{
                register byte *ar = MRI_BYTE_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_rgb:{                             /* 20 Dec 2004 */
                register byte *ar = MRI_RGB_PTR(im) ; float aval ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { aval = 0.299f*ar[3*ii] + 0.587f*ar[3*ii+1] + 0.114f*ar[3*ii+2] ;
-                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  aval = 0.299f*ar[3*ii] + 0.587f*ar[3*ii+1] + 0.114f*ar[3*ii+2] ;
+                  if( aval < bot ){ bot = aval ; min_ijk = ii ; }
+                  if( aval > top ){ top = aval ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_short:{
                register short *ar = MRI_SHORT_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_int:{
                register int *ar = MRI_INT_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_float:{
                register float *ar = MRI_FLOAT_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_double:{
                register double *ar = MRI_DOUBLE_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_complex:{
                register complex *ar = MRI_COMPLEX_PTR(im) ; float aval ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { aval = CABS(ar[ii]) ;
-                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  aval = CABS(ar[ii]) ;
+                  if( aval < bot ){ bot = aval ; min_ijk = ii ; }
+                  if( aval > top ){ top = aval; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
+
          }
       } /* end of short thrim */
 
@@ -380,75 +401,89 @@ ENTRY("mri_threshold_minmax") ;
             case MRI_byte:{
                register byte *ar = MRI_BYTE_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_rgb:{                             /* 20 Dec 2004 */
                register byte *ar = MRI_RGB_PTR(im) ; float aval ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { aval = 0.299f*ar[3*ii] + 0.587f*ar[3*ii+1] + 0.114f*ar[3*ii+2] ;
-                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
-                    ar[3*ii] = ar[3*ii+1] = ar[3*ii+2] = 0 ;
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  aval = 0.299f*ar[3*ii] + 0.587f*ar[3*ii+1] + 0.114f*ar[3*ii+2] ;
+                  if( aval < bot ){ bot = aval ; min_ijk = ii ; }
+                  if( aval > top ){ top = aval ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_short:{
                register short *ar = MRI_SHORT_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_int:{
                register int *ar = MRI_INT_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_float:{
                register float *ar = MRI_FLOAT_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_double:{
                register double *ar = MRI_DOUBLE_PTR(im) ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { bot = MIN(bot,ar[ii]) ; top = MAX(top,ar[ii]) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  if( ar[ii] < bot ){ bot = ar[ii] ; min_ijk = ii ; }
+                  if( ar[ii] > top ){ top = ar[ii] ; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
 
             case MRI_complex:{
                register complex *ar = MRI_COMPLEX_PTR(im) ; float aval ;
                if( ar == NULL ) RETURN(result) ;
-               for( ii=0 ; ii < npix ; ii++ )
+               for( ii=0 ; ii < npix ; ii++ ){
                   if( thar[ii] > th1 && thar[ii] < th2 ) continue ;
-                  else { aval = CABS(ar[ii]) ;
-                         bot = MIN(bot,aval) ; top = MAX(top,aval) ; }
-               if( bot <= top ){ result.a = bot; result.b = top;}
+                  aval = CABS(ar[ii]) ;
+                  if( aval < bot ){ bot = aval ; min_ijk = ii ; }
+                  if( aval > top ){ top = aval; max_ijk = ii ; }
+               }
+               if( bot <= top ){ result.a = bot; result.b = top; mm_ijk.i = min_ijk; mm_ijk.j = max_ijk; }
                RETURN(result) ;
             }
+
          }
       } /* end of float thrim */
 

@@ -3277,6 +3277,36 @@ STATUS("making func->rowcol") ;
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
+   func->pbar_jumpto_thmax_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Jumpto OLay Max (Thr)") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->pbar_jumpto_thmax_pb , XmNactivateCallback ,
+                  AFNI_jumpto_thminmax_CB , im3d ) ;
+   MCW_register_hint( func->pbar_jumpto_thmax_pb , "Jumpto OLay thresholded maximum" ) ;
+   XtSetSensitive( func->pbar_jumpto_thmax_pb , False ) ;
+
+   func->pbar_jumpto_thmin_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Jumpto OLay Min (Thr)") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->pbar_jumpto_thmin_pb , XmNactivateCallback ,
+                  AFNI_jumpto_thminmax_CB , im3d ) ;
+   MCW_register_hint( func->pbar_jumpto_thmin_pb , "Jumpto OLay thresholded minimum" ) ;
+   XtSetSensitive( func->pbar_jumpto_thmin_pb , False ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
    func->pbar_readin_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
