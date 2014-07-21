@@ -38,17 +38,21 @@ ENTRY("AFNI_see_func_CB") ;
      STATUS_IM3D_TMASK(im3d) ;
      STATUS("clear tmask") ;
 #endif
-     IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
-     IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
+     IM3D_CLEAR_TMASK(im3d) ;                                   /* Mar 2013 */
+     IM3D_CLEAR_THRSTAT(im3d) ;                              /* 12 Jun 2014 */
      im3d->vinfo->func_visible = (new_val == 1) ? True : False ;
      if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){            /* 29 Apr 1997 */
-       im3d->vinfo->func_visible = False ;
+       im3d->vinfo->func_visible = False ; new_val = 0 ;
        MCW_set_bbox( im3d->vwid->view->see_func_bbox , 0 ) ; /* 29 Jan 1999 */
      }
-     IM3D_CLEAR_THRSTAT(im3d) ;       /* 12 Jun 2014 */
-     OVERLAY_SUMA ;                   /* 16 Jun 2003 */
-     AFNI_redisplay_func( im3d ) ;    /* 05 Mar 2002 */
+     IM3D_CLEAR_THRSTAT(im3d) ;          /* 12 Jun 2014 */
+     OVERLAY_SUMA ;                      /* 16 Jun 2003 */
+     AFNI_redisplay_func( im3d ) ;       /* 05 Mar 2002 */
      im3d->vinfo->func_visible_count++ ; /* 03 Aug 2007 */
+     if( new_val == 0 ){                 /* 21 Jul 2014 */
+       XtSetSensitive(im3d->vwid->func->pbar_jumpto_thmax_pb,False) ;
+       XtSetSensitive(im3d->vwid->func->pbar_jumpto_thmin_pb,False) ;
+     }
    }
 
    RESET_AFNI_QUIT(im3d) ;

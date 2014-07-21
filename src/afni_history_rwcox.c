@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , JUL , 2014 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
+  { 21 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Add 'Jumpto OLay Min' and 'Max' buttons to OLay popup menu" ,
+   "Lets the user jump crosshairs to locations of (thresholded) min and max\n"
+   "values. (May be inaccurate for non-NN resampling of overlay or threshold.)" } ,
+
+ { 18 , JUL , 2014 , RWC , "3dNwarpApply" , MICRO , TYPE_NEW_OPT ,
    "Add -iwarp option, to invert the result from -nwarp" ,
    NULL } ,
 
