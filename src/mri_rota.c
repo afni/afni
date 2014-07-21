@@ -389,6 +389,7 @@ void ft_shift2( int n, int nup, float af, float * f, float ag, float * g )
    return ;
 }
 
+/**-------------------------------------------------------------------**/
 /*** Shear in the x-direction ***/
 
 void ft_xshear( float a , float b , int nx , int ny , float * f )
@@ -421,6 +422,7 @@ void ft_xshear( float a , float b , int nx , int ny , float * f )
    return ;
 }
 
+/**-------------------------------------------------------------------**/
 /*** Shear in the y direction ***/
 
 void ft_yshear( float a , float b , int nx , int ny , float * f )
@@ -462,6 +464,7 @@ void ft_yshear( float a , float b , int nx , int ny , float * f )
    free(fj0) ; return ;
 }
 
+/**-------------------------------------------------------------------**/
 /*** Image rotation using 3 shears ***/
 
 MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
@@ -558,6 +561,8 @@ MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
 
    return flim ;
 }
+
+/**-------------------------------------------------------------------**/
 
 MRI_IMAGE * mri_rota_variable( int mode, MRI_IMAGE *im, float aa, float bb, float phi )
 {
