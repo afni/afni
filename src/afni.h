@@ -701,8 +701,9 @@ typedef struct {
       MCW_arrowval *pbar_transform2D_av ;
       generic_func *pbar_transform2D_func ;
       int           pbar_transform2D_index ;
-
-      Widget pbar_flip_pb ;                     /* 08 Feb 2012 */
+      Widget        pbar_flip_pb ;              /* 08 Feb 2012 */
+      Widget        pbar_jumpto_thmax_pb ;      /* 21 Jul 2014 */
+      Widget        pbar_jumpto_thmin_pb ;
 
       Widget options_rowcol , options_top_rowcol , options_label ;
       MCW_arrowval *options_vedit_av ;
@@ -1152,11 +1153,15 @@ typedef struct Three_D_View {
       float fim_thrtop ;
       float fim_thresh_min ;
       float fim_thresh_max ;
+      int   fim_thresh_min_ijk ;
+      int   fim_thresh_max_ijk ;
 } Three_D_View ;
 
-#define IM3D_CLEAR_THRSTAT(iq)                                                    \
-  do{ (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f;              \
-      (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f; } while(0)
+#define IM3D_CLEAR_THRSTAT(iq)                                       \
+  do{ (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f; \
+      (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f; \
+      (iq)->fim_thresh_min_ijk = (iq)->fim_thresh_max_ijk = -666   ; \
+  } while(0)
 
 #define IM3D_ULAY_COHERENT(iq)                                                    \
  (( (iq)->b123_ulay == (iq)->b123_anat || (iq)->b123_ulay == (iq)->b123_fim ) &&  \
@@ -1820,6 +1825,7 @@ extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_mnito_CB            ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_check_obliquity     ( Widget , THD_3dim_dataset * ,
                                                 THD_3dim_dataset * ) ;
+extern void AFNI_jumpto_thminmax_CB  ( Widget , XtPointer , XtPointer ) ; /* 21 Jul 2014 */
 
 extern void AFNI_crosshair_pop_CB    ( Widget , XtPointer , XtPointer ) ; /* 12 Mar 2004 */
 extern void AFNI_crosshair_EV        ( Widget , XtPointer , XEvent * , Boolean * ) ;

@@ -2422,7 +2422,7 @@ static char * random_goodbye(void)
 
 void AFNI_quit_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
    XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *) cbs ;
 
 ENTRY("AFNI_quit_CB") ;
@@ -2495,7 +2495,7 @@ ENTRY("AFNI_quit_CB") ;
 
 void AFNI_quit_timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
-   Three_D_View *im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *)client_data ;
 ENTRY("AFNI_quit_timeout_CB") ;
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -5888,7 +5888,7 @@ ENTRY("AFNI_closedown_3dview") ;
 
 void AFNI_controller_panel_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
 
 ENTRY("AFNI_controller_panel_CB") ;
 
@@ -7154,12 +7154,8 @@ DUMP_IVEC3("  new_id",new_id) ;
      if( FLDIF(thbot,im3d->fim_thrbot) || FLDIF(thtop,im3d->fim_thrtop) ){
        ovim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->fim_index) ;
        thim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->thr_index) ;
-       if( ovim == NULL || thim == NULL ){
-#if 0
-INFO_message("ovim and/or thim == NULL : %p %p",ovim,thim) ;
-#endif
-         IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
-       } else {
+       IM3D_CLEAR_THRSTAT(im3d) ;
+       if( ovim != NULL && thim != NULL ){
          im3d->fim_thrbot = thbot ; im3d->fim_thrtop = thtop ;
          fac = DSET_BRICK_FACTOR(im3d->fim_now,im3d->vinfo->thr_index) ;
          if( fac > 0.0f ){ thbot /= fac ; thtop /= fac ; }
@@ -7167,17 +7163,18 @@ INFO_message("ovim and/or thim == NULL : %p %p",ovim,thim) ;
          im3d->fim_thresh_min = ovmm.a ; im3d->fim_thresh_max = ovmm.b ;
          fac = DSET_BRICK_FACTOR(im3d->fim_now,im3d->vinfo->fim_index) ;
          if( fac > 0.0f ){ im3d->fim_thresh_min *= fac ; im3d->fim_thresh_max *= fac ; }
-#if 0
-INFO_message("fim_thresh min=%f max=%f",im3d->fim_thresh_min,im3d->fim_thresh_max) ;
-#endif
        }
        if( im3d->fim_thresh_min < im3d->fim_thresh_max ){
-         char str[256] ;
+         char str[256] ; int_pair mij = mri_threshold_minmax_indexes() ;
          sprintf(str,"OLay thresholded range: %f : %f",im3d->fim_thresh_min,im3d->fim_thresh_max ) ;
          MCW_register_hint( im3d->vwid->func->range_label , str ) ;
+         im3d->fim_thresh_min_ijk = mij.i ;
+         im3d->fim_thresh_max_ijk = mij.j ;
        } else {
          MCW_register_hint( im3d->vwid->func->range_label , "OLay thresholded range: unknown" ) ;
        }
+       SENSITIZE(im3d->vwid->func->pbar_jumpto_thmax_pb,(im3d->fim_thresh_max_ijk > 0)) ;
+       SENSITIZE(im3d->vwid->func->pbar_jumpto_thmin_pb,(im3d->fim_thresh_min_ijk > 0)) ;
      }
 #if 0
 else INFO_message("threshold unchanged") ;
@@ -10525,6 +10522,35 @@ ENTRY("AFNI_jumpto_ijk") ;
       BEEPIT ; WARNING_message("Jumpto IJK failed -- bad indexes?!") ;
       RETURN(-1) ;
    }
+}
+
+/*---------------------------------------------------------------------*/
+
+void AFNI_jumpto_thminmax_CB( Widget w , XtPointer cd , XtPointer cb )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   int ijk , ii,jj,kk ;
+   float xx,yy,zz ;
+
+ENTRY("AFNI_jumpto_thminmax_CB") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+        if( w == im3d->vwid->func->pbar_jumpto_thmax_pb )
+          ijk = im3d->fim_thresh_max_ijk ;
+   else if( w == im3d->vwid->func->pbar_jumpto_thmin_pb )
+          ijk = im3d->fim_thresh_min_ijk ;
+
+   if( ijk < 0 ){ BEEPIT ; SENSITIZE(w,False) ; EXRETURN ; }
+
+   ii = DSET_index_to_ix(im3d->fim_now,ijk) ;
+   jj = DSET_index_to_jy(im3d->fim_now,ijk) ;
+   kk = DSET_index_to_kz(im3d->fim_now,ijk) ;
+
+   MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , ii,jj,kk , xx,yy,zz ) ;
+   (void)AFNI_jumpto_dicom( im3d , xx,yy,zz ) ;
+
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------*/
