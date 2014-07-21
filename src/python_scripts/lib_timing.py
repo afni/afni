@@ -133,7 +133,7 @@ class AfniTiming(LD.AfniData):
          return 1
       for ind in range(self.nrows):
          if len(self.data[ind]) != len(labels[ind]):
-            print "** timing and label row lengths differ at line %d"%ind+1
+            print "** timing and label row lengths differ at line %d"%(ind+1)
             return 1
 
       # make unique label list
