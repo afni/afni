@@ -192,7 +192,7 @@ void mri_adjust_fvectim( MRI_IMAGE *im , int vdim )
    /** make sure modified image has data space ready **/
 
    if( vpt == NULL ){
-     fprintf(stderr,"malloc failure for fvectim space: %d bytes\n",
+     fprintf(stderr,"malloc failure for fvectim space: %lld bytes\n",
              im->pixel_size*im->nvox );
      MRI_FATAL_ERROR ;
    }

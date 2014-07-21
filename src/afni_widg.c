@@ -3190,7 +3190,6 @@ STATUS("making func->rowcol") ;
    if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(func->pbar_menu) ;
 
    XtInsertEventHandler( func->inten_label ,      /* handle events in label */
-
                                0
                              | ButtonPressMask   /* button presses */
                             ,
@@ -3624,6 +3623,16 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    LABELIZE(func->options_label) ;
+
+   XtInsertEventHandler( func->options_label ,      /* handle events in label */
+                               0
+                             | ButtonPressMask   /* button presses */
+                            ,
+                            FALSE ,              /* nonmaskable events? */
+                            AFNI_pbar_EV ,       /* handler */
+                            (XtPointer)im3d ,    /* client data */
+                            XtListTail           /* last in queue */
+                          ) ;
 
 #define VEDIT_COLOR_A "#000066"
 #define VEDIT_COLOR_B "#004466"
@@ -4112,6 +4121,16 @@ STATUS("making func->rowcol") ;
                         " taken from the parent dataset.]"   ) ;
 
    MCW_register_hint( func->range_label , "Ranges of dataset values" ) ;
+
+   XtInsertEventHandler( func->range_label ,      /* handle events in label */
+                               0
+                             | ButtonPressMask   /* button presses */
+                            ,
+                            FALSE ,              /* nonmaskable events? */
+                            AFNI_pbar_EV ,       /* handler */
+                            (XtPointer)im3d ,    /* client data */
+                            XtListTail           /* last in queue */
+                          ) ;
 
    /*--- toggle button to control automatic range scaling for pbar ---*/
    /*--- ZSS: Add percentile button, put both in horiz rowcol 27 Apr 2012 ---*/
@@ -6162,6 +6181,8 @@ ENTRY("AFNI_initialize_controller") ;
    POPUP_cursorize( im3d->vwid->func->thr_pval_label ) ;  /* 05 Sep 2006 */
 #endif
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
+   POPUP_cursorize( im3d->vwid->func->options_label ) ;
+   POPUP_cursorize( im3d->vwid->func->range_label ) ;
    POPUP_cursorize( im3d->vwid->picture ) ;
    POPUP_cursorize( imag->crosshair_label ) ;
    POPUP_cursorize( im3d->vwid->func->thr_label ) ;
