@@ -3279,7 +3279,7 @@ STATUS("making func->rowcol") ;
    func->pbar_jumpto_thmax_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
-            LABEL_ARG("Jumpto OLay Max (Thr)") ,
+            LABEL_ARG("Jumpto OLay Max @Thr") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
@@ -3292,7 +3292,7 @@ STATUS("making func->rowcol") ;
    func->pbar_jumpto_thmin_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
-            LABEL_ARG("Jumpto OLay Min (Thr)") ,
+            LABEL_ARG("Jumpto OLay Min @Thr") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
