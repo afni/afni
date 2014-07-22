@@ -3764,6 +3764,15 @@ be included in default searches, additional atlases or template spaces would
 also need to be added to AFNI_ATLAS_SPACE_LIST and the AFNI_TEMPLATE_SPACE_LIST,
 unless those are set to "ALL".
 
+-------------------------------------------
+Variable: AFNI_SUPP_ATLAS_DIR
+-------------------------------------------
+Allows the addition of atlas definitions to the global list of atlases, templates,
+spaces and transformations. The variable should be set to the name of a directory
+that contains a SessionAtlases.niml file with the same format as the 
+AFNI_atlas_spaces.niml file. Also see AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS,
+AFNI_ATLAS_SPACE_LIST, AFNI_TEMPLATE_SPACE_LIST.
+
 ------------------------------
 Variable: AFNI_TTATLAS_CAUTION (editable)
 ------------------------------
