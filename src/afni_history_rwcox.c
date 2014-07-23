@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 21 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 23 , JUL , 2014 , RWC , "various" , MICRO , TYPE_MODIFY ,
+   "Change format '%d' to '%lld' for a few MRI_IMAGE structs" ,
+   "In various files, to eliminate compiler warnings about printing 64-bit\n"
+   "integers with a 32-bit format." } ,
+
+ { 21 , JUL , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Add 'Jumpto OLay Min' and 'Max' buttons to OLay popup menu" ,
    "Lets the user jump crosshairs to locations of (thresholded) min and max\n"
    "values. (May be inaccurate for non-NN resampling of overlay or threshold.)" } ,

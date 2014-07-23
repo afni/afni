@@ -359,7 +359,7 @@ ENTRY("mri_3dalign_setup") ;
 #endif
    if( verbose ) fprintf(stderr ,
                          "  mri_3dalign: using %d Mbytes of workspace\n" ,
-                         10 * bim->nvox * bim->pixel_size / MEGA ) ;
+                         (int)(10 * bim->nvox * bim->pixel_size / MEGA) ) ;
 
    /*-- d/d(th1) image [angles in degrees here] --*/
 
