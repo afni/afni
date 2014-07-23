@@ -6,7 +6,7 @@
 #include "thd_segtools_fNM.h"
 
 static int verb=0;
-static writedists=0;
+static int writedists=0;
 void segtools_verb( int ii ){ verb = ii ; if (verb > 1) writedists = 1;}
 void segtools_writedists (int ii) { 
    /* The files you get with writedists 
