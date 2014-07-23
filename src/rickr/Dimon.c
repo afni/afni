@@ -3162,7 +3162,7 @@ static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
 
     if( gD.level > 3) {
         fprintf(stderr,"-- CID: have imarr @ %p, im @ %p\n", imarr, im);
-        fprintf(stderr,"   num, nvox, pix_size = %d, %ld, %d (prod %ld)\n",
+        fprintf(stderr,"   num, nvox, pix_size = %d, %lld, %d (prod %lld)\n",
                 imarr->num, im->nvox, im->pixel_size, arrbytes );
     }
 
@@ -3174,7 +3174,7 @@ static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
     if( fp->image ) {
         /* no allocation, but verify num bytes */
         if( arrbytes != fp->bytes ) {
-            fprintf(stderr,"** CID: bytes mismatch, %ld != %d\n",
+            fprintf(stderr,"** CID: bytes mismatch, %lld != %d\n",
                     arrbytes,fp->bytes);
             return 1;
         }
