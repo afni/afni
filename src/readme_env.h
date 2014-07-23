@@ -3766,6 +3766,15 @@ static char *readme_env[] = {
    "also need to be added to AFNI_ATLAS_SPACE_LIST and the AFNI_TEMPLATE_SPACE_LIST,\n" ,
    "unless those are set to \"ALL\".\n" ,
    "\n" ,
+   "-------------------------------------------\n" ,
+   "Variable: AFNI_SUPP_ATLAS_DIR\n" ,
+   "-------------------------------------------\n" ,
+   "Allows the addition of atlas definitions to the global list of atlases, templates,\n" ,
+   "spaces and transformations. The variable should be set to the name of a directory\n" ,
+   "that contains a SessionAtlases.niml file with the same format as the \n" ,
+   "AFNI_atlas_spaces.niml file. Also see AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS,\n" ,
+   "AFNI_ATLAS_SPACE_LIST, AFNI_TEMPLATE_SPACE_LIST.\n" ,
+   "\n" ,
    "------------------------------\n" ,
    "Variable: AFNI_TTATLAS_CAUTION (editable)\n" ,
    "------------------------------\n" ,
@@ -3825,4 +3834,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in the \n" ,
    "instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 3824
+#define NUM_readme_env 3833
