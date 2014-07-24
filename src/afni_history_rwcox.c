@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , JUL , 2014 , RWC , "various" , MICRO , TYPE_MODIFY ,
+  { 24 , JUL , 2014 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Print/Popup warning message if same OLay is Clusterize-d twice" ,
+   NULL } ,
+
+ { 23 , JUL , 2014 , RWC , "various" , MICRO , TYPE_MODIFY ,
    "Change format '%d' to '%lld' for a few MRI_IMAGE structs" ,
    "In various files, to eliminate compiler warnings about printing 64-bit\n"
    "integers with a 32-bit format." } ,
