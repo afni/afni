@@ -1136,7 +1136,7 @@ typedef struct {
 #define DSET_VEDIT_FLAGS(db) DBLK_VEDIT_FLAGS((ds)->dblk)
 
 #define VEDIT_good(vv)                                            \
-   ( (vv).code>0 && (vv).code<=VEDIT_LASTCODE )
+   ( (vv).code > 0 && (vv).code <= VEDIT_LASTCODE )
 #define DBLK_VEDIT_good(db)                                       \
    ( VEDIT_good((db)->vedset) && (db)->vedset.ival >= 0 &&        \
                                  (db)->vedset.ival < (db)->nvals )

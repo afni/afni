@@ -7010,6 +7010,36 @@ void AFNI_set_index_viewpoint( Three_D_View *im3d ,
 
 /*------------------------------------------------------------------------*/
 
+void AFNI_check_for_multiple_vedits( Three_D_View *im3d )
+{
+   static int first=1 ;
+   Three_D_View *qq3d ; int qq ;
+
+   if( !first || !IM3D_OPEN(im3d) ) return ;
+
+   for( qq=0 ; qq < MAX_CONTROLLERS ; qq++ ){
+     qq3d = GLOBAL_library.controllers[qq] ;
+     if( !IM3D_OPEN(qq3d) ) continue ;
+     if( qq3d == im3d     ) continue ;
+     if( qq3d->vedset.code <= 0 || qq3d->vedset.ival < 0 ) continue ;
+     if( qq3d->fim_now == im3d->fim_now ){
+#undef  MCMESS
+#define MCMESS " \n"                      \
+               " Multiple Clusterize \n"  \
+               " operations are open \n"  \
+               " on the same Overlay \n"  \
+               " dataset -- they may \n"  \
+               " conflict & confuse! \n "
+       AFNI_popup_message( MCMESS ) ;
+       WARNING_message   ( MCMESS ) ;
+       first = 0 ; break ;
+     }
+   }
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+
 void AFNI_set_viewpoint( Three_D_View *im3d ,
                          int xx,int yy,int zz , int redisplay_option )
 {
@@ -7133,6 +7163,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          DESTROY_CLARR(im3d->vwid->func->clu_list) ;
          im3d->vwid->func->clu_list = mri_clusterize_array(1) ;
          AFNI_cluster_dispize(im3d,0);  /* display the results */
+         AFNI_check_for_multiple_vedits(im3d) ;  /* 24 Jul 2014 */
        }
        IM3D_CLEAR_THRSTAT(im3d) ;  /* 12 Jun 2014 */
      } else {
