@@ -55,6 +55,9 @@ ENTRY("mri_free") ;
    if( im->name != NULL ){ STATUS("free name"); free(im->name); im->name = NULL; }
    ptr = mri_data_pointer(im) ;
    if( ptr != NULL ){ STATUS("free ptr"); free(ptr); }
+#if 0
+INFO_message("---------- mri_free(%p)",im) ; TRACEBACK ; INFO_message("----------") ;
+#endif
    STATUS("free im"); free(im) ;
    EXRETURN ;
 }
