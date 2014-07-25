@@ -611,14 +611,15 @@ ENTRY("MCW_popup_message") ;
       tid = XtAppAddTimeOut( XtWidgetToApplicationContext( wmsg ) ,
                              22222 , MCW_message_timer_CB , wmsg   ) ;
 
-      XtVaSetValues( wlab , XmNuserData ,  tid , NULL );/* put tid on wlab; */
-   } else {                                             /* shells don't */
-      XtVaSetValues( wlab , XmNuserData , 0 , NULL ) ;  /* have XmNuserData */
+      XtVaSetValues( wlab , XmNuserData ,  tid , NULL ); /* put tid on wlab, */
+   } else {                                            /* since shells don't */
+      XtVaSetValues( wlab , XmNuserData , 0 , NULL ) ;   /* have XmNuserData */
    }
 #endif
 
-   RWC_visibilize(wmsg) ;  /* 27 Sep 2000 */
+   RWC_visibilize(wmsg) ;     /* 27 Sep 2000 */
    NORMAL_cursorize(wmsg) ;
+   MCW_flash_widget(1,wlab) ; /* 25 Jul 2014 */
    RETURN(wmsg) ;
 }
 

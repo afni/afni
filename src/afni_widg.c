@@ -5756,8 +5756,8 @@ void AFNI_popup_message( char *str )
    Three_D_View *im3d ;
    if( str == NULL || str[0] == '\0' ) return ;
    im3d = AFNI_find_open_controller() ;
-   (void) MCW_popup_message( im3d->vwid->prog->clone_pb ,
-                             str, MCW_USER_KILL|MCW_TIMER_KILL ) ;
+   (void)MCW_popup_message( im3d->vwid->prog->clone_pb ,
+                            str, MCW_USER_KILL|MCW_TIMER_KILL ) ;
    return ;
 }
 
