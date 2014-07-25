@@ -7033,6 +7033,7 @@ void AFNI_check_for_multiple_vedits( Three_D_View *im3d )
        AFNI_popup_message( MCMESS ) ;
        WARNING_message   ( MCMESS ) ;
        first = 0 ; break ;
+#undef MCMESS
      }
    }
    return ;
