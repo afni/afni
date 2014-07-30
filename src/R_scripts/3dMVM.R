@@ -28,7 +28,7 @@ greeting.MVM <- function ()
           ================== Welcome to 3dMVM ==================          
    AFNI Group Analysis Program with Multivariate Linear Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.1.1, July 14, 2014
+Version 3.2.0, July 30, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -43,7 +43,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.1.1, July 14, 2014
+Version 3.2.0, July 30, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -53,8 +53,8 @@ Usage:
 ------ 
  3dMVM is a group-analysis program that performs traditional ANOVA- and ANCOVA-
  style computations. In addition, it can run multivariate modeling in the sense
- of mulitple simultaneous response varibles. For univariate analysis, no bound
- is imposed on the  number of explanatory variables, and these variables can be
+ of multiple simultaneous response variables. For univariate analysis, no bound
+ is imposed on the  numbers of explanatory variables, and these variables can be
  either categorical (factor) or numerical/quantitative (covariate). F-statistics
  for all main effects and interactions are automatically included in the output.
  In addition, general linear tests (GLTs) can be requested via symbolic coding.
@@ -73,9 +73,10 @@ Usage:
  Chen, G., Adleman, N.E., Saad, Z.S., Leibenluft, E., Cox, R.W. (in press). 
  Applications of Multivariate Modeling to Neuroimaging Group Analysis: A
  Comprehensive Alternative to Univariate General Linear Model. NeuroImage.
+ 10.1016/j.neuroimage.2014.06.027
  http://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
- In addition to R installtion, the following two R packages need to be acquired
+ In addition to R installation, the following two R packages need to be acquired
  in R first before running 3dMVM:
  
  install.packages("afex")
@@ -97,7 +98,7 @@ Usage:
  
  tcsh -x MVM.txt > diary.txt &
  
- The advantage of the latter command is that the progrression is saved into
+ The advantage of the latter command is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.
  
  More details about 3dMVM can be found at 
@@ -133,7 +134,7 @@ within-subject (condition and emotion) variables:
    NOTE:  1) The model for the analysis can also be set up as and is equivalent to 
           'genotype*sex*condition*emotion+scanner*condition*emotion'.
           2) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
-          is essentially a t-test (or one degree of freedom for the numerator of F-statatistic).
+          is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
           3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
@@ -168,7 +169,7 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
    NOTE:  1) The model for the analysis can be also set up as and is equivalent to 
           'genotype*sex*emotion+age+IQ'.
           2) The 3rd GLT is for the 2-way 2 x 2 interaction between genotype and sex, which
-          is essentially a t-test (or one degree of freedom for the numerator of F-statatistic).
+          is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
           3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
@@ -270,7 +271,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         and B, and A*B = A+B+A:B. The effects of within-subject",
    "         factors, if present under -wsVars are automatically assumed",
    "         to interact with the ones specified here. Subject as a variable",
-   "         should not occur in the model specifiction here.\n", sep = '\n'
+   "         should not occur in the model specification here.\n", sep = '\n'
              ) ),
 
       '-bsVars' = apl(n = 1, d = 1, h = paste(
@@ -285,7 +286,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         and B, and A*B = A+B+A:B. The effects of within-subject",
    "         factors, if present under -wsVars are automatically assumed",
    "         to interact with the ones specified here. Subject as a variable",
-   "         should not occur in the model specifiction here.\n", sep = '\n'
+   "         should not occur in the model specification here.\n", sep = '\n'
              ) ),
 
       '-wsVars' = apl(n=c(1,100), d=NA, h = paste(
@@ -306,14 +307,27 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
        '-wsMVT' = apl(n=0, h = paste(
    "-wsMVT: If at least one within-subject factor is involved in the model, this",
    "         option provides within-subject multivariate testing for any effect",
-   "         associated with a within-subject. The testing strategy is different",
-   "         from the conventional univariate GLM, see more details in",
+   "         associated with a within-subject variable. The testing strategy is",
+   "         different from the conventional univariate GLM, see more details in",
    "         Chen et al., ...... If all the within-subject factors",
    "         have two levels, the multivariate testing would render the same",
    "         results as the univariate version. So use the option only if at",
    "         least one within-subject factor has more than two levels.",
    "         The F-statistics from the multivariate testing are labeled",
    "         with -wsMVT- in the sub-brick names. \n", sep='\n')),
+
+       '-wsE2' = apl(n=0, h = paste(
+   "-wsE2: If at least one within-subject factor is involved in the model, any",
+   "         omnibus F-test associated with a within-subject factor is assessed",
+   "         with both univariate and within-subject multivariate tests. Use",
+   "         the option only if at least one within-subject factor has more",
+   "         than two levels.\n", sep='\n')),
+
+       '-mvE5' = apl(n=0, h = paste(
+   "", sep='\n')),
+
+       '-mvE5a' = apl(n=0, h = paste(
+   "", sep='\n')),
 
       '-mVar' = apl(n=c(1,100), d=NA, h = paste(
    "-mVar variable: With this option, the levels of the within-subject factor",
@@ -347,7 +361,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
    "         this option. The list with more than one variable has to be",
-   "         separaated with comma (,) without any other characters such as",
+   "         separated with comma (,) without any other characters such as",
    "         spaces and should be surrounded within (single or double) quotes.",
    "          For example, -qVars \"Age,IQ\"",
    "         WARNINGS:",
@@ -367,13 +381,13 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         Currently one voxel-wise covariate is allowed only, but this",
    "         may change if demand occurs...",
   # "         The list with more than one variable has to be",
-  # "         separaated with comma (,) without any other characters such as",
+  # "         separated with comma (,) without any other characters such as",
   # "         spaces and should be surrounded within (single or double) quotes.",
   # "         For example, -qVars \"Var1,Var2\".
    "         By default mean centering is performed voxel-wise across all",
    "         subjects. Alternatively centering can be specified through a",
    "         global value under -vVarsCenters. If the voxel-wise covariates",
-   "         have already been centered, set the centers at 0 with -vVarsCenters.",
+   "         have already been centered, set the centers at 0 with -vVarsCenters.\n",
              sep = '\n'
              ) ),
 
@@ -430,7 +444,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         'Group : 1*Old - 1*Young Age : '\n", 
    "         4) The absence of a categorical variable in a coding means the",
    "         levels of that factor are averaged (or collapsed) for the GLT.\n",
-   "         5) The appearance of a categorial variable has to be followed",
+   "         5) The appearance of a categorical variable has to be followed",
    "         by the linear combination of its levels. Only a quantitative",
    "         is allowed to have a dangling coding as seen in 'Age :'\n",         
              sep = '\n'
@@ -451,14 +465,14 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         [] within quotes) specified with a number or label. Unequal number of",
    "         subjects across groups is allowed, but situations with missing data",
    "         for a within-subject factor are better handled with 3dLME.\n",
-   "         3) It is fine to have variabiles (or columns) in the table that are",
+   "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
    "         4) The context of the table can be saved as a separate file, e.g.,",
-   "         called table.txt. Do not foget to include a backslash at the end of",
-   "         each row. In the script specify the data with '-dataTable table.txt'.",
+   "         called table.txt. Do not forget to include a backslash at the end of",
+   "         each row. In the script specify the data with '-dataTable @table.txt'.",
    "         This option is useful: (a) when there are many input files so that",
    "         the program complains with an 'Arg list too long' error; (b) when",
-   "         you want to try different models with the same dataset.\n",
+   "         you want to try different models with the same dataset (see 3) above).\n",
              sep = '\n'
                      ) ),
 
@@ -491,15 +505,25 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       lop$qVars  <- NA
       lop$vVars  <- NA
       lop$vQV    <- NA
-      lop$qVarCenters    <- NA
-      lop$vVarCenters    <- NA
-      lop$num_glt <- 0
-      lop$gltLabel <- NULL
-      lop$gltCode  <- NULL
-      lop$dataTable <- NULL
+      lop$qVarCenters <- NA
+      lop$vVarCenters <- NA
+      lop$num_glt     <- 0
+      lop$gltLabel    <- NULL
+      lop$gltCode     <- NULL
+      lop$dataTable   <- NULL
 
       lop$SC     <- FALSE
-      lop$wsMVT    <- FALSE
+      lop$wsMVT  <- FALSE
+      lop$wsE2   <- FALSE  # combining UVT and wsMVT, and then replacing UVT: only applicable for an
+                           # effect associated with a within-subject factor with more than 2 levels
+      lop$mvE5    <- FALSE # combining 5 effects: 1st half UVT (AUC), 2nd half UVT (EXC), 1st half
+                           # wsMVT (AUC), 2nd half wsMVT (EXC), and MVT: assuming ONLY one within-subject
+                           # factor (e.g., effects from basis functions). Those 5 individual results 
+                           # are not output (cf., lop$mvE5a).
+      lop$mvE5a   <- FALSE # combining 5 effects: 1st half UVT (AUC), 2nd half UVT (EXC), 1st half
+                           # wsMVT (AUC), 2nd half wsMVT (EXC), and MVT: assuming ONLY one within-subject
+                           # factor (e.g., effects from basis functions). Results added (or appended) to 
+                           # others (cf., lop$mvE5a).
       lop$iometh <- 'clib'
       lop$verb   <- 0
 
@@ -526,10 +550,13 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              
              help = help.MVM.opts(params, adieu=TRUE),
 
-             SC  = lop$SC     <- TRUE,
-             wsMVT = lop$wsMVT    <- TRUE,
-             cio = lop$iometh <- 'clib',
-             Rio = lop$iometh <- 'Rlib'
+             SC    = lop$SC     <- TRUE,
+             wsMVT = lop$wsMVT  <- TRUE,
+             wsE2  = lop$wsE2   <- TRUE,
+             mvE5  = lop$mvE5   <- TRUE,
+             mvE5a = lop$mvE5a  <- TRUE,
+             cio   = lop$iometh <- 'clib',
+             Rio   = lop$iometh <- 'Rlib'
              )
    }
 
@@ -688,25 +715,52 @@ scanLine <- function(file, lnNo=1, marker="\\:")
    strip.white=TRUE, nline=1)), marker))[2]
 
 # function to obtain multivariate ANOVA
-# may totally aboandon this and switch to linearHypothesis
+# may totally abandon this and switch to linearHypothesis
 # Pillai test only now
 # does this work for multiple between-subjects variables (factors and quantitative variables)?????????
 #maov <- function(mvfm)  # Pillai test with type = 3, need to remove the intercept: -1 below
 #   return(stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[-1]]), symmetric = FALSE)$values), mvfm$df[-1], mvfm$error.df))
-                                                
-#maov <- function(mvfm) { # with type = 3, need to remove the intercept: -1 below
-#   return(stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[-1]]), symmetric = FALSE)$values), mvfm$df[-1], mvfm$error.df))
-#}
 
 # general linear test for between-subjects variables only
 # takes components from Anova(fm$lm, type=3, test='Pillai') as input  
-maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to remove the intercept: -1 below
+maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3
    return(stats:::Pillai(Re(eigen(qr.coef(qr(SSPE), SSP), symmetric = FALSE)$values), DF, error.DF))
+
+# Combines 3 tests, and outputs the minimum p-values among 4 tests:
+# 2 from UVT, 1 from within-subject MVT, and 1 from MVT.
+# takes model object from aov.car from afex as input: assuming that
+# model fitting with afex: ONE within-subject factor ONLY!
+mvCom5 <- function(fm, nF_mvE5) {
+   uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model
+   uvP  <- rep(1, 2*nF_mvE5)
+   p_wsmvt <- rep(1, nF_mvE5)
+   p_mvt   <- rep(1, nF_mvE5)
+   if(!is.null(uvfm)) {
+   #nTerms <- nrow(uvfm$anova)  # totaly number of effect estimates
+   #outTerms <- nTerms/2        # half of them
+   # UVT p-values
+      uvP <- uvfm$anova[,'Pr(>F)'] # p-values for UVT
+   # within-subject MVT: one set
+   #p_wsmvt <- rep(1, nTerms)   # initiation for within-subject MVT
+      for(ii in 1:nF_mvE5) {
+         jj <- nF_mvE5 + ii
+         wsmvt <- maov(fm$Anova$SSPE[[jj]], fm$Anova$SSP[[jj]], fm$Anova$df[jj], fm$Anova$error.df)
+         #p-value for upper F
+         p_wsmvt[ii] <- pf(wsmvt[2], wsmvt[3], wsmvt[4], lower.tail = FALSE)
+      }
+   }
+   # true MVT
+   mvfm <- Anova(fm$lm, type=3, test='Pillai')
+   for(kk in 1:nF_mvE5) {
+      mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df)
+      #p-value for upper F
+      p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
+   }
+   out_p <- apply(cbind(uvP[1:nF_mvE5], uvP[(nF_mvE5+1):(2*nF_mvE5)], p_wsmvt, p_mvt), 1, min)
+   return(out_p)
+}
                                                 
 runAOV <- function(inData, dataframe, ModelForm, pars) {
-   maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to remove the intercept: -1 below
-      return(stats:::Pillai(Re(eigen(qr.coef(qr(SSPE), SSP), symmetric = FALSE)$values), DF, error.DF)) 
-
    # assign voxel-wise covariate values
    assVV <- function(DF, vQV, value, c) {
       # centering
@@ -738,11 +792,14 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
       try(fm <- aov.car(ModelForm, data=dataframe, factorize=FALSE, return='full'), silent=TRUE)
       if(!is.null(fm)) {
             uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model 
-            if(!is.null(uvfm)) {
+            if(!is.null(uvfm)) {  
                if(pars[[6]][1] & pars[[7]]) {  # between-subjects factors/variables only
                   tryCatch(Fvalues <- uvfm[1:pars[[2]][1],3], error=function(e) NULL)
                   if(!is.null(Fvalues)) if(!any(is.nan(Fvalues))) out[1:pars[[2]][2]] <- Fvalues
-               }   else {# contain within-subject variable(s)
+               } else if(pars[[6]][6]) { # combine 4 tests: assuming only one within-subject factor
+                  tryCatch(out[(1:pars[[2]][1])] <-
+                  qchisq(mvCom5(fm, pars[[2]][5]), 1, lower.tail = FALSE), error=function(e) NULL)
+               } else {# contain within-subject variable(s)
                   #tryCatch(Fvalues <- unname(uvfm$anova[-1,5]), error=function(e) NULL)
                   tryCatch(Fvalues <- unname(uvfm$anova[,5]), error=function(e) NULL)
                   if(!is.null(Fvalues)) if(!any(is.nan(Fvalues))) {
@@ -761,26 +818,48 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
                   } #if(pars[[6]][2])
                   if(pars[[6]][3]) {  # within-subject MVT is requested
                      #for(ii in 1:length(fm$Anova$SSPE)) {
-                     for(ii in 1:length(pars[[9]])) {
-                        ii0 <- pars[[2]][2]+pars[[6]][2]*pars[[2]][3]+ii
-                        tryCatch(out[ii0] <-
+                     for(ii in 1:length(pars[[9]])) tryCatch(out[pars[[2]][2]+pars[[2]][3]+ii] <-
                            maov(fm$Anova$SSPE[[pars[[9]][ii]]], fm$Anova$SSP[[pars[[9]][ii]]], fm$Anova$df[pars[[9]][ii]],
-                           fm$Anova$error.df)[2], error=function(e) NULL)
-                     }   
-                  }  
+                           fm$Anova$error.df)[2], error=function(e) NULL) 
+                  }
+
+                  if(pars[[6]][4]) {  # option -wsE2: UVT and wsMVT combined 
+                     #for(ii in 1:length(fm$Anova$SSPE)) {
+                     for(ii in pars[[9]]) {
+                        wsmvt <- NULL
+                        tryCatch(wsmvt <-
+                           maov(fm$Anova$SSPE[[ii]], fm$Anova$SSP[[ii]], fm$Anova$df[ii],
+                           fm$Anova$error.df), error=function(e) NULL)
+                        if(!is.null(wsmvt)) {
+                           p_wsmvt <- pf(wsmvt[2], wsmvt[3], wsmvt[4], lower.tail = FALSE)
+                           # replace value at index ii
+                           if(p_wsmvt < uvfm$anova[ii,'Pr(>F)']) out[ii] <-
+                              qf(p_wsmvt, uvfm$anova[ii,'num Df'], uvfm$anova[ii,'den Df'], lower.tail = FALSE)
+                        }
+                     }
+                  } # if(pars[[6]][4])
                } #if(!any(is.nan(Fvalues)))
             } #if(pars[[6]][1] & pars[[7]])
-         } #if(!is.null(uvfm))   
+         } #if(!is.null(uvfm))
+            
          if(!pars[[7]]) { # reall MVM: currently not allowed to mix within-subject variables
             tryCatch(mvfm <- Anova(fm$lm, type=3, test='Pillai'), error=function(e) NULL)  # need to add options for type and test!
             #if(pars[[6]][1]) tryCatch(out[(pars[[2]][2]+pars[[2]][3]+1):pars[[2]][1]] <- maov(mvfm)[2], error=function(e) NULL)
             for(ii in 1:pars[[2]][4]) # pars[[2]][4] equals length(mvfm$terms)
                #tryCatch(out[pars[[2]][2]+pars[[2]][3]+ii] <-
-               tryCatch(out[pars[[2]][2]+pars[[6]][2]*pars[[2]][3]+pars[[6]][3]*length(pars[[9]])+ii] <-
+               tryCatch(out[pars[[2]][2]+pars[[2]][3]+length(pars[[9]])+ii] <-
                   maov(mvfm$SSPE, mvfm$SSP[[ii]], mvfm$df[ii], mvfm$error.df)[2], error=function(e) NULL)
-         }  #if(!pars[[7]])                            
+         }  #if(!pars[[7]])
+
+         if(pars[[6]][5]) { # combine 4 tests: assuming only one within-subject factor
+            tryCatch(out[(pars[[2]][2]+pars[[2]][3]+length(pars[[9]])+pars[[2]][4]+1):
+               (pars[[2]][2]+pars[[2]][3]+length(pars[[9]])+pars[[2]][4]+pars[[2]][5])] <-
+               qchisq(mvCom5(fm, pars[[2]][5]), 1, lower.tail = FALSE), error=function(e) NULL)
+         } # redundant computations in mvCom5 for option mvE5a
+            
+         # GLT part below
          if(pars[[3]]>=1) for(ii in 1:pars[[3]]) {
-            if(is.na(pars[[4]][[ii]])) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=pars[[5]][[ii]], 
+            if(all(is.na(pars[[4]][[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=pars[[5]][[ii]], 
                adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
                adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
@@ -863,7 +942,6 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
    return(lop)
 } # end of read.MVM.from.file
 
-
 #################################################################################
 ########################## Begin MVM main ######################################
 #################################################################################
@@ -914,8 +992,8 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(lop$vVarCenters), '\\,')[[1]])
                                                 
-require("afex")
-require("phia")
+library("afex")
+library("phia")
 
 #comArgs <- commandArgs()
 
@@ -966,7 +1044,7 @@ if(is.na(lop$wsVars)) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$mode
 if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
    showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
 showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
-print(xtabs(showTab, data=lop$dataStr))                                           
+if(!(showTab == '~1')) print(xtabs(showTab, data=lop$dataStr))                                           
                                                
 cat('\nTabulation of subjects against each of the categorical variables:')
 all_vars <- names(lop$dataStr)
@@ -992,7 +1070,7 @@ NoFile <- dim(lop$dataStr[1])[1]
 
 cat('Reading input files now...\n\n')
 
-if(any(is.na(as.numeric(lop$dataStr[, FileCol])))) {  # not elegant because "NAs introduced by coercion"
+if(any(is.na(suppressWarnings(as.numeric(lop$dataStr[, FileCol]))))) {  # not elegant because "NAs introduced by coercion"
                                                 
 # Read in the 1st input file so that we have the dimension information
 inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh)
@@ -1088,7 +1166,7 @@ while(is.null(fm)) {
       #   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=TRUE, scale=F) else
       #   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$vVarCenters, scale=F)
    }   
-   options(warn=-1)     
+   #options(warn=-1)     
    try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, return='full'), silent=TRUE)
 #   if(!is.null(fm)) if(!is.na(lop$mVar)) {
 #      if(is.na(lop$wsVars)) mvfm <- Anova(fm$lm, type=2, test='Pillai')
@@ -1108,7 +1186,7 @@ while(is.null(fm)) {
             slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
             adjustment="none", idata = fm[["idata"]]), error=function(e) NA)
-         if(is.na(gltRes[[n]])) fm <- NULL
+         if(any(is.na(gltRes[[n]]))) fm <- NULL
          n <- n+1
       }      
    }
@@ -1165,7 +1243,7 @@ while(is.null(fm)) {
 # Remove this later!!!!!!!!!!!!!!!!!!!!!!!!!
 #SC <- TRUE
                                                 
-nFsc <- 0; nF_MVT <- 0; mvtInd <- NULL                                            
+nFsc <- 0; nF_MVT <- 0; nF_mvE5 <- 0; mvtInd <- NULL                                            
 if(!is.na(lop$wsVars) | !is.na(lop$mVar)) {
 #   nFsc <- 0; nF_MVT <- 0 } else {
    if(lop$SC) {
@@ -1174,10 +1252,10 @@ if(!is.na(lop$wsVars) | !is.na(lop$mVar)) {
       nFsc <- length(corTerms)  # number of F-stat for spherecity correction
    }
 #   if(lop$wsMVT) nF_MVT <- length(fm$Anova$SSPE)  # number of within-subject MVT
-   if(lop$wsMVT) {
+   if(lop$wsMVT | lop$wsE2) {  # only make sense if a within-subject factor has more than 2 levels, otherwise uvfm$sphericity.correction is NULL
       mvtInd <- which(names(fm$Anova$SSPE) %in% dimnames(uvfm$sphericity.correction)[[1]])  # indices for terms needed for MVT
-      nF_MVT <- length(mvtInd)  # number of within-subject MVT, same as nFsc
-    }
+      if(lop$wsMVT) nF_MVT <- length(mvtInd)  # number of within-subject MVT, same as nFsc
+   }
 }
                                                 
 # number of F-stat for univariate modeling 
@@ -1185,7 +1263,9 @@ nFu <- ifelse(is.na(lop$wsVars) & is.na(lop$mVar), dim(uvfm)[1]-1, dim(uvfm$anov
 # nFm: number of F-stat for real MVM
 if(!is.na(lop$mVar)) if(is.na(lop$wsVars))
    nFm <- length(mvfm$terms) else nFm <- 0 else nFm <- 0
-nF <- nFu + nFsc + nF_MVT + nFm 
+if(lop$mvE5a | lop$mvE5) nF_mvE5 <- nrow(uvfm$anova)/2
+nF <- ifelse(lop$mvE5, nF_mvE5, nFu + nFsc + nF_MVT + nFm + nF_mvE5)
+#nF <- nFu + nFsc + nF_MVT + nFm + nF_mvE5
                                                 
 NoBrick <- nF + 2*lop$num_glt
 outInit <- rep(0, NoBrick)  # initialization for the voxel-wise output
@@ -1202,8 +1282,11 @@ if(is.na(lop$wsVars) & is.na(lop$mVar)) brickNames <-
 #          paste(dimnames(uvfm$anova)[[1]][-1], 'F'))
 
 if(!is.na(lop$mVar))                                                
-   brickNames <- c(brickNames, paste(mvfm$terms, '-MV0-', 'F'))
-                                                
+   brickNames <- c(brickNames, paste(dimnames(uvfm$anova)[[1]][1:nF_mvE5], '-MV0-', 'F'))
+if(lop$mvE5a)                                                
+   brickNames <- c(brickNames, paste(mvfm$terms, '-mvE5', 'Chisq'))
+if(lop$mvE5) brickNames <- paste(dimnames(uvfm$anova)[[1]][1:nF_mvE5], '-mvE5', 'Chisq')  # no appending
+
 for(ii in 1:lop$num_glt) {
    brickNames <- c(brickNames, lop$gltLabel[ii])
    brickNames <- c(brickNames, paste(lop$gltLabel[ii], 't'))
@@ -1247,11 +1330,11 @@ pars <- vector("list", 10)
 #pars[[1]] <- NoBrick
 pars[[1]] <- outInit                                              
 #pars[[2]] <- nF
-pars[[2]] <- c(nF, nFu, nFsc, nFm, numDF, denDF)                                              
+pars[[2]] <- c(nF, nFu, nFsc, nFm, nF_mvE5, numDF, denDF)                                              
 pars[[3]] <- lop$num_glt
 pars[[4]] <- lop$gltList
 pars[[5]] <- lop$slpList
-pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT) # any within-subject factors?
+pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT, lop$wsE2, lop$mvE5a, lop$mvE5) # any within-subject factors?
 pars[[7]] <- is.na(lop$mVar)   # any real multivariate modeling: currently for basis functions
 pars[[8]] <- list(0.75, numDF, denDF) # switching threshold between GG and HF: 0.6
 pars[[9]] <- mvtInd   # which indices for wsMVT
@@ -1301,6 +1384,8 @@ if(dimy == 1 & dimz == 1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
+   clusterExport(cl, c("maov"), envir=environment())
+   clusterExport(cl, c("mvCom5"), envir=environment())
    for(kk in 1:nSeg) {
       if(NoBrick > 1) out[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
             ModelForm=ModelForm, pars=pars), c(2,1)) else
@@ -1330,12 +1415,13 @@ if (lop$nNodes==1) for (kk in 1:dimz) {
    cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
 } 
 
-
 if (lop$nNodes>1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
+   clusterExport(cl, c("mvCom5"), envir=environment())
    #clusterCall(cl, maov) # let all clusters access to function maov()
+   clusterExport(cl, c("maov"), envir=environment()) # let all clusters access to function maov()
    for (kk in 1:dimz) {
       if(NoBrick > 1) out[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runAOV, 
             dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), c(2,3,1)) else
@@ -1389,9 +1475,14 @@ out[out < (-Top)] <- -Top
 statsym <- NULL
 
 #for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ", F_DF[[ii]][1], F_DF[[ii]][2])
-for(ii in 1:nF) statsym <- c(statsym, list(list(sb=ii-1, 
+if(lop$mvE5) for(ii in 1:nF) statsym <- c(statsym, list(list(sb=ii-1, typ="fict", par=1))) else
+if(lop$mvE5a) {
+   for(ii in 1:(nF-nF_mvE5)) statsym <- c(statsym, list(list(sb=ii-1, 
                 typ="fift", par=c(F_DF[[ii]][1], F_DF[[ii]][2]))))
-                                                
+   for(ii in (nF-nF_mvE5+1):nF) statsym <- c(statsym, list(list(sb=ii, typ="fict", par=1)))
+} else for(ii in 1:nF) statsym <- c(statsym, list(list(sb=ii-1, 
+                typ="fift", par=c(F_DF[[ii]][1], F_DF[[ii]][2]))))
+                                             
 if(lop$num_glt>0) for(ii in 1:lop$num_glt)
    statsym <- c(statsym, list(list(sb=nF+2*ii-1, typ="fitt", par=t_DF[ii])))        
 #   statpar <- paste(statpar, " -substatpar ", nF+2*ii-1, " fitt", t_DF[ii])
@@ -1426,38 +1517,18 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
    lop$outFN <- paste(strsplit(lop$outFN, '\\+tlrc')[[1]], '.txt', sep='')
    capture.output(cat(''), file = lop$outFN, append = FALSE)
    if(iterPar %in% dimnames(lop$dataStr)[[2]]) nPar <- nlevels(as.factor(lop$dataStr[[iterPar]])) else nPar <- 1
-   maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3, need to remove the intercept: -1 below
-      return(stats:::Pillai(Re(eigen(qr.coef(qr(SSPE), SSP), symmetric = FALSE)$values), DF, error.DF))
    for(nn in 1:nPar) {
    fm <- NULL
    if(nPar == 1) inData <- lop$dataStr else
        inData <- lop$dataStr[lop$dataStr[[iterPar]] == levels(as.factor(lop$dataStr[[iterPar]]))[nn],]
    try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full'), silent=TRUE)
    if(!is.null(fm)) {
-      uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model
-      nTerms <- nrow(uvfm$anova); outTerms <- nTerms/2
-      # UVT p-values
-      uvP <- univ(fm$Anova)$anova[,'Pr(>F)']
-      # within-subject MVT: one set
-      p_wsmvt <- rep(0, nTerms)
-      for(ii in 1:nTerms) {
-         wsmvt <- maov(fm$Anova$SSPE[[ii]], fm$Anova$SSP[[ii]], fm$Anova$df[ii], fm$Anova$error.df)
-         #p-value for upper F
-         p_wsmvt[ii] <- pf(wsmvt[2], wsmvt[3], wsmvt[4], lower.tail = FALSE)
-      }
-      # true MVT
-      mvfm <- Anova(fm$lm, type=3, test='Pillai'); p_mvt <- rep(0, outTerms)
-      for(kk in 1:outTerms) {
-         mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df)
-         #p-value for upper F
-         p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
-         #out_numDF[kk] <-  mvt[3]; out_denDF[kk] <-  mvt[4]
-      }
-      out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
-         p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)
+      #out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
+      #   p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min) 
+      nF_mvE5 <- nrow(univ(fm$Anova)$anova)/2
+      out_p <- mvCom5(fm, nF_mvE5)
       # chisq 
-      out_chisq <- qchisq(apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
-         p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)/2, 1, lower.tail = FALSE)
+      out_chisq <- qchisq(out_p, 1, lower.tail = FALSE)
       out <- cbind(out_chisq, 1, out_p)
       dimnames(out)[[2]] <- c('# Chisq', 'DF', 'Pr(>Chisq)')
       dimnames(out)[[1]] <- sprintf('# %s', dimnames(out)[[1]])
