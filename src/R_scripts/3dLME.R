@@ -19,7 +19,7 @@ greeting.lme <- function ()
           ================== Welcome to 3dlme ==================          
    AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.1, July 10, 2014
+Version 1.3.2, July 30, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -34,7 +34,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.1, July 10, 2014
+Version 1.3.2, July 30, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -51,7 +51,7 @@ Usage:
  
  F-statistics for main effects and interactions are automatically included in 
  the output for all variables. In addition, Student t-tests for quantitative 
- variables are also in the ouput. In addition, general linear tests (GLTs) can 
+ variables are also in the output. In addition, general linear tests (GLTs) can 
  be requested via symbolic coding.
  
  If you want to cite the analysis approach, use the following:
@@ -217,7 +217,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         and B, and A*B = A+B+A:B. The effects of within-subject",
    "         factors, if present under -wsVars are automatically assumed",
    "         to interact with the ones specified here. Subject should not",
-   "         occur in the model specifiction here.\n", sep = '\n'
+   "         occur in the model specification here.\n", sep = '\n'
              ) ),
 
       '-ranEff' = apl(n=c(1,100), d=NA, h = paste(
@@ -236,7 +236,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
    "         this option. The list with more than one variable has to be",
-   "         separaated with comma (,) without any other characters such as",
+   "         separated with comma (,) without any other characters such as",
    "         spaces and should be surrounded within (single or double) quotes.",
    "          For example, -qVars \"Age,IQ\"",
    "         WARNINGS:",
@@ -324,10 +324,10 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         one character. Input files can be in AFNI, NIfTI or surface format.",
    "         AFNI files can be specified with sub-brick selector (square brackets",
    "         [] within quotes) specified with a number or label.\n",
-   "         3) It is fine to have variabiles (or columns) in the table that are",
+   "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
    "         4) The context of the table can be saved as a separate file, e.g.,",
-   "         called table.txt. Do not foget to include a backslash at the end of",
+   "         called table.txt. Do not forget to include a backslash at the end of",
    "         each row. In the script specify the data with '-dataTable table.txt'.",
    "         This option is useful: (a) when there are many input files so that",
    "         the program complains with an 'Arg list too long' error; (b) when",
@@ -796,8 +796,8 @@ read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
-require("nlme")
-require("phia")
+library("nlme")
+library("phia")
 
 #comArgs <- commandArgs()
 
@@ -921,7 +921,7 @@ while(is.null(fm)) {
       random=ranEff, data=lop$dataStr), silent=TRUE)
    #if(!is.null(fm)) if (lop$num_glt > 0) {
    #   n <- 1
-   #   require(contrast)
+   #   library(contrast)
    #   gltDF <- array(data=NA, dim=lop$num_glt)
    #   while(!is.null(fm) & (n <= lop$num_glt)) {
    #      gltDF[n] <- tryCatch(contrast(fm, lop$gltList[[n]][[1]], lop$gltList[[n]][[2]], type="average")$df,
