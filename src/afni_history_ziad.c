@@ -66,6 +66,13 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 31, Jul, 2014, ZSS, "3dpc", MICRO, TYPE_NEW_OPT,
+   "Added option -nscale to scale covariance matrix by number of samples",
+   "This would make output consistent with R and matlab decompositions\n"
+   "Also changed output files names for 1D files to make program not clobber\n"
+   "results in .1D mode"
+ },
+  
  { 18, Jul, 2014, ZSS, "3dTstat", MICRO, TYPE_NEW_OPT,
    "Added option -nscale to avoid scaling with byte/short output",
    NULL

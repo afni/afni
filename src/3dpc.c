@@ -20,7 +20,9 @@ static int PC_normalize  = 0 ; /* and not to normalize */
 static int PC_lprin_save = 0 ; /* # of principal components to save */
 static int PC_be_quiet   = 1 ; /* quiet is the default */
 static int PC_do_float   = 0 ; /* shorts are the default */
-
+static int PC_samp_scale = 0; /* Scale covariance matrix 
+                                 (and consequently the eigen values) by 
+                                 the number of samples */
 static char **PC_dsname = NULL ; /* dataset names */
 static int    PC_dsnum  = 0    ; /* number of them */
 static int    PC_brnum  = 0    ; /* number of bricks */
@@ -116,6 +118,13 @@ void PC_read_opts( int argc , char * argv[] )
         nopt++ ; continue ;
       }
 
+      /**** -nscale ****/
+
+      if( strncmp(argv[nopt],"-nscale",6) == 0 ){
+         PC_samp_scale = 1 ;
+         nopt++ ; continue ;
+      }
+
       /**** -dmean ****/
 
       if( strncmp(argv[nopt],"-dmean",6) == 0 ){
@@ -149,7 +158,11 @@ void PC_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-pcsave",6) == 0 ){
          nopt++ ;
          if( nopt >= argc ) ERROR_exit("need argument after -pcsave!") ;
-         PC_lprin_save = strtol( argv[nopt] , NULL , 10 ) ;
+         if (!strcmp(argv[nopt],"ALL")) {
+            PC_lprin_save = 987654321;
+         } else {
+            PC_lprin_save = strtol( argv[nopt] , NULL , 10 ) ;
+         }
          if( PC_lprin_save < 0 ) ERROR_exit("value after -pcsave is illegal!") ;
          nopt++ ; continue ;
       }
@@ -249,7 +262,7 @@ void PC_read_opts( int argc , char * argv[] )
 
    nn = 0 ; /* current brick index: will be incremented below */
 
-   if( !PC_be_quiet ) INFO_message("read dataset bricks") ;
+   if( !PC_be_quiet ) INFO_message("read dataset %d bricks", PC_brnum) ;
 
    for( kk=0 ; kk < PC_dsnum ; kk++ ){
 
@@ -320,11 +333,16 @@ void PC_syntax(void)
     "                    [and before the brick normalization below. ]\n"
     "  -normalize    = L2 normalize each input brick (after mean subtraction)\n"
     "                    [default: don't normalize]\n"
+    "  -nscale       = Scale the covariance matrix by the number of samples\n"
+    "                  This is not done by default for backward compatibility.\n"
+    "                  You probably want this option on. \n"
     "  -pcsave sss   = 'sss' is the number of components to save in the output;\n"
     "                    it can't be more than the number of input bricks\n"
     "                    [default = none of them]\n"
     "                  * To get all components, set 'sss' to a very large\n"
     "                    number (more than the time series length), like 99999\n"
+    "                    You can also use the key word ALL, as in -pcsave ALL\n"
+    "                    to save all the components.\n"
     "  -reduce r pp  = Compute a 'dimensionally reduced' dataset with the top\n"
     "                    'r' eigenvalues and write to disk in dataset 'pp'\n"
     "                    [default = don't compute this at all]\n"
@@ -336,7 +354,7 @@ void PC_syntax(void)
     "                    and '-normalize' are not reversed in this output\n"
     "                    (at least at present -- send some cookies and we'll talk).\n"
     "  -prefix pname = Name for output dataset (will be a bucket type);\n"
-    "                  * Also, the eigen-timeseries will be in 'pname'.1D\n"
+    "                  * Also, the eigen-timeseries will be in 'pname'_vec.1D\n"
     "                    (all of them) and in 'pnameNN.1D' for eigenvalue\n"
     "                    #NN individually (NN=00 .. 'sss'-1, corresponding\n"
     "                    to the brick index in the output dataset)\n"
@@ -356,6 +374,11 @@ void PC_syntax(void)
     "  -mask mset    = Use the 0 sub-brick of dataset 'mset' as a mask\n"
     "                    to indicate which voxels to analyze (a sub-brick\n"
     "                    selector is allowed) [default = use all voxels]\n"
+    "\n"
+    "Example using 1D data a input, with each column being the equivalent\n"
+    "of a sub-brick:\n"
+    " 3dpc -prefix mmm -dmean -nscale -pcsave ALL datafile.1D\n"
+    "\n"
    ) ;
 
 #if 0
@@ -372,7 +395,7 @@ int main( int argc , char *argv[] )
    int nx,ny,nz , nxyz , ii,jj,ll , nn,mm,mmmm , npos,nneg ;
    float fmax , ftem ;
    THD_3dim_dataset *dset , *new_dset ;
-   double *dsdev = NULL ;
+   double *dsdev = NULL, div = 1.0 ;
    float  *fout , *perc ;
    short  *bout  ;
    register float  sum ;
@@ -491,8 +514,16 @@ int main( int argc , char *argv[] )
    /*-- load covariance matrix
         (very short code that takes a long time to run!) --*/
 
-   if( !PC_be_quiet ) INFO_message("compute covariance matrix") ;
-
+   if( !PC_be_quiet ) 
+      INFO_message("compute covariance matrix, %d vals", 
+                   PC_mask ? PC_mask_hits:nn) ;
+   
+   div = 1.0;
+   if (PC_samp_scale) {
+      if (PC_mask) div = (double)PC_mask_hits;
+      else div = (double)nn;
+   }
+   
    idel = 1 ;                           /* ii goes forward */
    for( jj=0 ; jj < mm ; jj++ ){
 
@@ -507,7 +538,7 @@ int main( int argc , char *argv[] )
           for( kk=0 ; kk < nn ; kk++ )
                      if( PC_mask[kk] ) dsum += XX(kk,ii) * XX(kk,jj) ;
        }
-       AA(ii,jj) = AA(jj,ii) = dsum ;
+       AA(ii,jj) = AA(jj,ii) = dsum/div ;
      }
 
       idel = -idel ;                    /* reverse direction of ii */
@@ -525,8 +556,18 @@ int main( int argc , char *argv[] )
    }
    if( ii > 0 ) ERROR_exit("*** program exiting right here and now!\n") ;
 
-   if( !PC_be_quiet ) INFO_message("covariance trace = %g\n",atrace) ;
-
+   if( !PC_be_quiet ) {
+      INFO_message("covariance trace = %g\n",atrace) ;
+      if (mm < 5) {
+         for (ii=0; ii<mm; ++ii) {
+            for (jj=0; jj<mm; ++jj) {
+               fprintf(stderr,"%f\t", AA(ii,jj));
+            }
+            fprintf(stderr,"\n");
+         }
+      }
+   }
+   
    /*-- normalize, if desired --*/
 
    if( PC_normalize ){
@@ -671,7 +712,9 @@ int main( int argc , char *argv[] )
        for( ii=0 ; ii < mm ; ii++ )
          fout[jj + (ii+PC_1ddum)*PC_lprin_save] = VV(ii,ll) ;
      }
-     sprintf(vname,"%s.1D",PC_prefix) ;
+     /* Modified name to include _vec, else it conflicts
+     with the eigenbricks above with .1D files as input */
+     sprintf(vname,"%s_vec.1D",PC_prefix) ;
      mri_write_ascii( vname, vecim ) ;
      mri_free(vecim) ;
 

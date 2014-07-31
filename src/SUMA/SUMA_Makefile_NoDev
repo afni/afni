@@ -207,8 +207,6 @@ HalloSuma: SUMA_HalloSuma.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@  \
          SUMA_HalloSuma.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-#InstaTract should only depend on niml/ and SUMA's SUMA_niml_defines.h
-#but I can't do much to simplify the compile command without a nice libniml.a 
 InstaTract: SUMA_InstaTract.c 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@  \

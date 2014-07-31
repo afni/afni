@@ -53,7 +53,7 @@ function [nel, comm] = ToyTalk()
 %  I tried to hide all unecessary detail for you. It bugs me that 
 %  there is no way to start a workprocess on command line, so that
 %  one's code does not have to handle repeated polling for new data
-%  but oh well. If you new of new matlab developments on that front, 
+%  but oh well. If you know of new matlab developments on that front, 
 %  please let me know.
 % 
 %Limitations:
@@ -70,7 +70,7 @@ function [nel, comm] = ToyTalk()
    global comm ;
   
    comm = afni_talk_defs(comm); %reset communication structure. 
-   comm.dbg = 1;
+   comm.dbg = 2;
    pnet ('closeall');
    
    pause on;
