@@ -10562,7 +10562,7 @@ ENTRY("AFNI_jumpto_ijk") ;
 void AFNI_jumpto_thminmax_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
-   int ijk , ii,jj,kk ;
+   int ijk=0, ii,jj,kk ;
    float xx,yy,zz ;
 
 ENTRY("AFNI_jumpto_thminmax_CB") ;
