@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 1, Aug, 2014, ZSS, "3dGenFeatureDist", MINOR, TYPE_NEW_PROG,
+   "Program written a while ago, placed in the distribution now",
+   NULL
+ },
+  
  { 31, Jul, 2014, ZSS, "3dpc", MICRO, TYPE_NEW_OPT,
    "Added option -nscale to scale covariance matrix by number of samples",
    "This would make output consistent with R and matlab decompositions\n"
