@@ -43,6 +43,8 @@ Corresponding stim_times files, assume TR = 2.5 seconds:
 
 Options: -files file1.1D file2.1D ...   : specify stim files
          -prefix PREFIX                 : output prefix for files
+         -run_trs TR1 TR2 ...           : specify TRs/run, if they differ
+                                          (if same, can use -nruns/-nt)
          -nruns  NRUNS                  : number of runs
          -nt     NT                     : number of TRs per run
          -tr     TR                     : TR time, in seconds
@@ -90,6 +92,11 @@ examples:
             make_stim_times.py -files stim_all.1D -prefix stimes2 -tr 2.5 \\
                                -nruns 7 -nt 100
 
+    2b. Same, but maybe the run lengths differ.
+
+            make_stim_times.py -files stim_all.1D -prefix stimes2 -tr 2.5 \\
+                               -run_trs 100 110 90 100 110 90 100
+
     3. Same as 2, but the stimuli were presented at the middle of the TR, so
        add 1.25 seconds to each stimulus time.
 
@@ -132,9 +139,10 @@ g_mst_history = """
     1.4  Sep 17, 2008: added -labels option
     1.5  Nov 18, 2010: fix for '*' in max one stim per run case
     1.6  Oct 03, 2012: some options do not allow dashed parameters
+    1.7  Aug 02, 2014: added -run_trs, if TRs vary across runs
 """
 
-g_mst_version = "version 1.6, October 3, 2012"
+g_mst_version = "version 1.7, August 2, 2014"
 
 def get_opts():
     global g_help_string
@@ -156,12 +164,14 @@ def get_opts():
                    helpstr='specify the prefix for output files')
     okopts.add_opt('-tr', 1, [], req=1, \
                    helpstr='set the TR time, in seconds')
-    okopts.add_opt('-nt', 1, [], req=1, \
+    okopts.add_opt('-nt', 1, [], req=0, \
                    helpstr='set the number of TRs per run')
-    okopts.add_opt('-nruns', 1, [], req=1,      \
+    okopts.add_opt('-nruns', 1, [], req=0,      \
                    helpstr='set the number of runs')
     okopts.add_opt('-offset', 1, [],    \
                    helpstr='specify offset to add to all output times')
+    okopts.add_opt('-run_trs', -1, [], req=0,      \
+                   helpstr='specify TRs per run, if they vary')
     okopts.add_opt('-labels', -1, [], okdash=0,
                    helpstr='add these labels to the file names')
     okopts.add_opt('-verb', 1, [],      \
@@ -207,8 +217,33 @@ def proc_mats(uopts):
 
     opt    = uopts.find_opt('-files')
     files  = opt.parlist
-    opt    = uopts.find_opt('-nruns')
-    nruns  = int(opt.parlist[0])
+
+    # set run_trs nruns from either -run_trs or -nruns and -nt
+    opt    = uopts.find_opt('-run_trs')
+    if opt:
+       val, err = uopts.get_type_list(int, '', opt=opt)
+       if err: return 1
+       run_trs = val
+       nruns = len(run_trs)
+       if uopts.find_opt('-nruns') or uopts.find_opt('-nt'):
+          print '** please use either -run_trs or -nt/-nruns'
+          return 1
+    else:
+       if not uopts.find_opt('-nruns') and not uopts.find_opt('-nt'):
+          print '** please use either -run_trs or -nt/-nruns (missing one)'
+          return 1
+       opt    = uopts.find_opt('-nruns')
+       nruns  = int(opt.parlist[0])
+
+       opt    = uopts.find_opt('-nt')
+       try: nt = int(opt.parlist[0])
+       except:
+           print "** error: -nt must be int, have '%s'" % opt.parlist[0]
+           return
+       run_trs = [nt]*nruns
+
+    # not the total number of TRs, regardless
+    ntotal = afni_util.loc_sum(run_trs)
 
     opt    = uopts.find_opt('-offset')
     if opt:
@@ -225,12 +260,6 @@ def proc_mats(uopts):
     except:
         print "** error: TR must be float, have '%s'" % opt.parlist[0]
         return
-    
-    opt    = uopts.find_opt('-nt')
-    try: nt = int(opt.parlist[0])
-    except:
-        print "** error: -nt must be int, have '%s'" % opt.parlist[0]
-        return
 
     opt = uopts.find_opt('-labels')
     if opt: labels = opt.parlist
@@ -238,8 +267,8 @@ def proc_mats(uopts):
     nlab = len(labels)
 
     # print some info
-    if verb: print "-- nt = %d, nruns = %d, TR = %s, %d labels" % \
-                   (nt, nruns, str(tr), nlab)
+    if verb: print "-- run_trs = %s, TR = %s, %d labels" \
+                   % (run_trs, str(tr), nlab)
 
     # new option, -amplitudes (columns of amplitudes to Marry, not just 1s)
     use_amp = 0
@@ -257,13 +286,13 @@ def proc_mats(uopts):
         mat = afni_util.transpose(tmat)
         del(tmat)
 
-        if len(mat[0]) < nt * nruns:
+        if len(mat[0]) < ntotal:
             print '** error: file %s has only %d entries (%d required)' % \
-                  (file, len(mat[0]), nt*nruns)
+                  (file, len(mat[0]), ntotal)
             return
-        elif len(mat[0]) > nt * nruns:
+        elif len(mat[0]) > ntotal:
             print '** warning: file %s has %d entries (expected only %d)' % \
-                  (file, len(mat[0]), nt*nruns)
+                  (file, len(mat[0]), ntotal)
 
         for row in mat:
 
@@ -280,18 +309,22 @@ def proc_mats(uopts):
             if newfile == None: return
             fp = open(newfile, 'w')
 
+            runend = -1
             for run in range(nruns):
-                rindex = run * nt   # point to start of run
+                runstart = runend + 1
+                runend = runstart + run_trs[run] - 1
+                # old: rindex = run * nt   # point to start of run
+                rindex = runstart
 
                 # if empty run, use placeholders
-                if not stim_in_run(row[rindex:rindex+nt], use_amp):
+                if not stim_in_run(row[runstart:runend+1], use_amp):
                     if run == 0: fp.write('* *\n')  # first run gets 2
                     else:        fp.write('*\n')
                     continue
                 # print '=== have stim in run, row = %s' % row[rindex:rindex+nt]
                 time = 0        # in this run
                 nstim = 0       # be sure we have more than 1 somewhere
-                for lcol in range(nt):
+                for lcol in range(run_trs[run]):
                     if row[rindex+lcol]:
                         nstim += 1
                         # if -amplitudes write as time:amplitude
