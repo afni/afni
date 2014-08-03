@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Aug, 2014, RCR, "make_sitm_times.py", MINOR, TYPE_NEW_OPT,
+   "added -run_trs, for cases when the TRs per run vary",
+   "Requested on message board by Rebecca and later by Lisam."
+ } ,
+
  { 15,  Jul, 2014, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "output average motion per stim over response",
    "This will probably be replaced by averages over stimulus only time.\n"
