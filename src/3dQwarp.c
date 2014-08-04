@@ -17,7 +17,7 @@
 
     - vector-valued images                                       [medium]
 
-    - GPU acceleration                                           [ugh]
+    - GPU acceleration                                           [ugh squared]
 *//*-------------------------------------------------------------------------*/
 
 #ifdef USE_OMP       /* OpenMP = a must! */
@@ -844,9 +844,9 @@ void Qhelp(void)
     "source dataset, then you use 3dNwarpApply with the input warp being the\n"
     "inverse warp from 3dQwarp.\n"
     "\n"
-    "-----------------\n"
-    "OUTLINE OF METHOD\n"
-    "-----------------\n"
+    "-----------------------------------\n"
+    "OUTLINE OF WARP OPTIMIZATION METHOD\n"
+    "-----------------------------------\n"
     "Repeated composition of incremental warps defined by Hermite cubic basis functions,\n"
     "first over the entire volume, then over steadily shrinking and overlapping patches\n"
     "(increasing 'levels': the patches shrink by a factor of 0.75 at each level).\n"
@@ -888,10 +888,12 @@ void Qhelp(void)
     "By perusing the many options above, you can see that the user can control the\n"
     "warp optimization in various ways.  All these options make using 3dQwarp seem\n"
     "pretty complicated.  The reason there are so many options is that many different\n"
-    "cases arise, and we are trying to makethe program flexible enough to deal with\n"
+    "cases arise, and we are trying to make the program flexible enough to deal with\n"
     "them all.  The SAMPLE USAGE section above is a good place to start for guidance.\n"
     "\n"
+    "-------------------------------------------------------------------------------\n"
     "***** This program is experimental and subject to sudden horrific change! *****\n"
+    "-------------------------------------------------------------------------------\n"
     "\n"
     "----- AUTHOR = Zhark the Grotesquely Warped -- Fall/Winter/Spring 2012-13 -----\n"
   ) ;
