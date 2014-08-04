@@ -162,12 +162,12 @@ static int Hverb = 1 ;
                      other places
       es_Ad_BS   = external slope for displacement Ad (A=x or y or z),
        where         at the B face (B=x or y or z) in the S direction
-       A=x,y, or z   (S=m or p).  For example, es_xd_ym is the external
-       B=x,y, or z   slope for the xd displacement at the y-minus face
-       S=m or p      (y=0) -- so that if the displacement is needed
-                     at (i,j,k) for j < 0, then the value returned is
-                     xd[i+0*nx+k*nx*ny] + es_xd_ym*j -- assuming i and k
-                     are inside the grid ranges 0..nx-1 and 0..nz-1.
+       A=x,y, or z   (S=m or p; short for 'minus' and 'plus').  For example,
+       B=x,y, or z   es_xd_ym is the external slope for the xd displacement
+       S=m or p      at the y-minus face (y=0) -- so that if the displacement
+                     is needed at (i,j,k) for j < 0, then the value returned is
+                     xd[i+0*nx+k*nx*ny] + es_xd_ym*j -- assuming i and k are
+                     inside the grid ranges 0..nx-1 and 0..nz-1.
                    * See function IW3D_interp_linear() for a full example
                      of how the external slopes are used.
                    * These external slopes are calculated via function
@@ -196,6 +196,7 @@ static int Hverb = 1 ;
    output to datasets (cf. infra), but that didn't happen.
 
 --------------- Warps stored as 3D Datasets -----------------------------------
+
    Externally, warps are stored as 3D datasets, with (at least) 3 sub-bricks:
    one for each of the x, y, and z displacements.  A warp dataset is created
    from an IndexWarp3D struct using function IW3D_to_dataset(), with the
@@ -212,6 +213,7 @@ static int Hverb = 1 ;
    zeros.  For another, interpolation to a different grid is simpler.
 
 -------------- Understanding Warps and Displacements --------------------------
+
    Since warps are stored as displacements, the actual transformation of
    (index) coordinates is
 
@@ -238,12 +240,25 @@ static int Hverb = 1 ;
    You should understand how this expansion works in order to be able to
    understand any of the warp manipulation functions.
 
+--------------- Forward and Inverse Warps -------------------------------------
+
+   A nonlinear warp stores the displacements (in indexes or DICOM mm) from a
+   base dataset grid to a source dataset grid.  For computing the source dataset
+   warped to the base dataset grid, these displacements are needed, so that for
+   each grid point in the output (warped) dataset, the corresponding location in
+   the source dataset can be found.  That is, this 'forward' warp is good for
+   finding where a given point in the base dataset maps to in the source dataset.
+   However, for finding where a given point in the source dataset maps to in the
+   base dataset, the 'inverse' warp is needed.
+
 --------------- OpenMP code ---------------------------------------------------
+
    A large number of compute intensive functions use OpenMP to parallelize
    the lengthy computations.  This makes the source code somewhat more
    complicated and less transparent than it could otherwise be.  If you
    need some tutorial on OpenMP, start with
      http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html
+
 -----------------------------------------------------------------------------*/
 /*===========================================================================*/
 
@@ -1084,7 +1099,9 @@ ENTRY("IW3D_sum") ;
 
 /*---------------------------------------------------------------------------*/
 /* Extend (and/or truncate) an index warp.
-   Extension is via linear extrapolation, unless zpad != 0.
+   Extension outside the original grid is via linear extrapolation,
+   unless zpad != 0, in which case extensions of the displacements outside
+   the original grid are just set to zero.
 *//*-------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_extend( IndexWarp3D *AA , int nxbot , int nxtop ,
@@ -1193,6 +1210,7 @@ IndexWarp3D * IW3D_zeropad( IndexWarp3D *AA , int nxbot , int nxtop ,
 /* Extend (and/or truncate) a dataset that represents a warp;
    this is done the brute force way, by conversion to an index warp,
    extension of that, and then conversion back to a dataset struct.
+   Note that there is no option for zero-padded extension.
 *//*-------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_nwarp_extend( THD_3dim_dataset *dset_nwarp ,
@@ -2721,7 +2739,8 @@ void IW3D_interp( int icode ,
 
 #if 1
 /*============================================================================*/
-/* (C9) Functions below carry out warp compositions                           */
+/* (C9) Functions below carry out warp compositions,                          */
+/*      including where one of the 'warps' is just a matrix.                  */
 /*============================================================================*/
 
 /*---------------------------------------------------------------------------*/
@@ -2736,6 +2755,7 @@ void IW3D_interp( int icode ,
 /* B(A(x)) where B = matrix, A = warp, icode = unused
    -- no interpolation is needed for this operation, since
       the matrix B can just be applied to the the warp displacement from A
+   -- 'w1m2' means 'warp #1, matrix #2'
 *//*-------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_compose_w1m2( IndexWarp3D *AA , mat44 BB , int icode )
@@ -2780,6 +2800,7 @@ ENTRY("IW3D_compose_w1m2") ;
 /* A(B(x)) where B = matrix, A = warp, icode = interpolation method;
    -- in this function, interplation IS necessary, since the
       displacement from B(x) will not be exactly on a grid point.
+   -- 'm1w2' means 'matrix #1, warp #2'
 *//*-------------------------------------------------------------------------*/
 
 IndexWarp3D * IW3D_compose_m1w2( mat44 BB , IndexWarp3D *AA , int icode )
@@ -2928,7 +2949,7 @@ ENTRY("IW3D_compose") ;
    IW3D_load_external_slopes(CC) ; RETURN(CC) ;
 }
 
-#if 0
+#if 0  /* this code is never used, so is left out */
 /*---------------------------------------------------------------------------*/
 /* Compute A^(2^lev) , using linear interpolation only */
 
@@ -3037,6 +3058,7 @@ ENTRY("IW3D_2pow") ;
    -- actually, a damping factor is applied so that the output is actually
       C(x) = (1-inewtfac) * B(x) + inewtfac * B( 2x - A(B(x)) ) ;
       the purpose of this is to reduce any instabilities in the iteration.
+   -- the calling function may adjust inewtfac up or down
 *//*-------------------------------------------------------------------------*/
 
 static float inewtfac = 0.5f ; /* damping factor for iteration */
@@ -3200,12 +3222,13 @@ ENTRY("IW3D_invert") ;
    if( verb_nww ) ININFO_message(" -- invert max|AA|=%f",normAA) ;
 
    if( BBinit == NULL ){  /* approximate inverse by power iteration */
-     int pp = 1+(int)ceil(log2(normAA)) ; float qq ;
+     int pp = 1+(int)ceil(log2(normAA)) ;  /* number of iterations */
+     float qq ;
      if( pp < 2 ) pp = 2 ;
      qq = pow(0.5,pp) ;
      if( verb_nww ) ININFO_message("  - init nstep=%d qq=1/2^%d=%f",pp,pp,qq) ;
-     BB = IW3D_copy( AA,-qq ) ;
-     for( ii=0 ; ii < pp ; ii++ ){
+     BB = IW3D_copy( AA,-qq ) ;     /* BB = I-qq*a(x) where A(x) = x + a(x) */
+     for( ii=0 ; ii < pp ; ii++ ){  /* compute BB = [I-qq*a(x)]^pp */
        if( verb_nww > 1 ) ININFO_message("  - init step %d",ii+1) ;
        else if( Hverb )   fprintf(stderr,"*") ;
        CC = IW3D_compose(BB,BB,jcode) ; IW3D_destroy(BB) ; BB = CC ;
@@ -3763,7 +3786,7 @@ ENTRY("IW3D_sqrtinv") ;
 /*---------------------------------------------------------------------------*/
 #else /* USE_SQRTPAIR is defined!!! */
 /*---------------------------------------------------------------------------*/
-/* The following iterates on pairs of matrices to produce the sqrt and
+/* The following iterates on pairs of warps to produce the sqrt and
    sqrtinv at the same time.  It is slower but more stable than the
    previous methods.
 *//*-------------------------------------------------------------------------*/
@@ -4016,12 +4039,12 @@ IndexWarp3D * IW3D_from_mat44( mat44 mm , THD_3dim_dataset *mset )
 
 #if 1
 /*============================================================================*/
-/* (C13) Various functions for interpolating images */
+/* (C13) Various functions for interpolating images at arbitrary indexes.     */
 /*============================================================================*/
 
 /*--------------------------------------------------------------------------*/
-/* interpolate from a float image to a set of indexes;
-   this is just a wrapper for functions from mri_genalign_util.c */
+/* interpolate from a float image to a set of indexes (ip,jp,kp);
+   this is just a wrapper for functions from mri_genalign_util.c  */
 
 void THD_interp_floatim( MRI_IMAGE *fim ,
                          int np , float *ip , float *jp , float *kp ,
@@ -4143,7 +4166,7 @@ ENTRY("IW3D_warp_floatim") ;
    IW3D_warp_into_floatim( AA , sim , fim ,
                            0,sim->nx-1 , 0,sim->ny-1 , 0,sim->nz-1 , code , fac ) ;
 
-   if( MRI_HIGHORDER(code) ){
+   if( MRI_HIGHORDER(code) ){  /* clipping */
      double_pair smm = mri_minmax(sim) ;
      float sb=(float)smm.a , st=(float)smm.b ; int qq ;
      float *far=MRI_FLOAT_PTR(fim) ;
@@ -4220,7 +4243,7 @@ ENTRY("IW3D_mat44_into_floatim") ;
    EXRETURN ;
 }
 
-#if 0
+#if 0  /* maybe useful someday? */
 /*----------------------------------------------------------------------------*/
 /* interpolate from 1 image to another, preserving type */
 
@@ -5233,7 +5256,7 @@ ENTRY("THD_nwarp_dataset") ;
      }
      if( verb_nww && iv == 0 ) fprintf(stderr,"Warping dataset: ") ;
      THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
-     if( MRI_HIGHORDER(dincode) ){
+     if( MRI_HIGHORDER(dincode) ){ /* clipping */
        double_pair fmm = mri_minmax(fim) ;
        float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
        float *war=MRI_FLOAT_PTR(wim) ;
