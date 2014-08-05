@@ -145,7 +145,8 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
                     " to3d WARNING: %d negative voxels (%g%%)\n"
                     "               were read in images of shorts.\n"
                     "               It is possible the input\n"
-                    "               images need byte-swapping.\n \n"
+                    "               images need byte-swapping\n"
+                    "               (consider -ushort2float)\n\n"
                     " ** I recommend that you View Images. **\n" ,
               negative_shorts , perc ) ;
 
@@ -245,7 +246,8 @@ int main( int argc , char * argv[] )
       float perc = (100.0*negative_shorts)/nvox_total ;
       fprintf(stderr,
        "++ to3d WARNING: %d negative voxels (%g%%) were read in images of shorts.\n"
-       "++               It is possible the input images need byte-swapping.\n",
+       "++               It is possible the input images need byte-swapping.\n"
+                        "Consider also -ushort2float.\n",
        negative_shorts , perc ) ;
    }
 
@@ -3282,6 +3284,7 @@ void Syntax()
     "\n"
     "    3D:hglobal:himage:nx:ny:nz:fname   [16 bit input]\n"
     "    3Ds:hglobal:himage:nx:ny:nz:fname  [16 bit input, swapped bytes]\n"
+    "                   (consider also -ushort2float for unsigned shorts)\n"
     "    3Db:hglobal:himage:nx:ny:nz:fname  [ 8 bit input]\n"
     "    3Di:hglobal:himage:nx:ny:nz:fname  [32 bit input]\n"
     "    3Df:hglobal:himage:nx:ny:nz:fname  [floating point input]\n"
