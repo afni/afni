@@ -2141,7 +2141,7 @@ STATUS("construct weight/mask volume") ;
        wt[ii] = ( wt[ii] <= 0.0f ) ? 0.0f : fac * wt[ii] ;
    }
 
-#if 1
+#if 0
    /*----- blur base here if so ordered (source is blurred in warpomatic) ----*/
 
    if( Hblur_b >= 0.5f && !do_plusminus ){
