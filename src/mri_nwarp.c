@@ -7523,13 +7523,13 @@ double IW3D_scalar_costfun( int npar , double *dpar )
 #endif
 
    /* Step 3: compute the actual cost function */
-   /* -- the first case in the '?' expressions is when then patch
+   /* -- the first case in the '?' expressions is when the patch
          is smaller than the whole volume;
       -- the second case is when the patch covers the entire universe */
 
    cost = INCOR_evaluate( Hincor , Hnval ,
                           (Hbval != NULL ) ? Hbval     /* base image in patch */
-                                           : MRI_FLOAT_PTR(Hbasim),
+                                           : MRI_FLOAT_PTR(BASIM),
                           Hwval ,             /* warped source image in patch */
                           (Haawt != NULL ) ? Haawt   /* weight image in patch */
                                            : MRI_FLOAT_PTR(Hwtim) ) ;
@@ -7580,6 +7580,7 @@ ENTRY("IW3D_cleanup_improvement") ;
    mri_free(Haasrcim) ; Haasrcim = NULL ;
 
    mri_free(Hsrcim_blur) ; Hsrcim_blur = NULL ;
+   mri_free(Hbasim_blur) ; Hbasim_blur = NULL ;
 
    IW3D_destroy(Hwarp)   ; Hwarp   = NULL ;
    IW3D_destroy(AHwarp)  ; AHwarp  = NULL ;
@@ -7618,6 +7619,25 @@ ENTRY("IW3D_cleanup_improvement") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Function for blurring a volume in 1 of 2 ways */
+
+MRI_IMAGE * IW3D_blurim( float rad , MRI_IMAGE *inim , char *label )
+{
+   MRI_IMAGE *outim = NULL ;
+ENTRY("IW3D_blurim") ;
+   if( rad >= 0.5f ){
+     if( Hverb > 1 && label != NULL )
+       ININFO_message("  blurring %s image %.2g voxels FWHM",label,rad) ;
+     outim = mri_float_blur3D( FWHM_TO_SIGMA(rad) , inim ) ;
+   } else if( rad <= -1.0f ){
+     if( Hverb > 1 && label != NULL )
+       ININFO_message("  median-ing %s image %.2g voxels",label,-rad) ;
+     outim = mri_medianfilter( inim , -rad , NULL , 0 ) ;
+   }
+   RETURN(outim) ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Sets a bunch of global workspace variables, prior to
    iteratively improving the warp with function IW3D_improve_warp() */
 
@@ -7650,6 +7670,14 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
+   if( Hpblur_b > 0.0f ) Hblur_b = 0.0f ;
+   if( Hpblur_s > 0.0f ) Hblur_s = 0.0f ;
+
+#if 0
+   Hbasim_blur = IW3D_blurim( Hblur_b , Hbasim , "base"   ) ;  /* NULL if blur */
+   Hsrcim_blur = IW3D_blurim( Hblur_s , Hsrcim , "source" ) ;  /* radius == 0 */
+#endif
+#if 1
    if( Hblur_s >= 0.5f ){
      if( Hverb > 1 ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
      Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
@@ -7659,6 +7687,7 @@ ENTRY("IW3D_setup_for_improvement") ;
    } else {
      Hsrcim_blur = NULL ;
    }
+#endif
 
    /*-- copy or create base weight image (included Hemask for exclusion) --*/
 
@@ -7737,7 +7766,7 @@ ENTRY("IW3D_setup_for_improvement") ;
    if( iii == 2 || iii == 3 ){
      float *xar,*yar , *bar,*sar ; int jj,kk ;
      float_quad xyc , xym ;
-     bar = MRI_FLOAT_PTR(Hbasim) ; sar = MRI_FLOAT_PTR(Hsrcim) ;
+     bar = MRI_FLOAT_PTR(BASIM) ; sar = MRI_FLOAT_PTR(SRCIM) ;
      if( nmask == Hnxyz ){  /* entire volume is in mask! */
        xar = bar ; yar = sar ; kk = Hnxyz ;
      } else {
@@ -7948,7 +7977,7 @@ ENTRY("IW3D_improve_warp") ;
 
    if( Hnval < Hnxyz ){                               /* initialize correlation from   */
      float *wbfar=MRI_FLOAT_PTR(Hwtim) ;              /* non-changing part of Haasrcim */
-     float *bar  =MRI_FLOAT_PTR(Hbasim) ;
+     float *bar  =MRI_FLOAT_PTR(BASIM) ;
 
      Haawt = (float *)malloc(sizeof(float)*Hnval) ;
      Hbval = (float *)malloc(sizeof(float)*Hnval) ;
@@ -7976,7 +8005,7 @@ ENTRY("IW3D_improve_warp") ;
 
      if( !Hlocalstat )  /* Hlocalstat should be 0 */
      INCOR_addto( Hincor , Hnxyz ,
-                  MRI_FLOAT_PTR(Hbasim) , MRI_FLOAT_PTR(Haasrcim) , wbfar ) ;
+                  MRI_FLOAT_PTR(BASIM) , MRI_FLOAT_PTR(Haasrcim) , wbfar ) ;
      RESTORE_WBFAR ;  /* fix wbfar inside local patch */
 
      /* init penalty (Hpen_sum) from non-changing part of Haawarp, if needed */
@@ -9301,7 +9330,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
    if( Hnval < Hnxyz ){                               /* initialize correlation from   */
      float *wbfar=MRI_FLOAT_PTR(Hwtim) ;              /* non-changing part of Haasrcim */
-     float *bar  =MRI_FLOAT_PTR(Hbasim) ;
+     float *bar  =MRI_FLOAT_PTR(BASIM) ;
 
      Haawt = (float *)malloc(sizeof(float)*Hnval) ;
      for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){      /* extract weights  */
@@ -9485,6 +9514,8 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
+   Hsrcim_blur = IW3D_blurim( Hblur_s , Hsrcim , "source" ) ;
+#if 0
    if( Hblur_s >= 0.5f ){
      if( Hverb > 1 ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
      Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
@@ -9494,7 +9525,10 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
    } else {
      Hsrcim_blur = NULL ;
    }
+#endif
 
+   Hbasim_blur = IW3D_blurim( Hblur_b , Hbasim , "base" ) ;
+#if 0
    if( Hblur_b >= 0.5f ){
      if( Hverb > 1 ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
      Hbasim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_b) , Hbasim ) ;
@@ -9504,6 +9538,7 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
    } else {
      Hbasim_blur = NULL ;
    }
+#endif
 
    /*-- and copy or create base weight image --*/
 
