@@ -1406,6 +1406,36 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+#define DEF_PBLUR 0.10f
+#define MAX_PBLUR 0.25f
+     if( strcasecmp(argv[nopt],"-pblur") == 0 ){
+       float val1,val2 ;
+       nopt++ ;
+       if( nopt >= argc || isalpha(argv[nopt][0]) ||
+           (argv[nopt][0] == '-' && isalpha(argv[nopt][1])) ){  /* defaults */
+         Hpblur_b = Hpblur_s = DEF_PBLUR ; continue ;
+       }
+       if( !isnumeric(argv[nopt][0]) )
+         ERROR_exit("value after '-pblur' must be a number: '%s'",argv[nopt]) ;
+       val2 = val1 = (float)strtod(argv[nopt],NULL) ;
+       if( nopt+1 < argc && isnumeric(argv[nopt+1][0]) && !isalpha(argv[nopt+1][1]) )
+         val2 = (float)strtod(argv[++nopt],NULL) ;
+       Hpblur_b = val1 ; Hpblur_s = val2 ;
+       if( fabsf(val1) > MAX_PBLUR ){
+         Hpblur_b = (val1 < 0.0f) ? -MAX_PBLUR : MAX_PBLUR ;
+         WARNING_message("base -pblur %f out of range: altering to %f",val1,Hpblur_b) ;
+       }
+       if( fabsf(val2) > MAX_PBLUR ){
+         Hpblur_s = (val2 < 0.0f) ? -MAX_PBLUR : MAX_PBLUR ;
+         WARNING_message("source -pblur %f out of range: altering to %f",val2,Hpblur_s) ;
+       }
+       if( Hpblur_b == 0.0f && Hpblur_s == 0.0f )
+         WARNING_message("-pblur set to 0; why did you use this option?") ;
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-nopenalty") == 0 ){
        Hpen_fac = 0.0 ; nopt++ ; continue ;
      }
@@ -1607,6 +1637,9 @@ STATUS("check for errors") ;
      WARNING_message("-znoQ and -Qfinal cannot be combined: turning off -znoQ") ;
    }
 
+   if( Hpblur_b > 0.0f ) Hblur_b = 0.0f ;
+   if( Hpblur_s > 0.0f ) Hblur_s = 0.0f ;
+
 #if 0
    if( Hlocalstat && meth != GA_MATCH_PEARCLP_SCALAR && meth != GA_MATCH_PEARSON_SCALAR ){
      Hlocalstat = 0 ;
@@ -1614,7 +1647,7 @@ STATUS("check for errors") ;
    }
 #endif
 
-   /*----------- get the input datasts, check them for errors -----------*/
+   /*----------- get the input datasets, check them for errors -----------*/
 
 STATUS("read inputs") ;
 
@@ -2108,6 +2141,7 @@ STATUS("construct weight/mask volume") ;
        wt[ii] = ( wt[ii] <= 0.0f ) ? 0.0f : fac * wt[ii] ;
    }
 
+#if 1
    /*----- blur base here if so ordered (source is blurred in warpomatic) ----*/
 
    if( Hblur_b >= 0.5f && !do_plusminus ){
@@ -2121,6 +2155,7 @@ STATUS("construct weight/mask volume") ;
      qim = mri_medianfilter( bim , -Hblur_b , NULL , 0 ) ;
      mri_free(bim) ; bim = qim ;
    }
+#endif
 
    /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
    /*------------------------- do some actual work! --------------------------*/
@@ -2157,6 +2192,7 @@ STATUS("construct weight/mask volume") ;
    INFO_message("========== total number of parameters 'optimized' = %d",Hnpar_sum) ;
 
    mri_free(wbim) ; wbim = NULL ;  /* not needed after here [17 Oct 2013] */
+   mri_free(bim)  ; bim  = NULL ;
 
    /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
    /*--------- Post-processing to get the datasets to write to disk ----------*/

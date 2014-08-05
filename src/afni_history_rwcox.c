@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , JUL , 2014 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+  { 5 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Move basim blur from 3dQwarp.c to mri_nwarp.c" ,
+   "Preparatory to adding the -pblur option" } ,
+
+ { 5 , AUG , 2014 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Modify -ver output to mollify Chen Gang" ,
+   NULL } ,
+
+ { 24 , JUL , 2014 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Print/Popup warning message if same OLay is Clusterize-d twice" ,
    NULL } ,
 
