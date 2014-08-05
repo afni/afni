@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 5, Aug, 2014, ZSS, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
+   "Made program handle FreeSurfer's -contrasurfreg output",
+   NULL
+ },
+  
  { 1, Aug, 2014, ZSS, "3dGenFeatureDist", MINOR, TYPE_NEW_PROG,
    "Program written a while ago, placed in the distribution now",
    NULL

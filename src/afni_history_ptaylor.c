@@ -66,6 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 4, Aug , 2014 , PT , "3dDWUncert" , MICRO , TYPE_NEW_OPT,
+   "Internal options for testing uncertainty things.",
+   "For internal testing only at this point.\n"
+},
+
+{ 4, Aug , 2014 , PT , "1dDW_Grad_o_Mat" , MAJOR , TYPE_NEW_OPT,
+   "Can edit dataset with averaging B0s and DWIs.",
+   "Should make life easier for dual processing of vecs and datasets.\n"
+},
+
+{ 4, Aug , 2014 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
+   "New option for PAIRMAP labelling by X, not 2^X; new *.grid NT scaling.",
+   "Make PAIRMAP easier to view; user wanted extra matrices.\n"
+},
+
 { 19, Jun , 2014 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "Added new feature: output partial correlation matrices.",
    "Can output r-like and beta-like partial correlation matrices.\n"

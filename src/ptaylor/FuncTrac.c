@@ -69,10 +69,12 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.DUMP_ORIG_LABS=0;            //  "-lab_orig_rois"
    // switch about having no min threshold,and dumping ROIs
    defopt.POST=0;                      //  "-posteriori"
-// switch about whether to dump ascii/afni/both
+   // switch about whether to dump ascii/afni/both
    defopt.DUMP_TYPE=-1;                //  "-dump_rois"
    defopt.RECORD_ORIG=0;               //  "-rec_orig"
-             
+   defopt.PAIRPOWER=1;                 //  "-pair_out_int"
+   defopt.EXTRA_TR_PAR=0;              //  "-pair_out_int"
+
    // EXPIRED OPTIONS, just gives message/error:
    // "-cut_at_rois"
    // "-det_net"

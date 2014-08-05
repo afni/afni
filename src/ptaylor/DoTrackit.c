@@ -161,7 +161,7 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 								int *TV_switch,char *voxel_order,int *NROI,
 								int ****NETROI,int ***mskd,int ***INDEX2,int *Dim,
 								THD_3dim_dataset *dsetn,int argc, char *argv[],
-                        int **roi_labs)
+                        int **roi_labs, int PAIR_POWERON)
 {
 
 	int i,j,k,bb,hh,kk,rr,idx;
@@ -189,9 +189,14 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 		sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP",prefix,hh); 
 		// just get one of right dimensions!
 		networkMAPS = EDIT_empty_copy( insetFA ) ; 
-		EDIT_dset_items(networkMAPS,
-							 ADN_datum_all , MRI_short , 
-							 ADN_none ) ;
+      if( PAIR_POWERON )
+         EDIT_dset_items(networkMAPS,
+                         ADN_datum_all , MRI_float , 
+                         ADN_none ) ;
+      else
+         EDIT_dset_items(networkMAPS,
+                         ADN_datum_all , MRI_short , 
+                         ADN_none ) ;
 		EDIT_add_bricklist(networkMAPS ,
 								 NROI[hh], NULL , NULL , NULL );
 		
@@ -229,23 +234,27 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 						temp_arr[bb][idx] = 0;
 						// allow for more than one `connector' tract
 						if(mskd[i][j][k]) 
-							for( rr=0 ; rr<NROI[hh] ; rr++) 
-								if(NETROI[INDEX2[i][j][k]][hh][bb-1][rr]>0) {
+							for( rr=1 ; rr<=NROI[hh] ; rr++) 
+								if(NETROI[INDEX2[i][j][k]][hh][bb-1][rr-1]>0) {
 									// store connectors
-									if(bb-1 != rr){
+									if(bb != rr){
 										temp_arr[0][idx] = 1; 
 									}
 									
 									// store tracks through any ROI
 									temp_arr2[0][idx] = (float)
-										NETROI[INDEX2[i][j][k]][hh][bb-1][rr]; 
+										NETROI[INDEX2[i][j][k]][hh][bb-1][rr-1]; 
 									
 									// then add value if overlap
-									if(bb-1 != rr)
-										temp_arr[bb][idx]+=pow(2,rr+1);// unique decomp.
+									if(bb != rr) {
+                              if( PAIR_POWERON) // OLD
+                                 temp_arr[bb][idx]+=pow(2,rr);// unique
+                              else
+                                 temp_arr[bb][idx]+= roi_labs[hh][rr];//rr+1;// unique
+                           }
 									
 									temp_arr2[bb][idx] = (float)
-										NETROI[INDEX2[i][j][k]][hh][bb-1][rr];
+										NETROI[INDEX2[i][j][k]][hh][bb-1][rr-1];
 								}
 						idx+=1;
 					}
