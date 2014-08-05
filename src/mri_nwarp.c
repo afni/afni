@@ -7673,11 +7673,10 @@ ENTRY("IW3D_setup_for_improvement") ;
    if( Hpblur_b > 0.0f ) Hblur_b = 0.0f ;
    if( Hpblur_s > 0.0f ) Hblur_s = 0.0f ;
 
-#if 0
+#if 1
    Hbasim_blur = IW3D_blurim( Hblur_b , Hbasim , "base"   ) ;  /* NULL if blur */
    Hsrcim_blur = IW3D_blurim( Hblur_s , Hsrcim , "source" ) ;  /* radius == 0 */
-#endif
-#if 1
+#else
    if( Hblur_s >= 0.5f ){
      if( Hverb > 1 ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
      Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
