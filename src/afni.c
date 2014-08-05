@@ -10565,7 +10565,7 @@ ENTRY("AFNI_jumpto_ijk") ;
 void AFNI_jumpto_thminmax_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
-   int ijk=0, ii,jj,kk ;
+   int ijk=-777, ii,jj,kk ;
    float xx,yy,zz ;
 
 ENTRY("AFNI_jumpto_thminmax_CB") ;
@@ -10576,7 +10576,13 @@ ENTRY("AFNI_jumpto_thminmax_CB") ;
           ijk = im3d->fim_thresh_max_ijk ;
    else if( w == im3d->vwid->func->pbar_jumpto_thmin_pb )
           ijk = im3d->fim_thresh_min_ijk ;
-
+   
+   if (ijk == -777) { /* Not sure when this can happen, but
+                         return if there is nothing to do 
+                         without complaint   ZSS Aug. 2014 */
+      EXRETURN ;  
+   }
+   
    if( ijk < 0 ){ BEEPIT ; SENSITIZE(w,False) ; EXRETURN ; }
 
    ii = DSET_index_to_ix(im3d->fim_now,ijk) ;

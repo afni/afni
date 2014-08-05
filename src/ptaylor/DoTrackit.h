@@ -74,7 +74,7 @@ int WriteBasicProbFiles( int N_nets, int Ndata, int Nvox,
                          int *TV_switch, char *voxel_order, int *NROI,
                          int ****NETROI, int ***mskd, int ***INDEX2, int *Dim,
                          THD_3dim_dataset *dsetn, int argc, char *argv[],
-                         int **roi_labs);
+                         int **roi_labs, int PAIR_POWERON);
 
 int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int ***Prob_grid,
                          char *prefix, THD_3dim_dataset *insetFA,
