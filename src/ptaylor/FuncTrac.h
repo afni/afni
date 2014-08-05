@@ -62,7 +62,9 @@ typedef struct {
    int POST;                      //  "-posteriori"
    int DUMP_TYPE;                 //  "-dump_rois"
    int RECORD_ORIG;               //  "-rec_orig"
-             
+   int PAIRPOWER;                 //  "-pair_out_int"
+   int EXTRA_TR_PAR;              //  "-pair_out_int"
+
    // EXPIRED OPTIONS, just gives message/error:
    // "-cut_at_rois"
    // "-det_net"

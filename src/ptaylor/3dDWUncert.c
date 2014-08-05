@@ -12,6 +12,9 @@
 
    Feb. 2014:
        + getting rid of more order dependence in the commandline opts
+
+   June. 2014:
+       + internal testing/plotting options.
 */
 
 #include <stdio.h>
@@ -60,6 +63,7 @@ int expb_fdf(const gsl_vector *x, void *data, gsl_vector *f, gsl_matrix *J);
 */
 // from Numerical Recipes by Press, Teukolsky, Vetterling and Flannery
 void piksr2(int n, unsigned int arr[], int brr[]); 
+int ConfIntSort(float *A, int N, float *vals, int CI_per);
 
 void usage_DWUncert(int detail) 
 {
@@ -204,21 +208,21 @@ int main(int argc, char *argv[]) {
 
 	//	THD_3dim_dataset *dsetn;
 	
-	float *allS; 
-	float **sortedout; // output for evals, evecs, Nvox x 12 
+	float *allS=NULL; 
+	float **sortedout=NULL; // output for evals, evecs, Nvox x 12 
 	float S0;
-	int **StoreRandInd;
+	int **StoreRandInd=NULL;
 	float testdd[6];
-	float *testS;
-	float *bmatr;
+	float *testS=NULL;
+	float *bmatr=NULL;
 	float **grads=NULL; // read in grads
-	float *Wei2;
+	float *Wei2=NULL;
 	float meanE1e2,meanE1e3,meanDelFA;
 	float stdE1e2,stdE1e3,stdDelFA;
-	float **OUT;
-	unsigned int *randarr;
-	int *ind;
-	float *delE1e2,*delE1e1,*delE1e3, *delFA;
+	float **OUT=NULL;
+	unsigned int *randarr=NULL;
+	int *ind=NULL;
+	float *delE1e2=NULL,*delE1e1=NULL,*delE1e3=NULL, *delFA=NULL;
 	int worstS, Nbad; // switch for testing bad ADC_i (i.e., S_i) 
 	float aveADC, mostpos;
 	//	int  NONLINLM=0; // only linear fitting for this approx.
@@ -227,7 +231,14 @@ int main(int argc, char *argv[]) {
 	int BADNESS;
 	float randmagn;
 	float CSF_FA = 0.012345678; // afni-set version
+
    float jknife_val = 0.7; // default jackknife fraction
+   int Njkout = 0, count_jkout = 0, CI_val=0;  // just options for testing
+   char FILE_jkout[300];
+   char FILE_CIout[300];
+   float CI_minmax[2]={-1., -1.,};
+   float **OUTCI=NULL;
+	THD_3dim_dataset *UNC_OUTCI=NULL;
 
 	char evalevecs[300]; 
 	
@@ -404,7 +415,7 @@ int main(int argc, char *argv[]) {
 	 
       if( strcmp(argv[iarg],"-pt_jkval") == 0 ){
 			if( ++iarg >= argc ) 
-				ERROR_exit("Need integer argument after '-csf_fa'");
+				ERROR_exit("Need integer argument after '-pt_jkval'");
 			jknife_val = atof(argv[iarg]);
          INFO_message("(PT) Internal option: "
                       "jackknife fraction being set to: %.5f.",jknife_val);
@@ -416,6 +427,33 @@ int main(int argc, char *argv[]) {
 			iarg++ ; continue ;
 		}
 
+      if( strcmp(argv[iarg],"-pt_jkout") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need integer argument after '-pt_jkout'");
+			Njkout = atoi(argv[iarg]);
+         INFO_message("(PT) Internal option: "
+                      "writing %d example files of JK iterations.", Njkout);
+         
+         if( Njkout <=0 )
+				ERROR_exit("Jackknife fraction must be between [1,Nvox], not %d.",
+                       Njkout);
+			
+			iarg++ ; continue ;
+		}
+
+      if( strcmp(argv[iarg],"-pt_conf") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need integer argument after '-pt_conf'");
+			CI_val = atoi(argv[iarg]);
+         INFO_message("(PT) Internal option: "
+                      "confidence intervaling at level: %d\%.",CI_val);
+
+         if( (CI_val > 100 ) || (CI_val <=0 ) )
+				ERROR_exit("Confidence interval percent must be (0, 100], not %d.",
+                       CI_val);
+			
+			iarg++ ; continue ;
+		}
 
 		ERROR_message("Bad option '%s'\n",argv[iarg]) ;
 		suggest_best_prog_option(argv[0], argv[iarg]);
@@ -433,9 +471,11 @@ int main(int argc, char *argv[]) {
 	}
    else {
       
-      insetPARS = (THD_3dim_dataset **)calloc(N_dti_scal, sizeof(THD_3dim_dataset *));
+      insetPARS = (THD_3dim_dataset **)calloc(N_dti_scal, 
+                                              sizeof(THD_3dim_dataset *));
       
-      insetVECS = (THD_3dim_dataset **)calloc(N_dti_vect, sizeof(THD_3dim_dataset *)); 
+      insetVECS = (THD_3dim_dataset **)calloc(N_dti_vect, 
+                                              sizeof(THD_3dim_dataset *)); 
       
       if(  (insetPARS == NULL) || (insetVECS == NULL) ){
          fprintf(stderr,"\n\nMemAlloc failure: prepping to store sets.\n\n");
@@ -564,7 +604,8 @@ int main(int argc, char *argv[]) {
             if( !(ii == 1)) { // because we don't use MD
                insetPARS[ii] = THD_open_dataset(NameSCAL[ii]);
                if( (insetPARS[ii] == NULL ) )
-                  ERROR_exit("Can't open listed dataset '%s': for required scalar.",
+                  ERROR_exit("Can't open listed dataset '%s': "
+                             "for required scalar.",
                              NameSCAL[ii]);
                DSET_load(insetPARS[ii]) ; CHECK_LOAD_ERROR(insetPARS[ii]) ;
                fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
@@ -591,8 +632,6 @@ int main(int argc, char *argv[]) {
                ERROR_exit("Can't open dataset: '%s' file",DTI_VECT_INS[i] );
          fprintf(stderr,"\n");			
          
-
-
 
          for(i=0 ; i<N_dti_vect ; i++)
             free(NameVEC[i]);
@@ -804,7 +843,18 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(12);
 	}
-  
+
+   if(CI_val){
+      OUTCI = calloc(6,sizeof(OUTCI)); 
+      for(i=0 ; i<6 ; i++) 
+         OUTCI[i] = calloc( Nvox,sizeof(float)); 
+
+      if( OUTCI == NULL) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(12);
+      }
+   }
+   
 	// make vec/matr for doing calcs per vox
 	// (H^T Wei H)^-1 H^T Wei Y = dd
 	gsl_matrix *H = gsl_matrix_alloc(Mj, 6);// of (grad x grad) quants
@@ -861,6 +911,10 @@ int main(int argc, char *argv[]) {
    INFO_message("Ratio of data/total number of voxels: %d/%d.",
                 Ndata, Nvox);
    
+   if( Njkout > Ndata)
+      WARNING_message("Resetting number of output jackknife examples "
+                      " from %d to %d", Njkout, Ndata);
+
    /*   for( i=0 ; i<Nvox ; i++ ) 
       if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
 			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) 
@@ -874,6 +928,8 @@ int main(int argc, char *argv[]) {
    fprintf(stderr,"++ Nvox progress count: start ...\n");
    t_start = time(NULL);
 
+   count_jkout = 0;
+
 	for(i=0 ; i<Nvox ; i++) 
 		if( ( HAVE_MASK && !(THD_get_voxel(MASK,i,0)>0) ) ||
 			 ( (HAVE_MASK==0) && (THD_get_voxel(insetPARS[2],i,0)<EPS_V) ) ) {
@@ -885,6 +941,14 @@ int main(int argc, char *argv[]) {
 			OUT[0][i] = OUT[2][i] = OUT[4][i] = 0.0; // zero mean
 			OUT[1][i] = OUT[3][i] = PIo2; // max uncert, but prob doesn't matter.
 			OUT[5][i] = 1.0; // max uncert
+
+         if(CI_val) {
+            OUTCI[0][i] = OUTCI[2][i] = -PIo2;
+            OUTCI[1][i] = OUTCI[3][i] = PIo2;
+            OUTCI[4][i] = - THD_get_voxel(insetPARS[0],i,0);
+            OUTCI[5][i] = 1 - THD_get_voxel(insetPARS[0],i,0);
+         }
+
 		}
 		else {
          // counting, technically off by 1,
@@ -985,11 +1049,12 @@ int main(int argc, char *argv[]) {
 							for( b=0 ; b<Mj ; b++) {
 								if( Wei2[b] < 2) { 
 									// in case we've already found 1 bad, to skip it now
-									Wei2[b] = pow(10,6); // large weight, effectively zeros.
+									Wei2[b] = pow(10,6); // large weight, effectively 0s.
                   
 									for(j=0 ; j<Mj ; j++) 
 										for(k=0 ; k<6 ; k++) //  (H^T Wei)
-											gsl_matrix_set(HTW,k,j,gsl_matrix_get(H,j,k)/Wei2[j]);
+											gsl_matrix_set(HTW,k,j,
+                                                gsl_matrix_get(H,j,k)/Wei2[j]);
 						
 									// set up the inverse
 									gsl_matrix_set_zero(HTWH);   
@@ -1001,7 +1066,9 @@ int main(int argc, char *argv[]) {
 									j = gsl_linalg_LU_decomp(HTWH, P, &k);
 									j = gsl_linalg_LU_invert(HTWH, P, HTWHinv);
                   
-									// multiply pieces, and finally with Y to get dd (answer)
+									// multiply pieces, 
+                           // and finally with Y to get dd (answer)
+
 									gsl_matrix_set_zero(C);
 									gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,
 														HTWHinv,HTW,1.0,C);
@@ -1169,6 +1236,69 @@ int main(int argc, char *argv[]) {
 				stdE1e3+= delE1e3[jj]*delE1e3[jj];
 				stdDelFA+= delFA[jj]*delFA[jj];
 			}
+
+         // output files of output from all jk iterations, in case
+         //it's useful for testing.  
+         if( Njkout ) 
+            if( count_jkout < Njkout ) {
+
+               sprintf(FILE_jkout,"%s_JKITER_%04d.txt", prefix, count_jkout); 
+
+               if( (fin4 = fopen(FILE_jkout, "w")) == NULL) {
+                  fprintf(stderr, "Error opening file %s.", FILE_jkout);
+                  exit(19);
+               }
+
+               fprintf(fin4,"# %d  # Number of jackknife iterations\n", Nj);
+               fprintf(fin4,"# %s\t%s\t%s  # delta parameters\n",
+                       "delE1e2  ", "delE1e3  ", "delFA    "); 
+               
+        			for( jj=0 ; jj<Nj ; jj++) 
+                  fprintf(fin4,"%9f\t%9f\t%9f\n",
+                          delE1e2[jj], delE1e3[jj], delFA[jj]); 
+
+               fclose(fin4);
+      
+               count_jkout++;
+            }
+
+         if(CI_val) {
+
+            jj = ConfIntSort(delE1e2, Nj, CI_minmax, CI_val);
+            if( fabs(CI_minmax[0] - CI_minmax[1]) < EPS_L ){
+               // some kind of badness if CI is zero sized.
+               OUTCI[0][i] = -PIo2;
+               OUTCI[1][i] = PIo2;
+            }
+            else{
+               OUTCI[0][i] = CI_minmax[0];
+               OUTCI[1][i] = CI_minmax[1];
+            }
+
+            jj = ConfIntSort(delE1e3, Nj, CI_minmax, CI_val);
+            if( fabs(CI_minmax[0] - CI_minmax[1]) < EPS_L ){
+               // some kind of badness if CI is zero sized.
+               OUTCI[2][i] = -PIo2;
+               OUTCI[3][i] = PIo2;
+            }
+            else{
+               OUTCI[2][i] = CI_minmax[0];
+               OUTCI[3][i] = CI_minmax[1];
+            }
+
+            jj = ConfIntSort(delFA, Nj, CI_minmax, CI_val);
+            if( fabs(CI_minmax[0] - CI_minmax[1]) < EPS_L ){
+               // some kind of badness if CI is zero sized.
+               OUTCI[4][i] = - THD_get_voxel(insetPARS[0],i,0);
+               OUTCI[5][i] = 1 - THD_get_voxel(insetPARS[0],i,0);
+            }
+            else{
+               OUTCI[4][i] = CI_minmax[0];
+               OUTCI[5][i] = CI_minmax[1];
+            }
+         }
+
+
 			meanE1e2/= Nj;
 			meanE1e3/= Nj;
 			meanDelFA/= Nj;
@@ -1206,13 +1336,13 @@ int main(int argc, char *argv[]) {
 
 	sprintf(evalevecs,"%s_UNC",prefix); 
 	UNC_OUT = EDIT_empty_copy( insetPARS[2] ) ; 
-  
+
 	EDIT_add_bricklist(UNC_OUT,
 							 5, NULL , NULL , NULL );
 	EDIT_dset_items(UNC_OUT,
 						 ADN_datum_all , MRI_float , 
 						 ADN_none ) ;
-  
+
 	for( n=0; n<6 ; n++) {
 		EDIT_substitute_brick(UNC_OUT, n, MRI_float, OUT[n]);
 		OUT[n]=NULL;
@@ -1220,22 +1350,62 @@ int main(int argc, char *argv[]) {
 	EDIT_dset_items(UNC_OUT,
 						 ADN_prefix    , evalevecs,
 						 ADN_none ) ;
-  
 	EDIT_BRICK_LABEL(UNC_OUT,0,"bias_E1e2");      
 	EDIT_BRICK_LABEL(UNC_OUT,1,"std_E1e2");      
 	EDIT_BRICK_LABEL(UNC_OUT,2,"bias_E1e3");      
 	EDIT_BRICK_LABEL(UNC_OUT,3,"std_E1e3");      
 	EDIT_BRICK_LABEL(UNC_OUT,4,"bias_FA");      
 	EDIT_BRICK_LABEL(UNC_OUT,5,"std_FA");     
-  
+
 	THD_load_statistics( UNC_OUT );
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(UNC_OUT)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(UNC_OUT));
+
 	tross_Make_History("3dDWUncert", argc, argv, UNC_OUT);
 	THD_write_3dim_dataset(NULL, NULL, UNC_OUT, True);
+
 	DSET_delete(UNC_OUT); 
   	free(UNC_OUT); 
+
+
+   if(CI_val) { // recycle above to output confidence intervals
+      
+      sprintf(FILE_CIout,"%s_UNCCI",prefix); 
+      UNC_OUTCI = EDIT_empty_copy( insetPARS[2] ) ; 
+  
+      EDIT_add_bricklist(UNC_OUTCI,
+                         5, NULL , NULL , NULL );
+      EDIT_dset_items(UNC_OUTCI,
+                      ADN_datum_all , MRI_float , 
+                      ADN_none ) ;
+  
+      for( n=0; n<6 ; n++) {
+         EDIT_substitute_brick(UNC_OUTCI, n, MRI_float, OUTCI[n]);
+         OUTCI[n]=NULL;
+      }
+      EDIT_dset_items(UNC_OUTCI,
+                      ADN_prefix    , FILE_CIout,
+                      ADN_none ) ;
+      
+      EDIT_BRICK_LABEL(UNC_OUTCI,0,"E1e2_min");      
+      EDIT_BRICK_LABEL(UNC_OUTCI,1,"E1e2_mix");      
+      EDIT_BRICK_LABEL(UNC_OUTCI,2,"E1e3_min");      
+      EDIT_BRICK_LABEL(UNC_OUTCI,3,"E1e3_max");      
+      EDIT_BRICK_LABEL(UNC_OUTCI,4,"FA_min");      
+      EDIT_BRICK_LABEL(UNC_OUTCI,5,"FA_max");     
+      
+      THD_load_statistics( UNC_OUTCI );
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(UNC_OUTCI)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(UNC_OUTCI));
+      tross_Make_History("3dDWUncert", argc, argv, UNC_OUTCI);
+      THD_write_3dim_dataset(NULL, NULL, UNC_OUTCI, True);
+      DSET_delete(UNC_OUTCI); 
+      free(UNC_OUTCI); 
+      
+   }
+
 
 	
 	// ************************************************************
@@ -1329,8 +1499,42 @@ int main(int argc, char *argv[]) {
 	free(OUT);
 	gsl_rng_free(r);
 
+   if(CI_val) {
+      for( i=0; i<6 ; i++) // free all
+         free(OUTCI[i]);
+      free(OUTCI);
+   }
+
 	return 0;
 }
+
+
+int ConfIntSort(float *A, int N, float *vals, int CI_per)
+{
+   float f=100.;
+   int X=0;
+
+
+   f-= CI_per;
+   f/= 200.;
+   X = (int) floor(f * N);
+
+   gsl_sort_float(A, 1, N);
+
+   vals[0] = A[X];
+   vals[1] = A[N-1-X];
+
+   //fprintf(stderr,"CI: %d;  frac=%f;  N=%d, X=%d, minmax=(%f, %f)\n",
+   // CI_per, f, N, X, vals[0], vals[1]);
+
+   return (1);
+}
+
+
+
+
+
+
 
 
 /*

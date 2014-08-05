@@ -62,6 +62,10 @@
    + extra through mask ('-thru_mask')
    + some nicer output-- file name prefix at end, count miniprob
 
+   Aug 2014:
+   + add option for output of PAIRMAP to not be 2^X for connections
+   + add option for some scaling of tracks by ROI vols and surf areas
+
 */
 
 
@@ -89,6 +93,17 @@
 #define N_dti_vect (3) 
 #define N_plus_dtifile (4) // num of allowed additional param files in NIMLver
 #define PreCalcParLabs (5) // we define a few things initially
+
+
+
+int GetSizesOfTargets( int ***ROI_SIZES,
+                       int **MAPROI, int *Dim, 
+                       int ***mskd, 
+                       int ***INDEX2, 
+                       float **coorded, float minFA,
+                       int N_nets, int *NROI,
+                       int **INV_LABELS);
+
 
 int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                         int argc, char *argv[]);
@@ -153,18 +168,7 @@ void usage_TrackID(int detail)
 "  NETWORK MAPS, for any '-mode' of track, given as a single- or multi-brik\n"
 "   file via '-netrois':\n"
 "   Each target ROI is defined by the set of voxels with a given integer >0.\n"
-"   Target ROI labels do not have to be purely consecutive. As described just\n"
-"   below, some outputs have info per-ROI as a given brik and defined by\n"
-"   reference to a given integer.  If the target ROI labels are consecutive,\n"
-"   then all those numbers will be the same: then, for example, for an \n"
-"   integer i, it's info will be output in *PAIRMAP* brik [i], and the powers\n"
-"   in its voxelwise labelling will be 2^i.  But, for non-consecutive target\n"
-"   ROIs, in order to have the labels not get *too* huge or have blank output\n"
-"   briks, the target labels get mapped as follows: \n"
-"   Say you have 3 ROIs but the labels are {1,2,24}, for whatever reason; the\n"
-"   output labels and brik indicess will be condensed to be treated LIKE\n"
-"   {1,2,3}-- thus, the labels stay as small as possible (which is a legit\n"
-"   concern since labels are 2^{ROI #}).\n"
+"   Target ROI labels do not have to be purely consecutive.\n"
 "\n"
 "  Note on vocabulary, dual usage of 'ROI': an (input) network is made up of\n"
 "   *target ROIs*, between/among which one wants to find WM connections; so,\n"
@@ -185,10 +189,20 @@ void usage_TrackID(int detail)
 "     0th brick contains the number of tracts per voxel which passed through\n"
 "     at least one target ROI in that network (and in '-mode PROB', this\n"
 "     number has been thresholded-- see 'alg_Thresh_Frac' below).\n"
-"     Each i-th brick (i running from 1 to N_ROI) contains the voxels\n"
-"     through which tracks hitting that i-th target passed; the value of each\n"
-"     voxel is the number of tracks passing through that location.\n"
+"     If the target ROIs are consecutively labelled from 1 to N_ROI, then:\n"
+"       Each i-th brick (i running from 1 to N_ROI) contains the voxels\n"
+"       through which tracks hitting that i-th target passed; the value of\n"
+"       each voxel is the number of tracks passing through that location.\n"
+"     Else, then:\n"
+"       Each i-th brick contains the voxels through which the tracks\n"
+"       hitting the j-th target passed (where j may or may not equal i; the\n"
+"       value of j is recorded in the brick label:  OR_roi_'j').  The target\n"
+"       ROI connectivity is recorded increasing order of 'j'.\n"
 "  2) *PAIRMAP*  BRIK files (output in ALL modes).\n"
+"     (-> This has altered slightly at the end of June, 2014! No longer using\n"
+"     2^i notation-- made simpler for reading, assuming individual connection\n"
+"     information for calculations was likely obtained more easily with \n"
+"     '-dump_rois {AFNI | BOTH }...)\n"
 "     For each network with N_ROI target ROIs, this is a N_ROI+1 brik file.\n"
 "     0th brick contains a binary mask of voxels through which passed a\n"
 "     supra-threshold number of tracks (more than 0 for '-mode {DET | MINIP}'\n"
@@ -196,14 +210,19 @@ void usage_TrackID(int detail)
 "     pair of target ROIs in that network (by default, these tracks have been\n"
 "     trimmed to only run between ROIs, cutting off parts than dangle outside\n"
 "     of the connection).\n"
-"     Each i-th brick (i running from 1 to N_ROI) contains the voxels\n"
-"     through which tracks hitting that i-th target AND any other target\n"
-"     passed; voxels connecting i- and j-th target ROIs have value 2^j, and\n"
-"     the values are summed if a given voxel is in multiple\n"
-"     WM ROIs (i.e., connecting both target ROIs 2 and 1 as well as 2 and 4,\n"
-"     then the value in brick [2] would be 2^1 + 2^4=18).\n"
-"     (I guess this tacitly assumes that there is not a *huge* number of ROIs\n"
-"     in the network, but something this could be extended.)\n"
+"     If the target ROIs are consecutively labelled from 1 to N_ROI, then:\n"
+"       Each i-th brick (i running from 1 to N_ROI) contains the voxels\n"
+"       through which tracks hitting that i-th target AND any other target\n"
+"       passed; voxels connecting i- and j-th target ROIs have value j, and\n"
+"       the values are summed if a given voxel is in multiple WM ROIs (i.e.,\n"
+"       for a voxel connecting both target ROIs 2 and 1 as well as 2 and 4,\n"
+"       then the value there in brick [2] would be 1 + 4 = 5).\n"
+"     Else, then:\n"
+"       Each i-th brick contains the voxels through which the tracks\n"
+"       hitting the j-th target AND any other target passed (where j may or\n"
+"       may not equal i; the value of j is recorded in the brick label: \n"
+"       AND_roi_'j'). The same voxel labelling and summing rules described\n"
+"       above also apply here.\n"
 "  3) *.grid  ASCII-text file (output in ALL modes).\n"
 "     Simple text file of output stats of WM-ROIs. It outputs the means and\n"
 "     standard deviations of parameter quantities (such as FA, MD, L1, etc.)\n"
@@ -318,6 +337,7 @@ void usage_TrackID(int detail)
 "         | tract_out_mode    |             |             |                 |\n"
 "         | write_opts        |             |             |                 |\n"
 "         | write_rois        |             |             |                 |\n"
+"         | pair_out_power    |             |             |                 |\n"
 "+--------+-------------------+-------------+-------------+-----------------+\n"
 "*above, asterisked options are REQUIRED for running the given '-mode'.\n"
 " With DTI data, one must use either '-dti_in' *or* '-dti_list' for input.\n"
@@ -506,6 +526,18 @@ void usage_TrackID(int detail)
 "                        a candidate voxel needs at least 0.001*5*1000 = 5\n"
 "                        tracks/connection.\n"
 "\n"
+"    -extra_tr_par   :run three extra track parameter scalings for each\n"
+"                     target pair, output in the *.grid file. The NT value\n"
+"                     of each connection is scaled in the following manners\n"
+"                     for each subsequent matrix label:\n"
+"                        NTpTarVol  :div. by average target volume;\n"
+"                        NTpTarSA   :div. by average target surface area;\n"
+"                        NTpTarSAFA :div. by average target surface area\n"
+"                                    bordering suprathreshold FA (or equi-\n"
+"                                    valent WM proxy definition).\n"
+"                     NB: the volume and surface area numbers are given in\n"
+"                     terms of voxel counts and not using physical units\n"
+"                     (consistent: NT values themselves are just numbers.)\n"
 "    -uncut_at_rois  :when looking for pairwise connections, keep entire\n"
 "                     length of any track passing through multiple targets,\n"
 "                     even when part ~overshoots a target (i.e., it's not\n"
@@ -550,6 +582,22 @@ void usage_TrackID(int detail)
 "                     simply consecutive and starting from 1. File has 3cols:\n"
 "                       Input_ROI   Condensed_form_ROI   Power_of_2_label\n"
 "    -write_opts     :write out all the option values into PREFIX.niml.opts.\n" 
+"    -pair_out_int   :switch to affect output of *PAIRMAP* output files. \n"
+"                     By default, output of bricks [1] and higher contain\n"
+"                     information on connections store as powers of two, so\n"
+"                     that there is a unique decomposition in terms of\n"
+"                     overlapped connections. However, it's *far* easier to\n"
+"                     use '-dump_rois {AFNI | BOTH }' to get individual mask\n"
+"                     files of the ROIs clearly (as well as annoying to need\n"
+"                     to calculate powers of two simply to visualize the\n"
+"                     connections. This switch will output the >0 bricks with\n"
+"                     tracks labelled by the target integers themselves,\n"
+"                     instead of using powers of two of that number (with\n"
+"                     integer summation for overlaps).  This is not a unique\n"
+"                     labelling system, but it *is* far easier to view and\n"
+"                     understand what's going on. Likely, this will become\n"
+"                     the default format.\n"
+"                     *PAIRMAP* output (described above), then use this opt.\n"
 "    -verb VERB      :verbosity level, default is 0.\n"
 "\n"
 "****************************************************************************\n"
@@ -741,7 +789,21 @@ int main(int argc, char *argv[])
 			InOpts.ROIS_OUT=1;
 			iarg++ ; continue ;
 		}
-		
+
+		if( strcmp(argv[iarg],"-pair_out_int") == 0) {
+			InOpts.PAIRPOWER=0;
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-extra_tr_par") == 0) {
+         // scale NT grids by: 
+         // 1) target vol, 
+         // 2) target SA, 
+         // 3) and target SA near WM.
+			InOpts.EXTRA_TR_PAR=3; 
+			iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-lab_orig_rois") == 0) {
 			InOpts.DUMP_ORIG_LABS=1;
 			iarg++ ; continue ;
@@ -1284,6 +1346,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    char tprefix[THD_MAX_PREFIX];
    int nfiles;
 
+   int ***ROI_SIZES=NULL;
+
 	// for random number generation
 	const gsl_rng_type * T=NULL;
 	gsl_rng *r=NULL;
@@ -1618,7 +1682,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          if ( EXTRAFILE )
             PARS_BOT = 0;
          PARS_N = PARS_TOP -1 + EXTRAFILE;
-         Noutmat = PreCalcParLabs + 2*(PARS_N); // number of output matrices in GRID file
+         // number of output matrices in GRID file
+         Noutmat = PreCalcParLabs + opts.EXTRA_TR_PAR + 2*(PARS_N); 
          // ParLab has length Noutmat
          // param_grid has 2*PARS_N+1 = Noutmat-2 blocks
          
@@ -1648,10 +1713,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          for( ii=0 ; ii<N_dti_scal ; ii++) {
             insetPARS[1+ii] = THD_open_dataset(NameSCAL[ii]);
             if( (insetPARS[1+ii] == NULL ) )
-               ERROR_exit("Can't open listed dataset '%s': for required scalar.",
+               ERROR_exit("Can't open listed dataset '%s': required scalar.",
                           NameSCAL[ii]);
             DSET_load(insetPARS[1+ii]) ; CHECK_LOAD_ERROR(insetPARS[1+ii]) ;
-            snprintf(wild_names[1+ii],31,"%s", DTI_SCAL_INS[ii]); // default eXtraFile name
+            // default eXtraFile name
+            snprintf(wild_names[1+ii],31,"%s", DTI_SCAL_INS[ii]); 
             fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
                     NameSCAL[ii],wild_names[1+ii]);
          }
@@ -1663,15 +1729,16 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          jj = 0;
          for( ii=0 ; ii<N_plus_dtifile ; ii++) 
             if( strcmp(NameP[ii],"\0") ) {
-               //fprintf(stderr,"TESTING NAMEP: T=%d, %s",(NameP[ii] != "\0"),NameP[ii]);
                jj++;
-               i = N_dti_scal + jj + 1; //extra plus one because of RD getting added
+               i = N_dti_scal + jj + 1; //extra +1 because of RD getting added
                insetPARS[i] = THD_open_dataset(NameP[ii]);
                if( (insetPARS[i] == NULL ) )
-                  ERROR_exit("Can't open [%d]-listed dataset '%s': for additional scalar.",
+                  ERROR_exit("Can't open [%d]-listed dataset '%s': "
+                             "for additional scalar.",
                              ii,NameP[ii]);
                DSET_load(insetPARS[i]) ; CHECK_LOAD_ERROR(insetPARS[i]) ;
-               snprintf(wild_names[i],31,"%s", DTI_PLUS_INS[ii]); // default eXtraFile name
+               // default eXtraFile name
+               snprintf(wild_names[i],31,"%s", DTI_PLUS_INS[ii]); 
                fprintf(stderr,"\tFound file '%s' to be labeled '%s'\n",
                        NameP[ii], wild_names[i]);
             }
@@ -1689,10 +1756,18 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          ParLab[2] = strdup("PV");
          ParLab[3] = strdup("fNV");
          ParLab[4] = strdup("NV");
+         if (opts.EXTRA_TR_PAR) {
+            ParLab[5] = strdup("NTpTarVol");
+            ParLab[6] = strdup("NTpTarSA");
+            ParLab[7] = strdup("NTpTarSAFA");
+         }
+            
          for( i=PARS_BOT ; i<PARS_TOP ; i++ ){
-            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)],31,"%s", 
+            snprintf(ParLab[PreCalcParLabs + opts.EXTRA_TR_PAR -
+                            2 + 2*(i + EXTRAFILE)],31,"%s", 
                      wild_names[i]);
-            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)+1],31,"s%s", 
+            snprintf(ParLab[PreCalcParLabs + opts.EXTRA_TR_PAR -
+                            2 + 2*(i + EXTRAFILE) + 1],31,"s%s", 
                      wild_names[i]);
          }
          
@@ -1746,16 +1821,18 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             for( k=0 ; k<Dim[2] ; k++ ) 
                for( j=0 ; j<Dim[1] ; j++ ) 
                   for( i=0 ; i<Dim[0] ; i++ ) {
-                     temp_arr[ii] = 0.5*(3.0*THD_get_voxel(insetPARS[N_dti_scal-1],ii,0)-
-                                         THD_get_voxel(insetPARS[N_dti_scal],ii,0));
+                     temp_arr[ii] = 0.5*
+                        (3.0*THD_get_voxel(insetPARS[N_dti_scal-1],ii,0) -
+                         THD_get_voxel(insetPARS[N_dti_scal],ii,0));
                      ii++;
                   }
-            EDIT_substitute_brick(insetPARS[N_dti_scal+1], 0, MRI_float, temp_arr);
+            EDIT_substitute_brick(insetPARS[N_dti_scal+1], 0, MRI_float, 
+                                  temp_arr);
             temp_arr = NULL; free(temp_arr);
          }
          
          
-         insetVECS = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *) * 3 );
+         insetVECS = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*3);
          if(  (insetVECS == NULL)  ){
             fprintf(stderr, "\n\n MemAlloc failure.\n\n");
             exit(123);
@@ -1826,7 +1903,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                   ERROR_exit("Can't open dataset '%s': for extra set.",
                              opts.in_EXTRA);
                DSET_load(insetPARS[0]) ; CHECK_LOAD_ERROR(insetPARS[0]) ;
-               snprintf(wild_names[0], 31, "%s", "XF"); // default eXtraFile name
+               // default eXtraFile name
+               snprintf(wild_names[0], 31, "%s", "XF"); 
                fprintf(stderr," Extra file '%s' to be labeled '%s'\n\t",
                             opts.in_EXTRA, wild_names[0]);
                // set uncert of this param to be ~2% of max, unless user
@@ -1854,8 +1932,9 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                      insetPARS[1+i] = THD_open_dataset(wglob[isrt[ii]]);
                      if( insetPARS[1+i] == NULL ) 
                         ERROR_exit("Can't open dataset '%s'",wglob[isrt[ii]] );
-                     DSET_load(insetPARS[1+i]) ; CHECK_LOAD_ERROR(insetPARS[1+i]) ;
-                     snprintf(wild_names[1+i],31,"%s",temp_name);// wsort[ii]+hardi_pref_len);
+                     DSET_load(insetPARS[1+i]);
+                     CHECK_LOAD_ERROR(insetPARS[1+i]);
+                     snprintf(wild_names[1+i],31,"%s",temp_name);
                      break;
                   }
                   else continue;
@@ -1866,15 +1945,17 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
                   if( dsetn == NULL ) {
                      fprintf(stderr,"\n");
-                     WARNING_message("Found an unloadable file (%s) masquerading"
-                                     " with the '-dti_in' prefix.\n"
-                                     "\tThis imposter/non-dataset won't be loaded.",
+                     WARNING_message("Found unloadable file (%s) masquerading\n"
+                                     "\twith the '-dti_in' prefix.\n"
+                                     "\tThis imposter/non-dataset won't be "
+                                     "loaded.",
                                      wglob[isrt[ii]]);
                      PARS_N--;
                   }
                   else{  
                      // check if it's a vec or scal;
-                     // and now extra criterion: user can turn of NON-FOUND_DTI scalar keepers
+                     // and now extra criterion: 
+                     // user can turn of NON-FOUND_DTI scalar keepers
                      if( (DSET_NVALS(dsetn) > 1) || opts.NO_NONDTI_SEARCH ) {
                         DSET_delete(dsetn);
                         dsetn=NULL;
@@ -1882,18 +1963,21 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                      }
                      else {
                         insetPARS[jj] = dsetn;
-                        snprintf(wild_names[jj],31,"%s",temp_name);// wsort[ii]+hardi_pref_len);
+                        snprintf(wild_names[jj],31,"%s",temp_name);
                         fprintf(stderr," '%s' ",wild_names[jj]);
                         dsetn=NULL;
                         if( insetPARS[jj] == NULL ) 
-                           ERROR_exit("Can't open dataset '%s'", wglob[isrt[ii]]);
-                        DSET_load(insetPARS[jj]) ; CHECK_LOAD_ERROR(insetPARS[jj]) ;
+                           ERROR_exit("Can't open dataset '%s'", 
+                                      wglob[isrt[ii]]);
+                        DSET_load(insetPARS[jj]) ; 
+                        CHECK_LOAD_ERROR(insetPARS[jj]) ;
                         jj++;
                      }
                   }
                }
                if( jj == MAX_PARAMS ) {
-                  INFO_message("Have reached max number of allowed input scalars (%d).\n"
+                  INFO_message("Have reached max number of allowed "
+                               "input scalars (%d).\n"
                                "\tWill just go with the ones gotten now.",
                                MAX_PARAMS) ;
                   PARS_N = MAX_PARAMS + EXTRAFILE - 1; // pars_top reset below
@@ -1906,9 +1990,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                insetPARS[i]=NULL;
             }
             PARS_TOP = PARS_N + 1 - EXTRAFILE; // extra, calc RD automatically
-            Noutmat = PreCalcParLabs + 2*(PARS_N); // num of output matr in GRID
-                                                // ParLab has length Noutmat
-                                                // param_grid has
+            // num of output matr in GRID
+            // ParLab has length Noutmat
+            // param_grid has
+            Noutmat = PreCalcParLabs + opts.EXTRA_TR_PAR + 2*(PARS_N); 
             fprintf(stderr,"\n");
             INFO_message("Done with scalar search, found: %d parameters"
                          " (well, including internal RD calc)\n"
@@ -1976,9 +2061,19 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          ParLab[2] = strdup("PV");
          ParLab[3] = strdup("fNV");
          ParLab[4] = strdup("NV");
+         if (opts.EXTRA_TR_PAR) {
+            ParLab[5] = strdup("NTpTarVol");
+            ParLab[6] = strdup("NTpTarSA");
+            ParLab[7] = strdup("NTpTarSAFA");
+         }
+            
          for( i=PARS_BOT ; i<PARS_TOP ; i++ ){
-            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)],31,"%s", wild_names[i]);
-            snprintf(ParLab[PreCalcParLabs-2+2*(i+EXTRAFILE)+1],31,"s%s", wild_names[i]);
+            snprintf(ParLab[PreCalcParLabs + opts.EXTRA_TR_PAR -
+                            2 + 2*(i + EXTRAFILE)],31,"%s", 
+                     wild_names[i]);
+            snprintf(ParLab[PreCalcParLabs + opts.EXTRA_TR_PAR -
+                            2 + 2*(i + EXTRAFILE) + 1],31,"s%s", 
+                     wild_names[i]);
          }
          
          if (isrt) free(isrt); isrt = NULL;
@@ -2069,12 +2164,14 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             Nvox = DSET_NVOX(insetPARS[PARS_BOT]) ;
             
             Dim = (int *)calloc(3, sizeof(int)); 
-            Dim[0] = DSET_NX(insetPARS[PARS_BOT]); Dim[1] = DSET_NY(insetPARS[PARS_BOT]); 
+            Dim[0] = DSET_NX(insetPARS[PARS_BOT]); 
+            Dim[1] = DSET_NY(insetPARS[PARS_BOT]); 
             Dim[2] = DSET_NZ(insetPARS[PARS_BOT]); 
             Ledge[0] = fabs(DSET_DX(insetPARS[PARS_BOT])); 
             Ledge[1] = fabs(DSET_DY(insetPARS[PARS_BOT])); 
             Ledge[2] = fabs(DSET_DZ(insetPARS[PARS_BOT])); 
-            Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
+            Orig[0] = DSET_XORG(insetPARS[PARS_BOT]); 
+            Orig[1] = DSET_YORG(insetPARS[PARS_BOT]); // @)
             Orig[2] = DSET_ZORG(insetPARS[PARS_BOT]);
             
             // this stores the original data file orientation for later use,
@@ -2217,7 +2314,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       // exit(1);
       //}
       
-      Noutmat = PreCalcParLabs + 2*PARS_N; // number of output matrs in GRID
+      // number of output matrs in GRID
+      Noutmat = PreCalcParLabs + opts.EXTRA_TR_PAR + 2*PARS_N; 
       // ParLab has length Noutmat
       // param_grid has 2*PARS_N+1 = Noutmat-2 blocks
       INFO_message("Done with scalar search, found: %d parameters\n"
@@ -2273,9 +2371,17 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       ParLab[2] = strdup("PV");
       ParLab[3] = strdup("fNV");
       ParLab[4] = strdup("NV");
+      if (opts.EXTRA_TR_PAR) {
+         ParLab[5] = strdup("NTpTarVol");
+         ParLab[6] = strdup("NTpTarSA");
+         ParLab[7] = strdup("NTpTarSAFA");
+      }
+         
       for( i=0 ; i<PARS_N ; i++ ){
-         snprintf(ParLab[PreCalcParLabs+2*i],31,"%s", wild_names[i]);
-         snprintf(ParLab[PreCalcParLabs+2*i+1],31,"s%s", wild_names[i]);
+         snprintf(ParLab[PreCalcParLabs + opts.EXTRA_TR_PAR + 2*i],
+                  31,"%s", wild_names[i]);
+         snprintf(ParLab[PreCalcParLabs + opts.EXTRA_TR_PAR + 2*i + 1],
+                  31,"s%s", wild_names[i]);
       }
       sprintf(headerHAR.scal_n[0],"%s", wild_names[0]);
       
@@ -2388,10 +2494,9 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 				fprintf(fout1,"%d\t\t%d\t\t%d\n",ROI_LABELS[k][i],i,
 						  (int) pow(2,i));
 			}
-			fclose(fout1);    
+			fclose(fout1);
 		}
 	}
-
 
    flat_matr = (float ***) calloc( N_nets, sizeof(float **) );
    for ( i = 0 ; i < N_nets ; i++ ) 
@@ -2833,7 +2938,63 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       free(insetUC);
    }
    
-   
+
+   // Aug 2014
+   if( opts.EXTRA_TR_PAR ) {
+      
+      INFO_message("Running three extra track parameter scalings for each"
+                   " target pair:\n"
+                   "\tNTpTarVol  :div. by average target volume;\n"
+                   "\tNTpTarSA   :div. by average target surface area;\n"
+                   "\tNTpTarSAFA :div. by average target surface area\n"
+                   "\t            bordering suprathreshold FA (or equi-\n"
+                   "\t            valent WM proxy definition).");
+
+      // [Nnets][Nrois+1][2 -> Vol and Surf Area and SA near highFA]
+      ROI_SIZES = (int ***) calloc( N_nets, sizeof(int **) );
+      for ( i=0 ; i<N_nets ; i++ ) 
+         ROI_SIZES[i] = (int **) calloc( INVROI[i]+1, sizeof(int *) );
+      for ( i=0 ; i<N_nets ; i++ ) 
+         for ( j=0 ; j<INVROI[i]+1 ; j++ ) 
+            ROI_SIZES[i][j] = (int *) calloc( 3 , sizeof(int) );
+      
+      if(  (ROI_SIZES == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(14);
+      }
+
+      i = GetSizesOfTargets( ROI_SIZES,
+                             MAPROI, Dim, 
+                             mskd,
+                             INDEX2,
+                             coorded, opts.MinFA,
+                             N_nets, NROI,
+                             INV_LABELS );
+      /*
+      fprintf(stderr, "\n\nTEST ROI\n\n");
+      fprintf(stderr, "VOL\n");
+      for ( i=0 ; i<N_nets ; i++ ) {
+         for ( j=1 ; j<INVROI[i]+1 ; j++ ) 
+            fprintf(stderr, "%7d ",ROI_SIZES[i][j][0]);
+         fprintf(stderr, "\n");
+      }
+      fprintf(stderr, "\n\nSA\n");
+      for ( i=0 ; i<N_nets ; i++ ) {
+         for ( j=1 ; j<INVROI[i]+1 ; j++ ) 
+            fprintf(stderr, "%7d ",ROI_SIZES[i][j][1]);
+         fprintf(stderr, "\n");
+      }
+      fprintf(stderr, "\n\nSAFA\n");
+      for ( i=0 ; i<N_nets ; i++ ) {
+         for ( j=1 ; j<INVROI[i]+1 ; j++ ) 
+            fprintf(stderr, "%7d ",ROI_SIZES[i][j][2]);
+         fprintf(stderr, "\n");
+         }
+      */
+
+
+   }
+
 	// *************************************************************
 	// *************************************************************
 	//                    Beginning of main loops
@@ -2881,7 +3042,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             Dim[2] == (int) DSET_NZ(thrumask) && 
             N_nets == (int) DSET_NVALS(thrumask) ) ) 
          ERROR_exit("The thru_mask '%s' doesn't match up fully with the data.\n"
-                    "\tCheck the number of bricks, spatial dimensions and origin.",
+                    "\tCheck the number of bricks, spatial dimensions and "
+                    "the origin.",
                     opts.NAMEIN_thru);      
 
       if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
@@ -3364,12 +3526,13 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 			}
     
 			fprintf(fout1,"# %d  # Number of network ROIs\n",NROI[k]); // N_ROIs
-			fprintf(fout1,"# %d  # Number of grid matrices (=NT+fNT+PV+fNV+NV+2*N_par)\n"
+			fprintf(fout1,
+                 "# %d  # Number of grid matrices\n"
                  ,Noutmat); // Num of matrices
          for( i=1 ; i<NROI[k] ; i++ ) // labels of ROIs
             fprintf(fout1,"%8d    \t",ROI_LABELS[k][i]); // at =NROI, -> \n
-
          fprintf(fout1,"%8d\n# %s\n",ROI_LABELS[k][i],  ParLab[0]); // NT 
+
 			for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) // b/c we put '\n' after last one.
 					fprintf(fout1,"%12d\t",Prob_grid[k][i][j]);
@@ -3397,8 +3560,50 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 				fprintf(fout1,"%e\n",Param_grid[k][i][j][0]/Ndata);
 			}
 
-			for( m=0 ; m<Noutmat-PreCalcParLabs+1 ; m++) {
-            fprintf(fout1,"# %s\n",ParLab[PreCalcParLabs-1+m]);    
+			fprintf(fout1,"# %s\n",ParLab[4]); // NV = num of vox
+         for( i=0 ; i<NROI[k] ; i++ ) {
+				for( j=0 ; j<NROI[k]-1 ; j++ ) 
+					fprintf(fout1,"%e\t",Param_grid[k][i][j][0]);
+				fprintf(fout1,"%e\n",Param_grid[k][i][j][0]);
+			}
+
+         if (opts.EXTRA_TR_PAR) {
+            
+            // NTpTarVol = NT scale by ave target vol
+            fprintf(fout1,"# %s\n",ParLab[5]); 
+            for( i=0 ; i<NROI[k] ; i++ ) {
+               for( j=0 ; j<NROI[k]-1 ; j++ ) 
+                  fprintf(fout1,"%e\t",Prob_grid[k][i][j]*
+                          2.0/(ROI_SIZES[k][i+1][0] + ROI_SIZES[k][j+1][0]));
+               fprintf(fout1,"%e\n",Prob_grid[k][i][j]*
+                       2.0/(ROI_SIZES[k][i+1][0] + ROI_SIZES[k][j+1][0]));
+            }
+            
+            // NTpTarSA = NT scale by ave target SA
+            fprintf(fout1,"# %s\n",ParLab[6]); 
+            for( i=0 ; i<NROI[k] ; i++ ) {
+               for( j=0 ; j<NROI[k]-1 ; j++ ) 
+                  fprintf(fout1,"%e\t",Prob_grid[k][i][j]*
+                          2.0/(ROI_SIZES[k][i+1][1] + ROI_SIZES[k][j+1][1]));
+               fprintf(fout1,"%e\n",Prob_grid[k][i][j]*
+                       2.0/(ROI_SIZES[k][i+1][1] + ROI_SIZES[k][j+1][1]));
+            }
+
+            // NTpTarSAFA = NT scale by ave target SAFA
+            fprintf(fout1,"# %s\n",ParLab[7]); 
+            for( i=0 ; i<NROI[k] ; i++ ) {
+               for( j=0 ; j<NROI[k]-1 ; j++ ) 
+                  fprintf(fout1,"%e\t",Prob_grid[k][i][j]*
+                          2.0/(ROI_SIZES[k][i+1][2] + ROI_SIZES[k][j+1][2]));
+               fprintf(fout1,"%e\n",Prob_grid[k][i][j]*
+                       2.0/(ROI_SIZES[k][i+1][2] + ROI_SIZES[k][j+1][2]));
+            }
+
+         }
+
+			for( m=1 ; m<Noutmat-PreCalcParLabs-opts.EXTRA_TR_PAR +1; m++) {
+            fprintf(fout1,"# %s\n",ParLab[PreCalcParLabs + 
+                                          opts.EXTRA_TR_PAR + m - 1]);    
 				for( i=0 ; i<NROI[k] ; i++ ) {
 					for( j=0 ; j<NROI[k]-1 ; j++ ) 
 						fprintf(fout1,"%e\t",Param_grid[k][i][j][m]);
@@ -3420,8 +3625,21 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                      Param_grid[k][i][j][0]*VoxVol;
                   flat_matr[k][3][i*NROI[k]+j] = 
                      Param_grid[k][i][j][0]*Ndata;
-                  for( m=0 ; m<Noutmat-PreCalcParLabs+1 ; m++) 
-                     flat_matr[k][2+m][i*NROI[k]+j] = Param_grid[k][i][j][m];
+                  flat_matr[k][4][i*NROI[k]+j] = 
+                     Param_grid[k][i][j][0]; 
+
+                  if(opts.EXTRA_TR_PAR){
+                     flat_matr[k][5][i*NROI[k]+j] = Prob_grid[k][i][j]*
+                        2.0/(ROI_SIZES[k][i+1][0] + ROI_SIZES[k][j+1][0]);
+                     flat_matr[k][6][i*NROI[k]+j] = Prob_grid[k][i][j]*
+                        2.0/(ROI_SIZES[k][i+1][1] + ROI_SIZES[k][j+1][1]);
+                     flat_matr[k][7][i*NROI[k]+j] = Prob_grid[k][i][j]*
+                        2.0/(ROI_SIZES[k][i+1][2] + ROI_SIZES[k][j+1][2]);
+                  }
+                  
+                  for( m=1 ; m<Noutmat-PreCalcParLabs-opts.EXTRA_TR_PAR+1 ;m++) 
+                     flat_matr[k][PreCalcParLabs+opts.EXTRA_TR_PAR+m-1]
+                        [i*NROI[k]+j] = Param_grid[k][i][j][m];
                }
             gset = SUMA_FloatVec_to_GDSET(flat_matr[k], Noutmat, 
                                           NROI[k]*NROI[k], 
@@ -3477,7 +3695,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 		i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
 										insetPARS[PARS_BOT],TV_switch,voxel_order,
 										NROI, NETROI,mskd,INDEX2,Dim,
-										dsetn,argc,argv,ROI_LABELS);
+										dsetn,argc,argv,ROI_LABELS, opts.PAIRPOWER);
 		if(opts.DUMP_TYPE>=0)
 			i = WriteIndivProbFiles(N_nets,Ndata,Nvox,Prob_grid,
 											opts.prefix,insetPARS[PARS_BOT],
@@ -3519,6 +3737,15 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	// ************************************************************
 	// ************************************************************
 	
+
+   if( opts.EXTRA_TR_PAR ) {
+      for ( i=0 ; i<N_nets ; i++ ) 
+         for ( j=0 ; j<INVROI[i]+1 ; j++ ) 
+            free(ROI_SIZES[i][j]);
+      for ( i=0 ; i<N_nets ; i++ ) 
+            free(ROI_SIZES[i]);
+      free(ROI_SIZES);
+   }
 
    for( i=PARS_BOT ; i<PARS_TOP ; i++){
       DSET_delete(insetPARS[i]);
@@ -3874,3 +4101,68 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          exit(0);
       }*/
       
+
+
+int GetSizesOfTargets( int ***ROI_SIZES,
+                       int **MAPROI, int *Dim, 
+                       int ***mskd, 
+                       int ***INDEX2, 
+                       float **coorded, float minFA,
+                       int N_nets, int *NROI,
+                       int **INV_LABELS) {
+   
+   int i,j,k,idx,m;
+   int ii,jj,kk;
+   int val,gotbnd,gotbndsa;
+
+   // for each vox ...
+   for( k=0 ; k<Dim[2] ; k++ ) 
+		for( j=0 ; j<Dim[1] ; j++ ) 
+			for( i=0 ; i<Dim[0] ; i++ ) 
+            // ... which is in the masked region ...
+				if(mskd[i][j][k]) {
+               idx = INDEX2[i][j][k];
+               // ... check each network for an ROI label ...
+               for( m=0 ; m<N_nets ; m++ ) {
+                  // ... and if found ...
+                  val = MAPROI[idx][m];
+                  
+                  if( val > 0 ) {
+                     // ... then the vol increases ...
+                     ROI_SIZES[m][ val ][0]+=1; 
+                     
+                     gotbnd = 1;
+                     gotbndsa = 1;
+                     // ... and we check if it's a boundary ...
+                     for( ii=i-1 ; ii<=i+1 ; ii++ )
+                        for( jj=j-1 ; jj<=j+1 ; jj++ )
+                           for( kk=k-1 ; kk<=k+1 ; kk++ )
+                              // (inside FOV)
+                              if( (ii>=0) && (ii<Dim[0]) && 
+                                  (jj>=0) && (jj<Dim[1]) &&
+                                  (kk>=0) && (kk<Dim[2])) {
+                                 // ... like this, ...
+                                 if( MAPROI[INDEX2[ii][jj][kk]][m] != val ) {
+                                    if (gotbnd) {// only get one
+                                       ROI_SIZES[m][ val ][1]+=1;
+                                       gotbnd = 0;
+                                    }
+                                    // ... and even whether it is
+                                    // useful enough to be near
+                                    // high-FA material
+                                    if ( coorded[INDEX2[ii][jj][kk]][0]>minFA ) {
+                                       if (gotbndsa) {// only get one
+                                          ROI_SIZES[m][ val ][2]+=1;
+                                          gotbndsa = 0;
+                                          break; // well, break at least 1/3 loops
+                                       }
+                                    }
+                                 }
+                              }
+                  }
+               }
+            }
+
+   RETURN(1);
+}
+   

@@ -7,13 +7,17 @@
   April 2014:
   + adding row output
 
+  Aug 2014
+  + adding ability to input a (multi-b0)+dwi file, and have
+    the b0s get averaged and put as 0th brick
+
 */
 
 // 3dDWItoDT: Bxx, Byy, Bzz, Bxy, Bxz, Byz
 // TORTOISE:  b_xx 2b_xy 2b_xz b_yy 2b_yz b_zz
 
-// G_{ij} = diffusion weighting matrix (dyadic form)
-/*      GxGx GxGy GxGz
+/* G_{ij} = diffusion weighting matrix (dyadic form)
+/       GxGx GxGy GxGz
         GxGy GyGy GyGz
         GxGz GyGz GzGz */
 
@@ -24,13 +28,17 @@
 #include <debugtrace.h>
 #include <mrilib.h>    
 #include <3ddata.h>    
-# include "matrix.h"
+#include "matrix.h"
 
 // max number of bvecs total is 1111 from this lazy method
 #define MAXGRADS (12006) 
 
 int GradConv_Gsign_from_BmatA( float *grad, float *matr );
 int GradConv_BmatA_from_Gsign( float *matr, float *grad );
+
+float GradCloseness(float **X, int N, int DCF);
+float CalcInnerProdAngle( float *A, float *B, int N );
+float SimpleDP( float *A, float *B, int N);
 
 
 void usage_1dDW_Grad_o_Mat(int detail) 
@@ -86,9 +94,9 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "           -out_bmatT_cols | -out_gmatA_cols | -out_grad_rows } OUTFILE \n\n"
 "    where:\n"
 "        (one of the following six formats of input must be given):\n"
-"    -in_grad_rows INFILE  :input file of 3 rows of gradients (e.g., dcm2nii-\n"
+"    -in_grad_rows  INFILE :input file of 3 rows of gradients (e.g., dcm2nii-\n"
 "                           format output).\n"
-"    -in_grad_cols INFILE  :input file of 3 columns of gradients.  \n"
+"    -in_grad_cols  INFILE :input file of 3 columns of gradients.  \n"
 "    -in_gmatA_cols INFILE :input file of 6 columns of g-matrix in 'A(FNI)'\n"
 "                           `diagonal first'-format. (See above.)\n"
 "    -in_gmatT_cols INFILE :input file of 6 columns of g-matr in 'T(ORTOISE)'\n"
@@ -98,7 +106,7 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "    -in_bmatT_cols INFILE :input file of 6 columns of b-matr in 'T(ORTOISE)'\n"
 "                           `row first'-format. (See above.)\n"
 "        (one of the following five formats of output must be given):\n"
-"  -out_grad_cols OUTFILE  :output file of 3 columns of gradients.  \n"
+"  -out_grad_cols  OUTFILE :output file of 3 columns of gradients.  \n"
 "  -out_gmatA_cols OUTFILE :output file of 6 columns of g-matrix in 'A(FNI)'\n"
 "                           `diagonal first'-format. (See above.)\n"
 "  -out_gmatT_cols OUTFILE :output file of 6 cols of g-matr in 'T(ORTOISE)'\n"
@@ -107,8 +115,30 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "                           `diagonal first'-format. (See above.)\n"
 "  -out_bmatT_cols OUTFILE :output file of 6 cols of b-matr in 'T(ORTOISE)'\n"
 "                          `row first'-format. (See above.)\n"
-"  -out_grad_rows OUTFILE  :output file of 3 rows of gradients.\n"
+"  -out_grad_rows  OUTFILE :output file of 3 rows of gradients.\n"
+"\n"
 "        (and any of the following options may be used):\n"
+"    -proc_dset    DSET    :input a dataset DSET of X 'b=0' and Y DWI bricks,\n"
+"                           matching the X zero- and Y nonzero-gradient \n"
+"                           entries in the INFILE. The 'processing' will:\n"
+"                                  1) extract all the 'b=0' bricks,\n"
+"                                  2) average them,\n"
+"                                  3) store the result in the zeroth brick of\n"
+"                                     the output PREFIX data set, and\n"
+"                                  4) place the DWIs (kept in their original\n"
+"                                     order) as the next Y bricks of PREFIX.\n"
+"                           This option cannot be used with '-keep_b0s'.\n"
+"                           The output set has Y+1 bricks.  The option is\n"
+"                           probably mostly useful only if X>1.\n"
+"    -pref_dset    PREFIX  :output dataset filename prefix (required and iff\n"
+"                           using '-proc_dset', above).\n"
+"    -dwi_comp_fac N_REP   :option for averaging DWI bricks in DSET that have\n"
+"                           been acquired with exactly N_REP repeated sets of\n"
+"                           gradients. *You* the user must know how many\n"
+"                           repetitions have been performed (this program\n"
+"                           will perform a simplistic gradient comparison\n"
+"                           using dot products to flag possible errors, but\n"
+"                           this is by no means bulletproof.  Use wisely.\n"
 "    -flip_x               :change sign of first column of gradients\n"
 "    -flip_y               :change sign of second column of gradients\n"
 "    -flip_z               :change sign of third column of gradients\n"
@@ -173,6 +203,16 @@ int main(int argc, char *argv[])
    int OUT_FORM = 1; // 1 for col, 2 for bmatr 
    int HAVE_BMAX_REF=0 ; // referring to user input value
    int count_in=0, count_out=0;
+
+	THD_3dim_dataset *dwset=NULL, *dwout=NULL; 
+   int Nbrik = 0;
+	char *prefix=NULL ;
+   float **temp_arr=NULL, **temp_grad=NULL;
+   int Ndwi = 0, dwi=0, Ndwout = 0, Ndwi_final = 0, Ndwout_final = 0;
+   int Nvox = 0;
+   int DWI_COMP_FAC = 0;
+   int ct_dwi = 0;
+   float MaxDP = 0;
 
 	mainENTRY("1dDW_Grad_o_Mat"); machdep();
     
@@ -355,6 +395,38 @@ int main(int argc, char *argv[])
 			iarg++ ; continue ;
 		}
 
+		if( strcmp(argv[iarg],"-proc_dset") == 0 ){ // in DWIs
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-proc_dset'") ;
+			dwset = THD_open_dataset( argv[iarg] ) ;
+			if( dwset == NULL ) 
+				ERROR_exit("Can't open DWI dataset '%s'", argv[iarg]) ;
+			DSET_load(dwset) ; CHECK_LOAD_ERROR(dwset) ;
+			
+			iarg++ ; continue ;
+		}
+		
+      if( strcmp(argv[iarg],"-pref_dset") == 0 ){ // will be output
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-pref_dset'");
+			prefix = strdup(argv[iarg]) ;
+			if( !THD_filename_ok(prefix) ) 
+				ERROR_exit("Illegal name after '-pref_dset'");
+			iarg++ ; continue ;
+		}
+		
+      if( strcmp(argv[iarg],"-dwi_comp_fac") == 0) { 
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-dwi_comp_fac'\n");
+         
+         DWI_COMP_FAC = atoi(argv[iarg]);
+         if (DWI_COMP_FAC <=1)
+            ERROR_exit("The compression factor after '-dwi_comp_fac'"
+                       "must be >1!");
+
+         iarg++ ; continue ;
+		}
+
       ERROR_message("Bad option '%s'\n",argv[iarg]) ;
 		suggest_best_prog_option(argv[0], argv[iarg]);
 		exit(1);
@@ -385,6 +457,27 @@ int main(int argc, char *argv[])
       exit(0);
    }
 
+   if(YES_B && dwset) {
+      fprintf(stderr,
+              "\n** Bad Command-lining! "
+              "Can't have '-keep_b0s' and '-proc_dset' together.\n");
+      exit(1);
+   }
+   
+   if( !prefix && dwset) {
+      fprintf(stderr,
+              "\n** Bad Command-lining! "
+              "Need an output '-pref_dset' when using '-proc_dset'.\n");
+      exit(1);
+   }
+   
+   if(YES_B && DWI_COMP_FAC) {
+      fprintf(stderr,
+              "\n** Bad Command-lining! "
+              "Can't have '-keep_b0s' and '-dwi_comp_fac' together.\n");
+      exit(1);
+   }
+   
    // ********************************************************************
    // ************************* start reading ****************************
    // ********************************************************************
@@ -423,7 +516,8 @@ int main(int argc, char *argv[])
 
    if( ( (preREADIN->nx != 3 ) && (preREADIN->ny != 3 )) &&
        (preREADIN->nx != 6 ) )
-      printf("Probably an error, because there aren't 3 or 6 numbers in columns!\n");
+      printf("Probably an error, "
+             "because there aren't 3 or 6 numbers in columns!\n");
 
    if( HAVE_BVAL && ( idx != idx2 ) ) {
       printf("Error, because the number of bvecs (%d)\n"
@@ -433,6 +527,16 @@ int main(int argc, char *argv[])
       exit(3);
    }
 
+   if(dwset) {
+      Nbrik = DSET_NVALS(dwset);
+
+      if( idx != Nbrik ) {
+         fprintf(stderr,
+                 "\n** ERROR: the number of bvecs (%d) does not match the "
+                 "number of briks in '-proc_dset' (%d).\n", idx, Nbrik);
+         exit(4);
+      }
+   }
 
    READIN = MRI_FLOAT_PTR( preREADIN );
    if( HAVE_BVAL )
@@ -516,7 +620,8 @@ int main(int argc, char *argv[])
          OUT_MATR[i][0] = OUT_GRAD[i][0] =  *(READBVAL + i);
       }
    else if ( OUT_FORM > 3 || BVAL_OUT || HAVE_BMAX_REF ) {
-      fprintf(stderr, "ERROR:  you asked for b-value dependent output, but gave me no bvals to work with.\n");
+      fprintf(stderr, "ERROR:  you asked for b-value dependent output, "
+              "but gave me no bvals to work with.\n");
       exit(2);
    }
       
@@ -573,9 +678,31 @@ int main(int argc, char *argv[])
              BZER,idx-BZER);
       BZER=0;
    }
-   else
-      printf("\tGetting rid of  %d b0s,\tleaving the \t%d grads\n",
+   else {
+      printf("\tGetting rid of %d b0s,\tleaving the %d grads\n",
              BZER,idx-BZER);
+      Ndwi = idx-BZER;
+   }
+   Ndwi_final = idx-BZER; // default:  all DWIs
+
+   if( DWI_COMP_FAC ) {
+      if( Ndwi % DWI_COMP_FAC != 0 ) {
+         fprintf(stderr, "\n** ERROR can't compress: "
+                 "Ndwi=%d, and %d/%d has a nonzero remainder (=%d).\n",
+                 Ndwi,Ndwi,DWI_COMP_FAC, Ndwi % DWI_COMP_FAC );
+         exit(1);
+      }
+      else {
+         Ndwi_final = Ndwi/DWI_COMP_FAC;
+         INFO_message("You have chosen a compression factor of %d, "
+                      "with %d DWIs,\n"
+                      "\tso that afterward there will be %d DWIs.",
+                      DWI_COMP_FAC, Ndwi, Ndwi_final);
+      }
+   }
+
+
+
 
    if( (fout = fopen(Fname_output, "w")) == NULL) {
       fprintf(stderr, "\n\nError opening file %s.\n",Fname_output);
@@ -603,6 +730,7 @@ int main(int argc, char *argv[])
          fprintf(fout,"\n");
       }
       
+      ct_dwi = 0;
       for(i=0 ; i<idx ; i++){ 
          if(FLAG[i]) {
             
@@ -632,6 +760,12 @@ int main(int argc, char *argv[])
             }
             
             fprintf(fout,"\n");
+            ct_dwi++;
+         }
+         if( (ct_dwi == Ndwi_final) && DWI_COMP_FAC ) {
+            INFO_message("Reached compression level:  DWI number %d",
+                         Ndwi_final);
+            break;
          }
       }
    }
@@ -643,25 +777,141 @@ int main(int argc, char *argv[])
       for( k=1 ; k<4 ; k++ ) {
          if(EXTRA_ZEROS)
             fprintf(fout,"% -11.5f  ", 0.0);
-         for(i=0 ; i<idx ; i++)
-            if(FLAG[i])
+         ct_dwi = 0;
+         for(i=0 ; i<idx ; i++) {
+            if(FLAG[i]) {
                fprintf(fout,"% -11.5f  ", OUT_GRAD[i][k]);
+               ct_dwi++;
+            }
+            if( (ct_dwi == Ndwi_final) && DWI_COMP_FAC ) {
+               INFO_message("Reached compression level:  DWI number %d",
+                            Ndwi_final);
+               break;
+            }
+         }
          fprintf(fout,"\n");
       }
    }
 
-
    fclose(fout);
 
+   if(dwset) {
+      INFO_message("Processing the B0+DWI file now.");
+      if(!BZER) {
+         fprintf(stderr, "\n** Error in processing data set: "
+                 "no b=0 values from bvecs/bval info!\n");
+         exit(5);
+      }
 
+      // FLAG marks where DWIs are if not using '-keep_b0s'!
+
+      Nvox = DSET_NVOX(dwset);
+      Ndwout = Ndwi+1;
+
+      temp_arr = calloc( Ndwout,sizeof(temp_arr));
+      for( i=0 ; i<Ndwout ; i++) 
+         temp_arr[i] = calloc( Nvox,sizeof(float)); 
+      temp_grad = calloc( Ndwi,sizeof(temp_grad));
+      for( i=0 ; i<Ndwi ; i++) 
+         temp_grad[i] = calloc( 3,sizeof(float)); 
+
+      if( (temp_arr == NULL) || (temp_grad == NULL) ) {
+            fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+            exit(123);
+      }
+
+      dwi = 0; // keep track of DWI contraction
+      for( i=0 ; i<Nbrik ; i++)
+         if( !FLAG[i] ) // b=0
+            for( j=0 ; j<Nvox ; j++)
+               temp_arr[0][j]+= THD_get_voxel(dwset,j,i);
+         else {
+            for( j=0 ; j<3 ; j++)
+               temp_grad[dwi][j]= OUT_GRAD[i][j+1];
+            dwi++;
+            for( j=0 ; j<Nvox ; j++)
+               temp_arr[dwi][j]+= THD_get_voxel(dwset,j,i);
+         }
+      if( dwi != Ndwi ) {
+         fprintf(stderr, "\n** Mismatch in internal DWI counting!\n");
+         exit(6);
+      }
+
+      // average the values
+      for( j=0 ; j<Nvox ; j++)
+         temp_arr[0][j]/= BZER; // can't be zero here.
+      
+      if( DWI_COMP_FAC ) {
+         INFO_message("Compressing DWI file");
+
+         for( k=1 ; k<DWI_COMP_FAC ; k++)
+            for( i=0 ; i<Ndwi_final ; i++)
+               for( j=0 ; j<Nvox ; j++)
+                  temp_arr[1+i][j]+= temp_arr[1+k*Ndwi_final+i][j];
+         
+         for( i=0 ; i<Ndwi_final ; i++)
+            for( j=0 ; j<Nvox ; j++)
+               temp_arr[1+i][j]/= DWI_COMP_FAC;
+
+         INFO_message("Checking closeness of compressed gradient values");
+         MaxDP = GradCloseness(temp_grad, Ndwi, DWI_COMP_FAC);
+
+         INFO_message("The max angular difference between matched/compressed\n"
+                      "\tgradients is: %f", MaxDP);
+         if( MaxDP > 2)
+            WARNING_message("The max angular difference seem kinda big-- you\n"
+                            " sure about the compression factor?");
+      }
+
+      Ndwout_final = Ndwi_final + 1;
+      INFO_message("Writing the processed data set.");
+      dwout = EDIT_empty_copy( dwset ); 
+      EDIT_dset_items(dwout,
+                      ADN_nvals, Ndwout_final,
+                      ADN_ntt, 0,
+                      ADN_datum_all, MRI_float , 
+                      ADN_prefix, prefix,
+                      ADN_none );
+
+      for( i=0; i<Ndwout_final ; i++) {
+         EDIT_substitute_brick(dwout, i, MRI_float, temp_arr[i]);
+         temp_arr[i]=NULL;
+      }
+
+      // if necessary
+      for( i=Ndwout_final ; i<Ndwout ; i++)
+         temp_arr[i]=NULL;
+
+      THD_load_statistics( dwout );
+      if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(dwout)) )
+         ERROR_exit("Can't overwrite existing dataset '%s'",
+                    DSET_HEADNAME(dwout));
+      tross_Make_History("1dDW_Grad_o_Mat", argc, argv, dwout);
+      THD_write_3dim_dataset(NULL, NULL, dwout, True);
+      DSET_delete(dwout); 
+      free(dwout); 
+      DSET_delete(dwset); 
+      free(dwset); 
+
+      for( i=0 ; i<Ndwout_final ; i++)
+         free(temp_arr[i]);
+      free(temp_arr);
+   }
 
    mri_free(preREADIN);
    if( HAVE_BVAL )
       mri_free(preREADBVAL);
-      
+   if(prefix)
+      free(prefix);
 
-   printf("\tDone.  Check output file `%s' for results\n\n",Fname_output);
    
+
+   printf("\n\tDone. Check output file '%s' for results",Fname_output);
+   if(dwset) {
+      printf("\n\t-> as well as the data_set '%s'",DSET_FILECODE(dwout));
+   }
+   printf("\n\n");
+
    return 0;
    
 }
@@ -687,7 +937,7 @@ int GradConv_Gsign_from_BmatA( float *grad, float *matr )
          grad[i]*= signum[i];
       }
       else {
-         INFO_message("WARNING: matrices don't appear to be correct format-- check again") ;
+         WARNING_message("matrices don't appear to be correct format-- check again") ;
          grad[i] = 0;
       }
 
@@ -706,4 +956,91 @@ int GradConv_BmatA_from_Gsign( float *matr, float *grad )
    matr[5] = grad[1]*grad[2];
 
    return 1;
+}
+
+float GradCloseness(float **X, int N, int DCF)
+{
+   int rep=0;
+   int i,k;
+
+   float maxang = 0, ang=0;
+   
+
+   rep = N/DCF; // from usage before, must be an exact int
+
+   for( k=1 ; k<DCF ; k++)
+      for( i=0 ; i<rep ; i++ ) {
+         ang = CalcInnerProdAngle(X[i],X[i+k*rep],3);
+         //fprintf(stderr,"\n%5d %5d %6f", k,i,ang);
+         //fprintf(stderr,"\t, %5f %5f %5f, %5f %5f %5f",
+         //        X[i][0],X[i][1],X[i][2],
+         //        X[i+k*rep][0],X[i+k*rep][1],X[i+k*rep][2]);
+
+         if( ang>maxang )
+            maxang = ang;
+      }
+
+   return maxang;
+
+
+
+
+}
+
+// little dot product
+float CalcInnerProdAngle( float *A, float *B, int N ) 
+{
+   float out = 0., d1 = 0., d2 = 0;
+   int i;
+   int NEG = 0;
+
+   out = SimpleDP(A,B,N);
+   d1 = SimpleDP(A,A,N);
+   d2 = SimpleDP(B,B,N); 
+
+   if( (d1<=0.0001) || (d2<=0.0001) ) {
+      WARNING_message("It looks like there might be a b=0 gradient which got"
+                      "misclassified?? Near- (or equal-) zero magnitude.");
+      out/= 1.;
+   }
+   else{
+      out/= sqrt(d1) * sqrt(d2);
+   }
+
+   if( out<0 ) {
+      NEG = 1;
+      out*=-1;
+   }
+
+   if( out>1.01 ) {
+      WARNING_message("It looks like there might be a problem in the grads?\n"
+                      "\tOne has large magnitude (%f>1): setting to unity.");
+   } 
+
+   if( out>1)
+      out = 1;
+   
+   out = (float) acos(out);
+   out*= 180./PI;
+
+   if(NEG)
+      WARNING_message("Gradient is 180 out of phase with matched partner.\n"
+                      "\tMight still be ok -> checking abs ang diff: %5f",
+                      out);
+
+   return out;
+
+}
+
+// little dot product
+float SimpleDP( float *A, float *B, int N ) 
+{
+   float out = 0.;
+   int i;
+
+   for( i=0 ; i<N ; i++ )
+      out+=A[i]*B[i];
+
+   return out;
+
 }
