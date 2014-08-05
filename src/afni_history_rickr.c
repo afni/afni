@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Aug, 2014, RCR, "to3d", MICRO, TYPE_GENERAL,
+   "added more comments about -ushort2float",
+   "Requested by J Butman."
+ } ,
+
  {  2, Aug, 2014, RCR, "make_sitm_times.py", MINOR, TYPE_NEW_OPT,
    "added -run_trs, for cases when the TRs per run vary",
    "Requested on message board by Rebecca and later by Lisam."
