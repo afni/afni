@@ -22,13 +22,15 @@
    #define GSL_RAN gsl_ran_gaussian_ziggurat
 #endif
 
+int MatrInd_to_FlatUHT(int i, int j, int N);
+int FlatUHT_Len(int N);
 
 int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST, 
 				  int *NUMROI, int *INVROI);
 
 int CheckNotMask(int id, int br, short **amask, int AO);
 
-int ScoreTrackGrid_M( float ****PG,int idx, int h, int C, int B, 
+int ScoreTrackGrid_M( float ***PG,int idx, int h, int C,
                       THD_3dim_dataset **inset, int bot, int top);
 
 int TrackItP_NEW_M( int NHAR, short *DirPerVox, int SEL, float **CC,
@@ -49,7 +51,7 @@ int Setup_Labels_Indices_Unc_M_both(int *Dim, int ***mskd, int ***INDEX,
                                     float unc_minei_std, float unc_minfa_std,
                                     int N_nets, int *NROI,
                                     THD_3dim_dataset *mset1, int **MAPROI, 
-                                    int **INV_LABELS, int ****NETROI);
+                                    int **INV_LABELS, int ***NETROI);
 
 int Setup_Ndir_per_vox( int N_HAR, int *Dim, int ***mskd,
                         int ***INDEX, 
@@ -72,16 +74,16 @@ int Two_DOF_Rot( float *X, float *Y,
 int WriteBasicProbFiles( int N_nets, int Ndata, int Nvox, 
                          char *prefix, THD_3dim_dataset *insetFA,
                          int *TV_switch, char *voxel_order, int *NROI,
-                         int ****NETROI, int ***mskd, int ***INDEX2, int *Dim,
+                         int ***NETROI, int ***mskd, int ***INDEX2, int *Dim,
                          THD_3dim_dataset *dsetn, int argc, char *argv[],
                          int **roi_labs, int PAIR_POWERON);
 
-int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int ***Prob_grid,
+int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int **Prob_grid,
                          char *prefix, THD_3dim_dataset *insetFA,
                          int *TV_switch, char *voxel_order, int *NROI,
-                         int ****NETROI, int ***mskd,int ***INDEX2, int *Dim,
+                         int ***NETROI, int ***mskd,int ***INDEX2, int *Dim,
                          THD_3dim_dataset *dsetn, int argc, char *argv[],
-                         float ****Param_grid, int DUMP_TYPE,
+                         float ***Param_grid, int DUMP_TYPE,
                          int DUMP_ORIG_LABS, int **ROI_LABELS, int POST_IT);
 
 // lazy now, someday will write these unified/smarter.

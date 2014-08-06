@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+   { 5, Aug , 2014 , PT , "3dTrackID" , MINOR , TYPE_MODIFY,
+   "Less memory usage and a bit faster.",
+   "More efficient internal handling of quantities.\n"
+},
+
 { 4, Aug , 2014 , PT , "3dDWUncert" , MICRO , TYPE_NEW_OPT,
    "Internal options for testing uncertainty things.",
    "For internal testing only at this point.\n"

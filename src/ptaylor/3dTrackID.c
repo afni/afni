@@ -66,6 +66,10 @@
    + add option for output of PAIRMAP to not be 2^X for connections
    + add option for some scaling of tracks by ROI vols and surf areas
 
+   Aug 2014 (again):
+   + using UHTs to store information-- major mem savings
+   + prob a bit faster now, as well.  No change in results
+
 */
 
 
@@ -93,7 +97,6 @@
 #define N_dti_vect (3) 
 #define N_plus_dtifile (4) // num of allowed additional param files in NIMLver
 #define PreCalcParLabs (5) // we define a few things initially
-
 
 
 int GetSizesOfTargets( int ***ROI_SIZES,
@@ -157,7 +160,7 @@ void usage_TrackID(int detail)
 "  ...And on that note, it is highly recommended for users to check out the\n"
 "  FATCAT demo set, which can be downloaded and unwrapped simply from the\n"
 "  commandline:\n"
-"  $ @Install_FATCAT_DEMO\n"
+"  $ @Install_FATCAT_Demo\n"
 "  In that demo are data, a number of scripts, and more detailed descriptions\n"
 "  for using 3dTrackID, as well as other programs in the FATCAT litter.\n"
 "  Recommended to always check that one has the most uptodate version.\n"
@@ -676,7 +679,7 @@ void usage_TrackID(int detail)
 "   Here are just a few scenarios-- please see the Demo data set for *maaany*\n"
 "   more, as well as for fuller descriptions.  To obtain the Demo, type the\n"
 "   following into a commandline:\n"
-"   $ @Install_FATCAT_DEMO\n"
+"   $ @Install_FATCAT_demo\n"
 "   This will also unzip the archive, which contains required data (so it's\n"
 "   pretty big, currently >200MB), a README.txt file, and several premade\n"
 "   scripts that are ~heavily commented.\n"
@@ -1229,10 +1232,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	float **UNC=NULL; // for DTI now: just combined pieces, not bias+stdev
 	int ***INDEX=NULL,***INDEX2=NULL;
 	int **MAPROI=NULL; // store what ROIs are where, per data voxel
-	int ****NETROI=NULL; // store connection info
+	int ***NETROI=NULL; // store connection info
 	int len_forw, len_back; // int count of num of squares through
 	float phys_forw[1], phys_back[1];
-	int idx,idx2;
+	int idx,idx3;
 
 	int in[3]; // to pass to trackit
 	float physin[3]; // also for trackit, physical loc, 
@@ -1250,8 +1253,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	THD_3dim_dataset *dsetn=NULL;
 	int *TV_switch=NULL;//[3] = {0,0,0};
 
-	int ***Prob_grid=NULL;// NROIxNROI grid (NROI is num of ROIs)
-	float ****Param_grid=NULL;// same size as Prob_Grid (extra dim for ROI stats)
+	int **Prob_grid=NULL;// NROIxNROI grid (NROI is num of ROIs)
+	float ***Param_grid=NULL;// same size as Prob_Grid (extra dim for ROI stats)
 	int *list_rois=NULL, *temp_list=NULL;
 	int MAXNROI=0;
 	int N_nets=0;
@@ -2585,10 +2588,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       }
       if(opts.LOG_TYPE) //just for AND logic
          for( i=0 ; i<N_nets ; i++)
-            N_bund[i] = (NROI[i]*(NROI[i]+1))/2;
+            N_bund[i] = FlatUHT_Len(NROI[i]);
       else
          for( i=0 ; i<N_nets ; i++)
-            N_bund[i] = (NROI[i]*(NROI[i]+1))/2; //1;
+            N_bund[i] = FlatUHT_Len(NROI[i]);
      
       tb = (TAYLOR_BUNDLE ***) calloc( N_nets, sizeof(TAYLOR_BUNDLE **) );
       for ( i = 0 ; i < N_nets ; i++ ) // halftri+diag notation!!
@@ -2834,40 +2837,31 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	for(i=0 ; i<=Ndata ; i++) 
 		MAPROI[i] = calloc(N_nets,sizeof(int)); 
 
-	NETROI = (int ****) calloc( (Ndata+1), sizeof(int ***) );
+	NETROI = (int ***) calloc( (Ndata+1), sizeof(int **) );
 	for ( i = 0 ; i<=Ndata ; i++ ) 
-		NETROI[i] = (int ***) calloc( N_nets, sizeof(int **) );
+		NETROI[i] = (int **) calloc( N_nets, sizeof(int *) );
 	for ( i=0 ; i<=Ndata ; i++ ) 
 		for ( j=0 ; j<N_nets ; j++ ) // jth net has NROI[j] rois
-			NETROI[i][j] = (int **) calloc( NROI[j], sizeof(int *) );
-	for ( i=0 ; i<=Ndata ; i++ ) 
-		for ( j=0 ; j<N_nets ; j++ ) 
-			for ( k=0 ; k<NROI[j] ; k++ ) 
-				NETROI[i][j][k] = (int *) calloc( NROI[j], sizeof(int) );
-
+			NETROI[i][j] = (int *) calloc( FlatUHT_Len(NROI[j]), sizeof(int) );
+   
+   
 	if( (coorded == NULL) || (copy_coorded == NULL) 
 		 || (NETROI == NULL) || (MAPROI == NULL)) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(122);
 	}
 
-	Prob_grid = (int ***) calloc( N_nets, sizeof(int **));
+	Prob_grid = (int **) calloc( N_nets, sizeof(int *));
 	for ( i = 0 ; i < N_nets ; i++ ) 
-		Prob_grid[i] = (int **) calloc( (NROI[i]), sizeof(int *));
-	for ( i = 0 ; i < N_nets ; i++ ) 
-		for ( j = 0 ; j < (NROI[i]) ; j++ ) 
-			Prob_grid[i][j] = (int *) calloc( (NROI[i]), sizeof(int));
+		Prob_grid[i] = (int *) calloc( FlatUHT_Len(NROI[i]), sizeof(int));
+   
 
-	Param_grid = (float ****) calloc( N_nets, sizeof(float ***));
+	Param_grid = (float ***) calloc( N_nets, sizeof(float **));
 	for ( i = 0 ; i < N_nets ; i++ ) 
-		Param_grid[i] = (float ***) calloc( (NROI[i]), sizeof(float **));
+		Param_grid[i] = (float **) calloc( FlatUHT_Len(NROI[i]), sizeof(float *));
 	for ( i = 0 ; i < N_nets ; i++ ) 
-		for ( j = 0 ; j < (NROI[i]) ; j++ ) 
-			Param_grid[i][j] = (float **) calloc( (NROI[i]), sizeof(float *));
-	for ( i = 0 ; i < N_nets ; i++ ) 
-		for ( j = 0 ; j < (NROI[i]) ; j++ ) 
-			for ( k = 0 ; k < (NROI[i]) ; k++ )// mu and std of FA,MD,RD,L1; count
-				Param_grid[i][j][k] = (float *) calloc( Noutmat-2, sizeof(float));
+		for ( j = 0 ; j < FlatUHT_Len(NROI[i]) ; j++ ) 
+         Param_grid[i][j] = (float *) calloc( Noutmat-2, sizeof(float));
 
 	temp_list = ( int *)calloc((MAXNROI+1), sizeof( int)); 
 	list_rois = ( int *)calloc((MAXNROI+1), sizeof( int)); 
@@ -3068,13 +3062,13 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    t_start = time(NULL);
 
 	for (gg=0 ; gg<opts.Nmonte ; gg++) {
-
+      
       if( gg>0) {// first time through is no change
          // relative location of each seed within voxel for this iter
          for( k=0 ; k<opts.Nseed ; k++ ) // @) had just minorly rearr. here
             for( j=0 ; j<3 ; j++ ) 
                LocSeed[k][j] = rand()*1.0/RAND_MAX;
-
+         
 
          if(N_HAR)
             j = HARDI_Perturb( Dim, mskd, INDEX, INDEX2,
@@ -3174,12 +3168,12 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                         // stored there, so we check against that before
                         // looking at that
                         // index.
-      
+                        
                         for( hh=0 ; hh<N_nets ; hh++) { 
                            // checking for NOT masks, which map MAPROI[][]=-1
                            // if running through a not mask, split tract up
                            // walk through once, all the way, per network
-
+                           
                            // initialize for this network.
                            // first, check if initial ends are bad--
                            // would have negative value from TrackItP only if 
@@ -3252,21 +3246,21 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                               if( m>0) {
                                  
                                  if( (opts.ONLY_BT==0) || (m==1) ) {
-
+                                    
                                     trL = vB-vA+1; // @) counter of len of flTtot
                                     for( mm=vA ; mm<=vB ; mm++) { // @@@
-                    
-                                       rr = INDEX2[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]];// @@@
-                                       for( bb=0 ; bb<m ; bb++)
-                                          for( cc=0 ; cc<m ; cc++) { // only individual, or keep all
-                                             NETROI[rr][hh][temp_list[bb]][temp_list[cc]]+=1;
-                                             if(NETROI[rr][hh][temp_list[bb]][temp_list[cc]]==NmNsThr) 
-                                                ss=ScoreTrackGrid_M(Param_grid,
-                                                            INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
-                                                            hh, temp_list[cc],temp_list[bb], 
-                                                            insetPARS, PARS_BOT, PARS_TOP);
-                                          }
-                                       //	}
+                                       
+                                       rr = INDEX2[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]];
+                                       for( bb=0 ; bb<m ; bb++)  // AUGCHECK:  now only do UHT of these!
+                                          for( cc=bb ; cc<m ; cc++) { // only individual, or keep all
+                                                idx3 = MatrInd_to_FlatUHT(temp_list[bb],temp_list[cc],NROI[hh]);
+                                                NETROI[rr][hh][idx3]+=1;
+                                                if(NETROI[rr][hh][idx3]==NmNsThr) 
+                                                   ss=ScoreTrackGrid_M(Param_grid,
+                                                                       INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
+                                                                       hh, idx3,
+                                                                       insetPARS, PARS_BOT, PARS_TOP);
+                                             }
                                     }// @@@
                                     
                                     if(DETNET && (trL>0) && opts.LOG_TYPE==0){
@@ -3293,33 +3287,33 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                     for( mm=vA ; mm<=vB ; mm++) {
                                        rr = INDEX2[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]];
                                        for( bb=0 ; bb<m ; bb++) {
-                                          vv = temp_list[bb];
-                                          NETROI[rr][hh][vv][vv]+=1;
-                                          if(NETROI[rr][hh][vv][vv]==NmNsThr)
+                                          idx3 = MatrInd_to_FlatUHT(temp_list[bb],temp_list[bb],NROI[hh]);
+                                          NETROI[rr][hh][idx3]+=1;
+                                          if(NETROI[rr][hh][idx3]==NmNsThr)
                                              ss=ScoreTrackGrid_M(Param_grid,
-                                                          INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
-                                                          hh, vv,vv, 
-                                                          insetPARS, PARS_BOT, PARS_TOP);
-
+                                                                 INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
+                                                                 hh, idx3,
+                                                                 insetPARS, PARS_BOT, PARS_TOP);
+                                          
                                        }
                                        //}
                                     }
-                  
+                                    
                                     // CONNECTORS: walk through mult times
-						
+                                    
                                     // just do unique connectors (we know that m>=2 here...)
                                     for( bb=0 ; bb<m ; bb++)
                                        for( cc=bb+1 ; cc<m ; cc++) {
                                           // 2 switches for finding ROI, and 1 for current 'FIND'
                                           onoff[0]=0; onoff[1]=0; onoff[2]=0;
                                           BreakAddCont=0;
-                        
+                                          
                                           trL = 0; //counter of len of flTtot
                                           // now walk through each vox, keep testing and
                                           // evaluating at each step
                                           for( mm=vA0 ; mm<=vB+vB1 ; mm++) {
                                              rr = INDEX2[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]];
-									
+                                             
                                              if( MAPROI[rr][hh]==temp_list[bb]+1 ) { // hit 1
                                                 onoff[0]=1;
                                                 onoff[2]=1;
@@ -3361,16 +3355,17 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
                                                 // get both sides of param_grid, b/c just testing one,
                                                 // and param_grid is symm
-                                                NETROI[rr][hh][temp_list[bb]][temp_list[cc]]+=1;
-                                                NETROI[rr][hh][temp_list[cc]][temp_list[bb]]+=1;
-                                                if(NETROI[rr][hh][temp_list[bb]][temp_list[cc]]==NmNsThr) {
+                                                idx3 = MatrInd_to_FlatUHT(temp_list[bb],temp_list[cc],NROI[hh]);
+                                                NETROI[rr][hh][idx3]+=1;
+                                                //NETROI[rr][hh][temp_list[cc]][temp_list[bb]]+=1;
+                                                if(NETROI[rr][hh][idx3]==NmNsThr) {
+                                                   //ss=ScoreTrackGrid_M(Param_grid,
+                                                   //                    INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
+                                                   //                    hh, temp_list[cc],temp_list[bb], 
+                                                   //                    insetPARS, PARS_BOT, PARS_TOP);
                                                    ss=ScoreTrackGrid_M(Param_grid,
                                                                        INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
-                                                                       hh, temp_list[cc],temp_list[bb], 
-                                                                       insetPARS, PARS_BOT, PARS_TOP);
-                                                   ss=ScoreTrackGrid_M(Param_grid,
-                                                                       INDEX[Ttot[mm][0]][Ttot[mm][1]][Ttot[mm][2]],
-                                                                       hh, temp_list[bb],temp_list[cc], 
+                                                                       hh, idx3,
                                                                        insetPARS, PARS_BOT, PARS_TOP);
                                                 }
                                              }
@@ -3389,8 +3384,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                              tt[hh] = Create_Tract_NEW(0,trL-1, flTtot+start_loc,id[hh], 
                                                                        insetPARS[PARS_BOT]); ++id[hh]; 
 
-                                             lll = temp_list[cc]+temp_list[bb]*NROI[hh]; // sq matr coor
-                                             lll -= (temp_list[bb]*(temp_list[bb]+1))/2; // fix for tridiag.
+                                             lll = MatrInd_to_FlatUHT(temp_list[bb],temp_list[cc],NROI[hh]);
+                                             // AUGCHECK:  think about temp_list ordering...
+                                             //lll = temp_list[cc]+temp_list[bb]*NROI[hh]; // sq matr coor
+                                             //lll -= (temp_list[bb]*(temp_list[bb]+1))/2; // fix for tridiag.
                                              //if(lll>N_bund[hh])
                                              //fprintf(stderr, "  tb[%d][%d]=%p\n",hh, lll, tb[hh][lll]);
                                              tb[hh][lll] = AppCreateBundle(tb[hh][lll], 1, tt[hh]); 
@@ -3402,7 +3399,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                                                            flTtot+start_loc, Ttot+start_loc, trL,
                                                                            TV_switch, Dim, Ledge);
 
-                                          }                        
+                                          }                
                                        } // end of cc
                                  } // end of an else
 				
@@ -3411,14 +3408,14 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                  // this will fill in UHT part of matrix 
                                  // store as values in range 1...NROI
                                  for( mm=0 ; mm<m ; mm++)
-                                    for( nn=0 ; nn<m ; nn++) { 
-                                       Prob_grid[hh][ temp_list[mm] ][ temp_list[nn] ]+= 1;
+                                    for( nn=mm ; nn<m ; nn++) { 
+                                       Prob_grid[hh][MatrInd_to_FlatUHT(temp_list[mm],temp_list[nn],NROI[hh])]+= 1;
                                     }
                               }// end of 'if m>0'
                            }
                         }
                      }
-                  }
+                     }
 
 
       if( TR_MODE == 2 ) {
@@ -3496,25 +3493,24 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 		// (assuming that preeetty much always there will be either ==0 or >>1)
 		// calc mean and stdevs of different Param_grid entries
 		for( k=0 ; k<N_nets ; k++) 
-			for( i=0 ; i<NROI[k] ; i++ ) 
-				for( j=0 ; j<NROI[k] ; j++ ) 
-					if(Param_grid[k][i][j][0]>1.5) // need at least 2 vox per ROI
-						for( m=0 ; m<PARS_N ; m++) {
-							// means
-							Param_grid[k][i][j][2*m+1]/= Param_grid[k][i][j][0];
-							// stdevs
-							Param_grid[k][i][j][2*(m+1)]-= 
-								Param_grid[k][i][j][0]*pow(Param_grid[k][i][j][2*m+1],2);
-							Param_grid[k][i][j][2*(m+1)]/= Param_grid[k][i][j][0]-1;
-							Param_grid[k][i][j][2*(m+1)] = sqrt(Param_grid[k][i][j][2*(m+1)]);
-						}
-					else {
-						for( m=0 ; m<PARS_N ; m++) {
-							Param_grid[k][i][j][2*m+1]=0.;
-							Param_grid[k][i][j][2*(m+1)]=0.;
-						}
-						Prob_grid[k][i][j]= 0.;
-					}
+			for( i=0 ; i<FlatUHT_Len(NROI[k]) ; i++ ) 
+            if(Param_grid[k][i][0]>1.5) // need at least 2 vox per ROI
+               for( m=0 ; m<PARS_N ; m++) {
+                  // means
+                  Param_grid[k][i][2*m+1]/= Param_grid[k][i][0];
+                  // stdevs
+                  Param_grid[k][i][2*(m+1)]-= 
+                     Param_grid[k][i][0]*pow(Param_grid[k][i][2*m+1],2);
+                  Param_grid[k][i][2*(m+1)]/= Param_grid[k][i][0]-1;
+                  Param_grid[k][i][2*(m+1)] = sqrt(Param_grid[k][i][2*(m+1)]);
+               }
+            else {
+               for( m=0 ; m<PARS_N ; m++) {
+                  Param_grid[k][i][2*m+1]=0.;
+                  Param_grid[k][i][2*(m+1)]=0.;
+               }
+               Prob_grid[k][i] = 0;
+            }
 
 		for( k=0 ; k<N_nets ; k++) { // each netw gets own file
 			
@@ -3535,36 +3531,46 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
 			for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) // b/c we put '\n' after last one.
-					fprintf(fout1,"%12d\t",Prob_grid[k][i][j]);
-				fprintf(fout1,"%12d\n",Prob_grid[k][i][j]);
+					fprintf(fout1,"%12d\t",
+                       Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]);
+				fprintf(fout1,"%12d\n",
+                    Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]);
 			}
 
 			fprintf(fout1,"# %s\n",ParLab[1]); // fNT = frac num of tracts
          for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) 
-					fprintf(fout1,"%e\t",Prob_grid[k][i][j]*1.0/Numtract);
-				fprintf(fout1,"%e\n",Prob_grid[k][i][j]*1.0/Numtract);
+					fprintf(fout1,"%e\t",
+                       Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*1.0/Numtract);
+				fprintf(fout1,"%e\n",
+                    Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*1.0/Numtract);
 			}
 
 			fprintf(fout1,"# %s\n",ParLab[2]); // PV = phys vol
          for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) 
-					fprintf(fout1,"%e\t",Param_grid[k][i][j][0]*VoxVol);
-				fprintf(fout1,"%e\n",Param_grid[k][i][j][0]*VoxVol);
+					fprintf(fout1,"%e\t",
+                       Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]*VoxVol);
+				fprintf(fout1,"%e\n",
+                    Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]*VoxVol);
 			}
 
 			fprintf(fout1,"# %s\n",ParLab[3]); // fNV = frac num of vox
          for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) 
-					fprintf(fout1,"%e\t",Param_grid[k][i][j][0]/Ndata);
-				fprintf(fout1,"%e\n",Param_grid[k][i][j][0]/Ndata);
+					fprintf(fout1,"%e\t",
+                       Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]/Ndata);
+				fprintf(fout1,"%e\n",
+                    Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]/Ndata);
 			}
 
 			fprintf(fout1,"# %s\n",ParLab[4]); // NV = num of vox
          for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) 
-					fprintf(fout1,"%e\t",Param_grid[k][i][j][0]);
-				fprintf(fout1,"%e\n",Param_grid[k][i][j][0]);
+					fprintf(fout1,"%e\t",
+                       Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]);
+				fprintf(fout1,"%e\n",
+                    Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]);
 			}
 
          if (opts.EXTRA_TR_PAR) {
@@ -3573,9 +3579,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             fprintf(fout1,"# %s\n",ParLab[5]); 
             for( i=0 ; i<NROI[k] ; i++ ) {
                for( j=0 ; j<NROI[k]-1 ; j++ ) 
-                  fprintf(fout1,"%e\t",Prob_grid[k][i][j]*
+                  fprintf(fout1,"%e\t",
+                          Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*
                           2.0/(ROI_SIZES[k][i+1][0] + ROI_SIZES[k][j+1][0]));
-               fprintf(fout1,"%e\n",Prob_grid[k][i][j]*
+               fprintf(fout1,"%e\n",
+                       Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*
                        2.0/(ROI_SIZES[k][i+1][0] + ROI_SIZES[k][j+1][0]));
             }
             
@@ -3583,9 +3591,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             fprintf(fout1,"# %s\n",ParLab[6]); 
             for( i=0 ; i<NROI[k] ; i++ ) {
                for( j=0 ; j<NROI[k]-1 ; j++ ) 
-                  fprintf(fout1,"%e\t",Prob_grid[k][i][j]*
+                  fprintf(fout1,"%e\t",
+                          Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*
                           2.0/(ROI_SIZES[k][i+1][1] + ROI_SIZES[k][j+1][1]));
-               fprintf(fout1,"%e\n",Prob_grid[k][i][j]*
+               fprintf(fout1,"%e\n",
+                       Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*
                        2.0/(ROI_SIZES[k][i+1][1] + ROI_SIZES[k][j+1][1]));
             }
 
@@ -3593,9 +3603,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             fprintf(fout1,"# %s\n",ParLab[7]); 
             for( i=0 ; i<NROI[k] ; i++ ) {
                for( j=0 ; j<NROI[k]-1 ; j++ ) 
-                  fprintf(fout1,"%e\t",Prob_grid[k][i][j]*
+                  fprintf(fout1,"%e\t",
+                          Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*
                           2.0/(ROI_SIZES[k][i+1][2] + ROI_SIZES[k][j+1][2]));
-               fprintf(fout1,"%e\n",Prob_grid[k][i][j]*
+               fprintf(fout1,"%e\n",
+                       Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]*
                        2.0/(ROI_SIZES[k][i+1][2] + ROI_SIZES[k][j+1][2]));
             }
 
@@ -3606,8 +3618,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                           opts.EXTRA_TR_PAR + m - 1]);    
 				for( i=0 ; i<NROI[k] ; i++ ) {
 					for( j=0 ; j<NROI[k]-1 ; j++ ) 
-						fprintf(fout1,"%e\t",Param_grid[k][i][j][m]);
-					fprintf(fout1,"%e\n",Param_grid[k][i][j][m]);
+						fprintf(fout1,"%e\t",
+                          Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][m]);
+					fprintf(fout1,"%e\n",
+                       Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][m]);
 				}
             //				fprintf(fout1,"\n");    
 			}
@@ -3615,31 +3629,29 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 			fclose(fout1);
 
          // @#$ recapitulate *.grid files
+         // NB: flatmatr is flat *full* matr; *_grids are flat *UHT* matr
          if( DEF_DTI) {
             for( i=0 ; i<NROI[k] ; i++ ) 
-               for( j=0 ; j<NROI[k] ; j++ ) {
-                  flat_matr[k][0][i*NROI[k]+j] = Prob_grid[k][i][j];
-                  flat_matr[k][1][i*NROI[k]+j] = 
-                     Prob_grid[k][i][j]*1.0/Numtract;
-                  flat_matr[k][2][i*NROI[k]+j] = 
-                     Param_grid[k][i][j][0]*VoxVol;
-                  flat_matr[k][3][i*NROI[k]+j] = 
-                     Param_grid[k][i][j][0]*Ndata;
-                  flat_matr[k][4][i*NROI[k]+j] = 
-                     Param_grid[k][i][j][0]; 
+               for( j=0 ; j<NROI[k] ; j++ ) { 
+                  idx3 = MatrInd_to_FlatUHT(i,j,NROI[k]);
+                  flat_matr[k][0][i*NROI[k]+j] = Prob_grid[k][idx3];
+                  flat_matr[k][1][i*NROI[k]+j] = Prob_grid[k][idx3]*1.0/Numtract;
+                  flat_matr[k][2][i*NROI[k]+j] = Param_grid[k][idx3][0]*VoxVol;
+                  flat_matr[k][3][i*NROI[k]+j] = Param_grid[k][idx3][0]*Ndata;
+                  flat_matr[k][4][i*NROI[k]+j] = Param_grid[k][idx3][0]; 
 
                   if(opts.EXTRA_TR_PAR){
-                     flat_matr[k][5][i*NROI[k]+j] = Prob_grid[k][i][j]*
+                     flat_matr[k][5][i*NROI[k]+j] = Prob_grid[k][idx3]*
                         2.0/(ROI_SIZES[k][i+1][0] + ROI_SIZES[k][j+1][0]);
-                     flat_matr[k][6][i*NROI[k]+j] = Prob_grid[k][i][j]*
+                     flat_matr[k][6][i*NROI[k]+j] = Prob_grid[k][idx3]*
                         2.0/(ROI_SIZES[k][i+1][1] + ROI_SIZES[k][j+1][1]);
-                     flat_matr[k][7][i*NROI[k]+j] = Prob_grid[k][i][j]*
+                     flat_matr[k][7][i*NROI[k]+j] = Prob_grid[k][idx3]*
                         2.0/(ROI_SIZES[k][i+1][2] + ROI_SIZES[k][j+1][2]);
                   }
                   
                   for( m=1 ; m<Noutmat-PreCalcParLabs-opts.EXTRA_TR_PAR+1 ;m++) 
                      flat_matr[k][PreCalcParLabs+opts.EXTRA_TR_PAR+m-1]
-                        [i*NROI[k]+j] = Param_grid[k][i][j][m];
+                        [i*NROI[k]+j] = Param_grid[k][idx3][m];
                }
             gset = SUMA_FloatVec_to_GDSET(flat_matr[k], Noutmat, 
                                           NROI[k]*NROI[k], 
@@ -3681,21 +3693,24 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 		// in order to threshold the `overall' (`0th') map;
 		// individual ones already have
 		// been above, just by how they were created
-		for( k=0 ; k<N_nets ; k++)
-			for( i=0 ; i<=Ndata ; i++ ) 
-				for( j=0 ; j<NROI[k] ; j++ ) 
-					for( hh=0 ; hh<NROI[k] ; hh++ ) 
-						if( NETROI[i][k][j][hh] < NmNsThr)
-							NETROI[i][k][j][hh]=0;
-		
-		
+      for( i=0 ; i<=Ndata ; i++ ) 		
+         for( j=0 ; j<N_nets ; j++) {
+            hh = NROI[j]*(NROI[j]+1);
+            hh/= 2;
+            for( k=0 ; k<hh ; k++ ) 
+               if( NETROI[i][j][k] < NmNsThr)
+							NETROI[i][j][k]=0;
+         }
+
 		// output AFNI files mapping WM		
 		INFO_message("Writing output (%s, same as your input): %s ...",
                    voxel_order,opts.prefix);
-		i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
+
+      i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
 										insetPARS[PARS_BOT],TV_switch,voxel_order,
-										NROI, NETROI,mskd,INDEX2,Dim,
+										NROI, NETROI, mskd, INDEX2, Dim,
 										dsetn,argc,argv,ROI_LABELS, opts.PAIRPOWER);
+
 		if(opts.DUMP_TYPE>=0)
 			i = WriteIndivProbFiles(N_nets,Ndata,Nvox,Prob_grid,
 											opts.prefix,insetPARS[PARS_BOT],
@@ -3864,10 +3879,6 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	free(LocSeed);
   
 	for( k=0 ; k<=Ndata ; k++) 
-		for( m=0 ; m<N_nets ; m++) 
-			for( i=0 ; i<NROI[m] ; i++) 
-				free(NETROI[k][m][i]);
-	for( k=0 ; k<=Ndata ; k++) 
 		for( m=0 ; m<N_nets ; m++) {
 			free(NETROI[k][m]);
 		}
@@ -3916,12 +3927,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	free(INDEX2);
 	
 	for( i=0 ; i<N_nets ; i++) 
-		for( j=0 ; j<NROI[i] ; j++) 
-			for( k=0 ; k<NROI[i] ; k++) 
-            free(Param_grid[i][j][k]);
-	for( i=0 ; i<N_nets ; i++) 
-		for( j=0 ; j<NROI[i] ; j++) { 
-			free(Prob_grid[i][j]);
+		for( j=0 ; j<FlatUHT_Len(NROI[i]) ; j++) { 
 			free(Param_grid[i][j]);
 		}
 	for( i=0 ; i<N_nets ; i++) {
@@ -4101,6 +4107,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          exit(0);
       }*/
       
+
 
 
 int GetSizesOfTargets( int ***ROI_SIZES,
