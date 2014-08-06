@@ -603,6 +603,20 @@ void Qhelp(void)
     "                 amount for the initial small-scale warping, to make\n"
     "                 that phase of the program converge more rapidly.\n"
     "\n"
+    " -pblur       = Use progressive blurring; that is, for larger patch sizes,\n"
+    "                the amount of blurring is larger.  The general idea is to\n"
+    "                avoid trying to match finer details when the patch size\n"
+    "                and incremental warps are coarse.  When '-blur' is used\n"
+    "                as well, it sets a minimum amount of blurring that will\n"
+    "                be used.  [06 Aug 2014 -- may become the default someday].\n"
+    "               * You can optionally give the fraction of the patch size that\n"
+    "                 is used for the progressive blur by providing a value between\n"
+    "                 0 and 0.25 after '-pblur'.  If you provide TWO values, the\n"
+    "                 the first fraction is used for progressively blurring the\n"
+    "                 base image and the second for the source image.  The default\n"
+    "                 parameters when just '-pblur' is given is the same as giving\n"
+    "                 the options as '-pblur 0.1 0.1'.\n"
+    "\n"
     " -emask ee    = Here, 'ee' is a dataset to specify a mask of voxels\n"
     "                to EXCLUDE from the analysis -- all voxels in 'ee'\n"
     "                that are NONZERO will not be used in the alignment.\n"
@@ -1421,13 +1435,19 @@ int main( int argc , char *argv[] )
        if( nopt+1 < argc && isnumeric(argv[nopt+1][0]) && !isalpha(argv[nopt+1][1]) )
          val2 = (float)strtod(argv[++nopt],NULL) ;
        Hpblur_b = val1 ; Hpblur_s = val2 ;
-       if( fabsf(val1) > MAX_PBLUR ){
-         Hpblur_b = (val1 < 0.0f) ? -MAX_PBLUR : MAX_PBLUR ;
-         WARNING_message("base -pblur %f out of range: altering to %f",val1,Hpblur_b) ;
+       if( val1 < 0.0f ){
+         WARNING_message("base -pblur %f cannot be negative: setting it to zero",val1) ;
+         Hpblur_b = 0.0f ;
+       } else if( val1 > MAX_PBLUR ){
+         Hpblur_b = MAX_PBLUR ;
+         WARNING_message("base -pblur %f too large: altering to %f",val1,Hpblur_b) ;
        }
-       if( fabsf(val2) > MAX_PBLUR ){
-         Hpblur_s = (val2 < 0.0f) ? -MAX_PBLUR : MAX_PBLUR ;
-         WARNING_message("source -pblur %f out of range: altering to %f",val2,Hpblur_s) ;
+       if( val2 < 0.0f ){
+         WARNING_message("source -pblur %f cannot be negative: setting it to zero",val2) ;
+         Hpblur_s = 0.0f ;
+       } else if( val2 > MAX_PBLUR ){
+         Hpblur_s = MAX_PBLUR ;
+         WARNING_message("source -pblur %f too large: altering to %f",val2,Hpblur_s) ;
        }
        if( Hpblur_b == 0.0f && Hpblur_s == 0.0f )
          WARNING_message("-pblur set to 0; why did you use this option?") ;
@@ -1636,9 +1656,6 @@ STATUS("check for errors") ;
      Hznoq = 0 ;
      WARNING_message("-znoQ and -Qfinal cannot be combined: turning off -znoQ") ;
    }
-
-   if( Hpblur_b > 0.0f ) Hblur_b = 0.0f ;
-   if( Hpblur_s > 0.0f ) Hblur_s = 0.0f ;
 
 #if 0
    if( Hlocalstat && meth != GA_MATCH_PEARCLP_SCALAR && meth != GA_MATCH_PEARSON_SCALAR ){
