@@ -6224,9 +6224,9 @@ static int Hdone      = 0 ;          /* number of patches optimized */
 
 /*--- Other stuff for incremental warping ---*/
 
-#undef USE_HLOADER  /* define this for 'all-at-once' Hwarp load vs. incremental */
-                    /* tests show incremental is about 10% faster, with OpenMP. */
-                    /* (incremental means to compute as needed, vs. pre-compute */
+#undef USE_HLOADER  /* define this for 'all-at-once' Hwarp load vs. incremental  */
+                    /* tests show incremental is about 10% faster, with OpenMP.  */
+                    /* (incremental means to compute as needed, vs. pre-compute) */
 
 #ifdef USE_HLOADER
 static void (*Hloader)(float *) = NULL ; /* function to make warp from params */
@@ -7627,15 +7627,62 @@ MRI_IMAGE * IW3D_blurim( float rad , MRI_IMAGE *inim , char *label )
 ENTRY("IW3D_blurim") ;
    if( rad >= 0.5f ){
      if( Hverb > 1 && label != NULL )
-       ININFO_message("  blurring %s image %.2g voxels FWHM",label,rad) ;
+       ININFO_message("  blurring %s image %.2f voxels FWHM",label,rad) ;
      outim = mri_float_blur3D( FWHM_TO_SIGMA(rad) , inim ) ;
    } else if( rad <= -1.0f ){
      if( Hverb > 1 && label != NULL )
-       ININFO_message("  median-ing %s image %.2g voxels",label,-rad) ;
+       ININFO_message("  median-ing %s image %.2f voxels",label,-rad) ;
      outim = mri_medianfilter( inim , -rad , NULL , 0 ) ;
    }
    RETURN(outim) ;
 }
+
+/*----------------------------------------------------------------------------*/
+/* Macro for actual pblur radius, given image dimensions */
+
+#define PBLUR(pb,qx,qy,qz) \
+ ( ((pb) <= 0.0f)          \
+  ? 0.0f                   \
+  : ( ( ((qz) >= NGMIN) ? cbrtf((qx)*(qy)*(qz)) : sqrtf((qx)*(qy)) ) * (pb) ) )
+
+/* Macro to compute actual blur radius from the
+   progressive blur (pb) and the fixed blur (fb) radii */
+
+#define ACTUAL_BLUR(pb,fb) \
+  ( sqrtf( (pb)*(pb) + (fb)*(fb) ) * ( ((fb) >= 0.0f) ? 1.0f : -1.0f ) )
+
+/*----------------------------------------------------------------------------*/
+/* function to do the blurring */
+
+MRI_IMAGE * IW3D_do_blurring( float fixed_blur, float prog_blur,
+                              float scalex, float scaley, float scalez,
+                              MRI_IMAGE *inim , char *lab )
+{
+   float pblur,ablur ; MRI_IMAGE *outim ;
+
+ENTRY("IW3D_do_blurring") ;
+   if( fixed_blur == 0.0f && prog_blur == 0.0f ) RETURN(NULL) ;
+   pblur = PBLUR(prog_blur,scalex,scaley,scalez) ;
+   ablur = ACTUAL_BLUR(pblur,fixed_blur) ;
+   outim = IW3D_blurim( ablur , inim , lab ) ;
+   RETURN(outim) ;
+}
+
+/* Macro for blurring images as needed */
+
+#define PBLUR_BASE(i1,i2,j1,j2,k1,k2)                                                \
+ do{ if( Hpblur_b > 0.0f ){                                                          \
+       mri_free(Hbasim_blur) ;                                                       \
+       Hbasim_blur = IW3D_do_blurring( Hblur_b, Hpblur_b,                            \
+                                       i2-i1+1, j2-j1+1, k2-k1+1, Hbasim, "base" ) ; \
+     } } while(0)
+
+#define PBLUR_SOURCE(i1,i2,j1,j2,k1,k2)                                                \
+ do{ if( Hpblur_s > 0.0f ){                                                            \
+       mri_free(Hsrcim_blur) ;                                                         \
+       Hsrcim_blur = IW3D_do_blurring( Hblur_s, Hpblur_s,                              \
+                                       i2-i1+1, j2-j1+1, k2-k1+1, Hsrcim, "source" ) ; \
+     } } while(0)
 
 /*----------------------------------------------------------------------------*/
 /* Sets a bunch of global workspace variables, prior to
@@ -7670,23 +7717,13 @@ ENTRY("IW3D_setup_for_improvement") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
-   if( Hpblur_b > 0.0f ) Hblur_b = 0.0f ;
-   if( Hpblur_s > 0.0f ) Hblur_s = 0.0f ;
+   if( Hpblur_b > 0.0f && Hblur_b == 0.0f ) Hblur_b = 0.1f ;
+   if( Hpblur_s > 0.0f && Hblur_s == 0.0f ) Hblur_s = 0.1f ;
 
-#if 1
-   Hbasim_blur = IW3D_blurim( Hblur_b , Hbasim , "base"   ) ;  /* NULL if blur */
-   Hsrcim_blur = IW3D_blurim( Hblur_s , Hsrcim , "source" ) ;  /* radius == 0 */
-#else
-   if( Hblur_s >= 0.5f ){
-     if( Hverb > 1 ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
-     Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
-   } else if( Hblur_s <= -1.0f ){
-     if( Hverb > 1 ) ININFO_message("   median-izing source image %.3g voxels",-Hblur_s) ;
-     Hsrcim_blur = mri_medianfilter( Hsrcim , -Hblur_s , NULL , 0 ) ;
-   } else {
-     Hsrcim_blur = NULL ;
-   }
-#endif
+   Hbasim_blur = IW3D_do_blurring( Hblur_b , Hpblur_b ,
+                                   0.5f*Hnx,0.5f*Hny,0.5f*Hnz, Hbasim, "base"   ) ;
+   Hsrcim_blur = IW3D_do_blurring( Hblur_s , Hpblur_s ,
+                                   0.5f*Hnx,0.5f*Hny,0.5f*Hnz, Hsrcim, "source" ) ;
 
    /*-- copy or create base weight image (included Hemask for exclusion) --*/
 
@@ -7747,20 +7784,25 @@ ENTRY("IW3D_setup_for_improvement") ;
 
      case GA_MATCH_PEARSON_LOCALA:      /* lpa (but NOT lpc) */
      case GA_MATCH_HELLINGER_SCALAR:    /* hel */
-     case GA_MATCH_CRAT_USYM_SCALAR:
+     case GA_MATCH_CRAT_USYM_SCALAR:    /* correlation ratio */
      case GA_MATCH_CRAT_SADD_SCALAR:
      case GA_MATCH_CORRATIO_SCALAR:
-     case GA_MATCH_KULLBACK_SCALAR:
-     case GA_MATCH_PEARCLP_SCALAR:
-     case GA_MATCH_PEARSON_SCALAR:      Hnegate = 1 ; break ;
+     case GA_MATCH_KULLBACK_SCALAR:     /* mutual info */
+     case GA_MATCH_PEARCLP_SCALAR:      /* clipped Pearson */
+     case GA_MATCH_PEARSON_SCALAR:      /* pure Pearson */
+                                        Hnegate = 1 ; break ;
    }
 
-   /* special case: don't try to over-minimize the Pearson costs */
+   /* special case: don't try to over-minimize the Pearson costs
+      (e.g., the base and source images are essentially identical) */
 
    if( meth_code == GA_MATCH_PEARCLP_SCALAR || meth_code == GA_MATCH_PEARSON_SCALAR )
-     Hstopcost = -3.995f ;
+     Hstopcost = -3.991f ;
 
-   /*-- INCOR method uses 2Dhist functions, so setup some parameters */
+   /*-- INCOR method uses 2Dhist functions (iii==2),
+        or is the clipped Pearson method (iii==3),
+        or is a local Pearson method (iii==4),
+        so setup some parameters (into Hmpar) for later use --*/
 
    if( iii == 2 || iii == 3 ){
      float *xar,*yar , *bar,*sar ; int jj,kk ;
@@ -7813,7 +7855,7 @@ ENTRY("IW3D_setup_for_improvement") ;
        }
 #endif
      }
-   } else if( iii == 4 ){         /* Local Pearson setup [25 Jun 2014] */
+   } else if( iii == 4 ){         /*--- Local Pearson setup [25 Jun 2014] ---*/
      INCOR_set_lpc_mask(Hbmask) ;
      MAKE_floatvec(Hmpar,9) ;     /* to be filled in later, for each patch */
    }
@@ -8046,12 +8088,12 @@ ENTRY("IW3D_improve_warp") ;
 
    if( Hverb > 3 ) powell_set_verbose(1) ;
 
-   /**----- do it babee!! -----**/
+   /******* do it babee!! ***********************************/
 
    iter = powell_newuoa_con( Hnparmap , parvec,xbot,xtop , 0 ,
                              prad,0.009*prad , itmax , IW3D_scalar_costfun ) ;
 
-   /**----- iter = number of iterations actually used -----**/
+   /******* iter = number of iterations actually used *******/
 
    if( iter > 0 ) Hnpar_sum += Hnparmap ; /* number of parameters used so far */
 
@@ -8196,6 +8238,8 @@ ENTRY("IW3D_warpomatic") ;
      nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
      /* force the warp to happen, but don't use any penalty */
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
+     PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+     PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      /* always start with 2 cubic steps */
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -8329,6 +8373,9 @@ ENTRY("IW3D_warpomatic") ;
      nsup  = SUPERHARD(lev) ? 2 : 1 ; /* number of iterations in each sweep */
 
      /* announce the start of a new level! */
+
+     PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;
+     PBLUR_SOURCE(1,xwid,1,ywid,1,zwid) ;
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s [clock=%s]" ,
