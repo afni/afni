@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+  { 7 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Add customized median filter to mri_nwarp.c" ,
+   "To parallelize with OpenMP, since it might be used a lot with the new\n"
+   "-pblur option." } ,
+
+ { 7 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Add -pblur option, for progressive blurring" ,
    "That is, more blurring at coarse levels and less blurring at fine\n"
    "levels.  May become the default after some more experience." } ,
