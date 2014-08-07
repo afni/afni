@@ -7619,6 +7619,62 @@ ENTRY("IW3D_cleanup_improvement") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/* Median filter specialized for 3dQwarp and for OpenMP. */
+
+MRI_IMAGE *IW3D_medianfilter( MRI_IMAGE *imin, float irad )
+{
+   MRI_IMAGE *imout ;
+   float *fin, *fout , dz ;
+   short *di , *dj  , *dk ;
+   int nd, nx,ny,nz,nxy,nxyz ;
+   MCW_cluster *cl ;
+
+ENTRY("IW3D_medianfilter") ;
+
+   if( imin == NULL || imin->kind != MRI_float ) RETURN(NULL) ;
+
+   if( irad < 1.01f ) irad = 1.01f ;
+   dz = (imin->nz == 1) ? 6666.0f : 1.0f ;
+   cl = MCW_build_mask( 1.0f,1.0f,dz , irad ) ;
+
+   if( cl == NULL || cl->num_pt < 6 ){ KILL_CLUSTER(cl); RETURN(NULL); }
+
+   ADDTO_CLUSTER(cl,0,0,0,0) ;
+
+   di = cl->i   ; dj = cl->j   ; dk = cl->k   ; nd  = cl->num_pt;
+   nx = imin->nx; ny = imin->ny; nz = imin->nz; nxy = nx*ny     ; nxyz = nxy*nz;
+
+   imout = mri_new_conforming( imin , MRI_float ) ;
+   fout  = MRI_FLOAT_PTR( imout ) ;
+   fin   = MRI_FLOAT_PTR( imin ) ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( nxyz*nd > 9999 )
+ { int ii,jj,kk,ijk , ip,jp,kp , nt,dd ; float *tmp ;
+#pragma omp critical
+   { tmp = (float *)malloc(sizeof(float)*nd) ; }
+#pragma omp for
+   for( ijk=0 ; ijk < nxyz ; ijk++ ){
+     ii = ijk % nx ; kk = ijk / nxy ; jj = (ijk-kk*nxy) / nx ;
+     /* extract neighborhood values */
+     for( nt=dd=0 ; dd < nd ; dd++ ){
+       ip = ii+di[dd] ; if( ip < 0 || ip >= nx ) continue ;
+       jp = jj+dj[dd] ; if( jp < 0 || jp >= ny ) continue ;
+       kp = kk+dk[dd] ; if( kp < 0 || kp >= nz ) continue ;
+       tmp[nt++] = fin[ip+jp*nx+kp*nxy] ;
+     }
+     if( nt > 0 ) fout[ijk] = qmed_float( nt , tmp ) ;  /* cf. cs_qmed.c */
+   }
+#pragma omp critical
+   { free(tmp) ; }
+ }
+AFNI_OMP_END ;
+
+   KILL_CLUSTER(cl);
+   RETURN(imout) ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* Function for blurring a volume in 1 of 2 ways */
 
 MRI_IMAGE * IW3D_blurim( float rad , MRI_IMAGE *inim , char *label )
@@ -7631,8 +7687,8 @@ ENTRY("IW3D_blurim") ;
      outim = mri_float_blur3D( FWHM_TO_SIGMA(rad) , inim ) ;
    } else if( rad <= -1.0f ){
      if( Hverb > 1 && label != NULL )
-       ININFO_message("  median-ing %s image %.2f voxels",label,-rad) ;
-     outim = mri_medianfilter( inim , -rad , NULL , 0 ) ;
+       ININFO_message("  median-ating %s image %.2f voxels",label,-rad) ;
+     outim = IW3D_medianfilter( inim , -rad ) ;
    }
    RETURN(outim) ;
 }
