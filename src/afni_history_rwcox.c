@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+  { 7 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "Add -pblur option, for progressive blurring" ,
+   "That is, more blurring at coarse levels and less blurring at fine\n"
+   "levels.  May become the default after some more experience." } ,
+
+ { 5 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Move basim blur from 3dQwarp.c to mri_nwarp.c" ,
    "Preparatory to adding the -pblur option" } ,
 

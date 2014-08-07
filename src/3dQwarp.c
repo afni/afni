@@ -615,7 +615,12 @@ void Qhelp(void)
     "                 the first fraction is used for progressively blurring the\n"
     "                 base image and the second for the source image.  The default\n"
     "                 parameters when just '-pblur' is given is the same as giving\n"
-    "                 the options as '-pblur 0.1 0.1'.\n"
+    "                 the options as '-pblur 0.09 0.09'.\n"
+    "               * '-pblur' is useful when trying to match 2 volumes with high\n"
+    "                 amounts of detail; e.g, warping one subject's brain image to\n"
+    "                 match another's, or trying to warp to match a detailed template.\n"
+    "\n"
+    " -nopblur     = Don't use '-pblur'; equivalent to '-pblur 0 0'.\n"
     "\n"
     " -emask ee    = Here, 'ee' is a dataset to specify a mask of voxels\n"
     "                to EXCLUDE from the analysis -- all voxels in 'ee'\n"
@@ -1420,7 +1425,7 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-#define DEF_PBLUR 0.10f
+#define DEF_PBLUR 0.09f
 #define MAX_PBLUR 0.25f
      if( strcasecmp(argv[nopt],"-pblur") == 0 ){
        float val1,val2 ;
@@ -1449,9 +1454,11 @@ int main( int argc , char *argv[] )
          Hpblur_s = MAX_PBLUR ;
          WARNING_message("source -pblur %f too large: altering to %f",val2,Hpblur_s) ;
        }
-       if( Hpblur_b == 0.0f && Hpblur_s == 0.0f )
-         WARNING_message("-pblur set to 0; why did you use this option?") ;
        nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-nopblur") == 0 ){
+       Hpblur_b = Hpblur_s = 0.0f ; nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -2158,6 +2165,7 @@ STATUS("construct weight/mask volume") ;
        wt[ii] = ( wt[ii] <= 0.0f ) ? 0.0f : fac * wt[ii] ;
    }
 
+   /*----- blurring of base is now done in warpomatic, along with source -----*/
 #if 0
    /*----- blur base here if so ordered (source is blurred in warpomatic) ----*/
 
