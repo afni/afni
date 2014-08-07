@@ -7668,7 +7668,7 @@ ENTRY("IW3D_do_blurring") ;
    RETURN(outim) ;
 }
 
-/* Macro for blurring images as needed */
+/*------------------- Macros for blurring images as needed -------------------*/
 
 #define PBLUR_BASE(i1,i2,j1,j2,k1,k2)                                                \
  do{ if( Hpblur_b > 0.0f ){                                                          \
@@ -8238,7 +8238,7 @@ ENTRY("IW3D_warpomatic") ;
      nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
      /* force the warp to happen, but don't use any penalty */
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
-     PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+     PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      /* always start with 2 cubic steps */
@@ -8374,8 +8374,9 @@ ENTRY("IW3D_warpomatic") ;
 
      /* announce the start of a new level! */
 
-     PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;
+     PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(1,xwid,1,ywid,1,zwid) ;
+     if( Hpblur_b > 0.0f || Hpblur_b > 0.0f ) Hfirsttime = 1 ;
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s [clock=%s]" ,
@@ -9560,31 +9561,13 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
    Hbasim = mri_to_float(bim) ;
    Hsrcim = mri_to_float(sim);
 
-   Hsrcim_blur = IW3D_blurim( Hblur_s , Hsrcim , "source" ) ;
-#if 0
-   if( Hblur_s >= 0.5f ){
-     if( Hverb > 1 ) ININFO_message("   blurring source image %.3g voxels FWHM",Hblur_s) ;
-     Hsrcim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_s) , Hsrcim ) ;
-   } else if( Hblur_s <= -1.0f ){
-     if( Hverb > 1 ) ININFO_message("   median-izing source image %.3g voxels",-Hblur_s) ;
-     Hsrcim_blur = mri_medianfilter( Hsrcim , -Hblur_s , NULL , 0 ) ;
-   } else {
-     Hsrcim_blur = NULL ;
-   }
-#endif
+   if( Hpblur_b > 0.0f && Hblur_b == 0.0f ) Hblur_b = 0.1f ;
+   if( Hpblur_s > 0.0f && Hblur_s == 0.0f ) Hblur_s = 0.1f ;
 
-   Hbasim_blur = IW3D_blurim( Hblur_b , Hbasim , "base" ) ;
-#if 0
-   if( Hblur_b >= 0.5f ){
-     if( Hverb > 1 ) ININFO_message("   blurring base image %.3g voxels FWHM",Hblur_b) ;
-     Hbasim_blur = mri_float_blur3D( FWHM_TO_SIGMA(Hblur_b) , Hbasim ) ;
-   } else if( Hblur_b <= -1.0f ){
-     if( Hverb > 1 ) ININFO_message("   median-izing base image %.3g voxels",-Hblur_b) ;
-     Hbasim_blur = mri_medianfilter( Hbasim , -Hblur_b , NULL , 0 ) ;
-   } else {
-     Hbasim_blur = NULL ;
-   }
-#endif
+   Hbasim_blur = IW3D_do_blurring( Hblur_b , Hpblur_b ,
+                                   0.5f*Hnx,0.5f*Hny,0.5f*Hnz, Hbasim, "base"   ) ;
+   Hsrcim_blur = IW3D_do_blurring( Hblur_s , Hpblur_s ,
+                                   0.5f*Hnx,0.5f*Hny,0.5f*Hnz, Hsrcim, "source" ) ;
 
    /*-- and copy or create base weight image --*/
 
@@ -9831,6 +9814,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      nlevr = 4 ;
 #endif
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
+     PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
+     PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -9953,6 +9938,12 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
      nlevr = WORKHARD(lev)  ? 2 : 1 ;
      nsup  = SUPERHARD(lev) ? 2 : 1 ;
+
+     /* announce the start of a new level! */
+
+     PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;  /* progressive blur, if ordered */
+     PBLUR_SOURCE(1,xwid,1,ywid,1,zwid) ;
+     if( Hpblur_b > 0.0f || Hpblur_b > 0.0f ) Hfirsttime = 1 ;
 
      if( Hverb > 1 )
        ININFO_message("  ........ +-lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s" ,
