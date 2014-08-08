@@ -23,17 +23,6 @@ respVar <- c('InputFile', 'Inputfile', 'Ausgang_val', 'ausgang_val')
 ##################### Begin MVM Input functions ################################
 #################################################################################
 
-greeting.MVM <- function ()
-   return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-          ================== Welcome to 3dMVM ==================          
-   AFNI Group Analysis Program with Multivariate Linear Modeling Approach
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.0, July 30, 2014
-Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
-SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-      )
 
 #The help function for 3dMVM batch (AFNI-style script mode)
 help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
@@ -43,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.0, July 30, 2014
+Version 3.2.1, Aug 8, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -734,7 +723,7 @@ maov <- function(SSPE, SSP, DF, error.DF)  # Pillai test with type = 3
 # 2 from UVT, 1 from within-subject MVT, and 1 from MVT.
 # takes model object from aov.car from afex as input: assuming that
 # model fitting with afex: ONE within-subject factor ONLY!
-mvCom5 <- function(fm, nF_mvE4) {
+mvCom4 <- function(fm, nF_mvE4) {
    uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model
    uvP  <- rep(1, 2*nF_mvE4)
    p_wsmvt <- rep(1, nF_mvE4)
@@ -754,13 +743,17 @@ mvCom5 <- function(fm, nF_mvE4) {
       }
    }
    # true MVT
-   mvfm <- Anova(fm$lm, type=3, test='Pillai')
-   for(kk in 1:nF_mvE4) {
-      mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df)
-      #p-value for upper F
-      p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
+   #mvfm <- Anova(fm$lm, type=3, test='Pillai')
+   mvfm <- tryCatch(Anova(fm$lm, type = 3, test = "Pillai"), error=function(e) NULL)
+   if(is.null(mvfm))
+      out_p <- apply(cbind(uvP[1:nF_mvE4], uvP[(nF_mvE4+1):(2*nF_mvE4)], p_wsmvt), 1, min) else {
+      for(kk in 1:nF_mvE4) {
+         mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df)
+         #p-value for upper F
+         p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
+      }
+      out_p <- apply(cbind(uvP[1:nF_mvE4], uvP[(nF_mvE4+1):(2*nF_mvE4)], p_wsmvt, p_mvt), 1, min)
    }
-   out_p <- apply(cbind(uvP[1:nF_mvE4], uvP[(nF_mvE4+1):(2*nF_mvE4)], p_wsmvt, p_mvt), 1, min)
    return(out_p)
 }
                                                 
@@ -802,7 +795,7 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
                   if(!is.null(Fvalues)) if(!any(is.nan(Fvalues))) out[1:pars[[2]][2]] <- Fvalues
                } else if(pars[[6]][6]) { # combine 4 tests: assuming only one within-subject factor
                   tryCatch(out[(1:pars[[2]][1])] <-
-                  qchisq(mvCom5(fm, pars[[2]][5]), 1, lower.tail = FALSE), error=function(e) NULL)
+                  qchisq(mvCom4(fm, pars[[2]][5]), 1, lower.tail = FALSE), error=function(e) NULL)
                } else {# contain within-subject variable(s)
                   #tryCatch(Fvalues <- unname(uvfm$anova[-1,5]), error=function(e) NULL)
                   tryCatch(Fvalues <- unname(uvfm$anova[,5]), error=function(e) NULL)
@@ -858,8 +851,8 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
          if(pars[[6]][5]) { # combine 4 tests: assuming only one within-subject factor
             tryCatch(out[(pars[[2]][2]+pars[[2]][3]+length(pars[[9]])+pars[[2]][4]+1):
                (pars[[2]][2]+pars[[2]][3]+length(pars[[9]])+pars[[2]][4]+pars[[2]][5])] <-
-               qchisq(mvCom5(fm, pars[[2]][5]), 1, lower.tail = FALSE), error=function(e) NULL)
-         } # redundant computations in mvCom5 for option mvE4a
+               qchisq(mvCom4(fm, pars[[2]][5]), 1, lower.tail = FALSE), error=function(e) NULL)
+         } # redundant computations in mvCom4 for option mvE4a
             
          # GLT part below
          if(pars[[3]]>=1) for(ii in 1:pars[[3]]) {
@@ -1389,7 +1382,7 @@ if(dimy == 1 & dimz == 1) {
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
    clusterExport(cl, c("maov"), envir=environment())
-   clusterExport(cl, c("mvCom5"), envir=environment())
+   clusterExport(cl, c("mvCom4"), envir=environment())
    for(kk in 1:nSeg) {
       if(NoBrick > 1) out[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
             ModelForm=ModelForm, pars=pars), c(2,1)) else
@@ -1423,7 +1416,7 @@ if (lop$nNodes>1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
-   clusterExport(cl, c("mvCom5"), envir=environment())
+   clusterExport(cl, c("mvCom4"), envir=environment())
    #clusterCall(cl, maov) # let all clusters access to function maov()
    clusterExport(cl, c("maov"), envir=environment()) # let all clusters access to function maov()
    for (kk in 1:dimz) {
@@ -1530,7 +1523,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
       #out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
       #   p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min) 
       nF_mvE4 <- nrow(univ(fm$Anova)$anova)/2
-      out_p <- mvCom5(fm, nF_mvE4)
+      out_p <- mvCom4(fm, nF_mvE4)
       # chisq 
       out_chisq <- qchisq(out_p, 1, lower.tail = FALSE)
       out <- cbind(out_chisq, 1, out_p)
