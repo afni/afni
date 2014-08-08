@@ -9615,7 +9615,7 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
 
    Hnx = bim->nx; Hny = bim->ny; Hnz = bim->nz; Hnxy=Hnx*Hny; Hnxyz = Hnxy*Hnz;
    Hbasim = mri_to_float(bim) ;
-   Hsrcim = mri_to_float(sim);
+   Hsrcim = mri_to_float(sim) ;
 
    if( Hpblur_b > 0.0f && Hblur_b == 0.0f ) Hblur_b = 0.1f ;
    if( Hpblur_s > 0.0f && Hblur_s == 0.0f ) Hblur_s = 0.1f ;
