@@ -47,7 +47,7 @@
 /* also is minimum patch size for 3dQwarp funcs */
 
 #undef  NGMIN
-#define NGMIN 9
+#define NGMIN 9   /* do not reduce this without deep deep thought! */
 
 /* control verbosity of mri_nwarp functions */
 
@@ -821,6 +821,22 @@ ENTRY("IW3D_zero_fill") ;
    if( AA->se != NULL ) AAmemset( AA->se , 0 , nbyt ) ;
    IW3D_zero_external_slopes(AA) ;
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* return 1 if warp is filled with all zero displacements, 0 otherwise */
+
+int IW3D_is_zero( IndexWarp3D *AA )
+{
+   int ii , nvox ; float *xd, *yd, *zd ;
+   if( AA == NULL ) return 0 ;
+   xd = AA->xd ; if( xd == NULL ) return 0 ;
+   yd = AA->yd ; if( yd == NULL ) return 0 ;
+   zd = AA->zd ; if( zd == NULL ) return 0 ;
+   nvox = AA->nx * AA->ny * AA->nz ;
+   for( ii=0 ; ii < nvox ; ii++ )
+     if( xd[ii] != 0.0f || yd[ii] != 0.0f || zd[ii] != 0.0f ) return 0 ;
+   return 1 ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -7929,10 +7945,14 @@ ENTRY("IW3D_setup_for_improvement") ;
        ERROR_exit("IW3D_setup_for_improvement: bad Iwarp input") ;
 
      Haawarp  = IW3D_copy(Iwarp,1.0f) ;     /* copy it */
+#if 0
      Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
+#endif
    } else {
      Haawarp  = IW3D_create(Hnx,Hny,Hnz) ;  /* initialized to 0 displacements */
+#if 0
      Haasrcim = mri_to_float(SRCIM) ;       /* 'warped' source image */
+#endif
    }
 
    (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
@@ -8296,6 +8316,11 @@ ENTRY("IW3D_warpomatic") ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+     mri_free(Haasrcim) ;
+     if( IW3D_is_zero(Haawarp) )
+       Haasrcim = mri_to_float(SRCIM) ;
+     else
+       Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      /* always start with 2 cubic steps */
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -8433,6 +8458,8 @@ ENTRY("IW3D_warpomatic") ;
      PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(1,xwid,1,ywid,1,zwid) ;
      if( Hpblur_b > 0.0f || Hpblur_b > 0.0f ) Hfirsttime = 1 ;
+     mri_free(Haasrcim) ;
+     Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
 
      if( Hverb > 1 )
        ININFO_message("  .........  lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s [clock=%s]" ,
@@ -9761,12 +9788,16 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
        ERROR_exit("IW3D_setup_for_improvement: bad Iwarp input") ;
 
      Haawarp = IW3D_copy(Iwarp,1.0f) ;     /* copy it */
+#if 0
      Haasrcim_plus  = IW3D_warp_floatim( Haawarp, SRCIM, Himeth ,  1.0f ) ;
      Haabasim_minus = IW3D_warp_floatim( Haawarp, BASIM, Himeth , -1.0f ) ;
+#endif
    } else {
      Haawarp = IW3D_create(Hnx,Hny,Hnz) ;  /* initialize to 0 displacements */
+#if 0
      Haasrcim_plus  = mri_to_float(SRCIM) ;     /* 'warped' source image */
      Haabasim_minus = mri_to_float(BASIM) ;     /* 'warped' base image */
+#endif
    }
    (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
@@ -9872,6 +9903,15 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
+     mri_free(Haasrcim_plus) ;
+     mri_free(Haabasim_minus);
+     if( IW3D_is_zero(Haawarp) ){
+       Haasrcim_plus  = mri_to_float(SRCIM) ;     /* 'warped' source image */
+       Haabasim_minus = mri_to_float(BASIM) ;     /* 'warped' base image */
+     } else {
+       Haasrcim_plus  = IW3D_warp_floatim( Haawarp, SRCIM, Himeth ,  1.0f ) ;
+       Haabasim_minus = IW3D_warp_floatim( Haawarp, BASIM, Himeth , -1.0f ) ;
+     }
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -10000,6 +10040,10 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(1,xwid,1,ywid,1,zwid) ;
      if( Hpblur_b > 0.0f || Hpblur_b > 0.0f ) Hfirsttime = 1 ;
+     mri_free(Haasrcim_plus) ;
+     mri_free(Haabasim_minus);
+     Haasrcim_plus  = IW3D_warp_floatim( Haawarp, SRCIM, Himeth ,  1.0f ) ;
+     Haabasim_minus = IW3D_warp_floatim( Haawarp, BASIM, Himeth , -1.0f ) ;
 
      if( Hverb > 1 )
        ININFO_message("  ........ +-lev=%d xwid=%d ywid=%d zwid=%d Hfac=%g penfac=%g %s %s" ,
