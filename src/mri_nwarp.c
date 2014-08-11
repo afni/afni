@@ -7569,7 +7569,7 @@ double IW3D_scalar_costfun( int npar , double *dpar )
    }
 
    if( Hfirsttime ){  /* just for fun fun fun in the sun sun sun */
-     if( Hverb ) fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
+     if( Hverb ) fprintf(stderr,"[first cost=%.5f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
      Hfirsttime = 0 ; Hfirstcost = (float)cost ;
    }
 
@@ -8203,7 +8203,7 @@ ENTRY("IW3D_improve_warp") ;
 
    if( Hverb > 1 ){  /* detailed overview of what went down in this patch */
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost:%g iter=%d : energy=%.3f:%.3f pen=%g pure=%g",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g pure=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn , Hcostt ) ;
 
@@ -8331,7 +8331,7 @@ ENTRY("IW3D_warpomatic") ;
          break ;
        }
      }
-     if( Hverb == 1 ) fprintf(stderr," done [cost:%.3f==>%.3f]\n",Hfirstcost,Hcost) ;
+     if( Hverb == 1 ) fprintf(stderr," done [cost:%.5f==>%.5f]\n",Hfirstcost,Hcost) ;
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do [no lev=0 optimization] */
    }
@@ -8511,7 +8511,7 @@ ENTRY("IW3D_warpomatic") ;
      /* reverse direction */
 
      if( lev%2 == 0 || nlevr > 1 ){ /* sweep from top to bot, kji order */
-       if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.3f]:",Hcost) ;
+       if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.5f]:",Hcost) ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
@@ -8569,9 +8569,9 @@ ENTRY("IW3D_warpomatic") ;
      if( Hcostbeg > 666.0f ) Hcostbeg = Hfirstcost ;
      if( Hverb == 1 ){
        if( Hdone > 0 )
-         fprintf(stderr," done [cost:%.3f==>%.3f ; %d patches optimized, %d skipped]\n",Hcostbeg,Hcost,Hdone,Hskipped) ;
+         fprintf(stderr," done [cost:%.5f==>%.5f ; %d patches optimized, %d skipped]\n",Hcostbeg,Hcost,Hdone,Hskipped) ;
        else
-         fprintf(stderr," done [cost:%.3f ; all patches skipped]\n",Hcost) ;
+         fprintf(stderr," done [cost:%.5f ; all patches skipped]\n",Hcost) ;
      }
      Hcostbeg = Hcost ;
 
@@ -9337,7 +9337,7 @@ double IW3D_scalar_costfun_plusminus( int npar , double *dpar )
    }
 
    if( Hfirsttime ){
-     if( Hverb ) fprintf(stderr,"[first cost=%.3f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
+     if( Hverb ) fprintf(stderr,"[first cost=%.5f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
      Hfirsttime = 0 ; Hfirstcost = (float)cost ;
    }
 
@@ -9553,7 +9553,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
    if( Hverb > 1 ){
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%g iter=%d : energy=%.3f:%.3f pen=%g",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
                            ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn ) ;
    } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
@@ -9916,7 +9916,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
          break ;
        }
      }
-     if( Hverb == 1 ) fprintf(stderr," done [cost=%.3f]\n",Hcost) ;
+     if( Hverb == 1 ) fprintf(stderr," done [cost=%.5f]\n",Hcost) ;
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do */
    }
@@ -10081,7 +10081,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      }
 
      if( lev%2 == 0 || nlevr > 1 ){ /* top to bot, kji */
-       if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.3f]:",Hcost) ;
+       if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.5f]:",Hcost) ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
@@ -10119,7 +10119,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
        Hcostend = Hcost ;
      }
 
-     if( Hverb == 1 ) fprintf(stderr," done [cost=%.3f]\n",Hcost) ;
+     if( Hverb == 1 ) fprintf(stderr," done [cost=%.5f]\n",Hcost) ;
 
      if( !Hduplo ) ITEROUT(lev) ;
 
