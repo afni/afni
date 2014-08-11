@@ -7939,20 +7939,15 @@ ENTRY("IW3D_setup_for_improvement") ;
      ERROR_exit("IW3D_setup_for_improvement: bad warp_flags input") ;
 
    /*-- copy/create initial warp, and warp the source image that way --*/
+   /*** [10 Aug 2014 -- Haasrcim will be created later] ***/
 
    if( Iwarp != NULL ){
      if( Iwarp->nx != Hnx || Iwarp->ny != Hny || Iwarp->nz != Hnz )
        ERROR_exit("IW3D_setup_for_improvement: bad Iwarp input") ;
 
      Haawarp  = IW3D_copy(Iwarp,1.0f) ;     /* copy it */
-#if 0
-     Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
-#endif
    } else {
      Haawarp  = IW3D_create(Hnx,Hny,Hnz) ;  /* initialized to 0 displacements */
-#if 0
-     Haasrcim = mri_to_float(SRCIM) ;       /* 'warped' source image */
-#endif
    }
 
    (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
@@ -8316,9 +8311,9 @@ ENTRY("IW3D_warpomatic") ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
-     mri_free(Haasrcim) ;
-     if( IW3D_is_zero(Haawarp) )
-       Haasrcim = mri_to_float(SRCIM) ;
+     mri_free(Haasrcim) ;                /* At this point, create the warped  */
+     if( IW3D_is_zero(Haawarp) )         /* source image Haasrcim, which will */
+       Haasrcim = mri_to_float(SRCIM) ;  /* be updated in IW3D_improve_warp() */
      else
        Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
@@ -8458,7 +8453,7 @@ ENTRY("IW3D_warpomatic") ;
      PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(1,xwid,1,ywid,1,zwid) ;
      if( Hpblur_b > 0.0f || Hpblur_b > 0.0f ) Hfirsttime = 1 ;
-     mri_free(Haasrcim) ;
+     mri_free(Haasrcim) ;  /* re-create the warped source image Haasrcim */
      Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
 
      if( Hverb > 1 )
@@ -9782,22 +9777,15 @@ ENTRY("IW3D_setup_for_improvement_plusminus") ;
      ERROR_exit("IW3D_setup_for_improvement: bad warp_flags input") ;
 
    /*-- copy/create initial warp, and warp the source images --*/
+   /*** [10 Aug 2014] Haasrcim_plus and Haabasim_minus are created later ***/
 
    if( Iwarp != NULL ){
      if( Iwarp->nx != Hnx || Iwarp->ny != Hny || Iwarp->nz != Hnz )
        ERROR_exit("IW3D_setup_for_improvement: bad Iwarp input") ;
 
      Haawarp = IW3D_copy(Iwarp,1.0f) ;     /* copy it */
-#if 0
-     Haasrcim_plus  = IW3D_warp_floatim( Haawarp, SRCIM, Himeth ,  1.0f ) ;
-     Haabasim_minus = IW3D_warp_floatim( Haawarp, BASIM, Himeth , -1.0f ) ;
-#endif
    } else {
      Haawarp = IW3D_create(Hnx,Hny,Hnz) ;  /* initialize to 0 displacements */
-#if 0
-     Haasrcim_plus  = mri_to_float(SRCIM) ;     /* 'warped' source image */
-     Haabasim_minus = mri_to_float(BASIM) ;     /* 'warped' base image */
-#endif
    }
    (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
 
@@ -9903,8 +9891,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      Hforce = 1 ; Hfactor = 1.0f ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
-     mri_free(Haasrcim_plus) ;
-     mri_free(Haabasim_minus);
+     mri_free(Haasrcim_plus) ;   /* at this point, create the initial */
+     mri_free(Haabasim_minus);   /* warped source and base images */
      if( IW3D_is_zero(Haawarp) ){
        Haasrcim_plus  = mri_to_float(SRCIM) ;     /* 'warped' source image */
        Haabasim_minus = mri_to_float(BASIM) ;     /* 'warped' base image */
@@ -10040,8 +10028,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      PBLUR_BASE  (1,xwid,1,ywid,1,zwid) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(1,xwid,1,ywid,1,zwid) ;
      if( Hpblur_b > 0.0f || Hpblur_b > 0.0f ) Hfirsttime = 1 ;
-     mri_free(Haasrcim_plus) ;
-     mri_free(Haabasim_minus);
+     mri_free(Haasrcim_plus) ;  /* re-create the warped */
+     mri_free(Haabasim_minus);  /* source and base images */
      Haasrcim_plus  = IW3D_warp_floatim( Haawarp, SRCIM, Himeth ,  1.0f ) ;
      Haabasim_minus = IW3D_warp_floatim( Haawarp, BASIM, Himeth , -1.0f ) ;
 
