@@ -1493,6 +1493,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- A thing can be true, and still be desperate folly" ,
      "Remember -- Everything popular is wrong"                       ,
      "Remember -- Aquaman cares"                                     ,
+     "Remember -- She who laughs, lasts"                             ,
+     "Remember -- He who laughs, lasts"                              ,
      "Forgive your enemy -- but remember the bastard's name"         ,
      "If the facts don't fit the theory, change the facts"           ,
      "All generalizations are false, including this one"             ,
@@ -1524,6 +1526,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Do you still miss the NIH Bear?  I do"                         ,
      "Advice from the NIH Bear -- honey goes good with brains"       ,
 
+     "If something is 'New and Improved', was the last version 'Old and Decrepit'?"   ,
      "The important things about a statistical model are what it does NOT include"    ,
      "You're going to like the way your brain activation maps look -- I guarantee it" ,
      "A p-value of 0.05 means the null hypothesis is 29% likely to be correct"        ,
