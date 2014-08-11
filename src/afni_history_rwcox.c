@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 11 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+  { 11 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Modify -duplo to only go to lev=3" ,
+   NULL } ,
+
+ { 11 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
    "Fix bug with -pblur" ,
    "Problem: warped source image Haasrcim was created from source image\n"
    "blurred at lev=0, which means (with -pblur) it was blurred a lot.  Then\n"
