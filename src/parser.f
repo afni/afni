@@ -821,6 +821,7 @@ C
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
+      REAL*8 MINABOVE , MAXBELOW
 C
 C  External library functions
 C
@@ -1203,6 +1204,14 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = WITHINF( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'MINABOVE' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = MINABOVE( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'MAXBELOW' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = MAXBELOW( NTM , R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -1359,6 +1368,7 @@ C
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
+      REAL*8 MINABOVE , MAXBELOW
 C
 C  External library functions
 C
@@ -2154,6 +2164,24 @@ C.......................................................................
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = WITHINF( NTM, SCOP )
             ENDDO
+         ELSEIF( CNCODE .EQ. 'MINABOVE'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = MINABOVE( NTM, SCOP )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'MAXBELOW'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = MAXBELOW( NTM, SCOP )
+            ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'FICO_T2P' )THEN
             NEVAL = NEVAL - 3
@@ -2786,7 +2814,7 @@ C
 C
       FUNCTION WITHINF(N,X)
       REAL*8 WITHINF , X(N)
-      INTEGER N,I
+      INTEGER N
 C
       IF( N .LT. 1 )THEN
         WITHINF = 0.0D+00
@@ -2801,6 +2829,54 @@ C
         RETURN
       ENDIF    
       WITHINF = 1.0D+00
+      RETURN
+      END
+C
+C
+C
+      FUNCTION MINABOVE(N,X)
+      REAL*8 MINABOVE , X(N) , AAA , BBB
+      INTEGER N,I
+C
+      IF( N .LT. 1 )THEN
+        MINABOVE = 0.0D+00
+        RETURN
+      ENDIF
+      AAA = X(1)
+      IF( N .EQ. 1 )THEN
+        MINABOVE = AAA
+        RETURN
+      ENDIF
+      BBB = 1.0D+38
+      DO I=2,N
+        IF( X(I) .GT. AAA .AND. X(I) .LT. BBB ) BBB = X(I)
+      ENDDO
+      IF( BBB .EQ. 1.0D+38 ) BBB = AAA
+      MINABOVE = BBB
+      RETURN
+      END
+C
+C
+C
+      FUNCTION MAXBELOW(N,X)
+      REAL*8 MAXBELOW , X(N) , AAA , BBB
+      INTEGER N,I
+C
+      IF( N .LT. 1 )THEN
+        MAXBELOW = 0.0D+00
+        RETURN
+      ENDIF
+      AAA = X(1)
+      IF( N .EQ. 1 )THEN
+        MAXBELOW = AAA
+        RETURN
+      ENDIF
+      BBB = -1.0D+38
+      DO I=2,N
+        IF( X(I) .LT. AAA .AND. X(I) .GT. BBB ) BBB = X(I)
+      ENDDO
+      IF( BBB .EQ. -1.0D+38 ) BBB = AAA
+      MAXBELOW = BBB
       RETURN
       END
 C
