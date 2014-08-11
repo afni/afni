@@ -109,6 +109,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"           \
   "    gran , uran , iran , eran  , lran  , orstat, mod  ,       \n"           \
   "    mean , stdev, sem  , Pleg  , cbrt  , rhddc2, hrfbk4,hrfbk5\n"           \
+  "    minbelow, maxabove\n"                                                   \
   "\n"                                                                         \
   " where some of the less obvious funcions are:\n"                            \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
@@ -127,6 +128,11 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " * orstat(n,a,b,c,...) computes the n-th order statistic of\n"              \
   "    {a,b,c,...} - that is, the n-th value in size, starting\n"              \
   "    at the bottom (e.g., orstat(1,a,b,c) is the minimum)\n"                 \
+  " * minbelow(X,a,b,c,...) computes the smallest value amongst {a,b,c,...}\n" \
+  "    that is LARGER than the first argument X; if all values are smaller\n"  \
+  "    than X, then X will be returned\n"                                      \
+  " * maxbelow(X,a,b,c,...) similarly returns the largest value amonsgst\n"    \
+  "    {a,b,c,...} that is SMALLER than the first argument X.\n"               \
   " * lmode(a,b,c,...) and hmode(a,b,c,...) compute the mode\n"                \
   "    of their arguments - lmode breaks ties by choosing the\n"               \
   "    smallest value with the maximal count, hmode breaks ties by\n"          \
