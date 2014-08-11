@@ -9013,7 +9013,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    simd  = mri_duplo_down_3D(sim) ;   blur_inplace( simd , 1.234f ) ;
 
    Hshrink    = 0.749999f ;
-   Hlev_start = 0 ;
+   Hlev_start = 0 ; Hlev_end = 3 ;
    Hpen_fac  *= 4.0f ;
    Hduplo     = 1 ; Hnpar_sum = 0 ;
 
@@ -9047,6 +9047,7 @@ ENTRY("IW3D_warp_s2bim_duplo") ;
    Hshrink = 0.749999f ; Hlev_start = Hlev_final /*-1*/ ; if( Hlev_start < 0 ) Hlev_start = 0 ;
    Htemp1 = Hworkhard1 ; Hworkhard1 = 0 ;
    Htemp2 = Hworkhard2 ; Hworkhard2 = MAX(Htemp2,Hlev_start) ;
+   Hlev_end = S2BIM_mlev ;
 
    /* the full sized warping, using the initial warp from above (in WO_iwarp) */
 
