@@ -105,10 +105,13 @@ static char * g_history[] =
     "      - if im_is_volume and single volume, get dz from image\n"
     "        (problem reported by A Nilsen)\n"
     "      - also, pass along option TR in volume case\n"
+    " 4.00 Aug 12, 2014 [rickr]\n",
+    "      - no (real) change should be noticed\n"
+    "      - this was an internal re-write to allow for realtime sorting\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 3.16 (September 3, 2013)"
+#define DIMON_VERSION "version 4.00 (August 12, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files

@@ -49,6 +49,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Aug, 2014, RCR, "Dimon", MAJOR, TYPE_MODIFY,
+   "this should basically work like the old version",
+   "While no major change should be seen, this is an overhaul of\n"
+   "the previous version, which should allow for realtime sorting.\n"
+   "Modification made for V Roopchansingh."
+ } ,
+
+ { 12, Aug, 2014, RCR, "Dimon1", MINOR, TYPE_GENERAL,
+   "Dimon1 is a fork of the previous working version of Dimon",
+   "This can be a backup if there are troubles with the new Dimon."
+ } ,
+
+ { 12, Aug, 2014, RCR, "afni_system_check.py", MICRO, TYPE_GENERAL,
+   "afni -ver is now only 1 line of output",
+   NULL
+ } ,
+
  {  5, Aug, 2014, RCR, "to3d", MICRO, TYPE_GENERAL,
    "added more comments about -ushort2float",
    "Requested by J Butman."

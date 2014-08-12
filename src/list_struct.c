@@ -31,7 +31,7 @@
  *   typedef struct { int num,nall;  float *  list; } float_list;
  *
  *   int init_float_list ( float_list  * d_list, int nel );
- *   int init_floatp_list( floatp_list * d_list, int nel, int len );
+ *   int init_floatp_list( floatp_list * d_list, int nel );
  *   int free_float_list ( float_list  * d_list );
  *   int free_floatp_list( floatp_list * d_list );
  *  
@@ -51,17 +51,11 @@
  *   int init_floatp_list( floatp_list * d_list, int nel, int len );
  *  
  *       Like above, but now d_list->list will be an array of
- *       (float *).  Also, if len > 0, each list[i] will be
- *       allocated to an array of len floats.
+ *       (float *).
  *  
  *   int free_float_list( float_list * d_list );
  *  
  *       This function will free d_list->list, and set num and nall to 0.
- *  
- *   int free_floatp_list( floatp_list * d_list );
- *  
- *       Like free_float_list, but before free(d_list->list), we must
- *       free(d_list->list[i]), for each i.
  *  
  *----------------------------------------------------------------------*/
 
@@ -135,8 +129,12 @@ int init_short_list( short_list * d_list, int nel )
     return nel;
 }
 
-int init_void_list( void_list * d_list, int nel )
+/* string_list: memory allocation is optional        30 Jun 2014 [rickr] */
+/* alloc: flag to allocate string memory, does not affect init           */
+int init_string_list( string_list * d_list, int nel, int alloc )
 {
+    int ind;
+
     if ( !d_list ) return -1;
 
     if ( nel <= 0 ) {
@@ -144,36 +142,30 @@ int init_void_list( void_list * d_list, int nel )
         return 0;
     }
 
-    /* special case, list is considered a list of bytes, so use char */
-    d_list->list = (void *)malloc(nel * sizeof(char));     /* allocate memory */
-
+    d_list->list = (char **)malloc(nel * sizeof(char *));  /* allocate memory */
     if ( d_list->list == NULL ) return -1;                 /* malloc failure  */
 
-    d_list->num = 0;
+    /* init to NULL, just to be safe */
+    for( ind = 0; ind < nel; ind++ ) d_list->list[ind] = NULL;
+
+    d_list->num  = 0;
     d_list->nall = nel;
+    d_list->alloc  = alloc;
 
     return nel;
 }
 
+
 /*----------------------------------------------------------------------
  * pointer lists:
- *
- * in addition to what is above, pass the list length 
- *
- * after allocating the nel pointers,
- * len elements will be allocated to each pointer
- *
- * the return values are the same
  *----------------------------------------------------------------------*/
-int init_floatp_list( floatp_list * d_list, int nel, int len )
+int init_floatp_list( floatp_list * d_list, int nel )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
     /* an 'empty' structure will contain 0 and NULL field entries */
     if ( nel <= 0 ) {
-        d_list->num = d_list->nall = d_list->elen = 0;
+        d_list->num = d_list->nall = 0;
         d_list->list  = NULL;
         return 0;
     }
@@ -184,43 +176,17 @@ int init_floatp_list( floatp_list * d_list, int nel, int len )
 
     d_list->num = 0;                                     /* none used yet   */
     d_list->nall = nel;                     /* number of pointers allocated */
-    d_list->elen = len;                             /* length of each list */
-
-
-    /* now repeat the process for each pointer, allocating 'len' elements    */
-
-    /* trivial case, where the user requests no list allocation */
-    if ( len <= 0 ){
-        d_list->elen = 0;                   /* number of elements allocated */
-        for ( count = 0; count < nel; count++ )
-             d_list->list[count] = NULL;
-        return nel;
-    }
-
-    /* general case, the user wants data, too */
-    for ( count = 0; count < nel; count++ ){
-        d_list->list[count] = malloc(len * sizeof(float));
-
-        /* on malloc failure, free() everything else, of course */
-        if ( d_list->list[count] == NULL ){
-            while ( --count >= 0 ) free(d_list->list[count]);
-            free(d_list->list);
-            return -1;
-        }
-    }
 
     return nel;
 }
 
-int init_intp_list( intp_list * d_list, int nel, int len )
+int init_intp_list( intp_list * d_list, int nel )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
     /* an 'empty' structure will contain 0 and NULL field entries */
     if ( nel <= 0 ) {
-        d_list->num = d_list->nall = d_list->elen = 0;
+        d_list->num = d_list->nall = 0;
         d_list->list  = NULL;
         return 0;
     }
@@ -231,43 +197,17 @@ int init_intp_list( intp_list * d_list, int nel, int len )
 
     d_list->num = 0;                                       /* none used yet */
     d_list->nall = nel;                     /* number of pointers allocated */
-    d_list->elen = len;                             /* length of each list */
-
-
-    /* now repeat the process for each pointer, allocating 'len' elements    */
-
-    /* trivial case, where the user requests no list allocation */
-    if ( len <= 0 ){
-        d_list->elen = 0;                   /* number of elements allocated */
-        for ( count = 0; count < nel; count++ )
-             d_list->list[count] = NULL;
-        return nel;
-    }
-
-    /* general case, the user wants data, too */
-    for ( count = 0; count < nel; count++ ){
-        d_list->list[count] = malloc(len * sizeof(int));
-
-        /* on malloc failure, free() everything else, of course */
-        if ( d_list->list[count] == NULL ){
-            while ( --count >= 0 ) free(d_list->list[count]);
-            free(d_list->list);
-            return -1;
-        }
-    }
 
     return nel;
 }
 
-int init_shortp_list( shortp_list * d_list, int nel, int len )
+int init_shortp_list( shortp_list * d_list, int nel )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
     /* an 'empty' structure will contain 0 and NULL field entries */
     if ( nel <= 0 ) {
-        d_list->num = d_list->nall = d_list->elen = 0;
+        d_list->num = d_list->nall = 0;
         d_list->list  = NULL;
         return 0;
     }
@@ -278,43 +218,17 @@ int init_shortp_list( shortp_list * d_list, int nel, int len )
 
     d_list->num = 0;                                       /* none used yet */
     d_list->nall = nel;                     /* number of pointers allocated */
-    d_list->elen = len;                             /* length of each list */
-
-
-    /* now repeat the process for each pointer, allocating 'len' elements    */
-
-    /* trivial case, where the user requests no list allocation */
-    if ( len <= 0 ){
-        d_list->elen = 0;                   /* number of elements allocated */
-        for ( count = 0; count < nel; count++ )
-             d_list->list[count] = NULL;
-        return nel;
-    }
-
-    /* general case, the user wants data, too */
-    for ( count = 0; count < nel; count++ ){
-        d_list->list[count] = malloc(len * sizeof(short));
-
-        /* on malloc failure, free() everything else, of course */
-        if ( d_list->list[count] == NULL ){
-            while ( --count >= 0 ) free(d_list->list[count]);
-            free(d_list->list);
-            return -1;
-        }
-    }
 
     return nel;
 }
 
-int init_voidp_list( voidp_list * d_list, int nel, int len )
+int init_voidp_list( voidp_list * d_list, int nel )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
     /* an 'empty' structure will contain 0 and NULL field entries */
     if ( nel <= 0 ) {
-        d_list->num = d_list->nall = d_list->elen = 0;
+        d_list->num = d_list->nall = 0;
         d_list->list  = NULL;
         return 0;
     }
@@ -325,31 +239,6 @@ int init_voidp_list( voidp_list * d_list, int nel, int len )
 
     d_list->num = 0;                                       /* none used yet */
     d_list->nall = nel;                     /* number of pointers allocated */
-    d_list->elen = len;                             /* length of each list */
-
-
-    /* now repeat the process for each pointer, allocating 'len' elements    */
-
-    /* trivial case, where the user requests no list allocation */
-    if ( len <= 0 ){
-        d_list->elen = 0;                   /* number of elements allocated */
-        for ( count = 0; count < nel; count++ )
-             d_list->list[count] = NULL;
-        return nel;
-    }
-
-    /* general case, the user wants data, too */
-    for ( count = 0; count < nel; count++ ){
-        /* again, the special case for void * is a list of bytes */
-        d_list->list[count] = malloc(len * sizeof(char));
-
-        /* on malloc failure, free() everything else, of course */
-        if ( d_list->list[count] == NULL ){
-            while ( --count >= 0 ) free(d_list->list[count]);
-            free(d_list->list);
-            return -1;
-        }
-    }
 
     return nel;
 }
@@ -402,31 +291,83 @@ int add_to_int_list( int_list * d_list, int val, int inc_size )
     return d_list->num;
 }
 
+/* must also allocate for passed string */
+int add_to_string_list( string_list * d_list, char * val, int inc_size )
+{
+    int llen, nadd, ind;
+
+    if ( !d_list ) return -1;
+
+    /* maybe we need more space */
+    if ( d_list->num >= d_list->nall ) {
+        /* note new size for NULL init */
+        if (inc_size <= 0) nadd = 1;
+        else               nadd = inc_size;
+        llen = d_list->nall + nadd;
+        d_list->list = (char **)realloc(d_list->list, llen*sizeof(char *));
+        if( !d_list->list ) return -1;
+        /* init to NULL */
+        for( ind = 0; ind < nadd; ind++ ) d_list->list[ind+d_list->nall] = NULL;
+        d_list->nall = llen;
+    }
+
+    /* allocate memory or just copy pointer (copy includes NULL case) */
+    if( val && d_list->alloc ) d_list->list[d_list->num++] = strdup(val);
+    else                       d_list->list[d_list->num++] = val;
+
+    return d_list->num;
+}
+
+
 /*----------------------------------------------------------------------
  * extend_XXXX_list:                                         26 Apr 2012
  *
  * extend first list by another, returning the new length (or -1 on error)
  *----------------------------------------------------------------------*/
-int extend_int_list( int_list * L1, int_list * L2 )
+int extend_int_list( int_list * Ldest, int_list * Lsrc )
 {
     int newlen;
 
-    if ( !L1 || !L2 ) return -1;
+    if ( !Ldest || !Lsrc ) return -1;
 
-    newlen = L1->num + L2->num;
+    newlen = Ldest->num + Lsrc->num;
 
     /* maybe we need more space */
-    if ( newlen >= L1->nall ) {
-        L1->nall = newlen;
-        L1->list = (int *)realloc(L1->list, newlen*sizeof(int));
-        if( !L1->list ) return -1;
+    if ( newlen >= Ldest->nall ) {
+        Ldest->nall = newlen;
+        Ldest->list = (int *)realloc(Ldest->list, newlen*sizeof(int));
+        if( !Ldest->list ) return -1;
     }
 
-    /* now append L2 to L1 */
-    memcpy(L1->list+L1->num, L2->list, L2->num * sizeof(int));
-    L1->num = newlen;
+    /* now append Lsrc to Ldest */
+    memcpy(Ldest->list+Ldest->num, Lsrc->list, Lsrc->num * sizeof(int));
+    Ldest->num = newlen;
 
-    return L1->num;
+    return Ldest->num;
+}
+
+
+int extend_string_list( string_list * Ldest, string_list * Lsrc )
+{
+    int newlen, ind;
+
+    if ( !Ldest || !Lsrc ) return -1;
+
+    newlen = Ldest->num + Lsrc->num;
+
+    /* maybe we need more space */
+    if ( newlen >= Ldest->nall ) {
+        Ldest->nall = newlen;
+        Ldest->list = (char **)realloc(Ldest->list, newlen*sizeof(char *));
+        if( !Ldest->list ) return -1;
+    }
+
+    /* now append Lsrc to Ldest (need to dupe strings) */
+    for( ind = 0; ind < Lsrc->num; ind++ )
+       if( add_to_string_list(Ldest, Lsrc->list[ind], 0) < 0 ) return -1;
+    Ldest->num = newlen;
+
+    return Ldest->num;
 }
 
 
@@ -467,11 +408,41 @@ int free_short_list( short_list * d_list )
     return 0;
 }
 
-int free_void_list( void_list * d_list )
+/* keep list intact, but free/clear any strings */
+int clear_string_list( string_list * d_list )
 {
-    if ( !d_list ) return -1;
+    int ind;
 
-    if ( d_list->list ) { free(d_list->list);  d_list->list = NULL; }
+    if ( ! d_list ) return -1;
+
+    if ( d_list->list ) {
+       for( ind = 0; ind < d_list->num; ind++ ) {
+          if( d_list->list[ind] ) {
+             if( d_list->alloc ) free(d_list->list[ind]);
+             d_list->list[ind] = NULL;
+          }
+       }
+    }
+
+    d_list->num = 0;
+
+    return 0;
+}
+
+int free_string_list( string_list * d_list )
+{
+    int ind;
+
+    if ( ! d_list ) return -1;
+
+    if ( d_list->list ) {
+       if( d_list->alloc ) { /* then try to free */
+          for( ind = 0; ind < d_list->num; ind++ )
+             if( d_list->list[ind] ) free(d_list->list[ind]);
+       }
+       free(d_list->list);  d_list->list = NULL;
+    }
+
     d_list->num = d_list->nall = 0;
 
     return 0;
@@ -487,132 +458,49 @@ int free_void_list( void_list * d_list )
  *----------------------------------------------------------------------*/
 int free_floatp_list( floatp_list * d_list )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
-    /* if nothing has been set, just clear values and return */
-    if ( d_list->num <= 0 ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        d_list->list = NULL;
-        return 0;
-    }
-
     /* this is bad, but nothing to do */
-    if ( !d_list->list ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        return -1;
-    }
+    if ( d_list->list ) free(d_list->list);
 
-    /* first, free the nall lists (of length elen) */
-
-    for ( count = 0; count < d_list->nall; count++ )
-        if ( d_list->list[count] ) free(d_list->list[count]);
-
-    /* now free the list and clear all values */
-    free(d_list->list);
     d_list->list = NULL;
-
-    d_list->num = d_list->nall = d_list->elen = 0;
+    d_list->num = d_list->nall = 0;
 
     return 0;
 }
 
 int free_intp_list( intp_list * d_list )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
-    /* if nothing has been set, just clear values and return */
-    if ( d_list->num <= 0 ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        d_list->list = NULL;
-        return 0;
-    }
+    if ( d_list->list ) free(d_list->list);
 
-    /* this is bad, but nothing to do */
-    if ( !d_list->list ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        return -1;
-    }
-
-    /* first, free the nall lists (of length elen) */
-
-    for ( count = 0; count < d_list->nall; count++ )
-        if ( d_list->list[count] ) free(d_list->list[count]);
-
-    /* now free the list and clear all values */
-    free(d_list->list);
     d_list->list = NULL;
-
-    d_list->num = d_list->nall = d_list->elen = 0;
+    d_list->num = d_list->nall = 0;
 
     return 0;
 }
 
 int free_shortp_list( shortp_list * d_list )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
-    /* if nothing has been set, just clear values and return */
-    if ( d_list->num <= 0 ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        d_list->list = NULL;
-        return 0;
-    }
+    if ( d_list->list ) free(d_list->list);
 
-    /* this is bad, but nothing to do */
-    if ( !d_list->list ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        return -1;
-    }
-
-    /* first, free the nall lists (of length elen) */
-
-    for ( count = 0; count < d_list->nall; count++ )
-        if ( d_list->list[count] ) free(d_list->list[count]);
-
-    /* now free the list and clear all values */
-    free(d_list->list);
     d_list->list = NULL;
-
-    d_list->num = d_list->nall = d_list->elen = 0;
+    d_list->num = d_list->nall = 0;
 
     return 0;
 }
 
 int free_voidp_list( voidp_list * d_list )
 {
-    int count;
-
     if ( !d_list ) return -1;
 
-    /* if nothing has been set, just clear values and return */
-    if ( d_list->num <= 0 ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        d_list->list = NULL;
-        return 0;
-    }
+    if ( d_list->list ) free(d_list->list);
 
-    /* this is bad, but nothing to do */
-    if ( !d_list->list ){
-        d_list->num = d_list->nall = d_list->elen = 0;
-        return -1;
-    }
-
-    /* first, free the nall lists (of length elen) */
-
-    for ( count = 0; count < d_list->nall; count++ )
-        if ( d_list->list[count] ) free(d_list->list[count]);
-
-    /* now free the list and clear all values */
-    free(d_list->list);
     d_list->list = NULL;
-
-    d_list->num = d_list->nall = d_list->elen = 0;
+    d_list->num = d_list->nall = 0;
 
     return 0;
 }

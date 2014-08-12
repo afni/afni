@@ -361,10 +361,15 @@ class SysInfo:
          if s:
             if len(se) > 0: return 1, se[0]
             else:           return 1, ''
-         off1 = so[1].find('[[')
-         off2 = so[1].find(']]')
-         if off1 >= 0 and off2 >= 0: return 1, so[1][off1+2:off2]
-         else: return 1, so[1]
+	 if len(so) > 1:
+            off1 = so[1].find('[[')
+            off2 = so[1].find(']]')
+            if off1 >= 0 and off2 >= 0: return 1, so[1][off1+2:off2]
+            else: return 1, so[1]
+	 else:
+            off1 = so[0].find('(')
+            if off1 > 0: return 1, so[0][0:off1]
+            else:        return 1, so[0]
 
       elif prog == 'python':
          return 1, platform.python_version()
