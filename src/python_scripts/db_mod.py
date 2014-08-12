@@ -5577,6 +5577,7 @@ g_help_string = """
                   -blur_size 6.0                                             \\
                   -mask_apply epi                                            \\
                   -mask_segment_anat yes                                     \\
+                  -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe CSFe                                      \\
                   -regress_RSFC                                              \\
