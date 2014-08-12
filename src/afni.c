@@ -1421,6 +1421,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Well, nobody's perfect"                                        ,
      "Drink to me only with thine eyes, and I will drink with mine"  ,
      "O Captain, My Captain, rise up and hear the bells"             ,
+     "O Captain, My Captain, our fearful trip is done"               ,
      "Ever returning spring, trinity sure to me you bring"           ,
      "What a long strange trip it's been"                            ,
      "Sometime the light shines on me, other times I can barely see" ,
