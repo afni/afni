@@ -794,6 +794,8 @@ void Qhelp(void)
     "               * With the above formulas, it is possible to compute Wp(x) from\n"
     "                 V(x) and vice-versa, using program 3dNwarpCalc.  The requisite\n"
     "                 commands are left as an exercise for the aspiring AFNI Jedi Master.\n"
+    "               * You can use the semi-secret '-pmBASE' option to get the V(x)\n"
+    "                 warp and source dataset warped to base space, if you want them.\n"
     "               * Alas: -plusminus does not work with -duplo or -allineate :-(\n"
 #ifdef USE_PLUSMINUS_INITIALWARP
     "               * If -plusminus is used, the -plusminus warp is initialized by\n"
@@ -1024,23 +1026,25 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
    char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
-   int meth = GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
-   int ilev = 0 , nowarp = 0 , nowarpi = 1 , mlev = 666 , nodset = 0 ;
-   int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg = 0 ;
+   int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
+   int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 ;
+   int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
    int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
    float dxal=0.0f,dyal=0.0f,dzal=0.0f ;
    int do_resam=0 ; int keep_allin=1 ;
-   int flags = 0 , nbad = 0 ;
-   double cput = 0.0 ;
+   int flags=0 , nbad=0 ;
+   double cput=0.0 ;
    int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
-   char *plusname = "PLUS" , *minusname = "MINUS" ;
+   char *plusname="PLUS" , *minusname="MINUS" ;
    char appendage[THD_MAX_NAME] ;
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
    int nxold=0,nyold=0,nzold=0 ;
    int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
    int expad=0 , minpad=0 ;
    int iwpad_xm=0,iwpad_xp=0, iwpad_ym=0,iwpad_yp=0, iwpad_zm=0,iwpad_zp=0 ;
+   int do_pmbase=0 ;
+   IndexWarp3D *pmbase_warp=NULL ; MRI_IMAGE *pmbase_imag=NULL ;
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -1218,7 +1222,18 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-pmNAMES") == 0 ){
        if( ++nopt >= argc-1 ) ERROR_exit("need 2 args after %s",argv[nopt-1]) ;
-       plusname = argv[nopt++] ; minusname = argv[nopt++] ; continue ;
+       plusname = argv[nopt++] ; minusname = argv[nopt++] ;
+       if( strcasecmp(plusname,minusname) == 0 )
+         ERROR_exit("You can't use same suffix '%s' twice after '-pmNAMES'",plusname) ;
+       if( !THD_filename_pure(plusname) || !THD_filename_pure(minusname) )
+         ERROR_exit("Illegal name after '-pmNAMES'") ;
+       continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-pmBASE") == 0 ){  /* 12 Aug 2014 */
+       do_pmbase = 1 ; nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -1527,7 +1542,10 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need arg after -prefix") ;
-       prefix = strdup(argv[nopt]) ; nopt++ ; continue ;
+       prefix = strdup(argv[nopt]) ;
+       if( !THD_filename_ok(prefix) )
+         ERROR_exit("Illegal string after '-prefix'") ;
+       nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -1581,7 +1599,7 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-     /*----- maybe we should just tell them to use SPM? -----*/
+     /*---------- maybe we should just tell them to use SPM? ----------*/
 
      ERROR_message("Totally bogus option '%s'",argv[nopt]) ;
      suggest_best_prog_option(argv[0],argv[nopt]) ;
@@ -1657,6 +1675,11 @@ STATUS("check for errors") ;
    if( do_plusminus && duplo ){
      duplo = 0 ;
      WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
+   }
+
+   if( !do_plusminus && do_pmbase ){
+     WARNING_message("-pmBASE without -plusminus: are you daft, mate?") ;
+     do_pmbase = 0 ;
    }
 
    if( Hznoq && Hqonly ){
@@ -2200,6 +2223,17 @@ STATUS("construct weight/mask volume") ;
      sbww = IW3D_warp_s2bim_plusminus( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
      oiw  = sbww[0] ;  /* plus warp and image */
      qiw  = sbww[1] ;  /* minus warp and image */
+     if( do_pmbase ){  /* 12 Aug 2014: warp source all the way back to base */
+       IndexWarp3D *qwinv ;
+       if( Hverb ) fprintf(stderr,"Computing -pmbase outputs ") ;
+       qwinv = IW3D_invert( qiw->warp , NULL , MRI_WSINC5 ) ;
+       if( Hverb ) fprintf(stderr,"W") ;
+       pmbase_warp = IW3D_compose( oiw->warp , qwinv , MRI_WSINC5 ) ;
+       if( Hverb ) fprintf(stderr,"I") ;
+       pmbase_imag = IW3D_warp_floatim( pmbase_warp, sim, MRI_WSINC5, 1.0f ) ;
+       IW3D_destroy(qwinv) ;
+       if( Hverb ) fprintf(stderr,"\n") ;
+     }
 #endif
 
    } else {              /*--- the standard case -----------------------------*/
@@ -2256,6 +2290,17 @@ STATUS("construct weight/mask volume") ;
        }
      }
 
+     if( pmbase_imag != NULL ){  /* 12 Aug 2014 */
+       if( pmbase_imag->nx > nxold || pmbase_imag->ny > nyold || pmbase_imag->nz > nzold ){
+         qim = mri_zeropad_3D( -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp, pmbase_imag ) ;
+         mri_free(pmbase_imag) ; pmbase_imag = qim ;
+       }
+       if( pmbase_warp != NULL && !zeropad_warp ){
+         QQ = IW3D_extend( pmbase_warp, -pad_xm,-pad_xp, -pad_ym,-pad_yp, -pad_zm,-pad_zp , 0 ) ;
+         IW3D_destroy(pmbase_warp) ; pmbase_warp = QQ ;
+       }
+     }
+
    }  /*---------- end of patching up for zeropad ----------*/
 
    /*--- make the warps adopt a dataset to specify their extrinsic geometry --*/
@@ -2268,8 +2313,9 @@ STATUS("construct weight/mask volume") ;
                           pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
                           "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
 
-                      IW3D_adopt_dataset( oww       , adset ) ;
-   if( qiw  != NULL ) IW3D_adopt_dataset( qiw->warp , adset ) ;
+                             IW3D_adopt_dataset( oww        , adset ) ;
+   if( qiw         != NULL ) IW3D_adopt_dataset( qiw->warp  , adset ) ;
+   if( pmbase_warp != NULL ) IW3D_adopt_dataset( pmbase_warp, adset ) ;
 
    /*-------------------------------------------------------------------------*/
    /*-- Special case of pre-3dAllineate: adjust output warp and image (oiw) --*/
@@ -2324,6 +2370,7 @@ STATUS("adjust for 3dAllineate matrix") ;
    if( !nodset ){                    /*----- output warped dataset -----*/
      char *qprefix = prefix ;
 STATUS("output warped dataset") ;
+
      if( do_plusminus ){
        sprintf(appendage,"_%s",plusname) ;
        qprefix = modify_afni_prefix(prefix,NULL,appendage) ;
@@ -2339,9 +2386,7 @@ STATUS("output warped dataset") ;
                       ADN_none ) ;
      EDIT_BRICK_FACTOR(oset,0,0.0) ;
      EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(oim) ) ;
-     DSET_write(oset) ;
-     WROTE_DSET(oset) ;
-     DSET_delete(oset) ;
+     DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
 
      if( do_plusminus && qiw != NULL ){
        sprintf(appendage,"_%s",minusname) ;
@@ -2359,6 +2404,22 @@ STATUS("output warped dataset") ;
        EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(qiw->im) ) ;
        DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
      }
+
+     if( pmbase_imag != NULL ){        /* 12 Aug 2014 */
+       oset = EDIT_empty_copy(bset) ;
+       tross_Copy_History( bset , oset ) ;
+       tross_Make_History( "3dQwarp" , argc,argv , oset ) ;
+       EDIT_dset_items( oset ,
+                          ADN_prefix    , prefix ,
+                          ADN_nvals     , 1 ,
+                          ADN_ntt       , 0 ,
+                          ADN_datum_all , MRI_float ,
+                        ADN_none ) ;
+       EDIT_BRICK_FACTOR(oset,0,0.0) ;
+       EDIT_substitute_brick( oset, 0, MRI_float, MRI_FLOAT_PTR(pmbase_imag) ) ;
+       DSET_write(oset) ; WROTE_DSET(oset) ; DSET_delete(oset) ;
+     }
+
    } /* end of writing warped datasets */
 
 #ifdef USE_SAVER
@@ -2395,6 +2456,16 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
        MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
        DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
      }
+
+     if( pmbase_warp != NULL ){   /* 12 Aug 2014 */
+       qprefix = modify_afni_prefix(prefix,NULL,"_WARP") ;
+       qset = IW3D_to_dataset( pmbase_warp , qprefix ) ;
+       tross_Copy_History( bset , qset ) ;
+       tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+       MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+     }
+
    } /* end of output of warp dataset */
 
    if( !nowarpi && !do_plusminus ){      /*----- output the inverse warp -----*/
