@@ -3,6 +3,8 @@
 #define _IMON_H_
 
 /*----------------------------------------------------------------------*/
+/* note: Imon itself was last compiled 22 Apr, 2011                     */
+/*----------------------------------------------------------------------*/
 
 #define IFM_MAX_FLEN       200       /* maximum characters in filename   */
 #define IFM_PAD_LEN         20       /* padding for I-file expansion     */
@@ -39,6 +41,7 @@
 
 #define LSB_FIRST            1
 #define MSB_FIRST            2
+
 
 /*-----------------------------------------------------------------------*/
                                     /* from Ifile.c ... */
@@ -85,13 +88,6 @@ typedef struct
     int              bytes;         /* size of image in bytes           */
     void           * image;         /* actual image data               */
 } finfo_t;
-
-typedef struct
-{
-    char          ** str;           /* list of actual strings */
-    int              nalloc;        /* number allocated for  */
-    int              nused;         /* number in use        */
-} string_list;
 
 typedef struct
 {
