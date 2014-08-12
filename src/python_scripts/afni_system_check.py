@@ -104,9 +104,10 @@ g_history = """
         - look for history files in data directories
         - print comments at the end, so they are easier to notice
    0.9  May 20, 2014 - macs: look for PyQt4 from homebrew and fink
+   0.10 Aug 12, 2014 - 'afni -ver' is now only 1 line
 """
 
-g_version = "afni_system_check.py version 0.9, May 20, 2014"
+g_version = "afni_system_check.py version 0.10, Aug 12, 2014"
 
 
 class CmdInterface:
