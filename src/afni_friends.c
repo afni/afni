@@ -535,6 +535,7 @@ static mday holiday[] = {
    {AUG,11,"Anniversary of Alcatraz Prison"                          } ,
    {AUG,11,"Anniversary of Battle of Thermopylae"                    } ,
    {AUG,12,"Erwin Schrodinger's birthday"                            } ,
+   {AUG,12,"World Elephant Day"                                      } ,
    {AUG,14,"Pakistan Independence Day"                               } ,
    {AUG,15,"Napoleon's birthday"                                     } ,
    {AUG,15,"India Independence Day"                                  } ,

@@ -268,6 +268,17 @@ void Qhelp(void)
     " ++ These datasets are stored in float format, no matter what the\n"
     "    data type of the source dataset.\n"
     "\n"
+    "* Simple example:\n"
+    "    3dQwarp -allineate -blur 0 5              \\\n"
+    "            -base ~/abin/MNI152_1mm+tlrc.HEAD \\\n"
+    "            -source sub637_T1.nii             \\\n"
+    "            -prefix sub637_T1qw.nii\n"
+    "  which will produce a dataset warped to match the MNI152 T1 template\n"
+    "  at a 1 mm resolution.  Since the MNI152 template is already pretty\n"
+    "  blurry, the amount of blurring applied to it is set to zero, while\n"
+    "  the source dataset (presumably not blurry) will be Gaussian blurred\n"
+    "  with a FWHM of 5 mm.\n"
+    "\n"
     "* Matching by default is the 'clipped Pearson' method, and\n"
     "  can be changed to 'pure Pearson' with the '-pear' option.\n"
     " ++ The purpose of 'clipping' is to reduce the impact of outlier values\n"
@@ -795,15 +806,16 @@ void Qhelp(void)
     "                 V(x) and vice-versa, using program 3dNwarpCalc.  The requisite\n"
     "                 commands are left as an exercise for the aspiring AFNI Jedi Master.\n"
     "               * You can use the semi-secret '-pmBASE' option to get the V(x)\n"
-    "                 warp and source dataset warped to base space, if you want them.\n"
-    "               * Alas: -plusminus does not work with -duplo or -allineate :-(\n"
+    "                 warp and the source dataset warped to base space, in addition to\n"
+    "                 Wp(x) '_PLUS' and Wm(x) '_MINUS' warps.\n"
+    "           -->>* Alas: -plusminus does not work with -duplo or -allineate :-(\n"
 #ifdef USE_PLUSMINUS_INITIALWARP
     "               * If -plusminus is used, the -plusminus warp is initialized by\n"
     "                 a coarse warping of the source to the base, then these warp\n"
     "                 displacements are scaled by 0.5, and then the actual\n"
     "                 'meet in the middle' warp optimization begins from that point.\n"
 #endif
-    "               * The outputs have _PLUS (from the source dataset) and _MINUS\n"
+    "           -->>* The outputs have _PLUS (from the source dataset) and _MINUS\n"
     "                 (from the base dataset) in their filenames, in addition to\n"
     "                 the prefix.  The -iwarp option, if present, will be ignored.\n"
     "\n"
@@ -1677,7 +1689,7 @@ STATUS("check for errors") ;
      WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
    }
 
-   if( !do_plusminus && do_pmbase ){
+   if( !do_plusminus && do_pmbase ){  /* 12 Aug 2014 */
      WARNING_message("-pmBASE without -plusminus: are you daft, mate?") ;
      do_pmbase = 0 ;
    }
@@ -2223,9 +2235,10 @@ STATUS("construct weight/mask volume") ;
      sbww = IW3D_warp_s2bim_plusminus( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
      oiw  = sbww[0] ;  /* plus warp and image */
      qiw  = sbww[1] ;  /* minus warp and image */
+
      if( do_pmbase ){  /* 12 Aug 2014: warp source all the way back to base */
        IndexWarp3D *qwinv ;
-       if( Hverb ) fprintf(stderr,"Computing -pmbase outputs ") ;
+       if( Hverb ) fprintf(stderr,"Computing -pmBASE outputs ") ;
        qwinv = IW3D_invert( qiw->warp , NULL , MRI_WSINC5 ) ;
        if( Hverb ) fprintf(stderr,"W") ;
        pmbase_warp = IW3D_compose( oiw->warp , qwinv , MRI_WSINC5 ) ;
