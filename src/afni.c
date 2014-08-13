@@ -1547,7 +1547,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Three things cannot long be hidden: the Sun, the Moon, and the Truth"           ,
      "May the Dark Side of the Force get lost on the way to your data"                ,
      "The Andromeda Galaxy is on a collision course with us -- be prepared"           ,
-     "It is very user friendly -- we are just selective about who our friends are"    ,
+     "We are very user friendly -- we are just selective about who our friends are"   ,
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
      "There is a time for departure even when there is no place to go"                ,
