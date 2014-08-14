@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Aug, 2014, RCR, "Dimon", MICRO, TYPE_GENERAL,
+   "very minor update",
+   NULL
+ } ,
+
  { 12, Aug, 2014, RCR, "Dimon", MAJOR, TYPE_MODIFY,
    "this should basically work like the old version",
    "While no major change should be seen, this is an overhaul of\n"

@@ -1727,10 +1727,9 @@ static int scan_ge_files (
 
             if ( gD.level > 3 )
             {
-fprintf(stderr,"== current header info\n");
                 idisp_ge_header_info( p->fnames[fp->index], &fp->geh );
-                idisp_ge_extras( p->fnames[fp->index], &fp->gex );
-                idisp_mosaic_info( p->fnames[fp->index], &fp->minfo );
+                idisp_ge_extras( NULL, &fp->gex );
+                idisp_mosaic_info( NULL, &fp->minfo );
             }
         }
     }
@@ -3621,7 +3620,7 @@ static int disp_ftype( char * info, int ftype )
 */
 static int idisp_vol_t( char * info, vol_t * v )
 {
-    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
+    if ( info ){ fputs( info, stderr ); fputc(' ', stderr); }
 
     if ( v == NULL )
     {
@@ -3629,7 +3628,8 @@ static int idisp_vol_t( char * info, vol_t * v )
         return -1;
     }
 
-    printf( "vol_t struct at :\n"
+    fprintf(stderr,
+            "vol_t struct at :\n"
             "   nim                 = %d\n"
             "   (fl_1, fn_1, fn_n)  = (%d, %d, %d)\n"
             "   first_file          = %s\n"
@@ -3658,7 +3658,7 @@ static int idisp_vol_t( char * info, vol_t * v )
 */
 static int idisp_ge_extras( char * info, ge_extras * E )
 {
-    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
+    if ( info ){ fputs( info, stderr ); fputc(' ', stderr); }
 
     if ( E == NULL )
     {
@@ -3666,7 +3666,8 @@ static int idisp_ge_extras( char * info, ge_extras * E )
         return -1;
     }
 
-    printf( "ge_extras :\n"
+    fprintf(stderr,
+            "ge_extras :\n"
             "    bpp              = %d\n"
             "    cflag            = %d\n"
             "    hdroff           = %d\n"
@@ -3694,7 +3695,7 @@ static int idisp_ge_extras( char * info, ge_extras * E )
 */
 static int idisp_ge_header_info( char * info, ge_header_info * I )
 {
-    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
+    if ( info ){ fputs( info, stderr ); fputc(' ', stderr); }
 
     if ( I == NULL )
     {
@@ -3702,7 +3703,8 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
         return -1;
     }
 
-    printf( "ge_header_info at :\n"
+    fprintf(stderr,
+            "ge_header_info at :\n"
             "    good        = %d\n"
             "    (nx,ny)     = (%d,%d)\n"
             "    uv17        = %d\n"
@@ -3730,7 +3732,7 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
 */
 static int idisp_mosaic_info( char * info, mosaic_info * I )
 {
-    if ( info ){ fputs( info, stdout ); fputc(' ', stdout); }
+    if ( info ){ fputs( info, stderr ); fputc(' ', stderr); }
 
     if ( I == NULL )
     {
@@ -3738,7 +3740,8 @@ static int idisp_mosaic_info( char * info, mosaic_info * I )
         return -1;
     }
 
-    printf( "mosaic_info :\n"
+    fprintf(stderr,
+            "mosaic_info :\n"
             "    im_is_volume  = %d\n"
             "    nslices       = %d\n"
             "    mos_nx, ny    = %d, %d\n",

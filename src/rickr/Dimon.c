@@ -108,10 +108,11 @@ static char * g_history[] =
     " 4.00 Aug 12, 2014 [rickr]\n",
     "      - no (real) change should be noticed\n"
     "      - this was an internal re-write to allow for realtime sorting\n"
+    " 4.01 Aug 13, 2014 [rickr] : minor changes\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.00 (August 12, 2014)"
+#define DIMON_VERSION "version 4.01 (August 13, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -403,11 +404,11 @@ int main( int argc, char * argv[] )
 */
 static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 {
-    int ret_val, n2read;
+    int ret_val, n2read, n2proc;
     int sleep_ms = -1;  /* has not been set from data yet */
     int vs_state = 0;   /* state for volume search, can reset */
     int nslices = p->opts.num_slices;
-    int nfiles=0;       /* from read_image_files */
+    int nfiles;         /* from read_image_files */
 
     if ( gD.level > 0 ) fprintf( stderr, "-- scanning for first volume\n" );
 
@@ -422,11 +423,13 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     ret_val = 0;
     while ( ret_val == 0 )
     {
+        /* try to read and then note what we have */
         nfiles = read_image_files( p );
         n2read = nfim_in_state(p, 0, 0, IFM_FSTATE_TO_READ);
+        n2proc = nfim2proc(p);
         ret_val = nfiles;
 
-        if ( ret_val > 0 )
+        if ( ret_val > 0 || n2proc > 0 )
         {
             ret_val = volume_search( v, p, &vs_state );
             if(gD.level>1)
@@ -435,7 +438,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             /* try to recover from a data error */
             if ( ret_val == -1 ) ret_val = 0;
             else if ( ret_val == 0 && n2read > 0 ) {
-               /* images read, no error, no volume, more to read: do it */
+               /* have images, no error, no volume, more to read: do it */
                if( gD.level > 2 )
                   fprintf(stderr,"-d read ims, no err, no vol, more to read\n");
                update_max2read(p, p->max2read + IFM_MAX_IM_ALLOC);
@@ -1434,8 +1437,8 @@ static int make_sorted_fim_list(param_t  * p)
    }
 
    if( gD.level > 2 )
-      fprintf(stderr,"-- fim_o: sorting image list (%d of %d images)\n",
-              n2sort, p->nfim);
+      fprintf(stderr,"-- fim_o: sorting image list (%d images from %d to %d)\n",
+              n2sort, p->fim_start, p->nfim);
 
    /*-- sort from offset fim_start --*/
 
@@ -3177,11 +3180,9 @@ static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
     imbytes = im->nvox * im->pixel_size;        /* image bytes */
     arrbytes = imarr->num * imbytes;            /* image array bytes */
 
-    if( gD.level > 3) {
-        fprintf(stderr,"-- CID: have imarr @ %p, im @ %p\n", imarr, im);
+    if( gD.level > 3)
         fprintf(stderr,"   num, nvox, pix_size = %d, %ld, %d (prod %ld)\n",
                 imarr->num, im->nvox, im->pixel_size, arrbytes );
-    }
 
     /* verify num images against mosaic */
     if( imarr->num > 1 && ! fp->minfo.im_is_volume )
