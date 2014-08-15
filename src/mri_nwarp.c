@@ -179,7 +179,7 @@ static int Hverb = 1 ;
          struct to a 'real' space 3D dataset:
 
       cmat       = matrix to get DICOM x,y,z coordinates from i,j,k
-      imat       = inverse of cmat (convert index to coordinate)
+      imat       = inverse of cmat (convert coordinate to index)
       geomstring = string to represent geometry of 3D dataset that
                      corresponds to this index warp; if the index warp
                      was created directly from a dataset via function
@@ -316,6 +316,20 @@ static int Hverb = 1 ;
      es_zd_xp = eqq[qw++]; es_zd_xm = eqq[qw++]; es_zd_yp = eqq[qw++]; \
      es_zd_ym = eqq[qw++]; es_zd_zp = eqq[qw++]; es_zd_zm = eqq[qw++]; \
  } while(0)
+
+/* unpack the 18 local external slope variables from a warp struct */
+
+#define ES_WARP_TO_LOCAL(AA)                       \
+ do{ es_xd_xp=AA->es_xd_xp; es_xd_xm=AA->es_xd_xm; \
+     es_yd_xp=AA->es_yd_xp; es_yd_xm=AA->es_yd_xm; \
+     es_zd_xp=AA->es_zd_xp; es_zd_xm=AA->es_zd_xm; \
+     es_xd_yp=AA->es_xd_yp; es_xd_ym=AA->es_xd_ym; \
+     es_yd_yp=AA->es_yd_yp; es_yd_ym=AA->es_yd_ym; \
+     es_zd_yp=AA->es_zd_yp; es_zd_ym=AA->es_zd_ym; \
+     es_xd_zp=AA->es_xd_zp; es_xd_zm=AA->es_xd_zm; \
+     es_yd_zp=AA->es_yd_zp; es_yd_zm=AA->es_yd_zm; \
+     es_zd_zp=AA->es_zd_zp; es_zd_zm=AA->es_zd_zm; } while(0)
+
 
 /*---------------------------------------------------------------------------*/
 /* The following functions are for providing a linear extension to a warp,
@@ -6288,8 +6302,17 @@ static float        Hwbar       = 0.0f ; /* average weight value */
 static byte        *Hbmask      = NULL ; /* mask for base image (global) */
 static byte        *Hemask      = NULL ; /* mask of voxels to EXCLUDE */
 
-static float        Hstopcost   = -666666.6f ;  /* stop if 'correlation' cost goes below this */
-static int          Hstopped    = 0 ;
+/*** these variables are inputs from the -xyzmatch option of 3dQwarp ***/
+
+static int    Hxyzmatch_num    = 0   ; /* num xyz triples for pointwise match */
+static double Hxyzmatch_fac    = 0.0 ; /* factor for sum */
+static int    Hxyzmatch_pow    = 2   ; /* 1 for L1, 2 for L2 */
+static double Hxyzmatch_cost   = 0.0 ;
+static float *Hxyzmatch_bas[3] = {NULL,NULL,NULL} ; /* xyz triples in base */
+static float *Hxyzmatch_src[3] = {NULL,NULL,NULL} ; /* xyz triples in source */
+static float *Hxyzmatch_b2s[3] = {NULL,NULL,NULL} ; /* warped base triples */
+
+/*** these variables affect how the iteration starts, stops, and proceeds ***/
 
 static int Hlev_start =   0 ;    /* initial level of patches */
 static int Hlev_end   = 666 ;    /* final level of patches to head towards */
@@ -6305,6 +6328,9 @@ static float Hfirstcost = 666.0f;
 
 static int Hsuperhard1 =  0 ;    /* Oh come on, who want to work super hard? */
 static int Hsuperhard2 = -1 ;    /* Certainly not us government employees!!! */
+
+static float Hstopcost   = -666666.6f ; /* stop if 'correlation' cost goes below this */
+static int   Hstopped    = 0 ;          /* indicate that iterations were stopped */
 
 /** macro ALLOW_QMODE (set or not in 3dQwarp.c) determines if quintic
     patches are allowed to be specified at various levels past Hlev_now=0 **/
@@ -7496,6 +7522,224 @@ static INLINE int is_float_array_constant( int n , float *v )
 }
 
 /*----------------------------------------------------------------------------*/
+/* Clear the internal data for the -xyzmatch option */
+
+void IW3D_xyzmatch_clear(void)
+{
+   FREEIFNN(Hxyzmatch_bas[0]) ; FREEIFNN(Hxyzmatch_bas[1]) ; FREEIFNN(Hxyzmatch_bas[2]) ;
+   FREEIFNN(Hxyzmatch_src[0]) ; FREEIFNN(Hxyzmatch_src[1]) ; FREEIFNN(Hxyzmatch_src[2]) ;
+   FREEIFNN(Hxyzmatch_b2s[0]) ; FREEIFNN(Hxyzmatch_b2s[1]) ; FREEIFNN(Hxyzmatch_b2s[2]) ;
+   Hxyzmatch_num  = 0 ; Hxyzmatch_cost = 0.0 ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Convert two sets of vectors to the -xyzmatch internal data.
+*//*--------------------------------------------------------------------------*/
+
+int IW3D_xyzmatch_internalize( THD_3dim_dataset *dset , int npt ,
+                               float *xb , float *yb , float *zb ,
+                               float *xs , float *ys , float *zs  )
+{
+   int ii , nn ;
+   float ib,jb,kb , is,js,ks , nx1,ny1,nz1 ;
+   mat44 imat ;
+
+   ENTRY("IW3D_xyzmatch_internalize") ;
+
+   IW3D_xyzmatch_clear() ;
+
+   if( dset == NULL || npt <  1    ||
+       xb   == NULL || yb  == NULL || zb == NULL ||
+       xs   == NULL || ys  == NULL || zs == NULL   ) RETURN(0) ;
+
+   imat = MAT44_INV(dset->daxes->ijk_to_dicom) ; /* takes xyz to ijk */
+
+   nx1 = DSET_NX(dset)-1.0f ; ny1 = DSET_NY(dset)-1.0f ; nz1 = DSET_NZ(dset)-1.0f ;
+
+   Hxyzmatch_bas[0] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_bas[1] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_bas[2] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_src[0] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_src[1] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_src[2] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_b2s[0] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_b2s[1] = (float *)malloc(sizeof(float)*npt) ;
+   Hxyzmatch_b2s[2] = (float *)malloc(sizeof(float)*npt) ;
+
+   for( nn=ii=0 ; ii < npt ; ii++ ){
+     MAT44_VEC(imat,xb[ii],yb[ii],zb[ii],ib,jb,kb) ;  /* convert to indexes */
+     MAT44_VEC(imat,xs[ii],ys[ii],zs[ii],is,js,ks) ;
+     if( ib < 0.0f || ib >= nx1 ||
+         jb < 0.0f || jb >= ny1 || kb < 0.0f || kb >= nz1 ) continue ;
+     if( is < 0.0f || is >= nx1 ||
+         js < 0.0f || js >= ny1 || ks < 0.0f || ks >= nz1 ) continue ;
+
+     Hxyzmatch_bas[0][nn] = ib; Hxyzmatch_bas[1][nn] = jb; Hxyzmatch_bas[2][nn] = kb;
+     Hxyzmatch_src[0][nn] = is; Hxyzmatch_src[1][nn] = js; Hxyzmatch_src[2][nn] = ks;
+     nn++ ;
+   }
+
+   Hxyzmatch_num = nn ; RETURN(nn) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Warp the input xyz indexes given Haawarp and AHwarp.
+   The input indexes will have been edited to be inside the Haawarp box,
+     so external slopes are not needed.
+   Note that the input points are the base image locations, which will
+     be warped to the source image locations for comparison.
+   The only tricky part is to use AHwarp inside its box, otherwise use Haawarp.
+*//*--------------------------------------------------------------------------*/
+
+void IW3D_nwarp_xyzmatch( int npt ,
+                          float *xin , float *yin , float *zin ,
+                          float *xut , float *yut , float *zut  )
+{
+   int nx,ny,nz,nxy , nbx,nby ;
+   float *xdar , *ydar , *zdar ;
+   float *xqar , *yqar , *zqar ;
+   float *xxar[2], *yyar[2] , *zzar[2] ;
+
+   nx   = Hnx         ; ny   = Hny         ; nz   = Hnz         ; nxy = Hnxy ;
+   xdar = Haawarp->xd ; ydar = Haawarp->yd ; zdar = Haawarp->zd ;
+
+   nbx  = AHwarp->nx ; nby  = AHwarp->ny ;
+   xqar = AHwarp->xd ; yqar = AHwarp->yd ; zqar = AHwarp->zd ;
+
+   /* pointers to displacement arrays for case 0 = outside AHwarp box */
+
+   xxar[0] = xdar ; yyar[0] = ydar ; zzar[0] = zdar ;
+
+   /* for case 1 = inside AHwarp box (cf. AHIND macro below);
+      use pointer arithmetic fu to make them seem based at (i,j,k)=(0,0,0)
+      [Note: could easily fail badly if on a segmented memory architecture] */
+
+   xxar[1] = xqar - (Hibot + Hjbot*nbx + Hkbot*nbx*nby) ;
+   yyar[1] = yqar - (Hibot + Hjbot*nbx + Hkbot*nbx*nby) ;
+   zzar[1] = zqar - (Hibot + Hjbot*nbx + Hkbot*nbx*nby) ;
+
+   /* parallel-ized linear interpolation [parallelizing probably useless] */
+
+   AFNI_OMP_START ;
+#pragma omp parallel if( npt > 111 )
+   { int pp ;
+     float xx,yy,zz , fx,fy,fz ; int ix,jy,kz ;
+     int ix_00,ix_p1 , jy_00,jy_p1 , kz_00,kz_p1 ;
+     int dc_00_00_00 , dc_p1_00_00 , dc_00_p1_00 , dc_p1_p1_00 ,
+         dc_00_00_p1 , dc_p1_00_p1 , dc_00_p1_p1 , dc_p1_p1_p1  ;
+     float wt_00,wt_p1 ;
+     float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
+     float g_j00_k00, g_jp1_k00, g_j00_kp1, g_jp1_kp1, g_k00, g_kp1 ;
+     float h_j00_k00, h_jp1_k00, h_j00_kp1, h_jp1_kp1, h_k00, h_kp1 ;
+
+#pragma omp for
+     for( pp=0 ; pp < npt ; pp++ ){                 /* loop over input points */
+       xx = xin[pp] ; yy = yin[pp] ; zz = zin[pp] ;
+       ix = (int)xx; fx = xx-ix; jy = (int)yy; fy = yy-jy; kz = (int)zz; fz = zz-kz;
+       /* now linearly interpolate displacements inside the dataset grid */
+       ix_00 = ix ; ix_p1 = ix_00+1 ;  /* at this point, we are 'fx' between indexes ix_00 and ix_p1 */
+       jy_00 = jy ; jy_p1 = jy_00+1 ;  /* et cetera */
+       kz_00 = kz ; kz_p1 = kz_00+1 ;
+       wt_00 = (1.0f-fx) ; wt_p1 = fx ;  /* weights for ix_00 and ix_p1 points for linear interp */
+
+#undef  AHIND  /* == 0 for outside of AHwarp, == 1 for inside AHwarp */
+#define AHIND(i,j,k) ( (i >= Hibot) && (i <= Hitop) &&  \
+                       (j >= Hjbot) && (j <= Hjtop) &&  \
+                       (k >= Hkbot) && (k <= Hktop)   )
+
+       dc_00_00_00 = AHIND(ix_00,jy_00,kz_00) ; /* select case 0 or 1 */
+       dc_p1_00_00 = AHIND(ix_p1,jy_00,kz_00) ; /* for each of the 8 */
+       dc_00_p1_00 = AHIND(ix_00,jy_p1,kz_00) ; /* points used for  */
+       dc_p1_p1_00 = AHIND(ix_p1,jy_p1,kz_00) ; /* interpolation   */
+       dc_00_00_p1 = AHIND(ix_00,jy_00,kz_p1) ; /* ['dc' == displacement case] */
+       dc_p1_00_p1 = AHIND(ix_p1,jy_00,kz_p1) ;
+       dc_00_p1_p1 = AHIND(ix_00,jy_p1,kz_p1) ;
+       dc_p1_p1_00 = AHIND(ix_p1,jy_p1,kz_p1) ;
+
+#undef  IJK  /* convert 3D index to 1D index */
+#define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
+
+#undef  XINT  /* linear interpolation at plane jk, for cases dca,dcb */
+#define XINT(aaa,j,k,dca,dcb) wt_00*aaa[dca][IJK(ix_00,j,k)]+wt_p1*aaa[dcb][IJK(ix_p1,j,k)]
+
+       /* interpolate to location ix+fx at each jy,kz level */
+
+       f_j00_k00 = XINT(xxar,jy_00,kz_00,dc_00_00_00,dc_p1_00_00) ;
+       f_jp1_k00 = XINT(xxar,jy_p1,kz_00,dc_00_p1_00,dc_p1_p1_00) ;
+       f_j00_kp1 = XINT(xxar,jy_00,kz_p1,dc_00_00_p1,dc_p1_00_p1) ;
+       f_jp1_kp1 = XINT(xxar,jy_p1,kz_p1,dc_00_p1_p1,dc_p1_p1_p1) ;
+       g_j00_k00 = XINT(yyar,jy_00,kz_00,dc_00_00_00,dc_p1_00_00) ;
+       g_jp1_k00 = XINT(yyar,jy_p1,kz_00,dc_00_p1_00,dc_p1_p1_00) ;
+       g_j00_kp1 = XINT(yyar,jy_00,kz_p1,dc_00_00_p1,dc_p1_00_p1) ;
+       g_jp1_kp1 = XINT(yyar,jy_p1,kz_p1,dc_00_p1_p1,dc_p1_p1_p1) ;
+       h_j00_k00 = XINT(zzar,jy_00,kz_00,dc_00_00_00,dc_p1_00_00) ;
+       h_jp1_k00 = XINT(zzar,jy_p1,kz_00,dc_00_p1_00,dc_p1_p1_00) ;
+       h_j00_kp1 = XINT(zzar,jy_00,kz_p1,dc_00_00_p1,dc_p1_00_p1) ;
+       h_jp1_kp1 = XINT(zzar,jy_p1,kz_p1,dc_00_p1_p1,dc_p1_p1_p1) ;
+
+       /* interpolate to jy+fy at each kz level */
+
+       wt_00 = 1.0f-fy ; wt_p1 = fy ;
+       f_k00 =  wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
+       f_kp1 =  wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
+       g_k00 =  wt_00 * g_j00_k00 + wt_p1 * g_jp1_k00 ;
+       g_kp1 =  wt_00 * g_j00_kp1 + wt_p1 * g_jp1_kp1 ;
+       h_k00 =  wt_00 * h_j00_k00 + wt_p1 * h_jp1_k00 ;
+       h_kp1 =  wt_00 * h_j00_kp1 + wt_p1 * h_jp1_kp1 ;
+
+       /* interpolate to kz+fz to get output, plus add in original coords */
+
+       xut[pp] = (1.0f-fz) * f_k00 + fz * f_kp1 + xin[pp] ;
+       yut[pp] = (1.0f-fz) * g_k00 + fz * g_kp1 + yin[pp] ;
+       zut[pp] = (1.0f-fz) * h_k00 + fz * h_kp1 + zin[pp] ;
+
+     } /* end of loop over input/output points */
+   } /* end of parallel code */
+   AFNI_OMP_END ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Part of the penalty computed from the -xyzmatch option in 3dQwarp:
+   a sum over distances between discrete points.
+*//*--------------------------------------------------------------------------*/
+
+double IW3D_xyzmatch_sum(void)
+{
+   int ii ; double sum = 0.0 ;
+
+   IW3D_nwarp_xyzmatch( Hxyzmatch_num ,
+                        Hxyzmatch_bas[0], Hxyzmatch_bas[1], Hxyzmatch_bas[2],
+                        Hxyzmatch_b2s[0], Hxyzmatch_b2s[1], Hxyzmatch_b2s[2] ) ;
+
+   switch ( Hxyzmatch_pow ){
+
+     case 2:  /* L2 sum = RMS distance */
+     default:
+       for( ii=0 ; ii < Hxyzmatch_num ; ii++ ){
+         sum +=   SQR( Hxyzmatch_b2s[0][ii]-Hxyzmatch_src[0][ii] )
+                + SQR( Hxyzmatch_b2s[1][ii]-Hxyzmatch_src[1][ii] )
+                + SQR( Hxyzmatch_b2s[2][ii]-Hxyzmatch_src[2][ii] ) ;
+       }
+       sum = sqrt(sum/Hxyzmatch_num) ;
+     break ;
+
+     case 1:  /* L1 sum = average taxicab distance */
+       for( ii=0 ; ii < Hxyzmatch_num ; ii++ ){
+         sum +=   fabs( Hxyzmatch_b2s[0][ii]-Hxyzmatch_src[0][ii] )
+                + fabs( Hxyzmatch_b2s[1][ii]-Hxyzmatch_src[1][ii] )
+                + fabs( Hxyzmatch_b2s[2][ii]-Hxyzmatch_src[2][ii] ) ;
+       }
+       sum /= Hxyzmatch_num ;
+     break ;
+   }
+
+   return (sum * Hxyzmatch_fac) ;
+}
+
+/*----------------------------------------------------------------------------*/
 /* This is the function which will actually be minimized
    (via Powell's NEWUOA); and as such is the very core of 3dQwarp!
 *//*--------------------------------------------------------------------------*/
@@ -7568,6 +7812,10 @@ double IW3D_scalar_costfun( int npar , double *dpar )
      Hpenn = 0.0f ;
    }
 
+   if( Hxyzmatch_num > 0 ){
+     Hxyzmatch_cost = IW3D_xyzmatch_sum() ; cost += Hxyzmatch_cost ;
+   }
+
    if( Hfirsttime ){  /* just for fun fun fun in the sun sun sun */
      if( Hverb ) fprintf(stderr,"[first cost=%.5f]%c",cost , ((Hverb>1) ? '\n' : ' ') ) ;
      Hfirsttime = 0 ; Hfirstcost = (float)cost ;
@@ -7601,6 +7849,8 @@ ENTRY("IW3D_cleanup_improvement") ;
    IW3D_destroy(Hwarp)   ; Hwarp   = NULL ;
    IW3D_destroy(AHwarp)  ; AHwarp  = NULL ;
    IW3D_destroy(Haawarp) ; Haawarp = NULL ;
+
+   IW3D_xyzmatch_clear() ;     /* 15 Aug 2014 */
 
    INCOR_set_lpc_mask(NULL) ;  /* 25 Jun 2014 */
    INCOR_destroy(Hincor) ; Hincor = NULL ; KILL_floatvec(Hmpar) ;
@@ -8202,10 +8452,13 @@ ENTRY("IW3D_improve_warp") ;
    }}}
 
    if( Hverb > 1 ){  /* detailed overview of what went down in this patch */
+     char cbuf[32] ;
+     if( Hxyzmatch_num > 0 ) sprintf(cbuf,"xyzmatch pen=%g",Hxyzmatch_cost) ;
+     else                    strcpy(cbuf,"\0") ;
      ININFO_message(
-       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g pure=%g",
+       "     %s patch %03d..%03d %03d..%03d %03d..%03d : cost=%.5f iter=%d : energy=%.3f:%.3f pen=%g pure=%g %s",
                      (Hbasis_code == MRI_QUINTIC) ? "quintic" : "  cubic" ,
-                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn , Hcostt ) ;
+                           ibot,itop, jbot,jtop, kbot,ktop , Hcost  , iter , jt,st , Hpenn , Hcostt , cbuf ) ;
 
    } else if( Hverb == 1 && (Hlev_now<=2 || lrand48()%(Hlev_now*Hlev_now*Hlev_now/9)==0) ){
      fprintf(stderr,".") ;  /* just a pacifier */
