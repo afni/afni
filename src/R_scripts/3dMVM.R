@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.1, Aug 8, 2014
+Version 3.2.2, Aug 15, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1281,7 +1281,7 @@ if(is.na(lop$wsVars) & is.na(lop$mVar)) brickNames <-
 if(!is.na(lop$mVar))                                                
    brickNames <- c(brickNames, paste(dimnames(uvfm$anova)[[1]][1:nF_mvE4], '-MV0-', 'F'))
 if(lop$mvE4a)                                                
-   brickNames <- c(brickNames, paste(mvfm$terms, '-mvE4', 'Chisq'))
+   brickNames <- c(brickNames, paste(dimnames(uvfm$anova)[[1]][1:nF_mvE4], '-mvE4', 'Chisq'))
 if(lop$mvE4) brickNames <- paste(dimnames(uvfm$anova)[[1]][1:nF_mvE4], '-mvE4', 'Chisq')  # no appending
 
 for(ii in 1:lop$num_glt) {
