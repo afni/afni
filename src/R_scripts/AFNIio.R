@@ -402,7 +402,8 @@ dataTable.AFNI.parse <- function(opts) {
          return(NULL)
       }
       #Can't read as table because users might have EOL \ from shell command
-      opts <- scan(ff, what='character')    
+      #opts <- scan(ff, what='character')
+      opts <- scan(ff, what='character', na.strings="") # GC 08/15/2014: modified to allow NA in dataTable
       opts <- opts[grep('[^\\\\]',opts)]
    }
 
