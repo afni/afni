@@ -1057,6 +1057,7 @@ int main( int argc , char *argv[] )
    int iwpad_xm=0,iwpad_xp=0, iwpad_ym=0,iwpad_yp=0, iwpad_zm=0,iwpad_zp=0 ;
    int do_pmbase=0 ;
    IndexWarp3D *pmbase_warp=NULL ; MRI_IMAGE *pmbase_imag=NULL ;
+   int xyzm_num=0 ; MRI_IMAGE *xyzm_bas=NULL , *xyzm_src=NULL ;
 
    /*---------- enlighten the supplicant ----------*/
 
@@ -1246,6 +1247,36 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-pmBASE") == 0 ){  /* 12 Aug 2014 */
        do_pmbase = 1 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-XYZmatch") == 0 ){  /* 15 Aug 2014 */
+       double fac ;
+       if( xyzm_bas != NULL || xyzm_src != NULL )
+         ERROR_exit("You can't use option %s more than once!",argv[nopt]) ;
+       if( nopt+3 >= argc )
+         ERROR_exit("Need 3 arguments after option %s",argv[nopt]) ;
+       fac = strtod(argv[++nopt],NULL) ;
+       if( fac < 0.0f ){
+         Hxyzmatch_pow = 1 ; Hxyzmatch_fac = -0.1 / fac ;
+       } else if( fac > 0.0f ){
+         Hxyzmatch_pow = 2 ; Hxyzmatch_fac =  0.1 / fac ;
+       } else {
+         ERROR_exit("You can't give the scale factor (for option %s) as 0",argv[nopt-1]) ;
+       }
+       xyzm_bas = mri_read_1D( argv[++nopt] ) ;
+       if( xyzm_bas == NULL )
+         ERROR_exit("Can't read 1D file '%s' after option %s",argv[nopt],argv[nopt-2]) ;
+       if( xyzm_bas->ny != 3 )
+         ERROR_exit("1D file '%s' after option '%s' does not have exactly 3 columns",argv[nopt],argv[nopt-2]) ;
+       xyzm_src = mri_read_1D( argv[++nopt] ) ;
+       if( xyzm_src == NULL )
+         ERROR_exit("Can't read 1D file '%s' after option %s",argv[nopt],argv[nopt-3]) ;
+       if( xyzm_src->ny != 3 )
+         ERROR_exit("1D file '%s' after option '%s' does not have exactly 3 columns",argv[nopt],argv[nopt-3]) ;
+       if( xyzm_src->nx != xyzm_bas->nx )
+         ERROR_exit("1D files '%s' and '%s' after option '%s' do not have the same number of rows",argv[nopt],argv[nopt-1],argv[nopt-3]) ;
      }
 
      /*---------------*/
@@ -1647,6 +1678,9 @@ STATUS("check for errors") ;
      ERROR_message("need 2 args after all options, for base and source dataset names") ; nbad++ ;
    }
 
+   if( (do_allin || do_resam) && xyzm_bas != NULL ){
+     ERROR_message("You cannot use '-allineate' or '-resample' with '-XYZmatch'") ; nbad++ ;
+   }
    if( do_allin && do_resam ){
      do_resam = 0 ;
      INFO_message("%s turns off -resample",(do_allin==1)?"-allineate":"-allinfast");
@@ -1738,6 +1772,22 @@ STATUS("source dataset opened") ;
    if( do_resam && EQUIV_GRIDXYZ(bset,sset) ){
      INFO_message("-resample is not needed (datasets on same 3D grid) -- turning it off") ;
      do_resam = 0 ;
+   }
+
+   /*---- Set up -XYZmatch stuff, if present [15 Aug 2014] ----*/
+
+   if( xyzm_bas != NULL ){
+     int nx , ngood ; float *pbas , *psrc ;
+     nx = xyzm_bas->nx ;
+     pbas = MRI_FLOAT_PTR(xyzm_bas) ; psrc = MRI_FLOAT_PTR(xyzm_src) ;
+     ngood = IW3D_xyzmatch_internalize( bset , nx ,
+                                        pbas , pbas+nx , pbas+2*nx ,
+                                        psrc , psrc+nx , psrc+2*nx  ) ;
+     if( ngood < 1 )
+       ERROR_exit("No good points from option '-XYZmatch' ???") ;
+     else if( ngood < nx )
+       WARNING_message("Ignoring %d (out of %d) points in '-XYZmatch', for being outside",
+                       nx-ngood , nx ) ;
    }
 
    /*---- Run 3dAllineate first, replace source dataset [15 Jul 2013] --------*/
