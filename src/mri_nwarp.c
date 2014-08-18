@@ -5147,7 +5147,7 @@ THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
    mat44 src_cmat, nwarp_cmat, mast_cmat ;
    THD_3dim_dataset *dset_out , *dset_qwarp ;
    MRI_IMAGE *fim , *wim ; float *ip=NULL,*jp=NULL,*kp=NULL ;
-   int nx,ny,nz,nxyz , nvals , kk,iv ;
+   int nx,ny,nz,nxyz , nvals , kk,iv , next ;
    float *amatar=NULL ; int nxa=0,nya=0 ; mat44 amat ;
 
 ENTRY("THD_nwarp_dataset") ;
@@ -5183,7 +5183,10 @@ ENTRY("THD_nwarp_dataset") ;
    /*----- extend the warp dataset to allow for outliers [15 Apr 2014] -----*/
    /*........ ((( this is kind of arbitrary, but helps sometimes ))) .......*/
 
-   dset_qwarp = THD_nwarp_extend( dset_nwarp , 32,32,32,32,32,32 ) ;
+   next = (int)AFNI_numenv("AFNI_NWARP_EXTEND") ;  /* 18 Aug 2014 */
+   if( next < 32 ) next = 32 ;
+
+   dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
    if( dset_qwarp == NULL ){  /* should never happen */
      ERROR_message("Can't extend nwarp dataset ?!?") ; RETURN(NULL) ;
    }
