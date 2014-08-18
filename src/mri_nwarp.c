@@ -28,7 +28,7 @@
 #endif
 
 /*..........................................................................*/
-/** Note that the functions for 3dQwarp (about 4000 lines of code)
+/** Note that the functions for 3dQwarp (4000+ lines of code)
     are only compiled if macro ALLOW_QWARP is #define-d -- see 3dQwarp.c.
     Also note that the 'plusminus' warping will only be compiled if the
     macro ALLOW_PLUSMINUS is also #define-d.
@@ -38,7 +38,7 @@
 #include "thd_incorrelate.c"   /* for the 3dQwarp cost (INCOR) functions */
 #endif
 
-/* macro to free a pointer if not NULL */
+/* macro to free a pointer if it's not NULL */
 
 #undef  FREEIFNN
 #define FREEIFNN(x) do{ if((x)!=NULL){ free((void *)(x)); (x)=NULL;} } while(0)
@@ -58,12 +58,12 @@ void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
 static int Hverb = 1 ;
 
-/*-------------------------------------------------------------------------*/
-/*######  Blocks of code indicated in the Table of Contents below     #####*/
-/*######  are each surrounded by #if 1 ... #endif pairs, to make it   #####*/
-/*######  easy to skip between the beginning and end of code blocks.  #####*/
-/*######  (At least, easy using vi and the % key for match-jumping.)  #####*/
-/*-------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/*######   Blocks of code indicated in the Table of Contents below      #####*/
+/*######   are each surrounded by #if 1 ... #endif pairs, to make it    #####*/
+/*######   easy to skip between the beginning and end of code blocks.   #####*/
+/*######   (At least, easy using vi and the % key for match-jumping.)   #####*/
+/*---------------------------------------------------------------------------*/
 
 #if 1 /*(TOC)*/
 /*===========================================================================*/
@@ -93,16 +93,19 @@ static int Hverb = 1 ;
     (C17) Functions for reading warps and inverting/catenating them right away
           (for the '-nwarp' input of various 3dNwarp programs)
 
+    The following functions are only compiled if ALLOW_QWARP is #define-d:
+
      (Q1) Introduction to 3dQwarp, and Global variables for 3dQwarp-ing
           (includes an outline of the sequence of function calls for 3dQwarp)
      (Q2) Basis functions (cubic and quintic) for warping
      (Q3) Functions to create a patch warp from basis functions and parameters
      (Q4) Evaluate the incrementally warped source image at the combination
-          of the current global warp and the patch warp
+          of the current global warp and the local patch warp
      (Q5) Functions to evaluate the warp penalty and cost function
      (Q6) Functions to setup global variables for warp optimization process
      (Q7) Function that actually optimizes one incremental patch warp
-     (Q8) Functions that drive the warp searching process
+     (Q8) Functions that drive the warp searching process by looping over
+          patches of shrinking sizes
      (Q9) Functions for duplo-ing a warp or image (up and down in size)
     (Q10) Function for warp optimization with duplo-ization
     (Q11) All the above functions copied and edited for plusminus warping
@@ -6115,7 +6118,9 @@ ENTRY("IW3D_read_catenated_warp") ;
                            and then writes the outputs
       (1) IW3D_warp_s2bim() == driver function for IW3D_warpomatic()
                                and applies the warp to the source image
-       (2a) IW3D_warpomatic() == produces the optimized warp
+       (2a) IW3D_warpomatic() == produces the optimized warp, by driving
+                                 IW3D_improve_warp() over global and then
+                                 local (overlapping) patches
         (3a) IW3D_setup_for_improvement() == sets up data for warp optimizing
          (4) IW3D_load_energy() == compute 'energy' fields for global warp
                                    as it is now, for warp penalty later
@@ -6165,10 +6170,23 @@ ENTRY("IW3D_read_catenated_warp") ;
     provide a simple way to warp one dataset to another, but that was never
     completed.  At present, you have to use IW3D_warp_s2bim(), which requires
     MRI_IMAGEs as the inputs, not datasets.
+
+    3dQwarp is *supposed* to work with 2D images (nz=1), and there is code
+    to allow for that case -- but it has never been tested!
+
+    The INCOR_* functions are in thd_incorrelate.c (which is #include-d far
+    far above), and handle "incomplete correlation" calculations, where part
+    of the data is fixed (the part outside the patch being optimized), and
+    part is changing (the part inside the current patch).  For speed, the
+    computations for the fixed part are only done once -- via INCOR_addto()
+    in function IW3D_improve_warp() before the patch optimization is done.
+    The "correlation" (cost function) is completed via INCOR_evaluate() in
+    function IW3D_scalar_costfun() -- which is what powell_newuoa_con()
+    tries to minimize.
 *//**------------------------------------------------------------------------**/
 
 /**--------------------------------------------------------------------------**/
-/** Many global variables below start with 'H',
+/** Many (but not all) global variables below start with 'H',
     which is my notation for the warp patch being optimized;
     however, not all 'H' variables are about the patch itself;
     some of these get set in 3dQwarp.c to control the warp optimization **/
@@ -6408,7 +6426,10 @@ int IW3D_munge_flags( int nx , int ny , int nz , int flags )
 /*============================================================================*/
 
 /*----------------------------------------------------------------------------*/
-/* C1 Hermite cubic basis functions over [-1..1].
+/* C1 Hermite cubic basis functions over [-1..1] -- that is, the 2 functions
+   and their first derivatives go to 0 at x=1 and x=-1.
+     The first function (ee.a) is such that f(0)=1, and f'(0)=0.
+     The second function (ee.b) is such that f(0)=0, and f'(0)=6.75.
    Scale factors are adjusted so that the functions' peak values are all 1.
    Return value is a float_pair comprising the 2 function values.
 *//*--------------------------------------------------------------------------*/
@@ -6429,7 +6450,11 @@ static INLINE float_pair HCwarp_eval_basis( float x )
 }
 
 /*----------------------------------------------------------------------------*/
-/* C2 Hermite quintic basis functions over [-1..1].
+/* C2 Hermite quintic basis functions over [-1..1] -- that is, the 3 functions
+   and their first 2 derivatives go to 0 at x=1 and x=-1.
+     The first function (ee.a) is such that f(0) != 0, and f'(0)=f''(0)=0.
+     The second function (ee.b) is such that f(0)=f''(0)=0, and f'(0) != 0.
+     The third function (ee.c) is such fhat f(0)=f'(0)=0, and f''(0) != 0.
    Scale factors are adjusted so that the functions' peak values are all 1.
    Return value is a float_triple comprising the 3 function values.
 *//*--------------------------------------------------------------------------*/
