@@ -76,7 +76,7 @@ afni_history_struct rickr_history[] = {
    "Requested by J Butman."
  } ,
 
- {  2, Aug, 2014, RCR, "make_sitm_times.py", MINOR, TYPE_NEW_OPT,
+ {  2, Aug, 2014, RCR, "make_stim_times.py", MINOR, TYPE_NEW_OPT,
    "added -run_trs, for cases when the TRs per run vary",
    "Requested on message board by Rebecca and later by Lisam."
  } ,
