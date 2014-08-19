@@ -8297,6 +8297,12 @@ ENTRY("IW3D_improve_warp") ;
 
    /*-- setup the basis functions for Hwarp-ing --*/
 
+   /*-- The max displacment scales (0.033 for cubic, 0.007 for quintic)
+        are set from the combination of parameters that gave non-singular
+        patch warps with "OK" levels of distortion (delta-volume about 50%).
+        Hfactor allows the iteration to scale these down at finer levels,
+        but that wasn't needed after the introduction of the warp penalty. --*/
+
    switch( warp_code ){
      default:
      case MRI_CUBIC:
