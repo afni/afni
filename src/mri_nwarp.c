@@ -2156,7 +2156,7 @@ void IW3D_load_hexvol_box( IndexWarp3D *AA ,
 #if 1
 /*============================================================================*/
 /* (C8) The following functions are for interpolating all 3 components of an
-   index warp at one time, and are shamelessly adapted frommri_genalign_util.c;
+   index warp at one time, and are recklessly adapted from mri_genalign_util.c;
    however, since Zhark wrote those, Zhark can steal them (right?).           */
 /*============================================================================*/
 
