@@ -75,7 +75,22 @@ def LoadInTable(fname):
     return data, header
 
 
+def RecapAttach(comm_str, opt, arg):
+    '''Silly parsing of commandline options+arguments in order to be able
+    to return the command with delineating apostrophes around user-input
+    lists.'''
 
+    comm_str+=' '+opt
+    if arg:
+        if opt[:2]=='--':
+            comm_str+="="
+        else:
+            comm_str+=" "
+        comm_str+="'"+arg+"' "
+    else:
+        comm_str+=" "
+
+    return comm_str
 
 
 def CheckVar_and_FindCategVar(tab_data, tab_colvars, tab_coltypes, par_list):
@@ -680,7 +695,7 @@ def Choose_IntFloatStr(s):
 
 ###------------------------------------------------------------------
 
-def ConvertCSVfromStr(dat1, head1):
+def ConvertCSVfromStr(dat1, head1, NA_WARN):
     '''Take the all-string input and header lists in,
        and return a copy with ints, floats and strings.'''
 
@@ -720,8 +735,11 @@ def ConvertCSVfromStr(dat1, head1):
                                 dat2[k][j] = float(dat2[k][j])
                             else:
                                 "Odd combo..."
-                    elif data[i][j] == 'NA':
-                        print "Loc (%d, %d) has value 'NA'." % (i,j)
+                    elif (dat2[i][j] == 'NA'):
+                        if NA_WARN:
+                        #print "Loc (%d, %d) has value 'NA'." % (i,j)
+                            print "*+ Warning: 'NA' value in Col %d (='%s') !" \
+                             % ( j, head1[j] )
                     else:
                         print "Odd mixing in types of data in Col %d (=%s) " \
                          % ( j, head1[j] ),
@@ -731,8 +749,11 @@ def ConvertCSVfromStr(dat1, head1):
                         #print "\tin CSV col %d ->" % j,
                         #print "making %d float." % dat2[i][j]
                         dat2[i][j] = float(dat2[i][j])
-                    elif data[i][j] == 'NA':
-                        print "Loc (%d, %d) has value 'NA'." % (i,j)
+                    elif dat2[i][j] == 'NA':
+                        if NA_WARN:
+                        #print "Loc (%d, %d) has value 'NA'." % (i,j)
+                            print "*+ Warning: 'NA' value in Col %d (='%s') !" \
+                             % ( j, head1[j] )
                     else:
                         print "Odd mixing in types of data in Col %d (=%s) " \
                          % ( j, head1[j] ),
