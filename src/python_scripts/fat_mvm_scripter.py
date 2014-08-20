@@ -92,7 +92,9 @@ def main(argv):
        $  fat_mvm_scripter.py  --prefix=PREFIX                     \\
             --table=TABLE_FILE  --log=LOG_FILE                     \\
             { --vars='VAR1 VAR2 VAR3 ...' | --file_vars=VAR_FILE } \\
-            { --no_posthoc } { --rois='ROI1 ROI2 ROI3 ...' } 
+            { --pars='PAR1 PAR2 PAR3 ...' | --file_pars=PAR_FILE } \\
+            { --rois='ROI1 ROI2 ROI3 ...' }                        \\
+            { --no_posthoc }  { --NA_warn_off }
      
       -p, --prefix=PREFIX      :output prefix for script file, which will
                                 then be called PREFIX_scri.tcsh, for
@@ -112,6 +114,7 @@ def main(argv):
                                 generally contain selection keywords, so
                                 pay attention to those if generating your
                                 own.
+
       -v, --vars='X Y Z ...'   :one method for supplying a list of
                                 variables for the 3dMVM model. Names must
                                 be separated with whitespace.  Categorical
@@ -124,6 +127,19 @@ def main(argv):
                                 variables for 3dMVM.  VAR_FILE is a text
                                 file with a single column of variable
                                 names.
+
+      -P, --Pars='T S R ...'   :one method for supplying a list of parameters
+                                (that is, the names of matrices) to run in 
+            *or*                distinct 3dMVM models. Names must be
+                                separated with whitespace. Might be useful
+                                to get a smaller jungle of output results in 
+                                cases where there are many matrices in a file,
+                                but only a few that are really cared about.
+      -F, --File_Pars=PAR_FILE :the second method for supplying a list of
+                                parameters for 3dMVM runs.  PAR_FILE is a text
+                                file with a single column of variable
+                                names.
+
       -r, --rois='A B C ...'   :optional command to be able to select
                                 a subset of available network ROIs,
                                 if that's useful for some reason (NB:
@@ -131,9 +147,18 @@ def main(argv):
                                 a set of ROIs with data across all the
                                 the subjects in the group, listed in the
                                 *MVMprep.log file.
+
       -n, --no_posthoc         :switch to turn off the automatic
                                 generation of per-ROI post hoc tests
                                 (default is to do them all).
+      -N, --NA_warn_off        :switch to turn off the automatic
+                                warnings as the data table is created. 3dMVM
+                                will excise subjects with NA values, so there
+                                shouldn't be NA values in columns you want to
+                                model.  However, you might have NAs elsewhere
+                                in the data table that might be annoying to 
+                                have flagged, so perhaps turning off warnings
+                                would then be useful. (Default is to warn.)
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -164,46 +189,66 @@ def main(argv):
     file_prefix = ''
     list_model = ''
     userlist_roi = ''
-    userlist_par = ''  #!! no user subset of par at the moment
+    list_pars = ''  
+    file_listpars = ''
     file_listmodel = ''
     file_table = ''
     file_log = ''
     SWITCH_posthoc = 1
+    SWITCH_NAwarn = 1
+    comm_str = ''
 
     try:
-        opts, args = getopt.getopt(argv,"hnv:f:p:t:l:r:",["no_posthoc",
-                                                            "vars=",
-                                                            "file_vars=",
-                                                            "prefix=",
-                                                            "table=",
-                                                            "log_file=",
-                                                            "rois="
- #                                                           "Params"
-                                                            ])
+        opts, args = getopt.getopt(argv,"hnNv:f:p:t:l:r:P:F:",["help",
+                                                               "no_posthoc",
+                                                               "NA_warn_off",
+                                                               "vars=",
+                                                               "file_vars=",
+                                                               "prefix=",
+                                                               "table=",
+                                                               "log_file=",
+                                                               "rois="
+                                                               "Pars=",
+                                                               "File_Pars="
+                                                               ])
     except getopt.GetoptError:
         print help_line
         sys.exit(2)
+
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print help_line
             sys.exit()
-        elif opt in ("-v", "--vars"):
-            list_model = arg
         elif opt in ("-r", "--rois"):
             userlist_roi = arg
-#        elif opt in ("-P", "--Params"):
-#            userlist_par = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
+        elif opt in ("-P", "--Pars"):
+            list_pars = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
+        elif opt in ("-F", "--File_Pars"):
+            file_listpars = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
+        elif opt in ("-v", "--vars"):
+            list_model = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
         elif opt in ("-f", "--file_vars"):
             file_listmodel = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
         elif opt in ("-p", "--prefix"):
             file_prefix = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
         elif opt in ("-t", "--table"):
             file_table = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
         elif opt in ("-l", "--log_file"):
             file_log = arg
+            comm_str = GR.RecapAttach(comm_str, opt, arg)
         elif opt in ("-n", "--no_posthoc"):
             SWITCH_posthoc = 0
-
+            comm_str = GR.RecapAttach(comm_str, opt, '')
+        elif opt in ("-N", "--NA_warn_off"):
+            SWITCH_NAwarn = 0
+            comm_str = GR.RecapAttach(comm_str, opt, '')
 
     if not(file_prefix):
         print "** ERROR: missing an output prefix."
@@ -224,10 +269,15 @@ def main(argv):
     if not( list_model == '' ) and not( file_listmodel == '' ):
         print "*+ Warning: both a model list *and* a model file have",
         print " been input."
-        print "\tThe one after '-m' will be ignored."
+        print "\tThe latter will be used."
+    if not( list_pars == '' ) and not( file_listpars == '' ):
+        print "*+ Warning: both a parameter list *and* a parameter file have",
+        print " been input."
+        print "\tThe latter will be used."
 
     return list_model, file_listmodel, file_prefix, file_table, \
-     file_log, userlist_roi, userlist_par, SWITCH_posthoc
+     file_log, userlist_roi, list_pars, file_listpars, SWITCH_posthoc, \
+     comm_str, SWITCH_NAwarn
 
 
 ########################################################################
@@ -237,12 +287,19 @@ if __name__=="__main__":
     print "\n"
 
     list_model, file_listmodel, file_prefix, file_table, file_log, \
-     userlist_roi, userlist_par, SWITCH_posthoc = main(sys.argv[1:])
+     userlist_roi, list_pars, file_listpars, SWITCH_posthoc, comm_str, \
+     NA_WARN = main(sys.argv[1:])
 
-    arg_list = sys.argv
-    str_sep = ' '
-    arg_str = str_sep.join(arg_list)
+    if not(NA_WARN):
+        print "++ Won't worn about NAs in the data."
 
+    #arg_list = sys.argv
+    #str_sep = ' '
+    #arg_str = str_sep.join(arg_list)
+    arg_str = "fat_mvm_scripter.py" #sys.argv[0]
+    arg_str+= ' '+comm_str
+
+    ## For VAR lists
     # get file list from either of two ways.
     if file_listmodel:
         var_list = GR.ReadSection_and_Column(file_listmodel, 0)
@@ -254,20 +311,39 @@ if __name__=="__main__":
 
     Nvar = len( var_list )
 
+    ## For ROI lists
     if userlist_roi:
         roi_list = userlist_roi.split()
     else:
         roi_list = GR.GetFromLogFile(file_log, GR.LOG_LABEL_roilist)
     Nroi = len(roi_list)
 
-    if userlist_par:
-        par_list = userlist_par.split()
+    USER_LIST = 0
+    ## For PAR lists
+    if file_listpars:
+        par_list = GR.ReadSection_and_Column(file_listpars, 0)
+        USER_LIST = 1
+    elif list_pars:
+        par_list = list_pars.split()
+        USER_LIST = 1
     else:
         par_list = GR.GetFromLogFile(file_log, GR.LOG_LABEL_parlist)
     Npar = len(par_list)
 
+    # will do simple check to make sure that each user-selected par_list
+    # is in the full one.
+    full_par_list = GR.GetFromLogFile(file_log, GR.LOG_LABEL_parlist)
+    if USER_LIST:
+        for x in par_list:
+            if not(full_par_list.__contains__(x)):
+                print "*+ Warning! Chosen parameter '%s' does not appear" % \
+                 (x),
+                print "to be listed in the log file! "
+                print "\t -> For now, will leave in the parameter list,",
+                print "but perhaps check spelling?"
+
     tab_raw, tab_colvars = GR.LoadInTable(file_table)
-    tab_data, tab_coltypes = GR.ConvertCSVfromStr(tab_raw, tab_colvars)
+    tab_data, tab_coltypes = GR.ConvertCSVfromStr(tab_raw, tab_colvars, NA_WARN)
     var_iscateg = GR.CheckVar_and_FindCategVar(tab_data,         \
                                                 tab_colvars,  \
                                                 tab_coltypes, \
@@ -300,7 +376,10 @@ if __name__=="__main__":
             varC_str+= " )"
 
     print "   List of ROIs is:\n   \t  %s." % roi_str
-    print "   List of matrix parameters is:\n   \t  %s." % par_str
+    if USER_LIST:
+        print "   List of (selected) matrix parameters is:\n   \t  %s." % par_str
+    else:       
+        print "   List of matrix parameters is:\n   \t  %s." % par_str
     print "   List of quantitative variables is:\n   \t%s." % varQ_str
     print "   List of categorical variables is:\n   \t%s." % varC_str
 
@@ -312,6 +391,7 @@ if __name__=="__main__":
     bvar_entry = bvar_sep.join(var_list)
     qvar_sep = ','
     qvar_entry = qvar_sep.join(var_list_quant)
+    psub_entry = qvar_sep.join(par_list)
 
     Nglt = Nroi*Nvartout
 
@@ -332,6 +412,8 @@ if __name__=="__main__":
     tc.append(' -bsVars "%s" \\\n' % bvar_entry )
     tc.append(' -wsVars "%s" \\\n' % 'ROI' )
     tc.append(' -qVars "%s" \\\n' % qvar_entry )
+    if USER_LIST:
+        tc.append(' -parSubset "%s" \\\n' % psub_entry )
     if SWITCH_posthoc:
         tc.append(' -num_glt %d \\\n' % Nglt )
         idx = 1
