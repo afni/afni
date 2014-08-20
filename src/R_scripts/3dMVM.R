@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.2, Aug 15, 2014
+Version 3.2.3, Aug 19, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -322,6 +322,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
        '-mvE4a' = apl(n=0, h = paste(
    "", sep='\n')),
 
+       '-parSubset' = apl(n=c(1,100), d=NA, h = paste(
+   "", sep='\n')),
+
       '-mVar' = apl(n=c(1,100), d=NA, h = paste(
    "-mVar variable: With this option, the levels of the within-subject factor",
    "         will be treated as simultaneous variables in a multivariate model.",
@@ -517,6 +520,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                            # wsMVT (AUC), 2nd half wsMVT (EXC), and MVT: assuming ONLY one within-subject
                            # factor (e.g., effects from basis functions). Results added (or appended) to 
                            # others (cf., lop$mvE4a).
+      lop$parSubset <- NA  # parameter subset from option -matrPar for DTI data analysis
       lop$iometh <- 'clib'
       lop$verb   <- 0
 
@@ -540,8 +544,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              gltLabel = lop$gltLabel <- ops[[i]],
              gltCode  = lop$gltCode <- ops[[i]],
              dataTable  = lop$dataTable <- dataTable.AFNI.parse(ops[[i]]),
-             
-             help = help.MVM.opts(params, adieu=TRUE),
+             parSubset  = lop$parSubset <- ops[[i]],
+ 
+             help  = help.MVM.opts(params, adieu=TRUE),
 
              SC    = lop$SC     <- TRUE,
              wsMVT = lop$wsMVT  <- TRUE,
@@ -612,6 +617,8 @@ process.MVM.opts <- function (lop, verb = 0) {
 
    if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.na(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
+
+   if(!is.na(lop$parSubset[1])) lop$parSubsetVector <- strsplit(lop$parSubset, '\\,')[[1]]
 
    if(!is.null(lop$gltLabel)) {
       sq <- as.numeric(unlist(lapply(lop$gltLabel, '[', 1)))
@@ -1179,7 +1186,7 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pair=NULL,
+         if(all(is.na(lop$gltList[[n]]))) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pair=NULL,
             slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
             adjustment="none", idata = fm[["idata"]]), error=function(e) NA)
@@ -1517,11 +1524,16 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
    for(nn in 1:nPar) {
    fm <- NULL
    if(nPar == 1) inData <- lop$dataStr else
-       inData <- lop$dataStr[lop$dataStr[[iterPar]] == levels(as.factor(lop$dataStr[[iterPar]]))[nn],]
-   try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full'), silent=TRUE)
+   if((levels(as.factor(lop$dataStr[[iterPar]]))[nn] %in% lop$parSubsetVector) | is.null(lop$parSubsetVector)) 
+      inData <- lop$dataStr[lop$dataStr[[iterPar]] == levels(as.factor(lop$dataStr[[iterPar]]))[nn],] else
+      inData <- NULL
+   if(!is.null(inData)) try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full'), silent=TRUE) else
+   fm <-NULL
+   #fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full')
    if(!is.null(fm)) {
       #out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
-      #   p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min) 
+      #   p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)
+      options(warn = -1)
       nF_mvE4 <- nrow(univ(fm$Anova)$anova)/2
       out_p <- mvCom4(fm, nF_mvE4)
       # chisq 
