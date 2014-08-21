@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.3, Aug 19, 2014
+Version 3.2.4, Aug 21, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1011,11 +1011,13 @@ respVar <- lop$dataTable[wd]
 
 # even if lop$wsVars is NA (no within-subject factors), it would be still OK for Error(Subj/NA)
 if(is.na(lop$mVar)) {
-   if(is.na(lop$wsVars)) ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj)')) else
-      ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj/(', lop$wsVars, '))')) 
+   if(is.na(lop$wsVars)) ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj)')) else {
+      ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj/(', lop$wsVars, '))'))
+      ModelForm2 <- as.formula(paste("Beta ~ (", lop$model, ')*', lop$wsVars, '+Error(Subj/(', lop$wsVars, '))'))
+   }
 } else 
    if(is.na(lop$wsVars)) ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj/(', lop$mVar, '))')) else
-      ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj/(', lop$wsVars, '*', lop$mVar, '))')) 
+      ModelForm <- as.formula(paste("Beta ~", lop$model, '+Error(Subj/(', lop$wsVars, '*', lop$mVar, '))'))
                                                 
 # Maybe not list for these two, or yes?
 lop$dataStr$Subj <-  as.factor(lop$dataStr$Subj)
@@ -1534,8 +1536,15 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
       #out_p <- apply(cbind(uvP[1:outTerms], uvP[(outTerms+1):length(uvP)], p_wsmvt[1:outTerms],
       #   p_wsmvt[(outTerms+1):length(uvP)], p_mvt), 1, min)
       options(warn = -1)
-      nF_mvE4 <- nrow(univ(fm$Anova)$anova)/2
-      out_p <- mvCom4(fm, nF_mvE4)
+      nF_mvE4 <- tryCatch(nrow(univ(fm$Anova)$anova)/2, error=function(e) NULL)
+      if(is.null(nF_mvE4)) {
+         tryCatch(fm2 <- aov(ModelForm2, data=inData), error=function(e) NULL)
+         if(is.null(fm2)) errex.AFNI('Model failure...') else {
+         nF_aov <- dim(summary(fm2)[[1]][[1]])[1]-1
+         out_p <- apply(cbind(summary(fm2)[[1]][[1]][1:nF_aov,'Pr(>F)'], summary(fm2)[[2]][[1]][2:(nF_aov+1),'Pr(>F)']), 1, min)
+         names(out_p) <- dimnames(summary(fm2)[[1]][[1]])[[1]][1:nF_aov]
+         }
+      } else out_p <- mvCom4(fm, nF_mvE4)
       # chisq 
       out_chisq <- qchisq(out_p, 1, lower.tail = FALSE)
       out <- cbind(out_chisq, 1, out_p)
