@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Aug, 2014, RCR, "model_conv_PRF", MICRO, TYPE_GENERAL,
+   "minor details added to help output",
+   NULL
+ } ,
+
  { 13, Aug, 2014, RCR, "Dimon", MICRO, TYPE_GENERAL,
    "very minor update",
    NULL
