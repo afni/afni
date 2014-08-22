@@ -38,6 +38,9 @@ int add_to_float_list ( float_list  * d_list, float  val, int inc_size );
 int add_to_int_list   ( int_list    * d_list, int    val, int inc_size );
 int add_to_string_list( string_list * d_list, char * val, int inc_size );
 
+/* resize list allocation*/
+int resize_int_list  ( int_list * L, int len );
+
 /* add to lists, possibly increment length */
 int extend_int_list  ( int_list * Ldest, int_list * Lsrc );
 int extend_str_list  ( int_list * Ldest, int_list * Lsrc );
@@ -49,6 +52,8 @@ int free_float_list  ( float_list  * d_list );
 int free_int_list    ( int_list    * d_list );
 int free_short_list  ( short_list  * d_list );
 int free_string_list ( string_list * d_list );
+
+int clear_int_list   ( int_list    * d_list );
 int clear_string_list( string_list * d_list );
 
 /* free list lists, and clear structures */

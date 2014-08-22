@@ -42,7 +42,8 @@
 #define IFM_FSTATE_DONE      1       /* processing complete          */
 
 #define IFM_FSTATE_TO_PROC   2       /* have image, ready to process */
-#define IFM_FSTATE_TO_READ   3       /* ready to read image          */
+#define IFM_FSTATE_TO_SORT   3       /* waiting for successful sort  */
+#define IFM_FSTATE_TO_READ   4       /* ready to read image          */
 
 #define IFM_MAX_READ_ERRORS  2       /* after this, go to failed state */
 #define IFM_NUM_RETRIES      1       /* volume retries before failing  */
@@ -102,6 +103,7 @@ typedef struct  /* user options */
     int              rev_sort_dir;  /* flag to reverse glob sort dir    */
     char           * flist_file;    /* filename to save file list to    */
     char           * flist_details; /* filename to save list details to */
+    char           * sort_method;   /* method for realtime sorting      */
 
     /* realtime options */
     int              rt;            /* run in real-time afni mode       */
@@ -136,6 +138,8 @@ typedef struct                      /* extra stuff from mri_read.c     */
     int   skip;                     /* offset of image data into file  */
     int   swap;                     /* did we do byte swapping?        */
     int   kk;                       /* z-orient info (1=LR, 2=PA, 3=IS)*/
+    int   ge_me_index;              /* GE multi-echo index             */
+    int   ge_nim_acq;               /* number of images in acq         */
     float xorg;                     /* x and y axes origins            */
     float yorg;
     float xyz[9];
@@ -154,6 +158,7 @@ typedef struct
     ge_extras        gex;           /* ge_extras struct for this file      */
     mosaic_info      minfo;         /* info describing mosaic structure    */
     int              findex;        /* index into fim_o list               */
+    int              sindex;        /* realtime sort index, if used        */
     int              state;         /* to read, read, processed, failed    */
     int              bad_reads;     /* number of read failures             */
     int              nbytes;        /* size of image in bytes              */
