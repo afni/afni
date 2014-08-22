@@ -1211,7 +1211,7 @@ ENTRY("IW3D_extend") ;
       done in the most brute force way anyone could ever imagine:
         make a dataset (header only) = qset
         zero pad it (header only)    = adset
-        the new index warp adopts adset' geometry
+        the new index warp adopts adset's geometry
         throw these temporary datasets away as untouchable trash */
 
    if( AA->geomstring != NULL ){
@@ -5713,10 +5713,21 @@ static int          CW_nwtop=0 ;
 static IndexWarp3D *CW_iwarp[CW_NMAX] ;
 static float        CW_iwfac[CW_NMAX] ;
 static mat44       *CW_awarp[CW_NMAX] ;
-static int CW_nx=0,CW_ny=0,CW_nz=0 ; char *CW_geomstring=NULL ;
+static int CW_nx=0,CW_ny=0,CW_nz=0 ; static char *CW_geomstring=NULL ;
 static mat44 CW_cmat , CW_imat ;
 
+static float CW_dxal=0.0f , CW_dyal=0.0f , CW_dzal=0.0f ;
+static float CW_dx  =1.0f , CW_dy  =1.0f , CW_dz  =1.0f ;
+
 static THD_3dim_dataset *CW_inset=NULL ;
+
+/*----------------------------------------------------------------------------*/
+static char *CW_saved_geomstring = NULL ;
+static int   CW_saved_expad      = 0 ;
+static int   CW_no_expad         = 1 ;
+
+char * CW_get_saved_geomstring(void){ return CW_saved_geomstring ; }
+int    CW_get_saved_expad     (void){ return CW_saved_expad ;      }
 
 /*----------------------------------------------------------------------------*/
 /* Erase the above static data */
@@ -5741,6 +5752,8 @@ static void CW_clear_data(void)
      DSET_delete(CW_inset) ; CW_inset = NULL ;
    }
    ZERO_MAT44(CW_imat) ; ZERO_MAT44(CW_cmat) ;
+   CW_dxal = CW_dyal = CW_dzal = 0.0f ;
+   CW_dx   = CW_dy   = CW_dz   = 1.0f ;
 
    return ;
 }
@@ -5786,7 +5799,7 @@ ENTRY("CW_load_one_warp") ;
    if( STRING_HAS_SUFFIX_CASE(wp,".1D")  ||
        STRING_HAS_SUFFIX_CASE(wp,".txt")   ){      /*--- affine warp ---*/
 
-     mat44 mmm ; MRI_IMAGE *qim ; float *qar ;
+     mat44 mmm ; MRI_IMAGE *qim ; float *qar ; float dxal,dyal,dzal ;
      qim = mri_read_1D(wp) ;
      if( qim == NULL || qim->nvox < 9 ){
        ERROR_message("cannot read matrix from file '%s'",wp); free(wp); EXRETURN ;
@@ -5814,6 +5827,9 @@ ENTRY("CW_load_one_warp") ;
 
      CW_awarp[nn-1] = (mat44 *)malloc(sizeof(mat44)) ;
      AAmemcpy(CW_awarp[nn-1],&mmm,sizeof(mat44)) ;
+     dxal=fabsf(mmm.m[0][3]) ; if( CW_dxal < dxal ) CW_dxal = dxal ;
+     dyal=fabsf(mmm.m[1][3]) ; if( CW_dyal < dyal ) CW_dyal = dyal ;
+     dzal=fabsf(mmm.m[2][3]) ; if( CW_dzal < dzal ) CW_dzal = dzal ;
      free(wp) ; EXRETURN ;
 
    } else {                                        /*--- dataset warp ---*/
@@ -5941,8 +5957,9 @@ ENTRY("CW_load_one_warp") ;
      }
      if( do_fac ) IW3D_3scale(AA,xfac,yfac,zfac) ;
      if( CW_geomstring == NULL ){       /* first dataset => set geometry globals */
-       CW_geomstring = strdup(AA->geomstring) ;
+       CW_geomstring = strdup(AA->geomstring) ; CW_saved_geomstring = strdup(CW_geomstring) ;
        CW_nx = AA->nx; CW_ny = AA->ny; CW_nz = AA->nz; CW_cmat = AA->cmat; CW_imat = AA->imat;
+       CW_dx = fabsf(DSET_DX(dset)); CW_dy = fabsf(DSET_DX(dset)); CW_dz = fabsf(DSET_DX(dset));
      } else if( AA->nx != CW_nx || AA->ny != CW_ny || AA->nz != CW_nz ){ /* check them */
        ERROR_message("warp from dataset '%s' doesn't match earlier inputs in grid size",wp) ;
        free(wp); EXRETURN ;
@@ -6038,6 +6055,35 @@ ENTRY("IW3D_read_catenated_warp") ;
    if( CW_geomstring == NULL ){ /* didn't get a real warp to use */
      ERROR_message("Can't compute nonlinear warp from string '%s'",cstr) ;
      CW_clear_data() ; RETURN(NULL) ;
+   }
+
+   /*-- pad the nonlinear warps present [22 Aug 2014] --*/
+
+   if( CW_dxal > 0.0f || CW_dyal > 0.0f || CW_dzal > 0.0f ){
+     float dm , xx,yy,zz ; int pp ;
+     dm = MIN(CW_dx,CW_dy); dm = MIN(CW_dz,dm) ;
+     xx = CW_dxal/dm ; yy = CW_dyal/dm ; zz = CW_dzal/dm ;
+     dm = MAX(xx,yy) ; dm = MAX(dm,zz) ;
+     pp = (int)rintf(1.0111f*dm) ; CW_saved_expad = MAX(pp,32) ;
+   } else {
+     CW_saved_expad = 32 ;
+   }
+   if( CW_no_expad ) CW_saved_expad = 0 ;
+   if( CW_saved_expad > 0 ){
+     IndexWarp3D *EE ; THD_3dim_dataset *QQ ;
+     QQ = THD_zeropad( CW_inset ,
+                       CW_saved_expad, CW_saved_expad, CW_saved_expad,
+                       CW_saved_expad, CW_saved_expad, CW_saved_expad,
+                       "ZharkExtends" , ZPAD_IJK | ZPAD_EMPTY ) ;
+     DSET_delete(CW_inset) ; CW_inset = QQ ;
+     for( ii=0 ; ii < CW_nwtop ; ii++ ){
+       if( CW_iwarp[ii] != NULL ){
+         EE = IW3D_extend( CW_iwarp[ii] ,
+                           CW_saved_expad, CW_saved_expad, CW_saved_expad,
+                           CW_saved_expad, CW_saved_expad, CW_saved_expad, 0 ) ;
+         IW3D_destroy(CW_iwarp[ii]) ; CW_iwarp[ii] = EE ;
+       }
+     }
    }
 
    /*-- cat (compose) them --*/
