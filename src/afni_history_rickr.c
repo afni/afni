@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Aug, 2014, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -sort_method and -save_details",
+   "Using the 'geme_index' sort method allows for real-time sorting\n"
+   "of GE multi-echo data, before volumes are sent to 'afni'.\n"
+   "Modification made for V Roopchansingh."
+ } ,
+
  { 21, Aug, 2014, RCR, "model_conv_PRF", MICRO, TYPE_GENERAL,
    "minor details added to help output",
    NULL
@@ -62,8 +69,7 @@ afni_history_struct rickr_history[] = {
  { 12, Aug, 2014, RCR, "Dimon", MAJOR, TYPE_MODIFY,
    "this should basically work like the old version",
    "While no major change should be seen, this is an overhaul of\n"
-   "the previous version, which should allow for realtime sorting.\n"
-   "Modification made for V Roopchansingh."
+   "the previous version, which should allow for realtime sorting."
  } ,
 
  { 12, Aug, 2014, RCR, "Dimon1", MINOR, TYPE_GENERAL,
