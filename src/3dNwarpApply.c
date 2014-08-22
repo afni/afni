@@ -284,9 +284,12 @@ int main( int argc , char *argv[] )
 #if 0
        dset_nwarp = THD_open_dataset( argv[iarg] ) ;          /* the simple way */
 #else
-       if( verb ) fprintf(stderr,"Reading -nwarp") ;
+       if( verb ) fprintf(stderr,"++ Reading -nwarp") ;
+       CW_no_expad = 1 ;
        dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
        if( verb ) fprintf(stderr,"\n") ;
+       if( verb && CW_get_saved_expad() > 0 )
+         ININFO_message("Extended (padded) input warp by %d voxels",CW_get_saved_expad()) ;
 #endif
        if( dset_nwarp == NULL ) ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg]);
        if( DSET_NVALS(dset_nwarp) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg]);
@@ -440,7 +443,14 @@ int main( int argc , char *argv[] )
      if( verb ) fprintf(stderr,"\n") ;
    }
 
-   if( do_wmast && dset_mast == NULL ) dset_mast = dset_nwarp ;
+   if( do_wmast && dset_mast == NULL ){
+     char *gs = CW_get_saved_geomstring() ;
+     if( CW_get_saved_expad() == 0 || gs == NULL ){
+       dset_mast = dset_nwarp ;
+     } else {
+       dset_mast = EDIT_geometry_constructor(gs,"ElephantsAreCool") ;
+     }
+   }
 
    verb_nww = verb ;
 
