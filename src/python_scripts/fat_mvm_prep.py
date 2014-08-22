@@ -104,6 +104,14 @@ def main(argv):
                                   col 1: path to subject matrix file.
                                   col 2: CSV IDs,
                                   (first line can be a '#'-commented one.
+      -N, --NA_warn_off          :switch to turn off the automatic
+                                  warnings as the data table is created. 3dMVM
+                                  will excise subjects with NA values, so there
+                                  shouldn't be NA values in columns you want to
+                                  model.  However, you might have NAs elsewhere
+                                  in the data table that might be annoying to 
+                                  have flagged, so perhaps turning off warnings
+                                  would then be useful. (Default is to warn.)
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -127,6 +135,14 @@ def main(argv):
     NeuroImage 99:571-588.
     http://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
+   The first application of this network-based statistical approach is
+    given in the following:
+    Taylor PA, Jacobson SW, van der Kouwe AJW, Molteno C, Chen G,
+    Wintermark P, Alhamud A, Jacobson JL, Meintjes EM (2014). A
+    DTI-based tractography study of effects on brain structure
+    associated with prenatal alcohol exposure in newborns. (accepted,
+    HBM)
+
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 '''
 
@@ -135,12 +151,15 @@ def main(argv):
     file_matr_glob = ''
     file_prefix = ''
     file_listmatch = ''
+    SWITCH_NAwarn = 1
 
     try:
-        opts, args = getopt.getopt(argv,"hc:m:p:l:",["csv_in=",
-                                                     "matr_in=",
-                                                     "prefix=",
-                                                     "list_match="])
+        opts, args = getopt.getopt(argv,"hNc:m:p:l:",["help",
+                                                      "NA_warn_off",
+                                                      "csv_in=",
+                                                      "matr_in=",
+                                                      "prefix=",
+                                                      "list_match="])
     except getopt.GetoptError:
         print help_line
         sys.exit(2)
@@ -156,6 +175,8 @@ def main(argv):
             file_prefix = arg
         elif opt in ("-l", "--list_match"):
             file_listmatch = arg
+        elif opt in ("-N", "--NA_warn_off"):
+            SWITCH_NAwarn = 0
 
     if ( file_csv == '' ) or ( file_prefix == '' ) :
 	print "** ERROR: missing a necessary input."
@@ -169,7 +190,8 @@ def main(argv):
         print " been input for the matrix file."
         print "\tThe glob one after '-m' will be ignored."
 
-    return file_csv, file_matr_glob, file_prefix, file_listmatch
+    return file_csv, file_matr_glob, file_prefix, file_listmatch, \
+     SWITCH_NAwarn
 
 
 ########################################################################
@@ -177,8 +199,11 @@ def main(argv):
 if __name__=="__main__":
     set_printoptions(linewidth=200)
     print "\n"
-    file_csv, file_matr_glob, file_prefix, file_listmatch     \
+    file_csv, file_matr_glob, file_prefix, file_listmatch, NA_WARN \
      = main(sys.argv[1:])
+
+    if not(NA_WARN):
+        print "++ Won't worn about NAs in the data."
 
     arg_list = sys.argv
     str_sep = ' '
@@ -186,7 +211,7 @@ if __name__=="__main__":
 
     ### get list of CSV file data
     csv_raw, csv_colvars = GR.LoadInCSV(file_csv)
-    csv_data, csv_coltypes = GR.ConvertCSVfromStr(csv_raw, csv_colvars)
+    csv_data, csv_coltypes = GR.ConvertCSVfromStr(csv_raw, csv_colvars,NA_WARN)
     csv_subj = [x[0] for x in csv_data]
     
     ### NET/GRID-- want col [1] of listfile, if it's there
