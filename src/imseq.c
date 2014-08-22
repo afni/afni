@@ -2928,6 +2928,8 @@ ENTRY("ISQ_make_image") ;
         case RENDER_WIPE_LEFT:    /* WIPE stuff 22 Aug 2014 */
         case RENDER_WIPE_BOT:
         case RENDER_WIPE_RADIAL:
+        case RENDER_WIPE_RIGHT:
+        case RENDER_WIPE_TOP:
         case RENDER_CHECK_UO:
         case RENDER_CHECK_OU:
           seq->set_orim = 0 ;
@@ -9315,6 +9317,8 @@ ENTRY("ISQ_manufacture_one") ;
        case RENDER_WIPE_LEFT:    /* WIPE stuff 22 Aug 2014 */
        case RENDER_WIPE_BOT:
        case RENDER_WIPE_RADIAL:
+       case RENDER_WIPE_RIGHT:
+       case RENDER_WIPE_TOP:
        case RENDER_CHECK_UO:
        case RENDER_CHECK_OU:
          im = ISQ_getchecked( nim , seq ) ;
@@ -11709,9 +11713,13 @@ ENTRY("ISQ_getchecked") ;
    else if( seq->render_mode == RENDER_WIPE_LEFT )    /* WIPE stuff 22 Aug 2014 */
      qim = mri_wiper_2D( WIPER_FROM_LEFT   , seq->render_fac , oim,uim ) ;
    else if( seq->render_mode == RENDER_WIPE_BOT )
-     qim = mri_wiper_2D( WIPER_FROM_BOTTOM , 1.0f-seq->render_fac , oim,uim ) ;
+     qim = mri_wiper_2D( WIPER_FROM_BOTTOM , seq->render_fac , oim,uim ) ;
    else if( seq->render_mode == RENDER_WIPE_RADIAL )
      qim = mri_wiper_2D( WIPER_FROM_CENTER , seq->render_fac , oim,uim ) ;
+   else if( seq->render_mode == RENDER_WIPE_RIGHT )
+     qim = mri_wiper_2D( WIPER_FROM_LEFT   , seq->render_fac , uim,oim ) ;
+   else if( seq->render_mode == RENDER_WIPE_TOP )
+     qim = mri_wiper_2D( WIPER_FROM_BOTTOM , seq->render_fac , uim,oim ) ;
 
    mri_free(oim) ;
    if( qim == NULL ){ uim->dx = dx ; uim->dy = dy ; RETURN(uim) ; }
@@ -12943,6 +12951,8 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
+     case '$':
+     case '%':
      case '4':
      case '5':
      case '6':{  /* 22 Aug 2014 */
@@ -12950,10 +12960,13 @@ ENTRY("ISQ_handle_keypress") ;
          ISQ_destroy_render_scal(seq) ; seq->render_mode = 0 ; seq->render_fac = 0.0f ;
        } else {
          ISQ_popup_render_scal(seq) ;
-         seq->render_mode =   (key == '4')
-                            ? RENDER_WIPE_LEFT
-                            : (key == '5')
-                            ? RENDER_WIPE_BOT : RENDER_WIPE_RADIAL ;
+         switch( key ){
+           case '4': seq->render_mode = RENDER_WIPE_LEFT  ; break ;
+           case '5': seq->render_mode = RENDER_WIPE_BOT   ; break ;
+           case '6': seq->render_mode = RENDER_WIPE_RADIAL; break ;
+           case '$': seq->render_mode = RENDER_WIPE_RIGHT ; break ;
+           case '%': seq->render_mode = RENDER_WIPE_TOP   ; break ;
+         }
          ISQ_set_scale( seq->render_scal , 50 ) ; seq->render_fac = 0.50f ;
        }
        ISQ_redisplay( seq , -1 , isqDR_display ) ;

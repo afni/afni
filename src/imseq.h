@@ -576,7 +576,9 @@ typedef struct MCW_imseq {
 #define RENDER_WIPE_LEFT   3
 #define RENDER_WIPE_BOT    4
 #define RENDER_WIPE_RADIAL 5
-#define RENDER_LASTMODE    5
+#define RENDER_WIPE_RIGHT  6
+#define RENDER_WIPE_TOP    7
+#define RENDER_LASTMODE    7
 
 #define ISQ_TIMERFUNC_INDEX  701
 #define ISQ_TIMERFUNC_BOUNCE 702
