@@ -183,6 +183,14 @@ def main(argv):
     NeuroImage 99:571-588.
     http://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
+   The first application of this network-based statistical approach is
+    given in the following:
+    Taylor PA, Jacobson SW, van der Kouwe AJW, Molteno C, Chen G,
+    Wintermark P, Alhamud A, Jacobson JL, Meintjes EM (2014). A
+    DTI-based tractography study of effects on brain structure
+    associated with prenatal alcohol exposure in newborns. (accepted,
+    HBM)
+
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 '''
  
