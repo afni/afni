@@ -560,6 +560,8 @@ typedef struct MCW_imseq {
 
      int render_mode ;                                /* 25 Oct 2008 */
      MCW_arrowval *wbar_checkbrd_av ;
+     float render_fac ;                               /* 22 Aug 2014 */
+     Widget render_scal ;
 
      MCW_arrowval *wbar_animdup_av ;                  /* 10 Feb 2009 */
 
@@ -568,10 +570,13 @@ typedef struct MCW_imseq {
      char *overlay_label ;                            /* 23 Dec 2011 */
 } MCW_imseq ;
 
-#define RENDER_DEFAULT    0
-#define RENDER_CHECK_UO   1
-#define RENDER_CHECK_OU   2
-#define RENDER_LASTMODE   2
+#define RENDER_DEFAULT     0
+#define RENDER_CHECK_UO    1
+#define RENDER_CHECK_OU    2
+#define RENDER_WIPE_LEFT   3
+#define RENDER_WIPE_BOT    4
+#define RENDER_WIPE_RADIAL 5
+#define RENDER_LASTMODE    5
 
 #define ISQ_TIMERFUNC_INDEX  701
 #define ISQ_TIMERFUNC_BOUNCE 702
@@ -777,6 +782,9 @@ extern MEM_plotdata * ISQ_getmemplot( int , MCW_imseq * ) ;
 extern char         * ISQ_getlabel  ( int , MCW_imseq * ) ;
 extern MRI_IMAGE    * ISQ_getchecked( int nn , MCW_imseq *seq ) ;
 extern int_triple ISQ_get_crosshairs( MCW_imseq *seq ) ;    /* 27 Aug 2009 */
+
+extern void ISQ_render_scal_CB( Widget , XtPointer , XtPointer ) ; /* 22 Aug 2014 */
+extern void ISQ_destroy_render_scal( MCW_imseq *seq ) ;
 
 extern void ISQ_free_alldata( MCW_imseq * ) ;
 
