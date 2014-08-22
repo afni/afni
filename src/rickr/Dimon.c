@@ -109,10 +109,14 @@ static char * g_history[] =
     "      - no (real) change should be noticed\n"
     "      - this was an internal re-write to allow for realtime sorting\n"
     " 4.01 Aug 13, 2014 [rickr] : minor changes\n",
+    " 4.02 Aug 22, 2014 [rickr] :\n",
+    "      - added -sort_method option (particularly for geme_index)\n"
+    "        (this is for real-time sorting based on GE_ME_INDEX fields)\n"
+    "      - added -save_detail, for save the details of image files\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.01 (August 13, 2014)"
+#define DIMON_VERSION "version 4.02 (August 22, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -260,8 +264,10 @@ extern struct dimon_stuff_t { int study, series, image, image_index;
 extern int          obl_info_set;
 extern int          g_is_oblique;
 extern oblique_info obl_info;
-extern float        g_image_posn[3];
 extern int          g_image_ori_ind[3];
+extern float        g_image_posn[3];
+extern int          g_ge_me_index;
+extern int          g_ge_nim_acq;
 
 static int          read_obl_info = 1;  /* only process obl_info once */
 static int          want_ushort2float = 0;  /* 9 Jul 2013 */
@@ -271,10 +277,11 @@ static int         g_compare_by_geh = 0;
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
 int                compare_by_num_suff( const void * v0, const void * v1 );
+int                compare_by_geme( const void * v0, const void * v1 );
+int                compare_by_sindex( const void * v0, const void * v1 );
 static int         copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset);
 static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
 static int         get_num_suffix( char * str );
-extern MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data );
 static int         read_afni_image( char *pathname, finfo_t *fp, int get_data);
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
 static int         sort_by_num_suff( char ** names, int nnames);
@@ -290,6 +297,7 @@ int disp_obl_info(char * mesg);
 /* local function declarations */
 
 static int append_new_files_to_fim_list(param_t  * p);
+int append_new_finfo_entry(param_t * p, char * fname);
 
 int compare_finfo_t            (const void * v0, const void * v1);
 int nfim_in_state              (param_t * p, int start, int end, int state);
@@ -310,7 +318,6 @@ static int disp_ftype          ( char * info, int ftype );
 static char * ftype_string     ( int ftype );
 static char * image_state_string( int state );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
-static int find_fl_file_index  ( param_t * p );
 static int find_more_volumes   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_next_zoff      ( param_t * p, int start, float zoff, int nim,
                                  int warn );
@@ -338,6 +345,16 @@ static int swap_4              ( void * ptr );
 
 static void hf_signal          ( int signum );
 static int string_lists_differ(string_list * L0, string_list * L1);
+
+int        sort_by_geme_index  (param_t * p);
+int        geme_find_block_end (param_t * p, int start);
+int        geme_set_range_n_state(param_t * p, int start, int * pmin,
+                                  int * pmax, int * nacq);
+int        geme_set_sort_indices(param_t * p, int_list * ilist, int ngeme,
+                                 int memin);
+int        guess_predefined_nacq(param_t * p, int ind);
+int        is_geme_sort_method (char * method);
+int        valid_sort_method   (char * method);
 
 /* volume scanning */
 int        check_one_volume    (param_t *p, int bound, int state,
@@ -407,7 +424,6 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
     int ret_val, n2read, n2proc;
     int sleep_ms = -1;  /* has not been set from data yet */
     int vs_state = 0;   /* state for volume search, can reset */
-    int nslices = p->opts.num_slices;
     int nfiles;         /* from read_image_files */
 
     if ( gD.level > 0 ) fprintf( stderr, "-- scanning for first volume\n" );
@@ -437,8 +453,9 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 
             /* try to recover from a data error */
             if ( ret_val == -1 ) ret_val = 0;
-            else if ( ret_val == 0 && n2read > 0 ) {
-               /* have images, no error, no volume, more to read: do it */
+
+            if ( ret_val == 0 && n2read > 0 ) {
+               /* have images, no volume, but more to read: do it */
                if( gD.level > 2 )
                   fprintf(stderr,"-d read ims, no err, no vol, more to read\n");
                update_max2read(p, p->max2read + IFM_MAX_IM_ALLOC);
@@ -452,11 +469,12 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             /* no_wait: if ret_val ever repeats (including start at 0), fail
                       (might go 40, 80, 120...)          16 Feb 2012 [rickr] */
             if ( p->opts.no_wait ) {
-                static int prev_nf = -1;
                 if ( nfiles == 0 ) { /* no new files read */
                     fprintf(stderr,
                             "\n** no_wait: no volume found in %d files\n\n",
                             p->nfim);
+                    if( gP.opts.flist_details )
+                       create_file_list(p, p->opts.flist_details, 1, "no_vol");
                     return -1;
                 }
             }
@@ -668,7 +686,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         /* maybe nap before getting more data */
         n2read = nfim_in_state(p, p->fim_start, p->nfim-1, IFM_FSTATE_TO_READ);
         /* write as negation of positive no-nap tests, for clarity */
-        if( ! (vmrval == 0 && n2read > 0 || vmrval == -1 || p->opts.no_wait ) )
+        if( ! ((vmrval == 0 && n2read > 0) || vmrval == -1 || p->opts.no_wait))
            nap_for_ms( nap_time );
 
         /* now we need new data - skip past last file name index */
@@ -697,8 +715,6 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                     if( n2proc > 0 ) {
                         fprintf(stderr,"\n** have %d unprocessed image(s)\n\n",
                                 n2proc);
-                        if( gD.level > 2 )
-                           create_file_list(p, "stderr", 1, "final list\n");
                     }
 
                     return 0;
@@ -735,6 +751,7 @@ int nap_for_ms(int ms)
 {
    if( gD.level > 2 ) fprintf(stderr,"-d napping for %d ms...\n", ms);
    iochan_sleep(ms);
+   return 0;
 }
 
 /* maybe we should let volume search fail multiple times */
@@ -769,7 +786,7 @@ static int volume_search(
     static int bound_cnt  =  0;         /* allow some number of checks */
     int        first;                   /* first image                 */
     int        last;                    /* final image in volume       */
-    int        n2proc, rv, ind;
+    int        n2proc, rv;
 
     first = p->fim_start;
     n2proc = nfim2proc(p);
@@ -1149,7 +1166,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p )
     char       * estr;
     float        z, zind;
     int          count, start, next_start = -1;
-    int          missing = 0, n2proc;
+    int          n2proc;
 
     if ( vin == NULL || vout == NULL || p == NULL )
     {
@@ -1225,7 +1242,6 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p )
         errs = 2; /* printed some error */
 
         if( next_start >= 0 ) {
-            int tind;
             fprintf(stderr,"++ attempting re-start at image %s\n"
                     "   (banishing %d images to FAILED state, from index %d)\n",
                     p->fim_o[next_start].fname, next_start-start, start);
@@ -1349,8 +1365,8 @@ static int check_error( int * retry, float tr, char * note )
 */
 static int read_image_files(param_t * p)
 {
-    static int org_todo = 1;    /* only organize once, so flag it   */
-    int rv, newstuff;
+    static int first = 1;    /* note first pass */
+    int        newstuff;
 
 /* rcr -
  * have dicom_org == rt_sort, maybe with no limit on # images processed
@@ -1387,14 +1403,22 @@ static int read_image_files(param_t * p)
     newstuff = read_new_images(p);
     if( newstuff < 0 ) return -1;
 
+    if( gP.opts.flist_details && newstuff && first )
+       create_file_list(p, p->opts.flist_details, 1, "first_read");
+
     /* fill fim_o, set fim_start */
     if( make_sorted_fim_list(p) < 0 ) return -1;
+
+    if( gP.opts.flist_details && newstuff && first )
+       create_file_list(p, p->opts.flist_details, 1, "first_sort");
 
     if(gD.level > 1)
        fprintf(stderr,
           "-- read_image_files: %d images, start = %d, proc = %d, tot = %d\n",
           newstuff, p->fim_start, nfim2proc(p), p->nfim);
     if ( gD.level > 3 ) idisp_param_t( "end read_image_files : ", p );
+
+    if( newstuff ) first = 0;
 
     /* may be negative for an error condition */
     return newstuff;
@@ -1438,17 +1462,23 @@ static int make_sorted_fim_list(param_t  * p)
 
    if( gD.level > 2 )
       fprintf(stderr,"-- fim_o: sorting image list (%d images from %d to %d)\n",
-              n2sort, p->fim_start, p->nfim);
+              n2sort, p->fim_start, p->nfim-1);
 
    /*-- sort from offset fim_start --*/
 
    fp = p->fim_o + p->fim_start;
-   /* if( gD.level > 5 ) create_file_list(p, "stderr", 1, "pre-sort...\n"); */
-   if( n2sort > 1 ) qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
-   /* if( gD.level > 5 ) create_file_list(p, "stderr", 1, "post-sort\n" ); */
+
+   /* apply requested sorting method            15 Aug 2014 [rickr] */
+   if( ! valid_sort_method(p->opts.sort_method) )
+      qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
+   else if( ! strcmp(p->opts.sort_method, "geme_index") )
+      sort_by_geme_index(p);
+   else
+      qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
 
    /* after sorting, increment starting index to first TO_PROC (or later)
     * image (if not found, fim_start should be left unchanged) */
+   fp = p->fim_o + p->fim_start; /* might have changed since first set */
    for( index = 0; index < n2sort; index++, fp++ ) {
       if( fp->state >= IFM_FSTATE_TO_PROC ) {
          /* if we skipped something, whine one last time */
@@ -1469,6 +1499,301 @@ static int make_sorted_fim_list(param_t  * p)
 
    return 0;
 }
+
+/* sort finto_t structs by GE multi-echo index scheme
+ *
+ * alphabetical, but for each grouping of ge_me_index values, sort by that
+ *
+ * - find minimum (or repeat)
+ */
+int sort_by_geme_index(param_t * p)
+{
+   static int_list ilist = { 0, 0, NULL };
+   static int      nwarn=1, s_geme_min = -1;
+   static int      snacq = -1;       /* read or computed ge_nim_acq */
+   int             n2sort, min, max, ngeme, nt;
+
+   if( gD.level > 2 )fprintf(stderr,"-- sorting by GE ME index...\n");
+   n2sort = p->nfim - p->fim_start;
+   if( n2sort <= 0 ) return 0;  /* nothing to do */
+
+   /* set geme value range and sates to TO_SORT (if TO_PROC) */
+   if( geme_set_range_n_state(p, p->fim_start, &min, &max, &snacq) ) return 0;
+   ngeme = max-min+1;
+   if( ngeme <= 0 ) return 0;
+   if( ngeme < snacq ) {
+      if( nwarn > 0 ) {
+        fprintf(stderr,"-- GE ME index count, only %d of %d, waiting...\n",
+                       ngeme, snacq);
+        nwarn--;
+      }
+      return 0;
+   }
+   if( ngeme > 10000 ) {
+      if( gD.level > 0 ) fprintf(stderr,"** SBGI: bad ngeme = %d\n", ngeme);
+      return 0;
+   }
+   if( nwarn == 0 ) {
+      fprintf(stderr,"-- GE ME index count, have all\n");
+      if( gD.level > 1 ) nwarn = 1; /* start over */
+      else               nwarn--;   /* no more messages */
+   }
+
+   /* be sure we have enough space for counters */
+   if( snacq > ilist.nall ) resize_int_list(&ilist, snacq);
+
+   /* and track overall minimum */
+   if( s_geme_min == -1 ) {
+      if( gD.level > 1 ) fprintf(stderr,"-- have initial geme_min = %d\n", min);
+      s_geme_min = min;
+   }
+   else if ( min < s_geme_min ) {
+      fprintf(stderr,"-- update in geme_min from %d to %d\n", s_geme_min, min);
+      s_geme_min = min;
+   } else if ( min > s_geme_min ) {
+      fprintf(stderr,"** found geme_min of %d, expected %d\n", min,s_geme_min);
+      /* rcr - check that max-s_geme_min+1 <= ilist.nall ? */
+   }
+
+   clear_int_list(&ilist);
+   ilist.num = ngeme;
+   /* set sindex values and states of ready image sets to TO_PROC */
+   nt = geme_set_sort_indices(p, &ilist, ngeme, min);
+   if( nt < 0 ) return -1;
+
+   /* and finally sort */
+   qsort(p->fim_o+p->fim_start, n2sort, sizeof(finfo_t), compare_by_sindex);
+
+   return 0;
+}
+
+/* set sort indices and then set "ready" images to TO_PROC state
+ *
+ *   for all images with state == TO_SORT:
+ *      mebase = geme_index - memin
+ *      set sindex to list[mebase]*ngeme + mebase
+ *         (offset sindex by p->fim_start)
+ *      list[mebase]++
+ *
+ *   nfull = min(ilist->list from 0 to ngeme-1)
+ *
+ *   for all images with state == TO_SORT:
+ *      if sindex <= nfull*ngeme, set state = TO_PROC
+ *
+ * return nfull
+ */
+int geme_set_sort_indices(param_t * p, int_list * ilist, int ngeme, int memin)
+{
+   finfo_t * fp;
+   int ind, mebase, nfull, nset, max_sind;
+
+   fp = p->fim_o + p->fim_start;
+   for( ind = p->fim_start; ind < p->nfim; ind++, fp++ ) {
+      if( fp->state != IFM_FSTATE_TO_SORT ) {
+if( fp->state < IFM_FSTATE_TO_SORT )
+   fprintf(stderr,"== GSSI: skip state %d image %s\n", fp->state, fp->fname);
+continue;
+}
+      mebase = fp->gex.ge_me_index - memin;
+
+      /* this should be a real, global sorted index (of TO_PROC images) */
+      fp->sindex = ilist->list[mebase]*ngeme + mebase + p->fim_start;
+      ilist->list[mebase]++;
+   }
+
+   /* get minimum ilist value, which is the number of full sort groups */
+   /* (i.e. the number of complete TRs) */
+   nfull = ilist->list[0];
+   for( ind = 1; ind < ngeme; ind++ )
+      if( ilist->list[ind] < nfull ) nfull = ilist->list[ind];
+
+   fp = p->fim_o + p->fim_start;
+   nset = 0;
+   max_sind = nfull*ngeme + p->fim_start;
+   for( ind = p->fim_start; ind < p->nfim; ind++, fp++ ) {
+      if( fp->state == IFM_FSTATE_TO_PROC )
+         fprintf(stderr,"** GSSI: unexpected TO_PROC for %s\n", fp->fname);
+
+      if( fp->state == IFM_FSTATE_TO_SORT && fp->sindex < max_sind ) {
+         fp->state = IFM_FSTATE_TO_PROC;
+         nset++;
+      }
+   }
+
+   if( gD.level > 1 )
+      fprintf(stderr,"-- GEME: preparing %d apparent TRs for sorting\n", nfull);
+   if( (nfull && gD.level > 1) || gD.level > 2 )
+      fprintf(stderr,"   (memin %d, ngeme %d, fim_start %d, nfim %d, nset %d,"
+                     " max_sind %d\n",
+              memin, ngeme, p->fim_start, p->nfim, nset, max_sind);
+
+   return nfull;
+}
+
+
+/* for all images, if state >= TO_PROC and state < TO_READ,
+ * set state to TO_SORT
+ * if nacq == -1, try to init from gex.ge_nim_acq
+ *
+ * note: there should really not be any TO_PROCs from previous sorts,
+ *       as anything set to that should have a complete volume
+ *
+ * return min and maximum ge_me_index
+ */
+int geme_set_range_n_state(param_t * p, int start, int * pmin, int * pmax,
+                           int * nacq)
+{
+   int ind, min, max, newnacq, meind, state;
+
+   if( start >= p->nfim ) return 0;     /* nothing to do */
+
+   /* see if there is a starting point */
+   for( ind = start; ind < p->nfim; ind++ ) {
+      state = p->fim_o[ind].state;
+      if( state >= IFM_FSTATE_TO_PROC && state < IFM_FSTATE_TO_READ )
+         break;
+   }
+   if( ind >= p->nfim ) {
+      *pmin = -1;
+      *pmax = -1;
+      return 0;       /* no starting point */
+   }
+
+   /* if we need nacq, see if it is available */
+   if( *nacq < 0 ) *nacq = guess_predefined_nacq(p, ind);
+
+   /* we have at least one image to work with, get min,max */
+   meind = p->fim_o[ind].gex.ge_me_index;
+   min = max = meind;
+   /* ind is still set from above */
+   for( /* nada */ ; ind < p->nfim; ind++ ) {
+      /* maybe we skip this entry */
+      state = p->fim_o[ind].state;
+      if( state < IFM_FSTATE_TO_PROC || state >= IFM_FSTATE_TO_READ )
+         continue;
+
+      /* set state, get ge_me_index */
+      p->fim_o[ind].state = IFM_FSTATE_TO_SORT;
+      meind = p->fim_o[ind].gex.ge_me_index;
+
+      /* maybe we init min/max */
+      if     ( meind  < min ) min = meind;
+      else if( meind  > max ) max = meind;
+   }
+
+   *pmin = min;
+   *pmax = max;
+
+   /* maybe set nacq based on range of values */
+   newnacq = max - min + 1;
+   if( newnacq > 0 ) {
+      if( *nacq < 0 ) {
+         if( gD.level > 0 )
+            fprintf(stderr,"++ setting nacq: have ngeme = %d\n", newnacq);
+         *nacq = newnacq;
+      } else if ( newnacq > *nacq ) {
+         if( gD.level > 1 )
+           fprintf(stderr,"++ setting nacq: have updated ngeme = %d\n",newnacq);
+         *nacq = newnacq;
+      } else if ( gD.level > 2 )
+         fprintf(stderr, "-- GSRNS: have new nacq = %d, over ims %d to %d\n",
+                 newnacq, start, p->nfim);
+   }
+
+   return 0;
+}
+
+int guess_predefined_nacq(param_t * p, int ind)
+{
+   int nacq = -1, tacq;
+
+   if( p->fim_o[ind].gex.ge_nim_acq > 0 ) {
+      nacq = p->fim_o[ind].gex.ge_nim_acq;
+      if( gD.level > 0 )
+         fprintf(stderr,"++ setting nacq: have ge_nim_acq = %d\n", nacq);
+   }
+
+   if( p->opts.num_slices > 0 && p->opts.num_chan > 0 ) {
+      tacq = p->opts.num_slices * p->opts.num_chan;
+      if( nacq < 0 ) {
+         if( gD.level > 0 )
+            fprintf(stderr,"++ setting nacq: slices x nchan = %d\n", tacq);
+      } else if ( tacq != nacq )
+         fprintf(stderr,"++ setting nacq: slices x nchan != ge_nim_acq "
+                 "(%d x %d != %d)\n"
+                 "   --> using slices x nchan = %d\n",
+                 p->opts.num_slices, p->opts.num_chan, nacq, tacq);
+      nacq = tacq;
+   }
+
+   if( nacq > 10000 )
+      fprintf(stderr,"** ge_nim_acq = %d, this seems too large\n", nacq);
+
+   return nacq;
+}
+
+/* find repeat of minimum, or end
+ *
+ * if a repeat of min or max is found,
+ *    min: back up until to previous RIN
+ *    max: go forward until different RIN
+ * (else, return nim-1)
+ */
+int geme_find_block_end(param_t * p, int start)
+{
+   int c, c2, meind = -1, memin, memax, imax;
+
+   /* rcr - enhance this to deal with missing data */
+
+   if( start >= p->nfim ) return start-1;
+
+   memin = p->fim_o[start].gex.ge_me_index;
+   memax = memin;
+   imax  = start;
+   
+   for( c = start+1; c < p->nfim; c++ ) {
+      meind = p->fim_o[c].gex.ge_me_index;
+
+      if      ( meind  < memin ) memin = meind;
+      else if ( meind  > memax ) {
+         memax = meind;
+         imax = c;      /* also need to know previous max location */
+      }
+      else if ( meind == memin ) break;
+      else if ( meind == memax ) break;
+   }
+
+   /* if end of list, we are done */
+   if( c >= p->nfim ) return p->nfim-1;
+
+   /* if min match, back up until previous RIN */
+   if( meind == memin ) {
+      c2 = c;
+      c--; /* was previously beyond a good return value */
+      if( c2 < p->nfim ) {
+         while( c > start &&
+                p->fim_o[c].geh.index == p->fim_o[c2].geh.index ) c--;
+      }
+      return c;
+   }
+
+   /* if max match, start from previous and go forward until RIN */
+   if( meind == memax ) {
+      c2 = imax;
+      c = c2+1;
+      while( c < p->nfim-1 &&
+             p->fim_o[c].geh.index == p->fim_o[c2].geh.index ) c++;
+      if( c < p->nfim-1 ) c--;  /* last before change */
+      return c;
+   }
+
+   /* error */
+   fprintf(stderr,"** GEME_FBE: bad finish, s=%d, c=%d, n=%d\n",
+           start,c,p->nfim);
+
+   return -1;
+}
+
 
 /* count states from start to end (use defaults if start==end) */
 int nfim_in_state(param_t * p, int start, int end, int state)
@@ -1621,6 +1946,7 @@ int append_new_finfo_entry(param_t * p, char * fname)
 
    /* init next struct */
    p->fim_o[p->nfim].findex = p->nfim;
+   p->fim_o[p->nfim].sindex = -1;
    p->fim_o[p->nfim].state  = IFM_FSTATE_TO_READ;
    p->fim_o[p->nfim].fname  = strdup(fname);
    p->fim_o[p->nfim].imdata = NULL;
@@ -1659,6 +1985,7 @@ static int get_sorted_file_names ( param_t  * p )
     } else
        MCW_file_expand( 1, &p->glob_dir, &nfiles, &fnames );
 
+    if( nfiles == 0 ) return 0;
 
     /* possibly sort by name */
     if( p->opts.sort_num_suff && (sort_by_num_suff(fnames, nfiles) < 0) )
@@ -1850,7 +2177,7 @@ static int read_new_images( param_t * p )
 
    n2read = nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_READ);
    if( n2read > 300 && p->max2read <= 0 ) stat = n2read/10;
-   if( stat && gD.level > 0 )
+   if( stat && gD.level > 1 )
       fprintf(stderr,"-- reading %d image files ", n2read);
 
    for( index = p->fim_skip; index < p->nfim; index++, fp++ ) {
@@ -1874,12 +2201,8 @@ static int read_new_images( param_t * p )
          nread++;
 
          /* babble, and maybe break out */
-         if( gD.level > 3 ) {
-            fprintf(stderr,"++ have new image #%d from %s\n", index, fp->fname);
-            idisp_ge_header_info( NULL, &fp->geh );
-            idisp_ge_extras( NULL, &fp->gex );
-            idisp_mosaic_info( NULL, &fp->minfo );
-         }
+         if( gD.level > 3 ) idisp_finfo_t("++ have new image ", fp);
+
          if( stat && gD.level && !(nread%stat) ) fputc('.', stderr);
          
          if( p->max2read > 0 && nread >= p->max2read ) {
@@ -1921,7 +2244,8 @@ static int sort_by_num_suff(char ** names, int nnames)
 
     if( gD.level > 2 ) fprintf(stderr,"-- sort_by_num_suff...\n");
 
-    if( !names || nnames <= 0 || !*names ) return -1;
+    if( !names || nnames < 0 || !*names ) return -1;
+    if( nnames == 0 ) return 0;
 
     /* sort the names */
     qsort(names, nnames, sizeof(char *), compare_by_num_suff);
@@ -1978,7 +2302,9 @@ int compare_by_num_suff( const void * v0, const void * v1 )
     if ( n0 < n1 ) return -1;
     if ( n0 > n1 ) return  1;
 
-    return 0;  /* equal */
+    /* if equal, sort alphabetically (15 Aug 2014) */
+
+    return strcmp(*(char **)v0, *(char **)v1);
 }
 
 
@@ -2057,6 +2383,39 @@ int compare_finfo( const void * v0, const void * v1 )
 }
 
 
+/*----------------------------------------------------------------------
+ * compare structures by GE_ME field, else input index
+ *----------------------------------------------------------------------
+*/
+int compare_by_geme( const void * v0, const void * v1 )
+{
+    finfo_t * f0  = (finfo_t *)v0;
+    finfo_t * f1  = (finfo_t *)v1;
+
+    if( f0->gex.ge_me_index != f1->gex.ge_me_index )
+        return f0->gex.ge_me_index-f1->gex.ge_me_index;
+
+    return f0->findex - f1->findex;
+}
+
+
+int compare_by_sindex( const void * v0, const void * v1 )
+{
+    finfo_t * f0  = (finfo_t *)v0;
+    finfo_t * f1  = (finfo_t *)v1;
+
+    /* state major sort */
+    if( f0->state  != f1->state  ) return f0->state-f1->state;
+
+    /* sindex only applies if state <= TO_PROC */
+    if( f0->state <= IFM_FSTATE_TO_PROC && f0->sindex != f1->sindex )
+       return f0->sindex-f1->sindex;
+
+    /* minor order */
+    return f0->findex - f1->findex;
+}
+
+
 /* init param_t struct elements */
 static int init_param_t( param_t * p )
 {
@@ -2077,6 +2436,8 @@ static int init_param_t( param_t * p )
    p->fim_o = NULL;
 
    p->max2read = IFM_MAX_IM_ALLOC;   /* max images to read at a time */
+
+   return 0;
 }
 
 /*----------------------------------------------------------------------
@@ -2431,6 +2792,20 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.sort_num_suff = 1;
         }
+        else if ( ! strncmp( argv[ac], "-sort_method", 10 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -sort_method METHOD\n", stderr );
+                return 1;
+            }
+            p->opts.sort_method = argv[ac];
+            if( ! valid_sort_method(p->opts.sort_method) ) {
+               fprintf(stderr,"** invalid sort method: %s\n", argv[ac]);
+               fprintf(stderr,"   (do you want geme_index?)\n");
+               return 1;
+            }
+        }
         else if ( ! strncmp( argv[ac], "-sp", 3 ) )
         {
             if ( ++ac >= argc )
@@ -2694,6 +3069,21 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 }
 
 
+int valid_sort_method(char * method)
+{
+   if( ! method ) return 0;
+   if( ! strcmp(method, "default") ) return 1;
+   if( ! strcmp(method, "geme_index") ) return 1;
+   return 0;
+}
+
+int is_geme_sort_method(char * method)
+{
+   if( ! method ) return 0;
+   if( ! strcmp(method, "geme_index") ) return 1;
+   return 0;
+}
+
 /*----------------------------------------------------------------------
  * initialize:
  *     - nice level
@@ -2912,6 +3302,8 @@ static int read_afni_image( char * pathname, finfo_t * fp, int get_data )
     gexp->skip   = -1;
     gexp->swap   = 0; /* rcr, should I bother? */
     gexp->kk     = 0;
+    gexp->ge_me_index = -1;
+    gexp->ge_nim_acq = -1;
     gexp->xorg   = DSET_XORG(dset);
     gexp->yorg   = DSET_YORG(dset);
     memset(gexp->xyz, 0, 9*sizeof(float)); /* skip xyz[9] */
@@ -3070,6 +3462,8 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     gexp->skip   = -1;
     gexp->swap   = im->was_swapped;
     gexp->kk     = 0;
+    gexp->ge_me_index = g_ge_me_index;
+    gexp->ge_nim_acq = g_ge_nim_acq;
     gexp->xorg   = g_image_posn[0];
     gexp->yorg   = g_image_posn[1];
     memset(gexp->xyz, 0, 9*sizeof(float)); /* skip xyz[9] */
@@ -3402,6 +3796,8 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         gexp->skip   = skip;
         gexp->swap   = swap;
         gexp->kk     = kk;
+        gexp->ge_me_index = -1;
+        gexp->ge_nim_acq = -1;
 
         memcpy( gexp->xyz, xyz, sizeof(xyz) );
         
@@ -3544,6 +3940,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   rev_sort_dir       = %d\n"
             "   flist_file         = %s\n"
             "   flist_details      = %s\n"
+            "   sort_method        = %s\n"
             "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
             "   num_chan           = %d\n"
             "   host               = %s\n"
@@ -3569,7 +3966,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
             opt->rev_org_dir, opt->rev_sort_dir,
-            CHECK_NULL_STR(opt->flist_file), CHECK_NULL_STR(opt->flist_file),
+            CHECK_NULL_STR(opt->flist_file), CHECK_NULL_STR(opt->flist_details),
+            CHECK_NULL_STR(opt->sort_method),
             opt->rt, opt->swap, opt->rev_bo, opt->num_chan,
             CHECK_NULL_STR(opt->host),
             opt->drive_list.num, opt->drive_list.nall, opt->drive_list.list,
@@ -3593,6 +3991,7 @@ static char * image_state_string( int state )
     else if ( state == IFM_FSTATE_UNKNOWN ) return "FSTATE_UNKNOWN";
     else if ( state == IFM_FSTATE_DONE    ) return "FSTATE_DONE";
     else if ( state == IFM_FSTATE_TO_PROC ) return "FSTATE_TO_PROC";
+    else if ( state == IFM_FSTATE_TO_SORT ) return "FSTATE_TO_SORT";
     else if ( state == IFM_FSTATE_TO_READ ) return "FSTATE_TO_READ";
 
     return "FSTATE_INVALID";
@@ -3644,12 +4043,13 @@ static int idisp_finfo_t( char * info, finfo_t * p )
     fprintf( stream,
             "finfo_t struct:\n"
             "   findex              = %d\n"
+            "   sindex              = %d\n"
             "   state               = %d\n"
             "   bad_reads           = %d\n"
             "   nbytes              = %d\n"
             "   fname               = %s\n"
             "   imdata              = %s\n",
-            p->findex, p->state, p->bad_reads, p->nbytes,
+            p->findex, p->sindex, p->state, p->bad_reads, p->nbytes,
             CHECK_NULL_STR(p->fname),
             p->imdata ? "<set>" : "<not set>"
             );
@@ -3724,12 +4124,15 @@ static int idisp_ge_extras( char * info, ge_extras * E )
             "    skip             = %d\n"
             "    swap             = %d\n"
             "    kk               = %d\n"
+            "    ge_me_index      = %d\n"
+            "    ge_nim_acq       = %d\n"
             "    xorg             = %g\n"
             "    yorg             = %g\n"
             "    (xyz0,xyz1,xyz2) = (%g,%g,%g)\n"
             "    (xyz3,xyz4,xyz5) = (%g,%g,%g)\n"
             "    (xyz6,xyz7,xyz8) = (%g,%g,%g)\n",
             E->bpp, E->cflag, E->hdroff, E->skip, E->swap, E->kk,
+            E->ge_me_index, E->ge_nim_acq,
             E->xorg,   E->yorg,
             E->xyz[0], E->xyz[1], E->xyz[2],
             E->xyz[3], E->xyz[4], E->xyz[5],
@@ -3820,935 +4223,969 @@ static int usage ( char * prog, int level )
     }
     else if ( level == IFM_USE_LONG )
     {
-      printf(
-      "\n"
-      "%s - monitor real-time acquisition of DICOM image files\n"
-      "    (or GEMS 5.x I-files, as 'Imon')\n"
-      "\n"
-      "    This program is intended to be run during a scanning session\n"
-      "    on a scanner, to monitor the collection of image files.  The\n"
-      "    user will be notified of any missing slice or any slice that\n"
-      "    is acquired out of order.\n"
-      "\n"
-      "    When collecting DICOM files, it is recommended to run this\n"
-      "    once per run, only because it is easier to specify the input\n"
-      "    file pattern for a single run (it may be very difficult to\n"
-      "    predict the form of input filenames runs that have not yet\n"
-      "    occurred.\n"
-      "\n"
-      "    This program can also be used off-line (away from the scanner)\n"
-      "    to organize the files, run by run.  If the DICOM files have\n"
-      "    a correct DICOM 'image number' (0x0020 0013), then Dimon can\n"
-      "    use the information to organize the sequence of the files, \n"
-      "    particularly when the alphabetization of the filenames does\n"
-      "    not match the sequencing of the slice positions.  This can be\n"
-      "    used in conjunction with the '-GERT_Reco' option, which will\n"
-      "    write a script that can be used to create AFNI datasets.\n"
-      "\n"
-      "    See the '-dicom_org' option, under 'other options', below.\n"
-      "\n"
-      "    If no -quit option is provided (and no -no_wait), the user should\n"
-      "    terminate the program when it is done collecting images according\n"
-      "    to the input file pattern.\n"
-      "\n"
-      "    Dimon can be terminated using <ctrl-c>.\n"
-      "\n"
-      "  ---------------------------------------------------------------\n"
-      "  comments for using Dimon with various image file types\n"
-      "\n"
-      "     DICOM : this is the intended and default use\n"
-      "             - provide at least -infile_prefix\n"
-      "\n"
-      "     GEMS 5x. : GE Medical Systems I-files\n"
-      "             - requires -start_dir and -file_type GEMS\n"
-      "             - works as the original Imon program\n"
-      "\n"
-      "     AFNI : AFNI/NIfTI volume datasets\n"
-      "             - requires -file_type AFNI\n"
-      "             - use -sp to specify slice timing pattern\n"
-      "             - if datasets are 4D, please use rtfeedme\n"
-      "\n"
-      "  ---------------------------------------------------------------\n"
-      "  realtime notes for running afni remotely:\n"
-      "\n"
-      "    - The afni program must be started with the '-rt' option to\n"
-      "      invoke the realtime plugin functionality.\n"
-      "\n"
-      "    - If afni is run remotely, then AFNI_TRUSTHOST will need to be\n"
-      "      set on the host running afni.  The value of that variable\n"
-      "      should be set to the IP address of the host running %s.\n"
-      "      This may set as an environment variable, or via the .afnirc\n"
-      "      startup file.\n"
-      "\n"
-      "    - The typical default security on a Linux system will prevent\n"
-      "      %s from communicating with afni on the host running afni.\n"
-      "      The iptables firewall service on afni's host will need to be\n"
-      "      configured to accept the communication from the host running\n"
-      "      %s, or it (iptables) will need to be turned off.\n"
-      "  ---------------------------------------------------------------\n"
-      "  usage: %s [options] -infile_prefix PREFIX\n"
-      "     OR: %s [options] -infile_pattern \"PATTERN\"\n"
-      "     OR: %s [options] -infile_list FILES.txt\n"
-      "\n"
-      "  ---------------------------------------------------------------\n"
-      "  notes regarding Siemens mosaic images:\n"
-      "\n"
-      "    - Final run slices will be reported as 1 (since there is only 1\n"
-      "      actual image), but mos_nslices will show the mosaic slice count.\n"
-      "\n"
-      "    - Acquisition timing for the slices will depend on the number of\n"
-      "      slices (parity), as well as the mosiac ordering.  So users may\n"
-      "      need to rely on reading slice timing from the DICOM headers.\n"
-      "\n"
-      "    - If slice timing is detected, \n"
-      "\n"
-      "  ---------------------------------------------------------------\n"
-      "  examples:\n"
-      "\n"
-      "  A. no real-time options:\n"
-      "\n"
-      "    %s -infile_prefix   s8912345/i\n"
-      "    %s -infile_pattern 's8912345/i*'\n"
-      "    %s -infile_list     my_files.txt\n"
-      "    %s -help\n"
-      "    %s -infile_prefix   s8912345/i  -quit\n"
-      "    %s -infile_prefix   s8912345/i  -nt 120 -quit\n"
-      "    %s -infile_prefix   s8912345/i  -debug 2\n"
-      "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
-      "\n"
-      "  A2. investigate a list of files: \n"
-      "\n"
-      "    %s -infile_pattern '*' -dicom_org -show_sorted_list -quit\n"
-      "\n"
-      "  A3. save a sorted list of files and check it later: \n"
-      "\n"
-      "    %s -infile_prefix data/im -dicom_org -save_file_list sorted.files\n"
-      "    %s -infile_list sorted.files ... \n"
-      "\n"
-      "  B. for GERT_Reco:\n"
-      "\n"
-      "    %s -infile_prefix run_003/image -gert_create_dataset\n"
-      "    %s -infile_prefix run_003/image -dicom_org -GERT_Reco -no_wait\n"
-      "    %s -infile_prefix 'run_00[3-5]/image' -GERT_Reco -quit\n"
-      "    %s -infile_prefix anat/image -GERT_Reco -no_wait\n"
-      "    %s -infile_prefix epi_003/image -dicom_org -no_wait \\\n"
-      "          -GERT_Reco -gert_to3d_prefix run3 -gert_nz 42\n"
-      "\n"
-      "  B2. Deal with Philips data (names are not sorted, and image numbers\n"
-      "      are in slice-major order).  Sort by acq time, then inst num.\n"
-      "      See -sort_by_acq_time in help output for details.\n"
-      "\n"
-      "    %s -infile_pattern 'data/*.dcm' -GERT_Reco -quit \\\n"
-      "          -use_last_elem -use_slice_loc -dicom_org -sort_by_acq_time\n"
-      "\n"
-      "  B2. Simple examples for NIH scanners (GE or Siemens).\n"
-      "\n"
-      "      o  create GERT_Reco script to put data into AFNI format\n"
-      "      o  create GERT_Reco script AND execute it (running to3d)\n"
-      "         (-gert_create_dataset implies -GERT_Reco and -quit)\n"
-      "      o  create and execute script, but make a NIfTI dataset\n"
-      "      o  also, store the datasets under a 'MRI_dsets' directory\n"
-      "\n"
-      "    %s -infile_pattern 'mr_0015/*.dcm' -GERT_Reco -quit \n"
-      "    %s -infile_prefix 'mr_0003/image' -gert_create_dataset\n"
-      "    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
-      "          -gert_write_as_nifti \n"
-      "    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
-      "          -gert_outdir MRI_dsets -gert_write_as_nifti\n"
-      "\n"
-      "  C. with real-time options:\n"
-      "\n"
-      "    %s -infile_prefix s8912345/i -rt \n"
-      "\n"
-      "    %s -infile_pattern 's*/i*' -rt \n"
-      "    %s -infile_pattern 's*/i*' -rt -nt 120\n"
-      "    %s -infile_pattern 's*/i*' -rt -quit\n"
-      "    %s -infile_prefix s8912345/i -rt -num_chan 2 -quit\n"
-      "\n"
-      "    ** detailed real-time example:\n"
-      "\n"
-      "    %s                                    \\\n"
-      "       -infile_pattern 's*/i*'               \\\n"
-      "       -rt -nt 120                           \\\n"
-      "       -host some.remote.computer            \\\n"
-      "       -rt_cmd \"PREFIX 2005_0513_run3\"     \\\n"
-      "       -num_slices 32                        \\\n"
-      "       -max_quiet_trs 3                      \\\n"
-      "       -sleep_frac 0.4                       \\\n"
-      "       -quit                                 \n"
-      "\n"
-      "    This example scans data starting from directory 003, expects\n"
-      "    120 repetitions (TRs), and invokes the real-time processing,\n"
-      "    sending data to a computer called some.remote.computer.name\n"
-      "    (where afni is running, and which considers THIS computer to\n"
-      "    be trusted - see the AFNI_TRUSTHOST environment variable).\n"
-      "    The time to wait for new data is 1.1*TR, and 32 slices are\n"
-      "    required for a volume\n"
-      "\n"
-      "    Note that -num_slices can be important in a real-time setup,\n"
-      "    as scanners do not always write the slices in order.   Slices\n"
-      "    from volume #1 can appear on disk before all slices from volume\n"
-      "    #0, in which case Dimon might determine an incorrect number of\n"
-      "    slices per volume.\n"
-      "\n"
-      "  -------------------------------------------\n"
-      "    Multiple DRIVE_AFNI commands are passed through '-drive_afni'\n"
-      "    options, one requesting to open an axial image window, and\n"
-      "    another requesting an axial graph, with 160 data points.\n"
-      "\n"
-      "    Also, '-drive_wait' options may be used like '-drive_afni',\n"
-      "    except that the real-time plugin will wait until the first new\n"
-      "    volume is processed before executing those DRIVE_AFNI commands.\n"
-      "    One advantage of this is opening an image window for a dataset\n"
-      "    _after_ it is loaded, allowing afni to approriately set the\n"
-      "    window size.\n"
-      "\n"
-      "    See README.driver for acceptable DRIVE_AFNI commands.\n"
-      "\n"
-      "    Also, multiple commands specific to the real-time plugin are\n"
-      "    passed via '-rt_cmd' options.  The PREFIX command sets the\n"
-      "    prefix for the datasets output by afni.  The GRAPH_XRANGE and\n"
-      "    GRAPH_YRANGE commands set the graph dimensions for the 3D\n"
-      "    motion correction graph (only).  And the GRAPH_EXPR command\n"
-      "    is used to replace the 6 default motion correction graphs with\n"
-      "    a single graph, according to the given expression, the square\n"
-      "    root of the average squared entry of the 3 rotation params,\n"
-      "    roll, pitch and yaw, ignoring the 3 shift parameters, dx, dy\n"
-      "    and dz.\n"
-      "\n"
-      "    See README.realtime for acceptable DRIVE_AFNI commands.\n"
-      "\n"
-      "  example D (drive_afni):\n"
-      "\n"
-      "    %s                                                   \\\n"
-      "       -infile_pattern 's*/i*.dcm'                         \\\n"
-      "       -nt 160                                             \\\n"
-      "       -rt                                                 \\\n"
-      "       -host some.remote.computer.name                     \\\n"
-      "       -drive_afni 'OPEN_WINDOW axialimage'                \\\n"
-      "       -drive_afni 'OPEN_WINDOW axialgraph pinnum=160'     \\\n"
-      "       -rt_cmd 'PREFIX eat.more.cheese'                    \\\n"
-      "       -rt_cmd 'GRAPH_XRANGE 160'                          \\\n"
-      "       -rt_cmd 'GRAPH_YRANGE 1.02'                         \\\n"
-      "       -rt_cmd 'GRAPH_EXPR sqrt(d*d+e*e+f*f)'\n"
-      "\n"
-      "  -------------------------------------------\n"
-      "\n"
-      "  example E (drive_wait):\n"
-      "\n"
-      "    Close windows and re-open them after data has arrived.\n"
-      "\n"
-      "    Dimon                                                    \\\n"
-      "       -infile_prefix EPI_run1/8HRBRAIN                      \\\n"
-      "       -rt                                                   \\\n"
-      "       -drive_afni 'CLOSE_WINDOW axialimage'                 \\\n"
-      "       -drive_afni 'CLOSE_WINDOW sagittalimage'              \\\n"
-      "       -drive_wait 'OPEN_WINDOW axialimage geom=+20+20'      \\\n"
-      "       -drive_wait 'OPEN_WINDOW sagittalimage geom=+520+20'  \\\n"
-      "       -rt_cmd 'PREFIX brie.would.be.good'                   \\\n"
-      "\n"
-      "  -------------------------------------------\n"
-      "  example F (for testing complete real-time system):\n"
-      "\n"
-      "    ** consider AFNI_data6/realtime.demos/demo.2.fback.*\n"
-      "\n"
-      "    Use Dimon to send volumes to afni's real-time plugin, simulating\n"
-      "    TR timing with Dimon's -pause option.  Motion parameters and ROI\n"
-      "    averages are then sent on to realtime_receiver.py (for subject\n"
-      "    feedback).\n"
-      "    \n"
-      "    a. Start afni in real-time mode, but first set some environment\n"
-      "       variables to make it explicit what might be set in the plugin.\n"
-      "       Not one of these variables is actually necessary, but they \n"
-      "       make the process more scriptable.\n"
-      "    \n"
-      "       See Readme.environment for details on any variable.\n"
-      "    \n"
-      "           setenv AFNI_TRUSTHOST              localhost\n"
-      "           setenv AFNI_REALTIME_Registration  3D:_realtime\n"
-      "           setenv AFNI_REALTIME_Graph         Realtime\n"
-      "           setenv AFNI_REALTIME_MP_HOST_PORT  localhost:53214\n"
-      "           setenv AFNI_REALTIME_SEND_VER      YES\n"
-      "           setenv AFNI_REALTIME_SHOW_TIMES    YES\n"
-      "           setenv AFNI_REALTIME_Mask_Vals     ROI_means\n"
-      "    \n"
-      "           afni -rt\n"
-      "    \n"
-      "       Note: in order to send ROI averages per TR, the user must\n"
-      "             choose a mask in the real-time plugin.\n"
-      "    \n"
-      "    b. Start realtime_receiver.py to show received data.\n"
-      "    \n"
-      "           realtime_receiver.py -show_data yes\n"
-      "    \n"
-      "    c. Run Dimon from the AFNI_data3 directory, in real-time mode,\n"
-      "       using a 2 second pause to simulate the TR.  Dicom images are\n"
-      "       under EPI_run1, and the files start with 8HRBRAIN.\n"
-      "    \n"
-      "           Dimon -rt -pause 2000 -infile_prefix EPI_run1/8HRBRAIN\n"
-      "    \n"
-      "       Note that Dimon can be run many times at this point.\n"
-      "\n"
-      "    --------------------\n"
-      "\n"
-      "    c2. alternately, set some env vars via Dimon\n"
-      "\n"
-      "         Dimon -rt -pause 2000 -infile_prefix EPI_run1/8          \\\n"
-      "           -drive_afni 'SETENV AFNI_REALTIME_Mask_Vals=ROI_means' \\\n"
-      "           -drive_afni 'SETENV AFNI_REALTIME_SEND_VER=Yes'        \\\n"
-      "           -drive_afni 'SETENV AFNI_REALTIME_SHOW_TIMES=Yes'\n"
-      "\n"
-      "       Note that plugout_drive can also be used to set vars at\n"
-      "       run-time, though plugouts must be enabled to use it.\n"
-      "\n"
-      "\n"
-      "  -------------------------------------------\n"
-      "  example G: when reading AFNI datasets\n"
-      "\n"
-      "    Note that single-volume AFNI datasets might not contain the.\n"
-      "    TR and slice timing information (since they are not considered\n"
-      "    to be time series).  So it may be necessary to specify such\n"
-      "    information on the command line.\n"
-      "\n"
-      "    %s -rt                                                  \\\n"
-      "       -infile_pattern EPI_run1/vol.*.HEAD                     \\\n"
-      "       -file_type AFNI -sleep_vol 1000 -sp alt+z -tr 2.0 -quit\n"
-      "\n"
-      "  ---------------------------------------------------------------\n",
-      prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-      prog, prog, prog, prog, prog, prog, prog, prog, prog,
-      prog, prog, prog, prog, prog, prog, prog,
-      prog, prog, prog, prog, prog, prog, prog, prog );
-          
-      printf(
-          "  notes:\n"
-          "\n"
-          "    - Once started, unless the '-quit' option is used, this\n"
-          "      program exits only when a fatal error occurs (single\n"
-          "      missing or out of order slices are not considered fatal).\n"
-          "      Otherwise, it keeps waiting for new data to arrive.\n"
-          "\n"
-          "      With the '-quit' option, the program will terminate once\n"
-          "      there is a significant (~2 TR) pause in acquisition.\n"
-          "\n"
-          "    - To terminate this program, use <ctrl-c>.\n"
-          "\n"
-          "  ---------------------------------------------------------------\n"
-          "  main options:\n"
-          "\n"
-          "    For DICOM images, either -infile_pattern or -infile_prefix\n"
-          "    is required.\n"
-          "\n"
-          "    -infile_pattern PATTERN : specify pattern for input files\n"
-          "\n"
-          "        e.g. -infile_pattern 'run1/i*.dcm'\n"
-          "\n"
-          "        This option is used to specify a wildcard pattern matching\n"
-          "        the names of the input DICOM files.  These files should be\n"
-          "        sorted in the order that they are to be assembled, i.e.\n"
-          "        when the files are sorted alphabetically, they should be\n"
-          "        sequential slices in a volume, and the volumes should then\n"
-          "        progress over time (as with the 'to3d' program).\n"
-          "\n"
-          "        The pattern for this option must be within quotes, because\n"
-          "        it will be up to the program to search for new files (that\n"
-          "        match the pattern), not the shell.\n"
-          "\n"
-          "    -infile_prefix PREFIX   : specify prefix matching input files\n"
-          "\n"
-          "        e.g. -infile_prefix run1/i\n"
-          "\n"
-          "        This option is similar to -infile_pattern.  By providing\n"
-          "        only a prefix, the user need not use wildcard characters\n"
-          "        with quotes.  Using PREFIX with -infile_prefix is\n"
-          "        equivalent to using 'PREFIX*' with -infile_pattern (note\n"
-          "        the needed quotes).\n"
-          "\n"
-          "        Note that it may not be a good idea to use, say 'run1/'\n"
-          "        for the prefix, as there might be a readme file under\n"
-          "        that directory.\n"
-          "\n"
-          "        Note also that it is necessary to provide a '/' at the\n"
-          "        end, if the prefix is a directory (e.g. use run1/ instead\n"
-          "        of simply run1).\n"
-          "\n"
-          "    -infile_list MY_FILES.txt : filenames are in MY_FILES.txt\n"
-          "\n"
-          "        e.g. -infile_list subject_17_files\n"
-          "\n"
-          "        If the user would rather specify a list of DICOM files to\n"
-          "        read, those files can be enumerated in a text file, the\n"
-          "        name of which would be passed to the program.\n"
-          "\n"
-          "  ---------------------------------------------------------------\n"
-          "  real-time options:\n"
-          "\n"
-          "    -rt                : specify to use the real-time facility\n"
-          "\n"
-          "        With this option, the user tells '%s' to use the real-time\n"
-          "        facility, passing each volume of images to an existing\n"
-          "        afni process on some machine (as specified by the '-host'\n"
-          "        option).  Whenever a new volume is acquired, it will be\n"
-          "        sent to the afni program for immediate update.\n"
-          "\n"
-          "        Note that afni must also be started with the '-rt' option\n"
-          "        to make use of this.\n"
-          "\n"
-          "        Note also that the '-host HOSTNAME' option is not required\n"
-          "        if afni is running on the same machine.\n"
-          "\n"
-          "    -drive_afni CMND   : send 'drive afni' command, CMND\n"
-          "\n"
-          "        e.g.  -drive_afni 'OPEN_WINDOW axialimage'\n"
-          "\n"
-          "        This option is used to pass a single DRIVE_AFNI command\n"
-          "        to afni.  For example, 'OPEN_WINDOW axialimage' will open\n"
-          "        such an axial view window on the afni controller.\n"
-          "\n"
-          "        Note: the command 'CMND' must be given in quotes, so that\n"
-          "              the shell will send it as a single parameter.\n"
-          "\n"
-          "        Note: this option may be used multiple times.\n"
-          "\n"
-          "        See README.driver for more details.\n"
-          "\n"
-          "    -drive_wait CMND   : send delayed 'drive afni' command, CMND\n"
-          "\n"
-          "        e.g.  -drive_wait 'OPEN_WINDOW axialimage'\n"
-          "\n"
-          "        This option is used to pass a single DRIVE_AFNI command\n"
-          "        to afni.  For example, 'OPEN_WINDOW axialimage' will open\n"
-          "        such an axial view window on the afni controller.\n"
-          "\n"
-          "        This has the same effect as '-drive_afni', except that\n"
-          "        the real-time plugin will wait until the next completed\n"
-          "        volume to execute the command.\n"
-          "\n"
-          "        An example of where this is useful is so that afni 'knows'\n"
-          "        about a new dataset before opening the given image window,\n"
-          "        allowing afni to size the window appropriately.\n"
-          "\n"
-          "    -fast              : process data very quickly\n"
-          "\n"
-          "        short for:  -sleep_init 50 -sleep_vol 50\n"
-          "\n"
-          "    -host HOSTNAME     : specify the host for afni communication\n"
-          "\n"
-          "        e.g.  -host mycomputer.dot.my.network\n"
-          "        e.g.  -host 127.0.0.127\n"
-          "        e.g.  -host mycomputer\n"
-          "        the default host is 'localhost'\n"
-          "\n"
-          "        The specified HOSTNAME represents the machine that is\n"
-          "        running afni.  Images will be sent to afni on this machine\n"
-          "        during the execution of '%s'.\n"
-          "\n"
-          "        Note that the environment variable AFNI_TRUSTHOST must be\n"
-          "        set on the machine running afni.  Set this equal to the\n"
-          "        name of the machine running Imon (so that afni knows to\n"
-          "        accept the data from the sending machine).\n"
-          "\n"
-          "    -num_chan CHANNELS : specify number of channels to send over\n"
-          "\n"
-          "        e.g.  -num_chan 8\n"
-          "\n"
-          "        This option tells the realtime plugin how many channels to\n"
-          "        break incoming data into.  Each channel would then get its\n"
-          "        own dataset.\n"
-          "\n"
-          "        Note that this simply distributes the data as it is read\n"
-          "        across multiple datasets.  If 12 volumes are seen in some\n"
-          "        directory and -num_chan 2 is specified, then volumes 0, 2,\n"
-          "        4, 6, 8 and 10 would go to one dataset (e.g. channel 1),\n"
-          "        while volumes 1,3,5,7,9,11 would go to another.\n"
-          "\n"
-          "        A sample use might be for multi-echo data.  If echo pairs\n"
-          "        appear to Dimon sequentially over the TRs, then -num_chan\n"
-          "        could be used to send each echo type to its own dataset.\n"
-          "        This option was added for J Evans.\n"
-          "\n"
-          "        Currently, -num_chan only affects the realtime use.\n"
-          "\n"
-          "    -pause TIME_IN_MS : pause after each new volume\n"
-          "\n"
-          "        e.g.  -pause 200\n"
-          "\n"
-          "        In some cases, the user may wish to slow down a real-time\n"
-          "        process.  This option will cause a delay of TIME_IN_MS\n"
-          "        milliseconds after each volume is found.\n"
-          "\n"
-          "    -rev_byte_order   : pass the reverse of the BYTEORDER to afni\n"
-          "\n"
-          "        Reverse the byte order that is given to afni.  In case the\n"
-          "        detected byte order is not what is desired, this option\n"
-          "        can be used to reverse it.\n"
-          "\n"
-          "        See the (obsolete) '-swap' option for more details.\n"
-          "\n"
-          "    -rt_cmd COMMAND   : send COMMAND(s) to realtime plugin\n"
-          "\n"
-          "        e.g.  -rt_cmd 'GRAPH_XRANGE 120'\n"
-          "        e.g.  -rt_cmd 'GRAPH_XRANGE 120 \\n GRAPH_YRANGE 2.5'\n"
-          "\n"
-          "        This option is used to pass commands to the realtime\n"
-          "        plugin.  For example, 'GRAPH_XRANGE 120' will set the\n"
-          "        x-scale of the motion graph window to 120 (repetitions).\n"
-          "\n"
-          "        Note: the command 'COMMAND' must be given in quotes, so\n"
-          "        that the shell will send it as a single parameter.\n"
-          "\n"
-          "        Note: this option may be used multiple times.\n"
-          "\n"
-          "        See README.realtime for more details.\n"
-          "\n"
-          "    -show_sorted_list  : display -dicom_org info and quit\n"
-          "\n"
-          "        After the -dicom_org has taken effect, display the list\n"
-          "        of run index, image index and filenames that results.\n"
-          "        This option can be used as a simple review of the files\n"
-          "        under some directory tree, say.\n"
-          "\n"
-          "        See the -show_sorted_list example under example A2.\n"
-          "\n"
-          "    -sleep_init MS    : time to sleep between initial data checks\n"
-          "\n"
-          "        e.g.  -sleep_init 500\n"
-          "\n"
-          "        While Dimon searches for the first volume, it checks for\n"
-          "        files, pauses, checks, pauses, etc., until some are found.\n"
-          "        By default, the pause is approximately 3000 ms.\n"
-          "\n"
-          "        This option, given in milliseconds, will override that\n"
-          "        default time.\n"
-          "\n"
-          "        A small time makes the program seem more responsive.  But\n"
-          "        if the time is too small, and no new files are seen on\n"
-          "        successive checks, Dimon may think the first volume is\n"
-          "        complete (with too few slices).\n"
-          "\n"
-          "        If the minimum time it takes for the scanner to output\n"
-          "        more slices is T, then 1/2 T is a reasonable -sleep_init\n"
-          "        time.  Note: that minimum T had better be reliable.\n"
-          "\n"
-          "        The example shows a sleep time of half of a second.\n"
-          "\n"
-          "        See also -fast.\n"
-          "\n"
-          "    -sleep_vol MS     : time to sleep between volume checks\n"
-          "\n"
-          "        e.g.  -sleep_vol 1000\n"
-          "\n"
-          "        When Dimon finds some volumes and there still seems to be\n"
-          "        more to acquire, it sleeps for a while (and outputs '.').\n"
-          "        This option can be used to specify the amount of time it\n"
-          "        sleeps before checking again.  The default is 1.5*TR.\n"
-          "\n"
-          "        The example shows a sleep time of one second.\n"
-          "\n"
-          "        See also -fast.\n"
-          "\n"
-          "    -sleep_frac FRAC  : new data search, fraction of TR to sleep\n"
-          "\n"
-          "        e.g.  -sleep_frac 0.5\n"
-          "\n"
-          "        When Dimon finds some volumes and there still seems to be\n"
-          "        more to acquire, it sleeps for a while (and outputs '.').\n"
-          "        This option can be used to specify the amount of time it\n"
-          "        sleeps before checking again, as a fraction of the TR.\n"
-          "        The default is 1.5 (as the fraction).\n"
-          "\n"
-          "        The example shows a sleep time of one half of a TR.\n"
-          "\n"
-          "    -swap  (obsolete) : swap data bytes before sending to afni\n"
-          "\n"
-          "        Since afni may be running on a different machine, the byte\n"
-          "        order may differ there.  This option will force the bytes\n"
-          "        to be reversed, before sending the data to afni.\n"
-          "\n"
-          "        ** As of version 3.0, this option should not be necessary.\n"
-          "           '%s' detects the byte order of the image data, and then\n"
-          "           passes that information to afni.  The realtime plugin\n"
-          "           will (now) decide whether to swap bytes in the viewer.\n"
-          "\n"
-          "           If for some reason the user wishes to reverse the order\n"
-          "           from what is detected, '-rev_byte_order' can be used.\n"
-          "\n"
-          "    -zorder ORDER     : slice order over time\n"
-          "\n"
-          "        e.g. -zorder alt\n"
-          "        e.g. -zorder seq\n"
-          "        the default is 'alt'\n"
-          "\n"
-          "        This options allows the user to alter the slice\n"
-          "        acquisition order in real-time mode, similar to the slice\n"
-          "        pattern of the '-sp' option.  The main differences are:\n"
-          "            o  only two choices are presently available\n"
-          "            o  the syntax is intentionally different (from that\n"
-          "               of 'to3d' or the '-sp' option)\n"
-          "\n"
-          "        ORDER values:\n"
-          "            alt   : alternating in the Z direction (over time)\n"
-          "            seq   : sequential in the Z direction (over time)\n"
-          "\n"
-          "  ---------------------------------------------------------------\n"
-          "  other options:\n"
-          "\n"
-          "    -debug LEVEL       : show debug information during execution\n"
-          "\n"
-          "        e.g.  -debug 2\n"
-          "        the default level is 1, the domain is [0,3]\n"
-          "        the '-quiet' option is equivalent to '-debug 0'\n"
-          "\n"
-          "    -dicom_org         : organize files before other processing\n"
-          "\n"
-          "        e.g.  -dicom_org\n"
-          "\n"
-          "        When this flag is set, the program will attempt to read in\n"
-          "        all files subject to -infile_prefix or -infile_pattern,\n"
-          "        determine which are DICOM image files, and organize them\n"
-          "        into an ordered list of files per run.\n"
-          "\n"
-          "        This may be necessary since the alphabetized list of files\n"
-          "        will not always match the sequential slice and time order\n"
-          "        (which means, for instance, that '*.dcm' may not list\n"
-          "        files in the correct order.\n"
-          "\n"
-          "        In this case, if the DICOM files contain a valid 'image\n"
-          "        number' field (0x0020 0013), then they will be sorted\n"
-          "        before any further processing is done.\n"
-          "\n"
-          "        Notes:\n"
-          "\n"
-          "        - This does not work in real-time mode, since the files\n"
-          "          must all be organized before processing begins.\n"
-          "\n"
-          "        - The DICOM images need valid 'image number' fields for\n"
-          "          organization to be possible (DICOM field 0x0020 0013).\n"
-          "\n"
-          "        - This works will in conjunction with '-GERT_Reco', to\n"
-          "          create a script to make AFNI datasets.  There will be\n"
-          "          a single file per run that contains the image filenames\n"
-          "          for that run (in order).  This is fed to 'to3d'.\n"
-          "\n"
-          "        - This may be used with '-save_file_list', to store the\n"
-          "          list of sorted filenames in an output file.\n"
-          "\n"
-          "        - The images can be sorted in reverse order using the\n"
-          "          option, -rev_org_dir.\n"
-          "\n"
-          "    -epsilon EPSILON   : specify EPSILON for 'equality' tests\n"
-          "\n"
-          "        e.g.  -epsilon 0.05\n"
-          "        the default is 0.01\n"
-          "\n"
-          "        When checking z-coordinates or differences between them\n"
-          "        for 'equality', a check of (difference < EPSILON) is used.\n"
-          "        This option lets the user specify that cutoff value.\n"
-          "\n"
-          "    -file_type TYPE    : specify type of image files to be read\n"
-          "\n"
-          "        e.g.  -file_type AFNI\n"
-          "        the default is DICOM\n"
-          "\n"
-          "        Dimon will currently process GEMS 5.x or DICOM files\n"
-          "        (single slice or Siemens mosaic).\n"
-          "\n"
-          "        possible values for TYPE:\n"
-          "\n"
-          "           GEMS      : GE Medical Systems GEMS 5.x format\n"
-          "           DICOM     : DICOM format, possibly Siemens mosaic\n"
-          "           AFNI      : AFNI or NIfTI formatted datasets\n"
-          "\n"
-          "    -help              : show this help information\n"
-          "\n"
-          "    -hist              : display a history of program changes\n"
-          "\n"
-          "    -max_images NUM    : limit on images (slices per volume)\n"
-          "\n"
-          "        e.g.  -max_images 256\n"
-          "        default = 3000\n"
-          "\n"
-          "        This variable is in case something is very messed up with\n"
-          "        the data, and prevents the program from continuing after\n"
-          "        failing to find a volume in this number of images.\n"
-          "\n"
-          "    -max_quiet_trs TRS : max number of TRs without data (if -quit)\n"
-          "\n"
-          "        e.g.  -max_quiet_trs 4\n"
-          "        default = 2\n"
-          "\n"
-          "        This variable is to specify the number of TRs for which\n"
-          "        having no new data is okay.  After this number of TRs, it\n"
-          "        is assumed that the run has ended.\n"
-          "\n"
-          "        The TR (duration) comes from either the image files or\n"
-          "        the -tr option.\n"
-          "\n"
-          "    -nice INCREMENT    : adjust the nice value for the process\n"
-          "\n"
-          "        e.g.  -nice 10\n"
-          "        the default is 0, and the maximum is 20\n"
-          "        a superuser may use down to the minimum of -19\n"
-          "\n"
-          "        A positive INCREMENT to the nice value of a process will\n"
-          "        lower its priority, allowing other processes more CPU\n"
-          "        time.\n"
-          "\n"
-          "    -no_wait           : never wait for new data\n"
-          "\n"
-          "        More forceful than -quit, when using this option, the\n"
-          "        program should never wait for new data.  This option\n"
-          "        implies -quit and is implied by -gert_create_dataset.\n"
-          "\n"
-          "        This is appropriate to use when the image files have\n"
-          "        already been collected.\n"
-          "\n"
-          "    -nt VOLUMES_PER_RUN : set the number of time points per run\n"
-          "\n"
-          "        e.g.  -nt 120\n"
-          "\n"
-          "        With this option, if a run stalls before the specified\n"
-          "        VOLUMES_PER_RUN is reached (notably including the first\n"
-          "        run), the user will be notified.\n"
-          "\n"
-          "        Without this option, %s will compute the expected number\n"
-          "        of time points per run based on the first run (and will\n"
-          "        allow the value to increase based on subsequent runs).\n"
-          "        Therefore %s would not detect a stalled first run.\n"
-          "\n"
-          "    -num_slices SLICES  : slices per volume must match this\n"
-          "\n"
-          "        e.g.  -num_slices 34\n"
-          "\n"
-          "        Setting this puts a restriction on the first volume\n"
-          "        search, requiring the number of slices found to match.\n"
-          "\n"
-          "        This prevents odd failures at the scanner, which does not\n"
-          "        necessarily write out all files for the first volume\n"
-          "        before writing some file from the second.\n"
-          "\n"
-          "    -quiet             : show only errors and final information\n"
-          "\n"
-          "    -quit              : quit when there is no new data\n"
-          "\n"
-          "        With this option, the program will terminate once a delay\n"
-          "        in new data occurs (an apparent end-of-run pause).\n"
-          "\n"
-          "        This option is implied by -no_wait.\n"
-          "\n"
-          "    -rev_org_dir       : reverse the sort in dicom_org\n"
-          "\n"
-          "        e.g.  -rev_org_dir\n"
-          "\n"
-          "        With the -dicom_org option, the program will attempt to\n"
-          "        organize the DICOM files with respect to run and image\n"
-          "        numbers.  Normally that is an ascending sort.  With this\n"
-          "        option, the sort is reversed.\n"
-          "\n"
-          "        see also: -dicom_org\n"
-          "\n"
-          "    -rev_sort_dir      : reverse the alphabetical sort on names\n"
-          "\n"
-          "        e.g.  -rev_sort_dir\n"
-          "\n"
-          "        With this option, the program will sort the input files\n"
-          "        in descending order, as opposed to ascending order.\n"
-          "\n"
-          "    -save_file_list FILENAME : store the list of sorted files\n"
-          "\n"
-          "        e.g.  -save_file_list dicom_file_list\n"
-          "\n"
-          "        With this option the program will store the list of files,\n"
-          "        sorted via -dicom_org, in the output file, FILENAME.  The\n"
-          "        user may wish to have a separate list of the files.\n"
-          "\n"
-          "        Note: this option requires '-dicom_org'.\n"
-          "\n"
-          "    -sort_by_acq_time  : sort files by acquisition time\n"
-          "\n"
-          "        e.g.  -dicom_org -sort_by_acq_time\n"
-          "\n"
-          "        When this option is used with -dicom_org, the program will\n"
-          "        sort DICOM images according to:\n"
-          "           run, acq time, image index and image number\n"
-          "\n"
-          "        For instance, Philips files may have 0020 0013 (Inst. Num)\n"
-          "        fields that are ordered as slice-major (volume minor).\n"
-          "        But since slice needs to be the minor number, Acquisition\n"
-          "        Time may be used for the major sort, before Instance Num.\n"
-          "        So sort first by Acquisition Num, then by Instance.\n"
-          "\n"
-          "        Consider example B2.\n"
-          "\n"
-          "    -sort_by_num_suffix : sort files according to numerical suffix\n"
-          "\n"
-          "        e.g.  -sort_by_num_suffix\n"
-          "\n"
-          "        With this option, the program will sort the input files\n"
-          "        according to the trailing '.NUMBER' in the filename.  This\n"
-          "        NUMBER will be evaluated as a positive integer, not via\n"
-          "        an alphabetic sort (so numbers need not be zero-padded).\n"
-          "\n"
-          "        This is intended for use on interleaved files, which are\n"
-          "        properly enumerated, but only in the filename suffix.\n"
-          "        Consider a set of names for a single, interleaved volume:\n"
-          "\n"
-          "          im001.1  im002.3  im003.5  im004.7  im005.9  im006.11\n"
-          "          im007.2  im008.4  im009.6  im010.8  im011.10\n"
-          "\n"
-          "        Here the images were named by 'time' of acquisition, and\n"
-          "        were interleaved.  So an alphabetic sort is not along the\n"
-          "        slice position (z-order).  However the slice ordering was\n"
-          "        encoded in the suffix of the filenames.\n"
-          "\n"
-          "        NOTE: the suffix numbers must be unique\n"
-          "\n"
-          "    -start_file S_FILE : have %s process starting at S_FILE\n"
-          "\n"
-          "        e.g.  -start_file 043/I.901\n"
-          "\n"
-          "        With this option, any earlier I-files will be ignored\n"
-          "        by %s.  This is a good way to start processing a later\n"
-          "        run, if it desired not to look at the earlier data.\n"
-          "\n"
-          "        In this example, all files in directories 003 and 023\n"
-          "        would be ignored, along with everything in 043 up through\n"
-          "        I.900.  So 043/I.901 might be the first file in run 2.\n"
-          "\n"
-          "    -tr TR             : specify the TR, in seconds\n"
-          "\n"
-          "        e.g.  -tr 5.0\n"
-          "\n"
-          "        In the case where volumes are acquired in clusters, the TR\n"
-          "        is different than the time needed to acquire one volume.\n"
-          "        But some scanners incorrectly store the latter time in the\n"
-          "        TR field.\n"
-          "        \n"
-          "        This option allows the user to override what is found in\n"
-          "        the image files, which is particularly useul in real-time\n"
-          "        mode, though is also important to have stored properly in\n"
-          "        the final EPI datasets.\n"
-          "\n"
-          "        Here, TR is in seconds.\n"
-          "\n"
-          "    -use_imon          : revert to Imon functionality\n"
-          "\n"
-          "        ** This option is deprecated.\n"
-          "           Use -file_type GEMS, instead.\n"
-          "\n"
-          "    -use_last_elem     : use the last elements when reading DICOM\n"
-          "\n"
-          "        In some poorly created DICOM image files, some elements\n"
-          "        are listed incorrectly, before being listed correctly.\n"
-          "\n"
-          "        Use the option to search for the last occurrence of each\n"
-          "        element, not necessarily the first.\n"
-          "\n"
-          "    -use_slice_loc     : use REL Slice Loc for z offset\n"
-          "\n"
-          "        REL Slice Location, 0020 1041, is sometimes used for the\n"
-          "        z offset, rather than Image Position.\n"
-          "        \n"
-          "        Use this option to set slice offsets according to SLoc.\n"
-          "\n"
-          "    -version           : show the version information\n"
-          "\n",
-          prog, prog, prog, prog, prog, prog, prog
-        );
-        printf(
-          "  ---------------------------------------------------------------\n"
-          "  GERT_Reco options:\n"
-          "\n"
-          "    -GERT_Reco        : output a GERT_Reco_dicom script\n"
-          "\n"
-          "        Create a script called 'GERT_Reco_dicom', similar to the\n"
-          "        one that Ifile creates.  This script may be run to create\n"
-          "        the AFNI datasets corresponding to the I-files.\n"
-          "\n"
-          "    -gert_create_dataset     : actually create the output dataset\n"
-          "\n"
-          "        Execute any GERT_Reco script, creating the AFNI or NIfTI\n"
-          "        datasets.\n"
-          "\n"
-          "        This option implies -GERT_Reco and -quit.\n"
-          "\n"
-          "        See also -gert_write_as_nifti.\n"
-          "\n"
-          "    -gert_filename FILENAME : save GERT_Reco as FILENAME\n"
-          "\n"
-          "        e.g. -gert_filename gert_reco_anat\n"
-          "\n"
-          "        This option can be used to specify the name of the script,\n"
-          "        as opposed to using GERT_Reco_dicom.\n"
-          "\n"
-          "        By default, if the script is generated for a single run,\n"
-          "        it will be named GERT_Reco_dicom_NNN, where 'NNN' is the\n"
-          "        run number found in the image files.  If it is generated\n"
-          "        for multiple runs, then the default it to name it simply\n"
-          "        GERT_Reco_dicom.\n"
-          "\n"
-          "    -gert_nz NZ        : specify the number of slices in a mosaic\n"
-          "\n"
-          "        e.g. -gert_nz 42\n"
-          "\n"
-          "        Dimon happens to be able to write valid to3d commands\n"
-          "        for mosaic (volume) data, even though it is intended for\n"
-          "        slices.  In the case of mosaics, the user must specify the\n"
-          "        number of slices in an image file, or any GERT_Reco script\n"
-          "        will specify nz as 1.\n"
-          "\n"
-          "    -gert_outdir OUTPUT_DIR  : set output directory in GERT_Reco\n"
-          "\n"
-          "        e.g. -gert_outdir subject_A7\n"
-          "        e.g. -od subject_A7\n"
-          "        the default is '-gert_outdir .'\n"
-          "\n"
-          "        This will add '-od OUTPUT_DIR' to the @RenamePanga command\n"
-          "        in the GERT_Reco script, creating new datasets in the\n"
-          "        OUTPUT_DIR directory, instead of the 'afni' directory.\n"
-          "\n"
-          "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco\n"
-          "\n"
-          "        e.g. -sp alt-z\n"
-          "        the default is 'alt+z'\n"
-          "\n"
-          "        This options allows the user to alter the slice\n"
-          "        acquisition pattern in the GERT_Reco script.\n"
-          "\n"
-          "        See 'to3d -help' for more information.\n"
-          "\n"
-          "    -gert_to3d_prefix PREFIX : set to3d PREFIX in output script\n"
-          "\n"
-          "        e.g. -gert_to3d_prefix anatomy\n"
-          "\n"
-          "        When creating a GERT_Reco script that calls 'to3d', this\n"
-          "        option will be applied to '-prefix'.\n"
-          "\n"
-          "        The default prefix is 'OutBrick_run_NNN', where NNN is the\n"
-          "        run number found in the images.\n"
-          "\n"
-          "      * Caution: this option should only be used when the output\n"
-          "        is for a single run.\n"
-          "\n"
-          "    -gert_write_as_nifti     : output dataset should be in NIFTI format\n"
-          "\n"
-          "        By default, datasets created by the GERT_Reco script will be in \n"
-          "        afni format.  Use this option to create them in NIfTI format,\n"
-          "        instead.  These merely appends a .nii to the -prefix option of\n"
-          "        the to3d command.\n"
-          "\n"
-          "        See also -gert_create_dataset.\n"
-          "\n"
-          "    -gert_quit_on_err : Add -quit_on_err option to to3d command\n"
-          "                        which has the effect of causing to3d to \n"
-          "                        fail rather than come up in interactive\n"
-          "                        mode if the input has an error.\n"
-          "  ---------------------------------------------------------------\n"
-          "\n"
-          "  Author: R. Reynolds - %s\n"
-          "\n",
-          DIMON_VERSION
-        );
+printf(
+"\n"
+"%s - monitor real-time acquisition of DICOM image files\n"
+"    (or GEMS 5.x I-files, as 'Imon')\n"
+"\n"
+"    This program is intended to be run during a scanning session\n"
+"    on a scanner, to monitor the collection of image files.  The\n"
+"    user will be notified of any missing slice or any slice that\n"
+"    is acquired out of order.\n"
+"\n"
+"    When collecting DICOM files, it is recommended to run this\n"
+"    once per run, only because it is easier to specify the input\n"
+"    file pattern for a single run (it may be very difficult to\n"
+"    predict the form of input filenames runs that have not yet\n"
+"    occurred.\n"
+"\n"
+"    This program can also be used off-line (away from the scanner)\n"
+"    to organize the files, run by run.  If the DICOM files have\n"
+"    a correct DICOM 'image number' (0x0020 0013), then Dimon can\n"
+"    use the information to organize the sequence of the files, \n"
+"    particularly when the alphabetization of the filenames does\n"
+"    not match the sequencing of the slice positions.  This can be\n"
+"    used in conjunction with the '-GERT_Reco' option, which will\n"
+"    write a script that can be used to create AFNI datasets.\n"
+"\n"
+"    See the '-dicom_org' option, under 'other options', below.\n"
+"\n"
+"    If no -quit option is provided (and no -no_wait), the user should\n"
+"    terminate the program when it is done collecting images according\n"
+"    to the input file pattern.\n"
+"\n"
+"    Dimon can be terminated using <ctrl-c>.\n"
+"\n"
+"  ---------------------------------------------------------------\n"
+"  comments for using Dimon with various image file types\n"
+"\n"
+"     DICOM : this is the intended and default use\n"
+"             - provide at least -infile_prefix\n"
+"\n"
+"     GEMS 5x. : GE Medical Systems I-files\n"
+"             - requires -start_dir and -file_type GEMS\n"
+"             - works as the original Imon program\n"
+"\n"
+"     AFNI : AFNI/NIfTI volume datasets\n"
+"             - requires -file_type AFNI\n"
+"             - use -sp to specify slice timing pattern\n"
+"             - if datasets are 4D, please use rtfeedme\n"
+"\n"
+"  ---------------------------------------------------------------\n"
+"  realtime notes for running afni remotely:\n"
+"\n"
+"    - The afni program must be started with the '-rt' option to\n"
+"      invoke the realtime plugin functionality.\n"
+"\n"
+"    - If afni is run remotely, then AFNI_TRUSTHOST will need to be\n"
+"      set on the host running afni.  The value of that variable\n"
+"      should be set to the IP address of the host running %s.\n"
+"      This may set as an environment variable, or via the .afnirc\n"
+"      startup file.\n"
+"\n"
+"    - The typical default security on a Linux system will prevent\n"
+"      %s from communicating with afni on the host running afni.\n"
+"      The iptables firewall service on afni's host will need to be\n"
+"      configured to accept the communication from the host running\n"
+"      %s, or it (iptables) will need to be turned off.\n"
+"  ---------------------------------------------------------------\n"
+"  usage: %s [options] -infile_prefix PREFIX\n"
+"     OR: %s [options] -infile_pattern \"PATTERN\"\n"
+"     OR: %s [options] -infile_list FILES.txt\n"
+"\n"
+"  ---------------------------------------------------------------\n"
+"  notes regarding Siemens mosaic images:\n"
+"\n"
+"    - Final run slices will be reported as 1 (since there is only 1\n"
+"      actual image), but mos_nslices will show the mosaic slice count.\n"
+"\n"
+"    - Acquisition timing for the slices will depend on the number of\n"
+"      slices (parity), as well as the mosiac ordering.  So users may\n"
+"      need to rely on reading slice timing from the DICOM headers.\n"
+"\n"
+"    - If slice timing is detected, \n"
+"\n",
+prog, prog, prog, prog, prog, prog, prog);
+
+printf(
+"  ---------------------------------------------------------------\n"
+"  old examples:\n"
+"\n"
+"  A. no real-time options:\n"
+"\n"
+"    %s -infile_prefix   s8912345/i\n"
+"    %s -infile_pattern 's8912345/i*'\n"
+"    %s -infile_list     my_files.txt\n"
+"    %s -help\n"
+"    %s -infile_prefix   s8912345/i  -quit\n"
+"    %s -infile_prefix   s8912345/i  -nt 120 -quit\n"
+"    %s -infile_prefix   s8912345/i  -debug 2\n"
+"    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
+"\n"
+"  A2. investigate a list of files: \n"
+"\n"
+"    %s -infile_pattern '*' -dicom_org -show_sorted_list -quit\n"
+"\n"
+"  A3. save a sorted list of files and check it later: \n"
+"\n"
+"    %s -infile_prefix data/im -dicom_org -save_file_list sorted.files\n"
+"    %s -infile_list sorted.files ... \n"
+"\n"
+"  B. for GERT_Reco:\n"
+"\n"
+"    %s -infile_prefix run_003/image -gert_create_dataset\n"
+"    %s -infile_prefix run_003/image -dicom_org -GERT_Reco -no_wait\n"
+"    %s -infile_prefix 'run_00[3-5]/image' -GERT_Reco -quit\n"
+"    %s -infile_prefix anat/image -GERT_Reco -no_wait\n"
+"    %s -infile_prefix epi_003/image -dicom_org -no_wait \\\n"
+"          -GERT_Reco -gert_to3d_prefix run3 -gert_nz 42\n"
+"\n"
+"  B2. Deal with Philips data (names are not sorted, and image numbers\n"
+"      are in slice-major order).  Sort by acq time, then inst num.\n"
+"      See -sort_by_acq_time in help output for details.\n"
+"\n"
+"    %s -infile_pattern 'data/*.dcm' -GERT_Reco -quit \\\n"
+"          -use_last_elem -use_slice_loc -dicom_org -sort_by_acq_time\n"
+"\n"
+"  B3. Simple examples for NIH scanners (GE or Siemens).\n"
+"\n"
+"      o  create GERT_Reco script to put data into AFNI format\n"
+"      o  create GERT_Reco script AND execute it (running to3d)\n"
+"         (-gert_create_dataset implies -GERT_Reco and -quit)\n"
+"      o  create and execute script, but make a NIfTI dataset\n"
+"      o  also, store the datasets under a 'MRI_dsets' directory\n"
+"\n"
+"    %s -infile_pattern 'mr_0015/*.dcm' -GERT_Reco -quit \n"
+"    %s -infile_prefix 'mr_0003/image' -gert_create_dataset\n"
+"    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
+"          -gert_write_as_nifti \n"
+"    %s -infile_pattern 'mr_0003/*.dcm' -gert_create_dataset\n"
+"          -gert_outdir MRI_dsets -gert_write_as_nifti\n"
+"\n"
+"  C. with real-time options:\n"
+"\n"
+"    %s -infile_prefix s8912345/i -rt \n"
+"\n"
+"    %s -infile_pattern 's*/i*' -rt \n"
+"    %s -infile_pattern 's*/i*' -rt -nt 120\n"
+"    %s -infile_pattern 's*/i*' -rt -quit\n"
+"    %s -infile_prefix s8912345/i -rt -num_chan 2 -quit\n"
+"\n"
+"    %s -infile_pre run1/i -rt -num_chan 3 -quit -sort_method geme_index\n"
+"\n"
+"    ** detailed real-time example:\n"
+"\n"
+"    %s                                    \\\n"
+"       -infile_pattern 's*/i*'               \\\n"
+"       -rt -nt 120                           \\\n"
+"       -host some.remote.computer            \\\n"
+"       -rt_cmd \"PREFIX 2005_0513_run3\"     \\\n"
+"       -num_slices 32                        \\\n"
+"       -max_quiet_trs 3                      \\\n"
+"       -sleep_frac 0.4                       \\\n"
+"       -quit                                 \n"
+"\n"
+"    This example scans data starting from directory 003, expects\n"
+"    120 repetitions (TRs), and invokes the real-time processing,\n"
+"    sending data to a computer called some.remote.computer.name\n"
+"    (where afni is running, and which considers THIS computer to\n"
+"    be trusted - see the AFNI_TRUSTHOST environment variable).\n"
+"    The time to wait for new data is 1.1*TR, and 32 slices are\n"
+"    required for a volume\n"
+"\n"
+"    Note that -num_slices can be important in a real-time setup,\n"
+"    as scanners do not always write the slices in order.   Slices\n"
+"    from volume #1 can appear on disk before all slices from volume\n"
+"    #0, in which case Dimon might determine an incorrect number of\n"
+"    slices per volume.\n"
+"\n"
+"  -------------------------------------------\n"
+"    Multiple DRIVE_AFNI commands are passed through '-drive_afni'\n"
+"    options, one requesting to open an axial image window, and\n"
+"    another requesting an axial graph, with 160 data points.\n"
+"\n"
+"    Also, '-drive_wait' options may be used like '-drive_afni',\n"
+"    except that the real-time plugin will wait until the first new\n"
+"    volume is processed before executing those DRIVE_AFNI commands.\n"
+"    One advantage of this is opening an image window for a dataset\n"
+"    _after_ it is loaded, allowing afni to approriately set the\n"
+"    window size.\n"
+"\n"
+"    See README.driver for acceptable DRIVE_AFNI commands.\n"
+"\n"
+"    Also, multiple commands specific to the real-time plugin are\n"
+"    passed via '-rt_cmd' options.  The PREFIX command sets the\n"
+"    prefix for the datasets output by afni.  The GRAPH_XRANGE and\n"
+"    GRAPH_YRANGE commands set the graph dimensions for the 3D\n"
+"    motion correction graph (only).  And the GRAPH_EXPR command\n"
+"    is used to replace the 6 default motion correction graphs with\n"
+"    a single graph, according to the given expression, the square\n"
+"    root of the average squared entry of the 3 rotation params,\n"
+"    roll, pitch and yaw, ignoring the 3 shift parameters, dx, dy\n"
+"    and dz.\n"
+"\n"
+"    See README.realtime for acceptable DRIVE_AFNI commands.\n"
+"\n"
+"  example D (drive_afni):\n"
+"\n"
+"    %s                                                   \\\n"
+"       -infile_pattern 's*/i*.dcm'                         \\\n"
+"       -nt 160                                             \\\n"
+"       -rt                                                 \\\n"
+"       -host some.remote.computer.name                     \\\n"
+"       -drive_afni 'OPEN_WINDOW axialimage'                \\\n"
+"       -drive_afni 'OPEN_WINDOW axialgraph pinnum=160'     \\\n"
+"       -rt_cmd 'PREFIX eat.more.cheese'                    \\\n"
+"       -rt_cmd 'GRAPH_XRANGE 160'                          \\\n"
+"       -rt_cmd 'GRAPH_YRANGE 1.02'                         \\\n"
+"       -rt_cmd 'GRAPH_EXPR sqrt(d*d+e*e+f*f)'\n"
+"\n"
+"  -------------------------------------------\n"
+"\n"
+"  example E (drive_wait):\n"
+"\n"
+"    Close windows and re-open them after data has arrived.\n"
+"\n"
+"    Dimon                                                    \\\n"
+"       -infile_prefix EPI_run1/8HRBRAIN                      \\\n"
+"       -rt                                                   \\\n"
+"       -drive_afni 'CLOSE_WINDOW axialimage'                 \\\n"
+"       -drive_afni 'CLOSE_WINDOW sagittalimage'              \\\n"
+"       -drive_wait 'OPEN_WINDOW axialimage geom=+20+20'      \\\n"
+"       -drive_wait 'OPEN_WINDOW sagittalimage geom=+520+20'  \\\n"
+"       -rt_cmd 'PREFIX brie.would.be.good'                   \\\n"
+"\n"
+"  -------------------------------------------\n"
+"  example F (for testing complete real-time system):\n"
+"\n"
+"    ** consider AFNI_data6/realtime.demos/demo.2.fback.*\n"
+"\n"
+"    Use Dimon to send volumes to afni's real-time plugin, simulating\n"
+"    TR timing with Dimon's -pause option.  Motion parameters and ROI\n"
+"    averages are then sent on to realtime_receiver.py (for subject\n"
+"    feedback).\n"
+"    \n"
+"    a. Start afni in real-time mode, but first set some environment\n"
+"       variables to make it explicit what might be set in the plugin.\n"
+"       Not one of these variables is actually necessary, but they \n"
+"       make the process more scriptable.\n"
+"    \n"
+"       See Readme.environment for details on any variable.\n"
+"    \n"
+"           setenv AFNI_TRUSTHOST              localhost\n"
+"           setenv AFNI_REALTIME_Registration  3D:_realtime\n"
+"           setenv AFNI_REALTIME_Graph         Realtime\n"
+"           setenv AFNI_REALTIME_MP_HOST_PORT  localhost:53214\n"
+"           setenv AFNI_REALTIME_SEND_VER      YES\n"
+"           setenv AFNI_REALTIME_SHOW_TIMES    YES\n"
+"           setenv AFNI_REALTIME_Mask_Vals     ROI_means\n"
+"    \n"
+"           afni -rt\n"
+"    \n"
+"       Note: in order to send ROI averages per TR, the user must\n"
+"             choose a mask in the real-time plugin.\n"
+"    \n"
+"    b. Start realtime_receiver.py to show received data.\n"
+"    \n"
+"           realtime_receiver.py -show_data yes\n"
+"    \n"
+"    c. Run Dimon from the AFNI_data3 directory, in real-time mode,\n"
+"       using a 2 second pause to simulate the TR.  Dicom images are\n"
+"       under EPI_run1, and the files start with 8HRBRAIN.\n"
+"    \n"
+"           Dimon -rt -pause 2000 -infile_prefix EPI_run1/8HRBRAIN\n"
+"    \n"
+"       Note that Dimon can be run many times at this point.\n"
+"\n"
+"    --------------------\n"
+"\n"
+"    c2. alternately, set some env vars via Dimon\n"
+"\n"
+"         Dimon -rt -pause 2000 -infile_prefix EPI_run1/8          \\\n"
+"           -drive_afni 'SETENV AFNI_REALTIME_Mask_Vals=ROI_means' \\\n"
+"           -drive_afni 'SETENV AFNI_REALTIME_SEND_VER=Yes'        \\\n"
+"           -drive_afni 'SETENV AFNI_REALTIME_SHOW_TIMES=Yes'\n"
+"\n"
+"       Note that plugout_drive can also be used to set vars at\n"
+"       run-time, though plugouts must be enabled to use it.\n"
+"\n"
+"\n"
+"  -------------------------------------------\n"
+"  example G: when reading AFNI datasets\n"
+"\n"
+"    Note that single-volume AFNI datasets might not contain the.\n"
+"    TR and slice timing information (since they are not considered\n"
+"    to be time series).  So it may be necessary to specify such\n"
+"    information on the command line.\n"
+"\n"
+"    %s -rt                                                  \\\n"
+"       -infile_pattern EPI_run1/vol.*.HEAD                     \\\n"
+"       -file_type AFNI -sleep_vol 1000 -sp alt+z -tr 2.0 -quit\n"
+"\n"
+"  ---------------------------------------------------------------\n",
+prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog, prog );
+    
+printf(
+    "  notes:\n"
+    "\n"
+    "    - Once started, unless the '-quit' option is used, this\n"
+    "      program exits only when a fatal error occurs (single\n"
+    "      missing or out of order slices are not considered fatal).\n"
+    "      Otherwise, it keeps waiting for new data to arrive.\n"
+    "\n"
+    "      With the '-quit' option, the program will terminate once\n"
+    "      there is a significant (~2 TR) pause in acquisition.\n"
+    "\n"
+    "    - To terminate this program, use <ctrl-c>.\n"
+    "\n"
+    "  ---------------------------------------------------------------\n"
+    "  main options:\n"
+    "\n"
+    "    For DICOM images, either -infile_pattern or -infile_prefix\n"
+    "    is required.\n"
+    "\n"
+    "    -infile_pattern PATTERN : specify pattern for input files\n"
+    "\n"
+    "        e.g. -infile_pattern 'run1/i*.dcm'\n"
+    "\n"
+    "        This option is used to specify a wildcard pattern matching\n"
+    "        the names of the input DICOM files.  These files should be\n"
+    "        sorted in the order that they are to be assembled, i.e.\n"
+    "        when the files are sorted alphabetically, they should be\n"
+    "        sequential slices in a volume, and the volumes should then\n"
+    "        progress over time (as with the 'to3d' program).\n"
+    "\n"
+    "        The pattern for this option must be within quotes, because\n"
+    "        it will be up to the program to search for new files (that\n"
+    "        match the pattern), not the shell.\n"
+    "\n"
+    "    -infile_prefix PREFIX   : specify prefix matching input files\n"
+    "\n"
+    "        e.g. -infile_prefix run1/i\n"
+    "\n"
+    "        This option is similar to -infile_pattern.  By providing\n"
+    "        only a prefix, the user need not use wildcard characters\n"
+    "        with quotes.  Using PREFIX with -infile_prefix is\n"
+    "        equivalent to using 'PREFIX*' with -infile_pattern (note\n"
+    "        the needed quotes).\n"
+    "\n"
+    "        Note that it may not be a good idea to use, say 'run1/'\n"
+    "        for the prefix, as there might be a readme file under\n"
+    "        that directory.\n"
+    "\n"
+    "        Note also that it is necessary to provide a '/' at the\n"
+    "        end, if the prefix is a directory (e.g. use run1/ instead\n"
+    "        of simply run1).\n"
+    "\n"
+    "    -infile_list MY_FILES.txt : filenames are in MY_FILES.txt\n"
+    "\n"
+    "        e.g. -infile_list subject_17_files\n"
+    "\n"
+    "        If the user would rather specify a list of DICOM files to\n"
+    "        read, those files can be enumerated in a text file, the\n"
+    "        name of which would be passed to the program.\n"
+    "\n"
+    "  ---------------------------------------------------------------\n"
+    "  real-time options:\n"
+    "\n"
+    "    -rt                : specify to use the real-time facility\n"
+    "\n"
+    "        With this option, the user tells '%s' to use the real-time\n"
+    "        facility, passing each volume of images to an existing\n"
+    "        afni process on some machine (as specified by the '-host'\n"
+    "        option).  Whenever a new volume is acquired, it will be\n"
+    "        sent to the afni program for immediate update.\n"
+    "\n"
+    "        Note that afni must also be started with the '-rt' option\n"
+    "        to make use of this.\n"
+    "\n"
+    "        Note also that the '-host HOSTNAME' option is not required\n"
+    "        if afni is running on the same machine.\n"
+    "\n"
+    "    -drive_afni CMND   : send 'drive afni' command, CMND\n"
+    "\n"
+    "        e.g.  -drive_afni 'OPEN_WINDOW axialimage'\n"
+    "\n"
+    "        This option is used to pass a single DRIVE_AFNI command\n"
+    "        to afni.  For example, 'OPEN_WINDOW axialimage' will open\n"
+    "        such an axial view window on the afni controller.\n"
+    "\n"
+    "        Note: the command 'CMND' must be given in quotes, so that\n"
+    "              the shell will send it as a single parameter.\n"
+    "\n"
+    "        Note: this option may be used multiple times.\n"
+    "\n"
+    "        See README.driver for more details.\n"
+    "\n"
+    "    -drive_wait CMND   : send delayed 'drive afni' command, CMND\n"
+    "\n"
+    "        e.g.  -drive_wait 'OPEN_WINDOW axialimage'\n"
+    "\n"
+    "        This option is used to pass a single DRIVE_AFNI command\n"
+    "        to afni.  For example, 'OPEN_WINDOW axialimage' will open\n"
+    "        such an axial view window on the afni controller.\n"
+    "\n"
+    "        This has the same effect as '-drive_afni', except that\n"
+    "        the real-time plugin will wait until the next completed\n"
+    "        volume to execute the command.\n"
+    "\n"
+    "        An example of where this is useful is so that afni 'knows'\n"
+    "        about a new dataset before opening the given image window,\n"
+    "        allowing afni to size the window appropriately.\n"
+    "\n"
+    "    -fast              : process data very quickly\n"
+    "\n"
+    "        short for:  -sleep_init 50 -sleep_vol 50\n"
+    "\n"
+    "    -host HOSTNAME     : specify the host for afni communication\n"
+    "\n"
+    "        e.g.  -host mycomputer.dot.my.network\n"
+    "        e.g.  -host 127.0.0.127\n"
+    "        e.g.  -host mycomputer\n"
+    "        the default host is 'localhost'\n"
+    "\n"
+    "        The specified HOSTNAME represents the machine that is\n"
+    "        running afni.  Images will be sent to afni on this machine\n"
+    "        during the execution of '%s'.\n"
+    "\n"
+    "        Note that the environment variable AFNI_TRUSTHOST must be\n"
+    "        set on the machine running afni.  Set this equal to the\n"
+    "        name of the machine running Imon (so that afni knows to\n"
+    "        accept the data from the sending machine).\n"
+    "\n"
+    "    -num_chan CHANNELS : specify number of channels to send over\n"
+    "\n"
+    "        e.g.  -num_chan 8\n"
+    "\n"
+    "        This option tells the realtime plugin how many channels to\n"
+    "        break incoming data into.  Each channel would then get its\n"
+    "        own dataset.\n"
+    "\n"
+    "        Note that this simply distributes the data as it is read\n"
+    "        across multiple datasets.  If 12 volumes are seen in some\n"
+    "        directory and -num_chan 2 is specified, then volumes 0, 2,\n"
+    "        4, 6, 8 and 10 would go to one dataset (e.g. channel 1),\n"
+    "        while volumes 1,3,5,7,9,11 would go to another.\n"
+    "\n"
+    "        A sample use might be for multi-echo data.  If echo pairs\n"
+    "        appear to Dimon sequentially over the TRs, then -num_chan\n"
+    "        could be used to send each echo type to its own dataset.\n"
+    "        This option was added for J Evans.\n"
+    "\n"
+    "        Currently, -num_chan only affects the realtime use.\n"
+    "\n"
+    "    -pause TIME_IN_MS : pause after each new volume\n"
+    "\n"
+    "        e.g.  -pause 200\n"
+    "\n"
+    "        In some cases, the user may wish to slow down a real-time\n"
+    "        process.  This option will cause a delay of TIME_IN_MS\n"
+    "        milliseconds after each volume is found.\n"
+    "\n"
+    "    -rev_byte_order   : pass the reverse of the BYTEORDER to afni\n"
+    "\n"
+    "        Reverse the byte order that is given to afni.  In case the\n"
+    "        detected byte order is not what is desired, this option\n"
+    "        can be used to reverse it.\n"
+    "\n"
+    "        See the (obsolete) '-swap' option for more details.\n"
+    "\n"
+    "    -rt_cmd COMMAND   : send COMMAND(s) to realtime plugin\n"
+    "\n"
+    "        e.g.  -rt_cmd 'GRAPH_XRANGE 120'\n"
+    "        e.g.  -rt_cmd 'GRAPH_XRANGE 120 \\n GRAPH_YRANGE 2.5'\n"
+    "\n"
+    "        This option is used to pass commands to the realtime\n"
+    "        plugin.  For example, 'GRAPH_XRANGE 120' will set the\n"
+    "        x-scale of the motion graph window to 120 (repetitions).\n"
+    "\n"
+    "        Note: the command 'COMMAND' must be given in quotes, so\n"
+    "        that the shell will send it as a single parameter.\n"
+    "\n"
+    "        Note: this option may be used multiple times.\n"
+    "\n"
+    "        See README.realtime for more details.\n"
+    "\n"
+    "    -show_sorted_list  : display -dicom_org info and quit\n"
+    "\n"
+    "        After the -dicom_org has taken effect, display the list\n"
+    "        of run index, image index and filenames that results.\n"
+    "        This option can be used as a simple review of the files\n"
+    "        under some directory tree, say.\n"
+    "\n"
+    "        See the -show_sorted_list example under example A2.\n"
+    "\n"
+    "    -sleep_init MS    : time to sleep between initial data checks\n"
+    "\n"
+    "        e.g.  -sleep_init 500\n"
+    "\n"
+    "        While Dimon searches for the first volume, it checks for\n"
+    "        files, pauses, checks, pauses, etc., until some are found.\n"
+    "        By default, the pause is approximately 3000 ms.\n"
+    "\n"
+    "        This option, given in milliseconds, will override that\n"
+    "        default time.\n"
+    "\n"
+    "        A small time makes the program seem more responsive.  But\n"
+    "        if the time is too small, and no new files are seen on\n"
+    "        successive checks, Dimon may think the first volume is\n"
+    "        complete (with too few slices).\n"
+    "\n"
+    "        If the minimum time it takes for the scanner to output\n"
+    "        more slices is T, then 1/2 T is a reasonable -sleep_init\n"
+    "        time.  Note: that minimum T had better be reliable.\n"
+    "\n"
+    "        The example shows a sleep time of half of a second.\n"
+    "\n"
+    "        See also -fast.\n"
+    "\n"
+    "    -sleep_vol MS     : time to sleep between volume checks\n"
+    "\n"
+    "        e.g.  -sleep_vol 1000\n"
+    "\n"
+    "        When Dimon finds some volumes and there still seems to be\n"
+    "        more to acquire, it sleeps for a while (and outputs '.').\n"
+    "        This option can be used to specify the amount of time it\n"
+    "        sleeps before checking again.  The default is 1.5*TR.\n"
+    "\n"
+    "        The example shows a sleep time of one second.\n"
+    "\n"
+    "        See also -fast.\n"
+    "\n"
+    "    -sleep_frac FRAC  : new data search, fraction of TR to sleep\n"
+    "\n"
+    "        e.g.  -sleep_frac 0.5\n"
+    "\n"
+    "        When Dimon finds some volumes and there still seems to be\n"
+    "        more to acquire, it sleeps for a while (and outputs '.').\n"
+    "        This option can be used to specify the amount of time it\n"
+    "        sleeps before checking again, as a fraction of the TR.\n"
+    "        The default is 1.5 (as the fraction).\n"
+    "\n"
+    "        The example shows a sleep time of one half of a TR.\n"
+    "\n"
+    "    -swap  (obsolete) : swap data bytes before sending to afni\n"
+    "\n"
+    "        Since afni may be running on a different machine, the byte\n"
+    "        order may differ there.  This option will force the bytes\n"
+    "        to be reversed, before sending the data to afni.\n"
+    "\n"
+    "        ** As of version 3.0, this option should not be necessary.\n"
+    "           '%s' detects the byte order of the image data, and then\n"
+    "           passes that information to afni.  The realtime plugin\n"
+    "           will (now) decide whether to swap bytes in the viewer.\n"
+    "\n"
+    "           If for some reason the user wishes to reverse the order\n"
+    "           from what is detected, '-rev_byte_order' can be used.\n"
+    "\n"
+    "    -zorder ORDER     : slice order over time\n"
+    "\n"
+    "        e.g. -zorder alt\n"
+    "        e.g. -zorder seq\n"
+    "        the default is 'alt'\n"
+    "\n"
+    "        This options allows the user to alter the slice\n"
+    "        acquisition order in real-time mode, similar to the slice\n"
+    "        pattern of the '-sp' option.  The main differences are:\n"
+    "            o  only two choices are presently available\n"
+    "            o  the syntax is intentionally different (from that\n"
+    "               of 'to3d' or the '-sp' option)\n"
+    "\n"
+    "        ORDER values:\n"
+    "            alt   : alternating in the Z direction (over time)\n"
+    "            seq   : sequential in the Z direction (over time)\n"
+    "\n"
+    "  ---------------------------------------------------------------\n"
+    "  other options:\n"
+    "\n"
+    "    -debug LEVEL       : show debug information during execution\n"
+    "\n"
+    "        e.g.  -debug 2\n"
+    "        the default level is 1, the domain is [0,3]\n"
+    "        the '-quiet' option is equivalent to '-debug 0'\n"
+    "\n"
+    "    -dicom_org         : organize files before other processing\n"
+    "\n"
+    "        e.g.  -dicom_org\n"
+    "\n"
+    "        When this flag is set, the program will attempt to read in\n"
+    "        all files subject to -infile_prefix or -infile_pattern,\n"
+    "        determine which are DICOM image files, and organize them\n"
+    "        into an ordered list of files per run.\n"
+    "\n"
+    "        This may be necessary since the alphabetized list of files\n"
+    "        will not always match the sequential slice and time order\n"
+    "        (which means, for instance, that '*.dcm' may not list\n"
+    "        files in the correct order.\n"
+    "\n"
+    "        In this case, if the DICOM files contain a valid 'image\n"
+    "        number' field (0x0020 0013), then they will be sorted\n"
+    "        before any further processing is done.\n"
+    "\n"
+    "        Notes:\n"
+    "\n"
+    "        - This does not work in real-time mode, since the files\n"
+    "          must all be organized before processing begins.\n"
+    "\n"
+    "          ** As of version 4.0, this _is_ a real-time option.\n"
+    "\n"
+    "        - The DICOM images need valid 'image number' fields for\n"
+    "          organization to be possible (DICOM field 0x0020 0013).\n"
+    "\n"
+    "        - This works will in conjunction with '-GERT_Reco', to\n"
+    "          create a script to make AFNI datasets.  There will be\n"
+    "          a single file per run that contains the image filenames\n"
+    "          for that run (in order).  This is fed to 'to3d'.\n"
+    "\n"
+    "        - This may be used with '-save_file_list', to store the\n"
+    "          list of sorted filenames in an output file.\n"
+    "\n"
+    "        - The images can be sorted in reverse order using the\n"
+    "          option, -rev_org_dir.\n"
+    "\n"
+    "    -epsilon EPSILON   : specify EPSILON for 'equality' tests\n"
+    "\n"
+    "        e.g.  -epsilon 0.05\n"
+    "        the default is 0.01\n"
+    "\n"
+    "        When checking z-coordinates or differences between them\n"
+    "        for 'equality', a check of (difference < EPSILON) is used.\n"
+    "        This option lets the user specify that cutoff value.\n"
+    "\n"
+    "    -file_type TYPE    : specify type of image files to be read\n"
+    "\n"
+    "        e.g.  -file_type AFNI\n"
+    "        the default is DICOM\n"
+    "\n"
+    "        Dimon will currently process GEMS 5.x or DICOM files\n"
+    "        (single slice or Siemens mosaic).\n"
+    "\n"
+    "        possible values for TYPE:\n"
+    "\n"
+    "           GEMS      : GE Medical Systems GEMS 5.x format\n"
+    "           DICOM     : DICOM format, possibly Siemens mosaic\n"
+    "           AFNI      : AFNI or NIfTI formatted datasets\n"
+    "\n"
+    "    -help              : show this help information\n"
+    "\n"
+    "    -hist              : display a history of program changes\n"
+    "\n"
+    "    -max_images NUM    : limit on images (slices per volume)\n"
+    "\n"
+    "        e.g.  -max_images 256\n"
+    "        default = 3000\n"
+    "\n"
+    "        This variable is in case something is very messed up with\n"
+    "        the data, and prevents the program from continuing after\n"
+    "        failing to find a volume in this number of images.\n"
+    "\n"
+    "    -max_quiet_trs TRS : max number of TRs without data (if -quit)\n"
+    "\n"
+    "        e.g.  -max_quiet_trs 4\n"
+    "        default = 2\n"
+    "\n"
+    "        This variable is to specify the number of TRs for which\n"
+    "        having no new data is okay.  After this number of TRs, it\n"
+    "        is assumed that the run has ended.\n"
+    "\n"
+    "        The TR (duration) comes from either the image files or\n"
+    "        the -tr option.\n"
+    "\n"
+    "    -nice INCREMENT    : adjust the nice value for the process\n"
+    "\n"
+    "        e.g.  -nice 10\n"
+    "        the default is 0, and the maximum is 20\n"
+    "        a superuser may use down to the minimum of -19\n"
+    "\n"
+    "        A positive INCREMENT to the nice value of a process will\n"
+    "        lower its priority, allowing other processes more CPU\n"
+    "        time.\n"
+    "\n"
+    "    -no_wait           : never wait for new data\n"
+    "\n"
+    "        More forceful than -quit, when using this option, the\n"
+    "        program should never wait for new data.  This option\n"
+    "        implies -quit and is implied by -gert_create_dataset.\n"
+    "\n"
+    "        This is appropriate to use when the image files have\n"
+    "        already been collected.\n"
+    "\n"
+    "    -nt VOLUMES_PER_RUN : set the number of time points per run\n"
+    "\n"
+    "        e.g.  -nt 120\n"
+    "\n"
+    "        With this option, if a run stalls before the specified\n"
+    "        VOLUMES_PER_RUN is reached (notably including the first\n"
+    "        run), the user will be notified.\n"
+    "\n"
+    "        Without this option, %s will compute the expected number\n"
+    "        of time points per run based on the first run (and will\n"
+    "        allow the value to increase based on subsequent runs).\n"
+    "        Therefore %s would not detect a stalled first run.\n"
+    "\n"
+    "    -num_slices SLICES  : slices per volume must match this\n"
+    "\n"
+    "        e.g.  -num_slices 34\n"
+    "\n"
+    "        Setting this puts a restriction on the first volume\n"
+    "        search, requiring the number of slices found to match.\n"
+    "\n"
+    "        This prevents odd failures at the scanner, which does not\n"
+    "        necessarily write out all files for the first volume\n"
+    "        before writing some file from the second.\n"
+    "\n"
+    "    -quiet             : show only errors and final information\n"
+    "\n"
+    "    -quit              : quit when there is no new data\n"
+    "\n"
+    "        With this option, the program will terminate once a delay\n"
+    "        in new data occurs (an apparent end-of-run pause).\n"
+    "\n"
+    "        This option is implied by -no_wait.\n"
+    "\n"
+    "    -rev_org_dir       : reverse the sort in dicom_org\n"
+    "\n"
+    "        e.g.  -rev_org_dir\n"
+    "\n"
+    "        With the -dicom_org option, the program will attempt to\n"
+    "        organize the DICOM files with respect to run and image\n"
+    "        numbers.  Normally that is an ascending sort.  With this\n"
+    "        option, the sort is reversed.\n"
+    "\n"
+    "        see also: -dicom_org\n"
+    "\n"
+    "    -rev_sort_dir      : reverse the alphabetical sort on names\n"
+    "\n"
+    "        e.g.  -rev_sort_dir\n"
+    "\n"
+    "        With this option, the program will sort the input files\n"
+    "        in descending order, as opposed to ascending order.\n"
+    "\n"
+    "    -save_file_list FILENAME : store the list of sorted files\n"
+    "\n"
+    "        e.g.  -save_file_list dicom_file_list\n"
+    "\n"
+    "        With this option the program will store the list of files,\n"
+    "        sorted via -dicom_org, in the output file, FILENAME.  The\n"
+    "        user may wish to have a separate list of the files.\n"
+    "\n"
+    "        Note: this option no longer requires '-dicom_org'.\n"
+    "\n"
+    "    -save_details FILENAME   : save details about images\n"
+    "\n"
+    "        e.g.  -save_defails dicom_details.txt\n"
+    "\n"
+    "        With this option the program will store the list of files,\n"
+    "        along with many details for each image file.\n"
+    "\n"
+    "        It is akin to -save_file_list, only with extra information.\n"
+    "\n"
+    "    -sort_by_acq_time  : sort files by acquisition time\n"
+    "\n"
+    "        e.g.  -dicom_org -sort_by_acq_time\n"
+    "\n"
+    "        When this option is used with -dicom_org, the program will\n"
+    "        sort DICOM images according to:\n"
+    "           run, acq time, image index and image number\n"
+    "\n"
+    "        For instance, Philips files may have 0020 0013 (Inst. Num)\n"
+    "        fields that are ordered as slice-major (volume minor).\n"
+    "        But since slice needs to be the minor number, Acquisition\n"
+    "        Time may be used for the major sort, before Instance Num.\n"
+    "        So sort first by Acquisition Num, then by Instance.\n"
+    "\n"
+    "        Consider example B2.\n"
+    "\n"
+    "    -sort_by_num_suffix : sort files according to numerical suffix\n"
+    "\n"
+    "        e.g.  -sort_by_num_suffix\n"
+    "\n"
+    "        With this option, the program will sort the input files\n"
+    "        according to the trailing '.NUMBER' in the filename.  This\n"
+    "        NUMBER will be evaluated as a positive integer, not via\n"
+    "        an alphabetic sort (so numbers need not be zero-padded).\n"
+    "\n"
+    "        This is intended for use on interleaved files, which are\n"
+    "        properly enumerated, but only in the filename suffix.\n"
+    "        Consider a set of names for a single, interleaved volume:\n"
+    "\n"
+    "          im001.1  im002.3  im003.5  im004.7  im005.9  im006.11\n"
+    "          im007.2  im008.4  im009.6  im010.8  im011.10\n"
+    "\n"
+    "        Here the images were named by 'time' of acquisition, and\n"
+    "        were interleaved.  So an alphabetic sort is not along the\n"
+    "        slice position (z-order).  However the slice ordering was\n"
+    "        encoded in the suffix of the filenames.\n"
+    "\n"
+    "        NOTE: the suffix numbers must be unique\n"
+    "\n"
+    "    -sort_method METHOD : apply METHOD for real-time sorting\n"
+    "\n"
+    "        e.g. -sort_method geme_index\n"
+    "\n"
+    "        This option is used to specify the sorting method to apply\n"
+    "        to image structures after they have been read in.  The\n"
+    "        only existing method to apply here is 'geme_index'.\n"
+    "\n"
+    "        The geme_index method (for the GE multi-echo sequence)\n"
+    "        will sort the list of images in groups of nslices*nechos\n"
+    "        (which should match 'Images in Acquisition' in the Dicom\n"
+    "        header).  Each such set of images should have the same\n"
+    "        GE_ME_INDEX sequence, starting from an arbitrary offset.\n"
+    "\n"
+    "        Note that the actual file order is somewhat unspecified,\n"
+    "        except that for a given geme_index, the files should be\n"
+    "        chronological.\n"
+    "\n"
+    "    -start_file S_FILE : have %s process starting at S_FILE\n"
+    "\n"
+    "        e.g.  -start_file 043/I.901\n"
+    "\n"
+    "        With this option, any earlier I-files will be ignored\n"
+    "        by %s.  This is a good way to start processing a later\n"
+    "        run, if it desired not to look at the earlier data.\n"
+    "\n"
+    "        In this example, all files in directories 003 and 023\n"
+    "        would be ignored, along with everything in 043 up through\n"
+    "        I.900.  So 043/I.901 might be the first file in run 2.\n"
+    "\n"
+    "    -tr TR             : specify the TR, in seconds\n"
+    "\n"
+    "        e.g.  -tr 5.0\n"
+    "\n"
+    "        In the case where volumes are acquired in clusters, the TR\n"
+    "        is different than the time needed to acquire one volume.\n"
+    "        But some scanners incorrectly store the latter time in the\n"
+    "        TR field.\n"
+    "        \n"
+    "        This option allows the user to override what is found in\n"
+    "        the image files, which is particularly useul in real-time\n"
+    "        mode, though is also important to have stored properly in\n"
+    "        the final EPI datasets.\n"
+    "\n"
+    "        Here, TR is in seconds.\n"
+    "\n"
+    "    -use_imon          : revert to Imon functionality\n"
+    "\n"
+    "        ** This option is deprecated.\n"
+    "           Use -file_type GEMS, instead.\n"
+    "\n"
+    "    -use_last_elem     : use the last elements when reading DICOM\n"
+    "\n"
+    "        In some poorly created DICOM image files, some elements\n"
+    "        are listed incorrectly, before being listed correctly.\n"
+    "\n"
+    "        Use the option to search for the last occurrence of each\n"
+    "        element, not necessarily the first.\n"
+    "\n"
+    "    -use_slice_loc     : use REL Slice Loc for z offset\n"
+    "\n"
+    "        REL Slice Location, 0020 1041, is sometimes used for the\n"
+    "        z offset, rather than Image Position.\n"
+    "        \n"
+    "        Use this option to set slice offsets according to SLoc.\n"
+    "\n"
+    "    -version           : show the version information\n"
+    "\n",
+    prog, prog, prog, prog, prog, prog, prog
+  );
+  printf(
+    "  ---------------------------------------------------------------\n"
+    "  GERT_Reco options:\n"
+    "\n"
+    "    -GERT_Reco        : output a GERT_Reco_dicom script\n"
+    "\n"
+    "        Create a script called 'GERT_Reco_dicom', similar to the\n"
+    "        one that Ifile creates.  This script may be run to create\n"
+    "        the AFNI datasets corresponding to the I-files.\n"
+    "\n"
+    "    -gert_create_dataset     : actually create the output dataset\n"
+    "\n"
+    "        Execute any GERT_Reco script, creating the AFNI or NIfTI\n"
+    "        datasets.\n"
+    "\n"
+    "        This option implies -GERT_Reco and -quit.\n"
+    "\n"
+    "        See also -gert_write_as_nifti.\n"
+    "\n"
+    "    -gert_filename FILENAME : save GERT_Reco as FILENAME\n"
+    "\n"
+    "        e.g. -gert_filename gert_reco_anat\n"
+    "\n"
+    "        This option can be used to specify the name of the script,\n"
+    "        as opposed to using GERT_Reco_dicom.\n"
+    "\n"
+    "        By default, if the script is generated for a single run,\n"
+    "        it will be named GERT_Reco_dicom_NNN, where 'NNN' is the\n"
+    "        run number found in the image files.  If it is generated\n"
+    "        for multiple runs, then the default it to name it simply\n"
+    "        GERT_Reco_dicom.\n"
+    "\n"
+    "    -gert_nz NZ        : specify the number of slices in a mosaic\n"
+    "\n"
+    "        e.g. -gert_nz 42\n"
+    "\n"
+    "        Dimon happens to be able to write valid to3d commands\n"
+    "        for mosaic (volume) data, even though it is intended for\n"
+    "        slices.  In the case of mosaics, the user must specify the\n"
+    "        number of slices in an image file, or any GERT_Reco script\n"
+    "        will specify nz as 1.\n"
+    "\n"
+    "    -gert_outdir OUTPUT_DIR  : set output directory in GERT_Reco\n"
+    "\n"
+    "        e.g. -gert_outdir subject_A7\n"
+    "        e.g. -od subject_A7\n"
+    "        the default is '-gert_outdir .'\n"
+    "\n"
+    "        This will add '-od OUTPUT_DIR' to the @RenamePanga command\n"
+    "        in the GERT_Reco script, creating new datasets in the\n"
+    "        OUTPUT_DIR directory, instead of the 'afni' directory.\n"
+    "\n"
+    "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco\n"
+    "\n"
+    "        e.g. -sp alt-z\n"
+    "        the default is 'alt+z'\n"
+    "\n"
+    "        This options allows the user to alter the slice\n"
+    "        acquisition pattern in the GERT_Reco script.\n"
+    "\n"
+    "        See 'to3d -help' for more information.\n"
+    "\n"
+    "    -gert_to3d_prefix PREFIX : set to3d PREFIX in output script\n"
+    "\n"
+    "        e.g. -gert_to3d_prefix anatomy\n"
+    "\n"
+    "        When creating a GERT_Reco script that calls 'to3d', this\n"
+    "        option will be applied to '-prefix'.\n"
+    "\n"
+    "        The default prefix is 'OutBrick_run_NNN', where NNN is the\n"
+    "        run number found in the images.\n"
+    "\n"
+    "      * Caution: this option should only be used when the output\n"
+    "        is for a single run.\n"
+    "\n"
+    "    -gert_write_as_nifti     : output dataset should be in NIFTI format\n"
+    "\n"
+    "        By default, datasets created by the GERT_Reco script will be in \n"
+    "        afni format.  Use this option to create them in NIfTI format,\n"
+    "        instead.  These merely appends a .nii to the -prefix option of\n"
+    "        the to3d command.\n"
+    "\n"
+    "        See also -gert_create_dataset.\n"
+    "\n"
+    "    -gert_quit_on_err : Add -quit_on_err option to to3d command\n"
+    "                        which has the effect of causing to3d to \n"
+    "                        fail rather than come up in interactive\n"
+    "                        mode if the input has an error.\n"
+    "  ---------------------------------------------------------------\n"
+    "\n"
+    "  Author: R. Reynolds - %s\n"
+    "\n",
+    DIMON_VERSION
+  );
 
         return 0;
     }
@@ -5103,33 +5540,41 @@ static int create_gert_dicom( stats_t * s, param_t * p )
  * ---------------------------------------------------------------------- */
 static int create_file_list( param_t *p, char *fname, int details, char *mesg )
 {
-/* rcr todo - this should be called somewhere given -save_file_list */
-    opts_t   * opts = &p->opts;
-    finfo_t  * fip;
-    FILE     * fp;
-    float      zprev;
-    int        c, len, maxlen;
+    static byte dcount = 0;
+    char      * fnew = NULL;
 
-    if( ! fname ) {
-       fprintf(stderr,"** create file_list: missing file name\n");
-       return 1;
-    }
+    finfo_t   * fip;
+    FILE      * fp;
+    float       zprev;
+    int         c, len, maxlen;
 
-    if( p->nfim <= 0 ) {
-       fprintf(stderr,"** create file_list: no entries to write\n");
-       return 0;
-    }
+    if( p->nfim <= 0 ) return 0;
 
-    if( gD.level > 0 ) fprintf(stderr,"-- writing file list to %s...\n",fname);
-    if( mesg ) fputs(mesg, stderr);
+    if( gD.level > 0 ) fprintf(stderr,"-- writing file list to %s...\n",
+                               CHECK_NULL_STR(fname));
+    if( mesg ){ fputs(mesg, stderr); fputs(" : ", stderr); }
 
-    if     ( ! strcmp(fname, "stderr") ) fp = stderr;
+    if     ( ! fname                   ) fp = stderr;
+    else if( ! strcmp(fname, "stderr") ) fp = stderr;
     else if( ! strcmp(fname, "stdout") ) fp = stdout;
     else { /* actually try to open */
-       fp = fopen(fname, "w");
+       if( details ) {
+          len = strlen(fname) + (mesg ? strlen(mesg) : 0) + 20;
+          fnew = (char *)malloc(len * sizeof(char));
+          if( !fnew ) {
+             fprintf(stderr,"** failed to allow fnew of length %d\n", len);
+             return -1;
+          }
+          if(mesg) sprintf(fnew, "%s.%d.%s.txt", fname, dcount, mesg);
+          else     sprintf(fnew, "%s.%d.txt", fname, dcount);
+          dcount++;
+          if(gD.level>0) fprintf(stderr,"-- writing details to %s...\n", fnew);
+       } else fnew = fname;
+
+       fp = fopen(fnew, "w");
        if( !fp ) {
-           fprintf(stderr,"** failed to open '%s' to write file list\n",fname);
-           return -1;
+          fprintf(stderr,"** failed to open '%s' to write file list\n",fnew);
+          return -1;
        }
     }
 
@@ -5139,13 +5584,19 @@ static int create_file_list( param_t *p, char *fname, int details, char *mesg )
           len = strlen(p->fim_o[c].fname);
           if( len > maxlen ) maxlen = len;
        }
-       fprintf(fp, "# %-*s state  errs    zoff        diff     data\n",
-               maxlen, "file");
+       fprintf(fp, "# %-*s   index findex sindex state  errs", maxlen, "file");
+       fprintf(fp, "    zoff       diff    data"
+                   "  run   IIND   RIN GEMEIND ATIME\n");
        zprev = p->fim_o[0].geh.zoff;
        for( c = 0, fip = p->fim_o; c < p->nfim; c++, fip++ ) {
-          fprintf(fp, "  %-*s   %d     %d  %10.5f   %8.3f     %d\n",
-                  maxlen, fip->fname, fip->state, fip->bad_reads,
-                  fip->geh.zoff, fip->geh.zoff-zprev, fip->imdata?1:0);
+       fprintf(fp, "  %-*s   %4d   %4d   %4d   %2d     %d"
+                   "  %10.5f  %8.3f     %d"
+                   "  %4d   %4d  %4d  %5d  %.3f\n",
+                  maxlen, fip->fname, c, fip->findex, fip->sindex,
+                  fip->state, fip->bad_reads,
+                  fip->geh.zoff, fip->geh.zoff-zprev, fip->imdata?1:0,
+                  fip->geh.uv17, fip->geh.im_index, fip->geh.index,
+                  fip->gex.ge_me_index, fip->geh.atime);
           zprev = fip->geh.zoff;
        }
     } else
@@ -5154,7 +5605,8 @@ static int create_file_list( param_t *p, char *fname, int details, char *mesg )
 
     if( fp != stderr && fp != stdout ) fclose(fp);
 
-    if( gD.level > 2 ) fprintf(stderr,"+d saved file list in '%s'\n", fname);
+    if( gD.level > 2 ) fprintf(stderr,"+d saved file list in '%s'\n",
+                               fnew ? fnew : fname ? fname : "def=stderr");
 
     return 0;
 }
@@ -5322,8 +5774,8 @@ static int show_run_stats( stats_t * s )
 
     if( gP.opts.flist_file )
        create_file_list(&gP, gP.opts.flist_file, 0, NULL);
-    if( gP.opts.flist_details )
-       create_file_list(&gP, gP.opts.flist_details, 1, NULL);
+    if( gP.opts.flist_details || gD.level > 2 )
+       create_file_list(&gP, gP.opts.flist_details, 1, "final_list");
 
     fflush( stdout );
 

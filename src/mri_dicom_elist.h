@@ -40,6 +40,7 @@ static char *elist[] = {
  "0029 1020" ,  /* Siemens addendum #2 */
 
  "0002 0010" ,  /* Transfer Syntax [RWC - 05 Jul 2006] */
+ "0019 10a2" ,  /* GE multi-echo index [RCR - 15 Aug 2014] */
 
  /*--- The following are for multi-frame DICOM files [RWC - 02 May 2008] ---*/
 
@@ -50,8 +51,10 @@ static char *elist[] = {
  "0020 0100" ,  /* Temporal position index identifier */
  "0020 9128" ,  /* Temporal position index */
  "0020 9057" ,  /* Stack position index */
+ "0020 1002" ,  /* Images in Acquisition [RCR - 19 Aug 2014] */
 
  "0054 1330" ,  /* image index  */
+
 
 NULL } ;
 
@@ -95,15 +98,18 @@ NULL } ;
 
 #define E_TRANSFER_SYNTAX            29    /* 05 Jul 2006 */
 
-#define E_NUMBER_OF_TIMES            30    /* 02 May 2008 */
-#define E_RS_STUDY_NUM               31    /* 10 Feb 2005: for Imon [rickr] */
-#define E_RS_SERIES_NUM              32
-#define E_INSTANCE_NUMBER            33
-#define E_TIME_INDEX_ID              34
-#define E_TIME_INDEX                 35
-#define E_STACK_INDEX                36
+#define E_GE_ME_INDEX                30    /* 15 Aug 2014: GEME sort [rickr] */
 
-#define E_RS_IMAGE_INDEX             37    /* 06 May 2010: for PET [rickr] */
+#define E_NUMBER_OF_TIMES            31    /* 02 May 2008 */
+#define E_RS_STUDY_NUM               32    /* 10 Feb 2005: for Imon [rickr] */
+#define E_RS_SERIES_NUM              33
+#define E_INSTANCE_NUMBER            34
+#define E_TIME_INDEX_ID              35
+#define E_TIME_INDEX                 36
+#define E_STACK_INDEX                37
+#define E_NIM_IN_ACQ                 38    /* 19 Aug 2014: GE multi-echo sort */
+
+#define E_RS_IMAGE_INDEX             39    /* 06 May 2010: for PET [rickr] */
 
 
 /*----------------------------------------------------------------------------*/

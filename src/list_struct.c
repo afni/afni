@@ -320,6 +320,33 @@ int add_to_string_list( string_list * d_list, char * val, int inc_size )
 
 
 /*----------------------------------------------------------------------
+ * resize_XXXX_list:                                         20 Aug 2014
+ *
+ * reset nalloc to the given length, return new length
+ *----------------------------------------------------------------------*/
+int resize_int_list(int_list * L, int len)
+{
+    int oldlen;
+
+    if( !L || len < 0 )  return -1;
+    if( len == 0 )       return free_int_list(L);   /* nuke */
+    if( len == L->nall ) return len;                /* already done */
+
+    L->list = (int *)realloc(L->list, len*sizeof(int));
+    if( !L->list ) return -1;
+
+    /* either clear new memory or reset used length */
+    if(len > L->nall) memset(L->list+L->nall, '\0', (len-L->nall)* sizeof(int));
+    else              L->num = len;
+
+    L->nall = len;
+
+    return len;
+}
+
+
+
+/*----------------------------------------------------------------------
  * extend_XXXX_list:                                         26 Apr 2012
  *
  * extend first list by another, returning the new length (or -1 on error)
@@ -394,6 +421,20 @@ int free_int_list( int_list * d_list )
 
     if ( d_list->list ) { free(d_list->list);  d_list->list = NULL; }
     d_list->num = d_list->nall = 0;
+
+    return 0;
+}
+
+/* keep list intact, but clear values */
+int clear_int_list( int_list * d_list )
+{
+    int ind;
+
+    if ( ! d_list ) return -1;
+    if ( d_list->nall <= 0 || ! d_list->list ) return 0;
+
+    memset(d_list->list, '\0', d_list->nall*sizeof(int));
+    d_list->num = 0;
 
     return 0;
 }

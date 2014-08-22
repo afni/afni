@@ -50,6 +50,8 @@ int   obl_info_set = 0;
 int   g_is_oblique = 0;
 int   g_image_ori_ind[3] = {0, 0, 0};                   /* ior, jor, kor  */
 float g_image_posn[3]    = {-666.0, -666.0, -666.0};    /* IMAGE_POSITION */
+int   g_ge_nim_acq = -1;               /* number of images in acquisition */
+int   g_ge_me_index = -1;
 
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
@@ -876,6 +878,18 @@ ENTRY("mri_read_dicom") ;
           g_image_posn[2] = xyz[abs(kor)-1];
        }
       }
+   }
+
+   /* check for GE multi-echo index */
+   if( epos[E_GE_ME_INDEX] ){
+      ddd = strstr(epos[E_GE_ME_INDEX],"//");
+      if( ddd ) g_ge_me_index = SINT(ddd+2);
+   }
+
+   /* check for GE multi-echo index */
+   if( epos[E_NIM_IN_ACQ] ){
+      ddd = strstr(epos[E_NIM_IN_ACQ],"//");
+      if( ddd ) g_ge_nim_acq = SINT(ddd+2);
    }
 
    /** use image position vector to set offsets,
