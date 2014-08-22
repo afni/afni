@@ -1823,6 +1823,8 @@ STATUS("creation: widgets created") ;
      newseq->timer_id = 0 ;  /* 03 Dec 2003 */
 
      newseq->render_mode = RENDER_DEFAULT ;  /* 0 */
+     newseq->render_fac  = 0.0f ;            /* 22 Aug 2014 */
+     newseq->render_scal = NULL ;
 
      /*-- labels stuff --*/
 
@@ -2923,6 +2925,9 @@ ENTRY("ISQ_make_image") ;
           seq->bartop = seq->cltop ;
         break ;
 
+        case RENDER_WIPE_LEFT:    /* WIPE stuff 22 Aug 2014 */
+        case RENDER_WIPE_BOT:
+        case RENDER_WIPE_RADIAL:
         case RENDER_CHECK_UO:
         case RENDER_CHECK_OU:
           seq->set_orim = 0 ;
@@ -4755,6 +4760,9 @@ ENTRY("ISQ_free_alldata") ;
    if( seq->overlay_label != NULL ){               /* 23 Dec 2011 */
      free(seq->overlay_label) ; seq->overlay_label = NULL ;
    }
+
+   if( seq->render_scal != NULL )                  /* 22 Aug 2014 */
+     ISQ_destroy_render_scal(seq) ;
 
    EXRETURN ;
 }
@@ -9304,6 +9312,9 @@ ENTRY("ISQ_manufacture_one") ;
          im = ISQ_process_mri( nim , seq , tim ) ; mri_free(tim) ;
        break ;
 
+       case RENDER_WIPE_LEFT:    /* WIPE stuff 22 Aug 2014 */
+       case RENDER_WIPE_BOT:
+       case RENDER_WIPE_RADIAL:
        case RENDER_CHECK_UO:
        case RENDER_CHECK_OU:
          im = ISQ_getchecked( nim , seq ) ;
@@ -11693,13 +11704,215 @@ ENTRY("ISQ_getchecked") ;
 
    if( seq->render_mode == RENDER_CHECK_OU )
      qim = mri_check_2D( seq->wbar_checkbrd_av->ival , oim , uim ) ;
-   else
+   else if( seq->render_mode == RENDER_CHECK_UO )
      qim = mri_check_2D( seq->wbar_checkbrd_av->ival , uim , oim ) ;
+   else if( seq->render_mode == RENDER_WIPE_LEFT )    /* WIPE stuff 22 Aug 2014 */
+     qim = mri_wiper_2D( WIPER_FROM_LEFT   , seq->render_fac , oim,uim ) ;
+   else if( seq->render_mode == RENDER_WIPE_BOT )
+     qim = mri_wiper_2D( WIPER_FROM_BOTTOM , 1.0f-seq->render_fac , oim,uim ) ;
+   else if( seq->render_mode == RENDER_WIPE_RADIAL )
+     qim = mri_wiper_2D( WIPER_FROM_CENTER , seq->render_fac , oim,uim ) ;
 
    mri_free(oim) ;
    if( qim == NULL ){ uim->dx = dx ; uim->dy = dy ; RETURN(uim) ; }
 
    mri_free(uim) ;    qim->dx = dx ; qim->dy = dy ; RETURN(qim) ;
+}
+
+/*------------------------------------------------------------------
+   Popup a scale that will serve to input a number from 0 to 100.
+
+   wparent is the widget the meter will be attached to
+   position is one of
+     METER_TOP      = meter on top of wparent, default width
+     METER_TOP_WIDE = meter on top of parent, width of parent
+     METER_BOT      = similar, but on bottom of parent
+     METER_BOT_WIDE
+--------------------------------------------------------------------*/
+
+#define METER_HEIGHT 10
+#define METER_WIDTH  200
+
+Widget ISQ_popup_scale( Widget wparent , int position )
+{
+   Widget wmsg , wscal ;
+   int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , wid ;
+   Screen *scr ;
+   XEvent ev ;
+   Position xroot , yroot ;
+
+ENTRY("ISQ_popup_scale") ;
+
+   if( wparent == NULL || ! XtIsRealized(wparent) ) RETURN(NULL) ;
+
+   /* set position parent and screen geometry */
+
+   MCW_widget_geom( wparent , &wx,&hy,&xx,&yy ) ;     /* geometry of parent */
+   XtTranslateCoords( wparent, 0,0, &xroot,&yroot ) ; /* root coords of parent */
+   xr = (int) xroot ; yr = (int) yroot ;
+
+   scr        = XtScreen( wparent ) ;
+   scr_width  = WidthOfScreen( scr ) ;
+   scr_height = HeightOfScreen( scr ) ;
+
+   switch( position ){
+
+      default:
+      case METER_TOP:
+      case METER_TOP_WIDE:
+         xpr = xr ;
+         ypr = yr - METER_HEIGHT-2 ;
+         wid = (position==METER_TOP_WIDE) ? wx : METER_WIDTH ;
+         if( ypr < 0 ) ypr = yr+hy+1 ;
+      break ;
+
+      case METER_BOT:
+      case METER_BOT_WIDE:
+         xpr = xr ;
+         ypr = yr+hy+1 ;
+         wid = (position==METER_BOT_WIDE) ? wx : METER_WIDTH ;
+         if( ypr+METER_HEIGHT > scr_height ) ypr = yr - METER_HEIGHT-2 ;
+      break ;
+   }
+
+   /* create a popup shell with a scale */
+
+   wmsg = XtVaCreatePopupShell(
+             "menu" , xmDialogShellWidgetClass , wparent ,
+                XmNx , xpr ,
+                XmNy , ypr ,
+                XmNborderWidth , 0 ,
+                XmNoverrideRedirect , True ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+#if 0
+   if( MCW_isitmwm( wparent ) ){
+      XtVaSetValues( wmsg ,
+                        XmNmwmDecorations , MWM_DECOR_BORDER ,
+                        XmNmwmFunctions   , MWM_FUNC_MOVE ,
+                     NULL ) ;
+   }
+#endif
+
+   wscal = XtVaCreateManagedWidget(
+            "menu" , xmScaleWidgetClass , wmsg ,
+               XmNminimum , 0 ,
+               XmNmaximum , 100 ,
+               XmNscaleMultiple , 1 ,
+               XmNshowValue , True ,
+               XmNvalue , 0 ,
+               XmNorientation , XmHORIZONTAL ,
+               XmNscaleWidth , wid ,
+               XmNscaleHeight , METER_HEIGHT ,
+               XmNborderWidth , 0 ,
+               XmNhighlightThickness , 0 ,
+               XmNshadowThickness , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   XtPopup( wmsg , XtGrabNone ) ; RWC_sleep(1);
+
+   RETURN(wscal) ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void ISQ_popdown_scale( Widget wscal )
+{
+   if( wscal == NULL ) return ;
+   XtDestroyWidget( XtParent(wscal) ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+void ISQ_set_scale( Widget wscal , int percent )
+{
+   int val , old ;
+
+#undef  NCOL
+#define NCOL 30
+#ifdef NCOL
+   static int icol=0 ;
+   static char *cname[] = {
+      "#0000ff", "#3300ff", "#6600ff", "#9900ff", "#cc00ff",
+      "#ff00ff", "#ff00cc", "#ff0099", "#ff0066", "#ff0033",
+      "#ff0000", "#ff3300", "#ff6600", "#ff9900", "#ffcc00",
+      "#ffff00", "#ccff00", "#99ff00", "#66ff00", "#33ff00",
+      "#00ff00", "#00ff33", "#00ff66", "#00ff99", "#00ffcc",
+      "#00ffff", "#00ccff", "#0099ff", "#0066ff", "#0033ff"
+    } ;
+#endif
+
+   val = percent ;
+   if( wscal == NULL || val < 0 || val > 100 ) return ;
+
+   XmScaleGetValue( wscal , &old ) ; if( val == old ) return ;
+
+   XtVaSetValues( wscal , XmNvalue , val , NULL ) ;
+
+#ifdef NCOL
+   { Widget ws = XtNameToWidget(wscal,"Scrollbar") ;
+     if( ws != NULL )
+       XtVaSetValues( ws ,
+                       XtVaTypedArg , XmNtroughColor , XmRString ,
+                                      cname[icol] , strlen(cname[icol])+1 ,
+                      NULL ) ;
+     icol = (icol+1) % NCOL ;
+   }
+#endif
+
+   XmUpdateDisplay(wscal) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void ISQ_destroy_render_scal( MCW_imseq *seq )
+{
+   if( seq->render_scal != NULL ){
+     ISQ_popdown_scale(seq->render_scal) ; seq->render_scal = NULL ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void ISQ_popup_render_scal( MCW_imseq *seq )
+{
+   if( seq->render_scal != NULL ) return ;
+
+   seq->render_scal = ISQ_popup_scale( seq->wtop , METER_TOP_WIDE ) ;
+
+   XtAddCallback( seq->render_scal , XmNvalueChangedCallback ,
+                  ISQ_render_scal_CB , seq ) ;
+
+   XtAddCallback( seq->render_scal , XmNdragCallback ,
+                  ISQ_render_scal_CB , seq ) ;
+
+   return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void ISQ_render_scal_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;
+   XmScaleCallbackStruct *cbs = (XmScaleCallbackStruct *)call_data ;
+   float fff ;
+   int ival ;
+
+   if( ! ISQ_VALID(seq) ) return ;
+
+   if( cbs != NULL ) ival = cbs->value ;
+   else              XmScaleGetValue( w , &ival ) ;
+
+   seq->render_fac = 0.01f * ival ;
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   ISQ_draw_winfo( seq ) ;
+   return ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -12722,7 +12935,27 @@ ENTRY("ISQ_handle_keypress") ;
             if( key == '3'             ) rr = 0 ;
        else if( rr  == RENDER_CHECK_OU ) rr = RENDER_CHECK_UO ;
        else                              rr = RENDER_CHECK_OU ;
+       if( seq->render_scal != NULL ) ISQ_destroy_render_scal(seq) ;
        seq->render_mode = rr ;
+       ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       ISQ_draw_winfo( seq ) ;
+       busy=0 ; RETURN(1) ;
+     }
+     break ;
+
+     case '4':
+     case '5':
+     case '6':{  /* 22 Aug 2014 */
+       if( seq->render_scal != NULL ){
+         ISQ_destroy_render_scal(seq) ; seq->render_mode = 0 ; seq->render_fac = 0.0f ;
+       } else {
+         ISQ_popup_render_scal(seq) ;
+         seq->render_mode =   (key == '4')
+                            ? RENDER_WIPE_LEFT
+                            : (key == '5')
+                            ? RENDER_WIPE_BOT : RENDER_WIPE_RADIAL ;
+         ISQ_set_scale( seq->render_scal , 50 ) ; seq->render_fac = 0.50f ;
+       }
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        ISQ_draw_winfo( seq ) ;
        busy=0 ; RETURN(1) ;
@@ -13423,5 +13656,3 @@ ENTRY("ISQ_save_anim") ;
 
    DESTROY_SARR(agif_list) ; free(prefix) ; free(fnamep); EXRETURN ;
 }
-
-
