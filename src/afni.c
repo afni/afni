@@ -1496,6 +1496,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
+     "If you can't be good, be careful"                              ,
      "Forgive your enemy -- but remember the bastard's name"         ,
      "If the facts don't fit the theory, change the facts"           ,
      "All generalizations are false, including this one"             ,
