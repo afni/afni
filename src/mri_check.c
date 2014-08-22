@@ -87,7 +87,7 @@ ENTRY("mri_wiper_2D") ;
 
      case WIPER_FROM_BOTTOM:
        jb = (int)rintf(wfac*ny) ;
-       for( jj=0 ; jj < jb ; jj++ )
+       for( jj=jb ; jj < ny ; jj++ )
          for( ii=0 ; ii < nx ; ii++ ) mar[IJ(ii,jj)] = 1 ;
      break ;
 
