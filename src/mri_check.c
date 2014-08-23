@@ -126,3 +126,69 @@ ENTRY("mri_wiper_2D") ;
 
    free(mar) ; MRI_COPY_AUX(imc,ima) ; RETURN(imc) ;
 }
+
+/*----------------------------------------------------------------------------*/
+/* Mix 2 images in a fraction from 0 to 1 (0=ima 1=imb). */
+
+MRI_IMAGE * mri_mix_2D( float wfac, MRI_IMAGE *ima, MRI_IMAGE *imb )
+{
+   MRI_IMAGE *imc=NULL ;
+   int nx , ny , ii , nxy ;
+   float fa , fb ;
+
+ENTRY("mri_mix_2D") ;
+
+   if( ima == NULL || imb == NULL ) RETURN(NULL) ;
+   nx = ima->nx ; ny = ima->ny ; nxy = nx*ny ;
+   if( imb->nx != nx || imb->ny != ny || ima->kind != imb->kind ) RETURN(NULL);
+
+        if( wfac <= 0.0f ){ imc = mri_copy(ima) ; RETURN(imc) ; }
+   else if( wfac >= 1.0f ){ imc = mri_copy(imb) ; RETURN(imc) ; }
+
+   imc = mri_new( nx , ny , ima->kind ) ;
+   fa  = 1.0f-wfac ; fb = wfac ;
+
+   switch( ima->kind ){
+
+     default: mri_free(imc) ; imc = NULL ; break ; /* bad */
+
+     case MRI_byte:{
+       byte *ar=MRI_BYTE_PTR(ima), *br=MRI_BYTE_PTR(imb), *cr=MRI_BYTE_PTR(imc) ;
+       for( ii=0 ; ii < nxy ; ii++ )
+         cr[ii] = (byte)(fa*ar[ii]+fb*br[ii]+0.49f) ;
+     }
+     break ;
+
+     case MRI_short:{
+       short *ar=MRI_SHORT_PTR(ima), *br=MRI_SHORT_PTR(imb), *cr=MRI_SHORT_PTR(imc) ;
+       for( ii=0 ; ii < nxy ; ii++ )
+         cr[ii] = (short)(fa*ar[ii]+fb*br[ii]+0.49f) ;
+     }
+     break ;
+
+     case MRI_float:{
+       float *ar=MRI_FLOAT_PTR(ima), *br=MRI_FLOAT_PTR(imb), *cr=MRI_FLOAT_PTR(imc) ;
+       for( ii=0 ; ii < nxy ; ii++ )
+         cr[ii] = fa*ar[ii]+fb*br[ii] ;
+     }
+     break ;
+
+     case MRI_rgb:{
+       byte *ar=MRI_BYTE_PTR(ima), *br=MRI_BYTE_PTR(imb), *cr=MRI_BYTE_PTR(imc) ;
+       for( ii=0 ; ii < 3*nxy ; ii++ )
+         cr[ii] = (byte)(fa*ar[ii]+fb*br[ii]+0.49f) ;
+     }
+     break ;
+
+     case MRI_complex:{
+       complex *ar=MRI_COMPLEX_PTR(ima), *br=MRI_COMPLEX_PTR(imb), *cr=MRI_COMPLEX_PTR(imc) ;
+       for( ii=0 ; ii < nxy ; ii++ ){
+         cr[ii].r = fa*ar[ii].r+fb*br[ii].r ; cr[ii].i = fa*ar[ii].i+fb*br[ii].i ;
+       }
+     }
+     break ;
+
+   }
+
+   RETURN(imc) ;
+}

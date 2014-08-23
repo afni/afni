@@ -2927,7 +2927,7 @@ ENTRY("ISQ_make_image") ;
 
         case RENDER_WIPE_LEFT:    /* WIPE stuff 22 Aug 2014 */
         case RENDER_WIPE_BOT:
-        case RENDER_WIPE_RADIAL:
+        case RENDER_MIX:
         case RENDER_WIPE_RIGHT:
         case RENDER_WIPE_TOP:
         case RENDER_CHECK_UO:
@@ -9316,7 +9316,7 @@ ENTRY("ISQ_manufacture_one") ;
 
        case RENDER_WIPE_LEFT:    /* WIPE stuff 22 Aug 2014 */
        case RENDER_WIPE_BOT:
-       case RENDER_WIPE_RADIAL:
+       case RENDER_MIX:
        case RENDER_WIPE_RIGHT:
        case RENDER_WIPE_TOP:
        case RENDER_CHECK_UO:
@@ -11714,8 +11714,8 @@ ENTRY("ISQ_getchecked") ;
      qim = mri_wiper_2D( WIPER_FROM_LEFT   , seq->render_fac , oim,uim ) ;
    else if( seq->render_mode == RENDER_WIPE_BOT )
      qim = mri_wiper_2D( WIPER_FROM_BOTTOM , seq->render_fac , oim,uim ) ;
-   else if( seq->render_mode == RENDER_WIPE_RADIAL )
-     qim = mri_wiper_2D( WIPER_FROM_CENTER , seq->render_fac , oim,uim ) ;
+   else if( seq->render_mode == RENDER_MIX )
+     qim = mri_mix_2D  (                     seq->render_fac , uim,oim ) ;
    else if( seq->render_mode == RENDER_WIPE_RIGHT )
      qim = mri_wiper_2D( WIPER_FROM_LEFT   , seq->render_fac , uim,oim ) ;
    else if( seq->render_mode == RENDER_WIPE_TOP )
@@ -12963,7 +12963,7 @@ ENTRY("ISQ_handle_keypress") ;
          switch( key ){
            case '4': seq->render_mode = RENDER_WIPE_LEFT  ; break ;
            case '5': seq->render_mode = RENDER_WIPE_BOT   ; break ;
-           case '6': seq->render_mode = RENDER_WIPE_RADIAL; break ;
+           case '6': seq->render_mode = RENDER_MIX        ; break ;
            case '$': seq->render_mode = RENDER_WIPE_RIGHT ; break ;
            case '%': seq->render_mode = RENDER_WIPE_TOP   ; break ;
          }
