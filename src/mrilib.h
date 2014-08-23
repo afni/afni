@@ -855,6 +855,7 @@ extern MRI_IMAGE * mri_check_2D( int , MRI_IMAGE * , MRI_IMAGE * ) ;
 #define WIPER_FROM_CENTER 3
 
 extern MRI_IMAGE * mri_wiper_2D( int wcode,float wfac, MRI_IMAGE *ima, MRI_IMAGE *imb ) ;
+extern MRI_IMAGE * mri_mix_2D( float , MRI_IMAGE * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_3D( MRI_IMAGE * , int,int,int,int,int,int ) ;
 

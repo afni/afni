@@ -43,6 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
+  { 22 , AUG , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+    "Add wiping and mixing between OLay and ULay images" ,
+    "By pressing the '4', '5', or '6' key, user gets a slider for\n"
+    "horizontal wiper, vertical wiper, or intensity mixing between\n"
+    "the images (respectively).  This is Ziad's fault." } ,
+
   { 11 , AUG , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Modify -duplo to only go to lev=3" ,
    NULL } ,
