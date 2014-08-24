@@ -6308,6 +6308,7 @@ static char * AFNI_image_help =
  "u = toggle background from underlay/overlay dataset\n"
  "e = toggle edge detection in underlay\n"
  "#/3 = toggle underlay/overlay checkerboard display\n"
+ "4 or 5 or 6 = slider for merging ULay/OLay images\n"
  "v/V = Video image sequence up/down\n"
  "r/R = Ricochet image sequence up/down\n"
  "i/I = image fraction down/up\n"
