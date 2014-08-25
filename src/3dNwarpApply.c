@@ -285,7 +285,7 @@ int main( int argc , char *argv[] )
        dset_nwarp = THD_open_dataset( argv[iarg] ) ;          /* the simple way */
 #else
        if( verb ) fprintf(stderr,"++ Reading -nwarp") ;
-       CW_no_expad = 1 ;
+       CW_no_expad = 0 ;
        dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
        if( verb ) fprintf(stderr,"\n") ;
        if( verb && CW_get_saved_expad() > 0 )
