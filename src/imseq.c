@@ -11749,6 +11749,19 @@ Widget ISQ_popup_scale( Widget wparent , int position )
    XEvent ev ;
    Position xroot , yroot ;
 
+#undef  NCOL
+#define NCOL 30
+#ifdef  NCOL
+   static char *cname[] = {
+      "#0000ff", "#3300ff", "#6600ff", "#9900ff", "#cc00ff",
+      "#ff00ff", "#ff00cc", "#ff0099", "#ff0066", "#ff0033",
+      "#ff0000", "#ff3300", "#ff6600", "#ff9900", "#ffcc00",
+      "#ffff00", "#ccff00", "#99ff00", "#66ff00", "#33ff00",
+      "#00ff00", "#00ff33", "#00ff66", "#00ff99", "#00ffcc",
+      "#00ffff", "#00ccff", "#0099ff", "#0066ff", "#0033ff"
+    } ;
+#endif
+
 ENTRY("ISQ_popup_scale") ;
 
    if( wparent == NULL || ! XtIsRealized(wparent) ) RETURN(NULL) ;
@@ -11822,6 +11835,19 @@ ENTRY("ISQ_popup_scale") ;
 
    XtPopup( wmsg , XtGrabNone ) ; RWC_sleep(1);
 
+#ifdef NCOL
+   { Widget ws = XtNameToWidget(wscal,"Scrollbar") ;
+     int icol = lrand48() % NCOL ;
+     if( ws != NULL ){
+       XtVaSetValues( ws ,
+                       XtVaTypedArg , XmNtroughColor , XmRString ,
+                                      cname[icol] , strlen(cname[icol])+1 ,
+                      NULL ) ;
+       XmUpdateDisplay(wscal) ;
+     }
+   }
+#endif
+
    RETURN(wscal) ;
 }
 
@@ -11840,38 +11866,10 @@ void ISQ_set_scale( Widget wscal , int percent )
 {
    int val , old ;
 
-#undef  NCOL
-#define NCOL 30
-#ifdef NCOL
-   static int icol=0 ;
-   static char *cname[] = {
-      "#0000ff", "#3300ff", "#6600ff", "#9900ff", "#cc00ff",
-      "#ff00ff", "#ff00cc", "#ff0099", "#ff0066", "#ff0033",
-      "#ff0000", "#ff3300", "#ff6600", "#ff9900", "#ffcc00",
-      "#ffff00", "#ccff00", "#99ff00", "#66ff00", "#33ff00",
-      "#00ff00", "#00ff33", "#00ff66", "#00ff99", "#00ffcc",
-      "#00ffff", "#00ccff", "#0099ff", "#0066ff", "#0033ff"
-    } ;
-#endif
-
    val = percent ;
    if( wscal == NULL || val < 0 || val > 100 ) return ;
-
    XmScaleGetValue( wscal , &old ) ; if( val == old ) return ;
-
    XtVaSetValues( wscal , XmNvalue , val , NULL ) ;
-
-#ifdef NCOL
-   { Widget ws = XtNameToWidget(wscal,"Scrollbar") ;
-     if( ws != NULL )
-       XtVaSetValues( ws ,
-                       XtVaTypedArg , XmNtroughColor , XmRString ,
-                                      cname[icol] , strlen(cname[icol])+1 ,
-                      NULL ) ;
-     icol = (icol+1) % NCOL ;
-   }
-#endif
-
    XmUpdateDisplay(wscal) ;
    return ;
 }
