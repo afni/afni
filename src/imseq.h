@@ -562,6 +562,7 @@ typedef struct MCW_imseq {
      MCW_arrowval *wbar_checkbrd_av ;
      float render_fac ;                               /* 22 Aug 2014 */
      Widget render_scal ;
+     int allowmerger ;
 
      MCW_arrowval *wbar_animdup_av ;                  /* 10 Feb 2009 */
 
@@ -653,6 +654,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_setrange      131
 #define isqDR_bgicon        132
 #define isqDR_settopclip    133  /* 14 Sep 2007 */
+#define isqDR_allowmerger   134  /* 25 Aug 2014 */
 
 #define isqDR_arrowpadhint  201
 #define isqDR_winfotext     202
