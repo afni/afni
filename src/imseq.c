@@ -11854,6 +11854,7 @@ ENTRY("ISQ_popup_scale") ;
        XWarpPointer( XtDisplay(ws) , None , XtWindow(ws) ,
                      0,0,0,0 , wid/2+1 , METER_HEIGHT/4 ) ;
        XSetInputFocus( XtDisplay(ws), XtWindow(ws), RevertToParent, CurrentTime ) ;
+       XFlush(XtDisplay(ws)) ;
        XmUpdateDisplay(wscal) ;
      }
    }
