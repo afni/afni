@@ -5765,6 +5765,7 @@ static void CW_load_one_warp( int nn , char *cp )
 {
    char *wp ; int do_inv=0 , do_sqrt=0 , do_empty=0 , ii ;
    int do_fac=0 ; float xfac=1.0f , yfac=1.0f , zfac=1.0f ;
+   int expad=0 ;
 
 ENTRY("CW_load_one_warp") ;
 
@@ -5834,7 +5835,7 @@ ENTRY("CW_load_one_warp") ;
 
    } else {                                        /*--- dataset warp ---*/
 
-     THD_3dim_dataset *dset, *eset=NULL ; IndexWarp3D *AA , *BB ;
+     THD_3dim_dataset *dset, *eset=NULL ; IndexWarp3D *AA , *BB , *EE ;
 
      /* Check for special case of uni-directional warp from 1 sub-brick:
           RL: or LR: for x-direction only
@@ -5972,6 +5973,16 @@ ENTRY("CW_load_one_warp") ;
 
      /**--- finally, do any functional processing of the warp ---**/
 
+     expad = 0 ;
+#if 0
+     if( do_sqrt || do_inv ){
+       expad = 16 ;
+       EE = IW3D_extend( AA , expad,expad,expad,expad,expad,expad , 0 ) ;
+       IW3D_destroy(AA) ; AA = EE ;
+     }
+#endif
+     IW3D_load_external_slopes(AA) ;
+
      if( do_sqrt ){        /* user wants SQRT or SQRTINV */
 #ifndef USE_SQRTPAIR
        BB = IW3D_sqrtinv(AA,NULL,MRI_LINEAR) ;  /* inverse AND sqrt */
@@ -5989,7 +6000,11 @@ ENTRY("CW_load_one_warp") ;
      } else if( do_inv ){  /* user wants INV */
        BB = IW3D_invert(AA,NULL,MRI_WSINC5); IW3D_destroy(AA); AA = BB;
      }
-     AA->use_es = 0 ;
+     if( expad > 0 ){
+       EE = IW3D_extend( AA , -expad,-expad,-expad,-expad,-expad,-expad , 0 ) ;
+       IW3D_destroy(AA) ; AA = EE ;
+     }
+     IW3D_load_external_slopes(AA) ;
 
      /* push this warp onto the stack we are creating */
 
@@ -6064,13 +6079,16 @@ ENTRY("IW3D_read_catenated_warp") ;
      dm = MIN(CW_dx,CW_dy); dm = MIN(CW_dz,dm) ;
      xx = CW_dxal/dm ; yy = CW_dyal/dm ; zz = CW_dzal/dm ;
      dm = MAX(xx,yy) ; dm = MAX(dm,zz) ;
-     pp = (int)rintf(1.0111f*dm) ; CW_saved_expad = MAX(pp,32) ;
+     pp = (int)rintf(1.1111f*dm) ; CW_saved_expad = MAX(pp,32) ;
    } else {
      CW_saved_expad = 32 ;
    }
    if( CW_no_expad ) CW_saved_expad = 0 ;
+#if 0
+   { int qq = AFNI_numenv("CW_EXPAD") ; if( qq >= 0 ) CW_saved_expad = qq ; }
+#endif
    if( CW_saved_expad > 0 ){
-     IndexWarp3D *EE ; THD_3dim_dataset *QQ ;
+     IndexWarp3D *EE ; THD_3dim_dataset *QQ ; int first=1 ;
      QQ = THD_zeropad( CW_inset ,
                        CW_saved_expad, CW_saved_expad, CW_saved_expad,
                        CW_saved_expad, CW_saved_expad, CW_saved_expad,
@@ -6082,6 +6100,9 @@ ENTRY("IW3D_read_catenated_warp") ;
                            CW_saved_expad, CW_saved_expad, CW_saved_expad,
                            CW_saved_expad, CW_saved_expad, CW_saved_expad, 0 ) ;
          IW3D_destroy(CW_iwarp[ii]) ; CW_iwarp[ii] = EE ;
+         if( first ){
+           CW_cmat = EE->cmat; CW_imat = EE->imat; first = 0;
+         }
        }
      }
    }
