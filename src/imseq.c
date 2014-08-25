@@ -11782,7 +11782,7 @@ ENTRY("ISQ_popup_scale") ;
       case METER_TOP:
       case METER_TOP_WIDE:
          xpr = xr ;
-         ypr = yr - METER_HEIGHT-2 ;
+         ypr = yr - METER_HEIGHT-20;
          wid = (position==METER_TOP_WIDE) ? wx : METER_WIDTH ;
          if( ypr < 0 ) ypr = yr+hy+1 ;
       break ;
