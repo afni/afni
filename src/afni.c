@@ -6490,7 +6490,7 @@ STATUS("opening an image window") ;
       POPUP_cursorize(pboff) ;   /* 20 Jul 2005 */
       *snew = open_MCW_imseq( im3d->dc, AFNI_brick_to_mri, (XtPointer) brnew ) ;
 
-      (*snew)->parent = (XtPointer) im3d ;
+      (*snew)->parent = (XtPointer)im3d ;
 
       INIT_BKGD_LAB(im3d) ;
 
@@ -6505,6 +6505,7 @@ STATUS("realizing new image viewer") ;
 if( !AFNI_yesenv("TMONT") )
       drive_MCW_imseq( *snew, isqDR_periodicmont,
                       (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
+      drive_MCW_imseq( *snew , isqDR_allowmerger , NULL ) ;           /* 25 Aug 2014 */
 
       /* 09 Oct 1998: force L-R mirroring on axial and coronal images? */
       /* 04 Nov 2003: or min-to-max on grayscaling? */
