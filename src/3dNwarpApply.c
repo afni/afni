@@ -27,6 +27,7 @@ int main( int argc , char *argv[] )
    int nx,ny,nz,nxyz , toshort=0 ;
    float wfac=1.0f ;
    MRI_IMAGE *awim=NULL ;
+   int expad=0 ;  /* 26 Aug 2014 */
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
@@ -126,6 +127,17 @@ int main( int argc , char *argv[] )
       "                for the data than might be used for the warp.  In particular,\n"
       "                '-ainterp NN' would be most logical for atlas datasets, where\n"
       "                the data values being mapped are labels.\n"
+      "\n"
+      " -expad EE    = Add 'EE' voxels to the warp on input, to help avoid any problems\n"
+      "                that might arise if you are catenating multiple warps / matrices\n"
+      "                where the nonlinear transform might be shifted far off its\n"
+      "                original grid definition.  Normally not needed, since the program\n"
+      "                internally estimates how much padding is needed.\n"
+      "                ++ This option does not affect the use of '-master WARP', which\n"
+      "                    still refers to the original grid on which the nonlinear\n"
+      "                    warp is defined.\n"
+      "                ++ Please note that this option must be given BEFORE the '-nwarp'\n"
+      "                   option to have any effect!\n"
       "\n"
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
       "\n"
@@ -234,6 +246,17 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* 26 Aug 2014 */
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       if( dset_nwarp != NULL )
+         WARNING_message("-expad given after -nwarp ==> -expad is IGNORED") ;
+       expad = (int)strtod(argv[nopt],NULL) ;
+       if( expad < 0 ) expad = 0 ;
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[iarg],"-wfac") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        wfac = (float)strtod(argv[iarg],NULL) ;
@@ -285,7 +308,7 @@ int main( int argc , char *argv[] )
        dset_nwarp = THD_open_dataset( argv[iarg] ) ;          /* the simple way */
 #else
        if( verb ) fprintf(stderr,"++ Reading -nwarp") ;
-       CW_no_expad = 0 ;
+       CW_no_expad = 0 ; CW_extra_pad = expad ;
        dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
        if( verb ) fprintf(stderr,"\n") ;
        if( verb && CW_get_saved_expad() > 0 )
