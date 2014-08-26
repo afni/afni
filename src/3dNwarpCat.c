@@ -11,7 +11,7 @@
 
 /*----------------------------------------------------------------------------*/
 
-void CNW_help(void)
+void NWC_help(void)
 {
    printf(
     "Usage: 3dNwarpCat [options] warp1 warp2 ...\n"
@@ -35,11 +35,12 @@ void CNW_help(void)
     "    the filename is just the prefix.\n"
     " ++ If 'prefix' is just 'stdout', then the output matrix is written\n"
     "    to standard output.\n"
-    " ++ In any case, the output format is 12 numbers in one row.\n"
+    " ++ In any of these cases, the output format is 12 numbers in one row.\n"
     "\n"
     " * If any of the input warps are datasets, they must all be defined on\n"
     "   the same 3D grid!\n"
     " ++ And of course, then the output will be a dataset on the same grid.\n"
+    " ++ However, you can expand the grid using the '-expad' option.\n"
     "\n"
     " * The order of operations in the final (output) warp is, for the\n"
     "   case of 3 input warps:\n"
@@ -81,11 +82,15 @@ void CNW_help(void)
     "\n"
     "   Note the order of the warps is reversed, in addition to the use of 'INV()'.\n"
     "\n"
+    " * The final warp may also be inverted simply by adding the '-iwarp' option, as in\n"
+    "\n"
+    "   3dNwarpCat -prefix Fred_total_WARPINV -iwarp -warp1 Fred_WARP+tlrc.HEAD -warp2 Fred.Xat.1D \n"
+    "\n"
     " * Other functions you can apply to modify a 3D dataset warp are:\n"
     "    SQRT(datasetname) to get the square root of a warp\n"
     "    SQRTINV(datasetname) to get the inverse square root of a warp\n"
     "   However, you can't do more complex expressions, such as 'SQRT(SQRT(warp))'.\n"
-    "   If you need something so rococo, use 3dNwarpCalc.\n"
+    "   If you think you need something so rococo, use 3dNwarpCalc.  Or think again.\n"
     "\n"
     " * You can also manufacture a 3D warp from a 1-brick dataset with displacments\n"
     "   in a single direction.  For example:\n"
@@ -108,6 +113,11 @@ void CNW_help(void)
     "   for specifying the input dataset (the fieldmap) is built to make the\n"
     "   scripting a little easier.  Its principal use is in the program 3dNwarpApply.\n"
     "\n"
+    " * Finally, you can input a warp catenation string directly as in the '-nwarp'\n"
+    "   option of 3dNwarpApply, as in\n"
+    "\n"
+    "   3dNwarpCat -prefix Fred_total_WARP 'Fred_WARP+tlrc.HEAD Fred.Xat.1D' \n"
+    "\n"
     "\n"
     "OPTIONS\n"
     "-------\n"
@@ -122,6 +132,8 @@ void CNW_help(void)
     " -verb       == print (to stderr) various fun messages along the road.\n"
     "\n"
     " -prefix ppp == prefix name for the output dataset that holds the warp.\n"
+    " -space sss  == attach string 'sss' to the output dataset as its atlas\n"
+    "                space marker.\n"
     "\n"
     " -warp1 ww1  == alternative way to specify warp#1\n"
     " -warp2 ww2  == alternative way to specify warp#2 (etc.)\n"
@@ -139,8 +151,6 @@ void CNW_help(void)
     " -expad PP   == Pad the nonlinear warps by 'PP' voxels in all directions.\n"
     "                The warp displacements are extended by linear extrapolation\n"
     "                from the faces of the input grid.\n"
-    "                ++ This option has only limited utility, and is here mostly\n"
-    "                   for historically and hysterically obscure testing purposes.\n"
    ) ;
 
    printf(
@@ -156,238 +166,11 @@ void CNW_help(void)
 
 #define NWMAX 99
 
-static int          nwtop=0 ;
-static IndexWarp3D *iwarp[NWMAX] ;
-static float        iwfac[NWMAX] ;
-static mat44       *awarp[NWMAX] ;
-static int nx=0,ny=0,nz=0 ; char *geomstring=NULL , *sname=NULL ;
-static mat44 cmat , imat ;
-
-static THD_3dim_dataset *inset=NULL ;
+static int  nwtop=0 ;
+static char *cwarp[NWMAX] ;
+static char *sname=NULL ;
 
 static int verb=0 , interp_code=MRI_WSINC5 ;
-
-/*----------------------------------------------------------------------------*/
-
-void CNW_load_warp( int nn , char *cp )
-{
-   char *wp ; int do_inv=0 , do_sqrt=0 , do_empty=0 , ii ;
-   int do_fac=0 ; float xfac=1.0f , yfac=1.0f , zfac=1.0f ;
-
-   if( nn <= 0 || nn > NWMAX || cp == NULL || *cp == '\0' )
-     ERROR_exit("bad inputs to CNW_load_warp") ;
-
-   if( strncasecmp(cp,"INV(",4) == 0 ){
-     cp += 4 ; do_inv = 1 ;
-   } else if( strncasecmp(cp,"INVERSE(",8) == 0 ){
-     cp += 8 ; do_inv = 1 ;
-   } else if( strncasecmp(cp,"SQRT(",5) == 0 ){
-     cp += 5 ; do_sqrt = 1 ;
-   } else if( strncasecmp(cp,"SQRTINV(",8) == 0 || strncasecmp(cp,"INVSQRT(",8) == 0 ){
-     cp += 8 ; do_inv = do_sqrt = 1 ;
-   } else if( strncasecmp(cp,"IDENT(",6) == 0 ){
-     cp += 6 ; do_empty = 1 ;
-   }
-
-   wp = strdup(cp) ; ii = strlen(wp) ;
-   if( ii < 4 ) ERROR_exit("input string to CNW_load_warp is too short :-((") ;
-   if( wp[ii-1] == ')' ) wp[ii-1] = '\0' ;
-
-   if( nn > nwtop ) nwtop = nn ;  /* nwtop = largest index thus far */
-
-   if( verb )
-     INFO_message("reading warp#%d from file %s",nn,wp) ;
-
-   if( STRING_HAS_SUFFIX_CASE(wp,".1D")  ||
-       STRING_HAS_SUFFIX_CASE(wp,".txt")   ){      /* affine warp */
-
-     mat44 mmm ; MRI_IMAGE *qim ; float *qar ;
-     qim = mri_read_1D(wp) ;
-     if( qim == NULL || qim->nvox < 9 )
-       ERROR_exit("cannot read matrix from file '%s'",wp);
-     if( qim->nx < 12 && qim->ny > 1 ){
-       MRI_IMAGE *tim = mri_transpose(qim) ; mri_free(qim) ; qim = tim ;
-     }
-     qar = MRI_FLOAT_PTR(qim) ;
-     if( qim->nvox < 12 )                           /* presumably a rotation */
-       LOAD_MAT44(mmm,qar[0],qar[1],qar[2],0,
-                      qar[3],qar[4],qar[5],0,
-                      qar[6],qar[7],qar[8],0) ;
-     else                                           /* a full matrix */
-       LOAD_MAT44(mmm,qar[0],qar[1],qar[2],qar[3],
-                      qar[4],qar[5],qar[6],qar[7],
-                      qar[8],qar[9],qar[10],qar[11]) ;
-     mri_free(qim) ;
-
-     if( do_inv ){
-       mat44 imm ;
-       if( verb ) ININFO_message("--- inverting matrix") ;
-       imm = MAT44_INV(mmm) ; mmm = imm ;
-     }
-     if( do_sqrt ){
-       if( verb ) ININFO_message("--- square-rooting matrix") ;
-       mat44 smm = THD_mat44_sqrt(mmm) ; mmm = smm ;
-     }
-
-     awarp[nn-1] = (mat44 *)malloc(sizeof(mat44)) ;
-     AAmemcpy(awarp[nn-1],&mmm,sizeof(mat44)) ;
-     free(wp) ; return ;
-
-   } else {                                        /* dataset warp */
-
-     THD_3dim_dataset *dset , *eset=NULL ; IndexWarp3D *AA , *BB ;
-
-     /* check for special case of uni-directional warp from 1 sub-brick [19 Mar 2013] */
-
-     if( strncasecmp(wp,"RL:",3) == 0 || strncasecmp(wp,"LR:",3) == 0 ||
-         strncasecmp(wp,"AP:",3) == 0 || strncasecmp(wp,"PA:",3) == 0 ||
-         strncasecmp(wp,"IS:",3) == 0 || strncasecmp(wp,"SI:",3) == 0 ||
-         strncasecmp(wp,"VEC:",4)== 0 || strncasecmp(wp,"UNI:",4)== 0   ){
-
-       float vx=0.0f,vy=0.0f,vz=0.0f,vm=0.0f ;
-       char *up=strchr(wp,':')+1 , *vp ;
-       MRI_IMAGE *dim ; float *dar , *xar,*yar,*zar ; int nvox ;
-
-       /* set unit vector for direction of warp displacements in 3D */
-
-       switch( toupper(*wp) ){
-         case 'R': case 'L':  vx = 1.0f ; vy = vz = 0.0f ; break ;
-         case 'A': case 'P':  vy = 1.0f ; vx = vz = 0.0f ; break ;
-         case 'I': case 'S':  vz = 1.0f ; vx = vy = 0.0f ; break ;
-         default:
-           sscanf(up,"%f,%f,%f",&vx,&vy,&vz) ;
-           vm = sqrtf(vx*vx+vy*vy+vz*vz) ;
-           if( vm < 1.e-9f ){
-             ERROR_message("uni-directional warp '%s' :-) direction is unclear",wp) ;
-             free(wp) ; EXRETURN ;
-           }
-           vx /= vm ; vy /= vm ; vz /= vm ;
-           vp = strchr(up,':') ;
-           if( vp == NULL ){
-             ERROR_message("uni-directional warp '%s' :-) no dataset?",wp) ;
-             free(wp) ; EXRETURN ;
-           }
-           up = vp+1 ;
-       }
-
-       /* check if there is a scale factor */
-
-       vp = strchr(up,':') ;
-       if( vp != NULL && isnumeric(*up) ){
-         float wfac = (float)strtod(up,NULL) ;
-         if( wfac == 0.0f ){
-           ERROR_message("uni-directional warp '%s' :-) scale factor = 0?",wp) ;
-           free(wp) ; EXRETURN ;
-         }
-         up = vp+1 ;
-         vx *= wfac ; vy *= wfac ; vz *= wfac ;
-       }
-
-       /* now read dataset and do surgery on it */
-
-       eset = THD_open_dataset(up) ;
-       if( eset == NULL ){
-         ERROR_message("Can't open dataset from file '%s'",up); free(wp); EXRETURN;
-       }
-       DSET_load(eset) ; DSET_COPYOVER_REAL(eset) ;
-       if( !DSET_LOADED(eset) ){
-         ERROR_message("Can't load dataset from file '%s'",up); free(wp); DSET_delete(eset); EXRETURN;
-       }
-       dim = THD_extract_float_brick(0,eset); dar = MRI_FLOAT_PTR(dim); DSET_unload(eset);
-       nvox = dim->nvox ;
-       xar = (float *)calloc(sizeof(float),nvox) ; /* bricks for output dataset */
-       yar = (float *)calloc(sizeof(float),nvox) ;
-       zar = (float *)calloc(sizeof(float),nvox) ;
-       dset = EDIT_empty_copy(eset) ;
-       EDIT_dset_items( dset ,
-                          ADN_nvals , 3 ,
-                          ADN_ntt   , 0 ,
-                          ADN_datum_all , MRI_float ,
-                        ADN_none ) ;
-       EDIT_BRICK_FACTOR(dset,0,0.0) ; EDIT_substitute_brick(dset,0,MRI_float,xar) ;
-       EDIT_BRICK_FACTOR(dset,1,0.0) ; EDIT_substitute_brick(dset,1,MRI_float,yar) ;
-       EDIT_BRICK_FACTOR(dset,2,0.0) ; EDIT_substitute_brick(dset,2,MRI_float,zar) ;
-       for( ii=0 ; ii < nvox ; ii++ ){
-         xar[ii] = vx * dar[ii]; yar[ii] = vy * dar[ii]; zar[ii] = vz * dar[ii];
-       }
-       mri_free(dim) ;
-
-     } else if( strncasecmp(wp,"FAC:",4) == 0 ){  /* special case of 3D scale factors */
-
-       char *up=strchr(wp,':')+1 , *vp ;
-       sscanf(up,"%f,%f,%f",&xfac,&yfac,&zfac) ;
-       if( fabsf(xfac)+fabsf(yfac)+fabsf(zfac) < 0.001f )
-         WARNING_message("warp '%s': factors are small",wp) ;
-       vp = strchr(up,':') ;
-       if( vp == NULL ){
-         ERROR_message("warp '%s': no dataset to read?",wp) ;
-         free(wp) ; EXRETURN ;
-       }
-       dset = THD_open_dataset(vp+1) ;
-       if( dset == NULL ){
-         ERROR_message("Can't open dataset from file '%s'",wp); free(wp); EXRETURN;
-       }
-       do_fac = 1 ; DSET_COPYOVER_REAL(dset) ;
-
-     } else {  /*--- standard 3-brick warp ---*/
-
-       dset = THD_open_dataset(wp) ;
-       if( dset == NULL )
-         ERROR_exit("can't open dataset from file '%s'",wp);
-       DSET_COPYOVER_REAL(dset) ;
-     }
-
-     /*-- convert dataset to warp --*/
-
-     if( verb ) ININFO_message("--- reading dataset") ;
-     AA = IW3D_from_dataset(dset,do_empty,0) ;
-     if( AA == NULL )
-       ERROR_exit("can't make warp from dataset '%s'",wp) ;
-     if( do_fac ) IW3D_3scale(AA,xfac,yfac,zfac) ;
-
-     if( geomstring == NULL ){       /* first dataset => set geometry globals */
-       geomstring = strdup(AA->geomstring) ;
-       sname      = strdup(dset->atlas_space) ;
-       nx = AA->nx; ny = AA->ny; nz = AA->nz; cmat = AA->cmat; imat = AA->imat;
-#if 0
-INFO_message("set geomstring = %s  atlas_space = %s",geomstring,sname) ;
-#endif
-     } else if( AA->nx != nx || AA->ny != ny || AA->nz != nz ){ /* check them */
-       ERROR_exit("warp from dataset '%s' doesn't match earlier inputs in grid size",wp) ;
-     }
-
-     if( inset == NULL ){ DSET_unload(dset) ; inset = dset ; }  /* save as template */
-     else               { DSET_delete(dset) ; }
-
-     if( do_sqrt ){
-#ifndef USE_SQRTPAIR
-       BB = IW3D_sqrtinv(AA,NULL,MRI_LINEAR) ;  /* inverse AND sqrt */
-       if( do_inv ){
-         IW3D_destroy(AA) ; AA = BB ;
-       } else {                                 /* must re-invert */
-         AA = IW3D_invert(BB,NULL,MRI_LINEAR) ; IW3D_destroy(BB) ;
-       }
-#else
-       IndexWarp3D_pair *YZ = IW3D_sqrtpair(AA,MRI_LINEAR) ;
-       if( do_inv ){ AA = YZ->iwarp ; IW3D_destroy(YZ->fwarp) ; }
-       else        { AA = YZ->fwarp ; IW3D_destroy(YZ->iwarp) ; }
-       free(YZ) ;
-#endif
-     } else if( do_inv ){
-       if( Hverb ) fprintf(stderr," + inverting warp ") ;
-       BB = IW3D_invert(AA,NULL,MRI_WSINC5); IW3D_destroy(AA); AA = BB;
-     }
-
-#if 0
-ININFO_message("AA->geomstring = %s",AA->geomstring) ;
-#endif
-     iwarp[nn-1] = AA ; free(wp) ; return ;
-   }
-
-   /* unreachable */
-
-   return ;
-}
 
 /*----------------------------------------------------------------------------*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -397,14 +180,13 @@ int main( int argc , char *argv[] )
 {
    int iarg=1 , ii , do_iwarp=0 ;
    char *prefix = "NwarpCat" ;
-   mat44        wmat      , tmat , smat , qmat ;
-   IndexWarp3D *warp=NULL , *tarp=NULL ;
-   THD_3dim_dataset *oset ;
-   int expad=0 , pad_xm=0,pad_xp=0,pad_ym=0,pad_yp=0,pad_zm=0,pad_zp=0 ;
+   mat44 wmat , smat , qmat ;
+   THD_3dim_dataset *oset=NULL ;
+   char *cwarp_all=NULL ; int ntot=0 ;
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
 
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) CNW_help() ;
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) NWC_help() ;
 
    /*-- bureaucracy --*/
 
@@ -414,10 +196,10 @@ int main( int argc , char *argv[] )
    (void)COX_clock_time() ;
    putenv("AFNI_WSINC5_SILENT=YES") ;
 
-   ZERO_MAT44(imat) ; ZERO_MAT44(cmat) ;
-   for( ii=0 ; ii < NWMAX ; ii++ ){
-     iwarp[ii] = NULL ; awarp[ii] = NULL ; iwfac[ii] = 1.0f ;
-   }
+   /*-- initialization --*/
+
+   CW_no_expad = 1 ; Hverb = 0 ;
+   for( ii=0 ; ii < NWMAX ; ii++ ) cwarp[ii] = NULL ;
 
    /*-- scan args --*/
 
@@ -427,6 +209,12 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-iwarp") == 0 ){
        do_iwarp = 1 ; iarg++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[iarg],"-space") == 0 ){
+       sname = strdup(argv[++iarg]) ; iarg++ ; continue ;
      }
 
      /*---------------*/
@@ -452,21 +240,14 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-expad") == 0 ){
+       int expad ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
-       if( strstr(argv[iarg],",") == NULL ){
-         expad = (int)strtod(argv[iarg],NULL) ;
-         if( expad < 0 ){
-           WARNING_message("-expad %d is illegal and is set to zero",expad) ;
-           expad = 0 ;
-         }
-         pad_xm = pad_xp = pad_ym = pad_yp = pad_zm = pad_zp = expad ;
-       } else {
-         sscanf(argv[iarg],"%d,%d,%d,%d,%d,%d",&pad_xm,&pad_xp,&pad_ym,&pad_yp,&pad_zm,&pad_zp) ;
-         if( pad_xm < 0 ) pad_xm = 0 ; if( pad_xp < 0 ) pad_xp = 0 ;
-         if( pad_ym < 0 ) pad_ym = 0 ; if( pad_yp < 0 ) pad_yp = 0 ;
-         if( pad_zm < 0 ) pad_zm = 0 ; if( pad_zp < 0 ) pad_zp = 0 ;
-         expad = (pad_xm > 0 || pad_xp > 0 || pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0 ) ;
+       expad = (int)strtod(argv[iarg],NULL) ;
+       if( expad < 0 ){
+         WARNING_message("-expad %d is illegal and is set to zero",expad) ;
+         expad = 0 ;
        }
+       CW_extra_pad = expad ;
        iarg++ ; continue ;
      }
 
@@ -511,20 +292,6 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strncasecmp(argv[iarg],"-wfac",5) == 0 ){
-       int nn ;
-       if( iarg >= argc-1 ) ERROR_exit("no argument after '%s' :-(",argv[iarg]) ;
-       if( !isdigit(argv[iarg][5]) ) ERROR_exit("illegal format for '%s' :-(",argv[iarg]) ;
-       nn = (int)strtod(argv[iarg]+5,NULL) ;
-       if( nn <= 0 || nn > NWMAX )
-         ERROR_exit("illegal warp index in '%s' :-(",argv[iarg]) ;
-
-       iwfac[nn-1] = (float)strtod(argv[++iarg],NULL) ;
-       iarg++ ; continue ;
-     }
-
-     /*---------------*/
-
      if( strncasecmp(argv[iarg],"-warp",5) == 0 ){
        int nn ;
        if( iarg >= argc-1 ) ERROR_exit("no argument after '%s' :-(",argv[iarg]) ;
@@ -532,10 +299,10 @@ int main( int argc , char *argv[] )
        nn = (int)strtod(argv[iarg]+5,NULL) ;
        if( nn <= 0 || nn > NWMAX )
          ERROR_exit("illegal warp index in '%s' :-(",argv[iarg]) ;
-       if( iwarp[nn-1] != NULL || awarp[nn-1] != NULL )
+       if( cwarp[nn-1] != NULL )
          ERROR_exit("'%s': you can't specify warp #%d more than once :-(",argv[iarg],nn) ;
-
-       CNW_load_warp( nn , argv[++iarg] ) ;
+       cwarp[nn-1] = strdup(argv[++iarg]) ;
+       if( nn > nwtop ) nwtop = nn ;
        iarg++ ; continue ;
      }
 
@@ -549,94 +316,44 @@ int main( int argc , char *argv[] )
 
    /*-- load any warps left on the command line, after options --*/
 
-   for( ; iarg < argc ; iarg++ )
-     CNW_load_warp( nwtop+1 , argv[iarg] ) ;
+   for( ; iarg < argc && nwtop < NWMAX-1 ; iarg++ )
+     cwarp[nwtop++] = strdup(argv[iarg]) ;
 
-   /*-- cat them --*/
+   /*-- check if all warp strings are affine matrices --*/
 
-   LOAD_IDENT_MAT44(wmat) ;
+#undef  AFFINE_WARP_STRING
+#define AFFINE_WARP_STRING(ss)     \
+  ( strstr((ss)," ") == NULL &&    \
+    ( strcasestr((ss),".1D") != NULL || strcasestr((ss),".txt") != NULL ) )
 
-   if( verb ) INFO_message("Initialize to Identity matrix") ;
-
-   for( ii=0 ; ii < nwtop ; ii++ ){
-
-     if( iwarp[ii] != NULL && expad > 0 ){
-       IndexWarp3D *QQ = IW3D_extend( iwarp[ii] , pad_xm,pad_xp,pad_ym,pad_yp,pad_zm,pad_zp , 0 ) ;
-       IW3D_destroy(iwarp[ii]) ; iwarp[ii] = QQ ;
-     }
-
-     if( awarp[ii] != NULL ){  /* matrix to apply */
-
-       qmat = *(awarp[ii]) ;
-       if( geomstring != NULL ){             /* convert from xyz warp to ijk warp */
-         tmat = MAT44_MUL(qmat,cmat) ;
-         smat = MAT44_MUL(imat,tmat) ;
-       } else {
-         smat = qmat ;                       /* no conversion */
-       }
-
-       if( warp == NULL ){               /* thus far, only matrices */
-         ININFO_message("warp #%d = Matrix-Matrix multiply",ii+1) ;
-         if( iwfac[ii] != 1.0f )
-           WARNING_message(" -- wfac%d=%g ==> ignoring this factor",ii+1,iwfac[ii]) ;
-         qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
-       } else {                          /* apply matrix to nonlinear warp */
-         ININFO_message("warp #%d = Matrix(Nwarp) compose",ii+1) ;
-         if( iwfac[ii] != 1.0f )
-           WARNING_message(" -- wfac%d=%g ==> ignoring this factor",ii+1,iwfac[ii]) ;
-         tarp = IW3D_compose_w1m2(warp,smat,interp_code) ;
-         IW3D_destroy(warp) ; warp = tarp ;
-       }
-
-       free(awarp[ii]) ; awarp[ii] = NULL ;
-
-     } else if( iwarp[ii] != NULL ){   /* nonlinear warp to apply */
-
-       if( iwfac[ii] != 1.0f ) IW3D_scale( iwarp[ii] , iwfac[ii] ) ;
-
-       if( warp == NULL ){            /* create nonlinear warp at this point */
-         if( ii == 0 ){  /* first one ==> don't compose with identity matrix */
-           ININFO_message("warp #%d = input Nwarp",ii+1) ;
-           warp = IW3D_copy(iwarp[ii],1.0f) ;
-         } else {                            /* compose with previous matrix */
-           ININFO_message("warp #%d = Nwarp(Matrix) compose",ii+1) ;
-           warp = IW3D_compose_m1w2(wmat,iwarp[ii],interp_code) ;
-         }
-         if( iwfac[ii] != 1.0f )
-           ININFO_message(" -- Nwarp scaled by wfac=%g",ii+1,iwfac[ii]) ;
-       } else {          /* already have nonlinear warp, apply new one to it */
-         ININFO_message("warp #%d = Nwarp(Nwarp) compose",ii+1) ;
-         if( iwfac[ii] != 1.0f )
-           ININFO_message(" -- Nwarp scaled by wfac=%g",ii+1,iwfac[ii]) ;
-         tarp = IW3D_compose(warp,iwarp[ii],interp_code) ;
-         IW3D_destroy(warp) ; warp = tarp ;
-       }
-
-       IW3D_destroy(iwarp[ii]) ; iwarp[ii] = NULL ;
-
-     } else {
-
-       if( verb ) ININFO_message("warp #%d = skipping",ii+1) ;
-
-     }
-
+   for( ntot=ii=0 ; ii < nwtop ; ii++ ){
+     if( cwarp[ii] == NULL ) continue ;
+     ntot += strlen(cwarp[ii]) ;
+     if( ! AFFINE_WARP_STRING(cwarp[ii]) ) break ;  /* not affine */
    }
+   if( ntot == 0 ) ERROR_exit("No warps on command line?!") ;
 
-   /*--- write result to disk for future fun fun fun in the sun sun sun ---*/
-
-   if( warp == NULL ){                      /* just write a matrix [for Ziad] */
+   if( ii == nwtop ){  /* all are affine (this is for Ziad) */
      char *fname = malloc(sizeof(char)*(strlen(prefix)+16)) ; FILE *fp ;
      float a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ;
+
+     LOAD_IDENT_MAT44(wmat) ;
+     for( ii=0 ; ii < nwtop ; ii++ ){
+       if( cwarp[ii] == NULL ) continue ;
+       smat = CW_read_affine_warp(cwarp[ii]) ;
+       qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
+     }
+
      if( strcmp(prefix,"-") == 0 || strncmp(prefix,"stdout",6) == 0 ){
        fp = stdout ; strcpy(fname,"stdout") ;
      } else {
        strcpy(fname,prefix) ;
        if( strstr(fname,".1D") == NULL ) strcat(fname,".aff12.1D") ;
        fp = fopen(fname,"w") ;
-       if( fp == NULL ) ERROR_exit("Can't open output file %s",fname) ;
+       if( fp == NULL ) ERROR_exit("Can't open output matrix file %s",fname) ;
      }
      if( do_iwarp ){
-       mat44 qmat = MAT44_INV(wmat) ; wmat = qmat ;  /* 18 Jul 2014 */
+       qmat = MAT44_INV(wmat) ; wmat = qmat ;
      }
      UNLOAD_MAT44(wmat,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34) ;
      fprintf(fp,
@@ -647,24 +364,15 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
-   /** write a nonlinear warp dataset **/
+   /*** at least one nonlinear warp ==> cat all strings, use library function to read ***/
 
-   if( expad == 0 ){
-#if 0
-INFO_message("output geomstring = %s",warp->geomstring) ;
-#endif
-     IW3D_adopt_dataset( warp , inset ) ;
-   } else {
-     THD_3dim_dataset *adset ;
-     INFO_message("-expad: expanding output warp size") ;
-     adset = THD_zeropad( inset , pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
-                          "PanZaglobaRocks" , ZPAD_IJK | ZPAD_EMPTY ) ;
-     IW3D_adopt_dataset( warp , adset ) ;
-     DSET_delete(adset) ;
+   cwarp_all = (char *)calloc(sizeof(char),(ntot+NWMAX)*2) ;
+   for( ii=0 ; ii < nwtop ; ii++ ){
+     if( cwarp[ii] != NULL ){ strcat(cwarp_all,cwarp[ii]) ; strcat(cwarp_all," ") ; }
    }
 
-   oset = IW3D_to_dataset( warp , prefix ) ;
-   IW3D_destroy(warp) ;
+   oset = IW3D_read_catenated_warp( cwarp_all ) ;  /* process all of them at once */
+
    if( do_iwarp ){            /* 18 Jul 2014 */
      THD_3dim_dataset *qwarp ;
      if( verb ) fprintf(stderr,"Applying -iwarp option") ;
@@ -673,9 +381,9 @@ INFO_message("output geomstring = %s",warp->geomstring) ;
      oset = qwarp ;
      if( verb ) fprintf(stderr,"\n") ;
    }
-   tross_Copy_History( inset , oset ) ;
    tross_Make_History( "3dNwarpCat" , argc,argv , oset ) ;
    if( sname != NULL ) MCW_strncpy( oset->atlas_space , sname , THD_MAX_NAME ) ;
+   EDIT_dset_items( oset , ADN_prefix,prefix , ADN_none ) ;
    DSET_write(oset) ; WROTE_DSET(oset) ;
 
    /*--- run away screaming into the night, never to be seen again ---*/
