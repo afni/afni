@@ -43,7 +43,18 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , AUG , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 26 , AUG , 2014 , RWC , "3dNwarpApply and 3dNwarpCat" , MICRO , TYPE_NEW_OPT ,
+   "Add '-expad' option for extra padding, if needed for some reason" ,
+   NULL } ,
+
+ { 26 , AUG , 2014 , RWC , "mri_nwarp.c" , MICRO , TYPE_GENERAL ,
+   "Alter IW3D_read_catenated_warp() to do warp extension" ,
+   "The amount of extension is based on the shifts in the affine components\n"
+   "in the warp chain.  This change is to fix a problem with long distance\n"
+   "shifts catenated with 3dQwarp output, where the input warp grid no\n"
+   "longer encompasses all the requisite domain for the output warp." } ,
+
+ { 22 , AUG , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
     "Add wiping and mixing between OLay and ULay images" ,
     "By pressing the '4', '5', or '6' key, user gets a slider for\n"
     "horizontal wiper, vertical wiper, or intensity mixing between\n"

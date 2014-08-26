@@ -848,7 +848,7 @@ void Qhelp(void)
     "                base dataset grid whether or not zero-padding is allowed.  However,\n"
     "                unless you use the following option, allowing zero-padding (i.e.,\n"
     "                the default operation) will make the output WARP dataset(s) be\n"
-    "                on a larger grid.\n"
+    "                on a larger grid (also see '-expad' below).\n"
     " -nopadWARP   = If you do NOT use '-nopad' (that is, you DO allow zero-padding\n"
     "                during the warp computations), then the computed warp will often\n"
     "                be bigger than the base volume.  This situation is normally not\n"
@@ -859,6 +859,13 @@ void Qhelp(void)
     "              * Zero-padding turns off the -qsave option, since implementing\n"
     "                this combination seemed too much like work for Zhark.\n"
 #endif
+    " -expad EE    = This instructs the program to pad the warp by an extra 'EE'\n"
+    "                voxels.  This option is seldom needed, but can be useful if\n"
+    "                you might later catenate the nonlinear warp -- via 3dNwarpCat\n"
+    "                -- with an affine transformation that contains a large shift.\n"
+    "                Under that circumstance, the nonlinear warp might be shifted\n"
+    "                partially outside its original grid, so expanding that grid\n"
+    "                can avoid this problem.\n"
     "\n"
     " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
@@ -1163,7 +1170,7 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* SECRET OPTION */
+     if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* no longer SECRET */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        expad = (int)strtod(argv[nopt],NULL) ;
        if( expad < 0 ) expad = 0 ;
@@ -2065,7 +2072,7 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      if( expad > 0 ){                             /* extra padding   */
        pad_xm += expad ; pad_xp += expad ;        /* ordered by the  */
        pad_ym += expad ; pad_yp += expad ;        /* cautious user   */
-       pad_zm += expad ; pad_zp += expad ;        /* (SECRET OPTION) */
+       pad_zm += expad ; pad_zp += expad ;
      }
 
      if( bim->nz == 1 ){     /* but no z-padding for 2D image! */
