@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Aug, 2014, RCR, "3dcalc", MICRO, TYPE_ENHANCE,
+   "applied AFNI_ORIENT for -LPI/-RAI",
+   "Requested by Shane M. via the message board."
+ } ,
+
+ { 25, Aug, 2014, RCR, "gen_ss_review_table.py", MICRO, TYPE_BUG_FIX,
+   "defined oind (for case that does not currently happen)",
+   NULL
+ } ,
+
  { 22, Aug, 2014, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -sort_method and -save_details",
    "Using the 'geme_index' sort method allows for real-time sorting\n"
