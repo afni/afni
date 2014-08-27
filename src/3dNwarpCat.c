@@ -198,7 +198,8 @@ int main( int argc , char *argv[] )
 
    /*-- initialization --*/
 
-   CW_no_expad = 1 ; Hverb = 0 ;
+   CW_no_expad = 1 ;  /* don't allow automatic padding of input warp */
+   Hverb = 0 ;        /* don't be verbose inside mri_nwarp.c */
    for( ii=0 ; ii < NWMAX ; ii++ ) cwarp[ii] = NULL ;
 
    /*-- scan args --*/
@@ -247,7 +248,7 @@ int main( int argc , char *argv[] )
          WARNING_message("-expad %d is illegal and is set to zero",expad) ;
          expad = 0 ;
        }
-       CW_extra_pad = expad ;
+       CW_extra_pad = expad ;  /* this is how we force extra padding */
        iarg++ ; continue ;
      }
 
