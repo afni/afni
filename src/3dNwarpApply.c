@@ -246,13 +246,13 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-expad") == 0 ){  /* 26 Aug 2014 */
-       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+     if( strcasecmp(argv[iarg],"-expad") == 0 ){  /* 26 Aug 2014 */
+       if( ++iarg >= argc ) ERROR_exit("need arg after %s",argv[iarg-1]) ;
        if( dset_nwarp != NULL )
          WARNING_message("-expad given after -nwarp ==> -expad is IGNORED") ;
-       expad = (int)strtod(argv[nopt],NULL) ;
+       expad = (int)strtod(argv[iarg],NULL) ;
        if( expad < 0 ) expad = 0 ;
-       nopt++ ; continue ;
+       iarg++ ; continue ;
      }
 
      /*---------------*/
@@ -308,7 +308,8 @@ int main( int argc , char *argv[] )
        dset_nwarp = THD_open_dataset( argv[iarg] ) ;          /* the simple way */
 #else
        if( verb ) fprintf(stderr,"++ Reading -nwarp") ;
-       CW_no_expad = 0 ; CW_extra_pad = expad ;
+       CW_no_expad = 0 ;      /* allow automatic padding of input warp */
+       CW_extra_pad = expad ; /* and enforce some addition padding */
        dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
        if( verb ) fprintf(stderr,"\n") ;
        if( verb && CW_get_saved_expad() > 0 )
