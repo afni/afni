@@ -110,9 +110,10 @@ g_history = """
    0.1  Apr 08, 2014    - try to parse SID/GID from input file names
    0.2  Apr 09, 2014    - help update, separators, parents
    0.3  Jun 26, 2014    - label typos: track 'degress of freedom' as 'degrees'
+   0.4  Aug 25, 2014    - defined oind
 """
 
-g_version = "gen_ss_review_table.py version 0.3, June 26, 2014"
+g_version = "gen_ss_review_table.py version 0.4, Aug 25, 2014"
 
 
 class MyInterface:
@@ -219,7 +220,6 @@ class MyInterface:
       # process options sequentially, to make them like a script
       errs = 0
       for opt in self.user_opts.olist:
-
          # check for anything to skip
          if opt.name == '-verb': pass
 
@@ -253,6 +253,7 @@ class MyInterface:
                errs +=1
 
          else:
+            oind = self.user_opts.olist.index(opt)
             print '** unknown option # %d: %s' % (oind+1, opt.name)
             errs += 1
             break

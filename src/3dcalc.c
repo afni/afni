@@ -226,7 +226,14 @@ void CALC_read_opts( int argc , char * argv[] )
    int nopt = 1 ;
    int ids ;
    int ii, kk;
-   char *srcspace=NULL;
+   char *srcspace=NULL, *eptr;
+
+   /* try to init CALC_mangle_xyz from env, first   27 Aug 2014 [rickr] */
+   eptr = my_getenv("AFNI_ORIENT");
+   if( eptr ) {
+      if     ( ! strcasecmp(eptr, "rai") ) CALC_mangle_xyz = MANGLE_RAI;
+      else if( ! strcasecmp(eptr, "lpi") ) CALC_mangle_xyz = MANGLE_LPI;
+   }
 
    for( ids=0 ; ids < 26 ; ids++ ){
       CALC_dset[ids]   = NULL ;
@@ -1446,6 +1453,8 @@ void CALC_Syntax(void)
     " -LPI   }=                      so that -x=Left , -y=Posterior, -z=Inferior,\n"
     "                                        +x=Right, +y=Anterior , +z=Superior.\n"
     "                                                                        \n"
+    " The -LPI/-RAI behavior can also be achieved via the AFNI_ORIENT        \n"
+    " environment variable (27 Aug, 2014).                                   \n"
     "------------------------------------------------------------------------\n"
     "DIFFERENTIAL SUBSCRIPTS [22 Nov 1999]:                                  \n"
     "-----------------------                                                 \n"
