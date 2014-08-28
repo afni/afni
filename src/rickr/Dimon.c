@@ -113,10 +113,13 @@ static char * g_history[] =
     "      - added -sort_method option (particularly for geme_index)\n"
     "        (this is for real-time sorting based on GE_ME_INDEX fields)\n"
     "      - added -save_detail, for save the details of image files\n"
+    " 4.03 Aug 28, 2014 [rickr] :\n",
+    "      - if -sort_method geme_index, test SOP IUID index order\n"
+    "      - if -save_details, make separate file for GEME index sort info\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.02 (August 22, 2014)"
+#define DIMON_VERSION "version 4.03 (August 28, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -268,6 +271,8 @@ extern int          g_image_ori_ind[3];
 extern float        g_image_posn[3];
 extern int          g_ge_me_index;
 extern int          g_ge_nim_acq;
+extern int          g_sop_iuid_maj;
+extern int          g_sop_iuid_min;
 
 static int          read_obl_info = 1;  /* only process obl_info once */
 static int          want_ushort2float = 0;  /* 9 Jul 2013 */
@@ -285,6 +290,7 @@ static int         get_num_suffix( char * str );
 static int         read_afni_image( char *pathname, finfo_t *fp, int get_data);
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
 static int         sort_by_num_suff( char ** names, int nnames);
+int                get_sop_iuid_index(ge_extras * ep);
 
 /* oblique function protos */
 extern void   mri_read_dicom_reset_obliquity();
@@ -322,6 +328,7 @@ static int find_more_volumes   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_next_zoff      ( param_t * p, int start, float zoff, int nim,
                                  int warn );
 int        free_image_memory   ( param_t * p, int first, int nim );
+FILE *     get_file_pointer    (char * fname, char * mesg, int index);
 static int get_sorted_file_names( param_t  * p );
 static int init_extras         ( param_t * p, ART_comm * ac );
 static int init_options        ( param_t * p, ART_comm * a, int argc,
@@ -355,6 +362,7 @@ int        geme_set_sort_indices(param_t * p, int_list * ilist, int ngeme,
 int        guess_predefined_nacq(param_t * p, int ind);
 int        is_geme_sort_method (char * method);
 int        valid_sort_method   (char * method);
+int        test_sop_iuid_index_order(param_t * p);
 
 /* volume scanning */
 int        check_one_volume    (param_t *p, int bound, int state,
@@ -1471,7 +1479,7 @@ static int make_sorted_fim_list(param_t  * p)
    /* apply requested sorting method            15 Aug 2014 [rickr] */
    if( ! valid_sort_method(p->opts.sort_method) )
       qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
-   else if( ! strcmp(p->opts.sort_method, "geme_index") )
+   else if( is_geme_sort_method(p->opts.sort_method) )
       sort_by_geme_index(p);
    else
       qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
@@ -3302,8 +3310,10 @@ static int read_afni_image( char * pathname, finfo_t * fp, int get_data )
     gexp->skip   = -1;
     gexp->swap   = 0; /* rcr, should I bother? */
     gexp->kk     = 0;
-    gexp->ge_me_index = -1;
-    gexp->ge_nim_acq = -1;
+    gexp->ge_me_index  = -1;
+    gexp->ge_nim_acq   = -1;
+    gexp->sop_iuid_maj = -1;
+    gexp->sop_iuid_min = -1;
     gexp->xorg   = DSET_XORG(dset);
     gexp->yorg   = DSET_YORG(dset);
     memset(gexp->xyz, 0, 9*sizeof(float)); /* skip xyz[9] */
@@ -3462,8 +3472,10 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     gexp->skip   = -1;
     gexp->swap   = im->was_swapped;
     gexp->kk     = 0;
-    gexp->ge_me_index = g_ge_me_index;
-    gexp->ge_nim_acq = g_ge_nim_acq;
+    gexp->ge_me_index  = g_ge_me_index;
+    gexp->ge_nim_acq   = g_ge_nim_acq;
+    gexp->sop_iuid_maj = g_sop_iuid_maj;
+    gexp->sop_iuid_min = g_sop_iuid_min;
     gexp->xorg   = g_image_posn[0];
     gexp->yorg   = g_image_posn[1];
     memset(gexp->xyz, 0, 9*sizeof(float)); /* skip xyz[9] */
@@ -4126,13 +4138,15 @@ static int idisp_ge_extras( char * info, ge_extras * E )
             "    kk               = %d\n"
             "    ge_me_index      = %d\n"
             "    ge_nim_acq       = %d\n"
+            "    sop_iuid_maj     = %d\n"
+            "    sop_iuid_min     = %d\n"
             "    xorg             = %g\n"
             "    yorg             = %g\n"
             "    (xyz0,xyz1,xyz2) = (%g,%g,%g)\n"
             "    (xyz3,xyz4,xyz5) = (%g,%g,%g)\n"
             "    (xyz6,xyz7,xyz8) = (%g,%g,%g)\n",
             E->bpp, E->cflag, E->hdroff, E->skip, E->swap, E->kk,
-            E->ge_me_index, E->ge_nim_acq,
+            E->ge_me_index, E->ge_nim_acq, E->sop_iuid_maj,  E->sop_iuid_min,
             E->xorg,   E->yorg,
             E->xyz[0], E->xyz[1], E->xyz[2],
             E->xyz[3], E->xyz[4], E->xyz[5],
@@ -5532,6 +5546,43 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     return 0;
 }
 
+/* if index > 0, put index and mesg in name */
+FILE * get_file_pointer(char * fname, char * mesg, int index)
+{
+   char * fnew = NULL;
+   FILE * fp   = stderr;
+   int    len;
+
+   if     ( ! fname                   ) fp = stderr;
+   else if( ! strcmp(fname, "stderr") ) fp = stderr;
+   else if( ! strcmp(fname, "stdout") ) fp = stdout;
+   else { /* actually try to open */
+      if( index ) {
+         len = strlen(fname) + (mesg ? strlen(mesg) : 0) + 20;
+         fnew = (char *)malloc(len * sizeof(char));
+         if( !fnew ) {
+            fprintf(stderr,"** failed to allow fnew of length %d\n", len);
+            return NULL;
+         }
+         if(mesg) sprintf(fnew, "%s.%d.%s.txt", fname, index, mesg);
+         else     sprintf(fnew, "%s.%d.txt", fname, index);
+         if(gD.level>0) fprintf(stderr,"-- writing details to %s...\n", fnew);
+      } else fnew = fname;
+ 
+      fp = fopen(fnew, "w");
+      if( !fp ) {
+         fprintf(stderr,"** failed to open '%s' for writing\n",fnew);
+         return NULL;
+      }
+      if( fnew != fname ) free(fnew);
+   }
+
+    if( gD.level > 2 ) fprintf(stderr,"+d opening file for '%s'...\n",
+                               fnew ? fnew : fname ? fname : "def=stderr");
+
+
+   return fp;
+}
 
 /* ----------------------------------------------------------------------
  * Create an output file containing the (sorted?) file list.
@@ -5541,7 +5592,6 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 static int create_file_list( param_t *p, char *fname, int details, char *mesg )
 {
     static byte dcount = 0;
-    char      * fnew = NULL;
 
     finfo_t   * fip;
     FILE      * fp;
@@ -5554,31 +5604,11 @@ static int create_file_list( param_t *p, char *fname, int details, char *mesg )
                                CHECK_NULL_STR(fname));
     if( mesg ){ fputs(mesg, stderr); fputs(" : ", stderr); }
 
-    if     ( ! fname                   ) fp = stderr;
-    else if( ! strcmp(fname, "stderr") ) fp = stderr;
-    else if( ! strcmp(fname, "stdout") ) fp = stdout;
-    else { /* actually try to open */
-       if( details ) {
-          len = strlen(fname) + (mesg ? strlen(mesg) : 0) + 20;
-          fnew = (char *)malloc(len * sizeof(char));
-          if( !fnew ) {
-             fprintf(stderr,"** failed to allow fnew of length %d\n", len);
-             return -1;
-          }
-          if(mesg) sprintf(fnew, "%s.%d.%s.txt", fname, dcount, mesg);
-          else     sprintf(fnew, "%s.%d.txt", fname, dcount);
-          dcount++;
-          if(gD.level>0) fprintf(stderr,"-- writing details to %s...\n", fnew);
-       } else fnew = fname;
+    /* open an output file (or use a standard stream) */
+    fp = get_file_pointer(fname, mesg, details?dcount:0);
+    if( details ) dcount++;
 
-       fp = fopen(fnew, "w");
-       if( !fp ) {
-          fprintf(stderr,"** failed to open '%s' to write file list\n",fnew);
-          return -1;
-       }
-    }
-
-    if( details ) {
+    if( details == 1 ) {
        maxlen = 0;
        for( c = 0; c < p->nfim; c++ ) {
           len = strlen(p->fim_o[c].fname);
@@ -5589,7 +5619,7 @@ static int create_file_list( param_t *p, char *fname, int details, char *mesg )
                    "  run   IIND   RIN GEMEIND ATIME\n");
        zprev = p->fim_o[0].geh.zoff;
        for( c = 0, fip = p->fim_o; c < p->nfim; c++, fip++ ) {
-       fprintf(fp, "  %-*s   %4d   %4d   %4d   %2d     %d"
+          fprintf(fp, "  %-*s   %4d   %4d   %4d   %2d     %d"
                    "  %10.5f  %8.3f     %d"
                    "  %4d   %4d  %4d  %5d  %.3f\n",
                   maxlen, fip->fname, c, fip->findex, fip->sindex,
@@ -5599,16 +5629,104 @@ static int create_file_list( param_t *p, char *fname, int details, char *mesg )
                   fip->gex.ge_me_index, fip->geh.atime);
           zprev = fip->geh.zoff;
        }
+    } else if( details == 2 ) {
+       int iuid, iuid_prev, order_match = 1;
+
+       iuid_prev = get_sop_iuid_index(&p->fim_o[0].gex)-1;
+       maxlen = 0;
+       for( c = 0; c < p->nfim; c++ ) {
+          len = strlen(p->fim_o[c].fname);
+          if( len > maxlen ) maxlen = len;
+       }
+       fprintf(fp, "# %-*s   index findex sindex  GEME_IND", maxlen, "file");
+       fprintf(fp, "  iuid_major  iminor iindex iDIFF\n");
+
+       zprev = p->fim_o[0].geh.zoff;
+       for( c = 0, fip = p->fim_o; c < p->nfim; c++, fip++ ) {
+          iuid = get_sop_iuid_index(&fip->gex);
+          fprintf(fp, "  %-*s   %4d   %4d   %4d     %5d",
+                  maxlen, fip->fname, c, fip->findex, fip->sindex,
+                  fip->gex.ge_me_index);
+          fprintf(fp, "   %8d %6d  %5d   %3d\n", fip->gex.sop_iuid_maj,
+                      fip->gex.sop_iuid_min, iuid, iuid-iuid_prev);
+
+          if( order_match ) order_match = (iuid-iuid_prev) == 1;
+          iuid_prev = iuid;
+       }
+
+       if( gD.level > 1 )
+          fprintf(stderr,"-- current IUID order match = %d\n", order_match);
     } else
        for( c = 0; c < p->nfim; c++ )
           fprintf(fp, "%s\n", p->fim_o[c].fname);
 
     if( fp != stderr && fp != stdout ) fclose(fp);
+ 
 
-    if( gD.level > 2 ) fprintf(stderr,"+d saved file list in '%s'\n",
-                               fnew ? fnew : fname ? fname : "def=stderr");
+    if( gD.level > 2 ) fprintf(stderr,"-- file list written for %s\n",
+                               fname ? fname : "def=stderr");
 
     return 0;
+}
+
+int test_sop_iuid_index_order(param_t * p)
+{
+   finfo_t * fip;
+   int       c, iuid, iprev;
+   int       err = 0;
+
+   if( p->nfim < 1 ) return 0;
+
+   iprev = get_sop_iuid_index(&p->fim_o[0].gex);
+   for( c = 1, fip = p->fim_o+1; c < p->nfim; c++, fip++ ) {
+      iuid = get_sop_iuid_index(&fip->gex);
+      if( (iuid - iprev) != 1 ) {
+         fprintf(stderr,"** IUID index failure between %d and %d\n",c-1,c);
+         fprintf(stderr,"   image[%d] = %s (iuid %d)\n"
+                        "   image[%d] = %s (iuid %d)\n",
+                        c-1, p->fim_o[c-1].fname, iprev,
+                        c, p->fim_o[c].fname, iuid);
+         err = 1;
+         break;
+      }
+      iprev = iuid;
+   }
+
+   if( ! err ) fprintf(stderr,"++ %d IUID's are sequential\n", p->nfim);
+
+   return err;
+}
+
+/* after subtracting base values for major, minor and geme, return:
+ * truncate_to_ngeme_multiple(1000*major-minor) + geme_index; */
+int get_sop_iuid_index(ge_extras * ep)
+{
+   static int base_major=-1, base_minor=-1, base_ngeme=-1, base_geme=-1;
+   int        iuid_major, iuid_minor, ngeme, geme_index;
+   int        iuid;
+
+   /* extract values from struct */
+   iuid_major = ep->sop_iuid_maj;
+   iuid_minor = ep->sop_iuid_min;
+   ngeme      = ep->ge_nim_acq;
+   geme_index = ep->ge_me_index;
+
+   /* maybe init persistent vars */
+   if( base_major <= 0 ) {
+      base_major = iuid_major;
+      base_minor = iuid_minor;
+      base_ngeme = ngeme;
+      base_geme  = geme_index;
+   }
+
+   /* init to 1000*major + minor (with offsets) */
+   iuid = 1000*(iuid_major - base_major) + (iuid_minor - base_minor);
+
+   /* truncate to multiple of base_ngene */
+   if( base_ngeme > 0 ) iuid -= (iuid % base_ngeme);
+
+   /* return addition of geme (with offset) */
+   return iuid + geme_index - base_geme;
 }
 
 
@@ -5774,8 +5892,13 @@ static int show_run_stats( stats_t * s )
 
     if( gP.opts.flist_file )
        create_file_list(&gP, gP.opts.flist_file, 0, NULL);
-    if( gP.opts.flist_details || gD.level > 2 )
+    if( gP.opts.flist_details || gD.level > 2 ) {
        create_file_list(&gP, gP.opts.flist_details, 1, "final_list");
+       create_file_list(&gP, gP.opts.flist_details, 2, "final_list_geme");
+    }
+
+    if( is_geme_sort_method(gP.opts.sort_method) )
+      test_sop_iuid_index_order(&gP);
 
     fflush( stdout );
 

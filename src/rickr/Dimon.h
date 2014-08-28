@@ -140,6 +140,8 @@ typedef struct                      /* extra stuff from mri_read.c     */
     int   kk;                       /* z-orient info (1=LR, 2=PA, 3=IS)*/
     int   ge_me_index;              /* GE multi-echo index             */
     int   ge_nim_acq;               /* number of images in acq         */
+    int   sop_iuid_maj;             /* DICOM SOP IUD - major value     */
+    int   sop_iuid_min;             /* DICOM SOP IUD - minor value     */
     float xorg;                     /* x and y axes origins            */
     float yorg;
     float xyz[9];
