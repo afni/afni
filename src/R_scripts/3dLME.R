@@ -14,18 +14,6 @@ ExecName <- '3dLME'
 ##################### Begin 3dLME Input functions ################################
 #################################################################################
 
-greeting.lme <- function ()
-   return( "#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-          ================== Welcome to 3dlme ==================          
-   AFNI Group Analysis Program with Linear Mixed-Effcts Modeling Approach
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.2, July 30, 2014
-Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
-SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-      )
-
 #The help function for 3dLME batch (AFNI-style script mode)
 help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 
@@ -34,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.2, July 30, 2014
+Version 1.3.3, Aug 27, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -908,7 +896,8 @@ gltRes <- vector('list', lop$num_glt)
 nRanEff <- length(lop$ranEff)
 ranEff <-  vector('list', nRanEff)
 names(ranEff) <- rep('Subj', nRanEff)
-for(n in 1:nRanEff) ranEff[[n]] <- as.formula(lop$ranEff[[n]])
+#for(n in 1:nRanEff) ranEff[[n]] <- as.formula(lop$ranEff[[n]])
+for(n in 1:nRanEff) ranEff[[n]] <-eval(parse(text=lop$ranEff[[n]]))
 
 if(!is.na(lop$corStr[1])) corStr <- as.formula(c('~', lop$corStr[1])) else corStr <- NA
 
