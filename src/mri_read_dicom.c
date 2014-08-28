@@ -42,6 +42,7 @@ static float get_dz(  char **epos);
 static int CheckObliquity(float xc1, float xc2, float xc3, float yc1, float yc2, float yc3);
 static int get_posns_from_elist(char *plist[], char *elist[], char *text,
                                 int nume);
+static int set_sop_iuids(char * estr, int * iuid_maj, int * iuid_min);
 
 /* sorry, dicom is a mess... */
 #include "mri_process_siemens.c"
@@ -52,6 +53,8 @@ int   g_image_ori_ind[3] = {0, 0, 0};                   /* ior, jor, kor  */
 float g_image_posn[3]    = {-666.0, -666.0, -666.0};    /* IMAGE_POSITION */
 int   g_ge_nim_acq = -1;               /* number of images in acquisition */
 int   g_ge_me_index = -1;
+int   g_sop_iuid_maj = -1;             /* ID SOP Instanced UID (major)    */
+int   g_sop_iuid_min = -1;             /* ID SOP Instanced UID (minor)    */
 
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
@@ -880,17 +883,27 @@ ENTRY("mri_read_dicom") ;
       }
    }
 
+   /**---------- for GE multi-echo sorting ----------**/
+
    /* check for GE multi-echo index */
    if( epos[E_GE_ME_INDEX] ){
       ddd = strstr(epos[E_GE_ME_INDEX],"//");
       if( ddd ) g_ge_me_index = SINT(ddd+2);
    }
 
-   /* check for GE multi-echo index */
+   /* check for ID SOP Instance UID */
+   if( epos[E_SOP_IUID] ){
+      ddd = strstr(epos[E_SOP_IUID],"//");
+      set_sop_iuids(ddd+2, &g_sop_iuid_maj, &g_sop_iuid_min);
+   }
+
+   /* check for num images in acquisition */
    if( epos[E_NIM_IN_ACQ] ){
       ddd = strstr(epos[E_NIM_IN_ACQ],"//");
       if( ddd ) g_ge_nim_acq = SINT(ddd+2);
    }
+
+   /**---------- end GE multi-echo sorting ----------**/
 
    /** use image position vector to set offsets,
        and (2cd time in) the z-axis orientation **/
@@ -1300,6 +1313,42 @@ ENTRY("mri_read_dicom") ;
       mri_add_name(fname,IMARR_SUBIM(imar,ii)) ;
 
    free(ppp); RETURN( imar );
+}
+
+/* try to extract major and minor indices from the tail of the
+ * SOP Instance UID (0008,0018) field, which is unique to every
+ * DICOM image (note: 64 bytes, max)
+ *
+ * do not set return values unless the elements are found
+ *
+ * return 1 if set, 0 otherwise             28 Aug 2014 [rickr]
+ */
+static int set_sop_iuids(char * estr, int * iuid_maj, int * iuid_min)
+{
+   char * endp, * startp ;
+   int    ind, dcount, major=-1, minor=-1;
+
+   if( ! iuid_maj || ! iuid_min || ! estr ) return 0; /* nothing to do */
+   
+   /* find end search point, up to a max of 64 characters */
+   for( ind=0, endp=estr; ind<64 && (isdigit(*endp)||*endp=='.'); ind++,endp++)
+      /* nada */ ;
+
+   /* now find starting point, searching for 2 prior '.' char */
+   for( startp = endp-1, dcount=0; startp > estr && dcount < 2; startp-- ) {
+      if( *startp != '.' ) continue;
+      dcount++;
+
+      if( dcount == 1 ) minor = SINT(startp+1);       /* set minor */
+      if( dcount == 2 ) major = SINT(startp+1);       /* set minor */
+   }
+
+   if( startp <= estr || dcount != 2 ) return 0;  /* overkill */
+
+   *iuid_maj = major;
+   *iuid_min = minor;
+
+   return 1;
 }
 
 /*---------- compute slice thickness from DICOM header ----------*/
