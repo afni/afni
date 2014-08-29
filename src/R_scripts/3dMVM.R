@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.4, Aug 21, 2014
+Version 3.2.5, Aug 29, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1191,8 +1191,8 @@ while(is.null(fm)) {
          if(all(is.na(lop$gltList[[n]]))) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pair=NULL,
             slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
-            adjustment="none", idata = fm[["idata"]]), error=function(e) NA)
-         if(any(is.na(gltRes[[n]]))) fm <- NULL
+            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+         if(any(is.null(gltRes[[n]]))) fm <- NULL
          n <- n+1
       }      
    }
