@@ -25,9 +25,12 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
    1. basic: give 3 required inputs, all else is default
 
+      While a blur of 4.0 is the default, it is inculded for clarity.
+
         slow_surf_clustsim.py -save_script surf.clustsim        \\
             -uvar spec_file sb23_lh_141_std.spec                \\
             -uvar surf_vol sb23_SurfVol_aligned+orig            \\
+            -uvar blur 4.0                                      \\
             -uvar vol_mask mask_3mm+orig                        \\
 
    2. more advanced, but still based on EPI analysis
@@ -48,8 +51,9 @@ slow_surf_clustsim.py    - generate a tcsh script to run clustsim on surface
 
    3. basic, but on the surface (so no vol_mask is provided)
 
-        slow_surf_clustsim.py -save_script surf.sim.2           \\
+        slow_surf_clustsim.py -save_script surf.sim.3           \\
             -on_surface yes                                     \\
+            -uvar blur 3.0                                      \\
             -uvar spec_file sb23_lh_141_std.spec                \\
             -uvar surf_vol sb23_SurfVol_aligned+orig
 
