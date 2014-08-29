@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 26 , AUG , 2014 , RWC , "3dNwarpApply and 3dNwarpCat" , MICRO , TYPE_NEW_OPT ,
+  { 29 , AUG , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Modify wiper scale to be attached to image window form" ,
+   NULL } ,
+
+ { 26 , AUG , 2014 , RWC , "3dNwarpApply and 3dNwarpCat" , MICRO , TYPE_NEW_OPT ,
    "Add '-expad' option for extra padding, if needed for some reason" ,
    NULL } ,
 
