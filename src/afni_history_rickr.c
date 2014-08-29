@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Aug, 2014, RCR, "slow_surf_clustsim.py", MICRO, TYPE_ENHANCE,
+   "included blur in all help examples for clarity",
+   NULL
+ } ,
+
  { 28, Aug, 2014, RCR, "Dimon", MICRO, TYPE_ENHANCE,
    "test SOP IUID sorting",
    NULL

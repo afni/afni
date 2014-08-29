@@ -725,19 +725,18 @@ int ART_idisp_ART_comm( char * info, ART_comm * ac )
     }
 
     fprintf( fp,
-            "ART_comm struct at %p :\n"
+            "ART_comm struct :\n"
             "   (state, mode)   = (%d, %d)\n"
             "   (use_tcp, swap) = (%d, %d)\n"
             "   byte_order      = %d\n"
             "   is_oblique      = %d\n"
             "   zorder          = %s\n"
             "   host            = %s\n"
-            "   ioc_name        = %s\n"
-            "   (ioc, param)    = (0x%p, 0x%p)\n",
-            ac, ac->state, ac->mode, ac->use_tcp, ac->swap, ac->byte_order,
+            "   ioc_name        = %s\n",
+            ac->state, ac->mode, ac->use_tcp, ac->swap, ac->byte_order,
             ac->is_oblique,
             CHECK_NULL_STR(ac->zorder), CHECK_NULL_STR(ac->host),
-            CHECK_NULL_STR(ac->ioc_name), ac->ioc, ac->param );
+            CHECK_NULL_STR(ac->ioc_name) );
 
     if( ac->is_oblique ) {
         fprintf(fp, "   oblique_xform:\n");
