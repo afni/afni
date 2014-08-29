@@ -4323,7 +4323,7 @@ prog, prog, prog, prog, prog, prog, prog);
 
 printf(
 "  ---------------------------------------------------------------\n"
-"  old examples:\n"
+"  examples:\n"
 "\n"
 "  A. no real-time options:\n"
 "\n"
@@ -4344,6 +4344,12 @@ printf(
 "\n"
 "    %s -infile_prefix data/im -dicom_org -save_file_list sorted.files\n"
 "    %s -infile_list sorted.files ... \n"
+"\n"
+"  A4. sort by geme_index with 3-echo EPI data\n"
+"      (and check sort against iuid 0008,0018)\n"
+"\n"
+"    %s -infile_pre data/im -sort_by_num_suffix -no_wait -num_chan 3 \\\n"
+"          -sort_method geme_index\n"
 "\n"
 "  B. for GERT_Reco:\n"
 "\n"
@@ -4537,7 +4543,7 @@ printf(
 "       -file_type AFNI -sleep_vol 1000 -sp alt+z -tr 2.0 -quit\n"
 "\n"
 "  ---------------------------------------------------------------\n",
-prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog );
