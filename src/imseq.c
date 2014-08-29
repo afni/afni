@@ -1025,7 +1025,7 @@ if( PRINT_TRACING ){
    MCW_register_help( newseq->wform , ISQ_form_help ) ;
 
 #define METER_HEIGHT 10
-   newseq->render_scal =
+   newseq->render_scal =       /* will be hidden later */
      XtVaCreateManagedWidget(
             "menu" , xmScaleWidgetClass , newseq->wform ,
                XmNminimum , 0 ,
@@ -1041,9 +1041,9 @@ if( PRINT_TRACING ){
                XmNshadowThickness , 0 ,
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
-               XmNtopAttachment    , XmATTACH_FORM ,
-               XmNleftAttachment   , XmATTACH_FORM ,
-               XmNrightAttachment  , XmATTACH_FORM ,
+               XmNtopAttachment   , XmATTACH_FORM ,
+               XmNleftAttachment  , XmATTACH_FORM ,
+               XmNrightAttachment , XmATTACH_FORM ,
             NULL ) ;
    XtAddCallback( newseq->render_scal , XmNvalueChangedCallback ,
                   ISQ_render_scal_CB , newseq ) ;
