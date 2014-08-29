@@ -41,6 +41,11 @@ static Widget wwtem ;
 static int scrollwheel_tmask = SWL_TMASK_DEFAULT ;
 static int scrollwheel_debug = 0 ;
 
+void ISQ_set_scale( Widget wscal , int percent ) ;
+void ISQ_render_scal_CB( Widget w, XtPointer client_data, XtPointer call_data ) ;
+void ISQ_popdown_render_scal( MCW_imseq *seq ) ;
+void ISQ_popup_render_scal( MCW_imseq *seq ) ;
+
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog
 *************************************************************************/
@@ -1019,6 +1024,32 @@ if( PRINT_TRACING ){
 
    MCW_register_help( newseq->wform , ISQ_form_help ) ;
 
+#define METER_HEIGHT 10
+   newseq->render_scal =
+     XtVaCreateManagedWidget(
+            "menu" , xmScaleWidgetClass , newseq->wform ,
+               XmNminimum , 0 ,
+               XmNmaximum , 100 ,
+               XmNscaleMultiple , 1 ,
+               XmNshowValue , True ,
+               XmNvalue , 50 ,
+               XmNorientation , XmHORIZONTAL ,
+               /** XmNscaleWidth , wid , **/
+               XmNscaleHeight , METER_HEIGHT ,
+               XmNborderWidth , 0 ,
+               XmNhighlightThickness , 0 ,
+               XmNshadowThickness , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+               XmNtopAttachment    , XmATTACH_FORM ,
+               XmNleftAttachment   , XmATTACH_FORM ,
+               XmNrightAttachment  , XmATTACH_FORM ,
+            NULL ) ;
+   XtAddCallback( newseq->render_scal , XmNvalueChangedCallback ,
+                  ISQ_render_scal_CB , newseq ) ;
+   XtAddCallback( newseq->render_scal , XmNdragCallback ,
+                  ISQ_render_scal_CB , newseq ) ;
+
    /* drawing area for image space */
 
    newseq->wimage =
@@ -1824,7 +1855,6 @@ STATUS("creation: widgets created") ;
 
      newseq->render_mode = RENDER_DEFAULT ;  /* 0 */
      newseq->render_fac  = 0.0f ;            /* 22 Aug 2014 */
-     newseq->render_scal = NULL ;
      newseq->allowmerger = 0 ;
 
      /*-- labels stuff --*/
@@ -2016,6 +2046,7 @@ STATUS("creation: widgets created") ;
      scrollwheel_tmask = (swt == 0) ? SWL_TMASK_DEFAULT : swt ;
    }
 
+   XtUnmanageChild(newseq->render_scal) ;
    RETURN(newseq) ;
 }
 
@@ -4763,9 +4794,6 @@ ENTRY("ISQ_free_alldata") ;
    if( seq->overlay_label != NULL ){               /* 23 Dec 2011 */
      free(seq->overlay_label) ; seq->overlay_label = NULL ;
    }
-
-   if( seq->render_scal != NULL )                  /* 22 Aug 2014 */
-     ISQ_destroy_render_scal(seq) ;
 
    EXRETURN ;
 }
@@ -11738,139 +11766,6 @@ ENTRY("ISQ_getchecked") ;
    mri_free(uim) ;    qim->dx = dx ; qim->dy = dy ; RETURN(qim) ;
 }
 
-/*------------------------------------------------------------------
-   Popup a scale that will serve to input a number from 0 to 100.
-
-   wparent is the widget the meter will be attached to
-   position is one of
-     METER_TOP      = meter on top of wparent, default width
-     METER_TOP_WIDE = meter on top of parent, width of parent
-     METER_BOT      = similar, but on bottom of parent
-     METER_BOT_WIDE
---------------------------------------------------------------------*/
-
-#define METER_HEIGHT 10
-#define METER_WIDTH  200
-
-Widget ISQ_popup_scale( Widget wparent , int position )
-{
-   Widget wmsg , wscal ;
-   int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , wid ;
-   Screen *scr ;
-   XEvent ev ;
-   Position xroot , yroot ;
-
-#undef  NCOL
-#define NCOL 30
-   static char *cname[] = {
-      "#0000ff", "#3300ff", "#6600ff", "#9900ff", "#cc00ff",
-      "#ff00ff", "#ff00cc", "#ff0099", "#ff0066", "#ff0033",
-      "#ff0000", "#ff3300", "#ff6600", "#ff9900", "#ffcc00",
-      "#ffff00", "#ccff00", "#99ff00", "#66ff00", "#33ff00",
-      "#00ff00", "#00ff33", "#00ff66", "#00ff99", "#00ffcc",
-      "#00ffff", "#00ccff", "#0099ff", "#0066ff", "#0033ff"
-    } ;
-
-ENTRY("ISQ_popup_scale") ;
-
-   if( wparent == NULL || ! XtIsRealized(wparent) ) RETURN(NULL) ;
-
-   /* set position parent and screen geometry */
-
-   MCW_widget_geom( wparent , &wx,&hy,&xx,&yy ) ;     /* geometry of parent */
-   XtTranslateCoords( wparent, 0,0, &xroot,&yroot ) ; /* root coords of parent */
-   xr = (int) xroot ; yr = (int) yroot ;
-
-   scr        = XtScreen( wparent ) ;
-   scr_width  = WidthOfScreen( scr ) ;
-   scr_height = HeightOfScreen( scr ) ;
-
-   switch( position ){
-
-      default:
-      case METER_TOP:
-      case METER_TOP_WIDE:
-         xpr = xr ;
-         ypr = yr - METER_HEIGHT-20;
-         wid = (position==METER_TOP_WIDE) ? wx : METER_WIDTH ;
-         if( ypr < 0 ) ypr = yr+hy+1 ;
-      break ;
-
-      case METER_BOT:
-      case METER_BOT_WIDE:
-         xpr = xr ;
-         ypr = yr+hy+1 ;
-         wid = (position==METER_BOT_WIDE) ? wx : METER_WIDTH ;
-         if( ypr+METER_HEIGHT > scr_height ) ypr = yr - METER_HEIGHT-2 ;
-      break ;
-   }
-
-   /* create a popup shell with a scale */
-
-   wmsg = XtVaCreatePopupShell(
-             "menu" , xmDialogShellWidgetClass , wparent ,
-                XmNx , xpr ,
-                XmNy , ypr ,
-                XmNborderWidth , 0 ,
-                XmNoverrideRedirect , True ,
-                XmNinitialResourcesPersistent , False ,
-             NULL ) ;
-
-#if 0
-   if( MCW_isitmwm( wparent ) ){
-      XtVaSetValues( wmsg ,
-                        XmNmwmDecorations , MWM_DECOR_BORDER ,
-                        XmNmwmFunctions   , MWM_FUNC_MOVE ,
-                     NULL ) ;
-   }
-#endif
-
-   wscal = XtVaCreateManagedWidget(
-            "menu" , xmScaleWidgetClass , wmsg ,
-               XmNminimum , 0 ,
-               XmNmaximum , 100 ,
-               XmNscaleMultiple , 1 ,
-               XmNshowValue , True ,
-               XmNvalue , 0 ,
-               XmNorientation , XmHORIZONTAL ,
-               XmNscaleWidth , wid ,
-               XmNscaleHeight , METER_HEIGHT ,
-               XmNborderWidth , 0 ,
-               XmNhighlightThickness , 0 ,
-               XmNshadowThickness , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-
-   XtPopup( wmsg , XtGrabNone ) ; RWC_sleep(1);
-
-   { Widget ws = XtNameToWidget(wscal,"Scrollbar") ;
-     int icol = lrand48() % NCOL ;
-     if( ws != NULL ){
-       XtVaSetValues( ws ,
-                       XtVaTypedArg , XmNtroughColor , XmRString ,
-                                      cname[icol] , strlen(cname[icol])+1 ,
-                      NULL ) ;
-       XWarpPointer( XtDisplay(ws) , None , XtWindow(ws) ,
-                     0,0,0,0 , wid/2+1 , METER_HEIGHT/4 ) ;
-       XSetInputFocus( XtDisplay(ws), XtWindow(ws), RevertToParent, CurrentTime ) ;
-       XFlush(XtDisplay(ws)) ;
-       XmUpdateDisplay(wscal) ;
-     }
-   }
-
-   RETURN(wscal) ;
-}
-
-/*--------------------------------------------------------------------*/
-
-void ISQ_popdown_scale( Widget wscal )
-{
-   if( wscal == NULL ) return ;
-   XtDestroyWidget( XtParent(wscal) ) ;
-   return ;
-}
-
 /*--------------------------------------------------------------------*/
 
 void ISQ_set_scale( Widget wscal , int percent )
@@ -11887,11 +11782,9 @@ void ISQ_set_scale( Widget wscal , int percent )
 
 /*---------------------------------------------------------------------*/
 
-void ISQ_destroy_render_scal( MCW_imseq *seq )
+void ISQ_popdown_render_scal( MCW_imseq *seq )
 {
-   if( seq->render_scal != NULL ){
-     ISQ_popdown_scale(seq->render_scal) ; seq->render_scal = NULL ;
-   }
+   if( seq->render_scal != NULL ) XtUnmanageChild( seq->render_scal ) ;
    return ;
 }
 
@@ -11899,16 +11792,38 @@ void ISQ_destroy_render_scal( MCW_imseq *seq )
 
 void ISQ_popup_render_scal( MCW_imseq *seq )
 {
-   if( seq->render_scal != NULL ) return ;
+#undef  NCOL
+#define NCOL 30
+   static char *cname[] = {
+      "#0000ff", "#3300ff", "#6600ff", "#9900ff", "#cc00ff",
+      "#ff00ff", "#ff00cc", "#ff0099", "#ff0066", "#ff0033",
+      "#ff0000", "#ff3300", "#ff6600", "#ff9900", "#ffcc00",
+      "#ffff00", "#ccff00", "#99ff00", "#66ff00", "#33ff00",
+      "#00ff00", "#00ff33", "#00ff66", "#00ff99", "#00ffcc",
+      "#00ffff", "#00ccff", "#0099ff", "#0066ff", "#0033ff"
+   } ;
+   int wid , icol ; Widget ws ;
 
-   seq->render_scal = ISQ_popup_scale( seq->wtop , METER_TOP_WIDE ) ;
+   if( seq->render_scal == NULL ) return ;
 
-   XtAddCallback( seq->render_scal , XmNvalueChangedCallback ,
-                  ISQ_render_scal_CB , seq ) ;
+   XtManageChild( seq->render_scal ) ;
+   XtVaSetValues( seq->render_scal , XmNrightAttachment,XmATTACH_FORM , NULL ) ;
 
-   XtAddCallback( seq->render_scal , XmNdragCallback ,
-                  ISQ_render_scal_CB , seq ) ;
+   ws = XtNameToWidget(seq->render_scal,"Scrollbar") ;
+   icol = lrand48() % NCOL ;
+   MCW_widget_geom( seq->wform , &wid , NULL,NULL,NULL ) ;
+   if( ws != NULL ){
+     XtVaSetValues( ws ,
+                      XtVaTypedArg , XmNtroughColor , XmRString ,
+                                     cname[icol] , strlen(cname[icol])+1 ,
+                    NULL ) ;
+     XWarpPointer( XtDisplay(ws) , None , XtWindow(ws) ,
+                   0,0,0,0 , wid/2+1 , METER_HEIGHT/4 ) ;
+   }
 
+   MCW_widget_geom( seq->wform , &wid , NULL,NULL,NULL ) ;
+   XtVaSetValues( seq->render_scal , XmNwidth , wid , NULL ) ;
+   XmUpdateDisplay(seq->render_scal) ;
    return ;
 }
 
@@ -12953,7 +12868,7 @@ ENTRY("ISQ_handle_keypress") ;
             if( key == '3'             ) rr = 0 ;
        else if( rr  == RENDER_CHECK_OU ) rr = RENDER_CHECK_UO ;
        else                              rr = RENDER_CHECK_OU ;
-       if( seq->render_scal != NULL ) ISQ_destroy_render_scal(seq) ;
+       if( seq->render_scal != NULL ) ISQ_popdown_render_scal(seq) ;
        seq->render_mode = rr ;
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        ISQ_draw_winfo( seq ) ;
@@ -12967,8 +12882,8 @@ ENTRY("ISQ_handle_keypress") ;
      case '5':
      case '6':{  /* 22 Aug 2014 */
        if( !seq->allowmerger ){ busy=0 ; RETURN(1) ; }
-       if( seq->render_scal != NULL ){
-         ISQ_destroy_render_scal(seq) ; seq->render_mode = 0 ; seq->render_fac = 0.0f ;
+       if( seq->render_mode != 0 ){
+         ISQ_popdown_render_scal(seq) ; seq->render_mode = 0 ; seq->render_fac = 0.0f ;
        } else {
          ISQ_popup_render_scal(seq) ;
          switch( key ){
