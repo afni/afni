@@ -7775,7 +7775,7 @@ void IW3D_nwarp_xyzmatch( int npt ,
        dc_00_00_p1 = AHIND(ix_00,jy_00,kz_p1) ; /* ['dc' == displacement case] */
        dc_p1_00_p1 = AHIND(ix_p1,jy_00,kz_p1) ;
        dc_00_p1_p1 = AHIND(ix_00,jy_p1,kz_p1) ;
-       dc_p1_p1_00 = AHIND(ix_p1,jy_p1,kz_p1) ;
+       dc_p1_p1_p1 = AHIND(ix_p1,jy_p1,kz_p1) ;
 
 #undef  IJK  /* convert 3D index to 1D index */
 #define IJK(i,j,k) ((i)+(j)*nx+(k)*nxy)
