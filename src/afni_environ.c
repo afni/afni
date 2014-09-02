@@ -320,6 +320,7 @@ char *get_gopt_help() {
 "   -echo_edu: Echos the entire command line to stdout (without -echo_edu)\n"
 "              for edification purposes\n"
 "\n" 
+/* Do not add options for NIML ports here, get them with get_np_help() instead */
    };
    return(GOPT_HELP);
 }
@@ -359,7 +360,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
        (void)AFNI_setenv(argv[ii]+2) ; used[ii] = 1 ; continue ;
      }
 
-     /*** -Vname=val to get environment variable ***/
+     /*** -Vname to get environment variable ***/
 
      if( strncmp(argv[ii],"-V",2) == 0 && strchr(argv[ii],'=') != NULL ){
        if( ttt ) fprintf(stderr,"++ argv[%d] does getenv %s\n",ii,argv[ii]) ;

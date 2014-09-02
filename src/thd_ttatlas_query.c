@@ -8886,13 +8886,31 @@ char * deblank_name (char *name) {
    return(name);
 }
 
-char * depunct_name (char *name) {
+char *deblank_allname(char *name, char fill)
+{
+   int nch = 0, bb=0;
+   
+   if (!name) return(name);
+   
+   name = deblank_name(name);
+   
+   nch = strlen(name);
+   bb=0; 
+   while (name[bb] != '\0') {
+      if (isspace(name[bb])) name[bb]=fill;
+      ++bb;
+   }
+   
+   return(name);
+}
+
+char *depunct_name (char *name) {
    int nch = 0, bb=0, ibb=0, BB=0;
    
    if (!name) return(name);
    
    nch = strlen(name);
-   /* deblank it, leave spaces in middle */
+   /* depunct it, leave spaces in middle */
    bb=0; 
    while (name[bb] != '\0' && IS_PUNCT(name[bb])) {
       ++bb;
@@ -9202,7 +9220,7 @@ int AFNI_get_dset_val_label(THD_3dim_dataset *dset, double val, char *str)
    Unlike AFNI_get_dset_val_label,
    This function has not been tested.
    
-   NEEDS MODIFICATION TO deal with ATLAS datasets.
+   NEEDS MODIFICATION to deal with ATLAS datasets.
 */
 int AFNI_get_dset_label_val(THD_3dim_dataset *dset, double *val, char *str)
 {

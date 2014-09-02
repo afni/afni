@@ -1518,6 +1518,7 @@ typedef struct{
                            cell_modified = j * Ni + i */
    SUMA_NUMERICAL_UNITS num_units;
    char **rowobject_id;
+   char wname[64];
 } SUMA_TABLE_FIELD;
 
 typedef struct {
@@ -1555,6 +1556,7 @@ typedef struct {
    void (*NewValueCallback)(void *data); /*!< callback when a new value is set */
    void *NewValueCallbackData; 
    SUMA_Boolean modified; /*!< set to YUP when user edits the value field */
+   char wname[64];
 } SUMA_SLICE_FIELD;
 
 typedef struct {
@@ -1569,6 +1571,7 @@ typedef struct {
    void (*NewValueCallback)(void *data); /*!< callback when a new value is set */
    void *NewValueCallbackData; 
    SUMA_Boolean modified; /*!< set to YUP when user edits the value field */
+   char wname[64];
 } SUMA_VR_FIELD;
 
 
@@ -3822,6 +3825,9 @@ typedef struct {
    SUMA_Boolean YokeIntToNode;
    
    SUMA_EVENT *lev; /*!< A record of the last input event */
+
+   char **dcom;
+   int N_dcom;
 } SUMA_CommonFields;
 
 

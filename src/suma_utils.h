@@ -86,6 +86,22 @@ typedef struct {
    char *val;  /* This is the default */
 }HELP_OPT;
 
+typedef struct {
+   char name[10][64]; /*Name of gui with lineage. 
+                        E.g. for SurfCont->Coloring Controls->more
+                        [0] "SurfCont"
+                        [1] "Coloring Controls" 
+                        [2] "more"
+                        [3] ""                     */
+   int name_lvl;
+   char hint[256];  /* Whatever is registered under "hint" */
+   char *help;  /* Whatever is registered under "help", this one
+                      will be a pointer copy so don't free it.*/
+   int type; /* 0 -- A container widget, not one to be pressed 
+                1 -- A regular widget */
+}GUI_WIDGET_HELP;
+
+
 /*! string stucture */
 typedef struct {
    int N_alloc;  /*!< space allocated for s */
@@ -244,6 +260,13 @@ char * SUMA_truncate_string (char *s1, int length);
 char *SUMA_set_string_length(char *buf, char cp, int n);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
+char *SUMA_Sphinx_String_Edit(char *s, int targ);
+char *SUMA_Sphinx_LineSpacer(char *s, int targ);
+NI_str_array *SUMA_Split_String(char *s, char *sc);
+char *SUMA_Cut_String(char *s, char *sc);
+char *SUMA_Swap_String(char *s, char *sc, char *sw);
+char *SUMA_Break_String(char *s, int mxln);
+char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save);
 void SUMA_sigfunc(int sig);
 char * SUMA_pad_string(char *buf, char cp, int n, int add2end);
 NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa);

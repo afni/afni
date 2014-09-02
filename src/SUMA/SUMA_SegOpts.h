@@ -26,6 +26,7 @@ typedef struct {
    int n; /* number of samples */
    float min; /* min sample value */
    float max; /* max sample value */
+   float cdfmin; /* minimum non zero cdf value */
    char *label; /* a string descriptor */
    int N_ignored; /* Number of samples out of n that
                      were outside the range and were ignored

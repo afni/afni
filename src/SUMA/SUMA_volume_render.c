@@ -3358,7 +3358,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    float* nlt; /*JB: temporary node list, because I do not want to type 
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

@@ -2929,7 +2929,8 @@ char * SUMA_append_replace_num(char *s1, char *form, double num,
          break; 
    }  
          
-   /* fprintf(SUMA_STDERR,"%s: Have %lf num, form:>%s<, sbuf>%s<\n", FuncName, num, form, sbuf); */
+   /* fprintf(SUMA_STDERR,"%s: Have %lf num, form:>%s<, sbuf>%s<\n", 
+      FuncName, num, form, sbuf); */
       
    atr = SUMA_append_replace_string(s1, sbuf, "", whichTofree);
    
@@ -2993,11 +2994,13 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
       /* shrink SS->s to small size */
       N_cur = strlen (SS->s);
       if (SS->N_alloc > N_cur+1) {
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Shrink realloc for SS->s.\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Shrink realloc for SS->s.\n", FuncName);
          SS->N_alloc = N_cur+1;
          SS->s = (char *)SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
          if (!SS->s) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to reallocate for s.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to reallocate for s.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /*put a null at the end */
@@ -3032,6 +3035,356 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
 */
 
 #define MAX_APPEND 30000
+
+/* Break long lines into ones that are no longer than mxln 
+   You need to free the string returned by this function */
+char *SUMA_Break_String(char *s, int mxln)
+{
+   static char FuncName[]={"SUMA_Break_String"};
+   char *so = NULL;
+   int i, ns, nso, nso_max, bln, ln, ex;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!s) SUMA_RETURN(so);
+   
+   nso_max = strlen(s)+100;
+   so = (char *)SUMA_calloc(nso_max, sizeof(char));
+   
+   ln = 0; ex = 0; nso = 0; ns = 0;
+   while (s[ns]) {
+      if (s[ns] == '\n') {
+         ln = 0;
+         so[nso++] = s[ns++];
+      } else {
+         bln = -1; ln = 0;
+         while (s[ns+ln] && ln < mxln) {
+            if (SUMA_IS_BLANK(s[ns+ln]) ||
+                SUMA_IS_PUNCT(s[ns+ln])) {
+               bln = ln;
+            }
+            ++ln;
+         }
+         if (bln < 0) { /* No space found, copy and dashit */
+            for (i=0; i<mxln-1; ++i) {
+               so[nso++] = s[ns++]; 
+            }
+            so[nso++] = '-'; so[nso++] = '\n';
+            ex += 2;
+         } else { /* Copy till last blank/punct and add \n 
+                     Won't bother replacing blank, have to 
+                     realloc anyway...*/
+            for (i=0; i<bln+1; ++i) {
+               so[nso++] = s[ns++]; 
+            }
+            so[nso++] = '\n';
+            ex += 1;
+         }
+      }
+      if (ex >= (nso_max - strlen(s) - 5)) {
+         nso_max += 100;
+         so = (char *)SUMA_realloc(so, nso_max*sizeof(char));
+      }
+      SUMA_LH("ns=%d ex=%d nso=%d slen=%d nso_max=%d\n", 
+              ns, ex, nso, (int)strlen(s), nso_max);
+   }
+   so[nso] = '\0';
+   SUMA_RETURN(so);
+}
+
+
+char *SUMA_Cut_String(char *s, char *sc)
+{
+   static char FuncName[]={"SUMA_Cut_String"};
+   char *so, *ss=NULL;
+   int nso=0;
+   
+   SUMA_ENTRY;
+   
+   if (!s || !sc || !(ss=strstr(s, sc))) {
+      SUMA_RETURN(s);
+   }
+   
+   so = s;
+   nso = 0; 
+   while (ss) {
+      while (s < ss) {
+         so[nso++]=*(s++);      
+      }
+      s += strlen(sc);
+      ss=strstr(s, sc);
+   }
+   /* copy till end */
+   while (*s != '\0') {
+      so[nso++]=*(s++);
+   }
+   so[nso] = '\0';
+   
+   SUMA_RETURN(so);
+}
+
+char *SUMA_Swap_String(char *s, char *sc, char *sw)
+{
+   static char FuncName[]={"SUMA_Swap_String"};
+   char *so, *ss=NULL;
+   int nso=0, ww;
+   
+   SUMA_ENTRY;
+   
+   if (!s || !sc || !sw || !(ss=strstr(s, sc))) {
+      SUMA_RETURN(s);
+   }
+   if (strlen(sw) > strlen(sc)) {
+      SUMA_S_Err( "Not in the mood for reallocing, fix if you must, "
+                  "or perhaps write other function a la SUMA_Break_String");
+      SUMA_RETURN(s);
+   }
+   
+   so = s;
+   nso = 0; 
+   while (ss) {
+      while (s < ss) {
+         so[nso++]=*(s++);      
+      }
+      for (ww=0; ww<strlen(sw); ++ww) so[nso++]=sw[ww];
+      s += (strlen(sc)-strlen(sw))+1;
+      ss=strstr(s, sc);
+   }
+   /* copy till end */
+   while (*s != '\0') {
+      so[nso++]=*(s++);
+   }
+   so[nso] = '\0';
+   
+   SUMA_RETURN(so);
+}
+
+NI_str_array *SUMA_Split_String(char *s, char *sc)
+{
+   static char FuncName[]={"SUMA_Split_String"};
+   char *so, *ss=NULL;
+   int nso=0;
+   NI_str_array *nisa = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!s || !sc) {
+      SUMA_RETURN(NULL);
+   }
+   
+   nisa = NI_malloc(NI_str_array, sizeof(NI_str_array)) ;  /* create output */
+   nisa->num = 0 ; nisa->str = NULL ;
+
+   if (!(ss=strstr(s, sc))) { /* Just one found */
+      nisa->str = NI_realloc( nisa->str , char*, sizeof(char *)*(nisa->num+1) ) ;
+      nisa->str[nisa->num] = NI_malloc(char, ((strlen(s)+1)*sizeof(char)));
+      strcat(nisa->str[nisa->num], s);
+      nisa->num++;
+      SUMA_RETURN(nisa);
+   }
+   
+   so = s;
+   nso = 0; 
+   while (ss) {
+      nisa->str = NI_realloc( nisa->str , char*, sizeof(char *)*(nisa->num+1) ) ;
+      nisa->str[nisa->num] = NI_malloc(char, ((ss-s+1)*sizeof(char)));
+      nso = 0;
+      while (s < ss) {
+         nisa->str[nisa->num][nso++]=*(s++);      
+      }
+      nisa->str[nisa->num][nso]='\0'; ++nisa->num;
+      s += strlen(sc);
+      ss=strstr(s, sc);
+   }
+   
+   if (*s != '\0') {/* copy till end */
+      nisa->str = NI_realloc( nisa->str , char*, sizeof(char *)*(nisa->num+1) ) ;
+      nisa->str[nisa->num] = NI_malloc(char, ((strlen(s)+1)*sizeof(char)));
+      nso = 0;
+      while (*s != '\0') {
+         nisa->str[nisa->num][nso++]=*(s++);
+      }
+      nisa->str[nisa->num][nso]='\0'; ++nisa->num;
+   }
+   
+   SUMA_RETURN(nisa);
+}
+
+char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save)
+{
+   static char FuncName[]={"SUMA_Cut_Between_String"};
+   char *so, *ss0=NULL, *ss1=NULL, *ssa=NULL;
+   int nso=0;
+   
+   SUMA_ENTRY;
+   
+   if (!sc1) sc1 = sc0;
+   
+   if (!s || !sc1 || !sc0
+                  || !(ss0=strstr(s, sc0)) 
+                  || !(ss1=strstr(ss0+strlen(sc0), sc1)) || (ss1==ss0) ) {
+      SUMA_RETURN(s);
+   }
+   
+   so = s;
+   nso = 0; 
+   while (ss0 && ss1 && ss0 != ss1) {
+      while (s < ss0) {
+         so[nso++]=*(s++);      
+      }
+      
+      if ( save && (ssa = strnstr(ss0+strlen(sc0), save, ss1-ss0) ) ) {
+         s = ssa+strlen(save);
+         while (s < ss1) {
+            so[nso++]=*(s++);
+         }
+         s += strlen(sc1);
+      } else {
+         s += strlen(sc1)+ss1-ss0;
+      }
+      
+      ss0=strstr(s, sc0);
+      if (ss0) ss1=strstr(ss0+strlen(sc0), sc1);
+   }
+   /* copy till end */
+   while (*s != '\0') {
+      so[nso++]=*(s++);
+   }
+   so[nso] = '\0';
+   
+   SUMA_RETURN(so);
+}
+
+/*
+   A function that allows me to format help strings for 
+   display in SUMA as was done in the past, and for 
+   fancier SPHINX formatted output.
+   
+   Here is a bit of code to show how this might work:
+
+   {
+      char s[]={"Simple trickery to use same string for both SUMA and SPHINX\n"
+                "formatting.\n"
+                "Here is how we hide a SPHINX directive with minimal fanfare.\n"
+                "This directive will not appear in SUMA formatted\n"
+                "output:SPX:\n\n"
+                ".. :figure: _static/junk.jpg\n"
+                "            :align: center\n"
+                "\n:SPX:, but should appear for the SPHINX formatted one.\n\n"
+                "The example coming up next will show how we can have\n"
+                "alternate output where a key press would be mentioned\n"
+                "simply in the SUMA output but with a reference directive\n"
+                "when SPHINX output is used:\n\n"
+                "Press buton :SPX::ref:`a <LC_a>`:DEF:'a':SPX: to attenuate..." 
+                };
+      char *s0, *s1;
+      s0 = strdup(s); s1 = strdup(s);
+      fprintf(stderr,"\nSource Code Version:\n%s\n    -------\n", s);
+      fprintf(stderr,"\nEdited   for   SUMA:\n%s\n    -------\n", 
+                     SUMA_Sphinx_String_Edit(s0,0));
+      fprintf(stderr,"\nEdited  for  SPHINX:\n%s\n    -------\n", 
+                     SUMA_Sphinx_String_Edit(s1,1));
+      free(s0); free(s1);
+      exit(1);
+   }
+   
+   Still need to document what happens to the following under each method:
+   
+   :LR:
+   : (BLANKS) :
+   
+*/
+char *SUMA_Sphinx_String_Edit(char *s, int targ) 
+{
+   static char FuncName[]={"SUMA_Sphinx_String_Edit"};
+   
+   SUMA_ENTRY;
+   
+   if (!s) SUMA_RETURN(s);
+   
+   switch (targ) {
+      case 0: /* Default C output */
+         s = SUMA_Cut_Between_String(s, ":SPX:", ":SPX:", ":DEF:");
+         s = SUMA_Cut_String(s,":LR:");
+         s = SUMA_Sphinx_LineSpacer(s, targ);
+         s = SUMA_Swap_String(s, "\|","|");
+         SUMA_RETURN(s);
+         break;
+      case 1: /* Sphinx */
+         s = SUMA_Cut_String(
+               SUMA_Cut_Between_String(s, ":DEF:", ":SPX:", NULL), ":SPX:");
+         s = SUMA_Swap_String(s, ":LR:","\n");
+         s = SUMA_Sphinx_LineSpacer(s, targ);
+         break;
+      default:
+         SUMA_RETURN(s);
+         break;
+   }
+   
+   SUMA_RETURN(s); 
+}
+
+/*
+   
+{ char *sdo, so[]={
+   "Choose the rendering mode for this surface.\n" 
+   "   Viewer: Surface's rendering mode is set "  
+   ":         :by the viewer's setting which can "   
+   ":         :be changed with the 'p' option.:LR:\n"  
+   "   Fill:   Shaded rendering mode.:LR:\n"  
+   "   Line:   Mesh rendering mode.:LR:\n"    
+   "   Points: Points rendering mode.:LR:\n"};
+   
+   sdo = SUMA_Sphinx_LineSpacer(so , 1);
+   fprintf(SUMA_STDERR,"%s\n", sdo); 
+}
+
+*/
+char *SUMA_Sphinx_LineSpacer(char *s, int targ)
+{
+   static char FuncName[]={"SUMA_Sphinx_Deblank"};
+   int bln, ns, nso, slen;
+   char *so=NULL;
+   
+   SUMA_ENTRY;
+   
+   /* search for :.*: */
+   
+   if (!s) SUMA_RETURN(s);
+   
+   slen = strlen(s);
+   
+   ns = 0; nso = 0;
+   so = s;
+   while (s[ns]) {
+      if (s[ns] == ':' && ns < slen-1) {
+         bln=0;
+         while (s[ns+bln+1] && SUMA_IS_PURE_BLANK(s[ns+1+bln])) { ++bln; }
+         if (bln > 0 && s[ns+1+bln] == ':') {
+            /* Have blank gap */
+            if (targ == 0) { /* just replace : with space */
+               if (nso>1 && SUMA_IS_PURE_BLANK(so[nso-1])) {
+                  so[nso-1] = '\n'; /* Need a newline to make it come out nice */
+               }
+               so[nso++] = ' '; ++ns;
+               while(s[ns] != ':') { so[nso++] = s[ns++]; }
+               so[nso++] = ' '; ++ns;
+            } else { /* remove all spaces */
+               if (nso>1 && so[nso-1] == '\n') so[nso-1]=' ';
+               ns += bln+2;
+            }
+         } else {
+            /* nothing, copy character and move on */
+            so[nso++] = s[ns++];
+         } 
+      } else {
+         so[nso++] = s[ns++];
+      }
+   }
+   so[nso] = '\0';
+   SUMA_RETURN(so);
+}
 
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
 {
@@ -3975,11 +4328,16 @@ static ENV_SPEC envlist[] = {
       "SUMA_FOV_Original",
       "-1" },
    {  "Original windows size and width in pixels \n"
-      " Allowed values are: 'TopLeft'\n"
+      " :SPX:Allowed values are:\n\n"
+      "    'TopLeft'\n\n"
+      "    'RightOffset'\n\n"
+      "    'X Y' Sets only the position to top left corner\n\n"
+      "    'X Y Xwidth Ywidth' Set also width of window\n\n"
+      " :DEF:Allowed values are: 'TopLeft'\n"
       "                     'RightOffset' \n"
       "                     'X Y' Sets only the position to top left corner\n"
       "                     'X Y Xwidth Ywidth' Set also width of window\n"
-      " Default is top left of the screen",
+      " :SPX:",
       "SUMA_Position_Original",
       "TopLeft" },
    {  "light0 color",
@@ -3992,8 +4350,7 @@ static ENV_SPEC envlist[] = {
       "SUMA_AllowDsetReplacement",
       "YES" },
    {  "Allow a dataset to be assigned to a surface, even if\n"
-      "domain of dset is specified and different for the surface.\n"
-      "Default is yes",
+      "domain of dset is specified and different for the surface.\n",
       "SUMA_AlwaysAssignSurface",
       "YES" },
    {  "Allow for surfaces with same DomainGrandParentID to share overlays",
@@ -4073,10 +4430,18 @@ static ENV_SPEC envlist[] = {
       "SUMA_ConvexityDsetOpacity",
       "0.85" },
    {  "Display mode of  Label Datasest specified in spec file at startup.\n"
+      ":SPX:"
+      "\n"
+      "  'YES' or 'Col': Shows it in color\n\n"
+      "  'Con': Shows only contours (see also env SUMA_ContourThickness).\n\n"
+      "  'C&C': Shows both colors and contours \n\n"
+      "  'XXX'or 'No': Does not show it.\n\n"
+      ":DEF:"
       "  'YES' or 'Col': Shows it in color\n"
       "  'Con': Shows only contours (see also env SUMA_ContourThickness).\n"
       "  'C&C': Shows both colors and contours \n"
-      "  'XXX'or 'No': Does not show it.\n",
+      "  'XXX'or 'No': Does not show it.\n"
+      ":SPX:",
       "SUMA_ShowLabelDsetAtStartup",
       "XXX" },
    {  "Show label at cross hair in viewer\n"
@@ -4089,7 +4454,8 @@ static ENV_SPEC envlist[] = {
    {  "Attempt to recover from AFNI <--> SUMA disconnection bug.\n",
       "SUMA_AttemptTalkRecover",
       "Yes" }, 
-   {  "Name of directory containing user's own SUMA color maps (*.cmap)\n",
+   {  "Name of directory containing user's own SUMA color maps"
+      " (:SPX:`*`:DEF:*:SPX:.cmap)\n",
       "SUMA_CmapsDir",
       "None" },
    {  "Name of color map for datasets of retinotopy angles.\n"
@@ -4192,16 +4558,26 @@ static ENV_SPEC envlist[] = {
       "Choose one of: Edge, Color, Radius, C&R, XXX\n",
       "SUMA_Dset_NodeConnections",
       "Edge" },
-   {  "Set which slices should be shown when a volume is first loaded"
+   {  "Set which slices should be shown when a volume is first loaded.\n"
       "You can set parameters for each of the Ax, Sa, and Co planes, and\n"
       "the volume rendering.\n"
       "Each plane gets its own string formatted as such: PL:SL:MON:INC\n"
-      "where PL is the plane (Ax, Co, Sa, or Vr)\n"
+      "where:\n"
+      ":SPX:\n"
+      "   PL is the plane (Ax, Co, Sa, or Vr)\n\n"
+      "   SL is the slice number, you can also set the number as \n"
+      "     a fraction of the number of slices in the volume.\n\n"
+      "   MON is the number of montage slices\n\n"
+      "   INC is the increment between montage slices. You can use \n"
+      "       fractions for this parameter also.\n\n"
+      ":DEF:"
+      "      PL is the plane (Ax, Co, Sa, or Vr)\n"
       "      SL is the slice number, you can also set the number as \n"
       "         a fraction of the number of slices in the volume.\n"
       "      MON is the number of montage slices\n"
       "      INC is the increment between montage slices. You can use \n"
       "          fractions for this parameter also.\n"
+      ":SPX:"
       "If you want to set parameters for a certain plane, but do not\n"
       "want to see it, prepend the plane name with 'h' (for hide) as in 'hAx'\n"
       "Note that for Vr, there are no SL, MON, and INC qualifiers\n"
@@ -4324,7 +4700,7 @@ int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep)
 }
 
 
-char * SUMA_env_list_help(int DEFAULT_values){
+char * SUMA_env_list_help(int DEFAULT_values, int targ){
    static char FuncName[]={"SUMA_env_list_help"};
    int i=0;
    char *sli=NULL;
@@ -4347,19 +4723,37 @@ char * SUMA_env_list_help(int DEFAULT_values){
       userval=NULL;
       if (!eee) userval = SUMA_copy_string(se.envval);
       else userval = SUMA_copy_string(eee);
-      sli = SUMA_ReplaceChars(se.envhelp,"\n","\n//      ");
-      SS = SUMA_StringAppend_va(SS,
-                     "// %03d-%s:\n"
-                     "//     %s\n"
-                     "//     default:   %s = %s\n"
-                     "   %s = %s\n",
-                     i, se.envname,
-                     sli,
-                     se.envname,
-                     se.envval,
-                     se.envname,
-                     userval);
-      SUMA_free(sli); sli = NULL;
+      switch (targ) {
+         case 0: /* default */
+            sli = SUMA_ReplaceChars(se.envhelp, "\n","\n//      ");
+            sli = SUMA_Sphinx_String_Edit(sli, targ);
+            SS = SUMA_StringAppend_va(SS,
+                           "// %03d-%s:\n"
+                           "//     %s\n"
+                           "//     default:   %s = %s\n"
+                           "   %s = %s\n",
+                           i, se.envname,
+                           sli,
+                           se.envname,
+                           se.envval,
+                           se.envname,
+                           userval);
+            SUMA_free(sli); sli = NULL;
+            break;
+         default:
+         case 1: /* Sphinxy */
+            sli = SUMA_copy_string(se.envhelp);
+            sli = SUMA_Sphinx_String_Edit(sli, targ);
+            SS = SUMA_StringAppend_va(SS,
+                           ".. _%s:\n\n"
+                           ":envvar:`%s`: %s\n\n"
+                           "  default value:   %s = %s\n\n",
+                           se.envname,
+                           se.envname, sli,
+                           se.envname, se.envval);
+            SUMA_free(sli); sli = NULL;
+            break;
+      }
       ++i;
       se = SUMA_envlistelement(i);
    }
