@@ -3376,6 +3376,18 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
 }
 
 /*
+   Check if string begins with sphinx directives
+   used in SUMA's code */
+
+SUMA_Boolean SUMA_Known_Sphinx_Dir(char *s)
+{
+   static char FuncName[]={"SUMA_Known_Sphinx_Dir"};
+   if (!s) return(NOPE);
+   if (!strncmp(s,":ref:",5)) return(YUP);
+   return(NOPE);
+}
+
+/* 
    
 { char *sdo, so[]={
    "Choose the rendering mode for this surface.\n" 
@@ -3393,7 +3405,7 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
 */
 char *SUMA_Sphinx_LineSpacer(char *s, int targ)
 {
-   static char FuncName[]={"SUMA_Sphinx_Deblank"};
+   static char FuncName[]={"SUMA_Sphinx_LineSpacer"};
    int bln, ns, nso, slen;
    char *so=NULL;
    
@@ -3411,7 +3423,8 @@ char *SUMA_Sphinx_LineSpacer(char *s, int targ)
       if (s[ns] == ':' && ns < slen-1) {
          bln=0;
          while (s[ns+bln+1] && SUMA_IS_PURE_BLANK(s[ns+1+bln])) { ++bln; }
-         if (bln > 0 && s[ns+1+bln] == ':') {
+         if (bln > 0 && s[ns+1+bln] == ':' && 
+             !SUMA_Known_Sphinx_Dir(s+ns+1+bln)) {
             /* Have blank gap */
             if (targ == 0) { /* just replace : with space */
                if (nso>1 && SUMA_IS_PURE_BLANK(so[nso-1])) {
