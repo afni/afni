@@ -391,6 +391,10 @@ if (detail > 1) {
 "                      use this command.\n"
 "       -write_surf_cont_sphinx_help FILE.rst: Same as -write_surf_cont_help,\n"
 "                      but write SPHINX formatted RST file.\n"
+"       -write_mouse_keyb_help FILE.txt: Write help output for mouse and \n"
+"                      keyboard shortcuts.\n"
+"       -write_mouse_keyb_sphinx_help FILE.rst: Same as -write_mouse_keyb_help\n"
+"                      , but write SPHINX formatted RST file.\n"
 "\n"
 "     + Example surf_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
@@ -1599,6 +1603,36 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Surf_Cont_Sphinx_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_mouse_keyb_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_mouse_keyb_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Mouse_Keyb_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_mouse_keyb_sphinx_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_mouse_keyb_sphinx_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Mouse_Keyb_Sphinx_Help", argt[kar]);
          
          argt[kar][0] = '\0';
          brk = YUP;
