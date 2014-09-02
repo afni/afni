@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Sep, 2014, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
+   "allow @filename format for -tpattern option",
+   NULL
+ } ,
+
  { 29, Aug, 2014, RCR, "slow_surf_clustsim.py", MICRO, TYPE_ENHANCE,
    "included blur in all help examples for clarity",
    NULL

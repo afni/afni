@@ -101,8 +101,7 @@ void TCAT_read_opts( int argc , char *argv[] )
          if( nopt >= argc )
            ERROR_exit("need argument after -tpattern!") ;
          TCAT_tpattern = argv[nopt] ;
-         if( TCAT_tpattern[0] == '@' )
-            ERROR_exit("-tpattern not ready for @filename, please complain");
+         /* allow @tpattern   02 Sep 2014 [rickr] */
          nopt++ ; continue ;
       }
 
@@ -768,6 +767,8 @@ int main( int argc , char *argv[] )
          for( kv=0; kv < nz; kv++ ) printf(" %g", tpat[kv]);
          putchar('\n');
       }
+
+      free(tpat);
    }
 
    /* 10 Dec 2007: check if time steps are coherent */
