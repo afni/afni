@@ -4328,15 +4328,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Write_Mouse_Keyb_Help"))) {
-               if (!SUMA_WriteCont_Help(SO_type, 0, cbuf)) {
-                  SUMA_S_Err("Failed to write SurfCont help to %s", cbuf);
+               FILE *fout = fopen(cbuf,"w");
+               if (!fout) {
+                  SUMA_S_Err("Failed to open %s for writing", cbuf);
+               } else {
+                  SUMA_help_message(fout, 0);
+                  fclose(fout); fout = NULL;
                }
             }
 
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Write_Mouse_Keyb_Sphinx_Help"))) {
-               if (!SUMA_WriteCont_Help(SO_type, 1, cbuf)) {
-                  SUMA_S_Err("Failed to write SurfCont help to %s", cbuf);
+               FILE *fout = fopen(cbuf,"w");
+               if (!fout) {
+                  SUMA_S_Err("Failed to open %s for writing", cbuf);
+               } else {
+                  SUMA_help_message(fout, 1);
+                  fclose(fout); fout = NULL;
                }
             }
 
