@@ -2950,7 +2950,7 @@ ENTRY("ISQ_make_image") ;
           if( tim == NULL ) EXRETURN ;
           seq->last_image_type = tim->kind ;
           seq->set_orim = (seq->need_orim != 0) ;  /* 30 Dec 1998 */
-          seq->imim = im = ISQ_process_mri( seq->im_nr , seq , tim ) ;
+          seq->imim = im = ISQ_process_mri( seq->im_nr , seq , tim , 0 ) ;
           KILL_1MRI(tim) ;
           seq->set_orim = 0 ;
           seq->barbot = seq->clbot ; /* 29 Jul 2001 */
@@ -3181,13 +3181,15 @@ ENTRY("ISQ_plot_label") ;
    -- the output will be MRI_short (grayscale index) or MRI_rgb
 -------------------------------------------------------------------------*/
 
-MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq *seq , MRI_IMAGE *im )
+MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq *seq , MRI_IMAGE *im , int flags )
 {
    MRI_IMAGE *newim , *flipim , *lim ;
    int  scl_grp ;
    short clbot=0 , cltop=0 ;
    int must_rescale = 1 ;     /* 31 Jan 2002: always turn this on */
    int have_transform ;
+   int do_0D = (flags & PFLAG_NOTRAN0D) == 0;  /* 02 Sep 2014 */
+   int do_2D = (flags & PFLAG_NOTRAN2D) == 0;
    char scalestring[8];
 
 ENTRY("ISQ_process_mri") ;
@@ -3236,7 +3238,7 @@ ENTRY("ISQ_process_mri") ;
    }
 
    have_transform = (seq->transform0D_func != NULL ||
-                     seq->transform2D_func != NULL   ) ;
+                     seq->transform2D_func != NULL   ) && (do_0D || do_2D) ;
 
    /****** 11 Feb 1999: if input RGB image, do limited processing *****/
 
@@ -3248,10 +3250,10 @@ ENTRY("ISQ_process_mri") ;
       if( have_transform ) qim = mri_copy( lim ) ;
       else                 qim = lim ;
 
-      if( seq->transform0D_func != NULL )
+      if( seq->transform0D_func != NULL && do_0D )
         mri_rgb_transform_nD( qim, 0, seq->transform0D_func ) ;
 
-      if( seq->transform2D_func != NULL )
+      if( seq->transform2D_func != NULL && do_2D )
         mri_rgb_transform_nD( qim, 2, seq->transform2D_func ) ;
 
       /** histogram flattening (very useless) **/
@@ -4123,7 +4125,7 @@ ENTRY("ISQ_saver_CB") ;
 
          seq->set_orim = 0 ;
          tim  = flim ;
-         flim = ISQ_process_mri( kf , seq , tim ) ;
+         flim = ISQ_process_mri( kf , seq , tim , 0 ) ;
          if( tim != flim ) KILL_1MRI( tim ) ;
 
          /* get overlay and flip it */
@@ -4402,7 +4404,7 @@ ENTRY("ISQ_saver_CB") ;
 
          seq->set_orim = 0 ;  /* 30 Dec 1998 */
          tim  = flim ;
-         flim = ISQ_process_mri( kf , seq , tim ) ;  /* image processing */
+         flim = ISQ_process_mri( kf , seq , tim , 0 ) ;  /* image processing */
          if( tim != flim ) KILL_1MRI( tim ) ;
 
 /* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
@@ -4461,7 +4463,7 @@ ENTRY("ISQ_saver_CB") ;
 
          seq->set_orim = 0 ;  /* 30 Dec 1998 */
          tim  = flim ;
-         flim = ISQ_process_mri( kf , seq , tim ) ;  /* will be shorts now */
+         flim = ISQ_process_mri( kf , seq , tim , 0 ) ;  /* will be shorts now */
          if( tim != flim ) KILL_1MRI( tim ) ;
 
          flar = mri_data_pointer(flim) ;  /* underlay image data */
@@ -9350,7 +9352,7 @@ ENTRY("ISQ_manufacture_one") ;
        default:
          tim = ISQ_getimage( nim , seq ) ;
          if( tim == NULL ) RETURN(NULL) ;
-         im = ISQ_process_mri( nim , seq , tim ) ; mri_free(tim) ;
+         im = ISQ_process_mri( nim , seq , tim , 0 ) ; mri_free(tim) ;
        break ;
 
        case RENDER_WIPE_LEFT:    /* WIPE stuff 22 Aug 2014 */
@@ -11732,10 +11734,10 @@ ENTRY("ISQ_getchecked") ;
 
    qim = ISQ_getulay(nn,seq) ; if( qim == NULL ) RETURN(NULL) ;
    dx  = qim->dx ; dy = qim->dy ;
-   uim = ISQ_process_mri(nn,seq,qim) ; mri_free(qim) ;
+   uim = ISQ_process_mri(nn,seq,qim,0) ; mri_free(qim) ;
 
    qim = ISQ_getolay(nn,seq) ; if( qim == NULL ) RETURN(uim) ;
-   oim = ISQ_process_mri(nn,seq,qim) ; mri_free(qim) ;
+   oim = ISQ_process_mri(nn,seq,qim,PFLAG_NOTRAN) ; mri_free(qim) ;
 
    if( uim->kind == MRI_rgb && oim->kind == MRI_short ){
      qim = ISQ_index_to_rgb( seq->dc , 0 , oim ) ;
@@ -13328,7 +13330,7 @@ ENTRY("ISQ_save_anim") ;
 
       seq->set_orim = 0 ;
       tim  = flim ;
-      flim = ISQ_process_mri( kf , seq , tim ) ;
+      flim = ISQ_process_mri( kf , seq , tim , 0 ) ;
       if( tim != flim ) KILL_1MRI( tim ) ;
 
       /* get overlay and flip it */
