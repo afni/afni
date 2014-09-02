@@ -1498,6 +1498,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- He who laughs, lasts"                              ,
      "If you can't be good, be careful"                              ,
      "What sweet madness has seized me?"                             ,
+     "Which is more accurate: Haruspicy or Statistical Inference?"   ,
      "Forgive your enemy -- but remember the bastard's name"         ,
      "If the facts don't fit the theory, change the facts"           ,
      "All generalizations are false, including this one"             ,
