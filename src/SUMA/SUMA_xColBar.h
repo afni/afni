@@ -947,7 +947,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "\n"   \
    "A node n is not colored if::LR:\n"   \
    "    T(n)   < Tscale   :LR:\n"   \
-   "or if '\|T\|' option below "   \
+   "or if '\\|T\\|' option below "   \
    "is turned ON: :LR:\n"   \
    "  | T(n) | < Tscale .\n"  \
    "\n"   \

@@ -3256,45 +3256,92 @@ char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save)
    SUMA_RETURN(so);
 }
 
+void SUMA_Sphinx_String_Edit_Help(FILE *fout)
+{
+   static char FuncName[]={"SUMA_Sphinx_String_Edit_Help"};
+   char *s0, *s1;
+   char intro[]={
+"Simple trickery to use same string for both SUMA and SPHINX\n"
+"formatting.\n Function SUMA_Sphinx_String_Edit is used to \n"
+"take strings with these special markers and return them in\n"
+"either Sphinx or regular text.\n"
+"\n"
+" :SPX: Hiding a SPHINX directive with minimal fanfare:\n"
+"     Text between :SPX: markers does not appear in default output\n"
+"     format.\n"
+"        :SPX: Sphinx chunk :DEF: regular chunk :SPX:\n"
+"     Use this to insert into a text string a section that is\n"
+"     only displayed when Sphinx output is requested.\n"
+"     It is also possible to provide an alternate section\n"
+"     after the :DEF: marker between the opening and closing\n"
+"     :SPX: markers. The alternate section is used when the\n"
+"     requested output format is simple text.\n"
+"\n"
+"     The example coming up next will show how we can have\n"
+"     alternate output where a key press would be mentioned\n"
+"     simply in the SUMA output but with a reference directive\n"
+"     when SPHINX output is used:\n\n"
+" :LR: Replace this marker with a new line character for \n"
+"      Sphinx output. Cut it out for regular output.\n"
+"\n"
+" :[blanks]: Cut this marker out of string for Sphinx output,\n"
+"            but keep all blanks and two more in regular\n"
+"            output\n"
+"\n"
+" '\\|' Escaped vertical bar are kept as such for Sphinx, but shown\n"
+"       without the escape character in default output. This is\n"
+"       needed to keep sphinx from considering words between vertical\n"
+"       bars to be substitution references.\n"
+"\n" 
+"See function SUMA_Sphinx_String_Edit_Help() for a code sample.\n"
+"\n"
+                };
+   char s[] = {
+"Example 1:\n"
+"Below you will see a figure directive, but only for Sphinx format.\n"
+":SPX:\n\n"
+".. :figure: _static/junk.jpg\n"
+"            :align: center\n"
+"\n:SPX:"
+"And now the rest of text continues...\n"
+"\n"
+"Example 2:\n"
+"Press buton :SPX::ref:`a <LC_a>`:DEF:'a':SPX: to attenuate...\n" 
+"\n"
+"Example 3:\n"
+"For 'Trn' choose one of::LR:\n"
+"   0: No transparency.\n"
+":    :Surface is opaque.:LR:\n"
+"   8: 50% transparency.\n"
+":    :Surface is in cheese cloth transparency.:LR:\n"
+"\n"
+"Example 4:\n"
+"... or if '\\|T\\|' is used then ...\n"
+};
+      
+   if (!fout) fout = SUMA_STDERR;
+      
+   fprintf(fout,"\n%s\n", intro);
+   s0 = strdup(s); s1 = strdup(s);
+   fprintf(fout,"\n        Source Code Version:\n%s\n    -------\n", s);
+   fprintf(fout,"\n        Edited   for   SUMA:\n%s\n    -------\n", 
+                  SUMA_Sphinx_String_Edit(s0,0));
+   fprintf(fout,"\n        Edited  for  SPHINX:\n%s\n    -------\n", 
+                  SUMA_Sphinx_String_Edit(s1,1));
+   free(s0); free(s1);
+
+   return;
+}
+
 /*
    A function that allows me to format help strings for 
    display in SUMA as was done in the past, and for 
    fancier SPHINX formatted output.
    
-   Here is a bit of code to show how this might work:
-
-   {
-      char s[]={"Simple trickery to use same string for both SUMA and SPHINX\n"
-                "formatting.\n"
-                "Here is how we hide a SPHINX directive with minimal fanfare.\n"
-                "This directive will not appear in SUMA formatted\n"
-                "output:SPX:\n\n"
-                ".. :figure: _static/junk.jpg\n"
-                "            :align: center\n"
-                "\n:SPX:, but should appear for the SPHINX formatted one.\n\n"
-                "The example coming up next will show how we can have\n"
-                "alternate output where a key press would be mentioned\n"
-                "simply in the SUMA output but with a reference directive\n"
-                "when SPHINX output is used:\n\n"
-                "Press buton :SPX::ref:`a <LC_a>`:DEF:'a':SPX: to attenuate..." 
-                };
-      char *s0, *s1;
-      s0 = strdup(s); s1 = strdup(s);
-      fprintf(stderr,"\nSource Code Version:\n%s\n    -------\n", s);
-      fprintf(stderr,"\nEdited   for   SUMA:\n%s\n    -------\n", 
-                     SUMA_Sphinx_String_Edit(s0,0));
-      fprintf(stderr,"\nEdited  for  SPHINX:\n%s\n    -------\n", 
-                     SUMA_Sphinx_String_Edit(s1,1));
-      free(s0); free(s1);
-      exit(1);
-   }
-   
-   Still need to document what happens to the following under each method:
-   
-   :LR:
-   : (BLANKS) :
+   See SUMA_Sphinx_String_Edit_Help() for documentation.
    
 */
+
 char *SUMA_Sphinx_String_Edit(char *s, int targ) 
 {
    static char FuncName[]={"SUMA_Sphinx_String_Edit"};

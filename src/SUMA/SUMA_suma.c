@@ -267,7 +267,9 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "-help_interactive: Write the help for interactive usage into file\n"
 "                   Mouse_Keyboard_Controls.txt\n"
 "-help_sphinx_interactive HOUT: Write the help for interactive usage into \n"
-"                   SPHINX formatted file HOUT");
+"                   SPHINX formatted file HOUT"
+"See DriveSuma's -write_*_help options for more\n"
+"-test_help_string_edit: Show example of help string editing and quit\n");
    }
    
    if (detail > 1) { printf(
@@ -677,6 +679,11 @@ int main (int argc,char *argv[])
           fclose(fout); fout = NULL;
           exit (0);
 		}
+      
+      if (strcmp(argv[kar], "-test_help_string_edit") == 0) {
+         SUMA_Sphinx_String_Edit_Help(SUMA_STDOUT);
+         exit(0);
+      }
       
       if (strcmp(argv[kar], "-environment") == 0) {
 			 s = SUMA_env_list_help (0, 0);
