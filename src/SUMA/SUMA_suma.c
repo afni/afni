@@ -265,9 +265,9 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    
    if (detail > 1) { printf(
 "-help_interactive: Write the help for interactive usage into file\n"
-"                   Mouse_Keyboard_Controls.txt"
-"-help_sphinx_interactive: Write the help for interactive usage into SPHINX\n"
-"                   formatted file Mouse_Keyboard_Controls.rst");
+"                   Mouse_Keyboard_Controls.txt\n"
+"-help_sphinx_interactive HOUT: Write the help for interactive usage into \n"
+"                   SPHINX formatted file HOUT");
    }
    
    if (detail > 1) { printf(
@@ -654,9 +654,12 @@ int main (int argc,char *argv[])
 		}
       
       if (strcmp(argv[kar], "-help_sphinx_interactive") == 0) {
-			 FILE *fout = fopen("Mouse_Keyboard_Controls.rst","w");
+         FILE *fout = NULL;
+         if( ++kar >= argc ) 
+            ERROR_exit("need a file name after -help_sphinx_interactive!"); 		
+          fout = fopen(argv[kar],"w");
           if (!fout) {
-            SUMA_S_Err("Failed to open Mouse_Keyboard_Controls.rst for writing");
+            SUMA_S_Err("Failed to open %s for writing", argv[kar]);
             exit(1);
           }
           SUMA_help_message(fout,1);
