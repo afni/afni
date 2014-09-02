@@ -104,9 +104,12 @@ float * TS_parse_tpattern( int nzz , float TR , char *tpattern )
       tim = mri_read_1D( tpattern+1 ) ;
       if( tim == NULL ){
          ERROR_exit("Can't read tpattern file %s",tpattern+1) ;
-      } else if( tim->nx < nzz ){
+      /* allow arbitrary line wraps (can ny==0 happen?)  02 Sep 2014 [rickr] */
+      } else if( tim->nx < nzz && tim->ny < nzz && (tim->nx*tim->ny < nzz) ){
+         int nv = tim->nx * tim->ny;
+         if( nv == 0 ) nv = (tim->nx > tim->ny) ? tim->nx : tim->ny;
          ERROR_exit("tpattern file %s has %d values but have %d slices",
-                    tpattern+1 , tim->nx , nzz ) ;
+                    tpattern+1 , nv , nzz ) ;
       } else {
          tar = MRI_FLOAT_PTR(tim) ;
          for( ii=0 ; ii < nzz ; ii++ ){
