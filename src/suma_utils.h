@@ -260,6 +260,7 @@ char * SUMA_truncate_string (char *s1, int length);
 char *SUMA_set_string_length(char *buf, char cp, int n);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
+void SUMA_Sphinx_String_Edit_Help(FILE *fout);
 char *SUMA_Sphinx_String_Edit(char *s, int targ);
 char *SUMA_Sphinx_LineSpacer(char *s, int targ);
 NI_str_array *SUMA_Split_String(char *s, char *sc);
