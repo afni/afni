@@ -22,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.3, Aug 27, 2014
+Version 1.3.4, Sept 2, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -552,6 +552,11 @@ process.LME.opts <- function (lop, verb = 0) {
    #}
 
    lop$vQV <- NA; lop$vVars <- NA # no voxelwise quantitative variable for now
+
+   # set the covariate values at their centers
+   lop$covVal <- rep(0, length(lop$QV))
+   names(lop$covVal) <- lop$QV
+
    if (lop$num_glt > 0) {
       lop$gltList    <- vector('list', lop$num_glt)
       lop$slpList    <- vector('list', lop$num_glt)
@@ -645,9 +650,9 @@ runLME <- function(inData, dataframe, ModelForm, pars) {
 	    #if(!is.null(con)) Stat[(pars[[2]]+2*n-1):(pars[[2]]+2*n)] <- c(con$Contrast, con$testStat)
             glt <- NULL
             if(is.na(pars[[4]][[ii]])) glt <- tryCatch(testInteractions(fm, pair=NULL, slope=pars[[6]][[ii]], 
-               adjustment="none"), error=function(e) NULL) else
+               covariates=lop$covVal, adjustment="none"), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm, custom=pars[[4]][[ii]], slope=pars[[6]][[ii]], 
-               adjustment="none"), error=function(e) NULL)
+               covariates=lop$covVal, adjustment="none"), error=function(e) NULL)
             
             #glt <- testInteractions(fm, custom=pars[[4]][[ii]], slope=pars[[6]][[ii]], adjustment="none")
             if(!is.null(glt)) {
@@ -925,9 +930,9 @@ while(is.null(fm)) {
         #gltDF[n] <- tryCatch(contrast(fm, lop$gltContrList[[n]][[1]], lop$gltContrList[[n]][[2]], type="average")$df,
         #    error=function(e) NA)
          if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pair=NULL,
-            slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
+            covariates=lop$covVal, slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
-            slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
+            covariates=lop$covVal, slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
          if(is.na(gltRes[[n]])) fm <- NULL
          n <- n+1
       }
