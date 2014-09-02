@@ -6752,6 +6752,23 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
       */
    SUMA_LH("Making sv's GLXAREA current\n");
    SUMA_SiSi_I_Insist();
+   
+   #if 0
+      /* Toying with automated saving of controllers to help automate help
+         The problem with simple command below is that the OpenGL parts will
+         not get captured with XGetImage. So object controllers do not show
+         the colormap, and the viewer windows will not show the rendering.
+         
+         One approach might be to grab the openGL rendered pixels, and replace
+         the GLX areas with a widget displaying the grabbed image. I don't know
+         ahead of time how much of a pain it will be to be sure the newly added
+         widget does not cause resizing problems with the interface. What a pain.
+         
+         Perhaps for now it is best to snap those images by hand.
+      */   
+         
+      ISQ_snapfile ( SurfCont->Mainform );
+   #endif
         
    SUMA_RETURN(1); 
 }
