@@ -2031,17 +2031,17 @@ STATUS("creation: widgets created") ;
    { char *eee = my_getenv("AFNI_IMAGE_SCROLLWHEEL_TMASK") ;
      int swt = 0 ;
      if( eee != NULL ){
-       if( strcasestr(eee,"shift")   != 0 ) swt |= ShiftMask ;
-       if( strcasestr(eee,"shft")    != 0 ) swt |= ShiftMask ;
-       if( strcasestr(eee,"ctrl")    != 0 ) swt |= ControlMask ;
-       if( strcasestr(eee,"control") != 0 ) swt |= ControlMask ;
-       if( strcasestr(eee,"mod1")    != 0 ) swt |= Mod1Mask ;
-       if( strcasestr(eee,"mod2")    != 0 ) swt |= Mod2Mask ;
-       if( strcasestr(eee,"mod3")    != 0 ) swt |= Mod3Mask ;
-       if( strcasestr(eee,"mod4")    != 0 ) swt |= Mod4Mask ;
-       if( strcasestr(eee,"mod5")    != 0 ) swt |= Mod5Mask ;
+       if( strcasestr(eee,"shift")   != NULL ) swt |= ShiftMask ;
+       if( strcasestr(eee,"shft")    != NULL ) swt |= ShiftMask ;
+       if( strcasestr(eee,"ctrl")    != NULL ) swt |= ControlMask ;
+       if( strcasestr(eee,"control") != NULL ) swt |= ControlMask ;
+       if( strcasestr(eee,"mod1")    != NULL ) swt |= Mod1Mask ;
+       if( strcasestr(eee,"mod2")    != NULL ) swt |= Mod2Mask ;
+       if( strcasestr(eee,"mod3")    != NULL ) swt |= Mod3Mask ;
+       if( strcasestr(eee,"mod4")    != NULL ) swt |= Mod4Mask ;
+       if( strcasestr(eee,"mod5")    != NULL ) swt |= Mod5Mask ;
 
-       if( strcasestr(eee,"debug")   != 0 ) scrollwheel_debug = 1 ;
+       if( strcasestr(eee,"debug")   != NULL ) scrollwheel_debug = 1 ;
      }
      scrollwheel_tmask = (swt == 0) ? SWL_TMASK_DEFAULT : swt ;
    }
