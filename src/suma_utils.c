@@ -3234,7 +3234,7 @@ char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save)
          so[nso++]=*(s++);      
       }
       
-      if ( save && (ssa = strnstr(ss0+strlen(sc0), save, ss1-ss0) ) ) {
+      if ( save && (ssa = af_strnstr(ss0+strlen(sc0), save, ss1-ss0) ) ) {
          s = ssa+strlen(save);
          while (s < ss1) {
             so[nso++]=*(s++);
@@ -3298,6 +3298,7 @@ char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save)
 char *SUMA_Sphinx_String_Edit(char *s, int targ) 
 {
    static char FuncName[]={"SUMA_Sphinx_String_Edit"};
+   char stmp[6]={""};
    
    SUMA_ENTRY;
    
@@ -3308,7 +3309,9 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
          s = SUMA_Cut_Between_String(s, ":SPX:", ":SPX:", ":DEF:");
          s = SUMA_Cut_String(s,":LR:");
          s = SUMA_Sphinx_LineSpacer(s, targ);
-         s = SUMA_Swap_String(s, "\|","|");
+         sprintf(stmp,"\\|"); /* to avoid compile warning for 
+                                 direct use of "\|" in SUMA_Swap_String below */
+         s = SUMA_Swap_String(s, stmp,"|");
          SUMA_RETURN(s);
          break;
       case 1: /* Sphinx */
