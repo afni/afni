@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.5, Aug 29, 2014
+Version 3.2.6, Sept 2, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -656,6 +656,10 @@ process.MVM.opts <- function (lop, verb = 0) {
       # or if(!is.na(lop$qVars)) for(jj in lop$QV) lop$dataStr[,jj] <- as.numeric(levels(lop$dataStr[,jj]))[as.integer(lop$dataStr[,jj])]
       if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
+   
+   # set the covariate values at their centers
+   lop$covVal <- rep(0, length(lop$QV))
+   names(lop$covVal) <- lop$QV
   
    if (lop$num_glt > 0) {
       lop$gltList    <- vector('list', lop$num_glt)
@@ -864,9 +868,9 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
          # GLT part below
          if(pars[[3]]>=1) for(ii in 1:pars[[3]]) {
             if(all(is.na(pars[[4]][[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=pars[[5]][[ii]], 
-               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
+               covariates=lop$covVal, adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=pars[[4]][[ii]], slope=pars[[5]][[ii]], 
-               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+               covariates=lop$covVal, adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
             if(!is.null(glt)) {
                out[pars[[2]][1]+2*ii-1] <- glt[1,1]
 	       out[pars[[2]][1]+2*ii]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
@@ -1189,9 +1193,10 @@ while(is.null(fm)) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
          if(all(is.na(lop$gltList[[n]]))) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pair=NULL,
-            slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NA) else
+            covariates=lop$covVal, slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]),
+            error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
-            adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+            covariates=lop$covVal, adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
          if(any(is.null(gltRes[[n]]))) fm <- NULL
          n <- n+1
       }      
@@ -1557,9 +1562,9 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
          out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
          for(ii in 1:lop$num_glt) {
             if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
-               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
+               covariates=lop$covVal, adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
-               adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+               covariates=lop$covVal, adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
             if(!is.null(glt)) {
                out_post[ii,1]   <- glt[1,1]
                out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
