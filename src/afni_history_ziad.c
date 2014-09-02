@@ -66,6 +66,26 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 29, Aug, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added -drive_com to allow the driving of SUMA by its command line",
+   NULL
+ },
+  
+ { 28, Aug, 2014, ZSS, "3dHist", MINOR, TYPE_NEW_OPT,
+   "Added -equalized to do histogram equalization on the whole volume",
+   NULL
+ },
+  
+ { 25, Aug, 2014, ZSS, "ParseName", MINOR, TYPE_NEW_OPT,
+   "Added -*PrefixView, and improved -out to multi-components",
+   NULL
+ },
+  
+ { 25, Aug, 2014, ZSS, "@Align_Centers", MINOR, TYPE_BUG_FIX,
+   "Made program handle NIFTI input. Irrrrgh.",
+   NULL
+ },
+  
  { 5, Aug, 2014, ZSS, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
    "Made program handle FreeSurfer's -contrasurfreg output",
    NULL

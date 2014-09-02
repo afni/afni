@@ -13,6 +13,7 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
                                     char **strgvalp);
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
                   char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps);
+void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail);
 
 
 

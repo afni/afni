@@ -13,6 +13,8 @@
 */
 #define SUMA_IS_BLANK(c) ( (SUMA_IS_PURE_BLANK(c) || (c) == '\n' || (c) == '\v' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
 
+#define SUMA_IS_PUNCT(c) ( ((c) == '.' || (c) == ',' || (c) == ':' || (c) == ';') ? 1 : 0 )
+
 /* See also SUMA_IS_EOL */
 #define SUMA_IS_LINE_END(c) ( ((c) == '\n' || (c) == '\f' || (c) == '\r') ? 1 : 0 )
 #define SUMA_IS_NICE_PREFIX_CHAR(c) ( (SUMA_IS_BLANK(c) \

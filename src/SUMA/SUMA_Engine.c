@@ -4,8 +4,6 @@
    #define DEBUG_3
 #endif
    
-   
-                                          
 /* Need to figure out what to do with talking to multiple sockets (MATLAB and AFNI, for example). 
    So far, it looks like: 
    *- toggling should be separate. Maybe use Y key for matlab
@@ -22,6 +20,68 @@
 /* Header FILES */
    
 #include "SUMA_suma.h"
+
+/* Make suma call itself with DriveSuma command in scom */
+SUMA_Boolean SUMA_MakeMeDo (char *scom, int method) 
+{
+   static char FuncName[]={"SUMA_MakeMeDo"};
+   SUMA_Boolean res = NOPE;
+   int i, exflag, margc;
+   char **margv=NULL;
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!scom) SUMA_RETURN(YUP);
+   
+   SUMA_LH("Talking to self");
+   /* The shortcut, proper way (below, method = 0) needs fixing. 
+      SUMA does not seem to get command it sends itself. Check later */
+   if (method==1) {
+      char *ssys=(char *)SUMA_calloc(strlen(scom)+100, sizeof(char));
+      SUMA_LH("Clumsy system call");
+      sprintf(ssys,"\\DriveSuma %s &", scom);
+      if (system(ssys)) {
+         SUMA_S_Err("Failed to execute %s ssys\n", ssys);
+         SUMA_ifree(ssys);
+         SUMA_RETURN(NOPE);
+      }
+      SUMA_RETURN(YUP);
+   }
+      
+   margv = SUMA_com2argv(scom, &margc);
+
+   if (!(Opt = SUMA_DriveSuma_ParseInput (margv, margc, NULL))) {
+      goto CLEANOUT;
+   }
+   
+   for (i=0; i<Opt->N_com; ++i) {
+      if (LocalHead) {
+         SUMA_LH("Have the following commands");
+         fprintf(SUMA_STDERR,"Command %d: %s\n", i, Opt->com[i]);
+      }
+      if (!(exflag = SUMA_ProcessCommand(Opt->com[i], NULL, Opt->s))) {
+         SUMA_S_Errv("Failed in processing command\n%s\n", Opt->com[i]); 
+         goto CLEANOUT;
+      }   
+      if (exflag == -1) { /*gone daddy gone */ 
+         SUMA_S_Note("There's no more reason to exist.\n"
+                     "Farewell dear friends.\n");
+         goto CLEANOUT;
+      }
+   }
+   
+   res = YUP;
+   
+   CLEANOUT:
+   if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
+   margv = SUMA_free_com_argv(margv, &margc);
+   
+   SUMA_RETURN(res);
+}   
+                                          
+
 
 /*!
    \brief This is the function that runs the viewers. 
@@ -4249,6 +4309,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                "View_Surf_Cont", "n")) {
                   SUMA_LH("Closing surface controller");
                   SUMA_cb_closeSurfaceCont(NULL, (XtPointer)ado, NULL);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Surf_Cont_Help"))) {
+               if (!SUMA_WriteCont_Help(SO_type, 0, cbuf)) {
+                  SUMA_S_Err("Failed to write SurfCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Surf_Cont_Sphinx_Help"))) {
+               if (!SUMA_WriteCont_Help(SO_type, 1, cbuf)) {
+                  SUMA_S_Err("Failed to write SurfCont help to %s", cbuf);
                }
             }
 

@@ -680,4 +680,7 @@ THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(
                      SUMA_SurfaceObject *SO, THD_3dim_dataset *iset, 
                      SUMA_VOLPAR *vp, char *vpname,
                      char *prefix, int meth, int maskonly);          
+THD_3dim_dataset *SUMA_dset_hist_equalize(THD_3dim_dataset *din, 
+                                          int sb, byte *cmask, SUMA_HIST *hh);
+
 #endif
