@@ -1224,6 +1224,7 @@ ENTRY("IW3D_extend") ;
    }
 
    IW3D_load_external_slopes(BB) ;
+   BB->view = AA->view ;
    RETURN(BB) ;
 }
 
@@ -3376,6 +3377,8 @@ ENTRY("THD_nwarp_extend") ;
    BB = IW3D_extend( AA , -32,-32,-32,-32,-32,-32 , 0 ) ; IW3D_destroy(AA) ;
 
    qset = IW3D_to_dataset( BB , "InvertedWarp" ) ;        IW3D_destroy(BB) ;
+   qset->view_type = dset_nwarp->view_type ;
+   THD_init_diskptr_names( qset->dblk->diskptr, NULL,NULL,NULL, qset->view_type, False ) ;
    RETURN(qset) ;
 }
 

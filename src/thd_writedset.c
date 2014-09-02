@@ -48,12 +48,17 @@ ENTRY("THD_write_3dim_dataset") ;
 
    /*-- sanity checks --*/
 
-   if( ! ISVALID_3DIM_DATASET(dset)    ||
-       ! ISVALID_DATABLOCK(dset->dblk) ||
-       ! ISVALID_DISKPTR(dset->dblk->diskptr) ) {
-      /* do not fail silently                 5 Aug 2010 [rickr] */
-      fprintf(stderr,"** cannot write dataset, invalid dset/dblk/diskptr\n");
-      error_count++ ; RETURN(False) ;
+   if( ! ISVALID_3DIM_DATASET(dset) ){
+     ERROR_message("Cannot write dataset: it is invalid") ;
+     error_count++ ; RETURN(False) ;
+   }
+   if( ! ISVALID_DATABLOCK(dset->dblk) ){
+     ERROR_message("Cannot write dataset: invalid datablock") ;
+     error_count++ ; RETURN(False) ;
+   }
+   if( ! ISVALID_DISKPTR(dset->dblk->diskptr) ){
+     ERROR_message("Cannot write dataset: invalid diskptr") ;
+     error_count++ ; RETURN(False) ;
    }
 
    if( new_prefixname ) ppp = new_prefixname;
