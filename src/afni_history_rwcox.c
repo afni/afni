@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , SEP , 2014 , RWC , "3dNwarpAdjust" , MICRO , TYPE_BUG_FIX ,
+  { 2 , SEP , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Don't apply 0D and 2D transformations to overlay image in wiper mode" ,
+   NULL } ,
+
+ { 2 , SEP , 2014 , RWC , "3dNwarpAdjust" , MICRO , TYPE_BUG_FIX ,
    "Tried to write out average dataset when it didn't exist -- Oops." ,
    "Also fixed bug in mri_nwarp.c where extended warp dataset didn't get the\n"
    "same 'view' as the input dataset." } ,

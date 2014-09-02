@@ -778,7 +778,11 @@ extern void ISQ_make_bar( MCW_imseq * ) ;
 extern void ISQ_show_bar( MCW_imseq * ) ;
 extern void ISQ_set_barhint( MCW_imseq * , char * ) ; /* 29 Jul 2001 */
 
-extern MRI_IMAGE * ISQ_process_mri( int , MCW_imseq * , MRI_IMAGE * ) ;
+#define PFLAG_NOTRAN0D 1
+#define PFLAG_NOTRAN2D 2
+#define PFLAG_NOTRAN   (PFLAG_NOTRAN0D | PFLAG_NOTRAN2D)
+
+extern MRI_IMAGE * ISQ_process_mri( int , MCW_imseq * , MRI_IMAGE * , int ) ;
 
 extern MRI_IMAGE    * ISQ_getimage  ( int , MCW_imseq * ) ; /* 31 Jan 2002 */
 extern MRI_IMAGE    * ISQ_getoverlay( int , MCW_imseq * ) ; /* 11 Jun 2002 */
