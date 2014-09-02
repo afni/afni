@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 29 , AUG , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 2 , SEP , 2014 , RWC , "3dNwarpAdjust" , MICRO , TYPE_BUG_FIX ,
+   "Tried to write out average dataset when it didn't exist -- Oops." ,
+   "Also fixed bug in mri_nwarp.c where extended warp dataset didn't get the\n"
+   "same 'view' as the input dataset." } ,
+
+ { 29 , AUG , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Modify wiper scale to be attached to image window form" ,
    NULL } ,
 
