@@ -28,17 +28,28 @@ printf (
    "        uPrefix : USER_PATH/PREFIX\n"
    "        pPrefix : RELATIVE_PATH/PREFIX\n"
    "        PPrefix : ABSOLUTE_PATH/PREFIX\n"
+   "        *PrefixView: Append view string (if any) to all prefix options\n"
+   "                     listed above.\n"
    "        OnDisk  : 1 if file is on disk, 0 otherwise\n"
+   "        FName   : Filename, no paths\n"
    "        FNameNoAfniExt : File name without any AFNI extensions\n"
    "                         e.g.: ParseName -out FNameNoAfniExt test.nii.gz\n"
    "        trim    : Trim the name to 20 characters.\n"
    "                  First the path goes, then extension, then view,\n"
    "                  then characters from the left. '~' indicates clipping.\n"
+   "     If you want to output multiple parameters, list them all between \n"
+   "     quotes with something like:\n"
+   "        -out 'HeadName RelPath'\n"
+   "\n"
+   "  -outsep SEP: When outputing multiple components, use SEP as a separator\n"
+   "               between them. Default is ' ', one space character\n"
    "\n"
    "Tests:\n"
    "    ParseName -cwd /hello/Joe /hello/Joe/afni.c\n"
    "    ParseName -cwd /hello/Joe/ /hello/Jane/afni.c\n"
    "    ParseName -out Prefix something.nii\n"
+   "    ParseName -out uPrefixView something.nii\n"
+   "    ParseName -out uPrefixView something+orig\n"
    "    ParseName -pre Need_ -out Prefix something.nii\n"
    "    ParseName -pre Need_  something.nii'[65-88]'\n"
    "    ParseName -pre Need_  something+orig.HEAD'{2-10}[4-6]'\n"
@@ -52,7 +63,7 @@ printf (
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ParseName"}; 
-	char *out=NULL,*FName=NULL, *cwd=NULL, *what=NULL, *val=NULL;
+	char *out=NULL,*FName=NULL, *cwd=NULL, *what=NULL, *val=NULL, *sep=NULL;
    int kar, brk;
    SUMA_PARSED_NAME *Test;
    
@@ -73,6 +84,7 @@ int main (int argc,char *argv[])
    out = NULL;
    what = NULL;
    val = NULL;
+   sep = " "; /* separator for multiple outs */
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -109,6 +121,18 @@ int main (int argc,char *argv[])
          }
          
          out = argv[++kar];
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-outsep") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a string after -outsep \n");
+            exit (1);
+         }
+         
+         sep = argv[++kar];
          brk = YUP;
       }
 
@@ -176,52 +200,76 @@ int main (int argc,char *argv[])
    }
    
    if (out) {
-      if (strcmp(out,"RelName") == 0) {
-         fprintf(SUMA_STDOUT, "%s%s\n", 
-                     Test->RelPath,Test->FileName);
-      } else if (strcmp(out,"FullName") == 0) {
-         fprintf(SUMA_STDOUT, "%s\n", 
-                     Test->FullName);
-      } else if (strcmp(out,"AbsPath") == 0) {
-         fprintf(SUMA_STDOUT, "%s\n", 
-                     Test->AbsPath);
-      } else if (strcmp(out,"RelPath") == 0) {
-         fprintf(SUMA_STDOUT, "%s\n", 
-                     Test->RelPath);
-      } else if (strcmp(out,"Prefix") == 0) {
-         fprintf(SUMA_STDOUT, "%s\n", 
-                     Test->Prefix);
-      } else if (strcmp(out,"uPrefix") == 0) {
-         fprintf(SUMA_STDOUT, "%s%s\n", 
-                     Test->Path,Test->Prefix);
-      } else if (strcmp(out,"PPrefix") == 0) {
-         fprintf(SUMA_STDOUT, "%s%s\n", 
-                     Test->AbsPath,Test->Prefix);
-      } else if (strcmp(out,"pPrefix") == 0) {
-         fprintf(SUMA_STDOUT, "%s%s\n", 
-                     Test->RelPath,Test->Prefix);
-      } else if (strcmp(out,"HeadName") == 0) {
-         fprintf(SUMA_STDOUT, "%s\n", 
-                     Test->HeadName);
-      } else if (strcmp(out,"OnDisk") == 0) {
-         fprintf(SUMA_STDOUT, "%d\n", 
-                     Test->OnDisk);
-      } else if (strcmp(out,"Size") == 0) {
-         fprintf(SUMA_STDOUT, "%ld\n", 
-                     Test->Size);
-      } else if (strcmp(out,"FNameNoAfniExt") == 0) {
-         fprintf(SUMA_STDOUT, "%s\n", 
-                     without_afni_filename_extension(Test->FileName));
-      } else if (strncmp(out,"trim",4) == 0) {
-         int mxlen=20;
-         if (strlen(out) == 4) mxlen = 20;
-         else mxlen = (int)strtod(out+4,NULL);
-         fprintf(SUMA_STDOUT, "%s\n", 
-                     TrimString(Test->HeadName,mxlen));
-      } else {
-         SUMA_S_Errv("Bad -out option of %s\n", out);
-         exit(1);
+      int kk=0;
+      NI_str_array *nisa = NULL;
+      nisa = SUMA_comp_str_2_NI_str_ar(out, " ");
+      for (kk=0; kk<nisa->num; ++kk) {
+         out = nisa->str[kk];
+         if (kk > 0) fprintf(SUMA_STDOUT, sep);
+         if (strcmp(out,"RelName") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s", 
+                        Test->RelPath,Test->FileName);
+         } else if (strcmp(out,"FullName") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        Test->FullName);
+         } else if (strcmp(out,"AbsPath") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        Test->AbsPath);
+         } else if (strcmp(out,"RelPath") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        Test->RelPath);
+         } else if (strcmp(out,"Prefix") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        Test->Prefix);
+         } else if (strcmp(out,"PrefixView") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s", 
+                        Test->Prefix, Test->View);
+         } else if (strcmp(out,"uPrefix") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s", 
+                        Test->Path,Test->Prefix);
+         } else if (strcmp(out,"uPrefixView") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s%s", 
+                        Test->Path,Test->Prefix, Test->View);
+         } else if (strcmp(out,"PPrefix") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s", 
+                        Test->AbsPath,Test->Prefix);
+         } else if (strcmp(out,"PPrefixView") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s%s", 
+                        Test->AbsPath,Test->Prefix, Test->View);
+         } else if (strcmp(out,"pPrefix") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s", 
+                        Test->RelPath,Test->Prefix);
+         } else if (strcmp(out,"pPrefixView") == 0) {
+            fprintf(SUMA_STDOUT, "%s%s%s", 
+                        Test->RelPath,Test->Prefix, Test->View);
+         } else if (strcmp(out,"HeadName") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        Test->HeadName);
+         } else if (strcmp(out,"OnDisk") == 0) {
+            fprintf(SUMA_STDOUT, "%d", 
+                        Test->OnDisk);
+         } else if (strcmp(out,"Size") == 0) {
+            fprintf(SUMA_STDOUT, "%ld", 
+                        Test->Size);
+         } else if (strcmp(out,"FNameNoAfniExt") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        without_afni_filename_extension(Test->FileName));
+         } else if (strcmp(out,"FName") == 0) {
+            fprintf(SUMA_STDOUT, "%s", 
+                        Test->FileName);
+         } else if (strncmp(out,"trim",4) == 0) {
+            int mxlen=20;
+            if (strlen(out) == 4) mxlen = 20;
+            else mxlen = (int)strtod(out+4,NULL);
+            fprintf(SUMA_STDOUT, "%s", 
+                        TrimString(Test->HeadName,mxlen));
+         } else {
+            SUMA_S_Errv("Bad -out option of %s", out);
+            exit(1);
+         }
       }
+      fprintf(SUMA_STDOUT, "\n");
+      if (nisa) SUMA_free_NI_str_array(nisa); nisa = NULL;
    } else {
       SUMA_ShowParsedFname(Test, NULL);
    }

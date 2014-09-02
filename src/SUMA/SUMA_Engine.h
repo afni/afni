@@ -1,6 +1,7 @@
 #ifndef SUMA_ENGINE_INCLUDED
 #define SUMA_ENGINE_INCLUDED
 
+SUMA_Boolean SUMA_MakeMeDo (char *scom, int method);
 SUMA_Boolean SUMA_Engine (DList **listp);
 char *SUMA_AfniOverlayLabel(SUMA_ALL_DO *ado, int num);
 SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv );

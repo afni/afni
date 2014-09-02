@@ -11,6 +11,8 @@ PARSE:
    set usecp = 1
    set xmat_only = 0
    set mode = 'grid'
+   set overw = 0
+   set overf = ''
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
       set donext = 1
@@ -37,6 +39,12 @@ PARSE:
          endif   
       endif
 
+      if ($donext && "$argv[$cnt]" == "-overwrite") then
+         set overw = 1
+         set overf = ' -overwrite '
+         set donext = 0   
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-cm") then
          set mode = 'cm'
          set donext = 0   
@@ -132,6 +140,8 @@ SETCENTER:
 
    set v1_pref = `@GetAfniPrefix $v1i`
    set v1 = $v1_pth/$v1_pref$v1_vw
+   set oname = `ParseName -app _shft  -out PrefixView $v1`
+
 if ($mode == 'grid') then
    #orientation of v1
    set v1_orient = `@GetAfniOrient $v1`
@@ -160,36 +170,41 @@ if ($mode == 'grid') then
    end
    #apply delta
    if ($usecp == 1) then
-      if ( `@CheckForAfniDset $v1_pth/${v1_pref}_shft$v1_vw` != 0 ) then
+      
+      if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
          echo ""
          echo "Error `basename $0`"
-         echo "Dset $v1_pth/${v1_pref}_shft$v1_vw found, cleanup first!"
+         echo "Dset $v1_pth/$oname found, cleanup first!"
          echo ""
          set retval = 1
          goto END
       endif
 
-      3dcopy $v1  $v1_pth/${v1_pref}_shft
-      3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1_pth/${v1_pref}_shft$v1_vw
+      3dcopy $overf $v1  $v1_pth/$oname
+      3drefit  -dxorigin $del_refit[1] \
+               -dyorigin $del_refit[2] \
+               -dzorigin $del_refit[3] $v1_pth/$oname
    else
-      3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
+      3drefit  -dxorigin $del_refit[1] \
+               -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
    endif
 else
    
    #get the center of mass of the base and apply delta
    set v2_center_RAI = `3dCM -automask $v2i`
    if ($usecp == 1) then
-      if ( `@CheckForAfniDset $v1_pth/${v1_pref}_shft$v1_vw` != 0 ) then
+      if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
          echo ""
          echo "Error `basename $0`"
-         echo "Dset $v1_pth/${v1_pref}_shft$v1_vw found, cleanup first!"
+         echo "Dset $v1_pth/$oname found, cleanup first!"
          echo ""
          set retval = 1
          goto END
       endif
 
-      3dcopy $v1  $v1_pth/${v1_pref}_shft
-      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1_pth/${v1_pref}_shft$v1_vw`
+      3dcopy $overf $v1  $v1_pth/$oname
+      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI \
+                           $v1_pth/$oname`
    else
       set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1`
    endif
@@ -209,8 +224,11 @@ DELTA_TO_XMAT:
    foreach delx ($del_RAI)
       set del_xform = ($del_xform `ccalc -eval "$delx * -1"`)
    end
+   set oname = `ParseName -app _shft  -out Prefix $v1`
+   #get rid of .nii which remains in prefix
+   set o1d = $oname:r
    echo "1 0 0 $del_xform[1] 0 1 0 $del_xform[2] 0 0 1 $del_xform[3]" \
-         > ${v1_pref}_shft.1D
+         > ${o1d}.1D
    if ($xmat_only == 1) then
       goto END
    else
@@ -229,7 +247,8 @@ foreach v1foli ( $v1_list )
    set v1fol_pref = `@GetAfniPrefix $v1foli`
    set v1fol = $v1fol_pth/$v1fol_pref$v1fol_vw
 
-   if ("`@GetAfniID $v1fol`" != "`@GetAfniID $v1i`" && "`@GetAfniID $v1fol`" != "`@GetAfniID $v2i`") then
+   if ("`@GetAfniID $v1fol`" != "`@GetAfniID $v1i`" && \
+       "`@GetAfniID $v1fol`" != "`@GetAfniID $v2i`") then
       #orientation of v1fol
       set v1fol_orient = `@GetAfniOrient $v1fol`
       #change del_RAI to v1fol_orient
@@ -245,19 +264,24 @@ foreach v1foli ( $v1_list )
       end
 
       #apply the  delta
+      set oname = `ParseName -app _shft  -out PrefixView ${v1fol_pref}`
       if ($usecp == 1) then
-         if ( `@CheckForAfniDset $v1fol_pth/${v1fol_pref}_shft$v1fol_vw` != 0 ) then
+         if ( `@CheckForAfniDset $v1fol_pth/${oname}` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Child Dset $v1fol_pth/${v1fol_pref}_shft$v1fol_vw found, cleanup first!"
+            echo "Child Dset $v1fol_pth/${oname} found, cleanup first!"
             echo ""
             set retval = 1
             goto END
          endif
-         3dcopy $v1fol  $v1fol_pth/${v1fol_pref}_shft
-         3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1fol_pth/${v1fol_pref}_shft$v1fol_vw
+         3dcopy $overf $v1fol  $v1fol_pth/${oname}
+         3drefit  -dxorigin $del_refit[1] \
+                  -dyorigin $del_refit[2] \
+                  -dzorigin $del_refit[3] $v1fol_pth/${oname}
       else   
-         3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1fol
+         3drefit  -dxorigin $del_refit[1] \
+                  -dyorigin $del_refit[2] \
+                  -dzorigin $del_refit[3] $v1fol
       endif
    else
       echo "Child dset $v1fol is same as $v1i or $v2i, skipping it."
@@ -283,6 +307,7 @@ HELP:
    echo "                    -input DSET"
    echo ""
    echo "   -echo: Echo all commands to terminal for debugging"
+   echo "   -overwrite: You know what"
    echo "   -1Dmat_only: Only output the transfrom needed to align"
    echo "                the centers. Do not shift the volumes."
    echo "                The transform is named DSET_shft.1D"

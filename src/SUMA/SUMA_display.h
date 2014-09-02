@@ -346,6 +346,7 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData);
+SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, int targ, char *fname);
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data, XtPointer callData);
@@ -367,7 +368,7 @@ void SUMA_set_LockView_atb (void);
 int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, 
                    char menu_mnemonic,  SUMA_Boolean tear_off, 
                    SUMA_MenuItem *items, void *ContID, 
-                   char *hint, char *help,
+                   char *wname, char *hint, char *help,
                    SUMA_MENU_WIDGET *SMW);
 void SUMA_cb_FileOpenSpec (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_FileOpenSurf (Widget w, XtPointer client_data, XtPointer callData);
@@ -457,12 +458,12 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
                               SUMA_Boolean wrap,
                               void (*NewValueCallback)(void * data), 
                               void *cb_data,
-                              char *hint, char *help,
+                              char *wname, char *hint, char *help,
                               SUMA_ARROW_TEXT_FIELD *AF);
 void SUMA_CreateTextField ( Widget pw, char *label,
                               int cwidth, 
                               void (*NewValueCallback)(void *data),
-                              char *hint, char *help,
+                              char *wname, char *hint, char *help,
                               SUMA_ARROW_TEXT_FIELD *AF);
 void SUMA_DrawROI_NewLabel (void * data);
 void SUMA_ATF_change_value (XtPointer client_data, XtIntervalId *id);
@@ -676,6 +677,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist,
 Widget SUMA_CloseBhelp_Frame( Widget parent,
                               XtCallbackProc close_callback, 
                               XtPointer close_data,
+                              char *wname,
                               char *close_hint,
                               char *close_help,
                               XtCallbackProc help_callback,
@@ -890,7 +892,9 @@ void SUMA_C_laplace(SUMA_C_FILTER *mat);
 void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat);
 
 /* *************** End Convolution utilities *************** */
-                  
+SUMA_Boolean SUMA_Register_Widget_Help(Widget w, char *name, 
+                                       char *hint, char *help);
+SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name, char *help);  
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"
 
@@ -1154,15 +1158,15 @@ void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat);
    "about using this interface.\n"
 
 #define SUMA_closeViewerCont_help   \
-   "Close Viewer controller window.\n"   \
-   "Current settings are preserved\n"\
-   "when controller is reopened.\n"
+   "Close Viewer controller window. "   \
+   "Current settings are preserved "\
+   "when controller is reopened."
   
 
 #define  SUMA_moreViewerInfo_help  \
-   "Opens a dialog with detailed\n" \
-   "information about the surface\n"\
-   "viewer.\n"
+   "Opens a dialog with detailed " \
+   "information about the surface "\
+   "viewer."
 
 #define SUMA_SurfCont_ColPlaneDim_hint \
    "Dimming factor to apply to colormap." \

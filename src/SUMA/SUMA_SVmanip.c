@@ -4067,6 +4067,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->Echo_KeyPress = NOPE;
    cf->InOut_Level = 0;
    cf->MemTrace = NOPE;
+   cf->dcom = NULL;
+   cf->N_dcom = 0;
    
    /* verify pointer size. I use INT_MAX and LONG_MAX
    to guess whether or not we have 64 bit pointers.
@@ -4662,7 +4664,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
 {
    static char FuncName[]={"SUMA_CreateSurfContStruct"};
    SUMA_X_SurfCont *SurfCont = NULL;
-   
+   char wname[64]={"UNNAMED"}, *s=NULL;
    
    /* do not use commonfields related stuff here for obvious reasons */
    SurfCont = (SUMA_X_SurfCont *)malloc(sizeof(SUMA_X_SurfCont));
@@ -4702,35 +4704,54 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->TractMaskGray = 
       (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
-   SurfCont->XhairTable = SUMA_AllocTableField();
-   SurfCont->MaskTable = SUMA_AllocTableField();
-   SurfCont->MaskEvalTable = SUMA_AllocTableField();
+   
+   s = SUMA_do_type_2_contwname(SurfCont->do_type);
+   snprintf(wname,63,"%s->XhairTable", s);
+   SurfCont->XhairTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->MaskTable", s);
+   SurfCont->MaskTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->MaskEvalTable", s);
+   SurfCont->MaskEvalTable = SUMA_AllocTableField(wname);
    SurfCont->MaskEval_tb = NULL;
-   SurfCont->MaskLenTable = SUMA_AllocTableField();
+   snprintf(wname,63,"%s->MaskLenTable", s);
+   SurfCont->MaskLenTable = SUMA_AllocTableField(wname);
    SurfCont->MaskLen_tb = NULL;
    SurfCont->UseMaskEval = 0;
    SurfCont->DeleteMask_pb = NULL;
    SurfCont->DeleteMask_first = YUP;
    SurfCont->DeleteMask_row = -1;
-   SurfCont->SetRangeTable = SUMA_AllocTableField();
-   SurfCont->SetThrScaleTable = SUMA_AllocTableField();
-   SurfCont->RangeTable = SUMA_AllocTableField();
-   SurfCont->NodeTable = SUMA_AllocTableField();
-   SurfCont->FaceTable = SUMA_AllocTableField();
-   SurfCont->DataTable = SUMA_AllocTableField();
-   SurfCont->LabelTable = SUMA_AllocTableField();
+   snprintf(wname,63,"%s->SetRangeTable", s);
+   SurfCont->SetRangeTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->SetThrScaleTable", s);
+   SurfCont->SetThrScaleTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->RangeTable", s);
+   SurfCont->RangeTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->NodeTable", s);
+   SurfCont->NodeTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->FaceTable", s);
+   SurfCont->FaceTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->DataTable", s);
+   SurfCont->DataTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->LabelTable", s);
+   SurfCont->LabelTable = SUMA_AllocTableField(wname);
    /* SurfCont->ColPlaneShow_tb = NULL; Obsolete */
    SurfCont->ColPlaneShowOneFore_tb = NULL;
    SurfCont->SymIrange_tb = NULL;
    SurfCont->AbsThresh_tb = NULL;
    SurfCont->ShowZero_tb = NULL;
    SurfCont->SwitchDsetlst = NULL;
-   SurfCont->ColPlaneLabelTable = SUMA_AllocTableField();;
-   SurfCont->SetClustTable = SUMA_AllocTableField();
-   SurfCont->Ax_slc = SUMA_AllocSliceField(); 
-   SurfCont->Sa_slc = SUMA_AllocSliceField(); 
-   SurfCont->Co_slc = SUMA_AllocSliceField(); 
-   SurfCont->VR_fld = SUMA_AllocVRField(); 
+   snprintf(wname,63,"%s->ColPlaneLabelTable", s);
+   SurfCont->ColPlaneLabelTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->SetClustTable", s);
+   SurfCont->SetClustTable = SUMA_AllocTableField(wname);
+   snprintf(wname,63,"%s->Ax_slc", s);
+   SurfCont->Ax_slc = SUMA_AllocSliceField(wname); 
+   snprintf(wname,63,"%s->Sa_slc", s);
+   SurfCont->Sa_slc = SUMA_AllocSliceField(wname); 
+   snprintf(wname,63,"%s->Co_slc", s);
+   SurfCont->Co_slc = SUMA_AllocSliceField(wname); 
+   snprintf(wname,63,"%s->VR", s);
+   SurfCont->VR_fld = SUMA_AllocVRField(wname); 
    SurfCont->curColPlane = NULL;
    {
       char *eee = getenv("SUMA_ShowOneOnly");
@@ -4953,6 +4974,8 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    cf->X->FileSelectDlg = NULL;
    if (cf->X->AllMaskCont) SUMA_FreeSurfContStruct(cf->X->AllMaskCont);
    SUMA_ifree(cf->X->Cr);
+   for (i=0; i<cf->N_dcom; ++i) { SUMA_ifree(cf->dcom[i]); } 
+   SUMA_ifree(cf->dcom);
    
    if (cf->X->SumaCont) 
       SUMA_FreeSumaContStruct (cf->X->SumaCont); 
@@ -5192,7 +5215,7 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
   
    SS = SUMA_StringAppend_va( SS,
                               "SUMA's list of environment variables:\n");
-   s = SUMA_env_list_help(0);
+   s = SUMA_env_list_help(0, 0);
    SS = SUMA_StringAppend( SS, s); SUMA_free(s); s = NULL;
    SS = SUMA_StringAppend( SS, "\n");
 

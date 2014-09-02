@@ -4233,6 +4233,8 @@ void SUMA_Wait_Till_Stream_Goes_Bad(SUMA_COMM_STRUCT *cs,
    \param SO (SUMA_SurfaceObject *) pointer to surface object structure
    \param cs (SUMA_COMM_STRUCT *) Communication structure. 
                                  (initialized when action is 0)
+                                 If cs is NULL then this call would be made
+                                 by SUMA to drive itself to the twilight zone.
    \param data (void *) pointer to data that gets typecast as follows:
                         (float *) if dtype == Node_RGBAb or Node_XYZ
    \param dtype (SUMA_DSET_TYPE) Type of nel to be produced 
@@ -4283,7 +4285,11 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
    /* fprintf (SUMA_STDERR, "%s: LocalHead = %d\n", FuncName, LocalHead); */
    
    if (action == 0) { /* initialization of connection */
-      
+      if (!cs) { /* Nothing to do, return */
+         SUMA_LH("No cs, probably talking to self");
+         ++i_in;
+         SUMA_RETURN(YUP);
+      }
       SUMA_LH("Setting up for communication with SUMA ...");
       cs->Send = YUP;
       if(!SUMA_Assign_HostName (SUMAg_CF, cs->suma_host_name, cs->istream)) {
@@ -4316,18 +4322,21 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
    }
    
    if (action == 1) { /* action == 1,  send data mode */
-      if (!i_in) {
-         SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 "
-                     "before action 1.\nNo Communcation cleanup done.");
-         cs->Send = NOPE;
-         SUMA_RETURN(NOPE);
-      }
-      if ((cs->ElInd[dtype] % cs->kth)) {
-         SUMA_LHv("Skipping element %d of type %d\n", cs->ElInd[dtype], dtype);
+      if (cs) {
+         if (!i_in) {
+            SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 "
+                        "before action 1.\nNo Communcation cleanup done.");
+            cs->Send = NOPE;
+            SUMA_RETURN(NOPE);
+         }
+         if ((cs->ElInd[dtype] % cs->kth)) {
+            SUMA_LHv("Skipping element %d of type %d\n", 
+                     cs->ElInd[dtype], dtype);
+            ++cs->ElInd[dtype];
+            SUMA_RETURN(YUP);
+         }
          ++cs->ElInd[dtype];
-         SUMA_RETURN(YUP);
       }
-      ++cs->ElInd[dtype];
       SUMA_LH("Creating nel and sending it");
       switch (dtype) {
          case SUMA_NODE_RGBAb:
@@ -4349,23 +4358,26 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             break;
          default:
             SUMA_SL_Err("Data type not supported.");
-            cs->GoneBad = YUP;
-            cs->Send = NOPE;
+            if (cs) {
+               cs->GoneBad = YUP;
+               cs->Send = NOPE;
+            }
             SUMA_RETURN(NOPE);
             break;
       }
 
-      /* make sure stream is still OK */
-      if (NI_stream_goodcheck ( SUMAg_CF->ns_v[cs->istream] , 1 ) < 0) {
-         cs->GoneBad = YUP;
-         SUMA_SL_Warn("Communication stream gone bad.\n"
-                      "Shutting down communication.");
-         cs->Send = NOPE;
-         SUMA_SEND_TO_SUMA_FUNC_CLEANUP;
-         SUMA_RETURN(YUP); 
-            /* returning without error since program should continue */
+      if (cs) {
+         /* make sure stream is still OK */
+         if (NI_stream_goodcheck ( SUMAg_CF->ns_v[cs->istream] , 1 ) < 0) {
+            cs->GoneBad = YUP;
+            SUMA_SL_Warn("Communication stream gone bad.\n"
+                         "Shutting down communication.");
+            cs->Send = NOPE;
+            SUMA_SEND_TO_SUMA_FUNC_CLEANUP;
+            SUMA_RETURN(YUP); 
+               /* returning without error since program should continue */
+         }
       }
-
       
       nel = NULL; ngr = NULL;
       switch (dtype) {
@@ -4375,7 +4387,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             if (!nel) {
                SUMA_SL_Err("Failed in SUMA_NodeVal2irgba_nel.\n"
                            "Communication off.")
-               cs->Send = NOPE;
+               if (cs) cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
             break;
@@ -4386,7 +4398,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             if (!nel) {
                SUMA_SL_Err("Failed in SUMA_NodeXYZ2NodeXYZ_nel.\n"
                            "Communication off.")
-               cs->Send = NOPE;
+               if (cs) cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
             if (cs->Feed2Afni) NI_set_attribute(nel, "Send2Afni", "DoItBaby");
@@ -4398,7 +4410,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             if (!nel) {
                SUMA_SL_Err("Failed in SUMA_Mesh_IJK2Mesh_IJK_nel.\n"
                            "Communication off.")
-               cs->Send = NOPE;
+               if (cs) cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
             break;
@@ -4411,7 +4423,8 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
                                        SO->VolPar->filecode, "/", 0);
                NI_set_attribute(nel, "VolParFilecode", vppref); 
                SUMA_free(vppref); vppref = NULL;
-               if (cs->Feed2Afni) NI_set_attribute(nel, "Send2Afni", "DoItBaby");
+               if (cs && cs->Feed2Afni) 
+                  NI_set_attribute(nel, "Send2Afni", "DoItBaby");
             }
             break;
          case SUMA_SURFACE_OBJECT:
@@ -4435,18 +4448,20 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
             SUMA_RETURN(NOPE);
          }
          /* add tracking */
-         ++cs->TrackID;
-         sprintf(stmp,"%d", cs->TrackID);
-         if (nel) {
-            NI_set_attribute (nel, "Tracking_ID", stmp);
-         } else if (ngr) {
-            NI_set_attribute (ngr, "Tracking_ID", stmp);
+         if (cs) {
+            ++cs->TrackID;
+            sprintf(stmp,"%d", cs->TrackID);
+            if (nel) {
+               NI_set_attribute (nel, "Tracking_ID", stmp);
+            } else if (ngr) {
+               NI_set_attribute (ngr, "Tracking_ID", stmp);
+            }
          }
       }
       
       #if SUMA_SUMA_NIML_DEBUG /* writes every element to a 
                                   text file for debugging ... */
-      {
+      if (cs) {
          NI_stream ns;  
          /* Test writing results in asc, 1D format */ 
          if (LocalHead) fprintf(stderr," %s:-\nWriting ascii 1D ...\n"
@@ -4483,7 +4498,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
       }
       #endif
 
-      if (cs->nelps > 0) { /* make sure that you are not sending 
+      if (cs && cs->nelps > 0) { /* make sure that you are not sending 
                               elements too fast */
          if (!etm) {
             etm = 100000.0; /* first pass, an eternity */
@@ -4500,38 +4515,51 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
          if (wtm > 0) { /* wait */
             if (LocalHead) 
                fprintf (SUMA_STDOUT, 
-                        "%s: Sleeping by %f to meet refresh rate...", 
+                        "%s: Sleeping by %f to meet refresh rate...\n", 
                         FuncName, wtm);
             NI_sleep((int)(wtm*1000));
          }
       }
 
       /* send it to SUMA */
-      if (LocalHead) 
-         fprintf (SUMA_STDOUT,"Sending element %d comm_NI_mode = %d...\n", 
-                              cs->TrackID, cs->comm_NI_mode);
-      if (nel) {
-         if (NI_write_element(   SUMAg_CF->ns_v[cs->istream] , nel, 
-                                 cs->comm_NI_mode ) < 0) {
-            SUMA_LH("Failed updating SUMA...");
+      if (cs) {
+         if (LocalHead) 
+            fprintf (SUMA_STDOUT,"Sending element %d comm_NI_mode = %d...\n", 
+                                 cs->TrackID, cs->comm_NI_mode);
+         if (nel) {
+            if (NI_write_element(   SUMAg_CF->ns_v[cs->istream] , nel, 
+                                    cs->comm_NI_mode ) < 0) {
+               SUMA_LH("Failed updating SUMA...");
+            }
+         } else if (ngr) {
+            if (NI_write_element(   SUMAg_CF->ns_v[cs->istream] , ngr, 
+                                    cs->comm_NI_mode ) < 0) {
+               SUMA_LH("Failed updating SUMA...");
+            }
          }
-      } else if (ngr) {
-         if (NI_write_element(   SUMAg_CF->ns_v[cs->istream] , ngr, 
-                                 cs->comm_NI_mode ) < 0) {
-            SUMA_LH("Failed updating SUMA...");
+         if (LocalHead) {
+            if (cs->nelps > 0) 
+               fprintf (SUMA_STDOUT,
+                        "        element %d sent (%f sec)\n", 
+                        cs->TrackID, SUMA_etime(&tt, 1));
+            else fprintf (SUMA_STDOUT,"        element %d sent \n", cs->TrackID);
          }
-      }
-      if (LocalHead) {
-         if (cs->nelps > 0) 
-            fprintf (SUMA_STDOUT,
-                     "        element %d sent (%f sec)\n", 
-                     cs->TrackID, SUMA_etime(&tt, 1));
-         else fprintf (SUMA_STDOUT,"        element %d sent \n", cs->TrackID);
+      } else {
+         SUMA_LH("Straight into the bowels");
+         if (nel) {
+            if (!SUMA_process_NIML_data((void *)nel, NULL)) {
+               SUMA_S_Err("Failed to process %s", nel->name);
+            }
+         } else if (ngr) {
+            if (!SUMA_process_NIML_data((void *)ngr, NULL)) {
+               SUMA_S_Err("Failed to process %s", ngr->name);
+            }
+         } 
       }
       if (nel && nel != data) NI_free_element(nel) ; nel = NULL;
       if (ngr && ngr != data) NI_free_element(ngr) ; ngr = NULL;
       
-      if (cs->nelps > 0) {
+      if (cs && cs->nelps > 0) {
          if (LocalHead) 
             fprintf (SUMA_STDOUT,"%s: Resetting time...\n", FuncName);
          SUMA_etime(&tt, 0); /* start the timer */
@@ -4544,7 +4572,7 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
       if (i_in < 2) {
          SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 and 1"
                      " before action 2.\nNo Communcation cleanup done.");
-         cs->Send = NOPE;
+         if (cs) cs->Send = NOPE;
          SUMA_RETURN(NOPE);
       }
       /* reset static variables */
@@ -4552,6 +4580,10 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs,
          etm = 0.0;
          
       SUMA_SEND_TO_SUMA_FUNC_CLEANUP;      
+      
+      if (!cs) {
+         SUMA_RETURN(YUP);
+      }
       
       /* now close the stream*/
       if (cs->Send && !cs->GoneBad) { 

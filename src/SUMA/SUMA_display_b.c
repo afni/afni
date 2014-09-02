@@ -193,7 +193,8 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
 
    DispFrame = SUMA_CloseBhelp_Frame(rc_gmamma,
                      SUMA_cb_closeSurfaceCont, (XtPointer) ado,
-                     "Close Surface controller", SUMA_closeSurfaceCont_help,
+                     "MaskCont", "Close Surface controller", 
+                     SUMA_closeSurfaceCont_help,
                      NULL, NULL, NULL, NULL);
    
    XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_gmamma , NULL);
@@ -278,6 +279,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
             int colw[6] = { 3, 24 };
             SUMA_CreateTable( rc_maskeval,
                               1, 2, 
+                              "MaskCont->Masks->Mask_Eval",
                               row_tit, NULL,  
                               row_hint, NULL,  
                               row_help, NULL,  
@@ -293,9 +295,9 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          XtAddCallback (SurfCont->MaskEval_tb, 
                         XmNvalueChangedCallback, SUMA_cb_UseMaskEval_toggled,
                         NULL);
-         MCW_register_hint(SurfCont->MaskEval_tb,   
-                           "Enable (ON)/Disable Mask expression evaluation");
-         MCW_register_help(SurfCont->MaskEval_tb,   
+         SUMA_Register_Widget_Help(SurfCont->MaskEval_tb, 
+                                   "MaskCont->Masks->Mask_Eval->v",
+                           "Enable (ON)/Disable Mask expression evaluation",
                            "Enable (ON)/Disable Mask expression evaluation");
 
          SUMA_SET_SELECT_COLOR(SurfCont->MaskEval_tb);
@@ -314,6 +316,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
             
             SUMA_CreateTable( rc_maskeval,
                               1, 3, 
+                              "MaskCont->Masks->Tract_Length",
                               row_tit, NULL,  
                               row_hint, NULL,  
                               row_help, NULL,  
@@ -333,10 +336,10 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
          XtAddCallback (SurfCont->MaskLen_tb, 
                         XmNvalueChangedCallback, SUMA_cb_UseMaskLen_toggled,
                         NULL);
-         MCW_register_hint(SurfCont->MaskLen_tb,   
-                           "Enable (ON)/Disable Mask expression evaluation");
-         MCW_register_help(SurfCont->MaskLen_tb,   
-                           "Enable (ON)/Disable Mask expression evaluation");
+         SUMA_Register_Widget_Help(SurfCont->MaskLen_tb,
+                                   "MaskCont->Masks->Tract_Length->v",
+                           "Enable (ON)/Disable Tract Length masking",
+                           "Enable (ON)/Disable Tract Length masking");
 
          SUMA_SET_SELECT_COLOR(SurfCont->MaskLen_tb);
          XmToggleButtonSetState (SurfCont->MaskLen_tb, 
@@ -374,6 +377,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
             int colw[15] = { 1, 1, 6, 6, 11, 11, 11, 1, 1, 1};
             SUMA_CreateTable( SurfCont->rcswr,
                               2, 10, 
+                              "MaskCont->Masks->Table",
                               row_tit, col_tit,  
                               row_hint, col_hint,  
                               row_help, col_help,  
@@ -401,9 +405,9 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
             NULL);   
          XtAddCallback (pb, XmNactivateCallback, 
                         SUMA_cb_Masks_Load, (XtPointer) ado);
-         MCW_register_hint(pb ,  
-                  "Load the masks (much more with BHelp)" ) ;
-         MCW_register_help(pb ,  SUMA_SurfContHelp_MasksLoad ) ;
+         SUMA_Register_Widget_Help(pb, "MaskCont->Masks->Load_Masks",
+                                   "Load the masks (much more with BHelp)",
+                                   SUMA_SurfContHelp_MasksLoad ) ; 
          XtManageChild (pb);
  
       pb = XtVaCreateWidget ("Save Masks", 
@@ -411,9 +415,9 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
             NULL);   
          XtAddCallback (pb, XmNactivateCallback, 
                         SUMA_cb_Masks_Save, (XtPointer) ado);
-         MCW_register_hint(pb ,  
-                  "Save the masks (much more with BHelp)" ) ;
-         MCW_register_help(pb ,  SUMA_SurfContHelp_MasksSave ) ;
+         SUMA_Register_Widget_Help(pb, "MaskCont->Masks->Save_Masks",
+                                   "Save the masks (much more with BHelp)",
+                                   SUMA_SurfContHelp_MasksSave ) ;
          XtManageChild (pb);
  
       XtManageChild (rc);
@@ -440,6 +444,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
                            2, SUMA_int,
                            YUP,
                            SUMA_cb_SurfCont_SwitchPage, (void *)ado,
+                           "MaskCont->Disp_Cont->Switch",
                            "Switch to other object controller", 
                            "Switch to other object controller",
                            SurfCont->SurfContPage);
@@ -1608,7 +1613,7 @@ void SUMA_cb_SetMaskTableValue (void *data)
 SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows)
 {
    static char FuncName[]={"SUMA_ModifyTable"};
-   char *row_tit_buf=NULL, *col_tit_buf=NULL;
+   char *row_tit_buf=NULL, *col_tit_buf=NULL, wname[64]={"NOTSETATALL"};
    char **row_tit=NULL,  **col_tit=NULL,  /* These should be passed if you */
         **row_hint=NULL, **row_help=NULL,/* desire them.  */
         **col_hint=NULL, **col_help=NULL,
@@ -1798,8 +1803,10 @@ SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows)
                         cd ,   /* client data */
                         XtListTail ) ; 
                   }
-                  if (row_hint)  MCW_register_hint( TF->cells[n], row_hint[i] );
-                  if (row_help)  MCW_register_help( TF->cells[n], row_help[i] ) ;
+                  snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+                  SUMA_Register_Widget_Help(TF->cells[n], wname, 
+                                            row_hint?row_hint[i]:NULL, 
+                                            row_help?row_help[i]:NULL ) ;
                   break;
 
                case SUMA_COL_TIT_CELL: /* column's title */
@@ -1872,8 +1879,10 @@ SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows)
                         cd ,   /* client data */
                         XtListTail ) ; 
                   }                 
-                  if (col_hint)  MCW_register_hint( TF->cells[n], col_hint[j] );
-                  if (col_help)  MCW_register_help( TF->cells[n], col_help[j] ) ;
+                  snprintf(wname, 63, "%s.c%02d", TF->wname, i);
+                  SUMA_Register_Widget_Help(TF->cells[n], wname, 
+                                            col_hint?col_hint[j]:NULL, 
+                                            col_help?col_help[j]:NULL ) ;
                   break;
                case SUMA_ENTRY_CELL: /* entry cell */
                   if (LocalHead) 
@@ -1895,20 +1904,24 @@ SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows)
                                     SUMAg_CF->X->TableTextFontList, NULL);
                   if (col_help || col_hint || row_help || row_hint)  {
                      if (!row_tit && !col_tit && TF->Ni == 1 && TF->Nj == 1) {
-                        if (col_help) 
-                           MCW_register_help( TF->cells[n], col_help[0]) ;
-                        else if (row_help) 
-                           MCW_register_help( TF->cells[n], row_help[0]) ;
-                        if (col_hint) 
-                           MCW_register_hint( TF->cells[n], col_hint[0]) ;
-                        else if (row_hint) 
-                           MCW_register_hint( TF->cells[n], row_hint[0]) ;
+                        char *shh=NULL, *sii=NULL;
+                        if (col_help) shh = col_help[0] ;
+                        else if (row_help) shh = row_help[0] ;
+                        if (col_hint) sii = col_hint[0] ;
+                        else if (row_hint) sii =  row_hint[0] ;
+                        if (shh || sii) {
+                           snprintf(wname, 63, "%s.e%02d", TF->wname, n);
+                           SUMA_Register_Widget_Help(TF->cells[n], wname,
+                                            sii,
+                                            shh ) ;
+                        }
+                        
                      } else {
-                        MCW_register_help( TF->cells[n], 
-                           "Hints and help messages "
-                           "are attached to table's "
-                           "column and row titles.") ;
-                        MCW_register_hint( TF->cells[n], 
+                        snprintf(wname, 63, "%s.e%02d", TF->wname, n);
+                        SUMA_Register_Widget_Help(TF->cells[n], wname,
+                                    "Hints and help messages "
+                                    "are attached to table's "
+                                    "column and row titles.",
                                     "Hints and help messages "
                                     "are attached to table's "
                                     "column and row titles.") ;
@@ -3194,7 +3207,7 @@ void SUMA_CreateVrFields(  Widget parent,
 {
    static char FuncName[]={"SUMA_CreateVrFields"};
    int i, j, n, titw, xmw, shad, mult;
-   char *tmp, sbuf[12];
+   char *tmp, sbuf[12], wname[64];
    XtPointer cd;
    XtVarArgsList arglist=NULL;
    XtCallbackProc slcb, sllbcb, slcactcb, shwslccb;
@@ -3244,8 +3257,10 @@ void SUMA_CreateVrFields(  Widget parent,
    VrF->lab = XtVaCreateManagedWidget(tit, xmLabelWidgetClass, VrF->rc, 
                            XmNfontList, SUMAg_CF->X->TableTextFontList, 
                                      NULL);
-   if (hint)  MCW_register_hint( VrF->lab, hint );
-   if (help)  MCW_register_help( VrF->lab, help ) ;
+   if (hint || help) {
+      snprintf(wname,63,"%s->lab", VrF->wname);
+      SUMA_Register_Widget_Help(VrF->lab, wname, hint, help);
+   }
    
    sprintf(sbuf,"%-3d", (int)VrF->N_slice_num);
    VrF->text = XtVaCreateManagedWidget(
@@ -3261,8 +3276,10 @@ void SUMA_CreateVrFields(  Widget parent,
    XtVaSetValues( VrF->text, XmNfontList, 
                   SUMAg_CF->X->TableTextFontList, NULL);
 
-   if (help) MCW_register_help( VrF->text, help) ;
-   if (hint) MCW_register_hint( VrF->text, hint) ;
+   if (hint || help) {
+      snprintf(wname,63,"%s->text", VrF->wname);
+      SUMA_Register_Widget_Help(VrF->text, wname, hint, help);
+   }
    XtVaSetValues(VrF->text, XmNcolumns, 3, NULL); 
    XtVaSetValues(VrF->text, XmNeditable, True, 
                  XmNshadowThickness , 2,         
@@ -3285,10 +3302,12 @@ void SUMA_CreateVrFields(  Widget parent,
       xmToggleButtonWidgetClass, VrF->rc, NULL);
    XtAddCallback (VrF->tb, 
          XmNvalueChangedCallback, SUMA_cb_ShowVrF_toggled, ado);
-   MCW_register_hint(VrF->tb,   
-                     "View (ON)/Hide VrF");
-   MCW_register_help(VrF->tb,   
-                     SUMA_SurfContHelp_ShowVrFTgl);
+   if (hint || help) {
+      snprintf(wname,63,"%s->tb", VrF->wname);
+      SUMA_Register_Widget_Help(VrF->tb, wname, 
+                                "View (ON)/Hide VrF", 
+                                SUMA_SurfContHelp_ShowVrFTgl);
+   }
 
    SUMA_SET_SELECT_COLOR(VrF->tb);
    XmToggleButtonSetState (VrF->tb, VSaux->ShowVrSlc , NOPE);
@@ -4044,3 +4063,65 @@ void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat)
 
 
 /* *************** End Convolution utilities *************** */
+
+/* 
+   Register help for a widget. This is to replace all individual
+calls to MCW_register_help and _hint.
+
+   Widget help becoming centralized to help with auto generation of
+   help webpage
+*/
+
+SUMA_Boolean SUMA_Register_Widget_Help(Widget w, char *name, 
+                                       char *hint, char *help)
+{
+   static char FuncName[]={"SUMA_Register_Widget_Help"};
+   char *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SUMA_Register_GUI_Help(name, hint, help, w?1:0)) {
+      SUMA_S_Err("Failed at string level registration");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (w) {
+      if (help) {
+         s = SUMA_copy_string(help);
+         SUMA_Sphinx_String_Edit(s, 0);
+         s = SUMA_Sphinx_LineSpacer(s, 0);
+         MCW_register_help(w, s);
+         SUMA_ifree(s);
+      }
+      if (hint) MCW_register_hint(w, hint);
+   }
+      
+   SUMA_RETURN(YUP);
+}  
+
+SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget w, char *name, char *help)
+{
+   static char FuncName[]={"SUMA_Register_Widget_Children_Help"};
+   char *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!w || !help) {
+      SUMA_S_Err("NULL widget!!! or No Help");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SUMA_Register_GUI_Help(name, NULL, help, 1)) {
+      SUMA_S_Err("Failed at string level registration");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (help) {
+      s = SUMA_copy_string(help);
+      SUMA_Sphinx_String_Edit(s, 0);
+      MCW_reghelp_children(w, help);
+      SUMA_ifree(s);
+   }
+   
+   SUMA_RETURN(YUP);
+}

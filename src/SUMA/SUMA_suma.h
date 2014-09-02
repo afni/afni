@@ -163,6 +163,7 @@
    #include "SUMA_dot.h"
    #include "SUMA_SegOpts.h"
    #include "SUMA_SegFunc.h"
+   #include "SUMA_driver.h"
 #else
    /* define the necessary macros */   
    #define SUMA_STDERR stderr

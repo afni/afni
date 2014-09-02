@@ -1,5 +1,469 @@
 #include "SUMA_suma.h"
 
+static char uDS_show_surf[]={
+               "        CreateIcosahedron -rd 4\n"
+               "        suma -niml &\n"
+               "        echo 'Wait until suma is ready then proceed.'\n"
+               "        DriveSuma -com show_surf -label icoco \\\n"
+               "                       -i_fs CreateIco_surf.asc\n"
+};
+static char uDS_node_xyz[]={
+"        ConvertSurface -i_fs CreateIco_surf.asc \\\n"
+"                       -o_1D radcoord radcoord \\\n"
+"                       -radial_to_sphere 100\n"
+"        DriveSuma -com node_xyz -label icoco \\\n"
+"                       -xyz_1D radcoord.1D.coord'[0,1,2]'\n"
+"        1deval -a radcoord.1D.coord'[0]' -expr 'sin(a)*100' \\\n"
+"            > xmess.1D ;1dcat xmess.1D radcoord.1D.coord'[1,2]' \\\n"
+"            > somecoord.1D.coord ; rm xmess.1D\n"
+"        DriveSuma -com node_xyz -label icoco \\\n"
+"                       -xyz_1D somecoord.1D.coord\n"
+};
+static char uDS_viewer_cont[]={
+"       DriveSuma -com  viewer_cont -key R -key ctrl+right\n"
+"       DriveSuma -com  viewer_cont -key:r3:s0.3 up  \\\n"
+"                       -key:r2:p left -key:r5:d right \\\n"
+"                       -key:r3 z   -key:r5 left -key F6\n"
+"       DriveSuma -com  viewer_cont -key m -key down \\\n"
+"                 -com  sleep 2s -com viewer_cont -key m \\\n"
+"                       -key:r4 Z   -key ctrl+right\n"
+"       DriveSuma -com  viewer_cont -key m -key right \\\n"
+"                 -com  pause press enter to stop this misery \\\n"
+"                 -com  viewer_cont -key m \n"
+};
+static char uDS_recorder_cont[]={
+"       DriveSuma -com  recorder_cont -save_as allanimgif.agif \\\n"
+"                 -com  recorder_cont -save_last lastone.jpg \\\n"
+"                 -com  recorder_cont -save_as three.jpg -save_index 3\\\n"
+"                 -com  recorder_cont -save_as some.png -save_range 3 6\n"
+};
+static char uDS_surf_cont[]={
+               /*"       quickspec -spec radcoord.spec \\\n"
+               "                 -tn 1d radcoord.1D.coord radcoord.1D.topo \\\n"
+               "       SurfaceMetrics -curv -spec radcoord.spec \\\n"
+               "                      -surf_A radcoord -prefix radcoord      \n"*/
+"       echo 1 0 0 > bbr.1D.cmap; echo 1 1 1 >> bbr.1D.cmap; \\\n"
+"       echo 0 0  1 >> bbr.1D.cmap\n"
+"       IsoSurface -shape 4 128 -o_ply blooby.ply\n"
+"       quickspec -spec blooby.spec -tn ply blooby.ply\n"
+"       SurfaceMetrics -curv -spec blooby.spec \\\n"
+"                      -surf_A blooby -prefix blooby      \n"
+"       DriveSuma -com show_surf -surf_label blooby \\\n"
+"                      -i_ply blooby.ply -surf_winding cw \\\n"
+"                      -surf_state la_blooby\n"
+"       DriveSuma -com surf_cont -load_dset blooby.curv.1D.dset \\\n"
+"                      -surf_label blooby -view_surf_cont y\n"
+"       DriveSuma -com surf_cont -I_sb 7 -T_sb 8 -T_val 0.0\n"
+"       DriveSuma -com surf_cont -I_range 0.05 -T_sb -1\n"
+"       DriveSuma -com surf_cont -I_sb 8 -I_range -0.1 0.1 \\\n"
+"                      -T_val 0.02 -Dim 0.4\n"
+"       DriveSuma -com surf_cont -B_sb 7 -B_range 0.5 -B_scale 0.1 0.9\n"
+"       DriveSuma -com surf_cont -switch_dset Convexity -1_only y\n"
+"       DriveSuma -com surf_cont -switch_cmap roi64 -1_only n\n"
+"       DriveSuma -com surf_cont -switch_cmode Dir \n"
+"       DriveSuma -com surf_cont -view_dset n\n"
+"       DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \\\n"
+"                      -view_surf_cont n -I_range -0.05 0.14\n"
+"       DriveSuma -com surf_cont -load_cmap bbr.1D.cmap\n"
+};
+static char uDS_kill_suma[]={
+               "       DriveSuma -com kill_suma\n"
+};
+
+void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
+{
+      static char FuncName[]={"usage_DriveSuma"};
+      char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL, *snido=NULL;
+      int i;
+      s = SUMA_help_basics();
+      snido = SUMA_NIDO_Info();
+      sio  = SUMA_help_IO_Args(ps);
+
+      printf ( "\n"
+"Usage: A program to drive suma from command line.\n"
+"       DriveSuma [options] -com COM1 -com COM2 ...\n"
+"Mandatory parameters:\n"
+"---------------------\n"
+"   -com COM: Command to be sent to SUMA.\n"
+"             At least one command must be used\n"
+"             and various commands can follow in\n"
+"             succession.\n"
+"        COM is the command string and consists\n"
+"            of at least an action ACT. Some actions\n"
+"            require additional parameters to follow\n"
+"            ACT. \n"
+" Actions (ACT) and their parameters:\n"
+" -----------------------------------\n"
+" o pause [MSG]: Pauses DriveSuma and awaits\n"
+"                an 'Enter' to proceed with\n"
+"                other commands. \n"
+"                MSG is an optional collection of\n"
+"                strings that can be displayed as\n"
+"                a prompt to the user. See usage\n"
+"                in examples below.\n"
+"\n"
+" o sleep DUR: Put DriveSuma to sleep for a duration DUR.\n"
+"              DUR is the duration, specified with something\n"
+"              like 2s (or 2) or 150ms\n"
+"              See usage in examples below.\n"
+"\n"
+" o show_surf: Send surface to SUMA.\n"
+"     + Mandatory parameters for show_surf action:\n"
+"        -surf_label S_LABEL: A label (identifier) to assign to the\n"
+"                           surface\n"
+"        -i_TYPE SURF: Name of surface file, see surface I/O \n"
+"                      options below for details.\n"
+"     + Optional parameters for show_surf action:\n"
+/*"        -surf_group GROUP:\n"*/
+"          -surf_state STATE: Name the state of that surface\n"
+"          -surf_winding WIND: Winding of triangles. Choose \n"
+"                              from ccw or cw (normals on sphere\n"
+"                              pointing in). This option affects\n"
+"                              the lighting of the surface.\n"
+"     + Example show_surf: \n"
+"        1- Create some surface\n"
+"        2- Start SUMA\n"
+"        3- Send new surface to SUMA\n"
+"        ---------------------------\n"
+"%s"
+"\n"
+" o node_xyz: Assign new coordinates to surface in SUMA\n"
+"     + Mandatory parameters for action node_xyz:\n"
+"        -surf_label S_LABEL: A label to identify the target \n"
+"                           surface\n"
+"        -xyz_1D COORDS.1D: A 1D formatted file containing a new \n"
+"                           coordinate for each of the nodes \n"
+"                           forming the surface. COORDS.1D must \n"
+"                           have three columns.\n"
+"                           Column selectors can be used here as \n"
+"                           they are in AFNI.\n"
+"     + Example node_xyz (needs surface from 'Example show_surf')\n"
+"        1- Create some variation on the coords of the surface\n"
+"        2- Send new coordinates to SUMA\n"
+"        3- Manipulate the x coordinate now\n"
+"        4- Send new coordinates again to SUMA\n"
+"        -------------------------------------\n"
+"%s"
+"\n"
+" o viewer_cont: Apply settings to viewer or viewer controller\n"
+"     + Optional parameters for action viewer_cont:\n"
+"       (Parameter names reflect GUI labels or key strokes.)\n"
+"        -autorecord RECORD_PREFIX: Set the autorecord prefix\n"
+"                        See 'Ctrl+r' in suma's interactive help for\n"
+"                        details.\n"
+"                    You can can use this option to make different snapshots\n"
+"                    go to different directories or filenames. For example:\n"
+"           ... \n"
+"               -com viewer_cont -autorecord left/Javier.ppm \\\n"
+"                                -key 'ctrl+left' -key 'ctrl+r' \\\n"
+"               -com viewer_cont -autorecord right/Javier.ppm \\\n"
+"                                -key 'ctrl+right' -key 'ctrl+r' \\\n"
+"           ...\n"
+"        -bkg_col R G B: Set the color of the background to R G B triplet.\n"
+"                        R G B values must be between 0 and 1\n"
+"        -load_view VIEW_FILE: Load a previously\n"
+"                              saved view file (.vvs).\n"
+"                              Same as 'File-->Load View'\n"
+"        -load_do   DO_FILE: Load a displayable object file\n"
+"                            For detailed information on DO_FILE's format,\n"
+"                            see the section under suma's  help (ctrl+h)\n"
+"                            where the function of Ctrl+Alt+s is detailed.\n"
+"        -do_draw_mask MASKMODE: Restrict where DO node-based objects are\n"
+"                                displayed. MASKMODE is one of:\n"
+"                          All: No restrictions\n"
+"                          n3Crosshair: Crosshair node + 3 neighboring layers\n"
+"                          n2Crosshair: Crosshair node + 2 neighboring layers\n"
+"                          n1Crosshair: Crosshair node only\n"
+"                          None: Show nothing.\n"
+"                      See also Ctrl+p option in SUMA.\n"
+"        -fixed_do NIML_DO_STRING: Load a fixed coordinate type NIML DO that \n"
+"                     is defined by the string NIML_DO_STRING.\n"
+"                     This is more convenient than specifying\n"
+"                     a simple DO in a file. For example:\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                              -fixed_do \"<T text='Hi' coord='0.5 0.2 0'/>\"\n"
+"               or the simpler:\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                              -fixed_do \"<T text='Up here' p=tlf/>\"\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                              -fixed_do \"<T text='Down there' p=bcf/>\"\n"
+"\n"
+"                     Repeated calls to -fixed_do would replace the previous\n"
+"                     object with the new one. You could specify multiple DOs\n"
+"                     by adding a qualifier string to the option -fixed_do.\n"
+"                     For example:\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                          -fixed_do1 \"<T text='Tango' coord='0.5 0.2 0'/>\"\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                          -fixed_do2 \"<T text='ognaT' coord='0.2 0.2 0'/>\"\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                          -fixed_do1 \"<T text='-X-' coord='0.5 0.2 0'/>\"\n"
+"                  DriveSuma -com viewer_cont \\\n"
+"                          -fixed_do3 \"<Tex target='FRAME' \\\n"
+"                                  filename='funstuff/face_afniman.jpg'/>\"\n"
+"\n"
+"               For more information about DOs, see NIDO section below \n"
+"               (visible with -help option) and demo script @DO.examples.\n"
+"\n"
+"        -Fixed_do NIML_DO_STRING: Same as -fixed_do, but spits out some \n"
+"                     debugging info.\n"
+"        -mobile_do NIML_DO_STRING: Mobile version of -fixed_do\n"
+"        -Mobile_do NIML_DO_STRING: Mobile version of -Fixed_do\n"
+   , uDS_show_surf, uDS_node_xyz );
+if (detail > 1) { 
+   printf(
+"\n"
+" ---------------------------------------------\n"
+" Details for %s"
+" ---------------------------------------------\n"
+"\n"
+      , snido);
+}
+   printf(
+"        -key KEY_STRING: Act as if the key press KEY_STRING\n"
+"                         was applied in the viewer.\n"
+"                         ~ Not all key presses from interactive\n"
+"                         mode are allowed here.\n"
+"                         ~ Available keys and their variants are:\n"
+"                         [, ], comma (or ','), period (or '.'), space,\n"
+"                         a, b, d, G, j, m, n, p, r, t, z, \n"
+"                         up, down, left, right, and F1 to F12.\n"
+"                         ~ Key variants are specified this way:\n"
+"                         ctrl+Up or ctrl+alt+Down etc.\n"
+"                         ~ For help on key actions consult SUMA's\n"
+"                         GUI help.\n"
+"                         ~ Using multiple keys in the same command\n"
+"                         might not result in the serial display of\n"
+"                         the effect of each key, unless 'd' modifier\n"
+"                         is used as shown further below. For example,\n"
+"                         -key right -key right would most likely\n"
+"                         produce one image rotated twice rather than\n"
+"                         two images, each turned right once.\n"
+"           The -key string can be followed by modifiers:\n"
+"              For example, -key:r5:s0.2 has two modifiers,\n"
+"              r5 and s0.2. All modifiers are separated by ':'.\n"
+"              'r' Repeat parameter, so r5 would repeat the \n"
+"                  same key 5 times.\n"
+"              's' Sleep parameter, so s0.2 would sleep for 0.2\n"
+"                  seconds between repeated keys.\n"
+"              'd' Immediate redisplay flag. That is useful\n"
+"                  when you are performing a succession of keys and\n"
+"                  want to ensure each individual one gets displayed\n"
+"                  and recorded (most likely). Otherwise, successive\n"
+"                  keys may only display their resultant. 'd' is used\n"
+"                  automatically with 's' modifier.\n"
+"              'p' Pause flag. Requires user intervention to proceed.\n"
+"              'v' Value string. The string is passed to the function\n"
+"                  that processes this key, as if you'd entered that string\n"
+"                  in the GUI directly. To avoid parsing headaches, you\n"
+"                  should use quotes with this qualifier. For example, say\n"
+"                  you want to pass 0.0 0.0 0.0 to the 'ctrl+j' key press.\n"
+"                  At the shell you would enter:\n"
+"                    DriveSuma -com viewer_cont '-key:v\"0.8 0 10.3\"' ctrl+j\n"
+"                  In another example, say you want to jump to node 54 on the\n"
+"                  right hemisphere (hence the 'R' in '54R'), then you would\n"
+"                  execute:\n"
+"                    DriveSuma -com viewer_cont '-key:v54R' j\n"
+"        -viewer VIEWER: Specify which viewer should be acted \n"
+"                        upon. Default is viewer 'A'. Viewers\n"
+"                        must be created first (ctrl+n) before\n"
+"                        they can be acted upon.\n"
+"                        You can also refer to viewers with integers\n"
+"                        0 for A, 1 for B, etc.\n"
+"                        For -viewer to take effect it must be in the\n"
+"                        same -com viewer_cont ... commands. For example:\n"
+"               ... -com viewer_cont -viewer B -viewer_size 600 900 ...\n"
+"        -viewer_width or (-width) WIDTH: Set the width in pixels of\n"
+"                                     the current viewer.\n"
+"        -viewer_height or (-height) HEIGHT: Set the height in pixels of\n"
+"                                     the current viewer.\n"
+"        -viewer_size WIDTH HEIGHT : Convenient combo of -viewer_width \n"
+"                                    and -viewer_height\n"
+"        -viewer_position X Y: Set position on the screen\n"
+"        -controller_position X Y: Set position of the object (surface)\n"
+"                                  controller on the screen\n"
+"        -inout_notify y/n: Turn on or off function call tracing\n"
+"        -N_foreg_smooth n: Number of foreground smoothing iterations\n"
+"                           Same as suma's interactive '8' key or what\n"
+"                           you'd set with env: SUMA_NumForeSmoothing\n"
+"        -N_final_smooth n: Number of final color smoothing iterations\n"
+"                           Same as suma's interactive '*' key or what\n"
+"                           you'd set with env: SUMA_NumForeSmoothing\n" 
+"     + Example viewer_cont (assumes all previous examples have\n"
+"       been executed and suma is still running).\n"
+"        - a series of commands that should be obvious.\n"
+"       -------------------------------------\n"
+"%s"
+"\n"
+" o recorder_cont: Apply commands to recorder window\n"
+"     + Optional parameters for action recorder_cont:\n"
+"       -anim_dup DUP: Save DUP copies of each frame into movie\n"
+"                      This has the effect of slowing movies down\n"
+"                      at the expense of file size, of course.\n"
+"                      DUP's default is set by the value of AFNI_ANIM_DUP\n"
+"                      environment variable. \n"
+"                      To set DUP back to its default value, use -anim_dup 0.\n" 
+"       -save_as PREFIX.EXT: Save image(s) in recorder\n"
+"                             in the format determined by\n"
+"                             extension EXT.\n"
+"                             Allowed extensions are:\n"
+"                             agif or gif: Animated GIF (movie)\n"
+"                             mpeg or mpg: MPEG (movie)\n"
+"                             jpeg or jpg: JPEG (stills)\n"
+"                             png: PNG (stills)\n"
+"       -save_index IND: Save one image indexed IND (start at 0)\n"
+"       -save_range FROM TO: Save images from FROM to TO \n"
+"       -save_last: Save last image (default for still formats)\n"
+"       -save_last_n N: Save last N images\n"
+"       -save_all: Save all images (default for movie formats)\n"
+"       -cwd ABSPATH: Set ABSPATH as SUMA's working directory. \n"
+"                     This path is used for storing output files\n"
+"                     or loading dsets.\n"
+"     + Example recorder_cont (assumes there is a recorder window)\n"
+"       currently open from SUMA.\n"
+"       -------------------------------------\n"
+"%s"
+"\n"                            
+" o surf_cont: Apply settings to surface controller.\n"
+"     + Optional parameters for action surf_cont:\n"
+"       (Parameter names reflect GUI labels.)\n"  
+"       -surf_label S_LABEL: A label to identify the target surface\n"
+"       -load_dset DSET: Load a dataset\n"
+"           ! NOTE: When using -load_dset you can follow it\n"
+"                   with -surf_label in order to attach\n"
+"                   the dataset to a particular target surface.\n"
+"       -view_surf y/n: Show or hide surface S_LABEL\n"
+"       -RenderMode V/F/L/P/H: Set the render mode for surface S_LABEL.\n"
+"       -TransMode V/0/../16: Set the transparency mode for surface S_LABEL.\n"
+"       -load_col COL: Load a colorfile named COL.\n"
+"                      Similar to what one loads under\n"
+"                      SUMA-->ctrl+s-->Load Col\n"
+"                      COL contains 4 columns, of\n"
+"                      the following format:\n"
+"                      n r g b\n"
+"                      where n is the node index and \n"
+"                      r g b are thre flooat values between 0 and 1\n"
+"                      specifying the color of each node.\n"
+"       -view_surf_cont y/n: View surface controller\n"
+"       -switch_surf S_LABEL: switch state to that of surface \n"
+"                           labeled S_LABEL and make that surface \n"
+"                           be in focus.\n"
+"       -switch_dset DSET: switch dataset to DSET\n"
+"       -view_dset y/n: Set view toggle button of DSET\n"
+"       -1_only y/n: Set 1_only toggle button of DSET\n"
+"       -switch_cmap CMAP: switch colormap to CMAP\n"
+"       -switch_cmode CMODE: switch color mapping mode to CMODE\n"
+"       -load_cmap CMAP.1D.cmap: load and switch colormap in \n"
+"                                file CMAP.1D.cmap\n"
+"       -I_sb ISB: Switch intensity to ISBth column (sub-brick)\n"
+"       -I_range IR0 IR1: set intensity range from IR0 to IR1.\n"
+"                         If only one number is given, the range\n"
+"                         is symmetric from -|IR0| to |IR0|.\n"
+"       -shw_0 y/n      or \n" 
+"       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
+"       -Dsp MODE: Set the viewing mode of the current DSET.\n"
+"                  MODE is one of XXX, Con, Col, or 'C&C' \n"
+"                      (single quotes necessary for 'C&C' MODE).\n"
+"                  This is equivalent to setting the 'Dsp' menu button\n"
+"                  in the surface controller. The option is applied\n"
+"                  to the current DSET on the selected surface.\n"
+"       -T_sb TSB: Switch threshold to TSBth column (sub-brick)\n"
+"                  Set TSB to -1 to turn off thresholding.\n"
+"       -T_val THR: Set threshold to THR\n"
+"       -B_sb BSB: Switch brightness modulation to BSBth column (sub-brick)\n"
+"       -B_range BR0 BR1: set brightness clamping range from BR0 to BR1.\n"
+"                         If only one number is given, the range\n"
+"                         is symmetric from -|BR0| to |BR0|.\n"
+"       -B_scale BS0 BS1: Modulate brightness by BS0 factor for BR0 or lower\n"
+"                         by BS1 factor for BR1 or higher, and linearly \n"
+"                         interpolate scaling for BR0 < values < BR1\n"
+"       -Dim DIM: Set the dimming factor.\n"
+"       -Opa OPA: Set the opacity factor.\n"
+"       -Clst RAD AREA: Set the clustering parameters\n"
+"       -UseClst y/n: Turn on/off clustering\n"
+"       -setSUMAenv \"'ENVname=ENVvalue'\": Set an ENV in SUMA. Note that\n"
+"                      most SUMA env need to be set at SUMA's launch time. \n"
+"                      Setting the env from DriveSuma may not achieve what \n" 
+"                      you want, so consider using suma's -setenv instead.\n"
+"       -write_surf_cont_help FILE.txt: Write help output for surface \n"
+"                      controller uses into file FILE.txt (in append mode)\n"
+"                      Make sure the surface controller is open before you\n"
+"                      use this command.\n"
+"       -write_surf_cont_sphinx_help FILE.rst: Same as -write_surf_cont_help,\n"
+"                      but write SPHINX formatted RST file.\n"
+"\n"
+"     + Example surf_cont (assumes all previous examples have\n"
+"       been executed and suma is still running).\n"
+"       - Obvious chicaneries to follow:\n"
+"       --------------------------------\n"
+"%s"
+"\n"
+" o kill_suma: Close suma and quit.\n"
+"\n"
+"Advice:\n"
+"-------\n"
+"   If you get a colormap in your recorded image, it is\n"
+"   because the last thing you drew was the surface controller\n"
+"   which has an openGL surface for a colormap. In such cases,\n"
+"   Force a redisplay of the viewer with something like:\n"
+"      -key:r2:d m \n"
+"                  where the m key is pressed twice (nothing)\n"
+"                  changes in the setup but the surface is \n"
+"                  redisplayed nonetheless because of the 'd'\n"
+"                  key option.\n"
+"   Crashes: It is possible for SUMA to crash under certain combinations\n"
+"            of commands that involve opening X windows followed by\n"
+"            some command. For example, suma might crash with:\n"
+"         DriveSuma   -com viewer_cont  -viewer_size 600 600 -key 'ctrl+n'\n"
+"            Splitting such a command into two DriveSuma instances gets\n"
+"            around the problem:\n"
+"         DriveSuma   -com viewer_cont  -viewer_size 600 600 \n"
+"         DriveSuma   -com viewer_cont  -key 'ctrl+n'\n"
+"\n"
+"Options:\n"
+"--------\n"
+"   -echo_edu: Echos the entire command line (without -echo_edu)\n"
+"              for edification purposes\n"
+"   -echo_nel_stdout: Spit out the NIML object being sent to SUMA for \n"
+"   -echo_nel_stderr: edification purposes. These two options are meant\n"
+"                     to help motivate the example in HalloSuma.\n"
+"                     You need to have SUMA up and listening for this option\n"
+"                     to take effect.\n"
+"            Example: DriveSuma -echo_nel_stdout -com viewer_cont '-key:v28' j\n"
+"   -echo_nel FILE: Write the elements to FILE.\n"
+"                   You can also use stdout or stderr for FILE.\n"
+"   -examples: Show all the sample commands and exit\n"
+"   -help: All the help, in detail.\n"
+"       ** NOTE: You should also take a look at scripts @DO.examples and \n"
+"          @DriveSuma for examples. Suma's interactive help (ctrl+h) for\n"
+"          the kinds of controls you can have with -key option.\n"
+"   -h: -help, with slightly less detail\n"
+"   -help_nido: Show the help for NIML Displayable Objects and exit.\n"
+"               Same as suma -help_nido\n"
+"   -C_demo: execute a preset number of commands\n"
+"            which are meant to illustrate how one\n"
+"            can communicate with SUMA from one's \n"
+"            own C code. Naturally, you'll need to\n"
+"            look at the source code file SUMA_DriveSuma.c\n"
+"      Example:\n"
+"      suma -niml &\n"
+"      DriveSuma -C_demo\n"
+"\n"
+"%s"
+"%s"
+"\n"
+               , uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont, 
+      (detail> 1) ? sio:"use -help for I/O detail\n",  
+      (detail> 1) ? s:"use -help for misc. help basics\n");
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
+      if (snido) SUMA_free(snido); snido=NULL;
+      /* s = SUMA_New_Additions(0, 1); 
+         printf("%s\n", s);SUMA_free(s); s = NULL; */
+      printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
+      exit(0);
+}
+
+
 int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
 {
    static char FuncName[]={"SUMA_ProcessCommand"};
@@ -128,14 +592,16 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       
-      if (1) {
-         /* go bad anyway without waiting for stream to go bad 
-         because suma will be dying. No point in waiting if
-         if there was a communication error. 
-               Added per Yaroslav Halchenko's request     Sept 2013 */
-         cs->GoneBad = YUP;
-      } else {
-         SUMA_Wait_Till_Stream_Goes_Bad(cs, 100, 1000, 0);
+      if (cs) {
+         if (1) {
+            /* go bad anyway without waiting for stream to go bad 
+            because suma will be dying. No point in waiting if
+            if there was a communication error. 
+                  Added per Yaroslav Halchenko's request     Sept 2013 */
+            cs->GoneBad = YUP;
+         } else {
+            SUMA_Wait_Till_Stream_Goes_Bad(cs, 100, 1000, 0);
+         }
       }
       NI_free_element(ngr); ngr = NULL;
       ans = -1; 
@@ -1107,6 +1573,38 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
+      
+      if (!brk && (strcmp(argt[kar], "-write_surf_cont_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_surf_cont_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Surf_Cont_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_surf_cont_sphinx_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_surf_cont_sphinx_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Surf_Cont_Sphinx_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      
       
       if (!brk && (strncmp(argt[kar], "-key", 4) == 0))
       {

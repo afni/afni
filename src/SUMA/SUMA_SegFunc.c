@@ -6682,6 +6682,13 @@ SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia,
                           oscifreq, optmethods);
       }
    }
+   
+   /* set cdfmin */
+   hh->cdfmin = -1.0; i = 0;
+   while (hh->cdfmin < 0 && i < hh->K) { 
+      if (hh->c[i++] > 0) hh->cdfmin = hh->c[i]; 
+   }
+
    free(fv); fv = NULL;
    SUMA_RETURN(hh);
 }
@@ -7211,10 +7218,11 @@ char *SUMA_hist_info(SUMA_HIST *hh, int norm, int level)
       for (i=0; i<mx; ++i) sss[i]='*'; sss[i]='\0';
       
       SS = SUMA_StringAppend_va(SS,"Histog %s, %d bins of width %f,"
-                              "N_samp. = %d, N_ignored = %d, range = [%f,%f]\n",
+              "N_samp. = %d, N_ignored = %d, range = [%f,%f], cdfmin = %f\n",
                                     hh->label?hh->label:"NO LABEL",
                                     hh->K, hh->W, 
-                                    hh->n, hh->N_ignored, hh->min, hh->max);
+                                    hh->n, hh->N_ignored, 
+                                    hh->min, hh->max, hh->cdfmin);
       SUMA_LH("About to freq at midrange");
       SS = SUMA_StringAppend_va(SS,"Freq at mid range %f is: %f\n",
                (hh->min+hh->max)/2.0, SUMA_hist_freq(hh,(hh->min+hh->max)/2.0));
@@ -9605,3 +9613,73 @@ THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(SUMA_SurfaceObject *SO,
    SUMA_RETURN(dset);
 }
  
+THD_3dim_dataset *SUMA_dset_hist_equalize(THD_3dim_dataset *din, 
+                                          int sb, byte *cmask, SUMA_HIST *hh)
+{
+   static char FuncName[]={"SUMA_dset_hist_equalize"};
+   float cdfv, lvls;
+   float fac, *fv=NULL, fout; 
+   int i;
+   char labout[256]={""};
+   THD_3dim_dataset *dout=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!din || sb < 0 || sb >= DSET_NVALS(din)) SUMA_RETURN(dout);
+   if (!hh) SUMA_RETURN(dout);
+   
+   if (hh->max < 255) lvls = 255;
+   else lvls = hh->max;
+   
+   fac = lvls/(float)((DSET_NVOX(din) - hh->cdfmin));
+   
+   if (!(fv = THD_extract_to_float(sb, din))) {
+      SUMA_S_Errv("Failed to extract sub-brick %d\n", sb);
+      SUMA_RETURN(dout);
+   }
+   if (cmask) {
+      for (i=0; i<DSET_NVOX(din); ++i) {
+         if (cmask[i]) { 
+            cdfv = SUMA_hist_value(hh, fv[i], "cdf");
+            fout = SUMA_ROUND((cdfv-hh->cdfmin)*fac);
+            #if 0
+            if (LocalHead) {
+               SUMA_LH(
+                  "fin = %f, fout = %f, fac = %f, cdfmin=%f, cdfv=%f",
+                              fv[i], fout, fac, hh->cdfmin, cdfv);
+
+            }
+            #endif
+            fv[i] = fout;   
+         } else fv[i] = 0.0;
+      }
+   } else {
+      for (i=0; i<DSET_NVOX(din); ++i) {
+         cdfv = SUMA_val_at_count(hh, fv[i], 0, 0);
+         fout = SUMA_ROUND((cdfv-hh->cdfmin)*fac);
+         if (i==5295) {
+            fprintf(stderr,"fin = %f, fout = %f, fac = %f, cdfmin=%f, cdfv=%f",
+                           fv[i], fout, fac, hh->cdfmin, cdfv);
+                        
+         }
+         fv[i] = fout;
+      }
+   }
+   
+   dout = EDIT_empty_copy(din);
+   EDIT_substitute_brick( dout , 0 , DSET_BRICK_TYPE(din, sb) , NULL ) ;
+   fac = EDIT_coerce_autoscale_new( DSET_NVOX(dout), MRI_float, fv, 
+             DSET_BRICK_TYPE(din, sb), DSET_BRICK_ARRAY(dout,0));
+   if (fac > 0.0f) {
+      fac = 1.0 / fac;
+   } else fac = 0.0;
+   snprintf(labout,255,"EQ.%s",DSET_BRICK_LABEL(din, sb));
+   EDIT_BRICK_LABEL (dout, 0, labout);
+   EDIT_BRICK_FACTOR (dout, 0, fac);
+   
+   if (DSET_BRICK_TYPE(din,sb) != MRI_float) free(fv); fv = NULL;
+
+   
+   SUMA_RETURN(dout);
+}

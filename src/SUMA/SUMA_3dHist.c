@@ -30,6 +30,7 @@ static char shelp_Hist[] = {
 "                             of forming one from DSET.\n"
 "                             Obviously, DSET, or -mask options are not needed\n"
 "   -prefix PREF: Write histogram to niml file called PREF.niml.hist \n"
+"   -equalized PREF: Write a histogram equalized version of the input dataset\n"
 "   Histogram Creation Parameters:\n"
 "     By default, the program will select bin number, bin width, \n"
 "     and range automatically. You can also set the parameters manually with \n"
@@ -109,6 +110,7 @@ SEG_OPTS *Hist_Default(char *argv[], int argc)
    Opt->ndist_name = NULL;
    Opt->uid[0] = '\0';
    Opt->prefix = NULL;
+   Opt->crefix = NULL;
    Opt->aset = NULL;
    Opt->mset = NULL;
    Opt->gset = NULL;
@@ -414,6 +416,17 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-equalized") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need argument after -equalized \n");
+				exit (1);
+			}
+         Opt->crefix = (char*)calloc(strlen(argv[kar])+20, sizeof(char));
+         strcpy(Opt->crefix, argv[kar]); Opt->crefix[strlen(argv[kar])]='\0';
+         brk = 1;
+		}
+      
       
       if (!brk) {
 			fprintf (stderr,"Option %s not understood. \n"
@@ -534,6 +547,19 @@ int main(int argc, char **argv)
       exit(1);
    }
    
+   if (Opt->crefix) {
+      THD_3dim_dataset *dout=NULL;
+      SUMA_LH("Equalizing");
+      if (!(dout = SUMA_dset_hist_equalize(Opt->sig, 0, Opt->cmask, hh))) {
+         SUMA_S_Err("Failed to equalize");
+         exit(1);
+      }
+      EDIT_dset_items( dout , ADN_prefix,  Opt->crefix,  ADN_none ) ;
+      DSET_write(dout);
+      DSET_delete(dout); dout=NULL;
+   }
+   
+
    if (Opt->DO_r) {
       SUMA_Show_hist(hh, 0, NULL);
    }
