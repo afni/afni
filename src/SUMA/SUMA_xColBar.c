@@ -3594,7 +3594,11 @@ void SUMA_CreateTable(  Widget parent,
                               XmNfontList, 
                               SUMAg_CF->X->TableTextFontList, NULL);
                if (col_help || col_hint || row_help || row_hint)  {
-                  snprintf(wname, 63, "%s.e%02d", TF->wname, n);
+                  if (TF->Ni>1) {
+                     snprintf(wname, 63, "%s[%d,%d]", TF->wname, i, j);
+                  } else {
+                     snprintf(wname, 63, "%s[%d]", TF->wname, n);
+                  }
                   if (!row_tit && !col_tit && TF->Ni == 1 && TF->Nj == 1) {
                      char *shh=NULL, *sii=NULL;
                      if (col_help) shh =  col_help[0] ;
