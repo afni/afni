@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Sep, 2014, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
+   "merged in changes from C Craddock, with alterations",
+   "This needs some more work."
+ } ,
+
  {  2, Sep, 2014, RCR, "3dTcat", MICRO, TYPE_ENHANCE,
    "allow @filename format for -tpattern option",
    NULL
