@@ -265,6 +265,7 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ);
 char *SUMA_Sphinx_LineSpacer(char *s, int targ);
 SUMA_Boolean SUMA_Known_Sphinx_Dir(char *s);
 NI_str_array *SUMA_Split_String(char *s, char *sc);
+char *SUMA_Sphinx_DeRef(char *s, char *r);
 char *SUMA_Cut_String(char *s, char *sc);
 char *SUMA_Swap_String(char *s, char *sc, char *sw);
 char *SUMA_Break_String(char *s, int mxln);

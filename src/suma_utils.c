@@ -3124,6 +3124,66 @@ char *SUMA_Cut_String(char *s, char *sc)
    SUMA_RETURN(so);
 }
 
+char *SUMA_Sphinx_DeRef(char *s, char *r)
+{
+   static char FuncName[]={"SUMA_Sphinx_DeRef"};
+   char *so, *ss=NULL, *se=NULL, *sef=NULL;
+   int nso=0;
+   
+   SUMA_ENTRY;
+   
+   if (!s || !r || !(ss=strstr(s, r))) {
+      SUMA_RETURN(s);
+   }
+   
+   so = s;
+   nso = 0; 
+   while (ss) {
+      while (s < ss) {
+         so[nso++]=*(s++);      
+      }
+      s += strlen(r); /* s->`blah blah <REF>` */
+      if (*s == '`') {
+         s++; se = s;
+         while (*se != '`' && *se != '\0') ++se;
+         if (*se == '`') { /* found closing quote */
+            sef = se;
+            /* backup till you find > */
+            while (se > s && *se != '>') { --se; }
+            if (*se == '>') {
+               /* backup till you find < */
+               while (se > s && *se != '<') { --se; }
+               if (*se == '<') { /* All good, copy blah blah */
+                  while (s < se) {
+                     so[nso++]=*(s++); 
+                  }  
+               }
+            } else {
+               /*copy all between quotes */
+               while (s < sef) {
+                  so[nso++]=*(s++); 
+               }
+            }
+            /* move s till after closing quote */
+            s = sef+1;
+         } else {
+            SUMA_S_Warn("No closing forward quote after ref!");
+         }
+      } else {
+         SUMA_S_Warn("No forward quote after ref!");
+      }
+      ss=strstr(s, r);
+   }
+   /* copy till end */
+   while (*s != '\0') {
+      so[nso++]=*(s++);
+   }
+   so[nso] = '\0';
+   
+   SUMA_RETURN(so);
+}
+
+
 char *SUMA_Swap_String(char *s, char *sc, char *sw)
 {
    static char FuncName[]={"SUMA_Swap_String"};
@@ -3284,9 +3344,15 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
 " :LR: Replace this marker with a new line character for \n"
 "      Sphinx output. Cut it out for regular output.\n"
 "\n"
+" :ref:`Some Label <reference_key>` Leave such a block untouched for\n"
+"                              sphinx format. Replace whole thing\n"
+"                              with just 'Some Label' for default format.\n"
+"\n"
 " :[blanks]: Cut this marker out of string for Sphinx output,\n"
-"            but keep all blanks and two more in regular\n"
-"            output\n"
+"            but keep all blanks and pads with two more in regular\n"
+"            output to compensate for the ':' characters.\n"
+"            Also, for the Sphinx format, a newline directly preceding\n"
+"            the opening ':' gets cut out.\n"
 "\n"
 " '\\|' Escaped vertical bar are kept as such for Sphinx, but shown\n"
 "       without the escape character in default output. This is\n"
@@ -3307,6 +3373,9 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
 "\n"
 "Example 2:\n"
 "Press buton :SPX::ref:`a <LC_a>`:DEF:'a':SPX: to attenuate...\n" 
+"\n"
+"Example 2.1 (simpler version):\n"
+"Press buton :ref:`a <LC_a>` to attenuate...\n" 
 "\n"
 "Example 3:\n"
 "For 'Trn' choose one of::LR:\n"
@@ -3359,6 +3428,7 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
          sprintf(stmp,"\\|"); /* to avoid compile warning for 
                                  direct use of "\|" in SUMA_Swap_String below */
          s = SUMA_Swap_String(s, stmp,"|");
+         s = SUMA_Sphinx_DeRef(s,":ref:");
          SUMA_RETURN(s);
          break;
       case 1: /* Sphinx */

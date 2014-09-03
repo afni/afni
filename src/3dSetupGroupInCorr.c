@@ -185,6 +185,11 @@ void usage_3dSetupGroupInCorr(int detail)
  "                 ++ If you don't use this option, then the list of labels will\n"
  "                    comprise the list of prefixes from the input datasets.\n"
  "                 ++ Labels cannot contain a space character, a comma, or a semicolon.\n"
+ "                 ++ When using the -LRpairs option, you should specify only\n"
+ "                    one label for eah pair. \n"
+ "                    If you don't use the -labels option with -LRpairs the \n"
+ "                    labels are taken from the 'L' only dataset names, that\n"
+ "                    would be the first name of each LRpair.\n"
  "\n"
  "  -DELETE        = Delete input datasets from disk after\n"
  "                   processing them one at a time into the\n"
@@ -484,13 +489,28 @@ int main( int argc , char * argv[] )
                 "number of datasets on the command line!") ;
    }
 
-   if( ndset_labels > 0 && ndset_labels != ndset ){  /* 14 May 2010 */
-     if( ndset_labels < ndset )
-       ERROR_exit("Not enough labels for %d datasets on command line!",ndset) ;
-     else
-       WARNING_message("Too many labels for %d datasets on command line!",ndset) ;
-   } else if( ndset_labels == 0 ){
-      dset_labels = (char **)malloc(sizeof(char *)*ndset) ;
+   if (!LRpairs) {
+      if( ndset_labels > 0 && ndset_labels != ndset ){  /* 14 May 2010 */
+        if( ndset_labels < ndset )
+          ERROR_exit("Not enough labels for %d datasets on command line!",
+                     ndset) ;
+        else
+          WARNING_message("Too many labels for %d datasets on command line!",
+                          ndset) ;
+      } else if( ndset_labels == 0 ){
+         dset_labels = (char **)malloc(sizeof(char *)*ndset) ;
+      }
+   } else {
+      if( ndset_labels > 0 && ndset_labels != ndset/2 ){  /* 14 May 2010 */
+        if( ndset_labels < ndset/2 )
+          ERROR_exit("Not enough labels for %d LR pairs on command line!",
+                     ndset/2) ;
+        else
+          WARNING_message("Too many labels for %d LR pairs on command line!",
+                          ndset/2) ;
+      } else if( ndset_labels == 0 ){
+         dset_labels = (char **)malloc(sizeof(char *)*ndset/2) ;
+      }
    }
 
    inset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*ndset) ;
@@ -502,9 +522,17 @@ int main( int argc , char * argv[] )
      inset[ids] = THD_open_dataset(argv[nopt+ids]) ;    /* read header */
      CHECK_OPEN_ERROR(inset[ids],argv[nopt+ids]) ;      /* fail ==> bail */
      nvals[ids] = DSET_NVALS(inset[ids]) ;              /* save # time points */
-     if( ndset_labels == 0 )
-       dset_labels[ids] = strdup(DSET_PREFIX(inset[ids])) ;  /* 14 May 2010 */
-     len_all += strlen( dset_labels[ids] ) ;
+     if( ndset_labels == 0 ) {
+       if (!LRpairs) {
+         dset_labels[ids] = strdup(DSET_PREFIX(inset[ids])) ;  /* 14 May 2010 */
+         len_all += strlen( dset_labels[ids] ) ;
+       } else {
+         if (ids%2 == 0) {
+            dset_labels[ids/2] = strdup(DSET_PREFIX(inset[ids])) ;
+            len_all += strlen( dset_labels[ids/2] ) ;
+         }
+       }
+     }
      if (!LRpairs) {
       if( ids > 0 && !EQUIV_GRIDS(inset[0],inset[ids]) ) /* check for errors */
          ERROR_exit("Dataset grid %s doesn't match %s" ,
@@ -519,17 +547,22 @@ int main( int argc , char * argv[] )
                   argv[nopt+ids] , nvals[ids] ) ;
    }
 
-   /* 14 May 2010: manufacture list of all dataset labels in one big string */
-
-   dset_labels_all = (char *)calloc(sizeof(char),(len_all+4*ndset+13)) ;
-   for( ids=0 ; ids < ndset ; ids++ ){
-     strcat( dset_labels_all , dset_labels[ids] ) ;
-     if( ids < ndset-1 ) strcat( dset_labels_all , ";") ;
-   }
 
    if (!LRpairs) {
+     /* 14 May 2010: manufacture list of all dataset labels in one big string */
+
+     dset_labels_all = (char *)calloc(sizeof(char),(len_all+4*ndset+13)) ;
+     for( ids=0 ; ids < ndset ; ids++ ){
+       strcat( dset_labels_all , dset_labels[ids] ) ;
+       if( ids < ndset-1 ) strcat( dset_labels_all , ";") ;
+     }
      nx = DSET_NX(inset[0]) ;
    } else {
+     dset_labels_all = (char *)calloc(sizeof(char),(len_all+4*(ndset/2)+13)) ;
+     for( ids=0 ; ids < ndset/2 ; ids++ ){
+       strcat( dset_labels_all , dset_labels[ids] ) ;
+       if( ids < ndset/2-1 ) strcat( dset_labels_all , ";") ;
+     }
      nx = DSET_NX(inset[0]) + DSET_NX(inset[1]);
    }
    nz = DSET_NZ(inset[0]) ;
