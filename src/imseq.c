@@ -3188,8 +3188,9 @@ MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq *seq , MRI_IMAGE *im , int flags
    short clbot=0 , cltop=0 ;
    int must_rescale = 1 ;     /* 31 Jan 2002: always turn this on */
    int have_transform ;
-   int do_0D = (flags & PFLAG_NOTRAN0D) == 0;  /* 02 Sep 2014 */
-   int do_2D = (flags & PFLAG_NOTRAN2D) == 0;
+   int do_0D     = (flags & PFLAG_NOTRAN0D) == 0;  /* 02 Sep 2014 */
+   int do_2D     = (flags & PFLAG_NOTRAN2D) == 0;
+   int do_improc = (flags & PFLAG_NOIMPROC) == 0 ;
    char scalestring[8];
 
 ENTRY("ISQ_process_mri") ;
@@ -3266,7 +3267,7 @@ ENTRY("ISQ_process_mri") ;
 
       /** sharpening (sometimes useful) **/
 
-      if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 ){
+      if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 && do_improc ){
         tim = mri_sharpen_rgb( seq->sharp_fac , qim ) ;
         if( qim != lim ) mri_free(qim) ;
         qim = tim ;
@@ -3518,7 +3519,7 @@ STATUS("begin IMPROCessing") ;
 
       /***** 30 Oct 1996: transform image *****/
 
-      if( seq->transform0D_func != NULL ){
+      if( seq->transform0D_func != NULL && do_0D ){
          tim = mri_to_float(qim) ;
 #if 0
          seq->transform0D_func( tim->nvox , MRI_FLOAT_PTR(tim) ) ;
@@ -3530,7 +3531,7 @@ STATUS("begin IMPROCessing") ;
          qim = tim ;
       }
 
-      if( seq->transform2D_func != NULL ){
+      if( seq->transform2D_func != NULL && do_2D ){
          tim = mri_to_float(qim) ;
 #if 0
          seq->transform2D_func( tim->nx , tim->ny ,
@@ -3546,7 +3547,7 @@ STATUS("begin IMPROCessing") ;
 
       /*** flatten ***/
 
-      if( (seq->opt.improc_code & ISQ_IMPROC_FLAT) != 0 ){
+      if( (seq->opt.improc_code & ISQ_IMPROC_FLAT) != 0 && do_improc ){
 STATUS("call mri_flatten") ;
          tim = mri_flatten( qim ) ;
          if( qim != lim ) mri_free(qim) ;
@@ -3569,7 +3570,7 @@ STATUS("clip flattened image") ;
 
       /*** sharpen ***/
 
-      if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 ){
+      if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 && do_improc ){
 STATUS("call mri_sharpen") ;
          tim = mri_sharpen( seq->sharp_fac , 0 , qim ) ;
          if( qim != lim ) mri_free(qim) ;
@@ -3578,7 +3579,7 @@ STATUS("call mri_sharpen") ;
 
       /*** Sobel edge detection ***/
 
-      if( (seq->opt.improc_code & ISQ_IMPROC_SOBEL) != 0 ){
+      if( (seq->opt.improc_code & ISQ_IMPROC_SOBEL) != 0 && do_improc ){
          int ii , npix ;
          float *tar ;
 
@@ -11698,16 +11699,127 @@ MRI_IMAGE * ISQ_cropim( MRI_IMAGE *tim , MCW_imseq *seq )
 
 /*---------------------------------------------------------------------*/
 
-MRI_IMAGE * ISQ_getulay( int nn , MCW_imseq *seq )
+MRI_IMAGE * ISQ_get_improj( int nn , MCW_imseq *seq , int getcode )
 {
    MRI_IMAGE *tim=NULL , *cim ;
+   int ii , rr , jj , ns , npix , ktim ;
+   MRI_IMAGE *qim=NULL , *fim=NULL ;
+   MRI_IMARR *imar ;
+   float *far , val=0.0f , *qar , **iar ;
 
+ENTRY("ISQ_get_improj") ;
+
+   /* get central slice */
+
+   AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,tim ,
+                        int,nn , int,getcode , XtPointer,seq->getaux ) ;
+
+   if( tim == NULL ) RETURN(NULL) ;  /* should not happen */
+
+   cim = ISQ_cropim(tim,seq) ; if( cim != NULL ){ mri_free(tim); tim=cim; }
+
+   /* return just this slice? */
+
+   if( !ISQ_DOING_SLICE_PROJ(seq) ) RETURN(tim) ;
+
+   ns = seq->status->num_series ;
+   rr = seq->slice_proj_range   ; if( rr > ns/2 ) rr = ns/2 ;
+
+   if( rr                    == 0           ||
+       seq->slice_proj_index == 0           ||
+       seq->slice_proj_func  == NULL        ||
+       tim                   == NULL        ||
+       tim->kind             == MRI_rgb     ||
+       tim->kind             == MRI_complex   ){
+
+      RETURN(tim) ;
+   }
+
+   /* return the projection of a bunch of images */
+
+   INIT_IMARR(imar) ;
+
+   ktim = tim->kind ;  /* save for later use */
+
+   /* get the images into imar */
+
+STATUS("projection loop") ;
+
+   for( ii=-rr ; ii <= rr ; ii++ ){
+
+      if( ii == 0 ){                /* at the middle, just put a   */
+         fim = mri_to_float(tim) ;  /* copy of the commanded slice */
+         ADDTO_IMARR(imar,fim) ;
+         continue ;
+      }
+
+      jj = nn+ii ;                    /* offset slice */
+           if( jj < 0   ) jj = 0    ; /* but not past the edges */
+      else if( jj >= ns ) jj = ns-1 ;
+
+STATUS("call getim") ;
+
+      AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,qim ,
+                           int,jj , int,getcode , XtPointer,seq->getaux ) ;
+
+      if( qim == NULL )
+         fim = mri_to_float(tim) ;                 /* need something */
+      else if( qim->kind != MRI_float ){
+         fim = mri_to_float(qim) ; mri_free(qim) ; /* convert it */
+      } else
+         fim = qim ;                               /* just put it here */
+
+      cim = ISQ_cropim(fim,seq) ; if( cim != NULL ){ mri_free(fim); fim=cim; }
+      ADDTO_IMARR(imar,fim) ;
+   }
+
+   /* project images, put results into qim */
+
+   qim = mri_new_conforming( tim , MRI_float ) ;
+   qar = MRI_FLOAT_PTR(qim) ; MRI_COPY_AUX(qim,tim) ;
+   mri_free(tim) ; tim = NULL ;
+
+   npix = qim->nvox ;
+   rr   = 2*rr+1 ;
+   far  = (float * )malloc( sizeof(float  ) * rr ) ;
+   iar  = (float **)malloc( sizeof(float *) * rr ) ;
+
+   for( ii=0 ; ii < rr ; ii++ )
+     iar[ii] = MRI_FLOAT_PTR(IMARR_SUBIM(imar,ii)) ;
+
+   for( jj=0 ; jj < npix ; jj++ ){
+     for( ii=0 ; ii < rr ; ii++ ) far[ii] = iar[ii][jj] ;
+     AFNI_CALL_proj_function( seq->slice_proj_func , rr,far , val ) ;
+     qar[jj] = val ;
+   }
+
+   free(iar) ; free(far) ; DESTROY_IMARR(imar) ;
+
+   if( ktim != MRI_float ){
+     tim = mri_to_mri(ktim,qim); mri_free(qim); qim = tim;
+   }
+
+   RETURN(qim) ;
+}
+
+/*---------------------------------------------------------------------*/
+
+MRI_IMAGE * ISQ_getulay( int nn , MCW_imseq *seq )
+{
+   MRI_IMAGE *tim=NULL , *cim=NULL ;
+
+ENTRY("ISQ_getulay") ;
+
+#if 0
    AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,tim ,
                         int,nn , int,isqCR_getulayim , XtPointer,seq->getaux ) ;
 
    cim = ISQ_cropim( tim , seq ) ;
    if( cim != NULL ){ mri_free(tim) ; tim = cim ; }
-   return tim ;
+#else
+   tim = ISQ_get_improj( nn , seq , isqCR_getulayim ) ;
+#endif
+   RETURN(tim) ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -11716,12 +11828,14 @@ MRI_IMAGE * ISQ_getolay( int nn , MCW_imseq *seq )
 {
    MRI_IMAGE *tim=NULL , *cim ;
 
+ENTRY("ISQ_getolay") ;
+
    AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,tim ,
                         int,nn , int,isqCR_getolayim , XtPointer,seq->getaux ) ;
 
    cim = ISQ_cropim( tim , seq ) ;
    if( cim != NULL ){ mri_free(tim) ; tim = cim ; }
-   return tim ;
+   RETURN(tim) ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -11737,7 +11851,7 @@ ENTRY("ISQ_getchecked") ;
    uim = ISQ_process_mri(nn,seq,qim,0) ; mri_free(qim) ;
 
    qim = ISQ_getolay(nn,seq) ; if( qim == NULL ) RETURN(uim) ;
-   oim = ISQ_process_mri(nn,seq,qim,PFLAG_NOTRAN) ; mri_free(qim) ;
+   oim = ISQ_process_mri(nn,seq,qim,PFLAG_NOTHING) ; mri_free(qim) ;
 
    if( uim->kind == MRI_rgb && oim->kind == MRI_short ){
      qim = ISQ_index_to_rgb( seq->dc , 0 , oim ) ;

@@ -252,6 +252,9 @@ static float orfilt( int n , float *ar )
      case 15:  qsort15_float(ar) ; return OFILT(7) ;
      case 17:  qsort17_float(ar) ; return OFILT(8) ;
      case 19:  qsort19_float(ar) ; return OFILT(9) ;
+     case 21:  qsort21_float(ar) ; return OFILT(10) ;
+     case 25:  qsort25_float(ar) ; return OFILT(12) ;
+     case 27:  qsort27_float(ar) ; return OFILT(13) ;
 
      case  4:  qsort4_float(ar)  ; return EFILT(2) ;
      case  6:  qsort6_float(ar)  ; return EFILT(3) ;
@@ -261,9 +264,10 @@ static float orfilt( int n , float *ar )
      case  14: qsort14_float(ar) ; return EFILT(7) ;
      case  16: qsort16_float(ar) ; return EFILT(8) ;
      case  18: qsort18_float(ar) ; return EFILT(9) ;
+     case  20: qsort20_float(ar) ; return EFILT(10) ;
    }
 
-   /* general case for n > 19 -- will be slower */
+   /* general case for n not in above list -- will be slower */
 
    qsort_float(n,ar) ;
    nby2 = n/2 ;

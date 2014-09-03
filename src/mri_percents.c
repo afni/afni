@@ -163,6 +163,10 @@ void qsort_short( int n , short *a )
      case 17:  qsort17_short(a); return ;
      case 18:  qsort18_short(a); return ;
      case 19:  qsort19_short(a); return ;
+     case 20:  qsort20_short(a); return ;
+     case 21:  qsort21_short(a); return ;
+     case 25:  qsort25_short(a); return ;
+     case 27:  qsort27_short(a); return ;
    }
    qsrec_short( n , a , QS_CUTOFF ) ;
    isort_short( n , a ) ;
@@ -290,6 +294,10 @@ void qsort_int( int n , int *a )
      case 17:  qsort17_int(a); return ;
      case 18:  qsort18_int(a); return ;
      case 19:  qsort19_int(a); return ;
+     case 20:  qsort20_int(a); return ;
+     case 21:  qsort21_int(a); return ;
+     case 25:  qsort25_int(a); return ;
+     case 27:  qsort27_int(a); return ;
    }
    qsrec_int( n , a , QS_CUTOFF ) ;
    isort_int( n , a ) ;
@@ -417,6 +425,10 @@ void qsort_float( int n , float *a )
      case 17:  qsort17_float(a); return ;
      case 18:  qsort18_float(a); return ;
      case 19:  qsort19_float(a); return ;
+     case 20:  qsort20_float(a); return ;
+     case 21:  qsort21_float(a); return ;
+     case 25:  qsort25_float(a); return ;
+     case 27:  qsort27_float(a); return ;
    }
    qsrec_float( n , a , QS_CUTOFF ) ;
    isort_float( n , a ) ;

@@ -137,6 +137,10 @@ void qsort_double( int n , double *a )
      case 17:  qsort17_double(a); return ;
      case 18:  qsort18_double(a); return ;
      case 19:  qsort19_double(a); return ;
+     case 20:  qsort20_double(a); return ;
+     case 21:  qsort21_double(a); return ;
+     case 25:  qsort25_double(a); return ;
+     case 27:  qsort27_double(a); return ;
    }
    qsrec_double( n , a , QS_CUTOFF ) ;
    isort_double( n , a ) ;
