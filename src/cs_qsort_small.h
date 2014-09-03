@@ -8,14 +8,14 @@
 /**** See mri_percents.c for an example of how this file can be used.      ****/
 /*----------------------------------------------------------------------------*/
 
-/* macro to swap to ensure that ar[i] <= ar[j] */
-
-#undef  SW
-#define SW(i,j) if( ar[i] > ar[j] ){ t=ar[i]; ar[i]=ar[j]; ar[j]=t; }
-
 #ifndef DTYPE
 #error "Cannot compile cs_qsort_small.h, since DTYPE is undefined."
 #endif
+
+/* macro to swap data points to ensure that ar[i] <= ar[j] */
+
+#undef  SW
+#define SW(i,j) if( ar[i] > ar[j] ){ t=ar[i]; ar[i]=ar[j]; ar[j]=t; }
 
 /* macro to combine two lexical items into one (for function names) */
 
@@ -24,7 +24,7 @@
 # define TWO_TWO(x,y) TWO_ONE(x,y)
 #endif
 
-/* define the function names for array lengths 2..19 */
+/* define the function names for array lengths 2..21 */
 
 #define FUNC2 TWO_TWO(qsort2_,DTYPE)
 #define FUNC3 TWO_TWO(qsort3_,DTYPE)
@@ -48,13 +48,13 @@
 
 #define FUNC20 TWO_TWO(qsort20_,DTYPE)  /* 03 Sep 2014 */
 #define FUNC21 TWO_TWO(qsort21_,DTYPE)
-#define FUNC25 TWO_TWO(qsort25_,DTYPE)
-#define FUNC27 TWO_TWO(qsort27_,DTYPE)
+#define FUNC25 TWO_TWO(qsort25_,DTYPE)  /* for 5x5 2D patches */
+#define FUNC27 TWO_TWO(qsort27_,DTYPE)  /* for 3x3 3D patches */
 
 /*----------------------------------------------------------------------------*/
 
 static void FUNC2( DTYPE *ar ){
-  register DTYPE t; SW(0,1);
+  register DTYPE t; SW(0,1);     /* that was easy */
 }
 
 static void FUNC3( DTYPE *ar ){
@@ -224,8 +224,7 @@ static void FUNC19( DTYPE *ar ){
   SW(2,8); SW(10,16); SW(3,5); SW(7,9); SW(11,13); SW(15,17);
   SW(2,4); SW(6,8); SW(10,12); SW(14,16);
   SW(2,3); SW(4,5); SW(6,7); SW(8,9); SW(10,11); SW(12,13); SW(14,15); SW(16,17);
-  SW(1,16); SW(3,18); SW(5,12); SW(7,14);
-  SW(1,8); SW(3,10); SW(9,16); SW(11,18);
+  SW(1,16); SW(3,18); SW(5,12); SW(7,14); SW(1,8); SW(3,10); SW(9,16); SW(11,18);
   SW(1,4); SW(3,6); SW(5,8); SW(7,10); SW(9,12); SW(11,14); SW(13,16); SW(15,18);
   SW(1,2); SW(3,4); SW(5,6); SW(7,8); SW(9,10); SW(11,12); SW(13,14); SW(15,16);
   SW(17,18);
@@ -233,40 +232,40 @@ static void FUNC19( DTYPE *ar ){
 
 static void FUNC20( DTYPE *ar ){  /* 03 Sep 2014 */
   register DTYPE t ;
-SW(0,16); SW(1,17); SW(2,18); SW(3,19); SW(0,8); SW(1,9); SW(2,10); 
-SW(3,11); SW(4,12); SW(5,13); SW(6,14); SW(7,15); SW(8,16); SW(9,17); 
-SW(10,18); SW(11,19); SW(0,4); SW(1,5); SW(2,6); SW(3,7); SW(8,12); 
-SW(9,13); SW(10,14); SW(11,15); SW(4,16); SW(5,17); SW(6,18); SW(7,19); 
-SW(4,8); SW(5,9); SW(6,10); SW(7,11); SW(12,16); SW(13,17); SW(14,18); 
-SW(15,19); SW(0,2); SW(1,3); SW(4,6); SW(5,7); SW(8,10); SW(9,11); 
-SW(12,14); SW(13,15); SW(16,18); SW(17,19); SW(2,16); SW(3,17); SW(2,8); 
-SW(3,9); SW(6,12); SW(7,13); SW(10,16); SW(11,17); SW(2,4); SW(3,5); 
-SW(6,8); SW(7,9); SW(10,12); SW(11,13); SW(14,16); SW(15,17); SW(0,1); 
-SW(2,3); SW(4,5); SW(6,7); SW(8,9); SW(10,11); SW(12,13); SW(14,15); 
-SW(16,17); SW(18,19); SW(1,16); SW(3,18); SW(1,8); SW(3,10); SW(5,12); 
-SW(7,14); SW(9,16); SW(11,18); SW(1,4); SW(3,6); SW(5,8); SW(7,10); 
-SW(9,12); SW(11,14); SW(13,16); SW(15,18); SW(1,2); SW(3,4); SW(5,6); 
-SW(7,8); SW(9,10); SW(11,12); SW(13,14); SW(15,16); SW(17,18); 
+  SW(0,16); SW(1,17); SW(2,18); SW(3,19); SW(0,8); SW(1,9); SW(2,10); 
+  SW(3,11); SW(4,12); SW(5,13); SW(6,14); SW(7,15); SW(8,16); SW(9,17); 
+  SW(10,18); SW(11,19); SW(0,4); SW(1,5); SW(2,6); SW(3,7); SW(8,12); 
+  SW(9,13); SW(10,14); SW(11,15); SW(4,16); SW(5,17); SW(6,18); SW(7,19); 
+  SW(4,8); SW(5,9); SW(6,10); SW(7,11); SW(12,16); SW(13,17); SW(14,18); 
+  SW(15,19); SW(0,2); SW(1,3); SW(4,6); SW(5,7); SW(8,10); SW(9,11); 
+  SW(12,14); SW(13,15); SW(16,18); SW(17,19); SW(2,16); SW(3,17); SW(2,8); 
+  SW(3,9); SW(6,12); SW(7,13); SW(10,16); SW(11,17); SW(2,4); SW(3,5); 
+  SW(6,8); SW(7,9); SW(10,12); SW(11,13); SW(14,16); SW(15,17); SW(0,1); 
+  SW(2,3); SW(4,5); SW(6,7); SW(8,9); SW(10,11); SW(12,13); SW(14,15); 
+  SW(16,17); SW(18,19); SW(1,16); SW(3,18); SW(1,8); SW(3,10); SW(5,12); 
+  SW(7,14); SW(9,16); SW(11,18); SW(1,4); SW(3,6); SW(5,8); SW(7,10); 
+  SW(9,12); SW(11,14); SW(13,16); SW(15,18); SW(1,2); SW(3,4); SW(5,6); 
+  SW(7,8); SW(9,10); SW(11,12); SW(13,14); SW(15,16); SW(17,18); 
 }
 
 static void FUNC21( DTYPE *ar ){  /* 03 Sep 2014 */
   register DTYPE t ;
-SW(0,16); SW(1,17); SW(2,18); SW(3,19); SW(4,20); SW(0,8); SW(1,9); 
-SW(2,10); SW(3,11); SW(4,12); SW(5,13); SW(6,14); SW(7,15); SW(8,16); 
-SW(9,17); SW(10,18); SW(11,19); SW(12,20); SW(0,4); SW(1,5); SW(2,6); 
-SW(3,7); SW(8,12); SW(9,13); SW(10,14); SW(11,15); SW(16,20); SW(4,16); 
-SW(5,17); SW(6,18); SW(7,19); SW(4,8); SW(5,9); SW(6,10); SW(7,11); 
-SW(12,16); SW(13,17); SW(14,18); SW(15,19); SW(0,2); SW(1,3); SW(4,6); 
-SW(5,7); SW(8,10); SW(9,11); SW(12,14); SW(13,15); SW(16,18); SW(17,19); 
-SW(2,16); SW(3,17); SW(6,20); SW(2,8); SW(3,9); SW(6,12); SW(7,13); 
-SW(10,16); SW(11,17); SW(14,20); SW(2,4); SW(3,5); SW(6,8); SW(7,9); 
-SW(10,12); SW(11,13); SW(14,16); SW(15,17); SW(18,20); SW(0,1); SW(2,3); 
-SW(4,5); SW(6,7); SW(8,9); SW(10,11); SW(12,13); SW(14,15); SW(16,17); 
-SW(18,19); SW(1,16); SW(3,18); SW(5,20); SW(1,8); SW(3,10); SW(5,12); 
-SW(7,14); SW(9,16); SW(11,18); SW(13,20); SW(1,4); SW(3,6); SW(5,8); 
-SW(7,10); SW(9,12); SW(11,14); SW(13,16); SW(15,18); SW(17,20); SW(1,2); 
-SW(3,4); SW(5,6); SW(7,8); SW(9,10); SW(11,12); SW(13,14); SW(15,16); 
-SW(17,18); SW(19,20); 
+  SW(0,16); SW(1,17); SW(2,18); SW(3,19); SW(4,20); SW(0,8); SW(1,9); 
+  SW(2,10); SW(3,11); SW(4,12); SW(5,13); SW(6,14); SW(7,15); SW(8,16); 
+  SW(9,17); SW(10,18); SW(11,19); SW(12,20); SW(0,4); SW(1,5); SW(2,6); 
+  SW(3,7); SW(8,12); SW(9,13); SW(10,14); SW(11,15); SW(16,20); SW(4,16); 
+  SW(5,17); SW(6,18); SW(7,19); SW(4,8); SW(5,9); SW(6,10); SW(7,11); 
+  SW(12,16); SW(13,17); SW(14,18); SW(15,19); SW(0,2); SW(1,3); SW(4,6); 
+  SW(5,7); SW(8,10); SW(9,11); SW(12,14); SW(13,15); SW(16,18); SW(17,19); 
+  SW(2,16); SW(3,17); SW(6,20); SW(2,8); SW(3,9); SW(6,12); SW(7,13); 
+  SW(10,16); SW(11,17); SW(14,20); SW(2,4); SW(3,5); SW(6,8); SW(7,9); 
+  SW(10,12); SW(11,13); SW(14,16); SW(15,17); SW(18,20); SW(0,1); SW(2,3); 
+  SW(4,5); SW(6,7); SW(8,9); SW(10,11); SW(12,13); SW(14,15); SW(16,17); 
+  SW(18,19); SW(1,16); SW(3,18); SW(5,20); SW(1,8); SW(3,10); SW(5,12); 
+  SW(7,14); SW(9,16); SW(11,18); SW(13,20); SW(1,4); SW(3,6); SW(5,8); 
+  SW(7,10); SW(9,12); SW(11,14); SW(13,16); SW(15,18); SW(17,20); SW(1,2); 
+  SW(3,4); SW(5,6); SW(7,8); SW(9,10); SW(11,12); SW(13,14); SW(15,16); 
+  SW(17,18); SW(19,20); 
 }
 
 static void FUNC25( DTYPE *ar ){  /* 03 Sep 2014 */
