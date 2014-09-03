@@ -769,7 +769,8 @@ extern MRI_IMAGE * ISQ_binarize_overlay( MRI_IMAGE * ) ; /* Mar 2013 */
 extern void ISQ_opacity_CB( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_opacity_label( int ) ;
 extern MRI_IMAGE * ISQ_index_to_rgb( MCW_DC * , int , MRI_IMAGE * ) ;
-#define ISQ_SKIP_OVERLAY(isq) ((isq)->opt.no_overlay || (isq)->ov_opacity == 0.0)
+#define ISQ_SKIP_OVERLAY(isq) \
+   ( (isq)->opt.no_overlay || (isq)->ov_opacity == 0.0 || (isq)->render_mode > 0 )
 
 extern MRI_IMAGE * ISQ_manufacture_one( int nim , int overlay , MCW_imseq * seq ) ;
 extern void ISQ_make_montage( MCW_imseq * ) ;
@@ -781,6 +782,8 @@ extern void ISQ_set_barhint( MCW_imseq * , char * ) ; /* 29 Jul 2001 */
 #define PFLAG_NOTRAN0D 1
 #define PFLAG_NOTRAN2D 2
 #define PFLAG_NOTRAN   (PFLAG_NOTRAN0D | PFLAG_NOTRAN2D)
+#define PFLAG_NOIMPROC 4
+#define PFLAG_NOTHING  65535
 
 extern MRI_IMAGE * ISQ_process_mri( int , MCW_imseq * , MRI_IMAGE * , int ) ;
 

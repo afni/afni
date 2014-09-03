@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 2 , SEP , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 3 , SEP , 2014 , RWC , "r_idisp.c" , MICRO , TYPE_BUG_FIX ,
+   "Fixed formatting bugs (%ld changed to %lld) in 2 places" ,
+   NULL } ,
+
+ { 3 , SEP , 2014 , RWC , "sorting" , MICRO , TYPE_BUG_FIX ,
+   "Fixed bug in special qsort7_* code -- had wrong indexes!" ,
+   "Affects any program calling qsort_float() for array of length 7" } ,
+
+ { 2 , SEP , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Don't apply 0D and 2D transformations to overlay image in wiper mode" ,
    NULL } ,
 
