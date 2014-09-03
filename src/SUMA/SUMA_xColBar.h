@@ -475,13 +475,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Choose the rendering mode for this surface.\n" \
    "   Viewer: Surface's rendering mode is set "  \
    ":         :by the viewer's setting which can "   \
-   ":         :be changed with the 'p' option.:LR:\n"  \
+   ":         :be changed with the :ref:`'p'<LC_p>` option.:LR:\n"  \
    "   Fill:   Shaded rendering mode.:LR:\n"  \
    "   Line:   Mesh rendering mode.:LR:\n"    \
    "   Points: Points rendering mode.:LR:\n"   
 
 #define  SUMA_SurfContHelp_VTransMode  \
-   "Choose the transparency for this volume.\n" \
+   "Set the transparency level for this volume to one of the " \
+   "following options.\n" \
    "   Viewer: Surface's transparency is set "  \
    "           by the viewer's setting which can "   \
    "           be changed with the 'o', 'O' options.:LR:\n"  \
@@ -494,7 +495,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   16:   Maximum transparency, invisibile:LR:\n"   
 
 #define  SUMA_SurfContHelp_TransMode  \
-   "Choose the transparency for this surface.\n" \
+   "Set the transparency for this surface to one of the following"   \
+   "options.\n" \
    "   Viewer: Surface's transparency is set "  \
    "           by the viewer's setting which can "   \
    "           be changed with the 'o', 'O' options.:LR:\n"  \
@@ -623,26 +625,26 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "cross hair in your viewer."    
 
 #define SUMA_SurfContHelp_Node   \
-   "Index of node in\n"   \
-   "focus on this controller's\n"   \
-   "surface. Nodes in focus are\n"   \
-   "highlighted by the blue sphere\n"   \
+   "Index of node in "   \
+   "focus on this controller's "   \
+   "surface. Nodes in focus are "   \
+   "highlighted by the blue sphere "   \
    "in the crosshair.\n"   \
-   "Entering a new node's index\n"   \
-   "will put that node in focus\n"   \
-   "and send the crosshair to its\n"   \
-   "location (like 'j').\n"   \
-   "Use 'alt+l' to center the\n"   \
+   "Entering a new node's index "   \
+   "will put that node in focus "   \
+   "and send the crosshair to its "   \
+   "location (like 'j'). "   \
+   "Use 'alt+l' to center the "   \
    "cross hair in your viewer."
 
 #define SUMA_SurfContHelp_GNode   \
-   "Index of edge in focus on this\n"  \
-   "controller's graph.\n"   \
-   "Entering a new edge's index\n"   \
-   "will put that edge in focus\n"   \
-   "and send the crosshair to its\n"   \
-   "center (like 'j').\n"   \
-   "Use 'alt+l' to center the\n"   \
+   "Index of edge in focus on this "  \
+   "controller's graph. "  \
+   "Entering a new edge's index "   \
+   "will put that edge in focus "   \
+   "and send the crosshair to its "   \
+   "center (like 'j'). "   \
+   "Use 'alt+l' to center the "   \
    "cross hair in your viewer."
         
 #define SUMA_SurfContHelp_I   \

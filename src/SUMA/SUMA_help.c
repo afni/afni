@@ -1312,7 +1312,7 @@ char * SUMA_hkf(char *keyi, int target)
 char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
 {
    static char FuncName[]={"SUMA_gsf"};
-   static char ss[20][256];
+   static char ss[20][256], wnameclp[256];
    char key1[256], key2[256], *direc="kbd", *lnm=NULL;
    static int c;
    char *s=NULL, *su=NULL, *shh=NULL, *sii=NULL;
@@ -1355,6 +1355,10 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
          su = (char *)SUMA_calloc(strlen(sii)+2, sizeof(char));
          
          lnm = gwh->name[gwh->name_lvl-1];
+         snprintf(wnameclp, 255, "%s", lnm);
+         if (strstr(wnameclp,".r00")) { /* get rid of .r00 */
+            wnameclp[strlen(lnm)-4]='\0';
+         }
          switch (gwh->type) {
             case 0: /* container only */
                if (gwh->name_lvl == 1) {
@@ -1385,18 +1389,18 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
                   snprintf(s, 255, "\n"
                                    "   .. _%s:\n"
                                    "\n"
-                                   "   :guilabel:`%s`: %s\n"
+                                   "**%s**: %s\n"
                                    "\n",
-                              wname, lnm,sii);
+                              wname, wnameclp,sii);
                }
                break;
             case 1: /* actual widget */
                snprintf(s, 255, "\n"
                                 "   .. _%s:\n"
                                 "\n"
-                                "   :guilabel:`%s`: %s\n"
+                                "**%s**: %s\n"
                                 "\n",
-                              wname, lnm,sii);
+                              wname, wnameclp,sii);
                break;
             default:
                SUMA_S_Err("Bad type %d", gwh->type);
@@ -1406,7 +1410,7 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
          if (!hintout) SUMA_ifree(sii); 
          if (!helpout) SUMA_ifree(shh); 
          SUMA_ifree(su);
-
+         
          return(s);
          break;
    }
@@ -1657,8 +1661,8 @@ char * SUMA_help_message_Info(int targ)
    , SUMA_hkf("Ctrl+R", targ), SUMA_hkf("R", targ));
 
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: Open controller for \n"
-      "             surface in Focus.\n", SUMA_hkf("Ctrl+s", targ));
+      "   %s: Open :SPX::ref:`controller <SurfCont>`:DEF:controller:SPX: for \n"
+      ":           :surface in Focus.\n", SUMA_hkf("Ctrl+s", targ));
    SS = SUMA_StringAppend_va (SS, 
 "   %s: Input filename containing displayable objects.\n"
 "                 Files are of 1D format with a necessary comment\n"
@@ -2752,6 +2756,8 @@ int SUMA_Register_GUI_Help(char *which, char *hint, char *help, int type)
       SUMA_RETURN(YUP);
    }
    
+   SUMA_LH("Inserting '%s' with  %s %s", 
+               SUMA_Name_GUI_Help(gwh), gwh->hint, gwh->help);
    /* Insert in alphabetical order */
    el = dlist_head(All_GUI_Help);
    do {
@@ -3060,13 +3066,12 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Surface_Properties->Dsets",
                      "SurfCont->Xhair_Info",
                      "SurfCont->Xhair_Info->Xhr.r00",
-                     "SurfCont->Xhair_Info->Xhr.e01",
                      "SurfCont->Xhair_Info->Node.r00",
-                     "SurfCont->Xhair_Info->Node.e01",
-                     "SurfCont->Xhair_Info->Node.e02",
+                     "SurfCont->Xhair_Info->Node[1]",
+                     "SurfCont->Xhair_Info->Node[2]",
                      "SurfCont->Xhair_Info->Tri.r00",
-                     "SurfCont->Xhair_Info->Tri.e01",
-                     "SurfCont->Xhair_Info->Tri.e02",
+                     "SurfCont->Xhair_Info->Tri[1]",
+                     "SurfCont->Xhair_Info->Tri[2]",
                      "SurfCont->Xhair_Info->Val.r00",
                      "SurfCont->Xhair_Info->Lbl.r00",
                      "SurfCont->Dset_Controls",
@@ -3104,30 +3109,33 @@ char * SUMA_Help_AllSurfCont (int targ)
    k = 0;
    while (worder[k]) {
          s = SUMA_gsf(worder[k], targ, &sii, &shh);
-         SS = SUMA_StringAppend_va(SS, 
-"%s\n%s\n", 
-         s, shh?shh:"");
+         SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+                                   s, shh?shh:"");
          SUMA_ifree(sii); SUMA_ifree(shh);
       ++k;
    }
           
    SUMA_SS2S(SS, s);
    
+   #if 0 /* Delete soon */
    { char *so= SUMA_Break_String(":menuselection:`Mask Eval`: A boolean expression evaluated per tract to determine whether or not a tract should be displayed. Each mask is assigned a letter from 'a' to 'z' and has an entry in the table below. Symbols for the OR operator are '|' or '+' while those for AND are '&' or '*'. The '!' is for the NOT operation. By default, the expression is blank, as indicated by '-', and the operation is an OR of all the masks. Tracts that go through any of the masks are displayed and they keep their own color as shown in the figure below. Say we now want to show tracts that go through both masks b and c or through mask a. The expression to evaluate at each tract would be: '( b & c ) | a'. For the expression to take effect, you need to have the :menuselection:`v` selected.", 40);
    fprintf(SUMA_STDERR,"%s\n", so); SUMA_ifree(so);
    }
    
    { char *sdo, so[]={
-   "Choose the rendering mode for this surface.\n" 
+   "Select the rendering mode for the selected surface from "
+   "the following options.:LR:\n" 
    "   Viewer: Surface's rendering mode is set "  
    ":         :by the viewer's setting which can "   
-   ":         :be changed with the 'p' option.:LR:\n"  
+   ":         :be changed with the :ref:`'p'<LC_p>` option.:LR:\n"  
    "   Fill:   Shaded rendering mode.:LR:\n"  
    "   Line:   Mesh rendering mode.:LR:\n"    
    "   Points: Points rendering mode.:LR:\n"};
    sdo = SUMA_Sphinx_LineSpacer(so , 0);
    fprintf(SUMA_STDERR,"%s\n", sdo); 
    }
+   #endif
+   
    SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
 }
 

@@ -49,8 +49,16 @@ goto SHOW_COM
    endif
 
 if ( ! -f AFNI_InstaCorrDemo.tgz) then
-   which curl
-   if ($status) then
+   if ($use_curl == -1) then
+      which curl
+      if ($status) then
+         set use_curl = 0;
+      else
+         set use_curl = 1;
+      endif
+   endif
+
+   if ($use_curl == 0) then
       wget http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
    else
       curl -O http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
@@ -98,11 +106,20 @@ goto END
 
 PARSE:
    set Narg = $#
+   set use_curl = -1
    set cnt = 1
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-echo") then
          set echo
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-curl") then
+         set use_curl = 1
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-wget") then
+         set use_curl = 0
          set donext = 0; goto NEXT		
       endif
       if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
@@ -127,6 +144,11 @@ HELP:
    set ret_coms = HELP_COM
    goto SHOW_COM
    HELP_COM:
+   echo "Options:"
+   echo "[-wget]: Use wget to download archive. Script chooses by default"
+   echo "         with preference for curl"
+   echo "[-curl]: Use curl to download archive. Script chooses by default"
+   echo "         with preference for curl"
    echo ""
    echo "It takes a while to download, unpack, and run the setup scripts"
    echo ""
