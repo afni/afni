@@ -404,10 +404,10 @@ float osfilt_proj( int n , float *ar )  /* 07 Dec 2007 */
    qsort_float( n , ar ) ;
    n2 = n/2 ;
    for( ii=0 ; ii < n2 ; ii++ ){
-     v += (ii+1)*(ar[ii]+ar[n-1-ii]) ;
-     d += 2*(ii+1) ;
+     v += (ii+1.0f)*(ar[ii]+ar[n-1-ii]) ;
+     d += 2.0f*(ii+1.0f) ;
    }
-   v += (n2+1)*ar[n2] ; d += (n2+1) ;
+   v += (n2+1.0f)*ar[n2] ; d += (n2+1.0f) ;
    return (v/d) ;
 }
 
