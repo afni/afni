@@ -226,7 +226,7 @@ DELTA_TO_XMAT:
    end
    set oname = `ParseName -app _shft  -out Prefix $v1`
    #get rid of .nii which remains in prefix
-   set o1d = $oname:r
+   set o1d = `ParseName -out FNameNoAfniExt $oname`
    echo "1 0 0 $del_xform[1] 0 1 0 $del_xform[2] 0 0 1 $del_xform[3]" \
          > ${o1d}.1D
    if ($xmat_only == 1) then
