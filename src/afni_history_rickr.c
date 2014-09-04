@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Sep, 2014, RCR, "r_idisp.o", MICRO, TYPE_MODIFY,
+   "cast int64_t to long long to appease printf across multiple systems",
+   NULL
+ } ,
+
  {  3, Sep, 2014, RCR, "plug_realtime", MINOR, TYPE_ENHANCE,
    "merged in changes from C Craddock, with alterations",
    "This needs some more work."
