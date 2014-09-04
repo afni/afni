@@ -598,9 +598,7 @@ char * get_atlas_dirname(void)  /* 31 Jan 2008 -- RWCox */
 
    if( !first ) return adnam ;
    first = 0 ;
-                       epath = getenv("AFNI_PLUGINPATH") ;
-   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
-   if( epath == NULL ) epath = getenv("PATH") ;
+   epath = get_env_atlas_path();
    if( epath == NULL ) return NULL ;  /* this is bad */
 
    ll = strlen(epath) ;
@@ -626,6 +624,17 @@ char * get_atlas_dirname(void)  /* 31 Jan 2008 -- RWCox */
    } while( epos < ll ) ;
 
    return NULL ;
+}
+
+/* get preferred path for atlases, potentially containing multiple directories*/
+char * get_env_atlas_path()
+{
+   char *epath;
+                       epath = getenv("AFNI_ATLAS_PATH") ;
+   if( epath == NULL ) epath = getenv("AFNI_PLUGINPATH") ;
+   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
+   if( epath == NULL ) epath = getenv("PATH") ;
+   return(epath);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -681,10 +690,7 @@ THD_3dim_dataset * get_atlas(char *epath, char *aname)
       }
 
       /*----- get path to search -----*/
-
-                          epath = getenv("AFNI_PLUGINPATH") ;
-      if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
-      if( epath == NULL ) epath = getenv("PATH") ;
+      epath = get_env_atlas_path();
       if( epath == NULL ) RETURN(dset) ;
 
       /*----- copy path list into local memory -----*/
@@ -2324,11 +2330,12 @@ char *find_atlas_niml_file(char * nimlname, int niname)
      
    /* okay that didn't work, try the AFNI plugin directory */
    namebuf[0]='\0';
-                       epath = getenv("AFNI_PLUGINPATH") ;
-   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
+
+
+   epath = get_env_atlas_path();
    if( epath != NULL ) {
       if(wami_verb() > 1) 
-         INFO_message("trying to open %s in AFNI_PLUGINPATH directory %s\n",
+         INFO_message("trying to open %s in AFNI_ATLAS_PATH or AFNI_PLUGINPATH directory %s\n",
               nimlname, epath);   
       fstr = THD_find_regular_file(nimlname, epath);
       if(fstr) {
@@ -6765,8 +6772,7 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
    }
 
    /* okay that didn't work, try the AFNI plugin directory */
-                       epath = getenv("AFNI_PLUGINPATH") ;
-   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
+   epath = get_env_atlas_path();
    if( epath != NULL ) {
       if(epath[strlen(epath)-1]!='/') {
          sprintf(filestr, "%s/", epath);

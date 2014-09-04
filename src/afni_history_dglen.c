@@ -49,6 +49,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 4 , SEP, 2014 , DRG , "AFNI_ATLAS_PATH" , 
+    MINOR , TYPE_NEW_ENV, 
+    "Atlases and templates may be stored in location set by AFNI_ATLAS_PATH",
+    "Atlases and templates need not be in the default afni binary directory.\n"
+    "This variable may hold multiple directories that specify the possible\n"
+    "locations of atlases when the atlas definition does not include the\n"
+    "path in the filename. The atlases are typically defined in \n"
+    "AFNI_atlas_spaces.niml file or in a CustomAtlases.niml file."
+} ,
+
 { 9 , JUL, 2014 , DRG , "3dDWItoDT" , 
     MINOR , TYPE_NEW_OPT, 
     "Mean b=0 values computed for linear estimate",
