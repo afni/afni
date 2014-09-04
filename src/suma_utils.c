@@ -3434,12 +3434,14 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
    
    See SUMA_Sphinx_String_Edit_Help() for documentation.
    
+   This function returns the a modified version of the input pointer.
 */
 
 char *SUMA_Sphinx_String_Edit(char *s, int targ) 
 {
    static char FuncName[]={"SUMA_Sphinx_String_Edit"};
    char stmp[6]={""};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -3447,6 +3449,7 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
    
    switch (targ) {
       case 0: /* Default C output */
+         SUMA_LH(">s=>\n%s\n<", s);
          s = SUMA_Cut_Between_String(s, ":SPX:", ":SPX:", ":DEF:");
          s = SUMA_Cut_String(s,":LR:");
          s = SUMA_Sphinx_LineSpacer(s, targ);
@@ -3455,6 +3458,7 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
          s = SUMA_Swap_String(s, stmp,"|");
          s = SUMA_Sphinx_DeRef(s,":ref:");
          s = SUMA_Sphinx_DeRef(s,":term:");
+         SUMA_LH(">so=>\n%s\n<", s);
          SUMA_RETURN(s);
          break;
       case 1: /* Sphinx */
@@ -3480,6 +3484,7 @@ SUMA_Boolean SUMA_Known_Sphinx_Dir(char *s)
    static char FuncName[]={"SUMA_Known_Sphinx_Dir"};
    if (!s) return(NOPE);
    if (!strncmp(s,":ref:",5)) return(YUP);
+   if (!strncmp(s,":term:",5)) return(YUP);
    return(NOPE);
 }
 
