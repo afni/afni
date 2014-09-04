@@ -155,8 +155,8 @@ int r_idisp_mri_image( char * info, MRI_IMAGE * ip )
     printf( "r_idisp_mri_image structure at %p :\n"
             "   nx = %d, ny = %d, nz = %d\n"
             "   nt = %d, nu = %d, nv = %d, nw = %d\n"
-            "   nxy = %d, nxyz = %ld, nxyzt = %ld\n"
-            "   nvox = %ld, pixel_size = %d\n"
+            "   nxy = %d, nxyz = %lld, nxyzt = %lld\n"
+            "   nvox = %lld, pixel_size = %d\n"
             "   kind = %d, im = %p, name = %s\n"
             "   dx = %7.3f, dy = %7.3f, dz = %7.3f, dt = %7.3f\n"
             "   du = %7.3f, dv = %7.3f, dw = %7.3f\n"
@@ -165,7 +165,8 @@ int r_idisp_mri_image( char * info, MRI_IMAGE * ip )
             "   was_swapped = %d\n",
             ip,
             ip->nx, ip->ny, ip->nz, ip->nt, ip->nu, ip->nv, ip->nw,
-            ip->nxy, ip->nxyz, ip->nxyzt, ip->nvox, ip->pixel_size,
+            ip->nxy, (long long)ip->nxyz, (long long)ip->nxyzt,
+            (long long)ip->nvox, ip->pixel_size,
             (int)ip->kind, mri_data_pointer(ip), CHECK_NULL_STR(ip->name),
             ip->dx, ip->dy, ip->dz, ip->dt, ip->du, ip->dv, ip->dw,
             ip->xo, ip->yo, ip->zo, ip->to, ip->uo, ip->vo, ip->wo,
@@ -400,7 +401,7 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
                 printf( "         " );
 
             if ( dp->brick_bytes )
-                printf( " %10ld    ", dp->brick_bytes[c] );
+                printf( " %10lld    ", (long long)dp->brick_bytes[c] );
             else
                 printf( "%15s", "" );
 
