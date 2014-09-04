@@ -555,6 +555,9 @@ int main(int argc, char **argv)
          exit(1);
       }
       EDIT_dset_items( dout , ADN_prefix,  Opt->crefix,  ADN_none ) ;
+      tross_Copy_History( Opt->sig , dout ) ;
+      tross_Make_History( "3dHist" , argc,argv , dout ) ;
+      
       DSET_write(dout);
       DSET_delete(dout); dout=NULL;
    }
