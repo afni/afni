@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 03, Sep, 2014, ZSS, "3dSetupGroupInCorr", MINOR, TYPE_BUG_FIX,
+   "Made -labels option work well with -LRpairs",
+   NULL
+ },
+  
  { 29, Aug, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added -drive_com to allow the driving of SUMA by its command line",
    NULL

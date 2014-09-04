@@ -894,7 +894,8 @@ void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat);
 /* *************** End Convolution utilities *************** */
 SUMA_Boolean SUMA_Register_Widget_Help(Widget w, char *name, 
                                        char *hint, char *help);
-SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name, char *help);  
+SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name, 
+                                                char *hint, char *help);  
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"
 

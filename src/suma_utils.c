@@ -3042,46 +3042,69 @@ char *SUMA_Break_String(char *s, int mxln)
 {
    static char FuncName[]={"SUMA_Break_String"};
    char *so = NULL;
-   int i, ns, nso, nso_max, bln, ln, ex;
+   int i, ns, nso, nso_max, bln, ln, ex, slen, is;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
+   SUMA_S_Err("Not ready");
+   SUMA_RETURN(SUMA_copy_string(s));
    if (!s) SUMA_RETURN(so);
    
-   nso_max = strlen(s)+100;
+   if (strstr(s, "Index of node in focus")) LocalHead = YUP;
+   
+   SUMA_LH("Have string:>s=>%s<\n", s);
+   slen = strlen(s);
+   nso_max = slen+100;
    so = (char *)SUMA_calloc(nso_max, sizeof(char));
    
    ln = 0; ex = 0; nso = 0; ns = 0;
-   while (s[ns]) {
+   while (s[ns] && ns < slen) {
       if (s[ns] == '\n') {
+         SUMA_LH("Newline at ns");
          ln = 0;
          so[nso++] = s[ns++];
       } else {
-         bln = -1; ln = 0;
-         while (s[ns+ln] && ln < mxln) {
-            if (SUMA_IS_BLANK(s[ns+ln]) ||
-                SUMA_IS_PUNCT(s[ns+ln])) {
-               bln = ln;
+         bln = -1; is = 0;
+         while (s[ns+is] && ln < mxln) {
+            if (SUMA_IS_BLANK(s[ns+is]) ||
+                SUMA_IS_PUNCT(s[ns+is])) {
+               bln = is;
             }
-            ++ln;
+            ++is;
          }
+         #if 1 
+            SUMA_LH("At >s=>%s<\nbln=%d, ln=%d\n", s+ns, bln, ln);
+         #endif
          if (bln < 0) { /* No space found, copy and dashit */
-            for (i=0; i<mxln-1; ++i) {
-               so[nso++] = s[ns++]; 
+            if (is > 0) {
+               for (i=0; i<is; ++i) {
+                  so[nso++] = s[ns++]; 
+               }
+               so[nso++] = '-'; so[nso++] = '\n';
+               ex += 2;
+            } else {
+               ++ns;
             }
-            so[nso++] = '-'; so[nso++] = '\n';
-            ex += 2;
          } else { /* Copy till last blank/punct and add \n 
                      Won't bother replacing blank, have to 
                      realloc anyway...*/
             for (i=0; i<bln+1; ++i) {
                so[nso++] = s[ns++]; 
             }
-            so[nso++] = '\n';
+            if (!SUMA_IS_BLANK(s[ns-1]) &&
+                !SUMA_IS_PUNCT(s[ns-1])) {
+               fprintf(stderr,"**%c%c%c%c%c\n",
+                  s[ns-2], s[ns-1], s[ns], s[ns+1], s[ns+2]);
+               so[nso++] = '\n';
+            }
             ex += 1;
          }
       }
+      so[nso] = '\0';
+      #if 1 
+         SUMA_LH("Now\n>s=>%s<\n>so=>%s<", s, so);
+      #endif
       if (ex >= (nso_max - strlen(s) - 5)) {
          nso_max += 100;
          so = (char *)SUMA_realloc(so, nso_max*sizeof(char));
@@ -3090,6 +3113,8 @@ char *SUMA_Break_String(char *s, int mxln)
               ns, ex, nso, (int)strlen(s), nso_max);
    }
    so[nso] = '\0';
+   SUMA_LH("Returning:>so=>%s>", so);
+   if (LocalHead) exit(1);
    SUMA_RETURN(so);
 }
 
@@ -3429,6 +3454,7 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
                                  direct use of "\|" in SUMA_Swap_String below */
          s = SUMA_Swap_String(s, stmp,"|");
          s = SUMA_Sphinx_DeRef(s,":ref:");
+         s = SUMA_Sphinx_DeRef(s,":term:");
          SUMA_RETURN(s);
          break;
       case 1: /* Sphinx */
