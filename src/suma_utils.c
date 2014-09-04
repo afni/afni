@@ -3038,86 +3038,67 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
 
 /* Break long lines into ones that are no longer than mxln 
    You need to free the string returned by this function */
-char *SUMA_Break_String(char *s, int mxln)
+char *SUMA_Break_String(char *si, int mxln)
 {
    static char FuncName[]={"SUMA_Break_String"};
    char *so = NULL;
-   int i, ns, nso, nso_max, bln, ln, ex, slen, is;
+   int nsi, nso, nso_max, bsi, bso, ex, slen, ln;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   SUMA_S_Err("Not ready");
-   SUMA_RETURN(SUMA_copy_string(s));
-   if (!s) SUMA_RETURN(so);
-   
-   if (strstr(s, "Index of node in focus")) LocalHead = YUP;
-   
-   SUMA_LH("Have string:>s=>%s<\n", s);
-   slen = strlen(s);
+   if (!si) SUMA_RETURN(so);
+      
+   SUMA_LH("Have string:>s=>%s<\n", si);
+   slen = strlen(si);
    nso_max = slen+100;
    so = (char *)SUMA_calloc(nso_max, sizeof(char));
    
-   ln = 0; ex = 0; nso = 0; ns = 0;
-   while (s[ns] && ns < slen) {
-      if (s[ns] == '\n') {
-         SUMA_LH("Newline at ns");
-         ln = 0;
-         so[nso++] = s[ns++];
-      } else {
-         bln = -1; is = 0;
-         while (s[ns+is] && ln < mxln) {
-            if (SUMA_IS_BLANK(s[ns+is]) ||
-                SUMA_IS_PUNCT(s[ns+is])) {
-               bln = is;
-            }
-            ++is;
+   bsi = bso = -1; /* index of last encountered blank */
+   ln = 0; /* Last line length in output string */
+   ex = 0; /* Number of extra chars */
+   nso = 0; nsi = 0; /* write/read position in so and si */
+   while (si[nsi]) {
+      while (si[nsi] && ln < mxln) {
+         if (SUMA_IS_BLANK(si[nsi])) {
+            bsi = nsi; bso = nso;
          }
-         #if 1 
-            SUMA_LH("At >s=>%s<\nbln=%d, ln=%d\n", s+ns, bln, ln);
-         #endif
-         if (bln < 0) { /* No space found, copy and dashit */
-            if (is > 0) {
-               for (i=0; i<is; ++i) {
-                  so[nso++] = s[ns++]; 
-               }
-               so[nso++] = '-'; so[nso++] = '\n';
-               ex += 2;
-            } else {
-               ++ns;
-            }
-         } else { /* Copy till last blank/punct and add \n 
-                     Won't bother replacing blank, have to 
-                     realloc anyway...*/
-            for (i=0; i<bln+1; ++i) {
-               so[nso++] = s[ns++]; 
-            }
-            if (!SUMA_IS_BLANK(s[ns-1]) &&
-                !SUMA_IS_PUNCT(s[ns-1])) {
-               fprintf(stderr,"**%c%c%c%c%c\n",
-                  s[ns-2], s[ns-1], s[ns], s[ns+1], s[ns+2]);
-               so[nso++] = '\n';
-            }
-            ex += 1;
+         so[nso++] = si[nsi++]; 
+         if (si[nsi] == '\n') {
+            ln = 0; bsi = bso = -1;
+         } else {
+            ++ln;
          }
       }
-      so[nso] = '\0';
-      #if 1 
-         SUMA_LH("Now\n>s=>%s<\n>so=>%s<", s, so);
-      #endif
-      if (ex >= (nso_max - strlen(s) - 5)) {
+      if (ln == mxln) { /* need to make a cut */
+         if (bso > 0 && ((nso-bso)) < mxln-15) { 
+            /* had a good blank preceding, but not too far*/
+            nso = bso; /* rewind on so */
+            nsi = bsi; /* rewind on si */
+            so[++nso] = '\n'; /* add new line after blank */
+            ex += 1; /* added one new char */
+            ln = 0; bsi = bso = -1;
+            ++nsi; ++nso;
+         } else {
+            /* add a '-' */
+            so[nso++] = '-'; so[nso++] = '\n';
+            ex += 2;
+            ln = 0; bsi = bso = -1;
+         }
+      }
+      
+      /* realloc ? */
+      if (ex >= (nso_max - slen - 5)) {
          nso_max += 100;
          so = (char *)SUMA_realloc(so, nso_max*sizeof(char));
       }
-      SUMA_LH("ns=%d ex=%d nso=%d slen=%d nso_max=%d\n", 
-              ns, ex, nso, (int)strlen(s), nso_max);
+         
    }
+   
    so[nso] = '\0';
    SUMA_LH("Returning:>so=>%s>", so);
-   if (LocalHead) exit(1);
    SUMA_RETURN(so);
 }
-
 
 char *SUMA_Cut_String(char *s, char *sc)
 {
@@ -3450,22 +3431,22 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
    switch (targ) {
       case 0: /* Default C output */
          SUMA_LH(">s=>\n%s\n<", s);
-         s = SUMA_Cut_Between_String(s, ":SPX:", ":SPX:", ":DEF:");
-         s = SUMA_Cut_String(s,":LR:");
-         s = SUMA_Sphinx_LineSpacer(s, targ);
+         SUMA_Cut_Between_String(s, ":SPX:", ":SPX:", ":DEF:");
+         SUMA_Cut_String(s,":LR:");
+         SUMA_Sphinx_LineSpacer(s, targ);
          sprintf(stmp,"\\|"); /* to avoid compile warning for 
                                  direct use of "\|" in SUMA_Swap_String below */
-         s = SUMA_Swap_String(s, stmp,"|");
-         s = SUMA_Sphinx_DeRef(s,":ref:");
-         s = SUMA_Sphinx_DeRef(s,":term:");
+         SUMA_Swap_String(s, stmp,"|");
+         SUMA_Sphinx_DeRef(s,":ref:");
+         SUMA_Sphinx_DeRef(s,":term:");
          SUMA_LH(">so=>\n%s\n<", s);
          SUMA_RETURN(s);
          break;
       case 1: /* Sphinx */
-         s = SUMA_Cut_String(
+         SUMA_Cut_String(
                SUMA_Cut_Between_String(s, ":DEF:", ":SPX:", NULL), ":SPX:");
-         s = SUMA_Swap_String(s, ":LR:","\n");
-         s = SUMA_Sphinx_LineSpacer(s, targ);
+         SUMA_Swap_String(s, ":LR:","\n");
+         SUMA_Sphinx_LineSpacer(s, targ);
          break;
       default:
          SUMA_RETURN(s);
