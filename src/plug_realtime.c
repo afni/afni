@@ -7752,7 +7752,7 @@ void RT_detrend( RT_input * rtin, int mode )
                 dset_time = rtin->reg_dset;
             }
             else if (( rtin->detrend_mode & RT_DETREND_MOTION ) ||
-                     ( rtin->detrend_mode & RT_DETREND_MOTION ))
+                     ( rtin->detrend_mode & RT_DETREND_FRISTON ))
             {
                 /* motion ort regression specified, but registration
                    not being performed, turn it off */
