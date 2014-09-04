@@ -473,6 +473,7 @@ ATLAS_XFORM_LIST *get_G_xform_list(void);
 ATLAS_LIST* get_G_atlas_list(void);
 ATLAS_TEMPLATE_LIST *get_G_templates_list(void);
 char *find_atlas_niml_file(char * nimlname, int nini);
+char * get_env_atlas_path(void);
 ATLAS_LIST *env_atlas_list(void);
 char **env_space_list(int *);
 int env_dec_places(void);
