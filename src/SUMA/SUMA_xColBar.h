@@ -625,17 +625,19 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "cross hair in your viewer."    
 
 #define SUMA_SurfContHelp_Node   \
-   "Index of node in "   \
-   "focus on this controller's "   \
+   "Index of node in focus (1) and :term:`RAI` coordinates "   \
+   "of that node (2).:LR:\n"   \
+   "1- The index is of the node in focus on this controller's "   \
    "surface. Nodes in focus are "   \
    "highlighted by the blue sphere "   \
    "in the crosshair.\n"   \
-   "Entering a new node's index "   \
+   "This cell is editable; manually entering a new node's index "   \
    "will put that node in focus "   \
    "and send the crosshair to its "   \
-   "location (like 'j'). "   \
-   "Use 'alt+l' to center the "   \
-   "cross hair in your viewer."
+   "location (like :ref:`'j' <LC_j>`). "   \
+   "Use :ref:`'alt+l' <LC_Alt+l>` to center the "   \
+   "cross hair in your viewer.:LR:\n" \
+   "2- The :term:`RAI` coordinates are those of the surface node after all spatial transformations have been applied to the surface. Those transformations do not include visualization transformations applied in the viewer"
 
 #define SUMA_SurfContHelp_GNode   \
    "Index of edge in focus on this "  \

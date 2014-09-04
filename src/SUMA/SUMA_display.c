@@ -3116,7 +3116,8 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
    else { SMW->mw[i_wid] = cascade; } 
    
    if (hint || help) {
-      SUMA_Register_Widget_Help(SMW->mw[i_wid], wname, 
+      SUMA_LH("Registering %s with \n%s\n and \n%s\n\n", wname, hint, help); 
+      SUMA_Register_Widget_Children_Help(SMW->mw[i_wid], wname, 
                                 hint, help);
    }
    
@@ -15802,7 +15803,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       
       /* put some help on the radiobox and its children*/
       SUMA_Register_Widget_Children_Help(SUMAg_CF->X->SumaCont->Lock_rbg->rb[i] ,
-                           "SumaCont->Lock", SUMA_LockSumaCont_help );
+                           "SumaCont->Lock", NULL, SUMA_LockSumaCont_help );
       
       /* initialize radio button created */
       SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, i, SUMAg_CF->Locked[i]);
@@ -15818,7 +15819,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
                               SUMAg_CF->ViewLocked[i], NOPE);
       /* put some help on the view lock*/
       SUMA_Register_Widget_Children_Help(rc_m ,
-                           "SumaCont->LockView", SUMA_LockViewSumaCont_help );
+                           "SumaCont->LockView", NULL, SUMA_LockViewSumaCont_help );
             
    }  
    XtManageChild (rc);
@@ -15872,7 +15873,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
 
    /* put some help on the radiobox and its children*/
    SUMA_Register_Widget_Children_Help(SUMAg_CF->X->SumaCont->Lock_rbg->arb , 
-                         "SumaCont->Lock->All",
+                         "SumaCont->Lock->All", NULL,
                          SUMA_LockSumaCont_help );
 
    /* initialize radio button created */

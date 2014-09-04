@@ -3067,8 +3067,8 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Xhair_Info",
                      "SurfCont->Xhair_Info->Xhr.r00",
                      "SurfCont->Xhair_Info->Node.r00",
-                     "SurfCont->Xhair_Info->Node[1]",
-                     "SurfCont->Xhair_Info->Node[2]",
+                   /*"SurfCont->Xhair_Info->Node[1]",   Hints/help on headings */
+                   /*"SurfCont->Xhair_Info->Node[2]",   Hints/help on headings */
                      "SurfCont->Xhair_Info->Tri.r00",
                      "SurfCont->Xhair_Info->Tri[1]",
                      "SurfCont->Xhair_Info->Tri[2]",
