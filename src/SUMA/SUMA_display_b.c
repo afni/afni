@@ -4141,7 +4141,7 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget w, char *name,
          s = SUMA_Break_String(st, 40); SUMA_ifree(st); */
          /* DO not free s, MCW_register_help uses the pointer as 
             data to the help callback */
-      MCW_reghelp_children(w, help);
+      MCW_reghelp_children(w, s);
    }
    
    if (hint) {
