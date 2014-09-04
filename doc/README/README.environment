@@ -3653,7 +3653,8 @@ Variable: AFNI_TEMPLATE_SPACE_LIST
 ----------------------------------
 This list contains the names of the template spaces that are shown when whereami
 reports the coordinates among various spaces. By default, the list contains
-"TLRC,MNI,MNI_ANAT". As with AFNI_ATLAS_LIST, this list may also be set to "ALL".
+"TLRC,MNI,MNI_ANAT". As with AFNI_ATLAS_LIST, this list may also be set to 
+"ALL".
 
 ----------------------------
 Variable: AFNI_ATLAS_COLORS (editable)
@@ -3668,6 +3669,16 @@ This variable sets which space to use in the AFNI GUI for "Jump to (spacename)"
 function where this would default to "MNI". Choose a valid spacename from the
 current list of spaces in "whereami -show_spaces". The jump function transforms
 the user input coordinates from that space to the space of the dataset.
+
+----------------------------
+Variable: AFNI_ATLAS_PATH
+----------------------------
+This variable sets which directory or directories to search for AFNI 
+atlas datasets that have been defined in the AFNI_atlas_spaces.niml 
+or CustomAtlases.niml file. For all afni programs and scripts that use
+atlas and template datasets, the program will preferentially use (in order)
+the file path included in the dataset filename definition, the AFNI_ATLAS_PATH,
+the AFNI_PLUGINPATH or the standard PATH values.
 
 -------------------------
 Variable: AFNI_PLUGINPATH
@@ -3767,10 +3778,10 @@ unless those are set to "ALL".
 -------------------------------------------
 Variable: AFNI_SUPP_ATLAS_DIR
 -------------------------------------------
-Allows the addition of atlas definitions to the global list of atlases, templates,
-spaces and transformations. The variable should be set to the name of a directory
-that contains a SessionAtlases.niml file with the same format as the 
-AFNI_atlas_spaces.niml file. Also see AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS,
+Allows the addition of atlas definitions to the global list of atlases, 
+templates,spaces and transformations. The variable should be set to the name
+of a directory that contains a SessionAtlases.niml file with the same format
+as the AFNI_atlas_spaces.niml file. Also see AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS,
 AFNI_ATLAS_SPACE_LIST, AFNI_TEMPLATE_SPACE_LIST.
 
 ------------------------------
@@ -3793,7 +3804,8 @@ size is used.
 -------------------------------
 Variable:  AFNI_NO_OPTION_HINT
 -------------------------------
-If this variable is set, do NOT make suggestions if a program parsing error is encountered.
+If this variable is set, do NOT make suggestions if a program parsing error
+is encountered.
 
 --------------------------
 Variable:  AFNI_GUI_EDITOR
@@ -3829,5 +3841,5 @@ databasing schemes.
 ------------------------------------
 Variable:  AFNI_ICORR_UBER_USER
 ------------------------------------
-If set to YES, enable distance measures that are not ready for prime time in the 
-instacorr interface.
+If set to YES, enable distance measures that are not ready for prime time in
+the instacorr interface.
