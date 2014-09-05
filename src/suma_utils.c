@@ -3447,6 +3447,8 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
                SUMA_Cut_Between_String(s, ":DEF:", ":SPX:", NULL), ":SPX:");
          SUMA_Swap_String(s, ":LR:","\n");
          SUMA_Sphinx_LineSpacer(s, targ);
+         SUMA_Cut_String(s,"(more with BHelp)");
+         SUMA_Cut_String(s,"(much more with BHelp)");
          break;
       default:
          SUMA_RETURN(s);
