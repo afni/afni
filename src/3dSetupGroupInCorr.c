@@ -58,7 +58,7 @@ void PREP_quantile( int n , float *a )
 char * get_surf_param(char *sname, char *parname)
 {
    char com[1024]={""};
-   char buf[1024]={""};
+   static char buf[1024]={""};
    char *out=NULL;
 
    FILE *output = NULL;
@@ -379,6 +379,7 @@ int main( int argc , char * argv[] )
        sf = AFNI_suck_file( argv[nopt] ) ;
        if( sf == NULL || *sf == '\0' )
          ERROR_exit("Can't read file '%s' after -labels!",argv[nopt]) ;
+       len_all = strlen(sf);
        sar = NI_decode_string_list(sf,",;") ;
        if( sar == NULL || sar->num <= 0 )
          ERROR_exit("Can't get label list from file '%s'",argv[nopt]) ;
