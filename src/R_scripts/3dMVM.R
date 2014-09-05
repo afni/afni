@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.6, Sept 2, 2014
+Version 3.2.7, Sept 5, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1350,7 +1350,7 @@ pars[[2]] <- c(nF, nFu, nFsc, nFm, nF_mvE4, numDF, denDF)
 pars[[3]] <- lop$num_glt
 pars[[4]] <- lop$gltList
 pars[[5]] <- lop$slpList
-pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT, lop$wsE2, lop$mvE4a, lop$mvE4, lop$covVal) # any within-subject factors?
+pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT, lop$wsE2, lop$mvE4a, lop$mvE4) # any within-subject factors?
 pars[[7]] <- is.na(lop$mVar)   # any real multivariate modeling: currently for basis functions
 pars[[8]] <- list(0.75, numDF, denDF) # switching threshold between GG and HF: 0.6
 pars[[9]] <- mvtInd   # which indices for wsMVT
