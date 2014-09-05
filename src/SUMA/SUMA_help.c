@@ -3070,8 +3070,8 @@ char * SUMA_Help_AllSurfCont (int targ)
                    /*"SurfCont->Xhair_Info->Node[1]",   Hints/help on headings */
                    /*"SurfCont->Xhair_Info->Node[2]",   Hints/help on headings */
                      "SurfCont->Xhair_Info->Tri.r00",
-                     "SurfCont->Xhair_Info->Tri[1]",
-                     "SurfCont->Xhair_Info->Tri[2]",
+                   /*"SurfCont->Xhair_Info->Tri[1]",   Hints/help on headings */
+                   /*"SurfCont->Xhair_Info->Tri[2]",   Hints/help on headings */
                      "SurfCont->Xhair_Info->Val.r00",
                      "SurfCont->Xhair_Info->Lbl.r00",
                      "SurfCont->Dset_Controls",
@@ -3109,33 +3109,18 @@ char * SUMA_Help_AllSurfCont (int targ)
    k = 0;
    while (worder[k]) {
          s = SUMA_gsf(worder[k], targ, &sii, &shh);
-         SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+         if (!shh || strstr(sii, shh)) {/* help same as hint */
+            SS = SUMA_StringAppend_va(SS, "%s\n", s);
+         } else {
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
                                    s, shh?shh:"");
+         }
          SUMA_ifree(sii); SUMA_ifree(shh);
       ++k;
    }
           
    SUMA_SS2S(SS, s);
-   
-   #if 0 /* Delete soon */
-   { char *so= SUMA_Break_String(":menuselection:`Mask Eval`: A boolean expression evaluated per tract to determine whether or not a tract should be displayed. Each mask is assigned a letter from 'a' to 'z' and has an entry in the table below. Symbols for the OR operator are '|' or '+' while those for AND are '&' or '*'. The '!' is for the NOT operation. By default, the expression is blank, as indicated by '-', and the operation is an OR of all the masks. Tracts that go through any of the masks are displayed and they keep their own color as shown in the figure below. Say we now want to show tracts that go through both masks b and c or through mask a. The expression to evaluate at each tract would be: '( b & c ) | a'. For the expression to take effect, you need to have the :menuselection:`v` selected.", 40);
-   fprintf(SUMA_STDERR,"%s\n", so); SUMA_ifree(so);
-   }
-   
-   { char *sdo, so[]={
-   "Select the rendering mode for the selected surface from "
-   "the following options.:LR:\n" 
-   "   Viewer: Surface's rendering mode is set "  
-   ":         :by the viewer's setting which can "   
-   ":         :be changed with the :ref:`'p'<LC_p>` option.:LR:\n"  
-   "   Fill:   Shaded rendering mode.:LR:\n"  
-   "   Line:   Mesh rendering mode.:LR:\n"    
-   "   Points: Points rendering mode.:LR:\n"};
-   sdo = SUMA_Sphinx_LineSpacer(so , 0);
-   fprintf(SUMA_STDERR,"%s\n", sdo); 
-   }
-   #endif
-   
+      
    SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
 }
 
