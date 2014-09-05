@@ -495,7 +495,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   16:   Maximum transparency, invisibile:LR:\n"   
 
 #define  SUMA_SurfContHelp_TransMode  \
-   "Set the transparency for this surface to one of the following"   \
+   "Set the transparency for this surface to one of the following "   \
    "options.\n" \
    "   Viewer: Surface's transparency is set "  \
    "           by the viewer's setting which can "   \
@@ -620,8 +620,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "this controller's selected object.\n"   \
    "Entering new coordinates \n"   \
    "makes the crosshair jump\n"   \
-   "to that location (like 'ctrl+j').\n"   \
-   "Use 'alt+l' to center the\n"   \
+   "to that location (like :ref:`'ctrl+j' <LC_Ctrl+j>`).\n"   \
+   "Use :ref:`'alt+l'<LC_Alt+l>` to center the\n"   \
    "cross hair in your viewer."    
 
 #define SUMA_SurfContHelp_Node   \
@@ -671,8 +671,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Triangle in focus is highlighted "   \
    "in gray, and entering a new triangle's "   \
    "index will set a new triangle in "   \
-   "focus (like 'J').:LR:\n"   \
-   "2- Nodes forming triangle.:LR:\n"
+   "focus (like :ref:`'J'<UC_j>`).:LR:\n"   \
+   "2- Indices of nodes forming triangle.:LR:\n"
 
 #define SUMA_SurfContHelp_GEdge \
    "FILL ME"
@@ -721,11 +721,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Parent surface of Dset."
 
 #define SUMA_SurfContHelp_DsetOrd \
-   "Order of Dset's colorplane.\n"  \
-   "Dset with highest number is \n"   \
+   "Order of Dset's colorplane in the stack of all colorplanes of the parent surface.\n"  \
+   "The datset with highest order number is \n"   \
    "on top of the stack. Separate \n"  \
-   "stacks exits for foreground (fg:)\n" \
-   "and background planes (bg:)."
+   ":ref:`stacks<Plane_Layering>` exist for foreground (fg:)\n" \
+   "and background planes (bg:).:LR:\n"   \
+   "See :ref:`Color Mixing<ColorMixing>` for details on how colors are merged."
  
 #define SUMA_SurfContHelp_DsetAlphaThresh \
    "Alpha threshold of Dset's rendered slices.\n"  \
@@ -754,7 +755,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "of 1, transparent planes have\n"  \
    "an opacity of 0. \n"   \
    "Opacities are used when mixing\n" \
-   "planes within the same group  \n"  \
+   "planes within the same :ref:`group<Color_Plane_Grouping>`  \n"  \
    "foreground (fg:) or background(bg:).\n"   \
    "\n"  \
    "Opacity values are not applied\n"  \
@@ -764,7 +765,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "value is meaningless.\n"  \
    "\n"  \
    "Color mixing can be done in two \n"  \
-   "ways, use F7 to toggle between \n" \
+   "ways, use :ref:`F7<_F7>` to toggle between \n" \
    "mixing modes.\n"
    
 #define SUMA_SurfContHelp_DsetDim  \
@@ -774,7 +775,10 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "is not visibly affected by Dim but the\n"   \
    "colors mapped onto the surface are.\n"   \
    "For RGB Dsets (.col files), Dim is\n" \
-   "applied to the RGB colors directly"
+   "applied to the RGB colors directly.:LR:\n"  \
+   "Decreasing Dim is useful when the colors are too saturated\n" \
+   "for lighting to reflect the object terrain.\n" \
+   "When in doubt, just press the button and see what happens."   \
 
 #define SUMA_SurfContHelp_DsetNodeRadGain  \
    "Gain to apply to node radius.\n" \
@@ -837,7 +841,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    ":   :Simple ASCII tabular format "   \
    ":   :supporting numerical values "   \
    ":   :only.\n"   \
-   "     Each row i contains Nj data"   \
+   "     Each row i contains Nj data "   \
    ":   :values per node."   \
    ":   :Since this format has no header"   \
    ":   :associated with it, it makes"   \
@@ -858,7 +862,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    ":   :contains the node indices. The values\n"   \
    ":   :in row j of Dset are for the node\n"   \
    ":   :indexed Col_0[j].\n"   \
-   "     In the Sample 1D Dset shown below\n"   \
+   "     In the sample :term:`1D` Dset shown below\n"   \
    ":   :assuming N_Node > 58, SUMA\n"   \
    ":   :will consider the 1st column to \n"   \
    ":   :contain node indices. In that case\n"   \
@@ -891,7 +895,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    
 #define SUMA_SurfContHelp_DsetLoadCol  \
    "Load a new color plane.\n"   \
-   "A color plane is a 1D text file with \n" \
+   "A color plane is a :term:`1D` text file with \n" \
    "each row formatted as such:"  \
    "  n  r g b\n" \
    "where n is the node index, \n"  \
@@ -899,10 +903,10 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "color values, respectively. \n"  \
    "Color values must be between 0 and 1.0. \n" \
    "A sample file would be: test.1D.col:LR:\n"   \
-   "   0    0.1 0.2 1   \n"   \
-   "   1    0   1   0.8 \n"   \
-   "   4    1   1   1   \n"   \
-   "   7    1   0   1   \n"   \
+   "   0    0.1 0.2 1   :LR:\n"   \
+   "   1    0   1   0.8 :LR:\n"   \
+   "   4    1   1   1   :LR:\n"   \
+   "   7    1   0   1   :LR:\n"   \
    "   14   0.7 0.3 0   "
 
 
@@ -1169,24 +1173,24 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "are described in the section\n"   \
    "for the option -cmapfile.\n"   \
    "\n"   \
-   "A sample colormap would be:\n"   \
-   " 0 0 1\n"   \
-   " 1 1 1\n"   \
-   " 1 0 0\n"   \
+   "A sample colormap would be::LR:\n"   \
+   " 0 0 1:LR:\n"   \
+   " 1 1 1:LR:\n"   \
+   " 1 0 0:LR:\n"   \
    "saved into a cmap file called\n"   \
    "cmap_test.1D.cmap"
 
 #define  SUMA_SurfContHelp_AbsThr   \
-   "Toggle Absolute thresholding.\n"   \
+   "Toggle Absolute thresholding.:LR:\n"   \
    "OFF: Mask node color for\n"   \
    "     nodes that have:  \n"   \
-   "     T(n) < Tscale\n"   \
+   "     T(n) < Tscale:LR:\n"   \
    "ON:  Mask node color for\n"   \
    "     nodes that have:\n"   \
    "     | T(n) | < Tscale\n"   \
-   "where:\n"   \
+   "where::LR:\n"   \
    "Tscale is the value set by\n"   \
-   "       the threshold scale.\n"   \
+   "       the threshold scale.:LR:\n"   \
    "T(n) is the node value in the \n"   \
    "     selected threshold column (T).\n"   \
    "     this value is seen in the \n"   \
@@ -1195,21 +1199,21 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define  SUMA_SurfContHelp_Isym   \
    "Toggle Intensity range symmetry "   \
-   "about 0. \n"   \
+   "about 0. :LR:\n"   \
    "ON : Intensity clipping range\n"   \
    ":   :is forced to go from \n"   \
    ":   :-val to val.\n"   \
    ":   :This allows you to mimic\n"   \
-   ":   :AFNI's ranging mode.\n"   \
+   ":   :AFNI's ranging mode.:LR:\n"   \
    "OFF: Intensity clipping range\n"   \
    ":   :can be set to your liking."
 
 #define  SUMA_SurfContHelp_Shw0   \
    "Toggle color masking of nodes "   \
-   "with intensity = 0 \n"   \
+   "with intensity = 0 :LR:\n"   \
    "ON : 0 intensities are mapped\n"   \
    ":   :to the colormap as any\n"   \
-   ":   :other values.\n"   \
+   ":   :other values.:LR:\n"   \
    "OFF: 0 intensities are masked,\n"   \
    ":   :a la AFNI"
 

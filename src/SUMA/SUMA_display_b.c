@@ -4098,7 +4098,7 @@ SUMA_Boolean SUMA_Register_Widget_Help(Widget w, char *name,
          s = SUMA_copy_string(help);
          SUMA_Sphinx_String_Edit(s, 0);
          st = s;
-         s = SUMA_Break_String(st, 40); SUMA_ifree(st); 
+         s = SUMA_Break_String(st, 60); SUMA_ifree(st); 
          /* DO not free s, MCW_register_help uses the pointer as 
             data to the help callback */
          MCW_register_help(w, s);
@@ -4136,7 +4136,7 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget w, char *name,
       s = SUMA_copy_string(help);
       SUMA_Sphinx_String_Edit(s, 0);
       st = s;
-      s = SUMA_Break_String(st, 40); SUMA_ifree(st); 
+      s = SUMA_Break_String(st, 60); SUMA_ifree(st); 
          /* DO not free s, MCW_register_help uses the pointer as 
             data to the help callback */
       MCW_reghelp_children(w, s);
