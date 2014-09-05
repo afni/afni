@@ -657,10 +657,13 @@ process.MVM.opts <- function (lop, verb = 0) {
       if(!is.na(lop$vVars[1])) for(jj in lop$vQV) lop$dataStr[,jj] <- as.character(lop$dataStr[,jj])
    }
    
-   # set the covariate values at their centers
-   lop$covVal <- rep(0, length(lop$QV))
-   names(lop$covVal) <- lop$QV
-  
+   # set the covariate default values at their centers
+   lop$covVal <- NULL
+   if(length(lop$QV)>0) {
+      lop$covVal <- rep(0, length(lop$QV))
+      names(lop$covVal) <- lop$QV
+   }
+
    if (lop$num_glt > 0) {
       lop$gltList    <- vector('list', lop$num_glt)
       lop$slpList    <- vector('list', lop$num_glt)
@@ -880,7 +883,9 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
    }
    return(out)
 }
-
+# covariates=pars[[6]][7], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
+# covariates=pars[[6]][7], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+                                                
 #################################################################################
 ########################## Read information from a file #########################
 #################################################################################
@@ -1345,7 +1350,7 @@ pars[[2]] <- c(nF, nFu, nFsc, nFm, nF_mvE4, numDF, denDF)
 pars[[3]] <- lop$num_glt
 pars[[4]] <- lop$gltList
 pars[[5]] <- lop$slpList
-pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT, lop$wsE2, lop$mvE4a, lop$mvE4) # any within-subject factors?
+pars[[6]] <- c(is.na(lop$wsVars), lop$SC, lop$wsMVT, lop$wsE2, lop$mvE4a, lop$mvE4, lop$covVal) # any within-subject factors?
 pars[[7]] <- is.na(lop$mVar)   # any real multivariate modeling: currently for basis functions
 pars[[8]] <- list(0.75, numDF, denDF) # switching threshold between GG and HF: 0.6
 pars[[9]] <- mvtInd   # which indices for wsMVT
@@ -1395,8 +1400,7 @@ if(dimy == 1 & dimz == 1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
-   clusterExport(cl, c("maov"), envir=environment())
-   clusterExport(cl, c("mvCom4"), envir=environment())
+   clusterExport(cl, c("mvCom4", "maov", "lop"), envir=environment())
    for(kk in 1:nSeg) {
       if(NoBrick > 1) out[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
             ModelForm=ModelForm, pars=pars), c(2,1)) else
@@ -1430,9 +1434,9 @@ if (lop$nNodes>1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
-   clusterExport(cl, c("mvCom4"), envir=environment())
+   clusterExport(cl, c("mvCom4", "maov", "lop"), envir=environment())
    #clusterCall(cl, maov) # let all clusters access to function maov()
-   clusterExport(cl, c("maov"), envir=environment()) # let all clusters access to function maov()
+   #clusterExport(cl, c("maov"), envir=environment()) # let all clusters access to function maov()
    for (kk in 1:dimz) {
       if(NoBrick > 1) out[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runAOV, 
             dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), c(2,3,1)) else
