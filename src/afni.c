@@ -1531,6 +1531,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Advice from the NIH Bear -- honey goes good with brains"       ,
 
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
+     "For every simple problem there is an answer that is murky, complex, and wrong"  ,
      "If something is 'New and Improved', was the last version 'Old and Decrepit'?"   ,
      "The important things about a statistical model are what it does NOT include"    ,
      "You're going to like the way your brain activation maps look -- I guarantee it" ,
