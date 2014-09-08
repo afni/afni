@@ -116,10 +116,12 @@ static char * g_history[] =
     " 4.03 Aug 28, 2014 [rickr] :\n",
     "      - if -sort_method geme_index, test SOP IUID index order\n"
     "      - if -save_details, make separate file for GEME index sort info\n"
+    " 4.04 Sep  8, 2014 [rickr] :\n",
+    "      - num_chan > 1 needs ACQ type 3D+t\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.03 (August 28, 2014)"
+#define DIMON_VERSION "version 4.04 (September 8, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -529,6 +531,8 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             if ( check_im_byte_order( &ac->byte_order, v, p ) < 0 )
                 return -1;
     
+            v->seq_num = 1;
+
             /* if wanted, verify afni link, send image info and first volume */
             if ( ac->state == ART_STATE_TO_OPEN )
                 ART_open_afni_link( ac, 5, 0, gD.level );

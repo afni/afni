@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Sep, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "num_chan > 1 needs 3D+t ACQ type",
+   "Thanks to V Roopchansingh for noting the problem."
+ } ,
+
+ {  8, Sep, 2014, RCR, "plug_realtime", MICRO, TYPE_BUG_FIX,
+   "fixed free_PCOR_ivoxel_corr function call typos",
+   "Thanks to Y Halchenko for noting the problem."
+ } ,
+
  {  4, Sep, 2014, RCR, "r_idisp.o", MICRO, TYPE_MODIFY,
    "cast int64_t to long long to appease printf across multiple systems",
    NULL
