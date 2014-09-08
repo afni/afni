@@ -3722,10 +3722,12 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
    if( rtin->num_chan > 1 && RT_chmrg_reg_mode == RT_CM_RMODE_NONE ){
 
      if( rtin->reg_mode > 0 && verbose )
-       fprintf(stderr,"RT: %d channel acquisition => no registration!\n",rtin->num_chan) ;
+       fprintf(stderr,"RT: %d channel acquisition => no registration!\n",
+               rtin->num_chan) ;
 
      if( rtin->func_code > 0 && verbose )
-       fprintf(stderr,"RT: %d channel acquisition => no function!\n"    ,rtin->num_chan) ;
+       fprintf(stderr,"RT: %d channel acquisition => no function!\n"    ,
+               rtin->num_chan) ;
 
      rtin->reg_mode  = REGMODE_NONE ;  /* no registration */
      rtin->func_code = FUNC_NONE ;     /* no function */
@@ -8223,7 +8225,7 @@ void RT_detrend( RT_input * rtin, int mode )
     
                     if( pc_vc != NULL )
                     {
-                        free_PCOR_ivoxel_corr(pc_vc);
+                        free_PCOR_voxel_corr(pc_vc);
                         pc_ref = NULL;
                     }
     
@@ -8272,7 +8274,7 @@ void RT_detrend( RT_input * rtin, int mode )
     
                         if( pc_vc != NULL )
                         {
-                            free_PCOR_ivoxel_corr(pc_vc);
+                            free_PCOR_voxel_corr(pc_vc);
                             pc_ref = NULL;
                         }
     
@@ -8369,7 +8371,8 @@ void RT_detrend( RT_input * rtin, int mode )
   
                     if( pc_vc != NULL )
                     {
-                        free_PCOR_ivoxel_corr(pc_vc);
+                        /* was ivoxel, noted by Y Halchenko */
+                        free_PCOR_voxel_corr(pc_vc);
                         pc_ref = NULL;
                     }
  

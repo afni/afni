@@ -396,8 +396,9 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
        ART_ADD_TO_BUF( ac->buf, tbuf );
     }
 
-    /* data organization style */
-    strcpy( tbuf, "ACQUISITION_TYPE 2D+zt" );
+    /* data organization style rcr - here */
+    /* was 2D+zt, but for num_chan > 1, should be 3D+t            8 Sep 2014 */
+    strcpy( tbuf, "ACQUISITION_TYPE 3D+t" );
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
     /* slice order */
