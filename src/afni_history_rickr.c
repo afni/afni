@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Sep, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "round min dimension to 6 sig bits, then truncate to 3",
+   "This help catch cases where the dimension is just under\n"
+   "fairly 'round' number."
+ } ,
+
  {  8, Sep, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
    "num_chan > 1 needs 3D+t ACQ type",
    "Thanks to V Roopchansingh for noting the problem."
