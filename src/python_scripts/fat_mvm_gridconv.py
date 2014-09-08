@@ -17,7 +17,7 @@
 ###########################################################################
 
 
-import FAT_MVM_GRID_READERS as GR
+import lib_fat_funcs as GR
 from numpy import set_printoptions
 import getopt, sys 
 from glob import glob

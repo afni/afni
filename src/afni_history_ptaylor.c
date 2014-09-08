@@ -67,7 +67,32 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
-   { 5, Aug , 2014 , PT , "3dTrackID" , MINOR , TYPE_MODIFY,
+{ 8, Sep , 2014 , PT , "fat_roi_row.py" , SUPER , TYPE_NEW_PROG,
+   "Select out one row of a matrix file, at user request.",
+   "Useful, for example, if wanting to view connectivity one-to-many.\n"
+},
+
+{ 8, Sep , 2014 , PT , "fat_mvm_prep.py" , SUPER , TYPE_NEW_PROG,
+   "Connect FATCAT with 3dMVM-- combine CSV and matrix data.",
+   "Build data table necessary for 3dMVM from MRI+other data.\n"
+},
+
+{ 8, Sep , 2014 , PT , "fat_mvm_scripter.py" , SUPER , TYPE_NEW_PROG,
+   "Connect FATCAT with 3dMVM-- write a basic command call to 3dMVM.",
+   "User specificies specific model, and awaaaay we go.\n"
+},
+
+{ 8, Sep , 2014 , PT , "fat_mvm_gridconv.py" , SUPER , TYPE_NEW_PROG,
+   "Connect FATCAT with 3dMVM-- modernize format of old *.grid files.",
+   "Prehistoric grid files had no labels. This updates them.\n"
+},
+
+{ 8, Sep , 2014 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
+   "Allow pre-inflation of an input ROI, at user request.",
+   "Useful, for example, if wanting to go from WM->GM.\n"
+},
+
+{ 5, Aug , 2014 , PT , "3dTrackID" , MINOR , TYPE_MODIFY,
    "Less memory usage and a bit faster.",
    "More efficient internal handling of quantities.\n"
 },
