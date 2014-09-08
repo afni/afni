@@ -872,11 +872,16 @@ def get_truncated_grid_dim(dset, verb=1):
         print '** failed to get truncated grid dim from %s' % dims
         return 0
 
-    return truncate_to_N_bits(md, 3, verb=verb)
+    return truncate_to_N_bits(md, 3, verb=verb, method='r_then_t')
 
-def truncate_to_N_bits(val, bits, verb=1):
+def truncate_to_N_bits(val, bits, verb=1, method='trunc'):
     """truncate the real value to most significant N bits
-       allow for any real val and positive integer bits"""
+       allow for any real val and positive integer bits
+
+       method   trunc           - truncate to 'bits' significant bits
+                round           - round to 'bits' significant bits
+                r_then_t        - round to 2*bits sig bits, then trunc to bits
+    """
 
     # allow any real val
     if val == 0.0: return 0.0
@@ -884,6 +889,12 @@ def truncate_to_N_bits(val, bits, verb=1):
     else:         sign, fval =  1,  float(val)
 
     if verb > 2: print 'T2NB: applying sign=%d, fval=%g' % (sign,fval)
+
+    # if r_then_t, start by rounding to 2*bits, then continue to truncate
+    meth = method
+    if method == 'r_then_t':
+        fval = truncate_to_N_bits(val,2*bits,verb,'round')
+        meth = 'trunc'
 
     if bits <= 0 or type(bits) != type(1):
         print "** truncate to N bits: bad bits = ", bits
@@ -894,8 +905,10 @@ def truncate_to_N_bits(val, bits, verb=1):
     m    = int(math.ceil(bits-1 - math.log(fval)/log2))
     pm   = 2**m
 
-    # then truncate to an actual integer in that range and divide by 2^m
-    ival = math.floor(pm * fval)
+    # then (round or) truncate to an actual integer in that range
+    # and divide by 2^m (cannot be r_then_t here)
+    if meth == 'round': ival = round(pm * fval)
+    else:               ival = math.floor(pm * fval)
     retval = sign*float(ival)/pm
     
     if verb > 2:
@@ -1910,7 +1923,7 @@ def data_to_hex_str(data):
 def section_divider(hname='', maxlen=74, hchar='=', endchar=''):
     """return a title string of 'hchar's with the middle chars set to 'hname'
        if endchar is set, put at both ends of header
-       e.g. block_header('volreg', endchar='##') """
+       e.g. section_divider('volreg', endchar='##') """
     if len(hname) > 0: name = ' %s ' % hname
     else:              name = ''
 
