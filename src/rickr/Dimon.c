@@ -118,10 +118,11 @@ static char * g_history[] =
     "      - if -save_details, make separate file for GEME index sort info\n"
     " 4.04 Sep  8, 2014 [rickr] :\n",
     "      - num_chan > 1 needs ACQ type 3D+t\n"
+    " 4.05 Sep 10, 2014 [rickr] : handle num_chan > 1 in GERT_Reco\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.04 (September 8, 2014)"
+#define DIMON_VERSION "version 4.05 (September 10, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -316,6 +317,8 @@ static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_stalled_run   ( int run, int seq_num, int naps, int max_naps,
                                  int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
+int        create_dimon_file_lists(param_t * p, char * ret_fname, stats_t * ST,
+                                   int rind);
 static int create_file_list    ( param_t * p, char * fname, int details,
                                  char * mesg );
 static int create_gert_script  ( stats_t * s, param_t * p );
@@ -3928,7 +3931,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sp                 = %s\n"
             "   gert_outdir        = %s\n"
             "   file_type          = %s\n"
-            "   (argv, argc)       = (%p, %d)\n"
+            "   argc               = %d\n"
             "   tr, ep             = %g, %g\n"
             "   nt, num_slices     = %d, %d\n"
             "   max_images         = %d\n"
@@ -3970,7 +3973,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->sp),
             CHECK_NULL_STR(opt->gert_outdir),
             CHECK_NULL_STR(opt->file_type),
-            opt->argv, opt->argc,
+            opt->argc,
             opt->tr, opt->ep, opt->nt, opt->num_slices, opt->max_images,
             opt->max_quiet_trs, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
@@ -5391,10 +5394,10 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     char   * pname;                       /* pointer to prefix      */
     char     command[64];                 /* command line for chmod */
     char   * spat;                        /* slice acquisition pattern */
-    char     outfile[32];                 /* run files */
+    char     outfile[64];                 /* run files */
     char     TR[16];                      /* for printing TR w/out zeros */
     float    tr;
-    int      num_valid, c, findex;
+    int      num_valid, c, findex, indent=0;
     int      first_run = -1, nspaces = 0;
 
     /* If the user did not give a slice pattern string, use the default *
@@ -5457,84 +5460,89 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     fprintf(fp, "\n\n");
 
     /* create run files, containing lists of all files in a run */
-    for ( c = 0; c < s->nused; c++ )
-        if ( s->runs[c].volumes > 0 )
-        {
-            /*-- create name file --*/
-            sprintf(outfile, "dimon.files.run.%03d", c);
-            if ( (nfp = fopen( outfile, "w" )) == NULL )
-            {
-                fprintf( stderr, "** DF: cannot open '%s' for writing",outfile);
-                fclose(fp);
-                return -1;
-            }
-            /* write image filenames to file, one per line */
-            for(findex = 0; findex < s->runs[c].volumes*s->slices; findex++)
-              fprintf(nfp, "%s\n", p->fim_o[s->runs[c].f1index+findex].fname);
-            fclose(nfp);
-            /*---------------------*/
+    for ( c = 0; c < s->nused; c++ ) {
+        if ( s->runs[c].volumes <= 0 ) continue;
 
-            /* remove trailing zeros from TR printing */
-            tr = opts->tr > 0 ? opts->tr : s->runs[c].geh.tr;
-            sprintf(TR, "%.6f", tr);
-            clear_float_zeros(TR);
-
-            /* and write to3d command */
-            if( opts->gert_outdir )
-                fprintf(fp, "#------- create dataset for run #%d -------\n",c);
-
-            /* if volumes = 1, do not print timing information, 17 Mar 2008 */
-
-            if( ! opts->gert_prefix )
-            {
-                sprintf(prefixname, "${OutPrefix}_run_%03d", c);
-                pname = prefixname;
-            } else
-                pname = opts->gert_prefix;
-
-            /* if we add a .nii extension, try to adjust backslashes */
-            if( opts->gert_format == 1 ) nspaces = 4;
-            else                         nspaces = 0;
-
-            /* if gert_format = 1, write as NIfTI */
-            fprintf(fp, "to3d%s -prefix %s%s  \\\n", 
-                     opts->gert_quiterr==1 ? " -quit_on_err" : "",
-                     pname,
-                     opts->gert_format==1 ? ".nii" : "" );
-
-            if( s->runs[c].volumes > 1 )
-            {
-                /* set nslices gert_nz, else mosaic, else volume stats */
-                int nslices = s->slices;
-                if( opts->gert_nz && s->slices != 1 )
-                    fprintf(stderr,"** warning: overriding %d slices with %d"
-                                   " in script %s\n",
-                            s->slices, opts->gert_nz, sfile);
-                if( opts->gert_nz ) nslices = opts->gert_nz;
-                else if ( s->mos_nslices > 1 ) nslices = s->mos_nslices;
-
-                fprintf(fp, "     -time:zt %d %d %ssec %s %*s  \\\n",
-                        nslices, s->runs[c].volumes, TR, spat, nspaces, "");
-
-                /* check siemens timing for errors, just to be sure */
-                if( !strcmp(spat, "FROM_IMAGE") )
-                    valid_g_siemens_times(nslices, tr, 1);
-            }
-
-            if( opts->use_last_elem )
-                fprintf(fp, "     -use_last_elem                \\\n");
-
-            /* have short overflow, convert to floats   9 Jul 2013 */
-            if( want_ushort2float )
-                fprintf(fp, "     -ushort2float                 \\\n");
-
-            fprintf(fp, "     -@ < %s\n\n", outfile);
-
-            /* and possibly move output datasets there */
-            if( opts->gert_outdir )
-                fprintf(fp, "mv %s%s $OutDir\n\n", pname,
-                        opts->gert_format==1 ? ".nii" : "+orig.*");
+        /*-- create name file, dimon.files.run.001 (maybe with .chan.001) --*/
+        if( create_dimon_file_lists(p, outfile, s, c) ) {
+            fclose(fp);
+            return -1;
         }
+
+        /* remove trailing zeros from TR printing */
+        tr = opts->tr > 0 ? opts->tr : s->runs[c].geh.tr;
+        sprintf(TR, "%.6f", tr);
+        clear_float_zeros(TR);
+
+        /* and write to3d command */
+        if( opts->gert_outdir )
+            fprintf(fp, "#------- create dataset for run #%d -------\n",c);
+
+        /* if volumes = 1, do not print timing information, 17 Mar 2008 */
+
+        if( ! opts->gert_prefix )
+        {
+            sprintf(prefixname, "${OutPrefix}_run_%03d", c);
+            pname = prefixname;
+        } else
+            pname = opts->gert_prefix;
+
+        /* if we add a .nii extension, try to adjust backslashes */
+        if( opts->gert_format == 1 ) nspaces = 4;
+        else                         nspaces = 0;
+
+        if( opts->num_chan > 1 ) {
+           indent = 4;
+           fprintf(fp, "# process %d channels/echoes\n"
+                       "foreach chan ( `count -digits 3 1 %d` )\n",
+                       opts->num_chan, opts->num_chan);
+        }
+
+        /* if gert_format = 1, write as NIfTI */
+        fprintf(fp, "%*sto3d%s -prefix %s%s%s  \\\n", 
+                 indent, "",
+                 opts->gert_quiterr==1 ? " -quit_on_err" : "",
+                 pname,
+                 opts->num_chan > 1 ? "_chan_$chan" : "",
+                 opts->gert_format==1 ? ".nii" : "" );
+
+        if( s->runs[c].volumes > 1 )
+        {
+            /* set nslices gert_nz, else mosaic, else volume stats */
+            int nslices = s->slices;
+            int nvols = s->runs[c].volumes;
+            if( opts->num_chan > 1 ) nvols /= opts->num_chan;
+            if( opts->gert_nz && s->slices != 1 )
+                fprintf(stderr,"** warning: overriding %d slices with %d"
+                               " in script %s\n",
+                        s->slices, opts->gert_nz, sfile);
+            if( opts->gert_nz ) nslices = opts->gert_nz;
+            else if ( s->mos_nslices > 1 ) nslices = s->mos_nslices;
+
+            fprintf(fp, "%*s     -time:zt %d %d %ssec %s %*s  \\\n",
+                    indent, "", nslices, nvols, TR, spat, nspaces, "");
+
+            /* check siemens timing for errors, just to be sure */
+            if( !strcmp(spat, "FROM_IMAGE") )
+                valid_g_siemens_times(nslices, tr, 1);
+        }
+
+        if( opts->use_last_elem )
+           fprintf(fp, "%*s     -use_last_elem                \\\n",indent,"");
+
+        /* have short overflow, convert to floats   9 Jul 2013 */
+        if( want_ushort2float )
+           fprintf(fp, "%*s     -ushort2float                 \\\n",indent,"");
+
+        fprintf(fp, "%*s     -@ < %s\n\n", indent, "", outfile);
+        if( opts->num_chan > 1 ) fprintf(fp, "end\n\n");
+
+        /* and possibly move output datasets there */
+        if( opts->gert_outdir ) {
+            fprintf(fp, "mv %s%s $OutDir\n\n", pname,
+                    opts->gert_format==1 ? ".nii" : "+orig.*");
+        }
+    }
 
     fclose( fp );
 
@@ -5555,6 +5563,63 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
     return 0;
 }
+
+
+/* write dimon.files.run.RRR(.chan.CCC), to contain file names
+ *
+ * populate fn string list with names of those files
+ *
+ * return 0 on success, else error
+ */
+int create_dimon_file_lists(param_t *p, char *ret_fname, stats_t *ST, int rind)
+{
+   FILE  * fp;
+   run_t * RT = ST->runs+rind; /* current run_t struct */
+   char    fname[64];
+   int     nchan, fbase_len, cind, sind, base_sind, vind;
+
+   /* note number of files to create */
+   nchan = p->opts.num_chan;
+   if( nchan < 1 ) nchan = 1;
+
+   /* initialize fname, and make return list name (maybe with $chan var) */
+   sprintf(fname, "dimon.files.run.%03d", rind);
+   fbase_len = strlen(fname);
+
+   strcpy(ret_fname, fname);
+   if( nchan > 1 ) strcat(ret_fname, ".chan.$chan");
+
+   for( cind = 0; cind < nchan; cind++ ) {
+
+      /* maybe adjust name */
+      if( nchan > 1 ) sprintf(fname+fbase_len, ".chan.%03d", cind+1);
+
+      /* open file, write names, close */
+
+      if( (fp = fopen(fname, "w")) == NULL ) {
+         fprintf(stderr,"** Dimon files: cannot open '%s' for writing\n",fname);
+         return 1;
+      }
+
+      if( gD.level > 0 )
+         fprintf(stderr,"++ writing dimon file list to %s\n", fname);
+
+      /* write all volumes for this channel (volume cind + k*nchan) */
+      for(vind = cind; vind < RT->volumes; vind += nchan) {
+         /* the base index for this volume is offset by vind * nslices */
+         base_sind = RT->f1index + vind*ST->slices;
+
+         /* write names out, one per line */
+         for( sind = 0; sind < ST->slices; sind++ )
+            fprintf(fp, "%s\n", p->fim_o[base_sind+sind].fname);
+      }
+
+      fclose(fp);
+   }
+
+   return 0;
+}
+
 
 /* if index > 0, put index and mesg in name */
 FILE * get_file_pointer(char * fname, char * mesg, int index)
@@ -5702,7 +5767,7 @@ int test_sop_iuid_index_order(param_t * p)
       iprev = iuid;
    }
 
-   if( ! err ) fprintf(stderr,"++ %d IUID's are sequential\n", p->nfim);
+   if( ! err ) fprintf(stderr,"++ %d IUID's are sequential, yay\n", p->nfim);
 
    return err;
 }

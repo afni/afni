@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Sep, 2014, RCR, "Dimon", MICRO, TYPE_ENHANCE,
+   "handle num_chan > 1 in GERT_Reco scripts",
+   NULL
+ } ,
+
  {  8, Sep, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "round min dimension to 6 sig bits, then truncate to 3",
    "This help catch cases where the dimension is just under\n"
