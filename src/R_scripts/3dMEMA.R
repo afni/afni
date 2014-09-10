@@ -507,7 +507,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              AFNI Mixed-Effects Meta-Analysis Modeling Package!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.2.4, Aug 7, 2014
+Version 0.2.5, Sept 10, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -540,7 +540,7 @@ Usage:
  both regression coefficients, or general linear contrasts among them, and the 
  corresponding t-statistics from each subject as input. It\'s required to install 
  R (http://www.r-project.org/), plus \'snow\' package if parallel computing is
- desirable. Version 0.2.4 (Aug 7, 2014). If you want to cite the analysis
+ desirable. Version 0.2.5, Sept 10, 2014. If you want to cite the analysis
  approach, use the following at this moment:
 
  Chen et al., 2012. FMRI Group Analysis Combining Effect Estimates
@@ -1357,8 +1357,8 @@ process.MEMA.opts <- function (lop, verb = 0) {
                for(jj in 1:lop$nCov) {
                   cat ('Have lop$centerVal[jj]', lop$centerVal[jj], '\n');
                }
-               lop$covData <- t(as.matrix(
-                                 apply(lop$covData, 1, "-", lop$centerVal)))
+               #lop$covData <- t(as.matrix(apply(lop$covData, 1, "-", lop$centerVal)))
+               lop$covData <- t(as.matrix(apply(lop$covData, 2, "-", lop$centerVal)))
             }
          } # if(lop$centerType2 == 0 | lop$centerType2 == 1)
         
