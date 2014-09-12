@@ -1496,6 +1496,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
+     "Thank you so so so very much"                                  ,
+     "Will you miss me?"                                             ,
      "If you can't be good, be careful"                              ,
      "What sweet madness has seized me?"                             ,
      "Which is more accurate: Haruspicy or Statistical Inference?"   ,
