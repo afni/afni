@@ -137,6 +137,9 @@ int  read_analyze_file ( param_t * p, field_s * fields, ft_analyze_header * hdr,
 int  read_ge_header    ( char * pathname, ge_header_info * hi, ge_extras * E,
                          ge_off * off );
 
+FILE * open_correction_file(char * fname, char * check_type, int overwrite,
+                            int verb);
+
 int  process_analyze   ( param_t * p, int index );
 int  process_file      ( char * pathname, param_t * p );
 int  process_ge        ( char * pathname, param_t * p );

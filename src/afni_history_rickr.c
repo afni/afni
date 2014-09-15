@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Sep, 2014, RCR, "file_tool", MINOR, TYPE_ENHANCE,
+   "apply -prefix for -show_file_type (a dos2unix conversion)",
+   NULL
+ } ,
+
  { 10, Sep, 2014, RCR, "Dimon", MICRO, TYPE_ENHANCE,
    "handle num_chan > 1 in GERT_Reco scripts",
    NULL
