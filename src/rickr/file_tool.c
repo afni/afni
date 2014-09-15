@@ -134,9 +134,10 @@ static char g_history[] =
  " 3.12 Mar 07, 2013    - applied -prefix with -show_bad_backslash\n"
  " 3.13 Jul 09, 2013    - added a little more info for locating bad chars\n"
  " 3.14 Dec 30, 2013    - bad_backslash includes files ending with one\n"
+ " 3.15 Sep 15, 2014    - applied -prefix for -show_file_type\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.14 (December 30, 2013)"
+#define VERSION         "3.15 (September 15, 2014)"
 
 
 /* ----------------------------------------------------------------------
@@ -284,6 +285,34 @@ process_script( char * filename, param_t * p )
     return rv;
 }
 
+FILE * open_correction_file(char * fname, char * check_type, int overwrite,
+                            int verb)
+{
+   FILE * outfp;
+
+   if( file_exists(fname) ) {
+      if( ! overwrite ) {
+         fprintf(stderr,"** %s output file '%s' exists,"
+                        " failing (no -overwrite)\n", check_type, fname);
+         return NULL;
+      } else
+         fprintf(stderr,"** %s output file '%s' exists, will overwrite\n",
+                 check_type, fname);
+   }
+
+   outfp = fopen(fname, "w");
+   if( !outfp ) {
+      fprintf(stderr,"** %s: failed to open '%s' for writing \n",
+              check_type, fname);
+      return NULL;
+   }
+
+   if( verb ) fprintf(stderr, "-- will fix any %s errors in %s\n",
+                      check_type, fname);
+
+   return outfp;
+}
+
 
 /*------------------------------------------------------------
  * Scan file for: '\\' then whitespace then '\n'
@@ -309,19 +338,9 @@ scr_show_bad_bs( char * filename, param_t * p )
 
     /* maybe try to fix any errors */
     if ( p->prefix ) {
-       if( ! p->overwrite && file_exists(p->prefix) ){
-          fprintf(stderr,"** output file '%s' already exists\n",p->prefix);
-          return 1;
-       }
-
-       outfp = fopen(p->prefix, "w");
-       if( !outfp ) {
-          fprintf(stderr,"** failed to open '%s' for writing \n",p->prefix);
-          return 1;
-       }
-
-       if( p->debug )
-          fprintf(stderr, "-- will fix any backslash errors in %s",p->prefix);
+       outfp = open_correction_file(p->prefix, "bad backslash", p->overwrite,
+                                    p->debug+1);
+       if( !outfp ) return 1;
     }
 
     line_start = fdata;
@@ -388,6 +407,9 @@ scr_show_bad_bs( char * filename, param_t * p )
     if(p->debug) fprintf(stderr,"file %s: %d bad lines\n", filename,bad);
     if(!p->quiet && outfp)
         fprintf(stderr,"   --> FIXED file written to %s\n", p->prefix);
+    else if ( !p->quiet && bad > 0 )
+        printf("consider: file_tool -show_bad_backslash -infile %s"
+               " -prefix FIXED.txt\n", filename);
 
     /* and close any output file pointer */
     if( outfp ) fclose(outfp);
@@ -458,14 +480,22 @@ scr_show_file( char * filename, param_t * p )
 {
     static char * fdata = NULL;
     static int    flen  = 0;
+    FILE        * outfp = NULL;
     char        * cp;
-    int           length, count, bin = 0, bom;
+    int           length, count, bin = 0, bom, warn = 1;
 
     if( p->debug ) fprintf(stderr,"-- show_file_type: file %s ...\n",filename);
 
     if( (length = read_file( filename, &fdata, &flen )) < 0 ) return -1;
 
     if( p->debug ) fprintf(stderr,"file length = %d\n", length);
+
+    /* maybe try to fix any errors */
+    if ( p->prefix ) {
+       outfp = open_correction_file(p->prefix, "non-Unix check", p->overwrite,
+                                    p->debug+1);
+       if( !outfp ) return 1;
+    }
 
     bom = BOM_val_type(fdata, length);
     if( bom )
@@ -485,7 +515,10 @@ scr_show_file( char * filename, param_t * p )
                 fprintf(stderr," : %d (0x%0x)", cp[count], 0xff & cp[count]);
         }
 
-        if( cp[count] != '\r' ) continue;
+        if( cp[count] != '\r' ) {
+           if( outfp ) fputc(cp[count], outfp);
+           continue;
+        }
 
         if( count < length-1 && cp[count+1] == '\n' )      /* dos type */
         {
@@ -493,8 +526,14 @@ scr_show_file( char * filename, param_t * p )
                 if( bin ) fputc('\n', stderr);
                 fprintf(stderr,"found 0x0d0a char pair at offset %d\n",count);
             }
-            printf("%s file type: DOS\n", filename);
-            return 0;
+            if( warn ) { printf("%s file type: DOS\n", filename); warn = 0; }
+            if( ! outfp ) {
+               printf("consider: file_tool -show_file_type -infile %s"
+                      " -prefix FIXED.txt\n", filename);
+               return 0; /* not fixing, so blow */
+            }
+
+            /* else do nothing (next char will be \n and printed) */
         }
         else                                            /* mac type */
         {
@@ -502,13 +541,20 @@ scr_show_file( char * filename, param_t * p )
                 if( bin ) fputc('\n', stderr);
                 fprintf(stderr,"found 0x0d char at offset %d\n",count);
             }
-            printf("%s file type: MAC\n", filename);
-            return 0;
+            if( warn ) { printf("%s file type: MAC\n", filename); warn = 0; }
+            if( ! outfp ) {
+               printf("consider: file_tool -show_file_type -infile %s"
+                      " -prefix FIXED.txt\n", filename);
+               return 0; /* not fixing, so blow */
+            }
+
+            fputc('\n', outfp);
         }
     }
 
     if( bin && p->debug )putchar('\n');
-    printf("%s file type: UNIX\n", filename);
+    if( warn ) printf("%s file type: UNIX\n", filename);
+    if( outfp ) fclose(outfp);
     return 0;
 }
 
@@ -1678,11 +1724,16 @@ help_full( char * prog )
         "\n"
         "      %s -show_file_type -infiles my_scripts_*.txt\n"
         "\n"
-        "   2. in each file, look for spaces after trailing backslashes '\\'\n"
+        "   2. in one file, convert a non-UNIX file type to UNIX\n"
+        "      (basically a dos2unix operation)\n"
+        "\n"
+        "      %s -show_file_type -infile non.unix.txt -prefix is.unix.txt\n"
+        "\n"
+        "   3. in each file, look for spaces after trailing backslashes '\\'\n"
         "\n"
         "      %s -show_bad_backslash -infiles my_scripts_*.txt\n"
         "\n"
-        "   3. in ONE file, correct spaces after trailing backslashes '\\'\n"
+        "   4. in ONE file, correct spaces after trailing backslashes '\\'\n"
         "\n"
         "      %s -show_bad_backslash -infile scripts.txt -prefix s.fixed.txt\n"
         "\n"
@@ -1911,7 +1962,7 @@ help_full( char * prog )
         "\n",
         prog, prog,
         prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
+        prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
         VERSION, __DATE__
         );
 
@@ -2265,7 +2316,7 @@ disp_param_data( param_t * p )
     if ( ! p )
         return -1;
 
-    printf( "num_files, flist         : %d, %p\n"
+    printf( "num_files, flist         : %d, %s\n"
             "debug, data_len          : %d, %d\n"
             "ge_disp, ge4_disp, ndisp : 0x%x, 0x%x, 0x%x\n"
             "\n"
@@ -2273,7 +2324,8 @@ disp_param_data( param_t * p )
             "offset, length, quiet    : %ld, %d, %d\n"
             "mod_data                 : %s\n"
             "\n",
-            p->num_files, p->flist, p->debug, p->data_len,
+            p->num_files, p->flist ? "<set>" : "<not set>",
+            p->debug, p->data_len,
             p->ge_disp, p->ge4_disp, p->ndisp, p->swap, p->modify,
             p->mod_type, p->offset, p->length, p->quiet,
             CHECK_NULL_STR(p->mod_data)
