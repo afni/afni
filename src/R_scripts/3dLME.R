@@ -22,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.5, Sept 5, 2014
+Version 1.3.6, Sept 15, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1033,7 +1033,7 @@ if(dimy == 1 & dimz == 1) {
    library(snow)
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
-   clusterExport(cl, "ModelForm", "lop")
+   clusterExport(cl, c("ModelForm", "lop"), envir=environment())
    for(kk in 1:nSeg) {
       if(NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
             ModelForm=ModelForm, pars=pars), c(2,1)) else
@@ -1064,7 +1064,7 @@ if(dimy == 1 & dimz == 1) {
       library(snow)
       cl <- makeCluster(lop$nNodes, type = "SOCK")
       clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
-      clusterExport(cl, "ModelForm", "lop")  # for some reason phia needs this for multiple CPUs
+      clusterExport(cl, c("ModelForm", "lop"), envir=environment())  # for some reason phia needs this for multiple CPUs
       for (kk in 1:dimz) {
          if(NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 
                dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars), c(2,3,1)) else
