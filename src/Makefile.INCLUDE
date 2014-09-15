@@ -2447,7 +2447,7 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(RM) $@
 	$(CC) -o 3dresample 3dresample.o $(LFLAGS) $(LLIBS)
 
-file_tool: ge4_header.o
+file_tool: ge4_header.o rickr/file_tool.c
 	( cd rickr ;                                                    \
 	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      \
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
