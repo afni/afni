@@ -205,7 +205,7 @@ int main (int argc,char *argv[])
       nisa = SUMA_comp_str_2_NI_str_ar(out, " ");
       for (kk=0; kk<nisa->num; ++kk) {
          out = nisa->str[kk];
-         if (kk > 0) fprintf(SUMA_STDOUT, sep);
+         if (kk > 0) fprintf(SUMA_STDOUT, "%s", sep);
          if (strcmp(out,"RelName") == 0) {
             fprintf(SUMA_STDOUT, "%s%s", 
                         Test->RelPath,Test->FileName);
