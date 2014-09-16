@@ -7427,6 +7427,10 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
       SUMA_LH("In picking mode!");
    }
    
+   if (!(curcol = SUMA_ADO_CurColPlane((SUMA_ALL_DO *)dset))) {
+      SUMA_S_Err("Could not find current col plane!");
+      SUMA_RETURN (NOPE);
+   }
 
    #if USE_SER
    SUMA_RecordEnablingState(&(sv->SER)); /* Lazy, consider SUMA_GLStateTrack ,
@@ -7567,49 +7571,51 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
             }
             
             /* Fillup where you have segments */
-            SUMA_LHv("Filling up image for %d cells\n", N_seg);
-            for(iseg=0; iseg<N_seg; ++iseg) {
-               if (!SUMA_GDSET_SegRowToPoints(dset, iseg, 
-                                                &ii, 
-                                                &jj,
-                                                NULL)){
-                  SUMA_S_Errv("Failed for edge %d\n", iseg);
-               }
-               si = SUMA_GDSET_EdgeRow_To_Index(dset, iseg);
-               if (!ui) {
-                  iim = ii; jjm = jj;
-               } else {
-                  iim = SUMA_ibinFind(ui, N[0], ii);
-                  jjm = SUMA_ibinFind(uj, N[1], jj);
-               }
-               #if 0
-               SUMA_LHv(
-                  "Edge %d [%d %d] in %dx%d mat [%d %d], col [%d %d %d] (%d)\n",
-                     si, ii, jj, N[0], N[1], iim, jjm, (byte)(255*colv[4*si]),
-                           (byte)(255*colv[4*si+1]), (byte)(255*colv[4*si+2]),
-                           GSaux->isColored[si]);
-               #endif
-               if (GSaux->isColored[si]) {
-                  /* fill foreground */
-                  iipix = iim*(GB[0])+B[0]; iipixMax = iipix+G[0];
-                  while (iipix < iipixMax) {
-                     jjpix = jjm*(GB[1])+B[1]; jjpixMax = jjpix+G[1];
-                     while (jjpix < jjpixMax) {
-                        ii4 = (iipix*M[1]+jjpix)*4; 
-                           /* Texture image is filled in row major, so
-                              image in bb is transposed */
-                        is4 = 4*si;
-                        bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
-                        bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
-                        bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
-                        bb[ii4] = (byte)(255*colv[is4  ]); 
-                        ++jjpix;
+            if (curcol->ShowMode > 0) { 
+               SUMA_LHv("Filling up image for %d cells\n", N_seg);
+               for(iseg=0; iseg<N_seg; ++iseg) {
+                  if (!SUMA_GDSET_SegRowToPoints(dset, iseg, 
+                                                   &ii, 
+                                                   &jj,
+                                                   NULL)){
+                     SUMA_S_Errv("Failed for edge %d\n", iseg);
+                  }
+                  si = SUMA_GDSET_EdgeRow_To_Index(dset, iseg);
+                  if (!ui) {
+                     iim = ii; jjm = jj;
+                  } else {
+                     iim = SUMA_ibinFind(ui, N[0], ii);
+                     jjm = SUMA_ibinFind(uj, N[1], jj);
+                  }
+                  #if 0
+                  SUMA_LHv(
+                     "Edge %d [%d %d] in %dx%d mat [%d %d], "
+                     "col [%d %d %d] (%d)\n",
+                        si, ii, jj, N[0], N[1], iim, jjm, (byte)(255*colv[4*si]),
+                              (byte)(255*colv[4*si+1]), (byte)(255*colv[4*si+2]),
+                              GSaux->isColored[si]);
+                  #endif
+                  if (GSaux->isColored[si]) {
+                     /* fill foreground */
+                     iipix = iim*(GB[0])+B[0]; iipixMax = iipix+G[0];
+                     while (iipix < iipixMax) {
+                        jjpix = jjm*(GB[1])+B[1]; jjpixMax = jjpix+G[1];
+                        while (jjpix < jjpixMax) {
+                           ii4 = (iipix*M[1]+jjpix)*4; 
+                              /* Texture image is filled in row major, so
+                                 image in bb is transposed */
+                           is4 = 4*si;
+                           bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                           bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                           bb[ii4] = (byte)(255*colv[is4++]); ++ii4; 
+                           bb[ii4] = (byte)(255*colv[is4  ]); 
+                           ++jjpix;
+                        }
+                        ++iipix;
                      }
-                     ++iipix;
                   }
                }
             }
-            
             #if 0
             for (iipix=0; iipix<M[0]; ++iipix) {
                for (jjpix=0; jjpix<M[1]; ++jjpix) {
@@ -7799,10 +7805,6 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    }
    
    /* Show the text ? */
-   if (!(curcol = SUMA_ADO_CurColPlane((SUMA_ALL_DO *)dset))) {
-      SUMA_S_Err("Could not find current col plane!");
-      SUMA_RETURN (NOPE);
-   }
    if ((fontGL = SUMA_Font2GLFont(curcol->Font))) {
       int nl, tw, th, bh, bw, skpv, skph,
           lh = SUMA_glutBitmapFontHeight(fontGL), kkk=0, SGN=-1;
@@ -10410,6 +10412,7 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       SUMA_S_Warn("This option is no good at this moment when segment stippling"
                   "\n is turned on for all segments. Easy to fix though ...");
    }
+   
    if (SDO->NodeBased == 2) { 
       SUMA_LH("Node-based vectors");
       if (!SDO->Parent_idcode_str) {
@@ -10557,6 +10560,13 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       wbox = 1;
       cdim = 3.0;
    }
+   
+   if (curcol->ShowMode < 0) { /* No connectivity information to display */
+      /* Show all nodes, just no edges */
+      if (NodeMask) memset(NodeMask, 1, DDO.N_Node*sizeof(byte));
+      goto BOTTOM;
+   }
+   
    SUMA_LHv("Stippling %d (XXX=%d, Val=%d, 01=%d) wbox=%d\n",
                 curcol->EdgeStip, SW_SurfCont_DsetEdgeStipXXX, 
                 SW_SurfCont_DsetEdgeStipVal, SW_SurfCont_DsetEdgeStip1, wbox);
@@ -10983,6 +10993,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       }
    }
    
+   
+   BOTTOM:
    /* draw the bottom object */
    if (SDO->botobj) {
       float *xyz=(float *)SUMA_malloc(3*SDO->N_AllNodes*sizeof(float));

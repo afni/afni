@@ -2791,7 +2791,7 @@ SUMA_Boolean SUMA_isRelated_SO ( SUMA_SurfaceObject *SO1,
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
+
    kin =  SUMA_WhatAreYouToMe (SO1, SO2);
    switch (level) {
       case 3: /* anything goes */

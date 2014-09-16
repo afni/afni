@@ -8110,7 +8110,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                   
       SUMA_Register_Widget_Help(SurfCont->ColPlaneShowOneFore_tb ,
                                 "SurfCont->Dset_Controls->1",
-             "Show ONLY ONE selected Dset. Foreground only. BHelp for more.",
+             "Show ONLY ONE selected Dset. Foreground only. (BHelp for more)",
                                  SUMA_SurfContHelp_DsetViewOne ) ;
       SUMA_SET_SELECT_COLOR(SurfCont->ColPlaneShowOneFore_tb);
            
@@ -9638,7 +9638,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                   
       SUMA_Register_Widget_Help(SurfCont->ColPlaneShowOneFore_tb ,
                                 "TractCont->Coloring_Controls->1",
-             "Show ONLY selected set. Foreground only. BHelp for more.",
+             "Show ONLY selected set. Foreground only. (BHelp for more)",
                                 SUMA_SurfContHelp_DsetViewOne ) ;
       SUMA_SET_SELECT_COLOR(SurfCont->ColPlaneShowOneFore_tb);
            
@@ -10505,7 +10505,7 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                   
       SUMA_Register_Widget_Help(SurfCont->ColPlaneShowOneFore_tb , 
                                 "VolCont->Dset_Controls->1",
-             "Show ONLY selected set. Foreground only. BHelp for more.\n",
+             "Show ONLY selected set. Foreground only. (BHelp for more)\n",
                                 SUMA_SurfContHelp_DsetViewOne ) ;
       SUMA_SET_SELECT_COLOR(SurfCont->ColPlaneShowOneFore_tb);
       #endif
@@ -12582,7 +12582,7 @@ void SUMA_CreateDrawROIWindow(void)
                                "Draw_ROI->ROI->Save->NIML",
                                "Format for saving ROI, "
                                "use NIML to preserve tracing order. "
-                               "Use BHelp for more.", 
+                               "(BHelp for more)", 
                                SUMA_DrawROI_SaveFormat_help, 
                                SUMAg_CF->X->DrawROI->SaveModeMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu->mw[SW_DrawROI_SaveMode]);
