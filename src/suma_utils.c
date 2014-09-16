@@ -3142,6 +3142,27 @@ char *SUMA_Sphinx_DeRef(char *s, char *r)
       SUMA_RETURN(s);
    }
    
+   if (!strcmp(r,":LIT:")) { /* special case for non Sphinx directive */
+      so = s;
+      nso = 0; 
+      while (ss) {
+         while (s < ss) {
+            so[nso++]=*(s++);      
+         }
+         if (nso && !SUMA_IS_PURE_BLANK(so[nso-1])) so[nso++] = ':'; 
+         s += strlen(r);
+         ss=strstr(s, r);
+      }
+      /* copy till end */
+      while (*s != '\0') {
+         so[nso++]=*(s++);
+      }
+      so[nso] = '\0';
+   
+      SUMA_RETURN(so);
+   }
+   
+   /* Things of the form :DIREC:`something <SOMETHING>` */
    so = s;
    nso = 0; 
    while (ss) {
@@ -3214,7 +3235,7 @@ char *SUMA_Swap_String(char *s, char *sc, char *sw)
          so[nso++]=*(s++);      
       }
       for (ww=0; ww<strlen(sw); ++ww) so[nso++]=sw[ww];
-      s += (strlen(sc)-strlen(sw))+1;
+      s += strlen(sc);
       ss=strstr(s, sc);
    }
    /* copy till end */
@@ -3349,6 +3370,14 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
 "     when SPHINX output is used:\n\n"
 " :LR: Replace this marker with a new line character for \n"
 "      Sphinx output. Cut it out for regular output.\n"
+" :LIT: Replace this marker with '::\n' to mark an upoming literal\n"
+"       paragraph for sphinx. If the character before :LIT:\n"
+"       is a non blank, a ':' will terminate the sentence preceding\n"
+"       the literal paragraph.\n"
+"       For regular output, :LIT: is cut out if it is preceded by\n"
+"       a blank. Otherwise it is replaced by a ':'\n"
+"       Note that the literal paragraph must be indented relative to\n"
+"       the preceding one.\n"
 "\n"
 " :ref:`Some Label <reference_key>` Leave such a block untouched for\n"
 "                              sphinx format. Replace whole thing\n"
@@ -3392,6 +3421,15 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
 "\n"
 "Example 4:\n"
 "... or if '\\|T\\|' is used then ...\n"
+"\n"
+"Example 5:\n"
+"A sample file would be: test.1D.col with content:LIT:\n"   \
+"   0    0.1 0.2 1   \n"   
+"   1    0   1   0.8 \n"   
+"   4    1   1   1   \n"   
+"   7    1   0   1   \n"
+"   14   0.7 0.3 0   "
+"\n"
 };
       
    if (!fout) fout = SUMA_STDERR;
@@ -3439,6 +3477,7 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
          SUMA_Swap_String(s, stmp,"|");
          SUMA_Sphinx_DeRef(s,":ref:");
          SUMA_Sphinx_DeRef(s,":term:");
+         SUMA_Sphinx_DeRef(s, ":LIT:");
          SUMA_LH(">so=>\n%s\n<", s);
          SUMA_RETURN(s);
          break;
@@ -3447,7 +3486,9 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
                SUMA_Cut_Between_String(s, ":DEF:", ":SPX:", NULL), ":SPX:");
          SUMA_Swap_String(s, ":LR:","\n");
          SUMA_Sphinx_LineSpacer(s, targ);
+         SUMA_Swap_String(s, ":LIT:","::\n");
          SUMA_Cut_String(s,"(more with BHelp)");
+         SUMA_Cut_String(s,"(BHelp for more)");
          SUMA_Cut_String(s,"(much more with BHelp)");
          break;
       default:

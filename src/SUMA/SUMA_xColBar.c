@@ -1918,10 +1918,11 @@ void SUMA_cb_SwitchInt_toggled (Widget w, XtPointer data, XtPointer client_data)
       curColPlane->ShowMode = 
          -SUMA_ABS(curColPlane->ShowMode);
    }
-   
-   SUMA_Set_Menu_Widget(SurfCont->DsetViewModeMenu,
-                 SUMA_ShowMode2ShowModeMenuItem(
-                                 curColPlane->ShowMode));
+   if (SurfCont->DsetViewModeMenu) {
+      SUMA_Set_Menu_Widget(SurfCont->DsetViewModeMenu,
+                           SUMA_ShowMode2ShowModeMenuItem(
+                                                curColPlane->ShowMode));
+   }
       
    SUMA_ColorizePlane(curColPlane);
    SUMA_Remixedisplay(ado);
@@ -5616,30 +5617,41 @@ int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
    if (num_units == SUMA_PERC_VALUE_UNITS) {
       float pr[2], prv[2], *Vsort=NULL;
       
-      if (!colp->V) {
-         SUMA_S_Err("Cannot do percentiles without colp->V");
-         SUMA_RETURN(0);
+      /* Update, because for colorization (I) column, both colp->V 
+         and colp->Vperc get clamped by range */
+      if (!SUMA_SetOverlay_Vecs(colp, 'V', colp->OptScl->find, 
+                                "reset", 1)) {
+         SUMA_S_Err("Failed to set overlay vecs");
+         SUMA_RETURN(0); 
       }
+      
       if (v2 < v1) v2 = v1;
       pr[0] = v1; pr[1] = v2;
          /* some safety checks */
       if (pr[1]<pr[0]) pr[1] = pr[0]+1; 
       if (pr[1] > 100.0) pr[1] = 100.0;
       if (pr[0] < 0.0) pr[0] = 0.0;
-      /* You should consider storing the percentil values for either the whole
-      dataset or for those columns in use. I suspect just having them in 
-      increments of 1% should be plenty good for the display, or if you 
-      want to get fancy, you can decide on the fly if a stored value exists
-      and go with it... */
+      
+      #if 0 /* old but works */
+      if (!colp->V) {
+         SUMA_S_Err("Cannot do percentiles without colp->V");
+         SUMA_RETURN(0);
+      }
       if (!(Vsort = SUMA_PercRangeVol(colp->V, NULL, colp->N_V, pr, 2, prv, 
                                       NULL, colp->OptScl->MaskZero, NULL))) {
          SUMA_S_Err("Failed to get perc. range");
          SUMA_RETURN(0);                               
       }
+      SUMA_ifree(Vsort);
+      #else
+      prv[0] = SUMA_OverlayPercentile (colp, 'V', pr[0]);
+      prv[1] = SUMA_OverlayPercentile (colp, 'V', pr[1]);
+      #endif
+      
       SUMA_LH("Computed percentiles %f %f-->%f %f", 
                pr[0], pr[1], prv[0], prv[1]);
       v1 = prv[0]; v2 = prv[1];
-      SUMA_ifree(Vsort);
+      
       /* Need to update the value in the table struct */
       if (TF) ++setmen;
       
@@ -6422,7 +6434,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "I", '\0', YUP, SwitchInt_Menu, 
                            (void *)ado, 
                            "SurfCont->Dset_Mapping->I",
-                           "Select Intensity (I) column (BHelp for more)", 
+                  "Select Intensity (I) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelInt,
                            SurfCont->SwitchIntMenu );
          XtInsertEventHandler( SurfCont->SwitchIntMenu->mw[0] , 
@@ -6455,7 +6467,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "T", '\0', YUP, SwitchThr_Menu, 
                            (void *)ado,  
                            "SurfCont->Dset_Mapping->T",
-                           "Select Threshold (T) column (BHelp for more)", 
+                  "Select Threshold (T) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelThr ,    
                            SurfCont->SwitchThrMenu );
          XtInsertEventHandler( SurfCont->SwitchThrMenu->mw[0] ,      
@@ -6486,7 +6498,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "B", '\0', YUP, SwitchBrt_Menu, 
                            (void *)ado,  
                            "SurfCont->Dset_Mapping->B",
-                           "Select Brightness (B) column (BHelp for more)", 
+               "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
          XtInsertEventHandler( SurfCont->SwitchBrtMenu->mw[0] ,      
@@ -6758,7 +6770,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          XtAddCallback (SurfCont->SymIrange_tb, 
                XmNvalueChangedCallback, SUMA_cb_SymIrange_tb_toggled, ado);
          SUMA_Register_Widget_Help(SurfCont->SymIrange_tb,
-                                   "SurfCont->Dset_Mapping->IxT",
+                                   "SurfCont->Dset_Mapping->sym_I",
                                    "Intensity range symmetry about 0 ",
                                    SUMA_SurfContHelp_Isym);
          SUMA_SET_SELECT_COLOR(SurfCont->SymIrange_tb);
@@ -7046,7 +7058,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "I", '\0', YUP, SwitchInt_Menu, 
                            (void *)ado, 
                            "VolCont->Dset_Mapping->I",
-                           "Select Intensity (I) column (BHelp for more)", 
+                  "Select Intensity (I) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelInt,
                            SurfCont->SwitchIntMenu );
          XtInsertEventHandler( SurfCont->SwitchIntMenu->mw[0] , 
@@ -7079,7 +7091,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "T", '\0', YUP, SwitchThr_Menu, 
                            (void *)ado,  
                            "VolCont->Dset_Mapping->T",
-                           "Select Threshold (T) column (BHelp for more)", 
+               "Select Threshold (T) column, aka sub-brick.  (BHelp for more)",
                            SUMA_SurfContHelp_SelThr ,    
                            SurfCont->SwitchThrMenu );
          XtInsertEventHandler( SurfCont->SwitchThrMenu->mw[0] ,      
@@ -7110,7 +7122,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "B", '\0', YUP, SwitchBrt_Menu, 
                            (void *)ado,  
                            "VolCont->Dset_Mapping->B",
-                           "Select Brightness (B) column (BHelp for more)", 
+               "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
          XtInsertEventHandler( SurfCont->SwitchBrtMenu->mw[0] ,      
@@ -7267,6 +7279,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                                SurfCont->CmapModeMenu);
                XtManageChild (SurfCont->CmapModeMenu->mw[SW_CmapMode]);
                
+               #if 0
                SUMA_LH("Forming new bias menu");
                SUMA_BuildMenuReset(0);
                SUMA_BuildMenu ( rc, XmMENU_OPTION, 
@@ -7277,7 +7290,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                                SUMA_SurfContHelp_Bias, 
                                SurfCont->CoordBiasMenu);
                XtManageChild (SurfCont->CoordBiasMenu->mw[SW_CoordBias]);
-               
+               #endif
                XtManageChild(rc);
          }
             
@@ -7670,7 +7683,7 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "I", '\0', YUP, SwitchInt_Menu, 
                            (void *)ado, 
                            "GraphCont->Dset_Mapping->I",
-                           "Select Intensity (I) column (BHelp for more)", 
+                  "Select Intensity (I) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelInt,
                            SurfCont->SwitchIntMenu );
          XtInsertEventHandler( SurfCont->SwitchIntMenu->mw[0] , 
@@ -7704,7 +7717,7 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "T", '\0', YUP, SwitchThr_Menu, 
                            (void *)ado,  
                            "GraphCont->Dset_Mapping->T",
-                           "Select Threshold (T) column (BHelp for more)", 
+               "Select Threshold (T) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelThr ,    
                            SurfCont->SwitchThrMenu );
          XtInsertEventHandler( SurfCont->SwitchThrMenu->mw[0] ,      
@@ -7736,7 +7749,7 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            "B", '\0', YUP, SwitchBrt_Menu, 
                            (void *)ado,  
                            "GraphCont->Dset_Mapping->B",
-                           "Select Brightness (B) column (BHelp for more)", 
+               "Select Brightness (B) column, aka sub-brick. (BHelp for more)",
                            SUMA_SurfContHelp_SelBrt,
                            SurfCont->SwitchBrtMenu );
          XtInsertEventHandler( SurfCont->SwitchBrtMenu->mw[0] ,      
@@ -7893,6 +7906,7 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                                SurfCont->CmapModeMenu);
                XtManageChild (SurfCont->CmapModeMenu->mw[SW_CmapMode]);
                
+               #if 0
                SUMA_LH("Forming new bias menu");
                SUMA_BuildMenuReset(0);
                SUMA_BuildMenu ( rc, XmMENU_OPTION, 
@@ -7903,6 +7917,7 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                                SUMA_SurfContHelp_Bias, 
                                SurfCont->CoordBiasMenu);
                XtManageChild (SurfCont->CoordBiasMenu->mw[SW_CoordBias]);
+               #endif
                
                XtManageChild(rc);
          }

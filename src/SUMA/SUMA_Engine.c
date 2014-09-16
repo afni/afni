@@ -3014,14 +3014,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                     }else{
                                        svi->Ch->datumID = sv->Ch->datumID;
                                     }
-
                                     /* set the XYZ */
-                                    svi->Ch->c[0] = SO2->NodeList[SO2->NodeDim*
+                                    svi->Ch->c_noVisX[0] = 
+                                               SO2->NodeList[SO2->NodeDim*
                                                                svi->Ch->datumID];
-                                    svi->Ch->c[1] = SO2->NodeList[SO2->NodeDim*
+                                    svi->Ch->c_noVisX[1] = 
+                                               SO2->NodeList[SO2->NodeDim*
                                                              svi->Ch->datumID+1];
-                                    svi->Ch->c[2] = SO2->NodeList[SO2->NodeDim*
+                                    svi->Ch->c_noVisX[2] = 
+                                               SO2->NodeList[SO2->NodeDim*
                                                              svi->Ch->datumID+2];
+                                    svi->Ch->c[0]=svi->Ch->c_noVisX[0];
+                                    svi->Ch->c[1]=svi->Ch->c_noVisX[1];
+                                    svi->Ch->c[2]=svi->Ch->c_noVisX[2];
+                                    if (SO2->VisX.Applied) { /* Apply the VisX */
+                                       SUMA_Apply_VisX_Chain(svi->Ch->c, 1, 
+                                                          SO2->VisX.Xchain, 0);
+                                    }
                                     if (LocalHead)
                                        fprintf (SUMA_STDERR,
                                                 "%s: new XYZ %f %f %f\n", 

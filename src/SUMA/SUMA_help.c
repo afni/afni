@@ -1266,7 +1266,7 @@ char * SUMA_hkf(char *keyi, int target)
    switch (target) {
       default:
       case 0: /* SUMA */
-         snprintf(key1, 255, keyi);
+         snprintf(key1, 255, "%s", keyi);
          snprintf(s, 255, "  %s", key1);
          return(s);
          break;
@@ -1275,11 +1275,11 @@ char * SUMA_hkf(char *keyi, int target)
          if (strstr(keyi,"->") == keyi) {
             /* Won't work if you pass key with blanks before '->'
                But why do such a thing? */ 
-            snprintf(key1, 255, keyi+2);
-            snprintf(key2, 255, keyi+2);
+            snprintf(key1, 255, "%s", keyi+2);
+            snprintf(key2, 255, "%s", keyi+2);
          } else {
-            snprintf(key1, 255, keyi);
-            snprintf(key2, 255, keyi);
+            snprintf(key1, 255, "%s", keyi);
+            snprintf(key2, 255, "%s", keyi);
          }
          if (target == 1) direc = "kbd";
          else direc = "menuselection";
@@ -3091,12 +3091,15 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Dset_Mapping->T->v",
                      "SurfCont->Dset_Mapping->B",
                      "SurfCont->Dset_Mapping->B->v",
-                     "SurfCont->Dset_Mapping->SetRangeTable",
+                     "SurfCont->Dset_Mapping->SetRangeTable.r00",
+                     "SurfCont->Dset_Mapping->SetRangeTable.r01",
+                     "SurfCont->Dset_Mapping->SetRangeTable.r02",
+                     "SurfCont->Dset_Mapping->SetRangeTable.r03",
                      "SurfCont->Dset_Mapping->Col",
                      "SurfCont->Dset_Mapping->Bias",
                      "SurfCont->Dset_Mapping->Cmp",
                      "SurfCont->Dset_Mapping->New",
-                     "SurfCont->Dset_Mapping->|T|",
+                     "SurfCont->Dset_Mapping->abs_T",
                      "SurfCont->Dset_Mapping->sym_I",
                      "SurfCont->Dset_Mapping->shw_0",
                      "SurfCont->Dset_Mapping->Clst",

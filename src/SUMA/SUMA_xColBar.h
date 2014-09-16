@@ -793,7 +793,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "or data derived.\n"   
    
 #define SUMA_SurfContHelp_DsetView  \
-   "View (ON)/Hide Dset node colors."
+   "View (ON)/Hide Dset node colors"
 
 #define SUMA_SurfContHelp_DsetViewOne  \
    "If ON, view only the selected\n"\
@@ -896,110 +896,98 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define SUMA_SurfContHelp_DsetLoadCol  \
    "Load a new color plane.\n"   \
    "A color plane is a :term:`1D` text file with \n" \
-   "each row formatted as such:"  \
+   "each row formatted as such::LR:\n"  \
    "  n  r g b\n" \
    "where n is the node index, \n"  \
    "r, g, and b are the red, green and blue\n"  \
    "color values, respectively. \n"  \
    "Color values must be between 0 and 1.0. \n" \
-   "A sample file would be: test.1D.col:LR:\n"   \
-   "   0    0.1 0.2 1   :LR:\n"   \
-   "   1    0   1   0.8 :LR:\n"   \
-   "   4    1   1   1   :LR:\n"   \
-   "   7    1   0   1   :LR:\n"   \
+   "A sample file would be: test.1D.col with content:LIT:\n"   \
+   "   0    0.1 0.2 1   \n"   \
+   "   1    0   1   0.8 \n"   \
+   "   4    1   1   1   \n"   \
+   "   7    1   0   1   \n"   \
    "   14   0.7 0.3 0   "
 
 
 #define SUMA_SurfContHelp_SelInt \
-   "Select Intensity (I) column.\n"   \
-   "Use this menu to select\n"   \
-   "which column in the\n"   \
-   "dataset (Dset) should be \n"   \
-   "used for an Intensity (I)\n"   \
-   "measure.\n"   \
-   "\n"   \
-   "Right click on 'I' to get a \n" \
-   "list widget, which is better \n" \
-   "when you have many columns \n"   \
-   "from which to choose.\n"\
-   "\n"  \
-   "I values are the ones that \n"   \
-   "get colored by the colormap.\n" \
-   "\n"   \
-   "No coloring is done if the\n"   \
-   "'v' button on the right is\n"   \
-   "turned off.\n"   \
-   "\n"   \
-   "I value for the selected node\n"   \
-   "is shown in the 'Val' table\n"   \
-   "of the 'Xhair Info' section \n"   \
-   "on the left." 
+"Use this menu to select which column in the "   \
+"dataset (Dset) should be used for an Intensity (I)"   \
+"measure.\n"   \
+"\n"   \
+"Values in (I) are the ones that get colored by the colormap," \
+"however, no coloring is done if the :ref:`'v'<SurfCont->Dset_Mapping->I->v>` button on the right is"   \
+"turned off.\n"   \
+"\n"   \
+"The (I) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
+"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>`section on the left.\n"\
+"The value is also shown in the SUMA viewer\n"\
+"\n"   \
+"You can use a different type of selector to set (I). "  \
+"A right-click on 'I' opens a list widget, which is better " \
+"when you have many columns from which to choose.\n" \
+"\n"  \
+"The style of this selector can also change depending on the number"\
+"of sub-bricks (columns) you have in your dataset. If the number"\
+"exceeds a threshold specified by the environment variable "\
+":ref:`SUMA_ArrowFieldSelectorTrigger`\n"
 
 #define SUMA_SurfContHelp_SelThr \
-   "Select Threshold (T) column.\n"   \
-   "Use this menu to select\n"   \
-   "which column in the\n"   \
-   "dataset (Dset) should be \n"   \
-   "used for a Threshold (T)\n"   \
-   "measure.\n"   \
-   "\n"   \
-   "Right click on 'T' to get a \n" \
-   "list widget, which is better \n" \
-   "when you have many columns \n"   \
-   "from which to choose.\n"\
-   "\n"  \
-   "T values are the ones used \n"   \
-   "to determine if a node \n"   \
-   "gets colored based on its\n"   \
-   "I value.\n"   \
-   "\n"   \
-   "A node n is not colored if::LR:\n"   \
-   "    T(n)   < Tscale   :LR:\n"   \
-   "or if '\\|T\\|' option below "   \
-   "is turned ON: :LR:\n"   \
-   "  | T(n) | < Tscale .\n"  \
-   "\n"   \
-   "Thresholding is not applied\n"   \
-   "when the 'v' button on the \n"   \
-   "right is turned off.\n"   \
-   "\n"   \
-   "T(n) for the selected node n\n"   \
-   "is shown in the 'Val'\n"   \
-   "table of the 'Xhair Info'\n"   \
-   "section on the left."   
+"Use this menu to select which column in the\n"   \
+"dataset (Dset) should be used for a Threshold (T) "   \
+"measure.\n"   \
+"\n"   \
+"T values are the ones used to determine if a :term:`datum` "   \
+"gets colored based on its (I) value.\n"   \
+"\n"   \
+"A node n is not colored if::LR:\n"   \
+"    T(n)   < Tscale   :LR:\n"   \
+"or if :ref:`'\\|T\\|'<SurfCont->Dset_Mapping->abs_T>` option below "   \
+"is turned ON: :LR:\n"   \
+"  | T(n) | < Tscale .\n"  \
+"\n"   \
+"Thresholding is not applied when the :ref:`'v'<SurfCont->Dset_Mapping->T->v>` button on the right is turned off.\n" \
+"\n"   \
+"The (T) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
+"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>`section on the left.\n"\
+"The value is also shown in the SUMA viewer\n"\
+"\n"   \
+"You can use a different type of selector to set (T). "  \
+"A right-click on 'T' opens a list widget, which is better " \
+"when you have many columns from which to choose.\n" \
+"\n" \
+"The style of this selector can also change depending on the number"\
+"of sub-bricks (columns) you have in your dataset. If the number"\
+"exceeds a threshold specified by the environment variable "\
+":ref:`SUMA_ArrowFieldSelectorTrigger`\n"
 
 #define SUMA_SurfContHelp_SelBrt \
-   "Select Brightness (B) column.\n"   \
-   "Use this menu to select\n"   \
-   "which column in the\n"   \
-   "dataset (Dset) should be \n"   \
-   "used for color Brightness (B)\n"   \
-   "modulation.\n"   \
-   "\n"   \
-   "Right click on 'B' to get a \n" \
-   "list widget which is better \n" \
-   "when you have many columns \n"   \
-   "from which to choose.\n"\
-   "\n"  \
-   "B values are the ones used \n"   \
-   "to control the brightness of\n"   \
-   "a node's color.\n"  \
-   "\n"   \
-   "Brightness modulation is\n"   \
-   "controlled by ranges in the\n"   \
-   "'B' cells of the table below.\n"   \
-   "\n"   \
-   "Brightness modulation is not\n"   \
-   "applied when the 'v' button on \n"   \
-   "the right is turned off.\n"  \
-   "\n"   \
-   "B(n) for the selected node n\n"   \
-   "is shown in the 'Val'\n"   \
-   "table of the 'Xhair Info'\n"   \
-   "section on the left."
+"Use this menu to select which column in the dataset (Dset) should be "   \
+"used for color Brightness (B) modulation.\n"   \
+"\n"   \
+"(B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.\n"  \
+"\n"   \
+"Brightness modulation is controlled by ranges in the 'B' cells of the "\
+"table below.\n"   \
+"\n"   \
+"Brightness modulation is not applied when the :ref:`'v'<SurfCont->Dset_Mapping->B->v>` button on \n"   \
+"the right is turned off.\n"  \
+"\n"   \
+"The (B) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
+"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>`section on the left.\n"\
+"The value is also shown in the SUMA viewer\n"\
+"\n"   \
+"You can use a different type of selector to set (B). "  \
+"A right-click on 'B' opens a list widget, which is better " \
+"when you have many columns from which to choose.\n" \
+"\n" \
+"The style of this selector can also change depending on the number"\
+"of sub-bricks (columns) you have in your dataset. If the number"\
+"exceeds a threshold specified by the environment variable "\
+":ref:`SUMA_ArrowFieldSelectorTrigger`\n"
 
 #define SUMA_SurfContHelp_SelIntTgl \
-   "View (ON)/Hide Dset node colors."
+   "View (ON)/Hide Dset node colors"
 
 #define SUMA_SurfContHelp_SelThrTgl \
    "Apply (ON)/Ignore thresholding"
@@ -1013,44 +1001,45 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "View (ON)/Hide Volume Rendering"
 
 #define SUMA_SurfContHelp_SetRngTbl_r0 \
-   "Used for setting the clipping ranges."   \
+   "Used for setting the clipping ranges. "   \
    "Clipping is only done for \n"   \
    "color mapping. Actual data \n"   \
    "values do not change."
 
 #define SUMA_SurfContHelp_SetRngTbl_r1 \
-   "Intensity clipping range rules::LR:\n" \
-   "Values in the intensity data "   \
-   "that are less than Min are colored "   \
-   "by the first (bottom) color of the "   \
-   "colormap. :LR:\n"   \
-   "Values larger than Max are mapped "   \
-   "to the top color.\n"   \
-   "\n"\
-   "Append '%' to set values to percentiles.\n"  \
-   "\n"   \
-   "Left click locks ranges "   \
-   "from automatic resetting.\n\n"   \
-   "Locked range is applied to "   \
-   "current Dset only.\n"   \
-   "\n"   \
-   "Right click resets values "   \
-   "to full range in data."  
+"Intensity clipping range rules::LR:\n" \
+"   Values in the intensity data "   \
+"that are less than Min are colored "   \
+"by the first (bottom) color of the "   \
+"colormap. :LR:\n"   \
+"   Values larger than Max are mapped "   \
+"to the top color.:LR:\n"   \
+"   Intermediate values are mapped according to the :ref:`'Col'<SurfCont->Dset_Mapping->Col>` menu below.\n"\
+"\n"\
+"You can set the range as a percentile of the dataset's values by appending "\
+" '%' to the percentile for Min and/or Max such as 5% or 90%. Note that "\
+"the percentile always gets replaced by the actual value in the dataset.\n"  \
+"\n"   \
+"A left-click on 'I' locks ranges from automatic resetting, and the locked "\
+"range applies to the current Dset only. A locked range is indicated with the "\
+"reverse video mode.\n"   \
+"\n"   \
+"A right-click resets values to the default range (usually 2% to 98%) in the dataset."
 
 #define SUMA_SurfContHelp_SetRngTbl_r2 \
-   "Brightness modulation clipping range.\n"   \
-   "Values in the brightness data are\n"   \
-   "clipped to the Min to Max range before\n"   \
-   "calculating their modulation factor\n"   \
-   "(see next table row).\n"   \
-   "\n"   \
-   "Left click locks ranges\n"   \
-   "from automatic resetting.\n"   \
-   "Locked range is applied to\n"   \
-   "current Dset only.\n"  \
-   "\n"   \
-   "Right click resets values\n"   \
-   "to full range in data."   
+"Values in the brightness (B) :ref:`column<SurfCont->Dset_Mapping->B>` "\
+"are clipped to the Min to Max range in this row before calculating "\
+"their modulation factor per the values in the next table row.\n"   \
+"\n"   \
+"You can set the range as a percentile of the dataset's values by appending "\
+" '%' to the percentile for Min and/or Max such as 8% or 75%. Note that "\
+"the percentile always gets replaced by the actual value in the dataset.\n"  \
+"\n"   \
+"A left-click locks ranges in this row from automatic resetting, "   \
+"and a locked range is applied to the current Dset only. A locked "\
+"range is indicated with the reverse video mode.\n" \
+"\n"   \
+"A right-click resets values to the default range (usually 2% to 98%) for the dataset."   
 
 #define SUMA_SurfContHelp_SetRngTbl_r3 \
    "Brightness modulation factor range.\n"   \
@@ -1112,9 +1101,15 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "the program SurfClust"
    
 #define SUMA_SurfContHelp_Col \
-   "Switch between color mapping modes.:LR:\n"   \
+   "Switch between modes for mapping values to the color map.:LR:\n"   \
+   "The bottom color of the map C0 maps to the minimum value in the "\
+   ":ref:`I range<SurfCont->Dset_Mapping->SetRangeTable.r01>` row, "\
+   "and the top color to the maximum value. Colors for values in between "\
+   "the minimum and maximum of "\
+   ":ref:`I range<SurfCont->Dset_Mapping->SetRangeTable.r01>`, the following "\
+   "methods apply:LR:\n"\
    "Int: Interpolate linearly between\n"   \
-   ":   :colors in colormap:LR:\n"   \
+   ":   :nearest colors in colormap:LR:\n"   \
    "NN : Use the nearest color in the\n"   \
    ":   :colormap. The index into the colormap\n"\
    ":   :of Ncol colors is given by:\n"\
@@ -1127,20 +1122,21 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    ":   :icol=floor(V) with clipping to the range 0 to Ncol-1"
 
 #define SUMA_SurfContHelp_Link \
-   "Switch between I, T selectors linking modes.\n"   \
-   "None: Do nothing.\n"   \
-   "Stat: Swith T selector to match an I selection with \n"\
-   "      an obvious statistic. Matching is based on labels.\n"\
-   "You can set your preference using environment variable\n"\
-   "   SUMA_IxT_LinkMode\n"
+"Switch between methods for the automatic linking of I, T selectors.:LR:\n"   \
+"None: Do nothing.:LR:\n"   \
+"Same: Set the T selector to match the I selection.:LR:\n"  \
+"Stat: Swith T selector to match an I selection with \n"\
+"'    'an obvious statistic. Matching is based on labels.:LR:\n"\
+"You can set your preference using environment variable\n"\
+"   SUMA_IxT_LinkMode\n"
 
 #define SUMA_SurfContHelp_Bias \
-   "Coordinate bias direction.\n"   \
-   "   -: No bias thank you\n"   \
-   "   x: X coord bias\n"   \
-   "   y: Y coord bias\n"   \
-   "   z: Z coord bias\n"   \
-   "   n: bias along node's normal\n"  \
+   "Coordinate bias direction.:LR:\n"   \
+   ": :-: No bias thank you:LR:\n"   \
+   ": :x: X coord bias:LR:\n"   \
+   ": :y: Y coord bias:LR:\n"   \
+   ": :z: Z coord bias:LR:\n"   \
+   ": :n: bias along node's normal:LR:\n"  \
    "\n"   \
    "See more info in Bhelp for\n"   \
    "'C' table entry above.\n" \
