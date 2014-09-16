@@ -896,8 +896,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define SUMA_SurfContHelp_DsetLoadCol  \
    "Load a new color plane.\n"   \
    "A color plane is a :term:`1D` text file with \n" \
-   "each row formatted as such::LR:\n"  \
-   "  n  r g b\n" \
+   "each row formatted as such:LR:\n"  \
+   "  n  r g b:LR:\n" \
    "where n is the node index, \n"  \
    "r, g, and b are the red, green and blue\n"  \
    "color values, respectively. \n"  \
@@ -920,7 +920,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "turned off.\n"   \
 "\n"   \
 "The (I) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
-"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>`section on the left.\n"\
+"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>` section on the left.\n"\
 "The value is also shown in the SUMA viewer\n"\
 "\n"   \
 "You can use a different type of selector to set (I). "  \
@@ -949,7 +949,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "Thresholding is not applied when the :ref:`'v'<SurfCont->Dset_Mapping->T->v>` button on the right is turned off.\n" \
 "\n"   \
 "The (T) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
-"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>`section on the left.\n"\
+"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>` section on the left.\n"\
 "The value is also shown in the SUMA viewer\n"\
 "\n"   \
 "You can use a different type of selector to set (T). "  \
@@ -974,7 +974,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "the right is turned off.\n"  \
 "\n"   \
 "The (B) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
-"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>`section on the left.\n"\
+"of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>` section on the left.\n"\
 "The value is also shown in the SUMA viewer\n"\
 "\n"   \
 "You can use a different type of selector to set (B). "  \
@@ -1109,17 +1109,18 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    ":ref:`I range<SurfCont->Dset_Mapping->SetRangeTable.r01>`, the following "\
    "methods apply:LR:\n"\
    "Int: Interpolate linearly between\n"   \
-   ":   :nearest colors in colormap:LR:\n"   \
+   ":   :colors in colormap to find color at:LR:\n"\
+   ":   :   icol=((V-Vmin)/Vrange * Ncol) :LR:\n"   \
    "NN : Use the nearest color in the\n"   \
    ":   :colormap. The index into the colormap\n"\
-   ":   :of Ncol colors is given by:\n"\
-   ":   :icol=floor((V-Vmin)/Vrange * Ncol)\n"   \
+   ":   :of Ncol colors is given by :LR:\n"\
+   ":   :   icol=floor((V-Vmin)/Vrange * Ncol) :LR:\n"   \
    ":   :with icol clipped to the range 0 to Ncol-1:LR:\n"   \
    "Dir: Use intensity values as indices\n"   \
    ":   :into the colormap.\n"   \
    ":   :In Dir mode, the intensity \n"   \
-   ":   :clipping range is of no use.\n" \
-   ":   :icol=floor(V) with clipping to the range 0 to Ncol-1"
+   ":   :clipping range is of no use.:LR:\n" \
+   ":   :   icol=floor(V) with clipping to the range 0 to Ncol-1"
 
 #define SUMA_SurfContHelp_Link \
 "Switch between methods for the automatic linking of I, T selectors.:LR:\n"   \
