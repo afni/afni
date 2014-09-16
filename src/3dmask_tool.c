@@ -33,7 +33,7 @@ static char * g_history[] =
   "       (thanks to W Gaggl for noting the problematic scenario)\n",
   "0.4   1 Aug 2013\n"
   "     - Fixed actual problem W Gaggl was seeing, apparent pointer step\n"
-  "       issue that might work on one system but fail on another (with the.\n"
+  "       issue that might work on one system but fail on another (with the\n"
   "       identical binary, ick).\n"
   "       So re-wrote the troubling part.\n"
 };
@@ -53,6 +53,7 @@ typedef struct
    float               frac;      /* min frac of overlap/Ndset (0=union)    */
    int                 count;     /* flag to output counts                  */
    int                 fill;      /* flag to fill holes in mask             */
+   char              * fill_dirs; /* directions to apply hole filling over  */
    int                 datum;     /* output data type                       */
    int                 verb;      /* verbose level                          */
 
@@ -72,11 +73,12 @@ int convert_to_bytemask (THD_3dim_dataset * dset, int verb);
 int count_masks         (THD_3dim_dataset *[], int, int,
                          THD_3dim_dataset **, int *);
 int dilations_are_valid (int_list *);
-int fill_holes          (THD_3dim_dataset *, int);
+int fill_holes          (THD_3dim_dataset *, char * axes, int);
 int limit_to_frac       (THD_3dim_dataset *, int, int, int);
 int needed_padding      (int_list *);
 int process_input_dsets (param_t * params);
 int process_opts        (param_t *, int, char *[]);
+int set_axis_directions(THD_3dim_dataset * dset, char * axes, THD_ivec3 * dirs);
 int show_help           (void);
 int write_result        (param_t *, THD_3dim_dataset *, int, char *[]);
 
@@ -147,7 +149,7 @@ int main( int argc, char *argv[] )
 
    /* maybe fill any remaining holes */
    if( params->fill )
-      if ( fill_holes(countset, params->verb) ) RETURN(1);
+      if ( fill_holes(countset, params->fill_dirs, params->verb) ) RETURN(1);
 
    /* create output */
    if( write_result(params, countset, argc, argv) ) RETURN(1);
@@ -275,7 +277,7 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
 int apply_affected_voxels(void * outdata, void * indata,
                           int datum, byte * mask, int nvox)
 {
-   int index, fill=0, rm=0;
+   int index;
 
    ENTRY("apply_affected_voxels");
 
@@ -663,7 +665,12 @@ int show_help(void)
    "      3dmask_tool -input mask_anat.FT+tlrc -prefix ma.filled \\\n"
    "                  -fill_holes\n"
    "\n"
-   "   e. read many masks, dilate and erode, restrict to 70%%, and fill holes\n"
+   "   e. fill holes per slice\n"
+   "\n"
+   "      3dmask_tool -input mask_anat.FT+tlrc -prefix ma.filled.xy \\\n"
+   "                  -fill_holes -fill_dirs xy\n"
+   "\n"
+   "   f. read many masks, dilate and erode, restrict to 70%%, and fill holes\n"
    "\n"
    "      3dmask_tool -input mask_anat.*+tlrc.HEAD -prefix ma.fill.7 \\\n"
    "                  -dilate_input 5 -5 -frac 0.7 -fill_holes\n"
@@ -755,11 +762,43 @@ int show_help(void)
    "        after all other processing has been done.\n"
    "\n"
    "        A hole is defined as a connected set of voxels that is surrounded\n"
-   "        by non-zero voxels, and which contains no volume edge voxel.\n"
+   "        by non-zero voxels, and which contains no volume edge voxel, i.e.\n"
+   "        there is no connected voxels at a volume edge (edge of a volume\n"
+   "        meaning any part of any of the 6 volume faces).\n"
+   "\n"
+   "        To put it one more way, a zero voxel is part of a hole if there\n"
+   "        is no path of zero voxels (in 3D space) to a volume face/edge.\n"
+   "        Such a path can be curved.\n"
    "\n"
    "        Here, connections are via the 6 faces only, meaning a voxel could\n"
    "        be consider to be part of a hole even if there were a diagonal\n"
    "        path to an edge.  Please pester me if that is not desirable.\n"
+   "\n"
+   "    -fill_dirs DIRS         : fill holes only in the given directions\n"
+   "\n"
+   "            e.g. -fill_dirs xy\n"
+   "            e.g. -fill_dirs RA\n"
+   "            e.g. -fill_dirs XZ\n"
+   "\n"
+   "        This option is for use with -fill holes.\n"
+   "\n"
+   "        By default, a hole is a connected set of zero voxels that does\n"
+   "        not have a path to a volume edge.  By specifying fill DIRS, the\n"
+   "        filling is done restricted to only those axis directions.\n"
+   "\n"
+   "        For example, to fill holes once slice at a time (in a sagittal\n"
+   "        dataset say, with orientation ASL), one could use any one of the\n"
+   "        options:\n"
+   "\n"
+   "            -fill_dirs xy\n"
+   "            -fill_dirs YX\n"
+   "            -fill_dirs AS\n"
+   "            -fill_dirs ip\n"
+   "            -fill_dirs APSI\n"
+   "\n"
+   "        DIRS should be a single string that specifies 1-3 of the axes\n"
+   "        using {x,y,z} labels (i.e. dataset axis order), or using the\n"
+   "        labels in {R,L,A,P,I,S}.  Such labels are case-insensitive.\n"
    "\n"
    "    -inputs DSET1 ...       : specify the set of inputs (taken as masks)\n"
    "\n"
@@ -814,6 +853,7 @@ int process_opts(param_t * params, int argc, char * argv[] )
    memset(params, 0, sizeof(param_t));  /* init everything to 0 */
    params->inputs = NULL;
    params->prefix = "combined_mask";
+   params->fill_dirs = NULL;
    init_int_list(&params->IND, 0);
    init_int_list(&params->RESD, 0);
 
@@ -926,6 +966,12 @@ int process_opts(param_t * params, int argc, char * argv[] )
          ac++; continue;
       }
 
+      else if( strcmp(argv[ac],"-fill_dirs") == 0 ) {
+         if( ++ac >= argc ) ERROR_exit("need argument after '-fill_dirs'");
+         params->fill_dirs = argv[ac];
+         ac++; continue;
+      }
+
       else if( strncmp(argv[ac],"-inputs", 4) == 0 ) {
          /* store list of names from argv */
          ac++;
@@ -1011,19 +1057,83 @@ int dilations_are_valid(int_list * D)
 }
 
 
+/* convert something like "RA" to {1, 1, 0}, for first 2 axes
+ * (depending on axis order of dset)
+ *
+ * If axes is not set, default to all.
+ *
+ * Allow for axes to be equivalent cases like "RA", "ra", "RLAP", "aprl".
+ * Only allow 6 directions, else assume error.
+ *
+ * Also allow for cases like "xy", "YX".
+ *
+ * dirs 
+ */
+int set_axis_directions(THD_3dim_dataset * dset, char * axes, THD_ivec3 * dirs)
+{
+   int nax, odir, ind;
+
+   ENTRY("set_axis_directions");
+
+   if( ! dset || !dirs ) {
+      fprintf(stderr,"** set_axis_directions: bad params %p, %p\n", dset,dirs);
+      RETURN(1);
+   }
+
+   /* default to everything */
+   if( !axes ) { dirs->ijk[0] = dirs->ijk[1] = dirs->ijk[2] = 1;  return 0; }
+
+   /* init to nothing */
+   dirs->ijk[0] = dirs->ijk[1] = dirs->ijk[2] = 0;
+
+   /* note how many axes to set */
+   nax = strlen(axes);
+   if( nax > 6 ) {
+      fprintf(stderr,"** set_axis_dirs: axis list len > 6 in '%s'\n",axes);
+      RETURN(1);
+   }
+
+   for( ind = 0; ind < nax; ind++ ) {
+      odir = THD_get_axis_direction(dset->daxes, ORCODE(toupper(axes[ind])));
+      odir = abs(odir);
+
+      /* allow for use of xyz or XYZ */
+      if( odir == 0 ) {
+         switch(toupper(axes[ind])) {
+            case 'X': { odir = 1; break; }
+            case 'Y': { odir = 2; break; }
+            case 'Z': { odir = 3; break; }
+         }
+      }
+
+      if( odir == 0 ) {
+         fprintf(stderr,"** set_axis_dirs: illegal axis code in '%s'\n", axes);
+         RETURN(1);
+      }
+
+      dirs->ijk[odir-1] = 1;
+   }
+
+   RETURN(0);
+}
+
+
 /*--------------- fill any holes in volumes ---------------*/
 /*
  * A hole is defined as a connected set of zero voxels that does
  * not reach an edge.
  *
+ * If axes is set, fill holes along the given axis directions.
+ *
  * The core functionality was added to libmri.a in THD_mask_fill_holes.
  */
-int fill_holes(THD_3dim_dataset * dset, int verb)
+int fill_holes(THD_3dim_dataset * dset, char * axes, int verb)
 {
-   short * sptr;     /* to for filling holes */
-   byte  * bmask;    /* computed result */
-   int     nfilled;
-   int     nx, ny, nz, nvox, index, fill=0;
+   THD_ivec3   dirs;
+   short     * sptr;     /* to for filling holes */
+   byte      * bmask;    /* computed result */
+   int         nfilled;
+   int         nx, ny, nz, nvox, index, fill=0;
 
    ENTRY("fill_holes");
 
@@ -1031,8 +1141,10 @@ int fill_holes(THD_3dim_dataset * dset, int verb)
    nx = DSET_NX(dset);  ny = DSET_NY(dset);  nz = DSET_NZ(dset);
    nvox = DSET_NVOX(dset);
 
+   if( set_axis_directions(dset, axes, &dirs) ) RETURN(1);
+
    /* created filled mask */
-   nfilled = THD_mask_fill_holes(nx,ny,nz, bmask, verb);
+   nfilled = THD_mask_fill_holes(nx,ny,nz, bmask, &dirs, verb);
    if( nfilled < 0 ) { ERROR_message("failed to fill holes");  RETURN(1); }
 
    /* apply to short volume */
