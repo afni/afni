@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Sep, 2014, RCR, "3dmask_tool", MINOR, TYPE_NEW_OPT,
+   "added -fill_dirs option, to specify directions for hole filling",
+   "Added for D. Glen."
+ } ,
+
  { 15, Sep, 2014, RCR, "file_tool", MINOR, TYPE_ENHANCE,
    "apply -prefix for -show_file_type (a dos2unix conversion)",
    NULL
