@@ -6,7 +6,8 @@
 #define ASSIF(p,v) if( p!= NULL ) *p = v
 
 /* local prototypes */
-static int find_connected_set(byte *, int, int, int, int, int_list *);
+static int find_connected_set(byte *, int, int, int, int, 
+                              THD_ivec3 *, int_list *);
 static int set_mask_vals     (byte *, int_list *, byte);
 
 static int dall = 1024 ;
@@ -567,15 +568,20 @@ ENTRY("THD_mask_fillin_completely") ;
           if this does not contain an edge voxel, reset to 1
        clear all edge voxels (set any 2 to 0)
 
+    if dirs, fill holes restricted to those axis directions
+
     return -1 on error, else number of voxels filled
 ------------------------------------------------------------------------*/
 
-int THD_mask_fill_holes( int nx, int ny, int nz, byte *mmm, int verb )
+int THD_mask_fill_holes( int nx, int ny, int nz, byte *mmm, 
+                         THD_ivec3 * dirs, int verb )
 {
    int_list   Cset; /* current connected set of voxels */
    byte     * bmask=NULL;
    int        nholes=0, nfilled=0, voxel;
    int        nvox, has_edge;
+
+// rcr - pass ivec3 check_dir (data axis directions)
 
 ENTRY("THD_mask_fill_holes");
 
@@ -604,7 +610,7 @@ ENTRY("THD_mask_fill_holes");
       if( bmask[voxel] ) continue;       /* skip any set voxel */
 
       /* current Cset of voxels will be initialized to 2 */
-      has_edge = find_connected_set(bmask, nx, ny, nz, voxel, &Cset);
+      has_edge = find_connected_set(bmask, nx, ny, nz, voxel, dirs, &Cset);
       if( has_edge < 0 ) RETURN(-1);
       if( Cset.num < 1 ){ ERROR_message("TFMH: FCS failure"); RETURN(-1); }
 
@@ -647,6 +653,9 @@ static int set_mask_vals(byte * bmask, int_list * L, byte val)
 
     modify new set of bmask values to 2
 
+    dirs is a restriction of connected sets - only search in those dirs
+    (basically to allow for planar hole filling)
+
     method:
        set voxel
        init as search list
@@ -654,13 +663,14 @@ static int set_mask_vals(byte * bmask, int_list * L, byte val)
           init new search list
           for each voxel in list
              for each zero neighbor (6, 18 or 26?  start with 6)
+             (restrict neighbors to axis dirs)
                 set and add to new list
           current list = new list
 
     return whether there was an edge voxel, or -1 on error
  *------------------------------------------------------------------*/
 static int find_connected_set(byte * bmask, int nx, int ny, int nz, int voxel,
-                              int_list * IL)
+                              THD_ivec3 * dirs, int_list * IL)
 {
    int_list   SL1, SL2;         /* search lists */
    int_list * spa, *spb, *spt;  /* changing pointers to search lists */
@@ -668,6 +678,7 @@ static int find_connected_set(byte * bmask, int nx, int ny, int nz, int voxel,
    int        has_edge = 0;     /* is there an edge voxel */
    int        newval = 2;       /* easy to change */
    int        i, j, k;
+   int        doi=1, doj=1, dok=1; /* directions to search, from dirs */
 
    ENTRY("find_connected_set");
 
@@ -689,6 +700,13 @@ static int find_connected_set(byte * bmask, int nx, int ny, int nz, int voxel,
    /* using 1000 as the list memory increment size */
    if( add_to_int_list(spa, voxel, 1000) < 0 ) RETURN(-1);
 
+   /* note directions to apply */
+   if( dirs ) {
+      doi = dirs->ijk[0];
+      doj = dirs->ijk[1];
+      dok = dirs->ijk[2];
+   }
+
    while( spa->num > 0 ) {
       spb->num = 0;             /* init as empty */
       extend_int_list(IL, spa); /* track all connected voxels */
@@ -699,43 +717,56 @@ static int find_connected_set(byte * bmask, int nx, int ny, int nz, int voxel,
          IJK_TO_THREE(newvox, i,j,k, nx,nxy);
 
          /* check whether this is an edge voxel */
-         if( ! has_edge &&
-               ( i==0 || j==0 || k==0 || i == nx-1 || j==ny-1 || k==nz-1 ) )
-            has_edge = 1;
+         if( ! has_edge ) {
+           if( dirs ) {
+              if     ( doi && ( i==0 || i == nx-1 ) ) has_edge = 1;
+              else if( doj && ( j==0 || j == ny-1 ) ) has_edge = 1;
+              else if( dok && ( k==0 || k == nz-1 ) ) has_edge = 1;
+           } else if( i==0 || j==0 || k==0 || i == nx-1 || j==ny-1 || k==nz-1 ) 
+              has_edge = 1;
+         }
 
          /* in each of 6 directions:
           *    if neighbor is not off edge and is not set
           *       set and add to next search list
           */
-         testvox = newvox-1;
-         if( i > 0    && !bmask[testvox] ) {  /* should never happen */
-            bmask[testvox] = newval;
-            add_to_int_list(spb, testvox, 1000);
+         if( doi ) {
+            testvox = newvox-1;
+            if( i > 0    && !bmask[testvox] ) {  /* should never happen */
+               bmask[testvox] = newval;
+               add_to_int_list(spb, testvox, 1000);
+            }
+            testvox = newvox+1;
+            if( i < nx-1 && !bmask[testvox] ) {
+               bmask[testvox] = newval;
+               add_to_int_list(spb, testvox, 1000);
+            }
          }
-         testvox = newvox+1;
-         if( i < nx-1 && !bmask[testvox] ) {
-            bmask[testvox] = newval;
-            add_to_int_list(spb, testvox, 1000);
+
+         if( doj ) {
+            testvox = newvox-nx;
+            if( j > 0    && !bmask[testvox] ) {
+               bmask[testvox] = newval;
+               add_to_int_list(spb, testvox, 1000);
+            }
+            testvox = newvox+nx;
+            if( j < ny-1 && !bmask[testvox] ) {
+               bmask[testvox] = newval;
+               add_to_int_list(spb, testvox, 1000);
+            }
          }
-         testvox = newvox-nx;
-         if( j > 0    && !bmask[testvox] ) {
-            bmask[testvox] = newval;
-            add_to_int_list(spb, testvox, 1000);
-         }
-         testvox = newvox+nx;
-         if( j < ny-1 && !bmask[testvox] ) {
-            bmask[testvox] = newval;
-            add_to_int_list(spb, testvox, 1000);
-         }
-         testvox = newvox-nxy;
-         if( k > 0    && !bmask[testvox] ) {
-            bmask[testvox] = newval;
-            add_to_int_list(spb, testvox, 1000);
-         }
-         testvox = newvox+nxy;
-         if( k < nz-1 && !bmask[testvox] ) {
-            bmask[testvox] = newval;
-            add_to_int_list(spb, testvox, 1000);
+
+         if( dok ) {
+            testvox = newvox-nxy;
+            if( k > 0    && !bmask[testvox] ) {
+               bmask[testvox] = newval;
+               add_to_int_list(spb, testvox, 1000);
+            }
+            testvox = newvox+nxy;
+            if( k < nz-1 && !bmask[testvox] ) {
+               bmask[testvox] = newval;
+               add_to_int_list(spb, testvox, 1000);
+            }
          }
       }
 
