@@ -6454,9 +6454,11 @@ static int   Hstopped    = 0 ;          /* indicate that iterations were stopped
 #ifdef ALLOW_QMODE
 static int Hqfinal  = 0 ;  /* do quintic at the final level? */
 static int Hqonly   = 0 ;  /* do quintic at all levels? (very slow) */
+static int Hqhard   = 0 ;  /* do quintic in second pass of 'workhard'? */
 #else
 # define   Hqfinal    0
 # define   Hqonly     0
+# define   Hqhard     0
 #endif
 
 #undef  WORKHARD  /* work hard at level #lll? */
@@ -8644,7 +8646,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f,Hcostbeg=999.9f ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
-   int qmode=MRI_CUBIC , nlevr , nsup,isup ;
+   int qmode=MRI_CUBIC , qmode2=MRI_CUBIC , qmodeX , nlevr , nsup,isup ;
    IndexWarp3D *OutWarp ;  /* the return value */
 
 ENTRY("IW3D_warpomatic") ;
@@ -8820,9 +8822,10 @@ ENTRY("IW3D_warpomatic") ;
      Hfactor = 1.0f ;  /* always allow full-size patch warps */
 #endif
 
-     qmode = MRI_CUBIC ;  /* cubic patches from here on down */
-#ifdef ALLOW_QMODE        /* or just maybe we'll do quintic? */
-     if( (levdone && !Hduplo && Hqfinal) || Hqonly ) qmode = MRI_QUINTIC ;
+     qmode = qmode2 = MRI_CUBIC ;  /* cubic patches from here on down */
+#ifdef ALLOW_QMODE                 /* or just maybe we'll do quintic? */
+     if( (levdone && !Hduplo && Hqfinal) || Hqonly ){ qmode = qmode2 = MRI_QUINTIC ; }
+     else if( Hqhard && !Hduplo )                   { qmode2 = MRI_QUINTIC ; }
 #endif
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
@@ -8894,6 +8897,7 @@ ENTRY("IW3D_warpomatic") ;
 
      if( lev%2 == 0 || nlevr > 1 ){ /* sweep from top to bot, kji order */
        if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.5f]:",Hcost) ;
+       qmodeX = (nlevr > 1) ? qmode2 : qmode ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
@@ -8908,15 +8912,15 @@ ENTRY("IW3D_warpomatic") ;
                   if( kbot <= kbbb        ){ kbot = kbbb; ktop = kbot+zwid-1; kdon=1; }
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              Hcostold = Hcost ;
-             iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             iter = IW3D_improve_warp( qmodeX  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
                iter = IW3D_improve_warp( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              }
 #if 0
-             else if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00002f )
-               iter = IW3D_improve_warp( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             else if( iter > 144 && qmodeX > 0 && Hcostold-Hcost > 0.00002f )
+               iter = IW3D_improve_warp( qmodeX    , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #endif
 #endif
               if( Hcost < Hstopcost ){
@@ -10229,6 +10233,7 @@ IndexWarp3D * IW3D_warpomatic_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IM
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
    int qmode=MRI_CUBIC , nlevr , nsup,isup , myIwarp=0 ;
+   int qmode2=MRI_CUBIC , qmodeX ;
 
 ENTRY("IW3D_warpomatic_plusminus") ;
 
@@ -10395,9 +10400,10 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      Hfactor = 1.0f ;
 #endif
 
-     qmode = MRI_CUBIC ;
+     qmode = qmode2 = MRI_CUBIC ;  /* cubic patches from here on down */
 #ifdef ALLOW_QMODE
-     if( (levdone && !Hduplo && Hqfinal) || Hqonly ) qmode = MRI_QUINTIC ;
+     if( (levdone && !Hduplo && Hqfinal) || Hqonly ){ qmode = qmode2 = MRI_QUINTIC ; }
+     else if( Hqhard && !Hduplo )                   { qmode2 = MRI_QUINTIC ; }
 #endif
 
      (void)IW3D_load_energy(Haawarp) ;  /* initialize energy field for penalty use */
@@ -10464,6 +10470,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
      if( lev%2 == 0 || nlevr > 1 ){ /* top to bot, kji */
        if( nlevr > 1 && Hverb == 1 ) fprintf(stderr,":[cost=%.5f]:",Hcost) ;
+       qmodeX = (nlevr > 1) ? qmode2 : qmode ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
        for( idon=0,itop=ittt ; !idon ; itop -= diii ){
          ibot = itop+1-xwid;
@@ -10478,15 +10485,15 @@ ENTRY("IW3D_warpomatic_plusminus") ;
                   if( kbot <= kbbb        ){ kbot = kbbb; ktop = kbot+zwid-1; kdon=1; }
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              Hcostold = Hcost ;
-             iter = IW3D_improve_warp_plusminus( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             iter = IW3D_improve_warp_plusminus( qmodeX  , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
                iter = IW3D_improve_warp_plusminus( MRI_CUBIC  , ibot,itop , jbot,jtop , kbot,ktop ) ;
              }
 #if 0
-             else if( iter > 144 && qmode > 0 && Hcostold-Hcost > 0.00002f )
-               iter = IW3D_improve_warp_plusminus( qmode    , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             else if( iter > 144 && qmodeX > 0 && Hcostold-Hcost > 0.00002f )
+               iter = IW3D_improve_warp_plusminus( qmodeX    , ibot,itop , jbot,jtop , kbot,ktop ) ;
 #endif
 #endif
               if( Hcost < Hstopcost ){
