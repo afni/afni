@@ -538,6 +538,14 @@
 ></TEMPLATE>
 
 <TEMPLATE
+   template_name="TT_152_2009c+tlrc"
+   template_space="TT_N27"
+   comment="Talairached MNI 2009c template, aligned to TT_N27
+      with @auto_tlrc. See MNI152_T1_2009c+tlrc for copyright
+      and citation information"
+></TEMPLATE>
+
+<TEMPLATE
    template_name="TT_avg152T1+tlrc"
    template_space="TT_avg"
    comment="152 subjects T1 scan aligned to Colin brain template.
@@ -564,6 +572,31 @@
    template_space="TT_avg"
    comment="EPI average template
     Brett transformed to TLRC"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="MNI152_T1_2009c+tlrc"
+   template_space="MNI"
+   comment="152 subjects T1 nonlinear at 1mm
+      VS Fonov, et al, Unbiased average age-appropriate atlases for pediatric
+      studies,NeuroImage,Volume 54, Issue 1, January 2011, ISSN 1053-8119,
+      DOI: 10.1016/j.neuroimage.2010.07.033
+
+      VS Fonov, et al, Unbiased nonlinear average age-appropriate brain
+      templates from birth to adulthood NeuroImage, Volume 47, Supplement 1,
+      July 2009, Page S102 Organization for Human Brain Mapping 2009 Annual
+      Meeting, DOI: 10.1016/S1053-8119(09)70884-5
+
+      Copyright (C) 1993-2004 Louis Collins, McConnell Brain Imaging Centre,
+      Montreal Neurological Institute, McGill University. Permission to use,
+      copy, modify, and distribute this software and its documentation for
+      any purpose and without fee is hereby granted, provided that the above
+      copyright notice appear in all copies. The authors and McGill University
+      make no representations about the suitability of this software for any
+      purpose. It is provided as is without express or implied warranty. The
+      authors are not responsible for any data loss, equipment damage,
+      property loss, or injury to subjects or patients resulting from the use
+      or misuse of this software package."
 ></TEMPLATE>
 
 <TEMPLATE
