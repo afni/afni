@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17 , SEP, 2014 , DRG , "auto_warp.py" , 
+    MICRO , TYPE_BUG_FIX, 
+    "Did not pass qw_opts properly to 3dQwarp",
+} ,
+
 { 4 , SEP, 2014 , DRG , "AFNI_ATLAS_PATH" , 
     MINOR , TYPE_NEW_ENV, 
     "Atlases and templates may be stored in location set by AFNI_ATLAS_PATH",
