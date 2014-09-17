@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , SEP , 2014 , RWC , "r_idisp.c" , MICRO , TYPE_BUG_FIX ,
+  { 17 , SEP , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Add 'secret' workhard variant" ,
+   "Use in the form '-Workhard' and it will using cubic for the first pass\n"
+   "at each level, and quintic for the second pass (vs. cubic for both)." } ,
+
+ { 3 , SEP , 2014 , RWC , "r_idisp.c" , MICRO , TYPE_BUG_FIX ,
    "Fixed formatting bugs (%ld changed to %lld) in 2 places" ,
    NULL } ,
 

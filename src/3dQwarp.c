@@ -1384,6 +1384,7 @@ int main( int argc , char *argv[] )
            Hworkhard2 = (int)strtod(++cpt,NULL) ;
          }
        }
+       if( argv[nopt][1] == 'W' ) Hqhard = 1 ;  /* SECRET */
        nopt++ ; continue ;
      }
 
