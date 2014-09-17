@@ -699,11 +699,11 @@ class RegWrap:
          com = shell_com(  \
                 "3dQwarp                                       "\
                 "         -prefix %s                           "\
-                "         -blur %s %s %s             "\
-                "         -useweight %s %s  %s                 "\
+                "         -blur %s %s %s                       "\
+                "         %s -base %s -source %s               "\
                 % ( n.input(), self.qblur[0], self.qblur[1],
                     whopt,
-                    b.input(), a.input(), self.qw_opts), ps.oexec)
+                    self.qw_opts, b.input(), a.input()), ps.oexec)
          com.run()
          if (not n.exist() and not ps.dry_run()):
             self.error_msg("Failed in warping step");
