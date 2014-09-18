@@ -148,10 +148,9 @@ sets the select color of the widget to its foreground color */
 
 #define SUMA_SET_GL_PROJECTION(csv, ortho) {  \
    if (!ortho) { \
-      if (LocalHead) \
-         fprintf (SUMA_STDOUT,\
-                  "%s: Setting up matrix mode and perspective ...\n", \
-                  FuncName); \
+      SUMA_LH("Setting up matrix mode and perspective\n"\
+              "iState=%d, Apsect=%f, FOV=%p...\n",\
+              csv->iState, csv->Aspect, csv->FOV); \
       if (csv->FOV[csv->iState] < 0.00001) { \
          /* This can happen when only Non-SO objects are loaded
             Just do nothing  without fanfare */ \
@@ -170,10 +169,8 @@ sets the select color of the widget to its foreground color */
          csv->GVS[csv->StdView].ViewFrom[2];  \
       GLdouble m_szx = m_sz * csv->Aspect;   \
       GLdouble m_szy = m_sz ;   \
-      if (LocalHead) \
-         fprintf (SUMA_STDOUT,\
-                  "%s: Setting up matrix mode and orthographic projection "\
-                  "(m_szx = %g, m_szy=%g)...\n", FuncName, m_szx, m_szy); \
+      SUMA_LH("Setting up matrix mode and orthographic projection "\
+              "(m_szx = %g, m_szy=%g)...\n", m_szx, m_szy); \
       glMatrixMode (GL_PROJECTION); \
       glLoadIdentity ();   \
       glOrtho( -m_szx, m_szx, \

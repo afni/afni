@@ -4496,7 +4496,7 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
                             char join_breaks)
 {
    char **ws=NULL;
-   int N_lines=0, N_alloc=0, line_continue=0; 
+   int N_lines=0, N_alloc=0, line_continue=0, ln=0; 
    char *brk=NULL, lsep[] = "\n\r", *line=NULL;
    APPROX_STR_DIFF_WEIGHTS *Dw = Dwi;
    
@@ -4534,7 +4534,8 @@ char **approx_str_sort_text(char *text, int *N_ws, char *str,
          strcat(ws[N_lines-1], line);
       }
       deblank_name(ws[N_lines-1]);
-      if (*(ws[N_lines-1]+strlen(ws[N_lines-1])-1) == join_breaks) {
+      ln = strlen(ws[N_lines-1]);
+      if (ln && *(ws[N_lines-1]+ln-1) == join_breaks) {
          line_continue = 1;
       } else {
          line_continue = 0;

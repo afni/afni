@@ -107,14 +107,17 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
    }
    
    if (Opt->corder) {
+      SUMA_PC_XYZ_PROJ *pcp=NULL;
       if (Opt->geom==1) {
          SUMA_S_Warn("PCA projection makes no sense for usual convex hull");
       }
-      if (!(xyzp = SUMA_Project_Coords_PCA (xyz, npt, 
-                                                 npt/2, E3_PLN_PRJ, ROT_2_Z))) {
+      if (!(pcp = SUMA_Project_Coords_PCA (xyz, npt, npt/2, NULL,
+                                            E3_PLN_PRJ, ROT_2_Z,0))) {
          SUMA_S_Err("Failed to project");
          goto CLEANUP;   
       }
+      xyzp = pcp->xyzp; pcp->xyzp = NULL;
+      pcp = SUMA_Free_PC_XYZ_Proj(pcp);
    } else {
       xyzp = xyz;
    }

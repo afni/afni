@@ -2124,6 +2124,14 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) {
       SUMA_DUMP_TRACE("Trace At display_one call");
    }
+   if (csv->iState < 0 || !csv->FOV) {
+      /* This can happen when loading multiple surfaces 
+         at the command line such as with -i -i -i ...*/
+      SUMA_LH("Negative state and/or NULL FOV? (%d,%p)\n",
+                  csv->iState, csv->FOV);
+      if (LocalHead) SUMA_DUMP_TRACE("Weird state/FOV");
+      SUMA_RETURNe;
+   }
    
    if (!csv->Open) {
       SUMA_S_Errv("Very weird to be here with Open flag = %d\n", csv->Open);
@@ -2223,14 +2231,13 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer 
                                                          and the depth buffer */
-   
    if (LocalHead) {
       SUMA_CHECK_GL_ERROR("OpenGL Error Post clear");   
       SUMA_LH("Clearing done ...");
    }
    
    SUMA_SET_GL_PROJECTION(csv, csv->ortho);
-   
+
    if (SUMAg_CF->N_ClipPlanes) { /* clipping parts in fixed (screen)  
                                     coordinate space */
       for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i) {
