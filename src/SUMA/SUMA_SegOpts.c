@@ -115,6 +115,9 @@ SEG_OPTS *SegOpt_Struct()
    Opt->ShowThisDist = NULL;
    Opt->fast = 0;
    
+   Opt->sig_names = NULL;
+   Opt->samp_names = NULL;
+   
    RETURN(Opt);
 }
 
