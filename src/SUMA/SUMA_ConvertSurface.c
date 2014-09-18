@@ -86,7 +86,41 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                  line. For example:\n"
 "            ConvertSurface -i lh.smoothwm.gii -i rh.smoothwm.gii \\\n"
 "                           -merge_surfs       -o_gii lrh.smoothwm.gii\n"
-"\n"                 
+"\n"
+#if 1
+"   Options for coordinate projections:\n"
+"   -node_depth DEPTHPREF: Project all coordinates onto the principal \n"
+"                          direction and output of depth/height of each\n"
+"                          node relative to the outlying projection point.\n"
+"                          This option is processed right before -pc_proj, \n"
+"                          should that option also be requested.\n"
+"                          This option outputs file DEPTHPREF.pcdepth.1D.dset\n"
+"                          which contains node index, followed by depth, then \n"
+"                          height of node.\n"
+"\n" 
+"    -pc_proj ONTO PREFIX: Project coordinates onto ONTO, where ONTO is one \n"
+"                   of the parameters listed below.\n"
+"              ONTO values for plane projections along various normals:\n"
+"                       PC0_plane = normal is 1st principal vector\n"
+"                       PC1_plane = normal is  2nd principal vector\n"
+"                       PC2_plane = normal is  3rd principal vector\n"
+"                       PCZ_plane = normal is  component closest to Z axis\n"
+"                       PCY_plane = normal is  component closest to Y axis\n"
+"                       PCX_plane = normal is  component closest to X axis\n"
+"              ONTO values for line projections:\n"
+"                       PC0_dir   = project along 1st principal vector\n"
+"                       PC1_dir   = project along 2nd principal vector\n"
+"                       PC2_dir   = project along 3rd principal vector\n"
+"                       PCZ_dir   = project along component closest to Z axis\n"
+"                       PCY_dir   = project along component closest to Y axis\n"
+"                       PCX_dir   = project along component closest to X axis\n"
+"              PREFIX is used to form the name of the output file containing \n"
+"                       the projected coordinates. File PREFIX.xyzp.1D.coord\n"
+"                       contains the projected coordinates.\n"
+"    Note: This is the last operation to be performed by this program, \n"
+"          and no surfaces are written out in the end.\n"
+"\n"
+#endif                
 "    Options for applying arbitrary affine transform:\n"
 "    [xyz_new] = [Mr] * [xyz_old - cen] + D + cen\n"
 "    -xmat_1D mat: Apply transformation specified in 1D file mat.1D.\n"
@@ -133,8 +167,8 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
-	int kar, volexists, i, j, Doinv, randseed, Domergesurfs=0;
-   float DoR2S;
+	int kar, volexists, i, j, Doinv, randseed, Domergesurfs=0, pciref;
+   float DoR2S, fv[3], *pcxyzref;
    double xcen[3], sc[3];
    double xform[4][4];
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
@@ -152,11 +186,12 @@ int main (int argc,char *argv[])
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;
-   char orsurf[6], orcode[6];
+   char orsurf[6], orcode[6], *PCprojpref=NULL, *NodeDepthpref=NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
    SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Do_flip;
    SUMA_Boolean Doxmat, Do_wind, Do_p2s, onemore, Do_native, Do_PolDec;
+   int Do_PCproj, Do_PCrot, Do_NodeDepth;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean exists;
    SUMA_Boolean LocalHead = NOPE;
@@ -188,6 +223,13 @@ int main (int argc,char *argv[])
    Do_native = NOPE;
    DoR2S = 0.0;
    Do_PolDec = NOPE;
+   Do_PCproj = NO_PRJ;
+   Do_PCrot = NO_ROT;
+   pciref = -1;
+   pcxyzref = NULL;
+   PCprojpref = NULL;
+   NodeDepthpref = NULL;
+   Do_NodeDepth = 0;
    Doinv = 0;
    Domergesurfs = 0;
    onemore = NOPE;
@@ -252,15 +294,68 @@ int main (int argc,char *argv[])
          Doinv = 1;
 			brk = YUP;
 		}
+      
       if (!brk && (strcmp(argv[kar], "-polar_decomp") == 0)) {
          Do_PolDec = YUP;
 			brk = YUP;
 		}
+      
       if (!brk && (strcmp(argv[kar], "-merge_surfs") == 0)) {
          Domergesurfs = 1;
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-pc_proj") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -pc_proj\n");
+				exit (1);
+			}
+              if (!strcmp(argv[kar],"PC0_plane")) Do_PCproj = E1_PLN_PRJ;
+         else if (!strcmp(argv[kar],"PC1_plane")) Do_PCproj = E2_PLN_PRJ;
+         else if (!strcmp(argv[kar],"PC2_plane")) Do_PCproj = E3_PLN_PRJ;
+         else if (!strcmp(argv[kar],"PCZ_plane")) Do_PCproj = EZ_PLN_PRJ;
+         else if (!strcmp(argv[kar],"PCY_plane")) Do_PCproj = EY_PLN_PRJ;
+         else if (!strcmp(argv[kar],"PCX_plane")) Do_PCproj = EX_PLN_PRJ;
+         else if (!strcmp(argv[kar],"PC0_dir"))   Do_PCproj = E1_DIR_PRJ;
+         else if (!strcmp(argv[kar],"PC1_dir"))   Do_PCproj = E2_DIR_PRJ;
+         else if (!strcmp(argv[kar],"PC2_dir"))   Do_PCproj = E3_DIR_PRJ;
+         else if (!strcmp(argv[kar],"PCZ_dir"))   Do_PCproj = EZ_DIR_PRJ;
+         else if (!strcmp(argv[kar],"PCY_dir"))   Do_PCproj = EY_DIR_PRJ;
+         else if (!strcmp(argv[kar],"PCX_dir"))   Do_PCproj = EX_DIR_PRJ;
+         else {
+            SUMA_S_Err("Bad value of %s for -pca_proj", argv[kar]);
+            exit(1);
+         }
+         ++kar;
+         if (argv[kar][0] == '-') {
+            SUMA_S_Err("Prefix for -pc_proj should not start with '-'.\n"
+                       "Could it be that %s is another option and \n"
+                       "the prefix was forgtotten?", argv[kar]);
+            exit(1);
+         }
+         PCprojpref = argv[kar];
+			
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-node_depth") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need a prefix argument after -node_depth\n");
+				exit (1);
+			}
+         Do_NodeDepth = 1;
+         if (argv[kar][0] == '-') {
+            SUMA_S_Err("Prefix for -node_depth should not start with '-'.\n"
+                       "Could it be that %s is another option and \n"
+                       "the prefix was forgtotten?", argv[kar]);
+            exit(1);
+         }
+         NodeDepthpref = argv[kar];
+         
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-make_consistent") == 0)) {
          Do_wind = YUP;
@@ -410,21 +505,22 @@ int main (int argc,char *argv[])
       SUMA_S_Err("input surface not specified.\n");
       exit(1);
    }
-   if (!of_name) {
-      SUMA_S_Err("output surface not specified.\n");
+   if (!of_name && (Do_PCproj < 0 && !Do_NodeDepth) ) {
+      SUMA_S_Err("output surface or projection PREFIX not specified.\n");
       exit(1);
    }
    if (iType == SUMA_FT_NOT_SPECIFIED) {
       SUMA_S_Err("input type not recognized.\n");
       exit(1);
    }
-   if (oType == SUMA_FT_NOT_SPECIFIED) {
+   if (oType == SUMA_FT_NOT_SPECIFIED && (Do_PCproj < 0 && !Do_NodeDepth) ) {
       SUMA_S_Err("output type not recognized.\n");
       exit(1);
    }
    if (  oType != SUMA_GIFTI && 
          oFormat >= SUMA_XML_SURF && 
-         oFormat <= SUMA_XML_B64GZ_SURF){
+         oFormat <= SUMA_XML_B64GZ_SURF &&
+         (Do_PCproj < 0 && !Do_NodeDepth) ){
       SUMA_S_Err("XML output options only valid with -o_gii\n");
       exit(1);
    }
@@ -552,30 +648,32 @@ int main (int argc,char *argv[])
    }
 
    /* check for existence of output files */
-   if (of_name2) {
-      SUMA_SFname *SFname;
+   if ((Do_PCproj < 0 && !Do_NodeDepth) ) {
+      if (of_name2) {
+         SUMA_SFname *SFname;
 
-      SO_name = SUMA_2Prefix2SurfaceName (of_name, of_name2, NULL, 
-                                          vp_name, oType, &exists);
-      SFname = (SUMA_SFname *)SO_name;
-      OF_name2 = SUMA_copy_string(SFname->name_topo);
-      OF_name = SUMA_copy_string(SFname->name_coord);
-   } else {
-      SO_name = SUMA_Prefix2SurfaceName (of_name, NULL, vp_name, oType, &exists);
-      OF_name = SUMA_copy_string((char *) SO_name);
-   }
-   
-   if (exists && !THD_ok_overwrite()) {
-      if (OF_name2) 
-         fprintf (SUMA_STDERR,
-                  "Error %s: output file(s) %s and/or %s exist already.\n", 
-                  FuncName, OF_name, OF_name2);
-      else fprintf ( SUMA_STDERR,
-                     "Error %s: output file %s exists already.\n", 
-                     FuncName, OF_name);
-      exit(1);
-   }
-      
+         SO_name = SUMA_2Prefix2SurfaceName (of_name, of_name2, NULL, 
+                                             vp_name, oType, &exists);
+         SFname = (SUMA_SFname *)SO_name;
+         OF_name2 = SUMA_copy_string(SFname->name_topo);
+         OF_name = SUMA_copy_string(SFname->name_coord);
+      } else {
+         SO_name = SUMA_Prefix2SurfaceName (of_name, NULL, vp_name, 
+                                            oType, &exists);
+         OF_name = SUMA_copy_string((char *) SO_name);
+      }
+
+      if (exists && !THD_ok_overwrite()) {
+         if (OF_name2) 
+            fprintf (SUMA_STDERR,
+                     "Error %s: output file(s) %s and/or %s exist already.\n", 
+                     FuncName, OF_name, OF_name2);
+         else fprintf ( SUMA_STDERR,
+                        "Error %s: output file %s exists already.\n", 
+                        FuncName, OF_name);
+         exit(1);
+      }
+   }   
    /* now for the real work */
    if (Doxmat) {
       MRI_IMAGE *im = NULL;
@@ -799,7 +897,8 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
-
+   
+   
    if (ifpar_name) {
       SOpar = SUMA_Load_Surface_Object_Wrapper ( ifpar_name, ifpar_name2,
                                  vp_name, iparType, iparForm, sv_name, 1);
@@ -852,11 +951,11 @@ int main (int argc,char *argv[])
       /* read the tlrc header */
       aset = THD_open_dataset(tlrc_name) ;
       if( !ISVALID_DSET(aset) ){
-         fprintf (SUMA_STDERR,"Error %s: %s is not a valid data set.\n", FuncName, tlrc_name) ;
+         SUMA_S_Err("%s is not a valid data set.\n", tlrc_name) ;
          exit(1);
       }
       if( aset->warp == NULL ){
-         fprintf (SUMA_STDERR,"Error %s: tlrc_name does not contain a talairach transform.\n", FuncName);
+         SUMA_S_Err("tlrc_name does not contain a talairach transform.\n");
          exit(1);
       }
       
@@ -864,7 +963,7 @@ int main (int argc,char *argv[])
       
       /* now warp the coordinates, one node at a time */
       if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
-         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNI_forward_warp_xyz.\n", FuncName);
+         SUMA_S_Err("Failed in SUMA_AFNI_forward_warp_xyz.\n");
          exit(1);
       }
 
@@ -987,6 +1086,61 @@ int main (int argc,char *argv[])
          exit(1);  
       }
    }
+   
+   if (Do_NodeDepth) {
+      float *dpth=NULL, mx=0.0; int ii;
+      if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, &dpth, 
+                     0.0, NULL, &mx) < 0) {
+         SUMA_S_Err("Failed to compute node depth");
+         exit(1);
+      } else {
+         FILE *fout=NULL;
+         char *s2=NULL, *s1=NULL;
+         s2 = SUMA_ModifyName(NodeDepthpref, "append",".pcdepth", NULL);
+         s1 = SUMA_Extension(s2,".1D.dset",NOPE); SUMA_ifree(s2);
+         if (!THD_ok_overwrite() && SUMA_filexists(s1)) {
+            SUMA_S_Err(
+              "%s exists already, will not overwrite without -overwrite!",s1);
+            SUMA_ifree(s1); SUMA_RETURN(NOPE);
+         }
+
+         if (!(fout = fopen(s1, "w"))) {
+            SUMA_S_Err("No write permissions for %s?", s1);
+            exit(1);
+         }
+         fprintf(fout,"#Node depth along principal direction\n");
+         fprintf(fout,"#Col. 0 == Node Index\n"
+                      "#Col. 1 == Node Depth (from top)\n"
+                      "#Col. 2 == Node Height (from bottom)\n");
+         for (ii=0; ii<SO->N_Node; ++ii) {
+            fprintf(fout,"%d %f %f\n", 
+                     ii, dpth[ii], mx-dpth[ii]);
+         }
+         fclose(fout); fout = NULL;
+         SUMA_ifree(dpth);
+         SUMA_ifree(s1);
+      }
+   }
+   
+   if (Do_PCproj > NO_PRJ) {
+      SUMA_PC_XYZ_PROJ *pcp=NULL;
+      pciref = 0; pcxyzref = NULL;
+      if (!(pcp = SUMA_Project_Coords_PCA(SO->NodeList, SO->N_Node,
+                                  pciref, pcxyzref, Do_PCproj, Do_PCrot, 1))) {
+         SUMA_S_Err("Failed to project");
+         exit(1);
+      } else {
+         if (!SUMA_Write_PC_XYZ_Proj(pcp, PCprojpref)) {
+            SUMA_S_Err("Failed to write out projections");
+            exit(1);
+         } else {
+           pcp = SUMA_Free_PC_XYZ_Proj(pcp);
+         }  
+         
+         exit(0);
+      }
+   }
+
    
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
    

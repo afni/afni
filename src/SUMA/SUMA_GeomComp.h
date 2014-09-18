@@ -31,6 +31,21 @@ typedef enum { NO_PRJ = -1,
 
 typedef enum { NO_ROT = 0, ROT_2_Z = 1, ROT_2_Y, ROT_2_X } SUMA_PC_ROT;
 
+typedef struct {
+   double avg[3]; /*center of mass XYZ of input data */
+   double eig[3]; /* 3 eigen values */
+   double PC[9];  /* 3 eigen vectors, x1 y1 z1 x2 y2 z2 x3 y3 z3 */
+   float *xyzp;   /* Projected coordinates, should be same as input
+                     when no projection, no rotation done, and mean
+                     put back. (x0 y0 z0 x1 y1 z1 x2 y2 z2 ...) */
+   int N_xyz;     /* Number of triplets in xyzp */
+   char closest[3];/* The closest cardinal directions to each
+                      of the three eigen vectors */
+   char target[32];/* Target of projection, "plane", or "line" */
+   double target_params[4]; /* Equation of target, 4 values for plane,
+                               3 for line */  
+   float RotMat[4][4];/* Rotation matrix applied to coordinates in xyzp */
+} SUMA_PC_XYZ_PROJ;
 
 
 typedef enum { SUMA_SMOOTH_NOT_SET, SUMA_EQUAL, SUMA_FUJIWARA, SUMA_DESBRUN } SUMA_TAUBIN_SMOOTH_OPTIONS;
@@ -391,10 +406,16 @@ SUMA_DSET *SUMA_RandomDset(int N_Node, int nc, unsigned int seed,
 SUMA_Boolean SUMA_FillRandXform(double xform[][4], int seed, int type); 
 SUMA_Boolean SUMA_FillScaleXform(double xform[][4], double sc[3]);
 SUMA_Boolean SUMA_FillXYnegXform(double xform[][4]);
-float *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref, 
-                                SUMA_PC_PROJ compnum, SUMA_PC_ROT rotate);
+SUMA_Boolean SUMA_Write_PC_XYZ_Proj(SUMA_PC_XYZ_PROJ *pcp, char *prefix);
+SUMA_PC_XYZ_PROJ *SUMA_Free_PC_XYZ_Proj(SUMA_PC_XYZ_PROJ *pcp);
+SUMA_PC_XYZ_PROJ *SUMA_New_PC_XYZ_Proj(void);
+
+SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref, 
+                                float *xyzref,
+                                SUMA_PC_PROJ compnum, SUMA_PC_ROT rotate, 
+                                int remean);
 int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth, 
-                   float thr, byte **cmaskp);                                
+                   float thr, byte **cmaskp, float *mxdpth);
 int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
                     float thr, byte **cmaskp, int applymask);
 int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, byte *cmasku,
