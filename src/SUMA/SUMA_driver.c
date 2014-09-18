@@ -639,7 +639,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		SUMA_LH("Parsing command line at %d/%d: %s...\n", kar, argc, argv[kar]);
 		if (ps) {
          if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			    usage_DriveSuma(ps, strlen(argv[kar]) > 3 ? 2:1);
@@ -714,7 +714,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
       {
          if (kar+1 >= argc)
          {
-            fprintf (SUMA_STDERR, "need a number after -debug \n");
+            fprintf (SUMA_STDERR, "need love after -com \n");
             exit (1);
          }
          
@@ -723,6 +723,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
          Opt->com[Opt->N_com] = NULL;
          ++kar;
          do { 
+            SUMA_LH("Now getting %d/%d: %s", kar, argc, argv[kar]);
             Opt->com[Opt->N_com] = 
                SUMA_append_replace_string (Opt->com[Opt->N_com], 
                                            argv[kar], " ", 1);
@@ -2157,9 +2158,11 @@ char ** SUMA_com2argv(char *com, int *argtcp)
       SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
       tp=NULL;SUMA_COPY_TO_STRING(com, pos, tp); com = pos;
       SUMA_LHv("Adding other >>>%s<<<\n", tp);
-      argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+1)); 
-      argt[argtc] = tp; tp = NULL; 
-      ++argtc;
+      if (tp) {
+         argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+1)); 
+         argt[argtc] = tp; tp = NULL; 
+         ++argtc;
+      }
    }
    
    *argtcp = argtc;

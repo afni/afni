@@ -6307,7 +6307,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
    
    if (!entry) {
       MTI = (SUMA_MT_INTERSECT_TRIANGLE *)
-                     SUMA_malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE));
+                     SUMA_calloc(1,sizeof(SUMA_MT_INTERSECT_TRIANGLE));
       if (MTI == NULL) {
          fprintf(SUMA_STDERR,"Error %s: Failed to allocate for MTI\n", FuncName);
          SUMA_RETURN (NULL);
@@ -6316,8 +6316,10 @@ SUMA_MT_intersect_triangle(float *P0, float *P1,
       MTI->u = NULL;
       MTI->v = NULL;
       MTI->isHit = NULL;
+      MTI->N_hits = 0; MTI->N_poshits = 0; MTI->ifacemin = 0; 
    } else {
       MTI = PrevMTI;
+      MTI->N_hits = 0; MTI->N_poshits = 0; MTI->ifacemin = 0; 
    }
 
    /* direction from two points */

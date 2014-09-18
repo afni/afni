@@ -3559,7 +3559,13 @@ char *SUMA_Sphinx_LineSpacer(char *s, int targ)
                while(s[ns] != ':') { so[nso++] = s[ns++]; }
                so[nso++] = ' '; ++ns;
             } else { /* remove all spaces */
-               if (nso>1 && so[nso-1] == '\n') so[nso-1]=' ';
+               /* remove preceding new line just to keep superfluous 
+               new line characters that were there for the purpose of keeping
+               the output width short. Do not remove the newline if there
+               is two of them in a row, or there is certain punctuation 
+               before the newline.*/
+               if (nso>1 && so[nso-1] == '\n' && 
+                           (so[nso-2] != '\n' && so[nso-2] != ':'))so[nso-1]=' ';
                ns += bln+2;
             }
          } else {
