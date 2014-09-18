@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.7, Sept 5, 2014
+Version 3.2.8, Sept 18, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1582,6 +1582,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
          nC2 <- max(nchar(row.names(out_post)))
          term2 <- formatC(row.names(out_post), width=-nC2)
       } # if(lop$num_glt>=1)
+      options(width = 800)  # include the width so that each line has enough capacity
       if(nPar==1) cat('# RESULTS: ANOVA table\n')  else
          cat('# RESULTS: ANOVA table -', levels(as.factor(lop$dataStr[[iterPar]]))[nn], '\n')
       cat('-------------------------------------\n')
