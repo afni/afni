@@ -36,7 +36,16 @@ NULL
 "-sig 'FEATURE_VOL1 FEATURE_VOL2 ...': Specify volumes that define\n"
 "                         the features. Each sub-brick is a feature\n"
 "                         and the sub-brick's name is used to name the \n"
-"                         feature. Multiple volumes get catenated", 
+"                         feature. Multiple volumes get catenated.\n"
+"                         Each occurence of -sig option must be paired with\n"
+"                         a -samp option. Think of each pair of '-sig, -samp'\n"
+"                         options as describing data on the same voxel grid; \n"
+"                         Think from the same subject. When specifying \n"
+"                         training data from K subjects, you will end up using\n"
+"                         K pairs of '-sig, -samp'.\n"
+"                         All volumes from the kth -sig instance should have \n"
+"                         the same voxel grid as each other and as that of\n"
+"                         the kth -samp datasets.\n",
 NULL
       },
    {  
@@ -46,7 +55,16 @@ NULL
 "                         should contain voxel values (keys) that are\n"
 "                         defined in -labeltable. You can specify multiple\n"
 "                         volumes, they all get catenated. Any volume can\n"
-"                         contain voxels from 1 or more classes.", 
+"                         contain voxels from 1 or more classes."
+"                         Each occurence of -samp option must be paired with\n"
+"                         a -sig option. Think of each pair of '-sig, -samp'\n"
+"                         options as describing data on the same voxel grid; \n"
+"                         Think from the same subject. When specifying \n"
+"                         training data from K subjects, you will end up using\n"
+"                         K pairs of '-sig, -samp'.\n"
+"                         All volumes from the kth -samp instance should have \n"
+"                         the same voxel grid as each other and as that of\n"
+"                         the kth -sig datasets.\n",
 NULL
       },
    
