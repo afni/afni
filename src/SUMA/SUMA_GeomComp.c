@@ -7486,6 +7486,8 @@ SUMA_PC_XYZ_PROJ *SUMA_New_PC_XYZ_Proj(void)
                        pcp->RotMat[2][2] = pcp->RotMat[3][3] = 1.0;
    pcp->target[0] = '\0';
    
+   pcp->lowest_node = pcp->highest_node = -1;
+   
    SUMA_RETURN(pcp);
 }
 
@@ -7545,10 +7547,10 @@ SUMA_Boolean SUMA_Write_PC_XYZ_Proj(SUMA_PC_XYZ_PROJ *pcp, char *prefix)
       fprintf(fout,"#Target %s not known\n", pcp->target);
    }
    
-   fprintf(fout,"#Transformation\n");
-   fprintf(fout,"#%.5f   %.5f   %.5f   %.5f\n"
-                "#%.5f   %.5f   %.5f   %.5f\n"
-                "#%.5f   %.5f   %.5f   %.5f\n",
+   fprintf(fout,"#\n#Transformation\n");
+   fprintf(fout,"#   %.5f   %.5f   %.5f   %.5f\n"
+                "#   %.5f   %.5f   %.5f   %.5f\n"
+                "#   %.5f   %.5f   %.5f   %.5f\n",
                 pcp->RotMat[0][0], pcp->RotMat[0][1], 
                                    pcp->RotMat[0][2], pcp->RotMat[0][3],
                 pcp->RotMat[1][0], pcp->RotMat[1][1], 
@@ -7556,17 +7558,37 @@ SUMA_Boolean SUMA_Write_PC_XYZ_Proj(SUMA_PC_XYZ_PROJ *pcp, char *prefix)
                 pcp->RotMat[2][0], pcp->RotMat[2][1], 
                                    pcp->RotMat[2][2], pcp->RotMat[2][3]);
    
-   fprintf(fout,"#Eigen values, Eigen vectors, and closest cardinal direction\n"
-                "#%f      %f   %f   %f      %c\n"
-                "#%f      %f   %f   %f      %c\n"
-                "#%f      %f   %f   %f      %c\n",
+   fprintf(fout,"#\n"
+                "#Eigen values, Eigen vectors, and closest cardinal direction\n"
+                "#   %f      %f   %f   %f      %c\n"
+                "#   %f      %f   %f   %f      %c\n"
+                "#   %f      %f   %f   %f      %c\n",
              pcp->eig[0], pcp->PC[0], pcp->PC[1], pcp->PC[2], pcp->closest[0],
              pcp->eig[1], pcp->PC[3], pcp->PC[4], pcp->PC[5], pcp->closest[1],
              pcp->eig[2], pcp->PC[6], pcp->PC[7], pcp->PC[8], pcp->closest[2]);
                
-   fprintf(fout,"#Coordinates after projection/rotation\n"
-                "#%d points, CM %f %f %f\n", 
+   fprintf(fout,"#\n#%d points, CM %f %f %f\n", 
                 pcp->N_xyz, pcp->avg[0], pcp->avg[1], pcp->avg[2]);
+   
+   if (pcp->lowest_node >= 0) {
+      fprintf(fout,"#\n#Min, Max extrema coordinates on projection line\n"
+                "#%d    %f %f %f%s\n"
+                "#%d    %f %f %f%s\n",
+                pcp->lowest_node, 
+                   pcp->lowest_proj[0], 
+                      pcp->lowest_proj[1], pcp->lowest_proj[2],
+                   pcp->lowest_node < 0 ? "   #(Not computed)":"",
+                pcp->highest_node, 
+                   pcp->highest_proj[0], 
+                      pcp->highest_proj[1], pcp->highest_proj[2],
+                   pcp->highest_node < 0 ? "   #(Not computed)":"");
+   } else {
+      fprintf(fout,"#\n#No extrema along line computed.\n");
+   }
+   fprintf(fout,"#\n#Projection coordinates (including any applied rotation)\n"
+                "#   Col. 0: X\n"
+                "#   Col. 1: Y\n"
+                "#   Col. 0: Z\n");
    if (pcp->xyzp) {
       for (i=0; i<pcp->N_xyz; ++i) {
          fprintf(fout, "%f   %f   %f\n", 
@@ -7960,6 +7982,8 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
             pcp->RotMat[i][i3] = fm[i][i3];
          }
       }
+      pcp->RotMat[3][3] = 1.0;
+      
       SUMA_LHv("After rotate %d\n"
                "izero now: [%f %f %f]\n"
                "iref  now: [%f %f %f]\n"
@@ -8037,7 +8061,7 @@ int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
    SUMA_LHv("Calling depth function, thr %f\n", thr);
    N_inmask = SUMA_NodeDepth(xyz, nvox, 
                              dpth ? &sdpth:NULL, 
-                             thr, &scmask, NULL);
+                             thr, &scmask, NULL, NULL);
    SUMA_LHv("%d / %d voxels met threshold\n", N_inmask, nvox);
    SUMA_free(xyz); xyz = NULL;
   
@@ -8393,10 +8417,13 @@ int SUMA_VoxelPlaneCut(THD_3dim_dataset *dset, float *Eq,
                        are deeper than threshold.
       mxdpth (float *): To contain maximum depth encountered.
                         Pass NULL if you do not care for it.
+      pcpu (SUMA_PC_XYZ_PROJ **): If !NULL, return all of the pcp
+                        struct in *pcpu
    Returns the number of nodes in the mask. -1 on error
 */                   
 int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth, 
-                   float thr, byte **cmaskp, float *mxdpth)
+                   float thr, byte **cmaskp, float *mxdpth,
+                   SUMA_PC_XYZ_PROJ **pcpu)
 {
    static char FuncName[]={"SUMA_NodeDepth"};
    float *xyzp=NULL;
@@ -8408,7 +8435,11 @@ int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
+   if (pcpu && *pcpu) {
+      SUMA_S_Err("Need an empty pointer to *pcpu, or a NULL pcpu");
+      SUMA_RETURN(-1);
+   }
    if (dpth && *dpth) {
       SUMA_S_Err("If passing dpth, *dpth must be NULL");
       SUMA_RETURN(-1);
@@ -8419,11 +8450,13 @@ int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth,
    }
 
    /* PCA of coords, project points along direction closest. 
-      to Z axis then rotate projection to Z axis */
+      to Z axis then rotate projection to Z axis            
+      Don't mess with parameters of call below without checking
+      on effect of lowest/highest node locations below        */
    pcp = SUMA_Project_Coords_PCA (NodeList, N_Node, -1, NULL,
-                                   EZ_DIR_PRJ, ROT_2_Z,0); 
-   xyzp = pcp->xyzp; pcp->xyzp = NULL;
-   pcp = SUMA_Free_PC_XYZ_Proj(pcp);
+                                   EZ_DIR_PRJ, ROT_2_Z, 0); 
+   
+   xyzp = pcp->xyzp;
    
    /* Find the highest node */
    iimax = 0; iimin = 0;
@@ -8442,6 +8475,32 @@ int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth,
                     NodeList[3*iimax], NodeList[3*iimax+1], NodeList[3*iimax+2],
                 iimin, xyzp[3*iimin], xyzp[3*iimin+1], xyzp[3*iimin+2], 
                     NodeList[3*iimin], NodeList[3*iimin+1], NodeList[3*iimin+2]);
+   
+   /* store location BEFORE the rotation of the extrema */
+   pcp->lowest_node = iimin;
+   pcp->lowest_proj[0]  = xyzp[3*iimin  ];
+   pcp->lowest_proj[1]  = xyzp[3*iimin+1];
+   pcp->lowest_proj[2]  = xyzp[3*iimin+2];
+   pcp->highest_node = iimax;
+   pcp->highest_proj[0] = xyzp[3*iimax  ];
+   pcp->highest_proj[1] = xyzp[3*iimax+1];
+   pcp->highest_proj[2] = xyzp[3*iimax+2];
+   /* Now undo the rotation, then add the CM back 
+     *** Must not set 'remean' to 1 in call to SUMA_Project_Coords_PCA()
+         above.                                                          */
+   SUMA_Apply_Coord_xform(pcp->lowest_proj, 1, 3, pcp->RotMat,
+                          1, NULL);
+   SUMA_Apply_Coord_xform(pcp->highest_proj, 1, 3, pcp->RotMat,
+                          1, NULL);
+   pcp->lowest_proj[0]  += pcp->avg[0];
+   pcp->lowest_proj[1]  += pcp->avg[1];
+   pcp->lowest_proj[2]  += pcp->avg[2];
+   pcp->highest_proj[0]  += pcp->avg[0];
+   pcp->highest_proj[1]  += pcp->avg[1];
+   pcp->highest_proj[2]  += pcp->avg[2];
+    
+   if (LocalHead) SUMA_Write_PC_XYZ_Proj(pcp, NULL);
+   
    /* Create a mask of nodes more than XXmm from the highest node */
    cmask = (byte *)SUMA_calloc(N_Node, sizeof(byte));
    N_inmask = 0;
@@ -8462,8 +8521,14 @@ int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth,
       } 
       *dpth = ddd; 
    }
-   SUMA_free(xyzp); xyzp = NULL;
-
+   
+   xyzp = NULL;
+   if (!pcpu) {
+      pcp = SUMA_Free_PC_XYZ_Proj(pcp);
+   } else {
+      *pcpu = pcp;
+   }
+   
    if (!cmaskp) SUMA_free(cmask);
    else *cmaskp = cmask;
    cmask = NULL;
