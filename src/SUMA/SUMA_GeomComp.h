@@ -44,7 +44,12 @@ typedef struct {
    char target[32];/* Target of projection, "plane", or "line" */
    double target_params[4]; /* Equation of target, 4 values for plane,
                                3 for line */  
-   float RotMat[4][4];/* Rotation matrix applied to coordinates in xyzp */
+   double RotMat[4][4];/* Rotation matrix applied to coordinates in xyzp */
+   
+   int highest_node;
+   int lowest_node;
+   float highest_proj[3];
+   float lowest_proj[3];
 } SUMA_PC_XYZ_PROJ;
 
 
@@ -415,7 +420,8 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
                                 SUMA_PC_PROJ compnum, SUMA_PC_ROT rotate, 
                                 int remean);
 int SUMA_NodeDepth(float *NodeList, int N_Node, float **dpth, 
-                   float thr, byte **cmaskp, float *mxdpth);
+                   float thr, byte **cmaskp, float *mxdpth,
+                   SUMA_PC_XYZ_PROJ **pcpu);
 int SUMA_VoxelDepth(THD_3dim_dataset *dset, float **dpth,
                     float thr, byte **cmaskp, int applymask);
 int SUMA_VoxelDepth_Z(THD_3dim_dataset *dset, byte *cmasku,

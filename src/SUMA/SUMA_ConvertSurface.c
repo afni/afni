@@ -1089,8 +1089,9 @@ int main (int argc,char *argv[])
    
    if (Do_NodeDepth) {
       float *dpth=NULL, mx=0.0; int ii;
+      SUMA_PC_XYZ_PROJ *pcp=NULL;
       if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, &dpth, 
-                     0.0, NULL, &mx) < 0) {
+                     0.0, NULL, &mx, &pcp) < 0) {
          SUMA_S_Err("Failed to compute node depth");
          exit(1);
       } else {
@@ -1108,10 +1109,23 @@ int main (int argc,char *argv[])
             SUMA_S_Err("No write permissions for %s?", s1);
             exit(1);
          }
-         fprintf(fout,"#Node depth along principal direction\n");
-         fprintf(fout,"#Col. 0 == Node Index\n"
-                      "#Col. 1 == Node Depth (from top)\n"
-                      "#Col. 2 == Node Height (from bottom)\n");
+         fprintf(fout,"#Coordinates in original space for:\n"
+             "#   Center Of Mass               :   %f %f %f\n"
+             "#   Top node's projection    & ID:   %f %f %f    %d\n"
+             "#   Bottom node's projection & ID:   %f %f %f    %d\n",
+                      pcp->avg[0], pcp->avg[1],pcp->avg[2],
+                      pcp->highest_proj[0], pcp->highest_proj[1],
+                        pcp->highest_proj[2], pcp->highest_node,
+                      pcp->lowest_proj[0], pcp->lowest_proj[1],
+                        pcp->lowest_proj[2], pcp->lowest_node);
+         fprintf(fout,
+             "#   Principal Direction          :   %f %f %f\n",
+                      pcp->target_params[0], pcp->target_params[1], 
+                      pcp->target_params[2]);
+         fprintf(fout,"#\n#Node depths along 1st principal direction\n");
+         fprintf(fout,"#   Col. 0 == Node Index\n"
+                      "#   Col. 1 == Node Depth (from top)\n"
+                      "#   Col. 2 == Node Height (from bottom)\n");
          for (ii=0; ii<SO->N_Node; ++ii) {
             fprintf(fout,"%d %f %f\n", 
                      ii, dpth[ii], mx-dpth[ii]);
@@ -1119,6 +1133,7 @@ int main (int argc,char *argv[])
          fclose(fout); fout = NULL;
          SUMA_ifree(dpth);
          SUMA_ifree(s1);
+         pcp = SUMA_Free_PC_XYZ_Proj(pcp);
       }
    }
    
