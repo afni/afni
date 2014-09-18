@@ -55,7 +55,7 @@ NULL
 "                         should contain voxel values (keys) that are\n"
 "                         defined in -labeltable. You can specify multiple\n"
 "                         volumes, they all get catenated. Any volume can\n"
-"                         contain voxels from 1 or more classes."
+"                         contain voxels from 1 or more classes.\n"
 "                         Each occurence of -samp option must be paired with\n"
 "                         a -sig option. Think of each pair of '-sig, -samp'\n"
 "                         options as describing data on the same voxel grid; \n"
