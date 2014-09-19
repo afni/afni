@@ -118,6 +118,8 @@ SEG_OPTS *SegOpt_Struct()
    Opt->sig_names = NULL;
    Opt->samp_names = NULL;
    
+   Opt->N_hspec = 0;
+   Opt->hspec = NULL;
    RETURN(Opt);
 }
 
@@ -174,6 +176,14 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
    if (Opt->sig_names) 
       Opt->sig_names = SUMA_free_NI_str_array(Opt->sig_names);
    if (Opt->sig_name) SUMA_free(Opt->sig_name);
+   if (Opt->N_hspec && Opt->hspec) {
+      int ii;
+      for (ii=0; ii<Opt->N_hspec; ++ii) {
+         SUMA_Free_hist(Opt->hspec[ii]);
+      }
+   }
+   if (Opt->hspec) SUMA_free(Opt->hspec); Opt->hspec = NULL;
+   Opt->N_hspec = 0;
    
    Opt->FDV = SUMA_free_dists(Opt->FDV);
    
