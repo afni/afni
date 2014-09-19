@@ -291,6 +291,7 @@ Notes:
 basic informational options:
 
    -help                        : show this help
+   -help_basis                  : describe various basis functions
    -hist                        : show the module history
    -show_valid_opts             : show all valid options
    -ver                         : show the version number
@@ -814,6 +815,75 @@ R Reynolds    December 2008
 =============================================================================
 """
 
+
+g_help_basis_string = """
+=============================================================================
+descriptions of various basis functions, as applied by 3dDeconvolve
+-----------------------------------------------------------------------------
+
+  GAM                   : same as GAM(p,q), where p=8.6, q=0.547
+               duration : approx. 12 seconds
+  GAM(p)                : INVALID
+  GAM(p,q)              : (t/(p*q))^p * exp(p-t/q)
+  GAM(p,q,d)            : convolve with d-second boxcar
+               duration : approx. 12+d seconds
+ 
+                   peak : GAM functions all peak at 1.0, def. peak @ t=4.7
+
+  ---------------------------------------------------------------------------
+
+  BLOCK                 : INVALID
+  BLOCK(d)              : stimulus duration d (convolve with d-second boxcar)
+                   peak : peak of 1.0 (for d=1) @ t=4.5, max peak of ~5.4
+               duration : approx. 15+d seconds
+  BLOCK(d,p)            : stimulus duration d, peak p
+                   peak : as specified
+
+  ---------------------------------------------------------------------------
+
+  duration modulation - individual stimulus durations included in timing file
+
+  dmBLOCK, dmBLOCK(0)   : akin to BLOCK(d), where d varies per stimulus event
+                   peak : see BLOCK(d), maybe dur=peak in [0,1], then max ~5.4
+               duration : see BLOCK(d), approx 15+d seconds
+  dmBLOCK(p)      p > 0 : all peaks equal to p, regardless of duration
+                          (same as dmUBLOCK(p))
+                  p < 0 : same as p=0, or dmBLOCK(0)
+
+  dmUBLOCK, dmUBLOCK(0) : basically equals dmBLOCK/5.4 (so max peak = 1)
+                   peak : d=1:p=1/5.4, to max d=15:p=1 (i.e. BLOCK(d)/5.4)
+  dmUBLOCK(p)     p > 0 : all peaks = p, regardless of duration
+                          (same as dmBLOCK(p))
+                  p < 0 : like p=0, but scale so peak = 1 for dur=|p|
+                          e.g. dmUBLOCK(-5) will have peak = 1.0 for a 5s dur,
+                               i.e ~= dmBLOCK/4.0
+
+  ---------------------------------------------------------------------------
+
+  TENT(b,c,n)           : n tents/regressors, spanning b..c sec after stimulus
+                        : half-tent at time b, half-tent at time c
+                        : tents are centered at intervals of length (c-b)/(n-1)
+                          --> so there are n-1 intervals for n tents
+                   peak : peaks = 1 at interval centers
+               duration : c-b seconds
+
+  TENTzero(b,c,n)       : n-2 tents, same as above but ignoring first and last
+                          --> akin to assuming first and last betas are 0
+                        : same as TENT(b+v,c-v,n-2), where v = (c-b)/(n-1)
+
+  ---------------------------------------------------------------------------
+
+  SPMG1                 : 1-regressor SPM gamma variate
+               duration : positive lobe: 0..12 sec, undershoot: 12..24 sec
+                   peak : 0.175 @ t=5.0, -0.0156 @ t=15.7
+  SPMG, SPMG2           : 2-regressor SPM gamma variate
+                        : with derivative, to account for small temporal shift
+  SPMG3                 : 3-regressor SPM gamma variate
+                        : with dispersion curve
+
+=============================================================================
+"""
+
 g_history = """
    timing_tool.py history:
 
@@ -857,6 +927,8 @@ g_history = """
         - removed -chrono option
           (action items are still processed chronologically)
    2.08 May 12, 2014 - default -part_init to INIT (0 not valid for -partition)
+   2.09 Sep 18, 2014 - added -help_basis to describe basis functions
+                       (mostly to clarify dmBLOCK/dmUBLOCK)
 """
 
 g_version = "timing_tool.py version 2.08, May 12, 2014"
@@ -1042,13 +1114,15 @@ class ATInterface:
       self.valid_opts = OL.OptionList('valid opts')
 
       # short, terminal arguments
-      self.valid_opts.add_opt('-help', 0, [],           \
+      self.valid_opts.add_opt('-help', 0, [],
                          helpstr='display program help')
-      self.valid_opts.add_opt('-hist', 0, [],           \
+      self.valid_opts.add_opt('-help_basis', 0, [],
+                         helpstr='describe various basis functions')
+      self.valid_opts.add_opt('-hist', 0, [],
                          helpstr='display the modification history')
-      self.valid_opts.add_opt('-show_valid_opts', 0, [],\
+      self.valid_opts.add_opt('-show_valid_opts', 0, [],
                          helpstr='display all valid options')
-      self.valid_opts.add_opt('-ver', 0, [],            \
+      self.valid_opts.add_opt('-ver', 0, [],
                          helpstr='display the current version number')
 
       # action options - single data
@@ -1161,6 +1235,10 @@ class ATInterface:
 
       if len(sys.argv) <= 1 or '-help' in sys.argv:
          print g_help_string
+         return 0
+
+      if len(sys.argv) <= 1 or '-help_basis' in sys.argv:
+         print g_help_basis_string
          return 0
 
       if '-hist' in sys.argv:
