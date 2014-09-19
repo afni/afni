@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
-# July, 2014
+# ver 1.0:  July, 2014
+# Update, ver 1.1: Sept 2014
 #
 # File of helper functions for fat_mvm_*.py.
 #
@@ -35,6 +36,7 @@ LOG_LABEL_roilist = 'ROI_list'
 LOG_LABEL_parlist = 'Parameter_list'
 VAR_LABEL_roilistQ = 'Qvar_list'
 VAR_LABEL_roilistC = 'Cvar_list'
+VAR_LABEL_roilistI = 'Ivar_list'
 LOG_LABEL_command = 'Made_by_command'
 
 OldFash_parnames = ['NT', 'fNT', 'FA', 'sFA', 'MD',         \
@@ -43,6 +45,191 @@ OldFash_parnames = ['NT', 'fNT', 'FA', 'sFA', 'MD',         \
 
 
 
+###------------------------------------------------------------------
+###------------------------------------------------------------------
+###---------------- START: Subsets of categorical vars --------------
+###------------------------------------------------------------------
+###------------------------------------------------------------------
+
+def SplitVar_Sublist(L, idx):
+    '''Take in a list, and a 'which iteration is this' value called
+    idx. Return either the first or second list in a lone-comma
+    separated line.'''
+
+    N = L.count(',')
+
+    # only one list, can only go with first
+    if N==0:
+        if idx == 0 :
+            return set(L)
+        else:
+            return set([])
+    elif N==1:
+        mm = L.index(',')
+        if idx == 0 :
+            return set(L[:mm])
+        else:
+            return set(L[mm+1:])
+    else:
+        print "Error reading variable list: too many commas!"
+        print "\t There should only be a single comma, separating at most",
+        print "two lists."
+        sys.exit(18)
+
+
+
+
+
+def Pars_CatVars_in_Listfile( file_listvars, 
+                              par_list, 
+                              var_iscateg, 
+                              var_isinterac, 
+                              Ninter ):
+    '''User can specify subset of cat var for modelling. Might be
+    useful if there are a lot of subcategories, and we want some
+    pairwise tests.  Performed after we know where and what are the
+    categorical variables (both lone and/or interaction ones.
+    Returns: updated lists of categorical and interacting vars.'''
+
+    coldat = ReturnFirstUncommentedSection_ofReadlines(file_listvars)
+    for i in range(len(coldat)):
+        if len(coldat[i]) > 1:
+            print "Found a variable for subsetting"
+            
+            if var_iscateg[i]:
+                newsub_set = set(coldat[i][1:]) # all other vars in that row
+                oldvar_set = set(var_iscateg[i])
+                nomatch = list(oldvar_set.__ixor__(newsub_set))
+                print "Going to remove:", nomatch
+                for x in nomatch:
+                    var_iscateg[i].remove(x)
+
+            elif var_isinterac[i]:
+                ### with variable interaction terms, use a "lone"
+                ### comma to separate the sub-lists; if you only want
+                ### a subset of the second variable, then still use a
+                ### lone comma before it
+                for j in range(2):
+                    if var_isinterac[i][2][j]:
+                        newsub_set = SplitVar_Sublist(coldat[i][1:], j)
+                        oldvar_set = set(var_isinterac[i][2][j])
+                        nomatch = list(oldvar_set.__ixor__(newsub_set))
+                        print "Going to remove:", nomatch
+                        for x in nomatch:
+                            var_isinterac[i][2][j].remove(x)
+
+
+    return var_iscateg, var_isinterac
+
+
+
+###------------------------------------------------------------------
+###------------------------------------------------------------------
+###---------------- STOP: Subsets of categorical vars ---------------
+###------------------------------------------------------------------
+###------------------------------------------------------------------
+
+
+###------------------------------------------------------------------
+###------------------------------------------------------------------
+###--------------- START: Interaction modeling features -------------
+###------------------------------------------------------------------
+###------------------------------------------------------------------
+
+def CheckFor_Cats_and_Inters( tab_data,
+                              tab_colvars,
+                              tab_coltypes,
+                              var_list ):
+    '''Return 1 if there is an interaction, and  '''
+
+    simple_cat = []
+
+    interac_terms = []
+    count_interac = 0
+    
+    for x in var_list:
+        # return either an empty list (no interac) or a list of
+        # the interacting ones
+
+        cats = []          # default if not cat var or interac
+        inter_names = []    # default if no interacs
+        Ncats = 0
+
+        print "TEST1 for var:",x
+        check, inter_type = IsEntry_interaction(x)
+
+        print "\t->has check:", check,", and intertype:", inter_type
+
+        #interac_terms = [inter_type]
+
+        # if there is a non-empty list returned, check that both terms
+        # in it are ok to use
+        if check: 
+            # inter_names will be a list of: lists (of categorical vars)
+            # or empty lists (quant var)
+            inter_names = CheckVar_and_FindCategVar( tab_data,       \
+                                                       tab_colvars,  \
+                                                       tab_coltypes, \
+                                                       check )
+            count_interac+=1
+
+            # want to ensure categorical variable is first in list
+            if not( inter_names[0] ):
+                inter_names.reverse()
+                check.reverse()
+
+            for i in range(len(inter_names)):
+                if inter_names[i]:
+                    Ncats+=1
+
+
+            # when there is interaction, have:
+            # [0] type of interaction (or empty for none)
+            # [1] var names (cat first or both)
+            # [2] cat var names (or empty for quant)
+            #interac_terms.append(check)
+            #interac_terms.append(inter_names)
+        else:
+            # redefine cats if coming through here
+            cats = CheckVar_and_FindCategVar( tab_data,       \
+                                                  tab_colvars,  \
+                                                  tab_coltypes, \
+                                                  [x] )
+            cats = list(cats[0])
+        print "\t\> has cat:", cats
+        simple_cat.append(cats)
+        interac_terms.append( [ [inter_type, Ncats], check, inter_names] )
+    return simple_cat, interac_terms, count_interac
+
+
+
+def IsEntry_interaction(str_var):
+    '''Return an empty list if there is no interaction, or return a
+    list of the interacting terms if there be/were one.'''
+
+    type_col = ':'
+    type_ast = '*'
+
+    num_colon = str_var.count(type_col)
+    num_aster = str_var.count(type_ast)
+
+    if (num_colon + num_aster) > 1:
+        print "Error! At most 1 interaction per var is permitted currently!"
+        sys.exit(14)
+
+    if num_colon :
+        return str_var.split(type_col), type_col
+    elif num_aster :
+        return str_var.split(type_ast), type_ast
+    else:
+        return [], ''
+
+
+###------------------------------------------------------------------
+###------------------------------------------------------------------
+###---------------- STOP: Interaction modeling features -------------
+###------------------------------------------------------------------
+###------------------------------------------------------------------
 
 
 ###------------------------------------------------------------------
@@ -51,11 +238,11 @@ OldFash_parnames = ['NT', 'fNT', 'FA', 'sFA', 'MD',         \
 ###------------------------------------------------------------------
 ###------------------------------------------------------------------
 
-''' Input the grid file name, and return:
-    1)  a list of data [NMAT, NROI, NROI];
-    2)  a list of labels [NMAT];
-    3)  a supplementary dictionary for each calling use;
-    4)  and a list of (int) ROI labels (which may not be consecutive).'''
+#''' Input the grid file name, and return:
+#    1)  a list of data [NMAT, NROI, NROI];
+#    2)  a list of labels [NMAT];
+#    3)  a supplementary dictionary for each calling use;
+#    4)  and a list of (int) ROI labels (which may not be consecutive).'''
 
 def Select_Row_From_FATmat(X4, outname, ele):
 
@@ -334,6 +521,8 @@ def MakeGridTableau(DICT_CSV_grid, \
     Output is a list ordered by CSV subject, for ease in final
     writing.'''
 
+    # here, gridVARlist is actually a list of PARAMETERS.
+
     print '++ Starting to select and convert matrix data to usable',
     print 'form for output...'
 
@@ -392,10 +581,13 @@ def MakeDict_CSV_to_grid(grid_subj, csv_subj, file_match):
 #---------------------------------------------------------------------
 
 def IsFirstUncommentedSection_Multicol(fname):
+    '''Check all lines of input to see if there's more than one
+    column present.'''
     tt = ReturnFirstUncommentedSection_ofReadlines(fname)
     if tt:
-        if len(tt[0]) > 1:
-            return 1
+        for i in range(len(tt)):
+            if len(tt[i]) > 1:
+                return 1
     return 0
 
 #---------------------------------------------------------------------

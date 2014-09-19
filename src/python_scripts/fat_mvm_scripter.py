@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Version 1.0, July, 2014.
+# Version 1.1, Sept, 2014.
 # written:  PA Taylor (UCT, AIMS).
 #
 # Take the output of fat_mvm_prep.py and run statistical models using
@@ -29,7 +29,7 @@ def main(argv):
     help_line = '''\
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-     ++ July, 2014.  Written by PA Taylor.
+     ++ Sept, 2014 (ver 1.1).  Written by PA Taylor.
      ++ Read in a data table file (likely formatted using the program
         fat_mvm_prep.py) and build an executable command for 3dMVM 
         (written by G Chen) with a user-specified variable model. This
@@ -51,7 +51,12 @@ def main(argv):
         3) A list of variables, whose values are also stored in the group
            data table, which are to be statistically modeled.  The list
            may be provided either directly on the commandline or in a 
-           separate text file.
+           separate text file. 
+           Variable entries may now include interactions (using '*' or ':') 
+           among either 
+           a) two categorical variables, or
+           b) one categorical and one quantitative variable.
+           
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -82,9 +87,17 @@ def main(argv):
            See 3dMVM for more information.
     
            NB: The '1a' script is a *very basic starter/suggestion*
-           for performing statistical tests.  Feel free to modify it as
-           you wish for your particular study.  See '3dMVM -help' for more
-           information.
+           for performing statistical tests.  Feel free to modify it
+           as you wish for your particular study.  See '3dMVM -help'
+           for more information.
+
+       The ANOVA tests are performed on a network-wide level, and the
+       posthoc tests followup with the same variables on a per-ROI
+       level.  The idea is: if there is a significant
+       parameter-variable association on the network level (seen in
+       the ANOVA results), it may be interesting to see if some
+       particular ROIs are driving the effect (seen in the posthoc
+       results).
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -127,6 +140,19 @@ def main(argv):
                                 variables for 3dMVM.  VAR_FILE is a text
                                 file with a single column of variable
                                 names.
+                                Using the VAR_FILE, you can specify subsets
+                                of categorical variables for GLT testing.
+                                The categories to be tested are entered on the
+                                same line as the variable, separated only by
+                                spaces.  If specifying a subset for an inter-
+                                action, then put a space-separated comma 
+                                between the lists of variables, if necessary 
+                                (and if specifying categories only for the 
+                                second of two categorical variables, then put 
+                                a space-separated comma before the list).
+                  ---->     ... using either variable entry format, an 
+                                interaction can be specified using either 
+                                ':' or '*', where A*B = A+B+A:B.
 
       -P, --Pars='T S R ...'   :one method for supplying a list of parameters
                                 (that is, the names of matrices) to run in 
@@ -159,6 +185,16 @@ def main(argv):
                                 in the data table that might be annoying to 
                                 have flagged, so perhaps turning off warnings
                                 would then be useful. (Default is to warn.)
+      -c, --cat_pair_off       :switch to turn off the following test:
+                                by default, if a categorical variable 
+                                undergoes posthoc testing, a GLT will be 
+                                created for every pairwise combination of
+                                its categories, testing whether the given
+                                parameter is higher in one group than another
+                                (each category is assigned a +1 or -1, which is 
+                                recorded in parentheses in the output label
+                                names).
+                                
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -188,8 +224,7 @@ def main(argv):
     Taylor PA, Jacobson SW, van der Kouwe AJW, Molteno C, Chen G,
     Wintermark P, Alhamud A, Jacobson JL, Meintjes EM (2014). A
     DTI-based tractography study of effects on brain structure
-    associated with prenatal alcohol exposure in newborns. (accepted,
-    HBM)
+    associated with prenatal alcohol exposure in newborns. (HBM, in press)
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 '''
@@ -205,22 +240,25 @@ def main(argv):
     SWITCH_posthoc = 1
     SWITCH_NAwarn = 1
     comm_str = ''
+    CAT_PAIR_COMP = 1  # for categorical var, now do rel compar by default
 
     try:
-        opts, args = getopt.getopt(argv,"hnNv:f:p:t:l:r:P:F:",["help",
-                                                               "no_posthoc",
-                                                               "NA_warn_off",
-                                                               "vars=",
-                                                               "file_vars=",
-                                                               "prefix=",
-                                                               "table=",
-                                                               "log_file=",
-                                                               "rois="
-                                                               "Pars=",
-                                                               "File_Pars="
-                                                               ])
+        opts, args = getopt.getopt(argv,"hnNcv:f:p:t:l:r:P:F:",["help",
+                                                                "no_posthoc",
+                                                                "NA_warn_off",
+                                                                "cat_pair_off",
+                                                                "vars=",
+                                                                "file_vars=",
+                                                                "prefix=",
+                                                                "table=",
+                                                                "log_file=",
+                                                                "rois="
+                                                                "Pars=",
+                                                                "File_Pars="
+                                                                ])
     except getopt.GetoptError:
-        print help_line
+        print "** Error reading options. Try looking at the helpfile:"
+        print "\t $  fat_mvm_scripter.py -h\n"
         sys.exit(2)
 
     for opt, arg in opts:
@@ -257,6 +295,9 @@ def main(argv):
         elif opt in ("-N", "--NA_warn_off"):
             SWITCH_NAwarn = 0
             comm_str = GR.RecapAttach(comm_str, opt, '')
+        elif opt in ("-c", "--cat_pair_off"):
+            CAT_PAIR_COMP = 0
+            comm_str = GR.RecapAttach(comm_str, opt, '')
 
     if not(file_prefix):
         print "** ERROR: missing an output prefix."
@@ -285,7 +326,7 @@ def main(argv):
 
     return list_model, file_listmodel, file_prefix, file_table, \
      file_log, userlist_roi, list_pars, file_listpars, SWITCH_posthoc, \
-     comm_str, SWITCH_NAwarn
+     comm_str, SWITCH_NAwarn, CAT_PAIR_COMP
 
 
 ########################################################################
@@ -296,7 +337,7 @@ if __name__=="__main__":
 
     list_model, file_listmodel, file_prefix, file_table, file_log, \
      userlist_roi, list_pars, file_listpars, SWITCH_posthoc, comm_str, \
-     NA_WARN = main(sys.argv[1:])
+     NA_WARN, CAT_PAIR_COMP = main(sys.argv[1:])
 
     if not(NA_WARN):
         print "++ Won't worn about NAs in the data."
@@ -352,10 +393,30 @@ if __name__=="__main__":
 
     tab_raw, tab_colvars = GR.LoadInTable(file_table)
     tab_data, tab_coltypes = GR.ConvertCSVfromStr(tab_raw, tab_colvars, NA_WARN)
-    var_iscateg = GR.CheckVar_and_FindCategVar(tab_data,         \
-                                                tab_colvars,  \
-                                                tab_coltypes, \
-                                                var_list)
+
+    # Now checking about interactions
+    var_iscateg, var_isinterac, Ninter = GR.CheckFor_Cats_and_Inters( tab_data,
+                                                                   tab_colvars,
+                                                                   tab_coltypes,
+                                                                   var_list )
+
+    # allow parsing of subset of categories
+    if file_listmodel:
+        if GR.IsFirstUncommentedSection_Multicol(file_listmodel):
+            print "Parsing var list file..."
+            var_iscateg, var_isinterac = GR.Pars_CatVars_in_Listfile( 
+                file_listmodel, 
+                par_list, 
+                var_iscateg, 
+                var_isinterac, 
+                Ninter )
+            #!!!!!!!!! working here.
+
+    
+    # var_iscateg = GR.CheckVar_and_FindCategVar(tab_data,         \
+    #                                            tab_colvars,  \
+    #                                            tab_coltypes, \
+    #                                            var_list)
 
     #--------------------------------------------------
 
@@ -363,29 +424,56 @@ if __name__=="__main__":
     roi_str = str_sep.join(roi_list)
     par_str = str_sep.join(par_list)
 
+    # calc number of GLTs/ROI (= Nvartout) and number of Quant var
     Nvartout = Nvar
     var_list_quant = []
     varQ_str = ''
+    var_list_inter = []
+    varI_str = ''
     for i in range(Nvar):
         x = var_list[i]
-        if var_list.__contains__(x):
-            if not( var_iscateg[i] ):
-                var_list_quant.append(x)
-                varQ_str+= "  %s" % x
-            else:
-                Nvartout+= len(var_iscateg[i])-1
+        
+        if not(var_isinterac[i][0][0]):
+            if var_list.__contains__(x):
+                if not( var_iscateg[i] ):
+                    var_list_quant.append(x)
+                    varQ_str+= "  %s" % x
+                else:
+                    nc = len(var_iscateg[i])
+                    Nvartout+= nc-1              # individual ttests
+                    if CAT_PAIR_COMP :
+                        Nvartout+= (nc*(nc-1))/2 # pairwise combinatorial
+        else:
+            varI_str = "  "
+            ncombo = 1
+            for j in range( 2 ):
+                varI_str+= var_isinterac[i][1][j]
+                if var_isinterac[i][2][j] :
+                    # binomial-type comparisons for each
+                    nc = len(var_isinterac[i][2][j])
+                    ncombo*= (nc*(nc-1))/2
+                    varI_str+= "("
+                    for ii in var_isinterac[i][2][j]:
+                        varI_str+= " %s" % ii
+                    varI_str+= " )"
+                if j == 0 :
+                    varI_str+= " %s " % var_isinterac[i][0][0]
+            Nvartout+= ncombo-1
 
+                    
     varC_str = ''
     for i in range(Nvar):
         if var_iscateg[i]:
-            varC_str+= "  %s (" % var_list[i]
+            varC_str+= "  %s(" % var_list[i]
             for y in var_iscateg[i]:
                 varC_str+= " %s" % y
             varC_str+= " )"
 
+
     print "   List of ROIs is:\n   \t  %s." % roi_str
     if USER_LIST:
-        print "   List of (selected) matrix parameters is:\n   \t  %s." % par_str
+        print "   List of (selected) matrix parameters is:\n   \t  %s." % \
+         par_str
     else:       
         print "   List of matrix parameters is:\n   \t  %s." % par_str
     print "   List of quantitative variables is:\n   \t%s." % varQ_str
@@ -415,6 +503,7 @@ if __name__=="__main__":
     tc.append('# %s : %s\n' % (GR.LOG_LABEL_parlist, par_str))
     tc.append('# %s : %s\n' % (GR.VAR_LABEL_roilistQ, varQ_str))
     tc.append('# %s : %s\n' % (GR.VAR_LABEL_roilistC, varC_str))
+    tc.append('# %s : %s\n' % (GR.VAR_LABEL_roilistI, varI_str))
     tc.append('\n')
     tc.append('3dMVM -prefix %s_MVM \\\n' % file_prefix )
     tc.append(' -bsVars "%s" \\\n' % bvar_entry )
@@ -427,16 +516,55 @@ if __name__=="__main__":
         idx = 1
         for x in roi_list:
             for j in range(Nvar):
-                y = var_list[j]
-                if not( var_iscateg[j] ):
-                    tc.append(' -gltLabel %d %s-%s -gltCode %d "ROI : 1*%s %s : " \\\n'\
-                              % (idx, x, y, idx,x,y) )
-                    idx+=1
-                else:
-                    for z in var_iscateg[j]:
-                        tc.append(' -gltLabel %d %s-%s^%s -gltCode %d "ROI : 1*%s %s : 1*%s " \\\n'\
-                              % (idx, x, y,z, idx,x,y,z) )
+                # Non-interacting vars
+                if not(var_isinterac[j][0][0]):
+                    y = var_list[j]
+                    if not( var_iscateg[j] ):
+                        tc.append(' -gltLabel %d %s-%s -gltCode %d "ROI : 1*%s %s : " \\\n'\
+                                      % (idx, x, y, idx,x,y) )
                         idx+=1
+                    else:
+                        if CAT_PAIR_COMP :
+                            # pairwise combinations
+                            nc = len(var_iscateg[j])
+                            z = var_iscateg[j]
+                            for ii in range(nc-1):
+                                for jj in range(ii+1,nc):
+                                    # print "Pairwise Cat!"
+                                    # -gltCode ? "ROI : 1*001_002 sex : 1*M -1*F" 
+                                    tc.append(' -gltLabel %d %s-%s\(+%s-%s\) -gltCode %d "ROI : 1*%s %s : 1*%s -1*%s" \\\n' \
+                                                  % (idx, x, y, z[ii], z[jj], idx, x, y, z[ii], z[jj]) )
+                                    idx+=1
+                        # else:
+                        for z in var_iscateg[j]:
+                            tc.append(' -gltLabel %d %s-%s^%s -gltCode %d "ROI : 1*%s %s : 1*%s " \\\n'\
+                                          % (idx, x, y, z, idx, x, y, z) )
+                            idx+=1
+                else:  # the interaction terms
+                    w = var_isinterac[j][0]
+                    y = var_isinterac[j][1]  # var names
+                    z = var_isinterac[j][2]  # var types
+                    if w[1] == 2 :     # interac is cat+cat
+                        nc1 = len(z[0][:])
+                        nc2 = len(z[1][:])
+                        for ii in range(nc1-1):
+                            for jj in range(ii+1,nc1):
+                                for kk in range(nc2-1):
+                                    for ll in range(kk+1,nc2):
+                                        # for now, all pairwise combos
+                                        tc.append(' -gltLabel %d %s-%s\(+%s-%s\)%s%s\(+%s-%s\) -gltCode %d "ROI : 1*%s %s : 1*%s -1*%s %s : 1*%s -1*%s" \\\n' \
+                                                      % (idx, x, y[0], z[0][ii], z[0][jj], '-', y[1], z[1][kk], z[1][ll],
+                                                         idx, x, y[0], z[0][ii], z[0][jj],      y[1], z[1][kk], z[1][ll]) )
+                                        idx+=1
+                    else:
+                        nc1 = len(z[0][:])
+                        for ii in range(nc1-1):
+                            for jj in range(ii+1,nc1):
+                                tc.append(' -gltLabel %d %s-%s\(+%s-%s\)%s%s -gltCode %d "ROI : 1*%s %s : 1*%s -1*%s %s :" \\\n' \
+                                              % (idx, x, y[0], z[0][ii], z[0][jj], '-', y[1],  
+                                                 idx, x, y[0], z[0][ii], z[0][jj],      y[1]) )
+                                idx+=1
+
     tc.append(' -dataTable @%s \n' % file_table )
 
     Command_sep = ' '
