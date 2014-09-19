@@ -3407,7 +3407,7 @@ def db_cmd_regress(proc, block):
     # check the X-matrix for high pairwise correlations
     opt = block.opts.find_opt('-regress_cormat_warnigns')
     if not opt or OL.opt_is_yes(opt):  # so default to 'yes'
-        rcmd = "# display any large pairwise correlations from the X-matrix\n"\
+        rcmd = "# display any large pariwise correlations from the X-matrix\n"\
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
@@ -3537,7 +3537,7 @@ def db_cmd_regress(proc, block):
         cmd = cmd +                                                           \
                "# --------------------------------------------------------\n" \
                "# compute sum of non-baseline regressors from the X-matrix\n" \
-               "# (use 1d_tool.py to get list of regressor columns)\n"      \
+               "# (use 1d_tool.py to get list of regressor colums)\n"      \
                "set reg_cols = `1d_tool.py -infile %s -show_%s`\n"         \
                '3dTstat -sum -prefix %s %s"[$reg_cols]"\n\n'               \
                '# also, create a stimulus-only X-matrix, for easy review\n'\

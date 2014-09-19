@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Sep, 2014, RCR, "3dexample1", MINOR, TYPE_NEW_PROG,
+   "sample program to multiply a dataset by 2",
+   "This is very basic example of reading/processing/writing AFNI datasets."
+ } ,
+
  { 16, Sep, 2014, RCR, "3dmask_tool", MINOR, TYPE_NEW_OPT,
    "added -fill_dirs option, to specify directions for hole filling",
    "Added for D. Glen."
