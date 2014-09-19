@@ -1,0 +1,350 @@
+#!/bin/tcsh -f
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+set stat = 0
+set stdir = $PWD
+
+goto PARSE
+RET_PARSE:
+
+INIT_LISTS:
+   cd $fdir
+   #Get all features
+   set allhists = ()
+   if ($fwildvec == '') then
+      set allhists = (h.*.niml.hist)
+   else 
+      foreach fwild ($fwildvec)
+         set allhists = ($allhists h.*${fwild}.niml.hist \
+                          h.*${fwild}-G-*.niml.hist)
+      end
+   endif
+   if ($#allhists == 0) then
+      echo "No hists found"
+      goto BEND
+   endif
+   
+   #All features
+   set allfeats = (` echo ${allhists} | \tr ' ' '\n' | \
+                        sed '/.*-G-.*niml.hist/ d' | sed 's/^h\.//g' |  \
+                        sed 's/\.niml\.hist$//g' | sort | uniq `) 
+   echo "Have $#allfeats to work with"
+   echo "$allfeats"
+
+   #Keepers
+   set featskeep = ()
+   foreach feat ($allfeats)
+      if ($#exfeatvec > 0) then
+         foreach ex ($exfeatvec) 
+            set jj = `echo $feat | \grep $ex`
+            if ($jj != '') then
+               echo "Skipping $feat"
+               goto NEXTFEAT
+            endif
+         end
+      endif
+      set featskeep = ($featskeep $feat)
+      NEXTFEAT:
+   end
+   cd -
+   
+
+DOAC:
+   cd $fdir   
+   #Distributions over all classes
+   set alljpg = ()
+   foreach feat ($featskeep) 
+      set com = ( -one -x h.$feat.niml.hist'[0]' \
+                  -i h.$feat.niml.hist'[2]'  \
+                  -xax.label $feat -title NONE)
+      #echo "1dRplot '$com'  &" > @Show.$feat
+      #chmod a+x @Show.$feat
+      set noglob
+      1dRplot $com -save h.$feat.jpg  
+      unset noglob
+      set alljpg = ($alljpg h.$feat.jpg )
+   end
+   imcat -crop 0 0 100 0 -nx 4 -prefix $odir/h.ALL.${suff}.jpg $alljpg
+   if ($#alljpg > 0 && "$alljpg" !~ "") then
+      set noglob
+      \rm -f $alljpg
+      unset noglob
+   endif
+   cd -
+   
+DOEC:
+   cd $fdir
+   #Distributions over each class
+   set alljpg = ()
+   set clslst = ()
+   foreach feat ($featskeep) 
+      set gg = (h.${feat}-G-*.niml.hist)
+      set allclslst = (`echo ${gg} | \tr ' ' '\n' | \
+                     sed "s/^h\.${feat}-G-//g" |  \
+                        sed 's/\.niml\.hist$//g' | sort | uniq `) 
+      \rm -f __jjj*.1D >& /dev/null
+      
+      #Keepers, just do once
+      if ($#exclssvec && $#clslst == 0) then
+         foreach cls ($allclslst)
+            if ($#exclssvec > 0) then
+               foreach ex ($exclssvec) 
+                  set jj = `echo $cls | \grep $ex`
+                  if ($jj != '') then
+                     echo "Skipping $cls"
+                     goto NEXTCLS
+                  endif
+               end
+            endif
+            set clslst = ($clslst $cls)
+            NEXTCLS:
+         end
+         echo "Have classes: $clstlst"
+      else if ($#clslst == 0) then
+         set clslst = ($allclslst)
+         echo "Have classes: $clslst"
+      endif
+      set cvec = ()
+      set cnt = 1
+      foreach cls ($clslst)
+         set hh = h.${feat}-G-${cls}.niml.hist
+         niprobe -find_nel_named seg_histogram -f $hh > __jjj.$cls.1D
+         set cvec = ($cvec $cnt)
+         @ cnt ++
+      end
+      1dcat -sel '[2]' __jjj.*.1D > All__jjj.1D 
+      set leg = ($clslst)
+      set com = ( -one -col.color $cvec -x "__jjj.$cls.1D[0]" \
+            -i All__jjj.1D -leg.names $leg -leg.show -leg.ncol 1 \
+                  -xax.label $feat -title NONE)
+      set noglob
+      1dRplot $com -save h.$feat.G.jpg  
+      unset noglob
+      \rm -f *__jjj* >& /dev/null
+      set alljpg = ($alljpg h.$feat.G.jpg )
+   end
+   imcat -crop 0 0 100 0 -nx 4 -prefix $odir/h.ALL_COND.${suff}.jpg $alljpg
+   if ($#alljpg > 0 && "$alljpg" !~ "") then
+      set noglob
+      \rm -f $alljpg
+      unset noglob
+   endif   
+   cd -
+   
+
+
+   set hist = "h.ALL_COND.${suff}.jpg and h.ALL.${suff}.jpg were produced from $PWD with: `basename $0` $argv[*]" 
+   echo $hist > $odir/README.command.$suff
+   
+   set pdir = `echo $odir | sed "s:^${idir}/::"`
+   echo "Results now in $pdir"
+   echo "Summary images are: "
+   echo "$pdir/h.ALL_COND.${suff}.jpg $pdir/h.ALL.${suff}.jpg"
+   echo ""
+   
+goto END
+
+PARSE:
+set Narg = $#
+set cnt = 1
+set starttime=`date`
+set resample = 1
+set fwildvec = ()
+set exclssvec = ()
+set exfeatvec = ()
+set cleanafter = 1
+set inmask = ""
+set odir = ""
+set olabel = 'loc_st'
+set sigset = 'sigset'
+set inputopen = 0
+set exclsopen = 0
+set exfeatopen = 0
+set featmask = ''
+set suff = 'nosuf'
+set fdir = './'
+set idir = $PWD
+if ("$1" == '') goto HELP
+while ($cnt <= $Narg)
+   set donext = 1
+
+   if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+      goto HELP
+   endif
+   
+   if ($donext && ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo")) then
+      set echo
+      set donext = 0   
+   endif
+
+
+   if ($donext && "$argv[$cnt]" == "-odir") then
+      if ($cnt == $Narg) then
+         echo "Need directory after -odir"
+         goto END
+      else
+         @ cnt ++
+         set odir = "$argv[$cnt]"
+         
+         set exfeatopen = 0
+         set inputopen = 0
+         set exclsopen = 0
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-fwild") then
+      if ($cnt == $Narg) then
+         echo "Need feature identifiers names after -fwild"
+         goto END
+      else
+         @ cnt ++
+         set exclsopen = 0
+         set exfeatopen = 0
+         set inputopen = 1
+         set fwildvec = ($fwildvec $argv[$cnt])
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-exclass") then
+      if ($cnt == $Narg) then
+         echo "Need class(es) afer -exclass"
+         goto END
+      else
+         @ cnt ++
+         set exfeatopen = 0
+         set inputopen = 0
+         set exclsopen = 1
+         set exclssvec = ($exclssvec $argv[$cnt])
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-exfeat") then
+      if ($cnt == $Narg) then
+         echo "Need features(s) afer -exfeat"
+         goto END
+      else
+         @ cnt ++
+         set exfeatopen = 1
+         set inputopen = 0
+         set exclsopen = 0
+         set exfeatvec = ($exfeatvec $argv[$cnt])
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-suffix") then
+      if ($cnt == $Narg) then
+         echo "Need a output suffix after -suffix"
+         goto END
+      else
+         @ cnt ++
+         set suff = "$argv[$cnt]"
+         set exfeatopen = 0
+         set inputopen = 0
+         set exclsopen = 0
+         set donext = 0   
+      endif
+   endif
+   if ($donext && "$argv[$cnt]" == "-fdir") then
+      if ($cnt == $Narg) then
+         echo "Need a directory suffix after -fdir"
+         goto END
+      else
+         @ cnt ++
+         set fdir = "$argv[$cnt]"
+         set exfeatopen = 0
+         set inputopen = 0
+         set exclsopen = 0
+         set donext = 0   
+      endif
+   endif
+   
+  if ($donext) then
+      if ($inputopen == 1) then
+         set fwildvec = ($fwildvec $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($exfeatopen == 1) then
+         set exfeatvec = ($exfeatvec $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($exclsopen == 1) then
+         set exclssvec = ($exclssvec $argv[$cnt])
+         @ cnt ++
+      endif
+      if ($inputopen == 0 && $exclsopen == 0 && $exfeatopen == 0) then
+         echo "Parameter $argv[$cnt] not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
+         goto END
+      endif
+   else 
+      @ cnt ++
+   endif 
+
+end
+
+
+#output directory
+if ("$odir" == '') then
+   set odir = "$fdir"
+endif
+if (! -d $odir) mkdir -p $odir
+if (! -d $odir) then
+   echo "Failed to create $odir"
+   goto END
+endif
+cd $odir
+set odir = $PWD
+cd -
+         
+
+
+goto RET_PARSE
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-fdir FEATURES_DIR> "
+   echo " "
+   echo "Examine histograms produced by 3dGenFeatDists"
+   echo ""
+   echo "-fdir DIR: output directory of 3dGenFeatDists"
+   echo "-fwild WILD1 [WILD2 ...]: Wildcards used to select feature histograms"
+   echo "                          under DIR."
+   echo "                          Histograms picked would be those named:"
+   echo '                          h.*WILD1.niml.hist and h.*WILD1-G-*.niml.hist'
+   echo "-suffix SUFF: Output suffix, added to output images. Default nosuff"
+   echo "-exfeat FEAT1 [FEAT2 ...]: Exclude following features. String matching"
+   echo "                            is partial"
+   echo "-exclass CLSS1 [CLSS2 ...]: Exclude following classes. String matching "
+   echo "                             is partial"
+   echo "-odir DIR: Output directory, default is DIR"
+   echo "-echo: Set echo"
+   echo "-help: this message" 
+   echo ""
+   echo " See also @FeatureHists "
+   echo ""
+   echo "Example:"
+   echo "@ExamineGenFeatDists    -fwild sc9 Xz Yz Zz FA.MAD07 MD \"
+   echo "                        -fdir GenFeatDist.sc9 \"
+   echo "                        -exfeat mean z.FA. z.MD \"
+   echo "                        -exclass air \"
+   echo "                        -odir GenFeatDist.sc9"
+   echo ""
+   @global_parse -gopts_help
+   goto END
+
+goto END
+
+BEND:
+set stat = 1
+goto END
+
+END:
+exit $stat
+
+
+
+
