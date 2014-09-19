@@ -244,7 +244,7 @@ SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc)
 int GenFeatureDist_CheckOpts(SEG_OPTS *Opt) 
 {
    static char FuncName[]={"GenFeatureDist_CheckOpts"};
-   int i=0;
+   int i=0, kk=0;
    
    SUMA_ENTRY;
    
@@ -270,7 +270,6 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
    if (Opt->labeltable_name) {
       Dtable *vl_dtable=NULL;
       char *labeltable_str=NULL;
-      int kk=0;
       
       /* read the table */
       if (!(labeltable_str = AFNI_suck_file( Opt->labeltable_name))) {
@@ -303,6 +302,18 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
       }
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
    } 
+   
+   /* Make sure any histogram specs are for a class in use */
+   for (kk=0; kk<Opt->N_hspec; ++kk) {
+      for (i=0; i<Opt->feats->num; ++i) {
+         if (!strcmp(Opt->feats->str[i], Opt->hspec[kk]->label)) break;
+      }
+      if (i==Opt->feats->num) {
+         SUMA_S_Err("Feature %s in -hspec not found under -features\n",
+                    Opt->hspec[kk]->label);
+         SUMA_RETURN(0);
+      }
+   }
    
    if (!Opt->keys) {
       /* add default keys */
@@ -502,6 +513,23 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-hspec") == 0)) {
+         kar ++;
+			if (kar+3 >= argc)  {
+		  		fprintf (stderr, "need 4 arguments after -hspec \n");
+				exit (1);
+			}
+			Opt->hspec = (SUMA_HIST **)
+                  SUMA_realloc(Opt->hspec, (Opt->N_hspec+1)*sizeof(SUMA_HIST *));
+         Opt->hspec[Opt->N_hspec] = (SUMA_HIST*)SUMA_calloc(1,sizeof(SUMA_HIST));
+         Opt->hspec[Opt->N_hspec]->label = SUMA_copy_string(argv[kar++]);
+         Opt->hspec[Opt->N_hspec]->min = (float)strtod(argv[kar++],NULL);
+         Opt->hspec[Opt->N_hspec]->max = (float)strtod(argv[kar++],NULL);
+         Opt->hspec[Opt->N_hspec]->K   = (float)strtod(argv[kar],NULL);
+         ++Opt->N_hspec;
+         brk = 1;
+		}
+      
       
                   
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
@@ -642,7 +670,7 @@ int main(int argc, char **argv)
 {
    static char FuncName[]={"3dGenFeatureDist"};
    SEG_OPTS *Opt=NULL;
-   char *atr=NULL, sbuf[512];
+   char *atr=NULL, sbuf[512], *methods=NULL;
    int  cc, /* class counter */
         kk, /* key counter */
         aa, /* feature counter */
@@ -650,6 +678,7 @@ int main(int argc, char **argv)
         vv, /* voxel index */
         ss, /* subjects counter */
         iii, /* dummy counter */
+        nbins, /* number of bins */
         *ifeat=NULL, key, 
         **N_alloc_FCset=NULL, /* Number of values allocated for each 
                                  vector in FCset */
@@ -796,10 +825,20 @@ int main(int argc, char **argv)
          }
       }
       
-      SUMA_S_Notev("Loading sample classes for subject %d\n", ss);
+      SUMA_S_Notev("Loading sample classes for subject #%d\n", ss);
       if (!(Opt->samp = Seg_load_dset( Opt->samp_names->str[ss] ))) {      
          exit(1);
       }
+      
+      if (THD_dataset_mismatch(Opt->samp, Opt->sig)) {
+         SUMA_S_Err(
+            "Grid mismatch between -samp [%dx%dx%d] and \n"
+            "                      -sig  [%dx%dx%d] volumes for pair #%d\n", 
+            DSET_NX(Opt->samp), DSET_NY(Opt->samp), DSET_NZ(Opt->samp),
+            DSET_NX(Opt->sig), DSET_NY(Opt->sig), DSET_NZ(Opt->sig), ss);
+         exit(1);
+      }
+      
       if (Opt->debug > 1) {
          SUMA_S_Notev("Have %d sub-bricks in samples of dude %d\n", 
                      DSET_NVALS(Opt->samp), ss);
@@ -907,24 +946,43 @@ int main(int argc, char **argv)
           ff_s += SUMA_POW2(ff[iii]-ff_m);
       }
       ff_s = sqrt(ff_s/N_ff);
-      SUMA_S_Notev("Feature %s: mean %f, std %f\n", 
-                        Opt->feats->str[aa], ff_m, ff_s);
       sprintf(sbuf, "h(%s)",Opt->feats->str[aa]);
-      if ((float)isneg/(float)N_ff*100.0 > 1.0) {
-         hrange[0] =  ff_m-3*ff_s;
-         hrange[1] =  ff_m+3*ff_s;
-         bwidth = bwidth1*ff_s;
-      } else if (ff_m-3*ff_s > 0) {
-         hrange[0] =  ff_m-3*ff_s;
-         hrange[1] =  ff_m+3*ff_s;
-         bwidth = bwidth1*ff_s;
-      } else {
-         hrange[0] =  0;
-         hrange[1] =  6.0*ff_s/2.0;
-         bwidth = bwidth1*ff_s/2.0;
+      
+      /* Check if you have user specified binning specs */
+      bwidth = -1; nbins = -1;
+      for (iii=0; iii<Opt->N_hspec; ++iii) {
+         if (!strcmp(Opt->feats->str[aa], Opt->hspec[iii]->label)) {
+            hrange[0] =  Opt->hspec[iii]->min;
+            hrange[1] =  Opt->hspec[iii]->max;
+            nbins     =  Opt->hspec[iii]->K;
+            bwidth    = 0;
+            methods   =  "hands off sir";
+            break;
+         }
       }
-      if (!(hf[aa] = SUMA_hist_opt(ff, N_ff, 0, bwidth, hrange, sbuf, 1, 
-                                    0.1, "Range|OsciBinWidth"))) {
+      if (bwidth < 0) { /* no user specs found */
+         nbins = 0;
+         methods = "Range|OsciBinWidth";
+         if ((float)isneg/(float)N_ff*100.0 > 1.0) {
+            hrange[0] =  ff_m-3*ff_s;
+            hrange[1] =  ff_m+3*ff_s;
+            bwidth = bwidth1*ff_s;
+         } else if (ff_m-3*ff_s > 0) {
+            hrange[0] =  ff_m-3*ff_s;
+            hrange[1] =  ff_m+3*ff_s;
+            bwidth = bwidth1*ff_s;
+         } else {
+            hrange[0] =  0;
+            hrange[1] =  6.0*ff_s/2.0;
+            bwidth = bwidth1*ff_s/2.0;
+         }
+      }
+      SUMA_S_Notev("Feature %s: mean %f, std %f\n"
+                   "Hist params: [%f %f], binwidth %f\n", 
+                        Opt->feats->str[aa], ff_m, ff_s,
+                        hrange[0], hrange[1], bwidth);
+      if (!(hf[aa] = SUMA_hist_opt(ff, N_ff, nbins, bwidth, hrange, sbuf, 1, 
+                                    0.1, methods))) {
          SUMA_S_Errv("Failed to generate histogram for %s. \n"
                      "This will cause trouble at classification.\n",
                      Opt->feats->str[aa]);
@@ -966,7 +1024,7 @@ int main(int argc, char **argv)
          sprintf(sbuf, "h(%s|%s)",Opt->feats->str[aa], Opt->clss->str[cc]);
          hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max; 
          /* Do not optimize hist range and binwidth anymore, 
-            but allow smoothing. THis is needed when a particular 
+            but allow smoothing. This is needed when a particular 
             class has very few samples */
          if (!(hh[aa][cc] = SUMA_hist_opt(FCset[aa][cc], N_FCset[aa][cc], 
                                     hf[aa]->K, hf[aa]->W, 
@@ -1091,7 +1149,8 @@ int main(int argc, char **argv)
       masks[ss]=NULL;
    }
    
-   SUMA_S_Notev("Consider running this script to examine the distributions:\n"
+   SUMA_S_Notev("\n"
+                "Consider running this script to examine the distributions:\n"
                 "   @ExamineGenFeatDists -fdir %s -odir %s\n",
                 Opt->proot, Opt->proot);
    
