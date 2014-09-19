@@ -67,6 +67,16 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 18, Sep , 2014 , PT , "fat_mvm_prep.py" , MICRO , TYPE_GENERAL,
+   "Change internal var/par names, and how helpfile is thrown.",
+   "More consistent naming, easier helpfile usage.\n"
+},
+
+{ 18, Sep , 2014 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_NEW_OPT,
+   "Allow interaction terms in the user-defined statistical model.",
+   "Allow cat+quant or cat+cat variable interactions, and posthoc testing.\n"
+},
+
 { 8, Sep , 2014 , PT , "fat_roi_row.py" , SUPER , TYPE_NEW_PROG,
    "Select out one row of a matrix file, at user request.",
    "Useful, for example, if wanting to view connectivity one-to-many.\n"

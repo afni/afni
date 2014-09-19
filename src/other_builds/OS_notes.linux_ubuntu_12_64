@@ -2,13 +2,26 @@
 # useful/necessary to build AFNI from source in Linux (64bit) Ubuntu
 # machines, first of the 11.* variety and then of the 12.* kind.
 
-# This most recent list used on an Ubuntu 12.10 machine in early
-# September, 2013.
+# This most recent list was used on an Ubuntu 12.10 machine in early
+# September, 2013.  It appears to continue working on Ubuntu 14.04.
 
-# (NB: there is an accompanying Makefile.linux_Ubuntu_64bit which was
-# used in conjunction with this list.)
+# NB: there is an accompanying Makefile.linux_Ubuntu_64bit which was
+# used in conjunction with this list.  Just copy this makefile into
+# the afni_src/ directory with the simple name 'Makefile'.
+
+# If you would like to easily enable OpenMP capabilities for speedup
+# using some parallelized AFNI programs, then you can make the
+# afni_src/Makefile using using 'Makefile.linux_ubuntu_12_64_OMP'.
+# Please check the online documentation for system requisites
+# (versions of gcc compiler, etc.). If you choose this option, you can
+# set the max number of processors to use (<=the number on your
+# computer), by adding the following line to your computer's ~/.bashrc
+# file:
+#    export OMP_NUM_THREADS=N
+# where you replace 'N' with your specific number.
 
 # This (executable) file should be executable by typing:
+# $ chmod 755 OS_notes.linux_Ubuntu_64bit.txt
 # $ ./OS_notes.linux_Ubuntu_64bit.txt
 # in a terminal window; you could also copy/past the commands into a
 # terminal window, if you wish.  You may be prompted about whether to 
