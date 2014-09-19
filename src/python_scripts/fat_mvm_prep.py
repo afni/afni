@@ -161,8 +161,11 @@ def main(argv):
                                                       "prefix=",
                                                       "list_match="])
     except getopt.GetoptError:
-        print help_line
+        print "** Error reading options. Try looking at the helpfile:"
+        print "\t $  fat_mvm_prep.py -h\n"
         sys.exit(2)
+        #print help_line
+        #sys.exit(2)
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print help_line
@@ -232,7 +235,7 @@ if __name__=="__main__":
         sys.exit(2)
 
     if grid_subj:
-        grid_ROIlist, grid_VARlist = GR.FindGroupwiseTargets(grid_data, MTYPE)
+        grid_ROIlist, grid_PARlist = GR.FindGroupwiseTargets(grid_data, MTYPE)
 
     # Match the CSV_subjectIDs and the GRID_subject list. This is
     # based on A) just the filenames and CSV labels; or B) explicit
@@ -252,21 +255,21 @@ if __name__=="__main__":
     temp = GR.Write_CSVandMatrix_log(file_prefix,        \
                                         DICT_CSV_grid,   \
                                         grid_ROIlist,    \
-                                        grid_VARlist,    \
+                                        grid_PARlist,    \
                                         arg_str)
 
     grid_tabled = GR.MakeGridTableau(DICT_CSV_grid,     \
                                          csv_data,      \
                                          grid_data,     \
                                          grid_ROIlist,  \
-                                         grid_VARlist,  \
+                                         grid_PARlist,  \
                                          grid_subj)
 
     temp2 = GR.Write_MVM_File(file_prefix,           \
                                   csv_data,          \
                                   csv_colvars,       \
                                   grid_ROIlist,      \
-                                  grid_VARlist,      \
+                                  grid_PARlist,      \
                                   grid_tabled)
 
     if temp2:
