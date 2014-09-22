@@ -6,7 +6,21 @@ set ok_1surf = 0
 set ok_Gsurf = 0
 set ok_Gvol = 0
 
-set cdir = `\pwd | \grep AFNI_InstaCorrDemo`
+#Is the mini version present?
+set cdir = `\pwd | sed 's/AFNI_InstaCorrDemo.build/BUILDIR/' | \grep AFNI_InstaCorrDemo.mini`
+if ($status == 0 && ${cdir} != '') then
+   echo "You should not run this command from a directory under AFNI_InstaCorrDemo.mini"
+   set sugdir = `echo $cdir | sed 's/AFNI_InstaCorrDemo.mini/ /g' | \
+                              cut -f 1 -d ' '`
+   echo "Consider running this script again with: "
+   echo "   cd $sugdir"
+   echo "   `basename $0` $argv[*]"
+   echo ""
+   goto END
+endif
+
+
+set cdir = `\pwd | sed 's/AFNI_InstaCorrDemo.build/BUILDIR/' | \grep AFNI_InstaCorrDemo`
 if ($status == 0 && ${cdir} != '') then
    echo "You should not run this command from a directory under AFNI_InstaCorrDemo"
    set sugdir = `echo $cdir | sed 's/AFNI_InstaCorrDemo/ /g' | cut -f 1 -d ' '`
@@ -20,15 +34,26 @@ endif
 goto PARSE
 RET_PARSE:
 
-if ( -f AFNI_InstaCorrDemo/srf/rest_sub99965.STL_rh_SM.niml.dset.1D.smrec ) then
+if ("$trgdir" == "") then
+   if ( -d ./AFNI_InstaCorrDemo.mini ) then
+      set trgdir = AFNI_InstaCorrDemo.mini
+   else if ( -d ./AFNI_InstaCorrDemo ) then
+      set trgdir = AFNI_InstaCorrDemo
+   endif
+endif
+
+#Still undecided ?
+if ("$trgdir" == "") set trgdir = AFNI_InstaCorrDemo
+
+if ( -f ${trgdir}/srf/rest_sub99965.STL_rh_SM.niml.dset.1D.smrec ) then
    echo "Subject single surf processed"
    set ok_1surf = 1
 endif
-if ( -f AFNI_InstaCorrDemo/srf/G1.LR.grpincorr.niml ) then
+if ( -f ${trgdir}/srf/G1.LR.grpincorr.niml ) then
    echo "Subject group surf processed"
    set ok_Gsurf = 1
 endif
-if ( -f AFNI_InstaCorrDemo/vol/G1.grpincorr.niml ) then
+if ( -f ${trgdir}/vol/G1.grpincorr.niml ) then
    echo "Subject group vol processed"
    set ok_Gvol = 1
 endif
@@ -37,9 +62,9 @@ if ( $ok_Gvol == 1 || $ok_Gsurf == 1 || $ok_1surf == 1 )  then
 echo ""
 echo "Notice:"
 echo "   Output files already exist."
-echo "   If you need to reinstall, remove both AFNI_InstaCorrDemo and"
-echo "   AFNI_InstaCorrDemo.tgz with:"
-echo "\\rm -rf AFNI_InstaCorrDemo.tgz AFNI_InstaCorrDemo"
+echo "   If you need to reinstall, remove both AFNI_InstaCorrDemo,"
+echo "   AFNI_InstaCorrDemo.mini and AFNI_InstaCorrDemo.tgz with:"
+echo "\\rm -rf AFNI_InstaCorrDemo.tgz AFNI_InstaCorrDemo AFNI_InstaCorrDemo.mini"
 echo "   then run `basename $0` $argv[*] again."
 echo ""
 echo "Otherwise to just run the demos do:"
@@ -48,7 +73,7 @@ set ret_coms = END
 goto SHOW_COM
    endif
 
-if ( ! -f AFNI_InstaCorrDemo.tgz) then
+if ( ! -f ${trgdir}.tgz) then
    if ($use_curl == -1) then
       which curl
       if ($status) then
@@ -59,25 +84,25 @@ if ( ! -f AFNI_InstaCorrDemo.tgz) then
    endif
 
    if ($use_curl == 0) then
-      wget http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+      wget http://afni.nimh.nih.gov/pub/dist/data/${trgdir}.tgz
    else
-      curl -O http://afni.nimh.nih.gov/pub/dist/data/AFNI_InstaCorrDemo.tgz
+      curl -O http://afni.nimh.nih.gov/pub/dist/data/${trgdir}.tgz
    endif
-   tar xvzf AFNI_InstaCorrDemo.tgz
+   tar xvzf ${trgdir}.tgz
 else
-   echo "Reusing existing AFNI_InstaCorrDemo.tgz"
-   tar xvzf AFNI_InstaCorrDemo.tgz
+   echo "Reusing existing ${trgdir}.tgz"
+   tar xvzf ${trgdir}.tgz
 endif
 
-cd AFNI_InstaCorrDemo/vol
+cd ${trgdir}/vol
    tcsh ./@SetupVolGroupInCorr
 cd -
-cd AFNI_InstaCorrDemo/srf
+cd ${trgdir}/srf
    tcsh ./@SetupSurfGroupInCorr
    tcsh ./@RunSingleSurfInstaCorr -setup_only
 cd -
 
-if ( ! -d AFNI_InstaCorrDemo/srf ) then
+if ( ! -d ${trgdir}/srf ) then
    echo "Installation Failed"
    goto BEND
 endif
@@ -88,15 +113,15 @@ SHOW_COM:
    echo "*****************"
    echo ""
    echo "For Volume-based 3dGroupInCorr run:"
-   echo "cd $PWD/AFNI_InstaCorrDemo/vol"
+   echo "cd $PWD/${trgdir}/vol"
    echo "tcsh ./@RunVolGroupInCorr "
    echo ""
    echo "For Surface-based 3dGroupInCorr run:"
-   echo "cd $PWD/AFNI_InstaCorrDemo/srf"
+   echo "cd $PWD/${trgdir}/srf"
    echo "tcsh ./@RunSurfGroupInCorr "
    echo ""
    echo "For Surface-based Single-Subject InstaCorr run:"
-   echo "cd $PWD/AFNI_InstaCorrDemo/srf"
+   echo "cd $PWD/${trgdir}/srf"
    echo "tcsh ./@RunSingleSurfInstaCorr "
    echo ""
    echo "*****************"
@@ -108,6 +133,7 @@ PARSE:
    set Narg = $#
    set use_curl = -1
    set cnt = 1
+   set trgdir = ''
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-echo") then
@@ -120,6 +146,14 @@ PARSE:
       endif
       if ($donext && "$argv[$cnt]" == "-wget") then
          set use_curl = 0
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-mini") then
+         set trgdir = AFNI_InstaCorrDemo.mini
+         set donext = 0; goto NEXT		
+      endif
+      if ($donext && "$argv[$cnt]" == "-full") then
+         set trgdir = AFNI_InstaCorrDemo
          set donext = 0; goto NEXT		
       endif
       if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then

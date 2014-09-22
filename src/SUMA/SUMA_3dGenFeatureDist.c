@@ -21,14 +21,14 @@ static HELP_OPT GenFeatureDistOptList[] = {
 "-classes", 
 "-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
 "                         string of class labels. For example\n"
-"                         -classes 'CSF; WM; GM'", 
+"                         -classes 'CSF; WM; GM'\n", 
 NULL
       },
    {  
 "-features", 
 "-features 'FEATURES_STRING': FEATURES_STRING is a semicolon delimited\n"
 "                         string of features. For example\n"
-"                         -features 'MEAN.00_mm; median.19_mm; ...'", 
+"                         -features 'MEAN.00_mm; median.19_mm; ...'\n", 
 NULL
       },
    {  
@@ -67,14 +67,29 @@ NULL
 "                         the kth -sig datasets.\n",
 NULL
       },
+
+   {  
+"-hspec",
+"-hspec FEATURE MIN MAX NBINS: Set histogram parameters for feature FEATURE\n"
+"                              FEATURE: String label of feature\n"
+"                              MIN, MAX: Range of histogram\n"
+"                              NBINS: Number of bins\n"
+"        Use this option to set the histogram parameters for the features for\n"
+"        the automatic parameter selection was lousy. You can specify \n"
+"        for multiple features by using multiple -hspec instances. The only\n"
+"        condition is that all feature labels (FEATURE) must be part of the \n"
+"        set named in -features.\n" , 
+NULL 
+      },
+
    
    {  
 "-prefix",
 "-prefix PREF: PREF is the prefix for all output volume that are not \n"
-"              debugging related.", 
+"              debugging related.\n", 
 "GenFeatDist" 
       },
-
+   
    {  
 "-ShowTheseHists",
 "-ShowTheseHists HISTNAMES: Show histograms specified by HISTNAMES and quit.\n"
@@ -86,18 +101,18 @@ NULL
    {  
 "-overwrite",
 "-overwrite: An option common to almost all AFNI programs. It is \n"
-"            automatically turned on if you provide no PREF.",
+"            automatically turned on if you provide no PREF.\n",
 NULL
       },
    {  
 "-debug",
-"-debug: Debugging level",
+"-debug: Debugging level\n",
 "1"
       },
 
    {  
 "-labeltable",
-"-labeltable LT: Specify the label table",
+"-labeltable LT: Specify the label table\n",
 "1"
       },
    {  NULL, NULL, NULL  }
