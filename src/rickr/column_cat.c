@@ -74,7 +74,7 @@ int cat_files( info_s * I )
     {
 	done = 1;
 
-        show = I->line >= 0 && I->line == linec;
+        show = I->line <= 0 || I->line == (linec+1);
 
         for ( filec = 0; filec < I->num_files; filec++ )
 	{
@@ -165,7 +165,7 @@ int read_args( int argc, char * argv [], info_s * I )
 
     /* defaults */
     I->num_files = 0;
-    I->line = -1;
+    I->line = 0;
     I->separator[0] = ' ';
     I->separator[1] = '\0';
 
@@ -198,8 +198,8 @@ int read_args( int argc, char * argv [], info_s * I )
 		return( P_FAILURE );
 	    }
 	    I->line = atoi(argv[ac]);
-            if( I->line < 0 ) {
-                fprintf(stderr,"** -line (%s) should be >= 0\n", argv[ac]);
+            if( I->line <= 0 ) {
+                fprintf(stderr,"** -line (%s) should be > 0\n", argv[ac]);
 		return( P_FAILURE );
             }
         }
@@ -233,7 +233,8 @@ int usage ( char * prog, int style )
 	       "  such as a tab, please use the -sep option.\n"
 	       "\n"
 	       "  Optionos:\n"
-	       "     -line LINE_NUM : print only line #LINE_NUM (0-based)\n"
+	       "     -line LINE_NUM : print only line #LINE_NUM (1-based)\n"
+	       "                      e.g. -line 1   (shows top line)\n"
 	       "     -sep sep_str   : use sep_str as separation string\n"
 	       "\n"
 	       "  Examples:\n"

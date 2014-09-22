@@ -2501,6 +2501,10 @@ column_cat: rickr/column_cat.c
 	$(RM) $@
 	$(CC) -o column_cat rickr/column_cat.c
 
+3dexample1: 3dexample1.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dexample1 3dexample1.o $(LFLAGS) $(LLIBS)
+
 
 #######
 # rendering library
