@@ -205,10 +205,16 @@ int ao_with_afniweb(char *fname)
                "http://afni.nimh.nih.gov/pub/dist/edu/"
                "data/CD/%s",fname);
             if ((s = ao_with_downloader(ww, 0))) {
-               fprintf(stderr,"Status %d on %s\n Search also failed under\n"
-                              "http://afni.nimh.nih.gov/pub/dist/tgz\n"
-                              "http://afni.nimh.nih.gov/pub/dist/edu/data/"
-                              , s, ww);
+               snprintf(ww,1023*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/"
+               "data/%s",fname);
+               if ((s = ao_with_downloader(ww, 0))) {
+                  fprintf(stderr,"Status %d on %s\n Search also failed under\n"
+                                 "http://afni.nimh.nih.gov/pub/dist/tgz\n"
+                                 "http://afni.nimh.nih.gov/pub/dist/edu/data/\n"
+                                 "http://afni.nimh.nih.gov/pub/dist/data/\n"
+                                 , s, ww);
+               }
             }
          }
       }   
