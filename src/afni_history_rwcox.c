@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , SEP , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+  { 22 , SEP , 2014 , RWC , "prefix handling" , MICRO , TYPE_MODIFY ,
+   "Modify EDIT_dset_items to edit prefixes with +orig etc." ,
+   "So you don't end with a dataset like Fred+tlrc.HEAD+tlrc.HEAD" } ,
+
+ { 17 , SEP , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Add 'secret' workhard variant" ,
    "Use in the form '-Workhard' and it will using cubic for the first pass\n"
    "at each level, and quintic for the second pass (vs. cubic for both)." } ,
