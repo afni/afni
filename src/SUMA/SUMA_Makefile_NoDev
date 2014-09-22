@@ -147,8 +147,9 @@ ${SUMAGTSLIB} : libply.a libglut.a ${SUMALIB} ${SUMA_GTS_OBJS}
 #Main objects, You don't want main functions in libSUMA.a 
 mainobj: ${SUMALIB} ${SUMA_SRCS_OBJS}
 
+# do not remove ../suma_*.o  22 Sep, 2014 [rickr]
 clean:
-	$(RM) ../suma_*.o *.o GLw_local/*.o ${SUMA_EXECS}
+	$(RM) *.o GLw_local/*.o ${SUMA_EXECS}
 
 .c.o:
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} ${SUMA_INPATH} -c $*.c 

@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Sep, 2014, RCR, "SUMA_Makefile_NoDev.c", MICRO, TYPE_MODIFY,
+   "removed ../suma_*.o from clean directive",
+   NULL
+ } ,
+
+ { 22, Sep, 2014, RCR, "thd_http.c", MICRO, TYPE_MODIFY,
+   "changed mktemp() to mkstemp() to get rid of those compile warnings",
+   NULL
+ } ,
+
+ { 22, Sep, 2014, RCR, "column_cat", MINOR, TYPE_BUG_FIX,
+   "fixed implementation of -line, which messed up default operation",
+   NULL
+ } ,
+
  { 19, Sep, 2014, RCR, "3dexample1", MINOR, TYPE_NEW_PROG,
    "sample program to multiply a dataset by 2",
    "This is very basic example of reading/processing/writing AFNI datasets."
