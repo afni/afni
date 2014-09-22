@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 22, Sep, 2014, RCR, "SUMA_Makefile_NoDev.c", MICRO, TYPE_MODIFY,
+ { 22, Sep, 2014, RCR, "3dexample1", MICRO, TYPE_ENHANCE,
+   "made mention of 3dToyProg.c",
+   NULL
+ } ,
+
+ { 22, Sep, 2014, RCR, "SUMA_Makefile_NoDev", MICRO, TYPE_MODIFY,
    "removed ../suma_*.o from clean directive",
    NULL
  } ,
