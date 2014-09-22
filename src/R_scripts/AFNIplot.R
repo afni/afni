@@ -486,10 +486,16 @@ plot.1D.optlist <- function(...) {
                  if (!is.null(ll$dmat.colsel) && is.na(ll$dmat.colsel)) 
                      ll$dmat.colsel <- c(3) #Don't bother with non-normalized
                  if (!is.null(ll$xax.label) && is.na(ll$xax.label)) 
+                     bw <- attr(ll$dmat,"BinWidth")
+                     if (is.null(bw)) bw <- 0 
                     if (!is.null(attr(ll$dmat,"xlabel"))) {
-                        ll$xax.label <- attr(ll$dmat,"xlabel")
+                        ll$xax.label <- sprintf("%s (K=%d,W=%.3f)",
+                                          attr(ll$dmat,"xlabel"),
+                                          dim(ll$dmat)[1], bw)
                     } else {
-                       ll$xax.label <- colnames(ll$dmat)[1]
+                       ll$xax.label <- sprintf("%s (K=%d,W=%.3f)",
+                                               colnames(ll$dmat)[1],
+                                                dim(ll$dmat)[1], bw)
                     }
               }
            }
