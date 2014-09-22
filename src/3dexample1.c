@@ -106,7 +106,9 @@ int process_options(int argc, char *argv[], char ** iname, char ** oname)
 
 int show_help(void)
 {
-   printf("usage: 3dexample1 -input INSET -prefix PREFIX\n");
+   printf("This is a demo AFNI program that multiplies a dataset by 2.\n"
+          "See 3dToyProg.c for a more detailed example.\n\n"
+          "usage: 3dexample1 -input INSET -prefix PREFIX\n\n");
    return 0;
 }
 
