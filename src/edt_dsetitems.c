@@ -1019,18 +1019,25 @@ int THD_volDXYZscale( THD_dataxes  * daxes, float xyzscale, int reuse_shift)
 }
 
 /*-------------------------------------------------------------------*/
+#undef DPOLD  /* 22 Sep 2014 == Bilbo's birthday */
+
+/*-------------------------------------------------------------------*/
 /*! Remove any +???? suffix from a prefix, returning a new one.
     -- 22 Nov 2002 - RWCox
 ---------------------------------------------------------------------*/
 
 char * THD_deplus_prefix( char *prefix )
 {
-   static char * plussers[] = {
+#ifdef DPOLD
+   static char *plussers[] = {
       "+orig", "+orig.", "+orig.HEAD", "+orig.BRIK", "+orig.BRIK.gz",
       "+acpc", "+acpc.", "+acpc.HEAD", "+acpc.BRIK", "+acpc.BRIK.gz",
       "+tlrc", "+tlrc.", "+tlrc.HEAD", "+tlrc.BRIK", "+tlrc.BRIK.gz"
       };
-   char *newprefix ;
+#else
+   static char *plussers[] = { "+orig" , "+acpc" , "+tlrc" } ;
+#endif
+   char *newprefix , *cpt ;
    int nn, N_nn;
 
    if( prefix == NULL ) return NULL ;
@@ -1039,29 +1046,16 @@ char * THD_deplus_prefix( char *prefix )
    
    N_nn = sizeof(plussers)/sizeof(char *);
    for (nn=0; nn<N_nn; ++nn) {
+#ifdef DPOLD
       if( STRING_HAS_SUFFIX(newprefix, plussers[nn]) ) {
          newprefix[strlen(newprefix)-strlen(plussers[nn])] = '\0';
          return newprefix ;
       }
+#else
+      cpt = strstr(newprefix,plussers[nn]) ;
+      if( cpt != NULL ) *cpt = '\0' ;
+#endif
    }
-   
-   #if 0       /* Pre Nov. 2011 , kill this section in a month or so */
-   nn = strlen(prefix); newprefix = strdup(prefix);
-
-   /* only remove the basic 3: +orig, +acpc +tlrc   17 May 2004 [rickr] */
-   /* (blame Shruti) */
-   if( nn > 4 &&   ( (strcmp(newprefix+nn-5,"+orig") == 0) ||
-                     (strcmp(newprefix+nn-5,"+acpc") == 0) ||
-                     (strcmp(newprefix+nn-5,"+tlrc") == 0)   ) )
-      newprefix[nn-5] = '\0' ;
-
-/* old check
-       isalpha(newprefix[nn-4]) &&
-       isalpha(newprefix[nn-3]) &&
-       isalpha(newprefix[nn-2]) &&
-       isalpha(newprefix[nn-1])   ) newprefix[nn-5] = '\0' ;
-*/
-   #endif
    
    return newprefix ;
 }
