@@ -413,7 +413,7 @@ int page_set_data(URL_PAGE *up)
    if( up->cflag ){ /* uncompress via temp file */
       setup_tmpdir() ;
       strcpy(qname,tmpdir) ; strcat(qname,"gosiaXXXXXX") ;
-      mktemp(qname) ;
+      mkstemp(qname) ;  /* from mktemp   22 Sep, 2014 [rickr] */
       if( qname[0] != '\0' ){
          strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
          if( cfile == NULL ) up->cflag = 0 ;
@@ -592,7 +592,7 @@ int read_URL_http( char * url , int msec , char ** data )
    if( cflag ){
       setup_tmpdir() ;
       strcpy(qname,tmpdir) ; strcat(qname,"gosiaXXXXXX") ;
-      mktemp(qname) ;
+      mkstemp(qname) ;
       if( qname[0] != '\0' ){
          strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
          if( cfile == NULL ) cflag = 0 ;
@@ -759,14 +759,14 @@ int read_URL_ftp( char * url , char ** data )
 
    setup_tmpdir() ;
    strcpy(qname,tmpdir) ; strcat(qname,"elvisXXXXXX") ;
-   mktemp(qname) ;
+   mkstemp(qname) ;
    if( qname[0] == '\0' ) return( -1 );
    if( cflag ) strcat(qname,".gz") ;
 
    /* write the script file that will be used to run ftp */
 
    strcpy(sname,tmpdir) ; strcat(sname,"dahmerXXXXXX") ;
-   mktemp(sname) ;             if( sname[0] == '\0' ) return( -1 );
+   mkstemp(sname) ;            if( sname[0] == '\0' ) return( -1 );
    sp = fopen( sname , "w" ) ; if( sp == NULL )       return( -1 );
 
    fprintf( sp , "#!/bin/sh\n" ) ;
