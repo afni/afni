@@ -66,6 +66,17 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 23, Sep, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Allowed interactive cluster thresholding by node number (-ve Area value)",
+   "Previously this was possible only via command line's -n option.\n"
+   "Command line now also supports negative -amm2 values if -n is not set.\n"
+ },
+ 
+ { 22, Sep, 2014, ZSS, "3dGenFeatureDist", MINOR, TYPE_NEW_OPT,
+   "Added -hspec to explicitly set histogram generation parameters",
+   NULL
+ },
+ 
  { 17, Sep, 2014, ZSS, "ConvertSurface", MINOR, TYPE_NEW_OPT,
    "Added -pc_proj and -node_depth options.",
    "These options are meant to help localizing seeds along DBS electrodes.\n"
