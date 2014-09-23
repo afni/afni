@@ -8040,15 +8040,14 @@ ENTRY("IW3D_medianfilter") ;
    fin   = MRI_FLOAT_PTR( imin ) ;
 
  AFNI_OMP_START ;
-#pragma omp parallel if( nxyz*nd > 9999 )
+#pragma omp parallel if( nxyz > 6666 )
  { int ii,jj,kk,ijk , ip,jp,kp , nt,dd ; float *tmp ;
 #pragma omp critical
    { tmp = (float *)malloc(sizeof(float)*nd) ; }
 #pragma omp for
    for( ijk=0 ; ijk < nxyz ; ijk++ ){
      ii = ijk % nx ; kk = ijk / nxy ; jj = (ijk-kk*nxy) / nx ;
-     /* extract neighborhood values */
-     for( nt=dd=0 ; dd < nd ; dd++ ){
+     for( nt=dd=0 ; dd < nd ; dd++ ){ /* extract neighborhood values */
        ip = ii+di[dd] ; if( ip < 0 || ip >= nx ) continue ;
        jp = jj+dj[dd] ; if( jp < 0 || jp >= ny ) continue ;
        kp = kk+dk[dd] ; if( kp < 0 || kp >= nz ) continue ;
