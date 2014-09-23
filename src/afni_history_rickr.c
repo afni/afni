@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Sep, 2014, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "added some explicit -help and improved the few existing options",
+   NULL
+ } ,
+
  { 22, Sep, 2014, RCR, "3dexample1", MICRO, TYPE_ENHANCE,
    "made mention of 3dToyProg.c",
    NULL
