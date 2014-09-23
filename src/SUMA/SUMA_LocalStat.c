@@ -1351,7 +1351,12 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
                               FuncName, Clust, Clust->N_Node); 
       
       if ( (Opt->AreaLim > 0 && Clust->totalarea < Opt->AreaLim)  || 
-           (Opt->NodeLim > 0 && Clust->N_Node < Opt->NodeLim) ) {
+           (Opt->NodeLim > 0 && Clust->N_Node < Opt->NodeLim) ||
+           (Opt->NodeLim < 0 && Opt->AreaLim < 0 && 
+            Clust->N_Node < -Opt->AreaLim) ) { /* The last option
+                                       is to allow users to use a negative
+                                       area in the interface to have the effect
+                                       of limiting by number of nodes */
          SUMA_LH("Cluster less than area (or node number) limit");
          SUMA_FreeClustDatum((void *)Clust); Clust = NULL;
       } else {

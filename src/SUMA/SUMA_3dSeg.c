@@ -50,7 +50,8 @@ NULL
 "-bias_fwhm",
 "-bias_fwhm BIAS_FWHM: The amount of blurring used when estimating the\n"
 "                      field bias with the Wells method.\n"
-"                      [Wells et. al. IEEE TMI 15, 4, 1997].",
+"                      [Wells et. al. IEEE TMI 15, 4, 1997].\n"
+"                      Use 0.0 to turn off bias field estimation.\n",
 "25.0" 
       },
    {  

@@ -765,7 +765,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "value is meaningless.\n"  \
    "\n"  \
    "Color mixing can be done in two \n"  \
-   "ways, use :ref:`F7<_F7>` to toggle between \n" \
+   "ways, use :ref:`F7<F7>` to toggle between \n" \
    "mixing modes.\n"
    
 #define SUMA_SurfContHelp_DsetDim  \
@@ -919,7 +919,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "however, no coloring is done if the :ref:`'v'<SurfCont->Dset_Mapping->I->v>` button on the right is"   \
 "turned off.\n"   \
 "\n"   \
-"The (I) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
+"The (I) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.c00>` table"\
 "of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>` section on the left.\n"\
 "The value is also shown in the SUMA viewer\n"\
 "\n"   \
@@ -930,7 +930,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "The style of this selector can also change depending on the number"\
 "of sub-bricks (columns) you have in your dataset. If the number"\
 "exceeds a threshold specified by the environment variable "\
-":ref:`SUMA_ArrowFieldSelectorTrigger`\n"
+":ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`\n"
 
 #define SUMA_SurfContHelp_SelThr \
 "Use this menu to select which column in the\n"   \
@@ -948,7 +948,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "\n"   \
 "Thresholding is not applied when the :ref:`'v'<SurfCont->Dset_Mapping->T->v>` button on the right is turned off.\n" \
 "\n"   \
-"The (T) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
+"The (T) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.c00>` table"\
 "of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>` section on the left.\n"\
 "The value is also shown in the SUMA viewer\n"\
 "\n"   \
@@ -959,7 +959,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "The style of this selector can also change depending on the number"\
 "of sub-bricks (columns) you have in your dataset. If the number"\
 "exceeds a threshold specified by the environment variable "\
-":ref:`SUMA_ArrowFieldSelectorTrigger`\n"
+":ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`\n"
 
 #define SUMA_SurfContHelp_SelBrt \
 "Use this menu to select which column in the dataset (Dset) should be "   \
@@ -973,7 +973,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "Brightness modulation is not applied when the :ref:`'v'<SurfCont->Dset_Mapping->B->v>` button on \n"   \
 "the right is turned off.\n"  \
 "\n"   \
-"The (B) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.r00>` table"\
+"The (B) value for the selected :term:`datum` (n) is shown in the :ref:`'Val'<SurfCont->Xhair_Info->Val.c00>` table"\
 "of the :ref:`'Xhair Info' <SurfCont->Xhair_Info>` section on the left.\n"\
 "The value is also shown in the SUMA viewer\n"\
 "\n"   \
@@ -984,7 +984,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "The style of this selector can also change depending on the number"\
 "of sub-bricks (columns) you have in your dataset. If the number"\
 "exceeds a threshold specified by the environment variable "\
-":ref:`SUMA_ArrowFieldSelectorTrigger`\n"
+":ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`\n"
 
 #define SUMA_SurfContHelp_SelIntTgl \
    "View (ON)/Hide Dset node colors"
@@ -1170,9 +1170,9 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "are described in the section\n"   \
    "for the option -cmapfile.\n"   \
    "\n"   \
-   "A sample colormap would be::LR:\n"   \
-   " 0 0 1:LR:\n"   \
-   " 1 1 1:LR:\n"   \
+   "A sample colormap would be:LIT:\n"   \
+   " 0 0 1\n"   \
+   " 1 1 1\n"   \
    " 1 0 0:LR:\n"   \
    "saved into a cmap file called\n"   \
    "cmap_test.1D.cmap"
@@ -1180,19 +1180,16 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define  SUMA_SurfContHelp_AbsThr   \
    "Toggle Absolute thresholding.:LR:\n"   \
    "OFF: Mask node color for\n"   \
-   "     nodes that have:  \n"   \
-   "     T(n) < Tscale:LR:\n"   \
+   ":   :nodes that have:  \n"   \
+   ":   :T(n) < Tscale:LR:\n"   \
    "ON:  Mask node color for\n"   \
-   "     nodes that have:\n"   \
-   "     | T(n) | < Tscale\n"   \
+   ":   :nodes that have:\n"   \
+   ":   :| T(n) | < Tscale\n"   \
    "where::LR:\n"   \
-   "Tscale is the value set by\n"   \
-   "       the threshold scale.:LR:\n"   \
-   "T(n) is the node value in the \n"   \
-   "     selected threshold column (T).\n"   \
-   "     this value is seen in the \n"   \
-   "     second cell of the 'Value'\n"   \
-   "     table on the left side."  
+   "Tscale is the value set by the threshold scale.:LR:\n"   \
+   "T(n) is the node value in the selected threshold column (T).\n"   \
+   ":   :This value is seen in the second cell of the 'Value'\n"   \
+   ":   :table on the left side."  
 
 #define  SUMA_SurfContHelp_Isym   \
    "Toggle Intensity range symmetry "   \
@@ -1242,13 +1239,13 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "under Xhair Info block."
   
 #define SUMA_SurfContHelp_RangeTbl_r1  \
-   "Range of values in intensity (I) column."
+   "Range of values in intensity (I) column"
 
 #define SUMA_SurfContHelp_RangeTbl_r2  \
-   "Range of values in threshold (T) column."
+   "Range of values in threshold (T) column"
 
 #define SUMA_SurfContHelp_RangeTbl_r3  \
-   "Range of values in brightness (B) column."
+   "Range of values in brightness (B) column"
 
 #define  SUMA_SurfContHelp_MaskTypeTbl_c0 \
    "Properties of current mask."

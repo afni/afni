@@ -3072,7 +3072,7 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Xhair_Info->Tri.r00",
                    /*"SurfCont->Xhair_Info->Tri[1]",   Hints/help on headings */
                    /*"SurfCont->Xhair_Info->Tri[2]",   Hints/help on headings */
-                     "SurfCont->Xhair_Info->Val.r00",
+                     "SurfCont->Xhair_Info->Val.c00",
                      "SurfCont->Xhair_Info->Lbl.r00",
                      "SurfCont->Dset_Controls",
                      "SurfCont->Dset_Controls->Lbl+Par.r00",
@@ -3091,19 +3091,26 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Dset_Mapping->T->v",
                      "SurfCont->Dset_Mapping->B",
                      "SurfCont->Dset_Mapping->B->v",
-                     "SurfCont->Dset_Mapping->SetRangeTable.r00",
+                     "SurfCont->Dset_Mapping->SetRangeTable.c00",
                      "SurfCont->Dset_Mapping->SetRangeTable.r01",
                      "SurfCont->Dset_Mapping->SetRangeTable.r02",
                      "SurfCont->Dset_Mapping->SetRangeTable.r03",
                      "SurfCont->Dset_Mapping->Col",
                      "SurfCont->Dset_Mapping->Bias",
                      "SurfCont->Dset_Mapping->Cmp",
-                     "SurfCont->Dset_Mapping->New",
+                     "SurfCont->Dset_Mapping->Cmp->New",
                      "SurfCont->Dset_Mapping->abs_T",
                      "SurfCont->Dset_Mapping->sym_I",
                      "SurfCont->Dset_Mapping->shw_0",
                      "SurfCont->Dset_Mapping->Clst",
-                     "SurfCont->Dset_Mapping->RangeTable",
+                     "SurfCont->Dset_Mapping->RangeTable.c00",
+                     "SurfCont->Dset_Mapping->RangeTable.r01",
+                     "SurfCont->Dset_Mapping->RangeTable.r02",
+                     "SurfCont->Dset_Mapping->RangeTable.r03",
+                     "SurfCont->Dset_Mapping->RangeTable.c01",
+                     "SurfCont->Dset_Mapping->RangeTable.c02",
+                     "SurfCont->Dset_Mapping->RangeTable.c03",
+                     "SurfCont->Dset_Mapping->RangeTable.c04",
                      NULL };
    SUMA_ENTRY;
    
