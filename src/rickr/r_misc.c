@@ -136,7 +136,7 @@ ulong_size ( unsigned long l )
 char * cat_strings(char * slist[], int nstr, char * sepstr)
 {
    char * newstr, * localsep = " ";
-   int    sind, total, seplen = 0;
+   int    sind, total, first = 1, seplen = 0;
 
    if( !slist || nstr <= 0 ) return NULL;
 
@@ -144,20 +144,21 @@ char * cat_strings(char * slist[], int nstr, char * sepstr)
    if( sepstr ) localsep = sepstr;
    seplen = strlen(sepstr);
 
-   /* first compute total space */
-   if( slist[0] ) total = strlen(slist[0]);
-   else           total = 0;
+   /* first compute total space, add 1 for nul 23 Sep, 2014 [rickr] */
+   if( slist[0] ) total = strlen(slist[0])+1;
+   else           total = 1;
+
    for( sind = 1; sind < nstr; sind++ )
-      if( slist[sind] ) total += strlen(slist[0]) + seplen;
+      if( slist[sind] ) total += strlen(slist[sind]) + seplen;
 
    /* allocate and dupe... */
    newstr = (char *)calloc(total, sizeof(char));
-   if( slist[0] ) strcpy(newstr, slist[0]);
 
-   /* append the rest */
-   for( sind = 1; sind < nstr; sind++ ) {
+   /* append the strings */
+   for( sind = 0; sind < nstr; sind++ ) {
       if( ! slist[sind] ) continue;
-      strcat(newstr, localsep);
+      if( first ) { first = 0; }
+      else        { strcat(newstr, localsep); }
       strcat(newstr, slist[sind]);
    }
 
