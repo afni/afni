@@ -3571,10 +3571,10 @@ void SUMA_CreateTable(  Widget parent,
                      cd ,   /* client data */
                      XtListTail ) ; 
                }                 
-               snprintf(wname, 63, "%s.r%02d", TF->wname, i);
+               snprintf(wname, 63, "%s.c%02d", TF->wname, j);
                SUMA_Register_Widget_Help(TF->cells[n], wname,
-                                         col_hint?col_hint[i]:NULL, 
-                                         col_help?col_help[i]:NULL ) ;  
+                                         col_hint?col_hint[j]:NULL, 
+                                         col_help?col_help[j]:NULL ) ;  
                break;
             case SUMA_ENTRY_CELL: /* entry cell */
                if (LocalHead) 
@@ -6758,7 +6758,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          XtAddCallback (SurfCont->AbsThresh_tb, 
                XmNvalueChangedCallback, SUMA_cb_AbsThresh_tb_toggled, ado);
          SUMA_Register_Widget_Help(SurfCont->AbsThresh_tb , 
-                                   "SurfCont->Dset_Mapping->AbsT",
+                                   "SurfCont->Dset_Mapping->abs_T",
                                    "Absolute threshold ON/OFF",
                                    SUMA_SurfContHelp_AbsThr );
          
@@ -7383,7 +7383,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          XtAddCallback (SurfCont->AbsThresh_tb, 
                XmNvalueChangedCallback, SUMA_cb_AbsThresh_tb_toggled, ado);
          SUMA_Register_Widget_Help(SurfCont->AbsThresh_tb , 
-                           "VolCont->Dset_Mapping->Abs_T",
+                           "VolCont->Dset_Mapping->abs_T",
                            "Absolute threshold ON/OFF",
                            SUMA_SurfContHelp_AbsThr );
          
