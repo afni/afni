@@ -300,7 +300,8 @@ def get_process_stack(pid=-1, verb=1):
          indtree.append(pind)
       return 0, indtree
 
-   cmd = 'ps -eo pid,ppid,user,comm'
+   if verb < 2: cmd = 'ps -eo pid,ppid,user,comm'
+   else:        cmd = 'ps -eo pid,ppid,user,args'
    ac = BASE.shell_com(cmd, capture=1)
    ac.run()
    if ac.status:
@@ -334,7 +335,8 @@ def get_process_stack_slow(pid=-1, verb=1):
 
         if pid >= 0, use as seed, else use os.getpid()
    """
-   base_cmd = 'ps h -o pid,ppid,user,comm -p'
+   if verb > 1: base_cmd = 'ps h -o pid,ppid,user,args -p'
+   else:        base_cmd = 'ps h -o pid,ppid,user,comm -p'
 
    def get_cmd_entries(cmd):
       ac = BASE.shell_com(cmd, capture=1)
@@ -381,9 +383,9 @@ def get_process_stack_slow(pid=-1, verb=1):
 
    return stack
 
-def show_process_stack(pid=-1,fast=1):
+def show_process_stack(pid=-1,fast=1,verb=1):
    """print stack of processes up to init"""
-   pstack = get_process_stack(pid=pid)
+   pstack = get_process_stack(pid=pid,verb=verb)
    if len(pstack) == 0:
       print '** empty process stack'
       return
@@ -398,7 +400,9 @@ def show_process_stack(pid=-1,fast=1):
    print '%-*s   %s' % (ilen, dashes, '-------')
    for row in pstack:
       ss = form % (row[0], row[1], row[2])
-      print '%-*s : %s' % (ilen, ss, row[3])
+      if len(row) > 3: rv = ' '.join(row[3:])
+      else:            rv = row[3]
+      print '%-*s : %s' % (ilen, ss, rv)
 
 def get_login_shell():
    """return the apparent login shell
@@ -2785,7 +2789,7 @@ def demean(vec, ibot=-1, itop=-1):
     for ind in range(ibot,itop+1):
        vec[ind] -= mm
 
-    return 0
+    return vec
 
 def lin_vec_sum(s1, vec1, s2, vec2):
    """return s1*[vec1] + s2*[vec2]
@@ -2846,13 +2850,20 @@ def min_mean_max_stdev(data):
     if not data: return 0,0,0,0
     length = len(data)
     if length <  1: return 0,0,0,0
-    if length == 1: return data[0], data[0], data[0], 0.0
 
-    minval  = min(data)
-    maxval  = max(data)
-    meanval = loc_sum(data)/float(length)
+    if type(data[0]) == str:
+       try: dd = [float(val) for val in data]
+       except:
+          print '** bad data for min_mean_max_stdev'
+          return 0, 0, 0, 0
+    else: dd = data
+    if length == 1: return dd[0], dd[0], dd[0], 0.0
 
-    return minval, meanval, maxval, stdev_ub(data)
+    minval  = min(dd)
+    maxval  = max(dd)
+    meanval = loc_sum(dd)/float(length)
+
+    return minval, meanval, maxval, stdev_ub(dd)
 
 def interval_offsets(times, dur):
     """given a list of times and an interval duration (e.g. TR), return
@@ -3385,8 +3396,64 @@ def test_tent_vecs(val, freq, length):
 
     return correlation_p(a,b)
 
+_g_main_help = """
+afni_util.py: not really intended as a main program
+
+   However, there is some functionality for devious purposes...
+
+   options:
+
+      -help             : show this help
+
+      -eval STRING      : evaluate STRING in the context of afni_util.py
+                          (i.e. STRING can be function calls or other)
+
+         This option is used to simply execute the code in STRING.
+
+         Examples:
+
+            afni_util.py -eval "show_process_stack()"
+            afni_util.py -eval "show_process_stack(verb=2)"
+            afni_util.py -eval "show_process_stack(pid=1000)"
+
+      -print STRING     : print the result of executing STRING
+
+         Akin to -eval, but print the results of evaluating/executing STRING.
+
+      -lprint STRING    : line print: print result list, one element per line
+
+         The 'l' stands for 'line' (or 'list').  This is akin to -print,
+         but prints a list with one element per line.
+
+      -listfunc [LOPTS] FUNC LIST ... : execute FUNC(LIST)
+
+         With this option, LIST is a list of values to be passed to FUNC().
+
+         This is similar to eval, but instead of requiring:
+            -eval "FUNC(L1,L2,L3,...)"
+         the list values can be left as trailing arguments:
+            -listfunc FUNC L1 L2 L3 ...
+
+         sub-options:
+
+                -float  : convert the list to floats before passing to FUNC()
+                -print  : print the result
+                -join   : print the results join()'d together
+
+         Examples:
+
+            afni_util.py -listfunc min_mean_max_stdev 1 2 3 4 5
+            afni_util.py -listfunc -print min_mean_max_stdev 1 2 3 4 5
+            afni_util.py -listfunc -join min_mean_max_stdev 1 2 3 4 5
+            afni_util.py -listfunc -join -float demean  1 2 3 4 5
+
+"""
+
 def main():
    argv = sys.argv
+   if '-help' in argv:
+      print _g_main_help
+      return 0
    if len(argv) > 2:
       if argv[1] == '-eval':
          eval(' '.join(argv[2:]))
@@ -3400,16 +3467,36 @@ def main():
          return 0
       elif argv[1] == '-listfunc':
          do_join = 0
-         argbase = 3
-         if len(argv) <= argbase :
+         do_float = 0
+         do_print = 0
+         argbase = 2
+         if len(argv) <= 3 :
             print '** -listfunc usage requires at least 3 args'
             return 1
-         if argv[argbase] == '-join':
-            do_join = 1
-            argbase += 1
-         func = eval(argv[2])
-         if do_join: print ' '.join(func(argv[argbase:]))
-         else:       func(argv[argbase:])
+         while argv[argbase] in ['-join', '-print', '-float']:
+            if argv[argbase] == '-join':
+               do_join = 1
+               argbase += 1
+            elif argv[argbase] == '-print':
+               do_print = 1
+               argbase += 1
+            elif argv[argbase] == '-float':
+               do_float = 1
+               argbase += 1
+            else: break # should not happen
+         func = eval(argv[argbase])
+
+         if do_float:
+            try: fvals = [float(v) for v in argv[argbase+1:]]
+            except:
+               print '** list is not all float'
+               return 1
+         else:        fvals = argv[argbase+1:]
+
+         ret = func(fvals)
+         if do_join: print ' '.join(str(v) for v in ret)
+         elif do_print: print  ret
+         # else do nothing special
          return 0
 
    print 'afni_util.py: not intended as a main program'
