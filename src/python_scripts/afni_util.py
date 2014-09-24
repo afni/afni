@@ -3410,7 +3410,7 @@ afni_util.py: not really intended as a main program
 
          This option is used to simply execute the code in STRING.
 
-         Examples:
+         Examples for eval:
 
             afni_util.py -eval "show_process_stack()"
             afni_util.py -eval "show_process_stack(verb=2)"
@@ -3425,29 +3425,101 @@ afni_util.py: not really intended as a main program
          The 'l' stands for 'line' (or 'list').  This is akin to -print,
          but prints a list with one element per line.
 
-      -listfunc [LOPTS] FUNC LIST ... : execute FUNC(LIST)
+      -listfunc [SUB_OPTS] FUNC LIST ... : execute FUNC(LIST)
 
          With this option, LIST is a list of values to be passed to FUNC().
 
          This is similar to eval, but instead of requiring:
-            -eval "FUNC(L1,L2,L3,...)"
+            -eval "FUNC([v1,v2,v3,...])"
          the list values can be left as trailing arguments:
-            -listfunc FUNC L1 L2 L3 ...
+            -listfunc FUNC v1 v2 v3 ...
+         (where LIST = v1 v2 v3 ...).
 
-         sub-options:
+         SUB_OPTS sub-options:
 
                 -float  : convert the list to floats before passing to FUNC()
                 -print  : print the result
                 -join   : print the results join()'d together
 
-         Examples:
+         Examples for listfunc:
 
             afni_util.py -listfunc min_mean_max_stdev 1 2 3 4 5
             afni_util.py -listfunc -print min_mean_max_stdev 1 2 3 4 5
             afni_util.py -listfunc -join min_mean_max_stdev 1 2 3 4 5
             afni_util.py -listfunc -join -float demean  1 2 3 4 5
 
+         Also, if LIST contins -list2, then 2 lists can be input to do
+         something like:
+            -eval "FUNC([v1,v2,v3], [v4,v5,v6]
+
+         Examples with -list2:
+
+            afni_util.py -listfunc -print -float ttest 1 2 3 4 5 \\
+                                                -list2 2 2 4 6 8
+
+            afni_util.py -listfunc -print -float ttest_paired   \\
+                          1 2 3 4 5 -list2 2 4 5 6 8
+
 """
+
+def process_listfunc(argv):
+   """see the -help description"""
+
+   if argv[1] != '-listfunc': return 1
+
+   if len(argv) <= 3 :
+      print '** -listfunc usage requires at least 3 args'
+      return 1
+
+   do_join = 0
+   do_float = 0
+   do_print = 0
+   argbase = 2
+
+   while argv[argbase] in ['-join', '-print', '-float']:
+      if argv[argbase] == '-join':
+         do_join = 1
+         argbase += 1
+      elif argv[argbase] == '-print':
+         do_print = 1
+         argbase += 1
+      elif argv[argbase] == '-float':
+         do_float = 1
+         argbase += 1
+      else: break # should not happen
+
+   # note function
+   func = eval(argv[argbase])
+
+   # get args, and check for -list2
+   args1 = argv[argbase+1:]
+   args2 = []
+   if '-list2' in args1:
+      l2ind = args1.index('-list2')
+      args2 = args1[l2ind+1:]
+      args1 = args1[0:l2ind]
+
+   if do_float:
+      try: vals1 = [float(v) for v in args1]
+      except:
+         print '** list1 is not all float'
+         return 1
+      try: vals2 = [float(v) for v in args2]
+      except:
+         print '** list2 is not all float'
+         return 1
+   else:
+      vals1 = args1
+      vals2 = args2
+
+   if len(vals2) > 0: ret = func(vals1, vals2)
+   else:              ret = func(vals1)
+   
+   if do_join: print ' '.join(str(v) for v in ret)
+   elif do_print: print  ret
+   # else do nothing special
+   return 0
+
 
 def main():
    argv = sys.argv
@@ -3466,38 +3538,7 @@ def main():
          print eval(' '.join(argv[2:]))
          return 0
       elif argv[1] == '-listfunc':
-         do_join = 0
-         do_float = 0
-         do_print = 0
-         argbase = 2
-         if len(argv) <= 3 :
-            print '** -listfunc usage requires at least 3 args'
-            return 1
-         while argv[argbase] in ['-join', '-print', '-float']:
-            if argv[argbase] == '-join':
-               do_join = 1
-               argbase += 1
-            elif argv[argbase] == '-print':
-               do_print = 1
-               argbase += 1
-            elif argv[argbase] == '-float':
-               do_float = 1
-               argbase += 1
-            else: break # should not happen
-         func = eval(argv[argbase])
-
-         if do_float:
-            try: fvals = [float(v) for v in argv[argbase+1:]]
-            except:
-               print '** list is not all float'
-               return 1
-         else:        fvals = argv[argbase+1:]
-
-         ret = func(fvals)
-         if do_join: print ' '.join(str(v) for v in ret)
-         elif do_print: print  ret
-         # else do nothing special
-         return 0
+         return process_listfunc(argv)
 
    print 'afni_util.py: not intended as a main program'
    return 1
