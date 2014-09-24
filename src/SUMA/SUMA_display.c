@@ -13254,7 +13254,7 @@ void SUMA_CreateArrowField (  Widget pw, char *label,
          NULL);
       if (hint || help) {
          snprintf(sss, 255,"%s->label", wname);
-         SUMA_Register_Widget_Help( AF->up , sss, NULL, help?help:hint);
+         SUMA_Register_Widget_Help( AF->label , sss, NULL, help?help:hint);
       }
    }else {
       AF->label = NULL;
