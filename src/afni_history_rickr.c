@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Sep, 2014, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "added -list2 case under -listfunc",
+   NULL
+ } ,
+
  { 23, Sep, 2014, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "cat_strings was missing trailing byte",
    "Thanks to Q Li for noting the problem."
