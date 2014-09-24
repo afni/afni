@@ -7707,7 +7707,7 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
    static char FuncName[]={"SUMA_Project_Coords_PCA"};
    int i, i3, lineproj=0;
    double trace, pc_vec[9], pc_eig[3], Eq[4], pc0[3], proj[3], rdot, avg[3];
-   float *xyzp=NULL, fv[3], **fm=NULL, *p1, 
+   float *xyzp=NULL, fv[3], **fm=NULL, *p1, avgf[3], 
          pcf0[3], pp[3], ddx[3], ddy[3], ddz[3], dx, dy, dz;
    char pc_m[3];
    SUMA_PC_XYZ_PROJ *pcp=NULL;
@@ -7849,9 +7849,27 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
                      compnum);
          compnum = 0;
       }
+   } else if (compnum == E1_DIR_PRJ || compnum == E2_DIR_PRJ ||
+              compnum == E3_DIR_PRJ) {
+      switch (compnum) {
+         case E1_DIR_PRJ:
+            compnum = E1_PLN_PRJ;
+            break;
+         case E2_DIR_PRJ:
+            compnum = E2_PLN_PRJ;
+            break;
+         case E3_DIR_PRJ:
+            compnum = E3_PLN_PRJ;
+            break;
+         default:
+            SUMA_S_Err("Should not be here with %d\nLeaky return.", compnum);
+            SUMA_RETURN(NULL); 
+      }    
    }
+   
    if (compnum < 0 || compnum > 2) {
-      SUMA_S_Err("Not at this stage, compnum must now be between 0 and 2");
+      SUMA_S_Err("Not at this stage, compnum (%d) must now be between 0 and 2", 
+                  compnum);
       SUMA_RETURN(SUMA_Free_PC_XYZ_Proj(pcp));
    }
    if (!lineproj) {
@@ -7863,7 +7881,7 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
       for (i=0; i<3;++i) pcf0[i]=pc0[i];
 
       if (xyzref) p1 = xyzref;
-      else p1 = &(xyzp[3*iref]);
+      else p1 = &(xyz[3*iref]);
       SUMA_LHv("   Forming plane with normal [%f %f %f], \n"
                "   passing by point xyzref [%f %f %f]\n", 
          pc0[0], pc0[1], pc0[2], p1[0], p1[1], p1[2]); 
@@ -7889,16 +7907,25 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
       sprintf(pcp->target,"plane");
       SUMA_COPY_VEC(Eq, pcp->target_params, 4, double, double);
    } else {
-      if (iref >= 0) xyzref = &(xyzp[3*iref]);
+      if (iref >= 0) xyzref = &(xyz[3*iref]);
+      if (!xyzref && remean) {
+         avgf[0] = avg[0]; avgf[1] = avg[1]; avgf[2] = avg[2]; 
+         xyzref = avgf;
+      }
       pc0[0] = pc_vec[compnum  ]; 
       pc0[1] = pc_vec[compnum+3]; 
       pc0[2] = pc_vec[compnum+6];
+      SUMA_LH( "Projecting onto direction [%f %f %f]", pc0[0], pc0[1], pc0[2]);
       for (i=0; i<3;++i) pcf0[i]=pc0[i];
       for (i=0; i<N_xyz; ++i) {
          i3=3*i;
-         proj[0] = xyzp[i3];proj[1] = xyzp[i3+1];proj[2] = xyzp[i3+2];
+         proj[0] = xyzp[i3]-avg[0];
+         proj[1] = xyzp[i3+1]-avg[1];
+         proj[2] = xyzp[i3+2]-avg[2];
          SUMA_PROJECT_ONTO_DIR(pc0, proj, (xyzp+3*i));
+         
       }
+      
       if (xyzref) {
          SUMA_LH( "Offseting projections by [%f %f %f]",
                   xyzref[0], xyzref[1], xyzref[2] );
@@ -7909,6 +7936,7 @@ SUMA_PC_XYZ_PROJ *SUMA_Project_Coords_PCA (float *xyz, int N_xyz, int iref,
             xyzp[i3+2] += xyzref[2];
          }
       }
+      
       if (iref) {
          SUMA_LHv(" After line projection\n"
                   "izero now: [%f %f %f]\n"

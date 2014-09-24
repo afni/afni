@@ -2701,7 +2701,7 @@ SUMA_Boolean SUMA_DeleteMask(char *ado_id)
    /* delelte the current mask from DOv */
    if (!SUMA_RemoveDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)ado, 1)){
       SUMA_S_Err("Failed to dump DO");
-      SUMA_RETURNe;
+      SUMA_RETURN(NOPE);
    }
    
    if (found >= 0 && SurfCont && SurfCont->MaskTable) {

@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 24, Sep, 2014, ZSS, "ConvertSurface", MICRO, TYPE_BUG_FIX,
+   "Fixed bug with line projection of coordinates.",
+   NULL
+ },
+ 
  { 23, Sep, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Allowed interactive cluster thresholding by node number (-ve Area value)",
    "Previously this was possible only via command line's -n option.\n"
