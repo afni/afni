@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , SEP , 2014 , RWC , "prefix handling" , MICRO , TYPE_MODIFY ,
+  { 24 , SEP , 2014 , RWC , "3dUnifize" , MICRO , TYPE_GENERAL ,
+   "Add method description to -help" ,
+   "There are some disgruntled users out there.  I hope this keeps them\n"
+   "happy.  Otherwise ..." } ,
+
+ { 22 , SEP , 2014 , RWC , "prefix handling" , MICRO , TYPE_MODIFY ,
    "Modify EDIT_dset_items to edit prefixes with +orig etc." ,
    "So you don't end with a dataset like Fred+tlrc.HEAD+tlrc.HEAD" } ,
 
