@@ -10375,7 +10375,8 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
    float origwidth=0.0, radconst = 0.0, rad = 0.0, radgain = 0.0,
          gain = 1.0, constcol[4], edgeconst=1.0, group_col[4],
          vmin=1.0, vmax=1.0, Wfac=1.0, Sfac=1.0, cdim=1/3.0,
-         *GNr=NULL, *GNg=NULL, *GNb=NULL, dimmer = 1.0;
+         *GNr=NULL, *GNg=NULL, *GNb=NULL, dimmer = 1.0, radgaing = 0.0,
+         Rfac = 1.0, Rrange[2]={0.1, 10};
    GLboolean ble=FALSE, dmsk=TRUE, gl_dt=TRUE;
    byte *mask=NULL, *wmask=NULL, showword = 0;
    GLubyte *colid=NULL, *colidballs=NULL, *colballpick=NULL;
@@ -10445,7 +10446,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
       }
       
       if (curcol->EdgeThick == SW_SurfCont_DsetEdgeThickVal ||
-          curcol->EdgeStip == SW_SurfCont_DsetEdgeStipVal){
+          curcol->EdgeStip == SW_SurfCont_DsetEdgeStipVal   ||
+          curcol->Through == SW_SurfCont_DsetThroughRad ||
+          curcol->Through == SW_SurfCont_DsetThroughCaR) {
          /* compute width / stippling scaling params */
          if (SUMA_ABS(curcol->OptScl->IntRange[0]) < 
              SUMA_ABS(curcol->OptScl->IntRange[1])) {
@@ -10469,6 +10472,15 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
          } else {
             if ((Sfac = 15/(vmin)) <= 0.0) Sfac = 1.0;
          }
+         /* For dynamic radius */
+         Rrange[0] = 0.1;
+         Rrange[1] = 10;
+         if (vmax > vmin) {
+            if ((Rfac = (Rrange[1]-Rrange[0])/(vmax)) <= 0.0) Rfac = 1.0;
+         } else {
+            if ((Rfac = (Rrange[1]-Rrange[0])/(vmin)) <= 0.0) Rfac = 1.0;
+         }
+
       }
             
       DDO.err = 1; /* not set */
@@ -11149,12 +11161,15 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                                        /* get the n1-->n edge to get its value*/
 
                if (NoEdges_DynamicRadius) {
-                  if (r1>=0) rad = SUMA_ABS(curcol->V[r1]);
-                  else radgain = 2.0;
+                  if (r1>=0) {
+                     rad = (SUMA_ABS(curcol->V[r1]))*Rfac+Rrange[0];
+                  } else rad = 2.0;
                }
                #if 0
-               SUMA_S_Note("%d-->%d: row=%d, rad %f, radgain %f", 
-                           OnlyThroughNode, n, r1, rad, radgain);
+               SUMA_LH(
+                     "%d-->%d: row=%d, rad %f, V[%d]=%f, Rfac=%f, radgain %f",
+                           OnlyThroughNode, n, r1, rad, r1, 
+                           curcol->V[r1], Rfac, radgain);
                #endif
             }
             if (OnlyThroughNode == n) {
@@ -11291,9 +11306,9 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                }
                /* Show ghosts, for clickability */
-               if (NoEdges_DynamicRadius) radgain = 0.25*radgain;
-               else radgain = 1.0*radgain;
-               gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad*radgain, 0.005), 10, 10);
+               if (NoEdges_DynamicRadius) radgaing = 0.25*radgain;
+               else radgaing = 1.0*radgain;
+               gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad*radgaing,0.005), 10, 10);
             }
             glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
          }

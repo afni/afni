@@ -12173,7 +12173,13 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *ado)
       case TRACT_type:
       case MASK_type:
       case GRAPH_LINK_type:
+         /* Nothing should be done here because these objects don't
+            have the types of kinship that surfaces have. Otherwise
+            You end up resetting things like I range when you change
+            the Dim value of tracts, graphs, or volumes */
+         #if 0
          SUMA_InitializeColPlaneShell(ado, SurfCont->curColPlane);
+         #endif
          break;
       default:
          SUMA_S_Errv("Nothing to do with %s\n",
