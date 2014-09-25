@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Sep, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "fixed use of altered add_to_string_list()",
+   "The changed usage broke options -drive_afni, -drive_wait and -rt_cmd.\n"
+   "Thanks to V Roopchansingh for noting the problem."
+ } ,
+
  { 24, Sep, 2014, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
    "added -list2 case under -listfunc",
    NULL
