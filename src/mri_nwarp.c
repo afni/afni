@@ -6445,8 +6445,9 @@ static float Hfirstcost = 666.0f;
 static int Hsuperhard1 =  0 ;    /* Oh come on, who want to work super hard? */
 static int Hsuperhard2 = -1 ;    /* Certainly not us government employees!!! */
 
-static float Hstopcost   = -666666.6f ; /* stop if 'correlation' cost goes below this */
-static int   Hstopped    = 0 ;          /* indicate that iterations were stopped */
+static float Hstopcost = -666666.6f ; /* stop if 'correlation' cost goes below this */
+static int   Hstopped  = 0 ;          /* indicate that iterations were stopped */
+static int Hquitting   = 0 ;          /* set by signal handler to indicate 'quit NOW' */
 
 /** macro ALLOW_QMODE (set or not in 3dQwarp.c) determines if quintic
     patches are allowed to be specified at various levels past Hlev_now=0 **/
@@ -6476,6 +6477,23 @@ static float Hcostt = 0.0f ;
 
 #undef  BASIM /* macro for which base image to use */
 #define BASIM ( (Hbasim_blur != NULL ) ? Hbasim_blur : Hbasim )
+
+/*----------------------------------------------------------------------------*/
+/* Process the QUIT signal, as in 'kill -s QUIT <processID>' */
+
+#include <signal.h>
+void IW3D_signal_quit(int sig)
+{
+   static volatile int fff=0 ;
+   if( fff ) _exit(1) ; else fff = 1 ;
+   fprintf(stderr,"\n** quit signal received -- trying to die gracefully **\n");
+   Hquitting = 1 ;
+   return ;
+}
+
+/*-----*/
+
+void IW3D_setup_signal_quit(void){ signal(SIGQUIT,IW3D_signal_quit); return; }
 
 /*----------------------------------------------------------------------------*/
 /* Make the displacement flags coherent and legal.  If impossible, return -1. */
@@ -8703,11 +8721,13 @@ ENTRY("IW3D_warpomatic") ;
      /* always start with 2 cubic steps */
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      (void)IW3D_improve_warp( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
           if( Hznoq  ) nlevr = 0 ;
      else if( Hzeasy ) nlevr = 1 ;
      for( iii=0 ; iii < nlevr ; iii++ ){  /* and some quintic steps */
        Hcostold = Hcost ;
        (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        if( iii < nlevr-1 && Hcostold-Hcost < 0.00444f ){
          if( Hverb > 1 )
            ININFO_message("       --> too little improvement: breaking out of lev=0 iterates") ;
@@ -8870,6 +8890,7 @@ ENTRY("IW3D_warpomatic") ;
              Hcostold = Hcost ;  /* the last cost we saw */
              /*** actually try to make things better ***/
              iter = IW3D_improve_warp( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #if 0  /* this stuff was an attempt to iterate again under some circumstances */
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
@@ -8912,6 +8933,7 @@ ENTRY("IW3D_warpomatic") ;
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              Hcostold = Hcost ;
              iter = IW3D_improve_warp( qmodeX  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
@@ -8945,6 +8967,7 @@ ENTRY("IW3D_warpomatic") ;
        ktop = kbot+zwid-1        ; if( ktop >= Hnz ) ktop = Hnz-1 ;
        Hforce = 1 ;
        iter = IW3D_improve_warp( qmode , ibot,itop , jbot,jtop , kbot,ktop ) ;
+       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        Hforce = 0 ;
        Hcostend = Hcost ;
      }
@@ -10291,11 +10314,13 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
      (void)IW3D_improve_warp_plusminus( MRI_CUBIC  , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
           if( Hznoq  ) nlevr = 0 ;
      else if( Hzeasy ) nlevr = 1 ;
      for( iii=0 ; iii < nlevr ; iii++ ){
        Hcostold = Hcost ;
        (void)IW3D_improve_warp_plusminus( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        if( iii > 0 && iii < nlevr-1 && Hcostold-Hcost < 0.00444f ){
          if( Hverb > 1 )
            ININFO_message("       --> too little improvement: breaking out of lev=0 iterates") ;
@@ -10445,6 +10470,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
              else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
              Hcostold = Hcost ;
              iter = IW3D_improve_warp_plusminus( qmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;
@@ -10485,6 +10511,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
              else if( kbot <= kbbb+zwid/4 ){ kbot = kbbb; kdon=1; }
              Hcostold = Hcost ;
              iter = IW3D_improve_warp_plusminus( qmodeX  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+             if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #if 0
              if( Hcost > Hcostold+0.001f ){
                if( Hverb > 1 ) ININFO_message(" -- rerun --") ;

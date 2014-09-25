@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 24 , SEP , 2014 , RWC , "3dUnifize" , MICRO , TYPE_GENERAL ,
+  { 25 , SEP , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "sending QUIT signal (kill -s QUIT) will cause a graceful death" ,
+   "'Live fast, Die young, Leave a pretty corpse'.  That is, break out of\n"
+   "the optimization loops and write the current result out before exiting." } ,
+
+ { 24 , SEP , 2014 , RWC , "3dUnifize" , MICRO , TYPE_GENERAL ,
    "Add method description to -help" ,
    "There are some disgruntled users out there.  I hope this keeps them\n"
    "happy.  Otherwise ..." } ,
