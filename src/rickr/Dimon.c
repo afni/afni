@@ -119,10 +119,11 @@ static char * g_history[] =
     " 4.04 Sep  8, 2014 [rickr] :\n",
     "      - num_chan > 1 needs ACQ type 3D+t\n"
     " 4.05 Sep 10, 2014 [rickr] : handle num_chan > 1 in GERT_Reco\n",
+    " 4.06 Sep 25, 2014 [rickr] : fixed add_to_string_list() usage\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.05 (September 10, 2014)"
+#define DIMON_VERSION "version 4.06 (September 25, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -1176,7 +1177,7 @@ static int num_slices_ok( int num_slices, int nfound, char * mesg )
 static int volume_match( vol_t * vin, vol_t * vout, param_t * p )
 {
     static int   retry = IFM_NUM_RETRIES, errs=0;       /* v2.12 */
-    finfo_t    * fp;
+    finfo_t    * fp=NULL;
     finfo_t    * fp_test;
     char       * estr;
     float        z, zind;
@@ -2883,7 +2884,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 return 1;
             }
 
-            if ( add_to_string_list( &p->opts.drive_list, argv[ac], 0 ) != 0 )
+            if ( add_to_string_list( &p->opts.drive_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_list\n",argv[ac]);
                 return 1;
@@ -2897,7 +2898,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 return 1;
             }
 
-            if ( add_to_string_list( &p->opts.wait_list, argv[ac], 0 ) != 0 )
+            if ( add_to_string_list( &p->opts.wait_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_wait\n",argv[ac]);
                 return 1;
@@ -2937,7 +2938,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 return 1;
             }
 
-            if ( add_to_string_list( &p->opts.rt_list, argv[ac], 0 ) != 0 )
+            if ( add_to_string_list( &p->opts.rt_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to rt_list\n",argv[ac]);
                 return 1;
