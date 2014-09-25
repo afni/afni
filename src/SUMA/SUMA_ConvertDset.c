@@ -69,11 +69,16 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "     -node_select_1D MASK.1D: Specify the nodes you want to keep in the\n"
 "                              output. \n"
 "                              The order of the rows in the output dataset \n"
-"                              reflect the order of the nodes in MASK.1D.\n"
+"                              reflects the order of the nodes in MASK.1D.\n"
 "                              Note that the presence of duplicate nodes in\n"
-"                              MASK.1D is not allowed. Also, node indices \n"
-"                              that do not have data in the input dataset will\n"
-"                              be ignored.\n" 
+"                              MASK.1D is not allowed, so if MASK.1D came\n"
+"                              from ROI2dataset's -nodelist, recreate it with\n"
+"                              option -nodelist.nodups instead. \n"
+"                              Also, node indices that do not have data in the\n"
+"                              input dataset will be ignored.\n"
+"                              When in doubt, use the 1D output format along \n"
+"                              with -prepend_node_index_1D and spot check your\n"
+"                              results.\n" 
 "     -prepend_node_index_1D: Add a node index column to the data, rather\n"
 "                             than keep it as part of the metadata.\n"
 "     -pad_to_node MAX_INDEX: Output a full dset from node 0 \n"
@@ -913,6 +918,7 @@ int main (int argc,char *argv[])
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
          for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
+
          if (orderednodelist) {
             int *inlu=NULL, N_inlu=0;
             /* make sure indexlist is unique */
