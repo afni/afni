@@ -884,6 +884,30 @@ void Qhelp(void)
     " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
     "\n"
+    "-----------------------------------\n"
+    "INTERRUPTING the program gracefully\n"
+    "-----------------------------------\n"
+    "If you want to stop the program AND have it write out the results up to\n"
+    "the current point, you can do so with a command like\n"
+    "  kill -s QUIT processID\n"
+    "where 'processID' is the process identifier number (pid) for the 3dQwarp\n"
+    "program you want to terminate.  A command like\n"
+    "  ps aux | grep 3dQwarp\n"
+    "will give you a list of all your processes with the string '3dQwarp' in\n"
+    "the command line.  For example, at the moment I wrote this text, I would\n"
+    "get the response\n"
+    "  rwcox 62873 693.8  2.3  3274496 755284   p2  RN+  12:36PM 380:25.26 3dQwarp -prefix ...\n"
+    "  rwcox  6421   0.0  0.0  2423356    184   p0  R+    1:33PM   0:00.00 grep 3dQwarp\n"
+    "  rwcox  6418   0.0  0.0  2563664   7344   p4  S+    1:31PM   0:00.15 vi 3dQwarp.c\n"
+    "so the processID for the actual run of 3dQwarp was 62873.\n"
+    "\n"
+    "The program will 'notice' the QUIT signal at the end of the optimization\n"
+    "of the next patch, so it may be a moment or two before it actually saves\n"
+    "the output dataset(s) and exits.\n"
+    "\n"
+    "Of course, if you just want to kill the process in a brute force way, with\n"
+    "nothing left behind to examine, then 'kill processID' will work.\n"
+    "\n"
     "----------------------------------------------------------------\n"
     "CLARIFICATION about the confusing forward and inverse warp issue\n"
     "----------------------------------------------------------------\n"
@@ -2294,6 +2318,8 @@ STATUS("construct weight/mask volume") ;
 
    /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
    /*------------------------- do some actual work! --------------------------*/
+
+   IW3D_setup_signal_quit() ; /* QUIT signal => graceful death [25 Sep 2014] */
 
    if( Hverb )
      INFO_message("+++++++++++ Begin warp optimization:  base=%s  source=%s" ,
