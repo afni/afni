@@ -60,9 +60,25 @@ Usage:
  Unfortunately at this stage, there is little help for the AFNI R API
  beyond this sample code. If you find yourself using this and need
  to ask questions about other dataset utility functions contact the author 
- for help.
- 
-
+ for help. The AFNIio.R file in the AFNI distribution contains most of the IO
+ functions. Below are some notable ones, grep for them in the .R files for 
+ usage examples.
+   
+   dset.attr() for getting and setting attributes, such as the TR in seconds
+               e.g. dset.attr(dset$NI_head, "TR", val = 1.5)
+   read.AFNI()
+   write.AFNI()
+   show.dset.attr()
+   dset.index3Dto1D()
+   dset.index1Dto3D()
+   dset.dimBRKarray()
+   dset.3DBRKarrayto1D()
+   dset.1DBRKarrayto3D()
+   
+   parse.AFNI.name() for parsing a filename into AFNI relevant parameters
+   exists.AFNI.name()
+   note.AFNI(), err.AFNI(), warn.AFNI(), exit.AFNI()
+      
  Debugging Note:
  ===============
  When running the program from the shell prompt, you cannot use R\'s
