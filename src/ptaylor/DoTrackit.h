@@ -20,6 +20,8 @@
 
 
 int MatrInd_to_FlatUHT_DIAG_P1(int i, int j, int N);
+int MatrInd_to_FlatUHT_DIAG_M(int i, int j, int N);
+
 int MatrInd_to_FlatUHT(int i, int j, int N);
 int FlatUHT_Len(int N);
 
