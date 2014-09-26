@@ -73,8 +73,8 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.DUMP_TYPE=-1;                //  "-dump_rois"
    defopt.DUMP_with_LABELS=1;          //  "-dump_no_labtab"
    defopt.RECORD_ORIG=0;               //  "-rec_orig"
-   defopt.PAIRPOWER=1;                 //  "-pair_out_int"
-   defopt.EXTRA_TR_PAR=0;              //  "-pair_out_int"
+   defopt.PAIRPOWER=0;                 //  "-pair_out_power"
+   defopt.EXTRA_TR_PAR=0;              //  "extra_tr_par"
 
    // EXPIRED OPTIONS, just gives message/error:
    // "-cut_at_rois"

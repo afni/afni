@@ -40,6 +40,24 @@ int MatrInd_to_FlatUHT_DIAG_P1(int i, int j, int N)
    return lll;
 }
 
+/*
+  For when there are multiple connections-- take the unique UHT decomp
+  from P1, and then add N(N-1)/2 to it.  Specifically when the max num
+  of overlaps is 2, but we'll also have multi PLUS two of the overlaps
+  in the string label.
+  Max value to be output (even after the +1): N*N. 
+ */
+int MatrInd_to_FlatUHT_DIAG_M(int i, int j, int N)
+{
+   int lll;
+
+   lll = MatrInd_to_FlatUHT_DIAG_P1(i,j,N);
+   // add N(N-1)/2 to that value.
+   lll+= FlatUHT_Len(N);
+   lll-= N;
+
+   return lll;
+}
 
 /* 
    Order no longer matters here for 'U'HT.
@@ -357,8 +375,8 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 
       // for string label outputs
 		maxROInum = roi_labs[hh][NROI[hh]];
-      // should never happen normally 
-      MAXOVERLAP_VAL = FlatUHT_Len(maxROInum)+1;
+      // should never happen normally -- even with _M_<->A<->B
+      MAXOVERLAP_VAL = maxROInum*maxROInum + 1;
 
       idx=0;
       for( k=0 ; k<Dim[2] ; k++ ) 
@@ -388,9 +406,9 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
                                  temp_arrFL[bb][idx]+=(float) pow(2,rr);// unique
                                  temp_arrFL[rr][idx]+=(float) pow(2,bb);// unique
                               }
-                              else{
-                                 temp_arrSH[bb][idx]+= (short) roi_labs[hh][rr];//rr+1;// unique
-                                 temp_arrSH[rr][idx]+= (short) roi_labs[hh][bb];//rr+1;// unique
+                              else{ 
+                                 temp_arrSH[bb][idx]+= (short) roi_labs[hh][rr];
+                                 temp_arrSH[rr][idx]+= (short) roi_labs[hh][bb];
                                  intersec[bb][0]+= 1;
                                  intersec[rr][0]+= 1;
                                  // keep track of which ones get hit, less than the value
@@ -414,8 +432,6 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
                      }
                   // continuation of labelling functions for this voxel
                   for( bb=1 ; bb<=NROI[hh] ; bb++) {
-                     //if (idx > 352410)
-                     // fprintf(stderr, "\n AAAA %d;",idx );
 
                      if( intersec[bb][0] == 1 ) { // already tabled, just erase
                         intersec[bb][0] = intersec[bb][1] = 0;
@@ -438,14 +454,24 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
                         intersec[bb][0] = intersec[bb][1] =intersec[bb][2] =  0;
 
                      }
-                     else if( intersec[bb][0] ) { // just 'multi' now!
+                     else if( intersec[bb][0] ) { // 'multi' + two label names
 
-                        temp_arrSH[bb][idx] = MAXOVERLAP_VAL; // reset val
-                        snprintf(mini, 50, "%d", MAXOVERLAP_VAL );
+                        i1 = roi_labs[hh][intersec[bb][1]];
+                        i2 = roi_labs[hh][intersec[bb][2]];
+                        // use the multi function now.
+                        temp_arrSH[bb][idx] = MatrInd_to_FlatUHT_DIAG_M( i1-1, 
+                                                                          i2-1, 
+                                                                          maxROInum);
+                        snprintf(mini, 50, "%d", (int) temp_arrSH[bb][idx]);
 
-                        if(!(findin_Dtable_a( mini, new_dt ))) 
-                           addto_Dtable(mini, "MULTI", new_dt );
-                        intersec[bb][0] = intersec[bb][1] = intersec[bb][2] =  0;
+                        if(!(findin_Dtable_a( mini, new_dt ))) {
+                           snprintf( EleNameStr, 128, "%s<->%s<->%s",
+                                     "_M_",
+                                     ROI_STR_LABS[hh][intersec[bb][1]], 
+                                     ROI_STR_LABS[hh][intersec[bb][2]]);
+                           addto_Dtable(mini, EleNameStr, new_dt );
+                        }
+                        intersec[bb][0] = intersec[bb][1] =intersec[bb][2] =  0;
 
                      }
                      
@@ -551,15 +577,6 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
       free(intersec);
       intersec = NULL;
 
-      //		if(TV_switch[0] || TV_switch[1] || TV_switch[2]) {
-      //dsetn = r_new_resam_dset(networkMAPS2, NULL, 0.0, 0.0, 0.0,
-      //                         voxel_order, RESAM_NN_TYPE, 
-      //                         NULL, 1, 0);
-      //DSET_delete(networkMAPS2); 
-      //networkMAPS2=dsetn;
-      //dsetn=NULL;
-      //		}      
-
 		EDIT_dset_items(networkMAPS2,
 							 ADN_prefix    , prefix_netmap2[hh] ,
 							 ADN_brick_label_one , "OR_all",
@@ -635,6 +652,9 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 	if( sum_pairs==0 )
 		INFO_message("No pairs in any network to output.");
 	else {
+
+		INFO_message("Writing out individual files to: %s/NET_ ...",prefix);
+
 
 		// ****** alloc'ing
 		prefix_netmap = (char ***) calloc( N_nets, sizeof(char **) );

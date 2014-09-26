@@ -690,12 +690,12 @@ int main(int argc, char *argv[]) {
               FISH_OUT+PART_CORR+1); // Num of params
 
       // Sept 2014:  label_table stuff
-      if( roi_dtable ) {
-         fprintf(fout1, "# WITH_ROI_LABELS\n");
-         for( i=1 ; i<NROI_REF[k] ; i++ ) 
-            fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
-         fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
-      }
+      // don't need labeltable to make them, can do anyways
+      fprintf(fout1, "# WITH_ROI_LABELS\n");
+      for( i=1 ; i<NROI_REF[k] ; i++ ) 
+         fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
+      fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
+   
 
       for( i=1 ; i<NROI_REF[k] ; i++ ) // labels of ROIs
          fprintf(fout1," %10d \t",ROI_LABELS_REF[k][i]);// at =NROI, have '\n'

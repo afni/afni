@@ -67,6 +67,16 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 26, Sep , 2014 , PT , "3dNetCorr" , MAJOR , TYPE_NEW_OPT,
+   "Allow labeltable reading and writing.",
+   "This allows users to use labeltables, and output labelled values everywhere.\n"
+},
+
+{ 26, Sep , 2014 , PT , "3dTrackID" , MAJOR , TYPE_NEW_OPT,
+   "Allow labeltable reading and writing.",
+   "This allows users to use labeltables, and output labelled values everywhere.\n"
+},
+
 { 18, Sep , 2014 , PT , "fat_mvm_prep.py" , MICRO , TYPE_GENERAL,
    "Change internal var/par names, and how helpfile is thrown.",
    "More consistent naming, easier helpfile usage.\n"
