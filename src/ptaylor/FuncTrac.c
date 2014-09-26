@@ -66,11 +66,12 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.NAMEIN_outmode = NULL;       //  "-tract_out_mode"
    defopt.dump_opts=0;                 //  "-write_opts"
    defopt.ROIS_OUT = 0;                //  "-write_rois"
-   defopt.DUMP_ORIG_LABS=0;            //  "-lab_orig_rois"
+   defopt.DUMP_ORIG_LABS=1;            //  "-dump_lab_consec"
    // switch about having no min threshold,and dumping ROIs
    defopt.POST=0;                      //  "-posteriori"
    // switch about whether to dump ascii/afni/both
    defopt.DUMP_TYPE=-1;                //  "-dump_rois"
+   defopt.DUMP_with_LABELS=1;          //  "-dump_no_labtab"
    defopt.RECORD_ORIG=0;               //  "-rec_orig"
    defopt.PAIRPOWER=1;                 //  "-pair_out_int"
    defopt.EXTRA_TR_PAR=0;              //  "-pair_out_int"

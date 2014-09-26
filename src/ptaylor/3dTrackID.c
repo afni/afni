@@ -1,5 +1,5 @@
 /* 
-   Probabilistic(+deterministic) tracking, first draft at
+    Probabilistic(+deterministic) tracking, first draft at
    AFNIfication, March 2012.  using FACTID code, from Taylor,
    Kuan-Hung, Lin and Biswal (2012)
 
@@ -70,6 +70,9 @@
    + using UHTs to store information-- major mem savings
    + prob a bit faster now, as well.  No change in results
 
+   Sept 2014: 
+   + use label table of netrois, if exists
+
 */
 
 
@@ -80,10 +83,11 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include <mrilib.h>
+#include <3ddata.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
+#include <Fat_Labels.h>
 #include <DoTrackit.h>
 #include <TrackIO.h>
 #include <FuncTrac.h>
@@ -334,7 +338,8 @@ void usage_TrackID(int detail)
 "         | uncut_at_rois     |             |             |                 |\n"
 "         | no_trk_out        |             |             |                 |\n"
 "         | dump_rois         |             |             |                 |\n"
-"         | lab_orig_rois     |             |             |                 |\n"
+"         | dump_no_labtab    |             |             |                 |\n"
+"         | dump_lab_consec   |             |             |                 |\n"
 "         | posteriori        |             |             |                 |\n"
 "         | rec_orig          |             |             |                 |\n"
 "         | tract_out_mode    |             |             |                 |\n"
@@ -557,10 +562,18 @@ void usage_TrackID(int detail)
 "                     using 3dUndump. Using AFNI gives a set of BRIK/HEAD\n"
 "                     (byte) files in a directory called PREFIX; using BOTH\n"
 "                     produces both formats of outputs.\n"
-"    -lab_orig_rois  :if using `-dump_rois', then apply numerical labels of\n"
-"                     original ROIs input to the output names.  This would\n"
-"                     only matter if input ROI labels aren't consecutive and\n"
-"                     starting one (e.g., if instead they were 1,2,3,5,8,..).\n"
+"    -dump_no_labtab :if the ROIS file has a label table, the default is to\n"
+"                     use it in naming a '-dump_rois' output (if being used);\n"
+"                     using this switch turn that off-- output file names \n"
+"                     will be the same as if no label table were present.\n"
+"   -dump_lab_consec :if using `-dump_rois', then DON'T apply the numerical\n"
+"                     labels of the original ROIs input to the output names.\n"
+"                     This would only matter if input ROI labels aren't \n"
+"                     consecutive and starting with one (e.g., if instead \n"
+"                     they were 1,2,3,5,8,..).\n"
+"          --->   This is the opposite  from previous default behavior, where\n"
+"                     the option '-lab_orig_rois' was used to switch away\n"
+"                     from consecutive-izing the labels in the output.\n"
 "    -posteriori     :switch to have a bunch of individual files output, with\n"
 "                     the value in each being the number of tracks per voxel\n"
 "                     for that pair; works with '-dump_rois {AFNI | BOTH }',\n"
@@ -807,8 +820,8 @@ int main(int argc, char *argv[])
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-lab_orig_rois") == 0) {
-			InOpts.DUMP_ORIG_LABS=1;
+		if( strcmp(argv[iarg],"-dump_lab_consec") == 0) {
+			InOpts.DUMP_ORIG_LABS=0;
 			iarg++ ; continue ;
 		}
 
@@ -1114,11 +1127,19 @@ int main(int argc, char *argv[])
 			iarg++ ; continue ;
 		}
 
+      if( strcmp(argv[iarg],"-dump_no_labtab") == 0) {
+         // if NETROIS has a label table, default is to use it in
+         // naming a dump_rois output;  this can turn that off.
+			InOpts.DUMP_with_LABELS=0;
+			iarg++ ; continue ;
+		}
+
       if( strcmp(argv[iarg],"-cut_at_rois") == 0) {
          ERROR_exit("No longer used! Default behavior now to cut_at_rois;"
                     " turn *off* with '-uncut_at_rois', if desired");
 			iarg++ ; continue ;
 		}
+
       if( strcmp(argv[iarg],"-det_net") == 0) {
          ERROR_exit("No longer used! use '-logic {AND | OR}', instead.");
 			iarg++ ; continue ;
@@ -1187,7 +1208,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    float *xyz=NULL;
    char OUT_gdset[300];
    NI_group *GDSET_netngrlink=NULL;
-   char *NAME_gdset;
+   char *NAME_gdset=NULL;
 
    THD_3dim_dataset *thrumask=NULL;
    int doesnt_pass;
@@ -1195,7 +1216,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
 	THD_3dim_dataset *MASK=NULL;
 	int HAVE_MASK=0;
-	int ***mskd; // define mask of where time series are nonzero
+	int ***mskd=NULL; // define mask of where time series are nonzero
    int ni=0;
    time_t t_start;
 
@@ -1351,6 +1372,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
    int ***ROI_SIZES=NULL;
 
+   Dtable *roi_dtable=NULL;
+   char *LabTabStr=NULL;
+	char ***ROI_STR_LABELS=NULL;
+   char EleNameStr[128];
+
 	// for random number generation
 	const gsl_rng_type * T=NULL;
 	gsl_rng *r=NULL;
@@ -1429,9 +1455,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       ROI_LABELS = calloc( N_nets,sizeof(ROI_LABELS));  
       for(i=0 ; i<N_nets ; i++) 
          ROI_LABELS[i] = calloc(INVROI[i]+1,sizeof(int)); 
+      
       INV_LABELS = calloc( N_nets,sizeof(INV_LABELS));  
       for(i=0 ; i<N_nets ; i++) 
          INV_LABELS[i] = calloc(INVROI[i]+1,sizeof(int)); 
+
       if( (ROI_LABELS == NULL) || (ROI_LABELS == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
@@ -1456,12 +1484,45 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       fprintf(stdout,"\n");
       for( bb=0 ; bb<N_nets ; bb++)
          INFO_message("Number of ROIs in netw[%d]=%d",bb,NROI[bb]); 
-   }
-   else
-      {
-         ERROR_message("Failed to load '-netrois' options.");
-         exit(2);
+
+      ROI_STR_LABELS = (char ***) calloc( N_nets, sizeof(char **) );
+      for ( i=0 ; i<N_nets ; i++ ) 
+         ROI_STR_LABELS[i] = (char **) calloc( NROI[i]+1, sizeof(char *) );
+      for ( i=0 ; i<N_nets ; i++ ) 
+         for ( j=0 ; j<NROI[i]+1 ; j++ ) 
+            ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
+      if(  (ROI_STR_LABELS == NULL)) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(123);
       }
+
+      // Sept 2014:  Labeltable stuff
+      if ((ROI_set->Label_Dtable = DSET_Label_Dtable(ROI_set))) {
+         if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROI_set),
+                                                "VALUE_LABEL_DTABLE"))) {
+            //fprintf(stdout,"%s", LabTabStr);
+            if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
+               ERROR_exit("Could not parse labeltable.");
+            }
+         } 
+         else {
+            INFO_message("No label table from '-netrois'.");
+         }
+      }
+
+
+      bb = Make_ROI_Output_Labels( ROI_STR_LABELS,
+                                   ROI_LABELS, 
+                                   N_nets,
+                                   NROI,
+                                   roi_dtable, 
+                                   opts.DUMP_with_LABELS);
+
+   }
+   else {
+      ERROR_message("Failed to load '-netrois' options.");
+      exit(2);
+   }
    
    // from '-uncert'
    if( opts.NAMEIN_uncert ) {
@@ -3463,8 +3524,12 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             for (k=j; k<NROI[i]; k++) {
                jj = j*NROI[i] + k;
                kk = j + k*NROI[i];
+               snprintf( EleNameStr, 128, "%s<->%s",
+                         ROI_STR_LABELS[i][j+1], ROI_STR_LABELS[i][k+1]);
+               //fprintf(stderr,"\n %s %s  %s",ROI_STR_LABELS[i][j+1],
+               // ROI_STR_LABELS[i][k+1],EleNameStr);
                tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][ii]), 
-                                               jj,kk, insetPARS[PARS_BOT]); 
+                                               jj,kk, insetPARS[PARS_BOT], EleNameStr); 
                Free_Bundle(tb[i][ii]);  // pretty sure I should free here...
                ii+=1;
             }
@@ -3525,9 +3590,19 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 			fprintf(fout1,
                  "# %d  # Number of grid matrices\n"
                  ,Noutmat); // Num of matrices
+
+         // Sept 2014:  label_table stuff
+         if( roi_dtable ) {
+            fprintf(fout1, "# WITH_ROI_LABELS\n");
+            for( i=1 ; i<NROI[k] ; i++ ) 
+               fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
+            fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
+         }
+
          for( i=1 ; i<NROI[k] ; i++ ) // labels of ROIs
-            fprintf(fout1,"%8d    \t",ROI_LABELS[k][i]); // at =NROI, -> \n
-         fprintf(fout1,"%8d\n# %s\n",ROI_LABELS[k][i],  ParLab[0]); // NT 
+            fprintf(fout1," %10d \t",ROI_LABELS[k][i]); // at =NROI, -> \n
+         fprintf(fout1,"  %10d\n",ROI_LABELS[k][i]);
+         fprintf(fout1,"# %s\n", ParLab[0]); // NT 
 
 			for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) // b/c we put '\n' after last one.
@@ -3709,7 +3784,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
 										insetPARS[PARS_BOT],TV_switch,voxel_order,
 										NROI, NETROI, mskd, INDEX2, Dim,
-										dsetn,argc,argv,ROI_LABELS, opts.PAIRPOWER);
+										dsetn,argc,argv,
+                              ROI_STR_LABELS, opts.DUMP_with_LABELS,
+                              roi_dtable,
+                              ROI_LABELS, opts.PAIRPOWER);
 
 		if(opts.DUMP_TYPE>=0)
 			i = WriteIndivProbFiles(N_nets,Ndata,Nvox,Prob_grid,
@@ -3718,7 +3796,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 											NETROI,mskd,INDEX2,Dim,
 											dsetn,argc,argv,
 											Param_grid,opts.DUMP_TYPE,
-											opts.DUMP_ORIG_LABS,ROI_LABELS,opts.POST);
+											opts.DUMP_ORIG_LABS,ROI_LABELS,opts.POST,
+                                 ROI_STR_LABELS, opts.DUMP_with_LABELS);
 		
 	
 
@@ -3752,6 +3831,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	// ************************************************************
 	// ************************************************************
 	
+   if(LabTabStr)
+      free(LabTabStr); 
+   if(roi_dtable)
+      free(roi_dtable);
 
    if( opts.EXTRA_TR_PAR ) {
       for ( i=0 ; i<N_nets ; i++ ) 
@@ -3761,6 +3844,13 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
             free(ROI_SIZES[i]);
       free(ROI_SIZES);
    }
+
+   for ( i=0 ; i<N_nets ; i++ ) 
+      for ( j=0 ; j<NROI[i]+1 ; j++ ) 
+         free(ROI_STR_LABELS[i][j]);
+   for ( i=0 ; i<N_nets ; i++ ) 
+      free(ROI_STR_LABELS[i]);
+   free(ROI_STR_LABELS);
 
    for( i=PARS_BOT ; i<PARS_TOP ; i++){
       DSET_delete(insetPARS[i]);

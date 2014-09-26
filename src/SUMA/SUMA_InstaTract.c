@@ -566,7 +566,7 @@ NI_group *InstaTract_MiniProbTrack(NI_group *niniel, INSTA_TRACT_OPTS *opt)
          tb = AppCreateBundle(tb, 1, tt);
          tt = Free_Tracts(tt, 1);
          /* add it to network */
-         net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL);
+         net = AppAddBundleToNetwork(net, &tb, 5, 7, NULL, "005<->007");
          /* make another one for edge 0-1=1 and 1-0=3*/
          tt = (TAYLOR_TRACT *)calloc(1, sizeof(TAYLOR_TRACT));
          tt->id=77; tt->N_pts3=15; 
@@ -580,7 +580,7 @@ NI_group *InstaTract_MiniProbTrack(NI_group *niniel, INSTA_TRACT_OPTS *opt)
          tb = AppCreateBundle(tb, 1, tt);
          tt = Free_Tracts(tt, 1);
          /* add bundle to network */
-         net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL);
+         net = AppAddBundleToNetwork(net, &tb, 1, 3, NULL,"001<->003");
    /* PT: Replace Section End */
                
    /* Now turn network into a transmittable thing */
