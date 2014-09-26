@@ -1,11 +1,6 @@
 #ifndef _DOTRACKIT_HEADER_
 #define _DOTRACKIT_HEADER_
 
-   /* PT, you've got this variable defined in two .h files 
-      and with differing values, a very bad idea. 
-      It is best you give the constants differing names if
-      they are to have different values or one name defined
-      in one .h file only. */
 #define EPS_V (0.000001) // for eigvec 'vel' to not have badness dividing
 #define CONV (PI/180)
 #define PIo2 (PI/2)
@@ -22,6 +17,9 @@
    #define GSL_RAN gsl_ran_gaussian_ziggurat
 #endif
 
+
+
+int MatrInd_to_FlatUHT_DIAG_P1(int i, int j, int N);
 int MatrInd_to_FlatUHT(int i, int j, int N);
 int FlatUHT_Len(int N);
 
@@ -71,11 +69,13 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
 int Two_DOF_Rot( float *X, float *Y, 
                  double POL, double AZIM, float rot[3][3] );
 
-int WriteBasicProbFiles( int N_nets, int Ndata, int Nvox, 
+int WritebasicProbFiles( int N_nets, int Ndata, int Nvox, 
                          char *prefix, THD_3dim_dataset *insetFA,
                          int *TV_switch, char *voxel_order, int *NROI,
                          int ***NETROI, int ***mskd, int ***INDEX2, int *Dim,
                          THD_3dim_dataset *dsetn, int argc, char *argv[],
+                         char ***ROI_STR_LAB, int NameLabelsOut,
+                         Dtable *roi_table,
                          int **roi_labs, int PAIR_POWERON);
 
 int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int **Prob_grid,
@@ -84,7 +84,8 @@ int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int **Prob_grid,
                          int ***NETROI, int ***mskd,int ***INDEX2, int *Dim,
                          THD_3dim_dataset *dsetn, int argc, char *argv[],
                          float ***Param_grid, int DUMP_TYPE,
-                         int DUMP_ORIG_LABS, int **ROI_LABELS, int POST_IT);
+                         int DUMP_ORIG_LABS, int **ROI_LABELS, int POST_IT,
+                         char ***ROI_STR_LAB, int NameLabelsOut);
 
 // lazy now, someday will write these unified/smarter.
 //int Write_Running_Opts_DET(logic );

@@ -721,6 +721,8 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
                nel = Tracts_2_NIel(tb->tracts, tb->N_tracts);
                NI_SET_INT(nel,"Bundle_Tag", ei);
                if (ei_alt >= 0) NI_SET_INT(nel,"Bundle_Alt_Tag", ei_alt);
+               if (net->bundle_ends) 
+                  NI_SET_STR(nel,"Bundle_Ends", net->bundle_ends);
                NI_add_to_group(ngr, nel);
             }
          }
@@ -770,6 +772,7 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
    NI_element *nel=NULL;
    int ip=0, N_tracts=0, ei=0;
    char *bad=NULL, *sbuf=NULL;
+   char tb_ends[128];
    
    ENTRY("NIgr_2_Network");
 
@@ -809,7 +812,9 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 						tt = Free_Tracts(tt, N_tracts);
                   NI_GET_INT(nel,"Bundle_Tag",ei);
                   if (!NI_GOT) ei = -1;
-                  net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL);
+                  // Sept 2014
+                  snprintf( tb_ends, 128, "%03d<->%s", ei,"-1");
+                  net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL, tb_ends);
 					} else {
 						WARNING_message("Failed to interpret nel tract,"
 											 " ignoring.\n");
@@ -830,7 +835,7 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 
 TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network, 
                                       TAYLOR_BUNDLE **tb, int tag, int alt_tag,
-                                      THD_3dim_dataset *grid)
+                                      THD_3dim_dataset *grid, char *EleName)
 {
    TAYLOR_NETWORK *net=NULL;
    
@@ -866,6 +871,7 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
    net->tbv[net->N_tbv] = *tb; *tb = NULL;
    net->bundle_tags[net->N_tbv] = tag;
    net->bundle_alt_tags[net->N_tbv] = alt_tag;
+   snprintf(net->bundle_ends,128,"%s",EleName);
    ++net->N_tbv;
    
    RETURN(net);
@@ -1129,9 +1135,14 @@ NI_element * ReadTractAlgOpts_M(char *fname)
 			fprintf(stderr, "Error opening file %s.",fname);
 			RETURN(NULL);
       }
-      fscanf(fin4, "%f %f %f %d %d %d",
+
+      if( !(fscanf(fin4, "%f %f %f %d %d %d",
 				 &MinFA,&MaxAngDeg,&MinL,&SeedPerV[0],&SeedPerV[1],
-				 &SeedPerV[2]);
+                   &SeedPerV[2]))){
+         fprintf(stderr, "Error reading parameter files.");
+			RETURN(NULL);
+      }
+
       fclose(fin4);
       if (!(nel = 
             NI_setTractAlgOpts_M(NULL, &MinFA, &MaxAngDeg, &MinL, 
@@ -1274,8 +1285,12 @@ NI_element * ReadProbTractAlgOpts_M(char *fname)
 			fprintf(stderr, "Error opening file %s.",fname);
 			RETURN(NULL);
       }
-      fscanf(fin4, "%f %f %f %f %d %d",
-             &MinFA,&MaxAngDeg,&MinL,&NmNsFr,&Nseed,&Nmonte);
+
+      if( !(fscanf(fin4, "%f %f %f %f %d %d",
+                   &MinFA,&MaxAngDeg,&MinL,&NmNsFr,&Nseed,&Nmonte))){
+         fprintf(stderr, "Error reading parameter files.");
+			RETURN(NULL);
+      }
       fclose(fin4);
       //printf("%f %f %f %f %d %d",
       //     MinFA,MaxAngDeg,MinL,NmNsFr,Nseed,Nmonte); 
