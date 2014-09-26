@@ -37,6 +37,7 @@ typedef struct {
    TAYLOR_BUNDLE **tbv;
    int *bundle_tags;
    int *bundle_alt_tags;
+   char bundle_ends[128]; // labels, added Sept 2014
    int N_points_private; /* Num of points in all tracts of all bundles in net */
    int N_tracts_private; /* Sum of number of tracts in all bundles */
    int Longest_tract_length_private; /* Length in points of longest tract */
@@ -84,7 +85,7 @@ TAYLOR_TRACT *NIel_2_Tract(NI_element *nel);
 
 TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network, 
                                       TAYLOR_BUNDLE **tb,int tag, int alt_tag,
-                                      THD_3dim_dataset *grid);
+                                      THD_3dim_dataset *grid, char *EleName);
 NI_group *Network_2_NIgr(TAYLOR_NETWORK *network, int mode);
 NI_group *Network_link(char *filename);
 TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr); 

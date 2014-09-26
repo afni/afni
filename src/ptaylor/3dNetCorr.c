@@ -19,11 +19,14 @@
    June 2014
    + Partial correlation option
    
+   Sept 2014: 
+   + use label table of netrois, if exists
 */
 
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
@@ -32,6 +35,7 @@
 #include <gsl/gsl_rng.h>
 #include <3ddata.h>    
 #include "DoTrackit.h"
+#include "Fat_Labels.h"
 #include <gsl/gsl_statistics_double.h>
 
 //#define MAX_SELROI (200) // can't have more than this in SELROI
@@ -208,6 +212,12 @@ int main(int argc, char *argv[]) {
    int Nvox=-1;   // tot number vox
    int *Dim=NULL;
    int *Nlist=NULL;
+
+
+   Dtable *roi_dtable=NULL;
+   char *LabTabStr=NULL;
+	char ***ROI_STR_LABELS=NULL;
+
 
    int idx = 0;
    int Nmask = 0;
@@ -490,6 +500,39 @@ int main(int argc, char *argv[]) {
       if( i != 1)
          ERROR_exit("Problem loading/assigning ROI labels");
      
+      ROI_STR_LABELS = (char ***) calloc( HAVE_ROIS, sizeof(char **) );
+      for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+         ROI_STR_LABELS[i] = (char **) calloc( NROI_REF[i]+1, sizeof(char *) );
+      for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+         for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
+            ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
+      if(  (ROI_STR_LABELS == NULL)) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(123);
+      }
+
+      // Sept 2014:  Labeltable stuff
+      if ((ROIS->Label_Dtable = DSET_Label_Dtable(ROIS))) {
+         if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROIS),
+                                                "VALUE_LABEL_DTABLE"))) {
+            //fprintf(stdout,"%s", LabTabStr);
+            if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
+               ERROR_exit("Could not parse labeltable.");
+            }
+         } 
+         else {
+            INFO_message("No label table from '-in_rois'.");
+         }
+      }
+
+      i = Make_ROI_Output_Labels( ROI_STR_LABELS,
+                                  ROI_LABELS_REF, 
+                                  HAVE_ROIS,
+                                  NROI_REF,
+                                  roi_dtable, 
+                                  1 );//!!!opts.DUMP_with_LABELS
+
+
       ROI_COUNT = calloc( HAVE_ROIS,sizeof(ROI_COUNT));  
       for(i=0 ; i<HAVE_ROIS ; i++) 
          ROI_COUNT[i] = calloc(NROI_REF[i],sizeof(int)); 
@@ -512,7 +555,7 @@ int main(int argc, char *argv[]) {
                   idx++;
                }
       }
-		
+
       // make list of vox per ROI
       ROI_LISTS = (int ***) calloc( HAVE_ROIS, sizeof(int **) );
       for ( i=0 ; i<HAVE_ROIS ; i++ ) 
@@ -630,8 +673,8 @@ int main(int argc, char *argv[]) {
    //                 Store and output
    // **************************************************************
    // **************************************************************
-  
-   INFO_message("Writing output.");
+
+   INFO_message("Writing output: %s ...", prefix);
 
    for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
@@ -643,12 +686,20 @@ int main(int argc, char *argv[]) {
     
       // same format as .grid files now
       fprintf(fout1,"# %d  # Number of network ROIs\n",NROI_REF[k]); // NROIs
-      fprintf(fout1,"# %d  # Number of matrices\n",
+      fprintf(fout1,"# %d  # Number of netcc matrices\n",
               FISH_OUT+PART_CORR+1); // Num of params
-      //    fprintf(fout1,"%d\n\n",NROI_REF[k]);
+
+      // Sept 2014:  label_table stuff
+      if( roi_dtable ) {
+         fprintf(fout1, "# WITH_ROI_LABELS\n");
+         for( i=1 ; i<NROI_REF[k] ; i++ ) 
+            fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
+         fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
+      }
+
       for( i=1 ; i<NROI_REF[k] ; i++ ) // labels of ROIs
-         fprintf(fout1,"%8d    \t",ROI_LABELS_REF[k][i]);// at =NROI, have '\n'
-      fprintf(fout1,"%8d\n# %s\n",ROI_LABELS_REF[k][i],"CC");
+         fprintf(fout1," %10d \t",ROI_LABELS_REF[k][i]);// at =NROI, have '\n'
+      fprintf(fout1,"  %10d\n# %s\n",ROI_LABELS_REF[k][i],"CC");
       for( i=0 ; i<NROI_REF[k] ; i++ ) {
          for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last one.
             fprintf(fout1,"%12.4f\t",Corr_Matr[k][i][j]);
@@ -724,9 +775,10 @@ int main(int argc, char *argv[]) {
       }
    }
   
-   INFO_message("Starting whole brain correlations.");
-
-   if( TS_WBCORR_r || TS_WBCORR_Z ) {  
+   if( TS_WBCORR_r || TS_WBCORR_Z ) {
+      
+      INFO_message("Starting whole brain correlations.");
+      
       i = WB_netw_corr( TS_WBCORR_r, 
                         TS_WBCORR_Z,                 
                         HAVE_ROIS, 
@@ -748,6 +800,20 @@ int main(int argc, char *argv[]) {
    // ************************************************************
    // ************************************************************
    
+
+   if(LabTabStr)
+      free(LabTabStr); 
+   if(roi_dtable)
+      free(roi_dtable);
+
+   for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+      for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
+         free(ROI_STR_LABELS[i][j]);
+   for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+      free(ROI_STR_LABELS[i]);
+   free(ROI_STR_LABELS);
+
+
    DSET_delete(insetTIME);
    free(insetTIME);
 
