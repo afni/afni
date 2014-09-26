@@ -21,7 +21,12 @@ else if ("$mode" == 2) then
    goto ADD_ATLAS_ENTRY
 endif
 
-      
+if ($autolab == 1) then
+   #Get unique set of values using 3dRank
+   #Have to do it for each sub-brick and for now, labeltable will have
+   #to be the same for all sub-bricks so you need to label accordingly
+   #No time for this now....
+endif     
 
 if ($ltdset != '') then
     3dAttribute -ssep ' '  -name  VALUE_LABEL_DTABLE $ltdset \
@@ -407,6 +412,7 @@ PARSE:
    set delim = ' '
    set flab = ''
    set mode = 0
+   set autolab = 0
    if ( -f TMPLIST_${RNS}_) \rm -f TMPLIST_${RNS}_
 	set cnt = 1
    while ($cnt <= $Narg)
@@ -845,6 +851,28 @@ PARSE:
          goto CONTINUE
       endif
        
+      if ("$argv[$cnt]" == "-dset_autolab") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a dset and suffix after -dset_autolab"
+            goto BEND
+         endif         
+         set target_dset = $argv[$cnt]
+         if (`@CheckForAfniDset $target_dset` < 2) then
+            if (! $quiet_death) \
+               echo "-dset $target_dset not found"
+            goto BEND
+         endif
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need a dset and suffix after -dset_autolab"
+            goto BEND
+         endif         
+         set suff = $argv[$cnt]
+         set autolab = 1
+         goto CONTINUE
+      endif
+       
       if ("$argv[$cnt]" == "-centers") then
          set COG = 1
          goto CONTINUE
@@ -903,6 +931,10 @@ HELP:
    echo "                       on the command line."
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"
+#   echo "   -dset_autolab DSET SUFFIX: Create a labeltable from the unique"
+#   echo "                              set of integral values in DSET using"
+#   echo "                              the suffix SUFFIX and put the labeltable"
+#   echo "                              in DSET" 
    echo "   -centers : Compute center of mass location for each ROI"
    echo "              requires simple blobbish ROIs to work"
    echo ""
