@@ -2,6 +2,7 @@
 #
 # ver 1.0:  July, 2014
 # Update, ver 1.1: Sept 2014
+# mid-Update, ver 1.15: Sept 2014
 #
 # File of helper functions for fat_mvm_*.py.
 #
@@ -18,8 +19,12 @@ from glob import glob
 
 np.set_printoptions(linewidth=200)
 
-# DEFINITION
-NLinesGridHead = 3
+# Have to check 5 lines in
+NLinesGridHead = 5
+
+# keyword for having labels in netcc/grid
+HAVE_Labels = 'WITH_ROI_LABELS'   
+
 HeaderRowTrue = 1
 FirstColLabels = 1    # first read in col is subj name-labels
 GridCheckVar = 'NT'
@@ -27,9 +32,10 @@ GridCheckVar = 'NT'
 # for writing file for MVM
 ColOne_SUB = 'Subj'
 ColEnding = ['ROI', 'matrPar', 'Ausgang_val']
-MVM_file_postfix = '_MVMtbl.txt'
 
+MVM_file_postfix = '_MVMtbl.txt'
 MVM_matchlog_postfix = '_MVMprep.log'
+
 LOG_LABEL_colmatr = 'Matrixfile_ID'
 LOG_LABEL_colsubj = 'CSV_Subj'
 LOG_LABEL_roilist = 'ROI_list'
@@ -846,6 +852,8 @@ def FindGroupwiseTargets(All_sub_grid, ftype):
         print '\tFound %d subjects for finding ROI elements.' % Nsub
     
     ## For finding the set of ROI elements
+
+    # START EDITING HERE WITH USING LABELS
     a = GetSet(All_sub_grid[0], ftype)
     print '\tThe number of elements in the ROI matrix set is:\n\t  ',
     for i in range(1,Nsub):
@@ -859,7 +867,7 @@ def FindGroupwiseTargets(All_sub_grid, ftype):
     for t in temp:
         print '\t   %s' % t
 
-    ## For finding the set of variables
+    ## For finding the set of parameters
     b = set(All_sub_grid[0][1])
     print '\tThe (final) number of parameters in the ROI matrix set is:',
     for i in range(1,Nsub):
@@ -1126,8 +1134,8 @@ def LoadInGridOrNetcc(fname):
     4)  and a list of (int) ROI labels (which may not be consecutive).'''
 
     x = ReadInGridOrNetcc(fname)
-    y1,y2,y3,y4 = SepHeaderFile(x, fname)
-    return y1,y2,y3,y4
+    y1,y2,y3,y4,y5 = SepHeaderFile(x, fname)
+    return y1,y2,y3,y4,y5
 
 ###------------------------------------------------------------------
 
@@ -1147,8 +1155,10 @@ def SepHeaderFile(RawX, fname):
     3)  a supplementary dictionary for each calling use;
     4)  and a list of (int) ROI labels (which may not be consecutive).'''
 
-    Nroi,Nmat,ListLabels = HeaderInfo(RawX[:NLinesGridHead]) # header
-    y = RawX[NLinesGridHead:]  # info grids
+    Nroi,Nmat,ListLabels,ReadNext,ROI_str_labs = \
+     HeaderInfo(RawX[:NLinesGridHead]) # header
+
+    y = RawX[ReadNext:]  # info grids
 
     y = RemoveEmptyWhitespaceFromReadlines(y, fname)
 
@@ -1179,7 +1189,7 @@ def SepHeaderFile(RawX, fname):
                 ctr+=1
   
         OUT_data.append(np.array(temp))
-    return OUT_data, OUT_labs, OUT_dlab,ListLabels
+    return OUT_data, OUT_labs, OUT_dlab,ListLabels,ROI_str_labs
 
 ###------------------------------------------------------------------
 
@@ -1219,7 +1229,27 @@ def HeaderInfo(RawX):
         print "ERROR reading header! Number of Matrices is: %d" % Nmat
         sys.exit(54)
 
-    ListLabels=RawX[2].split()
+    # Sept 2014: might have labels here.
+    # defaults
+    listreadline = 2
+    ReadNext = 3
+    ROI_str_labs = []
+    # check about changing if LABELS are input
+    temp = RawX[2].split()
+    if len(temp) > 1:
+        if temp[1] == HAVE_Labels:
+            print "++ Have ROI LABELS: reading."
+            listreadline = 4
+            ReadNext = 5
+            ROI_str_labs = RawX[3].split()
+            ll = len(ROI_str_labs)
+            if not( ll == Nroi ):
+                print "ERROR reading header!"
+                print "  Number of ROIs (%d) doesn't match stringnames (%d)" % \
+                 (Nroi,ll)
+                sys.exit(55)
+
+    ListLabels=RawX[listreadline].split()
     ll = len(ListLabels)
     if not( ll == Nroi ):
         print "ERROR reading header!"
@@ -1234,7 +1264,7 @@ def HeaderInfo(RawX):
 #            (i,ListLabels[i])
 #            sys.exit(56)
 
-    return Nroi, Nmat, ListLabels
+    return Nroi, Nmat, ListLabels, ReadNext, ROI_str_labs
 
 ###------------------------------------------------------------------
 ###------------------------------------------------------------------

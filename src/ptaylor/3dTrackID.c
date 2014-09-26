@@ -277,6 +277,47 @@ void usage_TrackID(int detail)
 "\n"
 "****************************************************************************\n"
 "\n"
+"+ LABELTABLE LABELLING (Sept 2014).\n"
+" The ability to use label tables in tracking result output has been\n"
+"     included. \n"
+" Default behavior will be to *construct* a labeltable from zero-padded ints\n"
+"     in the '-netrois' file which define target ROIs.  Thus, the ROI of '3's\n"
+"     will be given a label '003'.  This will be used in INDIMAP and PAIRMAP\n"
+"     brick labels (which is useful if the targets are not consecutively\n"
+"     numbered from 1), PAIRMAP connections in bricks >0, and output \n"
+"     *.niml.tract files. The PAIRMAP labeltable will be created and output\n"
+"     as 'PREFIX_PAIRMAP.niml.lt', and will be useful for the user in (some-\n"
+"     what efficiently) resolving multiple tracts passing through voxels.\n"
+"     These labels are also used in the naming of '-dump_rois AFNI' output.\n"
+" At the moment, in a given PAIRMAP brick of index >0, labels can only \n"
+"     describe up to two connections through a given voxel.  In brick 1, if \n"
+"     voxel is intersected by tracts connection ROIs 1 and 3 as well as ROIs\n"
+"     1 and 6, then the label there would be '003<->006'; if another voxel\n"
+"     in that brick had those connections as well as one between ROIs 1 and \n"
+"     4, then the label might be '_M_<->003<->006', or '_M_<->003<->004', or\n"
+"     any two of the connections plus the leading '_M_' that stands for \n"
+"     'multiple others' (NB: which two are shown is not controlled, but I \n"
+"     figured it was better to show at least some, rather than just the \n"
+"     less informative '_M_' alone).  In all of these things, the PAIRMAP\n"
+"     map is a useful, fairly efficient guide-check, but the overlaps are\n"
+"     difficult to represent fully and efficiently, given the possibly\n"
+"     complexity of patterns.  For more definite, unique, and scriptable\n"
+"     information of where estimated WM connections are, use the \n"
+"     '-dump_rois AFNI' option.\n"
+" If the '-netrois' input has a labeltable, then this program will program\n"
+"     will read it in, use it in PAIRMAP and INDIMAP bricklabels, PAIRMAP\n"
+"     subbricks with index >0, *niml.tract outputs and, by default, in the\n"
+"     naming of '-dump_rois AFNI' output.  The examples and descriptions\n"
+"     directly above still hold, but in cases where the ROI number has an\n"
+"     explicit label, then the former is replaced by the latter's string.\n"
+"     In cases where an input label table does not cover all ROI values, \n"
+"     there is no need to panic-- the explicit input labels will be used\n"
+"     wherever possible, and the zero-padded numbers will be used for the \n"
+"     remaining cases.  Thus, one might see PAIRMAP labels such as:\n"
+"     '003<->Right-Amygdala', '_M_<->ctx-lh-insula<->006', etc.\n"
+"\n"
+"****************************************************************************\n"
+"\n"
 "+ RUNNING AND COMMANDLINE OPTIONS: pick a MODEL and a MODE.\n"
 " There are now two types of models, DTI and HARDI, that can be tracked.\n"
 "     In HARDI, one may have multiple directions per voxel along which tracts\n"
@@ -598,22 +639,25 @@ void usage_TrackID(int detail)
 "                     simply consecutive and starting from 1. File has 3cols:\n"
 "                       Input_ROI   Condensed_form_ROI   Power_of_2_label\n"
 "    -write_opts     :write out all the option values into PREFIX.niml.opts.\n" 
-"    -pair_out_int   :switch to affect output of *PAIRMAP* output files. \n"
-"                     By default, output of bricks [1] and higher contain\n"
-"                     information on connections store as powers of two, so\n"
+"    -pair_out_power :switch to affect output of *PAIRMAP* output files. \n"
+"                     Now, the default format is to output the >0 bricks with\n"
+"                     tracks labelled by the target integers themselves.\n"
+"                     This is not a unique labelling system, but it *is* far\n"
+"                     easier to view and understand what's going on than\n"
+"                     using a purely unique system based on using powers of\n"
+"                     two of the ROIs (with integer summation for overlaps).\n" 
+"                     Using the switch '-pair_out_power' will change the\n"
+"                     output of bricks [1] and higher to contain\n"
+"                     information on connections stored as powers of two, so\n"
 "                     that there is a unique decomposition in terms of\n"
 "                     overlapped connections. However, it's *far* easier to\n"
 "                     use '-dump_rois {AFNI | BOTH }' to get individual mask\n"
 "                     files of the ROIs clearly (as well as annoying to need\n"
 "                     to calculate powers of two simply to visualize the\n"
-"                     connections. This switch will output the >0 bricks with\n"
-"                     tracks labelled by the target integers themselves,\n"
-"                     instead of using powers of two of that number (with\n"
-"                     integer summation for overlaps).  This is not a unique\n"
-"                     labelling system, but it *is* far easier to view and\n"
-"                     understand what's going on. Likely, this will become\n"
-"                     the default format.\n"
-"                     *PAIRMAP* output (described above), then use this opt.\n"
+"                     connections.\n"
+"                 -----> when considering this option, see the 'LABELTABLE'\n"
+"                        description up above for how the labels work, with\n"
+"                        or without an explicit table being entered.\n"
 "    -verb VERB      :verbosity level, default is 0.\n"
 "\n"
 "****************************************************************************\n"
@@ -806,8 +850,18 @@ int main(int argc, char *argv[])
 			iarg++ ; continue ;
 		}
 
+		if( strcmp(argv[iarg],"-pair_out_power") == 0) {
+			InOpts.PAIRPOWER=1;
+			iarg++ ; continue ;
+		}
+
 		if( strcmp(argv[iarg],"-pair_out_int") == 0) {
-			InOpts.PAIRPOWER=0;
+         WARNING_message("(Harmless note:) the option '-pair_out_int' will"
+                         " not be used anymore,\n"
+                         "\t as it describes default behavior of PAIRMAP"
+                         " file output;\n"
+                         "\t see '-pair_out_power' for the ugly but unique"
+                         " file labelling output.");
 			iarg++ ; continue ;
 		}
 
@@ -1483,7 +1537,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
       fprintf(stdout,"\n");
       for( bb=0 ; bb<N_nets ; bb++)
-         INFO_message("Number of ROIs in netw[%d]=%d",bb,NROI[bb]); 
+         INFO_message("Number of ROIs in netw[%d] = %d",bb,NROI[bb]); 
 
       ROI_STR_LABELS = (char ***) calloc( N_nets, sizeof(char **) );
       for ( i=0 ; i<N_nets ; i++ ) 
@@ -3526,10 +3580,10 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                kk = j + k*NROI[i];
                snprintf( EleNameStr, 128, "%s<->%s",
                          ROI_STR_LABELS[i][j+1], ROI_STR_LABELS[i][k+1]);
-               //fprintf(stderr,"\n %s %s  %s",ROI_STR_LABELS[i][j+1],
-               // ROI_STR_LABELS[i][k+1],EleNameStr);
+
                tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][ii]), 
-                                               jj,kk, insetPARS[PARS_BOT], EleNameStr); 
+                                               jj,kk, insetPARS[PARS_BOT], 
+                                               EleNameStr); 
                Free_Bundle(tb[i][ii]);  // pretty sure I should free here...
                ii+=1;
             }
@@ -3592,13 +3646,13 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                  ,Noutmat); // Num of matrices
 
          // Sept 2014:  label_table stuff
-         if( roi_dtable ) {
-            fprintf(fout1, "# WITH_ROI_LABELS\n");
-            for( i=1 ; i<NROI[k] ; i++ ) 
-               fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
-            fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
-         }
-
+         //if( roi_dtable ) {
+         fprintf(fout1, "# WITH_ROI_LABELS\n");
+         for( i=1 ; i<NROI[k] ; i++ ) 
+            fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
+         fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
+         //}
+         
          for( i=1 ; i<NROI[k] ; i++ ) // labels of ROIs
             fprintf(fout1," %10d \t",ROI_LABELS[k][i]); // at =NROI, -> \n
          fprintf(fout1,"  %10d\n",ROI_LABELS[k][i]);
@@ -3625,7 +3679,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
          for( i=0 ; i<NROI[k] ; i++ ) {
 				for( j=0 ; j<NROI[k]-1 ; j++ ) 
 					fprintf(fout1,"%e\t",
-                       Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]*VoxVol);
+                       Param_grid[k][MatrInd_to_FlatUHT(i,j,
+                                                        NROI[k])][0]*VoxVol);
 				fprintf(fout1,"%e\n",
                     Param_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])][0]*VoxVol);
 			}
@@ -3710,7 +3765,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                for( j=0 ; j<NROI[k] ; j++ ) { 
                   idx3 = MatrInd_to_FlatUHT(i,j,NROI[k]);
                   flat_matr[k][0][i*NROI[k]+j] = Prob_grid[k][idx3];
-                  flat_matr[k][1][i*NROI[k]+j] = Prob_grid[k][idx3]*1.0/Numtract;
+                  flat_matr[k][1][i*NROI[k]+j] =Prob_grid[k][idx3]*1.0/Numtract;
                   flat_matr[k][2][i*NROI[k]+j] = Param_grid[k][idx3][0]*VoxVol;
                   flat_matr[k][3][i*NROI[k]+j] = Param_grid[k][idx3][0]*Ndata;
                   flat_matr[k][4][i*NROI[k]+j] = Param_grid[k][idx3][0]; 
@@ -3780,6 +3835,18 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 		// output AFNI files mapping WM		
 		INFO_message("Writing output (%s, same as your input): %s ...",
                    voxel_order,opts.prefix);
+
+
+      for( k=0 ; k<N_nets ; k++) {
+         hh = 0;
+         for( i=0 ; i<NROI[k] ; i++ ) 
+            for( j=i+1 ; j<NROI[k] ; j++ ) // Don't include diags
+               if(Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]>0){
+                  hh+=1;
+               }
+         INFO_message("Number of pairwise connections in netw[%d] = %d",
+                      k,hh); 
+      }
 
       i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
 										insetPARS[PARS_BOT],TV_switch,voxel_order,
