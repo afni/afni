@@ -11705,7 +11705,7 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
    }
    
   
-   if ((Sover = SUMA_ADO_CurColPlane(ado))) { 
+   if ((Sover = SUMA_ADO_CurColPlane(ado))) {
       if (SDSET_TYPE(Sover->dset_link) != SUMA_NODE_RGB ) {/* Have labels */
          if (!(sar = SUMA_FormNodeValFieldStrings(ado,       
                                  Sover->dset_link, 
@@ -11878,14 +11878,19 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec)
       if (ado->do_type == TRACT_type) {
          SUMA_TractDO *tdo=(SUMA_TractDO *)ado;
          SUMA_TRACT_SAUX *TSaux = SUMA_ADO_TSaux(ado);
-         char stmp[256];
+         TAYLOR_BUNDLE *tb=NULL;
+         char stmp[256], *be=NULL;
          if (node >= 0) { /* spell out where you are */
             if (TSaux->PR->iAltSel[SUMA_NET_BUN] >= 0 &&
                 TSaux->PR->iAltSel[SUMA_BUN_TRC] >= 0 &&
                 TSaux->PR->iAltSel[SUMA_TRC_PNT] >= 0 ) {
+                if ( (tb = TDO_BUNDLE(tdo, TSaux->PR->iAltSel[SUMA_NET_BUN])) &&
+                     tb->bundle_ends ) {
+                   be = tb->bundle_ends; 
+                }
                 snprintf(stmp, 256,
-                     "%sPnt %ld, trct %ld, bnd %ld",
-                       lbls?"\n":"",
+                     "%s%s%cPnt %ld, trct %ld, bnd %ld",
+                       lbls?"\n":"", be ? be:"", be ? '\n':'\0',
                        TSaux->PR->iAltSel[SUMA_TRC_PNT], 
                        TSaux->PR->iAltSel[SUMA_BUN_TRC], 
                        TSaux->PR->iAltSel[SUMA_NET_BUN]);
