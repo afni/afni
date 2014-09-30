@@ -66,6 +66,16 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 30, Sep, 2014, ZSS, "suma", MAJOR, TYPE_BUG_FIX,
+   "Fixed bug with NUMLOCK keeping surfaces from rotating on linux!",
+   NULL
+ },
+ 
+ { 30, Sep, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
+   "Now show bundles labels recently added to FATCAT",
+   NULL
+ },
+ 
  { 24, Sep, 2014, ZSS, "ConvertSurface", MICRO, TYPE_BUG_FIX,
    "Fixed bug with line projection of coordinates.",
    NULL
