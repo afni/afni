@@ -2,6 +2,7 @@
 #
 # Version 1.0, Sept, 2014.
 # written:  PA Taylor (UCT, AIMS).
+# Updated, ver 1.2: Sept 2014
 #
 # Select a single row out of a connectivity matrix file (*.grid
 # or *.netcc) for viewing and/or further analysis.
@@ -41,6 +42,11 @@ def main(argv):
      where:
         -r, --roi=ROI            :specify which ROI's row of connectivity you
                                   want to select out.
+                                  If you have used labeltables in your tracking
+                                  and output, then you may select the ROI by
+                                  using either the string label (checked first;
+                                  probably should be put in single quotation
+                                  marks) or by the ROI mask number.  
         -m, --matr_in=MATR_FILES :one way of providing the set of matrix
                                   (*.grid or *.netcc) file(s)- by searchable 
                                   path. This can be a globbable entry in quotes
@@ -63,6 +69,10 @@ def main(argv):
                                   NAME.netcc  ->  NAME_netcc_ROI.row
                                   where 'ROI' would be the 3-zero-padded 
                                   ROI label.
+      -E, --ExternLabsNo         :switch to turn off the writing/usage of 
+                                  user-defined labels in the *.grid/*.netcc 
+                                  files.  Can't see why this would be desired,
+                                  to be honest.
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -77,12 +87,14 @@ def main(argv):
     file_matr_glob = ''
     file_listmatch = ''
     ele = 0
+    SWITCH_ExternLabsOK = 1
 
     try:
-        opts, args = getopt.getopt(argv,"hm:l:r:",[ "help",
-                                                    "matr_in=",
-                                                    "list_match=",
-                                                    "roi="])
+        opts, args = getopt.getopt(argv,"hEm:l:r:",[ "help",
+                                                     "ExternLabsNo",
+                                                     "matr_in=",
+                                                     "list_match=",
+                                                     "roi="])
     except getopt.GetoptError:
         print help_line
         sys.exit(2)
@@ -96,6 +108,8 @@ def main(argv):
             file_listmatch = arg
         elif opt in ("-r", "--roi"):
             ele = arg
+        elif opt in ("-E", "--ExternLabsNo"):
+            SWITCH_ExternLabsOK = 0
 
     if ( file_matr_glob == '' ) and ( file_listmatch == '' ):
 	print "** ERROR: missing a necessary matrix file input."
@@ -106,7 +120,7 @@ def main(argv):
         print " been input for the matrix file."
         print "\tThe glob one after '-m' will be ignored."
 
-    return file_matr_glob, file_listmatch, ele
+    return file_matr_glob, file_listmatch, ele, SWITCH_ExternLabsOK
 
 ########################################################################
 
@@ -115,7 +129,8 @@ def main(argv):
 if __name__=="__main__":
     set_printoptions(linewidth=200)
     print "\n"
-    file_matr_glob, file_listmatch, ele = main(sys.argv[1:])
+    file_matr_glob, file_listmatch, ele,  ExternLabsOK \
+     = main(sys.argv[1:])
 
     # get file list from either of two ways.
     if file_listmatch:
@@ -126,12 +141,28 @@ if __name__=="__main__":
         print "** Error! Cannot read in matrix files."
         sys.exit(4)
 
+    if not(list_all):
+        print "** Error! Could not find/read in any matrix files."
+        sys.exit(4)
 
     # this one gets the matched pair name.
     if GR.IsFirstUncommentedSection_Multicol(file_listmatch):
         list_all_out = GR.ReadSection_and_Column(file_listmatch, 1)
     else:
-        list_all_out = GR.DefaultNamingOutRowfile(list_all, ele)
+        # we still allow selection by ROI number, not label, so we
+        # check and see if 'ele' is purely a digit (-> number, to
+        # zero-pad) or not (-> label, to use 'as is')
+        if ele.isdigit():
+            # it's a digit, so name like a digit -> zero-pad name
+            list_all_out = GR.DefaultNamingOutRowfile( list_all, 
+                                                       ele,
+                                                       0)
+        else:
+            # treat it 'as is', unless user turns off ExternLabs
+            list_all_out = GR.DefaultNamingOutRowfile( list_all, 
+                                                       ele,
+                                                       ExternLabsOK)
+
 
     N = len(list_all)
     if not( N ==len(list_all_out)) :
@@ -139,7 +170,11 @@ if __name__=="__main__":
         sys.exit(6)
 
     for i in range(N):
-        p = GR.MakeRowFile_From_FATmat(list_all[i], list_all_out[i], ele)
+        p = GR.MakeRowFile_From_FATmat(list_all[i], 
+                                       list_all_out[i], 
+                                       ele,
+                                       ExternLabsOK)
+
         print "++ Wrote:  %s" % list_all_out[i]
 
     if 1:

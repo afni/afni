@@ -26,6 +26,7 @@ typedef struct {
    int *tract_P0_offset_private; /* Index of 1st point in each tract 
                                     Index of 1st point of 1st tract is 0 */
    int N_points_private; /* Sum of points in all tracts of bundle */
+   char *bundle_ends; // labels, added Sept 2014
 } TAYLOR_BUNDLE;
 
 typedef struct {
@@ -37,7 +38,6 @@ typedef struct {
    TAYLOR_BUNDLE **tbv;
    int *bundle_tags;
    int *bundle_alt_tags;
-   char bundle_ends[128]; // labels, added Sept 2014
    int N_points_private; /* Num of points in all tracts of all bundles in net */
    int N_tracts_private; /* Sum of number of tracts in all bundles */
    int Longest_tract_length_private; /* Length in points of longest tract */
