@@ -2,6 +2,7 @@
 #
 # Version 1.0, July, 2014.
 # written:  PA Taylor (UCT, AIMS).
+# Updated, ver 1.2: Sept 2014
 #
 #
 # Combine CSV data and matrix file output (currently either *.grid
@@ -112,6 +113,10 @@ def main(argv):
                                   in the data table that might be annoying to 
                                   have flagged, so perhaps turning off warnings
                                   would then be useful. (Default is to warn.)
+      -E, --ExternLabsNo         :switch to turn off the writing/usage of 
+                                  user-defined labels in the *.grid/*.netcc 
+                                  files.  Can't see why this would be desired,
+                                  to be honest.
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -152,14 +157,16 @@ def main(argv):
     file_prefix = ''
     file_listmatch = ''
     SWITCH_NAwarn = 1
+    SWITCH_ExternLabsOK = 1
 
     try:
-        opts, args = getopt.getopt(argv,"hNc:m:p:l:",["help",
-                                                      "NA_warn_off",
-                                                      "csv_in=",
-                                                      "matr_in=",
-                                                      "prefix=",
-                                                      "list_match="])
+        opts, args = getopt.getopt(argv,"hNEc:m:p:l:",["help",
+                                                       "NA_warn_off",
+                                                       "ExternLabsNo",
+                                                       "csv_in=",
+                                                       "matr_in=",
+                                                       "prefix=",
+                                                       "list_match="])
     except getopt.GetoptError:
         print "** Error reading options. Try looking at the helpfile:"
         print "\t $  fat_mvm_prep.py -h\n"
@@ -180,6 +187,8 @@ def main(argv):
             file_listmatch = arg
         elif opt in ("-N", "--NA_warn_off"):
             SWITCH_NAwarn = 0
+        elif opt in ("-E", "--ExternLabsNo"):
+            SWITCH_ExternLabsOK = 0
 
     if ( file_csv == '' ) or ( file_prefix == '' ) :
 	print "** ERROR: missing a necessary input."
@@ -194,7 +203,7 @@ def main(argv):
         print "\tThe glob one after '-m' will be ignored."
 
     return file_csv, file_matr_glob, file_prefix, file_listmatch, \
-     SWITCH_NAwarn
+     SWITCH_NAwarn, SWITCH_ExternLabsOK
 
 
 ########################################################################
@@ -202,8 +211,8 @@ def main(argv):
 if __name__=="__main__":
     set_printoptions(linewidth=200)
     print "\n"
-    file_csv, file_matr_glob, file_prefix, file_listmatch, NA_WARN \
-     = main(sys.argv[1:])
+    file_csv, file_matr_glob, file_prefix, file_listmatch, NA_WARN, \
+     ExternLabsOK = main(sys.argv[1:])
 
     if not(NA_WARN):
         print "++ Won't worn about NAs in the data."
@@ -235,7 +244,9 @@ if __name__=="__main__":
         sys.exit(2)
 
     if grid_subj:
-        grid_ROIlist, grid_PARlist = GR.FindGroupwiseTargets(grid_data, MTYPE)
+        grid_ROIlist, grid_PARlist = GR.FindGroupwiseTargets(grid_data, 
+                                                             MTYPE,
+                                                             ExternLabsOK)
 
     # Match the CSV_subjectIDs and the GRID_subject list. This is
     # based on A) just the filenames and CSV labels; or B) explicit
@@ -252,6 +263,13 @@ if __name__=="__main__":
                                   csv_subj,           \
                                   csv_data)
 
+
+    if not(csv_subj):
+        print "\n**Error!",
+        print "Must not have found any matches between CSV data and matrices!\n"
+        sys.exit(26)
+
+
     temp = GR.Write_CSVandMatrix_log(file_prefix,        \
                                         DICT_CSV_grid,   \
                                         grid_ROIlist,    \
@@ -263,7 +281,8 @@ if __name__=="__main__":
                                          grid_data,     \
                                          grid_ROIlist,  \
                                          grid_PARlist,  \
-                                         grid_subj)
+                                         grid_subj,     \
+                                         ExternLabsOK)
 
     temp2 = GR.Write_MVM_File(file_prefix,           \
                                   csv_data,          \
@@ -274,9 +293,9 @@ if __name__=="__main__":
 
     if temp2:
         print "\n++ Success!"
-        print "++ The logfile of CSV and matrix matches is:  %s%s." % \
+        print "++ The logfile of CSV and matrix matches is:  %s%s" % \
          (file_prefix, GR.MVM_matchlog_postfix)
-        print "++ The data table for reading into 3dMVM is:  %s%s." % \
+        print "++ The data table for reading into 3dMVM is:  %s%s" % \
          (file_prefix, GR.MVM_file_postfix)
         print "++ DONE.\n\n"
     else:

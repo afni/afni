@@ -46,6 +46,7 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
       tb->N_tracts = 0;
       tb->N_points_private = -1;
       tb->tract_P0_offset_private = NULL;
+      tb->bundle_ends = NULL;
    } else {
       tb = tbu;
       tb->N_points_private = -1; /* reset so that this will get recomputed
@@ -223,6 +224,7 @@ TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb)
    if (!tb) RETURN(NULL);
    tb->tracts = Free_Tracts(tb->tracts, tb->N_tracts);
    if (tb->tract_P0_offset_private) free(tb->tract_P0_offset_private);
+   if (tb->bundle_ends) free(tb->bundle_ends);
    free(tb);
    RETURN(NULL);
 }
@@ -289,7 +291,8 @@ void Show_Taylor_Bundle(TAYLOR_BUNDLE *tb, FILE *out, int show_maxu)
       fprintf(out,"NULL tb"); 
       EXRETURN;
    }
-   fprintf(out,"  Bundle has %d tracts\n", tb->N_tracts);
+   fprintf(out,"  Bundle has %d tracts, Ends %s\n", 
+               tb->N_tracts, tb->bundle_ends ? tb->bundle_ends:"NULL");
    if ((show_maxu < 0) || (tb->N_tracts < show_maxu)) show_max = tb->N_tracts;
    else if (show_maxu == 0) show_max = (tb->N_tracts < 5) ? tb->N_tracts : 5;  
    else show_max = show_maxu;
@@ -721,8 +724,8 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
                nel = Tracts_2_NIel(tb->tracts, tb->N_tracts);
                NI_SET_INT(nel,"Bundle_Tag", ei);
                if (ei_alt >= 0) NI_SET_INT(nel,"Bundle_Alt_Tag", ei_alt);
-               if (net->bundle_ends) 
-                  NI_SET_STR(nel,"Bundle_Ends", net->bundle_ends);
+               if (tb->bundle_ends) 
+                  NI_SET_STR(nel,"Bundle_Ends", tb->bundle_ends);
                NI_add_to_group(ngr, nel);
             }
          }
@@ -808,14 +811,20 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 				nel = (NI_element *)ngr->part[ip] ;
 				if (!strcmp(nel->name,"tract") || !strcmp(nel->name,"tracts")) {
 					if ((tt = NIel_2_Tracts(nel, &N_tracts))) {
-						tbb = AppCreateBundle(tbb, N_tracts, tt); 
+						char *be=NULL;
+                  tbb = AppCreateBundle(tbb, N_tracts, tt); 
 						tt = Free_Tracts(tt, N_tracts);
                   NI_GET_INT(nel,"Bundle_Tag",ei);
                   if (!NI_GOT) ei = -1;
-                  // Sept 2014
-                  snprintf( tb_ends, 128, "%03d<->%s", ei,"-1");
-                  net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL, tb_ends);
-					} else {
+                  if ((be = NI_get_attribute(nel,"Bundle_Ends"))) {
+                     net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL,be);
+                  } else {
+                     // Sept 2014
+                     snprintf( tb_ends, 128, "%03d<->%s", ei,"-1");
+                     net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL, 
+                                                 tb_ends);
+					   }
+               } else {
 						WARNING_message("Failed to interpret nel tract,"
 											 " ignoring.\n");
 					}
@@ -865,13 +874,13 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
                                      sizeof(int)*net->N_allocated);
       net->bundle_alt_tags = (int *)realloc(net->bundle_alt_tags,
                                      sizeof(int)*net->N_allocated);
-
    }
    
+   /* PT: Let's chat about the location of bundle_ends and tags soon */
+   if (EleName) (*tb)->bundle_ends = strdup(EleName);
    net->tbv[net->N_tbv] = *tb; *tb = NULL;
    net->bundle_tags[net->N_tbv] = tag;
    net->bundle_alt_tags[net->N_tbv] = alt_tag;
-   snprintf(net->bundle_ends,128,"%s",EleName);
    ++net->N_tbv;
    
    RETURN(net);
