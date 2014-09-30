@@ -3899,7 +3899,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    static int mvxlast, mvylast, mvdeltax, mvdeltay;
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt 
                                              that are not to be preserved */
-   SUMA_Boolean LocalHead = YUP; /* local debugging messages */
+   SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
    SUMA_ENTRY;
    
