@@ -3583,7 +3583,11 @@ void SUMA_ShowEvent(SUMA_EVENT *ev, int opt, char *pre)
    SUMA_RETURNe;
 }
 
+#ifdef DARWIN
 #define evALT ((ev->Mod1 || ev->Mod2 || ev->AppleAltOpt))
+#else
+#define evALT ((ev->Mod1))
+#endif
 int SUMA_ShftCont_Event(SUMA_EVENT *ev) 
 {
    if (!ev) ev = SUMAg_CF->lev;
@@ -3895,7 +3899,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    static int mvxlast, mvylast, mvdeltax, mvdeltay;
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt 
                                              that are not to be preserved */
-   SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
+   SUMA_Boolean LocalHead = YUP; /* local debugging messages */
 
    SUMA_ENTRY;
    
@@ -5691,6 +5695,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          else if (Mev.state & Button3MotionMask) fprintf(stdout,"   B3 mot\n");
          else if (Mev.state & Button4MotionMask) fprintf(stdout,"   B4 mot\n");
          else if (Mev.state & Button5MotionMask) fprintf(stdout,"   B5 mot\n");
+         else fprintf(stdout,"   Something mot, button %d\n", Bev.button);
       }
       if (SUMAg_CF->Echo_KeyPress) {
          if (Mev.state & Button1MotionMask) 
@@ -5703,7 +5708,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             fprintf(SUMA_STDERR,"   B4 mot\n");
          else if (Mev.state & Button5MotionMask) 
             fprintf(SUMA_STDERR,"   B5 mot\n");
-         else if (Mev.state) fprintf(SUMA_STDERR,"   Something mot\n");
+         else if (Mev.state) fprintf(SUMA_STDERR,
+                              "   Something mot, button %d\n", Bev.button);
       }
 
       if (  SUMAg_CF->SwapButtons_1_3 || 
@@ -5737,6 +5743,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       
       if (strstr(sv->State, "GMATRIX")==sv->State) {
          /* For graph in matrix representation swap buttons 1 and 2 */
+         SUMA_LH("In graph matrix, swapping 1/2 motion");
          switch (mButton) {
             case SUMA_Button_1_Motion:
                mButton = SUMA_Button_2_Motion;
@@ -5781,7 +5788,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
             
          case SUMA_Button_1_Motion:     
-            /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
+            /* fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
             mevx = (float)Mev.x;
             mevy = (float)Mev.y;
             wwid = (float)sv->X->aWIDTH;
