@@ -122,6 +122,9 @@ int main( int argc , char *argv[] )
              "--------------------------------------------\n"
              "  -adaptive N = use adaptive mean filtering of width N\n"
              "                (where N must be odd and bigger than 3).\n"
+             "              * This filter is similar to the 'AdptMean9'\n"
+             "                1D filter in the AFNI GUI, except that the\n"
+             "                end points are treated differently.\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -164,25 +167,25 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-hamming") == 0 ){
-         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -hamming!\n");exit(1);}
+         if( ++nopt >= argc ) ERROR_exit("Illegal -hamming: no value!") ;
          ntap = (int) strtod(argv[nopt],NULL) ;
-         if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -hamming!\n");exit(1);}
+         if( ntap < 3 || ntap%2 != 1 ) ERROR_exit("Illegal -hamming: bad value!") ;
          nwin = HAMMING ; lwin = hamming_window ;
          INFO_message("Hamming window filter (width=%d) will be done",nwin) ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-blackman") == 0 ){
-         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
+         if( ++nopt >= argc ) ERROR_exit("Illegal -blackman: no value!") ;
          ntap = (int) strtod(argv[nopt],NULL) ;
-         if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
+         if( ntap < 3 || ntap%2 != 1 ) ERROR_exit("Illegal -blackman: bad value!") ;
          nwin = BLACKMAN ; lwin = blackman_window ;
          INFO_message("Blackman window filter (width=%d) will be done",nwin) ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-custom") == 0 ){
-         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -custom!\n");exit(1);}
+         if( ++nopt >= argc ) ERROR_exit("Illegal -blackman: no filename!") ;
          strcpy(custom_file, argv[nopt]) ;
          nwin = CUSTOM ; lwin = custom_filter ;
          ntap = 1;
@@ -191,14 +194,14 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
-         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -prefix!\n");exit(1);}
+         if( ++nopt >= argc ) ERROR_exit("Illegal -prefix: no name!") ;
          strcpy(prefix,argv[nopt]) ;
-         if( !THD_filename_ok(prefix) ){fprintf(stderr,"*** Illegal -prefix!\n");exit(1);}
+         if( !THD_filename_ok(prefix) ) ERROR_exit("Illegal -prefix: bad name!") ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-datum") == 0 ){
-         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -datum!\n");exit(1);}
+         if( ++nopt >= argc ) ERROR_exit("Illegal -datum: no type name!") ;
          if( strcmp(argv[nopt],"short") == 0 ){
             new_datum = MRI_short ;
          } else if( strcmp(argv[nopt],"float") == 0 ){
@@ -206,7 +209,7 @@ int main( int argc , char *argv[] )
          } else if( strcmp(argv[nopt],"byte") == 0 ){
             new_datum = MRI_byte ;
          } else {
-            fprintf(stderr,"*** Illegal -datum!\n");exit(1);
+            ERROR_exit("Illegal -datum: bad type name!") ;
          }
          nopt++ ; continue ;
       }
@@ -231,37 +234,31 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-3lin") == 0 ){
-         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -3lin!\n");exit(1);}
+         if( ++nopt >= argc ) ERROR_exit("Illegal -3lin: no value!") ;
          bf = strtod( argv[nopt] , NULL ) ;
-         if( bf <= 0.0 || bf >= 1.0 ){fprintf(stderr,"*** Illegal -3lin!\n");exit(1);}
+         if( bf <= 0.0 || bf >= 1.0 ) ERROR_exit("Illegal -3lin: bad value") ;
          af = cf = 0.5*(1.0-bf) ;
          smth = linear3_func ;
          INFO_message("3 point linear filtering will be done") ;
          nopt++ ; continue ;
       }
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+      ERROR_exit("Unknown option: %s",argv[nopt]) ;
 
    }  /* end of loop over options */
 
-   if( nopt >= argc ){
-      fprintf(stderr,"*** No input dataset?!\n") ; exit(1) ;
-   }
+   if( nopt >= argc ) ERROR_exit("No input dataset filename!?") ;
 
    /*---------- open dataset ----------*/
 
    old_dset = THD_open_dataset( argv[nopt] ) ;
-   if( old_dset == NULL ){
-      fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]) ; exit(1) ;
-   }
+   if( old_dset == NULL ) ERROR_exit("Can't open dataset %s",argv[nopt]) ;
 
    ntime = DSET_NVALS(old_dset) ;
    nxyz  = DSET_NVOX(old_dset) ;
 
-   if( ntime < 4 ){
-      fprintf(stderr,"*** Can't smooth dataset with less than 4 time points!\n") ;
-      exit(1) ;
-   }
+   if( ntime < 4 )
+     ERROR_exit(" Can't smooth dataset with less than 4 time points!") ;
 
    DSET_load(old_dset) ; CHECK_LOAD_ERROR(old_dset) ;
 
@@ -361,9 +358,8 @@ int main( int argc , char *argv[] )
       nbytes    = DSET_BRICK_BYTES(new_dset,kk) ;  /* how much data */
       new_brick = malloc( nbytes ) ;               /* make room */
 
-      if( new_brick == NULL ){
-        fprintf(stderr,"*** Can't get memory for output dataset!\n") ; exit(1) ;
-      }
+      if( new_brick == NULL )
+        ERROR_exit("Can't allocate memory for output dataset!") ;
 
       EDIT_substitute_brick( new_dset , kk , ityp , new_brick ) ;
 
@@ -446,9 +442,7 @@ int main( int argc , char *argv[] )
       fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
       exit(0) ;
    } else {
-      fprintf(stderr,
-         "** 3dTsmooth: Failed to write output!\n" ) ;
-      exit(1) ;
+      ERROR_exit("3dTsmooth: Failed to write output dataset :-(" ) ;
    }
 
 }
@@ -681,19 +675,19 @@ static float adaptive_weighted_mean( int num , float *x )
 void adaptN_func( int num , float *vec )  /* 03 Oct 2014 */
 {
    static float *x=NULL ;
-   float *nv ; int ii,jj,kk , n1=num-1 ;
+   float *nv ; int ii,jj,kk,nn , n1=num-1 ;
 
    nv = (float *)malloc(sizeof(float)*num) ;
    if( x == NULL ) x = (float *)malloc(sizeof(float)*Nadapt) ;
 
    for( ii=0 ; ii < num ; ii++ ){
 
-     for( jj=-Nadhalf ; jj <= Nadhalf ; jj++ ){
-       kk = ii+jj ; if( kk < 0 ) kk = 0 ; else if( kk > n1 ) kk = n1 ;
-       x[jj+Nadhalf] = vec[kk] ;
+     for( nn=0,jj=-Nadhalf ; jj <= Nadhalf ; jj++ ){
+       kk = ii+jj ; if( kk < 0 ) continue ; if( kk > n1 ) break ;
+       x[nn++] = vec[kk] ;
      }
 
-     nv[ii] = adaptive_weighted_mean( Nadapt , x ) ;
+     nv[ii] = adaptive_weighted_mean( nn , x ) ;
    }
 
    memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
