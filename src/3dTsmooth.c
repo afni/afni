@@ -6,9 +6,12 @@
 
 #include "mrilib.h"
 
-void osfilt3_func( int num , float * vec ) ;
-void median3_func( int num , float * vec ) ;
-void linear3_func( int num , float * vec ) ;
+void osfilt3_func( int num , float *vec ) ;
+void median3_func( int num , float *vec ) ;
+void linear3_func( int num , float *vec ) ;
+
+static int Nadapt=9 , Nadhalf=4 ;
+void adaptN_func ( int num , float *vec ) ;   /* 03 Oct 2014 */
 
 /*-- 01 & 03 Mar 2001: linear filtering functions --*/
 
@@ -23,28 +26,30 @@ int custom_ntaps = 0;
 
 static float af=0.15 , bf=0.70 , cf=0.15 ;
 
-int main( int argc , char * argv[] )
+/*--------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
 {
    void (*smth)(int,float *) = linear3_func ;     /* default filter */
 
    char prefix[256] = "smooth" ;
    int new_datum = ILLEGAL_TYPE , old_datum ;
    int nopt ;
-   THD_3dim_dataset * old_dset , * new_dset ;
+   THD_3dim_dataset *old_dset , *new_dset ;
    int ii,kk , nxyz , ntime , use_fac , ityp , nbytes ;
-   void * new_brick ;
+   void *new_brick ;
 
-   byte  ** bptr = NULL ;  /* one of these will be the array of */
-   short ** sptr = NULL ;  /* pointers to input dataset sub-bricks */
-   float ** fptr = NULL ;  /* (depending on input datum type) */
+   byte  **bptr = NULL ;  /* one of these will be the array of */
+   short **sptr = NULL ;  /* pointers to input dataset sub-bricks */
+   float **fptr = NULL ;  /* (depending on input datum type) */
 
-   byte  ** new_bptr = NULL ;  /* one of these will be the array of */
-   short ** new_sptr = NULL ;  /* pointers to output dataset sub-bricks */
-   float ** new_fptr = NULL ;  /* (depending on output datum type) */
+   byte  **new_bptr = NULL ;  /* one of these will be the array of */
+   short **new_sptr = NULL ;  /* pointers to output dataset sub-bricks */
+   float **new_fptr = NULL ;  /* (depending on output datum type) */
 
-   float * fxar = NULL ;  /* array loaded from input dataset */
-   float * fac  = NULL ;  /* array of brick scaling factors */
-   float * faci = NULL ;
+   float *fxar = NULL ;  /* array loaded from input dataset */
+   float *fac  = NULL ;  /* array of brick scaling factors */
+   float *faci = NULL ;
 
 #define BLACKMAN 1
 #define HAMMING  2
@@ -99,8 +104,8 @@ int main( int argc , char * argv[] )
              "  -hamming N  = Use N point Hamming or Blackman windows.\n"
              "  -blackman N     (N must be odd and bigger than 1.)\n"
              "  -custom coeff_filename.1D (odd # of coefficients must be in a \n"
-	     "                             single column in ASCII file)\n"
-	     "   (-custom added Jan 2003)\n"
+             "                             single column in ASCII file)\n"
+             "   (-custom added Jan 2003)\n"
              "    WARNING: If you use long filters, you do NOT want to include the\n"
              "             large early images in the program.  Do something like\n"
              "                3dTsmooth -hamming 13 'fred+orig[4..$]'\n"
@@ -112,6 +117,11 @@ int main( int argc , char * argv[] )
              "  -TREND  = compute a linear trend, and extrapolate BEFORE and AFTER\n"
              " The default is -EXTEND.  These options do NOT affect the operation\n"
              " of the 3 point filters described above, which always use -EXTEND.\n"
+             "\n"
+             "Adaptive Mean Filtering option [03 Oct 2014]\n"
+             "--------------------------------------------\n"
+             "  -adaptive N = use adaptive mean filtering of width N\n"
+             "                (where N must be odd and bigger than 3).\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
@@ -125,6 +135,18 @@ int main( int argc , char * argv[] )
    nopt = 1 ;
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-adaptive") == 0 ){       /* 03 Oct 2014 */
+        if( ++nopt >= argc )
+          ERROR_exit("need value after '%s'",argv[nopt]-1) ;
+        Nadapt = (int)strtod(argv[nopt],NULL) ;
+        if( Nadapt < 5 || Nadapt%2 != 1 )
+          ERROR_exit("illegal value after '%s'",argv[nopt-1]) ;
+        Nadhalf = Nadapt/2 ;
+        INFO_message("Adaptive mean filtering (width=%d) will be done",Nadapt) ;
+        smth = adaptN_func ;
+        nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-EXTEND") == 0 ){         /* 03 Mar 2001 */
          nfil = EXTEND ; lfil = linear_filter_extend ;
@@ -146,6 +168,7 @@ int main( int argc , char * argv[] )
          ntap = (int) strtod(argv[nopt],NULL) ;
          if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -hamming!\n");exit(1);}
          nwin = HAMMING ; lwin = hamming_window ;
+         INFO_message("Hamming window filter (width=%d) will be done",nwin) ;
          nopt++ ; continue ;
       }
 
@@ -154,6 +177,7 @@ int main( int argc , char * argv[] )
          ntap = (int) strtod(argv[nopt],NULL) ;
          if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
          nwin = BLACKMAN ; lwin = blackman_window ;
+         INFO_message("Blackman window filter (width=%d) will be done",nwin) ;
          nopt++ ; continue ;
       }
 
@@ -161,7 +185,8 @@ int main( int argc , char * argv[] )
          if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -custom!\n");exit(1);}
          strcpy(custom_file, argv[nopt]) ;
          nwin = CUSTOM ; lwin = custom_filter ;
-	 ntap = 1;
+         ntap = 1;
+         INFO_message("Custom window filter (width=%d) will be done",nwin) ;
          nopt++ ; continue ;
       }
 
@@ -189,16 +214,19 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-lin") == 0 ){
          bf = 0.70 ; af = cf = 0.15 ;
          smth = linear3_func ;
+         INFO_message("3 point linear filtering will be done") ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-med") == 0 ){
          smth = median3_func ;
+         INFO_message("3 point median filtering will be done") ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-osf") == 0 ){
          smth = osfilt3_func ;
+         INFO_message("3 point order-statistic filtering will be done") ;
          nopt++ ; continue ;
       }
 
@@ -208,6 +236,7 @@ int main( int argc , char * argv[] )
          if( bf <= 0.0 || bf >= 1.0 ){fprintf(stderr,"*** Illegal -3lin!\n");exit(1);}
          af = cf = 0.5*(1.0-bf) ;
          smth = linear3_func ;
+         INFO_message("3 point linear filtering will be done") ;
          nopt++ ; continue ;
       }
 
@@ -219,7 +248,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** No input dataset?!\n") ; exit(1) ;
    }
 
-   /* open dataset */
+   /*---------- open dataset ----------*/
 
    old_dset = THD_open_dataset( argv[nopt] ) ;
    if( old_dset == NULL ){
@@ -412,7 +441,7 @@ int main( int argc , char * argv[] )
    }  /* end of loop over voxels */
 
    DSET_unload(old_dset) ; free(ftap) ;
-   
+
    if (DSET_write(new_dset) != False) {
       fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
       exit(0) ;
@@ -420,13 +449,13 @@ int main( int argc , char * argv[] )
       fprintf(stderr,
          "** 3dTsmooth: Failed to write output!\n" ) ;
       exit(1) ;
-   }            
+   }
 
 }
 
 /*--------------- Order Statistics Filter ----------------*/
 
-void osfilt3_func( int num , float * vec )
+void osfilt3_func( int num , float *vec )
 {
    int ii ;
    float aa,bb,cc ;
@@ -443,7 +472,7 @@ void osfilt3_func( int num , float * vec )
 
 /*--------------- Median of 3 Filter ----------------*/
 
-void median3_func( int num , float * vec )
+void median3_func( int num , float *vec )
 {
    int ii ;
    float aa,bb,cc ;
@@ -461,7 +490,7 @@ void median3_func( int num , float * vec )
 
 #define LSUM(a,b,c) af*(a)+bf*(b)+cf*(c)
 
-void linear3_func( int num , float * vec )
+void linear3_func( int num , float *vec )
 {
    int ii ;
    float aa,bb,cc ;
@@ -624,4 +653,48 @@ float * blackman_window( int ntap )
    for( ii=0 ; ii < ntap ; ii++ ) wt[ii] *= sum ;
 
    return wt ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static float adaptive_weighted_mean( int num , float *x )
+{
+   float med,mad, wt,wsum, xsum ; int ii ;
+
+        if( num <= 0 || x == NULL ) return (0.0f) ;
+   else if( num == 1              ) return (x[0]) ;
+   else if( num == 2              ) return (0.5f*(x[0]+x[1])) ;
+
+   qmedmad_float( num , x , &med , &mad ) ;
+   if( mad <= 0.0f ) return (med) ;
+
+   wsum = xsum = 0.0f ; mad = 0.4567f / mad ;
+   for( ii=0 ; ii < num ; ii++ ){
+     wt = mad*fabsf(x[ii]-med); wt = 1.0f / (1.0f+wt*wt*wt); wsum += wt;
+     xsum += wt * x[ii] ;
+   }
+   return (xsum/wsum) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void adaptN_func( int num , float *vec )  /* 03 Oct 2014 */
+{
+   static float *x=NULL ;
+   float *nv ; int ii,jj,kk , n1=num-1 ;
+
+   nv = (float *)malloc(sizeof(float)*num) ;
+   if( x == NULL ) x = (float *)malloc(sizeof(float)*Nadapt) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+
+     for( jj=-Nadhalf ; jj <= Nadhalf ; jj++ ){
+       kk = ii+jj ; if( kk < 0 ) kk = 0 ; else if( kk > n1 ) kk = n1 ;
+       x[jj+Nadhalf] = vec[kk] ;
+     }
+
+     nv[ii] = adaptive_weighted_mean( Nadapt , x ) ;
+   }
+
+   memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
 }
