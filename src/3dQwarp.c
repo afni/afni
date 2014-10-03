@@ -813,7 +813,7 @@ void Qhelp(void)
     "                 commands are left as an exercise for the aspiring AFNI Jedi Master.\n"
     "               * You can use the semi-secret '-pmBASE' option to get the V(x)\n"
     "                 warp and the source dataset warped to base space, in addition to\n"
-    "                 Wp(x) '_PLUS' and Wm(x) '_MINUS' warps.\n"
+    "                 the Wp(x) '_PLUS' and Wm(x) '_MINUS' warps.\n"
     "           -->>* Alas: -plusminus does not work with -duplo or -allineate :-(\n"
 #ifdef USE_PLUSMINUS_INITIALWARP
     "               * If -plusminus is used, the -plusminus warp is initialized by\n"
