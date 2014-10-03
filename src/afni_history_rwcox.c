@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 25 , SEP , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+  { 3 , OCT , 2014 , RWC , "3dTsmooth" , MICRO , TYPE_NEW_OPT ,
+   "Add adaptive mean filtering as an option" ,
+   NULL } ,
+
+ { 25 , SEP , 2014 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "sending QUIT signal (kill -s QUIT) will cause a graceful death" ,
    "'Live fast, Die young, Leave a pretty corpse'.  That is, break out of\n"
    "the optimization loops and write the current result out before exiting." } ,
