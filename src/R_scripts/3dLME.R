@@ -24,7 +24,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Version 1.3.6, Sept 15, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
-Website - http://afni.nimh.nih.gov/sscc/gangc/LME.html
+Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -45,7 +45,7 @@ Usage:
  If you want to cite the analysis approach, use the following:
  
  Chen, G., Saad, Z.S., Britton, J.C., Pine, D.S., Cox, R.W. (2013). Linear
- Mixed-Effects Modeling Approach to FMRI Group Analysis. NeuroImage,
+ Mixed-Effects Modeling Approach to FMRI Group Analysis. NeuroImage 73:176-190.
  http://dx.doi.org/10.1016/j.neuroimage.2013.01.047
  
  Input files for 3dLME can be in AFNI, NIfTI, or surface (niml.dset) format.
