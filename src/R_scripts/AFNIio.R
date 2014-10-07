@@ -2446,7 +2446,18 @@ dset.attr <- function (dset, name=NULL, colwise=FALSE, num=FALSE,
                                  statsym.list2code(statsym=val), strsep=';')
          } else if (name == "TR") {
             dd <- get.c.AFNI.attribute(hatr, "TAXIS_NUMS");
+            if (is.null(dd)) {
+               rr <- get.c.AFNI.attribute(hatr, "DATASET_RANK")
+               if (is.null(rr)) {
+                  err.AFNI("Cannot set TAXIS_NUMS with DATASET_RANK missing");
+                  return(NULL);
+               }
+               dd <- c(rr[2], 0, 77002, -999, -999, -999, -999, -999);
+            }
             ee <- get.c.AFNI.attribute(hatr, "TAXIS_FLOATS");
+            if (is.null(ee)) {
+               ee <- c(0, 0, 0, 0, 0, -999999.000, -999999.000, -999999.0000);
+            }
             dd[2] <- 77002; #seconds
             ee[2] <- val;
             hatr <- set.c.AFNI.attribute(hatr, "TAXIS_NUMS", val=dd);
