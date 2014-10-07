@@ -188,6 +188,7 @@ int main( int argc , char * argv[] )
    mainENTRY("to3d:main") ;
    machdep() ; /* 20 Apr 2001 */
    PRINT_VERSION("to3d") ; AUTHOR("RW Cox") ;
+   INFO_message("It is best to use to3d via the Dimon program.") ;
 
    if( DBG_trace ){                              /* 10 Sep 2002 */
      fprintf(stderr,"++ Enabling mcw_malloc()\n") ;
@@ -3082,6 +3083,16 @@ void Syntax()
    printf(
     "Usage: to3d [options] image_files ...\n"
     "       Creates 3D datasets for use with AFNI from 2D image files\n"
+    "\n"
+    "****** PLEASE NOTE ******************************************************\n"
+    "****** If you are convering DICOM files to AFNI or NIfTI datasets, ******\n"
+    "****** you will likely be happier using the Dimon program, which   ******\n"
+    "****** can properly organize the Dicom files for you (knock wood). ******\n"
+    "****** Example:                                                    ******\n"
+    "******   Dimon -infile_prefix im. -dicom_org -gert_create_dataset  ******\n"
+    "****** See the output of                                           ******\n"
+    "******   Dimon -help                                               ******\n"
+    "****** for more examples and the complete instructions for use.    ******\n"
     "\n"
     "The available options are\n"
     "  -help   show this message\n"
