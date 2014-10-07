@@ -871,6 +871,31 @@ void THD_vectim_distance( MRI_vectim *mrv , float *vec ,
   return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
+void THD_vectim_pearson_section( MRI_vectim *mrv, float *vec,  /* 07 Oct 2014 */
+                                 float *dp, int ibot, int itop )
+{
+   if( mrv == NULL || vec == NULL || dp == NULL ) return ;
+   if( ibot <  0          ) ibot = 0 ;
+   if( itop >= mrv->nvals ) itop = mrv->nvals-1 ;
+
+ AFNI_OMP_START ;
+#pragma omp parallel if( mrv->nvec > 1 && mrv->nvec * mrv->nvals > 999999 )
+ { int nvec=mrv->nvec, nvals=itop-ibot+1, iv ; float sum , *fv ;
+#pragma omp for
+   for( iv=0 ; iv < nvec ; iv++ ){
+     fv = VECTIM_PTR(mrv,iv) ;
+     dp[iv] = THD_pearson_corr( nvals , vec+ibot , fv+ibot ) ;
+   }
+ } /* end OpenMP */
+ AFNI_OMP_END ;
+
+  thd_floatscan(mrv->nvec,dp) ;  /* 16 May 2013 */
+
+  return ;
+}
+
 
 
 #define USE_VSTEP

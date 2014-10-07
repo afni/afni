@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 3 , OCT , 2014 , RWC , "3dTsmooth" , MICRO , TYPE_NEW_OPT ,
+  { 7 , OCT , 2014 , RWC , "InstaCorr in AFNI GUI" , MINOR , TYPE_MODIFY ,
+   "Multiple sections to be correlated" ,
+   "Input 'Start,End' in the format 'Start@Length,Number,Delta' to get\n"
+   "sections of the given 'Length'." } ,
+
+ { 3 , OCT , 2014 , RWC , "3dTsmooth" , MICRO , TYPE_NEW_OPT ,
    "Add adaptive mean filtering as an option" ,
    NULL } ,
 

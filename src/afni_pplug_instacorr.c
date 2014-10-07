@@ -82,6 +82,15 @@ static char i_helpstring[] =
   "                   10+30 = correlate with 30 time points, 10..39\n"
   "                [if End is missing or 0, then it is the last sub-brick]\n"
   "                [N.B.: 'Start,End' replaces 'Ignore', as of Nov 2012]\n"
+  "               ** NEW FEATURE: MULTIPLE SECTIONS [Oct 2014] **\n"
+  "                 You can input in this format: S@L,N,D (e.g., 2@20,0,5)\n"
+  "                 to set the start index to 'S', the length of a section to 'L',\n"
+  "                 the number of sections to 'N' (0=maximum that fits), and the\n"
+  "                 step between sections to 'D' (which is between 1 and L).\n"
+  "                 If you do this, you will get a multiple volume result,\n"
+  "                 where each volume is the correlation from a limited section\n"
+  "                 of data.  Of course, the program will be slower.\n"
+  "                 [At present, only works with Pearson correlation :-(]\n"
   "    Blur     = FWHM in mm of Gaussian blurring to perform\n"
   "                [if a Mask is used, blurring is only inside the mask]\n"
   "\n"
@@ -277,6 +286,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    int polort = 2 ; /* 26 Feb 2010 */
    int cmeth  = NBISTAT_PEARSON_CORR ;
    int despike = 0 ;
+   int clen=0,cnum=0,cstep=0 ;
 
    ncall = 0 ;
 
@@ -300,17 +310,28 @@ static char * ICOR_main( PLUGIN_interface *plint )
        stend  = PLUTO_get_string(plint) ;
        blur   = PLUTO_get_number(plint) ;
 
-       start = end = 0 ;
+       start = end = 0 ; clen = cnum = cstep = 0 ;
        if( stend != NULL && *stend != '\0' ){
          char *cpt ;
          start = (int)strtod(stend,&cpt) ;
          if( start < 0 ) start = 0 ;
          while( isspace(*cpt) ) cpt++ ;
-         if( *cpt != '\0' ){
+         if( *cpt == ',' || *cpt == '+' ){
            char qc = *cpt ;
            if( !isdigit(*cpt) ) cpt++ ;
            end = (int)strtod(cpt,NULL) ;
-           if( qc == '+' && end > 0 ) end = start + end-1 ;
+           if( qc == '+' && end > 4 ) end = start + end-1 ;
+         } else if( *cpt == '@' ){          /* '@' stuff from 07 Oct 2014 */
+           clen = (int)strtod(cpt+1,&cpt) ;
+           if( clen < 5 ){
+             WARNING_message("Bad 'Start,End' @ string '%s'",stend) ; clen = 0 ;
+           } else if( *cpt == ',' ){
+             cnum = (int)strtod(cpt+1,&cpt) ;
+             if( *cpt == ',' )
+               cstep = (int)strtod(cpt+1,&cpt) ;
+           }
+         } else if( *cpt != '\0' ){
+           WARNING_message("Don't understand 'Start,End' string '%s'",stend) ;
          }
        }
        continue ;
@@ -396,6 +417,15 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
    if( end <= 0 || end <= start || end >= DSET_NVALS(dset) ) end = DSET_NVALS(dset)-1 ;
 
+   if( clen > 0 ){
+     int ss , nn , nv=DSET_NVALS(dset) ;
+     if( start+clen >= nv ) return "** length is too long **" ;
+     ss = (cstep <= 0 || cstep > clen) ? clen : cstep ;
+     nn = 1 + (nv-start-clen) / ss ;
+     if( cnum > nn || cnum == 0 ) cnum = nn ;
+     INFO_message("Section length=%d number=%d step=%d",clen,cnum,cstep) ;
+   }
+
    if( end-start+1 < 9 ) {
      WARNING_message("**************************\n"
                      "   Too few samples in time series!\n"
@@ -436,6 +466,9 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->gortim   == gortim   &&
        im3d->iset->start    == start    &&
        im3d->iset->end      == end      &&
+       im3d->iset->clen     == clen     &&
+       im3d->iset->cnum     == cnum     &&
+       im3d->iset->cstep    == cstep    &&
        im3d->iset->automask == automask &&
        im3d->iset->mindex   == mindex   &&
        im3d->iset->fbot     == fbot     &&
@@ -443,9 +476,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
        im3d->iset->blur     == blur     &&
        im3d->iset->despike  == despike  &&
        im3d->iset->polort   == polort   &&
-       THD_instacorr_cmeth_needs_norm(im3d->iset->cmeth)
-                            ==
-       THD_instacorr_cmeth_needs_norm(cmeth)   ){
+       THD_instacorr_cmeth_needs_norm(im3d->iset->cmeth) == THD_instacorr_cmeth_needs_norm(cmeth) ){
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
      im3d->iset->sblur = sblur ; im3d->iset->cmeth = cmeth ;
@@ -473,11 +504,16 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->polort   = polort ;  /* 26 Feb 2010 */
    iset->cmeth    = cmeth ;   /* 01 Mar 2010 */
    iset->prefix   = (char *)malloc(sizeof(char)*16) ;
-   iset->change   = 2; /* 07 May 2012 ZSS */
+   iset->change   = 2;        /* 07 May 2012 ZSS */
+   iset->clen     = clen ;    /* 07 Oct 2014 */
+   iset->cnum     = cnum ;
+   iset->cstep    = cstep ;
 
    cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
 
    etim = PLUTO_elapsed_time() ;
+
+   /*** prepare the data for InstaCorr Set ***/
 
    INSTACORR_LABEL_OFF(im3d) ;
    SHOW_AFNI_PAUSE ;
@@ -541,9 +577,10 @@ ENTRY("AFNI_icor_setref_anatijk") ;
 
 int AFNI_icor_setref_xyz( Three_D_View *im3d , float xx,float yy,float zz )
 {
-   MRI_IMAGE *iim; float *iar, rng; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ic ;
+   MRI_IMAGE *iim=NULL; float *iar, rng; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk,ic ;
    THD_3dim_dataset *icoset ; THD_slist_find slf ; int nds=0 ;
    double etim ;
+   MRI_IMARR *iimar=NULL; int nim=0 , qim ;
 
 ENTRY("AFNI_icor_setref_xyz") ;
 
@@ -587,13 +624,19 @@ ENTRY("AFNI_icor_setref_xyz") ;
 
    etim = PLUTO_elapsed_time() ;
 
-   iim = THD_instacorr( im3d->iset , ijk , 0 ) ;  /* 0 == no arctanh */
+   if( im3d->iset->clen <= 0 ){
+     iim = THD_instacorr( im3d->iset , ijk ) ;
+     if( iim == NULL ) RETURN(-1) ;  /* did it fail? */
+     INIT_IMARR(iimar) ; ADDTO_IMARR(iimar,iim) ;
+   } else {
+     iimar = THD_instacorr_collection( im3d->iset , ijk ) ;
+     if( iimar == NULL ) RETURN(-1) ;  /* did it fail? */
+   }
+   nim = IMARR_COUNT(iimar) ;
 
    if( ncall <= 1 )
      ININFO_message(" InstaCorr elapsed time = %.2f sec: correlations",
                     PLUTO_elapsed_time()-etim) ;
-
-   if( iim == NULL ) RETURN(-1) ;  /* did it fail? */
 
    /* 17 Mar 2010: save seed location we just did in the im3d struct */
 
@@ -612,12 +655,13 @@ ENTRY("AFNI_icor_setref_xyz") ;
    /* if it doesn't exist, or is not the right grid, create it now */
 
    if( !ISVALID_DSET (slf.dset) ||
-       !EQUIV_DATAXES(slf.dset->daxes,im3d->iset->dset->daxes) ){
+       !EQUIV_DATAXES(slf.dset->daxes,im3d->iset->dset->daxes) ||
+       DSET_NVALS(slf.dset) != nim                               ){
 
      icoset = EDIT_empty_copy( im3d->iset->dset ) ;  /* make new dataset */
      EDIT_dset_items( icoset ,
                         ADN_prefix    , im3d->iset->prefix ,
-                        ADN_nvals     , 1 ,
+                        ADN_nvals     , nim ,
                         ADN_ntt       , 0 ,
                         ADN_func_type , FUNC_BUCK_TYPE ,
                         ADN_type      , HEAD_FUNC_TYPE ,
@@ -654,9 +698,17 @@ ENTRY("AFNI_icor_setref_xyz") ;
 
    /* save the result into the output dataset */
 
-   iar = MRI_FLOAT_PTR(iim) ;
-   EDIT_substitute_brick( icoset , 0 , MRI_float , iar ) ;
-   mri_clear_data_pointer(iim) ; mri_free(iim) ;
+   for( qim=0 ; qim < nim ; qim++ ){
+     iim = IMARR_SUBIM(iimar,qim) ;
+     if( iim != NULL ){
+       iar = MRI_FLOAT_PTR(iim) ;
+       EDIT_substitute_brick( icoset , qim , MRI_float , iar ) ;
+       mri_clear_data_pointer(iim) ;
+     } else {
+       EDIT_substitute_brick( icoset , qim , MRI_float , NULL ) ;
+     }
+   }
+   DESTROY_IMARR(iimar) ; iim = NULL ;
    DSET_KILL_STATS(icoset) ; THD_load_statistics(icoset) ;
 
    /* 03 May 2010: add some attributes that say where this comes from */
@@ -683,7 +735,9 @@ ENTRY("AFNI_icor_setref_xyz") ;
          rng = 0.7;
          break;
    }
-   EDIT_BRICK_TO_FICO(icoset,0,im3d->iset->mv->nvals,1,im3d->iset->ndet) ;
+
+   for( qim=0 ; qim < nim ; qim++ )
+     EDIT_BRICK_TO_FICO(icoset,qim,im3d->iset->mv->nvals,1,im3d->iset->ndet) ;
 
    DSET_BRICK_FDRCURVE_ALLKILL(icoset) ;
    DSET_BRICK_MDFCURVE_ALLKILL(icoset) ;
@@ -719,7 +773,7 @@ ENTRY("AFNI_icor_setref_xyz") ;
    if( im3d->fim_now != icoset || im3d->iset->change ){  /* switch to this dataset */
      MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      cbs.ival = nds ;
-   
+
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
