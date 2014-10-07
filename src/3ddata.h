@@ -4854,6 +4854,9 @@ extern void THD_vectim_quadrant ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 
 extern void THD_vectim_ktaub    ( MRI_vectim *mrv, float *vec, float *dp ) ; /* 29 Apr 2010 */
 extern void THD_vectim_tictactoe( MRI_vectim *mrv, float *vec, float *dp ) ; /* 30 Mar 2011 */
 
+extern void THD_vectim_pearson_section( MRI_vectim *mrv, float *vec,
+                                        float *dp, int ibot , int itop ) ; /* 07 Oct 0214 */
+
 extern void THD_vectim_applyfunc( MRI_vectim *mrv , void *vp ) ;        /* 10 May 2012 */
 
 extern void THD_vectim_pearsonBC( MRI_vectim *mrv, float srad, int sijk, int pv, float *par ) ;
@@ -4876,6 +4879,7 @@ typedef struct {
   byte *mmm ;
   MRI_IMAGE *gortim ;
   int start,end , automask , mindex ;
+  int clen,cnum,cstep ;
   float fbot , ftop , blur , sblur ;
   int polort , cmeth , despike , change ;
   MRI_vectim *mv ;
@@ -4904,8 +4908,9 @@ typedef struct {
  }} while(0)
 
 extern int         THD_instacorr_prepare( ICOR_setup *iset ) ;
-extern MRI_IMAGE * THD_instacorr        ( ICOR_setup *iset, int ijk, int ata ) ;
+extern MRI_IMAGE * THD_instacorr        ( ICOR_setup *iset, int ijk ) ;
 extern int         THD_instacorr_cmeth_needs_normalize( int cmeth );
+extern MRI_IMARR * THD_instacorr_collection( ICOR_setup *iset, int ijk ) ;
 /*---------------------------------------------------------------------------*/
 
 extern int THD_extract_array      ( int, THD_3dim_dataset *, int, void * ) ;

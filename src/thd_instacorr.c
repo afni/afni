@@ -3,8 +3,9 @@
 #undef  EM
 #define EM(s) ERROR_message("InstaCorr setup bad: %s",(s))
 
-/* Return 1 if methods uses timeseries normalization, 
-          0 otherwise */
+/*---------------------------------------------------------------------------*/
+/* Return 1 if methods uses timeseries normalization, 0 otherwise */
+
 int THD_instacorr_cmeth_needs_norm(int cmeth) {
    switch (cmeth) {
       case NBISTAT_EUCLIDIAN_DIST:
@@ -15,7 +16,6 @@ int THD_instacorr_cmeth_needs_norm(int cmeth) {
    }
    return(1);
 }
-
 
 /*---------------------------------------------------------------------------*/
 /* Read and pre-process time series for InstaCorr [moved here 10 Nov 2011].  */
@@ -120,10 +120,10 @@ ENTRY("THD_instacorr_tsprep") ;
    }
 
    /*-- normalize --*/
-   
-   if (THD_instacorr_cmeth_needs_norm(iset->cmeth)) {
-      ININFO_message("- Normalizing dataset time series") ;
-      THD_vectim_normalize( mv ) ;
+
+   if( THD_instacorr_cmeth_needs_norm(iset->cmeth) ){
+     ININFO_message("- Normalizing dataset time series") ;
+     THD_vectim_normalize( mv ) ;
    }
 
    RETURN(mv) ;
@@ -202,6 +202,8 @@ ENTRY("THD_instacorr_prepare") ;
      nmmm = DSET_NVOX(iset->dset) ;
    }
 
+   /*--- time series preparation ---*/
+
    iset->mv = THD_instacorr_tsprep( iset , iset->dset ) ;
    if( iset->mv == NULL ) RETURN(0) ;
    iset->ev = THD_instacorr_tsprep( iset , iset->eset ) ;
@@ -210,17 +212,13 @@ ENTRY("THD_instacorr_prepare") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Compute the instant correlation from spatial voxel index ijk --
-    mri_free() this image when you are done with it!
-*//*-------------------------------------------------------------------------*/
+/* Get the seed timeseries [moved to a function 07 Oct 2014] */
 
-MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk , int ata )
+float * THD_instacorr_getseed( ICOR_setup *iset , int ijk )
 {
-   int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar ; int *ivar ;
-   float sblur ;
-   MRI_vectim *mv ;
+   float *tsar ; int kk ; float sblur ;
 
-ENTRY("THD_instacorr") ;
+ENTRY("THD_instacorr_getseed") ;
 
    if( iset == NULL || iset->mv == NULL || ijk < 0 ) RETURN(NULL) ;
 
@@ -276,13 +274,36 @@ ENTRY("THD_instacorr") ;
           for( tt=0 ; tt < iset->mv->nvals  ; tt++ ) sar[tt] += wt * qar[tt] ;
          }
        }
-       if( wtsum > 1.0f ){
+       if( wtsum > 1.0f ){  /* usually true, but not always */
          fac = 1.0f / wtsum ;
          for( tt=0 ; tt < iset->mv->nvals ; tt++ ) tsar[tt] = fac * sar[tt] ;
        }
        free(sar) ; KILL_CLUSTER(smask) ;
        THD_normalize( iset->mv->nvals , tsar ) ;
    } /* end of seed blur */
+
+   RETURN(tsar) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Compute the instant correlation from spatial voxel index ijk --
+    mri_free() this image when you are done with it!
+*//*-------------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk )
+{
+   int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar ; int *ivar ;
+   float sblur ;
+   MRI_vectim *mv ;
+
+ENTRY("THD_instacorr") ;
+
+   if( iset == NULL || iset->mv == NULL || ijk < 0 ) RETURN(NULL) ;
+
+   /** extract reference time series **/
+
+   tsar = THD_instacorr_getseed( iset , ijk ) ;
+   if( tsar == NULL ) RETURN(NULL) ; /* bad */
 
    /** save seed in iset struct [15 May 2009] **/
 
@@ -298,7 +319,7 @@ ENTRY("THD_instacorr") ;
    switch( iset->cmeth ){
      default:
      case NBISTAT_PEARSON_CORR:
-       THD_vectim_dotprod ( mv , tsar , dar , ata ) ; break ;
+       THD_vectim_dotprod ( mv , tsar , dar , 0 ) ; break ;
 
      case NBISTAT_SPEARMAN_CORR:
        THD_vectim_spearman( mv , tsar , dar ) ; break ;
@@ -317,12 +338,12 @@ ENTRY("THD_instacorr") ;
 
      case NBISTAT_BC_PEARSON_V:
        THD_vectim_pearsonBC( mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
-       
+
      case NBISTAT_EUCLIDIAN_DIST:/* 04 Apr 2012, ZSS*/
-       THD_vectim_distance( mv , tsar , dar , 0, "inv;n_scale") ; break ;  
+       THD_vectim_distance( mv , tsar , dar , 0, "inv;n_scale") ; break ;
 
      case NBISTAT_CITYBLOCK_DIST:/* 04 Apr 2012, ZSS*/
-       THD_vectim_distance( mv , tsar , dar , 1, "inv;n_scale") ; break ;  
+       THD_vectim_distance( mv , tsar , dar , 1, "inv;n_scale") ; break ;
 
      case NBISTAT_QUANTILE_CORR: /* 11 May 2012 */
        THD_vectim_quantile( mv , tsar , dar ) ; break ;
@@ -338,4 +359,102 @@ ENTRY("THD_instacorr") ;
    /** e finito **/
 
    free(dar) ; free(tsar) ; RETURN(qim) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Compute the instant correlation from tsar as the seed series, from time
+    indexes ibot to itop-1 -- mri_free() result when you are done with it
+*//*-------------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_instacorr_section( ICOR_setup *iset, float *tsar, int ibot, int itop )
+{
+   int kk ; MRI_IMAGE *qim ; float *qar , *dar ; int *ivar ;
+   MRI_vectim *mv ;
+
+ENTRY("THD_instacorr_section") ;
+
+   if( iset == NULL || iset->mv == NULL || tsar == NULL ) RETURN(NULL) ;
+   if( ibot < 0 ) ibot = 0 ;
+   if( itop > iset->mv->nvals-1 ) itop = iset->mv->nvals-1 ;
+   if( itop-ibot < 5 ) RETURN(NULL) ;  /* too short to correlate */
+
+#if 0
+ININFO_message("section: ibot=%d itop=%d",ibot,itop) ;
+#endif
+
+   /** do the correlations **/
+
+   dar = (float *)malloc(sizeof(float)*iset->mv->nvec) ;
+
+   mv = (iset->ev == NULL) ? iset->mv : iset->ev ;
+
+   switch( iset->cmeth ){
+     default:
+     case NBISTAT_PEARSON_CORR:
+       THD_vectim_pearson_section( mv , tsar , dar , ibot,itop ) ; break ;
+
+#if 0
+     case NBISTAT_SPEARMAN_CORR:
+       THD_vectim_spearman( mv , tsar , dar ) ; break ;
+
+     case NBISTAT_QUADRANT_CORR:
+       THD_vectim_quadrant( mv , tsar , dar ) ; break ;
+
+     case NBISTAT_TICTACTOE_CORR:
+       THD_vectim_tictactoe( mv , tsar , dar ) ; break ;
+
+     case NBISTAT_KENDALL_TAUB:
+       THD_vectim_ktaub( mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
+
+     case NBISTAT_BC_PEARSON_M:
+       THD_vectim_pearsonBC( mv,sblur,ijk,0,dar ); break; /* 07 Mar 2011 */
+
+     case NBISTAT_BC_PEARSON_V:
+       THD_vectim_pearsonBC( mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
+
+     case NBISTAT_EUCLIDIAN_DIST:/* 04 Apr 2012, ZSS*/
+       THD_vectim_distance( mv , tsar , dar , 0, "inv;n_scale") ; break ;
+
+     case NBISTAT_CITYBLOCK_DIST:/* 04 Apr 2012, ZSS*/
+       THD_vectim_distance( mv , tsar , dar , 1, "inv;n_scale") ; break ;
+
+     case NBISTAT_QUANTILE_CORR: /* 11 May 2012 */
+       THD_vectim_quantile( mv , tsar , dar ) ; break ;
+#endif
+   }
+
+   /** put them into the output image **/
+
+   qim  = mri_new_vol( mv->nx , mv->ny , mv->nz , MRI_float ) ;
+   qar  = MRI_FLOAT_PTR(qim) ;
+   ivar = mv->ivec ;
+   for( kk=0 ; kk < mv->nvec ; kk++ ) qar[ivar[kk]] = dar[kk] ;
+
+   /** e finito **/
+
+   free(dar) ; RETURN(qim) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+MRI_IMARR * THD_instacorr_collection( ICOR_setup *iset , int ijk )
+{
+   int ibot , itop , nii ,  kk ;
+   float *tsar ;
+   MRI_IMARR *outar ; MRI_IMAGE *outim ;
+
+   /** extract reference time series **/
+
+   tsar = THD_instacorr_getseed( iset , ijk ) ;
+   if( tsar == NULL ) RETURN(NULL) ; /* bad */
+
+   INIT_IMARR(outar) ;
+
+   for( nii=0,ibot=0 ; nii < iset->cnum ; ibot+=iset->cstep,nii++ ){
+     itop = ibot + iset->clen-1 ;
+     outim = THD_instacorr_section( iset , tsar , ibot,itop ) ;
+     ADDTO_IMARR(outar,outim) ;
+   }
+   free(tsar) ;
+   RETURN(outar) ;
 }
