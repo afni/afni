@@ -65,7 +65,7 @@ Usage:
  usage examples.
    
    dset.attr() for getting and setting attributes, such as the TR in seconds
-               e.g. dset.attr(dset$NI_head, "TR", val = 1.5)
+               e.g. dset$NI_head <- dset.attr(dset$NI_head, "TR", val = 1.5)
    read.AFNI()
    write.AFNI()
    show.dset.attr()
