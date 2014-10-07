@@ -2200,6 +2200,19 @@ dset.nval <- function (dset) {
    return(nval)
 }
 
+dset.nx <- function(dset) {
+   return(dset$dim[1])
+}
+dset.ny <- function(dset) {
+   return(dset$dim[2])
+}
+dset.nz <- function(dset) {
+   return(dset$dim[3])
+}
+dset.nslice <- function(dset) {
+   return(dset$dim[3])
+}
+
 dset.ndim <- function (dset) {
    ndims <- -1
    if (length(dd <- dim(dset$brk)) == 1 ||
@@ -3000,7 +3013,7 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
                         maskinf=0, scale = TRUE, 
                         overwrite=FALSE, addFDR=0,
                         statsym=NULL, view=NULL,
-                        com_hist=NULL, type=NULL) {
+                        com_hist=NULL, TR=TR, type=NULL) {
   
    an <- parse.AFNI.name(filename);
    if (verb > 1) {
@@ -3043,6 +3056,16 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
                               default = '3DIM_GEN_FUNC')
    dset$NI_head <- dset.attr( dset$NI_head, "SCENE_DATA", 
                         default = c(AFNI.view2viewtype(view),11,3, rep(0,5))) 
+   
+   taxnums <- NULL;
+   taxfloats <- NULL;
+   taxoff <- NULL;
+   if (!is.null(defhead)) {
+      taxnums <- dset.attr( defhead, "TAXIS_NUMS");
+      taxfloats <- dset.attr( defhead, "TAXIS_FLOATS");
+      taxoff <- dset.attr( defhead, "TAXIS_OFFSETS");
+   }
+   
 
          #The user options
    if (is.null(idcode)) idcode <- newid.AFNI();
@@ -3050,6 +3073,36 @@ write.c.AFNI <- function( filename, dset=NULL, label=NULL,
    if (!is.null(idcode)) dset$NI_head <- 
                            dset.attr(dset$NI_head, "IDCODE_STRING", val=idcode)
    
+   if (!is.null(TR)) {
+      if (is.null(taxnums)) {
+                     #77002 for seconds
+         taxnums <- c(dset.nval(dset), 0, 77002, -999, -999, -999, -999, -999); 
+      }
+      if (is.null(taxfloats)) {
+         taxfloats <- c(0, TR, 0, 0, 0, -999999.000, -999999.000, -999999.0000);
+      }
+      if (is.null(taxoff)) {
+         taxoff <- rep(0, dset.nslize(dset));
+      }
+      dset$NI_head <- dset.attr( dset$NI_head, "TAXIS_NUMS", val =  taxnums);
+      dset$NI_head <- dset.attr( dset$NI_head, "TAXIS_FLOATS", val =  taxfloats);
+      dset$NI_head <- dset.attr( dset$NI_head, "TAXIS_OFFSETS", val =  taxoff);
+
+      dset$NI_head <- dset.attr(dset$NI_head, "TR", val = TR);
+   } else { #use defhead values, setup from above 
+      if (!is.null(taxnums)) {
+         dset$NI_head <- dset.attr( dset$NI_head, "TAXIS_NUMS", val = taxnums);
+      }
+      if (!is.null(taxfloats)) {
+         dset$NI_head <- dset.attr( dset$NI_head, "TAXIS_FLOATS",
+                                    val =  taxfloats);
+      }
+      if (!is.null(taxoff)) {
+         dset$NI_head <- dset.attr( dset$NI_head, "TAXIS_OFFSETS", 
+                                    val =  taxoff);
+      }
+   }  
+
    if (is.null(origin) && !is.null(defhead)) 
       origin <- dset.attr(defhead,"ORIGIN")
    if (!is.null(origin)) dset$NI_head <- 
@@ -3116,7 +3169,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
                         maskinf=0, scale = TRUE, 
                         meth='AUTO', addFDR=FALSE, 
                         statsym=NULL, view=NULL,
-                        com_hist=NULL, type=NULL,
+                        com_hist=NULL, type=NULL, TR = NULL,
                         overwrite=FALSE) {
 
   if (meth == 'AUTO') {
@@ -3148,7 +3201,7 @@ write.AFNI <- function( filename, brk=NULL, label=NULL,
                         verb = verb,
                         maskinf=maskinf, scale = scale, addFDR=addFDR,
                         statsym=statsym, view=view, com_hist=com_hist,
-                        type=type, overwrite=overwrite))
+                        type=type, TR=TR, overwrite=overwrite))
   }
    #Switch to old default for view if not using write.c.AFNI
   if (is.null(view)) view <- "+tlrc"
