@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 7, Oct, 2014, ZSS, "AFNIio.R", MINOR, TYPE_NEW_OPT,
+   "Allowed specification and inheritance of TR in write functions",
+   NULL
+ },
+ 
  { 30, Sep, 2014, ZSS, "suma", MAJOR, TYPE_BUG_FIX,
    "Fixed bug with NUMLOCK keeping surfaces from rotating on linux!",
    NULL
