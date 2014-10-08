@@ -3125,6 +3125,7 @@ static int AFNI_drive_instacorr( char *cmd )
    } else if( strncasecmp(cmd+dadd,"INIT",4) == 0 ){
 
      NI_str_array *sar; ICOR_setup *iset; int ii,mm=0; char *cpt,*dpt;
+     int start=0,end=0 , cnum=0,clen=0,cstep=0 ;
 
      /* skip ahead until we find a blank */
 
@@ -3143,6 +3144,9 @@ static int AFNI_drive_instacorr( char *cmd )
        iset->mset     = (iset->automask) ? NULL : im3d->iset->mset ;
        iset->start    = im3d->iset->start ;
        iset->end      = im3d->iset->end ;
+       iset->clen     = im3d->iset->clen ;
+       iset->cnum     = im3d->iset->cnum ;
+       iset->cstep    = im3d->iset->cstep ;
        iset->mindex   = im3d->iset->mindex ;
        iset->fbot     = im3d->iset->fbot ;
        iset->ftop     = im3d->iset->ftop ;
@@ -3214,14 +3218,26 @@ static int AFNI_drive_instacorr( char *cmd )
 
        } else if( strcasecmp(cpt,"startend")  == 0 ||
                   strcasecmp(cpt,"start,end") == 0   ){        /* 21 Nov 2012 */
-         int start=0, end=0 ; char *qpt ;
+         char *qpt ;
          start = (int)strtod(dpt,&qpt) ; mm++ ;
          if( start < 0 ) start = 0 ;
-         if( *qpt != '\0' ){
-           char qc=*qpt ;
+         while( isspace(*qpt) ) qpt++ ;
+         if( *qpt == ',' || *qpt == '+' ){
+           char qc = *qpt ;
            if( !isdigit(*qpt) ) qpt++ ;
            end = (int)strtod(qpt,NULL) ;
-           if( qc == '+' && end > 0 ) end = start + end-1 ;
+           if( qc == '+' && end > 4 ) end = start + end-1 ;
+         } else if( *qpt == '@' ){          /* '@' stuff from 07 Oct 2014 */
+           clen = (int)strtod(qpt+1,&qpt) ;
+           if( clen < 5 ){
+             WARNING_message("Bad 'Start,End' @ string '%s'",cpt) ; clen = 0 ;
+           } else if( *qpt == ',' ){
+             cnum = (int)strtod(qpt+1,&qpt) ;
+             if( *qpt == ',' )
+               cstep = (int)strtod(qpt+1,&qpt) ;
+           }
+         } else if( *qpt != '\0' ){
+           WARNING_message("Don't understand 'Start,End' string '%s'",cpt) ;
          }
          iset->start = start ; iset->end = end ;
 
@@ -3276,11 +3292,26 @@ static int AFNI_drive_instacorr( char *cmd )
      if( iset->end <= 0 || iset->end <= iset->start || iset->end >= DSET_NVALS(iset->dset) )
        iset->end = DSET_NVALS(iset->dset)-1 ;
 
+     if( clen > 0 ){
+       int ss , nn , nv=DSET_NVALS(iset->dset) ;
+       if( start+clen >= nv ){
+         ERROR_message("INSTACORR_INIT 'start@' length is too long") ; return -1 ;
+       }
+       ss = (cstep <= 0 || cstep > clen) ? clen : cstep ;
+       nn = 1 + (nv-start-clen) / ss ;
+       if( cnum > nn || cnum == 0 ) cnum = nn ;
+       INFO_message("INSTACORR INIT section length=%d number=%d step=%d",clen,cnum,cstep) ;
+       iset->cmeth = NBISTAT_PEARSON_CORR  ;
+       iset->clen  = clen ;
+       iset->cnum  = cnum ;
+       iset->cstep = cstep ;
+     }
+
      NI_delete_str_array(sar) ;  /* send it to the graveyard of unwanted data */
 
      if( mm == 0 ){                                /* only minor changes made */
        im3d->iset->sblur = iset->sblur ;
-       im3d->iset->cmeth = iset->cmeth ;
+       im3d->iset->cmeth = (iset->clen == 0) ? iset->cmeth : NBISTAT_PEARSON_CORR ;
        DESTROY_ICOR_setup(iset) ;
        ININFO_message("INSTACORR INIT minor change made :-)") ;
        return 0 ;
