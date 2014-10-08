@@ -82,15 +82,19 @@ static char i_helpstring[] =
   "                   10+30 = correlate with 30 time points, 10..39\n"
   "                [if End is missing or 0, then it is the last sub-brick]\n"
   "                [N.B.: 'Start,End' replaces 'Ignore', as of Nov 2012]\n"
-  "               ** NEW FEATURE: MULTIPLE SECTIONS [Oct 2014] **\n"
-  "                 You can input in this format: S@L,N,D (e.g., 2@20,0,5)\n"
-  "                 to set the start index to 'S', the length of a section to 'L',\n"
-  "                 the number of sections to 'N' (0=maximum that fits), and the\n"
-  "                 step between sections to 'D' (which is between 1 and L).\n"
+  "           -->>** NEW FEATURE: MULTIPLE SECTIONS [Oct 2014] **\n"
+  "                 You can input this field in the following format:\n"
+  "                   Start@Len,Num,Step\n"
+  "                 where Start = first index in the dataset to use\n"
+  "                       Len   = length of each section to correlate\n"
+  "                       Num   = number of sections to use (0 == maximum)\n"
+  "                       Step  = step size between sections (between 1 and Len)\n"
+  "                   [The '@' character is the indicator that ]\n"
+  "                   [the multiple section information follows]\n"
   "                 If you do this, you will get a multiple volume result,\n"
   "                 where each volume is the correlation from a limited section\n"
-  "                 of data.  Of course, the program will be slower.\n"
-  "                 [At present, only works with Pearson correlation :-(]\n"
+  "                 of data.  Of course, the program will be slower (less Insta).\n"
+  "                 ** At present, only works with Pearson correlation :-(\n"
   "    Blur     = FWHM in mm of Gaussian blurring to perform\n"
   "                [if a Mask is used, blurring is only inside the mask]\n"
   "\n"
@@ -424,6 +428,10 @@ static char * ICOR_main( PLUGIN_interface *plint )
      nn = 1 + (nv-start-clen) / ss ;
      if( cnum > nn || cnum == 0 ) cnum = nn ;
      INFO_message("Section length=%d number=%d step=%d",clen,cnum,cstep) ;
+     if( cmeth != NBISTAT_PEARSON_CORR ){
+       ININFO_message("section analyses ('@') requires Pearson method") ;
+       cmeth = NBISTAT_PEARSON_CORR  ;
+     }
    }
 
    if( end-start+1 < 9 ) {
@@ -629,7 +637,9 @@ ENTRY("AFNI_icor_setref_xyz") ;
      if( iim == NULL ) RETURN(-1) ;  /* did it fail? */
      INIT_IMARR(iimar) ; ADDTO_IMARR(iimar,iim) ;
    } else {
+     if( im3d->iset->cnum > 4 ) SHOW_AFNI_PAUSE ;
      iimar = THD_instacorr_collection( im3d->iset , ijk ) ;
+     if( im3d->iset->cnum > 4 ) SHOW_AFNI_READY ;
      if( iimar == NULL ) RETURN(-1) ;  /* did it fail? */
    }
    nim = IMARR_COUNT(iimar) ;
