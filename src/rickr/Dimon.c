@@ -120,10 +120,15 @@ static char * g_history[] =
     "      - num_chan > 1 needs ACQ type 3D+t\n"
     " 4.05 Sep 10, 2014 [rickr] : handle num_chan > 1 in GERT_Reco\n",
     " 4.06 Sep 25, 2014 [rickr] : fixed add_to_string_list() usage\n",
+    " 4.07 Oct  8, 2014 [rickr]\n",
+    "      - added option -save_errors, to go with -save_details\n"
+    "      - allow more chances for error recovery\n"
+    "      - fixed interaction between -sort_by_num_suffix and\n"
+    "        realtime sort\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.06 (September 25, 2014)"
+#define DIMON_VERSION "version 4.07 (October 8, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -159,6 +164,8 @@ static char * g_history[] =
 */
 
 /* rcr - todo:
+ *
+ * add none as a sort method (to turn of RT sort block)
  *
  * AFNI dset:
  *    - no way to know run (effect of -nt?)
@@ -282,9 +289,11 @@ static int          read_obl_info = 1;  /* only process obl_info once */
 static int          want_ushort2float = 0;  /* 9 Jul 2013 */
 
 static int         g_compare_by_geh = 0;
+static int         g_compare_by_num_suff = 0;
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
+int                compare_finfo_num_suffix(const void * v0, const void * v1);
 int                compare_by_num_suff( const void * v0, const void * v1 );
 int                compare_by_geme( const void * v0, const void * v1 );
 int                compare_by_sindex( const void * v0, const void * v1 );
@@ -465,16 +474,22 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             if(gD.level>1)
                 fprintf(stderr,"-- volume search returns %d\n", ret_val);
 
-            /* try to recover from a data error */
-            if ( ret_val == -1 ) ret_val = 0;
-
-            if ( ret_val == 0 && n2read > 0 ) {
+            if ( (ret_val == 0 || ret_val == -1) && n2read > 0 ) {
                /* have images, no volume, but more to read: do it */
                if( gD.level > 2 )
                   fprintf(stderr,"-d read ims, no err, no vol, more to read\n");
                update_max2read(p, p->max2read + IFM_MAX_IM_ALLOC);
-               continue;
+
+               /* skip nap if there was no error, but there is more to read */
+               if( ret_val == 0 ) continue;
             }
+
+            /* if there was an error, maybe save the current list */
+            if ( ret_val < 0 && p->opts.save_errors && p->opts.flist_details )
+               create_file_list(p, p->opts.flist_details, 1, "err_vsearch");
+
+            /* try to recover from a data error */
+            if ( ret_val == -1 ) ret_val = 0;
         }
 
         /* if no volume, sleep and continue loop */
@@ -485,10 +500,12 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             if ( p->opts.no_wait ) {
                 if ( nfiles == 0 ) { /* no new files read */
                     fprintf(stderr,
-                            "\n** no_wait: no volume found in %d files\n\n",
+                            "\n** no_wait: no volume found in %d files\n",
                             p->nfim);
                     if( gP.opts.flist_details )
                        create_file_list(p, p->opts.flist_details, 1, "no_vol");
+                    else fprintf(stderr, "   (consider -save_details)\n");
+                    fputc('\n', stderr);
                     return -1;
                 }
             }
@@ -812,12 +829,18 @@ static int volume_search(
          ((n2proc < 4) && IM_IS_GEMS(p->ftype)) )
         return 0;                   /* not enough data to work with   */
 
-    /* maintain the state */
-    if ( *state == 1 && bound == prev_bound && first == prev_first) {
-        bound_cnt++;
-        if( bound_cnt >= MAX_SEARCH_FAILURES ) *state = 2; /* try to finish */
+    /* maintain the state, check for 'bad' repeated entry state */
+    if ( bound == prev_bound && first == prev_first) {
+       if ( *state == 1 ) {
+          bound_cnt++;
+          /* if hit limit, try to finish */
+          if( bound_cnt >= MAX_SEARCH_FAILURES ) *state = 2;
+       } else if ( *state < 1 )
+          *state = 1;  /* continue mode, but do not lose 2 */
+    } else { /* good news, revert state and count */
+       *state = 0;
+       bound_cnt = 0;
     }
-    else if ( *state < 1 ) *state = 1;  /* continue mode, but do not lose 2 */
     prev_first = first;
     prev_bound = bound;
 
@@ -1049,8 +1072,8 @@ int check_one_volume(param_t *p, int bound, int state,
     *r_delta = delta;  /* was just delta  30 Aug 2011 */
 
     if( gD.level > 1 )
-        fprintf(stderr,"+d cov: returning first, last, delta = %d, %d, %g\n",
-                first, last, delta);
+        fprintf(stderr,"+d cov: first, last, delta, state = %d, %d, %g, %d\n",
+                first, last, delta, state);
 
     /* If we have found the same slice location, we are done. */
     if ( fabs(fp->geh.zoff - p->fim_o[first].geh.zoff) < gD_epsilon )
@@ -1081,10 +1104,13 @@ int check_one_volume(param_t *p, int bound, int state,
         if ( gD.level > 1 )
             fprintf(stderr,"+d no new data after finding sufficient slices\n"
                            "   --> assuming completed single volume\n");
+        state = 0;
         return 1;
     }
 
     if ( dz * delta < 0.0 ) {
+        if( state < 2 ) return 0;  /* not done yet, keep waiting */
+
         fprintf( stderr, "\n"
                 "*************************************************\n"
                 "Error: missing slice(s) in first volume!\n"
@@ -1093,7 +1119,8 @@ int check_one_volume(param_t *p, int bound, int state,
                 p->fim_o[last+1].fname);
         p->fim_start = last+1;
         errs = 1;
-       return -1;   /* wrong direction */
+        state = 0;
+        return -1;   /* wrong direction */
     }
 
     /* right direction, but bad delta, look farther for first zoff */
@@ -1102,6 +1129,8 @@ int check_one_volume(param_t *p, int bound, int state,
        if ( abs( p->fim_o[first].geh.zoff -
                  p->fim_o[testc].geh.zoff ) < gD_epsilon )
        {
+          if( state < 2 ) return 0;  /* not done yet, keep waiting */
+
           /* aaaaagh!  we are missing data from the first volume!   */
           /* print error, and try to skip this volume               */
           fprintf( stderr, "\n"
@@ -1116,6 +1145,7 @@ int check_one_volume(param_t *p, int bound, int state,
           p->fim_start = testc;
           errs = 1;
 
+          state = 0;
           return -1;
        }
 
@@ -1208,6 +1238,10 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p )
 
         /**************** Houston, we have a problem ****************/
 
+        /* if there was an error, maybe save the current list */
+        if ( p->opts.save_errors && p->opts.flist_details )
+           create_file_list(p, p->opts.flist_details, 1, "err_vmatch");
+
         /* note the index we appear to be looking at */
         /* (z_delta != 0, else we would not be in loop) */
         zind = (fp->geh.zoff - vin->z_first)/vin->z_delta;
@@ -1249,7 +1283,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p )
         errs = 1; /* error not yet printed */
 
         /* if there are retries, wait and see whether we recover */
-        if ( !check_error(&retry, vin->geh.tr, estr) ) return 0;
+        if ( !check_error(&retry, vin->geh.tr, estr) ) return -2;
 
         /* report error and try to recover */
         IFM_BIG_ERROR_MESG( estr, fp->fname, z, fp->geh.zoff,
@@ -1292,6 +1326,9 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p )
          else fprintf(stderr,"++ recovered after skipping images\n");
       }
       errs = 0;
+
+      if ( p->opts.save_errors && p->opts.flist_details )
+         create_file_list(p, p->opts.flist_details, 1, "recover_vmatch");
     }
 
     retry = IFM_NUM_RETRIES;    /* next error starts over */
@@ -1408,11 +1445,12 @@ static int read_image_files(param_t * p)
     if( p->fim_skip < 0 ) return 0; /* still waiting for starting file */
 
     /* if dicom_org, use old sort and remove any limit on images processed */
+    if( p->opts.sort_num_suff ) g_compare_by_num_suff = 1;
     if( p->opts.dicom_org ) {
-       g_compare_by_geh = 1;
+       /* choose method */
+       if( ! g_compare_by_num_suff ) g_compare_by_geh = 1;
        p->max2read = -1;
     }
-
 
     /* now actually try to read new images, starting from fim_skip    */
     /* note: this implies wherether there is something new to process */
@@ -1880,11 +1918,30 @@ int compare_finfo_t(const void * v0, const void * v1)
 
    /* both states are TO_PROC, apply desired sorting here */
 
-   /* rcr - default to the old comparison, if requested */
+   /* rcr - default to the old comparisons, if requested */
 
    if( g_compare_by_geh ) return compare_finfo(p0, p1);
+   if( g_compare_by_num_suff ) return compare_finfo_num_suffix(p0, p1);
 
    return p0->findex - p1->findex;
+}
+
+
+/*----------------------------------------------------------------------
+ * like comp_by_num_suff, but via finfo_t struct
+ *
+ *   - find names
+ *   - return compare_by_num_suff()
+ *
+ * return < 0, 0, > 0, according to direction of p0 vs p1
+ *----------------------------------------------------------------------
+*/
+int compare_finfo_num_suffix(const void * v0, const void * v1)
+{
+   finfo_t * p0 = (finfo_t *)v0;
+   finfo_t * p1 = (finfo_t *)v1;
+
+   return compare_by_num_suff(&p0->fname, &p1->fname);
 }
 
 
@@ -2746,11 +2803,15 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.rev_sort_dir = 1;
         }
+        else if ( ! strncmp( argv[ac], "-save_errors", 9 ) )
+        {
+            p->opts.save_errors = 1; /* goes with -save_details */
+        }
         else if ( ! strncmp( argv[ac], "-save_details", 9 ) )
         {
             if ( ++ac >= argc )
             {
-                fputs( "option usage: -save_details FILENAME\n", stderr );
+                fputs( "option usage: -save_details PREFIX\n", stderr );
                 return 1;
             }
 
@@ -2992,6 +3053,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             fprintf( stderr, "error: invalid option <%s>\n\n", argv[ac] );
             return 1;
         }
+    }
+
+    if( p->opts.save_errors && ! p->opts.flist_details ) {
+       fputs("** -save_errors requires -save_details for file prefix\n",stderr);
+       return 1;
     }
 
     if ( errors > 0 )          /* check for all minor errors before exiting */
@@ -3958,6 +4024,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sort_acq_time      = %d\n"
             "   rev_org_dir        = %d\n"
             "   rev_sort_dir       = %d\n"
+            "   save_errors        = %d\n"
             "   flist_file         = %s\n"
             "   flist_details      = %s\n"
             "   sort_method        = %s\n"
@@ -3985,7 +4052,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->gert_prefix),
             opt->gert_nz, opt->gert_format, opt->gert_exec, opt->gert_quiterr,
             opt->dicom_org, opt->sort_num_suff, opt->sort_acq_time,
-            opt->rev_org_dir, opt->rev_sort_dir,
+            opt->rev_org_dir, opt->rev_sort_dir, opt->save_errors,
             CHECK_NULL_STR(opt->flist_file), CHECK_NULL_STR(opt->flist_details),
             CHECK_NULL_STR(opt->sort_method),
             opt->rt, opt->swap, opt->rev_bo, opt->num_chan,
@@ -4347,6 +4414,8 @@ printf(
 "  A2. investigate a list of files: \n"
 "\n"
 "    %s -infile_pattern '*' -dicom_org -show_sorted_list -quit\n"
+"    %s -infile_prefix run1/im -sort_by_num_suffix -quit \\\n"
+"          -save_details DETAILS -save_errors\n"
 "\n"
 "  A3. save a sorted list of files and check it later: \n"
 "\n"
@@ -4551,7 +4620,7 @@ printf(
 "       -file_type AFNI -sleep_vol 1000 -sp alt+z -tr 2.0 -quit\n"
 "\n"
 "  ---------------------------------------------------------------\n",
-prog, prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog );
@@ -5002,14 +5071,39 @@ printf(
     "\n"
     "        Note: this option no longer requires '-dicom_org'.\n"
     "\n"
-    "    -save_details FILENAME   : save details about images\n"
+    "    -save_details FILE_PREFIX : save details about images\n"
     "\n"
-    "        e.g.  -save_defails dicom_details.txt\n"
+    "        e.g.  -save_defails dicom_details\n"
     "\n"
     "        With this option the program will store the list of files,\n"
     "        along with many details for each image file.\n"
     "\n"
     "        It is akin to -save_file_list, only with extra information.\n"
+    "\n"
+    "        Fields:\n"
+    "\n"
+    "           index     : current index\n"
+    "           findex    : index in main finfo_t list (as found)\n"
+    "           sindex    : sorting index (-1 if not used)\n"
+    "           state     : current state (<=0:bad, 1=good, >1=todo)\n"
+    "           errs      : reading errors\n"
+    "\n"
+    "           zoff      : slice coordinate\n"
+    "           diff      : difference from previous coordinate\n"
+    "           data      : have data\n"
+    "           run       : apparent run index\n"
+    "           IIND      : image index (DICOM 0054 1330)\n"
+    "           RIN       : image instance number (DICOM 0020 0013)\n"
+    "           GEMEIND   : GE multi-echo index (DICOM RawDataRunNumber)\n"
+    "           ATIME     : Acquisition time (DICOM 0008 0032)\n"
+    "\n"
+    "    -save_errors          : save 'details' files on search/match errors\n"
+    "\n"
+    "        e.g.  -save_errors -save_details dicom_details\n"
+    "\n"
+    "        For use with -save_details, the option causes extra details\n"
+    "        files to be written upon any volume_search or volume_match\n"
+    "        errors.\n"
     "\n"
     "    -sort_by_acq_time  : sort files by acquisition time\n"
     "\n"
