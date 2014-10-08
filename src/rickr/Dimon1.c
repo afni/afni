@@ -804,8 +804,8 @@ static int volume_search(
 
     /* maintain the state */
     if ( *state == 1 && bound == prev_bound ) {
-        bound_cnt++;
         if( bound_cnt >= MAX_SEARCH_FAILURES ) *state = 2; /* try to finish */
+        bound_cnt++;
     }
     else if ( *state < 1 ) *state = 1;  /* continue mode, but do not lose 2 */
     prev_bound = bound;

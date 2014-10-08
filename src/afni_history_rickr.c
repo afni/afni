@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Oct, 2014, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "added -save_errors and more recovery chances, fixed sb_num_suffix app",
+   "Stage 3 of sorting broke stage 2 of sorting.\n"
+   "Thanks to V Roopchansingh for noting the problem."
+ } ,
+
  { 25, Sep, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
    "fixed use of altered add_to_string_list()",
    "The changed usage broke options -drive_afni, -drive_wait and -rt_cmd.\n"

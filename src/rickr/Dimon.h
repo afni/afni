@@ -46,7 +46,7 @@
 #define IFM_FSTATE_TO_READ   4       /* ready to read image          */
 
 #define IFM_MAX_READ_ERRORS  2       /* after this, go to failed state */
-#define IFM_NUM_RETRIES      1       /* volume retries before failing  */
+#define IFM_NUM_RETRIES      2       /* volume retries before failing  */
 
 /* -- define copies -- */
 
@@ -101,6 +101,7 @@ typedef struct  /* user options */
     int              sort_acq_time; /* flag to sort by acq time         */
     int              rev_org_dir;   /* flag to reverse dicom_org dir    */
     int              rev_sort_dir;  /* flag to reverse glob sort dir    */
+    int              save_errors;   /* save details in cases of errors  */
     char           * flist_file;    /* filename to save file list to    */
     char           * flist_details; /* filename to save list details to */
     char           * sort_method;   /* method for realtime sorting      */
