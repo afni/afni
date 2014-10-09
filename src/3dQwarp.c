@@ -815,6 +815,7 @@ void Qhelp(void)
     "                 warp and the source dataset warped to base space, in addition to\n"
     "                 the Wp(x) '_PLUS' and Wm(x) '_MINUS' warps.\n"
     "           -->>* Alas: -plusminus does not work with -duplo or -allineate :-(\n"
+    "               * However, you can use -iniwarp with -plusminus :-)\n"
 #ifdef USE_PLUSMINUS_INITIALWARP
     "               * If -plusminus is used, the -plusminus warp is initialized by\n"
     "                 a coarse warping of the source to the base, then these warp\n"

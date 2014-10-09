@@ -1522,7 +1522,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Money talks, but usually just to say 'Goodbye'"                ,
      "Are you a Bayesian Heretic or a Frequentist True Believer?"    ,
      "Are you ready for the Big Rip?"                                ,
-     "I hereby declare the Null Hypothesis to be ........ Falsified" ,
+     "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
      "I'm sick of thinking about p-values -- how about you?"         ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
      "All suspicion points to a Frost-Bellgowan plot"                ,
@@ -1534,7 +1534,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Like dreams, statistics are a form of wish fulfillment"        ,
      "I wish I were in Lobuche right now, eating momos"              ,
      "Next stop: Bora Bora and Rangiroa"                             ,
-     "Do you still miss the NIH Bear?  I do"                         ,
+     "Do you still miss the NIH Bear? I do"                          ,
      "Advice from the NIH Bear -- honey goes good with brains"       ,
 
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
@@ -4617,6 +4617,7 @@ if(PRINT_TRACING)
 #if 1
         switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
                                        /* to process, not imseq.c */
+          case 'U':
           case 'u':{
             int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
             uu = (uu+1) % (LAST_UNDERLAY_TYPE+1) ;
@@ -4626,6 +4627,15 @@ if(PRINT_TRACING)
 #else
             im3d->vinfo->underlay_type = uu ;
             AFNI_underlay_CB( NULL , im3d , (XtPointer)666 ) ;
+            if( cbs->key == 'U' ){
+              int qq ; Three_D_View *qq3d ;
+              for( qq=0 ; qq < MAX_CONTROLLERS ; qq++ ){
+                qq3d = GLOBAL_library.controllers[qq] ;
+                if( qq3d == im3d || !IM3D_OPEN(qq3d) ) continue ;
+                qq3d->vinfo->underlay_type = uu ;
+                AFNI_underlay_CB( NULL , qq3d , (XtPointer)666 ) ;
+              }
+            }
 #endif
           }
           break ;

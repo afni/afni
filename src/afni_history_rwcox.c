@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , OCT , 2014 , RWC , "InstaCorr in AFNI GUI" , MINOR , TYPE_MODIFY ,
+  { 9 , OCT , 2014 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "'U' key does overlay/underlay switch on all controllers" ,
+   "whereas 'u' does just one controller" } ,
+
+ { 7 , OCT , 2014 , RWC , "InstaCorr in AFNI GUI" , MINOR , TYPE_MODIFY ,
    "Multiple sections to be correlated" ,
    "Input 'Start,End' in the format 'Start@Length,Number,Delta' to get\n"
    "sections of the given 'Length'." } ,
