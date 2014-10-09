@@ -1298,8 +1298,13 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Show graph nodes even if unconnected to other nodes.\n"
 
 #define  SUMA_SurfContHelp_Mask  \
-   "Opens controller for masks.\n" \
-   "Creates a default mask if none exists already."
+"Opens controller for masks.\n" \
+"At the first click, this button creates a new interactive tract mask and activates menu items such as Gry. A ball of a mask is added to the interface, and only tracts that go through it are displayed. \n"\
+"Clicking on Masks after the initialization brings up the Mask Controller.\n"\
+":SPX:\n   .. _Mask_Manipulation_Mode:\n\n:SPX:"\
+"Mask Manipulation Mode:\n"\
+"-----------------------\n"\
+"To move the mask interactively, right-double click on it to place SUMA in 'Mask Manipulation Mode' which is indicated by displaying the moveable mask in mesh mode (see help in SUMA, (ctrl+h), section Button 3-DoubleClick for details.). Selecting a location on the tracts, the slices, or surfaces, will make the mask jump to that location. The mask should also be visibile in AFNI (if SUMA is launched with -dev option), and clicking in AFNI will make the mask move in SUMA also.\n To turn off 'Mask Manipulation Mode' right-double click in open air, or on the ball itself.\n"
 
 /* this one's based on AFNI's func->thr_pval_label help */
 #define SUMA_SurfContHelp_ThreshStats  \
