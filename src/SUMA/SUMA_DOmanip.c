@@ -261,6 +261,8 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case NBV_type:
       case OLS_type:
       case LS_type:
+      case ODIR_type:
+      case DIR_type:
       case NBLS_type:
       case NBOLS_type:
          SUMA_free_SegmentDO ((SUMA_SegmentDO *)dov->OP);
@@ -281,6 +283,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
                   "Error SUMA_Free_Displayable_Object, "
                   "no free NOT_SET_type\n");
          break;
+      case PNT_type:
       case NBSP_type:
       case SP_type:
          SUMA_free_SphereDO ((SUMA_SphereDO *)dov->OP);
@@ -1041,6 +1044,15 @@ const char *SUMA_ObjectTypeCode2ObjectTypeName(SUMA_DO_Types dd)
       case OLS_type:
          return("Oriented_Line_Segment");
          break;
+      case ODIR_type:
+         return("Oriented_Direction");
+         break;
+      case DIR_type:
+         return("Direction");
+         break;
+      case PNT_type:
+         return("Point");
+         break;
       case NBOLS_type:
          return("Oriented_Node_Based_Line_Segment");
          break;
@@ -1186,6 +1198,37 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
 
                }
                break;
+            case DIR_type:
+               {
+                  SUMA_SegmentDO *sdo=NULL;
+
+                  sdo = (SUMA_SegmentDO *)dov[i].OP;
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tDirection Object\n"
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+               }
+               break;
+            case ODIR_type:
+               {
+                  SUMA_SegmentDO *sdo=NULL;
+
+                  sdo = (SUMA_SegmentDO *)dov[i].OP;
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tOriented Direction Object\n"
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+
+               }
+               break;
             case ONBV_type:
                {
                   SUMA_SegmentDO *sdo=NULL;
@@ -1257,6 +1300,22 @@ char *SUMA_DOv_Info (SUMA_DO *dov, int N_dov, int detail)
                   sdo = (SUMA_SphereDO *)dov[i].OP;
                   SS = SUMA_StringAppend_va(SS,
                      "DOv ID: %d\n\tSphere Object\n"
+                     "\tType: %d (%s), Axis Attachment %d\n", 
+                     i,dov[i].ObjectType, 
+                     SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 
+                     dov[i].CoordType);
+                  SS = SUMA_StringAppend_va(SS,
+                     "\tLabel: %s\n\tidcode: %s\n", sdo->Label, sdo->idcode_str);
+
+               }
+               break;
+            case PNT_type:
+               {
+                  SUMA_SphereDO *sdo=NULL;
+
+                  sdo = (SUMA_SphereDO *)dov[i].OP;
+                  SS = SUMA_StringAppend_va(SS,
+                     "DOv ID: %d\n\tPoint Object\n"
                      "\tType: %d (%s), Axis Attachment %d\n", 
                      i,dov[i].ObjectType, 
                      SUMA_ObjectTypeCode2ObjectTypeName(dov[i].ObjectType), 

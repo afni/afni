@@ -449,6 +449,7 @@ char *SUMA_DO_group(SUMA_DO *DO);
 int SUMA_isDO_AnatCorrect(SUMA_DO *DO);
 int  SUMA_is_iDO_AnatCorrect(int dov_id);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_DrawPointDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawPlaneDO (SUMA_PlaneDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawPlanes( float **PlEq, float **cen, float *sz, 
                               int N_pl, SUMA_SurfaceViewer *sv);
@@ -485,6 +486,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value,
                      SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
 SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id);
 SUMA_SphereDO * SUMA_ReadNBSphDO (char *s, char *parent_SO_id);
+SUMA_SegmentDO * SUMA_ReadDirDO (char *s, int oriented, char *parent_SO_id);
 SUMA_TractDO *SUMA_ReadTractDO(char *s, char *parent_SO_id);
 SUMA_TractDO *SUMA_Net2TractDO(TAYLOR_NETWORK *net, char *Label, 
                                char *parent_SO_id);
@@ -493,6 +495,7 @@ GLushort SUMA_int_to_stipplemask_cont(int i);
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *soid);
 SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *soid);
 SUMA_SphereDO * SUMA_ReadSphDO (char *s);
+SUMA_SphereDO * SUMA_ReadPntDO (char *s);
 SUMA_PlaneDO * SUMA_ReadPlaneDO (char *s);
 SUMA_MaskDO * SUMA_ReadMaskDO (char *s, char *parent_ADO_id);
 SUMA_NIDO *SUMA_ReadNIDO(char *s, char *soid);
