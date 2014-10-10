@@ -418,6 +418,7 @@ int main( int argc , char *argv[] )
    int    hist_setbyuser       = 0 ;
    int    do_cmass             = 0 ;            /* 30 Jul 2007 */
    int    do_refinal           = 1 ;            /* 14 Nov 2007 */
+   int    use_realaxes         = 0 ;            /* 10 Oct 2014 */
 
    int auto_tdilation          = 0 ;            /* for -source_automask+N */
    int auto_tmask              = 0 ;
@@ -1197,6 +1198,9 @@ int main( int argc , char *argv[] )
         "               an attempt to avoid a local minimum trap.  It is usually\n"
         "               not necessary, but sometimes helps.\n"
         "\n"
+        " -realaxes   = Use the 'real' axes stored in the dataset headers, if they\n"
+        "               conflict with the default axes.  [For Jedi AFNI Masters only!]\n"
+        "\n"
         " -savehist sss = Save start and final 2D histograms as PGM\n"
         "                 files, with prefix 'sss' (cost: cr mi nmi hel).\n"
         "                * if filename contains 'FF', floats is written\n"
@@ -1659,6 +1663,12 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*------*/
+
+     if( strcmp(argv[iarg],"-realaxes") == 0 ){  /* 10 Oct 2014 */
+       use_realaxes++ ; iarg++ ; continue ;
+     }
 
      /*-----*/
 
@@ -3475,7 +3485,7 @@ STATUS("zeropad weight dataset") ;
 
    if( !ISVALID_MAT44(dset_targ->daxes->ijk_to_dicom) )
      THD_daxes_to_mat44(dset_targ->daxes) ;
-   stup.targ_cmat = dset_targ->daxes->ijk_to_dicom ;
+   stup.targ_cmat = DSET_CMAT(dset_targ,use_realaxes) ;
 
    /* base coordinates are drawn from it's header, or are same as target */
 
@@ -3484,8 +3494,7 @@ STATUS("zeropad weight dataset") ;
 
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
        THD_daxes_to_mat44(dset_base->daxes) ;
-
-     stup.base_cmat = dset_base->daxes->ijk_to_dicom ;
+     stup.base_cmat = DSET_CMAT(dset_base,use_realaxes) ;
 
      /** check if handedness is the same **/
 
@@ -3871,8 +3880,7 @@ STATUS("zeropad weight dataset") ;
      }
      if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) ) /* make sure have */
        THD_daxes_to_mat44(dset_mast->daxes) ;      /* index-to-DICOM matrix */
-
-     mast_cmat     = dset_mast->daxes->ijk_to_dicom ;  /* 24 Jul 2007 */
+     mast_cmat     = DSET_CMAT(dset_mast,use_realaxes) ;
      mast_cmat_inv = MAT44_INV(mast_cmat) ;
 
      dset_out = EDIT_empty_copy( dset_mast ) ;  /* create the output dataset! */
@@ -3907,8 +3915,8 @@ STATUS("zeropad weight dataset") ;
      tross_Make_History( "3dAllineate" , argc,argv , dset_out ) ;
 
      THD_daxes_to_mat44(dset_out->daxes) ;          /* save coord transforms */
-     cmat_tout = dset_targ->daxes->ijk_to_dicom ;
-     cmat_bout = dset_out ->daxes->ijk_to_dicom ;
+     cmat_tout = DSET_CMAT(dset_targ,use_realaxes) ;
+     cmat_bout = DSET_CMAT(dset_out ,use_realaxes) ;
      nxout = DSET_NX(dset_out) ; dxout = fabsf(DSET_DX(dset_out)) ;
      nyout = DSET_NY(dset_out) ; dyout = fabsf(DSET_DY(dset_out)) ;
      nzout = DSET_NZ(dset_out) ; dzout = fabsf(DSET_DZ(dset_out)) ;

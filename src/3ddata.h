@@ -1434,6 +1434,13 @@ typedef struct {
       XtPointer parent ;    /*!< Dataset that "owns" this struct */
 } THD_dataxes ;
 
+#define DAXES_CMAT(dax,rrr)                               \
+   ( ( rrr && ISVALID_MAT44((dax)->ijk_to_dicom_real) )   \
+     ? (dax)->ijk_to_dicom_real                           \
+     : (dax)->ijk_to_dicom      )
+
+#define DSET_CMAT(ds,rrr)  DAXES_CMAT( (ds)->daxes , (rrr) )
+
 #define DAXES_COPYOVER_REAL(dax)                  \
   (dax)->ijk_to_dicom_real = (dax)->ijk_to_dicom  /* 27 Jun 2014 */
 
