@@ -254,7 +254,12 @@ typedef enum {
                                                                                     NBT_type: Node-based text
                                                                                     SBT_type: Screen-based text
                                                                                     DBT_type: Dicom-based text
-                                                                                    */
+                                                                                    DIR_type: Directions
+                                                                                    ODIR_type: Oriented Directions (not in use yet)
+                                                 
+  PNT_type: Cloud of points
+  
+  */
 typedef enum { NOT_SET_type = -1,
                not_DO_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
                GO_type, LS_type, NBLS_type, OLS_type, NBOLS_type,
@@ -263,7 +268,7 @@ typedef enum { NOT_SET_type = -1,
                NBT_type, SBT_type, DBT_type, /*!< Those three will 
                                                    likely not be used */
                NIDO_type, SDSET_type, TRACT_type,
-               GRAPH_LINK_type, MASK_type,
+               GRAPH_LINK_type, MASK_type, DIR_type, ODIR_type, PNT_type,
                N_DO_TYPES } SUMA_DO_Types;   
 
 #define iDO_isSO(i) ( ((i)<0 || (i)>=SUMAg_N_DOv) ? 0: \

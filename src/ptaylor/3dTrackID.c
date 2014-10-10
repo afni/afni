@@ -205,6 +205,8 @@ void usage_TrackID(int detail)
 "       hitting the j-th target passed (where j may or may not equal i; the\n"
 "       value of j is recorded in the brick label:  OR_roi_'j').  The target\n"
 "       ROI connectivity is recorded increasing order of 'j'.\n"
+"     For single-ROI inputs (such as a single wholebrain ROI), only the\n"
+"       [0] brick is output (because [1] would be redundant).\n"
 "  2) *PAIRMAP*  BRIK files (output in ALL modes).\n"
 "     (-> This has altered slightly at the end of June, 2014! No longer using\n"
 "     2^i notation-- made simpler for reading, assuming individual connection\n"
@@ -230,16 +232,18 @@ void usage_TrackID(int detail)
 "       may not equal i; the value of j is recorded in the brick label: \n"
 "       AND_roi_'j'). The same voxel labelling and summing rules described\n"
 "       above also apply here.\n"
+"     For single-ROI inputs (such as a single wholebrain ROI), no PAIRMAP\n"
+"       file is output (because it would necessarily be empty).\n"
 "  3) *.grid  ASCII-text file (output in ALL modes).\n"
 "     Simple text file of output stats of WM-ROIs. It outputs the means and\n"
 "     standard deviations of parameter quantities (such as FA, MD, L1, etc.)\n"
 "     as well as counts of tracks and volumes of WM-ROIs. Each matrix is\n"
-"     square, with dimension N_ROI by NROI; just like locations in a standard\n"
-"     correlation matrix, element location reflects associativity with target\n"
+"     square, with dimension N_ROI by N_ROI. Like the locations in a standard\n"
+"     correlation matrix, each element reflects associativity with target\n"
 "     ROIs.  A value at element (1,3) is the same as that at (3,1) and tells\n"
 "     about the property of a WM-ROI connecting target ROIs 1 and 3 (consider\n"
 "     upper left corner as (1,1)); diagonal elements provide info of tracks\n"
-"     through at minimum that single target ROI (like OR logic connection).\n"
+"     through (at minimum) that single target ROI-- like OR logic connection.\n"
 "     Format of *.grid file is:\n"
 "     Line 1:  number of ROIs in network (padded with #-signs)\n"
 "     Line 2:  number of output matrices of stats info (padded with #-signs)\n"
@@ -3844,8 +3848,9 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                if(Prob_grid[k][MatrInd_to_FlatUHT(i,j,NROI[k])]>0){
                   hh+=1;
                }
-         INFO_message("Number of pairwise connections in netw[%d] = %d",
-                      k,hh); 
+         if( NROI[k]>1 )
+            INFO_message("Number of pairwise connections in netw[%d] = %d",
+                         k,hh); 
       }
 
       i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 

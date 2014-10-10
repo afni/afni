@@ -1147,7 +1147,7 @@ def ConvertCSVfromStr(dat1, head1, NA_WARN):
                     if ty == float:
                         print "\tCSV col %s" % head1[j],
                         print "-> making all floats." , dat2[i][j]
-                        head2[i] = float
+                        head2[j] = float    # Oct, 2014 fix
                         for k in range(Lx):
                             if type(dat2[k][j]) == int:
                                 dat2[k][j] = float(dat2[k][j])
@@ -1412,11 +1412,11 @@ def mod_func_write(Nroi, ROI_LABS, Y, fname, outname):
     f.write('# %d # %s\n' % (Nroi, HEADER_Nroi))
     f.write('# %d # %s\n' % (Ngrid, HEADER_Ngrid))
 
-    f.write('# %s \n' % HEADER_Labels)  #!!!!!!!!!!!!!!!!!!!
-    for roi in ROI_LABS:
-        tt = "Funcky%dFresh" % int(roi)
-        f.write("%12s\t" % tt)
-    f.write('\n')
+    #f.write('# %s \n' % HEADER_Labels)  
+    #for roi in ROI_LABS:
+    #    tt = "Funcky%dFresh" % int(roi)
+    #    f.write("%12s\t" % tt)
+    #f.write('\n')
 
     for roi in ROI_LABS:
         f.write("%12s\t" % roi)
