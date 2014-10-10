@@ -1006,6 +1006,22 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          SDO->do_type = dotp;
          VDO = (void *)SDO;
          break;
+     case ODIR_type:
+         if (!(SDO = SUMA_ReadDirDO(s, 1, NULL))) {
+            SUMA_SL_Err("Failed to read directions file.\n");
+            SUMA_RETURNe;
+         }
+         SDO->do_type = dotp;
+         VDO = (void *)SDO;
+         break;
+     case DIR_type:
+         if (!(SDO = SUMA_ReadDirDO(s, 0, NULL))) {
+            SUMA_SL_Err("Failed to read directions file.\n");
+            SUMA_RETURNe;
+         }
+         SDO->do_type = dotp;
+         VDO = (void *)SDO;
+         break;
       case NBOLS_type:
          if (!(SO = SUMA_SV_Focus_SO(sv))) {
             SUMA_SL_Err("No surface in focus to which "
@@ -1032,7 +1048,13 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          SDO->do_type = dotp;
          VDO = (void *)SDO;
          break;
-      
+      case PNT_type:
+         if (!(VDO = (void *)SUMA_ReadPntDO(s))) {
+            SUMA_SL_Err("Failed to read points file.\n");
+            SUMA_RETURNe;
+         }
+         ((SUMA_SphereDO * )VDO)->do_type = dotp;
+         break;
       case SP_type:
          if (!(VDO = (void *)SUMA_ReadSphDO(s))) {
             SUMA_SL_Err("Failed to read spheres file.\n");
@@ -2283,6 +2305,7 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case NBSP_type:
             case SP_type:
+            case PNT_type:
                SUMA_SL_Warn("Not ready yet!");
                break;
             case SO_type:
@@ -2317,6 +2340,8 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case NBV_type:
             case OLS_type:
             case LS_type:
+            case DIR_type:
+            case ODIR_type:
             case NBOLS_type:
             case NBLS_type:
                if (!SUMA_DrawSegmentDO (
@@ -2467,6 +2492,8 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case OLS_type:
             case LS_type:
+            case DIR_type:
+            case ODIR_type:
                if (!SUMA_DrawSegmentDO (
                      (SUMA_SegmentDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
                   fprintf( SUMA_STDERR, 
@@ -2476,6 +2503,13 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case NBSP_type:
                /* those are drawn by SUMA_DrawMesh */
+               break;
+            case PNT_type:
+               if (!SUMA_DrawPointDO (
+                     (SUMA_SphereDO *)dov[sRegistDO[i].dov_ind].OP, csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawPntDO.\n", FuncName);
+               }
                break;
             case SP_type:
                if (!SUMA_DrawSphereDO (
