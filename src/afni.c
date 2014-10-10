@@ -6327,6 +6327,7 @@ static char * AFNI_image_help =
  "Ctrl+m = cycle through image global range settings\n"
  "o = toggle (color) overlay on/off\n"
  "u = toggle background from underlay/overlay dataset\n"
+ "U = toggle background in ALL image viewers\n"
  "e = toggle edge detection in underlay\n"
  "#/3 = toggle underlay/overlay checkerboard display\n"
  "4 or 5 or 6 = slider for merging ULay/OLay images\n"
