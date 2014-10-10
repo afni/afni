@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , OCT , 2014 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+  { 10 , OCT , 2014 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
+   "-realaxes ==> use ijk_to_dicom_real vs. ijk_to_dicom" ,
+   NULL } ,
+
+ { 9 , OCT , 2014 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
    "'U' key does overlay/underlay switch on all controllers" ,
    "whereas 'u' does just one controller" } ,
 
