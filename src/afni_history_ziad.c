@@ -66,6 +66,11 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 10, Oct, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added directions and point clouds as DOs",
+   "See interactive help for #directions, #points"
+ },
+ 
  { 7, Oct, 2014, ZSS, "AFNIio.R", MINOR, TYPE_NEW_OPT,
    "Allowed specification and inheritance of TR in write functions",
    NULL
