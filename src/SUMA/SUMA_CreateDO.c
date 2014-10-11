@@ -2446,8 +2446,19 @@ SUMA_SegmentDO * SUMA_ReadDirDO (char *s, int oriented, char *parent_SO_id)
       while (itmp < SDO->N_n) {
          SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
          ++itmp;
-      } 
+      }
+      /* One constant thickness?*/
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         if (SDO->thickv[itmp] != SDO->thickv[0]) break;
+         ++itmp;
+      }
+      if (itmp == SDO->N_n) { /* constant thickness, go for speed */
+         SDO->LineWidth = SDO->thickv[0];
+         SUMA_ifree(SDO->thickv);
+      }
    }
+   
    if (icol_stip > 0) {
       SDO->stipv = (GLushort *)SUMA_malloc(sizeof(GLushort)*SDO->N_n);
       if (!SDO->stipv) {
@@ -3441,7 +3452,23 @@ SUMA_SphereDO * SUMA_ReadPntDO (char *s)
          SDO->colv[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
          SDO->colv[itmp2+3]   = far[itmp+(icol_col+3)*ncol];
          ++itmp;
-      } 
+      }
+      /* constant color? */itmp = 0;
+      while (itmp < SDO->N_n) {
+         itmp2 = 4*itmp;
+         if ( SDO->colv[itmp2  ] != SDO->colv[0] ||
+              SDO->colv[itmp2+1] != SDO->colv[1] ||
+              SDO->colv[itmp2+2] != SDO->colv[2] ||
+              SDO->colv[itmp2+3] != SDO->colv[3]) break;
+         ++itmp;
+      }
+      if (itmp == SDO->N_n) {
+         SDO->CommonCol[0] = SDO->colv[0];
+         SDO->CommonCol[1] = SDO->colv[1];
+         SDO->CommonCol[2] = SDO->colv[2];
+         SDO->CommonCol[3] = SDO->colv[3];
+         SUMA_ifree(SDO->colv);
+      }
    }
    
    SDO->CommonRad = 1;
@@ -3456,6 +3483,16 @@ SUMA_SphereDO * SUMA_ReadPntDO (char *s)
       while (itmp < SDO->N_n) {
          SDO->radv[itmp]     = far[itmp+(icol_rad  )*ncol];
          ++itmp;
+      }
+      /* One constant radius?*/
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         if (SDO->radv[itmp] != SDO->radv[0]) break;
+         ++itmp;
+      }
+      if (itmp == SDO->N_n) { /* constant radius, go for speed */
+         SDO->CommonRad = SDO->radv[0];
+         SUMA_ifree(SDO->radv);
       } 
    }
    mri_free(im); im = NULL; far = NULL;
@@ -5334,12 +5371,12 @@ SUMA_Boolean SUMA_DrawPointDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawPointDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, comcol[4], *cent=NULL;
-   int i, N_n3, i3, ndraw=0, ncross=-1;
+   int i, N_n3, i3, ndraw=0, ncross=-1, initPointsz;
    GLfloat rad = 3;
    SUMA_SurfaceObject *SO = NULL;
    byte *mask=NULL;
    byte AmbDiff = 0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5388,32 +5425,51 @@ SUMA_Boolean SUMA_DrawPointDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
          glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
       }
       glMaterialfv(GL_FRONT, GL_EMISSION, comcol);
-   } else {
-      glEnable(GL_COLOR_MATERIAL);
-      glColorPointer (4, GL_FLOAT, 0, SDO->colv);
    }
+   
+   glGetIntegerv(GL_POINT_SIZE, &initPointsz);
    if (!SDO->radv) {
+      SUMA_LH("Constant radius");
       rad = SDO->CommonRad;
       glPointSize(rad);
+      if (SDO->colv) {
+         glColorMaterial(GL_FRONT, GL_EMISSION); 
+         glEnable(GL_COLOR_MATERIAL);
+         glEnableClientState (GL_COLOR_ARRAY);
+         glColorPointer (4, GL_FLOAT, 0, SDO->colv);
+      }
       glEnableClientState (GL_VERTEX_ARRAY);
       glVertexPointer (3, GL_FLOAT, 0, SDO->cxyz);
       glDrawArrays(GL_POINTS, 0, SDO->N_n);
-   } else {
-      glBegin (GL_POINTS);
+      if (SDO->colv) {
+         glDisable(GL_COLOR_MATERIAL);
+         glDisableClientState(GL_COLOR_ARRAY);
+      }
+      glDisableClientState(GL_VERTEX_ARRAY);
+   } else { /* slow, relatively! */
+      SUMA_LH("Variable radius");
+      if (AmbDiff) {
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, comcol);
+      } else {
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+      }
       for (i=0; i<SDO->N_n; ++i) {
          i3 = 3*i;
+         if (SDO->colv) {
+            glMaterialfv(GL_FRONT, GL_EMISSION, (SDO->colv+4*i));
+         }
          glPointSize(SUMA_ABS(SDO->radv[i]));
-         if (SDO->colv) glColor4f(SDO->colv[4*i  ], SDO->colv[4*i+1],
-                                  SDO->colv[4*i+2], SDO->colv[4*i+3]); 
+         glBegin (GL_POINTS);
          glVertex3fv(SDO->cxyz+i3);
+         glEnd();
       }
-      glEnd();
    }
    if (AmbDiff) {
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
    }
    glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
-
+   
+   glPointSize(initPointsz);
    if (mask) SUMA_free(mask); mask=NULL;
    SUMA_RETURN (YUP);
 }
