@@ -1706,7 +1706,7 @@ char * SUMA_help_message_Info(int targ)
 "                 11 cols: x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th\n"
 "                 12 cols: x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th st\n\n"
 "                          with st defined above.\n\n"
-"          Type 2: Directions,a variant of segments and oriented segments.\n"
+"          Type 2: Directions, a variant of segments and oriented segments.\n"
 "                 1st line must be '#directions' (without quotes).\n"
 "                 Remainder of file is N rows, each defining a \n"
 "                 direction.\n"
