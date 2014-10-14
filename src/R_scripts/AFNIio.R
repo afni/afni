@@ -2691,7 +2691,7 @@ orcode.AFNI <- function(orstr) {
 #------------------------------------------------------------------
 
 read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
-                      meth = 'AUTO') {
+                      meth = 'AUTO', forcedset = FALSE) {
   
   if (meth == 'AUTO') {
    if (have_R_io()) meth <- 'clib' else meth <- 'Rlib'
@@ -2703,8 +2703,8 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
    show.AFNI.name(an);
   }
   
-  if ( (an$type == "1D"  && an$ext != ".1D.dset") 
-         || an$type == "Rs" || an$type == "1Ds") {
+  if ( !forcedset && ((an$type == "1D"  && an$ext != ".1D.dset") 
+         || an$type == "Rs" || an$type == "1Ds")) {
     brk <- read.AFNI.matrix(an$orig_name)
     z <- array2dset(brk, format=an$type)
     return(z)
