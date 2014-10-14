@@ -57,7 +57,7 @@ if(is.na(Out)) {
 }	
 OutFile <- paste(Out, "+tlrc", sep="") 
 
-libLoad("lme4")
+pkgLoad('lme4')
 
 # MASK: optional
 mask <- getInfo("Mask", parFile)
@@ -192,7 +192,7 @@ if (nNodes==1) for (kk in 1:dimz) {
 }
 	
 if (nNodes>1)	 {
-   libLoad("snow")
+   pkgLoad('snow')
    #cl <- makeCluster(rep('locahost', nNodes), type = "SOCK")
    cl <- makeCluster(nNodes, type = "SOCK")
    clusterEvalQ(cl, library(lme4))

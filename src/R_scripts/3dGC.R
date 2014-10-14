@@ -37,7 +37,8 @@ print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
 anaType <- as.integer(readline("Analysis type (0: quit; 1: individual)? "))
 
 if (anaType==1) {
-libLoad("vars")     # VAR modeling 
+#libLoad("vars")     # VAR modeling 
+pkgLoad('vars')
 
 plotTS <- function(dataFrame, nCurves, msg) {
    if (nCurves <= 5) {
@@ -161,7 +162,8 @@ print("-----------------")
 
 # create exogenous variables with Legendre polynomials from gsl
 if (nPoly > -1) {
-   libLoad("gsl")      # Legendre polynomials
+   #libLoad("gsl")      # Legendre polynomials
+   pkgLoad('gsl')
    trendMat <- as.data.frame(array(0, dim = c(nT, (nPoly+1)*nChunks)))
    jumpPts <- 0
    for (ii in 1:nChunks) {
@@ -283,7 +285,7 @@ if (nNodes==1) for (kk in 1:dimz) {
 }
 	
 if (nNodes>1)	 {
-   library(snow)
+   pkgLoad('snow')
    #cl <- makeCluster(rep('locahost', nNodes), type = "SOCK")
    cl <- makeCluster(nNodes, type = "SOCK")
 	clusterEvalQ(cl, library(vars))
