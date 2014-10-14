@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.7, Sept 5, 2014
+Version 3.2.8, Oct 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1049,9 +1049,10 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(lop$vVarCenters), '\\,')[[1]])
                                                 
-library("afex")
-library("phia")
-
+#library("afex")
+#library("phia")
+pkgLoad(c('afex', 'phia'))
+                                               
 #comArgs <- commandArgs()
 
 #if(length(comArgs)<6) modFile <- "model.txt" else
@@ -1128,6 +1129,7 @@ NoFile <- dim(lop$dataStr[1])[1]
 #if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE
 
 cat('Reading input files now...\n\n')
+cat('Reading input files: Done!\n\n')
 
 if(any(is.na(suppressWarnings(as.numeric(lop$dataStr[, FileCol]))))) {  # not elegant because "NAs introduced by coercion"
                                                 
@@ -1441,7 +1443,8 @@ if(dimy == 1 & dimz == 1) {
    }
    
    if (lop$nNodes>1) {
-   library(snow)
+   #library(snow)
+   pkgLoad('snow')
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
    clusterExport(cl, c("mvCom4", "maov", "lop"), envir=environment())
@@ -1475,7 +1478,8 @@ if (lop$nNodes==1) for (kk in 1:dimz) {
 } 
 
 if (lop$nNodes>1) {
-   library(snow)
+   #library(snow)
+   pkgLoad('snow')
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
    clusterExport(cl, c("mvCom4", "maov", "lop"), envir=environment())

@@ -8,18 +8,14 @@ print("Website: TBD")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
-libLoad <- function(myLib) {
-   sucLoad <- FALSE
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE} else {
-	  	try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-   	}
+first.in.path <- function(file) {
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   #cat('Using ', ff[1],'\n');
+   return(gsub('//','/',ff[1], fixed=TRUE))
 }
-
-libLoad("sem")  # load sem by John Fox
+source(first.in.path('AFNIio.R'))
+pkgLoad('sem')
 
 print("~~~~~~~~~~~~~~~~~")
 print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")

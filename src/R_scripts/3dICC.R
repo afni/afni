@@ -214,7 +214,7 @@ if (nNodes==1) for (kk in 1:dimz) {
 }
 	
 if (nNodes>1)	 {
-   library(snow)
+   pkgLoad('snow')
    #cl <- makeCluster(rep('locahost', nNodes), type = "SOCK")
    cl <- makeCluster(nNodes, type = "SOCK")
    for (kk in 1:dimz) {
@@ -235,7 +235,7 @@ if (nNodes==1) for (kk in 1:dimz) {
 }
 	
 if (nNodes>1)	 {
-   library(snow)
+   pkgLoad('snow')
    #cl <- makeCluster(rep('locahost', nNodes), type = "SOCK")
    cl <- makeCluster(nNodes, type = "SOCK")
    for (kk in 1:dimz) {
