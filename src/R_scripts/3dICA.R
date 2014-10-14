@@ -21,7 +21,7 @@ first.in.path <- function(file) {
 }
 source(first.in.path('AFNIio.R'))
 system("rm -f .RData")
-library(fastICA)
+pkgLoad('fastICA')
 
 # C is much faster than R!
 meth <- "C"         # or "R"

@@ -8,15 +8,14 @@ print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
-libLoad <- function(myLib) {
-   sucCheck <- FALSE
-   try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-   if (sucLoad) {print(sprintf("Package %s successfully loaded!", myLib)); sucCheck <- TRUE} else {
-	  	try(install.packages(myLib))
-      try(sucLoad <- library(myLib, character.only = TRUE, logical.return = TRUE))
-      if (sucLoad) print(sprintf("Package %s successfully loaded...", myLib)) 
-   	}
+first.in.path <- function(file) {
+   ff <- paste(strsplit(Sys.getenv('PATH'),':')[[1]],'/', file, sep='')
+   ff<-ff[lapply(ff,file.exists)==TRUE];
+   #cat('Using ', ff[1],'\n');
+   return(gsub('//','/',ff[1], fixed=TRUE))
 }
+source(first.in.path('AFNIio.R'))
+
 
 # header assumed for multi-column files, but not for one-column ones
 # readMultiFiles <- function(nFiles, dim, inData) { 
@@ -381,9 +380,7 @@ rma <- function(yi, vi, mods=NULL, method="REML", addint=TRUE, ci=95, digits=4, 
 }
 
 
-
-libLoad("network")  # network drawing
-#libLoad('tcltk')    # for graphics
+pkgLoad('network')
 
 print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 print("Visit http://afni.nimh.nih.gov/sscc/gangc/VAR.html and makse sure")
@@ -402,8 +399,9 @@ print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
 anaType <- as.integer(readline("Analysis type (0: quit; 1: individual; 2: group)? "))
 
 if (anaType==1) {
-libLoad("gsl")      # Legendre polynomials
-libLoad("vars")     # VAR modeling 
+#libLoad("gsl")      # Legendre polynomials
+#libLoad("vars")     # VAR modeling 
+pkgLoad(c('gsl', 'vars'))
 
 anotherAna <- 1
 while (anotherAna==1) {
@@ -692,7 +690,8 @@ for (ii in 1:nLags) {
 }
 
 if (nLags>1) { # overall network with all lags collapsed
-   libLoad("car")  # for linear.hypothesis
+   #libLoad("car")  # for linear.hypothesis
+   pkgLoad('car')
 	# initialization for overall network across lags
 	netCMatF <- matrix(data=NA, nrow=nROIs, ncol=nROIs, dimnames = list(names(myData), names(myData)))
    netCMatP <- matrix(data=NA, nrow=nROIs, ncol=nROIs, dimnames = list(names(myData), names(myData)))

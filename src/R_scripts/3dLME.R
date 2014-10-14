@@ -22,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.6, Sept 15, 2014
+Version 1.3.7, Oct 14, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -792,8 +792,9 @@ read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
-library("nlme")
-library("phia")
+#library("nlme")
+#library("phia")
+pkgLoad(c('nlme', 'phia'))
 
 #comArgs <- commandArgs()
 
@@ -1030,7 +1031,8 @@ if(dimy == 1 & dimz == 1) {
    }
    
    if (lop$nNodes>1) {
-   library(snow)
+   #library(snow)
+   pkgLoad('snow')
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
    clusterExport(cl, c("ModelForm", "lop"), envir=environment())
@@ -1061,7 +1063,8 @@ if(dimy == 1 & dimz == 1) {
    } 
 
    if (lop$nNodes>1) {
-      library(snow)
+      #library(snow)
+      pkgLoad('snow')
       cl <- makeCluster(lop$nNodes, type = "SOCK")
       clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
       clusterExport(cl, c("ModelForm", "lop"), envir=environment())  # for some reason phia needs this for multiple CPUs

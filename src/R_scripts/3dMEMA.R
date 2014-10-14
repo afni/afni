@@ -2329,9 +2329,10 @@ tTop <- 100   # upper bound for t-statistic
    
       # multi-processing
       if(lop$nNodes>1) {
-         if (libLoad('snow') == 0) {
-            errex.AFNI("Failed to load snow package");
-         }
+         #if (libLoad('snow') == 0) {
+         #   errex.AFNI("Failed to load snow package");
+         #}
+         pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          for(ii in 1:lop$myDim[3]) {
             tmp_oarr <- parApply(cl, comArr[,,ii,], marg, 
@@ -2369,9 +2370,10 @@ tTop <- 100   # upper bound for t-statistic
    
       # multi-processing
       if(lop$nNodes>1) {
-         if (libLoad('snow') == 0) {
-            errex.AFNI("Failed to load snow package");
-         }
+         #if (libLoad('snow') == 0) {
+         #   errex.AFNI("Failed to load snow package");
+         #}
+         pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
          for(ii in 1:lop$myDim[3]) {
             tmp_oarr <- parApply(cl, comArr[,,ii,], marg, runRMA, 
