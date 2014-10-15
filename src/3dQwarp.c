@@ -1012,7 +1012,7 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
                   " -source %s"
                   " -prefix %s.nii"
                   " -1Dmatrix_save %s"
-                  " -cmass -final wsinc5 -float -master BASE -twobest 11" ,
+                  " -cmass -final wsinc5 -float -master BASE -twobest 7" ,
             basname , srcname , Qunstr , Qunstr ) ;
 
    /* add options to the command string */
