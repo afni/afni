@@ -48,6 +48,16 @@
 #define IFM_MAX_READ_ERRORS  2       /* after this, go to failed state */
 #define IFM_NUM_RETRIES      2       /* volume retries before failing  */
 
+#define IFM_SORT_UNKNOWN    -1       /* -sort_method possibilities:    */
+#define IFM_SORT_UNSPEC      0       /*    not specified               */
+#define IFM_SORT_NONE        1       /*    no realtime sorting         */
+#define IFM_SORT_ACQ_TIME    2       /*    default RT sort             */
+#define IFM_SORT_DEFAULT     3       /*    default RT sort             */
+#define IFM_SORT_GEME        4       /*    GE multi-echo index         */
+#define IFM_SORT_NUM_SUFF    5       /*    numerical file suffix       */
+#define IFM_SORT_ZPOSN       6       /*    z-coordinate                */
+#define IFM_SORT_NUM_METHODS 6       /*    should match top index      */
+
 /* -- define copies -- */
 
 #define LSB_FIRST            1
