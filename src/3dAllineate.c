@@ -3914,6 +3914,8 @@ STATUS("zeropad weight dataset") ;
      tross_Copy_History( dset_targ , dset_out ) ;        /* historic records */
      tross_Make_History( "3dAllineate" , argc,argv , dset_out ) ;
 
+     memset(&cmat_tout,0,sizeof(mat44)) ;
+     memset(&cmat_bout,0,sizeof(mat44)) ;
      THD_daxes_to_mat44(dset_out->daxes) ;          /* save coord transforms */
      cmat_tout = DSET_CMAT(dset_targ,use_realaxes) ;
      cmat_bout = DSET_CMAT(dset_out ,use_realaxes) ;

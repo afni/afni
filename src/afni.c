@@ -1536,6 +1536,13 @@ void AFNI_sigfunc_alrm(int sig)
      "Next stop: Bora Bora and Rangiroa"                             ,
      "Do you still miss the NIH Bear? I do"                          ,
      "Advice from the NIH Bear -- honey goes good with brains"       ,
+     "Always be patient with the rich and powerful"                  ,
+     "Better to visit hell in your lifetime than afterwards"         ,
+     "Halfway is 12 miles, when you have 14 miles to go"             ,
+     "How beautiful it is to do nothing, then rest afterwards"       ,
+     "When the sky falls, hold up your hands"                        ,
+     "If you can't bite, don't show your teeth"                      ,
+     "Three statisticians ==> Four opinions on data analysis"        ,
 
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
      "For every simple problem there is an answer that is murky, complex, and wrong"  ,

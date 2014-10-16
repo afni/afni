@@ -293,7 +293,7 @@ ENTRY("THD_instacorr_getseed") ;
 MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk )
 {
    int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar ; int *ivar ;
-   float sblur ;
+   float sblur=0.0f ;
    MRI_vectim *mv ;
 
 ENTRY("THD_instacorr") ;
@@ -311,6 +311,8 @@ ENTRY("THD_instacorr") ;
    memcpy( iset->tseed , tsar , sizeof(float)*iset->mv->nvals ) ;
 
    /** do the correlations **/
+
+   sblur = iset->sblur ;
 
    dar = (float *)malloc(sizeof(float)*iset->mv->nvec) ;
 
