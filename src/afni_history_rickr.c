@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2014, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added sort_methods: none, acq_time, default, num_suffix, zposn",
+   NULL
+ } ,
+
  {  8, Oct, 2014, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "added -save_errors and more recovery chances, fixed sb_num_suffix app",
    "Stage 3 of sorting broke stage 2 of sorting.\n"

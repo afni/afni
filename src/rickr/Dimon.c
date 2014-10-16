@@ -123,12 +123,13 @@ static char * g_history[] =
     " 4.07 Oct  8, 2014 [rickr]\n",
     "      - added option -save_errors, to go with -save_details\n"
     "      - allow more chances for error recovery\n"
-    "      - fixed interaction between -sort_by_num_suffix and\n"
-    "        realtime sort\n"
+    "      - fixed interaction between -sort_by_num_suffix and realtime sort\n"
+    " 4.08 Oct 16, 2014 [rickr]\n",
+    "      - added sort_methods: none, acq_time, default, num_suffix, zposn\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.07 (October 8, 2014)"
+#define DIMON_VERSION "version 4.08 (October 16, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -164,8 +165,6 @@ static char * g_history[] =
 */
 
 /* rcr - todo:
- *
- * add none as a sort method (to turn of RT sort block)
  *
  * AFNI dset:
  *    - no way to know run (effect of -nt?)
@@ -204,6 +203,7 @@ float     gD_epsilon       = IFM_EPSILON;
 int       g_dicom_sort_dir = 1;  /* can use to swap sort direction          */
 int       g_sort_by_atime  = 0;  /* choose to sort by acquisition time      */
 int       g_sort_type      = 0;  /* bitmask: note fields applied in sorting */
+int       g_num_slices     = 0;  /* num_slices for sort by ZPOSN            */
 
 /***********************************************************************/
 
@@ -289,11 +289,12 @@ static int          read_obl_info = 1;  /* only process obl_info once */
 static int          want_ushort2float = 0;  /* 9 Jul 2013 */
 
 static int         g_compare_by_geh = 0;
-static int         g_compare_by_num_suff = 0;
+
+int compare_finfo_z(const void * v0, const void * v1);
 
 static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
-int                compare_finfo_num_suffix(const void * v0, const void * v1);
+int                compare_finfo_num_suff(const void * v0, const void * v1);
 int                compare_by_num_suff( const void * v0, const void * v1 );
 int                compare_by_geme( const void * v0, const void * v1 );
 int                compare_by_sindex( const void * v0, const void * v1 );
@@ -375,8 +376,9 @@ int        geme_set_range_n_state(param_t * p, int start, int * pmin,
 int        geme_set_sort_indices(param_t * p, int_list * ilist, int ngeme,
                                  int memin);
 int        guess_predefined_nacq(param_t * p, int ind);
-int        is_geme_sort_method (char * method);
-int        valid_sort_method   (char * method);
+int        show_all_sort_methods(char * mesg, FILE * stream);
+int        sort_method         (char * method);
+char     * sort_method_str     (int method);
 int        test_sop_iuid_index_order(param_t * p);
 
 /* volume scanning */
@@ -479,7 +481,6 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                if( gD.level > 2 )
                   fprintf(stderr,"-d read ims, no err, no vol, more to read\n");
                update_max2read(p, p->max2read + IFM_MAX_IM_ALLOC);
-
                /* skip nap if there was no error, but there is more to read */
                if( ret_val == 0 ) continue;
             }
@@ -510,7 +511,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                 }
             }
 
-            if ( p->nfim > p->opts.max_images ) {
+            if ( p->nfim > p->opts.max_images && ! p->opts.dicom_org ) {
                 fprintf(stderr,"** cannot find a volume in %d image files\n"
                                "   (max allowable = %d, see -max_images)\n",
                                p->nfim, p->opts.max_images);
@@ -829,6 +830,10 @@ static int volume_search(
          ((n2proc < 4) && IM_IS_GEMS(p->ftype)) )
         return 0;                   /* not enough data to work with   */
 
+    if( gD.level > 2 || (gD.level > 1 && prev_first >= 0) )
+       fprintf(stderr,"-- VS state %d, bound %d, prev %d, first %d, pf %d\n",
+               *state, bound, prev_bound, first, prev_first);
+
     /* maintain the state, check for 'bad' repeated entry state */
     if ( bound == prev_bound && first == prev_first) {
        if ( *state == 1 ) {
@@ -838,7 +843,9 @@ static int volume_search(
        } else if ( *state < 1 )
           *state = 1;  /* continue mode, but do not lose 2 */
     } else { /* good news, revert state and count */
-       *state = 0;
+       /* if no wait, exit sooner, but allow for list to grow */
+       if( p->opts.no_wait ) *state = 1;
+       else                  *state = 0;
        bound_cnt = 0;
     }
     prev_first = first;
@@ -1109,6 +1116,7 @@ int check_one_volume(param_t *p, int bound, int state,
     }
 
     if ( dz * delta < 0.0 ) {
+
         if( state < 2 ) return 0;  /* not done yet, keep waiting */
 
         fprintf( stderr, "\n"
@@ -1259,11 +1267,11 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p )
 
         /* if we seem to be outside volume, whine and banish slice */
         if( zind < -0.2 || zind > (vin->nim-0.8) ) {
-           fprintf(stderr, "   - zoffset outside volume range of %f to %f\n"
+           fprintf(stderr, "   - zoffset %f outside volume range of %f to %f\n"
                            "   - banishing image %s to FAILED state\n"
                            "   --> will try to continue...\n\n",
-                   vin->z_first, vin->z_first + (vin->nim-1)*vin->z_delta, 
-                   fp->fname);
+                   fp->geh.zoff, vin->z_first,
+                   vin->z_first + (vin->nim-1)*vin->z_delta, fp->fname);
            fp->state = IFM_FSTATE_FAILED;
            errs = 2; /* printed some error */
            return -2;
@@ -1421,14 +1429,6 @@ static int read_image_files(param_t * p)
     static int first = 1;    /* note first pass */
     int        newstuff;
 
-/* rcr -
- * have dicom_org == rt_sort, maybe with no limit on # images processed
- * --> actually, change dicom_org to rt_sort
- *     (could possibly maintain a list of compar functions)
- * ==> no, have dicom_org mean to expect all images at once
- *
- */
-
     newstuff = get_sorted_file_names(p);
     if( newstuff < 0 ) return -1; /* failure */
 
@@ -1444,13 +1444,8 @@ static int read_image_files(param_t * p)
 
     if( p->fim_skip < 0 ) return 0; /* still waiting for starting file */
 
-    /* if dicom_org, use old sort and remove any limit on images processed */
-    if( p->opts.sort_num_suff ) g_compare_by_num_suff = 1;
-    if( p->opts.dicom_org ) {
-       /* choose method */
-       if( ! g_compare_by_num_suff ) g_compare_by_geh = 1;
-       p->max2read = -1;
-    }
+    /* dicom_org: remove any limit on images processed */
+    if( p->opts.dicom_org ) p->max2read = -1;
 
     /* now actually try to read new images, starting from fim_skip    */
     /* note: this implies wherether there is something new to process */
@@ -1495,8 +1490,9 @@ static int read_image_files(param_t * p)
 */
 static int make_sorted_fim_list(param_t  * p)
 {
+   static int first = 1;
    finfo_t  * fp;
-   int        index, n2sort;
+   int        index, n2sort, method;
 
    /* The first fim_start pointers should be left untouched.
     * There should be no _DONE structures above that point, as
@@ -1514,21 +1510,52 @@ static int make_sorted_fim_list(param_t  * p)
       return 0;
    }
 
-   if( gD.level > 2 )
-      fprintf(stderr,"-- fim_o: sorting image list (%d images from %d to %d)\n",
-              n2sort, p->fim_start, p->nfim-1);
+   method = sort_method(p->opts.sort_method);
+   /* if unspecified, other options might be applied */
+   if( method == IFM_SORT_UNSPEC ) {
+      if( p->opts.sort_acq_time )      method = IFM_SORT_ACQ_TIME;
+      else if( p->opts.sort_num_suff ) method = IFM_SORT_NUM_SUFF;
+      else if( p->opts.dicom_org )     method = IFM_SORT_DEFAULT;
+   }
+
+   if( gD.level > 2 || (first && gD.level > 1) ) {
+      fprintf(stderr,"-- fim_o: sorting image list via method %s\n"
+                     "   (%d images from %d to %d)\n",
+              sort_method_str(method), n2sort, p->fim_start, p->nfim-1);
+      first = 0;
+   }
 
    /*-- sort from offset fim_start --*/
-
    fp = p->fim_o + p->fim_start;
 
    /* apply requested sorting method            15 Aug 2014 [rickr] */
-   if( ! valid_sort_method(p->opts.sort_method) )
-      qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
-   else if( is_geme_sort_method(p->opts.sort_method) )
-      sort_by_geme_index(p);
-   else
-      qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
+   switch( method ) {
+      default: return; /* UNKNOWN, UNSPEC or NONE: no sorting */
+
+      case IFM_SORT_ACQ_TIME: {
+         g_sort_by_atime = 1;
+         qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
+         break;
+      }
+      case IFM_SORT_GEME:    {
+         sort_by_geme_index(p);
+         break;
+      }
+      case IFM_SORT_DEFAULT: {
+         qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_t);
+         break;
+      }
+      case IFM_SORT_NUM_SUFF:{
+         qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_num_suff);
+         break;
+      }
+      case IFM_SORT_ZPOSN:   {
+         /* need nz or just 1 vol */
+         g_num_slices = p->opts.num_slices;
+         qsort(fp, n2sort, sizeof(finfo_t), compare_finfo_z);
+         break;
+      }
+   }
 
    /* after sorting, increment starting index to first TO_PROC (or later)
     * image (if not found, fim_start should be left unchanged) */
@@ -1918,13 +1945,40 @@ int compare_finfo_t(const void * v0, const void * v1)
 
    /* both states are TO_PROC, apply desired sorting here */
 
-   /* rcr - default to the old comparisons, if requested */
-
-   if( g_compare_by_geh ) return compare_finfo(p0, p1);
-   if( g_compare_by_num_suff ) return compare_finfo_num_suffix(p0, p1);
-
-   return p0->findex - p1->findex;
+   /* default to the old comparisons, if requested (via -dicom_org) */
+   return compare_finfo(p0, p1);
 }
+
+/* sort on z-coordinates (multi-volume uses modulo nz) */
+int compare_finfo_z(const void * v0, const void * v1)
+{
+   finfo_t * p0 = (finfo_t *)v0;
+   finfo_t * p1 = (finfo_t *)v1;
+   int       dir = g_dicom_sort_dir;
+
+   /* if states differ, just sort by state */
+   if( p0->state != p1->state ) return p0->state - p1->state;
+
+   /* if state is not TO_PROC, sort by findex */
+   if( p0->state != IFM_FSTATE_TO_PROC ) return p0->findex - p1->findex;
+
+   /* both states are TO_PROC, apply desired sorting here */
+
+   /* if we know the number of slices, only compare z in same slice set */
+   if( g_num_slices > 0 ) {
+      int v0 = p0->findex / g_num_slices;
+      int v1 = p1->findex / g_num_slices;
+      if( v0 < v1 ) return -dir;
+      if( v0 > v1 ) return  dir;
+   }
+
+   /* otherwise, just return based on the difference */
+   if( p0->geh.zoff < p1->geh.zoff ) return -dir;
+   if( p0->geh.zoff > p1->geh.zoff ) return  dir;
+
+   return p0->findex - p1->findex; /* backup case */
+}
+
 
 
 /*----------------------------------------------------------------------
@@ -1936,10 +1990,24 @@ int compare_finfo_t(const void * v0, const void * v1)
  * return < 0, 0, > 0, according to direction of p0 vs p1
  *----------------------------------------------------------------------
 */
-int compare_finfo_num_suffix(const void * v0, const void * v1)
+int compare_finfo_num_suff(const void * v0, const void * v1)
 {
    finfo_t * p0 = (finfo_t *)v0;
    finfo_t * p1 = (finfo_t *)v1;
+   int            by_findex = 0;
+
+   /* if states differ, just sort by state (but allow in TO_PROC..TO_READ) */
+   if( p0->state != p1->state ) {
+      if( p0->state < IFM_FSTATE_TO_PROC || p0->state > IFM_FSTATE_TO_READ )
+         return p0->state - p1->state;
+      if( p1->state < IFM_FSTATE_TO_PROC || p1->state > IFM_FSTATE_TO_READ )
+         return p0->state - p1->state;
+
+      return compare_by_num_suff(&p0->fname, &p1->fname);
+   }
+
+   /* so same state: if not TO_PROC, sort by findex */
+   if( p0->state != IFM_FSTATE_TO_PROC ) return p0->findex - p1->findex;
 
    return compare_by_num_suff(&p0->fname, &p1->fname);
 }
@@ -2225,6 +2293,7 @@ static char * l_strdup(char * text)
 static int read_new_images( param_t * p )
 {
    finfo_t * fp;
+   char      back5[6] = { '\x8', '\x8', '\x8', '\x8', '\x8', '\x0' };
    int       index, rv, nread, nerrs;
    int       n2read, stat=0;
 
@@ -2249,9 +2318,9 @@ static int read_new_images( param_t * p )
    nerrs = 0;
 
    n2read = nfim_in_state(p, p->fim_skip, p->nfim-1, IFM_FSTATE_TO_READ);
-   if( n2read > 300 && p->max2read <= 0 ) stat = n2read/10;
-   if( stat && gD.level > 1 )
-      fprintf(stderr,"-- reading %d image files ", n2read);
+   if( n2read > 300 && p->max2read <= 0 ) stat = n2read/100;
+   if( stat && (gD.level>1) || (gD.level && stat) )
+      fprintf(stderr,"-- reading %d image files ...  00%%", n2read);
 
    for( index = p->fim_skip; index < p->nfim; index++, fp++ ) {
       if( fp->state != IFM_FSTATE_TO_READ ) continue;
@@ -2276,7 +2345,9 @@ static int read_new_images( param_t * p )
          /* babble, and maybe break out */
          if( gD.level > 3 ) idisp_finfo_t("++ have new image ", fp);
 
-         if( stat && gD.level && !(nread%stat) ) fputc('.', stderr);
+         /* if( stat && gD.level && !(nread%stat) ) fputc('.', stderr); */
+         if( stat && gD.level && !(nread%stat) )
+            fprintf(stderr,"%s %3d%%", back5, (int)(100.0*nread/n2read));
          
          if( p->max2read > 0 && nread >= p->max2read ) {
             if( gD.level > 2 )
@@ -2294,7 +2365,7 @@ static int read_new_images( param_t * p )
       }
    }
 
-   if( stat && gD.level ) fputc('\n', stderr);
+   if( stat && gD.level ) fprintf(stderr,"%s 100%%\n", back5);
 
    if(gD.level > 1) fprintf(stderr,"-- RNI: read %d new images (nerrs = %d)\n",
                             nread, nerrs);
@@ -2877,9 +2948,9 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 return 1;
             }
             p->opts.sort_method = argv[ac];
-            if( ! valid_sort_method(p->opts.sort_method) ) {
+            if( sort_method(p->opts.sort_method) == IFM_SORT_UNKNOWN ) {
                fprintf(stderr,"** invalid sort method: %s\n", argv[ac]);
-               fprintf(stderr,"   (do you want geme_index?)\n");
+               show_all_sort_methods("   valid methods: ", stderr);
                return 1;
             }
         }
@@ -3150,21 +3221,51 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     return 0;
 }
 
-
-int valid_sort_method(char * method)
+int show_all_sort_methods(char * mesg, FILE * stream)
 {
-   if( ! method ) return 0;
-   if( ! strcmp(method, "default") ) return 1;
-   if( ! strcmp(method, "geme_index") ) return 1;
+   int method = IFM_SORT_NONE;
+
+   if( mesg ) fputs(mesg, stream);
+
+   /* first method, then comma delimited */
+   fprintf(stream, "%s", sort_method_str(method));
+   for( method++; method <= IFM_SORT_NUM_METHODS; method++ )
+      fprintf(stream, ", %s", sort_method_str(method));
+   fputc('\n', stream);
    return 0;
 }
 
-int is_geme_sort_method(char * method)
+/* given method from user option, return method index */
+int sort_method(char * method)
 {
-   if( ! method ) return 0;
-   if( ! strcmp(method, "geme_index") ) return 1;
-   return 0;
+   if( ! method ) return IFM_SORT_UNSPEC;
+
+   if( ! strcmp(method, "none")       ) return IFM_SORT_NONE;
+   if( ! strcmp(method, "acq_time")   ) return IFM_SORT_ACQ_TIME;
+   if( ! strcmp(method, "default")    ) return IFM_SORT_DEFAULT;
+   if( ! strcmp(method, "geme_index") ) return IFM_SORT_GEME;
+   if( ! strcmp(method, "num_suffix") ) return IFM_SORT_NUM_SUFF;
+   if( ! strcmp(method, "zposn")      ) return IFM_SORT_ZPOSN;
+
+   return IFM_SORT_UNKNOWN;
 }
+
+/* given method index, return correponding string */
+char * sort_method_str(int method)
+{
+   switch( method ) {
+      case IFM_SORT_UNSPEC:   return "UNSPECIFIED";
+      case IFM_SORT_NONE:     return "none";
+      case IFM_SORT_ACQ_TIME: return "acq_time";
+      case IFM_SORT_DEFAULT:  return "default";
+      case IFM_SORT_GEME:     return "geme_index";
+      case IFM_SORT_NUM_SUFF: return "num_suffix";
+      case IFM_SORT_ZPOSN:    return "zposn";
+   }
+
+   return "UNKNOWN";
+}
+
 
 /*----------------------------------------------------------------------
  * initialize:
@@ -3382,7 +3483,7 @@ static int read_afni_image( char * pathname, finfo_t * fp, int get_data )
     gexp->cflag  = 0;
     gexp->hdroff = -1;
     gexp->skip   = -1;
-    gexp->swap   = 0; /* rcr, should I bother? */
+    gexp->swap   = 0;
     gexp->kk     = 0;
     gexp->ge_me_index  = -1;
     gexp->ge_nim_acq   = -1;
@@ -3535,7 +3636,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     /* get some stuff from mrilib */
     gehp->tr = MRILIB_tr;
-    gehp->te = 0; /* rcr - none to set? */
+    gehp->te = 0;
     strncpy(gehp->orients, MRILIB_orients, 7);
     gehp->orients[7] = '\0';
 
@@ -3652,6 +3753,7 @@ static int copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset)
 static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
 {
     MRI_IMAGE * im = imarr->imarr[0];
+    static int  nwarn=2;
     void      * dp = NULL;
     int         ind, imbytes;
     int64_t     arrbytes;
@@ -3661,12 +3763,16 @@ static int copy_image_data(finfo_t * fp, MRI_IMARR * imarr)
     arrbytes = imarr->num * imbytes;            /* image array bytes */
 
     if( gD.level > 3)
-        fprintf(stderr,"   num, nvox, pix_size = %d, %ld, %d (prod %ld)\n",
-                imarr->num, im->nvox, im->pixel_size, arrbytes );
+        fprintf(stderr,"   num, nvox, pix_size = %d, %d, %d (prod %d)\n",
+                imarr->num, (int)im->nvox, im->pixel_size, (int)arrbytes );
 
     /* verify num images against mosaic */
-    if( imarr->num > 1 && ! fp->minfo.im_is_volume )
-        fprintf(stderr,"** CID: have non-mosaic with %d images\n", imarr->num);
+    if( imarr->num > 1 && ! fp->minfo.im_is_volume && nwarn > 0 ) {
+        fprintf(stderr,"** CID: have non-mosaic %s with %d images\n",
+                fp->fname, imarr->num);
+        nwarn--;
+        if( !nwarn ) fprintf(stderr,"   no more warnings will be printed...\n");
+    }
 
     /* allocate space */
     fp->nbytes = (int)arrbytes;
@@ -5149,18 +5255,55 @@ printf(
     "        e.g. -sort_method geme_index\n"
     "\n"
     "        This option is used to specify the sorting method to apply\n"
-    "        to image structures after they have been read in.  The\n"
-    "        only existing method to apply here is 'geme_index'.\n"
+    "        to image structures after they have been read in.\n"
     "\n"
-    "        The geme_index method (for the GE multi-echo sequence)\n"
-    "        will sort the list of images in groups of nslices*nechos\n"
-    "        (which should match 'Images in Acquisition' in the Dicom\n"
-    "        header).  Each such set of images should have the same\n"
-    "        GE_ME_INDEX sequence, starting from an arbitrary offset.\n"
+    "        methods:\n"
     "\n"
-    "        Note that the actual file order is somewhat unspecified,\n"
-    "        except that for a given geme_index, the files should be\n"
-    "        chronological.\n"
+    "           none            : do not apply any real-time sorting\n"
+    "           acq_time        : by acqusition time, if set\n"
+    "           default         : default based on image index number\n"
+    "           geme_index      : by GE multi-echo index\n"
+    "           num_suffix      : based on numeric suffix\n"
+    "           zposn           : based on z-coordinate and input order\n"
+    "\n"
+    "        more detailed method descriptions:\n"
+    "\n"
+    "           none\n"
+    "\n"
+    "             Do not perform any real-time sorting.  One can still apply\n"
+    "             a pre-read name-based sort, such as -sort_by_num_suffix.\n"
+    "\n"
+    "           acq_time\n"
+    "\n"
+    "             Try to sort by acquisition time, if set.  This may apply\n"
+    "             to Philps images.\n"
+    "\n"
+    "           default\n"
+    "\n"
+    "             Sort by run, acq_time (maybe), image index (0054 1330),\n"
+    "             and REL Instance Number (0020 0013).\n"
+    "\n"
+    "           geme_index\n"
+    "\n"
+    "             This is for the GE multi-echo sequence.  Sort the list of\n"
+    "             images in groups of nslices*nechos (which should match\n"
+    "             'Images in Acquisition' in the Dicom header).  Each such\n"
+    "             set of images should have the same GE_ME_INDEX sequence,\n"
+    "             starting from some arbitrary offset.\n"
+    "\n"
+    "             Note that the actual file order is somewhat unspecified,\n"
+    "             except that for a given geme_index, the files should be\n"
+    "             chronological.\n"
+    "\n"
+    "           num_suffix\n"
+    "\n"
+    "             Sort by numerical file suffix (e.g. image.01234).\n"
+    "\n"
+    "           zposn\n"
+    "\n"
+    "             Sort by z-coordinate.  This is limited to a single volume\n"
+    "             window of images, so num_slices should be set if there is\n"
+    "             more than 1 volume.\n"
     "\n"
     "    -start_file S_FILE : have %s process starting at S_FILE\n"
     "\n"
@@ -6064,10 +6207,11 @@ static int show_run_stats( stats_t * s )
        create_file_list(&gP, gP.opts.flist_file, 0, NULL);
     if( gP.opts.flist_details || gD.level > 2 ) {
        create_file_list(&gP, gP.opts.flist_details, 1, "final_list");
-       create_file_list(&gP, gP.opts.flist_details, 2, "final_list_geme");
+       if( sort_method(gP.opts.sort_method) == IFM_SORT_GEME )
+          create_file_list(&gP, gP.opts.flist_details, 2, "final_list_geme");
     }
 
-    if( is_geme_sort_method(gP.opts.sort_method) )
+    if( sort_method(gP.opts.sort_method) == IFM_SORT_GEME )
       test_sop_iuid_index_order(&gP);
 
     fflush( stdout );
