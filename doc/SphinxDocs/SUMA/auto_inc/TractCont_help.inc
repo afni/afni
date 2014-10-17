@@ -352,7 +352,7 @@ Now, if you set alpha to 0 for a certain ROI, then that ROI does add to the tint
      :align: right
      :figwidth: 30%
 
-     Tracts going through 'a|b' but with alpha of ROI 'a' - the blue one - set to 0. So tracts going through the blue ROI are not tinted by it at all.colors through the 
+     Tracts going through 'a|b' but with alpha of ROI 'a' - the blue one - set to 0. Tracts going through the blue ROI are not tinted by it at all.
 
   .. figure:: media/Masks.00.jpg
      :align: center
@@ -379,19 +379,7 @@ Now, if you set alpha to 0 for a certain ROI, then that ROI does add to the tint
 **Tract_Length**: Mask based on tract length
 
 
-Set Min Max length for tract masking
-
-   .. _MaskCont->Masks->Tract_Length[1]:
-
-**Tract_Length[1]**: Hints and help messages are attached to table's column and row titles.
-
-
-
-   .. _MaskCont->Masks->Tract_Length[2]:
-
-**Tract_Length[2]**: Hints and help messages are attached to table's column and row titles.
-
-
+Set Min Max length for tract masking. Use can scroll (mouse wheel) in Min and Max cells to change the value. The 'v' button must be selected for masking to take effect.
 
    .. _MaskCont->Masks->Tract_Length->v:
 
@@ -432,18 +420,24 @@ Type of mask. For the moment, this string can only be one of 'box' or 'sphere'.
 **Table.c04**: Center X,Y,Z
 
 
-Coordinate in mm :term:`RAI` of the center of the mask 
-You can enter new coordinates or right click in cell to
-get back to the original center.
+Set/Get coordinates in mm :term:`RAI` of the center of the mask 
 
+You can right click in cell to get back to the original center.
+
+You can also reposition the mask interactively in the SUMA viewer by :ref:`selecting <Button_3-Press>` something, if you are in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>`.
 
    .. _MaskCont->Masks->Table.c05:
 
 **Table.c05**: Size Sx,Sy,Sz
 
 
-Size along three dimensions of mask. You can enter a single value if theall three dimensions are equal. Right
-click in cell to get back to the original size.
+Set/Get size along three dimensions of mask. You can enter a single value if the all three dimensions are equal. 
+
+Right click in cell to get back to the original size.
+
+Resizing in SUMA viewer can be done with :ref:`Ctrl+scroll<Ctrl+Scroll>` if you are in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>`.
+
+You can also change values by scrolling with mouse pointer over the cell.
 
 
    .. _MaskCont->Masks->Table.c06:
@@ -474,12 +468,17 @@ The final color depends also on the dim factor 'D'
 
 Alpha of mask color. The Alpha value controls the contribution of an ROI'scolor to the tracts that pass through it. This tinting process is only used when 'Mask Eval' is in use, and when A is > 0. See the help for 'Mask Eval' for information on how tinting works.
 
+You can also change values by scrolling with mouse pointer over the cell.
+
+
    .. _MaskCont->Masks->Table.c08:
 
 **Table.c08**: T
 
 
 Transparency of mask. A value of 0 renders a mask opaque. Consider using lower D values to avoid color saturation of rendered masks.
+
+You can also change values by scrolling with mouse pointer over the cell.
 
 
    .. _MaskCont->Masks->Table.c09:
@@ -488,6 +487,9 @@ Transparency of mask. A value of 0 renders a mask opaque. Consider using lower D
 
 
 Dimming factor for color. Saturated colors may not look nice when rendered, so consider using the D parameter to dim a color's brightness without having to so directly in the color column. Setting D to 6 for example will scale a color by a factor of 6/9, so a saturated red of [1 0 0] becomes [0.67 0 0 ]. This makes masks render better when not in transparent mode T = 0.
+
+You can also change values by scrolling with mouse pointer over the cell.
+
 
    .. _MaskCont->Masks->Load_Masks:
 

@@ -1,5 +1,17 @@
 #!/bin/tcsh -f
 
+if ("$1" =~ "-h*") then
+   echo ""
+   echo "A script to recreate GUI help files that go under SUMA/auto_inc"
+   echo "Don't run this script unless you know you need to do so."
+   echo ""
+   echo "Normally, you just need to run:"
+   echo "" 
+   echo "      make html"
+   echo ""
+   goto END
+endif
+
 
 \rm SUMA/auto_inc/SurfCont_help.inc \
     SUMA/auto_inc/Mouse_Key_help.inc \
@@ -27,3 +39,6 @@ suma -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
          
 
 make html
+
+
+END:
