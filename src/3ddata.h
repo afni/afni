@@ -424,11 +424,11 @@ extern int SARR_lookfor_substring( THD_string_array * sar , char * sub , int nst
 /*! Dynamic array of xyz and ijk points. */
 
 typedef struct {
-      int num ;                          /*!< Number of points currently in use */
-      int nall ;                         /*!< Number of points currently allocated */
-      THD_fvec3 * xyz ;                  /*!< Array of xyz coordinates in parent */
-      THD_ivec3 * ijk ;                  /*!< Array of ijk indexes in parent */
-      struct THD_3dim_dataset * parent ; /*!< Dataset these things come from */
+      int num ;                         /*!< Number of points currently in use */
+      int nall ;                        /*!< Number of points currently allocated */
+      THD_fvec3 *xyz ;                  /*!< Array of xyz coordinates in parent */
+      THD_ivec3 *ijk ;                  /*!< Array of ijk indexes in parent */
+      struct THD_3dim_dataset *parent ; /*!< Dataset these things come from */
 } THD_vector_list ;
 
 #define INC_VLIST 64
@@ -2770,8 +2770,6 @@ static int ANAT_nvals[]     = { 1,1,1,1,1,1,1,1,1,1,1,1 , 1 } ;
 static int ANAT_ival_zero[] = { 0,0,0,0,0,0,0,0,0,0,0,0 , 0 } ;
 
 /* the data structure itself */
-
-struct THD_3dim_dataset_array ;  /* incomplete definition */
 
 /*! One AFNI dataset structure.
     Most elements are accessed via macros, and should only be changed via EDIT_dset_items(). */

@@ -5152,6 +5152,7 @@ THD_3dim_dataset * THD_nwarp_dataset( THD_3dim_dataset *dset_nwarp ,
    MRI_IMAGE *fim , *wim ; float *ip=NULL,*jp=NULL,*kp=NULL ;
    int nx,ny,nz,nxyz , nvals , kk,iv , next ;
    float *amatar=NULL ; int nxa=0,nya=0 ; mat44 amat ;
+   int vp ;
 
 ENTRY("THD_nwarp_dataset") ;
 
@@ -5278,6 +5279,7 @@ ENTRY("THD_nwarp_dataset") ;
 
    /*----- warp each sub-brick of the input -----*/
 
+   vp = 1 + (nvals/40) ;
    for( iv=0 ; iv < nvals ; iv++ ){
      fim = THD_extract_float_brick(iv,dset_src) ; DSET_unload_one(dset_src,iv) ;
      wim = mri_new_vol(nx,ny,nz,MRI_float) ;
@@ -5306,7 +5308,7 @@ ENTRY("THD_nwarp_dataset") ;
      EDIT_substitute_brick( dset_out , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
      mri_clear_and_free(wim) ; mri_free(fim) ;
      if( nya > 1 ){ DESTROY_IMARR(im_src) ; }  /* will be re-computed */
-     if( verb_nww ) fprintf(stderr,".") ;
+     if( verb_nww && iv%vp == 0 ) fprintf(stderr,".") ;
    }
 
    if( imar_nwarp != NULL ) DESTROY_IMARR(imar_nwarp) ;
