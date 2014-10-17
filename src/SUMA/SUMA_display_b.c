@@ -2709,6 +2709,35 @@ void SUMA_delete_mask_timeout_CB( XtPointer client_data , XtIntervalId * id )
    SUMA_RETURNe; 
 }
 
+SUMA_Boolean SUMA_DeleteAllMasks(char *labeled, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]= {"SUMA_DeleteAllMask"};
+   int i = 0;
+   SUMA_MaskDO *MDO = NULL;
+   SUMA_ALL_DO *ado = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!dov) {
+      dov = SUMAg_DOv;
+      N_dov = SUMAg_N_DOv;
+   }
+   for (i=0; i< N_dov; ++i) {
+      if (dov[i].ObjectType != MASK_type) continue;
+      MDO = (SUMA_MaskDO *)dov[i].OP;
+      ado = (SUMA_ALL_DO *)MDO;
+      
+      if (!MDO_IS_SHADOW(MDO) && 
+          (!labeled || (!strcmp(labeled,ADO_LABEL(ado)))) ) {
+         if (!(SUMA_DeleteMask(ADO_ID(ado)))) {
+            SUMA_S_Err("Failed to delete MDO");
+         }
+      }
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
 /* Delete a MaskDO from everything and everywhere.
    Make sure changes here, parallel those in function SUMA_cb_Mask_Delete()
    right where SUMA_DeleteMask() is mentioned.*/
