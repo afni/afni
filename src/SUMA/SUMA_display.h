@@ -474,7 +474,10 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF);
 void SUMA_ATF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_data);
 void SUMA_leave_EV( Widget w , XtPointer client_data ,
                   XEvent * ev , Boolean * continue_to_dispatch );
-void SUMA_ATF_cb_label_Focus (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_press_EV( Widget w , XtPointer client_data ,
+                    XEvent * ev , Boolean * continue_to_dispatch );
+void SUMA_ATF_cb_label_Focus (Widget w, XtPointer client_data, 
+                    XtPointer call_data);
 void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION Loc);
 void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Join (Widget w, XtPointer data, XtPointer client_data);
@@ -1167,7 +1170,7 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "viewer."
 
 #define SUMA_SurfCont_ColPlaneDim_hint \
-   "Dimming factor to apply to colormap." \
+   "Dimming factor to apply to colormap or color datasets." \
 
 #define SUMA_SurfCont_NodeRadGain_hint \
    "Gain factor to apply to node radius." \

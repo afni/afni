@@ -832,6 +832,7 @@ extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int np
 extern int mri_allzero( MRI_IMAGE *im ) ;  /* check if all pixels are 0 */
 
 extern MRI_IMAGE * mri_zeropad_3D( int,int,int,int,int,int , MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_valpad_2D( int,int,int,int, MRI_IMAGE *, byte val ) ;
 extern MRI_IMAGE * mri_zeropad_2D( int,int,int,int, MRI_IMAGE * ) ;
 
 extern double mri_max( MRI_IMAGE * ) ;
@@ -945,7 +946,8 @@ extern MRI_IMARR * mri_read_3A( char * ) ;
 extern MRI_IMARR * mri_read_file( char * ) ;
 extern int mri_imcount( char * ) ;
 extern MRI_IMARR * mri_read_many_files( int nf , char * fn[] ) ;
-extern MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, int nynew);
+extern MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , 
+                                               int nxnew, int nynew, byte pval);
 
 /** returns array of byte images: red, green, blue **/
 

@@ -1448,7 +1448,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      break;
                }
                   
-               s = SUMA_help_Cmap_message_Info(Cmp);
+               s = SUMA_help_Cmap_message_Info(Cmp, 0);
                if (!s) {
                   fprintf (SUMA_STDERR, 
                            "Error %s: Failed in SUMA_help_Cmap_message_Info.\n",                            FuncName);
@@ -4320,7 +4320,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_cb_closeSurfaceCont(NULL, (XtPointer)ado, NULL);
                }
             }
-
+            
+            if (NI_get_attribute(EngineData->ngr,"Masks")) {
+               SUMA_cb_Mask(NULL, ado, sv);
+            }
+            if (NI_get_attribute(EngineData->ngr,"2xMasks")) {
+               SUMA_cb_Mask(NULL, ado, sv);
+               SUMA_cb_Mask(NULL, ado, sv);
+            }
+            
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Write_Surf_Cont_Help"))) {
                if (!SUMA_WriteCont_Help(SO_type, 0, cbuf)) {
@@ -4332,6 +4340,26 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                           "Write_Surf_Cont_Sphinx_Help"))) {
                if (!SUMA_WriteCont_Help(SO_type, 1, cbuf)) {
                   SUMA_S_Err("Failed to write SurfCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Tract_Cont_Help"))) {
+               if (!SUMA_WriteCont_Help(TRACT_type, 0, cbuf)) {
+                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
+               }
+               if (!SUMA_WriteCont_Help(MASK_type, 0, cbuf)) {
+                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Tract_Cont_Sphinx_Help"))) {
+               if (!SUMA_WriteCont_Help(TRACT_type, 1, cbuf)) {
+                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
+               }
+               if (!SUMA_WriteCont_Help(MASK_type, 1, cbuf)) {
+                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
                }
             }
 
@@ -4357,6 +4385,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
 
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                         "Write_Mouse_Cmap_Keyb_Help"))) {
+               FILE *fout = fopen(cbuf,"w");
+               if (!fout) {
+                  SUMA_S_Err("Failed to open %s for writing", cbuf);
+               } else {
+                  SUMA_cmap_help_message(fout, 0);
+                  fclose(fout); fout = NULL;
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                         "Write_Mouse_Cmap_Keyb_Sphinx_Help"))) {
+               FILE *fout = fopen(cbuf,"w");
+               if (!fout) {
+                  SUMA_S_Err("Failed to open %s for writing", cbuf);
+               } else {
+                  SUMA_cmap_help_message(fout, 1);
+                  fclose(fout); fout = NULL;
+               }
+            }
 
             break;
             

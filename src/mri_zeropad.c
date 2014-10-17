@@ -9,16 +9,23 @@
        bad happens, returns NULL.
 
        Adapted from edt_volpad.c -- 26 Feb 2001 -- RWCox
+       Actual work now done in mri_valpad_2D
 -------------------------------------------------------------------*/
-
 MRI_IMAGE * mri_zeropad_2D( int nxbot , int nxtop ,
                             int nybot , int nytop , MRI_IMAGE *fim )
+{
+   return(mri_valpad_2D(nxbot, nxtop, nybot, nytop, fim, 0));
+}
+
+MRI_IMAGE * mri_valpad_2D(  int nxbot , int nxtop ,
+                            int nybot , int nytop , MRI_IMAGE *fim,
+                            byte val)
 {
    int nxold,nyold , nxnew,nynew , nx,ny ;
    int ii,jj , iibot,iitop , jjbot,jjtop ;
    MRI_IMAGE *vim ;
 
-ENTRY("mri_zeropad_2D") ;
+ENTRY("mri_valpad_2D") ;
 
    /*- check for user stupidity -*/
 
@@ -50,7 +57,7 @@ ENTRY("mri_zeropad_2D") ;
 
    vim = mri_new( nxnew , nynew , fim->kind ) ;
    MRI_COPY_AUX(vim,fim) ;
-   memset( mri_data_pointer(vim) , 0 ,
+   memset( mri_data_pointer(vim) , val ,
            nxnew*nynew*mri_datum_size(vim->kind) ) ;
 
    /* macros for computing 1D subscripts from 2D indices */
