@@ -34,11 +34,17 @@ void imcat_usage(int detail)
  "  -scale_intensity: Instead of multiplying by the color of \n"
  "                          pixel (i,j), use its intensity \n"
  "                          (average color)\n"
+ "  -gscale FAC: Apply FAC in addition to scaling of -scale_* options\n"
  "  -rgb_out: Force output to be in rgb, even if input is bytes.\n"
  "            This option is turned on automatically in certain cases.\n"
  "  -res_in RX RY: Set resolution of all input images to RX by RY pixels.\n"
  "                 Default is to make all input have the same\n"
  "                 resolution as the first image.\n"
+ "  -respad_in RPX RPY: Like -res_in, but resample to the max while respecting\n"
+ "                      the aspect ratio, and then pad to achieve desired \n"
+ "                      pixel count.\n"
+ "  -pad_val VAL: Set the padding value, should it be needed by -respad_in\n"
+ "                to VAL. VAL is typecast to byte, default is 0\n"
  "  -crop L R T B: Crop images by L (Left), R (Right), T (Top), B (Bottom)\n"
  "                 pixels. Cutting is performed after any resolution change, \n"
  "                 if any, is to be done.\n"
@@ -114,11 +120,11 @@ int main( int argc , char * argv[] )
    int nmode = XYNUM, nxin, nyin, nbad = 0;
    int cutL=0, cutR=0, cutT=0, cutB=0;
    int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
-   byte  gap_col[3] = {255, 20, 128} ;
+   byte  gap_col[3] = {255, 20, 128}, pval = 0 ;
    MRI_IMAGE *imscl=NULL;
    int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, 
-       N_byte = 0, N_rgb = 0;
-   float *scl=NULL;
+       N_byte = 0, N_rgb = 0, ks = 1;
+   float *scl=NULL, fac=1.0, ff=0;
    byte *scl3=NULL, *rgb=NULL, *b1, *b2, *b3;
    char name[100];
    void *ggg=NULL;
@@ -130,12 +136,15 @@ int main( int argc , char * argv[] )
     ScaleInt = 0;
     resix=-1;
     resiy=-1;
+    ks = 1;
     cutL=0;
     cutB=0;
     cutT=0;
     cutR=0;
+    fac = 1.0;
     force_rgb_out = 0;
     iarg = 1 ;
+    pval = 0 ;
     nx = -1; ny = -1;
     while( iarg < argc && argv[iarg][0] == '-' ){
        if( strcmp(argv[iarg],"-help") == 0 ||
@@ -175,6 +184,36 @@ int main( int argc , char * argv[] )
          }
          resix = (int) strtod( argv[++iarg] , NULL ) ;
          resiy = (int) strtod( argv[++iarg] , NULL ) ;
+          iarg++ ; continue ;
+       }
+       
+       if( strcmp(argv[iarg],"-gscale") == 0 ){
+         if (iarg+1 >= argc) {
+            fprintf(stderr,"*** ERROR: Need one float after -gscale\n");
+            exit(1);
+         }
+         fac = (float) strtod( argv[++iarg] , NULL ) ;
+          iarg++ ; continue ;
+       }
+       
+
+       if( strcmp(argv[iarg],"-respad_in") == 0 ){
+         if (iarg+2 >= argc) {
+            fprintf(stderr,"*** ERROR: Need two integers after -respad_in\n");
+            exit(1);
+         }
+         resix = (int) strtod( argv[++iarg] , NULL ) ;
+         resiy = (int) strtod( argv[++iarg] , NULL ) ;
+         ks = -1;
+          iarg++ ; continue ;
+       }
+       
+       if( strcmp(argv[iarg],"-pad_val") == 0 ){
+         if (iarg+1 >= argc) {
+            fprintf(stderr,"*** ERROR: Need one byte after -pad_val\n");
+            exit(1);
+         }
+         pval = (byte) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
        
@@ -282,25 +321,28 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"*** Failed to read scale image.\n");
          exit(1);
       }else {
+         fprintf(stderr,"++Scale image prep\n");
          rgb= MRI_BYTE_PTR(imscl);
          nscl = imscl->nx*imscl->ny;
          scl = (float *)malloc(sizeof(float)*nscl);
          scl3 = (byte *)malloc(sizeof(byte)*nscl*3);
          if (imscl->kind == MRI_rgb) {
             for (kkk=0; kkk<nscl; ++kkk) {
-               scl[kkk] = (   (float)rgb[3*kkk  ] +
-                              (float)rgb[3*kkk+1] +
-                              (float)rgb[3*kkk+2] ) / 3.0;
-               scl3[3*kkk  ] = rgb[3*kkk  ];
-               scl3[3*kkk+1] = rgb[3*kkk+1];
-               scl3[3*kkk+2] = rgb[3*kkk+2];
+               scl[kkk] = ( (float)rgb[3*kkk  ] +
+                            (float)rgb[3*kkk+1] +
+                            (float)rgb[3*kkk+2] ) / 3.0 * fac;
+               if ((ff = rgb[3*kkk  ]* fac) > 255) ff = 255;
+               scl3[3*kkk  ] = ff;
+               if ((ff = rgb[3*kkk+1]* fac) > 255) ff = 255;
+               scl3[3*kkk+1] = ff;
+               if ((ff = rgb[3*kkk+2]* fac) > 255) ff = 255;
+               scl3[3*kkk+2] = ff;
             }
         } else if (imscl->kind == MRI_byte) {
             for (kkk=0; kkk<nscl; ++kkk) {
-               scl[kkk] = ((float)rgb[kkk  ]);
-               scl3[3*kkk  ] = rgb[kkk];  /* inefficient, but makes life easy */
-               scl3[3*kkk+1] = rgb[kkk];
-               scl3[3*kkk+2] = rgb[kkk];
+               scl[kkk] = ((float)rgb[kkk  ]* fac);
+               if ((ff=scl[kkk])>255) ff = 255;
+               scl3[3*kkk  ] = scl3[3*kkk+1] = scl3[3*kkk+2] = ff;
             } 
         } else {
          fprintf(stderr,"*** Scale image must be RGB or byte type.\n");
@@ -324,7 +366,8 @@ int main( int argc , char * argv[] )
    mri_Set_OK_catwrap();
   
    /* read all images */
-   inimar = mri_read_resamp_many_files( argc-iarg , argv+iarg, resix, resiy ) ;
+   inimar = mri_read_resamp_many_files( argc-iarg , argv+iarg, 
+                                        resix, ks*resiy, pval) ;
    if( inimar == NULL ){
       fprintf(stderr,"*** no input images read!\a\n") ;
       exit(1) ;
@@ -464,19 +507,22 @@ int main( int argc , char * argv[] )
          scl3 = (byte *)malloc(sizeof(byte)*nscl*3);
          if (imscl->kind == MRI_rgb) {
             for (kkk=0; kkk<nscl; ++kkk) {
-               scl[kkk] = (   (float)rgb[3*kkk  ] +
-                              (float)rgb[3*kkk+1] +
-                              (float)rgb[3*kkk+2] ) / 3.0;
-               scl3[3*kkk  ] = rgb[3*kkk  ];
-               scl3[3*kkk+1] = rgb[3*kkk+1];
-               scl3[3*kkk+2] = rgb[3*kkk+2];
+               scl[kkk] = ((float)rgb[3*kkk  ] +
+                          (float)rgb[3*kkk+1] +
+                          (float)rgb[3*kkk+2] ) / 3.0 * fac ;
+               
+               if ((ff = rgb[3*kkk  ]* fac) > 255)  ff=255 ;
+               scl3[3*kkk  ] = ff;
+               if ((ff = rgb[3*kkk+1]* fac) > 255)  ff=255;
+               scl3[3*kkk+1] = ff;
+               if ((ff = rgb[3*kkk+2]* fac) > 255)  ff=255;
+               scl3[3*kkk+2] = ff;
             }
         } else if (imscl->kind == MRI_byte) {
             for (kkk=0; kkk<nscl; ++kkk) {
-               scl[kkk] = ((float)rgb[kkk  ]);
-               scl3[3*kkk  ] = rgb[kkk];  /* inefficient, but makes life easy */
-               scl3[3*kkk+1] = rgb[kkk];
-               scl3[3*kkk+2] = rgb[kkk];
+               scl[kkk] = ((float)rgb[kkk  ]* fac) ;
+               if ((ff = rgb[kkk]* fac) > 255) ff = 255;
+               scl3[3*kkk  ] = scl3[3*kkk+1] = scl3[3*kkk+2] = ff;
             } 
         } else {
          fprintf(stderr,"*** Scale image must be RGB or byte type.\n");
@@ -565,7 +611,7 @@ int main( int argc , char * argv[] )
       }
       fprintf(stderr,"*** Pixel scaling ...\n");
       if (!(imar = mri_read_resamp_many_files( 1 , &scale_pixels, 
-                                                 im->nx, im->ny )) ||
+                                                 im->nx, ks*im->ny, pval )) ||
            imar->num != 1) {
          fprintf(stderr,"*** Failed to read 1 image from %s\n", scale_pixels);
          exit(1) ;

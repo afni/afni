@@ -1086,7 +1086,7 @@ char * SUMA_sources_Info(void)
    SUMA_RETURN (s);
 }
 
-char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
+char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap, int targ)
 {
    static char FuncName[]={"SUMA_help_Cmap_message_Info"};
    char stmp[1000], *s = NULL;
@@ -1094,57 +1094,86 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
    
    SUMA_ENTRY;
    
+   if (targ != 0 && targ != 1) targ = 0;
+
    SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (targ == 0) {
+      SS = SUMA_StringAppend (SS,
+            "\nColormap Keyboard Controls:\n");
+   } else if (targ == 1) {
+      SS = SUMA_StringAppend (SS,
+            ".. _Colormap_Keyboard_Controls:\n\n"
+            "Colormap Keyboard Controls:\n"
+            "---------------------------\n\n");
+   }
    #if 0
    s = SUMA_New_Additions (0, 1);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    #endif
    
-   SS = SUMA_StringAppend (SS, 
-      "\nColormap Keyboard Controls:\n"
-      "     f: flip color map\n"
-      "        See also Up/Down keys.\n"
-      "\n"
-      "     Ctrl+h: this help message\n"
-      "\n"
-      "     r: record image of colormap.\n"
-      "\n"
-      "     w: write colormap to ascii file.\n"
-      "\n"
-      "     Z: Zoom in.\n"
-      "        Maximum zoom in shows 2 colors in the map\n"
-      "     z: Zoom out.\n"
-      "        Minimum zoom in shows all colors in the map\n"
-      "\n"
-      "     Up/Down arrows: rotate colormap up/down by fraction of\n"
-      "                     number of colors in color map. Fraction\n"
-      "                     a number between 0 and 0.5 and set via\n"
-      "                     the environment variable\n"
-      "                     SUMA_ColorMapRotationFraction.\n"
-      "                     See suma -environment for complete list\n"
-      "                     of variables.\n"
-      "     Ctrl+Up/Down arrows: rotate colormap up/down by one color\n"
-      "     Shift+Up/Down arrows: move colormap up/down\n"
-      "\n"
-      "     Home: Reset zoom, translation and rotation parameters\n"
-      "\n");
-      
-   SS = SUMA_StringAppend (SS, 
-      "\nCmap properties\n");
-   s = SUMA_ColorMapVec_Info(&ColMap, 1, 1);
-   SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+   SS = SUMA_StringAppend_va (SS, 
+"With the cursor over the colormap, the following keyboard initiated actions\n"
+"are available.\n\n"
+"     %s: flip color map\n"
+"        See also Up/Down keys.\n"
+"\n", SUMA_hkcf("f", targ));
 
-   /* Add help for all controller options */
-   s = SUMA_Help_AllSurfCont(1);
-   SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
-   
+   SS = SUMA_StringAppend_va (SS, 
+"     %s: this help message\n"
+"\n", SUMA_hkcf("Ctrl+h", targ));
+
+   SS = SUMA_StringAppend_va (SS, 
+"     %s: record image of colormap.\n"
+"\n", SUMA_hkcf("r", targ));
+
+   SS = SUMA_StringAppend_va (SS, 
+"     %s: write colormap to ascii file.\n"
+"\n", SUMA_hkcf("w", targ));
+
+   SS = SUMA_StringAppend_va (SS, 
+"     %s: Zoom in.\n"
+"        Maximum zoom in shows 2 colors in the map\n"
+"     %s: Zoom out.\n"
+"        Minimum zoom in shows all colors in the map\n"
+"\n", SUMA_hkcf("Z", targ), SUMA_hkcf("z", targ));
+
+   SS = SUMA_StringAppend_va (SS, 
+"     %s arrows: rotate colormap up/down by fraction of\n"
+"                     number of colors in color map. Fraction\n"
+"                     a number between 0 and 0.5 and set via\n"
+"                     the environment variable\n"
+"                     SUMA_ColorMapRotationFraction.\n"
+"                     See suma -environment for complete list\n"
+"                     of variables.\n\n",
+    SUMA_hkcf("U-D arrows", targ));
+
+   SS = SUMA_StringAppend_va (SS, 
+"     %s: rotate colormap up/down by one color\n"
+"     %s: move colormap up/down\n"
+"\n", SUMA_hkcf("Ctrl+U-D arrows", targ), SUMA_hkcf("Shift+U-D arrows", targ));
+
+   SS = SUMA_StringAppend_va (SS, 
+"     %s: Reset zoom, translation and rotation parameters\n"
+"\n" , SUMA_hkcf("HOME", targ));
+      
+   if (ColMap) {
+      SS = SUMA_StringAppend (SS, 
+         "\nCmap properties\n");
+      s = SUMA_ColorMapVec_Info(&ColMap, 1, 1);
+      SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+
+      /* Add help for all controller options */
+      s = SUMA_Help_AllSurfCont(1);
+      SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+   }
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);
    /* copy s pointer and free SS */
    s = SS->s;
    SUMA_free(SS); 
    
-   SUMA_RETURN (s);
+   SUMA_RETURN (SUMA_Sphinx_String_Edit(s, targ));
 
 }
 
@@ -1250,14 +1279,16 @@ char * SUMA_help_Plot_message_Info(void)
 }
 
 /* Format help key string */
-char * SUMA_hkf(char *keyi, int target)
+char * SUMA_hkf_eng(char *keyi, int target, char *cm)
 {
-   static char FuncName[]={"SUMA_hkf"};
+   static char FuncName[]={"SUMA_hkf_eng"};
    static char ss[20][256];
    char key1[256], key2[256], *direc="kbd";
    static int c;
    char *s;
    int ichar=-1;
+   
+   if (!cm) cm = "";
    
    ++c;
    if (c > 19) c = 0;
@@ -1292,21 +1323,32 @@ char * SUMA_hkf(char *keyi, int target)
          
          if (ichar > -1) { 
             if (SUMA_IS_UPPER_C(key1[ichar])) {
-               snprintf(s, 255, "\n.. _UC_%s:\n\n:%s:`%s`"
-                  , deblank_allname(key1,'_'), direc, deblank_name(key2));
+               snprintf(s, 255, "\n.. _%sUC_%s:\n\n:%s:`%s`"
+                  , cm, deblank_allname(key1,'_'), direc, deblank_name(key2));
             } else { 
-               snprintf(s, 255, "\n.. _LC_%s:\n\n:%s:`%s`"
-                  , deblank_allname(key1,'_'), direc, deblank_name(key2));
+               snprintf(s, 255, "\n.. _%sLC_%s:\n\n:%s:`%s`"
+                  , cm, deblank_allname(key1,'_'), direc, deblank_name(key2));
             }
          } else {
-            snprintf(s, 255, "\n.. _%s:\n\n:%s:`%s`"
-                  , deblank_allname(key1,'_'), direc, deblank_name(key2));
+            snprintf(s, 255, "\n.. _%s%s:\n\n:%s:`%s`"
+                  , cm, deblank_allname(key1,'_'), direc, deblank_name(key2));
          }
          return(s);
          break;
    }
    return(s);
 }
+
+char * SUMA_hkf(char *keyi, int target) {
+   /* for main suma area keys */
+   return(SUMA_hkf_eng(keyi,target,""));
+}
+
+char * SUMA_hkcf(char *keyi, int target) {
+   /* for colormap area keys */
+   return(SUMA_hkf_eng(keyi,target,"CM_"));
+}
+
 
 /* Format GUI section */
 char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
@@ -1711,30 +1753,30 @@ char * SUMA_help_message_Info(int targ)
 "                 Remainder of file is N rows, each defining a \n"
 "                 direction.\n"
 "                 Column content depends on the number of columns\n"
-"                 in the file:\n"
-"                 3  cols: dx dy dz\n"
+"                 in the file:\n\n"
+"                 3  cols: dx dy dz\n\n"
 "                          with dx dy dz defining the direction. The\n"
 "                          triplet need not be of unti norm though that\n"
 "                          would affect the default coloring scheme detailed\n"
-"                          below. The segment drawn has origin 0, 0, 0\n"
-"                 4  cols: dx dy dz mag\n"
+"                          below. The segment drawn has origin 0, 0, 0\n\n"
+"                 4  cols: dx dy dz mag\n\n"
 "                          with mag being a scaling factor for the direction.\n"
-"                          mag is 1 by default.\n"
-"                 5  cols: dx dy dz mag th\n"
+"                          mag is 1 by default.\n\n"
+"                 5  cols: dx dy dz mag th\n\n"
 "                          with th being the thickness of the line.\n"
-"                          Default is 1\n"
-"                 6  cols: ox oy oz dx dy dz\n"
+"                          Default is 1\n\n"
+"                 6  cols: ox oy oz dx dy dz\n\n"
 "                          Specify the origin of the segment in o1, o2, o3.\n"
-"                          Default is origin 0, 0, 0 for all\n"
-"                 7  cols: o1 o2 o3 dx dy dz mag\n"
+"                          Default is origin 0, 0, 0 for all\n\n"
+"                 7  cols: o1 o2 o3 dx dy dz mag\n\n"
 "                          Add individual scaling factors to case above\n"
-"                          Segment is from origin to origin+mag*direction\n"
-"                 8  cols: o1 o2 o3 dx dy dz mag th\n"
-"                          Add thickness to case with 7 columns\n"
-"                 9  cols: dx dy dz mag th c0 c1 c2 c3\n"
-"                          Add colors for each segment, with origin at 0,0,0\n"
+"                          Segment is from origin to origin+mag*direction\n\n"
+"                 8  cols: o1 o2 o3 dx dy dz mag th\n\n"
+"                          Add thickness to case with 7 columns\n\n"
+"                 9  cols: dx dy dz mag th c0 c1 c2 c3\n\n"
+"                          Add colors for each segment, with origin at 0,0,0\n\n"
 "                 11 cols: ox oy oz dx dy dz mag c0 c1 c2 c3\n"
-"                 12 cols: ox oy oz dx dy dz mag th c0 c1 c2 c3\n"
+"                 12 cols: ox oy oz dx dy dz mag th c0 c1 c2 c3\n\n"
 "          Type 3:Spheres centered at (ox, oy, oz) \n"
 "                 1st line must be '#spheres' (without quotes).\n"
 "                 Remainder of file is N rows, each defining a \n"
@@ -2029,7 +2071,7 @@ char * SUMA_help_message_Info(int targ)
          SUMA_hkf("Control+Button 1-Motion", targ)); 
    SS = SUMA_StringAppend_va (SS,        
       "  %s: Reset to Home vieweing angle, zooming is\n"
-      "       left unchanged. See also 'Home' key\n",
+      "       left unchanged. See also 'HOME' key\n",
          SUMA_hkf("Button 1-DoubleClick", targ));
    SS = SUMA_StringAppend_va (SS,       
       "  %s: Undo surface prying.\n",
@@ -2392,6 +2434,28 @@ void SUMA_help_message(FILE *Out, int targ)
    s = SUMA_help_message_Info(targ);
    if (!s) {
       SUMA_S_Err("Failed in SUMA_help_message_Info.\n");
+   }else {
+      fprintf (Out, "%s\n", s);
+      SUMA_free(s);
+   }
+	
+   SUMA_RETURNe;
+}
+
+void SUMA_cmap_help_message(FILE *Out, int targ)
+{
+	char *s=NULL;
+   static char FuncName[]={"SUMA_cmap_help_message"};
+   
+   SUMA_ENTRY;
+
+   if (Out == NULL) {
+		Out = stdout;
+	}
+   
+   s = SUMA_help_Cmap_message_Info(NULL, targ);
+   if (!s) {
+      SUMA_S_Err("Failed in SUMA_help_Cmap_message_Info.\n");
    }else {
       fprintf (Out, "%s\n", s);
       SUMA_free(s);
@@ -3029,7 +3093,7 @@ char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type)
          snprintf(ss, 63,"GraphCont");
          break;
       case TRACT_type:
-         snprintf(ss, 63,"GraphCont");
+         snprintf(ss, 63,"TractCont");
          break;
       case SDSET_type:
          snprintf(ss, 63,"NoCont");
@@ -3122,6 +3186,7 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Dset_Controls->Opa",
                      "SurfCont->Dset_Controls->Dim",
                      "SurfCont->Dset_Controls->Dsp",
+                     "SurfCont->Dset_Controls->1",
                      "SurfCont->Dset_Controls->Switch_Dset",
                      "SurfCont->Dset_Controls->Load_Dset",
                      "SurfCont->Dset_Controls->Load_Col",
@@ -3144,7 +3209,10 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Dset_Mapping->abs_T",
                      "SurfCont->Dset_Mapping->sym_I",
                      "SurfCont->Dset_Mapping->shw_0",
-                     "SurfCont->Dset_Mapping->Clst",
+                     "SurfCont->Dset_Mapping->Cmap->bar",
+                     "SurfCont->Dset_Mapping->Cmap->scale",
+                     "SurfCont->Dset_Mapping->Clst.c00",
+                     "SurfCont->Dset_Mapping->Clst.c01",
                      "SurfCont->Dset_Mapping->RangeTable.c00",
                      "SurfCont->Dset_Mapping->RangeTable.r01",
                      "SurfCont->Dset_Mapping->RangeTable.r02",
@@ -3297,49 +3365,39 @@ char * SUMA_Help_AllMaskCont (int targ)
    char *s = NULL, *shh=NULL, *sii=NULL;
    int k=0;
    SUMA_STRING *SS = NULL;
-   char *worder[] = {"MaskCont->Disp_Cont->Close",
-                     "MaskCont->Disp_Cont->BHelp",
-                     "MaskCont->Disp_Cont->Switch",
-                     "MaskCont->Surface_Properties->more",
+   char *worder[] = {"MaskCont",
+                     "MaskCont->Masks",
+                     "MaskCont->Masks->Mask_Eval.r00",
+                     "MaskCont->Masks->Mask_Eval->v",
+                     "MaskCont->Masks->Tract_Length.r00",
+                     "MaskCont->Masks->Tract_Length->v",
+                     "MaskCont->Masks->Table.c00",
+                     "MaskCont->Masks->Table.c01",
+                     "MaskCont->Masks->Table.c02",
+                     "MaskCont->Masks->Table.c03",
+                     "MaskCont->Masks->Table.c04",
+                     "MaskCont->Masks->Table.c05",
+                     "MaskCont->Masks->Table.c06",
+                     "MaskCont->Masks->Table.c07",
+                     "MaskCont->Masks->Table.c08",
+                     "MaskCont->Masks->Table.c09",
+                     "MaskCont->Masks->Load_Masks",
+                     "MaskCont->Masks->Save_Masks",
                      NULL };
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
    
-   if (targ == 0) {
-      SS = SUMA_StringAppend (SS,
-            "");
-   } else if (targ == 1) {
-      SS = SUMA_StringAppend (SS,
-            ".. _Mask_Controller:\n\n"
-            "Mask Controller:\n"
-            "------------------\n\n");
-   }
-
-   SS = SUMA_StringAppend_va(SS, 
-"%s\n\n"
-"The Mask controller is for controlling interactive tract masks.\n"
-"The Mask controller is launched with:"
-":SPX:"
-" :ref:`ctrl+s <_LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
-":DEF:"
-"\n'ctrl+s' or 'View-->Object Controller'\n"
-":SPX:"
-"\n",
-        SUMA_gsf("VolCont->Dset_Mapping->Xhair", 1, NULL, NULL));
-         
    k = 0;
    while (worder[k]) {
-      if (!SUMA_Get_GUI_Help(worder[k], targ, &shh, &sii)) {
-         SUMA_S_Err("No help for %s\n", worder[k]);
-         SUMA_suggest_GUI_Name_Match(worder[k], 3, NULL);
-      } else {
-         SS = SUMA_StringAppend_va(SS, 
-"\n"
-"%s: %s\n"
-"%s\n", 
-         worder[k], sii, shh); SUMA_ifree(shh); SUMA_ifree(sii);
-      }
+         s = SUMA_gsf(worder[k], targ, &sii, &shh);
+         if (!shh || strstr(sii, shh)) {/* help same as hint */
+            SS = SUMA_StringAppend_va(SS, "%s\n", s);
+         } else {
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+                                   s, shh?shh:"");
+         }
+         SUMA_ifree(sii); SUMA_ifree(shh);
       ++k;
    }
           
@@ -3355,49 +3413,42 @@ char * SUMA_Help_AllTractCont (int targ)
    char *s = NULL, *shh=NULL, *sii=NULL;
    int k=0;
    SUMA_STRING *SS = NULL;
-   char *worder[] = {"TractCont->Disp_Cont->Close",
-                     "TractCont->Disp_Cont->BHelp",
-                     "TractCont->Disp_Cont->Switch",
-                     "TractCont->Surface_Properties->more",
+   char *worder[] = {"TractCont",
+                     "TractCont->Tract_Properties",
+                     "TractCont->Tract_Properties->more",
+                     "TractCont->Xhair_Info",
+                     "TractCont->Xhair_Info->Xhr.r00",
+                     "TractCont->Xhair_Info->Ind.r00",
+                     "TractCont->Xhair_Info->BTP.r00",
+                     "TractCont->Xhair_Info->Val.c00",
+                     "TractCont->Xhair_Info->Lbl.r00",
+                     "TractCont->Coloring_Controls",
+                     "TractCont->Coloring_Controls->Lbl.r00",
+                     "TractCont->Coloring_Controls->Dim",
+                     "TractCont->Coloring_Controls->Ord",
+                     "TractCont->Coloring_Controls->1",
+                     "TractCont->Coloring_Controls->Opa",
+                     "TractCont->Coloring_Controls->Ln",
+                     "TractCont->Coloring_Controls->Masks",
+                     "TractCont->Coloring_Controls->Hde",
+                     "TractCont->Coloring_Controls->Gry",
+                     "TractCont->Coloring_Controls->Switch_Dset",
+                     "Mask_Manipulation_Mode",
                      NULL };
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
    
-   if (targ == 0) {
-      SS = SUMA_StringAppend (SS,
-            "");
-   } else if (targ == 1) {
-      SS = SUMA_StringAppend (SS,
-            ".. _Tract_Controller:\n\n"
-            "Tract Controller:\n"
-            "------------------\n\n");
-   }
-
-   SS = SUMA_StringAppend_va(SS, 
-"%s\n\n"
-"The Tract controller is for controlling diplay properties of tracts.\n"
-"The Tract controller is launched with:"
-":SPX:"
-" :ref:`ctrl+s <_LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
-":DEF:"
-"\n'ctrl+s' or 'View-->Object Controller'\n"
-":SPX:"
-"\n",
-        SUMA_gsf("TractCont->Dset_Mapping->Xhair", 1, NULL, NULL));
-         
    k = 0;
    while (worder[k]) {
-      if (!SUMA_Get_GUI_Help(worder[k], targ, &shh, &sii)) {
-         SUMA_S_Err("No help for %s\n", worder[k]);
-         SUMA_suggest_GUI_Name_Match(worder[k], 3, NULL);
-      } else {
-         SS = SUMA_StringAppend_va(SS, 
-"\n"
-"%s: %s\n"
-"%s\n", 
-         worder[k], sii, shh); SUMA_ifree(shh); SUMA_ifree(sii);
-      }
+         s = SUMA_gsf(worder[k], targ, &sii, &shh);
+         if (!shh || strstr(sii, shh)) {/* help same as hint */
+            SS = SUMA_StringAppend_va(SS, "%s\n", s);
+         } else {
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+                                   s, shh?shh:"");
+         }
+         SUMA_ifree(sii); SUMA_ifree(shh);
       ++k;
    }
           

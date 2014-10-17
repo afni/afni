@@ -327,7 +327,8 @@ extern MRI_IMARR * mri_read_3D( char * ) ;
 extern MRI_IMARR * mri_read_file( char * ) ;
 extern int mri_imcount( char * ) ;
 extern MRI_IMARR * mri_read_many_files( int nf , char * fn[] ) ;
-extern MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , int nxnew, int nynew);
+extern MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , 
+                                               int nxnew, int nynew, byte pval);
 
 /** returns array of byte images: red, green, blue **/
 
