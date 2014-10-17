@@ -136,6 +136,9 @@ FIX_SCALE_SIZE*/
       SUMA_UpdateNodeLblField(ado);  \
 }    
 
+/* Don't attempt to break up this string over multiple lines */
+#define SUMA_SHPINX_BREAK  ".. container:: clearer\n\n   .. image:: media/blank.jpg\n\n   .. Preceding block is a trick to keep upcoming text from wrapping around the figures.\n\n"
+
 /*! structure for holding table data for range setting */
 typedef struct {
    SUMA_ALL_DO *ado;
@@ -468,8 +471,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 /* Surface Properties Block */
 #define  SUMA_SurfContHelp_more  \
    "Opens a dialog with detailed " \
-   "information about the surface "\
-   "object."
+   "information about the object in geek speak."
 
 #define  SUMA_SurfContHelp_RenderMode  \
    "Choose the rendering mode for this surface.\n" \
@@ -549,17 +551,17 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define  SUMA_SurfContHelp_TractStyle  \
    "Choose the line drawing style.\n" \
    "   Digits specify number of pixels to mask out of each 16 pixels:LR:\n"\
-   "   1 :   One pixel/16, almost solid:LR:\n"  \
+   "   1 :   One pixel/16 off, almost solid:LR:\n"  \
    "   ...:LR:\n"    \
-   "   15:   15/16 pixels on, almost invisible:LR:\n"   \
+   "   15:   15/16 pixels off, almost invisible:LR:\n"   \
    "   HDE: Hide all the tracts:LR:\n"  \
    "   SLD: No stippling, solid line.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetEdgeStip  \
    "Choose the stippling for edges of this graph dataset.\n" \
-   "   1 :   One pixel/16, almost solid:LR:\n"  \
+   "   1 :   One pixel/16 off, almost solid:LR:\n"  \
    "   ...:LR:\n"    \
-   "   15:   15/16 pixels on, almost invisible:LR:\n"   \
+   "   15:   15/16 pixels off, almost invisible:LR:\n"   \
    "   Val: Set stippling based on the dset value:LR:\n"  \
    "   XXX: No stippling, solid line.:LR:\n"  
 
@@ -574,10 +576,16 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   XXX: A is set to 0, nothing will show.:LR:\n"  
 
 #define  SUMA_SurfContHelp_TractMask  \
-   "Select how masked tracts are displayed\n" \
+  "That's not the name of the button, but its default value. "\
+  "This menu controls how tracts that fall outside of the masks are displayed\n"\
   "   Hde:   Hide 'em masked tracts:LR:\n"  \
-  "   Gry:   Gray 'em masked tracts (gray color set by 'Gry' arrow field):LR:\n"\
-  "   Ign:   Ignore 'em good for nothing masks:LR:\n"
+  "   Gry:   Gray 'em masked tracts (gray color set by"\
+  " :ref:`Gry<TractCont->Coloring_Controls->Gry>` arrow field):LR:\n"\
+  "   One:   A coding mistake that ended up looking cool. Each tract not in "\
+  "the mask is colored by one color extracted from the set of colors for the"\
+  " whole network.:LR:\n"\
+  "   Ign:   Ignore 'em good for nothing masks, show tracts in all their"\
+  " unabashed glory:LR:\n"
       
 #define  SUMA_SurfContHelp_TractMaskGray  \
    "Set the gray level for masked tracts. 0 for black, 100 for white\n" \
@@ -616,7 +624,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Show/Hide Dataset (previously Color Plane) controllers"
 
 #define SUMA_SurfContHelp_Xhr \
-   "Crosshair coordinates on\n"   \
+   "Set/Get crosshair location in mm :term:`RAI` on\n"   \
    "this controller's selected object.\n"   \
    "Entering new coordinates \n"   \
    "makes the crosshair jump\n"   \
@@ -649,14 +657,27 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Use 'alt+l' to center the "   \
    "cross hair in your viewer."
         
-#define SUMA_SurfContHelp_I   \
-   "Index for the selection points in the entire network\n" 
+#define SUMA_TractContHelp_I   \
+   "Set/Get the :term:`1D index` of the selected elementary tract datum: "\
+   "the infinitesimal point.\n" 
 
-#define SUMA_SurfContHelp_BTP   \
-   "Triplet of indices for the selection on the displayed bundles.\n"   \
-   "   The 1st index is that of the selected bundle in the network:LR:\n"   \
-   "   The second is for the selected tract in that bundle:LR:\n"  \
-   "   The third is the index of the point selected along that tract.:LR:\n" 
+#define SUMA_SurfContHelp_I   \
+   "Set/Get the :term:`1D index` of the selected elementary surface datum: "\
+   "the node.\n" 
+
+#define SUMA_GraphContHelp_I   \
+   "Set/Get the :term:`1D index` of the selected elementary surface datum: "\
+   "the edge.\n" 
+
+#define SUMA_VolContHelp_I   \
+   "Set/Get the :term:`1D index` of the selected elementary surface datum: "\
+   "the voxel.\n" 
+
+   #define SUMA_SurfContHelp_BTP   \
+"Set/Get the triplet of indices for the selection on the displayed tracts.\n"\
+"   The 1st index is that of the selected :term:`bundle` in the network:LR:\n"\
+"   The second is for the selected :term:`tract` in that bundle:LR:\n"  \
+"   The third is the index of the :term:`point` selected along that tract.:LR:\n"
 
 #define SUMA_SurfContHelp_IJK   \
    "Triplet of indices (I) of selected voxel.\n"   \
@@ -678,14 +699,32 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "FILL ME"
    
 #define SUMA_SurfContHelp_NodeValTblr0 \
-   "Data Values at node in focus"
+   "Data values at node in focus"
 #define SUMA_SurfContHelp_GEdgeValTblr0 \
-   "Data Values at edge in focus"
+   "Data values at edge in focus"
    
-#define SUMA_SurfContHelp_NodeValTblc0 \
-   "Data Values at node in focus"
+   #define SUMA_SurfContHelp_NodeValTblc0 \
+"Data values at node in focus. :term:`Intensity`, "\
+":term:`Threshold`, and :term:`Brightness` show the triplets of values "\
+" at the selected node that correspond to the dataset column choices " \
+"in :ref:`I<SurfCont->Dset_Mapping->I>`, :ref:`T<SurfCont->Dset_Mapping->T>`, and :ref:`B<SurfCont->Dset_Mapping->B>` selectors."
+   
+   
+   #define SUMA_TractContHelp_NodeValTblc0 \
+"Data values at point in focus. At the moment, :term:`Intensity`, "\
+":term:`Threshold`, and :term:`Brightness` show the RGB values for the point "\
+"selected. Eventually, they would represent the triplets of values at the point"\
+" that correspond to the dataset column choices in :term:`I`, :term:`T`,"\
+" :term:`B`."
+
+   #define SUMA_VolContHelp_NodeValTblc0 \
+"Data values at voxel in focus. :term:`Intensity`, "\
+":term:`Threshold`, and :term:`Brightness` show the triplets of values "\
+" at the selected voxel that correspond to the volume column choices " \
+"in :ref:`I<VolCont->Dset_Mapping->I>`, :ref:`T<VolCont->Dset_Mapping->T>`, and :ref:`B<VolCont->Dset_Mapping->B>` selectors."
+
 #define SUMA_SurfContHelp_GEdgeValTblc0 \
-   "Data Values at edge in focus"
+   "Data values at edge in focus"
    
 #define SUMA_SurfContHelp_NodeValTblc1 \
    "Intensity (I) value"
@@ -703,10 +742,13 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Brightness modulation (B) value"
 
 #define SUMA_SurfContHelp_NodeLabelTblr0 \
-   "Labels available the selected Dset\n" \
-   "at the node in focus.\n"   \
-   "If nothing is available, node color\n"   \
+   "Labels available at the selected datum.\n" \
+   "If nothing is available, datum color\n"   \
    "is displayed."
+
+#define SUMA_TractContHelp_NodeLabelTblr0 \
+   "Labels at selected point. For now, nothing more than a regurgitation " \
+   "of :ref:`BTP<TractCont->Xhair_Info->BTP.r00>`"
 
 #define SUMA_SurfContHelp_GEdgeLabelTblr0\
    "Color from the selected Dset\n" \
@@ -715,7 +757,9 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "is displayed."
    
 #define SUMA_SurfContHelp_DsetLblTblr0 \
-  "Label of Dset." 
+  "Label of dataset currently selected. Note that what you're viewing"\
+  "at this moment maybe a blend of multiple datasets. See "\
+  ":ref:`color mixing<ColorMixing>` for details." 
   
 #define SUMA_SurfContHelp_DsetLblTblr1 \
    "Parent surface of Dset."
@@ -726,7 +770,15 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "on top of the stack. Separate \n"  \
    ":ref:`stacks<Plane_Layering>` exist for foreground (fg:)\n" \
    "and background planes (bg:).:LR:\n"   \
-   "See :ref:`Color Mixing<ColorMixing>` for details on how colors are merged."
+   ":SPX:See :ref:`Color Mixing<ColorMixing>` for details on how colors "\
+   "are merged.:SPX:"
+
+#define SUMA_TractContHelp_DsetOrd \
+   "Order of this tract's dataset colorplane in the stack of all colorplanes available.\n"  \
+   "The datset with highest order number is \n"   \
+   "on top of the stack.\n"   \
+   ":SPX:See :ref:`color plane grouping <Color_Plane_Grouping>` for details "\
+   "on how colors are merged.:SPX:"
  
 #define SUMA_SurfContHelp_DsetAlphaThresh \
    "Alpha threshold of Dset's rendered slices.\n"  \
@@ -768,13 +820,30 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "ways, use :ref:`F7<F7>` to toggle between \n" \
    "mixing modes.\n"
    
+#define SUMA_TractContHelp_DsetOpa \
+   "Opacity of Dset's colorplane.\n"  \
+   "Opaque planes have an opacity\n"   \
+   "of 1, transparent planes have\n"  \
+   "an opacity of 0. \n"   \
+   "\n"\
+   "Opacity values are not applied\n"  \
+   "to the first plane in a group.\n"   \
+   "Consequently, if you have just\n"   \
+   "one plane to work with, or you have "\
+   ":ref:`1<TractCont->Coloring_Controls->1>` ON, \n"\
+   "the opacity  value is meaningless.\n"  \
+   "\n"  \
+   "Color mixing can be done in two \n"  \
+   "ways, use :ref:`F7<F7>` to toggle between \n" \
+   "mixing modes.\n"
+   
 #define SUMA_SurfContHelp_DsetDim  \
    "Dimming factor to apply to colormap\n" \
    "before mapping the intensity (I) data.\n" \
    "The colormap, if displayed on the right,\n"   \
    "is not visibly affected by Dim but the\n"   \
-   "colors mapped onto the surface are.\n"   \
-   "For RGB Dsets (.col files), Dim is\n" \
+   "colors mapped onto the surface, voxel grid, tracts, etc. are.\n"   \
+   "For RGB Dsets (e.g. .col files, or tract colors), Dim is\n" \
    "applied to the RGB colors directly.:LR:\n"  \
    "Decreasing Dim is useful when the colors are too saturated\n" \
    "for lighting to reflect the object terrain.\n" \
@@ -812,8 +881,35 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "'Ord:' and 'Opa:' in this panel are \n" \
    "of little use when this button is ON."
 
+#define SUMA_TractContHelp_DsetViewOne  \
+   "If ON, view only the selected\n"\
+   "Dset's colors.\n"   \
+   "\n"  \
+   "If OFF, then mix the color planes\n"  \
+   "in the datasets stack.\n"  \
+   "\n"  \
+   "This option makes it easy to view \n" \
+   "one Dset's colors at a time without\n"   \
+   "having to worry about color mixing,\n"   \
+   "opacity, and stacking order.\n" \
+   "\n"  \
+   "Needless to say, options such as\n" \
+   "'Ord:' and 'Opa:' in this panel are \n" \
+   "of little use when this button is ON."
+
 #define SUMA_SurfContHelp_DsetSwitch   \
    "Switch between datasets."
+
+#define SUMA_TractContHelp_DsetSwitch   \
+"Select the dataset to which the Coloring Controls are being applied. For now "\
+"you have three free RGB datasets per network that are created by SUMA. In the"\
+" first one each node of a tract is colored based on the local orientation, "\
+"with red, green, and blue values reflecting the X,Y, and Z components of the"\
+" unit direction vector. In the second dataset all nodes of a tract are "\
+"assigned the color of the middle node of that tract. In the third dataset, all"\
+" nodes of a tract are colored based on the bundle in which that tract"\
+" resides.The number of colors in such a dataset depend on the total number of"\
+" bundles in the entire network."
 
 #define SUMA_SurfContHelp_SetThreshTblr0   \
    "Set the threshold.\n"  \
@@ -824,10 +920,10 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "the value, such as 25%\n"
 
 #define SUMA_SurfContHelp_MasksLoad  \
-   "Load a set of masks.\n"   
+   "Load a set of masks previously saved by my neighboring button.\n"   
 
 #define SUMA_SurfContHelp_MasksSave  \
-   "Save a set of masks.\n"   
+   "Save current set of masks for future loading by my neighborly button.\n"   
    
 #define SUMA_SurfContHelp_DsetLoad  \
    "Load a new dataset (Dset).\n"   \
@@ -1248,46 +1344,131 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Range of values in brightness (B) column"
 
 #define  SUMA_SurfContHelp_MaskTypeTbl_c0 \
-   "Properties of current mask."
+   "Add one more row for a mask ROI"
            
 #define SUMA_SurfContHelp_MaskTypeTbl_c1 \
-   "Label."
+   "String label of ROI"
 
 #define SUMA_SurfContHelp_MaskTypeTbl_c05 \
-   "Variable symbol."
+   "Variable symbol. Choose from 'a' to 'z'"
 
-#define SUMA_SurfContHelp_MaskTypeTbl_c2 \
-   "Type string (box or sphere allowed)."
+   #define SUMA_SurfContHelp_MaskTypeTbl_c2 \
+"Type of mask. For the moment, this string can only be one of 'box' or 'sphere'."
 
-#define SUMA_SurfContHelp_MaskTypeTbl_c3 \
-   "Coordinate in mm RAI of the center of the mask \n"   \
-   "You can enter new coordinates or right click in cell to\n"   \
-   "get back to the original center.\n"
+   #define SUMA_SurfContHelp_MaskTypeTbl_c3 \
+"Set/Get coordinates in mm :term:`RAI` of the center of the mask :LR:\n"   \
+"You can right click in cell to get back to the original center.:LR:\n" \
+"You can also reposition the mask interactively in the SUMA viewer "\
+"by :ref:`selecting <Button_3-Press>` something, if you are in "\
+":ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>`."
    
 #define SUMA_SurfContHelp_MaskTypeTbl_c4 \
-   "Size along three dimensions of mask. Enter new values or right\n"\
-   "click in cell to get back to the original center.\n"
+"Set/Get size along three dimensions of mask. You can enter a single value "\
+"if the all three dimensions are equal. :LR:\n" \
+"Right click in cell to get back to the original size.:LR:\n" \
+"Resizing in SUMA viewer can be done with :ref:`Ctrl+scroll<Ctrl+Scroll>` "\
+"if you are in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>`.:LR:\n"\
+"You can also change values by scrolling with mouse pointer over the cell.\n" 
 
-#define SUMA_SurfContHelp_MaskTypeTbl_c5  \
-   "Color of mask.\n" 
+   #define SUMA_Switch_Cont_BHelp   \
+"Switch to controllers of other objects. You can use the arrows, or set the "\
+"controller's index directly."
 
-#define SUMA_SurfContHelp_MaskTypeTbl_c6  \
-   "Alpha of mask color.\n" 
+   #define SUMA_SurfContHelp_MaskTypeTbl_c5  \
+"Color of mask in RGB triplets between 0 and 1.0. You can also specify "\
+"colors using the shorthands of::LR:\n"\
+"   'b' or 'blue':LR:\n"   \
+"   'g' or 'green':LR:\n"  \
+"   'p' or 'pink':LR:\n"   \
+"   'r' or 'red':LR:\n" \
+"   'w' or 'white':LR:\n"  \
+"   'y' or 'yellow':LR:\n" \
+"The final color depends also on the dim factor 'D'"
 
-#define SUMA_SurfContHelp_MaskTypeTbl_c7  \
-   "Transparency of mask\n" 
+   #define SUMA_SurfContHelp_MaskTypeTbl_c6  \
+"Alpha of mask color. The Alpha value controls the contribution of an ROI's"\
+"color to the tracts that pass through it. This tinting process is only "\
+"used when 'Mask Eval' is in use, and when A is > 0. See the help for "\
+"'Mask Eval' for information on how tinting works.:LR:\n"\
+"You can also change values by scrolling with mouse pointer over the cell.\n" 
+
+   #define SUMA_SurfContHelp_MaskTypeTbl_c7  \
+"Transparency of mask. A value of 0 renders a mask opaque. Consider using "\
+"lower D values to avoid color saturation of rendered masks.:LR:\n"\
+"You can also change values by scrolling with mouse pointer over the cell.\n" 
+ 
 
 #define SUMA_SurfContHelp_MaskTypeTbl_c8  \
-   "Dimming factor of color\n" 
+   "Dimming factor for color. Saturated colors may not look nice when rendered, so consider using the D parameter to dim a color's brightness without having to so directly in the color column. Setting D to 6 for example will scale a color by a factor of 6/9, so a saturated red of [1 0 0] becomes [0.67 0 0 ]. This makes masks render better when not in transparent mode T = 0.:LR:\n"\
+"You can also change values by scrolling with mouse pointer over the cell.\n" 
 
-#define SUMA_SurfContHelp_MaskTypeTbl_r1  \
-   "Range of values in intensity (I) column."
+   #define SUMA_SurfContHelp_MaskTypeTbl_r1  \
+"Delete row of mask ROI. You have to click twice to get rid of a row, so there "\
+"is no undo for you. After the 1st click, the 'x' turn big 'X' and a new click "\
+"on big 'X' deletes the row. If you fail to click on big 'X' or simply change "\
+"your mind, the operation is canceled and big 'X' is little 'x' again. YAY!"
 
-#define SUMA_SurfContHelp_EvalMaskExpr_r0 \
-   "Masking expression."
+   #define SUMA_SurfContHelp_EvalMaskExpr_r0 \
+"A boolean expression evaluated per tract to determine whether or not a tract "\
+"should be displayed. Each mask is assigned a letter from 'a' to 'z' and has "\
+"an entry in the table below. Symbols for the OR operator are '|' or '+' "\
+"while those for AND are '&' or '*'. The '|' is for the NOT operation. By "\
+"default, the expression is blank, as indicated by '-', and the operation is "\
+"an OR of all the masks.\n\n" \
+":SPX:.. _Tract_Tinting:\n\n"\
+"Tract_Tinting:\n"\
+"..............\n\n"\
+":DEF:"\
+"Tract_Tinting:\n"\
+"..............\n"\
+":SPX:"\
+"Tracts that go through any of the masks are displayed and they keep their own color:SPX:, as shown in the figure below to the left:SPX:.\n\n"\
+"Say we now want to show tracts that go through both masks b and c or through "\
+"mask a. The expression to evaluate at each tract would be: '( b & c ) | a'. "\
+"Note that for the expression to take effect, you need to have the "\
+":ref:`v button<MaskCont->Masks->Mask_Eval->v>` selected.\n\n"\
+":SPX:\n\n"\
+"   .. figure:: media/MaskedTracts.01.jpg\n"\
+"      :align: left\n"\
+"      :figwidth: 30%\n\n"\
+"      Tracts going through any of the three masks.\n\n"\
+"   .. figure:: media/MaskedTracts.02.jpg\n"\
+"      :align: right\n"\
+"      :figwidth: 30%\n\n"\
+"      Tracts evaluating to true per expression: '( b & c ) | a'.\n\n"\
+"   .. figure:: media/MaskController.02.jpg\n"\
+"      :align: center\n"\
+"      :figwidth: 30%\n\n"\
+"      Mask Controller.\n\n"\
+SUMA_SHPINX_BREAK \
+":SPX:"  \
+"When using the the Mask Eval expression, the color of tracts that go though a set of regions is equal to the alpha weighted average of the colors of those regions.:SPX: This can be seen in the figure on the right side above.\n\n"\
+"The colors of a tract is given by:LIT:\n"\
+"   Ct = sum(AiCi)/sum(Ai)\n\n"\
+"for all ROIs i the tract intersects.\n\n"   \
+"For example, say a tract goes through a blue region of color [0 0 1] with alpha of 0.5 (A ~ 5 in column A), and a red region of color [1 0 0] (alpha is 1.0, or in the table = 9). The tracts that go through both ROIs will be colored (1.0*([1 0 0]+0.5*([0 0 1])/1.5, which is purple. Similar averaging goes on if tracts go through more than 2 regions. Tracts that go though one region will get that region's color.\n\n"\
+"Now, if you set alpha to 0 for a certain ROI, then that ROI does add to the "\
+"tint of tracts that go thourough it at all. And for a tract that goes through that region only, it retains its original colors.:SPX: See image on the right side.:SPX:\n\n"\
+":SPX:\n\n"\
+"  .. figure:: media/Masks.02.jpg\n"\
+"     :align: left\n"\
+"     :figwidth: 30%\n\n"\
+"     Tracts going through any of 2 masks 'a|b', with 'Mask Eval' ON.\n\n"\
+"  .. figure:: media/Masks.03.jpg\n"\
+"     :align: right\n"\
+"     :figwidth: 30%\n\n"\
+"     Tracts going through 'a|b' but with alpha of ROI 'a' - the blue one - set to 0. Tracts going through the blue ROI are not tinted by it at all.\n\n"\
+"  .. figure:: media/Masks.00.jpg\n"\
+"     :align: center\n"\
+"     :figwidth: 30%\n\n"\
+"     Mask Controller settings for image to the left.\n\n"\
+SUMA_SHPINX_BREAK \
+":SPX:"  \
 
-#define SUMA_SurfContHelp_DistMask_r0 \
-   "Set Min Max length for tract masking"
+   #define SUMA_SurfContHelp_DistMask_r0 \
+"Set Min Max length for tract masking. Use can scroll (mouse wheel) in Min "\
+"and Max cells to change the value. The 'v' button must be selected for "\
+"masking to take effect."
    
 #define SUMA_SurfContHelp_GDSET_ViewBundles \
    "Show bundles instead of edges between nodes if \n"\
@@ -1299,12 +1480,17 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define  SUMA_SurfContHelp_Mask  \
 "Opens controller for masks.\n" \
-"At the first click, this button creates a new interactive tract mask and activates menu items such as Gry. A ball of a mask is added to the interface, and only tracts that go through it are displayed. \n"\
-"Clicking on Masks after the initialization brings up the Mask Controller.\n"\
-":SPX:\n   .. _Mask_Manipulation_Mode:\n\n:SPX:"\
-"Mask Manipulation Mode:\n"\
-"-----------------------\n"\
-"To move the mask interactively, right-double click on it to place SUMA in 'Mask Manipulation Mode' which is indicated by displaying the moveable mask in mesh mode (see help in SUMA, (ctrl+h), section Button 3-DoubleClick for details.). Selecting a location on the tracts, the slices, or surfaces, will make the mask jump to that location. The mask should also be visibile in AFNI (if SUMA is launched with -dev option), and clicking in AFNI will make the mask move in SUMA also.\n To turn off 'Mask Manipulation Mode' right-double click in open air, or on the ball itself.\n"
+"At the first click, this button creates a new interactive tract mask and activates menu items such as :ref:`Gry<TractCont->Coloring_Controls->Gry>`. A ball of a mask is added to the interface, and only tracts that go through it are displayed. \n"\
+":SPX:"\
+"\n"\
+".. figure:: media/MaskButtonInController.jpg\n"\
+"   :align: center\n"\
+"\n"\
+"   ..\n\n"\
+":SPX:"\
+"Clicking on Masks after the initialization brings up the "\
+":ref:`Mask Controller<MaskCont>`. See :ref:`mask manipulation"\
+" mode<Mask_Manipulation_Mode>` for details on how to move the mask around.\n"
 
 /* this one's based on AFNI's func->thr_pval_label help */
 #define SUMA_SurfContHelp_ThreshStats  \
@@ -1322,5 +1508,16 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   be shown.\n"     \
    "* You can add FDR curves to a dataset\n" \
    "   with '3drefit -addFDR'.\n"   
+   
+#define SUMA_SurfContHelp_ColorBar  \
+   "Colorbar used for colorizing values in 'I' sub-brick.\n"   \
+   "Colorization depends on the settings of ...\n"  \
+   "Use ctrl+h over the colorbar for help on manipulating the displayed\n"  \
+   "map.\n"    
+   
+#define SUMA_SurfContHelp_ThrScale  \
+   "Set threshold value to determine which nodes/voxels/edges will get colored"\
+   "Voxels for which the value in the 'T' sub-brick is below that of the "\
+   "threshold will not get colored."
    
 #endif

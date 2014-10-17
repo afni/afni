@@ -345,6 +345,7 @@ if (detail > 1) {
 "                      r g b are thre flooat values between 0 and 1\n"
 "                      specifying the color of each node.\n"
 "       -view_surf_cont y/n: View surface controller\n"
+"       -masks: Equivalent of pressing 'Masks' in tract controller\n"
 "       -switch_surf S_LABEL: switch state to that of surface \n"
 "                           labeled S_LABEL and make that surface \n"
 "                           be in focus.\n"
@@ -395,6 +396,11 @@ if (detail > 1) {
 "                      keyboard shortcuts.\n"
 "       -write_mouse_keyb_sphinx_help FILE.rst: Same as -write_mouse_keyb_help\n"
 "                      , but write SPHINX formatted RST file.\n"
+"       -write_mouse_cmap_keyb_help FILE.txt: Write help output for mouse and \n"
+"                      keyboard shortcuts.\n"
+"       -write_mouse_cmap_keyb_sphinx_help FILE.rst: Same\n"
+"                      as -write_mouse_cmap_keyb_help, but write SPHINX \n"
+"                      formatted RST file.\n"
 "\n"
 "     + Example surf_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
@@ -1558,6 +1564,20 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argt[kar], "-masks") == 0))
+      {
+         NI_set_attribute(ngr, "Masks", "Click!");
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-2xmasks") == 0))
+      {
+         NI_set_attribute(ngr, "2xMasks", "Click!");
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argt[kar], "-view_surf_cont") == 0))
       {
          if (kar+1 >= argtc)
@@ -1609,6 +1629,36 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argt[kar], "-write_tract_cont_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_tract_cont_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Tract_Cont_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_tract_cont_sphinx_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_tract_cont_sphinx_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Tract_Cont_Sphinx_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argt[kar], "-write_mouse_keyb_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1634,6 +1684,36 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Mouse_Keyb_Sphinx_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_mouse_cmap_keyb_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_mouse_cmap_keyb_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Mouse_Cmap_Keyb_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_mouse_cmap_keyb_sphinx_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need filename w/ -write_mouse_cmap_keyb_sphinx_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Mouse_Cmap_Keyb_Sphinx_Help", argt[kar]);
          
          argt[kar][0] = '\0';
          brk = YUP;

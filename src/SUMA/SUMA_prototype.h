@@ -3,11 +3,16 @@
 
 /* functions that have yet to be prototyped in a particular spot */
 void SUMA_mapStateChanged(Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
+char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout);
+char * SUMA_hkcf(char *keyi, int target);
+char * SUMA_hkf(char *keyi, int target);
+char * SUMA_hkf_eng(char *keyi, int target, char *cm);
 void SUMA_help(void);
 void SUMA_help_message(FILE *Out, int targ);
+void SUMA_cmap_help_message(FILE *Out, int targ);
 char * SUMA_help_message_Info(int targ);
 char * SUMA_help_xform_dot_message_Info(void);
-char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP *Cmp);
+char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP *Cmp, int targ);
 char * SUMA_help_Plot_message_Info(void);
 char *SUMA_help_SPEC_symbolic(void);
 void SUMA_Help_open (void *p);

@@ -3611,12 +3611,9 @@ void SUMA_CreateTable(  Widget parent,
                      }
                   } else {
                      SUMA_Register_Widget_Help(TF->cells[n], wname, 
-                                                      "Hints and help messages "
-                                                      "are attached to table's "
-                                                      "column and row titles.",
-                                                      "Hints and help messages "
-                                                      "are attached to table's "
-                                                      "column and row titles.") ;
+                                                      NULL,
+                                    "Use BHelp on table's column and row titles"
+                                    "for usage information.") ;
                   }
                } 
                if (TF->cwidth[j] > 0) {  
@@ -9802,18 +9799,18 @@ void SUMA_CreateXhairWidgets_TDO(Widget parent, SUMA_ALL_DO *ado)
    char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
    char *I_tit[]=      { "Ind ", NULL };
    char *I_hint[] =    { "Point index in whole network", NULL };
-   char *I_help[] =    { "SUMA_SurfContHelp_I", NULL };
+   char *I_help[] =    { SUMA_TractContHelp_I, NULL };
    char *BTP_tit[]=    {  "BTP"   , NULL};
    char *BTP_hint[]=   {  "Bundle index in network, Tract index in bundle, "
                           "Point index in tract",
                            NULL};
    char *BTP_help[]=   {  SUMA_SurfContHelp_BTP , NULL};
    char *Data_tit[]=    {  "    ", "Intens", "Thresh", "Bright" , NULL};
-   char *Data_colhint[]=      {  "Data Values at tract point in focus", 
+   char *Data_colhint[]=      {  "Data values at tract point in focus", 
                                  "Intensity (I) value", 
                                  "Threshold (T) value", 
                                  "Brightness modulation (B) value" , NULL};
-   char *Data_colhelp[]=      {  SUMA_SurfContHelp_NodeValTblc0, 
+   char *Data_colhelp[]=      {  SUMA_TractContHelp_NodeValTblc0, 
                                  SUMA_SurfContHelp_NodeValTblc1, 
                                  SUMA_SurfContHelp_NodeValTblc2, 
                                  SUMA_SurfContHelp_NodeValTblc3 , NULL}; 
@@ -9825,8 +9822,8 @@ void SUMA_CreateXhairWidgets_TDO(Widget parent, SUMA_ALL_DO *ado)
                               SUMA_SurfContHelp_NodeValTblr0 , NULL};
    
    char *Label_tit[]=   {  "Lbl ", NULL};
-   char *Label_hint[]=  {  "Label at node in focus", NULL};
-   char *Label_help[]=  {  SUMA_SurfContHelp_NodeLabelTblr0 , NULL};
+   char *Label_hint[]=  {  "Label at selected point", NULL};
+   char *Label_help[]=  {  SUMA_TractContHelp_NodeLabelTblr0 , NULL};
    SUMA_X_SurfCont *SurfCont=NULL;
    Widget rcc, rcch;
    
@@ -9950,7 +9947,7 @@ void SUMA_CreateXhairWidgets_MDO(Widget parent, SUMA_ALL_DO *ado)
    char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
    char *I_tit[]=      { "Ind ", NULL };
    char *I_hint[] =    { "Point index in whole network", NULL };
-   char *I_help[] =    { "SUMA_SurfContHelp_I", NULL };
+   char *I_help[] =    { SUMA_TractContHelp_I, NULL };
    char *BTP_tit[]=    {  "BTP"   , NULL};
    char *BTP_hint[]=   {  "Bundle index in network, Tract index in bundle, "
                           "Point index in tract",
@@ -10103,7 +10100,7 @@ void SUMA_CreateXhairWidgets_VO(Widget parent, SUMA_ALL_DO *ado)
    char *Xhair_help[]=  {  SUMA_SurfContHelp_Xhr , NULL};
    char *I_tit[]=      { "Ind ", NULL };
    char *I_hint[] =    { "Voxel 1D index in volume", NULL };
-   char *I_help[] =    { "SUMA_SurfContHelp_I", NULL };
+   char *I_help[] =    { SUMA_VolContHelp_I, NULL };
    char *BTP_tit[]=    {  "IJK"   , NULL};
    char *BTP_hint[]=   {  "Voxel 3D indices in volume",
                            NULL};
@@ -10113,7 +10110,7 @@ void SUMA_CreateXhairWidgets_VO(Widget parent, SUMA_ALL_DO *ado)
                                  "Intensity (I) value", 
                                  "Threshold (T) value", 
                                  "Brightness modulation (B) value" , NULL};
-   char *Data_colhelp[]=      {  SUMA_SurfContHelp_NodeValTblc0, 
+   char *Data_colhelp[]=      {  SUMA_VolContHelp_NodeValTblc0, 
                                  SUMA_SurfContHelp_NodeValTblc1, 
                                  SUMA_SurfContHelp_NodeValTblc2, 
                                  SUMA_SurfContHelp_NodeValTblc3 , NULL}; 
@@ -10362,6 +10359,12 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                      XmNdragCallback, 
                      SUMA_cb_set_threshold_label, 
                      (XtPointer) ado); 
+      snprintf(wname, 63, "%s->Dset_Mapping->Cmap->scale", 
+               SUMA_do_type_2_contwname(SurfCont->do_type));
+      SUMA_Register_Widget_Help(SurfCont->thr_sc ,
+                                wname,
+                                "Set the threshold for 'T' values",
+                                SUMA_SurfContHelp_ThrScale);
       
       /* put a string for the pvalue */
       sprintf(slabel,"p [N/A]\nq [N/A]");
@@ -10373,7 +10376,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                           XmNinitialResourcesPersistent, False ,
                                           NULL);
       
-      snprintf(wname, 63, "%s->Cmap->Thr", 
+      snprintf(wname, 63, "%s->Dset_Mapping->Cmap->Thr", 
                SUMA_do_type_2_contwname(SurfCont->do_type));
       SUMA_Register_Widget_Help(SurfCont->thrstat_lb ,
                                 wname,
@@ -10430,6 +10433,12 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                        XmNheight,  SUMA_CMAP_HEIGHT,
                                        NULL);
       #endif
+      snprintf(wname, 63, "%s->Dset_Mapping->Cmap->bar", 
+               SUMA_do_type_2_contwname(SurfCont->do_type));
+      SUMA_Register_Widget_Help(SurfCont->cmp_ren->cmap_wid ,
+                                wname,
+                                "Colorbar for 'I' values",
+                                SUMA_SurfContHelp_ColorBar);
       XtManageChild (rcc2);
       
       SUMA_LH("Callbacks on glxarea");

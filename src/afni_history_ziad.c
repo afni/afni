@@ -66,6 +66,12 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 15, Oct, 2014, ZSS, "imcat", MINOR, TYPE_NEW_OPT,
+   "Added -respad_in, -gscale, and -pad_val options",
+   "Proces involved modifications to mri_read_resamp_many_files(),\n"
+   "mri_zeropad_2D(), and a new mri_valpad_2D(). See imcat -help for details."
+ },
+ 
  { 10, Oct, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added directions and point clouds as DOs",
    "See interactive help for #directions, #points"
