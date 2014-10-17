@@ -2190,6 +2190,12 @@ typedef struct {
   mat44 iwarp ;
 } mat44_pair ;
 
+typedef struct {      /* 17 Oct 2014 */
+  int ncat , nvar ;
+  THD_3dim_dataset **nwarp ;
+  MRI_IMAGE        **awarp ;
+} NwarpCatList ;
+
 extern IndexWarp3D * IW3D_create( int nx , int ny , int nz ) ;
 extern void IW3D_destroy( IndexWarp3D *AA ) ;
 extern float IW3D_normL1  ( IndexWarp3D *AA , IndexWarp3D *BB ) ;
