@@ -65,6 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+
+ { 17, Oct, 2014, ZSS, "suma", MAJOR, TYPE_GENERAL,
+   "Modifications for help generating functions",
+   "New tools allow for automatic Sphinx formatted documentation straight \n"
+   "from BHelp buttons. Added scrolling to arrow fields."
+ },
+ 
+ { 17, Oct, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
+   "Added -load_masks, -save_masks, and -masks for driving tract controller",
+   "Options help in creating all GUI help and herald the automation of the \n"
+   "tract and tract masking controller."
+ },
+ 
+ { 17, Oct, 2014, ZSS, "afni-general", MAJOR, TYPE_GENERAL,
+   "Checked in first pass of SUMA sphinx documentation",
+   "GUI documentaiton is automatically generated from BHelp text."
+ },
  
  { 15, Oct, 2014, ZSS, "imcat", MINOR, TYPE_NEW_OPT,
    "Added -respad_in, -gscale, and -pad_val options",

@@ -66,6 +66,17 @@ static char uDS_surf_cont[]={
 "                      -view_surf_cont n -I_range -0.05 0.14\n"
 "       DriveSuma -com surf_cont -load_cmap bbr.1D.cmap\n"
 };
+
+static char uDS_tract_cont[]={
+"       #This uses one of the tract files output by FATCAT's demo.\n"
+"       #and some tracts mask called triplets.niml.do\n"
+"\n"
+"       suma -tract DTI/o.NETS_OR_000.niml.tract &\n"
+"       DriveSuma -com object_cont -view_object_cont y          \\\n"
+"                 -com object_cont -2xmasks                     \\\n"
+"                 -com object_cont -delete_all_masks            \\\n"
+"                 -com object_cont -load_masks triplets.niml.mo   \n"
+};
 static char uDS_kill_suma[]={
                "       DriveSuma -com kill_suma\n"
 };
@@ -324,7 +335,10 @@ if (detail > 1) {
 "       -------------------------------------\n"
 "%s"
 "\n"                            
+" o object_cont: Apply settings to object controller.\n"
 " o surf_cont: Apply settings to surface controller.\n"
+"     Note that for most cases, the use of object_cont and surf_cont is\n"
+"     interchangeable.\n"
 "     + Optional parameters for action surf_cont:\n"
 "       (Parameter names reflect GUI labels.)\n"  
 "       -surf_label S_LABEL: A label to identify the target surface\n"
@@ -345,7 +359,12 @@ if (detail > 1) {
 "                      r g b are thre flooat values between 0 and 1\n"
 "                      specifying the color of each node.\n"
 "       -view_surf_cont y/n: View surface controller\n"
+"       -view_object_cont y/n: View object controller\n"
 "       -masks: Equivalent of pressing 'Masks' in tract controller\n"
+"       -2xmasks: Equivalent of pressing 'Masks' twice in tract controller\n"
+"       -delete_all_masks: Well, delete all the masks.\n"
+"       -load_masks: Equivalent of pressing 'Load Masks' in masks controller\n"
+"       -save_masks: Equivalent of pressing 'Save Masks' in masks controller\n"
 "       -switch_surf S_LABEL: switch state to that of surface \n"
 "                           labeled S_LABEL and make that surface \n"
 "                           be in focus.\n"
@@ -408,6 +427,10 @@ if (detail > 1) {
 "       --------------------------------\n"
 "%s"
 "\n"
+"     + Example for loading masks onto tracts\n"
+"       -------------------------------------\n"
+"%s"
+"\n"
 " o kill_suma: Close suma and quit.\n"
 "\n"
 "Advice:\n"
@@ -463,6 +486,7 @@ if (detail > 1) {
 "%s"
 "\n"
                , uDS_viewer_cont, uDS_recorder_cont, uDS_surf_cont, 
+                 uDS_tract_cont,
       (detail> 1) ? sio:"use -help for I/O detail\n",  
       (detail> 1) ? s:"use -help for misc. help basics\n");
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
@@ -531,11 +555,21 @@ int SUMA_ProcessCommand(char *com, SUMA_COMM_STRUCT *cs, char *EchoNel)
       }
       if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
       NI_free_element(ngr); ngr = NULL;
-   }else if (strcmp((act), "surf_cont") == 0) {
+   } else if (strcmp((act), "surf_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }
       SUMA_LH("Sending SetSurfCont to suma");
+      if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      if (EchoNel) NEL_WRITE_TX(ngr, EchoNel, suc);
+      NI_free_element(ngr); ngr = NULL; 
+   } else if (strcmp((act), "object_cont") == 0) {
+      if (!(ngr = SUMA_ComToNgr(com, act))) {
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+      }
+      SUMA_LH("Sending SetObjectCont to suma");
       if (!SUMA_SendToSuma (SO, cs, (void *)ngr,SUMA_ENGINE_INSTRUCTION, 1)){
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
@@ -1578,7 +1612,43 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argt[kar], "-view_surf_cont") == 0))
+      if (!brk && (strcmp(argt[kar], "-delete_all_masks") == 0))
+      {
+         NI_set_attribute(ngr, "Delete_All_Masks", "Click!");
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-load_masks") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR,
+                     "need a tract masks filename with -Load_Masks \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "Load_Masks", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-save_masks") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR,
+                     "need a tract masks filename with -Save_Masks \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "Save_Masks", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ((strcmp(argt[kar], "-view_surf_cont") == 0) ||
+                   (strcmp(argt[kar], "-view_object_cont") == 0)) )
       {
          if (kar+1 >= argtc)
          {

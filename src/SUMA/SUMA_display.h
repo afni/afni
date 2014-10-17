@@ -837,6 +837,7 @@ SUMA_Boolean SUMA_ModifyTable(SUMA_TABLE_FIELD *TF, int Nrows);
 void SUMA_delete_mask_timeout_CB( XtPointer client_data , XtIntervalId * id);
 void SUMA_cb_Mask_Delete(Widget wcall, XtPointer cd1, XtPointer cbs);
 SUMA_Boolean SUMA_DeleteMask(char *ado_id);
+SUMA_Boolean SUMA_DeleteAllMasks(char *labeled, SUMA_DO *dov, int N_dov);
 SUMA_MaskDO * SUMA_findanyMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
 SUMA_MaskDO * SUMA_findanyMDOp(int *dov_id);
 DList *SUMA_AssembleMasksList(int withShadow);

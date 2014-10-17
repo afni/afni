@@ -919,8 +919,10 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "For percentile thresholding, append a '%' to\n"\
    "the value, such as 25%\n"
 
-#define SUMA_SurfContHelp_MasksLoad  \
-   "Load a set of masks previously saved by my neighboring button.\n"   
+   #define SUMA_SurfContHelp_MasksLoad  \
+"Load a set of masks previously saved by my neighboring button. The save "\
+"operation also preserves the :ref:`Mask Eval<MaskCont->Masks->Mask_Eval> "\
+"expression.:LR:\nReloading a mask file will replace current masks."
 
 #define SUMA_SurfContHelp_MasksSave  \
    "Save current set of masks for future loading by my neighborly button.\n"   
