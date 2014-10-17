@@ -3739,6 +3739,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             break;
             
+         case SE_SetObjectCont:
          case SE_SetSurfCont:
             /* expects a ngr and ADO in vp */
             if (  EngineData->ngr_Dest != NextComCode || 
@@ -4324,6 +4325,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (NI_get_attribute(EngineData->ngr,"Masks")) {
                SUMA_cb_Mask(NULL, ado, sv);
             }
+            
             if (NI_get_attribute(EngineData->ngr,"2xMasks")) {
                SUMA_cb_Mask(NULL, ado, sv);
                SUMA_cb_Mask(NULL, ado, sv);
@@ -4407,6 +4409,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             }
 
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                         "Delete_All_Masks"))) {
+               SUMA_DeleteAllMasks(NULL, NULL, 0);
+            }
+            
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                         "Load_Masks"))) {
+               SUMA_LoadMultiMasks(cbuf, NULL);
+            }
+            
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                         "Save_Masks"))) {
+               SUMA_SaveMultiMasks(cbuf, NULL);
+            }
+            
             break;
             
          case SE_SetViewerCont:
@@ -5038,6 +5055,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SurfCont = SUMA_ADO_Cont(ado);
    /* OK, now, switch on that command and create the Engine structure */
    switch (cc) {
+       case SE_niSetObjectCont:
        case SE_niSetSurfCont:
          if (!SurfCont) {
             SUMA_S_Err( "Unexpected NULL SurfCont\n"

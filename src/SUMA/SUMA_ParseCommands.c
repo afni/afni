@@ -257,6 +257,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"load_dset")) SUMA_RETURN(SE_OpenDsetFile);  
    if (!strcmp(Scom,"load_col")) SUMA_RETURN(SE_OpenColFile);  
    if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_SetSurfCont);
+   if (!strcmp(Scom,"object_cont")) SUMA_RETURN(SE_SetObjectCont);
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_SetViewerCont);
    if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_SetRecorderCont);
    if (!strcmp(Scom,"SetDsetViewMode")) SUMA_RETURN(SE_SetDsetViewMode);
@@ -289,6 +290,7 @@ SUMA_NI_COMMAND_CODE SUMA_niCommandCode(char *Scom)
    
    /*fprintf(stdout,"Looking for %s\n", Scom);*/
    if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_niSetSurfCont);
+   if (!strcmp(Scom,"object_cont")) SUMA_RETURN(SE_niSetObjectCont);
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_niSetViewerCont);
    if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_niSetRecorderCont);
    if (!strcmp(Scom,"kill_suma")) SUMA_RETURN(SE_niKillSuma);
@@ -515,6 +517,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("load_dset"); 
       case SE_SetSurfCont:
          SUMA_RETURN("surf_cont"); 
+      case SE_SetObjectCont:
+         SUMA_RETURN("object_cont"); 
       case SE_SetViewerCont:
          SUMA_RETURN("viewer_cont"); 
       case SE_SetRecorderCont:
@@ -558,6 +562,8 @@ const char *SUMA_niCommandString (SUMA_NI_COMMAND_CODE code)
          SUMA_RETURN("Empty");
       case SE_niSetSurfCont:
          SUMA_RETURN("surf_cont"); 
+      case SE_niSetObjectCont:
+         SUMA_RETURN("object_cont"); 
       case SE_niSetViewerCont:
          SUMA_RETURN("viewer_cont");
       case SE_niSetRecorderCont:
