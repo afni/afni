@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Oct, 2014, RCR, "imcat", MINOR, TYPE_BUG_FIX,
+   "z and r: fixed y-padding",
+   NULL
+ } ,
+
  { 16, Oct, 2014, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added sort_methods: none, acq_time, default, num_suffix, zposn",
    NULL
