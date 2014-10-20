@@ -72,7 +72,12 @@
           "They created a specific affine transform for this to and from TLRC"
 ></TEMPLATE_SPACE>
 
- 
+<TEMPLATE_SPACE
+  space_name="HaskinsPeds"
+  generic_space="HaskinsPeds"
+  comment="Aligned to Haskins Pediatric Template"
+></TEMPLATE_SPACE>
+
 
 #**********Atlas transformations****************
 # *****tlrc type spaces to and from generic TLRC
@@ -346,6 +351,22 @@
 >
 </XFORM>
 
+
+<XFORM
+  ni_type="12*float"
+  ni_dimen="1"
+  xform_name="HaskinsPeds::MNI"
+  source="HaskinsPeds"
+  dest="MNI"
+  comment="Affine Transform"
+  xform_type="Affine" >
+      1.06288  -0.000580174    0.00371916      -1.21725
+  -0.00296935       1.03773   -0.00969077      0.445977
+ -0.000604645   -0.00660926       1.13005      -3.24892
+>
+</XFORM>
+
+
 #*******Atlas datasets ************************
 # list of atlas datasets
 # these are not templates. They contain segmentation
@@ -517,6 +538,21 @@
    comment="Smoothed maximum maps masked by unsmoothed maximum map"
 ></ATLAS>
 
+<ATLAS
+ atlas_name="Haskins_Pediatric_Affine_1.0"
+ dset_name="HaskinsPeds_aff_atlas1.0+tlrc.HEAD"
+ template_space="HaskinsPeds"
+ description="Version 1.0"
+ comment="Haskins Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+></ATLAS>
+
+<ATLAS
+ atlas_name="Haskins_Pediatric_Nonlinear_1.0"
+ dset_name="HaskinsPeds_NL_atlas1.0+tlrc.HEAD"
+ template_space="HaskinsPeds"
+ description="Version 1.0"
+ comment="Haskins Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+></ATLAS>
 
 #*******Template datasets ************************
 # list of template datasets
@@ -619,5 +655,16 @@
    template_space="MNI_ANAT"
 ></TEMPLATE>
 
+<TEMPLATE
+   template_name="HaskinsPeds_NL_template1.0+tlrc"
+   template_space="HaskinsPeds"
+   comment="Haskins Pediatric Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="HaskinsPeds_aff_template1.0+tlrc"
+   template_space="HaskinsPeds"
+   comment="Haskins Pediatric Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+></TEMPLATE>
 
 #**********************************************
