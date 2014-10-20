@@ -54,7 +54,7 @@ The script will download and install the data into a directory called *FATCAT_DE
 
 .. _Do_PostTORTOISE_2014.tcsh:
 
-In the meanwhile, we trust you will read the README file and go over the comments in each of the scripts that provide context to the different commands used.
+In the meanwhile we trust you will read the README file and go over the comments in each of the scripts that provide context to the different commands used.
 
 .. _Do_06_VISdti_SUMA_visual_ex1.tcsh:
 
