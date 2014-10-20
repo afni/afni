@@ -6,9 +6,9 @@ FATCAT Demo:
 
 FATCAT Demo contains a set of diffusion weighted data and scripts to analyze them. The scripts are intended to illustrate the various tools of the FATCAT toolbox and some of the ways to visualize the results. 
 
-To install FATCAT_Demo, simply run::
+To install FATCAT_DEMO, simply run::
 
-   @Install_FATCAT_Demo
+   @Install_FATCAT_DEMO
    
 The script will download and install the data into a directory called *FATCAT_DEMO/* . In there you will find a README file and a set of Do_* scripts that are meant to be run sequencially. If you would prefer to run all the scripts in one swell foop, just do::
 
@@ -73,27 +73,27 @@ In the meanwhile, we trust you will read the README file and go over the comment
 .. figure:: media/Do_09_vis2.1.jpg
    :align: center
    
-..
-
+   ..
+   
 .. figure:: media/Do_09_vis2.2.jpg
    :align: center
    
-..
+   ..
 
 .. figure:: media/Do_09_vis2.3.jpg
    :align: center
    
-..
+   ..
 
 .. figure:: media/Do_09_vis2.4.jpg
    :align: center
    
-..
+   ..
 
 .. figure:: media/Do_09_vis2.5.jpg
    :align: center
    
-..
+   ..
 
 
 .. _Do_09_VISdti_SUMA_visual_ex3.tcsh:
