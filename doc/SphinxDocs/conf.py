@@ -46,8 +46,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'SUMA'
-copyright = u'2014, Ziad S. Saad'
+project = u'AFNI'
+copyright = u'Public Domain'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

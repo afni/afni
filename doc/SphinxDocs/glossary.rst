@@ -25,7 +25,7 @@ Glossary:
       {i,j,k} indices of datum in 3 dimensional array representing data or object. {i,j,k} triplets are mostly used for notational clarity, it is often the case that a 1D array is used to store and access array elements. 
       
    bundle
-      A collection of tracts, in a network.
+      A collection of tracts, in a network. Usually a bundle defines all tracts between a pair of target ROIs.
    
    network
       A collection of bundles of tracts.
