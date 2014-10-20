@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 20 , OCT, 2014 , DRG , "Haskins Pediatric templates and atlases" , 
+    MAJOR , TYPE_GENERAL, 
+    "Nonlinear and affine versions of Haskins Pediatric templates and atlases",
+    "New templates with matching segmentation atlases are provided for\n"
+    "pediatric subjects, ages 8-12"
+} ,
+
 { 17 , SEP, 2014 , DRG , "MNI nonlinear templates" , 
     MINOR , TYPE_MODIFY, 
     "Nonlinear version of MNI-152 template in distribution",
