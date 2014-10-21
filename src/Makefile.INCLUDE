@@ -352,6 +352,9 @@ imaver:imaver.o
 impsd:impsd.o
 	$(CC) -o impsd impsd.o $(LFLAGS) $(LLIBS)
 
+im_to_mov:im_to_mov.o
+	$(CC) -o im_to_mov im_to_mov.o $(LFLAGS) $(LLIBS)
+
 zfuntest:zfuntest.o
 	$(CC) -o zfuntest zfuntest.o $(LFLAGS) $(LLIBS)
 
