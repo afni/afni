@@ -1543,6 +1543,7 @@ void AFNI_sigfunc_alrm(int sig)
      "When the sky falls, hold up your hands"                        ,
      "If you can't bite, don't show your teeth"                      ,
      "Three statisticians ==> Four opinions on data analysis"        ,
+     "A fool and his p-value are soon non-replicated"                ,
 
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
      "For every simple problem there is an answer that is murky, complex, and wrong"  ,
