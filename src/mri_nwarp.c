@@ -5180,7 +5180,7 @@ ENTRY("THD_nwarp_dataset") ;
      char *cpt ;
      prefix = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
      strcpy( prefix , DSET_PREFIX(dset_src) ) ;
-     cpt = strstr(prefix,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
+     cpt = strcasestr(prefix,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
      strcat( prefix , "_nwarp" ) ; if( cpt != NULL ) strcat(prefix,".nii") ;
    }
 
@@ -5295,7 +5295,7 @@ ENTRY("THD_nwarp_dataset") ;
        jp = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,1) ) ;
        kp = MRI_FLOAT_PTR( IMARR_SUBIM(im_src,2) ) ;
      }
-     if( verb_nww && iv == 0 ) fprintf(stderr,"Warping dataset: ") ;
+     if( verb_nww && iv == 0 ) fprintf(stderr,"++ Warping dataset: ") ;
      THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
      if( MRI_HIGHORDER(dincode) ){ /* clipping */
        double_pair fmm = mri_minmax(fim) ;
@@ -5315,6 +5315,213 @@ ENTRY("THD_nwarp_dataset") ;
    if( im_src     != NULL ) DESTROY_IMARR(im_src) ;
    DSET_unload(dset_src) ;
    if( verb_nww ) fprintf(stderr,"\n") ;
+   RETURN(dset_out) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Warp a dataset dset_src using the Nwarp_catlist nwc to control the
+   displacements, patterning the output after dset_mast.  [21 Oct 2014]
+*//*--------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_nwarp_dataset_NEW( Nwarp_catlist    *nwc       ,
+                                          THD_3dim_dataset *dset_src  ,
+                                          THD_3dim_dataset *dset_mast ,
+                                          char *prefix, int wincode, int dincode,
+                                          float dxyz_mast, float wfac, int nvlim )
+{
+   MRI_IMARR *imar_nwarp=NULL , *imar_src=NULL ;
+   mat44 src_cmat, nwarp_cmat, mast_cmat , amat ;
+   THD_3dim_dataset *dset_out=NULL , *dset_qwarp=NULL , *dset_nwarp=NULL ;
+   MRI_IMAGE *fim=NULL , *wim=NULL ; float *ip=NULL,*jp=NULL,*kp=NULL ;
+   int nx,ny,nz,nxyz , nvals , kk,iv , next ;
+   int vp , reuse=0 ;
+
+ENTRY("THD_nwarp_dataset_NEW") ;
+
+   /*-------- check inputs to see if the user is completely demented ---------*/
+
+   if( nwc == NULL || dset_src == NULL ) RETURN(NULL) ;
+
+#if 0
+   if( nwc->ncat == 1 ){
+     dset_nwarp = NWC_nwarp(nwc,0) ;
+     dset_out   = THD_nwarp_dataset( dset_nwarp, dset_src, dset_mast,
+                                     prefix, wincode, dincode,
+                                     dxyz_mast, wfac, nvlim, NULL ) ;
+     RETURN(dset_out) ;
+   }
+#endif
+
+   /* some elementary setup stuff */
+
+   DSET_load(dset_src) ; if( !DSET_LOADED(dset_src) ) RETURN(NULL) ;
+
+   nvals = DSET_NVALS(dset_src) ; if( nvals > nvlim && nvlim > 0 ) nvals = nvlim ;
+
+   if( dset_mast == NULL ) dset_mast = dset_src ;  /* default master */
+
+   if( prefix == NULL || *prefix == '\0' ){ /* fake up a prefix */
+     char *cpt ;
+     prefix = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
+     strcpy( prefix , DSET_PREFIX(dset_src) ) ;
+     cpt = strcasestr(prefix,".nii") ; if( cpt != NULL ) *cpt = '\0' ;
+     strcat( prefix , "_Nwarp" ) ; if( cpt != NULL ) strcat(prefix,".nii") ;
+   }
+
+   /*----- for creating warps and dataset sub-bricks -----*/
+
+   next = (int)AFNI_numenv("AFNI_NWARP_EXTEND") ;  /* 18 Aug 2014 */
+   if( next < 32 ) next = 32 ;   /* warp extension, just for luck */
+
+   if( !ISVALID_MAT44(dset_src->daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44(dset_src->daxes) ;
+   src_cmat = dset_src->daxes->ijk_to_dicom ;  /* source coordinate matrix */
+
+   if( dxyz_mast > 0.0f ){  /* if altering output grid spacings */
+     THD_3dim_dataset *qset ; double dxyz = (double)dxyz_mast ;
+     qset = r_new_resam_dset( dset_mast , NULL ,
+                              dxyz,dxyz,dxyz ,
+                              NULL , RESAM_NN_TYPE , NULL , 0 , 0) ;
+     if( qset != NULL ){
+       dset_mast = qset ;
+       THD_daxes_to_mat44(dset_mast->daxes) ;
+     }
+   }
+
+   if( !ISVALID_MAT44(dset_mast->daxes->ijk_to_dicom) ) /* make sure have */
+     THD_daxes_to_mat44(dset_mast->daxes) ;      /* index-to-DICOM matrix */
+   mast_cmat = dset_mast->daxes->ijk_to_dicom ;  /* master coordinate matrix */
+
+   LOAD_IDENT_MAT44(amat) ;  /* not actually used in this function */
+
+   /*--- create output dataset header and patch it up ---*/
+
+   dset_out = EDIT_empty_copy( dset_mast ) ;
+   EDIT_dset_items( dset_out ,
+                      ADN_prefix    , prefix ,
+                      ADN_nvals     , nvals ,
+                      ADN_datum_all , MRI_float ,
+                    ADN_none ) ;
+   if( DSET_NUM_TIMES(dset_src) > 1 && nvals > 1 )
+     EDIT_dset_items( dset_out ,
+                        ADN_ntt   , nvals ,
+                        ADN_ttdel , DSET_TR(dset_src) ,
+                        ADN_tunits, UNITS_SEC_TYPE ,
+                        ADN_nsl   , 0 ,
+                      ADN_none ) ;
+   else
+     EDIT_dset_items( dset_out ,
+                        ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
+                                                         : FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+
+   /* copy brick info into output (e.g., preserve sub-brick labels) */
+
+   THD_copy_datablock_auxdata( dset_src->dblk , dset_out->dblk ) ;
+   for( kk=0 ; kk < nvals ; kk++ )
+     EDIT_BRICK_FACTOR(dset_out,kk,0.0) ;
+
+   THD_daxes_to_mat44(dset_out->daxes) ;           /* save coord transforms */
+
+   nx = DSET_NX(dset_out) ;  /* 3D grid sizes */
+   ny = DSET_NY(dset_out) ;
+   nz = DSET_NZ(dset_out) ; nxyz = nx*ny*nz ;
+
+   vp = 1 + (nvals/50) ;              /* how often to print a '.' progress meter */
+   if( verb_nww ) fprintf(stderr,"++ Warping dataset: ") ;  /* start progress meter */
+
+   /****** Loop over output sub-bricks,
+           create the warp dataset for that 'time' index, then apply it *****/
+
+   for( iv=0 ; iv < nvals ; iv++ ){
+
+     /*--- create the warp dataset into dset_qwarp (if needed) ----*/
+
+     if( iv < nwc->nvar ){        /* don't do duplicates if past */
+                                  /* end of 'time' inside nwc */
+       /*** toss the old warps */
+       DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
+       DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
+       /*** get the iv-th warp from the list, and pad it */
+       dset_nwarp = IW3D_from_nwarp_catlist( nwc , iv ) ; /* get the iv-th warp */
+       if( dset_nwarp == NULL ){  /* should never happen */
+         ERROR_message("Can't acquire nwarp dataset #%d ?!?",iv); RETURN(NULL) ;
+       }
+       dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
+       if( dset_qwarp == NULL ){  /* should never happen */
+         ERROR_message("Can't extend nwarp dataset #%d ?!?",iv) ; RETURN(NULL) ;
+       }
+       if( !ISVALID_MAT44(dset_qwarp->daxes->ijk_to_dicom) )
+         THD_daxes_to_mat44(dset_qwarp->daxes) ;
+       nwarp_cmat = dset_qwarp->daxes->ijk_to_dicom ; /* coordinates of warp */
+
+       /* create warping indexes from warp dataset */
+
+       INIT_IMARR(imar_nwarp) ;
+       fim = THD_extract_float_brick(0,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
+       fim = THD_extract_float_brick(1,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
+       fim = THD_extract_float_brick(2,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
+
+       /* the actual work of setting up the warp for this sub-brick */
+
+       imar_src = THD_setup_nwarp( imar_nwarp, 0,amat ,
+                                   nwarp_cmat, wincode , wfac ,
+                                   src_cmat , mast_cmat , nx , ny , nz ) ;
+
+       ip = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,0) ) ;  /* warped indexes, */
+       jp = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,1) ) ;  /* for interpolation */
+       kp = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,2) ) ;  /* of dataset values */
+
+       if( iv == 0 )  /* save the warped space label, if present */
+         MCW_strncpy( dset_out->atlas_space , dset_nwarp->atlas_space , THD_MAX_NAME ) ;
+
+     } else if( !reuse & verb_nww ){
+       reuse = 1 ; fprintf(stderr,"[R]") ;  /* flag that re-use has started */
+     }
+
+     /*----- warp this iv-th sub-brick of the input -----*/
+
+#if 0
+ININFO_message("extract source image") ;
+#endif
+     fim = THD_extract_float_brick(iv,dset_src) ; DSET_unload_one(dset_src,iv) ;
+     wim = mri_new_vol(nx,ny,nz,MRI_float) ;
+
+#if 0
+ININFO_message("do the warp interp") ;
+#endif
+     /*** the actual warping is done in the function below! ***/
+     THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
+
+     if( MRI_HIGHORDER(dincode) ){ /* clipping output values */
+       double_pair fmm = mri_minmax(fim) ;
+       float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
+       float *war=MRI_FLOAT_PTR(wim) ;
+       for( qq=0 ; qq < wim->nvox ; qq++ ){
+         if( war[qq] < fb ) war[qq] = fb ; else if( war[qq] > ft ) war[qq] = ft ;
+       }
+     }
+#if 0
+ININFO_message("add to output dataset") ;
+#endif
+     EDIT_substitute_brick( dset_out , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
+     mri_clear_and_free(wim) ;  /* clear and free won't delete the data, just the shell */
+     mri_free(fim) ;            /* this, on the other hand, is totally destroyed */
+
+     if( verb_nww && iv%vp == 0 ) fprintf(stderr,".") ;  /* progress meter */
+
+   } /*--- end of loop over output sub-bricks */
+
+#if 0
+INFO_message("delete final warps") ;
+#endif
+   /* toss the final warps */
+   DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
+   DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
+   DSET_unload(dset_src) ;
+
+   if( verb_nww ) fprintf(stderr,"!\n") ;  /* end of progress */
+
    RETURN(dset_out) ;
 }
 
@@ -5716,8 +5923,9 @@ ENTRY("NwarpCalcRPN") ;
 
 static int          CW_nwtop=0 ;
 static IndexWarp3D *CW_iwarp[CW_NMAX] ;
-static float        CW_iwfac[CW_NMAX] ;
+static float        CW_iwfac[CW_NMAX] ;  /* always 1.0 at present */
 static mat44       *CW_awarp[CW_NMAX] ;
+static mat44_vec   *CW_vwarp[CW_NMAX] ;
 static int CW_nx=0,CW_ny=0,CW_nz=0 ; static char *CW_geomstring=NULL ;
 static mat44 CW_cmat , CW_imat ;
 
@@ -5742,12 +5950,15 @@ static void CW_clear_data(void)
 {
    int ii ;
    for( ii=0 ; ii < CW_NMAX ; ii++ ){
-     CW_iwfac[ii] = 1.0f ;
+     CW_iwfac[ii] = 1.0f ;          /* usage is '#if 0'-ed out at present */
      if( CW_iwarp[ii] != NULL ){
        IW3D_destroy(CW_iwarp[ii]) ; CW_iwarp[ii] = NULL ;
      }
      if( CW_awarp[ii] != NULL ){
        free(CW_awarp[ii]) ; CW_awarp[ii] = NULL ;
+     }
+     if( CW_vwarp[ii] != NULL ){
+       DESTROY_mat44_vec(CW_vwarp[ii]) ; CW_vwarp[ii] = NULL ;
      }
    }
    CW_nwtop = CW_nx = CW_ny = CW_nz = 0.0f ;
@@ -5766,14 +5977,17 @@ static void CW_clear_data(void)
 
 /*----------------------------------------------------------------------------*/
 
-static mat44 CW_read_affine_warp( char *cp )
+static mat44_vec * CW_read_affine_warp( char *cp )
 {
-   mat44 mmm ; MRI_IMAGE *qim ; float *qar ; char *wp ;
-   int do_inv=0 , do_sqrt=0 , ii ;
+   mat44 mmm ; mat44_vec *mvv=NULL ;
+   MRI_IMAGE *qim ; float *qar, *tar ; char *wp ;
+   int do_inv=0 , do_sqrt=0 , ii , nmat ;
 
 ENTRY("CW_read_affine_warp") ;
 
-   LOAD_IDENT_MAT44(mmm) ;
+#if 0
+INFO_message("Enter CW_read_affine_warp( %s )",cp) ;
+#endif
 
    if( strncasecmp(cp,"INV(",4) == 0 ){                 /* set inversion flag */
      cp += 4 ; do_inv = 1 ;
@@ -5789,36 +6003,64 @@ ENTRY("CW_read_affine_warp") ;
    wp = strdup(cp) ; ii = strlen(wp) ;
    if( ii < 4 ){
      ERROR_message("input filename '%s' to CW_read_affine_warp is too short :-((") ;
-     free(wp) ; RETURN(mmm) ;
+     free(wp) ; RETURN(mvv) ;
    }
    if( wp[ii-1] == ')' ) wp[ii-1] = '\0' ;
 
    qim = mri_read_1D(wp) ;
-   if( qim == NULL || qim->nvox < 9 ){
-     ERROR_message("cannot read matrix from file '%s'",wp); free(wp); RETURN(mmm);
+
+   /* bad data? */
+
+   if( qim == NULL || qim->nvox < 12 ){
+     ERROR_message("Cannot read affine warp from file '%s'",wp); free(wp); RETURN(mvv);
    }
-   if( qim->nx < 12 && qim->ny > 1 ){
-     MRI_IMAGE *tim = mri_transpose(qim) ; mri_free(qim) ; qim = tim ;
+
+   if( qim->nx == 3 && qim->ny == 4 ){        /* single matrix in 3x4 'Xat.1D' format? */
+     MRI_IMAGE *tim = mri_rowmajorize_1D(qim); mri_free(qim); qim = tim; /* make it 12x1 */
+   } else {
+     MRI_IMAGE *tim ;
+     if( qim->ny != 12 ){
+       ERROR_message("Affine warp file '%s': have %d, not 12, values per row",wp,qim->ny) ;
+       free(wp) ; RETURN(mvv) ;
+     }
+     tim = mri_transpose(qim) ; mri_free(qim) ; qim = tim ;  /* flip to column major order */
    }
+
+   if( qim->nx != 12 ){
+     ERROR_message("CW_read_affine_warp: nx == %d != 12 (this message should never happen!)",qim->nx) ;
+     free(wp); RETURN(mvv);
+   }
+
+   /* at this point, qim->nx = 12, and qim->ny = number of matrices */
+
+   nmat = qim->ny ;
+   mvv  = (mat44_vec *)malloc(sizeof(mat44_vec)) ;
+   mvv->nmar = nmat ;
+   mvv->mar  = (mat44 *)malloc(sizeof(mat44)*nmat) ;
+
    qar = MRI_FLOAT_PTR(qim) ;
-   if( qim->nvox < 12 )                           /* presumably a rotation */
-     LOAD_MAT44(mmm,qar[0],qar[1],qar[2],0,
-                    qar[3],qar[4],qar[5],0,
-                    qar[6],qar[7],qar[8],0) ;
-   else                                           /* a full matrix */
-     LOAD_MAT44(mmm,qar[0],qar[1],qar[2],qar[3],
-                    qar[4],qar[5],qar[6],qar[7],
-                    qar[8],qar[9],qar[10],qar[11]) ;
+   for( ii=0 ; ii < nmat ; ii++ ){
+     tar = qar + ii*12 ;
+     LOAD_MAT44(mmm,tar[0],tar[1],tar[2] ,tar[3],
+                    tar[4],tar[5],tar[6] ,tar[7],
+                    tar[8],tar[9],tar[10],tar[11]) ;
+
+     if( do_inv  ){ mat44 imm=MAT44_INV(mmm)     ; mmm=imm; } /* invert */
+     if( do_sqrt ){ mat44 smm=THD_mat44_sqrt(mmm); mmm=smm; } /* sqrt */
+
+     mvv->mar[ii] = mmm ;
+   }
+
+#if 0
+ININFO_message("output Matrix[%d]",nmat) ;
+#endif
+
    mri_free(qim) ; free(wp) ;
-
-   if( do_inv  ){ mat44 imm=MAT44_INV(mmm)     ; mmm=imm; } /* invert */
-   if( do_sqrt ){ mat44 smm=THD_mat44_sqrt(mmm); mmm=smm; } /* sqrt */
-
-   RETURN(mmm) ;
+   RETURN(mvv) ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Load one warp into the static data, inverting it if necessary (etc.) */
+/* Load one warp into the nn-th static data, inverting it if necessary (etc.) */
 
 static void CW_load_one_warp( int nn , char *cp )
 {
@@ -5837,13 +6079,36 @@ ENTRY("CW_load_one_warp") ;
 
    /* Deal with input of a matrix (from a .1D or .txt file) */
 
-   if( strstr(cp,".1D") != NULL || strstr(cp,".txt") != NULL ){
-     mat44 mmm = CW_read_affine_warp(cp) ;
-     CW_awarp[nn-1] = (mat44 *)malloc(sizeof(mat44)) ;
-     AAmemcpy(CW_awarp[nn-1],&mmm,sizeof(mat44)) ;
-     CW_dxal += fabsf(mmm.m[0][3]) ;  /* accumulate shifts */
-     CW_dyal += fabsf(mmm.m[1][3]) ;  /* for padding later */
-     CW_dzal += fabsf(mmm.m[2][3]) ;
+   if( strcasestr(cp,".1D") != NULL || strcasestr(cp,".txt") != NULL ){
+     mat44_vec *mvv ; mat44 mmm ;
+     mvv = CW_read_affine_warp(cp) ;
+     if( mvv == NULL || mvv->nmar <= 0 || mvv->mar == NULL ){  /* bad bad bad */
+       ERROR_message("Failed to read affine warp from file '%s'",cp) ; EXRETURN ;
+     } else if( mvv->nmar == 1 ){                            /* only 1 matrix */
+#if 0
+INFO_message("CW_load_one_warp: single matrix") ;
+#endif
+       CW_awarp[nn-1] = (mat44 *)malloc(sizeof(mat44)) ;
+       mmm = mvv->mar[0] ;
+       AAmemcpy(CW_awarp[nn-1],&mmm,sizeof(mat44)) ;
+       CW_dxal += fabsf(mmm.m[0][3]) ;  /* accumulate shifts */
+       CW_dyal += fabsf(mmm.m[1][3]) ;  /* for padding later */
+       CW_dzal += fabsf(mmm.m[2][3]) ;
+     } else {                                            /* multiple matrices */
+       float dx,dy,dz , dxm=0.0f,dym=0.0f,dzm=0.0f ;
+#if 0
+INFO_message("CW_load_one_warp: matrix vector") ;
+#endif
+       CW_vwarp[nn-1] = mvv ;
+       NI_strncpy(CW_vwarp[nn-1]->fname,cp,128) ;
+       for( ii=0 ; ii < mvv->nmar ; ii++ ){
+         mmm = mvv->mar[ii] ;
+         dx  = fabsf(mmm.m[0][3]) ; if( dx > dxm ) dxm = dx ;
+         dy  = fabsf(mmm.m[1][3]) ; if( dy > dym ) dym = dy ;
+         dz  = fabsf(mmm.m[2][3]) ; if( dz > dzm ) dzm = dz ;
+       }
+       CW_dxal += dxm ; CW_dyal += dym ; CW_dzal += dzm ;
+     }
      EXRETURN ;
    }
 
@@ -6160,7 +6425,9 @@ ENTRY("IW3D_read_catenated_warp") ;
 
      } else if( CW_iwarp[ii] != NULL ){            /* nonlinear warp to apply */
 
+#if 0
        if( CW_iwfac[ii] != 1.0f ) IW3D_scale( CW_iwarp[ii] , CW_iwfac[ii] ) ;
+#endif
 
        if( warp == NULL ){             /* create nonlinear warp at this point */
          if( ii == 0 ){   /* first one ==> don't compose with identity matrix */
@@ -6175,9 +6442,28 @@ ENTRY("IW3D_read_catenated_warp") ;
 
        IW3D_destroy(CW_iwarp[ii]) ; CW_iwarp[ii] = NULL ;
 
-     } /* end of processing nonlinear warp */
+     } else if( CW_vwarp[ii] != NULL ){  /* bad user */
 
-   }
+       WARNING_message(
+           "Multi-line matrix file '%s' input when only one matrix is allowed!",
+           CW_vwarp[ii]->fname ) ;
+
+       qmat = CW_vwarp[ii]->mar[0] ;   /* convert from xyz warp to ijk warp */
+       tmat = MAT44_MUL(qmat,CW_cmat) ;
+       smat = MAT44_MUL(CW_imat,tmat) ;
+
+       if( warp == NULL ){                         /* thus far, only matrices */
+         qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
+       } else {                             /* apply matrix to nonlinear warp */
+         tarp = IW3D_compose_w1m2(warp,smat,MRI_WSINC5) ;
+         IW3D_destroy(warp) ; warp = tarp ;
+       }
+
+       DESTROY_mat44_vec(CW_vwarp[ii]) ; CW_vwarp[ii] = NULL ;
+
+     }
+
+   } /* end of loop over input transformations */
 
    /*--- create output dataset ---*/
 
@@ -6192,6 +6478,531 @@ ENTRY("IW3D_read_catenated_warp") ;
    IW3D_destroy(warp) ; CW_clear_data() ;
 
    RETURN(oset) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* The following set of functions are for dealing with the Nwarp_catlist      */
+/* struct, which is for use in 3dNwarpApply.  Here, there is a chain of       */
+/* transformations -- warps (datasets) and matrices -- with the wrinkle       */
+/* that there may be multiple matrices in one transformation slot:            */
+/*   NetWarp[i] = Warp Matrix Matrix[i] Warp Matrix[i] ...                    */
+/* where [i] means the i-th transformation (i is 'time')                      */
+/*----------------------------------------------------------------------------*/
+
+void IW3D_destroy_nwarp_catlist( Nwarp_catlist *nwc )
+{
+   int ii ;
+   if( nwc == NULL ) return ;
+   if( nwc->nwarp != NULL ){
+     for( ii=0 ; ii < nwc->ncat ; ii++ )
+       if( nwc->nwarp[ii] != NULL ) DSET_delete(nwc->nwarp[ii]) ;
+     free(nwc->nwarp) ;
+   }
+   if( nwc->awarp != NULL ){
+     for( ii=0 ; ii < nwc->ncat ; ii++ )
+       if( nwc->awarp[ii] != NULL ) DESTROY_mat44_vec(nwc->awarp[ii]) ;
+   }
+   free(nwc) ; return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Go over a Nwarp_catlist struct and collapse/reduce operations that
+   aren't dependent on the 'time' index.
+   Note that if there aren't any multi-matrix 'time dependent' transformations,
+   this should reduce the result down to a single warp dataset.
+*//*--------------------------------------------------------------------------*/
+
+int IW3D_reduce_nwarp_catlist( Nwarp_catlist *nwc )
+{
+   int ii,jj , ndone , totaldone=0 ;
+   int doall=0 ;
+
+ENTRY("IW3D_reduce_nwarp_catlist") ;
+
+   if( nwc == NULL || nwc->ncat < 2 ) RETURN(ndone) ;
+
+#if 0
+   fprintf(stderr,"+++++ initial structure of Nwarp_catlist:") ;
+   for( ii=0 ; ii < nwc->ncat ; ii++ ){
+     if( NWC_nwarp(nwc,ii) != NULL ){
+       fprintf(stderr," Nwarp") ;
+     } else if( NWC_awarp(nwc,ii) != NULL ){
+       fprintf(stderr," Matrix[%d]",nwc->awarp[ii]->nmar) ;
+     } else {
+       fprintf(stderr," (NULL)") ;
+     }
+   }
+   fprintf(stderr,"\n") ;
+#endif
+
+   /* collapse ii and jj neighbors if possible;
+      note that any single matrix will be collapsed;
+      on the first pass (doall==0), only matrix-matrix reduction is done */
+
+Try_It_Again_Dude:  /* target for loop back when ndone > 0 */
+
+#if 0
+INFO_message("IW3D_reduce_nwarp_catlist -- start loop") ;
+#endif
+
+   for( ndone=ii=0 ; ii < nwc->ncat-1 ; ii=jj ){
+
+     /* if this entry is empty (doubly NULL), skip it */
+
+     if( NWC_null(nwc,ii) ){
+#if 0
+ININFO_message("nwc[%d] is doubly NULL",ii) ;
+#endif
+     jj = ii+1 ; continue ; }
+
+     /* search for next non-empty neighbor above (jj) */
+#if 0
+ININFO_message("looking at nwc[%d]",ii) ;
+#endif
+     for( jj=ii+1 ; jj < nwc->ncat ; jj++ ) if( !NWC_null(nwc,jj) ) break ;
+#if 0
+ININFO_message("found jj=%d",jj) ;
+#endif
+     if( jj == nwc->ncat ) break ;  /* nothing above, so we are done */
+
+#if 0
+ININFO_message("#%d and #%d are neighbors",ii,jj) ;
+#endif
+
+     /* neighbors are both matrices (matrix vectors?) ==> multiply them */
+
+     if( NWC_awarp(nwc,ii) != NULL && NWC_awarp(nwc,jj) != NULL ){
+       mat44_vec *mvii=nwc->awarp[ii] , *mvjj=nwc->awarp[jj] , *mvnn ;
+       mat44 mii , mjj , mkk ;
+       int nii=mvii->nmar , njj=mvjj->nmar , ntop=MAX(nii,njj) , kk ;
+#if 0
+ININFO_message("IW3D_reduce_nwarp_catlist: Matrix[%d]-Matrix[%d] ii=%d jj=%d",nii,njj,ii,jj) ;
+#endif
+       mvnn = (mat44_vec *)malloc(sizeof(mat44_vec)) ;
+       mvnn->nmar = ntop ;
+       mvnn->mar  = (mat44 *)malloc(sizeof(mat44)*ntop) ;
+       for( kk=0 ; kk < ntop ; kk++ ){
+         mii = M44V_mat(mvii,kk) ;
+         mjj = M44V_mat(mvjj,kk) ;
+         mkk = MAT44_MUL(mjj,mii) ; /* note that mjj pre-multiplies mii */
+         mvnn->mar[kk] = mkk ;      /* substitute into output vwarp */
+       }
+       /* now, delete #ii and #jj, and substitute #jj with the new mvnn */
+       DESTROY_mat44_vec(mvii) ; nwc->awarp[ii] = NULL ;
+       DESTROY_mat44_vec(mvjj) ; nwc->awarp[jj] = mvnn ;
+       nwc->nwarp[ii] = nwc->nwarp[jj] = NULL ;  /* nugatory */
+       ndone++ ; continue ;
+     }
+
+     /* neighbors are both nonlinear 3D warps ==> compose them */
+
+     if( doall && NWC_nwarp(nwc,ii) != NULL && NWC_nwarp(nwc,jj) != NULL ){
+       THD_3dim_dataset *ids=nwc->nwarp[ii] , *jds=nwc->nwarp[jj] , *kds ;
+       IndexWarp3D *iww , *jww , *kww ; char prefix[64] ;
+#if 0
+ININFO_message("IW3D_reduce_nwarp_catlist: warp-warp ii=%d jj=%d",ii,jj) ;
+#endif
+       iww = IW3D_from_dataset(ids,0,0) ;
+       jww = IW3D_from_dataset(jds,0,0) ;
+       kww = IW3D_compose(iww,jww,MRI_WSINC5) ;
+       IW3D_adopt_dataset(kww,ids) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
+       kds = IW3D_to_dataset(kww,prefix) ; DSET_superlock(kds) ;
+       IW3D_destroy(iww) ; IW3D_destroy(jww) ; IW3D_destroy(kww) ;
+       DSET_delete(ids) ;
+       DSET_delete(jds) ; nwc->nwarp[jj] = kds ;
+       nwc->awarp[ii] = nwc->awarp[jj] = NULL ; nwc->nwarp[ii] = NULL ;
+       ndone++ ; continue ;
+     }
+
+     /* neighbors are single matrix and nonlinear warp (in that order) */
+
+     if( doall && NWC_awarp(nwc,ii) != NULL && NWC_nwarp(nwc,jj) != NULL ){
+       mat44_vec *mvii=nwc->awarp[ii] ;
+       THD_3dim_dataset *jds=nwc->nwarp[jj] , *kds ;
+       IndexWarp3D *jww , *kww ; char prefix[64] ;
+       mat44 mii ;
+       if( mvii->nmar == 1 ){
+#if 0
+ININFO_message("IW3D_reduce_nwarp_catlist: Matrix[1]-warp ii=%d jj=%d",ii,jj) ;
+#endif
+         mii = mvii->mar[0] ;
+         jww = IW3D_from_dataset(jds,0,0) ;
+         kww = IW3D_compose_m1w2(mii,jww,MRI_WSINC5) ;
+         IW3D_adopt_dataset(kww,jds) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
+         kds = IW3D_to_dataset(kww,prefix) ; DSET_superlock(kds) ;
+         DESTROY_mat44_vec(mvii) ; IW3D_destroy(kww) ; DSET_delete(jds) ;
+         nwc->nwarp[jj] = kds ;
+         nwc->awarp[ii] = nwc->awarp[jj] = NULL ; nwc->nwarp[ii] = NULL ;
+         ndone++ ;
+       }
+       continue ;
+     }
+
+     /* neighbors are nonlinear warp and single matrix (in that order) */
+
+     if( doall && NWC_nwarp(nwc,ii) != NULL && NWC_awarp(nwc,jj) != NULL ){
+       mat44_vec *mvjj=nwc->awarp[jj] ;
+       THD_3dim_dataset *ids=nwc->nwarp[ii] , *kds ;
+       IndexWarp3D *iww , *kww ; char prefix[64] ;
+       mat44 mjj ;
+       if( mvjj->nmar == 1 ){
+#if 0
+ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[1] ii=%d jj=%d",ii,jj) ;
+#endif
+         mjj = mvjj->mar[0] ;
+         iww = IW3D_from_dataset(ids,0,0) ;
+         kww = IW3D_compose_w1m2(iww,mjj,MRI_WSINC5) ;
+         IW3D_adopt_dataset(kww,ids) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
+         kds = IW3D_to_dataset(kww,prefix) ; DSET_superlock(kds) ;
+         DESTROY_mat44_vec(mvjj) ; IW3D_destroy(kww) ; DSET_delete(ids) ;
+         nwc->nwarp[jj] = kds ;
+         nwc->awarp[ii] = nwc->awarp[jj] = NULL ; nwc->nwarp[ii] = NULL ;
+         ndone++ ;
+       }
+#if 0
+else
+ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[%d] ii=%d jj=%d -- skipped",mvjj->nmar,ii,jj) ;
+#endif
+       continue ;
+     }
+
+     /* no other case on which to operate */
+   }
+
+#if 0
+ININFO_message("-- loop reduction operation count = %d",ndone) ;
+#endif
+   totaldone += ndone ;
+   if( ndone > 0 || !doall ){ doall = 1 ; goto Try_It_Again_Dude ; }
+
+   /*--- at this point, go thru and eliminate the doubly NULL entries ---*/
+
+   for( ii=0 ; ii < nwc->ncat ; ii++ ){
+     if( ! NWC_null(nwc,ii) ) continue ;  /* not doubly NULL */
+
+     /* move upper entries down by one */
+
+     for( jj=ii+1 ; jj < nwc->ncat ; jj++ ){
+       if( nwc->awarp != NULL ) nwc->awarp[jj-1] = nwc->awarp[jj] ;
+       if( nwc->nwarp != NULL ) nwc->nwarp[jj-1] = nwc->nwarp[jj] ;
+     }
+
+     nwc->ncat-- ;  /* one less entry now */
+   }
+
+#if 0
+   fprintf(stderr,"+++++ final structure of Nwarp_catlist:") ;
+   for( ii=0 ; ii < nwc->ncat ; ii++ ){
+     if( NWC_nwarp(nwc,ii) != NULL ){
+       fprintf(stderr," Nwarp") ;
+     } else if( NWC_awarp(nwc,ii) != NULL ){
+       fprintf(stderr," Matrix[%d]",nwc->awarp[ii]->nmar) ;
+     } else {
+       fprintf(stderr," (NULL)") ;
+     }
+   }
+   fprintf(stderr,"\n") ;
+#endif
+
+   RETURN(totaldone) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Return the vind-th 'time' warp from the list. */
+
+THD_3dim_dataset * IW3D_from_nwarp_catlist( Nwarp_catlist *nwc , int vind )
+{
+   int ii ;
+   char *prefix = "NwarpFromCatlist" ;
+   mat44        wmat      , tmat , smat , qmat ;
+   IndexWarp3D *warp=NULL , *tarp=NULL , *qarp=NULL ;
+   THD_3dim_dataset *oset , *iset=NULL , *qset=NULL ;
+
+ENTRY("IW3D_from_nwarp_catlist") ;
+
+   if( nwc == NULL ) RETURN(NULL) ;
+   if( vind < 0 ) vind = 0 ;  /* stupid user */
+
+   /* a single transformation ==> should be easy */
+
+   if( nwc->ncat == 1 ){
+     oset = NWC_nwarp(nwc,0) ;
+     if( nwc->flags & NWC_INVERT_MASK ) qset = THD_nwarp_invert(oset) ;
+     else                               qset = EDIT_full_copy(oset,"Copy_Of_Nwarp") ;
+     DSET_superlock(qset) ; RETURN(qset) ;
+   }
+
+   /* otherwise, need to cat the list of transformations */
+   /* start by initializing current state of cumulative warp */
+
+   LOAD_IDENT_MAT44(wmat) ; warp = NULL ;
+
+#if 0
+INFO_message("IW3D_from_nwarp_catlist ncat=%d",nwc->ncat) ;
+#endif
+
+   for( ii=0 ; ii < nwc->ncat ; ii++ ){  /* warp catenation loop */
+
+     if( NWC_awarp(nwc,ii) != NULL ){  /* matrix to apply */
+       mat44_vec *mvii=nwc->awarp[ii] ;
+       smat = M44V_mat(mvii,vind) ;            /* pick out the vind-th matrix */
+
+       if( warp == NULL ){                     /* thus far, only matrix warps */
+#if 0
+ININFO_message("matrix *matrix") ;
+#endif
+         qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;  /* so multiply matrices */
+       } else {                    /* instead, apply matrix to nonlinear warp */
+#if 0
+ININFO_message("warp *matrix") ;
+#endif
+         tarp = IW3D_compose_w1m2(warp,smat,MRI_WSINC5) ;
+         IW3D_destroy(warp) ; warp = tarp ;
+       }
+
+     } else if( NWC_nwarp(nwc,ii) != NULL ){       /* nonlinear warp to apply */
+       qarp = IW3D_from_dataset(nwc->nwarp[ii],0,0) ;
+       if( iset == NULL ) iset = nwc->nwarp[ii] ;
+
+       if( warp == NULL ){             /* create nonlinear warp at this point */
+         if( ISIDENT_MAT44(wmat) ){     /* don't compose with identity matrix */
+#if 0
+ININFO_message("*warp") ;
+#endif
+           warp = qarp ; qarp = NULL ;
+         } else {                             /* compose with previous matrix */
+#if 0
+ININFO_message("matrix *warp") ;
+#endif
+           warp = IW3D_compose_m1w2(wmat,qarp,MRI_WSINC5) ;
+         }
+       } else {           /* already have nonlinear warp, apply new one to it */
+#if 0
+ININFO_message("warp *warp") ;
+#endif
+         tarp = IW3D_compose(warp,qarp,MRI_WSINC5) ;
+         IW3D_destroy(warp) ; warp = tarp ;
+       }
+
+       IW3D_destroy(qarp) ;
+
+     } /* end of processing nonlinear warp */
+#if 0
+else
+ININFO_message("NULL entry?") ;
+#endif
+
+     /* a null entry (which could have been reduced away) is just skipped */
+   }
+
+   /*--- create output dataset ---*/
+
+   if( warp == NULL ){
+     ERROR_message("IW3D_from_nwarp_catlist: this message should never appear!") ;
+     RETURN(NULL) ;
+   }
+
+   IW3D_adopt_dataset( warp , iset ) ;
+   oset = IW3D_to_dataset( warp , prefix ) ;
+   if( nwc->flags & NWC_INVERT_MASK ){
+     qset = THD_nwarp_invert(oset) ;
+     DSET_delete(qset) ; oset = qset ;
+   }
+
+   DSET_superlock(oset) ; RETURN(oset) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Construct an Nwarp_catlist from a list of strings (filename). */
+
+Nwarp_catlist * IW3D_read_nwarp_catlist( char *cstr )
+{
+   char prefix[64] ;
+   mat44        tmat , smat , qmat ;
+   THD_3dim_dataset *nset ;
+   NI_str_array *csar ; int ii,kk ;
+   Nwarp_catlist *nwc=NULL ;
+   int nvar=1 ;
+
+ENTRY("IW3D_read_nwarp_catlist") ;
+
+   if( cstr == NULL || *cstr == '\0' ) RETURN(NULL) ;
+
+   CW_clear_data() ;
+
+   csar = NI_decode_string_list(cstr,";") ;
+   if( csar == NULL || csar->num < 1 ) RETURN(NULL) ;
+
+#if 0
+INFO_message("Enter IW3D_read_nwarp_catlist( %s )",cstr) ;
+#endif
+
+   /*-- simple case of a single dataset input --*/
+
+   if( csar->num == 1 && strchr(csar->str[0],'(') == NULL && strchr(csar->str[0],':') == NULL ){
+#if 0
+ININFO_message("Open warp dataset %s",csar->str[0]) ;
+#endif
+     nset = THD_open_dataset(csar->str[0]) ; DSET_COPYOVER_REAL(nset) ;
+     if( nset == NULL ){
+       ERROR_message("Can't open 3D warp dataset '%s'",csar->str[0]) ;
+       NI_delete_str_array(csar) ; RETURN(NULL) ;
+     }
+     if( DSET_NVALS(nset) < 3 ){
+       ERROR_message("Warp dataset '%s' has < 3 sub-bricks",csar->str[0]) ;
+       NI_delete_str_array(csar) ; DSET_delete(nset) ; RETURN(NULL) ;
+     }
+     DSET_load(nset) ;
+     if( !DSET_LOADED(nset) ){
+       ERROR_message("Warp dataset '%s' can't be loaded into memory",csar->str[0]) ;
+       NI_delete_str_array(csar) ; DSET_delete(nset) ; RETURN(NULL) ;
+     }
+
+     nwc = (Nwarp_catlist *)malloc(sizeof(Nwarp_catlist)) ;
+     nwc->ncat     = nwc->nvar = 1 ;
+     nwc->nwarp    = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)) ;
+     nwc->nwarp[0] = nset ;
+     nwc->awarp    = NULL ;  /* trivial case == no matrices */
+     nwc->flags    = 0 ;
+     RETURN(nwc) ;
+   }
+
+   /*-- multiple input datasets (or INV operations, etc.) --*/
+
+   for( ii=0 ; ii < csar->num ; ii++ )           /* read them all in, Frank */
+     CW_load_one_warp( ii+1 , csar->str[ii] ) ;
+
+   NI_delete_str_array(csar) ;
+
+   if( CW_geomstring == NULL ){ /* didn't get a real warp to use */
+     ERROR_message("Can't compute nonlinear 3D warp from string '%s'",cstr) ;
+     CW_clear_data() ; RETURN(NULL) ;
+   }
+
+   /*-- pad the nonlinear warps present [22 Aug 2014] --*/
+
+   if( CW_dxal > 0.0f || CW_dyal > 0.0f || CW_dzal > 0.0f ){
+     float dm , xx,yy,zz ; int pp ;
+     dm = MIN(CW_dx,CW_dy); dm = MIN(CW_dz,dm) ;
+     xx = CW_dxal/dm ; yy = CW_dyal/dm ; zz = CW_dzal/dm ;
+     dm = MAX(xx,yy) ; dm = MAX(dm,zz) ;
+     pp = (int)rintf(1.1111f*dm) ; CW_saved_expad = MAX(pp,16) ;
+   } else {
+     CW_saved_expad = 16 ;  /* the safety case */
+   }
+   if( CW_no_expad ) CW_saved_expad = 0 ;
+   CW_saved_expad += CW_extra_pad ;
+#if 0
+   { int qq = AFNI_numenv("CW_EXPAD") ; if( qq >= 0 ) CW_saved_expad = qq ; }
+#endif
+   if( CW_saved_expad > 0 ){
+     IndexWarp3D *EE ; THD_3dim_dataset *QQ ; int first=1 ;
+#if 0
+ININFO_message("padding nonlinear warps by %d voxels",CW_saved_expad) ;
+#endif
+     QQ = THD_zeropad( CW_inset ,
+                       CW_saved_expad, CW_saved_expad, CW_saved_expad,
+                       CW_saved_expad, CW_saved_expad, CW_saved_expad,
+                       "ZharkExtends" , ZPAD_IJK | ZPAD_EMPTY ) ;
+     DSET_delete(CW_inset) ; CW_inset = QQ ;
+     for( ii=0 ; ii < CW_nwtop ; ii++ ){
+       if( CW_iwarp[ii] != NULL ){
+         EE = IW3D_extend( CW_iwarp[ii] ,
+                           CW_saved_expad, CW_saved_expad, CW_saved_expad,
+                           CW_saved_expad, CW_saved_expad, CW_saved_expad, 0 ) ;
+         IW3D_destroy(CW_iwarp[ii]) ; CW_iwarp[ii] = EE ;
+         if( first ){
+           CW_cmat = EE->cmat; CW_imat = EE->imat; first = 0;
+         }
+       }
+     }
+   }
+
+   /* count max number of matrices in a variable warp (vwarp) */
+
+   nvar = 1 ;
+   for( ii=0 ; ii < CW_nwtop ; ii++ ){
+     if( CW_vwarp[ii] != NULL && CW_vwarp[ii]->nmar > nvar )
+       nvar = CW_vwarp[ii]->nmar ;
+   }
+   if( nvar > 1 ){  /* at least one true vwarp was found */
+     for( ii=0 ; ii < CW_nwtop ; ii++ ){
+       if( CW_vwarp[ii] != NULL && CW_vwarp[ii]->nmar != nvar ){
+         WARNING_message(
+           "Matrix file '%s' has %d matrices, but some in input list have more=%d",
+           CW_vwarp[ii]->fname , CW_vwarp[ii]->nmar , nvar ) ;
+       }
+     }
+   }
+#if 0
+ININFO_message("nvar = %d   ncat = %d",nvar,CW_nwtop) ;
+#endif
+
+   /*-- just emit the transformations into the output (nwc) --*/
+
+   nwc = (Nwarp_catlist *)malloc(sizeof(Nwarp_catlist)) ;
+   nwc->nvar  = nvar ; /* max num matrices in a variable warp [1 == no vwarps] */
+   nwc->ncat  = CW_nwtop ;
+   nwc->awarp = (mat44_vec        **)calloc( sizeof(mat44_vec        *),CW_nwtop ) ;
+   nwc->nwarp = (THD_3dim_dataset **)calloc( sizeof(THD_3dim_dataset *),CW_nwtop ) ;
+   nwc->flags = 0 ;
+
+   for( ii=0 ; ii < CW_nwtop ; ii++ ){
+
+     if( CW_awarp[ii] != NULL ){         /*--- single matrix ---*/
+
+       qmat = *(CW_awarp[ii]) ;          /* convert from xyz warp to ijk warp */
+       tmat = MAT44_MUL(qmat,CW_cmat) ;
+       smat = MAT44_MUL(CW_imat,tmat) ;
+
+       nwc->nwarp[ii] = NULL ;
+       nwc->awarp[ii] = (mat44_vec *)malloc(sizeof(mat44_vec)) ;
+       nwc->awarp[ii]->nmar = 1 ;
+       sprintf(nwc->awarp[ii]->fname,"Awarp#%02d",ii+1) ;
+       nwc->awarp[ii]->mar = (mat44 *)malloc(sizeof(mat44)) ;
+       nwc->awarp[ii]->mar[0] = smat ;
+#if 0
+ININFO_message("emit single matrix to nwc[%d]",ii) ;
+#endif
+
+     } else if( CW_iwarp[ii] != NULL ){  /*--- nonlinear warp ---*/
+
+       IW3D_adopt_dataset( CW_iwarp[ii] , CW_inset ) ;  /* this is why template was saved */
+       sprintf(prefix,"Nwarp#%02d",ii+1) ;
+       nwc->awarp[ii] = NULL ;
+       nwc->nwarp[ii] = IW3D_to_dataset( CW_iwarp[ii] , prefix ) ;
+       DSET_superlock(nwc->nwarp[ii]) ;
+#if 0
+ININFO_message("emit 3D warp to nwc[%d]",ii) ;
+#endif
+
+     } else if( CW_vwarp[ii] != NULL ){  /*--- a list of matrices! ---*/
+
+       nwc->nwarp[ii] = NULL ;
+       nwc->awarp[ii] = CW_vwarp[ii] ; CW_vwarp[ii] = NULL ;
+
+       for( kk=0 ; kk < nwc->awarp[ii]->nmar ; kk++ ){
+         qmat = nwc->awarp[ii]->mar[kk] ; /* convert from xyz warp to ijk warp */
+         tmat = MAT44_MUL(qmat,CW_cmat) ;
+         smat = MAT44_MUL(CW_imat,tmat) ;
+         nwc->awarp[ii]->mar[kk] = smat ;
+       }
+#if 0
+ININFO_message("emit Matrix[%d] to nwc[%d]",nwc->awarp[ii]->nmar,ii) ;
+#endif
+     }
+
+   } /* end of loop over input list of matrices and warps */
+
+   CW_clear_data() ;
+
+   /* do static (non-'time'-dependent) reductions on the list */
+
+   ii = IW3D_reduce_nwarp_catlist(nwc) ;
+   if( verb_nww && ii > 0 )
+     INFO_message("Nwarp_catlist reduced by %d element%s",ii,(ii>1)?"s":"\0") ;
+
+   RETURN(nwc) ;
 }
 
 #endif /*(C17)*/ /*###########################################################*/
