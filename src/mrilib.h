@@ -2207,10 +2207,12 @@ typedef struct { /* 17 Oct 2014 */
  } while(0) ;
 
 typedef struct { /* 17 Oct 2014 */
-  int ncat , nvar ;
+  int ncat , nvar , flags ;
   THD_3dim_dataset **nwarp ;
   mat44_vec        **awarp ;
 } Nwarp_catlist ;
+
+#define NWC_INVERT_MASK 1  /* for flags field */
 
 #define NWC_nwarp(nnn,iii) ( ((nnn)->nwarp != NULL) ? (nnn)->nwarp[iii] : NULL )
 #define NWC_awarp(nnn,iii) ( ((nnn)->awarp != NULL) ? (nnn)->awarp[iii] : NULL )
