@@ -14,7 +14,8 @@
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *dset_nwarp=NULL , *dset_src=NULL , *dset_mast=NULL ;
+   THD_3dim_dataset *dset_src=NULL , *dset_mast=NULL ;
+   Nwarp_catlist *nwc=NULL ;
    MRI_IMARR *imar_nwarp=NULL , *im_src ;
    char *prefix     = NULL ;
    float dxyz_mast  = 0.0f ;
@@ -26,7 +27,9 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
    int nx,ny,nz,nxyz , toshort=0 ;
    float wfac=1.0f ;
-   MRI_IMAGE *awim=NULL ;
+#if 0
+   MRI_IMAGE *awim=NULL ; THD_3dim_dataset *dset_nwarp=NULL ;
+#endif
    int expad=0 ;  /* 26 Aug 2014 */
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
@@ -45,47 +48,36 @@ int main( int argc , char *argv[] )
       "--------\n"
       " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
       "                (this is a mandatory option!)\n"
+      "    ++ NOTE WELL: the interpretation of this option has changed a little,\n"
+      "                  as of 22 Oct 2014.  In particular, this option is\n"
+      "                  generalized from the version in other programs, including\n"
+      "                  3dNwarpCat, 3dNwarpFuncs, and 3dNwarpXYZ.  The major\n"
+      "                  change is that multi-line matrix files are allowed to\n"
+      "                  be included in the 'www' mixture, so that the nonlinear\n"
+      "                  warp being calculated can be time-dependent.\n"
+      "             -->> Please see the lengthier discussion below on this feature!\n"
       "\n"
-      " -iwarp       = After the warp specified in '-nwarp' is read in,\n"
+      " -iwarp       = After the warp specified in '-nwarp' is computed,\n"
       "                invert it.  If the input warp would take a dataset\n"
       "                from space A to B, then the inverted warp will do\n"
       "                the reverse.\n"
-      "                ++ Note that '-iwarp' does NOT apply to the\n"
-      "                   '-affter' option!\n"
-      "                ++ Also note that '-wfac' applies to the warp AFTER\n"
-      "                   it is inverted!\n"
       "                ++ The combination \"-iwarp -nwarp 'A B C'\" is equivalent\n"
       "                   to \"-nwarp 'INV(C) INV(B) INV(A)'\" -- that is, inverting\n"
-      "                   each warp/matrix in the list and reversing their order.\n"
+      "                   each warp/matrix in the list *and* reversing their order.\n"
       "                   The '-iwarp' option is provided for convenience.\n"
       "\n"
-      " -affter aaa  = 'aaa' is the name of an optional file containing\n"
-      "                an affine matrix to apply to the nonlinear warp,\n"
-      "                as in A(N(x)), where N(x) is defined by '-nwarp'\n"
-      "                and the 12 numbers that define A(x) come from\n"
-      "                file 'aaa'.\n"
-      "                ++ If the '-source' dataset has multiple sub-bricks,\n"
-      "                   then the k-th sub-brick is transformed by the\n"
-      "                   warp Ak(N(x)), where Ak is defined by the 12\n"
-      "                   numbers on the k-th line of file 'aaa'.\n"
-      "                ++ This ability can be used when warping EPI time\n"
-      "                   series datasets, where the affine part would be\n"
-      "                   different for each sub-brick (because of motion),\n"
-      "                   and the nonlinear warp part (to a template) would\n"
-      "                   be the same.\n"
-      "                ++ Typically, 'aaa' would be a '-1Dmatrix_save'\n"
-      "                   result from 3dAllineate or 3dWarpDrive or ....\n"
-      "                ++ Note that 'aaa' must be formatted with 12 numbers in\n"
-      "                   ONE line of the file giving a matrix -- that is, in\n"
-      "                   the 'aff12.1D' format, NOT in the 'Xat.1D' 3x4 format!\n"
-      "                ++ However, to palliate your pain, it is allowed to input\n"
-      "                   a SINGLE 'Xat.1D' 3x4 matrix in this place.  (You can't\n"
-      "                   input multiple 3x4 matrices here, unlike when using the\n"
-      "                   '.aff12.1D' format.)\n"
+      " -affter aaa  = *** THIS OPTION IS NO LONGER AVAILABLE [22 Oct 2014] ***\n"
+      "                  See the discussion of the new '-nwarp' option below to see\n"
+      "                  how to do include time-dependent matrix transformations\n"
+      "                  in this program.\n"
+#if 0
       "\n"
       " -wfac   fff  = Scale the warp by factor 'fff' [default=1.0]\n"
       "                ++ This option doesn't really have much use, except\n"
       "                   in making fun movies of how a brain volume deforms.\n"
+      "                ++ Also note that '-wfac' applies to the warp AFTER\n"
+      "                   it is inverted, if '-iwarp' is used.\n"
+#endif
       "\n"
       " -source sss  = 'sss' is the name of the source dataset.\n"
       "                ++ That is, the dataset to be warped.\n"
@@ -120,7 +112,8 @@ int main( int argc , char *argv[] )
       "                ++ The same interpolation mode is used for the warp\n"
       "                   itself (if needed) and then for the data being warped.\n"
       "                ++ The warp will be interpolated if the output dataset is\n"
-      "                   not on the same 3D grid as the warp itself.  Otherwise,\n"
+      "                   not on the same 3D grid as the warp itself, or if a warp\n"
+      "                   expression is used in the '-nwarp' option.  Otherwise,\n"
       "                   it won't need to be interpolated.\n"
       "\n"
       " -ainterp jjj = This option lets you specify a different interpolation mode\n"
@@ -137,7 +130,7 @@ int main( int argc , char *argv[] )
       "                    still refers to the original grid on which the nonlinear\n"
       "                    warp is defined.\n"
       "                ++ Please note that this option must be given BEFORE the '-nwarp'\n"
-      "                   option to have any effect!\n"
+      "                   option to have any effect!!\n"
       "\n"
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
       "\n"
@@ -150,16 +143,124 @@ int main( int argc , char *argv[] )
       " -quiet       = Don't be verbose :-(\n"
       " -verb        = Be extra verbose :-)\n"
       "\n"
-      "NOTES:\n"
-      "------\n"
+      "SPECIFYING THE NONLINEAR WARP IN '-nwarp':\n"
+      "------------------------------------------\n"
+      "A single nonlinear warp (usually created by 3dQwarp) is an AFNI or NIfTI-1\n"
+      "dataset with 3 sub-bricks, holding the 3D displacements of each voxel.\n"
+      "(All coordinates and displacements are expressed in DICOM order.)\n"
+      "\n"
+      "The '-nwarp' option is used to specify the nonlinear transformation used\n"
+      "to create the output dataset from the source dataset.  For many purposes,\n"
+      "the only input needed here is the name of a single dataset holding the\n"
+      "warp to be used.\n"
+      "\n"
+      "However, the '-nwarp' option also allows the catenation of a sequence of\n"
+      "spatial transformations (in short, 'warps') that will be combined before\n"
+      "being applied to the source dataset.  Each warp is either a nonlinear\n"
+      "warp dataset or a matrix warp (a linear transformation of space).\n"
+      "\n"
+      "A single affine (or linear) warp is a set of 12 numbers, defining a 3x4 matrix\n"
+      "   a11 a12 a13 a14\n"
+      "   a21 a22 a23 a24\n"
+      "   a31 a32 a33 a34\n"
+      "A matrix is stored on a single line, in a file with the extension\n"
+      "'.1D' or '.txt', in this order\n"
+      "   a11 a12 a13 a14 a21 a22 a23 a24 a31 a32 a33 a34\n"
+      "For example, the identity matrix is given by\n"
+      "   1 0 0 0 0 1 0 0 0 0 1 0\n"
+      "This format is output by the '-1Dmatrix_save' options in 3dvolreg and\n"
+      "3dAllineate, for example.\n"
+      "\n"
+      "If the argument 'www' following '-nwarp' is made up of more than one warp\n"
+      "filename, separated by blanks, then the nonlinear warp to be used is\n"
+      "composed on the fly as needed to transform the source dataset.  For\n"
+      "example,\n"
+      "   -nwarp 'AA_WARP.nii BB.aff12.1D CC_WARP.nii'\n"
+      "specifies 3 spatial transformations, call them A(x), B(x), and C(x) --\n"
+      "where B(x) is just the 3-vector x multipled into the matrix in the\n"
+      "BB.aff12.1D file.  The resulting nonlinear warp function N(x) is\n"
+      "obtained by applying these transformations in the order given, A(x) first:\n"
+      "   N(x) = C( B( A(x) ) )\n"
+      "\n"
+      "To determine the correct order in which to input the warps, it is necessary\n"
+      "to understand what a warp of the source dataset actually computes.  Call the\n"
+      "source image S(x) = (scalar) value of source image at voxel location x.\n"
+      "For each x in the output grid, the warped result is S(N(x)) -- that is,\n"
+      "N(x) tells where each output location x must be warped to in order to\n"
+      "find the corresponding value of the source S.\n"
+      "\n"
+      "N(x) does *NOT* tell to where an x in the source image must be moved to in\n"
+      "the output space -- which is what you might think if you mentally prioritize\n"
+      "the idea of 'warping the source image'.  It is better to think of N(x) as\n"
+      "reaching out from x in the output space to a location in the source space,\n"
+      "and then the program will interpolate from the discrete source space grid\n"
+      "at that location -- which is unlikely to be exactly on a grid node.\n"
+      "\n"
+      "Now suppose the sequence of operations on an EPI dataset is\n"
+      " (1) Nonlinearly unwarp the dataset via warp AA_WARP.nii (perhaps\n"
+      "     from 3dQwarp -plusminus).\n"
+      " (2) Perform linear volume registration on the result from (1) (with\n"
+      "     program 3dvolreg) to get affine matrix file BB.aff12.1D -- which\n"
+      "     will have 1 line per time point in the EPI dataset.\n"
+      " (3) Linearly register the structural volume to the EPI dataset\n"
+      "     (via script align_epi_anat.py).  Note that this step transforms\n"
+      "     the structural volume to match the EPI, not the EPI to match the\n"
+      "     structural volume, so this step does not affect the chain of\n"
+      "     transformations being applied to the EPI dataset.\n"
+      " (4) Nonlinearly warp the structural image from (3) to MNI space via\n"
+      "     warp CC_WARP.nii (generated by 3dQwarp).\n"
+      "Finally the goal is to take the original EPI time series dataset, and\n"
+      "warp it directly to MNI space, including the time series registration for\n"
+      "each sub-brick in the dataset, with only one interplation being used --\n"
+      "rather than the 3 interpolations that would come by serially implementing\n"
+      "steps (1), (2), and (4).  This one-big-step transformation can be done\n"
+      "with 3dNwarpApply using the '-nwarp' option:\n"
+      "   -nwarp 'CC_WARP.nii BB.aff12.1D AA_WARP.nii'\n"
+      "that is, N(x) = A( B( C(x) ) ) -- the opposite order to the sample above,\n"
+      "and with the transformations occuring in the opposite order to the sequence\n"
+      "in which they were calculated.  The reason for this apparent backwardness\n"
+      "is that the 'x' being transformed is on the output grid -- in this case, in\n"
+      "MNI-template space.  So the warp C(x) transforms such an output grid 'x' to\n"
+      "the EPI-aligned structural space.  The warp B(x) then transforms THAT\n"
+      "coordinate from aligned spaced back to the rotated head position of the subject.\n"
+      "And the warp A(x) transforms THAT coordinate back to the original grid that had\n"
+      "to be unwarped (e.g., from susceptibility and/or eddy current artifacts).\n"
+      "\n"
+      "Also note that in step (2), the matrix file BB.aff12.1D has one line for\n"
+      "each time point.  When transforming a source dataset, the i-th time point\n"
+      "will be transformed by the warp computed using the i-th line from any\n"
+      "multi-line matrix file in the '-nwarp' specification.  (If there are more\n"
+      "dataset time points than matrix lines, then the last line will be re-used.)\n"
+      "\n"
+      "In this way, 3dNwarpApply can be used to carry out time-dependent warping\n"
+      "of time-dependent datasets, provided that the time-dependence in the warp\n"
+      "only occurs in the affine (matrix) parts of the transformation.\n"
+      "\n"
+      "Note that the now-obsolete option '-affter' is subsumed into the new way\n"
+      "that '-nwarp' works.  Formerly, the only time-dependent matrix had to\n"
+      "be specified as being at the end of the warp chain, and was given via\n"
+      "the '-affter' option.  Now, a time-dependent matrix (or more than one)\n"
+      "can appear anywhere in warp chain, so there is no need for a special\n"
+      "option.  If you DID use '-affter', you will have to alter your script\n"
+      "simply by putting the final matrix filename at the end of the '-nwarp'\n"
+      "chain.  (If this seems too hard, please consider another line of work.)\n"
+      "\n"
+      "The other 3dNwarp* programs that take the '-nwarp' option operate similarly,\n"
+      "but do NOT allow time-dependent matrix files.  Those programs are built to\n"
+      "operate with one nonlinear warp, so having a time-dependent warp doesn't\n"
+      "make sense for them.\n"
+      "\n"
+      "RANDOM NOTES:\n"
+      "-------------\n"
       "* At present, this program doesn't work with 2D warps, only with 3D.\n"
+      "  (That is, each warp dataset must have 3 sub-bricks.)\n"
       "\n"
       "* At present, the output dataset is stored in float format, no matter what\n"
       "  absurd data format the input dataset uses (but cf. the '-short' option).\n"
       "\n"
-      "* To make life both simpler and more complex, 3dNwarpApply allows you to\n"
-      "  catenate warps directly on the command line, as if you used 3dNwarpCat\n"
-      "  before running 3dNwarpApply.  For example:\n"
+      "* As described above, 3dNwarpApply allows you to catenate warps directly on\n"
+      "  the command line, as if you used 3dNwarpCat before running 3dNwarpApply.\n"
+      "  For example:\n"
       "\n"
       "  ++ You have aligned dataset Fred+orig to MNI-affine space using @auto_tlrc,\n"
       "     giving matrix file Fred.Xaff12.1D\n"
@@ -178,18 +279,11 @@ int main( int argc , char *argv[] )
       "     purpose is the same as in 3dNwarpCat -- see the help output for that\n"
       "     program for a little more information.\n"
       "\n"
-      "  ++ This simple example could also be accomplished with a command like\n"
-      "        3dNwarpApply -prefix Fred_final    \\\n"
-      "                     -source Fred+orig     \\\n"
-      "                     -master NWARP         \\\n"
-      "                     -nwarp  Fred_WARP+tlrc -affter Fred.Xaff12.1D\n"
-      "    + The extra power of '-affter' is that it lets you use a different affine\n"
-      "      transformation for each sub-brick of the source dataset.\n"
-      "    + The limitation of '-affter' is that it only allows affine transformations.\n"
-      "\n"
-      "  ++ You can use the 'SQRT()' and 'INV()' and 'INVSQRT()' operators, as well\n"
-      "     as the various 1D-to-3D displacement prefixes ('AP:' 'RL:' 'IS:' 'VEC:' 'FAC:');\n"
-      "     for example, the following is a legal (and even useful) definition of a warp here:\n"
+      "  ++ When you specify a nonlinear warp dataset, you can use the 'SQRT()' and\n"
+      "     'INV()' and 'INVSQRT()' operators, as well as the various 1D-to-3D\n"
+      "     displacement prefixes ('AP:' 'RL:' 'IS:' 'VEC:' 'FAC:') -- \n"
+      "     for example, the following is a legal (and even useful) definition of a\n"
+      "     warp herein:\n"
       "        'SQRT(AP:epi_BU_yWARP+orig)'\n"
       "     where the 'AP:' transforms the y-displacements in epi_BU_ywarp+orig to a\n"
       "     full 3D warp (with x- and z-displacments set to zero), then calculates the\n"
@@ -198,7 +292,7 @@ int main( int argc , char *argv[] )
       "      blip-up and blip-down EPI datasets, and then the SQRT warp is applied to\n"
       "      warp them into the 'intermediate location' which should be better aligned\n"
       "      with the subject's anatomical datasets.\n"
-      "    + However: see also the '-plusminus' option for 3dQwarp for another way to\n"
+      " -->+ However: see also the '-plusminus' option for 3dQwarp for another way to\n"
       "      reach the same goal.\n"
       "\n"
       "  ++ You can also use 'IDENT(dataset)' to define a \"nonlinear\" 3D warp whose\n"
@@ -207,7 +301,7 @@ int main( int argc , char *argv[] )
       "     the identity warp.  The purpose of such an object is to let you apply a pure\n"
       "     affine warp -- since this program requires a '-nwarp' option, you can use\n"
       "     -nwarp 'IDENT(dataset)' to define the 3D grid for the 'nonlinear' 3D warp and\n"
-      "     then catenate the affine warp (e.g., via '-affter').\n"
+      "     then catenate the affine warp.\n"
       "\n"
       "* PLEASE note that if you use the '-allineate' option in 3dQwarp, then the affine\n"
       "  warp is already included in the output nonlinear warp from 3dQwarp, and so it\n"
@@ -248,13 +342,14 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-expad") == 0 ){  /* 26 Aug 2014 */
        if( ++iarg >= argc ) ERROR_exit("need arg after %s",argv[iarg-1]) ;
-       if( dset_nwarp != NULL )
+       if( nwc != NULL )
          WARNING_message("-expad given after -nwarp ==> -expad is IGNORED") ;
        expad = (int)strtod(argv[iarg],NULL) ;
        if( expad < 0 ) expad = 0 ;
        iarg++ ; continue ;
      }
 
+#if 0
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-wfac") == 0 ){
@@ -263,9 +358,11 @@ int main( int argc , char *argv[] )
        if( wfac == 0.0f ) wfac = 1.0f ;
        iarg++ ; continue ;
      }
+#endif
 
      /*---------------*/
 
+#if 0
      if( strcasecmp(argv[iarg],"-affter") == 0 || strcasecmp(argv[iarg],"-after") == 0 ){
        MRI_IMAGE *qim ;
        if( awim != NULL )   ERROR_exit("Can't have multiple %s options :-("        ,argv[iarg]  );
@@ -284,6 +381,7 @@ int main( int argc , char *argv[] )
        }
        iarg++ ; continue ;
      }
+#endif
 
      /*---------------*/
 
@@ -299,6 +397,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+#if 0   /***** replaced below *****/
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-nwarp") == 0 || strcasecmp(argv[iarg],"-warp") == 0 ){
@@ -317,6 +416,32 @@ int main( int argc , char *argv[] )
 #endif
        if( dset_nwarp == NULL ) ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg]);
        if( DSET_NVALS(dset_nwarp) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg]);
+       iarg++ ; continue ;
+     }
+#endif
+
+     /*---------------*/
+
+     if( strcasecmp(argv[iarg],"-nwarp") == 0 ||
+         strcasecmp(argv[iarg],"-warp" ) == 0 || strcasecmp(argv[iarg],"-qwarp") == 0 ){
+
+       if( nwc != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
+       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
+       if( verb ){
+         if( strchr(argv[iarg],' ') == NULL &&
+             strchr(argv[iarg],'(') == NULL &&
+             strchr(argv[iarg],':') == NULL   ) fprintf(stderr,"++ Reading -nwarp") ;
+         else                                   fprintf(stderr,"++ Processing -nwarp") ;
+       }
+       CW_no_expad = 0 ;      /* allow automatic padding of input warp */
+       CW_extra_pad = expad ; /* and enforce some addition padding */
+       nwc = IW3D_read_nwarp_catlist( argv[iarg] ) ;
+       if( verb ) fprintf(stderr,"\n") ;
+#if 0
+       if( verb && CW_get_saved_expad() > 0 )
+         ININFO_message("Extending (padding) input warp by %d voxels",CW_get_saved_expad()) ;
+#endif
+       if( nwc == NULL ) ERROR_exit("can't open Qwarp list '%s' :-(",argv[iarg]);
        iarg++ ; continue ;
      }
 
@@ -440,7 +565,7 @@ int main( int argc , char *argv[] )
 
    /*-------- check inputs to see if the user is completely demented ---------*/
 
-   if( dset_nwarp == NULL )
+   if( nwc == NULL )
      ERROR_exit("No -nwarp option?  How do you want to warp? :-(") ;
 
    if( dset_src == NULL ){  /* check last argument if no -source option */
@@ -458,29 +583,26 @@ int main( int argc , char *argv[] )
 
    /*--- the actual work (bow your head in reverence) ---*/
 
-   if( do_iwarp ){            /* 18 Jul 2014 */
-     THD_3dim_dataset *qwarp ;
-     if( verb ) fprintf(stderr,"Applying -iwarp option = inverting -nwarp input") ;
-     qwarp = THD_nwarp_invert(dset_nwarp) ;
-     DSET_delete(dset_nwarp) ;
-     dset_nwarp = qwarp ;
-     if( verb ) fprintf(stderr,"\n") ;
-   }
+   if( do_iwarp ) nwc->flags |= NWC_INVERT_MASK ;  /* set inversion flag */
 
    if( do_wmast && dset_mast == NULL ){
      char *gs = CW_get_saved_geomstring() ;
-     if( CW_get_saved_expad() == 0 || gs == NULL ){
-       dset_mast = dset_nwarp ;
-     } else {
-       dset_mast = EDIT_geometry_constructor(gs,"ElephantsAreCool") ;
-     }
+     dset_mast = EDIT_geometry_constructor(gs,"ElephantsAreCool") ;
    }
 
    verb_nww = verb ;
 
+#if 0  /*** the olden way ***/
    dset_out = THD_nwarp_dataset( dset_nwarp , dset_src , dset_mast , prefix ,
                                  interp_code,ainter_code , dxyz_mast , wfac , 0 , awim ) ;
+#else
+   dset_out = THD_nwarp_dataset_NEW( nwc , dset_src , dset_mast , prefix ,
+                                     interp_code,ainter_code , dxyz_mast , wfac , 0 ) ;
+#endif
 
+#if 0
+INFO_message("dset out returned as %p",(void *)dset_out) ;
+#endif
    if( dset_out == NULL ) ERROR_exit("Warping failed for some reason :-(((") ;
 
    if( toshort ){
@@ -495,9 +617,10 @@ int main( int argc , char *argv[] )
 
    if( dset_mast != NULL )
      MCW_strncpy( dset_out->atlas_space , dset_mast->atlas_space , THD_MAX_NAME ) ;
-   else
-     MCW_strncpy( dset_out->atlas_space , dset_nwarp->atlas_space , THD_MAX_NAME ) ;
 
+#if 0
+ININFO_message("copying history") ;
+#endif
    tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
    tross_Make_History( "3dNwarpApply" , argc,argv , dset_out ) ;
 

@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , OCT , 2014 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
+  { 22 , OCT , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_MODIFY ,
+   "Alter -nwarp option a lot" ,
+   "Specifically, allow time-dependent matrix inputs in any position in the\n"
+   "-nwarp catenation stream (only for this program, not the fixed-warp\n"
+   "programs 3dNwarpCat, 3dNwarpXYZ, 3dNwarpFuncs).  Removes the -affter\n"
+   "option, which is now absorbed into the -nwarp processing." } ,
+
+ { 10 , OCT , 2014 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
    "-realaxes ==> use ijk_to_dicom_real vs. ijk_to_dicom" ,
    NULL } ,
 
