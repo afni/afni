@@ -74,11 +74,11 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
           afni_util.py -eval "wrap_file_text('$f1', '$f2')"
    """
 
-   tdata = read_text_file(fname=infile)
+   tdata = read_text_file(fname=infile, lines=0, strip=0)
    if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
    
 
-def read_text_file(fname='stdin', lines=0, verb=1):
+def read_text_file(fname='stdin', lines=1, strip=1, verb=1):
    """return the text text from the given file as either one string
       or as an array of lines"""
 
@@ -90,8 +90,12 @@ def read_text_file(fname='stdin', lines=0, verb=1):
         if lines: return []
         else:     return ''
 
-   if lines: tdata = fp.readlines()
-   else:     tdata = fp.read()
+   if lines:
+      tdata = fp.readlines()
+      if strip: tdata = [td.strip() for td in tdata]
+   else:
+      tdata = fp.read()
+      if strip: tdata.strip()
 
    fp.close()
 
@@ -99,9 +103,8 @@ def read_text_file(fname='stdin', lines=0, verb=1):
 
 def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    """use read_text_file, but return only the first 'nlines' lines"""
-   tdata = read_text_file(fname, lines=1, verb=verb)
-   tdata = tdata[0:nlines]
-   if strip: tdata = [l.strip() for l in tdata]
+   tdata = read_text_file(fname, strip=strip, verb=verb)
+   if nlines != 0: tdata = tdata[0:nlines]
    return tdata
 
 def write_to_timing_file(data, fname='', nplaces=-1, verb=1):
@@ -3216,30 +3219,66 @@ def argmin(vlist, absval=0):
 # random list routines: shuffle, merge, swap, extreme checking
 # ----------------------------------------------------------------------
 
-def shuffle(vlist):
+def swap_2(vlist, i1, i2):
+    if i1 != i2:
+       val = vlist[i2]
+       vlist[i2] = vlist[i1]
+       vlist[i1] = val
+
+def shuffle(vlist, start=0, end=-1):
     """randomize the order of list elements, where each permutation is
        equally likely
 
        - akin to RSFgen, but do it with equal probabilities
          (search for swap in [index,N-1], not in [0,N-1])
-       - random.shuffle() cannot produce all possibilities, don't use it"""
+       - random.shuffle() cannot produce all possibilities, don't use it
+       - start and end are indices to work with
+    """
 
     # if we need random elsewhere, maybe do it globally
     import random
 
-    size = len(vlist)
+    vlen = len(vlist)
 
-    for index in range(size):
-        # find random index in [index,n] = index+rand[0,n-index]
-        # note: random() is in [0,1)
-        i2 = index + int((size-index)*random.random())
+    # check bounds
+    if start < 0 or start >= vlen: return
+    if end >= 0 and end <= start:  return
 
-        if i2 != index:         # if we want a new location, swap
-            val = vlist[i2]
-            vlist[i2] = vlist[index]
-            vlist[index] = val
+    # so start is valid and end is either < 0 or big enough
+    if end < 0 or end >= vlen: end = vlen-1
 
-    return
+    nvals = end-start+1
+
+    # for each index, swap with random other towards end
+    for index in range(nvals-1):
+        rind = int((nvals-index)*random.random())
+        swap_2(vlist, start+index, start+index+rind)
+        continue
+
+    # return list reference, though usually ignored
+    return vlist
+
+def shuffle_blocks(vlist, bsize=-1):
+    """like shuffle, but in blocks of given size"""
+
+    vlen = len(vlist)
+
+    if bsize < 0 or bsize >= vlen:
+       shuffle(vlist)
+       return
+
+    if bsize < 2: return
+
+    nblocks = vlen // bsize
+    nrem    = vlen  % bsize
+
+    boff = 0
+    for ind in range(nblocks):
+       shuffle(vlist, boff, boff+bsize-1)
+       boff += bsize
+    shuffle(vlist, boff, boff+nrem-1)
+        
+    return vlist
 
 def random_merge(list1, list2):
     """randomly merge 2 lists (so each list stays in order)
