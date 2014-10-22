@@ -36,9 +36,11 @@ static char * g_history[] =
   "       issue that might work on one system but fail on another (with the\n"
   "       identical binary, ick).\n"
   "       So re-wrote the troubling part.\n"
+  "0.5  22 Oct 2014: if zeropadding for dilations, reset ijk_to_dicom_real\n",
+  "       to preserve any oblique matrix\n"
 };
 
-static char g_version[] = "3dmask_tool version 0.4, 1 August 2013";
+static char g_version[] = "3dmask_tool version 0.5, 1 October 2014";
 
 #include "mrilib.h"
 
@@ -265,6 +267,9 @@ THD_3dim_dataset * apply_dilations(THD_3dim_dataset * dset, int_list * D,
       inset = THD_zeropad(dnew, -pad, -pad, -pad, -pad, -pad, -pad, "pad", 0);
       DSET_delete(dnew);
       dnew = inset;
+
+      /* copy original dicom_real, in case padding nuked oblique matrix */
+      dnew->daxes->ijk_to_dicom_real = dset->daxes->ijk_to_dicom_real;
    }
 
    RETURN(dnew);
