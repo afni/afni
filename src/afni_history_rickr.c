@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Oct, 2014, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
+   "if padding for dilate/erode steps, preserve ijk_to_dicom_real",
+   "Thanks to A Kurani for nothing the problem."
+ } ,
+
  { 20, Oct, 2014, RCR, "imcat", MINOR, TYPE_BUG_FIX,
    "z and r: fixed y-padding",
    NULL
