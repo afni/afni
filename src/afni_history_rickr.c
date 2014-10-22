@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Oct, 2014, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "enhanced read_text_file and added shuffle_blocks",
+   NULL
+ } ,
+
  { 22, Oct, 2014, RCR, "3dmask_tool", MICRO, TYPE_BUG_FIX,
    "if padding for dilate/erode steps, preserve ijk_to_dicom_real",
    "Thanks to A Kurani for nothing the problem."
