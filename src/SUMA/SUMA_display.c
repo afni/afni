@@ -7733,7 +7733,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 "surface - the one said to be in focus.\n"
 ":SPX:"
 "You can launch the :ref:`Surface Controller <SurfCont>` with:"
-" :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Surface Controller`\n"
+" :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
 "\n"
 ".. figure:: media/SurfaceController.jpg\n"
 "   :align: center\n"
@@ -7741,7 +7741,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 "   ..\n\n"
 ":DEF:"
 "You can launch the Surface Controller with:"
-"\n'ctrl+s' or 'View-->Surface Controller'\n"
+"\n'ctrl+s' or 'View-->Object Controller'\n"
 ":SPX:"
 "\n") ;
 
@@ -8530,6 +8530,24 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                      "Close Graph controller", SUMA_closeSurfaceCont_help,
                      NULL, NULL, NULL, NULL);
    
+   SUMA_Register_Widget_Help( NULL , 
+                              "GraphCont",
+                              "The Graph Dataset Controller",
+"The graph controller is for controlling the way graphs (matrices) are rendered.  Each graph gets its own controller. You can use the switch button above to switch between them. The graph controller is initialized by the graph of the last selected edge/cell.\n After you have selected an edge, "
+":SPX:"
+"you can launch the :ref:`Graph Controller <VolCont>` with:"
+" :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
+"\n"
+".. figure:: media/GraphController.jpg\n"
+"   :align: center\n"
+"\n\n"
+"   ..\n\n"
+":DEF:"
+"you can launch the Graph Controller with:"
+"\n'ctrl+s' or 'View-->Object Controller'\n"
+":SPX:"
+"\n") ;
+
    XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_gmamma , NULL);
          
    rc_mamma = XtVaCreateWidget ("rowcolumn",
@@ -8578,6 +8596,10 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
+      SUMA_Register_Widget_Help( NULL , 
+                              "GraphCont->Graph_Dset_Properties",
+                              "Properties of graph dset",
+                              NULL) ;
       
       rc_SurfProp = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfFrame,
@@ -8630,7 +8652,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                      (XtPointer)SUMA_SurfCont_GetcurDOp(SurfCont), NULL); 
 
       SUMA_Register_Widget_Help( SurfCont->SurfInfo_pb , 
-                                 "GraphCont->Graph_Dset_Properties->More",
+                                 "GraphCont->Graph_Dset_Properties->more",
                                  "More info on Graph Dset" , 
                                  SUMA_SurfContHelp_more ) ;
       XtManageChild (SurfCont->SurfInfo_pb); 
@@ -8713,7 +8735,10 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-            
+      SUMA_Register_Widget_Help( NULL , 
+                                 "GraphCont->Xhair_Info",
+                      "Crosshair Information",
+                                 NULL);                 
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->Xhair_fr,
@@ -8750,7 +8775,11 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-            
+      SUMA_Register_Widget_Help( NULL , 
+                              "GraphCont->GDset_Mapping",
+                              "Control mapping of edge/cell values to color map",
+                              NULL) ;
+       
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->DsetMap_fr,
@@ -8787,7 +8816,12 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-            
+      
+      SUMA_Register_Widget_Help( NULL , 
+                        "GraphCont->GDset_Controls",
+                        "Control appearance of 3D graphs and matrices",
+                        NULL) ;
+      
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->ColPlane_fr,
@@ -9594,6 +9628,10 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
+      SUMA_Register_Widget_Help( NULL , 
+                                 "TractCont->Dset_Mapping",
+                                 "Tract Dset Color Mapping",
+                                 NULL);     
             
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
@@ -10156,6 +10194,24 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
                      "Close Surface controller", SUMA_closeSurfaceCont_help,
                      NULL, NULL, NULL, NULL);
    
+   SUMA_Register_Widget_Help( NULL , 
+                                 "VolCont",
+                                 "The Volume Controller",
+"The volume controller is for controlling the way volumes are rendered. Each volume gets its own controller. You can use the switch button above to switch between them. The volume controller is initialized by the volume of the last selected voxel.\n After you have selected a voxel, "
+":SPX:"
+"you can launch the :ref:`Volume Controller <VolCont>` with:"
+" :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
+"\n"
+".. figure:: media/VolumeController.jpg\n"
+"   :align: center\n"
+"\n\n"
+"   ..\n\n"
+":DEF:"
+"you can launch the Volume Controller with:"
+"\n'ctrl+s' or 'View-->Object Controller'\n"
+":SPX:"
+"\n") ;
+
    XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rc_gmamma , NULL);
          
    rc_mamma = XtVaCreateWidget ("rowcolumn",
@@ -10202,6 +10258,10 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
+      SUMA_Register_Widget_Help( NULL , 
+                                 "VolCont->Volume_Properties",
+                                 "Volume Properties",
+                  "Block providing information about selected volume.") ;
       
       rc_SurfProp = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfFrame,
@@ -10282,7 +10342,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-            
+      SUMA_Register_Widget_Help( NULL , 
+                                 "VolCont->Xhair_Info",
+                                 "Information at crosshair",
+                                 NULL);     
+      
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->Xhair_fr,
@@ -10319,6 +10383,10 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
+      SUMA_Register_Widget_Help( NULL , 
+                                 "VolCont->Dset_Mapping",
+                                 "Dset Color Mapping",
+                                 NULL);     
             
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
@@ -10354,7 +10422,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-      
+      SUMA_Register_Widget_Help( NULL , 
+                                 "VolCont->Slice_Controls",
+                             "Set up which and how many slices are displayed",
+                                 NULL);     
+
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->Slice_fr,
@@ -10435,7 +10507,10 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-      
+      SUMA_Register_Widget_Help(NULL,
+                                "VolCont->Volume_Rendering_Controls",
+                                "Set the parameters for 3D rendering",
+                                "Set the parameters for 3D rendering");
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->VR_fr,
@@ -10473,7 +10548,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-            
+      SUMA_Register_Widget_Help( NULL , 
+                                 "VolCont->Dset_Controls",
+                                 "Dset Controls",
+                                 NULL);     
+      
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->ColPlane_fr,
