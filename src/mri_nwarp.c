@@ -5939,6 +5939,7 @@ static char *CW_saved_geomstring = NULL ;
 static int   CW_saved_expad      = 0 ;
 static int   CW_no_expad         = 1 ;
 static int   CW_extra_pad        = 0 ;
+static int   CW_interp           = MRI_WSINC5 ;
 
 char * CW_get_saved_geomstring(void){ return CW_saved_geomstring ; }
 int    CW_get_saved_expad     (void){ return CW_saved_expad ;      }
@@ -5984,6 +5985,8 @@ static mat44_vec * CW_read_affine_warp( char *cp )
    int do_inv=0 , do_sqrt=0 , ii , nmat ;
 
 ENTRY("CW_read_affine_warp") ;
+
+   if( cp == NULL || *cp == '\0' ) RETURN(mvv) ;
 
 #if 0
 INFO_message("Enter CW_read_affine_warp( %s )",cp) ;
@@ -6057,6 +6060,25 @@ ININFO_message("output Matrix[%d]",nmat) ;
 
    mri_free(qim) ; free(wp) ;
    RETURN(mvv) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static mat44 CW_read_affine_warp_OLD( char *cp )
+{
+   mat44_vec *mvv ; mat44 mmm ;
+
+   mvv = CW_read_affine_warp(cp) ;
+
+   if( mvv == NULL || mvv->nmar <= 0 || mvv->mar == NULL ){  /* bad bad bad */
+     ERROR_message("Failed to read affine warp from file '%s' -- using identity matrix",cp) ;
+     LOAD_IDENT_MAT44(mmm) ; return mmm ;
+   } else if( mvv->nmar > 1 ){
+     WARNING_message("Affine warp file '%s' has %d matrices: using only first one",cp,mvv->nmar) ;
+   }
+
+   mmm = mvv->mar[0] ; DESTROY_mat44_vec(mvv) ;
+   return mmm ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -6297,7 +6319,7 @@ INFO_message("CW_load_one_warp: matrix vector") ;
      free(YZ) ;
 #endif
    } else if( do_inv ){  /* user wants INV */
-     BB = IW3D_invert(AA,NULL,MRI_WSINC5); IW3D_destroy(AA); AA = BB;
+     BB = IW3D_invert(AA,NULL,CW_interp); IW3D_destroy(AA); AA = BB;
    }
    if( expad > 0 ){
      EE = IW3D_extend( AA , -expad,-expad,-expad,-expad,-expad,-expad , 0 ) ;
@@ -6417,7 +6439,7 @@ ENTRY("IW3D_read_catenated_warp") ;
        if( warp == NULL ){                         /* thus far, only matrices */
          qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
        } else {                             /* apply matrix to nonlinear warp */
-         tarp = IW3D_compose_w1m2(warp,smat,MRI_WSINC5) ;
+         tarp = IW3D_compose_w1m2(warp,smat,CW_interp) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
 
@@ -6433,10 +6455,10 @@ ENTRY("IW3D_read_catenated_warp") ;
          if( ii == 0 ){   /* first one ==> don't compose with identity matrix */
            warp = IW3D_copy(CW_iwarp[ii],1.0f) ;
          } else {                             /* compose with previous matrix */
-           warp = IW3D_compose_m1w2(wmat,CW_iwarp[ii],MRI_WSINC5) ;
+           warp = IW3D_compose_m1w2(wmat,CW_iwarp[ii],CW_interp) ;
          }
        } else {           /* already have nonlinear warp, apply new one to it */
-         tarp = IW3D_compose(warp,CW_iwarp[ii],MRI_WSINC5) ;
+         tarp = IW3D_compose(warp,CW_iwarp[ii],CW_interp) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
 
@@ -6455,7 +6477,7 @@ ENTRY("IW3D_read_catenated_warp") ;
        if( warp == NULL ){                         /* thus far, only matrices */
          qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
        } else {                             /* apply matrix to nonlinear warp */
-         tarp = IW3D_compose_w1m2(warp,smat,MRI_WSINC5) ;
+         tarp = IW3D_compose_w1m2(warp,smat,CW_interp) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
 
@@ -6604,7 +6626,7 @@ ININFO_message("IW3D_reduce_nwarp_catlist: warp-warp ii=%d jj=%d",ii,jj) ;
 #endif
        iww = IW3D_from_dataset(ids,0,0) ;
        jww = IW3D_from_dataset(jds,0,0) ;
-       kww = IW3D_compose(iww,jww,MRI_WSINC5) ;
+       kww = IW3D_compose(iww,jww,CW_interp) ;
        IW3D_adopt_dataset(kww,ids) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
        kds = IW3D_to_dataset(kww,prefix) ; DSET_superlock(kds) ;
        IW3D_destroy(iww) ; IW3D_destroy(jww) ; IW3D_destroy(kww) ;
@@ -6627,7 +6649,7 @@ ININFO_message("IW3D_reduce_nwarp_catlist: Matrix[1]-warp ii=%d jj=%d",ii,jj) ;
 #endif
          mii = mvii->mar[0] ;
          jww = IW3D_from_dataset(jds,0,0) ;
-         kww = IW3D_compose_m1w2(mii,jww,MRI_WSINC5) ;
+         kww = IW3D_compose_m1w2(mii,jww,CW_interp) ;
          IW3D_adopt_dataset(kww,jds) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
          kds = IW3D_to_dataset(kww,prefix) ; DSET_superlock(kds) ;
          DESTROY_mat44_vec(mvii) ; IW3D_destroy(kww) ; DSET_delete(jds) ;
@@ -6651,7 +6673,7 @@ ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[1] ii=%d jj=%d",ii,jj) ;
 #endif
          mjj = mvjj->mar[0] ;
          iww = IW3D_from_dataset(ids,0,0) ;
-         kww = IW3D_compose_w1m2(iww,mjj,MRI_WSINC5) ;
+         kww = IW3D_compose_w1m2(iww,mjj,CW_interp) ;
          IW3D_adopt_dataset(kww,ids) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
          kds = IW3D_to_dataset(kww,prefix) ; DSET_superlock(kds) ;
          DESTROY_mat44_vec(mvjj) ; IW3D_destroy(kww) ; DSET_delete(ids) ;
@@ -6756,7 +6778,7 @@ ININFO_message("matrix *matrix") ;
 #if 0
 ININFO_message("warp *matrix") ;
 #endif
-         tarp = IW3D_compose_w1m2(warp,smat,MRI_WSINC5) ;
+         tarp = IW3D_compose_w1m2(warp,smat,CW_interp) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
 
@@ -6774,13 +6796,13 @@ ININFO_message("*warp") ;
 #if 0
 ININFO_message("matrix *warp") ;
 #endif
-           warp = IW3D_compose_m1w2(wmat,qarp,MRI_WSINC5) ;
+           warp = IW3D_compose_m1w2(wmat,qarp,CW_interp) ;
          }
        } else {           /* already have nonlinear warp, apply new one to it */
 #if 0
 ININFO_message("warp *warp") ;
 #endif
-         tarp = IW3D_compose(warp,qarp,MRI_WSINC5) ;
+         tarp = IW3D_compose(warp,qarp,CW_interp) ;
          IW3D_destroy(warp) ; warp = tarp ;
        }
 

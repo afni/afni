@@ -500,38 +500,38 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-NN") == 0 || strncasecmp(argv[iarg],"-nearest",6) == 0 ){
-       interp_code = MRI_NN ; iarg++ ; continue ;
+       CW_interp = interp_code = MRI_NN ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-linear",4)==0 || strncasecmp(argv[iarg],"-trilinear",6)==0 ){
-       interp_code = MRI_LINEAR ; iarg++ ; continue ;
+       CW_interp = interp_code = MRI_LINEAR ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-cubic",4)==0 || strncasecmp(argv[iarg],"-tricubic",6)==0 ){
-       interp_code = MRI_CUBIC ; iarg++ ; continue ;
+       CW_interp = interp_code = MRI_CUBIC ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-quintic",4)==0 || strncasecmp(argv[iarg],"-triquintic",6)==0 ){
-       interp_code = MRI_QUINTIC ; iarg++ ; continue ;
+       CW_interp = interp_code = MRI_QUINTIC ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-wsinc",5) == 0 ){
-       interp_code = MRI_WSINC5 ; iarg++ ; continue ;
+       CW_interp = interp_code = MRI_WSINC5 ; iarg++ ; continue ;
      }
      if( strncasecmp(argv[iarg],"-interp",5)==0 ){
        char *inam ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        inam = argv[iarg] ; if( *inam == '-' ) inam++ ;
        if( strcasecmp(inam,"NN")==0 || strncasecmp(inam,"nearest",5)==0 )
-         interp_code = MRI_NN ;
+         CW_interp = interp_code = MRI_NN ;
        else
        if( strncasecmp(inam,"linear",3)==0 || strncasecmp(inam,"trilinear",5)==0 )
-         interp_code = MRI_LINEAR ;
+         CW_interp = interp_code = MRI_LINEAR ;
        else
        if( strncasecmp(inam,"cubic",3)==0 || strncasecmp(inam,"tricubic",5)==0 )
-         interp_code = MRI_CUBIC ;
+         CW_interp = interp_code = MRI_CUBIC ;
        else
        if( strncasecmp(inam,"quintic",3)==0 || strncasecmp(inam,"triquintic",5)==0 )
-         interp_code = MRI_QUINTIC ;
+         CW_interp = interp_code = MRI_QUINTIC ;
        else
        if( strncasecmp(inam,"WSINC",5)==0 )
-         interp_code = MRI_WSINC5 ;
+         CW_interp = interp_code = MRI_WSINC5 ;
        else
          ERROR_exit("Unknown code '%s' after '%s' :-(",argv[iarg],argv[iarg-1]) ;
        iarg++ ; continue ;

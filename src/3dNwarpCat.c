@@ -341,7 +341,7 @@ int main( int argc , char *argv[] )
      LOAD_IDENT_MAT44(wmat) ;
      for( ii=0 ; ii < nwtop ; ii++ ){
        if( cwarp[ii] == NULL ) continue ;
-       smat = CW_read_affine_warp(cwarp[ii]) ;
+       smat = CW_read_affine_warp_OLD(cwarp[ii]) ;
        qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;
      }
 
