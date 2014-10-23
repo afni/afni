@@ -4366,6 +4366,34 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Vol_Cont_Help"))) {
+               if (!SUMA_WriteCont_Help(VO_type, 0, cbuf)) {
+                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Vol_Cont_Sphinx_Help"))) {
+               if (!SUMA_WriteCont_Help(VO_type, 1, cbuf)) {
+                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Graph_Cont_Help"))) {
+               if (!SUMA_WriteCont_Help(GRAPH_LINK_type, 0, cbuf)) {
+                  SUMA_S_Err("Failed to write GraphCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Graph_Cont_Sphinx_Help"))) {
+               if (!SUMA_WriteCont_Help(GRAPH_LINK_type, 1, cbuf)) {
+                  SUMA_S_Err("Failed to write GraphCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Write_Mouse_Keyb_Help"))) {
                FILE *fout = fopen(cbuf,"w");
                if (!fout) {

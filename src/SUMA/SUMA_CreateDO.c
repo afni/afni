@@ -9047,6 +9047,9 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          
          if (GSaux->DOCont) {
             SUMA_S_Warn("Have controller already. Keep it.");
+         } else {
+            GSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), 
+                                                      GRAPH_LINK_type);
          }
          SUMA_ifree(GSaux->Center_G3D);
          SUMA_ifree(GSaux->Range_G3D);
@@ -9063,7 +9066,8 @@ SUMA_Boolean SUMA_AddDsetSaux(SUMA_DSET *dset)
          GSaux->SDO = NULL;
          GSaux->nido = NULL;
          GSaux->Overlay = NULL;
-         GSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), SDSET_type);
+         GSaux->DOCont = SUMA_CreateSurfContStruct(SDSET_ID(dset), 
+                                                   GRAPH_LINK_type);
          GSaux->PR = SUMA_New_Pick_Result(NULL);
          GSaux->thd = NULL;
          GSaux->net = NULL;
@@ -16294,15 +16298,29 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    Ch->c[2] = Ch->c[2]+off[2];
    
    if (scl) {
-      fac = SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03);
-      radsph = Ch->sphrad*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
-      gapch = Ch->g*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
-      radch = Ch->r*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
+      if (SO && SO->EL && SO->EL->AvgLe > 0) {
+         fac = SO->EL->AvgLe/15.0;
+         radsph = fac;
+         gapch = fac;
+         radch = SO->EL->AvgLe/2.0;
+      } else {
+         fac = SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03);
+         radsph = Ch->sphrad*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
+         gapch = Ch->g*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
+         radch = Ch->r*fac*(SUMA_sv_auto_fov(sv)/FOV_INITIAL);
+      }
    } else {
-      fac = (SUMA_sv_auto_fov(sv)/FOV_INITIAL);
-      radsph = Ch->sphrad*fac;
-      gapch = Ch->g*fac;
-      radch = Ch->r*fac;
+      if (SO && SO->EL && SO->EL->AvgLe > 0) {
+         fac = SO->EL->AvgLe/10.0;
+         radsph = fac;
+         gapch = fac;
+         radch = SO->EL->AvgLe;
+      } else {
+         fac = (SUMA_sv_auto_fov(sv)/FOV_INITIAL);
+         radsph = Ch->sphrad*fac;
+         gapch = Ch->g*fac;
+         radch = Ch->r*fac;
+      }
    }
    if (!(gl_dt = glIsEnabled(GL_DEPTH_TEST)))  
       glEnable(GL_DEPTH_TEST);   /* To hide cross hair as it gets hidden
@@ -16439,6 +16457,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    Ch->Stipple = SUMA_SOLID_LINE;
    Ch->c[0] = Ch->c[1] = Ch->c[2] = 0.0;
    
+   /* Ch->g, and Ch->r setting is currently overriden if SO->EL->AvgLe > 0.0) */
    Ch->g = SUMA_CROSS_HAIR_GAP/SUMA_DimSclFac(NULL, NULL); 
    Ch->r = SUMA_CROSS_HAIR_RADIUS/SUMA_DimSclFac(NULL, NULL); 
    
@@ -16457,6 +16476,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    
    Ch->sphcol[0] = 1.0; Ch->sphcol[1] = 1.0; 
    Ch->sphcol[2] = 0.0; Ch->sphcol[3] = 0.0;
+   /* Ch->sphrad setting is currently overriden if SO->EL->AvgLe > 0.0) */
    Ch->sphrad = SUMA_CROSS_HAIR_SPHERE_RADIUS/SUMA_DimSclFac(NULL, NULL);
    Ch->slices = 10;
    Ch->stacks = 10;
@@ -17069,12 +17089,19 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glMaterialfv(Face, GL_AMBIENT_AND_DIFFUSE, NoColor);
             glTranslatef ( SurfObj->NodeList[id], 
                            SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-            gluSphere(  SurfObj->NodeMarker->sphobj,
-                        SurfObj->NodeMarker->sphrad *          
-                           (SUMA_sv_auto_fov(sv)/FOV_INITIAL) *  
-                           SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
-                        SurfObj->NodeMarker->slices, 
-                        SurfObj->NodeMarker->stacks);
+            if (SurfObj->EL && SurfObj->EL->AvgLe > 0) {
+               gluSphere(  SurfObj->NodeMarker->sphobj,
+                           SurfObj->EL->AvgLe/15,
+                           SurfObj->NodeMarker->slices, 
+                           SurfObj->NodeMarker->stacks);
+            } else {
+               gluSphere(  SurfObj->NodeMarker->sphobj,
+                           SurfObj->NodeMarker->sphrad *          
+                              (SUMA_sv_auto_fov(sv)/FOV_INITIAL) *  
+                              SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
+                           SurfObj->NodeMarker->slices, 
+                           SurfObj->NodeMarker->stacks);
+            }
             glTranslatef ( -SurfObj->NodeList[id], 
                            -SurfObj->NodeList[id+1],
                            -SurfObj->NodeList[id+2]);

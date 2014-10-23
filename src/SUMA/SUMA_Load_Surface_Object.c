@@ -4072,7 +4072,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (
                   #if SUMA_SEPARATE_SURF_CONTROLLERS
                   /* leave controllers separate */ 
                   if (!SO->SurfCont) {
-                     SO->SurfCont = SUMA_CreateSurfContStruct(SO->idcode_str); 
+                     SO->SurfCont = 
+                        SUMA_CreateSurfContStruct(SO->idcode_str, SO_type); 
                   } else {
                      SUMA_S_Note("Surface Controller Exists Already (b)\n");
                   }

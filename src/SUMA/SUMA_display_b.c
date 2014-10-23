@@ -3393,7 +3393,7 @@ void SUMA_CreateVrFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname,63,"%s->text", VrF->wname);
+      snprintf(wname,63,"%s->Ns", VrF->wname);
       SUMA_Register_Widget_Help(VrF->text, wname, hint, help);
    }
    XtVaSetValues(VrF->text, XmNcolumns, 3, NULL); 
@@ -3419,7 +3419,7 @@ void SUMA_CreateVrFields(  Widget parent,
    XtAddCallback (VrF->tb, 
          XmNvalueChangedCallback, SUMA_cb_ShowVrF_toggled, ado);
    if (hint || help) {
-      snprintf(wname,63,"%s->tb", VrF->wname);
+      snprintf(wname,63,"%s->Ns->v", VrF->wname);
       SUMA_Register_Widget_Help(VrF->tb, wname, 
                                 "View (ON)/Hide VrF", 
                                 SUMA_SurfContHelp_ShowVrFTgl);

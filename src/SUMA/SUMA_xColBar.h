@@ -536,12 +536,20 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   XXX: Show no balls.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetThrough  \
-   "Choose how connections to the selected node are displayed.\n" \
-   "   Edg: Show with edges, a subset of the whole graph:LR:\n"  \
-   "   Col: Change the color of the connecting nodes, based on edge value:LR:\n"\
-  "   Rad: Change the radius of the connecting nodes, based on edge value:LR:\n"\
+   "When a node, rather than an edge is selected, choose how connections "\
+   "to it are displayed.\n" \
+   "   Edg: Show connections to selected node with edges, either straight "\
+   "lines or with bundles.:LR:\n"  \
+   "   Col: Show connections to selected node by changing the colors of "\
+   "the connecting nodes, based on edge value. Edges are not displayed. "\
+   "the idea here is to reduce the clutter of the display, while still "\
+   "allowing you to visualize connection strength to one node at a time.:LR:\n"\
+  "   Rad: Show connections to selected node by changing the  radius of the "\
+  "connecting nodes, based on edge value. Edges are not displayed in this "\
+  "mode also.:LR:\n"\
    "   CaR: Both Col and Rad:LR:\n"\
-   "   XXX: Do nothing special, keep showing whole graph.:LR:\n"  
+   "   XXX: Do nothing special, keep showing whole graph, even when "\
+   "selecting a graph node.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetEdgeThick  \
    "Choose the thickness sizing for edges of this graph dataset.\n" \
@@ -648,14 +656,10 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "2- The :term:`RAI` coordinates are those of the surface node after all spatial transformations have been applied to the surface. Those transformations do not include visualization transformations applied in the viewer"
 
 #define SUMA_SurfContHelp_GNode   \
-   "Index of edge in focus on this "  \
-   "controller's graph. "  \
-   "Entering a new edge's index "   \
-   "will put that edge in focus "   \
-   "and send the crosshair to its "   \
-   "center (like 'j'). "   \
-   "Use 'alt+l' to center the "   \
-   "cross hair in your viewer."
+   "Index of the node closest to the selection location on the edge's "  \
+   "representation.:LR:\n"\
+   "*NOTE* that a node is also an edge that starts and ends at the same"\
+   "node. Think diagonal elements of a connectivity matrix."
         
 #define SUMA_TractContHelp_I   \
    "Set/Get the :term:`1D index` of the selected elementary tract datum: "\
@@ -696,12 +700,26 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "2- Indices of nodes forming triangle.:LR:\n"
 
 #define SUMA_SurfContHelp_GEdge \
-   "FILL ME"
+   "1- Edge/Cell Index:  Get/Set index of edge/cell in focus on this "\
+   "controller's graph. This number is the :term:`1D index` of the edge/cell "\
+   "in the graph/matrix. Consider it the equivalent of a voxel 1D index in "\
+   "a volume, or a node in a surface dataset. \n" \
+   "Entering a new edge's index will put that edge  in focus and send the "\
+   "crosshair to its center (like :ref:`j<LC_j>`). "\
+   "Use :ref:`alt+l<LC_Alt+l>` to center the cross hair in your viewer.:LR:\n" \
+   "Note that an edge can be formed by a pair of identical nodes - think "\
+   "matrix diagonal.:LR:\n"\
+   "2- Nodes Forming Directed Edge/Cell: For a cell, this would its pair of "\
+   "row and column indices into the matrix. For a graph, this would be the "\
+   "indices of the nodes forming the directed edge."  
    
 #define SUMA_SurfContHelp_NodeValTblr0 \
    "Data values at node in focus"
 #define SUMA_SurfContHelp_GEdgeValTblr0 \
-   "Data values at edge in focus"
+   "Data values at edge in focus. :term:`Intensity`, "\
+":term:`Threshold`, and :term:`Brightness` show the triplets of values "\
+" at the selected edge that correspond to the graph/matrix  choices." \
+"in :ref:`I<VolCont->Dset_Mapping->I>`, :ref:`T<VolCont->Dset_Mapping->T>`, and :ref:`B<VolCont->Dset_Mapping->B>` selectors."
    
    #define SUMA_SurfContHelp_NodeValTblc0 \
 "Data values at node in focus. :term:`Intensity`, "\
@@ -724,7 +742,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "in :ref:`I<VolCont->Dset_Mapping->I>`, :ref:`T<VolCont->Dset_Mapping->T>`, and :ref:`B<VolCont->Dset_Mapping->B>` selectors."
 
 #define SUMA_SurfContHelp_GEdgeValTblc0 \
-   "Data values at edge in focus"
+   SUMA_SurfContHelp_GEdgeValTblr0
    
 #define SUMA_SurfContHelp_NodeValTblc1 \
    "Intensity (I) value"
@@ -751,9 +769,9 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "of :ref:`BTP<TractCont->Xhair_Info->BTP.r00>`"
 
 #define SUMA_SurfContHelp_GEdgeLabelTblr0\
-   "Color from the selected Dset\n" \
+   "Labels from the selected graph dataset\n" \
    "at the edge in focus.\n"   \
-   "If nothing is available, node color\n"   \
+   "If no labels are available, edge color\n"   \
    "is displayed."
    
 #define SUMA_SurfContHelp_DsetLblTblr0 \
@@ -912,16 +930,16 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 " bundles in the entire network."
 
 #define SUMA_SurfContHelp_SetThreshTblr0   \
-   "Set the threshold.\n"  \
-   "For statistical parameters, you can \n"  \
-   "append a 'p' to set by the p value.\n" \
-   "For example 0.001p.\n" \
-   "For percentile thresholding, append a '%' to\n"\
-   "the value, such as 25%\n"
+"Set/Get the threshold value.\n"  \
+"When statistical parameters are set under "\
+":ref:`T <VolCont->Dset_Mapping->T>`, you can \n"  \
+"append a 'p' to set by the p value, as in 0.001p.:LR:\n" \
+"For percentile thresholding, append a '%' to "\
+"the value, such as 25%\n"
 
    #define SUMA_SurfContHelp_MasksLoad  \
 "Load a set of masks previously saved by my neighboring button. The save "\
-"operation also preserves the :ref:`Mask Eval<MaskCont->Masks->Mask_Eval> "\
+"operation also preserves the :ref:`Mask Eval<MaskCont->Masks->Mask_Eval.r00>` "\
 "expression.:LR:\nReloading a mask file will replace current masks."
 
 #define SUMA_SurfContHelp_MasksSave  \
@@ -1165,13 +1183,20 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Minimum clip value.\n" \
    "Clips values (v) in the Dset\n" \
    "less than Minimum (min):\n"  \
-   "  if v < min then v = min "
+   "  if v < min then v = min \n\n"\
+"You can also set the range as a percentile of the dataset's values by  "\
+"appending '%' to the percentile such as 5% or 90%. Note that "\
+"the percentile always gets replaced by the actual value in the dataset."
 
 #define SUMA_SurfContHelp_SetRngTbl_c2 \
    "Maximum clip value.\n" \
    "Clips values (v) in the Dset\n" \
    "larger than Maximum (max):\n"  \
-   "  if v > max then v = max "
+   "  if v > max then v = max \n\n" \
+"You can also set the range as a percentile of the dataset's values by  "\
+"appending '%' to the percentile such as 5% or 90%. Note that "\
+"the percentile always gets replaced by the actual value in the dataset."
+
 
 #define SUMA_SurfContHelp_SetClustTbl_r0 \
    "Used for setting the clustering parameters."  
@@ -1475,8 +1500,24 @@ SUMA_SHPINX_BREAK \
 #define SUMA_SurfContHelp_GDSET_ViewBundles \
    "Show bundles instead of edges between nodes if \n"\
    "the graph dataset contains such information. For\n"\
-   "the moment, only 3dProbTrackID creates such data."
-
+   "the moment, only 3dProbTrackID creates such data."\
+":SPX:\n"\
+".. figure:: media/Graph3D.jpg\n"\
+"     :align: left\n"\
+"     :figwidth: 30%\n\n"\
+"     Graph shown in 3D. Edges represented by straight lines.\n\n"\
+".. figure:: media/Graph3D_Bundles.jpg\n"\
+"     :align: left\n"\
+"     :figwidth: 30%\n\n"\
+"     Graph shown in 3D. Edges represented by bundles derived from.\n"\
+"     tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.\n\n"\
+SUMA_SHPINX_BREAK \
+"Figures were generated using :ref:`FATCAT_DEMO` output with::\n"\
+"   suma -vol mprage+orig. -gdset DTI/o.NETS_AND_000.niml.dset &\n\n"\
+":SPX:\n\n"\
+"Bundle colors reflect the value of the edge connecting the two nodes\n\n"\
+"Selection is identical to when edges are represented by straight lines.\n\n"
+ 
 #define SUMA_SurfContHelp_GDSET_ViewUncon \
    "Show graph nodes even if unconnected to other nodes.\n"
 
@@ -1498,18 +1539,13 @@ SUMA_SHPINX_BREAK \
 #define SUMA_SurfContHelp_ThreshStats  \
    "Shows the estimated significance\n"   \
    "(p-value) of the threshold above,\n"  \
-   "if possible.\n"  \
-   "* If not possible, will display as\n" \
-   "   '[N/A]' instead.\n" \
-   "* p's that display as 1.2-7 should\n" \
-   "   be interpreted as 1.2 x 10^(-7).\n"   \
-   "* p-value here is significance PER NODE.\n" \
-   "* If FDR curves are pre-computed in\n"   \
-   "   the dataset header, then the False\n" \
-   "   Discovery Rate q-value will also\n"   \
-   "   be shown.\n"     \
-   "* You can add FDR curves to a dataset\n" \
-   "   with '3drefit -addFDR'.\n"   
+   "if possible.:LR:\n"  \
+   "   * If not possible, will display as '[N/A]' instead.:LR:\n" \
+   "   * p's that display as 1.2-7 should be interpreted as 1.2 x 10^(-7):LR:\n"\
+   "   * p-value here is significance PER NODE/VOXEL/etc.:LR:\n" \
+   "* If FDR curves are pre-computed in the dataset's header, then the False "\
+   "Discovery Rate q-value will also be shown.:LR:\n"     \
+   "* You can add FDR curves to a dataset with '3drefit -addFDR'.\n"   
    
 #define SUMA_SurfContHelp_ColorBar  \
    "Colorbar used for colorizing values in 'I' sub-brick.\n"   \

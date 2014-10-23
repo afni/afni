@@ -1383,7 +1383,7 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
       case 2:
          if (!(gwh = SUMA_Get_GUI_Help(wname, target, &shh, &sii))) {
             SUMA_S_Err("No help for %s\n", wname);
-            SUMA_suggest_GUI_Name_Match(wname, 3, NULL);
+            SUMA_suggest_GUI_Name_Match(wname, 8, NULL);
             shh = SUMA_copy_string(wname);
             sii = SUMA_copy_string(wname);
          }
@@ -1974,9 +1974,11 @@ char * SUMA_help_message_Info(int targ)
    SS = SUMA_StringAppend_va (SS, 
       "   %s: cross hair, toggle. \n", SUMA_hkf("F3", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: node selection highlight, toggle. \n", SUMA_hkf("F4", targ));
+      "   %s: node/voxel/edge/cell/tract/tie selection highlight, toggle. \n", 
+                              SUMA_hkf("F4", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: FaceSet selection highlight, toggle.\n", SUMA_hkf("F5", targ));
+      "   %s: FaceSet/Slice selection highlight, toggle.\n", 
+         SUMA_hkf("F5", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Viewer background color, toggle.\n", SUMA_hkf("F6", targ));
    SS = SUMA_StringAppend_va (SS, 
@@ -2093,14 +2095,80 @@ char * SUMA_help_message_Info(int targ)
          SUMA_hkf("Shift+Button2-Motion", targ));
          
    SS = SUMA_StringAppend_va (SS, 
-      "  %s: Node picking whenever surfaces are present\n"
-      "                     Initiates a path to new node in DrawROI mode.\n"
-      "                     No calls in Dot xform mode, or GroupInCorr.\n"
-      "                     Graph Edge/Matrix Cell picking whenever displaying\n"
-      "                     graph datasets only (no surfaces in sight).\n"
-      "                     Intersections with graph edges/nodes are ignored \n"
-      "                     when surfaces are displayed. \n"
-      "                     See Alt+Button 3-Press next.\n",
+      ":SPX:\n\n.. _picking::\n\n"
+"Selecting Objects:\n\n"
+"==================\n\n"
+"Selections are done with the :ref:`right-mouse click <Button-3_Press>` "
+"unless you request :ref:`otherwise <SUMA_SwapButtons_1_3>`.\n\n"
+"The selection of an object triggers a multitude of actions:\n\n"
+"  * When :ref:`talking<LC_t>` to AFNI, a selection prompts AFNI to also jump "
+"to the corresponding location. SUMA can also talk to other programs such as"
+"HalloSuma\n\n"
+"  * The controller for that object is popped to the top of the stack in the "
+"controllers notebook, and the crosshair information in the controller gets "
+"updated.\n\n"
+"  * Other open SUMA controllers are made to jump to the corresponding "
+"locations. Use the SUMA controller (:ref:`Ctrl+u<LC_Ctrl+u>`) to setup "
+"how different controllers are locked together. \n\n"
+"  * When in :ref:`drawing ROIs mode<drawing_ROI_mode>` a selection adds "
+"to the ROI being drawn. See :ref:`drawing_ROIs` for details, assuming it "
+"is written by now!\n\n"
+"  * If you have 'click callbacks' initiated, a selection combined with "
+"the proper keyboard modifiers initiates a callback. An example of this "
+"would be the :ref:`surface-based instacorr<UC_Ctrl+D>` or the variety "
+"of instacorr features in AFNI and/or 3dGroupInCorr. The following command "
+"can download and install demo material for InstaCorr excitement::\n"
+"  @Install_InstaCorr_Demo -mini\n\n"
+"  * If you are in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>` "
+"Selections will make the tract mask jump to the selection location.\n\n" 
+"Picking behavior depends on the object being selected as follows:\n\n"
+"  1- Node picking on surfaces: Selection of a node on the surface involves "
+"finding intersected triangles, identifying the closest intersected triangle, "
+"and then indentifying the closest node within it. The crosshair is centered "
+"at the location of intersection and marked with a yellow sphere. The closest "
+"node in the triangle is marked with a small (tiny some say) blue sphere, and "
+"the triangle is highlighted with a gray line contour. Highlighting can be "
+"toggled with :ref:`F3 for crosshair<F3>`, :ref:`F4 for selected node<F4>`, "
+"and :ref:`F5 for the triangle<F5>`\n\n"
+" .. figure:: media/surface_selection.jpg\n"
+"    :figwidth: 10%%\n"
+"    :align: center\n\n"
+"  2- Voxel picking in volumes: You can select voxels on rendered slices as "
+"long as the voxels are not thresholded out of view. They maybe too dark to "
+"see but still be selectable if their value exceeds that of the threshold.\n\n"
+"Selecting a voxel also highlights the slice. You can turn off the highlight "
+"rectangle with :ref:`F5 <F5>`.\n\n"
+"  3- Edge/cell selection in graphs: Right click on an edge, matrix cell, "
+"or bundle reprenting the edge and the connection is rendered white. Because "
+"the graphs can be bidirectional, clicking on an edge between [n1, n2] with the "
+"click location closest to n1 would select edge n1-->n2, while clicking closer "
+"to n2 gets you edge n2-->n1. This also happens when you click on a bundle "
+"representation of the edge. The selected connection is highlighted in white "
+"and the highlighting can be toggled with the :ref:`F4 <F4>`\n\n"
+"  Selecting an edge on the 3D graph is reflected on the dual representation "
+"in matrix form by highlighting the equivalent cell, and vice versa.\n\n"
+"  Selecting a node on the 3D graph, by clicking on the ball representing the "
+"node, or the node's name highlights only the connections to that node. The "
+"same type of selection can be made by clicking on a row or column's label "
+"in the matrix representation form.\n\n"
+"  4- Tract selection: Right click on a tract - the hairline - for selecting "
+"a location along the tract. What's more to say ?\n\n"
+"Continuous Selection:\n"
+"---------------------\n\n"
+"You can select and drag and sweep through numerous locations. The main thing "
+"to keep in mind is that when you have a multitute of object types, such as "
+"tracts, voxels, surfaces, etc. SUMA locks the selection to the object type "
+"selected at the beginning of the sweep. So, if you begin the selection on a "
+"surface and drag, then the selections during the sweep are restricted to "
+"surfaces only.\n\n"
+"  %s: Node picking whenever surfaces are present\n"
+"                     Initiates a path to new node in DrawROI mode.\n"
+"                     No calls in Dot xform mode, or GroupInCorr.\n"
+"                     Graph Edge/Matrix Cell picking whenever displaying\n"
+"                     graph datasets only (no surfaces in sight).\n"
+"                     Intersections with graph edges/nodes are ignored \n"
+"                     when surfaces are displayed. \n"
+"                     See Alt+Button 3-Press next.\n",
          SUMA_hkf("Button 3-Press", targ));
    SS = SUMA_StringAppend_va (SS,    
       "  %s: Graph edge/node picking in the presence \n"
@@ -2621,7 +2689,7 @@ char * SUMA_Help_AllSurfCont_old ()
          "to the surface selected (in focus).\n"
          "The Surface Controller is launched\n"
          "with 'ctrl+s' or \n"
-         "      View-->Surface Controller .\n"
+         "      View-->Object Controller .\n"
          "\n"
          );
    SS = SUMA_StringAppend_va(SS, 
@@ -3198,6 +3266,10 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Dset_Mapping->T->v",
                      "SurfCont->Dset_Mapping->B",
                      "SurfCont->Dset_Mapping->B->v",
+                     "SurfCont->Dset_Mapping->ThrVal[0]",
+                     "SurfCont->Dset_Mapping->Cmap->bar",
+                     "SurfCont->Dset_Mapping->Cmap->scale",
+                     "SurfCont->Dset_Mapping->Cmap->pval",
                      "SurfCont->Dset_Mapping->SetRangeTable.c00",
                      "SurfCont->Dset_Mapping->SetRangeTable.r01",
                      "SurfCont->Dset_Mapping->SetRangeTable.r02",
@@ -3209,8 +3281,6 @@ char * SUMA_Help_AllSurfCont (int targ)
                      "SurfCont->Dset_Mapping->abs_T",
                      "SurfCont->Dset_Mapping->sym_I",
                      "SurfCont->Dset_Mapping->shw_0",
-                     "SurfCont->Dset_Mapping->Cmap->bar",
-                     "SurfCont->Dset_Mapping->Cmap->scale",
                      "SurfCont->Dset_Mapping->Clst.c00",
                      "SurfCont->Dset_Mapping->Clst.c01",
                      "SurfCont->Dset_Mapping->RangeTable.c00",
@@ -3250,54 +3320,80 @@ char * SUMA_Help_AllGraphCont (int targ)
    char *s = NULL, *shh=NULL, *sii=NULL;
    int k=0;
    SUMA_STRING *SS = NULL;
-   char *worder[] = {"GraphCont->Disp_Cont->Close",
-                     "GraphCont->Disp_Cont->BHelp",
-                     "GraphCont->Disp_Cont->Switch",
-                     "GraphCont->Surface_Properties->more",
+   char *worder[] = {
+                     "GraphCont",
+                     "GraphCont->Graph_Dset_Properties",
+                     "GraphCont->Graph_Dset_Properties->more",
+                     "GraphCont->Xhair_Info",
+                     "GraphCont->Xhair_Info->Xhr.r00",
+                     "GraphCont->Xhair_Info->Edge.r00",
+                     "GraphCont->Xhair_Info->Node.r00",
+                     "GraphCont->Xhair_Info->Val.c00",
+                     "GraphCont->Xhair_Info->Lbl.r00",
+                     "GraphCont->GDset_Controls",
+                     "GraphCont->GDset_Controls->Dim",
+                     "GraphCont->GDset_Controls->Bundles",
+                     "GraphCont->GDset_Controls->CN",
+                     "GraphCont->GDset_Controls->Rd",
+                     "GraphCont->GDset_Controls->Rd->Gn",
+                     "GraphCont->GDset_Controls->Br",
+                     "GraphCont->GDset_Controls->Fo",
+                     "GraphCont->GDset_Controls->Cl",
+                     "GraphCont->GDset_Controls->Sh",
+                     "GraphCont->GDset_Controls->U",
+                     "GraphCont->GDset_Controls->Th",
+                     "GraphCont->GDset_Controls->Th->Gn",
+                     "GraphCont->GDset_Controls->St",
+                     "GraphCont->GDset_Mapping",
+                     "GraphCont->GDset_Mapping->IxT",
+                     "GraphCont->GDset_Mapping->I",
+                     "GraphCont->GDset_Mapping->I->v",
+                     "GraphCont->GDset_Mapping->T",
+                     "GraphCont->GDset_Mapping->T->v",
+                     "GraphCont->GDset_Mapping->B",
+                     "GraphCont->GDset_Mapping->B->v",
+                     "GraphCont->GDset_Mapping->ThrVal[0]",
+                     "GraphCont->GDset_Mapping->Cmap->bar",
+                     "GraphCont->GDset_Mapping->Cmap->scale",
+                     "GraphCont->GDset_Mapping->Cmap->pval",
+                     "GraphCont->GDset_Mapping->SetRangeTable.c00",
+                     "GraphCont->GDset_Mapping->SetRangeTable.r01",
+                     "GraphCont->GDset_Mapping->SetRangeTable.r02",
+                     "GraphCont->GDset_Mapping->SetRangeTable.r03",
+                     "GraphCont->GDset_Mapping->Col",
+                     "GraphCont->GDset_Mapping->Cmp",
+                     "GraphCont->GDset_Mapping->Cmp->New",
+                     "GraphCont->GDset_Mapping->abs_T",
+                     "GraphCont->GDset_Mapping->sym_I",
+                     "GraphCont->GDset_Mapping->shw_0",
+                     "GraphCont->GDset_Mapping->RangeTable.c00",
+                     "GraphCont->GDset_Mapping->RangeTable.r01",
+                     "GraphCont->GDset_Mapping->RangeTable.r02",
+                     "GraphCont->GDset_Mapping->RangeTable.r03",
+                     "GraphCont->GDset_Mapping->RangeTable.c01",
+                     "GraphCont->GDset_Mapping->RangeTable.c02",
+                     "GraphCont->GDset_Mapping->RangeTable.c03",
+                     "GraphCont->GDset_Mapping->RangeTable.c04",
                      NULL };
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
    
-   if (targ == 0) {
-      SS = SUMA_StringAppend (SS,
-            "");
-   } else if (targ == 1) {
-      SS = SUMA_StringAppend (SS,
-            ".. _Graph_Controller:\n\n"
-            "Graph Controller:\n"
-            "-----------------\n\n");
-   }
-
-   SS = SUMA_StringAppend_va(SS, 
-"%s\n\n"
-"The Graph controller is for controlling diplay properties of graphs.\n"
-"The Graph controller is launched with:"
-":SPX:"
-" :ref:`ctrl+s <_LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
-":DEF:"
-"\n'ctrl+s' or 'View-->Object Controller'\n"
-":SPX:"
-"\n",
-        SUMA_gsf("GraphCont->Dset_Mapping->Xhair", 1, NULL, NULL));
-         
    k = 0;
    while (worder[k]) {
-      if (!SUMA_Get_GUI_Help(worder[k], targ, &shh, &sii)) {
-         SUMA_S_Err("No help for %s\n", worder[k]);
-         SUMA_suggest_GUI_Name_Match(worder[k], 3, NULL);
-      } else {
-         SS = SUMA_StringAppend_va(SS, 
-"\n"
-"%s: %s\n"
-"%s\n", 
-         worder[k], sii, shh); SUMA_ifree(shh); SUMA_ifree(sii);
-      }
+         s = SUMA_gsf(worder[k], targ, &sii, &shh);
+         if (!shh || strstr(sii, shh)) {/* help same as hint */
+            SS = SUMA_StringAppend_va(SS, "%s\n", s);
+         } else {
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+                                   s, shh?shh:"");
+         }
+         SUMA_ifree(sii); SUMA_ifree(shh);
       ++k;
    }
           
    SUMA_SS2S(SS, s);
-   
+      
    SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
 }
 
@@ -3307,54 +3403,80 @@ char * SUMA_Help_AllVolCont (int targ)
    char *s = NULL, *shh=NULL, *sii=NULL;
    int k=0;
    SUMA_STRING *SS = NULL;
-   char *worder[] = {"VolCont->Disp_Cont->Close",
-                     "VolCont->Disp_Cont->BHelp",
-                     "VolCont->Disp_Cont->Switch",
-                     "VolCont->Surface_Properties->more",
+   char *worder[] = {
+                     "VolCont",
+                     "VolCont->Volume_Properties",
+                     "VolCont->Volume_Properties->more",
+                     "VolCont->Xhair_Info",
+                     "VolCont->Xhair_Info->Xhr.r00",
+                     "VolCont->Xhair_Info->Ind.r00",
+                     "VolCont->Xhair_Info->IJK.r00",
+                     "VolCont->Xhair_Info->Val.c00",
+                     "VolCont->Xhair_Info->Lbl.r00",
+                     "VolCont->Slice_Controls",
+                     "VolCont->Ax_slc->lab",
+                     "VolCont->Sa_slc->lab",
+                     "VolCont->Co_slc->lab",
+                     "VolCont->Slice_Controls->Trn",
+                     "VolCont->Slice_Controls->Slices_At_+",
+                     "VolCont->Volume_Rendering_Controls",
+                     "VolCont->VR->Ns",
+                     "VolCont->VR->Ns->v",
+                     "VolCont->Dset_Controls",
+                     "VolCont->Dset_Controls->Lbl[1]",
+                     "VolCont->Dset_Controls->Dim",
+                     "VolCont->Dset_Controls->Avl",
+                     "VolCont->Dset_Controls->Ath",
+                     "VolCont->Dset_Mapping",
+                     "VolCont->Dset_Mapping->IxT",
+                     "VolCont->Dset_Mapping->I",
+                     "VolCont->Dset_Mapping->I->v",
+                     "VolCont->Dset_Mapping->T",
+                     "VolCont->Dset_Mapping->T->v",
+                     "VolCont->Dset_Mapping->B",
+                     "VolCont->Dset_Mapping->B->v",
+                     "VolCont->Dset_Mapping->ThrVal[0]",
+                     "VolCont->Dset_Mapping->Cmap->bar",
+                     "VolCont->Dset_Mapping->Cmap->scale",
+                     "VolCont->Dset_Mapping->Cmap->pval",
+                     "VolCont->Dset_Mapping->SetRangeTable.c00",
+                     "VolCont->Dset_Mapping->SetRangeTable.r01",
+                     "VolCont->Dset_Mapping->SetRangeTable.r02",
+                     "VolCont->Dset_Mapping->SetRangeTable.r03",
+                     "VolCont->Dset_Mapping->Col",
+                     "VolCont->Dset_Mapping->Cmp",
+                     "VolCont->Dset_Mapping->Cmp->New",
+                     "VolCont->Dset_Mapping->abs_T",
+                     "VolCont->Dset_Mapping->sym_I",
+                     "VolCont->Dset_Mapping->shw_0",
+                     "VolCont->Dset_Mapping->RangeTable.c00",
+                     "VolCont->Dset_Mapping->RangeTable.r01",
+                     "VolCont->Dset_Mapping->RangeTable.r02",
+                     "VolCont->Dset_Mapping->RangeTable.r03",
+                     "VolCont->Dset_Mapping->RangeTable.c01",
+                     "VolCont->Dset_Mapping->RangeTable.c02",
+                     "VolCont->Dset_Mapping->RangeTable.c03",
+                     "VolCont->Dset_Mapping->RangeTable.c04",
                      NULL };
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend (NULL, NULL);
    
-   if (targ == 0) {
-      SS = SUMA_StringAppend (SS,
-            "");
-   } else if (targ == 1) {
-      SS = SUMA_StringAppend (SS,
-            ".. _Volume_Controller:\n\n"
-            "Volume Controller:\n"
-            "------------------\n\n");
-   }
-
-   SS = SUMA_StringAppend_va(SS, 
-"%s\n\n"
-"The Volume controller is for controlling diplay properties of volumes.\n"
-"The Volume controller is launched with:"
-":SPX:"
-" :ref:`ctrl+s <_LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
-":DEF:"
-"\n'ctrl+s' or 'View-->Object Controller'\n"
-":SPX:"
-"\n",
-        SUMA_gsf("VolCont->Dset_Mapping->Xhair", 1, NULL, NULL));
-         
    k = 0;
    while (worder[k]) {
-      if (!SUMA_Get_GUI_Help(worder[k], targ, &shh, &sii)) {
-         SUMA_S_Err("No help for %s\n", worder[k]);
-         SUMA_suggest_GUI_Name_Match(worder[k], 3, NULL);
-      } else {
-         SS = SUMA_StringAppend_va(SS, 
-"\n"
-"%s: %s\n"
-"%s\n", 
-         worder[k], sii, shh); SUMA_ifree(shh); SUMA_ifree(sii);
-      }
+         s = SUMA_gsf(worder[k], targ, &sii, &shh);
+         if (!shh || strstr(sii, shh)) {/* help same as hint */
+            SS = SUMA_StringAppend_va(SS, "%s\n", s);
+         } else {
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+                                   s, shh?shh:"");
+         }
+         SUMA_ifree(sii); SUMA_ifree(shh);
       ++k;
    }
           
    SUMA_SS2S(SS, s);
-   
+      
    SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
 }
 
