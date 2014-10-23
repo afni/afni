@@ -10113,7 +10113,8 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                   } else {
                      if (ss=NI_get_attribute(nilink,"network_file")) {
                         SUMA_S_Errv(
-                           "Could not find network_file \"%s\" on disk.\n", ss);
+                           "Could not find network_file \"%s\" "
+                           "on disk for dset %s\n", ss, SDSET_FILENAME(dset));
                      } else {
                         SUMA_S_Err("Could not find network_file attribute "
                                     "in network_link");                     
@@ -10121,7 +10122,6 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                   }
                }
             }
-            
             if (GSaux->net) ngrnet = GSaux->net;
             else ngrnet = dset->ngr; /* old defunct style */
             for (ip=0; ip<ngrnet->part_num; ++ip) {
