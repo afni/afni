@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 22 , OCT , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_MODIFY ,
+  { 23 , OCT , 2014 , RWC , "3dNwarpCat" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug introduced with changes made for 3dNwarpApply" ,
+   NULL } ,
+
+ { 23 , OCT , 2014 , RWC , "3dNwarpApply" , MICRO , TYPE_MODIFY ,
+   "Make the -interp option work properly for the warp input" ,
+   NULL } ,
+
+ { 22 , OCT , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_MODIFY ,
    "Alter -nwarp option a lot" ,
    "Specifically, allow time-dependent matrix inputs in any position in the\n"
    "-nwarp catenation stream (only for this program, not the fixed-warp\n"
