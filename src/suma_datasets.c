@@ -10353,7 +10353,9 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    if (LocalHead) {
       SUMA_ShowParsedFname(pn, NULL);
       SUMA_ShowDset(dset, 0, NULL);
-   } 
+   }
+   /* Update filename field in dset */
+   NI_set_attribute(dset->ngr, "filename", Name);
    
    /* repair floats */
    if (!SUMA_isEnv("AFNI_FLOATSCAN","NO")) { 

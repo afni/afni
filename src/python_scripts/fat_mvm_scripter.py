@@ -105,7 +105,7 @@ def main(argv):
        $  fat_mvm_scripter.py  --prefix=PREFIX                     \\
             --table=TABLE_FILE  --log=LOG_FILE                     \\
             { --vars='VAR1 VAR2 VAR3 ...' | --file_vars=VAR_FILE } \\
-            { --pars='PAR1 PAR2 PAR3 ...' | --file_pars=PAR_FILE } \\
+            { --Pars='PAR1 PAR2 PAR3 ...' | --file_pars=PAR_FILE } \\
             { --rois='ROI1 ROI2 ROI3 ...' }                        \\
             { --no_posthoc }  { --NA_warn_off }
      
