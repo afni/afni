@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.8, Oct 14, 2014
+Version 3.2.9, Oct 24, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -844,7 +844,7 @@ runAOV <- function(inData, dataframe, ModelForm, pars) {
          #   dataframe[,pars[[10]][[1]]] <- scale(dataframe[,pars[[10]][[1]]], center=pars[[10]][[2]], scale=F)
       }
       fm <- NULL
-      try(fm <- aov.car(ModelForm, data=dataframe, factorize=FALSE, return='full'), silent=TRUE)
+      suppressMessages(try(fm <- aov.car(ModelForm, data=dataframe, factorize=FALSE, return='full'), silent=TRUE))
       if(!is.null(fm)) {
             uvfm <- tryCatch(univ(fm$Anova), error=function(e) NULL)   # univariate model 
             if(!is.null(uvfm)) {  
@@ -1228,7 +1228,7 @@ while(is.null(fm)) {
       #   lop$dataStr[,lop$QV] <- scale(lop$dataStr[,lop$QV], center=lop$vVarCenters, scale=F)
    }   
    #options(warn=-1)     
-   try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, return='full'), silent=TRUE)
+   suppressMessages(try(fm <- aov.car(ModelForm, data=lop$dataStr, factorize=FALSE, return='full'), silent=TRUE))
 #   if(!is.null(fm)) if(!is.na(lop$mVar)) {
 #      if(is.na(lop$wsVars)) mvfm <- Anova(fm$lm, type=2, test='Pillai')
 #   } else {
@@ -1586,7 +1586,7 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
    if((levels(as.factor(lop$dataStr[[iterPar]]))[nn] %in% lop$parSubsetVector) | is.null(lop$parSubsetVector)) 
       inData <- lop$dataStr[lop$dataStr[[iterPar]] == levels(as.factor(lop$dataStr[[iterPar]]))[nn],] else
       inData <- NULL
-   if(!is.null(inData)) try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full'), silent=TRUE) else
+   if(!is.null(inData)) suppressMessages(try(fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full'), silent=TRUE)) else
    fm <-NULL
    #fm <- aov.car(ModelForm, data=inData, factorize=FALSE, return='full')
    if(!is.null(fm)) {
