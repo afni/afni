@@ -14,7 +14,23 @@ Glossary:
       Coordinate axis convention where X grows from Right to Left, Y from Anterior to Posterior, and Z from Inferior to Superior. This is AFNI's preferred coordinate convention.     
 
    1D index
-      Index {n} into one dimensional representation of objects or datasets. See also 3D index.
+      Index {n} of a :term:`datum` in a one dimensional representation of the collection of elements forming an object or a dataset. See also :term:`3D index`.
+         
+         * For surfaces and surface-based datasets: This would be the index of the node in the surface's nodelist. The range of values would be from 0 to the  total number of nodes in the surface's nodelist minus one.
+         
+         * For volumes: This would be the 1D index of the voxel in the volume. The relationship between the 1D index n and :term:`3D index` is given by:
+         
+            n = i + j * Ni + k * Ni * Nj
+            
+            where Ni, and Nj are the number of voxels along the volume's first and second dimensions, respectively.
+            
+         * For graphs and matrices: The 1D index would be the index of the edge/cell of the graph. For full matrices, the relationship between 1D index and the row, column (r,c) in the matrix would be:
+         
+            n = r + c * Nr
+            
+            where Nr is the number of rows in the matrix.
+            
+            For triangular and sparse matrices, the relationship becomes more complex and is best documented in the source code. See function SUMA_GDSET_PointsToSegIndex() for a start.
    
    1D   
    1D file

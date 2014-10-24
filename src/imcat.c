@@ -44,7 +44,7 @@ void imcat_usage(int detail)
  "                      the aspect ratio, and then pad to achieve desired \n"
  "                      pixel count.\n"
  "  -pad_val VAL: Set the padding value, should it be needed by -respad_in\n"
- "                to VAL. VAL is typecast to byte, default is 0\n"
+ "                to VAL. VAL is typecast to byte, default is 0, max is 255.\n"
  "  -crop L R T B: Crop images by L (Left), R (Right), T (Top), B (Bottom)\n"
  "                 pixels. Cutting is performed after any resolution change, \n"
  "                 if any, is to be done.\n"
@@ -53,6 +53,8 @@ void imcat_usage(int detail)
  "              blank images are used.\n"
  "  -image_wrap: If number of images is not enough to fill matrix\n"
  "               images on command line are reused (default)\n"
+ "  -rand_wrap: When reusing images to fill matrix, randomize the order\n"
+ "              in refill section only.\n"
  "  -prefix ppp = Prefix the output files with string 'ppp'\n"
  "          Note: If the prefix ends with .1D, then a 1D file containing\n"
  "                the average of RGB values. You can view the output with\n"
@@ -123,7 +125,7 @@ int main( int argc , char * argv[] )
    byte  gap_col[3] = {255, 20, 128}, pval = 0 ;
    MRI_IMAGE *imscl=NULL;
    int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, 
-       N_byte = 0, N_rgb = 0, ks = 1;
+       N_byte = 0, N_rgb = 0, ks = 1, wrapmode = 1;
    float *scl=NULL, fac=1.0, ff=0;
    byte *scl3=NULL, *rgb=NULL, *b1, *b2, *b3;
    char name[100];
@@ -132,7 +134,7 @@ int main( int argc , char * argv[] )
    
    mainENTRY("imcat main"); machdep() ;
     
-
+    wrapmode = 1;
     ScaleInt = 0;
     resix=-1;
     resiy=-1;
@@ -153,7 +155,11 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
        }
 
-       
+       if( strcmp(argv[iarg],"-rand_wrap") == 0  ) {
+         wrapmode = 2;
+         iarg++ ; continue ;
+       }
+              
        if( strcmp(argv[iarg],"-matrix") == 0 ){
          if (iarg+2 >= argc) {
             fprintf(stderr,"*** ERROR: Need two integers after -matrix\n");
@@ -363,7 +369,8 @@ int main( int argc , char * argv[] )
       }
    }
    /* allow from catwrapping */
-   mri_Set_OK_catwrap();
+   if (wrapmode == 2) mri_Set_OK_catrandwrap();
+   else mri_Set_OK_catwrap();
   
    /* read all images */
    inimar = mri_read_resamp_many_files( argc-iarg , argv+iarg, 

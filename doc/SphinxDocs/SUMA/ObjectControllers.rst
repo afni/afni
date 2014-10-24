@@ -40,3 +40,6 @@ A few controls for the object controller notebook.
 
 .. include:: auto_inc/SurfCont_help.inc 
 .. include:: auto_inc/TractCont_help.inc 
+.. include:: auto_inc/VolCont_help.inc 
+.. include:: auto_inc/GraphCont_help.inc
+

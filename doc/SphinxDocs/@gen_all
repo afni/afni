@@ -15,7 +15,9 @@ endif
 
 \rm SUMA/auto_inc/SurfCont_help.inc \
     SUMA/auto_inc/Mouse_Key_help.inc \
-    SUMA/auto_inc/TractCont_help.inc
+    SUMA/auto_inc/TractCont_help.inc \
+    SUMA/auto_inc/VolCont_help.inc   \
+    SUMA/auto_inc/GraphCont_help.inc
 
 suma -drive_com '-com surf_cont -view_surf_cont y'          \
      -drive_com                                             \
@@ -37,8 +39,21 @@ suma -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
                      SUMA/auto_inc/TractCont_help.inc'       \
      -drive_com '-com kill_suma'
          
+suma -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
+     -drive_com '-com surf_cont -view_surf_cont y'          \
+     -drive_com                                             \
+        '-com surf_cont -write_vol_cont_sphinx_help        \
+                     SUMA/auto_inc/VolCont_help.inc'       \
+     -drive_com '-com kill_suma'
+         
+suma -gdset ~/.afni/data/samples/o.NETS_OR_000.niml.dset     \
+     -drive_com '-com surf_cont -view_surf_cont y'          \
+     -drive_com                                             \
+        '-com surf_cont -write_graph_cont_sphinx_help        \
+                     SUMA/auto_inc/GraphCont_help.inc'       \
+     -drive_com '-com kill_suma'
 
-make html
+make html |& tee ___build.log
 
 
 END:
