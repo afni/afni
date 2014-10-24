@@ -665,11 +665,11 @@ Keyboard Controls:
    
 .. _F4:
 
-:kbd:`F4`: node selection highlight, toggle. 
+:kbd:`F4`: node/voxel/edge/cell/tract/tie selection highlight, toggle. 
    
 .. _F5:
 
-:kbd:`F5`: FaceSet selection highlight, toggle.
+:kbd:`F5`: FaceSet/Slice selection highlight, toggle.
    
 .. _F6:
 
@@ -800,14 +800,13 @@ Mouse Controls:
   
 .. _Button_3-Press:
 
-:kbd:`Button 3-Press`: Node picking whenever surfaces are present
-                     Initiates a path to new node in DrawROI mode.
-                     No calls in Dot xform mode, or GroupInCorr.
-                     Graph Edge/Matrix Cell picking whenever displaying
-                     graph datasets only (no surfaces in sight).
-                     Intersections with graph edges/nodes are ignored 
-                     when surfaces are displayed. 
-                     See Alt+Button 3-Press next.
+:kbd:`Button 3-Press`: Node/Voxel/Edge/etc. picking.
+                     In ROI mode, initiates a path to new node in DrawROI mode.
+                     Picking of graph edges/nodes can get difficut 
+                     when surfaces are also displayed. To help with that,
+                     see Alt+Button 3-Press next.
+
+                Also see :ref:`Selecting Objects<Selecting_Objects>` below.
   
 .. _Alt+Button_3-Press:
 
@@ -866,6 +865,8 @@ Mouse Controls:
                       or GroupInCorr, while dragging.
                       Continuous picking of graph edges/nodes if no
                       surfaces are displayed.
+
+          See :ref:`Continuous Selection<Continuous_Selection>` below
   
 .. _Alt+Button_3-Motion:
 
@@ -898,6 +899,64 @@ Mouse Controls:
                         tract mask. This only works when you're in
                         mask manipulation mode.
     
+
+
+.. _Selecting_Objects:
+
+Selecting Objects:
+
+==================
+
+Selections are done with the :ref:`right-mouse click <Button_3-Press>` unless you request :ref:`otherwise <SUMA_SwapButtons_1_3>`.
+
+The selection of an object triggers a multitude of actions:
+
+* When :ref:`talking<LC_t>` to AFNI, a selection prompts AFNI to also jump to the corresponding location. SUMA can also talk to other programs such asHalloSuma
+
+* The controller for that object is popped to the top of the stack in the controllers notebook, and the crosshair information in the controller gets updated.
+
+* Other open SUMA controllers are made to jump to the corresponding locations. Use the SUMA controller (:ref:`Ctrl+u<LC_Ctrl+u>`) to setup how different controllers are locked together. 
+
+* When in :ref:`drawing ROIs mode<drawing_ROI_mode>` a selection adds to the ROI being drawn. See :ref:`drawing_ROIs` for details, assuming it is written by now!
+
+* If you have 'click callbacks' initiated, a selection combined with the proper keyboard modifiers initiates a callback. An example of this would be the :ref:`surface-based instacorr<Shift+Ctrl+Button_3-Press>` or the variety of instacorr features in AFNI and/or 3dGroupInCorr. The following command can download and install demo material for InstaCorr excitement::
+
+  @Install_InstaCorr_Demo -mini
+
+* If you are in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>` Selections will make the tract mask jump to the selection location.
+
+Picking behavior depends on the object being selected as follows:
+
+1- Node picking on surfaces: Selection of a node on the surface involves finding intersected triangles, identifying the closest intersected triangle, and then indentifying the closest node within it. The crosshair is centered at the location of intersection and marked with a yellow sphere. The closest node in the triangle is marked with a small (tiny some say) blue sphere, and the triangle is highlighted with a gray line contour. Highlighting can be toggled with :ref:`F3 for crosshair<F3>`, :ref:`F4 for selected node<F4>`, and :ref:`F5 for the triangle<F5>`
+
+.. figure:: media/surface_selection.jpg
+    :figwidth: 30%
+    :align: center
+
+2- Voxel picking in volumes: You can select voxels on rendered slices as long as the voxels are not thresholded out of view. They maybe too dark to see but still be selectable if their value exceeds that of the threshold.
+
+Selecting a voxel also highlights the slice. You can turn off the highlight rectangle with :ref:`F5 <F5>`.
+
+3- Edge/cell selection in graphs: Right click on an edge, matrix cell, or bundle reprenting the edge and the connection is rendered white. Because the graphs can be bidirectional, clicking on an edge between [n1, n2] with the click location closest to n1 would select edge n1-->n2, while clicking closer to n2 gets you edge n2-->n1. This also happens when you click on a bundle representation of the edge. The selected connection is highlighted in white and the highlighting can be toggled with the :ref:`F4 <F4>`
+
+  Selecting an edge on the 3D graph is reflected on the dual representation in matrix form by highlighting the equivalent cell, and vice versa.
+
+  Selecting a node on the 3D graph, by clicking on the ball representing the node, or the node's name highlights only the connections to that node. The same type of selection can be made by clicking on a row or column's label in the matrix representation form.
+
+  When graphs are represented along with volumes and surfaces, picking an edge can get tricky. In that case, use :ref:`Alt+Button 3<Alt+Button_3-press>` instead.
+
+4- Tract selection: Right click on a tract - the hairline - for selecting a location along the tract. What's more to say ?
+
+
+
+.. _Continuous_Selection:
+
+Continuous Selection:
+
+=====================
+
+You can select and drag and sweep through numerous locations. The main thing to keep in mind is that when you have a multitute of object types, such as tracts, voxels, surfaces, etc. SUMA locks the selection to the object type selected at the beginning of the sweep. So, if you begin the selection on a surface and drag, then the selections during the sweep are restricted to surfaces only.
+
 .. _File_Menu:
 
 File Menu:
@@ -1632,5 +1691,5 @@ Choose from YES or NO
 Current Version Info:
 
 Compile Date:
-   Oct 17 2014
+   Oct 24 2014
 

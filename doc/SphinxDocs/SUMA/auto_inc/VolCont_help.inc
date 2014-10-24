@@ -1,13 +1,13 @@
 
-.. _SurfCont:
+.. _VolCont:
 
-The Surface Controller:
------------------------
+The Volume Controller:
+----------------------
 
-The surface controller is for controlling the way surfaces and datasets defined over them are displayed. The same controller is shared by a :term:`family of surfaces <Family of surfaces>` and all the datasets displayed on them. Left and Right surfaces have separate controllers though in most cases actions on one hemisphere's controller are automatically mirrored on the contralateral side. The surface controller is initialized by the currently selected surface - the one said to be in focus.
-You can launch the :ref:`Surface Controller <SurfCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
+The volume controller is for controlling the way volumes are rendered. Each volume gets its own controller. You can use the switch button above to switch between them. The volume controller is initialized by the volume of the last selected voxel.
+ After you have selected a voxel, you can launch the :ref:`Volume Controller <VolCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
 
-.. figure:: media/SurfaceController.jpg
+.. figure:: media/VolumeController.jpg
    :align: center
 
 
@@ -16,65 +16,27 @@ You can launch the :ref:`Surface Controller <SurfCont>` with: :ref:`ctrl+s <LC_C
 
 
 
-.. _SurfCont->Surface_Properties:
+.. _VolCont->Volume_Properties:
 
-Surface Properties:
-===================
+Volume Properties:
+==================
 
-Block providing information about selected surface.
+Block providing information about selected volume.
 
-   .. _SurfCont->Surface_Properties->more:
+   .. _VolCont->Volume_Properties->more:
 
-**more**: More info on Surface
+**more**: More info on Volume
 
 
 Opens a dialog with detailed information about the object in geek speak.
 
-   .. _SurfCont->Surface_Properties->Drw:
+.. _VolCont->Xhair_Info:
 
-**Drw**: Choose the rendering (drawing) mode for this surface.
-
-
-Choose the rendering mode for this surface.
-   Viewer: Surface's rendering mode is set by the viewer's setting which can be changed with the :ref:`'p'<LC_p>` option.
-
-   Fill:   Shaded rendering mode.
-
-   Line:   Mesh rendering mode.
-
-   Points: Points rendering mode.
+Information at crosshair:
+=========================
 
 
-
-   .. _SurfCont->Surface_Properties->Trn:
-
-**Trn**: Choose the transparency for this surface.
-
-
-Set the transparency for this surface to one of the following options.
-   Viewer: Surface's transparency is set            by the viewer's setting which can            be changed with the 'o', 'O' options.
-
-   0 :   No transparency, opaque.
-
-   ...
-
-   16:   Maximum transparency, invisibile
-
-
-
-   .. _SurfCont->Surface_Properties->Dsets:
-
-**Dsets**: Show/Hide Dataset (previously Color Plane) controllers
-
-
-
-.. _SurfCont->Xhair_Info:
-
-Crosshair Information:
-======================
-
-
-   .. _SurfCont->Xhair_Info->Xhr.r00:
+   .. _VolCont->Xhair_Info->Xhr.r00:
 
 **Xhr**: Crosshair coordinates.
 
@@ -87,97 +49,155 @@ to that location (like :ref:`'ctrl+j' <LC_Ctrl+j>`).
 Use :ref:`'alt+l'<LC_Alt+l>` to center the
 cross hair in your viewer.
 
-   .. _SurfCont->Xhair_Info->Node.r00:
+   .. _VolCont->Xhair_Info->Ind.r00:
 
-**Node**: Node index
-
-
-Index of node in focus (1) and :term:`RAI` coordinates of that node (2).
-
-1- The index is of the node in focus on this controller's surface. Nodes in focus are highlighted by the blue sphere in the crosshair.
-This cell is editable; manually entering a new node's index will put that node in focus and send the crosshair to its location (like :ref:`'j' <LC_j>`). Use :ref:`'alt+l' <LC_Alt+l>` to center the cross hair in your viewer.
-
-2- The :term:`RAI` coordinates are those of the surface node after all spatial transformations have been applied to the surface. Those transformations do not include visualization transformations applied in the viewer
-
-   .. _SurfCont->Xhair_Info->Tri.r00:
-
-**Tri**: 1- Triangle index, 2- Nodes forming tiangle
+**Ind**: Voxel 1D index in volume
 
 
-1- Triangle (faceset) index of triangle in focus on this  on this controller's surface.
-Triangle in focus is highlighted in gray, and entering a new triangle's index will set a new triangle in focus (like :ref:`'J'<UC_j>`).
-
-2- Indices of nodes forming triangle.
+Set/Get the :term:`1D index` of the selected elementary surface datum: the voxel.
 
 
+   .. _VolCont->Xhair_Info->IJK.r00:
 
-   .. _SurfCont->Xhair_Info->Val.c00:
-
-**Val.c00**: Data Values at node in focus
+**IJK**: Voxel 3D indices in volume
 
 
-Data values at node in focus. :term:`Intensity`, :term:`Threshold`, and :term:`Brightness` show the triplets of values  at the selected node that correspond to the dataset column choices in :ref:`I<SurfCont->Dset_Mapping->I>`, :ref:`T<SurfCont->Dset_Mapping->T>`, and :ref:`B<SurfCont->Dset_Mapping->B>` selectors.
+Triplet of indices (I) of selected voxel.
+The mm RAI coordinate X = M I with M being the matrix transforming
+voxel indices to voxel coordinates.
 
-   .. _SurfCont->Xhair_Info->Lbl.r00:
 
-**Lbl**: Color at node in focus
+   .. _VolCont->Xhair_Info->Val.c00:
+
+**Val.c00**: Data Values at voxel in focus
+
+
+Data values at voxel in focus. :term:`Intensity`, :term:`Threshold`, and :term:`Brightness` show the triplets of values  at the selected voxel that correspond to the volume column choices in :ref:`I<VolCont->Dset_Mapping->I>`, :ref:`T<VolCont->Dset_Mapping->T>`, and :ref:`B<VolCont->Dset_Mapping->B>` selectors.
+
+   .. _VolCont->Xhair_Info->Lbl.r00:
+
+**Lbl**: Label at voxel in focus
 
 
 Labels available at the selected datum.
 If nothing is available, datum color
 is displayed.
 
-.. _SurfCont->Dset_Controls:
+.. _VolCont->Slice_Controls:
+
+Set up which and how many slices are displayed:
+===============================================
+
+
+   .. _VolCont->Ax_slc->lab:
+
+**lab**: Select axial slice(s) to render (use BHelp for details)
+
+
+Select axial slice(s) to render.
+If the dataset is oblique, that would be the slice that is closest
+to the axial plane.
+Move slider bar or enter slice number directly in adjoining field.
+To show a stack of axial slices set the second text field to N:S
+where N is the number of slices in the stack and S is the spacing
+in number of slices between consecutive slices. The stack is centered
+on the chosen slice number. So when N > 1 and even, the 'selected' slice
+is not rendered. In that case, set N to the next odd number to see it.
+To hide/show all displayed axial slices, use right-side toggle button.
+
+   .. _VolCont->Sa_slc->lab:
+
+**lab**: Select sagittal slice(s) to render (use BHelp for details)
+
+
+Select sagittal slice(s) to render.
+If the dataset is oblique, that would be the slice that is closest
+to the sagittal plane.
+Move slider bar or enter slice number directly in adjoining field.
+To show a stack of sagittal slices set the second text field to N:S
+where N is the number of slices in the stack and S is the spacing
+in number of slices between consecutive slices. The stack is centered
+on the chosen slice number. So when N > 1 and even, the 'selected' slice
+is not rendered. In that case, set N to the next odd number to see it.
+To hide/show all displayed sagittal slices, use right-side toggle button.
+
+   .. _VolCont->Co_slc->lab:
+
+**lab**: Select coronal slice(s) to render (use BHelp for details)
+
+
+Select coronal slice(s) to render.
+If the dataset is oblique, that would be the slice that is closest
+to the coronal plane.
+Move slider bar or enter slice number directly in adjoining field.
+To show a stack of coronal slices set the second text field to N:S
+where N is the number of slices in the stack and S is the spacing
+in number of slices between consecutive slices. The stack is centered
+on the chosen slice number. So when N > 1 and even, the 'selected' slice
+is not rendered. In that case, set N to the next odd number to see it.
+To hide/show all displayed coronal slices, use right-side toggle button.
+
+   .. _VolCont->Slice_Controls->Trn:
+
+**Trn**: Choose the transparency for these slices.
+
+
+Set the transparency level for this volume to one of the following options.
+   Viewer: Surface's transparency is set            by the viewer's setting which can            be changed with the 'o', 'O' options.
+
+           Cheesecloth transparency only is allowed in            this setting.
+
+   A :   Alpha blending. May look good, but not always          accurate.
+
+   0 :   No transparency, opaque.
+
+   ...
+
+   16:   Maximum transparency, invisibile
+
+
+
+   .. _VolCont->Slice_Controls->Slices_At_+:
+
+**Slices_At_+**: Make slices jump to crosshair location
+
+
+
+.. _VolCont->Volume_Rendering_Controls:
+
+Set the parameters for 3D rendering:
+====================================
+
+
+   .. _VolCont->VR->Ns:
+
+**Ns**: VR params (use BHelp for details)
+
+
+Volume Rendering Settings.
+
+
+   .. _VolCont->VR->Ns->v:
+
+**v**: View (ON)/Hide VrF
+
+
+View (ON)/Hide Volume Rendering
+
+.. _VolCont->Dset_Controls:
 
 Dset Controls:
 ==============
 
 
-   .. _SurfCont->Dset_Controls->Lbl+Par.r00:
+   .. _VolCont->Dset_Controls->Lbl[1]:
 
-**Lbl+Par**: Label of Dset
-
-
-Label of dataset currently selected. Note that what you're viewingat this moment maybe a blend of multiple datasets. See :ref:`color mixing<ColorMixing>` for details.
-
-   .. _SurfCont->Dset_Controls->Ord:
-
-**Ord**: Order of Dset's colorplane.
+**Lbl[1]**: 
 
 
-Order of Dset's colorplane in the stack of all colorplanes of the parent surface.
-The datset with highest order number is 
-on top of the stack. Separate 
-:ref:`stacks<Plane_Layering>` exist for foreground (fg:)
-and background planes (bg:).
+Use BHelp on table's column and row titlesfor usage information.
 
-See :ref:`Color Mixing<ColorMixing>` for details on how colors are merged.
-
-   .. _SurfCont->Dset_Controls->Opa:
-
-**Opa**: Opacity of Dset's colorplane.
-
-
-Opacity of Dset's colorplane.
-Opaque planes have an opacity
-of 1, transparent planes have
-an opacity of 0. 
-Opacities are used when mixing
-planes within the same :ref:`group<Color_Plane_Grouping>`  
-foreground (fg:) or background(bg:).
-
-Opacity values are not applied
-to the first plane in a group.
-Consequently, if you have just
-one plane to work with, opacity 
-value is meaningless.
-
-Color mixing can be done in two 
-ways, use :ref:`F7<F7>` to toggle between 
-mixing modes.
-
-
-   .. _SurfCont->Dset_Controls->Dim:
+   .. _VolCont->Dset_Controls->Dim:
 
 **Dim**: Dimming factor to apply to colormap or color datasets.
 
@@ -194,115 +214,55 @@ Decreasing Dim is useful when the colors are too saturated
 for lighting to reflect the object terrain.
 When in doubt, just press the button and see what happens.
 
-   .. _SurfCont->Dset_Controls->Dsp:
+   .. _VolCont->Dset_Controls->Avl:
 
-**Dsp**: Choose the rendering mode for this dataset.
-
-
-Choose the viewing mode for this dataset.
-   Col: Colours, only.
-
-   Con: Contours (slower), only.
-
-   C&C: Colours and Contours (slower), only.
-
-   XXX: Unfortunately nothing, only.
-
- There is one contour created for each color  in the colormap. You'd want to use colormaps with  few colors to get a contour of use.  Contours are not created if colormap has panes  of unequal sizes.
+**Avl**: Choose method for computing color alpha value for voxels.
 
 
-   .. _SurfCont->Dset_Controls->1:
+Choose the method for assigning an alpha value (A) to a voxel's color.
+   Avg :  A = average of R, G, B values
 
-**1**: Show ONLY ONE selected Dset. Foreground only. 
+   Max :  A = maximum of R, G, B values
 
+   Min :  A = minimum of R, G, B values
 
-If ON, view only the selected
-Dset's colors. No mixing of colors in the
-foreground stack is done.
+   I :  A is based on I selection. I range parameters apply 
 
-If OFF, then mix the color planes
-in the foreground stack.
+   T :  A is based on T selection. Full range is used.
 
-This option makes it easy to view 
-one Dset's colors at a time without
-having to worry about color mixing,
-opacity, and stacking order.
+   B :  A is based on B selection. B range parameters apply
 
-Needless to say, options such as
-'Ord:' and 'Opa:' in this panel are 
-of little use when this button is ON.
-
-   .. _SurfCont->Dset_Controls->Switch_Dset:
-
-**Switch_Dset**: Switch between datasets
+   XXX: A is set to 0, nothing will show.
 
 
-Switch between datasets.
 
-   .. _SurfCont->Dset_Controls->Load_Dset:
+   .. _VolCont->Dset_Controls->Ath:
 
-**Load_Dset**: Load a new dataset 
-
-
-Load a new dataset (Dset).
-Datasets can be of 3 formats:
-
-1- NIML (.niml.dset)   :This format is internal to AFNI/SUMA. 
-
-2- GIFTI (.gii.dset):The format to end all formats.
-
-3- 1D   (.1D.dset)   :Simple ASCII tabular format supporting numerical values only.
-     Each row i contains Nj data values per node.Since this format has no headerassociated with it, it makessome assumption about the datain the columns. 
-
-   You can choose from 3 options:  (see below for nomenclature)
-
-   - Each column has Ni values where Ni = N_Node.  In this case, it is assumed that row i has values for node i on the surface.
-   - If Ni is not equal to N_Node then SUMA will check to see if column 0 (Col_0) is all integers with values v satisfying:  0 <= v < N_Node .
-     If that is the case then column 0 contains the node indices. The values in row j of Dset are for the node indexed Col_0[j].
-     In the sample :term:`1D` Dset shown below assuming N_Node > 58, SUMA will consider the 1st column to  contain node indices. In that case the values -12.1 and 0.9 are for  node 58 on the surface.
-   - Lastly, if Col_0 fails the node index test, then SUMA considers the data in row i to be associated with node i.
-
-   If you're confused, try creating some toy datasets like the one below and  load them into SUMA.
-
-   Sample 1D Dset (Call it pickle.1D.dset):
-     25    22.7     1.2   
-     58    -12.1    0.9   
-
-   Nomenclature and conventions:
-     - N_Node is the number of nodes forming the surface.
-     - Indexing always starts at 0. In the example, value v at  row 0, column 1 is v = 22.7 .
-     - A Dset has Ni rows and Nj columns. In other terms, Ni is the number of values per node and Nj is the number of nodes for which data are specified in Dset. Ni = 2, Nj = 3 in the example.
-
-   .. _SurfCont->Dset_Controls->Load_Col:
-
-**Load_Col**: Load a new color plane 
+**Ath**: Threshold for voxel alpha value.
 
 
-Load a new color plane.
-A color plane is a :term:`1D` text file with 
-each row formatted as such
+Alpha threshold of Dset's rendered slices.
+When datasets' voxels get colored, they get an Alpha (A) value
+in addition to the R, G, B values. A is computed based on
+the setting of the 'Avl' menu.
+Voxels (or more precisely, their openGL realization) 
+with Alpha lower than this value will not get rendered.
+This is another way to 'threshold' a rendered volume, and 
+is comparable to thresholding with the slider bar if using a
+monochromatic increasingly monotonic colormap with 'Avl' set to
+one of Max, Min, or Avg.
+Note that thresholding with the slider bar sets A for thresholded 
+voxels to 0.0 regardless of the setting for 'Avl'.
+Thresholding with Ath is faster than using the slider bar because 
+it does not require recreating the whole texture.
 
-  n  r g b
-
-where n is the node index, 
-r, g, and b are the red, green and blue
-color values, respectively. 
-Color values must be between 0 and 1.0. 
-A sample file would be: test.1D.col with content::
-
-   0    0.1 0.2 1   
-   1    0   1   0.8 
-   4    1   1   1   
-   7    1   0   1   
-   14   0.7 0.3 0   
-
-.. _SurfCont->Dset_Mapping:
+.. _VolCont->Dset_Mapping:
 
 Dset Color Mapping:
 ===================
 
 
-   .. _SurfCont->Dset_Mapping->IxT:
+   .. _VolCont->Dset_Mapping->IxT:
 
 **IxT**: Set I, T selection linking modes.
 
@@ -320,7 +280,7 @@ You can set your preference using environment variable
    SUMA_IxT_LinkMode
 
 
-   .. _SurfCont->Dset_Mapping->I:
+   .. _VolCont->Dset_Mapping->I:
 
 **I**: Select Intensity (I) column, aka sub-brick. 
 
@@ -337,15 +297,16 @@ You can use a different type of selector to set (I). A right-click on 'I' opens 
 The style of this selector can also change depending on the numberof sub-bricks (columns) you have in your dataset. If the numberexceeds a threshold specified by the environment variable :ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`
 
 
-   .. _SurfCont->Dset_Mapping->I->v:
+   .. _VolCont->Dset_Mapping->I->v:
 
-**v**: View (ON)/Hide Dset node colors
+**v**: View (ON)/Hide volume voxel colors
 
 
+View (ON)/Hide Dset node colors
 
-   .. _SurfCont->Dset_Mapping->T:
+   .. _VolCont->Dset_Mapping->T:
 
-**T**: Select Threshold (T) column, aka sub-brick. 
+**T**: Select Threshold (T) column, aka sub-brick.  
 
 
 Use this menu to select which column in the
@@ -371,13 +332,13 @@ You can use a different type of selector to set (T). A right-click on 'T' opens 
 The style of this selector can also change depending on the numberof sub-bricks (columns) you have in your dataset. If the numberexceeds a threshold specified by the environment variable :ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`
 
 
-   .. _SurfCont->Dset_Mapping->T->v:
+   .. _VolCont->Dset_Mapping->T->v:
 
 **v**: Apply (ON)/Ignore thresholding
 
 
 
-   .. _SurfCont->Dset_Mapping->B:
+   .. _VolCont->Dset_Mapping->B:
 
 **B**: Select Brightness (B) column, aka sub-brick. 
 
@@ -399,13 +360,13 @@ You can use a different type of selector to set (B). A right-click on 'B' opens 
 The style of this selector can also change depending on the numberof sub-bricks (columns) you have in your dataset. If the numberexceeds a threshold specified by the environment variable :ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`
 
 
-   .. _SurfCont->Dset_Mapping->B->v:
+   .. _VolCont->Dset_Mapping->B->v:
 
 **v**: View (ON)/Ignore brightness modulation
 
 
 
-   .. _SurfCont->Dset_Mapping->ThrVal[0]:
+   .. _VolCont->Dset_Mapping->ThrVal[0]:
 
 **ThrVal[0]**: Threshold Value (append 'p' to set by p value, '%' to set by percentile)
 
@@ -418,7 +379,7 @@ For percentile thresholding, append a '%' to
 the value, such as 25%
 
 
-   .. _SurfCont->Dset_Mapping->Cmap->bar:
+   .. _VolCont->Dset_Mapping->Cmap->bar:
 
 **bar**: Colorbar for 'I' values
 
@@ -429,14 +390,14 @@ Use ctrl+h over the colorbar for help on manipulating the displayed
 map.
 
 
-   .. _SurfCont->Dset_Mapping->Cmap->scale:
+   .. _VolCont->Dset_Mapping->Cmap->scale:
 
 **scale**: Set the threshold for 'T' values
 
 
 Set threshold value to determine which nodes/voxels/edges will get coloredVoxels for which the value in the 'T' sub-brick is below that of the threshold will not get colored.
 
-   .. _SurfCont->Dset_Mapping->Cmap->pval:
+   .. _VolCont->Dset_Mapping->Cmap->pval:
 
 **pval**: Nominal p-value per node; FDR q-value
 
@@ -456,7 +417,7 @@ if possible.
 * You can add FDR curves to a dataset with '3drefit -addFDR'.
 
 
-   .. _SurfCont->Dset_Mapping->SetRangeTable.c00:
+   .. _VolCont->Dset_Mapping->SetRangeTable.c00:
 
 **SetRangeTable.c00**: Clipping ranges
 
@@ -465,7 +426,7 @@ Used for setting the clipping ranges. Clipping is only done for
 color mapping. Actual data 
 values do not change.
 
-   .. _SurfCont->Dset_Mapping->SetRangeTable.r01:
+   .. _VolCont->Dset_Mapping->SetRangeTable.r01:
 
 **SetRangeTable.r01**: Intensity clipping range (append '%' for percentiles, see BHelp)
 
@@ -484,7 +445,7 @@ A left-click on 'I' locks ranges from automatic resetting, and the locked range 
 
 A right-click resets values to the default range (usually 2% to 98%) in the dataset.
 
-   .. _SurfCont->Dset_Mapping->SetRangeTable.r02:
+   .. _VolCont->Dset_Mapping->SetRangeTable.r02:
 
 **SetRangeTable.r02**: Brightness modulation clipping range 
 
@@ -497,7 +458,7 @@ A left-click locks ranges in this row from automatic resetting, and a locked ran
 
 A right-click resets values to the default range (usually 2% to 98%) for the dataset.
 
-   .. _SurfCont->Dset_Mapping->SetRangeTable.r03:
+   .. _VolCont->Dset_Mapping->SetRangeTable.r03:
 
 **SetRangeTable.r03**: Brightness modulation factor range 
 
@@ -508,7 +469,7 @@ clipping per the values in the row above,
 are scaled to fit the range specified
 here.
 
-   .. _SurfCont->Dset_Mapping->Col:
+   .. _VolCont->Dset_Mapping->Col:
 
 **Col**: Switch between color mapping modes.
 
@@ -531,32 +492,7 @@ Dir: Use intensity values as indices into the colormap. In Dir mode, the intensi
 
    icol=floor(V) with clipping to the range 0 to Ncol-1
 
-   .. _SurfCont->Dset_Mapping->Bias:
-
-**Bias**: Coordinate bias direction
-
-
-Coordinate bias direction.
-
--: No bias thank you
-
-x: X coord bias
-
-y: Y coord bias
-
-z: Z coord bias
-
-n: bias along node's normal
-
-
-See more info in Bhelp for
-'C' table entry above.
-
-This option will produce
-'Extremely Cool'[1] images.
-[1] Chuck E. Weiss (Slow River/Rykodisc) 1999.
-
-   .. _SurfCont->Dset_Mapping->Cmp:
+   .. _VolCont->Dset_Mapping->Cmp:
 
 **Cmp**: Switch between available color maps. 
 
@@ -571,7 +507,7 @@ More help is available via
 ctrl+h while mouse is over the
 colormap.
 
-   .. _SurfCont->Dset_Mapping->Cmp->New:
+   .. _VolCont->Dset_Mapping->Cmp->New:
 
 **New**: Load new colormap
 
@@ -596,7 +532,7 @@ A sample colormap would be::
 saved into a cmap file called
 cmap_test.1D.cmap
 
-   .. _SurfCont->Dset_Mapping->abs_T:
+   .. _VolCont->Dset_Mapping->abs_T:
 
 **abs_T**: Absolute threshold ON/OFF
 
@@ -613,7 +549,7 @@ Tscale is the value set by the threshold scale.
 
 T(n) is the node value in the selected threshold column (T). This value is seen in the second cell of the 'Value' table on the left side.
 
-   .. _SurfCont->Dset_Mapping->sym_I:
+   .. _VolCont->Dset_Mapping->sym_I:
 
 **sym_I**: Intensity range symmetry about 0 
 
@@ -624,7 +560,7 @@ ON : Intensity clipping range is forced to go from  -val to val. This allows you
 
 OFF: Intensity clipping range can be set to your liking.
 
-   .. _SurfCont->Dset_Mapping->shw_0:
+   .. _VolCont->Dset_Mapping->shw_0:
 
 **shw_0**: Color masking of nodes with intensity = 0 
 
@@ -635,58 +571,39 @@ ON : 0 intensities are mapped to the colormap as any other values.
 
 OFF: 0 intensities are masked, a la AFNI
 
-   .. _SurfCont->Dset_Mapping->Clst.c00:
-
-**Clst.c00**: Clusterizing options
-
-
-Used for setting the clustering parameters.
-
-   .. _SurfCont->Dset_Mapping->Clst.c01:
-
-**Clst.c01**: Connectedness criterion
-
-
-Minimum distance between nodes.
-Nodes closer than the minimum distance are in
-same cluster. If you want to distance to be in
-number of edges (N) separating nodes, set the minimum
-distance to -N. This parameter is the same as -rmm in
-the program SurfClust
-
-   .. _SurfCont->Dset_Mapping->RangeTable.c00:
+   .. _VolCont->Dset_Mapping->RangeTable.c00:
 
 **RangeTable.c00**: Full range in Dset
 
 
 Full range of values in Dset.
 
-   .. _SurfCont->Dset_Mapping->RangeTable.r01:
+   .. _VolCont->Dset_Mapping->RangeTable.r01:
 
 **RangeTable.r01**: Range of values in intensity (I) column
 
 
 
-   .. _SurfCont->Dset_Mapping->RangeTable.r02:
+   .. _VolCont->Dset_Mapping->RangeTable.r02:
 
 **RangeTable.r02**: Range of values in threshold (T) column
 
 
 
-   .. _SurfCont->Dset_Mapping->RangeTable.r03:
+   .. _VolCont->Dset_Mapping->RangeTable.r03:
 
 **RangeTable.r03**: Range of values in brightness (B) column
 
 
 
-   .. _SurfCont->Dset_Mapping->RangeTable.c01:
+   .. _VolCont->Dset_Mapping->RangeTable.c01:
 
 **RangeTable.c01**: Minimum value in Dset column
 
 
 Minimum value in Dset column.
 
-   .. _SurfCont->Dset_Mapping->RangeTable.c02:
+   .. _VolCont->Dset_Mapping->RangeTable.c02:
 
 **RangeTable.c02**: Node index at minimum
 
@@ -699,14 +616,14 @@ Same as 'ctrl+j' or
 an entry in the 'Node' cell
 under Xhair Info block.
 
-   .. _SurfCont->Dset_Mapping->RangeTable.c03:
+   .. _VolCont->Dset_Mapping->RangeTable.c03:
 
 **RangeTable.c03**: Maximum value in Dset column
 
 
 Maximum value in Dset column.
 
-   .. _SurfCont->Dset_Mapping->RangeTable.c04:
+   .. _VolCont->Dset_Mapping->RangeTable.c04:
 
 **RangeTable.c04**: Node index at maximum
 

@@ -496,8 +496,9 @@ You can also change values by scrolling with mouse pointer over the cell.
 **Load_Masks**: Load the masks 
 
 
-Load a set of masks previously saved by my neighboring button.
+Load a set of masks previously saved by my neighboring button. The save operation also preserves the :ref:`Mask Eval<MaskCont->Masks->Mask_Eval.r00>` expression.
 
+Reloading a mask file will replace current masks.
 
    .. _MaskCont->Masks->Save_Masks:
 
