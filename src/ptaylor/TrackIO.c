@@ -106,7 +106,8 @@ TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff,
    TAYLOR_TRACT *tt=NULL;
    int kk = 0, ii=0;
    static int nwarn=0;
-   
+   float ORIG[3], Ledge[3];
+
    ENTRY("Create_Tract");
    
    if (grid) {
@@ -133,12 +134,23 @@ TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff,
       ERROR_message("Failed to allocate pts vector");
       Free_Tracts(tt,1); RETURN(NULL);
    }
+
+   ORIG[0] = DSET_XORG(grid);
+   ORIG[1] = DSET_YORG(grid);
+   ORIG[2] = DSET_ZORG(grid);
+   Ledge[0] = fabs(DSET_DX(grid)); 
+   Ledge[1] = fabs(DSET_DY(grid)); 
+   Ledge[2] = fabs(DSET_DZ(grid)); 
+
    kk=0;
    if (pts_buff) { // A and B are inclusive vals
       for (ii=ptA; ii<=ptB; ++ii) { 
-       tt->pts[kk] = pts_buff[ii][0]+DSET_XORG(grid);++kk;
-       tt->pts[kk] = pts_buff[ii][1]+DSET_YORG(grid);++kk;
-       tt->pts[kk] = pts_buff[ii][2]+DSET_ZORG(grid);++kk;
+         //       tt->pts[kk] = pts_buff[ii][0]+DSET_XORG(grid);++kk;
+         //       tt->pts[kk] = pts_buff[ii][1]+DSET_YORG(grid);++kk;
+         //       tt->pts[kk] = pts_buff[ii][2]+DSET_ZORG(grid);++kk;
+         tt->pts[kk] = pts_buff[ii][0]+ORIG[0]-0.5*Ledge[0];++kk;
+         tt->pts[kk] = pts_buff[ii][1]+ORIG[1]-0.5*Ledge[1];++kk;
+         tt->pts[kk] = pts_buff[ii][2]+ORIG[2]-0.5*Ledge[2];++kk;
       }
    }
 

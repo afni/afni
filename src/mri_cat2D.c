@@ -23,13 +23,14 @@ static byte OK_wrap = 0;
 static byte WrapZero = 0;
 void mri_Set_KO_catwrap(void) { OK_wrap = 0; return; }
 void mri_Set_OK_catwrap(void) { OK_wrap = 1; return; }
+void mri_Set_OK_catrandwrap(void) { OK_wrap = 2; return; }
 void mri_Set_OK_WrapZero(void) { WrapZero = 1; return; }
 void mri_Set_KO_WrapZero(void) { WrapZero = 0; return; }
 
 MRI_IMAGE * mri_cat2D(  int mx , int my , int gap , 
                         void *gapval , MRI_IMARR *imar )
 {
-   int nx , ny , ii , jj , kind , ij , nxout , nyout , ijoff , jout,iout ;
+   int nx , ny , ii , jj , kind , ij , nxout , nyout , ijoff , jout,iout, iijj ;
    MRI_IMAGE *imout , *imin=NULL ;
    void *vout ;
 
@@ -60,7 +61,21 @@ ENTRY("mri_cat2D") ;
 
 
    for( ij=0 ; ij < mx*my ; ij++ ){     /* check for consistency */
-      imin = IMARR_SUBIMAGE(imar,ij%imar->num) ;
+      switch (OK_wrap) {
+         default:
+         case 0:
+            iijj = ij; 
+            if (iijj >= imar->num) iijj = imar->num-1;
+            break;
+          case 1:
+            iijj = ij%imar->num;
+            break;
+         case 2:
+            if (ij < imar->num) iijj = ij;
+            else iijj = (int)(lrand48() % (imar->num));
+            break;
+      }
+      imin = IMARR_SUBIMAGE(imar,iijj) ;
       if( imin != NULL &&
           (imin->kind != kind || imin->nx != nx || imin->ny != ny) )
          RETURN( NULL );
@@ -71,13 +86,28 @@ ENTRY("mri_cat2D") ;
    imout = mri_new( nxout , nyout , kind ) ;
    vout  = mri_data_pointer( imout ) ;
 
-
    ij = 0 ;
    for( jj=0 ; jj < my ; jj++ ){            /* loop over rows */
       for( ii=0 ; ii < mx ; ii++ , ij++ ){  /* loop over columns */
 
          if (WrapZero && ij >= imar->num) imin = NULL;
-         else imin  = IMARR_SUBIMAGE(imar,ij%imar->num) ;
+         else {
+            switch (OK_wrap) {
+               default:
+               case 0:
+                  iijj = ij; 
+                  if (iijj >= imar->num) iijj = imar->num-1;
+                  break;
+               case 1:
+                  iijj = ij%imar->num;
+                  break;
+               case 2:
+                  if (ij < imar->num) iijj = ij;
+                  else iijj = (int)(lrand48() % (imar->num));
+                  break;
+            }
+            imin  = IMARR_SUBIMAGE(imar,iijj) ;
+         }
          ijoff = ii * (nx+gap) + jj * (ny+gap) * nxout ;
 
          /*--- NULL image ==> fill this spot with zeroes ---*/
