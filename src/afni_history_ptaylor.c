@@ -66,6 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 24, Oct , 2014 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
+   "Fixed offset in track to volume coordinates ",
+   "Effect of bug restricted to viewing of tracts rather than volume masks "
+   "and connectivity matrices.\n"
+   "Offset was by half a voxel in each of the three dims.\n"
+},
 
 { 26, Sep , 2014 , PT , "3dNetCorr" , MAJOR , TYPE_NEW_OPT,
    "Allow labeltable reading and writing.",

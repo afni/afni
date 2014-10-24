@@ -604,10 +604,10 @@ L_CONVERT_SURFACES:
            $surf =~ *.smoothwm* ||  \
            $surf =~ *.pial*) then
          ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -o $surf.gii
+                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
       else
          ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -o $surf.gii
+                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
       endif
    endif
 

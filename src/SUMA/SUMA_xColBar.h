@@ -1501,11 +1501,11 @@ SUMA_SHPINX_BREAK \
    "Show bundles instead of edges between nodes if \n"\
    "the graph dataset contains such information. For\n"\
    "the moment, only 3dProbTrackID creates such data."\
-":SPX:\n"\
+":SPX:\n\n"\
 ".. figure:: media/Graph3D.jpg\n"\
-"     :align: left\n"\
-"     :figwidth: 30%\n\n"\
-"     Graph shown in 3D. Edges represented by straight lines.\n\n"\
+"   :align: left\n"\
+"   :figwidth: 30%\n\n"\
+"   Graph shown in 3D. Edges represented by straight lines.\n\n"\
 ".. figure:: media/Graph3D_Bundles.jpg\n"\
 "     :align: left\n"\
 "     :figwidth: 30%\n\n"\
