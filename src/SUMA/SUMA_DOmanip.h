@@ -1,6 +1,6 @@
 #ifndef SUMA_DOMANIP_INCLUDED
 #define SUMA_DOMANIP_INCLUDED
-
+/* gh edit */
 void *SUMA_find_any_object(char *idcode_str, SUMA_DO_Types *do_type);
 SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
 SUMA_VolumeObject * SUMA_findanyVOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
