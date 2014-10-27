@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Oct, 2014, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "added 107 face images for 20 years",
+   NULL
+ } ,
+
  { 23, Oct, 2014, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
    "enhanced read_text_file and added shuffle_blocks",
    NULL
