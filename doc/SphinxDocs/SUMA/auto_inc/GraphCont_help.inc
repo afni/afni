@@ -67,21 +67,23 @@ Note that an edge can be formed by a pair of identical nodes - think matrix diag
 
 Index of the node closest to the selection location on the edge's representation.
 
+*NOTE* that a node is also an edge that starts and ends at the samenode. Think diagonal elements of a connectivity matrix.
+
    .. _GraphCont->Xhair_Info->Val.c00:
 
 **Val.c00**: Data Values at Edge in Focus
 
 
-Data values at edge in focus
+Data values at edge in focus. :term:`Intensity`, :term:`Threshold`, and :term:`Brightness` show the triplets of values  at the selected edge that correspond to the graph/matrix  choices.in :ref:`I<VolCont->Dset_Mapping->I>`, :ref:`T<VolCont->Dset_Mapping->T>`, and :ref:`B<VolCont->Dset_Mapping->B>` selectors.
 
    .. _GraphCont->Xhair_Info->Lbl.r00:
 
 **Lbl**: Label of edge in focus
 
 
-Color from the selected Dset
+Labels from the selected graph dataset
 at the edge in focus.
-If nothing is available, node color
+If no labels are available, edge color
 is displayed.
 
 .. _GraphCont->GDset_Controls:
@@ -116,21 +118,51 @@ Show bundles instead of edges between nodes if
 the graph dataset contains such information. For
 the moment, only 3dProbTrackID creates such data.
 
+.. figure:: media/Graph3D.jpg
+   :align: left
+   :figwidth: 30%
+
+   Graph shown in 3D. Edges represented by straight lines.
+
+.. figure:: media/Graph3D_Bundles.jpg
+     :align: left
+     :figwidth: 30%
+
+     Graph shown in 3D. Edges represented by bundles derived from.
+     tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.
+
+.. container:: clearer
+
+   .. image:: media/blank.jpg
+
+   .. Preceding block is a trick to keep upcoming text from wrapping around the figures.
+
+Figures were generated using :ref:`FATCAT_DEMO` output with::
+   suma -vol mprage+orig. -gdset DTI/o.NETS_AND_000.niml.dset &
+
+
+
+Bundle colors reflect the value of the edge connecting the two nodes
+
+Selection is identical to when edges are represented by straight lines.
+
+
+
    .. _GraphCont->GDset_Controls->CN:
 
 **CN**: How to display connection to selected graph node.
 
 
-Choose how connections to the selected node are displayed.
-   Edg: Show with edges, a subset of the whole graph
+When a node, rather than an edge is selected, choose how connections to it are displayed.
+   Edg: Show connections to selected node with edges, either straight lines or with bundles.
 
-   Col: Change the color of the connecting nodes, based on edge value
+   Col: Show connections to selected node by changing the colors of the connecting nodes, based on edge value. Edges are not displayed. the idea here is to reduce the clutter of the display, while still allowing you to visualize connection strength to one node at a time.
 
-   Rad: Change the radius of the connecting nodes, based on edge value
+   Rad: Show connections to selected node by changing the  radius of the connecting nodes, based on edge value. Edges are not displayed in this mode also.
 
    CaR: Both Col and Rad
 
-   XXX: Do nothing special, keep showing whole graph.
+   XXX: Do nothing special, keep showing whole graph, even when selecting a graph node.
 
 
 
@@ -415,8 +447,7 @@ Set/Get the threshold value.
 When statistical parameters are set under :ref:`T <VolCont->Dset_Mapping->T>`, you can 
 append a 'p' to set by the p value, as in 0.001p.
 
-For percentile thresholding, append a '%' to
-the value, such as 25%
+For percentile thresholding, append a '%' to the value, such as 25%
 
 
    .. _GraphCont->GDset_Mapping->Cmap->bar:

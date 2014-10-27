@@ -93,4 +93,12 @@ Glossary:
 
    Mask Manipulation Mode
       A mode in which selecting a location (right-click) in SUMA, causes the tract mask to jump to that location. See :ref:`Mask_Manipulation_Mode` for details.
+   
+   Spec
+   Spec file
+      A text file setting the specifications for a family of surfaces, including the relationships between them. The spec file is usually created automatically by the likes of *@SUMA_Make_Spec_FS*, or with *quickspec*.
       
+   State
+      For surfaces, state is shorthand for the deformation state. For instance,  lh.pial.gii and lh.inflated.gii surfaces are of two states, pial, and inflated, respectively. You can change the default state names by editing the :term:`spec file` manually. Surfaces of the same state are displayed together, otherwise you can switch between states with :ref:`,<LC_,>`, :ref:`.<LC_.>`, or :ref:`SPACE`. Some states are anatomically correct, like pial, and white. Some such as sphere or inflated are not.
+      
+      For the remaining objects, the previous definition of state no longer applies, but it is still used as a label for grouping what gets displayed together. For instance, a volume is internally labeled as having *ANY_ANATOMICAL* as its state, which is codestate to disply it along with any visualization state that is anatomically correct. This way, volumes are displayed whether you're looking at the pial surfaces or the smoothed white matter surfaces. The same goes for graphs that are displayed in 3D, however graphs are also displayed in matrix form which has its own state and is displayed without anatomically correct objects with it.

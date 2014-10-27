@@ -375,8 +375,7 @@ Set/Get the threshold value.
 When statistical parameters are set under :ref:`T <VolCont->Dset_Mapping->T>`, you can 
 append a 'p' to set by the p value, as in 0.001p.
 
-For percentile thresholding, append a '%' to
-the value, such as 25%
+For percentile thresholding, append a '%' to the value, such as 25%
 
 
    .. _VolCont->Dset_Mapping->Cmap->bar:

@@ -584,19 +584,18 @@ Keyboard Controls:
    
 .. _LC_,:
 
-:kbd:`,`/
+:kbd:`,`
+
 .. _LC_.:
 
 :kbd:`.` (think </>): Switch to next/previous view state.
      Viewing angle is reset only when switching to
      a state with flat surfaces.
-   
+
+     See :term:`state` for more on the meaning of states for different object types.   
 .. _SPACE:
 
-:kbd:`SPACE`: Toggle between Mapping Reference and
-            Current view state.
-            Viewing angle is reset only when switching to
-            a state with flat surfaces.
+:kbd:`SPACE`: Toggle between Mapping Reference and Current view state. Viewing angle is reset only when switching to a state with flat surfaces.
 
    
 .. _L-R_arrows:
@@ -905,7 +904,7 @@ Mouse Controls:
 
 Selecting Objects:
 
-==================
+------------------
 
 Selections are done with the :ref:`right-mouse click <Button_3-Press>` unless you request :ref:`otherwise <SUMA_SwapButtons_1_3>`.
 
@@ -953,7 +952,7 @@ Selecting a voxel also highlights the slice. You can turn off the highlight rect
 
 Continuous Selection:
 
-=====================
+---------------------
 
 You can select and drag and sweep through numerous locations. The main thing to keep in mind is that when you have a multitute of object types, such as tracts, voxels, surfaces, etc. SUMA locks the selection to the object type selected at the beginning of the sweep. So, if you begin the selection on a surface and drag, then the selections during the sweep are restricted to surfaces only.
 
@@ -1691,5 +1690,5 @@ Choose from YES or NO
 Current Version Info:
 
 Compile Date:
-   Oct 24 2014
+   Oct 27 2014
 
