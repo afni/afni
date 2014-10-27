@@ -4,7 +4,7 @@
 /* 
 
    Historical Note from Fri Jan  3 10:21:52 EST 2003:
-   the method for hiding a surface viewer (and other controllers), used to have     three options prior to Fri Jan  3 10:21:52 EST 2003
+   the method for hiding a surface viewer (and other controllers), used to have      three options prior to Fri Jan  3 10:21:52 EST 2003
    Now only SUMA_WITHDRAW and NOT SUMA_DESTROY should be used.
 
    As of Wed Sep 23 14:45:59 EDT 2009
@@ -15,7 +15,8 @@
    It appears that GLX implementation is full of uninitialzation errors, 
    according to Valgrind. 
    
-   So now one can choose between three closing modes. For widgets with GLX drawables (Viewers, and SurfaceControllers) use SUMA_UNREALIZE.
+   So now one can choose between three closing modes. For widgets with GLX
+   drawables (Viewers, and SurfaceControllers) use SUMA_UNREALIZE.
    For other, stick with SUMA_WITHDRAW as previously done.
 */
 
