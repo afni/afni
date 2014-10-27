@@ -1297,8 +1297,18 @@ char * SUMA_hkf_eng(char *keyi, int target, char *cm)
    switch (target) {
       default:
       case 0: /* SUMA */
-         snprintf(key1, 255, "%s", keyi);
-         snprintf(s, 255, "  %s", key1);
+         /* Actually COMMA, PERIOD, STAR mods are not needed, leave 
+         for posterity.*/
+         if (strstr(keyi,"COMMA")) {
+            snprintf(key1, 255, ",");
+         } else if (strstr(keyi,"PERIOD")) {
+            snprintf(key1, 255, ".");
+         } else if (strstr(keyi,"STAR")) {
+            snprintf(key1, 255, "*");
+         } else {
+            snprintf(key1, 255, "%s", keyi);
+         }
+            snprintf(s, 255, "  %s", key1);
          return(s);
          break;
       case 1: /* Sphinx */
@@ -1919,15 +1929,18 @@ char * SUMA_help_message_Info(int targ)
       "   %s: Compute convexity of surface, \n"
       "        results written to disk.\n\n", SUMA_hkf("(", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "   %s/%s (think </>): Switch to next/previous view state.\n"
+      "   :SPX:%s\n%s:DEF:%s/%s:SPX: (think </>): Switch to next/previous "
+      "view state.\n"
       "     Viewing angle is reset only when switching to\n"
-      "     a state with flat surfaces.\n", 
+      "     a state with flat surfaces.:LR:\n"
+      "     See :term:`state` for more on the meaning of states for different "
+      "object types.\n",
       SUMA_hkf(",", targ), SUMA_hkf(".", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Toggle between Mapping Reference and\n"
-      "            Current view state.\n"
-      "            Viewing angle is reset only when switching to\n"
-      "            a state with flat surfaces.\n\n"
+      ":          :Current view state.\n"
+      ":          :Viewing angle is reset only when switching to\n"
+      ":          :a state with flat surfaces.\n\n"
       , SUMA_hkf("SPACE", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: rotate about screen's Y axis\n"
