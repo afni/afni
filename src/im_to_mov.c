@@ -179,11 +179,11 @@ int main( int argc , char *argv[] )
    int npure=18 , nfade=6 , iarg=1 , ii,jj,kk , nbad , nx,ny,nin ;
    char *prefix="i2m" , *outname ; char **fcopy ;
    MRI_IMARR *in_imar=NULL ;
-   MRI_IMAGE *inim , *qim , *jnim ;
+   MRI_IMAGE *inim , *qim , *jnim ; MRI_IMAGE *im0=NULL ;
    float fac ;
-   int down=1 ; int do_jpg=0 ;
+   int down=1 ; int do_jpg=0 ; int do_loop=0 ;
 
-   if( argc < 3 ){
+   if( argc < 3 || strcasecmp(argv[1],"-help") == 0 ){
      printf("Usage: im_to_mov [options] imagefile1 imagefile2 ...\n") ;
      printf("\n") ;
      printf(
@@ -197,6 +197,7 @@ int main( int argc , char *argv[] )
        "(cf '-fade').  Thus, animating the output sequence of images will\n"
        "be suitable for making a video with a fixed dwell on each input\n"
        "image, followed by a smooth segue between images; for example:\n"
+       "\n"
        "  im_to_mov -prefix Fred_movie Fred*.jpg\n"
        "\n"
        "The '-down' option lets you shrink the input images before processing,\n"
@@ -208,11 +209,21 @@ int main( int argc , char *argv[] )
             "--------\n"
             " -npure P  = number of pure copies of each image [18]\n"
             " -nfade F  = number of transition fades between pairs [6]\n"
+            " -loop     = output a final set of fade images between the\n"
+            "             last input image and the first one, so that the\n"
+            "             video can be played in an endless loop\n"
             " -down  X  = downsample images by factor X = 2 or 3 or 4 [none]\n"
             " -prefix Q = prefix for output files [i2m]\n"
             " -jpg      = write JPEG output files and stop\n"
             " -mpg      = write PPM files, convert to MPEG-1, delete PPMs\n"
             "             [this is the default mode of operation]\n"
+            "Notes:\n"
+            "------\n"
+            "* The input images must all be the same size!\n"
+            "* Valid input image formats are JPEG, PPM, GIF, and PNG.\n"
+            "* The output MPEG-1 frame rate is 24 per second,\n"
+            "  so the default P and F parameters add up to 1 second\n"
+            "  of movie per input image.\n"
            ) ;
      exit(0) ;
    }
@@ -226,6 +237,9 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[iarg],"-mpg") == 0 ){
        do_jpg = 0 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-loop") == 0 ){
+       do_loop = 1 ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-npure") == 0 ){
@@ -316,6 +330,8 @@ int main( int argc , char *argv[] )
    else
      INFO_message("Read in %d images, downsampled to %dx%d",nin,nx,ny) ;
 
+   if( do_loop ) im0 = mri_copy( IMARR_SUBIM(in_imar,0) ) ;
+
    if( do_jpg ){  /*------------------ Just write JPEGs ------------------*/
 
      fprintf(stderr,"++ Writing JPEGs ") ;
@@ -370,6 +386,15 @@ int main( int argc , char *argv[] )
        mri_write_jpg(outname,jnim) ;
      }
 #endif
+
+     if( do_loop && im0 != NULL ){
+       for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
+         qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , jnim , (jj+1)*fac , im0 ) ;
+         sprintf(outname,"%s_%06d.jpg",prefix,kk) ; kk++ ;
+         mri_write_jpg(outname,qim) ;
+       }
+       mri_free(im0) ;
+     }
      mri_free(jnim) ;
 
      fprintf(stderr,"!\n") ;
@@ -430,6 +455,15 @@ int main( int argc , char *argv[] )
        mri_write_pnm(outname,jnim) ;
      }
 #endif
+
+     if( do_loop && im0 != NULL ){
+       for( jj=0 ; jj < nfade ; jj++ ){  /* interpolate for fade */
+         qim = mri_rgb_scladd( 1.0f-(jj+1)*fac , jnim , (jj+1)*fac , im0 ) ;
+         sprintf(outname,"%s_%06d.ppm",prefix,kk) ; kk++ ;
+         mri_write_pnm(outname,qim) ;
+       }
+       mri_free(im0) ;
+     }
      mri_free(jnim) ;
 
      fprintf(stderr,"!\n") ;
