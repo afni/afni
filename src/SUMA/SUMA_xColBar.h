@@ -536,8 +536,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   XXX: Show no balls.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetThrough  \
-   "When a node, rather than an edge is selected, choose how connections "\
-   "to it are displayed.\n" \
+   "When a node, rather than an edge is :ref:`selected<Selecting_Objects>`, "\
+   "choose how connections to it are displayed.:LR:\n" \
    "   Edg: Show connections to selected node with edges, either straight "\
    "lines or with bundles.:LR:\n"  \
    "   Col: Show connections to selected node by changing the colors of "\
@@ -552,7 +552,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "selecting a graph node.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetEdgeThick  \
-   "Choose the thickness sizing for edges of this graph dataset.\n" \
+   "Choose the thickness sizing for edges of this graph dataset.:LR:\n" \
    "   Const: All nodes have a radius of 1 x Gain.:LR:\n"  \
    "   Val: Nodes size equals its dset value x Gain:LR:\n"  
 
@@ -620,7 +620,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   Ba: All text shown with background, damn the torpedoes.:LR:\n"
 
 #define  SUMA_SurfContHelp_DsetGmatBord  \
-   "Choose the partition ratio of the matrix border.\n" \
+   "Choose the partition ratio of the matrix border. This option only applies to the matrix display of the graph.:LR:\n" \
    "   XX: No partition.:LR:\n"  \
    "   5: Border is 1/5 of cell width.:LR:\n"  \
    "   10: Border is 1/10 of cell width.:LR:\n"  \
@@ -1507,12 +1507,12 @@ SUMA_SHPINX_BREAK \
 "   :figwidth: 30%\n\n"\
 "   Graph shown in 3D. Edges represented by straight lines.\n\n"\
 ".. figure:: media/Graph3D_Bundles.jpg\n"\
-"     :align: left\n"\
+"     :align: right\n"\
 "     :figwidth: 30%\n\n"\
 "     Graph shown in 3D. Edges represented by bundles derived from.\n"\
 "     tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.\n\n"\
 SUMA_SHPINX_BREAK \
-"Figures were generated using :ref:`FATCAT_DEMO` output with::\n"\
+"Figures were generated using :ref:`FATCAT_DEMO` output with::\n\n"\
 "   suma -vol mprage+orig. -gdset DTI/o.NETS_AND_000.niml.dset &\n\n"\
 ":SPX:\n\n"\
 "Bundle colors reflect the value of the edge connecting the two nodes\n\n"\
