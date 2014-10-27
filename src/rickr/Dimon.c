@@ -126,10 +126,13 @@ static char * g_history[] =
     "      - fixed interaction between -sort_by_num_suffix and realtime sort\n"
     " 4.08 Oct 16, 2014 [rickr]\n",
     "      - added sort_methods: none, acq_time, default, num_suffix, zposn\n"
+    " 4.09 Oct 27, 2014 [rickr]\n",
+    "      - fixed -sort_by_num_suffix strcmp trap\n"
+    "      - expanded -sort_by_num_suffix to find any final integer\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.08 (October 16, 2014)"
+#define DIMON_VERSION "version 4.09 (November 27, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -747,8 +750,13 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                     show_run_stats( &gS );
 
                     if( n2proc > 0 ) {
-                        fprintf(stderr,"\n** have %d unprocessed image(s)\n\n",
+                        fprintf(stderr,"\n** have %d unprocessed image(s)\n",
                                 n2proc);
+
+                        if( gP.opts.flist_details )
+                           create_file_list(p,p->opts.flist_details,1,"unproc");
+                        else fprintf(stderr, "   (consider -save_details)\n");
+                        fputc('\n', stderr);
                     }
 
                     return 0;
@@ -2440,6 +2448,7 @@ int compare_by_num_suff( const void * v0, const void * v1 )
 {
     int n0 = get_num_suffix(*(char **)v0);
     int n1 = get_num_suffix(*(char **)v1);
+    int cmp;
 
     if ( n0 == DEATH_VALUE || n1 == DEATH_VALUE ) return -2; /* error */
 
@@ -2448,7 +2457,12 @@ int compare_by_num_suff( const void * v0, const void * v1 )
 
     /* if equal, sort alphabetically (15 Aug 2014) */
 
-    return strcmp(*(char **)v0, *(char **)v1);
+    /* return explicit value, since strcmp can return -2 */
+    cmp = strcmp(*(char **)v0, *(char **)v1);
+    if( cmp < 0 ) return -1;
+    else if ( cmp > 0 ) return 1;
+    return 0;
+
 }
 
 
@@ -2463,7 +2477,7 @@ int compare_by_num_suff( const void * v0, const void * v1 )
 static int get_num_suffix( char * str )
 {
     char * cp;
-    int    len, val;
+    int    len, val = DEATH_VALUE+1;
 
     if ( !str ) return DEATH_VALUE;
     len = strlen( str );
@@ -2471,13 +2485,24 @@ static int get_num_suffix( char * str )
 
     cp = strrchr(str, '.');
 
-    if ( !cp )                   return DEATH_VALUE;
-    if ( cp >= (str + len - 1) ) return DEATH_VALUE;
 
-    /* point to what should be the start of an integer */
-    cp++;
+    /* if we did not find an integer, search backwards */
+    if( !cp || (cp >= (str + len - 1)) || !isdigit(*(cp+1)) ) {
+       /* from right, find first digit, then beginning of integer */
+       cp = str + len - 1;
+       while( cp > str && !isdigit(*cp) ) cp--;
+       while( cp > str &&  isdigit(*cp) ) cp--;
+       if( !isdigit(*cp) && isdigit(*(cp+1)) ) cp++;
 
-    /* if ( !isdigit(*cp) ) return -3;     let's just see what is there */
+       /* so we are either looking at the beginning of the final integer,
+          or did not find one */
+       if( !isdigit(*cp) ) return DEATH_VALUE;
+
+    } else {
+       /* point to what should be the start of an integer */
+       cp++;
+    }
+
     len = sscanf(cp, "%i", &val);
     if ( len != 1 ) return DEATH_VALUE;   /* bad things man, bad things */
 
@@ -3628,7 +3653,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     /* maybe the slice location is desired, instead   7 Aug 2012 [rickr] */
     /* (leave option of replacing zoff with slice_loc)                   */
     if ( gP.opts.use_slice_loc ) {
-       if ( gP.opts.debug > 1 )
+       if ( gP.opts.debug > 1 && gehp->zoff != gehp->slice_loc )
           fprintf(stderr,"++ applying slice loc %.4f over image_posn %.4f\n",
                   gehp->slice_loc, gehp->zoff);
        gehp->zoff = gehp->slice_loc;
@@ -6211,7 +6236,7 @@ static int show_run_stats( stats_t * s )
           create_file_list(&gP, gP.opts.flist_details, 2, "final_list_geme");
     }
 
-    if( sort_method(gP.opts.sort_method) == IFM_SORT_GEME )
+    if( sort_method(gP.opts.sort_method) == IFM_SORT_GEME && gD.level > 1 )
       test_sop_iuid_index_order(&gP);
 
     fflush( stdout );
