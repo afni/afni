@@ -176,24 +176,43 @@ MRI_IMAGE * mri_rgb_scaledown_by4( MRI_IMAGE *inim )
 
 int main( int argc , char *argv[] )
 {
-   int npure=10 , nfade=5 , iarg=1 , ii,jj,kk , nbad , nx,ny,nin ;
+   int npure=18 , nfade=6 , iarg=1 , ii,jj,kk , nbad , nx,ny,nin ;
    char *prefix="i2m" , *outname ; char **fcopy ;
    MRI_IMARR *in_imar=NULL ;
    MRI_IMAGE *inim , *qim , *jnim ;
    float fac ;
-   int down=1 ; int do_jpg=1 ;
+   int down=1 ; int do_jpg=0 ;
 
    if( argc < 3 ){
      printf("Usage: im_to_mov [options] imagefile1 imagefile2 ...\n") ;
      printf("\n") ;
+     printf(
+       "This program takes as input a sequence of images, and produces as\n"
+       "output either another sequence of images, suitable for making into\n"
+       "a video, or directly produces the video (MPEG-1 format) from the\n"
+       "new sequence of images.\n"
+       "\n"
+       "For each input image, P copies (cf '-npure') are output, followed\n"
+       "by F images interpolated between the current image and the next one\n"
+       "(cf '-fade').  Thus, animating the output sequence of images will\n"
+       "be suitable for making a video with a fixed dwell on each input\n"
+       "image, followed by a smooth segue between images; for example:\n"
+       "  im_to_mov -prefix Fred_movie Fred*.jpg\n"
+       "\n"
+       "The '-down' option lets you shrink the input images before processing,\n"
+       "since high-resolution digital photos are usually too big to make\n"
+       "useful movies.\n"
+     ) ;
+     printf("\n") ;
      printf("Options:\n"
             "--------\n"
-            " -npure P  = number of pure copies of each image [10]\n"
-            " -nfade F  = number of transition fades between pairs [5]\n"
-            " -down  X  = downsample by factor X = 2 or 3 or 4 [none]\n"
+            " -npure P  = number of pure copies of each image [18]\n"
+            " -nfade F  = number of transition fades between pairs [6]\n"
+            " -down  X  = downsample images by factor X = 2 or 3 or 4 [none]\n"
             " -prefix Q = prefix for output files [i2m]\n"
-            " -jpg      = write JPEG output files\n"
+            " -jpg      = write JPEG output files and stop\n"
             " -mpg      = write PPM files, convert to MPEG-1, delete PPMs\n"
+            "             [this is the default mode of operation]\n"
            ) ;
      exit(0) ;
    }
@@ -245,11 +264,11 @@ int main( int argc , char *argv[] )
    if( !do_jpg ){
      char *pg = THD_find_executable( "mpeg_encode" ) ;
      if( pg != NULL ){
-        ppmto_mpeg_filter = malloc( sizeof(char) * (strlen(pg)+64) ) ;
-        sprintf(ppmto_mpeg_filter,"%s %s",pg,MPEG_ENCODE_SUFFIX) ;
-      } else {
-        ERROR_exit("Can't find mpeg_encode program!") ;
-      }
+       ppmto_mpeg_filter = malloc( sizeof(char) * (strlen(pg)+64) ) ;
+       sprintf(ppmto_mpeg_filter,"%s %s",pg,MPEG_ENCODE_SUFFIX) ;
+     } else {
+       ERROR_exit("Can't find mpeg_encode program!") ;
+     }
    }
 
    /*--- read input images ---*/
@@ -258,7 +277,7 @@ int main( int argc , char *argv[] )
 
    INIT_IMARR(in_imar) ;
 
-   fprintf(stderr,"Reading") ;
+   fprintf(stderr,"Reading ") ;
 
    for( nbad=0,ii=iarg ; ii < argc ; ii++ ){
      inim = mri_read(argv[ii]) ;
