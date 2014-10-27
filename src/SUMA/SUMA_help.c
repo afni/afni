@@ -1934,7 +1934,7 @@ char * SUMA_help_message_Info(int targ)
       "     Viewing angle is reset only when switching to\n"
       "     a state with flat surfaces.:LR:\n"
       "     See :term:`state` for more on the meaning of states for different "
-      "object types.\n",
+      "object types.\n\n",
       SUMA_hkf(",", targ), SUMA_hkf(".", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Toggle between Mapping Reference and\n"
