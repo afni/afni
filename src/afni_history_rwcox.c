@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 23 , OCT , 2014 , RWC , "3dNwarpCat" , MICRO , TYPE_BUG_FIX ,
+  { 28 , OCT , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Add 2D Sharpness function to transformations.  For fun." ,
+   NULL } ,
+
+ { 23 , OCT , 2014 , RWC , "3dNwarpCat" , MICRO , TYPE_BUG_FIX ,
    "Fix bug introduced with changes made for 3dNwarpApply" ,
    NULL } ,
 

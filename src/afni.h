@@ -2292,6 +2292,7 @@ extern void fft2D_phasefunc  ( int, int, double,double, float * ) ;
 extern void median21_box_func( int, int, double,double, float * ) ;
 extern void winsor21_box_func( int, int, double,double, float * ) ;
 extern void adapt_mean_21_box_func( int, int, double,double, float * ) ; /* 04 Sep 2009 */
+extern void sharpness2D_func( int nx , int ny , double dx, double dy, float *ar ) ;
 
 extern void AFNI_register_nD_function( int, char *, generic_func *, int ) ;
 extern void AFNI_register_nD_func_init( int nd , generic_func *fin ) ;
