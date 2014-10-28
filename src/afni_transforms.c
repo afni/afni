@@ -874,3 +874,21 @@ void fft2D_phasefunc( int nx , int ny , double dx, double dy, float *ar )
 
    free(cxar) ; free(cpt) ; return ;
 }
+
+/*----- 28 Oct 2014: sharpness estimate for an image -------------------------*/
+
+void sharpness2D_func( int nx , int ny , double dx, double dy, float *ar )
+{
+   MRI_IMAGE *inim , *outim ;
+
+   if( ar == NULL || nx < 5 || ny < 5 ) return ;
+
+   inim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
+   mri_set_data_pointer(inim,ar) ;
+   outim = mri_sharpness(inim) ;
+   if( outim != NULL ){
+     memcpy( ar , MRI_FLOAT_PTR(outim) , sizeof(float)*nx*ny ) ;
+     mri_free(outim) ; mri_clear_and_free(inim) ;
+   }
+   return ;
+}
