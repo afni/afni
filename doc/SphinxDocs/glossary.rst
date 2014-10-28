@@ -5,6 +5,7 @@ Glossary:
 =========
 
 .. glossary::
+   :sorted: 
 
    SRC
    Shift+Right Click

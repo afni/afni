@@ -4,6 +4,9 @@
 FATCAT Commands:
 ================
 
+.. contents::
+   :depth: 3
+
 Overview:
 ---------
 
@@ -70,6 +73,7 @@ network properties), run the following in a terminal::
 
    @Install_FATMVM_DEMO
 
+Further online documentation for this is forthcoming...
 
 Other:
 ------
