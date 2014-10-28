@@ -826,9 +826,10 @@ descriptions of various basis functions, as applied by 3dDeconvolve
   GAM(p)                : INVALID
   GAM(p,q)              : (t/(p*q))^p * exp(p-t/q)
   GAM(p,q,d)            : convolve with d-second boxcar
+               defaults : p=8.6, q=0.547
                duration : approx. 12+d seconds
  
-                   peak : GAM functions all peak at 1.0, def. peak @ t=4.7
+                   peak : peak = 1.0, default peak @ t=4.7
 
   ---------------------------------------------------------------------------
 
@@ -837,7 +838,7 @@ descriptions of various basis functions, as applied by 3dDeconvolve
                    peak : peak of 1.0 (for d=1) @ t=4.5, max peak of ~5.4
                duration : approx. 15+d seconds
   BLOCK(d,p)            : stimulus duration d, peak p
-                   peak : as specified
+                   peak : peak = p, @t~=4+d/2
 
   ---------------------------------------------------------------------------
 
@@ -880,6 +881,36 @@ descriptions of various basis functions, as applied by 3dDeconvolve
                         : with derivative, to account for small temporal shift
   SPMG3                 : 3-regressor SPM gamma variate
                         : with dispersion curve
+
+  ---------------------------------------------------------------------------
+
+  WAV                   : 1-regressor WAV function from waver
+  WAV(d)                : convolves with stimulus duration d, in seconds
+  WAV(d,D,R,F,Uf,Ur)    : includes D=delay time, R=rise time, F=fall time,
+                          Uf=undershoot fraction, Ur=undershoot restore time
+                        : defaults WAV(d,2,4,6,0.2,2)
+               duration : stimulus duration d
+                   peak : peak = 1, @t=d+6, or duration+delay+rise
+             undershoot : fractional undershoot
+               consider : WAV(1,1,3,8,0.2,2)
+                          - similar to GAM, with subsequent undershoot
+
+  ---------------------------------------------------------------------------
+  example:
+
+     3dDeconvolve -nodata 200 0.1 -polort -1 -num_stimts 4      \\
+        -stim_times 1 '1D:0' GAM                                \\
+        -stim_times 2 '1D:0' 'WAV(1,1,3,8,0.2,2)'               \\
+        -stim_times 3 '1D:0' 'BLOCK(1)'                         \\
+        -stim_times 4 '1D:0' SPMG3                              \\
+        -x1D X.xmat.1D -x1D_stop
+
+     1dplot -sepscl X.xmat.1D
+
+        OR, to be more complicated:
+
+     1dplot -ynames GAM 'WAV(spec)' 'BLOCK(1)' SPMG_1 SPMG_2 SPMG_3 \\
+        -xlabel 'tenths of a second' -sepscl X.xmat.1D
 
 =============================================================================
 """
@@ -929,9 +960,10 @@ g_history = """
    2.08 May 12, 2014 - default -part_init to INIT (0 not valid for -partition)
    2.09 Sep 18, 2014 - added -help_basis to describe basis functions
                        (mostly to clarify dmBLOCK/dmUBLOCK)
+   2.10 Oct 28, 2014 - expanded -help_basis (WAV, 3dDeconvolve, 1dplot)
 """
 
-g_version = "timing_tool.py version 2.08, May 12, 2014"
+g_version = "timing_tool.py version 2.10, Oct 28, 2014"
 
 
 

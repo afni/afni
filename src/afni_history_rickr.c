@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Oct, 2014, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "expanded -help_basis",
+   NULL
+ } ,
+
  { 27, Oct, 2014, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "fixed strcmp trap in -sbns; have -sb_num_suffix look for any last integer",
    NULL
