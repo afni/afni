@@ -2230,12 +2230,13 @@ STATUS("call 13") ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
         AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;
 
-        AFNI_register_2D_function( "Median21" , median21_box_func );
-        AFNI_register_2D_function( "Winsor21" , winsor21_box_func );
-        AFNI_register_2D_function( "AdptMean21" , adapt_mean_21_box_func ); /* 04 Sep 2009 */
+        AFNI_register_2D_function( "Median21"  , median21_box_func );
+        AFNI_register_2D_function( "Winsor21"  , winsor21_box_func );
+        AFNI_register_2D_function( "AdptMean21", adapt_mean_21_box_func ); /* 04 Sep 2009 */
 
         AFNI_register_2D_function( "abs[FFT2D]" , fft2D_absfunc   );
         AFNI_register_2D_function( "arg[FFT2D]" , fft2D_phasefunc );
+        AFNI_register_2D_function( "Sharpness"  , sharpness2D_func);   /* 28 Oct 2014 */
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 
@@ -10612,13 +10613,13 @@ ENTRY("AFNI_jumpto_thminmax_CB") ;
           ijk = im3d->fim_thresh_max_ijk ;
    else if( w == im3d->vwid->func->pbar_jumpto_thmin_pb )
           ijk = im3d->fim_thresh_min_ijk ;
-   
+
    if (ijk == -777) { /* Not sure when this can happen, but
-                         return if there is nothing to do 
+                         return if there is nothing to do
                          without complaint   ZSS Aug. 2014 */
-      EXRETURN ;  
+      EXRETURN ;
    }
-   
+
    if( ijk < 0 ){ BEEPIT ; SENSITIZE(w,False) ; EXRETURN ; }
 
    ii = DSET_index_to_ix(im3d->fim_now,ijk) ;
