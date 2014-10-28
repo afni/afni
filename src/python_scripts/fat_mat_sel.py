@@ -45,7 +45,8 @@ def main(argv):
         { --out_ind_matr | --out_ind_1ddset }  --ExternLabsNo          \\ 
         --Hold_image  --type_file=TYPE  --dpi_file=DPI                 \\
         --xlen_file=LX  --ylen_file=LY  --Tight_layout_on  --Fig_off   \\
-        --Size_font=S  --A_plotmin=MIN  --B_plotmax=MAX   --Cbar_off   \\
+        --Size_font=S  --Lab_size_font=S2   --Cbar_off                 \\
+        --A_plotmin=MIN  --B_plotmax=MAX  --width_cbar_perc=W          \\
         --Map_of_colors=MAP  --cbar_int_num=N  --specifier=STR
 
 
