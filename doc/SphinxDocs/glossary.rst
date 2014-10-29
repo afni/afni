@@ -1,11 +1,159 @@
 .. _glossary:
 
-=========
-Glossary:
-=========
+========
+Glossary
+========
 
 .. glossary::
    :sorted: 
+
+
+   ROI
+      Region of interest.  In tractography, we try to keep the
+      separate language of 'target ROIs', referring to the set of
+      blobs among which one is looking for connections, and 'WM ROIs',
+      referring to the white matter regions where those connections
+      are.
+
+   WB 
+      Whole brain.
+
+   index
+   indexing
+      A system of referring to an element in an ordered set, such as a
+      time series or a particular volume in an MRI acquisition.  Some
+      software/people start counting from 1 up to *N*, while others
+      (most notably, AFNI) count from 0 up to *N-1*.  Even if
+      unfamiliar, the latter has several benefits (well, that's what I
+      read on the internet), so it's good to become familiar with
+      it. One should always be clear about indexing systems at use
+      when processing.
+
+   row-first
+   diagonal-first
+      Two methods of reading (or flattening) a symmetric matrix, such
+      as a DT or diffusion matrix. The names refer to the order in
+      which components are read out from the matrix, which can be
+      arbitrary (as long as one is consistent).  Different programs
+      use different formats, so always check to make sure that you are
+      using compatible notation in your own data whenever utilizing a
+      new program. See :ref:`DealingWithGrads` for more discussion.
+
+   reference set
+      In DWI, a volume without an externally applied DW gradient,
+      often referred to as an unweighted or *b*\=0 set.  Generally,
+      more than one reference volume is acquired during scanning, to
+      increase SNR.
+
+   SNR 
+      Signal to noise ratio.  Omnipresent in discussions of data
+      quality.  Increasing SNR usually involves trade-offs of longer
+      acquisition time or lower resolution.
+
+   DW
+   DWI
+      Diffusion weighted (imaging), a method of acquiring MRI data
+      which uses an extra magnetic field gradient to measure
+      diffusivity along a given spatial orientation.  Typically,
+      several DW images are acquired and used to estimate diffusion
+      tensors (DTs) or higher order HARDI models.
+
+   DT
+   DTI
+      Diffusion tensor (imaging), a particular model for fitting DWI
+      data in order to more easily quantify local, relative
+      anisotropy.  Mathematically, the DTs are 3 by 3, symmetric
+      positive definite matrices, which happily also geometrically
+      correspond to the surfaces of ellipsoids. From DTs, further
+      parameters (such as FA, MD, eigenvalues and eigenvectors) can be
+      derived.
+
+   HARDI
+      High angular resolution diffusion imaging, a higher order model
+      than DTI for DWI data.  May require higher DW factors, many more
+      acquisitions, and more computational processing than DT
+      modelling, but the expected benefit is to be able to estimate
+      more than one major direction of diffusion in a given voxel ->
+      assumed to represent more complicated crossing fibers.  There
+      are *many* HARDI models in existence.
+
+   flip 
+      Can refer both to the systematic mismatch between recorded
+      gradient files and saved DWI datasets (where one gradient
+      component's sign is not compatible with the data), or to the
+      simple computational process of undoing said mismatch by
+      multiplying a given component in an entire gradient set by
+      ``-1``.  The need for flipping a data set can best be seen in an
+      initial investigation of a whole brain, deterministic
+      tractography run (where the wellknown features of the corpus
+      callosum in a healthy subject would look very wrong).
+
+   FA
+      Fractional anisotropy, a scalar parameter derived from the DT
+      that quantifies the relative *pointedness* of a tensor's
+      ellipsoid shape. The minimum is 0, representing an isotropic
+      sphere (i.e., spatially uniform structure), and the
+      (theoretical) maximum is 1, representing something with highly
+      spatially aligned structure. Essentially, it is a normalized
+      standard deviation of the DT's eigenvalues.
+
+   MD 
+      Mean diffusivity, a scalar parameter derived from the DT that
+      quantifies the average *magnitude* of a tensor's ellipsoid
+      shape. Its values are always >0. It is the mean of the DT's
+      eigenvalues.
+
+   L1
+   L2
+   L3
+      The eigenvalues of a DT (with the standard convention
+      L1>L2>L3>0).  Geometrically, these scalars are the semiaxes of
+      the DT.  They would be all equal for a sphere. They are
+      sometimes written with the Greek letter, lambda:
+      :math:`\lambda_1, \lambda_2, \lambda_3`. L1 is sometimes known
+      as *parallel* or *axial* diffusivity.
+
+   **e1**
+   **e2**
+   **e3**
+      The eigenvectors of a DT (usually written with subscripts,
+      :math:`\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3`) with
+      :math:`\mathbf{e}_i` associated with the *i*th eigenvalue,
+      :math:`\lambda_i`.  These are mutually orthogonal (i.e.,
+      perpendicular) and typically of unit magnitude. Geometrically
+      they provide the orientation of the DT.
+
+   RD
+      Radial diffusivity (AKA perpendicular diffusivity).  It is the
+      average of L2 and L3.
+
+   tractography
+      A computational process for estimating the likely location of WM
+      associated with target regions.  There are *many* tractography
+      algorithms in existence. There are also several styles of
+      tracking, such as deterministic, probabilistic and a blended
+      form called mini-probabilistic.  Deterministic can be
+      particularly useful for initial investigations, and the latter
+      two utilize the estimated uncertainty of DT parameters to
+      provide more robust results.
+
+   tractography coloration 
+
+      In deterministic (and mini-probabilistic) tracking, default
+      tract coloration is RGB (red-green-blue) for segment orientation
+      as follows: **red** for left-right; **green** for
+      anterior-posterior; **blue** for inferior-superior.  If non-RGB
+      coloration is used, then probably the distinct colors refer to
+      connections between different pairs of ROIs.
+
+   WM
+      White matter.
+
+   GM
+      Gray matter.
+
+   CSF
+      Cerebrospinal fluid.
 
    SRC
    Shift+Right Click
