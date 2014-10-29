@@ -135,16 +135,16 @@ column output formats:
 +------------------------------------+----------------------------------------+
 | Grad/matrix selection              |  Style                                 |
 +====================================+========================================+
-|.. image:: FlipGrads/GRAD_Grad.png  | gradient file                          |
+|.. image:: media/GRAD_Grad.png      | gradient file                          |
 |   :width: 4in                      |                                        |
 +------------------------------------+----------------------------------------+
-|.. image:: FlipGrads/GRAD_gmatA.png | diagonal-first (AFNI-style) *g*\-matrix|
+|.. image:: media/GRAD_gmatA.png     | diagonal-first (AFNI-style) *g*\-matrix|
 |   :width: 4in                      |                                        |
 +------------------------------------+----------------------------------------+
-|.. image:: FlipGrads/GRAD_gmatT.png | row-first (TORTOISE-style) *g*\-matrix |
+|.. image:: media/GRAD_gmatT.png     | row-first (TORTOISE-style) *g*\-matrix |
 |   :width: 4in                      |                                        |
 +------------------------------------+----------------------------------------+
-|.. image:: FlipGrads/GRAD_bmatT.png | row-first (TORTOISE-style) *b*\-matrix |
+|.. image:: media/GRAD_bmatT.png     | row-first (TORTOISE-style) *b*\-matrix |
 |   :width: 4in                      |                                        |
 +------------------------------------+----------------------------------------+
 
@@ -427,28 +427,28 @@ Flipping Gradients (if necessary)
     +------------------------------------+------------------------------------+------------------------------------+
     | good:  no relative flip                                                                                      |
     +====================================+====================================+====================================+
-    |.. image:: FlipGrads/UNFLIPPED_2.jpg|.. image:: FlipGrads/UNFLIPPED_1.jpg|.. image:: FlipGrads/UNFLIPPED_3.jpg|
+    |.. image:: media/UNFLIPPED_2.jpg    |.. image:: media/UNFLIPPED_1.jpg    |.. image:: media/UNFLIPPED_3.jpg    |
     |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
     +------------------------------------+------------------------------------+------------------------------------+
 
     +------------------------------------+------------------------------------+------------------------------------+
     | bad:  flipped x                                                                                              |
     +====================================+====================================+====================================+
-    |.. image:: FlipGrads/FLIPPED_X_2.jpg|.. image:: FlipGrads/FLIPPED_X_1.jpg|.. image:: FlipGrads/FLIPPED_X_3.jpg|
+    |.. image:: media/FLIPPED_X_2.jpg    |.. image:: media/FLIPPED_X_1.jpg    |.. image:: media/FLIPPED_X_3.jpg    |
     |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
     +------------------------------------+------------------------------------+------------------------------------+
 
     +------------------------------------+------------------------------------+------------------------------------+
     | bad:  flipped y                                                                                              |
     +====================================+====================================+====================================+
-    |.. image:: FlipGrads/FLIPPED_Y_2.jpg|.. image:: FlipGrads/FLIPPED_Y_1.jpg|.. image:: FlipGrads/FLIPPED_Y_3.jpg|
+    |.. image:: media/FLIPPED_Y_2.jpg    |.. image:: media/FLIPPED_Y_1.jpg    |.. image:: media/FLIPPED_Y_3.jpg    |
     |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
     +------------------------------------+------------------------------------+------------------------------------+
 
     +------------------------------------+------------------------------------+------------------------------------+
     | bad:  flipped z                                                                                              |
     +====================================+====================================+====================================+
-    |.. image:: FlipGrads/FLIPPED_Z_2.jpg|.. image:: FlipGrads/FLIPPED_Z_1.jpg|.. image:: FlipGrads/FLIPPED_Z_3.jpg|
+    |.. image:: media/FLIPPED_Z_2.jpg    |.. image:: media/FLIPPED_Z_1.jpg    |.. image:: media/FLIPPED_Z_3.jpg    |
     |   :width: 100%                     |   :width: 100%                     |   :width: 100%                     |
     +------------------------------------+------------------------------------+------------------------------------+
 
