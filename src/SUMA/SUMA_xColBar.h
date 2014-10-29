@@ -507,7 +507,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   16:   Maximum transparency, invisibile:LR:\n"   
 
 #define  SUMA_SurfContHelp_DsetViewMode  \
-   "Choose the viewing mode for this dataset.\n" \
+   "Choose the viewing mode for this dataset.:LR:\n" \
    "   Col: Colours, only.:LR:\n"  \
    "   Con: Contours (slower), only.:LR:\n"  \
    "   C&C: Colours and Contours (slower), only.:LR:\n"    \
@@ -519,7 +519,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    " of unequal sizes.\n"   
 
 #define  SUMA_SurfContHelp_DsetFont  \
-   "Choose the font size for labels of nodes.\n" \
+   "Choose the font size for labels of nodes.:LR:\n" \
    "   8: 8x13.:LR:\n"  \
    "   9: 9x15.:LR:\n"  \
    "   TR10: Times New Roman 10.:LR:\n"    \
@@ -530,9 +530,10 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   XXX: Show no text.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetNodeRad  \
-   "Choose the radius sizing for nodes of this dataset.\n" \
+   "Choose the radius sizing for nodes of this graph dataset.:LR:\n" \
    "   Const: All nodes have a radius of 1 x Gain.:LR:\n"  \
-   "   Val: Nodes size equals its dset value x Gain:LR:\n"  \
+   "   Val: Nodes size equals its dset value x Gain. A node's dset"\
+   "value is that of the edge connecting the node to itself:LR:\n"  \
    "   XXX: Show no balls.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetThrough  \
@@ -552,12 +553,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "selecting a graph node.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetEdgeThick  \
-   "Choose the thickness sizing for edges of this graph dataset.:LR:\n" \
+   "Choose the thickness for edges of this graph dataset.:LR:\n" \
    "   Const: All nodes have a radius of 1 x Gain.:LR:\n"  \
-   "   Val: Nodes size equals its dset value x Gain:LR:\n"  
+   "   Val: Edge size equals its dset value x Gain:LR:\n"  
 
 #define  SUMA_SurfContHelp_TractStyle  \
-   "Choose the line drawing style.\n" \
+   "Choose the line drawing style.:LR:\n" \
    "   Digits specify number of pixels to mask out of each 16 pixels:LR:\n"\
    "   1 :   One pixel/16 off, almost solid:LR:\n"  \
    "   ...:LR:\n"    \
@@ -566,41 +567,42 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   SLD: No stippling, solid line.:LR:\n"  
 
 #define  SUMA_SurfContHelp_DsetEdgeStip  \
-   "Choose the stippling for edges of this graph dataset.\n" \
+   "Choose the stippling for edges of this graph dataset.:LR:\n" \
    "   1 :   One pixel/16 off, almost solid:LR:\n"  \
    "   ...:LR:\n"    \
    "   15:   15/16 pixels off, almost invisible:LR:\n"   \
    "   Val: Set stippling based on the dset value:LR:\n"  \
    "   XXX: No stippling, solid line.:LR:\n"  
 
-#define  SUMA_SurfContHelp_DsetAlphaVal  \
-   "Choose the method for assigning an alpha value (A) to a voxel's color.\n" \
-   "   Avg :  A = average of R, G, B values:LR:\n"  \
-   "   Max :  A = maximum of R, G, B values:LR:\n"    \
-   "   Min :  A = minimum of R, G, B values:LR:\n"    \
-   "   I :  A is based on I selection. I range parameters apply :LR:\n"   \
-   "   T :  A is based on T selection. Full range is used.:LR:\n"  \
-   "   B :  A is based on B selection. B range parameters apply:LR:\n" \
-   "   XXX: A is set to 0, nothing will show.:LR:\n"  
+   #define  SUMA_SurfContHelp_DsetAlphaVal  \
+"Choose the method for assigning an alpha value (A) to a voxel's color.:LR:\n" \
+"   Avg :  A = average of R, G, B values:LR:\n"  \
+"   Max :  A = maximum of R, G, B values:LR:\n"    \
+"   Min :  A = minimum of R, G, B values:LR:\n"    \
+"   I :  A is based on I selection. I range parameters apply :LR:\n"   \
+"   T :  A is based on T selection. Full range is used.:LR:\n"  \
+"   B :  A is based on B selection. B range parameters apply:LR:\n" \
+"   XXX: A is set to 0, nothing will show.:LR:\n"  
 
-#define  SUMA_SurfContHelp_TractMask  \
-  "That's not the name of the button, but its default value. "\
-  "This menu controls how tracts that fall outside of the masks are displayed\n"\
-  "   Hde:   Hide 'em masked tracts:LR:\n"  \
-  "   Gry:   Gray 'em masked tracts (gray color set by"\
-  " :ref:`Gry<TractCont->Coloring_Controls->Gry>` arrow field):LR:\n"\
-  "   One:   A coding mistake that ended up looking cool. Each tract not in "\
-  "the mask is colored by one color extracted from the set of colors for the"\
-  " whole network.:LR:\n"\
-  "   Ign:   Ignore 'em good for nothing masks, show tracts in all their"\
-  " unabashed glory:LR:\n"
+   #define  SUMA_SurfContHelp_TractMask  \
+"That's not the name of the button, but its default value. "\
+"This menu controls how tracts that fall outside of the masks are "\
+"displayed::LR:\n"\
+"   Hde:   Hide 'em masked tracts:LR:\n"  \
+"   Gry:   Gray 'em masked tracts (gray color set by"\
+" :ref:`Gry<TractCont->Coloring_Controls->Gry>` arrow field):LR:\n"\
+"   One:   A coding mistake that ended up looking cool. Each tract not in "\
+"the mask is colored by one color extracted from the set of colors for the"\
+" whole network.:LR:\n"\
+"   Ign:   Ignore 'em good for nothing masks, show tracts in all their"\
+" unabashed glory:LR:\n"
       
 #define  SUMA_SurfContHelp_TractMaskGray  \
    "Set the gray level for masked tracts. 0 for black, 100 for white\n" \
    "   This arrow field only has an effect when 'Msk' menu is set to 'Gry'\n"   \
       
 #define  SUMA_SurfContHelp_DsetNodeCol  \
-   "Choose the colorization method for nodes of this dataset.\n" \
+   "Choose the colorization method for nodes of this dataset.:LR:\n" \
    "   White: Alle weiss.:LR:\n"  \
    "   Black: Tutti nero.:LR:\n"  \
    "   Red: Sve crveno.:LR:\n"  \
@@ -611,7 +613,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   Val: Nodes color is based its dset value and the chosen colormap:LR:\n"
 
 #define  SUMA_SurfContHelp_DsetTxtShad  \
-   "Choose the variants for how labels are handled.\n" \
+   "Choose the variants for how labels are handled.:LR:\n" \
    "   T : Text shown unless more than 50% occluded.:LR:\n"  \
    "   Ts: Foreground text bright, occluded text shaded:LR:\n"  \
    "   B : Text shown with background box unless more than 50% occluded:LR:\n"  \
@@ -699,19 +701,19 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "focus (like :ref:`'J'<UC_j>`).:LR:\n"   \
    "2- Indices of nodes forming triangle.:LR:\n"
 
-#define SUMA_SurfContHelp_GEdge \
-   "1- Edge/Cell Index:  Get/Set index of edge/cell in focus on this "\
-   "controller's graph. This number is the :term:`1D index` of the edge/cell "\
-   "in the graph/matrix. Consider it the equivalent of a voxel 1D index in "\
-   "a volume, or a node in a surface dataset. \n" \
-   "Entering a new edge's index will put that edge  in focus and send the "\
-   "crosshair to its center (like :ref:`j<LC_j>`). "\
-   "Use :ref:`alt+l<LC_Alt+l>` to center the cross hair in your viewer.:LR:\n" \
-   "Note that an edge can be formed by a pair of identical nodes - think "\
-   "matrix diagonal.:LR:\n"\
-   "2- Nodes Forming Directed Edge/Cell: For a cell, this would its pair of "\
-   "row and column indices into the matrix. For a graph, this would be the "\
-   "indices of the nodes forming the directed edge."  
+   #define SUMA_SurfContHelp_GEdge \
+"1- Edge/Cell Index:  Get/Set index of :term:`edge`/:term:`cell` in focus on "\
+"this controller's graph. This number is the :term:`1D index` of the edge/cell "\
+"in the graph/matrix. Consider it the equivalent of a voxel 1D index in "\
+"a volume, or a node in a surface dataset. \n" \
+"Entering a new edge's index will put that edge  in focus and send the "\
+"crosshair to its center (like :ref:`j<LC_j>`). "\
+"Use :ref:`alt+l<LC_Alt+l>` to center the cross hair in your viewer.:LR:\n" \
+"Note that an edge can be formed by a pair of identical nodes - think "\
+"matrix diagonal.:LR:\n"\
+"2- Nodes Forming Directed Edge/Cell: For a cell, this would its pair of "\
+"row and column indices into the matrix. For a graph, this would be the "\
+"indices of the :term:`nodes` forming the directed edge."  
    
 #define SUMA_SurfContHelp_NodeValTblr0 \
    "Data values at node in focus"
@@ -1081,7 +1083,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "Use this menu to select which column in the dataset (Dset) should be "   \
 "used for color Brightness (B) modulation.\n"   \
 "\n"   \
-"(B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.\n"  \
+"The (B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.\n"  \
 "\n"   \
 "Brightness modulation is controlled by ranges in the 'B' cells of the "\
 "table below.\n"   \
@@ -1104,6 +1106,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define SUMA_SurfContHelp_SelIntTgl \
    "View (ON)/Hide Dset node colors"
+
+#define SUMA_VolContHelp_SelIntTgl \
+   "View (ON)/Hide Dset voxel colors"
+
+#define SUMA_GraphContHelp_SelIntTgl \
+   "View (ON)/Hide Dset edge colors"
 
 #define SUMA_SurfContHelp_SelThrTgl \
    "Apply (ON)/Ignore thresholding"
@@ -1247,10 +1255,10 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define SUMA_SurfContHelp_Link \
 "Switch between methods for the automatic linking of I, T selectors.:LR:\n"   \
-"None: Do nothing.:LR:\n"   \
-"Same: Set the T selector to match the I selection.:LR:\n"  \
-"Stat: Swith T selector to match an I selection with \n"\
-"'    'an obvious statistic. Matching is based on labels.:LR:\n"\
+"  None: Do nothing.:LR:\n"   \
+"  Same: Set the T selector to match the I selection.:LR:\n"  \
+"  Stat: Switch T selector to match an I selection with \n"\
+":       :an obvious statistic. Matching is based on labels.:LR:\n"\
 "You can set your preference using environment variable\n"\
 "   SUMA_IxT_LinkMode\n"
 
@@ -1300,45 +1308,45 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "saved into a cmap file called\n"   \
    "cmap_test.1D.cmap"
 
-#define  SUMA_SurfContHelp_AbsThr   \
-   "Toggle Absolute thresholding.:LR:\n"   \
-   "OFF: Mask node color for\n"   \
-   ":   :nodes that have:  \n"   \
-   ":   :T(n) < Tscale:LR:\n"   \
-   "ON:  Mask node color for\n"   \
-   ":   :nodes that have:\n"   \
-   ":   :| T(n) | < Tscale\n"   \
-   "where::LR:\n"   \
-   "Tscale is the value set by the threshold scale.:LR:\n"   \
-   "T(n) is the node value in the selected threshold column (T).\n"   \
-   ":   :This value is seen in the second cell of the 'Value'\n"   \
-   ":   :table on the left side."  
+   #define  SUMA_SurfContHelp_AbsThr   \
+"Toggle Absolute thresholding.:LR:\n"   \
+"   OFF: Mask color for\n"   \
+":      ::term:`datum` (nodes, edges, voxels, etc.) that have::LR:\n"   \
+"      T(n) < Tscale:LR:\n"   \
+"   ON:  Mask color for\n"   \
+":      ::term:`datum` that have::LR:\n"   \
+"      | T(n) | < Tscale\n\n"   \
+"where::LR:\n"   \
+"     Tscale is the value set by the threshold scale.:LR:\n"   \
+"     T(n) is the :term:`datum` value in the selected threshold column (T).\n"  \
+":         :This value is seen in the second cell of the 'Value'\n"   \
+":         :table on the left side."  
 
 #define  SUMA_SurfContHelp_Isym   \
    "Toggle Intensity range symmetry "   \
-   "about 0. :LR:\n"   \
-   "ON : Intensity clipping range\n"   \
-   ":   :is forced to go from \n"   \
-   ":   :-val to val.\n"   \
-   ":   :This allows you to mimic\n"   \
-   ":   :AFNI's ranging mode.:LR:\n"   \
-   "OFF: Intensity clipping range\n"   \
-   ":   :can be set to your liking."
+   "about 0.:LR:\n"   \
+   "   ON : Intensity clipping range\n"   \
+   ":     :is forced to go from \n"   \
+   ":     :-val to val.\n"   \
+   ":     :This allows you to mimic\n"   \
+   ":     :AFNI's ranging mode.:LR:\n"   \
+   "  OFF: Intensity clipping range\n"   \
+   ":     :can be set to your liking."
 
 #define  SUMA_SurfContHelp_Shw0   \
    "Toggle color masking of nodes "   \
    "with intensity = 0 :LR:\n"   \
-   "ON : 0 intensities are mapped\n"   \
-   ":   :to the colormap as any\n"   \
-   ":   :other values.:LR:\n"   \
-   "OFF: 0 intensities are masked,\n"   \
-   ":   :a la AFNI"
+   "  ON : 0 intensities are mapped\n"   \
+   ":     :to the colormap as any\n"   \
+   ":     :other values.:LR:\n"   \
+   "  OFF: 0 intensities are masked,\n"   \
+   ":     :a la AFNI"
 
 #define  SUMA_SurfContHelp_RangeTbl_c0 \
-   "Full range of values in Dset."
+   "Full range of values in Dset"
            
 #define SUMA_SurfContHelp_RangeTbl_c1 \
-   "Minimum value in Dset column."
+   "Minimum value in Dset column"
 
 #define SUMA_SurfContHelp_RangeTbl_c2 \
    "Node index at minimum.\n"   \
@@ -1349,8 +1357,17 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "an entry in the 'Node' cell\n"   \
    "under Xhair Info block."  
 
+#define SUMA_GraphContHelp_RangeTbl_c2 \
+   "Edge index at minimum.\n"   \
+   "Right click in cell to\n"   \
+   "have crosshair jump to\n"   \
+   "edge's index.\n"   \
+   "Same as 'ctrl+j' or\n"   \
+   "an entry in the 'Edge' cell\n"   \
+   "under Xhair Info block."  
+
 #define SUMA_SurfContHelp_RangeTbl_c3 \
-   "Maximum value in Dset column."
+   "Maximum value in Dset column"
 
 #define SUMA_SurfContHelp_RangeTbl_c4  \
    "Node index at maximum.\n" \
@@ -1359,6 +1376,15 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "node's index.\n"   \
    "Same as 'ctrl+j' or\n"   \
    "an entry in the 'Node' cell\n"   \
+   "under Xhair Info block."
+
+#define SUMA_GraphContHelp_RangeTbl_c4  \
+   "Edge index at maximum.\n" \
+   "Right click in cell to\n" \
+   "have crosshair jump to\n" \
+   "edge's index.\n"   \
+   "Same as 'ctrl+j' or\n"   \
+   "an entry in the 'Edge' cell\n"   \
    "under Xhair Info block."
   
 #define SUMA_SurfContHelp_RangeTbl_r1  \
@@ -1507,10 +1533,10 @@ SUMA_SHPINX_BREAK \
 "   :figwidth: 30%\n\n"\
 "   Graph shown in 3D. Edges represented by straight lines.\n\n"\
 ".. figure:: media/Graph3D_Bundles.jpg\n"\
-"     :align: right\n"\
-"     :figwidth: 30%\n\n"\
-"     Graph shown in 3D. Edges represented by bundles derived from.\n"\
-"     tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.\n\n"\
+"   :align: right\n"\
+"   :figwidth: 30%\n\n"\
+"   Graph shown in 3D. Edges represented by bundles derived from.\n"\
+"   tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.\n\n"\
 SUMA_SHPINX_BREAK \
 "Figures were generated using :ref:`FATCAT_DEMO` output with::\n\n"\
 "   suma -vol mprage+orig. -gdset DTI/o.NETS_AND_000.niml.dset &\n\n"\
@@ -1547,11 +1573,15 @@ SUMA_SHPINX_BREAK \
    "Discovery Rate q-value will also be shown.:LR:\n"     \
    "* You can add FDR curves to a dataset with '3drefit -addFDR'.\n"   
    
-#define SUMA_SurfContHelp_ColorBar  \
-   "Colorbar used for colorizing values in 'I' sub-brick.\n"   \
-   "Colorization depends on the settings of ...\n"  \
-   "Use ctrl+h over the colorbar for help on manipulating the displayed\n"  \
-   "map.\n"    
+   #define SUMA_SurfContHelp_ColorBar  \
+"Colorbar used for colorizing values in 'I' sub-brick.\n"   \
+"Colorization depends on the settings under the "\
+":ref:`I<SurfCont->Dset_Mapping->I>`, :ref:`Range "\
+"Setting<SurfCont->Dset_Mapping->SetRangeTable.r01>`, among other things. "\
+"Threshold settings determine whether or not a certain value will get "\
+"displayed at all.:LR:\n"  \
+"Use ctrl+h over the colorbar for help on manipulating the displayed\n"  \
+"map.\n"    
    
 #define SUMA_SurfContHelp_ThrScale  \
    "Set threshold value to determine which nodes/voxels/edges will get colored"\
