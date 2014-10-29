@@ -3194,10 +3194,10 @@ char *SUMA_Sphinx_DeRef(char *s, char *r)
             /* move s till after closing quote */
             s = sef+1;
          } else {
-            SUMA_S_Warn("No closing forward quote after ref!");
+            SUMA_S_Warn("No closing forward quote after ref! in %s", so);
          }
       } else {
-         SUMA_S_Warn("No forward quote after ref!");
+         SUMA_S_Warn("No forward quote after ref! in %s", so);
       }
       ss=strstr(s, r);
    }

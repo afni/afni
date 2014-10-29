@@ -172,6 +172,7 @@ mixing modes.
 
 
 Choose the line drawing style.
+
    Digits specify number of pixels to mask out of each 16 pixels
 
    1 :   One pixel/16 off, almost solid
@@ -207,7 +208,8 @@ Clicking on Masks after the initialization brings up the :ref:`Mask Controller<M
 **Hde**: Choose how masked tracts are displayed.
 
 
-That's not the name of the button, but its default value. This menu controls how tracts that fall outside of the masks are displayed
+That's not the name of the button, but its default value. This menu controls how tracts that fall outside of the masks are displayed:
+
    Hde:   Hide 'em masked tracts
 
    Gry:   Gray 'em masked tracts (gray color set by :ref:`Gry<TractCont->Coloring_Controls->Gry>` arrow field)

@@ -118,7 +118,7 @@ Glossary
    **e3**
       The eigenvectors of a DT (usually written with subscripts,
       :math:`\mathbf{e}_1, \mathbf{e}_2, \mathbf{e}_3`) with
-      :math:`\mathbf{e}_i` associated with the *i*th eigenvalue,
+      :math:`\mathbf{e}_i` associated with the *i*\ th eigenvalue,
       :math:`\lambda_i`.  These are mutually orthogonal (i.e.,
       perpendicular) and typically of unit magnitude. Geometrically
       they provide the orientation of the DT.
@@ -202,6 +202,19 @@ Glossary
    point
    points
       Building element of tracts. 
+   
+   node
+   nodes
+      For a *surface object*, a node is one of the elements in the point cloud over which surface data values are defined. A node has an :term:`RAI` coordinate and a set of first order neighboring nodes with which it is connected.
+      
+      For a *graph object*, a node is one of the connected graph regions, however unlike nodes on the surface, a graph node does not carry data. On graphs (connectivity matrices), data are defined over the edges, including the edge connecting a node to itself. You can also think of a node as being a row or column of the connectivity matrix.
+   
+   cell   
+   edge
+   edges
+      For a *surface object*, an edge exists wherever two nodes are first order neighbors of one another. In the majority of surfaces used, nodes are connected as to form a triangular mesh. Edges of a surface object do not have data defined over them.
+      
+      For a *graph object*, an edge connects two regions (nodes) of the graph. Unlike for surface objects, edges here do carry the data. An edge on a graph is the same as a cell in the connectivity matrix. 
        
    sub-brick
    sub-bricks
@@ -210,8 +223,9 @@ Glossary
    Dataset column
       Dataset in AFNI & SUMA land are loosely described as a collection of N values for each datum (voxel, node, point, graph edge, etc.). To take volumes as an example, each of these N values forms a sub-brick. A single anatomical volume such as a T1 weighted image has one value per voxel or one sub-brick. A dataset output by a statistical program will almost always have multiple sub-brick. A simple t-test for instance will produce a dataset of two sub-bricks one containing the effect size (e.g. contrast) and another containing the T statistic. The same goes for surface-based datasets, graph datasets, etc. For wonders of sub-brick selection see the output of suma -help, section "Selecting subsets of a dataset".
    
+   data
    datum
-      A data carrying element. For the various types of data carrying/defining objects handled in suma, the elementary datum is the following:
+      In the documentation, this refers to a value carrying element(s), or  the value itself. For the various types of data carrying/defining objects handled in suma, the elementary datum is the following:
       
       ========   =================
       Object     Elementary Datum
@@ -248,6 +262,6 @@ Glossary
       A text file setting the specifications for a family of surfaces, including the relationships between them. The spec file is usually created automatically by the likes of *@SUMA_Make_Spec_FS*, or with *quickspec*.
       
    State
-      For surfaces, state is shorthand for the deformation state. For instance,  lh.pial.gii and lh.inflated.gii surfaces are of two states, pial, and inflated, respectively. You can change the default state names by editing the :term:`spec file` manually. Surfaces of the same state are displayed together, otherwise you can switch between states with :ref:`,<LC_,>`, :ref:`.<LC_.>`, or :ref:`SPACE`. Some states are anatomically correct, like pial, and white. Some such as sphere or inflated are not.
+      For surfaces, state is shorthand for the deformation state. For instance,  lh.pial.gii and lh.inflated.gii surfaces are of two states, pial, and inflated, respectively. You can change the default state names by editing the :term:`spec file` manually. Surfaces of the same state are displayed together, otherwise you can switch between states with :ref:`,<LC_,>`, :ref:`.<LC_.>`, or :ref:`SPACE<SPACE>`. Some states are anatomically correct, like pial, and white. Some such as sphere or inflated are not.
       
       For the remaining objects, the previous definition of state no longer applies, but it is still used as a label for grouping what gets displayed together. For instance, a volume is internally labeled as having *ANY_ANATOMICAL* as its state, which is codestate to disply it along with any visualization state that is anatomically correct. This way, volumes are displayed whether you're looking at the pial surfaces or the smoothed white matter surfaces. The same goes for graphs that are displayed in 3D, however graphs are also displayed in matrix form which has its own state and is displayed without anatomically correct objects with it.

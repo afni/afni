@@ -53,12 +53,12 @@ cross hair in your viewer.
 **Edge**: 1- Edge index, 2- Nodes forming (directed) edge
 
 
-1- Edge/Cell Index:  Get/Set index of edge/cell in focus on this controller's graph. This number is the :term:`1D index` of the edge/cell in the graph/matrix. Consider it the equivalent of a voxel 1D index in a volume, or a node in a surface dataset. 
+1- Edge/Cell Index:  Get/Set index of :term:`edge`/:term:`cell` in focus on this controller's graph. This number is the :term:`1D index` of the edge/cell in the graph/matrix. Consider it the equivalent of a voxel 1D index in a volume, or a node in a surface dataset. 
 Entering a new edge's index will put that edge  in focus and send the crosshair to its center (like :ref:`j<LC_j>`). Use :ref:`alt+l<LC_Alt+l>` to center the cross hair in your viewer.
 
 Note that an edge can be formed by a pair of identical nodes - think matrix diagonal.
 
-2- Nodes Forming Directed Edge/Cell: For a cell, this would its pair of row and column indices into the matrix. For a graph, this would be the indices of the nodes forming the directed edge.
+2- Nodes Forming Directed Edge/Cell: For a cell, this would its pair of row and column indices into the matrix. For a graph, this would be the indices of the :term:`nodes` forming the directed edge.
 
    .. _GraphCont->Xhair_Info->Node.r00:
 
@@ -125,11 +125,11 @@ the moment, only 3dProbTrackID creates such data.
    Graph shown in 3D. Edges represented by straight lines.
 
 .. figure:: media/Graph3D_Bundles.jpg
-     :align: left
-     :figwidth: 30%
+   :align: right
+   :figwidth: 30%
 
-     Graph shown in 3D. Edges represented by bundles derived from.
-     tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.
+   Graph shown in 3D. Edges represented by bundles derived from.
+   tractography with 3dTrackID. See :ref:`FATCAT_DEMO` for details.
 
 .. container:: clearer
 
@@ -138,6 +138,7 @@ the moment, only 3dProbTrackID creates such data.
    .. Preceding block is a trick to keep upcoming text from wrapping around the figures.
 
 Figures were generated using :ref:`FATCAT_DEMO` output with::
+
    suma -vol mprage+orig. -gdset DTI/o.NETS_AND_000.niml.dset &
 
 
@@ -153,7 +154,8 @@ Selection is identical to when edges are represented by straight lines.
 **CN**: How to display connection to selected graph node.
 
 
-When a node, rather than an edge is selected, choose how connections to it are displayed.
+When a node, rather than an edge is :ref:`selected<Selecting_Objects>`, choose how connections to it are displayed.
+
    Edg: Show connections to selected node with edges, either straight lines or with bundles.
 
    Col: Show connections to selected node by changing the colors of the connecting nodes, based on edge value. Edges are not displayed. the idea here is to reduce the clutter of the display, while still allowing you to visualize connection strength to one node at a time.
@@ -171,10 +173,11 @@ When a node, rather than an edge is selected, choose how connections to it are d
 **Rd**: Choose the sizing option for graph nodes.
 
 
-Choose the radius sizing for nodes of this dataset.
+Choose the radius sizing for nodes of this graph dataset.
+
    Const: All nodes have a radius of 1 x Gain.
 
-   Val: Nodes size equals its dset value x Gain
+   Val: Nodes size equals its dset value x Gain. A node's dsetvalue is that of the edge connecting the node to itself
 
    XXX: Show no balls.
 
@@ -196,7 +199,8 @@ or data derived.
 **Br**: Choose the partition ratio of matrix.
 
 
-Choose the partition ratio of the matrix border.
+Choose the partition ratio of the matrix border. This option only applies to the matrix display of the graph.
+
    XX: No partition.
 
    5: Border is 1/5 of cell width.
@@ -217,6 +221,7 @@ Choose the partition ratio of the matrix border.
 
 
 Choose the font size for labels of nodes.
+
    8: 8x13.
 
    9: 9x15.
@@ -241,6 +246,7 @@ Choose the font size for labels of nodes.
 
 
 Choose the colorization method for nodes of this dataset.
+
    White: Alle weiss.
 
    Black: Tutti nero.
@@ -261,10 +267,11 @@ Choose the colorization method for nodes of this dataset.
 
    .. _GraphCont->GDset_Controls->Sh:
 
-**Sh**: Choose the partition ratio of matrix.
+**Sh**: Choose the shading options for node labels.
 
 
 Choose the variants for how labels are handled.
+
    T : Text shown unless more than 50% occluded.
 
    Ts: Foreground text bright, occluded text shaded
@@ -281,7 +288,7 @@ Choose the variants for how labels are handled.
 
    .. _GraphCont->GDset_Controls->U:
 
-**U**: Show Unconnected Graph Points.
+**U**: Show Unconnected graph nodes.
 
 
 Show graph nodes even if unconnected to other nodes.
@@ -292,10 +299,11 @@ Show graph nodes even if unconnected to other nodes.
 **Th**: Choose the thickness option for graph edges.
 
 
-Choose the thickness sizing for edges of this graph dataset.
+Choose the thickness for edges of this graph dataset.
+
    Const: All nodes have a radius of 1 x Gain.
 
-   Val: Nodes size equals its dset value x Gain
+   Val: Edge size equals its dset value x Gain
 
 
 
@@ -316,6 +324,7 @@ or data derived.
 
 
 Choose the stippling for edges of this graph dataset.
+
    1 :   One pixel/16 off, almost solid
 
    ...
@@ -341,12 +350,11 @@ Control mapping of edge/cell values to color map:
 
 Switch between methods for the automatic linking of I, T selectors.
 
-None: Do nothing.
+  None: Do nothing.
 
-Same: Set the T selector to match the I selection.
+  Same: Set the T selector to match the I selection.
 
-Stat: Swith T selector to match an I selection with 
-'    'an obvious statistic. Matching is based on labels.
+  Stat: Switch T selector to match an I selection with  an obvious statistic. Matching is based on labels.
 
 You can set your preference using environment variable
    SUMA_IxT_LinkMode
@@ -374,7 +382,7 @@ The style of this selector can also change depending on the numberof sub-bricks 
 **v**: View (ON)/Hide graph edge colors
 
 
-View (ON)/Hide Dset node colors
+View (ON)/Hide Dset edge colors
 
    .. _GraphCont->GDset_Mapping->T:
 
@@ -417,7 +425,7 @@ The style of this selector can also change depending on the numberof sub-bricks 
 
 Use this menu to select which column in the dataset (Dset) should be used for color Brightness (B) modulation.
 
-(B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.
+The (B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.
 
 Brightness modulation is controlled by ranges in the 'B' cells of the table below.
 
@@ -456,7 +464,8 @@ For percentile thresholding, append a '%' to the value, such as 25%
 
 
 Colorbar used for colorizing values in 'I' sub-brick.
-Colorization depends on the settings of ...
+Colorization depends on the settings under the :ref:`I<SurfCont->Dset_Mapping->I>`, :ref:`Range Setting<SurfCont->Dset_Mapping->SetRangeTable.r01>`, among other things. Threshold settings determine whether or not a certain value will get displayed at all.
+
 Use ctrl+h over the colorbar for help on manipulating the displayed
 map.
 
@@ -610,26 +619,30 @@ cmap_test.1D.cmap
 
 Toggle Absolute thresholding.
 
-OFF: Mask node color for nodes that have:   T(n) < Tscale
+   OFF: Mask color for :term:`datum` (nodes, edges, voxels, etc.) that have:
 
-ON:  Mask node color for nodes that have:
-| T(n) | < Tscale
+      T(n) < Tscale
+
+   ON:  Mask color for :term:`datum` that have:
+
+      | T(n) | < Tscale
+
 where:
 
-Tscale is the value set by the threshold scale.
+     Tscale is the value set by the threshold scale.
 
-T(n) is the node value in the selected threshold column (T). This value is seen in the second cell of the 'Value' table on the left side.
+     T(n) is the :term:`datum` value in the selected threshold column (T). This value is seen in the second cell of the 'Value' table on the left side.
 
    .. _GraphCont->GDset_Mapping->sym_I:
 
 **sym_I**: Intensity range symmetry about 0 
 
 
-Toggle Intensity range symmetry about 0. 
+Toggle Intensity range symmetry about 0.
 
-ON : Intensity clipping range is forced to go from  -val to val. This allows you to mimic AFNI's ranging mode.
+   ON : Intensity clipping range is forced to go from  -val to val. This allows you to mimic AFNI's ranging mode.
 
-OFF: Intensity clipping range can be set to your liking.
+  OFF: Intensity clipping range can be set to your liking.
 
    .. _GraphCont->GDset_Mapping->shw_0:
 
@@ -638,16 +651,15 @@ OFF: Intensity clipping range can be set to your liking.
 
 Toggle color masking of nodes with intensity = 0 
 
-ON : 0 intensities are mapped to the colormap as any other values.
+  ON : 0 intensities are mapped to the colormap as any other values.
 
-OFF: 0 intensities are masked, a la AFNI
+  OFF: 0 intensities are masked, a la AFNI
 
    .. _GraphCont->GDset_Mapping->RangeTable.c00:
 
-**RangeTable.c00**: Full range in Dset
+**RangeTable.c00**: Full range of values in Dset
 
 
-Full range of values in Dset.
 
    .. _GraphCont->GDset_Mapping->RangeTable.r01:
 
@@ -672,19 +684,18 @@ Full range of values in Dset.
 **RangeTable.c01**: Minimum value in Dset column
 
 
-Minimum value in Dset column.
 
    .. _GraphCont->GDset_Mapping->RangeTable.c02:
 
 **RangeTable.c02**: Edge index at minimum
 
 
-Node index at minimum.
+Edge index at minimum.
 Right click in cell to
 have crosshair jump to
-node's index.
+edge's index.
 Same as 'ctrl+j' or
-an entry in the 'Node' cell
+an entry in the 'Edge' cell
 under Xhair Info block.
 
    .. _GraphCont->GDset_Mapping->RangeTable.c03:
@@ -692,18 +703,17 @@ under Xhair Info block.
 **RangeTable.c03**: Maximum value in Dset column
 
 
-Maximum value in Dset column.
 
    .. _GraphCont->GDset_Mapping->RangeTable.c04:
 
 **RangeTable.c04**: Edge index at maximum
 
 
-Node index at maximum.
+Edge index at maximum.
 Right click in cell to
 have crosshair jump to
-node's index.
+edge's index.
 Same as 'ctrl+j' or
-an entry in the 'Node' cell
+an entry in the 'Edge' cell
 under Xhair Info block.
 

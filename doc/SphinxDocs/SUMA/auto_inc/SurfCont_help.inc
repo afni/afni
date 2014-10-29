@@ -200,6 +200,7 @@ When in doubt, just press the button and see what happens.
 
 
 Choose the viewing mode for this dataset.
+
    Col: Colours, only.
 
    Con: Contours (slower), only.
@@ -309,12 +310,11 @@ Dset Color Mapping:
 
 Switch between methods for the automatic linking of I, T selectors.
 
-None: Do nothing.
+  None: Do nothing.
 
-Same: Set the T selector to match the I selection.
+  Same: Set the T selector to match the I selection.
 
-Stat: Swith T selector to match an I selection with 
-'    'an obvious statistic. Matching is based on labels.
+  Stat: Switch T selector to match an I selection with  an obvious statistic. Matching is based on labels.
 
 You can set your preference using environment variable
    SUMA_IxT_LinkMode
@@ -384,7 +384,7 @@ The style of this selector can also change depending on the numberof sub-bricks 
 
 Use this menu to select which column in the dataset (Dset) should be used for color Brightness (B) modulation.
 
-(B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.
+The (B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.
 
 Brightness modulation is controlled by ranges in the 'B' cells of the table below.
 
@@ -423,7 +423,8 @@ For percentile thresholding, append a '%' to the value, such as 25%
 
 
 Colorbar used for colorizing values in 'I' sub-brick.
-Colorization depends on the settings of ...
+Colorization depends on the settings under the :ref:`I<SurfCont->Dset_Mapping->I>`, :ref:`Range Setting<SurfCont->Dset_Mapping->SetRangeTable.r01>`, among other things. Threshold settings determine whether or not a certain value will get displayed at all.
+
 Use ctrl+h over the colorbar for help on manipulating the displayed
 map.
 
@@ -602,26 +603,30 @@ cmap_test.1D.cmap
 
 Toggle Absolute thresholding.
 
-OFF: Mask node color for nodes that have:   T(n) < Tscale
+   OFF: Mask color for :term:`datum` (nodes, edges, voxels, etc.) that have:
 
-ON:  Mask node color for nodes that have:
-| T(n) | < Tscale
+      T(n) < Tscale
+
+   ON:  Mask color for :term:`datum` that have:
+
+      | T(n) | < Tscale
+
 where:
 
-Tscale is the value set by the threshold scale.
+     Tscale is the value set by the threshold scale.
 
-T(n) is the node value in the selected threshold column (T). This value is seen in the second cell of the 'Value' table on the left side.
+     T(n) is the :term:`datum` value in the selected threshold column (T). This value is seen in the second cell of the 'Value' table on the left side.
 
    .. _SurfCont->Dset_Mapping->sym_I:
 
 **sym_I**: Intensity range symmetry about 0 
 
 
-Toggle Intensity range symmetry about 0. 
+Toggle Intensity range symmetry about 0.
 
-ON : Intensity clipping range is forced to go from  -val to val. This allows you to mimic AFNI's ranging mode.
+   ON : Intensity clipping range is forced to go from  -val to val. This allows you to mimic AFNI's ranging mode.
 
-OFF: Intensity clipping range can be set to your liking.
+  OFF: Intensity clipping range can be set to your liking.
 
    .. _SurfCont->Dset_Mapping->shw_0:
 
@@ -630,9 +635,9 @@ OFF: Intensity clipping range can be set to your liking.
 
 Toggle color masking of nodes with intensity = 0 
 
-ON : 0 intensities are mapped to the colormap as any other values.
+  ON : 0 intensities are mapped to the colormap as any other values.
 
-OFF: 0 intensities are masked, a la AFNI
+  OFF: 0 intensities are masked, a la AFNI
 
    .. _SurfCont->Dset_Mapping->Clst.c00:
 
@@ -655,10 +660,9 @@ the program SurfClust
 
    .. _SurfCont->Dset_Mapping->RangeTable.c00:
 
-**RangeTable.c00**: Full range in Dset
+**RangeTable.c00**: Full range of values in Dset
 
 
-Full range of values in Dset.
 
    .. _SurfCont->Dset_Mapping->RangeTable.r01:
 
@@ -683,7 +687,6 @@ Full range of values in Dset.
 **RangeTable.c01**: Minimum value in Dset column
 
 
-Minimum value in Dset column.
 
    .. _SurfCont->Dset_Mapping->RangeTable.c02:
 
@@ -703,7 +706,6 @@ under Xhair Info block.
 **RangeTable.c03**: Maximum value in Dset column
 
 
-Maximum value in Dset column.
 
    .. _SurfCont->Dset_Mapping->RangeTable.c04:
 

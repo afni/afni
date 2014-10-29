@@ -89,53 +89,8 @@ Set up which and how many slices are displayed:
 ===============================================
 
 
-   .. _VolCont->Ax_slc->lab:
-
-**lab**: Select axial slice(s) to render (use BHelp for details)
 
 
-Select axial slice(s) to render.
-If the dataset is oblique, that would be the slice that is closest
-to the axial plane.
-Move slider bar or enter slice number directly in adjoining field.
-To show a stack of axial slices set the second text field to N:S
-where N is the number of slices in the stack and S is the spacing
-in number of slices between consecutive slices. The stack is centered
-on the chosen slice number. So when N > 1 and even, the 'selected' slice
-is not rendered. In that case, set N to the next odd number to see it.
-To hide/show all displayed axial slices, use right-side toggle button.
-
-   .. _VolCont->Sa_slc->lab:
-
-**lab**: Select sagittal slice(s) to render (use BHelp for details)
-
-
-Select sagittal slice(s) to render.
-If the dataset is oblique, that would be the slice that is closest
-to the sagittal plane.
-Move slider bar or enter slice number directly in adjoining field.
-To show a stack of sagittal slices set the second text field to N:S
-where N is the number of slices in the stack and S is the spacing
-in number of slices between consecutive slices. The stack is centered
-on the chosen slice number. So when N > 1 and even, the 'selected' slice
-is not rendered. In that case, set N to the next odd number to see it.
-To hide/show all displayed sagittal slices, use right-side toggle button.
-
-   .. _VolCont->Co_slc->lab:
-
-**lab**: Select coronal slice(s) to render (use BHelp for details)
-
-
-Select coronal slice(s) to render.
-If the dataset is oblique, that would be the slice that is closest
-to the coronal plane.
-Move slider bar or enter slice number directly in adjoining field.
-To show a stack of coronal slices set the second text field to N:S
-where N is the number of slices in the stack and S is the spacing
-in number of slices between consecutive slices. The stack is centered
-on the chosen slice number. So when N > 1 and even, the 'selected' slice
-is not rendered. In that case, set N to the next odd number to see it.
-To hide/show all displayed coronal slices, use right-side toggle button.
 
    .. _VolCont->Slice_Controls->Trn:
 
@@ -220,6 +175,7 @@ When in doubt, just press the button and see what happens.
 
 
 Choose the method for assigning an alpha value (A) to a voxel's color.
+
    Avg :  A = average of R, G, B values
 
    Max :  A = maximum of R, G, B values
@@ -269,12 +225,11 @@ Dset Color Mapping:
 
 Switch between methods for the automatic linking of I, T selectors.
 
-None: Do nothing.
+  None: Do nothing.
 
-Same: Set the T selector to match the I selection.
+  Same: Set the T selector to match the I selection.
 
-Stat: Swith T selector to match an I selection with 
-'    'an obvious statistic. Matching is based on labels.
+  Stat: Switch T selector to match an I selection with  an obvious statistic. Matching is based on labels.
 
 You can set your preference using environment variable
    SUMA_IxT_LinkMode
@@ -302,7 +257,7 @@ The style of this selector can also change depending on the numberof sub-bricks 
 **v**: View (ON)/Hide volume voxel colors
 
 
-View (ON)/Hide Dset node colors
+View (ON)/Hide Dset voxel colors
 
    .. _VolCont->Dset_Mapping->T:
 
@@ -345,7 +300,7 @@ The style of this selector can also change depending on the numberof sub-bricks 
 
 Use this menu to select which column in the dataset (Dset) should be used for color Brightness (B) modulation.
 
-(B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.
+The (B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.
 
 Brightness modulation is controlled by ranges in the 'B' cells of the table below.
 
@@ -384,7 +339,8 @@ For percentile thresholding, append a '%' to the value, such as 25%
 
 
 Colorbar used for colorizing values in 'I' sub-brick.
-Colorization depends on the settings of ...
+Colorization depends on the settings under the :ref:`I<SurfCont->Dset_Mapping->I>`, :ref:`Range Setting<SurfCont->Dset_Mapping->SetRangeTable.r01>`, among other things. Threshold settings determine whether or not a certain value will get displayed at all.
+
 Use ctrl+h over the colorbar for help on manipulating the displayed
 map.
 
@@ -538,26 +494,30 @@ cmap_test.1D.cmap
 
 Toggle Absolute thresholding.
 
-OFF: Mask node color for nodes that have:   T(n) < Tscale
+   OFF: Mask color for :term:`datum` (nodes, edges, voxels, etc.) that have:
 
-ON:  Mask node color for nodes that have:
-| T(n) | < Tscale
+      T(n) < Tscale
+
+   ON:  Mask color for :term:`datum` that have:
+
+      | T(n) | < Tscale
+
 where:
 
-Tscale is the value set by the threshold scale.
+     Tscale is the value set by the threshold scale.
 
-T(n) is the node value in the selected threshold column (T). This value is seen in the second cell of the 'Value' table on the left side.
+     T(n) is the :term:`datum` value in the selected threshold column (T). This value is seen in the second cell of the 'Value' table on the left side.
 
    .. _VolCont->Dset_Mapping->sym_I:
 
 **sym_I**: Intensity range symmetry about 0 
 
 
-Toggle Intensity range symmetry about 0. 
+Toggle Intensity range symmetry about 0.
 
-ON : Intensity clipping range is forced to go from  -val to val. This allows you to mimic AFNI's ranging mode.
+   ON : Intensity clipping range is forced to go from  -val to val. This allows you to mimic AFNI's ranging mode.
 
-OFF: Intensity clipping range can be set to your liking.
+  OFF: Intensity clipping range can be set to your liking.
 
    .. _VolCont->Dset_Mapping->shw_0:
 
@@ -566,16 +526,15 @@ OFF: Intensity clipping range can be set to your liking.
 
 Toggle color masking of nodes with intensity = 0 
 
-ON : 0 intensities are mapped to the colormap as any other values.
+  ON : 0 intensities are mapped to the colormap as any other values.
 
-OFF: 0 intensities are masked, a la AFNI
+  OFF: 0 intensities are masked, a la AFNI
 
    .. _VolCont->Dset_Mapping->RangeTable.c00:
 
-**RangeTable.c00**: Full range in Dset
+**RangeTable.c00**: Full range of values in Dset
 
 
-Full range of values in Dset.
 
    .. _VolCont->Dset_Mapping->RangeTable.r01:
 
@@ -600,7 +559,6 @@ Full range of values in Dset.
 **RangeTable.c01**: Minimum value in Dset column
 
 
-Minimum value in Dset column.
 
    .. _VolCont->Dset_Mapping->RangeTable.c02:
 
@@ -620,7 +578,6 @@ under Xhair Info block.
 **RangeTable.c03**: Maximum value in Dset column
 
 
-Maximum value in Dset column.
 
    .. _VolCont->Dset_Mapping->RangeTable.c04:
 

@@ -8996,7 +8996,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                 "Sh", '\0', YUP, DsetTxtShad_Menu,
                 (void *)SUMA_SurfCont_GetcurDOp(SurfCont), 
                 "GraphCont->GDset_Controls->Sh",
-                "Choose the partition ratio of matrix.",
+                "Choose the shading options for node labels.",
                 SUMA_SurfContHelp_DsetTxtShad, 
                 SurfCont->DsetTxtShadMenu );
       XtManageChild (SurfCont->DsetTxtShadMenu->mw[SW_SurfCont_DsetTxtShad]);
@@ -9011,7 +9011,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
                      SUMA_cb_GDSET_ShowUncon_toggled, ado);
       SUMA_Register_Widget_Help(SurfCont->GDSET_ShowUncon_tb , 
                         "GraphCont->GDset_Controls->U",
-                        "Show Unconnected Graph Points.",
+                        "Show Unconnected graph nodes.",
                         SUMA_SurfContHelp_GDSET_ViewUncon) ;            
       SUMA_SET_SELECT_COLOR(SurfCont->GDSET_ShowUncon_tb);
            

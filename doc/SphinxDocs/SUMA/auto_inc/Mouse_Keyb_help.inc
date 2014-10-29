@@ -592,8 +592,9 @@ Keyboard Controls:
      Viewing angle is reset only when switching to
      a state with flat surfaces.
 
-     See :term:`state` for more on the meaning of states for different object types. 
-       
+     See :term:`state` for more on the meaning of states for different object types.
+
+   
 .. _SPACE:
 
 :kbd:`SPACE`: Toggle between Mapping Reference and Current view state. Viewing angle is reset only when switching to a state with flat surfaces.
@@ -1691,5 +1692,5 @@ Choose from YES or NO
 Current Version Info:
 
 Compile Date:
-   Oct 27 2014
+   Oct 29 2014
 
