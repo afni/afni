@@ -9,7 +9,7 @@ Walnut Brain:
 Prying Brains Apart:
 --------------------
 
-Cortical surfaces can obsucre structures within the cortex such as tracts or surface renderings of subcortical regions. To improve visualization, you can render the surfaces transparent, e.g. :ref:`o <LC_o>`, but you still can't select through a transparent surface. One solution is to pry the hemispheres apart. For this to work, you will need to have both hemisphere loaded into SUMA. You can try the following, assuming you have the :ref:`MNI_N27` surfaces installed::
+Cortical surfaces can obscure structures within the cortex such as tracts or surface renderings of subcortical regions. To improve visualization, you can render the surfaces transparent, e.g. :ref:`o <LC_o>`, but you still can't select through a transparent surface. One solution is to pry the hemispheres apart. For this to work, you will need to have both hemisphere loaded into SUMA. You can try the following, assuming you have the :ref:`MNI_N27` surfaces installed::
 
    suma -spec MNI_N27 &
    
