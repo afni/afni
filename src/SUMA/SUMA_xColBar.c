@@ -4023,6 +4023,7 @@ void SUMA_CreateSliceFields(  Widget parent,
    if (!parent) { SUMA_SL_Err("NULL parent"); SUMA_RETURNe; }
    if (!ado) { SUMA_S_Err("NULL ado"); SUMA_RETURNe; }
    if (!(VSaux = SUMA_ADO_VSaux(ado))) { SUMA_S_Err("No VSaux"); SUMA_RETURNe; }
+   if (!tit) tit = var;
    
    if (LocalHead) {
       SUMA_S_Warn("Are NewValueCallback and its data needed at all?");
@@ -4078,14 +4079,14 @@ void SUMA_CreateSliceFields(  Widget parent,
       XmNmarginHeight, 0,
       XmNmarginWidth, 0,
       NULL);
-               
-   SUMA_LH("Widgets, var %s, slice num = %d, Nslc = %d", 
-            var, (int)SF->slice_num, SF->Nslc);
+   
+   SUMA_LH("Widgets, var %s, tit %s, slice num = %d, Nslc = %d, wname = %s", 
+            var, tit, (int)SF->slice_num, SF->Nslc, SF->wname);
    SF->lab = XtVaCreateManagedWidget(tit, xmLabelWidgetClass, SF->rc, 
                            XmNfontList, SUMAg_CF->X->TableTextFontList, 
                                      NULL);
    if (hint || help) {
-      snprintf(wname,63, "%s->lab", SF->wname);
+      snprintf(wname,63, "%s->%s", SF->wname, tit);
       SUMA_Register_Widget_Help( SF->lab, wname, hint, help);
    }
    mult = ((int)(SF->Nslc/20.0)/5)*5; if (mult < 1) mult = 1;
@@ -4130,7 +4131,7 @@ void SUMA_CreateSliceFields(  Widget parent,
                   SUMAg_CF->X->TableTextFontList, NULL);
 
    if (hint || help) {
-      snprintf(wname, 63, "%s->text", SF->wname);
+      snprintf(wname, 63, "%s->%s_text", SF->wname, tit);
       SUMA_Register_Widget_Help( SF->text, wname, hint, help);
    }
    XtVaSetValues(SF->text, XmNcolumns, 3, NULL); 
@@ -6876,7 +6877,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
    
    if (1){ /* The Range values block*/
       char *col_tit[]=  {  " ", "Min", "Node", "Max", "Node", NULL};
-      char *col_hint[]= {  "Full range in Dset", 
+      char *col_hint[]= {  "Full range of values in Dset", 
                            "Minimum value in Dset column", 
                            "Node index at minimum", 
                            "Maximum value in Dset column", 
@@ -6887,7 +6888,7 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            SUMA_SurfContHelp_RangeTbl_c3, 
                            SUMA_SurfContHelp_RangeTbl_c4, NULL};
       char *row_tit[]=  {  " ", "I", "T", "B", NULL};
-      char *row_hint[]= {  "Full range in Dset", 
+      char *row_hint[]= {  "Full range of values in Dset", 
                            "Range of values in intensity (I) column", 
                            "Range of values in threshold (T) column", 
                            "Range of values in brightness (B) column", NULL};
@@ -7150,7 +7151,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
             SUMA_Register_Widget_Help(SurfCont->Int_tb,
                               "VolCont->Dset_Mapping->I->v",
                               "View (ON)/Hide volume voxel colors",
-                              SUMA_SurfContHelp_SelIntTgl);
+                              SUMA_VolContHelp_SelIntTgl);
 
             SUMA_SET_SELECT_COLOR(SurfCont->Int_tb);
          } 
@@ -7502,7 +7503,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
    
    { /* The Range values block*/
       char *col_tit[]=  {  " ", "Min", "Vox", "Max", "Vox", NULL};
-      char *col_hint[]= {  "Full range in Dset", 
+      char *col_hint[]= {  "Full range of values in Dset", 
                            "Minimum value in Dset column", 
                            "Node index at minimum", 
                            "Maximum value in Dset column", 
@@ -7513,7 +7514,7 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            SUMA_SurfContHelp_RangeTbl_c3, 
                            SUMA_SurfContHelp_RangeTbl_c4, NULL};
       char *row_tit[]=  {  " ", "I", "T", "B", NULL};
-      char *row_hint[]= {  "Full range in Dset", 
+      char *row_hint[]= {  "Full range of values in Dset", 
                            "Range of values in intensity (I) column", 
                            "Range of values in threshold (T) column", 
                            "Range of values in brightness (B) column", NULL};
@@ -7777,7 +7778,7 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
             SUMA_Register_Widget_Help(SurfCont->Int_tb, 
                               "GraphCont->GDset_Mapping->I->v",
                               "View (ON)/Hide graph edge colors",
-                              SUMA_SurfContHelp_SelIntTgl);
+                              SUMA_GraphContHelp_SelIntTgl);
             SUMA_SET_SELECT_COLOR(SurfCont->Int_tb);
          } 
          XmToggleButtonSetState (SurfCont->Int_tb,      
@@ -8060,18 +8061,18 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
    
    if (1){ /* The Range values block*/
       char *col_tit[]=  {  " ", "Min", "Edge", "Max", "Edge", NULL};
-      char *col_hint[]= {  "Full range in Dset", 
+      char *col_hint[]= {  "Full range of values in Dset", 
                            "Minimum value in Dset column", 
                            "Edge index at minimum", 
                            "Maximum value in Dset column", 
                            "Edge index at maximum", NULL};
       char *col_help[]= {  SUMA_SurfContHelp_RangeTbl_c0, 
                            SUMA_SurfContHelp_RangeTbl_c1,
-                           SUMA_SurfContHelp_RangeTbl_c2, 
+                           SUMA_GraphContHelp_RangeTbl_c2, 
                            SUMA_SurfContHelp_RangeTbl_c3, 
-                           SUMA_SurfContHelp_RangeTbl_c4, NULL};
+                           SUMA_GraphContHelp_RangeTbl_c4, NULL};
       char *row_tit[]=  {  " ", "I", "T", "B", NULL};
-      char *row_hint[]= {  "Full range in Dset", 
+      char *row_hint[]= {  "Full range of values in Dset", 
                            "Range of values in intensity (I) column", 
                            "Range of values in threshold (T) column", 
                            "Range of values in brightness (B) column", NULL};
