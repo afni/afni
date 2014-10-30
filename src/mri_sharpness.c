@@ -55,10 +55,16 @@ MRI_IMAGE * mri_sharpness( MRI_IMAGE *inim )
    innim = mri_to_float(inim) ;
    innar = MRI_FLOAT_PTR(innim) ; nx = innim->nx ; ny = innim->ny ;
 
-   outim = mri_new_conforming( innim , MRI_float ) ;
+   outim = mri_new_conforming( innim , MRI_float ) ; /* all zero */
    outar = MRI_FLOAT_PTR(outim) ;
 
-   qvv = 0.07f * mri_maxabs(innim) ;
+   { float *qar = (float *)malloc(sizeof(float)*nx*ny) ; int nq=0 ;
+     for( ii=0 ; ii < nx*ny ; ii++ )
+       if( innar[ii] != 0.0f ) qar[nq++] = fabsf(innar[ii]) ;
+     if( nq < 32 ) qvv = 0.0f ;
+     else          qvv = 0.18f * qmed_float(nq,qar) ;
+     free(qar) ;
+   }
    if( qvv == 0.0f ){ mri_free(innim) ; return outim ; }  /* input is all 0! */
 
    for( jj=0 ; jj < ny ; jj++ ){
@@ -71,9 +77,9 @@ MRI_IMAGE * mri_sharpness( MRI_IMAGE *inim )
             + fabsf(IAR(ii,jm)) + fabsf(IAR(ii,jp)) + fabsf(IAR(im,jj)) + fabsf(IAR(ip,jj))
             + fabsf(IAR(ii,jj)) ;
        if( avv < qvv ) avv = qvv ;
-       OAR(ii,jj) = (            IAR(im,jm) + IAR(im,jp) + IAR(ip,jm) + IAR(ip,jp)
-                     +  4.0f * ( IAR(ii,jm) + IAR(ii,jp) + IAR(im,jj) + IAR(ip,jj) )
-                     - 20.0f * IAR(ii,jj) ) / avv ;
+       OAR(ii,jj) = fabsf(            IAR(im,jm) + IAR(im,jp) + IAR(ip,jm) + IAR(ip,jp)
+                          +  4.0f * ( IAR(ii,jm) + IAR(ii,jp) + IAR(im,jj) + IAR(ip,jj) )
+                          - 20.0f * IAR(ii,jj) ) / avv ;
       }
     }
 
