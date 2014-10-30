@@ -123,9 +123,9 @@ void THD_set_dicom_box( THD_dataxes *dax )
                      BT(nx1, 0 , 0 ) ; BT( 0 ,ny1, 0 ) ; BT(nx1,ny1, 0 ) ;
    BT( 0 , 0 ,nz1) ; BT(nx1, 0 ,nz1) ; BT( 0 ,ny1,nz1) ; BT(nx1,ny1,nz1) ;
 
-   dax->dicom_xxmin = xbot ; dax->dicom_xxmin = xtop ;
-   dax->dicom_yymin = ybot ; dax->dicom_yymin = ytop ;
-   dax->dicom_zzmin = zbot ; dax->dicom_zzmin = ztop ;
+   dax->dicom_xxmin = xbot ; dax->dicom_xxmax = xtop ;
+   dax->dicom_yymin = ybot ; dax->dicom_yymax = ytop ;
+   dax->dicom_zzmin = zbot ; dax->dicom_zzmax = ztop ;
 
 #undef BT
    return ;

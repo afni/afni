@@ -53,6 +53,7 @@ float qmed_float( int n , float *ar )
    /* special cases */
 
    switch( n ){
+      case 0: return 0.0f ;  /* should not happen */
       case 1: return ar[0] ;
       case 2: return 0.5*(ar[0]+ar[1]) ;
       case 3: return MED3( ar[0] , ar[1] , ar[2] ) ;
