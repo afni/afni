@@ -13,7 +13,7 @@ Keyboard Controls:
    
 .. _LC_a:
 
-:kbd:`a`: attenuation by background, toggle.
+:kbd:`a`: attenuation by background, toggle. See also :ref:`Plane_Layering
 
    
 .. _UC_B:
@@ -22,7 +22,7 @@ Keyboard Controls:
    
 .. _LC_b:
 
-:kbd:`b`: background color, toggle.
+:kbd:`b`: background color, toggle. See also :ref:`Plane_Layering
 
    
 .. _LC_c:
@@ -32,7 +32,7 @@ Keyboard Controls:
    
 .. _LC_Ctrl+d:
 
-:kbd:`Ctrl+d`: draw ROI controller.
+:kbd:`Ctrl+d`: Open draw :ref:`ROI controller<drawing_rois>`, and put cursor in drawing mode.
 
    
 .. _UC_D:
@@ -905,7 +905,6 @@ Mouse Controls:
 .. _Selecting_Objects:
 
 Selecting Objects:
-
 ------------------
 
 Selections are done with the :ref:`right-mouse click <Button_3-Press>` unless you request :ref:`otherwise <SUMA_SwapButtons_1_3>`.
@@ -953,15 +952,19 @@ Selecting a voxel also highlights the slice. You can turn off the highlight rect
 .. _Continuous_Selection:
 
 Continuous Selection:
-
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 You can select and drag and sweep through numerous locations. The main thing to keep in mind is that when you have a multitute of object types, such as tracts, voxels, surfaces, etc. SUMA locks the selection to the object type selected at the beginning of the sweep. So, if you begin the selection on a surface and drag, then the selections during the sweep are restricted to surfaces only.
 
+.. _Viewer_Menus:
+
+Viewer Menus:
+-------------
+
 .. _File_Menu:
 
-File Menu:
-----------
+File:
+^^^^^
 
   
 .. _Save_View:
@@ -979,8 +982,8 @@ File Menu:
 
 .. _View_Menu:
 
-View Menu:
-----------
+View:
+^^^^^
 
   
 .. _SUMA_Controller:
@@ -1011,18 +1014,18 @@ View Menu:
 
 .. _Tools_Menu:
 
-Tools Menu:
------------
+Tools:
+^^^^^^
 
   
 .. _Draw_ROI:
 
-:menuselection:`Draw ROI`: Open Draw ROI controller.
+:menuselection:`Draw ROI`: Open :ref:`Draw ROI controller<drawing_rois>`, also with :ref:`Ctrl+d<LC_Ctrl+d>`.
 
 .. _Help_Menu:
 
-Help Menu:
-----------
+Help:
+^^^^^
 
    
 .. _Usage:
@@ -1065,8 +1068,8 @@ Help Menu:
 
 .. _ENV_List:
 
-SUMA's list of environment variables:
--------------------------------------
+SUMA's environment vars:
+------------------------
 
 Below is a list of all of SUMA's environment variables and their default values.
 You can query the value of a variable as SUMA sees it with:
@@ -1082,7 +1085,7 @@ with 'name' replaced by the environment variable's name.
      :command:`suma -update_env`
 
 The List:
-=========
+^^^^^^^^^
 .. _SUMA_ArrowRotAngle:
 
 :envvar:`SUMA_ArrowRotAngle`: Incremental arrow rotation angle in degrees
@@ -1692,5 +1695,5 @@ Choose from YES or NO
 Current Version Info:
 
 Compile Date:
-   Oct 29 2014
+   Oct 31 2014
 
