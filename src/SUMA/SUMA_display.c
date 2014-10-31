@@ -7721,7 +7721,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
                      
    SUMA_Register_Widget_Help( NULL , 
                                  "SurfCont",
-                                 "The Surface Controller",
+                                 "Surface Cont.",
 "The surface controller is for controlling the way surfaces and datasets "
 "defined over them are displayed. The same controller is shared by a "
 ":SPX::term:`family of surfaces <Family of surfaces>`:DEF:"
@@ -8532,7 +8532,7 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
    
    SUMA_Register_Widget_Help( NULL , 
                               "GraphCont",
-                              "The Graph Dataset Controller",
+                              "Graph Cont.",
 "The graph controller is for controlling the way graphs (matrices) are rendered.  Each graph gets its own controller. You can use the switch button above to switch between them. The graph controller is initialized by the graph of the last selected edge/cell.\n After you have selected an edge, "
 ":SPX:"
 "you can launch the :ref:`Graph Controller <VolCont>` with:"
@@ -9437,7 +9437,7 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
                      NULL, NULL, NULL, NULL);
    SUMA_Register_Widget_Help( NULL , 
                               "TractCont",
-                              "The Network/Tracts Controller",
+                              "Network/Tracts Cont.",
 "The tract controller is for controlling the way tracts and values "
 "defined over them are displayed. "
 "Each network of tracts gets its own controller. "
@@ -10196,7 +10196,7 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
    
    SUMA_Register_Widget_Help( NULL , 
                                  "VolCont",
-                                 "The Volume Controller",
+                                 "Volume Cont.",
 "The volume controller is for controlling the way volumes are rendered. Each volume gets its own controller. You can use the switch button above to switch between them. The volume controller is initialized by the volume of the last selected voxel.\n After you have selected a voxel, "
 ":SPX:"
 "you can launch the :ref:`Volume Controller <VolCont>` with:"

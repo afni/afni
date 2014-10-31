@@ -3100,6 +3100,46 @@ char *SUMA_Break_String(char *si, int mxln)
    SUMA_RETURN(so);
 }
 
+/* offset each line by off blanks
+Must free returned string */
+char *SUMA_Offset_Lines(char *si, int off)
+{
+   static char FuncName[]={"SUMA_Offset_Lines"};
+   char *so = NULL, *s=NULL;
+   int nnl=0, nso_max, nso=0, i, slen;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!si) SUMA_RETURN(so);
+      
+   SUMA_LH("Have string:>s=>%s<\n", si);
+   slen = strlen(si);
+   s = si; nnl = 1;
+   while (*s != '\0') {
+      if (*s == '\n') ++ nnl;
+      ++s;
+   }
+   nso_max = slen+(nnl+1)*off;
+   so = (char *)SUMA_calloc(nso_max, sizeof(char));
+   nso = 0;
+   for (i=0; i<off; ++i) so[nso++] = ' ';
+   s = si;
+   while (*s != '\0') {
+      so[nso++] = *s;
+      if (*s == '\n' && (strncmp(s+1,":NOF:",5))) {
+         /* You could conceivably get rid of :NOF: here...
+         but I get rid of it later so that's OK for now */
+         for (i=0; i<off; ++i) so[nso++] = ' ';
+      } 
+      ++s;  
+   }
+   
+   so[nso] = '\0';
+   SUMA_LH("Returning:>so=>%s>", so);
+   SUMA_RETURN(so);
+}
+
 char *SUMA_Cut_String(char *s, char *sc)
 {
    static char FuncName[]={"SUMA_Cut_String"};
@@ -3393,6 +3433,10 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
 "       without the escape character in default output. This is\n"
 "       needed to keep sphinx from considering words between vertical\n"
 "       bars to be substitution references.\n"
+"\n"
+" :NOF:When found right after a new line, don't let function \n"
+"      SUMA_Offset_Lines() insert any spaces. :NOF: is otherwise cut\n"
+"      from all output\n"
 "\n" 
 "See function SUMA_Sphinx_String_Edit_Help() for a code sample.\n"
 "\n"
@@ -3438,9 +3482,9 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
    s0 = strdup(s); s1 = strdup(s);
    fprintf(fout,"\n        Source Code Version:\n%s\n    -------\n", s);
    fprintf(fout,"\n        Edited   for   SUMA:\n%s\n    -------\n", 
-                  SUMA_Sphinx_String_Edit(s0,0));
+                  SUMA_Sphinx_String_Edit(&s0,0,0));
    fprintf(fout,"\n        Edited  for  SPHINX:\n%s\n    -------\n", 
-                  SUMA_Sphinx_String_Edit(s1,1));
+                  SUMA_Sphinx_String_Edit(&s1,1, 0));
    free(s0); free(s1);
 
    return;
@@ -3452,25 +3496,26 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
    fancier SPHINX formatted output.
    
    See SUMA_Sphinx_String_Edit_Help() for documentation.
-   
-   This function returns the a modified version of the input pointer.
+   .
 */
 
-char *SUMA_Sphinx_String_Edit(char *s, int targ) 
+char *SUMA_Sphinx_String_Edit(char **suser, int targ, int off) 
 {
    static char FuncName[]={"SUMA_Sphinx_String_Edit"};
-   char stmp[6]={""};
+   char stmp[6]={""}, *s=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!s) SUMA_RETURN(s);
+   if (!suser || !(*suser)) SUMA_RETURN(s);
+   
+   s = *suser;
    
    switch (targ) {
       case 0: /* Default C output */
          SUMA_LH(">s=>\n%s\n<", s);
          SUMA_Cut_Between_String(s, ":SPX:", ":SPX:", ":DEF:");
-         SUMA_Cut_String(s,":LR:");
+         SUMA_Cut_String(s,":LR:"); SUMA_Cut_String(s,":NOF:");  
          SUMA_Sphinx_LineSpacer(s, targ);
          sprintf(stmp,"\\|"); /* to avoid compile warning for 
                                  direct use of "\|" in SUMA_Swap_String below */
@@ -3488,6 +3533,11 @@ char *SUMA_Sphinx_String_Edit(char *s, int targ)
          SUMA_Sphinx_LineSpacer(s, targ);
          SUMA_Swap_String(s, ":LIT:","::\n");
          SUMA_Cut_String(s,"(more with BHelp)");
+         if (off) {
+            *suser = SUMA_Offset_Lines(s,off);
+            SUMA_ifree(s); s = *suser;
+         }
+         SUMA_Cut_String(s,":NOF:"); 
          SUMA_Cut_String(s,"(BHelp for more)");
          SUMA_Cut_String(s,"(much more with BHelp)");
          break;
@@ -4920,7 +4970,7 @@ char * SUMA_env_list_help(int DEFAULT_values, int targ){
       switch (targ) {
          case 0: /* default */
             sli = SUMA_ReplaceChars(se.envhelp, "\n","\n//      ");
-            sli = SUMA_Sphinx_String_Edit(sli, targ);
+            sli = SUMA_Sphinx_String_Edit(&sli, targ, 0);
             SS = SUMA_StringAppend_va(SS,
                            "// %03d-%s:\n"
                            "//     %s\n"
@@ -4937,7 +4987,7 @@ char * SUMA_env_list_help(int DEFAULT_values, int targ){
          default:
          case 1: /* Sphinxy */
             sli = SUMA_copy_string(se.envhelp);
-            sli = SUMA_Sphinx_String_Edit(sli, targ);
+            sli = SUMA_Sphinx_String_Edit(&sli, targ, 0);
             SS = SUMA_StringAppend_va(SS,
                            ".. _%s:\n\n"
                            ":envvar:`%s`: %s\n\n"
