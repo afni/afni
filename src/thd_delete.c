@@ -30,6 +30,8 @@ ENTRY("THD_delete_datablock") ;
 
    /** free the actual brick data (method depends on how it is stored) **/
 
+   dblk->locked = 0 ;  /* Halloween 2014 */
+
    if( dblk->brick != NULL ){
       dblk->locked = 0 ;
 
