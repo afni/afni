@@ -3,29 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+================================
 Welcome to AFNI's documentation!
 ================================
 
-Contents:
 
 .. toctree::
    :maxdepth: 4
    :numbered:
+   :includehidden:
 
-   SUMA/cover
-   SUMA/highlights
-   SUMA/Mouse_Keyboard_Controls
-   SUMA/ObjectControllers
-   SUMA/ColorMixing
-   SUMA/DrawingROIs
-   tutorials/WalnutBrain/WalnutBrain
-   installations/SmallInstalls/DemoData
-   FATCAT/FATCAT_All
-   FATCAT/DealingWithGrads
-   installations/FATCAT_Demo/FATCAT_Demo
-   installations/TemplateSurfaces/TemplateSurfaces
-   glossary
    
+   sumatoc1
+   fatcattoc1
+   demotoc1
+   glossary
+
+==================
 Indices and tables
 ==================
 

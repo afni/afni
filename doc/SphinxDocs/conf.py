@@ -155,7 +155,7 @@ html_static_path = ['_static']
 #    but these seem ~nice?
 html_sidebars = {
     '**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html'],
-    'using/winwos': ['windowssidebar.html', 'searchbox.html'],
+    'using/windows': ['windowssidebar.html', 'searchbox.html'],
 }
 
 # Additional templates that should be rendered to pages, maps page names to
