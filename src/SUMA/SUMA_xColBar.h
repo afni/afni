@@ -473,38 +473,38 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Opens a dialog with detailed " \
    "information about the object in geek speak."
 
-#define  SUMA_SurfContHelp_RenderMode  \
-   "Choose the rendering mode for this surface.\n" \
-   "   Viewer: Surface's rendering mode is set "  \
-   ":         :by the viewer's setting which can "   \
-   ":         :be changed with the :ref:`'p'<LC_p>` option.:LR:\n"  \
-   "   Fill:   Shaded rendering mode.:LR:\n"  \
-   "   Line:   Mesh rendering mode.:LR:\n"    \
-   "   Points: Points rendering mode.:LR:\n"   
+   #define  SUMA_SurfContHelp_RenderMode  \
+"Choose the rendering mode for this surface.:LR:\n" \
+"   Viewer: Surface's rendering mode is set "  \
+":         :by the viewer's setting which can "   \
+":         :be changed with the :ref:`'p'<LC_p>` option.:LR:\n"  \
+"   Fill:   Shaded rendering mode.:LR:\n"  \
+"   Line:   Mesh rendering mode.:LR:\n"    \
+"   Points: Points rendering mode.:LR:\n"   
 
-#define  SUMA_SurfContHelp_VTransMode  \
-   "Set the transparency level for this volume to one of the " \
-   "following options.\n" \
-   "   Viewer: Surface's transparency is set "  \
-   "           by the viewer's setting which can "   \
-   "           be changed with the 'o', 'O' options.:LR:\n"  \
-   "           Cheesecloth transparency only is allowed in "\
-   "           this setting.:LR:\n"\
-   "   A :   Alpha blending. May look good, but not always "\
-   "         accurate.:LR:\n"  \
-   "   0 :   No transparency, opaque.:LR:\n"  \
-   "   ...:LR:\n"    \
-   "   16:   Maximum transparency, invisibile:LR:\n"   
+   #define  SUMA_SurfContHelp_VTransMode  \
+"Set the transparency level for this set of slices to one of the " \
+"following options::LR:\n" \
+"   Viewer: Surface's transparency is set "  \
+"           by the viewer's setting which can "   \
+"           be changed with the :ref:`o<LC_o>`, :ref:`O<UC_O>` options.:LR:\n"\
+"           Only Cheesecloth transparency is allowed in "\
+"           this setting.:LR:\n"\
+"   A :   Alpha blending. May look good, but not always "\
+"         accurate.:LR:\n"  \
+"   0 :   No transparency, opaque.:LR:\n"  \
+"   ...:LR:\n"    \
+"   16:   Maximum transparency, invisibile:LR:\n"   
 
-#define  SUMA_SurfContHelp_TransMode  \
-   "Set the transparency for this surface to one of the following "   \
-   "options.\n" \
-   "   Viewer: Surface's transparency is set "  \
-   "           by the viewer's setting which can "   \
-   "           be changed with the 'o', 'O' options.:LR:\n"  \
-   "   0 :   No transparency, opaque.:LR:\n"  \
-   "   ...:LR:\n"    \
-   "   16:   Maximum transparency, invisibile:LR:\n"   
+   #define  SUMA_SurfContHelp_TransMode  \
+"Set the transparency for this surface to one of the following "   \
+"options.:LR:\n" \
+"   Viewer: Surface's transparency is set "  \
+"           by the viewer's setting which can "   \
+"           be changed with the :ref:`o<LC_o>`, :ref:`O<UC_O>`  options.:LR:\n" \
+"   0 :   No transparency, opaque.:LR:\n"  \
+"   ...:LR:\n"    \
+"   16:   Maximum transparency, invisibile:LR:\n"   
 
 #define  SUMA_SurfContHelp_DsetViewMode  \
    "Choose the viewing mode for this dataset.:LR:\n" \
@@ -777,8 +777,9 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "is displayed."
    
 #define SUMA_SurfContHelp_DsetLblTblr0 \
-  "Label of dataset currently selected. Note that what you're viewing"\
-  "at this moment maybe a blend of multiple datasets. See "\
+  "Label of dataset currently selected. Note that for some objects, "\
+  "like surfaces, what you're viewing "\
+  "at any moment maybe a blend of multiple datasets. See "\
   ":ref:`color mixing<ColorMixing>` for details." 
   
 #define SUMA_SurfContHelp_DsetLblTblr1 \
@@ -1029,7 +1030,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 
 #define SUMA_SurfContHelp_SelInt \
-"Use this menu to select which column in the "   \
+"Use this menu to select which column (:term:`sub-brick`) in the "   \
 "dataset (Dset) should be used for an Intensity (I)"   \
 "measure.\n"   \
 "\n"   \
@@ -1051,14 +1052,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 ":ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`\n"
 
 #define SUMA_SurfContHelp_SelThr \
-"Use this menu to select which column in the\n"   \
+"Use this menu to select which column (:term:`sub-brick`) in the\n"   \
 "dataset (Dset) should be used for a Threshold (T) "   \
 "measure.\n"   \
 "\n"   \
 "T values are the ones used to determine if a :term:`datum` "   \
 "gets colored based on its (I) value.\n"   \
 "\n"   \
-"A node n is not colored if::LR:\n"   \
+"A :term:`datum` n is not colored if::LR:\n"   \
 "    T(n)   < Tscale   :LR:\n"   \
 "or if :ref:`'\\|T\\|'<SurfCont->Dset_Mapping->abs_T>` option below "   \
 "is turned ON: :LR:\n"   \
@@ -1074,14 +1075,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "A right-click on 'T' opens a list widget, which is better " \
 "when you have many columns from which to choose.\n" \
 "\n" \
-"The style of this selector can also change depending on the number"\
-"of sub-bricks (columns) you have in your dataset. If the number"\
+"The style of this selector can also change depending on the number "\
+"of sub-bricks (columns) you have in your dataset. If the number "\
 "exceeds a threshold specified by the environment variable "\
 ":ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`\n"
 
-#define SUMA_SurfContHelp_SelBrt \
-"Use this menu to select which column in the dataset (Dset) should be "   \
-"used for color Brightness (B) modulation.\n"   \
+   #define SUMA_SurfContHelp_SelBrt \
+"Use this menu to select which column (:term:`sub-brick`) in the "\
+"dataset (Dset) should be used for color Brightness (B) modulation.\n"   \
 "\n"   \
 "The (B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.\n"  \
 "\n"   \
@@ -1469,11 +1470,11 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "default, the expression is blank, as indicated by '-', and the operation is "\
 "an OR of all the masks.\n\n" \
 ":SPX:.. _Tract_Tinting:\n\n"\
-"Tract_Tinting:\n"\
-"..............\n\n"\
+":NOF:Tract Tinting:\n"\
+":NOF:^^^^^^^^^^^^^^\n\n"\
 ":DEF:"\
 "Tract_Tinting:\n"\
-"..............\n"\
+"^^^^^^^^^^^^^^\n"\
 ":SPX:"\
 "Tracts that go through any of the masks are displayed and they keep their own color:SPX:, as shown in the figure below to the left:SPX:.\n\n"\
 "Say we now want to show tracts that go through both masks b and c or through "\

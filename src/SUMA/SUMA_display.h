@@ -1192,11 +1192,19 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
 #define SUMA_SurfCont_ColPlaneOpacity_hint \
    "Opacity of Dset's colorplane." \
 
-#define SUMA_VR_help \
-   "Volume Rendering Settings.\n"
+   #define SUMA_VR_help \
+"Set the number of slices used to render the volume. "\
+"Volume rendering is done by slicing the volume from the far end along "\
+"your vieweing direction to the front, blending successive images along "\
+"the way. The more slices you use the better the result, something comparable "\
+"to the maximum number of voxels in any of the directions would be a good "\
+"start. Of course, the more slices, the slower the rendering.:LR:\n"\
+"Blending is affected by :ref:`Avl<VolCont->Dset_Controls->Avl>` and "\
+":ref:`Ath<VolCont->Dset_Controls->Ath>` settings."
+
 
 #define SUMA_VR_hint \
-   "VR params (use BHelp for details)"
+   "Volume Rendering Settings (use BHelp for details)"
 
 #define SUMA_SliceSelect_axial_help \
    "Select axial slice(s) to render.\n"\
