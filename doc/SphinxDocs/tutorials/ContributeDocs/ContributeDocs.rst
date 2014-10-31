@@ -15,7 +15,7 @@ If you feel moved to document a particular aspect of AFNI consider writing one i
    
    Include instructions for how to get needed material from github
 
-All your images would go in directory media/ and all your documentation can go into UserDocs.rst. Once you have something in there, add a line in index.rst that parallels the line for ContributeDocs.rst then from the command line::
+All your images would go in directory media and all your documentation can go into UserDocs.rst. Once you have something in there, add a line in index.rst that parallels the line for ContributeDocs.rst then from the command line::
    
    cd AFNI/doc/SphinxDocs
    make html
