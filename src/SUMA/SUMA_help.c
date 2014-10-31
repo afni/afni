@@ -1173,7 +1173,7 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap, int targ)
    s = SS->s;
    SUMA_free(SS); 
    
-   SUMA_RETURN (SUMA_Sphinx_String_Edit(s, targ));
+   SUMA_RETURN (SUMA_Sphinx_String_Edit(&s, targ, 0));
 
 }
 
@@ -1391,7 +1391,7 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
          break;
       case 1: /* Sphinx */
       case 2:
-         if (!(gwh = SUMA_Get_GUI_Help(wname, target, &shh, &sii))) {
+         if (!(gwh = SUMA_Get_GUI_Help(wname, target, &shh, &sii,3))) {
             SUMA_S_Err("No help for %s\n", wname);
             SUMA_suggest_GUI_Name_Match(wname, 8, NULL);
             shh = SUMA_copy_string(wname);
@@ -1422,7 +1422,7 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
                                    "%s\n",
                               wname, sii, su);
                } else if (gwh->name_lvl == 2) {
-                  for (i=0; i<=strlen(sii); ++i) {su[i] = '=';} su[i] = '\0';
+                  for (i=0; i<=strlen(sii); ++i) {su[i] = '^';} su[i] = '\0';
                   snprintf(s, 255, "\n"
                                    ".. _%s:\n"
                                    "\n"
@@ -1430,6 +1430,14 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
                                    "%s\n",
                               wname, sii, su);
                } else if (gwh->name_lvl == 3) {
+                  for (i=0; i<=strlen(sii); ++i) {su[i] = '"';} su[i] = '\0';
+                  snprintf(s, 255, "\n"
+                                   ".. _%s:\n"
+                                   "\n"
+                                   "%s:\n"
+                                   "%s\n",
+                              wname, sii, su);
+               } else if (gwh->name_lvl == 4) {
                   for (i=0; i<=strlen(sii); ++i) {su[i] = '.';} su[i] = '\0';
                   snprintf(s, 255, "\n"
                                    ".. _%s:\n"
@@ -1502,13 +1510,15 @@ char * SUMA_help_message_Info(int targ)
       "*On Linux*, Turn NumLock OFF, otherwise certainly mouse or \n"
       "   keyboard combinations do not work as intended.\n\n");
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: attenuation by background, toggle.\n\n", 
+      "   %s: attenuation by background, toggle. "\
+      "See also :ref:`Plane_Layering\n\n", 
       SUMA_hkf("a", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Backface/Frontface/Noface culling, toggle.\n", 
       SUMA_hkf("B", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: background color, toggle.\n\n", SUMA_hkf("b", targ));
+      "   %s: background color, toggle. "\
+      "See also :ref:`Plane_Layering\n\n", SUMA_hkf("b", targ));
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
       "   %s: Set screen-coordinate-based clipping planes\n"
       "   %s: Set object-coordinate-based clipping planes\n"
@@ -1529,7 +1539,9 @@ char * SUMA_help_message_Info(int targ)
    SS = SUMA_StringAppend_va (SS, 
       "   %s: load a node color file.\n\n", SUMA_hkf("c", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: draw ROI controller.\n\n", SUMA_hkf("Ctrl+d", targ));
+      "   %s: Open draw :ref:`ROI controller<drawing_rois>`, and put cursor "\
+      "in drawing mode.\n\n", 
+      SUMA_hkf("Ctrl+d", targ));
    SS = SUMA_StringAppend_va (SS, 
    "   %s: Attch to the current dataset 'parent' a dot product\n"
    "        transform. The 'child' (transformed) dataset\n"
@@ -2201,7 +2213,7 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
                   "\n\n.. _Selecting_Objects:\n\n"
-                  "Selecting Objects:\n\n"
+                  "Selecting Objects:\n"
                   "------------------\n\n");
       targ = 2;
    }
@@ -2272,8 +2284,8 @@ char * SUMA_help_message_Info(int targ)
    SS = SUMA_StringAppend (SS,
                   ":SPX:"
                   "\n\n.. _Continuous_Selection:\n\n"
-                  "Continuous Selection:\n\n"
-                  "---------------------\n\n"
+                  "Continuous Selection:\n"
+                  "^^^^^^^^^^^^^^^^^^^^^\n\n"
                   ":DEF:"
                   "Continuous Selection:\n"
                   ":SPX:"
@@ -2286,12 +2298,23 @@ char * SUMA_help_message_Info(int targ)
    
    if (targ == 0) {
       SS = SUMA_StringAppend (SS,
-            "File Menu:\n");
+            "Viewer Menus:\n");
+   } else if (targ) {
+      SS = SUMA_StringAppend (SS,
+            ".. _Viewer_Menus:\n\n"
+            "Viewer Menus:\n"
+            "-------------\n\n");
+      targ = 2;
+   }
+   
+   if (targ == 0) {
+      SS = SUMA_StringAppend (SS,
+            "File:\n");
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _File_Menu:\n\n"
-            "File Menu:\n"
-            "----------\n\n");
+            "File:\n"
+            "^^^^^\n\n");
       targ = 2;
    }
    
@@ -2306,12 +2329,12 @@ char * SUMA_help_message_Info(int targ)
    
    if (targ == 0) {
       SS = SUMA_StringAppend (SS,
-            "View Menu:\n");
+            "View:\n");
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _View_Menu:\n\n"
-            "View Menu:\n"
-            "----------\n\n");
+            "View:\n"
+            "^^^^^\n\n");
       targ = 2;
    }
 
@@ -2333,26 +2356,26 @@ char * SUMA_help_message_Info(int targ)
    
    if (targ == 0) {
       SS = SUMA_StringAppend (SS,
-            "Tools Menu:\n");
+            "Tools:\n");
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _Tools_Menu:\n\n"
-            "Tools Menu:\n"
-            "-----------\n\n");
+            "Tools:\n"
+            "^^^^^^\n\n");
       targ = 2;
    }      
    SS = SUMA_StringAppend_va (SS, 
-      "  %s: Open Draw ROI controller.\n\n",
+      "  %s: Open :ref:`Draw ROI controller<drawing_rois>`, also with :ref:`Ctrl+d<LC_Ctrl+d>`.\n\n",
       SUMA_hkf("->Draw ROI", targ));
    
    if (targ == 0) {
       SS = SUMA_StringAppend (SS,
-            "Help Menu:\n");
+            "Help:\n");
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _Help_Menu:\n\n"
-            "Help Menu:\n"
-            "----------\n\n");
+            "Help:\n"
+            "^^^^^\n\n");
       targ = 2;
    }     
    SS = SUMA_StringAppend_va (SS, 
@@ -2385,12 +2408,12 @@ char * SUMA_help_message_Info(int targ)
    /* Environment variables */
    if (targ == 0) {
       SS = SUMA_StringAppend (SS,
-            "SUMA's list of environment variables:\n");
+            "SUMA's environment vars:\n");
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _ENV_List:\n\n"
-            "SUMA's list of environment variables:\n"
-            "-------------------------------------\n\n"
+            "SUMA's environment vars:\n"
+            "------------------------\n\n"
             "Below is a list of all of SUMA's environment variables and"
             " their default values.\n"
             "You can query the value of a variable as SUMA sees it with:\n\n"
@@ -2400,7 +2423,7 @@ char * SUMA_help_message_Info(int targ)
             "*Always* update your environment variable list with:\n\n"
             "     :command:`suma -update_env`\n\n"
             "The List:\n"
-            "=========\n"  );
+            "^^^^^^^^^\n"  );
       targ = 1;
    }  
    s = SUMA_env_list_help(0, targ);
@@ -2426,7 +2449,7 @@ char * SUMA_help_message_Info(int targ)
    s = SS->s;
    SUMA_free(SS); 
    
-   SUMA_RETURN (SUMA_Sphinx_String_Edit(s, targ));
+   SUMA_RETURN (SUMA_Sphinx_String_Edit(&s, targ, 0));
 
 }
 
@@ -3052,13 +3075,13 @@ char *SUMA_All_GUI_Help_Info(DList *dl, int detail, int format)
                s = SUMA_copy_string(gwh->help);
                switch (format) {
                   case 0:
-                     SUMA_Sphinx_String_Edit(s, 0);
+                     SUMA_Sphinx_String_Edit(&s, 0, 0);
                      SUMA_StringAppend_va(SS,"  help: %s\n", s);
                      SUMA_ifree(s);
                      break;
                   default:
                   case 1:
-                     SUMA_Sphinx_String_Edit(s, 1);
+                     SUMA_Sphinx_String_Edit(&s, 1, 0);
                      SUMA_StringAppend_va(SS,"  help: %s\n", s);
                      SUMA_ifree(s);
                      break;
@@ -3095,13 +3118,15 @@ char *SUMA_All_GUI_Help_Info(DList *dl, int detail, int format)
                              if (hintout), *hintout must be NULL at  
                              function call. You must also free *hintout 
                              when done with it.
-   
+   \param whelp_off (int ): If non-zero, number of blank charcters by which
+                            to offset the lines of a widget's help string 
    \return gwh (GUI_WIDGET_HELP *)  A pointer to the structure containing 
                                     the widget help. 
                                     NULL if nothing was found.
 */ 
 GUI_WIDGET_HELP *SUMA_Get_GUI_Help( char *gname, int format, 
-                                    char **helpout, char **hintout)
+                                    char **helpout, char **hintout,
+                                    int whelp_off)
 {
    static char FuncName[]={"SUMA_Get_GUI_Help"};
    char *s = NULL;
@@ -3143,11 +3168,15 @@ GUI_WIDGET_HELP *SUMA_Get_GUI_Help( char *gname, int format,
    if (gwhc) {
       if (helpout) {
          *helpout = SUMA_copy_string(gwhc->help);
-         SUMA_Sphinx_String_Edit(*helpout, format);
+         if (gwhc->type == 1 && whelp_off) {/* widget and offset requested */
+            SUMA_Sphinx_String_Edit(helpout, format, whelp_off);
+         } else {
+            SUMA_Sphinx_String_Edit(helpout, format, 0);
+         }
       }
       if (hintout) {
          *hintout = SUMA_copy_string(gwhc->hint);
-         SUMA_Sphinx_String_Edit(*hintout, format);
+         SUMA_Sphinx_String_Edit(hintout, format, 0);
       }
    }
    
@@ -3346,7 +3375,7 @@ char * SUMA_Help_AllSurfCont (int targ)
           
    SUMA_SS2S(SS, s);
       
-   SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 
 char * SUMA_Help_AllGraphCont (int targ)
@@ -3429,7 +3458,7 @@ char * SUMA_Help_AllGraphCont (int targ)
           
    SUMA_SS2S(SS, s);
       
-   SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 
 char * SUMA_Help_AllVolCont (int targ)
@@ -3449,16 +3478,16 @@ char * SUMA_Help_AllVolCont (int targ)
                      "VolCont->Xhair_Info->Val.c00",
                      "VolCont->Xhair_Info->Lbl.r00",
                      "VolCont->Slice_Controls",
-                     "VolCont->Ax_slc->lab",
-                     "VolCont->Sa_slc->lab",
-                     "VolCont->Co_slc->lab",
+                     "VolCont->Ax_slc->Ax",
+                     "VolCont->Sa_slc->Sa",
+                     "VolCont->Co_slc->Co",
                      "VolCont->Slice_Controls->Trn",
                      "VolCont->Slice_Controls->Slices_At_+",
                      "VolCont->Volume_Rendering_Controls",
                      "VolCont->VR->Ns",
                      "VolCont->VR->Ns->v",
                      "VolCont->Dset_Controls",
-                     "VolCont->Dset_Controls->Lbl[1]",
+                     "VolCont->Dset_Controls->Lbl.r00",
                      "VolCont->Dset_Controls->Dim",
                      "VolCont->Dset_Controls->Avl",
                      "VolCont->Dset_Controls->Ath",
@@ -3512,7 +3541,7 @@ char * SUMA_Help_AllVolCont (int targ)
           
    SUMA_SS2S(SS, s);
       
-   SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 
 
@@ -3560,7 +3589,7 @@ char * SUMA_Help_AllMaskCont (int targ)
           
    SUMA_SS2S(SS, s);
    
-   SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 
 
@@ -3611,5 +3640,5 @@ char * SUMA_Help_AllTractCont (int targ)
           
    SUMA_SS2S(SS, s);
    
-   SUMA_RETURN(SUMA_Sphinx_String_Edit(s, targ));
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }

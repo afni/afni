@@ -31,8 +31,11 @@ import os
 # PT: put in the fulltoc line
 extensions = [
     'sphinxcontrib.fulltoc',
-    'sphinx.ext.pngmath'
+    'sphinx.ext.pngmath',
+    'sphinx.ext.todo'
 ]
+
+todo_include_todos = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
