@@ -1,8 +1,8 @@
 .. _cover:
 
-======================
-SUMA (SUrface MApping)
-======================
+*****
+Intro
+*****
 
 .. _surface-based:
 
@@ -27,4 +27,24 @@ SUMA also allows display and manipulation of matrices for various flavors of con
 .. figure:: media/image_HBM14_04.jpg
    
    **A**.Rendering of matrix data as a 3D graph. **B**.Graph edges represented by bundles. **C**.Matrix representation of connectivity data
+
+
+.. _highlights:
+
+
+Highlights:
+===========
+
+Surface rendering with direct AFNI link:
+----------------------------------------
+
+Multiple Linked Viewers:
+------------------------
+
+You can have up to 8 linked surface viewers open simultaneously.
+
+ROI Drawing:
+------------
+
+Freehand ROI drawing in any viewer. See :ref:`drawing_ROIs`.
 

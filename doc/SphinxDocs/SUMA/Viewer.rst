@@ -26,16 +26,6 @@ GUI controllers make up three groups:
    
    * Object Controller: To control how certain objects and the data defined over them are displayed.
    
-.. _SUMA_Controller:
-
-SUMA Controller:
-----------------
-
-
-.. _Viewer_Controller: 
-
-.. _ObjectControllers:
-
 .. _Controller_Notebook:
 
 Controller Notebook:

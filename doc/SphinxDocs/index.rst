@@ -16,8 +16,8 @@ Welcome to AFNI's documentation!
    
    sumatoc1
    fatcattoc1
-   demotoc1
-   tutorials/ContributeDocs/ContributeDocs
+   tutorialstoc1
+   installationstoc1
    glossary
 
 ==================

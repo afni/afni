@@ -53,6 +53,8 @@ suma -gdset ~/.afni/data/samples/o.NETS_OR_000.niml.dset     \
                      SUMA/auto_inc/GraphCont_help.inc'       \
      -drive_com '-com kill_suma'
 
+if ( ! -d _static) mkdir _static
+
 make clean html |& tee ___build.log
 
 

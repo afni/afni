@@ -13,7 +13,7 @@ Keyboard Controls:
    
 .. _LC_a:
 
-:kbd:`a`: attenuation by background, toggle. See also :ref:`Plane_Layering
+:kbd:`a`: attenuation by background, toggle. See also :ref:`Plane Layering<Plane_Layering>`
 
    
 .. _UC_B:
@@ -22,7 +22,7 @@ Keyboard Controls:
    
 .. _LC_b:
 
-:kbd:`b`: background color, toggle. See also :ref:`Plane_Layering
+:kbd:`b`: background color, toggle. See also :ref:`Plane Layering <Plane_Layering>`
 
    
 .. _LC_c:
@@ -246,7 +246,7 @@ Keyboard Controls:
         This option is useful for saving a large number of images
         without running out of memory in the recorder GUI. 
 
-        Your current PREFIX is: ./SUMA_Recordings/autorecord.ppm
+        Your current PREFIX is: ./SUMA_Recordings/autorecord.jpg
 
    
 .. _LC_Alt+r:

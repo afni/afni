@@ -365,7 +365,7 @@ Control mapping of edge/cell values to color map:
 **I**: Select Intensity (I) column, aka sub-brick. 
 
 
-   Use this menu to select which column in the dataset (Dset) should be used for an Intensity (I)measure.
+   Use this menu to select which column (:term:`sub-brick`) in the dataset (Dset) should be used for an Intensity (I)measure.
    
    Values in (I) are the ones that get colored by the colormap,however, no coloring is done if the :ref:`'v'<SurfCont->Dset_Mapping->I->v>` button on the right isturned off.
    
@@ -389,12 +389,12 @@ Control mapping of edge/cell values to color map:
 **T**: Select Threshold (T) column, aka sub-brick. 
 
 
-   Use this menu to select which column in the
+   Use this menu to select which column (:term:`sub-brick`) in the
    dataset (Dset) should be used for a Threshold (T) measure.
    
    T values are the ones used to determine if a :term:`datum` gets colored based on its (I) value.
    
-   A node n is not colored if:
+   A :term:`datum` n is not colored if:
    
        T(n)   < Tscale   
    
@@ -409,7 +409,7 @@ Control mapping of edge/cell values to color map:
    
    You can use a different type of selector to set (T). A right-click on 'T' opens a list widget, which is better when you have many columns from which to choose.
    
-   The style of this selector can also change depending on the numberof sub-bricks (columns) you have in your dataset. If the numberexceeds a threshold specified by the environment variable :ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`
+   The style of this selector can also change depending on the number of sub-bricks (columns) you have in your dataset. If the number exceeds a threshold specified by the environment variable :ref:`SUMA_ArrowFieldSelectorTrigger<SUMA_ArrowFieldSelectorTrigger>`
    
 
    .. _GraphCont->GDset_Mapping->T->v:
@@ -424,7 +424,7 @@ Control mapping of edge/cell values to color map:
 **B**: Select Brightness (B) column, aka sub-brick. 
 
 
-   Use this menu to select which column in the dataset (Dset) should be used for color Brightness (B) modulation.
+   Use this menu to select which column (:term:`sub-brick`) in the dataset (Dset) should be used for color Brightness (B) modulation.
    
    The (B) values are the ones used to control the brightness of a :term:`datum's<datum>` color.
    
