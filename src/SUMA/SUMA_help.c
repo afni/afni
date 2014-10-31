@@ -1510,15 +1510,16 @@ char * SUMA_help_message_Info(int targ)
       "*On Linux*, Turn NumLock OFF, otherwise certainly mouse or \n"
       "   keyboard combinations do not work as intended.\n\n");
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: attenuation by background, toggle. "\
-      "See also :ref:`Plane_Layering\n\n", 
+      "   %s: attenuation by background, toggle. "
+      "See also :ref:`Plane Layering<Plane_Layering>`\n\n", 
       SUMA_hkf("a", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Backface/Frontface/Noface culling, toggle.\n", 
       SUMA_hkf("B", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: background color, toggle. "\
-      "See also :ref:`Plane_Layering\n\n", SUMA_hkf("b", targ));
+      "   %s: background color, toggle. "
+      "See also :ref:`Plane Layering <Plane_Layering>`\n\n", 
+      SUMA_hkf("b", targ));
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend_va (SS, 
       "   %s: Set screen-coordinate-based clipping planes\n"
       "   %s: Set object-coordinate-based clipping planes\n"
