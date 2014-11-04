@@ -414,6 +414,8 @@ void SUMA_NodeInput (void* data);
 void SUMA_GNodeInput (void *data);
 void  SUMA_SetCellEditMode(SUMA_TABLE_FIELD *TF, int i, int j, int Mode);
 void SUMA_TriInput (void* data);
+void SUMA_TpointInput(void*data);
+void SUMA_IJKInput(void*data);
 SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ADO);
 SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ADO);

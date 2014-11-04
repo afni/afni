@@ -444,6 +444,9 @@ void SUMA_PBAR_bigexpose_CB(Widget w, XtPointer clientData, XtPointer call)
    int ii , jj , kk;
    MRI_IMAGE *cim, *dim;
    byte      *car , r,g,b ;
+   static SUMA_COLOR_MAP *CMd=NULL;
+   SUMA_COLOR_MAP *CM=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -454,19 +457,38 @@ void SUMA_PBAR_bigexpose_CB(Widget w, XtPointer clientData, XtPointer call)
       SUMA_SL_Err("NULL DO or Cont"); SUMA_RETURNe; 
    }
    
-   if (!bigxim) {
-      SUMA_COLOR_MAP *CM = NULL;
+   /* Get colormap of plane, if possible */
+   if ((curColPlane = SUMA_ADO_CurColPlane(ado))) {
+      CM = SUMA_CmapOfPlane (curColPlane );
+   }
+   /* get some default */
+   if (!CM) {
       if (!(CM = SUMA_FindNamedColMap("byr64"))) {
          SUMA_S_Err("Failed to get byr64");
          SUMA_RETURNe;
+      }   
+   }
+   
+   if (!CMd || CM != CMd) {
+      CMd = CM;
+      if (bigxim) {
+         MCW_kill_XImage( bigxim ); bigxim = NULL;
       }
-      cim = mri_new( ww, CM->N_M[0] , MRI_rgb ) ;
+   }
+   
+   if (!bigxim) {
+      float fac; int mm;
+      cim = mri_new( ww, 256 , MRI_rgb ) ;
       car = MRI_RGB_PTR(cim) ;
-      for( kk=ii=0 ; ii < CM->N_M[0] ; ii++ ){
-         r=(byte)(CM->M[ii][0]*255.0); 
-         g=(byte)(CM->M[ii][1]*255.0);   
-         b=(byte)(CM->M[ii][2]*255.0);
-         if( r > 0 || g > 0 || b > 0 ){
+      fac = (float)CM->N_M[0]/256.0;
+      for( kk=ii=0 ; ii < 256 ; ii++ ){
+         mm = CM->N_M[0]-1-(int)((float)ii*fac);
+         if (mm>=CM->N_M[0]) mm = CM->N_M[0]-1;
+         if (mm<0) mm = 0;
+         r=(byte)(CM->M[mm][0]*255.0); 
+         g=(byte)(CM->M[mm][1]*255.0);   
+         b=(byte)(CM->M[mm][2]*255.0);
+         if( r >= 0 || g >= 0 || b >= 0 ){
             for( jj=0 ; jj < ww ; jj++ ){
               car[kk++] = r; car[kk++] = g; car[kk++] = b;
             }
@@ -5384,7 +5406,7 @@ void SUMA_NodeInput (void *data)
    
    if ((int)TF->num_value[n] < 0 || 
        (int)TF->num_value[n] > SUMA_ADO_Max_Datum_Index(ado)) {
-      SUMA_SLP_Err("Node index must be positive and \n"
+      SUMA_SLP_Err("Node/Voxel/etc index must be positive and \n"
                    "less than the number of nodes \n"
                    "forming the surface.\n");
       TF->num_value[n] = SUMA_ADO_SelectedDatum(ado, NULL, NULL);
@@ -5392,8 +5414,8 @@ void SUMA_NodeInput (void *data)
       TF->cell_modified = -1;
       SUMA_RETURNe;
    }
-   if (ado->do_type == VO_type || ado->do_type == MASK_type) {
-      SUMA_S_Warn("Have not dealt with volumes or masks yet");
+   if (ado->do_type == MASK_type) {
+      SUMA_S_Warn("Have not dealt with masks yet");
       SUMA_RETURNe;
    }
    switch (j) {
@@ -5453,6 +5475,11 @@ void SUMA_NodeInput (void *data)
    SUMA_RETURNe;  
 }
 
+
+void SUMA_IJKInput(void *data) {
+   SUMA_TpointInput (data);
+   return;
+}
 /*!
    \brief Sends the node/datum flying when new value is entered
 */
@@ -10297,7 +10324,7 @@ void SUMA_CreateXhairWidgets_VO(Widget parent, SUMA_ALL_DO *ado)
          BTP_hint, NULL,
          BTP_help, NULL,
          colw, YUP, SUMA_string,
-         SUMA_TpointInput, (void*)ado,
+         SUMA_IJKInput, (void*)ado,
          NULL, NULL, 
          NULL, NULL,  
          SurfCont->FaceTable);

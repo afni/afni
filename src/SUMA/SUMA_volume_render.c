@@ -2089,7 +2089,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    float* nlt; /*JB: temporary node list, because I do not want to type 
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2496,10 +2496,19 @@ SUMA_VOL_REN_VARIANTS SUMA_SlcVariantToCode(char *variant)
 void SUMA_SlcCodeToVariant(SUMA_VOL_REN_VARIANTS v, char *variant) 
 {
    static char FuncName[]={"SUMA_SlcCodeToVariant"};
+   SUMA_Boolean LocalHead = NOPE;
+   
    variant[0] = '\0';
    switch (v) {
       default:
          SUMA_S_Err("Variant code %d unrecognized", v);
+         SUMA_DUMP_TRACE("From here");
+         variant[0] = '\0';
+         break;
+      case SUMA_ERR_VARIANT: /* Don't complain, happens if you remotely
+                                select a voxel when no slice is selected
+                                yet */
+         SUMA_LH("Variant code %d is error flag", v);
          variant[0] = '\0';
          break;
       case SUMA_AX_VARIANT:
