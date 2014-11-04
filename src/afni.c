@@ -1496,6 +1496,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
+     "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
      "Out out, brief candle"                                         ,
      "A poor player that struts and frets its hour upon the screen"  ,
@@ -1579,6 +1580,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Repeat after me: Om Mani Padme Hum, Om Mani Padme Hum, Om Mani Padme Hum ...."  ,
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
+     "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
 
      "\n  When someone says: I'm going to simplify things.\n"
      "  They mean:         Be confused. Be very, very confused"                               ,
