@@ -7776,7 +7776,7 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
 "You can launch the :ref:`Surface Controller <SurfCont>` with:"
 " :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
 "\n"
-".. figure:: media/SurfaceController.jpg\n"
+".. figure:: media/SurfCont.auto.ALL.jpg\n"
 "   :align: center\n"
 "\n\n"
 "   ..\n\n"
@@ -10294,7 +10294,7 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
 "you can launch the :ref:`Volume Controller <VolCont>` with:"
 " :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`\n"
 "\n"
-".. figure:: media/VolumeController.jpg\n"
+".. figure:: media/VolCont.auto.ALL.jpg\n"
 "   :align: center\n"
 "\n\n"
 "   ..\n\n"
@@ -10620,7 +10620,11 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
       SUMA_Register_Widget_Help(NULL,
                                 "VolCont->Volume_Rendering_Controls",
                                 "Set the parameters for 3D rendering",
-                                "Set the parameters for 3D rendering");
+               ":SPX:\n\n"
+               ".. figure:: media/VolCont.auto.Volume_Rendering_Controls.jpg\n"
+               "   :align: right\n\n"
+               "   ..\n\n"
+               ":SPX:"      );
       /* vertical row column */
       rcv = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, SurfCont->VR_fr,
