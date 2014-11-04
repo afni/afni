@@ -1602,6 +1602,7 @@ int SUMA_Find_ColorMap ( char *Name, SUMA_COLOR_MAP **CMv, int N_maps, int sgn)
    SUMA_LH("Failed to find map");
    SUMA_RETURN(imap);   
 }
+
 SUMA_COLOR_MAP *SUMA_FindNamedColMap(char *Name) 
 {
    static char FuncName[]={"SUMA_FindNamedColMap"};

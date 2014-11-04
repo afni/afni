@@ -9,7 +9,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
                                      XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_createSurfaceCont_MDO"};
-   Widget tl, pb, form, DispFrame, SurfFrame, 
+   Widget tl, pb, form,  
           rc_left, rc_right, rc_mamma, rc_gmamma, tls=NULL;
    Display *dpy;
    SUMA_ALL_DO *ado;
@@ -191,7 +191,7 @@ void SUMA_cb_createSurfaceCont_MDO(Widget w, XtPointer data,
             NULL);
    
 
-   DispFrame = SUMA_CloseBhelp_Frame(rc_gmamma,
+   SurfCont->DispFrame = SUMA_CloseBhelp_Frame(rc_gmamma,
                      SUMA_cb_closeSurfaceCont, (XtPointer) ado,
                      "MaskCont", "Close Surface controller", 
                      SUMA_closeSurfaceCont_help,
@@ -275,7 +275,7 @@ SUMA_SHPINX_BREAK
       Widget rc, label, rc_SurfProp, pb;
      
       /* put a frame */
-      SurfFrame = XtVaCreateWidget ("dialog",
+      SurfCont->SurfFrame = XtVaCreateWidget ("dialog",
          xmFrameWidgetClass, rc_left,
          XmNshadowType , XmSHADOW_ETCHED_IN ,
          XmNshadowThickness , 5 ,
@@ -283,16 +283,21 @@ SUMA_SHPINX_BREAK
          NULL); 
       
       XtVaCreateManagedWidget ("Masks",
-            xmLabelWidgetClass, SurfFrame, 
+            xmLabelWidgetClass, SurfCont->SurfFrame, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
       SUMA_Register_Widget_Help( NULL , 
                                  "MaskCont->Masks",
                           "Create/delete masks and setup masking expression",
-                                 NULL) ;
+                  ":SPX:\n\n"
+                  ".. figure:: media/MaskCont.auto.Masks.jpg\n"
+                  "   :align: right\n\n"
+                  "   ..\n\n"
+                  ":SPX:") ;            
+
       rc_SurfProp = XtVaCreateWidget ("rowcolumn",
-            xmRowColumnWidgetClass, SurfFrame,
+            xmRowColumnWidgetClass, SurfCont->SurfFrame,
             XmNpacking, XmPACK_TIGHT, 
             XmNorientation , XmVERTICAL ,
             XmNmarginHeight, 0 ,
@@ -472,7 +477,7 @@ SUMA_SHPINX_BREAK
       
       XtManageChild (rc_SurfProp);
       if (!XtIsManaged(SurfCont->rcswr)) XtManageChild (SurfCont->rcswr);
-      XtManageChild (SurfFrame);
+      XtManageChild (SurfCont->SurfFrame);
    }
    
    if (!SUMA_InitMasksTable(SurfCont)) {
@@ -483,7 +488,7 @@ SUMA_SHPINX_BREAK
    if (SUMAg_CF->X->UseSameSurfCont) {
       Widget rc=NULL;
       /* put something to cycle through objects */
-      if ((rc = SUMA_FindChildWidgetNamed(DispFrame, "rowcolumnCBF"))) {
+      if ((rc = SUMA_FindChildWidgetNamed(SurfCont->DispFrame,"rowcolumnCBF"))) {
          XtVaCreateManagedWidget (  "sep", 
                               xmSeparatorWidgetClass, rc, 
                               XmNorientation, XmVERTICAL,NULL);

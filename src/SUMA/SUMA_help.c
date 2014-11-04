@@ -3379,6 +3379,45 @@ char * SUMA_Help_AllSurfCont (int targ)
    SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 
+void SUMA_Snap_AllSurfCont (char *froot)
+{
+   static char FuncName[]={"SUMA_Snap_AllSurfCont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   
+   SUMA_ENTRY;
+   
+   ado = SUMA_findany_ADO_WithSurfContWidget(NULL, SO_type);
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   if (!SUMA_viewSurfaceCont(NULL, ado, NULL)) {
+      SUMA_S_Err("No viewer could be opened for %s", ADO_LABEL(ado));
+      SUMA_RETURNe;
+   }
+   if (!froot) froot = "SurfCont";
+   
+   s = SUMA_append_replace_string(froot, "ALL.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Mainform,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Disp_Cont.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DispFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Surface_Properties.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->SurfFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Xhair_Info.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Xhair_fr,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Dset_Controls.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->ColPlane_fr,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Dset_Mapping.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DsetMap_fr,  s); SUMA_ifree(s);
+
+   SUMA_RETURNe;
+}
+
 char * SUMA_Help_AllGraphCont (int targ)
 {
    static char FuncName[]={"SUMA_Help_AllGraphCont"};
@@ -3461,6 +3500,47 @@ char * SUMA_Help_AllGraphCont (int targ)
       
    SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
+
+void SUMA_Snap_AllGraphCont (char *froot)
+{
+   static char FuncName[]={"SUMA_Snap_AllGraphCont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   
+   SUMA_ENTRY;
+   
+   ado = SUMA_findany_ADO_WithSurfContWidget(NULL, GRAPH_LINK_type);
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   if (!SUMA_viewSurfaceCont(NULL, ado, NULL)) {
+      SUMA_S_Err("No viewer could be opened for %s", ADO_LABEL(ado));
+      SUMA_RETURNe;
+   }
+   
+   if (!froot) froot = "GraphCont";
+   
+   s = SUMA_append_replace_string(froot, "ALL.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Mainform,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Disp_Cont.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DispFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Graph_Dset_Properties.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->SurfFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Xhair_Info.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Xhair_fr,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "GDset_Controls.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->ColPlane_fr,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "GDset_Mapping.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DsetMap_fr,  s); SUMA_ifree(s);
+
+   SUMA_RETURNe;
+}
+
 
 char * SUMA_Help_AllVolCont (int targ)
 {
@@ -3545,6 +3625,52 @@ char * SUMA_Help_AllVolCont (int targ)
    SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 
+void SUMA_Snap_AllVolCont (char *froot)
+{
+   static char FuncName[]={"SUMA_Snap_AllVolCont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   
+   SUMA_ENTRY;
+   
+   ado = SUMA_findany_ADO_WithSurfContWidget(NULL, VO_type);
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   if (!SUMA_viewSurfaceCont(NULL, ado, NULL)) {
+      SUMA_S_Err("No viewer could be opened for %s", ADO_LABEL(ado));
+      SUMA_RETURNe;
+   }
+   
+   if (!froot) froot = "VolCont";
+   
+   s = SUMA_append_replace_string(froot, "ALL.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Mainform,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Disp_Cont.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DispFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Volume_Properties.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->SurfFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Xhair_Info.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Xhair_fr,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Slice_Controls.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Slice_fr,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Volume_Rendering_Controls.jpg",".", 0);
+   ISQ_snapfile2 ( SurfCont->VR_fr,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Dset_Controls.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->ColPlane_fr,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Dset_Mapping.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DsetMap_fr,  s); SUMA_ifree(s);
+
+   SUMA_RETURNe;
+}
+
 
 char * SUMA_Help_AllMaskCont (int targ)
 {
@@ -3593,6 +3719,37 @@ char * SUMA_Help_AllMaskCont (int targ)
    SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 
+
+void SUMA_Snap_AllMaskCont (char *froot)
+{
+   static char FuncName[]={"SUMA_Snap_AllMaskCont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   
+   SUMA_ENTRY;
+   
+   ado = SUMA_findany_ADO_WithSurfContWidget(NULL, MASK_type);
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   if (!SUMA_viewSurfaceCont(NULL, ado, NULL)) {
+      SUMA_S_Err("No viewer could be opened for %s", ADO_LABEL(ado));
+      SUMA_RETURNe;
+   }
+   
+   if (!froot) froot = "TractCont";
+   
+   s = SUMA_append_replace_string(froot, "ALL.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Mainform,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Disp_Cont.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DispFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Masks.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->SurfFrame,  s); SUMA_ifree(s);
+   
+   SUMA_RETURNe;
+}
 
 char * SUMA_Help_AllTractCont (int targ)
 {
@@ -3643,3 +3800,41 @@ char * SUMA_Help_AllTractCont (int targ)
    
    SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
+
+void SUMA_Snap_AllTractCont (char *froot)
+{
+   static char FuncName[]={"SUMA_Snap_AllTractCont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   
+   SUMA_ENTRY;
+   
+   ado = SUMA_findany_ADO_WithSurfContWidget(NULL, TRACT_type);
+   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) SUMA_RETURNe;
+   if (!SUMA_viewSurfaceCont(NULL, ado, NULL)) {
+      SUMA_S_Err("No viewer could be opened for %s", ADO_LABEL(ado));
+      SUMA_RETURNe;
+   }
+   
+   if (!froot) froot = "TractCont";
+   
+   s = SUMA_append_replace_string(froot, "ALL.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Mainform,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Disp_Cont.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->DispFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Tract_Properties.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->SurfFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Xhair_Info.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->Xhair_fr,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Coloring_Controls.jpg",".", 0);   
+   ISQ_snapfile2 ( SurfCont->ColPlane_fr,  s); SUMA_ifree(s);
+
+   SUMA_RETURNe;
+}
+

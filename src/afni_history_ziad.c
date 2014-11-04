@@ -66,6 +66,14 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Continued modifications for help generating functions, now with selfies",
+   "Now SUMA can take selfies of the varied widget frames, making the  \n"
+   "documentation easier to generate. This involved adding a new version\n"
+   "of ISQ_snapfile() called ISQ_snapfile2() and a rendering of a colormap\n"
+   "in X11. Search for Fake_Cmap for relevant locations in C code."
+ },
+ 
  { 17, Oct, 2014, ZSS, "suma", MAJOR, TYPE_GENERAL,
    "Modifications for help generating functions",
    "New tools allow for automatic Sphinx formatted documentation straight \n"
