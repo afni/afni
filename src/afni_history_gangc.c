@@ -52,6 +52,12 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
 
+  { 3 , NOV , 2014 , GC , "rPkgsInstall" , MINOR , TYPE_NEW_PROG ,
+    "Installing, updating, or removing R packages on the terminal",
+         "This is an R program that allows the user to install,\n"
+    "update, or remove R packages on the shell terminal."
+  } ,
+
   { 19 , OCT , 2012 , GC , "3dMVM" , MAJOR , TYPE_NEW_PROG ,
     "Multivariate modeling approach to group analysis",
          "This is an R program that performs conventional ANOVA or \n"
