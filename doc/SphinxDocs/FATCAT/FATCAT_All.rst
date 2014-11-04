@@ -1,15 +1,15 @@
 .. _FATCAT_All:
 
 
-===============
+***************
 FATCAT Commands
-===============
+***************
 
 .. contents::
    :depth: 3
 
 Overview
---------
+========
 
 The Functional And Tractographic Connectivity Toolbox (FATCAT)
 contains several programs for processing and analyzing MRI data, in
@@ -51,8 +51,18 @@ resource for checking on previously asked (and hopefully answered)
 questions that come up during analysis.  It is also a good first port
 of call for asking new questions that you yourself might have.
 
+.. note:: This documentation aims to be a complement to the programs'
+          helpfiles and demo scripts.  It is written in a different
+          style, hopefully taking advantage of the ability to include
+          graphics and images to clarify points and make examples. If
+          there are any suggestions to increase clarity, to include
+          further examples or to fix tyypographic errors, please
+          notify the authors.
+
+|
+
 Demo data sets and scripts
---------------------------
+==========================
 
 Demo sets are provided for getting acquainted with FATCAT
 capabilities. Each demo set contains both data and scripts-- the
@@ -77,7 +87,7 @@ network properties), run the following in a terminal::
 Further online documentation for this is forthcoming...
 
 Other
------
+=====
 
 Currently, *preprocessing* steps (such as corrections for outliers,
 subject motion, induced eddy currents and magnetic susceptibility) are
@@ -95,4 +105,28 @@ though the degree of integrability with FATCAT may vary. One example
 of using `DSI-Studio <http://dsi-studio.labsolver.org/>`_ to perform
 HARDI modeling and converting the output to be 3dTrackID-able is
 provided in the FATCAT demo:  ``FATCAT_DEMO/HARDI/do_dsistudio.tcsh``.
+
+Notation Notes
+==============
+
+The aim of this documentation is to inform what tools are available
+for data analysis, and to facilitate their use.  The hope is that the
+notations involved in describing the code and making general examples
+are clear.  Current format choices include:
+
+* commandline names are written in a font like this: ``Font``;
+* references to *switches* in a commandline program are written like
+  ``-switch``, and these take no arguments after the option name;
+* options that require arguments such as file names or numbers are
+  written as ``-option_name *``, where the wildcard character '``*``'
+  itself would not generally be typed-- it is used non-literally to
+  reinforce that something else needs to be typed after the option
+  name;
+* in commandline examples, non-literal filenames are typed in
+  all-capital letters with descriptive words separated by the
+  underscore character '_', such as ``ROI_FILE``;
+* in commandline examples, non-literal numerical arguments would be
+  held by a single capital letter, such as ``X`` or ``Y``.
+
+
 

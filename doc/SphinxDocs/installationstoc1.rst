@@ -1,4 +1,4 @@
-:tocdepth: 3
+:tocdepth: 2
 
 #############
 Demo Material
@@ -6,7 +6,7 @@ Demo Material
 
 .. toctree::
    :maxdepth: 3
-   :numbered:
+
 
    installations/FATCAT_Demo/FATCAT_Demo
    installations/SmallInstalls/DemoData

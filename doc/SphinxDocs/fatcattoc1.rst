@@ -1,4 +1,4 @@
-:tocdepth: 3
+:tocdepth: 2
 
 FATCAT
 ======
@@ -7,8 +7,8 @@ FATCAT
 
 .. toctree::
    :maxdepth: 3
-   :numbered:
+
 
    FATCAT/FATCAT_All
    FATCAT/DealingWithGrads
-
+   FATCAT/MakingROIs

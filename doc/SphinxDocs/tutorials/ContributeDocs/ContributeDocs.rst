@@ -4,7 +4,9 @@
 Contibute Your Own Docs:
 ########################
 
-If you feel moved to document a particular aspect of AFNI consider writing one in the SPHINX format and send it to us. The process should be relatively simple::
+If you feel moved to document a particular aspect of AFNI consider
+writing one in the SPHINX format and send it to us. The process should
+be relatively simple::
 
    cd AFNI/doc/SphinxDocs/tutorials
    tcsh @gen_all
@@ -15,17 +17,23 @@ If you feel moved to document a particular aspect of AFNI consider writing one i
    
    Include instructions for how to get needed material from github
 
-All your images would go in directory media/ and all your documentation can go into UserDocs.rst. Once you have something in there, add a line in index.rst that parallels the line for ContributeDocs.rst then from the command line::
+All your images would go in directory media/ and all your
+documentation can go into UserDocs.rst. Once you have something in
+there, add a line in index.rst that parallels the line for
+ContributeDocs.rst then from the command line::
    
    cd AFNI/doc/SphinxDocs
    make html
    
-For this to work, you will want to have `Sphinx <http://sphinx-doc.org>`_ installed, along with  
-`fulltoc <http://sphinxcontrib-fulltoc.readthedocs.org/en/latest/install.html>`_. The easiest way to install SPHINX is with::
+For this to work, you will want to have `Sphinx
+<http://sphinx-doc.org>`_ installed, along with `fulltoc
+<http://sphinxcontrib-fulltoc.readthedocs.org/en/latest/install.html>`_. The
+easiest way to install SPHINX is with::
    
    sudo easy_install -U Sphinx
    
-After the build is finished, open :file:`_build/html/index.html` and browse from there on.
+After the build is finished, open :file:`_build/html/index.html` and
+browse from there on.
 
 .. _DocTools:
 
@@ -33,13 +41,23 @@ After the build is finished, open :file:`_build/html/index.html` and browse from
 Rst & Sphinx Syntax:
 ********************
 
-There are plenty of Sphinx tutorials, two important resources are the RST `primer <http://sphinx-doc.org/rest.html#rst-primer>`_ and the Sphinx `markup  <http://sphinx-doc.org/markup/index.html#sphinxmarkup>`_ construct. You might just want to start by copying this very file and start modifying it.
+There are plenty of Sphinx tutorials, two important resources are the
+RST `primer <http://sphinx-doc.org/rest.html#rst-primer>`_ and the
+Sphinx `markup
+<http://sphinx-doc.org/markup/index.html#sphinxmarkup>`_
+construct. You might just want to start by copying this very file and
+start modifying it.
    
    
 Some Syntax Examples:
 =====================
 
-Here is how we reference a tag in this document tree. This takes you back to the :ref:`beginning <ContributeDocs>` of this page, and this next one takes you to some other :ref:`reference <Color_Plane_Grouping>` elsewhere in this documentation. Use the handy *Show Source* link towards the bottom of the left sidebar to find reference tags among other things.
+Here is how we reference a tag in this document tree. This takes you
+back to the :ref:`beginning <ContributeDocs>` of this page, and this
+next one takes you to some other :ref:`reference
+<Color_Plane_Grouping>` elsewhere in this documentation. Use the handy
+*Show Source* link towards the bottom of the left sidebar to find
+reference tags among other things.
 
 You can also reference terms like :term:`1D` from the glossary easily.
 
@@ -85,15 +103,18 @@ And a few more pictures together:
    .. container:: clearer
    .. image:: media/blank.jpg
    
-   is just a trick to keep upcoming text from wrapping around the figures. And that here was a demonstration of how to insert a note.
+   is just a trick to keep upcoming text from wrapping around the
+   figures. And that here was a demonstration of how to insert a note.
    
 
 
 Parting note:
 ^^^^^^^^^^^^^
 
-Once you have something you're pleased with, send us a note, along with an archive of the directory you have created.
+Once you have something you're pleased with, send us a note, along
+with an archive of the directory you have created.
 
 .. todo::
 
-   This should be written to instruct how one can send a push request to github for this.
+   This should be written to instruct how one can send a push request
+   to github for this.

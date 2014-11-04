@@ -114,7 +114,9 @@ html_theme = 'default'
 # further.  For a list of options available for each theme, see the
 # documentation.
 # PT: uncommented and supplied this option
-html_theme_options = { "stickysidebar": "true"}
+# 'sidebarwith' -> defined in integer number of pixels (default = 230)
+html_theme_options = { "stickysidebar": "true",
+                       "sidebarwidth":273 }
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []

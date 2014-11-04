@@ -7,13 +7,11 @@
 Welcome to AFNI's documentation!
 ================================
 
-
 .. toctree::
    :maxdepth: 4
    :numbered:
    :includehidden:
 
-   
    sumatoc1
    fatcattoc1
    tutorialstoc1

@@ -46,9 +46,10 @@ Glossary
       increase SNR.
 
    SNR 
-      Signal to noise ratio.  Omnipresent in discussions of data
-      quality.  Increasing SNR usually involves trade-offs of longer
-      acquisition time or lower resolution.
+      Signal-to-noise ratio.  Omnipresent in discussions of data
+      quality.  In MRI discusions, increasing SNR usually involves
+      trade-offs of longer acquisition time, lower resolution or some
+      other factor.
 
    DW
    DWI
@@ -190,14 +191,15 @@ Glossary
       {i,j,k} indices of datum in 3 dimensional array representing data or object. {i,j,k} triplets are mostly used for notational clarity, it is often the case that a 1D array is used to store and access array elements. 
       
    bundle
-      A collection of tracts, in a network. Usually a bundle defines all tracts between a pair of target ROIs.
+
+      A collection of tracts, within a network. Usually a bundle defines all tracts between a pair of target ROIs.
    
    network
       A collection of bundles of tracts.
       
    tract
    tracts
-      A set of connected points.
+      A sequence (or ordered set) of connected points.
    
    point
    points
