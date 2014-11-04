@@ -19,7 +19,8 @@ endif
     SUMA/auto_inc/VolCont_help.inc   \
     SUMA/auto_inc/GraphCont_help.inc
 
-suma -drive_com '-com surf_cont -view_surf_cont y'          \
+suma -fake_cmap                                             \
+     -drive_com '-com surf_cont -view_surf_cont y'          \
      -drive_com                                             \
         '-com surf_cont -write_mouse_keyb_sphinx_help       \
                      SUMA/auto_inc/Mouse_Keyb_help.inc'     \
@@ -29,28 +30,46 @@ suma -drive_com '-com surf_cont -view_surf_cont y'          \
      -drive_com                                             \
         '-com surf_cont -write_surf_cont_sphinx_help        \
                      SUMA/auto_inc/SurfCont_help.inc'       \
+     -drive_com                                             \
+        '-com surf_cont -snap_surf_cont_widgets             \
+                     SUMA/media/SurfCont.auto'              \
      -drive_com '-com kill_suma'
 
-suma -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
+suma -fake_cmap                                             \
+     -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
      -drive_com '-com surf_cont -view_surf_cont y'          \
      -drive_com '-com surf_cont -2xmasks'                   \
      -drive_com                                             \
-        '-com surf_cont -write_tract_cont_sphinx_help        \
-                     SUMA/auto_inc/TractCont_help.inc'       \
+        '-com surf_cont -write_tract_cont_sphinx_help       \
+                     SUMA/auto_inc/TractCont_help.inc'      \
+     -drive_com                                             \
+        '-com surf_cont -snap_tract_cont_widgets            \
+                     SUMA/media/TractCont.auto'             \
+     -drive_com                                             \
+        '-com surf_cont -snap_tract_cont_widgets            \
+                     SUMA/media/MaskCont.auto'             \
      -drive_com '-com kill_suma'
          
-suma -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
+suma -fake_cmap                                             \
+     -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
      -drive_com '-com surf_cont -view_surf_cont y'          \
      -drive_com                                             \
-        '-com surf_cont -write_vol_cont_sphinx_help        \
-                     SUMA/auto_inc/VolCont_help.inc'       \
+        '-com surf_cont -write_vol_cont_sphinx_help         \
+                     SUMA/auto_inc/VolCont_help.inc'        \
+     -drive_com                                             \
+        '-com surf_cont -snap_vol_cont_widgets              \
+                     SUMA/media/VolCont.auto'               \
      -drive_com '-com kill_suma'
          
-suma -gdset ~/.afni/data/samples/o.NETS_OR_000.niml.dset     \
+suma -fake_cmap                                             \
+     -gdset ~/.afni/data/samples/o.NETS_OR_000.niml.dset    \
      -drive_com '-com surf_cont -view_surf_cont y'          \
      -drive_com                                             \
-        '-com surf_cont -write_graph_cont_sphinx_help        \
-                     SUMA/auto_inc/GraphCont_help.inc'       \
+        '-com surf_cont -write_graph_cont_sphinx_help       \
+                     SUMA/auto_inc/GraphCont_help.inc'      \
+     -drive_com                                             \
+        '-com surf_cont -snap_graph_cont_widgets            \
+                     SUMA/media/GraphCont.auto'             \
      -drive_com '-com kill_suma'
 
 if ( ! -d _static) mkdir _static

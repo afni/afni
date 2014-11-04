@@ -7,7 +7,7 @@ Graph Cont.:
 The graph controller is for controlling the way graphs (matrices) are rendered.  Each graph gets its own controller. You can use the switch button above to switch between them. The graph controller is initialized by the graph of the last selected edge/cell.
  After you have selected an edge, you can launch the :ref:`Graph Controller <VolCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
 
-.. figure:: media/GraphController.jpg
+.. figure:: media/GraphCont.auto.ALL.jpg
    :align: center
 
 
@@ -22,6 +22,14 @@ Properties of graph dset:
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
+
+.. figure:: media/GraphCont.auto.Graph_Dset_Properties.jpg
+   :align: right
+
+   ..
+
+
+
    .. _GraphCont->Graph_Dset_Properties->more:
 
 **more**: More info on Graph Dset
@@ -33,6 +41,14 @@ Properties of graph dset:
 
 Crosshair Information:
 ^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/GraphCont.auto.Xhair_Info.jpg
+   :align: right
+
+   ..
+
 
 
    .. _GraphCont->Xhair_Info->Xhr.r00:
@@ -90,6 +106,14 @@ Crosshair Information:
 
 Control appearance of 3D graphs and matrices:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/GraphCont.auto.GDset_Controls.jpg
+   :align: right
+
+   ..
+
 
 
    .. _GraphCont->GDset_Controls->Dim:
@@ -341,6 +365,14 @@ Control appearance of 3D graphs and matrices:
 
 Control mapping of edge/cell values to color map:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/GraphCont.auto.GDset_Mapping.jpg
+   :align: right
+
+   ..
+
 
 
    .. _GraphCont->GDset_Mapping->IxT:

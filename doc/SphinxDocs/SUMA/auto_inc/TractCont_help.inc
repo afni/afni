@@ -6,7 +6,7 @@ Network/Tracts Cont.:
 
 The tract controller is for controlling the way tracts and values defined over them are displayed. Each network of tracts gets its own controller. You can launch the :ref:`Tract Controller <TractCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
 
-.. figure:: media/TractController.jpg
+.. figure:: media/TractCont.auto.ALL.jpg
    :align: center
 
 
@@ -22,6 +22,13 @@ Tract Properties:
 
 Name and number of bundles, tracts, and points making up the  selected network of tracts. 
 
+.. figure:: media/TractCont.auto.Tract_Properties.jpg
+   :align: right
+
+   ..
+
+
+
    .. _TractCont->Tract_Properties->more:
 
 **more**: More info on network of tracts
@@ -33,6 +40,14 @@ Name and number of bundles, tracts, and points making up the  selected network o
 
 Information at crosshair:
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/TractCont.auto.Xhair_Info.jpg
+   :align: right
+
+   ..
+
 
 
    .. _TractCont->Xhair_Info->Xhr.r00:
@@ -90,6 +105,13 @@ Coloring Controls:
 ^^^^^^^^^^^^^^^^^^
 
 Controls the final coloration of the tracts based on the tract datasets available. What's a tract dataset you say? It is a dataset defined over the collection of points that define the tracts of a network. And where do we get these sets? Nowhere at the moment. For now they are generated internally and they are only of the RGB variety. This will change in the future, when you would be able to drive a flying car and have arbitrary sets much like on surfaces or volumes.
+
+.. figure:: media/TractCont.auto.Coloring_Controls.jpg
+   :align: right
+
+   ..
+
+
 
    .. _TractCont->Coloring_Controls->Lbl.r00:
 
@@ -286,6 +308,14 @@ The mask controller is used for manipulating masks for network tractsYou can lau
 
 Create/delete masks and setup masking expression:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/MaskCont.auto.Masks.jpg
+   :align: right
+
+   ..
+
 
 
    .. _MaskCont->Masks->Mask_Eval.r00:

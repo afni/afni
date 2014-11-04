@@ -23,6 +23,13 @@ Volume Properties:
 
 Block providing information about selected volume.
 
+.. figure:: media/VolCont.auto.Volume_Properties.jpg
+   :align: right
+
+   ..
+
+
+
    .. _VolCont->Volume_Properties->more:
 
 **more**: More info on Volume
@@ -34,6 +41,14 @@ Block providing information about selected volume.
 
 Information at crosshair:
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/VolCont.auto.Xhair_Info.jpg
+   :align: right
+
+   ..
+
 
 
    .. _VolCont->Xhair_Info->Xhr.r00:
@@ -87,6 +102,14 @@ Information at crosshair:
 
 Set up which and how many slices are displayed:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/VolCont.auto.Slice_Controls.jpg
+   :align: right
+
+   ..
+
 
 
    .. _VolCont->Ax_slc->Ax:
@@ -193,6 +216,14 @@ Dset Controls:
 ^^^^^^^^^^^^^^
 
 
+
+.. figure:: media/VolCont.auto.Dset_Controls.jpg
+   :align: right
+
+   ..
+
+
+
    .. _VolCont->Dset_Controls->Lbl.r00:
 
 **Lbl**: Label of Volume Dset
@@ -264,6 +295,14 @@ Dset Controls:
 
 Dset Color Mapping:
 ^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/VolCont.auto.Dset_Mapping.jpg
+   :align: right
+
+   ..
+
 
 
    .. _VolCont->Dset_Mapping->IxT:

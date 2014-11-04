@@ -23,6 +23,13 @@ Surface Properties:
 
 Block providing information about selected surface.
 
+.. figure:: media/SurfCont.auto.Surface_Properties.jpg
+   :align: right
+
+   ..
+
+
+
    .. _SurfCont->Surface_Properties->more:
 
 **more**: More info on Surface
@@ -75,6 +82,14 @@ Block providing information about selected surface.
 
 Crosshair Information:
 ^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/SurfCont.auto.Xhair_Info.jpg
+   :align: right
+
+   ..
+
 
 
    .. _SurfCont->Xhair_Info->Xhr.r00:
@@ -134,6 +149,14 @@ Crosshair Information:
 
 Dset Controls:
 ^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/SurfCont.auto.Dset_Controls.jpg
+   :align: right
+
+   ..
+
 
 
    .. _SurfCont->Dset_Controls->Lbl+Par.r00:
@@ -304,6 +327,14 @@ Dset Controls:
 
 Dset Color Mapping:
 ^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/SurfCont.auto.Dset_Mapping.jpg
+   :align: right
+
+   ..
+
 
 
    .. _SurfCont->Dset_Mapping->IxT:

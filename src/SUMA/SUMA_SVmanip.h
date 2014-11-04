@@ -150,9 +150,10 @@ SUMA_SurfaceObject *SUMA_SV_Focus_any_SO(SUMA_SurfaceViewer *sv, int *dov_id);
 SUMA_ALL_DO *SUMA_SV_Focus_ADO(SUMA_SurfaceViewer *sv);
 SUMA_ALL_DO *SUMA_findanyFocusable_ADO(int *dov_id);
 SUMA_ALL_DO *SUMA_SV_Focus_any_ADO(SUMA_SurfaceViewer *sv, int *dov_id);
-SUMA_ALL_DO *SUMA_findany_ADO_WithSurfContWidget(int *dov_id);
+SUMA_ALL_DO *SUMA_findany_ADO_WithSurfContWidget(int *dov_id, 
+                                                 SUMA_DO_Types thisdotp);
 SUMA_ALL_DO *SUMA_SV_any_ADO_WithSurfContWidget(SUMA_SurfaceViewer *sv, 
-                                                int *dov_id);
+                                          int *dov_id, SUMA_DO_Types thisdotp);
 SUMA_Boolean SUMA_SurfCont_SetcurDOp(SUMA_X_SurfCont *SurfCont, 
                                      SUMA_ALL_DO *ado);
 SUMA_ALL_DO *SUMA_SurfCont_GetcurDOp(SUMA_X_SurfCont *SurfCont);

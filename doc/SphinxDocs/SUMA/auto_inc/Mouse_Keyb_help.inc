@@ -246,7 +246,7 @@ Keyboard Controls:
         This option is useful for saving a large number of images
         without running out of memory in the recorder GUI. 
 
-        Your current PREFIX is: ./SUMA_Recordings/autorecord.jpg
+        Your current PREFIX is: ./SUMA_Recordings/autorecord.ppm
 
    
 .. _LC_Alt+r:
@@ -1695,5 +1695,5 @@ Choose from YES or NO
 Current Version Info:
 
 Compile Date:
-   Oct 31 2014
+   Nov  4 2014
 

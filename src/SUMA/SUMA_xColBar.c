@@ -429,6 +429,106 @@ void SUMA_cmap_wid_expose(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
+/* An attempt to render colormap using X11 and Motif rather than openGL.
+This is only for the purpose of taking an autosnapshot of the whole widget 
+Based on AFNI's PBAR_bigexpose_CB()*/
+void SUMA_PBAR_bigexpose_CB(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_PBAR_bigexpose_CB"};
+   SUMA_ALL_DO *ado=NULL;
+   XVisualInfo *SUMAg_cVISINFO=NULL;
+   static MCW_DC *dc = NULL;
+   static XImage *bigxim = NULL;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   int  ww = SUMA_CMAP_WIDTH, hh = SUMA_CMAP_HEIGHT;
+   int ii , jj , kk;
+   MRI_IMAGE *cim, *dim;
+   byte      *car , r,g,b ;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) { 
+      SUMA_SL_Err("NULL DO or Cont"); SUMA_RETURNe; 
+   }
+   
+   if (!bigxim) {
+      SUMA_COLOR_MAP *CM = NULL;
+      if (!(CM = SUMA_FindNamedColMap("byr64"))) {
+         SUMA_S_Err("Failed to get byr64");
+         SUMA_RETURNe;
+      }
+      cim = mri_new( ww, CM->N_M[0] , MRI_rgb ) ;
+      car = MRI_RGB_PTR(cim) ;
+      for( kk=ii=0 ; ii < CM->N_M[0] ; ii++ ){
+         r=(byte)(CM->M[ii][0]*255.0); 
+         g=(byte)(CM->M[ii][1]*255.0);   
+         b=(byte)(CM->M[ii][2]*255.0);
+         if( r > 0 || g > 0 || b > 0 ){
+            for( jj=0 ; jj < ww ; jj++ ){
+              car[kk++] = r; car[kk++] = g; car[kk++] = b;
+            }
+         } else {
+            for( jj=0 ; jj < ww ; jj++ ){
+              car[kk++]=128; car[kk++]=128; car[kk++]=128;
+            }
+         }
+      }
+      dim = mri_resize( cim , ww,hh ) ;
+      if (!dc) {
+         dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 );
+      }
+      bigxim = mri_to_XImage( dc , dim ) ;
+      mri_free(dim) ;
+   }
+   
+   /* actually show the image to the window pane */
+   if( XtIsManaged(w) )
+     XPutImage( SUMAg_CF->X->DPY_controller1 , 
+                XtWindow(w) ,
+                dc->origGC , bigxim , 0,0,0,0 ,
+                ww , hh ) ;
+
+   SUMA_RETURNe;
+}
+
+void SUMA_PBAR_biginput_CB(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_PBAR_biginput_CB"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) { 
+      SUMA_SL_Err("NULL DO or Cont"); SUMA_RETURNe; 
+   }
+   SUMA_RETURNe;
+}
+
+void SUMA_PBAR_bigresize_CB(Widget w, XtPointer clientData, XtPointer call)
+{
+   static char FuncName[]={"SUMA_PBAR_bigresize_CB"};
+   SUMA_ALL_DO *ado=NULL;
+   SUMA_X_SurfCont *SurfCont = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("called");
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) { 
+      SUMA_SL_Err("NULL DO or Cont"); SUMA_RETURNe; 
+   }
+   SUMA_RETURNe;
+}
+
+
 void SUMA_cmap_wid_resize(Widget w, XtPointer clientData, XtPointer call)
 {
    static char FuncName[]={"SUMA_cmap_wid_resize"};
@@ -10422,46 +10522,124 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
       
       /* open me a glxarea */
       SUMA_LH("Forming glxarea");
-      #ifdef SUMA_MOTIF_GLXAREA
-         SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
-             glwMDrawingAreaWidgetClass, rcc2,
-             GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
-             XtNcolormap, SUMAg_SVv[0].X->CMAP,
-             XmNwidth,   SUMA_CMAP_WIDTH,
-             XmNheight,  SUMA_CMAP_HEIGHT,
-             NULL);
-      #else
-         SurfCont->cmp_ren->cmap_wid = 
-               XtVaCreateManagedWidget("glxarea",
-                                       glwDrawingAreaWidgetClass, rcc2,
+      {
+         #ifdef SUMA_MOTIF_GLXAREA
+            SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
+                glwMDrawingAreaWidgetClass, rcc2,
+                GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
+                XtNcolormap, SUMAg_SVv[0].X->CMAP,
+                XmNwidth,   SUMA_CMAP_WIDTH,
+                XmNheight,  SUMA_CMAP_HEIGHT,
+                NULL);
+         #else
+            SurfCont->cmp_ren->cmap_wid = 
+                  XtVaCreateManagedWidget("glxarea",
+                                          glwDrawingAreaWidgetClass, rcc2,
                                        GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
-                                       XtNcolormap, SUMAg_SVv[0].X->CMAP,
-                                       XmNwidth,   SUMA_CMAP_WIDTH,
-                                       XmNheight,  SUMA_CMAP_HEIGHT,
-                                       NULL);
-      #endif
-      snprintf(wname, 63, "%s->%s->Cmap->bar", 
-               SUMA_do_type_2_contwname(SurfCont->do_type), blk);
-      SUMA_Register_Widget_Help(SurfCont->cmp_ren->cmap_wid ,
-                                wname,
-                                "Colorbar for 'I' values",
-                                SUMA_SurfContHelp_ColorBar);
-      XtManageChild (rcc2);
+                                          XtNcolormap, SUMAg_SVv[0].X->CMAP,
+                                          XmNwidth,   SUMA_CMAP_WIDTH,
+                                          XmNheight,  SUMA_CMAP_HEIGHT,
+                                          NULL);
+         #endif
+         snprintf(wname, 63, "%s->%s->Cmap->bar", 
+                  SUMA_do_type_2_contwname(SurfCont->do_type), blk);
+         SUMA_Register_Widget_Help(SurfCont->cmp_ren->cmap_wid ,
+                                   wname,
+                                   "Colorbar for 'I' values",
+                                   SUMA_SurfContHelp_ColorBar);
+         XtManageChild (rcc2);
+
+         SUMA_LH("Callbacks on glxarea");
+         /* add me some callbacks */
+         XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
+                        GLwNginitCallback, SUMA_cmap_wid_graphicsInit, 
+                        (XtPointer )ado);
+         XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
+                        GLwNexposeCallback, SUMA_cmap_wid_expose, 
+                        (XtPointer )ado);
+         XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
+                        GLwNresizeCallback, SUMA_cmap_wid_resize, 
+                        (XtPointer )ado);
+         XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
+                        GLwNinputCallback, SUMA_cmap_wid_input, 
+                        (XtPointer )ado);
+      }  
       
-      SUMA_LH("Callbacks on glxarea");
-      /* add me some callbacks */
-      XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
-                     GLwNginitCallback, SUMA_cmap_wid_graphicsInit, 
-                     (XtPointer )ado);
-      XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
-                     GLwNexposeCallback, SUMA_cmap_wid_expose, 
-                     (XtPointer )ado);
-      XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
-                     GLwNresizeCallback, SUMA_cmap_wid_resize, 
-                     (XtPointer )ado);
-      XtAddCallback( SurfCont->cmp_ren->cmap_wid, 
-                     GLwNinputCallback, SUMA_cmap_wid_input, 
-                     (XtPointer )ado);
+      if (SUMAg_CF->Fake_Cmap) {
+         #define NPANE_MIN        2
+         #define NPANE_MAX       20
+         #define PANE_WIDTH      15
+         #define PANE_MIN_HEIGHT  5
+         #define PANE_LOFF        6
+         #define PANE_SPACING     2
+
+         #define PANE_MAXMODE     2
+         #define SASH_HNO         1
+         Widget frm, pw, pbarw;
+         SUMA_S_Warn("Creating X11 cmap for snapshot taking only!");
+         
+         /*
+         frm = XtVaCreateManagedWidget( "pbar" , xmFrameWidgetClass , rcc2 ,
+                                     XmNshadowType , XmSHADOW_ETCHED_IN ,
+                                  NULL ) ;
+
+         pw = XtVaCreateManagedWidget( "pbar" , xmPanedWindowWidgetClass , frm ,
+                                      XmNsashWidth , PANE_WIDTH-2*PANE_SPACING,
+                                      XmNsashIndent , PANE_SPACING ,
+                                      XmNsashHeight , SASH_HNO ,
+                                      XmNmarginHeight , 0 ,
+                                      XmNmarginWidth , 0 ,
+                                      XmNspacing , PANE_SPACING ,
+                                      XmNx , 0 , XmNy , 0 ,
+                                      XmNtraversalOn, True  ,
+                                      XmNinitialResourcesPersistent , False ,
+                                   NULL ) ;
+         pbarw = XtVaCreateWidget(
+                          "pbar" , xmDrawnButtonWidgetClass , pw ,
+                              XmNpaneMinimum , PANE_MIN_HEIGHT ,
+                              XmNallowResize , True ,
+                              XmNheight , SUMA_CMAP_HEIGHT ,
+                              XmNwidth , PANE_WIDTH,
+                              XmNborderWidth , 0 ,
+                              XmNmarginWidth , 0 ,
+                              XmNmarginHeight , 0 ,
+                              XmNhighlightThickness , 0 ,
+                              XmNpushButtonEnabled , True ,
+                              XmNuserData , (XtPointer)ado ,
+                              XmNtraversalOn , True ,
+                              XmNinitialResourcesPersistent , False ,
+                            NULL ) ;
+         */
+         pbarw = XmCreateDrawingArea(rcc2, "pbar", NULL, 0);
+         XtVaSetValues(pbarw, XmNheight , SUMA_CMAP_HEIGHT ,
+                              XmNwidth , SUMA_CMAP_WIDTH,
+                              XmNallowResize , False ,
+                              NULL);
+         XtManageChild (pbarw);
+         XtManageChild (rcc2);
+         XtAddCallback( pbarw, XmNexposeCallback, 
+                        SUMA_PBAR_bigexpose_CB, (XtPointer )ado ) ;
+         /* The following commands were part of a failed attempt
+         at getting the rest of the widgets - sub-brick selectors
+         etc. to appear when the glxarea drawing widget was not
+         created. For some reason, little other than the X11 colormap
+         would show if I did not create SurfCont->cmp_ren->cmap_wid
+         above. Interestingly, commenting out the SurfCont->cmp_ren->cmap_wid
+         callbacks above also had the same effect. 
+         So the solution is to render both and make one super thin. It is 
+         rendered in black anyway when the picture is snapped so it makes
+         little difference in the end.                ZSS Nov 2014 */
+         XtAddCallback( pbarw, 
+                        XmNresizeCallback, SUMA_PBAR_bigresize_CB, 
+                        (XtPointer )ado);
+         XtAddCallback( pbarw, 
+                        XmNinputCallback, SUMA_PBAR_biginput_CB, 
+                        (XtPointer )ado);
+         XtVaSetValues( SurfCont->cmp_ren->cmap_wid,
+                        XmNheight , 1,
+                        XmNwidth , 1,
+                        NULL);
+      }
       
       XtManageChild (rcc);
    }  /* the colorbar */

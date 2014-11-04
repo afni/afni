@@ -279,6 +279,9 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                                    number only\n"
 "   [-dev]: Allow access to options that are not well polished for\n"
 "           mass consuption.\n"   
+"   [-fake_cmap]: Use X11 to render cmap. This is only needed to get colorbar\n"
+"                 to appear when the frame is automatically captured by SUMA\n"
+"                 for making documentation. This option has no other use.\n"
 "   [-update_env] Performs the set operations detailed under -environment\n"
 "   [-default_env] Output hard coded default environment values, ignoring\n"
 "                  user settings.\n"
@@ -793,6 +796,13 @@ int main (int argc,char *argv[])
                   "Warning %s: SUMA running in developer mode, "
                   "some options may malfunction.\n", FuncName);
 			SUMAg_CF->Dev = YUP;
+			brk = YUP;
+		}
+		
+      if (!brk && (strcmp(argv[kar], "-fake_cmap") == 0)) {
+			SUMA_S_Warn("-fake_cmap is for automatic selfies of the widgets.\n"
+                     "You should not use this option for any other reason\n");
+			SUMAg_CF->Fake_Cmap = YUP;
 			brk = YUP;
 		}
 		

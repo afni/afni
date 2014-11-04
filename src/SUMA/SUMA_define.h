@@ -1628,6 +1628,8 @@ typedef struct {
                                 controlling the masking method */
    Widget ColPlane_fr; /*!< the frame controlling the colorplanes */
    Widget Slice_fr;
+   Widget DispFrame;
+   Widget SurfFrame;
    Widget VR_fr;
    Widget DsetMap_fr; /*!< the frame for mapping Dset to colormap */
    Widget Xhair_fr; /*!< The frame for cross hair Info and controls */ 
@@ -3685,6 +3687,9 @@ typedef struct {
 typedef struct {
    SUMA_Boolean Dev; /*!< Flag for developer option 
                      (allows the use of confusing or kludge options) */
+   SUMA_Boolean Fake_Cmap; /*!< Flag to create X11 cmap for the purpose of 
+                              automated picture taking. It should not be set
+                              on for any other reason. */
    SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function 
                                  is entered or exited */ 
    SUMA_Boolean Echo_KeyPress; /*!< prints to STDERR a notice when a function 

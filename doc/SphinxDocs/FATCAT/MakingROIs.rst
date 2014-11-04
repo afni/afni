@@ -137,11 +137,11 @@ integer labeling.
 If an input file has *N* bricks, then an input ``-refset *`` file (for
 applying user-defined ROI integer labels) can have either 1 or *N*
 bricks.  In the former case the same integer labels are applied to
-each brick, and in the latter the *i*th brick in the reference set is
-applied to the *i*th brick in the input set.
+each brick, and in the latter the *i*\ th brick in the reference set is
+applied to the *i*\ th brick in the input set.
 
 Currently, when an input dat set has a single NIML-formatted
-labeltable (*.niml.lt) attached to it, the labels are applied to each
+labeltable (\*.niml.lt) attached to it, the labels are applied to each
 brick.  That is, there are not subsets of labels applicable to
 different bricks.
 

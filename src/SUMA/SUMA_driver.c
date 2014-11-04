@@ -411,6 +411,19 @@ if (detail > 1) {
 "                      use this command.\n"
 "       -write_surf_cont_sphinx_help FILE.rst: Same as -write_surf_cont_help,\n"
 "                      but write SPHINX formatted RST file.\n"
+"       -snap_surf_cont_widgets FROOT: Takes snapshots of various widget \n"
+"                                      groupings and save them under FROOT*\n"
+"       Also, in the same vein as -write_surf_cont_help, \n"
+"       -write_surf_cont_sphinx_help, and -snap_surf_cont_widgets you have:\n"
+"       -write_vol_cont_help\n"
+"       -write_vol_cont_sphinx_help \n"
+"       -snap_vol_cont_widgets\n"
+"       -write_tract_cont_help\n"
+"       -write_tract_cont_sphinx_help \n"
+"       -snap_tract_cont_widgets\n"
+"       -write_graph_cont_help\n"
+"       -write_graph_cont_sphinx_help \n"
+"       -snap_graph_cont_widgets\n"
 "       -write_mouse_keyb_help FILE.txt: Write help output for mouse and \n"
 "                      keyboard shortcuts.\n"
 "       -write_mouse_keyb_sphinx_help FILE.rst: Same as -write_mouse_keyb_help\n"
@@ -1684,6 +1697,21 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argt[kar], "-snap_surf_cont_widgets") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -snap_surf_cont_widgets \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Snap_Surf_Cont_Widgets", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argt[kar], "-write_surf_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1709,6 +1737,21 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Tract_Cont_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-snap_tract_cont_widgets") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -snap_tract_cont_widgets \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Snap_Tract_Cont_Widgets", argt[kar]);
          
          argt[kar][0] = '\0';
          brk = YUP;
@@ -1744,6 +1787,21 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argt[kar], "-snap_vol_cont_widgets") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -snap_vol_cont_widgets \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Snap_Vol_Cont_Widgets", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argt[kar], "-write_vol_cont_sphinx_help") == 0))
       {
          if (kar+1 >= argtc)
@@ -1769,6 +1827,21 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Graph_Cont_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-snap_graph_cont_widgets") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -snap_graph_cont_widgets \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Snap_Graph_Cont_Widgets", argt[kar]);
          
          argt[kar][0] = '\0';
          brk = YUP;
