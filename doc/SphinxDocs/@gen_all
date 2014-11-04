@@ -1,6 +1,136 @@
 #!/bin/tcsh -f
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+if ("$1" == "") then
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+
+if ( -f ___build.log) \rm ___build.log
+
+if ($nosuma == 0) then
+   \rm SUMA/auto_inc/SurfCont_help.inc \
+       SUMA/auto_inc/Mouse_Key_help.inc \
+       SUMA/auto_inc/TractCont_help.inc \
+       SUMA/auto_inc/VolCont_help.inc   \
+       SUMA/auto_inc/GraphCont_help.inc
+
+   suma -fake_cmap                                             \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com                                             \
+           '-com surf_cont -write_mouse_keyb_sphinx_help       \
+                        SUMA/auto_inc/Mouse_Keyb_help.inc'     \
+        -drive_com                                             \
+           '-com surf_cont -write_mouse_cmap_keyb_sphinx_help  \
+                        SUMA/auto_inc/Mouse_Cmap_Keyb_help.inc'\
+        -drive_com                                             \
+           '-com surf_cont -write_surf_cont_sphinx_help        \
+                        SUMA/auto_inc/SurfCont_help.inc'       \
+        -drive_com                                             \
+           '-com surf_cont -snap_surf_cont_widgets             \
+                        SUMA/media/SurfCont.auto'              \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+
+   suma -fake_cmap                                             \
+        -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com '-com surf_cont -2xmasks'                   \
+        -drive_com                                             \
+           '-com surf_cont -write_tract_cont_sphinx_help       \
+                        SUMA/auto_inc/TractCont_help.inc'      \
+        -drive_com                                             \
+           '-com surf_cont -snap_tract_cont_widgets            \
+                        SUMA/media/TractCont.auto'             \
+        -drive_com                                             \
+           '-com surf_cont -snap_tract_cont_widgets            \
+                        SUMA/media/MaskCont.auto'             \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+
+   suma -fake_cmap                                             \
+        -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com                                             \
+           '-com surf_cont -write_vol_cont_sphinx_help         \
+                        SUMA/auto_inc/VolCont_help.inc'        \
+        -drive_com                                             \
+           '-com surf_cont -snap_vol_cont_widgets              \
+                        SUMA/media/VolCont.auto'               \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+
+   suma -fake_cmap                                             \
+        -gdset ~/.afni/data/samples/o.NETS_OR_000.niml.dset    \
+        -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com                                             \
+           '-com surf_cont -write_graph_cont_sphinx_help       \
+                        SUMA/auto_inc/GraphCont_help.inc'      \
+        -drive_com                                             \
+           '-com surf_cont -snap_graph_cont_widgets            \
+                        SUMA/media/GraphCont.auto'             \
+        -drive_com '-com kill_suma' |& tee -a ___build.log
+
+endif
+
+if ( ! -d _static) mkdir _static
+
+make clean html |& tee -a ___build.log
+
+UPLOAD:
+if ($webupdate == 1) then
+   echo "Enter 'y' to send _build/html to $apage y/[N]:"
+   set kk = $<
+   if ("$kk" == 'y' || "$kk" == 'Y') then
+      rsync -r _build/html $afscp
+   endif
+   echo "Content updated for $afwpg"
+endif
+
+
+goto END
+
+PARSE:
+	set Narg = $#
+	set cnt = 1
+   set nosuma = 0
+   set webupdate = 0
+   set afscp = afni.nimh.nih.gov:/var/www/html/pub/dist/doc/sphinx.test.html
+   set afwpg = http://afni.nimh.nih.gov/pub/dist/doc/sphinx.test.html
+   while ($cnt <= $Narg)
+      if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
+         set verb = 1
+         set echo
+         goto CONTINUE
+      endif
+     
+      if ("$argv[$cnt]" == '-h' || "$argv[$cnt]" == '-help') then
+         goto HELP
+      endif
+      
+      if ("$argv[$cnt]" == "-no_suma") then
+         set nosuma = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-web_upload") then
+         set webupdate = 1
+         goto CONTINUE
+      endif
+      
+      echo "Error: Option or parameter '$argv[$cnt]' not understood"
+      apsearch -popt `basename $0` -word $argv[$cnt]
+      goto BEND
+      
+      CONTINUE:		
+		@ cnt ++
+	end
+   
+   goto RETURN_PARSE
 if ("$1" =~ "-h*") then
+
+HELP:
    echo ""
    echo "A script to recreate GUI help files that go under SUMA/auto_inc"
    echo "Don't run this script unless you know you need to do so."
@@ -8,73 +138,13 @@ if ("$1" =~ "-h*") then
    echo "Normally, you just need to run:"
    echo "" 
    echo "      make html"
+   echo "or"
+   echo "      make clean html"
    echo ""
    goto END
-endif
 
-
-\rm SUMA/auto_inc/SurfCont_help.inc \
-    SUMA/auto_inc/Mouse_Key_help.inc \
-    SUMA/auto_inc/TractCont_help.inc \
-    SUMA/auto_inc/VolCont_help.inc   \
-    SUMA/auto_inc/GraphCont_help.inc
-
-suma -fake_cmap                                             \
-     -drive_com '-com surf_cont -view_surf_cont y'          \
-     -drive_com                                             \
-        '-com surf_cont -write_mouse_keyb_sphinx_help       \
-                     SUMA/auto_inc/Mouse_Keyb_help.inc'     \
-     -drive_com                                             \
-        '-com surf_cont -write_mouse_cmap_keyb_sphinx_help  \
-                     SUMA/auto_inc/Mouse_Cmap_Keyb_help.inc'\
-     -drive_com                                             \
-        '-com surf_cont -write_surf_cont_sphinx_help        \
-                     SUMA/auto_inc/SurfCont_help.inc'       \
-     -drive_com                                             \
-        '-com surf_cont -snap_surf_cont_widgets             \
-                     SUMA/media/SurfCont.auto'              \
-     -drive_com '-com kill_suma'
-
-suma -fake_cmap                                             \
-     -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
-     -drive_com '-com surf_cont -view_surf_cont y'          \
-     -drive_com '-com surf_cont -2xmasks'                   \
-     -drive_com                                             \
-        '-com surf_cont -write_tract_cont_sphinx_help       \
-                     SUMA/auto_inc/TractCont_help.inc'      \
-     -drive_com                                             \
-        '-com surf_cont -snap_tract_cont_widgets            \
-                     SUMA/media/TractCont.auto'             \
-     -drive_com                                             \
-        '-com surf_cont -snap_tract_cont_widgets            \
-                     SUMA/media/MaskCont.auto'             \
-     -drive_com '-com kill_suma'
-         
-suma -fake_cmap                                             \
-     -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
-     -drive_com '-com surf_cont -view_surf_cont y'          \
-     -drive_com                                             \
-        '-com surf_cont -write_vol_cont_sphinx_help         \
-                     SUMA/auto_inc/VolCont_help.inc'        \
-     -drive_com                                             \
-        '-com surf_cont -snap_vol_cont_widgets              \
-                     SUMA/media/VolCont.auto'               \
-     -drive_com '-com kill_suma'
-         
-suma -fake_cmap                                             \
-     -gdset ~/.afni/data/samples/o.NETS_OR_000.niml.dset    \
-     -drive_com '-com surf_cont -view_surf_cont y'          \
-     -drive_com                                             \
-        '-com surf_cont -write_graph_cont_sphinx_help       \
-                     SUMA/auto_inc/GraphCont_help.inc'      \
-     -drive_com                                             \
-        '-com surf_cont -snap_graph_cont_widgets            \
-                     SUMA/media/GraphCont.auto'             \
-     -drive_com '-com kill_suma'
-
-if ( ! -d _static) mkdir _static
-
-make clean html |& tee ___build.log
-
+BEND:
+   echo "Berror!"
+   goto END
 
 END:
