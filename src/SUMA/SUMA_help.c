@@ -1104,8 +1104,8 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap, int targ)
    } else if (targ == 1) {
       SS = SUMA_StringAppend (SS,
             ".. _Colormap_Keyboard_Controls:\n\n"
-            "Colormap Keyboard Controls:\n"
-            "---------------------------\n\n");
+            "Colormap Keyboard Controls\n"
+            "--------------------------\n\n");
    }
    #if 0
    s = SUMA_New_Additions (0, 1);
@@ -1411,38 +1411,39 @@ char * SUMA_gsf(char *wname, int target, char **hintout, char **helpout)
          if (strstr(wnameclp,".r00")) { /* get rid of .r00 */
             wnameclp[strlen(lnm)-4]='\0';
          }
+         
          switch (gwh->type) {
             case 0: /* container only */
                if (gwh->name_lvl == 1) {
-                  for (i=0; i<=strlen(sii); ++i) {su[i] = '-';} su[i] = '\0';
+                  for (i=0; i<strlen(sii); ++i) {su[i] = '-';} su[i] = '\0';
                   snprintf(s, 255, "\n"
                                    ".. _%s:\n"
                                    "\n"
-                                   "%s:\n"
+                                   "%s\n"
                                    "%s\n",
                               wname, sii, su);
                } else if (gwh->name_lvl == 2) {
-                  for (i=0; i<=strlen(sii); ++i) {su[i] = '^';} su[i] = '\0';
+                  for (i=0; i<strlen(sii); ++i) {su[i] = '^';} su[i] = '\0';
                   snprintf(s, 255, "\n"
                                    ".. _%s:\n"
                                    "\n"
-                                   "%s:\n"
+                                   "%s\n"
                                    "%s\n",
                               wname, sii, su);
                } else if (gwh->name_lvl == 3) {
-                  for (i=0; i<=strlen(sii); ++i) {su[i] = '"';} su[i] = '\0';
+                  for (i=0; i<strlen(sii); ++i) {su[i] = '"';} su[i] = '\0';
                   snprintf(s, 255, "\n"
                                    ".. _%s:\n"
                                    "\n"
-                                   "%s:\n"
+                                   "%s\n"
                                    "%s\n",
                               wname, sii, su);
                } else if (gwh->name_lvl == 4) {
-                  for (i=0; i<=strlen(sii); ++i) {su[i] = '.';} su[i] = '\0';
+                  for (i=0; i<strlen(sii); ++i) {su[i] = '.';} su[i] = '\0';
                   snprintf(s, 255, "\n"
                                    ".. _%s:\n"
                                    "\n"
-                                   "%s:\n"
+                                   "%s\n"
                                    "%s\n",
                               wname, sii, su);
                } else {
@@ -1500,8 +1501,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ == 1) {
       SS = SUMA_StringAppend (SS,
             ".. _KeyboardControls:\n\n"
-            "Keyboard Controls:\n"
-            "------------------\n\n");
+            "Keyboard Controls\n"
+            "-----------------\n\n");
    }
    SS = SUMA_StringAppend (SS, 
       "*On MACs*, Alt is the Apple/Command key.\n"
@@ -2050,8 +2051,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ == 1) {
       SS = SUMA_StringAppend (SS,
             ".. _MouseControls:\n\n"
-            "Mouse Controls:\n"
-            "---------------\n\n");
+            "Mouse Controls\n"
+            "--------------\n\n");
    }
 
    SS = SUMA_StringAppend (SS, 
@@ -2214,8 +2215,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
                   "\n\n.. _Selecting_Objects:\n\n"
-                  "Selecting Objects:\n"
-                  "------------------\n\n");
+                  "Selecting Objects\n"
+                  "-----------------\n\n");
       targ = 2;
    }
    
@@ -2285,8 +2286,8 @@ char * SUMA_help_message_Info(int targ)
    SS = SUMA_StringAppend (SS,
                   ":SPX:"
                   "\n\n.. _Continuous_Selection:\n\n"
-                  "Continuous Selection:\n"
-                  "^^^^^^^^^^^^^^^^^^^^^\n\n"
+                  "Continuous Selection\n"
+                  "^^^^^^^^^^^^^^^^^^^^\n\n"
                   ":DEF:"
                   "Continuous Selection:\n"
                   ":SPX:"
@@ -2303,8 +2304,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _Viewer_Menus:\n\n"
-            "Viewer Menus:\n"
-            "-------------\n\n");
+            "Viewer Menus\n"
+            "------------\n\n");
       targ = 2;
    }
    
@@ -2314,8 +2315,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _File_Menu:\n\n"
-            "File:\n"
-            "^^^^^\n\n");
+            "File\n"
+            "^^^^\n\n");
       targ = 2;
    }
    
@@ -2334,8 +2335,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _View_Menu:\n\n"
-            "View:\n"
-            "^^^^^\n\n");
+            "View\n"
+            "^^^^\n\n");
       targ = 2;
    }
 
@@ -2361,8 +2362,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _Tools_Menu:\n\n"
-            "Tools:\n"
-            "^^^^^^\n\n");
+            "Tools\n"
+            "^^^^^\n\n");
       targ = 2;
    }      
    SS = SUMA_StringAppend_va (SS, 
@@ -2375,8 +2376,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _Help_Menu:\n\n"
-            "Help:\n"
-            "^^^^^\n\n");
+            "Help\n"
+            "^^^^\n\n");
       targ = 2;
    }     
    SS = SUMA_StringAppend_va (SS, 
@@ -2413,8 +2414,8 @@ char * SUMA_help_message_Info(int targ)
    } else if (targ) {
       SS = SUMA_StringAppend (SS,
             ".. _ENV_List:\n\n"
-            "SUMA's environment vars:\n"
-            "------------------------\n\n"
+            "SUMA's env.\n"
+            "-----------\n\n"
             "Below is a list of all of SUMA's environment variables and"
             " their default values.\n"
             "You can query the value of a variable as SUMA sees it with:\n\n"
@@ -2423,8 +2424,8 @@ char * SUMA_help_message_Info(int targ)
             "     e.g: :command:`suma -VSUMA_ArrowRotAngle=`\n\n"
             "*Always* update your environment variable list with:\n\n"
             "     :command:`suma -update_env`\n\n"
-            "The List:\n"
-            "^^^^^^^^^\n"  );
+            "List of Variables\n"
+            "^^^^^^^^^^^^^^^^^\n"  );
       targ = 1;
    }  
    s = SUMA_env_list_help(0, targ);
