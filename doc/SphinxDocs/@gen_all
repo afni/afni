@@ -83,10 +83,10 @@ make clean html |& tee -a ___build.log
 
 UPLOAD:
 if ($webupdate == 1) then
-   echo "Enter 'y' to send _build/html to $apage y/[N]:"
+   echo "Enter 'y' to send _build/html to $afwpg y/[N]:"
    set kk = $<
    if ("$kk" == 'y' || "$kk" == 'Y') then
-      rsync -r _build/html $afscp
+      rsync -rv _build/html/ $afscp
    endif
    echo "Content updated for $afwpg"
 endif
