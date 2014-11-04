@@ -1,7 +1,7 @@
 .. _KeyboardControls:
 
-Keyboard Controls:
-------------------
+Keyboard Controls
+-----------------
 
 *On MACs*, Alt is the Apple/Command key.
    If it is commandeered by the OS, and you can't get it back, then
@@ -726,8 +726,8 @@ Keyboard Controls:
 
 .. _MouseControls:
 
-Mouse Controls:
----------------
+Mouse Controls
+--------------
 
 *On MACs*, Alt is the Apple/Command key.
    If it is commandeered by the OS, and you can't get it back, then
@@ -904,8 +904,8 @@ Mouse Controls:
 
 .. _Selecting_Objects:
 
-Selecting Objects:
-------------------
+Selecting Objects
+-----------------
 
 Selections are done with the :ref:`right-mouse click <Button_3-Press>` unless you request :ref:`otherwise <SUMA_SwapButtons_1_3>`.
 
@@ -951,20 +951,20 @@ Selecting a voxel also highlights the slice. You can turn off the highlight rect
 
 .. _Continuous_Selection:
 
-Continuous Selection:
-^^^^^^^^^^^^^^^^^^^^^
+Continuous Selection
+^^^^^^^^^^^^^^^^^^^^
 
 You can select and drag and sweep through numerous locations. The main thing to keep in mind is that when you have a multitute of object types, such as tracts, voxels, surfaces, etc. SUMA locks the selection to the object type selected at the beginning of the sweep. So, if you begin the selection on a surface and drag, then the selections during the sweep are restricted to surfaces only.
 
 .. _Viewer_Menus:
 
-Viewer Menus:
--------------
+Viewer Menus
+------------
 
 .. _File_Menu:
 
-File:
-^^^^^
+File
+^^^^
 
   
 .. _Save_View:
@@ -982,8 +982,8 @@ File:
 
 .. _View_Menu:
 
-View:
-^^^^^
+View
+^^^^
 
   
 .. _SUMA_Controller:
@@ -1014,8 +1014,8 @@ View:
 
 .. _Tools_Menu:
 
-Tools:
-^^^^^^
+Tools
+^^^^^
 
   
 .. _Draw_ROI:
@@ -1024,8 +1024,8 @@ Tools:
 
 .. _Help_Menu:
 
-Help:
-^^^^^
+Help
+^^^^
 
    
 .. _Usage:
@@ -1068,8 +1068,8 @@ Help:
 
 .. _ENV_List:
 
-SUMA's environment vars:
-------------------------
+SUMA's env.
+-----------
 
 Below is a list of all of SUMA's environment variables and their default values.
 You can query the value of a variable as SUMA sees it with:
@@ -1084,8 +1084,8 @@ with 'name' replaced by the environment variable's name.
 
      :command:`suma -update_env`
 
-The List:
-^^^^^^^^^
+List of Variables
+^^^^^^^^^^^^^^^^^
 .. _SUMA_ArrowRotAngle:
 
 :envvar:`SUMA_ArrowRotAngle`: Incremental arrow rotation angle in degrees

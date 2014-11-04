@@ -1,7 +1,7 @@
 .. _Colormap_Keyboard_Controls:
 
-Colormap Keyboard Controls:
----------------------------
+Colormap Keyboard Controls
+--------------------------
 
 With the cursor over the colormap, the following keyboard initiated actions
 are available.
