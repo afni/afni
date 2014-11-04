@@ -1,8 +1,8 @@
 
 .. _TractCont:
 
-Network/Tracts Cont.:
----------------------
+Network/Tracts Cont.
+--------------------
 
 The tract controller is for controlling the way tracts and values defined over them are displayed. Each network of tracts gets its own controller. You can launch the :ref:`Tract Controller <TractCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
 
@@ -17,8 +17,8 @@ The tract controller is for controlling the way tracts and values defined over t
 
 .. _TractCont->Tract_Properties:
 
-Tract Properties:
-^^^^^^^^^^^^^^^^^
+Tract Properties
+^^^^^^^^^^^^^^^^
 
 Name and number of bundles, tracts, and points making up the  selected network of tracts. 
 
@@ -38,8 +38,8 @@ Name and number of bundles, tracts, and points making up the  selected network o
 
 .. _TractCont->Xhair_Info:
 
-Information at crosshair:
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Information at crosshair
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -101,8 +101,8 @@ Information at crosshair:
 
 .. _TractCont->Coloring_Controls:
 
-Coloring Controls:
-^^^^^^^^^^^^^^^^^^
+Coloring Controls
+^^^^^^^^^^^^^^^^^
 
 Controls the final coloration of the tracts based on the tract datasets available. What's a tract dataset you say? It is a dataset defined over the collection of points that define the tracts of a network. And where do we get these sets? Nowhere at the moment. For now they are generated internally and they are only of the RGB variety. This will change in the future, when you would be able to drive a flying car and have arbitrary sets much like on surfaces or volumes.
 
@@ -260,8 +260,8 @@ Controls the final coloration of the tracts based on the tract datasets availabl
 
 .. _Mask_Manipulation_Mode:
 
-Mask Manipulation Mode:
------------------------
+Mask Manipulation Mode
+----------------------
 
 To move the mask interactively, right-double click on it to place SUMA in :term:`Mask Manipulation Mode` which is indicated by displaying the moveable mask in mesh mode (see help in SUMA, (:ref:`ctrl+h<LC_Ctrl+h>`), section :ref:`Button 3-DoubleClick<Button_3-DoubleClick>` for details.). Selecting a location on the tracts, the slices, or surfaces, will make the mask jump to that location. The mask should also be visibile in AFNI (if SUMA is launched with -dev option), and clicking in AFNI will make the mask move in SUMA also.
 
@@ -290,8 +290,8 @@ To turn off 'Mask Manipulation Mode' right-double click in open air, or on the m
 
 .. _MaskCont:
 
-Network tracts mask controller:
--------------------------------
+Network tracts mask controller
+------------------------------
 
 The mask controller is used for manipulating masks for network tractsYou can launch the :ref:`Mask Controller <MaskCont>` from the :ref:`tract controller <TractCont>` by clicking on :ref:`Masks<TractCont->Coloring_Controls->Masks>` twice.
 
@@ -306,8 +306,8 @@ The mask controller is used for manipulating masks for network tractsYou can lau
 
 .. _MaskCont->Masks:
 
-Create/delete masks and setup masking expression:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Create/delete masks and setup masking expression
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 

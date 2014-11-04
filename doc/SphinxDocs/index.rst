@@ -8,8 +8,8 @@ Welcome to AFNI's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 4
-   :numbered:
+   :maxdepth: 2
+   :numbered: 2
    :includehidden:
 
    sumatoc1

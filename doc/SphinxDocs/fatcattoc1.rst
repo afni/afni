@@ -6,7 +6,7 @@ FATCAT
 
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    FATCAT/FATCAT_All
    FATCAT/DealingWithGrads

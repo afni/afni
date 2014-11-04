@@ -1,13 +1,13 @@
 
 .. _VolCont:
 
-Volume Cont.:
--------------
+Volume Cont.
+------------
 
 The volume controller is for controlling the way volumes are rendered. Each volume gets its own controller. You can use the switch button above to switch between them. The volume controller is initialized by the volume of the last selected voxel.
  After you have selected a voxel, you can launch the :ref:`Volume Controller <VolCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
 
-.. figure:: media/VolumeController.jpg
+.. figure:: media/VolCont.auto.ALL.jpg
    :align: center
 
 
@@ -18,8 +18,8 @@ The volume controller is for controlling the way volumes are rendered. Each volu
 
 .. _VolCont->Volume_Properties:
 
-Volume Properties:
-^^^^^^^^^^^^^^^^^^
+Volume Properties
+^^^^^^^^^^^^^^^^^
 
 Block providing information about selected volume.
 
@@ -39,8 +39,8 @@ Block providing information about selected volume.
 
 .. _VolCont->Xhair_Info:
 
-Information at crosshair:
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Information at crosshair
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -100,8 +100,8 @@ Information at crosshair:
 
 .. _VolCont->Slice_Controls:
 
-Set up which and how many slices are displayed:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Set up which and how many slices are displayed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -190,8 +190,16 @@ Set up which and how many slices are displayed:
 
 .. _VolCont->Volume_Rendering_Controls:
 
-Set the parameters for 3D rendering:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Set the parameters for 3D rendering
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+.. figure:: media/VolCont.auto.Volume_Rendering_Controls.jpg
+   :align: right
+
+   ..
+
 
 
    .. _VolCont->VR->Ns:
@@ -212,8 +220,8 @@ Set the parameters for 3D rendering:
 
 .. _VolCont->Dset_Controls:
 
-Dset Controls:
-^^^^^^^^^^^^^^
+Dset Controls
+^^^^^^^^^^^^^
 
 
 
@@ -293,8 +301,8 @@ Dset Controls:
 
 .. _VolCont->Dset_Mapping:
 
-Dset Color Mapping:
-^^^^^^^^^^^^^^^^^^^
+Dset Color Mapping
+^^^^^^^^^^^^^^^^^^
 
 
 

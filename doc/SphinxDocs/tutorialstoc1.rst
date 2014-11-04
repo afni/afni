@@ -5,7 +5,7 @@ Demos, Tutorials
 ################
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    tutorials/WalnutBrain/WalnutBrain
    tutorials/ContributeDocs/ContributeDocs

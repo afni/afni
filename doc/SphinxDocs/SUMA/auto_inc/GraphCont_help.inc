@@ -1,8 +1,8 @@
 
 .. _GraphCont:
 
-Graph Cont.:
-------------
+Graph Cont.
+-----------
 
 The graph controller is for controlling the way graphs (matrices) are rendered.  Each graph gets its own controller. You can use the switch button above to switch between them. The graph controller is initialized by the graph of the last selected edge/cell.
  After you have selected an edge, you can launch the :ref:`Graph Controller <VolCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
@@ -18,8 +18,8 @@ The graph controller is for controlling the way graphs (matrices) are rendered. 
 
 .. _GraphCont->Graph_Dset_Properties:
 
-Properties of graph dset:
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Properties of graph dset
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -39,8 +39,8 @@ Properties of graph dset:
 
 .. _GraphCont->Xhair_Info:
 
-Crosshair Information:
-^^^^^^^^^^^^^^^^^^^^^^
+Crosshair Information
+^^^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -104,8 +104,8 @@ Crosshair Information:
 
 .. _GraphCont->GDset_Controls:
 
-Control appearance of 3D graphs and matrices:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Control appearance of 3D graphs and matrices
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -363,8 +363,8 @@ Control appearance of 3D graphs and matrices:
 
 .. _GraphCont->GDset_Mapping:
 
-Control mapping of edge/cell values to color map:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Control mapping of edge/cell values to color map
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 

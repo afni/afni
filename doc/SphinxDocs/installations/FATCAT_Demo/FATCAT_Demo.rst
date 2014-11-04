@@ -61,12 +61,13 @@ In the meanwhile we trust you will read the README file and go over the comments
 .. figure:: media/Do_06_vis1.jpg
    :align: center
    
-..
+   ..
+
 
 .. figure:: media/Do_06_vis2.jpg
    :align: center
    
-..
+   ..
 
 .. _Do_09_VISdti_SUMA_visual_ex2.tcsh:
 
@@ -75,10 +76,12 @@ In the meanwhile we trust you will read the README file and go over the comments
    
    ..
    
+   
 .. figure:: media/Do_09_vis2.2.jpg
    :align: center
    
    ..
+
 
 .. figure:: media/Do_09_vis2.3.jpg
    :align: center
@@ -89,6 +92,7 @@ In the meanwhile we trust you will read the README file and go over the comments
    :align: center
    
    ..
+
 
 .. figure:: media/Do_09_vis2.5.jpg
    :align: center
@@ -101,7 +105,7 @@ In the meanwhile we trust you will read the README file and go over the comments
 .. figure:: media/Do_09_vis3.1.jpg
    :align: center
    
-..
+   ..
 
 
 Scripts Do_*_VIS* are meant to illustrate interactive visualization of the results. The scripts will open results in AFNI and SUMA and a prompt window will guide throuh basic viewing steps. Should be able to create images such as the ones shown above. Fun times!

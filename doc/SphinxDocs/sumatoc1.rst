@@ -7,7 +7,7 @@ SUMA
 ####
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    SUMA/cover
    SUMA/Viewer

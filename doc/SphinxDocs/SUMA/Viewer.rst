@@ -6,8 +6,8 @@ SUMA Viewer:
 
 .. _ Mouse+Keyboard:
 
-Mouse & Keyboard:
-=================
+Mouse & Keyboard
+================
 
 .. include:: auto_inc/Mouse_Keyb_help.inc
 
@@ -15,8 +15,8 @@ Mouse & Keyboard:
 
 .. _ObjectControllers:
 
-Controllers:
-============
+Controllers
+===========
 
 GUI controllers make up three groups:
 
@@ -28,8 +28,8 @@ GUI controllers make up three groups:
    
 .. _Controller_Notebook:
 
-Controller Notebook:
---------------------
+Controller Notebook
+-------------------
 
 Many of the displayable objects, particularly those that can carry data, have an object controller. Historically there was only surface-controllers but now volumes, tracts, and graphs also have their own controllers. To easiest way to open a controller is to select an object and open its controller with :kbd:`ctrl+s`, or :menuselection:`View --> Object Controller`. Once a controller is open, selecting other objects automatically creates their own controller. All object controllers are grouped in one notebook window as shown in :ref:`Object Controller <object_controller_notebook>`.
 
@@ -43,8 +43,8 @@ Many of the displayable objects, particularly those that can carry data, have an
    
 Once you select an object, its controller is popped to the top. You can also use the :ref:`Switch <GL_CN_Switch>` to get at the controller for an object that you don't want to select or that is simply out of reach (invisible). 
 
-Disp. Cont.:
-^^^^^^^^^^^^
+Disp. Cont.
+^^^^^^^^^^^
 
 A few controls for the object controller notebook.
 
@@ -67,13 +67,13 @@ A few controls for the object controller notebook.
 
 .. _ColorMixing:
 
-Color Mixing:
-=============
+Color Mixing
+============
 
 .. _Color_Plane_Grouping:
 
-Color Plane Grouping:
----------------------
+Color Plane Grouping
+--------------------
 Colorized Dsets are organized into layered color planes
    2 commonly used planes are:
       Surface Convexity (usually in gray scale) 
@@ -96,8 +96,8 @@ Color planes of the same group are mixed together:
    
 .. _Plane_Layering:
    
-Layering fore- & background planes:
------------------------------------   
+Layering fore- & background planes
+----------------------------------   
       To demonstrate the layering of foreground and background planes, start with a view of an inflated surface with come color overlay such as you would get from talking to AFNI. Requires :ref:`suma_demo <suma_demo>`
       
       .. figure:: media/collayer.0000.jpg
@@ -137,8 +137,8 @@ Layering fore- & background planes:
 
 .. _Color_Plane_Opacity:
 
-Playing with color plane opacity:
----------------------------------
+Playing with color plane opacity
+--------------------------------
    Continuing with the demo surfaces and pre-existing color planes (datasets)...
    
    Open surface controller with :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View->Surface Controller`
@@ -171,8 +171,8 @@ Playing with color plane opacity:
       
       .. That | above is to put a line break after figure and avoid messing up the centering of the heading below.
       
-Playing with color plane order:
--------------------------------
+Playing with color plane order
+------------------------------
    Continuing with the examples above, with inflated view and function from AFNI displayed on the surfaces...
    
    We will push dataset from :file:`lh.1D.col` below the function from AFNI

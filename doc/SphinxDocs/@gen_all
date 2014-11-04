@@ -55,6 +55,7 @@ if ($nosuma == 0) then
 
    suma -fake_cmap                                             \
         -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
+        -drive_com '-com viewer_cont -key:v6455128 j'           \
         -drive_com '-com surf_cont -view_surf_cont y'          \
         -drive_com                                             \
            '-com surf_cont -write_vol_cont_sphinx_help         \

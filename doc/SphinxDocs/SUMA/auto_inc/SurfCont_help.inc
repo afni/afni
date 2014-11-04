@@ -1,13 +1,13 @@
 
 .. _SurfCont:
 
-Surface Cont.:
---------------
+Surface Cont.
+-------------
 
 The surface controller is for controlling the way surfaces and datasets defined over them are displayed. The same controller is shared by a :term:`family of surfaces <Family of surfaces>` and all the datasets displayed on them. Left and Right surfaces have separate controllers though in most cases actions on one hemisphere's controller are automatically mirrored on the contralateral side. The surface controller is initialized by the currently selected surface - the one said to be in focus.
 You can launch the :ref:`Surface Controller <SurfCont>` with: :ref:`ctrl+s <LC_Ctrl+s>` or :menuselection:`View-->Object Controller`
 
-.. figure:: media/SurfaceController.jpg
+.. figure:: media/SurfCont.auto.ALL.jpg
    :align: center
 
 
@@ -18,8 +18,8 @@ You can launch the :ref:`Surface Controller <SurfCont>` with: :ref:`ctrl+s <LC_C
 
 .. _SurfCont->Surface_Properties:
 
-Surface Properties:
-^^^^^^^^^^^^^^^^^^^
+Surface Properties
+^^^^^^^^^^^^^^^^^^
 
 Block providing information about selected surface.
 
@@ -80,8 +80,8 @@ Block providing information about selected surface.
 
 .. _SurfCont->Xhair_Info:
 
-Crosshair Information:
-^^^^^^^^^^^^^^^^^^^^^^
+Crosshair Information
+^^^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -147,8 +147,8 @@ Crosshair Information:
 
 .. _SurfCont->Dset_Controls:
 
-Dset Controls:
-^^^^^^^^^^^^^^
+Dset Controls
+^^^^^^^^^^^^^
 
 
 
@@ -325,8 +325,8 @@ Dset Controls:
 
 .. _SurfCont->Dset_Mapping:
 
-Dset Color Mapping:
-^^^^^^^^^^^^^^^^^^^
+Dset Color Mapping
+^^^^^^^^^^^^^^^^^^
 
 
 

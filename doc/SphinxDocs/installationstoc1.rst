@@ -5,7 +5,7 @@ Demo Material
 #############
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
 
    installations/FATCAT_Demo/FATCAT_Demo
