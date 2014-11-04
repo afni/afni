@@ -3649,6 +3649,7 @@ SUMA_SurfaceViewer *SUMA_BestViewerForADO(SUMA_ALL_DO *ado)
       case GRAPH_LINK_type:
       case SDSET_type:
       case VO_type:
+      case MASK_type:
       case TRACT_type:
          if ((sv=SUMA_OneViewerWithADOinFocus(ado))) {
             SUMA_RETURN(sv);
@@ -4063,6 +4064,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    }
    
    cf->Dev = NOPE;
+   cf->Fake_Cmap = NOPE;
    cf->InOut_Notify = NOPE;
    cf->Echo_KeyPress = NOPE;
    cf->InOut_Level = 0;
@@ -4680,6 +4682,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
    
    SurfCont->DsetMap_fr = NULL;
    SurfCont->ColPlane_fr = NULL;
+   SurfCont->DispFrame = NULL;
+   SurfCont->SurfFrame = NULL;
    SurfCont->Xhair_fr = NULL;
    SurfCont->TLS = NULL;
    SurfCont->Mainform = NULL;
@@ -6349,7 +6353,7 @@ SUMA_ALL_DO *SUMA_SV_Focus_any_ADO(SUMA_SurfaceViewer *sv, int *dov_id)
 }
 
 SUMA_ALL_DO *SUMA_SV_any_ADO_WithSurfContWidget(SUMA_SurfaceViewer *sv, 
-                                                int *dov_id)
+                                         int *dov_id, SUMA_DO_Types thisdotp)
 {
    static char FuncName[]={"SUMA_SV_any_ADO_WithSurfContWidget"};
    SUMA_ALL_DO *ado=NULL;
@@ -6367,11 +6371,12 @@ SUMA_ALL_DO *SUMA_SV_any_ADO_WithSurfContWidget(SUMA_SurfaceViewer *sv,
    }
    
    /* give me anything */
-   ado = SUMA_findany_ADO_WithSurfContWidget(dov_id);
+   ado = SUMA_findany_ADO_WithSurfContWidget(dov_id, thisdotp);
    return(ado);
 }
 
-SUMA_ALL_DO *SUMA_findany_ADO_WithSurfContWidget(int *dov_id)
+SUMA_ALL_DO *SUMA_findany_ADO_WithSurfContWidget(int *dov_id, 
+                                                 SUMA_DO_Types thisdotp)
 {
    static char FuncName[]={"SUMA_findany_ADO_WithSurfContWidget"};
    SUMA_ALL_DO *ado=NULL;
@@ -6383,13 +6388,21 @@ SUMA_ALL_DO *SUMA_findany_ADO_WithSurfContWidget(int *dov_id)
    SUMA_X_SurfCont *SurfCont=NULL;
       
    if (dov_id) *dov_id = -1;
+   if (thisdotp != NOT_SET_type) {
+      ttv[0] = thisdotp;
+      ttv[1] = NOT_SET_type;
+   }
+   
    tt = 0;
    while (ttv[tt] != NOT_SET_type) {
       for (ii=0; ii<SUMAg_N_DOv; ++ii) {
          if (iDO_type(ii) == ttv[tt]) {
             ado = iDO_ADO(ii);
             if ((SurfCont = SUMA_ADO_Cont(ado)) &&
-                SurfCont->TLS) return(ado);
+                SurfCont->TLS) {
+                if (dov_id) *dov_id = ii;
+                return(ado);
+            }
          }
       }
       ++tt;

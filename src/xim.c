@@ -866,7 +866,7 @@ ENTRY("SNAP_grab_image") ;
 
 /*----------------------------------------------------------------------*/
 /*! Call this function to get a snapshot of a widget and save
-    it into a PPM file.
+    it into a PPM file. See also ISQ_snapfile2()
 ------------------------------------------------------------------------*/
 
 void ISQ_snapfile( Widget w )
@@ -909,6 +909,70 @@ ENTRY("ISQ_snapfile") ;
    mri_free(tim) ; last_ii = ii ;
    EXRETURN ;
 }
+
+/* A variant on ISQ_snapfile that allows direct control 
+   of filename                                          */
+void ISQ_snapfile2( Widget w , char *fout)
+{
+   MRI_IMAGE *tim ;
+   Window win ;
+   char fname[64] , *eee , prefix[32] ;
+   int ii ; static int last_ii=1 ;
+
+ENTRY("ISQ_snapfile2") ;
+
+   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
+   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
+
+   /* create display context if we don't have one */
+
+   if( snap_dc == NULL ){
+     if( first_dc != NULL ) snap_dc = first_dc ;
+     else                   snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 );
+   }
+
+   /* try to get image */
+
+   tim = SNAP_grab_image( w , snap_dc ) ;
+   if( tim == NULL )                         EXRETURN ;
+
+   if (!fout) {
+      eee = getenv("AFNI_SNAPFILE_PREFIX") ;
+      if( eee == NULL ){
+         strcpy(prefix,"S_") ;
+      } else {
+         strncpy(prefix,eee,30) ; prefix[30] = '\0' ; strcat(prefix,"_") ;
+         if( !THD_filename_ok(prefix) ) strcpy(prefix,"S_") ;
+      }
+      for( ii=last_ii ; ii <= 999999 ; ii++ ){
+         sprintf(fname,"%s%06d.ppm",prefix,ii) ;
+         if( ! THD_is_ondisk(fname) ) break ;
+      }
+      if( ii <= 999999 ) mri_write_pnm( fname , tim ) ;
+      last_ii = ii ;
+   } else {
+             if (STRING_HAS_SUFFIX(fout, ".jpg")) {
+         mri_write_jpg( fout , tim ) ;
+      } else if (STRING_HAS_SUFFIX(fout, ".pnm")) {
+         mri_write_pnm( fout , tim ) ;
+      } else if (STRING_HAS_SUFFIX(fout, ".png")) {
+         mri_write_png( fout , tim ) ;
+      } else if (STRING_HAS_SUFFIX(fout, ".1D")) {
+         mri_write_1D( fout , tim ) ;
+      } else {
+         snprintf(fname,59,"%s", fout);
+         strcat(fname,".jpg");
+         WARNING_message("Format not recognized, saving in jpg format to %s",
+                         fname);
+         mri_write_jpg( fname , tim ) ;
+      }
+   }
+   mri_free(tim) ; 
+   EXRETURN ;
+}
+
+
 
 
 /*-----------------------------------------------------------------------*/
