@@ -48,9 +48,9 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 
 Usage:
 ------ 
- rPkgsInstall is a program for installing, updating, or removing any R packages.
- It conveniently runs on the shell terminal instead of the R prompt. Check out
- the examples below or the option specifications for usage details.'
+ rPkgsInstall is a program for installing, checking, updating, or removing any
+ R packages. It conveniently runs on the shell terminal instead of the R prompt.
+ Check out the examples below or the option specifications for usage details.'
 
    ex1 <- 
 "\n--------------------------------
@@ -62,23 +62,21 @@ AFNI programs:
    ex2 <- 
 "\n--------------------------------
 Example 2 --- Install user-specified R packages:
-   rPkgsInstall -pkgs 'afex'
+   rPkgsInstall -pkgs 'gsl'
    rPkgsInstall -pkgs 'afex,phia,paran'
    rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cran.revolutionanalytics.com'\n"
 
    ex3 <- 
 "\n--------------------------------
-Example 3 --- update R packages:
+Example 3 --- check/update/remove R packages:
+   rPkgsInstall -pkgs ALL -check
    rPkgsInstall -pkgs ALL -update
+   rPkgsInstall -pkgs ALL -remove
    rPkgsInstall -pkgs ALL -update -site 'http://cran.fhcrc.org/'
+   rPkgsInstall -pkgs 'lme4,pixmap,plotrix' -check
    rPkgsInstall -pkgs 'afex,phia,paran' -update
-   rPkgsInstall -pkgs 'snow,nlme,psych' -update -site 'http://cran.cs.wwu.edu/'\n"
-
-   ex4 <- 
-"\n--------------------------------
-Example 4 --- remove R packages:
-   rPkgsInstall -pkgs 'afex' -remove
-   rPkgsInstall -pkgs ALL -remove\n"
+   rPkgsInstall -pkgs 'boot' -remove
+   rPkgsInstall -pkgs 'snow,nlme,vars' -update -site 'http://cran.cs.wwu.edu/'\n\n"
 
    parnames <- names(params)
    ss <- vector('character')
@@ -93,7 +91,7 @@ Example 4 --- remove R packages:
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep='')) 
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ss, sep='\n')
    
    if (adieu) exit.AFNI();
 }
@@ -115,6 +113,13 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "         You can use rPkgsInstall to install, update, or remove any R packages,",
    "         and they do not have to be in the list above. \n", sep = '\n'
              ) ),
+
+      '-check' = apl(n = 0,  h = paste(
+   "-check: This option verifies whether all or the user-specified R packages",
+   "         listed in option -pkgs are installed on the computer, but it does not",
+   "         install/update/remove the packages.\n",sep = '\n'
+                     ) ),
+
                    
       '-update' = apl(n = 0,  h = paste(
    "-update: This option indicates that all or the user-specified R packages in AFNI",
@@ -158,6 +163,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    lop <- list (com_history = com_history)
    lop$pkgs   <- NA
    lop$update <- 0
+   lop$check <- 0
    lop$remove  <- 0
    lop$site   <- 'http://cran.mtu.edu/'
    lop$verb   <- 0
@@ -169,6 +175,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
       
       switch(opname,
              pkgs   = lop$pkgs   <- ops[[i]],
+             check  = lop$check  <- TRUE,
              update = lop$update <- TRUE,
              remove = lop$remove <- TRUE,
              site   = lop$site   <- ops[[i]],
@@ -188,12 +195,26 @@ process.rPkgsInstall.opts <- function (lop, verb = 0) {
    return(lop)
 }
 
-getPkgs <- function(PKGS, update=0, remove=0, site='http://cran.mtu.edu/') {     
+getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cran.mtu.edu/') {    
    pkgs_miss <- PKGS[which(!PKGS %in% installed.packages()[, 1])]
-   pkgs_hit  <- PKGS[which(PKGS %in% installed.packages()[, 1])]
-   if ((length(pkgs_miss) > 0) & !remove) install.packages(pkgs_miss, dep=TRUE, repos=site)
-   if(update) update.packages(pkgs_hit, repos=site)
-   if(remove) remove.packages(pkgs_hit)
+   if(check) {
+      if(length(pkgs_miss) > 0) warn.AFNI(paste("These packages are not installed on the computer: ", pkgs_miss, '!\n', sep='')) else 
+         note.AFNI(paste("\tThis package has been verified on the computer: ", PKGS, "\n", sep=''))
+   } else {
+      pkgs_hit  <- PKGS[which(PKGS %in% installed.packages()[, 1])]
+      if((length(pkgs_miss) > 0) & !remove) {
+         install.packages(pkgs_miss, dep=TRUE, repos=site)
+         note.AFNI(paste("\tThis package has been installed on the computer: ", pkgs_miss, "\n", sep=''))
+     }
+      if(update) {
+         update.packages(pkgs_hit, repos=site)
+         note.AFNI(paste("\tThis package has been updated on the computer: ", pkgs_hit, "\n", sep=''))
+      }  
+      if(remove) {
+         remove.packages(pkgs_hit)
+         note.AFNI(paste("\tThis package has been removed from the computer: ", pkgs_hit, "\n", sep=''))
+     }
+   }   
 }
 
 
@@ -231,4 +252,4 @@ getPkgs <- function(PKGS, update=0, remove=0, site='http://cran.mtu.edu/') {
       str(lop);
    }
 
-   getPkgs(lop$PKGS, lop$update, lop$remove, lop$site)
+   getPkgs(lop$PKGS, lop$check, lop$update, lop$remove, lop$site)
