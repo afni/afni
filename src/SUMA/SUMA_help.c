@@ -1484,6 +1484,7 @@ char * SUMA_help_message_Info(int targ)
    static char FuncName[]={"SUMA_help_message_Info"};
    char stmp[1000], *s = NULL;
    SUMA_STRING *SS = NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -1897,6 +1898,7 @@ char * SUMA_help_message_Info(int targ)
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Force a resend of \n"
       "            surfaces to AFNI.\n\n", SUMA_hkf("Ctrl+t", targ));
+
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Start listening for niml connections\n\n", SUMA_hkf("T", targ));
    SS = SUMA_StringAppend_va (SS, 
@@ -2141,8 +2143,10 @@ char * SUMA_help_message_Info(int targ)
       "                         strangely.\n",
          SUMA_hkf("Shift+Alt+Button 3-Press", targ));
    SS = SUMA_StringAppend_va (SS,    
-      "  %s: Same as without shift, except does not draw\n"
-      "                           in DrawROI mode.\n",
+      "  %s: Shows an image of the selection buffer for debugging purposes. \n"
+      ":    :In :ref:`Draw ROI Mode <Draw_ROI_Mode>`, the selection buffer is\n"
+      ":    :not displayed and the effect of the click is to select a node, \n"
+      ":    :but not to include it in the ROI.\n",
          SUMA_hkf("Shift+Button 3-Press", targ));
    SS = SUMA_StringAppend_va (SS, 
       "  %s: Yoke intensity selection to index of \n"
@@ -3214,6 +3218,9 @@ char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type)
    ++nc; if (nc > 9) nc=0; ss=s[nc]; ss[0]='\0';
 
    switch (do_type) {
+      case ROIdO_type:
+         snprintf(ss, 63,"ROICont");
+         break;
       case SO_type:
          snprintf(ss, 63,"SurfCont");
          break;
@@ -3539,6 +3546,81 @@ void SUMA_Snap_AllGraphCont (char *froot)
    s = SUMA_append_replace_string(froot, "GDset_Mapping.jpg",".", 0);   
    ISQ_snapfile2 ( SurfCont->DsetMap_fr,  s); SUMA_ifree(s);
 
+   SUMA_RETURNe;
+}
+
+char * SUMA_Help_AllROICont (int targ)
+{
+   static char FuncName[]={"SUMA_Help_AllROICont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   SUMA_STRING *SS = NULL;
+   char *worder[] = {
+                     "ROICont",
+                     "ROICont->ROI",
+                     "ROICont->ROI->Draw",
+                     "ROICont->ROI->Cont.",
+                     "ROICont->ROI->Pen",
+                     "ROICont->ROI->Afni",
+                     "ROICont->ROI->Dist",
+                     "ROICont->ROI->Label",
+                     "ROICont->ROI->Value",
+                     "ROICont->ROI->Undo",
+                     "ROICont->ROI->Redo",
+                     "ROICont->ROI->Join",
+                     "ROICont->ROI->Finish",
+                     "ROICont->ROI->Switch_ROI",
+                     "ROICont->ROI->Load",
+                     "ROICont->ROI->delete_ROI",
+                     "ROICont->ROI->Save",
+                     NULL };
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   k = 0;
+   while (worder[k]) {
+         s = SUMA_gsf(worder[k], targ, &sii, &shh);
+         if (!shh || strstr(sii, shh)) {/* help same as hint */
+            SS = SUMA_StringAppend_va(SS, "%s\n", s);
+         } else {
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+                                   s, shh?shh:"");
+         }
+         SUMA_ifree(sii); SUMA_ifree(shh);
+      ++k;
+   }
+          
+   SUMA_SS2S(SS, s);
+      
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
+}
+
+void SUMA_Snap_AllROICont (char *froot)
+{
+   static char FuncName[]={"SUMA_Snap_AllROICont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   
+   SUMA_ENTRY;
+   
+   if (!SUMAg_CF->X->DrawROI) SUMA_RETURNe;
+   if (!SUMA_OpenDrawROIController(NULL)) {
+      SUMA_S_Err("DrawROI controller could not be open");
+      SUMA_RETURNe;
+   }
+   if (!SUMA_wait_till_visible(SUMAg_CF->X->DrawROI->AppShell, 5000)) {
+      SUMA_S_Err("Widget not visible after long wait");
+      SUMA_RETURNe;
+   }
+   if (!froot) froot = "ROICont";
+
+   s = SUMA_append_replace_string(froot, "ALL.jpg",".", 0);   
+   ISQ_snapfile2 ( SUMAg_CF->X->DrawROI->form,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "ROI.jpg",".", 0);   
+   ISQ_snapfile2 ( SUMAg_CF->X->DrawROI->frame,  s); SUMA_ifree(s);
+   
    SUMA_RETURNe;
 }
 

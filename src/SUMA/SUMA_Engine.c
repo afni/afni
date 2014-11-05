@@ -4425,6 +4425,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_ROI_Cont_Help"))) {
+               if (!SUMA_WriteCont_Help(ROIdO_type, 0, cbuf)) {
+                  SUMA_S_Err("Failed to write ROICont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Snap_ROI_Cont_Widgets"))) {
+               if (!SUMA_Snap_AllCont(ROIdO_type, cbuf)) {
+                  SUMA_S_Err("Failed to write ROICont widgets to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_ROI_Cont_Sphinx_Help"))) {
+               if (!SUMA_WriteCont_Help(ROIdO_type, 1, cbuf)) {
+                  SUMA_S_Err("Failed to write ROICont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Write_Mouse_Keyb_Help"))) {
                FILE *fout = fopen(cbuf,"w");
                if (!fout) {

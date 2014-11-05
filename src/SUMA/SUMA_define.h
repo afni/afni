@@ -1785,6 +1785,8 @@ typedef struct {
    Widget AppShell; /*!< AppShell widget for the DrawROI window*/ 
    Widget DrawROImode_tb; /*!< widget for toggling draw ROI mode */
    Widget ContROImode_tb;
+   Widget form;
+   Widget frame;
    Widget Penmode_tb;   /*!< widget for toggling draw with Pen mode */
    Widget AfniLink_tb; /*!< widget for toggling link to Afni */
    Widget ParentLabel_lb; /*!< widget for specifying a label for 

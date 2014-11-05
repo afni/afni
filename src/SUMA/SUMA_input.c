@@ -5476,7 +5476,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      hit = SUMA_ComputeLineDOsIntersect (sv, SUMAg_DOv, 0, NULL);
                      if ( (Kev.state & ShiftMask) && 
                          !(Kev.state & ControlMask) &&
-                         !SUMA_ALTHELL) { /* Show me the click buffer */
+                         !SUMA_ALTHELL && !SUMAg_CF->ROI_mode){ 
+                         /* Show me the click buffer */
                         SUMA_MarkPickInBuffer4(sv, 1, NULL);
                      }
                      if (hit < 0) {
