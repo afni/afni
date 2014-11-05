@@ -921,10 +921,19 @@ void ISQ_snapfile2( Widget w , char *fout)
 
 ENTRY("ISQ_snapfile2") ;
 
-   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
-   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
-   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
-
+   if( w == NULL || !XtIsWidget(w) ) {
+      ERROR_message("%p is not a valid widget", w);
+      EXRETURN ;
+   }
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) {
+      ERROR_message("widget not managed (%d) or realized (%d) yet",
+                     XtIsRealized(w), XtIsManaged(w));
+      EXRETURN ;
+   }
+   win = XtWindow(w); if( win == (Window)0 ) {
+      ERROR_message("win is 0");
+      EXRETURN ;
+   }
    /* create display context if we don't have one */
 
    if( snap_dc == NULL ){
@@ -935,8 +944,10 @@ ENTRY("ISQ_snapfile2") ;
    /* try to get image */
 
    tim = SNAP_grab_image( w , snap_dc ) ;
-   if( tim == NULL )                         EXRETURN ;
-
+   if( tim == NULL ) {
+      ERROR_message("Failed to grab image");
+      EXRETURN ;
+   }
    if (!fout) {
       eee = getenv("AFNI_SNAPFILE_PREFIX") ;
       if( eee == NULL ){

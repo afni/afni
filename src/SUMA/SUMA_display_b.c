@@ -4263,3 +4263,39 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget w, char *name,
    }
    SUMA_RETURN(YUP);
 }
+
+SUMA_Boolean SUMA_wait_till_visible(Widget w, int maxms) 
+{
+   static char FuncName[]={"SUMA_wait_till_visible"};
+   int k, del=100, vis=0;
+   
+   SUMA_ENTRY;
+   
+   if (!w) SUMA_RETURN(NOPE);
+   
+   if (0 && !XtIsManaged(w)) {/* possible to return 0 because of asychrony */
+      SUMA_S_Err("Widget not managed");
+      SUMA_RETURN(NOPE);
+   }
+   if (!XtIsRealized(w)) {
+      SUMA_S_Err("Widget not realized");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (MCW_widget_visible(w)) SUMA_RETURN(YUP);
+   if (maxms < 0) maxms = 10000;
+   k = 0;
+   while ( !(vis=MCW_widget_visible(w)) && (k < maxms) ) {
+      fprintf(stderr,".");
+      if (k == 0) {
+         /* try to hurry things along */
+         XtPopup(w, XtGrabNone);
+         XmUpdateDisplay(w ) ;
+         XSync(XtDisplay(w), 0);
+      }
+      NI_sleep(del); k += del;     
+   }
+   if (k>0) fprintf(stderr,"\n");
+   
+   SUMA_RETURN((SUMA_Boolean)vis);
+}

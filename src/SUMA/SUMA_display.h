@@ -878,6 +878,7 @@ SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename,
 void SUMA_LoadMultiMasks (char *filename, void *data);
 void SUMA_SaveMultiMasks (char *filename, void *data);
 SUMA_Boolean SUMA_SaveMultiMasks_eng (char *filename);
+SUMA_Boolean SUMA_wait_till_visible(Widget w, int maxms);
 
 /* 
    *************** Convolution utilities *************** 
@@ -948,11 +949,14 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "and the cursor changes to a target. \n"  \
    "To draw, use the right mouse button. \n" \
    "If you want to pick a node without causing \n" \
-   "a drawing action, use shift+right button."
+   "a drawing action, use shift+right button.\n\n"\
+   "After the draw ROI window is open, you can toggle \n"\
+   "this button via :ref:`ctrl+d<LC_Ctrl+d>` also."
    
 #define SUMA_DrawROI_ContROIMode_help\
    "Toggles ROI contour drawing \n" \
-   "If turned on, then contours are drawn around filled ROIs\n" 
+   "If turned on, then contours are drawn around filled ROIs.\n" \
+   "Contours will *float* over other displayed datasets\n" 
    
 #define SUMA_DrawROI_PenMode_help\
    "Toggles Pen drawing mode\n"\
@@ -1037,82 +1041,88 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    
 #define SUMA_DrawROI_SaveFormat_help   \
    "File format for saving ROI:\n"  \
-   "Format options are 1D and NIML. \n"   \
-   "   The 1D format is the same one used in AFNI. \n"   \
+   "Format options are 1D and NIML.:LR:\n"   \
+   "   The 1D format is the same one used in AFNI.:LR:\n"   \
    "It is an ASCII file with 2 values per line. The first \n"  \
    "value is a node index, the second is the node's value. \n" \
    "Needless, to say, this format does not support the storage \n"   \
    "of ROI auxiliary information such as Label and \n"   \
    "Parent Surface, etc., nor does it preserve the order in which \n"   \
-   "nodes are traversed during a tracing. For that you'll have to use NIML.\n" \
-   "   NIML is a whole different story which will be documented \n"  \
+   "nodes are traversed during a tracing. "\
+   "For that you'll have to use NIML.:LR:\n" \
+   ": :NIML is a whole different story which will be documented \n"  \
    "(if necessary) in the future. Suffice it to say that in NIML \n" \
    "format you can store all the auxiliary information about \n"  \
-   "each ROI, unlike with the .1D format. \n"   \
+   "each ROI, unlike with the .1D format.:LR:\n"   \
+   ":SPX:"\
+   "**But more importantly**, the NIML format allows you to preserve "  \
+   "the order in which you traced the ROI. \n" \
+   ":DEF:"\
    "But more importantly, the NIML format allows you to preserve\n"  \
    "--------------------  the order in which you traced the ROI. \n" \
+   ":SPX:"\
    "This information can be later used for the purpose of sampling \n"  \
    "cortical activity along a particular path. This would be accomplished \n" \
-   "with the aid of ROI2dataset's -nodelist* options, along with \n" \
-   "ConvertDset's -node_select_1D option."
+   "with the aid of ROI2dataset's -nodelist:SPX:\\:SPX:* options, along with \n"\
+   "ConvertDset's -node_select_1D option.:LR:\n"
    
 #define SUMA_DrawROI_SaveWhat_help  \
-   "Which ROIs to save?\n" \
+   "Which ROIs to save?:LR:\n" \
    "   This: saves the current ROI. \n"   \
    "   All: saves all ROIs on surfaces related to the Parent \n"  \
-   "        surface of the current ROI."
+   ":       :surface of the current ROI."
    
 #define SUMA_DrawROI_WhatDist_help  \
-   "Report length of drawn segments?\n" \
-   "   -----: No distance calculations. \n"   \
-   "   trace: Calculate distance along last\n"  \
-   "          traced segment.\n" \
-   "   all:   In addition to output from\n"  \
-   "          'trace', calculate the shortest\n"   \
-   "          distance between the first and \n"   \
-   "          last node of the trace.\n"  \
+   "Report length of drawn segments?:LR:\n" \
+   "   -----: No distance calculations.:LR:\n"   \
+   "   trace: Calculate distance along last \n"  \
+   ":        :traced segment.\n" \
+   "   all:   In addition to output from \n"  \
+   ":        :'trace', calculate the shortest \n"   \
+   ":        :distance between the first and \n"   \
+   ":        :last node of the trace.:LR:\n"  \
    "   The results are output to the Message Log \n"  \
-   "   window (Help --> Message Log) with the following\n" \
-   "   information:\n"  \
-   "   n0, n1: Indices of first and last node forming\n" \
-   "           the traced path.\n"  \
-   "   N_n:    Number of nodes forming the trace.\n"  \
-   "   lt:     Trace length calculated as the sum\n"  \
-   "           of the distances from node to node.\n"   \
-   "           This length is a slight overestimation\n"  \
-   "           of the geodesic length.\n" \
-   "           Units for all distances is the same as\n" \
-   "           the units for surface coordinates. Usually\n"   \
-   "           and hopefully in mm.\n" \
+   ": :window (Help --> Message Log) with the following\n" \
+   ": :information::LR:\n"  \
+   "   n0, n1: Indices of first and last node forming \n" \
+   ":         :the traced path.:LR:\n"  \
+   "   N_n:    Number of nodes forming the trace.:LR:\n"  \
+   "   lt:     Trace length calculated as the sum \n"  \
+   ":         :of the distances from node to node.\n"   \
+   ":         :This length is a slight overestimation \n"  \
+   ":         :of the geodesic length. \n" \
+   ":         :Units for all distances is the same as \n" \
+   ":         :the units for surface coordinates. Usually \n"   \
+   ":         :and hopefully in mm.:LR:\n" \
    "   lt_c:   Trace length corrected by a scaling factor\n"  \
-   "           from [1] to better approximate geodesic \n"  \
-   "           distances. Factor is 2/(1+sqrt(2)).\n" \
-   "           Do not use this factor when N_n is small. \n"\
-   "           Think of the extreme case when N_n is 2.\n"   \
+   ":         :from [1] to better approximate geodesic \n"  \
+   ":         :distances. Factor is 2/(1+sqrt(2)). \n" \
+   ":         :Do not use this factor when N_n is small. \n"\
+   ":         :Think of the extreme case when N_n is 2.:LR:\n"   \
    "   sd:     Shortest distance on the mesh (graph) \n" \
-   "           between n0 and n1 using Dijkstra's algorithm.\n"   \
-   "   sd_c:   Corrected shortest distance as for lt_c.\n"  \
+   ":         :between n0 and n1 using Dijkstra's algorithm.:LR:\n"   \
+   "   sd_c:   Corrected shortest distance as for lt_c.:LR:\n"  \
    "\n"  \
    "   Note 1: sd and sd_c take some time to compute. That is \n"  \
-   "           why they are only calculated when you select 'all'.\n"   \
-   "   Note 2: The output is formatted to be cut and pasted into\n"  \
-   "           a .1D file for ease of processing.\n"  \
-   "           You can include all the comment lines that\n"   \
-   "           start with '#'. But you cannot combine entries\n"  \
-   "           from the output obtained using 'all' option with \n" \
-   "           those from 'trace' since they produce different \n"  \
-   "           numbers of values.\n"  \
+   ":         :why they are only calculated when you select 'all'.:LR:\n"   \
+   "   Note 2: The output is formatted to be cut and pasted into \n"  \
+   ":         :a .1D file for ease of processing. \n"  \
+   ":         :You can include all the comment lines that \n"   \
+   ":         :start with '#'. But you cannot combine entries \n"  \
+   ":         :from the output obtained using 'all' option with \n" \
+   ":         :those from 'trace' since they produce different \n"  \
+   ":         :numbers of values.\n"  \
    "\n"  \
    "   [1] Fischl et al, Neuroimage 9, 195-207 1999, \n" \
-   "       Cortical Surface-Based Analysis."
+   ":     :Cortical Surface-Based Analysis."
    
 #define SUMA_DrawROI_Save_help \
    "Save the Drawn ROI to disk.\n"  \
    "Choose the file format and what is to be\n"   \
    "saved from the two menus ahead.\n"  \
-   "\n"  \
+   ":LR:\n"  \
    SUMA_DrawROI_SaveFormat_help  \
-   "\n"  \
+   ":LR:\n"  \
    SUMA_DrawROI_SaveWhat_help
 
 #define SUMA_closeDrawROI_help  \

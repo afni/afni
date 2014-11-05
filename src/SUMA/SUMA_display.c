@@ -3349,8 +3349,7 @@ void SUMA_MenuArrowFieldCallback (void *CB)
 }
 
 
-Widget mainw, menubar, menupane, btn, sep, cascade, frame;
-Arg menuPaneArgs[1], args[1];
+Widget Gmainw, Gmenubar;
 
 SUMA_MenuItem FileOpen_menu[] = {
    {  "OpenSpec", &xmPushButtonWidgetClass, \
@@ -4257,43 +4256,43 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 	   /* Next call Causes Seg. fault on Fedora Core 4. 
          Not much I can do. Same happens with demo code paperplane.c 
          by Kilgard */
-         mainw = XmCreateMainWindow (  SUMAg_SVv[ic].X->TOPLEVEL, 
+         Gmainw = XmCreateMainWindow (  SUMAg_SVv[ic].X->TOPLEVEL, 
                                        "mainw", NULL, 0); 
          SUMA_LH("Managing Main Window");
-         XtManageChild (mainw);      
+         XtManageChild (Gmainw);      
          /* create menu bar */
-         menubar = XmCreateMenuBar (mainw, "menubar", NULL, 0);
-         XtManageChild (menubar);
+         Gmenubar = XmCreateMenuBar (Gmainw, "menubar", NULL, 0);
+         XtManageChild (Gmenubar);
          
          /* create File Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+         SUMA_BuildMenu(Gmenubar, XmMENU_PULLDOWN, 
                                  "File", 'F', YUP, File_menu, 
                                  (VOID_CAST)ic, NULL, NULL, NULL,  
                                  SUMAg_SVv[ic].X->FileMenu );
          
          /* create View Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+         SUMA_BuildMenu(Gmenubar, XmMENU_PULLDOWN, 
                                  "View", 'V', YUP, View_menu, 
                                  (VOID_CAST)ic, NULL, NULL, NULL,  
                                  SUMAg_SVv[ic].X->ViewMenu );
          
          /* create Tools Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+         SUMA_BuildMenu(Gmenubar, XmMENU_PULLDOWN, 
                                  "Tools", 'T', YUP, Tools_menu, 
                                  (VOID_CAST)ic, NULL, NULL, NULL,  
                                  SUMAg_SVv[ic].X->ToolsMenu );
          
          /* create Help Menu */
          SUMA_BuildMenuReset(0);
-         SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, 
+         SUMA_BuildMenu(Gmenubar, XmMENU_PULLDOWN, 
                                  "Help", 'H', YUP, Help_menu,
                                  (VOID_CAST)ic, NULL, NULL, NULL,  
                                  SUMAg_SVv[ic].X->HelpMenu );
          
-         XtVaSetValues (menubar, XmNmenuHelpWidget, 
+         XtVaSetValues (Gmenubar, XmNmenuHelpWidget, 
                         SUMAg_SVv[ic].X->HelpMenu->mw[SW_Help], NULL);
                                  
          /* set states of the some view menu widgets */
@@ -4323,7 +4322,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
         SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
 
         /* create a frame to put glxarea in */
-        SUMAg_SVv[ic].X->FRAME = XmCreateFrame (mainw, "frame", NULL, 0);
+        SUMAg_SVv[ic].X->FRAME = XmCreateFrame (Gmainw, "frame", NULL, 0);
         XtManageChild(SUMAg_SVv[ic].X->FRAME);
       
       #ifdef SUMA_MOTIF_GLXAREA
@@ -7530,6 +7529,9 @@ SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, int targ, char *fname)
       case VO_type:
          s = SUMA_Help_AllVolCont(targ);
          break;
+      case ROIdO_type:
+         s = SUMA_Help_AllROICont(targ);
+         break;
       default:
          SUMA_S_Err("Nothing for this controller");
          SUMA_RETURN(NOPE);
@@ -7557,6 +7559,9 @@ SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname)
    }
    
    switch(do_type) {
+      case ROIdO_type:
+         SUMA_Snap_AllROICont(fname);
+         break;
       case SO_type:
          SUMA_Snap_AllSurfCont(fname);
          break;
@@ -12468,7 +12473,7 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_ALL_DO *ado)
 void SUMA_CreateDrawROIWindow(void)
 {
    static char FuncName[] = {"SUMA_CreateDrawROIWindow"};
-   Widget form, frame, rc, pb, rc_ur, rcv, rc_switch, rc_save;
+   Widget rc, pb, rc_ur, rcv, rc_switch, rc_save;
    int i;
    char *sss, slabel[]={"Draw ROI"};
    SUMA_Boolean LocalHead = NOPE;
@@ -12506,8 +12511,26 @@ void SUMA_CreateDrawROIWindow(void)
       XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
       SUMA_cb_CloseDrawROIWindow, NULL) ;
    
+SUMA_Register_Widget_Help( NULL , 
+                                 "ROICont",
+                                 "ROI Cont.",
+"The ROI controller is for drawing ROIs on surfaces.:LR:\n"
+":SPX:"
+"You can launch the :ref:`Draw ROI Controller <ROICont>` with:"
+" :ref:`ctrl+d <LC_Ctrl+d>` or :menuselection:`Tools-->Draw ROI`\n"
+"\n"
+".. figure:: media/ROICont.auto.ALL.jpg\n"
+"   :align: center\n"
+"\n\n"
+"   ..\n\n"
+":DEF:"
+"You can launch the Draw ROI Controller with:"
+"\n'ctrl+d' or 'Tools-->Draw ROI'\n"
+":SPX:"
+"\n") ;
+
    /* create a form widget, manage it at the end ...*/
-   form = XtVaCreateWidget ("dialog", 
+   SUMAg_CF->X->DrawROI->form = XtVaCreateWidget ("dialog", 
       xmFormWidgetClass, SUMAg_CF->X->DrawROI->AppShell,
       XmNborderWidth , 0 ,
       XmNmarginHeight , SUMA_MARGIN ,
@@ -12517,8 +12540,8 @@ void SUMA_CreateDrawROIWindow(void)
       NULL); 
    
    /* a frame to put stuff in */
-   frame = XtVaCreateWidget ("dialog",
-      xmFrameWidgetClass, form,
+   SUMAg_CF->X->DrawROI->frame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, SUMAg_CF->X->DrawROI->form,
       XmNleftAttachment , XmATTACH_FORM ,
       XmNtopAttachment  , XmATTACH_FORM ,
       XmNshadowType , XmSHADOW_ETCHED_IN ,
@@ -12527,15 +12550,24 @@ void SUMA_CreateDrawROIWindow(void)
       NULL); 
    
    XtVaCreateManagedWidget ("ROI",
-      xmLabelWidgetClass, frame, 
+      xmLabelWidgetClass, SUMAg_CF->X->DrawROI->frame, 
       XmNchildType, XmFRAME_TITLE_CHILD,
       XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
       NULL);
    
-   
+   SUMA_Register_Widget_Help( NULL , 
+                              "ROICont->ROI",
+                              "ROI",
+                  "Controls for drawing ROIs."
+                  ":SPX:\n\n"
+                  ".. figure:: media/ROICont.auto.ROI.jpg\n"
+                  "   :align: right\n\n"
+                  "   ..\n\n"
+                  ":SPX:") ;
+
    /* vertical row column to stack horizontal rcs in */
    rcv = XtVaCreateWidget ("rowcolumn",
-         xmRowColumnWidgetClass, frame,
+         xmRowColumnWidgetClass, SUMAg_CF->X->DrawROI->frame,
          XmNorientation , XmVERTICAL ,
          XmNmarginHeight, 0 ,
          XmNmarginWidth , 0 ,
@@ -12556,7 +12588,7 @@ void SUMA_CreateDrawROIWindow(void)
             xmLabelWidgetClass, rc,
             NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->ParentLabel_lb,
-                             "Draw_ROI->ROI->Parent",
+                             "ROICont->ROI->Parent",
                              "Label of the ROI's parent surface",
                              SUMA_DrawROI_ParentLabel_help ) ;   
    XtManageChild(rc);
@@ -12584,7 +12616,7 @@ void SUMA_CreateDrawROIWindow(void)
                   XmNvalueChangedCallback, SUMA_cb_DrawROImode_toggled, 
                   NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->DrawROImode_tb , 
-                     "Draw_ROI->ROI->Draw",
+                     "ROICont->ROI->Draw",
                      "Toggles ROI drawing mode",
                      SUMA_DrawROI_DrawROIMode_help ) ;
 
@@ -12602,7 +12634,7 @@ void SUMA_CreateDrawROIWindow(void)
                   XmNvalueChangedCallback, SUMA_cb_ContROImode_toggled, 
                   NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->ContROImode_tb ,
-                     "Draw_ROI->ROI->Cont.",
+                     "ROICont->ROI->Cont.",
                      "Toggles showing ROI contours",
                      SUMA_DrawROI_ContROIMode_help ) ;
 
@@ -12620,7 +12652,7 @@ void SUMA_CreateDrawROIWindow(void)
                   XmNvalueChangedCallback, SUMA_cb_DrawROIPen_toggled, 
                   NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Penmode_tb , 
-                     "Draw_ROI->ROI->Pen",
+                     "ROICont->ROI->Pen",
                      "Toggles Pen drawing mode",
                      SUMA_DrawROI_PenMode_help ) ;
 
@@ -12649,7 +12681,7 @@ void SUMA_CreateDrawROIWindow(void)
                   XmNvalueChangedCallback, SUMA_cb_AfniLink_toggled, 
                   NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->AfniLink_tb , 
-                     "Draw_ROI->ROI->Afni",
+                     "ROICont->ROI->Afni",
                      "Toggles Link to Afni",
                      SUMA_DrawROI_AfniLink_help ) ;
 
@@ -12664,7 +12696,7 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenu (rc, XmMENU_OPTION, 
                    "Dist", '\0', YUP, DrawROI_WhatDist_Menu, 
                    "DoDist", 
-                   "Draw_ROI->ROI->Dist",
+                   "ROICont->ROI->Dist",
                    "Report length of drawn segments? (BHelp for more)", 
                    SUMA_DrawROI_WhatDist_help,   
                    SUMAg_CF->X->DrawROI->WhatDistMenu);
@@ -12685,7 +12717,7 @@ void SUMA_CreateDrawROIWindow(void)
    
    SUMA_CreateTextField ( rc, "Label:",
                            6, SUMA_DrawROI_NewLabel,
-                           "Draw_ROI->ROI->Label",
+                           "ROICont->ROI->Label",
                            "Label of ROI being drawn", SUMA_DrawROI_Label_help,
                            SUMAg_CF->X->DrawROI->ROIlbl);
                         
@@ -12694,7 +12726,7 @@ void SUMA_CreateDrawROIWindow(void)
                            3, SUMA_int,
                            NOPE,
                            SUMA_DrawROI_NewValue, NULL,
-                           "Draw_ROI->ROI->Value",
+                           "ROICont->ROI->Value",
                            "Integer value associated with ROI", 
                            SUMA_DrawROI_Value_help,
                            SUMAg_CF->X->DrawROI->ROIval);
@@ -12720,7 +12752,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Undo_pb, 
                   XmNactivateCallback, SUMA_cb_DrawROI_Undo, NULL);   
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Undo_pb,
-                             "Draw_ROI->ROI->Undo",
+                             "ROICont->ROI->Undo",
                              "Undo the last action on the stack",
                              SUMA_DrawROI_Undo_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Undo_pb);
@@ -12731,7 +12763,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Redo_pb, 
                   XmNactivateCallback, SUMA_cb_DrawROI_Redo, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Redo_pb ,
-                             "Draw_ROI->ROI->Redo",
+                             "ROICont->ROI->Redo",
                              "Redo the last undone action",
                              SUMA_DrawROI_Redo_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Redo_pb);
@@ -12746,7 +12778,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Join_pb, 
                   XmNactivateCallback, SUMA_cb_DrawROI_Join, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Join_pb ,
-                             "Draw_ROI->ROI->Join",
+                             "ROICont->ROI->Join",
                              "Join the first node of the path to the last",
                              SUMA_DrawROI_Join_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Join_pb);
@@ -12757,7 +12789,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Finish_pb, 
                   XmNactivateCallback, SUMA_cb_DrawROI_Finish, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Finish_pb ,
-                             "Draw_ROI->ROI->Finish",
+                             "ROICont->ROI->Finish",
                              "Label ROI as finished.",
                              SUMA_DrawROI_Finish_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Finish_pb);
@@ -12795,7 +12827,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (pb, XmNactivateCallback, SUMA_cb_DrawROI_SwitchROI, 
                   SUMAg_CF->X->DrawROI->SwitchROIlst);
    SUMA_Register_Widget_Help(pb,
-                             "Draw_ROI->ROI->Switch_ROI",
+                             "ROICont->ROI->Switch_ROI",
                              "Switch between ROIs.",
                              SUMA_DrawROI_SwitchROI_help ) ;
    XtManageChild (pb);
@@ -12806,7 +12838,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Load_pb, 
                   XmNactivateCallback, SUMA_cb_DrawROI_Load, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Load_pb ,
-                             "Draw_ROI->ROI->Load",
+                             "ROICont->ROI->Load",
                              "Load a Drawn ROI",
                              SUMA_DrawROI_Load_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Load_pb);
@@ -12821,7 +12853,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Delete_pb, 
                   XmNactivateCallback, SUMA_cb_DrawROI_Delete, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Delete_pb , 
-                             "Draw_ROI->ROI->delete_ROI",
+                             "ROICont->ROI->delete_ROI",
                              "Click twice in 5 seconds to delete ROI. "
                              "No Undo for this action.",
                              SUMA_DrawROI_DeleteROI_help);
@@ -12852,7 +12884,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Save_pb, 
                   XmNactivateCallback, SUMA_cb_DrawROI_Save, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Save_pb ,
-                             "Draw_ROI->ROI->Save",
+                             "ROICont->ROI->Save",
                              "Save the Drawn ROI to disk.",
                              SUMA_DrawROI_Save_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Save_pb);
@@ -12864,7 +12896,7 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                "", '\0', YUP, DrawROI_SaveMode_Menu, 
                                "Frm.",
-                               "Draw_ROI->ROI->Save->NIML",
+                               "ROICont->ROI->Save->NIML",
                                "Format for saving ROI, "
                                "use NIML to preserve tracing order. "
                                "(BHelp for more)", 
@@ -12879,7 +12911,7 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                "", '\0', YUP, DrawROI_SaveWhat_Menu, 
                                "What", 
-                               "Draw_ROI->ROI->Save->All",
+                               "ROICont->ROI->Save->All",
                                "Which ROIs to save?", 
                                SUMA_DrawROI_SaveWhat_help,   
                                SUMAg_CF->X->DrawROI->SaveWhatMenu);
@@ -12894,7 +12926,7 @@ void SUMA_CreateDrawROIWindow(void)
       xmPushButtonWidgetClass, rc_save, 
       NULL);
    XtAddCallback (pb, XmNactivateCallback, MCW_click_help_CB, NULL);  
-   SUMA_Register_Widget_Help(pb, "Draw_ROI->ROI->BHelp",
+   SUMA_Register_Widget_Help(pb, "ROICont->ROI->BHelp",
          "Press this button then click on a button/label/menu for more help.",
                              SUMA_help_help ) ;
    XtManageChild (pb);
@@ -12905,7 +12937,7 @@ void SUMA_CreateDrawROIWindow(void)
    XtAddCallback (SUMAg_CF->X->DrawROI->Close_pb, XmNactivateCallback, 
                   SUMA_cb_CloseDrawROIWindow, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->DrawROI->Close_pb, 
-                             "Draw_ROI->ROI->Close",
+                             "ROICont->ROI->Close",
                              "Close Draw ROI window",
                              SUMA_closeDrawROI_help ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Close_pb);  
@@ -12917,10 +12949,10 @@ void SUMA_CreateDrawROIWindow(void)
    XtManageChild (rcv);
    
    /* manage frame */
-   XtManageChild (frame);
+   XtManageChild (SUMAg_CF->X->DrawROI->frame);
    
    /* manage form */
-   XtManageChild (form);
+   XtManageChild (SUMAg_CF->X->DrawROI->form);
 
    /* position the widget relative to the first open viewer */
    SUMA_LHv("Position widgets (%d viewers)\n", SUMAg_N_SVv);
@@ -16068,7 +16100,8 @@ void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer data, XtPointer call_data)
 void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_createSumaCont"};
-   Widget rc, pb_close, pb_new, pb_done, pb_bhelp, LockFrame, AppFrame, form, tb, rb, rc_m;
+   Widget rc, pb_close, pb_new, pb_done, pb_bhelp, LockFrame, AppFrame, 
+          form, tb, rb, rc_m;
    int i;
    char *sss;
    SUMA_Boolean LocalHead = NOPE;
