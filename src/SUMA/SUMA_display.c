@@ -7508,8 +7508,8 @@ SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, int targ, char *fname)
       else fname = "SurfCont_help.rst";
    }
    
-   if (!(fout = fopen(fname,"a"))) {
-      SUMA_S_Err("Failed to open help file %s in append mode", fname);
+   if (!(fout = fopen(fname,"w"))) {
+      SUMA_S_Err("Failed to open help file %s in write mode", fname);
       SUMA_RETURN(NOPE);
    }
    
