@@ -421,6 +421,9 @@ if (detail > 1) {
 "       -write_tract_cont_help\n"
 "       -write_tract_cont_sphinx_help \n"
 "       -snap_tract_cont_widgets\n"
+"       -write_mask_cont_help\n"
+"       -write_mask_cont_sphinx_help \n"
+"       -snap_mask_cont_widgets\n"
 "       -write_graph_cont_help\n"
 "       -write_graph_cont_sphinx_help \n"
 "       -snap_graph_cont_widgets\n"
@@ -1770,6 +1773,51 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Tract_Cont_Sphinx_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_mask_cont_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_mask_cont_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Mask_Cont_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-snap_mask_cont_widgets") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -snap_mask_cont_widgets \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Snap_Mask_Cont_Widgets", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_mask_cont_sphinx_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_mask_cont_sphinx_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Mask_Cont_Sphinx_Help", argt[kar]);
          
          argt[kar][0] = '\0';
          brk = YUP;

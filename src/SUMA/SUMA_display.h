@@ -981,7 +981,7 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "the latter. The volume used for the VOI has the same \n"   \
    "resolution (grid) as the Surface Volume (-sv option) \n"   \
    "used when launching SUMA. The color map used for ROIs \n"  \
-   "is set by the environment variable SUMA_ROIColorMap."
+   "is set by the environment variable :ref:`SUMA_ROIColorMap`."
    
 #define SUMA_DrawROI_Label_help  \
    "Label of ROI being drawn.\n" \
@@ -1049,14 +1049,16 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "of ROI auxiliary information such as Label and \n"   \
    "Parent Surface, etc., nor does it preserve the order in which \n"   \
    "nodes are traversed during a tracing. "\
-   "For that you'll have to use NIML.:LR:\n" \
+   "For that you'll have to use :term:NIML.:LR:\n" \
    ": :NIML is a whole different story which will be documented \n"  \
    "(if necessary) in the future. Suffice it to say that in NIML \n" \
    "format you can store all the auxiliary information about \n"  \
    "each ROI, unlike with the .1D format.:LR:\n"   \
    ":SPX:"\
    "**But more importantly**, the NIML format allows you to preserve "  \
-   "the order in which you traced the ROI. \n" \
+   "the order in which you traced the ROI. You can actually use \n" \
+   ":ref:`Undo<ROICont->ROI->Undo>`/ref:`Undo<ROICont->ROI->Redo>` on "\
+   "ROIs save in NIML format."\
    ":DEF:"\
    "But more importantly, the NIML format allows you to preserve\n"  \
    "--------------------  the order in which you traced the ROI. \n" \

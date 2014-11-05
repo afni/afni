@@ -4357,18 +4357,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (!SUMA_WriteCont_Help(TRACT_type, 0, cbuf)) {
                   SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
                }
-               if (!SUMA_WriteCont_Help(MASK_type, 0, cbuf)) {
-                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
-               }
             }
 
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Snap_Tract_Cont_Widgets"))) {
                if (!SUMA_Snap_AllCont(TRACT_type, cbuf)) {
                   SUMA_S_Err("Failed to write TractCont widgets to %s", cbuf);
-               }
-               if (!SUMA_Snap_AllCont(MASK_type, cbuf)) {
-                  SUMA_S_Err("Failed to write MaskCont widgets to %s", cbuf);
                }
             }
 
@@ -4377,11 +4371,30 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (!SUMA_WriteCont_Help(TRACT_type, 1, cbuf)) {
                   SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
                }
-               if (!SUMA_WriteCont_Help(MASK_type, 1, cbuf)) {
-                  SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Mask_Cont_Help"))) {
+               if (!SUMA_WriteCont_Help(MASK_type, 0, cbuf)) {
+                  SUMA_S_Err("Failed to write MaskCont help to %s", cbuf);
                }
             }
 
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Snap_Mask_Cont_Widgets"))) {
+               if (!SUMA_Snap_AllCont(MASK_type, cbuf)) {
+                  SUMA_S_Err("Failed to write MaskCont widgets to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Mask_Cont_Sphinx_Help"))) {
+               if (!SUMA_WriteCont_Help(MASK_type, 1, cbuf)) {
+                  SUMA_S_Err("Failed to write MaskCont help to %s", cbuf);
+               }
+            }
+
+            
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Write_Vol_Cont_Help"))) {
                if (!SUMA_WriteCont_Help(VO_type, 0, cbuf)) {
