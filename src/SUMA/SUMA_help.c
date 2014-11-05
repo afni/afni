@@ -2238,7 +2238,7 @@ char * SUMA_help_message_Info(int targ)
 "* Other open SUMA controllers are made to jump to the corresponding "
 "locations. Use the SUMA controller (:ref:`Ctrl+u<LC_Ctrl+u>`) to setup "
 "how different controllers are locked together. \n\n"
-"* When in :ref:`drawing ROIs mode<drawing_ROI_mode>` a selection adds "
+"* When in :ref:`drawing ROIs mode<Draw_ROI_Mode>` a selection adds "
 "to the ROI being drawn. See :ref:`drawing_ROIs` for details, assuming it "
 "is written by now!\n\n"
 "* If you have 'click callbacks' initiated, a selection combined with "

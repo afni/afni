@@ -87,7 +87,7 @@ Controls for drawing ROIs.
    the latter. The volume used for the VOI has the same 
    resolution (grid) as the Surface Volume (-sv option) 
    used when launching SUMA. The color map used for ROIs 
-   is set by the environment variable :ref:`SUMA_ROIColorMap`.
+   is set by the environment variable :ref:`SUMA_ROIColorMap<SUMA_ROIColorMap>`.
 
    .. _ROICont->ROI->Dist:
 
