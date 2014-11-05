@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Nov , 2014 , PT , "3dROIMaker" , MAJOR , TYPE_NEW_ENV,
+   "Default neighborhoods now AFNI standard; labeltable functionality in.",
+   "Default 'hoods more standard, can still do other; labels by default.\n"
+},
+
+{ 5, Nov , 2014 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
+   "Switch to not output INDI and PAIR map files.",
+   "In connectome examples, this might save a lot of space.\n"
+},
+
 { 24, Oct , 2014 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
    "Fixed offset in track to volume coordinates ",
    "Effect of bug restricted to viewing of tracts rather than volume masks "

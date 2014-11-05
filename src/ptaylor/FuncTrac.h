@@ -53,6 +53,7 @@ typedef struct {
    int MINI_PROB_NM;              //  "-mini_num"
    int CHOOSE_SEED;               //  "-choose_seed"
    int OUTPUT_TRK;                //  "-no_trk_out"
+   int OUT_INDIPAIR;              //  "-no_indipair_out"
 
    // minorly used control stuff, mostly default
    char *NAMEIN_outmode;          //  "-tract_out_mode"

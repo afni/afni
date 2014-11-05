@@ -61,6 +61,7 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.MINI_PROB_NM=0;              //  "-mini_num"
    defopt.CHOOSE_SEED = 0;             //  "-choose_seed"
    defopt.OUTPUT_TRK = 1;              //  "-no_trk_out"
+   defopt.OUT_INDIPAIR = 1;            //  "-no_indipair_out"
 
    // minorly used control stuff, mostly default
    defopt.NAMEIN_outmode = NULL;       //  "-tract_out_mode"
