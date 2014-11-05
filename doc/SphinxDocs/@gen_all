@@ -5,10 +5,6 @@
 set afscp = afni.nimh.nih.gov:/var/www/html/pub/dist/doc/sphinx.test.html
 set afwpg = http://afni.nimh.nih.gov/pub/dist/doc/sphinx.test.html
 
-if ("$1" == "") then
-   goto HELP
-endif
-
 goto PARSE
 RETURN_PARSE:
 
@@ -20,10 +16,12 @@ if ($nosuma == 0) then
        SUMA/auto_inc/Mouse_Key_help.inc \
        SUMA/auto_inc/TractCont_help.inc \
        SUMA/auto_inc/VolCont_help.inc   \
-       SUMA/auto_inc/GraphCont_help.inc
+       SUMA/auto_inc/GraphCont_help.inc \
+       SUMA/auto_inc/ROICont_help.inc
 
    suma -fake_cmap                                             \
         -drive_com '-com surf_cont -view_surf_cont y'          \
+        -drive_com '-com viewer_cont -key:v2 j'                \
         -drive_com                                             \
            '-com surf_cont -write_mouse_keyb_sphinx_help       \
                         SUMA/auto_inc/Mouse_Keyb_help.inc'     \
@@ -36,6 +34,13 @@ if ($nosuma == 0) then
         -drive_com                                             \
            '-com surf_cont -snap_surf_cont_widgets             \
                         SUMA/media/SurfCont.auto'              \
+        -drive_com '-com viewer_cont -key ctrl+d'              \
+        -drive_com                                             \
+           '-com surf_cont -write_roi_cont_sphinx_help         \
+                        SUMA/auto_inc/ROICont_help.inc'        \
+        -drive_com                                             \
+           '-com surf_cont -snap_roi_cont_widgets              \
+                        SUMA/media/ROICont.auto'               \
         -drive_com '-com kill_suma' |& tee -a ___build.log
 
    suma -fake_cmap                                             \
@@ -46,16 +51,19 @@ if ($nosuma == 0) then
            '-com surf_cont -write_tract_cont_sphinx_help       \
                         SUMA/auto_inc/TractCont_help.inc'      \
         -drive_com                                             \
+           '-com surf_cont -write_mask_cont_sphinx_help       \
+                        SUMA/auto_inc/MaskCont_help.inc'      \
+        -drive_com                                             \
            '-com surf_cont -snap_tract_cont_widgets            \
                         SUMA/media/TractCont.auto'             \
         -drive_com                                             \
-           '-com surf_cont -snap_tract_cont_widgets            \
+           '-com surf_cont -snap_mask_cont_widgets            \
                         SUMA/media/MaskCont.auto'             \
         -drive_com '-com kill_suma' |& tee -a ___build.log
 
    suma -fake_cmap                                             \
         -vol ~/.afni/data/suma_MNI_N27/MNI_N27_SurfVol.nii     \
-        -drive_com '-com viewer_cont -key:v6455128 j'           \
+        -drive_com '-com viewer_cont -key:v6455128 j'          \
         -drive_com '-com surf_cont -view_surf_cont y'          \
         -drive_com                                             \
            '-com surf_cont -write_vol_cont_sphinx_help         \
@@ -98,7 +106,7 @@ goto END
 PARSE:
 	set Narg = $#
 	set cnt = 1
-   set nosuma = 0
+   set nosuma = 1
    set webupdate = 0
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -113,6 +121,11 @@ PARSE:
       
       if ("$argv[$cnt]" == "-no_suma") then
          set nosuma = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-suma") then
+         set nosuma = 0
          goto CONTINUE
       endif
 
@@ -145,7 +158,8 @@ HELP:
    echo ""
    echo "Options:"
    echo "-h: This message"
-   echo "-no_suma: Do not regenerate SUMA's auto docs."
+   echo "-no_suma: Do not regenerate SUMA's auto docs. (default)"
+   echo "-suma: Do regenerate SUMA's auto docs."
    echo "-web_upload: Send new build to $afwpg"
    echo "-echo: Yap yap"
    echo ""

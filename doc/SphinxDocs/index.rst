@@ -17,6 +17,7 @@ Welcome to AFNI's documentation!
    tutorialstoc1
    installationstoc1
    glossary
+   references
 
 ==================
 Indices and tables

@@ -1484,7 +1484,7 @@ char * SUMA_help_message_Info(int targ)
    static char FuncName[]={"SUMA_help_message_Info"};
    char stmp[1000], *s = NULL;
    SUMA_STRING *SS = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1951,6 +1951,7 @@ char * SUMA_help_message_Info(int targ)
       "     a state with flat surfaces.:LR:\n"
       "     See :term:`state` for more on the meaning of states for different "
       "object types.\n\n",
+      SUMA_hkf(",", targ), SUMA_hkf(".", targ),
       SUMA_hkf(",", targ), SUMA_hkf(".", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Toggle between Mapping Reference and\n"

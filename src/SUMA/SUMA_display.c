@@ -7551,6 +7551,7 @@ SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname)
    static char FuncName[]={"SUMA_Snap_AllCont"};
    FILE *fout=NULL;
    char *s=NULL;
+   SUMA_ALL_DO *ado=NULL;
    
    SUMA_ENTRY;
    
@@ -7569,9 +7570,17 @@ SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname)
          SUMA_Snap_AllGraphCont(fname);
          break;
       case TRACT_type:
+         if ((ado = (SUMA_ALL_DO*)SUMA_findanyTDOp_inDOv(
+                                       SUMAg_DOv, SUMAg_N_DOv,NULL))) {
+            SUMA_cb_SurfCont_SwitchPage(ado);
+         }
          SUMA_Snap_AllTractCont(fname);
          break;
       case MASK_type:
+         if ((ado = (SUMA_ALL_DO*)SUMA_findanyMDOp_inDOv(
+                                       SUMAg_DOv, SUMAg_N_DOv,NULL))) {
+            SUMA_cb_SurfCont_SwitchPage(ado);
+         }
          SUMA_Snap_AllMaskCont(fname);
          break;
       case VO_type:

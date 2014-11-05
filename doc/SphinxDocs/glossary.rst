@@ -258,7 +258,10 @@ Glossary
 
    Mask Manipulation Mode
       A mode in which selecting a location (right-click) in SUMA, causes the tract mask to jump to that location. See :ref:`Mask_Manipulation_Mode` for details.
-   
+
+   Draw ROI Mode
+      A mode in which selecting a location (right-click) in SUMA, causes a modification of the current unfinished ROI being drawn, or creates a new ROI. When the viewer is in :ref:`Draw ROI Mode<Draw_ROI_Mode>`, the cursor changes shape to become a circular target.
+         
    Spec
    Spec file
       A text file setting the specifications for a family of surfaces, including the relationships between them. The spec file is usually created automatically by the likes of *@SUMA_Make_Spec_FS*, or with *quickspec*.

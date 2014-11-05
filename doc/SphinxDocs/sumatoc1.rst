@@ -11,4 +11,4 @@ SUMA
 
    SUMA/cover
    SUMA/Viewer
-   SUMA/DrawingROIs
+   SUMA/Controllers

@@ -1,7 +1,7 @@
 :tocdepth: 2
 
 ################
-Demos, Tutorials
+Tutorials, Demos
 ################
 
 .. toctree::
@@ -9,3 +9,5 @@ Demos, Tutorials
 
    tutorials/WalnutBrain/WalnutBrain
    tutorials/ContributeDocs/ContributeDocs
+   tutorials/DrawingSurfaceROIs/DrawingROIs
+   tutorials/StandardMeshes/StandardMeshes
