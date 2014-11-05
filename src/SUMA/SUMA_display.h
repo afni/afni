@@ -943,7 +943,7 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
 #define SUMA_DrawROI_ParentLabel_help  \
    "Label of the ROI's parent surface." 
 
-#define SUMA_DrawROI_DrawROIMode_help\
+#define SUMA_DrawROI_DrawROIMode_help \
    "Toggles ROI drawing mode.\n" \
    "If turned on, then drawing is enabled \n"   \
    "and the cursor changes to a target. \n"  \
@@ -953,12 +953,12 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "After the draw ROI window is open, you can toggle \n"\
    "this button via :ref:`ctrl+d<LC_Ctrl+d>` also."
    
-#define SUMA_DrawROI_ContROIMode_help\
+#define SUMA_DrawROI_ContROIMode_help \
    "Toggles ROI contour drawing \n" \
    "If turned on, then contours are drawn around filled ROIs.\n" \
    "Contours will *float* over other displayed datasets\n" 
    
-#define SUMA_DrawROI_PenMode_help\
+#define SUMA_DrawROI_PenMode_help \
    "Toggles Pen drawing mode\n"\
    "If turned on, the cursor changes shape to a pen. \n" \
    "In the pen mode, drawing is done with button 1. \n"  \
@@ -969,19 +969,19 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "To pick a node, use shift+left button. \n"  \
    "Pen mode only works when Draw Mode is enabled."
 
-#define SUMA_DrawROI_AfniLink_help\
-   "Toggles Afni Link for ROI drawing.\n" \
-   "If turned on, then ROIs drawn on the surface are\n" \
-   "sent to AFNI. \n"   \
-   "Surface ROIs that are sent to AFNI are turned\n"  \
-   "into volume ROIs (VOIs) on the fly and displayed \n" \
-   "in a functional volume with the same colormap used in SUMA.\n"   \
-   "The mapping from the surface domain (ROI) to the volume \n"   \
-   "domain (VOI) is done by intersection of the first with \n" \
-   "the latter. The volume used for the VOI has the same \n"   \
-   "resolution (grid) as the Surface Volume (-sv option) \n"   \
-   "used when launching SUMA. The color map used for ROIs \n"  \
-   "is set by the environment variable :ref:`SUMA_ROIColorMap`."
+   #define SUMA_DrawROI_AfniLink_help \
+"Toggles Afni Link for ROI drawing.\n" \
+"If turned on, then ROIs drawn on the surface are\n" \
+"sent to AFNI. \n"   \
+"Surface ROIs that are sent to AFNI are turned\n"  \
+"into volume ROIs (VOIs) on the fly and displayed \n" \
+"in a functional volume with the same colormap used in SUMA.\n"   \
+"The mapping from the surface domain (ROI) to the volume \n"   \
+"domain (VOI) is done by intersection of the first with \n" \
+"the latter. The volume used for the VOI has the same \n"   \
+"resolution (grid) as the Surface Volume (-sv option) \n"   \
+"used when launching SUMA. The color map used for ROIs \n"  \
+"is set by the environment variable :ref:`SUMA_ROIColorMap<SUMA_ROIColorMap>`."
    
 #define SUMA_DrawROI_Label_help  \
    "Label of ROI being drawn.\n" \
