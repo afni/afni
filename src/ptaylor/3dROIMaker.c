@@ -31,6 +31,9 @@
         is input (expand to boundary, stop, and expand in GM by a
         certain number of voxels).
 
+    Nov 2014:
+        changed default neighborhood definition for AFNI consistency
+        -> now it's facewise ONLY as default
 
 */
 
@@ -44,6 +47,7 @@
 #include <rsfc.h>    
 #include <3ddata.h>    
 #include <gsl/gsl_rng.h>
+#include <Fat_Labels.h>
 #include "DoTrackit.h"
 #include "roiing.h"
 
@@ -80,6 +84,14 @@ void usage_ROIMaker(int detail)
 "  *even if the ROIs are contiguous* by using the same set as the reference\n"
 "  set (-> '-refset INSET', as well).  Otherwise, contiguous blobs defined\n"
 "  will likely be given a single integer value in the program.\n"
+"\n"
+"  Labeltable functionality is now available.  If an input '-refset REFSET'\n"
+"  has a labeltable attached, it will also be attached to the output GM and\n"
+"  inflated GMI datasets by default (if you don't want to do this, you can\n"
+"  use the '-dump_no_labtab' to turn off this functionality).  If either no\n"
+"  REFSET is input or it doesn't have a labeltable, one will be made from\n"
+"  zeropadding the GM and GMI map integer values-- this may not add a lot of\n"
+"  information, but it might make for more useful output.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -163,11 +175,14 @@ void usage_ROIMaker(int detail)
 "                       often matter too much.\n"
 "                       For an N-brick inset, one can input an N- or 1-brick\n"
 "                       mask.\n"
-"    -neigh_face_only  :can tighten the definition of neighbors, so that\n"
-"                       voxels must share a face to be grouped into same ROI\n"
-"                       (default is that neighbors share at least one edge).\n"
-"                       This should match up with default usage of the\n"
-"                       clusterize function in the AFNI window.\n"
+"    -neigh_face_only  : **DEPRECATED SWITCH** -> it's now default behavior\n"
+"                       to have facewise-only neighbors, in order to be\n"
+"                       consistent with the default usage of the clusterize\n"
+"                       function in the AFNI window.\n"
+"    -neigh_face_edge  :can loosen the definition of neighbors, so that\n"
+"                       voxels can share a face or an edge in order to be\n"
+"                       grouped into same ROI (AFNI default is that neighbors\n"
+"                       share at least one edge).\n"
 "    -neigh_upto_vert  :can loosen the definition of neighbors, so that\n"
 "                       voxels can be grouped into the same ROI if they share\n"
 "                       at least one vertex (see above for default).\n"
@@ -185,6 +200,10 @@ void usage_ROIMaker(int detail)
 "                       before output).\n"
 "  -preinfl_inflate PN :number of voxels for initial inflation of PSET.\n"
 "\n"
+"  -dump_no_labtab     :switch for turning off labeltable attachment to the\n"
+"                       output GM and GMI files (from either from a '-refset\n"
+"                       REFSET' or from automatic generation from integer\n"
+"                       labels.\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + EXAMPLE:\n"
@@ -224,8 +243,8 @@ int main(int argc, char *argv[]) {
 	THD_3dim_dataset *insetCSF_SKEL=NULL;
 	THD_3dim_dataset *outsetGM=NULL, *outsetGMI=NULL;
 
-   int NEIGHBOR_LIMIT = 3; // default setting: neighbor shares face or
-                           // at least one edge
+   // default setting: neighbor shares face ONLY
+   int NEIGHBOR_LIMIT = 2; 
 
 	THD_3dim_dataset *MASK=NULL;
 	char in_mask[300];
@@ -283,6 +302,21 @@ int main(int argc, char *argv[]) {
    short int **temp_ref=NULL; // for holding rescaled values
    THD_3dim_dataset *set_REFSCAL=NULL;
    float dum1[1]={0},dum2[1]={0};
+
+   // Nov 2014: labeltables
+   Dtable *roi_dtable=NULL;
+   char *LabTabStr=NULL;
+	char ***ROI_STR_LABELS=NULL;
+   char EleNameStr[128];
+   int DUMP_with_LABELS = 1;
+	int MAXNROI=0;
+	char prefix_dtable[300];
+	char prefix_dtableGM[300];
+   char *Dtable_str=NULL;
+   char *Dtable_strGM=NULL;
+   Dtable *new_dt=NULL;
+   char mini[50];
+   FILE *fout1=NULL;
 
 	mainENTRY("3dROIMaker"); machdep(); 
   
@@ -344,7 +378,7 @@ int main(int argc, char *argv[]) {
 			
 			sprintf(in_REF,"%s", argv[iarg]); 
 			insetREF = THD_open_dataset(in_REF) ;
-			if( (insetREF == NULL ))
+			if( insetREF == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",in_REF);
 			
 			DSET_load(insetREF); CHECK_LOAD_ERROR(insetREF);
@@ -352,6 +386,15 @@ int main(int argc, char *argv[]) {
 
 			iarg++ ; continue ;
 		}
+
+      if( strcmp(argv[iarg],"-dump_no_labtab") == 0) {
+         // if REFSET has a label table, default is to use it in
+         // naming a dump_rois output;  this can turn that off.
+			DUMP_with_LABELS=0;
+			iarg++ ; continue ;
+		}
+
+
 
       if( strcmp(argv[iarg],"-preinfl_inset") == 0 ) {
 			iarg++ ; if( iarg >= argc ) 
@@ -421,7 +464,7 @@ int main(int argc, char *argv[]) {
 							ERROR_exit("Need argument after '-wm_skel'");
 			
 			insetSKEL = THD_open_dataset(argv[iarg]) ;
-			if( (insetSKEL == NULL ))
+			if( insetSKEL == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
 			
 			DSET_load(insetSKEL); CHECK_LOAD_ERROR(insetSKEL);
@@ -453,7 +496,7 @@ int main(int argc, char *argv[]) {
 							ERROR_exit("Need argument after '-csf_skel'");
 			
 			insetCSF_SKEL = THD_open_dataset(argv[iarg]) ;
-			if( (insetCSF_SKEL == NULL ))
+			if( insetCSF_SKEL == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
 			
 			DSET_load(insetCSF_SKEL); CHECK_LOAD_ERROR(insetCSF_SKEL);
@@ -463,7 +506,15 @@ int main(int argc, char *argv[]) {
 		}
 
 		if( strcmp(argv[iarg],"-neigh_face_only") == 0) {
-			NEIGHBOR_LIMIT=2;
+			// NEIGHBOR_LIMIT=2;
+         WARNING_message("This option no longer exists -> "
+                         "in fact, it is default behavior.");
+
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-neigh_face_edge") == 0) {
+			NEIGHBOR_LIMIT=3;
 			iarg++ ; continue ;
 		}
 
@@ -479,7 +530,7 @@ int main(int argc, char *argv[]) {
 
 			sprintf(in_mask,"%s", argv[iarg]); 
 			MASK = THD_open_dataset(in_mask) ;
-			if( (MASK == NULL ))
+			if( MASK == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
 			DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
@@ -706,7 +757,7 @@ int main(int argc, char *argv[]) {
 		temp_arr[i] = calloc( Nvox,sizeof(short int) ); 
 	
 	if( (DATA == NULL) || (N_thr == NULL) || (NROI_IN == NULL)
-		 || (temp_arr == NULL) ) { 
+		 || (NROI_IN_b == NULL) || (temp_arr == NULL) ) { 
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(14);
 	}
@@ -889,8 +940,8 @@ int main(int argc, char *argv[]) {
       for(i=0 ; i<HAVEREF ; i++) 
          temp_ref[i] = calloc( Nvox,sizeof(short int) ); 
 
-		if( (NROI_REF == NULL) || (NROI_REF == NULL) || (NROI_REF_b == NULL) 
-			 || (temp_ref == NULL) ) {
+		if( (NROI_REF == NULL) || (INVROI_REF == NULL) 
+          || (NROI_REF_b == NULL) || (temp_ref == NULL) ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(122);
 		}
@@ -1103,7 +1154,7 @@ int main(int argc, char *argv[]) {
 								relab_vox[m]++;
 							}
 							for( ii=1 ; ii<=NROI_REF[m]; ii++ ) {
-								if( (OLAP_RI[m][ii][Y][1]==3) ) {// relabel
+								if( OLAP_RI[m][ii][Y][1]==3 ) {// relabel
 									DATA[i][j][k][m] = ROI_LABELS_REF[m][ii]; // ref #
 									relab_vox[m]++;
 								}
@@ -1140,8 +1191,12 @@ int main(int argc, char *argv[]) {
 					for( i=0 ; i<Dim[0] ; i++ ) 
 						if( DATA[i][j][k][m]>0 ) 
 							DATA[i][j][k][m]-= N_thr[m];
-	}
-	
+
+      for( m=0 ; m<Dim[3] ; m++ ) 
+         NROI_IN_b[m] = NROI_IN[m];
+   }
+
+
 	// **************************************************************
 	// **************************************************************
 	//                 Store and output GM info
@@ -1173,15 +1228,19 @@ int main(int argc, char *argv[]) {
 		temp_arr[m]=NULL; // to not get into trouble...
 	}
 	
-	THD_load_statistics(outsetGM);
-	tross_Make_History("3dROIMaker", argc, argv, outsetGM);
-	THD_write_3dim_dataset(NULL, NULL, outsetGM, True);
 	
 	for( m=0 ; m<Dim[3] ; m++ )
 		free(temp_arr[m]);
 	free(temp_arr);
 	
+   if( NEIGHBOR_LIMIT == 2 )
+      WARNING_message("NB: as of Nov. 2014, "
+                   "voxel neighborhoods are facewise-only as a default\n"
+                   "\t(it's the general AFNI standard). "
+                   "See the helpfile for switches to change this feature.");
+
 	INFO_message("GM map is done.");
+
 
 	// **************************************************************
 	// **************************************************************
@@ -1193,15 +1252,13 @@ int main(int argc, char *argv[]) {
 	// find all index numbers for GM systematically.
 	NROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
 	INVROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
-	if( (NROI_GM == NULL) || (NROI_GM == NULL) 
-		 ) {
+	for( i=0 ; i<Dim[3] ; i++) 
+		INVROI_GM[i] = (int) THD_subbrick_max(outsetGM, i, 1);//??inset-->fixed
+   if( (INVROI_GM == NULL ) || ( NROI_GM == NULL ) ) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(122);
 	}
-	
-	for( i=0 ; i<Dim[3] ; i++) 
-		INVROI_GM[i] = (int) THD_subbrick_max(outsetGM, i, 1);//??inset-->fixed
-	
+
 	ROI_LABELS_GM = calloc( Dim[3],sizeof(ROI_LABELS_GM));  
 	for(i=0 ; i<Dim[3] ; i++) 
 		ROI_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
@@ -1218,7 +1275,7 @@ int main(int argc, char *argv[]) {
 		for ( j = 0 ; j < INVROI_GM[i]+1 ; j++ ) 
 			COUNT_GM[i][j] = ( int *) calloc( 3, sizeof( int));
 
-	if( (ROI_LABELS_GM == NULL) || (ROI_LABELS_GM == NULL) 
+	if( (ROI_LABELS_GM == NULL) || (INV_LABELS_GM == NULL) 
 		 || (COUNT_GM == NULL)) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(123);
@@ -1232,8 +1289,9 @@ int main(int argc, char *argv[]) {
 	
 	// preliminary setting up of COUNT_GM
 	for( m=0 ; m<Dim[3] ; m++ ) {
-		for( i=0 ; i<NROI_GM[m]+1 ; i++ ) 
-			ROI_LABELS_GM[m][i] = 1; //switch to keep adding to it
+		// ?? Not sure what the next two lines were for...
+      //for( i=0 ; i<NROI_GM[m]+1 ; i++ ) 
+		//	ROI_LABELS_GM[m][i] = 1; //switch to keep adding to it
 		
 		for( k=0 ; k<Dim[2] ; k++ ) 
 			for( j=0 ; j<Dim[1] ; j++ ) 
@@ -1271,7 +1329,50 @@ int main(int argc, char *argv[]) {
                      DATA[i][j][k][m] = 0;
    }
    
-
+	// **************************************************************
+	// **************************************************************
+	//                 LABEL stuff
+	// **************************************************************
+	// **************************************************************
+   // nov, 2014:  labeltable stuff
+   ROI_STR_LABELS = (char ***) calloc( Dim[3], sizeof(char **) );
+   for ( i=0 ; i<Dim[3] ; i++ ) 
+      ROI_STR_LABELS[i] = (char **) calloc( NROI_GM[i]+1, sizeof(char *) );
+   for ( i=0 ; i<Dim[3] ; i++ ) 
+      for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
+         ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
+   if( ROI_STR_LABELS == NULL ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(123);
+   }
+   
+   // Nov 2014:  Labeltable stuff
+   // check refset for table
+   if(insetREF)
+      if (insetREF->Label_Dtable = DSET_Label_Dtable(insetREF) ) {
+         if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(insetREF),
+                                                "VALUE_LABEL_DTABLE"))) {
+            // fprintf(stdout,"%s", LabTabStr);
+            if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
+               ERROR_exit("Could not parse labeltable.");
+            }
+         } 
+         else {
+            INFO_message("No label table from '-refset'.");
+         }
+      }
+   
+   bb = Make_ROI_Output_Labels( ROI_STR_LABELS,
+                                ROI_LABELS_GM, 
+                                Dim[3],
+                                NROI_GM,
+                                roi_dtable, 
+                                DUMP_with_LABELS);
+   
+   for( i=0 ; i<Dim[3] ; i++) 
+      if( NROI_GM[i]>MAXNROI )
+         MAXNROI = NROI_GM[i];
+   
 	// **************************************************************
 	// **************************************************************
 	//                 Store and output GMI info
@@ -1282,13 +1383,80 @@ int main(int argc, char *argv[]) {
 	for(i=0 ; i<Dim[3] ; i++) 
 		temp_arr2[i] = calloc( Nvox,sizeof(short int) ); 
 	
-	if( (temp_arr2 == NULL)  ) { 
+	if( temp_arr2 == NULL ) { 
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(14);
 	}
 
 	outsetGMI = EDIT_empty_copy( inset ) ; 
 	sprintf(prefix_GMI,"%s_GMI",prefix);
+
+   // start labelly stuff
+   // Nov 2014
+   if( DUMP_with_LABELS ) {
+      sprintf(prefix_dtable,"%s_GMI.niml.lt",prefix); 
+      sprintf(prefix_dtableGM,"%s_GM.niml.lt",prefix); 
+
+      if( roi_dtable ) {
+         // copy dtable
+         Dtable_str = Dtable_to_nimlstring(roi_dtable, "VALUE_LABEL_DTABLE");
+         new_dt = Dtable_from_nimlstring(Dtable_str);
+         free(Dtable_str); Dtable_str=NULL;
+      }
+      else {
+         new_dt = new_Dtable( MAXNROI );
+      }
+      
+      for( mm=0 ; mm<Dim[3] ; mm++) {
+         for( bb=1 ; bb<=NROI_GM[mm] ; bb++) {
+            snprintf(mini, 50, "%d", ROI_LABELS_GM[mm][bb]);
+            if(!(findin_Dtable_a( mini, new_dt ))) {
+               addto_Dtable(mini, ROI_STR_LABELS[mm][bb], new_dt );
+            }
+         }
+      }
+
+      Dtable_str = Dtable_to_nimlstring(new_dt, "VALUE_LABEL_DTABLE");
+      destroy_Dtable(new_dt); new_dt = NULL;
+
+      // copy for GM
+      Dtable_strGM = strdup(Dtable_str);
+
+
+      THD_set_string_atr( outsetGMI->dblk , 
+                          "VALUE_LABEL_DTABLE" , Dtable_str);
+      
+      // output for GMI
+      if( (fout1 = fopen(prefix_dtable, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.",prefix_dtable);
+         exit(19);
+      }
+      fprintf(fout1,"%s",Dtable_str);
+      fclose(fout1);
+      free(Dtable_str); Dtable_str = NULL;
+ 
+      // copy for GM map
+      
+      THD_set_string_atr( outsetGM->dblk , 
+                          "VALUE_LABEL_DTABLE" , Dtable_strGM);
+
+      if( (fout1 = fopen(prefix_dtableGM, "w")) == NULL) {
+         fprintf(stderr, "Error opening file %s.",prefix_dtableGM);
+         exit(19);
+      }
+      fprintf(fout1,"%s",Dtable_strGM);
+      fclose(fout1);
+      free(Dtable_strGM); Dtable_strGM = NULL;
+
+
+     // end labelly stuff
+   }
+
+   THD_load_statistics(outsetGM);
+	tross_Make_History("3dROIMaker", argc, argv, outsetGM);
+	THD_write_3dim_dataset(NULL, NULL, outsetGM, True);
+
+
 	EDIT_dset_items( outsetGMI,
 						  ADN_datum_all , MRI_short , 
 						  ADN_prefix    , prefix_GMI ,
@@ -1320,13 +1488,35 @@ int main(int argc, char *argv[]) {
 	free(temp_arr2);
 	
 	INFO_message("GMI map is done.");
-	
+
+	if( DUMP_with_LABELS )
+      INFO_message("Put labeltables on both the GM and GMI files.");
+   else
+      INFO_message("Did *not* put labeltables on both the GM and GMI files "
+                   "(but could have)");
+
+
 	// ************************************************************
 	// ************************************************************
 	//                    Freeing
 	// ************************************************************
 	// ************************************************************
 		
+   for ( i=0 ; i<Dim[3] ; i++ ) 
+      for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
+         free(ROI_STR_LABELS[i][j]);
+   for ( i=0 ; i<Dim[3] ; i++ ) 
+      free(ROI_STR_LABELS[i]);
+   free(ROI_STR_LABELS);
+
+   if(LabTabStr)
+      free(LabTabStr); 
+   if(roi_dtable)
+      free(roi_dtable);
+
+
+
+
 	DSET_delete(inset);
 	free(inset);
 	DSET_delete(insetREF);
