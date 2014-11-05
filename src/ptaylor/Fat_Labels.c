@@ -29,10 +29,12 @@ int Make_ROI_Output_Labels( char ***ROI_STR_LABELS,
    str_lab1 = (char *)calloc(100, sizeof(char));
 
    if( ROI_dtable ) {
-      INFO_message("Have label table for naming things.");
+      INFO_message("Have labeltable for naming things.");
       if(!NameLabelsOut)
          INFO_message("... but won't use labels for dumped WM ROI files.");
    }
+   else
+       INFO_message("No refset labeltable for naming things.");
 
    for( hh=0 ; hh<N_nets ; hh++) {
       for( i=1 ; i<=NROI[hh] ; i++ ) {

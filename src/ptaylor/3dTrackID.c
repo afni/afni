@@ -638,6 +638,13 @@ void usage_TrackID(int detail)
 "                     viewable *.niml.dset (and other) files are still made.\n"
 "                     This is probably just if you want to save file space.\n"
 "                     Default is to output *.trk files.\n"
+"  -no_indipair_out  :Switch off outputting *INDIMAP* and *PAIRMAP* volumes.\n"
+"                     This is probably just if you want to save file space;\n"
+"                     also, for connectome-y studies with many (>100) target\n"
+"                     regions, the output INDI and PAIR maps can be quite\n"
+"                     large and/or difficult to write out. In some cases, it\n"
+"                     might be better to just use '-dump_rois AFNI' instead.\n"
+"                     Default is to output the INDI and PAIR map files.\n"
 "    -write_rois     :write out a file (PREFIX.roi.labs) of all the ROI \n" 
 "                     (re-)labels, for example if the input ROIs aren't\n"
 "                     simply consecutive and starting from 1. File has 3cols:\n"
@@ -1048,6 +1055,12 @@ int main(int argc, char *argv[])
          InOpts.OUTPUT_TRK = 0;
          iarg++ ; continue ;
       }
+
+      if( strcmp(argv[iarg],"-no_indipair_out") == 0) {
+         InOpts.OUT_INDIPAIR = 0;
+         iarg++ ; continue ;
+      }
+
 
 		if( strcmp(argv[iarg],"-dti_extra") == 0) {
 			if( ++iarg >= argc ) 
@@ -3853,13 +3866,17 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                          k,hh); 
       }
 
-      i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
-										insetPARS[PARS_BOT],TV_switch,voxel_order,
-										NROI, NETROI, mskd, INDEX2, Dim,
-										dsetn,argc,argv,
-                              ROI_STR_LABELS, opts.DUMP_with_LABELS,
-                              roi_dtable,
-                              ROI_LABELS, opts.PAIRPOWER);
+      
+      if (opts.OUT_INDIPAIR)  // Nov. 2014
+         i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
+                                 insetPARS[PARS_BOT],TV_switch,voxel_order,
+                                 NROI, NETROI, mskd, INDEX2, Dim,
+                                 dsetn,argc,argv,
+                                 ROI_STR_LABELS, opts.DUMP_with_LABELS,
+                                 roi_dtable,
+                                 ROI_LABELS, opts.PAIRPOWER);
+      else
+         INFO_message("Not writing out *INDI* and *PAIR* maps."); 
 
 		if(opts.DUMP_TYPE>=0)
 			i = WriteIndivProbFiles(N_nets,Ndata,Nvox,Prob_grid,
