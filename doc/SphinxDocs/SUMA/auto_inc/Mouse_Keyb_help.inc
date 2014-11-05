@@ -824,8 +824,7 @@ Mouse Controls
   
 .. _Shift+Button_3-Press:
 
-:kbd:`Shift+Button 3-Press`: Same as without shift, except does not draw
-                           in DrawROI mode.
+:kbd:`Shift+Button 3-Press`: Shows an image of the selection buffer for debugging purposes.  In :ref:`Draw ROI Mode <Draw_ROI_Mode>`, the selection buffer is not displayed and the effect of the click is to select a node,  but not to include it in the ROI.
   
 .. _Ctrl+Button_3-Press:
 
@@ -917,7 +916,7 @@ The selection of an object triggers a multitude of actions:
 
 * Other open SUMA controllers are made to jump to the corresponding locations. Use the SUMA controller (:ref:`Ctrl+u<LC_Ctrl+u>`) to setup how different controllers are locked together. 
 
-* When in :ref:`drawing ROIs mode<drawing_ROI_mode>` a selection adds to the ROI being drawn. See :ref:`drawing_ROIs` for details, assuming it is written by now!
+* When in :ref:`drawing ROIs mode<Draw_ROI_Mode>` a selection adds to the ROI being drawn. See :ref:`drawing_ROIs` for details, assuming it is written by now!
 
 * If you have 'click callbacks' initiated, a selection combined with the proper keyboard modifiers initiates a callback. An example of this would be the :ref:`surface-based instacorr<Shift+Ctrl+Button_3-Press>` or the variety of instacorr features in AFNI and/or 3dGroupInCorr. The following command can download and install demo material for InstaCorr excitement::
 
@@ -1695,5 +1694,5 @@ Choose from YES or NO
 Current Version Info:
 
 Compile Date:
-   Nov  4 2014
+   Nov  5 2014
 
