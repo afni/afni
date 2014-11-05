@@ -424,6 +424,9 @@ if (detail > 1) {
 "       -write_graph_cont_help\n"
 "       -write_graph_cont_sphinx_help \n"
 "       -snap_graph_cont_widgets\n"
+"       -write_roi_cont_help\n"
+"       -write_roi_cont_sphinx_help \n"
+"       -snap_roi_cont_widgets\n"
 "       -write_mouse_keyb_help FILE.txt: Write help output for mouse and \n"
 "                      keyboard shortcuts.\n"
 "       -write_mouse_keyb_sphinx_help FILE.rst: Same as -write_mouse_keyb_help\n"
@@ -1857,6 +1860,51 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          ++kar;
          NI_set_attribute(ngr, "Write_Graph_Cont_Sphinx_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_roi_cont_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_roi_cont_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_ROI_Cont_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-snap_roi_cont_widgets") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -snap_roi_cont_widgets \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Snap_ROI_Cont_Widgets", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_roi_cont_sphinx_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_roi_cont_sphinx_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_ROI_Cont_Sphinx_Help", argt[kar]);
          
          argt[kar][0] = '\0';
          brk = YUP;

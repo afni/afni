@@ -37,6 +37,8 @@ char *SUMA_sources_Info(void );
 char * SUMA_OptList_string(HELP_OPT *hol);
 char *SUMA_OptList_get(HELP_OPT *hol, char *opname, char *what);
 char *SUMA_NIDO_Info(void );
+void SUMA_Snap_AllROICont (char *froot);
+char * SUMA_Help_AllROICont (int targ);
 void SUMA_Snap_AllSurfCont (char *froot);
 void SUMA_Snap_AllGraphCont (char *froot);
 void SUMA_Snap_AllVolCont (char *froot);
