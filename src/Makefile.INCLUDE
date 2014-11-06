@@ -192,7 +192,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @Install_MEICA_Demo @T1scale 3dMVM @compute_gcor 3dLME                  \
           @Install_ClustScat_Demo @Install_FATMVM_DEMO                            \
           @move.to.series.dirs @toMNI_Awarp @toMNI_Qwarpar @simulate_motion	    \
-          @afni.run.me 3dRprogDemo @ExamineGenFeatDists 
+          @afni.run.me 3dRprogDemo @ExamineGenFeatDists rPkgsInstall
 
 
 PY_DIR = python_scripts
