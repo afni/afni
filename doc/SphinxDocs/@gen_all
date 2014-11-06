@@ -86,6 +86,13 @@ if ($nosuma == 0) then
 
 endif
 
+AUTO_HELP:
+if ( ! -d tutorials/___auto_help ) mkdir -p tutorials/___auto_help
+set echo
+foreach pp (@DriveSuma @DriveAfni @DO.examples @Install_InstaCorr_Demo)
+   $pp -help > tutorials/___auto_help/_${pp}.help.inc
+end
+unset echo
 if ( ! -d _static) mkdir _static
 
 make clean html |& tee -a ___build.log
@@ -96,8 +103,10 @@ if ($webupdate == 1) then
    set kk = $<
    if ("$kk" == 'y' || "$kk" == 'Y') then
       rsync -rv _build/html/ $afscp
+      echo "Content updated for $afwpg"
+   else
+      echo "Update canceled"
    endif
-   echo "Content updated for $afwpg"
 endif
 
 
