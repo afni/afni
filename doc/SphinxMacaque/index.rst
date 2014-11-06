@@ -12,6 +12,7 @@ Welcome to the Saleem Macaque Atlas Web-based Information!
    :includehidden:
 
    macaquetoc1
+   roistoc1
    glossary
 
 ==================
