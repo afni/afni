@@ -4783,6 +4783,37 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
    RETURN(ws);
 }
 
+char *phelp(char *prog, int verb) 
+{
+   char cmd[512], uid[64], tout[128];
+   char *help=NULL;
+   
+   ENTRY("phelp");
+   
+   if (!prog ) RETURN(help);
+   
+   UNIQ_idcode_fill(uid);
+   sprintf(tout,"/tmp/%s.%s.txt", APSEARCH_TMP_PREF, uid); 
+   snprintf(cmd,500*sizeof(char),"\\echo '' 2>&1 | %s -help > %s 2>&1 ",
+             prog, tout);
+   if (system(cmd)) {
+      if (0) {/* many programs finish help and set status afterwards. Naughty. */
+         ERROR_message("Failed to get help for %s\nCommand: %s\n", prog, cmd);
+         return 0;
+      }
+   }
+   
+   if (!(help = AFNI_suck_file(tout))) {
+      if (verb) ERROR_message("File %s could not be read\n", tout);
+      RETURN(help);
+   }
+                                 
+   snprintf(cmd,500*sizeof(char),"\\rm -f %s", tout);
+   system(cmd);
+   
+   RETURN(help);
+}
+
 char **approx_str_sort_phelp(char *prog, int *N_ws, char *str, 
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
@@ -5025,6 +5056,122 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
    }
 
    return(sout);
+}
+
+char *sphinxize_prog_help (char *prog, int verb) 
+{
+   char **ws=NULL, *sout=NULL, *ofile=NULL;
+   char *sh=NULL, *oh=NULL, *l=NULL;
+   int N_ws=0, ishtp=0, nb = 0, i, k;
+   
+   ENTRY("sphinxize_prog_help");
+   
+   if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
+                   1, NULL,
+                   NULL, NULL, 1, 0, '\\'))) {
+      RETURN(0);
+   }
+   
+   /* Get the original help string */
+   if (!(oh = phelp(prog, verb))) {
+      ERROR_message("Weird, dude");
+      RETURN(0);
+   }
+   sh = (char*)calloc(2*strlen(oh), sizeof(char));
+   strcpy(sh, oh);
+   sh[strlen(oh)]='\0';
+   
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         fprintf(stderr,"Working option %s\n", ws[i]);
+         l = find_popt(sh,ws[i], &nb);
+         if (l) {
+            fprintf(stderr,"Found option %s at::", ws[i]);
+            k = 0;
+            while (k<50 && l[k]!='\0') fprintf(stderr,"%c",*(l+k));
+            fprintf(stderr,"\n");
+         } else {
+            fprintf(stderr,"Option %s not found\n", ws[i]);
+         }
+         free(ws[i]); ws[i]=NULL;
+      }
+   }
+   free(ws); ws = NULL;
+   free(oh); oh = NULL;
+   
+   RETURN(sh);
+}
+
+/* 
+Find 1st location in cur that begins with string opt.
+Blanks are ignored.
+Function returns pointer to beginning of opt in the line, 
+and sets number of blanks preceding it */
+char *line_begins_with(char *cur, char *opt, int *nb)
+{
+   char *loc=NULL, *nl=NULL;
+   int bad = 1;
+   
+   if (!cur || !opt) {
+      ERROR_message("NULL option or null string");
+      return(loc);
+   } 
+   if (nb) *nb = -1;
+   do {
+      loc = strstr(cur, opt);
+      if (loc) {
+         bad = 0; /* Assume it is good */
+         if (loc == cur) {
+            if (nb) *nb = 0;
+            return(loc);
+         }
+         /* search back to new line */
+         nl = loc-1; 
+         while (nl != cur && *nl != '\n') {
+            if (*nl != ' ' && *nl != '\t') { /* No need to continue */
+               bad = 1;  
+            }
+            --nl;
+         }
+         if (!bad) { /* Good */
+            if (*nl == '\n') ++nl;
+            if (nb) *nb = loc -nl;
+            return(loc);
+         } else {
+            /* continue search past this find. */
+            cur = loc+1;
+         }
+      } else {
+         /* nothing found, get out */
+         return(NULL);
+      }
+      
+   } while (*cur != '\n');
+   
+   return(NULL);
+}
+
+char *find_popt(char *sh, char *opt, int *nb)
+{
+   char *loc=NULL, *other=NULL;
+   
+   ENTRY("find_popt");
+   
+   if (!sh || !opt) {
+      ERROR_message("NULL option or null string");
+      RETURN(loc);
+   } 
+   
+   loc = line_begins_with(sh, opt, nb);
+   
+   if (loc) { /* Check that we do not have more than one */
+      if ((other = line_begins_with(loc+*nb+1, opt, NULL))) { 
+         WARNING_message("More than one match for opt %s.\n"
+                         "Returning first hit\n", opt);
+      }
+   }
+   
+   RETURN(loc);
 }
 
 int prog_complete_command (char *prog, char *ofileu, int shtp) {
