@@ -8,8 +8,8 @@
         Serge O. Dumoulin, Brian A. Wandell
 
    Given stimulus images over time s(x,y,t), find x0, y0, sigma values that
-   produce a minimum fit of the model to the data, where the model function
-   of x0, y0 and sigma is construction as follows:
+   produce a best fit of the model to the data, where the model function of
+   x0, y0 and sigma is constructed as follows:
 
         1. generate a 2-D Gaussian density function, centered at x0, y0,
            and with given sigma
@@ -777,7 +777,7 @@ static int signal_model
 {
   int    it;            /* time index */
   int    maxind;        /* largest dimension */
-  double A, x, y, sigma;/* model params */
+  float  A, x, y, sigma;/* model params */
 
   /* assign parameters */
   A = gs[0];
