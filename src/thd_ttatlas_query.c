@@ -5058,48 +5058,79 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
    return(sout);
 }
 
-char *sphinxize_prog_help (char *prog, int verb) 
+/* 
+   Insert string 'ins' at pointer 'pos' inside of string '*s' which
+   has at most *nalloc characters.
+   Returns the string with the insertion, and reallocates and updates
+   *nalloc if needed.
+   Call with something like:
+   s = insert_in_string(&s, pos, ins, nalloc);
+*/
+char *insert_in_string(char **s, char *pos, char *ins, int *nalloc)
 {
-   char **ws=NULL, *sout=NULL, *ofile=NULL;
-   char *sh=NULL, *oh=NULL, *l=NULL;
-   int N_ws=0, ishtp=0, nb = 0, i, k;
+   char *sp=NULL;
+   int ns = -1, n_ins=-1, i_ins, i;
    
-   ENTRY("sphinxize_prog_help");
+   if (!s || !*s || !pos || !nalloc) return(sp);
    
-   if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
-                   1, NULL,
-                   NULL, NULL, 1, 0, '\\'))) {
-      RETURN(0);
+   sp = *s;
+   if (!ins || ins[0] == '\0') return(sp); /* nothing to do */
+   ns = strlen(sp);
+   n_ins = strlen(ins);
+   
+   if ((i_ins = pos - sp) < 0 || (i_ins > ns)) {
+      ERROR_message("Inserting outside of boundaries of string");
+      return(*s);
    }
    
-   /* Get the original help string */
-   if (!(oh = phelp(prog, verb))) {
-      ERROR_message("Weird, dude");
-      RETURN(0);
+   /* fprintf(stderr,"i_ins=%d, ins=%s, ns=%d",i_ins, ins, ns); */
+   /* Check for enough allocation */
+   if (ns+n_ins >= *nalloc) {
+      *nalloc += 500;
+      *s = (char *)realloc(sp, (*nalloc+1)*sizeof(char));
+      sp = *s;
    }
-   sh = (char*)calloc(2*strlen(oh), sizeof(char));
-   strcpy(sh, oh);
-   sh[strlen(oh)]='\0';
    
-   for (i=0; i<N_ws; ++i) {
-      if (ws[i]) {
-         fprintf(stderr,"Working option %s\n", ws[i]);
-         l = find_popt(sh,ws[i], &nb);
-         if (l) {
-            fprintf(stderr,"Found option %s at::", ws[i]);
-            k = 0;
-            while (k<50 && l[k]!='\0') fprintf(stderr,"%c",*(l+k));
-            fprintf(stderr,"\n");
-         } else {
-            fprintf(stderr,"Option %s not found\n", ws[i]);
+   /* Now move the second half ins steps */
+   for (i=ns; i>=i_ins; --i) {
+      sp[i+n_ins] = sp[i];
+   }
+   
+   /* And now put in the insertion string */
+   for (i=0; i<n_ins; ++i) {
+      sp[i_ins+i] = ins[i];
+   }
+
+   return(*s);
+}
+
+
+void write_string(char *s, char *prelude, char *postscript,
+                 int nmax, int multiline, FILE *fout)
+{
+   int k, ns;
+   
+   if (!fout) fout = stdout;
+   if (prelude) fprintf(fout, "%s", prelude);
+   if (s) {
+      ns = strlen(s);
+      if (nmax>ns) nmax = ns;
+      else if (nmax<0) nmax = ns;
+      k = 0;
+      if (multiline) {
+         while (k<nmax ) { 
+            fprintf(stderr,"%c",*(s+k)); 
+            ++k; 
          }
-         free(ws[i]); ws[i]=NULL;
+      } else {
+         while (k<nmax && s[k] !='\n') { 
+            fprintf(stderr,"%c",*(s+k)); 
+            ++k; 
+         }
       }
    }
-   free(ws); ws = NULL;
-   free(oh); oh = NULL;
-   
-   RETURN(sh);
+   if (postscript) fprintf(fout, "%s", postscript);
+   return;
 }
 
 /* 
