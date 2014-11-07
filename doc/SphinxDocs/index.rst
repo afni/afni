@@ -16,6 +16,7 @@ Welcome to AFNI's documentation!
    fatcattoc1
    tutorialstoc1
    installationstoc1
+   programstoc1
    glossary
    references
 

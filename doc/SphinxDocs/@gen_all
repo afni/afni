@@ -88,11 +88,20 @@ endif
 
 AUTO_HELP:
 if ( ! -d tutorials/___auto_help ) mkdir -p tutorials/___auto_help
+if ( ! -d programs/___auto_help ) mkdir -p programs/___auto_help
 set echo
 foreach pp (@DriveSuma @DriveAfni @DO.examples @Install_InstaCorr_Demo)
    $pp -help > tutorials/___auto_help/_${pp}.help.inc
 end
+
+set plist = (`apsearch -list_all_afni_progs`)
+foreach pp (3dinfo)
+   apsearch -sphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
+end
+
+
 unset echo
+
 if ( ! -d _static) mkdir _static
 
 make clean html |& tee -a ___build.log
