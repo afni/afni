@@ -3490,6 +3490,25 @@ void SUMA_Sphinx_String_Edit_Help(FILE *fout)
    return;
 }
 
+char *SUMA_Sphinx_File_Edit(char *fname, int targ, int off)
+{
+   static char FuncName[]={"SUMA_Sphinx_File_Edit"};
+   char *s=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!fname) SUMA_RETURN(s);
+   
+   if (!SUMA_suck_file(fname, &s)) {
+      SUMA_S_Err("Empty file or file not found");
+      SUMA_RETURN(NULL);
+   }
+   
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, off));
+}
+
+
 /*
    A function that allows me to format help strings for 
    display in SUMA as was done in the past, and for 
@@ -3548,6 +3567,67 @@ char *SUMA_Sphinx_String_Edit(char **suser, int targ, int off)
    
    SUMA_RETURN(s); 
 }
+
+char *sphinxize_prog_help (char *prog, int verb) 
+{
+   static char FuncName[]={"sphinxize_prog_help"};
+   char **ws=NULL, *sout=NULL, *ofile=NULL, *bb=NULL;
+   char *sh=NULL, *oh=NULL, *l=NULL, sins[1024]={""};
+   int N_ws=0, ishtp=0, nb = 0, i, k, nalloc, offs;
+   
+   SUMA_ENTRY;
+   
+   if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
+                   1, NULL,
+                   NULL, NULL, 1, 0, '\\'))) {
+      SUMA_RETURN(0);
+   }
+   
+   /* Get the original help string */
+   if (!(oh = phelp(prog, verb))) {
+      ERROR_message("Weird, dude");
+      SUMA_RETURN(0);
+   }
+   nalloc = 2*strlen(oh);
+   sh = (char*)calloc(2*strlen(oh), sizeof(char));
+   strcpy(sh, oh);
+   sh[strlen(oh)]='\0';
+   
+   snprintf(sins, 1020, "%s\n", prog); bb = sins+strlen(sins);
+   for (i=0; i<strlen(prog); ++i) {*bb='-'; ++bb;}
+   *bb='\0';
+   strcat(sins,"\n\n");
+   sh = insert_in_string(&sh, sh, sins, &nalloc); 
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         l = find_popt(sh,ws[i], &nb);
+         if (l) {
+            offs = l - sh -nb;
+            if (verb) {
+               fprintf(stderr,"Found option %s at::", ws[i]);
+               write_string(l-nb, "\n", "\n",50, 0, stderr);
+            }
+            snprintf(sins, 1020, "\n.. _%s-%s:\n\n", 
+                     prog, ws[i]);
+            sh = insert_in_string(&sh, l-nb, sins, &nalloc);
+            sh = insert_in_string(&sh, l+strlen(sins), "**", &nalloc);
+            sh = insert_in_string(&sh, l+strlen(sins)+2+strlen(ws[i]), 
+                                                       "**\\ ", &nalloc);
+            if (verb) {
+               write_string(sh+offs, "    Now have\n", "\n\n",50, 1, stderr);
+            }
+         } else {
+            fprintf(stderr,"Option %s not found\n\n", ws[i]);
+         }
+         SUMA_free(ws[i]); ws[i]=NULL;
+      }
+   }
+   SUMA_free(ws); ws = NULL;
+   SUMA_free(oh); oh = NULL;
+   
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&sh, 1, 0));
+}
+
 
 /*
    Check if string begins with sphinx directives
