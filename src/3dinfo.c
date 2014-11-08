@@ -6,9 +6,9 @@
 
 #include "mrilib.h"
 
-void Syntax(TFORM targ)
+void Syntax(void)
 {
-   sphinx_printf(targ,"\n"
+   printf("\n"
 "Prints out sort-of-useful information from a 3D dataset's header\n"
 "Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
 "  -verb means to print out lots of stuff\n"
@@ -274,8 +274,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    char *tempstr = NULL;
 
-   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 
-                || strcmp(argv[1],"-h") == 0) Syntax(TXT) ;
+   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
    mainENTRY("3dinfo main") ; machdep() ; 
 
@@ -287,10 +286,6 @@ int main( int argc , char *argv[] )
             verbose =  1; iarg++; continue; }
       else if( strncmp(argv[iarg],"-short",5) == 0 ){ 
             verbose = -1; iarg++; continue; }
-      else if( strncmp(argv[iarg],"-h_spx",6) == 0 ){ 
-            Syntax(SPX); }
-      else if( strncmp(argv[iarg],"-h_raw",6) == 0 ){ 
-            Syntax(NO_FORMAT); }
       else if( strcasecmp(argv[iarg],"-header_line") == 0 ||
                strcasecmp(argv[iarg],"-hdr") == 0 ){ 
             withhead = 1; iarg++; continue; }
