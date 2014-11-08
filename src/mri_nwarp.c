@@ -6536,7 +6536,7 @@ void IW3D_destroy_nwarp_catlist( Nwarp_catlist *nwc )
 
 int IW3D_reduce_nwarp_catlist( Nwarp_catlist *nwc )
 {
-   int ii,jj , ndone , totaldone=0 ;
+   int ii,jj , ndone=0 , totaldone=0 ;
    int doall=0 ;
 
 ENTRY("IW3D_reduce_nwarp_catlist") ;
@@ -6826,6 +6826,7 @@ ININFO_message("NULL entry?") ;
 
    IW3D_adopt_dataset( warp , iset ) ;
    oset = IW3D_to_dataset( warp , prefix ) ;
+   IW3D_destroy(warp) ;
    if( nwc->flags & NWC_INVERT_MASK ){
      qset = THD_nwarp_invert(oset) ;
      DSET_delete(qset) ; oset = qset ;

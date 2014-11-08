@@ -1473,8 +1473,7 @@ def apply_catenated_warps(proc, gridbase, winput, woutput, dim, all1_dset,cstr):
           '    # then apply non-linear standard-space warp\n'            \
           '    3dNwarpApply -master %s -dxyz %g \\\n'                    \
           '                 -source %s \\\n'                             \
-          '                 -nwarp %s \\\n'                              \
-          '                 -affter mat.r$run.warp.aff12.1D \\\n'        \
+          '                 -nwarp "%s mat.r$run.warp.aff12.1D" \\\n'    \
           '                 -prefix %s \n'                               \
           % (cstr, gridbase, dim, winput, proc.nlw_NL_mat, woutput)
 
@@ -1483,9 +1482,8 @@ def apply_catenated_warps(proc, gridbase, winput, woutput, dim, all1_dset,cstr):
              '    # warp the all-1 dataset for extents masking \n'          \
              '    3dNwarpApply -master %s -dxyz %g\\\n'                     \
              '                 -source %s \\\n'                             \
-             '                 -nwarp %s \\\n'                              \
+             '                 -nwarp "%s mat.r$run.warp.aff12.1D" \\\n'    \
              '                 -prefix rm.epi.1.r$run \\\n'                 \
-             '                 -affter mat.r$run.warp.aff12.1D \\\n'        \
              '                 -ainterp NN -quiet \n'                       \
              % (gridbase, dim, all1_dset.pv(), proc.nlw_NL_mat)
 
@@ -4583,6 +4581,8 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
        and it can be applied via:
           3dNwarpApply -nwarp anat.un.aff.qw_WARP.nii -master NWARP     \
                  -affter at.warp.aff12.1D -source e0+orig -prefix e0.at.nlw
+
+       2014.11.07: -affter warp should be applied at end of -nwarp option
     """
 
     if proc.verb > 0: print '-- using non-linear template alignment'
