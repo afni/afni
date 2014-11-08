@@ -424,12 +424,14 @@ g_history = """
           when run lengths vary
     4.21 Sep 08, 2014: grid dimensions are now rounded to 6 significant
           bits before being truncated to 3
+    4.22 Nov 07, 2014: shift -affter warp to -warp for -tlrc_NLwarp
+        - requires 3dNwarpApply from Nov 7 or later
 """
 
-g_version = "version 4.21, September 8, 2014"
+g_version = "version 4.22, November 7, 2014"
 
 # version of AFNI required for script execution
-g_requires_afni = "13 May 2014" # no stats for gen_ss_review_scripts.py
+g_requires_afni = "7 Nov 2014" # 3dNwarpApply
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

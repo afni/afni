@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7,  Nov, 2014, RCR, "mri_nwarp.c", MICRO, TYPE_BUG_FIX,
+   "applied update to free temporary warp on behalf of RWC",
+   NULL
+ } ,
+
+ {  7,  Nov, 2014, RCR, "auto_warp.py", MICRO, TYPE_MODIFY,
+   "moved -affter warp to -warp in 3dNwarpApply",
+   NULL
+ } ,
+
+ {  7,  Nov, 2014, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "moved -affter warp to -warp in 3dNwarpApply",
+   "This applies the 22 Oct, 2014 change to 3dNwarpApply."
+ } ,
+
  {  7,  Nov, 2014, RCR, "model_conv_PRF_6", MINOR, TYPE_NEW_PROG,
    "6 parameter population receptive field estimate model",
    "Added sigrat (sigma ratio) and theta parameters.\n"
