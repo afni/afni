@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Nov, 2014, RCR, "afni", MICRO, TYPE_ENHANCE,
+   "added color maps Reds_and_Blues, and _w_Green",
+   NULL
+ } ,
+
  {  7,  Nov, 2014, RCR, "mri_nwarp.c", MICRO, TYPE_BUG_FIX,
    "applied update to free temporary warp on behalf of RWC",
    NULL
