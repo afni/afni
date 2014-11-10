@@ -3,6 +3,12 @@
 #Creates a temporary directory called ./tmp_suma
 
 if ("$1" == "-h" || "$1" == -help) goto HELP
+if ($#argv > 0) then
+   #Need to exit with unknown options.
+   echo "No parameters accepted. See `basename $0` -help."
+   exit 1
+endif
+
 set outdir = './tmp_suma'
 
         set l = `prompt_user -pause \
