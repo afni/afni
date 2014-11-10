@@ -102,7 +102,9 @@ typedef struct {
 #define NSBUF 128    /* Place here because SUMA needs that baby too */
 #define NPANE_BIG    256    /* 30 Jan 2003: # colors in "big" mode , ZSS. Jan 06, Up from 128, Bigger, immer.*/
 #define NPANE_BIG1   (NPANE_BIG-1)
-#define NBIGMAP_INIT 7      /* # of initial colorscales */
+/* to add a big colormap: update NBIGMAP_INIT and BIGMAP_NAMES,
+ * and initialize that bigmap index in NJ_bigmaps_init */
+#define NBIGMAP_INIT 9      /* # of initial colorscales */
 #define NBIG_GAP     6
 #define NBIG_MBOT    (NPANE_BIG/2-NBIG_GAP)
 #define NBIG_MTOP    (NPANE_BIG/2+NBIG_GAP)
@@ -116,7 +118,7 @@ static char BIGMAP_NAMES[][32] = {
    "Spectrum:red_to_blue", "Spectrum:red_to_blue+gap",
    "Spectrum:yellow_to_cyan", "Spectrum:yellow_to_cyan+gap", 
    "Spectrum:yellow_to_red", "Color_circle_AJJ", 
-   "Color_circle_ZSS", 
+   "Color_circle_ZSS", "Reds_and_Blues", "Reds_and_Blues_w_Green"
    "\0" };
 int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp);
 
