@@ -54,6 +54,7 @@ ENTRY("anchorCB") ;
       cbs->doit = True ; cbs->visited = True ;
     break ;
 
+    default:
     case ANCHOR_HTTP:{                               /* external http links */
       static char *webb=NULL ; static int first=1 ;
       if( first == 1 ){ webb = GetAfniWebBrowser() ; first = 2 ; }
