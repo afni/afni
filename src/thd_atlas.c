@@ -1104,6 +1104,8 @@ void free_atlas(ATLAS *xa)
    if (xa->atlas_type) free(xa->atlas_type);
    if (xa->supp_web_info) free(xa->supp_web_info);
    if (xa->supp_web_type) free(xa->supp_web_type);
+   if (xa->supp_conn_info) free(xa->supp_conn_info);
+   if (xa->supp_conn_type) free(xa->supp_conn_type);
    if (xa->orient) free(xa->orient);
 
    if (xa->adh) free_adh(xa->adh);
@@ -1343,8 +1345,12 @@ void print_atlas_type(ATLAS *xa)
 void print_atlas_supp_web_info(ATLAS *xa)
 {
     if((xa) && ATL_SUPP_WEB_INFO(xa)) {
-       INFO_message("%s/roiname%s", ATL_SUPP_WEB_INFO_S(xa),
+       INFO_message("%sroiname%s", ATL_SUPP_WEB_INFO_S(xa),
                     ATL_SUPP_WEB_TYPE_S(xa));
+    }
+    if((xa) && ATL_SUPP_CONN_INFO(xa)) {
+       INFO_message("%sroiname%s", ATL_SUPP_CONN_INFO_S(xa),
+                    ATL_SUPP_CONN_TYPE_S(xa));
     }
 
 }
@@ -2489,6 +2495,8 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
    atlas->atlas_type =  NULL;  /* atlas can be "web"/ NULL */
    atlas->supp_web_info =  NULL;  /* supplemental info available at website */
    atlas->supp_web_type =  NULL;  /* atlas info may be .pdf, .html, ...*/
+   atlas->supp_conn_info =  NULL;  /* supplemental connection info available at website */
+   atlas->supp_conn_type =  NULL;  /* atlas info may be .pdf, .html, ...*/
    atlas->atlas_found = 0; /* flag for dataset available, -1 not found, 
                               1 found, 0 init value */
 
@@ -2520,6 +2528,10 @@ int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *parentdir)
       atlas->supp_web_info = nifti_strdup(s);
    if ((s=NI_get_attribute(nel,"supp_web_type"))) 
       atlas->supp_web_type = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"supp_conn_info"))) 
+      atlas->supp_conn_info = nifti_strdup(s);
+   if ((s=NI_get_attribute(nel,"supp_conn_type"))) 
+      atlas->supp_conn_type = nifti_strdup(s);
 
    if((atlas->dset_name == NULL) || (atlas->space == NULL)) {
       WARNING_message("bad atlas nel");
@@ -2546,6 +2558,8 @@ int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas)
    destatlas->atlas_type = srcatlas->atlas_type;
    destatlas->supp_web_info = srcatlas->supp_web_info;
    destatlas->supp_web_type = srcatlas->supp_web_type;
+   destatlas->supp_conn_info = srcatlas->supp_conn_info;
+   destatlas->supp_conn_type = srcatlas->supp_conn_type;
 
    destatlas->adh = srcatlas->adh;
    
