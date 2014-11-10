@@ -471,7 +471,6 @@ int main(int argc, char **argv)
    
 
    mainENTRY("apsearch main"); machdep() ; 
-      
    max_hits = 3;
    test_only=0;
    min_different_hits = -1;
@@ -605,16 +604,43 @@ int main(int argc, char **argv)
          continue; 
       }
 
-      if (strcmp(argv[iarg],"-sphinx_phelp") == 0) { 
+      if (strcmp(argv[iarg],"-has-h_raw") == 0) { 
+         char *s=NULL;
+         int ans;
+         
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+               "** Error: Need a program name after"
+               " -has-h_raw\n");
+            return(1);
+         }
+         ans = program_supports(argv[iarg], "-h_raw", NULL, 1);
+         fprintf(stdout, "%d\n", ans);
+         return(0);
+      }
+      
+      if (strcmp(argv[iarg],"-sphinx_phelp") == 0 ||
+          strcmp(argv[iarg],"-txt_phelp") == 0 ||
+          strcmp(argv[iarg],"-raw_phelp") == 0) { 
+         TFORM form=NO_FORMAT;
          char *s=NULL;
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-                     "** Error: Need a program name after -sphinx_phelp\n"); 
+               "** Error: Need a program name after"
+               " -sphinx_phelp/-txt_phelp/-raw_phelp\n");
             return(1);
          }
          
-         if ((s = sphinxize_prog_help(argv[iarg],0))) {
+              if (strcmp(argv[iarg-1],"-txt_phelp") == 0) form = TXT;
+         else if (strcmp(argv[iarg-1],"-sphinx_phelp") == 0) form = SPX;
+         else if (strcmp(argv[iarg-1],"-raw_phelp") == 0) form = NO_FORMAT;
+         else {
+            ERROR_message("Who wrote this thing?!?");
+            return(1);
+         }
+         if ((s = format_prog_help(argv[iarg], form, 0))) {
             fprintf(stdout, "%s", s);
             free(s); s = NULL;
          }
@@ -622,6 +648,8 @@ int main(int argc, char **argv)
          return(0);
          continue; 
       }
+      
+      
       
       if (!strcmp(argv[iarg],"-doc_markup_sample")) {
          SUMA_Sphinx_String_Edit_Help(NULL);
@@ -839,6 +867,14 @@ int main(int argc, char **argv)
          ++iarg; 
          continue; 
       }
+      
+      if (strcmp(argv[iarg],"-C_prog_opt_array") == 0) {
+         progopt_C_array(NULL, 1);
+         return(0);
+         ++iarg; 
+         continue;
+      }
+      
       
       if (strcmp(argv[iarg],"-bash") == 0) {
          shtp = 1;

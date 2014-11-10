@@ -7,7 +7,7 @@ set lst  = (   "0" "value"     "1" "obsolete"     "2" "fico"      \
                "3" "fitt"      "4" "fift"         "5" "fizt"      \
                "6" "fict"      "7" "fibt"         "8" "fibn"      \
                "9" "figt"      "10" "fipt"        "11" "fbuc" )
-if ("$1" =~ "-h" || "$1" == "") then
+if ("$1" == "-h" || "$1" == "" || "$1" == "-help") then
    goto USAGE
 endif
 
@@ -26,7 +26,9 @@ while ($cnt < $#lst)
    endif
 end
 
-goto END
+#Bad if you get here
+echo "Nothing found for argument $1"
+goto BEND
 
 USAGE:
    echo "Usage: `basename $0` code"
@@ -46,4 +48,9 @@ USAGE:
    echo "`basename $0` 4"
    echo "" 
 goto END
+
+BEND:
+   exit 1
+   
 END:
+   exit 0

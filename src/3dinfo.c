@@ -6,15 +6,18 @@
 
 #include "mrilib.h"
 
-void Syntax(void)
+void Syntax(TFORM targ)
 {
-   printf("\n"
+   sphinx_printf(targ,"\n"
 "Prints out sort-of-useful information from a 3D dataset's header\n"
 "Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
 "  -verb means to print out lots of stuff\n"
 "  -VERB means even more stuff\n"
 "  -short means to print out less stuff [now the default]\n"
 "\n"
+":SPX:"
+"\n.. note::\n\n   This could be anything. Just for the demo.\n\n"
+":SPX:"
 "Alternative Usage (without either of the above options):\n"
 "  3dinfo -label2index label dataset\n"
 "  * Prints to stdout the index corresponding to the sub-brick with\n"
@@ -274,7 +277,8 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    char *tempstr = NULL;
 
-   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
+   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 
+                || strcmp(argv[1],"-h") == 0) Syntax(TXT) ;
 
    mainENTRY("3dinfo main") ; machdep() ; 
 
@@ -286,6 +290,10 @@ int main( int argc , char *argv[] )
             verbose =  1; iarg++; continue; }
       else if( strncmp(argv[iarg],"-short",5) == 0 ){ 
             verbose = -1; iarg++; continue; }
+      else if( strncmp(argv[iarg],"-h_spx",6) == 0 ){ 
+            Syntax(SPX); }
+      else if( strncmp(argv[iarg],"-h_raw",6) == 0 ){ 
+            Syntax(NO_FORMAT); }
       else if( strcasecmp(argv[iarg],"-header_line") == 0 ||
                strcasecmp(argv[iarg],"-hdr") == 0 ){ 
             withhead = 1; iarg++; continue; }

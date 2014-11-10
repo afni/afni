@@ -260,43 +260,15 @@ char * SUMA_truncate_string (char *s1, int length);
 char *SUMA_set_string_length(char *buf, char cp, int n);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
-char *sphinxize_prog_help (char *prog, int verb);
-void SUMA_Sphinx_String_Edit_Help(FILE *fout);
-char *SUMA_Sphinx_File_Edit(char *fname, int targ, int off);
-char *SUMA_Sphinx_String_Edit(char **s, int targ, int off);
-char *SUMA_Sphinx_LineSpacer(char *s, int targ);
-SUMA_Boolean SUMA_Known_Sphinx_Dir(char *s);
-NI_str_array *SUMA_Split_String(char *s, char *sc);
-char *SUMA_Sphinx_DeRef(char *s, char *r);
-char *SUMA_Cut_String(char *s, char *sc);
-char *SUMA_Swap_String(char *s, char *sc, char *sw);
-char *SUMA_Break_String(char *s, int mxln);
-char *SUMA_Offset_Lines(char *si, int off);
-char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save);
+
 void SUMA_sigfunc(int sig);
 char * SUMA_pad_string(char *buf, char cp, int n, int add2end);
 NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa);
-NI_str_array *SUMA_NI_str_array(NI_str_array *clss, char *what, char *action); 
-int SUMA_NI_str_array_find( char *targ , NI_str_array *sar , 
-                            int partial, int ci);
-NI_str_array *SUMA_comp_str_2_NI_str_ar(char *s, char *sep);
-void SUMA_Show_NI_str_ar(NI_str_array *nisa, FILE *out);
-char *SUMA_NI_str_ar_2_comp_str (NI_str_array *nisa, char *sep);
-char *SUMA_Get_Sub_String(char *cs, char *sep, int ii);
-SUMA_Boolean SUMA_Set_Sub_String(char **cs, char *sep, int ii, char *str);
 int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, 
                               char *sep, int insert_mode);
-int SUMA_Remove_Sub_String(char *cs, char *sep, char *strn);
-NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep );
-NI_str_array * SUMA_NI_string_vec_to_str_array( char **ss , int nss );
-char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i );
-int  SUMA_NI_find_in_cs_string( char *ss , char *sep, char *str );
-void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
-void *SUMA_strtol_vec(char *op, int nvals, int *nread, 
-                      SUMA_VARTYPE vtp, char **opend);
+
 SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out);
-char *SUMA_EscapeChars(char *s1, char *ca, char *es);
-char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
+
 char *SUMA_isEnv(char *env, char *sval);
 float SUMA_floatEnv(char *env, float defval);
 ENV_SPEC SUMA_envlistelement(int i);
@@ -318,5 +290,5 @@ float *SUMA_freorder_triplets(float *y, int *isort, int N_isort);
 char *SUMA_floats_to_string(float *rgba, int N, float scl, char *here, int *Err,
                             char *sep, int MVf);
 #define SUMA_RGBA_to_string SUMA_floats_to_string
-float *SUMA_string_to_RGBA(char *s, float *here, float scl, int *Err);                      
+float *SUMA_string_to_RGBA(char *s, float *here, float scl, int *Err);            
 #endif

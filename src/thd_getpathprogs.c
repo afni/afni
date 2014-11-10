@@ -1,5 +1,6 @@
 #include "mrilib.h"
 #include "thd.h"
+#include "suma_suma.h"
 
 static int               einit = 0 ;
 static THD_string_array *elist = NULL ;
@@ -445,6 +446,7 @@ THD_string_array * THD_get_all_afni_executables(void )
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".xbm") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".tex") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".lib") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".o") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".so") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".la") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".txt") &&
@@ -646,4 +648,472 @@ int list_afni_readmes(int withpath, int withnum) {
 int list_afni_dsets(int withpath, int withnum) {
    return(list_afni_files(2, withpath, withnum));
 }
+
+/* Include file that has C struct containing programs and all their options */
+#include "prog_opts.c"
+
+char *form_C_progopt_string(char *prog, char **ws, int N_ws) 
+{
+   char *sout=NULL, sbuf[128];
+   int maxch=0, i, jj, N_opts=0;
+   NI_str_array *nisa=NULL;
+   
+   if (!prog || !ws) {
+      return(NULL);
+   }
+   
+   maxch = 256;
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         maxch+=strlen(ws[i])+10;
+         if (strlen(ws[i]) > 127) {
+            WARNING_message("Truncating atrocious option %s\n", ws[i]);
+            ws[127] = '\0';
+         }
+      }
+   }
+   if (!(sout = (char *)calloc((maxch+1), sizeof(char)))) {
+      ERROR_message("Failed to allocate for %d chars!", maxch+1);
+      return(NULL);
+   }
+   sout[0]='\0';
+   strncat(sout,"{ \"", maxch-1);
+   strncat(sout,prog, maxch-1);
+   strncat(sout,"\", \"", maxch-1);
+   
+   N_opts = 0;
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i] && (nisa = NI_strict_decode_string_list(ws[i] ,"/"))) {
+         for (jj=0; jj<nisa->num; ++jj) {
+            if (ws[i][0]=='-' && nisa->str[jj][0] != '-') {
+               snprintf(sbuf,127,"-%s; ", nisa->str[jj]);
+            } else { 
+               snprintf(sbuf,127,"%s; ", nisa->str[jj]);
+            }
+            ++N_opts;
+            strncat(sout,sbuf, maxch-1);
+            NI_free(nisa->str[jj]);
+         }
+         if (nisa->str) NI_free(nisa->str); 
+         NI_free(nisa); nisa=NULL;
+      }
+   }
+   sprintf(sbuf,"\", %d", N_opts); strncat(sout,sbuf, maxch-1);
+   
+   
+   strncat(sout,"}", maxch-1);
+   if (strlen(sout)>=maxch) {
+      ERROR_message("Truncated complete string possible");
+      free(sout); sout=NULL;
+      return(sout);
+   }
+
+   return(sout);
+}
+
+/*
+   Generate C array that lists all afni programs and their options
+   
+   There is a most unholy relationship between this function and 
+   the include line: #include "prog_opts.c"
+   
+   This function is for internal machinations having to do with
+   automatic generation of help web pages. It is not for mass
+   consumption.
+*/
+int progopt_C_array(FILE *fout, int verb) 
+{
+   char **ws=NULL, *sout=NULL;
+   float *ws_score=NULL;
+   int N_ws=0, ii = 0, jj = 0;
+   THD_string_array *progs=NULL;
+   
+   ENTRY("progopt_C_array");
+   
+   if (!fout) fout = stdout;
+   
+   
+   if (!(progs = THD_get_all_afni_executables()) || progs->num < 1) {
+      ERROR_message("Could not get list of executables");
+      RETURN(1);
+   }
+
+   fprintf(fout, 
+      "#ifndef PROG_OPTS_INCLUDED\n"
+      "#define PROG_OPTS_INCLUDED\n"
+      "\n"
+      "/* \n"
+      "   This file was orignally created by function progopt_C_array() \n"
+      "   Probably via apsearch -C_prog_opt_array > prog_opts.c\n"
+      "*/\n\n"
+      "typedef struct {\n"
+      "  char *program;\n"
+      "  char *options;\n"
+      "  int N_options;\n"
+      "} PROG_OPTS;\n\n"
+      "#if 0\n"
+      "static PROG_OPTS poptslist[] = {\n"
+      "   {NULL, NULL, 0}\n"
+      "}\n"
+      "#else\n"
+      "static PROG_OPTS poptslist[] = {\n");
+      
+   for (ii=0; ii<progs->num; ++ii) {
+      if (verb) fprintf(stderr,"Prog %d/%d: %s ", ii+1, progs->num,
+                     THD_trailname(progs->ar[ii],0) );
+      if ((ws = approx_str_sort_all_popts(progs->ar[ii], &N_ws,  
+                   1, &ws_score,
+                   NULL, NULL, 1, 0, '\\'))) {
+         if (verb) fprintf(stderr,"%d opts\t ", N_ws);
+         if ((sout = form_C_progopt_string(
+                        THD_trailname(progs->ar[ii], 0), ws, N_ws))){
+            fprintf(fout, "%s,\n", sout);
+            free(sout); sout = NULL;
+         }
+         for (jj=0; jj<N_ws; ++jj) if (ws[jj]) free(ws[jj]);
+         free(ws); ws = NULL;
+         if (ws_score) free(ws_score); ws_score=NULL;
+      }
+   }
+   fprintf(fout, "   {  NULL, NULL, 0  }\n};\n\n"
+                 "#endif\n\n\n"
+                 "#endif /* For #ifdef PROG_OPTS_INCLUDED */\n");
+   
+   DESTROY_SARR(progs) ;
+   
+   RETURN(0);
+}
+
+char *phelp(char *prog, TFORM targ, int verb) 
+{
+   char cmd[512], uid[64], tout[128];
+   char *help=NULL;
+   char *hopt;
+   
+   ENTRY("phelp");
+   
+   if (!prog ) RETURN(help);
+   
+   switch(targ){
+      case NO_FORMAT:
+         hopt = "-h_raw";
+         break;
+      case SPX:
+         hopt = "-h_spx";
+         break;
+      case TXT:
+         hopt = "-help";
+         break;
+      default:
+         ERROR_message("I hate myself for failing you with %d", targ);
+         RETURN(help);
+   }
+   
+   UNIQ_idcode_fill(uid);
+   sprintf(tout,"/tmp/%s.%s.txt", APSEARCH_TMP_PREF, uid); 
+   snprintf(cmd,500*sizeof(char),"\\echo '' 2>&1 | %s %s > %s 2>&1 ",
+            prog, hopt, tout);
+   if (system(cmd)) {
+      if (0) {/* many programs finish help and set status afterwards. Naughty. */
+         ERROR_message("Failed to get help for %s\nCommand: %s\n", prog, cmd);
+         return 0;
+      }
+   }
+   
+   if (!(help = AFNI_suck_file(tout))) {
+      if (verb) ERROR_message("File %s could not be read\n", tout);
+      RETURN(help);
+   }
+                                 
+   snprintf(cmd,500*sizeof(char),"\\rm -f %s", tout);
+   system(cmd);
+   
+   RETURN(help);
+}
+
+/* Check the static list in prog_opts.c to find whether 
+or not an option exists for a particular program.
+Return  1: If program is found and the option exists
+        0: If program found and option does not exist
+       -1: If program was not in the list
+       -2: If the caller needs brains.
+*/
+int check_for_opt_in_prog_opts(char *prog, char *opt)
+{
+   PROG_OPTS PO;
+   int i=0;
+   char sbuf[64]={""}, *found;
+   
+   if (!prog || !opt) return(-2);
+   PO = poptslist[i++];
+   while (PO.program) {
+      if (!strcmp(THD_trailname(prog, 0),PO.program)) {
+         snprintf(sbuf, 64, "%s;", opt);
+         /* fprintf(stderr,"%s, %s-->%s, %s\n", 
+            prog, sbuf, PO.program, PO.options); */
+         if ((found=strstr(PO.options,sbuf))) {
+            return(1);
+         } else {
+            return(0);
+         }
+      }
+      PO = poptslist[i++];
+   }
+   /* program not found */
+   return(-1);
+}
+
+/* 
+   Return 1 if program uprog has option option opt
+          0 otherwsise
+   
+   The function first checks if the program has an
+   entry in array poptslist from file prog_opts.c included above.
+   
+   If an entry is found, the decision is based on whether or not
+   opt is listed for that program. Otherwise, if no entry is found,
+   the function resorts to running the program with option opt
+   followed by value oval (if not NULL). If the program returns a status 
+   of 1, OR creates no output in response to the option then the 
+   option is considered non-existent. 
+   
+   Obviously, this is not a general purpose option checker.
+   It was written for the purpose of checking whether or not 
+   a program supports the newfangled -h_raw, etc. options.
+   
+   If uprog is "ALL", the function check all existing programs
+   for opt and returns the total number of programs that seem
+   to support it.
+*/ 
+int program_supports(char *uprog, char *opt, char *oval, int verb) 
+{
+   char cmd[512], uid[64], tout[128], *prog=NULL;
+   int sup=0, ii=0, quick=0;
+   THD_string_array *progs=NULL;
+   
+   ENTRY("program_supports");
+   
+   if (!uprog || !opt) RETURN(sup);
+   
+   if (!strcmp(uprog,"ALL")) {
+      if (!(progs = THD_get_all_afni_executables()) || progs->num < 1) {
+         ERROR_message("Could not get list of executables");
+         RETURN(sup);
+      }
+      prog = progs->ar[ii++];
+   } else {
+      prog = uprog;
+   }
+   
+   if (!oval) oval = "";
+   sup = 0;
+   do {
+      switch (quick = check_for_opt_in_prog_opts(prog, opt)) {
+         case 1:
+            sup += 1;
+            if (verb) {
+               fprintf(stderr,"%s -- OK for %s %s (quick)\n", 
+                                 prog, opt, oval);
+            }
+            break;
+         case 0:
+            sup += 0;
+            if (verb) {
+               fprintf(stderr,"%s -- No support for %s %s (quick)\n", 
+                                 prog, opt, oval);
+            }
+            break;
+         case -1:
+            UNIQ_idcode_fill(uid);
+            sprintf(tout,"/tmp/%s.%s.ps.txt", APSEARCH_TMP_PREF, uid); 
+            snprintf(cmd,500*sizeof(char),"\\echo '' 2>&1 | %s %s %s > %s 2>&1 ",
+                     prog, opt, oval, tout);
+            if (system(cmd) || !THD_filesize(tout)) {
+               sup += 0;
+               if (verb) {
+                  fprintf(stderr,"%s -- No support for %s %s\n", 
+                                 prog, opt, oval);
+               }
+            } else {
+               sup += 1;
+               if (verb) {
+                  fprintf(stderr,"%s -- OK for %s %s\n", prog, opt, oval);
+               }
+            }
+            snprintf(cmd,500*sizeof(char),"\\rm -f %s", tout);
+            system(cmd);
+            break;
+          case -2:
+            ERROR_message("Nonesense here?");
+            break;
+      }
+   
+      if (progs && ii < progs->num) {
+         prog = progs->ar[ii++];   
+      }else prog = NULL;
+   } while (prog);
+   
+   if (progs) {
+      DESTROY_SARR(progs) ;
+   }
+   
+   RETURN(sup);
+}
+
+char *find_popt(char *sh, char *opt, int *nb)
+{
+   char *loc=NULL, *other=NULL;
+   
+   ENTRY("find_popt");
+   
+   if (!sh || !opt) {
+      ERROR_message("NULL option or null string");
+      RETURN(loc);
+   } 
+   
+   loc = line_begins_with(sh, opt, nb);
+   
+   if (loc) { /* Check that we do not have more than one */
+      if ((other = line_begins_with(loc+*nb+1, opt, NULL))) { 
+         WARNING_message("More than one match for opt %s.\n"
+                         "Returning first hit\n", opt);
+      }
+   }
+   
+   RETURN(loc);
+}
+
+char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
+   char *sout=NULL, sbuf[128];
+   int maxch=0, i, jj;
+   NI_str_array *nisa=NULL;
+   
+   if (!prog || !ws || shtp < 0) {
+      return(NULL);
+   }
+   
+   maxch = 256;
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i]) {
+         maxch+=strlen(ws[i])+10;
+         if (strlen(ws[i]) > 127) {
+            WARNING_message("Truncating atrocious option %s\n", ws[i]);
+            ws[127] = '\0';
+         }
+      }
+   }
+   if (!(sout = (char *)calloc((maxch+1), sizeof(char)))) {
+      ERROR_message("Failed to allocate for %d chars!", maxch+1);
+      return(NULL);
+   }
+   sout[0]='\0';
+   switch (shtp) {
+      default:
+      case 0: /* csh/tcsh */
+         strncat(sout,"set ARGS=(",maxch-1);
+         break;
+      case 1: /* bash */
+         strncat(sout,"ARGS=(",maxch-1);
+         break;
+   }
+   
+   for (i=0; i<N_ws; ++i) {
+      if (ws[i] && (nisa = NI_strict_decode_string_list(ws[i] ,"/"))) {
+         for (jj=0; jj<nisa->num; ++jj) {
+            if (ws[i][0]=='-' && nisa->str[jj][0] != '-') {
+               snprintf(sbuf,127,"'-%s' ", nisa->str[jj]);
+            } else { 
+               snprintf(sbuf,127,"'%s' ", nisa->str[jj]);
+            }
+            strncat(sout,sbuf, maxch-1);
+            NI_free(nisa->str[jj]);
+         }
+         if (nisa->str) NI_free(nisa->str); 
+         NI_free(nisa); nisa=NULL;
+      }
+   }
+   
+   switch (shtp) {
+      default:
+      case 0: /* csh/tcsh */
+         snprintf(sbuf,127,") ; "
+               "complete %s \"C/-/($ARGS)/\" \"p/*/f:/\" ; ##%s##\n",prog, prog);
+         break;
+      case 1: /* bash */
+         snprintf(sbuf,127,") ; "
+               "complete -W \"${ARGS[*]}\" -o bashdefault -o default %s ; "
+               "##%s##\n",prog, prog);
+         break;
+   }
+   if (strlen(sbuf) >= 127) {
+      ERROR_message("Too short a buffer for complete command %s\n");
+      free(sout); sout=NULL;
+      return(sout);
+   }
+   strncat(sout,sbuf, maxch-1);
+   if (strlen(sout)>=maxch) {
+      ERROR_message("Truncated complete string possible");
+      free(sout); sout=NULL;
+      return(sout);
+   }
+
+   return(sout);
+}
+
+int prog_complete_command (char *prog, char *ofileu, int shtp) {
+   char **ws=NULL, *sout=NULL, *ofile=NULL;
+   float *ws_score=NULL;
+   int N_ws=0, ishtp=0, shtpmax = 0, i;
+   FILE *fout=NULL;
+   
+   if (!prog || !(ws = approx_str_sort_all_popts(prog, &N_ws,  
+                   1, &ws_score,
+                   NULL, NULL, 1, 0, '\\'))) {
+      return 0;
+   }
+
+   if (shtp < 0) { shtp=0; shtpmax = 2;}
+   else { shtpmax = shtp+1; }
+   
+   for (ishtp=shtp; ishtp<shtpmax; ++ishtp) {
+      if (ofileu) {
+          if (shtpmax != shtp+1) { /* autoname */
+            switch (ishtp) {
+               default:
+               case 0:
+                  ofile = strdup(ofileu);
+                  break;
+               case 1:
+                  ofile = (char*)calloc((strlen(ofileu)+20), sizeof(char));
+                  strcat(ofile, ofileu);
+                  strcat(ofile, ".bash");
+                  break;
+            }
+          } else {
+            ofile = strdup(ofileu);
+          }
+            
+          if (!(fout = fopen(ofile,"w"))) {
+            ERROR_message("Failed to open %s for writing\n", ofile);
+            return(0);
+          }
+
+      } else {
+         fout = stdout;
+      }
+
+      if ((sout = form_complete_command_string(prog, ws, N_ws, ishtp))){
+         fprintf(fout, "%s", sout);
+         free(sout); sout = NULL;
+      }
+      if (ofileu) fclose(fout); fout=NULL;
+      if (ofile) free(ofile); ofile=NULL;
+   }
+   
+   for (i=0; i<N_ws; ++i) if (ws[i]) free(ws[i]);
+   free(ws); ws = NULL;
+   if (ws_score) free(ws_score); ws_score=NULL;
+   return 0;
+}
+
 
