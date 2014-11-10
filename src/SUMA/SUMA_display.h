@@ -1,6 +1,6 @@
 #ifndef SUMA_DISPLAY_INCLUDED
 #define SUMA_DISPLAY_INCLUDED
-
+ 
 /* 
 
    Historical Note from Fri Jan  3 10:21:52 EST 2003:
