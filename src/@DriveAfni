@@ -17,7 +17,11 @@ if ( $#argv > 0 ) then
       echo "See also 'plugout_drive -help'."
       echo "See also 'DriveSuma -help'."
       echo ""
-      exit
+      exit 0
+   else
+      #Need to exit with unknown options.
+      echo "No parameters such as ($1) accepted. See `basename $0` -help."
+      exit 1
    endif
 endif
 

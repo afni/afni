@@ -364,13 +364,6 @@ char **approx_str_sort_all_popts(char *prog, int *N_ws,
                             int uopts, int verb, char join_breaks);
 char *get_updated_help_file(int force_recreate, byte verb, char *progname, 
                             int shtp);
-void write_string(char *s, char *prelude, char *postscript,
-                 int nmax, int multiline, FILE *fout);
-char *phelp(char *prog, int verb);
-char *insert_in_string(char **s, char *pos, char *ins, int *nalloc);
-char *line_begins_with(char *cur, char *opt, int *nb);
-char *find_popt(char *sh, char *opt, int *nb);
-int prog_complete_command (char *prog, char *ofile, int shtp);
 char **approx_str_sort_readmes(char *str, int *N_r);
 char **unique_str(char **words, int N_words, byte ci, 
                   byte noae, int *N_unq, int **isort_out);

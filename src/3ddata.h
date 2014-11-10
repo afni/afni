@@ -327,6 +327,12 @@ typedef struct {
 
 /************************* string array stuff *************************/
 
+/* Flags & macros for shpinx string formatting */
+typedef enum { NO_FORMAT, TXT, SPX } TFORM;
+#define  sphinx_printf(targ, ...) (sphinx_offprintf( targ, 0, NULL, __VA_ARGS__))
+#define sphinx_fprintf(targ, fout, ...) \
+                                  (sphinx_offprintf( targ, 0, fout, __VA_ARGS__))
+
 /*! Dynamic array of character strings. */
 
 typedef struct {
@@ -4285,6 +4291,12 @@ extern int list_afni_programs(int withpath, int withnum);
 extern int list_afni_readmes(int withpath, int withnum);
 extern int list_afni_dsets(int withpath, int withnum);
 extern int THD_is_executable( char * pathname ) ;
+int progopt_C_array(FILE *fout, int verb);
+char *form_C_progopt_string(char *prog, char **ws, int N_ws);
+char *phelp(char *prog, TFORM targ, int verb);
+int program_supports(char *prog, char *opt, char *oval, int verb); 
+char *find_popt(char *sh, char *opt, int *nb);
+int prog_complete_command (char *prog, char *ofile, int shtp);
 extern char * THD_find_executable( char * ) ;
 extern char * THD_find_regular_file( char * , char *) ;
 extern THD_string_array *get_elist(void);
