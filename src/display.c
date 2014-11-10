@@ -1694,32 +1694,29 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
 {
    char **bigmap_name=NULL;
    rgbyte **bigmap = NULL;
-   int ii=0;
+   int ii=0 ,mm=0, NPB_2=NPANE_BIG/2;
 
    if (  !bigmap_namep || !bigmapp ||
          bigmap_num != NBIGMAP_INIT) return 1;
 
    {
      bigmap_name    = (char **) malloc(sizeof(char *)*bigmap_num) ;
-     bigmap_name[0] = strdup(BIGMAP_NAMES[0]) ;
-     bigmap_name[1] = strdup(BIGMAP_NAMES[1]) ;
-     bigmap_name[2] = strdup(BIGMAP_NAMES[2]) ;
-     bigmap_name[3] = strdup(BIGMAP_NAMES[3]) ;
-     bigmap_name[4] = strdup(BIGMAP_NAMES[4]) ;
-     bigmap_name[5] = strdup(BIGMAP_NAMES[5]) ;
-     bigmap_name[6] = strdup(BIGMAP_NAMES[6]) ;
-     bigmap         = (rgbyte **)malloc(sizeof(rgbyte *)*bigmap_num) ;
-            /* ZSS: The +1 is to stop a a MCW_malloc post-corruption which happens
-            under certain compiler/OS combinations. The likely cause is the uneven
-            byte size of rgbyte which might be causing misalignment problems at the
-            very end          March 27 2012 */ 
-     bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ; 
-     bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;     
-     bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
-     bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
-     bigmap[4]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
-     bigmap[5]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
-     bigmap[6]      = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ;
+     /* copy all names */
+     for(mm = 0; mm < bigmap_num; mm++ )
+        bigmap_name[mm] = strdup(BIGMAP_NAMES[mm]) ;
+
+     bigmap = (rgbyte **)malloc(sizeof(rgbyte *)*bigmap_num) ;
+
+     /* ZSS: The +1 is to stop a a MCW_malloc post-corruption which happens
+     under certain compiler/OS combinations. The likely cause is the uneven
+     byte size of rgbyte which might be causing misalignment problems at the
+     very end          March 27 2012 */ 
+
+     /* allocate all RGB arrays */
+     for(mm = 0; mm < bigmap_num; mm++ )
+        bigmap[mm] = (rgbyte *) malloc(sizeof(rgbyte)*(NPANE_BIG+1)) ; 
+
+     /* fill RGB arrays */
      for( ii=0 ; ii < NPANE_BIG ; ii++ ){
        bigmap[0][ii] = DC_spectrum_AJJ(      ii*((AJJ_BLU+8.0)/(NPANE_BIG-1.0))-4.0,0.8);
        bigmap[4][ii] = DC_spectrum_AJJ( 60.0-ii*(AJJ_YEL/(NPANE_BIG-1.0))          ,0.7);
@@ -1739,6 +1736,22 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
          bigmap[3][ii].r = bigmap[3][ii].g = bigmap[3][ii].b = 0 ;
        }
      }
+
+     /* map[7] = "Reds_and_Blues" 10 Nov, 2014 [rickr] */
+     for( ii=0     ; ii < NPB_2     ; ii++ ) {
+        bigmap[7][ii] = DC_spectrum_AJJ(AJJ_YEL-ii*(AJJ_YEL/(NPB_2-1.0)), 0.8);
+        bigmap[8][ii] = DC_spectrum_AJJ(AJJ_YEL-ii*(AJJ_YEL/(NPB_2-1.0)), 0.8);
+     }
+     for( ii=NPB_2 ; ii < NPANE_BIG ; ii++ ) {
+        bigmap[7][ii] = DC_spectrum_AJJ(AJJ_BLU-(ii-NBIG_MTOP-1)*
+                                (60.0/(NPANE_BIG-NPB_2-2.0)),0.8);
+        bigmap[8][ii] = DC_spectrum_AJJ(AJJ_BLU-(ii-NBIG_MTOP-1)*
+                                (60.0/(NPANE_BIG-NPB_2-2.0)),0.8);
+     }
+
+     /* add greens to map[8] for "Reds_and_Blues_w_Green" */
+     bigmap[8][NPB_2-1] = bigmap[8][NPB_2] =
+        DC_spectrum_AJJ( (NPB_2)*((AJJ_BLU+8.0)/(NPANE_BIG-1.0))-4.0,0.8);
    }
    *bigmapp = bigmap;
    *bigmap_namep = bigmap_name;
