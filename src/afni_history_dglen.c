@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 9 , NOV, 2014 , DRG , "whereami connections" , 
+    MINOR , TYPE_MODIFY, 
+    "Web display includes connections links",
+    "Developed for macaque connection webpages"
+} ,
 { 20 , OCT, 2014 , DRG , "Haskins Pediatric templates and atlases" , 
     MAJOR , TYPE_GENERAL, 
     "Nonlinear and affine versions of Haskins Pediatric templates and atlases",

@@ -116,6 +116,7 @@ typedef struct {
    float *prob; /*!< probability, if applicable, of being of a particular label */
    float *radius;   /*!< distance, search distance for reported label.*/ 
    char **webpage; /*!< webpages for a web-atlas for whereami location */
+   char **connpage; /*!< connection info webpages for a web-atlas for whereami location */
 } ATLAS_ZONE;
 
 typedef struct {
@@ -168,6 +169,8 @@ typedef struct {
    char *orient;  /* string to specify xyz order requests - Elsevier's web version uses "RSA"*/
    char *supp_web_info; /* string specifying base webpage for supplemental structure info */
    char *supp_web_type; /* extension suffix for webpages - pdf, html,... */
+   char *supp_conn_info; /* string specifying base webpage for supplemental connection info */
+   char *supp_conn_type; /* extension suffix for webpages - pdf, html,... */
    int atlas_found;
    ATLAS_DSET_HOLDER *adh;
 } ATLAS; /*!< All char * should be initialized when .niml file is loaded,
@@ -218,6 +221,13 @@ typedef struct {
 #define ATL_SUPP_WEB_TYPE(xa) ((xa)->supp_web_type ? 1: 0)
 #define ATL_SUPP_WEB_TYPE_S(xa) ( (ATL_SUPP_WEB_TYPE(xa)) ? \
           ((xa)->supp_web_type)   : ".html" )
+
+#define ATL_SUPP_CONN_INFO(xa) ((xa) && (xa)->supp_conn_info ? 1: 0)
+#define ATL_SUPP_CONN_INFO_S(xa) ( (ATL_SUPP_CONN_INFO(xa)) ? \
+          ((xa)->supp_conn_info)   : "No supplemental info " )
+#define ATL_SUPP_CONN_TYPE(xa) ((xa)->supp_conn_type ? 1: 0)
+#define ATL_SUPP_CONN_TYPE_S(xa) ( (ATL_SUPP_CONN_TYPE(xa)) ? \
+          ((xa)->supp_conn_type)   : ".html" )
 
 #define ATL_FOUND(xa) ( (xa)  ? \
                            ((xa)->atlas_found) : 0 )
@@ -379,7 +389,7 @@ char * Clean_Atlas_Label( char *lb);
 char * Clean_Atlas_Label_to_Prefix( char *lb);
 ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level);
 ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, 
-                       float prob, float within, char *aname, char *webpage) ;
+                       float prob, float within, char *aname, char *webpage, char *connpage) ;
 ATLAS_ZONE *Free_Atlas_Zone(ATLAS_ZONE *zn);
 void Set_Show_Atlas_Mode(int md);
 void Show_Atlas_Zone(ATLAS_ZONE *zn, ATLAS_LIST *atlas_list);
@@ -508,6 +518,7 @@ void open_wami_webpage(void);
 int AFNI_wami_output_mode(void);
 void set_AFNI_wami_output_mode(int webflag);
 char * atlas_suppinfo_webpage(ATLAS *atlas, char *blab);
+char * atlas_suppinfo_connpage(ATLAS *atlas, char *blab);
 
 size_t CURL_read_URL_http ( char *url, char **data);
 void set_wami_minprob(float val);
