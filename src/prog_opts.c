@@ -4,6 +4,10 @@
 /* 
    This file was orignally created by function progopt_C_array() 
    Probably via apsearch -C_prog_opt_array > prog_opts.c
+   If you want to freshen the one in the distribution, rerun the 
+   apsearch command. You'll need to also touch thd_getpathprogs.c
+   before rebuilding libmri.a, etc.
+ 
 */
 
 typedef struct {
