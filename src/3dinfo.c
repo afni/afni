@@ -14,7 +14,6 @@ void Syntax(TFORM targ)
 "  -verb means to print out lots of stuff\n"
 "  -VERB means even more stuff\n"
 "  -short means to print out less stuff [now the default]\n"
-"%s"
 "\n"
 ":SPX:"
 "\n.. note::\n\n   This could be anything. Just for the demo.\n\n"
