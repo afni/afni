@@ -1,8 +1,8 @@
 .. _ROI_45a:
 
-=================
+################
 VLPFC (area 45a)
-=================
+################
 
 VLPFC (area 45a)
 Area 45 is found in the caudal aspect of the convexity, back to the inferior limb of
@@ -14,18 +14,21 @@ arcuate sulcus and in the rostroventral bank of the sulcus, respectively (see al
 
 .. Images:
 
+******
 Images
-------
+******
 
 .. figure:: media/45a_right_introduction1.jpg
    :align: center
    :figwidth: 70%
-   
+
+   area 45a histology sections courtesy of `brainmaps.org <http://brainmaps.org/index.php?action=viewslides&datid=1>`_
 
 .. Architectonic_delineation:
 
+*************************
 Architectonic delineation
--------------------------
+*************************
 
 Area 45a is characterized by the presence of large but less prominent pyramidal
 neurons in deeper part of layer III (IIIB; see red arrow-heads in Fig. C on the left);
@@ -35,13 +38,19 @@ Pandya, 1999, 2002; Gerbella et al., 2010; Petrides et al., 2012).
 
 .. Connections:
 
+***********
 Connections
-^^^^^^^^^^^
+***********
+
+**Find more info on Area 45a connections at the following link**
+
+:ref:`Connections Page <ROI_45a_connections>`
+
 
 .. Intrinsic_connections:
 
 Intrinsic connections
----------------------
+=====================
 
 It is connected with all the subdivisions of the LPFC (VLPFC, DPFC and CLPFC)
 networks.
@@ -50,7 +59,7 @@ networks.
 .. Extrinsic_connections:
 
 Extrinsic connections
----------------------
+=====================
 
 The major connections are with auditory related areas in the supratemporal plane
 (STP), superior temporal gyrus (core, belt, parabelt, and STGr), and the dorsal
@@ -60,7 +69,7 @@ et al., 2008, 2014; Gerbella et al., 2010).
 .. Subcortical_connections:
 
 Subcortical connections
------------------------
+=======================
 
 Thalamus: (Contini et al., 2010)
 Claustrum: Area 45a receives projection from rostrocaudal extent of ventral 2/3
@@ -74,8 +83,9 @@ magnocellular, parvicelluar, and intermediate subdivisions of the basal nucleus
 
 .. Functions:
 
+*********
 Functions
----------
+*********
 
 - Vocal and facial communication between monkeys.
 - Recordings that seem to correspond to 45a have found convergent of visual
@@ -87,8 +97,9 @@ Functions
 
 .. Homologue:
 
+***********************
 Homologue area in human
------------------------
+***********************
 
 Area 45a (also 45b and 44) may be a precursor for the language related areas
 found in the caudal ventrolateral prefrontal cortex in humans (Kelly et al., 2010;
@@ -96,8 +107,9 @@ Petrides et al., 2012, 2014).
 
 .. References:
 
+**********
 References
-----------
+**********
 
 .. _ref_Contini_2010:
 

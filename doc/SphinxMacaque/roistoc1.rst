@@ -5,6 +5,6 @@ Atlas Regions Information
 #########################
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    macaque/ROI_45a.rst

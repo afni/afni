@@ -13,7 +13,4 @@ This website offers supplemental information on regions described in the Saleem 
 .. figure:: media/Cover2.jpg
    :figwidth: 70%
    :align: center
-      
-.. _regions:
-
 
