@@ -1,7 +1,7 @@
 .. _ContributeDocs:
 
 ########################
-Contibute Your Own Docs:
+Contribute Your Own Docs:
 ########################
 
 If you feel moved to document a particular aspect of AFNI consider
@@ -70,7 +70,7 @@ Also a breeze as in this example:
    :align: center
    :figwidth: 70%
    
-   A random picutre here.
+   A random picture here.
 
 And a few more pictures together:
 
