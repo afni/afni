@@ -742,6 +742,10 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o 3dAnhist 3dAnhist.o $(LFLAGS) $(LLIBS)
 
+3dTRfix:3dTRfix.o
+	$(RM) $@
+	$(CC) -o 3dTRfix 3dTRfix.o $(LFLAGS) $(LLIBS)
+
 3dhclip:3dhclip.o
 	$(RM) $@
 	$(CC) -o 3dhclip 3dhclip.o $(LFLAGS) $(LLIBS)
