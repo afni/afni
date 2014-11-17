@@ -101,10 +101,13 @@ ENTRY("THD_resample_irregular_dataset") ;
    if( ntout < 2 && dtout <= 0.0f ){
      dtout = ( tgar[ntin-1] - tgar[0] ) / (ntin-1) ;  /* average TR */
      ntout = ntin ;
+     INFO_message("Automatic values: TR=%.3f  nvals=%d",dtout,ntout) ;
    } else if( ntout < 2 ){           /* just missing ntin? */
      ntout = 1 + (int)( ( tgar[ntin-1] - tzout ) / dtout + 0.001f ) ;
+     INFO_message("Automatic value: nvals=%d",ntout) ;
    } else if( dtout <= 0.0f ){
      dtout = ( tgar[ntin-1] - tgar[0] ) / (ntout-1) ;  /* average TR */
+     INFO_message("Automatic value: TR=%.3f",dtout) ;
    }
 
    /* create output dataset */
@@ -130,6 +133,8 @@ ENTRY("THD_resample_irregular_dataset") ;
    otar = (float *)malloc(sizeof(float)*ntout) ;
    itar = (float *)malloc(sizeof(float)*ntin ) ;
 
+   INFO_message("Creating output dataset") ;
+
    for( ii=0 ; ii < nvox ; ii++ ){
      toff = THD_timeof_vox( 0 , ii , inset ) ;
      (void)THD_extract_array( ii , inset , 0 , itar ) ;
@@ -138,7 +143,8 @@ ENTRY("THD_resample_irregular_dataset") ;
      THD_insert_series( ii , outset , ntout , MRI_float , otar , 1 ) ;
    }
 
-   free(itar); free(otar); RETURN(outset);
+   free(itar); free(otar);
+   RETURN(outset);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -310,6 +316,7 @@ int main( int argc , char *argv[] )
 
   /*-- run and hide, pretend that things are OK --*/
 
+  INFO_message("Writing output dataset %s",DSET_BRIKNAME(outset)) ;
   DSET_write(outset) ;
   exit(0) ;
 }
