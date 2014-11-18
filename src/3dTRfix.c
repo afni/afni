@@ -101,14 +101,12 @@ ENTRY("THD_resample_irregular_dataset") ;
    if( ntout < 2 && dtout <= 0.0f ){
      dtout = ( tgar[ntin-1] - tgar[0] ) / (ntin-1) ;  /* average TR */
      ntout = ntin ;
-     INFO_message("Automatic values: TR=%.3f  nvals=%d",dtout,ntout) ;
-   } else if( ntout < 2 ){           /* just missing ntin? */
+   } else if( ntout < 2 ){                    /* just missing ntin? */
      ntout = 1 + (int)( ( tgar[ntin-1] - tzout ) / dtout + 0.001f ) ;
-     INFO_message("Automatic value: nvals=%d",ntout) ;
    } else if( dtout <= 0.0f ){
-     dtout = ( tgar[ntin-1] - tgar[0] ) / (ntout-1) ;  /* average TR */
-     INFO_message("Automatic value: TR=%.3f",dtout) ;
+     dtout = ( tgar[ntin-1] - tgar[0] ) / (ntout-1) ; /* average TR */
    }
+   ININFO_message("Output grid: TR=%.3f  nvals=%d",dtout,ntout) ;
 
    /* create output dataset */
 
@@ -120,7 +118,7 @@ ENTRY("THD_resample_irregular_dataset") ;
                       ADN_nvals     , ntout     ,
                       ADN_ntt       , ntout     ,
                       ADN_ttdel     , dtout     ,
-                      ADN_nsl       , 0         ,
+                      ADN_nsl       , 0         ,  /* time shifting is done */
                       ADN_datum_all , MRI_float ,
                       ADN_brick_fac , NULL      ,
                     ADN_none ) ;
@@ -133,10 +131,10 @@ ENTRY("THD_resample_irregular_dataset") ;
    otar = (float *)malloc(sizeof(float)*ntout) ;
    itar = (float *)malloc(sizeof(float)*ntin ) ;
 
-   INFO_message("Creating output dataset") ;
+   ININFO_message("Computing output dataset") ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
-     toff = THD_timeof_vox( 0 , ii , inset ) ;
+     toff = THD_timeof_vox( 0 , ii , inset ) ;  /* allow for time shifting */
      (void)THD_extract_array( ii , inset , 0 , itar ) ;
      THD_resample_timeseries_linear( ntin , itar , tgar , toff ,
                                      ntout, dtout, tzout, otar  ) ;
@@ -156,26 +154,49 @@ void TRfix_help(void)
      "\n"
      "This program will read in a dataset that was sampled on an irregular time\n"
      "grid and re-sample it via linear interpolation to a regular time grid.\n"
-     "The re-sampling will include the effects of slice time offsets (as in\n"
-     "program 3dTshift), if they are encoded in the input dataset's header.\n"
-     "No other processing is performed -- in particular, there is no allowance\n"
-     "(at present) for T1 artifacts.\n"
      "\n"
-     "Basically, this program is a quick-ish hack for the Mad Spaniard.\n"
+     "The re-sampling will include the effects of slice time offsets (similarly\n"
+     "to program 3dTshift), if these time offsets are encoded in the input dataset's\n"
+     "header.\n"
+     "\n"
+     "No other processing is performed -- in particular, there is no allowance\n"
+     "(at present) for T1 artifacts resulting from variable TR.\n"
+     "\n"
+     "Note that if the first 1 or 2 time points are abnormally bright due to\n"
+     "the NMR pre-steady-state effect, then their influence might be spread\n"
+     "farther into the output dataset by the interpolation process.  You can\n"
+     "avoid this by excising these values from the input using the '[2..$]'\n"
+     "notation in the input dataset syntax.\n"
+     "\n"
+     "Also note that if the input dataset is catenated from multiple non-contiguous\n"
+     "imaging runs, the program will happily interpolate across the time breaks\n"
+     "between the runs.  For this reason, you should not give such a file (e.g.,\n"
+     "from 3dTcat) to this program -- you should use 3dTRfix on each run separately,\n"
+     "and only later catenate the runs.\n"
+     "\n"
+     "Basically, this program is a quick-ish hack for the Mad Spaniard; when\n"
+     "are we going out for tapas y cerveza?\n"
      "\n"
      "OPTIONS:\n"
      "========\n"
-     " -input iii    = Input dataset 'iii'.\n"
+     "\n"
+     " -input iii    = Input dataset 'iii'. [MANDATORY]\n"
+     "\n"
      " -TRlist rrr   = 1D columnar file of time gaps between sub-bricks in 'iii';\n"
      "                 If the input dataset has N time points, this file must\n"
      "                 have at least N-1 (positive) values.\n"
+     "\n"
      " -TIMElist ttt = Alternative to '-TRlist', where you give the N values of\n"
      "                 the times at each sub-brick; these values must be monotonic\n"
      "                 increasing and non-negative.\n"
+     "                * You must give exactly one of '-TIMElist' or '-TRlist'.\n"
+     "                * The TR value given in the input dataset header is ignored.\n"
+     "\n"
      " -prefix ppp   = Prefix name for the output dataset.\n"
-     " -TRout ddd    = 'ddd' gives the value for the output dataset's TR (in sec);\n"
-     "                 if not given, then the average TR of the input dataset will\n"
-     "                 be used.\n"
+     "\n"
+     " -TRout ddd    = 'ddd' gives the value for the output dataset's TR (in sec).\n"
+     "                 If '-TRout' is not given, then the average TR of the input\n"
+     "                 dataset will be used.\n"
      "\n"
      "November 2014 -- Zhark the Fixer\n"
      "\n"
@@ -207,6 +228,8 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc ){
 
+     /*-- read input dataset --*/
+
      if( strcasecmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL ) ERROR_exit("Can't use '-input' twice") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
@@ -217,6 +240,8 @@ int main( int argc , char *argv[] )
        DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
        iarg++ ; continue ;
      }
+
+     /*-- read input 1D file --*/
 
      if( strcasecmp(argv[iarg],"-TRlist") == 0 ){
        if( TRlist   != NULL ) ERROR_exit("Can only use '-TRlist' once") ;
@@ -230,6 +255,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-- read input 1D file --*/
+
      if( strcasecmp(argv[iarg],"-TIMElist") == 0 ){
        if( TIMElist != NULL ) ERROR_exit("Can only use '-TIMElist' once") ;
        if( TRlist   != NULL ) ERROR_exit("Can't use '-TIMElist' after '-TRlist'") ;
@@ -242,6 +269,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /*-- read prefix --*/
+
      if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        if( !THD_filename_ok(argv[iarg]) )
@@ -251,6 +280,8 @@ int main( int argc , char *argv[] )
        prefix = strdup(argv[iarg]) ; iarg++ ; continue ;
      }
 
+     /*-- read dtout --*/
+
      if( strcasecmp(argv[iarg],"-TRout") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        dtout = (float)strtod(argv[iarg],NULL) ;
@@ -259,7 +290,11 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     ERROR_exit("Don't recognize this as an option: '%s'",argv[iarg]) ;
+     /*-- really, what is going on here? --*/
+
+     ERROR_message("Don't recognize this as an option: '%s'",argv[iarg]) ;
+     suggest_best_prog_option(argv[0], argv[iarg]) ;
+     exit(1) ;
   }
 
   /*-- check for user sanity --*/
@@ -278,15 +313,15 @@ int main( int argc , char *argv[] )
     nbad++ ;
   }
 
-  /* process TRlist into TIMElist */
+  /* process TRlist into TIMElist, if needed, by the black art of arithmetic  */
 
   if( TRlist != NULL ){
     TIMElist = mri_new(ntin,1,MRI_float) ;
     tgar = MRI_FLOAT_PTR(TIMElist) ;
     dtar = MRI_FLOAT_PTR(TRlist) ;
-    tgar[0] = DSET_TIMEORIGIN(inset) ;
+    tgar[0] = DSET_TIMEORIGIN(inset) ;   /* usually zero */
     for( ii=1 ; ii < ntin ; ii++ ){
-      tgar[ii] = tgar[ii-1] + dtar[ii-1] ;
+      tgar[ii] = tgar[ii-1] + dtar[ii-1] ;  /* addition! */
       if( dtar[ii-1] <= 0.0f ){
         ERROR_message("-TRlist #%d=%g -- but must be positive!",ii-1,dtar[ii-1]) ;
         nbad++ ;
@@ -314,7 +349,7 @@ int main( int argc , char *argv[] )
   if( outset == NULL )
     ERROR_exit("Can't compute output dataset for some reason!?") ;
 
-  /*-- run and hide, pretend that things are OK --*/
+  /*-- run and hide, pretending that things are OK --*/
 
   INFO_message("Writing output dataset %s",DSET_BRIKNAME(outset)) ;
   DSET_write(outset) ;
