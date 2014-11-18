@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 28 , OCT , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+  { 18 , NOV , 2014 , RWC , "3dTRfix" , MINOR , TYPE_NEW_PROG ,
+   "Interpolate from a variable TR grid to a fixed TR grid" ,
+   "For Javier et alii.  No T1 artifact correction, just interpolation." } ,
+
+ { 28 , OCT , 2014 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
    "Add 2D Sharpness function to transformations.  For fun." ,
    NULL } ,
 
