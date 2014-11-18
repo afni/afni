@@ -8,7 +8,7 @@
      ntin  = number of time points in input array tsar
      tsar  = input array to be interpolated
      tgar  = time grid of input array -- monotonic increasing, length = ntin
-     toff  = additional time offset for input array
+     toff  = additional time offset for input array (allows for slice timing)
      ntout = number of time points in output array
      dtout = time step of output array
      tzout = time offset of output array -- i-th point is at i*dtout+tzout
@@ -29,11 +29,11 @@ void THD_resample_timeseries_linear(
    for( iin=0,iout=0 ; iout < ntout ; iout++ ){
      tout = tzout + iout*dtout ;  /* time of this output point */
 
-     /* find iin such that tout lies in the input interval iin .. iin+1 */
+     /* find next iin such that tout lies in the input interval iin .. iin+1 */
 
      for( ; iin < ntin2 && tout > tgar[iin+1]+toff ; iin++ ) ; /*nada */
 
-     /* f0 = linearly interpolation factor for tsar[iin] */
+     /* f0 = linear interpolation factor for tsar[iin] */
 
      f0 = (tgar[iin+1]+toff-tout) / (tgar[iin+1]-tgar[iin]) ;
 
@@ -128,20 +128,24 @@ ENTRY("THD_resample_irregular_dataset") ;
    /* loop over input voxels */
 
    nvox = DSET_NVOX(inset) ;
-   otar = (float *)malloc(sizeof(float)*ntout) ;
-   itar = (float *)malloc(sizeof(float)*ntin ) ;
+   otar = (float *)malloc(sizeof(float)*ntout) ;  /* output array */
+   itar = (float *)malloc(sizeof(float)*ntin ) ;  /* input array */
 
    ININFO_message("Computing output dataset") ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
-     toff = THD_timeof_vox( 0 , ii , inset ) ;  /* allow for time shifting */
+       /* allow for time shifting */
+     toff = THD_timeof_vox( 0 , ii , inset ) ;
+       /* get input array */
      (void)THD_extract_array( ii , inset , 0 , itar ) ;
+       /* compute output array */
      THD_resample_timeseries_linear( ntin , itar , tgar , toff ,
                                      ntout, dtout, tzout, otar  ) ;
+       /* put it into the output dataset */
      THD_insert_series( ii , outset , ntout , MRI_float , otar , 1 ) ;
    }
 
-   free(itar); free(otar);
+   free(itar); free(otar);  /* take out the trash */
    RETURN(outset);
 }
 
@@ -218,7 +222,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) TRfix_help() ;
 
-   /*-- the formalities --*/
+   /*-- the legal formalities --*/
 
    mainENTRY("3dTRfix"); machdep();
    AFNI_logger("3dTRfix",argc,argv);
@@ -327,7 +331,7 @@ int main( int argc , char *argv[] )
         nbad++ ;
       }
     }
-  } else {  /* check TIMElist for monotonicity */
+  } else if( TIMElist != NULL ){  /* check TIMElist for monotonicity */
     tgar = MRI_FLOAT_PTR(TIMElist) ;
     for( ii=1 ; ii < ntin ; ii++ ){
       if( tgar[ii] <= tgar[ii-1] ){
@@ -339,7 +343,7 @@ int main( int argc , char *argv[] )
   }
 
   if( nbad > 0 )
-    ERROR_exit(" !!! )-: 3dTRfix can't continue after such silliness :-( !!!") ;
+    ERROR_exit(" !!! )-: 3dTRfix can't continue after such bad-ness :-( !!!") ;
 
   /*-- compute something that might be useful (or might not be) --*/
 
