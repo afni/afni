@@ -85,27 +85,30 @@ Broadly, ``3dROIMaker`` can be used to:
   ``-preinfl_inflate *``)
 
 Each ROI is defined as a set of voxels with a given nonzero integer
-value within dataset volume (typically, the integers are >0, though
-for tractography purposes, negative voxel values show where
-*anti-masks* that exclude tracts are located).  Additionally, this
-information can be combined with (NIML-formatted) labeltables to allow
-for text-labels to be associated with each ROI. These labeltable names
-can track through to further analysis programs, such as ``3dNetCorr``
-and ``3dTrackID``.
-
-
-.. note:: In general, it should be possible to do much of the ROI
-          processing (inflating, threshold, etc.) with all the network
-          ROIs in a single brick, rather than individually.  This
-          should hopefully lead to both greater time-saving, as well
-          as consistency within the output. If the below notes,
-          examples or existing `Message Board
-          <http://afni.nimh.nih.gov/afni/community/board/>`_ posts
-          don't help to keep analysis scripts short, then please
-          enquire before spending ages on complicated pipelines.
+value within dataset volume (what is referred to as its **integer
+label**).  Typically, the integers are >0, though for tractography
+purposes, negative voxel values show where *anti-masks* that exclude
+tracts are located.  Additionally, this information can be combined
+with (NIML-formatted) labeltables to allow for text-labels to be
+associated with each ROI. These labeltable names can track through to
+further analysis programs, such as ``3dNetCorr`` and ``3dTrackID``.  
 
 **Important notes**
 -------------------
+
+#.  When ROIs are being inflated, they will not write over other ROIs
+    in the same brick. Thus, a network of ROIs should always be
+    inflated while in the same brick, for greater consistency, rather
+    than inflated individually and 'summed' together.
+
+#.  In general, it should be possible to do much of the ROI processing
+    (inflating, threshold, etc.) with all the network ROIs in a single
+    brick, rather than individually.  This should hopefully lead to
+    both greater time-saving, as well as consistency within the
+    output. If the below notes, examples or existing `Message Board
+    <http://afni.nimh.nih.gov/afni/community/board/>`_ posts don't
+    help to keep analysis scripts short, then please enquire before
+    spending ages on complicated pipelines.
 
 #.  If mapping ``3dROIMaker``\-produced output files to another space
     (for example, from standard to DTI), then one can make sure that
@@ -124,6 +127,19 @@ and ``3dTrackID``.
     This action will preserve labels even if some of the ROIs are
     contiguous, such as is likely to occur in the case of a
     :ref:`ROI_Example_Connectome`.
+
+#.  When an aim of using `3dROIMaker` is to produce target regions for
+    tractography, then the inflation should be performed in diffusion
+    space, where one can use the actual WM proxy map (such as FA>0.2)
+    to delimit inflation.
+
+    This may lead to scenarios where multiple iterations of
+    `3dROIMaker` are called for. For example, one may threshold a
+    group map of functional data and get rid of tiny/noisy regions,
+    and then transform the networks to each individual's diffusion
+    space, in order to perform the ROI inflation there (as well as the
+    eventual tractography).
+
 
 |
 
@@ -172,10 +188,10 @@ given method as a typical default:
    :width: 80%
    :align: center
 
-   Basic voxel terminology, and its use in defining three standard,
+   *Basic voxel terminology, and its use in defining three standard,
    symmetric (nearest-)neighborhoods for an individual voxel. The
-   central voxel is darkened, with each type of neighborhood depicted
-   in a 3D, high-tec, separated image.
+   central voxel is darkened, with each type of neighborhood colored
+   in a 3D, high-tec, separated image.*
 
 For example, the default in each of AFNI's ``3dClustSim`` and the
 Clusterize function is a face-wise neighbor definition. The same is
@@ -209,21 +225,274 @@ These values are not exclusive, but they should work fine.
 
 |
 
-Functional: GM ROIs
-===================
+Using anatomical tissues and diffusion maps
+===========================================
+
+For this example, the input data is a seed-based correlation map
+(Pearson *r* values) of resting state FMRI data, where the seed voxel
+was located in the posterior cingulate cortex, a known part of the
+default mode network. We look at a few ways of including tissue
+information from anatomical/structural data, namely that of a
+T1-weighted (T1w) image and DTI parameter maps, when parcellating a
+dataset into a network of ROIs.
+
+There are several ways of doing using the T1w and DTI data, greatly
+dependent on things like the user's goals for final analyses, quality
+of data, etc. One may be interested in many things, such as:
+
+* functional correlation matrices among ROIs with high functional
+  connectivity (which is usually defined as *r*> some threshold); or,
+* further restriction of the functional ROI voxels to be in a GM mask;
+  and/or
+* inflation of these GM ROIs to the nearest WM for tractography; and
+  then likely
+* restriction of the inflation using tissue information to find only
+  associated 'local' WM.
+
+Here, the T1w image has been skull-stripped and segmented into major
+tissue types (CSF, GM and WM).  Because some of the goals might
+include linking the functional data to tractographic analysis, both
+the functional correlation map and the T1w tissue masks have been
+mapped to native diffusion space. Thresholded functional correlation
+maps are shown in the following figure, overlaid on diffusion (first
+column) and tissue segmentation masks (second column; WM, CSF and GM
+in order of decreasing brightness):
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 50 50
+
+   * - Correlation (*r*>0.4) map on *b*\=0
+     - Correlation (*r*>0.4) map on tissue masks
+   * - .. image:: media/ROIS_EX2/ax_corr04_on_b0.png
+          :width: 100%
+     - .. image:: media/ROIS_EX2/ax_corr04_on_tiss.png
+          :width: 100%
+   * - .. image:: media/ROIS_EX2/sag_corr04_on_b0.png
+          :width: 100%
+     - .. image:: media/ROIS_EX2/sag_corr04_on_tiss.png
+          :width: 100%
+
+In all the following cases, the same root is used for the
+``3dROIMaker`` command, which employs a correlation map thresholding
+of *r*>0.4, a volume thresholding of 100 voxels, an inflation of two
+voxels, default neighborhood definitions (now AFNI-standard, facewise
+voxel neighbors), and the whole brain diffusion mask::
+
+  3dROIMaker                      \
+      -inset SEED_CORRMAP+orig.   \
+      -thresh 0.4                 \
+      -volthr 100                 \
+      -mask mask_DWI+orig.        \
+      -inflate 2                  \
+      ...
+
+where possible continuations are given by the following variations:
+
+.. note:: CSF must be input as a mask (i.e., a volume of all zeros or
+          ones), and it does not restrict inflation.  WM may be input
+          as a map, whose values can be thresholded (`-skel_thr *`)
+          and used to restrict inflation (`-skel_stop`). Any WM and
+          CSF skeletons can be cut away from the input map
+          (`-trim_off_wm`) before regionalizing.
+
+#. Use T1w-WM to stop inflation::
+
+     ... -wm_skel tiss_WM_in_B0.nii.gz    \
+         -skel_thr 0.5                    \
+         -skel_stop                       \
+         -prefix ROIMADE_WM
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50
+
+      * - \*_GM+orig\* images (10 ROIs)
+        - \*_GMI+orig\* images
+      * - .. image:: media/ROIS_EX2/ax_tiss_WM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/ax_tiss_WM_GMI.png
+             :width: 100%
+      * - .. image:: media/ROIS_EX2/sag_tiss_WM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/sag_tiss_WM_GMI.png
+             :width: 100%
+
+   |
+
+#. Use T1w-WM first to trim away voxels and then to stop inflation::
+
+     ... -wm_skel tiss_WM_in_B0.nii.gz    \
+         -skel_thr 0.5                    \
+         -skel_stop                       \
+         -trim_off_wm                     \
+         -prefix ROIMADE_WM_TRIM
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50
+
+      * - \*_GM+orig\* images (9 ROIs)
+        - \*_GMI+orig\* images
+      * - .. image:: media/ROIS_EX2/ax_tiss_WM_TRIM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/ax_tiss_WM_TRIM_GMI.png
+             :width: 100%
+      * - .. image:: media/ROIS_EX2/sag_tiss_WM_TRIM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/sag_tiss_WM_TRIM_GMI.png
+             :width: 100%
+
+   |
+
+#. Start by trimming away T1w-WM and -CSF, and use the former to stop
+   inflation::
+
+     ... -wm_skel tiss_WM_in_B0.nii.gz    \
+         -skel_thr 0.5                    \
+         -skel_stop                       \
+         -csf_skel tiss_CSF_in_B0.nii.gz  \
+         -trim_off_wm                     \
+         -prefix ROIMADE_WMCSF_TRIM
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50
+
+      * - \*_GM+orig\* images (8 ROIs)
+        - \*_GMI+orig\* images
+      * - .. image:: media/ROIS_EX2/ax_tiss_WMCSF_TRIM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/ax_tiss_WMCSF_TRIM_GMI.png
+             :width: 100%
+      * - .. image:: media/ROIS_EX2/sag_tiss_WMCSF_TRIM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/sag_tiss_WMCSF_TRIM_GMI.png
+             :width: 100%
+
+   |
 
 
+#. Start by trimming away 'FA>0.2' WM, and then use it to stop
+   inflation::
 
-Combining functional and DTI
-============================
+     ... -wm_skel DTI/DT_FA+orig          \
+         -skel_thr 0.2                    \
+         -skel_stop                       \
+         -trim_off_wm                     \
+         -prefix ROIMADE_FA02_TRIM
 
-..
-  ``3dROIMaker`` can be 
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50
 
+      * - \*_GM+orig\* images (9 ROIs)
+        - \*_GMI+orig\* images
+      * - .. image:: media/ROIS_EX2/ax_tiss_FA02_TRIM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/ax_tiss_FA02_TRIM_GMI.png
+             :width: 100%
+      * - .. image:: media/ROIS_EX2/sag_tiss_FA02_TRIM_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/sag_tiss_FA02_TRIM_GMI.png
+             :width: 100%
 
-  If ``3dROIMaker`` is applied either in the space where the
-  functional data is defined (e.g., FMRI native or standard template)
+   |
 
+#. Don't trim 'FA>0.2' WM, but use it to stop inflation::
+
+     ... -wm_skel DTI/DT_FA+orig          \
+         -skel_thr 0.2                    \
+         -skel_stop                       \
+         -prefix ROIMADE_FA02
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50
+
+      * - \*_GM+orig\* images (10 ROIs)
+        - \*_GMI+orig\* images
+      * - .. image:: media/ROIS_EX2/ax_tiss_FA02_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/ax_tiss_FA02_GMI.png
+             :width: 100%
+      * - .. image:: media/ROIS_EX2/sag_tiss_FA02_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/sag_tiss_FA02_GMI.png
+             :width: 100%
+
+   |
+
+#. And, finally, use **no** tissue information, either for subtraction
+   or inflation::
+
+         -prefix ROIMADE_nada
+
+   .. list-table:: 
+      :header-rows: 1
+      :widths: 50 50
+
+      * - \*_GM+orig\* images (10 ROIs)
+        - \*_GMI+orig\* images
+      * - .. image:: media/ROIS_EX2/ax_tiss_notiss_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/ax_tiss_notiss_GMI.png
+             :width: 100%
+      * - .. image:: media/ROIS_EX2/sag_tiss_notiss_GM.png
+             :width: 100%
+        - .. image:: media/ROIS_EX2/sag_tiss_notiss_GMI.png
+             :width: 100%
+
+   |
+
+Comment 1
+---------
+
+Out of interest, one could compare the inflation maps of the previous
+two examples, in order to see the potential benefits of using the FA
+map to restrict inflation.  Consider the subtraction of the inflated
+(\*_GMI+orig\*) maps::
+
+  3dcalc                          \
+      -a ROIMADE_nada_GMI+orig    \
+      -b ROIMADE_FA02_GMI+orig    \
+      -expr 'b-a'                 \
+      -prefix DIFF_FA02_and_nada
+
+The resulting differences highlight that unconstrained inflation
+pushes the target regions much further into the WM, which may lead to
+association of targets with unrealistic WM when tracking:
+
+.. list-table:: 
+   :header-rows: 1
+   :widths: 100
+
+   * - Difference of \*_GMI+orig\* images
+   * - .. image:: media/ROIS_EX2/ax_tiss_DIFF_FA02.png
+          :width: 100%
+   * - .. image:: media/ROIS_EX2/sag_tiss_DIFF_FA02.png
+          :width: 100%
+
+Comment 2
+---------
+
+As might be apparent from above examples, thresholded GM ROIs can be
+further split up when trimming with WM and CSF skeletons.  For
+instance, this might be useful in separating left and right hemisphere
+regions.  Also, users might have to re-evaluate what volume threshold
+is reasonable to use, depending on their own criteria.  
+
+Comment 3
+---------
+
+While using the T1w- and FA-derived WM maps may produce very similar
+ROIs, it would make the most sense to use the exact map in
+`3dROIMaker` that will be used to guide the actual tractography (NB:
+`3dTrackID` *can* use non-FA maps to define regions for tracking, see
+the help therein for the `-dti_extra *` option).  This is for the sake
+of consistency.
+
+|
 
 .. _ROI_Example_Connectome:
 
@@ -244,17 +513,19 @@ Such a dataset is shown here:
 
 .. list-table:: 
    :header-rows: 1
-   :widths: 70 30
+   :widths: 30 70
    :stub-columns: 1
 
-   * - FreeSurfer parcellation
-     - Description
-   * - .. image:: media/ROIS/aparc_sag85.png
+   * - Description
+     - FreeSurfer parcellation
+   * - (Sagittal) WB parcellation overlaid on T1w anatomical scan.
+       Each color shows a different ROI (ROI_i256 colormap).
+     - .. image:: media/ROIS/aparc_sag85.png
           :width: 100%
-     - (Sagittal) WB parcellation overlaid on T1w anatomical scan
-   * - .. image:: media/ROIS/aparc_axi173.png
+   * - (Axial) WB parcellation overlaid on T1w anatomical scan.
+
+     - .. image:: media/ROIS/aparc_axi173.png
           :width: 100%
-     - (Axial) WB parcellation overlaid on T1w anatomical scan
 
 First, ``3dcalc`` was used to select ROIs with an integer above a
 maximum to select only cortical GM regions.  The following images show
@@ -301,5 +572,3 @@ well::
 Volume thresholding was not necessary in this case.  Here, the WM
 mask, defined as where the FA_MAP contained values were >0.2, was used
 only for controlling expansion of the ROIs, and not subtracted away.
-
-
