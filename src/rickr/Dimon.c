@@ -129,10 +129,13 @@ static char * g_history[] =
     " 4.09 Oct 27, 2014 [rickr]\n",
     "      - fixed -sort_by_num_suffix strcmp trap\n"
     "      - expanded -sort_by_num_suffix to find any final integer\n"
+    " 4.10 Nov 19, 2014 [rickr]:\n",
+    "      - do not allow num_suffix entries to be read as octal\n"
+    "      - show version upon execution\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.09 (November 27, 2014)"
+#define DIMON_VERSION "version 4.10 (November 19, 2014)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2503,7 +2506,8 @@ static int get_num_suffix( char * str )
        cp++;
     }
 
-    len = sscanf(cp, "%i", &val);
+    len = sscanf(cp, "%d", &val);
+
     if ( len != 1 ) return DEATH_VALUE;   /* bad things man, bad things */
 
     return val;
@@ -3240,8 +3244,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     if ( p->opts.rev_org_dir )  g_dicom_sort_dir = -1;
 
     if ( gD.level > 0 )
-        fprintf( stderr, "\n%s running, use <ctrl-c> to quit...\n\n",
-                 IFM_PROG_NAME );
+        fprintf( stderr, "\n%s %s running, use <ctrl-c> to quit...\n\n",
+                 IFM_PROG_NAME, DIMON_VERSION );
 
     return 0;
 }
