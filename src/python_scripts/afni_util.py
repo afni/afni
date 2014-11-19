@@ -3486,6 +3486,7 @@ afni_util.py: not really intended as a main program
             afni_util.py -listfunc -print min_mean_max_stdev 1 2 3 4 5
             afni_util.py -listfunc -join min_mean_max_stdev 1 2 3 4 5
             afni_util.py -listfunc -join -float demean  1 2 3 4 5
+            afni_util.py -listfunc -join shuffle `count -digits 4 1 124`
 
          Also, if LIST contins -list2, then 2 lists can be input to do
          something like:
