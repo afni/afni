@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19,  Nov, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
+   "do not allow num_suffix to be processed as octal",
+   NULL
+ } ,
+
+ { 19,  Nov, 2014, RCR, "3dclust", MICRO, TYPE_ENHANCE,
+   "clarify -mni in help (do not use if already MNI)",
+   NULL
+ } ,
+
  { 10,  Nov, 2014, RCR, "afni", MICRO, TYPE_ENHANCE,
    "added color maps Reds_and_Blues, and _w_Green",
    NULL
