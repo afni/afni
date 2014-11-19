@@ -32,7 +32,7 @@ static INLINE float_triple COLOR_rgb_to_xyz( float_triple rgb )
    yy    = 100.0f * rgb_up(rgb.b) ;
    zz    = 100.0f * rgb_up(rgb.c) ;
    xyz.a = 0.4124f*xx + 0.3576f*yy + 0.1805f*zz ;
-   xyz.b = 0.2126f*xx + 0.7152f*yy + 0.0722f*zz ;
+   xyz.b = 0.2126f*xx + 0.7152f*yy + 0.0722f*zz ;  /* luminance */
    xyz.c = 0.0193f*xx + 0.1192f*yy + 0.9505f*zz ;
    return xyz ;
 }
@@ -51,6 +51,9 @@ static INLINE float_triple COLOR_xyz_to_rgb( float_triple xyz )
    if( rgb.c > 1.0f ) rgb.c = 1.0f ; else if( rgb.c < 0.0f ) rgb.c = 0.0f ;
    return rgb ;
 }
+
+#undef rgb_up
+#undef rgb_dn
 
 /*----------------------------------------------------------------------------*/
 
@@ -74,3 +77,5 @@ float_triple COLOR_rgb_interp( float_triple rgb1, float_triple rgb2, float fac )
 
 #undef XFUN
 #undef XINV
+
+/*----------------------------------------------------------------------------*/
