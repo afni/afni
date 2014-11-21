@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Nov, 2014, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "-anat_unifize_method none now means to skip, default means to do in AW",
+   "Basically, this adds the ability to skip 3dUnifize completely."
+ } ,
+
  { 19,  Nov, 2014, RCR, "Dimon", MICRO, TYPE_BUG_FIX,
    "do not allow num_suffix to be processed as octal",
    NULL
