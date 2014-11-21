@@ -1534,6 +1534,7 @@ void AFNI_sigfunc_alrm(int sig)
      "I'm sorry; if you were right, I'd agree with you"              ,
      "Like dreams, statistics are a form of wish fulfillment"        ,
      "I wish I were in Lobuche right now, eating momos"              ,
+     "A thermos of hot tea in Pangboche would be a nice pit stop"    ,
      "Next stop: Bora Bora and Rangiroa"                             ,
      "Do you still miss the NIH Bear? I do"                          ,
      "Advice from the NIH Bear -- honey goes good with brains"       ,
@@ -1545,7 +1546,9 @@ void AFNI_sigfunc_alrm(int sig)
      "If you can't bite, don't show your teeth"                      ,
      "Three statisticians ==> Four opinions on data analysis"        ,
      "A fool and his p-value are soon non-replicated"                ,
+     "What do you do all day? I do very little, and do it slowly"    ,
 
+     "Are you testing for the Dull Hypothesis? It's never significant"                ,
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
      "For every simple problem there is an answer that is murky, complex, and wrong"  ,
      "If something is 'New and Improved', was the last version 'Old and Decrepit'?"   ,

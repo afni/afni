@@ -1,7 +1,9 @@
 #include "mrilib.h"
 
-/*** This program is really just a quick hack for the Spanish Inquisition! ***/
-/*** [They need to torture some data, according to Chief Inquisitor Javier] **/
+/*---------------------------------------------------------------------------*/
+/** This program is really just a quick hack for the Spanish Inquisition!!  **/
+/** [They need to torture some data, according to Chief Inquisitor Javier]  **/
+/*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
 /* Inputs:
@@ -117,7 +119,7 @@ ENTRY("THD_resample_irregular_dataset") ;
                       ADN_prefix    , prefix    ,
                       ADN_nvals     , ntout     ,
                       ADN_ntt       , ntout     ,
-                      ADN_ttdel     , dtout     ,
+                      ADN_ttdel     , dtout     ,  /* set TR */
                       ADN_nsl       , 0         ,  /* time shifting is done */
                       ADN_datum_all , MRI_float ,
                       ADN_brick_fac , NULL      ,
@@ -159,6 +161,8 @@ void TRfix_help(void)
      "This program will read in a dataset that was sampled on an irregular time\n"
      "grid and re-sample it via linear interpolation to a regular time grid.\n"
      "\n"
+     "NOTES:\n"
+     "------\n"
      "The re-sampling will include the effects of slice time offsets (similarly\n"
      "to program 3dTshift), if these time offsets are encoded in the input dataset's\n"
      "header.\n"
@@ -166,23 +170,25 @@ void TRfix_help(void)
      "No other processing is performed -- in particular, there is no allowance\n"
      "(at present) for T1 artifacts resulting from variable TR.\n"
      "\n"
-     "Note that if the first 1 or 2 time points are abnormally bright due to\n"
-     "the NMR pre-steady-state effect, then their influence might be spread\n"
-     "farther into the output dataset by the interpolation process.  You can\n"
-     "avoid this by excising these values from the input using the '[2..$]'\n"
-     "notation in the input dataset syntax.\n"
+     "If the first 1 or 2 time points are abnormally bright due to the NMR\n"
+     "pre-steady-state effect, then their influence might be spread farther\n"
+     "into the output dataset by the interpolation process.  You can avoid this\n"
+     "effect by excising these values from the input using the '[2..$]' notation\n"
+     "in the input dataset syntax.\n"
      "\n"
-     "Also note that if the input dataset is catenated from multiple non-contiguous\n"
-     "imaging runs, the program will happily interpolate across the time breaks\n"
-     "between the runs.  For this reason, you should not give such a file (e.g.,\n"
-     "from 3dTcat) to this program -- you should use 3dTRfix on each run separately,\n"
-     "and only later catenate the runs.\n"
+     "If the input dataset is catenated from multiple non-contiguous imaging runs,\n"
+     "the program will happily interpolate across the time breaks between the runs.\n"
+     "For this reason, you should not give such a file (e.g., from 3dTcat) to this\n"
+     "program -- you should use 3dTRfix on each run separately, and only later\n"
+     "catenate the runs.\n"
      "\n"
-     "Basically, this program is a quick-ish hack for the Mad Spaniard; when\n"
-     "are we going out for tapas y cerveza?\n"
+     "The output dataset is stored in float format, regardless of the input format.\n"
+     "\n"
+     "** Basically, this program is a hack for the Mad Spaniard.\n"
+     "** When are we going out for tapas y cerveza (sangria es bueno, tambien)?\n"
      "\n"
      "OPTIONS:\n"
-     "========\n"
+     "--------\n"
      "\n"
      " -input iii    = Input dataset 'iii'. [MANDATORY]\n"
      "\n"
