@@ -142,8 +142,9 @@ def db_cmd_postdata(proc, block):
 
     # consider applying a uniformity correction
     umeth, rv = proc.user_opts.get_string_opt('-anat_uniform_method',
-                                              default='none')
-    if umeth != 'none' and proc.anat:
+                                              default='default')
+    proc.anat_unif_meth = umeth # store for later
+    if umeth == 'unifize' and proc.anat:
        rv, oc = make_uniformity_commands(proc, umeth)
        if rv: return   # failure (error has been printed)
        cmd = cmd + oc
@@ -4592,10 +4593,16 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     if strip: sstr = ' -skull_strip_input yes'
     else:     sstr = ' -skull_strip_input no'
 
-    # allow (default) unifize, if not already done
-    if proc.anat_unifized: ustr = ' -unifize_input no'
-    else:                  ustr = ''
+    # adjust input option and output dset names based on uniformity correction
+    # - default is to unifize here, otherwise not
+    if proc.anat_unif_meth == 'default':
+        ustr = ''                       # allow unif correction
+        uxstr = 'un.'                   # expect 'un.' in dset names
+    else:
+        ustr = ' -unifize_input no'     # block correction
+        uxstr = ''                      # do not expect 'un.' in dset names
 
+    # maybe a suffix was provided
     if suffix:
        suf = suffix
        sufstr = ' -suffix %s' % suf
@@ -4638,8 +4645,6 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     proc.tlrcanat = proc.anat.new(apre+suf, '+tlrc')
 
     # if no unifize, xmat strings will not have .un
-    if proc.anat_unifized: uxstr = ''
-    else:                  uxstr = 'un.'
     proc.nlw_aff_mat = 'anat.%saff.Xat.1D' % uxstr
     proc.nlw_NL_mat = 'anat.%saff.qw_WARP.nii' % uxstr
 
@@ -6389,10 +6394,11 @@ g_help_string = """
                 e.g. -anat_uniform_method unifize
 
             Specify the method for anatomical intensity uniformity correction.
-            At the moment, there is only 1 useful method to supply.
 
-                none    : do not do uniformity correction (default)
-                unifize : use 3dUnifize to do the correction
+                none    : do not do uniformity correction at all
+                default : use 3dUnifize at whim of auto_warp.py
+                unifize : apply 3dUnifize early in processing stream
+                          (so it affects more than auto_warp.py)
 
             Please see '3dUnifize -help' for details.
             See also -anat_opts_unif.

@@ -426,9 +426,13 @@ g_history = """
           bits before being truncated to 3
     4.22 Nov 07, 2014: shift -affter warp to -warp for -tlrc_NLwarp
         - requires 3dNwarpApply from Nov 7 or later
+    4.23 Nov 21, 2014:
+        - changed -anat_uniform_method none to mean no correction at all
+        - now 'default' means to apply it normally in auto_warp.py
+        - done for B Benson
 """
 
-g_version = "version 4.22, November 7, 2014"
+g_version = "version 4.23, November 21, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "7 Nov 2014" # 3dNwarpApply
@@ -528,6 +532,7 @@ class SubjProcSream:
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.anat_has_skull = 1         # does the input anat have a skull
                                         # also updated in db_cmd_align
+        self.anat_unif_meth = 'default' # unifize method
         self.anat_unifized = 0          # has the anat been unifized
         self.anat_final = None          # anat assumed aligned with stats
         self.nlw_aff_mat= ''
@@ -688,8 +693,8 @@ class SubjProcSream:
                         acplist=['yes','no'],
                         helpstr='does the anat have a skull (to be stripped)')
         self.valid_opts.add_opt('-anat_uniform_method', 1, [],
-                        acplist=['none','unifize'],
-                        helpstr='specify uniformity method (default=none)')
+                        acplist=['none', 'default', 'unifize'],
+                        helpstr='specify uniformity method (def=default)')
         self.valid_opts.add_opt('-anat_opts_unif', -1, [],
                         helpstr='additional options passed to 3dUnifize')
         self.valid_opts.add_opt('-anat_unif_GM', 1, [],
