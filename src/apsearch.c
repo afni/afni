@@ -110,15 +110,14 @@ int update_help_for_afni_programs(int force_recreate,
    RETURN(1);
 }
 
-
          
-void apsearch_usage(int detail) 
+int apsearch_usage(TFORM targ, int detail) 
 {
    int i = 0;
    
    ENTRY("apsearch_usage");
    /* print help message in three sections */
-   fprintf(stdout,
+   sphinx_fprintf(targ, stdout,
    "\n"
    "A program to perform simple approximate string searching. It's primary\n"
    "purpose is to test string matching for atlas area locations.\n"
@@ -127,7 +126,7 @@ void apsearch_usage(int detail)
    "           [OPTIONS]\n"
    "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
-      printf ( 
+      sphinx_printf (targ, 
 "Parameters:\n"
 "===========\n"
 "  -word WORD: WORD being sought\n"
@@ -141,11 +140,30 @@ void apsearch_usage(int detail)
 "  -popt PROG: Search for possible options of PROG that match WORD\n"
 "              Make sure you add the '-' to WORD if you are looking\n"
 "              for an actual option.\n"
+"  -raw_phelp PROG: Spit out the help string for PROG without modification.\n"
+"  -txt_phelp PROG: Format the output of PROG -help for simple text.\n"
 "  -sphinx_phelp PROG: Format the output of PROG -help in a sphinxized way.\n"
+"  -asphinx_phelp PROG: Format the output of PROG -help in an auto sphinxized\n"
+"                       way.\n"
 "  -doc_2_txt: Format AFNI markups from  -file/-files/-stdin content for text\n"
 "              output.\n"
 "  -doc_2_spx: Format AFNI markups from  -file/-files/-stdin content for\n"
 "              Sphinx output.\n"
+"  -hdoc_2_txt PNAME: Format program help output in  -file/-files/-stdin \n"
+"              content for text output. PNAME is needed wherever the program\n"
+"              name is needed in the output.\n"
+"  -hdoc_2_spx PNAME: Format program help output in  -file/-files/-stdin \n"
+"              content for Sphinx output. PNAME is needed wherever the program\n"
+"              name is needed in the output.\n"
+"  -hdoc_2_aspx PNAME: Format program help output in  -file/-files/-stdin  \n"
+"              content for Sphinx output with autoformatting of options.\n"
+"              PNAME is needed wherever the program name is needed in the \n"
+"              output.:LR:\n"
+"              Now, why use such an option as opposed to -asphinx_phelp ?\n"
+"              That's because the -help option in some programs cannot handle\n"
+"              any special markup within it so we write out that string as is\n"
+"              to standard out and pipe it to apsearch with:LIT:\n"
+"              3dinfo -h_raw | apsearch -hdoc_2_aspx 3dinfo -\n\n"
 "  -doc_markup_sample: Shown an example of the types of markups available for\n"
 "                      the documentation.\n"
 "  -all_afni_help: Search for WORD in all afni help files.\n"
@@ -168,7 +186,6 @@ void apsearch_usage(int detail)
 "  -cs: Case sensitive search\n"
 "  -global_help: Show help for global options.\n"
 "  -gopts_help:  Show help for global options.\n"
-"  -help: You're looking at it.\n"
 "  -max_hits MH: Return best MH hits only. Default MH = 3.\n"
 "                Use -1 to get all results back.\n"
 "  -m MH: Abbreviated version of -max_hits MH.\n"
@@ -260,6 +277,15 @@ void apsearch_usage(int detail)
 "-wild_files_ci: When searching for unique set, use case insensitive matching\n"
 "-test_unique_str: Run debugging tests for function unique_str().\n"
 "\n"
+"For hard coders only:\n"
+"=====================\n"
+"-C_all_prog_opt_array : Output all program options as an array of C structs.\n"
+"                        Debugging is output to stderr, the beef is in stdout.\n"
+"-C_prog_opt_array PROG: Insert/update PROG's options in an array of C \n"
+"                        and output the results to stdout as for\n"
+"                        option -C_all_prog_opt_array\n\n"
+"            Example:    apsearch -C_prog_opt_array 3dToyProg > prog_opts.c\n"
+"\n"
 "Examples:\n"
 "=========\n"
 " 1- Search help output of program whereami for the word '-atlas'\n"
@@ -308,9 +334,10 @@ void apsearch_usage(int detail)
 "\n"
 "Global Options:\n"
 "===============\n"
-"%s", 
+"%s\n%s", 
    THD_helpdir(0),
-   detail > 1 ? get_gopt_help():""); 
+   detail > 1 ? get_gopt_help():"",
+   detail > 1 ? SUMA_Offset_SLines(get_help_help(),2):""); 
    PRINT_COMPILE_DATE ;
    }
    return;
@@ -460,27 +487,30 @@ int main(int argc, char **argv)
        compcom = 0, shtp = 0;
    float *ws_score=NULL, last_score=-1.0;
    char *fname=NULL, *text=NULL, *prog=NULL, *word="Ma fich haga", **ws=NULL, 
-         *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ";
+         *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ", 
+         *pname=NULL;
    THD_string_array *fnamev = NULL;
    APPROX_STR_DIFF *D=NULL;
    THD_string_array *sar = NULL;
    byte ci = 1;
    char *wild_list=NULL, **wglob=NULL, **wsort=NULL;
-   int nglob, nsort, *isrt=NULL, wild_noext=0, spx_tar = 0,
+   int nglob, nsort, *isrt=NULL, wild_noext=0,
        wild_all_files = 0, wild_orig_name = 0, wild_ci=0;
-   
+   TFORM spx_tar = TFORM_NOT_SET;
 
    mainENTRY("apsearch main"); machdep() ; 
+   
    max_hits = 3;
    test_only=0;
    min_different_hits = -1;
    if (argc <= 1) {
-      apsearch_usage(0);
+      apsearch_usage(TXT, 0);
       return(1); 
    }
    
    iarg = 1 ; 
    while( iarg < argc ){
+      CHECK_HELP(argv[iarg], apsearch_usage);
       if (strcmp(argv[iarg],"-ci") == 0) { 
          ci = 1; 
          ++iarg;
@@ -582,15 +612,11 @@ int main(int argc, char **argv)
       "Global Options: options available to most AFNI programs, but usually\n"
       "                not found in the -help output.\n"
       "--------------------------------------------------------------------\n"
-             "%s", get_gopt_help());
+             "%s\n%s", SUMA_Offset_SLines(get_help_help(),2), get_gopt_help());
          return(0); 
       }
 
-      if (strcmp(argv[iarg],"-help") == 0 ||
-          strcmp(argv[iarg],"-h") == 0) { 
-         apsearch_usage(strlen(argv[iarg]) > 3 ? 2:1);
-         return(0); 
-      }
+      
 
       if (strcmp(argv[iarg],"-file") == 0) { 
          ++iarg;
@@ -622,7 +648,8 @@ int main(int argc, char **argv)
       
       if (strcmp(argv[iarg],"-sphinx_phelp") == 0 ||
           strcmp(argv[iarg],"-txt_phelp") == 0 ||
-          strcmp(argv[iarg],"-raw_phelp") == 0) { 
+          strcmp(argv[iarg],"-raw_phelp") == 0 ||
+          strcmp(argv[iarg],"-asphinx_phelp") == 0) { 
          TFORM form=NO_FORMAT;
          char *s=NULL;
          ++iarg;
@@ -635,12 +662,13 @@ int main(int argc, char **argv)
          
               if (strcmp(argv[iarg-1],"-txt_phelp") == 0) form = TXT;
          else if (strcmp(argv[iarg-1],"-sphinx_phelp") == 0) form = SPX;
+         else if (strcmp(argv[iarg-1],"-asphinx_phelp") == 0) form = ASPX;
          else if (strcmp(argv[iarg-1],"-raw_phelp") == 0) form = NO_FORMAT;
          else {
             ERROR_message("Who wrote this thing?!?");
             return(1);
          }
-         if ((s = format_prog_help(argv[iarg], form, 0))) {
+         if ((s = phelp(argv[iarg], form, 0))) {
             fprintf(stdout, "%s", s);
             free(s); s = NULL;
          }
@@ -659,14 +687,55 @@ int main(int argc, char **argv)
       }
       
       if (!strcmp(argv[iarg],"-doc_2_txt")) {
-         spx_tar = 1;
+         spx_tar = TXT;
          ++iarg; continue;
       }
       
       if (!strcmp(argv[iarg],"-doc_2_spx")) {
-         spx_tar = 2;
+         spx_tar = SPX;
          ++iarg; continue;
       }
+      
+      if (!strcmp(argv[iarg],"-doc_2_aspx")) {
+         spx_tar = ASPX;
+         ++iarg; continue;
+      }
+      
+      if (!strcmp(argv[iarg],"-hdoc_2_txt")) {
+         ++iarg;
+         if (iarg >= argc || !strcmp(argv[iarg],"-")) {
+            fprintf( stderr,
+                     "** Error: Need a program name after -hdoc_*\n"); return(1);
+         }
+         pname = argv[iarg];
+         spx_tar = TXT;
+         ++iarg; continue;
+      }
+      
+      if (!strcmp(argv[iarg],"-hdoc_2_spx")) {
+         ++iarg;
+         if (iarg >= argc || !strcmp(argv[iarg],"-")) {
+            fprintf( stderr,
+                     "** Error: Need a program name after -hdoc_*\n"); return(1);
+         }
+         pname = argv[iarg];
+         
+         spx_tar = SPX;
+         ++iarg; continue;
+      }
+      
+      if (!strcmp(argv[iarg],"-hdoc_2_aspx")) {
+         ++iarg;
+         if (iarg >= argc || !strcmp(argv[iarg],"-")) {
+            fprintf( stderr,
+                     "** Error: Need a program name after -hdoc_*\n"); return(1);
+         }
+         pname = argv[iarg];
+         
+         spx_tar = ASPX;
+         ++iarg; continue;
+      }
+      
       
       if (strcmp(argv[iarg],"-files") == 0) { 
          ++iarg;
@@ -868,8 +937,21 @@ int main(int argc, char **argv)
          continue; 
       }
       
+      if (strcmp(argv[iarg],"-C_all_prog_opt_array") == 0) {
+         progopt_C_array(NULL, 1, NULL, 1);
+         return(0);
+         ++iarg; 
+         continue;
+      }
+      
       if (strcmp(argv[iarg],"-C_prog_opt_array") == 0) {
-         progopt_C_array(NULL, 1);
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+               "** Error: Need program name after -C_prog_opt_array\n");
+            return(1);
+         }
+         progopt_C_array(NULL, 1, argv[iarg], 1);
          return(0);
          ++iarg; 
          continue;
@@ -1074,16 +1156,16 @@ int main(int argc, char **argv)
    }
    
    if ((fnamev || fname || text || prog || popt || all_popts)) {
-      if (!strcmp(word,"Ma fich haga") && !spx_tar) {
+      if (!strcmp(word,"Ma fich haga") && spx_tar == TFORM_NOT_SET) {
          ERROR_message(
             "I'd search the world over for you, if only you gave me -word");
          return 1;
       }
       if (fnamev) {
          fprintf(stderr,"Have %d files\n", fnamev->num);
-         if (spx_tar) {
+         if (spx_tar != TFORM_NOT_SET) {
             for (i=0; i<fnamev->num; ++i) {
-               char *sso=SUMA_Sphinx_File_Edit(fnamev->ar[i], spx_tar-1, 0);
+               char *sso=SUMA_Sphinx_File_Edit(fnamev->ar[i], spx_tar, 0);
                if (sso) {
                   fprintf(stdout,"%s", sso); free(sso); sso = NULL;
                } else {
@@ -1102,8 +1184,14 @@ int main(int argc, char **argv)
          }
       } else if (fname) {
          if (strcmp(fname,stdinflag)) {
-            if (spx_tar) {
-               char *sso=SUMA_Sphinx_File_Edit(fname, spx_tar-1, 0);
+            if (spx_tar != TFORM_NOT_SET) {
+               char *sso=NULL;
+               if (!pname) {
+                  sso = SUMA_Sphinx_File_Edit(fname, spx_tar, 0);
+               } else {
+                  sso = AFNI_suck_file(fname);
+                  sso = sphelp(pname, &sso, spx_tar, 0);
+               }
                if (sso) {
                   fprintf(stdout,"%s", sso); free(sso); sso = NULL;
                } else {
@@ -1112,7 +1200,7 @@ int main(int argc, char **argv)
                }
                return 0;
             } else {
-               ws = approx_str_sort_tfile(fname, &N_ws, word, 
+               ws = approx_str_sort_tfile(fname, 0, &N_ws, word, 
                          ci, &ws_score,
                          NULL, &D, 1, '\0');
             }
@@ -1122,8 +1210,12 @@ int main(int argc, char **argv)
                ERROR_message("Failed to read from stdin");
                return 0;
             }
-            if (spx_tar) {
-               stdtext = SUMA_Sphinx_String_Edit(&stdtext, spx_tar-1, 0);
+            if (spx_tar != TFORM_NOT_SET) {
+               if (!pname) {
+                  stdtext = SUMA_Sphinx_String_Edit(&stdtext, spx_tar, 0);
+               } else {
+                  stdtext = sphelp(pname, &stdtext, spx_tar, 0);
+               }
                fprintf(stdout,"%s", stdtext);
                free(stdtext); stdtext=NULL;
                return 0;
@@ -1139,7 +1231,7 @@ int main(int argc, char **argv)
                             ci, &ws_score,
                             NULL, &D, '\0');
       } else if (prog) {
-         ws = approx_str_sort_phelp(prog, &N_ws, word, 
+         ws = approx_str_sort_phelp(prog, 0, &N_ws, word, 
                             ci, &ws_score,
                             NULL, &D, 1, '\\');
       } else if (popt) {
@@ -1147,7 +1239,7 @@ int main(int argc, char **argv)
          return 0;
       } else if (all_popts) {
          /* one can also use print_prog_options(all_popts); return(0); */
-         ws = approx_str_sort_all_popts(all_popts, &N_ws, 
+         ws = approx_str_sort_all_popts(all_popts, 0, &N_ws, 
                             ci, &ws_score,
                             NULL, &D, uopts, 1, '\\');
       }

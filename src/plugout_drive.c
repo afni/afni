@@ -411,7 +411,7 @@ void usage_plugout_drive(int detail)
 "AFNI, use the -np* options below\n"
 "%s\n"
 "Global Options (available to all AFNI/SUMA programs)\n"
-"%s\n"
+"%s\n%s"
 "Example 1:\n"
 "    afni -yesplugouts\n"
 "    plugout_drive  -com 'SWITCH_SESSION A.afni'                       \\\n"
@@ -429,7 +429,8 @@ void usage_plugout_drive(int detail)
 "More help in: README.driver\n"
 "More Demos is: @DriveAfni\n"
 "\n"
-   , afni_port, get_np_help(), get_gopt_help() );
+   , afni_port, get_np_help(), SUMA_Offset_SLines(get_help_help(),2),
+    get_gopt_help() );
    return;
 }
 

@@ -268,7 +268,8 @@ int SetFreqBin(float fresp, float fstep, int stk[], float stw[], int nfft) {
    stk[1] = (int)ceil (stf);    /* ceil of freq. index */
       stw[1] = (1.0 - stk[1] + stf  );        /*ceil weight*/
    if (stk[0] > nfft/2 || stk[1] > nfft/2) {
-      ERROR_message("Frequency indices %d and/or %d outside max of %d\n");
+      ERROR_message("Frequency indices %d and/or %d outside max of %d\n", 
+                    stk[0], stk[1], nfft/2);
       return(0);
    }
    return(1);

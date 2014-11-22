@@ -5798,7 +5798,7 @@ void SUMA_UpdateViewerTitle_old(SUMA_SurfaceViewer *sv)
    if (N_SOlist >= 0) {   
       SUMA_LH("title surfaces found");
       sv->X->Title = 
-         (char *)SUMA_calloc(nalloc + strlen(slabel)+ 13, sizeof(char));      
+         (char *)SUMA_calloc(nalloc + strlen(slabel)+ 130, sizeof(char));      
       sv->X->Title[0] = '\0';
       while (i < N_SOlist) {   
          SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   

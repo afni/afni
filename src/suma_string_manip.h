@@ -1,6 +1,8 @@
 #ifndef SUMA_STRING_MANIP_INCLUDED
 #define SUMA_STRING_MANIP_INCLUDED
 
+#include "suma_utils.h"
+
 char *SUMA_EscapeChars(char *s1, char *ca, char *es);
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
 char *insert_in_string(char **s, char *pos, char *ins, int *nalloc);
@@ -32,17 +34,20 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread,
 
 char *SUMA_Break_String(char *si, int mxln);
 char *SUMA_Offset_Lines(char *si, int off);
+char *SUMA_Offset_SLines(char *si, int off);
 char *SUMA_Cut_String(char *s, char *sc);
 char *SUMA_Sphinx_DeRef(char *s, char *r);
 char *SUMA_Swap_String(char *s, char *sc, char *sw);
 NI_str_array *SUMA_Split_String(char *s, char *sc);
 char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save);
 char *SUMA_Sphinx_String_Edit(char **s, TFORM targ, int off);
+char *SUMA_Sphinx_SetVars(char **s);
 void SUMA_Sphinx_String_Edit_Help(FILE *fout);
 char *SUMA_Sphinx_File_Edit(char *fname, TFORM targ, int off);
 char *sphinxize_prog_help (char *prog, int verb);
-char *format_prog_help(char *prog, TFORM targ, int verb);
+char *sphinxize_prog_shelp (char *prog, char *oh, int verb);
 SUMA_Boolean SUMA_Known_Sphinx_Dir(char *s);
+SUMA_Boolean SUMA_Known_Sphinx_ADir(char *s);
 char *SUMA_Sphinx_LineSpacer(char *s, TFORM targ);
 
 int sphinx_offprintf(TFORM targ, int off, FILE *fout, char *str, ... );

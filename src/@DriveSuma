@@ -1,8 +1,18 @@
 #!/bin/tcsh -f
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 #Example commands for running DriveSuma
 #Creates a temporary directory called ./tmp_suma
 
-if ("$1" == "-h" || "$1" == -help) goto HELP
+set HelpOpt = ''
+echo "$1" | \grep -w -E  \
+      '\-h_txt|\-h_spx|\-h_aspx|\-h_raw|\-help|\-h' >& /dev/null
+if ($status == 0) then
+   set HelpOpt = "$1"
+   goto HELP
+endif
+
 if ($#argv > 0) then
    #Need to exit with unknown options.
    echo "No parameters accepted. See `basename $0` -help."
@@ -259,24 +269,52 @@ After you dismiss this window, DriveSuma will ask SUMA to quit."`
                 -com kill_suma
 
 goto END   
+     
        
 HELP:
-echo ""
-echo "Usage: @DriveSuma "
-echo ""
-echo "A script to demonstrate how to drive suma from the command line."
-echo "The script pops messages explaining what will happen in the next command"
-echo ""
-echo "You can also read the script, focusing on the DriveSuma commands "
-echo "to understand what is going on."
-echo ""
-echo "See also DriveSuma -help and @DO.examples"
-echo ""
-echo "Questions or comments are welcome on AFNI's message board:"
+     if ("$HelpOpt" == "-h_raw") then
+   goto HRAW
+else if ("$HelpOpt" == "-h") then
+   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+else if ("$HelpOpt" == "-help") then
+   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+else if ("$HelpOpt" == "-h_txt") then
+   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+else if ("$HelpOpt" == "-h_spx") then
+   `basename $0` -h_raw | apsearch -hdoc_2_spx `basename $0` -
+else if ("$HelpOpt" == "-h_aspx") then
+   `basename $0` -h_raw | apsearch -hdoc_2_aspx `basename $0` -
+endif
+goto END
+
+HRAW:
+cat << EOF
+Usage: @DriveSuma 
+
+A script to demonstrate how to drive suma from the command line.
+The script pops messages explaining what will happen in the next command
+
+You can also read the script, focusing on the DriveSuma commands 
+to understand what is going on.
+
+See also DriveSuma -help and @DO.examples
+
+Questions or comments are welcome on AFNI's message board:
 echo ' http://afni.nimh.nih.gov/afni/community/board/list.php?f=1 '
-echo ""
-echo "   Ziad S. Saad, saadz@mail.nih.gov"
-echo ""
+:SPX:
+
+   .. note::
+   
+      This is an example for how you can put special sphinx directives to improve your help.
+
+:SPX:
+
+`@global_parse -gopts_help`
+
+   Ziad S. Saad, saadz@mail.nih.gov
+EOF
+
+
    goto END       
 
 STEND:

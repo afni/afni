@@ -325,13 +325,29 @@ typedef struct {
 /*! Duplicate definition for FREE_XTARR */
 #define DESTROY_XTARR  FREE_XTARR
 
-/************************* string array stuff *************************/
+/*************************  help utilities    *************************/
 
 /* Flags & macros for shpinx string formatting */
-typedef enum { NO_FORMAT, TXT, SPX } TFORM;
+typedef enum { TFORM_NOT_SET, NO_FORMAT, TXT, SPX , ASPX } TFORM;
+
+#define CHECK_HELP(opt,fun) {\
+   if( strcmp(argv[iarg],"-h_spx") == 0 ){   \
+         fun(SPX, 2); RETURN(0);}   \
+   else if( strcmp(argv[iarg],"-h_raw") == 0 ){ \
+         fun(NO_FORMAT,2); RETURN(0);} \
+   else if( strcmp(argv[iarg],"-help") == 0 ){  \
+         fun(TXT,1); RETURN(0);} \
+   else if( strcmp(argv[iarg],"-h") == 0 ){  \
+         fun(TXT,0); RETURN(0);} \
+}
+      
+
 #define  sphinx_printf(targ, ...) (sphinx_offprintf( targ, 0, NULL, __VA_ARGS__))
 #define sphinx_fprintf(targ, fout, ...) \
                                   (sphinx_offprintf( targ, 0, fout, __VA_ARGS__))
+#include "suma_string_manip.h"
+
+/************************* string array stuff *************************/
 
 /*! Dynamic array of character strings. */
 
@@ -4271,6 +4287,7 @@ extern char *THD_get_helpdir(byte withslash);
 extern char *THD_datadir(byte withslash);
 extern char *THD_get_datadir(byte withslash);
 extern char *THD_abindir(byte withslash);
+extern char * THD_facedir(byte withslash);
 extern char *find_afni_file(char * nimlname, int niname, char *altpath);
 char *THD_helpsearchlog(int createpath);
 
@@ -4291,9 +4308,11 @@ extern int list_afni_programs(int withpath, int withnum);
 extern int list_afni_readmes(int withpath, int withnum);
 extern int list_afni_dsets(int withpath, int withnum);
 extern int THD_is_executable( char * pathname ) ;
-int progopt_C_array(FILE *fout, int verb);
+int progopt_C_array(FILE *fout, int verb, char *thisprog, int appendmode);
 char *form_C_progopt_string(char *prog, char **ws, int N_ws);
 char *phelp(char *prog, TFORM targ, int verb);
+char *sphelp(char *prog, char **str, TFORM targ, int verb);
+int phelp_cmd(char *prog, TFORM targ, char cmd[512], char fout[128], int verb );
 int program_supports(char *prog, char *opt, char *oval, int verb); 
 char *find_popt(char *sh, char *opt, int *nb);
 int prog_complete_command (char *prog, char *ofile, int shtp);
