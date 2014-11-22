@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21,  Nov, 2014, RCR, "meica.py", MICRO, TYPE_MODIFY,
+   "merged -affter into -nwarp in 5 3dNwarpApply calls",
+   NULL
+ } ,
+
  { 21,  Nov, 2014, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "-anat_unifize_method none now means to skip, default means to do in AW",
    "Basically, this adds the ability to skip 3dUnifize completely."
