@@ -523,14 +523,15 @@ for echo_ii in range(len(datasets)):
 		sl.append("voxsize=`ccalc $(3dinfo -voxvol eBvrmask.nii.gz)**.33`") #Set voxel size
 		#Create base mask
 		if options.anat and options.space and options.qwarp: 
-			sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz' -affter '%s_wmat.aff12.1D' %s %s -source eBvrmask.nii.gz -interp %s -prefix ./eBvrmask.nii.gz " % \
+                        # merged -affter into -nwarp   21 Nov 2014 [rickr]
+			sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source eBvrmask.nii.gz -interp %s -prefix ./eBvrmask.nii.gz " % \
 			(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
 			if options.t2salign or options.mask_mode!='func':
-				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz' -affter '%s_wmat.aff12.1D' %s %s -source t2svm_ss.nii.gz -interp %s -prefix ./t2svm_ss_vr.nii.gz " % \
+				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source t2svm_ss.nii.gz -interp %s -prefix ./t2svm_ss_vr.nii.gz " % \
 				(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
-				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz' -affter '%s_wmat.aff12.1D' %s %s -source ocv_uni+orig -interp %s -prefix ./ocv_uni_vr.nii.gz " % \
+				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source ocv_uni+orig -interp %s -prefix ./ocv_uni_vr.nii.gz " % \
 				(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
-				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz' -affter '%s_wmat.aff12.1D' %s %s -source s0v_ss.nii.gz -interp %s -prefix ./s0v_ss_vr.nii.gz " % \
+				sl.append("3dNwarpApply -overwrite -nwarp '%s/%s_WARP.nii.gz %s_wmat.aff12.1D' %s %s -source s0v_ss.nii.gz -interp %s -prefix ./s0v_ss_vr.nii.gz " % \
 				(startdir,dsprefix(nlatnsmprage),prefix,almaster,qwfres,'NN'))
 		elif options.anat:
 			sl.append("3dAllineate -overwrite -final %s -%s -float -1Dmatrix_apply %s_wmat.aff12.1D -base eBvrmask.nii.gz -input eBvrmask.nii.gz -prefix ./eBvrmask.nii.gz %s %s" % \
@@ -571,7 +572,7 @@ for echo_ii in range(len(datasets)):
 
 	#logcomment("Extended preprocessing dataset %s of TE=%sms to produce %s_in.nii.gz" % (indata,str(tes[echo_ii]),dsin),level=2 )
 	logcomment("Apply combined normalization/co-registration/motion correction parameter set to %s_ts+orig" % dsin)
-	if options.qwarp: sl.append("3dNwarpApply -nwarp '%s/%s_WARP.nii.gz' -affter %s_vrwmat.aff12.1D -master eBvrmask.nii.gz -source %s_ts+orig -interp %s -prefix ./%s_vr%s " % \
+	if options.qwarp: sl.append("3dNwarpApply -nwarp '%s/%s_WARP.nii.gz %s_vrwmat.aff12.1D' -master eBvrmask.nii.gz -source %s_ts+orig -interp %s -prefix ./%s_vr%s " % \
 			(startdir,dsprefix(nlatnsmprage),prefix,dsin,align_interp,dsin,osf))
 	else: sl.append("3dAllineate -final %s -%s -float -1Dmatrix_apply %s_vrwmat.aff12.1D -base eBvrmask%s -input  %s_ts+orig -prefix ./%s_vr%s" % \
 		(align_interp,align_interp,prefix,osf,dsin,dsin,osf))
