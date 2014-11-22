@@ -410,7 +410,8 @@ void afni_open_usage(int detail)
 "\n"
 "Global Options:\n"
 "===============\n"
-"%s", 
+"%s\n%s", 
+   detail > 1 ? SUMA_Offset_SLines(get_help_help(),2):"",
    detail > 1 ? get_gopt_help():""); 
    PRINT_COMPILE_DATE ;
    }
@@ -441,7 +442,7 @@ int main(int argc, char **argv)
       "Global Options: options available to most AFNI programs, but usually\n"
       "                not found in the -help output.\n"
       "--------------------------------------------------------------------\n"
-             "%s", get_gopt_help());
+             "%s\n%s", SUMA_Offset_SLines(get_help_help(),3), get_gopt_help());
          return(0); 
       }      
       

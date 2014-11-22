@@ -11000,7 +11000,7 @@ void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh)
         } else if( pval >= 0.0010 ){
           char qbuf[16] ;
           sprintf( qbuf , "%5.4f" , pval ) ;
-          strcpy(buf,"p=") ; strcat( buf , qbuf+1 ) ;/*qbuf+1 skips leading 0*/
+          strcpy(buf,"p=") ; strncat(buf , qbuf+1, 99);/*qbuf+1 skips leading 0*/
         } else {
           int dec = (int)(0.999 - log10(pval)) ;
           zval = pval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
@@ -11017,9 +11017,9 @@ void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh)
            if( dec < 10 ) sprintf( qbuf, " %3.1f-%1d",            zval, dec );
            else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
          }
-         strcat(buf,"\nq=") ; strcat(buf,qbuf+1) ;
+         strcat(buf,"\nq=") ; strncat(buf,qbuf+1,99) ;
       } else {
-         strcat(buf,"\nq=N/A") ;
+         strncat(buf,"\nq=N/A",99) ;
       }
      
       MCW_set_widget_label( SurfCont->thrstat_lb, buf );
@@ -11562,7 +11562,7 @@ SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado)
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado)
 {
    static char FuncName[]={"SUMA_UpdateNodeNodeField"};
-   char str[100];
+   char str[101];
    SUMA_X_SurfCont *SurfCont=NULL;
    int SelectedNode, ivsel[SUMA_N_IALTSEL_TYPES];
    float *fv;
@@ -11591,9 +11591,9 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado)
          fv = SUMA_ADO_DatumXYZ(ado,SelectedNode, NULL);
          sprintf(str, "%s, ", 
                      MV_format_fval2(fv[0], 7));
-         strcat(str, MV_format_fval2(fv[1], 7));
-         strcat(str, ", ");
-         strcat(str, MV_format_fval2(fv[2], 7) );
+         strncat(str, MV_format_fval2(fv[1], 7), 100);
+         strncat(str, ", ", 100);
+         strncat(str, MV_format_fval2(fv[2], 7), 100 );
          XtVaSetValues(SurfCont->NodeTable->cells[2], XmNvalue, str, NULL);
          break;
       case GRAPH_LINK_type: {
@@ -12306,7 +12306,7 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
    static char FuncName[]={"SUMA_UpdateNodeLblField_ADO"};
    int Found = -1;
    char *lbls=NULL, *ltmp=NULL;
-   char str_col[100];
+   char str_col[101];
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -12391,10 +12391,10 @@ SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ado)
                is in the overlay plane (and the data) */
             sprintf(str_col,"%s",              
                             MV_format_fval2(Sover->ColVec[3*Found],5));
-            strcat( str_col,", ");
-            strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+1],5)); 
-            strcat( str_col,", ");
-            strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+2],5));
+            strncat( str_col,", ", 100);
+            strncat( str_col, MV_format_fval2(Sover->ColVec[3*Found+1],5), 100); 
+            strncat( str_col,", ", 100);
+            strncat( str_col, MV_format_fval2(Sover->ColVec[3*Found+2],5), 100);
             SUMA_LH("%s", str_col);
          }
       }

@@ -2,34 +2,42 @@
 
 if ($#argv == 1) then
    if ("$1" == "-h" || "$1" == "-help") then
-      echo ""
-      echo "A script to parse for global help options"
-      echo "The first parameter is the ALWAYS the program name whose help"
-      echo "output you seek. All other options follow."
-      echo "It is meant to be called by other scripts."
-      echo "It returns 0 when it has nothing to do."
-      echo "           1 when it does something and wants calling"
-      echo "program to quit"
-      echo ""
-      echo "To use this in any script follow these steps"
-      echo "1- Add this line before any parsing, right after the 1st line"
-      echo '   @global_parse `basename $0` "$*" ; if ($status) exit 0'
-      echo "2- Add this line right where you fail to recognize an option"
-      echo '   apsearch -popt `basename $0` -word $argv[$cnt]'
-      echo "3- Add this line somewhere in the help section"
-      echo "   @global_parse -gopts_help"
-      echo "4- Eliminate going to help immediately when too few options"
-      echo "   are set. One option, such as -all_opts is always good"
-      echo ""
+                  cat << EOF
+
+A script to parse for global help options
+The first parameter is the ALWAYS the program name whose help
+output you seek. All other options follow.
+It is meant to be called by other scripts.
+It returns 0 when it has nothing to do.
+           1 when it does something and wants calling
+program to quit
+
+To use this in any script follow these steps
+1- Add this line before any parsing, right after the 1st line
+      @global_parse \`basename \$0\` "\$*" ; if (\$status) exit 0
+2- Add this line right where you fail to recognize an option
+      apsearch -popt \`basename \$0\` -word \$argv[\$cnt]
+3- Add this line somewhere in the help section
+      @global_parse -gopts_help
+4- Eliminate going to help immediately when too few options
+   are set. One option, such as -all_opts is always good
+
+EOF
       exit 0
    else if ("$1" == "-gopts_help") then
-      echo "Global Help Options:"
-      echo "--------------------"
-      echo "   -h_view: Open -help output in a GUI editor"
-      echo "   -all_opts: List all of the options for this script"
-      echo "   -h_find WORD: Search for lines containing WORD in -help"
-      echo "                 output. Seach is approximate."
-      echo "" 
+                  cat << EOF
+Global Help Options:
+--------------------
+   -h_raw: Raw help string
+   -h_txt: Text formatted help string
+   -h_spx: Sphinx formatted help string
+   -h_aspx: Sphinx formatted help string with auto tagging of options
+   -h_web: Open webpage with help for this program
+   -h_view: Open -help output in a GUI editor
+   -all_opts: List all of the options for this script
+   -h_find WORD: Search for lines containing WORD in -help
+                 output. Seach is approximate.
+EOF
       exit 0
    else if ("$1" == `basename $0`)then
       echo "What?"
@@ -40,8 +48,7 @@ if ($#argv == 1) then
    endif
 endif
 
-
-   echo "$*" | \grep -w -E '\-h_find|\-h_view|\-all_opts' >& /dev/null
+   echo "$*" | \grep -w -E  '\-h_find|\-h_view|\-all_opts|\-h_web' >& /dev/null
    if ($status) then
       #Nothing here, go back
       exit 0
@@ -49,6 +56,11 @@ endif
    echo "$*" | \grep -w '\-h_view' >& /dev/null
    if ($status == 0) then
       apsearch -view_prog_help $1
+      exit 1
+   endif
+   echo "$*" | \grep -w '\-h_web' >& /dev/null
+   if ($status == 0) then
+      apsearch -web_prog_help $1
       exit 1
    endif
    echo "$*" | \grep -w '\-all_opts' >& /dev/null

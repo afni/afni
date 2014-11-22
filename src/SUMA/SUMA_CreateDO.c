@@ -7904,6 +7904,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    int iseg, N_seg, usedel=0, M4, ii, jj, iim, jjm, si, pof = 0, rid,
        *ui, *uj, cc, ee, eem, *GNI=NULL, *GNG=NULL, iname=0;
    int M[3], G[3], B[3], GB[3], N[3], is4, ii4, iipix, jjpix, iipixMax, jjpixMax;
+   int iisel, jjsel;
    double Aff[4][4], I[3];
    DListElmt *el=NULL, *eln=NULL;
    NI_element *nini=NULL;
@@ -8253,12 +8254,19 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    glEnd();
             
    /* Now for the selection */
+   iisel=-1; jjsel=-1;
    if (SUMA_SV_GetShowSelectedDatum(sv)) {
       if (GSaux->PR->datum_index != -1) {
          /* Highlight cell */
          if (!SUMA_GDSET_SegIndexToPoints(dset, GSaux->PR->datum_index, 
                                           &ii, &jj, NULL)) {
             SUMA_S_Err("What else?"); goto BUGOUT;
+         }
+         if (!ui) {
+            iisel = ii; jjsel = jj;
+         } else {
+            iisel = SUMA_ibinFind(ui, N[0], ii);
+            jjsel = SUMA_ibinFind(uj, N[1], jj);
          }
          SUMA_LH("Seg index %d is [%d %d] on matrix shape %s", 
                  (int)GSaux->PR->datum_index, ii, jj,
@@ -8288,6 +8296,12 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
          } else if (cc == 0) {
             SUMA_LH("Nothing to mark?");
             goto GETOUT;
+         }
+         if (!ui) {
+            iisel = jjsel = GSaux->PR->iAltSel[SUMA_ENODE_0];
+         } else {
+            iisel = jjsel = 
+               SUMA_ibinFind(ui, N[0], GSaux->PR->iAltSel[SUMA_ENODE_0]);
          }
          if (cc>=4) {
             SUMA_LHv("Loop1 (cc=%d)\n", cc);
@@ -8319,7 +8333,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
    
    /* Show the text ? */
    if ((fontGL = SUMA_Font2GLFont(curcol->Font))) {
-      int nl, tw, th, bh, bw, skpv, skph,
+      int nl, tw, th, bh, bw, skpv, skph, iioff, jjoff,
           lh = SUMA_glutBitmapFontHeight(fontGL), kkk=0, SGN=-1;
       float off = -lh, vrat, hrat;
       float Sz[3]={0.001, 0.001, 0.001};
@@ -8342,6 +8356,16 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
                Sz[0], bw, hrat, skph,
                GB[0], GB[1]);  
                
+      /* Determine the offset in order to get the selection name displayed */
+      iioff = jjoff = 0;
+      if (iisel > 0 && skpv>0) {
+         iioff = iisel;
+         while (iioff > skpv) iioff = iioff-skpv-1;
+      } 
+      if (jjsel > 0 && skph>0) {
+         jjoff = jjsel;
+         while (jjoff > skph) jjoff = jjoff-skph-1;
+      } 
       
       if (!(names = SUMA_GDSET_GetPointNamesColumn(dset, &ii, &nelxyz))) {
          SUMA_LH("No names!"); /* No need to weep */
@@ -8376,7 +8400,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor); 
       glMaterialfv(GL_FRONT, GL_EMISSION, txcol); /*turn on emissidity for text*/
       /* Do the column side */
-      ee = 0;
+      ee = iioff;
       while (ee < N[0]) {
          if (!ui) {
             eem = ee; 
@@ -8385,7 +8409,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
          }
          if (!GNI) iname = eem;
          else if ((iname = SUMA_ibinFind(GNI, nelxyz->vec_len, eem)) < 0){
-            SUMA_S_Err("Index not found!");
+            SUMA_S_Err("Index not %d found!", eem);
             goto BUGOUT;
          }
          
@@ -8434,7 +8458,7 @@ SUMA_Boolean SUMA_DrawGraphDO_GMATRIX (SUMA_GraphLinkDO *gldo,
 
          ee = ee+1+skpv;
       }
-      ee = 0;
+      ee = jjoff;
       while (ee < N[1]) {
          if (!uj) {
             eem = ee; 
@@ -11814,21 +11838,24 @@ SUMA_Boolean SUMA_DrawGSegmentDO (SUMA_GRAPH_SAUX *GSaux, SUMA_SurfaceViewer *sv
                gluSphere(SDO->botobj, 
                                     SUMA_MAX_PAIR(rad*radgain, 0.005), 10, 10);
             } else if (NoEdges){
-               ghostcol[0] = (1-sv->clear_color[0])/2.0/dimmer;
-               ghostcol[1] = (1-sv->clear_color[1])/2.0/dimmer;
-               ghostcol[2] = (1-sv->clear_color[2])/2.0/dimmer;
-               ghostcol[3] = 1-sv->clear_color[3]; 
-               if (!ShadeBalls) {
-                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ghostcol);
-                  glMaterialfv(GL_FRONT, GL_EMISSION, ghostcol);
-               } else {
-                  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ghostcol);
-                  glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+               if (GSaux->ShowUncon) {
+                  ghostcol[0] = (1-sv->clear_color[0])/2.0/dimmer;
+                  ghostcol[1] = (1-sv->clear_color[1])/2.0/dimmer;
+                  ghostcol[2] = (1-sv->clear_color[2])/2.0/dimmer;
+                  ghostcol[3] = 1-sv->clear_color[3]; 
+                  if (!ShadeBalls) {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ghostcol);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, ghostcol);
+                  } else {
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ghostcol);
+                     glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                  }
+                  /* Show ghosts, for clickability */
+                  if (NoEdges_DynamicRadius) radgaing = 0.25*radgain;
+                  else radgaing = 1.0*radgain;
+                  gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad*radgaing,0.005), 
+                            10, 10);
                }
-               /* Show ghosts, for clickability */
-               if (NoEdges_DynamicRadius) radgaing = 0.25*radgain;
-               else radgaing = 1.0*radgain;
-               gluSphere(SDO->botobj, SUMA_MAX_PAIR(rad*radgaing,0.005), 10, 10);
             }
             glTranslatef (-xyzr[i3]  ,  -xyzr[i3+1]  , -xyzr[i3+2]  );
          }

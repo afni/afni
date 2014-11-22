@@ -39,6 +39,7 @@ extern double AFNI_numenv_def( char *, double ); /* 18 Sep 2007 */
 extern int AFNI_setenv( char *cmd ) ;       /* 22 Jan 2003 */
 
 extern char *get_gopt_help();
+extern char *get_help_help();
 void suggest_best_prog_option(char *prog, char *str);
 void print_prog_options(char *prog);
 extern int AFNI_prefilter_args( int *argc , char **argv ) ; /* 11 Dec 2007 */

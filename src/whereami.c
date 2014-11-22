@@ -439,8 +439,8 @@ printf(
 if (detail > 1) {
    printf(     
      "Global Options (available to all AFNI/SUMA programs)\n"
-     "%s",
-     get_gopt_help());
+     "%s\n%s",
+     SUMA_Offset_SLines(get_help_help(),2), get_gopt_help());
 }
       
 printf("Thanks to Kristina Simonyan for feedback and testing.\n");

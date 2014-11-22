@@ -2025,7 +2025,7 @@ int  group_mean (SEG_OPTS *Opt, THD_3dim_dataset *aset,
          else sprintf(sbuf,"%d -- %f , (%f)  ", 
                            g+1, M_v[g]*bf, M_v[g]);
          
-         strcat(srep, sbuf);
+         strncat(srep, sbuf, 510);
       }
       INFO_message("%s group means brick scaled , (unscaled): %s\n", 
                   p ? "p-weighted" : "uniform-weight", 

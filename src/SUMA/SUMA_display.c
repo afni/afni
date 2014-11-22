@@ -1238,7 +1238,7 @@ static int shutup;
          fprintf(SUMA_STDERR,"Error %s\nVector exceeded buffer length.\n", FuncName);  \
          m_fail = 1; \
       } else { \
-         strcat (m_stmp, m_val); \
+         strncat (m_stmp, m_val, SUMA_FV2S_ATTR_TMP_STR-1); \
          ++ m_i;  \
       }\
    }  \
@@ -1257,7 +1257,7 @@ static int shutup;
          fprintf(SUMA_STDERR,"Error %s\nVector exceeded buffer length.\n", FuncName);  \
          m_fail = 1; \
       } else { \
-         strcat (m_stmp, m_val); \
+         strncat (m_stmp, m_val, SUMA_FV2S_ATTR_TMP_STR-1); \
          ++ m_i;  \
       }\
    }  \
