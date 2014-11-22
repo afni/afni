@@ -4819,7 +4819,10 @@ int PLUTO_set_v2s_addrs(void ** vopt, char *** maps, char ** hist)
 
 #include "cox_render.h"                 /* 14 Feb 2002 */
 
+#ifndef MATRIX_INCLUDED /* matrix.h is now included and matrix_initialize
+                           prototype conflicts with this one. ZSS Nov. 21 2014 */
 extern void matrix_initialize(void *);  /* 30 Jul 2007 */
+#endif
 
 static vptr_func * forced_loads[] = {
 #ifndef NO_DYNAMIC_LOADING
