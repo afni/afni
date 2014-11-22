@@ -66,6 +66,15 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21, Nov, 2014, ZSS, "afni-general", MAJOR, TYPE_MODIFY,
+   "More and more and more changes to the -help",
+   "Devised system to simplify, so to speak, the generation of \n"
+   "sphinxized help. Changes span multiple functions, most visible \n"
+   "are the sphinx_printf() and its siblings, and new options in apsearch.\n"
+  "See program 3dToyProg.c for an example on how to write help for C programs.\n"
+   "See also Writing_Help.rst for more details."
+ },
+ 
  { 11, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "GraphCont->CN->Col now abide by the 'u' selection for unconnected nodes",
    NULL
