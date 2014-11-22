@@ -292,17 +292,6 @@ char *get_gopt_help() {
 "            include envs set in .afnirc files and .sumarc files for SUMA\n"
 "            programs.\n"
 "             For example: -VAFNI_1D_ZERO_TEXT=\n"
-"   -all_opts: Try to identify all options for the program from the\n"
-"              output of its -help option. Some options might be missed\n"
-"              and others misidentified. Use this output for hints only.\n"
-"   -h_find WORD: Look for lines in this programs's -help output that match\n"
-"                 (approximately) WORD.\n"
-"   -h_view: Open help in text editor. AFNI will try to find a GUI editor\n"
-"            on your machine. You can control which it should use by\n"
-"            setting environment variable AFNI_GUI_EDITOR.\n"
-"   -h_web: Open help in web browser. AFNI will try to find a browser\n"
-"            on your machine. You can control which it should use by\n"
-"            setting environment variable AFNI_GUI_EDITOR.\n"
 "   -skip_afnirc: Do not read the afni resource (like ~/.afnirc) file.\n"
 "   -pad_to_node NODE: Output a full dset from node 0 to MAX_NODE-1\n"
 "                   ** Instead of directly setting NODE to an integer you \n"
@@ -323,6 +312,29 @@ char *get_gopt_help() {
 /* Do not add options for NIML ports here, get them with get_np_help() instead */
    };
    return(GOPT_HELP);
+}
+
+char *get_help_help() {
+   static char HELP_HELP[] = {
+"-h: Mini help, at time, same as -help in many cases.\n"
+"-help: The entire help output\n"
+"-HELP: Extreme help, same as -help in majority of cases.\n"
+"-h_view: Open help in text editor. AFNI will try to find a GUI editor\n"
+"         on your machine. You can control which it should use by\n"
+"         setting environment variable AFNI_GUI_EDITOR.\n"
+"-h_web: Open help in web browser. AFNI will try to find a browser\n"
+"         on your machine. You can control which it should use by\n"
+"         setting environment variable AFNI_GUI_EDITOR.\n"
+"-h_find WORD: Look for lines in this programs's -help output that match\n"
+"              (approximately) WORD.\n"
+"-h_raw: Help string unedited\n"\
+"-h_spx: Help string in sphinx loveliness, but do not try to autoformat\n"\
+"-h_aspx: Help string in sphinx with autoformatting of options, etc.\n"\
+"-all_opts: Try to identify all options for the program from the\n"
+"           output of its -help option. Some options might be missed\n"
+"           and others misidentified. Use this output for hints only.\n"
+   };
+   return(HELP_HELP);
 }
 
 int MRILIB_DomainMaxNodeIndex = -1;
@@ -414,6 +426,19 @@ int AFNI_prefilter_args( int *argc , char **argv )
        exit(0); 
          /* better exit, otherwise output get burried by program's own -help */ 
      }
+     
+     if( strcmp(argv[ii],"-h_aspx") == 0 ){
+       char *s=NULL;
+       if( ttt ) fprintf(stderr,"++ argv[%d] is -h_apsx\n",ii) ;
+       if (!(s = sphinxize_prog_help(argv[0], 0))) {
+         fprintf(stderr,"** Failed to get auto-sphinxized string\n");
+         exit(1);
+       }
+       fprintf(stdout,"%s", s); free(s);
+       used[ii] = 1 ; 
+       exit(0); 
+     }
+     
      
      if( strcmp(argv[ii],"-h_view") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_view\n",ii) ;

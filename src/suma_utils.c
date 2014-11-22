@@ -536,8 +536,8 @@ char *SUMA_help_basics()
       "\n"
       "\n"
       "Global Options (available to all AFNI/SUMA programs)\n"
-      "%s",
-                  get_gopt_help() );
+      "%s\n",
+      SUMA_Offset_SLines(get_help_help(),2),     get_gopt_help() );
    SUMA_SS2S(SS,s);               
    SUMA_RETURN(s);
 }
@@ -1978,9 +1978,9 @@ int SUMA_search_file(char **fnamep, char *epath)
              ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
          strcpy(dname,ename) ;
-         strcat(dname,*fnamep) ;               /* add dataset name */
+         strncat(dname,*fnamep, THD_MAX_NAME-1) ;       /* add dataset name */
          if (imode == 2) {
-            strcat(dname,".gz");          /* add compression flag */
+            strncat(dname,".gz", THD_MAX_NAME-1);    /* add compression flag */
          }
          if ( SUMA_filexists(dname) ) {
             SUMA_free(*fnamep); *fnamep = SUMA_copy_string(dname);
@@ -3480,7 +3480,7 @@ int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep)
 }
 
 
-char * SUMA_env_list_help(int DEFAULT_values, int targ){
+char * SUMA_env_list_help(int DEFAULT_values, TFORM targ){
    static char FuncName[]={"SUMA_env_list_help"};
    int i=0;
    char *sli=NULL;

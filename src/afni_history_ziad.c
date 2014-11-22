@@ -66,6 +66,16 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "GraphCont->CN->Col now abide by the 'u' selection for unconnected nodes",
+   NULL
+ },
+ 
+ { 11, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
+   "Made matrix display labels track selection",
+   NULL
+ },
+ 
  { 4, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Continued modifications for help generating functions, now with selfies",
    "Now SUMA can take selfies of the varied widget frames, making the  \n"

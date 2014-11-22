@@ -355,10 +355,10 @@ THD_3dim_dataset * Voxelwise_Operations(THD_3dim_dataset *dset,
 /* If you follow a comparable syntax in your help, 
    Then you can use AFNI's automatic option completion
    for your program. */
-void help_3dToyProg(int detail) 
+int help_3dToyProg(TFORM targ, int detail) 
 {
    if (detail >= 0) {
-     printf(
+     sphinx_printf(targ,
 "Usage: 3dToyProg [-prefix PREF] [-mask MSET] [-datum DATUM] \n"
 "                 [-h|-help] <-input ISET>\n"
 "   A program to illustrate dataset creation, and manipulation in C using\n"
@@ -367,20 +367,23 @@ void help_3dToyProg(int detail)
       );
    }
    if (detail >= 1) {
-      printf(
+      sphinx_printf(targ,
 " -input ISET: reference dataset \n"
 " -prefix PREF: Prefix of output datasets. \n"
 " -mask MSET: Restrict analysis to non-zero voxels in MSET\n"
 " -datum DATUM: Output datum type for one of the datasets.\n"
 "               Choose from 'float' or 'short'. Default is\n"
 "               'float'\n"
-" -h: Brief help\n"
-" -help: Verbose help\n"
-           ) ;
+"%s\n"
+"\n"
+":SPX:\n"
+"  .. figure:: :=AFACE:/face_chen_gang.jpg\n\n"
+":SPX:\n",
+   SUMA_Offset_SLines(get_help_help(),1)) ;
       PRINT_COMPILE_DATE ;
    }
       
-   return;
+   return(0);
 }
 
 int main( int argc , char * argv[] )
@@ -401,11 +404,7 @@ int main( int argc , char * argv[] )
    set_obliquity_report(0);   /* silence obliquity */
 
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if( strcmp(argv[iarg],"-help") == 0 || 
-			 strcmp(argv[iarg],"-h") == 0 ) {
-			help_3dToyProg(strlen(argv[iarg])>3 ? 1:0);
-			exit(0);
-		}
+      CHECK_HELP(argv[iarg], help_3dToyProg);
       
       if( strncmp(argv[iarg],"-mask",5) == 0 ){
          if (iarg >= argc) ERROR_exit("Need dset after -mask");
@@ -452,7 +451,7 @@ int main( int argc , char * argv[] )
    }
    
    if( argc < 2 ){
-     help_3dToyProg(0);
+     help_3dToyProg(TXT, 0);
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 

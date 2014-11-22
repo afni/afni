@@ -292,10 +292,10 @@ void AFNI_syntax(void)
      "    recompile this program.\n"
      "\n"
      "Global Options (available to all AFNI/SUMA programs)\n"
-     "%s"
+     "%s\n%s"
      , get_np_help() ,
      THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE ,
-     get_gopt_help()
+     SUMA_Offset_SLines(get_help_help(),3), get_gopt_help()
    ) ;
 
    printf(
@@ -1768,7 +1768,9 @@ int main( int argc , char *argv[] )
    }
 
    if( check_string("-global_opts",argc,argv) ) {      /* list global */
-     fputs(get_gopt_help(), stdout);   /* opts used by all AFNI progs */
+     fputs(SUMA_Offset_SLines(get_help_help(),3), 
+                                    stdout);   /* opts used by all AFNI progs */
+     fputs(get_gopt_help(), stdout);   
      dienow++ ;
    }
 

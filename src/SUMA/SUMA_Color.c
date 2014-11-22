@@ -847,7 +847,7 @@ int SUMA_LoadUserCmapsDir( char * dname, SUMA_AFNI_COLORS *SAC)
    /*----- find all *.cmap files -----*/
 
    ii  = strlen(dname) ;
-   pat = (char *) malloc(sizeof(char)*(ii+8)) ;
+   pat = (char *) malloc(sizeof(char)*(ii+18)) ;
    strcpy(pat,dname) ;
    if( pat[ii-1] != '/' ) strcat(pat,"/") ;
    strcat(pat,"*.cmap") ;

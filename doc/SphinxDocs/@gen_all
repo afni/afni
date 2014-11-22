@@ -96,7 +96,7 @@ end
 
 set plist = (`apsearch -list_all_afni_progs`)
 foreach pp (3dinfo)
-   apsearch -sphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
+   apsearch -asphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
 end
 
 
