@@ -24,21 +24,25 @@ To use this in any script follow these steps
 
 EOF
       exit 0
-   else if ("$1" == "-gopts_help") then
+   else if ("$1" == "-gopts_help" || "$1" == "-gopts_help_formats") then
                   cat << EOF
 Global Help Options:
 --------------------
 
-   -h_raw: Raw help string
-   -h_txt: Text formatted help string
-   -h_spx: Sphinx formatted help string
-   -h_aspx: Sphinx formatted help string with auto tagging of options
    -h_web: Open webpage with help for this program
    -h_view: Open -help output in a GUI editor
    -all_opts: List all of the options for this script
    -h_find WORD: Search for lines containing WORD in -help
                  output. Seach is approximate.
 EOF
+      if ("$1" == "-gopts_help_formats") then
+                  cat << EOF
+   -h_raw: Raw help string
+   -h_txt: Text formatted help string
+   -h_spx: Sphinx formatted help string
+   -h_aspx: Sphinx formatted help string with auto tagging of options    
+EOF
+      endif
       exit 0
    else if ("$1" == `basename $0`)then
       echo "What?"

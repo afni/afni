@@ -483,6 +483,7 @@ THD_string_array * THD_get_all_afni_executables(void )
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".xbm") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".tex") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".lib") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".dylib") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".o") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".so") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".la") &&
@@ -490,8 +491,8 @@ THD_string_array * THD_get_all_afni_executables(void )
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".R") &&
           !(STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".py") &&
              /* add a couple of python types to skip  20 Jul 2012 [rickr] */
-             !strncmp(etr,"lib_",4) && !strncmp(etr,"gui_",4) &&
-             !strncmp(etr,"ui_",4) ) &&
+             (!strncmp(etr,"lib_",4) || !strncmp(etr,"gui_",4) ||
+              !strncmp(etr,"ui_",3)) ) &&
           (smode <= STORAGE_UNDEFINED || smode >= LAST_STORAGE_MODE)  &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".sumarc") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".afnirc")&&
@@ -1098,6 +1099,11 @@ int program_supports(char *uprog, char *opt, char *oval, int verb)
             }
             break;
          case -1:
+            /* DO NOT attempt to query program itself to find whether or
+            not it supports an option. For scripts, that ask apsearch
+            for help when they don't recognize an option, this will
+            cause an ugly recursion. */
+            #if 0
             UNIQ_idcode_fill(uid);
             sprintf(tout,"/tmp/%s.%s.ps.txt", APSEARCH_TMP_PREF, uid); 
             snprintf(cmd,500*sizeof(char),"\\echo '' 2>&1 | %s %s %s > %s 2>&1 ",
@@ -1116,6 +1122,13 @@ int program_supports(char *uprog, char *opt, char *oval, int verb)
             }
             snprintf(cmd,500*sizeof(char),"\\rm -f %s", tout);
             system(cmd);
+            #else
+            sup += 0;
+            if (verb) {
+               fprintf(stderr,"** No entry for %s in prog_opts.c \n", 
+                                 prog);
+            }
+            #endif
             break;
           case -2:
             ERROR_message("Nonesense here?");
