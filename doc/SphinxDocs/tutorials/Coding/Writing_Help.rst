@@ -4,7 +4,16 @@
 How to Format Help Strings
 ==========================
 
-   This section explains how to go about writing the help section for command-line programs in a manner that is consistent with the AFNI standard of trickery. The process is somewhat different for the different types of programs. 
+   This section explains how to go about writing the help section for command-line programs in a manner that is consistent with the AFNI standard of trickery. The process is somewhat different for the different types of programs as detailed below. But first a quick recap of the trickeries.
+   
+   The point of all this is to allow a fancier formatting of the help output without much effort. Existing help output can be automatically sphinxized with the command::
+      
+      apsearch -asphinx_phelp PROGNAME
+      
+   However, you can also add markup directives in the help string that alters the output depending on the desrired format. For examples on how to add markup into the help strings, run::
+   
+      apsearch -doc_markup_sample
+
 
 C-programs:
 -----------
@@ -22,10 +31,11 @@ C-programs:
 
       * Replace printing functions as follows::
 
-          printf( --> sphinx_printf(targ,
          fprintf( --> sphinx_fprintf(targ,
+          printf( --> sphinx_printf(targ,
 
-      * Replace the -help explanation in Help_Func() with the string from::
+      * Replace the explanation for the *-help* option in Help_Func() with the string from::
+      
          SUMA_Offset_SLines(get_help_help(),OFF);
 
          where OFF is the number of blank characters by which to offset the help string
@@ -133,11 +143,51 @@ C-Shell Scripts
 R programs
 ----------
 
-   TBW
+   * Add formatting argument *targ* to your help function as in::
+   
+      help.RprogDemo.opts <- function (params, alpha = TRUE, 
+                                       itspace='   ', adieu=FALSE, targ ='TXT')
+                                       
+                                    
+   * Add a *file* argument to the command that cats the help::
+      
+         cat(intro, ex1, ss, sep='\n', 
+             file=help.cat.file.AFNI(ExecName,targ));
 
+   * Augment the help options to something like::
+   
+      '-help' = apl(n=0, h = '-help: this help message, in simple text.\n'),
+      '-h_raw' = apl(n=0, h = '-h_raw: this help message, as is in the code.\n'),
+      '-h_txt' = apl(n=0, h = '-h_txt: this help message, in simple text\n'),
+      '-h_spx' = apl(n=0, h = '-h_spx: this help message, in sphinx format\n'),
+      '-h_aspx' = apl(n=0, h = '-h_aspx: like -h_spx, with autolabeling\n'),
+      
+   * And reflect that in the parsing section::
+   
+       help = help.RprogDemo.opts(params, adieu=TRUE),
+       h_raw = help.RprogDemo.opts(params, adieu=TRUE, targ='RAW'),
+       h_spx = help.RprogDemo.opts(params, adieu=TRUE, targ='SPX'),
+       h_aspx = help.RprogDemo.opts(params, adieu=TRUE, targ='ASPX'),
+       h_txt = help.RprogDemo.opts(params, adieu=TRUE, targ='TXT'),
+
+.. note:: 
+   
+      For an example, take a look at program **3dRprogDemo**
+   
+   
 Python programs
 ---------------
 
    TBW
 
 
+Building one help file
+----------------------
+
+   To compile the rst file into html, you can use the convenience script **@test_html_build** which is in the doc/SphinxDocs/ directory. Here is a sample command to test the build and view the help output of 3dToyProg::
+   
+       3dToyProg -h_aspx | @test_html_build -
+       
+   or if your program does not yet support the new help options::
+   
+       apsearch -asphinx_phelp 3dToyProg | @test_html_build -  
