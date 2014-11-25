@@ -427,7 +427,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
          /* better exit, otherwise output get burried by program's own -help */ 
      }
      
-     if( strcmp(argv[ii],"-h_aspx") == 0 ){
+     if( strcmp(argv[ii],"-h_aspx") == 0 && ii == 1){
        char *s=NULL;
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_apsx\n",ii) ;
        if (!(s = sphinxize_prog_help(argv[0], 0))) {

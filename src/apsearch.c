@@ -13,6 +13,40 @@
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
 
+#if 0 /* Not working, discuss with RR then wipe out. To get recursion
+         allow program_supports() to run though commented option for 
+         result -1 and run: @CalculateSignatures -h_aspx */
+int count_procs(char *pname)
+{
+   char sbuf[1024]={""};
+   int nproc, jj;
+   FILE *fp=NULL;
+   
+   if (!pname) pname = "apsearch";
+   
+   sprintf(sbuf, "\\ps -caA | \\grep -c %s", pname);
+   //sprintf(sbuf, "afni_util.py -print \"get_process_depth(prog='%s')\"", pname);
+   //sprintf(sbuf, "\\ls | \\wc -l");
+   fprintf(stderr,"Executing %s\n", sbuf);
+   
+   fp = popen( sbuf , "r" ) ;
+   if( fp == NULL ){ 
+      ERROR_message(" popen fails\n"); 
+      exit(1); 
+   }
+
+   jj = fscanf(fp,"%d",&nproc) ;
+   if( jj != 1 ){ 
+      ERROR_message(" 1st fscanf fails\n"); 
+      pclose(fp); 
+      exit(1); 
+   }
+   
+   pclose(fp); 
+   fprintf(stderr,"Got %d\n", nproc);
+   return(nproc);
+}
+#endif
 
 int update_help_for_afni_programs(int force_recreate, 
                                   byte verb, byte clean, 

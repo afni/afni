@@ -309,7 +309,7 @@ echo ' http://afni.nimh.nih.gov/afni/community/board/list.php?f=1 '
 
 :SPX:
 
-`@global_parse -gopts_help`
+`@global_parse -gopts_help_formats`
 
    Ziad S. Saad, saadz@mail.nih.gov
 EOF
