@@ -119,7 +119,7 @@ C-Shell Scripts
 
          :SPX:
 
-         `@global_parse -gopts_help`
+         `@global_parse -gopts_help_formats`
 
          EOF
 

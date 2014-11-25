@@ -98,6 +98,7 @@ endif
 if ($do_phelp) then
    set plist = (`apsearch -list_all_afni_progs`)
    foreach pp ($plist)
+      echo "###Help for $pp -- @ `date`"
       apsearch -asphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
       if ( $status == 0 ) then
          \grep -q $pp programs/___auto_help/_ALL.phelp.inc
@@ -133,7 +134,7 @@ PARSE:
 	set cnt = 1
    set nosuma = 1
    set do_thelp = 1
-   set do_phelp = 1
+   set do_phelp = 0
    set webupdate = 0
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -207,8 +208,8 @@ HELP:
    echo "-h: This message"
    echo "-no_suma: Do not regenerate SUMA's auto docs. (default)"
    echo "-suma: Do regenerate SUMA's auto docs."
-   echo "-phelp: Generate help pages for all programs. (default)"
-   echo "-no_phelp: Don't -phelp"
+   echo "-phelp: Generate help pages for all programs."
+   echo "-no_phelp: Don't -phelp. (default)"
    echo "-thelp: Generate help pages for all tutorial scripts. (default)"
    echo "-no_thelp: Don't -thelp"
    echo "-web_upload: Send new build to $afwpg"

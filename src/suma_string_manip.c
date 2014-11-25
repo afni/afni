@@ -1801,9 +1801,11 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
    char **ws=NULL, *sout=NULL, *ofile=NULL, *bb=NULL;
    char *sh=NULL, *l=NULL, sins[1024]={""}, *ohc=NULL, *uoh=NULL;
    int N_ws=0, ishtp=0, nb = 0, i, k, nalloc, offs;
-   SUMA_Boolean LocalHead=NOPE;
+   SUMA_Boolean LocalHead=YUP;
    
    SUMA_ENTRY;
+   
+   if (LocalHead) verb = 1;
    
    if (!prog) {
       SUMA_RETURN(NULL);
@@ -1846,8 +1848,9 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
    for (i=0; i<strlen(prog); ++i) {*bb='-'; ++bb;}
    *bb='\0';
    strncat(sins,"\n\n", 1020);
-   snprintf(sins, 1020, 
-            "`Link to classic view <%s>`_\n\n",web_prog_help_link(prog,0));
+   strncat(sins, "`Link to classic view <", 1020);
+   strncat(sins, web_prog_help_link(prog,0), 1020);
+   strncat(sins, ">`_\n\n", 1020);
    
    sh = insert_in_string(&sh, sh, sins, &nalloc); 
    for (i=0; i<N_ws; ++i) {
