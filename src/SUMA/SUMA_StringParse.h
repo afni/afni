@@ -22,6 +22,13 @@
                                        || (c) == '<' || (c) == '>' || (c) == '#' || (c) == '*' || (c) == '?' )   \
                                        ? 1 : 0 )    
 
+/* Is this a sphinx underline character? */
+#define SUMA_IS_UNDERLINE_CHAR(cc) ((\
+                   (cc) == '-' || \
+                   (cc) == '=' || \
+                   (cc) == '*' || \
+                   (cc) == '#' ) ? 1:0)
+
 /*!
    \brief advances pointer to next non-space, see isspace function for characters I check for.
    op must be NULL terminated, if eop is NULL

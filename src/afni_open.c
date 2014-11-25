@@ -458,8 +458,20 @@ int main(int argc, char **argv)
          continue; 
       }
       
+      if (strcmp(argv[iarg],"-b") == 0) { 
+         uprog = "browser";
+         ++iarg;
+         continue; 
+      }
+      
       if (strcmp(argv[iarg],"-d") == 0) { 
          uprog = "downloader"; 
+         ++iarg;
+         continue; 
+      }
+      
+      if (strcmp(argv[iarg],"-x") == 0) { 
+         uprog = "ExamineXmat"; 
          ++iarg;
          continue; 
       }
