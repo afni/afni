@@ -450,7 +450,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
      
      if( strcmp(argv[ii],"-h_web") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_web\n",ii) ;
-       web_prog_help(argv[0]);
+       web_prog_help(argv[0],0);
        used[ii] = 1 ; 
        exit(0); 
          /* better exit, otherwise output get burried by program's own -help */ 

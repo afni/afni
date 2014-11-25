@@ -66,6 +66,19 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24, Nov, 2014, ZSS, "3dRetinoPhase", MINOR, TYPE_BUG_FIX,
+   "Fixed floating point precision error that resulted in error message",
+   NULL
+ },
+ 
+ { 24, Nov, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
+   "Fixed clash between matrix.h and matrix_f.h",
+   "Clash was my own doing, I had introduced it by including matrix.h\n"
+   "via suma_string_utils.h into 3ddata.h. The conflict has been resolved\n"
+   "now. Care must be taken to include matrix_f.h early in a .c file and\n"
+   "that would stop the inclusion of matrix.h from suma_*.h files."
+ },
+ 
  { 21, Nov, 2014, ZSS, "afni-general", MAJOR, TYPE_MODIFY,
    "More and more and more changes to the -help",
    "Devised system to simplify, so to speak, the generation of \n"

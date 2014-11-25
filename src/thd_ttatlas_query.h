@@ -367,12 +367,6 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname,
 char **approx_str_sort_readmes(char *str, int *N_r);
 char **unique_str(char **words, int N_words, byte ci, 
                   byte noae, int *N_unq, int **isort_out);
-char *find_readme_file(char *str);
-int view_text_file(char *progname);
-void view_prog_help(char *prog);
-void web_prog_help(char *prog);
-void web_class_docs(char *prog);
-int view_web_link(char *link, char *browser);
 char *approx_string_diff_info(APPROX_STR_DIFF *D,APPROX_STR_DIFF_WEIGHTS *Dwi); 
 ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , 
                                  ATLAS_SEARCH *usethissearch);

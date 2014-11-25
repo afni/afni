@@ -4316,9 +4316,16 @@ int phelp_cmd(char *prog, TFORM targ, char cmd[512], char fout[128], int verb );
 int program_supports(char *prog, char *opt, char *oval, int verb); 
 char *find_popt(char *sh, char *opt, int *nb);
 int prog_complete_command (char *prog, char *ofile, int shtp);
+void view_prog_help(char *prog);
+void web_prog_help(char *prog, int style);
+char *web_prog_help_link(char *prog, int style);
+void web_class_docs(char *prog);
+int view_web_link(char *link, char *browser);
+int view_text_file(char *progname) ;
 extern char * THD_find_executable( char * ) ;
 extern char * THD_find_regular_file( char * , char *) ;
 extern THD_string_array *get_elist(void);
+char *find_readme_file(char *str);
 
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;

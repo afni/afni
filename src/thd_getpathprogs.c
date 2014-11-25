@@ -77,6 +77,25 @@ char * THD_abindir (byte withslash)
    return(afr);
 }
 
+char *find_readme_file(char *str)
+{
+   char **ws=NULL, *sout=NULL;
+   int N_ws=0, i;
+   
+   ENTRY("find_readme_file");
+   if (!(ws = approx_str_sort_readmes(str, &N_ws))) {
+      ERROR_message("Could not find README files.\n"
+                     "They should have been in directory %s on your machine\n",
+                     THD_abindir(0));
+      RETURN(NULL);
+   } 
+   
+   if (strcasestr(ws[0],str)) sout = strdup(ws[0]);
+   for (i=0; i<N_ws; ++i) if (ws[i]) free(ws[i]);
+   free(ws);
+   RETURN(sout);
+}
+
 char * THD_facedir(byte withslash)
 {
    char *ss=NULL, *so=NULL;
@@ -454,6 +473,8 @@ THD_string_array * THD_get_all_afni_executables(void )
       if (
           !THD_is_directory(elist->ar[ii]) &&
           !strncmp(af, elist->ar[ii], N_af) &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".xml") &&
+          !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".html") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".jpg") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".a") &&
           !STRING_HAS_SUFFIX_CASE(elist->ar[ii], ".c") &&
@@ -1273,3 +1294,155 @@ int prog_complete_command (char *prog, char *ofileu, int shtp) {
 }
 
 
+
+void view_prog_help(char *prog)
+{
+   char *viewer=NULL, *hname=NULL;
+   char *progname=NULL;
+   
+   if (!prog) return;
+   if (!(progname = THD_find_executable(prog))) {
+      ERROR_message("Could not find executable %s.\n",
+                     prog);
+      return;
+   }
+   if (!(viewer = GetAfniTextEditor())) {
+      ERROR_message("No GUI editor defined, and guessing game failed.\n"
+              "Set AFNI_GUI_EDITOR in your .afnirc for this option to work.\n"); 
+      return;
+   }
+   
+   hname = get_updated_help_file(0, 0, progname, -1);
+   if (hname[0]=='\0') { /* failed, no help file ... */
+      ERROR_message("No help file for %s\n", progname);
+      return;
+   }
+   
+   if (!(view_text_file(hname))) {
+      ERROR_message("Failed to view %s\n", hname);
+   }
+   return;
+}
+
+char *web_prog_help_link(char *prog, int style)
+{
+   char *progname=NULL;
+   static char weblinka[10][1024]={""}, *weblink;
+   static int n;
+   
+   ++n; if (n>9) n = 0;
+   weblink = (char *)weblinka[n]; weblink[0]='\0';
+   
+   if (!prog) return(weblink);
+   
+   if (!strcmp(prog,"ALL")) {
+      if (style == 0) {
+         snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               "all-of-them");
+      } else {
+         /* Nothing yet, return old */
+         snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               "all-of-them");
+      }
+   } else {
+      if (!(progname = THD_find_executable(prog))) {
+         ERROR_message("Could not find executable %s.\n",
+                        prog);
+         return(weblink);
+      }
+
+      if (style == 0) {
+         snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               THD_trailname(progname,0));
+      } else {
+         /* Nothing yet, return old */
+         snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/doc/program_help/%s.html",
+               THD_trailname(progname,0));
+      }
+   }
+        
+   return(weblink);
+}
+
+void web_prog_help(char *prog, int style)
+{
+   char *progname=NULL;
+   char *weblink;
+      
+   if (!prog) return;
+   
+   weblink = web_prog_help_link(prog, style);
+   if (weblink[0] == '\0') return;
+   
+   if (!(view_web_link(weblink,NULL))) {
+      ERROR_message("Failed to web view %s\n", weblink);
+      return;
+   } 
+     
+   return;
+}
+
+void web_class_docs(char *prog)
+{
+   char weblink[1024]={""};
+   
+   if (prog) {
+      ERROR_message("Not ready for prog input %s.\n",
+                     prog);
+      return;
+   } else {
+      snprintf(weblink,1020*sizeof(char),
+               "http://afni.nimh.nih.gov/pub/dist/edu/latest");
+   }
+   
+   if (!(view_web_link(weblink,NULL))) {
+      ERROR_message("Failed to web view %s\n", weblink);
+      return;
+   } 
+     
+   return;
+}
+
+int view_web_link(char *link, char *browser)
+{
+   char cmd[1024];
+   if (!link) return(0);
+   if (!browser) browser = GetAfniWebBrowser();
+   
+   if (!browser) {
+      ERROR_message("No Web browse defined.\n"
+              "Set AFNI_WEB_BROWSER in your .afnirc for this option to work.\n");
+      return(0);
+   }
+   
+   snprintf(cmd,1020*sizeof(char),"%s %s &", browser, link);
+   system(cmd);
+   return(1);
+}
+
+int view_text_file(char *progname) 
+{
+   char *viewer=NULL, cmd[256];
+   
+   if (!progname) {
+      ERROR_message("No input!");
+      return(0);
+   }  
+   if (!THD_is_ondisk(progname)) {
+      ERROR_message("file %s not on disk.\n", progname); 
+      return(0);
+   }
+   if (!(viewer = GetAfniTextEditor())) {
+      ERROR_message("No GUI editor defined, and guessing game failed.\n"
+              "Set AFNI_GUI_EDITOR in your .afnirc for this option to work.\n"); 
+      return(0);
+   }
+   /* open help file in editor*/
+   snprintf(cmd,250*sizeof(char),"%s %s &", viewer, progname);
+   system(cmd);
+   return(1);
+}

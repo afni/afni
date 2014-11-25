@@ -1,7 +1,5 @@
 /******* This file is meant to be #include-d into another application! *******/
 
-#include "mrilib.h"
-
 #undef  MTYPE
 #undef  MPAIR
 #ifndef FLOATIZE
@@ -13,6 +11,9 @@
 # define MTYPE float
 # define MPAIR float_pair
 #endif
+
+#include "mrilib.h"  /* Keep after decision about matrix.h inclusion 
+                                                      ZSS  Nov. 21 2014*/
 
 #undef  BIGVAL
 #define BIGVAL 1.e+38
