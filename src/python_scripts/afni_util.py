@@ -272,6 +272,16 @@ def write_afni_com_history(fname, length=0, wrap=1):
    script = '\n'.join(hist)+'\n'
    write_text_to_file(fname, script, wrap=wrap)
 
+def get_process_depth(pid=-1, prog=None):
+   """print stack of processes up to init"""
+
+   pstack = get_process_stack(pid=pid)
+
+   if prog == None: return len(pstack)
+
+   pids = [pp[0] for pp in pstack if pp[3] == prog]
+   return len(pids)
+
 # get/show_process_stack(), get/show_login_shell()   28 Jun 2013 [rickr]
 def get_process_stack(pid=-1, verb=1):
    """the stack of processes up to init
