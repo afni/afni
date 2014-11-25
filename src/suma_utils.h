@@ -1,7 +1,13 @@
 #ifndef SUMA_UTILS_INCLUDED
 #define SUMA_UTILS_INCLUDED
 
+/* Do not include matrix.h if matrix_f.h has been included
+Otherwise any program using matrix_f.h will have type conflicts.
+Also, any inclusion of matrix_f.h should precede inclusion of
+mri_lib.h, 3ddata.h, or suma_string_utils.h */
+#ifndef  MATRIX_F_INCLUDED
 #include "matrix.h"
+#endif
 
 typedef enum { SUMA_notypeset = -1, 
                SUMA_byte = NI_BYTE, 

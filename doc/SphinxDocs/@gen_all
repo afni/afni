@@ -89,18 +89,25 @@ endif
 AUTO_HELP:
 if ( ! -d tutorials/___auto_help ) mkdir -p tutorials/___auto_help
 if ( ! -d programs/___auto_help ) mkdir -p programs/___auto_help
-set echo
-foreach pp (@DriveSuma @DriveAfni @DO.examples @Install_InstaCorr_Demo)
-   $pp -help > tutorials/___auto_help/_${pp}.help.inc
-end
+if ($do_thelp) then
+   foreach pp (@DriveSuma @DriveAfni @DO.examples @Install_InstaCorr_Demo)
+      $pp -help > tutorials/___auto_help/_${pp}.help.inc
+   end
+endif
 
-set plist = (`apsearch -list_all_afni_progs`)
-foreach pp (3dinfo)
-   apsearch -asphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
-end
-
-
-unset echo
+if ($do_phelp) then
+   set plist = (`apsearch -list_all_afni_progs`)
+   foreach pp ($plist)
+      apsearch -asphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
+      if ( $status == 0 ) then
+         \grep -q $pp programs/___auto_help/_ALL.phelp.inc
+         if ( $status > 0) then
+            echo ".. include:: ___auto_help/_${pp}.help.inc" >>   \
+                              programs/___auto_help/_ALL.phelp.inc
+         endif
+      endif
+   end
+endif
 
 if ( ! -d _static) mkdir _static
 
@@ -125,6 +132,8 @@ PARSE:
 	set Narg = $#
 	set cnt = 1
    set nosuma = 1
+   set do_thelp = 1
+   set do_phelp = 1
    set webupdate = 0
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -137,6 +146,26 @@ PARSE:
          goto HELP
       endif
       
+      if ("$argv[$cnt]" == "-no_thelp") then
+         set do_thelp = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-thelp") then
+         set do_thelp = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-no_phelp") then
+         set do_phelp = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-phelp") then
+         set do_phelp = 1
+         goto CONTINUE
+      endif
+
       if ("$argv[$cnt]" == "-no_suma") then
          set nosuma = 1
          goto CONTINUE
@@ -146,6 +175,7 @@ PARSE:
          set nosuma = 0
          goto CONTINUE
       endif
+
 
       if ("$argv[$cnt]" == "-web_upload") then
          set webupdate = 1
@@ -161,7 +191,6 @@ PARSE:
 	end
    
    goto RETURN_PARSE
-if ("$1" =~ "-h*") then
 
 HELP:
    echo ""
@@ -178,6 +207,10 @@ HELP:
    echo "-h: This message"
    echo "-no_suma: Do not regenerate SUMA's auto docs. (default)"
    echo "-suma: Do regenerate SUMA's auto docs."
+   echo "-phelp: Generate help pages for all programs. (default)"
+   echo "-no_phelp: Don't -phelp"
+   echo "-thelp: Generate help pages for all tutorial scripts. (default)"
+   echo "-no_thelp: Don't -thelp"
    echo "-web_upload: Send new build to $afwpg"
    echo "-echo: Yap yap"
    echo ""

@@ -1,7 +1,7 @@
 .. _ContributeDocs:
 
 ########################
-Contribute Your Own Docs:
+Contribute Your Own Docs
 ########################
 
 If you feel moved to document a particular aspect of AFNI consider

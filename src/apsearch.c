@@ -375,8 +375,11 @@ char *text_from_stdin(int *nread)
          strcat(txt, lbuf); nchar += nnew;
       }
    } while (!ex);
-
-   txt = (char *)realloc(txt, sizeof(char)*nchar);
+   
+   
+   txt = (char *)realloc(txt, sizeof(char)*(1+nchar));
+   txt[nchar]='\0';
+   
    if (nread) *nread = nchar;
    
    return(txt); 
@@ -822,7 +825,7 @@ int main(int argc, char **argv)
                      "** Error: Need program name after -web_prog_help\n"); 
                      return(1);
          }
-         web_prog_help(argv[iarg]);
+         web_prog_help(argv[iarg],0);
          return(0);
          continue; 
       }
@@ -1216,8 +1219,10 @@ int main(int argc, char **argv)
                } else {
                   stdtext = sphelp(pname, &stdtext, spx_tar, 0);
                }
-               fprintf(stdout,"%s", stdtext);
-               free(stdtext); stdtext=NULL;
+               if (stdtext) {
+                  fprintf(stdout,"%s", stdtext);
+                  free(stdtext); stdtext=NULL;
+               }
                return 0;
             } else {
                ws = approx_str_sort_text(stdtext, &N_ws, word, 

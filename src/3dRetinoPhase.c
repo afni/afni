@@ -448,19 +448,32 @@ static void RP_tsfunc( double tzero, double tdelta ,
          if (!SetFreqBin(rpud->Fresp[st], 
                     rpud->fstep, rpud->stk, rpud->stw,
                     rpud->nfft)) {
-            ERROR_message("Failed to set bins.\n"
-                          "Is your dataset's TR of %f sec valid?", rpud->dt);
+            ERROR_message("Failed to set bins. Fresp=%f, "
+                          "fstep=%f, stk=[%d,%d], stw=[%f,%f], nfft=%d\n"
+                          "Is your dataset's TR of %f sec valid?", 
+                          rpud->Fresp[st], rpud->fstep, 
+                          rpud->stk[0], rpud->stk[1], 
+                          rpud->stw[0], rpud->stw[1],rpud->nfft,
+                          rpud->dt);
             return;          
          }
          {
             int nharm = 1, stk[2];
             float fharm=0.0, stw[2];
-            while ((fharm = nharm*rpud->Fresp[st]) < 
-                     rpud->nfft/2.0*rpud->fstep ) {
+            while (( (fharm = nharm*rpud->Fresp[st]) - 
+                     rpud->nfft/2.0*rpud->fstep ) < -0.00001) {
+                        /* Difference was added to get around round off errors
+                        which might get you a frequency at the precipice as 
+                        in the bug reported by Phil Burton     Nov. 2014 */ 
                if (!SetFreqBin(fharm, rpud->fstep, stk, stw, rpud->nfft)) {
-                  ERROR_message("Failed to set bins.\n"
-                          "Is your dataset's TR of %f sec valid?", rpud->dt);
-                  return;   
+                  ERROR_message("Failed to set bins. Fresp=%f, fdiff=%f "
+                          "fstep=%f, stk=[%d,%d], stw=[%f,%f], nfft=%d\n"
+                          "Is your dataset's TR of %f sec valid?", 
+                          rpud->Fresp[st], fharm-rpud->nfft/2.0*rpud->fstep,
+                          rpud->fstep, 
+                          rpud->stk[0], rpud->stk[1], 
+                          rpud->stw[0], rpud->stw[1],rpud->nfft,rpud->dt);
+                  break;   
                }
                stimharm[stk[0]] = nharm;
                stimharm[stk[1]] = nharm; 

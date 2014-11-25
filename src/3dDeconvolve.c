@@ -296,8 +296,26 @@
 #define USE_GET   /* RWCox: extract multiple timeseries at once for speed */
 
 /*---------------------------------------------------------------------------*/
+/* Decide on the inclusion of mri_matrix.h before including mri_lib.h 
+   The latter now ends up including mri_matrix.h in a roundabout way 
+   via suma_utils.h                                   ZSS Nov. 21 2014   */
+#ifndef FLOATIZE
+# include "matrix.h"          /* double precision */
+# define MTYPE    double
+# define NI_MTYPE NI_DOUBLE
+# define QEPS     1.e-6
+# define MPAIR    double_pair
+#else
+# include "matrix_f.h"        /* single precision */
+# define MTYPE    float
+# define NI_MTYPE NI_FLOAT
+# define QEPS     1.e-4
+# define MPAIR    float_pair
+#endif
 
-#include "mrilib.h"
+#include "mrilib.h"           /* Keep after decision about matrix.h inclusion 
+                                                      ZSS  Nov. 21 2014*/
+
 
 #ifdef isfinite
 # define IS_GOOD_FLOAT(x) isfinite(x)
@@ -354,19 +372,6 @@
 
 /*---------------------------------------------------------------------------*/
 
-#ifndef FLOATIZE
-# include "matrix.h"          /* double precision */
-# define MTYPE    double
-# define NI_MTYPE NI_DOUBLE
-# define QEPS     1.e-6
-# define MPAIR    double_pair
-#else
-# include "matrix_f.h"        /* single precision */
-# define MTYPE    float
-# define NI_MTYPE NI_FLOAT
-# define QEPS     1.e-4
-# define MPAIR    float_pair
-#endif
 
 #define MEM_MESSAGE                                                      \
  do{ long long val = MCW_MALLOC_total ;                                  \

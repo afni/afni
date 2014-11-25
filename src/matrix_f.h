@@ -1,3 +1,5 @@
+#ifndef MATRIX_F_INCLUDED
+#define MATRIX_F_INCLUDED
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
@@ -374,3 +376,4 @@ int  matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
 void vector_rr_solve( matrix R , vector b , vector *x ) ;
 void vector_rrtran_solve( matrix R , vector b , vector *x ) ;
 
+#endif

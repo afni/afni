@@ -34,7 +34,7 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 
 #The help function for 3dRprogDemo batch (command line mode)
 help.RprogDemo.opts <- function (params, alpha = TRUE, 
-                                 itspace='   ', adieu=FALSE) {
+                                 itspace='   ', adieu=FALSE, targ ='TXT') {
 
    intro <- 
 '
@@ -128,10 +128,14 @@ Example 1 --- Read a dataset, scale it, then write the results:
       }
    }
    ss <- paste(ss, sep='\n');
-   cat(intro, ex1, ss, sep='\n');
+   
+   
+   cat(intro, ex1, ss, sep='\n', 
+       file=help.cat.file.AFNI(ExecName,targ));
    
    if (adieu) exit.AFNI();
 }
+
 
 #Change command line arguments into an options list
 read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
@@ -163,7 +167,11 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
    "            0 for quiet (Default). 1 or more: talkative.\n"
                         ) ),
                         
-      '-help' = apl(n=0, h = '-help: this help message\n'),
+      '-help' = apl(n=0, h = '-help: this help message, in simple text.\n'),
+      '-h_raw' = apl(n=0, h = '-h_raw: this help message, as is in the code.\n'),
+      '-h_txt' = apl(n=0, h = '-h_txt: this help message, in simple text\n'),
+      '-h_spx' = apl(n=0, h = '-h_spx: this help message, in sphinx format\n'),
+      '-h_aspx' = apl(n=0, h = '-h_aspx: like -h_spx, with autolabeling\n'),
       
       '-show_allowed_options' = apl(n=0, h=
    "-show_allowed_options: list of allowed options\n" )
@@ -199,6 +207,10 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
              mask = lop$mask <- ops[[i]],
              verb = lop$verb <- ops[[i]],
              help = help.RprogDemo.opts(params, adieu=TRUE),
+             h_raw = help.RprogDemo.opts(params, adieu=TRUE, targ='RAW'),
+             h_spx = help.RprogDemo.opts(params, adieu=TRUE, targ='SPX'),
+             h_aspx = help.RprogDemo.opts(params, adieu=TRUE, targ='ASPX'),
+             h_txt = help.RprogDemo.opts(params, adieu=TRUE, targ='TXT'),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="3dRprogDemo's",adieu=TRUE)
              )

@@ -1687,7 +1687,7 @@ char *SUMA_Sphinx_String_Edit(char **suser, TFORM targ, int off)
          break;
    }
    
-   s = SUMA_Sphinx_SetVars(&s);
+   s = SUMA_Sphinx_SetVars(&s, targ);
    
    SUMA_RETURN(s); 
 }
@@ -1714,6 +1714,85 @@ char *sphinxize_prog_help (char *prog, int verb)
       SUMA_RETURN(NULL);
    }
    SUMA_RETURN(sphinxize_prog_shelp(prog, oh, verb));
+}
+
+                   
+int SUMA_is_underline(char *sh, char *ul, int *nread)
+{
+   char lnc, *ish=NULL;
+   int nunl;
+   
+   if (!sh || *sh == '\0') return(0);
+   
+   ish = sh;
+   SUMA_SKIP_PURE_BLANK(sh,NULL);
+   lnc = '\0'; nunl = 0;
+   while (*sh != '\n' && *sh != 0) {
+      if (SUMA_IS_UNDERLINE_CHAR(*sh)) {
+         if (!lnc ) {
+            /* 
+               fprintf(stderr,"1st underline");
+               write_string(sh,NULL, "\n", 10, 0, stderr);
+            */
+            lnc = *sh;
+            nunl = 1;
+         } else {
+            if (*sh == lnc) {
+               ++nunl;
+            } else {
+               SUMA_SKIP_PURE_BLANK(sh,NULL);
+               if (*sh == '\n') { /* Not a problem */
+                  --sh;
+               } else { /* not an underline */
+                  lnc = '\0'; nunl = 0;
+                  break;
+               }
+            }
+         }
+      } else {
+         SUMA_SKIP_PURE_BLANK(sh,NULL);
+         if (*sh == '\n') { /* Not a problem */
+            --sh;
+         } else { /* not an underline */
+            if (lnc) { lnc = '\0'; nunl = 0; }
+            break;
+         }
+      }      
+      ++sh;
+   }
+   
+   SUMA_SKIP_TO_EOL(sh, NULL);
+   
+   if (ul) *ul = lnc;
+   if (nread) *nread=(sh-ish);
+   /* write_string(ish ,"\nResult for:>>", "<<\n", 40, 0, stderr);
+      fprintf(stderr,"out, nunl=%d\n", nunl); */
+   return(nunl);
+}
+
+int SUMA_Demote_Underlining(char *sh)
+{
+   static char FuncName[]={"SUMA_Demote_Underlining"};
+   int ii = 0, jj = 0, nskip=0;
+   
+   SUMA_ENTRY;
+   
+   if (!sh || *sh == '\0') SUMA_RETURN(0);
+      
+   ii = 0;
+   while (sh[ii] != '\0') {
+      if (SUMA_is_underline(sh+ii, NULL, &nskip)) {
+         for (jj=0; jj<nskip; ++jj) {
+            if (!SUMA_IS_PURE_BLANK(sh[ii])) sh[ii] = '^';
+            ++ii;
+         }
+      } else {
+         ii = ii+nskip;
+      }
+      ++ii;
+   }
+   
+   SUMA_RETURN(1);
 }
 
 char *sphinxize_prog_shelp (char *prog, char *oh, int verb) 
@@ -1744,6 +1823,10 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
    }
    ohc = SUMA_copy_string(oh); /* make copy to avoid corrupting oh
                                   in approx_str_sort_all_popts */
+   
+   /* Replace all underlining with something below level ----- */
+   SUMA_Demote_Underlining(oh);
+   
    if (!(ws = approx_str_sort_all_popts(ohc, 1, &N_ws,  
                    1, NULL,
                    NULL, NULL, 1, 0, '\\'))) {
@@ -1763,6 +1846,9 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
    for (i=0; i<strlen(prog); ++i) {*bb='-'; ++bb;}
    *bb='\0';
    strncat(sins,"\n\n", 1020);
+   snprintf(sins, 1020, 
+            "`Link to classic view <%s>`_\n\n",web_prog_help_link(prog,0));
+   
    sh = insert_in_string(&sh, sh, sins, &nalloc); 
    for (i=0; i<N_ws; ++i) {
       if (ws[i]) {
@@ -1793,6 +1879,7 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
    if (!uoh) {
       SUMA_free(oh); oh = NULL;
    }
+
    SUMA_RETURN(SUMA_Sphinx_String_Edit(&sh, SPX, 0));
 }
 
@@ -1927,7 +2014,7 @@ typedef struct {
    The function returns *us, whether or not *us
    was changed.
 */
-char *SUMA_Sphinx_SetVars(char **us) 
+char *SUMA_Sphinx_SetVars(char **us, TFORM targ) 
 {
    static char FuncName[]={"SUMA_Sphinx_SetVars"};
    insertion *ins=NULL;
@@ -1948,7 +2035,15 @@ char *SUMA_Sphinx_SetVars(char **us)
             N_ins_alloc +=100;
             ins = (insertion*)realloc(ins, sizeof(insertion)*N_ins_alloc);
          }
-         ins[N_ins].what = THD_abindir(0);
+         if (targ == SPX || targ == ASPX) {
+            /* Looks like sphinx likes // for absolute path references 
+               like .. image:: //Users/home/abin/...
+               otherwise, the first slash gets dropped */
+            ins[N_ins].what = 
+               SUMA_append_replace_string("/",THD_abindir(0),"",2);
+         } else {
+            ins[N_ins].what = THD_abindir(0);
+         }
          ins[N_ins].where = ss-*us;
          ins[N_ins].norig = ntok;
          nextra += (strlen(ins[N_ins].what)-ntok);
@@ -1961,7 +2056,12 @@ char *SUMA_Sphinx_SetVars(char **us)
             N_ins_alloc +=100;
             ins = (insertion*)realloc(ins, sizeof(insertion)*N_ins_alloc);
          }
-         ins[N_ins].what = THD_facedir(0);
+         if (targ == SPX || targ == ASPX) {
+            ins[N_ins].what = 
+               SUMA_append_replace_string("/",THD_facedir(0),"",2);
+         } else {
+            ins[N_ins].what = THD_facedir(0);
+         }
          ins[N_ins].where = ss-*us;
          ins[N_ins].norig = ntok;
          nextra += (strlen(ins[N_ins].what)-ntok);
@@ -1975,7 +2075,6 @@ char *SUMA_Sphinx_SetVars(char **us)
       RETURN(*us); /* nothing to be done */
    }
    
-   fprintf(stderr,"Here, nextra = %d, N_ins=%d\n", nextra, N_ins);
    /* Allocate for output */
    ns = strlen(*us);
    nso = nextra+1+ns;
@@ -1994,28 +2093,23 @@ char *SUMA_Sphinx_SetVars(char **us)
    ii = 0; jj = 0;
    while (ii<ns && jj < N_ins) {
       if (ii<ins[jj].where) {
-         fprintf(stderr,"%c",s[ii]);
          so[oo++] = s[ii++];
       } else { /* insert jj */
-         fprintf(stderr,"PLOOP");
          rep = ins[jj].what;
          while (*rep) {
             so[oo++] = *rep; ++rep;
          }
          ii += ins[jj].norig; 
-         fprintf(stderr,"Freeing %s\n", ins[jj].what);
          free(ins[jj].what); ins[jj].what=NULL;
          ++jj;
       }
    }
-   fprintf(stderr,"Freeing ins\n");
    free(ins); ins = NULL;
    
    /* finish last bit */
    while (ii<ns) so[oo++] = s[ii++];
    so[oo++] = '\0';
    
-   fprintf(stderr,"Freeing *us\n");
    free(*us); *us = so;  
    
    RETURN(so);

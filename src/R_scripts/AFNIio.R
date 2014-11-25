@@ -16,6 +16,28 @@ find.in.path <- function(file) { #Pretty much same as first.in.path
    return(aa) 
 }
 
+#Return cat's file option to format the help output
+#for TXT or sphinx purposes
+help.cat.file.AFNI <- function (pname=NULL, targ='TXT') {
+   if (is.null(pname)) {
+      err.AFNI("NULL name for help function");
+      return("");
+   }
+        if (targ == 'TXT') {
+         dopt = '-hdoc_2_txt';
+   } else if (targ == 'SPX') {
+      dopt = '-hdoc_2_spx';
+   } else if (targ == 'ASPX') {
+      dopt = '-hdoc_2_aspx';
+   } else if (targ == 'RAW') {
+      return("");
+   } else {
+      warn.AFNI(paste("targ", targ,"unknown. Assuming 'TXT'"));
+      dopt = '-hdoc_2_txt';
+   }
+   return(paste("|apsearch ", dopt ,pname,"-"));
+}
+
 note.AFNI <- function (str='May I speak frankly?',
                        callstr=NULL, newline=TRUE, tic=1,
                        trimtrace=30) {
