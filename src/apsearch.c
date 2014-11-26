@@ -13,21 +13,25 @@
 #define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 #define isnakedarg(s) ( ( (s)[0] == '-' && strlen(s) > 1 && zischar((s)[1]) ) ? 0 : 1 )
 
-#if 0 /* Not working, discuss with RR then wipe out. To get recursion
-         allow program_supports() to run though commented option for 
-         result -1 and run: @CalculateSignatures -h_aspx */
 int count_procs(char *pname)
 {
    char sbuf[1024]={""};
    int nproc, jj;
    FILE *fp=NULL;
+   int verb=0;
    
    if (!pname) pname = "apsearch";
    
-   sprintf(sbuf, "\\ps -caA | \\grep -c %s", pname);
-   //sprintf(sbuf, "afni_util.py -print \"get_process_depth(prog='%s')\"", pname);
-   //sprintf(sbuf, "\\ls | \\wc -l");
-   fprintf(stderr,"Executing %s\n", sbuf);
+   if (SUMA_isEnv("SUMA_CountProcs_Verb","YES")) verb = 1;
+   
+   if (verb) {
+      fprintf(stderr,"  Checking ps:\n");
+      sprintf(sbuf, "\\ps -caA | \\grep %s", pname);
+      system(sbuf);
+   }
+   
+   sprintf(sbuf, "afni_util.py -print \"get_process_depth(prog='%s')\"", pname);
+   if (verb) fprintf(stderr," Executing %s\n", sbuf);
    
    fp = popen( sbuf , "r" ) ;
    if( fp == NULL ){ 
@@ -43,10 +47,9 @@ int count_procs(char *pname)
    }
    
    pclose(fp); 
-   fprintf(stderr,"Got %d\n", nproc);
+   if (verb) fprintf(stderr,"Got %d\n", nproc);
    return(nproc);
 }
-#endif
 
 int update_help_for_afni_programs(int force_recreate, 
                                   byte verb, byte clean, 
@@ -198,6 +201,18 @@ int apsearch_usage(TFORM targ, int detail)
 "              any special markup within it so we write out that string as is\n"
 "              to standard out and pipe it to apsearch with:LIT:\n"
 "              3dinfo -h_raw | apsearch -hdoc_2_aspx 3dinfo -\n\n"
+"  -race_check PNAME RMAX: Debugging option to test for race conditions where\n"
+"              apsearch calls a program which for some reason ends up calling\n"
+"              it back until you chew up all allowed processes -- not fun --!\n"
+"              This program will now check for such recursive craziness using\n"
+"              Rick Reynold's afni_util.py program. To see it in action, \n"
+"              create the following script and call it @rory:LIT:\n"
+"                 #!/bin/tcsh -f\n"
+"                 echo \"Called! `date`\"\n"
+"                 apsearch -DSUMA_CountProcs_Verb=YES -race_check `basename $0`\n"
+"\n"
+"              @rory should be executable and in your path.\n"
+"              Now run @rory and watch it go.\n\n"
 "  -doc_markup_sample: Shown an example of the types of markups available for\n"
 "                      the documentation.\n"
 "  -all_afni_help: Search for WORD in all afni help files.\n"
@@ -531,11 +546,18 @@ int main(int argc, char **argv)
    THD_string_array *sar = NULL;
    byte ci = 1;
    char *wild_list=NULL, **wglob=NULL, **wsort=NULL;
-   int nglob, nsort, *isrt=NULL, wild_noext=0,
+   int nglob, nsort, *isrt=NULL, wild_noext=0, nproc=0,
        wild_all_files = 0, wild_orig_name = 0, wild_ci=0;
    TFORM spx_tar = TFORM_NOT_SET;
 
    mainENTRY("apsearch main"); machdep() ; 
+   
+   /* Check for race conditions, but do allow this program to call itself once
+   to accomodate the automatic handling of -h_apsx in mainENTRY(). */
+   if ((nproc = count_procs("apsearch")) > 2) {
+      ERROR_message("Race condition detected. I'm out");
+      exit(1);
+   }
    
    max_hits = 3;
    test_only=0;
@@ -651,6 +673,22 @@ int main(int argc, char **argv)
       "--------------------------------------------------------------------\n"
              "%s\n%s", SUMA_Offset_SLines(get_help_help(),2), get_gopt_help());
          return(0); 
+      }
+
+      if (strcmp(argv[iarg],"-race_check") == 0) { 
+         char sbuf[100];
+         ++iarg;
+         if (iarg >= argc) {
+            fprintf( stderr,
+                     "** Error: Need a program name after -race_check\n"); 
+            return(1);
+         }
+         sprintf(sbuf,"%s -race_test",argv[iarg]);
+         fprintf(stderr,"Calling %s after a sec. nap\n", sbuf);
+         NI_sleep(1000);
+         system(sbuf);
+         ++iarg;
+         continue; 
       }
 
       

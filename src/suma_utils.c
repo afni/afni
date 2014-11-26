@@ -3380,6 +3380,11 @@ static ENV_SPEC envlist[] = {
       "Choose from YES or NO",
       "SUMA_SUMA_TESSCON_AutoScale",
       "NO" },
+   {  "Turn on verbose mode for function count_procs() that checks for \n"
+      "recursive calls to a program. Do not keep this env set to YES unless\n"
+      "you are debugging.\n"
+      "SUMA_CountProcs_Verb",
+      "NO" },
    {  NULL, NULL, NULL  }
 };
       
