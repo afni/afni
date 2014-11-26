@@ -1787,9 +1787,9 @@ int SUMA_Demote_Underlining(char *sh)
             ++ii;
          }
       } else {
-         ii = ii+nskip;
+         while (sh[ii] != '\n' && sh[ii] != '\0') ++ii;
       }
-      ++ii;
+      if (sh[ii] != '\0') ++ii;
    }
    
    SUMA_RETURN(1);
@@ -1801,7 +1801,7 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
    char **ws=NULL, *sout=NULL, *ofile=NULL, *bb=NULL;
    char *sh=NULL, *l=NULL, sins[1024]={""}, *ohc=NULL, *uoh=NULL;
    int N_ws=0, ishtp=0, nb = 0, i, k, nalloc, offs;
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    
