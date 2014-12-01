@@ -9,53 +9,49 @@
 #include "mri_nwarp.c"
 
 /*----------------------------------------------------------------------------*/
-/* This program is basically a wrapper for function THD_nwarp_dataset() */
-/*----------------------------------------------------------------------------*/
 
-int main( int argc , char *argv[] )
+void NWA_help(void)
 {
-   THD_3dim_dataset *dset_src=NULL , *dset_mast=NULL ;
-   Nwarp_catlist *nwc=NULL ;
-   MRI_IMARR *imar_nwarp=NULL , *im_src ;
-   char *prefix     = NULL ;
-   float dxyz_mast  = 0.0f ;
-   int interp_code  = MRI_WSINC5 ;
-   int ainter_code  = -666 ;
-   int iarg , kk , verb=1 , iv , do_wmast=0 , do_iwarp=0 ;
-   mat44 src_cmat, nwarp_cmat, mast_cmat ;
-   THD_3dim_dataset *dset_out ;
-   MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
-   int nx,ny,nz,nxyz , toshort=0 ;
-   float wfac=1.0f ;
-#if 0
-   MRI_IMAGE *awim=NULL ; THD_3dim_dataset *dset_nwarp=NULL ;
-#endif
-   int expad=0 ;  /* 26 Aug 2014 */
-
-   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
-
-   /**----------------------------------------------------------------------*/
-   /**----------------- Help the pitifully ignorant user? -----------------**/
-
-   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
-      "Usage: 3dNwarpApply [options] sourcedataset\n"
+      "Usage: 3dNwarpApply [options]\n"
       "\n"
       "Program to apply a nonlinear 3D warp saved from 3dQwarp (or 3dNwarpCat, etc.)\n"
       "to a 3D dataset, to produce a warped version of the source dataset.\n"
+      "\n"
+      "The '-nwarp' and '-source' options are MANDATORY.  For both of these options,\n"
+      "as well as '-prefix', the input arguments after the option name are applied up\n"
+      "until an argument starts with the '-' character, or until the arguments run out.\n"
+      "\n"
+      "This program has been heavily modified [01 Dec 2014], including the following\n"
+      "major improvements:\n"
+      "(1) Allow catenation of warps with different grid spacings -- the functions\n"
+      "    that deal with the '-nwarp' option will automatically deal with the grids.\n"
+      "(2) Allow input of affine warps with multiple time points, so that 3D+time\n"
+      "    datasets can be warped with a time dependent '-nwarp' list.\n"
+      "(3) Allow input of multiple source datasets, so that several datasets can be\n"
+      "    warped the same way at once.  This operation is more efficient than running\n"
+      "    3dNwarpApply several times, since the auto-regridding and auto-catenation\n"
+      "    in '-nwarp' will only have to be done once.\n"
+      "(3a) Specification of the output dataset names can be done via multiple\n"
+      "     arguments to the '-prefix' option, or via the new '-suffix' option.\n"
       "\n"
       "OPTIONS:\n"
       "--------\n"
       " -nwarp  www  = 'www' is the name of the 3D warp dataset\n"
       "                (this is a mandatory option!)\n"
-      "    ++ NOTE WELL: the interpretation of this option has changed a little,\n"
-      "                  as of 22 Oct 2014.  In particular, this option is\n"
+      "               ++ Multiple warps can be catenated here.\n"
+      "             -->> Please see the lengthier discussion below on this feature!\n"
+      "    ++ NOTE WELL: The interpretation of this option has changed,\n"
+      "                  as of 01 Dec 2014.  In particular, this option is\n"
       "                  generalized from the version in other programs, including\n"
       "                  3dNwarpCat, 3dNwarpFuncs, and 3dNwarpXYZ.  The major\n"
       "                  change is that multi-line matrix files are allowed to\n"
       "                  be included in the 'www' mixture, so that the nonlinear\n"
       "                  warp being calculated can be time-dependent.\n"
-      "             -->> Please see the lengthier discussion below on this feature!\n"
+      "                  In addition, the warps supplied need not all be on the\n"
+      "                  same 3D grid -- this ability lets you catenate a warp\n"
+      "                  defined on the EPI data grid with a warp defined on the\n"
+      "                  structural data grid (e.g.).\n"
       "\n"
       " -iwarp       = After the warp specified in '-nwarp' is computed,\n"
       "                invert it.  If the input warp would take a dataset\n"
@@ -64,10 +60,11 @@ int main( int argc , char *argv[] )
       "                ++ The combination \"-iwarp -nwarp 'A B C'\" is equivalent\n"
       "                   to \"-nwarp 'INV(C) INV(B) INV(A)'\" -- that is, inverting\n"
       "                   each warp/matrix in the list *and* reversing their order.\n"
-      "                   The '-iwarp' option is provided for convenience.\n"
+      "                ++ The '-iwarp' option is provided for convenience, and\n"
+      "                   may prove to be very slow for time-dependent '-nwarp' inputs.\n"
       "\n"
-      " -affter aaa  = *** THIS OPTION IS NO LONGER AVAILABLE [22 Oct 2014] ***\n"
-      "                  See the discussion of the new '-nwarp' option below to see\n"
+      " -affter aaa  = *** THIS OPTION IS NO LONGER AVAILABLE ***\n"
+      "                  See the discussion of the new '-nwarp' option above to see\n"
       "                  how to do include time-dependent matrix transformations\n"
       "                  in this program.\n"
 #if 0
@@ -81,8 +78,10 @@ int main( int argc , char *argv[] )
       "\n"
       " -source sss  = 'sss' is the name of the source dataset.\n"
       "                ++ That is, the dataset to be warped.\n"
-      "                ++ Or you can provide the source dataset name as the\n"
-      "                   last argument on the command line.\n"
+      "                ++ Multiple datasets can be supplied here; they MUST\n"
+      "                   all be defined over the same 3D grid.\n"
+      "            -->>** You can no longer simply supply the source\n"
+      "                   dataset as the last argument on the command line.\n"
       "\n"
       " -master mmm  = 'mmm  is the name of the master dataset.\n"
       "                ++ Which defines the output grid.\n"
@@ -94,7 +93,8 @@ int main( int argc , char *argv[] )
       "                   defined, and is (usually) the grid to which the\n"
       "                   transformation 'pulls' the source data.\n"
       "                ++ You can use '-master WARP' or '-master NWARP'\n"
-      "                   for this purpose.\n"
+      "                   for this purpose -- but ONLY if all the warps listed\n"
+      "                   in the '-nwarp' option have the same 3D grid structure.\n"
       "                ++ In particular, if the transformation includes a\n"
       "                   long-distance translation, then the source dataset\n"
       "                   grid may not have a lot of overlap with the source\n"
@@ -120,6 +120,7 @@ int main( int argc , char *argv[] )
       "                for the data than might be used for the warp.  In particular,\n"
       "                '-ainterp NN' would be most logical for atlas datasets, where\n"
       "                the data values being mapped are labels.\n"
+#if 0
       "\n"
       " -expad EE    = Add 'EE' voxels to the warp on input, to help avoid any problems\n"
       "                that might arise if you are catenating multiple warps / matrices\n"
@@ -129,14 +130,29 @@ int main( int argc , char *argv[] )
       "                ++ This option does not affect the use of '-master WARP', which\n"
       "                    still refers to the original grid on which the nonlinear\n"
       "                    warp is defined.\n"
-      "                ++ Please note that this option must be given BEFORE the '-nwarp'\n"
-      "                   option to have any effect!!\n"
+#endif
       "\n"
       " -prefix ppp  = 'ppp' is the name of the new output dataset\n"
+      "                ++ If more than 1 source dataset is supplied, then you\n"
+      "                   should supply more than one prefix.  Otherwise, the\n"
+      "                   program will invent prefixes for each output, by\n"
+      "                   attaching the suffix '_Nwarp' to each source\n"
+      "                   dataset's prefix.\n"
+      "\n"
+      " -suffix sss  = If the program generates prefixes, you can change the\n"
+      "                default '_Nwarp' suffix to whatever you want (within\n"
+      "                reason) by this option.\n"
+      "                ++ His Holiness Emperor Zhark defines 'within reason', of course.\n"
+      "                ++ By using '-suffix' and NOT using '-prefix', the program\n"
+      "                   will generate prefix names for all output datasets in\n"
+      "                   a systematic way -- this might be useful for some people.\n"
+      "                ++ Note that only ONE suffix can be supplied even if many source\n"
+      "                   datasets are input -- unlike the case with '-prefix'.\n"
       "\n"
       " -short       = Write output dataset using 16-bit short integers, rather than\n"
       "                the usual 32-bit floats.\n"
       "                ++ Intermediate values are rounded to the nearest integer.\n"
+      "                   No scaling is performed.\n"
       "                ++ This option is intended for use with '-ainterp' and for\n"
       "                   source datasets that contain integral values.\n"
       "\n"
@@ -240,14 +256,14 @@ int main( int argc , char *argv[] )
       "that '-nwarp' works.  Formerly, the only time-dependent matrix had to\n"
       "be specified as being at the end of the warp chain, and was given via\n"
       "the '-affter' option.  Now, a time-dependent matrix (or more than one)\n"
-      "can appear anywhere in warp chain, so there is no need for a special\n"
+      "can appear anywhere in the warp chain, so there is no need for a special\n"
       "option.  If you DID use '-affter', you will have to alter your script\n"
       "simply by putting the final matrix filename at the end of the '-nwarp'\n"
       "chain.  (If this seems too hard, please consider another line of work.)\n"
       "\n"
       "The other 3dNwarp* programs that take the '-nwarp' option operate similarly,\n"
       "but do NOT allow time-dependent matrix files.  Those programs are built to\n"
-      "operate with one nonlinear warp, so having a time-dependent warp doesn't\n"
+      "operate with one nonlinear warp, so allowing a time-dependent warp doesn't\n"
       "make sense for them.\n"
       "\n"
       "NOTE: If a matrix is NOT time-dependent (just a single set of 12 numbers),\n"
@@ -256,7 +272,7 @@ int main( int argc , char *argv[] )
       "         a21 a22 a23 a24  } e.g, identity matrix = 0 1 0 0\n"
       "         a31 a32 a33 a34  }                        0 0 1 0\n"
       "      This option is just for convenience.  Remember that the coordinates\n"
-      "      are DICOM order, and if your matrix comes from Some other Program\n"
+      "      are DICOM order, and if your matrix comes from Some other PrograM\n"
       "      or from a Fine Software Library, you probably have to change some\n"
       "      signs in the matrix to get things to work correctly.\n"
       "\n"
@@ -321,9 +337,40 @@ int main( int argc , char *argv[] )
 
      PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
      exit(0) ;
-   }
+}
 
-   /**--- bookkeeping and marketing ---**/
+/*----------------------------------------------------------------------------*/
+/* This program is basically a wrapper for function THD_nwarp_dataset() */
+/*----------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   THD_3dim_dataset_array *dset_srcar=NULL , *dset_outar=NULL ;
+   THD_3dim_dataset *dset_mast=NULL , *dset_out=NULL , *dset_sss,*dset_ooo ;
+   Nwarp_catlist *nwc=NULL ; char *nwc_string=NULL ;
+   MRI_IMARR *imar_nwarp=NULL , *im_src ;
+   char **prefix    = NULL ; int nprefix=0 ; char *suffix = "_Nwarp" ;
+   float dxyz_mast  = 0.0f ;
+   int interp_code  = MRI_WSINC5 ;
+   int ainter_code  = -666 ;
+   int iarg , kk , verb=1 , iv , do_wmast=0 , do_iwarp=0 ;
+   mat44 src_cmat, nwarp_cmat, mast_cmat ;
+   MRI_IMAGE *fim , *wim ; float *ip,*jp,*kp ;
+   int nx,ny,nz,nxyz , toshort=0 ;
+   float wfac=1.0f ;
+#if 0
+   MRI_IMAGE *awim=NULL ; THD_3dim_dataset *dset_nwarp=NULL ;
+#endif
+   int expad=0 ;  /* 26 Aug 2014 */
+
+   AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
+
+   /**----------------------------------------------------------------------*/
+   /**----------------- Help the pitifully ignorant user? -----------------**/
+
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ) NWA_help() ;
+
+   /**-------- bookkeeping and marketing --------**/
 
    mainENTRY("3dNwarpApply"); machdep();
    AFNI_logger("3dNwarpApply",argc,argv);
@@ -347,28 +394,18 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-short") == 0 ){
        toshort = 1 ; iarg++ ; continue ;
      }
+     if( strcmp(argv[iarg],"-") == 0 ){  /* just skip */
+       iarg++ ; continue ;
+     }
 
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-expad") == 0 ){  /* 26 Aug 2014 */
        if( ++iarg >= argc ) ERROR_exit("need arg after %s",argv[iarg-1]) ;
-       if( nwc != NULL )
-         WARNING_message("-expad given after -nwarp ==> -expad is IGNORED") ;
        expad = (int)strtod(argv[iarg],NULL) ;
        if( expad < 0 ) expad = 0 ;
        iarg++ ; continue ;
      }
-
-#if 0
-     /*---------------*/
-
-     if( strcasecmp(argv[iarg],"-wfac") == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
-       wfac = (float)strtod(argv[iarg],NULL) ;
-       if( wfac == 0.0f ) wfac = 1.0f ;
-       iarg++ ; continue ;
-     }
-#endif
 
      /*---------------*/
 
@@ -395,81 +432,104 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
-       if( prefix != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
-       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
-       if( !THD_filename_ok(argv[iarg]) )
-         ERROR_exit("badly formed filename: '%s' '%s' :-(",argv[iarg-1],argv[iarg]) ;
-       if( strcasecmp(argv[iarg],"NULL") == 0 )
-         ERROR_exit("can't use filename: '%s' '%s' :-(",argv[iarg-1],argv[iarg]) ;
-       else
-         prefix = strdup(argv[iarg]) ;
-       iarg++ ; continue ;
-     }
-
-#if 0   /***** replaced below *****/
-     /*---------------*/
-
-     if( strcasecmp(argv[iarg],"-nwarp") == 0 || strcasecmp(argv[iarg],"-warp") == 0 ){
-       if( dset_nwarp != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
-       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
-#if 0
-       dset_nwarp = THD_open_dataset( argv[iarg] ) ;          /* the simple way */
-#else
-       if( verb ) fprintf(stderr,"++ Reading -nwarp") ;
-       CW_no_expad = 0 ;      /* allow automatic padding of input warp */
-       CW_extra_pad = expad ; /* and enforce some addition padding */
-       dset_nwarp = IW3D_read_catenated_warp( argv[iarg] ) ;  /* the complicated way */
-       if( verb ) fprintf(stderr,"\n") ;
-       if( verb && CW_get_saved_expad() > 0 )
-         ININFO_message("Extended (padded) input warp by %d voxels",CW_get_saved_expad()) ;
-#endif
-       if( dset_nwarp == NULL ) ERROR_exit("can't open warp dataset '%s' :-(",argv[iarg]);
-       if( DSET_NVALS(dset_nwarp) < 3 ) ERROR_exit("dataset '%s' isn't a 3D warp",argv[iarg]);
-       iarg++ ; continue ;
-     }
-#endif
-
-     /*---------------*/
-
      if( strcasecmp(argv[iarg],"-nwarp") == 0 ||
          strcasecmp(argv[iarg],"-warp" ) == 0 || strcasecmp(argv[iarg],"-qwarp") == 0 ){
 
-       if( nwc != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
+       int nwclen=0 ;  /* length of string to create */
+
+       if( nwc_string != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
-       if( verb ){
-         if( strchr(argv[iarg],' ') == NULL &&
-             strchr(argv[iarg],'(') == NULL &&
-             strchr(argv[iarg],':') == NULL   ) fprintf(stderr,"++ Reading -nwarp") ;
-         else                                   fprintf(stderr,"++ Processing -nwarp") ;
+
+       for( kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++ ){  /* scan until '-' or end */
+         nwclen += strlen(argv[iarg])+4 ;
        }
-       CW_no_expad = 0 ;      /* allow automatic padding of input warp */
-       CW_extra_pad = expad ; /* and enforce some addition padding */
-       nwc = IW3D_read_nwarp_catlist( argv[iarg] ) ;
-       if( verb ) fprintf(stderr,"\n") ;
-#if 0
-       if( verb && CW_get_saved_expad() > 0 )
-         ININFO_message("Extending (padding) input warp by %d voxels",CW_get_saved_expad()) ;
-#endif
-       if( nwc == NULL ) ERROR_exit("can't open Qwarp list '%s' :-(",argv[iarg]);
-       iarg++ ; continue ;
+       if( nwclen <= 0 ) ERROR_exit("Invalid argument after '%s'",argv[iarg-1]) ;
+       nwc_string = (char *)malloc(sizeof(char)*nwclen) ; nwc_string[0] = '\0' ;
+       for( kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++,iarg++ ){
+         strcat(nwc_string,argv[kk]) ; strcat(nwc_string," ") ;
+       }
+       continue ;  /* don't do iarg++ since iarg is already at the next option (or end) */
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-source") == 0 ){
-       if( dset_src != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
+       int nbad=0 ; char *gs=NULL , *hs=NULL ;
+       if( dset_srcar != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
-       dset_src = THD_open_dataset( argv[iarg] ) ;
-       if( dset_src == NULL ) ERROR_exit("can't open -source dataset '%s' :-(",argv[iarg]);
-       DSET_COPYOVER_REAL(dset_src) ;
+       INIT_3DARR(dset_srcar) ;
+       for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){  /* scan until '-' or end */
+         dset_sss = THD_open_dataset( argv[iarg] ) ;
+         if( dset_sss == NULL ){
+           ERROR_message("Can't open -source dataset '%s' :-(",argv[iarg]) ;
+           nbad++ ; continue ;
+         }
+         DSET_COPYOVER_REAL(dset_sss) ;
+         ADDTO_3DARR(dset_srcar,dset_sss) ;
+         if( dset_srcar->num == 1 ){    /* check if geometries of all datasets match first one */
+           gs = EDIT_get_geometry_string(dset_sss) ;
+         } else {
+           hs = EDIT_get_geometry_string(dset_sss) ;
+           if( EDIT_geometry_string_diff(gs,hs) > 0.01f ){
+             ERROR_message("Geometry mismatch for -source dataset '%s' (compared to first)",argv[iarg]);
+             nbad++ ;
+           }
+           free(hs) ; hs = NULL ;
+         }
+       }
+       if( dset_srcar->num <= 0 ) ERROR_exit("No good source datasets found!") ;
+       else if( nbad       >  0 ) ERROR_exit("Can't continue after above error%s",(nbad > 0)?"s":"\0") ;
+       if( gs != NULL ) free(gs) ;
+       continue ;  /* don't do iarg++ since iarg is already at the next option (or end) */
+     }
+
+     /*---------------*/
+
+     if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
+       int nbad=0 , pp,qq ;
+       if( prefix != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
+       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
+
+       for( kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++ ){  /* scan until '-' or end */
+         if( !THD_filename_ok(argv[kk]) || strcasecmp(argv[kk],"NULL")==0 ){
+           ERROR_message("Badly formed prefix '%s' :-(",argv[kk]);
+           nbad++ ;
+         }
+         nprefix++ ;
+       }
+       if( nprefix   <= 0 ) ERROR_exit("No prefix name given after '%s' ???",argv[iarg-1]) ;
+       else if( nbad >  0 ) ERROR_exit("Can't continue after above error%s",(nbad > 0)?"s":"\0") ;
+
+       prefix = (char **)malloc(sizeof(char *)*nprefix) ;
+       for( pp=0,kk=iarg ; kk < argc && argv[kk][0] != '-' ; kk++,pp++ ){
+         prefix[pp] = strdup(argv[kk]) ;
+         for( qq=0 ; qq < pp ; qq++ ){
+           if( strcmp(prefix[pp],prefix[qq]) == 0 ){
+             ERROR_message("Prefix name '%s' is duplicated -- this is FORBIDDEN!",prefix[pp]) ;
+             nbad++ ;
+           }
+         }
+       }
+       if( nbad >  0 ) ERROR_exit("Can't continue after above error%s",(nbad > 0)?"s":"\0") ;
+       iarg = kk ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strncasecmp(argv[iarg],"-suffix",5) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
+       if( !THD_filename_pure(argv[iarg]) )
+         ERROR_exit("Illegal name '%s' after option '%s'",argv[iarg],argv[iarg-1]) ;
+       if( strlen(argv[iarg]) > 128 )
+         ERROR_exit("Overly long name '%s' after option '%s'",argv[iarg],argv[iarg-1]) ;
+       suffix = strdup(argv[iarg]) ;
        iarg++ ; continue ;
      }
 
      /*---------------*/
 
      if( strcasecmp(argv[iarg],"-master") == 0 ){
-       if( dset_mast != NULL ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
+       if( dset_mast != NULL || do_wmast ) ERROR_exit("Can't have multiple %s options :-(",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        if( strcmp(argv[iarg],"WARP") == 0 || strcmp(argv[iarg],"NWARP") == 0 ){
          do_wmast = 1 ;
@@ -490,10 +550,10 @@ int main( int argc , char *argv[] )
 
        if( ++iarg >= argc ) ERROR_exit("No argument after '%s' :-(",argv[iarg-1]) ;
        dxyz_mast = (float)strtod(argv[iarg],NULL) ;
-       if( dxyz_mast <= 0.0f )
+       if( dxyz_mast <= 0.01f )
          ERROR_exit("Illegal value '%s' after -mast_dxyz :-(",argv[iarg]) ;
        if( dxyz_mast <= 0.5f )
-         WARNING_message("Small value %g after -mast_dxyz :-(",dxyz_mast) ;
+         WARNING_message("Small value %g after -mast_dxyz :-?",dxyz_mast) ;
        iarg++ ; continue ;
      }
 
@@ -575,66 +635,137 @@ int main( int argc , char *argv[] )
 
    /*-------- check inputs to see if the user is completely demented ---------*/
 
-   if( nwc == NULL )
+   if( nwc_string == NULL )
      ERROR_exit("No -nwarp option?  How do you want to warp? :-(") ;
 
-   if( dset_src == NULL ){  /* check last argument if no -source option */
-     if( ++iarg < argc ){
-       dset_src = THD_open_dataset( argv[iarg] ) ;
-       if( dset_src == NULL )
-         ERROR_exit("Can't open source dataset '%s' :-(",argv[iarg]);
-       DSET_COPYOVER_REAL(dset_src) ;
-     } else {
-       ERROR_exit("No source dataset?  What do you want to warp? :-(") ;
+   if( dset_srcar == NULL )
+     ERROR_exit("No -source option?  What do you want to do? :-(") ;
+
+   /*-- deal with extra or insufficient prefixes --*/
+
+   if( nprefix > dset_srcar->num ){  /* extra */
+
+     INFO_message(
+       "-prefix had %d names, but only %d source datasets ==> ignoring any extra prefixes",
+       nprefix , dset_srcar->num ) ;
+
+   } else if( nprefix < dset_srcar->num ){  /* insufficient */
+     char *cpt ;
+
+     INFO_message("Number of -prefix names (%d) is fewer than number of source datasets (%d)",
+                  nprefix , dset_srcar->num ) ;
+     INFO_message("Making up the missing prefix names from Everest-thin air:") ;
+
+     prefix = (char **)realloc(prefix,sizeof(char *)*dset_srcar->num) ;
+     for( kk=nprefix ; kk < dset_srcar->num ; kk++ ){
+       prefix[kk] = (char *)malloc(sizeof(char)*THD_MAX_NAME) ;
+       dset_sss = DSET_IN_3DARR(dset_srcar,kk) ;
+       strcpy( prefix[kk] , DSET_PREFIX(dset_sss) ) ;
+       cpt = strcasestr(prefix[kk],".nii") ; if( cpt != NULL ) *cpt = '\0' ;
+       strcat( prefix[kk] , suffix ) ; if( cpt != NULL ) strcat(prefix[kk],".nii") ;
+       ININFO_message("Source %s ==> Prefix %s",DSET_PREFIX(dset_sss),prefix[kk]) ;
      }
+
    }
 
-   if( ainter_code < 0 ) ainter_code = interp_code ;  /* default interp codes */
+   /*-- default interp codes --*/
 
-   /*--- the actual work (bow your head in reverence) ---*/
+   if( ainter_code < 0 ) ainter_code = interp_code ;
+
+   verb_nww = verb ;  /* verb_nww used in dataset warping functions in mri_nwarp.c */
+
+   /*--- read and setup the list of nonlinear warps ---*/
+
+   if( verb ) fprintf(stderr,"++ Processing -nwarp ") ;
+
+   /* read the list */
+
+   nwc = IW3D_read_nwarp_catlist( nwc_string ) ;
+   if( verb ) fprintf(stderr,"\n") ;
+
+   if( nwc == NULL )
+     ERROR_exit("Cannot process warp string '%s'",nwc_string) ;
 
    if( do_iwarp ) nwc->flags |= NWC_INVERT_MASK ;  /* set inversion flag */
 
-   if( do_wmast && dset_mast == NULL ){
-     char *gs = CW_get_saved_geomstring() ;
-     dset_mast = EDIT_geometry_constructor(gs,"ElephantsAreCool") ;
+   /* set up the geometry of the constituent warps */
+
+   CW_extra_pad = expad ; /* and ask for some addition padding */
+
+   /* create the master dataset */
+
+   if( do_wmast ){
+     if(  nwc->actual_geomstring == NULL )
+       ERROR_exit("Cannot use '-master NWARP' when '-nwarp' contains datasets with mis-matched grids!") ;
+     dset_mast = EDIT_geometry_constructor( nwc->actual_geomstring , "Zhark_Likes_Elephants" ) ;
+   } else if( dset_mast == NULL ){
+     dset_mast = DSET_IN_3DARR(dset_srcar,0) ;
    }
 
-   verb_nww = verb ;
-
-#if 0  /*** the olden way ***/
-   dset_out = THD_nwarp_dataset( dset_nwarp , dset_src , dset_mast , prefix ,
-                                 interp_code,ainter_code , dxyz_mast , wfac , 0 , awim ) ;
-#else
-   dset_out = THD_nwarp_dataset_NEW( nwc , dset_src , dset_mast , prefix ,
-                                     interp_code,ainter_code , dxyz_mast , wfac , 0 ) ;
-#endif
-
-#if 0
-INFO_message("dset out returned as %p",(void *)dset_out) ;
-#endif
-   if( dset_out == NULL ) ERROR_exit("Warping failed for some reason :-(((") ;
-
-   if( toshort ){
-     int iv,nxyz=DSET_NVOX(dset_out) ; short *sar ; float *far ;
-     for( iv=0 ; iv < DSET_NVALS(dset_out) ; iv++ ){
-       far = (float *)DSET_ARRAY(dset_out,iv) ;
-       sar = (short *)malloc(sizeof(short)*nxyz) ;
-       EDIT_coerce_type( nxyz , MRI_float,far , MRI_short,sar ) ;
-       EDIT_substitute_brick( dset_out , iv , MRI_short,sar ) ;
+   if( dxyz_mast > 0.0f ){
+     THD_3dim_dataset *qset ; double dxyz = (double)dxyz_mast ;
+     qset = r_new_resam_dset( dset_mast , NULL ,
+                              dxyz,dxyz,dxyz ,
+                              NULL , RESAM_NN_TYPE , NULL , 0 , 0) ;
+     if( qset != NULL ){
+       dset_mast = qset ;
+       THD_daxes_to_mat44(dset_mast->daxes) ;
      }
    }
 
-   if( dset_mast != NULL )
-     MCW_strncpy( dset_out->atlas_space , dset_mast->atlas_space , THD_MAX_NAME ) ;
+   /* here is where geometry of nonlinear warps is harmonized (if needed) */
 
-#if 0
-ININFO_message("copying history") ;
-#endif
-   tross_Copy_History( dset_src , dset_out ) ;        /* hysterical records */
-   tross_Make_History( "3dNwarpApply" , argc,argv , dset_out ) ;
+   if( nwc->actual_geomstring == NULL )
+     IW3D_set_geometry_nwarp_catlist( nwc , EDIT_get_geometry_string(dset_mast) ) ;
 
-   DSET_write(dset_out) ; if( verb ) WROTE_DSET(dset_out) ;
+   /* combine warps (matrices and datasets) to the extent possible */
+
+   IW3D_reduce_nwarp_catlist( nwc ) ;
+
+   /*--------- the actual work of warping ---------*/
+
+   dset_outar = THD_nwarp_dataset_array( nwc , dset_srcar , dset_mast , prefix ,
+                                     interp_code,ainter_code , 0.0f , wfac , 0 ) ;
+
+   if( dset_outar == NULL ) ERROR_exit("Warping failed for some reason :-(((") ;
+
+   /*-- conversion to shorts? --*/
+
+   if( toshort ){
+     int iv,nxyz ; short *sar ; float *far ;
+     for( kk=0 ; kk < dset_outar->num ; kk++ ){
+       dset_ooo = DSET_IN_3DARR(dset_outar,kk) ;
+       nxyz = DSET_NVOX(dset_ooo) ;
+       for( iv=0 ; iv < DSET_NVALS(dset_ooo) ; iv++ ){
+         far = (float *)DSET_ARRAY(dset_ooo,iv) ;
+         sar = (short *)malloc(sizeof(short)*nxyz) ;
+         EDIT_coerce_type( nxyz , MRI_float,far , MRI_short,sar ) ;
+         EDIT_substitute_brick( dset_ooo , iv , MRI_short,sar ) ;
+       }
+     }
+   }
+
+   /*-- atlas space? --*/
+
+   if( dset_mast != NULL && dset_mast->atlas_space != NULL ){
+     for( kk=0 ; kk < dset_outar->num ; kk++ ){
+       dset_ooo = DSET_IN_3DARR(dset_outar,kk) ;
+       MCW_strncpy( dset_ooo->atlas_space , dset_mast->atlas_space , THD_MAX_NAME ) ;
+     }
+   }
+
+   /*-- output! --*/
+
+   for( kk=0 ; kk < dset_outar->num ; kk++ ){
+     dset_sss = DSET_IN_3DARR(dset_srcar,kk) ;
+     dset_ooo = DSET_IN_3DARR(dset_outar,kk) ;
+     tross_Copy_History( dset_sss , dset_ooo ) ;        /* hysterical records */
+     tross_Make_History( "3dNwarpApply" , argc,argv , dset_ooo ) ;
+     DSET_write(dset_ooo) ; if( verb ) WROTE_DSET(dset_ooo) ;
+     DSET_delete(dset_ooo) ; DSET_delete(dset_sss) ;
+   }
+
+   /*-- exeunt omnes, pursued by a bear --*/
 
    if( verb ){
      double cput=COX_cpu_time() , clkt=COX_clock_time() ;

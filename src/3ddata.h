@@ -1312,9 +1312,9 @@ extern int  THD_string_has( char * , char * ) ;
 /*! A dynamic array type for datablocks - used when assembling datasets. */
 
 typedef struct {
-      int num ;                /*!< Number of datablocks stored */
-      int nall ;               /*!< Number of datablocks space allocated for */
-      THD_datablock ** ar ;    /*!< Array of datablocks */
+      int num ;               /*!< Number of datablocks stored */
+      int nall ;              /*!< Number of datablocks space allocated for */
+      THD_datablock **ar ;    /*!< Array of datablocks */
 } THD_datablock_array ;
 
 #define INC_DBARR 8
@@ -1610,6 +1610,14 @@ static mat33 tempZ_mat33 ;
 
 extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 
+typedef struct {  /* holds a matrix plus 3D grid dimensions */
+  mat44 mat ;
+  int nx,ny,nz ;
+} mat44_nxyz ;
+
+extern float MAT44_angle( mat44 amat , mat44 bmat ) ;
+extern mat44 MAT44_to_rotation( mat44 amat ) ;
+
 #undef  MAT44_MUL
 #define MAT44_MUL THD_mat44_mul
 
@@ -1904,6 +1912,9 @@ extern mat44 THD_mat44_sqrt( mat44 A ) ;  /* matrix square root [30 Jul 2007] */
 #undef  MAT33_CLEN
 #define MAT33_CLEN(AA,i)  \
  sqrt(AA.m[0][i]*AA.m[0][i]+AA.m[1][i]*AA.m[1][i]+AA.m[2][i]*AA.m[2][i])
+
+#undef  MAT44_CLEN
+#define MAT44_CLEN MAT33_CLEN
 
 /* print a mat44 struct to stdout (with a string) */
 
@@ -3891,9 +3902,9 @@ extern void THD_patch_dxyz_one( THD_3dim_dataset * , int ) ;
 */
 
 typedef struct THD_3dim_dataset_array {
-      int num ;                  /*!< Number of datasets stored */
-      int nall ;                 /*!< Number of datasets slots allocated */
-      THD_3dim_dataset **ar ;    /*!< Array of datasets: [0..num-1] are in use */
+      int num ;                 /*!< Number of datasets stored */
+      int nall ;                /*!< Number of datasets slots allocated */
+      THD_3dim_dataset**ar ;    /*!< Array of datasets: [0..num-1] are in use */
 } THD_3dim_dataset_array ;
 
 #define INC_3DARR 8

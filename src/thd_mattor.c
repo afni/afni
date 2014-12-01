@@ -122,3 +122,56 @@ fprintf(stderr,"mattor: vbest=%g (%g) i=%d j=%d k=%d p=%d q=%d r=%d\n",
 
    LOAD_IVEC3(vor,i,j,k) ; return vor ;
 }
+
+/*---------------------------------------------------------------------------*/
+#include "thd_shear3d.h"
+/*---------------------------------------------------------------------------*/
+
+mat44 MAT44_to_rotation( mat44 amat )
+{
+   THD_dmat33 dmat,rmat ; mat44 pmat ; float dd ;
+
+   LOAD_IDENT_MAT44(pmat) ;
+   dd = MAT44_DET(amat) ; if( dd == 0.0f ) return pmat ;
+
+   /* load amat to double matrix, extract rotation matrix part of it, load back into pmat */
+
+   dmat.mat[0][0] = amat.m[0][0]; dmat.mat[0][1] = amat.m[0][1]; dmat.mat[0][2] = amat.m[0][2];
+   dmat.mat[1][0] = amat.m[1][0]; dmat.mat[1][1] = amat.m[1][1]; dmat.mat[1][2] = amat.m[1][2];
+   dmat.mat[2][0] = amat.m[2][0]; dmat.mat[2][1] = amat.m[2][1]; dmat.mat[2][2] = amat.m[2][2];
+   rmat = DMAT_svdrot_newer(dmat) ;
+   pmat.m[0][0] = rmat.mat[0][0]; pmat.m[0][1] = rmat.mat[0][1]; pmat.m[0][2] = rmat.mat[0][2];
+   pmat.m[1][0] = rmat.mat[1][0]; pmat.m[1][1] = rmat.mat[1][1]; pmat.m[1][2] = rmat.mat[1][2];
+   pmat.m[2][0] = rmat.mat[2][0]; pmat.m[2][1] = rmat.mat[2][1]; pmat.m[2][2] = rmat.mat[2][2];
+
+   return pmat ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Return the angle (radians) between the grid directions of the 2 matrices.
+*//*-------------------------------------------------------------------------*/
+
+float MAT44_angle( mat44 amat , mat44 bmat )
+{
+   mat44 pmat,qmat , ipmat,iqmat , zmat ;
+   THD_dmat33 dmat , rmat ;
+   float v1,v2 ;
+
+   v1 = MAT44_DET(amat) ; if( v1 == 0.0f ) return PI ;  /* not a valid matrix! */
+   v2 = MAT44_DET(bmat) ; if( v2 == 0.0f ) return PI ;
+   if( v1*v2 < 0.0f ) return PI ;
+
+   pmat = MAT44_to_rotation(amat) ; ipmat = MAT44_INV(pmat) ;
+   qmat = MAT44_to_rotation(bmat) ; iqmat = MAT44_INV(qmat) ;
+
+   zmat = MAT44_MUL(pmat,iqmat);
+   v1   = zmat.m[0][0] + zmat.m[1][1] + zmat.m[2][2];
+   if( v1 > -1.0f && v1 <= 3.0f ) v1 = acosf( 0.5f*(v1-1.0f) ) ; else v1 = PI ;
+
+   zmat = MAT44_MUL(ipmat,qmat);
+   v2   = zmat.m[0][0] + zmat.m[1][1] + zmat.m[2][2];
+   if( v2 > -1.0f && v2 <= 3.0f ) v2 = acosf( 0.5f*(v2-1.0f) ) ; else v2 = PI ;
+
+   if( v1 < v2 ) v2 = v1 ;
+   return v2 ;
+}

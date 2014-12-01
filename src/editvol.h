@@ -438,6 +438,15 @@ extern THD_3dim_dataset * EDIT_geometry_constructor( char * , char * ) ; /* 05 J
 extern char * EDIT_get_geometry_string( THD_3dim_dataset *dset ) ;
 extern char * EDIT_imat_to_geometry_string( mat44 imat , int nx,int ny,int nz ) ;
 
+extern float EDIT_geometry_string_diff( char *astr , char *bstr ) ;  /* 30 Oct 2014 */
+extern mat44_nxyz EDIT_geometry_string_to_mat44( char *gstr ) ;
+extern char * EDIT_geometry_string_pad( char *gsin , int npad ) ; /* Halloween 2014 */
+extern char * EDIT_geomstring_from_collection( int nstr , char **gsin ) ;
+extern float_triple EDIT_geometry_string_to_delxyz( char *gstr ) ;
+
+#define ISVALID_GEOMETRY_STRING(ggg)                      \
+ ( (ggg) != NULL && strncasecmp((ggg),"matrix(",7) == 0 )
+
 extern int THD_volDXYZscale(  THD_dataxes  *daxes,
                               float xyzscale,
                               int reuse_shift);    /* ZSS Dec 07 */

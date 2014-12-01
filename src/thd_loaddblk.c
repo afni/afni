@@ -390,7 +390,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          fprintf( stderr , "\n*** cannot open brick file %s for mmap\n"
                            "   - do you have permission? does file exist?\n" ,
                   dkptr->brick_name ) ;
-         perror("*** Unix error message") ;
+         perror("*** Unix error message") ; TRACEBACK ;
          STATUS("open failed") ;
          RETURN( False );
       }
@@ -425,7 +425,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          fprintf(stderr ,
                  "\n*** cannot mmap brick file %s - maybe hit a system limit?\n" ,
                  dkptr->brick_name ) ;
-         perror("*** Unix error message") ;
+         perror("*** Unix error message") ; TRACEBACK ;
          if( freeup != NULL ){
             freeup() ;                          /* AFNI_purge_unused_dsets */
             fprintf(stderr,"*** purge and retry mmap(%s bytes)",
@@ -508,7 +508,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                     "\n*** failure while opening brick file %s "
                     "- do you have permission?\n" ,
                     dkptr->brick_name ) ;
-            perror("*** Unix error message") ;
+            perror("*** Unix error message") ; TRACEBACK ;
             RETURN( False );
          }
 
@@ -575,7 +575,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                       "*** desired %lld bytes but only got %lld\n" ,
                     dkptr->brick_name ,
                     (long long)blk->total_bytes , (long long)idone ) ;
-            perror("*** Unix error message") ;
+            perror("*** Unix error message") ; TRACEBACK ;
             RETURN( False );
          }
       }
@@ -675,7 +675,7 @@ fprintf(stderr,"VOL[%d]: opening %s\n",ibr,fnam[ibr]) ;
                       "\n*** Failure while opening volume file %s "
                       "- do you have permission?\n" ,
                     fnam[ibr] ) ;
-              perror("*** Unix error message") ;
+              perror("*** Unix error message") ; TRACEBACK ;
               THD_purge_datablock( blk , blk->malloc_type ) ;
               for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;
               free(fnam); RETURN( False );
@@ -719,7 +719,7 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
                       "\n*** Failure while opening volume file %s "
                       "- do you have permission?\n" ,
                     fnam[ibr] ) ;
-              perror("*** Unix error message") ;
+              perror("*** Unix error message") ; TRACEBACK ;
               THD_purge_datablock( blk , blk->malloc_type ) ;
               for( ii=0 ; ii < nv ; ii++ ) free(fnam[ii]) ;
               free(fnam); RETURN( False );
