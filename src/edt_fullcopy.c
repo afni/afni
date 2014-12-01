@@ -36,7 +36,8 @@ ENTRY("EDIT_full_copy") ;
 
    /*-- make brick(s) for this dataset --*/
 
-   THD_load_datablock( dset->dblk ) ;  /* make sure old one is in memory */
+   if( !DSET_LOADED(dset) )
+     DSET_load(dset) ;  /* make sure is in memory */
 
    nvals = DSET_NVALS(dset) ;
 

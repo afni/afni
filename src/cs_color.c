@@ -3,7 +3,7 @@
 /*----------------------------------------------------------------------------*/
 /*** The functions herein provide for nonlinear interpolation   ***
  *** between RGB colors.  All colors are expressed as float     ***
- *** triples, with RGB values required to be in the range 0..1. ***
+ *** triples, with values required to be in the range 0..1.     ***
  *** This file is meant to be #include-d into another file!     ***/
 /*----------------------------------------------------------------------------*/
 
@@ -11,6 +11,11 @@
 #define TYPEDEF_float_triple
 typedef struct { float a,b,c ; } float_triple ;
 #define float_trip float_triple
+#endif
+
+#ifndef TYPEDEF_byte
+#define TYPEDEF_byte
+typedef unsigned char byte ;
 #endif
 
 #ifndef INLINE
@@ -24,16 +29,37 @@ typedef struct { float a,b,c ; } float_triple ;
 #define rgb_up(x) ( ((x) > 0.040450f) ? powf(((x)+0.055f)/1.055f,2.4f)    : (x)/12.92f )
 #define rgb_dn(x) ( ((x)> 0.0031308f) ? 1.055f*powf((x),0.416667f)-0.055f : 12.92f*(x) )
 
+/*----------------------------------------------------------------------------*/
+
+static byte rinit=0  ;
+static byte rup[256] ;
+static byte rdn[256] ;
+
+static void COLOR_init_rupdn(void)
+{
+   unsigned short ii ; float rr;
+   if( rinit ) return ;
+   for( ii=1 ; ii < 255 ; ii++ ){
+     rr = ii / 255.0f ;
+     rup[ii] = (byte)(255.49f*rgb_up[rr]) ;
+     rdn[ii] = (byte)(255.49f*rgb_dn[rr]) ;
+   }
+   rup[0] = rdn[0] = 0 ; rup[255] = rdn[255] = 255 ; rinit = 1 ; return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
 static INLINE float_triple COLOR_rgb_to_xyz( float_triple rgb )
 {
    float_triple xyz ; float xx,yy,zz ;
 
-   xx    = 100.0f * rgb_up(rgb.a) ;
-   yy    = 100.0f * rgb_up(rgb.b) ;
-   zz    = 100.0f * rgb_up(rgb.c) ;
-   xyz.a = 0.4124f*xx + 0.3576f*yy + 0.1805f*zz ;
-   xyz.b = 0.2126f*xx + 0.7152f*yy + 0.0722f*zz ;  /* luminance */
-   xyz.c = 0.0193f*xx + 0.1192f*yy + 0.9505f*zz ;
+   xx = rgb_up(rgb.a) ; yy = rgb_up(rgb.b) ; zz = rgb_up(rgb.c) ;
+   xyz.a = 0.433877f*xx + 0.376223f*yy + 0.189900f*zz ;
+   xyz.b = 0.212600f*xx + 0.715200f*yy + 0.072200f*zz ;  /* luminance */
+   xyz.c = 0.017723f*xx + 0.109458f*yy + 0.872819f*zz ;
+   if( xyz.a > 1.0f ) xyz.a = 1.0f ; else if( xyz.a < 0.0f ) xyz.a = 0.0f ;
+   if( xyz.b > 1.0f ) xyz.b = 1.0f ; else if( xyz.b < 0.0f ) xyz.b = 0.0f ;
+   if( xyz.c > 1.0f ) xyz.c = 1.0f ; else if( xyz.c < 0.0f ) xyz.c = 0.0f ;
    return xyz ;
 }
 
@@ -41,9 +67,9 @@ static INLINE float_triple COLOR_xyz_to_rgb( float_triple xyz )
 {
    float_triple rgb ; float xx,yy,zz ;
 
-   xx = (xyz.a *  3.2406f + xyz.b * -1.5372f + xyz.c * -0.4986f) * 0.01f ;
-   yy = (xyz.a * -0.9689f + xyz.b *  1.8758f + xyz.c *  0.0415f) * 0.01f ;
-   zz = (xyz.a *  0.0557f + xyz.b * -0.2040f + xyz.c *  1.0570f) * 0.01f ;
+   xx =  3.0802100f*xyz.a - 1.537210f*xyz.b - 0.5430060f*xyz.c ;
+   yy = -0.9209680f*xyz.a + 1.875760f*xyz.b + 0.0452125f*xyz.c ;
+   zz =  0.0529522f*xyz.a - 0.204021f*xyz.b + 1.1510700f*xyz.c ;
 
    rgb.a = rgb_dn(xx) ; rgb.b = rgb_dn(yy) ; rgb.c = rgb_dn(zz) ;
    if( rgb.a > 1.0f ) rgb.a = 1.0f ; else if( rgb.a < 0.0f ) rgb.a = 0.0f ;

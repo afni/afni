@@ -43,7 +43,19 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , NOV , 2014 , RWC , "3dTRfix" , MINOR , TYPE_NEW_PROG ,
+  { 1 , DEC , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_GENERAL ,
+   "Extensive changes to make operations more general" ,
+   "(1) Allow catenation of warps with different grid spacings -- the new\n"
+   "Nwarp_catlist struct and functions will re-grid to make them match.\n"
+   "(2) Allow input of affine warps with multiple time points, so that\n"
+   "3D+time datasets can be warped with a time dependent Nwarp_catlist.\n"
+   "(3) Allow input of multiple source datasets, so that several datasets\n"
+   "can be warped the same way at once.  This is more efficient, since the\n"
+   "auto-catenation in the Nwarp_catlist will only have to be done once.\n"
+   "(3a) Specification of the output dataset names can be done via multiple\n"
+   "arguments to the '-prefix' option, or via the new '-suffix' option." } ,
+
+ { 18 , NOV , 2014 , RWC , "3dTRfix" , MINOR , TYPE_NEW_PROG ,
    "Interpolate from a variable TR grid to a fixed TR grid" ,
    "For Javier et alii.  No T1 artifact correction, just interpolation." } ,
 

@@ -118,4 +118,3 @@ double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
    }
 #endif
 }
-
