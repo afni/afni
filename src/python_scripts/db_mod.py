@@ -4502,6 +4502,7 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_base', user_opts, block)
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
+    apply_uopt_to_block('-tlrc_NL_awpy_rm', user_opts, block)
     apply_uopt_to_block('-tlrc_no_ss', user_opts, block)
     apply_uopt_to_block('-tlrc_rmode', user_opts, block)
     apply_uopt_to_block('-tlrc_suffix', user_opts, block)

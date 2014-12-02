@@ -430,9 +430,10 @@ g_history = """
         - changed -anat_uniform_method none to mean no correction at all
         - now 'default' means to apply it normally in auto_warp.py
         - done for B Benson
+    4.24 Dec 2, 2014: -tlrc_NL_awpy_rm was not being applied
 """
 
-g_version = "version 4.23, November 21, 2014"
+g_version = "version 4.24, December 2, 2014"
 
 # version of AFNI required for script execution
 g_requires_afni = "7 Nov 2014" # 3dNwarpApply

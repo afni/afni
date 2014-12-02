@@ -855,7 +855,8 @@ ENTRY("THD_load_nifti") ;
          case DT_UINT16:   CPF(unsigned short) ; break ;
          case DT_INT32:    CPF(signed int)     ; break ;
          case DT_UINT32:   CPF(unsigned int)   ; break ;
-         case DT_FLOAT64:  CPF(double)         ; break ;
+         case DT_FLOAT64:  /* added floatscan  2 Dec, 2014 [rickr] */
+            { CPF(double) ; thd_floatscan(nxyz, (float *)ptr) ; break ; }
 #if 0
          case DT_COMPLEX128: break ;
 #endif
