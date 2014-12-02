@@ -7,7 +7,7 @@ int main( int argc , char * argv[] )
    int nx,ny,nz,nxyz,nval , ii,kk , nopt=1, nsum=0 ;
    char * prefix = "edge3" , *insetname=NULL;
    int datum=-1 , verb=0 , do_sd=0, do_sum=0 , do_sqr=0, firstds=0 ;
-   float ** sum , fsum;
+   float ** sum , fsum, ffac = 0.0;
    float ** sd;
    int border[3]={0,0,0};
    int indims[3]={0,0,0};
@@ -19,30 +19,38 @@ int main( int argc , char * argv[] )
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dedge3 [options] dset dset ...\n"
-             "Does 3D Edge detection using the library 3DEdge by;\n"
-             "by Gregoire Malandain (gregoire.malandain@sophia.inria.fr)\n"
-             "\n"
-             "Options :\n"
-             "  -input iii  = Input dataset\n"
-             "  -verbose    = Print out some information along the way.\n"
-             "  -prefix ppp = Sets the prefix of the output dataset.\n"
-             "  -datum ddd  = Sets the datum of the output dataset.\n"
-             "  -fscale     = Force scaling of the output to the maximum integer range.\n"
-             "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
-             "                  to get the same scaling factor.\n"
-             "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
-             "\n"
-             "\n"
-             "References for the algorithms:\n"
-             " -  Optimal edge detection using recursive filtering\n"
-             "    R. Deriche, International Journal of Computer Vision,\n"
-             "    pp 167-187, 1987.\n"
-             " -  Recursive filtering and edge tracking: two primary tools\n"
-             "    for 3-D edge detection, O. Monga, R. Deriche, G. Malandain\n"
-             "    and J.-P. Cocquerez, Image and Vision Computing 4:9, \n"
-             "    pp 203-214, August 1991.\n"
-             "\n"
+      printf(
+"Usage: 3dedge3 [options] dset dset ...\n"
+ "Does 3D Edge detection using the library 3DEdge by;\n"
+ "by Gregoire Malandain (gregoire.malandain@sophia.inria.fr)\n"
+ "\n"
+ "Options :\n"
+ "  -input iii  = Input dataset\n"
+ "  -verbose    = Print out some information along the way.\n"
+ "  -prefix ppp = Sets the prefix of the output dataset.\n"
+ "  -datum ddd  = Sets the datum of the output dataset.\n"
+ "  -fscale     = Force scaling of the output to the maximum integer range.\n"
+ "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
+ "                  to get the same scaling factor.\n"
+ "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
+ "  -scale_floats VAL = Multiply input by VAL, but only if the input datum is\n"
+ "                      float. This is needed when the input dataset\n"
+ "                      has a small range, like 0 to 2.0 for instance.\n"
+ "                      With such a range, very few edges are detected due to\n"
+ "                      what I suspect to be truncation problems.\n"
+ "                      Multiplying such a dataset by 10000 fixes the problem\n"
+ "                      and the scaling is undone at the output.\n"
+ "\n"
+ "\n"
+ "References for the algorithms:\n"
+ " -  Optimal edge detection using recursive filtering\n"
+ "    R. Deriche, International Journal of Computer Vision,\n"
+ "    pp 167-187, 1987.\n"
+ " -  Recursive filtering and edge tracking: two primary tools\n"
+ "    for 3-D edge detection, O. Monga, R. Deriche, G. Malandain\n"
+ "    and J.-P. Cocquerez, Image and Vision Computing 4:9, \n"
+ "    pp 203-214, August 1991.\n"
+ "\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -77,6 +85,15 @@ int main( int argc , char * argv[] )
             exit(1);
          }
          insetname = argv[nopt] ;
+         nopt++ ; continue ;
+      }
+      
+      if( strcmp(argv[nopt],"-scale_floats") == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"** ERROR: a factor after -scale_floats!\n"); 
+            exit(1);
+         }
+         ffac = (float)strtod(argv[nopt],NULL) ;
          nopt++ ; continue ;
       }
       
@@ -178,6 +195,7 @@ int main( int argc , char * argv[] )
 
       /*-- read data from disk --*/
 
+      DSET_mallocize(inset);
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
       if( verb ) fprintf(stderr,"  ++ read in dataset %s\n",insetname) ;
@@ -208,7 +226,10 @@ int main( int argc , char * argv[] )
            case MRI_float:{
              float *pp = (float *) DSET_ARRAY(inset,kk) ;
              float fac = DSET_BRICK_FACTOR(inset,kk)  ;
-             
+             if(ffac) {
+               if (fac) fac = fac*ffac;
+               else fac = ffac;
+             }
              if( fac ) {
                for( ii=0 ; ii < nxyz ; ii++ ) { pp[ii] *= fac; }
              }
@@ -286,7 +307,12 @@ int main( int argc , char * argv[] )
       case MRI_float:{
          for( kk=0 ; kk < nval ; kk++ ){
              EDIT_substitute_brick(outset, kk, MRI_float, sum[kk]);
-             DSET_BRICK_FACTOR(outset, kk) = 0.0;
+             /* Undo ffac scaling.*/
+             if (ffac != 0.0) {
+               DSET_BRICK_FACTOR(outset, kk) = 1.0/ffac;
+             } else {
+               DSET_BRICK_FACTOR(outset, kk) = 0.0;
+             }
          }
       }
       break ;

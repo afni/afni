@@ -39,17 +39,20 @@ float aniso_sigma1 = 0.5;
 float aniso_sigma2 = 1.0;
 
 
-THD_3dim_dataset *DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag);
+THD_3dim_dataset *DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, 
+                                  byte *maskptr, int smooth_flag, int save_tempdsets_flag);
 void Smooth_DWI_dset(THD_3dim_dataset * DWI_dset, int flag2D3D);
 void Smooth_Gradient_Matrix(MRI_IMARR *Gradient_Im, int flag2D3D);
 MRI_IMARR *Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D,byte*maskptr,int prodflag, int
 smooth_flag, float smooth_factor);
-MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag, int zflag);
+MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, 
+                                      int xflag, int yflag, int zflag);
 MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr);
 MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr);
 MRI_IMARR *ComputeDTensor(MRI_IMARR *phi_Im, int flag2D3D, byte *maskptr);
 THD_3dim_dataset *Copy_IMARR_to_dset(THD_3dim_dataset * base_dset,MRI_IMARR *Imptr, char *new_prefix);
-static INLINE float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
+static INLINE float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, 
+                            int i, int j, int k);
 extern THD_3dim_dataset * Copy_dset_to_float(THD_3dim_dataset * dset , char * new_prefix );
 void Compute_IMARR_Max(MRI_IMARR *Imptr);
 float Find_Max_Im(MRI_IMAGE *im, byte *maskptr);
@@ -57,13 +60,24 @@ void Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, char *
 
 extern int compute_method; /* determines which method to compute phi */
 
-/*! compute image diffusion tensor, D, anisotropic smoothing of DWI */
+static int with_diffmeasures=0;
+void set_with_diff_measures(int v) {  with_diffmeasures = v; }
+int get_with_diff_measures(void) { return(with_diffmeasures); }
+THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D, 
+                                       byte *maskptr, THD_3dim_dataset *grid_dset);
+
+/*! compute image diffusion tensor, D, anisotropic smoothing of DWI 
+   If (save_tempdsets_flag) then temp datasets are saved
+   with a suffix of .DD where DD is the iteration number,
+   which is save_tempdsets_flag-1 
+*/
 THD_3dim_dataset *
 DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag)
 {
   MRI_IMARR *Gradient_Im, *EV_Im, *phi_Im, *D_Im;
   THD_3dim_dataset *D_dset;
-
+  char obuff[128]={""};
+  
   ENTRY("DWIstructtensor");
 
   /*if(smooth_flag)
@@ -74,9 +88,10 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
   Gradient_Im = Compute_Gradient_Matrix(DWI_dset, flag2D3D, maskptr,
   1,smooth_flag, aniso_sigma1);
 /*  THD_delete_3dim_dataset(tempdset , False ) ;*/  /* delete temporary copy */
-  if(save_tempdsets_flag)
-     Save_imarr_to_dset(Gradient_Im,DWI_dset, "Gradient");
-
+  if(save_tempdsets_flag) {
+     snprintf(obuff,127,"Gradient.%02d", save_tempdsets_flag-1);
+     Save_imarr_to_dset(Gradient_Im,DWI_dset, obuff);
+  }
   /* smooth each component of gradient matrix more */
   if(smooth_flag)
      Smooth_Gradient_Matrix(Gradient_Im, flag2D3D);
@@ -85,15 +100,33 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
   /* imarr with 6 sub-briks for 2D (extended the Gradient_Im from 3 to 6) */
   EV_Im = Eig_Gradient(Gradient_Im, flag2D3D, maskptr);
 
-  if(save_tempdsets_flag)
-    Save_imarr_to_dset(EV_Im,DWI_dset, "Eigens");
+  if(save_tempdsets_flag) {
+     snprintf(obuff,127,"Eigens.%02d", save_tempdsets_flag-1);    
+     Save_imarr_to_dset(EV_Im,DWI_dset, obuff);
+  }
 
+  if (save_tempdsets_flag && with_diffmeasures) {
+      THD_3dim_dataset *dout=NULL;
+      if (!(dout = Compute_DiffMeasures(EV_Im, flag2D3D, maskptr, DWI_dset))) {
+         ERROR_message("Tragedy has struck. The turkey is still frozen");
+      } else {
+         snprintf(obuff,127,"Diff_measures.%02d", save_tempdsets_flag-1); 
+         EDIT_dset_items(dout,ADN_prefix, obuff, ADN_none);
+         DSET_overwrite (dout);
+         INFO_message("   Output dataset %s", DSET_BRIKNAME(dout));  
+         THD_delete_3dim_dataset( dout, False ) ;  /* delete temporary dset
+                                                      including DiffMeas_Im */
+      }
+  }
+   
   /*Compute_IMARR_Max(EV_Im);*/
    /* compute phi (kind of reciprocal of  eigenvalues) */
   /* replace first two eigenvalue sub-briks for phi_Im */
   phi_Im = Compute_Phi(EV_Im, flag2D3D, maskptr);
-  if(save_tempdsets_flag)
-     Save_imarr_to_dset(phi_Im,DWI_dset, "phi");
+  if(save_tempdsets_flag) {
+     snprintf(obuff,127,"phi.%02d", save_tempdsets_flag-1);
+     Save_imarr_to_dset(phi_Im,DWI_dset, obuff);
+  }
   /*printf("computed phi_Im\n");*/
   /*Compute_IMARR_Max(phi_Im);*/
 
@@ -155,7 +188,7 @@ Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, char *dset_
 	      ADN_prefix , dset_name,
               ADN_label1 , dset_name ,
                        ADN_none ) ;
-   DSET_write (temp_dset);
+   DSET_overwrite (temp_dset);
        INFO_message("   Output dataset %s", DSET_BRIKNAME(temp_dset));  
    temp_dset->dblk->brick = NULL;  /* don't delete MRI_IMARR structure */
    THD_delete_3dim_dataset( temp_dset, False ) ;  /* delete temporary dset */
@@ -281,7 +314,7 @@ Compute_Gradient_Matrix_old(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *mask
    THD_dataxes   * daxes ;
    /*float dx = 1.0;*/   /* delta x - assume cubical voxels for now */
 
-   ENTRY("Compute_Gradient_Matrix");
+   ENTRY("Compute_Gradient_Matrix_old");
  
    tempmaskptr = maskptr;
    /* set up constants for kernel */
@@ -1763,7 +1796,6 @@ float Find_Max_Im(MRI_IMAGE *im, byte *maskptr)
    RETURN(max_im);
 }
 
-
 /* compute inverted eigenvalue matrix */
 MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
   {
@@ -1979,6 +2011,117 @@ MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
 #endif
     phi_Im = EV_Im;
     RETURN(phi_Im);
+  }
+
+/* compute FA, MD, Cl, Cp, Cs */
+THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D, 
+                                       byte *maskptr, THD_3dim_dataset *grid_dset)
+  {
+    THD_3dim_dataset *dout=NULL;
+    MRI_IMARR *TP_Im=NULL;
+    MRI_IMAGE *im=NULL;
+    int nxyz, ii, jj, endi, nout = 5;
+    float *inptr[3], *outptr[nout], e0, e1, e2, tr, d;
+    
+    byte *tempmaskptr;
+
+    ENTRY("Compute_DiffMeasures");
+
+    if(flag2D3D==2) {
+      ERROR_message("Not ready for 2D form, complain heartily to D. Glen!");
+      RETURN(NULL);
+    }
+    
+    if (!EV_Im || !grid_dset) {
+      ERROR_message("Lousy input!");
+      RETURN(NULL);
+    }
+    endi = flag2D3D;
+
+    im = EV_Im->imarr[0];
+    nxyz = im->nxyz;
+    tempmaskptr = maskptr;
+    
+    /*Prepare for output */
+    INIT_IMARR(TP_Im);
+    for(ii=0;ii<nout; ii++) {  /* create 3 sub-briks for du/dx^2, du/dx*du/dy and du/dy^2 */
+      im = mri_new_vol(im->nx, im->ny, im->nz, MRI_float);
+      if(im==NULL) {
+	ERROR_message("can not create data storage");
+        RETURN(NULL);
+      }
+      ADDTO_IMARR(TP_Im, im);
+   }
+    
+    /* Get eigen values */
+    for(ii=0;ii<endi;ii++) {
+       im  = (EV_Im->imarr[ii]);
+       inptr[ii] = (float *) mri_data_pointer(im);
+    }
+    
+    /* init output pointers */
+    for(ii=0;ii<nout;ii++) {
+       im  = (TP_Im->imarr[ii]);
+       outptr[ii] = (float *) mri_data_pointer(im);
+    }
+      
+   /* Compute nout params */
+   for(ii=0;ii<nxyz;ii++) {
+       if(maskptr && !*tempmaskptr++) {
+         for(jj=0;jj<nout;jj++) {
+             *outptr[jj] = 0.0;
+         }
+       } else {
+         e0 = *inptr[0];
+         e1 = *inptr[1];
+         e2 = *inptr[2];
+         tr = (e0+e1+e2);
+                           /* FA */
+         if ((d = (e0*e0+e1*e1+e2*e2))>0.0f) {
+            *outptr[0] = sqrt(0.5*( (e0-e1)*(e0-e1)+(e1-e2)*(e1-e2)+(e0-e2)*(e0-e2))/ d );
+            if (*outptr[0] > 1.0) *outptr[0] = 1.0;
+         } else *outptr[0] = 0.0;
+         
+                           /* MD */
+         *outptr[1] = (tr)/3.0;
+         if (*outptr[1] < 0.0) *outptr[1] = 0.0;
+                           /* Cl */
+         if (tr > 0.0) {
+            *outptr[2] = (e0-e1)/tr;
+            if (*outptr[2] > 1.0) *outptr[2] = 1.0;
+         } else *outptr[2] = 0.0;
+         
+                           /* Cp */
+         if (tr > 0.0) {
+            *outptr[3] = 2.0*(e1-e2)/tr;
+            if (*outptr[3] > 1.0) *outptr[3] = 1.0;
+         } else *outptr[3] = 0.0;
+                           /* Cs */
+         if (tr > 0.0) {
+            *outptr[4] = 3.0*e2/tr;
+            if (*outptr[4] < 0.0) *outptr[4] = 0.0;
+         } else *outptr[4] = 0.0;
+        } /* included in mask */
+
+      /* increment to next voxel */
+      for(jj=0;jj<endi;jj++)  inptr[jj]++;
+      for(jj=0;jj<nout;jj++) outptr[jj]++;
+   } /* end for each voxel in volume */
+   
+   /* make nice dset */
+   dout = Copy_IMARR_to_dset(grid_dset, TP_Im, "Diff_Measures");
+   tross_Copy_History (grid_dset, dout);
+   EDIT_dset_items(dout,ADN_brick_label_one + 0,"FA",ADN_none);
+   EDIT_dset_items(dout,ADN_brick_label_one + 1,"MD",ADN_none);
+   EDIT_dset_items(dout,ADN_brick_label_one + 2,"Cl",ADN_none);
+   EDIT_dset_items(dout,ADN_brick_label_one + 3,"Cp",ADN_none);
+   EDIT_dset_items(dout,ADN_brick_label_one + 4,"Cs",ADN_none);
+   EDIT_dset_items(dout ,
+              ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
+	      ADN_prefix , "Diff_Measures",
+                       ADN_none ) ;
+
+    RETURN(dout);
   }
 
 

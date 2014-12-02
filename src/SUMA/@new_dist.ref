@@ -479,26 +479,37 @@ if ($build) then
       \grep ' may ' | \grep ' used ' | \grep 'uninitialized' | \
       \grep ' function'                             >> ${warnlog}      
     \grep '\*\*\*' ${makelog} > ${errlog}
-    set m = `wc $errlog`
-    if ($m[3] > 0) then
-      echo ""
-      echo "************************"
-      echo "Make errors found!"
-      echo "See $errlog for details"
-      echo "************************"
-      echo ""
-      goto END
-    endif
+    set bad = 0
     set m = `wc $warnlog`
     if ($m[3] > 0) then
       echo ""
       echo "------------------------"
       echo "Uninitialization found!"
       echo "See $warnlog for details"
+      echo "Last 10 lines follow:   "
       echo "------------------------"
       echo ""
-      goto END
+      tail -n 10 $warnlog
+      echo ""
+      echo "------------------------"
+      set bad = 1
     endif
+    set m = `wc $errlog`
+    if ($m[3] > 0) then
+      echo ""
+      echo "************************"
+      echo "Make errors found!"
+      echo "See $errlog for details."
+      echo "Last 10 lines follow:   "
+      echo "************************"
+      echo ""
+      tail -n 10 $errlog
+      echo ""
+      echo "************************"
+      set bad = 1
+    endif
+    
+    if ($bad) goto END
     
    echo ""
    echo "Compilation honky dory."
@@ -678,6 +689,21 @@ PARSE_COMMAND:
             set donext = 0;      
          endif
       endif
+      if ($donext && "$argv[$cnt]" == "-check_log") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a log file after -check_log"
+            goto END
+         else
+            @ cnt ++
+            set build = 1;
+            set makelog = "$argv[$cnt]";
+            set warnlog = `dirname $makelog`/`basename $makelog`.Warning
+            set errlog = `dirname $makelog`/`basename $makelog`.Error
+            goto CHECK
+            set donext = 0;      
+         endif
+      endif
       if ($donext && "$argv[$cnt]" == "-lesstif") then
          set lesstifing = 1;
          set donext = 0;      
@@ -789,7 +815,7 @@ USAGE:
    echo "   [-fixccold]: Turn of -V 34 for gcc"
    echo "   [-expat_sh]: Use .so for libexpat"
    echo "   [-fontconf]: Add -lfontconfig"
-   echo "   [-jpega]: Add  '$(XROOT)/lib/libjpeg.a'"
+   echo "   [-jpega]: Add  $(XROOT)/lib/libjpeg.a"
    echo "   [-mcwmalloc]: Make sure MCW_MALLOC is used"
    echo "   [-no_mcwmalloc]: Make sure MCW_MALLOC is NOT used."
    goto END
