@@ -684,8 +684,8 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 		}  
           
       if (!brk) {
-			fprintf (stderr,"Option %s not understood. \n"
-                         "Try -help for usage\n", argv[kar]);
+			fprintf (stderr,"Option #%d %s not understood. \n"
+                         "Try -help for usage\n", kar, argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
 		} else {	

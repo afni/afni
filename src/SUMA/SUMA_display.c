@@ -11556,7 +11556,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam_ADO(SUMA_ALL_DO *ado)
                }
                break; }
             case MASK_type: { /* Won't be used anymore, see below */
-               SUMA_MaskDO *mdo = (SUMA_MaskDO *)mdo;
+               SUMA_MaskDO *mdo = (SUMA_MaskDO *)ado;
                if (lbl30) { 
                   sprintf(slabel,"Current: %s\n ", lbl30); 
                   SUMA_free(lbl30); lbl30 = NULL;
