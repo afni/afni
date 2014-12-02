@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 2 , DEC, 2014 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, 
+    "fixes for child_anat and mean epi base",
+    "Thanks to Isaac Schwabacher for the child_anat fix!"
+} ,
 { 9 , NOV, 2014 , DRG , "whereami connections" , 
     MINOR , TYPE_MODIFY, 
     "Web display includes connections links",
