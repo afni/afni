@@ -561,7 +561,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.47" # software version (update for changes)
+      self.align_version = "1.48" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1967,10 +1967,10 @@ class RegWrap:
                # skip the parent if it's included
                if(child_anat.input()==ps.anat0.input()) :
                   child_anat_out = afni_name("%s%s_child%s%s" % \
-                    (child_anat.p(),child_anat.out_prefix(),suf,child_anat.view))
+                    (child_anat.p(),child_anat.prefix,suf,child_anat.view))
                else:
                   child_anat_out=afni_name("%s%s%s%s" % \
-                    (child_anat.p(),child_anat.out_prefix(),suf,child_anat.view))
+                    (child_anat.p(),child_anat.prefix,suf,child_anat.view))
                
                child_anat_out.view = anatview     # child_anat.view
                self.info_msg("Processing child %s: %s" % \
@@ -2503,7 +2503,7 @@ class RegWrap:
                              ps.volreg_base)
               base = "0"
            else:
-              ots = e.new("%s_ts_tempalpha" % prefix)
+              ots = e.new("%s_ts_tempalpha" % o.out_prefix())
               base = "%s'[0]'" % ots.input()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
@@ -2519,7 +2519,7 @@ class RegWrap:
                                 "for time series registration")
                  ps.ciao(1)
 
-              ovr_alpha = e.new("%s_vr_tempalpha" % prefix)
+              ovr_alpha = e.new("%s_vr_tempalpha" % o.out_prefix())
 
               if((vrcom != '3dvolreg') and (ps.volreg_base.isdigit())):
                  base = "%s'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
@@ -2529,7 +2529,7 @@ class RegWrap:
                   reg_opt, e.input()), ps.oexec)
               com.run()
 
-              ots = e.new("%s_vrt" % prefix)
+              ots = e.new("%s_vrt" % o.out_prefix())
               base = "%s'[0]'" % ots.input()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
