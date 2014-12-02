@@ -66,6 +66,12 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26, Nov, 2014, ZSS, "3danisosmooth", MINOR, TYPE_NEW_OPT,
+   "Output of diffusion measures, along with adjustment of debug volumes",
+   "For details, see tersely named option  -save_temp_with_diff_measures, \n"
+   "along with modified help for -savetempdata"
+ },
+ 
  { 24, Nov, 2014, ZSS, "3dRetinoPhase", MINOR, TYPE_BUG_FIX,
    "Fixed floating point precision error that resulted in error message",
    NULL

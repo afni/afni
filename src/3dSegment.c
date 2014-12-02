@@ -356,7 +356,18 @@ int mri_nstat_3dSeg( MRI_IMAGE *im, int *code_vec, int N_code, float *val_vec )
           outval /= npt ;
         }
         break ;
-
+        case NSTAT_NZNUM:{
+          register int ii ;
+          for( ii=0 ; ii < npt ; ii++ ) if (far[ii] != 0.0f) outval += 1 ;
+        }
+        break ;
+        case NSTAT_FNZNUM:{
+          register int ii ;
+          for( ii=0 ; ii < npt ; ii++ ) if (far[ii] != 0.0f) outval += 1 ;
+          outval /= npt;
+        }
+        break ;
+        
         case NSTAT_SIGMA:   /* these 3 need the mean and variance sums */
         case NSTAT_CVAR:
         case NSTAT_VAR:{

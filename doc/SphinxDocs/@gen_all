@@ -97,22 +97,27 @@ endif
 
 if ($do_phelp) then
    set plist = (`apsearch -list_all_afni_progs`)
+   set cnt = 1
    foreach pp ($plist)
-      echo "###Help for $pp -- @ `date`"
-      apsearch -asphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
-      if ( $status == 0 ) then
-         \grep -q $pp programs/___auto_help/_ALL.phelp.inc
-         if ( $status > 0) then
-            echo ".. include:: ___auto_help/_${pp}.help.inc" >>   \
-                              programs/___auto_help/_ALL.phelp.inc
+      if ($cnt < $help_max_cnt) then
+         echo "###Help for $pp -- @ `date`"
+         apsearch -asphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
+         if ( $status == 0 ) then
+            \grep -q $pp programs/___auto_help/_ALL.phelp.inc
+            if ( $status > 0) then
+               echo ".. include:: ___auto_help/_${pp}.help.inc" >>   \
+                                 programs/___auto_help/_ALL.phelp.inc
+            endif
          endif
       endif
+      @ cnt ++
    end
 endif
 
 if ( ! -d _static) mkdir _static
-
-make clean html |& tee -a ___build.log
+if ($do_html == 1) then
+   make clean html |& tee -a ___build.log
+endif
 
 UPLOAD:
 if ($webupdate == 1) then
@@ -133,8 +138,10 @@ PARSE:
 	set Narg = $#
 	set cnt = 1
    set nosuma = 1
-   set do_thelp = 1
+   set do_html = 0
+   set do_thelp = 0
    set do_phelp = 0
+   set help_max_cnt = 1000
    set webupdate = 0
    while ($cnt <= $Narg)
       if ("$argv[$cnt]" == "-d" || "$argv[$cnt]" == "-echo") then
@@ -147,7 +154,17 @@ PARSE:
          goto HELP
       endif
       
-      if ("$argv[$cnt]" == "-no_thelp") then
+      if ("$argv[$cnt]" == "-no_html") then
+         set do_html = 0
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-html") then
+         set do_html = 1
+         goto CONTINUE
+      endif
+
+       if ("$argv[$cnt]" == "-no_thelp") then
          set do_thelp = 0
          goto CONTINUE
       endif
@@ -157,13 +174,19 @@ PARSE:
          goto CONTINUE
       endif
 
-      if ("$argv[$cnt]" == "-no_phelp") then
+     if ("$argv[$cnt]" == "-no_phelp") then
          set do_phelp = 0
          goto CONTINUE
       endif
 
       if ("$argv[$cnt]" == "-phelp") then
          set do_phelp = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-phelp_test_only") then
+         set do_phelp = 1
+         set help_max_cnt = 10
          goto CONTINUE
       endif
 
@@ -206,13 +229,16 @@ HELP:
    echo ""
    echo "Options:"
    echo "-h: This message"
+   echo "-html: Run make clean html."
+   echo "-no_html: Do not run make clean html. (default)"
    echo "-no_suma: Do not regenerate SUMA's auto docs. (default)"
    echo "-suma: Do regenerate SUMA's auto docs."
    echo "-phelp: Generate help pages for all programs."
    echo "-no_phelp: Don't -phelp. (default)"
-   echo "-thelp: Generate help pages for all tutorial scripts. (default)"
-   echo "-no_thelp: Don't -thelp"
+   echo "-thelp: Generate help pages for all tutorial scripts."
+   echo "-no_thelp: Don't -thelp. (default)"
    echo "-web_upload: Send new build to $afwpg"
+   echo "-no_web_upload: Don't -web_upload. (default)"
    echo "-echo: Yap yap"
    echo ""
    goto END

@@ -63,8 +63,9 @@
 #define METH_NZMEDIAN     35  /* RCR 27 Jun 2012 */
 #define METH_SIGNED_ABSMAX 36 /* RCR 31 Aug 2012 */
 #define METH_L2_NORM      37  /* RCR 07 Jan 2013 */
+#define METH_NZCOUNT       38
 
-#define MAX_NUM_OF_METHS  38
+#define MAX_NUM_OF_METHS  39
 
 /* allow single inputs for some methods (test as we care to add) */
 #define NUM_1_INPUT_METHODS 4
@@ -165,6 +166,7 @@ void usage_3dTstat(int detail)
  " -centduration = compute duration using centroid's index as center\n"
  " -nzmean    = compute mean of non-zero voxels\n"
  " -zcount    = count number of zero values at each voxel\n"
+ " -nzcount    = count number of non zero values at each voxel\n"
  "\n"
  " -autocorr n = compute autocorrelation function and return\n"
  "               first n coefficients\n"
@@ -333,6 +335,12 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-zcount") == 0 ){
          meth[nmeths++] = METH_ZCOUNT ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-nzcount") == 0 ){
+         meth[nmeths++] = METH_NZCOUNT ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -1005,6 +1013,13 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         int ii , zc ;
         for( ii=zc=0 ; ii < npts ; ii++ ) if( ts[ii] == 0.0f ) zc++ ;
         val[out_index] = zc ;
+      }
+      break ;
+
+      case METH_NZCOUNT:{  /* Turkey 2014 */
+        int ii , zc ;
+        for( ii=zc=0 ; ii < npts ; ii++ ) if( ts[ii] == 0.0f ) zc++ ;
+        val[out_index] = npts-zc ;
       }
       break ;
 

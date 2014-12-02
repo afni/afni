@@ -33,6 +33,14 @@ float mri_nstat( int code , int npt , float *far , float voxval )
      }
      break ;
 
+     case NSTAT_FNZNUM:
+     case NSTAT_NZNUM:{
+       register int ii ;
+       for( ii=0 ; ii < npt ; ii++ ) if (far[ii] != 0.0f) outval += 1 ;
+       if( code != NSTAT_NZNUM) outval /= npt ;
+     }
+     break ;
+     
      case NSTAT_SIGMA:   /* these 3 need the mean and variance sums */
      case NSTAT_CVAR:
      case NSTAT_VAR:{
