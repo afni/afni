@@ -338,6 +338,8 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
        else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
        else if( strcasecmp(cpt,"num")   == 0 ) code[ncode++] = NSTAT_NUM   ;
+       else if( strcasecmp(cpt,"nznum") == 0 ) code[ncode++] = NSTAT_NZNUM ;
+       else if( strcasecmp(cpt,"fnznum")== 0 ) code[ncode++] = NSTAT_FNZNUM;
        else if( strcasecmp(cpt,"sum")   == 0 ) code[ncode++] = NSTAT_SUM   ;
        else if( strcasecmp(cpt,"rank")  == 0 ) code[ncode++] = NSTAT_RANK  ;
        else if( strcasecmp(cpt,"frank") == 0 ) code[ncode++] = NSTAT_FRANK ;
@@ -395,6 +397,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
          code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
          code[ncode++] = NSTAT_P2SKEW; code[ncode++] = NSTAT_KURT  ;
+         code[ncode++] = NSTAT_NZNUM ; code[ncode++] = NSTAT_FNZNUM;
        }
        else
          ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
@@ -623,7 +626,8 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_mMP2s0]  = "MEDIAN";lcode[NSTAT_mMP2s1]     = "MAD";
      lcode[NSTAT_mMP2s2]  = "P2skew";lcode[NSTAT_mmMP2s0]    = "MEAN";
      lcode[NSTAT_mmMP2s1] = "MEDIAN";lcode[NSTAT_mmMP2s2]    = "MAD";
-     lcode[NSTAT_mmMP2s3] = "P2skew";lcode[NSTAT_FWHMbar12]  = "FWHMbar12"; 
+     lcode[NSTAT_mmMP2s3] = "P2skew";lcode[NSTAT_FWHMbar12]  = "FWHMbar12";
+     lcode[NSTAT_NZNUM]   = "NZNUM" ;lcode[NSTAT_FNZNUM]     = "FNZNUM" ;
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;

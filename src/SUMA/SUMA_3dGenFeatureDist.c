@@ -16,6 +16,24 @@ static void vstep_print(void)
    vn++ ;
 }
 
+/* If a label ends with '*', return 
+the length of the string -1. That would be the 
+number of characters to match. 
+Otherwise, return -1 */
+int SUMA_is_wild_hspec_label(char *lab) 
+{
+   static char FuncName[]={"SUMA_is_wild_hspec_label"};
+   int nlab = 0;
+
+   SUMA_ENTRY;
+
+   if (!lab) SUMA_RETURN(-1);
+   nlab = strlen(lab);
+   if (lab[nlab-1] == '*') SUMA_RETURN(nlab-1);
+
+   SUMA_RETURN(-1);
+}
+
 static HELP_OPT GenFeatureDistOptList[] = {
    {  
 "-classes", 
@@ -259,7 +277,7 @@ SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc)
 int GenFeatureDist_CheckOpts(SEG_OPTS *Opt) 
 {
    static char FuncName[]={"GenFeatureDist_CheckOpts"};
-   int i=0, kk=0;
+   int i=0, kk=0, nmatch;
    
    SUMA_ENTRY;
    
@@ -318,10 +336,19 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
    } 
    
+   
    /* Make sure any histogram specs are for a class in use */
    for (kk=0; kk<Opt->N_hspec; ++kk) {
-      for (i=0; i<Opt->feats->num; ++i) {
-         if (!strcmp(Opt->feats->str[i], Opt->hspec[kk]->label)) break;
+      if ( (nmatch = SUMA_is_wild_hspec_label(Opt->hspec[kk]->label)) >= 0) {
+         if (!nmatch) break;
+         for (i=0; i<Opt->feats->num; ++i) {
+            if (!strncmp(Opt->feats->str[i], 
+                         Opt->hspec[kk]->label, nmatch)) break;
+         }
+      } else {
+         for (i=0; i<Opt->feats->num; ++i) {
+            if (!strcmp(Opt->feats->str[i], Opt->hspec[kk]->label)) break;
+         }
       }
       if (i==Opt->feats->num) {
          SUMA_S_Err("Feature %s in -hspec not found under -features\n",
@@ -698,7 +725,8 @@ int main(int argc, char **argv)
         **N_alloc_FCset=NULL, /* Number of values allocated for each 
                                  vector in FCset */
         **N_FCset=NULL, /* Number of filled values for each vector in FCset */ 
-        N_ffalloc=0, N_ff, isneg=0;
+        N_ffalloc=0, N_ff, isneg=0,
+        missfeatwarn=-1 /* Missing feature warning for some subject */;
    float fsf=0.0, fsb=0.0, 
          ***FCset=NULL, /* Table holding samples for each feature/class combo */ 
          hrange[2]={-3.0, 3.0}, bwidth1=0.05, bwidth=0.0,
@@ -772,7 +800,7 @@ int main(int argc, char **argv)
    /* For each feature, each class, collect the values */
    SUMA_S_Notev("Collecting data from %d subjects\n", Opt->sig_names->num);
    
-
+   missfeatwarn = -1;
    for (ss=0; ss<Opt->sig_names->num; ++ss) { /* for each subject */
       /* load the input data */   
       if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[ss] ))) {      
@@ -899,9 +927,11 @@ int main(int argc, char **argv)
                            if (masks[ss][vv]) masks[ss][vv] = 1; 
                         }
                      } else {
-                        SUMA_S_Warnv("Feature %s not found in subject %d\n",
+                        if (missfeatwarn != ss) {
+                           SUMA_S_Warnv("Feature %s not found in subject %d\n",
                                  Opt->feats->str[aa], ss);
-                        
+                           missfeatwarn = ss;
+                        }
                      }  
                   }
                }  
@@ -975,6 +1005,29 @@ int main(int argc, char **argv)
             break;
          }
       }
+      
+
+         
+      if (bwidth < 0) {
+         int nmatch = -1;
+         /* Check the wildcard option */
+         for (iii=0; iii<Opt->N_hspec; ++iii) {
+            if ((nmatch = SUMA_is_wild_hspec_label(Opt->hspec[iii]->label))>=0) {
+               if (!nmatch || !strncmp(Opt->feats->str[aa], 
+                                       Opt->hspec[iii]->label, nmatch)) {
+                  SUMA_S_Note("Feature %s matched with hspec %s\n",
+                              Opt->feats->str[aa], Opt->hspec[iii]->label);
+                  hrange[0] =  Opt->hspec[iii]->min;
+                  hrange[1] =  Opt->hspec[iii]->max;
+                  nbins     =  Opt->hspec[iii]->K;
+                  bwidth    = 0;
+                  methods   =  "hands woff sir";
+                  break;
+               }
+            }
+         }
+      }
+      
       if (bwidth < 0) { /* no user specs found */
          nbins = 0;
          methods = "Range|OsciBinWidth";

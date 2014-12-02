@@ -79,7 +79,8 @@ extern MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, 
 static INLINE float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
 extern void Compute_IMARR_Max(MRI_IMARR *Imptr);
 extern void Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, char *dset_name);
-
+extern void set_with_diff_measures(int v);
+extern int get_with_diff_measures(void);
 
 /*! compute the overall minimum and maximum voxel values for a dataset */
 int main( int argc , char * argv[] )
@@ -111,58 +112,63 @@ int main( int argc , char * argv[] )
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3danisosmooth [options] dataset\n"
-             "Smooths a dataset using an anisotropic smoothing technique.\n\n"
-             "The output dataset is preferentially smoothed to preserve edges.\n\n"
-             "Options :\n"
-             "  -prefix pname = Use 'pname' for output dataset prefix name.\n"
-             "  -iters nnn = compute nnn iterations (default=10)\n"
-             "  -2D = smooth a slice at a time (default)\n"
-             "  -3D = smooth through slices. Can not be combined with 2D option\n"
-             "  -mask dset = use dset as mask to include/exclude voxels\n"
-             "  -automask = automatically compute mask for dataset\n"
-             "    Can not be combined with -mask\n"
-             "  -viewer = show central axial slice image every iteration.\n"
-             "    Starts aiv program internally.\n"
-             "  -nosmooth = do not do intermediate smoothing of gradients\n"
-	     "  -sigma1 n.nnn = assign Gaussian smoothing sigma before\n"
-	     "    gradient computation for calculation of structure tensor.\n"
-	     "    Default = 0.5\n"
-	     "  -sigma2 n.nnn = assign Gaussian smoothing sigma after\n"
-	     "    gradient matrix computation for calculation of structure tensor.\n"
-	     "    Default = 1.0\n"
-             "  -deltat n.nnn = assign pseudotime step. Default = 0.25\n"
-             "  -savetempdata = save temporary datasets each iteration.\n"
-             "    Dataset prefixes are Gradient, Eigens, phi, Dtensor.\n"
-	     "    Ematrix, Flux and Gmatrix are also stored for the first sub-brick.\n"
-             "    Each is overwritten each iteration\n"
-             "  -phiding = use Ding method for computing phi (default)\n"
-             "  -phiexp = use exponential method for computing phi\n"
-	     "  -noneg = set negative voxels to 0\n" 
-	     "  -edgefraction n.nnn = adjust the fraction of the anisotropic\n"
-	     "    component to be added to the original image. Can vary between\n"
-	     "    0 and 1. Default =0.5\n"
-	     "  -datum type = Coerce the output data to be stored as the given type\n"
-	     "    which may be byte, short or float. [default=float]\n"
-	     "  -matchorig - match datum type and clip min and max to match input data\n"
-	     "  -help = print this help screen\n\n"
-             "References:\n"
-             "  Z Ding, JC Gore, AW Anderson, Reduction of Noise in Diffusion\n"
-             "   Tensor Images Using Anisotropic Smoothing, Mag. Res. Med.,\n"
-             "   53:485-490, 2005\n"
-             "  J Weickert, H Scharr, A Scheme for Coherence-Enhancing\n"
-             "   Diffusion Filtering with Optimized Rotation Invariance,\n"
-             "   CVGPR Group Technical Report at the Department of Mathematics\n"
-             "   and Computer Science,University of Mannheim,Germany,TR 4/2000.\n"
-             "  J.Weickert,H.Scharr. A scheme for coherence-enhancing diffusion\n"
-             "   filtering with optimized rotation invariance. J Visual\n"
-             "   Communication and Image Representation, Special Issue On\n"
-             "   Partial Differential Equations In Image Processing,Comp Vision\n"
-             "   Computer Graphics, pages 103-118, 2002.\n"
-             "  Gerig, G., Kubler, O., Kikinis, R., Jolesz, F., Nonlinear\n"
-             "   anisotropic filtering of MRI data, IEEE Trans. Med. Imaging 11\n"
-             "   (2), 221-232, 1992.\n\n"
-           ) ;
+      printf(
+"Usage: 3danisosmooth [options] dataset\n"
+"Smooths a dataset using an anisotropic smoothing technique.\n\n"
+"The output dataset is preferentially smoothed to preserve edges.\n\n"
+"Options :\n"
+"  -prefix pname = Use 'pname' for output dataset prefix name.\n"
+"  -iters nnn = compute nnn iterations (default=10)\n"
+"  -2D = smooth a slice at a time (default)\n"
+"  -3D = smooth through slices. Can not be combined with 2D option\n"
+"  -mask dset = use dset as mask to include/exclude voxels\n"
+"  -automask = automatically compute mask for dataset\n"
+"    Can not be combined with -mask\n"
+"  -viewer = show central axial slice image every iteration.\n"
+"    Starts aiv program internally.\n"
+"  -nosmooth = do not do intermediate smoothing of gradients\n"
+"  -sigma1 n.nnn = assign Gaussian smoothing sigma before\n"
+"    gradient computation for calculation of structure tensor.\n"
+"    Default = 0.5\n"
+"  -sigma2 n.nnn = assign Gaussian smoothing sigma after\n"
+"    gradient matrix computation for calculation of structure tensor.\n"
+"    Default = 1.0\n"
+"  -deltat n.nnn = assign pseudotime step. Default = 0.25\n"
+"  -savetempdata = save temporary datasets each iteration.\n"
+"    Dataset prefixes are Gradient, Eigens, phi, Dtensor.\n"
+"    Ematrix, Flux and Gmatrix are also stored for the first sub-brick.\n"
+"    Where appropriate, the filename is suffixed by .ITER where \n"
+"    ITER is the iteration number. Existing datasets will get overwritten.\n"
+"  -save_temp_with_diff_measures: Like -savetempdata, but with \n"
+"    a dataset named Diff_measures.ITER containing FA, MD, Cl, Cp, \n"
+"    and Cs values."
+"  -phiding = use Ding method for computing phi (default)\n"
+"  -phiexp = use exponential method for computing phi\n"
+"  -noneg = set negative voxels to 0\n" 
+"  -edgefraction n.nnn = adjust the fraction of the anisotropic\n"
+"    component to be added to the original image. Can vary between\n"
+"    0 and 1. Default =0.5\n"
+"  -datum type = Coerce the output data to be stored as the given type\n"
+"    which may be byte, short or float. [default=float]\n"
+"  -matchorig - match datum type and clip min and max to match input data\n"
+"  -help = print this help screen\n\n"
+"References:\n"
+"  Z Ding, JC Gore, AW Anderson, Reduction of Noise in Diffusion\n"
+"   Tensor Images Using Anisotropic Smoothing, Mag. Res. Med.,\n"
+"   53:485-490, 2005\n"
+"  J Weickert, H Scharr, A Scheme for Coherence-Enhancing\n"
+"   Diffusion Filtering with Optimized Rotation Invariance,\n"
+"   CVGPR Group Technical Report at the Department of Mathematics\n"
+"   and Computer Science,University of Mannheim,Germany,TR 4/2000.\n"
+"  J.Weickert,H.Scharr. A scheme for coherence-enhancing diffusion\n"
+"   filtering with optimized rotation invariance. J Visual\n"
+"   Communication and Image Representation, Special Issue On\n"
+"   Partial Differential Equations In Image Processing,Comp Vision\n"
+"   Computer Graphics, pages 103-118, 2002.\n"
+"  Gerig, G., Kubler, O., Kikinis, R., Jolesz, F., Nonlinear\n"
+"   anisotropic filtering of MRI data, IEEE Trans. Med. Imaging 11\n"
+"   (2), 221-232, 1992.\n\n"
+) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -255,6 +261,14 @@ int main( int argc , char * argv[] )
      if (strcmp (argv[nopt], "-savetempdata") == 0)
         {
 	  save_tempdsets_flag = 1;
+          nopt++;
+          continue;
+        }
+  
+     if (strcmp (argv[nopt], "-save_temp_with_diff_measures") == 0)
+        {
+	  save_tempdsets_flag = 1;
+     set_with_diff_measures(1);
           nopt++;
           continue;
         }
@@ -500,16 +514,18 @@ int main( int argc , char * argv[] )
      INFO_message("iteration %d", i);
      /* compute image diffusion tensor dataset */
      INFO_message("   computing structure tensor");
-     structtensor =  DWIstructtensor(udset, flag2D3D, maskptr, smooth_flag, save_tempdsets_flag);
+     structtensor =  DWIstructtensor(udset, flag2D3D, maskptr, 
+                     smooth_flag, save_tempdsets_flag*(i+1));
  /* Test_data(structtensor);*/
      if((i==iters-1)&&(save_tempdsets_flag)) {
        tross_Make_History ("3danisosmooth", argc, argv, structtensor);
-       DSET_write (structtensor);
+       DSET_overwrite (structtensor);
        INFO_message("--- Output dataset %s", DSET_BRIKNAME(structtensor));
      }
      INFO_message("    applying structure tensor");
      /* Smooth udset image using image diffusion tensor */
-     Smooth_dset_tensor(udset, structtensor, flag2D3D, maskptr, save_tempdsets_flag);
+     Smooth_dset_tensor(udset, structtensor, flag2D3D, maskptr,
+                        save_tempdsets_flag*(i+1));
 
      /* display sample udset slice after smoothing for this iteration */
      if(afnitalk_flag) {
@@ -715,13 +731,18 @@ static int Smooth_Show_Image(far, nx, ny)
 }
 
 
-/*! Smooth dataset image using image diffusion tensor */
-static void Smooth_dset_tensor(THD_3dim_dataset *udset, THD_3dim_dataset *structtensor, int flag2D3D, byte *maskptr, int
-save_tempdsets_flag)
+/*! Smooth dataset image using image diffusion tensor 
+   If (save_tempdsets_flag) then temp datasets are saved
+   with a suffix of .DD where DD is the iteration number,
+   which is save_tempdsets_flag-1                        */
+static void Smooth_dset_tensor(THD_3dim_dataset *udset, 
+                               THD_3dim_dataset *structtensor, int flag2D3D, 
+                               byte *maskptr, int save_tempdsets_flag)
 {
   MRI_IMARR *Gradient_Im;
   int nbriks,i;
   int sublist[2];
+  char obuff[128]={""};
   THD_3dim_dataset *tempdset;
 
   ENTRY("Smooth_dset_tensor");
@@ -731,8 +752,10 @@ save_tempdsets_flag)
   /* deviation from mean, can use structtensor space */
   /*  printf("Compute Ematrix\n");*/
   Compute_Ematrix(structtensor, flag2D3D, maskptr); 
-  if(save_tempdsets_flag)
-    Save_imarr_to_dset(structtensor->dblk->brick,structtensor, "Ematrix");
+  if(save_tempdsets_flag) {
+    snprintf(obuff, 127,"Ematrix.%02d", save_tempdsets_flag-1);
+    Save_imarr_to_dset(structtensor->dblk->brick,structtensor, obuff);
+  }
   /*  Compute_IMARR_Max(structtensor->dblk->brick);*/
   nbriks =   udset->dblk->nvals;
   sublist[0] = 1;
@@ -752,17 +775,19 @@ save_tempdsets_flag)
      /* Compute flux - results in Gradient_Im */
      /*printf("Compute Flux\n");*/
      Compute_Flux(Gradient_Im, structtensor, flag2D3D, maskptr);
-     if((save_tempdsets_flag)&&(i==0))  /* first sub-brick only */
-        Save_imarr_to_dset(Gradient_Im,structtensor, "Flux");
-
+     if((save_tempdsets_flag)&&(i==0))  {/* first sub-brick only */
+        snprintf(obuff, 127,"Flux.%02d", save_tempdsets_flag-1);
+        Save_imarr_to_dset(Gradient_Im,structtensor, obuff);
+     }
      /*Compute_IMARR_Max(Gradient_Im);*/
      /* Compute anisotropic component of smoothing, G */
      /*   put in Gradient_Im space */
      /*printf("Compute Gmatrix\n");*/
      Compute_Gmatrix(Gradient_Im, flag2D3D, maskptr);
-     if((save_tempdsets_flag)&&(i==0))  /* first sub-brick only */
-        Save_imarr_to_dset(Gradient_Im,structtensor, "Gmatrix");
-
+     if((save_tempdsets_flag)&&(i==0))  {/* first sub-brick only */
+        snprintf(obuff, 127,"Gmatrix.%02d", save_tempdsets_flag-1);
+        Save_imarr_to_dset(Gradient_Im,structtensor, obuff);
+     }
      /*Compute_IMARR_Max(Gradient_Im);*/
      /* compute isotropic diffusion component of smooth, F */
      /* and update dset with new smoothed image */

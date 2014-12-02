@@ -733,6 +733,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_mmMP2s1     29
 #define NSTAT_mmMP2s2     30
 #define NSTAT_mmMP2s3     31
+#define NSTAT_NZNUM       32
+#define NSTAT_FNZNUM      33
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
