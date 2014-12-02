@@ -6917,7 +6917,7 @@ ENTRY("IW3D_set_geometry_nwarp_catlist") ;
    /*--- must we make gs up from empty air? ---*/
 
    if( gsin == NULL ) gs = strdup("\0") ;
-   else               gs = strdup(gs) ;
+   else               gs = strdup(gsin) ;
 
    if( !ISVALID_GEOMETRY_STRING(gs) ){
      THD_3dim_dataset **nset=NULL ; char **gset=NULL ; int jj ;
