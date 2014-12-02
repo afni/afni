@@ -180,13 +180,17 @@ if ($mode == 'grid') then
          goto END
       endif
 
-      3dcopy $overf $v1  $v1_pth/$oname
-      3drefit  -dxorigin $del_refit[1] \
-               -dyorigin $del_refit[2] \
-               -dzorigin $del_refit[3] $v1_pth/$oname
+      if ($xmat_only != 1) then
+         3dcopy $overf $v1  $v1_pth/$oname
+         3drefit  -dxorigin $del_refit[1] \
+                  -dyorigin $del_refit[2] \
+                  -dzorigin $del_refit[3] $v1_pth/$oname
+      endif
    else
-      3drefit  -dxorigin $del_refit[1] \
+      if ($xmat_only != 1) then
+          3drefit  -dxorigin $del_refit[1] \
                -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
+      endif
    endif
 else
    
@@ -202,11 +206,15 @@ else
          goto END
       endif
 
-      3dcopy $overf $v1  $v1_pth/$oname
-      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI \
-                           $v1_pth/$oname`
+      if ($xmat_only != 1) then
+         3dcopy $overf $v1  $v1_pth/$oname
+         set v1_center_RAI = `3dCM -automask -set $v2_center_RAI \
+                              $v1_pth/$oname`
+      endif
    else
-      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1`
+      if ($xmat_only != 1) then
+         set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1`
+      endif
    endif
    
    set del_RAI = ( 0 0 0 )
