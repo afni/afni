@@ -389,7 +389,7 @@ int apsearch_usage(TFORM targ, int detail)
    detail > 1 ? SUMA_Offset_SLines(get_help_help(),2):""); 
    PRINT_COMPILE_DATE ;
    }
-   return;
+   return 0;
 }
 
 
