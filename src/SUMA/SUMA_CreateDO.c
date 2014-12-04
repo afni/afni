@@ -2427,9 +2427,9 @@ SUMA_SegmentDO * SUMA_ReadDirDO (char *s, int oriented, char *parent_SO_id)
       itmp = 0;
       while (itmp < SDO->N_n) {
          itmp2 = 4*itmp;
-         SDO->colv[itmp2]     = far[itmp+(icol_dir  )*ncol];
-         SDO->colv[itmp2+1]   = far[itmp+(icol_dir+1)*ncol];
-         SDO->colv[itmp2+2]   = far[itmp+(icol_dir+2)*ncol];
+         SDO->colv[itmp2]     = SUMA_ABS(far[itmp+(icol_dir  )*ncol]);
+         SDO->colv[itmp2+1]   = SUMA_ABS(far[itmp+(icol_dir+1)*ncol]);
+         SDO->colv[itmp2+2]   = SUMA_ABS(far[itmp+(icol_dir+2)*ncol]);
          SDO->colv[itmp2+3]   = 1.0;
          ++itmp;
       } 

@@ -50,6 +50,7 @@ INIT_LISTS:
    
 
 DOAC:
+   set finalimages = ()
    cd $fdir   
    #Distributions over all classes
    set alljpg = ()
@@ -64,14 +65,38 @@ DOAC:
       unset noglob
       set alljpg = ($alljpg h.$feat.jpg )
    end
-   imcat -crop 0 0 100 0 -nx 4 -prefix $odir/h.ALL.${suff}.jpg $alljpg
+   set nall = $#alljpg
+   set nx = 3
+   if ($nall < 2) then 
+      set nx = 1
+   else if ($nall < 5) then 
+      set nx = 2
+   endif
+   set nymax = 4
+   set mxstep = `ccalc -i "$nx *$nymax"`
+   if ($nall > $mxstep) set parts = 1
+   set istart = 1
+   set part = 0
+   set pp = ''
+   while ($istart <= $#alljpg)
+      set iend = `ccalc -i $istart + $mxstep -1`
+      if ( $iend >= $#alljpg) set iend = $#alljpg
+      echo "Images ${istart}-${iend}"
+      if ($parts) set pp = ".`printf %02d $part`"
+      imcat -crop 0 0 100 0 -nx ${nx} \
+            -prefix $odir/h.ALL.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
+      set finalimages = ($finalimages \
+               `ParseName -out RelName $odir/h.ALL.${suff}${pp}.jpg`)
+      @ istart += $mxstep
+      @ part ++
+   end
    if ($#alljpg > 0 && "$alljpg" !~ "") then
       set noglob
       \rm -f $alljpg
       unset noglob
    endif
    cd -
-   
+
 DOEC:
    cd $fdir
    #Distributions over each class
@@ -123,7 +148,32 @@ DOEC:
       \rm -f *__jjj* >& /dev/null
       set alljpg = ($alljpg h.$feat.G.jpg )
    end
-   imcat -crop 0 0 100 0 -nx 4 -prefix $odir/h.ALL_COND.${suff}.jpg $alljpg
+   set nall = $#alljpg
+   set nx = 3
+   if ($nall < 2) then 
+      set nx = 1
+   else if ($nall < 5) then 
+      set nx = 2
+   endif
+   set nymax = 4
+   set mxstep = `ccalc -i "$nx *$nymax"`
+   if ($nall > $mxstep) set parts = 1
+   set istart = 1
+   set part = 0
+   set pp = ''
+   while ($istart <= $#alljpg)
+      set iend = `ccalc -i $istart + $mxstep -1`
+      if ( $iend >= $#alljpg) set iend = $#alljpg
+      echo "Images ${istart}-${iend}"
+      if ($parts) set pp = ".`printf %02d $part`"
+      imcat -crop 0 0 100 0 -nx ${nx} \
+            -prefix $odir/h.ALL_COND.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
+      set finalimages = ($finalimages \
+                  `ParseName -out RelName $odir/h.ALL_COND.${suff}${pp}.jpg`)
+      @ istart += $mxstep
+      @ part ++
+   end
+
    if ($#alljpg > 0 && "$alljpg" !~ "") then
       set noglob
       \rm -f $alljpg
@@ -139,7 +189,7 @@ DOEC:
    set pdir = `echo $odir | sed "s:^${idir}/::"`
    echo "Results now in $pdir"
    echo "Summary images are: "
-   echo "$pdir/h.ALL_COND.${suff}.jpg $pdir/h.ALL.${suff}.jpg"
+   echo "$finalimages"
    echo ""
    
 goto END
