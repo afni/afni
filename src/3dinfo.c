@@ -43,6 +43,7 @@ int Syntax(TFORM targ, int detail)
 "   -gen_space: datasets generic space\n"
 "   -av_space: AFNI format's view extension for the space\n"
 "   -is_oblique: 1 if dset is oblique\n"
+"   -handedness: L if orientation is Left handed, R if it is right handed\n"
 "   -obliquity: Angle from plumb direction.\n"
 "               Angles of 0 (or close) are for cardinal orientations\n"
 "   -prefix: Return the prefix\n"
@@ -209,7 +210,7 @@ typedef enum {
    HISTORY, ORIENT,
    SAME_GRID, SAME_DIM, SAME_DELTA, SAME_ORIENT, SAME_CENTER, 
    SAME_OBL, SVAL_DIFF, VAL_DIFF, SAME_ALL_GRID, ID, SMODE,
-   VOXVOL, INAME,
+   VOXVOL, INAME, HANDEDNESS, 
    N_FIELDS } INFO_FIELDS; /* Keep synchronized with Field_Names  
                               Leave N_FIELDS at the end */
 
@@ -232,7 +233,7 @@ char Field_Names[][32]={
    {"=grid?"}, {"=dim?"}, {"=delt?"}, {"=ornt?"}, {"=cent?"},
    {"=obl?"}, {"sDval"}, {"Dval"}, {"=dim_delta_orient_center_obl"}, 
    {"id"}, {"smode"}, 
-   {"voxvol"}, {"iname"},
+   {"voxvol"}, {"iname"}, {"hand"},
    {"\0"} }; /* Keep synchronized with INFO_FIELDS */
 
 char *PrintForm(INFO_FIELDS sing , int namelen, byte ForHead)
@@ -343,6 +344,8 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = IS_OBLIQUE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-obliquity") == 0) { 
          sing[N_sing++] = OBLIQUITY; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-handedness") == 0) { 
+         sing[N_sing++] = HANDEDNESS; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-prefix") == 0) {
          sing[N_sing++] = PREFIX; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-prefix_noext") == 0) {
@@ -688,6 +691,13 @@ int main( int argc , char *argv[] )
                fprintf(stdout,"1");
             } else {
                fprintf(stdout,"0");
+            }
+            break;
+         case HANDEDNESS:
+            if (THD_handedness(dset) > 0) {
+               fprintf(stdout,"R");
+            } else {
+               fprintf(stdout,"L");
             }
             break;
          case OBLIQUITY:
