@@ -27,7 +27,7 @@
   static double dhffr[1] ;
 #endif
 
-#undef DEBUG_CATLIST
+#define DEBUG_CATLIST
 
 /*..........................................................................*/
 /** Note that the functions for 3dQwarp (4000+ lines of code)
@@ -5651,7 +5651,7 @@ ENTRY("THD_nwarp_dataset_array") ;
            create the warp dataset for that 'time' index, then apply it *****/
 
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"[nvar=%d]",nwc->nvar) ;
+if( verb_nww > 1 ) fprintf(stderr,"[nvar=%d]",nwc->nvar) ;
 #endif
 
    for( iv=0 ; iv < nvmax ; iv++ ){
@@ -5662,20 +5662,20 @@ if( verb_nww ) fprintf(stderr,"[nvar=%d]",nwc->nvar) ;
                                   /* end of 'time' inside nwc */
        /*** toss the old warps */
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"a") ;
+if( verb_nww > 1 ) fprintf(stderr,"a") ;
 #endif
        DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
        DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
        /*** get the iv-th warp from the list, and pad it */
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"b") ;
+if( verb_nww > 1 ) fprintf(stderr,"b") ;
 #endif
        dset_nwarp = IW3D_from_nwarp_catlist( nwc , iv ) ; /* get the iv-th warp */
        if( dset_nwarp == NULL ){  /* should never happen */
          ERROR_message("Can't acquire nwarp dataset #%d ?!?",iv); RETURN(NULL) ;
        }
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"'") ;
+if( verb_nww > 1 ) fprintf(stderr,"'") ;
 #endif
        if( next > 0 )
          dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
@@ -5692,7 +5692,7 @@ if( verb_nww ) fprintf(stderr,"'") ;
 
        INIT_IMARR(imar_nwarp) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"c") ;
+if( verb_nww > 1 ) fprintf(stderr,"c") ;
 #endif
        fim = THD_extract_float_brick(0,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
        fim = THD_extract_float_brick(1,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
@@ -5701,7 +5701,7 @@ if( verb_nww ) fprintf(stderr,"c") ;
        /* the actual work of setting up the warp for this sub-brick */
 
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"d") ;
+if( verb_nww > 1 ) fprintf(stderr,"d") ;
 #endif
        imar_src = THD_setup_nwarp( imar_nwarp, 0,amat ,
                                    nwarp_cmat, wincode , wfac ,
@@ -5728,13 +5728,13 @@ if( verb_nww ) fprintf(stderr,"d") ;
        dset_sss = DSET_IN_3DARR(dset_src,kds) ;
        if( DSET_NVALS(dset_sss) < iv ) continue ;  /* this one is done already */
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"-") ;
+if( verb_nww > 1 ) fprintf(stderr,"-") ;
 #endif
        fim = THD_extract_float_brick(iv,dset_sss) ; DSET_unload_one(dset_sss,iv) ;
        wim = mri_new_vol(nx,ny,nz,MRI_float) ;
        /*** the actual warping is done in the function below! ***/
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"+") ;
+if( verb_nww > 1 ) fprintf(stderr,"+") ;
 #endif
        THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
 
@@ -5743,19 +5743,19 @@ if( verb_nww ) fprintf(stderr,"+") ;
          float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
          float *war=MRI_FLOAT_PTR(wim) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"*") ;
+if( verb_nww > 1 ) fprintf(stderr,"*") ;
 #endif
          for( qq=0 ; qq < wim->nvox ; qq++ ){
            if( war[qq] < fb ) war[qq] = fb ; else if( war[qq] > ft ) war[qq] = ft ;
          }
        }
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"/") ;
+if( verb_nww > 1 ) fprintf(stderr,"/") ;
 #endif
        dset_ooo = DSET_IN_3DARR(dset_out,kds) ;
        EDIT_substitute_brick( dset_ooo , iv , MRI_float , MRI_FLOAT_PTR(wim) ) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"!") ;
+if( verb_nww > 1 ) fprintf(stderr,"!") ;
 #endif
        mri_clear_and_free(wim) ;  /* clear and free won't delete the data, just the shell */
        mri_free(fim) ;            /* this, on the other hand, is totally destroyed */
@@ -5767,7 +5767,7 @@ if( verb_nww ) fprintf(stderr,"!") ;
 
    /* toss the final warps */
 #ifdef DEBUG_CATLIST
-if( verb_nww ) fprintf(stderr,"z") ;
+if( verb_nww > 1 ) fprintf(stderr,"z") ;
 #endif
    DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
    DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
@@ -6899,7 +6899,7 @@ void IW3D_destroy_nwarp_catlist( Nwarp_catlist *nwc )
 
 void IW3D_set_geometry_nwarp_catlist( Nwarp_catlist *nwc , char *gsin )
 {
-   int ii , nw=0 , xpad,ypad,zpad ;
+   int ii , nw=0 , xpad,ypad,zpad , first=1 ;
    char  *gs , *gg , *hs ;
    float_triple delxyz ; float del ;
    THD_3dim_dataset *qset ;
@@ -6968,7 +6968,7 @@ ENTRY("IW3D_set_geometry_nwarp_catlist") ;
      nwc->xshift = nwc->yshift = nwc->zshift = 0.0f ;
      nwc->xpad = nwc->ypad = nwc->zpad = xpad ;
 #ifdef DEBUG_CATLIST
-INFO_message("IW3D_set_geometry_nwarp_catlist: padding = %d",xpad) ;
+if( verb_nww > 1 ) INFO_message("IW3D_set_geometry_nwarp_catlist: padding = %d",xpad) ;
 #endif
    } else {
      hs = strdup(gs) ;
@@ -6980,7 +6980,7 @@ INFO_message("IW3D_set_geometry_nwarp_catlist: padding = %d",xpad) ;
    nwc->actual_geomstring = hs ;  /* the one we actually use */
 
 #ifdef DEBUG_CATLIST
-ININFO_message("results: master_geomstring = %s  actual_geomstring = %s",gs,hs) ;
+if( verb_nww > 1 ) ININFO_message("results: master_geomstring = %s  actual_geomstring = %s",gs,hs) ;
 #endif
 
    /* Now regrid each dataset in the catlist (if needed) */
@@ -6989,19 +6989,26 @@ ININFO_message("results: master_geomstring = %s  actual_geomstring = %s",gs,hs) 
      if( !ISVALID_DSET(nwc->nwarp[ii]) ) continue ;
      gg = EDIT_get_geometry_string(nwc->nwarp[ii]) ;
 #ifdef DEBUG_CATLIST
-ININFO_message("-- warp #%d geometry = %s",ii,gg) ;
+if( verb_nww > 1 ) ININFO_message("-- warp #%d geometry = %s",ii,gg) ;
 #endif
      if( EDIT_geometry_string_diff(hs,gg) > 0.01f ){
 #ifdef DEBUG_CATLIST
-ININFO_message("   regridding warp #%d",ii) ;
+if( verb_nww > 1 ) ININFO_message("   regridding warp #%d to geometry = %s",ii,hs) ;
 #endif
        qset = THD_nwarp_regrid( nwc->nwarp[ii] , hs ) ;
        DSET_delete(nwc->nwarp[ii]) ;
        nwc->nwarp[ii] = qset ;
      }
 #ifdef DEBUG_CATLIST
-else ININFO_message("   do not need to regrid warp #%d",ii) ;
+else if( verb_nww > 1 ) ININFO_message("   do not need to regrid warp #%d",ii) ;
 #endif
+
+     if( first && ISVALID_DSET(nwc->nwarp[ii]) ){
+       nwc->actual_cmat = nwc->nwarp[ii]->daxes->ijk_to_dicom ;  /* 04 Dec 2014 */
+       nwc->actual_imat = MAT44_INV(nwc->actual_cmat) ;          /* [oopsie] */
+       first = 0 ;
+     }
+
    }
 
    EXRETURN ;
@@ -7018,6 +7025,7 @@ int IW3D_reduce_nwarp_catlist( Nwarp_catlist *nwc )
 {
    int ii,jj , ndone=0 , totaldone=0 ;
    int doall=0 ;
+   mat44 cmat , imat ;
 
 ENTRY("IW3D_reduce_nwarp_catlist") ;
 
@@ -7026,7 +7034,11 @@ ENTRY("IW3D_reduce_nwarp_catlist") ;
    if( nwc->actual_geomstring == NULL )  /* has to be set to something */
      IW3D_set_geometry_nwarp_catlist( nwc , NULL ) ;  /* so set it now */
 
+   cmat = nwc->actual_cmat ;  /* matrix to convert indexes to coords */
+   imat = nwc->actual_imat ;  /* and vice-versa */
+
 #ifdef DEBUG_CATLIST
+if( verb_nww > 1 ){
    fprintf(stderr,"+++++ initial structure of Nwarp_catlist:") ;
    for( ii=0 ; ii < nwc->ncat ; ii++ ){
      if( NWC_nwarp(nwc,ii) != NULL ){
@@ -7038,6 +7050,7 @@ ENTRY("IW3D_reduce_nwarp_catlist") ;
      }
    }
    fprintf(stderr,"\n") ;
+}
 #endif
 
    /* collapse ii and jj neighbors if possible;
@@ -7047,7 +7060,7 @@ ENTRY("IW3D_reduce_nwarp_catlist") ;
 Try_It_Again_Dude:  /* target for loop back when ndone > 0 */
 
 #ifdef DEBUG_CATLIST
-INFO_message("-- IW3D_reduce_nwarp_catlist -- start loop") ;
+if( verb_nww > 1 ) INFO_message("-- IW3D_reduce_nwarp_catlist -- start loop") ;
 #endif
 
    for( ndone=ii=0 ; ii < nwc->ncat-1 ; ii=jj ){
@@ -7056,19 +7069,19 @@ INFO_message("-- IW3D_reduce_nwarp_catlist -- start loop") ;
 
      if( NWC_null(nwc,ii) ){
 #ifdef DEBUG_CATLIST
-ININFO_message("  nwc[%d] is doubly NULL",ii) ;
+if( verb_nww > 1 ) ININFO_message("  nwc[%d] is doubly NULL",ii) ;
 #endif
      jj = ii+1 ; continue ; }
 
      /* search for next non-empty neighbor above (jj) */
 #ifdef DEBUG_CATLIST
-ININFO_message("  looking at nwc[%d]",ii) ;
+if( verb_nww > 1 ) ININFO_message("  looking at nwc[%d]",ii) ;
 #endif
      for( jj=ii+1 ; jj < nwc->ncat ; jj++ ) if( !NWC_null(nwc,jj) ) break ;
      if( jj == nwc->ncat ) break ;  /* nothing above, so we are done */
 
 #ifdef DEBUG_CATLIST
-ININFO_message(".. #%d and #%d are neighbors",ii,jj) ;
+if( verb_nww > 1 ) ININFO_message(".. #%d and #%d are neighbors",ii,jj) ;
 #endif
 
      /* neighbors are both matrices (matrix vectors?) ==> multiply them */
@@ -7078,7 +7091,7 @@ ININFO_message(".. #%d and #%d are neighbors",ii,jj) ;
        mat44 mii , mjj , mkk ;
        int nii=mvii->nmar , njj=mvjj->nmar , ntop=MAX(nii,njj) , kk ;
 #ifdef DEBUG_CATLIST
-ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[%d]-Matrix[%d] ii=%d jj=%d",nii,njj,ii,jj) ;
+if( verb_nww > 1 ) ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[%d]-Matrix[%d] ii=%d jj=%d",nii,njj,ii,jj) ;
 #endif
        mvnn = (mat44_vec *)malloc(sizeof(mat44_vec)) ;
        mvnn->nmar = ntop ;
@@ -7102,9 +7115,9 @@ ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[%d]-Matrix[%d] ii=%d jj=%d"
        THD_3dim_dataset *ids=nwc->nwarp[ii] , *jds=nwc->nwarp[jj] , *kds ;
        IndexWarp3D *iww , *jww , *kww ; char prefix[64] ;
 #ifdef DEBUG_CATLIST
-ININFO_message(".. IW3D_reduce_nwarp_catlist: warp-warp ii=%d jj=%d",ii,jj) ;
-ININFO_message("   ii=%d: geometry = %s",ii,EDIT_get_geometry_string(ids)) ;
-ININFO_message("   jj=%d: geometry = %s",jj,EDIT_get_geometry_string(jds)) ;
+if( verb_nww > 1 ) ININFO_message(".. IW3D_reduce_nwarp_catlist: warp-warp ii=%d jj=%d",ii,jj) ;
+if( verb_nww > 1 ) ININFO_message("   ii=%d: geometry = %s",ii,EDIT_get_geometry_string(ids)) ;
+if( verb_nww > 1 ) ININFO_message("   jj=%d: geometry = %s",jj,EDIT_get_geometry_string(jds)) ;
 #endif
        iww = IW3D_from_dataset(ids,0,0) ;
        jww = IW3D_from_dataset(jds,0,0) ;
@@ -7124,12 +7137,12 @@ ININFO_message("   jj=%d: geometry = %s",jj,EDIT_get_geometry_string(jds)) ;
        mat44_vec *mvii=nwc->awarp[ii] ;
        THD_3dim_dataset *jds=nwc->nwarp[jj] , *kds ;
        IndexWarp3D *jww , *kww ; char prefix[64] ;
-       mat44 mii ;
+       mat44 mii , qmat,tmat ;
        if( mvii->nmar == 1 ){
 #ifdef DEBUG_CATLIST
-ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[1]-warp ii=%d jj=%d",ii,jj) ;
+if( verb_nww > 1 ) ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[1]-warp ii=%d jj=%d",ii,jj) ;
 #endif
-         mii = mvii->mar[0] ;
+         qmat = mvii->mar[0] ; tmat = MAT44_MUL(qmat,cmat) ; mii = MAT44_MUL(imat,tmat) ;
          jww = IW3D_from_dataset(jds,0,0) ;
          kww = IW3D_compose_m1w2(mii,jww,CW_interp) ;
          IW3D_adopt_dataset(kww,jds) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
@@ -7140,7 +7153,7 @@ ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[1]-warp ii=%d jj=%d",ii,jj)
          ndone++ ;
        }
 #ifdef DEBUG_CATLIST
-else ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[%d]-warp ii=%d jj=%d -- skipped",mvii->nmar,ii,jj) ;
+else if( verb_nww > 1 ) ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[%d]-warp ii=%d jj=%d -- skipped",mvii->nmar,ii,jj) ;
 #endif
        continue ;
      }
@@ -7151,12 +7164,12 @@ else ININFO_message(".. IW3D_reduce_nwarp_catlist: Matrix[%d]-warp ii=%d jj=%d -
        mat44_vec *mvjj=nwc->awarp[jj] ;
        THD_3dim_dataset *ids=nwc->nwarp[ii] , *kds ;
        IndexWarp3D *iww , *kww ; char prefix[64] ;
-       mat44 mjj ;
+       mat44 mjj , qmat,tmat ;
        if( mvjj->nmar == 1 ){
 #ifdef DEBUG_CATLIST
-ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[1] ii=%d jj=%d",ii,jj) ;
+if( verb_nww > 1 ) ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[1] ii=%d jj=%d",ii,jj) ;
 #endif
-         mjj = mvjj->mar[0] ;
+         qmat = mvjj->mar[0] ; tmat = MAT44_MUL(qmat,cmat) ; mjj = MAT44_MUL(imat,tmat) ;
          iww = IW3D_from_dataset(ids,0,0) ;
          kww = IW3D_compose_w1m2(iww,mjj,CW_interp) ;
          IW3D_adopt_dataset(kww,ids) ; sprintf(prefix,"Nwarp#%02d",jj+1) ;
@@ -7167,7 +7180,7 @@ ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[1] ii=%d jj=%d",ii,jj) ;
          ndone++ ;
        }
 #ifdef DEBUG_CATLIST
-else ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[%d] ii=%d jj=%d -- skipped",mvjj->nmar,ii,jj) ;
+else if( verb_nww > 1 ) ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[%d] ii=%d jj=%d -- skipped",mvjj->nmar,ii,jj) ;
 #endif
        continue ;
      }
@@ -7176,7 +7189,7 @@ else ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[%d] ii=%d jj=%d -- s
    }
 
 #ifdef DEBUG_CATLIST
-ININFO_message("-- loop reduction operation count = %d",ndone) ;
+if( verb_nww > 1 ) ININFO_message("-- loop reduction operation count = %d",ndone) ;
 #endif
    totaldone += ndone ;
    if( ndone > 0 || !doall ){ doall = 1 ; goto Try_It_Again_Dude ; }
@@ -7212,6 +7225,7 @@ ININFO_message("-- loop reduction operation count = %d",ndone) ;
        This would save having to do inversions in IW3D_from_nwarp_catlist **/
 
 #ifdef DEBUG_CATLIST
+if( verb_nww > 1 ){
    fprintf(stderr,"+++++ final structure of Nwarp_catlist:") ;
    for( ii=0 ; ii < nwc->ncat ; ii++ ){
      if( NWC_nwarp(nwc,ii) != NULL ){
@@ -7223,6 +7237,7 @@ ININFO_message("-- loop reduction operation count = %d",ndone) ;
      }
    }
    fprintf(stderr,"\n") ;
+}
 #endif
 
    RETURN(totaldone) ;
@@ -7235,7 +7250,7 @@ THD_3dim_dataset * IW3D_from_nwarp_catlist( Nwarp_catlist *nwc , int vind )
 {
    int ii , do_regrid=0 ;
    char *prefix = "NwarpFromCatlist" ;
-   mat44        wmat      , tmat , smat , qmat ;
+   mat44        wmat      , tmat , smat , qmat , cmat,imat ;
    IndexWarp3D *warp=NULL , *tarp=NULL , *qarp=NULL ;
    THD_3dim_dataset *oset , *iset=NULL , *qset=NULL ;
 
@@ -7257,26 +7272,30 @@ ENTRY("IW3D_from_nwarp_catlist") ;
    /* start by initializing current state of cumulative warp */
 
    LOAD_IDENT_MAT44(wmat) ; warp = NULL ;
+   cmat = nwc->actual_cmat ;  /* matrix to convert indexes to coords */
+   imat = nwc->actual_imat ;  /* and vice-versa */
 
 #ifdef DEBUG_CATLIST
-INFO_message("IW3D_from_nwarp_catlist ncat=%d",nwc->ncat) ;
+if( verb_nww > 1 ) fprintf(stderr,"IW3D_from_nwarp_catlist ncat=%d",nwc->ncat) ;
 #endif
 
    for( ii=0 ; ii < nwc->ncat ; ii++ ){  /* warp catenation loop */
 
      if( NWC_awarp(nwc,ii) != NULL ){  /* matrix to apply */
        mat44_vec *mvii=nwc->awarp[ii] ;
-       smat = M44V_mat(mvii,vind) ;            /* pick out the vind-th matrix */
+       qmat = M44V_mat(mvii,vind) ;            /* pick out the vind-th matrix */
+       tmat = MAT44_MUL(qmat,cmat) ;
+       smat = MAT44_MUL(imat,tmat) ;     /* convert from xyz warp to ijk warp */
 
        if( warp == NULL ){                     /* thus far, only matrix warps */
 #ifdef DEBUG_CATLIST
-ININFO_message("matrix *matrix") ;
+if( verb_nww > 1 ) fprintf(stderr," [matrix*matrix]") ;
 #endif
          qmat = MAT44_MUL(smat,wmat) ; wmat = qmat ;  /* so multiply matrices */
 
        } else {                    /* instead, apply matrix to nonlinear warp */
 #ifdef DEBUG_CATLIST
-ININFO_message("warp *matrix") ;
+if( verb_nww > 1 ) fprintf(stderr," [warp*matrix]") ;
 #endif
          tarp = IW3D_compose_w1m2(warp,smat,CW_interp) ;
          IW3D_destroy(warp) ; warp = tarp ;
@@ -7290,18 +7309,18 @@ ININFO_message("warp *matrix") ;
        if( warp == NULL ){             /* create nonlinear warp at this point */
          if( ISIDENT_MAT44(wmat) ){     /* don't compose with identity matrix */
 #ifdef DEBUG_CATLIST
-ININFO_message("*warp") ;
+if( verb_nww > 1 ) fprintf(stderr," [warp]") ;
 #endif
            warp = qarp ; qarp = NULL ;
          } else {                             /* compose with previous matrix */
 #ifdef DEBUG_CATLIST
-ININFO_message("matrix *warp") ;
+if( verb_nww > 1 ) fprintf(stderr," [matrix*warp]") ;
 #endif
            warp = IW3D_compose_m1w2(wmat,qarp,CW_interp) ;
          }
        } else {           /* already have nonlinear warp, apply new one to it */
 #ifdef DEBUG_CATLIST
-ININFO_message("warp *warp") ;
+if( verb_nww > 1 ) fprintf(stderr," [warp*warp]") ;
 #endif
          tarp = IW3D_compose(warp,qarp,CW_interp) ;
          IW3D_destroy(warp) ; warp = tarp ;
@@ -7310,13 +7329,17 @@ ININFO_message("warp *warp") ;
        IW3D_destroy(qarp) ;
 
      } /* end of processing nonlinear warp */
-#ifdef DEBUG_CATLIST
-else
-ININFO_message("NULL entry?") ;
-#endif
 
      /* a null entry (which could have been reduced away) is just skipped */
-   }
+#ifdef DEBUG_CATLIST
+else if( verb_nww > 1 ) fprintf(stderr," [NULL entry?]") ;
+#endif
+
+   }  /* end of loop over input warps */
+
+#ifdef DEBUG_CATLIST
+if( verb_nww > 1 ) fprintf(stderr,"\n") ;
+#endif
 
    /*--- create output dataset ---*/
 
@@ -7356,7 +7379,7 @@ ENTRY("IW3D_read_nwarp_catlist") ;
    if( cstr == NULL || *cstr == '\0' ) RETURN(NULL) ;
 
 #ifdef DEBUG_CATLIST
-INFO_message("Enter IW3D_read_nwarp_catlist( %s )",cstr) ;
+if( verb_nww > 1 ) INFO_message("Enter IW3D_read_nwarp_catlist( %s )",cstr) ;
 #endif
 
    csar = NI_decode_string_list(cstr,";") ;
@@ -7373,7 +7396,7 @@ INFO_message("Enter IW3D_read_nwarp_catlist( %s )",cstr) ;
 
    if( csar->num == 1 ){
 #ifdef DEBUG_CATLIST
-ININFO_message("Open single warp dataset %s",csar->str[0]) ;
+if( verb_nww > 1 ) ININFO_message("Open single warp dataset %s",csar->str[0]) ;
 #endif
      cp = csar->str[0] ;
      if( strcasestr(cp,".1D") != NULL || strcasestr(cp,".txt") != NULL ){
@@ -7428,7 +7451,7 @@ ININFO_message("Open single warp dataset %s",csar->str[0]) ;
 
      if( strcasestr(cp,".1D") != NULL || strcasestr(cp,".txt") != NULL ){
 #ifdef DEBUG_CATLIST
-ININFO_message("Open matrix file %s",cp) ;
+if( verb_nww > 1 ) ININFO_message("Open matrix file %s",cp) ;
 #endif
        mvv = CW_read_affine_warp(cp) ;
        if( mvv == NULL || mvv->nmar <= 0 || mvv->mar == NULL ){  /* bad bad bad */
@@ -7437,7 +7460,7 @@ ININFO_message("Open matrix file %s",cp) ;
        }
        dxyz = M44_max_shifts(mvv) ;
 #ifdef DEBUG_CATLIST
-ININFO_message("  max shifts = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
+if( verb_nww > 1 ) ININFO_message("  max shifts = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
 #endif
        dxmax += dxyz.a ; dymax += dxyz.b ; dzmax += dxyz.c ;
        if( mvv->nmar > nwc->nvar ) nwc->nvar = mvv->nmar ;  /* update of max */
@@ -7448,7 +7471,7 @@ ININFO_message("  max shifts = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
      } else { /*-- read in a nonlinear 3D warp (from a dataset) --*/
 
 #ifdef DEBUG_CATLIST
-ININFO_message("Open dataset warp %s",cp) ;
+if( verb_nww > 1 ) ININFO_message("Open dataset warp %s",cp) ;
 #endif
        nset = CW_read_dataset_warp(cp) ;
        if( nset == NULL ){
@@ -7458,7 +7481,7 @@ ININFO_message("Open dataset warp %s",cp) ;
 
        dxyz = THD_nwarp_maxdisp(nset) ;
 #ifdef DEBUG_CATLIST
-ININFO_message("  max displacments = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
+if( verb_nww > 1 ) ININFO_message("  max displacments = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
 #endif
        dxmax += dxyz.a ; dymax += dxyz.b ; dzmax += dxyz.c ;
 
@@ -7467,7 +7490,7 @@ ININFO_message("  max displacments = %g %g %g",dxyz.a,dxyz.b,dxyz.c) ;
          geomstring = hs ;
        } else if( EDIT_geometry_string_diff(geomstring,hs) > 0.01f ){
 #ifdef DEBUG_CATLIST
-ININFO_message(" found geometry mismatch: orig=%s new=%s",geomstring,hs) ;
+if( verb_nww > 1 ) ININFO_message(" found geometry mismatch: orig=%s new=%s",geomstring,hs) ;
 #endif
          gs_mismatch++ ;
        }
@@ -7489,7 +7512,7 @@ ININFO_message(" found geometry mismatch: orig=%s new=%s",geomstring,hs) ;
 
    nwc->xshift = dxmax ; nwc->yshift = dymax ; nwc->zshift = dzmax ;
 #ifdef DEBUG_CATLIST
-ININFO_message("--- Totalized max displacments = %g %g %g",dxmax,dymax,dzmax) ;
+if( verb_nww > 1 ) ININFO_message("--- Totalized max displacments = %g %g %g",dxmax,dymax,dzmax) ;
 #endif
 
    /* if all nonlinear warps had same grid, save it in the catlist */
@@ -7498,7 +7521,7 @@ ININFO_message("--- Totalized max displacments = %g %g %g",dxmax,dymax,dzmax) ;
      IW3D_set_geometry_nwarp_catlist( nwc , geomstring ) ;
      ii = IW3D_reduce_nwarp_catlist( nwc ) ;  /* and can 'reduce' it now */
 #ifdef DEBUG_CATLIST
-if( ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
+if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
 #endif
    }
 

@@ -594,7 +594,8 @@ extern void reset_mnito(struct Three_D_View *im3d);
          (iq)->vwid->func->inten_pbar->update_me = 2 ;                     \
          update_MCW_pbar((iq)->vwid->func->inten_pbar) ; }                 \
       XMapRaised( XtDisplay( (iq)->vwid->  panel  ->frame ) ,              \
-                   XtWindow( (iq)->vwid->  panel  ->frame )  ) ; }
+                   XtWindow( (iq)->vwid->  panel  ->frame )  ) ;           \
+      FIX_SCALE_SIZE(iq) ; }
 
 #define CLOSE_PANEL(iq,panel)                                           \
    {  XtUnmanageChild( (iq)->vwid->  panel  ->frame ) ;                  \
