@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 4 , DEC, 2014 , DRG , "@Align_Centers" , 
+    MINOR , TYPE_NEW_OPT, 
+    "1Dmat_only_nodset option",
+    "Undid former fix because other scripts may rely on these shifted datasets\n"
+    "and added new option. Datasets will not be output or modified with\n"
+    "new option, and just the transformation matrix is output"
+} ,
+
 { 2 , DEC, 2014 , DRG , "@Align_Centers" , 
     MICRO , TYPE_BUG_FIX, 
     "fix for 1Dmat_only output",

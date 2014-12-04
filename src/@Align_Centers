@@ -10,6 +10,8 @@ PARSE:
    set v1i = ""
    set usecp = 1
    set xmat_only = 0
+   set xmat_only_meanit = 0  # really don't make new dsets
+ 
    set mode = 'grid'
    set overw = 0
    set overf = ''
@@ -60,6 +62,12 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-1Dmat_only") then
          set xmat_only = 1
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-1Dmat_only_nodset") then
+         set xmat_only = 1
+         set xmat_only_meanit = 1
          set donext = 0   
       endif
       
@@ -171,22 +179,26 @@ if ($mode == 'grid') then
    #apply delta
    if ($usecp == 1) then
       
-      if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
-         echo ""
-         echo "Error `basename $0`"
-         echo "Dset $v1_pth/$oname found, cleanup first!"
-         echo ""
-         set retval = 1
-         goto END
-      endif
+      if ($xmat_only_meanit != 1) then
+         if ( $overw == 0 && `@CheckForAfniDset $v1_pth/$oname` != 0 ) then
+            echo ""
+            echo "Error `basename $0`"
+            echo "Dset $v1_pth/$oname found, cleanup first!"
+            echo ""
+            set retval = 1
+            goto END
+         endif
 
-      3dcopy $overf $v1  $v1_pth/$oname
-      3drefit  -dxorigin $del_refit[1] \
-               -dyorigin $del_refit[2] \
-               -dzorigin $del_refit[3] $v1_pth/$oname
+         3dcopy $overf $v1  $v1_pth/$oname
+         3drefit  -dxorigin $del_refit[1] \
+                  -dyorigin $del_refit[2] \
+                  -dzorigin $del_refit[3] $v1_pth/$oname
+      endif
    else
-      3drefit  -dxorigin $del_refit[1] \
+      if ($xmat_only_meanit != 1) then
+          3drefit  -dxorigin $del_refit[1] \
                -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
+      endif
    endif
 else
    
@@ -202,11 +214,15 @@ else
          goto END
       endif
 
-      3dcopy $overf $v1  $v1_pth/$oname
-      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI \
-                           $v1_pth/$oname`
+      if ($xmat_only_meanit != 1) then
+         3dcopy $overf $v1  $v1_pth/$oname
+         set v1_center_RAI = `3dCM -automask -set $v2_center_RAI \
+                              $v1_pth/$oname`
+      endif
    else
-      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1`
+      if ($xmat_only_meanit != 1) then
+         set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1`
+      endif
    endif
    
    set del_RAI = ( 0 0 0 )
@@ -309,8 +325,10 @@ HELP:
    echo "   -echo: Echo all commands to terminal for debugging"
    echo "   -overwrite: You know what"
    echo "   -1Dmat_only: Only output the transfrom needed to align"
-   echo "                the centers. Do not shift the volumes."
+   echo "                the centers. Do not shift any child volumes."
    echo "                The transform is named DSET_shft.1D"
+   echo "   -1Dmat_only_nodset: Like above, but no dsets at all"
+   echo "                are created or changed."
    echo "   -base BASE: Base volume, typically a template."
    echo "   -dset DSET: Typically an anatomical dset to be"
    echo "               aligned to BASE."
