@@ -720,7 +720,7 @@ int main( int argc , char *argv[] )
 
    /* combine warps (matrices and datasets) to the extent possible */
 
-   IW3D_reduce_nwarp_catlist( nwc ) ;
+   IW3D_reduce_nwarp_catlist( nwc ) ;  /* may already have been done */
 
    /*--------- the actual work of warping ---------*/
 
