@@ -2220,6 +2220,7 @@ typedef struct { /* 17 Oct 2014 */
   mat44_vec        **awarp ;
   char              *actual_geomstring ;
   char              *master_geomstring ;
+  mat44              actual_cmat , actual_imat ;
   int              xpad  ,ypad  ,zpad ;
   float            xshift,yshift,zshift ;
 } Nwarp_catlist ;
