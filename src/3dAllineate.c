@@ -5416,8 +5416,8 @@ mri_genalign_set_pgmat(1) ;
    }
    if( matsave != NULL ) free((void *)matsave) ;
 
-   if( verb )
-     INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
+   if( 1 || verb )
+     INFO_message("3dAllineate: total CPU time = %.1f sec  Elapsed = %.1f\n",
                   COX_cpu_time() , COX_clock_time() ) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
    if( verb && apply_1D == NULL && prefix != NULL ){
