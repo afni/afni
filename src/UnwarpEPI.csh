@@ -39,6 +39,8 @@ set skip_medianized_unwarp = YES
 # set template = MNI152_T1_2009c_uni+tlrc
 set template = NONE
 
+set template_minpatch = 17
+
 #-- search for the template
 
 set tpath = `@FindAfniDsetPath $template`
@@ -243,8 +245,8 @@ echo "..... 3dQwarp the Calibration datasets together ....."
 3dQwarp -plusminus -pmNAMES Rev For   \
         -pblur 0.05 0.05 -blur -1 -1  \
         -noweight -minpatch 9         \
-        -base ${subj}_CForMS.nii      \
         -source ${subj}_CRevMS.nii    \
+        -base ${subj}_CForMS.nii      \
         -prefix ${subj}_WMid.nii
 
 # At this point, the unwarped calibration datasets
@@ -374,11 +376,19 @@ foreach rrr ( $other_for_root )
     set temp = ( $temp ${rrr}_${eee}_H.nii )
   end
 
-#-- this command warps all 3 echoes at once using the combined
-#-- affine warp for each time point (from 3dAllineate) and 
+#-- The next command warps all 3 echoes at once using the combined
+#-- affine warp for each time point (from 3dAllineate) and
 #-- nonlinear warp (from 3dQwarp); the output datasets get the
 #-- same name as the inputs with the suffix '_HWV': these are
 #-- one major result of this script!
+
+#-- The order of warps is in order from final space to original space,
+#-- since they are applied to the final space x-coordinates in the
+#-- order given. In this case, the data are registered after bein
+#-- unwarped, so the transformation back from output space to input
+#-- space is un-register first, then un-unwarp.
+#-- No '-master' option is given here, since the source 3D grid is
+#-- reasonable for these outputs.
 
   3dNwarpApply -nwarp "${rrr}_HWV.aff12.1D ${subj}_WMid_For_WARP.nii" \
                -source $temp -suffix WV -$interp_mode
@@ -433,10 +443,11 @@ if( $do_template == YES )then
 
 #-- warp the result to match the template (takes a while!)
 
-  3dQwarp -base   $AAtemplate              \
-          -source ${subj}_Anat_AU_al.nii   \
-          -allin -pblur -minpatch 13       \
-          -prefix ${subj}_Anat_Qtem.nii
+  3dQwarp -base   $AAtemplate             \
+          -source ${subj}_Anat_AU_al.nii  \
+          -minpatch $template_minpatch    \
+          -prefix ${subj}_Anat_Qtem.nii   \
+          -allin -pblur
 
 #-- transform all original EPI datasets directly to template space
 
@@ -449,8 +460,8 @@ if( $do_template == YES )then
     foreach eee ( $echolist )
       set temp = ( $temp ${rrr}_${eee}_H.nii )
     end
-    3dNwarpApply \
-       -nwarp "${rrr}_HWV.aff12.1D ${subj}_WMid_For_WARP.nii ${subj}_Anat_Qtem_WARP.nii" \
+    3dNwarpApply                                                                         \
+       -nwarp "${subj}_Anat_Qtem_WARP.nii ${rrr}_HWV.aff12.1D ${subj}_WMid_For_WARP.nii" \
        -source $temp -suffix WV_Qtem -$interp_mode -master $AAtemplate -dxyz 2.0
     unset temp
   end

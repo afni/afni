@@ -7007,6 +7007,12 @@ else if( verb_nww > 1 ) ININFO_message("   do not need to regrid warp #%d",ii) ;
        nwc->actual_cmat = nwc->nwarp[ii]->daxes->ijk_to_dicom ;  /* 04 Dec 2014 */
        nwc->actual_imat = MAT44_INV(nwc->actual_cmat) ;          /* [oopsie] */
        first = 0 ;
+#ifdef DEBUG_CATLIST
+if( verb_nww > 1 ){
+  DUMP_MAT44("nwarp_catlist actual_cmat",nwc->actual_cmat) ;
+  DUMP_MAT44("nwarp_catlist actual_imat",nwc->actual_imat) ;
+}
+#endif
      }
 
    }
@@ -7276,7 +7282,7 @@ ENTRY("IW3D_from_nwarp_catlist") ;
    imat = nwc->actual_imat ;  /* and vice-versa */
 
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"IW3D_from_nwarp_catlist ncat=%d",nwc->ncat) ;
+if( verb_nww > 1 ) fprintf(stderr,"{nwarp_catlist[%d]",vind) ;
 #endif
 
    for( ii=0 ; ii < nwc->ncat ; ii++ ){  /* warp catenation loop */
@@ -7286,6 +7292,11 @@ if( verb_nww > 1 ) fprintf(stderr,"IW3D_from_nwarp_catlist ncat=%d",nwc->ncat) ;
        qmat = M44V_mat(mvii,vind) ;            /* pick out the vind-th matrix */
        tmat = MAT44_MUL(qmat,cmat) ;
        smat = MAT44_MUL(imat,tmat) ;     /* convert from xyz warp to ijk warp */
+if( verb_nww > 2 ){
+  float a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ;
+  UNLOAD_MAT44(smat,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34) ;
+  fprintf(stderr," [new mat=%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f]",a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34);
+}
 
        if( warp == NULL ){                     /* thus far, only matrix warps */
 #ifdef DEBUG_CATLIST
@@ -7338,7 +7349,7 @@ else if( verb_nww > 1 ) fprintf(stderr," [NULL entry?]") ;
    }  /* end of loop over input warps */
 
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"\n") ;
+if( verb_nww > 1 ) fprintf(stderr,"}") ;
 #endif
 
    /*--- create output dataset ---*/

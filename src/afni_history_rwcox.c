@@ -43,7 +43,17 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 1 , DEC , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_GENERAL ,
+  { 5 , DEC , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_BUG_FIX ,
+   "Forgot to index-ize the matrix warps before applying them!" ,
+   "In the revised way of catenating time-dependent warps, the matrix warps\n"
+   "are kept in xyz coords until they are actually used, when they should be\n"
+   "transformed to ijk coords.  In the 'old' way, they were transformed\n"
+   "directly on input.  But in the 'new' way, I forgot to transform them\n"
+   "before applying them in the catenation loop, and the results were not\n"
+   "pretty.  I'm still searching for someone to blame for this, since it\n"
+   "clearly can't be MY fault.  Any volunteers?" } ,
+
+ { 1 , DEC , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_GENERAL ,
    "Extensive changes to make operations more general" ,
    "(1) Allow catenation of warps with different grid spacings -- the new\n"
    "Nwarp_catlist struct and functions will re-grid to make them match.\n"
