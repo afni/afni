@@ -1548,6 +1548,7 @@ void AFNI_sigfunc_alrm(int sig)
      "A fool and his p-value are soon non-replicated"                ,
      "What do you do all day? I do very little, and do it slowly"    ,
 
+     "Not yet quite as powerful as the totalized and integrated mind of Arisia"       ,
      "Are you testing for the Dull Hypothesis? It's never significant"                ,
      "For every complex problem there is an answer that is clear, simple, and wrong"  ,
      "For every simple problem there is an answer that is murky, complex, and wrong"  ,
