@@ -22,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.3.7, Oct 14, 2014
+Version 1.4.0, Dec 8, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -51,14 +51,16 @@ Usage:
  Input files for 3dLME can be in AFNI, NIfTI, or surface (niml.dset) format.
  
  In addition to R installtion, the following two R packages need to be acquired
- in R first before running 3dLME:
+ in R first before running 3dLME: "nlme" and "phia". In addition, the "snow"
+ package is also needed if one wants to take advantage of parallel computing.
+ To install these packages, run the following command at the terminal:
+
+ rPkgsInstall -pkgs ALL
+
+ Alternatively you may install them in R:
  
  install.packages("nlme")
  install.packages("phia")
-
- The snow package is also needed if one wants to take advantage of parallel 
- computing:
- 
  install.packages("snow")
  
  More details about 3dLME can be found at 
@@ -789,6 +791,9 @@ read.LME.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 
 ########################################################################
+
+# in case the user didn't put space around each colon (:), this 
+lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)", perl=TRUE)))                                             
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
