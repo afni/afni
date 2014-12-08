@@ -17,12 +17,11 @@ ExecName <- '3dMVM'
 
 # Global variables
 iterPar <- 'matrPar'
-respVar <- c('InputFile', 'Inputfile', 'Ausgang_val', 'ausgang_val')
+respVar <- c('InputFile', 'Inputfile', 'inputFile', 'inputfile', 'Ausgang_val', 'ausgang_val')
 
 #################################################################################
 ##################### Begin MVM Input functions ################################
 #################################################################################
-
 
 #The help function for 3dMVM batch (AFNI-style script mode)
 help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
@@ -32,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.2.9, Oct 24, 2014
+Version 3.3.0, Dec 8, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -59,21 +58,23 @@ Usage:
  
  If you want to cite the analysis approach, use the following at this moment:
  
- Chen, G., Adleman, N.E., Saad, Z.S., Leibenluft, E., Cox, R.W. (in press). 
+ Chen, G., Adleman, N.E., Saad, Z.S., Leibenluft, E., Cox, R.W. (2014). 
  Applications of Multivariate Modeling to Neuroimaging Group Analysis: A
  Comprehensive Alternative to Univariate General Linear Model. NeuroImage 99,
  571-588. 10.1016/j.neuroimage.2014.06.027
  http://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
  In addition to R installation, the following two R packages need to be acquired
- in R first before running 3dMVM:
- 
+ in R first before running 3dMVM: "afex" and "phia". In addition, the "snow" package
+ is also needed if one wants to take advantage of parallel computing. To install
+ these packages, run the following command at the terminal:
+
+ rPkgsInstall -pkgs ALL
+
+ Alternatively you may install them in R:
+
  install.packages("afex")
  install.packages("phia")
-
- The snow package is also needed if one wants to take advantage of parallel 
- computing:
- 
  install.packages("snow")
  
  Once the 3dMVM command script is constructed, it can be run by copying and
@@ -604,7 +605,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
 
    return(lop)
 }# end of read.MVM.opts.batch
-
+                                               
 # construct a glt list for testInteraction in phia
 # NEED to solve the problem when a quantitative variable is tested alone:
 # with pairwise = NULL!!!                                                
@@ -1046,6 +1047,9 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 
 ########################################################################
 
+# in case the user didn't put space around each colon (:), this 
+lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)", perl=TRUE)))                                             
+
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(lop$vVarCenters), '\\,')[[1]])
                                                 
@@ -1129,8 +1133,6 @@ NoFile <- dim(lop$dataStr[1])[1]
 #if (length(unique(lop$dataStr$Subj)) != length(lop$dataStr$Subj)) RM <- TRUE else RM <- FALSE
 
 cat('Reading input files now...\n\n')
-cat('Reading input files: Done!\n\n')
-
 if(any(is.na(suppressWarnings(as.numeric(lop$dataStr[, FileCol]))))) {  # not elegant because "NAs introduced by coercion"
                                                 
 # Read in the 1st input file so that we have the dimension information
@@ -1146,6 +1148,7 @@ head <- inData
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 dim(inData) <- c(dimx, dimy, dimz, NoFile)
+cat('Reading input files: Done!\n\n')
 
 # voxel-wise covariate files
 if(any(!is.na(lop$vVars))) {
@@ -1343,13 +1346,12 @@ if(is.na(lop$wsVars) & is.na(lop$mVar)) brickNames <-
 #          paste(dimnames(uvfm)[[1]][2:(length(dimnames(uvfm)[[1]])-1)], 'F'),
 #          paste(dimnames(uvfm$anova)[[1]][-1], 'F'))
 
-if(!is.na(lop$mVar))                                                
-   brickNames <- c(brickNames, paste(dimnames(uvfm$anova)[[1]][1:nF_mvE4], '-MV0-', 'F'))
+if(!is.na(lop$mVar)) brickNames <- c(brickNames, paste(mvfm$terms, '-MV0-', 'F'))                                    
 if(lop$mvE4a)                                                
    brickNames <- c(brickNames, paste(dimnames(uvfm$anova)[[1]][1:nF_mvE4], '-mvE4', 'Chisq'))
 if(lop$mvE4) brickNames <- paste(dimnames(uvfm$anova)[[1]][1:nF_mvE4], '-mvE4', 'Chisq')  # no appending
 
-for(ii in 1:lop$num_glt) {
+if(lop$num_glt>0) for(ii in 1:lop$num_glt) {
    brickNames <- c(brickNames, lop$gltLabel[ii])
    brickNames <- c(brickNames, paste(lop$gltLabel[ii], 't'))
 }
