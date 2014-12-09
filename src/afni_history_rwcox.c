@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , DEC , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_BUG_FIX ,
+  { 9 , DEC , 2014 , RWC , "afni GUI" , MINOR , TYPE_MODIFY ,
+   "Add 'Alpha' fading to overlay" ,
+   "In this mode, the outlines of the supra-threshold regions are outlined\n"
+   "(unless AFNI_EDGIZE_OVERLAY is NO).  Alpha fading is turned off in\n"
+   "Clusterize at this time, since it would be complicated to make the 2\n"
+   "things work together." } ,
+
+ { 5 , DEC , 2014 , RWC , "3dNwarpApply" , MAJOR , TYPE_BUG_FIX ,
    "Forgot to index-ize the matrix warps before applying them!" ,
    "In the revised way of catenating time-dependent warps, the matrix warps\n"
    "are kept in xyz coords until they are actually used, when they should be\n"
