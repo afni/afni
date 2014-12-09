@@ -27,7 +27,7 @@ void mri_Set_OK_catrandwrap(void) { OK_wrap = 2; return; }
 void mri_Set_OK_WrapZero(void) { WrapZero = 1; return; }
 void mri_Set_KO_WrapZero(void) { WrapZero = 0; return; }
 
-MRI_IMAGE * mri_cat2D(  int mx , int my , int gap , 
+MRI_IMAGE * mri_cat2D(  int mx , int my , int gap ,
                         void *gapval , MRI_IMARR *imar )
 {
    int nx , ny , ii , jj , kind , ij , nxout , nyout , ijoff , jout,iout, iijj ;
@@ -38,9 +38,9 @@ ENTRY("mri_cat2D") ;
 
    /*--- sanity checks ---*/
 
-   if(   mx < 1 || my < 1 || imar == NULL || 
-         (!OK_wrap && imar->num < mx*my) ) 
-      RETURN( NULL );   
+   if(   mx < 1 || my < 1 || imar == NULL ||
+         (!OK_wrap && imar->num < mx*my) )
+      RETURN( NULL );
    if( gap < 0 || (gap > 0 && gapval == NULL) )                RETURN( NULL );
 
    for( ij=0 ; ij < mx*my ; ij++ ){     /* find first non-empty image */
@@ -64,7 +64,7 @@ ENTRY("mri_cat2D") ;
       switch (OK_wrap) {
          default:
          case 0:
-            iijj = ij; 
+            iijj = ij;
             if (iijj >= imar->num) iijj = imar->num-1;
             break;
           case 1:
@@ -95,7 +95,7 @@ ENTRY("mri_cat2D") ;
             switch (OK_wrap) {
                default:
                case 0:
-                  iijj = ij; 
+                  iijj = ij;
                   if (iijj >= imar->num) iijj = imar->num-1;
                   break;
                case 1:
@@ -124,6 +124,12 @@ ENTRY("mri_cat2D") ;
                   byte *pout = ((byte *) vout);
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      (void) memset( pout+(3*ijoff) , 0 , sizeof(byte)*(3*nx) ) ;
+               } break ;
+
+               case MRI_rgba:{                      /* 09 Dec 2014 */
+                  rgba *pout = (rgba *)vout ;
+                  for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
+                     (void) memset( pout+ijoff , 0 , sizeof(rgba)*nx ) ;
                } break ;
 
                case MRI_short:{
@@ -176,6 +182,13 @@ ENTRY("mri_cat2D") ;
                        *pin  =  (byte *) MRI_RGB_PTR(imin) ;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      memcpy( pout+(3*ijoff) , pin , sizeof(byte)*(3*nx) ) , pin += 3*nx ;
+               } break ;
+
+               case MRI_rgba:{                              /* 09 Dec 2014 */
+                  rgba *pout = (rgba *)vout ,
+                       *pin  = MRI_RGBA_PTR(imin) ;
+                  for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
+                     memcpy( pout+ijoff , pin , sizeof(rgba)*nx ) , pin += nx ;
                } break ;
 
                case MRI_short:{
@@ -232,6 +245,11 @@ ENTRY("mri_cat2D") ;
                for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
             } break ;
 
+            case MRI_rgba:{      /* 09 Dec 2014 */
+              rgba gval = *((rgba *)gapval) , *pout = (rgba *)vout ;
+              for( ij=0 ; ij < ii ; ij++ ) pout[ij+ijoff] = gval ;
+            } break ;
+
             case MRI_rgb:{       /* 11 Feb 1999 */
                byte rval = *(((byte *)gapval)  ) ,
                     gval = *(((byte *)gapval)+1) ,
@@ -278,6 +296,12 @@ ENTRY("mri_cat2D") ;
          switch( kind ){
             case MRI_byte:{
                byte gval = *((byte *)gapval) , *pout = ((byte *) vout) ;
+               for( ij=0 ; ij < gap ; ij++ , ijoff++ )
+                  for( jj=0 ; jj < nyout ; jj++ ) pout[jj*nxout+ijoff] = gval ;
+            } break ;
+
+            case MRI_rgba:{             /* 09 Dec 2014 */
+               rgba gval = *((rgba *)gapval) , *pout = ((rgba *) vout) ;
                for( ij=0 ; ij < gap ; ij++ , ijoff++ )
                   for( jj=0 ; jj < nyout ; jj++ ) pout[jj*nxout+ijoff] = gval ;
             } break ;
