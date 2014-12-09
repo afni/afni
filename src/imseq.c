@@ -9433,6 +9433,8 @@ void ISQ_make_montage( MCW_imseq *seq )
    int   isrgb_ov ;    /* 07 Mar 2001 */
    int   div=0 ;
 
+   rgba  gap_rgba ;    /* 09 Dec 2014 */
+
 ENTRY("ISQ_make_montage");
 
    if( ! ISQ_VALID(seq) ) EXRETURN ;
@@ -9620,14 +9622,16 @@ STATUS("Destroying underlay image array") ;
             tim = ISQ_manufacture_one( nim , 1 , seq ) ;
             ADDTO_IMARR(mar,tim) ;
             if( tim != NULL ){
-               nov++ ; isrgb_ov = isrgb_ov || tim->kind == MRI_rgb ;
+               nov++ ;
+                    if( tim->kind == MRI_rgb  && isrgb_ov == 0 ) isrgb_ov = 1 ;
+               else if( tim->kind == MRI_rgba                  ) isrgb_ov = 2 ;
             }
          }
          if( seq->mont_mode > 0 ){ div = 0; ISQ_set_deltival(seq,div); }
 
          /* 07 Mar 2001: deal with possible RGB overlays */
 
-         if( isrgb_ov ){
+         if( isrgb_ov == 1 ){
             for( ij=0 ; ij < nmont ; ij++ ){
                tim = IMARR_SUBIMAGE(mar,ij) ;
                if( tim != NULL && tim->kind != MRI_rgb ){
@@ -9642,14 +9646,33 @@ STATUS("Destroying underlay image array") ;
                   IMARR_SUBIMAGE(mar,ij) = qim ;
                }
             }
+         } else if( isrgb_ov == 2 ){                /* 09 Dec 2014 */
+           for( ij=0 ; ij < nmont ; ij++ ){
+             tim = IMARR_SUBIMAGE(mar,ij) ;
+             if( tim != NULL && tim->kind != MRI_rgba ){
+               MRI_IMAGE *qim , *zim ;
+
+               if( tim->kind == MRI_short ){
+                  zim = ISQ_index_to_rgb( seq->dc , 1 , tim ) ;
+                  qim = mri_to_rgba(zim) ; mri_free(zim) ;
+               } else {
+                  qim = mri_to_rgba(tim) ;
+               }
+
+               mri_free(tim) ; IMARR_SUBIMAGE(mar,ij) = qim ;
+             }
+           }
          }
 
-         if( isrgb_ov ){
+         if( isrgb_ov == 1 ){
             gap_rgb[0] = gap_rgb[1] = gap_rgb[2] = 0 ;
-            gapval = (void *) gap_rgb ;
+            gapval = (void *)gap_rgb ;
+         } else if( isrgb_ov == 2 ){     /* 09 Dec 2014 */
+            gap_rgba.r = gap_rgba.g = gap_rgba.b = gap_rgba.a = 0 ;
+            gapval = (void *)(&gap_rgba) ;
          } else {
             gap_ov = 0 ;
-            gapval = (void *) &gap_ov ;
+            gapval = (void *)(&gap_ov) ;
          }
 
          if( nov > 0 ){
@@ -13069,15 +13092,14 @@ ENTRY("ISQ_handle_keypress") ;
 void mri_rgb_transform_nD( MRI_IMAGE *im, int ndim, generic_func *tfunc )
 {
    MRI_IMAGE *flim , *shim ;
-   byte  *iar ;
    float *sar , *far ;
    int ii , nvox , rr,gg,bb ;
    float fac , smax,fmax,fsrat ;
 
 ENTRY("mri_rgb_transform_nD") ;
 
-   if( im    == NULL || im->kind != MRI_rgb     ) EXRETURN ;  /* bad image? */
-   if( tfunc == NULL || (ndim !=0 && ndim != 2) ) EXRETURN ;  /* bad tfunc? */
+   if( im    == NULL || (im->kind != MRI_rgb && im->kind != MRI_rgba) ) EXRETURN ;  /* bad image? */
+   if( tfunc == NULL || (ndim !=0            && ndim != 2           ) ) EXRETURN ;  /* bad tfunc? */
 
    flim = mri_to_float( im ) ;              /* input intensity image */
    fmax = mri_max( flim ) ;
@@ -13103,22 +13125,42 @@ ENTRY("mri_rgb_transform_nD") ;
    if( smax == 0.0 ){ mri_free(flim); mri_free(shim); EXRETURN; }
    fsrat = fmax / smax ;
 
-   iar = MRI_BYTE_PTR(im) ;
    far = MRI_FLOAT_PTR(flim) ; sar = MRI_FLOAT_PTR(shim) ;
 
-   /* loop over pixels,
-      adjusting the color of each one by the transformed intensity */
+   /* loop over pixels, adjusting color of each one by transformed intensity */
 
-   nvox = im->nvox ;
-   for( ii=0 ; ii < nvox ; ii++ ){
-     if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){       /* inten <= 0? */
-       iar[3*ii] = iar[3*ii+1] = iar[3*ii+2] = 0 ;
-     } else {
-       fac = fsrat * sar[ii] / far[ii] ; /* will be positive */
-       rr  = fac * iar[3*ii]   ; iar[3*ii  ] = (rr > 255) ? 255 : rr ;
-       gg  = fac * iar[3*ii+1] ; iar[3*ii+1] = (gg > 255) ? 255 : gg ;
-       bb  = fac * iar[3*ii+2] ; iar[3*ii+2] = (bb > 255) ? 255 : bb ;
+   switch( im->kind ){
+     case MRI_rgb:{
+       byte *iar = MRI_BYTE_PTR(im) ;
+       nvox = im->nvox ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){       /* inten <= 0? */
+           iar[3*ii] = iar[3*ii+1] = iar[3*ii+2] = 0 ;
+         } else {
+           fac = fsrat * sar[ii] / far[ii] ; /* will be positive */
+           rr  = fac * iar[3*ii]   ; iar[3*ii  ] = (rr > 255) ? 255 : rr ;
+           gg  = fac * iar[3*ii+1] ; iar[3*ii+1] = (gg > 255) ? 255 : gg ;
+           bb  = fac * iar[3*ii+2] ; iar[3*ii+2] = (bb > 255) ? 255 : bb ;
+         }
+       }
      }
+     break ;
+
+     case MRI_rgba:{
+       rgba *jar = MRI_RGBA_PTR(im) ;
+       nvox = im->nvox ;
+       for( ii=0 ; ii < nvox ; ii++ ){
+         if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){       /* inten <= 0? */
+           jar[ii].r = jar[ii].g = jar[ii].b = 0 ;
+         } else {
+           fac = fsrat * sar[ii] / far[ii] ; /* will be positive */
+           rr  = fac * jar[ii].r ; jar[ii].r = (rr > 255) ? 255 : rr ;
+           gg  = fac * jar[ii].g ; jar[ii].g = (gg > 255) ? 255 : gg ;
+           bb  = fac * jar[ii].b ; jar[ii].b = (bb > 255) ? 255 : bb ;
+         }
+       }
+     }
+     break ;
    }
 
    mri_free(flim) ; mri_free(shim) ;  /* toss the trash */
