@@ -2724,6 +2724,8 @@ ENTRY("ISQ_overlay") ;
 
    if( ovim->nvox != npix ) RETURN(NULL) ;
 
+   if( alpha > 1.0f ) alpha = 1.0f ;
+
    /*-- Case: both are short indices, no transparency --*/
 
    if( ulim->kind == MRI_short && ovim->kind == MRI_short && alpha > 0.99f ){
@@ -2742,6 +2744,11 @@ ENTRY("ISQ_overlay") ;
    switch( ulim->kind ){              /* we always make a new RGB underlay,  */
      case MRI_rgb:                   /* since this will be the output image */
        outim = mri_copy(ulim) ;
+       our   = MRI_RGB_PTR(outim) ;
+     break ;
+
+     case MRI_rgba:
+       outim = mri_to_rgb(ulim) ;
        our   = MRI_RGB_PTR(outim) ;
      break ;
 
@@ -2765,6 +2772,22 @@ ENTRY("ISQ_overlay") ;
      case MRI_short:
        orim = ISQ_index_to_rgb( dc , 1 , ovim ) ;
        orr  = MRI_RGB_PTR(orim) ;
+     break ;
+
+     case MRI_rgba:{                                         /* 08 Dec 2014 */
+       rgba *ovar = MRI_RGBA_PTR(ovim) ; byte rr,gg,bb,aa ;
+       register float al=alpha , am,bm ;
+       for( jj=ii=0 ; ii < npix ; ii++,jj+=3 ){
+          rr = ovar[ii].r; gg = ovar[ii].g; bb = ovar[ii].b; aa = ovar[ii].a;
+          if( aa > 0 && (rr > 0 || gg > 0 || bb > 0 ) ){
+            am = aa*al/255.0f ; bm = 1.0f-am ;
+            our[jj  ] = am*rr + bm*our[jj  ] ;  /* mix colors */
+            our[jj+1] = am*gg + bm*our[jj+1] ;
+            our[jj+2] = am*bb + bm*our[jj+2] ;
+           }
+       }
+       RETURN(outim) ;
+     }
      break ;
    }
 

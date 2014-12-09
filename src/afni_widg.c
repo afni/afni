@@ -2943,7 +2943,7 @@ STATUS("making func->rowcol") ;
      func->thr_sign_av =
         new_MCW_arrowval(
            func->thr_menu ,        /* parent */
-           "Sign" ,                /* label */
+           "Sign " ,               /* label */
            AVOPT_STYLE ,           /* arrow directions */
            0  ,                    /* min value */
            2  ,                    /* max value */
@@ -2957,6 +2957,52 @@ STATUS("making func->rowcol") ;
         ) ;
       MCW_reghint_children( func->thr_sign_av->wrowcol ,
                             "show Positives, Negatives, or Both?" ) ;
+    }
+
+   /* Threshold use alpha arrowval [08 Dec 2014] */
+
+   { static char *thr_alpha_label[3] = { "Off" , "Linear" , "Quadratic"} ;
+     im3d->vinfo->thr_use_alpha = 0 ;  /* default = "Off" */
+     func->thr_alpha_av =
+        new_MCW_arrowval(
+           func->thr_menu ,             /* parent */
+           "Alpha" ,                    /* label */
+           AVOPT_STYLE ,                /* arrow directions */
+           0  ,                         /* min value */
+           2  ,                         /* max value */
+           im3d->vinfo->thr_use_alpha , /* init value */
+           MCW_AV_editext ,             /* input/output text display */
+           0 ,                          /* 0 decimal shift */
+           AFNI_func_alpha_CB ,         /* routine to call after click */
+           (XtPointer)im3d ,            /* data to pass */
+           MCW_av_substring_CB ,        /* text creation routine */
+           thr_alpha_label              /* data for above */
+        ) ;
+      MCW_reghint_children( func->thr_alpha_av->wrowcol ,
+                            "Alpha fade colors below threshold? [is Off in Clusterize]" ) ;
+    }
+
+   /* Threshold alpha floor arrowval [09 Dec 2014] */
+
+   { static char *thr_floor_label[4] = { "0.0" , "0.2" , "0.4" , "0.6" } ;
+     im3d->vinfo->thr_alpha_floor = 0.0f ;
+     func->thr_floor_av =
+        new_MCW_arrowval(
+           func->thr_menu ,             /* parent */
+           "Floor" ,                    /* label */
+           AVOPT_STYLE ,                /* arrow directions */
+           0  ,                         /* min value */
+           3  ,                         /* max value */
+           0                          , /* init value */
+           MCW_AV_editext ,             /* input/output text display */
+           0 ,                          /* 0 decimal shift */
+           AFNI_func_floor_CB ,         /* routine to call after click */
+           (XtPointer)im3d ,            /* data to pass */
+           MCW_av_substring_CB ,        /* text creation routine */
+           thr_floor_label              /* data for above */
+        ) ;
+      MCW_reghint_children( func->thr_floor_av->wrowcol ,
+                            "Floor value for Alpha fading" ) ;
     }
 
    /* FDR button */
