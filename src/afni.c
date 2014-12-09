@@ -1513,6 +1513,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Facts are stubborn, but statistics are pliable"                ,
      "I can prove anything with statistics, except the truth"        ,
      "The chief function of the body is to carry the brain around"   ,
+     "The chief function of the brain is to hold the ears apart"     ,
      "Humor is the most significant activity of the human brain"     ,
      "Tears are not a sign of weakness, but a sign of a pure heart"  ,
      "Eventually, everything goes away"                              ,
