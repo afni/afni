@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , DEC , 2014 , RWC , "afni GUI" , MINOR , TYPE_MODIFY ,
+  { 9 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "Make 'Alpha' mode with with Montages -- oops" ,
+   "There's probably other stuff that doesn't work with RGBA overlays, but\n"
+   "we'll have to see what happens." } ,
+
+ { 9 , DEC , 2014 , RWC , "afni GUI" , MINOR , TYPE_MODIFY ,
    "Add 'Alpha' fading to overlay" ,
    "In this mode, the outlines of the supra-threshold regions are outlined\n"
    "(unless AFNI_EDGIZE_OVERLAY is NO).  Alpha fading is turned off in\n"
