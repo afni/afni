@@ -5290,7 +5290,7 @@ printf(
     "\n"
     "           none            : do not apply any real-time sorting\n"
     "           acq_time        : by acqusition time, if set\n"
-    "           default         : default based on image index number\n"
+    "           default         : sort by run, [ATIME], IIND, RIND\n"
     "           geme_index      : by GE multi-echo index\n"
     "           num_suffix      : based on numeric suffix\n"
     "           zposn           : based on z-coordinate and input order\n"
