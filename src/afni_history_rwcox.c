@@ -43,7 +43,14 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 9 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+  { 10 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Driver for Alpha settings; fix outline of supra-threshold regions" ,
+   "driver command SET_FUNC_ALPHA now works.\n"
+   "Outline of supra-threshold regions is now the next set of pixels outside\n"
+   "each region, rather than the border pixels inside the region (as\n"
+   "before)." } ,
+
+ { 9 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "Make 'Alpha' mode with with Montages -- oops" ,
    "There's probably other stuff that doesn't work with RGBA overlays, but\n"
    "we'll have to see what happens." } ,

@@ -2984,7 +2984,7 @@ STATUS("making func->rowcol") ;
 
    /* Threshold alpha floor arrowval [09 Dec 2014] */
 
-   { static char *thr_floor_label[4] = { "0.0" , "0.2" , "0.4" , "0.6" } ;
+   { static char *thr_floor_label[5] = { " 0.0 " , " 0.2 " , " 0.4 " , " 0.6 " , " 0.8 " } ;
      im3d->vinfo->thr_alpha_floor = 0.0f ;
      func->thr_floor_av =
         new_MCW_arrowval(
@@ -2992,7 +2992,7 @@ STATUS("making func->rowcol") ;
            "Floor" ,                    /* label */
            AVOPT_STYLE ,                /* arrow directions */
            0  ,                         /* min value */
-           3  ,                         /* max value */
+           4  ,                         /* max value */
            0                          , /* init value */
            MCW_AV_editext ,             /* input/output text display */
            0 ,                          /* 0 decimal shift */
