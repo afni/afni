@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Dec, 2014, RCR, "meica.py", MICRO, TYPE_BUG_FIX,
+   "fixed 3dTshift input in case of --no_despike",
+   "Thanks to M Plitt for the code fix."
+ } ,
+
  {  2,  Dec, 2014, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "-tlrc_NL_awpy_rm was not being applied",
    NULL
