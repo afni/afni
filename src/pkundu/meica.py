@@ -395,7 +395,7 @@ for echo_ii in range(len(datasets)):
 	if echo_ii==0: e1_dsin = dsin
 	logcomment("Preliminary preprocessing dataset %s of TE=%sms to produce %s_ts+orig" % (indata,str(tes[echo_ii]),dsin) )
 	#Pre-treat datasets: De-spike, RETROICOR in the future?
-	intsname = "%s%s" % (indata,isf)
+	intsname = "%s%s" % (dsprefix(indata),isf)
 	if not options.no_despike:
 		intsname = "./%s_pt.nii.gz" % dsprefix(indata)
 		sl.append("3dDespike -overwrite -prefix %s %s%s" % (intsname,dsprefix(indata),isf))
