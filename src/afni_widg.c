@@ -2962,7 +2962,10 @@ STATUS("making func->rowcol") ;
    /* Threshold use alpha arrowval [08 Dec 2014] */
 
    { static char *thr_alpha_label[3] = { "Off" , "Linear" , "Quadratic"} ;
-     im3d->vinfo->thr_use_alpha = 0 ;  /* default = "Off" */
+     char *cpt = getenv("AFNI_FUNC_ALPHA") ; int mm=0 ;
+          if( cpt != NULL && strcasecmp(cpt,"Linear")    == 0 ) mm = 1 ;
+     else if( cpt != NULL && strcasecmp(cpt,"Quadratic") == 0 ) mm = 2 ; 
+     im3d->vinfo->thr_use_alpha = mm ;  /* default = "Off" */
      func->thr_alpha_av =
         new_MCW_arrowval(
            func->thr_menu ,             /* parent */
