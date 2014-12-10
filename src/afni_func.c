@@ -319,6 +319,7 @@ ENTRY("AFNI_func_alpha_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->thr_use_alpha = av->ival ;
+
 #if 0
    STATUS_IM3D_TMASK(im3d) ;
    STATUS("clear tmask") ;
@@ -1530,6 +1531,125 @@ static void mri_edgize( MRI_IMAGE *im )
 
 /*-----------------------------------------------------------------------*/
 
+static void mri_edgize_outer( MRI_IMAGE *im )
+{
+   int ii , jj , nx,ny,nxy , joff ;
+
+   if( im == NULL ) return ;
+
+   nx = im->nx ; ny = im->ny ; nxy = nx * ny ;
+   if( nx < 3 || ny < 3 ) return ;  /* no interior pixels at all?! */
+
+   switch( im->kind ){
+
+     case MRI_byte:{                             /* 09 Dec 2014 */
+       byte *ajj , *ajm , *ajp , *atemp , *ar ;
+       ar    = MRI_BYTE_PTR(im) ;
+       atemp = (byte *)calloc(sizeof(byte),nxy); if( atemp == NULL ) return;
+       for( jj=1 ; jj < ny-1 ; jj++ ){
+         joff = jj * nx ;      /* offset into this row */
+         ajj  = ar    + joff ; /* pointer to this row */
+         ajm  = ajj-nx ;       /* pointer to last row */
+         ajp  = ajj+nx ;       /* pointer to next row */
+         for( ii=1 ; ii < nx-1 ; ii++ ){
+           if( ajj[ii] != 0 ){
+             ajj[ii] = 1 ;
+             if( ajm[ii]   == 0 || ajp[ii]   == 0 ||
+                 ajj[ii+1] == 0 || ajj[ii-1] == 0   ) atemp[ii+joff] = 1 ;
+           }
+         }
+         if( ajj[0] != 0 ){  /* deal with left edge of row */
+           ajj[0] = 1 ;
+           if( ajm[0] == 0 || ajp[0] == 0 || ajj[1] == 0 ) atemp[joff] = 1 ;
+         }
+         if( ajj[nx-1] != 0 ){  /* and right edge */
+           ajj[nx-1] = 1 ;
+           if( ajm[nx-1] == 0 || ajp[nx-1] == 0 || ajj[nx-2] == 0 ) atemp[nx-1+joff] = 1 ;
+         }
+       }
+       /* deal with the top row */
+       joff = 0 ; ajj  = ar + joff ; ajp = ajj+nx ;
+       for( ii=1 ; ii < nx-1 ; ii++ ){
+         if( ajj[ii] != 0 ){
+           ajj[ii] = 1 ;
+           if( ajp[ii]   == 0 || ajj[ii+1] == 0 || ajj[ii-1] == 0 ) atemp[ii+joff] = 1 ;
+         }
+       }
+       /* deal with the bottom row */
+       joff = (ny-1) * nx ; ajj  = ar + joff ; ajm  = ajj-nx ;
+       for( ii=1 ; ii < nx-1 ; ii++ ){
+         if( ajj[ii] != 0 ){
+           ajj[ii] = 1 ;
+           if( ajm[ii]   == 0 || ajj[ii+1] == 0 || ajj[ii-1] == 0 ) atemp[ii+joff] = 1 ;
+         }
+       }
+       /* we do not deal with the 4 corner points -- let them eat cake */
+
+       /* at this point, atemp = 1 only at edge points of clusters */
+       /* now modify atemp so that only points that are zero AND are
+          next to an edge point get a nonzero value == 'outer' edge */
+
+       for( jj=1 ; jj < ny-1 ; jj++ ){
+         joff = jj * nx ;      /* offset into this row */
+         ajj  = atemp + joff ; /* pointer to this row */
+         ajm  = ajj-nx ;       /* pointer to last row */
+         ajp  = ajj+nx ;       /* pointer to next row */
+         for( ii=1 ; ii < nx-1 ; ii++ ){
+           if( ar[ii+joff] == 0 ){  /* not inside a blob */
+             if( ajm[ii-1] != 0 || ajm[ii] != 0 || ajm[ii+1] != 0 ||
+                 ajj[ii-1] != 0 || ajj[ii] != 0 || ajj[ii+1] != 0 ||
+                 ajp[ii-1] != 0 || ajp[ii] != 0 || ajp[ii+1] != 0   ) ar[ii+joff] = 2 ;
+           } else {
+             ar[ii+joff] = 0 ;  /* inside a blob ==> zero out */
+           }
+         }
+         if( ar[joff] == 0 ){   /* left edge of row */
+           if( ajm[0] != 0 || ajm[0+1] != 0 ||
+               ajj[0] != 0 || ajj[0+1] != 0 ||
+               ajp[0] != 0 || ajp[0+1] != 0   ) ar[joff] = 2 ;
+         } else {
+           ar[joff] = 0 ;
+         }
+         if( ar[nx-1+joff] == 0 ){  /* right edge of row */
+           if( ajm[nx-2] != 0 || ajm[nx-1] != 0 ||
+               ajj[nx-2] != 0 || ajj[nx-1] != 0 ||
+               ajp[nx-2] != 0 || ajp[nx-1] != 0   ) ar[nx-1+joff] = 2 ;
+         } else {
+           ar[nx-1+joff] = 0 ;
+         }
+       }
+       /* deal with the bottom row */
+       joff = 0 ; ajj = atemp + joff ; ajp = ajj+nx ;
+       for( ii=1 ; ii < nx-1 ; ii++ ){
+         if( ar[ii+joff] == 0 ){  /* not inside a blob */
+           if( ajj[ii-1] != 0 || ajj[ii] != 0 || ajj[ii+1] != 0 ||
+               ajp[ii-1] != 0 || ajp[ii] != 0 || ajp[ii+1] != 0   ) ar[ii+joff] = 2 ;
+         } else {
+           ar[ii+joff] = 0 ;  /* inside a blob ==> zero out */
+         }
+       }
+       /* deal with the top row */
+       joff = (ny-1) * nx ; ajj = atemp + joff ; ajm = ajj-nx ;
+       for( ii=1 ; ii < nx-1 ; ii++ ){
+         if( ar[ii+joff] == 0 ){  /* not inside a blob */
+           if( ajm[ii-1] != 0 || ajm[ii] != 0 || ajm[ii+1] != 0 ||
+               ajj[ii-1] != 0 || ajj[ii] != 0 || ajj[ii+1] != 0   ) ar[ii+joff] = 2 ;
+         } else {
+           ar[ii+joff] = 0 ;  /* inside a blob ==> zero out */
+         }
+       }
+
+       free(atemp) ;
+     }
+     return ; /* end of MRI_byte */
+
+   } /* end of switching */
+
+   return ; /* default im->kind case ==> do nothing */
+}
+
+/*-----------------------------------------------------------------------*/
+
 static int reject_zero = 0 ;
 
 #undef  ZREJ
@@ -2186,9 +2306,9 @@ STATUS("thresholdization") ;
      /* process the edges of the above-threshold regions? */
 
      if( do_edge ){
-       mri_edgize(eim) ;
+       mri_edgize_outer(eim) ;
        for( ii=0 ; ii < npix ; ii++ ){
-        if( ear[ii] ) ovar[ii].r = ovar[ii].g = ovar[ii].b = 1 ;
+        if( ear[ii] ){ ovar[ii].r = ovar[ii].g = ovar[ii].b = 1 ; ovar[ii].a = 255 ; }
        }
        mri_free(eim) ;
      }
