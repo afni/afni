@@ -7,7 +7,6 @@ CCVOL  = gcc -O2 -march=i586  -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCFAST = gcc -O2 -march=i586  -DLINUX2 -DNO_GAMMA $(CEXTRA)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
-CCOLD  = $(CC)
 
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib

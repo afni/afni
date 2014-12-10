@@ -23,7 +23,6 @@ CCVOL  = gcc -O2 -mcpu=i486  -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCFAST = gcc -O2 -mcpu=i486  -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
-CCOLD  = $(CC)
 
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib

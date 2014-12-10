@@ -47,7 +47,6 @@ CCVOL  = ${CC} -O2 -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCFAST = ${CC} -O2 -DFreeBSD -DNO_GAMMA $(CEXTRA)
 CCMIN  = ${CC}
 CCD    = ${CC} $(CCDEBS)
-CCOLD  = $(CC)
 
 CC     += ${CFLAGS}
 

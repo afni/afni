@@ -56,15 +56,20 @@
      NIFTI_INTENT_LOG10PVAL  = -log10(p)
 *****************************************************************************/
 
+#if defined(__COMPILE_UNUSED_FUNCTIONS__) && defined(__GNUC__)
+#   define NO_OPTIMIZE_UNUSED __attribute__((used))
+#else
+#   define NO_OPTIMIZE_UNUSED /* nada */
+#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__) && defined(__GNUC__)*/
+
 extern char *inam[];
 
 int nifti_intent_code( char *name );
 double nifti_stat2cdf( double val, int code, double p1,double p2,double p3 );
 double nifti_stat2rcdf( double val, int code, double p1,double p2,double p3 );
 double nifti_cdf2stat( double p , int code, double p1,double p2,double p3 );
-#if defined(__COMPILE_UNUSED_FUNCTIONS__)
-double nifti_rcdf2stat( double q , int code, double p1,double p2,double p3 );
-#endif/*(__COMPILE_UNUSED_FUNCTIONS__)*/
+double nifti_rcdf2stat( double q , int code, double p1,double p2,double p3 )
+                   NO_OPTIMIZE_UNUSED;
 double nifti_stat2zscore( double val , int code, double p1,double p2,double p3);
 double nifti_stat2hzscore( double val, int code, double p1,double p2,double p3);
 
@@ -94,11 +99,10 @@ void cdff(int*,double*,double*,double*,double*,double*,int*,double*);
 void cdffnc(int*,double*,double*,double*,double*,double*,double*,
                    int*s,double*);
 void cdfgam(int*,double*,double*,double*,double*,double*,int*,double*);
-#if defined(__COMPILE_UNUSED_FUNCTIONS__)
 void cdfnbn(int*,double*,double*,double*,double*,double*,double*,
-                   int*,double*);
-void cdfnor(int*,double*,double*,double*,double*,double*,int*,double*);
-#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+                   int*,double*) NO_OPTIMIZE_UNUSED;
+void cdfnor(int*,double*,double*,double*,double*,double*,int*,double*)
+                   NO_OPTIMIZE_UNUSED;
 void cdfpoi(int*,double*,double*,double*,double*,int*,double*);
 void cdft(int*,double*,double*,double*,double*,int*,double*);
 void cumbet(double*,double*,double*,double*,double*,double*);
@@ -108,34 +112,26 @@ void cumchn(double*,double*,double*,double*,double*);
 void cumf(double*,double*,double*,double*,double*);
 void cumfnc(double*,double*,double*,double*,double*,double*);
 void cumgam(double*,double*,double*,double*);
-#if defined(__COMPILE_UNUSED_FUNCTIONS__)
-void cumnbn(double*,double*,double*,double*,double*,double*);
-#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+void cumnbn(double*,double*,double*,double*,double*,double*) NO_OPTIMIZE_UNUSED;
 void cumnor(double*,double*,double*);
 void cumpoi(double*,double*,double*,double*);
 void cumt(double*,double*,double*,double*);
-#if defined(__COMPILE_UNUSED_FUNCTIONS__)
-double dbetrm(double*,double*);
-#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+double dbetrm(double*,double*) NO_OPTIMIZE_UNUSED;
 double devlpl(double [],int*,double*);
-#if defined(__COMPILE_UNUSED_FUNCTIONS__)
-double dexpm1(double*);
-double dinvnr(double *p,double *q);
-#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+double dexpm1(double*) NO_OPTIMIZE_UNUSED;
+double dinvnr(double *p,double *q) NO_OPTIMIZE_UNUSED;
 void E0000(int,int*,double*,double*,unsigned long*,
                   unsigned long*,double*,double*,double*,
                   double*,double*,double*,double*);
 void dinvr(int*,double*,double*,unsigned long*,unsigned long*);
 void dstinv(double*,double*,double*,double*,double*,double*,
                    double*);
-#if defined(__COMPILE_UNUSED_FUNCTIONS__)
-double dlanor(double*);
-double dln1mx(double*);
-double dln1px(double*);
-double dlnbet(double*,double*);
-double dlngam(double*);
-double dstrem(double*);
-#endif /*defined(__COMPILE_UNUSED_FUNCTIONS__)*/
+double dlanor(double*) NO_OPTIMIZE_UNUSED;
+double dln1mx(double*) NO_OPTIMIZE_UNUSED;
+double dln1px(double*) NO_OPTIMIZE_UNUSED;
+double dlnbet(double*,double*) NO_OPTIMIZE_UNUSED;
+double dlngam(double*) NO_OPTIMIZE_UNUSED;
+double dstrem(double*) NO_OPTIMIZE_UNUSED;
 double dt1(double*,double*,double*);
 void E0001(int,int*,double*,double*,double*,double*,
                   unsigned long*,unsigned long*,double*,double*,

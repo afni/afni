@@ -29,7 +29,6 @@ CCFAST = /usr/bin/gcc -O2  -fPIC -DREAD_WRITE_64 -DLINUX2 -DNO_GAMMA $(CEXTRA)
 
 CCMIN  = /usr/bin/gcc -fPIC $(CPROF)
 CCD    = $(CC) $(CCDEBS)
-CCOLD  = $(CC)
 
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib
