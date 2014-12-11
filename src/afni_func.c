@@ -1885,7 +1885,8 @@ if( PRINT_TRACING && im_thr != NULL )
                                      im_fim ,
                                      scale_factor*pbar->bigbot ,
                                      scale_factor*pbar->bigtop ,
-                                     pbar->bigcolor , flags , im3d->vinfo->thr_alpha_floor ) ;
+                                     pbar->bigcolor , flags ,
+                                     im3d->vinfo->thr_alpha_floor , im3d->dc ) ;
      goto CLEANUP ;
    }
 
@@ -2186,7 +2187,7 @@ STATUS("thresholdization") ;
 MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *im_thr , float thbot,float thtop,
                                      MRI_IMAGE *im_fim ,
                                      float fimbot, float fimtop, rgbyte *fimcolor,
-                                     int flags , float alpha_floor )
+                                     int flags , float alpha_floor , MCW_DC *dc )
 {
    MRI_IMAGE *im_ov ;
    rgba *ovar ;
@@ -2244,28 +2245,30 @@ STATUS("colorization") ;
      MRI_IMAGE *eim=NULL ; byte *ear=NULL ;
      int do_edge = !AFNI_noenv("AFNI_EDGIZE_OVERLAY") ;
      float ft,fb,af ;
-     ft = (thtop > 0.0f) ? 1.0f/thtop : 0.0f ;  /* for positive thr */
-     fb = (thbot < 0.0f) ? 1.0f/thbot : 0.0f ;  /* for negative thr */
+     ft = (thtop > 0.0f) ? (1.0f-alpha_floor)/thtop : 0.0f ;  /* for positive thr */
+     fb = (thbot < 0.0f) ? (1.0f-alpha_floor)/thbot : 0.0f ;  /* for negative thr */
      af = 255.0f*alpha_floor ;
-     if( do_edge ){
+     if( do_edge ){  /* for mri_edgize */
        eim = mri_new_conforming( im_fim , MRI_byte ) ; ear = MRI_BYTE_PTR(eim) ;
      }
 
 #define ALIN(th,fac) (th*fac)
 #define AQUA(th,fac) (ALIN(th,fac)*ALIN(th,fac))
-#define ALFA(th,fac) (do_alin) ? 255.0f*ALIN(th,fac) : 255.0f*AQUA(th,fac)
+#define ALFA(th,fac) (do_alin) ? 255.0f*ALIN(th,fac)+af : 255.0f*AQUA(th,fac)+af
 
-STATUS("thresholdization") ;
+STATUS("threshold-ization and alpha-ization") ;
      switch( im_thr->kind ){
 
        case MRI_short:{
          register float thb=thbot , tht=thtop , aa ;
          register short *ar_thr = MRI_SHORT_PTR(im_thr) ;
          for( ii=0 ; ii < npix ; ii++ ){
-           if( ar_thr[ii] >= 0 && ar_thr[ii] < tht ){
-             aa = ALFA(ar_thr[ii],ft) ; if( aa > 0.0f && aa < af ) aa = af ; ovar[ii].a = BYTEIZE(aa) ;
+           if( ar_thr[ii] == 0 ){
+                                        ovar[ii].a = 0 ;   /* exact zero ==> transparent */
+           } else if( ar_thr[ii] > 0 && ar_thr[ii] < tht ){
+             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( ar_thr[ii] < 0 && ar_thr[ii] > thb ){
-             aa = ALFA(ar_thr[ii],fb) ; if( aa > 0.0f && aa < af ) aa = af ; ovar[ii].a = BYTEIZE(aa) ;
+             aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( do_edge ){
              ear[ii] = 1 ;  /* is not faded */
            }
@@ -2277,8 +2280,10 @@ STATUS("thresholdization") ;
          register float thb=thbot , tht=thtop , aa ;
          register byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
          for( ii=0 ; ii < npix ; ii++ )  /* assuming thb <= 0 always */
-           if( ar_thr[ii] < tht ){
-             aa = ALFA(ar_thr[ii],ft) ; if( aa < af && aa > 0.0f ) aa = af ; ovar[ii].a = BYTEIZE(aa) ;
+           if( ar_thr[ii] == 0 ){
+                                        ovar[ii].a = 0 ;
+           } else if( ar_thr[ii] < tht ){
+             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( do_edge ){
              ear[ii] = 1 ;  /* is not faded */
            }
@@ -2289,10 +2294,12 @@ STATUS("thresholdization") ;
          register float thb=thbot , tht=thtop , aa ;
          register float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
          for( ii=0 ; ii < npix ; ii++ )
-           if( ar_thr[ii] >= 0 && ar_thr[ii] < tht ){
-             aa = ALFA(ar_thr[ii],ft) ; if( aa < af && aa > 0.0f ) aa = af ; ovar[ii].a = BYTEIZE(aa) ;
+           if( ar_thr[ii] == 0 ){
+                                        ovar[ii].a = 0 ;
+           } else if( ar_thr[ii] > 0 && ar_thr[ii] < tht ){
+             aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( ar_thr[ii] < 0 && ar_thr[ii] > thb ){
-             aa = ALFA(ar_thr[ii],fb) ; if( aa < af && aa > 0.0f ) aa = af ; ovar[ii].a = BYTEIZE(aa) ;
+             aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( do_edge ){
              ear[ii] = 1 ;  /* is not faded */
            }
@@ -2306,9 +2313,16 @@ STATUS("thresholdization") ;
      /* process the edges of the above-threshold regions? */
 
      if( do_edge ){
+       char *cpt ; byte rb=1,gb=1,bb=1 ; float rf,gf,bf ;
        mri_edgize_outer(eim) ;
+       cpt = getenv("AFNI_EDGIZE_COLOR") ;
+       if( cpt != NULL ){
+         rf = gf = bf = 0.005f ;
+         DC_parse_color( dc , cpt , &rf,&gf,&bf ) ;
+         rb = BYTEIZE(255.0f*rf); gb = BYTEIZE(255.0f*gf); bb = BYTEIZE(255.0f*bf);
+       }
        for( ii=0 ; ii < npix ; ii++ ){
-        if( ear[ii] ){ ovar[ii].r = ovar[ii].g = ovar[ii].b = 1 ; ovar[ii].a = 255 ; }
+        if( ear[ii] ){ ovar[ii].r=rb; ovar[ii].g=gb; ovar[ii].b=bb; ovar[ii].a=255; }
        }
        mri_free(eim) ;
      }
