@@ -2667,7 +2667,9 @@ The variable-opacity overlay usually looks better (less blocky) if you open
 AFNI_resam_func and AFNI_resam_thr).  Also when Alpha is turned on, the
 above-threshold pixel regions are outlined in black, unless you set the
 AFNI_EDGIZE_OVERLAY environment variable to NO -- this variable can be set
-interactively via the 'EditEnv' pseudo-plugin.
+interactively via the 'EditEnv' pseudo-plugin.  You can alter the color
+used for the outline by setting the AFNI_EDGIZE_COLOR variable; for example,
+  afni -DAFNI_EDGIZE_COLOR=hotpink -DAFNI_FUNC_ALPHA=Linear
 
 The outline is done over the pixels immediately OUTSIDE the above-threshold
 regions, in the overlay image as interpolated to the underlay resolution.
@@ -2768,9 +2770,25 @@ N.B.: If AFNI_SHOW_SURF_POPUPS is YES, then it wins over
 Variable: AFNI_EDGIZE_OVERLAY (editable)
 -----------------------------
 If set to YES, then the color overlays in the image windows will only
-have their edge pixels displayed.  That is, each 'blob' will be hollowed
-out, leaving only its edges.  If you do this, you probably want to make
-the color overlay opaque, so that the results are easily seen.
+have their edge pixels displayed.  Edge-izing takes place in 2 slightly
+different ways, depending on the Alpha setting in the AFNI interface
+(cf. variable AFNI_FUNC_ALPHA, above):
+ * If Alpha is off, then edges shown comprise the outermost above-threshold
+   voxels. The edge color is just the color that these voxels normally
+   get from the overlay sub-brick values. In this mode, the 'blobs' are
+   hollowed out, leaving only the edges.
+ * If the Alpha is on, the edges shown comprise the voxels just OUTSIDE the
+   outermost above-threshold voxels -- so that all the above-threshold
+   voxels are visible. Also, the edge color is solid black (or can be set
+   via variable AFNI_EDGIZE_COLOR). The 'blobs' are NOT hollowed out.
+
+---------------------------
+Variable: AFNI_EDGIZE_COLOR (editable)
+---------------------------
+Defines the color used for the edge outline of above threshold regions,
+when Alpha is turned on.  See AFNI_FUNC_ALPHA for more information.
+This variable has no effect if Alpha is turned off.  Colors can be
+set via X11 names (e.g., "yellow", "hotpink", "#1188ff" ).
 
 --------------------------
 Variable: AFNI_NIFTI_DEBUG (editable)
@@ -3686,7 +3704,7 @@ Variable: AFNI_TEMPLATE_SPACE_LIST
 ----------------------------------
 This list contains the names of the template spaces that are shown when whereami
 reports the coordinates among various spaces. By default, the list contains
-"TLRC,MNI,MNI_ANAT". As with AFNI_ATLAS_LIST, this list may also be set to 
+"TLRC,MNI,MNI_ANAT". As with AFNI_ATLAS_LIST, this list may also be set to
 "ALL".
 
 ----------------------------
@@ -3706,8 +3724,8 @@ the user input coordinates from that space to the space of the dataset.
 ----------------------------
 Variable: AFNI_ATLAS_PATH
 ----------------------------
-This variable sets which directory or directories to search for AFNI 
-atlas datasets that have been defined in the AFNI_atlas_spaces.niml 
+This variable sets which directory or directories to search for AFNI
+atlas datasets that have been defined in the AFNI_atlas_spaces.niml
 or CustomAtlases.niml file. For all afni programs and scripts that use
 atlas and template datasets, the program will preferentially use (in order)
 the file path included in the dataset filename definition, the AFNI_ATLAS_PATH,
@@ -3811,7 +3829,7 @@ unless those are set to "ALL".
 -------------------------------------------
 Variable: AFNI_SUPP_ATLAS_DIR
 -------------------------------------------
-Allows the addition of atlas definitions to the global list of atlases, 
+Allows the addition of atlas definitions to the global list of atlases,
 templates,spaces and transformations. The variable should be set to the name
 of a directory that contains a SessionAtlases.niml file with the same format
 as the AFNI_atlas_spaces.niml file. Also see AFNI_SUPP_ATLAS, AFNI_LOCAL_ATLAS,
