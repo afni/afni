@@ -4,16 +4,16 @@
 #include <time.h>
 
 #define NREP 2
-#define NBUF 4096
+#define NBUF 12345
 static unsigned char buf[NBUF] ;
 
 int main( int argc , char * argv[] )
 {
-   int iarg , ii,ll,jj , verb=1 , ibot , irep,nrep=NREP , ng=0 ;
+   int iarg , ii,ll,jj , verb=1 , ibot , irep,nrep=NREP , ng=0 , keep=0 ;
    FILE * fp ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: rmz [-q] [-#] filename ...\n"
+      printf("Usage: rmz [-q] [-#] [-k] filename ...\n"
              " -- Zeros out files before removing them\n") ;
       exit(0) ;
    }
@@ -23,6 +23,10 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-q") == 0 ){
         verb = 0 ; iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-k") == 0 ){
+        keep = 1 ; iarg++ ; continue ;
       }
 
       irep = strtol( argv[iarg] , NULL , 10 ) ;
@@ -43,10 +47,12 @@ int main( int argc , char * argv[] )
    ibot = iarg ;
    for( irep=0 ; irep <= nrep ; irep++ ){
 
-      jj = lrand48() % 7 ;
+      jj = lrand48() % 217 ;
 
-      if( irep < nrep ){
-        for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = ((3+2*irep)*ii+jj) % 255 ;
+      if( irep < nrep || nrep == 0 ){
+        for( ii=0 ; ii < NBUF ; ii++ ){
+          buf[ii] = ((3+2*irep)*ii+jj) % 255 ; if( ii%257==256 ) jj += lrand48() % 7 ;
+        }
       } else {
         for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = 0 ;  /* final loop ==> zero */
       }
@@ -65,7 +71,7 @@ int main( int argc , char * argv[] )
                for( jj=0 ; jj < ll ; jj += NBUF )
                   fwrite( buf, 1, NBUF, fp ) ;
                fflush(fp) ; fsync(fileno(fp)) ; fclose(fp) ;
-               if( irep == nrep ){
+               if( !keep && irep == nrep ){
                   unlink(argv[iarg]) ;
                   if( verb ) fprintf(stderr," -- Removed file %s\n",argv[iarg]) ;
                } else if( irep == 0 ) ng++ ;
