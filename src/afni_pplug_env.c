@@ -451,8 +451,13 @@ PLUGIN_interface * ENV_init(void)
 
    /* 21 Mar 2005 [RWCox] */
    ENV_add_string( "AFNI_EDGIZE_OVERLAY" ,
-                   "Display color overlay as edges only?" ,
+                   "Display color overlay as edges?" ,
                    NUM_yesno_list , yesno_list , ENV_redisplay ) ;
+
+   /* 11 Dec 2014 [RWCox] */
+   ENV_add_string( "AFNI_EDGIZE_COLOR" ,
+                   "Name of color for EDGIZE+Alpha overlays." , /* 21 Sep 2001 */
+                   0,NULL , NULL ) ;
 
    /* 08 Apr 2005 [rickr] */
    ENV_add_numeric( "AFNI_NIFTI_DEBUG" ,
