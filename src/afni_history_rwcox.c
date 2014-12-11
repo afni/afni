@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 10 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 11 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Change way opacity fades down to Floor value" ,
+   NULL } ,
+
+ { 10 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Driver for Alpha settings; fix outline of supra-threshold regions" ,
    "driver command SET_FUNC_ALPHA now works.\n"
    "Outline of supra-threshold regions is now the next set of pixels outside\n"
