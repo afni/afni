@@ -25,12 +25,12 @@ ContributeDocs.rst then from the command line::
    cd AFNI/doc/SphinxDocs
    make html
    
-For this to work, you will want to have `Sphinx
+For this to work, you will want to have Latex, `Sphinx
 <http://sphinx-doc.org>`_ installed, along with `fulltoc
-<http://sphinxcontrib-fulltoc.readthedocs.org/en/latest/install.html>`_. The
-easiest way to install SPHINX is with::
+<http://sphinxcontrib-fulltoc.readthedocs.org/en/latest/install.html>`_. An easy  way to install the Sphinx components would be with::
    
    sudo easy_install -U Sphinx
+   pip install sphinxcontrib-fulltoc
    
 After the build is finished, open :file:`_build/html/index.html` and
 browse from there on.
