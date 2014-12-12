@@ -5219,7 +5219,7 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
   
    SS = SUMA_StringAppend_va( SS,
                               "SUMA's list of environment variables:\n");
-   s = SUMA_env_list_help(0, 0);
+   s = SUMA_env_list_help(0, TXT);
    SS = SUMA_StringAppend( SS, s); SUMA_free(s); s = NULL;
    SS = SUMA_StringAppend( SS, "\n");
 

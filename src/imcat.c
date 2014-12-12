@@ -48,6 +48,17 @@ void imcat_usage(int detail)
  "  -crop L R T B: Crop images by L (Left), R (Right), T (Top), B (Bottom)\n"
  "                 pixels. Cutting is performed after any resolution change, \n"
  "                 if any, is to be done.\n"
+ "  -autocrop_ctol CTOL: A line is eliminated if none of its R G B values \n"
+ "                       differ by more than CTOL%% from those of the corner\n"
+ "                       pixel.\n"
+ "  -autocrop_atol ATOL: A line is eliminated if none of its R G B values \n"
+ "                       differ by more than ATOL%% from those of line\n"
+ "                       average.\n"
+ "  -autocrop: This option is the same as using both of -autocrop_atol 20 \n"
+ "             and -autocrop_ctol 20\n"
+ "  NOTE: Do not mix -autocrop* options with -crop\n"
+ "        Cropping is determined from the 1st input image and applied to \n"
+ "        to all remaining ones.\n"
  " ++ Options for output:\n"
  "  -zero_wrap: If number of images is not enough to fill matrix\n"
  "              blank images are used.\n"
@@ -94,6 +105,11 @@ void imcat_usage(int detail)
  "         ~/abin/funstuff/face_*.jpg\n"
  "   aiv cat.ppm\n"
  "\n"
+ "Example 2:\n"
+ "   Stitching together 3 images getting rid of annoying white boundary:\n"
+ "\n"
+ "   imcat -prefix surfview_pry3b.jpg -ny 1 -autocrop surfview.000[789].jpg\n"
+ "\n"   
  "Example 20 (assuming afni is in ~/abin directory):\n"
  "   imcat -prefix bigcat.jpg -scale_image ~/abin/afnigui_logo.jpg \\\n"
  "         -matrix_from_scale -rand_wrap -rgb_out -respad_in 128 128 \\\n"
@@ -111,6 +127,7 @@ void imcat_usage(int detail)
    return;
 }
 
+#define ABS(a) ( (a) < 0 ? (-(a)):(a) )
 int main( int argc , char * argv[] )
 {
    MRI_IMARR * imar, *inimar;
@@ -120,7 +137,7 @@ int main( int argc , char * argv[] )
    char *scale_image = NULL, *scale_pixels = NULL;
    int iarg , ii,jj , nx,ny , nxim,nyim ;
    int nmode = XYNUM, nxin, nyin, nbad = 0;
-   int cutL=0, cutR=0, cutT=0, cutB=0;
+   int cutL=0, cutR=0, cutT=0, cutB=0, cutlev=0, cutlevu=0;
    int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
    byte  gap_col[3] = {255, 20, 128}, pval = 0 ;
    MRI_IMAGE *imscl=NULL;
@@ -143,6 +160,8 @@ int main( int argc , char * argv[] )
     cutB=0;
     cutT=0;
     cutR=0;
+    cutlev =-2;
+    cutlevu=-2;
     fac = 1.0;
     force_rgb_out = 0;
     iarg = 1 ;
@@ -182,6 +201,48 @@ int main( int argc , char * argv[] )
          cutB = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
+       
+       if( strcmp(argv[iarg],"-autocrop") == 0 ){
+         cutlev = -1; cutlevu = -1;
+         iarg++ ; continue ;
+       }
+       
+       if ( strcmp(argv[iarg],"-autocrop_ctol") == 0 ){
+         if (iarg+2 >= argc) {
+            fprintf(stderr,
+             "*** ERROR: Need one integer between 0 and 100 after"
+             " -autocrop_ctol\n");
+            exit(1);
+         }
+         cutlev  = ((int)strtod( argv[++iarg] , NULL ) );
+         if (cutlev < 0 || cutlev > 100) {
+            fprintf(stderr,
+         "*** ERROR: Need one integer between 0 and 100 after -autocrop_ctol\n"
+               "Got %d\n", cutlevu);
+            exit(1);
+         }
+         
+         iarg++ ; continue ;
+       }
+       
+       if ( strcmp(argv[iarg],"-autocrop_atol") == 0 ){
+         if (iarg+2 >= argc) {
+            fprintf(stderr,
+             "*** ERROR: Need one integer between 0 and 100 after"
+             " -autocrop_atol\n");
+            exit(1);
+         }
+         cutlevu  = ((int)strtod( argv[++iarg] , NULL ) );
+         if (cutlevu < 0 || cutlevu > 100) {
+            fprintf(stderr,
+         "*** ERROR: Need one integer between 0 and 100 after -autocrop_atol\n"
+               "Got %d\n", cutlevu);
+            exit(1);
+         }
+         
+         iarg++ ; continue ;
+       }
+       
        
        if( strcmp(argv[iarg],"-res_in") == 0 ){
          if (iarg+2 >= argc) {
@@ -321,7 +382,13 @@ int main( int argc , char * argv[] )
       imcat_usage(0);
       exit(1) ;
     }
-  
+    
+    if (cutlevu == -1 && cutlev == -1) {
+      /* No params set, but autocrop desired*/
+      cutlev = 20;
+      cutlevu = 20;
+    }
+    
     if (scale_image) {
       if (!(imscl = mri_read_just_one(scale_image))) {
          fprintf(stderr,"*** Failed to read scale image.\n");
@@ -382,6 +449,359 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** less than 1 input image read!\a\n") ;
       exit(1) ;
    }
+
+   /* Figure out cropping based on one image, written as loop in 
+   case I change my mind */
+   if (cutlev >= 0 || cutlevu >= 0) {
+      MRI_IMAGE *imin;
+      byte *colav=NULL, *rowav=NULL;
+      int mis=0, kx=0, ky=0, e0, e1, e2;
+      double d0, d1, d2;
+      if (cutlev  > 0) cutlev   = (int)(cutlev *2.55);
+      if (cutlevu > 0) cutlevu  = (int)(cutlevu*2.55);
+      cutL = 0;
+      for (kkk=0; kkk<1; ++kkk) {
+         imin = IMAGE_IN_IMARR(inimar,kkk);
+         rgb= MRI_BYTE_PTR(imin);
+         if (imin->kind == MRI_rgb) {
+            e0 = (imin->nx*imin->ny-1)*3;
+            e1 = e0+1;
+            e2 = e0+2;
+            kkk = 0;
+            /* fprintf(stderr,"RGB image nx=%d, ny=%d, cut lev %d, avg lev %d\n",
+                    imin->nx, imin->ny, cutlev, cutlevu); */
+            
+            /* Compute column and row averages */
+            if (cutlevu >= 0) {
+               colav = (byte *)calloc(3*imin->nx, sizeof(byte));
+               for (kx=0; kx<imin->nx; ++kx) {
+                  d0 = d1 = d2 = 0.0;
+                  for (ky=0; ky<imin->ny; ++ky) {
+                     kkk = kx+imin->nx*ky;
+                     d0 += rgb[3*kkk  ];
+                     d1 += rgb[3*kkk+1];
+                     d2 += rgb[3*kkk+2];
+                  }
+                  colav[3*kx  ] = (byte)(d0/imin->ny);
+                  colav[3*kx+1] = (byte)(d1/imin->ny);
+                  colav[3*kx+2] = (byte)(d2/imin->ny);
+               }
+               rowav = (byte *)calloc(3*imin->ny, sizeof(byte));   
+               for (ky=0; ky<imin->ny; ++ky) {
+                  d0 = d1 = d2 = 0.0;
+                  for (kx=0; kx<imin->nx; ++kx) {
+                     kkk = kx+imin->nx*ky;
+                     d0 += rgb[3*kkk  ];
+                     d1 += rgb[3*kkk+1];
+                     d2 += rgb[3*kkk+2];
+                  }
+                  rowav[3*ky  ] = (byte)(d0/imin->nx);
+                  rowav[3*ky+1] = (byte)(d1/imin->nx);
+                  rowav[3*ky+2] = (byte)(d2/imin->nx);
+               }
+            }
+            
+            /* Left */
+            cutL = 0;
+            mis = 0;
+               for (kx=0; kx<imin->nx && !mis; ++kx) {
+            for (ky=0; ky<imin->ny && !mis; ++ky) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     /* break if color changes from corner */
+                     if (ABS(rgb[3*kkk  ] - rgb[0]) > cutlev ||
+                         ABS(rgb[3*kkk+1] - rgb[1]) > cutlev ||
+                         ABS(rgb[3*kkk+2] - rgb[2]) > cutlev ) {
+                        /* fprintf(stderr,
+                             "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
+                                rgb[0], rgb[1], rgb[2], kx, ky, 
+                                rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */ 
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[3*kkk  ] - colav[3*kx  ]) > cutlevu ||
+                         ABS(rgb[3*kkk+1] - colav[3*kx+1]) > cutlevu ||
+                         ABS(rgb[3*kkk+2] - colav[3*kx+2]) > cutlevu ) {
+                        /* fprintf(stderr,
+                     "Break from colav [%d %d %d] at %d %d with [%d %d %d]\n",
+                          colav[3*kx  ], colav[3*kx+1], colav[3*kx+2], kx, ky,
+                          rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutL;
+                  /* fprintf(stderr,"Line at x=%d is cst\n", kx); */
+               }
+            }
+            /* Right */
+            cutR = 0;
+            mis = 0;
+               for (kx=imin->nx-1; kx>=0 && !mis; --kx) {
+            for (ky=0; ky<imin->ny && !mis; ++ky) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     if (ABS(rgb[3*kkk  ] - rgb[e0]) > cutlev ||
+                         ABS(rgb[3*kkk+1] - rgb[e1]) > cutlev ||
+                         ABS(rgb[3*kkk+2] - rgb[e2]) > cutlev ) {
+                        /* fprintf(stderr,
+                             "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
+                                rgb[0], rgb[1], rgb[2], kx, ky, 
+                                rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[3*kkk  ] - colav[3*kx  ]) > cutlevu ||
+                         ABS(rgb[3*kkk+1] - colav[3*kx+1]) > cutlevu ||
+                         ABS(rgb[3*kkk+2] - colav[3*kx+2]) > cutlevu ) {
+                        /* fprintf(stderr,
+                     "Break from colav [%d %d %d] at %d %d with [%d %d %d]\n",
+                          colav[3*kx  ], colav[3*kx+1], colav[3*kx+2], kx, ky,
+                          rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutR;
+                  /* fprintf(stderr,"Line at x=%d is cst\n", kx); */
+               }
+            }
+            /* Bottom */
+            cutB = 0;
+            mis = 0;
+            for (ky=imin->ny-1; ky>=0 && !mis; --ky) {
+               for (kx=imin->nx-1; kx>=0 && !mis; --kx) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     if (ABS(rgb[3*kkk  ] - rgb[e0]) > cutlev ||
+                         ABS(rgb[3*kkk+1] - rgb[e1]) > cutlev ||
+                         ABS(rgb[3*kkk+2] - rgb[e2]) > cutlev ) {
+                        /* fprintf(stderr,
+                             "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
+                                rgb[0], rgb[1], rgb[2], kx, ky, 
+                                rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[3*kkk  ] - rowav[3*ky  ]) > cutlevu ||
+                         ABS(rgb[3*kkk+1] - rowav[3*ky+1]) > cutlevu ||
+                         ABS(rgb[3*kkk+2] - rowav[3*ky+2]) > cutlevu ) {
+                        /* fprintf(stderr,
+                     "Break from colav [%d %d %d] at %d %d with [%d %d %d]\n",
+                          rowav[3*ky  ], rowav[3*ky+1], rowav[3*ky+2], kx, ky,
+                          rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutB;
+                  /* fprintf(stderr,"Line at y=%d is cst\n", ky); */
+               }
+            }
+            /* Top */
+            cutT = 0;
+            mis = 0;
+            for (ky=0; ky<imin->ny && !mis; ++ky) {
+               for (kx=imin->nx-1; kx>=0 && !mis; --kx) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     if (ABS(rgb[3*kkk  ] - rgb[e0]) > cutlev ||
+                         ABS(rgb[3*kkk+1] - rgb[e1]) > cutlev ||
+                         ABS(rgb[3*kkk+2] - rgb[e2]) > cutlev ) {
+                        /* fprintf(stderr,
+                             "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
+                                rgb[0], rgb[1], rgb[2], kx, ky, 
+                                rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[3*kkk  ] - rowav[3*ky  ]) > cutlevu ||
+                         ABS(rgb[3*kkk+1] - rowav[3*ky+1]) > cutlevu ||
+                         ABS(rgb[3*kkk+2] - rowav[3*ky+2]) > cutlevu ) {
+                        /* fprintf(stderr,
+                     "Break from colav [%d %d %d] at %d %d with [%d %d %d]\n",
+                          rowav[3*ky  ], rowav[3*ky+1], rowav[3*ky+2], kx, ky,
+                          rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutT;
+                  /* fprintf(stderr,"Line at y=%d is cst\n", ky); */
+               }
+            }
+            if (colav) free(colav); colav=NULL;
+            if (rowav) free(rowav); rowav=NULL;
+        } else if (imin->kind == MRI_byte) {
+            e0 = (imin->nx*imin->ny-1);
+            kkk = 0;
+            /* fprintf(stderr,"Byte image nx=%d, ny=%d, cut level %d, %d\n", 
+                    imin->nx, imin->ny, cutlev, cutlevu); */
+            /* Compute column and row averages */
+            if (cutlevu >= 0) {
+               colav = (byte *)calloc(imin->nx, sizeof(byte));
+               for (kx=0; kx<imin->nx; ++kx) {
+                  d0 = 0.0;
+                  for (ky=0; ky<imin->ny; ++ky) {
+                     kkk = kx+imin->nx*ky;
+                     d0 += rgb[kkk  ];
+                  }
+                  colav[kx  ] = (byte)(d0/imin->ny);
+               }
+               rowav = (byte *)calloc(imin->ny, sizeof(byte));   
+               for (ky=0; ky<imin->ny; ++ky) {
+                  d0 = 0.0;
+                  for (kx=0; kx<imin->nx; ++kx) {
+                     kkk = kx+imin->nx*ky;
+                     d0 += rgb[kkk  ];
+                  }
+                  rowav[ky  ] = (byte)(d0/imin->nx);
+               }
+            }
+            /* Left */
+            cutL = 0;
+            mis = 0;
+            for (kx=0; kx<imin->nx && !mis; ++kx) {
+               for (ky=0; ky<imin->ny && !mis; ++ky) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     if (ABS(rgb[kkk] - rgb[0]) > cutlev) {
+                        /* fprintf(stderr,
+                                "Break from [%d] at %d %d with [%d]\n",
+                                rgb[0], kx, ky, rgb[kkk]); */
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[kkk  ] - colav[kx  ]) > cutlevu) {
+                        /* fprintf(stderr,
+                     "Break from colav [%d] at %d %d with [%d]\n",
+                          colav[kx  ], kx, ky,
+                          rgb[kkk  ]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutL;
+                  /* fprintf(stderr,"Line at x=%d is cst\n", kx); */
+               }
+            }
+            /* Right */
+            cutR = 0;
+            mis = 0;
+            for (kx=imin->nx-1; kx>=0 && !mis; --kx) {
+               for (ky=0; ky<imin->ny && !mis; ++ky) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     if (ABS(rgb[kkk] - rgb[e0]) > cutlev ) {
+                        /* fprintf(stderr,
+                                "Break from [%d] at %d %d with [%d]\n",
+                                rgb[0], kx, ky, rgb[kkk]); */
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[kkk  ] - colav[kx  ]) > cutlevu) {
+                        /* fprintf(stderr,
+                     "Break from colav [%d] at %d %d with [%d]\n",
+                          colav[kx  ], kx, ky,
+                          rgb[kkk  ]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutR;
+                  /* fprintf(stderr,"Line at x=%d is cst\n", kx); */
+               }
+            }
+            /* Bottom */
+            cutB = 0;
+            mis = 0;
+            for (ky=imin->ny-1; ky>=0 && !mis; --ky) {
+               for (kx=imin->nx-1; kx>=0 && !mis; --kx) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     if (ABS(rgb[kkk] - rgb[e0]) > cutlev ) {
+                        /* fprintf(stderr,
+                                "Break from [%d] at %d %d with [%d]\n",
+                                rgb[0], kx, ky, rgb[kkk]); */
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[kkk  ] - rowav[ky  ]) > cutlevu) {
+                        /* fprintf(stderr,
+                     "Break from rowav [%d] at %d %d with [%d]\n",
+                          rowav[ky  ], kx, ky,
+                          rgb[kkk  ]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutB;
+                  /* fprintf(stderr,"Line at y=%d is cst\n", ky); */
+               }
+            }
+            /* Top */
+            cutT = 0;
+            mis = 0;
+            for (ky=0; ky<imin->ny && !mis; ++ky) {
+               for (kx=imin->nx-1; kx>=0 && !mis; --kx) {
+                  kkk = kx+imin->nx*ky;
+                  if (cutlev >= 0) {
+                     if (ABS(rgb[kkk  ] - rgb[e0]) > cutlev) {
+                        /* fprintf(stderr,
+                                "Break from [%d] at %d %d with [%d]\n",
+                                rgb[0], kx, ky, rgb[kkk]); */
+                        mis = 1;
+                     }
+                  }
+                  /* break if color changes from average of column */
+                  if (cutlevu >= 0) {
+                     if (ABS(rgb[kkk  ] - rowav[ky  ]) > cutlevu) {
+                        /* fprintf(stderr,
+                     "Break from rowav [%d] at %d %d with [%d]\n",
+                          rowav[ky  ], kx, ky,
+                          rgb[kkk  ]); */
+                        mis = 1;
+                     }
+                  }
+               }
+               if (!mis) {
+                  ++cutT;
+                  /* fprintf(stderr,"Line at y=%d is cst\n", ky); */
+               }
+            } 
+            if (colav) free(colav); colav=NULL;
+            if (rowav) free(rowav); rowav=NULL;
+        } else {
+            fprintf(stderr,"*** For autocrop image must be RGB or byte type.\n");
+            exit(1);
+        }
+        
+        fprintf(stdout,"+++ Autocrop set to L%d R%d T%d B%d\n", 
+                       cutL, cutR, cutT, cutB); 
+      }
+   }
+   
    /* crop all images if needed */
    if (cutL || cutR || cutT || cutB) {
       /* original image size */
