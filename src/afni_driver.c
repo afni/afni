@@ -1879,9 +1879,9 @@ ENTRY("AFNI_drive_set_threshold") ;
 
 static int AFNI_drive_set_threshnew( char *cmd )
 {
-   int ic,dadd , olddec,newdec , ival,smax,id,stop , dopval,dostar;
+   int ic,dadd , olddec,newdec , ival,smax,id,stop , dopval, doqval, dostar;
    Three_D_View *im3d ;
-   float val , pval ;
+   float val , pval , qval;
    char *cpt ;
    static float tval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
                             100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
@@ -1918,6 +1918,8 @@ ENTRY("AFNI_drive_set_threshnew") ;
 
    dopval = (val >= 0.0) && (val <= 1.0) && (strchr(cpt,'p') != NULL) &&
             (DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) > 0) ;
+   doqval = (val >= 0.0) && (val <= 1.0) && (strchr(cpt,'q') != NULL) &&
+            (DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) > 0) ;
 
    dostar = (val > 0.0) && (strchr(cpt,'*') != NULL) ;
 
@@ -1927,7 +1929,13 @@ ENTRY("AFNI_drive_set_threshnew") ;
               DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
      if( pval >= 0.0 ) val = pval ;
    }
-
+   
+   if (doqval) {
+      qval   = qginv(0.5*val) ;
+      qval = THD_fdrcurve_zqtot( im3d->fim_now,im3d->vinfo->thr_index,qval) ;
+      if( qval >= 0.0 ) val = qval; 
+   }
+   
    if( val >= im3d->vinfo->func_thresh_top || dostar ){ /* reset scale range */
 
      newdec = (int)( log10(val) + 1.0 ) ;
