@@ -1150,6 +1150,7 @@ int program_supports(char *uprog, char *opt, char *oval, int verb)
 char *find_popt(char *sh, char *opt, int *nb)
 {
    char *loc=NULL, *other=NULL;
+   int ne = 0;
    
    ENTRY("find_popt");
    
@@ -1158,15 +1159,18 @@ char *find_popt(char *sh, char *opt, int *nb)
       RETURN(loc);
    } 
 
-   loc = line_begins_with(sh, opt, nb);
+   loc = line_begins_with(sh, opt, nb, "\t :]", "[]<>()", 5);
    
    if (loc) { /* Check that we do not have more than one */
-      if ((other = line_begins_with(loc+*nb+1, opt, NULL))) { 
-         char sbuf[128]={""};
-         snprintf(sbuf,127,"*+ WARNING: More than one match for opt %s in \n>>",
+      if ((other = line_begins_with(loc+*nb+1, opt, NULL, "\t :]", "[]<>()", 5))) { 
+         char sbuf[128]={""}, *strt;
+         snprintf(sbuf,127,
+                  "*+ WARNING: More than one match for 'opt' %s in \n>>",
                       opt);
-         
-         write_string(loc+*nb+1, sbuf,"<<\nReturning first hit\n", 500,1,stderr);
+         strt = MAX(other-60,loc+*nb+1);
+         write_string(strt, sbuf,
+                     "<<  Returning first hit\n", 
+                     (other-strt)+10,1,stderr);
       }
    }
    

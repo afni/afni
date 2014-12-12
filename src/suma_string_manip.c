@@ -185,53 +185,172 @@ void write_string(char *s, char *prelude, char *postscript,
    return;
 }
 
+char *summarize_string(char *us, int lmax)
+{
+   static char FuncName[]={"summarize_string"};
+   static char os[10][250], elli[]={" ... "};
+   static int n = 0;
+   char *s = NULL;
+   int nelli, nchunk, nleft;
+   
+   SUMA_ENTRY;
+   
+   ++n;
+   if (n>9) n = 0;
+   if (lmax > 249) lmax = 249;
+   nelli = strlen(elli);
+   if (lmax - nelli < 3) lmax = nelli+3;
+   
+   
+   s = (char *)os[n]; s[0] = '\0';
+   
+   if (strlen(us)<=lmax) {
+      strcpy(s,us);
+      return(s);
+   }
+   
+   
+   
+   /* long one */
+   nchunk = (lmax - nelli)/2;
+   strncpy(s, us, nchunk); s[nchunk]='\0';
+   strcat(s,elli);
+   nleft = lmax - nchunk -nelli;
+   strncat(s, us+strlen(us)-nleft, nleft);
+   s[lmax] = '\0';
+   
+   return(s);
+}
+
 /* 
 Find 1st location in cur that begins with string opt.
 Blanks are ignored.
+
+If term is not null, then string opt must be followed
+by one of the characters in term. 
+
+If bracketers is not null, accept an opening bracket as 
+a valid starting character. bracketers must have an even
+number of characters with each pair containing the opening/closing
+characters.
+
 Function returns pointer to beginning of opt in the line, 
 and sets number of blanks preceding it */
-char *line_begins_with(char *cur, char *opt, int *nb)
+char *line_begins_with(char *cur, char *opt, int *nb, 
+                       char *term, char *bracketers, int mintoend)
 {
-   char *loc=NULL, *nl=NULL;
-   int bad = 1;
+   static char FuncName[]={"line_begins_with"};
+   char *loc=NULL, *nl=NULL, *eee=NULL, obrac='\0', 
+        cbrac='\0', *bop=NULL, *eopt=NULL;
+   int bad = 1, lopt, nbra;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
    
    if (!cur || !opt) {
       ERROR_message("NULL option or null string");
-      return(loc);
-   } 
+      SUMA_RETURN(loc);
+   }
+   if (bracketers && (nbra=strlen(bracketers)) % 2) {
+      ERROR_message("Must have even number of chars in bracketers. Have %d",
+                   nbra);
+      SUMA_RETURN(loc);
+   }
+   
+   lopt = strlen(opt);
    if (nb) *nb = -1;
    do {
       loc = strstr(cur, opt);
       if (loc) {
+         SUMA_LH("Found '%s'\non\n'%s'\nat\n'%s'\n",
+                     opt, summarize_string(cur, 50),
+                     summarize_string(loc,50));
          bad = 0; /* Assume it is good */
-         if (loc == cur) {
-            if (nb) *nb = 0;
-            return(loc);
-         }
-         /* search back to new line */
-         nl = loc-1; 
-         while (nl != cur && *nl != '\n') {
-            if (*nl != ' ' && *nl != '\t') { /* No need to continue */
-               bad = 1;  
+         obrac='\0'; cbrac = '\0'; eopt= '\0';
+         /* Do we have a bracket?*/
+         if (bracketers) {
+            if (loc > cur && (bop = strchr(bracketers,*(loc-1)))) {
+               SUMA_LH("Found opening bracket '%c' at >>%s<<",
+                           *bop, summarize_string(loc-1, 50));
+               if ((bop - bracketers) % 2) {
+                  SUMA_S_Warn("Closing bracket before option '%s'! >>%s<<",
+                               opt, summarize_string(cur,50));
+                  /* let it fail below...*/
+               } else {
+                  obrac=*bop;
+                  cbrac=*(bop+1); /* closing bracket character */
+               }
             }
-            --nl;
          }
+         if (!bad && cbrac != '\0') { /* make sure closing bracket is there */
+            eee = loc+lopt;
+            while (*eee != '\0' && *eee != cbrac) {
+               ++eee;
+            }
+            if (*eee != cbrac) {
+               SUMA_S_Warn("No closing bracket '%c' found "
+                           "for >>%s<< on option '%s'",
+                            cbrac, summarize_string(cur,50), opt);
+               bad = 1;
+            } else {
+               eopt = eee; /* Mark location for end of option */
+            }
+         }
+         if (!bad && term) { /* check for proper termination */
+            eee = term;
+            if (*(loc+lopt) != '\0') {
+               bad = 1;
+               while (bad && *eee != '\0') {
+                  if (*(loc+lopt) == *eee) {
+                     bad = 0;
+                  }
+                  ++eee;
+               }
+            }
+         }
+         if (!bad && mintoend > 0) { /* number of chars until new line or end */
+            if (eopt) eee = eopt;
+            else eee = loc+lopt;
+            SUMA_SKIP_TO_EOL(eee,NULL);
+            if ((eee-(loc+lopt))<mintoend) {
+               SUMA_LH("Failed minend test %d < %d\n",
+                        (int)(eee-(loc+lopt)),mintoend);
+               bad = 1;
+            }
+         }
+         if (!bad) {
+            if (loc == cur) {
+               if (nb) *nb = 0;
+               SUMA_RETURN(loc);
+            }
+            /* search back to new line */
+            nl = loc-1; 
+            while (nl != cur && *nl != '\n' && !bad) {
+               if (*nl != ' ' && *nl != '\t' && 
+                   obrac != '\0' && *nl != obrac) { /* No need to continue */
+                  SUMA_LH("Failed at search back to new line");
+                  bad = 1;  
+               }
+               --nl;
+            }
+         }
+         
          if (!bad) { /* Good */
             if (*nl == '\n') ++nl;
             if (nb) *nb = loc -nl;
-            return(loc);
+            SUMA_RETURN(loc);
          } else {
             /* continue search past this find. */
             cur = loc+1;
          }
       } else {
          /* nothing found, get out */
-         return(NULL);
+         SUMA_RETURN(NULL);
       }
       
    } while (*cur != '\n');
    
-   return(NULL);
+   SUMA_RETURN(NULL);
 }
 
 
@@ -1844,7 +1963,8 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
    strcpy(sh, oh);
    sh[strlen(oh)]='\0';
    
-   snprintf(sins, 1020, "%s\n", prog); bb = sins+strlen(sins);
+   snprintf(sins, 1020, ":tocdepth: 2\n\n"
+                        ".. _%s:\n\n%s\n", prog, prog); bb = sins+strlen(sins);
    for (i=0; i<strlen(prog); ++i) {*bb='-'; ++bb;}
    *bb='\0';
    strncat(sins,"\n\n", 1020);
