@@ -2677,6 +2677,10 @@ If the underlay is on a coarse matrix (e.g., native EPI), these outlines
 will look terrible -- you can alter the underlay display grid dimension in
 'Define Datamode' using the control 'Warp ULay on Demand'.
 
+Please note that the ALpha features described above only apply if the
+color scale is in the 'continuous' mode ('**'), not in the discrete
+panes mode. Sorry about this, but that's the situation for the nonce.
+
 ----------------------------
 Variable: AFNI_SLAVE_THRTIME       *** THIS VARIABLE IS NO LONGER USED ***
 ----------------------------
