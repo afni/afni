@@ -1,18 +1,23 @@
 #!/bin/csh -f
 
-# Jason W. Bacon
-# Medical College of Wisconsin
-# Sep 27, 2006
-#
-# Search $AFNI_GLOBAL_SESSION, $AFNI_PLUGINPATH, and afni bin directory
-# (in that order) for named dataset.  If found, echo the first valid path
-# discovered and return zero status.  If not found, return non-zero status.
 #
 # Change log:
 
-if ( $#argv != 1 ) then
-    echo "Usage: $0 <name>"
-    exit 1
+if ( $#argv != 1 || "$argv[1]" == "-help") then
+    echo "Usage: `basename $0` <dsetname>"
+    echo ""
+echo "Search AFNI_GLOBAL_SESSION, AFNI_PLUGINPATH, and afni bin directory"
+echo " (in that order) for named dataset.  If found, echo the first valid path"
+echo " discovered and return zero status.  If not found, return non-zero status."
+echo ""
+echo "-help to get this message"
+echo ""
+echo " Jason W. Bacon"
+echo " Medical College of Wisconsin"
+echo " Sep 27, 2006"
+   echo ""
+    if ( $#argv != 1 ) exit 1
+    exit 0
 endif
 
 set ref_in = $1

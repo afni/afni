@@ -1164,7 +1164,7 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap, TFORM targ)
       SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
 
       /* Add help for all controller options */
-      s = SUMA_Help_AllSurfCont(1);
+      s = SUMA_Help_AllSurfCont(targ);
       SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    }
    /* clean SS */
@@ -2081,6 +2081,9 @@ char * SUMA_help_message_Info(TFORM targ)
       "   %s: Rotate surfaces about the Z\n"
       "       axis. This is useful at times for reorienting flat\n"
       "       maps.\n", SUMA_hkf("Shift+Button 1-Motion", targ));
+   SS = SUMA_StringAppend_va (SS,    
+      "   %s: Undo Z rotation\n", 
+      SUMA_hkf("Shift+Button 1-DoubleClick", targ));
    SS = SUMA_StringAppend_va (SS,       
       "   %s: Pry open two hemispheres\n"
       "       so that you can see medial or lateral walls better\n"
@@ -2098,14 +2101,14 @@ char * SUMA_help_message_Info(TFORM targ)
       "       to draw, the surfaces are put back together.\n"
       "       To make best use of this option, you want to have env. variable\n"
       "       SUMA_LHunify = YES (see your ~/.sumarc for help)\n",
-         SUMA_hkf("Control+Button 1-Motion", targ)); 
+         SUMA_hkf("Ctrl+Button 1-Motion", targ)); 
    SS = SUMA_StringAppend_va (SS,        
       "  %s: Reset to Home vieweing angle, zooming is\n"
       "       left unchanged. See also 'HOME' key\n",
          SUMA_hkf("Button 1-DoubleClick", targ));
    SS = SUMA_StringAppend_va (SS,       
       "  %s: Undo surface prying.\n",
-         SUMA_hkf("Control+Button 1-DoubleClick", targ));
+         SUMA_hkf("Ctrl+Button 1-DoubleClick", targ));
    SS = SUMA_StringAppend_va (SS, 
       "  %s: Translation for 3D scenes. Rotation for\n"
       "                      matrix displays.\n",

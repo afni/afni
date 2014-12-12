@@ -667,7 +667,7 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Failed to open %s for writing", argv[kar]);
             exit(1);
           }
-          SUMA_help_message(fout,1);
+          SUMA_help_message(fout,SPX);
           fclose(fout); fout = NULL;
           exit (0);
 		}
@@ -678,7 +678,7 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Failed to open Mouse_Keyboard_Controls.txt for writing");
             exit(1);
           }
-          SUMA_help_message(fout,0);
+          SUMA_help_message(fout,TXT);
           fclose(fout); fout = NULL;
           exit (0);
 		}
@@ -689,7 +689,7 @@ int main (int argc,char *argv[])
       }
       
       if (strcmp(argv[kar], "-environment") == 0) {
-			 s = SUMA_env_list_help (0, 0);
+			 s = SUMA_env_list_help (0, NO_FORMAT);
           fprintf (SUMA_STDOUT,  
             "#SUMA ENVIRONMENT \n"
             "# If you do not have a ~/.sumarc file, cannot find a SUMA\n"
@@ -712,7 +712,7 @@ int main (int argc,char *argv[])
 		}
       
       if (strcmp(argv[kar], "-default_env") == 0) {
-			 s = SUMA_env_list_help (1, 0);
+			 s = SUMA_env_list_help (1, NO_FORMAT);
           fprintf (SUMA_STDOUT,  
                   "#SUMA DEFAULT ENVIRONMENT (user settings ignored)\n"
                   "# see also suma -udate_env or suma -environment\n"

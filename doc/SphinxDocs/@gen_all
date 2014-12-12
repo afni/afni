@@ -97,16 +97,32 @@ endif
 
 if ($do_phelp) then
    set plist = (`apsearch -list_all_afni_progs`)
+   #set plist = (3dinfo @SUMA_Make_Spec_FS suma afni)
    set cnt = 1
+   \cp programs/programs.head programs/programs.rst
    foreach pp ($plist)
       if ($cnt < $help_max_cnt) then
-         echo "###Help for $pp -- @ `date`"
-         apsearch -asphinx_phelp $pp > programs/___auto_help/_${pp}.help.inc
-         if ( $status == 0 ) then
-            \grep -q $pp programs/___auto_help/_ALL.phelp.inc
+         set skip = 0
+         set ppat = `echo $pp | sed 's/^@/AT_/'`
+         if ( ! -f programs/___auto_help/_${ppat}.help.rst) then
+            echo "###Help for $pp -- @ `date`"
+            apsearch -asphinx_phelp $pp > programs/___auto_help/_${ppat}.help.rst
+            if ( $status ) set skip = 1
+         else
+            echo "Reusing programs/___auto_help/_${ppat}.help.rst"
+         endif
+         #Make sure have decent filesize
+         set nlns = `\wc -l programs/___auto_help/_${ppat}.help.rst`
+         if ($status || $nlns[1] < 1) then
+            \rm programs/___auto_help/_${ppat}.help.rst
+            set skip = 1
+         endif
+         
+         if ( $skip == 0 ) then
+            \grep -qw $ppat.help.rst programs/programs.rst
             if ( $status > 0) then
-               echo ".. include:: ___auto_help/_${pp}.help.inc" >>   \
-                                 programs/___auto_help/_ALL.phelp.inc
+               echo "   ___auto_help/_${ppat}.help.rst" >>   \
+                                 programs/programs.rst
             endif
          endif
       endif
@@ -115,8 +131,9 @@ if ($do_phelp) then
 endif
 
 if ( ! -d _static) mkdir _static
+if ($clean_html == 1) make clean |& tee -a ___build.log
 if ($do_html == 1) then
-   make clean html |& tee -a ___build.log
+   make html |& tee -a ___build.log
 endif
 
 UPLOAD:
@@ -139,6 +156,7 @@ PARSE:
 	set cnt = 1
    set nosuma = 1
    set do_html = 0
+   set clean_html = 0
    set do_thelp = 0
    set do_phelp = 0
    set help_max_cnt = 1000
@@ -161,6 +179,12 @@ PARSE:
 
       if ("$argv[$cnt]" == "-html") then
          set do_html = 1
+         goto CONTINUE
+      endif
+
+      if ("$argv[$cnt]" == "-clean_html") then
+         set do_html = 1
+         set clean_html = 1
          goto CONTINUE
       endif
 
@@ -229,8 +253,9 @@ HELP:
    echo ""
    echo "Options:"
    echo "-h: This message"
-   echo "-html: Run make clean html."
-   echo "-no_html: Do not run make clean html. (default)"
+   echo "-html: Run make html."
+   echo "-no_html: Do not run make html. (default)"
+   echo "-clean_html: Run make clean html"
    echo "-no_suma: Do not regenerate SUMA's auto docs. (default)"
    echo "-suma: Do regenerate SUMA's auto docs."
    echo "-phelp: Generate help pages for all programs."

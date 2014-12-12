@@ -246,7 +246,7 @@ Keyboard Controls
         This option is useful for saving a large number of images
         without running out of memory in the recorder GUI. 
 
-        Your current PREFIX is: ./SUMA_Recordings/autorecord.jpg
+        Your current PREFIX is: ./SUMA_Recordings/autorecord.ppm
 
    
 .. _LC_Alt+r:
@@ -761,9 +761,13 @@ Mouse Controls
        axis. This is useful at times for reorienting flat
        maps.
    
-.. _Control+Button_1-Motion:
+.. _Shift+Button_1-DoubleClick:
 
-:kbd:`Control+Button 1-Motion`: Pry open two hemispheres
+:kbd:`Shift+Button 1-DoubleClick`: Undo Z rotation
+   
+.. _Ctrl+Button_1-Motion:
+
+:kbd:`Ctrl+Button 1-Motion`: Pry open two hemispheres
        so that you can see medial or lateral walls better
        from one angle. Prying is disabled for flat surfaces
        and with spheres the effect is to rotate each sphere
@@ -785,9 +789,9 @@ Mouse Controls
 :kbd:`Button 1-DoubleClick`: Reset to Home vieweing angle, zooming is
        left unchanged. See also 'HOME' key
   
-.. _Control+Button_1-DoubleClick:
+.. _Ctrl+Button_1-DoubleClick:
 
-:kbd:`Control+Button 1-DoubleClick`: Undo surface prying.
+:kbd:`Ctrl+Button 1-DoubleClick`: Undo surface prying.
   
 .. _Button_2-Motion:
 
@@ -1690,9 +1694,18 @@ Choose from YES or NO
 
   default value:   SUMA_SUMA_TESSCON_AutoScale = NO
 
+.. _NO:
+
+:envvar:`NO`: Turn on verbose mode for function count_procs() that checks for 
+recursive calls to a program. Do not keep this env set to YES unless
+you are debugging.
+SUMA_CountProcs_Verb
+
+  default value:   NO = (null)
+
 
 Current Version Info:
 
 Compile Date:
-   Nov  5 2014
+   Dec  9 2014
 

@@ -60,7 +60,7 @@ L_INIT_VARS:
     set flats = ()
     set cnt = 1
     while ($#flats == 0 && $cnt < 10)
-      \ls *FLAT*coord | \cut -d '.' -f $cnt | \grep FLAT > ___flats
+      \ls *FLAT*coord | \cut -d '.' -f $cnt | \grep FLAT >& ___flats
       if ($status == 0) then 
          set flats = `sort ___flats | uniq`
       endif

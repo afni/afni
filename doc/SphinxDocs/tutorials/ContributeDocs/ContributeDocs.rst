@@ -68,7 +68,7 @@ Also a breeze as in this example:
 
 .. figure:: media/suma_mni_n27.jpg
    :align: center
-   :figwidth: 70%
+   :figwidth: 50%
    
    A random picture here.
 
@@ -77,8 +77,9 @@ And a few more pictures together:
 .. figure:: media/suma_mni_n27_pry1.jpg
    :align: left
    :figwidth: 30%
+   :target: ../../_images/suma_mni_n27_pry1.jpg
 
-   Left aligned!
+   Left aligned! Click on picture to see it in full size. If you're reading the source, the target path is to the image file as copied by the make html process. Images are copied automatically to _build/html/_images/ so you need not make a copy but you have to set the relative path.
    
 .. figure:: media/suma_mni_n27_pry2.jpg
    :align: right

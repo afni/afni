@@ -7495,7 +7495,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_RETURNe;
 }
 
-SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, int targ, char *fname)
+SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, TFORM targ, char *fname)
 {
    static char FuncName[]={"SUMA_WriteCont_Help"};
    FILE *fout=NULL;
@@ -7504,8 +7504,20 @@ SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, int targ, char *fname)
    SUMA_ENTRY;
    
    if (!fname) {
-      if (targ == 0) fname = "SurfCont_help.txt";
-      else fname = "SurfCont_help.rst";
+      switch (targ) {
+         case NO_FORMAT:
+         case TXT:
+            fname = "SurfCont_help.txt";
+            break;
+         case ASPX:
+         case SPX:
+            fname = "SurfCont_help.rst";
+            break;
+         default:
+            SUMA_S_Warn("Unknown format of %d. Going with .txt",targ);
+            fname = "SurfCont_help.txt";
+            break;
+      }    
    }
    
    if (!(fout = fopen(fname,"w"))) {

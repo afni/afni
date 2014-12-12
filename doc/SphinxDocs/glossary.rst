@@ -264,7 +264,10 @@ Glossary
          
    Spec
    Spec file
-      A text file setting the specifications for a family of surfaces, including the relationships between them. The spec file is usually created automatically by the likes of *@SUMA_Make_Spec_FS*, or with *quickspec*.
+      A text file setting the specifications for a family of surfaces, including the relationships between them. The spec file is usually created automatically by the likes of *@SUMA_Make_Spec_*, or with *quickspec*.
+   
+   Surface Volume
+      Volume with which the surfaces are in alignment. This volume is usually created by scripts @SUMA_Make_Spec_* and is either the same as the volume from which the surfaces were created, or a spatially transformed version of it. Spatial transformations present in the header of the surface volume are applied on the fly to the surface coordinates when loaded into SUMA or any of the command-line programs that expect a surface volume. See also script :ref:`@SUMA_Align_To_Experiment`
       
    State
       For surfaces, state is shorthand for the deformation state. For instance,  lh.pial.gii and lh.inflated.gii surfaces are of two states, pial, and inflated, respectively. You can change the default state names by editing the :term:`spec file` manually. Surfaces of the same state are displayed together, otherwise you can switch between states with :ref:`,<LC_,>`, :ref:`.<LC_.>`, or :ref:`SPACE<SPACE>`. Some states are anatomically correct, like pial, and white. Some such as sphere or inflated are not.

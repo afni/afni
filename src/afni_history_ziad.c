@@ -65,6 +65,10 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 10, Dec, 2014, ZSS, "imcat", MINOR, TYPE_NEW_OPT,
+   "Added -autocrop* options",
+   NULL 
+ },
 
  { 4, Dec, 2014, ZSS, "suma", MICRO, TYPE_BUG_FIX,
    "Default coloring of directions was using negative values.",
