@@ -319,6 +319,7 @@ ENTRY("AFNI_func_alpha_CB") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->thr_use_alpha = av->ival ;
+   PBAR_force_bigexpose(im3d->vwid->func->inten_pbar) ;
 
 #if 0
    STATUS_IM3D_TMASK(im3d) ;
@@ -1844,6 +1845,7 @@ ENTRY("AFNI_func_overlay") ;
 #define NFO_ZABOVE_MASK  2
 #define NFO_ALIN_MASK    4
 #define NFO_AQUA_MASK    8
+#define NFO_POS_MASK   256
 
    if( pbar->bigmode ){
      float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
@@ -1873,6 +1875,7 @@ if( PRINT_TRACING && im_thr != NULL )
 
      if( im3d->vinfo->thr_use_alpha == 1 ) flags |= NFO_ALIN_MASK ;
      if( im3d->vinfo->thr_use_alpha == 2 ) flags |= NFO_AQUA_MASK ;
+     if( im3d->vinfo->use_posfunc        ) flags |= NFO_POS_MASK  ;
 
      if( ! im3d->vinfo->thr_use_alpha || VEDIT_good(im3d->vedset) )
        im_ov = AFNI_newfunc_overlay( im_thr , thb,tht ,
@@ -2175,6 +2178,49 @@ STATUS("thresholdization") ;
 }
 
 /*-----------------------------------------------------------------------*/
+
+#define ALIN(th,fac) (th*fac)
+#define AQUA(th,fac) (ALIN(th,fac)*ALIN(th,fac))
+#define ALFA(th,fac) (do_alin) ? 255.0f*ALIN(th,fac)+af : 255.0f*AQUA(th,fac)+af
+
+void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im )
+{
+   int do_alin ; float af,th,fi,aa,rf,bf,gf ; int ii,jj,kk,nx,ny ;
+   byte *iar ;
+
+   if( !IM3D_OPEN(im3d) || im == NULL || im->kind != MRI_rgb ) return ;
+   if( im3d->vinfo->thr_use_alpha <= 0 ) return ;
+
+#if 0
+   do_alin = ( im3d->vinfo->thr_use_alpha == 1 ) ;
+#else
+   do_alin = 1 ;  /* always linear, never quadratic */
+#endif
+   af      = 255.0f*im3d->vinfo->thr_alpha_floor ;
+   nx      = im->nx ; if( nx < 2 ) return ;
+   ny      = im->ny ;
+   fi      = 0.995f/(nx-1) ;
+   iar     = MRI_RGB_PTR(im) ;
+
+   for( kk=jj=0 ; jj < ny ; jj++ ){
+     for( ii=0 ; ii < nx ; ii++,kk+=3 ){
+       if( ii==0 ) continue ;
+       th = 1.0f - ii*fi ;
+       aa = ALFA(th,1.0f) ;
+       if( aa < 255.0f ){
+         rf = iar[kk] ; gf = iar[kk+1] ; bf = iar[kk+2] ;
+         if( rf==  0.0f && gf==  0.0f && bf==  0.0f ) continue ;  /* don't alter */
+         if( rf==255.0f && gf==255.0f && bf==255.0f ) continue ;  /* black or white */
+         rf = (aa/255.0f)*rf + (255.0f-aa) ; iar[kk  ] = BYTEIZE(rf) ;
+         gf = (aa/255.0f)*gf + (255.0f-aa) ; iar[kk+1] = BYTEIZE(gf) ;
+         bf = (aa/255.0f)*bf + (255.0f-aa) ; iar[kk+2] = BYTEIZE(bf) ;
+       }
+     }
+   }
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Make a functional overlay the new new way (08 Dec 2014):
     - im_thr = threshold image (may be NULL)
     - thbot  = pixels with values in im_thr in range (thbot..thtop)
@@ -2195,10 +2241,11 @@ MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *im_thr , float thbot,float thtop
    float fac , val ;
    int dothr = (thbot < thtop) && (im_thr != NULL);  /* 08 Aug 2007 */
    int do_alin ;                                     /* 09 Dec 2014 */
+   int do_pos = (flags & NFO_POS_MASK) != 0 ;        /* 12 Dec 2014 */
 
-   int zbelow = (flags & NFO_ZBELOW_MASK) != 0 ;  /* Feb 2012 */
+   int zbelow = (flags & NFO_ZBELOW_MASK) != 0 ;     /* Feb 2012 */
    int zabove = (flags & NFO_ZABOVE_MASK) != 0 ;
-   byte *bfim=NULL ; short *sfim=NULL ; float *ffim=NULL ; int kk ;
+   byte *bfim=NULL ; short *sfim=NULL ; float *ffim=NULL ; int kf ;
 
 ENTRY("AFNI_newnewfunc_overlay") ;
 
@@ -2212,11 +2259,8 @@ STATUS("create output image") ;
    npix  = im_ov->nvox ;
    fac   = NPANE_BIG / (fimtop-fimbot) ; /* scale from data value to color index */
 
-   if( dothr ){
-   }
-
-   kk = (int)im_fim->kind ;
-   switch( kk ){
+   kf = (int)im_fim->kind ;
+   switch( kf ){
      default: mri_free(im_ov) ; RETURN(NULL) ;   /* should never happen! */
      case MRI_short: sfim = MRI_SHORT_PTR(im_fim) ; break ;
      case MRI_byte : bfim = MRI_BYTE_PTR (im_fim) ; break ;
@@ -2225,10 +2269,11 @@ STATUS("create output image") ;
 
 STATUS("colorization") ;
    for( ii=0 ; ii < npix ; ii++ ){
-          if( kk == MRI_byte  ) val = (float)bfim[ii] ;
-     else if( kk == MRI_short ) val = (float)sfim[ii] ;
+          if( kf == MRI_byte  ) val = (float)bfim[ii] ;
+     else if( kf == MRI_short ) val = (float)sfim[ii] ;
      else                       val =        ffim[ii] ;
      if( ZREJ(val) || (zabove && val > fimtop) || (zbelow && val < fimbot) ) continue ;
+     if( do_pos && val <= 0.0f ) continue ;  /* 12 Dec 2014 */
      jj = (int)( fac*(fimtop-val) ) ;
      if( jj < 0 ) jj = 0 ; else if( jj > NPANE_BIG1 ) jj = NPANE_BIG1 ;
      ovar[ii].r   = fimcolor[jj].r ;
@@ -2270,6 +2315,12 @@ STATUS("threshold-ization and alpha-ization") ;
            } else if( ar_thr[ii] < 0 && ar_thr[ii] > thb ){
              aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( do_edge ){
+             if( do_pos ){
+                    if( kf == MRI_byte  ) val = (float)bfim[ii] ;
+               else if( kf == MRI_short ) val = (float)sfim[ii] ;
+               else                       val =        ffim[ii] ;
+               if( val <= 0.0f ) continue ;
+             }
              ear[ii] = 1 ;  /* is not faded */
            }
          }
@@ -2285,6 +2336,12 @@ STATUS("threshold-ization and alpha-ization") ;
            } else if( ar_thr[ii] < tht ){
              aa = ALFA(ar_thr[ii],ft) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( do_edge ){
+             if( do_pos ){
+                    if( kf == MRI_byte  ) val = (float)bfim[ii] ;
+               else if( kf == MRI_short ) val = (float)sfim[ii] ;
+               else                       val =        ffim[ii] ;
+               if( val <= 0.0f ) continue ;
+             }
              ear[ii] = 1 ;  /* is not faded */
            }
        }
@@ -2301,14 +2358,17 @@ STATUS("threshold-ization and alpha-ization") ;
            } else if( ar_thr[ii] < 0 && ar_thr[ii] > thb ){
              aa = ALFA(ar_thr[ii],fb) ; ovar[ii].a = BYTEIZE(aa) ;
            } else if( do_edge ){
+             if( do_pos ){
+                    if( kf == MRI_byte  ) val = (float)bfim[ii] ;
+               else if( kf == MRI_short ) val = (float)sfim[ii] ;
+               else                       val =        ffim[ii] ;
+               if( val <= 0.0f ) continue ;
+             }
              ear[ii] = 1 ;  /* is not faded */
            }
        }
        break ;
      }
-#undef ALIN
-#undef AQUA
-#undef ALFA
 
      /* process the edges of the above-threshold regions? */
 
@@ -2326,10 +2386,13 @@ STATUS("threshold-ization and alpha-ization") ;
        }
        mri_free(eim) ;
      }
-   }
+   } /* end of threshold-ization and all the fun it has */
 
    RETURN(im_ov) ;
 }
+#undef ALIN
+#undef AQUA
+#undef ALFA
 
 /*-----------------------------------------------------------------------
   Make an overlay from the TT atlas

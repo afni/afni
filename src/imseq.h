@@ -454,6 +454,7 @@ typedef struct MCW_imseq {
      /*--- data below here should be freed before deletion ---*/
 
      MRI_IMAGE *imim , *ovim ;  /* latest and greatest (already processed) */
+     MRI_IMAGE *last_automask ;
 
      int        need_orim , set_orim ; /* flag to compute orim */
      MRI_IMAGE *orim ;                 /* input underlay image (for rowgraphs) */
@@ -764,6 +765,8 @@ extern MRI_IMAGE * ISQ_overlay( MCW_DC *, MRI_IMAGE *, MRI_IMAGE *, float ) ;
 #define ISQ_GOOD_OVERLAY_TYPE(dt) ( (dt)==MRI_short || (dt)==MRI_rgb || (dt)==MRI_rgba )
 
 extern MRI_IMAGE * ISQ_binarize_overlay( MRI_IMAGE * ) ; /* Mar 2013 */
+
+extern void ISQ_apply_mask( MRI_IMAGE * , MRI_IMAGE * ) ; /* 12 Dec 2014 */
 
  /* 07 Mar 2001 */
 extern void ISQ_opacity_CB( MCW_arrowval * , XtPointer ) ;

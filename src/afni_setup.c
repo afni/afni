@@ -990,7 +990,7 @@ void AFNI_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
    char * fname , * ptr ;
-   int ll , nx=20 , ny=256 ;
+   int ll , nx=64 , ny=512 , flip=0 ;
    MRI_IMAGE * im ;
 
 ENTRY("AFNI_finalize_saveim_CB") ;
@@ -1017,10 +1017,17 @@ ENTRY("AFNI_finalize_saveim_CB") ;
    ptr = getenv( "AFNI_PBAR_IMXY" );
    if( ptr != NULL ){
      ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
-     if( ll < 2 || nx < 1 || ny < 32 ){ nx=20; ny=256; }
+     if( ll < 2 || nx < 4 || ny < 32 ){ nx=40; ny=256; }
+     flip = (strcasestr(ptr,"F")!=NULL) || (strcasestr(ptr,"H")!=NULL) ;
    }
 
    im = MCW_pbar_to_mri( im3d->vwid->func->inten_pbar , nx,ny ) ;
+   if( im != NULL && flip ){
+     MRI_IMAGE *qim = mri_flippo( MRI_ROT_270 , 0 , im ) ;
+     if( qim != im && qim != NULL ){ mri_free(im) ; im = qim ; }
+   } else if( im == NULL ){
+     ERROR_message("MCW_pbar_to_mri function failed!") ;
+   }
    mri_write_pnm( fname , im ) ;
 
    POPDOWN_string_chooser; mri_free(im); free(fname); EXRETURN;

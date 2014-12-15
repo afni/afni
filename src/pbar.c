@@ -4,10 +4,13 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include "afni.h"
+#if 0
 #include "pbar.h"
 #include "xim.h"    /* for display of the colorscale in "big" mode */
 #include <ctype.h>
 #include "cs.h"
+#endif
 
 static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
 static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs );
@@ -854,9 +857,13 @@ static void PBAR_show_bigthree_panes( MCW_pbar *pbar )
 /*! Actually redisplay pane #bigthree in "big" mode.
 ----------------------------------------------------------------------*/
 
+static XImage *temp_bigxim=NULL ;       /* 15 Dec 2014 */
+static int     temp_nxy=0 ;
+
 void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MCW_pbar *pbar = (MCW_pbar *)cd ; int bigthree ;
+   XImage **ximout=NULL ; int nx=0,ny=0 ;
 
 ENTRY("PBAR_bigexpose_CB") ;
 
@@ -864,15 +871,31 @@ ENTRY("PBAR_bigexpose_CB") ;
 
    bigthree = pbar->big31 ;
 
+   if( temp_nxy > 0 ){       /* 15 Dec 2014 */
+     nx = temp_nxy % 1024 ;
+     ny = temp_nxy / 1024 ;
+     if( nx >= 4 && ny >= 32 ){
+       MCW_kill_XImage(temp_bigxim) ; temp_bigxim = NULL ; ximout = &temp_bigxim ;
+     } else {
+       nx = ny = 0 ; ximout = &(pbar->bigxim) ;
+     }
+   } else {
+       nx = ny = 0 ; ximout = &(pbar->bigxim) ;
+   }
+
    /* make an image of what we want to see */
 
-   if( pbar->bigxim == NULL ){
+   if( *ximout == NULL ){
      int ww,hh , ii , jj , kk ;
      MRI_IMAGE *cim ;
      XImage    *xim ;
      byte      *car , r,g,b ;
 
-     MCW_widget_geom( pbar->panes[bigthree] , &ww,&hh , NULL,NULL ) ;
+     if( nx < 4 || ny < 32 ){
+       MCW_widget_geom( pbar->panes[bigthree] , &ww,&hh , NULL,NULL ) ;
+     } else {
+       ww = nx ; hh = ny ;
+     }
      cim = mri_new( ww,NPANE_BIG , MRI_rgb ) ;
      car = MRI_RGB_PTR(cim) ;
      for( kk=ii=0 ; ii < NPANE_BIG ; ii++ ){
@@ -883,46 +906,42 @@ ENTRY("PBAR_bigexpose_CB") ;
          }
        } else {                                            /* 06 Feb 2003 */
          for( jj=0 ; jj < ww ; jj++ ){
-           car[kk++]=128; car[kk++]=128; car[kk++]=128;
+           car[kk++]=128; car[kk++]=128; car[kk++]=128;   /* grayish gray */
          }
        }
      }
-#if 0
-     { XImage *xim = mri_to_XImage( pbar->dc , cim ) ;
-       pbar->bigxim = resize_XImage( pbar->dc , xim , ww,hh ) ;
-       MCW_kill_XImage(xim) ;
-     }
-#else
-     { char *eee ;
+     { char *eee ; Three_D_View *im3d=(Three_D_View *)pbar->parent ;
        MRI_IMAGE *dim = mri_resize( cim , ww,hh ) ;
-       pbar->bigxim = mri_to_XImage( pbar->dc , dim ) ;
+       if( IM3D_VALID(im3d) ) AFNI_alpha_fade_mri(im3d,dim) ;
+       *ximout = mri_to_XImage( pbar->dc , dim ) ;
        mri_free(dim) ;
        eee = getenv("AFNI_PBAR_TICK") ;          /* tick marks [25 Jun 2013] */
        if( eee == NULL || toupper(*eee) != 'N' ){
-         int jj,kk , ntic=9 ; float ftic ;
+         int jj,kk , ntic=9 , wtic=3 ; float ftic ;
          if( eee != NULL && isdigit(*eee) ){
            ntic = (int)strtod(eee,NULL) ; if( ntic > 63 ) ntic = 63 ;
          }
-         ftic = 1.0f/(ntic+1) ; 
+         ftic = 1.0f/(ntic+1) ; if( ww > 42 ) wtic = (int)rintf(0.07f*ww) ;
          for( kk=1 ; kk <= ntic ; kk++ ){
            jj = (int)rintf( ftic*kk*hh ) ;
-           rectzero_XImage( pbar->dc , pbar->bigxim , 0   ,jj , 2   , jj ) ;
-           rectzero_XImage( pbar->dc , pbar->bigxim , ww-3,jj , ww-1, jj ) ;
+           rectzero_XImage( pbar->dc , *ximout , 0      ,jj , wtic-1 , jj ) ;
+           rectzero_XImage( pbar->dc , *ximout , ww-wtic,jj , ww-1   , jj ) ;
          }
        }
      }
-#endif
      mri_free(cim) ;
    }
 
    /* actually show the image to the window pane */
 
-   if( XtIsManaged(pbar->panes[bigthree]) )
-     XPutImage( pbar->dc->display , XtWindow(pbar->panes[bigthree]) ,
-                pbar->dc->origGC , pbar->bigxim , 0,0,0,0 ,
-                pbar->bigxim->width , pbar->bigxim->height ) ;
+   if( temp_nxy == 0 ){
+     if( XtIsManaged(pbar->panes[bigthree]) )
+       XPutImage( pbar->dc->display , XtWindow(pbar->panes[bigthree]) ,
+                  pbar->dc->origGC , pbar->bigxim , 0,0,0,0 ,
+                  pbar->bigxim->width , pbar->bigxim->height ) ;
 
-   PBAR_show_bigthree_panes(pbar) ;
+     PBAR_show_bigthree_panes(pbar) ;
+   }
 
    EXRETURN ;
 }
@@ -1725,15 +1744,20 @@ ENTRY("MCW_pbar_to_mri") ;
    if( nx < 1 ) nx = 1 ;
 
    if( pbar->bigmode ){    /* 30 Jan 2003: save spectrum */
-     XImage *xim ;
-     if( pbar->bigxim == NULL ){
-       PBAR_bigexpose_CB(NULL,pbar,NULL) ;
-       if( pbar->bigxim == NULL ) RETURN(NULL) ;
-     }
+     XImage *xim=NULL ;
      if( ny < NPANE_BIG ) ny = NPANE_BIG ;
-     xim = resize_XImage( pbar->dc , pbar->bigxim , nx,ny ) ;
+     temp_nxy = nx + 1024*ny ;
+     PBAR_bigexpose_CB(NULL,pbar,NULL) ;
+     temp_nxy = 0 ;
+     if( temp_bigxim == NULL ) RETURN(NULL) ;
+     if( temp_bigxim->width != nx || temp_bigxim->height != ny ){
+       xim = resize_XImage( pbar->dc , temp_bigxim , nx,ny ) ;
+     } else {
+       xim = temp_bigxim ;
+     }
      im  = XImage_to_mri( pbar->dc , xim , X2M_USE_CMAP|X2M_FORCE_RGB ) ;
-     MCW_kill_XImage( xim ) ;
+     if( xim != temp_bigxim ) MCW_kill_XImage( xim ) ;
+     MCW_kill_XImage(temp_bigxim) ; temp_bigxim = NULL ;
      RETURN(im) ;
    }
 
