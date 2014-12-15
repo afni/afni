@@ -2679,6 +2679,10 @@ static char *readme_env[] = {
    "will look terrible -- you can alter the underlay display grid dimension in\n" ,
    "'Define Datamode' using the control 'Warp ULay on Demand'.\n" ,
    "\n" ,
+   "Please note that the ALpha features described above only apply if the\n" ,
+   "color scale is in the 'continuous' mode ('**'), not in the discrete\n" ,
+   "panes mode. Sorry about this, but that's the situation for the nonce.\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_SLAVE_THRTIME       *** THIS VARIABLE IS NO LONGER USED ***\n" ,
    "----------------------------\n" ,
@@ -3897,4 +3901,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime time in\n" ,
    "the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 3896
+#define NUM_readme_env 3900

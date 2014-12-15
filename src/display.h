@@ -55,7 +55,11 @@
 
 /* given x in [0..wx-1], map proportionally to [0..wn-1] */
 
+#if 1
+#define MAP_XY(x,wx,wn) (((wn)*(x)+(wn)/2)/(wx))
+#else
 #define MAP_XY(x,wx,wn) (((wn)*(x))/(wx))
+#endif
 
 /* 07 Aug 1998:
    Macro to produce TrueColor pixel values from

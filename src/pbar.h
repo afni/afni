@@ -132,6 +132,9 @@ extern int AFNI_set_func_range_nval( XtPointer *vp_im3d, float val);
 
 extern int AFNI_set_dset_pbar(XtPointer *vp_im3d);          /* 26 Feb 2010 ZSS */
 
+#define PBAR_force_bigexpose(pb) \
+  do{ MCW_kill_XImage(pb->bigxim); pb->bigxim = NULL; PBAR_bigexpose_CB(NULL,pb,NULL); } while(0)
+
 #ifdef  __cplusplus
 }
 #endif
