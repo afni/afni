@@ -2073,6 +2073,8 @@ extern MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *, float,float ,  /* 08 De
                                          MRI_IMAGE *,
                                          float,float, rgbyte *, int ,float,MCW_DC * ) ;
 
+extern void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im ) ;
+
 extern void AFNI_syntax(void) ;
 
 #define AFNI_DEFAULT_CURSOR 888

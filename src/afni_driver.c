@@ -2430,11 +2430,15 @@ ENTRY("AFNI_set_func_alpha") ;
        mode = 2 ; cpt += 9 ;
      } else {
        cpt = strcasestr(cmd+dadd,"Off") ;
-       mode = 0 ; if( cpt != NULL ) cpt += 3 ;
+       mode = 0 ;
+       if( cpt != NULL ){
+         cpt += 3 ;
+       } else {
+       }
      }
    }
 
-   if( isspace(*cpt) ){
+   if( cpt != NULL && isspace(*cpt) ){
      int kf ;
      floor = (float)strtod(cpt+1,NULL) ;
           if( floor < 0.0f ) floor = 0.0f ;
