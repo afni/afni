@@ -26,6 +26,9 @@ int ROI_make_inflate( int *Dim,
 
 int compfunc_desc(const void * a, const void * b);
 
+void piksr2_FLOAT(int n, float arr[], int brr[]);
+int Do_Check_Neigh_Diff(int *D, int NL);
+
 int Make_SepLabels( int *Dim,
                     int ****DATA,
                     int max_nroi,
@@ -35,6 +38,7 @@ int Make_SepLabels( int *Dim,
                     int VOLTHR,
                     int NEIGHBOR_LIMIT,
                     int HOT_POINTS,
+                    int HOT_CONN,
                     float ****inset );
 
 int Relabel_IfNecessary( int *Dim,
