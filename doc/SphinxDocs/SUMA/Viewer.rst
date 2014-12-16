@@ -48,7 +48,7 @@ You should have *AFNI* up by now, and *SUMA* soon after.
 Quick Tour
 ----------
 
-   #. Talking to AFNI
+   1. Talking to AFNI
    
       * Press :ref:`t <LC_t>` in the suma window to talk to *AFNI*
          
@@ -90,7 +90,7 @@ Quick Tour
             * Viewed without the volume underal, it is extremely difficult to tell if surface models with no topological defects accurately represent the cortical surface.
             
             
-   #. Rotating the surface
+   2. Rotating the surface
    
       * :ref:`Button 1 drag<Button_1-Motion>`: keep it down while moving the mouse left to right. This rotates the surface about the screen's Y-axis (dotted green if :ref:`screen axes<F2>` are displayed). Let go of button-1 (usually the left button).
       
@@ -101,7 +101,9 @@ Quick Tour
          
          * You can set SUMA environment variables in file ~/.sumarc. See also option :ref:`-update_env<suma--update_env>` in *suma*.
    
-   #. Prying & Z rotating the hemispheres
+.. _Prying:
+
+   3. Prying & Z rotating the hemispheres
    
       * :ref:`Ctrl+button-1, drag<Ctrl+Button_1-Motion>`: Moving the mouse horizontally while button 1 is pressed and ctrl is down will pry hemispheres apart for better visualization. The prying behavior is different for spherical and flattened surfaces. Better try it than read about it. See also :ref:`F10 <F10>`
       
@@ -133,6 +135,9 @@ Quick Tour
          * Both :ref:`Buttons 1&2 or Shift+button2 <Shift+Button2-Motion>`: while pressing buttons, move mouse down or up to zoom in and out, respectively.
          
          * Also try keyboard buttons :ref:`Z<UC_Z>` and :ref:`z<LC_z>` for zooming in and out, respectively.
+
+.. _Picking_Node:
+.. _Picking_Faceset:
          
       * Picking a Node or a Facet:
       
@@ -186,8 +191,42 @@ Quick Tour
             
          * See *SUMA*\ 's :ref:`help<LC_Ctrl+h>` or :ref:`Keyboard Controls <KeyboardControls>` for all interactive options.
          
-         STOPPED AT SLIDE 19
 
+.. _Recording_Images:
+
+   4. Recording your images
+  
+      * Press :ref:`r<LC_r>` in the viewer to record the current scene. The image is captured in an AFNI flavored window. Successive record commands get saved in the same viewer.
+        
+         .. note::
+         
+            The record viewer acquires a GUI interface the moment it has more than one image in it. The interface is the same as that in AFNI. If you want to save a single captured image to disk, use 'Alt+Right Click' in the recorder window to pop a save menu which allows you to enter prefix of the image and more.
+
+            When more than one image are captured in the recorder, you have numerous options to control the recording process. Consider turning off :menuselection:`Disp->Save One` to record multiple images in one pass. This changes the save button from :menuselection:`Sav1.jpg` to :menuselection:`Save.jpg`. If you've read this far, you should stop reading and try it for yourself.
+
+            .. figure:: media/surfview.0015.jpg
+               :align: right
+               :figwidth: 20%
+               :target: ../_images/surfview.0015.jpg
+
+      * Press :ref:`r<LC_r>` on the **colorbar** of the :ref:`surface controller<SurfCont>` records an image of the colorbar.
+      
+      * Press :ref:`R<UC_r>` to record continuously from the viewer. Doing so puts the viewer in :term:`Recording Mode` where any operation that causes a change in the rendered image is directly captured in the recorder.
+      
+         * Identical consecutive images are rejected
+         
+         * Images caused by window expose events are ignored
+         
+         * If you let the recorder run continuously with very large images, you might quickly run out of memory on your computer.
+         
+      * Use :ref:`Ctrl+r<LC_Ctrl+r>` to capture the image directly to *disk* intead of to the recorder.
+      
+      * Similarly, :ref:`Ctrl+R<UC_Ctrl+R>` records continuously to *disk*
+           
+      * You can save/load viewer setting used to create a figure with :ref:`File->Save View<Save_View>` / :ref:`File->Load View<Load_View>`
+      
+      
+         
 .. _Volume_Viewing:
 
 Volume Viewing
@@ -358,3 +397,116 @@ Playing with color plane order
 
 Alignment of Surfaces with Volumes
 ==================================
+
+.. _Spec_File:
+
+The Spec File
+=============
+
+The Spec file contains information about surfaces that will be available to a program.
+   
+   * Information is specified in the format: **field = value**
+   
+   * The **=** sign must be preceded and followed by a space character.
+   
+   * **#** delimit comment lines, empty lines and tabs are ignored.
+   
+   * In addition to fields, there is also the :ref:`NewSurface <Spec_NewSurface>` tag which is used to announce a new surface.
+   
+   * Unrecognized text will cause the program parsing a Spec file to complain and exit.
+   
+   * See programs :ref:`quickspec<quickspec>` and :ref:`inspec<inspec>` for manipulations of spec files.
+   
+   * Here is a sample spec file::
+   
+      # delimits comments 
+      # define the group
+         Group = DemoSubj
+      
+      # define various States
+         StateDef = smoothwm
+         StateDef = pial
+         StateDef = inflated
+         
+      NewSurface
+         SurfaceFormat = ASCII
+         SurfaceType = FreeSurfer
+         FreeSurferSurface =
+         lh.smoothwm.asc
+         LocalDomainParent = SAME
+         SurfaceState = smoothwm
+         EmbedDimension = 3
+      
+      NewSurface
+         SurfaceFormat = ASCII
+         SurfaceType = FreeSurfer
+         FreeSurferSurface = lh.pial.asc
+         LocalDomainParent =
+         lh.smoothwm.asc
+         SurfaceState = pial
+         EmbedDimension = 3
+      
+      NewSurface
+         SurfaceFormat = ASCII
+         SurfaceType = FreeSurfer
+         FreeSurferSurface = lh.inflated.asc
+         LocalDomainParent = lh.smoothwm.asc
+         SurfaceState = inflated
+         EmbedDimension = 3
+      
+      NewSurface
+         SurfaceFormat = ASCII
+         SurfaceType = FreeSurfer
+         FreeSurferSurface = lh.sphere.asc
+         LocalDomainParent = lh.smoothwm.asc
+         SurfaceState = sphere
+         EmbedDimension = 3
+   
+   * Fields of the Spec File:
+   
+      .. _Spec_Group:
+      
+      * *Group*\ : Usually the Subject's ID. In the current SUMA version, you can only have one group per spec file. All surfaces read by SUMA must belong to a group.
+      
+      .. _Spec_NewSurface:
+      
+      * *NewSurface*\ : A tag announing the beginning of a set of fields for a new surface.
+       
+      .. _Spec_FreeSurferSurface:
+      .. _Spec_SurfaceName:
+      
+      *  *SurfaceName* or *FreeSurferSurface*\ : Name of the surface file.
+      
+      .. _Spec_SurfaceFormat:
+      
+      *  *SurfaceFormat*\ : ASCII or BINARY
+      
+      .. _Spec_SurfaceType:
+      
+      *  *SurfaceType*\ :  FreeSurfer, Caret, BrainVoyager, Ply, etc.
+      
+      .. _Spec_SurfaceState:
+      
+      *  *SurfaceState*\ : Surfaces can be in different states such as inflated, flattened, etc. The label of a state is arbitrary and can be defined by the user. The set of available states must be defined with :ref:`StateDef<Spec_StateDef>` at the beginning of the Spec file.
+      
+      .. _Spec_StateDef:
+      
+      *  *StateDef*\ : Used to define the various states. This must be placed before any of the surfaces are specified.
+      
+      .. _Spec_Anatomical:
+      
+      *  *Anatomical*\ : Used to indicate whether surface is anatomically correct (Y) or not (N). Anatomically correct surfaces are sent to AFNI.
+      
+      .. _Spec_LocalDomainParent:
+      
+      *  *LocalDomainParent*\ : Name of a surface whose mesh is shared by other surfaces in the spec file.
+      
+         *  The default for FreeSurfer surfaces is the smoothed gray matter/ white matter boundary. For SureFit it is the fiducial surface. Use SAME when the LocalDomainParent for a surface is the surface itself.
+      
+      .. *  A node-to-node correspondence is maintained across surfaces sharing the same domain parent.
+      
+      .. _Spec_EmbedDimension:
+      
+      * *EmbedDimension*\ : Embedding Dimension of the surface, 2 for surfaces in the flattened state, 3 for other.
+      
+      

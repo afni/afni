@@ -261,13 +261,20 @@ Glossary
 
    Draw ROI Mode
       A mode in which selecting a location (right-click) in SUMA, causes a modification of the current unfinished ROI being drawn, or creates a new ROI. When the viewer is in :ref:`Draw ROI Mode<Draw_ROI_Mode>`, the cursor changes shape to become a circular target.
+   
+   Record Mode
+   Recording Mode
+      When the :ref:`SUMA viewer<viewer>` is in record mode, any change to the rendered image is captured either directly to disk or to a recorder window. When the viewer is in recording mode, the title bar of the viewer displays the word *Rec* as part of the window name as shown in the figure below.
+      
+      .. figure:: SUMA/media/surfview_rec.jpg
+         :align: center
          
    Spec
    Spec file
-      A text file setting the specifications for a family of surfaces, including the relationships between them. The spec file is usually created automatically by the likes of *@SUMA_Make_Spec_*, or with *quickspec*.
+      A text file setting the specifications for a family of surfaces, including the relationships between them. The :ref:`spec file<Spec_File>` is usually created automatically by the likes of *@SUMA_Make_Spec_** such as :ref:`@SUMA_Make_Spec_FS<@SUMA_Make_Spec_FS>` or :ref:`@SUMA_Make_Spec_Caret<@SUMA_Make_Spec_Caret>`, or with :ref:`*quickspec*<quickspec>` or :ref:`inspec<inspec>`.
    
    Surface Volume
-      Volume with which the surfaces are in alignment. This volume is usually created by scripts @SUMA_Make_Spec_* and is either the same as the volume from which the surfaces were created, or a spatially transformed version of it. Spatial transformations present in the header of the surface volume are applied on the fly to the surface coordinates when loaded into SUMA or any of the command-line programs that expect a surface volume. See also script :ref:`@SUMA_Align_To_Experiment`
+      Volume with which the surfaces are in alignment. This volume is usually created by scripts @SUMA_Make_Spec_* and is either the same as the volume from which the surfaces were created, or a spatially transformed version of it. Spatial transformations present in the header of the surface volume are applied on the fly to the surface coordinates when loaded into SUMA or any of the command-line programs that expect a surface volume. See also script :ref:`@SUMA_AlignToExperiment<@SUMA_AlignToExperiment>`
       
    State
       For surfaces, state is shorthand for the deformation state. For instance,  lh.pial.gii and lh.inflated.gii surfaces are of two states, pial, and inflated, respectively. You can change the default state names by editing the :term:`spec file` manually. Surfaces of the same state are displayed together, otherwise you can switch between states with :ref:`,<LC_,>`, :ref:`.<LC_.>`, or :ref:`SPACE<SPACE>`. Some states are anatomically correct, like pial, and white. Some such as sphere or inflated are not.
