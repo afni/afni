@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, Dec , 2014 , PT , "3dROIMaker" , MAJOR , TYPE_NEW_OPT,
+   "Make a subset of an ROI by choosing maximal neighoring values.",
+   "Start with peak value, add neighboring max until N voxels selected.\n"
+},
+
 { 5, Nov , 2014 , PT , "3dROIMaker" , MAJOR , TYPE_NEW_ENV,
    "Default neighborhoods now AFNI standard; labeltable functionality in.",
    "Default 'hoods more standard, can still do other; labels by default.\n"
