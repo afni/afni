@@ -35,6 +35,10 @@
         changed default neighborhood definition for AFNI consistency
         -> now it's facewise ONLY as default
 
+    Dec 2014:
+        new option for delineating a peak set of N connected voxels
+        within an ROI
+
 */
 
 
@@ -138,6 +142,16 @@ void usage_ROIMaker(int detail)
 "                       inflating, one can restrict each found region\n"
 "                       to keep only N voxels with the highest inset values.\n"
 "                       (If an ROI has <N voxels, then all would be kept.)\n"
+"                       This option can result in unconnected pieces.\n"
+"     -only_conn_top N :similar-ish to preceding option, but instead of just\n"
+"                       selecting only N max voxels, do the following\n"
+"                       algorithm: start the ROI with the peak voxel; search\n"
+"                       the ROI's neighbors for the highest value; add that\n"
+"                       voxel to the ROI; continue until either the ROI has \n"
+"                       reached N voxels or whole region has been  added.\n"
+"                       The returned ROI is contiguous and 'locally' maximal\n"
+"                       but not necessarily globally so within the original\n"
+"                       volume.\n"
 "     -inflate  N_INFL :number of voxels which with to pad each found ROI in\n"
 "                       order to turn GM ROIs into inflated (GMI) ROIs.\n"
 "                       ROIs won't overlap with each other, and a WM skeleton\n"
@@ -297,6 +311,7 @@ int main(int argc, char *argv[]) {
 	int ***COUNT_GM=NULL;
 
    int HOT_POINTS=0;
+   int HOT_CONN=0;
 
    int *RESCALES=NULL; // will be used if negative values in refset mask
    short int **temp_ref=NULL; // for holding rescaled values
@@ -444,6 +459,20 @@ int main(int argc, char *argv[]) {
 			
 			iarg++ ; continue ;
 		}
+
+      if( strcmp(argv[iarg],"-only_conn_top") == 0 ){
+			iarg++ ; if( iarg >= argc ) 
+							ERROR_exit("Need argument after '-only_conn_top'");
+			HOT_CONN = atoi(argv[iarg]);
+			
+			if(HOT_CONN<=0)
+				ERROR_exit("The number of (high-value) voxels to keep per ROI=%d: "
+                       "must be >0!",
+							  HOT_CONN);
+			
+			iarg++ ; continue ;
+		}
+
 
 		// can determine size of expansion based on this
 		if( strcmp(argv[iarg],"-inflate") == 0 ){
@@ -913,9 +942,18 @@ int main(int argc, char *argv[]) {
 	// ****************************************************************
 	// ****************************************************************
 	
-   if(HOT_POINTS)
+
+
+   if(HOT_POINTS && HOT_CONN)
+      ERROR_exit("Can't use both '-only_some_top' and '-only_conn_top'\n"
+                    "\t together:  gotta choose just one!");
+   else if(HOT_POINTS)
       INFO_message("Will shrink large clusters to keep at most %d voxels"
                    " of high values.", HOT_POINTS);
+   else if(HOT_CONN)
+      INFO_message("Will shrink large clusters to keep at most %d contiguous"
+                   " voxels of neighboring high values.", HOT_CONN);
+
 
 	// STEP 2: label separate ROIs with ints
 	i = Make_SepLabels( Dim,
@@ -927,6 +965,7 @@ int main(int argc, char *argv[]) {
                        VOLTHR,
                        NEIGHBOR_LIMIT,
                        HOT_POINTS,
+                       HOT_CONN,
                        inpmap );
 	
 	// Step 3: do matching, or subtract values back to where they should be

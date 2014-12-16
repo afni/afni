@@ -149,22 +149,28 @@ int Make_SepLabels( int *Dim,
                     int VOLTHR,
                     int NEIGHBOR_LIMIT,
                     int HOT_POINTS,
+                    int HOT_CONN,
                     float ****inset )
 {
 
-   int i,j,k,m,ii,jj,kk,mm,idx,index1,count;
+   int i,j,k,m,ii,jj,kk,mm,nn,pp,idx,index1,count;
    int investigated=0, found=0;
 	int **list1=NULL; // growing list of vox while investigating ROI
+	int **list1_temp=NULL; // copy for sorting and using
 	//int *VOX=NULL;
 	int X,Y,Z;
    float *fl_sort=NULL;
+   int *ind_sort=NULL, *temp_USED=NULL;
+   int temp_found = 0;
    float hot_val=0;
+   int KEEPIT = 0;
+   int dtemp[3] = {0,0,0};
 
 	list1 = calloc( max_nroi, sizeof(int *) );
 	for ( j = 0 ; j < max_nroi ; j++ ) 
 		list1[j] = (int *) calloc( 3, sizeof(int) );
    //VOX = (int *)calloc(Dim[3],sizeof(int)); // num of vox >thr per brik,var
-
+ 
    if( (list1 == NULL) //|| (VOX == NULL)   
        ) { 
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -230,38 +236,111 @@ int Make_SepLabels( int *Dim,
                      if( HOT_POINTS && (found > HOT_POINTS) ) {
 
                         count = found;
+
                         fl_sort = (float *)calloc(found,sizeof(float)); 
                         if( fl_sort == NULL) {
                            fprintf(stderr, "\n MemAlloc failure (fl_sort).\n");
                            exit(14);	
                         }
+              
+                        for( mm=0 ; mm<found ; mm++ ) 
+                           fl_sort[mm]=inset[list1[mm][0]][list1[mm][1]][list1[mm][2]][m];
                         
-                        for( mm=0 ; mm<found ; mm++ ) {
-                           idx = THREE_TO_IJK( list1[mm][0],
-                                               list1[mm][1],
-                                               list1[mm][2],
-                                               Dim[0],
-                                               Dim[0]*Dim[1] );
-                           fl_sort[mm] = inset[i][j][k][m];
-                        }
                         qsort(fl_sort, count, sizeof(float), compfunc_desc);
                         hot_val = fl_sort[HOT_POINTS];
 
                         for( mm=0 ; mm<count ; mm++ ) {
-                           idx = THREE_TO_IJK( list1[mm][0],
-                                               list1[mm][1],
-                                               list1[mm][2],
-                                               Dim[0],
-                                               Dim[0]*Dim[1] );
-                           if( !(inset[i][j][k][m] > hot_val) ) {
+                           if( !(inset[list1[mm][0]][list1[mm][1]][list1[mm][2]][m] 
+                                 > hot_val) ) {
                               DATA[list1[mm][0]][list1[mm][1]][list1[mm][2]][m]=
                                  0;
                               found--;
                            }
                         }
                         free(fl_sort);
+
+                        //found = count;// just reset for resetting list1 next
+                     }
+                     else if( HOT_CONN && (found > HOT_CONN) ) {
+
+                        count = found;
+
+                        fl_sort = (float *)calloc(found,sizeof(float)); 
+                        ind_sort = (int *)calloc(found,sizeof(int)); 
+                        temp_USED = (int *)calloc(found,sizeof(int)); 
+                        // temp storage values
+                        list1_temp = calloc( max_nroi, sizeof(int *) ); 
+                        for ( mm = 0 ; mm<max_nroi ; mm++ ) 
+                           list1_temp[mm] = (int *) calloc( 3, sizeof(int) );
+
+                        if(( fl_sort == NULL) || ( ind_sort == NULL) || 
+                           ( list1_temp == NULL) || ( temp_USED == NULL)) {
+                           fprintf(stderr, "\n MemAlloc failure (fl_sort).\n");
+                           exit(14);	
+                        }
+              
+                        for( mm=0 ; mm<found ; mm++ ) {
+                           fl_sort[mm]=inset[list1[mm][0]][list1[mm][1]][list1[mm][2]][m];
+                           ind_sort[mm] = mm;
+                        }
+
+                        // fl_sort has the new values, and ind_sort has where they came from
+                        piksr2_FLOAT(found, fl_sort, ind_sort);
+
+                        // initialize with max value
+                        for ( nn=0 ; nn<3 ; nn++ ) {
+                           list1_temp[0][nn] = list1[ind_sort[0]][nn];
+                           temp_USED[0] = 1;
+                        }
+                        temp_found = 1;
+
+                        while( temp_found < HOT_CONN ) {
+
+                           for( mm=0 ; mm<found ; mm++ ) {
+                              // check for first unused max
+                              // in the end, temp_USED contains which were NOT used, to subtract
+                              if( temp_USED[mm] == 0 ) {
+                                 KEEPIT = 0;
+
+                                 // go through entire list of those already found, and check
+                                 // to see: 1) if it is within distance of any
+                                 for( pp=0 ; pp<temp_found ; pp++) {
+                                    // check distances to previous
+                                    for ( nn=0 ; nn<3 ; nn++ ) 
+                                       dtemp[nn] = list1[ind_sort[mm]][nn] - list1_temp[pp][nn];
+                                    if( Do_Check_Neigh_Diff(dtemp, NEIGHBOR_LIMIT)) {
+                                       // if it's close, keep and exit
+                                       KEEPIT = 1;
+                                       break;
+                                    }
+                                 }
+                              
+                                 if( KEEPIT ) {
+                                    for ( nn=0 ; nn<3 ; nn++ ) 
+                                       list1_temp[temp_found][nn] = list1[ind_sort[mm]][nn];
+                                    temp_USED[mm] = 1;
+                                    temp_found++;
+                                    break;
+                                 }
+                              }
+                           }
+                        }
+
+                        for( mm=0 ; mm<count ; mm++ ) {
+                           if( !(temp_USED[mm]) ) {
+                              DATA[list1[ind_sort[mm]][0]][list1[ind_sort[mm]][1]][list1[ind_sort[mm]][2]][m]=
+                                 0;
+                              found--;
+                           }
+                        }
+                        free(fl_sort);
+                        free(ind_sort);
+                        free(temp_USED);
+                        for ( mm=0 ; mm<max_nroi ; mm++ ) 
+                           free(list1_temp[mm]);
+                        free(list1_temp);
                         
-                        found = count;// just reset for resetting list1 next
+                        //found = count;// just reset for resetting list1 next
                      }
                      
                      // !! hold value of Nvox in the ROI; ROI_LABEL
@@ -473,3 +552,41 @@ int MakeSkels( int *Dim,
 
 
 
+// from Numerical Recipes by Press, Teukolsky, Vetterling and Flannery
+// (indices adjusted to modern C)
+void piksr2_FLOAT(int n, float arr[], int brr[])
+//Sorts an array arr[1..n] into DEscending numerical order, by straight
+//  insertion, while making the corresponding rearrangement of the array
+//  brr[1..n].
+{
+	int i,j;
+	float a;
+	int b;
+	for (j=1;j<n;j++) { // Pick out each element in turn.
+		a=arr[j];
+		b=brr[j];
+		i=j-1;
+		while (i >= 0 && arr[i] < a) { // Look for the place to insert it.
+			arr[i+1]=arr[i];
+			brr[i+1]=brr[i];
+			i--;
+		}
+		arr[i+1]=a; // Insert it.
+		brr[i+1]=b;
+	}
+}
+
+
+
+int Do_Check_Neigh_Diff(int *D, int NL)
+{
+   int OUT = 0;
+
+   if ( (abs(D[0]) <= DEP ) && 
+        (abs(D[1]) <= DEP ) && 
+        (abs(D[2]) <= DEP ) && 
+        (abs(D[0])+abs(D[1])+abs(D[2]) < NL) )
+      OUT = 1;
+       
+   return OUT;
+}
