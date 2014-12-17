@@ -2982,7 +2982,7 @@ STATUS("making func->rowcol") ;
            thr_alpha_label              /* data for above */
         ) ;
       MCW_reghint_children( func->thr_alpha_av->wrowcol ,
-                            "Alpha fade colors below threshold? [is Off in Clusterize]" ) ;
+                            "Fade colors below threshold? [Off in Clusterize or discrete color bar]" ) ;
     }
 
    /* Threshold alpha floor arrowval [09 Dec 2014] */
