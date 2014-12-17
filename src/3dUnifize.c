@@ -12,7 +12,7 @@ static int verb = 1 ;
 #undef  SORT2
 #define SORT2(a,b) if(a>b) SWAP(a,b)
 
-/*----- fast median-of-7 -----*/
+/*----- fast median-of-7 [mangles input array] -----*/
 
 static INLINE float median7(float *p)
 {
@@ -521,6 +521,12 @@ int main( int argc , char *argv[] )
             "               ++ Default value is %.1f, and should be changed proportionally\n"
             "                  if the dataset voxel size differs significantly from 1 mm.\n"
             "  -ssave ss  = Save the scale factor used at each voxel into a dataset 'ss'.\n"
+            "               ++ This is the white matter scale factor, and does not include\n"
+            "                  the factor from the '-GM' option (if that was included).\n"
+            "               ++ The input dataset is multiplied by the '-ssave' image\n"
+            "                  (voxel-wise) to get the WM-unifized image.\n"
+            "               ++ Another volume (with the same grid dimensions) could be\n"
+            "                  scaled the same way using 3dcalc, if that is needed.\n"
             "  -quiet     = Don't print the fun fun fun progress messages (but whyyyy?).\n"
             "               ++ For the curious, the codes used are:\n"
             "                   A = Automask\n"
@@ -529,6 +535,10 @@ int main( int argc , char *argv[] )
             "                   U = duplo Up (convert local scale factors to full-size volume)\n"
             "                   W = multiply by White matter factors\n"
             "                   G = multiply by Gray matter factors [optional]\n"
+            "               ++ 'Duplo down' means to scale the input volume to be half the\n"
+            "                  grid size in each direction for speed when computing the\n"
+            "                  voxel-wise histograms.  The sub-sampling is done using the\n"
+            "                  median of the central voxel value and its 6 nearest neighbors.\n"
             "\n"
             "------------------------------------------\n"
             "Special options for Jedi AFNI Masters ONLY:\n"
