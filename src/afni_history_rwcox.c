@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 11 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 17 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Modify colorscale to fade horizontally when Alpha is on" ,
+   "And in the Saved colorscale image (which was also changed in default\n"
+   "size)." } ,
+
+ { 11 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Change way opacity fades down to Floor value" ,
    NULL } ,
 

@@ -3005,7 +3005,7 @@ STATUS("making func->rowcol") ;
            thr_floor_label              /* data for above */
         ) ;
       MCW_reghint_children( func->thr_floor_av->wrowcol ,
-                            "Floor value for Alpha fading" ) ;
+                            "Minimum value for Alpha (fading factor)" ) ;
     }
 
    /* FDR button */
