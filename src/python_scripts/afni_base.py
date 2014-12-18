@@ -512,6 +512,7 @@ class shell_com:
          return "0"  #Just something that won't cause trouble for places expecting numbers
       elif len(self.so) == 0:
          print "Error: Empty output."
+         self.stderr()
          return None
       elif len(self.so) <= i:
          print "Error: First index i=%d >= to number of elements (%d) in output " %  \
@@ -535,7 +536,7 @@ def read_attribute(dset, atr, verb=1):
     if len(so) == 0:
         if verb > 0:
            print '** 3dAttribute exec failure for "%s %s"' % (atr, dset)
-           if len(se) > 0: print se
+           if len(se) > 0: print "shell error:\n   %s\n" % '\n   '.join(se)
         return None
     list = so[0].split()
     if len(list) > 0: return list
