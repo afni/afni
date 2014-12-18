@@ -7,6 +7,38 @@ static int verb = 1 ;
 #endif
 
 /*---------------------------------------------------------------------------*/
+
+void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask )
+{
+   byte *mmm=NULL ;
+   int nvox , nhist , ii ; float *hist=NULL , *imar , ucut ;
+
+   if( im == NULL || im->kind != MRI_float ) return ;
+        if( uperc <  90.0f ) uperc =  90.0f ;
+   else if( uperc > 100.0f ) uperc = 100.0f ;
+
+   mmm = mask ;
+   if( mmm == NULL ) mmm = mri_automask_image(im) ;
+
+   nvox = im->nvox ;
+   hist = (float *)malloc(sizeof(float)*nvox) ;
+   imar = MRI_FLOAT_PTR(im) ;
+   for( nhist=ii=0 ; ii < nvox ; ii++ ){ if( mmm[ii] ) hist[nhist++] = imar[ii]; }
+   if( nhist < 100 ){
+     if( mmm != mask ) free(mmm) ;
+     free(hist) ; return ;
+   }
+   qsort_float(nhist,hist) ;
+   ii = (int)rintf(nhist*uperc*0.01f) ; ucut = hist[ii] ; free(hist) ;
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if(  mmm[ii]                    ) imar[ii] = ucut - imar[ii] ;
+     if( !mmm[ii] || imar[ii] < 0.0f ) imar[ii] = 0.0f ;
+   }
+   if( mmm != mask ) free(mmm) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 #undef  SWAP
 #define SWAP(x,y) (temp=x,x=y,y=temp)
 #undef  SORT2
@@ -474,6 +506,7 @@ ENTRY("mri_GMunifize") ;
 int main( int argc , char *argv[] )
 {
    int iarg , ct , do_GM=0 ;
+   int do_T2=0 ; float T2_uperc=98.5f ; byte *T2_mask=NULL ;
    char *prefix = "Unifized" ;
    char *sspref = NULL ;
    THD_3dim_dataset *inset=NULL , *outset=NULL ;
@@ -507,6 +540,15 @@ int main( int argc , char *argv[] )
             "--------\n"
             "  -prefix pp = Use 'pp' for prefix of output dataset.\n"
             "  -input dd  = Alternative way to specify input dataset.\n"
+            "  -T2        = Treat the input as if it were T2-weighted, rather than\n"
+            "               T1-weighted. This processing is done simply by inverting\n"
+            "               the image contrast, processing it as if that result were\n"
+            "               T1-weighted, and then re-inverting the results.\n"
+            "              ++ This option is NOT guaranteed to be useful!\n"
+            "              ++ Of course, nothing in AFNI comes with a guarantee :-)\n"
+            "              ++ If you want to be REALLY sneaky, giving this option twice\n"
+            "                 will skip the second inversion step, so the result will\n"
+            "                 look like a T1-weighted volume (except at the edges).\n"
             "  -GM        = Also scale to unifize 'gray matter' = lower intensity voxels\n"
             "               (to aid in registering images from different scanners).\n"
             "              ++ This option is recommended for use with 3dQwarp when\n"
@@ -534,7 +576,8 @@ int main( int argc , char *argv[] )
             "                   V = Voxel-wise histograms to get local scale factors\n"
             "                   U = duplo Up (convert local scale factors to full-size volume)\n"
             "                   W = multiply by White matter factors\n"
-            "                   G = multiply by Gray matter factors [optional]\n"
+            "                   G = multiply by Gray matter factors [cf the -GM option]\n"
+            "                   I = contrast inversion              [cf the -T2 option]\n"
             "               ++ 'Duplo down' means to scale the input volume to be half the\n"
             "                  grid size in each direction for speed when computing the\n"
             "                  voxel-wise histograms.  The sub-sampling is done using the\n"
@@ -548,6 +591,13 @@ int main( int argc , char *argv[] )
             "                 R = radius; same as given by option '-Urad'     [default=%.1f]\n"
             "                 b = bottom percentile of normalizing data range [default=%.1f]\n"
             "                 r = top percentile of normalizing data range    [default=%.1f]\n"
+            "\n"
+            "  -T2up uu   = Set the upper percentile point used for T2-T1 inversion.\n"
+            "               The default value is 98.5, and this is allowed to be anything\n"
+            "               between 90 and 100 (inclusive).\n"
+            "              ++ The histogram of the data is built, and the uu-th percentile\n"
+            "                 point value is called 'U'. The contrast inversion is simply\n"
+            "                 given by output_value = max( 0 , U - input_value ).\n"
             "\n"
             "  -clfrac cc = Set the automask 'clip level fraction' to 'cc', which\n"
             "               must be a number between 0.1 and 0.9.\n"
@@ -700,6 +750,17 @@ int main( int argc , char *argv[] )
        do_GM++ ; iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-T2") == 0 ){  /* 18 Dec 2014 */
+       do_T2++ ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-T2up") == 0 ){  /* 18 Dec 2014 */
+       T2_uperc = (float)strtod( argv[++iarg] , NULL ) ;
+       if( T2_uperc < 90.0f || T2_uperc > 100.0f )
+         ERROR_exit("-T2up value is out of range 90..100 :-(") ;
+       iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-quiet") == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
@@ -731,6 +792,12 @@ int main( int argc , char *argv[] )
    imin = mri_to_float( DSET_BRICK(inset,0) ) ; DSET_unload(inset) ;
    if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
 
+   if( do_T2 ){
+     if( verb ) fprintf(stderr,"I") ;
+     T2_mask = mri_automask_image(imin) ;
+     mri_invertcontrast_inplace( imin , T2_uperc , T2_mask ) ;
+   }
+
    /* do the actual work */
 
    imout = mri_WMunifize(imin) ;          /* local WM scaling */
@@ -756,6 +823,11 @@ int main( int argc , char *argv[] )
    }
 
    if( do_GM ) mri_GMunifize(imout) ;     /* global GM scaling */
+
+   if( do_T2 == 1 ){
+     if( verb ) fprintf(stderr,"I") ;
+     mri_invertcontrast_inplace( imout , T2_uperc , T2_mask ) ;
+   }
 
    if( verb ) fprintf(stderr,"\n") ;
 
