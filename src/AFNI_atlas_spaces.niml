@@ -539,6 +539,16 @@
 ></ATLAS>
 
 <ATLAS
+ atlas_name="MNI_VmPFC"
+ dset_name="MNI_VmPFC+tlrc"
+ template_space="MNI"
+ description="Ventromedial Prefrontal Cortex"
+ comment="Mackey, S. and Petrides, M. (2014), Architecture and morphology
+     of the human ventromedial prefrontal cortex. European Journal 
+     of Neuroscience, 40: 2777-796. doi: 10.1111/ejn.12654"
+></ATLAS>
+
+<ATLAS
  atlas_name="Haskins_Pediatric_Affine_1.0"
  dset_name="HaskinsPeds_aff_atlas1.0+tlrc.HEAD"
  template_space="HaskinsPeds"
