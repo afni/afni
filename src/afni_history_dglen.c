@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 18 , DEC, 2014 , DRG , "VmPFC atlas" , 
+    MINOR , TYPE_GENERAL, 
+    "Ventro-medial prefrontal cortex atlas",
+    "Worked with Scott Mackey to make maximum probability map atlas available"
+} ,
 { 4 , DEC, 2014 , DRG , "@Align_Centers" , 
     MINOR , TYPE_NEW_OPT, 
     "1Dmat_only_nodset option",
