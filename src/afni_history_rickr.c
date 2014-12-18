@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18,  Dec, 2014, RCR, "afni_base.py", MICRO, TYPE_ENHANCE,
+   "in shell_com:val(), if no stdout but have stderr, display stderr",
+   NULL
+ } ,
+
  { 10,  Dec, 2014, RCR, "meica.py", MICRO, TYPE_BUG_FIX,
    "fixed 3dTshift input in case of --no_despike",
    "Thanks to M Plitt for the code fix."
