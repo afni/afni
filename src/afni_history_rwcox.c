@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 17 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+  { 18 , DEC , 2014 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+   "Add -T2 option" ,
+   NULL } ,
+
+ { 17 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Modify colorscale to fade horizontally when Alpha is on" ,
    "And in the Saved colorscale image (which was also changed in default\n"
    "size)." } ,
