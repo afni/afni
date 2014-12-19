@@ -1104,7 +1104,7 @@ if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(
 #library("afex")
 #library("phia")
 pkgLoad(c('afex', 'phia'))
-set_sum_contrasts()
+options(contrasts = c("contr.sum", "contr.poly"))
                                                
 #comArgs <- commandArgs()
 
