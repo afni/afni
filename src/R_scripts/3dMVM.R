@@ -31,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.4.0, Dec 16, 2014
+Version 3.4.0, Dec 19, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -762,7 +762,7 @@ process.MVM.opts <- function (lop, verb = 0) {
                lop$covValList[[n]] <- as.numeric(lop$gltCode[[n]][vQVpos+2])
                names(lop$covValList[[n]]) <- lop$gltCode[[n]][vQVpos]
            } # if(is.na(lop$gltCode[[n]][vQVpos+2]))
-         } # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
+         } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
       }
       }
    }
