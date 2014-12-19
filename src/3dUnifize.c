@@ -39,6 +39,59 @@ void mri_invertcontrast_inplace( MRI_IMAGE *im , float uperc , byte *mask )
 }
 
 /*---------------------------------------------------------------------------*/
+
+void mri_clipedges_inplace( MRI_IMAGE *qm , float uclip , float vclip )
+{
+   int ii,jj,kk , ip,jp,kp , im,jm,km , nx,ny,nz,nxy,nxyz , pp,qq , nclip ;
+   float *imar , *qmar ;
+
+   if( qm == NULL || qm->kind != MRI_float ) return ;
+
+   nx = qm->nx ; ny = qm->ny ; nz = qm->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   qmar = MRI_FLOAT_PTR(qm) ;
+   imar = malloc(sizeof(float)*nxyz) ;
+
+#define ISEDGE(i,j,k) (imar[(i)+(j)*nx+(k)*nxy]==0.0f)
+
+   if( verb ) fprintf(stderr,"e") ;
+   do{
+     memcpy(imar,qmar,sizeof(float)*nxyz) ;
+     for( nclip=pp=0 ; pp < nxyz ; pp++ ){
+       if( imar[pp] < uclip ) continue ;
+       kk = pp / nxy ; ii = pp % nx ; jj = (pp-kk*nxy)/nx ;
+       kp = kk+1 ; if( kp >= nz ) kp = nz-1 ;
+       km = kk-1 ; if( km <  0  ) km = 0 ;
+       jp = jj+1 ; if( jp >= ny ) jp = ny-1 ;
+       jm = jj-1 ; if( jm <  0  ) jm = 0 ;
+       ip = ii+1 ; if( ip >= nx ) ip = nx-1 ;
+       im = ii-1 ; if( im <  0  ) im = 0 ;
+       if( ISEDGE(ip,jj,kk) + ISEDGE(im,jj,kk) +
+           ISEDGE(ii,jp,kk) + ISEDGE(ii,jm,kk) +
+           ISEDGE(ii,jj,kp) + ISEDGE(ii,jj,km)  > 2 ){
+         qmar[pp] = 0.0f ; nclip++ ;
+       }
+     }
+     for( pp=0 ; pp < nxyz ; pp++ ){
+       if( imar[pp] < vclip ) continue ;
+       kk = pp / nxy ; ii = pp % nx ; jj = (pp-kk*nxy)/nx ;
+       kp = kk+1 ; if( kp >= nz ) kp = nz-1 ;
+       km = kk-1 ; if( km <  0  ) km = 0 ;
+       jp = jj+1 ; if( jp >= ny ) jp = ny-1 ;
+       jm = jj-1 ; if( jm <  0  ) jm = 0 ;
+       ip = ii+1 ; if( ip >= nx ) ip = nx-1 ;
+       im = ii-1 ; if( im <  0  ) im = 0 ;
+       if( ISEDGE(ip,jj,kk) + ISEDGE(im,jj,kk) +
+           ISEDGE(ii,jp,kk) + ISEDGE(ii,jm,kk) +
+           ISEDGE(ii,jj,kp) + ISEDGE(ii,jj,km)  > 4 ){
+         qmar[pp] = 0.0f ; nclip++ ;
+       }
+     }
+   } while(nclip > 0) ;
+
+   free(imar) ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
 #undef  SWAP
 #define SWAP(x,y) (temp=x,x=y,y=temp)
 #undef  SORT2
@@ -544,11 +597,12 @@ int main( int argc , char *argv[] )
             "               T1-weighted. This processing is done simply by inverting\n"
             "               the image contrast, processing it as if that result were\n"
             "               T1-weighted, and then re-inverting the results.\n"
-            "              ++ This option is NOT guaranteed to be useful!\n"
+            "              ++ This option is NOT guaranteed to be useful for anything!\n"
             "              ++ Of course, nothing in AFNI comes with a guarantee :-)\n"
             "              ++ If you want to be REALLY sneaky, giving this option twice\n"
             "                 will skip the second inversion step, so the result will\n"
             "                 look like a T1-weighted volume (except at the edges).\n"
+            "                 (Might be useful for skull-stripping T2-weighted datasets.)\n"
             "  -GM        = Also scale to unifize 'gray matter' = lower intensity voxels\n"
             "               (to aid in registering images from different scanners).\n"
             "              ++ This option is recommended for use with 3dQwarp when\n"
@@ -691,6 +745,7 @@ int main( int argc , char *argv[] )
    /*-- scan command line --*/
 
    THD_automask_set_clipfrac(0.1f) ;  /* 22 May 2013 */
+   THD_automask_extclip(1) ;          /* 19 Dec 2014 */
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
@@ -827,6 +882,8 @@ int main( int argc , char *argv[] )
    if( do_T2 == 1 ){
      if( verb ) fprintf(stderr,"I") ;
      mri_invertcontrast_inplace( imout , T2_uperc , T2_mask ) ;
+   } else if( do_T2 == 2 ){
+     mri_clipedges_inplace( imout , PKVAL*1.111f , PKVAL*1.055f ) ;
    }
 
    if( verb ) fprintf(stderr,"\n") ;
