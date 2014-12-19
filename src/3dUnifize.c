@@ -603,6 +603,8 @@ int main( int argc , char *argv[] )
             "                 will skip the second inversion step, so the result will\n"
             "                 look like a T1-weighted volume (except at the edges).\n"
             "                 (Might be useful for skull-stripping T2-weighted datasets.)\n"
+            "              ++ Don't try the '-T2 -T2' trick on FLAIR-T2-weighted datasets.\n"
+            "                 The results aren't pretty!\n"
             "  -GM        = Also scale to unifize 'gray matter' = lower intensity voxels\n"
             "               (to aid in registering images from different scanners).\n"
             "              ++ This option is recommended for use with 3dQwarp when\n"
