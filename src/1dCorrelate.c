@@ -119,8 +119,12 @@ void usage_1dCorrelate( int detail ){
       "  A2.1D[0]  B2.1D[0]  +0.57254 +0.57225 -0.03826 +0.86306 +0.10265 +0.83353\n"
       "\n"
       "* Bias correction of the correlation had little effect; this is very common.\n"
+      "  ++ To be clear, the bootstrap bias correction is to allow for potential bias\n"
+      "     in the statistical estimate of correlation when the sample size is small.\n"
+      "  ++ It cannot correct for biases that result from faulty data (or faulty\n"
+      "     assumptions about the data).\n"
       "\n"
-      "* The correlation is not significant at this level, since the CI (confidence\n"
+      "* The correlation is NOT significant at this level, since the CI (confidence\n"
       "  interval) includes 0 in its range.\n"
       "\n"
       "* For the Pearson method ONLY, the last two columns ('N:', as above) also\n"
@@ -131,6 +135,10 @@ void usage_1dCorrelate( int detail ){
       "* In the example, the normal theory might indicate that the correlation is\n"
       "  significant (less than a 5%% chance that the CI includes 0), but the\n"
       "  bootstrap CI shows that is not a reasonable statistical conclusion.\n"
+      "  ++ The principal reason that I wrote this program was to make it easy\n"
+      "     to check if the normal (Gaussian) theory for correlation significance\n"
+      "     testing is reasonable in any given case -- for small samples, it often\n"
+      "     is NOT reasonable!\n"
       "\n"
       "* Using the same data with the '-S' option gives the table below, again\n"
       "  indicating that there is no significant correlation between the columns\n"
@@ -141,7 +149,7 @@ void usage_1dCorrelate( int detail ){
       "# --------  --------  -------- -------- -------- --------\n"
       "  A2.1D[0]  B2.1D[0]  +0.46154 +0.42756 -0.23063 +0.86078\n"
       "\n"
-      "*** Written by RWCox (AKA Zhark the Correlator) -- 19 May 2011 ***\n"
+      "*** Written by RWCox (AKA Zhark the Mad Correlator) -- 19 May 2011 ***\n"
 
       , NBOOT ) ;
 
