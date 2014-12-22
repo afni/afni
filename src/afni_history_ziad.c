@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 22, Dec, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
+   "Added All Objs button to initialize controllers for all objects if desired",
+   NULL 
+ },
+
  { 10, Dec, 2014, ZSS, "imcat", MINOR, TYPE_NEW_OPT,
    "Added -autocrop* options",
    NULL 

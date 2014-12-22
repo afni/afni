@@ -351,9 +351,8 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
          }
       }
       if (i==Opt->feats->num) {
-         SUMA_S_Err("Feature %s in -hspec not found under -features\n",
+         SUMA_S_Warn("Feature %s in -hspec not found under -features and will have no impact on the output\n",
                     Opt->hspec[kk]->label);
-         SUMA_RETURN(0);
       }
    }
    

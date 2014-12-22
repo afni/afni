@@ -547,6 +547,7 @@ void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt);
 void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data, 
                                                       XtPointer client_data);
+void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_SurfCont_SwitchPage (void *data);
 void SUMA_cb_ColPlane_NewOrder (void *data);
 int SUMA_ColPlane_NewOrder     (SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
