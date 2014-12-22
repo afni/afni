@@ -649,11 +649,11 @@ int main( int argc , char *argv[] )
             "                 r = top percentile of normalizing data range    [default=%.1f]\n"
             "\n"
             "  -T2up uu   = Set the upper percentile point used for T2-T1 inversion.\n"
-            "               The default value is 98.5, and this is allowed to be anything\n"
-            "               between 90 and 100 (inclusive).\n"
-            "              ++ The histogram of the data is built, and the uu-th percentile\n"
-            "                 point value is called 'U'. The contrast inversion is simply\n"
-            "                 given by output_value = max( 0 , U - input_value ).\n"
+            "               The default value is 98.5 (for no good reason), and 'uu' is\n"
+            "               allowed to be anything between 90 and 100 (inclusive).\n"
+            "               ++ The histogram of the data is built, and the uu-th percentile\n"
+            "                  point value is called 'U'. The contrast inversion is simply\n"
+            "                  given by output_value = max( 0 , U - input_value ).\n"
             "\n"
             "  -clfrac cc = Set the automask 'clip level fraction' to 'cc', which\n"
             "               must be a number between 0.1 and 0.9.\n"
@@ -849,6 +849,8 @@ int main( int argc , char *argv[] )
    imin = mri_to_float( DSET_BRICK(inset,0) ) ; DSET_unload(inset) ;
    if( imin == NULL ) ERROR_exit("Can't copy input dataset brick?!") ;
 
+   /* invert T2? */
+
    if( do_T2 ){
      if( verb ) fprintf(stderr,"I") ;
      T2_mask = mri_automask_image(imin) ;
@@ -881,10 +883,10 @@ int main( int argc , char *argv[] )
 
    if( do_GM ) mri_GMunifize(imout) ;     /* global GM scaling */
 
-   if( do_T2 == 1 ){
+   if( do_T2 == 1 ){          /* re-invert T2? */
      if( verb ) fprintf(stderr,"I") ;
      mri_invertcontrast_inplace( imout , T2_uperc , T2_mask ) ;
-   } else if( do_T2 == 2 ){
+   } else if( do_T2 == 2 ){   /* don't re-invert, but clip off bright edges */
      mri_clipedges_inplace( imout , PKVAL*1.111f , PKVAL*1.055f ) ;
    }
 
