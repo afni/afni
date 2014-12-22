@@ -254,7 +254,7 @@ def Fat_Mat_Plot( X,
     if DO_PLOT:
         name_out = filestr
         name_out_full = name_out + '.' + FTYPE
-        plt.savefig( name_out_full )
+        plt.savefig( name_out_full, dpi=MATDPI )
     else:
         name_out_full = ''
 
