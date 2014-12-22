@@ -516,7 +516,7 @@ char * SCAT_main( PLUGIN_interface *plint )
        rrr = THD_pearson_indexed( mcount,NULL , xar,yar ) ;
        pcor = rrr.c ; a = rrr.a ; b = rrr.b ; p025 = 6.66f ; p975 = -6.66f ;
        mi = THD_mutual_info( mcount , xar , yar ) ;
-       INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]  MI=%.3f",pcor,a,b,mi) ;
+       INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]  MI=%.3f bits",pcor,a,b,mi) ;
      }
    }
 
@@ -539,7 +539,7 @@ char * SCAT_main( PLUGIN_interface *plint )
          sprintf(tlab+strlen(tlab),"\\in[%.3f..%.3f]_{95%%}",p025,p975) ;
          if( p025*p975 > 0.0f ) strcat(tlab,"^{*}") ;
        } else if( mi != 0.0f ){
-         sprintf(tlab+strlen(tlab)," MI\\approx %.3f",mi) ;
+         sprintf(tlab+strlen(tlab)," MI\\approx %.3f bits",mi) ;
        }
      }
      sprintf(tlab+strlen(tlab),"\\black") ;
