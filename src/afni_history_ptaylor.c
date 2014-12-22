@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Dec , 2014 , PT , "3dTrackID" , MINOR , TYPE_GENERAL,
+   "Change of string output in .niml.dset.",
+   "Make the label match the ROI string labels.\n"
+},
+
+{ 21, Dec , 2014 , PT , "3dNetCorr" , MINOR , TYPE_GENERAL,
+   "Output NIML dset automatically.",
+   "This allows users to view connectivity matrix info in SUMA easily.\n"
+},
+
+{ 21, Dec , 2014 , PT , "fat_mat_sel.py" , SUPER , TYPE_NEW_PROG,
+   "Plot, view and save matrix file info.",
+   "Works for both 3dNetCorr and 3dTrackID info.\n"
+},
+
 { 15, Dec , 2014 , PT , "3dROIMaker" , MAJOR , TYPE_NEW_OPT,
    "Make a subset of an ROI by choosing maximal neighoring values.",
    "Start with peak value, add neighboring max until N voxels selected.\n"

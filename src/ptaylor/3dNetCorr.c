@@ -21,6 +21,10 @@
    
    Sept 2014: 
    + use label table of netrois, if exists
+
+   Dec 2014:
+   + niml.dset output form -> viewing in SUMA
+
 */
 
 
@@ -37,6 +41,7 @@
 #include "DoTrackit.h"
 #include "Fat_Labels.h"
 #include <gsl/gsl_statistics_double.h>
+#include "suma_suma.h"
 
 //#define MAX_SELROI (200) // can't have more than this in SELROI
 
@@ -47,6 +52,9 @@
 #ifdef USE_OMP
 #include "3dNetCorr.c"
 #endif
+
+#define MAX_PARAMS (4) // CC, FZ, PC, PCB right now
+
 
 void usage_NetCorr(int detail) 
 {
@@ -89,6 +97,11 @@ void usage_NetCorr(int detail)
 "        a labeltable, the labels will then be passed to the *.netcc file.\n"
 "        These labels may then be referred to in plotting/output, such as\n"
 "        using fat_mat_sel.py.\n"
+"        +NEW+ (Dec. 2014): A PREFIX_\?\?\?.niml.dset is now also output\n"
+"        automatically.  This NIML/SUMA-esque file is mainly for use in SUMA,\n"
+"        for visualizing connectivity matrix info in a 3D brain.  It can be\n"
+"        opened via, for example:\n"
+"        $ suma -vol ROI_FILE  -gdset FILE.niml.dset\n"
 "\n"
 "        It is now also possible to output whole brain correlation maps,\n"
 "        generated from the average time series of each ROI,\n"
@@ -156,6 +169,9 @@ void usage_NetCorr(int detail)
 "                      Z~18.71;  hope that's good enough).\n"
 "                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
 "\n"
+"    -ignore_LT       :switch to ignore any label table labels in the \n"
+"                      '-in_rois' file, if there are any labels attached.\n"
+"\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
 "  + EXAMPLE:\n"
@@ -221,6 +237,21 @@ int main(int argc, char *argv[]) {
    Dtable *roi_dtable=NULL;
    char *LabTabStr=NULL;
 	char ***ROI_STR_LABELS=NULL;
+
+   // for niml.dset -> graph viewing in SUMA
+   char ***gdset_roi_names=NULL;
+   SUMA_DSET *gset=NULL;
+   float ***flat_matr=NULL;
+   float *xyz=NULL;
+   char OUT_gdset[300];
+   NI_group *GDSET_netngrlink=NULL;
+   char *NAME_gdset=NULL;
+   int Noutmat = 1;  // num of matr to output: start with CC for sure
+   char **ParLab=NULL;
+   int FM_ctr = 0;  // for counting through flatmatr entries
+   int OLD_LABEL=0; // ooollld style format of regions: Nnumber:Rnumber
+   int IGNORE_LT=0; // ignore label table
+
 
 
    int idx = 0;
@@ -337,6 +368,16 @@ int main(int argc, char *argv[]) {
 
       if( strcmp(argv[iarg],"-ts_wb_Z") == 0) {
          TS_WBCORR_Z=1;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-old_labels") == 0) {
+         OLD_LABEL=1;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-ignore_LT") == 0) {
+         IGNORE_LT=1;
          iarg++ ; continue ;
       }
 
@@ -516,16 +557,21 @@ int main(int argc, char *argv[]) {
       }
 
       // Sept 2014:  Labeltable stuff
-      if ((ROIS->Label_Dtable = DSET_Label_Dtable(ROIS))) {
-         if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROIS),
-                                                "VALUE_LABEL_DTABLE"))) {
-            //fprintf(stdout,"%s", LabTabStr);
-            if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
-               ERROR_exit("Could not parse labeltable.");
+      if( IGNORE_LT ) {
+         INFO_message("Ignoring any '-in_rois' label table (if there is one).");
+      }
+      else{
+         if ((ROIS->Label_Dtable = DSET_Label_Dtable(ROIS))) {
+            if ((LabTabStr = Dtable_to_nimlstring( DSET_Label_Dtable(ROIS),
+                                                   "VALUE_LABEL_DTABLE"))) {
+               //fprintf(stdout,"%s", LabTabStr);
+               if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
+                  ERROR_exit("Could not parse labeltable.");
+               }
+            } 
+            else {
+               INFO_message("No label table from '-in_rois'.");
             }
-         } 
-         else {
-            INFO_message("No label table from '-in_rois'.");
          }
       }
 
@@ -642,8 +688,6 @@ int main(int argc, char *argv[]) {
       free(mskd[i]);
    }
    free(mskd);
-   DSET_delete(ROIS);
-   free(ROIS);
 
    INFO_message("Calculating average time series.");
 
@@ -680,6 +724,53 @@ int main(int argc, char *argv[]) {
 
    INFO_message("Writing output: %s ...", prefix);
 
+
+   // - - - - - - - - NIML prep - - - - - - - - - - - - - - 
+   if(FISH_OUT)
+      Noutmat++;
+   if(PART_CORR)
+      Noutmat+=2;
+
+   ParLab = (char **)calloc(Noutmat, sizeof(char *)); 
+   for (j=0; j<Noutmat; ++j) 
+      ParLab[j] = (char *)calloc(32, sizeof(char));
+   if( (ParLab == NULL) ) {
+      fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+      exit(121);
+   }
+   
+   // NIML output 
+   flat_matr = (float ***) calloc( HAVE_ROIS, sizeof(float **) );
+   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
+      flat_matr[i] = (float **) calloc( Noutmat, sizeof(float *) );
+   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
+      for ( j = 0 ; j < Noutmat ; j++ ) 
+         flat_matr[i][j] = (float *) calloc( NROI_REF[i]*NROI_REF[i], 
+                                             sizeof(float));
+
+   gdset_roi_names = (char ***)calloc(HAVE_ROIS, sizeof(char **));
+	for (i=0; i< HAVE_ROIS ; i++ ) {
+      gdset_roi_names[i] = (char **)calloc(NROI_REF[i], sizeof(char *));
+      for (j=0; j<NROI_REF[i]; ++j) {
+         gdset_roi_names[i][j] = (char *)calloc(32, sizeof(char));
+         if( OLD_LABEL )
+            snprintf(gdset_roi_names[i][j],31,"N%03d:R%d", i, 
+                     ROI_LABELS_REF[i][j]);
+         else{
+            snprintf(gdset_roi_names[i][j],31,"%s",
+                     ROI_STR_LABELS[i][j+1]);
+            //fprintf(stderr," %s ",
+            //       ROI_STR_LABELS[i][j+1]);
+         }
+      }
+   }
+
+   if(  (flat_matr == NULL) || ( gdset_roi_names == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(14);
+      }
+   
+
    for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
       sprintf(OUT_grid,"%s_%03d.netcc",prefix,k); // zero counting now
@@ -700,44 +791,104 @@ int main(int argc, char *argv[]) {
          fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
       fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
    
+      // THIS IS FOR KNOWING WHICH MATR WE'RE AT
+      // it's always zero for CC; they match one-to-one with later vars
+      FM_ctr = 0; 
+      ParLab[FM_ctr] = strdup("CC"); 
 
       for( i=1 ; i<NROI_REF[k] ; i++ ) // labels of ROIs
          fprintf(fout1," %10d \t",ROI_LABELS_REF[k][i]);// at =NROI, have '\n'
       fprintf(fout1,"  %10d\n# %s\n",ROI_LABELS_REF[k][i],"CC");
       for( i=0 ; i<NROI_REF[k] ; i++ ) {
-         for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last one.
+         for( j=0 ; j<NROI_REF[k]-1 ; j++ ) {// b/c we put '\n' after last one.
             fprintf(fout1,"%12.4f\t",Corr_Matr[k][i][j]);
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = Corr_Matr[k][i][j];
+         }
          fprintf(fout1,"%12.4f\n",Corr_Matr[k][i][j]);
+         flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = Corr_Matr[k][i][j];
       }
     
       if(FISH_OUT) {
+         FM_ctr++; 
+         ParLab[FM_ctr] = strdup("FZ"); 
+
          fprintf(fout1,"# %s\n", "FZ");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
-            for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last
+            for( j=0 ; j<NROI_REF[k]-1 ; j++ ) {// b/c we put '\n' after last
                fprintf(fout1,"%12.4f\t",FisherZ(Corr_Matr[k][i][j]));
+               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+                  FisherZ(Corr_Matr[k][i][j]);
+            }
             fprintf(fout1,"%12.4f\n",FisherZ(Corr_Matr[k][i][j]));
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+               FisherZ(Corr_Matr[k][i][j]);
          }
       }
     
       if(PART_CORR) {
+         FM_ctr++; 
+         ParLab[FM_ctr] = strdup("PC"); 
+
          fprintf(fout1,"# %s\n", "PC");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
-            for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last
+            for( j=0 ; j<NROI_REF[k]-1 ; j++ ) {// b/c we put '\n' after last
                fprintf(fout1,"%12.4f\t",PCorr_Matr[k][i][j]);
+               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = PCorr_Matr[k][i][j];
+            }
             fprintf(fout1,"%12.4f\n",PCorr_Matr[k][i][j]);
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = PCorr_Matr[k][i][j];
          }
+
+         FM_ctr++; 
+         ParLab[FM_ctr] = strdup("PCB"); 
 
          fprintf(fout1,"# %s\n", "PCB");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
-            for( j=0 ; j<NROI_REF[k]-1 ; j++ ) // b/c we put '\n' after last
+            for( j=0 ; j<NROI_REF[k]-1 ; j++ ) {// b/c we put '\n' after last
                fprintf(fout1,"%12.4f\t",PBCorr_Matr[k][i][j]);
+               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = PBCorr_Matr[k][i][j];
+            }
             fprintf(fout1,"%12.4f\n",PBCorr_Matr[k][i][j]);
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = PBCorr_Matr[k][i][j];
          }
       }
 
       fclose(fout1);    
-   }
-
+   
+      // more nimling
+      gset = SUMA_FloatVec_to_GDSET(flat_matr[k], Noutmat, 
+                                    NROI_REF[k]*NROI_REF[k], 
+                                    "full", ParLab, 
+                                    NULL, NULL, NULL);
+      if( xyz = THD_roi_cmass(ROIS, k, ROI_LABELS_REF[k]+1, NROI_REF[k]) ) {
+         if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
+                                            xyz, NULL, NULL, 
+                                            gdset_roi_names[k],
+                                            NULL, NULL,
+                                            NROI_REF[k]))) { 
+            ERROR_message("Failed to add node list");
+            exit(1);  
+         }
+         free(xyz);
+      } 
+      else {
+         ERROR_message("Failed in THD_roi_cmass"); exit(1);
+      }
+      sprintf(OUT_gdset,"%s_%03d",prefix,k);
+      GDSET_netngrlink = 
+         Network_link(SUMA_FnameGet( OUT_gdset, "f",NULL));
+      NI_add_to_group(gset->ngr, GDSET_netngrlink);
+      NAME_gdset = SUMA_WriteDset_ns( OUT_gdset,
+                                      gset, SUMA_ASCII_NIML, 1, 0);
+      if (!NAME_gdset && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
+         ERROR_message("Failed to write dataset."); exit(1); 
+      } else {
+         if (NAME_gdset) SUMA_free(NAME_gdset); NAME_gdset = NULL;      
+      }
+      SUMA_FreeDset(gset);
+      gset=NULL;
+   }   
+   
    if(TS_OUT) {
       for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
@@ -804,6 +955,29 @@ int main(int argc, char *argv[]) {
    // ************************************************************
    // ************************************************************
    
+   DSET_delete(ROIS);
+   free(ROIS);
+
+   for ( i = 0 ; i < HAVE_ROIS ; i++ ) {
+      for (j = 0; j < NROI_REF[i]; ++j) 
+         free(gdset_roi_names[i][j]);
+      free(gdset_roi_names[i]);
+   }
+   free(gdset_roi_names);
+   
+   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
+      for ( j = 0 ; j < Noutmat ; j++ ) 
+         free(flat_matr[i][j]);
+   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
+      free(flat_matr[i]);
+   free(flat_matr);
+
+   for( i=0 ; i<Noutmat ; i++)  
+      free(ParLab[i]);
+   free(ParLab);
+
+
+
 
    if(LabTabStr)
       free(LabTabStr); 
