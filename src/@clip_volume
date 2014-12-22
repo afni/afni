@@ -18,6 +18,20 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "      -right  Xmm: Set to 0 slices right of Xmm"
    echo "      -anterior Ymm: Set to 0 slices anterior to Ymm"
    echo "      -posterior Ymm: Set to 0 slices posterior to Ymm"
+   echo "    + Or the box option:"
+   echo "      -box Cx Cy Cz Dx Dy Dz: Clip the volume to a box"
+   echo "                              centered at Cx, Cy, Cz (RAI mm),"
+   echo "                              and of dimensions Dx Dy Dz (RAI mm)"
+   echo "      -mask_box Cx Cy Cz Dx Dy Dz: Same as -box, but set all values"
+   echo "                              inside of box to 1."
+   echo "      Example:"
+   echo "         @clip_volume -mask_box 20.671 -10.016 23.362 10 10 10 \"
+   echo "                      -input seg_no_spat.c+orig.BRIK \"
+   echo "                      -prefix small_box_volume -crop_greedy"
+   echo ""
+   echo "      Note:"
+   echo "         If you are not cropping the output, you might consider"
+   echo "         using 3dUndump instead."
    echo ""
    echo "    Optional parameters:"
    echo "      -and (default): Combine with next clipping planes using 'and'"
@@ -67,8 +81,51 @@ PARSE:
    set sgn = '*'
    set verb = 0
    set neq = 0
+   set binarize = 0
    while ($cnt <= $Narg)
 		set donext = 1;
+      
+      if ($donext && ("$argv[$cnt]" == "-box" || \
+                      "$argv[$cnt]" == "-mask_box") ) then
+         if ("$argv[$cnt]" == "-mask_box") set binarize = 1
+         set aneeded = `ccalc -i $cnt + 6`
+         set pLoc = $cnt		
+		   if ($aneeded > $Narg) then
+				echo "Need 6 params after -box"
+            goto END
+         endif
+         @ cnt ++
+         #get XYZ of center
+         set C = ($argv[$cnt])
+         @ cnt ++
+         set C = ($C $argv[$cnt])
+         @ cnt ++
+         set C = ($C $argv[$cnt])
+         @ cnt ++
+         #Get mm box dims
+         set D = ($argv[$cnt])
+         @ cnt ++
+         set D = ($D $argv[$cnt])
+         set pLoc = $cnt
+         @ cnt ++
+         set D = ($D $argv[$cnt])
+         
+         echo "Box centered at $C, dimensions $D"
+         #Keep Below
+         set eq = "      (1-step(z - $C[3]-$D[3]/2))"
+         #Keep Above
+         set eq = "$eq * (step(z - $C[3]+$D[3]/2))"
+         #Keep Anterior
+         set eq = "$eq * (1-step(y - $C[2]-$D[2]/2))"
+         #Keep Posterior
+         set eq = "$eq * (step(y - $C[2]+$D[2]/2))"
+         #Keep Right
+         set eq = "$eq * (1-step(x - $C[1]-$D[1]/2))"
+         #Keep Left
+         set eq = "$eq * (step(x - $C[1]+$D[1]/2))"
+         set donext = 0
+      endif
+      
       if ($donext && ("$argv[$cnt]" == "-below" || "$argv[$cnt]" == "-inferior") ) then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -256,14 +313,20 @@ PARSE:
 
 DOIT:
    echo "Clipping"
+   set val = "a"
+   if ($binarize == 1) set val = "1"
    if ($crop == 1) then
-      set noglob
-      if ($verb) echo "3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix ___tmp_clp"
-      unset noglob
-      3dcalc -a "$anat_in" -expr "a * step($eq)" -rai -prefix ___tmp_clp
-      set noglob
-      if ($verb) echo "3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]"
-      unset noglob
+      if ($verb) then
+         set noglob
+   echo "3dcalc -a "$anat_in" -expr "$val * step($eq)" -rai -prefix ___tmp_clp"
+         unset noglob
+      endif
+      3dcalc -a "$anat_in" -expr "$val * step($eq)" -rai -prefix ___tmp_clp
+      if ($verb) then
+         set noglob
+   echo "3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]"
+         unset noglob
+      endif
       3dAutobox $cropopt -prefix $prefix -input ___tmp_clp$in_name[3]
       rm -f ___tmp_clp$in_name[3].???? >& /dev/null
       if ($#foll > 0) then

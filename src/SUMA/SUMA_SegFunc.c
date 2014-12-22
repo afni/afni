@@ -900,7 +900,8 @@ int p_a_GIV_cvfu(SEG_OPTS *Opt, char *feat, char *cls,
                                            a[i], da, feat, a[i]*af, cls, dp/pf);
                   }
                } else {
-                  if (i == Opt->VoxDbg) fprintf(Opt->VoxDbgOut," Vox Masked\n");
+                  if (i == Opt->VoxDbg) fprintf(Opt->VoxDbgOut,
+                                                " SFG Vox Masked\n");
                   dp = 0.0;
                }
                p[i] = (short)dp;
@@ -916,7 +917,8 @@ int p_a_GIV_cvfu(SEG_OPTS *Opt, char *feat, char *cls,
                                            feat, a[i]*af, cls, (float)p[i]/pf);
                   }
                } else {
-                  if (i == Opt->VoxDbg) fprintf(Opt->VoxDbgOut," Vox Masked\n");
+                  if (i == Opt->VoxDbg) fprintf(Opt->VoxDbgOut,
+                                                " SFNP Vox Masked\n");
                   p[i] = 0;
                }
             }
@@ -1053,7 +1055,7 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
    int i, j, icls;
    short *a=NULL;
    static THD_3dim_dataset *pcgrec=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;      
 
@@ -1441,7 +1443,15 @@ AFNI_OMP_START ;
                pp[cc] = Opt->mixfrac[cc]*d;
                A2 += pp[cc];
             } /* class loop */
-            for (cc=0; cc<N_c; ++cc) { pp[cc] /= A2; } /* unit sum */
+            for (cc=0; cc<N_c; ++cc) { 
+               pp[cc] /= A2; 
+               if (ijk == Opt->VoxDbg) {
+                  fprintf(Opt->VoxDbgOut,"   p(c=%s|%s=%f)=%f\n",
+                            Opt->clss->str[cc], Opt->feats->str[ff], a, pp[cc]);
+               }
+            } /* unit sum */
+            if (ijk == Opt->VoxDbg) fprintf(Opt->VoxDbgOut,"\n");
+
          } /* feature loop */
          /* Compute P(class|all features) */
          for (cc=0; cc<N_c; ++cc) { /* class loop 2 */
@@ -1459,6 +1469,7 @@ AFNI_OMP_START ;
          for (cc=0, ps = 0.0; cc<N_c; ++cc) { /* class loop 3 */
             P[cc] = exp(P[cc]); ps += P[cc]; 
          } /* class loop 3 */
+         if (ijk == Opt->VoxDbg) fprintf(Opt->VoxDbgOut,"\n");
          for (cc=0; cc<N_c; ++cc) { /* class loop 4 */
             if (Opt->rescale_p) P[cc] /= ps;
             /* store in output */
@@ -1468,6 +1479,10 @@ AFNI_OMP_START ;
             } else {
                /* SUMA_S_Err("Not ready to write out logp, sticking with p"); */
                bb[ijk] = (short)(P[cc]*pf);
+            }
+            if (ijk == Opt->VoxDbg) {
+                  fprintf(Opt->VoxDbgOut,"      p(c=%s|a, ALL f)=%f\n",
+                            Opt->clss->str[cc], P[cc]);
             }
          } /* class loop 4 */
       } /* mask cond. */

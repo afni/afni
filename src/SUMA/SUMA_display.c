@@ -6681,7 +6681,8 @@ SUMA_Boolean SUMA_BringUpSurfContTLS(Widget TLS)
 }
 
  
-/*! if calling this function from outside interface, set w to NULL 
+/*! 
+   if calling this function from outside interface, set w to NULL 
 */
 int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado, 
                          SUMA_SurfaceViewer *sv) 
@@ -6691,6 +6692,7 @@ int SUMA_viewSurfaceCont(Widget w, SUMA_ALL_DO *ado,
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
    
    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))) {
       SUMA_RETURN(0);
@@ -8321,6 +8323,16 @@ void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData)
          XtVaCreateManagedWidget (  "sep", 
                               xmSeparatorWidgetClass, rc, 
                               XmNorientation, XmVERTICAL,NULL);
+         
+         pb = XtVaCreateWidget ("All Objs.", 
+                  xmPushButtonWidgetClass, rc, 
+                  NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_AllConts, NULL);
+         SUMA_Register_Widget_Help(pb, "SurfCont->Disp_Cont->AllObjs",
+                                "Initialize Controllers for All Objects",
+                                SUMA_SurfContHelp_AllObjs) ;
+         XtManageChild (pb);
          SUMA_CreateArrowField ( rc, "Switch",
                            1, 1, 20, 1,
                            2, SUMA_int,
@@ -14287,6 +14299,29 @@ void SUMA_cb_SurfCont_SwitchPage (void *data)
       SUMA_LHv("Problem, reverting to %d\n",
                (int)SurfCont->SurfContPage->value);
    } 
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Initialize controllers for all objects that would have one
+   
+   -expects nothing
+*/
+void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_AllConts"};
+   SUMA_ALL_DO *ado=NULL;
+   int ido;
+   
+   SUMA_ENTRY;
+
+   for (ido=0; ido<SUMAg_N_DOv; ++ido) {
+      ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
+      if (SUMA_ADO_Cont(ado) && !SUMA_isADO_Cont_Realized(ado)) {
+         SUMA_viewSurfaceCont(NULL, ado, NULL);
+      }
+   }
    
    SUMA_RETURNe;
 }

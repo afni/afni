@@ -187,7 +187,7 @@ DOEC:
    echo $hist > $odir/README.command.$suff
    
    set pdir = `echo $odir | sed "s:^${idir}/::"`
-   echo "Results now in $pdir"
+   echo "Results now in $PWD/$pdir"
    echo "Summary images are: "
    echo "$finalimages"
    echo ""

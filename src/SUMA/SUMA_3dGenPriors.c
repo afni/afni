@@ -123,6 +123,9 @@ static char shelp_GenPriors[] = {
 "   -cmask CMASK: Provide cmask expression. Voxels where expression is 0\n"
 "                 are excluded from computations\n"
 "   -mask MASK: Provide mask dset\n"
+"               To run the program on one voxel only, you can set MASK to \n"
+"               the key word VOX_DEBUG. In this mode a mask is created\n"
+"               with only the one voxel specified in -vox_debug set to 1.\n"
 "   -mrange M0 M1: Consider MASK only for values between M0 and M1, inclusive\n"
 "   -do WHAT: Specify the output that this program should create.\n"
 "             Each character in WHAT specifies an output. \n"
@@ -294,13 +297,14 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    char *outname, cview[10];
    int brk = 0;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
-
+   SUMA_Boolean LocalHead = NOPE;
+   
    ENTRY("GenPriors_ParseInput");
    
    brk = 0;
    kar = 1;
 	while (kar < argc) { /* loop accross command ine options */
-		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		SUMA_LH("Parsing command line at %s...\n", argv[kar] );
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 Opt->helpfunc(0);
           exit (0);
@@ -1042,8 +1046,8 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}
       if (!brk) {
-			fprintf (stderr,"Option %s not understood. \n"
-                         "Try -help for usage\n", argv[kar]);
+			fprintf (stderr,"Option '%s', #%d not understood. \n"
+                         "Try -help for usage\n", argv[kar], kar);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
 		} else {	
@@ -1352,7 +1356,7 @@ int main(int argc, char **argv)
                         Opt->VoxDbg3[2]*DSET_NX(Opt->sig)*DSET_NY(Opt->sig);
    }
 
-   if (Opt->VoxDbg < 0 || Opt->VoxDbg >= DSET_NVOX(Opt->sig)) {
+   if (Opt->VoxDbg < -1 || Opt->VoxDbg >= DSET_NVOX(Opt->sig)) {
       SUMA_S_Errv("Voxel debug %d (%d %d %d) outside of grid for Opt->sig\n",
                Opt->VoxDbg, Opt->VoxDbg3[0], Opt->VoxDbg3[1], Opt->VoxDbg3[2]);
       exit(1);
@@ -1489,7 +1493,7 @@ int main(int argc, char **argv)
    }
    
    
-   if (Opt->mset_name) {
+   if (Opt->mset_name && strcmp(Opt->mset_name,"VOX_DEBUG")) {
       if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {      
          exit(1);
       }

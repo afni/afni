@@ -917,30 +917,55 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
    
    SUMA_ENTRY;
    /* ------------- Mask business -----------------*/
-   
+   if (!aset) {
+      SUMA_S_Err("Null aset?");
+      SUMA_RETURN(NULL);
+   }
    if (cmaskp) cmask = *cmaskp;
    if (msetp) mset = *msetp;
    
-   if( mset == NULL ){
-      mmm = NULL ;
-      if( Opt->debug ) 
-         INFO_message("%d voxels in the entire dataset (no mask)\n",
-                     DSET_NVOX(aset)) ;
-      *mcount = DSET_NVOX(aset);
-   } else {
-      if( DSET_NVOX(mset) != DSET_NVOX(aset) )
-        ERROR_exit("Input and mask datasets are not same dimensions!\n");
-      mmm = THD_makemask( mset , 0 , mask_bot, mask_top ) ;
-      *mcount = THD_countmask( DSET_NVOX(mset) , mmm ) ;
-      if( *mcount <= 0 ) {
-         ERROR_message("No voxels in the mask!\n") ;
-         SUMA_RETURN(NULL);
+   if (Opt->mset_name && !strcmp(Opt->mset_name,"VOX_DEBUG")) {
+      /* Just the debugging voxel man! */
+      if (Opt->VoxDbg >= 0) {
+         if (Opt->VoxDbg < DSET_NVOX(aset)) {
+            SUMA_S_Note("Mask consists of voxel %d only", Opt->VoxDbg);
+            mmm = (byte *)calloc( DSET_NVOX(aset), sizeof(byte));
+            mmm[Opt->VoxDbg]=1;
+            *mcount = 1;
+         } else {
+            SUMA_S_Err("VoxDbg (%d) > #voxels (%d) in dset", 
+                       Opt->VoxDbg, DSET_NVOX(aset));
+            ERROR_exit("No reason to proceed");
+         }
+      } else {
+         SUMA_S_Err("Used VOX_DEBUG for -mask but no -vox_debug entry.\n"
+                     "Ignoring masking, all %d voxels in the dataset will\n"
+                     "be used.", DSET_NVOX(aset)) ;
+         ERROR_exit("Goodbye cruel world");
       }
-      if( Opt->debug ) INFO_message("%d voxels in the mask\n",*mcount) ;
-      DSET_delete(mset); *msetp=NULL;
+   } else {
+      if( mset == NULL ){
+         mmm = NULL ;
+         if( Opt->debug ) 
+            INFO_message("%d voxels in the entire dataset (no mask)\n",
+                        DSET_NVOX(aset)) ;
+         *mcount = DSET_NVOX(aset);
+      } else {
+         if( DSET_NVOX(mset) != DSET_NVOX(aset) )
+           ERROR_exit("Input and mask datasets are not same dimensions!\n");
+         mmm = THD_makemask( mset , 0 , mask_bot, mask_top ) ;
+         *mcount = THD_countmask( DSET_NVOX(mset) , mmm ) ;
+         if( *mcount <= 0 ) {
+            ERROR_message("No voxels in the mask!\n") ;
+            SUMA_RETURN(NULL);
+         }
+         if( Opt->debug ) INFO_message("%d voxels in the mask\n",*mcount) ;
+         DSET_delete(mset); *msetp=NULL;
+      }
    }
 
    if( cmask != NULL ){
+      SUMA_LH("Merging with cmask");
       if( dimcmask != DSET_NVOX(aset) )
         ERROR_exit("Input and cmask datasets are not same dimensions!\n");
       if( mmm != NULL ){
@@ -965,13 +990,16 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
       }
    }
    
-   /* Make sure that aset has no exact 0s that are in the mask */
-   imin = THD_extract_float_brick(0,aset) ;
-   fa = MRI_FLOAT_PTR(imin);
-   Fixit = 0;
-   for( ii=0 ; ii < DSET_NVOX(aset) && !Fixit; ii++ ) {
-      if (IN_MASK(mmm, ii) && fa[ii] == 0.0) {
-         Fixit = 1; 
+   /* Make sure that aset has no exact 0s that are in the mask 
+      Unless had VOX_DEBUG for mask */
+   if (Opt->mset_name && strcmp(Opt->mset_name,"VOX_DEBUG")) {
+      imin = THD_extract_float_brick(0,aset) ;
+      fa = MRI_FLOAT_PTR(imin);
+      Fixit = 0;
+      for( ii=0 ; ii < DSET_NVOX(aset) && !Fixit; ii++ ) {
+         if (IN_MASK(mmm, ii) && fa[ii] == 0.0) {
+            Fixit = 1; 
+         }
       }
    }
    if (Fixit) {
@@ -987,7 +1015,7 @@ byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset,
          }
       }
    }
-   mri_free(imin); imin = NULL; fa = NULL;
+   if (imin) mri_free(imin); imin = NULL; fa = NULL;
    SUMA_RETURN(mmm);         
 }
 
