@@ -2645,10 +2645,27 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       gdset_roi_names[i] = (char **)calloc(NROI[i], sizeof(char *));
       for (j=0; j<NROI[i]; ++j) {
          gdset_roi_names[i][j] = (char *)calloc(32, sizeof(char));
-         snprintf(gdset_roi_names[i][j],31,"N%03d:R%d", i, ROI_LABELS[i][j]);
+         //snprintf(gdset_roi_names[i][j],31,"N%03d:R%d", i, ROI_LABELS[i][j]);
+         //if( OLD_LABEL )
+         //  snprintf(gdset_roi_names[i][j],31,"N%03d:R%d", i, 
+         //          ROI_LABELS[i][j]);
+         //else{
+            snprintf(gdset_roi_names[i][j],31,"%s",
+                     ROI_STR_LABELS[i][j+1]);
+            //fprintf(stderr," %s ",
+            //       ROI_STR_LABELS[i][j+1]);
+            //}
+
+
       }
    }
    
+   if(  (flat_matr == NULL) || ( gdset_roi_names == NULL) ) {
+         fprintf(stderr, "\n\n MemAlloc failure.\n\n");
+         exit(14);
+      }
+
+
    // convert to cos of rad value for comparisons, instead of using acos()
    MaxAng = cos(CONV*opts.MaxAngDeg); 
    
