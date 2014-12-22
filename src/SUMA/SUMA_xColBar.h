@@ -1430,6 +1430,11 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "Switch to controllers of other objects. You can use the arrows, or set the "\
 "controller's index directly."
 
+   #define SUMA_SurfContHelp_AllObjs   \
+"Initialize controllers for all objects that have one. "\
+"This is particularly useful when a particular may not be visible under "\
+"the default settings."
+
    #define SUMA_SurfContHelp_MaskTypeTbl_c5  \
 "Color of mask in RGB triplets between 0 and 1.0. You can also specify "\
 "colors using the shorthands of::LR:\n"\
