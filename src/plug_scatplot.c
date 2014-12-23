@@ -125,7 +125,7 @@ char * SCAT_main( PLUGIN_interface *plint )
 {
    MCW_idcode *idc ;
    THD_3dim_dataset *xdset, *ydset , *mask_dset=NULL ;
-   int ivx,ivy , mcount , nvox , ii,jj , nbin=-1 ;
+   int ivx,ivy , mcount , nvox , ii,jj , nbin=-1 , did_corr=0 ;
    float mask_bot=666.0 , mask_top=-666.0 ;
    float xbot,xtop, ybot,ytop, pcor=0.0f, a=0.0f,b=0.0f, p025=0.0f,p975=0.0f, mi=0.0f ;
    char *tag , *str ;
@@ -133,6 +133,7 @@ char * SCAT_main( PLUGIN_interface *plint )
    char ab[16] , bb[16] , *pab,*pbb ;
    byte *mmm ;
    float *xar , *yar ;
+   float scor=0.0f,s025=0.0f,s975=0.0f ;  /* 23 Dec 2014 */
 
    char *cname=NULL ;  /* 06 Aug 1998 */
    int miv=0 ;
@@ -512,36 +513,36 @@ char * SCAT_main( PLUGIN_interface *plint )
        THD_pearson_corr_boot( mcount,xar,yar , &rrr,&aaa,&bbb ) ;
        pcor = rrr.a ; p025 = rrr.b ; p975 = rrr.c ; a = aaa.a ; b = bbb.a ;
        INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]",pcor,a,b) ;
+       THD_spearman_corr_boot( mcount,xar,yar , &rrr ) ;
+       scor = rrr.a ; s025 = rrr.b ; s975 = rrr.c ;  /* 23 Dec 2014 */
+       did_corr = 2 ;
      } else {
        rrr = THD_pearson_indexed( mcount,NULL , xar,yar ) ;
        pcor = rrr.c ; a = rrr.a ; b = rrr.b ; p025 = 6.66f ; p975 = -6.66f ;
        mi = THD_mutual_info( mcount , xar , yar ) ;
-       INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]  MI=%.3f bits",pcor,a,b,mi) ;
+       INFO_message("Scatterplot: R=%.3f  a=%.3f  b=%.3f  [y=ax+b fit]  MI=%.3f",pcor,a,b,mi) ;
+       scor = THD_spearman_corr_nd(mcount,xar,yar) ;  /* 23 Dec 2014 */
+       did_corr = 1 ;
      }
    }
 
-   if( label != NULL ){
-     strcpy(tlab,label) ;   /* 09 Aug 2007 */
-   } else if( mask_dset == NULL ){
-      sprintf(tlab,"Scatterplot: %d Voxels",mcount) ;
+   if( did_corr == 2 ) strcpy(tlab,"\\small ") ;
+   else                tlab[0] = '\0' ;
+
+   if( label != NULL && *label != '\0' ){
+     strcpy(tlab+strlen(tlab),label) ;
    } else {
-      sprintf(tlab,"\\noesc Scatterplot: %d Voxels (%s)",
-              mcount , DSET_FILECODE(mask_dset)   ) ;
+     sprintf(tlab+strlen(tlab),"[%d vox]",mcount) ;
    }
-   if( pcor != 0.0f ){
-     if( strlen(tlab) > 25 && p025 < pcor && p975 > pcor ){
-       sprintf(tlab+strlen(tlab),"\\esc\\red  R\\approx %.2f",pcor) ;
+   if( did_corr ){
+     sprintf(tlab+strlen(tlab),"\\esc\\red  R\\approx %.2f",pcor) ;
+     if( p025 < pcor && p975 > pcor )
        sprintf(tlab+strlen(tlab),"\\in[%.2f..%.2f]_{95%%}",p025,p975) ;
-       if( p025*p975 > 0.0f ) strcat(tlab,"^{*}") ;
-     } else {
-       sprintf(tlab+strlen(tlab),"\\esc\\red  R\\approx %.3f",pcor) ;
-       if( p025 < pcor && p975 > pcor ){
-         sprintf(tlab+strlen(tlab),"\\in[%.3f..%.3f]_{95%%}",p025,p975) ;
-         if( p025*p975 > 0.0f ) strcat(tlab,"^{*}") ;
-       } else if( mi != 0.0f ){
-         sprintf(tlab+strlen(tlab)," MI\\approx %.3f bits",mi) ;
-       }
-     }
+     sprintf(tlab+strlen(tlab)," \\rho\\approx %.2f",scor) ;
+     if( s025 < scor && s975 > scor )
+       sprintf(tlab+strlen(tlab),"\\in[%.2f..%.2f]_{95%%}",s025,s975) ;
+     if( mi != 0.0f )
+       sprintf(tlab+strlen(tlab)," MI\\approx %.2f",mi) ;
      sprintf(tlab+strlen(tlab),"\\black") ;
 
      if( strlen(xlab) < 60 )
