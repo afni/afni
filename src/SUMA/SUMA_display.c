@@ -9253,6 +9253,16 @@ void SUMA_cb_createSurfaceCont_GLDO(Widget w, XtPointer data,
          XtVaCreateManagedWidget (  "sep", 
                               xmSeparatorWidgetClass, rc, 
                               XmNorientation, XmVERTICAL,NULL);
+         pb = XtVaCreateWidget ("All Objs.", 
+                  xmPushButtonWidgetClass, rc, 
+                  NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_AllConts, NULL);
+         SUMA_Register_Widget_Help(pb, "GraphCont->Disp_Cont->AllObjs",
+                                "Initialize Controllers for All Objects",
+                                SUMA_SurfContHelp_AllObjs) ;
+         XtManageChild (pb);
+
          SUMA_CreateArrowField ( rc, "Switch",
                            1, 1, 20, 1,
                            2, SUMA_int,
@@ -10046,6 +10056,16 @@ void SUMA_cb_createSurfaceCont_TDO(Widget w, XtPointer data,
          XtVaCreateManagedWidget (  "sep", 
                               xmSeparatorWidgetClass, rc, 
                               XmNorientation, XmVERTICAL,NULL);
+         pb = XtVaCreateWidget ("All Objs.", 
+                  xmPushButtonWidgetClass, rc, 
+                  NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_AllConts, NULL);
+         SUMA_Register_Widget_Help(pb, "TractCont->Disp_Cont->AllObjs",
+                                "Initialize Controllers for All Objects",
+                                SUMA_SurfContHelp_AllObjs) ;
+         XtManageChild (pb);
+
          SUMA_CreateArrowField ( rc, "Switch",
                            1, 1, 20, 1,
                            2, SUMA_int,
@@ -10913,6 +10933,16 @@ void SUMA_cb_createSurfaceCont_VO(Widget w, XtPointer data, XtPointer callData)
          XtVaCreateManagedWidget (  "sep", 
                               xmSeparatorWidgetClass, rc, 
                               XmNorientation, XmVERTICAL,NULL);
+         pb = XtVaCreateWidget ("All Objs.", 
+                  xmPushButtonWidgetClass, rc, 
+                  NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_AllConts, NULL);
+         SUMA_Register_Widget_Help(pb, "VolCont->Disp_Cont->AllObjs",
+                                "Initialize Controllers for All Objects",
+                                SUMA_SurfContHelp_AllObjs) ;
+         XtManageChild (pb);
+
          SUMA_CreateArrowField ( rc, "Switch",
                            1, 1, 20, 1,
                            2, SUMA_int,

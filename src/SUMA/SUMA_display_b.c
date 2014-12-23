@@ -492,6 +492,16 @@ SUMA_SHPINX_BREAK
          XtVaCreateManagedWidget (  "sep", 
                               xmSeparatorWidgetClass, rc, 
                               XmNorientation, XmVERTICAL,NULL);
+         pb = XtVaCreateWidget ("All Objs.", 
+                  xmPushButtonWidgetClass, rc, 
+                  NULL);   
+         XtAddCallback (pb, XmNactivateCallback, 
+                        SUMA_cb_AllConts, NULL);
+         SUMA_Register_Widget_Help(pb, "MaskCont->Disp_Cont->AllObjs",
+                                "Initialize Controllers for All Objects",
+                                SUMA_SurfContHelp_AllObjs) ;
+         XtManageChild (pb);
+
          SUMA_CreateArrowField ( rc, "Switch",
                            1, 1, 20, 1,
                            2, SUMA_int,
