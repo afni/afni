@@ -723,6 +723,9 @@ extern void PLUTO_histoplot_f( int, float, float, float *,
 
 extern void PLUTO_scatterplot( int , float *, float *,
                                char *, char *, char * , float,float ) ;
+extern void PLUTO_scatterplot_NEW( int , float *, float *,
+                                   char *, char *, char * ,
+                                   int , float *, float *, float_triple * ) ;
 
 extern void PLUTO_set_xypush( int a, int b ) ;
 

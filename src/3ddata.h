@@ -5699,6 +5699,8 @@ extern float THD_bootstrap_biascorr( float estim , int nboot , float *eboot ) ;
 
 extern void THD_spearman_corr_boot( int n , float *x , float *y , float_triple *rrr ) ;
 
+extern float_pair THD_l1_fit_to_line( int n , float *x , float *y ) ;
+
 extern float THD_bootstrap_vectcorr( int nlen, int nboot, int use_pv, int xtyp,
                                      int xnum, void *xp , int ynum  , void *yp );
 
