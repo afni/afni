@@ -4994,11 +4994,11 @@ int AFNI_append_dset_to_session( char *fname, int sss )
          if( find.dset == NULL ){
             find = THD_dset_in_session(FIND_PREFIX,
                                        DSET_PREFIX(new_dset),this_ss);
-            if(  find.dset != NULL && 
+            if(  find.dset != NULL &&
                  find.dset->view_type != new_dset->view_type ) find.dset = NULL ;
          }
          if (!find.dset) {
-            SET_SESSION_DSET(new_dset, this_ss, 
+            SET_SESSION_DSET(new_dset, this_ss,
                              this_ss->num_dsset, new_dset->view_type);
             this_ss->num_dsset ++ ;
             AFNI_inconstancy_check(NULL,new_dset) ;
@@ -5159,23 +5159,24 @@ void PLUTO_set_xypush( int a, int b ){ xpush=a; ypush=b; }
      xlab } labels for x-axis,
      ylab }            y-axis
      tlab }        and top of graph (NULL => skip this label)
-     a,b  = if nonzero, plots line y=ax+b on top
+     nlin = number of straight lines to plot
+     alin,blin,clin = slope, intercept, color of lines
    Graph is popped up and then "forgotten" -- RWCox - 13 Jan 2000
 -------------------------------------------------------------------*/
 
-void PLUTO_scatterplot( int npt , float *x , float *y ,
-                        char *xlab , char *ylab , char *tlab ,
-                        float a , float b )
+void PLUTO_scatterplot_NEW( int npt , float *x , float *y ,
+                            char *xlab , char *ylab , char *tlab ,
+                            int nlin , float *alin , float *blin , float_triple *clin )
 {
-   int ii , np , nnax,mmax , nnay,mmay ;
+   int ii , np , nnax,mmax , nnay,mmay , ll ;
    float xbot,xtop , ybot,ytop , pbot,ptop ,
          xobot,xotop,yobot,yotop , xa,xb,ya,yb , dx,dy ;
    float *xar , *yar , *zar=NULL , **yzar ;
-   float dsq , rx,ry ;
+   float dsq , rx,ry , a,b ;
    char str[32] ;
    MEM_plotdata *mp ;
 
-ENTRY("PLUTO_scatterplot") ;
+ENTRY("PLUTO_scatterplot_NEW") ;
 
    if( npt < 2 || x == NULL || y == NULL ) EXRETURN ;
 
@@ -5307,29 +5308,35 @@ ENTRY("PLUTO_scatterplot") ;
       plotpak_line( xb,ya , xa,ya ) ;
    }
 
-   /* draw a line (showing the least squares linear fit of y to x) */
 
-   if( a != 0.0f || b != 0.0f ){              /* 02 May 2005 */
+   /* draw lines (showing the linear fit of y to x) */
 
-     /* endpoints of line passing from left edge to right edge */
+   set_thick_memplot(0.003456789f) ; /* thick-ish lines */
+   plotpak_setlin(2) ;               /* and dashed line mode */
+   for( ll=0 ; ll < nlin ; ll++ ){
+     a = alin[ll] ; b = blin[ll] ;
+     if( a != 0.0f || b != 0.0f ){
 
-     xa = xbot ; ya = a*xa+b ; xb = xtop ; yb = a*xb+b ;
+       /* endpoints of line passing from left edge to right edge */
 
-     /* clip line at left end */
+       xa = xbot ; ya = a*xa+b ; xb = xtop ; yb = a*xb+b ;
 
-          if( ya < ybot && a > 0.0f ){ xa = (ybot-b)/a ; ya = ybot ; }
-     else if( ya > ytop && a < 0.0f ){ xa = (ytop-b)/a ; ya = ytop ; }
+       /* clip line at left end */
 
-     /* clip line at right end */
+            if( ya < ybot && a > 0.0f ){ xa = (ybot-b)/a ; ya = ybot ; }
+       else if( ya > ytop && a < 0.0f ){ xa = (ytop-b)/a ; ya = ytop ; }
 
-          if( yb < ybot && a < 0.0f ){ xb = (ybot-b)/a ; yb = ybot ; }
-     else if( yb > ytop && a > 0.0f ){ xb = (ytop-b)/a ; yb = ytop ; }
+       /* clip line at right end */
 
-     set_color_memplot(0.7f,0.0f,0.0f) ; set_thick_memplot(0.003456789f) ;
-     plotpak_setlin(2) ;             /* dashed line mode */
-     plotpak_line( xa,ya , xb,yb ) ; /* draw it */
-     plotpak_setlin(1) ;             /* back to solid line mode */
+            if( yb < ybot && a < 0.0f ){ xb = (ybot-b)/a ; yb = ybot ; }
+       else if( yb > ytop && a > 0.0f ){ xb = (ytop-b)/a ; yb = ytop ; }
+
+       set_color_memplot(clin[ll].a,clin[ll].b,clin[ll].c) ;
+       plotpak_line( xa,ya , xb,yb ) ; /* draw it */
+     }
    }
+   plotpak_setlin(1) ;             /* back to solid line mode */
+   set_thick_memplot(0.0f) ;       /* and thin lines */
 
    mp = get_active_memplot() ;
 
@@ -5337,6 +5344,21 @@ ENTRY("PLUTO_scatterplot") ;
    (void) memplot_to_topshell( GLOBAL_library.dc->display , mp , NULL ) ;
 
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
+/* The old interface, with 1 red line */
+
+void PLUTO_scatterplot( int npt , float *x , float *y ,
+                        char *xlab , char *ylab , char *tlab ,
+                        float a , float b )
+{
+   float alin , blin ; float_triple clin ;
+
+   alin = a ; blin = b ; clin.a = 0.7f ; clin.b = 0.0f ; clin.c = 0.0f ;
+
+   PLUTO_scatterplot_NEW( npt,x,y , xlab,ylab,tlab , 1,&alin,&blin,&clin ) ;
+   return ;
 }
 
 /*----------------------------------------------------------------------

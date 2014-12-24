@@ -467,8 +467,8 @@ float_triple THD_pearson_indexed( int nix, int *ix, float *x, float *y )
 #undef  NBOOT
 #undef  NB5
 
-#define NBOOT 600
-#define NB5    15  /* must be 2.5% of the above */
+#define NBOOT 960
+#define NB5    24  /* must be 2.5% of the above */
 
 void THD_pearson_corr_boot( int n , float *x , float *y ,
                             float_triple *rrr ,
@@ -543,6 +543,28 @@ float THD_spearman_indexed( int nix, int *ix, float *x, float *y )
 
    r = THD_spearman_corr( nix , xt , yt ) ;
    free(yt) ; free(xt) ; return r ;
+}
+
+/*------------------------------------------------------------------------------*/
+
+float_pair THD_l1_fit_to_line( int n , float *x , float *y )
+{
+   float_pair ab={0.0f,0.0f} ;
+   float *A[2] , coef[2] , val ;
+   int ii ;
+
+   if( n < 3 || x == NULL || y == NULL ) return ab ;
+
+   A[0] = x ;
+   A[1] = (float *)malloc(sizeof(float)*n) ;
+   for( ii=0 ; ii < n ; ii++ ) A[1][ii] = 1.0f ;
+
+   val = cl1_solve( n , 2 , y , A , coef , 0 ) ;
+   free(A[1]) ;
+   if( val >= 0.0f ){
+     ab.a = coef[0] ; ab.b = coef[1] ;
+   }
+   return ab ;
 }
 
 /*------------------------------------------------------------------------------*/
