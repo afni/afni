@@ -135,6 +135,7 @@ char * SCAT_main( PLUGIN_interface *plint )
    float *xar , *yar ;
    float scor=0.0f,s025=0.0f,s975=0.0f , sa=0.0f,sb=0.0f ;  /* 23 Dec 2014 */
    float alin[2] , blin[2] ; float_triple clin[2] ;         /* 24 Dec 2014 */
+   char *eplot=NULL ;
 
    char *cname=NULL ;  /* 06 Aug 1998 */
    int miv=0 ;
@@ -519,6 +520,9 @@ char * SCAT_main( PLUGIN_interface *plint )
 
    /*- 11 Aug 2001: compute correlation coefficient -*/
 
+   eplot = getenv("AFNI_SCATPLOT_LINES") ;
+   if( eplot == NULL ) eplot = "BOTH" ;
+
    if( mcount >= 5 ){           /* 02 Mar 2011: the new way [IPad-2 day!] */
      float_triple aaa,bbb,rrr ; float_pair sab ;
      if( mcount < 6666 ){
@@ -536,8 +540,13 @@ char * SCAT_main( PLUGIN_interface *plint )
        scor = THD_spearman_corr_nd(mcount,xar,yar) ;  /* 23 Dec 2014 */
        did_corr = 1 ;
      }
-     sab = THD_l1_fit_to_line( mcount,xar,yar ) ;
-     sa  = sab.a ; sb = sab.b ;
+     if( strcasestr(eplot,"NOL1") == NULL ){        /* turn on or off some line plots */
+       sab = THD_l1_fit_to_line( mcount,xar,yar ) ;
+       sa  = sab.a ; sb = sab.b ;
+     }
+     if( strcasestr(eplot,"NOL2") != NULL ){
+       a = b = 0.0f ;
+     }
    }
 
    if( did_corr == 2 ) strcpy(tlab,"\\small ") ;
@@ -559,10 +568,17 @@ char * SCAT_main( PLUGIN_interface *plint )
        sprintf(tlab+strlen(tlab)," \\green MI\\approx %.2f",mi) ;
      sprintf(tlab+strlen(tlab),"\\black") ;
 
-     if( strlen(xlab) < 60 )
-       sprintf(xlab+strlen(xlab),
-               "\\esc\\red  \\{y\\approx %.3g*x%s%.3g\\}\\black" ,
-               a , (b<0.0f)?"-":"+" , fabs(b) ) ;
+     if( strlen(xlab) < 60 ){
+       if( a != 0.0f || b != 0.0f ){
+         sprintf(xlab+strlen(xlab),
+                 "\\esc\\red  \\{y\\approx %.3g*x%s%.3g\\}\\black" ,
+                 a , (b<0.0f)?"-":"+" , fabs(b) ) ;
+       } else if( sa != 0.0f || sb != 0.0f ){
+         sprintf(xlab+strlen(xlab),
+                 "\\esc\\blue  \\{y\\approx %.3g*x%s%.3g\\}\\black" ,
+                 sa , (sb<0.0f)?"-":"+" , fabs(b) ) ;
+       }
+     }
    }
 
    /*-- actually plot data (cf. afni_plugin.c) --*/

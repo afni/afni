@@ -3410,6 +3410,35 @@ volumes are the corresponding t-statistics.  (This value can also be
 set interactively from a popup chooser activated by right-clicking
 on the 'Index' label to the left of the up/down arrows.)
 
+-----------------------------
+Variable: AFNI_SCATPLOT_LINES
+-----------------------------
+The ScatterPlot plugin lets you graph the data in one sub-brick along
+the x-axis and the data in another sub-brick along the y-axis.  It also
+computes some straight line y=ax+b fits to the graph.  By default, it
+does 2 different fits, with least sum of squares (L2) and least sum
+of absolutes (L1) criteria.  The L2 line is plotted in red (and thus
+corresponds to the Pearson R also shown in red), and the L1 line is
+plotted in blue (and corresponds to the Spearman rho shown in blue).
+With this variable, you can turn off the plotting of either or both
+of these lines, which are often very nearly the same.  If the value
+of this variable contains the string 'NOL1', then the L1 line won't
+be shown, and if the value of this variable contains 'NOL2', then
+the L2 line won't be shown.  Thus, if the value of this variable is
+'NOL1+NOL2', neither line will be plotted.
+
+----------------------------
+Variable: AFNI_SCATPLOT_FRAC
+----------------------------
+This variable lets you choose the size of the boxes plotted in the
+ScatterPlot plugin. The units are fractions of the plot width,
+so the reasonable range for this value is 0.0 to 0.01 (not inclusive).
+If this variable is not set, or the value is outside of this range,
+then the size of the boxes is set based on the number of points
+being plotted.  The only reason for using this variable is if you
+wish to create a sequence of scatterplots and ensure that the points
+plotted in different graphs have a uniform size of boxes.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
