@@ -4353,6 +4353,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
 
             if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Suma_Cont_Help"))) {
+               if (!SUMA_WriteCont_Help(not_DO_type, TXT, cbuf)) {
+                  SUMA_S_Err("Failed to write SumaCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Snap_Suma_Cont_Widgets"))) {
+               if (!SUMA_Snap_AllCont(not_DO_type, cbuf)) {
+                  SUMA_S_Err("Failed to write SumaCont widgets to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
+                                          "Write_Suma_Cont_Sphinx_Help"))) {
+               if (!SUMA_WriteCont_Help(not_DO_type, SPX, cbuf)) {
+                  SUMA_S_Err("Failed to write SumaCont help to %s", cbuf);
+               }
+            }
+
+            if ((cbuf = NI_get_attribute(EngineData->ngr, 
                                           "Write_Tract_Cont_Help"))) {
                if (!SUMA_WriteCont_Help(TRACT_type, TXT, cbuf)) {
                   SUMA_S_Err("Failed to write TractCont help to %s", cbuf);
@@ -4691,6 +4712,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            case XK_t:
                            case XK_T:
                               if (!SUMA_T_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_u:
+                           case XK_U:
+                              if (!SUMA_U_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;

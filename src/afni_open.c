@@ -108,6 +108,15 @@ int is_url_pn(SUMA_PARSED_NAME *FN)
    return(0);
 }
 
+int is_local_html(SUMA_PARSED_NAME *FN) 
+{
+   int a = 0;
+   if (!FN) return(0);
+   if (!FN->OnDisk) return(0); /* should be on disk */
+   if (!strcmp(FN->Ext,".html")) return(1);
+   return(0);
+}
+
 int is_xmat(char *name) 
 {
    int a;
@@ -506,7 +515,7 @@ int main(int argc, char **argv)
              strcmp(argv[iarg],"afniweb") &&
              strcmp(argv[iarg],"readme") &&
              strcmp(argv[iarg],"1dplot") ) {
-            ERROR_message("Not ready for %s", argv[iarg]);
+            ERROR_message("Not ready for program %s", argv[iarg]);
             exit(1);
          }
          ++iarg;
@@ -577,7 +586,7 @@ int main(int argc, char **argv)
          } else if (!strcmp(uprog,"readme")) {
             ao_with_readme(FN->NameAsParsed);
          } else {
-            ERROR_message("Not ready for %s", uprog);
+            ERROR_message("Not ready for prog. %s", uprog);
             exit(1);
          } 
          continue;
@@ -601,6 +610,8 @@ int main(int argc, char **argv)
          } else {
             ao_with_downloader(FN->NameAsParsed, 0);
          }
+      } else if (is_local_html(FN)) {
+         ao_with_browser(FN->NameAsParsed);
       } else if (FN->StorageMode == STORAGE_BY_1D) {
          ao_with_editor(FN->NameAsParsed);
       } else if (is_pdf_pn(FN)) {
