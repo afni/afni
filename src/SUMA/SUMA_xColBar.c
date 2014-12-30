@@ -488,7 +488,7 @@ void SUMA_PBAR_bigexpose_CB(Widget w, XtPointer clientData, XtPointer call)
          r=(byte)(CM->M[mm][0]*255.0); 
          g=(byte)(CM->M[mm][1]*255.0);   
          b=(byte)(CM->M[mm][2]*255.0);
-         if( r >= 0 || g >= 0 || b >= 0 ){
+         if( CM->M[mm][0] >= 0 || CM->M[mm][1] >= 0 || CM->M[mm][2] >= 0 ){
             for( jj=0 ; jj < ww ; jj++ ){
               car[kk++] = r; car[kk++] = g; car[kk++] = b;
             }

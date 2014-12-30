@@ -97,6 +97,10 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
             SUMA_RETURN(XK_t);
          case 'T':
             SUMA_RETURN(XK_T);
+         case 'u':
+            SUMA_RETURN(XK_u);
+         case 'U':
+            SUMA_RETURN(XK_U);
          case 'w':
             SUMA_RETURN(XK_w);
          case 'W':
@@ -2662,6 +2666,48 @@ int SUMA_T_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
+/*!
+   Execute commands when U or u is pressed
+*/
+int SUMA_U_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_U_Key"};
+   char tk[]={"U"}, keyname[100], msg[100];
+   int k, nc, ii, jj, mm;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_KEY_COMMON;
+
+   /* do the work */
+   switch (k) {
+      case XK_u:
+         if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
+            SUMA_LH("Nothing here");   
+         } else if (SUMA_CTRL_KEY(key)) {
+            SUMA_viewSumaCont(1);
+         } else {
+            SUMA_LH("Keeping it real");
+         }
+         break;
+      case XK_U:
+         if (SUMA_CTRL_KEY(key)) {
+            
+         } else {
+            
+         }
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici non plus");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
+
 void SUMA_free_Save_List_El(void *selu) {
    SUMA_SAVE_LIST_EL *sel=(SUMA_SAVE_LIST_EL *)selu;
    if (sel) {
@@ -4541,7 +4587,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                #endif
             }
             break;
-
+         
          case XK_t:
             if ((Kev.state & ControlMask)){
                if (!SUMA_T_Key(sv, "ctrl+t", "interactive")) {
@@ -4559,7 +4605,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_S_Err("Failed in key func.");
             } 
             break;
-            
+         
+         case XK_u:
+            if (!SUMA_U_Key(sv, "u", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
+            break;
+         case XK_U:
+            if (!SUMA_U_Key(sv, "U", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
+            }
+            break;   
          case XK_v:
             #if 0
             /*** No longer in use, Jan 03 2004 */

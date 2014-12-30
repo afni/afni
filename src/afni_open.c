@@ -515,7 +515,7 @@ int main(int argc, char **argv)
              strcmp(argv[iarg],"afniweb") &&
              strcmp(argv[iarg],"readme") &&
              strcmp(argv[iarg],"1dplot") ) {
-            ERROR_message("Not ready for program %s", argv[iarg]);
+            ERROR_message("Not ready/bad -w %s", argv[iarg]);
             exit(1);
          }
          ++iarg;
