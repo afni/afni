@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29, Dec, 2014, ZSS, "suma-general", MINOR, TYPE_MODIFY,
+   "Lot of additions to SphinxDocs/SUMA, plus auto-doc for SUMA controller",
+   NULL 
+ },
+
+ { 29, Dec, 2014, ZSS, "afni_open", MICRO, TYPE_MODIFY,
+   "Made it open local .html files",
+   NULL 
+ },
+
  { 22, Dec, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added All Objs button to initialize controllers for all objects if desired",
    NULL 

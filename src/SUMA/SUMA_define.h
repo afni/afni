@@ -1770,6 +1770,9 @@ typedef struct {
 /*! structure containing widgets for Suma's controller SumaCont */
 typedef struct {
    Widget AppShell; /*!< AppShell widget for Suma's controller */
+   Widget form;
+   Widget LockFrame;
+   Widget AppFrame;
    Widget quit_pb; /*!< quit push button */
    SUMA_Boolean quit_first;   /*!< flag indicating first press of done button */
    SUMA_rb_group *Lock_rbg; /*!< pointer to structure contining N radio 
