@@ -1055,7 +1055,7 @@ int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr)
    int i, j, icls;
    short *a=NULL;
    static THD_3dim_dataset *pcgrec=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;      
 
