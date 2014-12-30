@@ -2210,7 +2210,9 @@ char * SUMA_help_message_Info(TFORM targ)
    SS = SUMA_StringAppend_va(SS,
       "  %s or Ctrl+Wheel: change the size of the currently selected \n"
       "                        tract mask. This only works when you're in\n"
-      "                        mask manipulation mode.\n",
+      "                        "
+      ":SPX::ref:`mask manipulation mode<Mask_Manipulation_Mode>`"
+      ":DEF:mask manipulation mode:SPX:.\n",
          SUMA_hkf("Ctrl+Scroll", targ));
    SS = SUMA_StringAppend (SS, 
       "    \n");
@@ -2911,8 +2913,9 @@ int SUMA_Register_GUI_Help(char *which, char *hint, char *help, int type)
 {
    static char FuncName[]={"SUMA_Register_GUI_Help"};
    GUI_WIDGET_HELP *gwh=NULL, *gwhc=NULL;
-   char *sstmp = NULL, *s=NULL;
+   char *sstmp = NULL, *s=NULL, buf[64]={""};
    DListElmt *el=NULL;
+   static char WhinedNames[1025]={""};
    int nn;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2997,9 +3000,13 @@ int SUMA_Register_GUI_Help(char *which, char *hint, char *help, int type)
       gwhc = (GUI_WIDGET_HELP *)el->data;
       if ((nn = strcmp(SUMA_Name_GUI_Help(gwhc), 
                        SUMA_Name_GUI_Help(gwh))) == 0) {
-         if (1 || LocalHead) {
-            SUMA_S_Note("GUI Name %s already in use. No special help entry.",
-                        SUMA_Name_GUI_Help(gwh));
+         snprintf(buf, 63, "%s;",SUMA_Name_GUI_Help(gwh));
+         if (LocalHead || !(sstmp=strstr(WhinedNames, buf))) {
+            SUMA_S_Note("GUI Name %s already in use. No special help entry."
+                        "%s",
+                        SUMA_Name_GUI_Help(gwh), 
+                  LocalHead ? "":"\nFurther warnings for this name curtailed.");
+            if (!sstmp) strncat(WhinedNames,buf, 1023);
             SUMA_DUMP_TRACE("Trace at duplicate GUI name");
             SUMA_free(gwh);
          }
@@ -3231,6 +3238,9 @@ char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type)
       case TRACT_type:
          snprintf(ss, 63,"TractCont");
          break;
+      case not_DO_type:
+         snprintf(ss, 63,"SumaCont");
+         break;
       case SDSET_type:
          snprintf(ss, 63,"NoCont");
          break;
@@ -3420,6 +3430,70 @@ void SUMA_Snap_AllSurfCont (char *froot)
 
    SUMA_RETURNe;
 }
+
+char * SUMA_Help_AllSumaCont (TFORM targ)
+{
+   static char FuncName[]={"SUMA_Help_AllSumaCont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   int k=0;
+   SUMA_STRING *SS = NULL;
+   char *worder[] = {
+                     "SumaCont",
+                     "SumaCont->Lock",
+                     "SumaCont->Lock->View",
+                     "SumaCont->Lock->All",
+                     "SumaCont->Viewer",
+                     "SumaCont->BHelp",
+                     "SumaCont->Close",
+                     "SumaCont->done",
+                     NULL };
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   k = 0;
+   while (worder[k]) {
+         s = SUMA_gsf(worder[k], targ, &sii, &shh);
+         if (!shh || strstr(sii, shh)) {/* help same as hint */
+            SS = SUMA_StringAppend_va(SS, "%s\n", s);
+         } else {
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+                                   s, shh?shh:"");
+         }
+         SUMA_ifree(sii); SUMA_ifree(shh);
+      ++k;
+   }
+          
+   SUMA_SS2S(SS, s);
+      
+   SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
+}
+
+void SUMA_Snap_AllSumaCont (char *froot)
+{
+   static char FuncName[]={"SUMA_Snap_AllSumaCont"};
+   char *s = NULL, *shh=NULL, *sii=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!SUMAg_CF->X->SumaCont->AppShell) { /* create */
+      SUMA_cb_createSumaCont( NULL, NULL, NULL);
+   }
+   if (!froot) froot = "SumaCont";
+   
+   s = SUMA_append_replace_string(froot, "ALL.jpg",".", 0);   
+   ISQ_snapfile2 ( SUMAg_CF->X->SumaCont->form,  s); SUMA_ifree(s);
+
+   s = SUMA_append_replace_string(froot, "Lock.jpg",".", 0);   
+   ISQ_snapfile2 ( SUMAg_CF->X->SumaCont->LockFrame,  s); SUMA_ifree(s);
+   
+   s = SUMA_append_replace_string(froot, "Viewer.jpg",".", 0);   
+   ISQ_snapfile2 ( SUMAg_CF->X->SumaCont->AppFrame,  s); SUMA_ifree(s);
+   
+
+   SUMA_RETURNe;
+}
+
 
 char * SUMA_Help_AllGraphCont (TFORM targ)
 {

@@ -334,7 +334,9 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_toggle_node_in_focus(Widget w, XtPointer data, XtPointer callData);
-void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_toggle_selected_faceset(Widget w, 
+                                     XtPointer data, XtPointer callData);
+int SUMA_viewSumaCont(int flag);
 void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_closeSumaCont(Widget w, XtPointer data, XtPointer callData);
@@ -1146,16 +1148,24 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "Current settings are preserved\n"\
    "when controller is reopened."
 
-#define SUMA_LockSumaCont_help   \
-   "Set the Cross Hair lock \n"  \
-   "between viewers.\n" \
-   "- No Lock\n"  \
-   "i Node index Lock\n"   \
-   "c Coordinate Lock"
+   #define SUMA_LockSumaCont_help   \
+"Set the crosshair lock \n"  \
+"between viewers.:LR:\n" \
+"   **-** No Lock: Crosshair only moves in viewer where you clicked.:LR:\n"  \
+"   **i** Node index Lock: Crosshair jumps to the same node index on related "\
+"surfaces (or objects) in other viewers. "\
+"Linking in this case is topology based.:LR:\n"   \
+"  **c** Coordinate Lock: Crosshair jumps to the same XYZ mm coordinate in "\
+"other viewers. Linking in this case is geometry based)."
    
 #define SUMA_LockViewSumaCont_help  \
-   "Lock the view point of \n"   \
-   "all viewers."
+   "Lock the view point of all viewers. Depress toggle button to link view "   \
+   "point across viewers.:LR:\n" \
+   "   * Surface rotation and translation in one viewer is reflected in all " \
+   "linked viewers.:LR:\n"\
+   "   * Liking is NOT done across viewers that are displaying objects of "\
+   "different :ref:`embedding dimensions<Spec_EmbedDimension>` such as 3D "\
+   "and 2D surfaces.\n" 
    
 #define SUMA_viewerSumaCont_help   \
    "Opens a new Surface viewer window."  
