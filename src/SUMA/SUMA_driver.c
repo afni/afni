@@ -430,6 +430,9 @@ if (detail > 1) {
 "       -write_roi_cont_help\n"
 "       -write_roi_cont_sphinx_help \n"
 "       -snap_roi_cont_widgets\n"
+"       -write_suma_cont_help\n"
+"       -write_suma_cont_sphinx_help \n"
+"       -snap_suma_cont_widgets\n"
 "       -write_mouse_keyb_help FILE.txt: Write help output for mouse and \n"
 "                      keyboard shortcuts.\n"
 "       -write_mouse_keyb_sphinx_help FILE.rst: Same as -write_mouse_keyb_help\n"
@@ -1688,6 +1691,50 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argt[kar], "-write_suma_cont_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_suma_cont_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Suma_Cont_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-snap_suma_cont_widgets") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -snap_suma_cont_widgets \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Snap_Suma_Cont_Widgets", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argt[kar], "-write_suma_cont_sphinx_help") == 0))
+      {
+         if (kar+1 >= argtc)
+         {
+            SUMA_S_Err("need a filename after -write_suma_cont_sphinx_help \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         NI_set_attribute(ngr, "Write_Suma_Cont_Sphinx_Help", argt[kar]);
+         
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
       if (!brk && (strcmp(argt[kar], "-write_surf_cont_help") == 0))
       {
          if (kar+1 >= argtc)

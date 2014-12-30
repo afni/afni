@@ -83,7 +83,7 @@ Quick Tour
          * The :term:`Surface Volume` and the surfaces must be in nearly perfect alignment.
          
             * If you have an improper alignment, it should be addressed here and now.
-               * This should not happen for FreeSurfer and SureFit/Caret surfaces created in the standard fashion with :ref:`@SUMA_Make_Spec_FS` or :ref:`@SUMA_Make_Spec_Caret`, say. Problems might come up when you attempt to align data across days with :ref:`@SUMA_AlignToExperiment`. See also :ref:`Align_Surf_Vol`
+               * This should not happen for FreeSurfer and SureFit/Caret surfaces created in the standard fashion with :ref:`@SUMA_Make_Spec_FS` or :ref:`@SUMA_Make_Spec_Caret`, say. Problems might come up when you attempt to align data across days with :ref:`@SUMA_AlignToExperiment`. See also :ref:`Align_Surf_Vol<Align_Surf_Vol>`
                
             * Watch for error messages and warnings to come up in the shell as all the surfaces are read in. These messages should be examined once per subject since they do not change unless the surface's geometry or topology is changed.
             
@@ -225,34 +225,427 @@ Quick Tour
            
       * You can save/load viewer setting used to create a figure with :ref:`File->Save View<Save_View>` / :ref:`File->Load View<Load_View>`
       
+         
+   * Viewing a group of surfaces
       
-         
-.. _Volume_Viewing:
+      * Use :ref:`. (period)<LC_.>` to switch to the next viewing :term:`state` (pial then inflated, ...)
+      
+      * Use :ref:`, (comma)<LC_,>` to switch to the previous vieweing state
+      
+      * Navigate on any of the surfaces and watch AFNI's crosshair track the surface
+      
+      * Use :ref:`SPACE<SPACE>` to toggle between the current state and the state of the :ref:`Local Domain Parent<Spec_LocalDomainParent>`
+      
+   * Viewing multiple surfaces concurrently
+      
+      * :ref:`Ctrl+n<LC_Ctrl+n>` opens a new SUMA controller (up to 10 allowed, more possible, but ridiculous). 
+      
+      * Swith states in any of the viewers
+      
+      * all viewers are still connected to AFNI (if any are)
+      
+   * See the :ref:`SUMA controller <SumaCont>` for controlling the link between viewers.
+   
+.. todo::
+   
+   Show how to load a dataset and colorize it.       
 
-Volume Viewing
-==============
-         
+.. todo::               
+   .. _Volume_Viewing:
+
+   Volume Viewing
+   ==============
+   
+   Show example for volume viewing.
+   
+   
 .. _Tract_Viewing:
 
 Tract Viewing
 =============
-    
+
+This is a walk through the basics of tract navigation. To follow along you will need the :ref:`FATCAT_Demo` directory installed. 
+
+   
+Quick Tour
+----------
+
+   .. _QT_TR_1:
+   
+   1. A first look at the tracts
+   
+      To begin we go into the demo directory and launch *suma* and *afni* with the following commands::
+
+         cd FATCAT_DEMO
+         afni -niml -npb 12 -yesplugouts -layout demo_layout \
+                     mprage+orig.HEAD DTI/*.HEAD ROI_ICMAP_GMI+orig.HEAD &
+         suma -dev -npb 12 -niml -vol mprage+orig. \
+                     -tract DTI/o.WB_000.niml.tract  &
+
+      .. note::
+
+         The script *Do_06_VISdti_SUMA_visual_ex1.tcsh* contains the same commands used above. You might want to chek out the help for option :ref:`-npb<suma--npb>`.
+
+
+      You should have *AFNI* up by now, and *SUMA* soon after. 
+
+      .. figure:: media/QT_TractCont.0000.jpg
+         :align: left
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0000.jpg
+
+
+      .. figure:: media/QT_TractCont.0001.jpg
+         :align: right
+         :figwidth: 30%
+
+      .. figure:: media/QT_TractCont.0002.jpg
+         :align: center
+         :figwidth: 30%
+
+      .. container:: clearer
+
+          .. image:: media/blank.jpg
+
+   
+      Right-click on the tracts to select a location along them. The crosshair should mark the location along the tract where you clicked. The selection would make AFNI jump to the same mm location if the two programs are talking. To make them talk, press :ref:`t <LC_t>` in the suma windowto get them talking and try the selections again.
+      
+      Left- middle-mouse buttons operate as they do for surface viewing.
+      
+      Open the :ref:`tract controller<TractCont>` via :menuselection:`View--> Object Controllers` or :ref:`Ctrl+s<LC_Ctrl+s>`. Select locations anew and examine controller update coordinates and selection information.
+      
+
+   2. InstaTract, or interactive mask selection
+   
+      Create a mask by clicking on :ref:`Masks<TractCont->Coloring_Controls->Masks>` in the tract controller. This creates a masking sphere and only tracts going through it are displayed. 
+      
+      .. figure:: media/QT_TractCont.0003.jpg
+         :align: center
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0003.jpg
+
+      To move the sphere right-double click on it to place SUMA in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>` which is indicated by displaying the ball as a mesh.
+      
+      .. figure:: media/QT_TractCont.0004.jpg
+         :align: left
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0004.jpg
+
+         SUMA in mask manipulation mode
+         
+      .. figure:: media/QT_TractCont.0007.jpg
+         :align: right
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0007.jpg
+
+         Selection of voxel while in mask manipulation mode repositions mask at selected voxel.
+         
+      .. container:: clearer
+
+          .. image:: media/blank.jpg
+   
+      Selecting a location on the tracts will make the ball jump to that location. Clicking on the slices or surfaces whenever present, will position the mask at the selected voxel, or surface node. If you select while dragging, the selection is only made on the type of object on which you began the selection. For instance, if you select a location on the tracts and start dragging without releasing the right-mouse button, the ball will track along non-masked tracts that fall under your pointer, even if you go over surfaces or slices that are closer to your viewpoint. 
+      
+      Tracts that fall outside of the mask are hidden by default. You can also choose to display them in gray scale or in dimmed colors by manipulating the :ref:`hiding option <TractCont->Coloring_Controls->Hde>`.
+      
+      .. figure:: media/QT_TractCont.0015.jpg
+         :align: left
+         :figwidth: 45%
+         :target: ../_images/QT_TractCont.0015.jpg
+      
+         Hidden tracts shown in gray.
+         
+      .. figure:: media/QT_TractCont.0016.jpg
+         :align: right
+         :figwidth: 45%
+         :target: ../_images/QT_TractCont.0016.jpg
+      
+         Hidden tracts shown in dimmed color
+         
+      .. container:: clearer
+
+          .. image:: media/blank.jpg
+   
+      The mask should also be visibile in AFNI. Clicking in AFNI will make the mask move in SUMA also.
+      
+      .. figure:: media/QT_TractCont.0005.jpg
+         :align: center
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0005.jpg
+
+         Crosshair movements in AFNI while SUMA is in mask manipulation mode will reposition the ball at the selected voxel's center.
+         
+      You can manipulate the size of the mask with :ref:`Ctrl+Scroll (go slow!) <Ctrl+Scroll>` or with the masks controller interface mentioned below.
+
+      .. figure:: media/QT_TractCont.0006.jpg
+         :align: center
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0006.jpg
+
+      To turn off 'Mask Manipulation Mode', right-double click in open air, or on the ball itself.
+      
+      Another click on Masks will also open the :ref:`masks controller<MaskCont>`, which allows for :ref:`complex masking configurations<Tract_Tinting>`. Check out the mask controller's :ref:`link <MaskCont>` for information on how to manipluate the mask in detail.
+      
+   3. Looking at tracts within blobs making up one ROI.
+   
+      Here we are showing those tracts that go through any of the ROIs in the DMN per the results of deterministic tracking in 3dTrackID that were generated in script Do_05_RUNdti_DET_tracking.tcsh of :ref:`FATCAT_Demo<FATCAT_Demo>`. 
+      
+      This example is from the second part of demo script *Do_06_VISdti_SUMA_visual_ex1.tcsh*. Close the old AFNI & SUMA windows and launch new ones with the following commands::
+
+         @Quiet_Talkers -npb_val 12
+         afni -npb 12 -niml -yesplugouts -layout demo_layout \
+                      mprage+orig.HEAD DTI/*.HEAD ROI_ICMAP_GMI+orig.HEAD &
+         plugout_drive -npb 12  \
+                      -com 'SET_FUNCTION o.NETS_OR_000_INDIMAP+orig 0 0' \
+                      -com 'SET_THRESHOLD 0'  \
+                      -com 'SET_ANATOMY mprage+orig' \
+                      -com 'SET_DICOM_XYZ 18 7 -10'   \
+                      -quit
+         suma -npb 12  -niml -onestate                  \
+                           -vol mprage+orig.                \
+                           -i Net_000.gii                   \
+                           -tract DTI/o.NETS_OR_000.niml.tract &
+         DriveSuma -npb 12   -com surf_cont -surf_label Net_000.gii          \
+                             -switch_cmap amber_monochrome -Dim 1.0          \
+                             -com viewer_cont -key '.' -key 't'
+
+   .. note::
+   
+      The suma command now includes a set of surfaces representing the ROIs. Those were created with program :ref:`IsoSurface<IsoSurface>` in script  Do_05_RUNdti_DET_tracking.tcsh of :ref:`FATCAT_Demo<FATCAT_Demo>`.
+
+
+.. figure:: media/QT_TractCont.0008.jpg
+   :align: left
+   :figwidth: 30%
+   :target: ../_images/QT_TractCont.0008.jpg
+
+   
+.. figure:: media/QT_TractCont.0009.jpg
+   :align: right
+   :figwidth: 30%
+   :target: ../_images/QT_TractCont.0009.jpg
+   
+   Colors indicate the number of tracts passing through a voxel. Search for **INDIMAP** in the help for program :ref:`3dTrackID<3dTrackID>`. 
+   
+.. figure:: media/QT_TractCont.0013.jpg
+   :align: center
+   :figwidth: 30%
+   :target: ../_images/QT_TractCont.0013.jpg
+
+.. container:: clearer
+   
+    .. image:: media/blank.jpg
+   
+   4. By default, points along the tracts are colored based on their local orientation. You can also color them based on the orientation of their midpoint with :menuselection:`Switch Dset --> o.NETS_OR_000_MID` accessible from the tract controller. You can also color by bundle with :menuselection:`Switch Dset --> o.NETS_OR_000_BUN`, however there is only one :term:bundle in this set of tracts because there is only one ROI involved - all the blobs are part of the same ROI in this example. 
+   
+   .. figure:: media/QT_TractCont.0011.jpg
+      :align: left
+      :figwidth: 30%
+      :target: ../_images/QT_TractCont.0011.jpg
+
+      Tract coloring by direction at mid tract
+
+   .. figure:: media/QT_TractCont.0012.jpg
+      :align: right
+      :figwidth: 30%
+      :target: ../_images/QT_TractCont.0012.jpg
+
+      Tract coloring by bundle. All tacts are part of the same bundle here.
+
+.. container:: clearer
+   
+    .. image:: media/blank.jpg
+   
+   5. If you're feeling adventurous, open the controllers :ref:`for the surface<SurfCont>` forming the ROIs by selecting a point on the surface (the controller is created automatically once the :ref:`controller notebook <Controller_Notebook>` is open), and on a point of the volume to create the :ref:`volume controller<VolCont>`. For the image blow, I hid the surface with :ref:`Drw <SurfCont->Surface_Properties->Drw>`, hid the :ref:`sagittal slice<VolCont->Sa_slc->Sa>` from the volume controller, set the :ref:`transparency <VolCont->Slice_Controls->Trn>` to 8, then turned on the 3D rendering with :ref:`v<VolCont->VR->Ns->v>`.  
+   
+   .. figure:: media/QT_TractCont.0014.jpg
+      :align: center
+      :figwidth: 50%
+      :target: ../_images/QT_TractCont.0014.jpg
+
+   6. Whole brain tractography results with surfaces.
+   
+      This example is based on script Do_09_VISdti_SUMA_visual_ex2.tcsh of :ref:`FATCAT_Demo<FATCAT_Demo>`. You can run it to launch the demo automatically, or do it the hard way with::
+      
+         @Quiet_Talkers -npb_val 12
+         suma  -npb 12 -niml \
+               -spec SUMA/std.60.FATCAT_both.spec \
+               -sv mprage+orig \
+               -vol mprage+orig. \
+               -tract DTI/o.WB_000.niml.tract &
+               
+      The command uses the same data used in the Do_06 script, and in :ref:`paragraph 1 <QT_TR_1>` of the quick tour above,  except that we are also showing the cortical surfaces loaded via option :ref:`-spec<suma--spec>`.
+      
+      Open the object controllers for :ref:`volume<VolCont>`, :ref:`tracts<TractCont>`, and :ref:`surfaces<SurfCont>`. Select a tract and create a tract :ref:`mask<TractCont->Coloring_Controls->Masks>`. As mentioned earlier, the mask can be positioned on the surfaces, just as you would position it on the tracts or the slices. However the surfaces obstruct the view and tracts are not visible. You could make them transparent (press :ref:`o<LC_o>` twice in SUMA) but that may not be ideal. Another option is to pry the surfaces apart with ctrl+click and drag, left right, and/or up down. You can now position the mask on the pried surfaces and have the same masking effect. When the surfaces are pried apart, a doppleganger of the mask is shown on the displaced surfaces, and the mask ball is shown in the anatomically correct location.
+
+      Walk along the corpus callosum, for instance, and watch tracts follow along. When talking to AFNI, correspondence between pried surfaces and locations in the volume is maintained throughout.
+
+      .. figure:: media/QT_TractCont.0018.jpg
+         :align: left
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0018.jpg
+
+         You can position the mask on the surface but few of the tracts are visible this way.
+
+      .. figure:: media/QT_TractCont.0021.jpg
+         :align: right
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0021.jpg
+
+         Surface pried open and viewer opacity turned off with two more :ref:`o. <LC_o>` clicks. You can continue to position the mask on the pried surfaces.
+
+      .. figure:: media/QT_TractCont.0019.jpg
+         :align: center
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0019.jpg
+
+         Turning on 50% transparency for all objects by clicking :ref:`o<LC_o>` twice - not thrice - helps, but not that cool. 
+
+      .. container:: clearer
+
+       .. image:: media/blank.jpg
+
+   .. note::
+   
+      For more on prying, see :ref:`Prying Brains Apart<Prying_Brains_Apart>` and the :ref:`F10 key<F10>`.
+      
+
+   7. For more anatomical connectivity excitement, follow along with remaining demos in script **Do_09_VISdti_SUMA_visual_ex2.tcsh** and remaining Do_*VIS* scripts of :ref:`FATCAT_Demo<FATCAT_Demo>`.
+
+      
 .. _Graph_Viewing:
 
 Graph Viewing
 =============
 
+This is a walk through the basics of graph (connectivity matrix) navigation. To follow along you will need the :ref:`FATCAT_Demo` directory installed.
+
+      For starters, we need to go into the demo directory and launch *suma* and *afni* with the following commands::
+         
+         @Quiet_Talkers -npb_val 12
+         cd FATCAT_DEMO
+         afni -npb 12 -niml -yesplugouts -layout demo_layout \
+                             *.HEAD DTI/*.HEAD &
+         cd DTI/
+         suma  -npb 12 -niml \
+               -onestate \
+               -i ../SUMA/std.60.lh.smoothwm.gii \
+               -i ../SUMA/std.60.rh.smoothwm.gii \
+               -i ../Net_000.gii     \
+               -sv ../mprage+orig \
+               -vol ../mprage+orig. \
+               -gdset o.NETS_AND_MINIP_000.niml.dset &
+         cd -
+         DriveSuma -npb 12 \
+            -com viewer_cont -key 't'  \
+            -com surf_cont -view_surf_cont y
+         
+      .. note::
+
+         The script *Do_09_VISdti_SUMA_visual_ex2.tcsh* contains the same commands used above. New options to ponder for your amusement here include :ref:`-onestate<suma--npb>`, and :ref:`-gdset<suma--gdset>`. Also, program :ref:`DriveSuma<DriveSuma>` is used to control suma by mimicking user input.For more driving good times, see also :ref:`@DO.examples<@DO.examples>`, :ref:`@DriveSuma<@DriveSuma>`, and :ref:`@DriveAfni<@DriveAfni>`.
+
+
+Quick Tour
+----------
+
+   1. Looking at the connectivity matrices between DMN ROIs
+   
+   A connectivity matrix is considered a graph dataset in SUMA and can be rendered as a set of nodes connected by edges, or as a matrix. The dual forms can be rendered simultaneously this way:
+   
+      * Open a new SUMA controller with :ref:`Ctrl+n<LC_Ctrl+n>`
+      
+      * Switch :term:`states` till you get to the matrix (:ref:`. (period)<LC_.>`)
+      
+      * Select a connection, either by clicking on an edge or its corresponding cell in the matrix.
+
+      .. figure:: media/QT_TractCont.0022.jpg
+         :align: left
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0022.jpg
+
+         Graph display, with slices in background at 50% transparency.
+
+      .. figure:: media/QT_TractCont.0024.jpg
+         :align: right
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0024.jpg
+
+         Dual graph representation as a matrix
+
+      .. figure:: media/QT_TractCont.0023.jpg
+         :align: center
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0023.jpg
+
+         Setting for tract controller. 
+
+      .. container:: clearer
+
+       .. image:: media/blank.jpg
+
+      
+   The edges (cells) carry the connection values. Open the :ref:`graph controller<GraphCont>` with :ref:`Ctrl+n<LC_Ctrl+n>` to get information about a particular connection, and do all the kinds of colorization controls that are available for surface datasets and volumes.
+
+   Selecting an edge highlights the cell in the matrix and vice versa.
+   
+   Selecting a node (label, or ball in 3D graph mode, label in matrix mode) will only show connections to that node.
+   
+      .. figure:: media/QT_TractCont.0026.jpg
+         :align: left
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0026.jpg
+
+         Connections to node N000:R3 only in 3D graph rendering
+
+      .. figure:: media/QT_TractCont.0027.jpg
+         :align: right
+         :figwidth: 30%
+         :target: ../_images/QT_TractCont.0027.jpg
+
+         Connections to node N000:R3 in matrix rendering
+
+      .. container:: clearer
+
+       .. image:: media/blank.jpg
+
+   
+   The set of controls on the lower left side is particular to graph datasets. Explore as curiosity moves you, the BHelp button comes in handy here but the help messages are still a work in progress. Complain away!
+
+   **Of note** is the :ref:`Bundles<GraphCont->GDset_Controls->Bundles>` button, try it, it is cool.
+
+      .. figure:: media/QT_TractCont.0025.jpg
+         :align: center
+         :figwidth: 45%
+         :target: ../_images/QT_TractCont.0025.jpg
+
+         Representing edges by corresponding bundles
+
+      .. container:: clearer
+
+       .. image:: media/blank.jpg
+
+   Note that as with all AFNI datasets, you can have multiple :term:`sub-bricks`, here matrices of course. You can navigate between them using the sub-brick selectors (:ref:`I<GraphCont->GDset_Mapping->I>`, :ref:`T<GraphCont->GDset_Mapping->T>`,:ref:`B<GraphCont->GDset_Mapping->B>`) on the right side of the controller.
+
+   So far, no thresholding was applied, so go ahead and try it out.
+   
 .. _Displayable Objects:
 
-Displayable Objects
-===================
+   Displayable Objects
+   ===================
 
-Show directions for example, show surface based normals, explain how you can hide some, etc. Link to other demos
+   .. todo::
+
+      Show directions for example, show surface based normals, explain how you can hide some, etc. Link to other demos
 
 .. _ECOG_Grid_Viewing:
 
-ECOG Grid Viewing
-=================
+
+   ECOG Grid Viewing
+   =================
+
+   .. todo::
+
+      Show example of grid viewing.
 
      
 .. _ Mouse+Keyboard:
@@ -393,10 +786,11 @@ Playing with color plane order
          Appreciate the differences between the two mappings.
          
 
-.. _Align_Surf_Vol:
+.. todo::
+   .. _Align_Surf_Vol:
 
-Alignment of Surfaces with Volumes
-==================================
+   Alignment of Surfaces with Volumes
+   ==================================
 
 .. _Spec_File:
 

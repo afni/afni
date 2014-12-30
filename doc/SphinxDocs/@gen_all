@@ -41,6 +41,13 @@ if ($nosuma == 0) then
         -drive_com                                             \
            '-com surf_cont -snap_roi_cont_widgets              \
                         SUMA/media/ROICont.auto'               \
+        -drive_com '-com viewer_cont -key ctrl+u'              \
+        -drive_com                                             \
+           '-com surf_cont -write_suma_cont_sphinx_help        \
+                        SUMA/auto_inc/SumaCont_help.inc'       \
+        -drive_com                                             \
+           '-com surf_cont -snap_suma_cont_widgets             \
+                        SUMA/media/SumaCont.auto'              \
         -drive_com '-com kill_suma' |& tee -a ___build.log
 
    suma -fake_cmap                                             \

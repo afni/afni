@@ -91,7 +91,7 @@ And a few more pictures together:
    :align: center
    :figwidth: 30%
    
-   Center of course.
+   Center of course. Note that in the source I add the center figure last. If I define it between the left and right figures, then the spacing gets messed up...
    
    .. container:: clearer
    

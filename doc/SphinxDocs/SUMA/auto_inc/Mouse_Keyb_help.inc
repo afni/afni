@@ -246,7 +246,7 @@ Keyboard Controls
         This option is useful for saving a large number of images
         without running out of memory in the recorder GUI. 
 
-        Your current PREFIX is: ./SUMA_Recordings/autorecord.jpg
+        Your current PREFIX is: ./SUMA_Recordings/autorecord.ppm
 
    
 .. _LC_Alt+r:
@@ -901,7 +901,7 @@ Mouse Controls
 
 :kbd:`Ctrl+Scroll` or Ctrl+Wheel: change the size of the currently selected 
                         tract mask. This only works when you're in
-                        mask manipulation mode.
+                        :ref:`mask manipulation mode<Mask_Manipulation_Mode>`.
     
 
 
@@ -1707,5 +1707,5 @@ SUMA_CountProcs_Verb
 Current Version Info:
 
 Compile Date:
-   Dec 12 2014
+   Dec 30 2014
 

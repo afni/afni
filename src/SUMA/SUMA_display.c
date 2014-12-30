@@ -6404,27 +6404,51 @@ void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
    
    SUMA_ENTRY;
    
-   if (!SUMAg_CF->X->SumaCont->AppShell) { /* create */
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: creating controller \n", FuncName);
-      SUMA_cb_createSumaCont( w, data, callData);
-   }else {
-      /* controller already created, need to bring it up again */
-      switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
-         case SUMA_WITHDRAW:
-            if (LocalHead) 
-               fprintf (SUMA_STDERR,"%s: raising SUMA controller \n", FuncName);
-            XMapRaised(SUMAg_CF->X->DPY_controller1, 
-                        XtWindow(SUMAg_CF->X->SumaCont->AppShell));
-            break;
-         default:
-            SUMA_S_Err("Not ready to deal with this closing mode");
-            SUMA_RETURNe;
-            break;
-      }
-   }
+   SUMA_viewSumaCont(1);
 
    SUMA_RETURNe;
 }
+
+int SUMA_viewSumaCont(int flag)
+{
+   static char FuncName[] = {"SUMA_viewSumaCont"};
+   Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (flag == 1) { /* want it visible */
+      SUMA_LH("Visibilizing");
+      if (!SUMAg_CF->X->SumaCont->AppShell) { /* create */
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: creating controller \n", FuncName);
+         SUMA_cb_createSumaCont( NULL, NULL, NULL);
+      }else {
+         /* controller already created, need to bring it up again */
+         switch (SUMA_CLOSE_MODE)   {/* No open GL drawables in this widget*/
+            case SUMA_WITHDRAW:
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s: raising SUMA controller \n", FuncName);
+               XMapRaised(SUMAg_CF->X->DPY_controller1, 
+                           XtWindow(SUMAg_CF->X->SumaCont->AppShell));
+               break;
+            default:
+               SUMA_S_Err("Not ready to deal with this closing mode");
+               SUMA_RETURN(0);
+               break;
+         }
+      }
+
+      SUMA_PositionWindowRelative ( SUMAg_CF->X->SumaCont->AppShell, 
+                                    SUMAg_SVv[0].X->TOPLEVEL, SWP_TOP_RIGHT);
+   } else {
+      /* want it minimized */
+      SUMA_cb_closeSumaCont ( NULL, NULL, NULL);
+   }
+   
+   SUMA_RETURN(1);
+}
+
 
 SUMA_Boolean SUMA_isSurfContWidgetCreated(SUMA_X_SurfCont  *SurfCont)
 {
@@ -7497,6 +7521,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_RETURNe;
 }
 
+
 SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, TFORM targ, char *fname)
 {
    static char FuncName[]={"SUMA_WriteCont_Help"};
@@ -7528,6 +7553,9 @@ SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, TFORM targ, char *fname)
    }
    
    switch(do_type) {
+      case not_DO_type:
+         s = SUMA_Help_AllSumaCont(targ);
+         break;
       case SO_type:
          s = SUMA_Help_AllSurfCont(targ);
          break;
@@ -7574,6 +7602,9 @@ SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname)
    }
    
    switch(do_type) {
+      case not_DO_type:
+         SUMA_Snap_AllSumaCont(fname);
+         break;
       case ROIdO_type:
          SUMA_Snap_AllROICont(fname);
          break;
@@ -16181,13 +16212,13 @@ void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer data, XtPointer call_data)
    SUMA_RETURNe;
 }
 /*!
-   \brief creates the SUMA controller window. Expects sv  input
+   \brief creates the SUMA controller window. Expects nothing  in input
 */
-void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
+void SUMA_cb_createSumaCont(Widget ww, XtPointer ddata, XtPointer ccallData)
 {
    static char FuncName[] = {"SUMA_cb_createSumaCont"};
-   Widget rc, pb_close, pb_new, pb_done, pb_bhelp, LockFrame, AppFrame, 
-          form, tb, rb, rc_m;
+   Widget w, rc, pb_close, pb_new, pb_done, pb_bhelp, AppFrame, 
+          tb, rb, rc_m;
    int i;
    char *sss;
    SUMA_Boolean LocalHead = NOPE;
@@ -16226,7 +16257,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_cb_closeSumaCont, NULL) ;
    
    /* create a form widget, manage it at the end ...*/
-   form = XtVaCreateWidget ("dialog", 
+   SUMAg_CF->X->SumaCont->form = XtVaCreateWidget ("dialog", 
       xmFormWidgetClass, SUMAg_CF->X->SumaCont->AppShell,
       XmNborderWidth , 0 ,
       XmNmarginHeight , SUMA_MARGIN ,
@@ -16235,9 +16266,28 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       XmNshadowType, XmSHADOW_ETCHED_IN,
       NULL); 
       
+   SUMA_Register_Widget_Help( NULL , 
+                                 "SumaCont",
+                                 "Suma Controller",
+"The suma controller is for controlling parameters common to across viewers and objects."
+":SPX:"
+"You can launch the :ref:`Suma Controller <SumaCont>` with:"
+" :ref:`ctrl+u <LC_Ctrl+u>` or :menuselection:`View-->Suma Controller`\n"
+"\n"
+".. figure:: media/SumaCont.auto.ALL.jpg\n"
+"   :align: center\n"
+"\n\n"
+"   ..\n\n"
+":DEF:"
+"You can launch the Suma Controller with:"
+"\n'ctrl+u' or 'View-->Suma Controller'\n"
+":SPX:"
+"\n") ;
+
+
    /* a LockFrame to put the lockstuff in */
-   LockFrame = XtVaCreateWidget ("dialog",
-      xmFrameWidgetClass, form,
+   SUMAg_CF->X->SumaCont->LockFrame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, SUMAg_CF->X->SumaCont->form,
       XmNleftAttachment , XmATTACH_FORM ,
       XmNtopAttachment  , XmATTACH_FORM ,
       XmNshadowType , XmSHADOW_ETCHED_IN ,
@@ -16247,14 +16297,14 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    
       /* this one requires Motif 1.2 or newer */
       XtVaCreateManagedWidget ("Lock",
-         xmLabelWidgetClass, LockFrame, 
+         xmLabelWidgetClass, SUMAg_CF->X->SumaCont->LockFrame, 
          XmNchildType, XmFRAME_TITLE_CHILD,
          XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
          NULL);
    
    /* row column Lock rowcolumns */
    rc = XtVaCreateWidget ("rowcolumn",
-         xmRowColumnWidgetClass, LockFrame,
+         xmRowColumnWidgetClass, SUMAg_CF->X->SumaCont->LockFrame,
          XmNpacking, XmPACK_TIGHT, 
          XmNorientation , XmHORIZONTAL ,
          XmNmarginHeight, SUMA_MARGIN ,
@@ -16330,11 +16380,12 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
                               SUMAg_CF->ViewLocked[i], NOPE);
       /* put some help on the view lock*/
       SUMA_Register_Widget_Children_Help(rc_m ,
-                           "SumaCont->LockView", NULL, SUMA_LockViewSumaCont_help );
+                           "SumaCont->Lock->View", 
+                           NULL, SUMA_LockViewSumaCont_help );
             
    }  
    XtManageChild (rc);
-   XtManageChild (LockFrame);
+   XtManageChild (SUMAg_CF->X->SumaCont->LockFrame);
       
    
    /* a vertical separator */
@@ -16399,11 +16450,11 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_set_LockView_atb();
    
    /* a frame to put the Close button in */
-   AppFrame = XtVaCreateWidget ("dialog",
-      xmFrameWidgetClass, form,
+   SUMAg_CF->X->SumaCont->AppFrame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, SUMAg_CF->X->SumaCont->form,
       XmNleftAttachment , XmATTACH_FORM ,
       XmNtopAttachment  , XmATTACH_WIDGET ,
-      XmNtopWidget, LockFrame,
+      XmNtopWidget, SUMAg_CF->X->SumaCont->LockFrame,
       XmNshadowType , XmSHADOW_ETCHED_IN ,
       XmNshadowThickness , 5 ,
       XmNtraversalOn , False ,
@@ -16411,7 +16462,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    
    
    rc = XtVaCreateManagedWidget ("rowcolumn",
-         xmRowColumnWidgetClass, AppFrame,
+         xmRowColumnWidgetClass, SUMAg_CF->X->SumaCont->AppFrame,
          XmNpacking, XmPACK_COLUMN, 
          XmNorientation , XmVERTICAL ,
          XmNnumColumns, 2, 
@@ -16450,16 +16501,20 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
                   SUMA_cb_doneSumaCont, NULL);
    SUMA_Register_Widget_Help(SUMAg_CF->X->SumaCont->quit_pb,
                              "SumaCont->done",
-                             "Click twice in 5 seconds to quit application.",
-                             "Click twice in 5 seconds to quit application.");
-   MCW_set_widget_bg( SUMAg_CF->X->SumaCont->quit_pb , MCW_hotcolor(SUMAg_CF->X->SumaCont->quit_pb) , 0 ) ;
+                  "Click twice in 5 seconds to close everything and quit SUMA.",
+                  "Click twice in 5 seconds to quit application. "
+                  "All viewer windows will be closed, nothing is saved, "
+                  "SUMA will terminate, and "
+                  "there maybe no one left at this computer.");
+   MCW_set_widget_bg( SUMAg_CF->X->SumaCont->quit_pb , 
+                      MCW_hotcolor(SUMAg_CF->X->SumaCont->quit_pb) , 0 ) ;
 
    XtManageChild (SUMAg_CF->X->SumaCont->quit_pb); 
   
-   XtManageChild (AppFrame);
+   XtManageChild (SUMAg_CF->X->SumaCont->AppFrame);
    
    /* manage the remaing widgets */
-   XtManageChild (form);
+   XtManageChild (SUMAg_CF->X->SumaCont->form);
    
    /* realize the widget */
    XtRealizeWidget (SUMAg_CF->X->SumaCont->AppShell);
