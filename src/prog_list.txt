@@ -130,6 +130,7 @@
 3dROIstats
 3dRSFC
 3dRank
+3dRankizer
 3dReHo
 3dRegAna
 3dRetinoPhase
