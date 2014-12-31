@@ -1561,6 +1561,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Brain-ology at the cutting edge since 1994!"                   ,
      "Don't you wish it had a 'Write Nature Paper' button?"          ,
 
+     "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
      "It's not true my youth was wild and crazy -- only half of that is true"         ,
      "Not yet quite as powerful as the totalized and integrated mind of Arisia"       ,
