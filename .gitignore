@@ -1,0 +1,29 @@
+doc/SphinxDocs/_build
+pdf
+ps
+tex
+
+#The obvious lot
+CVS
+.DS_Store
+___*
+*.o
+*.so
+*.dylib
+*.a
+*.dSYM
+*junk*
+
+#Datasets
+*.nii*
+*.BRIK*
+*.HEAD*
+*.gii*"
+*.dset*
+*.niml
+
+#Hidden names
+.R.Rout
+
+#From doc builds
+*.args
