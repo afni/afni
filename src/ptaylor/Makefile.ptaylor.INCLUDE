@@ -155,9 +155,14 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
-progs: 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC map_TrackID \
+FC_PROGRAMS = 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC map_TrackID \
        3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat 3dEigsToDT \
        3dDTtoNoisyDWI 3dTORTOISEtoHere
+
+progs: $(FC_PROGRAMS)
+
+echo_progs:
+	echo "$(FC_PROGRAMS)" | tr ' ' '\n' | sort | uniq 
 
 all: ${PTAYLORLIB} progs install 
 
