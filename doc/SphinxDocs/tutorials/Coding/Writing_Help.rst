@@ -58,7 +58,7 @@ C-programs:
 
          apsearch -C_prog_opt_array 3dToyProg > prog_opts.c
          touch thd_getpathprogs.c 
-         make libmri.a
+         make libmri.a gitignore
 
     
 C-Shell Scripts
