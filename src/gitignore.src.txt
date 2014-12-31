@@ -1,0 +1,26 @@
+#Things to ignore that are typically created from an AFNI make
+#This list also assumes the content of .gitignore file under AFNI/
+#is applied
+
+#From AFNI builds
+Makefile.back.*
+volpack.h
+jconfig.h
+niml.h
+macros.make
+Makefile
+Makevars
+Makefile.R.INCLUDE
+
+#Python
+*.pyc
+
+#From SUMA/gts
+*.lo
+*.libs
+*.deps
+SUMA/gts/examples
+
+#GLw builds
+src/SUMA/GLw_local/GL
+src/SUMA/GLw_local/GLw
