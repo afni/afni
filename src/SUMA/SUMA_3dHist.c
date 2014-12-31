@@ -61,9 +61,16 @@ static char shelp_Hist[] = {
 "                   You can select multiple ones with something like:\n"
 "                        -get 'freq, count, bin' \n"
 "\n"
+"                   You can also set one of the PAR* to upvol to get \n"
+"                   the volume (liters) of voxels with values exceeding VAL\n"
+"                   The use of upvol usually requires option -voxvol too.\n"
+"  -voxvol VOL_MM3: A voxel's volume in mm^3. To be used with upvol if\n"
+"                   no dataset is available or if you want to override\n"
+"                   it.\n"
 "  -val_at PAR PARVAL: Return the value (magnitude) where histogram property\n"
 "                      PAR is equal to PARVAL\n"
-"                      PAR can only be one of: cdf, rcdf, ncdf, nrcdf\n"
+"                      PAR can only be one of: cdf, rcdf, ncdf, nrcdf, upvol\n"
+"                      For upvol, PARVAL is in Liters\n"
 "  -quiet: Return a concise output to simplify parsing. For the moment, this\n"
 "          option only affects output of option -val_at\n"
 "\n"
@@ -73,7 +80,10 @@ static char shelp_Hist[] = {
 "       #Getting parameters from previously created histogram:\n"
 "       3dHist -thishist HistOut.niml.hist -at 144.142700 \n"
 "       #Or the reverse query:\n"
-"       3dHist -thishist HistOut.niml.hist -val_at ncdf 0.132564\n"    
+"       3dHist -thishist HistOut.niml.hist -val_at ncdf 0.132564\n"
+"       #Compute histogram and find dataset threshold (approximate) 
+"       #such that 1.5 liters of voxels remain above it.\n"
+"       3dHist -prefix toy -input flair_axial.nii.gz -val_at upvol 1.5\n"
 "\n"
 /* Untested here
 "   -mrange M0 M1: Consider MASK only for values between M0 and M1, inclusive\n"
@@ -188,6 +198,7 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
    SUMA_ENTRY;
    
    brk = 0;
+   Opt->f1 = -1.0;
    kar = 1;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -310,6 +321,16 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          brk = 1;
 		}      
       
+      if (!brk && (strcmp(argv[kar], "-voxvol") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (stderr, "need value after -voxvol in mm^3\n");
+				exit (1);
+			}
+			Opt->f1 = atof(argv[kar]);
+         brk = 1;
+		}      
+      
       if (!brk && (strcmp(argv[kar], "-max") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -377,7 +398,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          if (strcmp(argv[kar],"cdf") &&
              strcmp(argv[kar],"rcdf") &&
              strcmp(argv[kar],"ncdf") &&
-             strcmp(argv[kar],"nrcdf")   ) {
+             strcmp(argv[kar],"nrcdf") &&
+             strcmp(argv[kar],"upvol")   ) {
             SUMA_S_Errv("String %s not allowed after -val_at\n",
                         argv[kar]);
             exit(1);
@@ -385,7 +407,8 @@ SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          kar ++;
          Opt->wL = atof(argv[kar]);
          brk = 1;
-      }   
+      }
+      
       if (!brk && (strcmp(argv[kar], "-showhist") == 0)) {
 			Opt->DO_r = TRUE;
          brk = 1;
@@ -572,11 +595,38 @@ int main(int argc, char **argv)
       if (!Opt->feats) {
          Opt->feats = NI_strict_decode_string_list(ALL_GETS, ";, ");
       }
+      for (ii=0; ii<Opt->feats->num; ++ii) {
+         if (!strcmp(Opt->feats->str[ii], "upvol")) {
+            if (Opt->f1 < 0) {
+               if (Opt->sig) {
+                  Opt->f1 = SUMA_ABS(DSET_DX(Opt->sig)*
+                                    DSET_DY(Opt->sig)*DSET_DZ(Opt->sig));
+               } else {
+                  SUMA_S_Warn( "Have no -voxvol in mm^3 and no dataset "
+                              "from which to compute it, assuming 1mm^3");
+                  Opt->f1 == 1.0;
+               }
+
+            }
+            if (Opt->f1 == 0.0f) Opt->f1 = 1.0;
+         }
+      }
       fprintf(stdout,"At value %f:\n", Opt->wA);
       for (ii=0; ii<Opt->feats->num; ++ii) {
-         fprintf(stdout,"  %8s: %f\n",
-            Opt->feats->str[ii], 
-            SUMA_hist_value(hh, Opt->wA, Opt->feats->str[ii]));
+         if (!strcmp(Opt->feats->str[ii], "upvol")) {
+            float vv;
+            if (Opt->f1 < 0) {
+               SUMA_S_Err( "Bad news seeting voxvol");
+               exit(1);
+            }
+            vv = SUMA_hist_value(hh, Opt->wA, "rcdf") / 1.0e6 * Opt->f1;
+            fprintf(stdout,"  %8s: %f\n",
+               Opt->feats->str[ii], vv);
+         } else {
+            fprintf(stdout,"  %8s: %f\n",
+               Opt->feats->str[ii], 
+               SUMA_hist_value(hh, Opt->wA, Opt->feats->str[ii]));
+         }
       }
    }
    
@@ -609,6 +659,30 @@ int main(int argc, char **argv)
                      Opt->this_xset_name, Opt->wL); 
          else
             fprintf(stdout,"%f\n", SUMA_val_at_count(hh, Opt->wL, 1, 1));
+      } else if (!strcmp(Opt->this_xset_name, "upvol")) {
+         float voxthr;
+         if (Opt->f1 < 0) {
+            if (Opt->sig) {
+               Opt->f1 = SUMA_ABS(DSET_DX(Opt->sig)*
+                                 DSET_DY(Opt->sig)*DSET_DZ(Opt->sig));
+            } else {
+               SUMA_S_Err( "Have no -voxvol in mm^3 and no dataset "
+                           "from which to compute it");
+               exit(1);
+            }
+         }
+         if (Opt->f1 == 0.0f) Opt->f1 = 1.0;
+         if (Opt->f1 < 0) {
+            SUMA_S_Err( "Bad news seeting voxvol");
+            exit(1);
+         }
+         voxthr = SUMA_val_at_count(hh, Opt->wL*1.0e6/Opt->f1, 0, 1);
+         if (Opt->verbose) 
+            fprintf(stdout,"Val: %f at %s: %f\n",
+                     voxthr,
+                     Opt->this_xset_name, Opt->wL); 
+         else
+            fprintf(stdout,"%f\n", voxthr);
       }
    }   
    

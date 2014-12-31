@@ -23,7 +23,7 @@ ___*
 *.nii*
 *.BRIK*
 *.HEAD*
-*.gii*"
+*.gii*
 *.dset*
 *.niml
 
@@ -195,6 +195,7 @@ src/SUMA/GLw_local/GLw
 3dROIstats
 3dRSFC
 3dRank
+3dRankizer
 3dReHo
 3dRegAna
 3dRetinoPhase
