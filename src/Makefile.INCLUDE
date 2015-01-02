@@ -277,10 +277,15 @@ prog_list:
 
 # Create .gitignore under src/
 gitignore: prog_list
-	echo '##This file is created with "make gitignore". Do not edit.' > .gitignore
-	echo '##Additions/changes should be made to AFNI/.gitignore ' >> .gitignore
-	echo '##and/or AFNI/src/gitignore.src.txt, followed by "make gitignore".' \
-                     >> .gitignore
+	echo '##              DO NOT EDIT   ' > .gitignore
+	echo '##This file is created with "make gitignore". ' >> .gitignore
+	echo '##Changes should be made to sources used to create it:' >> .gitignore
+	echo '##                            AFNI/.gitignore '>> .gitignore
+	echo '##                            AFNI/src/gitignore.src.txt '>> .gitignore
+	echo '##and/or the variables listing all programs in src/Makefile.INCLUDE ' \
+                                                                  >> .gitignore
+	echo '##targets echo_progs, and prog_list.'  >> .gitignore
+	echo '##Run "make gitignore" to recreate src/.gitignore ' >> .gitignore
 	if [ -f ../.gitignore ]; then \
       echo "" >> .gitignore; \
       echo "##Contents of master AFNI/.gitignore" >> .gitignore; \
