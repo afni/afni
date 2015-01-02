@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Jan, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "added MIN_OUTLIER to example 7",
+   NULL
+ } ,
+
  { 18,  Dec, 2014, RCR, "afni_base.py", MICRO, TYPE_ENHANCE,
    "in shell_com:val(), if no stdout but have stderr, display stderr",
    NULL

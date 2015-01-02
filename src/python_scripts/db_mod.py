@@ -5329,11 +5329,14 @@ g_help_string = """
 
         Example 7. Similar to 6, but get a little more esoteric.
 
-           a. Blur only within the brain, as far as an automask can tell.  So
+           a. Register EPI volumes to the one which has the minimum outlier
+              fraction (so hopefully the least motion).
+
+           b. Blur only within the brain, as far as an automask can tell.  So
               add -blur_in_automask to blur only within an automatic mask
               created internally by 3dBlurInMask (akin to 3dAutomask).
 
-           b. Let the basis functions vary.  For some reason, we expect the
+           c. Let the basis functions vary.  For some reason, we expect the
               BOLD responses to the telephone classes to vary across the brain.
               So we have decided to use TENT functions there.  Since the TR is
               3.0s and we might expect up to a 45 second BOLD response curve,
@@ -5342,7 +5345,7 @@ g_help_string = """
               This means using -regress_basis_multi instead of -regress_basis,
               and specifying all 9 basis functions appropriately.
 
-           c. Use amplitude modulation.
+           d. Use amplitude modulation.
 
               We expect responses to email stimuli to vary proportionally with
               the number of punctuation characters used in the message (in
@@ -5353,19 +5356,19 @@ g_help_string = """
               Use -regress_stim_types to specify that the epos/eneg/eneu stim
               classes should be passed to 3dDeconvolve using -stim_times_AM2.
 
-           d. Not only censor motion, but censor TRs when more than 10% of the
+           e. Not only censor motion, but censor TRs when more than 10% of the
               automasked brain are outliers.  So add -regress_censor_outliers.
 
-           e. Include both de-meaned and derivatives of motion parameters in
+           f. Include both de-meaned and derivatives of motion parameters in
               the regression.  So add '-regress_apply_mot_types demean deriv'.
 
-           f. Output baseline parameters so we can see the effect of motion.
+           g. Output baseline parameters so we can see the effect of motion.
               So add -bout under option -regress_opts_3dD.
 
-           g. Save on RAM by computing the fitts only after 3dDeconvolve.
+           h. Save on RAM by computing the fitts only after 3dDeconvolve.
               So add -regress_compute_fitts.
 
-           h. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
+           i. Speed things up.  Have 3dDeconvolve use 4 CPUs and skip the
               single subject 3dClustSim execution.  So add '-jobs 4' to the
               -regress_opts_3dD option and add '-regress_run_clustsim no'.
 
@@ -5374,7 +5377,7 @@ g_help_string = """
                         -do_block align tlrc                               \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
-                        -volreg_align_to last                              \\
+                        -volreg_base_dset MIN_OUTLIER                      \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
                         -blur_in_automask                                  \\
@@ -7263,6 +7266,7 @@ g_help_string = """
         -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
 
                 e.g. -volreg_base_dset subj10/vreg_base+orig'[4]'
+                e.g. -volreg_base_dset MIN_OUTLIER
 
             This option allows the user to specify an external dataset for the
             volreg base.  The user should apply sub-brick selection if the
