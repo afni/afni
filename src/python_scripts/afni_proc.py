@@ -431,9 +431,10 @@ g_history = """
         - now 'default' means to apply it normally in auto_warp.py
         - done for B Benson
     4.24 Dec 2, 2014: -tlrc_NL_awpy_rm was not being applied
+    4.25 Jan 2, 2015: small help change
 """
 
-g_version = "version 4.24, December 2, 2014"
+g_version = "version 4.25, January 2, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "7 Nov 2014" # 3dNwarpApply
