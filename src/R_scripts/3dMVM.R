@@ -2,6 +2,7 @@
 
 ##!/usr/bin/env afni_run_R
 
+
 # Command line to run this script: 3dMVM.R dataStr.txt diary.txt &
 # (Output is a file in which the running progress including 
 # error messages will be stored)
