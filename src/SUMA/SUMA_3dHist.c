@@ -83,7 +83,7 @@ static char shelp_Hist[] = {
 "       3dHist -thishist HistOut.niml.hist -val_at ncdf 0.132564\n"
 "       #Compute histogram and find dataset threshold (approximate)\n"
 "       #such that 1.5 liters of voxels remain above it.\n"
-"       3dHist -prefix toy -input flair_axial.nii.gz -val_at upvol 1.5\n"
+"       3dHist -prefix toy -input flair_axial.nii.gz -val_at upvol 1.5 \n"
 "\n"
 /* Untested here
 "   -mrange M0 M1: Consider MASK only for values between M0 and M1, inclusive\n"
