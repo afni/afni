@@ -1,6 +1,11 @@
-##This file is created with "make gitignore". Do not edit.
-##Additions/changes should be made to AFNI/.gitignore 
-##and/or AFNI/src/gitignore.src.txt, followed by "make gitignore".
+##              DO NOT EDIT   
+##This file is created with "make gitignore". 
+##Changes should be made to sources used to create it:
+##                            AFNI/.gitignore 
+##                            AFNI/src/gitignore.src.txt 
+##and/or the variables listing all programs in src/Makefile.INCLUDE 
+##targets echo_progs, and prog_list.
+##Run "make gitignore" to recreate src/.gitignore 
 
 ##Contents of master AFNI/.gitignore
 doc/SphinxDocs/_build
@@ -60,6 +65,10 @@ SUMA/gts/examples
 #GLw builds
 src/SUMA/GLw_local/GL
 src/SUMA/GLw_local/GLw
+
+#netcdf
+netcdf-3.5.0/src/libsrc/putget.c
+
 
 ##Ignore all the programs and scripts
 ##List obtained from AFNI/src/prog_list.txt
