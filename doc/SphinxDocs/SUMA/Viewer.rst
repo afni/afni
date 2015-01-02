@@ -436,7 +436,7 @@ Quick Tour
    
     .. image:: media/blank.jpg
    
-   4. By default, points along the tracts are colored based on their local orientation. You can also color them based on the orientation of their midpoint with :menuselection:`Switch Dset --> o.NETS_OR_000_MID` accessible from the tract controller. You can also color by bundle with :menuselection:`Switch Dset --> o.NETS_OR_000_BUN`, however there is only one :term:bundle in this set of tracts because there is only one ROI involved - all the blobs are part of the same ROI in this example. 
+   4. By default, points along the tracts are colored based on their local orientation. You can also color them based on the orientation of their midpoint with :menuselection:`Switch Dset --> o.NETS_OR_000_MID` accessible from the tract controller. You can also color by bundle with :menuselection:`Switch Dset --> o.NETS_OR_000_BUN`, however there is only one :term:`bundle` in this set of tracts because there is only one ROI involved - all the blobs are part of the same ROI in this example. 
    
    .. figure:: media/QT_TractCont.0011.jpg
       :align: left
