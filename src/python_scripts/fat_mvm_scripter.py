@@ -243,7 +243,7 @@ def main(argv):
     CAT_PAIR_COMP = 1  # for categorical var, now do rel compar by default
 
     try:
-        opts, args = getopt.getopt(argv,"hnNcv:f:p:t:l:r:P:F:",["help",
+        opts, args = getopt.getopt(argv,"hnNcv:f:p:t:l:r:F:P:",["help",
                                                                 "no_posthoc",
                                                                 "NA_warn_off",
                                                                 "cat_pair_off",
@@ -253,8 +253,8 @@ def main(argv):
                                                                 "table=",
                                                                 "log_file=",
                                                                 "rois="
-                                                                "Pars=",
                                                                 "File_Pars="
+                                                                "Pars="
                                                                 ])
     except getopt.GetoptError:
         print "** Error reading options. Try looking at the helpfile:"
