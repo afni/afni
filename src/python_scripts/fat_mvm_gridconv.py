@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 #
-# Version 1.0, July, 2014.
+# Version 1.1, Jan, 2015.
 # written:  PA Taylor (UCT, AIMS).
 #
 # Modernize the format of *.grid files for fat_mvm_prep.py.  For a
 # long time, the matrices weren't explicitly labelled using the
 # commented '#' lines.  Now they are, and life is better for all.
-# This program 'modernizes' the format of bare grid files.
+# This program 'modernizes' the format of bare *.grid files.
 # 
+# As of Jan 2015, it also modernizes bare *.netcc files (though it would
+# likely take a very old version of 3dNetCorr to have produced such).
 #
-#  # for help on commandline running and usage:
-#  $  fat_mvm_convert.py -h
+# for help on commandline running and usage:
+# $  fat_mvm_convert.py -h
 #
 #
 ###########################################################################
@@ -28,7 +30,7 @@ def main(argv):
 
     help_line = ''' \
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-     ++ July, 2014.
+     ++ Jan, 2015.
      ++ Preprocess some 'old school' (=poorly formatted) *.grid files
            so that they can be fat_mvm_prep'ed for statistical modeling
            using 3dMVM.
@@ -40,6 +42,11 @@ def main(argv):
      outputs new ones in the same folder with '_MOD.grid' postfix (or
      an explicit output prefix can be entered using '--list_match').
      
+     This program now also applies to updating *.netcc files that have 
+     Pearson correlation ('CC') and Fisher Z-transform matrices ('FZ') but
+     no labels in '#'-started comments in the modern format.  The same 
+     output naming conventions/options as above apply.
+
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
      TO USE (from a terminal commandline):\n
@@ -117,6 +124,7 @@ if __name__=="__main__":
         list_all = GR.ReadSection_and_Column(file_listmatch, 0)
     elif file_matr_glob:
         list_all = glob(file_matr_glob)
+        list_all.sort()
     else:
         print "** Error! Cannot read in matrix files."
         sys.exit(4)
@@ -134,6 +142,7 @@ if __name__=="__main__":
 
     for i in range(N):
         p = GR.OldFash_Grid_modernize(list_all[i], list_all_out[i])
+        print "Converted %15s -> %15s" % (list_all[i], list_all_out[i])
 
     if 1:
         print "++ DONE.\n\n"
