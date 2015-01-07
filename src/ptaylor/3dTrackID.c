@@ -73,6 +73,9 @@
    Sept 2014: 
    + use label table of netrois, if exists
 
+   Jan 2015:
+   + '-nifti' switch for NIFTI output
+
 */
 
 
@@ -638,6 +641,8 @@ void usage_TrackID(int detail)
 "                     viewable *.niml.dset (and other) files are still made.\n"
 "                     This is probably just if you want to save file space.\n"
 "                     Default is to output *.trk files.\n"
+"    -nifti          :output the PAIRMAP, INDIMAP, and any '-dump_rois' in\n"
+"                     *.nii.gz format (default is BRIK/HEAD).\n"
 "  -no_indipair_out  :Switch off outputting *INDIMAP* and *PAIRMAP* volumes.\n"
 "                     This is probably just if you want to save file space;\n"
 "                     also, for connectome-y studies with many (>100) target\n"
@@ -887,6 +892,11 @@ int main(int argc, char *argv[])
 
 		if( strcmp(argv[iarg],"-dump_lab_consec") == 0) {
 			InOpts.DUMP_ORIG_LABS=0;
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-nifti") == 0) {
+			InOpts.NIFTI_OUT=1;
 			iarg++ ; continue ;
 		}
 
@@ -3625,7 +3635,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 
       for( i=0 ; i<N_nets ; i++){
          sprintf(prefix_det[i],"%s_%03d",opts.prefix,i); 
-       
+         
          if (!Write_Network(tnet[i],prefix_det[i],mode)) 
             ERROR_message("Failed to write the network.");
      
@@ -3891,7 +3901,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                  dsetn,argc,argv,
                                  ROI_STR_LABELS, opts.DUMP_with_LABELS,
                                  roi_dtable,
-                                 ROI_LABELS, opts.PAIRPOWER);
+                                 ROI_LABELS, opts.PAIRPOWER,
+                                 opts.NIFTI_OUT);
       else
          INFO_message("Not writing out *INDI* and *PAIR* maps."); 
 
@@ -3903,7 +3914,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 											dsetn,argc,argv,
 											Param_grid,opts.DUMP_TYPE,
 											opts.DUMP_ORIG_LABS,ROI_LABELS,opts.POST,
-                                 ROI_STR_LABELS, opts.DUMP_with_LABELS);
+                                 ROI_STR_LABELS, opts.DUMP_with_LABELS,
+                                 opts.NIFTI_OUT);
 		
 	
 
