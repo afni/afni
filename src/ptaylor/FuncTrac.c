@@ -76,6 +76,7 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.RECORD_ORIG=0;               //  "-rec_orig"
    defopt.PAIRPOWER=0;                 //  "-pair_out_power"
    defopt.EXTRA_TR_PAR=0;              //  "extra_tr_par"
+   defopt.NIFTI_OUT=0;                 //  "-nifti"
 
    // EXPIRED OPTIONS, just gives message/error:
    // "-cut_at_rois"
