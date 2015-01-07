@@ -25,6 +25,10 @@ def main(argv):
 
     help_line = '''\
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+** JUST BETA VERSION AT THE MOMENT **
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 '''
     comm_str = 'fat_mvm_review.py '
     file_in = ''
