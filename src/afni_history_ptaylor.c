@@ -67,6 +67,10 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 7, Jan , 2015 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "Switch to output nifti files.",
+   "For corr map or Z map files.\n"
+},
 
 { 7, Jan , 2015 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
    "Switch to output nifti files.",
