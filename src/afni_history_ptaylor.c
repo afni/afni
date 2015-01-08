@@ -66,6 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 7, Jan , 2015 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "Switch to output nifti files.",
+   "For corr map or Z map files.\n"
+},
+
+{ 7, Jan , 2015 , PT , "3dROIMaker" , MINOR , TYPE_NEW_OPT,
+   "Switch to output nifti files.",
+   "For GM and GMI files.\n"
+},
+
+{ 7, Jan , 2015 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
+   "Switch to output nifti files.",
+   "For PAIRMAP, INDIMAP and -dump_rois output.\n"
+},
+
 { 21, Dec , 2014 , PT , "3dTrackID" , MINOR , TYPE_GENERAL,
    "Change of string output in .niml.dset.",
    "Make the label match the ROI string labels.\n"

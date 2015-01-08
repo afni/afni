@@ -202,6 +202,15 @@ else if ($fromcvs == "no") then
    wget http://afni/pub/dist/tgz/afni_src.tgz
    tar xvzf afni_src.tgz
    mv afni_src $tdir/src
+else if ($fromcvs == "git") then
+   if (-d b.$tDdir) rm -rf b.$tDdir >& /dev/null
+   mkdir -p $tdir
+   if ($Date != "now") then
+      echo "ERROR: Don't know how to do this with git yet"
+      goto END
+   else
+      git clone https://github.com/afniHQ/AFNI.git $tdir
+   endif
 else
    if ( ! -d $fromcvs ) then
       tar xvzf $fromcvs
@@ -540,7 +549,7 @@ PARSE_COMMAND:
    set cnt = 1
    set Date = "now"
    set tdir = ""
-   set fromcvs = "yes"   
+   set fromcvs = "git"   
    set withgifti =  1
    set build = 1
    set package = ''
@@ -780,10 +789,11 @@ USAGE:
    echo "Based on RickR's @build.local"
    echo " Options:"
    echo "   [-D DATE]: Retrieve code from date DATE yyyy-mm-dd"
-   echo "              Default is now"
+   echo "              Default is now."
+   echo "              OPTION Not updated to work with GIT yet!"
    echo "   [-no_build]: Do not compile"
    echo "   [-no_archive]: Do not create source archive"
-   echo "   [-webdist]: Get source from web .tgz, not cvs"
+   echo "   [-webdist]: Get source from web .tgz, not git"
    echo "   [-thisdist DIST]: Get source from a previously"
    echo "                     created @new_dist archive."
    echo "   [-package PACK]: Use Makefile.PACK to compile."
@@ -818,6 +828,7 @@ USAGE:
    echo "   [-jpega]: Add  '$(XROOT)/lib/libjpeg.a'"
    echo "   [-mcwmalloc]: Make sure MCW_MALLOC is used"
    echo "   [-no_mcwmalloc]: Make sure MCW_MALLOC is NOT used."
+   echo "   [-check_log LOGFILE]: Check content of compile log for errors"
    goto END
 
    

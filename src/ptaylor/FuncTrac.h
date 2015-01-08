@@ -66,6 +66,7 @@ typedef struct {
    int RECORD_ORIG;               //  "-rec_orig"
    int PAIRPOWER;                 //  "-pair_out_power"
    int EXTRA_TR_PAR;              //  "-extra_tr_par"
+   int NIFTI_OUT;                 //  "-nifti"
 
    // EXPIRED OPTIONS, just gives message/error:
    // "-cut_at_rois"
