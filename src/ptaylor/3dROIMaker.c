@@ -39,6 +39,9 @@
         new option for delineating a peak set of N connected voxels
         within an ROI
 
+    Jan 2015:
+        added nifti output switch
+
 */
 
 
@@ -200,6 +203,8 @@ void usage_ROIMaker(int detail)
 "    -neigh_upto_vert  :can loosen the definition of neighbors, so that\n"
 "                       voxels can be grouped into the same ROI if they share\n"
 "                       at least one vertex (see above for default).\n"
+"    -nifti            :switch to output *.nii.gz GM and GMI files\n"
+"                       (default format is BRIK/HEAD).\n"
 "\n"
 "  -preinfl_inset PSET :as a possible use, one might want to start with a WM\n"
 "                       ROI, inflate it to find the nearest GM, then expand\n"
@@ -312,6 +317,7 @@ int main(int argc, char *argv[]) {
 
    int HOT_POINTS=0;
    int HOT_CONN=0;
+   int NIFTI_OUT=0;
 
    int *RESCALES=NULL; // will be used if negative values in refset mask
    short int **temp_ref=NULL; // for holding rescaled values
@@ -507,6 +513,11 @@ int main(int argc, char *argv[]) {
 							ERROR_exit("Need argument after '-skel_thr'");
 			SKEL_THR = atof(argv[iarg]);
 			
+			iarg++ ; continue ;
+		}
+
+		if( strcmp(argv[iarg],"-nifti") == 0) {
+			NIFTI_OUT=1;
 			iarg++ ; continue ;
 		}
 
@@ -1243,8 +1254,12 @@ int main(int argc, char *argv[]) {
 	// **************************************************************
 	
 	outsetGM = EDIT_empty_copy( inset ) ; 
-	sprintf(prefix_GM,"%s_GM",prefix);
-	
+   if( NIFTI_OUT )
+      sprintf(prefix_GM,"%s_GM.nii.gz",prefix); // jan,2015
+   else
+      sprintf(prefix_GM,"%s_GM",prefix);
+
+
 	EDIT_dset_items( outsetGM,
 						  ADN_datum_all , MRI_short , 
 						  ADN_prefix    , prefix_GM ,
@@ -1428,7 +1443,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	outsetGMI = EDIT_empty_copy( inset ) ; 
-	sprintf(prefix_GMI,"%s_GMI",prefix);
+   if( NIFTI_OUT )
+      sprintf(prefix_GMI,"%s_GMI.nii.gz",prefix); // jan,2015
+	else
+      sprintf(prefix_GMI,"%s_GMI",prefix);
 
    // start labelly stuff
    // Nov 2014

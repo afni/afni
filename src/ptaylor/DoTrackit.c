@@ -242,7 +242,8 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
 								THD_3dim_dataset *dsetn,int argc, char *argv[],
                         char ***ROI_STR_LABS, int NameLabelsOut,
                         Dtable *roi_table,
-                        int **roi_labs, int PAIR_POWERON)
+                        int **roi_labs, int PAIR_POWERON,
+                        int NIFTI_OUT)
 {
 
 	int i,j,k,bb,hh,kk,rr,idx;
@@ -287,7 +288,10 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
       // MULTI_ROI acts as both a switch and a number
       MULTI_ROI = ( NROI[hh] > 1 ) ? 1 : 0;
 
-		sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP",prefix,hh); 
+      if( NIFTI_OUT )
+         sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP.nii.gz",prefix,hh); 
+      else
+         sprintf(prefix_netmap[hh],"%s_%03d_PAIRMAP",prefix,hh); 
 
       // Sept 2014
       sprintf(prefix_dtable[hh],"%s_%03d_PAIRMAP.niml.lt",prefix, hh); 
@@ -326,8 +330,12 @@ int WriteBasicProbFiles(int N_nets, int Ndata, int Nvox,
          EDIT_dset_items(networkMAPS,
                          ADN_datum_all , MRI_short , 
                          ADN_none ) ;
-		
-		sprintf(prefix_netmap2[hh],"%s_%03d_INDIMAP",prefix,hh); 
+
+      if( NIFTI_OUT )
+         sprintf(prefix_netmap2[hh],"%s_%03d_INDIMAP.nii.gz",prefix,hh); 
+      else
+         sprintf(prefix_netmap2[hh],"%s_%03d_INDIMAP",prefix,hh); 
+
 		// just get one of right dimensions!
 		networkMAPS2 = EDIT_empty_copy( insetFA ) ; 
       // Oct. 2014: if only 1 ROI in set, then just output 0th brick
@@ -664,7 +672,8 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 								THD_3dim_dataset *dsetn,int argc, char *argv[],
 								float ***Param_grid, int DUMP_TYPE,
 								int DUMP_ORIG_LABS, int **ROI_LABELS, int POST_IT,
-                        char ***ROI_STR_LAB, int NameLabelsOut)
+                        char ***ROI_STR_LAB, int NameLabelsOut,
+                        int NIFTI_OUT)
 {
 
 	int i,j,k,bb,hh,rr,ii,jj,kk;
@@ -728,17 +737,35 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                idx3 = MatrInd_to_FlatUHT(i,j,NROI[hh]);
 					if(Prob_grid[hh][idx3]>0) {
                   if( ROI_STR_LAB && NameLabelsOut ){
-                     snprintf(prefix_netmap[hh][count], 300,
-									  "%s/NET_%03d_ROI_%s_%s", prefix, hh,
-                             ROI_STR_LAB[hh][i+1], ROI_STR_LAB[hh][j+1]); 
+                     if( NIFTI_OUT )
+                        snprintf(prefix_netmap[hh][count], 300,
+                                 "%s/NET_%03d_ROI_%s_%s.nii.gz", prefix, hh,
+                                 ROI_STR_LAB[hh][i+1], ROI_STR_LAB[hh][j+1]); 
+                     else
+                        snprintf(prefix_netmap[hh][count], 300,
+                                 "%s/NET_%03d_ROI_%s_%s", prefix, hh,
+                                 ROI_STR_LAB[hh][i+1], ROI_STR_LAB[hh][j+1]); 
                   }
-						else if(!DUMP_ORIG_LABS)
-                     snprintf(prefix_netmap[hh][count], 300,
-									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh,i+1,j+1); 
-                  else
-                     snprintf(prefix_netmap[hh][count], 300,
-									  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh,
-									  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
+						else if(!DUMP_ORIG_LABS) {
+                     if( NIFTI_OUT )
+                        snprintf(prefix_netmap[hh][count], 300,
+                                 "%s/NET_%03d_ROI_%03d_%03d.nii.gz",
+                                 prefix,hh,i+1,j+1); 
+                     else
+                        snprintf(prefix_netmap[hh][count], 300,
+                                 "%s/NET_%03d_ROI_%03d_%03d",
+                                 prefix,hh,i+1,j+1); 
+                  }
+                  else{
+                     if( NIFTI_OUT )
+                        snprintf(prefix_netmap[hh][count], 300,
+                                 "%s/NET_%03d_ROI_%03d_%03d.nii.gz",prefix,hh,
+                                 ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
+                     else
+                        snprintf(prefix_netmap[hh][count], 300,
+                                 "%s/NET_%03d_ROI_%03d_%03d",prefix,hh,
+                                 ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
+                  }
 
 						// single brik, byte map
 						networkMAPS = EDIT_empty_copy( insetFA ) ; 
