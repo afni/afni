@@ -2,7 +2,6 @@
 
 ##!/usr/bin/env afni_run_R
 
-
 # Command line to run this script: 3dMVM.R dataStr.txt diary.txt &
 # (Output is a file in which the running progress including 
 # error messages will be stored)
@@ -32,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.4.0, Dec 19, 2014
+Version 3.5.0, Dec 30, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -115,6 +114,9 @@ within-subject (condition and emotion) variables:
           -gltLabel 3 sex_by_condition_interaction -gltCode 3 'sex : 1*male -1*female condition : 1*face -1*house' \\
           -gltLabel 4 3way_interaction -gltCode 4 'sex : 1*male -1*female condition : 1*face -1*house emotion : 1*pos -1*neg' \\
           ...            
+          -num_glf 2                         \\
+          -glfLabel 1 male_condXEmo -glfCode 1 'sex : 1*male condition : 1*face -1*house emotion : 1*pos -1*neg & 1*pos -1*neu' \\
+          -glfLabel 2 face_sexXEmo -glfCode 1 'sex : 1*male -1*female condition : 1*face emotion : 1*pos -1*neg & 1*pos -1*neu' \\
           -dataTable                                                                                     \\
           Subj  genotype   sex    scanner  condition   emotion   InputFile                               \\
           s1    TT         male   scan1   face        pos       s1+tlrc\'[face_pos_beta]\'                 \\
@@ -131,10 +133,14 @@ within-subject (condition and emotion) variables:
           more than 3 level.
           2) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
-          Multiple degrees of freedom for the numerator of F-statistic is currently unavailable.
+          Multiple degrees of freedom for the numerator of F-statistic can be obtained through
+          option -glfCode (see GLFs #1 and #2).
           3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
-          the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.\n"
+          the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.
+          4) The two GLFs showcase the user how to specify sub-interactions.
+          5) Option '-SS_type 2' specifies the hierarchial type for the sume of squares in the
+          omnibus F-statistics in the output. See more details in the help.\n"   
       
    ex2 <-
 "--------------------------------
@@ -248,7 +254,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         .nii attached, while file name for surface data is expected",
    "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
    "         if present, should be interpreted as the overall average",
-   "         across factor levels.\n", sep = '\n'
+   "         across factor levels at the center value of each covariate.\n", sep = '\n'
                      ) ),
 
       '-mask' = apl(n=1,  d = NA, h = paste(
@@ -311,12 +317,16 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         option provides within-subject multivariate testing for any effect",
    "         associated with a within-subject variable. The testing strategy is",
    "         different from the conventional univariate GLM, see more details in",
-   "         Chen et al., ...... If all the within-subject factors",
-   "         have two levels, the multivariate testing would render the same",
-   "         results as the univariate version. So use the option only if at",
-   "         least one within-subject factor has more than two levels.",
-   "         The F-statistics from the multivariate testing are labeled",
-   "         with -wsMVT- in the sub-brick names. \n", sep='\n')),
+   "         Chen et al. (2014), Applications of Multivariate Modeling to",
+   "         Neuroimaging Group Analysis: A Comprehensive Alternative to",
+   "         Univariate General Linear Model. NeuroImage 99, 571-588. If",
+   "         all the within-subject factors have two levels, the multivariate",
+   "         testing would render the same results as the univariate version.",
+   "         So use the option only if at least one within-subject factor has",
+   "         more than two levels. The F-statistics from the multivariate",
+   "         testing are labeled with -wsMVT- in the sub-brick names. Note that",
+   "         the conventional univariate F-statistics are automatically included",
+   "         in the beginning of the output regardless the presence of this option.\n", sep='\n')),
 
        '-wsE2' = apl(n=0, h = paste(
    "-wsE2: If at least one within-subject factor is involved in the model, any",
@@ -461,7 +471,9 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         NOTE:\n",
    "         1) The weights for a variable do not have to add up to 0.\n",   
    "         2) When a quantitative variable is present, other effects are",
-   "         tested at the center value of the covariate.\n",
+   "         tested at the center value of the covariate unless the covariate",
+   "         value is specified as, for example, 'Group : 1*Old Age : 2', where",
+   "         the Old Group is tested at the Age of 2 above the center.\n",
    "         3) The effect for a quantitative variable (or slope) can be specified",
    "         with, for example, 'Group : 1*Old Age : ', or ",
    "         'Group : 1*Old - 1*Young Age : '\n", 
@@ -487,19 +499,21 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
              ) ),
 
-     '-gltfCode' = apl(n=c(1,1000), d=NA, h = paste(
+     '-glfCode' = apl(n=c(1,1000), d=NA, h = paste(
    "-glfCode k CODING: Specify the k-th general linear F-test (GLF) through a",
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the coding",
-   "         'Condition : 1*A -1*B \\1*A -1*C Emotion : 1:pos' tests the main",
+   "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1:pos' tests the main",
    "         effect of Condition at the positive Emotion. Similarly the coding",
-   "         'Condition : 1*A -1*B \\1*A -1*C Emotion : 1*pos -1*neg' shows",
+   "         'Condition : 1*A -1*B & 1*A -1*C Emotion : 1*pos -1*neg' shows",
    "         the interaction between the three levels of Condition and the two.",
    "         levels of Emotion.\n",
    "         NOTE:\n",
    "         1) The weights for a variable do not have to add up to 0.\n",   
    "         2) When a quantitative variable is present, other effects are",
-   "         tested at the center value of the covariate.\n",
+   "         tested at the center value of the covariate unless the covariate",
+   "         value is specified as, for example, 'Group : 1*Old Age : 2', where",
+   "         the Old Group is tested at the Age of 2 above the center.\n",
    "         3)  The absence of a categorical variable in a coding means the",
    "         levels of that factor are averaged (or collapsed) for the GLT.\n",
    "         4) The appearance of a categorical variable has to be followed",
@@ -664,6 +678,53 @@ gltConstr <- function(cStr, dataStr) {
 # QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
 # gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
 
+# construct a glf list for testFactors in phia
+# NEED to solve the problem when a quantitative variable is tested alone:
+# with pairwise = NULL!!!                                                
+glfConstr <- function(cStr, dataStr) {
+   pos <- which(cStr==":")
+   vars  <- cStr[pos-1]  # factors to be specified
+   nvar <- length(vars)
+   pos <- c(pos, length(cStr)+2) # add an artificial one for convenient usage below
+   varsOK <- vars %in% colnames(dataStr)
+   if(all(varsOK)) {
+      glfList <- vector('list', nvar)
+      names(glfList) <- vars
+      for(ii in 1:nvar) {
+	 lvl  <- levels(dataStr[,vars[ii]])   # all the levels for each involved factor
+         fpos <- which(cStr[(pos[ii]+1):(pos[ii+1]-2)]=="&")  # positions of &'s
+         nc   <- length(fpos) # number of columns for this factor minus 1
+         #if(nc==0) { # one row: no & involved
+         #   glfList[[ii]] <- rep(0, length(lvl))
+         #   sepTerms <- unlist(lapply(cStr[(pos[ii]+1):(pos[ii+1]-2)], strsplit, '\\*'))
+	 #   lvlInv <- sepTerms[seq(2,length(sepTerms),2)]   # levels involved
+	 #   lvlOK <- lvlInv %in% lvl
+	 #   if(all(lvlOK)) {
+	 #      sq <- match(lvlInv, lvl)
+         #      glfList[[ii]][sq] <- as.numeric(sepTerms[seq(1,length(sepTerms),2)])
+	 #   } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
+	 #        ": ", lvlInv[which(!lvlOK)], " \n   "))
+         #} else {  # more than one column: at least one &
+            glfList[[ii]] <- matrix(0, nrow=length(lvl), ncol=nc+1)
+            fpos <- c(0, fpos, length(cStr[(pos[ii]+1):(pos[ii+1]-2)])+1)
+            for(jj in 1:(length(fpos)-1)) {
+               sepTerms <- unlist(lapply(cStr[(pos[ii]+1):(pos[ii+1]-2)][(fpos[jj]+1):(fpos[jj+1]-1)], strsplit, '\\*'))
+	       lvlInv <- sepTerms[seq(2,length(sepTerms),2)]   # levels involved
+	       lvlOK <- lvlInv %in% lvl
+	       if(all(lvlOK)) {
+	          sq <- match(lvlInv, lvl)
+                  glfList[[ii]][sq,jj] <- as.numeric(sepTerms[seq(1,length(sepTerms),2)])
+	       } else errex.AFNI(paste("Incorrect level coding in variable", vars[ii],
+	         ": ", lvlInv[which(!lvlOK)], " \n   "))
+            }
+         #}
+      }
+      return(glfList)
+   } else errex.AFNI(paste("Incorrect variable name in GLF coding: ", vars[which(!varsOK)], " \n   "))
+}
+
+# glfConstr(lop$glfCode[[1]], lop$dataStr)
+                                                
 #Change options list to 3dMVM variable list 
 process.MVM.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
@@ -698,13 +759,33 @@ process.MVM.opts <- function (lop, verb = 0) {
          'specified by -num_glt ',  lop$num_glt))
    }
 
-  if(!is.null(lop$gltCode)) {
+  #if(!is.null(lop$gltCode)) {
+  if(length(lop$gltCode)!=0) {
       sq <- as.numeric(unlist(lapply(lop$gltCode, '[', 1)))
       if(identical(sort(sq), as.numeric(seq(1, lop$num_glt)))) {
          lop$gltCode <- lapply(lop$gltCode, '[',-1)
          lop$gltCode[sq] <- lop$gltCode
-      } else errex.AFNI(c('The number of -gltLabel is not consistent with that \n',
+      } else errex.AFNI(c('The number of -gltCode is not consistent with that \n',
          'specified by -num_glt ',  lop$num_glt))
+   }         
+
+   if(!is.null(lop$glfLabel)) {
+      sq <- as.numeric(unlist(lapply(lop$glfLabel, '[', 1)))
+      if(identical(sort(sq), as.numeric(seq(1, lop$num_glf)))) {
+         lop$glfLabel <- unlist(lapply(lop$glfLabel, '[', 2))
+         lop$glfLabel[sq] <- lop$glfLabel
+      } else errex.AFNI(c('The number of -glfLabel is not consistent with that \n',
+         'specified by -num_glf ',  lop$num_glf))
+   }
+
+  #if(!is.null(lop$glfCode)) {
+  if(length(lop$glfCode)!=0) {
+      sq <- as.numeric(unlist(lapply(lop$glfCode, '[', 1)))
+      if(identical(sort(sq), as.numeric(seq(1, lop$num_glf)))) {
+         lop$glfCode <- lapply(lop$glfCode, '[',-1)
+         lop$glfCode[sq] <- lop$glfCode
+      } else errex.AFNI(c('The number of -glfCode is not consistent with that \n',
+         'specified by -num_glf ',  lop$num_glf))
    }         
 
    len <- length(lop$dataTable)
@@ -733,41 +814,128 @@ process.MVM.opts <- function (lop, verb = 0) {
    #   names(lop$covVal) <- lop$QV
    #}
    
-   if (lop$num_glt > 0) {
-      lop$gltList    <- vector('list', lop$num_glt)
-      lop$slpList    <- vector('list', lop$num_glt)
-      lop$covValList <- vector('list', lop$num_glt)
-      for (n in 1:lop$num_glt) { # assuming each GLT has one slope involved and placed last
-         if(length(lop$QV)==0) lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr) else {
-         if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]])) {
-            QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
-            if(is.na(lop$gltCode[[n]][QVpos+2])) { # test for covariate effect
-               if(QVpos==1) lop$gltList[[n]] <- NA else
-                  lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
-               lop$slpList[[n]]    <- lop$gltCode[[n]][QVpos]
+   gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt or lop$num_glf; code: lop$glfCode
+   if (n_gl > 0) {
+      outList <- vector('list', 3)
+      outList[[1]]    <- vector('list', n_gl)
+      outList[[2]]    <- vector('list', n_gl)
+      outList[[3]] <- vector('list', n_gl)
+      for (n in 1:n_gl) { # assuming each GLT has one slope involved and placed last
+         if(length(lop$QV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
+         if((length(lop$QV)>0) & any(lop$QV %in% code[[n]])) {
+            QVpos <- which(code[[n]] %in% lop$QV)
+            if(is.na(code[[n]][QVpos+2])) { # test for covariate effect
+               if(QVpos==1) outList[[1]][[n]] <- NA else
+                  outList[[1]][[n]] <-glfConstr(code[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+               outList[[2]][[n]]    <- code[[n]][QVpos]
             } else { # effect at a specific covariate value
-              if(QVpos==1) lop$gltList[[n]] <- NA else
-                  lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-(QVpos:(QVpos+2))], lop$dataStr)
-               lop$covValList[[n]] <- as.numeric(lop$gltCode[[n]][QVpos+2])
-               names(lop$covValList[[n]]) <- lop$gltCode[[n]][QVpos]
+              if(QVpos==1) outList[[1]][[n]] <- NA else
+                  outList[[1]][[n]] <-glfConstr(code[[n]][-(QVpos:(QVpos+2))], lop$dataStr)
+               outList[[3]][[n]] <- as.numeric(code[[n]][QVpos+2])
+               names(outList[[3]][[n]]) <- code[[n]][QVpos]
             } # if(is.na(lop$gltCode[[n]][QVpos+2]))
-         } else if(!is.na(lop$vVars) & any(lop$vQV %in% lop$gltCode[[n]])) { # voxel-wise covariate
-            vQVpos <- which(lop$gltCode[[n]] %in% lop$vQV)
-            if(is.na(lop$gltCode[[n]][vQVpos+2])) { # test for covariate effect
-               if(vQVpos==1) lop$gltList[[n]] <- NA else
-                  lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
-               lop$slpList[[n]]    <- lop$gltCode[[n]][vQVpos]
+         } else if(!is.na(lop$vVars) & any(lop$vQV %in% code[[n]])) { # voxel-wise covariate
+            vQVpos <- which(code[[n]] %in% lop$vQV)
+            if(is.na(code[[n]][vQVpos+2])) { # test for covariate effect
+               if(vQVpos==1) outList[[1]][[n]] <- NA else
+                  outList[[1]][[n]] <-glfConstr(code[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+               outList[[2]][[n]]    <- code[[n]][vQVpos]
             } else { # effect at a specific covariate value
-              if(vQVpos==1) lop$gltList[[n]] <- NA else
-                  lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-(vQVpos:(vQVpos+2))], lop$dataStr)
-               lop$covValList[[n]] <- as.numeric(lop$gltCode[[n]][vQVpos+2])
-               names(lop$covValList[[n]]) <- lop$gltCode[[n]][vQVpos]
+              if(vQVpos==1) outList[[1]][[n]] <- NA else
+                  outList[[1]][[n]] <-glfConstr(code[[n]][-(vQVpos:(vQVpos+2))], lop$dataStr)
+               outList[[3]][[n]] <- as.numeric(code[[n]][vQVpos+2])
+               names(outList[[3]][[n]]) <- code[[n]][vQVpos]
            } # if(is.na(lop$gltCode[[n]][vQVpos+2]))
-         } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
+         } else outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
       }
       }
    }
-   
+   return(outList)
+   }
+
+   if (lop$num_glt > 0) {
+      glt <- gl_Constr(lop$num_glt, lop$gltCode, lop)
+      lop$gltList     <- glt[[1]]
+      lop$slpList     <- glt[[2]]
+      lop$covValList  <- glt[[3]]
+   }
+   if (lop$num_glf > 0) {
+      glf <- gl_Constr(lop$num_glf, lop$glfCode, lop)
+      lop$glfList     <- glf[[1]]
+      lop$slpListF    <- glf[[2]]
+      lop$covValListF <- glf[[3]]
+   }
+
+   #if (lop$num_glt > 0) {
+   #   lop$gltList    <- vector('list', lop$num_glt)
+   #   lop$slpList    <- vector('list', lop$num_glt)
+   #   lop$covValList <- vector('list', lop$num_glt)
+   #   for (n in 1:lop$num_glt) { # assuming each GLT has one slope involved and placed last
+   #      if(length(lop$QV)==0) lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr) else {
+   #      if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]])) {
+   #         QVpos <- which(lop$gltCode[[n]] %in% lop$QV)
+   #         if(is.na(lop$gltCode[[n]][QVpos+2])) { # test for covariate effect
+   #            if(QVpos==1) lop$gltList[[n]] <- NA else
+   #               lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+   #            lop$slpList[[n]]    <- lop$gltCode[[n]][QVpos]
+   #         } else { # effect at a specific covariate value
+   #           if(QVpos==1) lop$gltList[[n]] <- NA else
+   #               lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-(QVpos:(QVpos+2))], lop$dataStr)
+   #            lop$covValList[[n]] <- as.numeric(lop$gltCode[[n]][QVpos+2])
+   #            names(lop$covValList[[n]]) <- lop$gltCode[[n]][QVpos]
+   #         } # if(is.na(lop$gltCode[[n]][QVpos+2]))
+   #      } else if(!is.na(lop$vVars) & any(lop$vQV %in% lop$gltCode[[n]])) { # voxel-wise covariate
+   #         vQVpos <- which(lop$gltCode[[n]] %in% lop$vQV)
+   #         if(is.na(lop$gltCode[[n]][vQVpos+2])) { # test for covariate effect
+   #            if(vQVpos==1) lop$gltList[[n]] <- NA else
+   #               lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+   #            lop$slpList[[n]]    <- lop$gltCode[[n]][vQVpos]
+   #         } else { # effect at a specific covariate value
+   #           if(vQVpos==1) lop$gltList[[n]] <- NA else
+   #               lop$gltList[[n]] <-gltConstr(lop$gltCode[[n]][-(vQVpos:(vQVpos+2))], lop$dataStr)
+   #            lop$covValList[[n]] <- as.numeric(lop$gltCode[[n]][vQVpos+2])
+   #            names(lop$covValList[[n]]) <- lop$gltCode[[n]][vQVpos]
+   #        } # if(is.na(lop$gltCode[[n]][vQVpos+2]))
+   #      } else lop$gltList[[n]] <- gltConstr(lop$gltCode[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
+   #   }
+   #   }
+   #}
+   #
+   #if (lop$num_glf > 0) {
+   #   lop$glfList    <- vector('list', lop$num_glf)
+   #   lop$slpListF    <- vector('list', lop$num_glf)
+   #   lop$covValListF <- vector('list', lop$num_glf)
+   #   for (n in 1:lop$num_glf) { # assuming each GLT has one slope involved and placed last
+   #      if(length(lop$QV)==0) lop$glfList[[n]] <- glfConstr(lop$glfCode[[n]], lop$dataStr) else {
+   #      if((length(lop$QV)>0) & any(lop$QV %in% lop$glfCode[[n]])) {
+   #         QVpos <- which(lop$glfCode[[n]] %in% lop$QV)
+   #         if(is.na(lop$glfCode[[n]][QVpos+2])) { # test for covariate effect
+   #            if(QVpos==1) lop$glfList[[n]] <- NA else
+   #               lop$glfList[[n]] <-glfConstr(lop$glfCode[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
+   #            lop$slpListF[[n]]    <- lop$glfCode[[n]][QVpos]
+   #         } else { # effect at a specific covariate value
+   #           if(QVpos==1) lop$glfList[[n]] <- NA else
+   #               lop$glfList[[n]] <-glfConstr(lop$glfCode[[n]][-(QVpos:(QVpos+2))], lop$dataStr)
+   #            lop$covValListF[[n]] <- as.numeric(lop$glfCode[[n]][QVpos+2])
+   #            names(lop$covValListF[[n]]) <- lop$glfCode[[n]][QVpos]
+   #         } # if(is.na(lop$gltCode[[n]][QVpos+2]))
+   #      } else if(!is.na(lop$vVars) & any(lop$vQV %in% lop$glfCode[[n]])) { # voxel-wise covariate
+   #         vQVpos <- which(lop$glfCode[[n]] %in% lop$vQV)
+   #         if(is.na(lop$glfCode[[n]][vQVpos+2])) { # test for covariate effect
+   #            if(vQVpos==1) lop$glfList[[n]] <- NA else
+   #               lop$glfList[[n]] <-glfConstr(lop$glfCode[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
+   #            lop$slpListF[[n]]    <- lop$glfCode[[n]][vQVpos]
+   #         } else { # effect at a specific covariate value
+   #           if(vQVpos==1) lop$glfList[[n]] <- NA else
+   #               lop$glfList[[n]] <-glfConstr(lop$glfCode[[n]][-(vQVpos:(vQVpos+2))], lop$dataStr)
+   #            lop$covValListF[[n]] <- as.numeric(lop$glfCode[[n]][vQVpos+2])
+   #            names(lop$covValListF[[n]]) <- lop$glfCode[[n]][vQVpos]
+   #        } # if(is.na(lop$gltCode[[n]][vQVpos+2]))
+   #      } else lop$glfList[[n]] <- glfConstr(lop$glfCode[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
+   #   }
+   #   }
+   #}
+ 
    if(lop$iometh == 'Rlib') 
       lop$outFN <- paste(lop$outFN, "+tlrc", sep="") else {
       an <- parse.AFNI.name(lop$outFN)
@@ -779,7 +947,6 @@ process.MVM.opts <- function (lop, verb = 0) {
    }
 
    if(lop$nNodes < 1) lop$nNodes <- 1
-
 
    if(!is.na(lop$maskFN)) {
       if(verb) cat("Will read ", lop$maskFN,'\n')
@@ -961,8 +1128,8 @@ runAOV <- function(inData, dataframe, ModelForm) {
          } # redundant computations in mvCom4 for option mvE4a
             
          # GLT part below
-         if(lop$num_glt>=1) for(ii in 1:lop$num_glt) {
-            if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
+         if(lop$num_glt>=1) for(ii in 1:lop$num_glt) {  # these are multivariate tests!
+            if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
                covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
                covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
@@ -971,6 +1138,18 @@ runAOV <- function(inData, dataframe, ModelForm) {
 	       out[lop$nF+2*ii]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
             } #if(!is.null(glt))
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
+            
+         # GLF part below
+         if(lop$num_glf>=1) for(ii in 1:lop$num_glf) { # these are multivariate tests! # this first part below may need fixes!
+            if(all(is.na(lop$glfList[[ii]]))) glfRes <- tryCatch(testFactors(fm$lm, pairwise=NULL, slope=lop$slpListF[[ii]], 
+               covariates=lop$covValListF[[ii]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test, error=function(e) NULL) else
+            glfRes <- tryCatch(testFactors(fm$lm, levels=lop$glfList[[ii]], slope=lop$slpListF[[ii]], 
+               covariates=lop$covValListF[[ii]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test, error=function(e) NULL)
+            if(!is.null(glfRes)) if(is.na(lop$wsVars)) # the output structure is different when no within-subject factors present
+               out[lop$nF+2*lop$num_glt+ii] <- glfRes$F[2] else
+               tryCatch(out[lop$nF+2*lop$num_glt+ii] <- maov(glfRes$SSPE, glfRes$SSPH, glfRes$df, glfRes$df.residual)[2], error=function(e) NULL)
+         } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
+            
       }
    }
    return(out)
@@ -1080,6 +1259,11 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
       }
       if(is.null(lop <- read.MVM.opts.batch(args, verb = 0)))
          stop('Error parsing input')
+
+      # in case the user didn't put space around each colon (:), this 
+lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)", perl=TRUE)))                                             
+lop$glfCode <- lapply(lop$glfCode, function(ss) unlist(strsplit(ss, split="(?=&)", perl=TRUE)))                                             
+
       
       #str(lop);
       if(is.null(lop <- process.MVM.opts(lop, verb = lop$verb))) 
@@ -1095,10 +1279,7 @@ read.MVM.opts.from.file <- function (modFile='model.txt', verb = 0) {
 ########################################################################
 
 if(lop$SS_type != 2 & lop$SS_type != 3) errex.AFNI(c("The type for the sums of squares can be either 2 or 3!"))
-
-# in case the user didn't put space around each colon (:), this 
-lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)", perl=TRUE)))                                             
-
+                                                
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 if(!is.na(lop$vVarCenters)) lop$vVarCenters <- as.numeric(strsplit(as.character(lop$vVarCenters), '\\,')[[1]])
                                                 
@@ -1265,6 +1446,7 @@ ii <- xinit; jj <- yinit; kk <- zinit
 
 fm<-NULL
 gltRes <- vector('list', lop$num_glt)
+glfRes <- vector('list', lop$num_glf)
 
 cat('If the program hangs here for more than, for example, half an hour,\n')
 cat('kill the process because the model specification or the GLT coding\n')
@@ -1292,7 +1474,7 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         if(all(is.na(lop$gltList[[n]]))) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pair=NULL,
+         if(all(is.na(lop$gltList[[n]]))) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pairwise=NULL,
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]),
             error=function(e) NA) else
          gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
@@ -1301,6 +1483,20 @@ while(is.null(fm)) {
          n <- n+1
       }      
    }
+
+   if(!is.null(fm)) if (lop$num_glf > 0) {
+      n <- 1
+      while(!is.null(fm) & (n <= lop$num_glf)) { # this part may need fixes!
+         if(all(is.na(lop$glfList[[n]]))) glfRes[[n]] <- tryCatch(testFactors(fm$lm, pairwise=NULL,
+            covariates=lop$covValListF[[n]], slope=lop$slpListF[[n]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test,
+            error=function(e) NA) else
+         glfRes[[n]] <- tryCatch(testFactors(fm$lm, levels=lop$glfList[[n]], slope=lop$slpListF[[n]], 
+            covariates=lop$covValListF[[n]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test, error=function(e) NULL)
+         if(any(is.null(glfRes[[n]]))) fm <- NULL
+         n <- n+1
+      }      
+   }   
+   
    }
    if(!is.null(fm))  {
       print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
@@ -1380,7 +1576,7 @@ if(lop$mvE4a | lop$mvE4) lop$nF_mvE4 <- nrow(uvfm$anova)/2
 lop$nF <- ifelse(lop$mvE4, lop$nF_mvE4, lop$nFu + lop$nFsc + nF_MVT + lop$nFm + lop$nF_mvE4)
 #nF <- nFu + nFsc + nF_MVT + nFm + nF_mvE4
                                                 
-NoBrick <-lop$nF + 2*lop$num_glt
+NoBrick <-lop$nF + 2*lop$num_glt + lop$num_glf
 
 if(is.na(lop$wsVars) & is.na(lop$mVar)) brickNames <-
    paste(dimnames(uvfm)[[1]][1:(length(dimnames(uvfm)[[1]])-1)], 'F') else {
@@ -1402,6 +1598,9 @@ if(lop$num_glt>0) for(ii in 1:lop$num_glt) {
    brickNames <- c(brickNames, lop$gltLabel[ii])
    brickNames <- c(brickNames, paste(lop$gltLabel[ii], 't'))
 }
+
+if(lop$num_glf>0) for(ii in 1:lop$num_glf)
+   brickNames <- c(brickNames, paste(lop$glfLabel[ii], 'F'))
 
 if(lop$SC & (lop$nFsc > 0)) {
    scTerms <- dimnames(uvfm$anova)[[1]] %in% corTerms
@@ -1434,6 +1633,11 @@ if(lop$nFm > 0) for(ii in 1:lop$nFm) {
    mvtest <- maov(mvfm$SSPE, mvfm$SSP[[ii]], mvfm$df[ii], mvfm$error.df)
    F_DF[[lop$nFu+lop$nFsc+nF_MVT+ii]] <- c(mvtest[3], mvtest[4]) 
 }
+
+glf_DF <- vector('list', lop$num_glf)   
+if(lop$num_glf>0) for(ii in 1:lop$num_glf) if(is.na(lop$wsVars))
+   glf_DF[[ii]] <- c(glfRes[[ii]]$Df[2], glfRes[[ii]]$Res.Df[2]) else
+   glf_DF[[ii]] <- maov(glfRes[[ii]]$SSPE, glfRes[[ii]]$SSPH, glfRes[[ii]]$df, glfRes[[ii]]$df.residual)[3:4]
 
 lop$outInit <- rep(0, NoBrick)  # initialization for the voxel-wise output
 lop$crit    <- 0.75  # switch between GG and HF
@@ -1558,7 +1762,10 @@ if(lop$mvE4a) {
                 typ="fift", par=c(F_DF[[ii]][1], F_DF[[ii]][2]))))
                                              
 if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-   statsym <- c(statsym, list(list(sb=lop$nF+2*ii-1, typ="fitt", par=t_DF[ii])))        
+   statsym <- c(statsym, list(list(sb=lop$nF+2*ii-1, typ="fitt", par=t_DF[ii])))
+
+if(lop$num_glf>0) for(ii in 1:lop$num_glf)
+   statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+ii-1, typ="fift", par=glf_DF[ii][[1]])))        
    
 write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
@@ -1603,10 +1810,10 @@ cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
       if(lop$num_glt>=1) {
          out_post <- matrix(0, nrow = lop$num_glt, ncol = 4)
          for(ii in 1:lop$num_glt) {
-            if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pair=NULL, slope=lop$slpList[[ii]], 
+            if(all(is.na(lop$gltList[[ii]]))) glt <- tryCatch(testInteractions(fm$lm, pairwise=NULL, slope=lop$slpList[[ii]], 
                covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
             glt <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[ii]], slope=lop$slpList[[ii]], 
-               covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+               covariates=lop$covValList[[ii]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
             if(!is.null(glt)) {
                out_post[ii,1]   <- glt[1,1]
                out_post[ii,2]   <- sign(glt[1,1]) * sqrt(glt[1,4])  # convert F to t
