@@ -232,6 +232,7 @@ int WB_netw_corr(int Do_r,
                  int Do_Z,
                  int HAVE_ROIS, 
                  char *prefix, 
+                 int NIFTI_OUT,
                  int *NROI_REF,
                  int *Dim,
                  double ***ROI_AVE_TS,
@@ -274,8 +275,12 @@ int WB_netw_corr(int Do_r,
          fprintf(stderr,"\nNROI_REF[%d]= %d",k,NROI_REF[k]);
          for( j=0 ; j<Dim[3] ; j++)
             AVE_TS_fl[0][j] = (float) ROI_AVE_TS[k][i][j];
-         sprintf(OUT_indiv,"%s/WB_CORR_ROI_%03d",
-                 OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+         if( NIFTI_OUT )
+            sprintf(OUT_indiv,"%s/WB_CORR_ROI_%03d.nii.gz",
+                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+         else
+            sprintf(OUT_indiv,"%s/WB_CORR_ROI_%03d",
+                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
          mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
          OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
                                     mri,
@@ -293,9 +298,13 @@ int WB_netw_corr(int Do_r,
 
          }
          if(Do_Z){
-            sprintf(OUT_indivZ,"%s/WB_Z_ROI_%03d",
-                    OUT_indiv0,ROI_LABELS_REF[k][i+1]);
-            
+          if( NIFTI_OUT )
+             sprintf(OUT_indivZ,"%s/WB_Z_ROI_%03d.nii.gz",
+                     OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+          else
+             sprintf(OUT_indivZ,"%s/WB_Z_ROI_%03d",
+                     OUT_indiv0,ROI_LABELS_REF[k][i+1]);
+
             OUT_Z_MAP = EDIT_empty_copy(OUT_CORR_MAP);
             EDIT_dset_items( OUT_Z_MAP,
                              ADN_nvals, 1,
