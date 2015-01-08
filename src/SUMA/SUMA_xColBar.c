@@ -432,7 +432,7 @@ void SUMA_cmap_wid_expose(Widget w, XtPointer clientData, XtPointer call)
 /* An attempt to render colormap using X11 and Motif rather than openGL.
 This is only for the purpose of taking an autosnapshot of the whole widget 
 Based on AFNI's PBAR_bigexpose_CB()*/
-void SUMA_PBAR_bigexpose_CB(Widget w, XtPointer clientData, XtPointer call)
+void SUMA_PBAR_bigexpose_CB(Widget wiw, XtPointer clientData, XtPointer calliw)
 {
    static char FuncName[]={"SUMA_PBAR_bigexpose_CB"};
    SUMA_ALL_DO *ado=NULL;
@@ -470,8 +470,10 @@ void SUMA_PBAR_bigexpose_CB(Widget w, XtPointer clientData, XtPointer call)
    }
    
    if (!CMd || CM != CMd) {
+      SUMA_LH("Setting CMd");
       CMd = CM;
       if (bigxim) {
+         SUMA_LH("Killing bigxim");
          MCW_kill_XImage( bigxim ); bigxim = NULL;
       }
    }
@@ -500,16 +502,16 @@ void SUMA_PBAR_bigexpose_CB(Widget w, XtPointer clientData, XtPointer call)
       }
       dim = mri_resize( cim , ww,hh ) ;
       if (!dc) {
-         dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 );
+         dc = MCW_new_DC( SurfCont->Fake_pbar, 4,0, NULL,NULL, 1.0,0 );
       }
       bigxim = mri_to_XImage( dc , dim ) ;
       mri_free(dim) ;
    }
    
    /* actually show the image to the window pane */
-   if( XtIsManaged(w) )
+   if( XtIsManaged(SurfCont->Fake_pbar) )
      XPutImage( SUMAg_CF->X->DPY_controller1 , 
-                XtWindow(w) ,
+                XtWindow(SurfCont->Fake_pbar) ,
                 dc->origGC , bigxim , 0,0,0,0 ,
                 ww , hh ) ;
 
@@ -1756,6 +1758,7 @@ int SUMA_SwitchCmap_one(SUMA_ALL_DO *ado,
              SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
       }
    }  
+
    if (!SUMA_SwitchColPlaneCmap(ado, CM)) {
       SUMA_SL_Err("Failed in SUMA_SwitchColPlaneCmap");
    }
@@ -1773,6 +1776,11 @@ int SUMA_SwitchCmap_one(SUMA_ALL_DO *ado,
    
    /* update Lbl fields */
    SUMA_UpdateNodeLblField(ado);
+
+   if (SUMAg_CF->Fake_Cmap) {
+      SUMA_LH("Attempting to keep up appearances");
+      SUMA_PBAR_bigexpose_CB(NULL, (XtPointer)ado, NULL);
+   }
    
    SUMA_RETURN(1);
 }
@@ -10602,7 +10610,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
 
          #define PANE_MAXMODE     2
          #define SASH_HNO         1
-         Widget frm, pw, pbarw;
+         Widget frm, pw;
          SUMA_S_Warn("Creating X11 cmap for snapshot taking only!");
          
          /*
@@ -10621,7 +10629,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                                       XmNtraversalOn, True  ,
                                       XmNinitialResourcesPersistent , False ,
                                    NULL ) ;
-         pbarw = XtVaCreateWidget(
+         SurfCont->Fake_pbar = XtVaCreateWidget(
                           "pbar" , xmDrawnButtonWidgetClass , pw ,
                               XmNpaneMinimum , PANE_MIN_HEIGHT ,
                               XmNallowResize , True ,
@@ -10637,14 +10645,14 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
                               XmNinitialResourcesPersistent , False ,
                             NULL ) ;
          */
-         pbarw = XmCreateDrawingArea(rcc2, "pbar", NULL, 0);
-         XtVaSetValues(pbarw, XmNheight , SUMA_CMAP_HEIGHT ,
+         SurfCont->Fake_pbar = XmCreateDrawingArea(rcc2, "pbar", NULL, 0);
+         XtVaSetValues(SurfCont->Fake_pbar, XmNheight , SUMA_CMAP_HEIGHT ,
                               XmNwidth , SUMA_CMAP_WIDTH,
                               XmNallowResize , False ,
                               NULL);
-         XtManageChild (pbarw);
+         XtManageChild (SurfCont->Fake_pbar);
          XtManageChild (rcc2);
-         XtAddCallback( pbarw, XmNexposeCallback, 
+         XtAddCallback( SurfCont->Fake_pbar, XmNexposeCallback, 
                         SUMA_PBAR_bigexpose_CB, (XtPointer )ado ) ;
          /* The following commands were part of a failed attempt
          at getting the rest of the widgets - sub-brick selectors
@@ -10656,10 +10664,10 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
          So the solution is to render both and make one super thin. It is 
          rendered in black anyway when the picture is snapped so it makes
          little difference in the end.                ZSS Nov 2014 */
-         XtAddCallback( pbarw, 
+         XtAddCallback( SurfCont->Fake_pbar, 
                         XmNresizeCallback, SUMA_PBAR_bigresize_CB, 
                         (XtPointer )ado);
-         XtAddCallback( pbarw, 
+         XtAddCallback( SurfCont->Fake_pbar, 
                         XmNinputCallback, SUMA_PBAR_biginput_CB, 
                         (XtPointer )ado);
          XtVaSetValues( SurfCont->cmp_ren->cmap_wid,
