@@ -142,7 +142,7 @@ DOIT:
       endif
       3dcopy $v1  ${opref}
       3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] ${opref}$v1_vw
-      if (outspace != "")  then
+      if ($outspace != "")  then
          3drefit -space $outspace ${opref}$v1_vw
       endif
 

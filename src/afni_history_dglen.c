@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 8 , JAN, 2015 , DRG , "@Shift_Volume" , 
+    MICRO , TYPE_BUG_FIX, 
+    "No need to update space for simple shift option",
+    "Previous version reported error for RAI shift but produced correct results\n"
+} ,
+
 { 18 , DEC, 2014 , DRG , "VmPFC atlas" , 
     MINOR , TYPE_GENERAL, 
     "Ventro-medial prefrontal cortex atlas",
