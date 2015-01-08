@@ -789,10 +789,11 @@ USAGE:
    echo "Based on RickR's @build.local"
    echo " Options:"
    echo "   [-D DATE]: Retrieve code from date DATE yyyy-mm-dd"
-   echo "              Default is now"
+   echo "              Default is now."
+   echo "              OPTION Not updated to work with GIT yet!"
    echo "   [-no_build]: Do not compile"
    echo "   [-no_archive]: Do not create source archive"
-   echo "   [-webdist]: Get source from web .tgz, not cvs"
+   echo "   [-webdist]: Get source from web .tgz, not git"
    echo "   [-thisdist DIST]: Get source from a previously"
    echo "                     created @new_dist archive."
    echo "   [-package PACK]: Use Makefile.PACK to compile."
@@ -827,6 +828,7 @@ USAGE:
    echo "   [-jpega]: Add  '$(XROOT)/lib/libjpeg.a'"
    echo "   [-mcwmalloc]: Make sure MCW_MALLOC is used"
    echo "   [-no_mcwmalloc]: Make sure MCW_MALLOC is NOT used."
+   echo "   [-check_log LOGFILE]: Check content of compile log for errors"
    goto END
 
    
