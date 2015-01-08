@@ -202,6 +202,15 @@ else if ($fromcvs == "no") then
    wget http://afni/pub/dist/tgz/afni_src.tgz
    tar xvzf afni_src.tgz
    mv afni_src $tdir/src
+else if ($fromcvs == "git") then
+   if (-d b.$tDdir) rm -rf b.$tDdir >& /dev/null
+   mkdir -p $tdir
+   if ($Date != "now") then
+      echo "ERROR: Don't know how to do this with git yet"
+      goto END
+   else
+      git clone https://github.com/afniHQ/AFNI.git $tdir
+   endif
 else
    if ( ! -d $fromcvs ) then
       tar xvzf $fromcvs
@@ -540,7 +549,7 @@ PARSE_COMMAND:
    set cnt = 1
    set Date = "now"
    set tdir = ""
-   set fromcvs = "yes"   
+   set fromcvs = "git"   
    set withgifti =  1
    set build = 1
    set package = ''
