@@ -1,3 +1,9 @@
+----------------------
+What the H*** is AFNI?
+----------------------
+AFNI is a suite of programs for looking at and analyzing 3D brain
+images.  The emphasis is on FMRI, but AFNI can be used for other
+purposes as well.  See http;//afni.nimh.nih.gov/afni for more fun.
 
 --------------
 AFNI directory
@@ -8,7 +14,7 @@ src/   = source code for AFNI
 ---------------------------
 Relevant git-ology for AFNI
 ---------------------------
-### First time stuff ###
+###..... First time stuff .....###
 
 #Make yourself known to git-land:
 git config --global user.name   "Fred Mertz"
@@ -18,7 +24,7 @@ git config --global core.editor vim
 #Create a copy of the repository on your machine:
 git clone https://github.com/afniHQ/AFNI.git
 
-### Stuff to do as needed ###
+###..... Stuff to do as needed .....###
 
 #Getting updates from the repository
 git pull origin master
