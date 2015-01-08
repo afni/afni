@@ -689,7 +689,7 @@ int main (int argc,char *argv[])
       }
       
       if (strcmp(argv[kar], "-environment") == 0) {
-			 s = SUMA_env_list_help (0, NO_FORMAT);
+			 s = SUMA_env_list_help (0, TXT);
           fprintf (SUMA_STDOUT,  
             "#SUMA ENVIRONMENT \n"
             "# If you do not have a ~/.sumarc file, cannot find a SUMA\n"

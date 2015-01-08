@@ -25,6 +25,9 @@
    Dec 2014:
    + niml.dset output form -> viewing in SUMA
 
+   Jan 2015:
+   + nifti outputtable
+
 */
 
 
@@ -76,7 +79,7 @@ void usage_NetCorr(int detail)
 "\n"
 "  + COMMAND: 3dNetCorr -prefix PREFIX {-mask MASK} {-fish_z} {-part_corr} \\\n"
 "                -inset FILE -in_rois INROIS {-ts_out} {-ts_label} \\\n"
-"                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} \n"
+"                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti} \n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -168,6 +171,9 @@ void usage_NetCorr(int detail)
 "                      are effectively capped at r=0.9999999999999999 (where\n"
 "                      Z~18.71;  hope that's good enough).\n"
 "                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
+"    -nifti           :output any correlation map files as NIFTI files\n"
+"                      (default is BRIK/HEAD). Only useful if using\n"
+"                      '-ts_wb_corr' and/or '-ts_wb_Z'.\n"
 "\n"
 "    -ignore_LT       :switch to ignore any label table labels in the \n"
 "                      '-in_rois' file, if there are any labels attached.\n"
@@ -210,6 +216,8 @@ int main(int argc, char *argv[]) {
    char OUT_indiv0[300];
    //  int *SELROI=NULL; // if selecting subset of ROIs
    //  int HAVE_SELROI=0;
+   
+   int NIFTI_OUT = 0;
 
    byte ***mskd=NULL; // define mask of where time series are nonzero
    byte *mskd2=NULL; // not great, but another format of mask
@@ -341,7 +349,12 @@ int main(int argc, char *argv[]) {
          FISH_OUT=1;
          iarg++ ; continue ;
       }
-    
+
+      if( strcmp(argv[iarg],"-nifti") == 0) {
+         NIFTI_OUT=1;
+         iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-part_corr") == 0) {
          PART_CORR=2; // because we calculate two matrices here
          iarg++ ; continue ;
@@ -937,7 +950,8 @@ int main(int argc, char *argv[]) {
       i = WB_netw_corr( TS_WBCORR_r, 
                         TS_WBCORR_Z,                 
                         HAVE_ROIS, 
-                        prefix, 
+                        prefix,
+                        NIFTI_OUT,
                         NROI_REF,
                         Dim,
                         ROI_AVE_TS,

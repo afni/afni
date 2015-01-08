@@ -1748,6 +1748,7 @@ typedef struct {
    Widget Thr_tb;
    Widget Brt_tb;
    Widget CmapLoad_pb;
+   Widget Fake_pbar;
    int IntRangeLocked;
    int BrtRangeLocked;
    Widget rcclust; /*!< rowcol holding clusterizing options */

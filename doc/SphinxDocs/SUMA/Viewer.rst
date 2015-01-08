@@ -246,11 +246,83 @@ Quick Tour
       
    * See the :ref:`SUMA controller <SumaCont>` for controlling the link between viewers.
    
-.. todo::
+   * Viewing datasets
    
-   Show how to load a dataset and colorize it.       
+      * Open the :ref:`surface controller<SurfCont>` (:ref:`Ctrl+s<LC_Ctrl+s>` if you forgot), and press :ref:`Load Dset<SurfCont->Dset_Controls->Load_Dset>`. 
+      
+      
+      .. figure:: media/SurfCont.auto.QT.ALL.jpg
+         :align: center
+         :figwidth: 30%
+         :target: ../_images/SurfCont.auto.QT.ALL.jpg
+         
+      * From the available options, select one of **v2s.lh.TS.niml.dset**, or **v2s.rh.TS.niml.dset**.
+         
+         * One of the two should be available to you depending on which hemisphere is currently in focus. Contralateral dataset, if sanely named, gets automatically loaded onto the contralateral hemisphere.
+         
+         * To graph the time series, at the cross hair press :ref:`g<LC_g>` in SUMA.The graph window is wedded to the hemisphere in focus. You will need to press :ref:`g<LC_g>` on the contralateral hemisphere to get a graph for that hemisphere too.
+         
+         * Select other nodes or :ref:`Righ-Click+Drag<Button_3-Motion>` 
+         
+         * Press :menuselection:`Freeze` on graph window to preserve current graph
+               * Clicking on other nodes will start a new graph
+               
+               .. figure:: media/ts.jpg
+                  :align: center
+                  :figwidth: 30%
+                  :target: ../_images/ts.jpg
+                  
+                  For more help on graph window usage, including for instance how to save the time series, type **ctrl+h** with the graphing window in focus.
+               
+         * Now let's look at a delay dataset (computed with :ref:`3ddelay<3ddelay>`). Press :ref:`Load Dset<SurfCont->Dset_Controls->Load_Dset>` and load one of **v2s.lh.DEL.niml.dset** or **v2s.rh.DEL.niml.dset**. SUMA will colorize the loaded dataset thereby creating a color plane for it, and will display it on the top of the pre-existing :term:`color planes`.
+         
+            * We begin by describing the right side block :ref:`Dset Mapping<SurfCont->Dset_Mapping>` which is used to colorize a dataset. Many of the options mimic those in AFNI's **Define Overlay** controls.
+            
+            * Many features are not mentioned here, use :ref:`BHelp <GL_CN_BHelp>` interactively or the online help for the controller you are using, here the :ref:`surface controller <SurfCont>`.
+            
+            * From the :ref:`Dset Mapping <SurfCont->Dset_Mapping>` block on the right side of the interface
+            
+            .. figure :: media/SurfCont.auto.QT.DEL.Dset_Mapping.jpg 
+               :align: left
+               :figwidth: 30%
+               :target: ../_images/SurfCont.auto.QT.DEL.Dset_Mapping.jpg  
+                  
+                  * Select column **Corr. Coef.** for the :ref:`Threshold<SurfCont->Dset_Mapping->T>`
+                     
+                     * Press :ref:`v button <SurfCont->Dset_Mapping->T->v>` to apply thresholding.
+                        
+                     * Use the :ref:`scale<SurfCont->Dset_Mapping->Cmap->scale>` to set the threshold. Nodes whose cross correlation value does not pass the threshold will not get colored.
+                        
+                     * Note *p* (uncorrected), and *q* values (FDR) below the slider. ** FDR values are per-hemisphere **
+                        
+               .. note::
+                  
+                  * For simplicity, we mapped a statistical dataset onto the surface (see script  **run_3dVol2Surf** under :ref:`suma_demo/afni<suma_demo>`). This resulted in statistical parameters being averaged with being normalized.
+                  
+                  * A better approach would be to map the time series, and then perform the statistical computation. See script **run_3dVol2Surf** for examples.
+               
+               * Mapping Parameters Table (below the I, T, B selectors):
+                  
+                  * Used for setting the clipping ranges.
 
-.. todo::               
+                  * Clipping is only done for color mapping. Actual data values do not change.
+                  
+                  * See detailed help :ref:`here<SurfCont->Dset_Mapping->SetRangeTable.c00>`. Note that a Left click on the :ref:`'I<SurfCont->Dset_Mapping->SetRangeTable.r01>' locks ranges from automatic resetting when you choose a different dataset column for **I**. A right click on :ref:`'I<SurfCont->Dset_Mapping->SetRangeTable.r01>' resets values to full range in data.
+               
+               * For color mapping controls see :ref:`Col<SurfCont->Dset_Mapping->Col>`,  :ref:`New<SurfCont->Dset_Mapping->New>`,:ref:`Cmp<SurfCont->Dset_Mapping->Cmp>`, etc.
+               
+               * Bored? Try :ref:`Bias<SurfCont->Dset_Mapping->Bias>` for a change.  
+            * The colormap is rendered as a surface, and shares some of the functions of SUMA's viewer. You have keyboard controls when the mouse is over the colorbar. See details :ref:`here<SurfCont->Dset_Mapping->Cmap->bar>`.
+            
+            * Interactive clustering:
+               
+               * Left click on :ref:`<SurfCont->Dset_Mapping->Clst.c00>` to activate/deactivate clustering. Cluster table is output to the shell. Clicking on a node shows its cluster label in the viewer.
+               
+            * For more information, resort to the help for the :ref:`Surface Controller<SurfCont>` and :ref:`Plane Layering<Plane_Layering>`.
+      .. note:: Most of what was done for surface-based dataset applies to volumetric and connectivity data. 
+
+.. todo::
+               
    .. _Volume_Viewing:
 
    Volume Viewing
