@@ -78,7 +78,8 @@ int WritebasicProbFiles( int N_nets, int Ndata, int Nvox,
                          THD_3dim_dataset *dsetn, int argc, char *argv[],
                          char ***ROI_STR_LAB, int NameLabelsOut,
                          Dtable *roi_table,
-                         int **roi_labs, int PAIR_POWERON);
+                         int **roi_labs, int PAIR_POWERON,
+                         int NIFTI_OUT);
 
 int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int **Prob_grid,
                          char *prefix, THD_3dim_dataset *insetFA,
@@ -87,7 +88,8 @@ int WriteIndivProbFiles( int N_nets, int Ndata, int Nvox, int **Prob_grid,
                          THD_3dim_dataset *dsetn, int argc, char *argv[],
                          float ***Param_grid, int DUMP_TYPE,
                          int DUMP_ORIG_LABS, int **ROI_LABELS, int POST_IT,
-                         char ***ROI_STR_LAB, int NameLabelsOut);
+                         char ***ROI_STR_LAB, int NameLabelsOut,
+                         int NIFTI_OUT);
 
 // lazy now, someday will write these unified/smarter.
 //int Write_Running_Opts_DET(logic );

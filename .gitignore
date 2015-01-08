@@ -1,8 +1,3 @@
-doc/SphinxDocs/_build
-pdf
-ps
-tex
-
 #The obvious lot
 CVS
 .DS_Store
@@ -22,8 +17,9 @@ ___*
 *.dset*
 *.niml
 
-#Hidden names
-.R.Rout
-
-#From doc builds
+#R Hidden files
+*.Rout
 *.args
+
+#Miscellaneous
+*.BAK

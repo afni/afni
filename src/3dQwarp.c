@@ -736,6 +736,19 @@ void Qhelp(void)
     "                 walking on the knife edge of danger.\n"
     "               * Of course, I know that you LIVE for such thrills.\n"
     "\n"
+    " -gridlist gl = This option provides an alternate way to specify the patch\n"
+    "                grid sizes used in the warp optimization process. 'gl' is\n"
+    "                a 1D file with a list of patches to use -- in most cases,\n"
+    "                you will want to use it in the following form:\n"
+    "                  -gridlist '1D: 0 151 101 75 51'\n"
+    "                Here, a 0 patch size means the global domain. Patch sizes\n"
+    "                otherwise should be odd integers >= 9.\n"
+    "               * You cannot use -gridlist with -duplo or -plusminus!\n"
+    "\n"
+    " -allsave     = This option lets you save the output warps from each level\n"
+    "                of the refinement process.  Mostly used for experimenting.\n"
+    "               * Cannot be used with -nopadWARP, -duplo, or -plusminus.\n"
+    "\n"
     " -duplo       = Start off with 1/2 scale versions of the volumes,\n"
     "                for getting a speedy coarse first alignment.\n"
     "               * Then scales back up to register the full volumes.\n"
@@ -1683,6 +1696,41 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-allsave") == 0 ){   /* 02 Jan 2015 */
+       Hsave_allwarps = 1 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-gridlist") == 0 ){  /* 31 Dec 2014 */
+       MRI_IMAGE *gim ; float *gar ; int gg , nbad ;
+       if( HAVE_HGRID )     ERROR_exit("You can't use -gridlist twice :-(") ;
+       if( ++nopt >= argc ) ERROR_exit("Need arg after -gridlist !!") ;
+       gim = mri_read_1D(argv[nopt]) ;
+       if( gim == NULL )    ERROR_exit("Can't read -gridlist file '%s'",argv[nopt]) ;
+       gar = MRI_FLOAT_PTR(gim) ;
+       for( nbad=gg=0 ; gg < gim->nx ; gg++ ){
+         if( gar[gg] < NGMIN && gar[gg] != 0 ) nbad++ ;
+       }
+       if( nbad > 0 ){
+         ERROR_exit("Can't use -gridlist file '%s' -- found %d error%s",
+                    argv[nopt] , nbad , (nbad==1)?" ":"s" ) ;
+       }
+       Hgridlist_num = gim->nx ;
+       Hgridlist     = (int *)malloc(sizeof(int)*gim->nx) ;
+       for( nbad=gg=0 ; gg < gim->nx ; gg++ ){
+         Hgridlist[gg] = (int)gar[gg] ;
+         if( Hgridlist[gg] > 0 && Hgridlist[gg]%2 == 0 ){ Hgridlist[gg]++ ; nbad++ ; }
+       }
+       if( nbad > 0 ){
+         WARNING_message("-gridlist file '%s' -- %d value%s even and incremented" ,
+                         argv[nopt] , nbad , (nbad==1) ? " is" : "s are" ) ;
+       }
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
 #if 0  /* this should NOT be enabled! */
      if( strcasecmp(argv[nopt],"-localstat") == 0 ){  /* 09 Sep 2013 */
        Hlocalstat = 1 ; nopt++ ; continue ;
@@ -1753,6 +1801,16 @@ STATUS("check for errors") ;
      ERROR_message("You can't use -base without -source!") ; nbad++ ;
    } else if( bset == NULL && sset != NULL ) {
      ERROR_message("You can't use -source without -base!") ; nbad++ ;
+   }
+
+   if( HAVE_HGRID && duplo ){  /* 02 Jan 2015 */
+     ERROR_message("You can't combine -gridlist with -duplo :-(") ; nbad++ ;
+   }
+   if( HAVE_HGRID && do_plusminus ){
+     ERROR_message("You can't combine -gridlist with -plusminus :-(") ; nbad++ ;
+   }
+   if( Hsave_allwarps && !zeropad_warp ){
+     ERROR_message("You can't combine -allsave with -nopadWARP :-(") ; nbad++ ;
    }
 
    /*--- any fatal errors flagged above, then it's time to go fatal ---*/
@@ -2438,7 +2496,7 @@ STATUS("construct weight/mask volume") ;
      /* (don't have to adjust plusminus warp since can't be run with -allin) */
 
      if( do_allin ){
-       mat44 tmat,smat,qmat ; IndexWarp3D *tarp ;
+       mat44 tmat,smat,qmat ; IndexWarp3D *tarp ; int ii ;
 STATUS("adjust for 3dAllineate matrix") ;
        qmat = allin_matrix ;                            /* convert matrix to */
        tmat = MAT44_MUL(qmat,oiw->warp->cmat) ;         /* index space from  */
@@ -2446,6 +2504,14 @@ STATUS("adjust for 3dAllineate matrix") ;
        tarp = IW3D_compose_w1m2(oiw->warp,smat,MRI_WSINC5) ;  /* adjust warp */
        IW3D_destroy(oiw->warp) ; oww = oiw->warp = tarp ;
        IW3D_adopt_dataset(oww,adset) ;
+
+       /** also adjust all intermediate saved warps [02 Jan 2015] **/
+
+       for( ii=0 ; ii < Hsave_num ; ii++ ){
+         tarp = IW3D_compose_w1m2(Hsave_iwarp[ii],smat,MRI_WSINC5) ;
+         IW3D_destroy(Hsave_iwarp[ii]) ; Hsave_iwarp[ii] = tarp ;
+         IW3D_adopt_dataset(Hsave_iwarp[ii],adset) ;
+       }
      }
 
      /** directly warp from original source dataset to output image **/
@@ -2591,6 +2657,22 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
      IW3D_destroy(owwi) ; owwi = NULL ;
+   }
+
+   /*-- output intermediate saved warps [02 Jan 2015] --*/
+
+   if( Hsave_allwarps && Hsave_num > 0 ){
+     char suffix[64] , *qprefix ; int ii ;
+     for( ii=0 ; ii < Hsave_num ; ii++ ){
+       sprintf(suffix,"_%s_WARP",Hsave_iname[ii]) ;
+       qprefix = modify_afni_prefix(prefix,NULL,suffix) ;
+       qset = IW3D_to_dataset( Hsave_iwarp[ii] , qprefix ) ;
+       tross_Copy_History( bset , qset ) ;
+       tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
+       MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+       DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ;
+     }
+     HSAVE_DESTROY ;
    }
 
    /*------------- go back to watching Matlock reruns ------------------------*/

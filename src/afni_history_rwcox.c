@@ -43,7 +43,12 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 18 , DEC , 2014 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
+  { 7 , JAN , 2015 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "Add -gridlist and -allsave options" ,
+   "Allows specifying the exact list of patch/grid sizes to use, and also to\n"
+   "save the output warp at each level." } ,
+
+ { 18 , DEC , 2014 , RWC , "3dUnifize" , MICRO , TYPE_NEW_OPT ,
    "Add -T2 option" ,
    NULL } ,
 
