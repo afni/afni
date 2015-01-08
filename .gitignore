@@ -20,3 +20,6 @@ ___*
 #R Hidden files
 *.Rout
 *.args
+
+#Miscellaneous
+*.BAK
