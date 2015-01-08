@@ -4809,6 +4809,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str, SUMA_DO_Types tp)
    SurfCont->SwitchThrArrow = NULL;
    #endif
    SurfCont->SwitchCmapMenu = NULL;
+   SurfCont->Fake_pbar = NULL;
    SurfCont->rc_CmapCont = NULL;
    SurfCont->CoordBiasMenu = SUMA_Alloc_Menu_Widget(SW_N_CoordBias);
    SurfCont->LinkModeMenu = SUMA_Alloc_Menu_Widget(SW_N_LinkMode);
