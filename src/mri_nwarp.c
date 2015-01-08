@@ -7786,6 +7786,32 @@ static int Hfinal     =   0 ;    /* is this the final level we are working on no
 static int Hworkhard1 =   0 ;    /* workhard stuff (but who wants to work hard?) */
 static int Hworkhard2 =  -1 ;
 
+static int  Hgridlist_num = 0 ;     /* 31 Dec 2014 */
+static int *Hgridlist     = NULL ;
+#define HAVE_HGRID ( Hgridlist_num > 0 && Hgridlist != NULL )
+#define HGRID(gg) \
+  ( ( HAVE_HGRID && (gg) >= 0 && (gg) < Hgridlist_num ) ? Hgridlist[gg] : -666 )
+
+static int           Hsave_allwarps = 0 ;    /* 02 Jan 2015 */
+static int           Hsave_num      = 0 ;
+static IndexWarp3D **Hsave_iwarp    = NULL ;
+static char        **Hsave_iname    = NULL ;
+#define HSAVE_DESTROY                                                         \
+ do{ if( Hsave_num > 0 ){                                                     \
+       if( Hsave_iwarp != NULL ){                                             \
+         int ii ;                                                             \
+         for( ii=0 ; ii < Hsave_num ; ii++ ) IW3D_destroy(Hsave_iwarp[ii]) ;  \
+         free(Hsave_iwarp) ; Hsave_iwarp = NULL ;                             \
+       }                                                                      \
+       Hsave_num = 0 ;                                                        \
+     } } while(0)
+#define HSAVE_ADDTO(iww,inn)                                                                   \
+ do{ Hsave_iwarp = (IndexWarp3D **)realloc(Hsave_iwarp,sizeof(IndexWarp3D *)*(Hsave_num+1)) ;  \
+     Hsave_iname = (char        **)realloc(Hsave_iname,sizeof(char        *)*(Hsave_num+1)) ;  \
+     Hsave_iwarp[Hsave_num] = IW3D_copy(iww,1.0f) ;                                            \
+     Hsave_iname[Hsave_num] = strdup(inn) ; Hsave_num++ ;                                      \
+ } while(0)
+
 static int   Hfirsttime = 0 ;    /* for fun only (to print stuff out in cost func) */
 static float Hfirstcost = 666.0f;
 
@@ -9521,6 +9547,7 @@ ENTRY("IW3D_setup_for_improvement") ;
    /*-- eliminate old stuff (if any) --*/
 
    IW3D_cleanup_improvement() ;
+   HSAVE_DESTROY ;  /* 02 Jan 2015 */
 
    /*-- copy base and source images --*/
 
@@ -10005,13 +10032,14 @@ void (*iterfun)(char *,MRI_IMAGE *) = NULL ;
 IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
                                int meth_code, int warp_flags                   )
 {
-   int lev,levs , xwid,ywid,zwid , xdel,ydel,zdel , iter ;
+   int lev,levs,leve , xwid,ywid,zwid , xdel,ydel,zdel , iter , hgzero=0 ;
    int ibot,itop,idon , jbot,jtop,jdon , kbot,ktop,kdon , dox,doy,doz , iii ;
    float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f,Hcostbeg=999.9f ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
    int dkkk,djjj,diii , ngmin=0 , levdone=0 ;
    int qmode=MRI_CUBIC , qmode2=MRI_CUBIC , qmodeX , nlevr , nsup,isup ;
    IndexWarp3D *OutWarp ;  /* the return value */
+   char warplab[64] ;      /* 02 Jan 2015 */
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -10052,7 +10080,7 @@ ENTRY("IW3D_warpomatic") ;
 
    /* do the top level (global warps) */
 
-   if( Hlev_start == 0 ){
+   if( Hlev_start == 0 || HGRID(0) == 0 ){
      /* number of times to try the global quintic patch */
      nlevr = ( WORKHARD(0) || Hduplo ) ? 4 : 2 ; if( SUPERHARD(0) ) nlevr++ ;
      /* force the warp to happen, but don't use any penalty */
@@ -10081,6 +10109,10 @@ ENTRY("IW3D_warpomatic") ;
          break ;
        }
      }
+     if( Hsave_allwarps ){           /* 02 Jan 2015 */
+       sprintf(warplab,"%04dx%04dx%04d",ittt-ibbb+1,jttt-jbbb+1,kttt-kbbb+1) ;
+       HSAVE_ADDTO(Haawarp,warplab) ;
+     }
      if( Hverb == 1 ) fprintf(stderr," done [cost:%.5f==>%.5f]\n",Hfirstcost,Hcost) ;
    } else {
      Hcost = 666.666f ;  /* a beastly thing to do [no lev=0 optimization] */
@@ -10093,13 +10125,17 @@ ENTRY("IW3D_warpomatic") ;
 
    if( !Hduplo ) ITEROUT(0) ;
 
-   if( Hngmin > 0 ){  /* is min patch size set from user? */
-     ngmin = Hngmin ;
-     if( Hduplo ){ ngmin = ngmin/2 + 1 ; if( ngmin < 11 ) ngmin = 11 ; }
-   }
+   if( !HAVE_HGRID ){
+     if( Hngmin > 0 ){  /* is min patch size set from user? */
+       ngmin = Hngmin ;
+       if( Hduplo ){ ngmin = ngmin/2 + 1 ; if( ngmin < 11 ) ngmin = 11 ; }
+     }
 
-        if( ngmin   <  NGMIN ) ngmin = NGMIN ; /* can't go below this! */
-   else if( ngmin%2 == 0     ) ngmin-- ;       /* must be odd */
+          if( ngmin   <  NGMIN ) ngmin = NGMIN ; /* can't go below this! */
+     else if( ngmin%2 == 0     ) ngmin-- ;       /* must be odd */
+   } else {
+     ngmin = NGMIN ;   /* 31 Dec 2014 */
+   }
 
    /** this should not happen, but if it does, then we're too small **/
 
@@ -10113,8 +10149,17 @@ ENTRY("IW3D_warpomatic") ;
    /*------ Now, iterate down to finer and finer patches ------*/
 
    levs = MAX(1,Hlev_start) ;  /* start level */
+   leve = Hlev_end ;
+   if( HAVE_HGRID && Hgridlist_num-1 < leve ) leve = Hgridlist_num-1 ;
 
-   for( lev=levs ; lev <= Hlev_end && !levdone ; lev++ ){
+   if( HAVE_HGRID ){
+     xwid = (Hnx+1)*0.75f ; if( xwid%2 == 0 ) xwid++ ;
+     ywid = (Hny+1)*0.75f ; if( ywid%2 == 0 ) ywid++ ;
+     zwid = (Hnz+1)*0.75f ; if( zwid%2 == 0 ) zwid++ ;
+     hgzero = MIN(xwid,ywid) ; hgzero = MIN(hgzero,zwid) ;
+   }
+
+   for( lev=levs ; lev <= leve && !levdone ; lev++ ){
 
      /* set penalty factor for this level */
 
@@ -10123,10 +10168,16 @@ ENTRY("IW3D_warpomatic") ;
 
      /* compute width of rectangles at this level */
 
-     flev = powf(Hshrink,(float)lev) ;                 /* shrinkage fraction */
-     xwid = (Hnx+1)*flev ; if( xwid%2 == 0 ) xwid++ ;  /* patch sizes must be odd */
-     ywid = (Hny+1)*flev ; if( ywid%2 == 0 ) ywid++ ;
-     zwid = (Hnz+1)*flev ; if( zwid%2 == 0 ) zwid++ ;
+     if( ! HAVE_HGRID ){  /* the olden way */
+       flev = powf(Hshrink,(float)lev) ;                 /* shrinkage fraction */
+       xwid = (Hnx+1)*flev ; if( xwid%2 == 0 ) xwid++ ;  /* patch sizes must be odd */
+       ywid = (Hny+1)*flev ; if( ywid%2 == 0 ) ywid++ ;
+       zwid = (Hnz+1)*flev ; if( zwid%2 == 0 ) zwid++ ;
+     } else {             /* the new-fangled way [31 Dec 2014] */
+       xwid = ywid = zwid = HGRID(lev) ;
+       if( xwid == 0 ) xwid = ywid = zwid = hgzero ;
+       if( xwid < NGMIN ) goto DoneDoneDone ;  /* past the end of the Hgridlist array? */
+     }
 
      /* decide if we are doing things in x, y, and/or z */
 
@@ -10150,18 +10201,22 @@ ENTRY("IW3D_warpomatic") ;
 
      /* if we are almost to the smallest allowed patch, jump down to that size now */
 
-     flev = xwid / (float)ngmin ;                                  /* flev is the */
-     glev = ywid / (float)ngmin ; if( flev < glev ) flev = glev ;  /* largest ratio */
-     glev = zwid / (float)ngmin ; if( flev < glev ) flev = glev ;  /* of ?wid to ngmin */
-     if( flev > 1.0f && flev*Hshrink <= 1.00001f ){
-       if( xwid > ngmin ) xwid = ngmin ;
-       if( ywid > ngmin ) ywid = ngmin ;
-       if( zwid > ngmin ) zwid = ngmin ;
-       levdone = 1 ;   /* signal to exit when loop finishes */
+     if( !HAVE_HGRID ){  /* only if user didn't specify the grid schedule */
+       flev = xwid / (float)ngmin ;                                  /* flev is the */
+       glev = ywid / (float)ngmin ; if( flev < glev ) flev = glev ;  /* largest ratio */
+       glev = zwid / (float)ngmin ; if( flev < glev ) flev = glev ;  /* of ?wid to ngmin */
+       if( flev > 1.0f && flev*Hshrink <= 1.00001f ){
+         if( xwid > ngmin ) xwid = ngmin ;
+         if( ywid > ngmin ) ywid = ngmin ;
+         if( zwid > ngmin ) zwid = ngmin ;
+         levdone = 1 ;   /* signal to exit when loop finishes */
+       } else {
+         iter = MAX(xwid,ywid) ; iter = MAX(iter,zwid) ; levdone = (iter == ngmin) ;
+       }
+       Hfinal = (levdone && !Hduplo) ;  /* is this the final level? */
      } else {
-       iter = MAX(xwid,ywid) ; iter = MAX(iter,zwid) ; levdone = (iter == ngmin) ;
+       levdone = Hfinal = (lev == Hgridlist_num-1) ;
      }
-     Hfinal = (levdone && !Hduplo) ;  /* is this the final level? */
 
      /* step sizes for shifting the patches (half widths) */
 
@@ -10222,7 +10277,7 @@ ENTRY("IW3D_warpomatic") ;
 
      if( lev%2 == 1 || nlevr > 1 ){  /* sweep from bot to top, ijk order */
       for( isup=0 ; isup < nsup ; isup++ ){  /* working superhard? do this twice! */
-       for( kdon=0,kbot=ibbb ; !kdon ; kbot += dkkk ){  /* loop over z direction of patches */
+       for( kdon=0,kbot=kbbb ; !kdon ; kbot += dkkk ){  /* loop over z direction of patches */
          ktop = kbot+zwid-1;  /* top edge of patch: maybe edit it down or up */
               if( ktop >= kttt )       { ktop = kttt; kbot = ktop+1-zwid; kdon=1; }
          else if( ktop >= kttt-zwid/4 ){ ktop = kttt; kdon=1; }  /* extend patch to end */
@@ -10331,6 +10386,11 @@ ENTRY("IW3D_warpomatic") ;
      Hcostbeg = Hcost ;
 
      if( !Hduplo ) ITEROUT(lev) ;
+
+     if( Hsave_allwarps ){           /* 02 Jan 2015 */
+       sprintf(warplab,"%04dx%04dx%04d",xwid,ywid,zwid) ;
+       HSAVE_ADDTO(Haawarp,warplab) ;
+     }
 
    } /*-- end of loop over levels of refinement --*/
 
@@ -11803,7 +11863,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
 
      if( lev%2 == 1 || nlevr > 1 ){  /* bot to top, ijk */
       for( isup=0 ; isup < nsup ; isup++ ){  /* superhard? */
-       for( kdon=0,kbot=ibbb ; !kdon ; kbot += dkkk ){
+       for( kdon=0,kbot=kbbb ; !kdon ; kbot += dkkk ){
          ktop = kbot+zwid-1;
               if( ktop >= kttt )       { ktop = kttt; kbot = ktop+1-zwid; kdon=1; }
          else if( ktop >= kttt-zwid/4 ){ ktop = kttt; kdon=1; }
