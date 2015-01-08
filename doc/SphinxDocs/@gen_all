@@ -4,6 +4,7 @@
 
 set afscp = afni.nimh.nih.gov:/var/www/html/pub/dist/doc/htmldoc
 set afwpg = http://afni.nimh.nih.gov/pub/dist/doc/htmldoc
+set SUMA_DEMO = ~/.afni/data/suma_demo
 
 goto PARSE
 RETURN_PARSE:
@@ -49,7 +50,7 @@ if ($nosuma == 0) then
            '-com surf_cont -snap_suma_cont_widgets             \
                         SUMA/media/SumaCont.auto'              \
         -drive_com '-com kill_suma' |& tee -a ___build.log
-
+        
    suma -fake_cmap                                             \
         -tract ~/.afni/data/samples/o.NETS_OR_000.niml.tract   \
         -drive_com '-com surf_cont -view_surf_cont y'          \
@@ -91,6 +92,31 @@ if ($nosuma == 0) then
                         SUMA/media/GraphCont.auto'             \
         -drive_com '-com kill_suma' |& tee -a ___build.log
 
+   if ( -d $SUMA_DEMO ) then
+      cd $SUMA_DEMO/afni
+      afni -niml -npb 12 
+      suma  -spec ../SurfData/SUMA/std.DemoSubj_both.spec      \
+            -sv DemoSubj_SurfVol_Alnd_Exp+orig                 \
+            -npb 12 -fake_cmap                                 \
+            -drive_com '-com surf_cont -view_surf_cont y'          \
+            -drive_com                                             \
+               '-com viewer_cont -surf_label lh.smoothwm' \
+            -drive_com '-com surf_cont -load_dset v2s.lh.TS.niml.dset'\
+            -drive_com '-com viewer_cont -key:v121144 j -key g' \
+            -drive_com '-com surf_cont -switch_cmap byr64'  \
+            -drive_com '-com surf_cont -snap_surf_cont_widgets             \
+                        SurfCont.auto.QT'              \
+            -drive_com '-com surf_cont -load_dset v2s.lh.DEL.niml.dset'\
+            -drive_com '-com surf_cont -I_sb 0 -T_sb 2 -T_val 0.27 \
+                        -I_range 0 30'\
+            -drive_com '-com surf_cont -snap_surf_cont_widgets             \
+                        SurfCont.auto.QT.DEL'              \
+         -drive_com '-com kill_suma' |& tee -a ___build.log
+       cd -
+       mv $SUMA_DEMO/afni/SurfCont.auto.QT.ALL.jpg SUMA/media/
+       mv $SUMA_DEMO/afni/SurfCont.auto.QT.DEL.Dset_Mapping.jpg SUMA/media/
+   endif
+   
 endif
 
 AUTO_HELP:
