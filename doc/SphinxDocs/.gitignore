@@ -5,4 +5,4 @@ tex
 _build
 programs/programs.rst
 SUMA/media/*Cont.auto.*jpg
-
+SUMA/auto_inc/*.inc
