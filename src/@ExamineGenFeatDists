@@ -74,6 +74,7 @@ DOAC:
    endif
    set nymax = 4
    set mxstep = `ccalc -i "$nx *$nymax"`
+   set parts = 0
    if ($nall > $mxstep) set parts = 1
    set istart = 1
    set part = 0
@@ -157,6 +158,7 @@ DOEC:
    endif
    set nymax = 4
    set mxstep = `ccalc -i "$nx *$nymax"`
+   set parts = 0
    if ($nall > $mxstep) set parts = 1
    set istart = 1
    set part = 0
