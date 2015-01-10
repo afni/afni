@@ -39,10 +39,10 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"hTf:p:t:",["help",
                                                     "Trunc_labs",
-                                                   "file_in",
-                                                   "prefix",
-                                                   "thr_out"
-                                           ])
+                                                    "file_in=",
+                                                    "prefix=",
+                                                    "thr_out="
+                                                ])
 
     except getopt.GetoptError:
         print "** Error reading options. Try looking at the helpfile:"
@@ -56,7 +56,7 @@ def main(argv):
         elif opt in ("-f", "--file_in"):
             file_in = arg
             comm_str = GR.RecapAttach(comm_str, opt, arg)
-        elif opt in ("-p", "--pref_out"):
+        elif opt in ("-p", "--prefix"):
             pref_out = arg
             comm_str = GR.RecapAttach(comm_str, opt, arg)
         elif opt in ("-t", "--thr_out"):
