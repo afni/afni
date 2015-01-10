@@ -126,6 +126,8 @@ def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS):
     nvar = len(FI_var)
     npar = len(FI_par)
 
+    calc_indent = 14*nvar+1
+
     if  (npar, nvar) != np.shape(FI_mat) :
         print "Weird error in numbers not matching internally!"
         sys.exit(35)
@@ -139,6 +141,11 @@ def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS):
     print ""
     if STARTER: TS.append("\n")
 
+    TS.append('#%s#   %s\n' % ('-'*calc_indent, FI_indi))
+    
+
+
+
     # ... the rest.
     for i in range(npar):
         for j in range(nvar):
@@ -151,10 +158,7 @@ def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS):
             print "%14s" % (out),
             TS.append("%14s" % (fout))
         print "  %s" % FI_par[i]
-        if i==0:
-            TS.append('  # %s  # %s\n' % (FI_par[i], FI_indi))
-        else:
-            TS.append("  # %s\n" % FI_par[i])
+        TS.append("  # %s\n" % FI_par[i])
 
 
     if not(TS):
