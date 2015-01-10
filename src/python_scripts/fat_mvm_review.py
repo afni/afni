@@ -101,10 +101,11 @@ if __name__=="__main__":
     FI_glob = glob(FI)
     FI_glob.sort()
 
+    LIST_FOR_OUT = []
+
     for FI_indi in FI_glob:
 
-        print "FOUND:   %s\n" % (FI_indi)
-
+        print "\nFOUND:   %s" % (FI_indi)
 
         FI_list = GR.ReadInGridOrNetcc(FI_indi)
 
@@ -122,11 +123,20 @@ if __name__=="__main__":
 
         #  - - - - - - - - - - - -  -  OUTPUT  - - - -  - - - - -- -- -- -
 
-        HAPPY = GR.ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var)
-        print ""
+        LIST_FOR_OUT = GR.ScreenAndFileOutput( PO, 
+                                               TO, 
+                                               FI_mat, 
+                                               FI_par, 
+                                               FI_var,
+                                               FI_indi,
+                                               LIST_FOR_OUT )
+        
 
-        if not(HAPPY) :
-            print "Some kind of error happened at the end?"
-
-
-
+    if PO: 
+        outname = PO + '_ANOVAE.txt'
+        f = open(outname, 'w')
+        for ll in LIST_FOR_OUT:
+            f.write("%s" % (ll))
+        f.close()
+    
+        print "\nWrote out file: ", outname
