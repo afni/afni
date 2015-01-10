@@ -130,10 +130,11 @@ MCW_cluster * MCW_rectmask( float dx, float dy, float dz,
 
    INIT_CLUSTER(mask) ;
 
+   ADDTO_CLUSTER(mask,0,0,0,0) ; /* always keep central point first */
    for( kk=-kdz ; kk <= kdz ; kk++ ){
     for( jj=-jdy ; jj <= jdy ; jj++ ){
      for( ii=-idx ; ii <= idx ; ii++ ){
-       ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+       if (ii && jj && kk) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
    }}}
 
    return mask ;
@@ -164,18 +165,21 @@ MCW_cluster * MCW_rhddmask( float dx, float dy, float dz, float radius )
 
    INIT_CLUSTER(mask) ;
 
+   ADDTO_CLUSTER(mask,0,0,0,0) ; /* always keep central point first */
    for( kk=-kdz ; kk <= kdz ; kk++ ){
     c = kk*dz ;
     for( jj=-jdy ; jj <= jdy ; jj++ ){
      b = jj*dy ;
      for( ii=-idx ; ii <= idx ; ii++ ){
-       a = ii*dx ;
-       if( fabsf(a+b) <= radius &&
-           fabsf(a-b) <= radius &&
-           fabsf(a+c) <= radius &&
-           fabsf(a-c) <= radius &&
-           fabsf(b+c) <= radius &&
-           fabsf(b-c) <= radius   ) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+       if (ii && jj && kk) {
+          a = ii*dx ;
+          if( fabsf(a+b) <= radius &&
+              fabsf(a-b) <= radius &&
+              fabsf(a+c) <= radius &&
+              fabsf(a-c) <= radius &&
+              fabsf(b+c) <= radius &&
+              fabsf(b-c) <= radius   ) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+       }
    }}}
 
    return mask ;
@@ -214,14 +218,42 @@ MCW_cluster * MCW_tohdmask( float dx, float dy, float dz, float radius )
 
    INIT_CLUSTER(mask) ;
 
+   ADDTO_CLUSTER(mask,0,0,0,0) ; /* always keep central point first */
    for( kk=-kdz ; kk <= kdz ; kk++ ){
     c = kk*dz ;
     for( jj=-jdy ; jj <= jdy ; jj++ ){
      b = jj*dy ;
      for( ii=-idx ; ii <= idx ; ii++ ){
        a = ii*dx ;
-       if( TOHD_inside(a,b,c,radius) ) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+       if( ii && jj && kk && TOHD_inside(a,b,c,radius) ) 
+                              ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
    }}}
 
    return mask ;
+}
+
+void MCW_showmask (MCW_cluster *nbhd, char *opening, char *closing, FILE *fout)
+{
+   int ii;
+   if (!fout) fout = stdout;
+   if (opening) fprintf(fout, "%s", opening);
+   if (!nbhd) {
+      fprintf(fout, "NULL nbhd\n");
+   } else {
+      fprintf(fout, "Neighborhood of %d voxels (%d allocated), %s mag.\n", 
+                    nbhd->num_pt, nbhd->num_all, nbhd->mag?"with":"without");
+      if (nbhd->mag) {
+         for (ii=0; ii<nbhd->num_pt; ++ii) {
+            fprintf (fout, "Offset[I J K]: %+03d %+03d %+03d, Mag: %f\n", 
+                           nbhd->i[ii], nbhd->j[ii], nbhd->k[ii], nbhd->mag[ii]);
+         }
+      } else {
+         for (ii=0; ii<nbhd->num_pt; ++ii) {
+            fprintf (fout, "Offset[I J K]: %+03d %+03d %+03d\n", 
+                        nbhd->i[ii], nbhd->j[ii], nbhd->k[ii]);
+         }
+      }
+   }
+   if (closing) fprintf(fout, "%s", closing);
+   return;
 }
