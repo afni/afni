@@ -117,6 +117,54 @@ def Find_ANOVAE(x):
 
 ###------------------------------------------------------------------
 
+def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS):
+
+    STARTER = 0
+    if not(TS):
+        STARTER = 1
+
+    nvar = len(FI_var)
+    npar = len(FI_par)
+
+    if  (npar, nvar) != np.shape(FI_mat) :
+        print "Weird error in numbers not matching internally!"
+        sys.exit(35)
+
+    # first lining ...
+    if STARTER: TS.append('# %12s' % (FI_var[0]))
+    for j in range(nvar):
+        print "%14s" % (FI_var[j]),
+        if (j>0):
+            if STARTER: TS.append("%14s" % FI_var[j])
+    print ""
+    if STARTER: TS.append("\n")
+
+    # ... the rest.
+    for i in range(npar):
+        for j in range(nvar):
+            if FI_mat[i,j] < TO:
+                out = "%.4e" % (FI_mat[i,j])
+                fout = out
+            else:
+                out = '-'
+                fout = '0'
+            print "%14s" % (out),
+            TS.append("%14s" % (fout))
+        print "  %s" % FI_par[i]
+        if i==0:
+            TS.append('  # %s  # %s\n' % (FI_par[i], FI_indi))
+        else:
+            TS.append("  # %s\n" % FI_par[i])
+
+
+    if not(TS):
+        print "**ERROR! Empty file?"
+        sys.exit(12)
+
+    return TS
+
+''' OLD version
+
 def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var):
 
     nvar = len(FI_var)
@@ -155,6 +203,9 @@ def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var):
     if PO: f.close()
 
     return 1
+'''
+
+
 
 ###------------------------------------------------------------------
 ###------------------------------------------------------------------
