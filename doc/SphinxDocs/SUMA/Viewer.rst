@@ -283,10 +283,19 @@ Quick Tour
             * From the :ref:`Dset Mapping <SurfCont->Dset_Mapping>` block on the right side of the interface
             
             .. figure :: media/SurfCont.auto.QT.DEL.Dset_Mapping.jpg 
-               :align: left
+               :align: right
                :figwidth: 30%
                :target: ../_images/SurfCont.auto.QT.DEL.Dset_Mapping.jpg  
+               
+               ..
                   
+            .. container:: clearer
+
+                .. image:: media/blank.jpg
+               
+                ..
+                
+                   
                   * Select column **Corr. Coef.** for the :ref:`Threshold<SurfCont->Dset_Mapping->T>`
                      
                      * Press :ref:`v button <SurfCont->Dset_Mapping->T->v>` to apply thresholding.
@@ -307,27 +316,29 @@ Quick Tour
 
                   * Clipping is only done for color mapping. Actual data values do not change.
                   
-                  * See detailed help :ref:`here<SurfCont->Dset_Mapping->SetRangeTable.c00>`. Note that a Left click on the :ref:`'I<SurfCont->Dset_Mapping->SetRangeTable.r01>' locks ranges from automatic resetting when you choose a different dataset column for **I**. A right click on :ref:`'I<SurfCont->Dset_Mapping->SetRangeTable.r01>' resets values to full range in data.
+                  * See detailed help :ref:`here<SurfCont->Dset_Mapping->SetRangeTable.c00>`. Note that a Left click on the :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>` locks ranges from automatic resetting when you choose a different dataset column for **I**. A right click on :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>` resets values to full range in data.
                
-               * For color mapping controls see :ref:`Col<SurfCont->Dset_Mapping->Col>`,  :ref:`New<SurfCont->Dset_Mapping->New>`,:ref:`Cmp<SurfCont->Dset_Mapping->Cmp>`, etc.
+               * For color mapping controls see :ref:`Col<SurfCont->Dset_Mapping->Col>`,  :ref:`New<SurfCont->Dset_Mapping->Cmp->New>`,:ref:`Cmp<SurfCont->Dset_Mapping->Cmp>`, etc.
                
-               * Bored? Try :ref:`Bias<SurfCont->Dset_Mapping->Bias>` for a change.  
+               * Bored? Try :ref:`Bias<SurfCont->Dset_Mapping->Bias>` for a change.
+               
             * The colormap is rendered as a surface, and shares some of the functions of SUMA's viewer. You have keyboard controls when the mouse is over the colorbar. See details :ref:`here<SurfCont->Dset_Mapping->Cmap->bar>`.
             
             * Interactive clustering:
                
-               * Left click on :ref:`<SurfCont->Dset_Mapping->Clst.c00>` to activate/deactivate clustering. Cluster table is output to the shell. Clicking on a node shows its cluster label in the viewer.
+               * Left click on :ref:`Clst<SurfCont->Dset_Mapping->Clst.c00>` to activate/deactivate clustering. Cluster table is output to the shell. Clicking on a node shows its cluster label in the viewer.
                
             * For more information, resort to the help for the :ref:`Surface Controller<SurfCont>` and :ref:`Plane Layering<Plane_Layering>`.
+            
       .. note:: Most of what was done for surface-based dataset applies to volumetric and connectivity data. 
+
+.. _Volume_Viewing:
+
+Volume Viewing
+==============
 
 .. todo::
                
-   .. _Volume_Viewing:
-
-   Volume Viewing
-   ==============
-   
    Show example for volume viewing.
    
    
@@ -702,8 +713,8 @@ Quick Tour
    
 .. _Displayable Objects:
 
-   Displayable Objects
-   ===================
+Displayable Objects
+===================
 
    .. todo::
 
@@ -711,9 +722,8 @@ Quick Tour
 
 .. _ECOG_Grid_Viewing:
 
-
-   ECOG Grid Viewing
-   =================
+ECOG Grid Viewing
+=================
 
    .. todo::
 
@@ -858,12 +868,16 @@ Playing with color plane order
          Appreciate the differences between the two mappings.
          
 
+.. _Align_Surf_Vol:
+
+Alignment of Surfaces with Volumes
+==================================
+
 .. todo::
-   .. _Align_Surf_Vol:
-
-   Alignment of Surfaces with Volumes
-   ==================================
-
+   
+   Explain alignment of surfaces with volumes.
+   
+   
 .. _Spec_File:
 
 The Spec File
