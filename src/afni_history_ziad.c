@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9, Jan, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
+   "Made sure neighborhoods containing central voxel return its value 1st.",
+   NULL 
+ },
+
+ { 9, Jan, 2014, ZSS, "suma-general", MINOR, TYPE_MODIFY,
+   "Released new documentation to the wild.",
+   NULL 
+ },
+
+ { 9, Jan, 2014, ZSS, "3dLocalstat", MINOR, TYPE_MODIFY,
+   "Added -*diffs options for computing local differences",
+   NULL 
+ },
+
  { 29, Dec, 2014, ZSS, "suma-general", MINOR, TYPE_MODIFY,
    "Lot of additions to SphinxDocs/SUMA, plus auto-doc for SUMA controller",
    NULL 
