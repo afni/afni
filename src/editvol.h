@@ -216,6 +216,7 @@ extern MCW_cluster * MCW_spheremask( float,float,float,float ) ;
 extern MCW_cluster * MCW_rectmask  ( float,float,float,float,float,float ) ;
 extern MCW_cluster * MCW_rhddmask  ( float,float,float,float ) ;
 extern MCW_cluster * MCW_tohdmask  ( float,float,float,float ) ;
+void MCW_showmask (MCW_cluster *nbhd, char *opening, char *closing, FILE *fout);
 
 /* 16 June 1998 */
 extern void MCW_erode_clusters (int, int, int, float, float, float, int,

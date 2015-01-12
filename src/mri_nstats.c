@@ -190,6 +190,85 @@ int mri_nstat_mMP2S( int npt , float *far , float voxval, float *fv5)
    return 1 ;
 }
 
+/* Compute differences fom the central value far[0] */
+int mri_nstat_diffs( int npt , float *far , float *fv6, int doabs)
+{
+   /*             fv6[6]={average_diff, min_diff, max_diff,
+                          average_adiff, min_adiff, max_adiff} */
+   register float mm,vv, vvmin, vvmax;
+   register int ii ;
+
+   fv6[0] = fv6[1] = fv6[2] = fv6[3] = fv6[4] = fv6[5] = 0.0;
+   if( npt <= 0 || far == NULL ) return 0 ;
+   if ( npt == 1 ) { /* Nothing to do, return quietly though */
+      return 1;
+   }
+   
+   if (doabs==0) {
+      vv = (far[1]-far[0]);
+      mm = vvmin = vvmax = vv;
+      for( ii=2 ; ii < npt ; ii++ ) {
+         vv = (far[ii]-far[0]);
+         if (vv < vvmin) {
+            vvmin = vv;
+         } else if (vv > vvmax) {
+            vvmax = vv; 
+         }
+         mm += vv ;
+      }
+      mm /= (npt-1) ; 
+      fv6[0] = mm;
+      fv6[1] = vvmin;
+      fv6[2] = vvmax;
+   } else if (doabs==1) {
+      vv = ABS(far[1]-far[0]);
+      mm = vvmin = vvmax = vv;
+      for( ii=2 ; ii < npt ; ii++ ) {
+         vv = ABS(far[ii]-far[0]);
+         if (vv < vvmin) {
+            vvmin = vv;
+         } else if (vv > vvmax) {
+            vvmax = vv; 
+         }
+         mm += vv ;
+      }
+      mm /= (npt-1) ; 
+      fv6[0] = mm;
+      fv6[1] = vvmin;
+      fv6[2] = vvmax;
+   } else {
+      register float mma,vva, vvmina, vvmaxa;
+      vv = (far[1]-far[0]); vva = ABS(vv);
+      mm = vvmin = vvmax = vv;
+      mma = vvmina = vvmaxa = vva;
+      for( ii=2 ; ii < npt ; ii++ ) {
+         vv = (far[ii]-far[0]); vva = ABS(vv);
+         if (vv < vvmin) {
+            vvmin = vv;
+         } else if (vv > vvmax) {
+            vvmax = vv; 
+         }
+         mm += vv ;
+         if (vva < vvmina) {
+            vvmina = vva;
+         } else if (vva > vvmaxa) {
+            vvmaxa = vva; 
+         }
+         mma += vva ;
+      }
+      mm  /= (npt-1) ; 
+      mma /= (npt-1) ; 
+      fv6[0] = mm;
+      fv6[1] = vvmin;
+      fv6[2] = vvmax;
+      fv6[3] = mma;
+      fv6[4] = vvmina;
+      fv6[5] = vvmaxa;
+   } 
+   
+   return 1 ;
+}
+
 /*--------------------------------------------------------------------------*/
 
 #if 0
@@ -695,7 +774,8 @@ ENTRY("THD_localstat") ;
    int ijk,kk,jj,ii,cc ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
-   float *nbar , fv5[5]={0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; int nbar_num=0;
+   float *nbar , fv6[6]={0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+   int nbar_num=0;
    float *ws12 ;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
@@ -768,19 +848,31 @@ ENTRY("THD_localstat") ;
 
           cc += (N_mp-1) ; /* number of sub-bricks added, minus 1 */
 
+         } else if( code[cc] == NSTAT_diffs0 ){ /*3 values */
+           mri_nstat_diffs( nbar_num , nbar, fv6, 0 ) ;
+           aar[cc  ][ijk] = fv6[0]; /* average difference */
+           aar[cc+1][ijk] = fv6[1]; /* minimum difference */
+           aar[cc+2][ijk] = fv6[2]; /* maximum difference */
+           cc += 2 ;  /* skip redundant codes that follow */
+         } else if( code[cc] == NSTAT_adiffs0 ){ /*3 values */
+           mri_nstat_diffs( nbar_num , nbar, fv6, 1) ;
+           aar[cc  ][ijk] = fv6[0]; /* average absolute difference */
+           aar[cc+1][ijk] = fv6[1]; /* minimum absolute difference */
+           aar[cc+2][ijk] = fv6[2]; /* maximum absolute difference */
+           cc += 2 ;  /* skip redundant codes that follow */
          } else if( code[cc] == NSTAT_mMP2s0 ){ /*3 values, median, MAD, P2Skew*/
-           mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv5 ) ;
-           aar[cc  ][ijk] = fv5[1]; /* median */
-           aar[cc+1][ijk] = fv5[3]; /* MAD */
-           aar[cc+2][ijk] = fv5[4]; /* Skew */
+           mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv6 ) ;
+           aar[cc  ][ijk] = fv6[1]; /* median */
+           aar[cc+1][ijk] = fv6[3]; /* MAD */
+           aar[cc+2][ijk] = fv6[4]; /* Skew */
            cc += 2 ;  /* skip redundant codes that follow */
          } else if( code[cc] == NSTAT_mmMP2s0 ){
                /*4 values, mean, median, MAD, P2Skew*/
-           mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv5 ) ;
-           aar[cc  ][ijk] = fv5[0]; /* mean */
-           aar[cc+1][ijk] = fv5[1]; /* median */
-           aar[cc+2][ijk] = fv5[3]; /* MAD */
-           aar[cc+3][ijk] = fv5[4]; /* Skew */
+           mri_nstat_mMP2S( nbar_num , nbar, brick[ijk], fv6 ) ;
+           aar[cc  ][ijk] = fv6[0]; /* mean */
+           aar[cc+1][ijk] = fv6[1]; /* median */
+           aar[cc+2][ijk] = fv6[3]; /* MAD */
+           aar[cc+3][ijk] = fv6[4]; /* Skew */
            cc += 3 ;  /* skip redundant codes that follow */
          } else {   /* the "usual" (catchall) case */
 

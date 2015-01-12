@@ -735,6 +735,12 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_mmMP2s3     31
 #define NSTAT_NZNUM       32
 #define NSTAT_FNZNUM      33
+#define NSTAT_diffs0      34
+#define NSTAT_diffs1      35
+#define NSTAT_diffs2      36
+#define NSTAT_adiffs0     37
+#define NSTAT_adiffs1     38
+#define NSTAT_adiffs2     39
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64
@@ -2013,7 +2019,7 @@ extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
                                     MRI_IMAGE *, byte *, MCW_cluster * );
 
 extern int mri_nstat_mMP2S( int npt , float *far , float voxval, float *fv5);
-
+extern int mri_nstat_diffs( int npt , float *far , float *fv5, int doabs);
 extern void mri_blur3D_variable( MRI_IMAGE * , byte * ,
                                  MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern void mri_blur3D_inmask( MRI_IMAGE *, byte *, float,float,float,int );
