@@ -3647,6 +3647,16 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
            'echo "-- GCOR = `cat %s`"\n\n'                              \
             % (gu_mean, gcor_file, gcor_file)
 
+    gcor_dset = 'corr_brain'
+    dp_dset = BASE.afni_name('rm.DP%s' % proc.view)
+    cmd += '# ---------------------------------------------------\n'     \
+           "# compute correlation volume\n"                             \
+           "# (per voxel: average correlation across masked brain)\n"   \
+           "# (now just dot product with average unit time series)\n"   \
+           "3dcalc -a %s -b %s -expr 'a*b' -prefix %s\n"                \
+           "3dTstat -sum -prefix %s %s\n\n"                             \
+           % (uset.pv(), gu_mean, dp_dset.prefix, gcor_dset, dp_dset.pv())
+
     return cmd
 
 # run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
