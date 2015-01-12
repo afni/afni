@@ -146,6 +146,10 @@ void usage_3dLocalstat(int detail)
 "                          but it a little faster\n"
 "               * mmMP2s  = Exactly the same output as:\n"
 "                       -stat mean -stat median -stat MAD -stat P2skew\n"
+"               * diffs   = Compute differences between central voxel\n"
+"                           and all neighbors. Values output are the \n"
+"                           average difference, followed by the min and max\n"
+"                           differences.\n"
 "\n"
 "               More than one '-stat' option can be used.\n"
 "\n"
@@ -200,6 +204,7 @@ void usage_3dLocalstat(int detail)
 "                     and 'Blocky' interpolation, respectively.\n"
 "                     Default is Linear\n"
 " -quiet      = Stop the highly informative progress reports.\n"
+" -verb       = a little more verbose.\n"
 "\n"
 "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
      ) ;
@@ -252,6 +257,10 @@ int main( int argc , char *argv[] )
       
      if( strncmp(argv[iarg],"-q",2) == 0 ){
        verb = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-verb") == 0 ){
+       verb = 2 ; iarg++ ; continue ;
      }
 
      /**** -datum type ****/
@@ -347,6 +356,12 @@ int main( int argc , char *argv[] )
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
                                                do_fwhm++                   ;}
+       else if( strcasecmp(cpt,"diffs") == 0 ){code[ncode++] = NSTAT_diffs0;
+                                               code[ncode++] = NSTAT_diffs1;
+                                               code[ncode++] = NSTAT_diffs2;}
+       else if( strcasecmp(cpt,"adiffs") == 0){code[ncode++] = NSTAT_adiffs0;
+                                               code[ncode++] = NSTAT_adiffs1;
+                                               code[ncode++] = NSTAT_adiffs2;}
        else if( strcasecmp(cpt,"mMP2s") == 0 ){code[ncode++] = NSTAT_mMP2s0;
                                                code[ncode++] = NSTAT_mMP2s1;
                                                code[ncode++] = NSTAT_mMP2s2;}
@@ -588,6 +603,9 @@ int main( int argc , char *argv[] )
    }
 
    if( verb ) INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
+   if (verb > 1) {
+      MCW_showmask (nbhd, NULL, NULL, stderr);
+   }
    if( verb && redx[0] > 0.0) 
       INFO_message("Computing grid reduction: %f %f %f (%f)\n", 
                      redx[0], redx[1], redx[2], mxvx);
@@ -613,21 +631,25 @@ int main( int argc , char *argv[] )
 
    { char *lcode[MAX_NCODE] , lll[MAX_NCODE] , *slcode, pcode[MAX_NCODE];
      int ipv = 0;
-     lcode[NSTAT_MEAN]    = "MEAN" ; lcode[NSTAT_SIGMA]      = "SIGMA"  ;
-     lcode[NSTAT_CVAR]    = "CVAR" ; lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
-     lcode[NSTAT_MAD]     = "MAD"  ; lcode[NSTAT_MAX]        = "MAX"    ;
-     lcode[NSTAT_MIN]     = "MIN"  ; lcode[NSTAT_ABSMAX]     = "ABSMAX" ;
-     lcode[NSTAT_VAR]     = "VAR"  ; lcode[NSTAT_NUM]        = "NUM"    ;
-     lcode[NSTAT_FWHMx]   = "FWHMx"; lcode[NSTAT_PERCENTILE] = "PERC";
-     lcode[NSTAT_FWHMy]   = "FWHMy"; lcode[NSTAT_SUM]        = "SUM"    ;
-     lcode[NSTAT_FWHMz]   = "FWHMz"; lcode[NSTAT_FWHMbar]    = "FWHMavg"; 
-     lcode[NSTAT_RANK]    = "RANK" ; lcode[NSTAT_FRANK]      = "FRANK";
-     lcode[NSTAT_P2SKEW]  = "P2skew";lcode[NSTAT_KURT]       = "KURT"; 
-     lcode[NSTAT_mMP2s0]  = "MEDIAN";lcode[NSTAT_mMP2s1]     = "MAD";
-     lcode[NSTAT_mMP2s2]  = "P2skew";lcode[NSTAT_mmMP2s0]    = "MEAN";
-     lcode[NSTAT_mmMP2s1] = "MEDIAN";lcode[NSTAT_mmMP2s2]    = "MAD";
-     lcode[NSTAT_mmMP2s3] = "P2skew";lcode[NSTAT_FWHMbar12]  = "FWHMbar12";
-     lcode[NSTAT_NZNUM]   = "NZNUM" ;lcode[NSTAT_FNZNUM]     = "FNZNUM" ;
+     lcode[NSTAT_MEAN]    = "MEAN" ;   lcode[NSTAT_SIGMA]      = "SIGMA"  ;
+     lcode[NSTAT_CVAR]    = "CVAR" ;   lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
+     lcode[NSTAT_MAD]     = "MAD"  ;   lcode[NSTAT_MAX]        = "MAX"    ;
+     lcode[NSTAT_MIN]     = "MIN"  ;   lcode[NSTAT_ABSMAX]     = "ABSMAX" ;
+     lcode[NSTAT_VAR]     = "VAR"  ;   lcode[NSTAT_NUM]        = "NUM"    ;
+     lcode[NSTAT_FWHMx]   = "FWHMx";   lcode[NSTAT_PERCENTILE] = "PERC";
+     lcode[NSTAT_FWHMy]   = "FWHMy";   lcode[NSTAT_SUM]        = "SUM"    ;
+     lcode[NSTAT_FWHMz]   = "FWHMz";   lcode[NSTAT_FWHMbar]    = "FWHMavg"; 
+     lcode[NSTAT_RANK]    = "RANK" ;   lcode[NSTAT_FRANK]      = "FRANK";
+     lcode[NSTAT_P2SKEW]  = "P2skew";  lcode[NSTAT_KURT]       = "KURT"; 
+     lcode[NSTAT_mMP2s0]  = "MEDIAN";  lcode[NSTAT_mMP2s1]     = "MAD";
+     lcode[NSTAT_mMP2s2]  = "P2skew";  lcode[NSTAT_mmMP2s0]    = "MEAN";
+     lcode[NSTAT_mmMP2s1] = "MEDIAN";  lcode[NSTAT_mmMP2s2]    = "MAD";
+     lcode[NSTAT_mmMP2s3] = "P2skew";  lcode[NSTAT_FWHMbar12]  = "FWHMbar12";
+     lcode[NSTAT_NZNUM]   = "NZNUM" ;  lcode[NSTAT_FNZNUM]     = "FNZNUM" ;
+     lcode[NSTAT_diffs0]  = "AvgDif";  lcode[NSTAT_diffs1]     = "MinDif";
+                                       lcode[NSTAT_diffs2]     = "MaxDif"; 
+     lcode[NSTAT_adiffs0] = "Avg|Dif|";lcode[NSTAT_adiffs1]    = "Min|Dif|";
+                                       lcode[NSTAT_adiffs2]    = "Max|Dif|"; 
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
