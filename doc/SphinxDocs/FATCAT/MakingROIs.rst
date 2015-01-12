@@ -469,9 +469,11 @@ association of targets with unrealistic WM when tracking:
 
    * - Difference of \*_GMI+orig\* images
    * - .. image:: media/ROIS_EX2/ax_tiss_DIFF_FA02.png
-          :width: 100%
+          :width: 60%
+          :align: center
    * - .. image:: media/ROIS_EX2/sag_tiss_DIFF_FA02.png
-          :width: 100%
+          :width: 60%
+          :align: center
 
 Comment 2
 ---------

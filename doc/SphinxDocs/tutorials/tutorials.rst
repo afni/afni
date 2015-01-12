@@ -4,17 +4,13 @@
 Self Guided Demo Scripts
 ************************
 
-.. _@DriveSuma:
-
 @DriveSuma
 ==========
 
-.. note:: Output of::
+.. note:: See also :ref:`output of @DriveSuma<@DriveSuma>` of::
    
    @DriveSuma -help
    
-   .. include:: ___auto_help/_@DriveSuma.help.inc
-
 ..
 
    .. figure:: media/DriveSuma.0002.jpg
@@ -28,12 +24,10 @@ Self Guided Demo Scripts
 @DriveAfni
 ==========
    
-.. note:: Output of::
+.. note:: See also :ref:`output of @DriveAfni<@DriveAfni>` of::
 
       @DriveAfni -help
    
-   .. include:: ___auto_help/_@DriveAfni.help.inc
-
 ..
 
    .. figure:: media/DriveAfni.0000.jpg
@@ -59,12 +53,10 @@ Self Guided Demo Scripts
 @DO.examples
 ============
 
-.. note:: Output of::
+.. note:: See also :ref:`output of @DO.examples<@DO.examples>` of::
 
       @DO.examples -help
    
-   .. include:: ___auto_help/_@DO.examples.help.inc
-
 ..
 
    .. figure:: media/DO.examples.0000.jpg

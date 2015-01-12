@@ -11,8 +11,9 @@ RETURN_PARSE:
 
 
 if ( -f ___build.log) \rm ___build.log
-
+if ( ! -d SUMA/auto_inc ) mkdir SUMA/auto_inc
 if ($nosuma == 0) then
+   @Quiet_Talkers 
    \rm SUMA/auto_inc/SurfCont_help.inc \
        SUMA/auto_inc/Mouse_Key_help.inc \
        SUMA/auto_inc/TractCont_help.inc \

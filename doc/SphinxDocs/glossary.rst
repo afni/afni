@@ -8,6 +8,14 @@ Glossary
    :sorted: 
 
 
+   .afnirc
+   afnirc
+      File residing in your home directory and contanining AFNI's environment variable setttings, colormaps, and more.
+      
+   .sumarc
+   sumarc
+      File residing in your home directory and containing all of SUMA's environment variables, as long as you keep running :ref:`suma -update_env<suma--update_env>` with each update of your binaries. 
+   
    ROI
       Region of interest.  In tractography, we try to keep the
       separate language of 'target ROIs', referring to the set of
