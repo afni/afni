@@ -31,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.0, Dec 30, 2014
+Version 3.5.1, Jan 13, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -114,9 +114,10 @@ within-subject (condition and emotion) variables:
           -gltLabel 3 sex_by_condition_interaction -gltCode 3 'sex : 1*male -1*female condition : 1*face -1*house' \\
           -gltLabel 4 3way_interaction -gltCode 4 'sex : 1*male -1*female condition : 1*face -1*house emotion : 1*pos -1*neg' \\
           ...            
-          -num_glf 2                         \\
+          -num_glf 3                         \\
           -glfLabel 1 male_condXEmo -glfCode 1 'sex : 1*male condition : 1*face -1*house emotion : 1*pos -1*neg & 1*pos -1*neu' \\
-          -glfLabel 2 face_sexXEmo -glfCode 1 'sex : 1*male -1*female condition : 1*face emotion : 1*pos -1*neg & 1*pos -1*neu' \\
+          -glfLabel 2 face_sexXEmo -glfCode 2 'sex : 1*male -1*female condition : 1*face emotion : 1*pos -1*neg & 1*pos -1*neu' \\
+          -glfLabel 3 face_sex2Emo -glfCode 3 'sex : 1*male & 1*female condition : 1*face emotion : 1*pos -1*neg & 1*pos -1*neu' \\
           -dataTable                                                                                     \\
           Subj  genotype   sex    scanner  condition   emotion   InputFile                               \\
           s1    TT         male   scan1   face        pos       s1+tlrc\'[face_pos_beta]\'                 \\
@@ -134,7 +135,7 @@ within-subject (condition and emotion) variables:
           2) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic can be obtained through
-          option -glfCode (see GLFs #1 and #2).
+          option -glfCode (see GLFs #1, #2, and #3).
           3) Similarly, the 4th GLT is a 3-way 2 x 2 x 2 interaction, which is a partial (not full)
           interaction between the three factors because 'emotion' has three levels. The F-test for
           the full 2 x 2 x 3 interaction is automatically spilled out by 3dMVM.
@@ -445,7 +446,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
 
      '-num_glf' = apl(n=1, d=0, h = paste(
    "-num_glf NUMBER: Specify the number of general linear F-tests (GLFs). A glf",
-   "         is a linear combination of a factor levels. See details in ",
+   "         involves the union of two or more simple tests. See details in",
    "         -glfCode.\n", sep = '\n') ),
                      
      '-gltLabel' = apl(n=c(1,1000), d=NA, h = paste(
@@ -515,7 +516,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         value is specified as, for example, 'Group : 1*Old Age : 2', where",
    "         the Old Group is tested at the Age of 2 above the center.\n",
    "         3)  The absence of a categorical variable in a coding means the",
-   "         levels of that factor are averaged (or collapsed) for the GLT.\n",
+   "         levels of that factor are averaged (or collapsed) for the GLF.\n",
    "         4) The appearance of a categorical variable has to be followed",
    "         by the linear combination of its levels.\n",
              sep = '\n'
@@ -814,45 +815,6 @@ process.MVM.opts <- function (lop, verb = 0) {
    #   names(lop$covVal) <- lop$QV
    #}
    
-   gl_Constr <- function(n_gl, code, lop) {  # n_gl: number of tests: lop$num_glt or lop$num_glf; code: lop$glfCode
-   if (n_gl > 0) {
-      outList <- vector('list', 3)
-      outList[[1]]    <- vector('list', n_gl)
-      outList[[2]]    <- vector('list', n_gl)
-      outList[[3]] <- vector('list', n_gl)
-      for (n in 1:n_gl) { # assuming each GLT has one slope involved and placed last
-         if(length(lop$QV)==0) outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) else {
-         if((length(lop$QV)>0) & any(lop$QV %in% code[[n]])) {
-            QVpos <- which(code[[n]] %in% lop$QV)
-            if(is.na(code[[n]][QVpos+2])) { # test for covariate effect
-               if(QVpos==1) outList[[1]][[n]] <- NA else
-                  outList[[1]][[n]] <-glfConstr(code[[n]][-c(QVpos, QVpos+1)], lop$dataStr)
-               outList[[2]][[n]]    <- code[[n]][QVpos]
-            } else { # effect at a specific covariate value
-              if(QVpos==1) outList[[1]][[n]] <- NA else
-                  outList[[1]][[n]] <-glfConstr(code[[n]][-(QVpos:(QVpos+2))], lop$dataStr)
-               outList[[3]][[n]] <- as.numeric(code[[n]][QVpos+2])
-               names(outList[[3]][[n]]) <- code[[n]][QVpos]
-            } # if(is.na(lop$gltCode[[n]][QVpos+2]))
-         } else if(!is.na(lop$vVars) & any(lop$vQV %in% code[[n]])) { # voxel-wise covariate
-            vQVpos <- which(code[[n]] %in% lop$vQV)
-            if(is.na(code[[n]][vQVpos+2])) { # test for covariate effect
-               if(vQVpos==1) outList[[1]][[n]] <- NA else
-                  outList[[1]][[n]] <-glfConstr(code[[n]][-c(vQVpos, vQVpos+1)], lop$dataStr)
-               outList[[2]][[n]]    <- code[[n]][vQVpos]
-            } else { # effect at a specific covariate value
-              if(vQVpos==1) outList[[1]][[n]] <- NA else
-                  outList[[1]][[n]] <-glfConstr(code[[n]][-(vQVpos:(vQVpos+2))], lop$dataStr)
-               outList[[3]][[n]] <- as.numeric(code[[n]][vQVpos+2])
-               names(outList[[3]][[n]]) <- code[[n]][vQVpos]
-           } # if(is.na(lop$gltCode[[n]][vQVpos+2]))
-         } else outList[[1]][[n]] <- glfConstr(code[[n]], lop$dataStr) # if((length(lop$QV)>0) & any(lop$QV %in% lop$gltCode[[n]]))
-      }
-      }
-   }
-   return(outList)
-   }
-
    if (lop$num_glt > 0) {
       glt <- gl_Constr(lop$num_glt, lop$gltCode, lop)
       lop$gltList     <- glt[[1]]
@@ -1145,7 +1107,7 @@ runAOV <- function(inData, dataframe, ModelForm) {
                covariates=lop$covValListF[[ii]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test, error=function(e) NULL) else
             glfRes <- tryCatch(testFactors(fm$lm, levels=lop$glfList[[ii]], slope=lop$slpListF[[ii]], 
                covariates=lop$covValListF[[ii]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test, error=function(e) NULL)
-            if(!is.null(glfRes)) if(is.na(lop$wsVars)) # the output structure is different when no within-subject factors present
+            if(!is.null(glfRes)) if(is.na(lop$wsVars) & is.na(lop$mVar)) # the output structure is different when no within-subject factors present
                out[lop$nF+2*lop$num_glt+ii] <- glfRes$F[2] else
                tryCatch(out[lop$nF+2*lop$num_glt+ii] <- maov(glfRes$SSPE, glfRes$SSPH, glfRes$df, glfRes$df.residual)[2], error=function(e) NULL)
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
@@ -1336,8 +1298,11 @@ if(is.na(lop$mVar)) if(is.na(lop$wsVars)) showTab <- paste('~', lop$model) else
    showTab <- paste('~', gsub("\\*", "+", lop$model), '+', gsub("\\*", "+", lop$wsVars)) else
 if(is.na(lop$wsVars)) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$model), "+", gsub("\\*", "+", lop$mVar))) else
    showTab <- paste('~', lop$model, "+", gsub("\\*", "+", lop$wsVars), "+", gsub("\\*", "+", lop$mVar))
-if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
-   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
+#if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
+#   showTab <- gsub(paste('\\*',lop$QV[ii], sep=''), '', gsub(paste('\\+',lop$QV[ii], sep=''), '', showTab))
+if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
+   # situations like 'ARI', 'ARI1', ARI2' would not cause trouble here!
+   showTab <- gsub(paste('\\*', ii, sep=''), '', gsub(paste('\\+', ii, sep=''), '', showTab))
 showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
 if(!(showTab == '~1')) print(xtabs(showTab, data=lop$dataStr))                                           
                                                
@@ -1474,9 +1439,10 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glt > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glt)) {
-         if(all(is.na(lop$gltList[[n]]))) gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pairwise=NULL,
+         if(all(is.na(lop$gltList[[n]])))   # Covariate testing only without factors involved
+            gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pairwise=NULL,
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]),
-            error=function(e) NA) else
+            error=function(e) NA) else      # Involving factors
          gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
             covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
          if(any(is.null(gltRes[[n]]))) fm <- NULL
@@ -1487,9 +1453,10 @@ while(is.null(fm)) {
    if(!is.null(fm)) if (lop$num_glf > 0) {
       n <- 1
       while(!is.null(fm) & (n <= lop$num_glf)) { # this part may need fixes!
-         if(all(is.na(lop$glfList[[n]]))) glfRes[[n]] <- tryCatch(testFactors(fm$lm, pairwise=NULL,
+         if(all(is.na(lop$glfList[[n]])))  # Covariate testing only without factors involved: possible?
+            glfRes[[n]] <- tryCatch(testFactors(fm$lm, pairwise=NULL,
             covariates=lop$covValListF[[n]], slope=lop$slpListF[[n]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test,
-            error=function(e) NA) else
+            error=function(e) NA) else     # Involving factors
          glfRes[[n]] <- tryCatch(testFactors(fm$lm, levels=lop$glfList[[n]], slope=lop$slpListF[[n]], 
             covariates=lop$covValListF[[n]], adjustment="none", idata = fm[["idata"]])$terms$`(Intercept)`$test, error=function(e) NULL)
          if(any(is.null(glfRes[[n]]))) fm <- NULL
