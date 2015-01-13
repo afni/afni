@@ -7777,14 +7777,16 @@ static float *Hxyzmatch_b2s[3] = {NULL,NULL,NULL} ; /* warped base triples */
 
 /*** these variables affect how the iteration starts, stops, and proceeds ***/
 
-static int Hlev_start =   0 ;    /* initial level of patches */
-static int Hlev_end   = 666 ;    /* final level of patches to head towards */
-static int Hlev_final =   0 ;    /* final level actually reached */
-static int Hlev_now   =   0 ;    /* the level we are playing with at the moment */
-static int Hduplo     =   0 ;    /* duplo mode? (faster, somewhat less accurate) */
-static int Hfinal     =   0 ;    /* is this the final level we are working on now? */
-static int Hworkhard1 =   0 ;    /* workhard stuff (but who wants to work hard?) */
+static int Hlev_start =   0 ;  /* initial level of patches */
+static int Hlev_end   = 666 ;  /* final level of patches to head towards */
+static int Hlev_final =   0 ;  /* final level actually reached */
+static int Hlev_now   =   0 ;  /* the level we are playing with at the moment */
+static int Hduplo     =   0 ;  /* duplo mode? (faster, somewhat less accurate) */
+static int Hfinal     =   0 ;  /* is this the final level we are working on now? */
+static int Hworkhard1 =   0 ;  /* workhard stuff (but who wants to work hard?) */
 static int Hworkhard2 =  -1 ;
+
+static int Hopt_ball  =   0 ;  /* 'BALL' optimization strategy? [13 Jan 2015] */
 
 static int  Hgridlist_num = 0 ;     /* 31 Dec 2014 */
 static int *Hgridlist     = NULL ;
@@ -9796,6 +9798,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
        Hbasis_parmax = 0.033*Hfactor ;    /* max displacement from 1 function */
+       if( Hopt_ball ) Hbasis_parmax = 0.055*Hfactor ;  /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
        prad          = 0.444 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -9807,6 +9810,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_QUINTIC:
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
        Hbasis_parmax = 0.007*Hfactor ;
+       if( Hopt_ball ) Hbasis_parmax = 0.022*Hfactor ;  /* 13 Jan 2015 */
        Hnpar         = 81 ;
        prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;

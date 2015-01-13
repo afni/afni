@@ -1643,6 +1643,14 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-ballopt") == 0 ){  /* SECRET option */
+       powell_newuoa_set_con_ball() ;  /* experimental */
+       Hopt_ball = 1 ;
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-prefix") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("need arg after -prefix") ;
        prefix = strdup(argv[nopt]) ;

@@ -3,9 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cs.h>
-#include "mrilib.h"
-#include "f2c.h"
-#include <time.h>
+#include "mrilib.h" #include "f2c.h" #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -41,7 +39,7 @@ extern int newuoa_(integer *n, integer *npt, doublereal *x,
 
 #define SC_BOX  1
 #define SC_BALL 2
-#define SC_DIAM 3
+#define SC_DIAM 3  /* not used */
 
 static int     scalx = 0    ;  /* whether to use scaling and constraints */
 static double *sxmin = NULL ;  /* smallest allowed value */
@@ -73,7 +71,7 @@ static void xreduce( int n , double *x )
      float rad=0.0 ;
      for( ii=0 ; ii < n ; ii++ ) rad += (x[ii]-0.5)*(x[ii]-0.5) ;
      if( rad > 0.25 ){
-       rad = 0.25 / (rad*rad) ;
+       rad = 0.25 / rad ;
        for( ii=0 ; ii < n ; ii++ ) x[ii] = 0.5 + (x[ii]-0.5)*rad ;
      }
    }
@@ -113,7 +111,7 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
        for( ii=0 ; ii < *n ; ii++ )
          sx[ii] = sxmin[ii] + sxsiz[ii]*x[ii] ;
      } else {                       /* outside the ball */
-       rad = 0.25 / (rad*rad) ;
+       rad = 0.25 / rad ;
        for( ii=0 ; ii < *n ; ii++ )
          sx[ii] = sxmin[ii] + sxsiz[ii]*(0.5 + (x[ii]-0.5)*rad) ;
      }
@@ -445,7 +443,11 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
         (c) then scale that 0..1 value back to the 'true' value
             before calling ufunc() to evaluate objective function. -------*/
 
+#if 1
+   scalx = con_meth ;
+#else
    scalx = SC_BOX ;                  /* signal to calfun_() to apply scaling */
+#endif
    sxmin = (double *)malloc(sizeof(double)*ndim) ;  /* copy xbot for calfun_ */
    sxsiz = (double *)malloc(sizeof(double)*ndim) ;  /* = xtop - xbot */
    sx    = (double *)malloc(sizeof(double)*ndim) ;  /* workspace for calfun_ */
@@ -469,6 +471,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      x01[0][ii] = (x[ii] - sxmin[ii]) / sxsiz[ii] ;
      x01[0][ii] = PRED01(x01[0][ii]) ;  /* make sure is in range 0..1 */
    }
+   if( scalx != SC_BOX ) xreduce( ndim, x01[0] ) ;
    (void)calfun_(&n,x01[0],x01val+0) ;  /* value of keeper #0 = input vector */
    ntot++ ;                           /* number of times calfun_() is called */
 
@@ -492,6 +495,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
      for( qq=0 ; qq < nrand ; qq++ ){
        for( ii=0 ; ii < ndim ; ii++ ) xtest[ii] = drand48() ;    /* random pt */
+       if( scalx != SC_BOX ) xreduce( ndim, xtest ) ;
        (void)calfun_(&n,xtest,&ftest) ; ntot++ ;            /* eval cost func */
        for( tt=1 ; tt <= nkeep ; tt++ ){          /* is this better than what */
          if( ftest < x01val[tt] ){                    /* we've seen thus far? */
@@ -521,6 +525,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      for( tt=0 ; tt < nkeep ; tt++ ){
        (void)newuoa_( &n, &npt, (doublereal *)x01[tt], &rb,&re,&mf,w,&icode ) ;
        for( ii=0 ; ii < ndim ; ii++ ) x01[tt][ii] = PRED01(x01[tt][ii]) ;
+       if( scalx != SC_BOX ) xreduce(ndim,x01[tt]) ;
        (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
        if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
        if( verb > 1 )
@@ -576,6 +581,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      (void)newuoa_( &n , &npt , (doublereal *)x01[tt] ,
                     &rhobeg , &rhoend , &maxfun , w , &icode ) ;
      for( ii=0 ; ii < ndim ; ii++ ) x01[tt][ii] = PRED01(x01[tt][ii]) ;
+     if( scalx != SC_BOX ) xreduce(ndim,x01[tt]) ;
      (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
      if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
      if( verb > 1 )
@@ -584,6 +590,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
    /*-- Rescale bestest output vector back to 'true' range --*/
 
+   if( scalx != SC_BOX ) xreduce(ndim,x01[tbest]) ;
    for( ii=0 ; ii < ndim ; ii++ )
      x[ii] = sxmin[ii] + x01[tbest][ii] * sxsiz[ii] ;
    if( cost != NULL ) *cost = vbest ;    /* save cost func */
