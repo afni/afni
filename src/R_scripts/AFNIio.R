@@ -67,7 +67,8 @@ set_R_io <- function() {
    if (!is.null(ll)) {
       dd <- try(dyn.load(ll), silent=TRUE)
       if (dd[[1]]!="R_io") {
-         note.AFNI(paste("Failed to load R_io.so."));
+         warn.AFNI(paste("Failed to load R_io.so with this error message:\n"));
+         dyn.load(ll)
       } else {
          rio <- 1
       }
