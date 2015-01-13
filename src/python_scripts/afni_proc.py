@@ -430,11 +430,12 @@ g_history = """
         - changed -anat_uniform_method none to mean no correction at all
         - now 'default' means to apply it normally in auto_warp.py
         - done for B Benson
-    4.24 Dec 2, 2014: -tlrc_NL_awpy_rm was not being applied
-    4.25 Jan 2, 2015: small help change
+    4.24 Dec 02, 2014: -tlrc_NL_awpy_rm was not being applied
+    4.25 Jan 02, 2015: small help change
+    4.26 Jan 12, 2015: compute global correlation volume (similar to GCOR)
 """
 
-g_version = "version 4.25, January 2, 2015"
+g_version = "version 4.26, January 12, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "7 Nov 2014" # 3dNwarpApply
