@@ -389,7 +389,16 @@ int main( int argc , char *argv[] )
    double (*minhexvol)(int,double *) ;
 
    if( argc < 3 ){
-     printf("Usage: warping order btop [ngrid] [fname]\n") ; exit(0) ;
+     printf("Usage: warping_test order btop [ngrid] [fname]\n") ;
+     printf("\n"
+            "Program to test warping functions and find maximum volume distortions.\n"
+            "For use by Emperor Zhark only!!\n"
+            "  order = 3 or 5\n"
+            "  btop  = max value for warp coefficient\n"
+            "  ngrid = grid size (default=51)\n"
+            "  fname = prefix for output dataset (default=no output)\n"
+     ) ;
+     exit(0) ;
    }
 
    nord = (int)strtod( argv[nopt++] , NULL ) ;
@@ -402,7 +411,7 @@ int main( int argc , char *argv[] )
      setup_warp_basis = HQwarp_setup_warp_basis ;
      minhexvol        = HQwarp_minhexvol ;
    } else {
-     ERROR_exit("Illegal order value %d",nord) ;
+     ERROR_exit("Illegal order value %d -- must be 3 or 5",nord) ;
    }
 
    btop = strtod( argv[nopt++] , NULL ) ;
@@ -423,14 +432,26 @@ int main( int argc , char *argv[] )
    INFO_message("minhexvol(0) = %g",cost) ;
 
    powell_set_verbose(2) ;
+   if( AFNI_yesenv("POWELL_BALL") ) powell_newuoa_set_con_ball() ;  /* experimental */
 
    nfunc = powell_newuoa_constrained( npar , beta , &cost , bmin,bmax ,
                                       999  , 33   , 7     ,
                                       0.16 , 0.001, 6666  , minhexvol  ) ;
 
-   printf("nfunc = %d    minhexvol = %g  beta =" , nfunc , cost ) ;
+   printf("minhexvol = %g\n",cost ) ;
+#if 0
    for( ii=0 ; ii < npar ; ii++ ) printf(" %g",beta[ii]) ;
    printf("\n") ;
+#endif
+#if 0
+   { double bmax=0.0 , brad=0.0, bb ;
+     for( ii=0 ; ii < npar ; ii++ ){
+       bb = fabs(beta[ii]) ; if( bb > bmax ) bmax = bb ;
+       brad += bb*bb ;
+     }
+     brad = sqrt(bb) ; printf("bmax = %g   brad = %g\n",bmax,brad) ;
+   }
+#endif
 
    if( argc > 4 ){
      fname = argv[nopt++] ; (void)minhexvol( npar , beta ) ;
