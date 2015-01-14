@@ -3,9 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cs.h>
-#include "mrilib.h"
-#include "f2c.h"
-#include <time.h>
+#include "mrilib.h" #include "f2c.h" #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -39,6 +37,10 @@ extern int newuoa_(integer *n, integer *npt, doublereal *x,
 #undef  PRED01
 #define PRED01(x) fabs( (x) - 2.0*floor(0.5*((x)+1.0)) )
 
+#define SC_BOX  1
+#define SC_BALL 2
+#define SC_DIAM 3  /* not used */
+
 static int     scalx = 0    ;  /* whether to use scaling and constraints */
 static double *sxmin = NULL ;  /* smallest allowed value */
 static double *sxsiz = NULL ;  /* sxmin+sxsize = largest allowed value */
@@ -55,6 +57,28 @@ static int    *mapin = NULL ;  /* index array for mapping */
 static double (*userfun)( int n , double *x ) = NULL ;
 
 /*---------------------------------------------------------------------------*/
+/*! Reduce x[ii] (all in 0..1) to be inside the ball [08 Jan 2015] */
+
+static void xreduce( int n , double *x )
+{
+   int ii ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     if( !isfinite(x[ii]) || x[ii] < -9.9f || x[ii] > 9.9f ) x[ii] = 0.5f ;
+     else                                                    x[ii] = PRED01(x[ii]) ;
+   }
+   if( scalx == SC_BALL ){
+     float rad=0.0 ;
+     for( ii=0 ; ii < n ; ii++ ) rad += (x[ii]-0.5)*(x[ii]-0.5) ;
+     if( rad > 0.25 ){
+       rad = 0.25 / rad ;
+       for( ii=0 ; ii < n ; ii++ ) x[ii] = 0.5 + (x[ii]-0.5)*rad ;
+     }
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Function called by newuoa_();
     goal is to minimize this as a function of x[0..n-1] */
 
@@ -62,13 +86,34 @@ int calfun_(integer *n, doublereal *x, doublereal *fun)
 {
    double val ;
 
-   if( scalx ){            /* in this case, inputs x[] are in range 0..1,  */
+   if( scalx == SC_BOX ){  /* in this case, inputs x[] are in range 0..1,  */
      int ii ;              /* and need to be scaled to their 'true' values */
+
      for( ii=0 ; ii < *n ; ii++ ){
-       if( !isfinite(x[ii]) || x[ii] < -999.9f || x[ii] > 999.9f ){
-         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.0f ;
+       if( !isfinite(x[ii]) || x[ii] < -9.9 || x[ii] > 9.9 ){
+         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ;
        }
        sx[ii] = sxmin[ii] + sxsiz[ii]*PRED01(x[ii]);
+     }
+
+     val = userfun( (int)(*n) , sx ) ;           /* input = scaled x[] */
+
+   } else if( scalx == SC_BALL ){  /* scale into a ball, not a box [08 Jan 2015] */
+     int ii ; double rad=0.0 ;
+
+     for( ii=0 ; ii < *n ; ii++ ){
+       if( !isfinite(x[ii]) || x[ii] < -9.9 || x[ii] > 9.9 ){
+         fprintf(stderr,"** ERROR: calfun[%d]=%g --> 0\n",ii,x[ii]) ; x[ii] = 0.5 ;
+       }
+       rad += (x[ii]-0.5)*(x[ii]-0.5) ;
+     }
+     if( rad <= 0.25 ){             /* inside the ball */
+       for( ii=0 ; ii < *n ; ii++ )
+         sx[ii] = sxmin[ii] + sxsiz[ii]*x[ii] ;
+     } else {                       /* outside the ball */
+       rad = 0.25 / rad ;
+       for( ii=0 ; ii < *n ; ii++ )
+         sx[ii] = sxmin[ii] + sxsiz[ii]*(0.5 + (x[ii]-0.5)*rad) ;
      }
 
      val = userfun( (int)(*n) , sx ) ;           /* input = scaled x[] */
@@ -165,6 +210,13 @@ int powell_newuoa( int ndim , double *x ,
 }
 
 /*---------------------------------------------------------------------------*/
+
+static int con_meth = SC_BOX ;
+
+void powell_newuoa_set_con_box (void){ con_meth = SC_BOX ; }
+void powell_newuoa_set_con_ball(void){ con_meth = SC_BALL; }
+
+/*---------------------------------------------------------------------------*/
 /*! Similar to powell_newuoa(), but with constraints on the variables,
     and (if nrand > 0) a random search for the starting vector (the initial
     vector on input in x[] is also tested to see if it is 'best' for starting).
@@ -213,7 +265,13 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
         (c) then scale that 0..1 value back to the 'true' value
             before calling ufunc() to evaluate objective function. -------*/
 
-   scalx   = 1 ;
+   /*** The above comment describes the original SC_BOX method of
+        dealing with constraints.  The newer SC_BALL method keeps the
+        scaled parameters inside the ball of radius 0.5 centered at
+        x=0.5 -- this is the L2-ball, rather than the 'Linfinity-ball'
+        that SC_BOX enforces, and this ball is inside the SC_BOX bounds. ***/
+
+   scalx = con_meth ;
    sxmin = (double *)malloc(sizeof(double)*ndim) ;  /* copy of xbot */
    sxsiz = (double *)malloc(sizeof(double)*ndim) ;  /* xtop - xbot */
    sx    = (double *)malloc(sizeof(double)*ndim) ;
@@ -222,8 +280,8 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
      sxmin[ii] = xbot[ii] ;
      sxsiz[ii] = xtop[ii] - xbot[ii]; if( sxsiz[ii] <= 0.0 ) sxsiz[ii] = 1.0;
      x01[ii]   = (x[ii] - sxmin[ii]) / sxsiz[ii] ;
-     x01[ii]   = PRED01(x01[ii]) ;           /* make sure is in range 0..1 */
    }
+   xreduce( ndim , x01 ) ;  /* make sure is in the legal range */
 
    /*-- do a random search for the best starting vector? --*/
 
@@ -237,6 +295,7 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
      (void)calfun_(&n,xbest,&fbest) ; ncall++ ;
      for( qq=0 ; qq < nrand ; qq++ ){
        for( ii=0 ; ii < ndim ; ii++ ) xtest[ii] = drand48() ;
+       if( scalx != SC_BOX ) xreduce( ndim, xtest ) ;
        (void)calfun_(&n,xtest,&ftest) ; ncall++ ;
        if( ftest < fbest ){
          fbest = ftest; memcpy(xbest,xtest,sizeof(double)*ndim);
@@ -257,8 +316,9 @@ int powell_newuoa_con( int ndim , double *x , double *xbot , double *xtop ,
 
    /*-- Rescale output back to 'true' range --*/
 
+   xreduce( ndim , x01 ) ;
    for( ii=0 ; ii < ndim ; ii++ )
-     x[ii] = sxmin[ii] + PRED01(x01[ii]) * sxsiz[ii] ;
+     x[ii] = sxmin[ii] + x01[ii] * sxsiz[ii] ;
 
    if( verb ){
      fprintf(stderr," +   param:") ;
@@ -383,7 +443,11 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
         (c) then scale that 0..1 value back to the 'true' value
             before calling ufunc() to evaluate objective function. -------*/
 
-   scalx = 1 ;                       /* signal to calfun_() to apply scaling */
+#if 1
+   scalx = con_meth ;
+#else
+   scalx = SC_BOX ;                  /* signal to calfun_() to apply scaling */
+#endif
    sxmin = (double *)malloc(sizeof(double)*ndim) ;  /* copy xbot for calfun_ */
    sxsiz = (double *)malloc(sizeof(double)*ndim) ;  /* = xtop - xbot */
    sx    = (double *)malloc(sizeof(double)*ndim) ;  /* workspace for calfun_ */
@@ -407,6 +471,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      x01[0][ii] = (x[ii] - sxmin[ii]) / sxsiz[ii] ;
      x01[0][ii] = PRED01(x01[0][ii]) ;  /* make sure is in range 0..1 */
    }
+   if( scalx != SC_BOX ) xreduce( ndim, x01[0] ) ;
    (void)calfun_(&n,x01[0],x01val+0) ;  /* value of keeper #0 = input vector */
    ntot++ ;                           /* number of times calfun_() is called */
 
@@ -430,6 +495,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
      for( qq=0 ; qq < nrand ; qq++ ){
        for( ii=0 ; ii < ndim ; ii++ ) xtest[ii] = drand48() ;    /* random pt */
+       if( scalx != SC_BOX ) xreduce( ndim, xtest ) ;
        (void)calfun_(&n,xtest,&ftest) ; ntot++ ;            /* eval cost func */
        for( tt=1 ; tt <= nkeep ; tt++ ){          /* is this better than what */
          if( ftest < x01val[tt] ){                    /* we've seen thus far? */
@@ -459,6 +525,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      for( tt=0 ; tt < nkeep ; tt++ ){
        (void)newuoa_( &n, &npt, (doublereal *)x01[tt], &rb,&re,&mf,w,&icode ) ;
        for( ii=0 ; ii < ndim ; ii++ ) x01[tt][ii] = PRED01(x01[tt][ii]) ;
+       if( scalx != SC_BOX ) xreduce(ndim,x01[tt]) ;
        (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
        if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
        if( verb > 1 )
@@ -514,6 +581,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
      (void)newuoa_( &n , &npt , (doublereal *)x01[tt] ,
                     &rhobeg , &rhoend , &maxfun , w , &icode ) ;
      for( ii=0 ; ii < ndim ; ii++ ) x01[tt][ii] = PRED01(x01[tt][ii]) ;
+     if( scalx != SC_BOX ) xreduce(ndim,x01[tt]) ;
      (void)calfun_(&n,x01[tt],x01val+tt) ; ntot += icode+1 ;
      if( x01val[tt] < vbest ){ vbest = x01val[tt]; tbest = tt; }
      if( verb > 1 )
@@ -522,6 +590,7 @@ int powell_newuoa_constrained( int ndim, double *x, double *cost ,
 
    /*-- Rescale bestest output vector back to 'true' range --*/
 
+   if( scalx != SC_BOX ) xreduce(ndim,x01[tbest]) ;
    for( ii=0 ; ii < ndim ; ii++ )
      x[ii] = sxmin[ii] + x01[tbest][ii] * sxsiz[ii] ;
    if( cost != NULL ) *cost = vbest ;    /* save cost func */
