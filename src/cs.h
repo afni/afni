@@ -109,6 +109,9 @@ extern int powell_newuoa_con( int ndim , double *x , double *xb, double *xt ,
                               int nrand, double rstart , double rend ,
                               int maxcall , double (*ufunc)(int,double *) ) ;
 
+extern void powell_newuoa_set_con_box (void) ;  /* 08 Jan 2015 */
+extern void powell_newuoa_set_con_ball(void) ;
+
 extern int powell_newuoa_constrained(
                                int ndim, double *x, double *cost ,
                                double *xbot, double *xtop ,

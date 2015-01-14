@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, Jan, 2014, ZSS, "afni-general", MICRO, TYPE_MODIFY,
+   "Made R_io.so loading error a little more helpful.",
+   NULL 
+ },
+
  { 9, Jan, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
    "Made sure neighborhoods containing central voxel return its value 1st.",
    NULL 

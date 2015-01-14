@@ -13,6 +13,7 @@
 #############################################################################
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as clr
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import lib_fat_funcs as GR
@@ -162,6 +163,43 @@ def DefaultNamingPrefType(list_all):
 
 ### -----------------------------------------------------------------
 
+def MakeMyBar(name):
+
+    if name == 'hot_cold_gap':
+
+        # window/level parameters
+        midlev = 0.5
+        wind = 0.002
+        sfac = 0.999
+
+        cdict_00 = {'red': ((0.0, 0.0, 0.0),
+                            (midlev-wind     , 0., 0.90),
+                            (midlev-wind*sfac, 0.90, 0.0),
+                            (midlev+wind*sfac, 0.0, 0.0),
+                            (midlev+wind     , 0.0, 0.90),
+                            (1.0, 1.0, 1.0)),
+                    
+                    'green': ((0.0, 0.0, 0.0),
+                              (midlev-wind     , 0.90, 0.90),
+                              (midlev-wind*sfac, 0.90, 0.0),
+                              (midlev+wind*sfac, 0.0, 0.0),
+                              (midlev+wind     , 0.0, 0.90),
+                              (1.0, 0.0, 0.90)),
+                    
+                    'blue': ((0.0, 0.50, 0.50),
+                             (midlev-wind     , 1.0, 0.00),
+                             (midlev-wind*sfac, 0.0, 0.00),
+                             (midlev+wind*sfac, 0.0, 0.0),
+                             (midlev+wind     , 0.0, 0.00),
+                             (1.0, 0.0, 0.0))}
+
+        out = clr.LinearSegmentedColormap('my_colormap',
+                                          cdict_00,
+                                          512)
+        return out
+
+### -----------------------------------------------------------------
+
 def Fat_Mat_Plot( X, 
                   WhichVar, 
                   xpref,
@@ -192,10 +230,16 @@ def Fat_Mat_Plot( X,
     # - - - - - - - - - - - - - - - - - - - - - - - - 
 
 
+    # internal colorbar
+    if MAP_of_COL == 'hot_cold_gap':
+        print "MAKING COLORMAP!",
+        MAP_of_COL = MakeMyBar(MAP_of_COL)
+        print MAP_of_COL, type(MAP_of_COL)
+
     # get the mat
     WhichMat = X[2][WhichVar]
     MAT = X[0][WhichMat]
-
+ 
     # grid
     if MATMIN_str :
         MATMIN = float(MATMIN_str)
