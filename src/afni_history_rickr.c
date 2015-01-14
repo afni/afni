@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14,  Jan, 2015, RCR, "read_matlab_files.py", MINOR, TYPE_NEW_PROG,
+   "read and possibly convert MATLAB files to 1D format",
+   NULL
+ } ,
+
  {  2,  Jan, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "added MIN_OUTLIER to example 7",
    NULL
