@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Jan, 2015, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "added -hist; if unknown opt and cur version, fail after check",
+   NULL
+ } ,
+
  { 15,  Jan, 2015, RCR, "afni_skeleton.py", MICRO, TYPE_NEW_PROG,
    "just to save a starting point for other new programs",
    NULL
