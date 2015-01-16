@@ -12,21 +12,34 @@
 # terminate on any error, and be clear about which command failed
 # ----------------------------------------------------------------------
 
-# ----------------------------------------------------------------------
-# history:
-# ...         : a few updates
-# 07 Mar 2012 : existing package and install dir no longer required for -d
-# 13 Sep 2012 : download and run the current version on the website
-#             - added option -no_recur
-# 21 Dec 2012 : do rehash before apsearch
-#             - check download by looking for string in this file
-# 01 Nov 2013 : Darwin defaults to 10.7 package
-# 01 Dec 2013 : added -prog_list for Ziad
-# 18 Dec 2013 : added check for system programs, -sys_ok and -help_system_progs
-# 14 Jan 2014 : added more system programs
-# 01 May 2014 : added -quick option; fixed sync of backup, was nesting
-# ----------------------------------------------------------------------
+set prog = `basename $0`
 
+# ----------------------------------------------------------------------
+# history section
+goto POST_HIST
+SHOW_HIST:
+cat << EOF
+-------------------------------------------------------------------------------
+history for $prog :
+
+  ...         : a few updates
+  07 Mar 2012 : existing package and install dir no longer required for -d
+  13 Sep 2012 : download and run the current version on the website
+              - added option -no_recur
+  21 Dec 2012 : do rehash before apsearch
+              - check download by looking for string in this file
+  01 Nov 2013 : Darwin defaults to 10.7 package
+  01 Dec 2013 : added -prog_list for Ziad
+  18 Dec 2013 : added check for system programs, -sys_ok and -help_system_progs
+  14 Jan 2014 : added more system programs
+  01 May 2014 : added -quick option; fixed sync of backup, was nesting
+  15 Jan 2015 : if bad option and current version, fail after version check
+-------------------------------------------------------------------------------
+EOF
+exit
+POST_HIST:
+# end history section
+# ----------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------
@@ -38,7 +51,6 @@ set package = ""
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
 set make_backup = 1             # backup previous binaires
-set prog = `basename $0`
 
 set sys_ok = 0                  # OK to update having system programs
 set system_progs = ( apt-get at cc cpp cmp diff du gcc less man md5sum od \
@@ -55,6 +67,8 @@ set use_curl    = 0
 set do_apsearch = 1     # run apserach -update_all_afni_help
 set do_recur    = 1     # download a new version of @uab, first
 set quick       = 0     # no fancies (recur, apsearch)
+
+set bad_opt     = ''    # if bad_opt and do_recur, see if we continue
 
 set ac = 1
 while ( $ac <= $#argv )
@@ -85,6 +99,8 @@ while ( $ac <= $#argv )
         echo "   $system_progs"
         echo ""
         exit 0
+    else if ( "$argv[$ac]" == "-hist" ) then
+        goto SHOW_HIST
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -117,7 +133,11 @@ while ( $ac <= $#argv )
         set testing = 1
     else
         # allow unknown options if $do_recur, but THEY MUST BE LAST
-        if ( ! $do_recur ) then
+        if ( $do_recur ) then
+            # check later, if we do not actually recur
+            echo "** unknown option $argv[$ac], but might work in newer version"
+            set bad_opt = "$argv[$ac]"
+        else
             echo "** unknown option $argv[$ac]"
             exit 1
         endif
@@ -477,6 +497,10 @@ if ( $do_recur ) then
       exit $ss  # exit with status of called program
    else
       echo "-- $prog is current, continuing with this version..."
+      if ( "$bad_opt" != "" ) then
+         echo "** unknown option $argv[$ac]"
+         exit 1
+      endif
    endif
 else
    echo "-- skipping update of $prog"
