@@ -49,6 +49,36 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15,  Jan, 2015, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "added -hist; if unknown opt and cur version, fail after check",
+   NULL
+ } ,
+
+ { 15,  Jan, 2015, RCR, "afni_skeleton.py", MICRO, TYPE_NEW_PROG,
+   "just to save a starting point for other new programs",
+   NULL
+ } ,
+
+ { 15,  Jan, 2015, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
+   "fixed () in case of r(A,B,unbiased=1), which matches correlation_p()",
+   NULL
+ } ,
+
+ { 15,  Jan, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "include -demean when running 3ddot on masks",
+   NULL
+ } ,
+
+ { 15,  Jan, 2015, RCR, "3ddot", MICRO, TYPE_ENHANCE,
+   "explicitly state 'Pearson' correlation in help",
+   NULL
+ } ,
+
+ { 14,  Jan, 2015, RCR, "read_matlab_files.py", MINOR, TYPE_NEW_PROG,
+   "read and possibly convert MATLAB files to 1D format",
+   NULL
+ } ,
+
  {  2,  Jan, 2015, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "added MIN_OUTLIER to example 7",
    NULL

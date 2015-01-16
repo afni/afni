@@ -433,9 +433,10 @@ g_history = """
     4.24 Dec 02, 2014: -tlrc_NL_awpy_rm was not being applied
     4.25 Jan 02, 2015: small help change
     4.26 Jan 12, 2015: compute global correlation volume (similar to GCOR)
+    4.27 Jan 15, 2015: use 3ddot -demean for correlation of masks
 """
 
-g_version = "version 4.26, January 12, 2015"
+g_version = "version 4.27, January 15, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "7 Nov 2014" # 3dNwarpApply

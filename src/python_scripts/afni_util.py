@@ -3004,7 +3004,7 @@ def r(vA, vB, unbiased=0):
 
     r = dotprod(dA,dB)
 
-    if unbiased: return r * (1 + (1-r*r)/2*la)
+    if unbiased: return r * (1 + (1-r*r)/(2*la))
     return r
 
 def eta2(vA, vB):

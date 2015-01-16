@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 7 , JAN , 2015 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+  { 13 , JAN , 2015 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "Secret option '-ballopt'" ,
+   "A step towards using more complex basis functions, by allowing\n"
+   "optimization only over an L2-ball in parameter space, rather than a\n"
+   "hypercube." } ,
+
+ { 7 , JAN , 2015 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
    "Add -gridlist and -allsave options" ,
    "Allows specifying the exact list of patch/grid sizes to use, and also to\n"
    "save the output warp at each level." } ,
@@ -69,7 +75,7 @@ afni_history_struct rwcox_history[] = {
    "before)." } ,
 
  { 9 , DEC , 2014 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
-   "Make 'Alpha' mode with with Montages -- oops" ,
+   "Make 'Alpha' mode work with Montages -- oops" ,
    "There's probably other stuff that doesn't work with RGBA overlays, but\n"
    "we'll have to see what happens." } ,
 
