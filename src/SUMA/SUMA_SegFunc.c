@@ -7062,28 +7062,57 @@ float SUMA_hist_freq(SUMA_HIST *hh, float vv)
 double SUMA_hist_value(SUMA_HIST *hh, double vv, char *what)
 {
    double a = 0.0, val=0.0;
-   int i0, ii=0;
+   int i0=0, ii=0;
    
    if (!hh) return(-1.0);
-   if (vv<hh->b[0]) return(hh->cn[0]);
-   if (vv>hh->b[hh->K-1]) return(hh->cn[hh->K-1]);
-   a = ((vv-hh->b[0])/hh->W);
-   i0 = (int)a; a = a-i0;
-   val = 0.0;
+   if (vv<hh->b[0]) { 
+      a = -2; /* Before first bin */
+   } else if (vv>hh->b[hh->K-1]) {
+      a = -1; /* After last bin */
+   } else {
+      a = ((vv-hh->b[0])/hh->W);
+      i0 = (int)a; a = a-i0;
+      val = 0.0;
+   }
    if (!what || !strcmp(what,"freq")) { /* return the frequency */
+      if ( a < -1.0 ) { 
+         return(hh->cn[0]);
+      } else if ( a < 0 ) {
+         return(hh->cn[hh->K-1]);
+      }    
       val = a*hh->cn[i0+1]+(1.0-a)*hh->cn[i0];
    } else if (!strcmp(what,"count")) { /* return the count */
+      if ( a < -1.0 ) { 
+         return(hh->c[0]);
+      } else if ( a < 0 ) {
+         return(hh->c[hh->K-1]);
+      }  
       val = a*hh->c[i0+1]+(1.0-a)*hh->c[i0];
    } else if (!strcmp(what,"bin")) { /* return the location on bin axis */
+      if ( a < -1.0 ) { 
+         return(0.0);
+      } else if ( a < 0 ) {
+         return(hh->K);
+      }
       val = i0+a;
    } else if ( !strcmp(what,"cdf") || 
                !strcmp(what,"ncdf")) { /* return the cdf */
       if (what[0] == 'n') { /* normalized */
+         if ( a < -1.0 ) { 
+            return(0.0);
+         } else if ( a < 0 ) {
+            return(1.0);
+         } 
          for (ii=0; ii<=i0; ++ii) {
             val += hh->cn[ii]; 
          }
          val += a*hh->cn[i0+1];
       } else { /* count */
+         if ( a < -1.0 ) { 
+            return(0.0);
+         } else if ( a < 0 ) {
+            return(hh->n);
+         } 
          for (ii=0; ii<=i0; ++ii) {
             val += hh->c[ii]; 
          }
@@ -7092,16 +7121,43 @@ double SUMA_hist_value(SUMA_HIST *hh, double vv, char *what)
    } else if (!strcmp(what,"rcdf") || 
               !strcmp(what,"nrcdf")) { /* return the reverse cdf */
       if (what[0] == 'n') { /* normalized */
+         if ( a < -1.0 ) { 
+            return(1.0);
+         } else if ( a < 0 ) {
+            return(0.0);
+         } 
          for (ii=hh->K-1; ii>i0; --ii) {
             val += hh->cn[ii]; 
          }
          val += (1.0-a)*hh->cn[i0];
       } else { /* count */
+         if ( a < -1.0 ) { 
+            return(hh->n);
+         } else if ( a < 0 ) {
+            return(0.0);
+         } 
          for (ii=hh->K-1; ii>i0; --ii) {
             val += hh->c[ii]; 
          }
          val += (1.0-a)*hh->c[i0];
       }
+   } else if (!strcmp(what,"outl")) {/* approx of (1- 2 x smallest tail area) 
+                                        1 means value is at tail ends
+                                        0 means value splits histogram area
+                                          in half*/
+      if ( a < -1.0 ) { 
+         return(1);
+      } else if ( a < 0 ) {
+         return(1);
+      } 
+      /* Outlierness of point */
+      for (ii=hh->K-1; ii>i0; --ii) {
+         val += hh->cn[ii]; 
+      }
+      val += (1.0-a)*hh->cn[i0];
+      if (val > 0.5) {
+         val = 2.0*(-0.5+val);
+      } else val = 2.0*(0.5-val);
    }
    return(val);
 }
