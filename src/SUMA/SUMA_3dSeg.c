@@ -93,6 +93,11 @@ NULL
 NULL
       },
    {  
+"-debug",
+"-debug LEVEL: Set debug level to 0(default), 1, or 2 ",
+NULL
+      },
+   {  
 "-mixfrac",
 "-mixfrac 'MIXFRAC': MIXFRAC sets up the volume-wide (within mask)\n"
 "                    tissue fractions while initializing the \n"
@@ -127,6 +132,12 @@ NULL
 "            initialization is carried out with 3dkmean's engine.\n",
 NULL 
       },
+   {  
+"-labeltable",
+"-labeltable LT: Label table containing integer keys and corresponding labels.",
+NULL 
+      },
+   
    {  NULL, NULL, NULL  }
 };
 
@@ -216,6 +227,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->FDV = NULL;
    Opt->pset = NULL;
    Opt->cset = NULL;
+   Opt->outl = NULL;
    Opt->gold = NULL;
    Opt->gold_bias = NULL;
    Opt->bias_meth = "Wells";
@@ -249,6 +261,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->mask_top = -1.0;
    Opt->DO_p = TRUE;
    Opt->DO_c = TRUE;
+   Opt->DO_o = FALSE;
    Opt->DO_r = FALSE;
    Opt->Writepcg_G_au = FALSE;
    Opt->group_classes = NULL;

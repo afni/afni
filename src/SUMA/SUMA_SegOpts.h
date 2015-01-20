@@ -85,6 +85,7 @@ typedef struct {
    THD_3dim_dataset *fset;
    THD_3dim_dataset *xset;
    THD_3dim_dataset *gset;
+   THD_3dim_dataset *outl;
    THD_3dim_dataset *gold;
    THD_3dim_dataset *gold_bias;
    THD_3dim_dataset *priCgA;
@@ -140,6 +141,7 @@ typedef struct {
    byte DO_p;
    byte DO_f;
    byte DO_c;
+   byte DO_o;
    byte DO_x;
    byte DO_r;
    byte Writepcg_G_au;
