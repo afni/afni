@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20,  Jan, 2015, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
+   "added option -show_trs_to_zero, to compute length of iresp",
+   "This is to computer the number of TRs until a curve bottoms out at 0."
+ } ,
+
+ { 20,  Jan, 2015, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "allow ',' as married timinig separator (along with '*')",
+   NULL
+ } ,
+
  { 15,  Jan, 2015, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
    "added -hist; if unknown opt and cur version, fail after check",
    NULL
