@@ -138,6 +138,7 @@ SEG_OPTS *free_SegOpts(SEG_OPTS *Opt) {
    if (Opt->fset) DSET_delete(Opt->fset); Opt->fset = NULL;
    if (Opt->xset) DSET_delete(Opt->xset); Opt->xset = NULL;
    if (Opt->gset) DSET_delete(Opt->gset); Opt->gset = NULL;
+   if (Opt->outl) DSET_delete(Opt->outl); Opt->outl = NULL;
    if (Opt->sig)  DSET_delete(Opt->sig); Opt->sig = NULL;
    if (Opt->priCgA)  DSET_delete(Opt->priCgA); Opt->priCgA = NULL;
    if (Opt->priCgL)  DSET_delete(Opt->priCgL); Opt->priCgL = NULL;
@@ -1110,7 +1111,7 @@ THD_3dim_dataset *Seg_load_dset_eng( char *set_name, char *view )
    int i=0;
    byte make_cp=0;
    int verb=0;
-   char sprefix[THD_MAX_PREFIX+10];
+   char sprefix[THD_MAX_PREFIX+10], *stmp=NULL;
    
    SUMA_ENTRY;
    
@@ -1137,6 +1138,15 @@ THD_3dim_dataset *Seg_load_dset_eng( char *set_name, char *view )
          SUMA_RETURN(NULL);
       }
    }
+   
+   if (DSET_IS_MASTERED(dset)) {
+      if (verb) INFO_message("Dset is mastered, making copy...");
+      stmp = SUMA_ModifyName(set_name, "append", ".cp", NULL);
+      sdset = dset;
+      dset = EDIT_full_copy(sdset, stmp);
+      free(stmp); DSET_delete(sdset); sdset = NULL;  
+   }
+      
    
    if (view) {
       if (view) {

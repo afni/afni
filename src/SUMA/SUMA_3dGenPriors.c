@@ -223,6 +223,7 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->prefix = NULL;
    Opt->aset = NULL;
    Opt->mset = NULL;
+   Opt->outl = NULL;
    Opt->gset = NULL;
    Opt->sig = NULL;
    Opt->FDV = NULL;
@@ -252,6 +253,7 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->cmask_count=0;
    Opt->mask_bot = 1.0;
    Opt->mask_top = -1.0;
+   Opt->DO_o = FALSE;
    Opt->DO_p = TRUE;
    Opt->DO_c = TRUE;
    Opt->Writepcg_G_au = FALSE;
@@ -369,6 +371,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			if (strchr(argv[kar], 'f')) Opt->DO_f = 1;
 			if (strchr(argv[kar], 'x')) Opt->DO_x = 1;
 			if (strchr(argv[kar], 'p')) Opt->DO_p = 1;
+			if (strchr(argv[kar], 'o')) Opt->DO_o = 1;
          
          brk = 1;
 		}      
@@ -1626,6 +1629,9 @@ int main(int argc, char **argv)
    /* write output */
    if (Opt->pset && !Opt->this_pset_name) {
       DSET_write(Opt->pset);
+   }
+   if (Opt->outl) {
+      DSET_write(Opt->outl);
    }
    if (Opt->cset && !Opt->this_cset_name) {
       DSET_write(Opt->cset);
