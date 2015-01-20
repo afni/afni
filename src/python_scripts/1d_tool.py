@@ -432,6 +432,14 @@ examples (very basic for now):
 
           1d_tool.py -infile X.nocensor.xmat.1D -index_to_run_tr 217
 
+   Example 27. Display length of response curve.
+
+        1d_tool.py -show_trs_to_zero -infile data.1D
+
+       Print out the length of the input (in TRs, say) until the data
+       values become a constant zero.  Zeros that are followed by non-zero
+       values are irrelevant.
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -802,6 +810,8 @@ general options:
 
    -show_trs_run RUN            : restrict -show_trs_[un]censored to the given
                                   1-based run
+   -show_trs_to_zero            : display number of TRs before final zero value
+                                  (e.g. length of response curve)
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
                                   - consider the -reverse option
@@ -971,9 +981,10 @@ g_history = """
         - added -show_num_runs
    1.21 Dec 30, 2013 - skip polort against polort in -show_cormat_warnings
    1.22 Apr 10, 2014 - added -index_to_run_tr
+   1.23 Jan 20, 2015 - added -show_trs_to_zero
 """
 
-g_version = "1d_tool.py version 1.22, April 10, 2014"
+g_version = "1d_tool.py version 1.23, January 20, 2015"
 
 
 class A1DInterface:
@@ -1046,6 +1057,7 @@ class A1DInterface:
       self.show_trs_uncensored = ''     # style variable can be in:
                                # {'', 'comma', 'space', 'encoded', 'verbose'}
       self.show_trs_run    = -1         # restrict 'show_trs' to (0-based) run
+      self.show_trs_to_zero= 0          # show iresp length
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the input matrix
       self.transpose_w     = 0          # transpose the output matrix
@@ -1324,6 +1336,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_trs_run', 1, [], 
                    helpstr='restrict -show_trs to given (1-based) run')
+
+      self.valid_opts.add_opt('-show_trs_to_zero', 0, [], 
+                   helpstr='show length of data until constant zero')
 
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
@@ -1733,6 +1748,9 @@ class A1DInterface:
             if err: return 1
             self.show_trs_uncensored = val
 
+         elif opt.name == '-show_trs_to_zero':
+            self.show_trs_to_zero = 1
+
          elif opt.name == '-sort':
             self.sort = 1
 
@@ -1978,6 +1996,9 @@ class A1DInterface:
 
       if self.show_mmms:
          self.adata.show_min_mean_max_stdev(verb=self.verb)
+
+      if self.show_trs_to_zero:
+         self.adata.show_trs_to_zero(verb=self.verb)
 
       if self.show_num_runs: self.show_nruns()
 

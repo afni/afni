@@ -2050,6 +2050,25 @@ class Afni1D:
             form = "%7.4f %7.4f %7.4f %7.4f"
          print ps + form % UTIL.min_mean_max_stdev(col)
 
+   def show_trs_to_zero(self, col=-1, verb=1):
+      """show number of TRs until constant zero
+         (i.e. search from end for first non-zero value)
+      """
+
+      if verb: print "file %s (len %d)" % (self.fname, self.nt)
+      for cind, col in enumerate(self.mat):
+         # set mind = index of last non-zero element, and increment
+         mind = -1
+         for ind in range(len(col)-1,-1,-1):
+            if col[ind] != 0:
+               mind = ind
+               break
+         mind += 1 # becomes a count to zero
+         
+         if verb: print "    col %d: response length = %d" % (cind, mind)
+         else:    print "%d" % mind,
+      print
+
    def add_offset(self, offset):
       """add offset value to every value in matrix"""
 
@@ -2278,11 +2297,15 @@ class Afni1D:
 
          try:      # to process some of the data
             if label == 'ni_type':
-               ncols, type = data.split('*')
+               if data.find('*') >= 0:
+                  ncols, dtype = data.split('*')
+               else:
+                  ncols = 1
+                  dtype = data
                ncols = int(ncols)
                if self.verb > verb_level:
-                  print "-- label %s: cols = %d, type = %s" % \
-                       (label, ncols, type)
+                  print "-- label %s: cols = %d, dtype = %s" % \
+                       (label, ncols, dtype)
                if ncols != self.nvec:
                   print "** matrix vecs %d != %s cols %d" % \
                        (self.nvec, label, ncols)
