@@ -393,6 +393,7 @@ HELP:
    echo "-exclass CLSS1 [CLSS2 ...]: Exclude following classes. String matching "
    echo "                             is partial"
    echo "-odir DIR: Output directory, default is DIR"
+   echo "-nx NX: Set number of panel along the horizontal direction"
    echo "-echo: Set echo"
    echo "-help: this message" 
    echo ""
