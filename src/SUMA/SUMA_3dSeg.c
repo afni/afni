@@ -422,6 +422,14 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    }
    if (Opt->debug) SUMA_show_Class_Stat(Opt->cs, "Class Stat At Input:\n", NULL);
    
+   /* Make sure there are good estimates for all classes */
+   if (SUMA_ZeroSamp_from_ClassStat(Opt->cs)) {
+      if (!Opt->debug) 
+         SUMA_show_Class_Stat(Opt->cs, "Class Stat At Input:\n", NULL);
+      SUMA_S_Err("Have empty classes at initialization. Not cool\n");
+      SUMA_RETURN(0);
+   }
+
    if (!Opt->pstCgALL) { /* Compute initial posterior distribution */
       if (!(SUMA_pst_C_giv_ALL(Opt->aset, 
                                Opt->cmask, Opt->cmask_count,
@@ -659,6 +667,32 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    SUMA_RETURN(1);
 }
 
+#define CLASS_KEYS_FROM_LT(vl_dtable) {\
+   int i, kk;\
+   /* make sure all classes are in the labeltable */\
+   for (i=0; i<Opt->clss->num; ++i) {\
+      if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){\
+            ERROR_exit("Key not found in %s for %s ", \
+                     Opt->labeltable_name, Opt->clss->str[i]);\
+      }\
+      if (Opt->keys) {\
+         if (Opt->keys[i]!=kk) {\
+            ERROR_exit("Key mismatch %d %d", Opt->keys[i], kk);\
+         }\
+      }   \
+   }   \
+   if (!Opt->keys) { /* get them from table */\
+      Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));\
+      for (i=0; i<Opt->clss->num; ++i) {\
+         if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable,\
+                                          Opt->clss->str[i]))<0){\
+            ERROR_exit("(should noy happen) Key not found in %s for %s ", \
+                        Opt->labeltable_name, Opt->clss->str[i]);\
+         }\
+         Opt->keys[i] = kk;\
+      }\
+   }\
+}
 
 int main(int argc, char **argv)
 {
@@ -749,7 +783,14 @@ int main(int argc, char **argv)
       }
    }
 
+   /* classified set ? */
+   if (Opt->this_cset_name) { /* user supplied initializer */
+      if (!(Opt->cset = Seg_load_dset( Opt->this_cset_name ))) {      
+         SUMA_RETURN(1);
+      }
+   }
    
+
    /* labeltable? */
    if (Opt->labeltable_name) {
       Dtable *vl_dtable=NULL;
@@ -763,37 +804,25 @@ int main(int argc, char **argv)
       if (!(vl_dtable = Dtable_from_nimlstring(labeltable_str))) {
          ERROR_exit("Could not parse labeltable");
       }
-      /* make sure all classes are in the labeltable */
-      for (i=0; i<Opt->clss->num; ++i) {
-         if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-               ERROR_exit("Key not found in %s for %s ", 
-                        Opt->labeltable_name, Opt->clss->str[i]);
-         }
-         if (Opt->keys) {
-            if (Opt->keys[i]!=kk) {
-               ERROR_exit("Key mismatch %d %d", Opt->keys[i], kk);
-            }
-         }   
-      }   
-      if (!Opt->keys) { /* get them from table */
-         Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
-         for (i=0; i<Opt->clss->num; ++i) {
-            if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-                  ERROR_exit("(should noy happen) Key not found in %s for %s ", 
-                           Opt->labeltable_name, Opt->clss->str[i]);
-            }
-            Opt->keys[i] = kk;
-         }
-      }
+      CLASS_KEYS_FROM_LT(vl_dtable);
+
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
    } 
    
    if (!Opt->keys) {
-      /* add default keys */
-      if (Opt->debug) SUMA_S_Note("Keys not available, assuming defaults");
-      Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
-      for (i=0; i<Opt->clss->num; ++i) {
-         Opt->keys[i] = i+1;
+      Dtable *vl_dtable=NULL;
+      if (Opt->cset && (vl_dtable = DSET_Label_Dtable(Opt->cset))) { 
+         if (Opt->debug) SUMA_S_Note("Getting keys from -cset dataset");
+         /* try getting keys from cset */
+         CLASS_KEYS_FROM_LT(vl_dtable);
+         destroy_Dtable(vl_dtable); vl_dtable=NULL;
+      } else {
+         /* add default keys */
+         if (Opt->debug) SUMA_S_Note("Keys not available, assuming defaults");
+         Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
+         for (i=0; i<Opt->clss->num; ++i) {
+            Opt->keys[i] = i+1;
+         }
       }
    }
    
@@ -822,7 +851,7 @@ int main(int argc, char **argv)
    
    Opt->cs = SUMA_New_Class_Stat(Opt->clss->str, Opt->clss->num, 
                                  Opt->keys, 3, NULL);
-
+   
      
    /* Load prob. of class given features */
    if (Opt->priCgAname && strcmp(Opt->priCgAname, "INIT_MIXFRAC")) {
@@ -846,7 +875,8 @@ int main(int argc, char **argv)
       if (0) {
          SUMA_S_Note("Setting probability floor, USEFULNESS NOT TESTED...");
          if (!set_p_floor(Opt->priCgA, 0.1, Opt->cmask)) {
-            SUMA_S_Errv("Failed to set p floor for priCgA %s\n", Opt->priCgAname);
+            SUMA_S_Errv("Failed to set p floor for priCgA %s\n", 
+                        Opt->priCgAname);
             SUMA_RETURN(1);
          }
       }
@@ -887,13 +917,6 @@ int main(int argc, char **argv)
    }
    ff = Opt->wA+Opt->wL;
    Opt->wA = Opt->wA/ff; Opt->wL = Opt->wL/ff;
-   
-   /* classified set ? */
-   if (Opt->this_cset_name) { /* user supplied initializer */
-      if (!(Opt->cset = Seg_load_dset( Opt->this_cset_name ))) {      
-         SUMA_RETURN(1);
-      }
-   }
    
    if (!Opt->cset) {
       if (!SUMA_SegInitCset(Opt->aset, 
