@@ -39,6 +39,7 @@ static int wami_web_found = 0;
 static int wami_web_reqtype = 0;
 static char wami_url[MAX_URL];
 static int neurosynth_link = -1;
+static int sumsdb_link = -1;
 static int linkrbrain_link = -1;
 
 /* global web browser is used here, not sure where else to put it...      */
@@ -1134,8 +1135,9 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    char *rbuf = NULL, *strptr=NULL;
    int max_spaces = 50;
    char  xlab[max_spaces][32], ylab[max_spaces][32] , zlab[max_spaces][32],
-         clab[max_spaces][128], lbuf[1024], connbuf[1024]  , tmps[1024], pf[10], 
-         x_fstr[10], y_fstr[10], z_fstr[10] ;
+         clab[max_spaces][256], lbuf[1024], connbuf[1024]  , tmps[1024], pf[10], 
+         x_fstr[10], y_fstr[10], z_fstr[10], 
+         neurosynth_link_str[256], sumsdb_link_str[320] ;
    THD_string_array *sar =NULL;
    ATLAS_COORD *acl=NULL;
    int iatlas = -1, N_out_spaces=0, it=0;
@@ -1231,9 +1233,20 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 
       sprintf(ylab[i],"%s mm [%c]",y_fstr,(acl[i].y<0.0)?'A':'P') ;
       sprintf(zlab[i],"%s mm [%c]",z_fstr,(acl[i].z<0.0)?'I':'S') ;
-      if((strcmp(acl[i].space_name,"MNI")==0) && show_neurosynth_link()) {
-          sprintf(clab[i],"{MNI} <a href=\"%s\">NeuroSynth</a>",
-           neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+      if((strcmp(acl[i].space_name,"MNI")==0) && (show_neurosynth_link() || 
+         show_sumsdb_link() )) {
+          /* make sure there's a blank string to start */
+          sprintf(sumsdb_link_str,""); sprintf(neurosynth_link_str, "");
+          if(show_sumsdb_link()){ 
+              sprintf(sumsdb_link_str, "<a href=\"%s\">SumsDB</a>",
+                   sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+printf("sumsdb link is\n%s\n", sumsdb_link_str);
+          }
+          if(show_neurosynth_link())
+              sprintf(neurosynth_link_str, "<a href=\"%s\">NeuroSynth</a>",
+                   neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+
+          sprintf(clab[i],"{MNI} %s %s", neurosynth_link_str, sumsdb_link_str);
       }          
       else sprintf(clab[i],"{%s}", acl[i].space_name);
 
@@ -1589,7 +1602,7 @@ int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces,
    if (strncmp(orcodeout, "RAI", 3)) {
       ERROR_message(
          "Output orientation (%s) not RAI\n"
-         "Need a function to go from RAI to desrired output orientation ",
+         "Need a function to go from RAI to desired output orientation ",
                      ac.orcode);
       RETURN(0);
    }
@@ -1646,10 +1659,46 @@ neurosynth_coords_link(float x, float y, float z)
 
 /* show links out to neurosynth.org */
 int
+show_sumsdb_link()
+{
+  if(sumsdb_link >=0)
+     return(sumsdb_link);
+     
+  if (AFNI_yesenv("AFNI_SUMSDB"))
+     sumsdb_link = 1;
+  else
+     sumsdb_link = 0;
+  return(sumsdb_link);
+}
+
+/* format a coordinates link string the SumsDB website */
+char *
+sumsdb_coords_link(float x, float y, float z)
+{
+   static char sumsdbpage[320];
+   int ix,iy,iz;
+   
+   ix = (int) x; iy = (int) y; iz = (int) z;
+ 
+   if (WAMIRAD < 0.0) {
+      WAMIRAD = Init_Whereami_Max_Rad();
+   }
+  
+   sprintf(sumsdbpage, 
+           "http://sumsdb.wustl.edu/sums/celldatasearch.do?"
+           "type=sumsdb_cell_data&xcoord=%d&ycoord=%d&zcoord=%d&distance=%.1f",
+           ix,iy,iz, WAMIRAD);
+
+   return(sumsdbpage);
+}
+
+
+/* show links out to linkrbrain */
+int
 show_linkrbrain_link()
 {
   if(linkrbrain_link >=0)
-     return(neurosynth_link);
+     return(linkrbrain_link);
      
   if (AFNI_yesenv("AFNI_LINKRBRAIN"))
      linkrbrain_link = 1;
