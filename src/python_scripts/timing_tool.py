@@ -961,9 +961,10 @@ g_history = """
    2.09 Sep 18, 2014 - added -help_basis to describe basis functions
                        (mostly to clarify dmBLOCK/dmUBLOCK)
    2.10 Oct 28, 2014 - expanded -help_basis (WAV, 3dDeconvolve, 1dplot)
+   2.11 Jan 20, 2015 - allow ',' as married timing separator (with '*')
 """
 
-g_version = "timing_tool.py version 2.10, Oct 28, 2014"
+g_version = "timing_tool.py version 2.11, January 20, 2015"
 
 
 
