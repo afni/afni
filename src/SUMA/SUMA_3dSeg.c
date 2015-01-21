@@ -815,7 +815,7 @@ int main(int argc, char **argv)
          if (Opt->debug) SUMA_S_Note("Getting keys from -cset dataset");
          /* try getting keys from cset */
          CLASS_KEYS_FROM_LT(vl_dtable);
-         destroy_Dtable(vl_dtable); vl_dtable=NULL;
+         /* Do not delete vl_dtable, it is the same pointer in Opt->cset */
       } else {
          /* add default keys */
          if (Opt->debug) SUMA_S_Note("Keys not available, assuming defaults");
