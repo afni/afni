@@ -533,6 +533,7 @@ int SUMA_set_Stat(SUMA_CLASS_STAT *cs, char *label, char *pname, double val);
 double SUMA_get_Stat(SUMA_CLASS_STAT *cs, char *label, char *pname);
 double *SUMA_get_Stats(SUMA_CLASS_STAT *cs,  char *pname);
 int SUMA_MixFrac_from_ClassStat(SUMA_CLASS_STAT *cs, float *mf);
+int SUMA_ZeroSamp_from_ClassStat(SUMA_CLASS_STAT *cs);
 int SUMA_Stat_position (SUMA_CLASS_STAT *cs, char *label, char *pname, int pp[]);
 SUMA_CLASS_STAT *SUMA_Free_Class_Stat(SUMA_CLASS_STAT *cs);
 SUMA_CLASS_STAT *SUMA_New_Class_Stat(char **clsl, int N_clsl, int *keys, 
