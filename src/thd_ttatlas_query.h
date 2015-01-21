@@ -513,7 +513,9 @@ float get_wami_minprob(void);
 float Get_PMap_Factor(void);
 int show_neurosynth_link();
 int show_linkrbrain_link();
+int show_sumsdb_link();
 char * neurosynth_coords_link(float x, float y, float z);
+char * sumsdb_coords_link(float x, float y, float z);
 int make_linkrbrain_xml(float *coords, int ncoords, 
     char *src_space, char *dest_space, char *linkrbrain_xml, int linkr_corr_type);
 int send_linkrbrain_xml(char *linkrbrain_xml, char *linkrbrain_results);

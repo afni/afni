@@ -209,7 +209,7 @@ def process_one_data_line(line, verb=1):
         - skip '*' tokens (should be only way to get empty line)
         - look for married elements
 
-      The returned acount is the number of '*' found on this line.
+      The returned acount is the number of '*'/',' found on this line.
 
       If any tokens are married, they should all have the same format.
 
@@ -264,7 +264,7 @@ def process_one_data_line(line, verb=1):
 
    return 0, res_list, acount
 
-def split_token(tdata, seplist=[':','*']):
+def split_token(tdata, seplist=[':','*',',']):
    """
       like str.split(), but allow a list of separators, and return 
       the corresponding list of separators (length should be one less
