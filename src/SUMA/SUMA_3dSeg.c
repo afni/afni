@@ -831,7 +831,14 @@ int main(int argc, char **argv)
       SUMA_S_Note("Class-->key map");
       SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
    }
-   
+   if (Opt->clss->num < 2) {
+      if (Opt->debug <= 1) {
+         SUMA_S_Note("Class-->key map");
+         SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
+      }
+      SUMA_S_Err("Less than 2 classes? I am out of here");
+      SUMA_RETURN(0);
+   }
    /* Mask setup */
    if (Opt->debug > 1) {
       SUMA_S_Note("MaskSetup");
