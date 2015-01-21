@@ -5446,6 +5446,22 @@ int SUMA_MixFrac_from_ClassStat(SUMA_CLASS_STAT *cs, float *mf)
    SUMA_RETURN(1);
 }
 
+int SUMA_ZeroSamp_from_ClassStat(SUMA_CLASS_STAT *cs) 
+{
+   static char FuncName[]={"SUMA_ZeroSamp_from_ClassStat"};
+   int out;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   for (i=0, out=0; i<cs->N_label; ++i) {
+      if (!SUMA_get_Stat(cs, cs->label[i], "num")) ++out;
+   }
+   
+   SUMA_RETURN(out);
+}
+
+
 double SUMA_mixopt_2_mixfrac(char *mixopt, char *label, int key, int N_clss,
                              byte *cmask, THD_3dim_dataset *cset) 
 {
