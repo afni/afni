@@ -3885,6 +3885,28 @@ size is used.
 If this variable is set to 'SMALL' or a negative number, then a smaller font
 size is used.
 
+--------------------------
+Variable: AFNI_WEBBY_WAMI 
+--------------------------
+When set to YES, the Where Am I GUI becomes 'web-enabled', i.e. the report
+becomes clickable to open web pages from the output. Most features are
+still experimental. See AFNI_NEUROSYNTH and AFNI_SUMSDB below for examples.
+The default value is 'NO'.
+
+--------------------------
+Variable: AFNI_NEUROSYNTH 
+--------------------------
+When set to YES, provides link for MNI coordinate in Where Am I GUI to the
+Neurosynth site. Requires AFNI_WEBBY_WAMI to also be set to YES. The default
+value is 'NO'.
+
+----------------------
+Variable: AFNI_SUMSDB 
+----------------------
+When set to YES, provides link for MNI coordinate in Where Am I GUI to the
+SumsDB site. Requires AFNI_WEBBY_WAMI to also be set to YES. The default
+value is 'NO'.
+
 -------------------------------
 Variable:  AFNI_NO_OPTION_HINT
 -------------------------------
