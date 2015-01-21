@@ -904,10 +904,10 @@ THD_fvec3 THD_mni__tta_N27( THD_fvec3 mv, int dir )
    static THD_talairach_12_warp *ww=NULL;
    float tx,ty,tz ;
    int iw, ioff;
-   THD_fvec3 tv, tv2;
+   THD_fvec3 tv2;
 
    tx = ty = tz = -9000.0;
-   LOAD_FVEC3( tv , tx,ty,tz ) ;
+/*   LOAD_FVEC3( tv , tx,ty,tz ) ;*/
    LOAD_FVEC3( tv2 , tx,ty,tz ) ;
 
    /* Meth 2, xform in code, more fool proof*/
@@ -1001,7 +1001,7 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 {
    THD_ivec3 ijk ;
    THD_fvec3 mmxyz ;
-   int  ix,jy,kz , nx,ny,nz,nxy, ii=0, kk=0;
+   int  ix,jy,kz , nx,ny,nxy, ii=0, kk=0;
    byte *ba=NULL;
    static int n_warn = 0, lr_notfound = 0;
    ATLAS *atlas=NULL;
@@ -1041,7 +1041,8 @@ char MNI_Anatomical_Side(ATLAS_COORD ac, ATLAS_LIST *atlas_list)
 
       nx = DSET_NX(ATL_DSET(atlas)) ;  /* size of atlas dataset axes */
       ny = DSET_NY(ATL_DSET(atlas)) ;
-      nz = DSET_NZ(ATL_DSET(atlas)) ; nxy = nx*ny ;
+      nxy = nx*ny ;
+      /*nz = DSET_NZ(ATL_DSET(atlas)) ;*/
 
       /*-- check the exact input location --*/
       ba = DSET_BRICK_ARRAY(ATL_DSET(atlas),0);
@@ -1069,7 +1070,7 @@ char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask)
 {
    THD_ivec3 ijk ;
    THD_fvec3 xyz ;
-   int  ix,jy,kz , nx,ny,nz,nxy;
+   int  ix,jy,kz , nx,ny,nxy;
 
    ENTRY("Atlas_Voxel_Side");
 
@@ -1092,7 +1093,8 @@ char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask)
    /* based on coords */
    nx = DSET_NX(dset) ;               /* size of atlas dataset axes */
    ny = DSET_NY(dset) ;
-   nz = DSET_NZ(dset) ; nxy = nx*ny ;
+   nxy = nx*ny ;
+/*   nz = DSET_NZ(dset) ;*/
 
    kz = (k1d / nxy);
    jy = (k1d % nxy);
@@ -1132,7 +1134,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               ATLAS_COORD ac, WAMI_SORT_MODES mode,
                               ATLAS_LIST *atlas_list)
 {
-   char *rbuf = NULL, *strptr=NULL;
+   char *rbuf = NULL;
    int max_spaces = 50;
    char  xlab[max_spaces][32], ylab[max_spaces][32] , zlab[max_spaces][32],
          clab[max_spaces][256], lbuf[1024], connbuf[1024]  , tmps[1024], pf[10], 
@@ -1240,7 +1242,6 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
           if(show_sumsdb_link()){ 
               sprintf(sumsdb_link_str, "<a href=\"%s\">SumsDB</a>",
                    sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
-printf("sumsdb link is\n%s\n", sumsdb_link_str);
           }
           if(show_neurosynth_link())
               sprintf(neurosynth_link_str, "<a href=\"%s\">NeuroSynth</a>",
@@ -2546,7 +2547,8 @@ int init_global_atlas_from_niml_files()
                 NULL);
       }
    }
-  
+
+   if(!valid_space_niml) printf("no valid niml files found to define atlases and spaces\n");
    /* set up the neighborhood for spaces */
    /*  how are the spaces related to each other */ 
    if(wami_verb() > 1) 
@@ -4044,13 +4046,13 @@ APPROX_STR_DIFF LevenshteinStringDistance(char *s1, char *s2, byte ci)
    spart=NULL;
    {
       char *ss, *sl;
-      int ns, nl;
+      int ns;
       if (ns2 < ns1) {
          ss = s2; sl = s1;
-         ns = ns2; nl = ns1;
+         ns = ns2; /* nl = ns1;*/
       } else {
          ss = s1; sl = s2;
-         ns = ns1; nl = ns2;
+         ns = ns1; /* nl = ns2;*/
       }
       /* Don't accpet this search if the smallest word is too small.
       For example Saad and S will get a super high match (0), but
@@ -4426,8 +4428,8 @@ char **unique_str(char **words, int N_words, byte ci,
                   byte noae, int *N_unq, int **isort_out)
 {
    char **ws=NULL;
-   char *line=NULL;
-   int direct = -1; /* -1 best match first, 1 best match last */
+/*   char *line=NULL;*/
+/*   int direct = -1;/= /* -1 best match first, 1 best match last */
    int i, c, n_null;
    int *isrt=NULL;
    
@@ -7490,7 +7492,7 @@ int whereami_in_atlas(  char *aname,
 {
    int nfind, *b_find=NULL, *rr_find=NULL ;
    int ii, kk, ix,jy,kz , nx,ny,nz,nxy ,sb=0;
-   int aa,bb,cc , ff,baf,rff;
+   int aa,bb,cc , ff,baf;
    char *blab ;
    ATLAS_ZONE *zn = NULL;
    THD_ivec3 ijk ;
@@ -7712,7 +7714,7 @@ int whereami_in_atlas(  char *aname,
          }
 
          /* build query results */
-         rff = -1 ;  /* rff = radius of last found label */
+         /*rff = -1 ; */ /* rff = radius of last found label */
 
       } /* for each sub-brick */
       if (LocalHead) INFO_message("   %d findings...\n", nfind);
@@ -7748,7 +7750,7 @@ int whereami_in_atlas(  char *aname,
                             Atlas_Name(atlas)); 
          *wamip = Add_To_Atlas_Query(*wamip, zn);
 
-         rff = rr_find[ff] ;  /* save for next time around */
+         /*rff = rr_find[ff] ;*/  /* save for next time around */
       }
 
    }
@@ -8736,13 +8738,13 @@ char * deblank_name (char *name) {
 
 char *deblank_allname(char *name, char fill)
 {
-   int nch = 0, bb=0;
+   int bb=0;
    
    if (!name) return(name);
    
    name = deblank_name(name);
    
-   nch = strlen(name);
+/*   nch = strlen(name);*/
    bb=0; 
    while (name[bb] != '\0') {
       if (isspace(name[bb])) name[bb]=fill;
@@ -9244,13 +9246,11 @@ elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_ty
 void
 wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami)
 {
-   int nfind;
    char *blab = NULL;
    ATLAS_ZONE *zn = NULL;
    int LocalHead = wami_lh();
 
    ENTRY("wami_query_web");
-   nfind = 0 ;
    if (WAMIRAD < 0.0) {
       WAMIRAD = Init_Whereami_Max_Rad();
    }
@@ -9734,7 +9734,6 @@ wami_xform_xyz(float xi, float yi, float zi,
    float *xout, float *yout, float *zout,
    char *srcspace, char *destspace)
 {
-   float *fptr;
    ATLAS_XFORM_LIST *xfl = NULL, *cxfl = NULL;
 
    ENTRY("wami_xform_coords_xyz");
