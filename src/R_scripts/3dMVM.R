@@ -31,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.1, Jan 13, 2014
+Version 3.5.2, Jan 22, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -965,9 +965,9 @@ mvCom4 <- function(fm, nF_mvE4) {
    #p_wsmvt <- rep(1, nTerms)   # initiation for within-subject MVT
       for(ii in 1:nF_mvE4) {
          jj <- nF_mvE4 + ii
-         wsmvt <- maov(fm$Anova$SSPE[[jj]], fm$Anova$SSP[[jj]], fm$Anova$df[jj], fm$Anova$error.df)
+         wsmvt <- tryCatch(maov(fm$Anova$SSPE[[jj]], fm$Anova$SSP[[jj]], fm$Anova$df[jj], fm$Anova$error.df), error=function(e) NULL)
          #p-value for upper F
-         p_wsmvt[ii] <- pf(wsmvt[2], wsmvt[3], wsmvt[4], lower.tail = FALSE)
+         if(!is.null(wsmvt)) p_wsmvt[ii] <- pf(wsmvt[2], wsmvt[3], wsmvt[4], lower.tail = FALSE)
       }
    }
    # true MVT
