@@ -137,8 +137,22 @@ NULL
 "-labeltable LT: Label table containing integer keys and corresponding labels.",
 NULL 
       },
+   {  
+"-vox_debug",
+"-vox_debug 1D_DBG_INDEX: 1D index of voxel to debug.\n"
+"       OR\n"
+"   -vox_debug I J K: where I, J, K are the 3D voxel indices \n"
+"                 (not RAI coordinates in mm).",
+NULL 
+      },
+   {  
+"-vox_debug_file",
+"-vox_debug_file DBG_OUTPUT_FILE: File in which debug information is output\n"
+"                                    use '-' for stdout, '+' for stderr.",
+NULL 
+      },
    
-   {  NULL, NULL, NULL  }
+ {  NULL, NULL, NULL  }
 };
 
 static char shelp_Seg[] = {
