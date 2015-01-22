@@ -1,7 +1,10 @@
 #ifndef _ROIING_HEADER_
 #define _ROIING_HEADER_
 
-
+#define MIN_NTHR_MAX_NROILAB (20000) // large number for internal
+                                     // labelling thresholds. If the
+                                     // refset label is bigger than this
+                                     // throw an error
 #define DEP (1)              // search rad of defining ROIs
 #define BASE_DVAL (-1)       // intermed values for ROI-finding
 //#define ALLOWED_NROI (150)   // buffer size for array of refset...
