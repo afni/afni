@@ -66,6 +66,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Jan , 2015 , PT , "3dROIMaker" , MINOR , TYPE_BUG_FIX,
+   "Fixed some issues when only a tiny number of voxels is in inset.",
+   "Labelling wasn't correct when nvox < n_refset_roi.\n"
+},
 
 { 7, Jan , 2015 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "Switch to output nifti files.",
