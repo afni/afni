@@ -935,10 +935,10 @@ int main(int argc, char **argv)
          SUMA_S_Err("Failed to get initializer");
          SUMA_RETURN(1);
       }
-      if (Opt->debug > 1) {
-         SUMA_Seg_Write_Dset(Opt->proot, "classes_init", Opt->cset, 
-                               -1, Opt->hist);
-      }
+   }
+   if (Opt->debug > 1) {
+      SUMA_Seg_Write_Dset(Opt->proot, "classes_init", Opt->cset, 
+                            -1, Opt->hist);
    }
    
    /* Now add the 'OTHER' class if needed */
