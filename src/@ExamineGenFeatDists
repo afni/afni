@@ -11,7 +11,7 @@ INIT_LISTS:
    cd $fdir
    #Get all features
    set allhists = ()
-   if ($fwildvec == '') then
+   if ("$fwildvec" == '') then
       set allhists = (h.*.niml.hist)
    else 
       foreach fwild ($fwildvec)
@@ -66,11 +66,13 @@ DOAC:
       set alljpg = ($alljpg h.$feat.jpg )
    end
    set nall = $#alljpg
-   set nx = 3
-   if ($nall < 2) then 
-      set nx = 1
-   else if ($nall < 5) then 
-      set nx = 2
+   if ($nx <= 0) then
+      set nx = 3
+      if ($nall < 2) then 
+         set nx = 1
+      else if ($nall < 5) then 
+         set nx = 2
+      endif
    endif
    set nymax = 4
    set mxstep = `ccalc -i "$nx *$nymax"`
@@ -84,7 +86,7 @@ DOAC:
       if ( $iend >= $#alljpg) set iend = $#alljpg
       echo "Images ${istart}-${iend}"
       if ($parts) set pp = ".`printf %02d $part`"
-      imcat -crop 0 0 100 0 -nx ${nx} \
+      imcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
             -prefix $odir/h.ALL.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \
                `ParseName -out RelName $odir/h.ALL.${suff}${pp}.jpg`)
@@ -125,7 +127,7 @@ DOEC:
             set clslst = ($clslst $cls)
             NEXTCLS:
          end
-         echo "Have classes: $clstlst"
+         echo "Have classes: $clslst"
       else if ($#clslst == 0) then
          set clslst = ($allclslst)
          echo "Have classes: $clslst"
@@ -150,11 +152,13 @@ DOEC:
       set alljpg = ($alljpg h.$feat.G.jpg )
    end
    set nall = $#alljpg
-   set nx = 3
-   if ($nall < 2) then 
-      set nx = 1
-   else if ($nall < 5) then 
-      set nx = 2
+   if ($nx <= 0) then
+      set nx = 3
+      if ($nall < 2) then 
+         set nx = 1
+      else if ($nall < 5) then 
+         set nx = 2
+      endif
    endif
    set nymax = 4
    set mxstep = `ccalc -i "$nx *$nymax"`
@@ -168,7 +172,7 @@ DOEC:
       if ( $iend >= $#alljpg) set iend = $#alljpg
       echo "Images ${istart}-${iend}"
       if ($parts) set pp = ".`printf %02d $part`"
-      imcat -crop 0 0 100 0 -nx ${nx} \
+      imcat -crop 0 0 100 0 -nx ${nx} -white_wrap \
             -prefix $odir/h.ALL_COND.${suff}${pp}.jpg $alljpg[${istart}-${iend}]
       set finalimages = ($finalimages \
                   `ParseName -out RelName $odir/h.ALL_COND.${suff}${pp}.jpg`)
@@ -213,6 +217,7 @@ set inputopen = 0
 set exclsopen = 0
 set exfeatopen = 0
 set featmask = ''
+set nx = -1
 set suff = 'nosuf'
 set fdir = './'
 set idir = $PWD
@@ -237,6 +242,21 @@ while ($cnt <= $Narg)
       else
          @ cnt ++
          set odir = "$argv[$cnt]"
+         
+         set exfeatopen = 0
+         set inputopen = 0
+         set exclsopen = 0
+         set donext = 0   
+      endif
+   endif
+
+   if ($donext && "$argv[$cnt]" == "-nx") then
+      if ($cnt == $Narg) then
+         echo "Need number after -nx"
+         goto END
+      else
+         @ cnt ++
+         set nx = "$argv[$cnt]"
          
          set exfeatopen = 0
          set inputopen = 0
@@ -373,6 +393,7 @@ HELP:
    echo "-exclass CLSS1 [CLSS2 ...]: Exclude following classes. String matching "
    echo "                             is partial"
    echo "-odir DIR: Output directory, default is DIR"
+   echo "-nx NX: Set number of panel along the horizontal direction"
    echo "-echo: Set echo"
    echo "-help: this message" 
    echo ""

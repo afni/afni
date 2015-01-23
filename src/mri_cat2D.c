@@ -24,7 +24,7 @@ static byte WrapZero = 0;
 void mri_Set_KO_catwrap(void) { OK_wrap = 0; return; }
 void mri_Set_OK_catwrap(void) { OK_wrap = 1; return; }
 void mri_Set_OK_catrandwrap(void) { OK_wrap = 2; return; }
-void mri_Set_OK_WrapZero(void) { WrapZero = 1; return; }
+void mri_Set_OK_WrapZero(byte vv) { WrapZero = vv; return; }
 void mri_Set_KO_WrapZero(void) { WrapZero = 0; return; }
 
 MRI_IMAGE * mri_cat2D(  int mx , int my , int gap ,
@@ -116,53 +116,78 @@ ENTRY("mri_cat2D") ;
             switch( kind ){
                case MRI_byte:{
                   byte *pout = ((byte *) vout);
+                  byte bb;
+                  if (WrapZero == 1) bb = 0;
+                  else bb = WrapZero;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-                     (void) memset( pout+ijoff , 0 , sizeof(byte)*nx ) ;
+                        (void) memset( pout+ijoff , bb , sizeof(byte)*nx ) ;
+                  
                } break ;
 
                case MRI_rgb:{                       /* 11 Feb 1999 */
                   byte *pout = ((byte *) vout);
+                  byte bb;
+                  if (WrapZero == 1) bb = 0;
+                  else bb = WrapZero;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-                     (void) memset( pout+(3*ijoff) , 0 , sizeof(byte)*(3*nx) ) ;
+                     (void)memset( pout+(3*ijoff) , bb , sizeof(byte)*(3*nx) );
                } break ;
 
                case MRI_rgba:{                      /* 09 Dec 2014 */
                   rgba *pout = (rgba *)vout ;
+                  if (WrapZero != 1) {
+                     fprintf(stderr,"No support for non-zero filling for rgba");
+                  }
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      (void) memset( pout+ijoff , 0 , sizeof(rgba)*nx ) ;
                } break ;
 
                case MRI_short:{
                   short *pout = ((short *) vout);
+                  if (WrapZero != 1) {
+                     fprintf(stderr,"No support for non-zero filling for short");
+                  }
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      (void) memset( pout+ijoff , 0 , sizeof(short)*nx ) ;
                } break ;
 
                case MRI_int:{
                   int *pout = ((int *) vout);
+                  int bb;
+                  if (WrapZero == 1) bb = 0;
+                  else bb = WrapZero;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
-                     (void) memset( pout+ijoff , 0 , sizeof(int)*nx ) ;
+                     (void) memset( pout+ijoff , bb , sizeof(int)*nx ) ;
                } break ;
 
                case MRI_float:{
                   float *pout = ((float *) vout);
+                  float ff;
+                  if (WrapZero > 1) ff = WrapZero/255.0;
+                  else ff = 0.0;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      for( iout=0 ; iout < nx ; iout++ )
-                        pout[iout+ijoff] = 0 ;
+                        pout[iout+ijoff] = ff ;
                } break ;
 
                case MRI_double:{
                   double *pout = ((double *) vout);
+                  double ff;
+                  if (WrapZero > 1) ff = WrapZero/255.0;
+                  else ff = 0.0;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      for( iout=0 ; iout < nx ; iout++ )
-                        pout[iout+ijoff] = 0 ;
+                        pout[iout+ijoff] = ff ;
                } break ;
 
                case MRI_complex:{
                   complex *pout = ((complex *) vout);
+                  float ff;
+                  if (WrapZero > 1) ff = WrapZero/255.0;
+                  else ff = 0.0;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                      for( iout=0 ; iout < nx ; iout++ )
-                        pout[iout+ijoff].r = pout[iout+ijoff].i = 0 ;
+                        pout[iout+ijoff].r = pout[iout+ijoff].i = ff ;
                } break ;
             }
 
