@@ -33,7 +33,7 @@ def main(argv):
     comm_str = 'fat_mvm_review.py '
     file_in = ''
     pref_out = ''
-    thr_out = 1
+    thr_out = 10**6
     TRUNC = 0
 
     try:
@@ -102,6 +102,7 @@ if __name__=="__main__":
     FI_glob.sort()
 
     LIST_FOR_OUT = []
+    LIST_FOR_PHOUT = []
 
     for FI_indi in FI_glob:
 
@@ -112,6 +113,7 @@ if __name__=="__main__":
         FI_words = GR.BreakLineList(FI_list)
 
         FI_mat, FI_par, FI_var = GR.Find_ANOVAE(FI_words)
+        FI_phmat, FI_phpar, FI_phvar = GR.Find_POSTHOC(FI_words)
 
         nvar = len(FI_var)
         npar = len(FI_par)
@@ -120,6 +122,9 @@ if __name__=="__main__":
             for j in range(nvar):
                 if len(FI_var[j]) > 10:
                     FI_var[j] = FI_var[j][:10]
+            for j in range(len(FI_phvar)):
+                if len(FI_phvar[j]) > 10:
+                    FI_phvar[j] = FI_phvar[j][:10]
 
         #  - - - - - - - - - - - -  -  OUTPUT  - - - -  - - - - -- -- -- -
 
@@ -129,8 +134,19 @@ if __name__=="__main__":
                                                FI_par, 
                                                FI_var,
                                                FI_indi,
-                                               LIST_FOR_OUT )
-        
+                                               LIST_FOR_OUT,
+                                               FI_mat)
+        if FI_phvar :
+            LIST_FOR_PHOUT = GR.ScreenAndFileOutput( PO, 
+                                                     TO, 
+                                                     FI_phmat, 
+                                                     FI_phpar, 
+                                                     FI_phvar,
+                                                     FI_indi,
+                                                     LIST_FOR_PHOUT,
+                                                     FI_mat)
+
+
 
     if PO: 
         outname = PO + '_ANOVAE.txt'
@@ -138,5 +154,15 @@ if __name__=="__main__":
         for ll in LIST_FOR_OUT:
             f.write("%s" % (ll))
         f.close()
-    
+
         print "\nWrote out file: ", outname
+
+        if FI_phvar :
+            for phvar in FI_phvar:
+                outname = PO + '_PH_'+phvar+'.txt'
+                f = open(outname, 'w')
+                for ll in LIST_FOR_PHOUT:
+                    f.write("%s" % (ll))
+                f.close()
+
+                print "\nWrote out file: ", outname

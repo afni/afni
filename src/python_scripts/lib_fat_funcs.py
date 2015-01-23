@@ -58,6 +58,15 @@ OldFash_parnames = ['NT', 'fNT', 'FA', 'sFA', 'MD',         \
                         'NV']
 
 
+#class MVM_rev:
+#    def __init__(self, var, par):
+#        self.var = var
+#        self.par = par
+#        self.isquant = 1
+#        self.mean_tstat = 0
+#        self.minp_ROI = ''
+
+
 ###------------------------------------------------------------------
 ###------------------------------------------------------------------
 ###---------------- START: review functions and output --------------
@@ -76,7 +85,7 @@ def BreakLineList(x):
 ###------------------------------------------------------------------
 
 def Find_ANOVAE(x):
-    ''' input is a line list broken into linex of words.'''
+    ''' input is a line list broken into lines of words.'''
 
     Nline = len(x)
 
@@ -100,6 +109,7 @@ def Find_ANOVAE(x):
                 list_par.append(par)
                 list_var.append(names)
 
+
     npar = len(RESULTS)
     if npar <1:
         print "ERROR! No ANOVA results?!?"
@@ -115,9 +125,87 @@ def Find_ANOVAE(x):
     # return the array, and it's two lists of labels
     return z, list_par, list_var[0]
 
+
 ###------------------------------------------------------------------
 
-def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS):
+
+
+
+
+def Find_POSTHOC(x):
+    ''' input is a line list broken into lines of words.'''
+
+    Nline = len(x)
+
+    RESULTS = []
+    list_par = []
+#    list_var = []
+
+    for i in range(Nline):
+        if len(x[i]) > 0 :
+            if (x[i][1] == 'RESULTS:') and (x[i][2] == 'Post') :
+                par = x[i][-1]           # name of DTI/FMRI par
+                nval = int(x[i+1][0])    # where the num of vars is stored
+                values = []
+                names = []
+                ii = i + 3               # jump ahead to data
+                phrois, phvars = Find_PosthocVars_and_NROI( x[ii:ii+nval] )
+                Nphrois = len(phrois)
+                Nphvars = len(phvars)
+                tmpv = np.zeros( Nphvars )
+                for j in range( Nphvars ):
+                    for k in range( Nphrois ):
+                        ll = ii + j + k*Nphvars
+                        tmpv[j]+= np.float(x[ll][-5]) # t-stat
+                    tmpv[j]/= Nphrois
+                    values.append(tmpv[j])
+                RESULTS.append(values)
+                list_par.append(par)
+#                list_var.append(names)
+
+    npar = len(RESULTS)
+    if npar <1:
+        print "No post hoc results-- guess you didn't want any?"
+        return [],[],[]
+    else:
+        nvar = len( RESULTS[0] )
+        if nvar < 1 :
+            print "ERROR! No post hoc variables?!?"
+            sys.exit(35)
+
+        z = np.array(RESULTS, dtype = float)
+
+        # return the array, and it's two lists of labels
+        return z, list_par, phvars
+
+###------------------------------------------------------------------
+
+def Find_PosthocVars_and_NROI( x ):
+
+    nvals = len(x)
+    
+    phrois = []
+    phvars = []
+
+    for y in x:
+        twopiece = y[-1].split('-')
+        if not(phrois.__contains__(twopiece[0])):
+            phrois.append(twopiece[0])
+
+        if not(phvars.__contains__(twopiece[1])):
+            phvars.append(twopiece[1])
+
+    if len(phvars)*len(phrois) != nvals:
+        print "Problem! number of posthoc vars, ROIs and tests not matching!"
+        sys.exit(189)
+    
+    return phrois, phvars
+
+###------------------------------------------------------------------
+
+# ref mat allows us to use group pvalue mat to censor
+def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS,
+                        REF_mat):
 
     STARTER = 0
     if not(TS):
@@ -147,9 +235,11 @@ def ScreenAndFileOutput(PO, TO, FI_mat, FI_par, FI_var, FI_indi, TS):
 
 
     # ... the rest.
+    # use of 'REF_mat' to allow censoring by ANOVA values
     for i in range(npar):
         for j in range(nvar):
-            if FI_mat[i,j] < TO:
+            #if FI_mat[i,j] < TO :
+            if REF_mat[i,j] < TO :
                 out = "%.4e" % (FI_mat[i,j])
                 fout = out
             else:
