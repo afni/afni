@@ -728,7 +728,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 			exit(122);
 		}
 		
-
+      mkdir(prefix, 0777);
 		// ****** calc/do, loop through networks
 		for( hh=0 ; hh<N_nets ; hh++) {
 			count=0;
@@ -736,7 +736,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 				for( j=i ; j<NROI[hh] ; j++ ) {// include diags
                idx3 = MatrInd_to_FlatUHT(i,j,NROI[hh]);
 					if(Prob_grid[hh][idx3]>0) {
-                  if( ROI_STR_LAB && NameLabelsOut ){
+                  if( ROI_STR_LAB && NameLabelsOut ) {
                      if( NIFTI_OUT )
                         snprintf(prefix_netmap[hh][count], 300,
                                  "%s/NET_%03d_ROI_%s_%s.nii.gz", prefix, hh,
@@ -766,6 +766,9 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                                  "%s/NET_%03d_ROI_%03d_%03d",prefix,hh,
                                  ROI_LABELS[hh][i+1],ROI_LABELS[hh][j+1]); 
                   }
+
+
+
 
 						// single brik, byte map
 						networkMAPS = EDIT_empty_copy( insetFA ) ; 
