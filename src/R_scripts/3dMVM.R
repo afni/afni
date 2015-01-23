@@ -31,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.2, Jan 22, 2014
+Version 3.5.3, Jan 23, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -981,7 +981,7 @@ mvCom5 <- function(fm, nF_mvE5) {
    #mvfm <- Anova(fm$lm, type=fm$Anova$type, test='Pillai')
    mvfm <- tryCatch(Anova(fm$lm, type = fm$Anova$type, test = "Pillai"), error=function(e) NULL)
    if(is.null(mvfm))
-      out_p <- apply(cbind(uvP[1:nF_mvE5], uvP[(nF_mvE5+1):(2*nF_mvE5)], p_wsmvt), 1, min) else {
+      out_p <- apply(cbind(uvP[1:nF_mvE5], uvP[(nF_mvE5+1):(2*nF_mvE5)], p_wsmvt[1:nF_mvE5],  p_wsmvt[(nF_mvE5+1):(2*nF_mvE5)]), 1, min) else {
       if(fm$Anova$type=='III') for(kk in 1:nF_mvE5) {
          mvt <- stats:::Pillai(Re(eigen(qr.coef(qr(mvfm$SSPE), mvfm$SSP[[kk]]), symmetric = FALSE)$values), mvfm$df[[kk]], mvfm$error.df)
          #p-value for upper F
@@ -993,7 +993,7 @@ mvCom5 <- function(fm, nF_mvE5) {
          #p-value for upper F
          p_mvt[kk] <- pf(mvt[2], mvt[3], mvt[4], lower.tail = FALSE)
          }
-      } 
+      }
       #out_p <- apply(cbind(uvP[1:nF_mvE5], uvP[(nF_mvE5+1):(2*nF_mvE5)], p_wsmvt, p_mvt), 1, min)
       out_p <- apply(cbind(uvP[1:nF_mvE5], uvP[(nF_mvE5+1):(2*nF_mvE5)], p_wsmvt[1:nF_mvE5],  p_wsmvt[(nF_mvE5+1):(2*nF_mvE5)], p_mvt), 1, min)
    }
