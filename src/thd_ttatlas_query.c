@@ -1238,7 +1238,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       if((strcmp(acl[i].space_name,"MNI")==0) && (show_neurosynth_link() || 
          show_sumsdb_link() )) {
           /* make sure there's a blank string to start */
-          sprintf(sumsdb_link_str,""); sprintf(neurosynth_link_str, "");
+          sumsdb_link_str[0] = '\0';
+          neurosynth_link_str[0] = '\0';
           if(show_sumsdb_link()){ 
               sprintf(sumsdb_link_str, "<a href=\"%s\">SumsDB</a>",
                    sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
@@ -4430,7 +4431,7 @@ char **unique_str(char **words, int N_words, byte ci,
 {
    char **ws=NULL;
 /*   char *line=NULL;*/
-/*   int direct = -1; -1 best match first, 1 best match last */
+/*   int direct = -1;*/ /* -1 best match first, 1 best match last */
    int i, c, n_null;
    int *isrt=NULL;
    

@@ -61,7 +61,11 @@ void imcat_usage(int detail)
  "        to all remaining ones.\n"
  " ++ Options for output:\n"
  "  -zero_wrap: If number of images is not enough to fill matrix\n"
- "              blank images are used.\n"
+ "              solid black images are used.\n"
+ "  -white_wrap: If number of images is not enough to fill matrix\n"
+ "              solid white images are used.\n"
+ "  -gray_wrap GRAY: If number of images is not enough to fill matrix\n"
+ "              solid gray images are used. GRAY must be between 0 and 1.0\n"
  "  -image_wrap: If number of images is not enough to fill matrix\n"
  "               images on command line are reused (default)\n"
  "  -rand_wrap: When reusing images to fill matrix, randomize the order\n"
@@ -335,7 +339,7 @@ int main( int argc , char * argv[] )
           if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an image after -scale_pixels\n");
             exit(1);
-         }
+          }
           scale_pixels = argv[++iarg];
           if (!THD_is_ondisk(scale_pixels)) {
             fprintf(stderr,"*** ERROR: Image %s not found\n", scale_pixels);
@@ -355,7 +359,25 @@ int main( int argc , char * argv[] )
        }
        
        if( strcmp(argv[iarg],"-zero_wrap") == 0) {
-         mri_Set_OK_WrapZero();
+         mri_Set_OK_WrapZero(1);
+         iarg++ ; continue ;
+       }
+       if( strcmp(argv[iarg],"-white_wrap") == 0) {
+         mri_Set_OK_WrapZero(255);
+         iarg++ ; continue ;
+       }
+       
+       if( strcmp(argv[iarg],"-gray_wrap") == 0) {
+         byte bb;
+         if (iarg+1 >= argc) {
+            fprintf(stderr,
+                    "*** ERROR: Need a number between 0 and 1 for -gray_wrap\n");
+            exit(1);
+         }
+         ++iarg;
+         bb = (byte)(atof(argv[iarg])*255);
+         if (bb < 1) bb = 1;
+         mri_Set_OK_WrapZero(bb);
          iarg++ ; continue ;
        }
        if( strcmp(argv[iarg],"-image_wrap") == 0) {

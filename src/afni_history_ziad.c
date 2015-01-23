@@ -65,6 +65,36 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 21, Jan, 2014, ZSS, "3dGenPriors", MICRO, TYPE_NEW_OPT,
+   "Made program output centrality measures with -do o .",
+   "Documentaiton hidden until option is ready for mass usage." 
+ },
+
+ { 21, Jan, 2014, ZSS, "3dGenPriors", MICRO, TYPE_MODIFY,
+   "Made it use labeltable from -cset if needed & check for empty init classes.",
+   NULL
+ },
+
+ { 21, Jan, 2014, ZSS, "3dSkullStrip", MICRO, TYPE_BUG_FIX,
+   "Made program take sub-brick selectors at input.",
+   "Involved bringing SUMA_AfniExists() and SUMA_AfniPrefix() from stone age." 
+ },
+
+ { 16, Jan, 2014, ZSS, "3dHist", MICRO, TYPE_NEW_OPT,
+   "Added -get outl",
+   "Included fixing returned values in SUMA_hist_value() when out of bounds." 
+ },
+
+ { 15, Jan, 2014, ZSS, "imcat", MICRO, TYPE_NEW_OPT,
+   "-zero_wrap, and -gray_wrap for padding with black, white, or gray levels.",
+   NULL 
+ },
+
+ { 15, Jan, 2014, ZSS, "@ExamineGenFeatDists", MICRO, TYPE_NEW_OPT,
+   "Added option -nx, padding with white, fixed couple of small glitches too.",
+   NULL 
+ },
+
  { 13, Jan, 2014, ZSS, "afni-general", MICRO, TYPE_MODIFY,
    "Made R_io.so loading error a little more helpful.",
    NULL 

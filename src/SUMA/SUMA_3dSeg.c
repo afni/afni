@@ -93,6 +93,11 @@ NULL
 NULL
       },
    {  
+"-debug",
+"-debug LEVEL: Set debug level to 0(default), 1, or 2 ",
+NULL
+      },
+   {  
 "-mixfrac",
 "-mixfrac 'MIXFRAC': MIXFRAC sets up the volume-wide (within mask)\n"
 "                    tissue fractions while initializing the \n"
@@ -127,7 +132,27 @@ NULL
 "            initialization is carried out with 3dkmean's engine.\n",
 NULL 
       },
-   {  NULL, NULL, NULL  }
+   {  
+"-labeltable",
+"-labeltable LT: Label table containing integer keys and corresponding labels.",
+NULL 
+      },
+   {  
+"-vox_debug",
+"-vox_debug 1D_DBG_INDEX: 1D index of voxel to debug.\n"
+"       OR\n"
+"   -vox_debug I J K: where I, J, K are the 3D voxel indices \n"
+"                 (not RAI coordinates in mm).",
+NULL 
+      },
+   {  
+"-vox_debug_file",
+"-vox_debug_file DBG_OUTPUT_FILE: File in which debug information is output\n"
+"                                    use '-' for stdout, '+' for stderr.",
+NULL 
+      },
+   
+ {  NULL, NULL, NULL  }
 };
 
 static char shelp_Seg[] = {
@@ -216,6 +241,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->FDV = NULL;
    Opt->pset = NULL;
    Opt->cset = NULL;
+   Opt->outl = NULL;
    Opt->gold = NULL;
    Opt->gold_bias = NULL;
    Opt->bias_meth = "Wells";
@@ -249,6 +275,7 @@ SEG_OPTS *Seg_Default(char *argv[], int argc)
    Opt->mask_top = -1.0;
    Opt->DO_p = TRUE;
    Opt->DO_c = TRUE;
+   Opt->DO_o = FALSE;
    Opt->DO_r = FALSE;
    Opt->Writepcg_G_au = FALSE;
    Opt->group_classes = NULL;
@@ -409,6 +436,14 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    }
    if (Opt->debug) SUMA_show_Class_Stat(Opt->cs, "Class Stat At Input:\n", NULL);
    
+   /* Make sure there are good estimates for all classes */
+   if (SUMA_ZeroSamp_from_ClassStat(Opt->cs)) {
+      if (!Opt->debug) 
+         SUMA_show_Class_Stat(Opt->cs, "Class Stat At Input:\n", NULL);
+      SUMA_S_Err("Have empty classes at initialization. Not cool\n");
+      SUMA_RETURN(0);
+   }
+
    if (!Opt->pstCgALL) { /* Compute initial posterior distribution */
       if (!(SUMA_pst_C_giv_ALL(Opt->aset, 
                                Opt->cmask, Opt->cmask_count,
@@ -646,6 +681,32 @@ int SUMA_SegEngine(SEG_OPTS *Opt)
    SUMA_RETURN(1);
 }
 
+#define CLASS_KEYS_FROM_LT(vl_dtable) {\
+   int i, kk;\
+   /* make sure all classes are in the labeltable */\
+   for (i=0; i<Opt->clss->num; ++i) {\
+      if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){\
+            ERROR_exit("Key not found in %s for %s ", \
+                     Opt->labeltable_name, Opt->clss->str[i]);\
+      }\
+      if (Opt->keys) {\
+         if (Opt->keys[i]!=kk) {\
+            ERROR_exit("Key mismatch %d %d", Opt->keys[i], kk);\
+         }\
+      }   \
+   }   \
+   if (!Opt->keys) { /* get them from table */\
+      Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));\
+      for (i=0; i<Opt->clss->num; ++i) {\
+         if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable,\
+                                          Opt->clss->str[i]))<0){\
+            ERROR_exit("(should noy happen) Key not found in %s for %s ", \
+                        Opt->labeltable_name, Opt->clss->str[i]);\
+         }\
+         Opt->keys[i] = kk;\
+      }\
+   }\
+}
 
 int main(int argc, char **argv)
 {
@@ -736,7 +797,14 @@ int main(int argc, char **argv)
       }
    }
 
+   /* classified set ? */
+   if (Opt->this_cset_name) { /* user supplied initializer */
+      if (!(Opt->cset = Seg_load_dset( Opt->this_cset_name ))) {      
+         SUMA_RETURN(1);
+      }
+   }
    
+
    /* labeltable? */
    if (Opt->labeltable_name) {
       Dtable *vl_dtable=NULL;
@@ -750,37 +818,25 @@ int main(int argc, char **argv)
       if (!(vl_dtable = Dtable_from_nimlstring(labeltable_str))) {
          ERROR_exit("Could not parse labeltable");
       }
-      /* make sure all classes are in the labeltable */
-      for (i=0; i<Opt->clss->num; ++i) {
-         if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-               ERROR_exit("Key not found in %s for %s ", 
-                        Opt->labeltable_name, Opt->clss->str[i]);
-         }
-         if (Opt->keys) {
-            if (Opt->keys[i]!=kk) {
-               ERROR_exit("Key mismatch %d %d", Opt->keys[i], kk);
-            }
-         }   
-      }   
-      if (!Opt->keys) { /* get them from table */
-         Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
-         for (i=0; i<Opt->clss->num; ++i) {
-            if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-                  ERROR_exit("(should noy happen) Key not found in %s for %s ", 
-                           Opt->labeltable_name, Opt->clss->str[i]);
-            }
-            Opt->keys[i] = kk;
-         }
-      }
+      CLASS_KEYS_FROM_LT(vl_dtable);
+
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
    } 
    
    if (!Opt->keys) {
-      /* add default keys */
-      if (Opt->debug) SUMA_S_Note("Keys not available, assuming defaults");
-      Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
-      for (i=0; i<Opt->clss->num; ++i) {
-         Opt->keys[i] = i+1;
+      Dtable *vl_dtable=NULL;
+      if (Opt->cset && (vl_dtable = DSET_Label_Dtable(Opt->cset))) { 
+         if (Opt->debug) SUMA_S_Note("Getting keys from -cset dataset");
+         /* try getting keys from cset */
+         CLASS_KEYS_FROM_LT(vl_dtable);
+         /* Do not delete vl_dtable, it is the same pointer in Opt->cset */
+      } else {
+         /* add default keys */
+         if (Opt->debug) SUMA_S_Note("Keys not available, assuming defaults");
+         Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
+         for (i=0; i<Opt->clss->num; ++i) {
+            Opt->keys[i] = i+1;
+         }
       }
    }
    
@@ -789,7 +845,14 @@ int main(int argc, char **argv)
       SUMA_S_Note("Class-->key map");
       SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
    }
-   
+   if (Opt->clss->num < 2) {
+      if (Opt->debug <= 1) {
+         SUMA_S_Note("Class-->key map");
+         SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
+      }
+      SUMA_S_Err("Less than 2 classes? I am out of here");
+      SUMA_RETURN(0);
+   }
    /* Mask setup */
    if (Opt->debug > 1) {
       SUMA_S_Note("MaskSetup");
@@ -809,7 +872,7 @@ int main(int argc, char **argv)
    
    Opt->cs = SUMA_New_Class_Stat(Opt->clss->str, Opt->clss->num, 
                                  Opt->keys, 3, NULL);
-
+   
      
    /* Load prob. of class given features */
    if (Opt->priCgAname && strcmp(Opt->priCgAname, "INIT_MIXFRAC")) {
@@ -833,7 +896,8 @@ int main(int argc, char **argv)
       if (0) {
          SUMA_S_Note("Setting probability floor, USEFULNESS NOT TESTED...");
          if (!set_p_floor(Opt->priCgA, 0.1, Opt->cmask)) {
-            SUMA_S_Errv("Failed to set p floor for priCgA %s\n", Opt->priCgAname);
+            SUMA_S_Errv("Failed to set p floor for priCgA %s\n", 
+                        Opt->priCgAname);
             SUMA_RETURN(1);
          }
       }
@@ -875,13 +939,6 @@ int main(int argc, char **argv)
    ff = Opt->wA+Opt->wL;
    Opt->wA = Opt->wA/ff; Opt->wL = Opt->wL/ff;
    
-   /* classified set ? */
-   if (Opt->this_cset_name) { /* user supplied initializer */
-      if (!(Opt->cset = Seg_load_dset( Opt->this_cset_name ))) {      
-         SUMA_RETURN(1);
-      }
-   }
-   
    if (!Opt->cset) {
       if (!SUMA_SegInitCset(Opt->aset, 
                             &Opt->cset, 
@@ -892,10 +949,10 @@ int main(int argc, char **argv)
          SUMA_S_Err("Failed to get initializer");
          SUMA_RETURN(1);
       }
-      if (Opt->debug > 1) {
-         SUMA_Seg_Write_Dset(Opt->proot, "classes_init", Opt->cset, 
-                               -1, Opt->hist);
-      }
+   }
+   if (Opt->debug > 1) {
+      SUMA_Seg_Write_Dset(Opt->proot, "classes_init", Opt->cset, 
+                            -1, Opt->hist);
    }
    
    /* Now add the 'OTHER' class if needed */

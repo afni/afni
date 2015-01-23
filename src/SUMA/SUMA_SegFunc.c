@@ -1408,14 +1408,23 @@ THD_3dim_dataset *p_C_GIV_A_omp (SEG_OPTS *Opt)
       ERROR_exit("Output file %s already exists -- cannot continue!\n",
                   DSET_HEADNAME(pout) ) ;
    }
-   
    minp = 1.0/(float)N_c; /* instead of constant MINP */
+   if (Opt->DO_o) {
+      char fpref[256]={""};
+      sprintf(fpref,"%s.centrality", Opt->proot);
+      NEW_SHORTY(Opt->sig, Opt->clss->num, fpref, Opt->outl);
+      if (!Opt->outl) SUMA_RETURN(NULL);
+      if( !THD_ok_overwrite() && THD_is_file( DSET_HEADNAME(Opt->outl) ) ){
+         ERROR_exit("Output file %s already exists -- cannot continue!\n",
+                     DSET_HEADNAME(Opt->outl) ) ;
+      }
+   }
    
 AFNI_OMP_START ;
 #pragma omp parallel if( N_imask > 10000 ) 
 { /* OMP start */
    int   ijk, cc, ff, iii, m_i0;
-   double *pvGa=NULL, *P = NULL, *pp=NULL, d=0.0, A2, ps;
+   double *pvGa=NULL, *P = NULL, *pp=NULL, d=0.0, A2, ps, *O=NULL;
    float a, m_a;
    short *bb=NULL; 
    
@@ -1423,25 +1432,29 @@ AFNI_OMP_START ;
    {
       pvGa = (double *)calloc(N_c*N_f, sizeof(double));
       P = (double *)calloc(N_c, sizeof (double));
+      if (Opt->outl) O = (double *)calloc(N_c, sizeof(double));
    }
 #pragma omp for
    for (iii=0; iii < N_imask; ++iii) { /* voxel loop */
       ijk = imask[iii];
       { /* mask cond. */
+         if (O) memset(O, 0, N_c*sizeof(double));
          for (ff=0; ff<N_f; ++ff) { /* feature loop */
             A2 = 0.0;
             pp = pvGa+ff*N_c;
             bb = (short *)DSET_ARRAY(Opt->sig, iff[ff]);        
-            a = afv[ff]*bb[ijk];
+            a = afv[ff]*bb[ijk]; /* feature amplitude */
             for (cc=0; cc<N_c; ++cc) { /* class loop */
                #if 0
-                  d = SUMA_hist_freq((FDv[ff*N_c+cc])->hh, a); */
+                  d = SUMA_hist_freq((FDv[ff*N_c+cc])->hh, a);
                #else
                   /* shaves off a few seconds relative to SUMA_hist_freq()*/
                   SUMA_HIST_FREQ((FDv[ff*N_c+cc])->hh, a, d);
                #endif
                pp[cc] = Opt->mixfrac[cc]*d;
                A2 += pp[cc];
+                        /* Add outlierness of feature amplitude given class */
+               if (O) O[cc] += SUMA_hist_value((FDv[ff*N_c+cc])->hh, a, "outl");
             } /* class loop */
             for (cc=0; cc<N_c; ++cc) { 
                pp[cc] /= A2; 
@@ -1480,9 +1493,18 @@ AFNI_OMP_START ;
                /* SUMA_S_Err("Not ready to write out logp, sticking with p"); */
                bb[ijk] = (short)(P[cc]*pf);
             }
+            /* store 1.0-outlierness, call it centrality. Easier to look at */
+            if (Opt->outl) {
+               bb = (short *)DSET_ARRAY(Opt->outl, cc);
+               bb[ijk] = (short)((1.0-O[cc]/N_f)*pf);
+            }
             if (ijk == Opt->VoxDbg) {
                   fprintf(Opt->VoxDbgOut,"      p(c=%s|a, ALL f)=%f\n",
                             Opt->clss->str[cc], P[cc]);
+               if (O) {
+                  fprintf(Opt->VoxDbgOut,"      c(A|c=%s)=%f\n",
+                            Opt->clss->str[cc], 1.0-O[cc]);
+               }  
             }
          } /* class loop 4 */
       } /* mask cond. */
@@ -1492,6 +1514,7 @@ AFNI_OMP_START ;
 {
    if (pvGa) free(pvGa); pvGa = NULL;
    if (P) free(P); P = NULL;
+   if (O) free(O); O = NULL;
 }
  
 } /* OMP end */
@@ -1507,6 +1530,11 @@ AFNI_OMP_END ;
          sprintf(bl, "%c(c=%s|A)",Opt->rescale_p ? 'P':'p',Opt->clss->str[cc]);
       }
       EDIT_BRICK_LABEL(pout,cc,bl);
+      if (Opt->outl) {
+         EDIT_BRICK_FACTOR(Opt->outl,cc,1.0/pf);
+         sprintf(bl, "%c(A|c=%s)",'C', Opt->clss->str[cc]);
+         EDIT_BRICK_LABEL(Opt->outl,cc,bl);
+      }
    }
 
    /* clean */
@@ -5418,6 +5446,22 @@ int SUMA_MixFrac_from_ClassStat(SUMA_CLASS_STAT *cs, float *mf)
    SUMA_RETURN(1);
 }
 
+int SUMA_ZeroSamp_from_ClassStat(SUMA_CLASS_STAT *cs) 
+{
+   static char FuncName[]={"SUMA_ZeroSamp_from_ClassStat"};
+   int out;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   for (i=0, out=0; i<cs->N_label; ++i) {
+      if (!SUMA_get_Stat(cs, cs->label[i], "num")) ++out;
+   }
+   
+   SUMA_RETURN(out);
+}
+
+
 double SUMA_mixopt_2_mixfrac(char *mixopt, char *label, int key, int N_clss,
                              byte *cmask, THD_3dim_dataset *cset) 
 {
@@ -7062,28 +7106,57 @@ float SUMA_hist_freq(SUMA_HIST *hh, float vv)
 double SUMA_hist_value(SUMA_HIST *hh, double vv, char *what)
 {
    double a = 0.0, val=0.0;
-   int i0, ii=0;
+   int i0=0, ii=0;
    
    if (!hh) return(-1.0);
-   if (vv<hh->b[0]) return(hh->cn[0]);
-   if (vv>hh->b[hh->K-1]) return(hh->cn[hh->K-1]);
-   a = ((vv-hh->b[0])/hh->W);
-   i0 = (int)a; a = a-i0;
-   val = 0.0;
+   if (vv<hh->b[0]) { 
+      a = -2; /* Before first bin */
+   } else if (vv>hh->b[hh->K-1]) {
+      a = -1; /* After last bin */
+   } else {
+      a = ((vv-hh->b[0])/hh->W);
+      i0 = (int)a; a = a-i0;
+      val = 0.0;
+   }
    if (!what || !strcmp(what,"freq")) { /* return the frequency */
+      if ( a < -1.0 ) { 
+         return(hh->cn[0]);
+      } else if ( a < 0 ) {
+         return(hh->cn[hh->K-1]);
+      }    
       val = a*hh->cn[i0+1]+(1.0-a)*hh->cn[i0];
    } else if (!strcmp(what,"count")) { /* return the count */
+      if ( a < -1.0 ) { 
+         return(hh->c[0]);
+      } else if ( a < 0 ) {
+         return(hh->c[hh->K-1]);
+      }  
       val = a*hh->c[i0+1]+(1.0-a)*hh->c[i0];
    } else if (!strcmp(what,"bin")) { /* return the location on bin axis */
+      if ( a < -1.0 ) { 
+         return(0.0);
+      } else if ( a < 0 ) {
+         return(hh->K);
+      }
       val = i0+a;
    } else if ( !strcmp(what,"cdf") || 
                !strcmp(what,"ncdf")) { /* return the cdf */
       if (what[0] == 'n') { /* normalized */
+         if ( a < -1.0 ) { 
+            return(0.0);
+         } else if ( a < 0 ) {
+            return(1.0);
+         } 
          for (ii=0; ii<=i0; ++ii) {
             val += hh->cn[ii]; 
          }
          val += a*hh->cn[i0+1];
       } else { /* count */
+         if ( a < -1.0 ) { 
+            return(0.0);
+         } else if ( a < 0 ) {
+            return(hh->n);
+         } 
          for (ii=0; ii<=i0; ++ii) {
             val += hh->c[ii]; 
          }
@@ -7092,16 +7165,43 @@ double SUMA_hist_value(SUMA_HIST *hh, double vv, char *what)
    } else if (!strcmp(what,"rcdf") || 
               !strcmp(what,"nrcdf")) { /* return the reverse cdf */
       if (what[0] == 'n') { /* normalized */
+         if ( a < -1.0 ) { 
+            return(1.0);
+         } else if ( a < 0 ) {
+            return(0.0);
+         } 
          for (ii=hh->K-1; ii>i0; --ii) {
             val += hh->cn[ii]; 
          }
          val += (1.0-a)*hh->cn[i0];
       } else { /* count */
+         if ( a < -1.0 ) { 
+            return(hh->n);
+         } else if ( a < 0 ) {
+            return(0.0);
+         } 
          for (ii=hh->K-1; ii>i0; --ii) {
             val += hh->c[ii]; 
          }
          val += (1.0-a)*hh->c[i0];
       }
+   } else if (!strcmp(what,"outl")) {/* approx of (1- 2 x smallest tail area) 
+                                        1 means value is at tail ends
+                                        0 means value splits histogram area
+                                          in half*/
+      if ( a < -1.0 ) { 
+         return(1);
+      } else if ( a < 0 ) {
+         return(1);
+      } 
+      /* Outlierness of point */
+      for (ii=hh->K-1; ii>i0; --ii) {
+         val += hh->cn[ii]; 
+      }
+      val += (1.0-a)*hh->cn[i0];
+      if (val > 0.5) {
+         val = 2.0*(-0.5+val);
+      } else val = 2.0*(0.5-val);
    }
    return(val);
 }
