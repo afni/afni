@@ -297,8 +297,9 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
    int count, countx, county, countz;
 
    LOAD_FVEC3(fw_xyz,-1,-1,-1) ;  /* load with bad values */
-
-   if( im == NULL || im->kind != MRI_float || nbhd == NULL ) return fw_xyz;
+   
+   if( im == NULL || im->kind != MRI_float || nbhd == NULL 
+                  || nbhd->num_pt < 19) return fw_xyz;
 
    far = MRI_FLOAT_PTR(im) ;
    nx  = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; npt = nbhd->num_pt;
@@ -703,8 +704,9 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
 #endif
 
 ENTRY("THD_localstat") ;
-
+fprintf(stderr,"%p, %p, %d, %p", dset, nbhd, ncode, code);
    if( dset == NULL || nbhd == NULL || ncode < 1 || code == NULL ) RETURN(NULL);
+fprintf(stderr,"%d\n", nbhd->num_pt);
    npt = nbhd->num_pt ; if( npt == 0 )                             RETURN(NULL);
 
    /* check for stupid reduction parameters allowing = 1.0 for testing purposes*/
@@ -848,6 +850,14 @@ ENTRY("THD_localstat") ;
 
           cc += (N_mp-1) ; /* number of sub-bricks added, minus 1 */
 
+         } else if( code[cc] == NSTAT_LIST ){ /* Just all the neighbors mam*/
+           int pp;
+
+           if (nbar) {
+            for (pp=0; pp<nbar_num; ++pp) aar[cc+pp][ijk] = (float)1.0;
+           } 
+           cc += (nbar_num-1) ; /* number of sub-bricks added, minus 1 */
+         
          } else if( code[cc] == NSTAT_diffs0 ){ /*3 values */
            mri_nstat_diffs( nbar_num , nbar, fv6, 0 ) ;
            aar[cc  ][ijk] = fv6[0]; /* average difference */
