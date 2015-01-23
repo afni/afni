@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 23 , JAN, 2015 , DRG , "whereami GUI" , 
+    MINOR , TYPE_NEW_ENV, 
+    "Web-based links in Whereami GUI on by default",
+    "Links will be available by default now. Effectively\n"
+    "equivalent to setting these environment variables to YES:\n"
+    "AFNI_WEBBY_WAMI, AFNI_SUMSDB and AFNI_NEUROSYNTH."
+} ,
+
 { 20 , JAN, 2015 , DRG , "whereami GUI" , 
     MINOR , TYPE_NEW_ENV, 
     "SumsDB link",
