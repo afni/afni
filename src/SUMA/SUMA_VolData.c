@@ -184,17 +184,24 @@ SUMA_Boolean SUMA_AfniExists(char *prefix, char *c2view)
 {
    static char FuncName[]={"SUMA_AfniExists"};
    char *head=NULL;
+   SUMA_PARSED_NAME *Fname=NULL;
    SUMA_Boolean ans = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    ans = NOPE;
-
-   head = SUMA_append_replace_string(prefix,".HEAD", c2view,0);
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking existence of %s\n", FuncName, head);
+   
+   /* Jan 2015: Rely on ParseFname for all the work...*/
+   if (!(Fname = SUMA_ParseFname_eng (prefix, NULL,1))) {
+      SUMA_RETURN(ans);
+   }
+   head = SUMA_ModifyName(Fname->HeadName, "view",c2view, NULL); 
+   
+   SUMA_LH("Checking existence of %s\n", head);
    if (SUMA_filexists(head)) { ans = YUP; }
-   SUMA_free(head); head = NULL; 
+   SUMA_ifree(head); head = NULL; 
+   SUMA_Free_Parsed_Name(Fname);
    
    SUMA_RETURN(ans);
 }
@@ -221,17 +228,18 @@ SUMA_Boolean SUMA_AfniExists(char *prefix, char *c2view)
 char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists) 
 {
    static char FuncName[]={"SUMA_AfniPrefix"};
-   char *tmp1 = NULL, *tmp2 = NULL, *prfx = NULL, *name=NULL;
+   char *prfx = NULL, *name=NULL;
    char cview[10];
    int iview;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_PARSED_NAME *Fname=NULL;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
    if (!nameorig) SUMA_RETURN(prfx);
    if (exists) *exists = 0;
    
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Working with %s\n", FuncName, nameorig);
+   SUMA_LH("Working with %s\n", nameorig);
    
    if (!path) name = SUMA_copy_string(nameorig);
    else {
@@ -244,71 +252,67 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
    
    if (LocalHead) fprintf(SUMA_STDERR,"%s: name now %s\n", FuncName, name);
    
-   tmp1 = SUMA_Extension(name, ".HEAD", YUP);
-   tmp2 = SUMA_Extension(tmp1, ".BRIK", YUP); SUMA_free(tmp1); tmp1 = NULL;
-   /* is there a dot ?*/
-   if (tmp2[strlen(tmp2)-1] == '.') tmp2[strlen(tmp2)-1] = '\0';
-   
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Searching for view of %s\n", FuncName, tmp2);
-   
+   /* Jan 2015: Rely on ParseFname for all the work...*/
+   Fname = SUMA_ParseFname_eng (name, NULL,1);
+      
    /* view */
    iview = -1;
-   if (SUMA_isExtension(tmp2, "+orig")) { 
+   if (!strcmp(Fname->View,"+orig")) { 
       iview = 0; sprintf(cview, "+orig"); 
-      prfx = SUMA_Extension(tmp2, "+orig", YUP);
-   } else if (SUMA_isExtension(tmp2, "+acpc")) { 
+   } else if (!strcmp(Fname->View, "+acpc")) { 
       iview = 1; sprintf(cview, "+acpc"); 
-      prfx = SUMA_Extension(tmp2, "+acpc", YUP);
-   } else if (SUMA_isExtension(tmp2, "+tlrc")) { 
+   } else if (!strcmp(Fname->View, "+tlrc")) { 
       iview = 2; sprintf(cview, "+tlrc"); 
-      prfx = SUMA_Extension(tmp2, "+tlrc", YUP);
    } else {
-      prfx = SUMA_copy_string(tmp2);
       cview[0]='\0';
    }
-   SUMA_free(tmp2); tmp2 = NULL;
+   prfx = SUMA_copy_string(Fname->Prefix);
    
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Prefix %s\n", FuncName, prfx);
    
    /* can't tell what view is, so can't test properly quite yet */
    {   
       /* is name ok ? all I have to do is test with +orig */
-      char *bname=SUMA_append_string(prfx,"+orig");
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking name validity using +orig for view %s\n", FuncName, bname);
-      if( !THD_filename_ok(bname) ){
-         SUMA_SL_Err("not a proper dset name!\n") ;
-         SUMA_free(name); name = NULL;
-         SUMA_free(prfx); prfx = NULL;
-         SUMA_free(bname); bname = NULL;
+
+      if( !THD_filename_ok(Fname->HeadName) ){
+         SUMA_SL_Err("%s not a proper dset name!\n", Fname->HeadName) ;
+         SUMA_ifree(name); name = NULL;
+         SUMA_ifree(prfx); prfx = NULL;
+         SUMA_Free_Parsed_Name(Fname); Fname = NULL;
          SUMA_RETURN(prfx);
       }
    }
+   if (exists) *exists = Fname->OnDisk;
    
    if (exists) {
       { /* look for any */
          char *head=NULL, c2view[10];
          iview = 0; *exists = 0;
          while (iview < 3) {
-            if (iview == 0) sprintf(c2view, "+orig"); 
-            else if (iview == 1) sprintf(c2view, "+acpc"); 
-            else if (iview == 2) sprintf(c2view, "+tlrc");
-            head = SUMA_append_replace_string(prfx,".HEAD", c2view,0);
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking existence of %s\n", FuncName, head);
+            if (iview == 0) head = 
+                     SUMA_ModifyName(Fname->HeadName, "view","+orig", NULL); 
+            else if (iview == 1) head = 
+                     SUMA_ModifyName(Fname->HeadName, "view","+acpc", NULL);
+            else if (iview == 2) head = 
+                     SUMA_ModifyName(Fname->HeadName, "view","+tlrc", NULL);
+            SUMA_LH("Checking existence of %s\n", head);
             if (SUMA_filexists(head)) { *exists += (int)pow(2,iview); }
             SUMA_free(head); head = NULL; 
             ++iview;
          }
       }
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: exist number is %d\n", FuncName, *exists);
+      SUMA_LH("exist number is %d\n", *exists);
    }
    
    
    if (cview[0] != '\0') {
       if (LocalHead) {
-         if (SUMA_AfniExistsView(*exists, cview)) {
-            fprintf(SUMA_STDERR,"%s: dset with view %s does exist.\n", FuncName, cview); 
+         if (Fname->OnDisk) {
+            fprintf(SUMA_STDERR,"%s: dset with view %s does exist.\n", 
+                     FuncName, cview); 
          } else {
-            fprintf(SUMA_STDERR,"%s: dset with view %s does not exist.\n", FuncName, cview); 
+            fprintf(SUMA_STDERR,"%s: dset with view %s does not exist.\n", 
+                     FuncName, cview); 
          }
       }
    }
@@ -317,6 +321,7 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
       sprintf(view,"%s", cview);
    }
    if (name) SUMA_free(name); name = NULL;
+   SUMA_Free_Parsed_Name(Fname); Fname = NULL;
    
    SUMA_RETURN(prfx);
 }

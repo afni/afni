@@ -427,6 +427,7 @@ int Relabel_IfNecessary( int *Dim,
                                     if( DATA[i+ii][j+jj][k+kk][m]>=N_thr[m]) {
                                        DATA[i+ii][j+jj][k+kk][m] = 
                                           -DATA[i][j][k][m];
+                                       
                                        found_this_iter++;
                                     }
                                  }
@@ -442,8 +443,9 @@ int Relabel_IfNecessary( int *Dim,
             for( k=0 ; k<Dim[2] ; k++ ) 
                for( j=0 ; j<Dim[1] ; j++ ) 
                   for( i=0 ; i<Dim[0] ; i++ ) 
-                     if( DATA[i][j][k][m]<0 )
+                     if( DATA[i][j][k][m]<0 ){
                         DATA[i][j][k][m]*= -1;
+                     }
          }
          if( relab_vox[m]==N_thr[m] )
             KEEP_GOING=0;				
@@ -513,6 +515,9 @@ int Make_BinaryMask( int *Dim,
 										N_thr[m]+= 1;
 									}
 				}
+
+      if( N_thr[m] < MIN_NTHR_MAX_NROILAB ) // Jan 2015: safety catch for small input sets
+         N_thr[m] = MIN_NTHR_MAX_NROILAB;
 	}
 
    RETURN(1);

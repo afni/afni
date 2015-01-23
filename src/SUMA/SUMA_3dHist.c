@@ -57,11 +57,14 @@ static char shelp_Hist[] = {
 "                            rcdf: Reverse cumulative count (from the top)\n"
 "                            ncdf: The normalized version of cdf\n"
 "                            nrcdf: The reverse version of ncdf\n"
+"                            outl: 1.0-(2*smallest tail area)\n"
+"                               0 means VAL splits area in the middle\n"
+"                               1 means VAL is at either end of the histogram\n"
 "                            ALL: All the above.\n"
 "                   You can select multiple ones with something like:\n"
 "                        -get 'freq, count, bin' \n"
 "\n"
-"                   You can also set one of the PAR* to upvol to get \n"
+"                   You can also set one of the PAR* to 'upvol' to get \n"
 "                   the volume (liters) of voxels with values exceeding VAL\n"
 "                   The use of upvol usually requires option -voxvol too.\n"
 "  -voxvol VOL_MM3: A voxel's volume in mm^3. To be used with upvol if\n"
@@ -185,7 +188,7 @@ int Hist_CheckOpts(SEG_OPTS *Opt)
    
    SUMA_RETURN(1);
 }
-char ALL_GETS[]={"bin, count, freq, cdf, ncdf, rcdf, nrcdf"};
+char ALL_GETS[]={"bin, count, freq, cdf, ncdf, rcdf, nrcdf, outl"};
 
 SEG_OPTS *Hist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 {
