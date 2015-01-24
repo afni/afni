@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, Jan, 2014, ZSS, "3dLocalstat", MINOR, TYPE_NEW_OPT,
+   "Added -stat list and -stat hist* .",
+   NULL
+ },
+
  { 21, Jan, 2014, ZSS, "3dGenPriors", MICRO, TYPE_NEW_OPT,
    "Made program output centrality measures with -do o .",
    "Documentaiton hidden until option is ready for mass usage." 
