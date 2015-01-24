@@ -717,7 +717,7 @@ int main( int argc , char *argv[] )
 
    { char *lcode[MAX_NCODE] , lll[MAX_NCODE] , *slcode, pcode[MAX_NCODE];
      int ipv = -1, ineighb = -1, ihist = -1;
-     double W;
+     double W=0.0;
      lcode[NSTAT_MEAN]    = "MEAN" ;   lcode[NSTAT_SIGMA]      = "SIGMA"  ;
      lcode[NSTAT_CVAR]    = "CVAR" ;   lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
      lcode[NSTAT_MAD]     = "MAD"  ;   lcode[NSTAT_MAX]        = "MAX"    ;
