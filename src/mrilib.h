@@ -741,6 +741,8 @@ extern void binarize_mask( int , byte * ) ;
 #define NSTAT_adiffs0     37
 #define NSTAT_adiffs1     38
 #define NSTAT_adiffs2     39
+#define NSTAT_LIST        40
+#define NSTAT_HIST        41
 
 #define NSTAT_FWHMx      63   /*these should be after all other NSTAT_* values */
 #define NSTAT_FWHMy      64

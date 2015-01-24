@@ -150,6 +150,24 @@ void usage_3dLocalstat(int detail)
 "                           and all neighbors. Values output are the \n"
 "                           average difference, followed by the min and max\n"
 "                           differences.\n"
+"               * list    = Just output the voxel values in the neighborhood\n"
+"                           The order in which the neighbors are listed \n"
+"                           depends on the neighborhood selected. Only\n"
+"                           SPHERE results in a neighborhood list sorted by\n"
+"                           the distance from the center.\n"
+"                           Regardless of the neighborhood however, the first\n"
+"                           value should always be that of the central voxel.\n"
+"               * hist:MIN:MAX:N[:IGN] = Compute the histogram in the voxel's\n"
+"                           neighborhood. You must specify the min, max, and \n"
+"                           the number of bins in the histogram. You can also\n"
+"                           ignore values outside the [min max] range by \n"
+"                           setting IGN to 1. IGN = 0 by default.\n"
+"                           The histograms are scaled by the number \n"
+"                           of values that went into the histogram.\n"
+"                           That would be the number of non-masked voxels\n"
+"                           in the neighborhood if outliers are NOT\n"
+"                           ignored (default).\n" 
+"                       For histograms of labeled datasets, use 3dLocalHistog\n" 
 "\n"
 "               More than one '-stat' option can be used.\n"
 "\n"
@@ -205,6 +223,8 @@ void usage_3dLocalstat(int detail)
 "                     Default is Linear\n"
 " -quiet      = Stop the highly informative progress reports.\n"
 " -verb       = a little more verbose.\n"
+" -proceed_small_N = Do not crash if neighborhood is too small for \n"
+"                    certain estimates.\n"
 "\n"
 "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
      ) ;
@@ -216,6 +236,10 @@ void usage_3dLocalstat(int detail)
 
 int main( int argc , char *argv[] )
 {
+   char allstats[] = { "mean; stdev; var; cvar; median; MAD; P2skew;"
+                       "kurt; min; max; absmax; num; nznum; fnznum;"
+                       "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
+                       "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12; ALL;" };
    THD_3dim_dataset *inset=NULL , *outset ;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
    float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], 
@@ -224,7 +248,7 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    char *prefix="./localstat" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
-   int do_fwhm=0 , verb=1 ;
+   int do_fwhm=0 , verb=1 , shootmyfoot = 0;
    int npv = -1;
    int ipv, restore_grid=0, resam_mode=resam_str2mode("Linear");
    int datum = MRI_float;
@@ -261,6 +285,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-verb") == 0 ){
        verb = 2 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-proceed_small_N") == 0 ){
+       shootmyfoot = 1 ; iarg++ ; continue ;
      }
 
      /**** -datum type ****/
@@ -328,97 +356,24 @@ int main( int argc , char *argv[] )
        automask = 1 ;
        iarg++ ; continue ;
      }
+     
+     /* Some -stat options must be processed after input and neighborhoods
+        are generated, so brief check here followed by processing below */
      if( strcmp(argv[iarg],"-stat") == 0 ){
-       char *cpt ;
-       float strt, stp, jmp;
+       char *cpt, padname[128]={""};
+       
        int iizz;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-stat'") ;
 
-       cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ;
-            if( strcasecmp(cpt,"mean")  == 0 ) code[ncode++] = NSTAT_MEAN  ;
-       else if( strcasecmp(cpt,"stdev") == 0 ) code[ncode++] = NSTAT_SIGMA ;
-       else if( strcasecmp(cpt,"var")   == 0 ) code[ncode++] = NSTAT_VAR   ;
-       else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
-       else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
-       else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
-       else if( strcasecmp(cpt,"P2skew")== 0 ) code[ncode++] = NSTAT_P2SKEW;
-       else if( strcasecmp(cpt,"kurt")  == 0 ) code[ncode++] = NSTAT_KURT  ;
-       else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
-       else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
-       else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
-       else if( strcasecmp(cpt,"num")   == 0 ) code[ncode++] = NSTAT_NUM   ;
-       else if( strcasecmp(cpt,"nznum") == 0 ) code[ncode++] = NSTAT_NZNUM ;
-       else if( strcasecmp(cpt,"fnznum")== 0 ) code[ncode++] = NSTAT_FNZNUM;
-       else if( strcasecmp(cpt,"sum")   == 0 ) code[ncode++] = NSTAT_SUM   ;
-       else if( strcasecmp(cpt,"rank")  == 0 ) code[ncode++] = NSTAT_RANK  ;
-       else if( strcasecmp(cpt,"frank") == 0 ) code[ncode++] = NSTAT_FRANK ;
-       else if( strcasecmp(cpt,"fwhm")  == 0 ){code[ncode++] = NSTAT_FWHMx ;
-                                               code[ncode++] = NSTAT_FWHMy ;
-                                               code[ncode++] = NSTAT_FWHMz ;
-                                               do_fwhm++                   ;}
-       else if( strcasecmp(cpt,"diffs") == 0 ){code[ncode++] = NSTAT_diffs0;
-                                               code[ncode++] = NSTAT_diffs1;
-                                               code[ncode++] = NSTAT_diffs2;}
-       else if( strcasecmp(cpt,"adiffs") == 0){code[ncode++] = NSTAT_adiffs0;
-                                               code[ncode++] = NSTAT_adiffs1;
-                                               code[ncode++] = NSTAT_adiffs2;}
-       else if( strcasecmp(cpt,"mMP2s") == 0 ){code[ncode++] = NSTAT_mMP2s0;
-                                               code[ncode++] = NSTAT_mMP2s1;
-                                               code[ncode++] = NSTAT_mMP2s2;}
-       else if( strcasecmp(cpt,"mmMP2s") == 0 ){code[ncode++] = NSTAT_mmMP2s0;
-                                                code[ncode++] = NSTAT_mmMP2s1;
-                                                code[ncode++] = NSTAT_mmMP2s2;
-                                                code[ncode++] = NSTAT_mmMP2s3;}
-       else if( strncasecmp(cpt,"perc",4) == 0) {
-         /* How many you say? */
-         if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
-            ERROR_exit("Need params with perc stat");
-         }
-         strt = codeparams[ncode][1]; stp = strt; jmp = 1.0;
-         if ((int)codeparams[ncode][0] == 2) {
-            stp = codeparams[ncode][2]; if (stp == 0) stp = strt;
-         }else if ((int)codeparams[ncode][0] == 3) {
-            stp = codeparams[ncode][2]; jmp = codeparams[ncode][3];
-         }
-         if (jmp == 0.0) jmp = 1.0;
-         npv = ceil((stp - strt)/jmp);
-         if (npv > MAX_CODE_PARAMS) {
-            ERROR_exit( "A max of %d percentiles allowed. You have %d\n",
-                        MAX_CODE_PARAMS, npv);
-         }
-         ipv = 1;
-         codeparams[ncode][1] = strt;
-         while (codeparams[ncode][ipv]+jmp <= stp) {
-            codeparams[ncode][ipv+1] = codeparams[ncode][ipv]+jmp; ++ipv;
-         }
-         codeparams[ncode][0] = ipv;
-         iizz = (int)(codeparams[ncode][0]);
-         /* fprintf( stderr,
-                     "Have %d percentiles (coded with %d) "
-                     "starting at code index %d\n",
-                      iizz, NSTAT_PERCENTILE, ncode); */
-         for (ipv=0; ipv<iizz; ++ipv)  code[ncode++] = NSTAT_PERCENTILE;
+       cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ; 
+       snprintf(padname,126,"%s;", cpt);
+       if ( strncmp(cpt,"perc:",5) && strncmp(cpt,"hist:",5) &&
+           !strstr(allstats, padname)) {
+         ERROR_exit("-stat '%s' is an unknown statistic type",padname) ;
        }
-       else if( strcasecmp(cpt,"fwhmbar"  )==0 ) code[ncode++] = NSTAT_FWHMbar;
-       else if( strcasecmp(cpt,"fwhmbar12")==0 ) code[ncode++] = NSTAT_FWHMbar12;
-       else if( strcasecmp(cpt,"ALL")   == 0 ){
-         code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
-         code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
-         code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
-         code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
-         code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
-         code[ncode++] = NSTAT_SUM   ;
-         code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
-         code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
-         code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
-         code[ncode++] = NSTAT_P2SKEW; code[ncode++] = NSTAT_KURT  ;
-         code[ncode++] = NSTAT_NZNUM ; code[ncode++] = NSTAT_FNZNUM;
-       }
-       else
-         ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
-
+       ncode = 1; /* Have something, set fully later */
        iarg++ ; continue ;
-     }
+     }  
 
      if( strcmp(argv[iarg],"-nbhd") == 0 ){
        char *cpt ;
@@ -609,8 +564,139 @@ int main( int argc , char *argv[] )
    if( verb && redx[0] > 0.0) 
       INFO_message("Computing grid reduction: %f %f %f (%f)\n", 
                      redx[0], redx[1], redx[2], mxvx);
+   
+   /* Now figure out what is needed for holding output */
+   ncode = 0; iarg = 1;
+   while( iarg < argc ){
+     if( strcmp(argv[iarg],"-stat") == 0 ){
+       char *cpt ;
+       float strt, stp, jmp;
+       int iizz;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-stat'") ;
+
+       cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ;
+            if( strcasecmp(cpt,"mean")  == 0 ) code[ncode++] = NSTAT_MEAN  ;
+       else if( strcasecmp(cpt,"stdev") == 0 ) code[ncode++] = NSTAT_SIGMA ;
+       else if( strcasecmp(cpt,"var")   == 0 ) code[ncode++] = NSTAT_VAR   ;
+       else if( strcasecmp(cpt,"cvar")  == 0 ) code[ncode++] = NSTAT_CVAR  ;
+       else if( strcasecmp(cpt,"median")== 0 ) code[ncode++] = NSTAT_MEDIAN;
+       else if( strcasecmp(cpt,"MAD")   == 0 ) code[ncode++] = NSTAT_MAD   ;
+       else if( strcasecmp(cpt,"P2skew")== 0 ) code[ncode++] = NSTAT_P2SKEW;
+       else if( strcasecmp(cpt,"kurt")  == 0 ) code[ncode++] = NSTAT_KURT  ;
+       else if( strcasecmp(cpt,"min")   == 0 ) code[ncode++] = NSTAT_MIN   ;
+       else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
+       else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
+       else if( strcasecmp(cpt,"num")   == 0 ) code[ncode++] = NSTAT_NUM   ;
+       else if( strcasecmp(cpt,"nznum") == 0 ) code[ncode++] = NSTAT_NZNUM ;
+       else if( strcasecmp(cpt,"fnznum")== 0 ) code[ncode++] = NSTAT_FNZNUM;
+       else if( strcasecmp(cpt,"sum")   == 0 ) code[ncode++] = NSTAT_SUM   ;
+       else if( strcasecmp(cpt,"rank")  == 0 ) code[ncode++] = NSTAT_RANK  ;
+       else if( strcasecmp(cpt,"frank") == 0 ) code[ncode++] = NSTAT_FRANK ;
+       else if( strcasecmp(cpt,"fwhm")  == 0 ){code[ncode++] = NSTAT_FWHMx ;
+                                               code[ncode++] = NSTAT_FWHMy ;
+                                               code[ncode++] = NSTAT_FWHMz ;
+                                               do_fwhm++                   ;}
+       else if( strcasecmp(cpt,"diffs") == 0 ){code[ncode++] = NSTAT_diffs0;
+                                               code[ncode++] = NSTAT_diffs1;
+                                               code[ncode++] = NSTAT_diffs2;}
+       else if( strcasecmp(cpt,"adiffs") == 0){code[ncode++] = NSTAT_adiffs0;
+                                               code[ncode++] = NSTAT_adiffs1;
+                                               code[ncode++] = NSTAT_adiffs2;}
+       else if( strcasecmp(cpt,"mMP2s") == 0 ){code[ncode++] = NSTAT_mMP2s0;
+                                               code[ncode++] = NSTAT_mMP2s1;
+                                               code[ncode++] = NSTAT_mMP2s2;}
+       else if( strcasecmp(cpt,"mmMP2s") == 0 ){code[ncode++] = NSTAT_mmMP2s0;
+                                                code[ncode++] = NSTAT_mmMP2s1;
+                                                code[ncode++] = NSTAT_mmMP2s2;
+                                                code[ncode++] = NSTAT_mmMP2s3;}
+       else if( strcasecmp(cpt,"list") == 0) {
+          if (!nbhd) {
+            ERROR_exit("Must specify neighborhood before list "
+                       "stat is processed");
+          }
+          for (ipv=0; ipv<nbhd->num_pt; ++ipv)  code[ncode++] = NSTAT_LIST;
+       } 
+       else if( strncasecmp(cpt,"hist",4) == 0) {
+          /* How many you say? */
+         if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
+            ERROR_exit("Need params with hist stat (e.g. hist:0:4.5:100)");
+         }
+         if (codeparams[ncode][0] != 3 && codeparams[ncode][0] != 4) {
+            ERROR_exit("Need 3 or 4 params with hist stat");
+         }
+         if (codeparams[ncode][1]>=codeparams[ncode][2]) {
+            ERROR_exit("Need min >= max!");
+         }
+         if (codeparams[ncode][3]< 3) {
+            ERROR_exit("A histogram with just %d bins? I'm hurting here!"
+                       , codeparams[ncode][3]);
+         }
+         if (codeparams[ncode][0] == 3) {
+             codeparams[ncode][4] = 0; /* Don't ignore outliers */
+             codeparams[ncode][0] = 4;
+         }
+         /*
+         fprintf(stderr,
+          "codeparams[%d][..]=[npar=%d min=%f max=%f N=%d ignore_outliers=%d]\n",
+                  ncode, (int)codeparams[ncode][0],      codeparams[ncode][1], 
+                              codeparams[ncode][2], (int)codeparams[ncode][3],
+                         (int)codeparams[ncode][4]); */
+         stp = (int)codeparams[ncode][3];
+         for (ipv=0; ipv<stp; ++ipv) code[ncode++] = NSTAT_HIST;
+       }else if( strncasecmp(cpt,"perc",4) == 0) {
+         /* How many you say? */
+         if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
+            ERROR_exit("Need params with perc stat (e.g. perc:10:20:5");
+         }
+         strt = codeparams[ncode][1]; stp = strt; jmp = 1.0;
+         if ((int)codeparams[ncode][0] == 2) {
+            stp = codeparams[ncode][2]; if (stp == 0) stp = strt;
+         }else if ((int)codeparams[ncode][0] == 3) {
+            stp = codeparams[ncode][2]; jmp = codeparams[ncode][3];
+         }
+         if (jmp == 0.0) jmp = 1.0;
+         npv = ceil((stp - strt)/jmp);
+         if (npv > MAX_CODE_PARAMS) {
+            ERROR_exit( "A max of %d percentiles allowed. You have %d\n",
+                        MAX_CODE_PARAMS, npv);
+         }
+         ipv = 1;
+         codeparams[ncode][1] = strt;
+         while (codeparams[ncode][ipv]+jmp <= stp) {
+            codeparams[ncode][ipv+1] = codeparams[ncode][ipv]+jmp; ++ipv;
+         }
+         codeparams[ncode][0] = ipv;
+         iizz = (int)(codeparams[ncode][0]);
+         /* fprintf( stderr,
+                     "Have %d percentiles (coded with %d) "
+                     "starting at code index %d\n",
+                      iizz, NSTAT_PERCENTILE, ncode); */
+         for (ipv=0; ipv<iizz; ++ipv)  code[ncode++] = NSTAT_PERCENTILE;
+       }
+       else if( strcasecmp(cpt,"fwhmbar"  )==0 ) code[ncode++] = NSTAT_FWHMbar;
+       else if( strcasecmp(cpt,"fwhmbar12")==0 ) code[ncode++] = NSTAT_FWHMbar12;
+       else if( strcasecmp(cpt,"ALL")   == 0 ){
+         code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
+         code[ncode++] = NSTAT_VAR   ; code[ncode++] = NSTAT_CVAR  ;
+         code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
+         code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
+         code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
+         code[ncode++] = NSTAT_SUM   ;
+         code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
+         code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
+         code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
+         code[ncode++] = NSTAT_P2SKEW; code[ncode++] = NSTAT_KURT  ;
+         code[ncode++] = NSTAT_NZNUM ; code[ncode++] = NSTAT_FNZNUM;
+       }
+       else
+         ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
+      }
+      iarg++ ; continue ;
+   }
+   if( ncode <= 0 ) ERROR_exit("No '-stat' options given???");
+
     
-   if( do_fwhm && nbhd->num_pt < 19 )
+   if( !shootmyfoot && do_fwhm && nbhd->num_pt < 19 )
      ERROR_exit("FWHM requires neighborhood of at least 19 voxels!");
 
    /*---- actually do some work for a change ----*/
@@ -630,7 +716,8 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dLocalstat" , argc,argv , outset ) ;
 
    { char *lcode[MAX_NCODE] , lll[MAX_NCODE] , *slcode, pcode[MAX_NCODE];
-     int ipv = 0;
+     int ipv = -1, ineighb = -1, ihist = -1;
+     double W;
      lcode[NSTAT_MEAN]    = "MEAN" ;   lcode[NSTAT_SIGMA]      = "SIGMA"  ;
      lcode[NSTAT_CVAR]    = "CVAR" ;   lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
      lcode[NSTAT_MAD]     = "MAD"  ;   lcode[NSTAT_MAX]        = "MAX"    ;
@@ -649,17 +736,39 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_diffs0]  = "AvgDif";  lcode[NSTAT_diffs1]     = "MinDif";
                                        lcode[NSTAT_diffs2]     = "MaxDif"; 
      lcode[NSTAT_adiffs0] = "Avg|Dif|";lcode[NSTAT_adiffs1]    = "Min|Dif|";
-                                       lcode[NSTAT_adiffs2]    = "Max|Dif|"; 
+                                       lcode[NSTAT_adiffs2]    = "Max|Dif|";
+     lcode[NSTAT_LIST]    = "list";    lcode[NSTAT_HIST]       = "hist"; 
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
        while(ii < DSET_NVALS(outset)) {
          if (code[ii%ncode] == NSTAT_PERCENTILE) {
+            ihist = -1;
+            ineighb = -1;
             if (ipv < 0) ipv = ii%ncode;
             sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);
             slcode = pcode;
+         } else if (code[ii%ncode] == NSTAT_LIST) {
+            ipv = -1;
+            ihist = -1;
+            if (ineighb < 0) ineighb = 0;
+            else ++ineighb;
+            sprintf(pcode,"list:%04d", ineighb);
+            slcode = pcode;
+         } else if (code[ii%ncode] == NSTAT_HIST) {
+            ipv = -1;
+            ineighb = -1;
+            if (ihist < 0) {
+               ihist = 0;
+               W = (codeparams[ii%ncode][2] - codeparams[ii%ncode][1])
+                                                   / codeparams[ii%ncode][3];
+            } else ++ihist;
+            sprintf(pcode,"pdf:%.5f", W*ihist);
+            slcode = pcode;
          } else {
             ipv = -1;
+            ihist = -1;
+            ineighb = -1;
             slcode = lcode[code[ii%ncode]];
          }
          /*fprintf(stderr,"CODE %d: %s\n", ii, slcode);*/
@@ -672,11 +781,32 @@ int main( int argc , char *argv[] )
      } else {
        for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ ){
          if (code[ii%ncode] == NSTAT_PERCENTILE) {
+            ihist = -1;
+            ineighb = -1;
             if (ipv < 0) ipv = ii%ncode;
             sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);
             slcode = pcode;
+         } else if (code[ii%ncode] == NSTAT_LIST) {
+            ipv = -1;
+            ihist = -1;
+            if (ineighb < 0) ineighb = 0;
+            else ++ineighb;
+            sprintf(pcode,"list:%04d", ineighb);
+            slcode = pcode;
+         } else if (code[ii%ncode] == NSTAT_HIST) {
+            ipv = -1;
+            ineighb = -1;
+            if (ihist < 0) {
+               ihist = 0;
+               W = (codeparams[ii%ncode][2] - codeparams[ii%ncode][1])
+                                                   / codeparams[ii%ncode][3];
+            } else ++ihist;
+            sprintf(pcode,"pdf:%.5f", W*ihist);
+            slcode = pcode;
          } else {
             ipv = -1;
+            ihist = -1;
+            ineighb = -1;
             slcode = lcode[code[ii%ncode]];
          }
          sprintf(lll,"%s[%d]",slcode,(ii/ncode)) ;

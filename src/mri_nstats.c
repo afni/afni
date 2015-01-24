@@ -297,8 +297,9 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
    int count, countx, county, countz;
 
    LOAD_FVEC3(fw_xyz,-1,-1,-1) ;  /* load with bad values */
-
-   if( im == NULL || im->kind != MRI_float || nbhd == NULL ) return fw_xyz;
+   
+   if( im == NULL || im->kind != MRI_float || nbhd == NULL 
+                  || nbhd->num_pt < 19) return fw_xyz;
 
    far = MRI_FLOAT_PTR(im) ;
    nx  = im->nx; ny = im->ny; nz = im->nz; nxy = nx*ny; npt = nbhd->num_pt;
@@ -703,8 +704,9 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
 #endif
 
 ENTRY("THD_localstat") ;
-
+fprintf(stderr,"%p, %p, %d, %p", dset, nbhd, ncode, code);
    if( dset == NULL || nbhd == NULL || ncode < 1 || code == NULL ) RETURN(NULL);
+fprintf(stderr,"%d\n", nbhd->num_pt);
    npt = nbhd->num_pt ; if( npt == 0 )                             RETURN(NULL);
 
    /* check for stupid reduction parameters allowing = 1.0 for testing purposes*/
@@ -775,7 +777,7 @@ ENTRY("THD_localstat") ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
    float *nbar , fv6[6]={0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-   int nbar_num=0;
+   int nbar_num=0, Hinit = 0;
    float *ws12 ;
 
    /* 17 Jul 2009: create workspace for neighborhood data */
@@ -848,6 +850,58 @@ ENTRY("THD_localstat") ;
 
           cc += (N_mp-1) ; /* number of sub-bricks added, minus 1 */
 
+         } else if( code[cc] == NSTAT_HIST ){  /* histograms */
+            static int N, iout;
+            static double W, min, max;
+            int pp, ib, cnt;
+
+            if (!Hinit) { /* init */
+              if( codeparam[cc][0] < 1 )
+                ERROR_exit("THD_localstat: No histogram parameters set!");
+              if( (int)codeparam[cc][0] != 4 )
+                ERROR_exit("THD_localstat: Expecting only 4 params, have %d!" ,
+                            (int)codeparam[cc][0]);
+
+              min =      codeparam[cc][1];
+              max =      codeparam[cc][2]; 
+              N   = (int)codeparam[cc][3];
+              iout= (int)codeparam[cc][4];
+              W = (max - min)/(double)N;
+              Hinit = 1;
+            }
+            for (ib=0; ib<N;++ib) aar[cc+ib][ijk] = 0;
+            if (iout) { /* ignore outliers */
+             for (pp=0, cnt=0; pp<nbar_num;++pp) {
+               if (nbar[pp]>=min && nbar[pp]<=max) {
+                  ib = (int)((nbar[pp]-min)/W); if (ib==N) ib = N-1;
+                  ++aar[cc+ib][ijk];
+                  ++cnt;
+               }
+             }
+            } else {
+            cnt = nbar_num;
+            for (pp=0; pp<nbar_num;++pp) {
+               ib = (int)((nbar[pp]-min)/W);
+               if (ib>=N) ib = N-1;
+               else if (ib < 0) ib = 0;
+               ++aar[cc+ib][ijk];
+            }
+            }
+            for (ib=0; ib<N;++ib) aar[cc+ib][ijk] /= (float)cnt;
+
+            cc += (N-1) ; /* number of sub-bricks added, minus 1 */
+
+         } else if( code[cc] == NSTAT_LIST ){ /* Just all the neighbors mam*/
+           int pp;
+
+           if (nbar) {
+            for (pp=0; pp<nbar_num; ++pp) aar[cc+pp][ijk] = (float)nbar[pp];
+           } 
+           cc += (nbhd->num_pt-1) ; /* number of sub-bricks added, minus 1 
+                                   Do not use nbar_num-1 because at 
+                                   volume edges you will not have
+                                   as many neighbors as elsewhere*/
+         
          } else if( code[cc] == NSTAT_diffs0 ){ /*3 values */
            mri_nstat_diffs( nbar_num , nbar, fv6, 0 ) ;
            aar[cc  ][ijk] = fv6[0]; /* average difference */

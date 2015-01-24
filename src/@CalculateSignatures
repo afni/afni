@@ -768,6 +768,18 @@ foreach lstat ($statvector)
       set statlabelvector = ($statlabelvector P2skew)
    else if ($lstat =~ *kurt*) then
       set statlabelvector = ($statlabelvector KURT)
+   else if ($lstat =~ *FWHM*) then
+      set statlabelvector = ($statlabelvector FWHMx FWHMy FWHMz)
+   else if ($lstat =~ *diffs*) then
+      set statlabelvector = ($statlabelvector AvgDif MinDif MaxDif)
+   else if ($lstat =~ *perc*) then
+      set i0 = `echo $lstat | cut -d ':' -f 2`
+      set i1 = `echo $lstat | cut -d ':' -f 3`
+      set ip = `echo $lstat | cut -d ':' -f 4`
+      while ($i0 <= $i1) 
+         set statlabelvector = ($statlabelvector perc:$i0)
+         @ i0 += $ip
+      end
    else
       echo "Don't have label for stat $lstat"
       set stat = 1

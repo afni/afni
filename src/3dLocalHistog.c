@@ -37,6 +37,8 @@ void usage_3dLocalHistog(int detail)
 " * You can also output the overall histogram of the dataset collection,\n"
 "   via the '-hsave' option (as a 1D file).  This is simply the count of how\n"
 "   many times each value occurs.\n"
+" * For histograms of continuously valued datasets see program 3dLocalstat \n"
+"   with option -stat hist* \n"
 "\n"
 "OPTIONS\n"
 "-------\n"
