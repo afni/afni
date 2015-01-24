@@ -150,6 +150,24 @@ void usage_3dLocalstat(int detail)
 "                           and all neighbors. Values output are the \n"
 "                           average difference, followed by the min and max\n"
 "                           differences.\n"
+"               * list    = Just output the voxel values in the neighborhood\n"
+"                           The order in which the neighbors are listed \n"
+"                           depends on the neighborhood selected. Only\n"
+"                           SPHERE results in a neighborhood list sorted by\n"
+"                           the distance from the center.\n"
+"                           Regardless of the neighborhood however, the first\n"
+"                           value should always be that of the central voxel.\n"
+"               * hist:MIN:MAX:N[:IGN] = Compute the histogram in the voxel's\n"
+"                           neighborhood. You must specify the min, max, and \n"
+"                           the number of bins in the histogram. You can also\n"
+"                           ignore values outside the [min max] range by \n"
+"                           setting IGN to 1. IGN = 0 by default.\n"
+"                           The histograms are scaled by the number \n"
+"                           of values that went into the histogram.\n"
+"                           That would be the number of non-masked voxels\n"
+"                           in the neighborhood if outliers are NOT\n"
+"                           ignored (default).\n" 
+"                       For histograms of labeled datasets, use 3dLocalHistog\n" 
 "\n"
 "               More than one '-stat' option can be used.\n"
 "\n"
@@ -221,7 +239,7 @@ int main( int argc , char *argv[] )
    char allstats[] = { "mean; stdev; var; cvar; median; MAD; P2skew;"
                        "kurt; min; max; absmax; num; nznum; fnznum;"
                        "sum; rank; frank; fwhm; diffs; adiffs; mMP2s;"
-                       "mmMP2s; list; perc; fwhmbar; fwhmbar12; ALL;" };
+                       "mmMP2s; list; hist; perc; fwhmbar; fwhmbar12; ALL;" };
    THD_3dim_dataset *inset=NULL , *outset ;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
    float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], 
@@ -349,7 +367,8 @@ int main( int argc , char *argv[] )
 
        cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ; 
        snprintf(padname,126,"%s;", cpt);
-       if (!strstr(allstats, padname)) {
+       if ( strncmp(cpt,"perc:",5) && strncmp(cpt,"hist:",5) &&
+           !strstr(allstats, padname)) {
          ERROR_exit("-stat '%s' is an unknown statistic type",padname) ;
        }
        ncode = 1; /* Have something, set fully later */
@@ -597,10 +616,37 @@ int main( int argc , char *argv[] )
           }
           for (ipv=0; ipv<nbhd->num_pt; ++ipv)  code[ncode++] = NSTAT_LIST;
        } 
-       else if( strncasecmp(cpt,"perc",4) == 0) {
+       else if( strncasecmp(cpt,"hist",4) == 0) {
+          /* How many you say? */
+         if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
+            ERROR_exit("Need params with hist stat (e.g. hist:0:4.5:100)");
+         }
+         if (codeparams[ncode][0] != 3 && codeparams[ncode][0] != 4) {
+            ERROR_exit("Need 3 or 4 params with hist stat");
+         }
+         if (codeparams[ncode][1]>=codeparams[ncode][2]) {
+            ERROR_exit("Need min >= max!");
+         }
+         if (codeparams[ncode][3]< 3) {
+            ERROR_exit("A histogram with just %d bins? I'm hurting here!"
+                       , codeparams[ncode][3]);
+         }
+         if (codeparams[ncode][0] == 3) {
+             codeparams[ncode][4] = 0; /* Don't ignore outliers */
+             codeparams[ncode][0] = 4;
+         }
+         /*
+         fprintf(stderr,
+          "codeparams[%d][..]=[npar=%d min=%f max=%f N=%d ignore_outliers=%d]\n",
+                  ncode, (int)codeparams[ncode][0],      codeparams[ncode][1], 
+                              codeparams[ncode][2], (int)codeparams[ncode][3],
+                         (int)codeparams[ncode][4]); */
+         stp = (int)codeparams[ncode][3];
+         for (ipv=0; ipv<stp; ++ipv) code[ncode++] = NSTAT_HIST;
+       }else if( strncasecmp(cpt,"perc",4) == 0) {
          /* How many you say? */
          if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
-            ERROR_exit("Need params with perc stat");
+            ERROR_exit("Need params with perc stat (e.g. perc:10:20:5");
          }
          strt = codeparams[ncode][1]; stp = strt; jmp = 1.0;
          if ((int)codeparams[ncode][0] == 2) {
@@ -670,7 +716,8 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dLocalstat" , argc,argv , outset ) ;
 
    { char *lcode[MAX_NCODE] , lll[MAX_NCODE] , *slcode, pcode[MAX_NCODE];
-     int ipv = 0, ineighb = 0;
+     int ipv = -1, ineighb = -1, ihist = -1;
+     double W;
      lcode[NSTAT_MEAN]    = "MEAN" ;   lcode[NSTAT_SIGMA]      = "SIGMA"  ;
      lcode[NSTAT_CVAR]    = "CVAR" ;   lcode[NSTAT_MEDIAN]     = "MEDIAN" ;
      lcode[NSTAT_MAD]     = "MAD"  ;   lcode[NSTAT_MAX]        = "MAX"    ;
@@ -690,24 +737,37 @@ int main( int argc , char *argv[] )
                                        lcode[NSTAT_diffs2]     = "MaxDif"; 
      lcode[NSTAT_adiffs0] = "Avg|Dif|";lcode[NSTAT_adiffs1]    = "Min|Dif|";
                                        lcode[NSTAT_adiffs2]    = "Max|Dif|";
-     lcode[NSTAT_LIST]    = "list"; 
+     lcode[NSTAT_LIST]    = "list";    lcode[NSTAT_HIST]       = "hist"; 
      
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
        while(ii < DSET_NVALS(outset)) {
          if (code[ii%ncode] == NSTAT_PERCENTILE) {
+            ihist = -1;
             ineighb = -1;
             if (ipv < 0) ipv = ii%ncode;
             sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);
             slcode = pcode;
          } else if (code[ii%ncode] == NSTAT_LIST) {
             ipv = -1;
+            ihist = -1;
             if (ineighb < 0) ineighb = 0;
             else ++ineighb;
             sprintf(pcode,"list:%04d", ineighb);
             slcode = pcode;
+         } else if (code[ii%ncode] == NSTAT_HIST) {
+            ipv = -1;
+            ineighb = -1;
+            if (ihist < 0) {
+               ihist = 0;
+               W = (codeparams[ii%ncode][2] - codeparams[ii%ncode][1])
+                                                   / codeparams[ii%ncode][3];
+            } else ++ihist;
+            sprintf(pcode,"pdf:%.5f", W*ihist);
+            slcode = pcode;
          } else {
             ipv = -1;
+            ihist = -1;
             ineighb = -1;
             slcode = lcode[code[ii%ncode]];
          }
@@ -721,18 +781,31 @@ int main( int argc , char *argv[] )
      } else {
        for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ ){
          if (code[ii%ncode] == NSTAT_PERCENTILE) {
+            ihist = -1;
             ineighb = -1;
             if (ipv < 0) ipv = ii%ncode;
             sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);
             slcode = pcode;
          } else if (code[ii%ncode] == NSTAT_LIST) {
             ipv = -1;
+            ihist = -1;
             if (ineighb < 0) ineighb = 0;
             else ++ineighb;
             sprintf(pcode,"list:%04d", ineighb);
             slcode = pcode;
+         } else if (code[ii%ncode] == NSTAT_HIST) {
+            ipv = -1;
+            ineighb = -1;
+            if (ihist < 0) {
+               ihist = 0;
+               W = (codeparams[ii%ncode][2] - codeparams[ii%ncode][1])
+                                                   / codeparams[ii%ncode][3];
+            } else ++ihist;
+            sprintf(pcode,"pdf:%.5f", W*ihist);
+            slcode = pcode;
          } else {
             ipv = -1;
+            ihist = -1;
             ineighb = -1;
             slcode = lcode[code[ii%ncode]];
          }
