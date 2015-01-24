@@ -142,7 +142,7 @@ NULL
 "-vox_debug 1D_DBG_INDEX: 1D index of voxel to debug.\n"
 "       OR\n"
 "   -vox_debug I J K: where I, J, K are the 3D voxel indices \n"
-"                 (not RAI coordinates in mm).",
+"                     (not RAI coordinates in mm).",
 NULL 
       },
    {  
