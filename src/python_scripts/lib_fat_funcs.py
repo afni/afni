@@ -469,7 +469,7 @@ def IsEntry_interaction(str_var):
     '''Return an empty list if there is no interaction, or return a
     list of the interacting terms if there be/were one.'''
 
-    type_col = ':'
+    type_col = ':' # this was a mistake to include!  Ooops.
     type_ast = '*'
 
     num_colon = str_var.count(type_col)
@@ -480,7 +480,9 @@ def IsEntry_interaction(str_var):
         sys.exit(14)
 
     if num_colon :
-        return str_var.split(type_col), type_col
+        print "**ERROR! The ':' does not exist as a usable interaction call!"
+        sys.exit(156)
+        #return str_var.split(type_col), type_col
     elif num_aster :
         return str_var.split(type_ast), type_ast
     else:
@@ -1369,7 +1371,27 @@ def ConvertCSVfromStr(dat1, head1, NA_WARN):
 
     # careful copying...  need to recursively copy each list
     # unattachedly
-    dat2 = [list(x) for x in dat1]
+
+    # Jan,2015 !!!!
+    #    dat2 = [list(x) for x in dat1] # OLD method
+    # ---> new method: skip empty lines
+    FOUND_WS = 0
+    FOUND_EL = 0
+    dat2 = []
+    for x in dat1:
+        if x:                      # check if empty line
+            if x[0].split() :      # check if just whitespace
+                dat2.append(x)
+            else:
+                FOUND_WS = 1
+        else:
+            FOUND_EL = 1
+
+    if FOUND_WS:
+        print "\t FYI: removed at least one whitespace line from CSV file."
+    if FOUND_EL:
+        print "\t FYI: removed at least one empty line from CSV file."
+
     head2 = list(head1)
     
     Lx,Ly = np.shape(dat2)
@@ -1550,6 +1572,7 @@ def HeaderInfo(RawX):
 
     # Sept 2014: might have labels here.
     # defaults
+    #HAVE_LABS = 0
     listreadline = 2
     ReadNext = 3
     ROI_str_labs = []
@@ -1557,7 +1580,7 @@ def HeaderInfo(RawX):
     temp = RawX[2].split()
     if len(temp) > 1:
         if temp[1] == HEADER_Labels:
-            print "++ Have ROI LABELS: reading."
+            #HAVE_LABS = 1
             listreadline = 4
             ReadNext = 5
             ROI_str_labs = RawX[3].split()
@@ -1567,6 +1590,9 @@ def HeaderInfo(RawX):
                 print "  Number of ROIs (%d) doesn't match stringnames (%d)" % \
                  (Nroi,ll)
                 sys.exit(55)
+
+    #if HAVE_LABS :
+    #    print "++ Have ROI LABELS: reading."
 
     ListLabels=RawX[listreadline].split()
     ll = len(ListLabels)
