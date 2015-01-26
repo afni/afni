@@ -196,6 +196,8 @@ void usage_3dLocalstat(int detail)
 "               which may be byte, short, or float.\n"
 "               Default is float\n"
 "\n"
+" -label_ext LABEXT = Append '.LABEXT' to each sub-brick label \n"
+"\n"
 " -reduce_grid Rx [Ry Rz] = Compute output on a grid that is \n"
 "                           reduced by a factor of Rx Ry Rz in\n"
 "                           the X, Y, and Z directions of the \n"
@@ -246,7 +248,7 @@ int main( int argc , char *argv[] )
          redx[3]={0.0, 0.0, 0.0}, mxvx=0.0;
    MCW_cluster *nbhd=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
-   char *prefix="./localstat" ;
+   char *prefix="./localstat", *lab_ext=NULL ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    int do_fwhm=0 , verb=1 , shootmyfoot = 0;
    int npv = -1;
@@ -330,6 +332,12 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-label_ext") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-label_ext'") ;
+       lab_ext = argv[iarg];
+       iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-use_nonmask") == 0 ){        /* 13 Jul 2009 */
        SetSearchAboutMaskedVoxel(1) ; iarg++ ; continue ;
      }
@@ -368,7 +376,7 @@ int main( int argc , char *argv[] )
        cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ; 
        snprintf(padname,126,"%s;", cpt);
        if ( strncmp(cpt,"perc:",5) && strncmp(cpt,"hist:",5) &&
-           !strstr(allstats, padname)) {
+           !strcasestr(allstats, padname)) {
          ERROR_exit("-stat '%s' is an unknown statistic type",padname) ;
        }
        ncode = 1; /* Have something, set fully later */
@@ -715,7 +723,7 @@ int main( int argc , char *argv[] )
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dLocalstat" , argc,argv , outset ) ;
 
-   { char *lcode[MAX_NCODE] , lll[MAX_NCODE] , *slcode, pcode[MAX_NCODE];
+   { char *lcode[MAX_NCODE] , lll[1024] , *slcode, pcode[MAX_NCODE];
      int ipv = -1, ineighb = -1, ihist = -1;
      double W=0.0;
      lcode[NSTAT_MEAN]    = "MEAN" ;   lcode[NSTAT_SIGMA]      = "SIGMA"  ;
@@ -772,8 +780,13 @@ int main( int argc , char *argv[] )
             slcode = lcode[code[ii%ncode]];
          }
          /*fprintf(stderr,"CODE %d: %s\n", ii, slcode);*/
+         if (lab_ext) {
+            snprintf(lll,1010,"%s.%s",slcode,lab_ext) ;
+         } else {
+            snprintf(lll,1010,"%s",slcode) ;
+         }
          EDIT_dset_items( outset ,
-                            ADN_brick_label_one+ii , slcode ,
+                            ADN_brick_label_one+ii , lll ,
                           ADN_none ) ;
          ++ii;
       }
@@ -809,7 +822,11 @@ int main( int argc , char *argv[] )
             ineighb = -1;
             slcode = lcode[code[ii%ncode]];
          }
-         sprintf(lll,"%s[%d]",slcode,(ii/ncode)) ;
+         if (lab_ext) {
+            snprintf(lll,1010,"%s[%d].%s",slcode,(ii/ncode),lab_ext) ;
+         } else {
+            snprintf(lll,1010,"%s[%d]",slcode,(ii/ncode)) ;
+         }
          /* fprintf(stderr,"CODE sb%d: %s\n", ii, lll); */
          EDIT_dset_items( outset , ADN_brick_label_one+ii,lll, ADN_none ) ;
        }
