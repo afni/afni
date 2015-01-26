@@ -340,7 +340,7 @@ if __name__=="__main__":
      NA_WARN, CAT_PAIR_COMP = main(sys.argv[1:])
 
     if not(NA_WARN):
-        print "++ Won't worn about NAs in the data."
+        print "++ Won't warn about NAs in the data."
 
     #arg_list = sys.argv
     #str_sep = ' '
@@ -430,6 +430,7 @@ if __name__=="__main__":
     varQ_str = ''
     var_list_inter = []
     varI_str = ''
+    extra_qVar = '' # Jan,2015 -- added to pick up qvar in interac term
     for i in range(Nvar):
         x = var_list[i]
         
@@ -456,6 +457,8 @@ if __name__=="__main__":
                     for ii in var_isinterac[i][2][j]:
                         varI_str+= " %s" % ii
                     varI_str+= " )"
+                else: # Jan,2015
+                    extra_qVar = "%s" % var_isinterac[i][1][j]
                 if j == 0 :
                     varI_str+= " %s " % var_isinterac[i][0][0]
             Nvartout+= ncombo-1
@@ -487,6 +490,9 @@ if __name__=="__main__":
     bvar_entry = bvar_sep.join(var_list)
     qvar_sep = ','
     qvar_entry = qvar_sep.join(var_list_quant)
+    if extra_qVar: # Jan,2015
+        qvar_entry+=',%s' % extra_qVar
+
     psub_entry = qvar_sep.join(par_list)
 
     Nglt = Nroi*Nvartout
