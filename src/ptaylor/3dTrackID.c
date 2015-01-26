@@ -214,7 +214,7 @@ void usage_TrackID(int detail)
 "     (-> This has altered slightly at the end of June, 2014! No longer using\n"
 "     2^i notation-- made simpler for reading, assuming individual connection\n"
 "     information for calculations was likely obtained more easily with \n"
-"     '-dump_rois {AFNI | BOTH }...)\n"
+"     '-dump_rois {AFNI | BOTH | AFNI_MAP}...)\n"
 "     For each network with N_ROI target ROIs, this is a N_ROI+1 brik file.\n"
 "     0th brick contains a binary mask of voxels through which passed a\n"
 "     supra-threshold number of tracks (more than 0 for '-mode {DET | MINIP}'\n"
@@ -310,7 +310,7 @@ void usage_TrackID(int detail)
 "     difficult to represent fully and efficiently, given the possibly\n"
 "     complexity of patterns.  For more definite, unique, and scriptable\n"
 "     information of where estimated WM connections are, use the \n"
-"     '-dump_rois AFNI' option.\n"
+"     '-dump_rois AFNI' or '-dump_rois AFNI_MAP' option.\n"
 " If the '-netrois' input has a labeltable, then this program will program\n"
 "     will read it in, use it in PAIRMAP and INDIMAP bricklabels, PAIRMAP\n"
 "     subbricks with index >0, *niml.tract outputs and, by default, in the\n"
@@ -604,12 +604,14 @@ void usage_TrackID(int detail)
 "                     wise connect targets to only include sections that are\n"
 "                     between the targets, and not parts that run beyond one.\n"
 "    -dump_rois TYPE :can output individual masks of ROI connections.\n"
-"                     Options for TYPE are: {DUMP | AFNI | BOTH}. Using DUMP\n"
-"                     gives a set of 4-column ASCII files, each formatted\n"
-"                     like a 3dmaskdump data set; it can be reconstituted\n"
-"                     using 3dUndump. Using AFNI gives a set of BRIK/HEAD\n"
-"                     (byte) files in a directory called PREFIX; using BOTH\n"
-"                     produces both formats of outputs.\n"
+"                     Options for TYPE are: {DUMP | AFNI | BOTH | AFNI_MAP}.\n"
+"                     Using DUMP gives a set of 4-column ASCII files, each \n"
+"                     formatted like a 3dmaskdump data set; it can be recon-\n"
+"                     stituted using 3dUndump. Using AFNI gives a set of\n"
+"                     BRIK/HEAD (byte) files in a directory called PREFIX; \n"
+"                     using AFNI_MAP is like using AFNI, but it gives non-\n"
+"                     binarized *maps* of ROI connections.\n"
+"                     Using BOTH produces AFNI and DUMP formats of outputs.\n"
 "    -dump_no_labtab :if the ROIS file has a label table, the default is to\n"
 "                     use it in naming a '-dump_rois' output (if being used);\n"
 "                     using this switch turn that off-- output file names \n"
@@ -1199,11 +1201,13 @@ int main(int argc, char *argv[])
 				InOpts.DUMP_TYPE = 1;
 			else if( strcmp(argv[iarg],"AFNI") == 0 ) 
 				InOpts.DUMP_TYPE = 2;
+         else if( strcmp(argv[iarg],"AFNI_MAP") == 0 ) 
+				InOpts.DUMP_TYPE = 4;
 			else if( strcmp(argv[iarg],"BOTH") == 0 )
 				InOpts.DUMP_TYPE = 3;
 			else 
 				ERROR_exit("Illegal after '-dump_rois': need 'DUMP',"
-                       " 'AFNI' or 'BOTH'.");
+                       " 'AFNI' or 'BOTH' or the new 'AFNI_MAP'.");
 
 			iarg++ ; continue ;
 		}

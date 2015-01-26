@@ -215,7 +215,7 @@ if __name__=="__main__":
      ExternLabsOK = main(sys.argv[1:])
 
     if not(NA_WARN):
-        print "++ Won't worn about NAs in the data."
+        print "++ Won't warn about NAs in the data."
 
     arg_list = sys.argv
     str_sep = ' '
