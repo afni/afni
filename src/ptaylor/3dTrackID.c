@@ -604,12 +604,14 @@ void usage_TrackID(int detail)
 "                     wise connect targets to only include sections that are\n"
 "                     between the targets, and not parts that run beyond one.\n"
 "    -dump_rois TYPE :can output individual masks of ROI connections.\n"
-"                     Options for TYPE are: {DUMP | AFNI | BOTH}. Using DUMP\n"
-"                     gives a set of 4-column ASCII files, each formatted\n"
-"                     like a 3dmaskdump data set; it can be reconstituted\n"
-"                     using 3dUndump. Using AFNI gives a set of BRIK/HEAD\n"
-"                     (byte) files in a directory called PREFIX; using BOTH\n"
-"                     produces both formats of outputs.\n"
+"                     Options for TYPE are: {DUMP | AFNI | BOTH | AFNI_MAP}.\n"
+"                     Using DUMP gives a set of 4-column ASCII files, each \n"
+"                     formatted like a 3dmaskdump data set; it can be recon-\n"
+"                     stituted using 3dUndump. Using AFNI gives a set of\n"
+"                     BRIK/HEAD (byte) files in a directory called PREFIX; \n"
+"                     using AFNI_MAP is like using AFNI, but it gives non-\n"
+"                     binarized *maps* of ROI connections.\n"
+"                     Using BOTH produces AFNI and DUMP formats of outputs.\n"
 "    -dump_no_labtab :if the ROIS file has a label table, the default is to\n"
 "                     use it in naming a '-dump_rois' output (if being used);\n"
 "                     using this switch turn that off-- output file names \n"
@@ -1199,11 +1201,13 @@ int main(int argc, char *argv[])
 				InOpts.DUMP_TYPE = 1;
 			else if( strcmp(argv[iarg],"AFNI") == 0 ) 
 				InOpts.DUMP_TYPE = 2;
+         else if( strcmp(argv[iarg],"AFNI_MAP") == 0 ) 
+				InOpts.DUMP_TYPE = 4;
 			else if( strcmp(argv[iarg],"BOTH") == 0 )
 				InOpts.DUMP_TYPE = 3;
 			else 
 				ERROR_exit("Illegal after '-dump_rois': need 'DUMP',"
-                       " 'AFNI' or 'BOTH'.");
+                       " 'AFNI' or 'BOTH' or the new 'AFNI_MAP'.");
 
 			iarg++ ; continue ;
 		}
