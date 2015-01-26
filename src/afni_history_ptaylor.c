@@ -66,6 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+
+{ 26, Jan , 2015 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
+   "Can dump output *maps*, not just masks, of each connection.",
+   "See '-dump_rois AFNI_MAP' for how it works.\n"
+},
+
+{ 26, Jan , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_BUG_FIX,
+   "Hadn't included part quantitative interaction term in qVars list.",
+   "Program wouldn't run if interaction term had quant var.\n"
+},
+
+{ 26, Jan , 2015 , PT , "fat_mvm_prep.py" , MICRO , TYPE_GENERAL,
+   "Ignore empty lines or whitespace lines in CSV file.",
+   "Causes less hassle at times now.\n"
+},
+
 { 23, Jan , 2015 , PT , "3dTrackID" , MINOR , TYPE_BUG_FIX,
    "Rare scenario of -nifti -dump_rois AFNI not working.",
    "Needed to add a mkdir() internally.  Itsafinenow.\n"
