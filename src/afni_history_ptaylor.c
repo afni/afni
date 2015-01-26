@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 
+{ 26, Jan , 2015 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
+   "Can dump output *maps*, not just masks, of each connection.",
+   "See '-dump_rois AFNI_MAP' for how it works.\n"
+},
+
 { 26, Jan , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_BUG_FIX,
    "Hadn't included part quantitative interaction term in qVars list.",
    "Program wouldn't run if interaction term had quant var.\n"
