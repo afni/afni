@@ -22,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.6.0, Jan 13, 2014
+Version 1.7.0, Jan 26, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -51,7 +51,7 @@ Usage:
  Input files for 3dLME can be in AFNI, NIfTI, or surface (niml.dset) format.
  
  In addition to R installtion, the following two R packages need to be acquired
- in R first before running 3dLME: "nlme" and "phia". In addition, the "snow"
+ in R first before running 3dLME: "nlme", "lme4" and "phia". In addition, the "snow"
  package is also needed if one wants to take advantage of parallel computing.
  To install these packages, run the following command at the terminal:
 
@@ -60,6 +60,7 @@ Usage:
  Alternatively you may install them in R:
  
  install.packages("nlme")
+ install.packages("lme4")
  install.packages("phia")
  install.packages("snow")
  
@@ -178,7 +179,30 @@ a random intercept is considered.
           ...                                   
    \n"
    
-
+   ex4 <-   
+"Example 4 --- Computing ICC values for two within-subject factor (Cond:
+positive, negative, and neutral; Scanner: one, and two) plus subjects (factor
+Subj).
+-------------------------------------------------------------------------
+   3dLME -prefix Example4 -jobs 12                                      \\
+          -model  \"1\"                                                   \\
+          -ranEff 'Cond+Scanner+Subj'                                   \\
+          -ICC                                                          \\
+          -dataTable                                                    \\
+          Subj  Cond      Scanner        InputFile                      \\
+          s1    pos        one    s1_1+tlrc\'[pos#0_Coef]\'               \\
+          s1    neg        one    s1_1+tlrc\'[neg#0_Coef]\'               \\
+          s1    neu        one    s1_1+tlrc\'[neu#0_Coef]\'               \\
+          s1    pos        two    s1_2+tlrc\'[pos#0_Coef]\'               \\
+          s1    neg        two    s1_2+tlrc\'[neg#0_Coef]\'               \\
+          s1    neu        two    s1_2+tlrc\'[neu#0_Coef]\'               \\
+          ... 
+          s21   pos        two   s21_2+tlrc\'[pos#0_Coef]\'               \\
+          s21   neg        two   s21_2+tlrc\'[neg#0_Coef]\'               \\
+          s21   neu        two   s21_2+tlrc\'[neu#0_Coef]\'               \\
+          ...                                   
+   \n"
+ 
    parnames <- names(params)
    ss <- vector('character')
    if(alpha) {
@@ -192,7 +216,7 @@ a random intercept is considered.
          ss <- c(ss, paste(itspace, parnames[ii], '(no help available)\n', sep='')) 
    }
    ss <- paste(ss, sep='\n')
-   cat(intro, ex1, ex2, ex3, ss, sep='\n')
+   cat(intro, ex1, ex2, ex3, ex4, ss, sep='\n')
    
    if (adieu) exit.AFNI();
 }
@@ -202,7 +226,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    params <- list (
       '-prefix' = apl(n = 1, d = NA,  h = paste(
    "-prefix PREFIX: Output file name. For AFNI format, provide prefix only,",
-   "         no view+suffix needed. Filename for NIfTI format should have",
+   "         with no view+suffix needed. Filename for NIfTI format should have",
    "         .nii attached, while file name for surface data is expected",
    "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
    "         if present, should be interpreted as the effect with each factor",
@@ -244,7 +268,11 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         of slope is desired. Compound symmetry for a variance-covariance metric",
    "         across the levels of factor A can be specified through pdCompSymm(~0+A)",
    "         The list of random terms should be separated by space within (single or",
-   "         double) quotes.\n", sep = '\n'
+   "         double) quotes.",
+   "         Notice: In the case of computing ICC values, list all the factors with",
+   "         which the ICC is to be obtained. For example, with two factors \"Scanner\"",
+   "         and \"Subj\", set it as -ranEff \"Scanner+Subj\". See Example 4 in the",
+   "         the help.\n", sep = '\n'
                              ) ),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
@@ -279,6 +307,13 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
      '-SS_type' = apl(n=1, d=3, h = paste(
    "-SS_type NUMBER: Specify the type for sums of squares in the F-statistics.",
    "         Two options are currently supported: sequential (1) and marginal (3).\n ",
+             sep = '\n'
+                     ) ),
+
+     '-ICC' = apl(n=0, d=3, h = paste(
+   "-ICC: This option allows 3dLME to compute voxel-wise intra-class correlation",
+   "         for the variables specified through option -ranEff. See Example 4 in",
+   "         in the help.\n ",
              sep = '\n'
                      ) ),
 
@@ -414,6 +449,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       lop$qVarCenters    <- NA
       lop$corStr <- NA
       lop$SS_type <- 3
+      lop$ICC     <- FALSE
       lop$num_glt <- 0
       lop$gltLabel <- NULL
       lop$gltCode  <- NULL
@@ -439,6 +475,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              qVarCenters = lop$qVarCenters <- ops[[i]],
              corStr  = lop$corStr <- ops[[i]],
              SS_type = lop$SS_type <- ops[[i]],
+             ICC     = lop$ICC     <- TRUE,
              num_glt = lop$num_glt <- ops[[i]],
              gltLabel = lop$gltLabel <- ops[[i]],
              gltCode  = lop$gltCode <- ops[[i]],
@@ -661,9 +698,9 @@ process.LME.opts <- function (lop, verb = 0) {
    }
 
    # number of fixed-effects variables involved in the model
-   parseStr <- function(input, sep) unlist(strsplit(input, sep))
-   fixedVars <- unique(parseStr(parseStr(parseStr(lop$model, "\\:"), "\\*"), "\\+"))
-   nFix <- length(fixedVars)
+   # parseStr <- function(input, sep) unlist(strsplit(input, sep))
+   #fixedVars <- unique(parseStr(parseStr(parseStr(lop$model, "\\:"), "\\*"), "\\+"))
+   #nFix <- length(fixedVars)
 
    # contrcuct the glt's for phia, which is currently not so suitable for lme
    #if (lop$num_glt > 0) {
@@ -803,6 +840,20 @@ runLME <- function(inData, dataframe, ModelForm) {
 }
 # test runLME(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm)      
 
+runREML <- function(myData, fm, nBrk, tag) {
+   #browser()
+   myStat<-vector(mode="numeric", length= nBrk)
+   if(!all(myData == 0)) {     
+      try(fmAOV<-refit(fm, myData), tag<-1)   
+      if(tag != 1) {    
+         for(ii in 1:(nBrk-1)) myStat[ii] <- VarCorr(fmAOV)[[ii]][1]  # factor variances
+         myStat[nBrk] <- attr(VarCorr(fmAOV), "sc")^2  # residual variance
+         myStat <- myStat/sum(myStat)
+      }
+   }
+   return(myStat)
+}
+
 #################################################################################
 ########################## Read information from a file #########################tryCatch(print(fm[[1]]), error=function(e) NULL)
 #################################################################################
@@ -925,9 +976,7 @@ lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
-#library("nlme")
-#library("phia")
-pkgLoad(c('nlme', 'phia'))
+if(lop$ICC) pkgLoad('lme4') else pkgLoad(c('nlme', 'phia'))
 # effect coding leads to the same type III as SAS   
 options(contrasts = c("contr.sum", "contr.poly"))
    
@@ -940,7 +989,7 @@ options(contrasts = c("contr.sum", "contr.poly"))
 
 # even if lop$wsVars is NA (no within-subject factors), it would be still OK for Error(Subj/NA)
 #if(is.na(lop$wsVars)) ModelForm <- as.formula(paste("Beta ~", lop$model)) else
-   ModelForm <- as.formula(paste("Beta ~", lop$model)) 
+   ModelForm <- paste("Beta ~", lop$model)
    
 
 # Line 12 and the next few: pair-wise contrasts
@@ -966,21 +1015,22 @@ for(ii in 2:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
 cat(lop$num_glt, 'post hoc tests\n')
 
 cat('\nContingency tables of subject distributions among the categorical variables:\n\n')
-showTab <- as.formula(paste('~', gsub("\\:", "+", gsub("\\*", "+", lop$model))))
-#if(!is.na(lop$qVars)) for(ii in 1:length(lop$QV))
-#   showTab <- gsub(paste('\\*',lop$QV[ii], sep=' '), '', gsub(paste('\\+',lop$QV[ii], sep=' '), '', showTab))
-if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
-   # situations like 'ARI', 'ARI1', ARI2' would not cause trouble here!
-   showTab <- gsub(paste('\\*', ii, sep=''), '', gsub(paste('\\+', ii, sep=''), '', showTab))
-showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
+if(lop$ICC) showTab <- as.formula(paste('~', gsub("\\*", "+", lop$ranEff))) else {
+   showTab <- as.formula(paste('~', gsub("\\:", "+", gsub("\\*", "+", lop$model))))
+   if(!is.na(lop$qVars)) for(ii in rev(levels(ordered(lop$QV)))) # reversing the oder of those quantitative covariates so that
+      showTab <- gsub(paste('\\*', ii, sep=''), '', gsub(paste('\\+', ii, sep=''), '', showTab))
+   showTab <- as.formula(gsub("\\*", "+", showTab))  # in case there are still some *'s like between-subjects factors
+}
 print(xtabs(showTab, data=lop$dataStr))                                           
 
-cat('\nTabulation of subjects against all categorical variables')
-all_vars <- names(lop$dataStr)
-for(var in all_vars[-c(1, length(all_vars))]) if(!(var %in% lop$QV)) {
-   cat('\n~~~~~~~~~~~~~~')
-   cat('\nSubj vs ', var, ':\n', sep='')
-   print(table(lop$dataStr$Subj, lop$dataStr[,var]))
+if(!lop$ICC) {
+   cat('\nTabulation of subjects against all categorical variables')
+   all_vars <- names(lop$dataStr)
+   for(var in all_vars[-c(1, length(all_vars))]) if(!(var %in% lop$QV)) {
+      cat('\n~~~~~~~~~~~~~~')
+      cat('\nSubj vs ', var, ':\n', sep='')
+      print(table(lop$dataStr$Subj, lop$dataStr[,var]))
+   }
 }
 
 cat('***** End of data structure information *****\n')   
@@ -1043,97 +1093,105 @@ gltRes <- vector('list', lop$num_glt)
 glfRes <- vector('list', lop$num_glf)
 # need to expand this later
 #ranEff <- list(Subj=as.formula(c('~',lop$ranEff)))
-nRanEff <- length(lop$ranEff)
-lop$ranEffList <-  vector('list', nRanEff)
-names(lop$ranEffList) <- rep('Subj', nRanEff)
-#for(n in 1:nRanEff) lop$ranEffList[[n]] <- as.formula(lop$ranEff[[n]])
-for(n in 1:nRanEff) lop$ranEffList[[n]] <-eval(parse(text=lop$ranEff[[n]]))
-
-if(!is.na(lop$corStr[1])) lop$corStrList <- as.formula(c('~', lop$corStr[1])) else lop$corStrList <- NA
-
-while(is.null(fm)) {
-   fm<-NULL
-   lop$dataStr$Beta<-inData[ii, jj, kk,]
-   options(warn=-1)     
-   if(!is.na(lop$corStr[1])) try(fm <- lme(ModelForm, random=lop$ranEffList, data=lop$dataStr, 
-      correlation=corAR1(0.3, form=lop$corStrList)), silent=TRUE) else try(fm <- lme(ModelForm, 
-      random=lop$ranEffList, data=lop$dataStr), silent=TRUE)
-   #if(!is.null(fm)) if (lop$num_glt > 0) {
-   #   n <- 1
-   #   library(contrast)
-   #   gltDF <- array(data=NA, dim=lop$num_glt)
-   #   while(!is.null(fm) & (n <= lop$num_glt)) {
-   #      gltDF[n] <- tryCatch(contrast(fm, lop$gltList[[n]][[1]], lop$gltList[[n]][[2]], type="average")$df,
-   #         error=function(e) NA)
-   #      if(is.na(gltDF[[n]])) fm <- NULL
-   #      n <- n+1
-   #   }
-   #}
-   if(!is.null(fm)) if (lop$num_glt > 0) {
-      n <- 1
-      while(!is.null(fm) & (n <= lop$num_glt)) {
-        #gltDF[n] <- tryCatch(contrast(fm, lop$gltContrList[[n]][[1]], lop$gltContrList[[n]][[2]], type="average")$df,
-        #    error=function(e) NA)
-         if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
-            covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
-         gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
-            covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
-         if(is.na(gltRes[[n]])) fm <- NULL
-         n <- n+1
+#nRanEff <- length(lop$ranEff)
+#browser()
+if(lop$ICC) {
+   lop$ranEff <- unlist(strsplit(lop$ranEff, split="[+]"))
+   nRanEff <- length(lop$ranEff)
+   for(nn in 1:nRanEff) ModelForm <- paste(ModelForm,"+(1|",lop$ranEff[nn],")")
+   ModelForm <- as.formula(ModelForm)
+   while(is.null(fm)) {
+      fm<-NULL
+      lop$dataStr$Beta<-inData[ii, jj, kk,]
+      options(warn=-1)
+      try(fm <- lmer(ModelForm, data=lop$dataStr), silent=TRUE)
+      if(!is.null(fm))  {
+         print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+      } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
+         ii<-xinit; jj <- yinit; kk <- kk+1 } else {
+         cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
+         cat('Possible reasons:\n\n')
+         cat('0) Make sure that R package lme4 has been installed. See the 3dLME\n')
+         cat('help documentation for more details.\n\n')
+         cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
+         cat('2) In correct specifications for random effect with -ranEff.\n\n')
+         cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
+         cat('whether there are any inconsistencies.\n\n')
+         cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
+         cat('named Scanner in model specification and then listed as scanner in the table hader\n')
+         cat('would cause grief for 3dLME.\n')
+         errex.AFNI("Quitting due to model test failure...")
       }
    }
+   lop$NoBrick <- nRanEff+1
+} else {
+   ModelForm <- as.formula(ModelForm)
+   nRanEff <- length(lop$ranEff)
+   lop$ranEffList <-  vector('list', nRanEff)
+   names(lop$ranEffList) <- rep('Subj', nRanEff)
+   #for(n in 1:nRanEff) lop$ranEffList[[n]] <- as.formula(lop$ranEff[[n]])
+   for(n in 1:nRanEff) lop$ranEffList[[n]] <-eval(parse(text=lop$ranEff[[n]]))
+   if(!is.na(lop$corStr[1])) lop$corStrList <- as.formula(c('~', lop$corStr[1])) else lop$corStrList <- NA
 
-   if(!is.null(fm)) if (lop$num_glf > 0) {  # does this work the same way as the t-tests above? Or need changes as in 3dMVM?
-      n <- 1
-      while(!is.null(fm) & (n <= lop$num_glf)) {
-        #glfDF[n] <- tryCatch(contrast(fm, lop$glfContrList[[n]][[1]], lop$glfContrList[[n]][[2]], type="average")$df,
-        #    error=function(e) NA)
-         if(is.na(lop$glfList[[n]])) glfRes[[n]] <- tryCatch(testFactors(fm, pairwise=NULL,
-            covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
-         glfRes[[n]] <- tryCatch(testFactors(fm, custom=lop$glfList[[n]],
-            covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
-         if(is.na(glfRes[[n]])) fm <- NULL
-         n <- n+1
+   while(is.null(fm)) {
+      fm<-NULL
+      lop$dataStr$Beta<-inData[ii, jj, kk,]
+      options(warn=-1)     
+      if(!is.na(lop$corStr[1])) try(fm <- lme(ModelForm, random=lop$ranEffList, data=lop$dataStr, 
+         correlation=corAR1(0.3, form=lop$corStrList)), silent=TRUE) else try(fm <- lme(ModelForm, 
+         random=lop$ranEffList, data=lop$dataStr), silent=TRUE)
+      if(!is.null(fm)) if (lop$num_glt > 0) {
+         n <- 1
+         while(!is.null(fm) & (n <= lop$num_glt)) {
+            if(is.na(lop$gltList[[n]])) gltRes[[n]] <- tryCatch(testInteractions(fm, pairwise=NULL,
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
+            gltRes[[n]] <- tryCatch(testInteractions(fm, custom=lop$gltList[[n]],
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
+            if(is.na(gltRes[[n]])) fm <- NULL
+            n <- n+1
+         }
       }
-   }
    
-   if(!is.null(fm))  {
-      print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
-   } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
-      ii<-xinit; jj <- yinit; kk <- kk+1 } else {
-      cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
-      cat('Possible reasons:\n\n')
-      cat('0) Make sure that R packages nlme and phia have been installed. See the 3dLME\n')
-      cat('help documentation for more details.\n\n')
-      cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
-      cat('2) In correct specifications in general linear test coding with -gltCode.\n\n')
-      cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
-      cat('whether there are any inconsistencies.\n\n')
-      cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
-      cat('named Group in model specification and then listed as group in the table hader\n')
-      cat('would cause grief for 3dLME.\n')
-      errex.AFNI("Quitting due to model test failure...")     
-      #break
+      if(!is.null(fm)) if (lop$num_glf > 0) {  # does this work the same way as the t-tests above? Or need changes as in 3dMVM?
+         n <- 1
+         while(!is.null(fm) & (n <= lop$num_glf)) {
+            if(is.na(lop$glfList[[n]])) glfRes[[n]] <- tryCatch(testFactors(fm, pairwise=NULL,
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA) else
+            glfRes[[n]] <- tryCatch(testFactors(fm, custom=lop$glfList[[n]],
+               covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none"), error=function(e) NA)
+            if(is.na(glfRes[[n]])) fm <- NULL
+            n <- n+1
+         }
+      }
+      
+      if(!is.null(fm))  {
+         print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
+      } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
+         ii<-xinit; jj <- yinit; kk <- kk+1 } else {
+         cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
+         cat('Possible reasons:\n\n')
+         cat('0) Make sure that R packages nlme and phia have been installed. See the 3dLME\n')
+         cat('help documentation for more details.\n\n')
+         cat('1) Inappropriate model specification with options -model, or -qVars.\n\n')
+         cat('2) In correct specifications in general linear test coding with -gltCode.\n\n')
+         cat('3) Mistakes in data table. Check the data structure shown above, and verify\n')
+         cat('whether there are any inconsistencies.\n\n')
+         cat('4) Inconsistent variable names which are case sensitive. For example, factor\n')
+         cat('named Group in model specification and then listed as group in the table hader\n')
+         cat('would cause grief for 3dLME.\n')
+         errex.AFNI("Quitting due to model test failure...")     
+         #break
+      }
    }
+   lop$nF      <- nrow(anova(fm))    # total number of F-stat
+   lop$nBasis  <- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)  # number of basis functions
+   nT      <- 2*(lop$num_glt + lop$nBasis)
+   lop$NoBrick <- lop$nF + nT + lop$num_glf # total number of output values per voxel/node   
+   lop$SStype <- ifelse(lop$SS_type==3, 'marginal', 'sequential')
+   lop$Fseq   <- 1:lop$nF  
+   # test if it works
+   #runLME(inData[1,2,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)
 }
-
-# number of terms (or F-stats): the output structure is different without within-subject variables
-#nF      <- ifelse(is.na(lop$corStr[1]), nrow(anova(fm))-1, nrow(anova(fm)))
-lop$nF      <- nrow(anova(fm))    # total number of F-stat
-lop$nBasis  <- (!is.na(lop$corStr[1]))*nrow(summary(fm)$tTable)  # number of basis functions
-nT      <- 2*(lop$num_glt + lop$nBasis)
-#if(is.null(lop$QV)) nCovVal <- 0 else nCovVal <- length(unique(unlist(sapply(lop$QV, grep, dimnames(summary(fm)$tTable)[[1]]))))
-#nT      <- 2*(lop$num_glt + nBasis + nCovVal)
-lop$NoBrick <- lop$nF + nT + lop$num_glf # total number of output values per voxel/node
-
-###############################
-
-lop$SStype <- ifelse(lop$SS_type==3, 'marginal', 'sequential')
-lop$Fseq   <- 1:lop$nF
-
-# test if it works
-#runLME(inData[1,2,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)
-
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
 print("and estimate the total run time as shown below.")
@@ -1147,142 +1205,140 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 #   aa<-runAOV(inData[ii,jj,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
 # test runLME(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)      
 
-if(dimy == 1 & dimz == 1) {
-   nSeg <- 20
-   # drop the dimensions with a length of 1
-   inData <- inData[, , ,]
-   # break into 20 segments, leading to 5% increamental in parallel computing
-   dimx_n <- dimx%/%nSeg + 1
-   # number of datasets need to be filled
-   fill <- nSeg-dimx%%nSeg
-   # pad with extra 0s
-   inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
-   # declare output receiver
-   Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
-   # break input multiple segments for parrel computation
-   dim(inData) <- c(dimx_n, nSeg, NoFile)
-   if (lop$nNodes==1) for(kk in 1:nSeg) {
-      if(lop$NoBrick > 1) Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, dataframe=lop$dataStr,
-            ModelForm=ModelForm), c(2,1)) else
-         Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, dataframe=lop$dataStr,
-            ModelForm=ModelForm), dim=c(dimx_n, 1))
-      cat("Computation done: ", 100*kk/nSeg, "%", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
-   }
-   
-   if (lop$nNodes>1) {
-   #library(snow)
-   pkgLoad('snow')
-   cl <- makeCluster(lop$nNodes, type = "SOCK")
-   clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
-   clusterExport(cl, c("ModelForm", "lop"), envir=environment())
-   for(kk in 1:nSeg) {
-      if(lop$NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
-            ModelForm=ModelForm), c(2,1)) else
-      Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
-            ModelForm=ModelForm), dim=c(dimx_n, 1))
-      cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
-   }
-   stopCluster(cl)
-   }
-   # convert to 4D
-   dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
-   # remove the trailers (padded 0s)
-   Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
-} else {
-
-   # Initialization
+if(lop$ICC) {
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
-
    if (lop$nNodes==1) for (kk in 1:dimz) {
-      if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
-            ModelForm=ModelForm), c(2,3,1)) else
-         Stat[,,kk,] <- array(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
-            ModelForm=ModelForm), dim=c(dimx, dimy, 1))      
-      cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   } 
-
-   if (lop$nNodes>1) {
+      Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,3,1))
+      cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+   }         
+   if (lop$nNodes>1)    {
+      pkgLoad('snow')
+      cl <- makeCluster(lop$nNodes, type = "SOCK")
+      clusterEvalQ(cl, library(lme4))
+      for (kk in 1:dimz) {
+         Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,3,1))
+         cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      } 
+      stopCluster(cl)
+   }
+   outLabel <- append(names(VarCorr(fm)), "Residual")
+   statsym <- NULL
+   for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=ii-1,typ="fim")))
+} else {
+   if(dimy == 1 & dimz == 1) {
+      nSeg <- 20
+      # drop the dimensions with a length of 1
+      inData <- inData[, , ,]
+      # break into 20 segments, leading to 5% increamental in parallel computing
+      dimx_n <- dimx%/%nSeg + 1
+      # number of datasets need to be filled
+      fill <- nSeg-dimx%%nSeg
+      # pad with extra 0s
+      inData <- rbind(inData, array(0, dim=c(fill, NoFile)))
+      # declare output receiver
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick))
+      # break input multiple segments for parrel computation
+      dim(inData) <- c(dimx_n, nSeg, NoFile)
+      if (lop$nNodes==1) for(kk in 1:nSeg) {
+         if(lop$NoBrick > 1) Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+               ModelForm=ModelForm), c(2,1)) else
+            Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+               ModelForm=ModelForm), dim=c(dimx_n, 1))
+         cat("Computation done: ", 100*kk/nSeg, "%", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+      }
+      
+      if (lop$nNodes>1) {
       #library(snow)
       pkgLoad('snow')
       cl <- makeCluster(lop$nNodes, type = "SOCK")
       clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
-      clusterExport(cl, c("ModelForm", "lop"), envir=environment())  # for some reason phia needs this for multiple CPUs
-      for (kk in 1:dimz) {
-         if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 
-               dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1)) else
-            Stat[,,kk,] <- array(parApply(cl, inData[,,kk,], c(1,2), runLME, 
-               dataframe=lop$dataStr, ModelForm=ModelForm), dim=c(dimx, dimy, 1))
+      clusterExport(cl, c("ModelForm", "lop"), envir=environment())
+      for(kk in 1:nSeg) {
+         if(lop$NoBrick > 1) Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+               ModelForm=ModelForm), c(2,1)) else
+         Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME, dataframe=lop$dataStr,
+               ModelForm=ModelForm), dim=c(dimx_n, 1))
+         cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')   
+      }
+      stopCluster(cl)
+      }
+      # convert to 4D
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick)
+      # remove the trailers (padded 0s)
+      Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
+      
+   } else {
+   
+      # Initialization
+      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
+   
+      if (lop$nNodes==1) for (kk in 1:dimz) {
+         if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
+               ModelForm=ModelForm), c(2,3,1)) else
+            Stat[,,kk,] <- array(apply(inData[,,kk,], c(1,2), runLME, dataframe=lop$dataStr, 
+               ModelForm=ModelForm), dim=c(dimx, dimy, 1))      
          cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       } 
-      stopCluster(cl)
-   }
-}
-
-# test on Z slice
-
-#if (lop$nNodes>1)    {
-#   library(snow)
-#   cl <- makeCluster(lop$nNodes, type = "SOCK")
-#   clusterEvalQ(cl, library(afex)); #clusterEvalQ(cl, library(contrast))
-#   kk<- 32
-#   
-#      Stat[,,kk,] <-aperm(parApply(cl, inData[,,kk,], c(1,2), runAOV, dataframe=lop$dataStr, ModelForm=ModelForm, tag=0), c(2,3,1))
-#      cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-#   stopCluster(cl)
-#}
-
-###############################
-tTop <- 100
-
-Stat[Stat > tTop] <- tTop  # Avoid outflow!!!!
-Stat[Stat < (-tTop)] <- -tTop  # Avoid outflow!!!!
-
-outLabel <- paste(rownames(anova(fm))[lop$Fseq], " F")
-if(!is.na(lop$corStr[1])) for(n in 1:dim(summary(fm)$tTable)[1]) {
-   outLabel <- append(outLabel, rownames(summary(fm)$tTable)[n])
-   outLabel <- append(outLabel, paste(rownames(summary(fm)$tTable)[n], "t"))
-}               
-if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
-   outLabel <- append(outLabel, lop$gltLabel[n])
-   outLabel <- append(outLabel, paste(lop$gltLabel[n], "Z"))
-
-}
-if(lop$num_glf > 0) for (n in 1:lop$num_glf) outLabel <- append(outLabel, paste(lop$glfLabel[n], "Chisq"))
    
-#if(nCovVal > 0) for (n in 1:nCovVal) {
-#   outLabel <- append(outLabel, dimnames(summary(fm)$tTable)[[1]][lop$Fseq[n]])
-#   outLabel <- append(outLabel, paste(dimnames(summary(fm)$tTable)[[1]][lop$Fseq[n]], "t"))
-#}
-
-#for(ii in 1:nF) statpar <- paste(statpar, " -substatpar ", ii-1, " fift ", F_DF[[ii]][1], F_DF[[ii]][2])
-#statpar <- "3drefit"
-statsym <- NULL
-IdxAdj <- 1
-#IdxAdj <- as.integer(!is.na(lop$corStr[1]))
-for (i in (2-IdxAdj):(lop$nF+1-IdxAdj)) {  # has an intercept or not
-   # DFs are acquired from the last solvable voxel 
-   #     statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
-   #        " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
-        statsym <- c(statsym, list(list(sb=i-2+IdxAdj, 
-                typ="fift", par=c( anova(fm)$numDF[i], anova(fm)$denDF[i]))))
-        
-}  # from 0 to NoF-1
-
-if(lop$num_glt > 0) for (n in 1:lop$num_glt) #statpar <- paste(statpar, " -substatpar ", lop$nF+2*n-1, " fizt ")
-   statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fizt", par=NULL)))
-   #statpar <- paste(statpar, " -substatpar ", lop$nF+2*n-1, " fitt ",gltDF[n])
-
-#if(!is.null(lop$QV)) if(nCovVal>0) for (n in 1:nCovVal) 
-#   statpar <- paste(statpar, " -substatpar ", nF+2*lop$num_glt+2*n-1, " fitt ", summary(fm)$tTable[lop$Fseq[n],"DF"])
-bb <- as.numeric(strsplit(as.character(ModelForm), "\\+", fixed=F)[[3]][1])
-
-if(!is.na(bb)) if(bb==0 | bb == -1) for (n in 1:dim(summary(fm)$tTable)[1])  # basis functions
-   statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fitt", par=summary(fm)$tTable[n,"DF"])))
-   #statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
-
-if(lop$num_glf > 0) for (n in 1:lop$num_glf) #statpar <- paste(statpar, " -substatpar ", lop$nF+2*n-1, " fizt ")
-   statsym <- c(statsym, list(list(sb=lop$NoBrick-lop$num_glf+n-1, typ="fizt", par=NULL)))
-#   statsym <- c(statsym, list(list(sb=lop$NoBrick-lop$num_glf+n-1, typ="fict", par=glfRes[[n]]$term$`(Intercept)`$test[2,1])))
+      if (lop$nNodes>1) {
+         #library(snow)
+         pkgLoad('snow')
+         cl <- makeCluster(lop$nNodes, type = "SOCK")
+         clusterEvalQ(cl, library(nlme)); clusterEvalQ(cl, library(phia))
+         clusterExport(cl, c("ModelForm", "lop"), envir=environment())  # for some reason phia needs this for multiple CPUs
+         for (kk in 1:dimz) {
+            if(lop$NoBrick > 1) Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, 
+                  dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1)) else
+               Stat[,,kk,] <- array(parApply(cl, inData[,,kk,], c(1,2), runLME, 
+                  dataframe=lop$dataStr, ModelForm=ModelForm), dim=c(dimx, dimy, 1))
+            cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         } 
+         stopCluster(cl)
+      }
+   }
+   tTop <- 100
+   Stat[Stat > tTop] <- tTop  # Avoid outflow!!!!
+   Stat[Stat < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   
+   outLabel <- paste(rownames(anova(fm))[lop$Fseq], " F")
+   if(!is.na(lop$corStr[1])) for(n in 1:dim(summary(fm)$tTable)[1]) {
+      outLabel <- append(outLabel, rownames(summary(fm)$tTable)[n])
+      outLabel <- append(outLabel, paste(rownames(summary(fm)$tTable)[n], "t"))
+   }               
+   if(lop$num_glt > 0) for (n in 1:lop$num_glt) {
+      outLabel <- append(outLabel, lop$gltLabel[n])
+      outLabel <- append(outLabel, paste(lop$gltLabel[n], "Z"))
+   
+   }
+   if(lop$num_glf > 0) for (n in 1:lop$num_glf) outLabel <- append(outLabel, paste(lop$glfLabel[n], "Chisq"))
+   
+   statsym <- NULL
+   IdxAdj <- 1
+   #IdxAdj <- as.integer(!is.na(lop$corStr[1]))
+   for (i in (2-IdxAdj):(lop$nF+1-IdxAdj)) {  # has an intercept or not
+      # DFs are acquired from the last solvable voxel 
+      #     statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
+      #        " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
+           statsym <- c(statsym, list(list(sb=i-2+IdxAdj, 
+                   typ="fift", par=c( anova(fm)$numDF[i], anova(fm)$denDF[i]))))
+           
+   }  # from 0 to NoF-1
+   
+   if(lop$num_glt > 0) for (n in 1:lop$num_glt) #statpar <- paste(statpar, " -substatpar ", lop$nF+2*n-1, " fizt ")
+      statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fizt", par=NULL)))
+      #statpar <- paste(statpar, " -substatpar ", lop$nF+2*n-1, " fitt ",gltDF[n])
+   
+   #if(!is.null(lop$QV)) if(nCovVal>0) for (n in 1:nCovVal) 
+   #   statpar <- paste(statpar, " -substatpar ", nF+2*lop$num_glt+2*n-1, " fitt ", summary(fm)$tTable[lop$Fseq[n],"DF"])
+   bb <- as.numeric(strsplit(as.character(ModelForm), "\\+", fixed=F)[[3]][1])
+   
+   if(!is.na(bb)) if(bb==0 | bb == -1) for (n in 1:dim(summary(fm)$tTable)[1])  # basis functions
+      statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fitt", par=summary(fm)$tTable[n,"DF"])))
+      #statpar <- paste(statpar, " -substatpar ", nF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
+   
+   if(lop$num_glf > 0) for (n in 1:lop$num_glf) #statpar <- paste(statpar, " -substatpar ", lop$nF+2*n-1, " fizt ")
+      statsym <- c(statsym, list(list(sb=lop$NoBrick-lop$num_glf+n-1, typ="fizt", par=NULL)))
+} # if(lop$ICC)
 
 #statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(),
