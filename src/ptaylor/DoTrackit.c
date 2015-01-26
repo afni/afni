@@ -685,9 +685,15 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 	int sum_pairs=0;
 	FILE *fout;
    int idx3;
+   int OUT_FLOAT_MAP = 0;
    //char str1[128]={""}, str2[128]={""};
    //char *str_lab1=NULL, *str_lab2=NULL;
 
+
+   if( POST_IT || ( DUMP_TYPE==4) )
+      OUT_FLOAT_MAP = 1;
+   
+   
 	N_totpair = (int *)calloc(N_nets, sizeof(int)); 
    //   str_lab1 = (char *)calloc(100, sizeof(char));
    //str_lab2 = (char *)calloc(100, sizeof(char));
@@ -785,7 +791,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 		
 						// first array for all tracks, 2nd for paired ones.
 						// still just need one set of matrices output
-                  if(POST_IT) {
+                  if(OUT_FLOAT_MAP) {
                     // will be single brik output
                     temp_arr_FL = (float *)calloc(Nvox, sizeof(float));
                     if(( temp_arr_FL== NULL)) {
@@ -824,7 +830,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                               idx3 = MatrInd_to_FlatUHT(i,j,NROI[hh]);
 										if(NETROI[INDEX2[ii][jj][kk]][hh][idx3]>0) {
                                 // store locations
-                                if(POST_IT)
+                                if(OUT_FLOAT_MAP)
                                   temp_arr_FL[idx] = (float) 
                                     NETROI[INDEX2[ii][jj][kk]][hh][idx3];
                                 else
@@ -844,7 +850,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
                            "idx2 %d != %d paramgrid.\n",
                            hh,i,j,idx2,(int) Param_grid[hh][idx3][0]);
                   
-                  if(POST_IT){
+                  if(OUT_FLOAT_MAP){
                     EDIT_substitute_brick(networkMAPS, 0, MRI_float, 
                                           temp_arr_FL);
                     temp_arr_FL=NULL; // to not get into trouble...
@@ -874,7 +880,7 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 											 ADN_brick_label_one , "ROI_pair",
 											 ADN_none ) ;
 						
-						// output AFNI if D_T=2 or 3
+						// output AFNI if D_T=2 or 3 -> or now 4
 						if(DUMP_TYPE>1) {
 							THD_load_statistics(networkMAPS);
 							if( !THD_ok_overwrite() && 
@@ -886,14 +892,14 @@ int WriteIndivProbFiles(int N_nets, int Ndata, int Nvox, int **Prob_grid,
 						}
 
 						DSET_delete(networkMAPS); 
-                  if(POST_IT)
+                  if(OUT_FLOAT_MAP)
                     free(temp_arr_FL);
                   else
                     free(temp_arr_BY);
                   
-						// THEN THE DUMP FILE
+						// THEN THE DUMP TEXT FILE
 						// if D_T = 1 or 3
-						if( DUMP_TYPE % 2) {
+						if( (DUMP_TYPE==1) || (DUMP_TYPE==3) ) {
 							if( (fout = fopen(prefix_dump[hh][count], "w")) == NULL) {
 								fprintf(stderr, "Error opening file %s.",
 										  prefix_dump[hh][count]);
