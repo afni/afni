@@ -232,7 +232,7 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
    char cview[10];
    int iview;
    SUMA_PARSED_NAME *Fname=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
