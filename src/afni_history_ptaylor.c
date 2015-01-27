@@ -66,6 +66,10 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Jan , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_MODIFY,
+   "Include main effects of interaction vars in post hoc tests.",
+   "Hadn't been testing these previously.\n"
+},
 
 { 26, Jan , 2015 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
    "Can dump output *maps*, not just masks, of each connection.",
