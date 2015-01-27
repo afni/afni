@@ -398,6 +398,77 @@ def Pars_CatVars_in_Listfile( file_listvars,
 ###------------------------------------------------------------------
 ###------------------------------------------------------------------
 
+def VarLists_to_Strings_for_MVM(var_list, 
+                                var_isinterac, 
+                                var_iscateg, 
+                                CAT_PAIR_COMP ):
+    '''Get counts and things from varlists, interaction and category
+    info.'''
+
+    Nvar = len(var_list)
+
+    # calc number of GLTs/ROI (= Nvartout) and number of Quant var
+    Nvartout = Nvar
+    var_list_quant = []
+    varQ_str = ''
+    var_list_inter = []
+    varI_str = ''
+    extra_qVar = '' # Jan,2015 -- added to pick up qvar in interac term
+    varC_str = ''
+    for i in range(Nvar):
+        x = var_list[i]
+        
+        if not(var_isinterac[i][0][0]):
+            if var_list.__contains__(x):
+                if not( var_iscateg[i] ):
+                    var_list_quant.append(x)
+                    varQ_str+= "  %s" % x
+                else:
+                    nc = len(var_iscateg[i])
+                    Nvartout+= nc-1              # individual ttests
+                    if CAT_PAIR_COMP :
+                        Nvartout+= (nc*(nc-1))/2 # pairwise combinatorial
+        else:
+            varI_str = "  "
+            ncombo = 1
+            for j in range( 2 ):
+                varI_str+= var_isinterac[i][1][j]
+                if var_isinterac[i][2][j] :
+                    # binomial-type comparisons for each
+                    nc = len(var_isinterac[i][2][j])
+                    ncombo*= (nc*(nc-1))/2
+                    varI_str+= "("
+                    for ii in var_isinterac[i][2][j]:
+                        varI_str+= " %s" % ii
+                    varI_str+= " )"
+                else: # Jan,2015
+                    extra_qVar = "%s" % var_isinterac[i][1][j]
+                if j == 0 :
+                    varI_str+= " %s " % var_isinterac[i][0][0]
+            Nvartout+= ncombo-1
+                    
+    for i in range(Nvar):
+        if var_iscateg[i]:
+            varC_str+= "  %s(" % var_list[i]
+            for y in var_iscateg[i]:
+                varC_str+= " %s" % y
+            varC_str+= " )"
+
+
+
+
+    return Nvartout, var_list_quant, varQ_str, var_list_inter, \
+        varI_str, varC_str, extra_qVar
+
+
+
+
+
+
+
+
+###------------------------------------------------------------------
+
 def CheckFor_Cats_and_Inters( tab_data,
                               tab_colvars,
                               tab_coltypes,

@@ -29,7 +29,7 @@ def main(argv):
     help_line = '''\
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-     ++ Sept, 2014 (ver 1.1).  Written by PA Taylor.
+     ++ Jan, 2015 (ver 1.2).  Written by PA Taylor.
      ++ Read in a data table file (likely formatted using the program
         fat_mvm_prep.py) and build an executable command for 3dMVM 
         (written by G Chen) with a user-specified variable model. This
@@ -52,11 +52,15 @@ def main(argv):
            data table, which are to be statistically modeled.  The list
            may be provided either directly on the commandline or in a 
            separate text file. 
-           Variable entries may now include interactions (using '*' or ':') 
+           Variable entries may now include interactions (using '*') 
            among either 
            a) two categorical variables, or
            b) one categorical and one quantitative variable.
-           
+           Running with the '*' symbol includes both the main effects and
+           the interactions effects of the variables in the test.  That is,
+           A*B = A + B + A:B.
+           Post hoc tests will now be run for both the main effects and the
+           interactions, as well.
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -151,8 +155,8 @@ def main(argv):
                                 second of two categorical variables, then put 
                                 a space-separated comma before the list).
                   ---->     ... using either variable entry format, an 
-                                interaction can be specified using either 
-                                ':' or '*', where A*B = A+B+A:B.
+                                interaction can be specified using '*', where 
+                                A*B = A + B + A:B.
 
       -P, --Pars='T S R ...'   :one method for supplying a list of parameters
                                 (that is, the names of matrices) to run in 
@@ -358,7 +362,7 @@ if __name__=="__main__":
         print "** Error! Cannot read in model values."
         sys.exit(4)
 
-    Nvar = len( var_list )
+    ##### don't do this here, because of interactions! Nvar = len( var_list )
 
     ## For ROI lists
     if userlist_roi:
@@ -410,69 +414,51 @@ if __name__=="__main__":
                 var_iscateg, 
                 var_isinterac, 
                 Ninter )
-            #!!!!!!!!! working here.
-
-    
-    # var_iscateg = GR.CheckVar_and_FindCategVar(tab_data,         \
-    #                                            tab_colvars,  \
-    #                                            tab_coltypes, \
-    #                                            var_list)
 
     #--------------------------------------------------
 
     str_sep = '  '
     roi_str = str_sep.join(roi_list)
     par_str = str_sep.join(par_list)
+    
+    Nvartout, var_list_quant, varQ_str, var_list_inter, \
+        varI_str, varC_str, extra_qVar = GR.VarLists_to_Strings_for_MVM( var_list, 
+                                                                         var_isinterac, 
+                                                                         var_iscateg, 
+                                                                         CAT_PAIR_COMP )
 
-    # calc number of GLTs/ROI (= Nvartout) and number of Quant var
-    Nvartout = Nvar
-    var_list_quant = []
-    varQ_str = ''
-    var_list_inter = []
-    varI_str = ''
-    extra_qVar = '' # Jan,2015 -- added to pick up qvar in interac term
-    for i in range(Nvar):
-        x = var_list[i]
-        
-        if not(var_isinterac[i][0][0]):
-            if var_list.__contains__(x):
-                if not( var_iscateg[i] ):
-                    var_list_quant.append(x)
-                    varQ_str+= "  %s" % x
-                else:
-                    nc = len(var_iscateg[i])
-                    Nvartout+= nc-1              # individual ttests
-                    if CAT_PAIR_COMP :
-                        Nvartout+= (nc*(nc-1))/2 # pairwise combinatorial
-        else:
-            varI_str = "  "
-            ncombo = 1
-            for j in range( 2 ):
-                varI_str+= var_isinterac[i][1][j]
-                if var_isinterac[i][2][j] :
-                    # binomial-type comparisons for each
-                    nc = len(var_isinterac[i][2][j])
-                    ncombo*= (nc*(nc-1))/2
-                    varI_str+= "("
-                    for ii in var_isinterac[i][2][j]:
-                        varI_str+= " %s" % ii
-                    varI_str+= " )"
-                else: # Jan,2015
-                    extra_qVar = "%s" % var_isinterac[i][1][j]
-                if j == 0 :
-                    varI_str+= " %s " % var_isinterac[i][0][0]
-            Nvartout+= ncombo-1
-
-                    
-    varC_str = ''
-    for i in range(Nvar):
-        if var_iscateg[i]:
-            varC_str+= "  %s(" % var_list[i]
-            for y in var_iscateg[i]:
-                varC_str+= " %s" % y
-            varC_str+= " )"
+    var_list_INPUT = list(var_list)
 
 
+    # Jan,2015: for including main effects of interaction terms in post-hoc
+    var_list_EX = []
+    if Ninter :
+        for i in range(len(var_isinterac)):
+            if var_isinterac[i][0][0] :
+                var_list_EX = var_list[2].split('*')
+                var_iscateg_EX, var_isinterac_EX, Ninter_EX = GR.CheckFor_Cats_and_Inters( tab_data,
+                                                                                           tab_colvars,
+                                                                                           tab_coltypes,
+                                                                                           var_list_EX )
+                
+                Nvartout_EX, var_list_quant_EX, \
+                    varQ_str_EX, var_list_inter_EX, \
+                    varI_str_EX, varC_str_EX, \
+                    extra_qVar_EX = GR.VarLists_to_Strings_for_MVM( var_list_EX, 
+                                                                    var_isinterac_EX, 
+                                                                    var_iscateg_EX, 
+                                                                    CAT_PAIR_COMP )
+                # add onto/extend everything that needs to be so, for
+                # the posthoc tests and qVars list
+                Nvartout+= Nvartout_EX
+                var_list.extend(var_list_EX)
+                var_list_quant.extend(var_list_quant_EX)
+                var_list_inter.extend(var_list_inter_EX)
+                var_iscateg.extend(var_iscateg_EX)
+                var_isinterac.extend(var_isinterac_EX)
+
+    Nvar = len(var_list)
+    
     print "   List of ROIs is:\n   \t  %s." % roi_str
     if USER_LIST:
         print "   List of (selected) matrix parameters is:\n   \t  %s." % \
@@ -487,11 +473,11 @@ if __name__=="__main__":
     #--------------------------------------------------
 
     bvar_sep = '+'
-    bvar_entry = bvar_sep.join(var_list)
+    bvar_entry = bvar_sep.join(var_list_INPUT) # just original user model
     qvar_sep = ','
-    qvar_entry = qvar_sep.join(var_list_quant)
-    if extra_qVar: # Jan,2015
-        qvar_entry+=',%s' % extra_qVar
+    qvar_entry = qvar_sep.join(var_list_quant) # needs to include 'extras'
+    #if extra_qVar: # Jan,2015                  # from within interac, if nec
+    #    qvar_entry+=',%s' % extra_qVar
 
     psub_entry = qvar_sep.join(par_list)
 
