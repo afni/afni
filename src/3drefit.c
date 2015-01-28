@@ -320,6 +320,11 @@ void Syntax(int detail)
     "\n" ) ;
    
    printf(
+    "  -relabel_all_str 'lab0 lab1 ... lab_p': Just like -relabel_all\n"
+    "                   but with labels all present in one string\n"
+    "\n" ) ;
+   
+   printf(
     "  -sublabel_prefix PP: Prefix each sub-brick's label with PP\n"
     "  -sublabel_suffix SS: Suffix each sub-brick's label with SS\n" 
     "\n" ) ;
@@ -803,20 +808,26 @@ int main( int argc , char *argv[] )
 
       /*----- -relabel_all option -----*/
 
-      if( strcmp(argv[iarg],"-relabel_all") == 0 ){   /* 18 Apr 2011 */
-        char *str ;
-        if( ++iarg >= argc ) SynErr("Need argument after -relabel_all") ;
-        str = AFNI_suck_file(argv[iarg]) ;
-        if( str == NULL || *str == '\0' )
-          SynErr("Can't read file after -relabel_all") ;
-        sar_relab = NI_decode_string_list( str , "`" ) ; free(str) ;
+      if( strcmp(argv[iarg],"-relabel_all") == 0 ||
+          strcmp(argv[iarg],"-relabel_all_str") == 0){   /* 18 Apr 2011 */
+        if( ++iarg >= argc ) SynErr("Need argument after -relabel_all*") ;
+        if (strcmp(argv[iarg],"-relabel_all") == 0 ) {
+           char *str ;
+           str = AFNI_suck_file(argv[iarg]) ;
+           if( str == NULL || *str == '\0' )
+             SynErr("Can't read file after -relabel_all") ;
+           sar_relab = NI_decode_string_list( str , "`" ) ; free(str) ;
+        } else {
+           sar_relab = NI_decode_string_list( argv[iarg], "`"  );
+        }
         if( sar_relab == NULL || sar_relab->num < 1 )
-          SynErr("Can't decode file after -relabel_all") ;
-        INFO_message("-relabel_all %s contains %d label%s" ,
-                     argv[iarg] , sar_relab->num , (sar_relab->num==1) ? "\0" : "s" ) ;
+          SynErr("Can't decode file or string after -relabel_all*") ;
+        INFO_message("-relabel_all* %s contains %d label%s" ,
+              argv[iarg] , sar_relab->num , (sar_relab->num==1) ? "\0" : "s" ) ;
         new_stuff++ ; iarg++ ; continue ;
       }
 
+      
       /*----- -sublabel_prefix -----*/
       
       if( strcmp(argv[iarg],"-sublabel_prefix") == 0 ){   /* 15 Aug 2012 */
