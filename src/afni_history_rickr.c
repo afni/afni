@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28,  Jan, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "in mri_fdrize, warn user if p->q is skipped because of < 20 voxels",
+   NULL
+ } ,
+
+ { 28,  Jan, 2015, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "take SurfMesh out of SUMA_PROGS; use LC_COLLATE in sort for prog_list",
+   "done to keep GTS progs out of macosx_10.6_Intel_64.no.fink build"
+ } ,
+
  { 20,  Jan, 2015, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
    "added option -show_trs_to_zero, to compute length of iresp",
    "This is to computer the number of TRs until a curve bottoms out at 0."
