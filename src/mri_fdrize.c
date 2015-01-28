@@ -323,6 +323,11 @@ STATUS("computing mdf") ;
       if( qq[0] <= 0.0f ) STATUS("bad qq[0] ==> no mdf") ;
     }
 
+  } else {
+      /* warn user of impending doom   28 Jan, 2015 [rickr] */
+      WARNING_message("mri_fdrize: will not process only %d values (min=20)",
+                      nq);
+      RETURN(0);
   } /* end of producing q-values */
 
 finished:
