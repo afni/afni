@@ -48,11 +48,11 @@ LOCALSTATS:
          echo "Running 3dLocalstat $neigh on $involume...`date`"
          3dLocalstat   $mopt \
                        -nbhd "RECT($neigh,$neigh,$neigh)" \
-                       $sopt \
+                       $sopt -label_ext ${oneigh}_mm \
                        -datum short -reduce_max_vox $max_vox \
                        -prefix $odir/${inpref}.${olabel}.${oneigh} \
                        "${involume}"
-         3drefit $sublopt $odir/${inpref}.${olabel}.${oneigh}+orig   
+         #3drefit $sublopt $odir/${inpref}.${olabel}.${oneigh}+orig   
       else
          echo "$odir/${inpref}.${olabel}.${oneigh} exists already"
       endif
