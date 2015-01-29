@@ -319,3 +319,46 @@ void THD_update_one_bstat( THD_3dim_dataset *dset , int iv )
 
    return ;
 }
+
+/*
+   Multiply values in dset by fac
+   Return number of sub-bricks for which scaling could not be done.
+*/
+int THD_dset_scale(THD_3dim_dataset *aset, float fac) 
+{
+   int ii, jj, err=0;
+   float fac0 = 1.0, *fv=NULL;
+   
+   ENTRY("THD_dset_scale");
+   
+   for (ii=0; ii<DSET_NVALS(aset); ++ii) {
+      switch (DSET_BRICK_TYPE(aset,ii)) {
+         case MRI_short:
+         case MRI_byte:
+            fac0 = DSET_BRICK_FACTOR(aset,ii);
+            if (fac0 == 0.0) fac0 = 1.0;
+            EDIT_BRICK_FACTOR( aset,ii,fac0*fac ) ;
+            break;
+         case MRI_float:
+            fv = (float *)DSET_ARRAY(aset,ii);
+            for (jj=0; jj<DSET_NVOX(aset); ++jj) {
+               fv[jj] *= fac;
+            }
+            break;
+         default:
+            if (!err) {
+               ERROR_message( "Function THD_dset_scale not ready for type %d\n"
+                           "Sub-bricks of such types are untouched.\n", 
+                           DSET_BRICK_TYPE(aset,ii));
+            }
+            ++err;
+      }
+   }
+   DSET_KILL_STATS(aset); THD_load_statistics(aset);
+   if (err > 1) {
+      ERROR_message( "A total of %d sub-bricks were not scaled", err);
+   }
+   
+   RETURN(err);
+}
+
