@@ -266,7 +266,7 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
    } else {
       cview[0]='\0';
    }
-   prfx = SUMA_copy_string(Fname->Prefix);
+   prfx = SUMA_append_replace_string(Fname->Path,Fname->Prefix,"",0);
    
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Prefix %s\n", FuncName, prfx);
    
@@ -287,6 +287,7 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
    if (exists) {
       { /* look for any */
          char *head=NULL, c2view[10];
+         SUMA_PARSED_NAME *Fname2=NULL;
          iview = 0; *exists = 0;
          while (iview < 3) {
             if (iview == 0) head = 
@@ -295,9 +296,11 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
                      SUMA_ModifyName(Fname->HeadName, "view","+acpc", NULL);
             else if (iview == 2) head = 
                      SUMA_ModifyName(Fname->HeadName, "view","+tlrc", NULL);
+            Fname2 = SUMA_ParseFname_eng (head, NULL,1);
             SUMA_LH("Checking existence of %s\n", head);
-            if (SUMA_filexists(head)) { *exists += (int)pow(2,iview); }
-            SUMA_free(head); head = NULL; 
+            if (Fname2->OnDisk) { *exists += (int)pow(2,iview); }
+            SUMA_free(head); head = NULL;
+            SUMA_Free_Parsed_Name(Fname2); Fname2 = NULL; 
             ++iview;
          }
       }
