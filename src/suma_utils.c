@@ -1636,8 +1636,9 @@ SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn,
       char vval[6]={""};
       if (!val) SUMA_RETURN(NULL);
       if (val[0] != '+') sprintf(vval,"+%c%c%c%c",val[0],val[1],val[2],val[3]);
-      else sprintf(vval,"%c%c%c%c",val[0],val[1],val[2],val[3]);
-      if (pn->StorageMode ==  STORAGE_BY_BRICK) {
+      else sprintf(vval,"%c%c%c%c%c",val[0],val[1],val[2],val[3], val[4]);
+      if (pn->StorageMode ==  STORAGE_BY_BRICK ||
+          pn->StorageMode ==  STORAGE_UNDEFINED) {
          fullname=NULL;
          if(strstr(pn->NameAsParsed,"/")) 
             fullname = SUMA_append_replace_string(fullname, 
