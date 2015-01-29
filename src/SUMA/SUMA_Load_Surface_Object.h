@@ -1,6 +1,9 @@
 #ifndef SUMA__INCLUDED
 #define SUMA__INCLUDED
 
+#define SUMA_IS_LOADABLE_SO_NAME(name) (name && (SUMA_filexists(name) || \
+                   SUMA_is_predefined_SO_name(name, NULL, NULL, NULL, NULL)))
+
 int SUMA_is_predefined_SO_name(char *name, int *par,
                                char **pdspec, char **pdsv, char **pdsname);
 SUMA_Boolean SUMA_AllocSpecFields (SUMA_SurfSpecFile *Spec);

@@ -5479,6 +5479,8 @@ char * SUMA_coord_file( SUMA_SurfSpecFile * spec, int index )
           3 if template spec, par is useless
           4 if template surface, par is useless
           0 not a prededined surface name
+   
+   \sa SUMA_IS_LOADABLE_SO_NAME
 */
 int SUMA_is_predefined_SO_name(char *name, int *upar,
                                char **pdspec, char **pdsv, char **pdsname) 
