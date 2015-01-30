@@ -2377,6 +2377,191 @@ int SUMA_ray_k(int n1D, int ni, int nij, int nk, float *av, byte *ba,
    SUMA_RETURN(hitcode);
 }
 
+/*!   
+   Trace rays from voxel n1D in +i and -i directions.
+   Count the number of non-zero hits on either side
+   Starting voxel must be zero
+   if (side == -1) zero out side with lesser number of non-zeros
+   if (side == 0) zero out IposBound side
+   if (side == 1) zero out InegBound side
+   if (side == 2) zero out both sides
+*/  
+int SUMA_ray_unplug_i(int n1D, int ni, int nij, 
+                      float *av, byte *ba, int side)
+{
+   static char FuncName[]={"SUMA_ray_unplug_i"};
+   int IJK[3], ii, t1D, nzpos=0,nzneg=0, nrm=0;
+   
+   SUMA_ENTRY;
+      
+   Vox1D2Vox3D(n1D, ni, nij, IJK) 
+   
+   if (side != 1) {
+      /* shoot ray in +ve direction */
+      ii = IJK[0]; t1D = n1D;
+      if (ii < ni && !ba[t1D]) {
+         do {
+            if (ba[t1D]) ++nzpos;
+            ++ii; ++t1D;
+         } while (ii < ni);  
+      }
+   }
+   
+   if (side != 0) {
+      /* shoot ray in -ve direction */
+      ii = IJK[0]; t1D = n1D;
+      if (-1 < ii && !ba[t1D]) {
+         do {
+            if (ba[t1D]) ++nzneg;
+            --ii; --t1D;
+         } while (-1 < ii);  
+      }
+   }
+   
+   /* unplug */
+   if (side == -1) {
+      if (nzpos >= nzneg) side = 1;
+      else side = 0;
+   }
+   if ((side == 0 || side == 2) && nzpos) {
+      ii = IJK[0]; t1D = n1D;
+      while (ii < ni) {
+         if (ba[t1D]) { av[t1D] = 0.0f; ++nrm; }
+         ++ii; ++t1D;
+      } 
+   }
+   if ((side == 1 || side == 2) && nzneg) {
+      ii = IJK[0]; t1D = n1D;
+      while (-1 < ii) {
+         if (ba[t1D]) { av[t1D] = 0.0f; ++nrm; }
+         --ii; --t1D;
+      }
+   }
+   
+   SUMA_RETURN(nrm);
+}
+
+/*
+   See SUMA_ray_unplug_i
+*/
+int SUMA_ray_unplug_j(int n1D, int ni, int nij, int nj, 
+                      float *av, byte *ba, int side)
+{
+   static char FuncName[]={"SUMA_ray_unplug_j"};
+   int IJK[3], jj, t1D, nzpos=0,nzneg=0,nrm=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+      
+   Vox1D2Vox3D(n1D, ni, nij, IJK) 
+   SUMA_LH("Vox %d [%d %d %d], side %d",
+           n1D, IJK[0], IJK[1], IJK[2], side);
+   
+   if (side != 1) {
+      /* shoot ray in +ve direction */
+      jj = IJK[1]; t1D = n1D;
+      if (jj < nj && !ba[t1D]) {
+         do {
+            if (ba[t1D]) ++nzpos;
+            ++jj; t1D = IJK[0]+jj*ni+IJK[2]*nij;
+         } while (jj < nj);  
+      }
+   }
+   
+   if (side != 0) {
+      /* shoot ray in -ve direction */
+      jj = IJK[1]; t1D = n1D;
+      if (-1 < jj && !ba[t1D]) {
+         do {
+            if (ba[t1D]) ++nzneg;
+            --jj; t1D = IJK[0]+jj*ni+IJK[2]*nij;
+         } while (-1 < jj);  
+      }
+   }
+   
+   /* unplug */
+   if (side == -1) {
+      if (nzpos >= nzneg) side = 1;
+      else side = 0;
+   }
+   SUMA_LH("nzpos=%d, nzneg=%d, side now %d", 
+            nzpos, nzneg, side);
+            
+   if ((side == 0 || side == 2) && nzpos) {
+      jj = IJK[1]; t1D = n1D;
+      while (jj < nj) {
+         if (ba[t1D]) { av[t1D] = 0.0f; ++nrm; }
+         ++jj; t1D = IJK[0]+jj*ni+IJK[2]*nij;
+      } 
+   }
+   if ((side == 1 || side == 2) && nzneg) {
+      jj = IJK[1]; t1D = n1D;
+      while (-1 < jj) {
+         if (ba[t1D]) { av[t1D] = 0.0f; ++nrm; }
+         --jj; t1D = IJK[0]+jj*ni+IJK[2]*nij;
+      }
+   }
+   
+   SUMA_RETURN(nrm);
+}
+/*
+   See SUMA_ray_unplug_i
+*/
+int SUMA_ray_unplug_k(int n1D, int ni, int nij, int nk, 
+                      float *av, byte *ba, int side)
+{
+   static char FuncName[]={"SUMA_ray_unplug_k"};
+   int IJK[3], kk, t1D, nzpos=0, nzneg=0, nrm=0;
+   
+   SUMA_ENTRY;
+      
+   Vox1D2Vox3D(n1D, ni, nij, IJK) 
+   
+   if (side != 1) {
+      /* shoot ray in +ve direction */
+      kk = IJK[2]; t1D = n1D;
+      if (kk < nk && !ba[t1D]) {
+         do {
+            if (ba[t1D]) ++nzpos;
+            ++kk; t1D = IJK[0]+IJK[1]*ni+kk*nij;
+         } while (kk < nk);  
+      }
+   }
+   
+   if (side != 0) {
+      /* shoot ray in -ve direction */
+      kk = IJK[2]; t1D = n1D;
+      if (-1 < kk && !ba[t1D]) {
+         do {
+            if (ba[t1D]) ++nzneg;
+            --kk; t1D = IJK[0]+IJK[1]*ni+kk*nij;
+         } while (-1 < kk);  
+      }
+   }
+   
+   /* unplug */
+   if (side == -1) {
+      if (nzpos >= nzneg) side = 1;
+      else side = 0;
+   }
+   if ((side == 0 || side == 2) && nzpos) {
+      kk = IJK[2]; t1D = n1D;
+      while (kk < nk) {
+         if (ba[t1D]) { av[t1D] = 0.0f; ++nrm; }
+         ++kk; t1D = IJK[0]+IJK[1]*ni+kk*nij;
+      } 
+   }
+   if ((side == 1 || side == 2) && nzneg) {
+      kk = IJK[2]; t1D = n1D;
+      while (-1 < kk) {
+         if (ba[t1D]) { av[t1D] = 0.0f; ++nrm; }
+         --kk; t1D = IJK[0]+IJK[1]*ni+kk*nij;
+      }
+   }
+   
+   SUMA_RETURN(nrm);
+}
+
 /*! Find a vole in a volume. A hole voxel is a voxel
     with 0 value that is surrounded in at least one
     dimension by non zero voxels. */
@@ -2640,22 +2825,42 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill,
 
 /*!   
    A brutish filler function, filling interpolation is crude
+   
+   imin is the volume to be filled
+   minhits is the minimum number of non zero hits along outward going
+           cardinal rays from the zero voxel.
+           1 is the most liberal == sandwiched along one direction
+           2 is the middle of the road == sandwiched between slices
+           3 is the most conservative == sandwiched from all sides
+           -1 == 1
+   Nitermax: 1 --> Go through once, don't verify that nothing else can
+             still be filled. You can't tell that nothing else can
+             be filled until you iterate again and fail to fill anything.
+             -1 --> 10
+   unholize: Edit the volume after initial convergence so that no holes
+             with nhits < minhits remain. Not a very useful thing to do 
+             unless made iterative also. Keeping it here for the record
+             but best not use it.
 */
                     
-int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits) 
+int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits, 
+                                 int Nitermax, int unholize) 
 {
    static char FuncName[]={"SUMA_mri_volume_infill_solid"};
-   int Ni, Nj, Nk, Nij, Nijk, v;
+   int Ni, Nj, Nk, Nij, Nijk, v, niter=0, N_filled=0;
    int hitcode, hitsum, da[2];
-   byte *ba=NULL;
+   byte *ba=NULL, *lesserhole = NULL;
    float *fa=NULL, *fan=NULL, ta[2];
    float  sI, sK, sJ, nhits=0.0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
-   if (minhits <= 0) minhits = 1;
    
+   SUMA_LH("minhits = %d, Nitermax = %d, Unholize = %d\n", 
+           minhits, Nitermax, unholize);
+   
+   if (minhits <= 0) minhits = 1;
+   if (Nitermax < 0) Nitermax = 10;
    Ni = imin->nx; Nj = imin->ny; Nk = imin->nz; 
    Nij = Ni*Nj; Nijk = Nij*Nk;
    
@@ -2667,64 +2872,106 @@ int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits)
    for (v=0; v<Nijk; ++v) {
       if (SUMA_ABS(fa[v]-0.0f)>0.00001) ba[v] = 1; 
    }
+   if (unholize) lesserhole = (byte *)SUMA_malloc(Nijk*sizeof(byte));
    
+   do {
+      SUMA_LH("iteration %d",niter);
+      if (unholize) memset(lesserhole, 0, Nijk*sizeof(byte));
+      for (v=0; v<Nijk; ++v) {
+         if (ba[v]) continue; /* not a hole */
+         hitcode = 0; nhits=0.0;
+         hitsum=0; sI=0.0; sJ=0.0; sK=0.0;
+         if ( (hitcode = SUMA_ray_i(v, Ni, Nij, fa, ba, ta, da)) == 
+               SUMA_I_HOLE) {
+            hitsum += hitcode;
+            sI = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]); 
+            ++nhits;
+            SUMA_LH("Voxel %d I hole", v);
+         }
+         if ( (hitcode = SUMA_ray_j(v, Ni, Nij, Nj, fa, ba, ta, da)) == 
+               SUMA_J_HOLE) {
+            hitsum += hitcode;
+            sJ = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]);
+            ++nhits;
+            SUMA_LH("Voxel %d J hole", v);
+         }
+         if ( (hitcode = SUMA_ray_k(v, Ni, Nij, Nk, fa, ba, ta, da)) == 
+               SUMA_K_HOLE) {
+            hitsum += hitcode;
+            sK = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]);
+            SUMA_LH("Voxel %d K hole", v);
+            ++nhits;
+         }
+         if (nhits >= minhits) {
+            fan[v] = (sI + sK + sJ) / nhits;
+         } else if (unholize && nhits > 0.0) {
+            lesserhole[v] = hitsum;
+         }
+      }
 
-   for (v=0; v<Nijk; ++v) {
-      if (ba[v]) continue; /* not a hole */
-      hitcode = 0; nhits=0.0;
-      hitsum=0; sI=0.0; sJ=0.0; sK=0.0;
-      if ( (hitcode = SUMA_ray_i(v, Ni, Nij, fa, ba, ta, da)) == 
-            SUMA_I_HOLE) {
-         hitsum += hitcode;
-         sI = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]); 
-         ++nhits;
-      }
-      if ( (hitcode = SUMA_ray_j(v, Ni, Nij, Nj, fa, ba, ta, da)) == 
-            SUMA_J_HOLE) {
-         hitsum += hitcode;
-         sJ = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]);
-         ++nhits;
-      }
-      if ( (hitcode = SUMA_ray_k(v, Ni, Nij, Nk, fa, ba, ta, da)) == 
-            SUMA_K_HOLE) {
-         hitsum += hitcode;
-         sK = (ta[0]*da[1]+ta[1]*da[0])/(da[1]+da[0]);
-         ++nhits;
-      }
-      if (nhits >= minhits) {
-         fan[v] = (sI + sK + sJ) / nhits;
-         /* SUMA_LHv("At vox %d: Got me %d hits of code %d and val %f\n",
-                  v, (int)nhits, hitsum, fan[v]); */
-      }
+      for (N_filled=0, v=0; v<Nijk; ++v) {
+         if (!ba[v]) {/* Was hole, fill it? */
+            if (fan[v] != 0.0f) { 
+               fa[v] = fan[v]; 
+               ba[v] = 1;
+               ++N_filled;
+            }
+         }
+      }   
+
+      ++niter;     
+   } while (N_filled && niter < Nitermax);
+   
+   if (N_filled && niter == Nitermax) {
+      SUMA_S_Note("Leaving after %d iterations without ensuring "
+                  "no fillable holes remain",
+                  niter);
    }
    
-   for (v=0; v<Nijk; ++v) {
-      if (!ba[v] && fan[v] != 0.0f) { fa[v] = fan[v]; }
-   }   
+   if (unholize) {
+      SUMA_LH("Unholizing");
+      for (N_filled = 0, v=0; v<Nijk; ++v) {
+         if (lesserhole[v] & SUMA_I_HOLE) {
+            N_filled += SUMA_ray_unplug_i(v, Ni, Nij, fa, ba, -1);  
+            SUMA_LH("Voxel %d I Hole, %d zeroed out", v,N_filled);
+         } else if (lesserhole[v] & SUMA_J_HOLE) {
+            N_filled += SUMA_ray_unplug_j(v, Ni, Nij, Nj, fa, ba, -1);  
+            SUMA_LH("Voxel %d J Hole, %d zeroed out", v,N_filled);
+         } else if (lesserhole[v] & SUMA_K_HOLE) {
+            N_filled += SUMA_ray_unplug_k(v, Ni, Nij, Nk, fa, ba, -1);  
+            SUMA_LH("Voxel %d K Hole, %d zeroed out", v,N_filled);
+         } else if (lesserhole[v]) {
+            SUMA_LH("lesserhole[%d]=%d\n", v, lesserhole[v]);
+         }
+      }
+      SUMA_S_Note("%d hanging voxels removed", N_filled); 
+   }
    
-   SUMA_ifree(ba); SUMA_ifree(fan);     
-   
+   SUMA_ifree(ba); SUMA_ifree(fan); SUMA_ifree(lesserhole);
+
    SUMA_RETURN(1);
 }
 
 int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                       THD_3dim_dataset **filledp,
                       int method, int integ,
-                      int MxIter, int minhits) 
+                      int MxIter, int minhits,
+                      int erode, int dilate, float val) 
 {
    static char FuncName[]={"SUMA_VolumeInFill"};
    float *fa=NULL;
+   int ii=0;
    THD_3dim_dataset *filled = *filledp;   
    MRI_IMAGE *imin=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (minhits > 0 && method != 2) {
-      SUMA_S_Err("minhits is only useful with method = 2.\n");
+   if (minhits > 0 && method != 2 && method != 3 ) {
+      SUMA_S_Err("minhits is only useful with method = 2 or 3.\n");
    }
    
-   if (integ < 0) { /* figure it out */
+   if (integ < 0 && method != 2 && method != 3) { /* figure it out */
       if (is_integral_dset(aset,1)) integ = 1;
       else integ = 0;
    }
@@ -2741,8 +2988,10 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
          SUMA_S_Err("Failed to fill volume");
          SUMA_RETURN(0);
       }
-   } else if (method == 2){ /* solid */
-      if (!SUMA_mri_volume_infill_solid(imin, minhits)) {
+   } else if (method == 2 || method == 3){ /* solid */
+      SUMA_LH("method is %d\n", method);
+      if (!SUMA_mri_volume_infill_solid(imin, minhits, 
+                                        MxIter, method == 3 ? 1:0)) {
          SUMA_S_Err("Failed to fill volume");
          SUMA_RETURN(0);
       }
@@ -2750,6 +2999,37 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
    
    /* put results in dset */   
    fa = MRI_FLOAT_PTR(imin);
+   
+   if (erode || dilate) {
+      byte *b = NULL;
+      int tt;
+      if (!(b = (byte *)SUMA_calloc(DSET_NVOX(aset), sizeof(byte)))) {
+         SUMA_S_Err("Failed to allocate for %d vox!", DSET_NVOX(aset));
+         SUMA_RETURN(0);
+      }
+      for (ii=0; ii<DSET_NVOX(aset); ++ii) if (fa[ii] != 0.0f) b[ii]=1;
+      if (erode) {
+         SUMA_S_Note("Eroding %d", erode);
+         for (tt=0; tt<erode; ++tt) {
+            THD_mask_erode_sym(DSET_NX(aset), DSET_NY(aset), DSET_NZ(aset), 
+                               b, 1);
+         }
+      }
+      if (dilate) {
+         SUMA_S_Note("Dilating %d", dilate);
+         for (tt=0; tt<dilate; ++tt) {
+            THD_mask_dilate(DSET_NX(aset), DSET_NY(aset), DSET_NZ(aset), 
+                               b, 1);
+         }
+      }
+      SUMA_S_Note("Filling with %f", val);
+      for (ii=0; ii<DSET_NVOX(aset); ++ii) 
+         if (!b[ii] && fa[ii] != 0.0f) fa[ii] = 0.0;
+         else if (b[ii] && fa[ii] == 0.0f) fa[ii] = val;
+         
+   
+      SUMA_ifree(b);
+   }
    
    /* Put result in output dset */
    if (!filled) {
@@ -8103,7 +8383,245 @@ SUMA_SurfaceObject *SUMA_ExtractHead_Hull(THD_3dim_dataset *iset,
       SUMA_Free_hist(hh); hh=NULL;
    }
    SUMA_RETURN(SO);
-}  
+}
+ 
+/*!
+   Shrink hull of skull so that the surface lies
+   on bright voxels that at least exceed the threshold. 
+*/   
+SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO, 
+                             THD_3dim_dataset *iset, float thr,
+                             int smooth_final,
+                             SUMA_COMM_STRUCT *cs) 
+{
+   static char FuncName[]={"SUMA_ShrinkSkullHull2Mask"};
+   char sbuf[256]={""};
+   byte *mask=NULL;
+   int   in=0, vxi_bot[30], vxi_top[30], iter, N_movers, 
+         ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um,
+         itermax1 = 50, itermax2 = 10;
+   float *fvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
+   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[3], nodeval,
+         area=0.0, larea=0.0, ftr=0.0, darea=0.0;
+   float  *fnz=NULL, *alt=NULL;
+   float maxtop, maxbot;
+   int   nmaxtop, nmaxbot;
+   float dirZ[3], *dots=NULL, U3[3], Un;
+   THD_3dim_dataset *inset=NULL;
+   SUMA_Boolean stop = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (thr == 0.0f) thr = 1.0;
+   
+   SUMA_LHv("Begin shrinkage, thr=%f, ndbg = %d\n", thr, ndbg);
+   
+   travstep = SUMA_ABS(DSET_DX(iset));
+   if (travstep > SUMA_ABS(DSET_DY(iset))) travstep = SUMA_ABS(DSET_DY(iset));
+   if (travstep > SUMA_ABS(DSET_DZ(iset))) travstep = SUMA_ABS(DSET_DZ(iset));
+   if (!(mask = (byte *)SUMA_malloc(sizeof(byte)*SO->N_Node))) {
+      SUMA_S_Crit("Failed to allocate");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* For a clean, bust like button, anchor bottom nodes */
+   /* For now, the decision is solely based on the normals
+      being parallel to the Z direction.
+      Perhaps I should add a depth criterion, but that
+      is not necessary it seems */
+      dirZ[0]=0.0; dirZ[1]=0.0; dirZ[2]=1.0;
+      dots = NULL;
+      if (!(SUMA_DotNormals(SO, dirZ, &dots))) {
+         SUMA_S_Err("Failed to get dots");
+      } else {
+         if (LocalHead) SUMA_WRITE_ARRAY_1D(dots, SO->N_Node, 1, "DOTS.1D.dset");
+      }
+   
+   
+   stop = NOPE;
+   N_movers = 0; iter=0;
+   while (!stop) {
+      N_movers = 0;
+      memset(mask, 1, sizeof(byte)*SO->N_Node);
+      /* Keep bottom nodes fixed. (consider recomputing dots?)*/
+      if (SO->normdir < 0) { 
+         for (in=0; in<SO->N_Node; ++in) {
+            if (dots[in]>0.8) mask[in]=0;
+         }
+      } else {
+         for (in=0; in<SO->N_Node; ++in) {
+            if (dots[in]<-0.8) mask[in]=0;
+         }
+      }
+      for (in=0; in<SO->N_Node; ++in) {
+         if (!mask[in]) { /* skip it, masked by being bottom node */
+            if (in == ndbg) {
+               SUMA_S_Note("Node %d anchored", in);
+            }
+            continue;
+         }
+         xyz = SO->NodeList+3*in;
+         dir = SO->NodeNormList+3*in;
+         SUMA_Find_IminImax_2(xyz, dir,
+                            iset, &fvec, travstep, 11*travstep, 11*travstep,
+                            0.5*thr, in==ndbg?1:0, 
+                            rng_bot, rdist_bot,
+                            rng_top, rdist_top,
+                            avg,
+                            shs_bot, shs_top,
+                            vxi_bot, vxi_top);
+         nodeval = shs_bot[0];
+         if (in==ndbg || LocalHead) SUMA_S_Note("Node %d, %f\n", in, nodeval);
+         if (nodeval >= thr) { /* we're OK, minor adjustment */ 
+            mask[in] = 0; /* anchor node, outside smoothing mask*/
+            if (nodeval <= rng_top[1]) { /* higher val above, move up one step */
+               if (in == ndbg) { SUMA_S_Note("tiny nudge up\n"); }
+               memset(P2,0,6*sizeof(float));
+               SUMA_POINT_AT_DISTANCE(dir, xyz, travstep, P2);
+               xyz[0] = P2[0][0]; xyz[1] = P2[0][1]; xyz[2] = P2[0][2];
+            }
+         } else {
+            {
+               maxtop = shs_top[0]; nmaxtop =0;
+               for (nn=1; nn<10 && vxi_top[nn]>=0; ++nn) {
+                  if (shs_top[nn] > maxtop) {
+                     nmaxtop = nn;
+                     maxtop = shs_top[nn];
+                  }
+               }
+               maxbot = shs_bot[0]; nmaxbot = 0;
+               for (nn=1; nn<10 && vxi_bot[nn]>=0; ++nn) {
+                  if (shs_bot[nn] > maxbot) {
+                     nmaxbot = nn; maxbot = shs_bot[nn];
+                  }
+               }
+               /* look down for better option */
+               if (nodeval <= maxbot) { 
+                  { /* Go down to the 1st voxel meeting threshold 
+                              and a good edge */
+                     if (in == ndbg || LocalHead) { 
+                        SUMA_S_Notev(
+                           "Looking down nodeval %f\n",
+                           nodeval ); }
+                     nn = 0;
+                     while (nn<10 && (shs_bot[nn]<thr && 
+                                      vxi_bot[nn]>=0 )) {
+                        ++nn; 
+                     }
+                     if (shs_bot[nn] >= thr) {
+                        if (in == ndbg|| LocalHead){ 
+                           SUMA_S_Notev("Going down %d steps to edge+anchor\n", 
+                                       nn);}
+                        nn = SUMA_MIN_PAIR(nn,3);/* slowly to avoid folding */
+                        ftr = travstep*nn;
+                        xyz[0] -= ftr*dir[0];
+                        xyz[1] -= ftr*dir[1];
+                        xyz[2] -= ftr*dir[2]; 
+                        if (shs_bot[nn]> thr)
+                           mask[in]=0;                  
+                     } else { /* keep going if sitting on no value */
+                        if (nodeval < 0.1*thr) {
+                           if (maxbot > nodeval || nodeval == 0) {
+                              nn = nmaxbot; 
+                              if (!nn) nn = 1; /* If too far in space and nothing
+                                                  is found nmaxbot can be 0, so 
+                                                  keep going */
+                              nn = SUMA_MIN_PAIR(nn,3);/* slowly, avoid folding*/
+                              ftr = travstep*nn;
+                              if (in == ndbg){ 
+                                 SUMA_S_Note("Going down max from %f %f %f to\n"
+                                             "                    %f %f %f\n",
+                                             xyz[0], xyz[1], xyz[2],
+                                             xyz[0] -ftr*dir[0],
+                                             xyz[1] -ftr*dir[1], 
+                                             xyz[2] -ftr*dir[2]        );}
+                              xyz[0] -= ftr*dir[0];
+                              xyz[1] -= ftr*dir[1];
+                              xyz[2] -= ftr*dir[2];
+                           } 
+                        }
+                     } 
+                  }
+               }
+            }
+               ++N_movers;
+         }
+      }
+      
+      SUMA_LHv("Smoothing round %d, surface \n", 
+               iter);
+      /* Make sure no one node is an anchor holdout */
+      for (in=0; in<SO->N_Node; ++in) {
+         if (mask[in] == 0) { /* an anchored node */
+            N_um = 0; /* number of unanchored neighbors */
+            for (nn=0; nn<SO->FN->N_Neighb[in]; ++nn) {
+               if (mask[SO->FN->FirstNeighb[in][nn]]) ++N_um;
+            }
+            if ((float)N_um/SO->FN->N_Neighb[in] > 0.75) {
+               mask[in]=1;
+               if (LocalHead || in == ndbg) {
+                  SUMA_LHv("Node %d was anchored but now released %f\n",
+                           in, (float)N_um/SO->FN->N_Neighb[in]);
+               }
+            }
+         } 
+      }
+      
+      
+      /* Are we making a difference in this world? */
+      larea=area;
+      area=SUMA_Mesh_Area(SO, NULL, -1);
+      darea = (area-larea)/area*100.0;
+      
+      /* write it out for debugging */
+      if (LocalHead) {
+         SUMA_LHv("Iteration %d, N_movers = %d, area = %f (Darea=%f)\n",
+               iter, N_movers, area, darea);
+         THD_force_ok_overwrite(1) ;
+         sprintf(sbuf,"shrink.02%d",iter);
+         SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+      }
+      ++iter;
+      if (iter > itermax1 || SUMA_ABS(darea) < 0.005) stop = YUP;
+      if (!stop && SUMA_ABS(darea) < 0.01) {
+         /* A quick smoothing with anchors in place */
+         SUMA_NN_GeomSmooth_SO(SO, mask, 0, 10);
+      } else {
+         /* A Taubin smooth */
+         if (!stop || (stop && smooth_final)) 
+            SUMA_Taubin_Smooth_SO(SO, SUMA_EQUAL, 0.1, NULL, 0, 20);
+      }
+      if (cs && cs->talk_suma && cs->Send) {
+         if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, 
+                               SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                         "Communication halted.");
+         }
+      }
+   }
+   
+   if (LocalHead) {
+      SUMA_LHv("End of iterations N_movers = %d, area = %f\n",
+            N_movers, SUMA_Mesh_Area(SO, NULL, -1));
+      THD_force_ok_overwrite(1) ;
+      SUMA_Save_Surface_Object_Wrap("shrink", NULL, SO, 
+                              SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   
+   if (iter >= itermax1) {
+      SUMA_LH("Convergence criterion not reached. Darea=%f. Check results.",
+                  darea);
+   }
+   
+   
+   if (dots) SUMA_free(dots); dots = NULL;   
+   if (mask) free(mask); mask = NULL;
+   if (fvec) free(fvec); fvec = NULL;
+   if (inset) DSET_delete(inset); inset=NULL;
+   SUMA_RETURN(YUP);
+}
 
 /*!
    Shrink hull of skull so that the surface lies
@@ -9601,6 +10119,86 @@ SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
    if (mrset) DSET_delete(mrset); mrset=NULL;
    if (urset) { *urset = rset; rset = NULL; }
    if (rset) DSET_delete(rset);  rset=NULL; 
+   
+   SUMA_RETURN(SOi); 
+}
+
+SUMA_SurfaceObject *SUMA_Mask_Skin(THD_3dim_dataset *iset, int ld,
+                                    int smooth_final, int HullOnly,
+                                    SUMA_COMM_STRUCT *cs)
+{
+   static char FuncName[]={"SUMA_Mask_Skin"};
+   SUMA_SurfaceObject *SOh = NULL, *SOi = NULL;
+   SUMA_HIST *hh=NULL;
+   float newvol = 0.0, voxvol = 0.0, *rat=NULL;
+   int *ok=NULL, vv=0;
+   short *sb=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!iset) SUMA_RETURN(SOh);
+   
+   if (!(SOh = SUMA_Dset_ConvexHull(iset, 0, 1.0, NULL))) {
+      SUMA_S_Err("Failed to get HULL");
+      SUMA_RETURN(SOi);
+   }
+   
+   if (ld < 1) ld = 20;
+   
+   if (LocalHead) {
+      THD_force_ok_overwrite(1);
+      SUMA_Save_Surface_Object_Wrap("hull_rs", NULL, SOh, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   /* compute surface center, etc. */
+   SUMA_SetSODims(SOh);
+   
+   /* Create a little icosahedron that fits inside the hull */
+   SOi = SUMA_CreateIcosahedron(0.99*SOh->MinCentDist, ld, SOh->Center, "n",1);
+   if (LocalHead) {
+      THD_force_ok_overwrite(1);
+      SUMA_Save_Surface_Object_Wrap("icos", NULL, SOi, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   if (cs && cs->talk_suma && cs->Send) {
+      SUMA_LH("Sending BrainHull2");
+      SOi->VolPar = SUMA_VolParFromDset (iset);
+      SOi->SUMA_VolPar_Aligned = YUP;
+      SOi->AnatCorrect = 1; 
+      if (!SOi->State) {SOi->State = SUMA_copy_string("3dSkullStrip"); }
+      if (!SOi->Group) {SOi->Group = SUMA_copy_string("3dSkullStrip"); }
+      if (!SOi->Label) {SOi->Label = SUMA_copy_string("BrainHull2_RS"); }
+      if (!SOi->idcode_str) { SOi->idcode_str = UNIQ_hashcode("BrainHull2"); }
+      SUMA_SendSumaNewSurface(SOi, cs);
+   }
+
+   /* Now inflate the icosahedron to make it fit the hull */
+   SUMA_Set_SurfSmooth_NodeDebug(SUMA_getBrainWrap_NodeDbg());
+   if (!SUMA_NN_GeomSmooth3_SO(SOi, NULL, 0, 50, 5, SOh, NULL, NULL, 
+                               LocalHead ? cs: NULL)) {
+      SUMA_S_Err("Failed to inflate to anchor");
+      SUMA_RETURN(SOi);
+   }
+   if (LocalHead) {
+      THD_force_ok_overwrite(1);
+      SUMA_Save_Surface_Object_Wrap("icosinfl", NULL, SOi, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+
+   if (!HullOnly) {
+      /* Shrink */
+      SUMA_LH("hull shrinkage");
+      SUMA_ShrinkSkullHull2Mask(SOi, iset, 0.0, smooth_final, cs);
+      if (LocalHead) {
+         THD_force_ok_overwrite(1);
+         SUMA_Save_Surface_Object_Wrap("icoshead", NULL, SOi, 
+                                    SUMA_GIFTI, SUMA_ASCII, NULL);
+      }
+   }
+   
+   if (SOh) SUMA_Free_Surface_Object(SOh); SOh = NULL;
+   if (hh) SUMA_Free_hist(hh); hh = NULL;
    
    SUMA_RETURN(SOi); 
 }

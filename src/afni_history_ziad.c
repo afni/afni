@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 30, Jan, 2014, ZSS, "3dinfill", MINOR, TYPE_NEW_OPT,
+   "Improvements to SOLID fill method and addition of option -ed",
+   NULL
+ },
+
+ { 30, Jan, 2014, ZSS, "BrainSkin", MINOR, TYPE_NEW_OPT,
+   "Added -vol_skin and -vol_hull to create smooth contours of mask volume.",
+   NULL
+ },
+
  { 23, Jan, 2014, ZSS, "3dLocalstat", MINOR, TYPE_NEW_OPT,
    "Added -stat list and -stat hist* .",
    NULL
