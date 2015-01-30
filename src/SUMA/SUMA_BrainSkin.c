@@ -20,7 +20,7 @@ void usage_SUMA_BrainSkin (SUMA_GENERIC_ARGV_PARSE *ps)
 " A program to create an unfolded surface that wraps the brain (skin) \n"
 " and Gyrification Indices.\n"
 "\n"
-"Usage:\n"
+"Usage 1:\n"
 "  BrainSkin <-SURF> <-skingrid VOL> <-prefix PREFIX> \n"
 "            [<-plimit PLIM>] [<-dlimit DLIM>] [<-segdo SEGDO>]\n"
 "\n"
@@ -86,7 +86,20 @@ void usage_SUMA_BrainSkin (SUMA_GENERIC_ARGV_PARSE *ps)
 "         -prefix stitched.std60.lh.f \\\n"
 "         -segdo stitched.std60.lh.1D.do \\\n"
 "         -overwrite \n"
-"\n"  
+"\n"
+"  Usage 2: Use a smooth surface to model outer contours of a mask volume\n"
+"\n"
+"  BrainSkin <-vol_skin MASK> <-vol_hull MASK> [-prefix  PREFIX]\n" 
+"\n"
+"     -vol_skin MASK: Deform an Icosahedron to match the outer \n"
+"                     boundary of a mask volume.\n"
+"     -vol_hull MASK: Deform an Icosahedron to match the convex \n"
+"                     hull of a mask volume.\n"
+"     -vol_skin and -vol_hull are mutually exclusive\n"
+"     -node_dbg N: Output debugging information for node N for -vol_skin\n"
+"                  and -vol_hull options.\n"
+"\n"
+"  The program exits after creating the surface.\n"
 "%s"
 "%s"
 "\n",
@@ -112,8 +125,12 @@ typedef struct {
    char *prefix;
    char *segdo;
    char *skingrid;
+   char *in_name;
+   int smoothskin;
+   int hullonly;
    int voxmeth;
    int infill;
+   int node_dbg;
    SUMA_DSET_FORMAT sform;
    SUMA_GENERIC_ARGV_PARSE *ps;
 } SUMA_BRAIN_SKIN_OPTIONS;
@@ -143,6 +160,7 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
    SUMA_ENTRY;
 
 
+
    kar = 1;
    brk = NOPE;
    Opt->debug = 0;
@@ -154,7 +172,11 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
    Opt->skingrid = NULL;
    Opt->sform = SUMA_NO_DSET_FORMAT;
    Opt->voxmeth = 0;
+   Opt->in_name = NULL;
+   Opt->hullonly = 0;
+   Opt->smoothskin = 1;
    Opt->infill = 2;
+   Opt->node_dbg=-1;
    Opt->ps=ps;
    while (kar < argc) 
    { /* loop accross command ine options */
@@ -278,7 +300,40 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
          brk = YUP;
       }
      
-     if (!brk && !ps->arg_checked[kar]) 
+      if (!brk && (strcmp(argv[kar], "-vol_skin") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -vol_skin \n");
+				exit (1);
+			}
+			Opt->hullonly = 0;
+         Opt->in_name = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-node_dbg") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need integer after -node_dbg \n");
+				exit (1);
+			}
+			Opt->node_dbg = atoi(argv[kar]);
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-vol_hull") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -vol_hull \n");
+				exit (1);
+			}
+         Opt->hullonly = 1;
+			Opt->in_name = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+		}
+      
+
+      if (!brk && !ps->arg_checked[kar]) 
       {
          SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
                      argv[kar]);
@@ -309,7 +364,9 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
          exit(1);
       }
    }
-   
+
+   SUMA_setBrainWrap_NodeDbg(Opt->node_dbg);
+
    Opt->histnote = SUMA_HistString (NULL, argc, argv, NULL);
    
    SUMA_RETURN (Opt);
@@ -1198,6 +1255,31 @@ int main (int argc,char *argv[])
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-sv;-s;-o;");
    
    SUMA_BrainSkin_ParseInput (argv, argc, &Opt, ps);
+   
+   if (Opt.in_name) {
+      SUMA_SurfaceObject *SO=NULL;
+      THD_3dim_dataset *dset=NULL;
+      char *ppo=NULL;
+      if (!(dset = THD_open_dataset( Opt.in_name ))) {
+         SUMA_S_Err("Failed to read %s", Opt.in_name );
+         exit(1);
+      }
+      DSET_load(dset);
+      if (!(SO = SUMA_Mask_Skin(dset, 0, Opt.smoothskin, Opt.hullonly, NULL))) {
+         SUMA_S_Err("Failed to create mask");
+         exit(1);
+      }
+      ppo = SUMA_ModifyName (Opt.prefix, "append", ".volskin", NULL);
+      SUMA_Save_Surface_Object_Wrap(ppo, NULL, SO, 
+                                    SUMA_GIFTI, SUMA_ASCII, NULL);
+      SUMA_free(ppo); ppo=NULL;
+      SUMA_Free_Surface_Object(SO); SO = NULL; 
+      DSET_delete(dset); dset=NULL;
+      SUMA_ifree(Opt.in_name);
+      exit(0);
+	}
+
+   
    if (argc < 4)
    {
       SUMA_S_Err("Too few arguments");
@@ -1350,7 +1432,7 @@ int main (int argc,char *argv[])
       SUMA_S_Note("Now infilling");
       DSET_delete(odset); odset = NULL;
       if (!SUMA_VolumeInFill(odseti, &odset, Opt.infill, -1, -1, 
-                                    Opt.infill == 2?1:-1)) {
+                                    Opt.infill == 2?1:-1,0,0,0.0)) {
          SUMA_S_Err("Failed to infill");
          exit(1);
       }
@@ -1592,7 +1674,7 @@ int main (int argc,char *argv[])
    if (Opt.prefix) SUMA_free(Opt.prefix);
    if (Opt.segdo) SUMA_free(Opt.segdo);
    if (Opt.skingrid) SUMA_free(Opt.skingrid);
-   
+   SUMA_ifree(Opt.in_name);
    if (!SUMA_FreeSpecFields(Spec)) {
       SUMA_S_Err("Failed to free SpecFields");
    } SUMA_free(Spec); Spec = NULL;
