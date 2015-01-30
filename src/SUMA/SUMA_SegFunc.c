@@ -8383,7 +8383,245 @@ SUMA_SurfaceObject *SUMA_ExtractHead_Hull(THD_3dim_dataset *iset,
       SUMA_Free_hist(hh); hh=NULL;
    }
    SUMA_RETURN(SO);
-}  
+}
+ 
+/*!
+   Shrink hull of skull so that the surface lies
+   on bright voxels that at least exceed the threshold. 
+*/   
+SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO, 
+                             THD_3dim_dataset *iset, float thr,
+                             int smooth_final,
+                             SUMA_COMM_STRUCT *cs) 
+{
+   static char FuncName[]={"SUMA_ShrinkSkullHull2Mask"};
+   char sbuf[256]={""};
+   byte *mask=NULL;
+   int   in=0, vxi_bot[30], vxi_top[30], iter, N_movers, 
+         ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um,
+         itermax1 = 50, itermax2 = 10;
+   float *fvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
+   float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[3], nodeval,
+         area=0.0, larea=0.0, ftr=0.0, darea=0.0;
+   float  *fnz=NULL, *alt=NULL;
+   float maxtop, maxbot;
+   int   nmaxtop, nmaxbot;
+   float dirZ[3], *dots=NULL, U3[3], Un;
+   THD_3dim_dataset *inset=NULL;
+   SUMA_Boolean stop = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (thr == 0.0f) thr = 1.0;
+   
+   SUMA_LHv("Begin shrinkage, thr=%f, ndbg = %d\n", thr, ndbg);
+   
+   travstep = SUMA_ABS(DSET_DX(iset));
+   if (travstep > SUMA_ABS(DSET_DY(iset))) travstep = SUMA_ABS(DSET_DY(iset));
+   if (travstep > SUMA_ABS(DSET_DZ(iset))) travstep = SUMA_ABS(DSET_DZ(iset));
+   if (!(mask = (byte *)SUMA_malloc(sizeof(byte)*SO->N_Node))) {
+      SUMA_S_Crit("Failed to allocate");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* For a clean, bust like button, anchor bottom nodes */
+   /* For now, the decision is solely based on the normals
+      being parallel to the Z direction.
+      Perhaps I should add a depth criterion, but that
+      is not necessary it seems */
+      dirZ[0]=0.0; dirZ[1]=0.0; dirZ[2]=1.0;
+      dots = NULL;
+      if (!(SUMA_DotNormals(SO, dirZ, &dots))) {
+         SUMA_S_Err("Failed to get dots");
+      } else {
+         if (LocalHead) SUMA_WRITE_ARRAY_1D(dots, SO->N_Node, 1, "DOTS.1D.dset");
+      }
+   
+   
+   stop = NOPE;
+   N_movers = 0; iter=0;
+   while (!stop) {
+      N_movers = 0;
+      memset(mask, 1, sizeof(byte)*SO->N_Node);
+      /* Keep bottom nodes fixed. (consider recomputing dots?)*/
+      if (SO->normdir < 0) { 
+         for (in=0; in<SO->N_Node; ++in) {
+            if (dots[in]>0.8) mask[in]=0;
+         }
+      } else {
+         for (in=0; in<SO->N_Node; ++in) {
+            if (dots[in]<-0.8) mask[in]=0;
+         }
+      }
+      for (in=0; in<SO->N_Node; ++in) {
+         if (!mask[in]) { /* skip it, masked by being bottom node */
+            if (in == ndbg) {
+               SUMA_S_Note("Node %d anchored", in);
+            }
+            continue;
+         }
+         xyz = SO->NodeList+3*in;
+         dir = SO->NodeNormList+3*in;
+         SUMA_Find_IminImax_2(xyz, dir,
+                            iset, &fvec, travstep, 11*travstep, 11*travstep,
+                            0.5*thr, in==ndbg?1:0, 
+                            rng_bot, rdist_bot,
+                            rng_top, rdist_top,
+                            avg,
+                            shs_bot, shs_top,
+                            vxi_bot, vxi_top);
+         nodeval = shs_bot[0];
+         if (in==ndbg || LocalHead) SUMA_S_Note("Node %d, %f\n", in, nodeval);
+         if (nodeval >= thr) { /* we're OK, minor adjustment */ 
+            mask[in] = 0; /* anchor node, outside smoothing mask*/
+            if (nodeval <= rng_top[1]) { /* higher val above, move up one step */
+               if (in == ndbg) { SUMA_S_Note("tiny nudge up\n"); }
+               memset(P2,0,6*sizeof(float));
+               SUMA_POINT_AT_DISTANCE(dir, xyz, travstep, P2);
+               xyz[0] = P2[0][0]; xyz[1] = P2[0][1]; xyz[2] = P2[0][2];
+            }
+         } else {
+            {
+               maxtop = shs_top[0]; nmaxtop =0;
+               for (nn=1; nn<10 && vxi_top[nn]>=0; ++nn) {
+                  if (shs_top[nn] > maxtop) {
+                     nmaxtop = nn;
+                     maxtop = shs_top[nn];
+                  }
+               }
+               maxbot = shs_bot[0]; nmaxbot = 0;
+               for (nn=1; nn<10 && vxi_bot[nn]>=0; ++nn) {
+                  if (shs_bot[nn] > maxbot) {
+                     nmaxbot = nn; maxbot = shs_bot[nn];
+                  }
+               }
+               /* look down for better option */
+               if (nodeval <= maxbot) { 
+                  { /* Go down to the 1st voxel meeting threshold 
+                              and a good edge */
+                     if (in == ndbg || LocalHead) { 
+                        SUMA_S_Notev(
+                           "Looking down nodeval %f\n",
+                           nodeval ); }
+                     nn = 0;
+                     while (nn<10 && (shs_bot[nn]<thr && 
+                                      vxi_bot[nn]>=0 )) {
+                        ++nn; 
+                     }
+                     if (shs_bot[nn] >= thr) {
+                        if (in == ndbg|| LocalHead){ 
+                           SUMA_S_Notev("Going down %d steps to edge+anchor\n", 
+                                       nn);}
+                        nn = SUMA_MIN_PAIR(nn,3);/* slowly to avoid folding */
+                        ftr = travstep*nn;
+                        xyz[0] -= ftr*dir[0];
+                        xyz[1] -= ftr*dir[1];
+                        xyz[2] -= ftr*dir[2]; 
+                        if (shs_bot[nn]> thr)
+                           mask[in]=0;                  
+                     } else { /* keep going if sitting on no value */
+                        if (nodeval < 0.1*thr) {
+                           if (maxbot > nodeval || nodeval == 0) {
+                              nn = nmaxbot; 
+                              if (!nn) nn = 1; /* If too far in space and nothing
+                                                  is found nmaxbot can be 0, so 
+                                                  keep going */
+                              nn = SUMA_MIN_PAIR(nn,3);/* slowly, avoid folding*/
+                              ftr = travstep*nn;
+                              if (in == ndbg){ 
+                                 SUMA_S_Note("Going down max from %f %f %f to\n"
+                                             "                    %f %f %f\n",
+                                             xyz[0], xyz[1], xyz[2],
+                                             xyz[0] -ftr*dir[0],
+                                             xyz[1] -ftr*dir[1], 
+                                             xyz[2] -ftr*dir[2]        );}
+                              xyz[0] -= ftr*dir[0];
+                              xyz[1] -= ftr*dir[1];
+                              xyz[2] -= ftr*dir[2];
+                           } 
+                        }
+                     } 
+                  }
+               }
+            }
+               ++N_movers;
+         }
+      }
+      
+      SUMA_LHv("Smoothing round %d, surface \n", 
+               iter);
+      /* Make sure no one node is an anchor holdout */
+      for (in=0; in<SO->N_Node; ++in) {
+         if (mask[in] == 0) { /* an anchored node */
+            N_um = 0; /* number of unanchored neighbors */
+            for (nn=0; nn<SO->FN->N_Neighb[in]; ++nn) {
+               if (mask[SO->FN->FirstNeighb[in][nn]]) ++N_um;
+            }
+            if ((float)N_um/SO->FN->N_Neighb[in] > 0.75) {
+               mask[in]=1;
+               if (LocalHead || in == ndbg) {
+                  SUMA_LHv("Node %d was anchored but now released %f\n",
+                           in, (float)N_um/SO->FN->N_Neighb[in]);
+               }
+            }
+         } 
+      }
+      
+      
+      /* Are we making a difference in this world? */
+      larea=area;
+      area=SUMA_Mesh_Area(SO, NULL, -1);
+      darea = (area-larea)/area*100.0;
+      
+      /* write it out for debugging */
+      if (LocalHead) {
+         SUMA_LHv("Iteration %d, N_movers = %d, area = %f (Darea=%f)\n",
+               iter, N_movers, area, darea);
+         THD_force_ok_overwrite(1) ;
+         sprintf(sbuf,"shrink.02%d",iter);
+         SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
+                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+      }
+      ++iter;
+      if (iter > itermax1 || SUMA_ABS(darea) < 0.005) stop = YUP;
+      if (!stop && SUMA_ABS(darea) < 0.01) {
+         /* A quick smoothing with anchors in place */
+         SUMA_NN_GeomSmooth_SO(SO, mask, 0, 10);
+      } else {
+         /* A Taubin smooth */
+         if (!stop || (stop && smooth_final)) 
+            SUMA_Taubin_Smooth_SO(SO, SUMA_EQUAL, 0.1, NULL, 0, 20);
+      }
+      if (cs && cs->talk_suma && cs->Send) {
+         if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, 
+                               SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                         "Communication halted.");
+         }
+      }
+   }
+   
+   if (LocalHead) {
+      SUMA_LHv("End of iterations N_movers = %d, area = %f\n",
+            N_movers, SUMA_Mesh_Area(SO, NULL, -1));
+      THD_force_ok_overwrite(1) ;
+      SUMA_Save_Surface_Object_Wrap("shrink", NULL, SO, 
+                              SUMA_GIFTI, SUMA_ASCII, NULL);
+   }
+   
+   if (iter >= itermax1) {
+      SUMA_LH("Convergence criterion not reached. Darea=%f. Check results.",
+                  darea);
+   }
+   
+   
+   if (dots) SUMA_free(dots); dots = NULL;   
+   if (mask) free(mask); mask = NULL;
+   if (fvec) free(fvec); fvec = NULL;
+   if (inset) DSET_delete(inset); inset=NULL;
+   SUMA_RETURN(YUP);
+}
 
 /*!
    Shrink hull of skull so that the surface lies
@@ -9885,16 +10123,17 @@ SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
    SUMA_RETURN(SOi); 
 }
 
-SUMA_SurfaceObject *SUMA_IcoHull_fromMask(THD_3dim_dataset *iset,
-                                     SUMA_COMM_STRUCT *cs)
+SUMA_SurfaceObject *SUMA_Mask_Skin(THD_3dim_dataset *iset, int ld,
+                                    int smooth_final, int HullOnly,
+                                    SUMA_COMM_STRUCT *cs)
 {
-   static char FuncName[]={"SUMA_IcoHull_fromMask"};
+   static char FuncName[]={"SUMA_Mask_Skin"};
    SUMA_SurfaceObject *SOh = NULL, *SOi = NULL;
    SUMA_HIST *hh=NULL;
    float newvol = 0.0, voxvol = 0.0, *rat=NULL;
    int *ok=NULL, vv=0;
    short *sb=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -9905,6 +10144,8 @@ SUMA_SurfaceObject *SUMA_IcoHull_fromMask(THD_3dim_dataset *iset,
       SUMA_RETURN(SOi);
    }
    
+   if (ld < 1) ld = 20;
+   
    if (LocalHead) {
       THD_force_ok_overwrite(1);
       SUMA_Save_Surface_Object_Wrap("hull_rs", NULL, SOh, 
@@ -9914,7 +10155,7 @@ SUMA_SurfaceObject *SUMA_IcoHull_fromMask(THD_3dim_dataset *iset,
    SUMA_SetSODims(SOh);
    
    /* Create a little icosahedron that fits inside the hull */
-   SOi = SUMA_CreateIcosahedron(0.99*SOh->MinCentDist, 20, SOh->Center, "n",1);
+   SOi = SUMA_CreateIcosahedron(0.99*SOh->MinCentDist, ld, SOh->Center, "n",1);
    if (LocalHead) {
       THD_force_ok_overwrite(1);
       SUMA_Save_Surface_Object_Wrap("icos", NULL, SOi, 
@@ -9945,13 +10186,15 @@ SUMA_SurfaceObject *SUMA_IcoHull_fromMask(THD_3dim_dataset *iset,
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
    }
 
-   /* Get outer surface */
-   SUMA_LH("hull shrinkage");
-   SUMA_ShrinkSkullHull(SOi, iset, 0.0, 1, cs);
-   if (LocalHead) {
-      THD_force_ok_overwrite(1);
-      SUMA_Save_Surface_Object_Wrap("icoshead", NULL, SOi, 
-                                 SUMA_GIFTI, SUMA_ASCII, NULL);
+   if (!HullOnly) {
+      /* Shrink */
+      SUMA_LH("hull shrinkage");
+      SUMA_ShrinkSkullHull2Mask(SOi, iset, 0.0, smooth_final, cs);
+      if (LocalHead) {
+         THD_force_ok_overwrite(1);
+         SUMA_Save_Surface_Object_Wrap("icoshead", NULL, SOi, 
+                                    SUMA_GIFTI, SUMA_ASCII, NULL);
+      }
    }
    
    if (SOh) SUMA_Free_Surface_Object(SOh); SOh = NULL;
