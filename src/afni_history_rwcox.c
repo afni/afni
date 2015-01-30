@@ -43,7 +43,19 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , JAN , 2015 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+  { 29 , JAN , 2015 , RWC , "afni GUI" , MAJOR , TYPE_GENERAL ,
+   "Use new 3dClustSim tables" ,
+   "Now Clusterize chooses the table to use based on the threshold type (t-\n"
+   "or F-stat, say), and if 1-sided thresholding was chosen by the user. \n"
+   "Also, the p-value below the slider now adjusts if the user chose to do\n"
+   "1-sided thresholding on a 2-sided statistic (t-stat, correlation,\n"
+   "z-score)." } ,
+
+ { 29 , JAN , 2015 , RWC , "3dClustSim" , MAJOR , TYPE_GENERAL ,
+   "Compute NN=1,2,3 and 1-sided, 2-sided, bi-sided tables" ,
+   "In sum, all 9 tables are ALWAYS computed now." } ,
+
+ { 13 , JAN , 2015 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Secret option '-ballopt'" ,
    "A step towards using more complex basis functions, by allowing\n"
    "optimization only over an L2-ball in parameter space, rather than a\n"
