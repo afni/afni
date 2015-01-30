@@ -565,7 +565,12 @@ Usage:
  measures ANOVA) can be analyzed; or 1) there is only one within-subject (or 
  repeated-measures) factor and it contains two levels only. See more details at
  
- http://afni.nimh.nih.gov/sscc/gangc/MEMA.html'
+ http://afni.nimh.nih.gov/sscc/gangc/MEMA.html
+
+ Notice:  When comparing two groups, option "-groups groupA groupB" has to be
+ present, and the output includes the difference of groupB - groupA, which is
+ consistent with most AFNI convention except for 3dttest++ where groupA - groupB is
+ rendered.'
    
    ex1 <- 
 "
@@ -599,7 +604,9 @@ contrast from each subject in a group):
 contrast from each subject in two groups with the constrast being the 2nd group 
 subtracing the 1st one), heteroskedasticity (different cross-subjects variability 
 between the two groups), outlier modeling, covariates centering, no payment no 
-interest till Memorial Day next year:
+interest till Memorial Day next year. Notice that option -groups has to be
+present in this case, and the output includes the difference of the second group
+versus the first one.
 -------------------------------------------------------------------------
    3dMEMA   -prefix ex3  \\
             -jobs 4      \\
@@ -693,7 +700,8 @@ read.MEMA.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
       
       '-groups' = apl(n = c(1,2), d = 'G1', h = paste(
-   "-groups GROUP1 [GROUP2]: Name of 1 or 2 groups. Default is one group\n",
+   "-groups GROUP1 [GROUP2]: Name of 1 or 2 groups. This option must be used\n",
+   "                         when comparing two groups. Default is one group\n",
    "                         named 'G1'. The labels here are used to name\n",
    "                         the sub-bricks in the output. When there are\n",
    "                         two groups, the 1st and 2nd labels here are\n",
