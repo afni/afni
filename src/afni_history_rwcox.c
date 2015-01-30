@@ -43,7 +43,15 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 29 , JAN , 2015 , RWC , "afni GUI" , MAJOR , TYPE_GENERAL ,
+  { 30 , JAN , 2015 , RWC , "Clusterize" , MINOR , TYPE_GENERAL ,
+   "Add Bi-sided clustering" ,
+   "Goes along with the new 3dClustSim, which now generates tables for that\n"
+   "case as well. 'Bi-sided' means positive above-threshold voxels are\n"
+   "clustered separately from negative below-minus-threshold voxels.  Note\n"
+   "that bi-sided is turned off for 1-sided thresholding and/or Pos func,\n"
+   "even if the user turns bi-sided on in the Clusterize chooser." } ,
+
+ { 29 , JAN , 2015 , RWC , "afni GUI" , MAJOR , TYPE_GENERAL ,
    "Use new 3dClustSim tables" ,
    "Now Clusterize chooses the table to use based on the threshold type (t-\n"
    "or F-stat, say), and if 1-sided thresholding was chosen by the user. \n"
