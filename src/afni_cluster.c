@@ -25,6 +25,8 @@ static Widget wtemp ;
 
 static char *wherprog = NULL ;
 
+static char *yesno[2] = { "No" , "Yes" } ;
+
 char * get_alpha_string( int csiz  , float pval , Three_D_View *im3d    ) ;
 int find_cluster_thresh( float athr, float pval , CLU_threshtable *ctab ) ;
 CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d ) ;
@@ -138,36 +140,27 @@ ENTRY("AFNI_clus_save_as_mask_CB") ;
 }
 
 /*---------------------------------------------------------------*/
-/* Callback from the clusterize parameter chooser.               */
+/* Callback from the clusterize parameter chooser.
+   [30 Jan 2015 - changed from 'vector' to 'stuff' chooser]
+*//*-------------------------------------------------------------*/
 
-static void AFNI_cluster_choose_CB( Widget wc, XtPointer cd, MCW_choose_cbs *cbs )
+static void AFNI_cluster_choose_CB( Widget wc, XtPointer cd, int nval, void **val )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
-   float *vec = (float *)(cbs->cval) , rmm,vmul ;
+   int rmm,vmul,bsid ; char *cpt ;
 
 ENTRY("AFNI_cluster_choose_CB") ;
 
-   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || nval != 3 || val == NULL ) EXRETURN ; /* bad bad */
 
-   rmm = -rintf(vec[0]) ;
-        if( rmm >= -1.0f ) rmm = -1.0f ;
-   else if( rmm >= -2.0f ) rmm = -2.0f ;
-   else                    rmm = -3.0f ;
-   vmul = vec[1] ;
-   if( vmul < 2.0f ){
-     static int first=1 ;
-     vmul = 2.0f ;
-     if( first ){
-       MCW_popup_message( im3d->vwid->func->clu_cluster_pb ,
-                           "** ---- WARNING ---- **\n"
-                           "** Voxels is reset to 2\n " ,
-                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
-       first = 0 ;
-     }
-   }
+   rmm  = - (int)(intptr_t)val[0] ;              /* NN */
+   vmul =   (int)(intptr_t)val[1] ;              /* Voxels */
+   bsid = strcmp( (char *)val[2] , yesno[1] ) ;  /* Bi-sided? */
+
    im3d->vedset.code     = VEDIT_CLUST ;
    im3d->vedset.param[2] = rmm ;   /* is -1, -2, or -3 [Jul 2010] */
    im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
+   im3d->vedset.param[6] = bsid ;
    set_vedit_cluster_label(im3d,1) ;
    if( ISVALID_3DIM_DATASET(im3d->fim_now) && !im3d->vinfo->func_visible ){
      MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
@@ -229,7 +222,7 @@ ENTRY("AFNI_clu_CB") ;
 
    if( w == im3d->vwid->func->clu_cluster_pb ){
      char *lvec[2] = { "NN level " , "Voxels   " } ;
-     float fvec[2] ;
+     int nnlev=1 , ccsiz=20 ;
      MCW_arrowval **vav ; int nav ;
 
 #if 0
@@ -245,31 +238,30 @@ ENTRY("AFNI_clu_CB") ;
 #endif
 
      if( im3d->vedset.code == VEDIT_CLUST ){
-       fvec[0] = -im3d->vedset.param[2];
-       fvec[1] =  im3d->vedset.param[3]; if( fvec[1] < 2.0f ) fvec[1] = 20.0f;
-     } else {
-       fvec[0] =  1.0f ;  /* NN1 */
-       fvec[1] = 20.0f ;
+       nnlev = -im3d->vedset.param[2];
+       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 2 ) ccsiz = 20 ;
      }
-     MCW_choose_vector( im3d->vwid->func->thr_label ,
-                       "------ Set Clusterize Parameter -------\n"
-                       "* NN level => NN clustering method\n"
-                       "        1 = faces must touch\n"
-                       "        2 = faces or edges touch\n"
-                       "        3 = faces or edges or corners\n"
-                       "* Voxels   => minimum cluster size that\n"
-                       "              will be kept [at least 2]\n"
-                       "---------------------------------------\n"
-                       "* Click on the 'Rpt' button to open\n"
-                       "  a complete cluster report panel.\n"
-                       "---------------------------------------"
-                       , 2 , lvec,fvec ,
-                        AFNI_cluster_choose_CB , (XtPointer)im3d ) ;
-     vav = MCW_choose_vector_avarray(&nav) ;
-     if( nav > 1 && vav != NULL ){
-       vav[0]->imin = vav[0]->fmin = 1 ; vav[0]->imax = vav[0]->fmax = 3 ;
-       vav[1]->imin = vav[1]->fmin = 2 ;
-     }
+     MCW_choose_stuff( im3d->vwid->func->thr_label ,
+                        "------ Set Clusterize Parameters ------\n"
+                        "* NN level => NN clustering method\n"
+                        "       1 : faces must touch\n"
+                        "       2 : faces or edges touch\n"
+                        "       3 : faces or edges or corners\n"
+                        "* Voxels   => minimum cluster size that\n"
+                        "              will be kept [at least 2]\n"
+                        "* Bi-sided => positively and negatively\n"
+                        "              thresholded voxels get\n"
+                        "              clustered separately\n"
+                        "              (eg, thresh=t-statistic)\n"
+                        "---------------------------------------\n"
+                        "* Click on the 'Rpt' button to open\n"
+                        "  a complete cluster report panel.\n"
+                        "---------------------------------------"  ,
+                      AFNI_cluster_choose_CB , (XtPointer)im3d ,
+                        MSTUF_INT     , "NN level " , 1 ,     3 , nnlev ,
+                        MSTUF_INT     , "Voxels   " , 2 , 99999 , ccsiz ,
+                        MSTUF_STRLIST , "Bi-sided?" , 2 ,     0 , yesno ,
+                      MSTUF_END ) ;
      EXRETURN ;
    }
 
