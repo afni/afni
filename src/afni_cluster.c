@@ -153,9 +153,9 @@ ENTRY("AFNI_cluster_choose_CB") ;
 
    if( ! IM3D_OPEN(im3d) || nval != 3 || val == NULL ) EXRETURN ; /* bad bad */
 
-   rmm  = - (int)(intptr_t)val[0] ;              /* NN */
-   vmul =   (int)(intptr_t)val[1] ;              /* Voxels */
-   bsid = strcmp( (char *)val[2] , yesno[1] ) ;  /* Bi-sided? */
+   rmm  = - (int)(intptr_t)val[0] ;                   /* NN */
+   vmul =   (int)(intptr_t)val[1] ;                   /* Voxels */
+   bsid = strcmp( (char *)val[2] , yesno[1] ) == 0 ;  /* Bi-sided? */
 
    im3d->vedset.code     = VEDIT_CLUST ;
    im3d->vedset.param[2] = rmm ;   /* is -1, -2, or -3 [Jul 2010] */
@@ -255,8 +255,8 @@ ENTRY("AFNI_clu_CB") ;
                         "              (eg, thresh=t-statistic)\n"
                         "---------------------------------------\n"
                         "* Click on the 'Rpt' button to open\n"
-                        "  a complete cluster report panel.\n"
-                        "---------------------------------------"  ,
+                        "  a complete cluster report panel.\n"     ,
+
                       AFNI_cluster_choose_CB , (XtPointer)im3d ,
                         MSTUF_INT     , "NN level " , 1 ,     3 , nnlev ,
                         MSTUF_INT     , "Voxels   " , 2 , 99999 , ccsiz ,
@@ -2643,7 +2643,7 @@ ENTRY("CLU_setup_alpha_tables") ;
      msg = THD_zzprintf(msg," NN=1:2sid") ; ntab += 1 << 1 ;
    }
 
-   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1_bsided" ) ;
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1_bisided" ) ;
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
      ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
@@ -2674,7 +2674,7 @@ ENTRY("CLU_setup_alpha_tables") ;
      msg = THD_zzprintf(msg," NN=1:2sid") ; ntab += 1 << 4 ;
    }
 
-   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2_bsided" ) ;
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2_bisided" ) ;
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
      ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
@@ -2705,7 +2705,7 @@ ENTRY("CLU_setup_alpha_tables") ;
      msg = THD_zzprintf(msg," NN=1:2sid") ; ntab += 1 << 7 ;
    }
 
-   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3_bsided" ) ;
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3_bisided" ) ;
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
      ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
@@ -2866,13 +2866,24 @@ char * get_alpha_string( int csiz , float pval , Three_D_View *im3d )
 
 CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d )
 {
-   CLU_threshtable *ctab ; int sig , scod ;
+   CLU_threshtable *ctab ; int sig , scod , bsid , pfun ;
 
    if( !IM3D_VALID(im3d) ) return NULL ;
 
    scod = DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ;
    sig  = THD_stat_is_2sided( scod , im3d->vinfo->thr_sign ) ;
-   if( sig < 0 ) return NULL ;
+   if( sig < 0 ) return NULL ;  /* should never transpire */
+
+   pfun = (int)im3d->vedset.param[5] ; if( pfun ) sig = 0 ;
+   bsid = (int)im3d->vedset.param[6] ;
+   if( sig && bsid ){
+     switch( im3d->vwid->func->clu_nnlev ){
+       default: ctab = im3d->vwid->func->clu_tabNN1_bsid ; /* INFO_message("b-sid NN=1"); */ break ;
+       case 2:  ctab = im3d->vwid->func->clu_tabNN2_bsid ; /* INFO_message("b-sid NN=2"); */ break ;
+       case 3:  ctab = im3d->vwid->func->clu_tabNN3_bsid ; /* INFO_message("b-sid NN=3"); */ break ;
+     }
+     return ctab ;
+   }
 
    switch( sig ){
      case 1: default:                          /* 2-sided */
