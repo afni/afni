@@ -665,8 +665,8 @@ int SUMA_Split_Classes(char **Glbls, int N_Glbls, int *Gkeys, int *Split,
 int SUMA_SetDsetLabeltable(THD_3dim_dataset *dset, char **labels, 
                            int N_labels, int *keys);
 
-SUMA_SurfaceObject *SUMA_IcoHull_fromMask(THD_3dim_dataset *iset,
-                                     SUMA_COMM_STRUCT *cs);
+SUMA_SurfaceObject *SUMA_Mask_Skin(THD_3dim_dataset *iset, int ld,
+                          int smooth_final, int hullonly, SUMA_COMM_STRUCT *cs);
 SUMA_SurfaceObject *SUMA_Dset_ConvexHull(THD_3dim_dataset *dset, int isb,
                                         float th, byte *umask);
 SUMA_SurfaceObject *SUMA_ExtractHead_hull(THD_3dim_dataset *iset,
@@ -675,6 +675,10 @@ SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
                                      float hullvolthr, SUMA_COMM_STRUCT *cs);
 SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
                                THD_3dim_dataset **urset, SUMA_COMM_STRUCT *cs);
+SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO, 
+                             THD_3dim_dataset *iset, float thr,
+                             int smooth_final,
+                             SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO, 
                              THD_3dim_dataset *iset, float thr,
                              int use_rs, SUMA_COMM_STRUCT *cs);                  
