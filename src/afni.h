@@ -748,7 +748,9 @@ typedef struct {
       int                 clu_index;
       int                 clu_num ;
       mri_cluster_detail *clu_det ;
-      CLU_threshtable *clu_tabNN1, *clu_tabNN2, *clu_tabNN3 ; /* Jul 2010 */
+      CLU_threshtable *clu_tabNN1_1sid, *clu_tabNN2_1sid, *clu_tabNN3_1sid ; /* Jan 2015 */
+      CLU_threshtable *clu_tabNN1_2sid, *clu_tabNN2_2sid, *clu_tabNN3_2sid ;
+      CLU_threshtable *clu_tabNN1_bsid, *clu_tabNN2_bsid, *clu_tabNN3_bsid ;
       byte *clu_mask ;
       int clu_nnlev ;
 
@@ -1216,12 +1218,24 @@ typedef struct Three_D_View {
        (iq)->vwid->func->clu_rep = NULL ; redis++ ;                        \
      }                                                                     \
      DESTROY_CLARR((iq)->vwid->func->clu_list);                            \
-     CLU_free_table((iq)->vwid->func->clu_tabNN1) ;                        \
-      CLU_free_table((iq)->vwid->func->clu_tabNN2) ;                       \
-       CLU_free_table((iq)->vwid->func->clu_tabNN3) ;                      \
-     (iq)->vwid->func->clu_tabNN1 = NULL ;                                 \
-      (iq)->vwid->func->clu_tabNN2 = NULL ;                                \
-       (iq)->vwid->func->clu_tabNN3 = NULL ;                               \
+     CLU_free_table((iq)->vwid->func->clu_tabNN1_1sid) ;                   \
+      CLU_free_table((iq)->vwid->func->clu_tabNN2_1sid) ;                  \
+       CLU_free_table((iq)->vwid->func->clu_tabNN3_1sid) ;                 \
+     CLU_free_table((iq)->vwid->func->clu_tabNN1_2sid) ;                   \
+      CLU_free_table((iq)->vwid->func->clu_tabNN2_2sid) ;                  \
+       CLU_free_table((iq)->vwid->func->clu_tabNN3_2sid) ;                 \
+     CLU_free_table((iq)->vwid->func->clu_tabNN1_bsid) ;                   \
+      CLU_free_table((iq)->vwid->func->clu_tabNN2_bsid) ;                  \
+       CLU_free_table((iq)->vwid->func->clu_tabNN3_bsid) ;                 \
+     (iq)->vwid->func->clu_tabNN1_1sid = NULL ;                            \
+      (iq)->vwid->func->clu_tabNN2_1sid = NULL ;                           \
+       (iq)->vwid->func->clu_tabNN3_1sid = NULL ;                          \
+     (iq)->vwid->func->clu_tabNN1_2sid = NULL ;                            \
+      (iq)->vwid->func->clu_tabNN2_2sid = NULL ;                           \
+       (iq)->vwid->func->clu_tabNN3_2sid = NULL ;                          \
+     (iq)->vwid->func->clu_tabNN1_bsid = NULL ;                            \
+      (iq)->vwid->func->clu_tabNN2_bsid = NULL ;                           \
+       (iq)->vwid->func->clu_tabNN3_bsid = NULL ;                          \
      (iq)->vednomask = 0 ;                                                 \
      if( (iq)->vedset.code ) redis++ ;                                     \
      if( redis ){                                                          \
