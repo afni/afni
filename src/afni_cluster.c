@@ -2200,7 +2200,9 @@ printf("wrote cluster table to %s\n", lb_fnam);
    fprintf(stderr,"** Unknown button? **\n\a") ; EXRETURN ;
 }
 
+/*----------------------------------------------------------------------------*/
 /* write coordinate table to file - used by itself and with linkrbrain output */
+
 char * AFNI_cluster_write_coord_table(Three_D_View *im3d)
 {
      char fnam[128+THD_MAX_NAME] , *ppp ; FILE *fp ; int ff ;
@@ -2607,12 +2609,18 @@ ENTRY("CLU_setup_alpha_tables") ;
 
    /* free anything we have now */
 
-   CLU_free_table( im3d->vwid->func->clu_tabNN1 ) ;
-    im3d->vwid->func->clu_tabNN1 = NULL ;
-   CLU_free_table( im3d->vwid->func->clu_tabNN2 ) ;
-    im3d->vwid->func->clu_tabNN2 = NULL ;
-   CLU_free_table( im3d->vwid->func->clu_tabNN3 ) ;
-    im3d->vwid->func->clu_tabNN3 = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN1_1sid ) ; im3d->vwid->func->clu_tabNN1_1sid = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN2_1sid ) ; im3d->vwid->func->clu_tabNN2_1sid = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN3_1sid ) ; im3d->vwid->func->clu_tabNN3_1sid = NULL ;
+
+   CLU_free_table( im3d->vwid->func->clu_tabNN1_2sid ) ; im3d->vwid->func->clu_tabNN1_2sid = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN2_2sid ) ; im3d->vwid->func->clu_tabNN2_2sid = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN3_2sid ) ; im3d->vwid->func->clu_tabNN3_2sid = NULL ;
+
+   CLU_free_table( im3d->vwid->func->clu_tabNN1_bsid ) ; im3d->vwid->func->clu_tabNN1_bsid = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN2_bsid ) ; im3d->vwid->func->clu_tabNN2_bsid = NULL ;
+   CLU_free_table( im3d->vwid->func->clu_tabNN3_bsid ) ; im3d->vwid->func->clu_tabNN3_bsid = NULL ;
+
    if( im3d->vwid->func->clu_mask != NULL ){
      free(im3d->vwid->func->clu_mask) ; im3d->vwid->func->clu_mask = NULL ;
    }
@@ -2621,24 +2629,109 @@ ENTRY("CLU_setup_alpha_tables") ;
 
    dset = im3d->fim_now ; if( !ISVALID_DSET(dset) ) EXRETURN ;
 
-   /* NN1 cluster C(p,alpha) table */
+   /* NN1 cluster C(p,alpha) tables */
 
-   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1" ) ;
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1_1sided" ) ;
+   if( atr == NULL )
+     atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1" ) ;  /* ye olde way */
    if( atr != NULL ){
      nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
      ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
-     im3d->vwid->func->clu_tabNN1 = ctab ;
-     msg = THD_zzprintf(msg," NN=1") ; ntab += 1 ;
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN1_1sid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:1sid") ; ntab += 1 ;
+   }
 
-     /*  search for ASCII mask string */
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1_2sided" ) ;
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN1_2sid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:2sid") ; ntab += 1 << 1 ;
+   }
 
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN1_bsided" ) ;
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN1_bsid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:bsid") ; ntab += 1 << 2 ;
+   }
+
+   /* NN2 cluster C(p,alpha) tables */
+
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2_1sided" ) ;
+   if( atr == NULL )
+     atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2" ) ;  /* ye olde way */
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN2_1sid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:1sid") ; ntab += 1 << 3 ;
+   }
+
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2_2sided" ) ;
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN2_2sid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:2sid") ; ntab += 1 << 4 ;
+   }
+
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2_bsided" ) ;
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN2_bsid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:bsid") ; ntab += 1 << 5 ;
+   }
+
+   /* NN3 cluster C(p,alpha) tables */
+
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3_1sided" ) ;
+   if( atr == NULL )
+     atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3" ) ;  /* ye olde way */
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN3_1sid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:1sid") ; ntab += 1 << 6 ;
+   }
+
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3_2sided" ) ;
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN3_2sid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:2sid") ; ntab += 1 << 7 ;
+   }
+
+   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3_bsided" ) ;
+   if( atr != NULL ){
+     nel = NI_read_element_fromstring(atr->ch) ;  /* attribute string => NIML */
+     ctab = format_cluster_table(nel) ;           /* NIML => C(p,alpha) table */
+     NI_free_element(nel) ;         /* get rid of the C(p,alpha) NIML element */
+     im3d->vwid->func->clu_tabNN3_bsid = ctab ;
+     msg = THD_zzprintf(msg," NN=1:bsid") ; ntab += 1 << 8 ;
+   }
+
+   /* search for ASCII mask string, if needed */
+
+   if( ntab ){
      atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_MASK" ) ;
      if( atr != NULL ){
        int nvox = mask_b64string_nvox(atr->ch) ;  /* length of mask */
        if( nvox == DSET_NVOX(dset) ){         /* must match dataset */
          im3d->vwid->func->clu_mask = mask_from_b64string(atr->ch,&nvox) ;
        }
-     } else {   /* search for original mask dataset via its idcode */
+     } else {    /* search for original mask dataset via its idcode */
        char *idc = NI_get_attribute(nel,"mask_dset_idcode") ;
        THD_3dim_dataset *mset = PLUTO_find_dset_idc(idc) ;
        if( mset != NULL && DSET_NVOX(mset) == DSET_NVOX(dset) ){
@@ -2646,35 +2739,16 @@ ENTRY("CLU_setup_alpha_tables") ;
          DSET_unload(mset) ;
        }
      }
-     NI_free_element(nel) ;  /* get rid of the C(p,alpha) NIML element */
      if( im3d->vwid->func->clu_mask != NULL )
        nmask = THD_countmask( DSET_NVOX(dset) , im3d->vwid->func->clu_mask ) ;
    }
 
-   /* NN2 and NN3 C(p,alpha) tables */
-
-   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN2" ) ;
-   if( atr != NULL ){
-     nel = NI_read_element_fromstring(atr->ch) ;
-     ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
-     im3d->vwid->func->clu_tabNN2 = ctab ;
-     msg = THD_zzprintf(msg," NN=2") ; ntab += 2 ;
-   }
-
-   atr = THD_find_string_atr( dset->dblk , "AFNI_CLUSTSIM_NN3" ) ;
-   if( atr != NULL ){
-     nel = NI_read_element_fromstring(atr->ch) ;
-     ctab = format_cluster_table(nel) ; NI_free_element(nel) ;
-     im3d->vwid->func->clu_tabNN3 = ctab ;
-     msg = THD_zzprintf(msg," NN=3") ; ntab += 4 ;
-   }
+   /* messages */
 
    if( ntab != ntabold ){
      if( msg != NULL ){
        INFO_message("%s3dClustSim tables found:%s" ,
                     AFNI_controller_label(im3d) , msg ) ;
-       if( ntab < 7 )
-         ININFO_message(" [if you require a missing NN table, will use%.5s]",msg);
        free(msg) ;
        if( nmask > 0 )
          ININFO_message(" %d voxels in 3dClustSim mask",nmask) ;
@@ -2800,16 +2874,30 @@ char * get_alpha_string( int csiz , float pval , Three_D_View *im3d )
 
 CLU_threshtable * CLU_get_thresh_table( Three_D_View *im3d )
 {
-   CLU_threshtable *ctab ;
+   CLU_threshtable *ctab ; int sig , scod ;
 
    if( !IM3D_VALID(im3d) ) return NULL ;
-   switch( im3d->vwid->func->clu_nnlev ){
-     default: ctab = im3d->vwid->func->clu_tabNN1 ; break ;
-     case 2:  ctab = im3d->vwid->func->clu_tabNN2 ; break ;
-     case 3:  ctab = im3d->vwid->func->clu_tabNN3 ; break ;
+
+   scod = DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ;
+   sig  = THD_stat_is_2sided( scod , im3d->vinfo->thr_sign ) ;
+   if( sig < 0 ) return NULL ;
+
+   switch( sig ){
+     case 1: default:                          /* 2-sided */
+       switch( im3d->vwid->func->clu_nnlev ){
+         default: ctab = im3d->vwid->func->clu_tabNN1_2sid ; /* INFO_message("2-sid NN=1"); */ break ;
+         case 2:  ctab = im3d->vwid->func->clu_tabNN2_2sid ; /* INFO_message("2-sid NN=2"); */ break ;
+         case 3:  ctab = im3d->vwid->func->clu_tabNN3_2sid ; /* INFO_message("2-sid NN=3"); */ break ;
+       }
+     break ;
+
+     case 0:                                  /* 1-sided */
+       switch( im3d->vwid->func->clu_nnlev ){
+         default: ctab = im3d->vwid->func->clu_tabNN1_1sid ; /* INFO_message("1-sid NN=1"); */ break ;
+         case 2:  ctab = im3d->vwid->func->clu_tabNN2_1sid ; /* INFO_message("1-sid NN=2"); */ break ;
+         case 3:  ctab = im3d->vwid->func->clu_tabNN3_1sid ; /* INFO_message("1-sid NN=3"); */ break ;
+       }
+     break ;
    }
-   if( ctab == NULL ) ctab = im3d->vwid->func->clu_tabNN1 ;
-   if( ctab == NULL ) ctab = im3d->vwid->func->clu_tabNN2 ;
-   if( ctab == NULL ) ctab = im3d->vwid->func->clu_tabNN3 ;
    return ctab ;
 }

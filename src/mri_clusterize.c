@@ -22,8 +22,6 @@ MCW_cluster_array * mri_clusterize_array(int clear)
 }
 
 /*---------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------*/
 /*! Cluster-edit volume bim, possibly thresholding with tim, and
     produce a new output image.  [05 Sep 2006]
 -----------------------------------------------------------------------*/
@@ -127,6 +125,131 @@ ENTRY("mri_clusterize") ;
    }
 
    RETURN(cim) ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Bi-Cluster-edit volume bim, possibly thresholding with tim, and
+    produce a new output image.  [05 Sep 2006]
+-----------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_bi_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
+                               float thb , float tht  , MRI_IMAGE *tim ,
+                               byte *mask )
+{
+   float dx,dy,dz , dbot , vmin ;
+   int   nx,ny,nz , ptmin,iclu , nkeep=0,nkill=0,ncgood=0 ;
+   int   nbot=9999999,ntop=0 , ii , pclust=0,nclust=0 ;
+   MRI_IMAGE *cim , *dim ; void *car , *dar ;
+   MCW_cluster *cl , *dl ; MCW_cluster_array *clar ;
+   int nnlev = 0 ;
+   static char *cclev[3] = { "[faces touch]" ,
+                             "[edges touch]" , "[corners touch]" } ;
+
+ENTRY("mri_bi_clusterize") ;
+
+   if( report  != NULL ){ free((void *)report);  report  = NULL; }
+   if( clarout != NULL ){ DESTROY_CLARR(clarout); }
+
+   if( bim == NULL || mri_data_pointer(bim) == NULL ) RETURN(NULL) ;
+
+   if( thb > 0.0f || tht < 0.0f || tim == NULL ) RETURN(NULL) ;
+
+   nx = bim->nx; ny = bim->ny; nz = bim->nz;
+   dx = bim->dx; dy = bim->dy; dz = bim->dz;
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+   dbot = MIN(dx,dy) ; dbot = MIN(dbot,dz) ;
+
+   if( rmm < dbot ){
+     int irr = (int)rintf(rmm) ;
+     dx = dy = dz = 1.0f;
+     switch( irr ){
+       default:  rmm = 1.01f ; nnlev = 1 ;break ;   /* NN1 */
+       case -2:  rmm = 1.44f ; nnlev = 2 ;break ;   /* NN2 */
+       case -3:  rmm = 1.75f ; nnlev = 3 ;break ;   /* NN3 */
+     }
+   }
+   vmin  = 2.0f*dx*dy*dz ; if( vmul < vmin ) vmul = vmin ;
+   ptmin = (int)( vmul/(dx*dy*dz) + 0.99f ) ; /* smallest cluster to keep */
+
+   /* 0-filled copy of input == will be output image */
+
+   dim = mri_new_conforming(bim,bim->kind) ; dar = mri_data_pointer(dim) ;
+
+   /* create copy of input image to be edited below */
+
+   cim = mri_copy(bim) ; car = mri_data_pointer(cim) ;
+   mri_maskify( cim , mask ) ;  /* mask it? */
+
+   /* threshold it on the positive side */
+
+   mri_threshold( -1.e22 , tht , tim , cim ) ;
+
+   /* find all positive clusters */
+
+   clar = MCW_find_clusters( nx,ny,nz , dx,dy,dz , cim->kind,car , rmm ) ;
+   mri_free(cim) ;
+
+   /* put all big clusters into the output image */
+
+   if( clar != NULL ){
+     for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+       cl = clar->clar[iclu] ;
+       if( cl->num_pt >= ptmin ){  /* put back into array, get some stats */
+
+         MCW_cluster_to_vol( nx,ny,nz , dim->kind,dar , cl ) ;
+
+         nkeep += cl->num_pt ; ncgood++ ; pclust++ ;
+         nbot = MIN(nbot,cl->num_pt); ntop = MAX(ntop,cl->num_pt);
+
+         if( clarout == NULL ) INIT_CLARR(clarout) ;
+         COPY_CLUSTER(dl,cl) ; ADDTO_CLARR(clarout,dl) ;
+       } else {
+         nkill += cl->num_pt ;
+       }
+     }
+     DESTROY_CLARR(clar) ;
+   }
+
+   /* repeat for negative clusters */
+
+   cim = mri_copy(bim) ; car = mri_data_pointer(cim) ;
+   mri_maskify( cim , mask ) ;
+   mri_threshold( thb , 1.e+22 , tim , cim ) ;
+   clar = MCW_find_clusters( nx,ny,nz , dx,dy,dz , cim->kind,car , rmm ) ;
+   mri_free(cim) ;
+
+   if( clar != NULL ){
+     for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
+       cl = clar->clar[iclu] ;
+       if( cl->num_pt >= ptmin ){  /* put back into array, get some stats */
+         MCW_cluster_to_vol( nx,ny,nz , dim->kind,dar , cl ) ;
+         nkeep += cl->num_pt ; ncgood++ ; nclust++ ;
+         nbot = MIN(nbot,cl->num_pt); ntop = MAX(ntop,cl->num_pt);
+         if( clarout == NULL ) INIT_CLARR(clarout) ;
+         COPY_CLUSTER(dl,cl) ; ADDTO_CLARR(clarout,dl) ;
+       } else {
+         nkill += cl->num_pt ;
+       }
+     }
+     DESTROY_CLARR(clar) ;
+   }
+
+   if( nkeep > 0 ){
+     report = THD_zzprintf( report ,
+                            " Voxels survived clustering =%6d\n"
+                            " Voxels edited out          =%6d\n"
+                            " # Positive clusters        =%6d\n"
+                            " # Negative clusters        =%6d\n" ,
+                            nkeep , nkill , pclust,nclust ) ;
+     if( nnlev > 0 )
+       report = THD_zzprintf( report ,
+                            " NN clustering level        =%6d %s\n" ,
+                            nnlev , cclev[nnlev-1] ) ;
+   }
+
+   RETURN(dim) ;
 }
 
 /*---------------------------------------------------------------------*/
