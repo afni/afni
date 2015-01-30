@@ -31,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.3, Jan 23, 2014
+Version 3.5.4, Jan 30, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -251,7 +251,7 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    params <- list (
       '-prefix' = apl(n = 1, d = NA,  h = paste(
    "-prefix PREFIX: Output file name. For AFNI format, provide prefix only,",
-   "         no view+suffix needed. Filename for NIfTI format should have",
+   "         with no view+suffix needed. Filename for NIfTI format should have",
    "         .nii attached, while file name for surface data is expected",
    "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
    "         if present, should be interpreted as the overall average",
@@ -1003,7 +1003,7 @@ mvCom5 <- function(fm, nF_mvE5) {
 runAOV <- function(inData, dataframe, ModelForm) {
    # assign voxel-wise covariate values
    assVV <- function(DF, vQV, value, c) {
-      # centering
+      # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
       if(is.na(c)) cvalue <- scale(value, center=TRUE, scale=F) else
          cvalue <- scale(value, center=c, scale=F)
       for(ii in 1:length(unique(DF[,vQV]))) {                                   
@@ -1610,7 +1610,10 @@ if(lop$nFm > 0) for(ii in 1:lop$nFm) {
 }
 
 glf_DF <- vector('list', lop$num_glf)   
-if(lop$num_glf>0) for(ii in 1:lop$num_glf) if(is.na(lop$wsVars))
+#if(lop$num_glf>0) for(ii in 1:lop$num_glf)
+#   glf_DF[[ii]] <- maov(glfRes[[ii]]$SSPE, glfRes[[ii]]$SSPH, glfRes[[ii]]$df, glfRes[[ii]]$df.residual)[3:4]
+
+if(lop$num_glf>0) for(ii in 1:lop$num_glf) if(is.na(lop$wsVars) & is.na(lop$mVar))
    glf_DF[[ii]] <- c(glfRes[[ii]]$Df[2], glfRes[[ii]]$Res.Df[2]) else
    glf_DF[[ii]] <- maov(glfRes[[ii]]$SSPE, glfRes[[ii]]$SSPH, glfRes[[ii]]$df, glfRes[[ii]]$df.residual)[3:4]
 
