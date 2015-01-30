@@ -249,9 +249,22 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             Opt->Other = -1;
          else if (!strcmp(argv[kar], "SOLID")) 
             Opt->Other = 2;
+         else if (!strcmp(argv[kar], "SOLID_CLEAN")) 
+            Opt->Other = 3;
          else {
             ERROR_exit("Bad value (%s) for -blend", argv[kar]);
          }
+         brk = 1;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-ed") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (stderr, "need two values after -ed \n");
+				exit (1);
+			}
+			Opt->erode = Opt->dilate = atoi(argv[kar]); ++kar;
+			Opt->f2 = atof(argv[kar]); 
          brk = 1;
 		}
       
@@ -317,12 +330,20 @@ void Infill_usage()
 "                AVG: Fill with average of neighboring values.\n"
 "                AUTO: Use MODE if DSET is integral, AVG otherwise.\n"
 "                SOLID: No blending, brutish fill. See also -minhits\n"
+"                SOLID_CLEAN: SOLID, followed by removal of dangling chunks\n"
+"                             Dangling chunks are defined as non-zero regions\n"
+"                             that surround lesser holes, i.e. holes that have\n"
+"                             less than MH. The cleanup step is not iterative\n"
+"                             though, and you are most likely better off using\n"
+"                             option -ed to do the cleanup.\n" 
 "   -minhits MH: Crietrion for considering a zero voxel to be a hole\n"
 "                MH refers to the total number of directions alogn which a\n"
 "                zero voxel is considered surrounded by non zero values.\n"
 "                a value of 1 is the least strict criterion, and a value of 3\n"
 "                is the strictest. \n"
 "                This parameter can only be used with -blend SOLID\n"
+"   -ed N V: Erode N times then dialate N times to get rid of hanging chunks.\n"
+"            Values filled in by this process get value V.\n"
 /*
 " The following set of options are used to fill the outside of a volume \n"
 " using radial linear interpolation:\n"
@@ -351,8 +372,15 @@ void Infill_usage()
 "                       the mask are not filled\n"  
 */
 "\n"
+"Example 1:\n"
+"Starting from a whole head mask that has some big holes in it where CSF and \n"
+"cavities are. Fill the inside of the mask and remove dangling chunks in the\n"
+"end with -ed \n"
+"        3dinfill -blend SOLID -ed 3 1 -prefix filledmask \\\n"
+"                 -minhits 2 -input holymask+orig.  \n"
+"\n"
 "This program will be slow for high res datasets with large holes.\n"
-"If you are trying to fill holes in masks, consider instead:\n"
+"If you are trying to fill holes in masks, consider also:\n"
 "  3dmask_tool -fill_holes \n"
 "\n"
         );
@@ -387,9 +415,13 @@ SEG_OPTS *Infill_Default(char *argv[], int argc)
    Opt->i3 = -1;
    Opt->i4 = -1;
    Opt->f1 = 0.0;
+   Opt->erode = Opt->dilate = 0;
+   Opt->f2 = 0.0;
    Opt->VoxDbg = -1;
    Opt->VoxDbg3[0] = Opt->VoxDbg3[1] = Opt->VoxDbg3[2] = -1;
    Opt->VoxDbgOut = NULL;
+   Opt->erode = 0;
+   Opt->dilate = 0;
    Opt->openmp = 0;
    Opt->N_main = -1;
    Opt->Bset=NULL;
@@ -456,17 +488,18 @@ int main(int argc, char **argv)
       switch (Opt->Other) {
          default:
             /* using method 1: SUMA_mri_volume_infill_zoom */
-            if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 1,
-                                   Opt->Other, Opt->N_main, -1)) {
+            if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, Opt->Other, -1,
+                          Opt->N_main, -1, Opt->erode, Opt->dilate, Opt->f2)) {
                SUMA_S_Err("Failed to fill volume");
                SUMA_RETURN(1);
             }
             break;
          case 2:
+         case 3:
             /* using method 2: SUMA_mri_volume_infill_solid */
             if (Opt->i4 < 0) Opt->i4 = 3;
-            if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, 2,
-                                   Opt->Other, Opt->N_main, Opt->i4)) {
+            if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, Opt->Other,
+                    -1, Opt->N_main, Opt->i4, Opt->erode, Opt->dilate, Opt->f2)){
                SUMA_S_Err("Failed to fill volume with solid method");
                SUMA_RETURN(1);
             }

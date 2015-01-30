@@ -249,6 +249,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
          }
 			brk = YUP;
 		}
+      
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
 			if (kar >= argc)  {
