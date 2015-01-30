@@ -175,6 +175,9 @@ typedef struct {
    int i1, i2, i3, i4, i5;
    float f1, f2, f3, f4, f5;
    
+   int erode;
+   int dilate;
+   
    int       N_hspec;
    SUMA_HIST **hspec;
 } SEG_OPTS;

@@ -351,6 +351,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                  interactive demo while 3dSkullStrip is communicating\n"
 "                  with AFNI and SUMA. See 'Eye Candy' mode below and\n"
 "                  -talk_suma option. \n"
+"     -fac FAC: Multiply input dataset by FAC if range of values is too\n"
+"               small.\n"
 "\n"
 "%s"
 "     -visual: Equivalent to using -talk_suma -feed_afni -send_kth 5\n"
@@ -530,6 +532,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->permask = -1.0;
    memset(Opt->PlEq, 0, 4*sizeof(float));
    Opt->flt1 = -160.0;
+   Opt->flt2 = 0.0;
    Opt->b1 = 0;
    
    brk = NOPE;
@@ -575,6 +578,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
                         "between 0.0 and 2.0 (have %f) \n", Opt->permask);
 				exit (1);
          }
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-fac") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need a factor after -fac \n");
+				exit (1);
+			}
+			Opt->flt2 = atof(argv[kar]);
          brk = YUP;
 		}
       
@@ -1273,7 +1286,6 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
 
 
 
-
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"3dSkullStrip"}; 
@@ -1524,18 +1536,25 @@ int main (int argc,char *argv[])
          THD_volDXYZscale(Opt->iset->daxes, Opt->xyz_scale, 0);
          Opt->specie = MONKEY;   /* now pretend it is a monkey! */
       }
+
+      if (Opt->flt2 != 0.0) {
+         if (THD_dset_scale(Opt->iset, Opt->flt2)) {
+            SUMA_S_Err("Scaling failed");
+            exit(1);
+         }
+      }
       
       /* If range is too small, complain */
       if (!THD_subbrick_minmax(Opt->iset, 0,  1, &min, &max)) {
          SUMA_S_Err("Failed to get min max of input");
          exit(1);
       }
+      
       if (max < 50) {
          SUMA_S_Warnv("Input dataset has a very low value range.\n"
-                    "If stripping fails, try scaling it by 1000\n"
-                    "with:\n  3dcalc -a %s -expr 'a*1000' -prefix PPP\n"
-                    "and try stripping again with new volume.\n", Opt->in_name);
+               "If stripping fails, repeat with option -fac 1000\n" );
       }
+      
       /*--- get median brick --*/
       imin = THD_median_brick( Opt->iset ) ;
       if( imin == NULL ){
@@ -2944,7 +2963,9 @@ int main (int argc,char *argv[])
    dset = SUMA_FormAfnidset (NULL, isin_float,
                              SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz,
                              OptDs);
-   
+   if (Opt->MaskMode == 2 && Opt->flt2 != 0.0) 
+                              THD_dset_scale(dset, 1.0/Opt->flt2); 
+
    /* erode and dilate, a bit of a cleanup? */
    if (1){
       EDIT_options *edopt = SUMA_BlankAfniEditOptions();
