@@ -7213,7 +7213,7 @@ DUMP_IVEC3("  new_id",new_id) ;
      if( VEDIT_good(im3d->vedset) ){
        im3d->vedset.ival = im3d->vinfo->fim_index ;
        switch( VEDIT_CODE(im3d->vedset) ){
-         case VEDIT_CLUST:
+         case VEDIT_CLUST:  /* params 2,3,6 set in afni_cluster.c */
            im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
            im3d->vedset.param[1] = get_3Dview_func_thresh(im3d,1);
            im3d->vedset.param[4] = im3d->vinfo->thr_sign ;
