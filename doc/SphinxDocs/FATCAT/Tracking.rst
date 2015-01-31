@@ -28,13 +28,14 @@ consistency:
 
 #. The set of things among which we want to find connections are
    referred to as **target ROIs** or just **targets**, and
-   collectively as the **network of targets**. There are usually *N>1*
-   things, but sometimes using a wholebrain mask as a 'network of one'
-   is useful for viewing tracts. Each target is a set of voxels of a
-   particular nonzero integer, and we may refer to it either by the
-   name of the integer or by a label associated with that integer
-   (e.g., "1" is the "precuneus", etc.). The use of ``3dROIMaker`` in
-   forming target networks is described in :ref:`Making_ROIs`.
+   collectively as the **network of targets**.  There are usually
+   *N>1* targets in a network, but sometimes it is useful to use a
+   wholebrain mask as a 'network of one' for viewing tracts. Each
+   target is a set of voxels of a particular nonzero integer, and we
+   may refer to it either by the name of the integer or by a label
+   associated with that integer (e.g., "1" is the "precuneus",
+   etc.). The use of ``3dROIMaker`` in forming target networks is
+   described in :ref:`Making_ROIs`.
 
 #. The set of tracts connecting a given pair of targets is called a
    **bundle**. These are specifically the collection of linear
@@ -158,7 +159,7 @@ Outputs common to all modes
      * all the locations where tracts went through an individual target
        ([i]th brick of either MAP file, where *i>0*);
 
-   * a **GRID** file (ending with ``*.grid``), which contains all the
+   * a **grid** file (ending with ``*.grid``), which contains all the
      structural connectivity matrices for the given network. Matrices
      in these files can be:
 
@@ -169,7 +170,7 @@ Outputs common to all modes
        with some helper ``fat_mvm*.py`` functions available for
        putting everything together and building commands+models.
 
-   * a **DSET** file (ending with ``*.dset``), which also contains all
+   * a **dset** file (ending with ``*.dset``), which also contains all
      of the structural connectivity matrices for a given network.
      Matrices in these files can be:
 
@@ -244,7 +245,7 @@ Outputs specific to \{DET|MINIP\} modes
    themselves!  These are only output in \{DET|MINIP\} modes, as the
    following:
 
-   * a **TRACT** file (ending with ``*.tract``), which contains all
+   * a **tract** file (ending with ``*.tract``), which contains all
      the individual tract sequences.  Additionally, it internally has
      the tracts organized into sets of bundles between targets, so
      that each bundle could be displayed as a separate color.  These
@@ -252,21 +253,22 @@ Outputs specific to \{DET|MINIP\} modes
 
        suma -tract PREFIX.niml.tract ...
 
-     One can also load in the **DSET** simultaneously and view the
+     One can also load in the **dset** simultaneously and view the
      connectivity matrix elements as coloration of tract bundles, such
      as after::
 
        suma -tract PREFIX.niml.tract  -gdset PREFIX.niml.dset ...
 
-     (In fact, the DSET loaded in could be either one output by
+     (In fact, the dset loaded in could be either one output by
      ``3dTrackID`` or by ``3dNetCorr``.)
 
    * a TRK-format file, ``*.trk``, legacy of when tractographic output
      had to be viewed with non-AFNI/SUMA options, which in this case
      were with TrackVis.  At some point (likely soon-ish), this will
-     not be a default output.
+     not be a default output; at the moment, the ``-no_trk_out``
+     switch can be utilized to save output space by not writing these.
 
-#. When outputting TRACT files, one has to choose whether to use
+#. When outputting tract files, one has to choose whether to use
    AND-logic or OR-logic within the network.  That is, whether to keep
    tracts that have a minimal requirement of going through one target
    (OR), or whether to require at tract to connect at least two
@@ -274,7 +276,7 @@ Outputs specific to \{DET|MINIP\} modes
    ``-logic {AND|OR}``.
 
 #. And, just to state explicitly, the full probabilistic tracking in
-   ``-mode PROB`` does *not* produce TRACT-file output.  Such is life
+   ``-mode PROB`` does *not* produce tract file output.  Such is life
    and also an impetus behind the mini-probabilistic methodology
    (described further below).
    
