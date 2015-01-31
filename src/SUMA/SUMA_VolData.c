@@ -289,6 +289,7 @@ char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists)
          char *head=NULL, c2view[10];
          SUMA_PARSED_NAME *Fname2=NULL;
          iview = 0; *exists = 0;
+         SUMA_LH("Modifying %s\n", Fname->HeadName);
          while (iview < 3) {
             if (iview == 0) head = 
                      SUMA_ModifyName(Fname->HeadName, "view","+orig", NULL); 
