@@ -122,6 +122,13 @@ are clear.  Current format choices include:
   itself would not generally be typed-- it is used non-literally to
   reinforce that something else needs to be typed after the option
   name;
+* some options take only specific keywords as arguments. The set of
+  keys will be presented in curly-brackets "\{...\}" with elements
+  separated by a vertical line "|". When described, those will often
+  be presented in the following format, ``-option_name
+  {KEY1|KEY2|KEY3|...}``, by which the user is expected to select only
+  one key when actually calling the option in the commandline (e.g.,
+  ``-option_name KEY2``);
 * in commandline examples, non-literal filenames are typed in
   all-capital letters with descriptive words separated by the
   underscore character '_', such as ``ROI_FILE``;

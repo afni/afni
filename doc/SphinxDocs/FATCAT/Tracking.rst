@@ -1,9 +1,9 @@
 
 .. _Tracking:
 
-*************************
+*************
 Making Tracts
-*************************
+*************
 
 .. contents::
    :depth: 3
@@ -102,8 +102,8 @@ consistency:
 
 |
 
-Operation: 3dTrackID
-====================
+Modus Operandi: 3dTrackID
+=========================
 
 **Preface.** Once upon a time, there were two separate FATCAT programs
 for performing deterministic and probabilistic tractography (3dTrackID
@@ -113,15 +113,30 @@ apparent that there could be only one.  After a brief quickening,
 3dTrackID picked up the probabilistic attributes and now that program
 is run in separate modes. Which brings us to the present.
 
-**Current times.** There are three distinct **modes** for performing tractography:
+**Current times.** There are three distinct **modes** for performing
+ tractography, and each is denoted with a short string after the
+ required switch ``-mode *``.  These are:
 
- #. deterministic,
+ #. deterministic (``DET``),
    
- #. mini-probabilistic, 
+ #. mini-probabilistic (``MINIP``), 
 
- #. (full) probabilistic.
+ #. (full) probabilistic (``PROB``).
 
-Each of the modes will output:
+Thus, all FATCAT tracking commands will start with a selection of one
+of these modes::
+  
+  3dTrackID -mode {DET|MINIP|PROB} ...
+
+There is a lot of overlap in what kind of data are input and output
+for these modes. First, we describe the default and optional outputs
+of all; then, special outputs of some; finally, the differences in
+inputs (and why they exist as such).
+
+Outputs common to all modes
+===========================
+
+By default, each of the ``3dTrackID`` modes will output the following:
 
 * volumes of WM ROIs, both a single **PAIRMAP** file of the AND-logic
   connections and a single **INDIMAP** file of the OR-logic ones.
@@ -144,8 +159,52 @@ Each of the modes will output:
     some helper ``fat_mvm*.py`` functions available for putting
     everything together and building commands+models.
 
-* a **DSET** file (ending with ``*.dset``), which also all the
-  structural connectivity matrices 
+* a **DSET** file (ending with ``*.dset``), which also contains all of
+  the structural connectivity matrices for a given network.  Matrices
+  in these files can be:
 
+  * loaded into SUMA (``$ suma -gdset NAME.niml.dset ...``);
 
+  * viewed in SUMA as either a standard, colorful matrix, or as a
+    graph-like network of nodes and edges throughout the 3D brain
+    representation;
 
+Additionally, each mode *can* also output:
+
+* a set of maps/masks of each individual WM ROI. This is done using
+  the option ``-dump_rois {AFNI|DUMP|BOTH|AFNI_MAP}``. The keyword
+  options each produces a set of individual files of the following:
+
+  * ``DUMP`` -> ``3dmaskdump``\-like text files of each WM ROI (which
+    could take quite a lot of space and not be so useful;
+    
+  * ``AFNI`` -> binary masks of each WM ROI;
+    
+  * ``BOTH`` -> both the binary masks and text files (combined outputs
+    of ``DUMP`` and ``AFNI``; the name reflects that it was developed
+    when there were only two individual output formats);
+    
+  * ``AFNI_MAP`` --> non-binarized *maps* of each WM ROI, where the
+    value of each voxel is the number of tracts that went through it
+    for that given connection;
+
+.. note:: Probably using one of the options ``-dump_rois
+          {AFNI|AFNI_MAP}`` would be the most useful.  Some unnamed
+          user(s) would even go so far as to recommend using it all
+          the time, because either would provide the only unambiguous
+          maps of individual WM ROIs output by ``3dTrackID``.
+
+.. note:: A PAIRMAP is not output if the input network has only one
+          target ROI, such as if one is doing a simple whole brain
+          tracking.
+
+.. note:: One can turn of INDIMAP and PAIRMAP output altogether, using
+          the switch ``-no_indipair_out``.  This might be useful if
+          you are tracking through a *large* network of targets, and
+          don't want to risk having a single reaaally big output file
+          wasting space or causing trouble.
+
+.. note:: By default, all volumetric outputs (PAIRMAP, INDIMAP,
+          ``-dump_rois *`` files, etc.) are in BRIK/HEAD file format.
+          If you prefer NIFTI, you can use the switch ``-nifti`` to
+          get all "\*.nii.gz" files.
