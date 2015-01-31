@@ -236,7 +236,7 @@ Outputs common to all modes
 
 
 Outputs specific to \{DET|MINIP\} modes
-======================================
+=======================================
 
 #. The outputs in the previous section are output for all modes of
    ``3dTrackID``.  However, careful readers will note that none of
