@@ -1646,7 +1646,7 @@ SUMA_PARSED_NAME * SUMA_ModifyParsedName (SUMA_PARSED_NAME *pn,
          fullname = SUMA_append_replace_string(fullname, 
                                              pn->Prefix, "", 1);
          fullname = SUMA_append_replace_string(fullname, 
-                                             pn->View, vval,1);
+                                              vval,"",1);
          fullname = SUMA_append_replace_string(fullname, 
                                              pn->TypeExt, "",1);
          fullname = SUMA_append_replace_string(fullname,  
