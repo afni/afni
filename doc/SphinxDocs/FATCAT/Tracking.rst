@@ -244,11 +244,11 @@ Outputs specific to \{DET|MINIP\} modes
    themselves!  These are only output in \{DET|MINIP\} modes, as the
    following:
 
-   * **TRACT** file (ending with ``*.tract``), which contains all the
-     individual tract sequences.  Additionally, it internally has the
-     tracts organized into sets of bundles between targets, so that
-     each bundle could be displayed as a separate color.  These files
-     are viewable in SUMA, loading with::
+   * a **TRACT** file (ending with ``*.tract``), which contains all
+     the individual tract sequences.  Additionally, it internally has
+     the tracts organized into sets of bundles between targets, so
+     that each bundle could be displayed as a separate color.  These
+     files are viewable in SUMA, loading with::
 
        suma -tract PREFIX.niml.tract ...
 
@@ -260,3 +260,21 @@ Outputs specific to \{DET|MINIP\} modes
 
      (In fact, the DSET loaded in could be either one output by
      ``3dTrackID`` or by ``3dNetCorr``.)
+
+   * a TRK-format file, ``*.trk``, legacy of when tractographic output
+     had to be viewed with non-AFNI/SUMA options, which in this case
+     were with TrackVis.  At some point (likely soon-ish), this will
+     not be a default output.
+
+#. When outputting TRACT files, one has to choose whether to use
+   AND-logic or OR-logic within the network.  That is, whether to keep
+   tracts that have a minimal requirement of going through one target
+   (OR), or whether to require at tract to connect at least two
+   targets (AND).  The choice is made using the (required) option
+   ``-logic {AND|OR}``.
+
+#. And, just to state explicitly, the full probabilistic tracking in
+   ``-mode PROB`` does *not* produce TRACT-file output.  Such is life
+   and also an impetus behind the mini-probabilistic methodology
+   (described further below).
+   
