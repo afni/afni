@@ -185,9 +185,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
          Opt->out_grid_prefix = SUMA_AfniPrefix(argv[++kar], Opt->out_grid_view, 
                                                 NULL, &(Opt->out_grid_exists));
          if (!SUMA_AfniExistsView(Opt->out_grid_exists, Opt->out_grid_view)) {
-            fprintf(SUMA_STDERR, "Error 3dSurfMask:\n"
-                                 "Grid parent %s%s does not exist.\n", 
-                                 Opt->out_grid_prefix, Opt->out_grid_view);
+            SUMA_S_Err("Grid parent %s%s does not exist (%d).\n", 
+                       Opt->out_grid_prefix, Opt->out_grid_view,
+                       Opt->out_grid_exists);
             exit(1);
          }
          brk = YUP;
