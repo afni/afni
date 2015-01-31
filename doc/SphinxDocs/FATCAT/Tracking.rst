@@ -15,7 +15,7 @@ There are a few modes/varieties/flavors of fiber tracking which can be
 performed with ``3dTrackID``.  Selecting which one to use depends a
 bit on the available inputs (though, these are mostly the same for
 each mode) and on the desired outcome ("with great power comes great
-responsibility").  
+responsibility").
 
 A general theme of all of them is to be able to deal with the
 following scenario: *I have a network of target ROIs; where is the
