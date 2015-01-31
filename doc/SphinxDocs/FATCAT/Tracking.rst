@@ -1,9 +1,9 @@
 
 .. _Tracking:
 
-*************
-Making Tracts
-*************
+************************
+Making Tracts: 3dTrackID
+************************
 
 .. contents::
    :depth: 3
@@ -102,8 +102,8 @@ consistency:
 
 |
 
-Modus Operandi: 3dTrackID
-=========================
+Modus operandi
+==============
 
 **Preface.** Once upon a time, there were two separate FATCAT programs
 for performing deterministic and probabilistic tractography (3dTrackID
@@ -133,78 +133,130 @@ for these modes. First, we describe the default and optional outputs
 of all; then, special outputs of some; finally, the differences in
 inputs (and why they exist as such).
 
+The outputs can be viewed variously and interactively in AFNI and SUMA
+(such as for volume, tract, and dset files).  Additionally, matrices
+of properties can be viewed and saved from the commandline with some
+``fat_*.py`` functions. Finally, outputs can be used for quantitative
+comparison and statistical modeling-- one method for doing the latter
+exists using G. Chen's 3dMVM (see below for some description, and the
+FATMVM demo introduced :ref:`DEMO_Definitions`).
+
+
 Outputs common to all modes
 ===========================
 
-By default, each of the ``3dTrackID`` modes will output the following:
+#. By default, each of the ``3dTrackID`` modes will output the following:
 
-* volumes of WM ROIs, both a single **PAIRMAP** file of the AND-logic
-  connections and a single **INDIMAP** file of the OR-logic ones.
-  These can be viewed most easily using the AFNI viewer to get a
-  visualization of:
+   * volumes of WM ROIs, both a single **PAIRMAP** file of the AND-logic
+     connections and a single **INDIMAP** file of the OR-logic ones.
+     These can be viewed most easily using the AFNI viewer to get a
+     visualization of:
 
-  * all the locations where tracts went through the network ([0]th brick
-    of either MAP file);
+     * all the locations where tracts went through the network ([0]th brick
+       of either MAP file);
 
-  * all the locations where tracts went through an individual target
-    ([i]th brick of either MAP file, where *i>0*);
+     * all the locations where tracts went through an individual target
+       ([i]th brick of either MAP file, where *i>0*);
 
-* a **GRID** file (ending with ``*.grid``), which contains all the
-  structural connectivity matrices for the given network. Matrices in
-  these files can be:
+   * a **GRID** file (ending with ``*.grid``), which contains all the
+     structural connectivity matrices for the given network. Matrices
+     in these files can be:
 
-  * selected, viewed and saved to an image file using ``fat_mat_sel.py``;
+     * selected, viewed and saved to an image file using
+       ``fat_mat_sel.py``;
 
-  * used for group-based statistics with G. Chen's 3dMVM program, with
-    some helper ``fat_mvm*.py`` functions available for putting
-    everything together and building commands+models.
+     * used for group-based statistics with G. Chen's 3dMVM program,
+       with some helper ``fat_mvm*.py`` functions available for
+       putting everything together and building commands+models.
 
-* a **DSET** file (ending with ``*.dset``), which also contains all of
-  the structural connectivity matrices for a given network.  Matrices
-  in these files can be:
+   * a **DSET** file (ending with ``*.dset``), which also contains all
+     of the structural connectivity matrices for a given network.
+     Matrices in these files can be:
 
-  * loaded into SUMA (``$ suma -gdset NAME.niml.dset ...``);
+     * loaded into SUMA (``$ suma -gdset NAME.niml.dset ...``);
 
-  * viewed in SUMA as either a standard, colorful matrix, or as a
-    graph-like network of nodes and edges throughout the 3D brain
-    representation;
+     * viewed in SUMA as either a standard, colorful matrix, or as a
+       graph-like network of nodes and edges throughout the 3D brain
+       representation;
 
-Additionally, each mode *can* also output:
+   |
 
-* a set of maps/masks of each individual WM ROI. This is done using
-  the option ``-dump_rois {AFNI|DUMP|BOTH|AFNI_MAP}``. The keyword
-  options each produces a set of individual files of the following:
+#. Additionally, each mode *can* also output:
 
-  * ``DUMP`` -> ``3dmaskdump``\-like text files of each WM ROI (which
-    could take quite a lot of space and not be so useful;
+   * a set of maps/masks of each individual WM ROI. This is done using
+     the option ``-dump_rois {AFNI|DUMP|BOTH|AFNI_MAP}``. The keyword
+     options each produces a set of individual files of the following:
+
+     * ``DUMP`` -> ``3dmaskdump``\-like text files of each WM ROI
+       (which could take quite a lot of space and not be so useful;
     
-  * ``AFNI`` -> binary masks of each WM ROI;
+     * ``AFNI`` -> binary masks of each WM ROI;
     
-  * ``BOTH`` -> both the binary masks and text files (combined outputs
-    of ``DUMP`` and ``AFNI``; the name reflects that it was developed
-    when there were only two individual output formats);
+     * ``BOTH`` -> both the binary masks and text files (combined
+       outputs of ``DUMP`` and ``AFNI``; the name reflects that it was
+       developed when there were only two individual output formats);
     
-  * ``AFNI_MAP`` --> non-binarized *maps* of each WM ROI, where the
-    value of each voxel is the number of tracts that went through it
-    for that given connection;
+     * ``AFNI_MAP`` --> non-binarized *maps* of each WM ROI, where the
+       value of each voxel is the number of tracts that went through
+       it for that given connection;
 
-.. note:: Probably using one of the options ``-dump_rois
-          {AFNI|AFNI_MAP}`` would be the most useful.  Some unnamed
-          user(s) would even go so far as to recommend using it all
-          the time, because either would provide the only unambiguous
-          maps of individual WM ROIs output by ``3dTrackID``.
+   |
 
-.. note:: A PAIRMAP is not output if the input network has only one
-          target ROI, such as if one is doing a simple whole brain
-          tracking.
+#. By way of comments and addenda:
 
-.. note:: One can turn of INDIMAP and PAIRMAP output altogether, using
-          the switch ``-no_indipair_out``.  This might be useful if
-          you are tracking through a *large* network of targets, and
-          don't want to risk having a single reaaally big output file
-          wasting space or causing trouble.
+   * Probably using one of the options ``-dump_rois {AFNI|AFNI_MAP}``
+     would be the most useful.  Some unnamed user(s) would even go so
+     far as to recommend using it all the time, because either would
+     provide the only unambiguous maps of individual WM ROIs output by
+     ``3dTrackID``.
 
-.. note:: By default, all volumetric outputs (PAIRMAP, INDIMAP,
-          ``-dump_rois *`` files, etc.) are in BRIK/HEAD file format.
-          If you prefer NIFTI, you can use the switch ``-nifti`` to
-          get all "\*.nii.gz" files.
+   * A PAIRMAP is not output if the input network has only one target
+     ROI, such as if one is doing a simple whole brain tracking.
+
+   * One can turn off INDIMAP and PAIRMAP output altogether, using the
+     switch ``-no_indipair_out``.  This might be useful if you are
+     tracking through a *large* network of targets (for example,
+     something connectome-y) and don't want to risk having a single
+     reaaally big output file wasting space or causing trouble.
+
+   * By default, all volumetric outputs (PAIRMAP, INDIMAP,
+     ``-dump_rois *`` files, etc.) are in BRIK/HEAD file format.  If
+     you prefer NIFTI, you can use the switch ``-nifti`` to get all
+     "\*.nii.gz" files.
+
+   * PAIRMAP, INDIMAP and dumped volumes can all be viewed in either
+     AFNI or in SUMA.  To load them into the latter for 3D
+     visualization, use::
+       
+       suma -vol FILENAME ...
+     
+     By default, they are displayed as slices and not as surfaces, but
+     you can select that capability (see description in
+     :ref:`Volume_Viewing`).
+
+
+Outputs specific to \{DET|MINIP\} modes
+======================================
+
+#. The outputs in the previous section are output for all modes of
+   ``3dTrackID``.  However, careful readers will note that none of
+   those tractographic outputs actually contained the tracts
+   themselves!  These are only output in \{DET|MINIP\} modes, as the
+   following:
+
+   * **TRACT** file (ending with ``*.tract``), which contains all the
+     individual tract sequences.  Additionally, it internally has the
+     tracts organized into sets of bundles between targets, so that
+     each bundle could be displayed as a separate color.  These files
+     are viewable in SUMA, loading with::
+
+       suma -tract PREFIX.niml.tract ...
+
+     One can also load in the **DSET** simultaneously and view the
+     connectivity matrix elements as coloration of tract bundles, such
+     as after::
+
+       suma -tract PREFIX.niml.tract  -gdset PREFIX.niml.dset ...
+
+     (In fact, the DSET loaded in could be either one output by
+     ``3dTrackID`` or by ``3dNetCorr``.)

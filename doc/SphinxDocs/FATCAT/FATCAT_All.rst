@@ -61,6 +61,8 @@ of call for asking new questions that you yourself might have.
 
 |
 
+.. _DEMO_Definitions:
+
 Demo data sets and scripts
 ==========================
 
