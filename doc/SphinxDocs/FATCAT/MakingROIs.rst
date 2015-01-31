@@ -1,5 +1,5 @@
 
-.. _Making ROIs:
+.. _Making_ROIs:
 
 *************************
 Making (networks of) ROIs

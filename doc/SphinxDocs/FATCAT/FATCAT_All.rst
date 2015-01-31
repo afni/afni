@@ -54,10 +54,10 @@ of call for asking new questions that you yourself might have.
 .. note:: This documentation aims to be a complement to the programs'
           helpfiles and demo scripts.  It is written in a different
           style, hopefully taking advantage of the ability to include
-          graphics and images to clarify points and make examples. If
-          there are any suggestions to increase clarity, to include
-          further examples or to fix tyypographic errors, please
-          notify the authors.
+          graphics and images to clarify \{e,al,il\}lusive points and to
+          make examples. If there are any suggestions to increase
+          clarity, to include further examples or to fix tyypographic
+          errors, please notify the authors.
 
 |
 
