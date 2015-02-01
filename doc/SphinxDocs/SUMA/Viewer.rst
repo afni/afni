@@ -337,6 +337,167 @@ Quick Tour
 Volume Viewing
 ==============
 
+We present a brief example of viewing volumes in SUMA.  This
+particular case is one of looking at: probabilistic tractography
+results (which are volumes), along with the target network that we
+input (also volumes).  We'll load in the FA map from the DTI fits and
+view it as slices for locating us in space. Finally, we can load in
+the dset of structural connectivity for further information (labels,
+graph connection and connectivity matrix viewing), but in this example
+we won't use it much, actually. Commands of note will be highlighted
+with dashed ellipsoids (ell) for ease of finding.
+
+#. To load in the appropriate data sets into suma, we use the
+   following commandline call from within the ``FATCAT_DEMO/DTI/``
+   directory (assuming that you have run the scripts therein, you can
+   follow along at home).  We are loading in most data as volumes (to
+   be viewed as either surfaces or slices), with the ``*.dset`` file
+   accompanying::
+
+     suma                                       \
+         -vol o.NETS_AND_000_PAIRMAP+orig[0]    \
+         -vol DT_FA+orig                        \
+         -vol ../ROI_ICMAP_GMI+orig[0]          \
+         -gdset o.NETS_AND_000.niml.dset
+
+   The following image is what we get (you may have different defaults
+   for some minor characteristics on your own machine, but this is
+   basically what should appear):
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.34_AM.png
+      :align: center
+      :figwidth: 50%
+
+   Volumes by default are viewed as slices, and in grayscale, so we
+   mostly see the FA map and not the PAIRMAP of tract results nor the
+   target ROI map.  The dset is represented as a graph, showing the
+   centers-of-mass of the target ROIs with yellow spheres, and the
+   locations of tractographic bundles on lines, colored by a matrix
+   property in the dset.
+
+#. To really get going, let's open up the controller, using either
+   "View -> Object Controller" or just the shortcut "CTRL + s" while
+   the SUMA viewer is foremost on the screen.  Now we have the viewer
+   and the controller:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.44_AM_B.png
+      :align: center
+      :figwidth: 70%
+
+   Each data object (here, volume or dset) will have its own control
+   panel, which we can toggle through using the small up/down triangle
+   "Switch" at the top of the panel (magenta ell.).  But first, we
+   need to tell SUMA to prepare each panel, which we can most easily
+   do by hitting the "All Objs." button (orange ell.).  After this,
+   you can try toggling through each control panel, if you wish. (NB:
+   this useful button appeared in Jan, 2015, so if you don't see,
+   please update your AFNI/SUMA distribution!)
+
+#. Toggle to the PAIRMAP file using the switches at the top, seeing
+   the correct file name, in this case
+   ``o.NETS_AND_000_PAIRMAP+orig[0]`` (magenta ell):
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.05_AM_B.png
+      :align: center
+      :figwidth: 70%
+
+   This zeroth brick contains a mask of all the WM ROIs found between
+   any pair of targets in the image. Right now, it's being shown as
+   slices, so it's hard to appreciate. Let's view these results as the
+   surface of the volume.  
+
+   Firstly, turn *off* the slice viewing, by unchecking the slice
+   viewers, if they currently are highlighted (green ell.).  Then,
+   turn *on* the surface viewing for the volume, by highlighting the
+   'v' in the "Volume Rendering Controls" (blue ell). Additionally, in
+   this same part of the panel, you can adjust the density of surface
+   rendering points, by changing the number in the 'Ns' box; a lot of
+   times, I make it '300', instead of the default '150'.
+
+#. What you should see now is a big, gray mass of tract volume, as in
+   the SUMA Viewer window here:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.25_AM_B.png
+      :align: center
+      :figwidth: 70%
+
+   To change the colorscheme of the PAIRMAP (though, it is just a
+   binary mask in this case), we can go to the 'Cmp' button in the
+   Controller panel (magenta ell). 
+
+#. Right-click on the 'Cmp' button, which opens up a list of colormaps:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.42_AM.png
+      :align: center
+      :figwidth: 70%
+
+   and you can scroll through the list until you find something nice
+   and visually pleasing, for example:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.16_AM.png
+      :align: center
+      :figwidth: 70%
+  
+   Ok, so that completes viewing that volume.
+    
+#. Now, let's say we want to *turn off* the viewing of the dset data.
+   First, use the top arrows by the 'Switch' to go to the appropriate
+   Control panel, until you see something that says
+   "GMATRIX_DOlink..." at the top (magenta ell).  NB for dsets: the
+   label here is not the filename in this case, but I think that what
+   is shown is a string inside the file-- seeing 'MATRIX' should help
+   identify it:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.41_AM_B.png
+      :align: center
+      :figwidth: 70%
+
+   To not see any graph stuff, we'll just raise the threshold for the
+   colorbar from '0' (green ell) all the way to the top.  Doing so
+   (blue ell in next figure), results in a farwell to labels and edges:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.56_AM_B.png
+      :align: center
+      :figwidth: 70%
+
+   If you have no use for the dset at this time, you also didn't have
+   to load it into the SUMA viewer, either.
+
+#. Ok, quickly now, let's practice again by viewing the target ROI
+   network as surfaces.  So, toggle to the panel with that volume's
+   filename (here, "../ROI_ICMAP_GMI+orig"), and turn *off* the Slice
+   viewing and turn *on* the volume viewing, as done above, resulting
+   in a panel and viewer that look like the following (I've just
+   highlighted the locations from above where we had adjusted viewing
+   controls):
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png
+      :align: center
+      :figwidth: 70%
+
+#. Again, we can make the volumes have a non-grayscale colormap for
+   viewing.  In this case, each target ROI has a separate integer, so
+   a nice colorscheme could be the "ROI_i*" ones, or here I'll pick
+   "Spectrum:red_to_blue+gap" from the 'Cmp' list (green ell in the
+   following) for no particular reason:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png
+      :align: center
+      :figwidth: 70%
+
+#. And that's pretty much that!  You can view the results from
+   different angles:
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png
+      :align: center
+      :figwidth: 70%
+
+   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png
+      :align: center
+      :figwidth: 70%
+
+
+
 .. todo::
                
    Show example for volume viewing.
