@@ -474,6 +474,7 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png
       :align: center
       :figwidth: 70%
+   |
 
 #. Again, we can make the volumes have a non-grayscale colormap for
    viewing.  In this case, each target ROI has a separate integer, so
@@ -484,25 +485,18 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png
       :align: center
       :figwidth: 70%
+   |
 
 #. And that's pretty much that!  You can view the results from
    different angles:
 
-   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png
-      :align: center
-      :figwidth: 70%
+   +---------------------------------------------------------------------------+---------------------------------------------------------------------------+
+   |.. image:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.20.40_AM.png |.. image:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png |
+   |   :width: 100%                                                            |   :width: 100%                                                            |
+   +---------------------------------------------------------------------------+---------------------------------------------------------------------------+
 
-   .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.22.18_AM.png
-      :align: center
-      :figwidth: 70%
+   |
 
-
-
-.. todo::
-               
-   Show example for volume viewing.
-   
-   
 .. _Tract_Viewing:
 
 Tract Viewing
