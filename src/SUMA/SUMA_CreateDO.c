@@ -12748,7 +12748,7 @@ SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
          SO = SUMA_findSOp_inDOv(
                   SUMA_find_SOidcode_from_label(atr, 
                                  SUMAg_DOv, SUMAg_N_DOv),
-                  SUMAg_DOv, SUMAg_N_DOv);
+                                 SUMAg_DOv, SUMAg_N_DOv);
       } else { SO = default_SO; }
       if (!SO) {
          if (atr) { 
