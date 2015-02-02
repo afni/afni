@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2, Feb, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
+   "Take coords from a surface rather than just a file for -com node_xyz",
+   NULL
+ },
+
  { 30, Jan, 2014, ZSS, "3dinfill", MINOR, TYPE_NEW_OPT,
    "Improvements to SOLID fill method and addition of option -ed",
    NULL

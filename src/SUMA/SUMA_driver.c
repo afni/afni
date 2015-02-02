@@ -148,6 +148,12 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                           have three columns.\n"
 "                           Column selectors can be used here as \n"
 "                           they are in AFNI.\n"
+"        If you do not have the coordinates handy in a 1D file\n"
+"        and would prefer to get them directly from a surface,\n"
+"        you can substitute -xyz_1D COORDS.1D with any valid suma \n"
+"        surface input option. For example, if you want to send\n"
+"        the coords of surface surf.gii, you can just use -i surf.gii , in\n"
+"        lieu of -node_xyz COORDS.1D\n"
 "     + Example node_xyz (needs surface from 'Example show_surf')\n"
 "        1- Create some variation on the coords of the surface\n"
 "        2- Send new coordinates to SUMA\n"
@@ -2794,7 +2800,9 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
    brk = NOPE;
 	while (kar < argtc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
-      if (!brk && ( (strcmp(argt[kar], "-label") == 0) || (strcmp(argt[kar], "-surf_label") == 0) || (strcmp(argt[kar], "-so_label") == 0)) )
+      if (!brk && (  (strcmp(argt[kar], "-label") == 0) || 
+                     (strcmp(argt[kar], "-surf_label") == 0) || 
+                     (strcmp(argt[kar], "-so_label") == 0)) )
       {
          if (kar+1 >= argtc)
          {
@@ -2825,15 +2833,49 @@ SUMA_SurfaceObject *SUMA_NodeXYZComToSO(char *com)
       }
       
       if (!brk && !pst->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n",
-               FuncName, argt[kar]);
+			SUMA_S_Err("Option %s not understood. Try -help for usage\n",
+                    argt[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;
 		}
    }
+   
+   if (!SO->NodeList) {
+      SUMA_SurfaceObject *SOu=NULL;
 
+      /* Perhaps user tried to go the -i route */
+      Spec = SUMA_IO_args_2_spec(pst, &N_Spec);
+      if (N_Spec == 0) {
+         SUMA_S_Err("No -xyz_1D or input surface found.");
+         exit(1);
+      }
+      if (N_Spec != 1) {
+         SUMA_S_Err("Multiple spec at input.");
+         exit(1);
+      }
+
+      SOu = SUMA_Load_Spec_Surf(Spec, 0, pst->sv[0], 0);
+      if (!SOu) {
+            fprintf (SUMA_STDERR,"Error %s:\n"
+                                 "Failed to find surface\n"
+                                 "in spec file. \n",
+                                 FuncName );
+            exit(1);
+
+      }
+      SO->N_Node = SOu->N_Node;
+      SO->NodeDim = SOu->NodeDim;
+      SO->NodeList = SOu->NodeList; SOu->NodeList = NULL;
+      SUMA_Free_Surface_Object(SOu); SOu = NULL;
+   }
+   
+   if (!SO->NodeList) {
+      SUMA_S_Err("Have no XYZ coords! Did you use -node_xyz or -i, -spec, etc.");
+      exit (1);
+   }
+   
    /* fix the trimmings */
    if (!SO->State) {SO->State = SUMA_copy_string("DC"); }
    if (!SO->Group) {SO->Group = SUMA_copy_string("DS"); }

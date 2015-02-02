@@ -1145,8 +1145,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (!SO) {
-            fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n",
-                                FuncName, nel->name);
+            SUMA_S_Err("%s: nel idcode is not found in DOv.\n", nel->name);
             SUMA_RETURN(NOPE);
          }
 
@@ -1178,7 +1177,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             }
          }
          /* show me nel */
-         /* if (LocalHead) SUMA_nel_stdout (nel); */
+         if (0 && LocalHead) SUMA_nel_stdout (nel); 
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
@@ -1193,8 +1192,18 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (!SO) {
-            fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n",
-                                FuncName, nel->name);
+            SO = SUMA_findSOp_inDOv(
+                  SUMA_find_SOidcode_from_label(NI_get_attribute(nel, 
+                                                "Target_Object_Label"), 
+                                                SUMAg_DOv, SUMAg_N_DOv),
+                                                   SUMAg_DOv, SUMAg_N_DOv);
+         }
+         if (!SO) {
+            SUMA_S_Err("%s: nel idcode (%s) is not found in DOv. "
+                       "Object Label %s, Target Object Label %s.\n",  
+                        nel->name, nel_surfidcode, 
+                        NI_get_attribute (nel, "Object_Label"),
+                        NI_get_attribute(nel, "Target_Object_Label"));
             SUMA_RETURN(NOPE);
          }
 
@@ -1318,9 +1327,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          ado = SUMA_whichADO(nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (!ado) {
-            fprintf( SUMA_STDERR,
-                     "Error %s:%s: nel idcode is not found in DOv.\n", 
-                     FuncName, nel->name);
+            SUMA_S_Err("%s: nel idcode is not found in DOv.\n", nel->name);
             SUMA_RETURN(NOPE);
          }
          if (ado->do_type != SO_type && ado->do_type != TRACT_type) {
@@ -3716,9 +3723,11 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (
       SUMA_LH(" label");
       sprintf(stmp, "NodeList for surface %s", SO->Label);
       NI_set_attribute (nel, "Object_Label", stmp);
+      NI_set_attribute (nel, "Target_Object_Label", SO->Label);
    } else {
       SUMA_LH(" no label");
       NI_set_attribute (nel, "Object_Label", SUMA_EMPTY_ATTR);
+      NI_set_attribute (nel, "Target_Object_Label", SUMA_EMPTY_ATTR);
    }
          
    SUMA_LH("Adding data");
@@ -3891,8 +3900,10 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO,
    if (SO->Label) {
       sprintf(stmp,"Volume parent of %s", SO->Label);
       NI_set_attribute(nel, "Object_Label", stmp);
+      NI_set_attribute (nel, "Target_Object_Label", SO->Label);
    } else {
       NI_set_attribute(nel, "Object_Label", SUMA_EMPTY_ATTR);
+      NI_set_attribute (nel, "Target_Object_Label", SUMA_EMPTY_ATTR);
    }
    
    sprintf(stmp,"%d", VolPar->isanat); 
