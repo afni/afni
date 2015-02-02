@@ -54,12 +54,14 @@ of call for asking new questions that you yourself might have.
 .. note:: This documentation aims to be a complement to the programs'
           helpfiles and demo scripts.  It is written in a different
           style, hopefully taking advantage of the ability to include
-          graphics and images to clarify points and make examples. If
-          there are any suggestions to increase clarity, to include
-          further examples or to fix tyypographic errors, please
-          notify the authors.
+          graphics and images to clarify \{e,al,il\}lusive points and to
+          make examples. If there are any suggestions to increase
+          clarity, to include further examples or to fix tyypographic
+          errors, please notify the authors.
 
 |
+
+.. _DEMO_Definitions:
 
 Demo data sets and scripts
 ==========================
@@ -122,6 +124,13 @@ are clear.  Current format choices include:
   itself would not generally be typed-- it is used non-literally to
   reinforce that something else needs to be typed after the option
   name;
+* some options take only specific keywords as arguments. The set of
+  keys will be presented in curly-brackets "\{...\}" with elements
+  separated by a vertical line "|". When described, those will often
+  be presented in the following format, ``-option_name
+  {KEY1|KEY2|KEY3|...}``, by which the user is expected to select only
+  one key when actually calling the option in the commandline (e.g.,
+  ``-option_name KEY2``);
 * in commandline examples, non-literal filenames are typed in
   all-capital letters with descriptive words separated by the
   underscore character '_', such as ``ROI_FILE``;

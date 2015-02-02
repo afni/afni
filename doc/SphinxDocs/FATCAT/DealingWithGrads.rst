@@ -369,9 +369,8 @@ Flipping Gradients (if necessary)
     * usually, once you determine the fix for one subject's data set,
       the rest of the data from the same scanner+protocol follows
       suit.    
-
-    
-    
+    |
+       
 #.  The sign flip does **not** affect the scalar DT parameter values
     such as FA, MD, RD, L1, and all others related purely to size and
     shape, due to mathematical symmetries in the DT (and HARDI)
