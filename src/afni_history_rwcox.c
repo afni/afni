@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 30 , JAN , 2015 , RWC , "Clusterize" , MINOR , TYPE_GENERAL ,
+  { 2 , FEB , 2015 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Add \"_once\" popup messages to AFNI GUI" ,
+   "So the message only pops up once for each user -- function\n"
+   "MCW_popup_message_once() in xutil.c -- first use is a popup message for\n"
+   "Clusterize alpha values, mentioning the new tables." } ,
+
+ { 30 , JAN , 2015 , RWC , "Clusterize" , MINOR , TYPE_GENERAL ,
    "Add Bi-sided clustering" ,
    "Goes along with the new 3dClustSim, which now generates tables for that\n"
    "case as well. 'Bi-sided' means positive above-threshold voxels are\n"
