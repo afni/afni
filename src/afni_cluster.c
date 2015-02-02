@@ -1307,6 +1307,23 @@ ENTRY("AFNI_clus_update_widgets") ;
    pval = im3d->vinfo->func_pval ;
    ctab = CLU_get_thresh_table( im3d ) ;
    if( pval >= 0.0f && ctab != NULL ){
+     MCW_popup_message_once( im3d->vwid->func->clu_report_pb ,
+                               "--------------- ***** NOTICE ***** -----------------\n"
+                               "\n"
+                               " Cluster alpha calculations in 3dClustSim have been\n"
+                               " changed, which may change the significance of the\n"
+                               " reported clusters.\n"
+                               "\n"
+                               " The main change is that separate threshold tables\n"
+                               " are now produced for 1-sided, 2-sided, and bi-sided\n"
+                               " statistical thresholding.\n"
+                               "\n"
+                               " Previously, only 1-sided tables were created.\n"
+                               " That method was overly conservative for 2-sided\n"
+                               " tests, which are common in AFNI (eg, t-statistics).\n"
+                               "\n"
+                               "------------- ***** Feb 2015 ***** -----------------" ,
+                             "01 Jan 2016" , "Clusterize#A" ) ;
 #if 0
      int csiz ;
      csiz = find_cluster_thresh( 0.10f , pval , ctab ) ;
