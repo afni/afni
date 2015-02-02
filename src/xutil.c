@@ -704,6 +704,7 @@ void MCW_popup_message_once( Widget w, char *msg, char *expiry, char *codestring
 
    if( w == (Widget)NULL ) return ;
    if( msg == NULL || *msg == '\0' ) return ;
+   if( AFNI_yesenv("AFNI_SKIP_ONETIME_POPUPS") ) return ;
 
    /* check expiry date vs today */
 

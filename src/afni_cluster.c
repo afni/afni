@@ -1322,6 +1322,9 @@ ENTRY("AFNI_clus_update_widgets") ;
                                " That method was overly conservative for 2-sided\n"
                                " tests, which are common in AFNI (eg, t-statistics).\n"
                                "\n"
+                               " Please read the output of 3dClustSim -help for more\n"
+                               " information about the new tables.\n"
+                               "\n"
                                "------------- ***** Feb 2015 ***** -----------------" ,
                              "01 Jan 2016" , "Clusterize#A" ) ;
 #if 0
