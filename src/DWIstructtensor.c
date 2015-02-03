@@ -56,7 +56,8 @@ static INLINE float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int 
 extern THD_3dim_dataset * Copy_dset_to_float(THD_3dim_dataset * dset , char * new_prefix );
 void Compute_IMARR_Max(MRI_IMARR *Imptr);
 float Find_Max_Im(MRI_IMAGE *im, byte *maskptr);
-void Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, char *dset_name);
+void Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, 
+                        char *dset_name);
 
 extern int compute_method; /* determines which method to compute phi */
 
@@ -168,7 +169,8 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
 
 /*! save IMARR structure to temporary dataset and write to disk */
 void
-Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, char *dset_name)
+Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, 
+                   char *dset_name)
 {
   THD_3dim_dataset *temp_dset;
   int nbriks,i;
@@ -178,9 +180,51 @@ Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, char *dset_
    temp_dset = Copy_IMARR_to_dset(base_dset, Imarr_Im, dset_name);
    nbriks = temp_dset->dblk->nvals;
    tross_Copy_History (base_dset, temp_dset);
-   for(i=0;i<nbriks;i++) {
-      sprintf(tempstring,"%s_%d", dset_name, i);
-      EDIT_dset_items(temp_dset,ADN_brick_label_one + i,tempstring,ADN_none);
+   if (!strncmp(dset_name, "Eigens.",7) && (nbriks == 12 || nbriks == 8) ) {
+      if (nbriks == 12) { /* More informative labels, check if directions are 
+                             RAI or IJK...*/
+         for(i=0;i<3;i++) {
+            sprintf(tempstring,"L%d", i+1);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one+ i,tempstring,ADN_none);
+         }
+         for(i=3;i<12;i=i+3) {
+            sprintf(tempstring,"V%d.x", i/3);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one+ i,tempstring,ADN_none);
+            sprintf(tempstring,"V%d.y", i/3);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one+ i+1,tempstring,ADN_none);
+            sprintf(tempstring,"V%d.z", i/3);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one+ i+2,tempstring,ADN_none);
+         }
+      } else if (nbriks == 8) { 
+         for(i=0;i<2;i++) {
+            sprintf(tempstring,"L%d", i+1);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one+ i,tempstring,ADN_none);
+         }
+         for(i=2;i<8;i=i+2) {
+            sprintf(tempstring,"V%d.x", i/2);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one+ i,tempstring,ADN_none);
+            sprintf(tempstring,"V%d.y", i/2);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one+ i+1,tempstring,ADN_none);
+         }
+      } else { /* Should not be here! */
+         for(i=0;i<nbriks;i++) {
+            sprintf(tempstring,"%s_%d", dset_name, i);
+            EDIT_dset_items(temp_dset,
+               ADN_brick_label_one + i,tempstring,ADN_none);
+         }
+      }
+   } else { /* default */
+      for(i=0;i<nbriks;i++) {
+         sprintf(tempstring,"%s_%d", dset_name, i);
+         EDIT_dset_items(temp_dset,ADN_brick_label_one + i,tempstring,ADN_none);
+      }
    }
 
    EDIT_dset_items(temp_dset ,
