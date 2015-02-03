@@ -8399,13 +8399,13 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
    byte *mask=NULL;
    int   in=0, vxi_bot[30], vxi_top[30], iter, N_movers, 
          ndbg=SUMA_getBrainWrap_NodeDbg(), nn,N_um,
-         itermax1 = 50, itermax2 = 10;
+         itermax1 = 50;
    float *fvec=NULL, *xyz, *dir, P2[2][3], travstep, shs_bot[30], shs_top[30];
    float rng_bot[2], rng_top[2], rdist_bot[2], rdist_top[2], avg[3], nodeval,
          area=0.0, larea=0.0, ftr=0.0, darea=0.0;
    float  *fnz=NULL, *alt=NULL;
    float maxtop, maxbot;
-   int   nmaxtop, nmaxbot;
+   int   nmaxtop, nmaxbot, Max_nn;
    float dirZ[3], *dots=NULL, U3[3], Un;
    THD_3dim_dataset *inset=NULL;
    SUMA_Boolean stop = NOPE;
@@ -8440,7 +8440,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
    
    
    stop = NOPE;
-   N_movers = 0; iter=0;
+   N_movers = 0; iter=0; Max_nn = 3;
    while (!stop) {
       N_movers = 0;
       memset(mask, 1, sizeof(byte)*SO->N_Node);
@@ -8513,7 +8513,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
                         if (in == ndbg|| LocalHead){ 
                            SUMA_S_Notev("Going down %d steps to edge+anchor\n", 
                                        nn);}
-                        nn = SUMA_MIN_PAIR(nn,3);/* slowly to avoid folding */
+                        nn = SUMA_MIN_PAIR(nn,Max_nn);/* slowly, avoid folding */
                         ftr = travstep*nn;
                         xyz[0] -= ftr*dir[0];
                         xyz[1] -= ftr*dir[1];
@@ -8527,7 +8527,8 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
                               if (!nn) nn = 1; /* If too far in space and nothing
                                                   is found nmaxbot can be 0, so 
                                                   keep going */
-                              nn = SUMA_MIN_PAIR(nn,3);/* slowly, avoid folding*/
+                                               /* slowly, avoid folding*/
+                              nn = SUMA_MIN_PAIR(nn,Max_nn);
                               ftr = travstep*nn;
                               if (in == ndbg){ 
                                  SUMA_S_Note("Going down max from %f %f %f to\n"
@@ -10124,7 +10125,7 @@ SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
 }
 
 SUMA_SurfaceObject *SUMA_Mask_Skin(THD_3dim_dataset *iset, int ld,
-                                    int smooth_final, int HullOnly,
+                                    int smooth_final, int shrink_mode,
                                     SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_Mask_Skin"};
@@ -10186,7 +10187,7 @@ SUMA_SurfaceObject *SUMA_Mask_Skin(THD_3dim_dataset *iset, int ld,
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
    }
 
-   if (!HullOnly) {
+   if (shrink_mode) {
       /* Shrink */
       SUMA_LH("hull shrinkage");
       SUMA_ShrinkSkullHull2Mask(SOi, iset, 0.0, smooth_final, cs);
