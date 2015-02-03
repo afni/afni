@@ -127,7 +127,7 @@ typedef struct {
    char *skingrid;
    char *in_name;
    int smoothskin;
-   int hullonly;
+   int shrink_mode;
    int voxmeth;
    int infill;
    int node_dbg;
@@ -173,7 +173,7 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
    Opt->sform = SUMA_NO_DSET_FORMAT;
    Opt->voxmeth = 0;
    Opt->in_name = NULL;
-   Opt->hullonly = 0;
+   Opt->shrink_mode = 2; /* agressive */
    Opt->smoothskin = 1;
    Opt->infill = 2;
    Opt->node_dbg=-1;
@@ -306,7 +306,7 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
 		  		fprintf (SUMA_STDERR, "need argument after -vol_skin \n");
 				exit (1);
 			}
-			Opt->hullonly = 0;
+			Opt->shrink_mode = 2;
          Opt->in_name = SUMA_copy_string(argv[kar]);
          brk = YUP;
 		}
@@ -327,7 +327,7 @@ SUMA_BRAIN_SKIN_OPTIONS *SUMA_BrainSkin_ParseInput(
 		  		fprintf (SUMA_STDERR, "need argument after -vol_hull \n");
 				exit (1);
 			}
-         Opt->hullonly = 1;
+         Opt->shrink_mode = 0;
 			Opt->in_name = SUMA_copy_string(argv[kar]);
          brk = YUP;
 		}
@@ -1252,9 +1252,21 @@ int main (int argc,char *argv[])
    
    /* Allocate space for DO structure */
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-sv;-s;-o;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-sv;-s;-o;-talk;");
    
    SUMA_BrainSkin_ParseInput (argv, argc, &Opt, ps);
+   
+   /* see if SUMA talk is turned on */
+   if (ps->cs->talk_suma) {
+      ps->cs->istream = SUMA_BRAINWRAP_LINE;
+      ps->cs->kth = 1; /* make sure all surfaces get sent */
+      if (!SUMA_SendToSuma (NULL, ps->cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
+         SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+         ps->cs->Send = NOPE;
+         ps->cs->afni_Send = NOPE;
+         ps->cs->talk_suma = NOPE;
+      }
+   }
    
    if (Opt.in_name) {
       SUMA_SurfaceObject *SO=NULL;
@@ -1265,7 +1277,8 @@ int main (int argc,char *argv[])
          exit(1);
       }
       DSET_load(dset);
-      if (!(SO = SUMA_Mask_Skin(dset, 0, Opt.smoothskin, Opt.hullonly, NULL))) {
+      if (!(SO = SUMA_Mask_Skin(dset, 0, Opt.smoothskin, 
+                                Opt.shrink_mode, ps->cs))){
          SUMA_S_Err("Failed to create mask");
          exit(1);
       }
