@@ -666,7 +666,7 @@ int SUMA_SetDsetLabeltable(THD_3dim_dataset *dset, char **labels,
                            int N_labels, int *keys);
 
 SUMA_SurfaceObject *SUMA_Mask_Skin(THD_3dim_dataset *iset, int ld,
-                          int smooth_final, int hullonly, SUMA_COMM_STRUCT *cs);
+                       int smooth_final, int shrink_mode, SUMA_COMM_STRUCT *cs);
 SUMA_SurfaceObject *SUMA_Dset_ConvexHull(THD_3dim_dataset *dset, int isb,
                                         float th, byte *umask);
 SUMA_SurfaceObject *SUMA_ExtractHead_hull(THD_3dim_dataset *iset,
