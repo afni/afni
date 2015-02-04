@@ -160,6 +160,7 @@ Connectoming
    
    .. figure:: media/Connectoming.jpg
       :align: center
+      :target: ../../_images/Connectoming.jpg
       
       The tracts here are :ref:`colored<TractCont->Coloring_Controls->Switch_Dset>` depending on which pair of ROIs they join. To launch suma with the results displayed here, use::
       
