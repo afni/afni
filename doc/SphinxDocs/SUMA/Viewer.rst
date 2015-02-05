@@ -366,7 +366,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.34_AM.png
       :align: center
-      :figwidth: 50%
+      :width: 60%
 
    Volumes by default are viewed as slices, and in grayscale, so we
    mostly see the FA map and not the PAIRMAP of tract results nor the
@@ -382,7 +382,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.15.44_AM_B.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
 
    Each data object (here, volume or dset) will have its own control
    panel, which we can toggle through using the small up/down triangle
@@ -399,7 +399,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.05_AM_B.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
 
    This zeroth brick contains a mask of all the WM ROIs found between
    any pair of targets in the image. Right now, it's being shown as
@@ -419,7 +419,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.25_AM_B.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
 
    To change the colorscheme of the PAIRMAP (though, it is just a
    binary mask in this case), we can go to the 'Cmp' button in the
@@ -429,14 +429,14 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.16.42_AM.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
 
    and you can scroll through the list until you find something nice
    and visually pleasing, for example:
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.16_AM.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
   
    Ok, so that completes viewing that volume.
     
@@ -450,7 +450,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.41_AM_B.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
 
    To not see any graph stuff, we'll just raise the threshold for the
    colorbar from '0' (green ell) all the way to the top.  Doing so
@@ -458,7 +458,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.17.56_AM_B.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
 
    If you have no use for the dset at this time, you also didn't have
    to load it into the SUMA viewer, either.
@@ -473,7 +473,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
    |
 
 #. Again, we can make the volumes have a non-grayscale colormap for
@@ -484,7 +484,7 @@ with dashed ellipsoids (ell) for ease of finding.
 
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png
       :align: center
-      :figwidth: 70%
+      :width: 75%
    |
 
 #. And that's pretty much that!  You can view the results from

@@ -43,7 +43,11 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 13 , JAN , 2015 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+  { 5 , FEB , 2015 , RWC , "AFNI InstaCorr" , MINOR , TYPE_GENERAL ,
+   "Add Iterate option" ,
+   NULL } ,
+
+ { 13 , JAN , 2015 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Secret option '-ballopt'" ,
    "A step towards using more complex basis functions, by allowing\n"
    "optimization only over an L2-ball in parameter space, rather than a\n"

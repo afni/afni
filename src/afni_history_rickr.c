@@ -49,6 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Feb, 2015, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
+   "consolodate blur and reorg into one function, to reduce max memory usage",
+   "This allows the program to run on weaker systems, cutting the max RAM\n"
+   "usage by one half.  A prior step was to allocate main RAM early so that\n"
+   "free() would release to the OS (Linux), but that is now moot.\n"
+   "This change has no effect on the results (no binary diff)."
+ } ,
+
  { 28,  Jan, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "in mri_fdrize, warn user if p->q is skipped because of < 20 voxels",
    NULL

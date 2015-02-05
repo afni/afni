@@ -451,6 +451,8 @@ INSTACORR [c] order
      SEEDRAD=number     ==> extra blurring seed radius               [0]
      POLORT=number      ==> polort order, from -1..2                 [2]
      METHOD=code        ==> codes: S=Spearman, P=Pearson, etc.       [P]
+     COUNT=number       ==> Iteration Count (from 1..6 inclusive)    [1]
+     THRESH=number      ==> Iteration Thresh (non-negative)          [0.01]
   The 'name' string can be upper or lower case.  The '=' sign must immediately
   follow the 'name' with no spaces, and then the 'value' must come right after
   the '=', again with no spaces.  The 'value' is interpreted as described
