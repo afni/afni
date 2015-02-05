@@ -115,7 +115,7 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
       if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (stderr, "need argument after -mset \n");
+		  		fprintf (stderr, "need argument after -mask \n");
 				exit (1);
 			}
 			Opt->mset_name = argv[kar];
@@ -344,6 +344,14 @@ void Infill_usage()
 "                This parameter can only be used with -blend SOLID\n"
 "   -ed N V: Erode N times then dialate N times to get rid of hanging chunks.\n"
 "            Values filled in by this process get value V.\n"
+"   -mask MSET: Provide mask dataset to select subset of input.\n"
+"   -mask_range BOT TOP: Specify the range of values to consider from MSET.\n"
+"                        Default is anything non-zero\n" 
+"   -cmask CMASK: Provide cmask expression. Voxels where expression is 0\n"
+"                 are excluded from computations. For example:\n"
+"            -cmask '-a T1.div.r+orig -b T1.uni.r+orig -expr step(a/b-10)'\n"
+"   NOTE: For the moment, masking is only implemented for the SOLID* fill\n"
+"         method.\n"
 /*
 " The following set of options are used to fill the outside of a volume \n"
 " using radial linear interpolation:\n"
@@ -426,6 +434,7 @@ SEG_OPTS *Infill_Default(char *argv[], int argc)
    Opt->N_main = -1;
    Opt->Bset=NULL;
    Opt->proot = NULL;
+   Opt->cmask = NULL;
    Opt->smode = STORAGE_BY_BRICK;   
    RETURN(Opt);
 }
@@ -457,6 +466,16 @@ int main(int argc, char **argv)
       SUMA_RETURN(1);
    }
    
+   if (Opt->mset_name) {
+      if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {      
+         SUMA_RETURN(1);
+      }
+   }
+   
+   Opt->cmask = MaskSetup(Opt, Opt->aset, 0,
+                &(Opt->mset), &(Opt->cmask), Opt->dimcmask, 
+                Opt->mask_bot, Opt->mask_top, &(Opt->cmask_count));
+                
    /* Fix VoxDbg */
    if (Opt->VoxDbg >= 0) {
       Vox1D2Vox3D(Opt->VoxDbg, 
@@ -489,7 +508,8 @@ int main(int argc, char **argv)
          default:
             /* using method 1: SUMA_mri_volume_infill_zoom */
             if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, Opt->Other, -1,
-                          Opt->N_main, -1, Opt->erode, Opt->dilate, Opt->f2)) {
+                          Opt->N_main, -1, Opt->erode, Opt->dilate, Opt->f2,
+                          Opt->cmask)) {
                SUMA_S_Err("Failed to fill volume");
                SUMA_RETURN(1);
             }
@@ -499,7 +519,8 @@ int main(int argc, char **argv)
             /* using method 2: SUMA_mri_volume_infill_solid */
             if (Opt->i4 < 0) Opt->i4 = 3;
             if (!SUMA_VolumeInFill(Opt->aset, &Opt->Bset, Opt->Other,
-                    -1, Opt->N_main, Opt->i4, Opt->erode, Opt->dilate, Opt->f2)){
+                    -1, Opt->N_main, Opt->i4, Opt->erode, Opt->dilate, Opt->f2,
+                    Opt->cmask)){
                SUMA_S_Err("Failed to fill volume with solid method");
                SUMA_RETURN(1);
             }
