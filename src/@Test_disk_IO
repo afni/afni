@@ -1,0 +1,217 @@
+#!/bin/tcsh -f
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set stat = 0
+set pname = `basename $0`
+set mcname = `hostname -s`
+set log = TDIO.log.$mcname
+set niter = 1
+
+goto PARSE
+RET_PARSE:
+   
+CHECK:
+   if ( ! -d $testdir ) then
+      echo "Cannot find directory $testdir"
+      goto BEND
+   endif
+
+   touch $testdir/$tfile
+   if ($status == 1) then
+      echo "Cannot create tempfile under $testdir"
+      goto BEND
+   endif
+
+   if ( -f $testdir/$tfile ) \rm -f $testdir/$tfile
+
+LOG:
+   echo "Testing write/read speed to $testdir with $pname" | tee $log
+   echo "`date` `uname` `hostname -s` `whoami` $PWD" | tee -a $log
+   echo "" | tee -a $log
+   
+TEST_WRITE:
+   set btot = 0
+   set stot = 0
+   set cnt = 0
+   while ($cnt < $niter)
+      @ cnt ++
+      echo "Testing write speed, iteration $cnt/$niter"
+      sync
+      dd if=/dev/zero of=$testdir/$tfile bs=1m count=1024 \
+                                          |& tee $testdir/___write
+      sync
+      cat $testdir/___write >> $log
+      set bs = `tail -n 1 $testdir/___write | cut -d ' ' -f 1,5`
+      set mbps = `ccalc -i $bs[1]/$bs[2]/1000000`
+      set btot = `ccalc $btot + $bs[1]`
+      set stot = `ccalc $stot + $bs[2]`
+      echo "               # Write speed $mbps MB/sec" |& tee -a $log
+   end
+   set mbps = `ccalc -i $btot/$stot/1000000`
+   echo "" |& tee -a $log
+   echo "               ## Write speed of $cnt iterations $mbps MB/sec" \
+                                                            |& tee -a $log
+   echo "" |& tee -a $log
+
+TEST_READ:
+   set btot = 0
+   set stot = 0
+   set cnt = 0
+   while ($cnt < $niter)
+      @ cnt ++
+      echo "Testing read speed, iteration $cnt/$niter"
+      #This next command for clearing cache is not valid on mac
+      #sudo /sbin/sysctl -w vm.drop_caches=3 vm.drop_caches=3 
+      dd if=$testdir/$tfile of=/dev/null bs=1m count=1024 |& tee $testdir/___read
+      cat $testdir/___read >> $log
+      set bs = `tail -n 1 $testdir/___read | cut -d ' ' -f 1,5`
+      set mbps = `ccalc -i $bs[1]/$bs[2]/1000000`
+      set btot = `ccalc $btot + $bs[1]`
+      set stot = `ccalc $stot + $bs[2]`
+      echo "               # Read speed $mbps MB/sec" |& tee -a $log
+   end
+   set mbps = `ccalc -i $btot/$stot/1000000`
+   echo "" |& tee -a $log
+   echo "               ## Read speed of $cnt iterations $mbps MB/sec" \
+                                                            |& tee -a $log
+   echo "" |& tee -a $log
+   
+goto END
+
+PARSE:
+   set testdir = ''
+   set tfile = ___Tdio
+   set Narg = $#
+   set quiet = 0
+   set cnt = 1
+   set HelpOpt = ''
+   echo "$1" | \grep -w -E  \
+         '\-h_txt|\-h_spx|\-h_aspx|\-h_raw|\-help|\-h' >& /dev/null
+   if ($status == 0) then
+      set HelpOpt = "$1"
+      goto HELP
+   endif
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && ("$argv[$cnt]" == "-h" || "$argv[$cnt]" == "-help")) then
+         goto HELP
+         set HelpOpt = "$argv[$cnt]"
+         set donext = 0;	 goto NEXT	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-quiet") then
+         set quiet = 1
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-tdir") then
+         if ($cnt == $Narg) then
+            echo "Option -tdir needs an existing directory name"
+            goto BEND
+         endif
+         @ cnt ++
+         set testdir = $argv[$cnt]
+         set donext = 0; goto NEXT		
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-niter") then
+         if ($cnt == $Narg) then
+            echo "Option -niter needs an integer number of iterations"
+            goto BEND
+         endif
+         @ cnt ++
+         set niter = $argv[$cnt]
+         set donext = 0; goto NEXT		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-log") then
+         if ($cnt == $Narg) then
+            echo "Option -log needs a file name"
+            goto BEND
+         endif
+         @ cnt ++
+         set log = ${argv[$cnt]}.$mcname
+         if ( ! -f $log ) then
+            touch $log
+            if ( $status ) then
+               echo "Cannot write to file $log"
+               goto BEND
+            endif
+            \rm -f $log
+         endif
+         set donext = 0; goto NEXT		
+      endif
+      
+
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
+         goto END
+      endif
+      
+      NEXT:
+		@ cnt ++
+	end
+   
+   if ("$testdir" == '') then
+      echo "Must specify -tdir option"
+      goto BEND
+   endif
+   
+   goto RET_PARSE
+   
+HELP:
+     if ("$HelpOpt" == "-h_raw") then
+   goto HRAW
+else if ("$HelpOpt" == "-h") then
+   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+else if ("$HelpOpt" == "-help") then
+   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+else if ("$HelpOpt" == "-h_txt") then
+   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+else if ("$HelpOpt" == "-h_spx") then
+   `basename $0` -h_raw | apsearch -hdoc_2_spx `basename $0` -
+else if ("$HelpOpt" == "-h_aspx") then
+   `basename $0` -h_raw | apsearch -hdoc_2_aspx `basename $0` -
+endif
+goto END
+
+HRAW:
+cat << EOF
+Usage: $pname <-tdir DIRNAME>
+
+A program to test read write speeds from disks."
+dd command credit to http://www.shellhacks.com"
+
+Options:
+   -tdir TARGET_DIR: Directory where read/write is to be tested
+   -log LOG_PREFIX: Logfile prefix wich will get extended by the
+                    machine name. Default logfile is $log
+   -niter N: Numbe or timing iterations. $niter by default.
+   
+`@global_parse -gopts_help_formats`
+
+   Ziad S. Saad, saadz@mail.nih.gov
+EOF
+
+   goto END
+
+BEND:
+   set stat = 1
+   goto END
+
+
+END:
+   if ( -f $testdir/$tfile ) \rm -f $testdir/$tfile
+   if ( -f $testdir/___read) \rm -f $testdir/___read
+   if ( -f $testdir/___write) \rm -f $testdir/___write
+   
+   exit $stat
+
+
