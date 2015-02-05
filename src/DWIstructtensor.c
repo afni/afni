@@ -40,7 +40,8 @@ float aniso_sigma2 = 1.0;
 
 
 THD_3dim_dataset *DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, 
-                                  byte *maskptr, int smooth_flag, int save_tempdsets_flag);
+                                  byte *maskptr, int smooth_flag, 
+                                  int save_tempdsets_flag, float *cen);
 void Smooth_DWI_dset(THD_3dim_dataset * DWI_dset, int flag2D3D);
 void Smooth_Gradient_Matrix(MRI_IMARR *Gradient_Im, int flag2D3D);
 MRI_IMARR *Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D,byte*maskptr,int prodflag, int
@@ -65,7 +66,9 @@ static int with_diffmeasures=0;
 void set_with_diff_measures(int v) {  with_diffmeasures = v; }
 int get_with_diff_measures(void) { return(with_diffmeasures); }
 THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D, 
-                                       byte *maskptr, THD_3dim_dataset *grid_dset);
+                                       byte *maskptr, 
+                                       THD_3dim_dataset *grid_dset, 
+                                       float *cen);
 
 /*! compute image diffusion tensor, D, anisotropic smoothing of DWI 
    If (save_tempdsets_flag) then temp datasets are saved
@@ -73,7 +76,8 @@ THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D,
    which is save_tempdsets_flag-1 
 */
 THD_3dim_dataset *
-DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag)
+DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, 
+                int smooth_flag, int save_tempdsets_flag, float *cen)
 {
   MRI_IMARR *Gradient_Im, *EV_Im, *phi_Im, *D_Im;
   THD_3dim_dataset *D_dset;
@@ -103,12 +107,13 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
 
   if(save_tempdsets_flag) {
      snprintf(obuff,127,"Eigens.%02d", save_tempdsets_flag-1);    
-     Save_imarr_to_dset(EV_Im,DWI_dset, obuff);
+     Save_imarr_to_dset(EV_Im, DWI_dset, obuff);
   }
 
   if (save_tempdsets_flag && with_diffmeasures) {
       THD_3dim_dataset *dout=NULL;
-      if (!(dout = Compute_DiffMeasures(EV_Im, flag2D3D, maskptr, DWI_dset))) {
+      if (!(dout = Compute_DiffMeasures(EV_Im, flag2D3D, maskptr, 
+                                        DWI_dset, cen))) {
          ERROR_message("Tragedy has struck. The turkey is still frozen");
       } else {
          snprintf(obuff,127,"Diff_measures.%02d", save_tempdsets_flag-1); 
@@ -1800,6 +1805,7 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr)
            *gptr[11] = aa[2];
          }
 
+                 
       } /* not masked */
       for(jj=0;jj<endi;jj++) {
         if(isnan(*gptr[jj]))
@@ -2057,15 +2063,17 @@ MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
     RETURN(phi_Im);
   }
 
-/* compute FA, MD, Cl, Cp, Cs */
+/* compute FA, MD, Cl, Cp, Cs, and more */
 THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D, 
-                                       byte *maskptr, THD_3dim_dataset *grid_dset)
+                                       byte *maskptr, 
+                                       THD_3dim_dataset *grid_dset, float *cen)
   {
     THD_3dim_dataset *dout=NULL;
     MRI_IMARR *TP_Im=NULL;
     MRI_IMAGE *im=NULL;
-    int nxyz, ii, jj, endi, nout = 5;
-    float *inptr[3], *outptr[nout], e0, e1, e2, tr, d;
+    int nxyz, ii, jj, endi, nout = 6, vi, vj, vk;
+    float *inptr[12], *outptr[nout], e0, e1, e2, tr, d,
+          v0[3], nV, nR, R[3], xyz[3];
     
     byte *tempmaskptr;
 
@@ -2080,6 +2088,13 @@ THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D,
       ERROR_message("Lousy input!");
       RETURN(NULL);
     }
+
+    /* Centroid */
+    if (!cen) {
+      ERROR_message("I need me a centroid");
+      RETURN(NULL);
+    }
+
     endi = flag2D3D;
 
     im = EV_Im->imarr[0];
@@ -2088,17 +2103,18 @@ THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D,
     
     /*Prepare for output */
     INIT_IMARR(TP_Im);
-    for(ii=0;ii<nout; ii++) {  /* create 3 sub-briks for du/dx^2, du/dx*du/dy and du/dy^2 */
+    for(ii=0;ii<nout; ii++) { 
       im = mri_new_vol(im->nx, im->ny, im->nz, MRI_float);
       if(im==NULL) {
-	ERROR_message("can not create data storage");
+	ERROR_message("cannot create data storage");
         RETURN(NULL);
       }
       ADDTO_IMARR(TP_Im, im);
-   }
+    }
     
-    /* Get eigen values */
-    for(ii=0;ii<endi;ii++) {
+    /* Get eigen values and 1st eigen vector direction 
+       This is not set to work for 2D smoothing!       */
+    for(ii=0;ii<endi+3;ii++) {
        im  = (EV_Im->imarr[ii]);
        inptr[ii] = (float *) mri_data_pointer(im);
     }
@@ -2119,10 +2135,16 @@ THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D,
          e0 = *inptr[0];
          e1 = *inptr[1];
          e2 = *inptr[2];
+         v0[0] = *inptr[3];
+         v0[1] = *inptr[4];
+         v0[2] = *inptr[5];
+         
          tr = (e0+e1+e2);
                            /* FA */
          if ((d = (e0*e0+e1*e1+e2*e2))>0.0f) {
-            *outptr[0] = sqrt(0.5*( (e0-e1)*(e0-e1)+(e1-e2)*(e1-e2)+(e0-e2)*(e0-e2))/ d );
+            *outptr[0] = sqrt(0.5*( (e0-e1)*(e0-e1)+
+                                    (e1-e2)*(e1-e2)+
+                                    (e0-e2)*(e0-e2)  )/ d );
             if (*outptr[0] > 1.0) *outptr[0] = 1.0;
          } else *outptr[0] = 0.0;
          
@@ -2145,10 +2167,43 @@ THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D,
             *outptr[4] = 3.0*e2/tr;
             if (*outptr[4] < 0.0) *outptr[4] = 0.0;
          } else *outptr[4] = 0.0;
+                           /* Dot product of v0 with direction from center */
+         if (tr > 0.0) {
+            AFNI_1D_to_3D_index(ii, vi, vj, vk, 
+                                DSET_NX(grid_dset), 
+                                DSET_NX(grid_dset)*DSET_NY(grid_dset));
+            AFNI_ijk_to_xyz(  grid_dset ,
+                              vi, vj, vk,
+                              xyz, xyz+1 , xyz+2 );
+            /* nV should be 1 already ... */
+            nV = sqrt(v0[0]*v0[0]+v0[1]*v0[1]+v0[2]*v0[2]);
+            R[0] = xyz[0]-cen[0];
+            R[1] = xyz[1]-cen[1];
+            R[2] = xyz[2]-cen[2];
+            nR = sqrt(R[0]*R[0]+R[1]*R[1]+R[2]*R[2]);
+            #if 0
+            if (ii==3949365) {
+               fprintf(stderr,"Debugging for voxel [%d %d %d] %d\n"
+                              "          R = [%f %f %f] %f, cen = [%f %f %f]\n"
+                              "Principal V = [%f %f %f] %f, Principal e = %f\n"
+                              "Eigs = [%f %f %f]\n"
+                              "dot = %f\n",
+                       vi, vj, vk, ii, 
+                       R[0], R[1], R[2], nR, cen[0], cen[1], cen[2],
+                       v0[0], v0[1], v0[2], nV, e0,
+                       e0, e1, e2,
+                       (R[0]*v0[0]+R[1]*v0[1]+R[2]*v0[2])/(nV*nR));
+                       
+            }
+            #endif
+            if ((nV = nV*nR) != 0.0) {
+               *outptr[5] = (R[0]*v0[0]+R[1]*v0[1]+R[2]*v0[2])/nV;
+            } else *outptr[5] = 0.0;
+         } else *outptr[5] = 0.0;
         } /* included in mask */
 
       /* increment to next voxel */
-      for(jj=0;jj<endi;jj++)  inptr[jj]++;
+      for(jj=0;jj<endi+3;jj++)  inptr[jj]++;
       for(jj=0;jj<nout;jj++) outptr[jj]++;
    } /* end for each voxel in volume */
    
@@ -2160,6 +2215,7 @@ THD_3dim_dataset *Compute_DiffMeasures(MRI_IMARR *EV_Im, int flag2D3D,
    EDIT_dset_items(dout,ADN_brick_label_one + 2,"Cl",ADN_none);
    EDIT_dset_items(dout,ADN_brick_label_one + 3,"Cp",ADN_none);
    EDIT_dset_items(dout,ADN_brick_label_one + 4,"Cs",ADN_none);
+   EDIT_dset_items(dout,ADN_brick_label_one + 5,"Rdot",ADN_none);
    EDIT_dset_items(dout ,
               ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
 	      ADN_prefix , "Diff_Measures",
