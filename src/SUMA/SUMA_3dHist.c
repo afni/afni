@@ -23,6 +23,8 @@ static char shelp_Hist[] = {
 "   -input DSET: Dset providing values for histogram. Exact 0s are not counted\n"
 "   -dind SB: Use sub-brick SB from the input rather than 0\n"
 "   -mask MSET: Provide mask dataset to select subset of input.\n"
+"   -mask_range BOT TOP: Specify the range of values to consider from MSET.\n"
+"                        Default is anything non-zero\n" 
 "   -cmask CMASK: Provide cmask expression. Voxels where expression is 0\n"
 "                 are excluded from computations. For example:\n"
 "            -cmask '-a T1.div.r+orig -b T1.uni.r+orig -expr step(a/b-10)'\n"
@@ -519,7 +521,7 @@ int main(int argc, char **argv)
       }
 
       if (Opt->sig) {
-         Opt->cmask = MaskSetup(Opt, Opt->sig, 
+         Opt->cmask = MaskSetup(Opt, Opt->sig, 1,
                    &(Opt->mset), &(Opt->cmask), Opt->dimcmask, 
                    Opt->mask_bot, Opt->mask_top, &(Opt->cmask_count));
       }
