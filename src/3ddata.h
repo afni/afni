@@ -4940,6 +4940,8 @@ typedef struct {
   MRI_vectim *mv ;
   char *prefix ; int ndet ;
   float *tseed ;
+  int   iter_count ;  /* 05 Feb 2015 */
+  float iter_thresh ;
 
   THD_3dim_dataset *eset ; MRI_vectim *ev ;
 } ICOR_setup ;
