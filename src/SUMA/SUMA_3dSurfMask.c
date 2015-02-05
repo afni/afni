@@ -9,7 +9,6 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
       static char FuncName[]={"usage_3dSurfMask"};
       char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
       int i;
-      s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( 
    "\n"
@@ -103,10 +102,9 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
    " See also examples in SurfPatch -help\n"
    "\n"              
    "%s"
-   "%s"
-            "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
-      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+            "\n", sio);
+      SUMA_ifree(s); SUMA_ifree(st); SUMA_ifree(sio);    
+
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
@@ -357,7 +355,7 @@ int main (int argc,char *argv[])
    SUMA_free(pp); pp=NULL;
 
    if (!Opt->MaskMode) {
-      SUMA_S_Note("Voxelizing...");
+      SUMA_S_Note("Voxelizing ... (Use -no_dist to skip this lengthy step)");
       dsetd = SUMA_VoxelToSurfDistances(SO, dset, NULL, isin, Opt->b2 ? 2:0);
       tross_Make_History( FuncName , argc,argv , dsetd ) ;
       NewName = SUMA_StripPath(Opt->out_vol_prefix);     
