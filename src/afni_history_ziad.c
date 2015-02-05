@@ -65,6 +65,27 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 5, Feb, 2014, ZSS, "3dinfill", MICRO, TYPE_NEW_OPT,
+   "Added -mask option to restrict filling to holes within mask",
+   NULL
+ },
+
+ { 5, Feb, 2014, ZSS, "@Test_disk_IO", MICRO, TYPE_NEW_PROG,
+   "Script to test disk I/O speeds",
+   NULL
+ },
+
+ { 5, Feb, 2014, ZSS, "3danisosmooth.c", MICRO, TYPE_MODIFY,
+   "More smoothing feature output.",
+   "Output cosine of principal gradient eigen vector with radial "
+   "direction in debugging output."
+ },
+
+ { 5, Feb, 2014, ZSS, "3dBrickStat.c", MICRO, TYPE_NEW_OPT,
+   "added -stdev",
+   NULL
+ },
+
  { 2, Feb, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
    "Take coords from a surface rather than just a file for -com node_xyz",
    NULL
