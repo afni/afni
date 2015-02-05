@@ -620,9 +620,11 @@ int main (int argc,char *argv[])
    
    Opt = SUMA_ConvexHull_ParseInput (argv, argc, ps);
       
-   SO_name = SUMA_Prefix2SurfaceName(Opt->out_prefix, NULL, NULL, Opt->SurfFileType, &exists);
-   if (exists) {
-      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
+   SO_name = SUMA_Prefix2SurfaceName(Opt->out_prefix, NULL, NULL, 
+                                     Opt->SurfFileType, &exists);
+   if (exists && !THD_ok_overwrite()) {
+      SUMA_S_Err("Output file(s) %s* on disk.\nWill not overwrite.\n", 
+                 Opt->out_prefix);
       exit(1);
    }
    
