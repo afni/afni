@@ -583,7 +583,8 @@ int SUMA_ray_unplug_i(int n1D, int ni, int nij,
 int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                       THD_3dim_dataset **filledp,
                       int method, int integ, int MxIter,
-                      int minhits, int erode, int dilate, float val);
+                      int minhits, int erode, int dilate, float val,
+                      byte *mask);
 int SUMA_Volume_RadFill(THD_3dim_dataset *aset, float *ufv, byte *ucmask,
                       float *ucm, THD_3dim_dataset **filledp,
                       int nplug, int nlin, int fitord, float smooth, int N_off);
@@ -591,7 +592,8 @@ int SUMA_mri_volume_infill(MRI_IMAGE *imin);
 int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte thorough, 
                                  int integ, int mxiter);
 int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits, 
-                                 int mxiter, int unholize);
+                                 int mxiter, int unholize,
+                                 byte *mask);
 int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
                                      byte *cmask,
                                      THD_3dim_dataset **blrdp,
