@@ -1503,6 +1503,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- He who laughs, lasts"                              ,
      "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
+     "Did you see hyperconnectivity in the disconnected fibers?"     ,
      "Out out, brief candle"                                         ,
      "A poor player that struts and frets its hour upon the screen"  ,
      "Is it just me, or is gravity extra strong today?"              ,
