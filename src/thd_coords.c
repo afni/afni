@@ -359,6 +359,70 @@ THD_fvec3 THD_3dfind_to_fdfind( FD_brick *br , THD_fvec3 id ) /* 30 Aug 2001 */
    return ib ;
 }
 
+/*********************************************************************
+   Convenience is bliss. Coordinate inter-conversion routines.
+**********************************************************************/
+
+void AFNI_ijk_to_xyz( THD_3dim_dataset * dset ,
+                      int ii , int jj , int kk ,
+                      float * xx , float * yy , float * zz )
+{
+   THD_fvec3 fv ;
+
+   if( ! ISVALID_DSET(dset) ) return ;
+
+   fv  = THD_3dind_to_3dmm( dset , TEMP_IVEC3(ii,jj,kk) ) ;
+   *xx = fv.xyz[0] ;
+   *yy = fv.xyz[1] ;
+   *zz = fv.xyz[2] ;
+   return ;
+}
+
+void AFNI_xyz_to_ijk( THD_3dim_dataset * dset ,
+                      float xx , float yy , float zz ,
+                      int * ii , int * jj , int * kk  )
+{
+   THD_ivec3 iv ;
+
+   if( ! ISVALID_DSET(dset) ) return ;
+
+   iv  = THD_3dmm_to_3dind ( dset , TEMP_FVEC3(xx,yy,zz) ) ;
+   *ii = iv.ijk[0] ;
+   *jj = iv.ijk[1] ;
+   *kk = iv.ijk[2] ;
+   return ;
+}
+
+void AFNI_xyz_to_dicomm( THD_3dim_dataset * dset ,
+                         float xx , float yy , float zz ,
+                         float * xd , float * yd , float * zd )
+{
+   THD_fvec3 fv ;
+
+   if( ! ISVALID_DSET(dset) ) return ;
+
+   fv  = THD_3dmm_to_dicomm( dset , TEMP_FVEC3(xx,yy,zz) ) ;
+   *xd = fv.xyz[0] ;
+   *yd = fv.xyz[1] ;
+   *zd = fv.xyz[2] ;
+   return ;
+}
+
+void AFNI_dicomm_to_xyz( THD_3dim_dataset * dset ,
+                         float xd , float yd , float zd ,
+                         float * xx , float * yy , float * zz )
+{
+   THD_fvec3 fv ;
+
+   if( ! ISVALID_DSET(dset) ) return ;
+
+   fv  = THD_3dmm_to_dicomm( dset , TEMP_FVEC3(xd,yd,zd) ) ;
+   *xx = fv.xyz[0] ;
+   *yy = fv.xyz[1] ;
+   *zz = fv.xyz[2] ;
+   return ;
+}
+
 /*-------------------------------------------------------------------*/
 
 void THD_coorder_fill( char *in_orcode , THD_coorder *cord )
