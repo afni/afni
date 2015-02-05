@@ -33,6 +33,8 @@ void usage_3dBrickStat(int detail) {
 "  -mean = print the mean value in dataset \n"
 "  -sum = print the sum of values in the dataset\n"
 "  -var = print the variance in the dataset \n"
+"  -stdev = print the standard deviation in the dataset \n"
+"           -stdev and -var are mutually exclusive\n"
 "  -count = print the number of voxels included\n"
 "  -volume = print the volume of voxels included in microliters\n"
 "  -positive = include only positive voxel values \n"
@@ -193,7 +195,22 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-var") == 0 ){
+	if (var_flag) {
+      ERROR_message("Looks like -stdev is already used.\n"
+                    "-var and -stdev are mutually exclusive");
+      exit (1);
+   }
 	var_flag = 1;
+        nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-stdev") == 0 ){
+	if (var_flag) {
+      ERROR_message("Looks like -var is already used.\n"
+                    "-var and -stdev are mutually exclusive");
+      exit (1);
+   }
+   var_flag = 2;
         nopt++; continue;
       }
 
@@ -382,10 +399,14 @@ int main( int argc , char * argv[] )
 	max_flag = 1;                  /* otherwise check only for max */
      }
 
-   if((var_flag==1)||(mean_flag==1)||(count_flag==1)||(vol_flag==1)||(absolute_flag==1)
-     ||(positive_flag!=-1)||(nan_flag!=-1)||(sum_flag == 1)||(perc_flag == 1))  /* mean flag or count_flag implies slow */
+   if((var_flag==1)||(mean_flag==1)||(count_flag==1)||
+      (vol_flag==1)||(absolute_flag==1) ||
+      (positive_flag!=-1)||(nan_flag!=-1)||
+      (sum_flag == 1)||(perc_flag == 1) || (var_flag==2)) {
+          /* mean flag or count_flag implies slow */
      slow_flag = 1;
-
+   }
+   
    /* check slow and quick options */
    if((slow_flag)&&(quick_flag!=1))  /* if user asked for slow give it to him */
       quick_flag = 0;
@@ -589,7 +610,8 @@ THD_3dim_dataset * dset;
 /*! search whole dataset for minimum and maximum */
 /* load all at one time */
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
-    int Posflag, int Negflag, int Zeroflag, int Absflag, int nan_flag, int Sumflag,
+    int Posflag, int Negflag, int Zeroflag, int Absflag, int nan_flag, 
+    int Sumflag,
     int Varflag, int Volflag,  THD_3dim_dataset * dset, byte *mmm, int mmvox)
 {
    double overallmin, overallmax, overallmean;
@@ -722,7 +744,8 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
       printf("%-13.6g ", sum);
    if (Varflag) {
       vr = (sum2-sum*sum/(double)npts)/(double)(npts-1);
-      printf("%-13.6g ", vr);   
+      if (Varflag == 2) printf("%-13.6g ", sqrt(vr)); 
+      else  printf("%-13.6g ", vr);   
    }
    printf("\n");
 
