@@ -73,7 +73,7 @@ static void Compute_3dAS_Max_Brick(THD_3dim_dataset *dset, byte *maskptr, int br
 static void AS_scale_float_dset(THD_3dim_dataset *dset, byte *maskptr, float fratio);
 
 extern THD_3dim_dataset *
-DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag);
+DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag, float *cen);
 extern MRI_IMARR *Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr, int prodflag, int smoothflag,
 float smooth_factor);
 extern MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag, int zflag);
@@ -107,7 +107,7 @@ int main( int argc , char * argv[] )
    void *out_ptr;
    MRI_IMARR *fim_array;
    MRI_IMAGE *fim;
-   float fimfac;
+   float fimfac, cen[3];
    float as_fmax, as_fmin;   /* max and min values in original dataset */
 
 
@@ -477,6 +477,14 @@ int main( int argc , char * argv[] )
    DSET_mallocize (dset);
    DSET_load (dset);	                /* load dataset */
 
+  if (get_with_diff_measures()) {
+   THD_fvec3 cmv = THD_cmass( dset , 0, NULL);
+   UNLOAD_FVEC3(cmv, cen[0], cen[1], cen[2]);
+  } else {
+   cen[0] = cen[1] = cen[2] = 0.0;
+  }
+   
+
   /* copy to udset in floats */
   /* printf("Copying to float");*/
 #if 0 
@@ -522,13 +530,14 @@ int main( int argc , char * argv[] )
   if(afnitalk_flag) {
       Show_dset_slice(udset);  /* show mid-slice in middle brik */
   }
+  
  
   for(i=0;i<iters;i++){
      INFO_message("iteration %d", i);
      /* compute image diffusion tensor dataset */
      INFO_message("   computing structure tensor");
      structtensor =  DWIstructtensor(udset, flag2D3D, maskptr, 
-                     smooth_flag, save_tempdsets_flag*(i+1));
+                     smooth_flag, save_tempdsets_flag*(i+1), (float *)cen);
  /* Test_data(structtensor);*/
      if((i==iters-1)&&(save_tempdsets_flag)) {
        tross_Make_History ("3danisosmooth", argc, argv, structtensor);
