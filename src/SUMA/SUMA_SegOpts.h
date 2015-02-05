@@ -185,7 +185,7 @@ typedef struct {
 void GenPriors_usage(int) ;
 void Seg_usage(int) ;
 SEG_OPTS *Seg_ParseInput (SEG_OPTS *Opt, char *argv[], int argc);
-byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset, 
+byte *MaskSetup(SEG_OPTS *Opt, THD_3dim_dataset *aset, int mask_zero_aset,
                 THD_3dim_dataset **msetp, byte **cmaskp, int dimcmask, 
                 float mask_bot, float mask_top, int *mcount); 
 THD_3dim_dataset *Seg_load_dset( char *set_name );
