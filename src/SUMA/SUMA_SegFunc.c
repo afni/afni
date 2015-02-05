@@ -2841,10 +2841,13 @@ int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte linfill,
              with nhits < minhits remain. Not a very useful thing to do 
              unless made iterative also. Keeping it here for the record
              but best not use it.
+   mask: If not null, only consider voxels to fill if they fall within
+         this mask
 */
                     
 int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits, 
-                                 int Nitermax, int unholize) 
+                                 int Nitermax, int unholize,
+                                 byte *mask) 
 {
    static char FuncName[]={"SUMA_mri_volume_infill_solid"};
    int Ni, Nj, Nk, Nij, Nijk, v, niter=0, N_filled=0;
@@ -2879,6 +2882,7 @@ int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits,
       if (unholize) memset(lesserhole, 0, Nijk*sizeof(byte));
       for (v=0; v<Nijk; ++v) {
          if (ba[v]) continue; /* not a hole */
+         if (mask && !mask[v]) continue; /* do not consider */
          hitcode = 0; nhits=0.0;
          hitsum=0; sI=0.0; sJ=0.0; sK=0.0;
          if ( (hitcode = SUMA_ray_i(v, Ni, Nij, fa, ba, ta, da)) == 
@@ -2956,7 +2960,8 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                       THD_3dim_dataset **filledp,
                       int method, int integ,
                       int MxIter, int minhits,
-                      int erode, int dilate, float val) 
+                      int erode, int dilate, float val,
+                      byte *mask) 
 {
    static char FuncName[]={"SUMA_VolumeInFill"};
    float *fa=NULL;
@@ -2991,7 +2996,8 @@ int SUMA_VolumeInFill(THD_3dim_dataset *aset,
    } else if (method == 2 || method == 3){ /* solid */
       SUMA_LH("method is %d\n", method);
       if (!SUMA_mri_volume_infill_solid(imin, minhits, 
-                                        MxIter, method == 3 ? 1:0)) {
+                                        MxIter, method == 3 ? 1:0,
+                                        mask)) {
          SUMA_S_Err("Failed to fill volume");
          SUMA_RETURN(0);
       }
