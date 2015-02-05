@@ -1929,13 +1929,13 @@ ENTRY("AFNI_drive_set_threshnew") ;
               DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
      if( pval >= 0.0 ) val = pval ;
    }
-   
+
    if (doqval) {
       qval   = qginv(0.5*val) ;
       qval = THD_fdrcurve_zqtot( im3d->fim_now,im3d->vinfo->thr_index,qval) ;
-      if( qval >= 0.0 ) val = qval; 
+      if( qval >= 0.0 ) val = qval;
    }
-   
+ 
    if( val >= im3d->vinfo->func_thresh_top || dostar ){ /* reset scale range */
 
      newdec = (int)( log10(val) + 1.0 ) ;
@@ -3220,6 +3220,8 @@ static int AFNI_drive_instacorr( char *cmd )
        iset->despike  = im3d->iset->despike ;
        if( im3d->iset->prefix != NULL ) iset->prefix = strdup  (im3d->iset->prefix) ;
        if( im3d->iset->gortim != NULL ) iset->gortim = mri_copy(im3d->iset->gortim) ;
+       iset->iter_count  = im3d->iset->iter_count ;  /* 05 Feb 2015 */
+       iset->iter_thresh = im3d->iset->iter_thresh ;
 
      } else {                              /* set some default params */
        iset->automask = 1 ;
@@ -3228,6 +3230,8 @@ static int AFNI_drive_instacorr( char *cmd )
        iset->polort   = 2 ;
        iset->cmeth    = NBISTAT_PEARSON_CORR ;
        mm             = 1 ;
+       iset->iter_count  = 1 ;     /* 05 Feb 2015 */
+       iset->iter_thresh = 0.01f ;
      }
 
      if( iset->prefix == NULL ){
@@ -3265,6 +3269,15 @@ static int AFNI_drive_instacorr( char *cmd )
            if( iset->mset == NULL )
              ERROR_message("INSTACORR INIT: failed to find Mask %s",dpt) ;
          }
+
+       } else if( strcasecmp(cpt,"Count") == 0 ){     /* 05 Feb 2015 */
+         iset->iter_count = (int)strtod(dpt,NULL) ; mm++ ;
+              if( iset->iter_count < 1 ) iset->iter_count = 1 ;
+         else if( iset->iter_count > 6 ) iset->iter_count = 6 ;
+
+       } else if( strcasecmp(cpt,"Thresh") == 0 ){    /* 05 Feb 2015 */
+         iset->iter_thresh = strtod(dpt,NULL) ; mm++ ;
+         if( iset->iter_thresh < 0.0f ) iset->iter_thresh = 0.0f ;
 
        } else if( strcasecmp(cpt,"eset")     == 0 ||
                   strcasecmp(cpt,"extraset") == 0   ){
