@@ -62,8 +62,9 @@ static int signal_model( float * , int , float ** , float *, int );
 int reset_stim_aperature_dset(int);
 int reset_exp_time_series(void);
 
-THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset *);
-THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din);
+int convert_to_blurred_masks(THD_3dim_dataset * dset, THD_3dim_dataset * rset);
+THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset *, THD_3dim_dataset *);
+static THD_3dim_dataset * alloc_reorg_dset(THD_3dim_dataset * din, int dsetnz);
 int convolve_dset(THD_3dim_dataset * tset);
 float * get_float_volume_copy(THD_3dim_dataset * dset, int index, int nz);
 int compute_e_x_grid(float *e, int nx, int ny, float x0, float y0, float sigma);
@@ -72,9 +73,12 @@ int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
 int fill_scaled_farray(float * fdest, int nt, THD_3dim_dataset * dsrc,
                        float x, float y, float sigma, float scale, int debug);
 int inputs_to_coords(THD_3dim_dataset * dset, float x, float y, float sigma);
+static int insert_reorg_slice(THD_3dim_dataset * rset, float * slice,
+                              int din_nxy, int din_zind, int din_tind);
 
 static int   disp_floats(char * mesg, float * p, int len);
 static int   model_help(void);
+static int   write_dset(THD_3dim_dataset * dset, char * name);
 int          convolve_by_ref(float *, int, float *, int, int, int);
 
 void conv_model( float *  gs      , int     ts_length ,
@@ -94,7 +98,7 @@ void conv_model( float *  gs      , int     ts_length ,
 char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
 char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
 int    genv_diter    = -1;      /* debug iteration */
-int    genv_debug    = 0;       /* AFNI_MODEL_DEBUG */
+int    genv_debug    = 1;       /* AFNI_MODEL_DEBUG */
 
 int    genv_on_grid      = 0;   /* restrict computations and results to grid */
 float  genv_sigma_max    = 1.0; /* on_grid: maximum blur sigma */
@@ -113,18 +117,21 @@ int set_env_vars(void)
    else fprintf(stderr,"** model PRF: AFNI_MODEL_PRF_STIM_DSET is not set\n"); 
 
    genv_diter = (int)AFNI_numenv_def("AFNI_MODEL_DITER", -1);
-   genv_debug = (int)AFNI_numenv_def("AFNI_MODEL_DEBUG", 0);
-   fprintf(stderr,"-- PRF: debug %d, iter %d\n", genv_debug, genv_diter);
+   genv_debug = (int)AFNI_numenv_def("AFNI_MODEL_DEBUG", 1);
+   if( genv_debug )
+      fprintf(stderr,"-- PRF: debug %d, iter %d\n", genv_debug, genv_diter);
 
    /* on grid - default to yes */
    genv_on_grid  = 1-AFNI_noenv("AFNI_MODEL_PRF_ON_GRID"); /* flag */
-   fprintf(stderr,"-- PRF: results on grid: %s\n", genv_on_grid?"yes":"no");
+   if( genv_debug )
+      fprintf(stderr,"-- PRF: results on grid: %s\n", genv_on_grid?"yes":"no");
 
    genv_sigma_max = AFNI_numenv_def("AFNI_MODEL_PRF_SIGMA_MAX", genv_sigma_max);
    genv_sigma_nsteps = (int)AFNI_numenv_def("AFNI_MODEL_PRF_SIGMA_NSTEPS",
                                             genv_sigma_nsteps);
-   if( genv_on_grid ) fprintf(stderr,"-- PRF: sigma_max = %f, nsteps = %d\n",
-                              genv_sigma_max, genv_sigma_nsteps);
+   if( genv_debug && genv_on_grid )
+      fprintf(stderr,"-- PRF: sigma_max = %f, nsteps = %d\n",
+                     genv_sigma_max, genv_sigma_nsteps);
 
    /* help */
    genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF")
@@ -193,12 +200,96 @@ void conv_set_ref( int num , float * ref )
    return;
 }
 
+/* allocate reorg dset early, to allow free() of all temp dsets
+ * back to OS
+ *
+ * dsetnz : if set, get nz from dset, else get nz from genv_sigma_nsteps
+ */
+static THD_3dim_dataset * alloc_reorg_dset(THD_3dim_dataset * din, int dsetnz)
+{
+   THD_3dim_dataset * dout;
+   float            * newvol;
+   int                tind;
+
+   THD_ivec3          iv_nxyz;
+   int                in_nx, in_ny, in_nz, in_nt;
+   int                out_nx, out_ny, out_nz, out_nt;
+
+   dout = EDIT_empty_copy(din);
+
+   in_nx = DSET_NX(din); in_ny = DSET_NY(din); in_nz = DSET_NZ(din);
+   if( !dsetnz ) in_nz = genv_sigma_nsteps;
+   in_nt = DSET_NVALS(din);
+
+   out_nx = in_nt; out_ny = in_nx; out_nz = in_ny; out_nt = in_nz;
+
+   if(genv_debug > 1)
+      fprintf(stderr,"-- alloc_reorg: nxyzt (%d,%d,%d,%d) -> (%d,%d,%d,%d)\n",
+              in_nx, in_ny, in_nz, in_nt, out_nx, out_ny, out_nz, out_nt);
+
+   LOAD_IVEC3(iv_nxyz , out_nx, out_ny, out_nz);
+
+   EDIT_dset_items(dout,
+                   ADN_prefix, "alloc.reorg",
+                   ADN_nxyz, iv_nxyz, ADN_nvals, out_nt, ADN_ntt, out_nt,
+                   ADN_malloc_type, DATABLOCK_MEM_MALLOC,
+                   ADN_none);
+
+   /* create and attach each volume */
+   for( tind = 0; tind < DSET_NVALS(dout); tind++ ) {
+      newvol = (float *)malloc(DSET_NVOX(dout) * sizeof(float));
+      mri_fix_data_pointer(newvol, DSET_BRICK(dout, tind));
+   }
+
+   return dout;
+}
+
+
+static int write_dset(THD_3dim_dataset * dset, char * name)
+{
+   EDIT_dset_items(dset, ADN_prefix, name, ADN_none);
+   fprintf(stderr, "++ writing dset %s ...\n", name);
+   DSET_write(dset);
+
+   return 0;
+}
+
+/* for monitoring the program
+ * memory_trim(0) seems to speed up allocation a lot
+ */
+static int show_malloc_stats(char * mesg)
+{
+   int show_stats = 1;
+   int show_ps = 1;
+   int get_char = 0;
+
+   if( genv_debug < 2 ) return 0;
+   if( ! show_stats && ! show_ps ) return 0;
+
+   if( show_stats ) {
+      fprintf(stderr,"\n----- malloc stats: %s\n", mesg);
+      malloc_stats();
+   }
+
+   if( show_ps ) {
+      fprintf(stderr,"\n----- ps info: %s\n", mesg);
+      system("ps aux | grep NLfim | grep -v 'bin.time' | grep PRF");
+   }
+
+   if( get_char ) {
+      fprintf(stderr,"    ... hit <enter> to proceed");
+      getchar();
+   }
+
+   return 0;
+}
+
 /* any failure should leave g_saset == NULL
  *
  * return 0 on success */
 int reset_stim_aperature_dset(int needed_length)
 {
-   THD_3dim_dataset * sanew;
+   THD_3dim_dataset * sanew, * sareorg;
    int                errs=0;
 
    /* free and reload saset */
@@ -230,25 +321,26 @@ int reset_stim_aperature_dset(int needed_length)
 
    if( THD_dset_to_mask(g_saset, 1.0, 0.0) ) return 1;
 
-   if( genv_on_grid ) {
-      sanew = convert_to_blurred_masks(g_saset);
-      DSET_delete(g_saset);
-      g_saset = sanew;
-//EDIT_dset_items(sanew, ADN_prefix,    "sa.blur", ADN_none);
-//fprintf(stderr, "++ writing blur dset...\n");
-//DSET_write(sanew);
+   /* allocate reorg dset early */
+   sareorg = alloc_reorg_dset(g_saset, 0);
 
-      sanew = THD_reorg_dset(g_saset);
+   show_malloc_stats("pre blur");
+
+   if( genv_on_grid ) {
+      if( convert_to_blurred_masks(g_saset, sareorg) ) {
+         fprintf(stderr,"** failed blur/reorg, nuking dset\n");
+         DSET_delete(sareorg); sareorg = NULL;
+      }
+
+      show_malloc_stats("post blur");
       DSET_delete(g_saset);
-      g_saset = sanew;
-//EDIT_dset_items(sanew, ADN_prefix,    "sa.reorg", ADN_none);
-//fprintf(stderr, "++ writing reorg dset...\n");
-//DSET_write(sanew);
+      show_malloc_stats("post blur delete");
+
+      g_saset = sareorg;
+      // write_dset(g_saset, "sa.blur");
 
       convolve_dset(g_saset);
-//EDIT_dset_items(sanew, ADN_prefix,    "sa.conv", ADN_none);
-//fprintf(stderr, "++ writing convolve dset...\n");
-//DSET_write(sanew);
+      // write_dset(g_saset, "sa.conv");
 
       if( ! g_saset ) return 1;
    }
@@ -311,86 +403,132 @@ int convolve_dset(THD_3dim_dataset * tset)
  * Resample (reorganize) output so that time is the fastest dimension,
  * then x, y and sigma (sub-brick direction).
  *
- * Convert to float array for now, too, just to waste RAM.
- * At least that will make blurring more straightforward
- * and avoid truncation issues.
- *
  * given blur_max (e.g. 0.1)
  *       blur_nsteps (e.g. 50)
  * compute blur_res (e.g. 0.002)
  *
  *------------------------------------------------------------
- * for each TR
- *    convert mask slice to float
- *    allocate for volume of floats
- *    duplicate slice across volume slices
- *    for each blur level
+ * allocate float slize (NX*NY), SLICE
+ * for each input TR ("volume" is just a slice)
+ *    get float copy of slice (mri_to_float()), COPY
+ *    for each blur level (genv_sigma_nsteps)
+ *       memcpy(SLICE, COPY, NX*NY*sizeof(float));
  *       EDIT_blur_volume(NX, NY, NZ=1, dx, dy, dz, MRI_float, data, SIGMA);
- *    attach to dset
- * EDIT_dset_item: set datum, NZ
+ *       copy slice into reorg dset
+ *    mri_free(COPY)
+ * free(SLICE)
  *------------------------------------------------------------
  */
-THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
+int convert_to_blurred_masks(THD_3dim_dataset * dset, THD_3dim_dataset * rset)
 {
-   THD_3dim_dataset * dnew;
-   THD_ivec3          iv_nxyz;
-   float            * fdata, * foffset, sigma;
-   int                nx, ny, nt;
-   int                vind, sind;
+   MRI_IMAGE * fim;
+   float     * fdata, * fslice, * foffset, sigma;
+   int         nx, ny, nt;
+   int         vind, sind;
  
    /* test required inputs */
-   if( !dset ) return NULL;
+   if( !dset ) return 1;
    if( genv_sigma_max <= 0.0 || genv_sigma_max > 1.0 || genv_sigma_nsteps<=1 ){
       fprintf(stderr,"** PRF on grid: bad sigma max %f or nsteps %d\n",
               genv_sigma_max, genv_sigma_nsteps);
-      return NULL;
+      return 1;
    }
 
    if( DSET_NZ(dset) != 1 ) {
       fprintf(stderr,"** invalid stim NZ = %d\n", DSET_NZ(dset));
-      return NULL;
+      return 1;
    }
                               
-   /* create initial copy */
-   dnew = EDIT_empty_copy(dset);
-   if( !dnew ) return NULL;
+   nx = DSET_NX(dset);  ny = DSET_NY(dset);  nt = DSET_NVALS(dset);
 
-   nx = DSET_NX(dnew);  ny = DSET_NY(dnew);  nt = DSET_NVALS(dnew);
-   LOAD_IVEC3(iv_nxyz , nx, ny, genv_sigma_nsteps);
-
-   EDIT_dset_items(dnew,
-           ADN_prefix,    "I_like_jello",
-           ADN_nxyz,      iv_nxyz,
-           ADN_datum_all, MRI_float,
-        ADN_none);
-
-   if(genv_debug)
+   /* report RAM and time info */
+   if(genv_debug) { double mem;
       fprintf(stderr, "++ making blurred time series: %d x %d x %d  x nt=%d\n",
-              DSET_NX(dnew), DSET_NY(dnew), DSET_NZ(dnew), DSET_NVALS(dnew));
-   if(genv_debug>1)fprintf(stderr, "++ starting blur at time %6.1f\n",
-                           0.001*NI_clock_time());
-
-   for( vind = 0; vind < nt; vind++ ) {
-      if( genv_debug > 1 ) fputc('.', stderr);
-
-      fdata = get_float_volume_copy(dset, vind, genv_sigma_nsteps);
-      if( !fdata ) { DSET_delete(dnew); return NULL; }
-
-      for( sind = 0; sind < genv_sigma_nsteps; sind++ ) {
-         sigma = genv_sigma_max * ((sind + 1.0)/genv_sigma_nsteps);
-         foffset = fdata + sind*nx*ny;
-         FIR_blur_volume_3d(nx, ny, 1,  2.0/(nx-1), 2.0/(ny-1), 1.0,
-                            foffset, sigma, sigma, 0.0);
-      }
-
-      mri_fix_data_pointer(fdata, DSET_BRICK(dnew, vind));
+              DSET_NX(dset),DSET_NY(dset), genv_sigma_nsteps, DSET_NVALS(dset));
+      fprintf(stderr, "++ stored as reorg dset: %d x %d x %d  x nt=%d\n",
+              DSET_NX(rset),DSET_NY(rset), DSET_NZ(rset), DSET_NVALS(rset));
+      mem = (double)DSET_NVOX(rset)*DSET_NVALS(rset)*sizeof(float) / (1<<30);
+      fprintf(stderr,
+              "   --> expected RAM for pre-computed results: %.2f GB\n\n", mem);
+      if(genv_debug)fprintf(stderr, "++ starting blur at time %6.1f\n",
+                              0.001*NI_clock_time());
    }
 
-   if(genv_debug>1)fprintf(stderr, "\n-- finished blur volume at time %6.1f\n",
-                           0.001*NI_clock_time());
+   fslice = (float *)malloc(nx * ny * sizeof(float));
+   if( !fslice ){fputs("** CTBM N1\n", stderr); return 1;}
+   if( genv_debug ) fprintf(stderr, "-- blur/reorg %d images:   0", nt);
+   for( vind = 0; vind < nt; vind++ ) {
+      if( genv_debug ) fprintf(stderr, "\b\b\b%3d", vind);
 
-   return dnew;
+      /* get float copy of slice */
+      fim = mri_to_float(DSET_BRICK(dset, vind));
+      if(!fim){fputs("** CTBM N2\n", stderr); return 1;}
+
+      for( sind = 0; sind < genv_sigma_nsteps; sind++ ) {
+         /* start with original slice each time */
+         memcpy(fslice, MRI_FLOAT_PTR(fim), nx*ny*sizeof(float));
+
+         sigma = genv_sigma_max * ((sind + 1.0)/genv_sigma_nsteps);
+         FIR_blur_volume_3d(nx, ny, 1,  2.0/(nx-1), 2.0/(ny-1), 1.0,
+                            fslice, sigma, sigma, 0.0);
+         insert_reorg_slice(rset, fslice, nx*ny, sind, vind);
+      }
+
+      mri_free(fim);  /* nuke copy of slice */
+   }
+
+   free(fslice);
+
+   if(genv_debug)fprintf(stderr, "\n-- finished blur volume at time %6.1f\n",
+                         0.001*NI_clock_time());
+
+   return 0;
 }
+
+static int insert_reorg_slice(THD_3dim_dataset * rset, float * slice,
+                              int din_nxy, int din_zind, int din_tind)
+{
+   float * outvol, * inptr;
+   int     in_nx, in_ny, in_nz, in_nt;
+   int     ix, iy;
+   int     out_nx, out_ny, out_nxy, out_tind, out_xind;
+
+   /* Could pass in accum volume, and add tind+1 each time.  The result
+    * should be the sum of genv_sigma_nsteps at each voxel (i.e. 5050 when
+    * genv_sigma_nsteps == 100).  Or just count by 1 to 100, too lazy?  */
+
+   /* get original dimensions, convert output indices */
+   in_nx = DSET_NY(rset); in_ny = DSET_NZ(rset); in_nz = DSET_NVALS(rset);
+   in_nt = DSET_NX(rset);
+   out_nx   = DSET_NX(rset);
+   out_ny   = DSET_NY(rset);
+   out_nxy  = out_nx * out_ny;
+   out_tind = din_zind;
+   out_xind = din_tind;
+
+   if( in_nx * in_ny != din_nxy ) {
+      fprintf(stderr,"** IRS: no nyz match, nx = %d, ny = %d, DINnxy = %d\n",
+              in_nx, in_ny, din_nxy);
+      return 1;
+   }
+
+   if( din_zind >= in_nz || din_tind >= in_nt ) {
+      fprintf(stderr,"** IRS: no nzt match, nz=%d, zind=%d, nt=%d, tind=%d\n",
+              in_nz, din_zind, in_nt, din_tind);
+      return 1;
+   }
+
+   /* okay, copy the slice into new positions */
+   outvol = (float *)DSET_ARRAY(rset, out_tind);
+   inptr = slice;
+   for( iy = 0; iy < in_ny; iy++ )
+      for( ix = 0; ix < in_nx; ix++ )
+         /* index conversion: in_x -> out_y, in_y -> out_z */
+         outvol[out_xind + out_nx*ix + out_nxy * iy] = *inptr++;
+
+   return 0;
+}
+
 
 /* rotate list of axes and correspondingly shuffle data:
  *      x,y,z,t -> t,x,y,z
@@ -398,7 +536,93 @@ THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
  * The main point is to make the time axes the fast direction.
  *
  * require MRI_float for now */
-THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din)
+THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din,
+                                  THD_3dim_dataset * dorg)
+{
+   THD_3dim_dataset * dout;
+   THD_ivec3          iv_nxyz;
+   float            * newvol, * inslice, * outbase, * inbase;
+   int                in_nx, in_ny, in_nz, in_nt;
+   int                out_nx, out_ny, out_nz, out_nt;
+   int                in_nxyz, in_nxy, out_nxyz, out_nxy;
+   int                xind, yind, zind, tind;
+
+   if( !din || !dorg ) { fprintf(stderr,"** reorg_dset:NULL\n"); return NULL; }
+
+   dout = dorg;
+
+   in_nx = DSET_NX(din); in_ny = DSET_NY(din); in_nz = DSET_NZ(din);
+   in_nt = DSET_NVALS(din);
+   in_nxy  = in_nx * in_ny;
+   in_nxyz = in_nx * in_ny * in_nz;
+
+   out_nx = in_nt; out_ny = in_nx; out_nz = in_ny; out_nt = in_nz;
+   out_nxy  = out_nx * out_ny;
+   out_nxyz = out_nx * out_ny * out_nz;
+
+   if(genv_debug > 1)
+      fprintf(stderr,"-- reorg_dset: nxyzt (%d,%d,%d,%d) -> (%d,%d,%d,%d)\n",
+              in_nx, in_ny, in_nz, in_nt, out_nx, out_ny, out_nz, out_nt);
+   if(genv_debug > 1)fprintf(stderr, "\n== reorg starting at %6.1f\n",
+                             0.001*NI_clock_time());
+
+   if( out_nx != DSET_NX(dout) || out_ny != DSET_NY(dout) || 
+       out_nz != DSET_NZ(dout) || out_nt != DSET_NVALS(dout) ) {
+      fprintf(stderr,"** reorg mis-match, crash and burn\n");
+   }
+
+   EDIT_dset_items(dout, ADN_prefix, "reorg.boots", ADN_none);
+
+   /* create and attach each volume */
+   for( tind = 0; tind < out_nt; tind++ ) {
+      /* now newvol just points to existing memory */
+      newvol = (float *)DSET_ARRAY(dout, tind);
+
+      for( xind = 0; xind < out_nx; xind++ ) {
+
+         /* copy one slice of input across y and z directions */
+         inslice = ((float *)DSET_ARRAY(din, xind)) + tind*in_nxy;
+
+         for( yind = 0; yind < out_ny; yind++ ) {
+            outbase = newvol + xind + yind*out_nx;
+            inbase  = inslice + yind;
+            for( zind = 0; zind < out_nz; zind++ )
+               outbase[zind*out_nxy] = inbase[zind*in_nx];
+         }
+
+      }
+   }
+
+   if(genv_debug > 1)fprintf(stderr, "\n== reorg finished at %6.1f\n",
+                             0.001*NI_clock_time());
+
+   /* maybe dump a couple of time series */
+   if( genv_debug > 2 ) {
+     MRI_IMAGE * im;
+     float     * fp;
+     int i, j, k;
+     i = in_nx/3; j = in_ny/3; k = in_nz/3;
+     im = THD_extract_series(i+j*in_nx+k*in_nxy, din, 0);
+     disp_floats("== ARY: sig [nxyz/3]: ", MRI_FLOAT_PTR(im), in_nt);
+     fp =  ((float *)DSET_ARRAY(dout,k)) + i*out_nx + j*out_nxy;
+     disp_floats("== ARY: reorg       : ", fp, out_nx);
+     mri_free(im);
+   }
+
+   return dout;
+}
+
+
+/* OLD version: saved for comparison
+ * (new version will input pre-allocated reorg dset)
+ *
+ * rotate list of axes and correspondingly shuffle data:
+ *      x,y,z,t -> t,x,y,z
+ *
+ * The main point is to make the time axes the fast direction.
+ *
+ * require MRI_float for now */
+THD_3dim_dataset * THD_reorg_dset_old(THD_3dim_dataset * din)
 {
    THD_3dim_dataset * dout;
    THD_ivec3          iv_nxyz;
@@ -423,7 +647,7 @@ THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din)
 
    LOAD_IVEC3(iv_nxyz , out_nx, out_ny, out_nz);
 
-   EDIT_dset_items(dout,
+   EDIT_dset_items(dout, ADN_prefix, "reorg.boots",
                    ADN_nxyz, iv_nxyz, ADN_nvals, out_nt, ADN_ntt, out_nt,
                    ADN_none);
 
@@ -462,20 +686,18 @@ THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din)
    if(genv_debug>1)fprintf(stderr, "\n== reorg finished at %6.1f\n",
                            0.001*NI_clock_time());
 
-if( genv_debug > 2 ) {
-  MRI_IMAGE * im;
-  float     * fp;
-  int i, j, k;
-
-  i = in_nx/3; j = in_ny/3; k = in_nz/3;
-
-  im = THD_extract_series(i+j*in_nx+k*in_nxy, din, 0);
-  disp_floats("== ARY: sig [nxyz/3]: ", MRI_FLOAT_PTR(im), in_nt);
-  fp =  ((float *)DSET_ARRAY(dout,k)) + i*out_nx + j*out_nxy;
-  disp_floats("== ARY: reorg       : ", fp, out_nx);
-
-  mri_free(im);
-}
+   /* maybe dump a couple of time series */
+   if( genv_debug > 2 ) {
+     MRI_IMAGE * im;
+     float     * fp;
+     int i, j, k;
+     i = in_nx/3; j = in_ny/3; k = in_nz/3;
+     im = THD_extract_series(i+j*in_nx+k*in_nxy, din, 0);
+     disp_floats("== ARY: sig [nxyz/3]: ", MRI_FLOAT_PTR(im), in_nt);
+     fp =  ((float *)DSET_ARRAY(dout,k)) + i*out_nx + j*out_nxy;
+     disp_floats("== ARY: reorg       : ", fp, out_nx);
+     mri_free(im);
+   }
 
    return dout;
 }
@@ -530,7 +752,7 @@ int reset_exp_time_series(void)
    g_exp_nvals = (int)(g_exp_maxval * g_exp_ipieces) + 1;
 
    if(genv_debug) fprintf(stderr, "-- exp nvals = %d, max = %f, pieces = %d\n",
-                         g_exp_nvals, g_exp_maxval, g_exp_ipieces);
+                          g_exp_nvals, g_exp_maxval, g_exp_ipieces);
 
    if( g_exp_ts ) free(g_exp_ts);
    g_exp_ts = (float *)malloc(g_exp_nvals * sizeof(float));
@@ -590,13 +812,20 @@ void conv_model( float *  gs      , int     ts_length ,
    /* if we had some failure, bail */
    if( !g_saset ) return;
 
-   if( genv_debug > 1 ) {                       /* babble */
+   if( genv_debug ) {                       /* babble */
       if( genv_on_grid ) iter_step = 100000;
       else               iter_step = 100;
       if( (g_iter % iter_step) == 0 ) {
-         if( g_iter % (10*iter_step) ) fputc('\r', stderr);
-         fprintf(stderr, "-- time for %d iter set %5d : %6.1f\n",
-                 iter_step, g_iter/iter_step, 0.001*NI_clock_time());
+         if( genv_debug > 1 )
+            fprintf(stderr, "-- time for %d iter set %5d : %6.1f\n",
+                    iter_step, g_iter/iter_step, 0.001*NI_clock_time());
+         else {
+            static int first = 1;
+            if( first ) {
+               fprintf(stderr, "-- iteration size %d .", iter_step);
+               first = 0;
+            } else fputc('.', stderr);
+         }
       }
    }
 
@@ -783,11 +1012,14 @@ static int signal_model
   A = gs[0];
   x = gs[1]; y = gs[2]; sigma = gs[3];
 
-  if( debug ) fprintf(stderr, "-d model_conv_PRF parameters: "
-                              "A = %f, x = %f, y = %f, sigma = %f\n"
-                              "   nz = %d, nvals = %d, ts_len = %d\n",
-                      A, x, y, sigma,
-                      DSET_NZ(g_saset), DSET_NVALS(g_saset), ts_length);
+  if( debug ) {
+     fprintf(stderr, "-d model_conv_PRF parameters: "
+                     "A = %f, x = %f, y = %f, sigma = %f\n"
+                     "   nz = %d, nvals = %d, ts_len = %d\n",
+                     A, x, y, sigma,
+                     DSET_NZ(g_saset), DSET_NVALS(g_saset), ts_length);
+     show_malloc_stats("signal model");
+  }
 
   if( ! ISVALID_3DIM_DATASET(g_saset) ) return 0;
 
@@ -905,7 +1137,7 @@ int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
 
    /* maybe allocate new memory for egrid (hopefully once, "ever") */
    if( ! sexpgrid || snxy != nx*ny ) {
-      if( genv_debug )
+      if( genv_debug > 1 )
          fprintf(stderr,"++ alloc egrid, snxy = %d, nxy = %d\n", snxy, nx*ny);
       snxy = nx*ny;
       if( sexpgrid ) free(sexpgrid);    /* nuke any old copy - maybe never */

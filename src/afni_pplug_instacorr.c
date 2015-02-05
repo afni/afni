@@ -69,6 +69,10 @@ static char i_helpstring[] =
   "      (i.e., Shift-Ctrl-Left-click).\n"
   "   ++ This combination will jump the crosshairs to the selected point\n"
   "      AND then run 'InstaCorr Set' using this new voxel as the seed.\n"
+  "   ++ You can do Shift-Ctrl-Left-click-and-hold, then drag the mouse\n"
+  "      cursor around to change the seed location smoothly.  The crosshairs\n"
+  "      do not move with this smooth re-seeding until you finally release\n"
+  "      the mouse button.\n"
   "\n"
   "CONTROLS\n"
   "========\n"
@@ -160,13 +164,33 @@ static char i_helpstring[] =
   "               datasets, Spearman and Quadrant correlation will be perceptibly\n"
   "               slower than Pearson.\n"
   "\n"
-  "  ExtraSet   = If this is chosen, then the seed voxel will be extracted\n"
+  "* Iterate    = This row allows you to specify that the results from the usual\n"
+  "               InstaCorr process will be iterated -- that is, all the voxels\n"
+  "               whose correlation is above a threshold will be averaged, and\n"
+  "               then that average will be used as the seed, et cetera.\n"
+  "               NOTE: voxels whose correlation is below minus Thresh will be\n"
+  "                     averaged into the new seed negatively. This choice is\n"
+  "                     to avoid cancellation.\n"
+  "\n"
+  "    Count    = Number of iterations, from 2..6.\n"
+  "\n"
+  "   Thresh    = Threshold at which to choose voxels for the averaging process.\n"
+  "             * For 'fun', notice that if you set Thresh to 0.01 (the smallest\n"
+  "               value allowed), and set Count to 6, then the resulting map\n"
+  "               does not depend much on the starting seed location. That is,\n"
+  "               the result converges to something similar to an eigenfunction\n"
+  "               of the correlation operator.\n"
+  "\n"
+  "* ExtraSet   = If this is chosen, then the seed voxel will be extracted\n"
   "               from Dataset, but its correlations will be done with the\n"
   "               voxels from Extraset.\n"
   "              * The number of time points and the grid spacing of\n"
   "                Extraset must match Dataset.\n"
   "              * The 2 time series dataset will be pre-processed identically.\n"
   "              * This option is a present for Ziad.\n"
+  "              * If Iterate is used, the seed averaging at each step still\n"
+  "                comes from Dataset, and the correlations are between the\n"
+  "                Dataset-derived seed and ExtraSet.\n"
   "\n"
   "OPERATION\n"
   "=========\n"
@@ -262,6 +286,10 @@ PLUGIN_interface * ICOR_init( char *lab )
                        meth_string , 0 ) ;
    }
 
+   PLUTO_add_option ( plint , "Iterate"  , "Iterate"  , FALSE ) ;  /* 05 Feb 2015 */
+   PLUTO_add_number ( plint , "Count"    , 2,6,0,2    , FALSE ) ;
+   PLUTO_add_number ( plint , "Thresh"   , 1,9999,2,50, TRUE  ) ;
+
    PLUTO_add_option ( plint , "ExtraSet" , "ExtraSet" , FALSE ) ;
    PLUTO_add_dataset( plint , "Extraset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
@@ -291,8 +319,11 @@ static char * ICOR_main( PLUGIN_interface *plint )
    int cmeth  = NBISTAT_PEARSON_CORR ;
    int despike = 0 ;
    int clen=0,cnum=0,cstep=0 ;
+   int iter_count=0 ; float iter_thresh=0.0f ;
 
-   ncall = 0 ;
+   /*** ncall = 0 ; ***/
+
+   /* check rationality */
 
    if( !IM3D_OPEN(im3d) || im3d->vwid->func->options_vedit_av->ival != VEDIT_INSTACORR ){
      XtUnmapWidget(plint->wid->shell); return NULL;
@@ -338,6 +369,12 @@ static char * ICOR_main( PLUGIN_interface *plint )
            WARNING_message("Don't understand 'Start,End' string '%s'",stend) ;
          }
        }
+       continue ;
+     }
+
+     if( strcmp(tag,"Iterate") == 0 ){         /* 05 Feb 2015 */
+       iter_count  = PLUTO_get_number(plint) ;
+       iter_thresh = PLUTO_get_number(plint) ;
        continue ;
      }
 
@@ -488,6 +525,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
      INFO_message("InstaCorr setup: minor changes accepted") ;
      im3d->iset->sblur = sblur ; im3d->iset->cmeth = cmeth ;
+     im3d->iset->iter_count = iter_count; im3d->iset->iter_thresh = iter_thresh;
      im3d->iset->change = 1; return NULL ;
    }
 
@@ -516,6 +554,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->clen     = clen ;    /* 07 Oct 2014 */
    iset->cnum     = cnum ;
    iset->cstep    = cstep ;
+   iset->iter_count  = iter_count ;  /* 05 Feb 2015 */
+   iset->iter_thresh = iter_thresh ;
 
    cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
 

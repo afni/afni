@@ -295,6 +295,7 @@ MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk )
    int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar ; int *ivar ;
    float sblur=0.0f ;
    MRI_vectim *mv ;
+   int iter_count , iter , nvals ; float iter_thresh , *nsar=NULL ;
 
 ENTRY("THD_instacorr") ;
 
@@ -307,49 +308,84 @@ ENTRY("THD_instacorr") ;
 
    /** save seed in iset struct [15 May 2009] **/
 
-   iset->tseed = (float *)realloc( iset->tseed , sizeof(float)*iset->mv->nvals ) ;
-   memcpy( iset->tseed , tsar , sizeof(float)*iset->mv->nvals ) ;
+   nvals = iset->mv->nvals ;
+   iset->tseed = (float *)realloc( iset->tseed , sizeof(float)*nvals ) ;
+   memcpy( iset->tseed , tsar , sizeof(float)*nvals ) ;
 
    /** do the correlations **/
 
    sblur = iset->sblur ;
 
+   iter_count  = iset->iter_count ; if( iter_count <= 0 ) iter_count = 1 ;
+   iter_thresh = iset->iter_thresh ;
+   if( iter_count > 1 ) nsar = (float *)malloc(sizeof(float)*nvals) ;
+
+   mv  = (iset->ev == NULL) ? iset->mv : iset->ev ;
    dar = (float *)malloc(sizeof(float)*iset->mv->nvec) ;
 
-   mv = (iset->ev == NULL) ? iset->mv : iset->ev ;
+   for( iter=0 ; iter < iter_count ; iter++ ){  /* iteration: 05 Feb 2015 */
 
-   switch( iset->cmeth ){
-     default:
-     case NBISTAT_PEARSON_CORR:
-       THD_vectim_dotprod ( mv , tsar , dar , 0 ) ; break ;
+     switch( iset->cmeth ){  /* the actual work */
+       default:
+       case NBISTAT_PEARSON_CORR:
+         THD_vectim_dotprod ( mv , tsar , dar , 0 ) ; break ;
 
-     case NBISTAT_SPEARMAN_CORR:
-       THD_vectim_spearman( mv , tsar , dar ) ; break ;
+       case NBISTAT_SPEARMAN_CORR:
+         THD_vectim_spearman( mv , tsar , dar ) ; break ;
 
-     case NBISTAT_QUADRANT_CORR:
-       THD_vectim_quadrant( mv , tsar , dar ) ; break ;
+       case NBISTAT_QUADRANT_CORR:
+         THD_vectim_quadrant( mv , tsar , dar ) ; break ;
 
-     case NBISTAT_TICTACTOE_CORR:
-       THD_vectim_tictactoe( mv , tsar , dar ) ; break ;
+       case NBISTAT_TICTACTOE_CORR:
+         THD_vectim_tictactoe( mv , tsar , dar ) ; break ;
 
-     case NBISTAT_KENDALL_TAUB:
-       THD_vectim_ktaub( mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
+       case NBISTAT_KENDALL_TAUB:
+         THD_vectim_ktaub( mv , tsar , dar ) ; break ;  /* 29 Apr 2010 */
 
-     case NBISTAT_BC_PEARSON_M:
-       THD_vectim_pearsonBC( mv,sblur,ijk,0,dar ); break; /* 07 Mar 2011 */
+       case NBISTAT_BC_PEARSON_M:
+         THD_vectim_pearsonBC( mv,sblur,ijk,0,dar ); break; /* 07 Mar 2011 */
 
-     case NBISTAT_BC_PEARSON_V:
-       THD_vectim_pearsonBC( mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
+       case NBISTAT_BC_PEARSON_V:
+         THD_vectim_pearsonBC( mv,sblur,ijk,1,dar ); break; /* 07 Mar 2011 */
 
-     case NBISTAT_EUCLIDIAN_DIST:/* 04 Apr 2012, ZSS*/
-       THD_vectim_distance( mv , tsar , dar , 0, "inv;n_scale") ; break ;
+       case NBISTAT_EUCLIDIAN_DIST:/* 04 Apr 2012, ZSS*/
+         THD_vectim_distance( mv , tsar , dar , 0, "inv;n_scale") ; break ;
 
-     case NBISTAT_CITYBLOCK_DIST:/* 04 Apr 2012, ZSS*/
-       THD_vectim_distance( mv , tsar , dar , 1, "inv;n_scale") ; break ;
+       case NBISTAT_CITYBLOCK_DIST:/* 04 Apr 2012, ZSS*/
+         THD_vectim_distance( mv , tsar , dar , 1, "inv;n_scale") ; break ;
 
-     case NBISTAT_QUANTILE_CORR: /* 11 May 2012 */
-       THD_vectim_quantile( mv , tsar , dar ) ; break ;
-   }
+       case NBISTAT_QUANTILE_CORR: /* 11 May 2012 */
+         THD_vectim_quantile( mv , tsar , dar ) ; break ;
+     }
+
+     if( iter+1 < iter_count ){  /* threshold, compute new seed [05 Feb 2015] */
+       int ii , ngood=0 ; float *vv ;
+       for( ii=0 ; ii < nvals ; ii++ ) nsar[ii] = 0.0f ;
+
+       for( kk=0 ; kk < mv->nvec ; kk++ ){
+         vv = VECTIM_PTR(mv,kk) ;
+         if( dar[kk] >= iter_thresh ){
+           ngood++ ; for( ii=0 ; ii < nvals ; ii++ ) nsar[ii] += vv[ii] ;
+         } else if( dar[kk] <= -iter_thresh ){
+           ngood++ ; for( ii=0 ; ii < nvals ; ii++ ) nsar[ii] -= vv[ii] ;
+         }
+       }
+       if( ngood == 0 ){  /* nothing above threshold?! */
+         WARNING_message("InstaCorr -- nothing above threshold %g on iteration #%d",
+                         iter_thresh , iter+1 ) ;
+         break ;
+       }
+#if 0
+ININFO_message("InstaCorr: iteration #%d has %d supra-threshold",iter+1,ngood) ;
+#endif
+       THD_normalize( nvals , nsar ) ;
+       memcpy( tsar , nsar , sizeof(float)*nvals ) ;
+
+     } else if( nsar != NULL ){
+       free(nsar) ; nsar = NULL ;
+     }
+
+   } /* end of iterations */
 
    /** put them into the output image **/
 
