@@ -1607,7 +1607,7 @@ int main(int argc, char **argv)
    
    
    if (Opt->sig) {
-      Opt->cmask = MaskSetup(Opt, Opt->sig, 
+      Opt->cmask = MaskSetup(Opt, Opt->sig, 1,
                 &(Opt->mset), &(Opt->cmask), Opt->dimcmask, 
                 Opt->mask_bot, Opt->mask_top, &(Opt->cmask_count));
    }
