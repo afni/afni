@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 6, Feb, 2014, ZSS, "3dSurfMask", MICRO, TYPE_NEW_OPT,
+   "Added -meth peri to return intersection with surface only.",
+   NULL
+ },
+
  { 5, Feb, 2014, ZSS, "3dinfill", MICRO, TYPE_NEW_OPT,
    "Added -mask option to restrict filling to holes within mask",
    NULL
