@@ -3609,6 +3609,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
       }
    }
    
+   if (fillhole >= 0) {
       /* create a mask vector*/
       ijkmask = (byte *)SUMA_calloc(nxyz, sizeof(byte));
       ijkout = (byte *)SUMA_calloc(nxyz, sizeof(byte));
@@ -3737,7 +3738,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
       if (!inmask) {
          SUMA_SL_Err("Failed to FillToVoxelMask!");
       } else {
-         if (fillhole) { /* not a good idea to keep in SUMA_FillToVoxelMask */
+         if (fillhole > 0 ){/* not a good idea to keep in SUMA_FillToVoxelMask */
             byte *inmask_prefill=NULL;
             
             /* keep track of original inmask */
@@ -3783,6 +3784,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlistU,
       for (nt=0; nt<nxyz; ++nt) { 
          if (ijkout[nt] && !inmask[nt]) isin[nt] = SUMA_IN_TRIBOX_OUTSIDE; 
       }
+   }
       
    CLEAN_EXIT:   
    if (ijkout) SUMA_free(ijkout); ijkout = NULL;

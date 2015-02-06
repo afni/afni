@@ -165,6 +165,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int a
              !strcmp(argv[kar],"Fast") ||
              !strcmp(argv[kar],"fast")) {
             Opt->b2 = 0;
+         } else if (!strcmp(argv[kar],"PERI") ||
+             !strcmp(argv[kar],"Peri") ||
+             !strcmp(argv[kar],"peri")) {
+            Opt->b2 = 2;
          } else {
             SUMA_S_Errv("Value %s not ok for -fill_method\n", argv[kar]); 
             exit(1);
