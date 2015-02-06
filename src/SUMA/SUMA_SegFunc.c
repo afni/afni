@@ -10231,7 +10231,8 @@ static int N_labels_slow = 3;
 /*!
    A convenience function to call SUMA_FindVoxelsInSurface* functions
    meth == 1: SUMA_FindVoxelsInSurface_SLOW 
-           2: SUMA_FindVoxelsInSurface
+           0: SUMA_FindVoxelsInSurface
+           2: SUMA_FindVoxelsInSurface, voxels touching surface only
    maskonly == 1: 0/1 output
                2: output reflecting relative position of voxel to surface
    You can use only one of iset, or (vp and vpname)
@@ -10269,6 +10270,9 @@ THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(SUMA_SurfaceObject *SO,
          SUMA_RETURN(NULL);
       case 0:
          isin = SUMA_FindVoxelsInSurface (SO, vp, &N_in, 1, NULL);
+         break;
+      case 2:
+         isin = SUMA_FindVoxelsInSurface (SO, vp, &N_in, -1, NULL);
          break;
       case 1:
          isin = SUMA_FindVoxelsInSurface_SLOW (SO, vp, &N_in, 0);
