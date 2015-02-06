@@ -1959,6 +1959,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_RESCAN_AT_SWITCH","YES") ; /* 16 Nov 2007 */
    PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
+   PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
 #if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 #endif
