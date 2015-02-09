@@ -13,7 +13,7 @@
 
 /****************************************************************/
 
-float THD_stat_to_pval( float thr , int statcode , float * stataux )
+float THD_stat_to_pval( float thr , int statcode , float *stataux )
 {
    float pval = -1.0 ;   /* error flag */
 
@@ -65,7 +65,7 @@ float THD_stat_to_pval( float thr , int statcode , float * stataux )
 
 /****************************************************************/
 
-float THD_pval_to_stat( float pval , int statcode , float * stataux )
+float THD_pval_to_stat( float pval , int statcode , float *stataux )
 {
    float stat = -1.0 ;   /* error flag */
 
@@ -119,7 +119,7 @@ float THD_pval_to_stat( float pval , int statcode , float * stataux )
 
 /****************************************************************/
 
-float THD_stat_to_zscore( float thr , int statcode , float * stataux )
+float THD_stat_to_zscore( float thr , int statcode , float *stataux )
 {
    float zscore = thr ;
 
@@ -167,4 +167,25 @@ float THD_stat_to_zscore( float thr , int statcode , float * stataux )
    }
 
    return zscore ;
+}
+
+/****************************************************************/
+
+int THD_stat_is_2sided( int statcode , int thrsign )
+{
+   switch( statcode ){  /* if statcode is illegal, will return -1 */
+
+      case FUNC_COR_TYPE:
+      case FUNC_TT_TYPE:
+      case FUNC_ZT_TYPE: return (thrsign == 0) ? 1 : 0 ;
+
+      case FUNC_PT_TYPE:
+      case FUNC_GT_TYPE:
+      case FUNC_BN_TYPE:
+      case FUNC_BT_TYPE:
+      case FUNC_CT_TYPE:
+      case FUNC_FT_TYPE: return 0 ;  /* always 1-sided */
+   }
+
+   return -1 ;
 }

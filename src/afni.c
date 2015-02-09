@@ -1265,8 +1265,8 @@ static char *FALLback[] =
       "AFNI*font8*fontList:        8x13bold=charset1"    , /* smaller fonts */
       "AFNI*font7*fontList:        7x13=charset1"        ,  /* for various */
       "AFNI*font6*fontList:        6x10=charset1"        ,  /* usages */
-      "AFNI*background:            gray19"               , /* background clr */
-      "AFNI*menu*background:       gray5"                , /* bkgd in menus */
+      "AFNI*background:            gray21"               , /* background clr */
+      "AFNI*menu*background:       gray4"                , /* bkgd in menus */
       "AFNI*menu*foreground:       #ffdd22"              , /* menu text color */
       "AFNI*borderColor:           gray19"               , /* same as bkgd! */
       "AFNI*foreground:            yellow"               , /* normal text */
@@ -1480,6 +1480,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Did I mention that we're doomed? Horribly horribly doomed?"    ,
      "I could go for some momos right now, how about you?"           ,
      "I really like woh for a filling dinner, don't you?"            ,
+     "Dal bhat power, 24 hour"                                       ,
+     "Hodor Hodor Hodor Hodor"                                       ,
      "I wake and feel the fell of dark, not day"                     ,
      "Love all, trust a few, do wrong to none"                       ,
      "The wheel is come full circle"                                 ,
@@ -1959,6 +1961,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_RESCAN_AT_SWITCH","YES") ; /* 16 Nov 2007 */
    PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
+   PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
 #if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 #endif
@@ -5875,8 +5878,7 @@ void AFNI_closedown_3dview( Three_D_View *im3d )
 ENTRY("AFNI_closedown_3dview") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
-
-   /* Mar 1999: shutoff receivers, if any */
+/* Mar 1999: shutoff receivers, if any */
 
    AFNI_receive_destroy( im3d ) ;
 
@@ -5917,9 +5919,18 @@ ENTRY("AFNI_closedown_3dview") ;
 
    /* Jul 2010 */
 
-   CLU_free_table(im3d->vwid->func->clu_tabNN1); im3d->vwid->func->clu_tabNN1 = NULL;
-   CLU_free_table(im3d->vwid->func->clu_tabNN2); im3d->vwid->func->clu_tabNN2 = NULL;
-   CLU_free_table(im3d->vwid->func->clu_tabNN3); im3d->vwid->func->clu_tabNN3 = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN1_1sid); im3d->vwid->func->clu_tabNN1_1sid = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN2_1sid); im3d->vwid->func->clu_tabNN2_1sid = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN3_1sid); im3d->vwid->func->clu_tabNN3_1sid = NULL;
+
+   CLU_free_table(im3d->vwid->func->clu_tabNN1_2sid); im3d->vwid->func->clu_tabNN1_2sid = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN2_2sid); im3d->vwid->func->clu_tabNN2_2sid = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN3_2sid); im3d->vwid->func->clu_tabNN3_2sid = NULL;
+
+   CLU_free_table(im3d->vwid->func->clu_tabNN1_bsid); im3d->vwid->func->clu_tabNN1_bsid = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN2_bsid); im3d->vwid->func->clu_tabNN2_bsid = NULL;
+   CLU_free_table(im3d->vwid->func->clu_tabNN3_bsid); im3d->vwid->func->clu_tabNN3_bsid = NULL;
+
    if( im3d->vwid->func->clu_mask != NULL ){
      free(im3d->vwid->func->clu_mask) ; im3d->vwid->func->clu_mask = NULL ;
    }
@@ -7204,7 +7215,7 @@ DUMP_IVEC3("  new_id",new_id) ;
      if( VEDIT_good(im3d->vedset) ){
        im3d->vedset.ival = im3d->vinfo->fim_index ;
        switch( VEDIT_CODE(im3d->vedset) ){
-         case VEDIT_CLUST:
+         case VEDIT_CLUST:  /* params 2,3,6 set in afni_cluster.c */
            im3d->vedset.param[0] = (float)im3d->vinfo->thr_index ;
            im3d->vedset.param[1] = get_3Dview_func_thresh(im3d,1);
            im3d->vedset.param[4] = im3d->vinfo->thr_sign ;

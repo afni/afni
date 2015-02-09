@@ -23,6 +23,13 @@
 #define MAX_NAME_LENGTH  THD_MAX_NAME /* max. string length for file names */
 #define MAX_CLUSTER_SIZE 99999        /* max. size of cluster for freq. table */
 
+#undef  ALLOW_LOHI
+#ifndef ALLOW_LOHI
+# define do_lohi     0
+#else
+static int do_lohi = 0 ;
+#endif
+
 /*---------------------------------------------------------------------------*/
 /*
   Global data
@@ -58,24 +65,18 @@ static THD_3dim_dataset *ssave_dset = NULL ;
 
 #define SSAVE_BLURRED   1
 #define SSAVE_MASKED    2
-#define SSAVE_ABSOLUTE  3
+#define SSAVE_ABSOLUTE  3  /* no longer used */
 
 static int nodec   = 0 ;
 static int do_niml = 0 ;
 static int do_1D   = 1 ;
 static int do_ball = 0 ;
 
-static int do_lohi = 0 ;  /* 20 Jan 2011 -- for debugging */
-
-static int do_2sid = 0 ;  /* 21 Sep 2011 */
-
-static int do_NN[4] = { 0 , 1 , 0 , 0 } ;
-
 static unsigned int gseed = 123456789 ;
 
 #define PMAX 0.2
 
-static double pthr_init[8] = { 0.02 , 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
+static double pthr_init[9] = { 0.05 , 0.02 , 0.01, 0.005, 0.002, 0.001, 0.0005, 0.0002, 0.0001 } ;
 static double athr_init[4] = { 0.10 , 0.05 , 0.02 , 0.01 } ;
 
 static int   npthr_lots     = 29 ;
@@ -88,9 +89,11 @@ static double pthr_lots[29] = { 0.10,    0.09,    0.08,    0.07,    0.06,
 static int   nathr_lots   = 10 ;
 static double athr_lots[] = { 0.10, 0.09, .08, .07, .06, .05, .04, .03, .02, .01 } ;
 
-static int    npthr = 8 ;
+static int    npthr = 9 ;
 static double *pthr = NULL ;
-static float  *zthr = NULL ;
+
+static float  *zthr_1sid = NULL ;
+static float  *zthr_2sid = NULL ;
 
 static int    nathr = 4 ;
 static double *athr = NULL ;
@@ -106,7 +109,7 @@ static char *prefix = NULL ;
 #define PSMALL 1.e-15
 
 /*----------------------------------------------------------------------------*/
-/*! Threshold for tail probability of N(0,1) */
+/*! Threshold for upper tail probability of N(0,1) */
 
 double zthresh( double pval )
 {
@@ -149,8 +152,54 @@ void display_help_menu()
    "slider, the per-voxel p-value (shown below the slider) changes, and then\n"
    "the interpolated alpha values are updated.\n"
    "\n"
-   "Three different clustering methods can be used -- the program can give\n"
-   "you results for any or all of them in one run -- see the '-NN' option.\n"
+   "** ---------------------------------------------------------------------------**\n"
+   "** IMPORTANT CHANGES -- February 2015 ******************************************\n"
+   "** ---------------------------------------------------------------------------**\n"
+   "** In the past, 3dClustSim did '1-sided' testing; that is, the random dataset\n"
+   "** of Gaussian noise-only values is generated, and then it is thresholded on\n"
+   "** the positive side so that the N(0,1) upper tail probability is pthr.\n"
+   "**\n"
+   "** NOW, 3dClustSim does 3 different types of thresholding:\n"
+   "**   1-sided: as above\n"
+   "**   2-sided: where positive and negative values above the threshold\n"
+   "**            are included, and then clustered together\n"
+   "**            (in this case, the threshold on the Gaussian values is)\n"
+   "**            (fixed so that the 1-sided tail probability is pthr/2.)\n"
+   "**  bi-sided: where positive values and negative values above the\n"
+   "**            threshold are clustered SEPARATELY (with the 2-sided threshold)\n"
+   "** For high levels of smoothness, the results from bi-sided and 2-sided are\n"
+   "** very similar -- since for smooth data, it is unlikely that large clusters of\n"
+   "** positive and negative values will be next to each other. With high smoothness,\n"
+   "** it is also true that the 2-sided results for 2*pthr will be similar to the\n"
+   "** 1-sided results for pthr, for the same reason. Since 3dClustSim is meant to be\n"
+   "** useful when the noise is NOT very smooth, we provide tables for all 3 cases.\n"
+   "**\n"
+   "** In particular, note that when the AFNI GUI threshold is set to a t-statistic,\n"
+   "** 2-sided testing is what is usually appropriate -- in that case, the cluster\n"
+   "** size thresholds tend to be smaller than the 1-sided case, which means that\n"
+   "** more clusters tend to be significant than in the past.\n"
+   "**\n"
+   "** In addition, the 3 different NN approaches (NN=1, NN=2, NN=3) are all\n"
+   "** always computed now.  That is, 9 different tables are produced, each\n"
+   "** of which has its proper place when combined with the AFNI Clusterize GUI.\n"
+   "** The 3 different NN methods are:\n"
+   "**  1 = Use first-nearest neighbor clustering\n"
+   "**      * above threshold voxels cluster together if faces touch\n"
+   "**  2 = Use second-nearest neighbor clustering\n"
+   "**      * voxels cluster together if faces OR edges touch\n"
+   "**  3 = Use third-nearest neighbor clustering\n"
+   "**      * voxels cluster together if faces OR edges OR corners touch\n"
+   "** The clustering method only makes a difference at higher (less significant)\n"
+   "** values of pthr.   At small values of pthr (more significant),  all three\n"
+   "** clustering methods will give very similar results.\n"
+   "**\n"
+   "**** PLEASE NOTE that the NIML outputs from this new version are not named the\n"
+   "**** same as those from the older version. Thus, any script that takes the NIML\n"
+   "**** format tables and inserts them into an AFNI dataset header must be modified\n"
+   "**** to match the new names. The 3drefit command fragment output at the end of\n"
+   "**** this program (and echoed into file '3dClustSim.cmd') shows the new form\n"
+   "**** of the names involved.\n"
+   "**** -------------------------------------------------------------------------**\n"
    "\n"
    "-------\n"
    "OPTIONS  [at least 1 option is required, or you'll get this help message!]\n"
@@ -187,26 +236,16 @@ void display_help_menu()
    "\n"
    "  ---** the remaining options control how the simulation is done **---\n"
    "\n"
-   "-fwhm s        = Gaussian filter width (all 3 dimensions)\n"
+   "-fwhm s        = Gaussian filter width (all 3 dimensions) in mm (non-negative)\n"
    "                  [default = 0.0 = no smoothing]\n"
-   "                 * If you wish to set different smoothing amounts for\n"
-   "                   each axis, you can instead use option\n"
+   "                 * If you wish to set different smoothing amounts for each\n"
+   "                   axis, you can instead use option\n"
    "                     -fwhmxyz sx sy sz\n"
    "                   to specify the three values separately.\n"
    "\n"
    "-pthr p1 .. pn = list of uncorrected (per voxel) p-values at which to\n"
    "                  threshold the simulated images prior to clustering.\n"
-   "                  [default = 0.02 0.01 0.005 0.002 0.001 0.0005 0.0002 0.0001]\n"
-   "\n"
-   "-2sided        = Normally, 3dClustSim does '1-sided' testing.  The random\n"
-   "                  dataset of Gaussian noise-only values is generated, and then\n"
-   "                  it is thresholded on the positive side so that the N(0,1)\n"
-   "                  upper tail probability is pthr.  If you use this option, then\n"
-   "                  the thresholding is instead done in a 2-sided way: positive\n"
-   "                  AND negative values will be clustered together, with the\n"
-   "                  thresholding chosen to have a 2-sided tail probability given\n"
-   "                  by pthr.\n"
-   "                 * This option is for experimentation, not for serious use!\n"
+   "                  [default = 0.05 0.02 0.01 0.005 0.002 0.001 0.0005 0.0002 0.0001]\n"
    "\n"
    "-athr a1 .. an = list of corrected (whole volume) alpha-values at which\n"
    "                  the simulation will print out the cluster size\n"
@@ -229,23 +268,6 @@ void display_help_menu()
    "\n"
    "-iter n        = number of Monte Carlo simulations [default = 10000]\n"
    "\n"
-   "-NN abc        = Define the clustering method(s) to use.  'abc' contains\n"
-   "                 some set of digits from the set { 1 , 2 , 3 }, where\n"
-   "                  1 = Use first-nearest neighbor clustering\n"
-   "                      * above threshold voxels cluster together if faces touch\n"
-   "                  2 = Use second-nearest neighbor clustering\n"
-   "                      * voxels cluster together if faces OR edges touch\n"
-   "                  3 = Use third-nearest neighbor clustering\n"
-   "                      * voxels cluster together if faces OR edges OR corners touch\n"
-   "                 To get outputs from all 3 types of clustering, use '-NN 123'.\n"
-   "                 If you don't use this option, then only first-nearest neighbor\n"
-   "                 clustering will be computed (as if you used '-NN 1').\n"
-   "\n"
-   "              ** The clustering method only makes a difference at higher **\n"
-   "              ** (less significant) values of pthr.   At small values of **\n"
-   "              ** pthr (more significant),  all 3 clustering methods will **\n"
-   "              ** give very similar results.                              **\n"
-   "\n"
    "-nodec         = normally, the program prints the cluster size threshold to\n"
    "                  1 decimal place (e.g., 27.2).  Of course, clusters only come\n"
    "                  with an integer number of voxels -- this fractional value\n"
@@ -259,19 +281,19 @@ void display_help_menu()
    "                  * This option is for use with other software programs;\n"
    "                    see the NOTES section below for details.\n"
    "                  * '-niml' also implicitly means '-LOTS'.\n"
-   "                  * '-niml' also implicitly means '-NN 123'.\n"
-   "                    If you DON'T want all 3 NN methods, then use an explicit\n"
-   "                    '-NN' option AFTER the '-niml' option to choose what you want.\n"
    "\n"
    "-both          = Output the table in XML/NIML format AND in .1D format.\n"
    "                  * You probably want to use '-prefix' with this option!\n"
    "                    Otherwise, everything is mixed together on stdout.\n"
-   "                  * '-both' does NOT imply '-NN 123'; if you want all 3 NN\n"
-   "                    methods with '-both', you have to explicitly use '-NN 123'.\n"
    "\n"
-   "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk.1D' for k=1, 2, 3.\n"
+   "-prefix ppp    = Write output for NN method #k to file 'ppp.NNk_Xsided.1D',\n"
+   "                  for k=1, 2, 3, and for X=1sided, 2sided, bisided.\n"
    "                  * If '-prefix is not used, results go to standard output.\n"
-   "                  * If '-niml' is used, the filename is 'ppp.NNk.niml'.\n"
+   "                  * If '-niml' is used, the filename is 'ppp.NNk_Xsided.niml'.\n"
+   "                    To be clear, the 9 files that will be named\n"
+   "                      ppp.NN1_1sided.niml ppp.NN1_2sided.niml ppp.NN1_bisided.niml\n"
+   "                      ppp.NN2_1sided.niml ppp.NN2_2sided.niml ppp.NN2_bisided.niml\n"
+   "                      ppp.NN3_1sided.niml ppp.NN3_2sided.niml ppp.NN3_bisided.niml\n"
    "                  * If '-niml' AND '-mask' are both used, then a compressed ASCII\n"
    "                    encoding of the mask volume is stored into file 'ppp.mask'.\n"
    "                    This string can be stored into a dataset header as an attribute\n"
@@ -285,16 +307,12 @@ void display_help_menu()
    "                    won't be done in the Clusterize process.\n"
    "\n"
    "-quiet         = Don't print out the progress reports, etc.\n"
-   "                  * Put this option first to quiet most informational messages.\n"
+   "                  * Put this option first to silence most informational messages.\n"
    "\n"
-   " -ssave:TYPE ssprefix = Save the generated random volumes into datasets\n"
-   "                        ('-iter' of them).  Here, 'TYPE' is one of the following\n"
+   " -ssave:TYPE ssprefix = Save the un-thresholded generated random volumes into\n"
+   "                        datasets ('-iter' of them). Here, 'TYPE' is one of these:\n"
    "                          * blurred == save the blurred 3D volume before masking\n"
    "                          * masked  == save the blurred volume after masking\n"
-   "                          * absolute == if '-2sided' was given, save the blurred\n"
-   "                                        volume after the absolute value is taken;\n"
-   "                                        if '-2sided' was NOT given, this is the\n"
-   "                                        same as 'masked'\n"
    "                        The output datasets will actually get prefixes generated\n"
    "                        with the string 'ssprefix' being appended by a 6 digit\n"
    "                        integer (the iteration index), starting at 000000.\n"
@@ -329,7 +347,7 @@ void display_help_menu()
    "  dataset, something like the following can be done [tcsh syntax]:\n"
    "     set fwhm = ( `3dFWHMx -combine -detrend time_series_dataset+orig` )\n"
    "     3dClustSim -mask mask+orig -fwhm $fwhm[4] -niml -prefix CStemp\n"
-   "     3drefit -atrstring AFNI_CLUSTSIM_NN1 file:CStemp.NN1.niml \\\n"
+   "     3drefit -atrstring AFNI_CLUSTSIM_NN1_1sided file:CStemp.NN1_1sided.niml \\\n"
    "             -atrstring AFNI_CLUSTSIM_MASK file:CStemp.mask    \\\n"
    "             statistics_dataset+orig\n"
    "     rm -f CStemp.*\n"
@@ -359,14 +377,11 @@ void display_help_menu()
    "    values change for both reasons -- different p and different cluster size.\n"
    " ++ The alpha values reported are 'per-cluster', and are not themselves\n"
    "    corrected for multiple comparisons ACROSS clusters.  These alpha values\n"
-   "    are corrected for multiple comparisons within a cluster.\n"
+   "    are corrected for multiple comparisons WITHIN a cluster.\n"
    "\n"
    "* AFNI will use the NN1, NN2, NN3 tables as needed in its Clusterize\n"
    "  interface if they are all stored in the statistics dataset header,\n"
    "  depending on the NN level chosen in the Clusterize controller.\n"
-   "  ++ If only the NN1 table gets stored in the statistics dataset, then\n"
-   "     that table will be used even if you ask for NN3 clusterizing inside\n"
-   "     AFNI -- the idea being that to get SOME result is better than nothing.\n"
    "\n"
    "* The blur estimates (provided via -fwhm, say) can come from various\n"
    "  sources.\n"
@@ -429,15 +444,17 @@ void display_help_menu()
   printf(
    "\n"
    "-------------\n"
-   "SAMPLE OUTPUT from the command '3dClustSim -fwhm 7'\n"
+   "SAMPLE OUTPUT from the command '3dClustSim -fwhm 7' [only the NN=1 1-sided results]\n"
    "-------------\n"
    "# 3dClustSim -fwhm 7\n"
+   "# 1-sided thresholding\n"
    "# Grid: 64x64x32 3.50x3.50x3.50 mm^3 (131072 voxels)\n"
    "#\n"
    "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
    "# -NN 1  | alpha = Prob(Cluster >= given size)\n"
    "#  pthr  |  0.100  0.050  0.020  0.010\n"
    "# ------ | ------ ------ ------ ------\n"
+   " 0.050000   162.5  182.2  207.8  225.7\n"
    " 0.020000    64.3   71.0   80.5   88.5\n"
    " 0.010000    40.3   44.7   50.7   55.1\n"
    " 0.005000    28.0   31.2   34.9   38.1\n"
@@ -613,6 +630,7 @@ void get_options( int argc , char **argv )
       nopt++ ; continue ;
     }
 
+#if 0
     /*-----   -2sided   ------*/
 
     if( strcasecmp(argv[nopt],"-2sided") == 0 ){
@@ -621,6 +639,7 @@ void get_options( int argc , char **argv )
     if( strcasecmp(argv[nopt],"-1sided") == 0 ){
       do_2sid = 0 ; nopt++ ; continue ;
     }
+#endif
 
     /*-----   -pthr p   -----*/
 
@@ -694,9 +713,11 @@ void get_options( int argc , char **argv )
       nodec = 1 ; nopt++ ; continue ;
     }
 
+#ifdef ALLOW_LOHI
     if( strcasecmp(argv[nopt],"-alo") == 0 ){   /* 20 Jan 2011: debug stuff */
       do_lohi = 1 ; nopt++ ; continue ;
     }
+#endif
 
     /*----   -niml   ----*/
 
@@ -709,10 +730,7 @@ void get_options( int argc , char **argv )
       athr = (double *)realloc(athr,sizeof(double)*nathr) ;
       memcpy( athr , athr_lots , sizeof(double)*nathr ) ;
       do_niml = 1 ;
-      if( strcasecmp(argv[nopt],"-both") == 0 )
-        do_1D = 1 ;
-      else
-        do_NN[1] = do_NN[2] = do_NN[3] = 1 ;   /* 19 Jan 2011 */
+      do_1D   = ( strcasecmp(argv[nopt],"-both") == 0 ) ;
       nopt++ ; continue ;
     }
 
@@ -725,14 +743,9 @@ void get_options( int argc , char **argv )
     /*----   -NN   ----*/
 
     if( strcasecmp(argv[nopt],"-NN") == 0 ){
-      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
-      do_NN[1] = (strchr(argv[nopt],'1') != NULL) ;
-      do_NN[2] = (strchr(argv[nopt],'2') != NULL) ;
-      do_NN[3] = (strchr(argv[nopt],'3') != NULL) ;
-      ii = do_NN[1] + do_NN[2] + do_NN[3] ;
-      if( !ii )
-        ERROR_exit("argument after %s does not contain digits 1, 2, or 3",argv[nopt-1]) ;
-      nopt++ ; continue ;
+      WARNING_message("-NN option is no longer supported! All NN cases are computed now.") ;
+      nopt++ ; if( isdigit(argv[nopt][0]) ) nopt++ ;
+      continue ;
     }
 
     /*-----  -prefix -----*/
@@ -758,8 +771,6 @@ void get_options( int argc , char **argv )
         do_ssave = SSAVE_BLURRED ;
       } else if( strcasecmp(argv[nopt]+7,"masked") == 0 ){
         do_ssave = SSAVE_MASKED ;
-      } else if( strcasecmp(argv[nopt]+7,"absolute") == 0 ){
-        do_ssave = SSAVE_ABSOLUTE ;
       } else {
         ERROR_exit("this form of '-ssave' is unknown: '%s'",argv[nopt]) ;
       }
@@ -831,10 +842,11 @@ void get_options( int argc , char **argv )
 
   /*-- z-score thresholds for the various p-values --*/
 
-  zthr = (float *)malloc(sizeof(float)*npthr) ;
+  zthr_1sid = (float *)malloc(sizeof(float)*npthr) ;
+  zthr_2sid = (float *)malloc(sizeof(float)*npthr) ;
   for( ii=0 ; ii < npthr ; ii++ ){
-    zthr[ii] = (float)zthresh( (do_2sid) ? 0.5*pthr[ii] : pthr[ii] ) ;
-    /** ININFO_message("pthr=%8.5f  zthr=%6.3f",pthr[ii],zthr[ii]) ; **/
+    zthr_1sid[ii] = (float)zthresh(     pthr[ii] ) ;
+    zthr_2sid[ii] = (float)zthresh( 0.5*pthr[ii] ) ;
   }
 
   /*-- check niter vs smallest alpha level --*/
@@ -902,13 +914,13 @@ void generate_image( float *fim , unsigned short xran[] )
 
   if( do_ssave == SSAVE_MASKED ) ssave_dataset(fim) ;
 
+#if 0
   /* absolution? */
 
   if( do_2sid ){
     for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = fabsf(fim[ii]) ;
   }
-
-  if( do_ssave == SSAVE_ABSOLUTE ) ssave_dataset(fim) ;
+#endif
 
   return ;
 }
@@ -1174,11 +1186,11 @@ int find_largest_cluster_NN3( byte *mmm , int ithr )
 /*---------------------------------------------------------------------------*/
 /* Find clusters, save some info, re-populate array? */
 
-void gather_stats_NN1( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+void gather_stats_NN1_1sid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
 {
   register int ii ; register float thr ; int siz ;
 
-  thr = zthr[ipthr] ;
+  thr = zthr_1sid[ipthr] ;
   for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
   siz = find_largest_cluster_NN1( bfim , ithr ) ;
   if( siz > max_cluster_size ) siz = max_cluster_size ;
@@ -1190,11 +1202,11 @@ void gather_stats_NN1( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 /*---------------------------------------------------------------------------*/
 /* Find clusters, save some info, re-populate array? */
 
-void gather_stats_NN2( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+void gather_stats_NN2_1sid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
 {
   register int ii ; register float thr ; int siz ;
 
-  thr = zthr[ipthr] ;
+  thr = zthr_1sid[ipthr] ;
   for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
   siz = find_largest_cluster_NN2( bfim , ithr ) ;
   if( siz > max_cluster_size ) siz = max_cluster_size ;
@@ -1206,13 +1218,118 @@ void gather_stats_NN2( int ipthr , float *fim , byte *bfim , int *mtab , int ith
 /*---------------------------------------------------------------------------*/
 /* Find clusters, save some info, re-populate array? */
 
-void gather_stats_NN3( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+void gather_stats_NN3_1sid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
 {
   register int ii ; register float thr ; int siz ;
 
-  thr = zthr[ipthr] ;
+  thr = zthr_1sid[ipthr] ;
   for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
   siz = find_largest_cluster_NN3( bfim , ithr ) ;
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN1_2sid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz ;
+
+  thr = zthr_2sid[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
+  siz = find_largest_cluster_NN1( bfim , ithr ) ;
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN2_2sid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz ;
+
+  thr = zthr_2sid[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
+  siz = find_largest_cluster_NN2( bfim , ithr ) ;
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN3_2sid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz ;
+
+  thr = zthr_2sid[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) || (fim[ii] < -thr) ;
+  siz = find_largest_cluster_NN3( bfim , ithr ) ;
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN1_bsid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz_p , siz_m , siz ;
+
+  thr = zthr_2sid[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+  siz_p = find_largest_cluster_NN1( bfim , ithr ) ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
+  siz_m = find_largest_cluster_NN1( bfim , ithr ) ;
+  siz = MAX(siz_p,siz_m) ;
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN2_bsid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz_p , siz_m , siz ;
+
+  thr = zthr_2sid[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+  siz_p = find_largest_cluster_NN2( bfim , ithr ) ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
+  siz_m = find_largest_cluster_NN2( bfim , ithr ) ;
+  siz = MAX(siz_p,siz_m) ;
+  if( siz > max_cluster_size ) siz = max_cluster_size ;
+  mtab[siz]++ ;
+
+  return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Find clusters, save some info, re-populate array? */
+
+void gather_stats_NN3_bsid( int ipthr , float *fim , byte *bfim , int *mtab , int ithr )
+{
+  register int ii ; register float thr ; int siz_p , siz_m , siz ;
+
+  thr = zthr_2sid[ipthr] ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] > thr) ;
+  siz_p = find_largest_cluster_NN3( bfim , ithr ) ;
+  for( ii=0 ; ii < nxyz ; ii++ ) bfim[ii] = (fim[ii] < -thr) ;
+  siz_m = find_largest_cluster_NN3( bfim , ithr ) ;
+  siz = MAX(siz_p,siz_m) ;
   if( siz > max_cluster_size ) siz = max_cluster_size ;
   mtab[siz]++ ;
 
@@ -1253,10 +1370,11 @@ static char * prob9(float p)   /* format p-value into 9 char */
 
 int main( int argc , char **argv )
 {
-  int **max_table[4] ; int nnn , ipthr , first_mask=1 ;
+  int **max_table_1sid[4] , **max_table_2sid[4] , **max_table_bsid[4] ;
+  int nnn , ipthr , first_mask=1 ;
   char *refit_cmd = NULL ;
 #ifdef USE_OMP
-  int ***mtab[4] ;
+  int ***mtab_1sid[4] , ***mtab_2sid[4] , ***mtab_bsid[4] ;
 #endif
 
   /*----- does user request help menu? -----*/
@@ -1277,17 +1395,20 @@ int main( int argc , char **argv )
   /*----- create some space for the results -----*/
 
   for( nnn=1 ; nnn <= 3 ; nnn++ ){
-    if( do_NN[nnn] ){
-      max_table[nnn] = (int **)malloc(sizeof(int *)*npthr) ;  /* array of tables */
-      for( ipthr=0 ; ipthr < npthr ; ipthr++ )               /* create tables */
-        max_table[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+    max_table_1sid[nnn] = (int **)malloc(sizeof(int *)*npthr) ;  /* array of tables */
+    max_table_2sid[nnn] = (int **)malloc(sizeof(int *)*npthr) ;  /* array of tables */
+    max_table_bsid[nnn] = (int **)malloc(sizeof(int *)*npthr) ;  /* array of tables */
+    for( ipthr=0 ; ipthr < npthr ; ipthr++ ){                    /* create tables */
+      max_table_1sid[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+      max_table_2sid[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+      max_table_bsid[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
     }
   }
 
  AFNI_OMP_START ;
 #pragma omp parallel
  {
-   int iter, ithr, ipthr, **mt[4] , nnn ;
+   int iter, ithr, ipthr, **mt_1sid[4],**mt_2sid[4],**mt_bsid[4] , nnn ;
    float *fim ; byte *bfim ; unsigned short xran[3] ;
    int vstep , vii ;
 
@@ -1298,7 +1419,9 @@ int main( int argc , char **argv )
  {
    nthr = omp_get_num_threads() ;
    for( nnn=1 ; nnn <= 3 ; nnn++ ){
-     if( do_NN[nnn] ) mtab[nnn] = (int ***)malloc(sizeof(int **) *nthr) ;
+     mtab_1sid[nnn] = (int ***)malloc(sizeof(int **) *nthr) ;
+     mtab_2sid[nnn] = (int ***)malloc(sizeof(int **) *nthr) ;
+     mtab_bsid[nnn] = (int ***)malloc(sizeof(int **) *nthr) ;
    }
 
    nall_g = (int *)   malloc(sizeof(int)    *nthr) ;  /* workspaces for */
@@ -1310,10 +1433,13 @@ int main( int argc , char **argv )
 #pragma omp barrier  /* all threads wait until the above is finished */
    /* create tables for each thread separately */
    for( nnn=1 ; nnn <= 3 ; nnn++ ){
-     if( do_NN[nnn] ){
-       mtab[nnn][ithr] = mt[nnn] = (int **)malloc(sizeof(int *)*npthr) ;
-       for( ipthr=0 ; ipthr < npthr ; ipthr++ )
-         mt[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+     mtab_1sid[nnn][ithr] = mt_1sid[nnn] = (int **)malloc(sizeof(int *)*npthr) ;
+     mtab_2sid[nnn][ithr] = mt_2sid[nnn] = (int **)malloc(sizeof(int *)*npthr) ;
+     mtab_bsid[nnn][ithr] = mt_bsid[nnn] = (int **)malloc(sizeof(int *)*npthr) ;
+     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+       mt_1sid[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+       mt_2sid[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
+       mt_bsid[nnn][ipthr] = (int *)calloc(sizeof(int),(max_cluster_size+1)) ;
      }
    }
 
@@ -1342,8 +1468,11 @@ int main( int argc , char **argv )
    inow_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
    jnow_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
    know_g[ithr] = (short *) malloc(sizeof(short)*DALL) ;
-   for( nnn=1 ; nnn <= 3 ; nnn++ )
-     if( do_NN[nnn] ) mt[nnn] = max_table[nnn] ;
+   for( nnn=1 ; nnn <= 3 ; nnn++ ){
+     mt_1sid[nnn] = max_table_1sid[nnn] ;
+     mt_2sid[nnn] = max_table_2sid[nnn] ;
+     mt_bsid[nnn] = max_table_bsid[nnn] ;
+   }
 #endif
 
    fim  = (float *)malloc(sizeof(float)*nxyz) ;  /* image space */
@@ -1365,12 +1494,17 @@ int main( int argc , char **argv )
     generate_image( fim , xran ) ;
 
     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-      if( do_NN[1] )
-        gather_stats_NN1( ipthr , fim , bfim , mt[1][ipthr] , ithr ) ;
-      if( do_NN[2] )
-        gather_stats_NN2( ipthr , fim , bfim , mt[2][ipthr] , ithr ) ;
-      if( do_NN[3] )
-        gather_stats_NN3( ipthr , fim , bfim , mt[3][ipthr] , ithr ) ;
+      gather_stats_NN1_1sid( ipthr , fim , bfim , mt_1sid[1][ipthr] , ithr ) ;
+      gather_stats_NN2_1sid( ipthr , fim , bfim , mt_1sid[2][ipthr] , ithr ) ;
+      gather_stats_NN3_1sid( ipthr , fim , bfim , mt_1sid[3][ipthr] , ithr ) ;
+
+      gather_stats_NN1_2sid( ipthr , fim , bfim , mt_2sid[1][ipthr] , ithr ) ;
+      gather_stats_NN2_2sid( ipthr , fim , bfim , mt_2sid[2][ipthr] , ithr ) ;
+      gather_stats_NN3_2sid( ipthr , fim , bfim , mt_2sid[3][ipthr] , ithr ) ;
+
+      gather_stats_NN1_bsid( ipthr , fim , bfim , mt_bsid[1][ipthr] , ithr ) ;
+      gather_stats_NN2_bsid( ipthr , fim , bfim , mt_bsid[2][ipthr] , ithr ) ;
+      gather_stats_NN3_bsid( ipthr , fim , bfim , mt_bsid[3][ipthr] , ithr ) ;
     }
 
   } /* end of simulation loop */
@@ -1388,15 +1522,20 @@ int main( int argc , char **argv )
    /*-------- sum tables from various threads into one result ----------*/
 
 #ifdef USE_OMP
-   { int ithr , ii , ipthr , **mt , *mth ;
+   { int ithr , ii , ipthr , **mt_1sid,**mt_2sid,**mt_bsid , *mth_1sid,*mth_2sid,*mth_bsid ;
      for( nnn=1 ; nnn <= 3 ; nnn++ ){
-       if( do_NN[nnn] ){
-         for( ithr=0 ; ithr < nthr ; ithr++ ){
-           mt = mtab[nnn][ithr] ;
-           for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-             mth = mt[ipthr] ;
-             for( ii=1 ; ii <= max_cluster_size ; ii++ )
-               max_table[nnn][ipthr][ii] += mth[ii] ;
+       for( ithr=0 ; ithr < nthr ; ithr++ ){
+         mt_1sid = mtab_1sid[nnn][ithr] ;
+         mt_2sid = mtab_2sid[nnn][ithr] ;
+         mt_bsid = mtab_bsid[nnn][ithr] ;
+         for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+           mth_1sid = mt_1sid[ipthr] ;
+           mth_2sid = mt_2sid[ipthr] ;
+           mth_bsid = mt_bsid[ipthr] ;
+           for( ii=1 ; ii <= max_cluster_size ; ii++ ){
+             max_table_1sid[nnn][ipthr][ii] += mth_1sid[ii] ;
+             max_table_2sid[nnn][ipthr][ii] += mth_2sid[ii] ;
+             max_table_bsid[nnn][ipthr][ii] += mth_bsid[ii] ;
            }
          }
        }
@@ -1406,235 +1545,256 @@ int main( int argc , char **argv )
 
   enable_mcw_malloc() ;
 
-  /*---------- compute and print the output table ----------*/
+  /*---------- compute and print the output tables ----------*/
 
   { double *alpha , aval , ahi,alo ;
     float **clust_thresh , cmax=0.0f ;
-    int ii , itop , iathr ;
+    int ii , itop , iathr , mmm, ***mtt ;
     char *commandline = tross_commandline("3dClustSim",argc,argv) ;
     char fname[THD_MAX_NAME] , pname[THD_MAX_NAME] ;
-    char *amesg = NULL ;  /* 20 Jan 2011 */
+    char *amesg = NULL , *mlab = NULL , *mlll = NULL ;
 
     alpha        = (double *)malloc(sizeof(double)*(max_cluster_size+1)) ;
     clust_thresh = (float **)malloc(sizeof(float *)*npthr) ;
     for( ipthr=0 ; ipthr < npthr ; ipthr++ )
       clust_thresh[ipthr] = (float *)malloc(sizeof(float)*nathr) ;
 
-    for( nnn=1 ; nnn <= 3 ; nnn++ ){
-      if( !do_NN[nnn] ) continue ;
-      for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-        for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
-          alpha[ii] = max_table[nnn][ipthr][ii] / (double)niter ;
-          if( alpha[ii] > 0.0 ) itop = ii ;
-        }
-        for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
+    for( mmm=1 ; mmm <= 3 ; mmm++ ){
+      if( mmm == 1 ){
+        mtt = max_table_1sid ; mlab = "1-sided" ; mlll = "1sided" ;
+      } else if( mmm == 2 ){
+        mtt = max_table_2sid ; mlab = "2-sided" ; mlll = "2sided" ;
+      } else {
+        mtt = max_table_bsid ; mlab = "bi-sided"; mlll = "bisided";
+      }
+      amesg = NULL ; cmax = 0.0f ;
+      for( nnn=1 ; nnn <= 3 ; nnn++ ){
+        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+          for( itop=ii=1 ; ii <= max_cluster_size ; ii++ ){
+            alpha[ii] = mtt[nnn][ipthr][ii] / (double)niter ;
+            if( alpha[ii] > 0.0 ) itop = ii ;
+          }
+          for( ii=itop-1 ; ii >= 1 ; ii-- ) alpha[ii] += alpha[ii+1] ;
 #if 0
 INFO_message("pthr[%d]=%g itop=%d",ipthr,pthr[ipthr],itop) ;
 for( ii=1 ; ii <= itop ; ii++ )
   fprintf(stderr," %d=%g",ii,alpha[ii]) ;
 fprintf(stderr,"\n") ;
 #endif
-        for( iathr=0 ; iathr < nathr ; iathr++ ){
-          aval = athr[iathr] ;
-          if( aval > alpha[1] ){  /* unpleasant situation */
-            ii = 1 ;
-            amesg = THD_zzprintf(
-                     amesg ,
-                     "   NN=%d  pthr=%9.6f  alpha=%6.3f [max simulated alpha=%6.3f]\n" ,
-                     nnn , pthr[ipthr] , aval , alpha[1] ) ;
-          } else {
-            for( ii=1 ; ii < itop ; ii++ ){
-              if( alpha[ii] >= aval && alpha[ii+1] <= aval ) break ;
+          for( iathr=0 ; iathr < nathr ; iathr++ ){
+            aval = athr[iathr] ;
+            if( aval > alpha[1] ){  /* unpleasant situation */
+              ii = 1 ;
+              amesg = THD_zzprintf(
+                       amesg ,
+                       " %s  NN=%d  pthr=%9.6f  alpha=%6.3f [max simulated alpha=%6.3f]\n" ,
+                       mlab , nnn , pthr[ipthr] , aval , alpha[1] ) ;
+            } else {
+              for( ii=1 ; ii < itop ; ii++ ){
+                if( alpha[ii] >= aval && alpha[ii+1] <= aval ) break ;
+              }
+            }
+
+            alo=alpha[ii] ; ahi=alpha[ii+1] ;
+            if( do_lohi ){
+              aval = ii ;    /* for debugging */
+            } else {
+              if( alo >= 1.0 ) alo = 1.0 - 0.1/niter ;
+              if( ahi <= 0.0 ) ahi = 0.1/niter ;
+              if( ahi >= alo ) ahi = 0.1*alo ;
+              aval = log(-log(1.0-aval)) ;
+              alo  = log(-log(1.0-alo)) ;
+              ahi  = log(-log(1.0-ahi)) ;
+              aval = ii + (aval-alo)/(ahi-alo) ;
+                   if( aval < 1.0 ) aval = 1.0 ;
+              else if( nodec      ) aval = (int)(aval+0.951) ;
+            }
+            clust_thresh[ipthr][iathr] = aval ;
+
+            if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
+          }
+        }
+
+        if( do_lohi == 0 ){
+          /* edit each column to increase as pthr increases [shouldn't be needed] */
+
+          for( iathr=0 ; iathr < nathr ; iathr++ ){
+            for( ipthr=npthr-2 ; ipthr >= 0 ; ipthr-- ){
+              if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr+1][iathr] )
+                clust_thresh[ipthr][iathr] = clust_thresh[ipthr+1][iathr] ;
             }
           }
 
-          alo=alpha[ii] ; ahi=alpha[ii+1] ;
-          if( do_lohi ){
-            aval = ii ;    /* for debugging */
-          } else {
-            if( alo >= 1.0 ) alo = 1.0 - 0.1/niter ;
-            if( ahi <= 0.0 ) ahi = 0.1/niter ;
-            if( ahi >= alo ) ahi = 0.1*alo ;
-            aval = log(-log(1.0-aval)) ;
-            alo  = log(-log(1.0-alo)) ;
-            ahi  = log(-log(1.0-ahi)) ;
-            aval = ii + (aval-alo)/(ahi-alo) ;
-                 if( aval < 1.0 ) aval = 1.0 ;
-            else if( nodec      ) aval = (int)(aval+0.951) ;
-          }
-          clust_thresh[ipthr][iathr] = aval ;
+          /* edit each row to increase as athr decreases [shouldn't be needed] */
 
-          if( clust_thresh[ipthr][iathr] > cmax ) cmax = clust_thresh[ipthr][iathr] ;
-        }
-      }
-
-      if( do_lohi == 0 ){
-        /* edit each column to increase as pthr increases [shouldn't be needed] */
-
-        for( iathr=0 ; iathr < nathr ; iathr++ ){
-          for( ipthr=npthr-2 ; ipthr >= 0 ; ipthr-- ){
-            if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr+1][iathr] )
-              clust_thresh[ipthr][iathr] = clust_thresh[ipthr+1][iathr] ;
+          for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+            for( iathr=1 ; iathr < nathr ; iathr++ ){
+              if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr][iathr-1] )
+                clust_thresh[ipthr][iathr] = clust_thresh[ipthr][iathr-1] ;
+            }
           }
         }
-
-        /* edit each row to increase as athr decreases [shouldn't be needed] */
-
-        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-          for( iathr=1 ; iathr < nathr ; iathr++ ){
-            if( clust_thresh[ipthr][iathr] < clust_thresh[ipthr][iathr-1] )
-              clust_thresh[ipthr][iathr] = clust_thresh[ipthr][iathr-1] ;
-          }
-        }
-      }
 
 #if 0
-      if( !nodec && !do_niml && cmax > 9999.9f ){  /* if largest is way big, */
-        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate to ints. */
-          for( iathr=0 ; iathr < nathr ; iathr++ ){
-            aval = clust_thresh[ipthr][iathr] ;
-            aval = (int)(aval+0.951) ;
-            clust_thresh[ipthr][iathr] = aval ;
+        if( !nodec && !do_niml && cmax > 9999.9f ){  /* if largest is way big, */
+          for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* then truncate to ints. */
+            for( iathr=0 ; iathr < nathr ; iathr++ ){
+              aval = clust_thresh[ipthr][iathr] ;
+              aval = (int)(aval+0.951) ;
+              clust_thresh[ipthr][iathr] = aval ;
+            }
           }
+          nodec = 1 ;
         }
-        nodec = 1 ;
-      }
 #endif
 
 MPROBE ;
 
-      if( prefix != NULL ){
-        sprintf(pname,"%s.NN%d.",prefix,nnn) ;
-      } else {
-        fflush(stderr) ; fflush(stdout) ;
-      }
-
-      if( do_1D ){  /* output in 1D format */
-        FILE *fp = stdout ;
         if( prefix != NULL ){
-          strcpy(fname,pname) ; strcat(fname,"1D") ; fp = fopen(fname,"w") ;
-          if( fp == NULL ){
-            ERROR_message("Can't open file %s -- using stdout",fname) ;
-            fp = stdout ;
-          }
+          sprintf(pname,"%s.NN%d_%s.",prefix,nnn,mlll) ;
+        } else {
+          fflush(stderr) ; fflush(stdout) ;
         }
-        fprintf(fp,
-         "# %s\n"
-         "# Grid: %dx%dx%d %.2fx%.2fx%.2f mm^3 (%d voxels%s)\n"
-         "#\n"
-         "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
-         "# -NN %d  | alpha = Prob(Cluster >= given size)\n"
-         "#  pthr  |" ,
-         commandline ,
-         nx,ny,nz , dx,dy,dz ,
-         mask_ngood , (mask_ngood < nxyz) ? " in mask" : "\0" , nnn ) ;
-        for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," %s",prob6(athr[iathr])) ;
-        fprintf(fp,"\n"
-         "# ------ |" ) ;
-        for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," ------") ;
-        fprintf(fp,"\n") ;
-        for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
-          fprintf(fp,"%s ",prob9(pthr[ipthr])) ;
-          for( iathr=0 ; iathr < nathr ; iathr++ ){
-            if( nodec )
-              fprintf(fp,"%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
-            else if( clust_thresh[ipthr][iathr] <= 9999.9f )
-              fprintf(fp,"%7.1f",     clust_thresh[ipthr][iathr]) ;
-            else
-              fprintf(fp,"%7.0f",     clust_thresh[ipthr][iathr]) ;
-          }
-          fprintf(fp,"\n") ;
-        }
-      }
 
-      if( do_niml ){ /* output in NIML format */
-        NI_element *nel ; float *vec ; char buf[1024] , *bbb ; NI_float_array nfar ;
-        sprintf(buf,"3dClustSim_NN%d",nnn) ;
-        nel = NI_new_data_element( buf , npthr ) ;
-        vec = (float *)malloc(sizeof(float)*MAX(npthr,nathr)) ;
-        for( iathr=0 ; iathr < nathr ; iathr++ ){
-          for( ipthr=0 ; ipthr < npthr ; ipthr++ )
-            vec[ipthr] = clust_thresh[ipthr][iathr] ;
-          NI_add_column( nel , NI_FLOAT , vec ) ;
+        if( do_1D ){  /* output in 1D format */
+          FILE *fp = stdout ;
+          if( prefix != NULL ){
+            strcpy(fname,pname) ; strcat(fname,"1D") ; fp = fopen(fname,"w") ;
+            if( fp == NULL ){
+              ERROR_message("Can't open file %s -- using stdout",fname) ;
+              fp = stdout ;
+            }
+          }
+          fprintf(fp,
+           "# %s\n"
+           "# %s thresholding\n"
+           "# Grid: %dx%dx%d %.2fx%.2fx%.2f mm^3 (%d voxels%s)\n"
+           "#\n"
+           "# CLUSTER SIZE THRESHOLD(pthr,alpha) in Voxels\n"
+           "# -NN %d  | alpha = Prob(Cluster >= given size)\n"
+           "#  pthr  |" ,
+           commandline , mlab ,
+           nx,ny,nz , dx,dy,dz ,
+           mask_ngood , (mask_ngood < nxyz) ? " in mask" : "\0" , nnn ) ;
+          for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," %s",prob6(athr[iathr])) ;
+          fprintf(fp,"\n"
+           "# ------ |" ) ;
+          for( iathr=0 ; iathr < nathr ; iathr++ ) fprintf(fp," ------") ;
+          fprintf(fp,"\n") ;
+          for( ipthr=0 ; ipthr < npthr ; ipthr++ ){
+            fprintf(fp,"%s ",prob9(pthr[ipthr])) ;
+            for( iathr=0 ; iathr < nathr ; iathr++ ){
+              if( nodec )
+                fprintf(fp,"%7d"  ,(int)clust_thresh[ipthr][iathr]) ;
+              else if( clust_thresh[ipthr][iathr] <= 9999.9f )
+                fprintf(fp,"%7.1f",     clust_thresh[ipthr][iathr]) ;
+              else
+                fprintf(fp,"%7.0f",     clust_thresh[ipthr][iathr]) ;
+            }
+            fprintf(fp,"\n") ;
+          }
         }
-          NI_set_attribute( nel , "commandline" , commandline ) ;
-        sprintf(buf,"%d,%d,%d",nx,ny,nz) ;
-          NI_set_attribute(nel,"nxyz",buf) ;
-        sprintf(buf,"%.3f,%.3f,%.3f",dx,dy,dz) ;
-          NI_set_attribute(nel,"dxyz",buf) ;
-        sprintf(buf,"%.2f,%.2f,%.2f",fwhm_x,fwhm_y,fwhm_z) ;
-          NI_set_attribute(nel,"fwhmxyz",buf) ;
-        sprintf(buf,"%d",niter) ;
-          NI_set_attribute(nel,"iter",buf) ;
-        for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = pthr[ipthr] ;
-        nfar.num = npthr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
-          NI_set_attribute(nel,"pthr",bbb) ; NI_free(bbb) ;
-        for( iathr=0 ; iathr < nathr ; iathr++ ) vec[iathr] = athr[iathr] ;
-        nfar.num = nathr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
-          NI_set_attribute(nel,"athr",bbb) ; NI_free(bbb) ;
-        if( mask_dset != NULL ){
+
+        if( do_niml ){ /* output in NIML format */
+          NI_element *nel ; float *vec ; char buf[1024] , *bbb ; NI_float_array nfar ;
+          sprintf(buf,"3dClustSim_NN%d",nnn) ;
+          nel = NI_new_data_element( buf , npthr ) ;
+          vec = (float *)malloc(sizeof(float)*MAX(npthr,nathr)) ;
+          for( iathr=0 ; iathr < nathr ; iathr++ ){
+            for( ipthr=0 ; ipthr < npthr ; ipthr++ )
+              vec[ipthr] = clust_thresh[ipthr][iathr] ;
+            NI_add_column( nel , NI_FLOAT , vec ) ;
+          }
+            NI_set_attribute( nel , "commandline"  , commandline ) ;
+            NI_set_attribute( nel , "thresholding" , mlab        ) ;
+          sprintf(buf,"%d,%d,%d",nx,ny,nz) ;
+            NI_set_attribute(nel,"nxyz",buf) ;
+          sprintf(buf,"%.3f,%.3f,%.3f",dx,dy,dz) ;
+            NI_set_attribute(nel,"dxyz",buf) ;
+          sprintf(buf,"%.2f,%.2f,%.2f",fwhm_x,fwhm_y,fwhm_z) ;
+            NI_set_attribute(nel,"fwhmxyz",buf) ;
+          sprintf(buf,"%d",niter) ;
+            NI_set_attribute(nel,"iter",buf) ;
+          for( ipthr=0 ; ipthr < npthr ; ipthr++ ) vec[ipthr] = pthr[ipthr] ;
+          nfar.num = npthr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
+            NI_set_attribute(nel,"pthr",bbb) ; NI_free(bbb) ;
+          for( iathr=0 ; iathr < nathr ; iathr++ ) vec[iathr] = athr[iathr] ;
+          nfar.num = nathr ; nfar.ar = vec ; bbb = NI_encode_float_list(&nfar,",") ;
+            NI_set_attribute(nel,"athr",bbb) ; NI_free(bbb) ;
+          if( mask_dset != NULL ){
             NI_set_attribute(nel,"mask_dset_idcode",DSET_IDCODE_STR(mask_dset)) ;
             NI_set_attribute(nel,"mask_dset_name"  ,DSET_HEADNAME(mask_dset)) ;
-          sprintf(buf,"%d",mask_ngood) ;
+            sprintf(buf,"%d",mask_ngood) ;
             NI_set_attribute(nel,"mask_count",buf) ;
-        }
-        if( prefix != NULL ){ strcpy(fname,pname) ; strcat(fname,"niml") ; }
-        else                  strcpy(fname,"stdout:") ;
-        NI_write_element_tofile( fname , nel , NI_TEXT_MODE ) ;
-        NI_free_element( nel ) ;
-        if( prefix != NULL ){
-          if( refit_cmd == NULL )
-            refit_cmd = THD_zzprintf( refit_cmd , "3drefit " ) ;
-          refit_cmd = THD_zzprintf( refit_cmd ,
-                                    "-atrstring AFNI_CLUSTSIM_NN%d file:%s " ,
-                                    nnn , fname ) ;
-        }
-        if( prefix != NULL && mask_vol != NULL && first_mask ){
-          bbb = mask_to_b64string( mask_nvox , mask_vol ) ; first_mask = 0 ;
-          if( bbb != NULL ){
-            FILE *fp ;
-            sprintf(fname,"%s.mask",prefix) ; fp = fopen(fname,"w") ;
-            if( fp != NULL ){ fprintf(fp,"%s\n",bbb); fclose(fp); }
-            free(bbb) ;
-            refit_cmd = THD_zzprintf( refit_cmd ,
-                                      "-atrstring AFNI_CLUSTSIM_MASK file:%s " ,
-                                      fname) ;
           }
-        }
-      } /* end of NIML output */
+          if( prefix != NULL ){ strcpy(fname,pname) ; strcat(fname,"niml") ; }
+          else                  strcpy(fname,"stdout:") ;
+          NI_write_element_tofile( fname , nel , NI_TEXT_MODE ) ;
+          NI_free_element( nel ) ;
+          if( prefix != NULL ){
+            if( refit_cmd == NULL )
+              refit_cmd = THD_zzprintf( refit_cmd , "3drefit " ) ;
+            refit_cmd = THD_zzprintf( refit_cmd ,
+                                      "-atrstring AFNI_CLUSTSIM_NN%d_%s file:%s " ,
+                                      nnn , mlll , fname ) ;
+          }
+          if( prefix != NULL && mask_vol != NULL && first_mask ){
+            bbb = mask_to_b64string( mask_nvox , mask_vol ) ; first_mask = 0 ;
+            if( bbb != NULL ){
+              FILE *fp ;
+              sprintf(fname,"%s.mask",prefix) ; fp = fopen(fname,"w") ;
+              if( fp != NULL ){ fprintf(fp,"%s\n",bbb); fclose(fp); }
+              free(bbb) ;
+              refit_cmd = THD_zzprintf( refit_cmd ,
+                                        "-atrstring AFNI_CLUSTSIM_MASK file:%s " ,
+                                        fname) ;
+            }
+          }
+        } /* end of NIML output */
 
-    } /* end of loop over nnn = NN degree */
+      } /* end of loop over nnn = NN degree */
 
     if( amesg != NULL ){
-      /* WARNING_message cannot handle "%s" with a very long string (>16K),
-         so break this up a little                      20 Feb 2014 [rickr] */
-      /* option: change to vsnprintf() in output_message()?                 */
-      WARNING_message("Simulation not effective for these cases:\n\n");
-      fprintf(stderr, "%s\n", amesg);
-      fprintf(stderr,
-                "*+ This means that not enough clusters, of any size, +*\n"
-                "     of voxels at or below each pthr threshold, were +*\n"
-                "     found to estimate at each alpha level.          +*\n"
-                "*+ In other words, the probability that noise-only   +*\n"
-                "     data (of the given smoothness) will cause       +*\n"
-                "     above-threshold (at the given pthr) clusters is +*\n"
-                "     smaller than the desired alpha levels.          +*\n"
-                "*+ This problem can arise when the masked region     +*\n"
-                "     being simulated is small and at the same time   +*\n"
-                "     the smoothness (FWHM) is large.                 +*\n"
-                "*+ Read the 'CAUTION and CAVEAT' section at the end  +*\n"
-                "   of the '-help' output for a longer explanation.   +*\n\n");
-      free(amesg) ;
-    }
+        /* WARNING_message cannot handle "%s" with a very long string (>16K),
+           so break this up a little                      20 Feb 2014 [rickr] */
+        /* option: change to vsnprintf() in output_message()?                 */
+        WARNING_message("Simulation not effective for these cases:\n\n");
+        fprintf(stderr, "%s\n", amesg);
+        fprintf(stderr,
+                  "*+ This means that not enough clusters, of any size, +*\n"
+                  "     of voxels at or below each pthr threshold, were +*\n"
+                  "     found to estimate at each alpha level.          +*\n"
+                  "*+ In other words, the probability that noise-only   +*\n"
+                  "     data (of the given smoothness) will cause       +*\n"
+                  "     above-threshold (at the given pthr) clusters is +*\n"
+                  "     smaller than the desired alpha levels.          +*\n"
+                  "*+ This problem can arise when the masked region     +*\n"
+                  "     being simulated is small and at the same time   +*\n"
+                  "     the smoothness (FWHM) is large.                 +*\n"
+                  "*+ Read the 'CAUTION and CAVEAT' section at the end  +*\n"
+                  "   of the '-help' output for a longer explanation.   +*\n\n");
+        free(amesg) ; amesg = NULL ;
+      }
+
+   } /* end of loop over mmm == sidedness */
 
   } /* end of outputizationing */
 
   /*------- a minor aid for the pitiful helpless user [e.g., me] -------*/
 
-  if( refit_cmd != NULL )
+  if( refit_cmd != NULL ){
+    FILE *fp ;
     INFO_message("Command fragment to put cluster results into a dataset header;\n"
+                 " + (also echoed to file 3dClustSim.cmd for your scripting pleasure)\n"
                  " + Append the name of the datasets to be patched to this command:\n"
                  " %s" , refit_cmd ) ;
+    fp = fopen("3dClustSim.cmd","w") ;
+    if( fp == NULL ){
+      ERROR_message("Can't write 3drefit command fragment to file 3dClustSim.cmd :-(") ;
+    } else {
+      fprintf(fp,"%s\n",refit_cmd) ; fclose(fp) ;
+    }
+  }
 
   /*-------- run away screaming into the night ----- AAUUGGGHHH!!! --------*/
 
