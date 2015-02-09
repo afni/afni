@@ -76,6 +76,10 @@
    Jan 2015:
    + '-nifti' switch for NIFTI output
 
+   Feb 2015:
+   + option to threshold minip results by bundle size
+   + trk output no longer default
+   + *neeed* logic in DET|MINIP modes
 */
 
 
@@ -384,7 +388,7 @@ void usage_TrackID(int detail)
 "         |                   |             |             | alg_Nseed_Vox   |\n"
 "         |                   |             |             | alg_Nmonte      |\n"
 "         | uncut_at_rois     |             |             |                 |\n"
-"         | no_trk_out        |             |             |                 |\n"
+"         | do_trk_out        |             |             |                 |\n"
 "         | dump_rois         |             |             |                 |\n"
 "         | dump_no_labtab    |             |             |                 |\n"
 "         | dump_lab_consec   |             |             |                 |\n"
@@ -504,6 +508,11 @@ void usage_TrackID(int detail)
 "                     NUM is large, you might be *big* output track files;\n"
 "                     e.g., perhaps try NUM = 5 or 9 or so to start.\n"
 "                     Requires '-mode MINIP' in commandline.\n"
+"    -bundle_thr V   :the number of tracts for a given connection is called\n"
+"                     a bundle. For '-mode {DET | MINIP}', one can choose to\n"
+"                     NOT output tracts, matrix info, etc. for any bundle\n"
+"                     with fewer than V tracts. This might be useful to weed\n"
+"                     out ugly/false tracts (default: V=1).\n"
 "    -uncert U_FILE  :when in one of '-mode {MINIP | PROB}', uncertainty\n"
 "                     values for eigenvector and WM skeleton (FA, GFA, etc.)\n"
 "                     maps are necessary.\n"
@@ -638,11 +647,9 @@ void usage_TrackID(int detail)
 "                     image in TrackVis might not pop up in the center of the\n"
 "                     viewing window, though, just be aware). NB: including\n"
 "                     the origin might become default at some point in time.\n"
-"    -no_trk_out     :Switch off outputting *.trk files, which are mainly to\n"
-"                     be viewed in TrackVis (Wang et al., 2007);  the SUMA-\n"
-"                     viewable *.niml.dset (and other) files are still made.\n"
-"                     This is probably just if you want to save file space.\n"
-"                     Default is to output *.trk files.\n"
+"    -do_trk_out     :Switch ON outputting *.trk files, which are mainly to\n"
+"                     be viewed in TrackVis (Wang et al., 2007). \n"
+"                     (Feb, 2015): Default is to NOT output *.trk files.\n"
 "    -nifti          :output the PAIRMAP, INDIMAP, and any '-dump_rois' in\n"
 "                     *.nii.gz format (default is BRIK/HEAD).\n"
 "  -no_indipair_out  :Switch off outputting *INDIMAP* and *PAIRMAP* volumes.\n"
@@ -1064,7 +1071,14 @@ int main(int argc, char *argv[])
       }
 
       if( strcmp(argv[iarg],"-no_trk_out") == 0) {
-         InOpts.OUTPUT_TRK = 0;
+         WARNING_message("The switch '-no_trk_out' is no longer used."
+                         " As of Feb, 2015, TrackVis-style *.trk"
+                         "\n files are no longer created by default."
+                         " To output them, use '-do_trk_out'." );
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-do_trk_out") == 0) {
+         InOpts.OUTPUT_TRK = 1;
          iarg++ ; continue ;
       }
 
@@ -1072,7 +1086,6 @@ int main(int argc, char *argv[])
          InOpts.OUT_INDIPAIR = 0;
          iarg++ ; continue ;
       }
-
 
 		if( strcmp(argv[iarg],"-dti_extra") == 0) {
 			if( ++iarg >= argc ) 
@@ -1173,6 +1186,17 @@ int main(int argc, char *argv[])
          iarg++ ; continue ;
 		}
 
+      // Feb,2015
+      if( strcmp(argv[iarg],"-bundle_thr") == 0) { // @)
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need argument after '-bundle_thr'");
+        
+         InOpts.THRESH_BUNDS = atoi(argv[iarg]);
+         
+         iarg++ ; continue ;
+		}
+
+
       /*    TURNED OFF FOR MOMENT, WORK IN PROGRESS
             if( strcmp(argv[iarg],"-jump_les") == 0) { // @)) prop check
             JUMPLES=1;
@@ -1261,7 +1285,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                         int argc, char *argv[])
 {
 
-   int i,j,k,m,n,ii,jj,kk,mm,gg,nn,hh,bb,cc,rr,ss,uu,vv,ll;
+   int i,j,k,m,n,ii,jj,kk,mm,gg,nn,hh,bb,cc,rr,ss,uu,vv,ll,lll;
 	int nvox_rois=0;
 	int nvox_unc=0;
 	THD_3dim_dataset *insetUC = NULL;
@@ -2626,6 +2650,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    // exit(1);
    //}
 
+   if( DETNET && (opts.LOG_TYPE==-1) ) {
+      ERROR_message("You forgot to provide a type of logic: '-logic {AND|OR}.\n");
+      exit(1);
+   }
+
    if(DETNET && (opts.LOG_TYPE==0) && opts.ONLY_BT){
       INFO_message("With '-logic OR', the '-cut_at_rois' option will"
                    " be automically turned off ('-uncut_at_rois').");
@@ -3349,7 +3378,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                               // clear list of ROIs
                               for( n=0 ; n<=MAXNROI ; n++)
                                  list_rois[n] = temp_list[n] = 0;
-            
+             
                               // literal start and finishes
                               vA0 = vB+2; // for `checking' purposes
                               // this starts at either 1 or where we ended+2
@@ -3542,7 +3571,6 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                           } // end of mm
 
                                           if(DETNET && (trL>0) && opts.LOG_TYPE==1){
-                                             int lll;
                                              // @) if created, it will be kept
                                              tt[hh] = Create_Tract_NEW(0,trL-1, flTtot+start_loc,id[hh], 
                                                                        insetPARS[PARS_BOT]); ++id[hh]; 
@@ -3599,42 +3627,65 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                  "[", 100.,"]", (float) difftime( time(NULL) ,t_start)/60.);
       else if( TR_MODE ==1 )
          fprintf(stderr,"\t%s %2d/%-2d %s -> %.2f min\n",
-                 "[", opts.Nmonte,opts.Nmonte,"]", (float) difftime(time(NULL),t_start)/60.);
+                 "[", opts.Nmonte,opts.Nmonte,"]", 
+                 (float) difftime(time(NULL), t_start)/60.);
 
    if(DETNET){
+      INFO_message("Done tracking, tidying up outputs...");
       for( i=0 ; i<N_nets ; i++){
          if( opts.OUTPUT_TRK )
             fclose(fout0[i]); // !important to do...
-         k=0;
-         for( j=0 ; j<N_bund[i] ; j++)
-            k+= tb[i][j]->N_tracts;
-         INFO_message("Done tracking, net[%d] has %d tracks.",i,k);
-      }
-      
-      if (get_tract_verb()) {
-         for( i=0 ; i<N_nets ; i++)
-            for( j=0 ; j<N_bund[i] ; j++){
-               INFO_message("Done tracking, net[%d], bund[%d] has %d tracks.",
-                            i,j+1, tb[i][j]->N_tracts);
-               Show_Taylor_Bundle(tb[i][j], NULL, 3);
-            }
-      }
-     
-      for( i=0 ; i<N_nets ; i++){
-         ii = 0;
+
+         m = 0; // count num of tracts per net
+
+         // Feb,2015: threshold by bundle size; default
+         // N_tract/bundle=1, but user can increase
+         // 
          for (j=0; j<NROI[i]; j++) 
             for (k=j; k<NROI[i]; k++) {
                jj = j*NROI[i] + k;
                kk = j + k*NROI[i];
-               snprintf( EleNameStr, 128, "%s<->%s",
-                         ROI_STR_LABELS[i][j+1], ROI_STR_LABELS[i][k+1]);
+               lll = MatrInd_to_FlatUHT(j,k,NROI[i]); // the 1-index location
 
-               tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][ii]), 
-                                               jj,kk, insetPARS[PARS_BOT], 
-                                               EleNameStr); 
-               Free_Bundle(tb[i][ii]);  // pretty sure I should free here...
-               ii+=1;
+               if ( tb[i][lll]->N_tracts >= opts.THRESH_BUNDS ) { //THRESH_BUNDS
+                  snprintf( EleNameStr, 128, "%s<->%s",
+                            ROI_STR_LABELS[i][j+1], ROI_STR_LABELS[i][k+1]);
+
+                  m+= tb[i][lll]->N_tracts;
+
+                  if (get_tract_verb()) {
+                     INFO_message("  From tracking, net[%d],"
+                                  " bund[%d] has %d tracks.",
+                                  i,lll+1, tb[i][lll]->N_tracts);
+                     Show_Taylor_Bundle(tb[i][lll], NULL, 3);
+                  }
+                  
+                  tnet[i] = AppAddBundleToNetwork(tnet[i], &(tb[i][lll]), 
+                                                  jj,kk, insetPARS[PARS_BOT], 
+                                                  EleNameStr); 
+               }
+               else if( tb[i][lll]->N_tracts ) { // if it's nonzero, but subthr
+                  INFO_message("   Removed net[%d]'s bundle '%s<->%s' "
+                               "(only %d tracts).",
+                               i, ROI_STR_LABELS[i][j+1], 
+                               ROI_STR_LABELS[i][k+1], 
+                               tb[i][lll]->N_tracts);
+
+                  rr = ByeByeBundle( j,
+                                     k,
+                                     i,
+                                     Prob_grid,
+                                     Param_grid,
+                                     Noutmat-2, // len of Param_grid 3rd dim
+                                     NETROI,
+                                     Ndata+1, // len of NETROI in 1st dim
+                                     NROI );
+               }
+
+               Free_Bundle(tb[i][lll]); // free some here... and more below
             }
+         
+         INFO_message("From tracking, net[%d] has %d tracks.", i, m);
       }
 
       for( i=0 ; i<N_nets ; i++){
@@ -3897,7 +3948,6 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                          k,hh); 
       }
 
-      
       if (opts.OUT_INDIPAIR)  // Nov. 2014
          i = WriteBasicProbFiles(N_nets, Ndata, Nvox, opts.prefix, 
                                  insetPARS[PARS_BOT],TV_switch,voxel_order,
@@ -3921,8 +3971,6 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                  ROI_STR_LABELS, opts.DUMP_with_LABELS,
                                  opts.NIFTI_OUT);
 		
-	
-
       //INFO_message("Brainwide total number of tracts found = %d",Numtract);
 	}
 	else{
@@ -3979,7 +4027,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       free(insetPARS[i]);
    }
    free(insetPARS);
-   
+
    if(DEF_DTI)
       ii = 3;
    else
@@ -3993,7 +4041,7 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
    for( i=0 ; i<Noutmat ; i++)  
       free(ParLab[i]);
    free(ParLab);
-   
+
    for ( i = 0 ; i < N_nets ; i++ ) {
       for (j = 0; j < NROI[i]; ++j) 
          free(gdset_roi_names[i][j]);
@@ -4051,23 +4099,24 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
 	free(Tback);
 	free(flTforw);
 	free(flTback);
-   
+
    if(DETNET){ // @) freeing
       for( i=0 ; i<2*ArrMax ; i++) {
          free(flTtot[i]);
       }
       free(flTtot);
       
-      
-      for( i=0 ; i<N_nets ; i++) 
-         for ( j=0 ; j<N_bund[i] ; j++ ) // halftri+diag notation!!!
-            free(tb[i][j]);
+      // Feb,2015: this pointer should already have been freed above!
+      //for( i=0 ; i<N_nets ; i++) 
+      // for ( j=0 ; j<N_bund[i] ; j++ ) // halftri+diag notation!!!
+            //    free(tb[i][j]); 
       for( i=0 ; i<N_nets ; i++) {
          free(tb[i]);
          free(tt[i]);
          free(tnet[i]);
       }
-      free(id);
+     free(id);
+     free(tb);
       for( i=0 ; i<N_nets ; i++) {
          free(prefix_det[i]); 
       }
