@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, Feb , 2015 , PT , "3dTrackID" , MINOR , TYPE_NEW_OPT,
+   "Can threshold bundles with too few tracks; TRK files not default out.",
+   "Useful to control false pos;  useful to save space outputting.\n"
+},
+
 { 27, Jan , 2015 , PT , "fat_mvm_scripter.py" , MINOR , TYPE_MODIFY,
    "Include main effects of interaction vars in post hoc tests.",
    "Hadn't been testing these previously.\n"
