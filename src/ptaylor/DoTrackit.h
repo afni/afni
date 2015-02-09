@@ -17,7 +17,16 @@
    #define GSL_RAN gsl_ran_gaussian_ziggurat
 #endif
 
-
+// Added in Feb,2015.  
+int ByeByeBundle( int A,
+                  int B,
+                  int NET,
+                  int **Prob_grid,
+                  float ***Param_grid,
+                  int L_paramgrid,
+                  int ***NETROI,
+                  int L_netroi,
+                  int *NROI );
 
 int MatrInd_to_FlatUHT_DIAG_P1(int i, int j, int N);
 int MatrInd_to_FlatUHT_DIAG_M(int i, int j, int N);

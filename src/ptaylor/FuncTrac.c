@@ -60,8 +60,9 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    // default: no mini monte carloing for det_net
    defopt.MINI_PROB_NM=0;              //  "-mini_num"
    defopt.CHOOSE_SEED = 0;             //  "-choose_seed"
-   defopt.OUTPUT_TRK = 1;              //  "-no_trk_out"
+   defopt.OUTPUT_TRK = 0;              //  "-do_trk_out", Feb,2015:->0
    defopt.OUT_INDIPAIR = 1;            //  "-no_indipair_out"
+   defopt.THRESH_BUNDS = 1;            //  "-bundle_thr", Feb,2015:NEW
 
    // minorly used control stuff, mostly default
    defopt.NAMEIN_outmode = NULL;       //  "-tract_out_mode"
