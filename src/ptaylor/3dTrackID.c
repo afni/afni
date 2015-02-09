@@ -3627,7 +3627,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                  "[", 100.,"]", (float) difftime( time(NULL) ,t_start)/60.);
       else if( TR_MODE ==1 )
          fprintf(stderr,"\t%s %2d/%-2d %s -> %.2f min\n",
-                 "[", opts.Nmonte,opts.Nmonte,"]", (float) difftime(time(NULL),t_start)/60.);
+                 "[", opts.Nmonte,opts.Nmonte,"]", 
+                 (float) difftime(time(NULL), t_start)/60.);
 
    if(DETNET){
       INFO_message("Done tracking, tidying up outputs...");
@@ -3653,7 +3654,8 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                   m+= tb[i][lll]->N_tracts;
 
                   if (get_tract_verb()) {
-                     INFO_message("  From tracking, net[%d], bund[%d] has %d tracks.",
+                     INFO_message("  From tracking, net[%d],"
+                                  " bund[%d] has %d tracks.",
                                   i,lll+1, tb[i][lll]->N_tracts);
                      Show_Taylor_Bundle(tb[i][lll], NULL, 3);
                   }
@@ -3662,9 +3664,11 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
                                                   jj,kk, insetPARS[PARS_BOT], 
                                                   EleNameStr); 
                }
-               else if( tb[i][lll]->N_tracts ) { // if it's nonzero, but subthresh
-                  INFO_message("   Removed net[%d]'s connection '%s<->%s' (only %d tracts).",
-                               i, ROI_STR_LABELS[i][j+1], ROI_STR_LABELS[i][k+1], 
+               else if( tb[i][lll]->N_tracts ) { // if it's nonzero, but subthr
+                  INFO_message("   Removed net[%d]'s bundle '%s<->%s' "
+                               "(only %d tracts).",
+                               i, ROI_STR_LABELS[i][j+1], 
+                               ROI_STR_LABELS[i][k+1], 
                                tb[i][lll]->N_tracts);
 
                   rr = ByeByeBundle( j,
