@@ -123,7 +123,7 @@ ENTRY("AFNI_func_autothresh_CB") ;
 
 void AFNI_set_pval( Three_D_View *im3d , float pval )
 {
-   float thresh ;
+   float thresh ; int sig ;
 
 ENTRY("AFNI_set_pval") ;
 
@@ -131,6 +131,9 @@ ENTRY("AFNI_set_pval") ;
    if( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) <= 0 ){
      TFLASH(im3d) ; EXRETURN ;
    }
+
+   sig = THD_stat_is_2sided( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) , 0 ) ;
+   if( sig > 0 && im3d->vinfo->thr_sign > 0 ) pval *= 2.0f ;  /* Jan 2015 */
 
    thresh = THD_pval_to_stat( pval ,
               DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
@@ -302,6 +305,7 @@ ENTRY("AFNI_func_thrsign_CB") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
+   AFNI_set_thr_pval( im3d ) ;                             /* Jan 2015 */
    AFNI_redisplay_func( im3d ) ;
    AFNI_set_window_titles( im3d ) ;
    EXRETURN ;
@@ -549,12 +553,10 @@ ENTRY("AFNI_thresh_top_CB") ;
    EXRETURN ;
 }
 
-/*-----------------------------------------------------------------------
-  Used to set the pval (significance) label at the bottom of the
-  threshold scale.
--------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------*/
+/* Something silly from Ziad */
 
-float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
+float AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
 {
    float *fv, thresh=0.0;
    int ithr;
@@ -583,11 +585,15 @@ float  AFNI_thresh_from_percentile( Three_D_View *im3d, float perc)
    return(thresh);
 }
 
+/*-----------------------------------------------------------------------
+  Used to set the pval (significance) label at the bottom of the
+  threshold scale.  And the qval (FDR) label.
+-------------------------------------------------------------------------*/
 
 void AFNI_set_thr_pval( Three_D_View *im3d )
 {
-   float thresh , pval , zval ;
-   char  buf[32] ;
+   float thresh , pval , zval , spval ;
+   char  buf[32] ; int sig ;
 
 ENTRY("AFNI_set_thr_pval") ;
 
@@ -601,28 +607,37 @@ ENTRY("AFNI_set_thr_pval") ;
               DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
               DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
 
-   im3d->vinfo->func_pval = pval ;  /* 06 Feb 2004 */
-   im3d->vinfo->func_qval = 0.0f ;  /* 23 Jan 2008 */
+   /* modify it if the threshold statistic is 2-sided but we are thresholding 1-sided */
+
+   sig = THD_stat_is_2sided( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) , 0 ) ;
+   if( im3d->vinfo->thr_sign == 0 )
+     sig = 0 ;
+   else
+     sig = THD_stat_is_2sided( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) , 0 ) ;
+   spval = pval ; if( sig > 0 ) spval *= 0.5f ;             /* Jan 2015 */
+
+   im3d->vinfo->func_pval = spval ;  /* 06 Feb 2004 -- changed to spval Jan 2015 */
+   im3d->vinfo->func_qval = 0.0f  ;  /* 23 Jan 2008 */
 
 if(PRINT_TRACING)
 { char buf[128] ;
   sprintf( buf, "thresh=%g  top=%g  pval=%g",
-           thresh,im3d->vinfo->func_thresh_top,pval ) ; STATUS(buf) ; }
+           thresh,im3d->vinfo->func_thresh_top,spval ) ; STATUS(buf) ; }
 
    if( pval < 0.0 ){
      strcpy( buf , THR_PVAL_LABEL_NONE ) ;
    } else {
-     if( pval == 0.0 ){
+     if( spval == 0.0 ){
        strcpy( buf , "p=0" ) ;
-     } else if( pval >= 0.9999 ){
+     } else if( spval >= 0.9999 ){
        strcpy( buf , "p=1" ) ;
-     } else if( pval >= 0.0010 ){
+     } else if( spval >= 0.0010 ){
        char qbuf[16] ;
-       sprintf( qbuf , "%5.4f" , pval ) ;
+       sprintf( qbuf , "%5.4f" , spval ) ;
        strcpy(buf,"p=") ; strcat( buf , qbuf+1 ) ; /* qbuf+1 skips leading 0 */
      } else {
-       int dec = (int)(0.999 - log10(pval)) ;
-       zval = pval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
+       int dec = (int)(0.999 - log10(spval)) ;
+       zval = spval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
        if( dec < 10 ) sprintf( buf , "p=%3.1f-%1d" ,           zval , dec ) ;
        else           sprintf( buf , "p=%1d.-%2d"  , (int)rint(zval), dec ) ;
      }
@@ -664,7 +679,9 @@ if(PRINT_TRACING)
 #define EINV 0.367879f /* 1/e */
      char pstr[128] ; float mval ;
      sprintf( pstr , "Uncorrected p=%.4e" , im3d->vinfo->func_pval ) ;
-     if( im3d->vinfo->func_pval > 0.0f && im3d->vinfo->func_pval < EINV )
+     if( im3d->vinfo->func_pval > 0.0f && im3d->vinfo->func_pval < EINV &&
+         THD_stat_is_2sided( DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index),
+                             im3d->vinfo->thr_sign) > 0 )
        sprintf(pstr+strlen(pstr)," alpha(p)=%.4e",
                1/(1-1/(EEEE*im3d->vinfo->func_pval*log(im3d->vinfo->func_pval))) ) ;
      if( im3d->vinfo->func_qval >= 0.0f && im3d->vinfo->func_qval <= 1.0f )

@@ -2423,6 +2423,10 @@ ENTRY("MCW_choose_ovcolor") ;
 static int            vec_nav = 0 ;
 static MCW_arrowval **vec_av  = NULL ;
 
+/** this function gives access to the array of arrowvals used
+    in MCW_choose_vector(), in order to let the caller change
+    the ranges of values allowed from the stupid defaults.   **/
+
 MCW_arrowval ** MCW_choose_vector_avarray( int *nav )  /* 03 Aug 2010 */
 {
    if( nav != NULL ) *nav = vec_nav ;

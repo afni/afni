@@ -52,8 +52,9 @@ typedef struct {
    int ONLY_BT;                   //  "-uncut_at_rois"
    int MINI_PROB_NM;              //  "-mini_num"
    int CHOOSE_SEED;               //  "-choose_seed"
-   int OUTPUT_TRK;                //  "-no_trk_out"
+   int OUTPUT_TRK;                //  "-do_trk_out"
    int OUT_INDIPAIR;              //  "-no_indipair_out"
+   int THRESH_BUNDS;              //  "-bundle_thr"
 
    // minorly used control stuff, mostly default
    char *NAMEIN_outmode;          //  "-tract_out_mode"

@@ -2931,6 +2931,7 @@ ENTRY("IW3D_compose_m1w2") ;
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
  { int qq , ii,jj,kk ;
+#pragma ivdep  /* for Intel icc compiler */
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;  /* compute xq, */
@@ -3206,6 +3207,7 @@ ENTRY("IW3D_invert_newt") ;
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
  { int qq , ii,jj,kk ;
+#pragma ivdep
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
@@ -3229,6 +3231,7 @@ ENTRY("IW3D_invert_newt") ;
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
  { int qq , ii,jj,kk ;
+#pragma ivdep
 #pragma omp for
      for( qq=pp ; qq < qtop ; qq++ ){
        ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
@@ -3254,6 +3257,7 @@ ENTRY("IW3D_invert_newt") ;
  AFNI_OMP_START ;
 #pragma omp parallel if( qtop-pp > 1111 )
  { int qq , ii,jj,kk ;
+#pragma ivdep
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
          ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
@@ -3271,6 +3275,7 @@ ENTRY("IW3D_invert_newt") ;
  { int qq , ii,jj,kk ;
    register float nf , nf1 ;
    nf = inewtfac ; nf1 = 1.0f - nf ;
+#pragma ivdep
 #pragma omp for
        for( qq=pp ; qq < qtop ; qq++ ){
          ii = qq % nx ; kk = qq / nxy ; jj = (qq-kk*nxy) / nx ;
@@ -4247,6 +4252,7 @@ ENTRY("IW3D_warp_into_floatim") ;
 
    for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
      for( jj=jbot ; jj <= jtop ; jj++ ){
+#pragma ivdep
        for( ii=ibot ; ii <= itop ; ii++,pp++ ){
          ijk = ii + jj*nx + kk*nxy ;
          ip[pp] = ii + xd[ijk] * fac ;
@@ -4343,6 +4349,7 @@ ENTRY("IW3D_mat44_into_floatim") ;
 
    for( pp=0,kk=kbot ; kk <= ktop ; kk++ ){
      for( jj=jbot ; jj <= jtop ; jj++ ){
+#pragma ivdep
        for( ii=ibot ; ii <= itop ; ii++,pp++ ){
          MAT44_VEC( imat , ii,jj,kk , ip[pp],jp[pp],kp[pp] ) ;
        }

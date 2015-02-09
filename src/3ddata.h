@@ -1143,7 +1143,7 @@ typedef struct {
 } VEDIT_settings ;
 
 #define VEDIT_CLUST    1   /* param= ithr,thr,rmm,vmul  exinfo=NULL */
-#define VEDIT_LASTCODE 1
+#define VEDIT_LASTCODE 1   /* no other options besides clustering!? */
 
 #define VEDIT_IVAL(vv)      ((vv).ival)
 #define DBLK_VEDIT_IVAL(db) VEDIT_IVAL((db)->vedset)
@@ -5469,6 +5469,7 @@ extern float THD_thresh_to_pval( float thr , THD_3dim_dataset * dset ) ;
 extern float THD_stat_to_pval  ( float thr , int statcode , float * stataux ) ;
 extern float THD_pval_to_stat  ( float pval, int statcode , float * stataux ) ;
 extern float THD_stat_to_zscore( float thr , int statcode , float * stataux ) ;
+extern int   THD_stat_is_2sided( int statcode , int thrsign ) ;  /* Jan 2015 */
 
 extern int THD_filename_ok( char * ) ;   /* 24 Apr 1997 */
 extern int THD_filename_pure( char * ) ; /* 28 Feb 2001 */
