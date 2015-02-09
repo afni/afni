@@ -135,9 +135,10 @@ static char g_history[] =
  " 3.13 Jul 09, 2013    - added a little more info for locating bad chars\n"
  " 3.14 Dec 30, 2013    - bad_backslash includes files ending with one\n"
  " 3.15 Sep 15, 2014    - applied -prefix for -show_file_type\n"
+ " 3.16 Feb 09, 2015    - warn on '\\' without preceding space\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.15 (September 15, 2014)"
+#define VERSION         "3.16 (February 9, 2015)"
 
 
 /* ----------------------------------------------------------------------
@@ -316,6 +317,7 @@ FILE * open_correction_file(char * fname, char * check_type, int overwrite,
 
 /*------------------------------------------------------------
  * Scan file for: '\\' then whitespace then '\n'
+ * Also, search for "\\\n" that is not preceded by whitespace.
  *
  * If prefix is set, write to a new file.
  *------------------------------------------------------------*/
@@ -370,7 +372,16 @@ scr_show_bad_bs( char * filename, param_t * p )
            break;
         } 
 
-        /* now look behond the '\' */
+        /* if '\\\n', then warn if prior char is not space */
+        if( count > 0 && fdata[count+1] == '\n' && ! isspace(fdata[count-1])
+            && fdata[count-1] != '\\' ) {
+          if( !p->quiet )
+             printf("file '%s', line %4d : consider space before '\\'\n",
+                    filename, lnum);
+          if( outfp ) fputc(' ', outfp); /* output space */
+        }
+
+        /* now look beyond the '\' */
         if( outfp ) fputc(fdata[count], outfp); /* output '\' char */
         bcount++; count++;
 
@@ -394,7 +405,7 @@ scr_show_bad_bs( char * filename, param_t * p )
         if( !p->quiet )
         {
             if( !bad ) printf("file '%s' has bad backslashes:\n", filename);
-            printf("   bad line %4d : ", lnum);
+            printf("   bad '\\' line %4d : ", lnum);
             for( cp = line_start; cp <= fdata+count; cp++)
                 putchar(*cp);
         }
@@ -1412,6 +1423,20 @@ set_params( param_t * p, int argc, char * argv[] )
     {
         fputs( "error: missing '-infiles' option\n", stderr );
         return -1;
+    }
+
+    /* allow max of 1 'script' test with prefix */
+    if ( p->prefix && p->script ) {
+       int sval, ns=0;
+       for( sval=p->script; sval; sval>>=1 )
+          if( sval & 1 ) ns++;
+       if( ns > 1 ) {
+          fprintf(stderr,"** -prefix is only allowed with one script test,\n"
+                  "   (e.g. -show_bad_backslash or -show_file_type)\n"
+                  "   it is not allowed with multiple tests or -test\n");
+          fprintf(stderr,"== sval = 0x%x, ns = %d\n", p->script, ns);
+          return -1;
+       }
     }
 
     /* if script, do not allow many other options */

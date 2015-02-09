@@ -2752,6 +2752,16 @@ the 'label2' field from the AFNI dataset .HEAD file, rather than the
 dataset filename.  If the label2 field is set to a nontrivial value,
 that is.  You can set the label2 field with the 3drefit command.
 
+----------------------------------
+Variable: AFNI_SKIP_ONETIME_POPUPS
+----------------------------------
+Some AFNI popup messages are 'onetime' -- that is, they show up only
+once for each user.  This capability is there to announce changes that
+should be noticed.  Each onetime message is logged into a file named
+.afni.recordings in the user's home directory, and if a record of such
+a message is found therein, it will not be shown again.  To skip
+showing these messages at all, even once, set this variable to YES.
+
 -------------------------------
 Variable: AFNI_SHOW_SURF_POPUPS
 -------------------------------
@@ -3885,24 +3895,24 @@ size is used.
 If this variable is set to 'SMALL' or a negative number, then a smaller font
 size is used.
 
---------------------------
-Variable: AFNI_WEBBY_WAMI 
---------------------------
+-------------------------
+Variable: AFNI_WEBBY_WAMI
+-------------------------
 When set to YES, the Where Am I GUI becomes 'web-enabled', i.e. the report
 becomes clickable to open web pages from the output. Most features are
 still experimental. See AFNI_NEUROSYNTH and AFNI_SUMSDB below for examples.
 The default value is 'NO'.
 
---------------------------
-Variable: AFNI_NEUROSYNTH 
---------------------------
+-------------------------
+Variable: AFNI_NEUROSYNTH
+-------------------------
 When set to YES, provides link for MNI coordinate in Where Am I GUI to the
 Neurosynth site. Requires AFNI_WEBBY_WAMI to also be set to YES. The default
 value is 'NO'.
 
-----------------------
-Variable: AFNI_SUMSDB 
-----------------------
+---------------------
+Variable: AFNI_SUMSDB
+---------------------
 When set to YES, provides link for MNI coordinate in Where Am I GUI to the
 SumsDB site. Requires AFNI_WEBBY_WAMI to also be set to YES. The default
 value is 'NO'.

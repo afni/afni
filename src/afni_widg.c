@@ -2964,7 +2964,7 @@ STATUS("making func->rowcol") ;
    { static char *thr_alpha_label[3] = { "Off" , "Linear" , "Quadratic"} ;
      char *cpt = getenv("AFNI_FUNC_ALPHA") ; int mm=0 ;
           if( cpt != NULL && strcasecmp(cpt,"Linear")    == 0 ) mm = 1 ;
-     else if( cpt != NULL && strcasecmp(cpt,"Quadratic") == 0 ) mm = 2 ; 
+     else if( cpt != NULL && strcasecmp(cpt,"Quadratic") == 0 ) mm = 2 ;
      im3d->vinfo->thr_use_alpha = mm ;  /* default = "Off" */
      func->thr_alpha_av =
         new_MCW_arrowval(
@@ -3724,7 +3724,9 @@ STATUS("making func->rowcol") ;
    func->clu_rep = NULL; func->clu_list = NULL; func->clu_index = -1;
    func->clu_det = NULL; func->clu_num  = 0 ;
 
-   func->clu_tabNN1 = func->clu_tabNN2 = func->clu_tabNN3 = NULL; /* Jul 2010 */
+   func->clu_tabNN1_1sid = func->clu_tabNN2_1sid = func->clu_tabNN3_1sid = NULL; /* Jan 2015 */
+   func->clu_tabNN1_2sid = func->clu_tabNN2_2sid = func->clu_tabNN3_2sid = NULL;
+   func->clu_tabNN1_bsid = func->clu_tabNN2_bsid = func->clu_tabNN3_bsid = NULL;
    func->clu_mask = NULL ;
 
    func->iwid = NULL ;  /* 17 Sep 2009 */
