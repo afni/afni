@@ -47,6 +47,32 @@ afni_history_struct rwcox_history[] = {
    "Add Iterate option" ,
    NULL } ,
 
+  { 2 , FEB , 2015 , RWC , "afni GUI" , MICRO , TYPE_GENERAL ,
+   "Add \"_once\" popup messages to AFNI GUI" ,
+   "So the message only pops up once for each user -- function\n"
+   "MCW_popup_message_once() in xutil.c -- first use is a popup message for\n"
+   "Clusterize alpha values, mentioning the new tables." } ,
+
+ { 30 , JAN , 2015 , RWC , "Clusterize" , MINOR , TYPE_GENERAL ,
+   "Add Bi-sided clustering" ,
+   "Goes along with the new 3dClustSim, which now generates tables for that\n"
+   "case as well. 'Bi-sided' means positive above-threshold voxels are\n"
+   "clustered separately from negative below-minus-threshold voxels.  Note\n"
+   "that bi-sided is turned off for 1-sided thresholding and/or Pos func,\n"
+   "even if the user turns bi-sided on in the Clusterize chooser." } ,
+
+ { 29 , JAN , 2015 , RWC , "afni GUI" , MAJOR , TYPE_GENERAL ,
+   "Use new 3dClustSim tables" ,
+   "Now Clusterize chooses the table to use based on the threshold type (t-\n"
+   "or F-stat, say), and if 1-sided thresholding was chosen by the user. \n"
+   "Also, the p-value below the slider now adjusts if the user chose to do\n"
+   "1-sided thresholding on a 2-sided statistic (t-stat, correlation,\n"
+   "z-score)." } ,
+
+ { 29 , JAN , 2015 , RWC , "3dClustSim" , MAJOR , TYPE_GENERAL ,
+   "Compute NN=1,2,3 and 1-sided, 2-sided, bi-sided tables" ,
+   "In sum, all 9 tables are ALWAYS computed now." } ,
+
  { 13 , JAN , 2015 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Secret option '-ballopt'" ,
    "A step towards using more complex basis functions, by allowing\n"

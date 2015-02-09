@@ -55,7 +55,7 @@ ENTRY("AFNI_vedit") ;
 
      MRI_IMAGE *tim=NULL ;
      float thr,rmm,vmul,thb,tht ;
-     int thrsign,posfunc,ithr ;
+     int thrsign,posfunc,ithr,bisid ;
 
      ival = vednew.ival ;
      if( ival < 0 || ival > DSET_NVALS(dset) ) RETURN(0) ;
@@ -72,14 +72,24 @@ ENTRY("AFNI_vedit") ;
      ithr    = (int)vednew.param[0] ;
      thrsign = (int)vednew.param[4] ;
      posfunc = (int)vednew.param[5] ;
-     if( ithr >= 0 && ithr < DSET_NVALS(dset) )
+
+     bisid   = (posfunc||thrsign) ? 0 : (int)vednew.param[6] ;  /* 30 Jan 2015 */
+
+     if( ithr >= 0 && ithr < DSET_NVALS(dset) ){
        tim = DBLK_BRICK(dblk,ithr) ;
+       if( bisid && THD_stat_is_2sided(DSET_BRICK_STATCODE(dset,ithr),0)==0 ) bisid = 0 ;
+     }
      thr = vednew.param[1] ;
      if( DSET_BRICK_FACTOR(dset,ithr) > 0.0f )
        thr /= DSET_BRICK_FACTOR(dset,ithr) ;
      thb = THBOT(thr) ; tht = THTOP(thr) ;
+
      rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
-     dblk->vedim = mri_clusterize( rmm,vmul,dim,thb,tht,tim,posfunc , mask );
+
+     if( bisid )
+       dblk->vedim = mri_bi_clusterize( rmm,vmul,dim,thb,tht,tim,          mask );
+     else
+       dblk->vedim = mri_clusterize   ( rmm,vmul,dim,thb,tht,tim,posfunc , mask );
 
    }
 

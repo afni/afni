@@ -49,7 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
- {  3,  Feb, 2015, RCR, "model_conv_PRF_6", MINOR, TYPE_ENHANCE,
+ {  9,  Feb, 2015, RCR, "file_tool.c", MINOR, TYPE_ENHANCE,
+   "warn on '\\' without preceding space",
+   "Gang and J Rajendra ran into a problem on OS X 10.9.5."
+ } ,
+
+ {  9,  Feb, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "applied updates matching 3dClustSim (9 table output)",
+   "Output from 3dClustSim is now 9 tables: NN=1,2,3 by 1-,2-,bi-sided tests."
+ } ,
+
+ {  3,  Feb, 2015, RCR, "model_conv_PRF", MINOR, TYPE_ENHANCE,
    "consolodate blur and reorg into one function, to reduce max memory usage",
    "This allows the program to run on weaker systems, cutting the max RAM\n"
    "usage by one half.  A prior step was to allocate main RAM early so that\n"
