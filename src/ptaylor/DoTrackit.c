@@ -12,6 +12,40 @@
 
 
 
+/*
+  Added in Feb,2015.  
+
+  Trim away record of bundles that are 'too small', whose threshold
+  can be defined by the user.
+
+ */
+int ByeByeBundle( int A,
+                  int B,
+                  int NET,
+                  int **Prob_grid,
+                  float ***Param_grid,
+                  int L_paramgrid,
+                  int ***NETROI,
+                  int L_netroi,
+                  int *NROI )
+{
+   int i, lll;
+   
+   // magical matrix location
+   lll = MatrInd_to_FlatUHT(A, B, NROI[NET]);
+
+   Prob_grid[NET][lll] = 0;
+
+   for( i=0 ; i<L_paramgrid ; i++ )
+      Param_grid[NET][lll][i] = 0;
+
+   for( i=0 ; i<L_netroi ; i++ )
+      if( NETROI[i][NET][lll] )
+         NETROI[i][NET][lll] = 0;
+
+   RETURN(1);
+}
+
 
 /* 
    Order no longer matters here for 'U'HT.
