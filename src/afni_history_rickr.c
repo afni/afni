@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Feb, 2015, RCR, "file_tool.c", MINOR, TYPE_ENHANCE,
+   "warn on '\\' without preceding space",
+   "Gang and J Rajendra ran into a problem on OS X 10.9.5."
+ } ,
+
  {  9,  Feb, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "applied updates matching 3dClustSim (9 table output)",
    NULL
