@@ -2650,9 +2650,11 @@ def db_mod_regress(block, proc, user_opts):
 
     uopt = user_opts.find_opt('-regress_CS_NN')         # 3dClustSim NN
     if uopt:
-        bopt = block.opts.find_opt('-regress_CS_NN')
-        if bopt: bopt.parlist = uopt.parlist
-        else: block.opts.add_opt('-regress_CS_NN', 1, uopt.parlist, setpar=1)
+        print '** option -regress_CS_NN is no longer valid, as -NN is no\n' \
+              '   longer supported by 3dClustSim\n'
+        # bopt = block.opts.find_opt('-regress_CS_NN')
+        # if bopt: bopt.parlist = uopt.parlist
+        # else: block.opts.add_opt('-regress_CS_NN', 1, uopt.parlist, setpar=1)
 
     uopt = user_opts.find_opt('-regress_opts_CS')       # 3dClustSim
     if uopt:
@@ -3326,8 +3328,12 @@ def db_cmd_regress(proc, block):
     # are we going to stop with the 1D matrix?
     # (either explicit option or if using 3dTproject)
     opt = block.opts.find_opt('-regress_3dD_stop')
-    if opt or use_tproj: stop_opt = '    -x1D_stop'
-    else:                stop_opt = ''
+    if opt or use_tproj:
+        stop_opt = '    -x1D_stop'
+        proc.have_3dd_stats = 0
+    else:
+        stop_opt = ''
+        proc.have_3dd_stats = 1
 
     # do we want F-stats
     opt = block.opts.find_opt('-regress_fout')
@@ -3371,6 +3377,7 @@ def db_cmd_regress(proc, block):
         rcmd = db_cmd_reml_exec(proc, block, short=1)
         if not rcmd: return
         rcmd = '\n' + rcmd
+        proc.have_reml_stats = 1        # note that we ran this
     else: rcmd = ''
 
     # now create full 3dDeconvolve command, connecting every option
@@ -3431,6 +3438,7 @@ def db_cmd_regress(proc, block):
         rcmd = db_cmd_reml_exec(proc, block)
         if not rcmd: return
         cmd = cmd + rcmd + '\n\n'
+        proc.have_reml_stats = 1        # note that we ran this
 
     # if REML and errts_pre, append _REML to errts_pre
     if block.opts.find_opt('-regress_reml_exec') and stop_opt \
@@ -3976,42 +3984,26 @@ def db_cmd_blur_est(proc, block):
 
     # maybe make string to run and apply 3dClustSim
     if block.opts.have_yes_opt('-regress_run_clustsim', default=1):
-        stats_dset = 'stats.$subj%s' % proc.view
-        if block.opts.find_opt('-regress_reml_exec'):
-           reml_dset = 'stats.${subj}_REML%s' % proc.view
-        else: reml_dset = ''
-        rv, bstr = make_clustsim_commands(proc, block, blur_file, 
-                                          mask_dset, stats_dset, reml_dset)
-        if rv: return   # failure (error has been printed)
-        cmd = cmd + bstr + '\n'
+      statsets = []
+      if proc.have_3dd_stats: statsets.append('stats.$subj%s' % proc.view)
+      if proc.have_reml_stats:statsets.append('stats.${subj}_REML%s'%proc.view)
+
+      if proc.have_3dd_stats or proc.have_reml_stats:
+         rv, bstr = make_clustsim_commands(proc, block, blur_file, 
+                                           mask_dset, statsets)
+         if rv: return   # failure (error has been printed)
+         cmd = cmd + bstr + '\n'
+      else:
+         print '-- skipping 3dClustSim (no stats dsets to apply to)'
 
     return cmd
 
-def make_clustsim_commands(proc, block, blur_file, mask_dset,
-                           stats_dset, reml_dset):
+def make_clustsim_commands(proc, block, blur_file, mask_dset, statsets):
     if proc.verb > 0: print '-- will add 3dClustSim table to stats dset'
     if proc.verb > 1:
         print '-- make_clustsim_commands: blur = %s\n'  \
-              '   mask = %s, stats = %s, reml = %s'\
-              % (blur_file, mask_dset, stats_dset, reml_dset)
-
-    # track which neighbors to go after
-    nnvalid = ['1','2','3']
-    nnlist  = ['1','2','3']
-
-    opt = block.opts.find_opt('-regress_CS_NN')
-    if opt and len(opt.parlist) > 0:
-        # verify and separate as an array
-        nnlist = []
-        for nn in opt.parlist[0]:
-            if nn not in nnvalid:
-                print "** CS_NN value %s is not in %s" % (nn,','.join(nnvalid))
-                return 1, ''
-            nnlist.append(nn)
-
-    nnlist.sort()   # just to be sure we look pretty
-    nnstr = ''.join(nnlist)
-    if proc.verb > 2: print "++ have CS_NN list string %s" % nnstr
+              '   mask = %s, stat sets = %s'\
+              % (blur_file, mask_dset, ', '.join(statsets))
 
     opt = block.opts.find_opt('-regress_opts_CS')
     optstr = ''
@@ -4020,25 +4012,16 @@ def make_clustsim_commands(proc, block, blur_file, mask_dset,
            optstr = '           %s \\\n' % ' '.join(opt.parlist)
 
     cprefix = 'ClustSim'        # prefix for 3dClustSim files
-    cstr = '# add 3dClustSim results as attributes to the stats dset\n' \
+    cstr = '# add 3dClustSim results as attributes to any stats dset\n' \
            'set fxyz = ( `tail -1 %s` )\n'                              \
-           '3dClustSim -both -NN %s -mask %s \\\n'                      \
+           '3dClustSim -both -mask %s -fwhmxyz $fxyz[1-3] \\\n'         \
            '%s'                                                         \
-           '           -fwhmxyz $fxyz[1-3] -prefix %s\n'                \
-           % (blur_file, nnstr, mask_dset, optstr, cprefix)
+           '           -prefix %s\n'                                    \
+           % (blur_file, mask_dset, optstr, cprefix)
 
-    # start with the mask attr, add each NNx, and finally the stats input dset
-    cstr += '3drefit -atrstring AFNI_CLUSTSIM_MASK file:%s.mask     \\\n' \
-             % cprefix
-    for nn in nnlist:
-        cstr += '        -atrstring AFNI_CLUSTSIM_NN%s  file:%s.NN%s.niml \\\n'\
-                % (nn, cprefix, nn)
-
-    # finally, the input
-    if reml_dset == '': rstr = ''
-    else:               rstr = ' ' + reml_dset
-
-    cstr += '        %s%s\n\n' % (stats_dset, rstr)
+    # the 3drefit command is now stored in 3dClustSim.cmd
+    cstr += 'set cmd = ( `cat 3dClustSim.cmd` )\n' \
+            '$cmd %s\n\n' % ' '.join(statsets)
 
     return 0, cstr
 

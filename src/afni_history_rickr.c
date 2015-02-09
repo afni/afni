@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9,  Feb, 2015, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "applied updates matching 3dClustSim (9 table output)",
+   NULL
+ } ,
+
  { 28,  Jan, 2015, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "in mri_fdrize, warn user if p->q is skipped because of < 20 voxels",
    NULL

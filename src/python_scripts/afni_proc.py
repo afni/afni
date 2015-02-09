@@ -434,12 +434,13 @@ g_history = """
     4.25 Jan 02, 2015: small help change
     4.26 Jan 12, 2015: compute global correlation volume (similar to GCOR)
     4.27 Jan 15, 2015: use 3ddot -demean for correlation of masks
+    4.28 Feb 06, 2015: apply updates to 3dClustSim
 """
 
-g_version = "version 4.27, January 15, 2015"
+g_version = "version 4.28, February 9, 2015"
 
 # version of AFNI required for script execution
-g_requires_afni = "7 Nov 2014" # 3dNwarpApply
+g_requires_afni = "9 Feb 2014" # 3dNwarpApply
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -551,13 +552,16 @@ class SubjProcSream:
         self.e2final    = ''            # aff12.1D file for e2final_mv
         self.errts_pre  = ''            # possibly changing errts prefix
         self.errts_reml = ''            # prefix for any REML errts
-        self.errts_cen  = 0             # flag: current errts has censored TRs removed
+        self.errts_cen  = 0             # flag: current errts has censored
+                                        #       TRs removed
         self.align_ebase= None          # external EPI for align_epi_anat.py
         self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
         self.rm_dirs    = 0             # do we have dirs to remove?
         self.rm_list    = ['rm.*']      # array of items to nuke
+        self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
+        self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
         self.made_ssr_scr = 0           # did we make subj review scripts
         self.ssr_basic    = '@ss_review_basic' # basic review script
