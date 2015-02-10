@@ -25,7 +25,9 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick *br )
    int ix,jy,kz , ind ;
    THD_ivec3 ind_fd , ind_ds ;
 
-   if( ixyz < 0 || ixyz >= br->n1 * br->n2 * br->n3 ) return NULL ;
+ENTRY("FD_brick_to_series") ;
+
+   if( ixyz < 0 || ixyz >= br->n1 * br->n2 * br->n3 ) RETURN(NULL) ;
 
    /** otherwise, get ready for a real image **/
 
@@ -44,7 +46,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick *br )
    if( iar == NULL ){  /* if data needs to be loaded from disk */
       (void) THD_load_datablock( br->dset->dblk ) ;
       iar = DSET_ARRAY(br->dset,0) ;
-      if( iar == NULL ) return NULL ;
+      if( iar == NULL ) RETURN(NULL) ;
    }
 
    /* 15 Sep 2004: allow for nonconstant datum */
@@ -69,7 +71,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick *br )
 
       default:             /* don't know what to do --> return nada */
          mri_free( im ) ;
-         return NULL ;
+         RETURN(NULL) ;
 
       case MRI_byte:{
          byte *ar  = MRI_BYTE_PTR(im) , *bar ;
@@ -172,5 +174,5 @@ image_done:
       im->xo = 0.0 ; im->dx = 1.0 ;  /* 08 Nov 1996 */
    }
 
-   return im ;
+   RETURN(im) ;
 }

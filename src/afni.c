@@ -1503,6 +1503,7 @@ void AFNI_sigfunc_alrm(int sig)
      "Remember -- Aquaman cares"                                     ,
      "Remember -- She who laughs, lasts"                             ,
      "Remember -- He who laughs, lasts"                              ,
+     "Do not scorn pity that is the gift of a gentle heart"          ,
      "The best laid statistics of mice and men gang aft agley"       ,
      "A thousand farewells pass in one moment"                       ,
      "Did you see hyperconnectivity in the disconnected fibers?"     ,
@@ -1559,10 +1560,11 @@ void AFNI_sigfunc_alrm(int sig)
      "What do you do all day? I do very little, and do it slowly"    ,
      "Did you find a paradigm shift today?"                          ,
      "Was it the silver bullet you were hoping for?"                 ,
-     "Did find the Holy Grail of neuroimaging yet?"                  ,
+     "Did you find the Holy Grail of neuroimaging yet?"              ,
      "Shedding new light on the brain since 1994!"                   ,
      "Brain-ology at the cutting edge since 1994!"                   ,
      "Don't you wish it had a 'Write Nature Paper' button?"          ,
+     "Coming soon: the 'Write Science Paper' interface"              ,
 
      "Why is 'Gold Standard' used in science? Gold is pretty but almost useless"      ,
      "Oh well, you can always end your paper with 'Further research needed'"          ,
@@ -3018,6 +3020,10 @@ ENTRY("AFNI_brick_to_mri") ;
 
 if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(str) ; }
 
+   if( br == NULL ){  /* should never happen */
+     ERROR_message("AFNI_brick_to_mri: bad FD_brick :-(") ; RETURN(NULL) ;
+   }
+
    /*-------------------------------------------------*/
    /*-------- May 1996: graph callbacks first --------*/
 
@@ -3050,7 +3056,8 @@ if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(s
       Three_D_View *im3d = (Three_D_View *)br->parent ;
       MCW_grapher *grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
-      im = FD_brick_to_series( n , br ) ; im->flags = 1 ;
+      im = FD_brick_to_series( n , br ) ; if( im == NULL ) RETURN(NULL) ;
+      im->flags = 1 ;
 
       if( grapher->thresh_fade && im3d->vinfo->func_visible ){  /* Mar 2013 */
         int nsl = n / (br->n1 * br->n2) ;
