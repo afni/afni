@@ -1811,6 +1811,7 @@ typedef struct {
   int ndset ;
   THD_3dim_dataset **dset ;
   void (*cb)(Widget , XtPointer , MCW_choose_cbs *) ;
+  void *parent ;
 } AFNI_dataset_choose_stuff ;
 
 extern void AFNI_switchview_CB        ( Widget , XtPointer , XtPointer ) ;
