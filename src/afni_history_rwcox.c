@@ -43,7 +43,13 @@
 
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
-  { 5 , FEB , 2015 , RWC , "AFNI InstaCorr" , MINOR , TYPE_GENERAL ,
+  { 10 , FEB , 2015 , RWC , "afni GUI" , MINOR , TYPE_GENERAL ,
+   "Ability to graph time series with x-axis from another dataset" ,
+   "Voxel-by-voxel x-axis selection.  Previously (Jan 1998) could only do\n"
+   "x-axis as a 1D file == fixed for all sub-graphs.  Now each voxel can get\n"
+   "its own x-axis.  God help you." } ,
+
+ { 5 , FEB , 2015 , RWC , "AFNI InstaCorr" , MINOR , TYPE_GENERAL ,
    "Add Iterate option" ,
    NULL } ,
 
