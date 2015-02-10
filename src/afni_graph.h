@@ -421,6 +421,8 @@ typedef struct {
    MRI_IMAGE *cen_tsim ;
    MRI_IMAGE *xax_tsim ;  /* 09 Jan 1998 */
    MRI_IMAGE *ave_tsim ;  /* 26 Jan 2004 */
+   void      *xax_dset ;  /* 09 Feb 2015 */
+   void      *xax_fdbr ;
 
    int xx_text_1 , xx_text_2 , xx_text_2p , xx_text_3 ;
 
@@ -473,7 +475,7 @@ typedef struct {
 
    Widget opt_xaxis_menu , opt_xaxis_cbut ,        /* 09 Jan 1998 */
           opt_xaxis_pick_pb , opt_xaxis_center_pb ,
-          opt_xaxis_clear_pb ;
+          opt_xaxis_clear_pb , opt_xaxis_dset_pb ;
 
    Widget opt_baseline_menu , opt_baseline_cbut ,   /* 07 Aug 2001 */
           opt_baseline_setglobal_pb ,
@@ -717,7 +719,7 @@ extern void GRA_winaver_setref ( MCW_grapher * ) ;
 extern void GRA_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_file_pixmap( MCW_grapher * , char * ) ;
 
-extern void GRA_fixup_xaxis( MCW_grapher * ) ;
+extern void GRA_fixup_xaxis( MCW_grapher * , MRI_IMAGE * ) ;
 extern void GRA_pick_xaxis_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void GRA_mapmenu_CB( Widget , XtPointer , XtPointer ) ;

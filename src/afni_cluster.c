@@ -1467,7 +1467,7 @@ void AFNI_clus_popdown( Three_D_View *im3d )
 /*---------------------------------------------------------------------------*/
 /* Called when the user finally makes up his pitiful little mind. */
 
-static AFNI_dataset_choose_stuff cdds = { 0, NULL, NULL } ;
+static AFNI_dataset_choose_stuff cdds = { 0, NULL, NULL , NULL } ;
 
 static void AFNI_clus_finalize_dataset_CB( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
@@ -1531,12 +1531,12 @@ ENTRY("AFNI_clus_action_CB") ;
 
      if( cdds.dset != NULL ) free((void *)cdds.dset) ;
      cdds.ndset = 0 ;
-     cdds.dset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)
+     cdds.dset = (THD_3dim_dataset **)realloc(cdds.dset,
+                                              sizeof(THD_3dim_dataset *)
                                              *im3d->ss_now->num_dsset  ) ;
      cdds.cb = AFNI_clus_finalize_dataset_CB ;
      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
        dset = GET_SESSION_DSET(im3d->ss_now, ii, vv) ;
-/*     dset = im3d->ss_now->dsset_xform_table[ii][vv] ;*/
        if( ISVALID_DSET(dset)                          &&  /* qualifications */
            DSET_NVOX(dset) == DSET_NVOX(im3d->fim_now) &&
            DSET_INMEMORY(dset)                           )
