@@ -372,6 +372,14 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
             SUMA_RETURN (NOPE);
          }
          break;
+      case SUMA_STL:
+         if (!SUMA_STL_Write ((char *)F_name, SO)) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write STL surface.\n"
+                     , FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
       case SUMA_MNI_OBJ:
          if (!SUMA_MNI_OBJ_Write ((char *)F_name, SO)) {
             fprintf (SUMA_STDERR, 
@@ -869,6 +877,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
          break;
+      case SUMA_STL:
+         break;
       case SUMA_PLY:
          break;
       case SUMA_OBJ_MESH:
@@ -911,6 +921,35 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
                   FuncName);
          SUMA_RETURN(NULL);
       
+      case SUMA_STL:
+         if (!SUMA_STL_Read ((char *)SO_FileName_vp, SO)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_STL_Read.\n", FuncName);
+            SUMA_RETURN(NULL);
+         }
+         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         
+         /* change coordinates to align them with volparent data set, 
+            if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Failed to load parent volume attributes.\n", 
+                        FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+            }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+         SO->normdir = 0;  /* not set */
+         break;
       case SUMA_PLY:
          if (!SUMA_Ply_Read ((char *)SO_FileName_vp, SO)) {
             fprintf (SUMA_STDERR,
@@ -3338,6 +3377,19 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
       brk = YUP;
    } /* load Ply format surface */
 
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "STL") == 1) {
+      /* load STL format surface */
+      SO = SUMA_Load_Surface_Object_eng ( (void *)Spec->SurfaceFile[i], SUMA_STL,                                           SUMA_FF_NOT_SPECIFIED, tmpVolParName, 
+                                          debug);
+
+      if (SO == NULL)   {
+         fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+         SUMA_RETURN(NULL);
+      }
+      SurfIn = YUP;
+      brk = YUP;
+   } /* load STL format surface */
+
    if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "MNI") == 1) {
       /* load MNI_OBJ format surface */
 
@@ -4648,6 +4700,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_GIFTI:
       case SUMA_PREDEFINED:
       case SUMA_MNI_OBJ:
+      case SUMA_STL:
       case SUMA_PLY:
          if (MitPath) 
             nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
@@ -4669,6 +4722,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
+      case SUMA_STL:
       case SUMA_PLY:
       case SUMA_OPENDX_MESH:
       case SUMA_OBJ_MESH:
@@ -4719,6 +4773,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_FREE_SURFER_PATCH:
       case SUMA_OPENDX_MESH:
       case SUMA_OBJ_MESH:
+      case SUMA_STL:
       case SUMA_PLY:
       case SUMA_BYU:
       case SUMA_MNI_OBJ:
@@ -4851,6 +4906,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
       case SUMA_BYU:
       case SUMA_MNI_OBJ:
       case SUMA_PREDEFINED:
+      case SUMA_STL:
       case SUMA_PLY:
          if (SUMA_iswordin (SO->Name.FileName, "lh") == 1 ||
              SUMA_iswordin (SO->Name.FileName, "left") == 1) {
@@ -4954,6 +5010,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
          case SUMA_OPENDX_MESH:
          case SUMA_OBJ_MESH:
          case SUMA_MNI_OBJ:
+         case SUMA_STL:
          case SUMA_PLY:
             break;
          case SUMA_PREDEFINED:
