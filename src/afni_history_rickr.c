@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11,  Feb, 2015, RCR, "model_conv_PRF", MICRO, TYPE_MODIFY,
+   "use AFNI_MODEL_PRF_RAM_STATS to control RAM use reporting",
+   "Maybe malloc_stats() is not available on macs."
+ } ,
+
  { 10,  Feb, 2015, RCR, "make_stim_times.py", MICRO, TYPE_MODIFY,
    "clarify use of both -nruns, -nt",
    NULL

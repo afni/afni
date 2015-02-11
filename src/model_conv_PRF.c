@@ -99,12 +99,43 @@ char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
 char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
 int    genv_diter    = -1;      /* debug iteration */
 int    genv_debug    = 1;       /* AFNI_MODEL_DEBUG */
+int    genv_ram_stats= 0;       /* AFNI_MODEL_PRF_RAM_STATS */
 
 int    genv_on_grid      = 0;   /* restrict computations and results to grid */
 float  genv_sigma_max    = 1.0; /* on_grid: maximum blur sigma */
 int    genv_sigma_nsteps = 100; /* on_grid: number of blur steps */
 
 int    genv_get_help = 0;       /* AFNI_MODEL_HELP_ALL or HELP_CONV_PRF */
+
+/* possble values for genv_ram_stats, to show malloc_stats() or ps */
+#define AC_PRF_STAT_NONE        0
+#define AC_PRF_STAT_MALLOC      1
+#define AC_PRF_STAT_PS          2
+#define AC_PRF_STAT_ALL         (AC_PRF_STAT_MALLOC|AC_PRF_STAT_PS) 
+#define AC_PRF_STAT_WAIT        4
+
+/* return one of the AC_PRF_STAT values */
+int set_env_ram_stats(void){
+   char * estr = my_getenv("AFNI_MODEL_PRF_RAM_STATS");
+   int    rval = AC_PRF_STAT_NONE;
+
+   if( ! estr )                                       rval = AC_PRF_STAT_NONE;
+   else if( AFNI_noenv("AFNI_MODEL_PRF_RAM_STATS") )  rval = AC_PRF_STAT_NONE;
+   else if( AFNI_yesenv("AFNI_MODEL_PRF_RAM_STATS") ) rval = AC_PRF_STAT_ALL;
+   else if( ! strcmp(estr, "MALLOC") )                rval = AC_PRF_STAT_MALLOC;
+   else if( ! strcmp(estr, "PS") )                    rval = AC_PRF_STAT_PS;
+   else if( ! strcmp(estr, "ALL") )                   rval = AC_PRF_STAT_ALL;
+   else if( ! strcmp(estr, "WAIT") ) 
+        rval = AC_PRF_STAT_WAIT | AC_PRF_STAT_ALL;
+   else rval = (int)AFNI_numenv_def("AFNI_MODEL_PRF_RAM_STATS", 0);
+
+   if( ! rval ) { genv_ram_stats = rval;  return 0; }
+
+   if( genv_debug ) fprintf(stderr,"-- setting PRF_RAM_STATS to %d\n", rval);
+
+   genv_ram_stats = rval;
+   return 0;
+}
 
 int set_env_vars(void)
 {
@@ -132,6 +163,9 @@ int set_env_vars(void)
    if( genv_debug && genv_on_grid )
       fprintf(stderr,"-- PRF: sigma_max = %f, nsteps = %d\n",
                      genv_sigma_max, genv_sigma_nsteps);
+
+   /* show RAM stats - default to no */
+   set_env_ram_stats();
 
    /* help */
    genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF")
@@ -254,16 +288,15 @@ static int write_dset(THD_3dim_dataset * dset, char * name)
    return 0;
 }
 
-/* for monitoring the program
- * memory_trim(0) seems to speed up allocation a lot
- */
+/* for monitoring the the RAM usage */
 static int show_malloc_stats(char * mesg)
 {
-   int show_stats = 1;
-   int show_ps = 1;
-   int get_char = 0;
+   int show_stats, show_ps, get_char;
 
-   if( genv_debug < 2 ) return 0;
+   show_stats = genv_ram_stats & AC_PRF_STAT_MALLOC;
+   show_ps    = genv_ram_stats & AC_PRF_STAT_PS;
+   get_char   = genv_ram_stats & AC_PRF_STAT_WAIT;
+
    if( ! show_stats && ! show_ps ) return 0;
 
    if( show_stats ) {
@@ -1375,6 +1408,21 @@ static int model_help(void)
 "         Use this variable to set the number of pre-computed sigma values.\n"
 "         Note that the resolution of pre-computed sigma values will be the\n"
 "         ratio: AFNI_MODEL_PRF_SIGMA_MAX/AFNI_MODEL_PRF_SIGMA_NSTEPS.\n"
+"\n"
+"      AFNI_MODEL_PRF_RAM_STATS VAL : request display of RAM usage\n"
+"\n"
+"         e.g. setenv AFNI_MODEL_PRF_RAM_STATS Y\n"
+"         e.g. default N\n"
+"\n"
+"         Use this variable to control display of RAM usage.  By default,\n"
+"         is it off.  VAL can be one of:\n"
+"\n"
+"               Y       : yes, show all information\n"
+"               N       : no [default], show no information\n"
+"               MALLOC  : show only MALLOC information\n"
+"               PS      : show only PS information\n"
+"               ALL     : same as Y\n"
+"               WAIT    : same as Y, and wait after output\n"
 "\n"
 "   -----------------------------------\n"
 "   helpful:\n"
