@@ -898,6 +898,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
       case SUMA_OBJ_MESH:
       case SUMA_PREDEFINED:
       case SUMA_PLY:
+      case SUMA_STL:
       case SUMA_BYU:
       case SUMA_VEC:
          /* Do nothing */
@@ -1094,6 +1095,7 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
       case SUMA_OBJ_MESH:
       case SUMA_PREDEFINED:
       case SUMA_PLY:
+      case SUMA_STL:
       case SUMA_BYU:
       case SUMA_VEC:
          /* Do nothing */

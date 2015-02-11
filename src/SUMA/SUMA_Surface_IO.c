@@ -91,6 +91,13 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
          SO = SUMA_Load_Surface_Object (  SO_name, SUMA_PLY, 
                                           SUMA_FF_NOT_SPECIFIED, sv_name);
          break;  
+      case SUMA_STL:
+         SO_name = (void *)if_name; 
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_STL, 
+                                          SUMA_FF_NOT_SPECIFIED, sv_name);
+         break;  
       case SUMA_MNI_OBJ:
          SO_name = (void *)if_name; 
          if (debug > 0) 
@@ -160,6 +167,9 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
          break;  
       case SUMA_PLY:
          noex  =  SUMA_Extension(Name,".ply" , YUP); 
+         break;  
+      case SUMA_STL:
+         noex  =  SUMA_Extension(Name,".stl" , YUP); 
          break;  
       case SUMA_MNI_OBJ:
          noex  =  SUMA_Extension(Name,".obj" , YUP); 
@@ -345,6 +355,11 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
          break;  
       case SUMA_PLY:
          SO_name = (void *)SUMA_append_string(ppref,".ply"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;  
+      case SUMA_STL:
+         SO_name = (void *)SUMA_append_string(ppref,".stl"); 
          if (SUMA_filexists((char*)SO_name)) *exists = YUP;
          else *exists = NOPE;
          break;  
@@ -4279,6 +4294,414 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    if (verts) SUMA_free(verts);
    if (faces) SUMA_free(faces);
    if (f_name) SUMA_free(f_name);
+   SUMA_RETURN (YUP);
+}
+
+/*!
+   \brief Reads an STL formatted file into a SUMA_SurfaceObject structure
+   ans = SUMA_STL_Read (f_name, SO);
+   
+   \param f_name (char *) name (and path) of .stl file to read. 
+                          Extension .stl is optional
+   \param SO (SUMA_SurfaceObject *) pointer to a structure to return surface in f_name in
+   \return ans (SUMA_Boolean) YUP/NOPE
+   
+   The following fields are set in SO:
+   SO->NodeDim
+   SO->FaceSetDim
+   SO->NodeList
+   SO->FaceSetList
+   SO->N_Node;
+   SO->N_FaceSet;
+   SO->Name;
+   SO->FileType;
+   SO->FileFormat
+   
+   \sa SUMA_STL_Write()
+   
+   
+*/
+SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_STL_Read"};
+   int err=0, i, i3, nn, nfound, found, good,j[3],k, j3[3], nread, l;
+   char head[126] = {""}, *bb=NULL, *fl, *op=NULL, *ope=NULL;
+   double ff;
+   FILE *fout = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   /* open a STL file for reading */
+   fout = fopen(f_name, "r");
+   if (!fout) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed to find/read %s.\n", 
+               FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* Is this a binary or ascii file? Read 80 characters and check for 'solid'*/
+   fread(head, sizeof(char), 80, fout);
+   if ((bb=strnstr(head, "solid", 70))) {
+      if (bb - head > 3) {
+         SUMA_S_Warn("term solid found but far from beginning of line..."
+                     "Still assuming it is ascii format");
+      } 
+      SO->FileFormat = SUMA_ASCII;
+   } else {
+      SUMA_LH("Binary header: %s", head);
+      SO->FileFormat = SUMA_BINARY_LE;
+   }
+   SO->FileType = SUMA_STL;
+   SO->Name = SUMA_StripPath(f_name);
+   
+   switch (SO->FileFormat) {
+      case SUMA_BINARY_LE: {
+         unsigned int ui;
+         short ss;
+         float fv[12];
+         
+         SUMA_LH("Reading BINARY STL");
+         /* We should be right at the number of triangles */
+         fread(&ui, sizeof(unsigned int), 1, fout);
+         SUMA_LH("%d facesets", ui);
+         SO->N_FaceSet = ui;
+         SO->FaceSetDim = 3;
+         SO->NodeDim = 3;
+         SO->FaceSetList = (int *) SUMA_calloc (SO->FaceSetDim * SO->N_FaceSet, 
+                                                sizeof(int));
+         SO->FaceNormList = (float *)SUMA_calloc (SO->NodeDim * SO->N_FaceSet,
+                                             sizeof(float));
+         SO->N_Node = 3*SO->N_FaceSet;
+         SO->NodeNormList = (float *)SUMA_calloc (SO->NodeDim * SO->N_Node, 
+                                             sizeof(float));
+         SO->NodeList = (float *)SUMA_calloc (SO->NodeDim * SO->N_Node, 
+                                             sizeof(float));
+         if (!SO->FaceSetList || !SO->NodeList || 
+             !SO->NodeNormList || !SO->FaceNormList) {
+            SUMA_S_Err("Failed to allocate for FaceSetList or NodeList...\n");
+            SUMA_ifree(SO->FaceSetList); SUMA_ifree(SO->NodeList); 
+            SUMA_ifree(SO->NodeNormList); SUMA_ifree(SO->FaceNormList);
+            SUMA_RETURN(NOPE);
+         }
+         /* Now fill up this stuff */
+         for (nn=0,i=0; i<SO->N_FaceSet; ++i) {
+            i3 = 3*i;
+            nread = fread(fv, sizeof(float), 12, fout);
+            SUMA_LH("Read %d vals at facet %d, nn=%d,"
+                    "ready for %d nodes, %d triangles",
+                     nread, i, nn, SO->N_Node, SO->N_FaceSet);
+            SO->FaceNormList[i3  ] = fv[0];
+            SO->FaceNormList[i3+1] = fv[1];
+            SO->FaceNormList[i3+2] = fv[2];
+            j[0] = nn; j3[0] = j[0]*3; ++nn; 
+            j[1] = nn; j3[1] = j[1]*3; ++nn;
+            j[2] = nn; j3[2] = j[2]*3; ++nn;
+            SO->FaceSetList[i3  ] = j[0];
+            SO->FaceSetList[i3+1] = j[1];
+            SO->FaceSetList[i3+2] = j[2];
+
+            SO->NodeList[j3[0]  ] = fv[3];
+            SO->NodeList[j3[0]+1] = fv[4];
+            SO->NodeList[j3[0]+2] = fv[5];
+            SO->NodeList[j3[1]  ] = fv[6];
+            SO->NodeList[j3[1]+1] = fv[7];
+            SO->NodeList[j3[1]+2] = fv[8];
+            SO->NodeList[j3[2]  ] = fv[9];
+            SO->NodeList[j3[2]+1] = fv[10];
+            SO->NodeList[j3[2]+2] = fv[11];
+            
+            /* and the redundant normals */
+            SO->NodeNormList[j3[0]  ] = 
+               SO->NodeNormList[j3[1]  ] =
+                  SO->NodeNormList[j3[2]  ] = SO->FaceNormList[i3  ];
+            SO->NodeNormList[j3[0]+1] = 
+               SO->NodeNormList[j3[1]+1] =
+                  SO->NodeNormList[j3[2]+1] = SO->FaceNormList[i3+1];
+            SO->NodeNormList[j3[0]+2] = 
+               SO->NodeNormList[j3[1]+2] =
+                  SO->NodeNormList[j3[2]+2] = SO->FaceNormList[i3+2];
+            fread(&ss, sizeof(short), 1, fout);
+            #if 0
+               SUMA_LH( "Facet %d %d %d %d\n"
+                        "%f %f %f\n"
+                        "%f %f %f\n"
+                        "%f %f %f\n"
+                        "%d",
+                        i, 
+                        SO->FaceSetList[i3], 
+                        SO->FaceSetList[i3+1], SO->FaceSetList[i3+2],
+                        SO->NodeList[j3[0]  ], 
+                        SO->NodeList[j3[0]+1], SO->NodeList[j3[0]+2],
+                        SO->NodeList[j3[1]  ], 
+                        SO->NodeList[j3[1]+1], SO->NodeList[j3[1]+2],
+                        SO->NodeList[j3[2]  ], 
+                        SO->NodeList[j3[2]+1], SO->NodeList[j3[2]+2],
+                        ss);
+           #endif
+         }
+         break; }
+      case SUMA_ASCII:
+         {
+            SUMA_LH("Reading ASCII STL");
+            if (fout) fclose(fout); fout = NULL; 
+            nread = SUMA_suck_file( f_name , &fl ) ;
+            if (!fl) {
+               SUMA_SL_Err("Failed to read file %s", f_name);
+               SUMA_RETURN(NOPE);
+            }
+            SUMA_LH("Read in %d chars\n", nread);
+            SO->NodeDim = SO->FaceSetDim = 3;
+            /* You might need to track solid name for cases with nested 
+               objects... For now don't bother */
+            op = fl; 
+            SUMA_ADVANCE_PAST(op, fl+nread, "solid", found, 1);
+            ope = op;
+            SUMA_ADVANCE_PAST(ope, fl+nread, "endsolid", found, 1);
+            nn = 0;
+            nfound = 0;
+            do {
+               /* Look for facet normal */
+               SUMA_ADVANCE_PAST(op, ope, "facet normal", found, 1);
+               if (found) {
+                  SUMA_LH("Found facet %d at offset %d", nfound, (int)(op-fl));
+                  /* SUMA_PRINT_STRING(op, op+30, NULL,"-->", "\n");*/
+                  if (SO->N_FaceSet <= nfound) {
+                     SO->N_FaceSet += SO->N_FaceSet+50000;
+                     SO->FaceSetList = (int *)SUMA_realloc(SO->FaceSetList, 
+                                    sizeof(int) * SO->FaceSetDim*SO->N_FaceSet);
+                     SO->FaceNormList = (float *)SUMA_realloc (SO->FaceNormList,
+                                    SO->NodeDim * SO->N_FaceSet*sizeof(float));
+                     SO->N_Node = 3*SO->N_FaceSet;
+                     SO->NodeNormList = (float *)SUMA_realloc (SO->NodeNormList,
+                                    SO->NodeDim * SO->N_Node * sizeof(float));
+                     SO->NodeList = (float *)SUMA_realloc (SO->NodeList,
+                                    SO->NodeDim * SO->N_Node * sizeof(float));
+                     if (!SO->FaceSetList || !SO->NodeList || 
+                         !SO->NodeNormList || !SO->FaceNormList) {
+                        SUMA_S_Err("Failed to allocate for FaceSetList or"
+                                   " NodeList...\n");
+                        SUMA_ifree(SO->FaceSetList); 
+                        SUMA_ifree(SO->NodeList); 
+                        SUMA_ifree(SO->NodeNormList); 
+                        SUMA_ifree(SO->FaceNormList);
+                        SUMA_RETURN(NOPE);
+                     }
+                  }
+                  i3 = 3*nfound;
+                  /* Read normal */
+                  for (k=0;k<3;++k) {
+                     SUMA_ADVANCE_PAST_NUM(op, ff, good);
+                     if (good) SO->FaceNormList[i3+k] = ff;
+                     else {
+                        SO->FaceNormList[i3+k] = 0.0;
+                        ++err;
+                     }
+                  }
+                  
+                  /* Pretend we have three new nodes */
+                  j[0] = nn; j3[0] = j[0]*3; ++nn; 
+                  j[1] = nn; j3[1] = j[1]*3; ++nn;
+                  j[2] = nn; j3[2] = j[2]*3; ++nn;
+                  SO->FaceSetList[i3  ] = j[0];
+                  SO->FaceSetList[i3+1] = j[1];
+                  SO->FaceSetList[i3+2] = j[2];
+                  
+                  for (l=0; l<3; ++l) {
+                     /* jump to vertex of node l*/
+                     SUMA_ADVANCE_PAST(op, op+nread, "vertex", found, 1);
+                     /* SUMA_PRINT_STRING(op, op+30, NULL,"-v->", "\n"); */
+                     if (!found) { 
+                        SUMA_S_Err("Failed to find vertex!"); ++err; 
+                     } else {
+                        /* get x y z */
+                        for (k=0; k<3; ++k) {
+                           SUMA_ADVANCE_PAST_NUM(op, ff, good);
+                           if (good) SO->NodeList[j3[l]+k] = ff;
+                           else {
+                              SO->NodeList[j3[l]+k] = 0.0;
+                              ++err;
+                           }
+                        }
+                     }
+                  }
+                  
+                  /* and the redundant normals */
+                  SO->NodeNormList[j3[0]  ] = 
+                     SO->NodeNormList[j3[1]  ] =
+                        SO->NodeNormList[j3[2]  ] = SO->FaceNormList[i3  ];
+                  SO->NodeNormList[j3[0]+1] = 
+                     SO->NodeNormList[j3[1]+1] =
+                        SO->NodeNormList[j3[2]+1] = SO->FaceNormList[i3+1];
+                  SO->NodeNormList[j3[0]+2] = 
+                     SO->NodeNormList[j3[1]+2] =
+                        SO->NodeNormList[j3[2]+2] = SO->FaceNormList[i3+2];
+                  
+                  SUMA_ADVANCE_PAST(op, ope, "endfacet", good, 1);
+                  if (!good) {
+                     SUMA_S_Warn("NO closing facet normal at triangle %d", 
+                                 nfound);
+                  }
+                  ++nfound;
+               }
+            } while (*op != '\0' && op < ope && found);
+            
+            /* reallocate */
+               SO->N_FaceSet = nfound;
+               SO->FaceSetList = (int *)SUMA_realloc(SO->FaceSetList, 
+                              sizeof(int) * SO->FaceSetDim*SO->N_FaceSet);
+               SO->FaceNormList = (float *)SUMA_realloc (SO->FaceNormList,
+                              SO->NodeDim * SO->N_FaceSet*sizeof(float));
+               SO->N_Node = 3*SO->N_FaceSet;
+               SO->NodeNormList = (float *)SUMA_realloc (SO->NodeNormList,
+                              SO->NodeDim * SO->N_Node * sizeof(float));
+               SO->NodeList = (float *)SUMA_realloc (SO->NodeList,
+                              SO->NodeDim * SO->N_Node * sizeof(float));
+            
+            SUMA_ifree(fl);
+         }
+         break;
+      default:
+         SUMA_S_Err("Should not happen. Bad format");
+         SUMA_RETURN(NOPE);
+         break;
+
+   }
+   
+   SUMA_LH("All done reading, %d triangles, %d nodes", 
+           SO->N_FaceSet, SO->N_Node);
+   if (err) {
+      SUMA_S_Warn("%d errs found, proceeding by the seat of the pants", err);
+   }
+    
+   SUMA_RETURN(YUP);
+}
+
+
+/*!
+   \brief Writes an SO into a .stl file
+   ans = SUMA_Stl_Write (f_name, SO);
+   \param f_name (char *) name of .stl file. if .stl is not attached it 
+                          will be added.
+   \param SO (SUMA_SurfaceObject *) Surface object to write out. 
+      if SO->FileFormat = SUMA_BINARY_BE or SUMA_BINARY_LE the surface is 
+                          written in binary stl format.
+      SUMA_BINARY is set to SUMA_BINARY_BE
+   \return ans (SUMA_Boolean) success flag.
+   
+   In its current incarnation, the function does not overwrite a pre-existing file.
+      
+*/ 
+SUMA_Boolean SUMA_STL_Write (char * f_name_in, SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_STL_Write"};
+   int i, i3, j3[3];
+   char *f_name, *f_name2; 
+   FILE *fout = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!f_name_in) {
+      fprintf (SUMA_STDERR, "Error %s: NULL filename\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   f_name = SUMA_Extension(f_name_in,".stl" , YUP); 
+   f_name2  = SUMA_append_string(f_name,".stl");
+   if (!THD_ok_overwrite() && SUMA_filexists (f_name2)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: file %s exists, will not overwrite.\n", 
+               FuncName, f_name2);
+      SUMA_free(f_name2);f_name2 = NULL;
+      SUMA_free(f_name);f_name = NULL;
+      SUMA_RETURN (NOPE);
+   }
+      
+   
+   /* must have XYZ */
+   if (SO->NodeDim != 3) {
+      fprintf (SUMA_STDERR, "Error %s: SO->NodeDim != 3.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+
+   fout = fopen(f_name2,"w");
+   if (!fout) {
+      SUMA_S_Err("Failed to open %s for writing", f_name2);
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!SO->FaceNormList) SUMA_RECOMPUTE_NORMALS(SO);
+   
+   /* open either a binary or ascii PLY file for writing */
+   /* (the file will be called "test.ply" because the routines */
+   /*  enforce the .ply filename extension) */
+
+   switch (SO->FileFormat) {
+      case SUMA_BINARY_BE:
+         SUMA_S_Err("BINARY_BE not supported");
+         SUMA_RETURN (NOPE);
+         break;
+      
+      case SUMA_BINARY_LE:
+      case SUMA_BINARY:
+         {
+            short ds = 0;
+            char dummy[80], dhead[81];
+            snprintf(dummy,60,"SO Label: %s, Written by SUMA", 
+                     CHECK_NULL_STR(SO->Label));
+            snprintf(dhead,80,"%-80s",dummy);
+            fwrite(dhead, sizeof(char), 80, fout);
+            for (i=0; i<SO->N_FaceSet; ++i) {
+               i3 = 3*i;
+               fwrite(SO->FaceNormList+i3, sizeof(float), 3, fout); 
+               j3[0] = SO->NodeDim * SO->FaceSetList[i3  ];
+               j3[1] = SO->NodeDim * SO->FaceSetList[i3+1];
+               j3[2] = SO->NodeDim * SO->FaceSetList[i3+2];
+               fwrite(SO->NodeList+j3[0], sizeof(float), 3, fout); 
+               fwrite(SO->NodeList+j3[1], sizeof(float), 3, fout); 
+               fwrite(SO->NodeList+j3[2], sizeof(float), 3, fout); 
+               fwrite(&ds, sizeof(short), 1, fout);
+            }
+         }
+         break;
+      
+      default:
+      case SUMA_FF_NOT_SPECIFIED:
+      case SUMA_ASCII:
+         {
+            fprintf(fout, "solid %s\n", CHECK_NULL_STR(SO->Label));
+            for (i=0; i<SO->N_FaceSet; ++i) {
+               i3 = 3*i;
+               fprintf(fout, "facet normal %f %f %f\n",
+                              SO->FaceNormList[i3  ], 
+                              SO->FaceNormList[i3+1], 
+                              SO->FaceNormList[i3+2]);
+               fprintf(fout, "   outer loop\n");
+               j3[0] = SO->NodeDim * SO->FaceSetList[i3  ];
+               j3[1] = SO->NodeDim * SO->FaceSetList[i3+1];
+               j3[2] = SO->NodeDim * SO->FaceSetList[i3+2];
+               fprintf(fout, "      vertex %f %f %f\n"
+                             "      vertex %f %f %f\n"
+                             "      vertex %f %f %f\n",
+               SO->NodeList[j3[0]  ], 
+               SO->NodeList[j3[0]+1], SO->NodeList[j3[0]+2],
+               SO->NodeList[j3[1]  ], 
+               SO->NodeList[j3[1]+1], SO->NodeList[j3[1]+2],
+               SO->NodeList[j3[2]  ], 
+               SO->NodeList[j3[2]+1], SO->NodeList[j3[2]+2]);
+               fprintf(fout, "   endloop\n");
+               fprintf(fout, "endfacet\n");
+            }
+            fprintf(fout, "endsolid %s\n",CHECK_NULL_STR(SO->Label));
+         }
+         break;
+   }
+
+   if (fout) fclose(fout); fout = NULL;
+   if (f_name) SUMA_free(f_name);
+   SUMA_free(f_name2); f_name2 = NULL;
    SUMA_RETURN (YUP);
 }
 
