@@ -8756,6 +8756,32 @@ char *deblank_allname(char *name, char fill)
    return(name);
 }
 
+/* deblank and compress (reduce successive blanks to
+   just one blank */
+char *cdeblank_allname(char *name, char fill)
+{
+   int bb=0, block=0, bbo=0;
+   
+   if (!name) return(name);
+   
+   name = deblank_name(name);
+   
+/*   nch = strlen(name);*/
+   bb=0; bbo=0; 
+   while (name[bb] != '\0') {
+      if (isspace(name[bb])) {
+         if (!block) name[bbo++]=fill;
+         block=1;
+      } else {
+         name[bbo++]=name[bb];
+         block=0;
+      }
+      ++bb;
+   }
+   name[bbo]='\0';
+   return(name);
+}
+
 char *depunct_name (char *name) {
    int nch = 0, bb=0, ibb=0, BB=0;
    

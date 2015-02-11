@@ -4807,7 +4807,7 @@ typedef struct FD_brick {
  do{ if( fdb != NULL ) STATUSp(sss,fdb->tmask) ; } while(0)
 
 #define DESTROY_FD_BRICK(fdb) \
- do{ if( fdb != NULL ){ mri_free(fdb->tmask); myXtFree(fdb); } } while(0)
+ do{ FD_brick *_jj=fdb; if( _jj != NULL ){ mri_free(_jj->tmask); myXtFree(_jj); } } while(0)
 
 /*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */
 

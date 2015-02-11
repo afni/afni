@@ -5,7 +5,7 @@
 #define SUMA_GENERIC_PROG_MAX_SURF 10  /*!< Maximum number of surfaces allowed*/
 #define SUMA_GENERIC_PROG_MAX_IN_NAME 500 /*!< Maximum number of input dsets allowed*/
 
-#define SUMA_MAX_SURF_ON_COMMAND 100
+#define SUMA_MAX_SURF_ON_COMMAND 1000
 #define SUMA_MAX_DSET_ON_COMMAND 1000
 #define SUMA_MAX_DO_ON_COMMAND 100
 #define SUMA_N_ARGS_MAX 1000
@@ -274,9 +274,12 @@ typedef struct {
    int match_area; 
    
    float xyz_scale;
-   SUMA_GENERIC_ARGV_PARSE *ps; /* just a holder for convenience, never free it*/
+   SUMA_GENERIC_ARGV_PARSE *ps; /* a holder for convenience, never free it*/
    
-   char *s; /* just a string, gets freed in the end */
+   char *s; /* freed in the end */
+   
+   int *ivec;
+   int n_ivec;
    
    float permask;
    float flt1, flt2, flt3;
