@@ -4,6 +4,16 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*------------------------------------------------------------------------*/
+/* Please note that this file is not "integrated" into AFNI. By this I
+   mean that it doesn't know about AFNI controllers, datasets, and so on.
+   It is a graphing server, and the caller needs to provide a callback
+   function to get data to be graphed, and also provide some other info.
+
+   The exceptions to the "not integrated into AFNI" ukase are the parts
+   of the code inside #ifdef BE_AFNI_AWARE ,,, #endif sections.
+*//*----------------------------------------------------------------------*/
+
 /*----------------------------------------------------------------------
  * history:
  *
