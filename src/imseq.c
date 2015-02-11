@@ -4,6 +4,18 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*------------------------------------------------------------------------*/
+/* Please note that this file is not "integrated" into AFNI. By this I
+   mean that it doesn't know about AFNI controllers, datasets, and so on.
+   It is an image viewing server, and the caller needs to provide a
+   callback function to get data to be displayed, and also provide some
+   other info.  The callback function provide a sequence of 2D images
+   to be displayed at the user's whim.  Besides being used in the AFNI GUI
+   to view slices from a 3D dataset, the imseq functionality is also used
+   in the Rendering plugin to view 3D renderings, in the aiv program for
+   generic image viewing, and in SUMA for capturing image snapshots.
+*//*----------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>       /* 01 May 2003 - rickr */
