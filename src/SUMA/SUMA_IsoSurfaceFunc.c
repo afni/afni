@@ -16,6 +16,121 @@ http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf
    mcb->data[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y] = val; \
 }
 
+/*! 
+   Return IsoSurfaces for each unique value in the dataset separately
+   
+   \param in_volu (THD_3dim_dataset *): The dataset in question
+   \param isb (int): Sub-brick to process
+   \param valmask (int *): If not NULL, then only consider values in this
+                           array of integer keys. If NULL then use all 
+                           the unique values in in_volu. See also cmask.
+   \param N_valmask (int *): At input, provides the number of values in valmask.
+                             Obviously, for this to be used valmask should
+                             not be NULL.
+                             At output, contains the number of unique values
+                             for which surfaces were generated.
+   \param cmask (byte *): This mask is only used if the function needs to 
+                          determine the set of unique integers in in_volu
+   \param debug (int): You know what.
+   \return SOV (SUMA_SurfaceObject **): An array of surface object pointers.
+                                       The array is always null terminated
+                                       so you don't need a counter to get
+                                       to its bottom. 
+             Note that the label of each SOV[i] is set to help you track
+             the label and key for each surface, to the extent that labels
+             are available in in_volu. For instance, a label of :
+               "key::276label::Left  Thalamus" means this is the surface
+             for voxel key 276 and corresponding label: "Left  Thalamus".
+*/
+SUMA_SurfaceObject **SUMA_THD_ROI_IsoSurfaces(THD_3dim_dataset *in_volu, int isb,
+                                              int *valmask, int *N_valmask,
+                                              byte *cmask, int debug)
+{
+   static char FuncName[]={"SUMA_THD_ROI_IsoSurfaces"};
+   SUMA_SurfaceObject **SOV= NULL;
+   char label[128]={""}, stmp[32]={""};
+   int i, k, N_SO, nproc=0, n_unq, *unq=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (debug > 1) LocalHead = YUP;
+   
+   if (!in_volu) {
+      SUMA_S_Err("No input volume");
+      if (N_valmask) *N_valmask = -1;
+      SUMA_RETURN(SOV);
+   }
+   
+   if (valmask && !N_valmask) {
+      SUMA_S_Err("Have valmask but not N_valmask");
+      SUMA_RETURN(SOV);
+   }
+   
+   if (valmask && *N_valmask < 1) {
+      SUMA_S_Err("Nothing to do");
+      SUMA_RETURN(SOV);
+   }
+   
+   unq = THD_unique_vals( in_volu , isb , & n_unq , cmask);
+   if (!unq) {
+      SUMA_S_Err("Failed to get set of unique values");
+      if (N_valmask) *N_valmask = -1;
+      SUMA_RETURN(SOV);
+   }  
+   
+   if (valmask) { /* only preserve values in valmask */
+      for (i=0; i<n_unq; ++i) {
+         for (k=0; k<*N_valmask; ++k) {
+            if (unq[i] == valmask[k]) {
+               unq[nproc] = unq[i]; ++nproc;
+               break;
+            }
+         }   
+      }
+      n_unq = nproc;
+   }
+   
+   if (!n_unq) {
+      SUMA_S_Warn("Nothing to process");
+      if (N_valmask) *N_valmask = 0;
+      SUMA_RETURN(SOV);
+   }
+   if (LocalHead) {
+      SUMA_LH("Will process the following values:");
+      for (i=0; i<n_unq; ++i) {
+         fprintf(SUMA_STDERR,"%d ", unq[i]);
+      }
+      fprintf(SUMA_STDERR,"\n");
+   }
+   
+   /* Allocate for one more pointer so we don't need to rely on the 
+      integer counter */
+   SOV = (SUMA_SurfaceObject **)SUMA_calloc(n_unq+1, 
+                                            sizeof(SUMA_SurfaceObject *));
+   for (nproc = 0, i=0; i<n_unq; ++i) {
+      if (debug || LocalHead) 
+         SUMA_S_Note("Getting IsoSurface %d/%d for key %d\n", 
+                      i+1, n_unq, unq[i]);
+      SOV[nproc] = SUMA_THD_IsoSurface(in_volu, 
+                                       (float)unq[i], (float)unq[i], debug);
+      if (!SOV[nproc]) {
+         SUMA_LH("No SO for %d\n", unq[i]);
+      } else {
+         /* Set label to "key::KEYlabel::LABEL" and stick to this order.
+            or make sure you update places in the code that parse it. */
+         AFNI_get_dset_val_label(in_volu, (double)unq[i], label);
+         sprintf(stmp,"key::%d",unq[i]);
+         SOV[nproc]->Label = SUMA_append_replace_string(stmp,label,"label::",0); 
+         ++nproc;
+      }
+   }
+   
+   if (N_valmask) *N_valmask = nproc;
+   
+   SUMA_RETURN(SOV);
+}
+
 /*!
    A less obtuse way to call IsoSurface extraction functions
    See SUMA_IsoSurface.c the types of values that should be passed
@@ -274,153 +389,153 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (
       SUMA_RETURN(NOPE);
    }
    
-   
-   Opt->mcdatav = (double *)SUMA_malloc(sizeof(double)*Opt->nvox);
-   if (!Opt->mcdatav) {
-      SUMA_SL_Crit("Failed to allocate for maskv");
-      SUMA_RETURN(NOPE);
-   }
-   if (Opt->xform == SUMA_ISO_XFORM_MASK) {
-      SUMA_LH("SUMA_ISO_XFORM_MASK");
-      switch (Opt->MaskMode) {
-         case SUMA_ISO_CMASK:
-            SUMA_LH("SUMA_ISO_CMASK");
-            if (Opt->cmask) {
-               /* here's the second order grand theft */
-               int    clen = strlen( Opt->cmask );
-	            char * cmd;
-               byte *bmask;
+   if (Opt->MaskMode != SUMA_ISO_ROIS) {
+      Opt->mcdatav = (double *)SUMA_malloc(sizeof(double)*Opt->nvox);
+      if (!Opt->mcdatav) {
+         SUMA_SL_Crit("Failed to allocate for maskv");
+         SUMA_RETURN(NOPE);
+      }
+      if (Opt->xform == SUMA_ISO_XFORM_MASK) {
+         SUMA_LH("SUMA_ISO_XFORM_MASK");
+         switch (Opt->MaskMode) {
+            case SUMA_ISO_CMASK:
+               SUMA_LH("SUMA_ISO_CMASK");
+               if (Opt->cmask) {
+                  /* here's the second order grand theft */
+                  int    clen = strlen( Opt->cmask );
+	               char * cmd;
+                  byte *bmask;
 
-	            cmd = (char *)malloc((clen + 1) * sizeof(char));
-	            strcpy( cmd,  Opt->cmask);
+	               cmd = (char *)malloc((clen + 1) * sizeof(char));
+	               strcpy( cmd,  Opt->cmask);
 
-	            bmask = EDT_calcmask( cmd, &Opt->ninmask, 0 );
-               SUMA_LHv("Have %d\n", Opt->ninmask);
-	            free( cmd );			   /* free EDT_calcmask() string */
+	               bmask = EDT_calcmask( cmd, &Opt->ninmask, 0 );
+                  SUMA_LHv("Have %d\n", Opt->ninmask);
+	               free( cmd );			   /* free EDT_calcmask() string */
 
-	            if ( bmask == NULL ) {
-	               SUMA_SL_Err("Failed to compute mask from -cmask option");
-	               SUMA_free(Opt->mcdatav); Opt->mcdatav=NULL;
+	               if ( bmask == NULL ) {
+	                  SUMA_SL_Err("Failed to compute mask from -cmask option");
+	                  SUMA_free(Opt->mcdatav); Opt->mcdatav=NULL;
+                     SUMA_RETURN(NOPE);
+	               } 
+	               if ( Opt->ninmask != Opt->nvox ) {
+	                  SUMA_SL_Err("Input and cmask datasets do not have "
+		                           "the same dimensions\n" );
+	                  SUMA_free(Opt->mcdatav); Opt->mcdatav=NULL;
+	                  SUMA_RETURN(NOPE);
+	               }
+	               Opt->ninmask = THD_countmask( Opt->ninmask, bmask );
+                  SUMA_LHv("Have %d\n", Opt->ninmask);
+                  for (i=0; i<Opt->nvox; ++i) 
+                     if (bmask[i]) Opt->mcdatav[i] = (double)bmask[i]; 
+                     else Opt->mcdatav[i] = -1;
+                  free(bmask);bmask=NULL;
+               } else {
+                  SUMA_SL_Err("NULL cmask"); SUMA_RETURN(NOPE);
+               }
+               break;
+            case SUMA_ISO_VAL:
+            case SUMA_ISO_RANGE:
+               SUMA_LH("SUMA_ISO_VAL, SUMA_ISO_RANGE");
+               /* load the dset */
+               DSET_load(Opt->in_vol);
+               Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
+               if (!Opt->dvec) {
+                  SUMA_SL_Crit("Faile to allocate for dvec.\nOh misery.");
                   SUMA_RETURN(NOPE);
-	            } 
-	            if ( Opt->ninmask != Opt->nvox ) {
-	               SUMA_SL_Err("Input and cmask datasets do not have "
-		                        "the same dimensions\n" );
-	               SUMA_free(Opt->mcdatav); Opt->mcdatav=NULL;
-	               SUMA_RETURN(NOPE);
-	            }
-	            Opt->ninmask = THD_countmask( Opt->ninmask, bmask );
-               SUMA_LHv("Have %d\n", Opt->ninmask);
-               for (i=0; i<Opt->nvox; ++i) 
-                  if (bmask[i]) Opt->mcdatav[i] = (double)bmask[i]; 
-                  else Opt->mcdatav[i] = -1;
-               free(bmask);bmask=NULL;
-            } else {
-               SUMA_SL_Err("NULL cmask"); SUMA_RETURN(NOPE);
-            }
-            break;
-         case SUMA_ISO_VAL:
-         case SUMA_ISO_RANGE:
-            SUMA_LH("SUMA_ISO_VAL, SUMA_ISO_RANGE");
-            /* load the dset */
-            DSET_load(Opt->in_vol);
-            Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
-            if (!Opt->dvec) {
-               SUMA_SL_Crit("Faile to allocate for dvec.\nOh misery.");
-               SUMA_RETURN(NOPE);
-            }
-            EDIT_coerce_scale_type( 
-               Opt->nvox , DSET_BRICK_FACTOR(Opt->in_vol,0) ,
-               DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol, 0) , 
-               MRI_double               , Opt->dvec  ) ;  
-            /* no need for data in input volume anymore */
-            PURGE_DSET(Opt->in_vol);
+               }
+               EDIT_coerce_scale_type( 
+                  Opt->nvox , DSET_BRICK_FACTOR(Opt->in_vol,0) ,
+                  DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol, 0) , 
+                  MRI_double               , Opt->dvec  ) ;  
+               /* no need for data in input volume anymore */
+               PURGE_DSET(Opt->in_vol);
 
-            Opt->ninmask = 0;
-            if (Opt->MaskMode == SUMA_ISO_VAL) {
-               for (i=0; i<Opt->nvox; ++i) {
-                  if (Opt->dvec[i] == Opt->v0) { 
-                     Opt->mcdatav[i] = 1; ++ Opt->ninmask; 
-                  }  else Opt->mcdatav[i] = -1;
+               Opt->ninmask = 0;
+               if (Opt->MaskMode == SUMA_ISO_VAL) {
+                  for (i=0; i<Opt->nvox; ++i) {
+                     if (Opt->dvec[i] == Opt->v0) { 
+                        Opt->mcdatav[i] = 1; ++ Opt->ninmask; 
+                     }  else Opt->mcdatav[i] = -1;
+                  }
+               } else if (Opt->MaskMode == SUMA_ISO_RANGE) {
+                  for (i=0; i<Opt->nvox; ++i) {
+                     if (Opt->dvec[i] >= Opt->v0 && Opt->dvec[i] < Opt->v1) { 
+                        Opt->mcdatav[i] = 1; ++ Opt->ninmask; 
+                     }  else Opt->mcdatav[i] = -1;
+                  }
+               } else {
+                  SUMA_SL_Err("Bad Miracle.");
+                  SUMA_RETURN(NOPE);
                }
-            } else if (Opt->MaskMode == SUMA_ISO_RANGE) {
-               for (i=0; i<Opt->nvox; ++i) {
-                  if (Opt->dvec[i] >= Opt->v0 && Opt->dvec[i] < Opt->v1) { 
-                     Opt->mcdatav[i] = 1; ++ Opt->ninmask; 
-                  }  else Opt->mcdatav[i] = -1;
-               }
-            } else {
-               SUMA_SL_Err("Bad Miracle.");
+               SUMA_free(Opt->dvec); Opt->dvec = NULL; 
+                     /* this vector is not even created in SUMA_ISO_CMASK mode ...*/
+               break;
+            default:
+               SUMA_SL_Err("Unexpected value of MaskMode");
                SUMA_RETURN(NOPE);
-            }
-            SUMA_free(Opt->dvec); Opt->dvec = NULL; 
-                  /* this vector is not even created in SUMA_ISO_CMASK mode ...*/
-            break;
-         default:
-            SUMA_SL_Err("Unexpected value of MaskMode");
+               break;   
+         }
+      } else if (Opt->xform == SUMA_ISO_XFORM_SHIFT) {
+         /* load the dset */
+         DSET_load(Opt->in_vol);
+         Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
+         if (!Opt->dvec) {
+            SUMA_SL_Crit("Failed to allocate for dvec.\nOh misery.");
             SUMA_RETURN(NOPE);
-            break;   
-      }
-   } else if (Opt->xform == SUMA_ISO_XFORM_SHIFT) {
-      /* load the dset */
-      DSET_load(Opt->in_vol);
-      Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
-      if (!Opt->dvec) {
-         SUMA_SL_Crit("Failed to allocate for dvec.\nOh misery.");
-         SUMA_RETURN(NOPE);
-      }
-      EDIT_coerce_scale_type( 
-         Opt->nvox , DSET_BRICK_FACTOR(Opt->in_vol,0) ,
-         DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol, 0) ,      
-         MRI_double               , Opt->dvec  ) ;   
-      /* no need for data in input volume anymore */
-      PURGE_DSET(Opt->in_vol);
-      Opt->ninmask = Opt->nvox;
-      for (i=0; i<Opt->nvox; ++i) { 
-         Opt->mcdatav[i] = Opt->dvec[i] - Opt->v0;
-      }
-      SUMA_free(Opt->dvec); Opt->dvec = NULL; 
-   } else if (Opt->xform == SUMA_ISO_XFORM_NONE) {
-      /* load the dset */
-      DSET_load(Opt->in_vol);
-      Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
-      if (!Opt->dvec) {
-         SUMA_SL_Crit("Faile to allocate for dvec.\nOh misery.");
-         SUMA_RETURN(NOPE);
-      }
-      EDIT_coerce_scale_type( 
-         Opt->nvox , DSET_BRICK_FACTOR(Opt->in_vol,0) ,
-         DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol, 0) , 
-         MRI_double               , Opt->dvec  ) ;   
-      /* no need for data in input volume anymore */
-      PURGE_DSET(Opt->in_vol);
-      Opt->ninmask = Opt->nvox;
-      for (i=0; i<Opt->nvox; ++i) { 
-         Opt->mcdatav[i] = Opt->dvec[i];
-      }
-      SUMA_free(Opt->dvec); Opt->dvec = NULL; 
-   } else {
-      SUMA_SL_Err("Bad Opt->xform.");
-      SUMA_RETURN(NOPE);
-   }
-   
-   if ( Opt->ninmask  <= 0 ) {
-	   if (Opt->ninmask == 0) {
-         SUMA_SL_Err("A negative value!\nNothing to do." );
+         }
+         EDIT_coerce_scale_type( 
+            Opt->nvox , DSET_BRICK_FACTOR(Opt->in_vol,0) ,
+            DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol, 0) ,      
+            MRI_double               , Opt->dvec  ) ;   
+         /* no need for data in input volume anymore */
+         PURGE_DSET(Opt->in_vol);
+         Opt->ninmask = Opt->nvox;
+         for (i=0; i<Opt->nvox; ++i) { 
+            Opt->mcdatav[i] = Opt->dvec[i] - Opt->v0;
+         }
+         SUMA_free(Opt->dvec); Opt->dvec = NULL; 
+      } else if (Opt->xform == SUMA_ISO_XFORM_NONE) {
+         /* load the dset */
+         DSET_load(Opt->in_vol);
+         Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
+         if (!Opt->dvec) {
+            SUMA_SL_Crit("Faile to allocate for dvec.\nOh misery.");
+            SUMA_RETURN(NOPE);
+         }
+         EDIT_coerce_scale_type( 
+            Opt->nvox , DSET_BRICK_FACTOR(Opt->in_vol,0) ,
+            DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol, 0) , 
+            MRI_double               , Opt->dvec  ) ;   
+         /* no need for data in input volume anymore */
+         PURGE_DSET(Opt->in_vol);
+         Opt->ninmask = Opt->nvox;
+         for (i=0; i<Opt->nvox; ++i) { 
+            Opt->mcdatav[i] = Opt->dvec[i];
+         }
+         SUMA_free(Opt->dvec); Opt->dvec = NULL; 
       } else {
-         SUMA_SL_Err("An empty mask!\n Nothing to do." );
+         SUMA_SL_Err("Bad Opt->xform.");
+         SUMA_RETURN(NOPE);
+      }
+
+      if ( Opt->ninmask  <= 0 ) {
+	      if (Opt->ninmask == 0) {
+            SUMA_SL_Err("A negative value!\nNothing to do." );
+         } else {
+            SUMA_SL_Err("An empty mask!\n Nothing to do." );
+	      }
+         SUMA_RETURN(NOPE);
 	   }
-      SUMA_RETURN(NOPE);
-	}
-   
-   if (Opt->debug > 0) {
-      fprintf( SUMA_STDERR, 
-               "%s:\nInput dset %s has nvox = %d, nvals = %d",
-		         FuncName, SUMA_CHECK_NULL_STR(Opt->in_name), 
-               Opt->nvox, DSET_NVALS(Opt->in_vol) );
-	   fprintf( SUMA_STDERR, " (%d voxels in mask)\n", Opt->ninmask );
+
+      if (Opt->debug > 0) {
+         fprintf( SUMA_STDERR, 
+                  "%s:\nInput dset %s has nvox = %d, nvals = %d",
+		            FuncName, SUMA_CHECK_NULL_STR(Opt->in_name), 
+                  Opt->nvox, DSET_NVALS(Opt->in_vol) );
+	      fprintf( SUMA_STDERR, " (%d voxels in mask)\n", Opt->ninmask );
+      }
    }
-   
    SUMA_RETURN(YUP);
 }
 
