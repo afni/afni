@@ -2665,6 +2665,7 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv( char *coordnamei,
             case SUMA_BYU:
             case SUMA_GIFTI:
             case SUMA_MNI_OBJ:
+            case SUMA_STL:
             case SUMA_PLY: 
                if (strstr(SO->Name.FileName, coordname)) {
                   if (SOf) {
@@ -4005,6 +4006,7 @@ int SUMA_isTypicalSOforVolSurf (SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
    
    switch (SO->FileType) {
+      case SUMA_STL:
       case SUMA_PLY:
       case SUMA_VEC:
       case SUMA_FREE_SURFER: 

@@ -18856,6 +18856,11 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
             SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
             SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
             break;
+         case SUMA_STL: 
+            SS = SUMA_StringAppend_va (SS,"STL surface.\n");
+            SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
+            break;
          case SUMA_MNI_OBJ: 
             SS = SUMA_StringAppend_va (SS,"MNI OBJ surface.\n");
             SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
