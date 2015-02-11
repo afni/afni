@@ -583,7 +583,9 @@ int main (int argc,char *argv[])
    
    
    /* test for existence of input files */
-   if (!SUMA_filexists(if_name)) {
+   
+   if (!SUMA_is_predefined_SO_name(if_name, NULL, NULL, NULL, NULL) &&
+       !SUMA_filexists(if_name)) {
       SUMA_S_Errv("if_name %s not found.\n", if_name);
       exit(1);
    }
