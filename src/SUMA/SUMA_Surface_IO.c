@@ -4343,7 +4343,8 @@ SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO)
    
    /* Is this a binary or ascii file? Read 80 characters and check for 'solid'*/
    fread(head, sizeof(char), 80, fout);
-   if ((bb=strnstr(head, "solid", 70))) {
+   head[80] = '\0'; /* replace FreeBSD-specific strnstr() 11 Feb 2015 [rickr] */
+   if ((bb=strstr(head, "solid"))) {
       if (bb - head > 3) {
          SUMA_S_Warn("term solid found but far from beginning of line..."
                      "Still assuming it is ascii format");
