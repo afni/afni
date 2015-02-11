@@ -140,9 +140,10 @@ g_mst_history = """
     1.5  Nov 18, 2010: fix for '*' in max one stim per run case
     1.6  Oct 03, 2012: some options do not allow dashed parameters
     1.7  Aug 02, 2014: added -run_trs, if TRs vary across runs
+    1.8  Feb 10, 2015: clarify need of both -nruns, -nt
 """
 
-g_mst_version = "version 1.7, August 2, 2014"
+g_mst_version = "version 1.8, February 10, 2015"
 
 def get_opts():
     global g_help_string
@@ -229,11 +230,11 @@ def proc_mats(uopts):
           print '** please use either -run_trs or -nt/-nruns'
           return 1
     else:
-       if not uopts.find_opt('-nruns') and not uopts.find_opt('-nt'):
-          print '** please use either -run_trs or -nt/-nruns (missing one)'
+       if not uopts.find_opt('-nruns') or not uopts.find_opt('-nt'):
+          print '** please use either -run_trs or both -nt and -nruns'
           return 1
        opt    = uopts.find_opt('-nruns')
-       nruns  = int(opt.parlist[0])
+       nruns = int(opt.parlist[0])
 
        opt    = uopts.find_opt('-nt')
        try: nt = int(opt.parlist[0])
@@ -242,7 +243,7 @@ def proc_mats(uopts):
            return
        run_trs = [nt]*nruns
 
-    # not the total number of TRs, regardless
+    # note the total number of TRs, regardless
     ntotal = afni_util.loc_sum(run_trs)
 
     opt    = uopts.find_opt('-offset')
