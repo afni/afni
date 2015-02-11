@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10,  Feb, 2015, RCR, "make_stim_times.py", MICRO, TYPE_MODIFY,
+   "clarify use of both -nruns, -nt",
+   NULL
+ } ,
+
  {  9,  Feb, 2015, RCR, "file_tool.c", MINOR, TYPE_ENHANCE,
    "warn on '\\' without preceding space",
    "Gang and J Rajendra ran into a problem on OS X 10.9.5."
