@@ -47,6 +47,16 @@ void usage_SUMA_IsoSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  this 1D file into a BRIK volume for viewing\n"
 "                  in AFNI.\n"
 "     You must use one of the following iso* options:\n"
+"     -isorois: Create isosurface for each unique value in the input volume\n"
+"               This outputs multiple surfaces that are automatically named\n"
+"               using PREFIX and the label and key corresponding to each of\n"
+"               the ROIs to the extent that they are available.\n"
+"               Example:\n"
+"           IsoSurface -isorois -input TTatlas+tlrc'[0]' -o_gii auto.all\n"
+"               You can also follow -isorois with the only ROI keys you want\n"
+"               considered as in:\n"
+"           IsoSurface -isorois 276 277 54 input TTatlas+tlrc'[0]'-o_gii auto\n"
+"\n"
 "     -isoval V: Create isosurface where volume = V\n"
 "     -isorange V0 V1: Create isosurface where V0 <= volume < V1\n"
 "     -isocmask MASK_COM: Create isosurface where MASK_COM != 0\n"
@@ -161,9 +171,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
    Opt->xform = SUMA_ISO_XFORM_MASK;
    Opt->obj_type = -1;
    Opt->obj_type_res = -1;
+   Opt->n_ivec = -1;
    Opt->XYZ = NULL;
    Opt->in_1D = NULL;
    Opt->N_XYZ = 0;
+   Opt->ivec = NULL;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -218,6 +230,24 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
 			}
 			Opt->cmask = argv[kar];
          Opt->MaskMode = SUMA_ISO_CMASK;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-isorois") == 0)) {
+         static int nalloc=0;
+         if (Opt->MaskMode != SUMA_ISO_UNDEFINED) {
+            fprintf (SUMA_STDERR, "only one masking mode (-iso*) allowed.\n");
+         }
+         while (kar+1<argc && argv[kar+1][0] != '-') {
+            kar ++;
+			   if (!nalloc || nalloc <= Opt->n_ivec) {
+               if (Opt->n_ivec < 0) Opt->n_ivec = 0;
+               nalloc += 1000;
+               Opt->ivec = (int *)SUMA_realloc(Opt->ivec, nalloc*sizeof(int));
+            }
+            Opt->ivec[Opt->n_ivec++] = atoi(argv[kar]);
+         }
+			Opt->MaskMode = SUMA_ISO_ROIS;
 			brk = YUP;
 		}
       
@@ -372,62 +402,119 @@ int main (int argc,char *argv[])
       exit(1);
    }
   
-   if (Opt->obj_type < 0) {
-      if (Opt->debug) {
-         SUMA_S_Note("Creating mask...");
+   if (Opt->MaskMode != SUMA_ISO_ROIS) {
+      if (Opt->obj_type < 0) {
+         if (Opt->debug) {
+            SUMA_S_Note("Creating mask...");
+         }
+         if (!SUMA_Get_isosurface_datasets (Opt)) {
+            SUMA_SL_Err("Failed to get data.");
+            exit(1);
+         }
+
+         if (Opt->debug > 1) {
+            if (Opt->debug == 2) {
+               FILE *fout=fopen("inmaskvec.1D","w");
+               SUMA_S_Note("Writing masked values...\n");
+               if (!fout) {
+                  SUMA_SL_Err("Failed to write maskvec");
+                  exit(1);
+               }
+               fprintf(fout,"#Col. 0 Voxel Index\n"
+                            "#Col. 1 Is a mask (all values here should be 1)\n");
+               for (i=0; i<Opt->nvox; ++i) {
+                  if (Opt->mcdatav[i]) {
+                     fprintf(fout,"%d %.2f\n", i, Opt->mcdatav[i]);
+                  }
+               }
+               fclose(fout); fout = NULL;
+            } else {
+               FILE *fout=fopen("maskvec.1D","w");
+               SUMA_S_Note("Writing all mask values...\n");
+               if (!fout) {
+                  SUMA_S_Err("Failed to write maskvec");
+                  exit(1);
+               }
+               fprintf(fout,  "#Col. 0 Voxel Index\n"
+                              "#Col. 1 Is in mask ?\n" );
+               for (i=0; i<Opt->nvox; ++i) {
+                  fprintf(fout,"%d %.2f\n", i, Opt->mcdatav[i]);
+               }
+               fclose(fout); fout = NULL;
+            }
+         }
+      } else {
+         if (Opt->debug) {
+            SUMA_S_Note("Using built in types...");
+         }
       }
-      if (!SUMA_Get_isosurface_datasets (Opt)) {
-         SUMA_SL_Err("Failed to get data.");
+      /* Now call Marching Cube functions */
+      if (!(SO = SUMA_MarchingCubesSurface(Opt))) {
+         SUMA_S_Err("Failed to create surface.\n");
          exit(1);
       }
 
-      if (Opt->debug > 1) {
-         if (Opt->debug == 2) {
-            FILE *fout=fopen("inmaskvec.1D","w");
-            SUMA_S_Note("Writing masked values...\n");
-            if (!fout) {
-               SUMA_SL_Err("Failed to write maskvec");
-               exit(1);
-            }
-            fprintf(fout,  "#Col. 0 Voxel Index\n"
-                           "#Col. 1 Is a mask (all values here should be 1)\n" );
-            for (i=0; i<Opt->nvox; ++i) {
-               if (Opt->mcdatav[i]) {
-                  fprintf(fout,"%d %.2f\n", i, Opt->mcdatav[i]);
-               }
-            }
-            fclose(fout); fout = NULL;
-         } else {
-            FILE *fout=fopen("maskvec.1D","w");
-            SUMA_S_Note("Writing all mask values...\n");
-            if (!fout) {
-               SUMA_S_Err("Failed to write maskvec");
-               exit(1);
-            }
-            fprintf(fout,  "#Col. 0 Voxel Index\n"
-                           "#Col. 1 Is in mask ?\n" );
-            for (i=0; i<Opt->nvox; ++i) {
-               fprintf(fout,"%d %.2f\n", i, Opt->mcdatav[i]);
-            }
-            fclose(fout); fout = NULL;
-         }
+      /* write the surface to disk */
+      if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, 
+                                     Opt->SurfFileFormat, NULL)) {
+         SUMA_S_Err("Failed to write surface object.\n");
+         exit (1);
       }
    } else {
-      if (Opt->debug) {
-         SUMA_S_Note("Using built in types...");
+      SUMA_SurfaceObject **SOv=NULL;
+      char *ppo=NULL, astr[1024]={""}, *labcp, *label=NULL, *ss=NULL;
+      int key=-1;
+      if (!SUMA_Get_isosurface_datasets (Opt)) {
+           SUMA_SL_Err("Failed to get data.");
+           exit(1);
       }
-   }
-   /* Now call Marching Cube functions */
-   if (!(SO = SUMA_MarchingCubesSurface(Opt))) {
-      SUMA_S_Err("Failed to create surface.\n");
-      exit(1);
-   }
-
-   /* write the surface to disk */
-   if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, 
-                                  Opt->SurfFileFormat, NULL)) {
-      SUMA_S_Err("Failed to write surface object.\n");
-      exit (1);
+      if (!(SOv = SUMA_THD_ROI_IsoSurfaces(Opt->in_vol, 0,
+                                     Opt->ivec, 
+                                     &Opt->n_ivec, NULL, Opt->debug))) {
+         SUMA_S_Err("No surfaces generated");
+      } else {
+         i=0;
+         while (SOv[i]) {
+            labcp = SUMA_copy_string(SOv[i]->Label);
+            label = NULL;
+            key = -1;
+            if ((ss = strstr(labcp,"label::"))) {
+               label = ss+strlen("label::");
+               *ss='\0';
+            }
+            if ((ss = strstr(labcp,"key::"))) {
+               key = atoi(labcp+strlen("key::"));
+            }
+            if (label && key > 0) {
+               snprintf(astr,100,".%s.k%d",cdeblank_allname(label,'_'), key);
+            } else if (label) {
+               snprintf(astr,100,".%s",cdeblank_allname(label,'_'));
+            } else if (key > 0) {
+               snprintf(astr,100,".k%d",key);
+            } else {
+               snprintf(astr,100,".i%d", i);
+            }
+            SUMA_ifree(labcp);
+            ppo = SUMA_ModifyName(Opt->out_prefix, "append", astr, NULL);
+            SO_name = SUMA_Prefix2SurfaceName(  ppo, NULL, NULL, 
+                                       Opt->SurfFileType, &exists);
+            if (exists && !THD_ok_overwrite()) {
+               SUMA_S_Errv("Output file(s) %s* on disk.\nWill not overwrite.\n", 
+                           Opt->out_prefix);
+               exit(1);
+            }
+            if (!SUMA_Save_Surface_Object (SO_name, SOv[i], Opt->SurfFileType, 
+                                     Opt->SurfFileFormat, NULL)) {
+                     SUMA_S_Err("Failed to write surface object.\n");
+                  exit (1);
+            }
+            if (SO_name) SUMA_free(SO_name); SO_name = NULL;
+            SUMA_ifree(ppo);
+            SUMA_Free_Surface_Object(SOv[i]); SOv[i]=NULL;
+            ++i;
+         }
+         SUMA_ifree(SOv);
+      }
    }
    
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
@@ -435,6 +522,7 @@ int main (int argc,char *argv[])
    if (Opt->mcdatav) {SUMA_free(Opt->mcdatav); Opt->mcdatav = NULL;} 
    if (Opt->in_vol) { DSET_delete( Opt->in_vol); Opt->in_vol = NULL;} 
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
+   SUMA_ifree(Opt->ivec);
    if (Opt) SUMA_free(Opt);
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");

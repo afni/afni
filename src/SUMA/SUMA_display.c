@@ -6559,7 +6559,7 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
 {
    static char FuncName[]={"SUMA_DOsInSurfContNotebook"};
    int i, lp, j, iso;
-   static SUMA_ALL_DO *DOv[100];
+   static SUMA_ALL_DO *DOv[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_ALL_DO *DOt=NULL, *curDO=NULL;
    XmNotebookPageStatus ns;
    XmNotebookPageInfo pi;
@@ -6595,7 +6595,7 @@ SUMA_ALL_DO **SUMA_DOsInSurfContNotebook(Widget NB)
                   if (!allids || !strstr(allids, SUMA_ADO_idcode(curDO))) {
                      curSurfCont = SUMA_ADO_Cont(curDO);
                      if (pi.page_widget == curSurfCont->Page) {
-                        if (iso < 99) {
+                        if (iso < SUMA_MAX_SURF_ON_COMMAND-1) {
                            DOv[iso] = curDO; ++iso; DOv[iso]=NULL;
                            allids = SUMA_append_replace_string(allids,
                                                 SUMA_ADO_idcode(curDO),"**",1);
