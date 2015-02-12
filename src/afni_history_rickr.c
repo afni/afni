@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Feb, 2015, RCR, "make_stim_times.py", MICRO, TYPE_NEW_OPT,
+   "added -no_consec option, to block consecutive events",
+   NULL
+ } ,
+
  { 12,  Feb, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regrss_anaticor_fast/-regrss_anaticor_fwhm",
    "This implements the 'fast' ANATICOR method, computing the WMeLocal\n"
