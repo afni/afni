@@ -435,9 +435,10 @@ g_history = """
     4.26 Jan 12, 2015: compute global correlation volume (similar to GCOR)
     4.27 Jan 15, 2015: use 3ddot -demean for correlation of masks
     4.28 Feb 06, 2015: apply updates to 3dClustSim
+    4.29 Feb 11, 2015: added -regress_anaticor_fast and -regress_anaticor_fwhm
 """
 
-g_version = "version 4.28, February 9, 2015"
+g_version = "version 4.29, February 11, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Feb 2014" # 3dNwarpApply
@@ -911,6 +912,10 @@ class SubjProcSream:
                         helpstr="stop 3dDeconvolve after matrix generation")
         self.valid_opts.add_opt('-regress_anaticor', 0, [],
                         helpstr="apply ANATICOR: regress WMeLocal time series")
+        self.valid_opts.add_opt('-regress_anaticor_fast', 0, [],
+                        helpstr="fast ANATICOR: regress WMeLocal time series")
+        self.valid_opts.add_opt('-regress_anaticor_fwhm', 1, [],
+                        helpstr="specify FWHM for fast WMeLocal extraction")
         self.valid_opts.add_opt('-regress_anaticor_radius', 1, [],
                         helpstr="specify radius for WMeLocal extraction")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
@@ -1128,7 +1133,8 @@ class SubjProcSream:
         # end terminal options
 
         # options that imply other options
-        if opt_list.find_opt('-regress_anaticor'):
+        if opt_list.find_opt('-regress_anaticor') \
+           or opt_list.find_opt('-regress_anaticor_fast'):
            opt_list.add_opt("-mask_segment_anat", 1, ["yes"], setpar=1)
            opt_list.add_opt("-mask_segment_erode", 1, ["yes"], setpar=1)
 
