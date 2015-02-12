@@ -49,6 +49,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12,  Feb, 2015, RCR, "make_stim_times.py", MICRO, TYPE_NEW_OPT,
+   "added -no_consec option, to block consecutive events",
+   NULL
+ } ,
+
+ { 12,  Feb, 2015, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regrss_anaticor_fast/-regrss_anaticor_fwhm",
+   "This implements the 'fast' ANATICOR method, computing the WMeLocal\n"
+   "voxel-wise regressors via an FWHM Gaussian sum of WMe voxels, rather\n"
+   "than a uniform sum within a radius."
+ } ,
+
  { 11,  Feb, 2015, RCR, "model_conv_PRF", MICRO, TYPE_MODIFY,
    "use AFNI_MODEL_PRF_RAM_STATS to control RAM use reporting",
    "Maybe malloc_stats() is not available on macs."

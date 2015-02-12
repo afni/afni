@@ -50,6 +50,7 @@ Options: -files file1.1D file2.1D ...   : specify stim files
          -tr     TR                     : TR time, in seconds
          -offset OFFSET                 : add OFFSET to all output times
          -labels LAB1 LAB2 ...          : provide labels for filenames
+         -no_consec                     : do not allow consecutive events
          -show_valid_opts               : output all options
          -verb   LEVEL                  : provide verbose output
 
@@ -141,9 +142,10 @@ g_mst_history = """
     1.6  Oct 03, 2012: some options do not allow dashed parameters
     1.7  Aug 02, 2014: added -run_trs, if TRs vary across runs
     1.8  Feb 10, 2015: clarify need of both -nruns, -nt
+    1.9  Feb 12, 2015: added -no_consec, to block consecutive events
 """
 
-g_mst_version = "version 1.8, February 10, 2015"
+g_mst_version = "version 1.9, February 12, 2015"
 
 def get_opts():
     global g_help_string
@@ -169,6 +171,8 @@ def get_opts():
                    helpstr='set the number of TRs per run')
     okopts.add_opt('-nruns', 1, [], req=0,      \
                    helpstr='set the number of runs')
+    okopts.add_opt('-no_consec', 0, [],    \
+                   helpstr='do not allow consecutive events')
     okopts.add_opt('-offset', 1, [],    \
                    helpstr='specify offset to add to all output times')
     okopts.add_opt('-run_trs', -1, [], req=0,      \
@@ -218,6 +222,8 @@ def proc_mats(uopts):
 
     opt    = uopts.find_opt('-files')
     files  = opt.parlist
+
+    consec_ok = (uopts.find_opt('-no_consec') == None)
 
     # set run_trs nruns from either -run_trs or -nruns and -nt
     opt    = uopts.find_opt('-run_trs')
@@ -279,21 +285,21 @@ def proc_mats(uopts):
         if verb: print '-- using amplitudes to Marry with times...'
     
     newfile_index = 1   # index over output files
-    for file in files:
-        tmat = TD.read_1D_file(file, verb=verb)
+    for fname in files:
+        tmat = TD.read_1D_file(fname, verb=verb)
         if not tmat:
-            print "read_1D_file failed for file: %s" % file
+            print "read_1D_file failed for file: %s" % fname
             return
         mat = afni_util.transpose(tmat)
         del(tmat)
 
         if len(mat[0]) < ntotal:
             print '** error: file %s has only %d entries (%d required)' % \
-                  (file, len(mat[0]), ntotal)
+                  (fname, len(mat[0]), ntotal)
             return
         elif len(mat[0]) > ntotal:
             print '** warning: file %s has %d entries (expected only %d)' % \
-                  (file, len(mat[0]), ntotal)
+                  (fname, len(mat[0]), ntotal)
 
         for row in mat:
 
@@ -306,10 +312,13 @@ def proc_mats(uopts):
                 label = ".label%d" % (newfile_index)
 
             newp = "%s.%02d%s" % (prefix,newfile_index,label)
-            newfile = afni_util.change_path_basename(file, newp, ".1D")
+            newfile = afni_util.change_path_basename(fname, newp, ".1D")
             if newfile == None: return
-            fp = open(newfile, 'w')
+            if   prefix == '-' or prefix == 'stdout': fp = sys.stdout
+            elif prefix == 'stderr':                  fp = sys.stderr
+            else:                                     fp = open(newfile, 'w')
 
+            blocked_consec = 0  # note whether we block consecutive events
             runend = -1
             for run in range(nruns):
                 runstart = runend + 1
@@ -325,22 +334,41 @@ def proc_mats(uopts):
                 # print '=== have stim in run, row = %s' % row[rindex:rindex+nt]
                 time = 0        # in this run
                 nstim = 0       # be sure we have more than 1 somewhere
+                first = 1       # first occurance if no consec
                 for lcol in range(run_trs[run]):
                     if row[rindex+lcol]:
-                        nstim += 1
-                        # if -amplitudes write as time:amplitude
-                        if use_amp:
-                            fp.write('%s*%s ' % \
-                                     (str(time+offset),str(row[rindex+lcol])))
-                        else:
-                            fp.write('%s ' % str(time+offset))
+                       # note whether anything has been blocked
+                       if not first and not consec_ok:
+                          if verb > 2:
+                             print '-- blocked consec: file %s, run %d, ind %d'\
+                                   % (newp, run, lcol)
+                          blocked_consec = 1
+
+                       # if consec is bad, only write on first occurance
+                       if first or consec_ok:
+                         nstim += 1
+                         tstr = '%s' % str(time+offset)
+
+                         # if -amplitudes write as time*amplitude
+                         if use_amp: astr = '*%s' % str(row[rindex+lcol])
+                         else:       astr = ''
+
+                         fp.write('%s%s ' % (tstr, astr))
+
+                       first = 0 # not first occurance
+                    else: first = 1
+
                     time += tr
                 if run == 0 and nstim == 1:
                     fp.write('*')   # if first time has 1 stim, add '*'
                 fp.write('\n')
 
-            fp.close()
+            if fp != sys.stdout and fp != sys.stderr: fp.close()
             newfile_index += 1
+
+            if verb and blocked_consec:
+               print '-- blocked consecutive events file %s, output %s' \
+                     % (fname, newp)
 
 def stim_in_run(values, non_zero):
     """search for any value==1, if non_zero, search for any non-zero

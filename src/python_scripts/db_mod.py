@@ -2537,6 +2537,8 @@ def db_mod_regress(block, proc, user_opts):
 
     apply_uopt_to_block('-regress_anaticor', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -3002,7 +3004,7 @@ def db_cmd_regress(proc, block):
         try: polort = int(opt.parlist[0])
         except:
             print "** -regress_polort requires int for degree (have '%s')\n" \
-                  % uopt.parlist[0]
+                  % opt.parlist[0]
             return
 
     # ---- allow no stims
@@ -3458,6 +3460,33 @@ def db_cmd_regress(proc, block):
        if rv: return
        cmd += tcmd
 
+    # fast anaticor
+    if block.opts.find_opt('-regress_anaticor_fast'):
+
+       # inputs, -censor, -cenmode, -ort Xmat, -prefix
+       if proc.censor_file: xmat = '%s%s' % (tmp_prefix, newmat)
+       else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
+
+       # result and local datasets
+       tprefix = '%serrts.$subj.fanaticor' % tmp_prefix
+       rset = BASE.afni_name(tprefix)
+       rset.view = proc.view
+
+       lset = BASE.afni_name('WMeLocal_rall')
+       lset.view = proc.view
+
+       # first set of commands: generate WMeLocal
+       rv, tcmd = db_cmd_regress_anaticor_fast(proc, block, rset, lset)
+       if rv: return
+       cmd += tcmd
+
+       tcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
+               maskstr=mask, censtr=censor_str, xmat=xmat, 
+               dsort=lset, prefix=tprefix)
+       if not tpcmd: return
+       cmd += tcmd
+
+
     # maybe add the 3dRSFC block
     if block.opts.find_opt('-regress_RSFC'):
        rv, tcmd = db_cmd_regress_rsfc(proc, block)
@@ -3567,7 +3596,7 @@ def db_cmd_regress(proc, block):
 #
 # return None on failure
 def db_cmd_tproject(proc, block, insets, maskstr='', censtr='',
-                    xmat='X.xmat.1D', prefix='errts.tproject'):
+                    xmat='X.xmat.1D', dsort='', prefix='errts.tproject'):
     """generate a simple 3dTproject command
     """
 
@@ -3585,11 +3614,14 @@ def db_cmd_tproject(proc, block, insets, maskstr='', censtr='',
     cstr = censtr.strip()
     if cstr != '': cstr = '%s           %s -cenmode ZERO \\\n' % (istr, cstr)
 
+    if dsort: dstr = '%s           -dsort %s \\\n' % (istr, dsort.pv())
+    else:     dstr = ''
+
     cmd = '%s# -- use 3dTproject to project out regression matrix --\n' \
           '%s3dTproject -polort 0 -input %s \\\n'                       \
-          '%s%s'                                                        \
+          '%s%s%s'                                                      \
           '%s           -ort %s -prefix %s\n\n'                         \
-          % (istr, istr, insets, mstr, cstr, istr, xmat, prefix)
+          % (istr, istr, insets, mstr, cstr, dstr, istr, xmat, prefix)
 
     proc.errts_pre = prefix
 
@@ -3705,6 +3737,42 @@ def db_cmd_anaticor(proc, block, rset, select='', radius=45):
 
     return 0, cmd
 
+# run 3dTfitter on the xmatrix and any 4-D dataset needed in regression
+def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
+    """return a string for running 3dTproject
+
+       inputs: 
+          volreg datasets       : to compute WMeLocal time series
+          mask_WMe_resam        : same
+          rset                  : BASE.afni_name for result
+
+       Generate rm.all_runs.volreg, then WMeLocal_rall.
+
+       return status (0=success) and command string
+    """
+
+    volreg_wild = proc.dset_form_wild('volreg')
+    if not proc.roi_dict.has_key('WMe'):
+       print '** ANATICOR needs WMe mask -->\n' \
+             '   (options -mask_segment_anat, -mask_segment_erode)'
+       return 1, ''
+    mset = proc.roi_dict['WMe']
+    vall = 'rm.all_runs.volreg'
+    vmask = 'rm.all_runs.volreg.mask'
+    
+    cmd = '# catenate volreg dsets in case of censored sub-brick selection\n' \
+          '3dTcat -prefix %s %s\n\n' % (vall, volreg_wild)
+
+    cmd += '# mask white matter before blurring\n'                 \
+           '3dcalc -a %s%s -b %s -expr "a*bool(b)" -prefix %s\n\n' \
+           % (vall, proc.view, mset.shortinput(), vmask)
+
+    cmd += '# generate time series averaged over the closest white matter\n' \
+           '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'               \
+           % (fwhm, rset.out_prefix(), vmask, proc.view)
+
+    return 0, cmd
+
 # run 3dTfitter on the xmatrix and any 4-D dataset neede in regression
 def db_cmd_regress_tfitter(proc, block):
     """return a string for running 3dTfitter - generate errts dataset
@@ -3723,7 +3791,11 @@ def db_cmd_regress_tfitter(proc, block):
        return status (0=success) and command string
     """
 
+    if block.opts.find_opt('-regress_anaticor_fast'):
+       return db_cmd_regress_anaticor_fast(proc, block)
+
     if not block.opts.find_opt('-regress_anaticor'): return 0, ''
+
     if proc.surf_anat:
        print '** -regress_anaticor: not ready for surface analysis'
        return 1, ''
@@ -3781,6 +3853,38 @@ def db_cmd_regress_tfitter(proc, block):
            '3dcalc -a %s%s%s -b %s%s \\\n'      \
            '       -expr a-b -prefix %s\n\n'  \
            % (proc.all_runs, proc.view, substr, fitts, proc.view, rset.prefix)
+
+    return 0, cmd
+
+# return anaticor commands, except for final 3dTproject
+def db_cmd_regress_anaticor_fast(proc, block, rset, lset):
+    """return a string for running fast anaticor - generate errts dataset
+
+       rset - afni_name of goal dataset
+       lset - afni_name for WMeLocal dataset
+
+       return status (0=success) and command string
+    """
+
+    if not block.opts.find_opt('-regress_anaticor_fast'): return 0, ''
+    if proc.surf_anat:
+       print '** -regress_anaticor_fast: not ready for surface analysis'
+       return 1, ''
+
+    # set radius
+    val, err = block.opts.get_type_opt(float, '-regress_anaticor_fwhm')
+    if err:
+        print '** error: -regress_anaticor_fwhm requires float argument'
+        return 1, ''
+    elif val != None and val > 0.0: fwhm = val
+    else:                           fwhm = 30.0
+
+    cmd = '# --------------------------------------------------\n' \
+          '# generate ANATICOR result: %s\n\n' % rset.shortinput()
+
+    rv, cs = db_cmd_anaticor_fast(proc, block, lset, fwhm=fwhm)
+    if rv: return 1, ''
+    cmd += cs
 
     return 0, cmd
 
@@ -4904,6 +5008,8 @@ def db_cmd_gen_review(proc):
     if proc.mot_cen_lim > 0.0: lopts += '-mot_limit %s ' % proc.mot_cen_lim
     if proc.out_cen_lim > 0.0: lopts += '-out_limit %s ' % proc.out_cen_lim
     if proc.mot_extern != '' : lopts += '-motion_dset %s ' % proc.mot_file
+
+    # rcr - maybe add final errts here, if len(proc.stims) == 0?
         
     cmd += '# generate scripts to review single subject results\n'      \
            '# (try with defaults, but do not allow bad exit status)\n'  \
@@ -7835,6 +7941,8 @@ g_help_string = """
 
             This option implies -mask_segment_anat and -mask_segment_erode.
 
+          * Consider use of -regress_anaticor_fast, instead.
+
             Please see "@ANATICOR -help" for more detail, including the paper
             reference for the method.
             See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
@@ -7852,6 +7960,55 @@ g_help_string = """
             the given voxel).
 
             See also -regress_anaticor.
+
+        -regress_anaticor_fast  : generate errts using fast ANATICOR method
+
+            This applies basically the same method as with -regress_anaticor,
+            above.  While -regress_anaticor creates WMeLocal dataset by 
+            getting the average white matter voxel within a fixed radius, the
+            'fast' method computes it by instead integrating the white matter
+            over a gaussian curve.
+
+            There some basic effects of using the 'fast' method:
+
+                1. Using a Gaussian curve to compute each voxel-wise regressor
+                   gives more weight to the white matter that is closest to
+                   each given voxel.  The FWHM of this 3D kernel is specified
+                   by -regress_anaticor_fwhm, with a default of 30 mm.
+
+                2. If there is no close white matter (e.g. due to a poor
+                   segmentation), the Gaussian curve will likely find white
+                   matter far away, instead of creating an empty regressor.
+
+                3. This is quite a bit faster, because it is done by creating
+                   a time series of all desired white matter voxels, blurring
+                   it, and then just regressing out that dataset.  The blur
+                   operation is much faster than a localstat one.
+
+            Please see "@ANATICOR -help" for more detail, including the paper
+            reference for the method.
+            See also -regress_anaticor_fwhm/
+            See also -mask_segment_anat, -mask_segment_erode, -regress_3dD_stop.
+            See also -regress_anaticor.
+
+        -regress_anaticor_fwhm FWHM  : specify FWHM for 'fast' ANATICOR, in mm
+
+                e.g.     -regress_anaticor_fwhm 20
+                default: -regress_anaticor_fwhm 30
+
+            This option applies to -regress_anaticor_fast.
+
+            The 'fast' ANATICOR method blurs the time series of desired white
+            matter voxels using a Gaussian kernel with the given FWHM (full
+            width at half maximum).
+
+            To understand the FWHM, note that it is essentially the diameter of
+            a sphere where the contribution from points at that distance
+            (FWHM/2) contribute half as much as the center point.  For example,
+            if FWHM=10mm, then any voxel at a distance of 5 mm would contribute
+            half as much as a voxel at the center of the kernel.
+
+            See also -regress_anaticor_fast.
 
         -regress_apply_mask     : apply the mask during scaling and regression
 
