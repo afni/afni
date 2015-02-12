@@ -51,9 +51,8 @@ ENTRY("THD_write_atr") ;
       if (errno == ENAMETOOLONG) {
          fprintf(stderr,
            "    Well Phil, a closer look at your filename reveals it is \n"
-           "    %d characters long, too long for your C library's taste \n"
-           "    of (NAME_MAX=%d, PATH_MAX=%d)\n",
-           (int)strlen(dkptr->header_name), (int)NAME_MAX, (int)PATH_MAX);
+           "    %d characters long, too long for your C library's taste.\n",
+           (int)strlen(dkptr->header_name));
       }
       RETURN( False );
    }
