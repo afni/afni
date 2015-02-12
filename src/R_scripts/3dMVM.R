@@ -31,7 +31,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dMVM ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.5.4, Jan 30, 2014
+Version 3.5.5, Feb 12, 2014
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1002,20 +1002,20 @@ mvCom5 <- function(fm, nF_mvE5) {
                                                 
 runAOV <- function(inData, dataframe, ModelForm) {
    # assign voxel-wise covariate values
-   assVV <- function(DF, vQV, value, c) {
-      # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
-      if(is.na(c)) cvalue <- scale(value, center=TRUE, scale=F) else
-         cvalue <- scale(value, center=c, scale=F)
-      for(ii in 1:length(unique(DF[,vQV]))) {                                   
+   #assVV <- function(DF, vQV, value, c) {
+   # centering - c: center; value: voxel-wise value; vQV: voxel-wise variable name; DF: dataframe
+   #   if(is.na(c)) cvalue <- scale(value, center=TRUE, scale=F) else
+   #      cvalue <- scale(value, center=c, scale=F)
+   #   for(ii in 1:length(unique(DF[,vQV]))) {                                   
          # ii-th subject's rows
-         fn <- paste(vQV, '_fn', sep='')
-         sr <- which(unique(DF[,fn])[ii] == DF[,fn])
+   #       fn <- paste(vQV, '_fn', sep='')
+   #      sr <- which(unique(DF[,fn])[ii] == DF[,fn])
          #browser()
-         DF[sr, vQV] <- rep(cvalue[ii], length(sr))
-     }
-     DF[, vQV] <- as.numeric(DF[, vQV])
-     return(DF)
-   }  #pars[[10]] <- list(lop$vQV, ?) 
+   #      DF[sr, vQV] <- rep(cvalue[ii], length(sr))
+   #  }
+   #  DF[, vQV] <- as.numeric(DF[, vQV])
+   #  return(DF)
+   #}  #pars[[10]] <- list(lop$vQV, ?) 
 
    #lop$dataStr <- assVV(lop$dataStr, lop$vQV[1], inData[ii,jj,kk,(NoFile+1):(NoFile+nSubj)])
    out <- lop$outInit
@@ -1351,8 +1351,11 @@ head <- inData
 #myHist <- inData$header$HISTORY_NOTE; myOrig <- inData$origin; myDelta <- inData$delta
 # Read in all input files
 inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
-tryCatch(dim(inData) <- c(dimx, dimy, dimz, lop$NoFile), error=function(e) errex.AFNI(c("At least one of the input files has different dimensions!\n",
-   "Use 3dinfo on each input file and find out which file(s) is the trouble maker...\n")))
+tryCatch(dim(inData) <- c(dimx, dimy, dimz, lop$NoFile), error=function(e)
+   errex.AFNI(c("At least one of the input files has different dimensions!\n",
+   "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
+   "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
+   "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
 cat('Reading input files: Done!\n\n')
 
 # voxel-wise covariate files
@@ -1451,9 +1454,15 @@ while(is.null(fm)) {
             gltRes[[n]] <- tryCatch(testInteractions(fm$lm, pairwise=NULL,
             covariates=lop$covValList[[n]], slope=lop$slpList[[n]], adjustment="none", idata = fm[["idata"]]),
             error=function(e) NA) else      # Involving factors
-         gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
+         #gltRes[[n]] <- tryCatch(testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
+         #   covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
+         #if(any(is.null(gltRes[[n]]))) fm <- NULL
+         tryCatch(gltRes[[n]] <- testInteractions(fm$lm, custom=lop$gltList[[n]], slope=lop$slpList[[n]], 
             covariates=lop$covValList[[n]], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL)
-         if(any(is.null(gltRes[[n]]))) fm <- NULL
+         if(any(is.null(gltRes[[n]]))) {
+            fm <- NULL
+            errex.AFNI(paste("Failed at GLT No. ", n, "! Make sure that the model or GLT specification syntax is correct.", sep=''))
+         }
          n <- n+1
       }      
    }
@@ -1658,7 +1667,7 @@ if(dimy == 1 & dimz == 1) {
    pkgLoad('snow')
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
-   clusterExport(cl, c("mvCom5", "maov", "lop"), envir=environment())
+   clusterExport(cl, c("mvCom5", "maov", "lop", "assVV"), envir=environment())
    for(kk in 1:nSeg) {
       if(NoBrick > 1) out[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runAOV, dataframe=lop$dataStr,
             ModelForm=ModelForm), c(2,1)) else
@@ -1693,7 +1702,7 @@ if (lop$nNodes>1) {
    pkgLoad('snow')
    cl <- makeCluster(lop$nNodes, type = "SOCK")
    clusterEvalQ(cl, library(afex)); clusterEvalQ(cl, library(phia))
-   clusterExport(cl, c("mvCom5", "maov", "lop"), envir=environment())
+   clusterExport(cl, c("mvCom5", "maov", "lop", "assVV"), envir=environment())
    #clusterCall(cl, maov) # let all clusters access to function maov()
    #clusterExport(cl, c("maov"), envir=environment()) # let all clusters access to function maov()
    for (kk in 1:dimz) {

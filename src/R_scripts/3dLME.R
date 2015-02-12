@@ -22,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.7.0, Jan 30, 2014
+Version 1.7.2, Feb 12, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -245,6 +245,12 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 
+      '-cutoff' = apl(n = 1, d = 1, h = paste(
+   "-cutoff threshold: Specify the cutoff value to obtain voxel-wise accuracy",
+   "         in logistic regression analysis. Default is 0 (no accuracy will",
+   "         be estimated).\n", sep = '\n'
+                     ) ),
+       
       '-model' = apl(n = 1, d = 1, h = paste(
    "-model FORMULA: Specify the terms of fixed effects for all explanatory,",
    "         including quantitative, variables. The expression FORMULA with more",
@@ -475,6 +481,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
       com_history<-AFNI.command.history(ExecName, args,NULL)
       lop <- list (com_history = com_history)
       lop$nNodes <- 1
+      lop$cutoff <- 0
       lop$model  <- 1
       lop$maskFN <- NA
 
@@ -508,6 +515,7 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              mask = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
+             cutoff = lop$cutoff <- ops[[i]],
              model  = lop$model  <- ops[[i]],
              ranEff = lop$ranEff  <- ops[[i]],
              qVars  = lop$qVars <- ops[[i]],
@@ -913,20 +921,36 @@ assVV <- function(DF, vQV, value, c) {
      return(DF)
    }
 
-
 runGLM <- function(inData, dataframe, ModelForm) {  
-   Stat <- rep(0, lop$NoBrick)
-   if (!all(abs(inData) < 10e-8)) {
+   Stat   <- rep(0, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))
+   if (!all(abs(inData) < 1e-8)) {
       dataframe$Beta<-inData[1:lop$nVVars]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData, all(is.na(lop$vVarCenters)))
       }
       #browser()
-      dataframe$Beta<-as.numeric(lop$dataStr$InputFile)
+      dataframe$Beta <- lop$dataStr$InputFile
       fm <- NULL
       try(fm <- glm(ModelForm, family=binomial(logit), data=dataframe), silent=TRUE)
-      Stat[seq(1,lop$NoBrick,2)] <- summary(fm)$coefficients[,'Estimate']
-      Stat[seq(2,lop$NoBrick,2)] <- summary(fm)$coefficients[,'z value']
+      if(!is.null(fm)) {
+         Stat[seq(1,lop$NoBrick-(lop$cutoff>0),2)] <- summary(fm)$coefficients[,'Estimate']
+         Stat[seq(2,lop$NoBrick-(lop$cutoff>0),2)] <- summary(fm)$coefficients[,'z value']
+         pred <- prediction(fm$fitted.values, lop$dataStr$InputFile) # from ROCR
+         acc <- pred@tp[[1]]+pred@tn[[1]]
+         acc <- acc/(acc+pred@fp[[1]]+pred@fn[[1]]) # accuracy
+         cutoff <- c(1, pred@cutoffs[[1]][-1])  # the 1st one is Inf, replaced by 1 here
+
+         # accuracy associated the user-specified cutoff
+         Stat[lop$NoBrick] <- acc[which.min(abs(cutoff-lop$cutoff))]
+
+         # the 2 values below are for max acc and the corresponding cutoff
+         #accMax <- max(acc)
+         #Stat[lop$NoBrick-1] <- cutoff[which(abs(acc-accMax) < 1e-8)][1]  # just take the first cutoff if ambiguous
+         #Stat[lop$NoBrick]   <- accMax
+      
+         Stat[(lop$NoBrick+1):(lop$NoBrick+nlevels(lop$dataStr$Subj) + 1)]  <- cutoff
+         Stat[(lop$NoBrick+nlevels(lop$dataStr$Subj) + 2):(lop$NoBrick+2*nlevels(lop$dataStr$Subj) + 2)] <- acc
+      }
    }
    return(Stat)
 }
@@ -1055,7 +1079,7 @@ lop$gltCode <- lapply(lop$gltCode, function(ss) unlist(strsplit(ss, split="(?=:)
 
 if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(lop$qVarCenters), '\\,')[[1]])
 
-if(lop$ICC) pkgLoad('lme4') else if(!lop$LOGIT) pkgLoad(c('nlme', 'phia'))
+if(lop$ICC) pkgLoad('lme4') else if(lop$LOGIT) pkgLoad('ROCR') else pkgLoad(c('nlme', 'phia'))
 # effect coding leads to the same type III as SAS   
 options(contrasts = c("contr.sum", "contr.poly"))
    
@@ -1145,8 +1169,11 @@ if(lop$LOGIT)
    inData <- unlist(lapply(lapply(lop$dataStr[,lop$vQV[1]], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1)) else
    inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 #dim(inData) <- c(dimx, dimy, dimz, NoFile)
-   tryCatch(dim(inData) <- c(dimx, dimy, dimz, NoFile), error=function(e) errex.AFNI(c("At least one of the input files has different dimensions!\n",
-   "Use 3dinfo on each input file and find out which file(s) is the trouble maker...\n")))
+   tryCatch(dim(inData) <- c(dimx, dimy, dimz, NoFile), error=function(e)
+   errex.AFNI(c("At least one of the input files has different dimensions!\n",
+   "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
+   "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
+   "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
 cat('Reading input files: Done!\n\n')
 
 if (!is.na(lop$maskFN)) {
@@ -1239,14 +1266,15 @@ if(lop$ICC) {  # ICC part
    lop$NoBrick <- nRanEff+1
 } else if(lop$LOGIT) {  # logistic regression part
       fm <- NULL
-      lop$dataStr$Beta<-as.numeric(lop$dataStr$InputFile)
+      lop$dataStr$InputFile <- as.numeric(lop$dataStr$InputFile)
+      lop$dataStr$Beta <- lop$dataStr$InputFile
       if(any(!is.na(lop$vQV))) {
          lop$dataStr <- assVV(lop$dataStr, lop$vQV, inData[ii,jj,kk,], all(is.na(lop$vVarCenters)))
       }     
-      try(fm <- glm(ModelForm, family=binomial(logit), data=lop$dataSt), silent=TRUE)
+      try(fm <- glm(ModelForm, family=binomial(logit), data=lop$dataStr), silent=TRUE)
       if(!is.null(fm))  {
          print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
-         lop$NoBrick <- 2*dim(summary(fm)$coefficients)[1]
+         lop$NoBrick <- 2*dim(summary(fm)$coefficients)[1] + 1 # add 1 sub-bricks for accMax and cutoff
       } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
          ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
@@ -1340,7 +1368,7 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 #   aa<-runAOV(inData[ii,jj,kk,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars, tag=0)
 # test runLME(inData[20,20,20,], dataframe=lop$dataStr, ModelForm=ModelForm, pars=pars)      
 
-if(lop$ICC) {
+if(lop$ICC) {  # ICC part
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
    if (lop$nNodes==1) for (kk in 1:dimz) {
       Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runREML, fm=fm, nBrk=lop$NoBrick, tag=0), c(2,3,1))
@@ -1360,7 +1388,7 @@ if(lop$ICC) {
    statsym <- NULL
    for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=ii-1,typ="fim")))
 } else if(lop$LOGIT) {  # logistic regression: no random effects for now
-   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
+   Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1)))
    if (lop$nNodes==1) for (kk in 1:dimz) {
       Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runGLM, dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1))
       cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
@@ -1368,21 +1396,27 @@ if(lop$ICC) {
    if (lop$nNodes>1) {
       pkgLoad('snow')
       cl <- makeCluster(lop$nNodes, type = "SOCK")
-      clusterExport(cl, c("ModelForm", "assVV", "lop"), envir=environment()) 
+      clusterExport(cl, c("ModelForm", "assVV", "lop"), envir=environment())
+      clusterEvalQ(cl, library(ROCR))
       for (kk in 1:dimz) {
          Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runGLM, dataframe=lop$dataStr, ModelForm=ModelForm), c(2,3,1))
          cat("Z slice ", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
       stopCluster(cl)
    }
+   cutoff   <- Stat[,,,(lop$NoBrick+1):(lop$NoBrick+nlevels(lop$dataStr$Subj) + 1)]
+   acc      <- Stat[,,,(lop$NoBrick+nlevels(lop$dataStr$Subj) + 2):(lop$NoBrick+2*(nlevels(lop$dataStr$Subj) + 1))]
+   Stat     <- Stat[,,,1:lop$NoBrick]
    outLabel <- NULL
-   statsym <- NULL
-   for(ii in 1:(lop$NoBrick/2)) {
+   statsym  <- NULL
+   for(ii in 1:((lop$NoBrick-1)/2)) {
       outLabel <- c(outLabel, rownames(summary(fm)$coefficients)[ii], paste(rownames(summary(fm)$coefficients)[ii], 'z'))
       statsym <- c(statsym, list(list(sb=2*ii-1, typ="fizt", par=NULL)))
-   }    
+   }
+   outLabel <- c(outLabel, 'accuracy')
+   #outLabel <- c(outLabel, 'cutoff', 'max accuracy')
 } else {  # typical LME part
-   if(dimy == 1 & dimz == 1) {
+   if(dimy == 1 & dimz == 1) {  # LME with surface or 1D data
       nSeg <- 20
       # drop the dimensions with a length of 1
       inData <- inData[, , ,]
@@ -1424,8 +1458,7 @@ if(lop$ICC) {
       # remove the trailers (padded 0s)
       Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
       
-   } else {
-   
+   } else {  # LME with volumetric data  
       # Initialization
       Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick))
    
@@ -1500,6 +1533,12 @@ if(lop$ICC) {
 #statpar <- paste(statpar, " -addFDR -newid ", lop$outFN)
 write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
+if(lop$LOGIT) {
+   write.AFNI(paste('cutoff', lop$outFN, sep=''), cutoff, label=NULL, defhead=head, idcode=newid.AFNI(),
+      com_hist=lop$com_history, type='MRI_short')
+   write.AFNI(paste('acc', lop$outFN, sep=''), acc, label=NULL, defhead=head, idcode=newid.AFNI(),
+      com_hist=lop$com_history, type='MRI_short')
+}    
 #system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
 
