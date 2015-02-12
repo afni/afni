@@ -44,10 +44,16 @@ ENTRY("THD_write_atr") ;
    header_file = fopen( dkptr->header_name , "w" ) ;
    if( header_file == NULL ){
       fprintf(stderr,
-              "*** ERROR: failed to open file %s for attribute writing;\n"
+              "*** ERROR: failed (%d) to open file %s for attribute writing;\n"
               "         - Do you have permission to write to this disk?\n"
               "         - Is the disk full?\n" ,
-              dkptr->header_name) ;
+              errno, dkptr->header_name) ;
+      if (errno == ENAMETOOLONG) {
+         fprintf(stderr,
+           "    Well Phil, a closer look at your filename reveals it is \n"
+           "    %d characters long, too long for your C library's taste.\n",
+           (int)strlen(dkptr->header_name));
+      }
       RETURN( False );
    }
 
