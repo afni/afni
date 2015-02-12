@@ -1151,10 +1151,10 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* now copy the new node coordinates over the old ones */
          if (nel->vec_len != SO->N_Node * 3) {
-            fprintf(SUMA_STDERR,"Error %s:\n"
-                                "Expected %d * 3 = %d values, found %d\n", 
-                                FuncName, SO->N_Node, 
-                                SO->N_Node * 3, nel->vec_len);
+            SUMA_S_Err("Expected %d * 3 = %d values, found %d (%f * 3)\n", 
+                       SO->N_Node, 
+                       SO->N_Node * 3, nel->vec_len,
+                       (float)nel->vec_len/3.0);
             SUMA_RETURN(NOPE);
          }
 
@@ -1209,10 +1209,10 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* now copy the new node coordinates over the old ones */
          if (nel->vec_len != SO->N_Node * 3) {
-            fprintf(SUMA_STDERR,"Error %s:\n"
-                                "Expected %d * 3 = %d values, found %d\n", 
-                                FuncName, SO->N_Node, 
-                                SO->N_Node * 3, nel->vec_len);
+            SUMA_S_Err("Expected %d * 3 = %d values, found %d (%f * 3)\n", 
+                       SO->N_Node, 
+                       SO->N_Node * 3, nel->vec_len,
+                       (float)nel->vec_len/3.0);
             SUMA_RETURN(NOPE);
          }
 
