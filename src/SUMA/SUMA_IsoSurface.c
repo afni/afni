@@ -30,7 +30,7 @@ void usage_SUMA_IsoSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 "  IsoSurface  < -input VOL | -shape S GR >\n"
 "              < -isoval V | -isorange V0 V1 | -isocmask MASK_COM >\n"
-"              [< -o_TYPE PREFIX>]\n"
+"              [< -o_TYPE PREFIX>] [-Tsmooth KPB NITER]\n"
 "              [< -debug DBG >]\n"  
 "\n"
 "  Mandatory parameters:\n"
@@ -70,6 +70,9 @@ void usage_SUMA_IsoSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "                You can do the padding with something like:\n"
 "                3dZeropad -I 2 -S 2 -R 2 -L 2 -A 2 -P 2 -prefix ... \n"
 "\n"
+"     -Tsmooth KPB NITER: Smooth resultant surface using the Taubin smoothing\n"
+"                         approach in SurfSmooth and with parameters KPB and \n"
+"                         NITER. If unsure, try -Tsmooth 0.1 100 for a start.\n"
 "  Optional Parameters:\n"
 "     -xform XFORM:  Transform to apply to volume values\n"
 "                    before searching for sign change\n"
@@ -176,6 +179,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
    Opt->in_1D = NULL;
    Opt->N_XYZ = 0;
    Opt->ivec = NULL;
+   Opt->N_it = 0;
+   Opt->Zt = 0.1;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -204,6 +209,17 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
                      "%s is a bad parameter for -xform option. \n", argv[kar]);
 				exit (1);
          }
+         brk = YUP;
+      }
+            
+      if (!brk && (strcmp(argv[kar], "-Tsmooth") == 0)) {
+         kar ++;
+         if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -Tsmooth \n");
+				exit (1);
+			}
+         Opt->Zt = atof(argv[kar++]); 
+         Opt->N_it = atoi(argv[kar]);
          brk = YUP;
       }
             
@@ -453,7 +469,14 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Failed to create surface.\n");
          exit(1);
       }
-
+      
+      if (Opt->N_it) {
+         if (!SUMA_Taubin_Smooth_SO( SO, SUMA_EQUAL, 
+                                     Opt->Zt, NULL, 0, Opt->N_it)) {
+            SUMA_S_Err("Failed to smooth surface");
+         }
+      }
+      
       /* write the surface to disk */
       if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, 
                                      Opt->SurfFileFormat, NULL)) {
@@ -485,9 +508,9 @@ int main (int argc,char *argv[])
             if ((ss = strstr(labcp,"key::"))) {
                key = atoi(labcp+strlen("key::"));
             }
-            if (label && key > 0) {
+            if (label && label[0]!='\0' && key > 0) {
                snprintf(astr,100,".%s.k%d",cdeblank_allname(label,'_'), key);
-            } else if (label) {
+            } else if (label && label[0]!='\0') {
                snprintf(astr,100,".%s",cdeblank_allname(label,'_'));
             } else if (key > 0) {
                snprintf(astr,100,".k%d",key);
@@ -503,6 +526,14 @@ int main (int argc,char *argv[])
                            Opt->out_prefix);
                exit(1);
             }
+            
+            if (Opt->N_it) {
+               if (!SUMA_Taubin_Smooth_SO( SOv[i], SUMA_EQUAL, 
+                                           Opt->Zt, NULL, 0, Opt->N_it)) {
+                  SUMA_S_Err("Failed to smooth surface");
+               }
+            }
+      
             if (!SUMA_Save_Surface_Object (SO_name, SOv[i], Opt->SurfFileType, 
                                      Opt->SurfFileFormat, NULL)) {
                      SUMA_S_Err("Failed to write surface object.\n");
