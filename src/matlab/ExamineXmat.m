@@ -317,7 +317,7 @@ while (~isempty(s)),
       if (isempty(s)),
          return;
       else
-         if (isdigit(s(1)) | s(1) == '[' | s(1) == '(')
+         if (afni_isdigit(s(1)) | s(1) == '[' | s(1) == '(')
             eval(sprintf('v=%s;', s));
             if (0 & isempty(v)),
                return;
