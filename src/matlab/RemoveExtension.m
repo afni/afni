@@ -4,25 +4,25 @@ function [S, xtr] = RemoveExtension (S, xt)
 %
 %Purpose:
 %   removes the extension xt from the end of S
-%   
-%   
+%
+%
 %Input Parameters:
 %   S : string
 %   xt: string of characters to be removed from the end of S
 %      xt can be | delimited strings. Trainling blanks will be removed
-%   	if xt is empty (default) then the characters following and including 
+%   	if xt is empty (default) then the characters following and including
 %       the last . will be removed.
-%   
+%
 %Output Parameters:
 %   Sx : string, S without the extension
 %   xtr: The extension that was removed
-%      
+%
 %Key Terms:
-%   
+%
 %More Info :
 %   S = 'ajh_d.BRIK';
 %    [St, xtr] = RemoveExtension (S,'.HEAD|.BRIK')
-%   
+%
 %   S = 'ajh_d';
 %   [St, xtr] = RemoveExtension (S,'.HEAD|.BRIK')
 %
@@ -44,7 +44,7 @@ xtr = '';
 
 for (i=1:1:n),
 	nS = length(S);
-	%set the extension 
+	%set the extension
 	[err, xc] = GetWord(xt, i, '|');xc = zdeblank(xc);
 	nxc = length(xc);
 	
@@ -52,7 +52,7 @@ for (i=1:1:n),
 		k = findstr(xc, S); nk = length(k);
 		if (~isempty(k)),
 			if ( (k(nk) + nxc -1) == nS), %extension is at the end of the name
-				xtr = S(k(nk):nS); S = S(1:k(nk)-1); 
+				xtr = S(k(nk):nS); S = S(1:k(nk)-1);
 			end
 		end
 end
