@@ -65,13 +65,13 @@ for (i=6:1:N-5),
    end
    colormap(M);
    subplot 211;
-	image ([1:1:length(M(:,1))]);   
+	image ([1:1:length(M(:,1))]);
    input ('Hit Enter:', 's');
 end
 
 end
 figure(1), clf;
-subplot (211); 
+subplot (211);
 str = sprintf('Colors in %s\nPick colors (background then foreground) with mouse\nHit "enter" to quit', Colname);
 colormap(Mall); image ([1:1:N]); title (str, 'fontsize',14);
 drawnow;

@@ -4,13 +4,13 @@ function [err,p,f] = GetPath (s, allmc)
 %
 %Purpose:
 %   Breaks the string s into a path and file part
-%   
-%   
+%
+%
 %Input Parameters:
 %   s is a string like How/Didley/Doo
 %   allmc : 1 --> search for path using both types of file-separators / and \
 %           0 --> search for path using filesep's output (default)
-%   
+%
 %Output Parameters:
 %
 %if nargout = 1
@@ -19,17 +19,17 @@ function [err,p,f] = GetPath (s, allmc)
 %Otherwise:
 %   err : 0 No Problem
 %       : 1 Mucho Problems
-%   
+%
 %   PathString is a string like How/Didley/
 %   FileString is a string like Doo
-%      
+%
 %More Info :
-%   
-%   
-%   
+%
+%
+%
 %
 %     Author : Ziad Saad
-%     Date : Thu Apr 23 11:41:06 CDT 1998 
+%     Date : Thu Apr 23 11:41:06 CDT 1998
 
 
 %Define the function name for easy referencing
@@ -51,9 +51,9 @@ if (N == 0),
    return;
 end
 
-if (allmc == 0),  
+if (allmc == 0),
    [i] = findstr(s,filesep);
-else 
+else
    [i] = union(findstr(s,'/'), findstr(s,'\'));
 end
 if (isempty(i)),
