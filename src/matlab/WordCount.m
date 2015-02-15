@@ -8,9 +8,8 @@ function [N] = WordCount (S,D)
 %
 %Input Parameters:
 %   S a string, trailing blanks are removed
-%   D (optional) a series of characters to be used as delimiters like
-%     ' |' for a space or | as delimiters or '|' for | as a delimiter only
-%     default is ' '
+%   D (optional) a single character to use as delimter, for example
+%     '|' for | as a delimiter only. default is ' '
 %
 %Output Parameters:
 %   N number of words
@@ -30,25 +29,15 @@ function [N] = WordCount (S,D)
 %Define the function name for easy referencing
 FuncName = 'WordCount';
 
-%initailize return variables
-N = [];
-
-if (nargin == 1),
+if (nargin < 2),
 	D = ' ';
+elseif ~ischar(D) || numel(D)~=1
+    error('Second input, when provided, must be a single character');
 end
 
 S = deblank (S);
 
-Sdiff = S;
-N=0;
-
-
-while (~isempty(Sdiff))
-	[Word,Sdiff] = strtok(Sdiff,D);
-   if (~isempty(Word)), N=N+1; end
-end
-
-
+N=numel(strfind(S,D))+1;
 
 
 return;
