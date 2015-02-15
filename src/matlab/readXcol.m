@@ -18,7 +18,7 @@ if (exist('/usr/lib/X11/rgb.txt') == 2),
    i = 0;
    while (tmp ~= -1 )
       tmp = zdeblank(tmp);
-      if (isdigit(tmp(1))),
+      if (afni_isdigit(tmp(1))),
          i = i + 1;
          [name(i).r,name(i).g,name(i).b,s1,s2,s3,s4] = strread(tmp,'%d%d%d %s %s %s %s');
          if (~isempty(s4)) name(i).s = sprintf('%s %s %s %s', char(s1), char(s2), char(s3), char(s4));
