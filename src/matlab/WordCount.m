@@ -8,8 +8,9 @@ function [N] = WordCount (S,D)
 %
 %Input Parameters:
 %   S a string, trailing blanks are removed
-%   D (optional) a single character to use as delimter, for example
-%     '|' for | as a delimiter only. default is ' '
+%   D (optional) one or more characters to use as delimter, for example
+%     'ab' for either 'a' or 'b' as a delimeter, and  '|' for | as a
+%     delimiter only. default is ' '
 %
 %Output Parameters:
 %   N number of words
@@ -31,13 +32,13 @@ FuncName = 'WordCount';
 
 if (nargin < 2),
 	D = ' ';
-elseif ~ischar(D) || numel(D)~=1
-    error('Second input, when provided, must be a single character');
 end
 
 S = deblank (S);
 
-N=numel(strfind(S,D))+1;
+matching=bsxfun(@eq,S(:),D(:)');
+
+N=sum(matching)+1;
 
 
 return;
