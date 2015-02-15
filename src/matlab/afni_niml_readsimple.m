@@ -69,7 +69,7 @@ for k=1:nodecount
                     end
             end
         otherwise
-            error('Unsupported element %s in node element %d', Nk.name, D);
+            S.misc.(Nk.name)=Nk.data
     end
 end
 
