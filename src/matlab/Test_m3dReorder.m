@@ -5,7 +5,7 @@ Identifiers = {'AAzst1avir.N02.*.HEAD', 'AAzst1avir.N05.*.HEAD'}; %Modify here
 %loop across all Bricks found
 Nel = length(List);
 for (i=1:1:Nel),
-	Input = List(i).name; 
+	Input = List(i).name;
 	fprintf(1,'\nNow processing: %s ...', Input);
 	[ans, I_Prefix, View] = PrefixStatus(Input);
 	%set the new prefix
