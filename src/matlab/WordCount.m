@@ -36,7 +36,7 @@ end
 
 S = deblank (S);
 
-matching=bsxfun(@eq,S(:),D(:)');
+matching=any(bsxfun(@eq,S(:),D(:)'),2);
 
 % avoid repetitions
 matching(matching(2:end) & matching(1:(end-1)))=false;
