@@ -70,20 +70,11 @@ in_word=nsep>=1 && ~sep_mask(1);
 word_start(1)=in_word;
 
 % middle of string
-for k=1:nsep
-    if sep_mask(k) && in_word && k>1
-        word_end(k-1)=true;
-        in_word=false;
-    elseif ~sep_mask(k) && ~in_word
-        word_start(k)=true;
-        in_word=true;
-    end
-end
+word_start(2:end)=sep_mask(1:(end-1)) & ~sep_mask(2:end);
+word_end(1:(end-1))=~sep_mask(1:(end-1)) & sep_mask(2:end);
 
 % end of string
-if in_word
-    word_end(nsep)=true;
-end
+word_end(end)=~sep_mask(end);
 
 word_start_pos=find(word_start);
 word_end_pos=find(word_end);
