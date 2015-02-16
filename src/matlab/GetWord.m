@@ -59,13 +59,36 @@ if (n > WordCount(S,D)),
 	err = ErrEval(FuncName,'Err_Not that many words in S');	return;
 end
 
-Sdiff = S;
-i=1;
-while (i<=n & ~isempty(Sdiff))
-	[Word,Sdiff] = strtok(Sdiff,D);
-i=i+1;
+sep_mask=any(bsxfun(@eq,S(:),D(:)'),2);
+nsep=numel(sep_mask);
+
+word_start=false(nsep,1);
+word_end=false(nsep,1);
+
+% beginning of string
+in_word=nsep>=1 && ~sep_mask(1);
+word_start(1)=in_word;
+
+% middle of string
+for k=1:nsep
+    if sep_mask(k) && in_word && k>1
+        word_end(k-1)=true;
+        in_word=false;
+    elseif ~sep_mask(k) && ~in_word
+        word_start(k)=true;
+        in_word=true;
+    end
 end
 
+% end of string
+if in_word
+    word_end(nsep)=true;
+end
+
+word_start_pos=find(word_start);
+word_end_pos=find(word_end);
+
+Word=S(word_start_pos(n):word_end_pos(n));
 
 err = 0;
 if (nargout < 2) err = Word; end
