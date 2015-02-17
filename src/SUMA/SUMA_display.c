@@ -12008,9 +12008,11 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
          /* set the widgets for dems mapping options */
          SUMA_set_cmap_options((SUMA_ALL_DO *)SO, YUP, NOPE);
 
+         SUMA_LH( "cmap menu choice");
          /* set the menu to show the colormap used */
          SUMA_SetCmapMenuChoice((SUMA_ALL_DO *)SO, ColPlane->cmapname);
 
+         SUMA_LH( "Dset col range");
          /* set the values for the threshold bar */
          if (SUMA_GetDsetColRange(  SO->SurfCont->curColPlane->dset_link, 
                                     SO->SurfCont->curColPlane->OptScl->tind, 
@@ -14373,17 +14375,40 @@ void SUMA_cb_AllConts(Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_AllConts"};
    SUMA_ALL_DO *ado=NULL;
-   int ido;
+   int ido, new = 0;
    
    SUMA_ENTRY;
-
+   /* For a large number of objects, say 90, this function
+      can take a very long (2-3 mins) time to finsh. The reason
+      for this latency is that a very large number of events end up
+      in the queue with each new controller opened. The process takes longer
+      and longer with each new controller opened. 
+      The best way around this is to force X11 to discard all the 
+      generated events and just refresh the display of the last 
+      controller opened. The update will then take place once
+      you switch the the controller of interest.
+      
+      Note that MCW_invert_widget was also calling XSync() and XmUpdatedisplay()
+      so I have had to call a variant that does not force these calls.
+      
+      Note again, the delay still increases with increasing objects but
+      for now this remaining slowing down is not worth pursuing.
+       
+                                       ZSS Snowed in, Feb. 2015 */
+   XSync( XtDisplay(w) , False ) ; /* Be nice and tidy up before plunge 
+                                      We will drop all remaining events later*/
    for (ido=0; ido<SUMAg_N_DOv; ++ido) {
       ado = (SUMA_ALL_DO *)SUMAg_DOv[ido].OP;
       if (SUMA_ADO_Cont(ado) && !SUMA_isADO_Cont_Realized(ado)) {
+         ++new;
          SUMA_viewSurfaceCont(NULL, ado, NULL);
       }
    }
-   
+   if (new > 10) { /* don't bother unless we have had too many newbies */
+      XSync( XtDisplay(w) , True ) ; /* get rid of all pending events */
+      /* Now repeat call to last ado's viewer to update its widgets */
+      if (new) SUMA_SetSurfContPageNumber(SUMAg_CF->X->SC_Notebook, 1);   
+   }
    SUMA_RETURNe;
 }
 
