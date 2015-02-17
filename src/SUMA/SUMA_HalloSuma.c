@@ -1,4 +1,4 @@
-#include "niml.h"
+#include "niml/niml.h"
 #include "SUMA_niml_defines.h"
 
 #define NIML_DEBUG 1

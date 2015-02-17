@@ -6,7 +6,7 @@
 
 #include "thd_iochan.h"
 #include <math.h>
-#include "niml.h"
+#include "niml/niml.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/

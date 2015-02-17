@@ -9308,7 +9308,7 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
 /*-- Save X, XtXinv, and XtXinvXt matrices in bucket file for later re-use. --*/
 /*----------------------------------------------------------------------------*/
 
-#include "niml.h"
+#include "niml/niml.h"
 
 #if 0
 /*-----------------------------------------------------------------*/

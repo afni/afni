@@ -35,7 +35,7 @@
 #include "afni_environ.h"
 #include "afni_plugout.h"
 #include "thd_iochan.h"
-#include "niml.h"
+#include "niml/niml.h"
 #include "cs.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/

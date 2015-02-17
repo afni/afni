@@ -220,14 +220,14 @@ R_DIR = R_scripts
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
              thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h\
-             multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h\
-             AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h    \
-             mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h        \
-             nifti/niftilib/nifti1_io.h nifti/nifticdf/nifticdf.h             \
-             nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                 \
-             rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h          \
-             thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h              \
-             cs_qsort_small.h
+             multivector.h afni_environ.h niml/niml.h cs_sort_template.h      \
+             vol2surf.h AFNI_label.h Amalloc.h afni_suma.h debugtrace.h       \
+             list_struct.h mri_dicom_stuff.h mri_warpfield.h                  \
+             nifti/niftilib/nifti1.h nifti/niftilib/nifti1_io.h               \
+             nifti/nifticdf/nifticdf.h nifti/znzlib/znzlib.h Aomp.h rcmat.h   \
+             misc_math.h rickr/r_new_resam_dset.h rickr/r_idisp.h             \
+             rickr/r_misc.h thd_atlas.h thd_ttatlas_query.h                   \
+             thd_ttatlas_CA_EZ.h cs_qsort_small.h
 
 ### Make everything, install it too, and cleanup
 
@@ -1537,7 +1537,7 @@ afni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 ### The star of the show
 
-afni.o:afni.c niml.h
+afni.o:afni.c niml/niml.h
 	$(RM) $@
 	$(CC) -c afni.c $(INFLAGS) $(SHOWOFF)
 
@@ -1545,11 +1545,11 @@ afni_version.o:afni_version.c
 	$(RM) $@
 	$(CC) -c afni_version.c $(INFLAGS) $(SHOWOFF)
 
-afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h
+afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml/niml.h
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc 
 
-afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml.h
+afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml/niml.h
 	$(RM) $@
 	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot $(LLIBS) -lm -lc
 
@@ -1559,7 +1559,7 @@ motiftoy: afni motiftoy.c
 
 # CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
 
-afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a libmri.a libmrix.a volpack.h coxplot.h niml.h
+afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a libmri.a libmrix.a volpack.h coxplot.h niml/niml.h
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri -lvolpack $(LLIBS)
 
@@ -2266,7 +2266,8 @@ MISC_OBJS  = afni_suma.o vol2surf.o nifti2_io.o znzlib.o list_struct.o  \
 
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o   \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
-         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h Aomp.h 3ddata.h $(SOMEAFOBJS)
+         $(SUMA_OBJS) $(MISC_OBJS) niml/niml.h mrilib.h Aomp.h 3ddata.h \
+		 $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
@@ -2292,8 +2293,8 @@ vol2surf.o:vol2surf.h
 # same as .a, but build as a shared object
 libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
-          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h mrilib.h 3ddata.h   \
-          Aomp.h shared_netcdf_attr
+          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml/niml.h mrilib.h       \
+          3ddata.h Aomp.h shared_netcdf_attr
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
@@ -2674,11 +2675,8 @@ eis_bakvec.o:
 #######
 # Ditto for NIML objects
 
-$(NIML_OBJS):niml.h
+$(NIML_OBJS):niml/niml.h
 	( cd niml/ ; $(MAKE) all 'CC=$(CC)' ; $(MV) *.o .. ; )
-
-niml.h:niml/niml.h
-	$(CP) niml/niml.h .
 
 #######
 # netcdf library files - make them and move them up here
@@ -2987,15 +2985,15 @@ epsim:epsim.o
 	$(RM) $@
 	$(CC) -o epsim epsim.o $(LFLAGS) $(LLIBS)
 
-nimltest:nimltest.o niml.h
+nimltest:nimltest.o niml/niml.h
 	$(RM) $@
 	$(CC) -o nimltest nimltest.o $(LFLAGS) $(LLIBS)
 
-nimel:nimel.o niml.h
+nimel:nimel.o niml/niml.h
 	$(RM) $@
 	$(CC) -o nimel nimel.o $(LFLAGS) $(LLIBS)
 
-nidset:nidset.o niml.h
+nidset:nidset.o niml/niml.h
 	$(RM) $@
 	$(CC) -o nidset nidset.o $(LFLAGS) $(LLIBS)
 

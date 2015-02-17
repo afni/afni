@@ -28,7 +28,7 @@ static char *init_hosts[] = { /* Initial list of OK computers */
 
 #define USE_NIML
 #ifdef  USE_NIML
-# include "niml.h"
+# include "niml/niml.h"
 #endif
 
 /*----------------------------------------------------------------

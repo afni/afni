@@ -9,7 +9,7 @@ suma_datasets.c is now in afni's directory and is in libmri.a
 #include <sys/time.h>
 #include <math.h>
 #include "mrilib.h"
-#include "niml.h"
+#include "niml/niml.h"
 #include "../niml/niml_private.h"
 #include "xutil.h"
 

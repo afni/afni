@@ -1,4 +1,4 @@
-#include "niml.h"
+#include "niml/niml.h"
 
 /********************************************************************
   Timing test for NIML element creation:

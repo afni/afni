@@ -34,7 +34,7 @@
 
 #include "imseq.h"
 #include "mrilib.h"
-#include "niml.h"
+#include "niml/niml.h"
 #include "xutil.h"
 #include "display.h"
 #include "xim.h"

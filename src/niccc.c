@@ -1,4 +1,4 @@
-#include "niml.h"
+#include "niml/niml.h"
 
 /*--- Debug printout of a NIML element. ---*/
 
