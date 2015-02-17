@@ -6854,14 +6854,14 @@ void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_LH("   Do the Int");
          /* need to put things in sync */
          SurfCont->IntRangeLocked = !SurfCont->IntRangeLocked;
-         MCW_invert_widget(SurfCont->SetRangeTable->cells[1]);
+         MCW_invert_widget_sync(SurfCont->SetRangeTable->cells[1],0);
       }
       if ( SurfCont->BrtRangeLocked == 
                curColPlane->OptScl->AutoBrtRange) {
          SUMA_LH("   Do the Brt");
          /* need to put things in sync */
          SurfCont->BrtRangeLocked = !SurfCont->BrtRangeLocked;
-         MCW_invert_widget(SurfCont->SetRangeTable->cells[2]);
+         MCW_invert_widget_sync(SurfCont->SetRangeTable->cells[2],0);
       } 
 
       /* Set the CoordBias's menu history to reflect current setting */
@@ -7479,14 +7479,14 @@ void SUMA_set_cmap_options_VO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_LH("   Do the Int");
          /* need to put things in sync */
          SurfCont->IntRangeLocked = !SurfCont->IntRangeLocked;
-         MCW_invert_widget(SurfCont->SetRangeTable->cells[1]);
+         MCW_invert_widget_sync(SurfCont->SetRangeTable->cells[1], 0);
       }
       if ( SurfCont->BrtRangeLocked == 
                curColPlane->OptScl->AutoBrtRange) {
          SUMA_LH("   Do the Brt");
          /* need to put things in sync */
          SurfCont->BrtRangeLocked = !SurfCont->BrtRangeLocked;
-         MCW_invert_widget(SurfCont->SetRangeTable->cells[2]);
+         MCW_invert_widget_sync(SurfCont->SetRangeTable->cells[2], 0);
       } 
 
       /* Set the CoordBias's menu history to reflect current setting */
@@ -8107,14 +8107,14 @@ void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
          SUMA_LH("   Do the Int");
          /* need to put things in sync */
          SurfCont->IntRangeLocked = !SurfCont->IntRangeLocked;
-         MCW_invert_widget(SurfCont->SetRangeTable->cells[1]);
+         MCW_invert_widget_sync(SurfCont->SetRangeTable->cells[1], 0);
       }
       if ( SurfCont->BrtRangeLocked == 
                curColPlane->OptScl->AutoBrtRange) {
          SUMA_LH("   Do the Brt");
          /* need to put things in sync */
          SurfCont->BrtRangeLocked = !SurfCont->BrtRangeLocked;
-         MCW_invert_widget(SurfCont->SetRangeTable->cells[2]);
+         MCW_invert_widget_sync(SurfCont->SetRangeTable->cells[2], 0);
       } 
 
       /* Set the CoordBias's menu history to reflect current setting */
