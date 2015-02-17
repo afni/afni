@@ -50,7 +50,7 @@ SUMA_SurfaceObject **SUMA_THD_ROI_IsoSurfaces(THD_3dim_dataset *in_volu, int isb
    SUMA_SurfaceObject **SOV= NULL;
    char label[128]={""}, stmp[32]={""};
    int i, k, N_SO, nproc=0, n_unq, *unq=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
