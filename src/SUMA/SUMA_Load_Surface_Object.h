@@ -3,6 +3,10 @@
 
 #define SUMA_IS_LOADABLE_SO_NAME(name) (name && (SUMA_filexists(name) || \
                    SUMA_is_predefined_SO_name(name, NULL, NULL, NULL, NULL)))
+#define SPEC_NAME_DBG(Spec,i) ( Spec->SurfaceFile[i] ? Spec->SurfaceFile[i] : \
+                           ( Spec->CoordFile[i] ? Spec->CoordFile[i]:"NULL??") )
+#define SPEC_TOPO_DBG(Spec,i) ( Spec->TopoFile[i] ? Spec->TopoFile[i]:"" )
+
 
 int SUMA_is_predefined_SO_name(char *name, int *par,
                                char **pdspec, char **pdsv, char **pdsname);
