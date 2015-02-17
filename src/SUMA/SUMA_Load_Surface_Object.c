@@ -3596,8 +3596,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf_with_Metrics(
    
    if (!(SO = SUMA_Load_Spec_Surf(Spec, i, tmpVolParName, debug))) {
       SUMA_S_Errv("Failed to find surface %s %s.\n",
-           Spec->CoordFile[i] ? Spec->CoordFile[i]:"NULL??",
-           Spec->TopoFile[i] ? Spec->TopoFile[i]:"");
+           SPEC_NAME_DBG(Spec,i), SPEC_TOPO_DBG(Spec,i));
       SUMA_RETURN(SO);
    }
    
@@ -3893,11 +3892,14 @@ SUMA_Boolean SUMA_LoadSpec_eng (
          it's inefficient to check after the surface is read, 
          but idcode is generated in the read routine 
          and users should not be making this mistake too often */
+
          if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
-            fprintf( SUMA_STDERR,
-                     "Note %s: \n"
-                     "Surface is specifed more than once, \n"
-                     "multiple copies ignored.\n", FuncName);
+            SUMA_SurfaceObject *SOm = NULL;
+            SOm = SUMA_findSOp_inDOv(SO->idcode_str, dov, *N_dov);
+            SUMA_S_Errv("Surface %s %s (id %s) is in dov already as %s!\n",
+                        SPEC_NAME_DBG(Spec,i), SPEC_TOPO_DBG(Spec,i),
+                        SO->idcode_str, SOm->Label);
+               
             /* free SO */
             if (!SUMA_Free_Surface_Object (SO)) {
                fprintf(SUMA_STDERR,"Error %s: Error freeing SO.\n", FuncName);
