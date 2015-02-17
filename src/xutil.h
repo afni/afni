@@ -54,6 +54,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 extern void MCW_expose_widget( Widget ) ;
 extern void MCW_invert_widget( Widget ) ;
+extern void MCW_invert_widget_sync( Widget w , int sync) ;
 extern void MCW_flash_widget ( int , Widget ) ;
 extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;
 extern void MCW_set_widget_fg( Widget , char * ) ;
