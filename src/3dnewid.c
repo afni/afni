@@ -22,6 +22,10 @@ void Syntax(void)
     "       (Unlike the other ways of using 3dnewid, if STR is the)\n"
     "       (same in 2 different runs, the output will be the same.)\n"
     "       (The -hash algorithm begins at step 2 in the list below.)\n"
+    " or\n"
+    "       3dnewid -MD5 STR\n"
+    "       to get the MD5 hash of STR, should be same as -hash output \n"
+    "       without the prefix and without the + and / char substitutions.\n"
     "\n"
     "How ID codes are created (here and in other AFNI programs):\n"
     "----------------------------------------------------------\n"
@@ -84,7 +88,20 @@ int main( int argc , char * argv[] )
       }
       printf("%s\n", UNIQ_hashcode(argv[2]));  
       exit(0) ;
-   }       
+   }  else if ( strcmp(argv[1],"-MD5") == 0 ){ /* Feb. 2015:for debugging 
+                                                -MD5 jj.k40.gii 
+                                                   is giving the same string as
+                                                -MD5 jj.k60.gii */
+      char *eee = NULL;
+      
+      if( argc != 3 ) {
+         ERROR_message("You need a string following -MD5");
+         exit(1);
+      }
+      eee = MD5_B64_string(argv[2]) ;
+      printf("%s\n", eee);  free(eee);
+      exit(0) ;
+   }      
 
    /*-- OK, not for fun --*/
 
