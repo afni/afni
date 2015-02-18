@@ -436,9 +436,13 @@ g_history = """
     4.27 Jan 15, 2015: use 3ddot -demean for correlation of masks
     4.28 Feb 06, 2015: apply updates to 3dClustSim
     4.29 Feb 11, 2015: added -regress_anaticor_fast and -regress_anaticor_fwhm
+    4.30 Feb 13, 2015:
+        - make WMeLocal for fast anaticor a float dataset
+        - generate WMeL_corr as a diagnostic volume (corr w/WMeLocal)
+        - todo: add ability to make WMeL_corr without fast anaticor
 """
 
-g_version = "version 4.29, February 11, 2015"
+g_version = "version 4.30, February 13, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Feb 2014" # 3dNwarpApply

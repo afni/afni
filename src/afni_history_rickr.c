@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13,  Feb, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "make WMeLocal for fast anaticor a float dataset",
+   "Also, generate WMeL_corr as a diagnostic volume."
+ } ,
+
+ { 13,  Feb, 2015, RCR, "3dcalc", MICRO, TYPE_ENHANCE,
+   "allow for longer -prefix, to include what would be set via -session",
+   "Done for P Kohn."
+ } ,
+
  { 12,  Feb, 2015, RCR, "make_stim_times.py", MICRO, TYPE_NEW_OPT,
    "added -no_consec option, to block consecutive events",
    NULL

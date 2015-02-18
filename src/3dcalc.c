@@ -123,7 +123,7 @@ static int                 CALC_noffac[26] ;  /* 14 Nov 2003 */
 
 static int                 CALC_verbose = 0 ; /* 30 April 1998 */
 
-static char CALC_output_prefix[THD_MAX_PREFIX] = "calc" ;
+static char CALC_output_prefix[THD_MAX_NAME] = "calc" ;
 
 static char CALC_session[THD_MAX_NAME]         = "./"   ;
 
@@ -444,7 +444,7 @@ void CALC_read_opts( int argc , char * argv[] )
          nopt++ ;
          if( nopt >= argc )
            ERROR_exit("need argument after -prefix!\n") ;
-         MCW_strncpy( CALC_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
+         MCW_strncpy( CALC_output_prefix , argv[nopt++] , THD_MAX_NAME ) ;
          continue ;
       }
       /**** -session directory ****/
