@@ -3763,13 +3763,19 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
     cmd = '# catenate volreg dsets in case of censored sub-brick selection\n' \
           '3dTcat -prefix %s %s\n\n' % (vall, volreg_wild)
 
-    cmd += '# mask white matter before blurring\n'                 \
-           '3dcalc -a %s%s -b %s -expr "a*bool(b)" -prefix %s\n\n' \
+    cmd += '# mask white matter before blurring\n'       \
+           '3dcalc -a %s%s -b %s -expr "a*bool(b)" \\\n' \
+           '       -datum float -prefix %s\n\n' \
            % (vall, proc.view, mset.shortinput(), vmask)
 
     cmd += '# generate time series averaged over the closest white matter\n' \
            '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'               \
            % (fwhm, rset.out_prefix(), vmask, proc.view)
+
+    if block.opts.have_yes_opt('-regress_run_clustsim', default=1):
+      cmd +='# diagnostic volume: voxel correlation with local white matter\n'\
+            '3dTcorrelate -prefix %s %s%s %s\n\n'                             \
+            % ('WMeL_corr', vall, proc.view, rset.pv())
 
     return 0, cmd
 

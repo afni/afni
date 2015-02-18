@@ -423,6 +423,7 @@ typedef struct {
    MRI_IMAGE *ave_tsim ;  /* 26 Jan 2004 */
    void      *xax_dset ;  /* 09 Feb 2015 */
    void      *xax_fdbr ;
+   MRI_IMAGE *xax_cen  ;  /* 12 Feb 2015 */
 
    int xx_text_1 , xx_text_2 , xx_text_2p , xx_text_3 ;
 
@@ -522,6 +523,8 @@ typedef struct {
    float tmed[MAT_MAX][MAT_MAX] , tmad[MAT_MAX][MAT_MAX] ;    /* 08 Mar 2001 */
    int   sbot[MAT_MAX][MAT_MAX] , stop[MAT_MAX][MAT_MAX] ;    /* 19 Mar 2004 */
    float tbmv[MAT_MAX][MAT_MAX] ;                             /* 16 Oct 2009 */
+
+   float xax_bot[MAT_MAX][MAT_MAX], xax_top[MAT_MAX][MAT_MAX] ; /* 12 Feb 2015 */
 
    XtIntervalId timer_id ;                          /* 04 Dec 2003 */
    int          timer_func, timer_param, timer_delay ;
