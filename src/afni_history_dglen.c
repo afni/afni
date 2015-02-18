@@ -49,6 +49,17 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17 , FEB, 2015 , DRG , "align_epi_anat.py center alignment" , 
+    MINOR , TYPE_NEW_OPT, 
+    "-ginormous_move and -align_centers added",
+    "Added call to @Align_Centers for initial center alignment\n"
+    "The -align_centers option can be used by itself with the \n"
+    "transformation matrix included in the combination transformation.\n"
+    "Adding the center alignment on to giant_move, given the nom\n"
+    "of ginormous_move. Note these options ignore any obliquity\n" 
+    "in the original datasets."
+} ,
+
 { 23 , JAN, 2015 , DRG , "whereami GUI" , 
     MINOR , TYPE_NEW_ENV, 
     "Web-based links in Whereami GUI on by default",
