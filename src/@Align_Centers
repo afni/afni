@@ -280,7 +280,7 @@ foreach v1foli ( $v1_list )
       end
 
       #apply the  delta
-      set oname = `ParseName -app _shft  -out PrefixView ${v1fol_pref}`
+      set oname = `ParseName -app _shft  -out PrefixView ${v1fol_pref}${v1fol_vw}`
       if ($usecp == 1) then
          if ( `@CheckForAfniDset $v1fol_pth/${oname}` != 0 ) then
             echo ""
