@@ -180,6 +180,32 @@ Outputs common to all modes
        graph-like network of nodes and edges throughout the 3D brain
        representation;
 
+
+   **Example 1.** For example, running ``3dTrackID`` with ``-prefix
+   o.NETS`` (and ``-nifti``) will produce the output files::
+
+     o.NETS_000.grid
+     o.NETS_000.niml.dset
+     o.NETS_000_INDIMAP.nii.gz
+     o.NETS_000_PAIRMAP.nii.gz
+
+   Comments on these outputs:
+
+     * A PAIRMAP is not output if the input network has only one
+       target ROI, such as if one is doing a simple whole brain
+       tracking.
+
+     * One can turn off INDIMAP and PAIRMAP output altogether, using
+       the switch ``-no_indipair_out``.  This might be useful if you
+       are tracking through a *large* network of targets (for example,
+       something connectome-y) and don't want to risk having a single
+       reaaally big output file wasting space or causing trouble.
+
+     * By default, all volumetric outputs (PAIRMAP, INDIMAP,
+       ``-dump_rois *`` files, etc.) are in BRIK/HEAD file format.  If
+       you prefer NIFTI, you can use the switch ``-nifti`` to get all
+       "\*.nii.gz" files.
+
    |
 
 #. Additionally, each mode *can* also output:
@@ -201,48 +227,54 @@ Outputs common to all modes
        value of each voxel is the number of tracts that went through
        it for that given connection;
 
+   **Example 1 (continued).** Additionally, if one also included the
+   command ``-dump_rois AFNI``, then the output would include a
+   directory **o.NETS/** with the following files, such as::
+
+     NET_000_ROI_001_001.nii.gz  
+     NET_000_ROI_001_004.nii.gz  
+     NET_000_ROI_002_002.nii.gz  
+     NET_000_ROI_002_003.nii.gz  
+     NET_000_ROI_002_004.nii.gz  
+     NET_000_ROI_002_006.nii.gz  
+     NET_000_ROI_002_007.nii.gz  
+     ...
+
+   With the specific dump option used here, each file would contain a
+   binary mask of the given WM connection.  The file naming convention
+   is: NET_X_ROI_Y_Z.nii.gz,
+   where:
+
+     * 'X' is the number of the network (because multiple ones can be
+       tracked simultaneously
+
+     * 'Y' is the number or label of a target ROI
+
+     * 'Z' is the number or label of another target ROI
+
+   The files where 'Y'=='Z' contain INDIMAP information of a target,
+   and the others where not('Y'=='Z') contain PAIRMAPs.  It's
+   important to note that tracts will not be found between every
+   possible pair of targets, and so not every possible pairwise
+   combination will have a file output.  |
+
+   Comments on these outputs:
+
+     * Probably using one of the options ``-dump_rois
+       {AFNI|AFNI_MAP}`` would be the most useful.  Some unnamed
+       user(s) would even go so far as to recommend using it all the
+       time, because either would provide the only unambiguous maps of
+       individual WM ROIs output by ``3dTrackID``.
+
    |
 
-#. By way of comments and addenda:
-
-   * Probably using one of the options ``-dump_rois {AFNI|AFNI_MAP}``
-     would be the most useful.  Some unnamed user(s) would even go so
-     far as to recommend using it all the time, because either would
-     provide the only unambiguous maps of individual WM ROIs output by
-     ``3dTrackID``.
-
-   * A PAIRMAP is not output if the input network has only one target
-     ROI, such as if one is doing a simple whole brain tracking.
-
-   * One can turn off INDIMAP and PAIRMAP output altogether, using the
-     switch ``-no_indipair_out``.  This might be useful if you are
-     tracking through a *large* network of targets (for example,
-     something connectome-y) and don't want to risk having a single
-     reaaally big output file wasting space or causing trouble.
-
-   * By default, all volumetric outputs (PAIRMAP, INDIMAP,
-     ``-dump_rois *`` files, etc.) are in BRIK/HEAD file format.  If
-     you prefer NIFTI, you can use the switch ``-nifti`` to get all
-     "\*.nii.gz" files.
-
-   * PAIRMAP, INDIMAP and dumped volumes can all be viewed in either
-     AFNI or in SUMA.  To load them into the latter for 3D
-     visualization, use::
-       
-       suma -vol FILENAME ...
-     
-     By default, they are displayed as slices and not as surfaces, but
-     you can select that capability (see description in
-     :ref:`Volume_Viewing`).
-
-
-Outputs specific to \{DET|MINIP\} modes
-=======================================
+Outputs specific to ``{DET|MINIP}`` modes
+=========================================
 
 #. The outputs in the previous section are output for all modes of
    ``3dTrackID``.  However, careful readers will note that none of
    those tractographic outputs actually contained the tracts
-   themselves!  These are only output in \{DET|MINIP\} modes, as the
+   themselves!  These are only output in ``{DET|MINIP}`` modes, as the
    following:
 
    * a **tract** file (ending with ``*.tract``), which contains all
@@ -264,9 +296,8 @@ Outputs specific to \{DET|MINIP\} modes
 
    * a TRK-format file, ``*.trk``, legacy of when tractographic output
      had to be viewed with non-AFNI/SUMA options, which in this case
-     were with TrackVis.  At some point (likely soon-ish), this will
-     not be a default output; at the moment, the ``-no_trk_out``
-     switch can be utilized to save output space by not writing these.
+     were with TrackVis.  These are not output by default. To have
+     these be output, use the the ``-do_trk_out`` switch.
 
 #. When outputting tract files, one has to choose whether to use
    AND-logic or OR-logic within the network.  That is, whether to keep
@@ -276,7 +307,70 @@ Outputs specific to \{DET|MINIP\} modes
    ``-logic {AND|OR}``.
 
 #. And, just to state explicitly, the full probabilistic tracking in
-   ``-mode PROB`` does *not* produce tract file output.  Such is life
-   and also an impetus behind the mini-probabilistic methodology
-   (described further below).
+   ``-mode PROB`` does *not* (currently) produce tract file output.
+   Such is life and also an impetus behind the mini-probabilistic
+   methodology (described further below).
    
+|
+
+Viewing 3dTrackID outputs
+=========================
+
+#. **Volume files outputs.** PAIRMAP, INDIMAP and dumped volumes can
+   all be viewed in either AFNI or in SUMA.  To load them into the
+   latter for 3D visualization, use::
+    
+     suma -vol FILENAME ...
+     
+   By default, they are displayed as slices and not as surfaces, but
+   you can select that capability (see description in
+   :ref:`Volume_Viewing`).
+
+   To view the volume files in the 2D afni slice viewer, one uses the
+   standard, general call to open AFNI (assuming you're in a directory
+   where those files are located; otherwise, include the path to
+   them)::
+     
+     afni
+
+#. **Matrix file outputs.** SUMA is used to view the matrix
+   information in the ``*.dset`` file.  While one can view this
+   information as a 'classic' connectivity matrix (for both
+   ``3dTrackID`` and ``3dNetCorr`` outputs), it is also possible to
+   view the data as coloration of graph edges and/or tract bundles in
+   the brain volume. For more features, please see the help examples
+   in SUMA: :ref:`Graph_Viewing`. To load the data into SUMA, use::
+
+     suma -gdset FILE.niml.dset ...
+
+   Additionally, one can select, view and save the matrices from the
+   commandline with a Python-based tool, ``fat_mat_sel.py``.  This
+   program can output several matrices from several subjects
+   simultaneously, and the user can control several features of the
+   plotting (font size, colorbar properties, ranges, DPI, etc.). It
+   can be useful, for example, when making outputs for presentations
+   and publications.  See the helpfile::
+     
+     fat_mat_sel.py -h
+
+   for more information and list of the options.
+
+#. **Tract files.** These are viewable in SUMA with *many, many*
+   interactive features.  To load in the tracts::
+
+     suma -tract FILE.niml.tract ...
+     
+   Default coloration is by local tract orientation, but one can also
+   color, for example, by bundle (useful for connectomes) or by the
+   connectivity matrix information (importing the ``-gdset
+   FILE.niml.dset`` information, above). 
+
+   Selection masks (either sphere or box) can be made for specifying
+   subsets of tracts. One can have multiple selection masks, and use
+   AND- and/or OR-logic with them. **Importantly**, these volumes are
+   dragged along the tracts and bundles themselves, so that one can
+   follow arbitrary trajectories through 3D (i.e., one is not
+   constrained to manipulating them just in 2D slices).  
+
+   For more information, please see the voluminous set of features,
+   hints and examples in the SUMA help: :ref:`Tract_Viewing`.
