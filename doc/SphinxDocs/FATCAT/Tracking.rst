@@ -479,7 +479,9 @@ after.
    examples! (This method produces no tract results, however, just
    volumes.  But those can be quite useful, too.)
 
-4. Performing HARDI tracking in each of the above cases is done with a
+   |
+
+#. Performing HARDI tracking in each of the above cases is done with a
    change of one option:
    
    * Replace ``-dti_in DT_PREF`` (or ``-dti_list FILE.niml.opts``)
@@ -494,7 +496,7 @@ after.
        The assumed format of FILE2 is to have 3*X bricks of (x1, y1,
        z1, x2, y2, z2, ...) ordered, unit magnitude vector components.
 
-   * Also, note that in the HARDI case of either MINIP or PROB
+   * Also, note that when using HARDI data for either MINIP or PROB
      tracking, then the uncertainty file must have a different format
      than the one output by 3dDWUncert for DTI tracking. It must have
      X+1 briks, where U_FILE[0] is the uncertainty for the GFA
@@ -503,9 +505,23 @@ after.
      characterized by a single angle, sweeping out a cone of
      uncertainty).
 
-
-Minimal inputs for each mode
-----------------------------
+   |
 
 
+Including extra volumes
+-----------------------
 
+Including tract masks
+---------------------
+
+Changing default tracking parameters
+------------------------------------
+
+Useful output dumping of WM ROIs
+--------------------------------
+
+Switching various features ON/OFF
+---------------------------------
+
+Miscellaneous others
+--------------------
