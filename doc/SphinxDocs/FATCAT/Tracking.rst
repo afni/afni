@@ -227,44 +227,48 @@ Outputs common to all modes
        value of each voxel is the number of tracts that went through
        it for that given connection;
 
-   **Example 1 (continued).** Additionally, if one also included the
-   command ``-dump_rois AFNI``, then the output would include a
-   directory **o.NETS/** with the following files, such as::
+     **Example 1 (continued).** Additionally, if one also included the
+     command ``-dump_rois AFNI``, then the output would include a
+     directory **o.NETS/** with the following files, such as::
 
-     NET_000_ROI_001_001.nii.gz  
-     NET_000_ROI_001_004.nii.gz  
-     NET_000_ROI_002_002.nii.gz  
-     NET_000_ROI_002_003.nii.gz  
-     NET_000_ROI_002_004.nii.gz  
-     NET_000_ROI_002_006.nii.gz  
-     NET_000_ROI_002_007.nii.gz  
-     ...
+       NET_000_ROI_001_001.nii.gz  
+       NET_000_ROI_001_004.nii.gz  
+       NET_000_ROI_002_002.nii.gz  
+       NET_000_ROI_002_003.nii.gz  
+       NET_000_ROI_002_004.nii.gz  
+       NET_000_ROI_002_006.nii.gz  
+       NET_000_ROI_002_007.nii.gz  
+       ...
 
-   With the specific dump option used here, each file would contain a
-   binary mask of the given WM connection.  The file naming convention
-   is: NET_X_ROI_Y_Z.nii.gz,
-   where:
+     With the specific dump option used here, each file would contain
+     a binary mask of the given WM connection.  The file naming
+     convention is: NET_X_ROI_Y_Z.nii.gz, where:
 
-     * 'X' is the number of the network (because multiple ones can be
-       tracked simultaneously
+       * 'X' is the number of the network (because multiple ones can
+         be tracked simultaneously
 
-     * 'Y' is the number or label of a target ROI
+       * 'Y' is the number or label of a target ROI
+     
+       * 'Z' is the number or label of another target ROI
 
-     * 'Z' is the number or label of another target ROI
+     The files where 'Y'=='Z' contain INDIMAP information of a target,
+     and the others where not('Y'=='Z') contain PAIRMAPs.  It's
+     important to note that tracts will not be found between every
+     possible pair of targets, and so not every possible pairwise
+     combination will have a file output.  |
 
-   The files where 'Y'=='Z' contain INDIMAP information of a target,
-   and the others where not('Y'=='Z') contain PAIRMAPs.  It's
-   important to note that tracts will not be found between every
-   possible pair of targets, and so not every possible pairwise
-   combination will have a file output.  |
+     .. note:: Probably using one of the options ``-dump_rois
+               {AFNI|AFNI_MAP}`` would be the most useful.  Some
+               unnamed user(s) would even go so far as to recommend
+               using it all the time, because either would provide the
+               only unambiguous maps of individual WM ROIs output by
+               ``3dTrackID``.
 
-   Comments on these outputs:
-
-     * Probably using one of the options ``-dump_rois
-       {AFNI|AFNI_MAP}`` would be the most useful.  Some unnamed
-       user(s) would even go so far as to recommend using it all the
-       time, because either would provide the only unambiguous maps of
-       individual WM ROIs output by ``3dTrackID``.
+   * A labeltable file (``*.niml.lt``) will also be output if one has
+     been attached to the input network file. While one might not view
+     this on its own, having a labeltable set up can be very useful,
+     for example in helping to discuss specific bundles by the
+     anatomical locations they connect.
 
    |
 
@@ -313,8 +317,8 @@ Outputs specific to ``{DET|MINIP}`` modes
    
 |
 
-Viewing 3dTrackID outputs
-=========================
+Viewing tracked outputs
+=======================
 
 #. **Volume files outputs.** PAIRMAP, INDIMAP and dumped volumes can
    all be viewed in either AFNI or in SUMA.  To load them into the
@@ -374,3 +378,90 @@ Viewing 3dTrackID outputs
 
    For more information, please see the voluminous set of features,
    hints and examples in the SUMA help: :ref:`Tract_Viewing`.
+
+#. **TRK files.** These ``NAME.trk`` files are generated using the
+   TrackVis format, and as such can be viewed in the eponymous
+   program. (They are not output by default.)
+
+|
+
+Inputs for tracking
+===================
+
+This will be an attempt to cluster sections of the input options
+meaningfully.
+
+
+Minimal inputs for each mode
+----------------------------
+
+Each option is briefly explained the first time it is mentioned; one
+can assume that, unless explicitly noted, the initial definition still
+holds.
+
+#. Deterministic (DET) DTI::
+
+     3dTrackID -mode DET            \
+         -dti_in  DT_PREF           \
+         -netrois TARGET_ROI_FILE   \
+         -logic   {AND|OR}          \
+         -prefix  OUT_PREF
+   
+   where:
+   
+   * ``-dti_in DT_PREF``: point to the set of DTI parameter files by
+     their prefix.  The program will read in all scalar files with
+     this prefix and output WM ROI statistics on them.
+
+   * ``-netrois TARGET_ROI_FILE``: input the file of targets among
+     which to find connections. This can be a file with multiple
+     volumes/bricks, and each brick is treated like a separate
+     network. Each target in a network is defined as a set of voxels
+     with a given integer, and a labletable can be attached for
+     further target naming with strings (with the labels also being
+     attached to tracked outputs).
+
+   * ``-logic {AND|OR}``: select whether the tracts output in the
+     *.tract file connect targets using AND- or OR-logic. NB: in
+     *either case, both INDI and PAIR map (volume) files are output.
+
+   * ``-prefix OUT_PREF``: prefix for all output files, as described
+     above. Additionally, a network number will be appended before the
+     file extensions, starting with 000, 001, 002, etc. (in order to
+     match the brick number of the ``-netrois`` file).
+
+     |
+
+#. Mini-probabilistic (MINIP) DTI::
+
+     3dTrackID -mode MINIP          \
+         -dti_in  DT_PREF           \
+         -netrois TARGET_ROI_FILE   \
+         -logic   {AND|OR}          \
+         -uncert  UNCERT_FILE       \
+         -mini_num NREP             \
+         -prefix  OUT_PREF
+
+   where:
+
+   * ``-uncert UNCERT_FILE``: the file of uncertainty values output by
+     3dDWUncert.
+     
+   * ``-mini_num NREP``: the number of perturbed Monte Carlo
+     repetitions to perform.  Often 5-7 seems to be a good number.
+
+     |
+
+#. Fully probabilistic (PROB) DTI::
+
+     3dTrackID -mode PROB           \
+         -dti_in  DT_PREF           \
+         -netrois TARGET_ROI_FILE   \
+         -uncert  UNCERT_FILE       \
+         -prefix  OUT_PREF
+
+     
+
+
+
+
