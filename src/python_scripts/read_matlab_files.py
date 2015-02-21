@@ -206,6 +206,10 @@ class MyInterface:
          print '   (please install scipy)'
          return 1
 
+      if not os.path.isfile(fname):
+         print "** missing file '%s'" % fname
+         return 1
+
       mfile = scipy.io.loadmat(fname)
       if mfile == None: return 1
 
