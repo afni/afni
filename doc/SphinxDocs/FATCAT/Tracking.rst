@@ -385,19 +385,27 @@ Viewing tracked outputs
 
 |
 
+.. _Inp_Track:
+
 Inputs for tracking
 ===================
 
-This will be an attempt to cluster sections of the input options
-meaningfully.
+This will be an attempt to cluster sections of the 3dTrackID input
+options meaningfully.
 
+.. _Min_Inp_Track:
 
 Minimal inputs for each mode
 ----------------------------
 
 Each option is briefly explained the first time it is mentioned; one
 can assume that, unless explicitly noted, the initial definition still
-holds.
+holds. A selection of ``-mode {DET|MINIP|PROB}`` is always required,
+as well.
+
+The examples are shown for DTI tracking, and the simple option change
+in each case for performing HARDI tracking is provided immediately
+after.
 
 #. Deterministic (DET) DTI::
 
@@ -434,7 +442,8 @@ holds.
              file of list of DTI parameter files to input in a
              niml-formatted text file with ``-dti_list
              FILE.niml.opts``. An example is provided in the 3dTrackID
-             help file under "DTI LIST FILE EXAMPLE".
+             help file under "DTI LIST FILE EXAMPLE". Up to 4 'extra'
+             scalar-valued files can be input for statistical purposes.
 
    |
 
@@ -444,7 +453,7 @@ holds.
          -dti_in  DT_PREF           \
          -netrois TARGET_ROI_FILE   \
          -logic   {AND|OR}          \
-         -uncert  UNCERT_FILE       \
+         -uncert  U_FILE            \
          -mini_num NREP             \
          -prefix  OUT_PREF
 
@@ -463,11 +472,40 @@ holds.
      3dTrackID -mode PROB           \
          -dti_in  DT_PREF           \
          -netrois TARGET_ROI_FILE   \
-         -uncert  UNCERT_FILE       \
+         -uncert  U_FILE            \
          -prefix  OUT_PREF
 
-     
+   where: all the options have been described in the previous two
+   examples! (This method produces no tract results, however, just
+   volumes.  But those can be quite useful, too.)
 
+4. Performing HARDI tracking in each of the above cases is done with a
+   change of one option:
+   
+   * Replace ``-dti_in DT_PREF`` (or ``-dti_list FILE.niml.opts``)
+     with:
+
+     * ``-hardi_gfa GFA``: the scalar map which you want to be
+       thresholded to contrain the propagation (that is, a
+       generalization of what the FA map typically does for DTI
+       tracking);
+
+     * ``-hardi_dirs DIRS``: the file of vectors in X>1 directions.
+       The assumed format of FILE2 is to have 3*X bricks of (x1, y1,
+       z1, x2, y2, z2, ...) ordered, unit magnitude vector components.
+
+   * Also, note that in the HARDI case of either MINIP or PROB
+     tracking, then the uncertainty file must have a different format
+     than the one output by 3dDWUncert for DTI tracking. It must have
+     X+1 briks, where U_FILE[0] is the uncertainty for the GFA
+     (scalar) file, and the other briks are ordered for directions
+     given with the DIRS file (vectors; uncertainty in this case is
+     characterized by a single angle, sweeping out a cone of
+     uncertainty).
+
+
+Minimal inputs for each mode
+----------------------------
 
 
 
