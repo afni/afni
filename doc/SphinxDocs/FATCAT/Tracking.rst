@@ -430,7 +430,13 @@ holds.
      file extensions, starting with 000, 001, 002, etc. (in order to
      match the brick number of the ``-netrois`` file).
 
-     |
+   .. note:: Instead of ``-dti_in DT_PREF``, one can input an explicit
+             file of list of DTI parameter files to input in a
+             niml-formatted text file with ``-dti_list
+             FILE.niml.opts``. An example is provided in the 3dTrackID
+             help file under "DTI LIST FILE EXAMPLE".
+
+   |
 
 #. Mini-probabilistic (MINIP) DTI::
 
