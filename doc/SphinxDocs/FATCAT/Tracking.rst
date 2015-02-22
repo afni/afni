@@ -136,12 +136,13 @@ inputs (and why they exist as such).
 
 The outputs can be viewed variously and interactively in AFNI and SUMA
 (such as for volume, tract, and dset files).  Additionally, matrices
-of properties can be viewed and saved from the commandline with some
+of properties can be viewed and saved from the command line with some
 ``fat_*.py`` functions. Finally, outputs can be used for quantitative
 comparison and statistical modeling-- one method for doing the latter
 exists using G. Chen's 3dMVM (see below for some description, and the
 FATMVM demo introduced :ref:`DEMO_Definitions`).
 
+.. _Tract_Out:
 
 Outputs common to all modes
 ===========================
@@ -348,7 +349,7 @@ Viewing tracked outputs
      suma -gdset FILE.niml.dset ...
 
    Additionally, one can select, view and save the matrices from the
-   commandline with a Python-based tool, ``fat_mat_sel.py``.  This
+   command line with a Python-based tool, ``fat_mat_sel.py``.  This
    program can output several matrices from several subjects
    simultaneously, and the user can control several features of the
    plotting (font size, colorbar properties, ranges, DPI, etc.). It
@@ -419,7 +420,19 @@ after.
    
    * ``-dti_in DT_PREF``: point to the set of DTI parameter files by
      their prefix.  The program will read in all scalar files with
-     this prefix and output WM ROI statistics on them.
+     this prefix and output WM ROI statistics on them. The minimum set
+     of files needed for tracking is: 
+
+     * (scalar) FA, MD and L1-- RD is calculated automatically if it's
+       not loaded in
+
+     * (vector) V1, V2 and V3
+
+     The function will glob for all scalar files with the entered
+     prefix (``-dti_in DT_PREF`` leads to searching for file names
+     like 'DT_PREF*'), so other scalars can be easily included for
+     automatic connectivity matrix calculation by giving them the same
+     prefix. (See below for other ways of including extra files.)
 
    * ``-netrois TARGET_ROI_FILE``: input the file of targets among
      which to find connections. This can be a file with multiple
@@ -507,21 +520,190 @@ after.
 
    |
 
-
 Including extra volumes
 -----------------------
+
+#. One might want to load extra volumes of information into
+   ``3dTrackID`` for making extra connectivity matrices in the output
+   *.grid files. For example, one might want statistics performed on
+   non-diffusion data such as T1 or PD values.
+
+   * If using ``-dti_in DT_PREF``, one can give these files the same
+     prefix, so that they are found using the glob for 'DT_PREF*'
+     filenames.
+
+   * If using ``-dti_list FILE.niml.opts``, one can enter the other
+     filenames directly (without special prefix), in the
+     NIML-formatted file; see the second example under "DTI LIST FILE
+     EXAMPLE" in the 3dTrackID help.
+
+   * For the HARDI data case, one can input a prefix using
+     ``-hardi_pars PREF`` and glob for all single brick files with the
+     name 'PREF*'.
+
+#. Alternatively, in DTI analysis one *might* want to use a non-FA map
+   to restrict tract propagation, for example using a T1-weighted
+   segmentation. For this purpose, one would load it in using
+   ``-dti_extra SET``. In grid files, name of this quantity will be
+   'XF' (stands for 'extra file'). 
+
+   NB: if the file ``SET`` happens to have a name like 'DT_PREF*', it
+   will still be globbed for using ``-dti_in DT_PREF``, and therefore
+   included twice. But that shouldn't harm any results.
+
+   .. note:: To turn *off* the globbing capability (beyond finding
+             just the bare minimum DTI files), one can use
+             the ``-dti_search_NO`` switch.
 
 Including tract masks
 ---------------------
 
+#. One can restrict *all* tracts to lie within a mask using ``-mask
+   MASK``.  (If no MASK is input, then internally some automasking is
+   performed; often, DTI has already been masked to include just the
+   whole brain, which would then be used as the internal mask.)
+
+#. Alternatively, if you want to allow tracts anywhere in the brain
+   but to keep only those which pass *through* a particular region,
+   then you can load that region in as a "thru-mask" with ``-thru_mask
+   TM``.
+
+#. And, though it's not a separate option, if you want to make an
+   "anti-mask" region through which tracts are *not* allowed to go,
+   you can give that region negative values in the particular network
+   loaded in with ``-netrois TARGET_ROI_FILE``.
+
 Changing default tracking parameters
 ------------------------------------
+
+#. The following major tracking parameters can all be changed
+   individually from the command line (default values are given):
+
+   * for *all* modes:
+
+     ``-alg_Thresh_FA A`` : set threshold for DTI FA map, '-dti_extra'
+     FILE, or HARDI GFA map (default = 0.2).
+
+     ``-alg_Thresh_ANG B`` : set max angle (in deg) for turning when
+     going to a new voxel during propagation (default = 60).
+
+     ``-alg_Thresh_Len C`` : min physical length (in mm) of tracts to
+     keep (default = 20).
+
+   * for ``{DET|MINIP}`` modes:
+
+     ``-alg_Nseed_X D`` : Number of seeds per vox in x-direc (default
+     = 2).
+
+     ``-alg_Nseed_Y E`` : Number of seeds per vox in y-direc (default
+     = 2).
+
+     ``-alg_Nseed_Z F`` : Number of seeds per vox in z-direc (default
+     = 2).
+    
+   * for ``PROB`` mode:
+
+     ``-alg_Thresh_Frac G`` : value for thresholding how many tracks
+     must pass through a voxel for a given connection before it is
+     included in the final WM-ROI of that connection.  It is a decimal
+     value <=1, which will multiply the number of 'starting seeds' per
+     voxel, Nseed_Vox*Nmonte (see just below for those; default =
+     0.001; for higher specificity, a value of 0.01-0.05 would be
+     used).
+
+     ``-alg_Nseed_Vox H`` : number of seeds per voxel per Monte Carlo
+     iteration; seeds will be placed randomly (default = 5).
+
+     ``-alg_Nmonte I`` : number of Monte Carlo iterations (default =
+     1000).
+
+#. The above ``alg_*`` tracking parameters can also be set at once in
+   a single text file.  The text file can either have only plain text
+   and no labels, or it can be in NIML-format with nice labels so that
+   there's no confusion about which value is being set. See the
+   ``3dTrackID`` help file's "ALGOPT FILE EXAMPLES" for more
+   information.  The option file is loaded in using ``-algopt
+   A_FILE``.
+
+#. When in MINIP and PROB modes, which use the uncertainty of
+   parameter values, one can choose an explicit minimum uncertainty;
+   in general, the uncertainty files will have been generated using
+   ``3dDWUncert``, but for whatever reason you might want to enforce a
+   minimal angular uncertainty or something. The values are set with:
+
+   ``-unc_min_FA VAL1`` : the minimum stdev for perturbing FA (in
+   ``-dti_in``), or the EXTRA- file also in DTI (``-dti_extra``), or
+   GFA (in ``-hardi_*``).  Default value is: 0.015 for FA, and 0.015
+   times the max value in the EXTRA-file or in the GFA file.
+
+   ``-unc_min_V VAL2`` : the minimum stdev for perturbing
+   eigen-/direction-vectors.  In DTI, this is for tipping V1
+   separately toward V2 and V3, and in HARDI, this is for defining a
+   single degree of freedom uncertainty cone. Default values are
+   0.06 rad (~3.4 deg) for any eigenvector/direction. User assigns
+   values in degrees.
+
 
 Useful output dumping of WM ROIs
 --------------------------------
 
+See the ``-dump_rois *`` option above in :ref:`Tract_Out`.  I think
+it's pretty valuable to use one of ``-dump_rois {AFNI|AFNI_MAP}``, in
+order to be able to have individual WM ROI files output. The PAIR and
+INDI maps are mostly for quick reference, in my opinion, while the
+dumped files can be more useful in viewing or further quantitative
+analyses.
+
 Switching various features ON/OFF
 ---------------------------------
 
+* ``-do_trk_out`` : *do* output *.trk files, which might be useful in
+  other, non-AFNI/SUMA programs.
+
+* ``-uncut_at_rois`` : by default, tracts connecting pairs of targets
+  are restricted to lie within and between the targets-- if a tract
+  carries on through the other side, that part is *cut* and not
+  recorded as part of the pair's 'connection'.  If you don't want this
+  trimming process to occur, then use this switch.
+
+* ``-no_indipair_out`` : choose to *not* output a PAIR and INDI map.
+  Might be useful to save space if one has a lot of targets in a
+  network.  On could utilize this switch and then just use the
+  ``-dump_rois *`` option, as well.
+
+* ``-write_opts`` : output a NIML-formatted file of the algorithm
+  options being used.  Might be useful if you want to keep it around
+  to use later or as a record.
+
+* ``-write_rois`` : write out a file (PREFIX.roi.labs) of all the ROI
+  (re-)labels, for example if the input ROIs aren't simply consecutive
+  and starting from 1. File has 3cols: Input_ROI, Condensed_form_ROI,
+  Power_of_2_label.
+
+* ``-dump_no_labtab`` : if the ROIS file has a label table, the
+  default is to use it in naming a ``-dump_rois *`` output (if being
+  used); using this switch turn that off-- output file names will be
+  the same as if no label table were present.
+
 Miscellaneous others
 --------------------
+
+* ``-nifti`` : output all volume files as ``*.nii.gz`` files.
+
+* ``-extra_tr_par`` : run three extra track parameter scalings for
+  each target pair, output in the *.grid file. The NT value of each
+  connection is scaled in the following manners for each subsequent
+  matrix label:
+
+  * *NTpTarVol*: div. by average target volume;
+
+  * *NTpTarSA*: div. by average target surface area;
+
+  * *NTpTarSAFA*: div. by average target surface area bordering
+    suprathreshold FA (or equivalent WM proxy definition).
+
+  NB: the volume and surface area numbers are given in terms of voxel
+  counts and not using physical units (consistent: NT values themselves
+  are just numbers.)
+
+
