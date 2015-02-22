@@ -50,7 +50,7 @@ if (nargin == 2),
 	Morig = [];
 end
 
-if (~isempty(Morig) & size(Morig,2) ~= 3),
+if (~isempty(Morig) && size(Morig,2) ~= 3),
 	err = ErrEval(FuncName,'Err_Bad size for Morig');
 	return;
 end
