@@ -349,21 +349,21 @@ if (is1D), % 1D land
 
    V = []; Info = []; ErrMessage = '';
    Opt.verb = 1;
-   if (~isfield(Opt, 'method') | isempty(Opt.method)), Opt.method = 0; end
-   if (isfield(Opt,'Slices') & ~isempty(Opt.Slices)),
+   if (~isfield(Opt, 'method') || isempty(Opt.method)), Opt.method = 0; end
+   if (isfield(Opt,'Slices') && ~isempty(Opt.Slices)),
       if (length(Opt.Slices) ~= 1),
          ErrMessage = sprintf ('%s: Opt.Slices can only be used to specify one slice at a time for 1D format', FuncName, BrikName);
          err = ErrEval(FuncName,'Err_1D Bad .Slices option');
          return;
       end
-      if (~isfield(Opt, 'SliceSize_1D') | isempty(Opt.SliceSize_1D)),
+      if (~isfield(Opt, 'SliceSize_1D') || isempty(Opt.SliceSize_1D)),
          ErrMessage = sprintf ('%s: SliceSize_1D must be specified with Slices option for 1D files', FuncName);
          err = ErrEval(FuncName,'Err_1D Bad .SliceSize_1D option');
          return;
       end
       Opt.chunk_size = Opt.SliceSize_1D;
       Opt.chunk_index = Opt.Slices - 1;
-      if (isfield(Opt,'Frames') & ~isempty(Opt.Frames)), Opt.col_index = Opt.Frames - 1; end
+      if (isfield(Opt,'Frames') && ~isempty(Opt.Frames)), Opt.col_index = Opt.Frames - 1; end
    end
 
    [err, V, Info] = Read_1D(BrikName, Opt);
@@ -372,7 +372,7 @@ if (is1D), % 1D land
       err = ErrEval(FuncName,'Err_1D file could not be read');
       return;
    end
-   if (nargout == 4 | nargout == 3),
+   if (nargout == 4 || nargout == 3),   
       err = 0;
    else
       err = V;
@@ -442,15 +442,15 @@ end
 %assume you have a brik format and proceed as usual
 %make sure Opt fields are set OK. That's done for the new usage format
 %   if (~isfield(Opt,'') | isempty(Opt.)),   Opt. = ; end
-   if (~isfield(Opt,'Format') | isempty(Opt.Format)),   Opt.Format = 'matrix'; end
-   if (~isfield(Opt,'MachineFormat') | isempty(Opt.MachineFormat)),   Opt.MachineFormat = ''; end
-   if (~isfield(Opt,'Scale') | isempty(Opt.Scale)),   Opt.Scale = 1; end %you can change the default for the new usage here
-   if (~isfield(Opt,'Slices') | isempty(Opt.Slices)),   Opt.Slices = []; end
-   if (~isfield(Opt,'Frames') | isempty(Opt.Frames)),   Opt.Frames = []; end
-   if (~isfield(Opt,'FileFormat') | isempty(Opt.FileFormat)),   Opt.FileFormat = ''; end
-   if (~isfield(Opt,'OutPrecision') | isempty(Opt.OutPrecision)),   Opt.OutPrecision = ''; end
-   if (~isfield(Opt,'PixX') || isempty(Opt.PixX)), Opt.PixX=[]; end
-   if (~isfield(Opt,'PixY') || isempty(Opt.PixY)), Opt.PixY=[]; end
+   if (~isfield(Opt,'Format') || isempty(Opt.Format)),   Opt.Format = 'matrix'; end
+   if (~isfield(Opt,'MachineFormat') || isempty(Opt.MachineFormat)),   Opt.MachineFormat = ''; end
+   if (~isfield(Opt,'Scale') || isempty(Opt.Scale)),   Opt.Scale = 1; end %you can change the default for the new usage here
+   if (~isfield(Opt,'Slices') || isempty(Opt.Slices)),   Opt.Slices = []; end 
+   if (~isfield(Opt,'Frames') || isempty(Opt.Frames)),   Opt.Frames = []; end 
+   if (~isfield(Opt,'FileFormat') || isempty(Opt.FileFormat)),   Opt.FileFormat = ''; end
+   if (~isfield(Opt,'OutPrecision') || isempty(Opt.OutPrecision)),   Opt.OutPrecision = ''; end
+   if (~isfield(Opt,'PixX') || isempty(Opt.PixX)), Opt.PixX=[]; end 
+   if (~isfield(Opt,'PixY') || isempty(Opt.PixY)), Opt.PixY=[]; end 
    if (~isfield(Opt,'Voxels') || isempty(Opt.Voxels)), Opt.Voxels=[]; end % NNO Dec 2010 added
 
 % NNO Dec 2010
@@ -474,7 +474,7 @@ if ~isempty(Opt.Voxels)
 end
 
 %Check for conflicts between OutPrecision and Scale
-if (Opt.Scale & ~isempty(Opt.OutPrecision)),
+if (Opt.Scale && ~isempty(Opt.OutPrecision)),
    ErrMessage = sprintf ('%s: Opt.Scale = 1 cannot be used with Opt.OutPrecision\n', FuncName);
    err = ErrEval(FuncName,'Err_Opt.Scale = 1 cannot be used with Opt.OutPrecision');
    return;
@@ -515,7 +515,7 @@ end
    end
 
    %remove last dot if it is in name
-   if (BrikName(length(BrikName)) == '.' & length(BrikName)>1),
+   if (BrikName(length(BrikName)) == '.' && length(BrikName)>1),
       BrikName = BrikName(1:length(BrikName)-1);
    end
 
@@ -543,13 +543,13 @@ end
    [err, Info] = BrikInfo(BrikName);
 
    allslices=1:Info.DATASET_DIMENSIONS(3);
-   if  (~isfield(Opt,'Slices') | isempty(Opt.Slices)),
-      Opt.Slices = allslices;
+   if  (~isfield(Opt,'Slices') || isempty(Opt.Slices)),   
+      Opt.Slices = allslices; 
    end
    isallslices=all(ismember(allslices,Opt.Slices));
    allframes=1:Info.DATASET_RANK(2);
-   if  (~isfield(Opt,'Frames') | isempty(Opt.Frames)),
-      Opt.Frames = allframes;
+   if  (~isfield(Opt,'Frames') || isempty(Opt.Frames)),   
+      Opt.Frames = allframes; 
    end
    isallframes=all(ismember(allframes,Opt.Frames));
 
@@ -758,7 +758,7 @@ if (isNIFTI),
    Info.RootName = NiftiPref;
 end
 
-if (nargout == 4 | nargout == 3),
+if (nargout == 4 || nargout == 3),   
    err = 0;
 else
    err = V;
@@ -815,7 +815,7 @@ if (isempty(Opt.FileFormat)), % try to guess
    if (~isempty(xtr)),
       is1D = 1;
    end
-elseif (strcmp(Opt.FileFormat, '1D') | strcmp(Opt.FileFormat, '1d')),
+elseif (strcmp(Opt.FileFormat, '1D') || strcmp(Opt.FileFormat, '1d')),
    is1D = 1;
 end
 isNIFTI = 0;
@@ -825,10 +825,10 @@ if (isempty(Opt.FileFormat)), % try to guess
       isNIFTI = 1;
    end
 elseif (   strcmp(Opt.FileFormat, 'NIFTI') ...
-         | strcmp(Opt.FileFormat, 'nifti') ...
-         | strcmp(Opt.FileFormat, 'Nifti') ...
-         | strcmp(Opt.FileFormat, 'Nii') ...
-         | strcmp(Opt.FileFormat, 'nii') ...
-         | strcmp(Opt.FileFormat, 'NII')),
+         || strcmp(Opt.FileFormat, 'nifti') ...
+         || strcmp(Opt.FileFormat, 'Nifti') ...
+         || strcmp(Opt.FileFormat, 'Nii') ...
+         || strcmp(Opt.FileFormat, 'nii') ...
+         || strcmp(Opt.FileFormat, 'NII')),
    isNIFTI = 1;
 end
