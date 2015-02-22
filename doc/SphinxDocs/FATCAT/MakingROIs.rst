@@ -1,9 +1,9 @@
 
 .. _Making_ROIs:
 
-*************************
-Making (networks of) ROIs
-*************************
+*************************************
+Making (networks of) ROIs: 3dROIMaker
+*************************************
 
 .. contents::
    :depth: 3
@@ -38,8 +38,8 @@ defined as a separate brick.
 
 |
 
-Operation: 3dROIMaker
-=====================
+Operation
+=========
 
 For historical reasons, the terminology of several ``3dROIMaker``
 option names and descriptions comes from a scenario where the input
