@@ -8,7 +8,7 @@ function [flg] = filexist (filename)
 flg = 0;
 if (exist(filename) == 2), %does exist, but is it local?
    s = which (filename);
-   if (isempty(s) | strmatch(pwd,s) == 1),  %File is not path or if it is, make sure that it is in the same directory
+   if (isempty(s) || strmatch(pwd,s) == 1),  %File is not path or if it is, make sure that it is in the same directory
       flg = 1;
    end
 end
