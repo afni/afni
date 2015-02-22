@@ -372,7 +372,7 @@ if (is1D), % 1D land
       err = ErrEval(FuncName,'Err_1D file could not be read');
       return;
    end
-   if (nargout == 4 || nargout == 3),   
+   if (nargout == 4 || nargout == 3),
       err = 0;
    else
       err = V;
@@ -445,12 +445,12 @@ end
    if (~isfield(Opt,'Format') || isempty(Opt.Format)),   Opt.Format = 'matrix'; end
    if (~isfield(Opt,'MachineFormat') || isempty(Opt.MachineFormat)),   Opt.MachineFormat = ''; end
    if (~isfield(Opt,'Scale') || isempty(Opt.Scale)),   Opt.Scale = 1; end %you can change the default for the new usage here
-   if (~isfield(Opt,'Slices') || isempty(Opt.Slices)),   Opt.Slices = []; end 
-   if (~isfield(Opt,'Frames') || isempty(Opt.Frames)),   Opt.Frames = []; end 
+   if (~isfield(Opt,'Slices') || isempty(Opt.Slices)),   Opt.Slices = []; end
+   if (~isfield(Opt,'Frames') || isempty(Opt.Frames)),   Opt.Frames = []; end
    if (~isfield(Opt,'FileFormat') || isempty(Opt.FileFormat)),   Opt.FileFormat = ''; end
    if (~isfield(Opt,'OutPrecision') || isempty(Opt.OutPrecision)),   Opt.OutPrecision = ''; end
-   if (~isfield(Opt,'PixX') || isempty(Opt.PixX)), Opt.PixX=[]; end 
-   if (~isfield(Opt,'PixY') || isempty(Opt.PixY)), Opt.PixY=[]; end 
+   if (~isfield(Opt,'PixX') || isempty(Opt.PixX)), Opt.PixX=[]; end
+   if (~isfield(Opt,'PixY') || isempty(Opt.PixY)), Opt.PixY=[]; end
    if (~isfield(Opt,'Voxels') || isempty(Opt.Voxels)), Opt.Voxels=[]; end % NNO Dec 2010 added
 
 % NNO Dec 2010
@@ -543,13 +543,13 @@ end
    [err, Info] = BrikInfo(BrikName);
 
    allslices=1:Info.DATASET_DIMENSIONS(3);
-   if  (~isfield(Opt,'Slices') || isempty(Opt.Slices)),   
-      Opt.Slices = allslices; 
+   if  (~isfield(Opt,'Slices') || isempty(Opt.Slices)),
+      Opt.Slices = allslices;
    end
    isallslices=all(ismember(allslices,Opt.Slices));
    allframes=1:Info.DATASET_RANK(2);
-   if  (~isfield(Opt,'Frames') || isempty(Opt.Frames)),   
-      Opt.Frames = allframes; 
+   if  (~isfield(Opt,'Frames') || isempty(Opt.Frames)),
+      Opt.Frames = allframes;
    end
    isallframes=all(ismember(allframes,Opt.Frames));
 
@@ -594,7 +594,11 @@ end
    end
    switch itype,
       case 0
-         typestr = 'ubit8';
+          % NNO >
+          typestr='uint8';
+          % =
+          % typestr = 'ubit8';
+          % <
       case 1
          typestr = 'short';
       case 2
@@ -758,7 +762,7 @@ if (isNIFTI),
    Info.RootName = NiftiPref;
 end
 
-if (nargout == 4 || nargout == 3),   
+if (nargout == 4 || nargout == 3),
    err = 0;
 else
    err = V;
