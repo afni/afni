@@ -1,9 +1,9 @@
 
 .. _Tracking:
 
-************************
-Making Tracts: 3dTrackID
-************************
+****************************
+Making Tracts: **3dTrackID**
+****************************
 
 .. contents::
    :depth: 3
