@@ -1950,6 +1950,107 @@ SUMA_Boolean SUMA_Write_Color_Map_NIML (SUMA_COLOR_MAP* SM, char *Name)
    
 }
 
+/*! 
+   Transform a set of strings, keys, and colors to a colormap
+   
+   \param str (char **): Array of region names
+   \param num (int): Number of regions
+   \param keys (int *): Array of keys
+   \param cols (float **): Array of color tuples (RGB, or RGBA) 
+   \param nc (int): Number of values per color (3 or 4)
+   \param Name (char *): Name assigned to colormap.
+   
+   \return a SUMA color map.
+         If str is NULL, names are automatically regenerated using the keys
+         if keys is NULL, the key is assumed to be the array index
+         if cols is NULL, colors are taken from SUMA's roi 256 colormap
+         if Name is NULL, the colormap is labeled by the function name
+*/ 
+SUMA_COLOR_MAP *SUMA_LabelsKeys2Cmap (char **str, int num, int *keys, 
+                                      float **cols, int nc, char *Name)
+{
+   static char FuncName[]={"SUMA_LabelsKeys2Cmap"};
+   int i=0, k=0;
+   char stmp[64];
+   SUMA_COLOR_MAP* SM = NULL, *roi256=NULL;
+
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (num < 1) {
+      SUMA_S_Err("NULL or empty input");
+      SUMA_RETURN(NULL);
+   }
+      
+   if (!cols) {
+      if (!(roi256 = SUMA_FindNamedColMap("ROI_i256"))) {
+         SUMA_S_Errv("Found no colmap %s in %p\n", "ROI_i256", SUMAg_CF->scm);
+         SUMA_Show_ColorMapVec (SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, 
+                                NULL, 1);
+         SUMA_RETURN(NULL);
+      }
+   }
+   /* allocate for SM */
+   SM = (SUMA_COLOR_MAP*) SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
+   SM->N_M[0] = num;
+   SM->N_M[1] = 4;
+   SM->idvec = (int *)SUMA_calloc(SM->N_M[0], sizeof(int));
+   SM->chd = NULL;
+   SM->top_frac = 0.0f;
+   SM->SO = NULL; 
+   SM->cname = (char **)SUMA_calloc(SM->N_M[0], sizeof(char *));;
+   if (!Name) Name = FuncName;
+   SM->Name = (char *)SUMA_calloc((strlen(Name)+1),sizeof(char));
+   sprintf(SM->Name, "%s", Name);
+   SM->frac = NULL;
+   
+   SM->M = (float**)SUMA_allocate2D (SM->N_M[0], 4, sizeof(float));
+   
+   
+   SM->Sgn = 1;
+   for (i=0; i<SM->N_M[0]; ++i) {
+      if (cols) {
+         for (k=0; k<nc; ++k) SM->M[i][k] = cols[i][k];
+         for (k=nc; k<4; ++k) SM->M[i][k] = 1.0;
+      } else { /* use from ROI256 */
+         for (k=0; k<4; ++k) SM->M[i][k] = roi256->M[i%256][k];
+      }
+      if (keys) {
+         SM->idvec[i] = keys[i];
+      } else {
+         SM->idvec[i] = i;
+      }
+      if (str && str[i]) {
+         SM->cname[i] = SUMA_copy_string(str[i]);
+      } else {
+        sprintf(stmp,"roi%03d", SM->idvec[i]);
+        SM->cname[i] = SUMA_copy_string(stmp);   
+      }     
+   }  
+   
+      
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Colormap read:\n", FuncName);
+      SUMA_disp_mat (SM->M, SM->N_M[0], SM->N_M[1], 1);
+   }
+   
+   SM->M0[0] = SM->M[0][0]; 
+   SM->M0[1] = SM->M[0][1]; 
+   SM->M0[2] = SM->M[0][2]; 
+   SM->M0[3] = SM->M[0][3]; 
+
+   /* create the hash */
+   if (!SUMA_CreateCmapHash(SM)) {
+      SUMA_S_Err("Cannot create hash!");
+      SUMA_Free_ColorMap(SM);
+      SUMA_RETURN(NULL);
+   }
+
+   SUMA_RETURN (SM);
+}
+
+
 /*! function that turns a non-linear color map into a linear one
 The larger the number of colors in the linear color map, the close the
 approximation to the non-linear map. 
@@ -3961,8 +4062,6 @@ NI_group * SUMA_CreateCmapForLabelDset(SUMA_DSET *dset,
          SUMA_S_Err("Provided cmap is no good ");
          SUMA_RETURN(NULL);
       } 
-      
-      
       NIcmap =  SUMA_CmapToNICmap (cmap);
    }
       
@@ -4032,7 +4131,7 @@ SUMA_Boolean SUMA_IsCmapOKForLabelDset(SUMA_DSET *dset, SUMA_COLOR_MAP *cmap)
    }
    for (i=0; i<N_unq; ++i) {
       if (SUMA_ColMapKeyIndex(unq[i], cmap) < 0) {
-         SUMA_S_Errv("Key %d has no entry in cmap %s\n", unq[i], cmap->Name);
+         SUMA_S_Errv("Key[%d] %d has no entry in cmap %s\n", i, unq[i], cmap->Name);
          SUMA_RETURN(NOPE);
       }
    }

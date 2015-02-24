@@ -8,6 +8,8 @@
 
 
 int SUMA_a_good_col(char *name, int i, float *acol);
+SUMA_COLOR_MAP *SUMA_LabelsKeys2Cmap (char **str, int num, int *keys, 
+                                      float **cols, int nc, char *Name);
 SUMA_COLOR_MAP * SUMA_MakeColorMap (float **Fiducials, int Nfid, byte rgba,
                                     int Ncols, SUMA_Boolean SkipLast, 
                                     char *Name);
