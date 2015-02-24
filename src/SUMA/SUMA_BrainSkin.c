@@ -1445,7 +1445,7 @@ int main (int argc,char *argv[])
       SUMA_S_Note("Now infilling");
       DSET_delete(odset); odset = NULL;
       if (!SUMA_VolumeInFill(odseti, &odset, Opt.infill, -1, -1, 
-                                    Opt.infill == 2?1:-1,0,0,0.0)) {
+                                    Opt.infill == 2?1:-1,0,0,0.0, NULL)) {
          SUMA_S_Err("Failed to infill");
          exit(1);
       }

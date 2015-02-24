@@ -83,6 +83,11 @@ afni_history_struct ziad_history[] = {
    NULL
  },
 
+ { 23, Feb, 2014, ZSS, "suma-general", MICRO, TYPE_NEW_OPT,
+   "Added support for STL I/O format. It is handy for 3D printing.",
+   NULL
+ },
+
  { 23, Feb, 2014, ZSS, "IsoSurface", MAJOR, TYPE_NEW_OPT,
    "Made IsoSurface handle ROI volumes better",
    "See options -mergerois, -isorois for details"
