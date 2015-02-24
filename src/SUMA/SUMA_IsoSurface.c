@@ -56,6 +56,9 @@ void usage_SUMA_IsoSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "               You can also follow -isorois with the only ROI keys you want\n"
 "               considered as in:\n"
 "           IsoSurface -isorois 276 277 54 input TTatlas+tlrc'[0]'-o_gii auto\n"
+"     -mergerois [LAB_OUT]: Combine all surfaces from isorois into one surface\n"
+"                 If you specify LAB_OUT then a dataset with ROIs labels is \n"
+"                 also written out and named LAB_OUT\n"
 "\n"
 "     -isoval V: Create isosurface where volume = V\n"
 "     -isorange V0 V1: Create isosurface where V0 <= volume < V1\n"
@@ -181,6 +184,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
    Opt->ivec = NULL;
    Opt->N_it = 0;
    Opt->Zt = 0.1;
+   Opt->s = NULL;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -267,6 +271,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
 			brk = YUP;
 		}
       
+       if (!brk && (strcmp(argv[kar], "-mergerois") == 0)) {
+         static int nalloc=0;
+         while (kar+1<argc && argv[kar+1][0] != '-') {
+            kar ++;
+			   Opt->s = SUMA_copy_string(argv[kar]);
+         }
+         if (!Opt->s) Opt->s = SUMA_copy_string("_Don't_Do_No'in");
+			brk = YUP;
+		}
+     
       if (!brk && (strcmp(argv[kar], "-isoval") == 0)) {
          if (Opt->MaskMode != SUMA_ISO_UNDEFINED) {
             fprintf (SUMA_STDERR, "only one masking mode (-iso*) allowed.\n");
@@ -485,8 +499,11 @@ int main (int argc,char *argv[])
       }
    } else {
       SUMA_SurfaceObject **SOv=NULL;
-      char *ppo=NULL, astr[1024]={""}, *labcp, *label=NULL, *ss=NULL;
-      int key=-1;
+      char *ppo=NULL, astr[1024]={""}, *labcp=NULL;
+      int key=-1, *keys = NULL, *labs=NULL, ii=0, kk=0;
+      char **labstr = NULL,  stmp[64], *oname=NULL;
+      SUMA_DSET *dset=NULL;
+      SUMA_COLOR_MAP *SM=NULL;
       if (!SUMA_Get_isosurface_datasets (Opt)) {
            SUMA_SL_Err("Failed to get data.");
            exit(1);
@@ -496,55 +513,137 @@ int main (int argc,char *argv[])
                                      &Opt->n_ivec, NULL, Opt->debug))) {
          SUMA_S_Err("No surfaces generated");
       } else {
-         i=0;
-         while (SOv[i]) {
-            labcp = SUMA_copy_string(SOv[i]->Label);
-            label = NULL;
-            key = -1;
-            if ((ss = strstr(labcp,"label::"))) {
-               label = ss+strlen("label::");
-               *ss='\0';
+         if (Opt->s) {
+            SUMA_SurfaceObject *SOm=NULL;
+            SUMA_S_Note("Merging %d surfaces...", Opt->n_ivec);
+            if (!(SOm = SUMA_MergeSurfs(SOv, Opt->n_ivec))) {
+               SUMA_S_Err("Failed to merge");
+               exit(1);
             }
-            if ((ss = strstr(labcp,"key::"))) {
-               key = atoi(labcp+strlen("key::"));
-            }
-            if (label && label[0]!='\0' && key > 0) {
-               snprintf(astr,100,".%s.k%d",cdeblank_allname(label,'_'), key);
-            } else if (label && label[0]!='\0') {
-               snprintf(astr,100,".%s",cdeblank_allname(label,'_'));
-            } else if (key > 0) {
-               snprintf(astr,100,".k%d",key);
-            } else {
-               snprintf(astr,100,".i%d", i);
-            }
-            SUMA_ifree(labcp);
-            ppo = SUMA_ModifyName(Opt->out_prefix, "append", astr, NULL);
-            SO_name = SUMA_Prefix2SurfaceName(  ppo, NULL, NULL, 
-                                       Opt->SurfFileType, &exists);
+            SO_name = SUMA_Prefix2SurfaceName( Opt->out_prefix, NULL, NULL, 
+                                               Opt->SurfFileType, &exists);
             if (exists && !THD_ok_overwrite()) {
-               SUMA_S_Errv("Output file(s) %s* on disk.\nWill not overwrite.\n", 
+               SUMA_S_Errv("Output file(s) %s* on disk.\n"
+                           "Will not overwrite.\n", 
                            Opt->out_prefix);
                exit(1);
             }
-            
+
             if (Opt->N_it) {
-               if (!SUMA_Taubin_Smooth_SO( SOv[i], SUMA_EQUAL, 
+               if (!SUMA_Taubin_Smooth_SO( SOm, SUMA_EQUAL, 
                                            Opt->Zt, NULL, 0, Opt->N_it)) {
                   SUMA_S_Err("Failed to smooth surface");
                }
             }
-      
-            if (!SUMA_Save_Surface_Object (SO_name, SOv[i], Opt->SurfFileType, 
+
+            if (!SUMA_Save_Surface_Object (SO_name, SOm, Opt->SurfFileType, 
                                      Opt->SurfFileFormat, NULL)) {
                      SUMA_S_Err("Failed to write surface object.\n");
                   exit (1);
             }
-            if (SO_name) SUMA_free(SO_name); SO_name = NULL;
-            SUMA_ifree(ppo);
-            SUMA_Free_Surface_Object(SOv[i]); SOv[i]=NULL;
-            ++i;
+            
+            if (strcmp(Opt->s, "_Don't_Do_No'in")) { /* write out labels dset */
+               if (!(labs = (int *)SUMA_malloc(SOm->N_Node*sizeof(int)))) {
+                  SUMA_S_Crit("Failed to allocate for %d ints!", SOm->N_Node);
+                  exit(1);
+               }
+               if (!(labstr=(char **)SUMA_calloc(Opt->n_ivec, sizeof(char*))) ||
+                   !(keys = (int *)SUMA_calloc(Opt->n_ivec, sizeof(int)))) {
+                  SUMA_S_Crit("Failed to allocate for %d ints and strings!", 
+                              Opt->n_ivec);
+                  exit(1);   
+               } 
+               i=0; kk = 0;
+               while (SOv[i]) {
+                  labstr[i] = SUMA_Decode_ROI_IsoSurfacesLabels(SOv[i]->Label, 
+                                                                keys+i);
+                  if (keys[i] < 0) keys[i] = i;
+                  if (!labstr[i]) { 
+                     sprintf(stmp,"roi%03d", keys[i]); 
+                     labstr[i] = SUMA_copy_string(stmp);
+                  }
+                  for (ii=0; ii<SOv[i]->N_Node; ++ii) {
+                     labs[kk++] = keys[i];
+                  }
+                  ++i;
+               }
+               
+               /* Now form dset and add labeltable */
+               dset = SUMA_iar2dset_ns(Opt->s, NULL, SOm->idcode_str, 
+                                       &labs, SOm->N_Node, 1, 0);
+                                       
+               if (!(SM = SUMA_LabelsKeys2Cmap(labstr, Opt->n_ivec, keys, 
+                                         NULL, 0, DSET_PREFIX(Opt->in_vol)))) {
+                  SUMA_S_Err("Failed to create color map!");                     
+               }
+               
+               if (!SUMA_AddNodeIndexColumn(dset, SOm->N_Node)) {
+                  SUMA_S_Err(" Failed to add a node index column");
+               }               
+               
+               if (!SUMA_dset_to_Label_dset_cmap(dset, SM)) {
+                  SUMA_S_Err("Failed to turn dset to label dset");
+               }
+               
+               oname = SUMA_WriteDset_s (Opt->s, dset, SUMA_NO_DSET_FORMAT, 
+                                         1, 1);
+               SUMA_ifree(oname);
+               SUMA_FreeDset(dset);
+               SUMA_ifree(labs);
+            }
+            
+            SUMA_Free_Surface_Object(SOm); SOm = NULL;
+            
+            
+            i=0;
+            while (SOv[i]) {
+               SUMA_Free_Surface_Object(SOv[i]); SOv[i]=NULL;
+               if (labstr) SUMA_ifree(labstr[i]);
+               ++i;
+            }
+         } else {
+            i=0;
+            while (SOv[i]) {
+               labcp = SUMA_Decode_ROI_IsoSurfacesLabels(SOv[i]->Label, &key);
+               if (labcp && key > 0) {
+                  snprintf(astr,100,".%s.k%d",cdeblank_allname(labcp,'_'), key);
+               } else if (labcp) {
+                  snprintf(astr,100,".%s",cdeblank_allname(labcp,'_'));
+               } else if (key > 0) {
+                  snprintf(astr,100,".k%d",key);
+               } else {
+                  snprintf(astr,100,".i%d", i);
+               }
+               SUMA_ifree(labcp);
+               ppo = SUMA_ModifyName(Opt->out_prefix, "append", astr, NULL);
+               SO_name = SUMA_Prefix2SurfaceName(  ppo, NULL, NULL, 
+                                          Opt->SurfFileType, &exists);
+               if (exists && !THD_ok_overwrite()) {
+                  SUMA_S_Errv("Output file(s) %s* on disk.\n"
+                              "Will not overwrite.\n", 
+                              Opt->out_prefix);
+                  exit(1);
+               }
+
+               if (Opt->N_it) {
+                  if (!SUMA_Taubin_Smooth_SO( SOv[i], SUMA_EQUAL, 
+                                              Opt->Zt, NULL, 0, Opt->N_it)) {
+                     SUMA_S_Err("Failed to smooth surface");
+                  }
+               }
+
+               if (!SUMA_Save_Surface_Object (SO_name, SOv[i], Opt->SurfFileType, 
+                                        Opt->SurfFileFormat, NULL)) {
+                        SUMA_S_Err("Failed to write surface object.\n");
+                     exit (1);
+               }
+               if (SO_name) SUMA_free(SO_name); SO_name = NULL;
+               SUMA_ifree(ppo);
+               SUMA_Free_Surface_Object(SOv[i]); SOv[i]=NULL;
+               ++i;
+            }
          }
-         SUMA_ifree(SOv);
+         SUMA_ifree(SOv); SUMA_ifree(labstr); SUMA_ifree(keys);
       }
    }
    
