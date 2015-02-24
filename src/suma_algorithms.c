@@ -486,6 +486,10 @@ return;
 *****************************************************************************/
 
 void dlist_destroy(DList *list) {
+   dlist_destroy_z(list, 0);
+}
+
+void dlist_destroy_z(DList *list, int content_only) {
 
 void               *data;
 
@@ -518,11 +522,17 @@ while (dlist_size(list) > 0) {
 *                                                                            *
 *****************************************************************************/
 
-memset(list, 0, sizeof(DList));
+if (!content_only) memset(list, 0, sizeof(DList));
 
 return;
 
 }
+
+/* Clear all content but leave list initialized */
+void dlist_empty(DList *list) {
+   dlist_destroy_z(list, 1);
+}
+
 
 /*****************************************************************************
 *                                                                            *
