@@ -2610,7 +2610,7 @@ ENTRY("format_cluster_table") ;
 void CLU_setup_alpha_tables( Three_D_View *im3d )
 {
    THD_3dim_dataset *dset ;
-   NI_element *nel ;
+   NI_element *nel = NULL ;
    CLU_threshtable *ctab ;
    ATR_string *atr ;
    char *msg=NULL ; int ntab=0,nmask=0 ; static int ntabold=-1 ;
