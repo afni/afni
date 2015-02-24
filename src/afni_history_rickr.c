@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24,  Feb, 2015, RCR, "neuro_deconvolve.py", MINOR, TYPE_ENHANCE,
+   "re-wrote method: new decon, upsample, multiple files, reconvolve",
+   "This is partially for evaluation of the decon/recon PPI steps."
+ } ,
+
  { 13,  Feb, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "make WMeLocal for fast anaticor a float dataset",
    "Also, generate WMeL_corr as a diagnostic volume."
