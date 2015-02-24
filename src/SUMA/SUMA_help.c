@@ -1640,18 +1640,26 @@ char * SUMA_help_message_Info(TFORM targ)
       "       0 (opaque), 25%%, 50%%, 75%%, 100%% (invisible)\n"
       "\n", SUMA_hkf("O", targ));
    SS = SUMA_StringAppend_va (SS, 
+      "   %s: Increase opacity of selected object by 4 levels.\n"
+      "\n", SUMA_hkf("Ctrl+o", targ));
+   SS = SUMA_StringAppend_va (SS, 
       "   %s: Decrease opacity of all surfaces in viewer by 4 levels.\n"
       "\n", SUMA_hkf("o", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "   %s: Set new center of rotation.\n"
-      "       Enter nothing to go back to default.\n"
+      "   %s: Decrease opacity of selected object by 4 levels.\n"
       "\n", SUMA_hkf("Ctrl+o", targ));
    SS = SUMA_StringAppend_va (SS, 
-      "  %s: Open a new surface viewer window.\n\n",
+      "   %s: Set new center of rotation.\n"
+      "       Enter nothing to go back to default.\n"
+      "\n", SUMA_hkf("Alt+o", targ));
+   SS = SUMA_StringAppend_va (SS, 
+      "   %s: Open a new surface viewer window.\n\n",
       SUMA_hkf("Ctrl+n", targ));
       
    SS = SUMA_StringAppend_va (SS, 
 "   %s: Viewer rendering mode  \n"
+"        (Fill, Line, Points, Hide), switch.\n\n"
+"   %s: Selected object rendering mode\n"
 "        (Fill, Line, Points, Hide), switch.\n\n"
 "   %s: Cycle between restrictions of where DO node-based \n"
 "         objects are displayed. Available modes are:\n"
@@ -1666,7 +1674,7 @@ char * SUMA_help_message_Info(TFORM targ)
 "        ** For the moment, 'Ctrl+p' only applies to segment \n"
 "           and sphere DOs  that are node based. \n"
 "           If you need it applied to other DOs, let me know.\n"
-      , SUMA_hkf("p", targ), SUMA_hkf("Ctrl+p", targ));
+      , SUMA_hkf("p", targ), SUMA_hkf("Ctrl+p", targ), SUMA_hkf("Alt+p", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Reset viewer and all surfaces to Fill  \n"
       "        rendering mode.\n\n", SUMA_hkf("P", targ));
