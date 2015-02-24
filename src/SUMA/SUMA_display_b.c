@@ -3613,34 +3613,53 @@ void SUMA_VrF_SetNslcString(SUMA_VR_FIELD * VrF)
 }
 
 /*!
-   \brief set transmode
+   \brief set polymode, if SurfCont is not null, also set related widget
+   
+   if delta != 0, then increment current transparency by delta.
+                  When using delta, you should pass sv->TransMode
+                  in i, for when the starting transparency is that of the viewer.
 */ 
-SUMA_Boolean SUMA_Set_ADO_TransMode(SUMA_ALL_DO *ado, int i) 
+SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
+                                    int update_widgets ) 
 {
-   static char FuncName[]={"SUMA_Set_ADO_TransMode"};
+   static char FuncName[]={"SUMA_Set_ADO_RenderMode"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    if (!ado) SUMA_RETURN(NOPE);
+   if (update_widgets) SurfCont = SUMA_ADO_Cont(ado);
    
    switch (ado->do_type) {
       case SO_type: {
          SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
-         if (i < 0 || i >= STM_N_TransModes) { 
-            SO->TransMode = STM_ViewerDefault;
-         } else { SO->TransMode = i; }
-         if (SO->TransMode == STM_16) { SO->Show = NOPE; } 
-         else { SO->Show = YUP; } 
+         if (delta) {
+            if (SO->PolyMode == SRM_ViewerDefault) {
+               /* ambiguous case, start at i */
+               SO->PolyMode = i;
+            }
+            if (delta < 0) {
+               i = ((SO->PolyMode-delta) % SRM_N_RenderModes);
+               if (i <= SRM_ViewerDefault) i = SRM_Fill;
+            } else if (delta > 0) {
+               i = ((SO->PolyMode-delta) % (SRM_N_RenderModes));
+               if (i <= SRM_ViewerDefault) i = SRM_Points;
+            }
+         }
+         SO->PolyMode = (i % SRM_N_RenderModes);
+         if (SO->PolyMode <= SRM_ViewerDefault) SO->PolyMode = SRM_Fill; 
+         if (SurfCont && SurfCont->RenderModeMenu) { /* also set widgets */
+             SUMA_Set_Menu_Widget( SurfCont->RenderModeMenu, 
+                        SUMA_RenderMode2RenderModeMenuItem(SO->PolyMode+1));
+         }
          break; }
       case VO_type: {
          SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
          SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
          if (!VSaux) SUMA_RETURN(NOPE);
-         if (i < 0 || i >= SATM_N_TransModes) { 
-            VSaux->TransMode = SATM_ViewerDefault;
-         } else { VSaux->TransMode = i; }
-         if (VSaux->TransMode == SATM_16) { VO->Show = NOPE; } 
-         else { VO->Show = YUP; } 
+         SUMA_LH("What to do for VO polymode %s (%s)?", 
+                    ADO_LABEL(ado), ADO_TNAME(ado));
          break; }
       default: 
          SUMA_S_Err("Not ready for %s (%s)", ADO_LABEL(ado), ADO_TNAME(ado));
@@ -3648,6 +3667,111 @@ SUMA_Boolean SUMA_Set_ADO_TransMode(SUMA_ALL_DO *ado, int i)
    }
    
    SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief set transmode, if SurfCont is not null, also set related widget
+   
+   if delta != 0, then increment current transparency by delta.
+                  When using delta, you should pass sv->TransMode
+                  in i, for when the starting transparency is that of the viewer.
+*/ 
+SUMA_Boolean SUMA_Set_ADO_TransMode(SUMA_ALL_DO *ado, int i, int delta,
+                                    int update_widgets ) 
+{
+   static char FuncName[]={"SUMA_Set_ADO_TransMode"};
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_ENTRY;
+   
+   if (!ado) SUMA_RETURN(NOPE);
+   if (update_widgets) SurfCont = SUMA_ADO_Cont(ado);
+   
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         if (delta) {
+            if (SO->TransMode == STM_ViewerDefault) {
+               /* ambiguous case, start at i */
+               SO->TransMode = i;
+            }
+            if (delta < 0) {
+               i = ((SO->TransMode-delta) % (STM_N_TransModes-2));
+               if (i <= STM_ViewerDefault) i = STM_16;
+            } else if (delta > 0) {
+               i = ((SO->TransMode-delta) % (STM_N_TransModes-2));
+               if (i <= STM_ViewerDefault) i = STM_0;
+            }
+         }
+         if (i < 0 || i >= STM_N_TransModes) { 
+            SO->TransMode = STM_ViewerDefault;
+         } else { SO->TransMode = i; }
+         if (SO->TransMode == STM_16) { SO->Show = NOPE; } 
+         else { SO->Show = YUP; } 
+         if (SurfCont && SurfCont->TransModeMenu) { /* also set widgets */
+            SUMA_Set_Menu_Widget(SurfCont->TransModeMenu,
+                              SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
+         }
+         break; }
+      case VO_type: {
+         SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
+         SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+         if (!VSaux) SUMA_RETURN(NOPE);
+         if (delta) {
+            if (VSaux->TransMode == SATM_ViewerDefault) {
+               /* ambiguous case, start at i */
+               VSaux->TransMode = SUMA_TransMode2ATransMode(i);
+            }
+            if (delta < 0) {
+               i = ((VSaux->TransMode-delta) % (SATM_N_TransModes-2));
+               if (i <= SATM_ViewerDefault) i = SATM_16;
+            } else if (delta > 0) {
+               i = ((VSaux->TransMode-delta) % (SATM_N_TransModes-2));
+               if (i <= SATM_ViewerDefault) i = SATM_0;
+            }
+         }
+         if (i < 0 || i >= SATM_N_TransModes) { 
+            VSaux->TransMode = SATM_ViewerDefault;
+         } else { VSaux->TransMode = i; }
+         if (VSaux->TransMode == SATM_16) { VO->Show = NOPE; } 
+         else { VO->Show = YUP; } 
+         if (SurfCont && SurfCont->VTransModeMenu) { /* also set widgets */
+            SUMA_Set_Menu_Widget(SurfCont->VTransModeMenu,
+                         SUMA_ATransMode2ATransModeMenuItem(VSaux->TransMode+1));
+         }
+         break; }
+      default: 
+         SUMA_S_Err("Not ready for %s (%s)", ADO_LABEL(ado), ADO_TNAME(ado));
+         break;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+int SUMA_Get_ADO_TransMode(SUMA_ALL_DO *ado)
+{
+   static char FuncName[]={"SUMA_Get_ADO_TransMode"};
+   
+   SUMA_ENTRY;
+   
+   if (!ado) SUMA_RETURN(STM_ViewerDefault);
+   
+   switch (ado->do_type) {
+      case SO_type: {
+         SUMA_SurfaceObject *SO = (SUMA_SurfaceObject *)ado;
+         SUMA_RETURN((int)SO->TransMode); 
+         break; }
+      case VO_type: {
+         SUMA_VolumeObject *VO = (SUMA_VolumeObject *)ado;
+         SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
+         if (!VSaux) SUMA_RETURN(NOPE);
+         SUMA_RETURN((int)VSaux->TransMode);
+         break; }
+      default: 
+         SUMA_S_Err("Not ready for %s (%s)", ADO_LABEL(ado), ADO_TNAME(ado));
+         break;
+   }
+   
+   SUMA_RETURN(STM_ViewerDefault);
 }
 
 SUMA_ATRANS_MODES SUMA_TransMode2ATransMode(SUMA_TRANS_MODES ii) 
