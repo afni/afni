@@ -371,6 +371,7 @@ typedef enum { SUMA_NO_PTR_TYPE,
                                  /*!< For pointers to SUMA_MEMBER_FACE_SETS*/
                SUMA_LINKED_SURFCONT_TYPE, /*!< For pointers to SUMA_X_SurfCont*/
                SUMA_LINKED_COLORLIST_TYPE,/* pointers to SUMA_COLORLIST_STRUCT */
+               SUMA_LINKED_DRAW_MASKS_TYPE, /*!< Pointers to SUMA_DRAW_MASKS */
                SUMA_N_LINKED_PTR_TYPES } SUMA_LINKED_PTR_TYPES;
 
 typedef enum { MAT_UNKNOWN=-2, MAT_NA = -1, MAT_HEEHAW = 0 /* not set */, 
@@ -1773,6 +1774,12 @@ SUMA_DSET * SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id,
                                  int ptr_cpy);
 SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id, 
                                  float **farp, int vec_len, int vec_num, 
+                                 int ptr_cpy);
+SUMA_DSET * SUMA_iar2dset_eng( char *FullName, char *dset_id, char *dom_id, 
+                                 int **farp, int vec_len, int vec_num, 
+                                 int ptr_cpy);
+SUMA_DSET * SUMA_iar2dset_ns( char *FullName, char *dset_id, char *dom_id, 
+                                 int **farp, int vec_len, int vec_num, 
                                  int ptr_cpy);
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
 int SUMA_dset_to_Label_dset(SUMA_DSET *dset); 
