@@ -1114,7 +1114,7 @@ int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
             /* Estimate how many nodes and triangles were rendered */
             Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
-            N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
+            N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs, 0);
             NodeTot = 0;
             FaceTot = 0;
             for (i=0; i<N_vis;++i) {
@@ -2236,6 +2236,7 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    char tk[]={"O"}, keyname[100];
    int k, nc;
    int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   SUMA_ALL_DO *ado=NULL;
    SUMA_SurfaceObject *SO = NULL;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -2247,8 +2248,13 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_O:
-         if (SUMA_CTRL_KEY(key)) {
-         
+         if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
+            
+         } else if (SUMA_CTRL_KEY(key)) {
+            if ((ado = SUMA_SV_Focus_ADO(sv))) {
+               SUMA_Set_ADO_TransMode(ado, sv->TransMode, 4, 1);
+               SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+            }
          } else {   
             sv->TransMode = ((sv->TransMode-4) % (STM_N_TransModes-2));
             if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_16;
@@ -2257,7 +2263,7 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_o:
-         if (SUMA_CTRL_KEY(key)) {
+         if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
            sv->X->SetRot_prmpt = SUMA_CreatePromptDialogStruct (
                   SUMA_OK_APPLY_CLEAR_CANCEL, "Center of Rotation X,Y,Z:", 
                   "0,0,0",
@@ -2271,6 +2277,11 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
             sv->X->SetRot_prmpt = SUMA_CreatePromptDialog(sv->X->Title, 
                                                           sv->X->SetRot_prmpt);
+         } else if (SUMA_CTRL_KEY(key)) {
+            if ((ado = SUMA_SV_Focus_ADO(sv))) {
+               SUMA_Set_ADO_TransMode(ado, sv->TransMode, -4, 1);
+               SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+            }
          } else {   
             sv->TransMode = ((sv->TransMode+4) % (STM_N_TransModes-2));
             if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_0;
@@ -2297,7 +2308,7 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    int k, nc;
    int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    SUMA_SurfaceObject *SO = NULL;
-   
+   SUMA_ALL_DO *ado=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2307,25 +2318,34 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    /* do the work */
    switch (k) {
       case XK_P:
-         sv->PolyMode = SRM_Fill;
-         N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);
-         for (k=0; k<N_SOlist; ++k) {
-            SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[k]].OP);   
-            SO->PolyMode = SRM_ViewerDefault;
-            SO->Show = YUP;
+         if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
+         } else if (SUMA_CTRL_KEY(key)) {
+         
+         } else {
+            sv->PolyMode = SRM_Fill;
+            N_SOlist = SUMA_RegisteredSOs(sv, SUMAg_DOv, SOlist);
+            for (k=0; k<N_SOlist; ++k) {
+               SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[k]].OP);   
+               SO->PolyMode = SRM_ViewerDefault;
+               SO->Show = YUP;
+            }
+            SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+            SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+            SUMA_SLP_Note("All surfaces displayed as solids");
          }
-         SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
-         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
-         SUMA_SLP_Note("All surfaces displayed as solids");
          break;
       case XK_p:
-         if (SUMA_CTRL_KEY(key)) {
+         if ((SUMA_APPLE_KEY(key) || SUMA_ALT_KEY(key))) {
             sv->DO_DrawMask = ((sv->DO_DrawMask+1) % SDODM_N_DO_DrawMasks);
             snprintf(msg,100*sizeof(char),"DO DrawMask now set to: %s", 
                         SUMA_DO_DrawMaskCode2Name_human(sv->DO_DrawMask));
             if (callmode && strcmp(callmode, "interactive") == 0) { 
                   SUMA_SLP_Note ("%s",msg); 
             } else { SUMA_S_Note ("%s",msg); }
+         } else if (SUMA_CTRL_KEY(key)) {
+            if ((ado = SUMA_SV_Focus_ADO(sv))) {
+               SUMA_Set_ADO_RenderMode(ado, sv->PolyMode, -1, 1);
+            }
          } else {
             sv->PolyMode = ((sv->PolyMode+1) % SRM_N_RenderModes);
             if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
@@ -4939,7 +4959,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                int *Vis_IDs, N_vis;
                SUMA_SurfaceObject *SO=NULL;
                Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
-               N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
+               N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs, 0);
                if (N_vis) {
                   SO = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[0]].OP;
                   /* Axial plane */
@@ -5448,7 +5468,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   /* Any hits for masks? */
                   hit = SUMA_ComputeLineMaskIntersect (sv, SUMAg_DOv, 0, &mado);
                   if (hit < 0) {
-                    SUMA_S_Err("Failed in SUMA_ComputeLineSurfaceIntersect.");
+                    SUMA_S_Err("Failed in SUMA_ComputeLineMaskIntersect.");
                   } else if (hit > 0) {
                      SUMA_LH("Mask was double clicked");
                      if (!MASK_MANIP_MODE(sv)) {
@@ -5555,7 +5575,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   
                   #if 0
                   if (SUMA_ALTHELL || 
-                      SUMA_VisibleSOs(sv, SUMAg_DOv, NULL) == 0) {
+                      SUMA_VisibleSOs(sv, SUMAg_DOv, NULL, 0) == 0) {
                       SUMA_LH("Trying for cutplanes");
                       hit = SUMA_MarkLineCutplaneIntersect (sv, SUMAg_DOv, 0);
                       if (hit < 0) {
@@ -8352,7 +8372,7 @@ int SUMA_ComputeLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
    P1f[1] = sv->Pick1[1];
    P1f[2] = sv->Pick1[2];
    
-   N_SOlist = SUMA_VisibleSOs(sv, dov, SOlist);
+   N_SOlist = SUMA_VisibleSOs(sv, dov, SOlist, 0);
    imin = -1;
    dmin = 10000000.0;
    for (ii=0; ii < N_SOlist; ++ii) { /* find the closest intersection */
