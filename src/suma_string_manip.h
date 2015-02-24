@@ -39,7 +39,7 @@ char *SUMA_Offset_Lines(char *si, int off);
 char *SUMA_Offset_SLines(char *si, int off);
 char *SUMA_Cut_String(char *s, char *sc);
 char *SUMA_Sphinx_DeRef(char *s, char *r);
-char *SUMA_Swap_String(char *s, char *sc, char *sw);
+char *SUMA_Swap_String(char **s, char *sc, char *sw);
 NI_str_array *SUMA_Split_String(char *s, char *sc);
 char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save);
 char *SUMA_Sphinx_String_Edit(char **s, TFORM targ, int off);
