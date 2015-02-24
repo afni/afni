@@ -8394,6 +8394,8 @@ SUMA_SurfaceObject *SUMA_ExtractHead_Hull(THD_3dim_dataset *iset,
 /*!
    Shrink hull of skull so that the surface lies
    on bright voxels that at least exceed the threshold. 
+   
+   This function can use a lot of cleanup.
 */   
 SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO, 
                              THD_3dim_dataset *iset, float thr,
@@ -8478,7 +8480,8 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
                             shs_bot, shs_top,
                             vxi_bot, vxi_top);
          nodeval = shs_bot[0];
-         if (in==ndbg || LocalHead) SUMA_S_Note("Node %d, %f\n", in, nodeval);
+         if (in==ndbg || LocalHead) SUMA_S_Note("Node %d, %f, thr %f\n", 
+                                                in, nodeval, thr);
          if (nodeval >= thr) { /* we're OK, minor adjustment */ 
             mask[in] = 0; /* anchor node, outside smoothing mask*/
             if (nodeval <= rng_top[1]) { /* higher val above, move up one step */
@@ -8489,6 +8492,9 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
             }
          } else {
             {
+               if (in == ndbg || LocalHead) { 
+                        SUMA_S_Note(
+                           "Must look down for %d\n", in); }
                maxtop = shs_top[0]; nmaxtop =0;
                for (nn=1; nn<10 && vxi_top[nn]>=0; ++nn) {
                   if (shs_top[nn] > maxtop) {
@@ -8503,7 +8509,7 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
                   }
                }
                /* look down for better option */
-               if (nodeval <= maxbot) { 
+               if (nodeval < maxbot || nodeval == 0) { 
                   { /* Go down to the 1st voxel meeting threshold 
                               and a good edge */
                      if (in == ndbg || LocalHead) { 
@@ -8524,11 +8530,14 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
                         xyz[0] -= ftr*dir[0];
                         xyz[1] -= ftr*dir[1];
                         xyz[2] -= ftr*dir[2]; 
-                        if (shs_bot[nn]> thr)
+                        if (shs_bot[nn]>= thr)
                            mask[in]=0;                  
                      } else { /* keep going if sitting on no value */
                         if (nodeval < 0.1*thr) {
                            if (maxbot > nodeval || nodeval == 0) {
+                              if (in == ndbg){ 
+                                 SUMA_S_Note("Still want to go down");
+                              }
                               nn = nmaxbot; 
                               if (!nn) nn = 1; /* If too far in space and nothing
                                                   is found nmaxbot can be 0, so 
@@ -8546,13 +8555,13 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
                               xyz[0] -= ftr*dir[0];
                               xyz[1] -= ftr*dir[1];
                               xyz[2] -= ftr*dir[2];
-                           } 
-                        }
+                           }
+                           ++N_movers;
+                       }
                      } 
                   }
                }
             }
-               ++N_movers;
          }
       }
       
@@ -8583,15 +8592,19 @@ SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
       
       /* write it out for debugging */
       if (LocalHead) {
-         SUMA_LHv("Iteration %d, N_movers = %d, area = %f (Darea=%f)\n",
+         SUMA_LHv("Iteration %d, N_movers = %d, area = %f (Darea=%f%%)\n",
                iter, N_movers, area, darea);
          THD_force_ok_overwrite(1) ;
          sprintf(sbuf,"shrink.02%d",iter);
          SUMA_Save_Surface_Object_Wrap(sbuf, NULL, SO, 
                                  SUMA_GIFTI, SUMA_ASCII, NULL);
+      } else if (ndbg >= 0) {
+        SUMA_S_Note("Iteration %d, N_movers = %d (%f), area = %f (Darea=%f%%)\n",
+               iter, N_movers, (float)N_movers/SO->N_Node, area, darea);
       }
       ++iter;
-      if (iter > itermax1 || SUMA_ABS(darea) < 0.005) stop = YUP;
+      if (iter > itermax1 || ( SUMA_ABS(darea) < 0.005 && 
+                               (float)N_movers/SO->N_Node < 0.01 ) ) stop = YUP;
       if (!stop && SUMA_ABS(darea) < 0.01) {
          /* A quick smoothing with anchors in place */
          SUMA_NN_GeomSmooth_SO(SO, mask, 0, 10);
