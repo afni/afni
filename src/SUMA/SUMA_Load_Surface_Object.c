@@ -3892,7 +3892,21 @@ SUMA_Boolean SUMA_LoadSpec_eng (
          it's inefficient to check after the surface is read, 
          but idcode is generated in the read routine 
          and users should not be making this mistake too often */
-
+         if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
+            /* Check the filename match, to get around ID collision 
+               This modification is no guarantee that collisions
+               won't occur but it is a start until I figure out
+               the problem with hashcode */
+            SUMA_SurfaceObject *SOm = NULL;
+            SOm = SUMA_findSOp_inDOv(SO->idcode_str, dov, *N_dov);
+            if (strcmp(SOm->Label, SO->Label)) {
+               char stmp[256];
+               /* give SO a new ID */
+               sprintf(stmp,"%s-%s", SO->Label, SO->idcode_str);
+               SUMA_ifree(SO->idcode_str);
+               SUMA_NEW_ID(SO->idcode_str, stmp);
+            }
+         }
          if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
             SUMA_SurfaceObject *SOm = NULL;
             SOm = SUMA_findSOp_inDOv(SO->idcode_str, dov, *N_dov);
@@ -4267,7 +4281,8 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
 {
    static char FuncName[]={"SUMA_SurfaceMetrics_eng"};
    float *Cx=NULL, *SOCx = NULL;
-   SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind, LocalHead = NOPE;
+   SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind, DoDW, 
+                LocalHead = NOPE;
    int i = 0;
    
    SUMA_ENTRY;
@@ -4282,6 +4297,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
       SUMA_RETURN(NOPE);
    }
    DoConv = DoArea = DoCurv = DoEL = DoMF = DoWind = NOPE;
+   DoDW = YUP; /* No need to skimp on this one, costs nothing */
    
    if (SUMA_iswordin (Metrics, "Convexity")) DoConv = YUP;
    if (SUMA_iswordin (Metrics, "PolyArea")) DoArea = YUP;
@@ -4291,14 +4307,13 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
    if (SUMA_iswordin (Metrics, "CheckWind")) DoWind = YUP;
    
    /* check for input inconsistencies and warn */
-   if (!DoConv && !DoArea && !DoCurv && !DoEL  && !DoMF && !DoWind) {
+   if (!DoConv && !DoArea && !DoCurv && !DoEL  && !DoMF && !DoWind && !DoDW) {
       if (debug) fprintf ( SUMA_STDERR,
                            "Warning %s: Nothing to do.\n", FuncName);
       SUMA_RETURN (YUP);
    }
    
-   SOCx = (float *)SUMA_GetCx (SO->idcode_str, DsetList, 0); 
-   if (DoConv && SOCx) {
+   if (DoConv && (SOCx = (float *)SUMA_GetCx (SO->idcode_str, DsetList, 0))) {
       if (debug) fprintf ( SUMA_STDERR,
                            "Warning %s: SOCx != NULL \n"
                            "and thus appears to have been precomputed.\n",
@@ -4641,6 +4656,21 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (
       }
    }
 
+   /* Initialize drawing masks */
+   if (DoDW) {
+      if (!SOinh) {
+         SO->DW = (SUMA_DRAW_MASKS *)SUMA_calloc(1,sizeof(SUMA_DRAW_MASKS));
+         SO->DW->do_type = not_DO_type;
+         SO->DW->LinkedPtrType = SUMA_LINKED_DRAW_MASKS_TYPE;
+         SO->DW->N_links = 0;
+         sprintf(SO->DW->owner_id, "%s", SO->idcode_str);
+         SUMA_EmptyDrawMasks(SO->DW);
+      } else {
+         if (LocalHead) 
+               fprintf(SUMA_STDOUT, "%s: Linking Drawing Masks ...\n", FuncName);
+         SO->DW = (SUMA_DRAW_MASKS *)SUMA_LinkToPointer((void*)SOinh->DW);
+      }
+   }
    SUMA_RETURN (YUP);
 }
 
