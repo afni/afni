@@ -22,7 +22,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.7.2, Feb 12, 2015
+Version 1.7.3, Feb 24, 2015
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - http://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -70,7 +70,7 @@ Usage:
  Once the 3dLME command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
  script as a text file, for example, called LME.txt, and execute it with the 
- following  (assuming on tc shell),
+ following (assuming on tc shell),
  
  tcsh -x LME.txt &
  
@@ -127,7 +127,7 @@ intercept and RT effect whose correlation is estimated from the data.
           -qVarCenters \"105.35,34.7\"                                       \\
           -ranEff '~1+RT'                                                  \\
           -SS_type 3                                                       \\
-          -num_glt 2                                                       \\
+          -num_glt 4                                                       \\
           -gltLabel 1 'House' -gltCode  1 'cond : 1*House'    \\
           -gltLabel 2 'Face-House' -gltCode  2 'cond : 1*Face -1*House'    \\
           -gltLabel 3 'House-AgeEff' -gltCode  3 'cond : 1*House age :'    \\
@@ -1274,7 +1274,7 @@ if(lop$ICC) {  # ICC part
       try(fm <- glm(ModelForm, family=binomial(logit), data=lop$dataStr), silent=TRUE)
       if(!is.null(fm))  {
          print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
-         lop$NoBrick <- 2*dim(summary(fm)$coefficients)[1] + 1 # add 1 sub-bricks for accMax and cutoff
+         lop$NoBrick <- 2*dim(summary(fm)$coefficients)[1] + (lop$cutoff>0) # add 1 sub-bricks for accMax and cutoff
       } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {
          ii<-xinit; jj <- yinit; kk <- kk+1 } else {
       cat('~~~~~~~~~~~~~~~~~~~ Model test failed  ~~~~~~~~~~~~~~~~~~~\n')    
@@ -1534,10 +1534,10 @@ if(lop$ICC) {  # ICC part
 write.AFNI(lop$outFN, Stat, outLabel, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
 if(lop$LOGIT) {
-   write.AFNI(paste('cutoff', lop$outFN, sep=''), cutoff, label=NULL, defhead=head, idcode=newid.AFNI(),
-      com_hist=lop$com_history, type='MRI_short')
-   write.AFNI(paste('acc', lop$outFN, sep=''), acc, label=NULL, defhead=head, idcode=newid.AFNI(),
-      com_hist=lop$com_history, type='MRI_short')
+   write.AFNI(paste(parse.AFNI.name(lop$outFN)$path, paste('/cutoff_', parse.AFNI.name(lop$outFN)$prefix, sep=''), sep=''),
+      acc, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
+   write.AFNI(paste(parse.AFNI.name(lop$outFN)$path, paste('/acc_', parse.AFNI.name(lop$outFN)$prefix, sep=''), sep=''),
+      acc, label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')
 }    
 #system(statpar)
 print(sprintf("Congratulations! You've got an output %s", lop$outFN))
