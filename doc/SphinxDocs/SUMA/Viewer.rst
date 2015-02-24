@@ -318,11 +318,11 @@ Quick Tour
                   
                   * See detailed help :ref:`here<SurfCont->Dset_Mapping->SetRangeTable.c00>`. Note that a Left click on the :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>` locks ranges from automatic resetting when you choose a different dataset column for **I**. A right click on :ref:`'I'<SurfCont->Dset_Mapping->SetRangeTable.r01>` resets values to full range in data.
                
-               * For color mapping controls see :ref:`Col<SurfCont->Dset_Mapping->Col>`,  :ref:`New<SurfCont->Dset_Mapping->Cmp->New>`,:ref:`Cmp<SurfCont->Dset_Mapping->Cmp>`, etc.
+               * For color mapping controls see :ref:`Col<SurfCont->Dset_Mapping->Col>`,  :ref:`New<SurfCont->Dset_Mapping->Cmp->New>`, :ref:`Cmp<SurfCont->Dset_Mapping->Cmp>`, etc.
                
                * Bored? Try :ref:`Bias<SurfCont->Dset_Mapping->Bias>` for a change.
                
-            * The colormap is rendered as a surface, and shares some of the functions of SUMA's viewer. You have keyboard controls when the mouse is over the colorbar. See details :ref:`here<SurfCont->Dset_Mapping->Cmap->bar>`.
+            * The colormap is rendered as a surface, and shares some of the functions of SUMA's viewer. You have keyboard controls when the mouse is over the colorbar. More info :ref:`here<Colormap_Keyboard_Controls>` and :ref:`there<SurfCont->Dset_Mapping->Cmap->bar>`.
             
             * Interactive clustering:
                
@@ -474,6 +474,7 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.18.28_AM_B.png
       :align: center
       :width: 75%
+      
    |
 
 #. Again, we can make the volumes have a non-grayscale colormap for
@@ -485,6 +486,7 @@ with dashed ellipsoids (ell) for ease of finding.
    .. figure:: media/FAT_VIEWING_ROIS/Screen_Shot_2015-02-01_at_9.19.25_AM_B.png
       :align: center
       :width: 75%
+      
    |
 
 #. And that's pretty much that!  You can view the results from
