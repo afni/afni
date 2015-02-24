@@ -65,6 +65,34 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23, Feb, 2014, ZSS, "suma-general", MAJOR, TYPE_MODIFY,
+   "Allow SUMA to break a surface into multiple drawing patches",
+   "This makes it possible to show certain parts of a mesh based on \n"
+   "a nodemask. The nodemask can be generated on the fly and updated with \n"
+  "mouse clicks. This is only available in -dev mode. See SUMA_DrawMesh_mask()\n"
+   "and temporary env SUMA_TEMP_NODE_CMASK_EXPR"
+ },
+
+ { 23, Feb, 2014, ZSS, "suma-general", MINOR, TYPE_NEW_OPT,
+   "Set transparency and rendering modes per object",
+   "See ctrl+o, ctrl+p"
+ },
+
+ { 23, Feb, 2014, ZSS, "suma-general", MICRO, TYPE_BUG_FIX,
+   "Patched source for hash collisions on file names",
+   NULL
+ },
+
+ { 23, Feb, 2014, ZSS, "IsoSurface", MAJOR, TYPE_NEW_OPT,
+   "Made IsoSurface handle ROI volumes better",
+   "See options -mergerois, -isorois for details"
+ },
+
+ { 23, Feb, 2014, ZSS, "afni-general", MICRO, TYPE_MODIFY,
+   "Made SUMA_Swap_String handle increased string length.",
+   NULL
+ },
+
  { 6, Feb, 2014, ZSS, "3dSurfMask", MICRO, TYPE_NEW_OPT,
    "Added -meth peri to return intersection with surface only.",
    NULL
