@@ -86,7 +86,25 @@ No callback is made*/
    }  \
 }
 
+#define SUMA_GET_CELL_VALUE(TF, i, j, val)   {  \
+   if (TF->type == SUMA_int || TF->type == SUMA_float) { \
+      val = TF->num_value[j*TF->Ni+i];  \
+   }  else {   \
+      SUMA_SL_Err("Macro for numerical tables only"); \
+      val = 0.0;  \
+   }  \
+}
 
+#define SUMA_SET_CELL_VALUE(TF, i, j, val)   {  \
+   if (TF->type == SUMA_int) {\
+      TF->num_value[j*TF->Ni+i] = (int)val;  \
+   } else if (TF->type == SUMA_float) { \
+      TF->num_value[j*TF->Ni+i] = (float)val;  \
+   }  else {   \
+      SUMA_SL_Err("Macro for numerical tables only"); \
+      val = 0.0;  \
+   }  \
+}
 
 /*!
    \brief retrieves the cell index using the cell's widget
@@ -421,7 +439,8 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ADO);
 SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ADO);
 char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado, 
                                  SUMA_DSET *dset, int Node,
-                                 int find, int tind, int bind, int dec);
+                                 int find, int tind, int bind, int dec,
+                                 double *I, double *T, double *B);
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado);
@@ -462,6 +481,8 @@ SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado);
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_ALL_DO *ado);
 char *SUMA_GetLabelsAtSelection(SUMA_ALL_DO *ado, int node, int sec);
 char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec);
+SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
+                                       float *I, float *T, float *B);
 SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
 SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado, 
                                      SUMA_SurfaceViewer *sv);
@@ -1588,8 +1609,9 @@ SUMA_SHPINX_BREAK \
 "Setting<SurfCont->Dset_Mapping->SetRangeTable.r01>`, among other things. "\
 "Threshold settings determine whether or not a certain value will get "\
 "displayed at all.:LR:\n"  \
-"Use ctrl+h over the colorbar for help on manipulating the displayed\n"  \
-"map.\n"    
+"Use :SPX: *ctrl+h over the colorbar* :DEF: ctrl+h over the colorbar :SPX:"\
+"for help on :ref:`manipulating the displayed "\
+"map<Colormap_Keyboard_Controls>`.\n"    
    
 #define SUMA_SurfContHelp_ThrScale  \
    "Set threshold value to determine which nodes/voxels/edges will get colored"\
