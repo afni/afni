@@ -16,6 +16,40 @@ http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf
    mcb->data[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y] = val; \
 }
 
+/* 
+   Decode the label of surface objects given by SUMA_THD_ROI_IsoSurfaces()
+   Need to free returned label string 
+*/
+char *SUMA_Decode_ROI_IsoSurfacesLabels(char *SOlabel, int *key)
+{
+   static char FuncName[]={"SUMA_Decode_ROI_IsoSurfacesLabels"};
+   char *labcp=NULL, *ss=NULL, *label=NULL;
+   int k=0;
+   
+   SUMA_ENTRY;
+   
+   if (key) *key = -1;
+   if (!SOlabel) SUMA_RETURN(labcp);
+   labcp = SUMA_copy_string(SOlabel);
+   label = NULL;
+   if ((ss = strstr(labcp,"label::"))) {
+      label = ss+strlen("label::");
+      *ss='\0';
+   }
+   if ((ss = strstr(labcp,"key::"))) {
+      *key = atoi(labcp+strlen("key::"));
+   }
+   if (label && label[0]!='\0') {
+      do {
+         labcp[k++] = *label; ++label;
+      } while (*label != '\0');
+   } else {
+      SUMA_ifree(labcp);
+   }           
+   
+   SUMA_RETURN(labcp); 
+}
+
 /*! 
    Return IsoSurfaces for each unique value in the dataset separately
    
