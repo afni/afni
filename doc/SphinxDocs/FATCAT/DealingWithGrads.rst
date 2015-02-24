@@ -1,9 +1,9 @@
 
 .. _DealingWithGrads:
 
-*************************
-Dealing with DW gradients
-*************************
+**********************************************
+Dealing with DW gradients: **1dDW_Grad_o_Mat**
+**********************************************
 
 .. contents::
    :depth: 3
@@ -122,10 +122,13 @@ with the spatial directionality in a single expression, the
 .. math::
    \mathbf{B}= b \mathbf{G},
 
-where every component of the above dyadic matrix, **G**, is simply multiplied
-by the DW factor, *b*.  All the other notations, symmetries and relations
-remain the same, including the distinctions in row- or diagonal-first
-notations.  Of note, TORTOISE uses and outputs a *row-first* *b*\-matrix.
+where every component of the above dyadic matrix, **G**, is simply
+multiplied by the DW factor, *b*.  All the other notations, symmetries
+and relations remain the same, including the distinctions in row- or
+diagonal-first notations.  Of note, TORTOISE by default uses and
+outputs a *row-first* *b*\-matrix; if you use the 'AFNI_SAVE' option
+at the end of DIFF_PREP, however, the output matrix is actually a
+*diagonal-first* *b*\-matrix (AKA: AFNI-style).
 
 
 The following figure shows a comparison of the same few lines of four
@@ -162,12 +165,10 @@ DT elements is apparent when comparing the *g*\-matrices. Finally, one
 can see how the *b*\=1000 information translates into the *b*\-matrix
 file by comparing the last two rows.
 
-
-
 |
 
-Operations (1dDW_Grad_o_Mat)
-============================
+Operations
+==========
 
 Gradient and matrix information
 -------------------------------
@@ -179,17 +180,17 @@ Gradient and matrix information
 
     .. _grads_table:
 
-    +---------------------------+---------------------------------------+--------------------------------+
-    |       input/option        |               style                   |       example program          |
-    +===========================+=======================================+================================+
-    | -{in,out}_grad_rows       | row gradients                         | dcm2nii output, TORTOISE input |
-    +---------------------------+---------------------------------------+--------------------------------+
-    | -{in,out}_grad_cols       | column gradients                      | basic input to 3dDWItoDT       |
-    +---------------------------+---------------------------------------+--------------------------------+
-    | -{in,out}_{g,b}matA_cols  | row-first *g*\- or *b*\-matrices      | alt. input to 3dDWItoDT        |
-    +---------------------------+---------------------------------------+--------------------------------+
-    | -{in,out}_{g,b}matT_cols  | diagonal-first *g*\- or *b*\-matrices | TORTOISE output                |
-    +---------------------------+---------------------------------------+--------------------------------+
+    +---------------------------+---------------------------------------+--------------------------------------------------------+
+    |       input/option        |               style                   |       example program                                  |
+    +===========================+=======================================+========================================================+
+    | -{in,out}_grad_rows       | row gradients                         | dcm2nii output, TORTOISE input                         |
+    +---------------------------+---------------------------------------+--------------------------------------------------------+
+    | -{in,out}_grad_cols       | column gradients                      | basic input to 3dDWItoDT                               |
+    +---------------------------+---------------------------------------+--------------------------------------------------------+
+    | -{in,out}_{g,b}matA_cols  | row-first *g*\- or *b*\-matrices      | alt. input to 3dDWItoDT; (some) TORTOISE output        |
+    +---------------------------+---------------------------------------+--------------------------------------------------------+
+    | -{in,out}_{g,b}matT_cols  | diagonal-first *g*\- or *b*\-matrices | (some) TORTOISE output                                 |
+    +---------------------------+---------------------------------------+--------------------------------------------------------+
 
 
 

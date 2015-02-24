@@ -1,9 +1,9 @@
 
 .. _Making_ROIs:
 
-*************************
-Making (networks of) ROIs
-*************************
+*****************************************
+Making (networks of) ROIs: **3dROIMaker**
+*****************************************
 
 .. contents::
    :depth: 3
@@ -38,8 +38,8 @@ defined as a separate brick.
 
 |
 
-Operation: 3dROIMaker
-=====================
+Operation
+=========
 
 For historical reasons, the terminology of several ``3dROIMaker``
 option names and descriptions comes from a scenario where the input
@@ -506,7 +506,7 @@ has the following properties:
 
 #. it is already parcellated into integer-labelled ROIs;
 #. its ROIs are contiguous;
-#. a labeltable attached is attached.
+#. a labeltable is attached.
 
 The FATCAT_DEMO contains an example of such a set (output from
 FreeSurfer) in the script ``Do_11_RUNdti_Connectome_Examp.tcsh``.
