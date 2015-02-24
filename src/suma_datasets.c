@@ -11927,7 +11927,7 @@ SUMA_DSET *SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id,
       SUMA_RETURN(dset); 
    }
    
-   if (vec_num > 200 * vec_len || vec_num > 50000) { /* a warning for MSB's mishap */
+   if (vec_num > 200 * vec_len || vec_num > 50000){/* warning for MSB's mishap */
       char *eee = getenv("SUMA_1D_Transpose_Warn");
       int Warn = 1;
       static int nwarn = 0;
@@ -11965,11 +11965,13 @@ SUMA_DSET *SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id,
          } 
       }
    }
-   dset = SUMA_CreateDsetPointer( FullName, SUMA_NODE_BUCKET, dset_id, dom_id,  vec_len  ); 
+   dset = SUMA_CreateDsetPointer( FullName, SUMA_NODE_BUCKET, 
+                                  dset_id, dom_id,  vec_len  ); 
    
    /* now add the columns */
    for (i=0; i<vec_num; ++i) {
-      if (!SUMA_AddDsetNelCol (dset, "numeric", SUMA_NODE_FLOAT, (void *)(&(far[i*vec_len])), NULL ,1)) {
+      if (!SUMA_AddDsetNelCol (dset, "numeric", SUMA_NODE_FLOAT, 
+                               (void *)(&(far[i*vec_len])), NULL ,1)) {
          SUMA_PushErrLog("SL_Crit", "Failed in SUMA_AddDsetNelCol", FuncName);
          SUMA_FreeDset((void*)dset); dset = NULL;
          SUMA_RETURN(dset);
@@ -11977,6 +11979,65 @@ SUMA_DSET *SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id,
    }
       
    if (ptr_cpy) *farp = NULL;
+
+   SUMA_RETURN(dset);
+}
+
+SUMA_DSET *SUMA_iar2dset_ns( char *FullName, char *dset_id, char *dom_id, 
+                              int **iarp, int vec_len, int vec_num, 
+                              int ptr_cpy) 
+{
+   SUMA_DSET *dset = SUMA_iar2dset_eng( FullName, dset_id, dom_id, 
+                                 iarp, vec_len, vec_num, 
+                                 ptr_cpy);
+   WorkErrLog_ns();
+   return(dset);
+}
+SUMA_DSET *SUMA_iar2dset_eng( char *FullName, char *dset_id, char *dom_id, 
+                                 int **iarp, int vec_len, int vec_num, 
+                                 int ptr_cpy) 
+{
+   static char FuncName[]={"SUMA_iar2dset_eng"};
+   SUMA_DSET *dset = NULL;
+   int i = 0;
+   int *iar = NULL;
+
+   SUMA_ENTRY;
+   
+   if (!FullName) { 
+      SUMA_PushErrLog("SL_Err", "Need a FullName", FuncName); 
+      SUMA_RETURN(dset); 
+   }
+   if (!iarp) { 
+      SUMA_PushErrLog("SL_Err", "NULL iarp", FuncName); SUMA_RETURN(dset); 
+   }
+   iar = *iarp;
+   if (!iar) { 
+      SUMA_PushErrLog("SL_Err", "NULL *iarp", FuncName); SUMA_RETURN(dset); 
+   }
+   if (vec_len < 0 || vec_num < 0) { 
+      SUMA_PushErrLog("SL_Err", "Negative vec_len or vec_num", FuncName);
+      SUMA_RETURN(dset); 
+   }
+   if (ptr_cpy) { 
+      SUMA_PushErrLog("SL_Err", "Pointer copy not supported yet", FuncName); 
+      SUMA_RETURN(dset); 
+   }
+   
+   dset = SUMA_CreateDsetPointer( FullName, SUMA_NODE_BUCKET, dset_id, 
+                                  dom_id,  vec_len  ); 
+   
+   /* now add the columns */
+   for (i=0; i<vec_num; ++i) {
+      if (!SUMA_AddDsetNelCol (dset, "numeric", SUMA_NODE_INT, 
+                               (void *)(&(iar[i*vec_len])), NULL ,1)) {
+         SUMA_PushErrLog("SL_Crit", "Failed in SUMA_AddDsetNelCol", FuncName);
+         SUMA_FreeDset((void*)dset); dset = NULL;
+         SUMA_RETURN(dset);
+      }
+   }
+      
+   if (ptr_cpy) *iarp = NULL;
 
    SUMA_RETURN(dset);
 }
