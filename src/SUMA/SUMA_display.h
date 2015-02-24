@@ -872,7 +872,11 @@ int SUMA_SetMaskTableValueNew(int row, int col,
                               int setmen, 
                               int redisplay,
                               SUMA_NUMERICAL_UNITS num_units);
-SUMA_Boolean SUMA_Set_ADO_TransMode(SUMA_ALL_DO *ado, int i);
+SUMA_Boolean SUMA_Set_ADO_TransMode(SUMA_ALL_DO *ado, int i, 
+                                    int delta, int update_widgets);
+SUMA_Boolean SUMA_Set_ADO_RenderMode(SUMA_ALL_DO *ado, int i, int delta,
+                                    int update_widgets );
+int SUMA_Get_ADO_TransMode(SUMA_ALL_DO *ado);
 void SUMA_cb_Masks_Save (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_Masks_Load(Widget w, XtPointer data, XtPointer client_data);
 SUMA_Boolean SUMA_LoadMultiMasks_eng (char *filename, 
