@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 19 , FEB, 2015 , DRG , "@Align_Centers child bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "child datasets not created properly",
+    "If creating new shift datasets (the default), the\n"
+    "datasets would not be properly updated to reflect\n"
+    "the new origin shift."
+} ,
 { 17 , FEB, 2015 , DRG , "align_epi_anat.py center alignment" , 
     MINOR , TYPE_NEW_OPT, 
     "-ginormous_move and -align_centers added",
