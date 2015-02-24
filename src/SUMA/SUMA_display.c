@@ -2430,7 +2430,14 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                   if (  (SO->Side == SUMA_LEFT && csv->ShowLeft) || 
                         (SO->Side == SUMA_RIGHT && csv->ShowRight) ||
                         SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_LR) {
-                        SUMA_DrawMesh(SO, csv); /* create the surface */
+                        if (SUMAg_CF->Dev && 
+                            (SUMA_EnvVal("SUMA_TEMP_NODE_CMASK_EXPR"))) {
+                           /* Secret option, for testing only, search for 
+                           env above for example */
+                           SUMA_DrawMesh_mask(SO, csv); /* create the surface */
+                        } else {
+                           SUMA_DrawMesh(SO, csv); /* create the surface */
+                        }
                   }
                }
                break;
