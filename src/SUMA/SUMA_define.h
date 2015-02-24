@@ -2857,6 +2857,25 @@ typedef struct {
    int LinkedPtrType; /*!< Indicates the type of linked pointer */
    int N_links;   /*!< Number of links to this pointer */
    char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created 
+                                 that pointer.*/
+
+   byte *nodemask; /*! Pointer to  nodes in the mask */
+   int N_nz_nodemask; /*! number of non-zero values in mask */
+   DList *DrwPtchs; /*! Pointer to a list of drawing patches */ 
+   int PatchRegenID; /*! An integer that gets incremented anytime you want
+                         the drawing patches to get regenerated. */
+   int PatchGenID; /*! if != PatchRegenID then regenerate patches and set
+                         to PatchRegenID */
+   char *user_exp; /*!< User masking expression */
+   char *cmask_exp; /*!< User expression, preppred for cmask evaluation */
+   char *last_cmask_exp; /*!< Last expression evaluated to form nodemask */
+} SUMA_DRAW_MASKS; /*!< Drawing masks formed on the fly */
+
+typedef struct {
+   SUMA_DO_Types do_type;  /*!< To check if this is a displayable object */
+   int LinkedPtrType; /*!< Indicates the type of linked pointer */
+   int N_links;   /*!< Number of links to this pointer */
+   char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created 
                                  that pointer. Might never get used.... */
 
    char *idcode_str;
@@ -3210,13 +3229,28 @@ typedef struct {
    float *NodeList_swp; /*!< A temporary pointer copy for swapping NodeList with
                              VisX's transformed coordinates. Use sparingly */
    float PointSize; /*! Set to negative to make it so it has no effect */
-}SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
+   
+   SUMA_DRAW_MASKS *DW; /*!< A structure containing node masking information
+                             for on the fly masking */
+} SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Load_Surface_Object in SUMA_Load_Surface_Object.c
                */  
 
-
+typedef struct {
+   SUMA_Boolean FreeFaceSetList; /*! Set to YUP if FaceSetList is not a 
+                                     pointer copy */
+   int *FaceSetList;            /*! A subset of the parent surface's triangles 
+                                   to be drawn */
+   int N_FaceSet;
+   
+   
+   /* See SUMA_SurfaceObject for interpretation of the following parameters */
+   SUMA_Boolean Show; 
+   SUMA_RENDER_MODES PolyMode; 
+   SUMA_TRANS_MODES TransMode; 
+}  SUMA_DrawPatch; /* Surfaces can be drawn in patches for nefarious reasons. */
 
 typedef struct {
       /* FIRST VARIABLES MUST RETAIN THEIR ORDER and follow SUMA_ALL_DO */
