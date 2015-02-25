@@ -16901,7 +16901,7 @@ int SUMA_Prep_SO_DrawPatches(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv)
    byte *fm=NULL;
    int N_fm = -1, tb[2];
    SUMA_DrawPatch *ptch=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    
