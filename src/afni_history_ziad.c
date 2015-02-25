@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_ENV,
+   "Added env SUMA_Transparency_Step to control transparency step",
+   NULL
+ },
+
  { 23, Feb, 2014, ZSS, "suma-general", MAJOR, TYPE_MODIFY,
    "Allow SUMA to break a surface into multiple drawing patches",
    "This makes it possible to show certain parts of a mesh based on \n"
