@@ -3386,6 +3386,10 @@ static ENV_SPEC envlist[] = {
       "you are debugging.\n",
       "SUMA_CountProcs_Verb",
       "NO" },
+   {  "Number of transparency levels to jump with each 'o' key press\n"
+      "Choose one of 1, 2, 4, or 8\n",
+      "SUMA_Transparency_Step",
+      "4" },
    {  NULL, NULL, NULL  }
 };
       

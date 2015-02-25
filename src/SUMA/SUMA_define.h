@@ -3852,7 +3852,7 @@ typedef struct {
    char *cwd;
    
    float CmapRotaFrac; /*!< fraction by which to rotate colormap */
-   
+   int   TransModeStep; /*!< levels to jump when changing transparency*/
    DList *xforms;    /*!<  List of transforms that apply to certain dsets 
                            or surfaces */
    DList *callbacks; /*!< List of callbacks that apply to certain dsets or

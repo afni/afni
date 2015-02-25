@@ -2673,7 +2673,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                float val;
                
                /* Toy example for expression:
-  setenv SUMA_TEMP_NODE_CMASK_EXPR '-a labels.niml.dset -expr equals(a,$SEL)' */
+  setenv SUMA_TEMP_NODE_CMASK_EXPR '-a labels.niml.dset -expr equals(a,$SEL) + equals(a,258)' */
                TLH(1);
                DW->user_exp = 
                   SUMA_copy_string(eee);

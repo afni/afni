@@ -4439,6 +4439,21 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          cf->CmapRotaFrac = 0.05;
       }
    }
+   {
+      char *eee = getenv("SUMA_Transparency_Step");
+      if (eee) {
+         cf->TransModeStep = atof(eee); 
+         if (cf->TransModeStep < 1 || cf->TransModeStep > 8) {
+            SUMA_S_Warn( 
+               "Values for environment variable SUMA_Transparency_Step\n"
+               "are outside valid range of [1 .. 8]. \n"
+               "Setting value to default of 4.");
+            cf->TransModeStep = 4;
+         }   
+      } else {
+         cf->TransModeStep = 4;
+      }
+   }
    
    cf->xforms = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init (cf->xforms, SUMA_FreeXform);
