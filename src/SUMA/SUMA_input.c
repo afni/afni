@@ -2252,11 +2252,13 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             
          } else if (SUMA_CTRL_KEY(key)) {
             if ((ado = SUMA_SV_Focus_ADO(sv))) {
-               SUMA_Set_ADO_TransMode(ado, sv->TransMode, 4, 1);
+               SUMA_Set_ADO_TransMode(ado, sv->TransMode, 
+                                      SUMAg_CF->TransModeStep, 1);
                SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
             }
          } else {   
-            sv->TransMode = ((sv->TransMode-4) % (STM_N_TransModes-2));
+            sv->TransMode = ((sv->TransMode-SUMAg_CF->TransModeStep) % 
+                                                      (STM_N_TransModes-2));
             if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_16;
            
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
@@ -2279,11 +2281,13 @@ int SUMA_O_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                                           sv->X->SetRot_prmpt);
          } else if (SUMA_CTRL_KEY(key)) {
             if ((ado = SUMA_SV_Focus_ADO(sv))) {
-               SUMA_Set_ADO_TransMode(ado, sv->TransMode, -4, 1);
+               SUMA_Set_ADO_TransMode(ado, sv->TransMode, 
+                                      -SUMAg_CF->TransModeStep, 1);
                SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
             }
          } else {   
-            sv->TransMode = ((sv->TransMode+4) % (STM_N_TransModes-2));
+            sv->TransMode = ((sv->TransMode+SUMAg_CF->TransModeStep) % 
+                                                      (STM_N_TransModes-2));
             if (sv->TransMode <= STM_ViewerDefault) sv->TransMode = STM_0;
 
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
