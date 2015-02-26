@@ -16889,7 +16889,9 @@ int SUMA_NodeMask_to_FaceMask(SUMA_SurfaceObject *SO, byte *nodemask,
          SUMA_ifree(fm);
    }
    
-   SUMA_LH("Returning with %d triangles", N_fm);
+   SUMA_LH("Returning with %d triangles, *facemask=%p, triblock %p[%d %d]", 
+          N_fm, facemask? *facemask:NULL, triblock, 
+            triblock ? triblock[0]:-1, triblock ? triblock[1]:-1);
       
    SUMA_RETURN(N_fm);
 } 
@@ -16901,7 +16903,7 @@ int SUMA_Prep_SO_DrawPatches(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv)
    byte *fm=NULL;
    int N_fm = -1, tb[2];
    SUMA_DrawPatch *ptch=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
       
    SUMA_ENTRY;
    
@@ -17024,20 +17026,23 @@ SUMA_DrawPatch *SUMA_New_DrawPatchDatum(SUMA_SurfaceObject *SO, int *triblock,
    }
    
    if ( (!triblock && !facemask) ||
-        (triblock && triblock[0] == -1) ) { /* the whole surface */
+        (triblock && triblock[0] == 0 && triblock[1] ==-1)){/* whole surface */
       triblock = (int *)lb2;
       triblock[0] = 0;
       triblock[1] = SO->N_FaceSet-1;
    }
-   if (triblock && (triblock[0] < 0 || triblock[1]>=SO->N_FaceSet)) {
-      SUMA_S_Err("triblock of [%d %d] outside of [%d %d]",
-                  triblock[0], triblock[1], 0, SO->N_FaceSet-1);
-      SUMA_RETURN(NULL);            
-   }
-   if (triblock && (triblock[0] > triblock[1])) {
-      SUMA_S_Err("triblock of [%d %d] uninterpretable",
-                  triblock[0], triblock[1]);
-      SUMA_RETURN(NULL);            
+   
+   if (triblock && triblock[0]>=0) {
+      if (triblock[1]>=SO->N_FaceSet) {
+         SUMA_S_Err("triblock of [%d %d] outside of [%d %d]",
+                     triblock[0], triblock[1], 0, SO->N_FaceSet-1);
+         SUMA_RETURN(NULL);            
+      } 
+      if (triblock[0] > triblock[1]) {
+         SUMA_S_Err("triblock of [%d %d] uninterpretable",
+                     triblock[0], triblock[1]);
+         SUMA_RETURN(NULL);            
+      }
    }
    
    ptch = (SUMA_DrawPatch *)SUMA_calloc(1, sizeof(SUMA_DrawPatch));
@@ -17050,7 +17055,8 @@ SUMA_DrawPatch *SUMA_New_DrawPatchDatum(SUMA_SurfaceObject *SO, int *triblock,
    } else {
       SUMA_LH("facemask of %d triangles in mask", N_Faces);
       ptch->FreeFaceSetList = YUP;
-      if (!(ptch->FaceSetList = (int *)SUMA_calloc(N_Faces, sizeof(int)))) {
+      if (!(ptch->FaceSetList = (int *)SUMA_calloc(N_Faces*SO->FaceSetDim, 
+                                                   sizeof(int)))) {
          SUMA_S_Crit("Hippocampus full, no space for %d ints", N_Faces);
          SUMA_Free_DrawPatchDatum((void *)ptch);
          SUMA_RETURN(NULL);
@@ -17109,20 +17115,22 @@ int SUMA_ComplimentaryPatches(SUMA_SurfaceObject *SO, int *triblock,
    }
    
    if ( (!triblock && !facemask) ||
-        (triblock && triblock[0] == -1) ) { /* the whole surface */
+        (triblock && triblock[0] == 0 && triblock[1] == -1)){/* whole surface */
       triblock = (int *)lb2;
       triblock[0] = 0;
       triblock[1] = SO->N_FaceSet-1;
    }
-   if (triblock && (triblock[0] < 0 || triblock[1]>=SO->N_FaceSet)) {
-      SUMA_S_Err("triblock of [%d %d] outside of [%d %d]",
-                  triblock[0], triblock[1], 0, SO->N_FaceSet-1);
-      SUMA_RETURN(-1);            
-   }
-   if (triblock && (triblock[0] > triblock[1])) {
-      SUMA_S_Err("triblock of [%d %d] uninterpretable",
-                  triblock[0], triblock[1]);
-      SUMA_RETURN(-1);            
+   if (triblock && triblock[0] >= 0) {
+      if (triblock[1]>=SO->N_FaceSet) {
+         SUMA_S_Err("triblock of [%d %d] outside of [%d %d]",
+                     triblock[0], triblock[1], 0, SO->N_FaceSet-1);
+         SUMA_RETURN(-1);
+      }        
+      if (triblock[0] > triblock[1]) {
+         SUMA_S_Err("triblock of [%d %d] uninterpretable",
+                     triblock[0], triblock[1]);
+         SUMA_RETURN(-1);            
+      }
    }
    
    
@@ -17149,9 +17157,10 @@ int SUMA_ComplimentaryPatches(SUMA_SurfaceObject *SO, int *triblock,
       }
    } else {
       SUMA_LH("facemask of %d triangles to be drawn", SO->N_FaceSet-N_Faces);
+      *ptch0 = (SUMA_DrawPatch *)SUMA_calloc(1, sizeof(SUMA_DrawPatch));
       (*ptch0)->FreeFaceSetList = YUP;
-      if (!((*ptch0)->FaceSetList = (int *)SUMA_calloc(SO->N_FaceSet-N_Faces, 
-                                                   sizeof(int)))) {
+      if (!((*ptch0)->FaceSetList =  (int *)
+            SUMA_calloc((SO->N_FaceSet-N_Faces)*SO->FaceSetDim, sizeof(int)))) {
          SUMA_S_Crit("Hippocampus full, no space for %d ints", 
                      SO->N_FaceSet-N_Faces);
          SUMA_Free_DrawPatchDatum((void *)(*ptch0));
@@ -17223,7 +17232,7 @@ void SUMA_DrawMesh_mask(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    SUMA_TRANS_MODES trmode;
    SUMA_DrawPatch *ptch=NULL;
    DListElmt *el=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    

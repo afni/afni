@@ -2672,8 +2672,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                int nxyz;
                float val;
                
-               /* Toy example for expression:
-  setenv SUMA_TEMP_NODE_CMASK_EXPR '-a labels.niml.dset -expr equals(a,$SEL) + equals(a,258)' */
+               /* 
+                  Toy example for expression:
+  setenv SUMA_TEMP_NODE_CMASK_EXPR '-a labels.niml.dset -expr equals(a,$SEL)' 
+                  Or better yet, for the TT atlas isosurfaces
+  setenv SUMA_TEMP_NODE_CMASK_EXPR '-a labels.niml.dset -expr equals(a,mod($SEL,200))+equals(a,mod($SEL,200)+200)'
+              */
                TLH(1);
                DW->user_exp = 
                   SUMA_copy_string(eee);

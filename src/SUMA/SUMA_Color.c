@@ -9876,7 +9876,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          SUMA_SL_Note("dset has a mesh parent, Checking relationship");
          if (!SUMA_isDsetRelated(dset, SO)) {
             if (SUMA_isEnv("SUMA_AlwaysAssignSurface","Y")) {
-               SUMA_S_Note("Setting domain_parent_idcode to NULL!");
+               SUMA_LH("Setting domain_parent_idcode to NULL!");
                NI_set_attribute(dset->ngr, "domain_parent_idcode", NULL);
                np = NULL; lnp = 0; 
             } else {
@@ -9976,6 +9976,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
                   colplanepre->OptScl->RecomputeClust = 1;         
                OKdup = 1;
             } else { /* dset is considered new */
+               SUMA_LH("New");
                colplanepre = NULL;
                /* The overlay index for that plane is SO->N_Overlays */
                OverInd = SO->N_Overlays;
@@ -9996,6 +9997,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
 
 
             /* Add this plane to SO->Overlays */
+            SUMA_LH("Adding new plane to SO->Overlays");
             if (!SUMA_AddNewPlane ((SUMA_ALL_DO *)SO, NewColPlane, SUMAg_DOv, 
                                    SUMAg_N_DOv, OKdup)) {
                SUMA_SL_Err("Failed in SUMA_AddNewPlane");
@@ -10009,9 +10011,11 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          } 
 
          /* Match the old settings? */
+         SUMA_LH("Settings");
          if (colplanepre == NewColPlane) { /* old col plane found for this dset*/
             /* Don't change settings. Before Aug 2012, it would reset as below */
-         } else if (SUMA_PreserveOverlaySettings(SO->SurfCont->curColPlane,
+         } else if (SO->SurfCont &&
+                    SUMA_PreserveOverlaySettings(SO->SurfCont->curColPlane,
                                                 NewColPlane)) {
                            /* attempt to preserve current situation */
             SUMA_OVERLAYS *settingPlane = NULL;
@@ -10053,6 +10057,7 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
             NewColPlane->OptScl->ClustOpt->DistLim = 
                settingPlane->OptScl->ClustOpt->DistLim;
          } else {
+            SUMA_LH("New settings");
             /* set the opacity, index column and the range */
             NewColPlane->GlobalOpacity = YUP;
             NewColPlane->ShowMode = SW_SurfCont_DsetViewCol;
@@ -10096,11 +10101,11 @@ SUMA_Boolean SUMA_LoadDsetOntoSO_eng (char *filename, SUMA_SurfaceObject *SO,
          NOTE: You can't call SUMA_InitializeColPlaneShell
          before remixing because colors are reported in Lbl block
           June 28 04*/
-         if (MakeOverlayCurrent) 
+         if (SO->SurfCont && MakeOverlayCurrent) 
             SO->SurfCont->curColPlane = SO->Overlays[OverInd]; 
       }
    
-      if (LaunchDisplay) {
+      if (SO->SurfCont && LaunchDisplay) {
          SUMA_LHv("Remix Redisplay %s\n", SO->Label);
          /* remix-redisplay  for surface */
          if (!SUMA_Remixedisplay ((SUMA_ALL_DO*)SO)) {
