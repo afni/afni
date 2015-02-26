@@ -1494,11 +1494,13 @@ class RegWrap:
 
       #align_centers to get pre-transformation matrix
       opt = self.user_opts.find_opt('-align_centers')
-      if opt != None: 
-         ps.align_centers = 1
-         if ps.pre_matrix != "" :
-            self.error_msg(
-             "Can not use both align_centers and pre-matrix transformations")
+      if opt != None:  # shouldn't happen, defaults to no
+         if(opt.parlist[0]=='yes'):
+             ps.align_centers = 1
+             self.info_msg("turning on align_centers")
+             if ps.pre_matrix != "" :
+                self.error_msg(
+                 "Can not use both align_centers and pre-matrix transformations")
 
       #get post-transformation matrix
       opt = self.user_opts.find_opt('-post_matrix')
@@ -1601,7 +1603,7 @@ class RegWrap:
 
       # set up 3dAllineate output grid - master dataset for bounding box and
       #  grid resolution
-      if((mast_dset=="SOURCE") and self.align_centers):
+      if((mast_dset=="SOURCE") and ps.align_centers):
          self.master_epi_option = "%s" % mast_dxyz
          self.master_epi_3dAl_center = 1
       else:
@@ -1700,7 +1702,7 @@ class RegWrap:
 
       # set up 3dAllineate output grid - master dataset for bounding box and
       #  grid resolution
-      if((mast_dset=="SOURCE") and self.align_centers):
+      if((mast_dset=="SOURCE") and ps.align_centers):
          self.master_anat_3dAl_option = "%s" % mast_dxyz
          self.master_anat_3dAl_center = 1
       else:
@@ -2441,7 +2443,7 @@ class RegWrap:
                   self.master_anat_option, oblique_opt,                     \
                   a.input())
       else:
-         if(self.align_centers):
+         if(ps.align_centers):
             # use shift transformation of centers between grids as initial
             # transformation. @Align_Centers (3drefit) instead of 3dWarp
             copy_cmd = "3dcopy %s %s%s" % (a.input(), o.p(), o.out_prefix())
@@ -2471,7 +2473,7 @@ class RegWrap:
       else:
          self.exists_msg(o.input())
        
-      if(self.align_centers):
+      if(ps.align_centers):
          # align_centers saves the shift transformation, but
          # we use the opposite direction for obliquity, so invert
          # the shift transformation too and use that like the
@@ -2990,12 +2992,12 @@ class RegWrap:
       ps.anat_ns0 = n    # pre-obliquing or edging skullstripped anat
 
       # match obliquity of anat to epi data
-      if(self.deoblique_flag or self.align_centers):
+      if(self.deoblique_flag or ps.align_centers):
          # if either anat or epi is oblique or 
          #   there is a pre-transformation matrix,
          #   move anat to match epi
          if((self.oblique_dset(n)) or (self.oblique_dset(ps.epi)) \
-             or (self.pre_matrix!="") or self.align_centers) :
+             or (self.pre_matrix!="") or ps.align_centers) :
             # set default output spacing if not already set with user options
             opt = self.user_opts.find_opt('-master_anat') 
             if opt == None: 
