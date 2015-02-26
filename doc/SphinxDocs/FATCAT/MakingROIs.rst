@@ -63,7 +63,7 @@ Broadly, ``3dROIMaker`` can be used to:
 
   * subtraction can be done before or after thresholding the input
     image (``-csf_skel *``, ``-wm_skel *``, ``-trim_off_wm``);
-  * an other map can itself be thresholded from the commandline
+  * an other map can itself be thresholded from the command line
     (``-skel_thr *``);
 
 * eliminate blobs based on a volume threshold (``-volthr *``);

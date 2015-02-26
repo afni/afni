@@ -411,7 +411,7 @@ Flipping Gradients (if necessary)
     whole brain deterministic tractography tracts.  If the whole brain
     mask is called *mask.nii.gz* and the DT parameters are prefixed
     with *DTI/DT*, then this could be calculated and viewed from a
-    commandline with::
+    command line with::
 
       3dTrackID -mode DET -mask mask.nii.gz -netrois mask.nii.gz    \
            -dti_in DTI/DT -logic OR -prefix DTI/o.WB

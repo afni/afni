@@ -72,7 +72,7 @@ latter generally useful descriptions and musings in comments, so they
 are worth reading when executing the commands. The scripts may provide
 a useful basis for starting to build pipelines.
 
-Demo sets are most easily obtained via commandline. To download and
+Demo sets are most easily obtained via command line. To download and
 install the primary FATCAT_DEMO, run the following in a terminal::
 
    @Install_FATCAT_DEMO
@@ -116,8 +116,8 @@ for data analysis, and to facilitate their use.  The hope is that the
 notations involved in describing the code and making general examples
 are clear.  Current format choices include:
 
-* commandline names are written in a font like this: ``Font``;
-* references to *switches* in a commandline program are written like
+* command line names are written in a font like this: ``Font``;
+* references to *switches* in a command line program are written like
   ``-switch``, and these take no arguments after the option name;
 * options that require arguments such as file names or numbers are
   written as ``-option_name *``, where the wildcard character '``*``'
@@ -129,12 +129,12 @@ are clear.  Current format choices include:
   separated by a vertical line "|". When described, those will often
   be presented in the following format, ``-option_name
   {KEY1|KEY2|KEY3|...}``, by which the user is expected to select only
-  one key when actually calling the option in the commandline (e.g.,
+  one key when actually calling the option in the command line (e.g.,
   ``-option_name KEY2``);
-* in commandline examples, non-literal filenames are typed in
+* in command line examples, non-literal filenames are typed in
   all-capital letters with descriptive words separated by the
   underscore character '_', such as ``ROI_FILE``;
-* in commandline examples, non-literal numerical arguments would be
+* in command line examples, non-literal numerical arguments would be
   held by a single capital letter, such as ``X`` or ``Y``.
 
 
