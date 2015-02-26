@@ -44,6 +44,12 @@ capabilities include:
 * selection of rows and viewing/saving of output matrices (\*.grid and
   \*.netcc files) **(fat_roi_row.py, fat_mat_sel.py)**.
 
+.. figure:: media/FAT_overview.jpg
+   :align: center
+   :width: 70%
+
+   *A schematic overview of available FATCAT tools (in blue).*
+
 Announcements of updates, fixes and new programmation are made and
 recorded on the AFNI `Message Board
 <http://afni.nimh.nih.gov/afni/community/board/>`_. This is a useful
