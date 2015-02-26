@@ -1641,7 +1641,7 @@ char * SUMA_help_message_Info(TFORM targ)
       "\n", SUMA_hkf("O", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Increase opacity of selected object by 4 levels.\n"
-      "\n", SUMA_hkf("Ctrl+o", targ));
+      "\n", SUMA_hkf("Ctrl+O", targ));
    SS = SUMA_StringAppend_va (SS, 
       "   %s: Decrease opacity of all surfaces in viewer by 4 levels.\n"
       "\n", SUMA_hkf("o", targ));
