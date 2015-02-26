@@ -10,6 +10,7 @@ http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf
 
 #include "SUMA_suma.h"
 #include "MarchingCubes/MarchingCubes.h"
+#include "SUMA_gts.h"
 
 
 #if 1
@@ -87,6 +88,9 @@ void usage_SUMA_IsoSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "                         approach in SurfSmooth and with parameters KPB and \n"
 "                         NITER. If unsure, try -Tsmooth 0.1 100 for a start.\n"
 "  Optional Parameters:\n"
+"     -remesh EDGE_FRACTION: Remesh the surface(s) to result in a surface with\n"
+"                            N_edges_new = N_edges_old x EDGE_FRACTION\n"
+"                            EDGE_FRACTION should be between 0.0 and 1.0\n"
 "     -xform XFORM:  Transform to apply to volume values\n"
 "                    before searching for sign change\n"
 "                    boundary. XFORM can be one of:\n"
@@ -196,6 +200,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
    Opt->Zt = 0.1;
    Opt->s = NULL;
    Opt->b1 = 0;
+   Opt->efrac = 0;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -261,6 +266,21 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
 			}
 			Opt->cmask = argv[kar];
          Opt->MaskMode = SUMA_ISO_CMASK;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-remesh") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -remesh \n");
+				exit (1);
+			}
+			Opt->efrac = atof(argv[kar]);
+         if (Opt->efrac < 0.0 || Opt->efrac > 1.0) {
+            SUMA_S_Err("-remesh value should be between 0 and 1.0, have %f"
+                        , Opt->efrac);
+            exit(1);
+         }
 			brk = YUP;
 		}
       
@@ -408,6 +428,41 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
    SUMA_RETURN(Opt);
 }
 
+/* A convenience wrapper for SUMA_THD_ROI_IsoSurfaces
+to also perform remeshing. The remeshing should be
+part of SUMA_THD_ROI_IsoSurfaces but I don't want 
+to make all of libSUMA.a depend on libgts */
+SUMA_SurfaceObject **SUMA_THD_ROI_IsoSurfaces_ef(
+                           THD_3dim_dataset *in_volu, int isb,
+                            int *valmask, int *N_valmask,
+                            byte *cmask, int debug, float efrac)
+{
+   static char FuncName[]={"SUMA_THD_ROI_IsoSurfaces_ef"};
+   SUMA_SurfaceObject **SOv=NULL, *SOr=NULL;
+   int i=0;
+   SUMA_ENTRY;
+   
+   SOv=SUMA_THD_ROI_IsoSurfaces(in_volu, isb, valmask, N_valmask, cmask, debug);
+   if (!SOv) {
+      SUMA_RETURN(SOv);
+   }
+   if (efrac > 0.0 && efrac < 1.0) {
+      i = 0;
+      while (SOv[i]) {
+         if (!(SOr = SUMA_Mesh_Resample(SOv[i], efrac))) {
+            SUMA_S_Err("Failed to resample surface %d", i);
+         } else {
+            SUMA_ifree(SOr->Label);
+            SOr->Label = SUMA_copy_string(SOv[i]->Label);
+            SUMA_Free_Surface_Object(SOv[i]);
+            SOv[i] = SOr; SOr = NULL;
+         }
+         ++i;
+      }
+   }
+   SUMA_RETURN(SOv);
+}
+
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"IsoSurface"}; 
@@ -504,6 +559,18 @@ int main (int argc,char *argv[])
          }
       }
       
+      if (Opt->efrac > 0.0 && Opt->efrac < 1.0) {
+         SUMA_SurfaceObject *SOr=NULL;
+         if (!(SOr = SUMA_Mesh_Resample(SO, Opt->efrac))) {
+            SUMA_S_Err("Failed to resample surface. Continuing...");
+         } else {
+            SUMA_ifree(SOr->Label);
+            SOr->Label = SUMA_copy_string(SO->Label);
+            SUMA_Free_Surface_Object(SO);
+            SO = SOr; SOr = NULL;
+         }
+      }
+      
       /* write the surface to disk */
       if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, 
                                      Opt->SurfFileFormat, NULL)) {
@@ -521,10 +588,12 @@ int main (int argc,char *argv[])
            SUMA_SL_Err("Failed to get data.");
            exit(1);
       }
-      if (!(SOv = SUMA_THD_ROI_IsoSurfaces(Opt->in_vol, 0,
+      if (!(SOv = SUMA_THD_ROI_IsoSurfaces_ef(Opt->in_vol, 0,
                                      Opt->ivec, 
-                                     &Opt->n_ivec, NULL, Opt->debug))) {
+                                     &Opt->n_ivec, NULL, Opt->debug,
+                                     Opt->efrac))) {
          SUMA_S_Err("No surfaces generated");
+         exit(1);
       } else {
          /* Prepare for writing datasets, potentially */
          if (!(labstr=(char **)SUMA_calloc(Opt->n_ivec, sizeof(char*))) 
