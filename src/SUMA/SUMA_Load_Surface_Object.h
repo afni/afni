@@ -19,11 +19,18 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf_with_Metrics(
 SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov, int *N_dov, int debug, DList *DsetList);
 SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO);
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName);
-SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName, int debug);
-SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name1, char *if_name2, char *vp_name, 
-                                                   SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *sv_name, int debug);
+SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName, 
+                        SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, 
+                        char *VolParName, int debug);
+SUMA_Boolean SUMA_AutoLoad_SO_Dsets(SUMA_SurfaceObject *SO);   
+SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name1, 
+                                             char *if_name2, char *vp_name, 
+                                             SUMA_SO_File_Type SO_FT,
+                                             SUMA_SO_File_Format SO_FF, 
+                                             char *sv_name, int debug);
 SUMA_Boolean SUMA_ParseLHS_RHS (char *s, char *lhs, char *rhs);
-SUMA_Boolean SUMA_ShowSpecStruct (SUMA_SurfSpecFile *Spec, FILE *Out, int detail);
+SUMA_Boolean SUMA_ShowSpecStruct (SUMA_SurfSpecFile *Spec, FILE *Out, 
+                                  int detail);
 char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail);
 SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec);
 SUMA_Boolean SUMA_Write_SpecFile ( SUMA_SurfSpecFile * Spec, 

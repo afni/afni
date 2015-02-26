@@ -11641,6 +11641,31 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado)
    SUMA_RETURN(YUP);
 }
 
+/* A lazy wrapper for SUMA_FormNodeValFieldStrings to return
+   values but not the strings.
+   This function is not very efficient, since all the strings
+   are formed and then discarded.
+*/
+SUMA_Boolean SUMA_GetNodeValsAtSelection(SUMA_ALL_DO *ado, 
+               SUMA_DSET *dset, int Node,
+               int find, int tind, int bind,
+               double *I, double *T, double *B) 
+{
+   static char FuncName[] = {"SUMA_GetNodeValsAtSelection"};
+   char **sar=NULL;
+   int i;
+   
+   SUMA_ENTRY;
+   
+   sar = SUMA_FormNodeValFieldStrings(ado, dset, Node, find, tind, bind,
+                                      1, I, T, B);
+   if (!sar) SUMA_RETURN(NOPE);
+   for (i=0; i<3; ++i) SUMA_ifree(sar[i]);
+   SUMA_ifree(sar);
+   
+   SUMA_RETURN(YUP);                  
+}
+
 char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado, 
                                  SUMA_DSET *dset, int Node,
                                  int find, int tind, int bind,
@@ -11859,6 +11884,7 @@ SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_X_SurfCont *SurfCont=NULL;
    int SelectedNode = -1;
+   double II=0.0, TT=0.0, BB=0.0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -11874,12 +11900,23 @@ SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
       SUMA_RETURN(NOPE);
    }
    SurfCont = SUMA_ADO_Cont(ado);
-   if (!SurfCont || !SurfCont->DataTable || 
-       !SurfCont->DataTable->cells) SUMA_RETURN(NOPE);
+   if (!SurfCont) SUMA_RETURN(NOPE);
    
    SelectedNode = SUMA_ADO_ColPlane_SelectedDatum(ado, Sover);
    
+   if (fromtable && (!SurfCont->DataTable || 
+          !SurfCont->DataTable->cells)) {
+          SUMA_LH("Controller not initialized, "
+                  "cannot retrieve values from table, trying without");
+      fromtable = 0;
+   }
    if (fromtable) {
+      if (!SurfCont->DataTable || 
+          !SurfCont->DataTable->cells) {
+            SUMA_S_Err("Controller not initialized, "
+                       "cannot retrieve values from table");
+            SUMA_RETURN(NOPE);
+      }
       /* Check that SelectedNode matches that in the node index table too */
       if (SelectedNode != SurfCont->NodeTable->num_value[1]) { 
          /* table not updated yet perhaps  */
@@ -11892,9 +11929,19 @@ SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
       if (T) SUMA_GET_CELL_VALUE(SurfCont->DataTable, 1, 2, *T);
       if (B) SUMA_GET_CELL_VALUE(SurfCont->DataTable, 1, 3, *B);
    } else {
-      SUMA_S_Err("Not ready to do this, write something to parallel"
-                 "SUMA_FormNodeValFieldStrings()");
-      SUMA_RETURN(NOPE);
+      if (!SUMA_GetNodeValsAtSelection(ado, Sover->dset_link, 
+                           SelectedNode, 
+                           Sover->OptScl->find, 
+                           Sover->OptScl->tind,
+                           Sover->OptScl->bind,
+                           &II, &TT, &BB)) {
+             
+         SUMA_S_Err("Failed to get sel values");
+         SUMA_RETURN(NOPE);
+      }
+      if (I) *I = II;
+      if (T) *T = TT;
+      if (B) *B = BB;
    }
    SUMA_RETURN(YUP);
 }
