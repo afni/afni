@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25, Feb, 2014, ZSS, "IsoSurface", MINOR, TYPE_NEW_OPT,
+   "Added -remesh option to simplify meshes",
+   NULL
+ },
+
  { 25, Feb, 2014, ZSS, "IsoSurface", MICRO, TYPE_NEW_OPT,
    "Added auto dset generation along with surfaces with -isorois+dsets",
    NULL
