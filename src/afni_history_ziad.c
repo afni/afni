@@ -65,6 +65,26 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25, Feb, 2014, ZSS, "IsoSurface", MICRO, TYPE_NEW_OPT,
+   "Added auto dset generation along with surfaces with -isorois+dsets",
+   NULL
+ },
+
+ { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_BUG_FIX,
+   "Patched ID collisions for input datasets",
+   NULL
+ },
+
+ { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_ENV,
+   "Implemented dataset autoloading",
+   "See env SUMA_AutoLoad_Matching_Dset in ~/.sumarc"
+ },
+
+ { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_ENV,
+   "Added env SUMA_AutoLoad_Matching_Dset to control transparency step",
+   NULL
+ },
+
  { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_ENV,
    "Added env SUMA_Transparency_Step to control transparency step",
    NULL
