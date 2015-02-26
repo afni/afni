@@ -441,6 +441,10 @@ char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado,
                                  SUMA_DSET *dset, int Node,
                                  int find, int tind, int bind, int dec,
                                  double *I, double *T, double *B);
+SUMA_Boolean SUMA_GetNodeValsAtSelection(SUMA_ALL_DO *ado, 
+               SUMA_DSET *dset, int Node,
+               int find, int tind, int bind,
+               double *I, double *T, double *B) ;
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado);

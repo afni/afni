@@ -6227,6 +6227,31 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
       SUMA_RETURN(0); 
    }
    
+   /* check if surface read was unique 
+   it's inefficient to check after the surface is read, 
+   but idcode is generated in the read routine 
+   and users should not be making this mistake too often 
+   Search for similar comment elsewhere in the code once
+   a better remedy is found*/
+   if ((dprev = SUMA_FindDset_ns (s,  DsetList))) {
+      /* Check the filename match, to get around ID collision 
+         This modification is no guarantee that collisions
+         won't occur but it is a start until I figure out
+         the problem with hashcode */
+      char *name=NULL, *mname=NULL;
+      mname = SDSET_FILENAME(dprev);
+      name = SDSET_FILENAME(dset);
+      if (name && mname && strcmp(name, mname)) {
+         char *stmp;
+         /* give dset a new ID */
+         stmp = SUMA_append_replace_string(name, SDSET_ID(dset),"_",0);
+         SUMA_NewDsetID2(dset, stmp);
+         SUMA_ifree(stmp);
+      }
+      dprev=NULL;
+   }
+
+   
    if ((dprev = SUMA_FindDset_ns (s,  DsetList))) {
       sprintf(stmp,  "Dset with similar idcode (%s)\n"
                         "found in list. Trying replacement.\n", s);
@@ -6251,6 +6276,9 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
          } 
       } 
    } 
+   
+   
+   
    if (dprev) {
       SUMA_LH("Dset exists");
       if (replace || AFNI_yesenv("SUMA_AllowFilenameDsetMatch")) {

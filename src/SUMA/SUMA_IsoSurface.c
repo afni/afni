@@ -53,12 +53,21 @@ void usage_SUMA_IsoSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "               the ROIs to the extent that they are available.\n"
 "               Example:\n"
 "           IsoSurface -isorois -input TTatlas+tlrc'[0]' -o_gii auto.all\n"
+"           suma -onestate -i auto.all.k*.gii\n"
 "               You can also follow -isorois with the only ROI keys you want\n"
 "               considered as in:\n"
 "           IsoSurface -isorois 276 277 54 input TTatlas+tlrc'[0]'-o_gii auto\n"
+"     -isorois+dsets: Same as -isorois, but also write out a labeled dataset \n"
+"                     for each surface."
+"               Example:\n"
+"           IsoSurface -isorois+dsets -input TTatlas+tlrc'[0]' -o_gii auto.all\n"
+"           suma -onestate -i auto.all.k*.gii\n"
 "     -mergerois [LAB_OUT]: Combine all surfaces from isorois into one surface\n"
 "                 If you specify LAB_OUT then a dataset with ROIs labels is \n"
 "                 also written out and named LAB_OUT\n"
+"                Example:\n"
+"           IsoSurface -isorois -mergerois auto.all.niml.dset \\\n"
+"                      -input TTatlas+tlrc'[0]'\n"
 "\n"
 "     -isoval V: Create isosurface where volume = V\n"
 "     -isorange V0 V1: Create isosurface where V0 <= volume < V1\n"
@@ -185,6 +194,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
    Opt->N_it = 0;
    Opt->Zt = 0.1;
    Opt->s = NULL;
+   Opt->b1 = 0;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -253,7 +263,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
 			brk = YUP;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-isorois") == 0)) {
+      if (!brk && ((strcmp(argv[kar], "-isorois") == 0) ||
+                   (strcmp(argv[kar], "-isorois+dsets") == 0))) {
          static int nalloc=0;
          if (Opt->MaskMode != SUMA_ISO_UNDEFINED) {
             fprintf (SUMA_STDERR, "only one masking mode (-iso*) allowed.\n");
@@ -268,6 +279,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
             Opt->ivec[Opt->n_ivec++] = atoi(argv[kar]);
          }
 			Opt->MaskMode = SUMA_ISO_ROIS;
+         if ((strcmp(argv[kar], "-isorois+dsets") == 0)) Opt->b1 = 1;
 			brk = YUP;
 		}
       
@@ -513,7 +525,31 @@ int main (int argc,char *argv[])
                                      &Opt->n_ivec, NULL, Opt->debug))) {
          SUMA_S_Err("No surfaces generated");
       } else {
-         if (Opt->s) {
+         /* Prepare for writing datasets, potentially */
+         if (!(labstr=(char **)SUMA_calloc(Opt->n_ivec, sizeof(char*))) 
+                                       ||
+             !(keys = (int *)SUMA_calloc(Opt->n_ivec, sizeof(int)))) {
+            SUMA_S_Crit("Failed to allocate for %d ints and strings!", 
+                        Opt->n_ivec);
+            exit(1);   
+         } 
+         i=0;
+         while (SOv[i]) {
+            labstr[i] = SUMA_Decode_ROI_IsoSurfacesLabels(SOv[i]->Label,
+                                                          keys+i);
+            if (keys[i] < 0) keys[i] = i;
+            if (!labstr[i]) { 
+               sprintf(stmp,"roi%03d", keys[i]); 
+               labstr[i] = SUMA_copy_string(stmp);
+            }
+            ++i;
+         }
+         if (!(SM = SUMA_LabelsKeys2Cmap(labstr, Opt->n_ivec, keys, 
+                                   NULL, 0, DSET_PREFIX(Opt->in_vol)))) {
+            SUMA_S_Err("Failed to create color map!");                     
+         }               
+         
+         if (Opt->s) { /* Merged mode */
             SUMA_SurfaceObject *SOm=NULL;
             SUMA_S_Note("Merging %d surfaces...", Opt->n_ivec);
             if (!(SOm = SUMA_MergeSurfs(SOv, Opt->n_ivec))) {
@@ -547,12 +583,6 @@ int main (int argc,char *argv[])
                   SUMA_S_Crit("Failed to allocate for %d ints!", SOm->N_Node);
                   exit(1);
                }
-               if (!(labstr=(char **)SUMA_calloc(Opt->n_ivec, sizeof(char*))) ||
-                   !(keys = (int *)SUMA_calloc(Opt->n_ivec, sizeof(int)))) {
-                  SUMA_S_Crit("Failed to allocate for %d ints and strings!", 
-                              Opt->n_ivec);
-                  exit(1);   
-               } 
                i=0; kk = 0;
                while (SOv[i]) {
                   labstr[i] = SUMA_Decode_ROI_IsoSurfacesLabels(SOv[i]->Label, 
@@ -601,7 +631,7 @@ int main (int argc,char *argv[])
                if (labstr) SUMA_ifree(labstr[i]);
                ++i;
             }
-         } else {
+         } else { /* Loose change */
             i=0;
             while (SOv[i]) {
                labcp = SUMA_Decode_ROI_IsoSurfacesLabels(SOv[i]->Label, &key);
@@ -637,6 +667,41 @@ int main (int argc,char *argv[])
                         SUMA_S_Err("Failed to write surface object.\n");
                      exit (1);
                }
+               
+               if (Opt->b1) { /* make baby datasets */
+                  if (!(labs = (int *)SUMA_calloc(SOv[i]->N_Node, sizeof(int)))){
+                     SUMA_S_Err("Failed to allocate for %d ints", 
+                                SOv[i]->N_Node);
+                     exit(1);
+                  }
+                  for (ii=0; ii<SOv[i]->N_Node; ++ii) {
+                     labs[ii] = keys[i];
+                  }
+
+                  /* Now form dset and add labeltable */
+                  SUMA_ifree(ppo);
+                  ppo = SUMA_ModifyName(Opt->out_prefix, "append", astr, NULL);
+                  ppo = SUMA_append_replace_string(ppo,".niml.dset", "",1);
+                  dset = SUMA_iar2dset_ns(ppo, NULL, SOv[i]->idcode_str, 
+                                          &labs, SOv[i]->N_Node, 1, 0);
+
+                  
+
+                  if (!SUMA_AddNodeIndexColumn(dset, SOv[i]->N_Node)) {
+                     SUMA_S_Err(" Failed to add a node index column");
+                  }               
+
+                  if (!SUMA_dset_to_Label_dset_cmap(dset, SM)) {
+                     SUMA_S_Err("Failed to turn dset to label dset");
+                  }
+
+                  oname = SUMA_WriteDset_s (ppo, dset, SUMA_NO_DSET_FORMAT, 
+                                            1, 1);
+                  SUMA_ifree(oname);
+                  SUMA_FreeDset(dset);
+                  SUMA_ifree(labs);   
+               }
+               
                if (SO_name) SUMA_free(SO_name); SO_name = NULL;
                SUMA_ifree(ppo);
                SUMA_Free_Surface_Object(SOv[i]); SOv[i]=NULL;
@@ -644,6 +709,7 @@ int main (int argc,char *argv[])
             }
          }
          SUMA_ifree(SOv); SUMA_ifree(labstr); SUMA_ifree(keys);
+         SUMA_Free_ColorMap(SM); SM = NULL;
       }
    }
    

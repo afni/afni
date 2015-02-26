@@ -3390,6 +3390,15 @@ static ENV_SPEC envlist[] = {
       "Choose one of 1, 2, 4, or 8\n",
       "SUMA_Transparency_Step",
       "4" },
+   {  "If YES, then automatically load datasets with names matching those \n"
+      "the surface just read.\n"
+      "For example, if you load a surface named PATH/TOY.gii, for instance,\n"
+      "and there exists a file called PATH/TOY.niml.dset then that file\n"
+      "is automatically loaded onto surface TOY.gii. This would work for\n"
+      "all surface types (e.g. TOY.ply) and dataset types (e.g. TOY.1D.dset)\n"
+      "Choose from YES or NO\n",
+      "SUMA_AutoLoad_Matching_Dset",
+      "YES" },
    {  NULL, NULL, NULL  }
 };
       
