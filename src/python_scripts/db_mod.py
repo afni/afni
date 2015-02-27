@@ -2539,6 +2539,7 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
+    apply_uopt_to_block('-regress_WMeL_corr', user_opts, block)
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -3772,7 +3773,7 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
            '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'               \
            % (fwhm, rset.out_prefix(), vmask, proc.view)
 
-    if block.opts.have_yes_opt('-regress_run_clustsim', default=1):
+    if block.opts.have_yes_opt('-regress_WMeL_corr', default=1):
       cmd +='# diagnostic volume: voxel correlation with local white matter\n'\
             '3dTcorrelate -prefix %s %s%s %s\n\n'                             \
             % ('WMeL_corr', vall, proc.view, rset.pv())
