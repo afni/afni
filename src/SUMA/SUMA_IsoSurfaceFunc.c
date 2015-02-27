@@ -272,15 +272,13 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(
       nyy = DSET_NY(Opt->in_vol);
       nzz = DSET_NZ(Opt->in_vol);
 
-      if (Opt->debug) {
-         fprintf(SUMA_STDERR,
-                 "%s:\nNxx=%d\tNyy=%d\tNzz=%d\n", FuncName, nxx, nyy, nzz);
+      if (Opt->debug > 1) {
+         SUMA_S_Note("Nxx=%d\tNyy=%d\tNzz=%d\n", nxx, nyy, nzz);
       }
 
       mcp = MarchingCubes(-1, -1, -1);
       set_resolution( mcp, nxx, nyy, nzz ) ;
       init_all(mcp) ;
-      if (Opt->debug) fprintf(SUMA_STDERR,"%s:\nSetting data...\n", FuncName);
       cnt = 0;
       for(  k = 0 ; k < mcp->size_z ; k++ ) {
          for(  j = 0 ; j < mcp->size_y ; j++ ) {
@@ -301,8 +299,9 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(
    }
 
    
-   if (Opt->debug) 
-      fprintf(SUMA_STDERR,"%s:\nrunning MarchingCubes...\n", FuncName);
+   if (Opt->debug) {
+      SUMA_S_Note("running MarchingCubes...");
+   }
    run(mcp) ;
    clean_temps(mcp) ;
 
@@ -312,7 +311,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(
       write1Dmcb(mcp);
    }
 
-   if (Opt->debug) {
+   if (Opt->debug > 1) {
       fprintf(SUMA_STDERR,"%s:\nNow creating SO...\n", FuncName);
    }
 
@@ -326,7 +325,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(
    nsoopt = SUMA_NewNewSOOpt();
    if (Opt->obj_type < 0) {
       nsoopt->LargestBoxSize = -1;
-      if (Opt->debug) {
+      if (Opt->debug > 1) {
          fprintf(SUMA_STDERR,
                   "%s:\nCopying vertices, changing to DICOM \n"
                   "Orig:(%f %f %f) \nD:(%f %f %f)...\n", 
@@ -337,12 +336,18 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(
             DSET_DY(Opt->in_vol), DSET_DZ(Opt->in_vol));
       }
       for ( i = 0; i < mcp->nverts; i++ ) {
-         j = 3*i; /* change from index coordinates to mm DICOM, next three lines are equivalent of SUMA_THD_3dfind_to_3dmm*/
-         fv.xyz[0] = DSET_XORG(Opt->in_vol) + mcp->vertices[i].x * DSET_DX(Opt->in_vol);
-         fv.xyz[1] = DSET_YORG(Opt->in_vol) + mcp->vertices[i].y * DSET_DY(Opt->in_vol);
-         fv.xyz[2] = DSET_ZORG(Opt->in_vol) + mcp->vertices[i].z * DSET_DZ(Opt->in_vol);
+         j = 3*i; /* change from index coordinates to mm DICOM, 
+                   next three lines are equivalent of SUMA_THD_3dfind_to_3dmm*/
+         fv.xyz[0] = DSET_XORG(Opt->in_vol) + 
+                     mcp->vertices[i].x * DSET_DX(Opt->in_vol);
+         fv.xyz[1] = DSET_YORG(Opt->in_vol) + 
+                     mcp->vertices[i].y * DSET_DY(Opt->in_vol);
+         fv.xyz[2] = DSET_ZORG(Opt->in_vol) + 
+                     mcp->vertices[i].z * DSET_DZ(Opt->in_vol);
          /* change mm to RAI coords */
-		   iv = SUMA_THD_3dmm_to_dicomm( Opt->in_vol->daxes->xxorient, Opt->in_vol->daxes->yyorient, Opt->in_vol->daxes->zzorient, fv );
+		   iv = SUMA_THD_3dmm_to_dicomm( Opt->in_vol->daxes->xxorient, 
+                                       Opt->in_vol->daxes->yyorient, 
+                                       Opt->in_vol->daxes->zzorient, fv );
          NodeList[j  ] = iv.xyz[0];
          NodeList[j+1] = iv.xyz[1];
          NodeList[j+2] = iv.xyz[2];
@@ -379,7 +384,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(
       else SO->normdir = -1;
    }
    
-   if (Opt->debug) {
+   if (Opt->debug > 1) {
       fprintf(SUMA_STDERR,"%s:\nCleaning mcp...\n", FuncName);
    }
    clean_all(mcp) ;
@@ -400,6 +405,8 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (Opt->debug > 2) LocalHead = YUP;
    
    if (!Opt->in_vol && !Opt->in_name) {
       SUMA_S_Err("NULL input");
@@ -513,7 +520,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (
                   SUMA_RETURN(NOPE);
                }
                SUMA_free(Opt->dvec); Opt->dvec = NULL; 
-                     /* this vector is not even created in SUMA_ISO_CMASK mode ...*/
+                  /* this vector is not created in SUMA_ISO_CMASK mode ...*/
                break;
             default:
                SUMA_SL_Err("Unexpected value of MaskMode");
@@ -572,7 +579,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (
          SUMA_RETURN(NOPE);
 	   }
 
-      if (Opt->debug > 0) {
+      if (Opt->debug > 1) {
          fprintf( SUMA_STDERR, 
                   "%s:\nInput dset %s has nvox = %d, nvals = %d",
 		            FuncName, SUMA_CHECK_NULL_STR(Opt->in_name), 

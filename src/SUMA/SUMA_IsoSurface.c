@@ -449,6 +449,9 @@ SUMA_SurfaceObject **SUMA_THD_ROI_IsoSurfaces_ef(
    if (efrac > 0.0 && efrac < 1.0) {
       i = 0;
       while (SOv[i]) {
+         if (debug) {
+            SUMA_S_Note("Reducing mesh for surface %s", SOv[i]->Label);
+         }
          if (!(SOr = SUMA_Mesh_Resample(SOv[i], efrac))) {
             SUMA_S_Err("Failed to resample surface %d", i);
          } else {
@@ -489,8 +492,7 @@ int main (int argc,char *argv[])
       exit (1);
    }
    
-   
-   set_suma_debug(Opt->debug);
+   if (Opt->debug > 1) set_suma_debug(Opt->debug-1);
    
    SO_name = SUMA_Prefix2SurfaceName(  Opt->out_prefix, NULL, NULL, 
                                        Opt->SurfFileType, &exists);
