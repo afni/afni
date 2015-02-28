@@ -5153,8 +5153,8 @@ extern int    thd_mask_from_brick(THD_3dim_dataset *, int, float, byte **, int);
 extern int    thd_multi_mask_from_brick(THD_3dim_dataset *, int, byte **);
 
 
-extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
-                          int *, int * , int *, int * , int *, int * ) ;
+extern THD_3dim_dataset * THD_autobbox( THD_3dim_dataset * ,  /* 06 Jun 2002 */
+                          int *, int * , int *, int * , int *, int *, char *) ;
 extern void MRI_autobbox( MRI_IMAGE * ,
                           int *, int * , int *, int * , int *, int * ) ;
 extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */

@@ -121,7 +121,7 @@ int main( int argc , char * argv[] )
    {
       int nx=DSET_NX(dset), ny=DSET_NY(dset), nz=DSET_NZ(dset), nxy=nx*ny ;
       int xm=-1,xp=-1,ym=-1,yp=-1,zm=-1,zp=-1 ;
-      THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp ) ;
+      THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp, NULL ) ;
 
       xm -= npad; ym -= npad; zm -= npad;  /* for LRF */
       xp += npad; yp += npad; zp += npad;
