@@ -327,7 +327,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
 		}
      
       if (!brk && ((strcmp(argv[kar], "-mergerois+dset") == 0) ||
-                   (strcmp(argv[kar], "-mergerois+dsets") == 0)) {
+                   (strcmp(argv[kar], "-mergerois+dsets") == 0))) {
          SUMA_ifree(Opt->s);
          Opt->s = SUMA_copy_string("_from_surf_yall");
 			brk = YUP;
