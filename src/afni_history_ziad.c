@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 26, Feb, 2014, ZSS, "BrainSkin", MINOR, TYPE_NEW_OPT,
+   "Added -no_zero_attraction",
+   "See help for details"
+ },
+
+ { 26, Feb, 2014, ZSS, "IsoSurface", MINOR, TYPE_NEW_OPT,
+   "Added -autocrop and -mergerois+dset",
+   "See help for details"
+ },
+
  { 25, Feb, 2014, ZSS, "IsoSurface", MINOR, TYPE_NEW_OPT,
    "Added -remesh option to simplify meshes",
    NULL
