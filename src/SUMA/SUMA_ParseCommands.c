@@ -3101,7 +3101,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->in_vol = NULL;
    Opt->nvox = -1;
    Opt->ninmask = -1;
-   Opt->mcdatav = NULL;
+   Opt->mcfv = NULL;
    Opt->debug = 0;
    Opt->v0 = 0.0;
    Opt->v1 = 0.0;
@@ -3217,7 +3217,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->Stop) SUMA_free(Opt->Stop); Opt->Stop = NULL;
    if (Opt->dvec) SUMA_free(Opt->dvec); Opt->dvec = NULL;
    if (Opt->fvec) SUMA_free(Opt->fvec); Opt->fvec = NULL;
-   if (Opt->mcdatav) {SUMA_free(Opt->mcdatav); Opt->mcdatav = NULL;} 
+   if (Opt->mcfv) {SUMA_free(Opt->mcfv); Opt->mcfv = NULL;} 
    if (Opt->in_vol) { DSET_delete( Opt->in_vol); Opt->in_vol = NULL;} 
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt->out_vol_prefix) SUMA_free(Opt->out_vol_prefix); 

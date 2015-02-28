@@ -76,7 +76,7 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
       for(  k = 0 ; k < nzz ; k++ ) {
          for(  j = 0 ; j < nyy ; j++ ) {
             for(  i = 0 ; i < nxx ; i++ ) {
-               if (Opt->mcdatav[cnt] == 1) {
+               if (Opt->mcfv[cnt] == 1) {
                   fv.xyz[0] = DSET_XORG(Opt->in_vol) + i * DSET_DX(Opt->in_vol);
                   fv.xyz[1] = DSET_YORG(Opt->in_vol) + j * DSET_DY(Opt->in_vol);
                   fv.xyz[2] = DSET_ZORG(Opt->in_vol) + k * DSET_DZ(Opt->in_vol);
@@ -341,7 +341,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
    Opt->in_vol = NULL;
    Opt->nvox = -1;
    Opt->ninmask = -1;
-   Opt->mcdatav = NULL;
+   Opt->mcfv = NULL;
    Opt->debug = 0;
    Opt->v0 = 0.0;
    Opt->v1 = -1.0;
@@ -646,11 +646,11 @@ int main (int argc,char *argv[])
                   SUMA_SL_Err("Failed to write maskvec");
                   exit(1);
                }
-               fprintf(fout,  "#Col. 0 Voxel Index\n"
-                              "#Col. 1 Is a mask (all values here should be 1)\n" );
+               fprintf(fout,"#Col. 0 Voxel Index\n"
+                            "#Col. 1 Is a mask (all values here should be 1)\n");
                for (i=0; i<Opt->nvox; ++i) {
-                  if (Opt->mcdatav[i]) {
-                     fprintf(fout,"%d %.2f\n", i, Opt->mcdatav[i]);
+                  if (Opt->mcfv[i]) {
+                     fprintf(fout,"%d %.2f\n", i, Opt->mcfv[i]);
                   }
                }
                fclose(fout); fout = NULL;
@@ -664,7 +664,7 @@ int main (int argc,char *argv[])
                fprintf(fout,  "#Col. 0 Voxel Index\n"
                               "#Col. 1 Is in mask ?\n" );
                for (i=0; i<Opt->nvox; ++i) {
-                  fprintf(fout,"%d %.2f\n", i, Opt->mcdatav[i]);
+                  fprintf(fout,"%d %.2f\n", i, Opt->mcfv[i]);
                }
                fclose(fout); fout = NULL;
             }
@@ -779,7 +779,7 @@ int main (int argc,char *argv[])
    
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt->fvec) SUMA_free(Opt->fvec); Opt->fvec = NULL;
-   if (Opt->mcdatav) {SUMA_free(Opt->mcdatav); Opt->mcdatav = NULL;} 
+   if (Opt->mcfv) {SUMA_free(Opt->mcfv); Opt->mcfv = NULL;} 
    if (Opt->in_vol) { DSET_delete( Opt->in_vol); Opt->in_vol = NULL;} 
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt->XYZ) SUMA_free(Opt->XYZ); Opt->XYZ = NULL;
