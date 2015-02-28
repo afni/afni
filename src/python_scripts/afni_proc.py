@@ -440,9 +440,10 @@ g_history = """
         - make WMeLocal for fast anaticor a float dataset
         - generate WMeL_corr as a diagnostic volume (corr w/WMeLocal)
         - todo: add ability to make WMeL_corr without fast anaticor
+    4.31 Feb 27, 2015: added -regress_WMeL_corr option (forgot that)
 """
 
-g_version = "version 4.30, February 13, 2015"
+g_version = "version 4.31, February 27, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Feb 2014" # 3dNwarpApply
@@ -922,6 +923,8 @@ class SubjProcSream:
                         helpstr="specify FWHM for fast WMeLocal extraction")
         self.valid_opts.add_opt('-regress_anaticor_radius', 1, [],
                         helpstr="specify radius for WMeLocal extraction")
+        self.valid_opts.add_opt('-regress_WMeL_corr', 0, [],
+                        helpstr="if WMeLocal, compute correlation volume")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],

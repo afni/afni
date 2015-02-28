@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27,  Feb, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added -regress_WMeL_corr option, which I forgot about last time",
+   NULL
+ } ,
+
+ { 27,  Feb, 2015, RCR, "@compute_gcor", MICRO, TYPE_NEW_OPT,
+   "added -corr_vol, to output a global correlation volume",
+   "Note that afni_proc.py does these steps by default."
+ } ,
+
  { 24,  Feb, 2015, RCR, "neuro_deconvolve.py", MINOR, TYPE_ENHANCE,
    "re-wrote method: new decon, upsample, multiple files, reconvolve",
    "This is partially for evaluation of the decon/recon PPI steps."
