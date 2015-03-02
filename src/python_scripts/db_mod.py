@@ -3153,6 +3153,10 @@ def db_cmd_regress(proc, block):
     #    init c3d, add O3dd elements, finalize c3d
     #    (O3dd = list of 3dd option lines, which may need an extra indent)
 
+    # note first input, to have a known afni_name
+    proc.regress_inset = BASE.afni_name(proc.prev_prefix_form(1, block, view=1),
+                                        do_sel=0)
+
     O3dd = ['%s3dDeconvolve -input %s'%(istr, proc.prev_dset_form_wild(block)),
             mask, censor_str]
     O3dd.extend(reg_orts)
@@ -3367,10 +3371,12 @@ def db_cmd_regress(proc, block):
         else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
         if errts: epre = proc.errts_pre
         else:     epre = 'errts.$subj'
-        tprefix = '%s%s.tproject' % (tmp_prefix, epre)
+        # getting ugly: alter prefix but save any extension (niml.dset?)
+        aset = proc.regress_inset.new('%s%s.tproject'%(tmp_prefix, epre))
 
         tpcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
-                maskstr=mask, censtr=censor_str, xmat=xmat, prefix=tprefix)
+                maskstr=mask, censtr=censor_str, xmat=xmat,
+                prefix=aset.out_prefix())
         if not tpcmd: return
         tpcmd = '\n' + tpcmd
     else: tpcmd = ''
@@ -3469,12 +3475,10 @@ def db_cmd_regress(proc, block):
        else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
 
        # result and local datasets
-       tprefix = '%serrts.$subj.fanaticor' % tmp_prefix
-       rset = BASE.afni_name(tprefix)
-       rset.view = proc.view
+       epre = '%serrts.$subj.fanaticor' % tmp_prefix
+       rset = proc.regress_inset.new(epre)
 
-       lset = BASE.afni_name('WMeLocal_rall')
-       lset.view = proc.view
+       lset = rset.new('WMeLocal_rall')
 
        # first set of commands: generate WMeLocal
        rv, tcmd = db_cmd_regress_anaticor_fast(proc, block, rset, lset)
@@ -3483,7 +3487,7 @@ def db_cmd_regress(proc, block):
 
        tcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
                maskstr=mask, censtr=censor_str, xmat=xmat, 
-               dsort=lset, prefix=tprefix)
+               dsort=lset, prefix=rset.out_prefix())
        if not tpcmd: return
        cmd += tcmd
 
@@ -4757,7 +4761,8 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     pstr = '# move results up out of the awpy directory\n'  \
            '# (NL-warped anat, affine warp, NL warp)\n'     \
            '# (use typical standard space name for anat)\n' \
-           '3dbucket -prefix %s awpy/%s.aw.nii\n'           \
+           '# (wildcard is a cheap way to go after any .gz)\n' \
+           '3dbucket -prefix %s awpy/%s.aw.nii*\n'          \
            % (proc.tlrcanat.prefix, apre+suf)
 
     pstr += 'mv awpy/%s .\n'   % proc.nlw_aff_mat

@@ -441,9 +441,12 @@ g_history = """
         - generate WMeL_corr as a diagnostic volume (corr w/WMeLocal)
         - todo: add ability to make WMeL_corr without fast anaticor
     4.31 Feb 27, 2015: added -regress_WMeL_corr option (forgot that)
+    4.32 Mar  2, 2015:
+        - fixed 3dTproject call for resting state on surface
+        - small change to get 3dSeg results using wildcard
 """
 
-g_version = "version 4.31, February 27, 2015"
+g_version = "version 4.32, March 2, 2015"
 
 # version of AFNI required for script execution
 g_requires_afni = "9 Feb 2014" # 3dNwarpApply
@@ -556,6 +559,7 @@ class SubjProcSream:
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.e2final_mv = []            # matvec list takes epi base to final
         self.e2final    = ''            # aff12.1D file for e2final_mv
+        self.regress_inset = None       # afni_name: first input to regression
         self.errts_pre  = ''            # possibly changing errts prefix
         self.errts_reml = ''            # prefix for any REML errts
         self.errts_cen  = 0             # flag: current errts has censored

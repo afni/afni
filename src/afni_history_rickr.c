@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2,  Mar, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed 3dTproject call for resting state on surface",
+   "Thanks to Tara (message board) for noting the problem."
+ } ,
+
  { 27,  Feb, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "added -regress_WMeL_corr option, which I forgot about last time",
    NULL
