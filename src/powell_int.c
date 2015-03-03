@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cs.h>
-#include "mrilib.h" #include "f2c.h" #include <time.h>
+#include "mrilib.h"
+#include "f2c.h"
+#include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
