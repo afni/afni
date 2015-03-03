@@ -17,6 +17,7 @@
 # dataset inputs
 set inset       = ''            # input dataset
 set mset        = ''            # mask dataset
+set corrset     = ''            # correlation dataset
 
 set demean      = 1             # whether to demean data (faster if not)
 set nfirst      = 0             # number of first TRs to remove
@@ -24,6 +25,7 @@ set savetmp     = 0             # save temporary files?
 set tmpunit     = tmp.unit      # 3dTnorm output
 set tmpave      = tmp.unit.gmean.1D # 3dmaskave output
 set tmpgc       = tmp.gcor.1D   # GCOR result (stupid stderr)
+set tmpprod     = tmp.uprod     # unit time series times gmean time series
 set verb        = 1             # verbose level (0 = quiet)
 
 set prog = @compute_gcor
@@ -44,6 +46,13 @@ while ( $ac <= $#argv )
       echo "version $version"
       exit
 
+   else if ( "$argv[$ac]" == "-corr_vol" ) then
+      @ ac += 1
+      if ( $#argv < $ac ) then
+         echo "** missing argument for -corr_vol"
+         exit 1
+      endif
+      set corrset = $argv[$ac]
    else if ( "$argv[$ac]" == "-input" ) then
       @ ac += 1
       if ( $#argv < $ac ) then
@@ -76,6 +85,10 @@ while ( $ac <= $#argv )
          exit 1
       endif
       set verb = $argv[$ac]
+      if ( $verb > 2 ) then
+         echo "++ turning echo on..."
+         set echo
+      endif
    else
       echo "** unknown option: $argv[$ac]"
       exit 1
@@ -159,6 +172,23 @@ if ( $verb > 0 ) then
 else
    ( $cmd > $tmpave ) >& /dev/null
 endif
+
+# ----------------------------------------------------------------------
+# if requested, compute the correlation volume
+if ( $corrset != "" ) then
+   # messy to include quotes or * this way...
+   set c1 = ( 3dcalc -a $tmpunit$view -b $tmpave )
+   set c2 = ( 3dTstat -sum -prefix $corrset $tmpprod$view )
+   if ( $verb > 0 ) then
+      echo $c1 -expr a\*b -prefix $tmpprod
+           $c1 -expr a\*b -prefix $tmpprod
+      echo $c2
+           $c2
+   else
+      $c1 -expr a\*b -prefix $tmpprod >& /dev/null
+      $c2 >& /dev/null
+   endif
+endif
    
 # ----------------------------------------------------------------------
 # and finally GCOR, the squared length of that average unit time series
@@ -179,9 +209,15 @@ endif
 # cleanup
 if ( ! $savetmp ) then
    if ( $verb > 1 ) echo rm -f $tmpunit$view\* $tmpave $tmpgc
-   \rm -f $tmpunit$view* $tmpave $tmpgc
+   \rm -f $tmpunit$view* $tmpave $tmpgc 
+   if ( -f $tmpprod$view.HEAD ) then
+      \rm -f $tmpprod$view.*
+   endif
 else if ( $verb > 1 ) then
    echo "keeping temp files: $tmpunit$view* $tmpave $tmpgc"
+   if ( -f $tmpprod$view.HEAD ) then
+      echo "keeping temp files: $tmpprod$view.*"
+   endif
 endif
 
 # ======================================================================
@@ -235,20 +271,31 @@ Common examples:
      OR, save the result:
 
         set gcor = \`$prog -verb 0 -input errts.FT+tlrc -mask full_mask.FT+tlrc\`
+
+  4. Output correlation volume: for each voxel, the average correlation
+     with all voxels in mask.
+
+     Specify correlation volume prefix, FT_corr.
+
+       $prog -input errts.FT+tlrc -mask full_mask.FT+tlrc -corr_vol FT_corr
+
 -----------------------------------------------------------------
 
 Overview of processing steps: 
 
-0. If the input is a 1D file, cheat and run "1d_tool.py -show_gcor", instead.
+0.  If the input is a 1D file, cheat and run "1d_tool.py -show_gcor", instead.
 
 otherwise...
 
-1. Scale the input to a unit time series, so that each voxel voxel has a
-   length of 1.
+1.  Scale the input to a unit time series, so that each voxel voxel has a
+    length of 1.
 
-2. Compute the average of these unit time series.
+2.  Compute the average of these unit time series.
 
-3. Return GCOR = the length of the resulting average, squared.
+3a. If requested, compute the correlation volume, the dot product of the
+    unit and average time series.
+
+3b.  Return GCOR = the length of the resulting average, squared.
 
 ---------------------------------------------
 
@@ -258,14 +305,18 @@ terminal options:
    -hist             : show modification history
    -ver              : show version number
 
-processing options:
+important processing options:
 
    -input DSET       : specify input dataset to compute the GCOR over
    -mask DSET        : specify mask dataset, for restricting the computation
+
+other processing options:
+
+   -corr_vol PREFIX  : specify input dataset to compute the GCOR over
    -nfirst NFIRST    : specify number of initial TRs to ignore
    -no_demean        : do not (need to) demean as first step
    -savetmp          : save temporary files (do not remove at end)
-   -verb VERB        : set verbose level (0=quiet)
+   -verb VERB        : set verbose level (0=quiet, 3=max)
 
 ---------------------------------------------
 
@@ -282,6 +333,7 @@ cat << EOF
 $prog modification history:
 
    0.0  : Jan 17, 2013: initial version
+   0.1  : Feb 27, 2015: added -corr_vol
 
 EOF
 
