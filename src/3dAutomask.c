@@ -312,7 +312,7 @@ int main( int argc , char * argv[] )
 
 #if 0
      { int xm=-1,xp=-1,ym=-1,yp=-1,zm=-1,zp=-1 ;
-       THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp ) ;
+       THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp, NULL ) ;
        INFO_message("Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
                      xm,xp,ym,yp,zm,zp ) ;
      }

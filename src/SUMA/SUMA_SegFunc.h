@@ -679,7 +679,8 @@ SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
                                THD_3dim_dataset **urset, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO, 
                              THD_3dim_dataset *iset, float thr,
-                             int smooth_final,
+                             int smooth_final, float *under_over_mm,
+                             int zero_attractor, 
                              SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO, 
                              THD_3dim_dataset *iset, float thr,

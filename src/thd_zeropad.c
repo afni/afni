@@ -136,7 +136,13 @@ ENTRY("THD_zeropad") ;
        nynew < 1 || jjbot > jjtop ||   /* and ranges of dataset     */
        nznew < 1 || kkbot > kktop   ){
 
-      fprintf(stderr,"*** THD_zeropad: Can't cut dataset down too much!\n") ;
+      ERROR_message("*** THD_zeropad: Can't cut dataset down too much!\n"
+                    "            new: %d %d %d\n"
+                    "             ii: %d..%d\n"
+                    "             jj: %d..%d\n"
+                    "             kk: %d..%d\n",
+                    nxnew, nynew, nznew,
+                    iibot, iitop, jjbot, jjtop, kkbot, kktop ) ;
       RETURN( NULL );
    }
 

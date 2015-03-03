@@ -8,9 +8,11 @@ SAVE_SHELL_HISTORY = 400
 MAX_SHELL_HISTORY  = 600
 
 class afni_name:
-   def __init__(self, name=""):
+   def __init__(self, name="", do_sel=1):
+      """do_sel : apply selectors (col, row, range)"""
       self.initname = name
-      res = parse_afni_name(name)
+      self.do_sel = do_sel
+      res = parse_afni_name(name, do_sel=self.do_sel)
       self.path = res['path']
       self.prefix = res['prefix']
       self.view = res['view']
@@ -299,7 +301,7 @@ class afni_name:
       if len(new_pref):
          # maybe parse prefix as afni_name
          if parse_pref:
-            ant = parse_afni_name(new_pref)
+            ant = parse_afni_name(new_pref, do_sel=self.do_sel)
             an.prefix = ant['prefix']
          else: an.prefix = new_pref
       else:
@@ -314,7 +316,7 @@ class afni_name:
 
    def initial_view(self):
       """return any initial view (e.g. +tlrc) from self.initial"""
-      pdict = parse_afni_name(self.initname)
+      pdict = parse_afni_name(self.initname, do_sel=self.do_sel)
       view = pdict['view']
       if view in ['+orig', '+acpc', '+tlrc']: return view
       return ''
@@ -727,14 +729,18 @@ def strip_extension(name, extlist):
 
 
 #parse an afni name
-def parse_afni_name(name):
+def parse_afni_name(name, aname=None, do_sel=1):
+   """do_sel : apply afni_selectors"""
    res = {}
    #get the path  #Can also use os.path.split
    rp = os.path.dirname(name) #relative path
    ap = os.path.abspath(rp) #absolute path
    fn = os.path.basename(name)
    #Get selectors out of the way:
-   res['col'], res['row'], res['node'], res['range'], fn = afni_selectors(fn)
+   if do_sel:
+      res['col'], res['row'], res['node'], res['range'], fn = afni_selectors(fn)
+   else:
+      res['col'] = res['row'] = res['node'] = res['range'] = ''
    
    #is this a .nii volume?
    rni = strip_extension(fn,['.nii', '.nii.gz'])
@@ -744,8 +750,8 @@ def parse_afni_name(name):
       pr = rni[0]
       tp = 'NIFTI'
    else: 
-      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.BRIK.bz2','.BRIK.Z','.1D', '.',  \
-                                '.1D.dset', '.niml.dset'])
+      rni = strip_extension(fn,['.HEAD','.BRIK','.BRIK.gz','.BRIK.bz2',
+                            '.BRIK.Z','.1D', '.',  '.1D.dset', '.niml.dset'])
       ex = rni[1]
       if (ex == '.1D' or ex == '.1D.dset'):
          tp = "1D"

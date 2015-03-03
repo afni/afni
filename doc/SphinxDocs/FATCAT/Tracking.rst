@@ -161,8 +161,12 @@ Outputs common to all modes
        ([i]th brick of either MAP file, where *i>0*);
 
    * a **grid** file (ending with ``*.grid``), which contains all the
-     structural connectivity matrices for the given network. Matrices
-     in these files can be:
+     structural connectivity matrices for the given
+     network. Quantities include both mean and standard deviation of
+     DTI parameters (FA, MD, L1 and RD), as well as the volume of the
+     WM ROIs (both in terms of physical units, number of voxels, and
+     volume scaled by whole brain mask), as well as the number of
+     tracts. The matrices in these files can be:
 
      * selected, viewed and saved to an image file using
        ``fat_mat_sel.py``;
@@ -321,6 +325,15 @@ Outputs specific to ``{DET|MINIP}`` modes
 Viewing tracked outputs
 =======================
 
+Many different types of output files can be viewed simultaneously in
+SUMA (volume, tractfile, dset/matrices, etc.).  SUMA and AFNI can also
+be run at the same time to talk together and share informative gossip
+on data sets.  All the individual SUMA examples below can be combined
+in a single command line call.  After opening a controller, you can
+hit the new useful 'All Objs.' button near the top, in order to
+*immediately* be able to toggle among each input file.  For more
+information on SUMA viewing in general, check out :ref:`viewer`.
+
 #. **Volume files outputs.** PAIRMAP, INDIMAP and dumped volumes can
    all be viewed in either AFNI or in SUMA.  To load them into the
    latter for 3D visualization, use::
@@ -391,8 +404,8 @@ Viewing tracked outputs
 Inputs for tracking
 ===================
 
-This will be an attempt to cluster sections of the 3dTrackID input
-options meaningfully.
+This section will be an attempt to cluster 3dTrackID input options
+meaningfully.
 
 .. _Min_Inp_Track:
 
@@ -643,6 +656,26 @@ Changing default tracking parameters
    0.06 rad (~3.4 deg) for any eigenvector/direction. User assigns
    values in degrees.
 
+Thresholding ``{DET|MINIP}`` tract bundles
+------------------------------------------
+
+The PROB method requires a certain number of tracts to go through a
+voxel before it is included in a WM ROI connection.
+
+Recently, the ability to trim some kinds of 'obvious' noisy tracts
+from DET and MINIP modes has been added.  The option ``-bundle_thr V``
+allows the user to enter a minimum threshold number of tracts for
+any bundle to have without being filtered out (AKA removed).
+
+It is based on the fact that occasionally, one will see an odd tract
+winding as a connection between two targets, in what would appear
+visually to be an outlier. Even when using more DET seeds or MINIP
+iterations, the tract might remain isolated-- further justifying its
+interpretation as noise-driven.  The bundle threshold criterion can be
+useful in removing it easily.
+
+Note, however, that the fully probabilistic mode's criterion is
+stricter, and it still provides the most robust results when tracking.
 
 Useful output dumping of WM ROIs
 --------------------------------
@@ -677,8 +710,8 @@ Switching various features ON/OFF
 
 * ``-write_rois`` : write out a file (PREFIX.roi.labs) of all the ROI
   (re-)labels, for example if the input ROIs aren't simply consecutive
-  and starting from 1. File has 3cols: Input_ROI, Condensed_form_ROI,
-  Power_of_2_label.
+  and starting from 1. The file has three cols: Input_ROI,
+  Condensed_form_ROI, Power_of_2_label.
 
 * ``-dump_no_labtab`` : if the ROIS file has a label table, the
   default is to use it in naming a ``-dump_rois *`` output (if being
@@ -706,4 +739,6 @@ Miscellaneous others
   counts and not using physical units (consistent: NT values themselves
   are just numbers.)
 
-
+* Sundry other options described in the ``3dTrackID`` helpfile (which
+  most likely aren't interesting enough to describe further):
+  '-dump_lab_consec', '-posteriori', '-rec_orig' and '-pair_out_power'.
