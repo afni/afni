@@ -457,7 +457,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->in_vol = NULL;
    Opt->nvox = -1;
    Opt->ninmask = -1;
-   Opt->mcdatav = NULL;
+   Opt->mcfv = NULL;
    Opt->debug = 0;
    Opt->v0 = 0.0;
    Opt->v1 = -1.0;
