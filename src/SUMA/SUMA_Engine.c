@@ -1328,7 +1328,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               "%s: Message string:\n%s\n", FuncName, s);
                   LogShell =  SUMA_CreateTextShellStruct (
                                   SUMA_Message_open, NULL, NULL, 
-                                  SUMA_Message_destroyed, NULL);
+                                  SUMA_Message_destroyed, NULL, NULL);
                   if (!LogShell) {
                      fprintf (SUMA_STDERR, 
                             "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
@@ -1352,7 +1352,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else {
                   SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
                                     SUMA_Help_open, NULL, NULL,
-                                    SUMA_Help_destroyed, NULL);
+                                    SUMA_Help_destroyed, NULL,
+                        "http://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
+                                    "SUMA/Viewer.html#mouse-keyboard");
                   if (!SUMAg_CF->X->Help_TextShell) {
                      fprintf (SUMA_STDERR, 
                            "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
@@ -1398,7 +1400,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else { /* make one */
                   SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
                                     SUMA_Help_open, NULL, NULL,
-                                    SUMA_Help_destroyed, NULL);
+                                    SUMA_Help_destroyed, NULL, NULL);
                   if (!SUMAg_CF->X->Help_TextShell) {
                      fprintf (SUMA_STDERR, 
                            "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
@@ -1458,7 +1460,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_CreateTextShellStruct (  SUMA_Help_Cmap_open, 
                                                    NULL, NULL,
                                                    SUMA_Help_Cmap_destroyed,
-                                                   NULL);
+                                                   NULL,
+                              "http://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
+                              "SUMA/Viewer.html#colormap-keyboard-controls");
                   if (!TextShell) {
                      fprintf (SUMA_STDERR, 
                               "Error %s: "
@@ -1494,7 +1498,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_CreateTextShellStruct (  SUMA_Help_Plot_open, 
                                                    NULL, NULL,
                                                    SUMA_Help_Plot_destroyed,
-                                                   NULL);
+                                                   NULL, NULL);
                   if (!TextShell) {
                      fprintf (SUMA_STDERR, 
                               "Error %s: "
@@ -1535,7 +1539,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
                                                    NULL, NULL,
                                                    SUMA_Whereami_destroyed,
-                                                   NULL))) {
+                                                   NULL, NULL))) {
                      SUMA_S_Err("Failed to create TextShellStruct.");
                      break;
                   }

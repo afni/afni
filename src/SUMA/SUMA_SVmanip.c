@@ -4071,7 +4071,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->MemTrace = NOPE;
    cf->dcom = NULL;
    cf->N_dcom = 0;
-   
+   cf->DocumentedWidgets = NULL;
    /* verify pointer size. I use INT_MAX and LONG_MAX
    to guess whether or not we have 64 bit pointers.
    I need to guess with #if to do proper type casting and
@@ -4996,6 +4996,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    SUMA_ifree(cf->X->Cr);
    for (i=0; i<cf->N_dcom; ++i) { SUMA_ifree(cf->dcom[i]); } 
    SUMA_ifree(cf->dcom);
+   SUMA_ifree(cf->DocumentedWidgets);
    
    if (cf->X->SumaCont) 
       SUMA_FreeSumaContStruct (cf->X->SumaCont); 
@@ -5267,7 +5268,9 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
                   
    SS = SUMA_StringAppend_va(SS, "SaveList: %d elements\n",
                   cf->SaveList ? dlist_size(cf->SaveList):0);
-                  
+   
+   SS = SUMA_StringAppend_va(SS, "Documented Widgets:\n%s",
+                     cf->DocumentedWidgets?cf->DocumentedWidgets:NULL);               
    /* clean up */
    SS = SUMA_StringAppend_va(SS, NULL);
    s = SS->s; SUMA_free(SS); SS= NULL;

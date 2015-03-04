@@ -278,7 +278,7 @@ Quick Tour
          
             * We begin by describing the right side block :ref:`Dset Mapping<SurfCont->Dset_Mapping>` which is used to colorize a dataset. Many of the options mimic those in AFNI's **Define Overlay** controls.
             
-            * Many features are not mentioned here, use :ref:`BHelp <GL_CN_BHelp>` interactively or the online help for the controller you are using, here the :ref:`surface controller <SurfCont>`.
+            * Many features are not mentioned here, use :ref:`BHelp <GL_CN_BHelp>` or :ref:`WHelp <GL_CN_WHelp>` interactively or the online help for the controller you are using, here the :ref:`surface controller <SurfCont>`.
             
             * From the :ref:`Dset Mapping <SurfCont->Dset_Mapping>` block on the right side of the interface
             

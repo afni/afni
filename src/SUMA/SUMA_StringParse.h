@@ -66,6 +66,20 @@
    }\
 }
 
+#define SUMA_SPHINX_WIDGET_NAME_2_LINK(name) {  \
+   if (name)   {  \
+      int m_i, m_r=0; \
+      SUMA_TO_LOWER(name);  \
+      if (name[strlen(name)-1] == '.') name[strlen(name)-1]='\0'; \
+      for (m_i=0; m_i<strlen(name); ++m_i) { \
+         if (SUMA_IS_BLANK(name[m_i]) || name[m_i] == '/' || \
+             name[m_i] == '>' || name[m_i] == '[' || name[m_i] == ']') {\
+            name[m_i] = '-'; \
+         } \
+      } \
+   }\
+}
+
 #define SUMA_NICEATE_FILENAME(name,repl) {  \
    if (name)   {  \
       int m_i, m_r=0; \

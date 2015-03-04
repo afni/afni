@@ -328,7 +328,7 @@ typedef struct {
 /*************************  help utilities    *************************/
 
 /* Flags & macros for shpinx string formatting */
-typedef enum { TFORM_NOT_SET, NO_FORMAT, TXT, SPX , ASPX } TFORM;
+typedef enum { TFORM_NOT_SET, NO_FORMAT, TXT, SPX , ASPX, WEB } TFORM;
 
 #define CHECK_HELP(opt,fun) {\
    if( strcmp(argv[iarg],"-h_spx") == 0 ){   \

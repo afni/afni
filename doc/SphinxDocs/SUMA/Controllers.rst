@@ -57,14 +57,18 @@ Object Controllers
 
          :guilabel:`BHelp`: Obtain context specific help by clicking on this button then clicking on the contextfor which you want information.
 
-         .. _GL_CN_Switch:
+         .. _GL_CN_WHelp:
 
-         :guilabel:`Switch`: Switch between controller notebook pages. You can use the arrows to cycle between pages or set the page number directly. 
+         :guilabel:`WHelp`: Obtain web-based context specific help by clicking on this button then clicking on the contextfor which you want information.
 
          .. _CL_CN_All_Objs:
 
          :guilabel:`All Objs`: Initialize controllers for all objects that have one. This is particularly useful when a particular may not be visible under the default settings.
  
+         .. _GL_CN_Switch:
+
+         :guilabel:`Switch`: Switch between controller notebook pages. You can use the arrows to cycle between pages or set the page number directly. 
+
  
 .. include:: auto_inc/SurfCont_help.inc 
 .. include:: auto_inc/TractCont_help.inc 

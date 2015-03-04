@@ -53,12 +53,17 @@ char * SUMA_Help_AllGraphCont (TFORM targ);
 char * SUMA_Help_AllSurfCont (TFORM targ);
 char * SUMA_Help_AllSurfCont_old (void);
 char *SUMA_Name_GUI_Help(GUI_WIDGET_HELP *gwh);
+char *SUMA_Name_GUI_Help_eng(GUI_WIDGET_HELP *gwh, int lvl);
+GUI_WIDGET_HELP *SUMA_Get_Widget_Help( Widget w );
 char *SUMA_All_GUI_Help_Info(DList *dl, int detail, int format);
 void SUMA_Show_All_GUI_Help(DList *dl, FILE *fout, int detail, int format);
+void SUMA_click_webhelp_CB(Widget w, XtPointer data, 
+                                     XtPointer callData);
 GUI_WIDGET_HELP *SUMA_Get_GUI_Help( char *gname, TFORM format, 
                                     char **helpout, char **hintout, 
                                     int whelp_off);
-int SUMA_Register_GUI_Help(char *which, char *hint, char *help, int type);
+int SUMA_Register_GUI_Help(char *which, char *hint, char *help, 
+                           Widget w, int type);
 void SUMA_Free_Widget_Help(void *data);
 char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type);
 void SUMA_suggest_GUI_Name_Match(char *wname, int nmx, DList *dl);

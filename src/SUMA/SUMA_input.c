@@ -2963,7 +2963,7 @@ int SUMA_W_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                               SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
                                                       NULL, NULL,
                                                       SUMA_Whereami_destroyed,
-                                                      NULL))) {
+                                                      NULL, NULL))) {
                         SUMA_S_Err("Failed to create TextShellStruct.");
                         break;
                      }
