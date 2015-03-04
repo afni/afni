@@ -564,7 +564,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.49" # software version (update for changes)
+      self.align_version = "1.50" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -650,7 +650,7 @@ class RegWrap:
       self.valid_opts.add_opt('-save_script', 1, [], \
                helpstr="save executed script in given file" )
 
-      self.valid_opts.add_opt('-align_centers', 1, ['no'], ['yes', 'no'],  \
+      self.valid_opts.add_opt('-align_centers', 1, ['no'], ['yes', 'no', 'on', 'off'],  \
                helpstr="align centers of datasets based on spatial\n"      \
                        "extents of the original volume")
       self.valid_opts.add_opt('-anat_has_skull', 1, [], ['yes', 'no'],\
@@ -1495,7 +1495,7 @@ class RegWrap:
       #align_centers to get pre-transformation matrix
       opt = self.user_opts.find_opt('-align_centers')
       if opt != None:  # shouldn't happen, defaults to no
-         if(opt.parlist[0]=='yes'):
+         if((opt.parlist[0]=='yes') or (opt.parlist[0]=='on')):
              ps.align_centers = 1
              self.info_msg("turning on align_centers")
              if ps.pre_matrix != "" :
