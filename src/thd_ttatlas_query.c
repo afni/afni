@@ -1276,7 +1276,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                if(strcmp(clab[i],"{Unknown}")!=0){
                   sprintf(tmps, "%s   %s, %s, %s %s%s%c",
                       histart, xlab[i], ylab[i], zlab[i], clab[i], hiend, lsep);
-                  strncat(lbuf, tmps, 1023*sizeof(char));
+                  strncat(lbuf, tmps, (1023-strlen(lbuf))*sizeof(char));
                }
             }
             ADDTO_SARR(sar,lbuf);
@@ -4929,7 +4929,7 @@ char **approx_str_sort_readmes(char *str, int *N_r)
    if (strstr(str,strn)) str += strlen(strn);
    else if (str[0] == '.') str += 1;
    
-   strncat(strn, str, 200*sizeof(char));
+   strncat(strn, str, (200-strlen(strn))*sizeof(char));
    if (!(progs = THD_get_all_afni_readmes())) {
       RETURN(ws);
    }              

@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 4, Mar, 2014, ZSS, "suma", MAJOR, TYPE_NEW_OPT,
+   "Added WHelp button to mimic BHelp but open online pages",
+   "This required a few additional modifications to the auto-help\n"
+   "generating functions. Lots of work under the hood."
+ },
+
+ { 3, Mar, 2014, ZSS, "afni-general", MINOR, TYPE_BUG_FIX,
+   "Fixed misuse of strncat in distribution",
+   NULL
+ },
+
  { 26, Feb, 2014, ZSS, "BrainSkin", MINOR, TYPE_NEW_OPT,
    "Added -no_zero_attraction",
    "See help for details"

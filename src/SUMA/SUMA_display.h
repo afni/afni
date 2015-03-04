@@ -347,6 +347,8 @@ void SUMA_cb_XHlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 SUMA_Boolean SUMA_WriteCont_Help(SUMA_DO_Types do_type, TFORM targ, char *fname);
+SUMA_Boolean SUMA_is_Documented_Widget(char *wname);
+char *SUMA_All_Documented_Widgets(void);
 SUMA_Boolean SUMA_Snap_AllCont(SUMA_DO_Types do_type, char *fname);
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_createSurfaceCont_SO(Widget w, XtPointer data, XtPointer callData);
@@ -386,7 +388,7 @@ void SUMA_SumaInfo_destroyed (void *p);
 void SUMA_SumaInfo_open (void *p);
 SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
    void (*opencallback)(void *data), void *opendata, char *opendatatype, 
-   void (*closecallback)(void*data), void *closedata);
+   void (*closecallback)(void*data), void *closedata, char *weblink);
 SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA_CREATE_TEXT_SHELL_STRUCT *TextShellStruct);
 void SUMA_cb_search_text(Widget widget, XtPointer client_data, 
                          XtPointer call_data);
@@ -394,12 +396,14 @@ char * SUMA_WriteStringToFile(char *fname, char *s, int, int);
 void SUMA_SaveTextShell(Widget w, XtPointer ud, XtPointer cd);
 void SUMA_RefreshTextShell(Widget w, XtPointer ud, XtPointer cd);
 void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd);
+void SUMA_WebTextShell(Widget w, XtPointer ud, XtPointer cd);
 void SUMA_SurfInfo_open (void *SO);
 void SUMA_SurfInfo_destroyed (void *SO);
 void SUMA_cb_ToggleCaseSearch (Widget widget, XtPointer client_data, 
                                XtPointer call_data);
 void SUMA_cb_Mask (Widget w, XtPointer client_data, XtPointer callData);
 void SUMA_cb_helpUsage (Widget w, XtPointer data, XtPointer callData);
+void SUMA_cb_helpWeb (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpIO_notify(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpEchoKeyPress(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData);
@@ -903,9 +907,9 @@ void SUMA_C_laplace(SUMA_C_FILTER *mat);
 void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat);
 
 /* *************** End Convolution utilities *************** */
-SUMA_Boolean SUMA_Register_Widget_Help(Widget w, char *name, 
+SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name, 
                                        char *hint, char *help);
-SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name, 
+SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, int type, char *name, 
                                                 char *hint, char *help);  
 #define SUMA_XformOrtFile_Load_help   \
    "Load an ort file"
@@ -1145,7 +1149,14 @@ SUMA_Boolean SUMA_Register_Widget_Children_Help(Widget, char *name,
    "Click the hand\n"   \
    "on any button or \n"\
    "label, menu, etc. to\n"  \
-   "get a little help."
+   "get a little help. See also WHelp!"
+   
+#define SUMA_webhelp_help \
+   "Click the coffee cup on any button \n"   \
+   "label, menu, etc. to go to the corresponding online help.\n"  \
+   "Clicking on table cells might take you to the help for the\n" \
+   "entire table or the GUI section the table is in. You might\n" \
+   "get a more focused result by clicking on the table's headings.\n" 
    
 #define SUMA_closeSumaCont_help \
    "Close SUMA controller window.\n"   \
