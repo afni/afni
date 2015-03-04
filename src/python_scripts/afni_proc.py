@@ -441,18 +441,25 @@ g_history = """
         - generate WMeL_corr as a diagnostic volume (corr w/WMeLocal)
         - todo: add ability to make WMeL_corr without fast anaticor
     4.31 Feb 27, 2015: added -regress_WMeL_corr option (forgot that)
+    4.32 Mar  2, 2015:
+        - fixed 3dTproject call for resting state on surface
+        - small change to get 3dSeg results using wildcard
+    4.33 Mar  3, 2015:
+        - allow MIN_OUTLIER as a parameter in -volreg_align_to
+        - update requirement date (Feb 9 -> Nov 9)
 """
 
-g_version = "version 4.31, February 27, 2015"
+g_version = "version 4.32, March 2, 2015"
 
 # version of AFNI required for script execution
-g_requires_afni = "9 Feb 2014" # 3dNwarpApply
+g_requires_afni = "9 Nov 2014" # 3dNwarpApply
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 
 BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'align',
-                'volreg', 'surf', 'blur', 'mask', 'scale', 'regress', 'tlrc', 'empty']
+                'volreg', 'surf', 'blur', 'mask', 'scale', 'regress', 'tlrc',
+                'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
                  'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
@@ -556,6 +563,7 @@ class SubjProcSream:
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.e2final_mv = []            # matvec list takes epi base to final
         self.e2final    = ''            # aff12.1D file for e2final_mv
+        self.regress_inset = None       # afni_name: first input to regression
         self.errts_pre  = ''            # possibly changing errts prefix
         self.errts_reml = ''            # prefix for any REML errts
         self.errts_cen  = 0             # flag: current errts has censored
@@ -839,8 +847,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_align_e2a', 0, [],
                         helpstr="align EPI to anatomy (via align block)")
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
-                        acplist=['first','third', 'last'],
-                        helpstr="align to 'first', 'third' or 'last' TR")
+                        acplist=['first','third', 'last', 'MIN_OUTLIER'],
+                        helpstr="align to first, third, last or MIN_OUTILER TR")
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
         self.valid_opts.add_opt('-volreg_base_ind', 2, [],
