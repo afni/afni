@@ -49,6 +49,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3,  Mar, 2015, RCR, "powell_int.c", MICRO, TYPE_BUG_FIX,
+   "multiple include directives got joined on one line",
+   NULL
+ } ,
+
+ {  3,  Mar, 2015, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "added MIN_OUTLER as an option to -volreg_align_to",
+   "Also, udpated requirement data from Feb 9 to Nov 9."
+ } ,
+
+ {  2,  Mar, 2015, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed 3dTproject call for resting state on surface",
+   "Thanks to Tara (message board) for noting the problem."
+ } ,
+
  { 27,  Feb, 2015, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "added -regress_WMeL_corr option, which I forgot about last time",
    NULL
