@@ -121,7 +121,7 @@ char *SUMA_hist_fname(char *proot, char *variable, char *conditional,
                proot, variable);
    }  
    if (withext) {
-      strncat(cls[ii],".niml.hist", 255);
+      SUMA_strncat(cls[ii],".niml.hist", 255);
    }            
    return(cls[ii]);
 }
@@ -138,7 +138,7 @@ char *SUMA_corrmat_fname(char *proot, char *conditional, int withext)
    snprintf(cls[ii], 255, "%s/C.%s",
                proot, conditional);
    if (withext) {
-      strncat(cls[ii],".niml.cormat", 255);
+      SUMA_strncat(cls[ii],".niml.cormat", 255);
    }             
    return(cls[ii]);
 }
@@ -2068,7 +2068,7 @@ int  group_mean (SEG_OPTS *Opt, THD_3dim_dataset *aset,
          else sprintf(sbuf,"%d -- %f , (%f)  ", 
                            g+1, M_v[g]*bf, M_v[g]);
          
-         strncat(srep, sbuf, 510);
+         SUMA_strncat(srep, sbuf, 510);
       }
       INFO_message("%s group means brick scaled , (unscaled): %s\n", 
                   p ? "p-weighted" : "uniform-weight", 

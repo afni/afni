@@ -324,6 +324,7 @@ typedef enum { SW_View,
                           Make sure you begin with SW_View and end
                                                       with SW_N_View */
 typedef enum { SW_Help, 
+               SW_HelpWeb,
                SW_HelpUsage,  SW_HelpMessageLog, SW_HelpSep1, 
                SW_HelpSUMAGlobal, SW_HelpViewerStruct, SW_HelpSurfaceStruct, 
                SW_HelpSep2, SW_HelpIONotify, SW_HelpEchoKeyPress, 
@@ -1336,6 +1337,7 @@ typedef struct {
    SUMA_Boolean CursorAtBottom; /*!< If YUP then cursor is positioned at 
                                        end of text field */
    char *title; /* the title string */
+   char *weblink;
 } SUMA_CREATE_TEXT_SHELL_STRUCT; /*!< structure containing options and widgets 
                                        for the text shell window */
 
@@ -3875,6 +3877,9 @@ typedef struct {
 
    char **dcom;
    int N_dcom;
+   
+   char *DocumentedWidgets; /*!< Widget names for which a Sphinx documentation 
+                                 entry is being created */ 
 } SUMA_CommonFields;
 
 

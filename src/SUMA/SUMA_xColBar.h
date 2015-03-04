@@ -1334,7 +1334,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    " 1 1 1\n"   \
    " 1 0 0:LR:\n"   \
    "saved into a cmap file called\n"   \
-   "cmap_test.1D.cmap"
+   "cmap_test.1D.cmap" \
+   "\n"  \
+   "See also envs :ref:`SUMA_CmapsDir<SUMA_CmapsDir>`, "\
+   ":ref:`SUMA_RetinoAngle_DsetColorMap<SUMA_RetinoAngle_DsetColorMap>` "\
+   "and :ref:`SUMA_VFR_DsetColorMap<SUMA_VFR_DsetColorMap>`"
+   
 
    #define  SUMA_SurfContHelp_AbsThr   \
 "Toggle Absolute thresholding.:LR:\n"   \

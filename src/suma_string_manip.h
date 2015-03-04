@@ -7,6 +7,7 @@ char *SUMA_EscapeChars(char *s1, char *ca, char *es);
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
 char *insert_in_string(char **s, char *pos, char *ins, int *nalloc);
 char *summarize_string(char *us, int lmax);
+char *SUMA_strncat(char *s1, char *s2, int nmax);
 char *line_begins_with(char *cur, char *opt, int *nb, 
                        char *term, char *bracketers, int mintoend);
 void write_string(char *s, char *prelude, char *postscript,

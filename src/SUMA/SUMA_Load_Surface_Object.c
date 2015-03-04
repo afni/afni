@@ -1560,6 +1560,8 @@ SUMA_Boolean SUMA_AutoLoad_SO_Dsets(SUMA_SurfaceObject *SO)
    char *ddd=NULL, *ddde=NULL, *soname=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
+   SUMA_ENTRY;
+   
    soname = SUMA_SurfaceFileName(SO, 1);
    ddd = SUMA_RemoveSurfNameExtension (soname, SO->FileType);
    SUMA_LH("Checking for %s dsets on root %s", soname, ddd);

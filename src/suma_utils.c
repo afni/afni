@@ -1979,9 +1979,9 @@ int SUMA_search_file(char **fnamep, char *epath)
              ename[ii]  = '/' ; ename[ii+1] = '\0' ;
          }
          strcpy(dname,ename) ;
-         strncat(dname,*fnamep, THD_MAX_NAME-1) ;       /* add dataset name */
+         SUMA_strncat(dname,*fnamep, THD_MAX_NAME-1) ;     /* add dataset name */
          if (imode == 2) {
-            strncat(dname,".gz", THD_MAX_NAME-1);    /* add compression flag */
+            SUMA_strncat(dname,".gz", THD_MAX_NAME-1); /* add compression flag */
          }
          if ( SUMA_filexists(dname) ) {
             SUMA_free(*fnamep); *fnamep = SUMA_copy_string(dname);
