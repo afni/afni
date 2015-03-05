@@ -5259,7 +5259,7 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
                      SUMA_CLASS_STAT *cs) 
 {
    static char FuncName[]={"SUMA_Class_stats"};
-   int i=0, j = 0, sb=0, l;   
+   int i=0, j = 0, sb=0, l, bad=0;   
    short *a=NULL, *c=NULL, *w=NULL;
    float af=1.0, wf=1.0, fpriCgALL;
    double n, Asum2, Asum, Amean, Astd, wsum, ff, *nv=NULL, ww=0.0,
@@ -5276,7 +5276,6 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
          SUMA_RETURN(0);
       }
    }
-   
    if (!pstCgALL) {
       if (!c) {
          SUMA_S_Err("No classes, and no weighting set");
@@ -5306,6 +5305,24 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
          SUMA_set_Stat(cs, cs->label[j], "mix", n/cmask_count);
       }
    } else {
+      /* Check classes at input */
+      bad = 0;
+      for (j=0; j<cs->N_label; ++j) {
+         if (SUMA_get_Stat(cs, cs->label[j], "num") == 0 ||
+             SUMA_get_Stat(cs, cs->label[j], "mix") < 1.0e-6 ||
+             isnan(SUMA_get_Stat(cs, cs->label[j], "meanL")) ||
+             isnan(SUMA_get_Stat(cs, cs->label[j], "stdvL")) ||
+             isnan(SUMA_get_Stat(cs, cs->label[j], "mean")) ||
+             isnan(SUMA_get_Stat(cs, cs->label[j], "stdv")) ) {
+            SUMA_S_Err("Bad parameters for class %s", cs->label[j]);
+            ++bad;
+         }
+      }
+      if (bad) {
+          SUMA_show_Class_Stat(cs, 
+                        "Bad Stats At SUMA_Class_stats() entry:\n", NULL);
+          SUMA_RETURN(0);   
+      }
       if (DSET_NVALS(pstCgALL) != cs->N_label &&
           DSET_NVALS(pstCgALL) != 1) {
          SUMA_S_Errv("Weight set must be 1 or %d sub-bricks. Have %d\n",
@@ -5392,6 +5409,24 @@ int SUMA_Class_stats(THD_3dim_dataset *aset,
       SUMA_ifree(mixden);
    }
    
+   /* Check classes at input */
+   bad = 0;
+   for (j=0; j<cs->N_label; ++j) {
+      if (SUMA_get_Stat(cs, cs->label[j], "num") == 0 ||
+          SUMA_get_Stat(cs, cs->label[j], "mix") < 1.0e-6 ||
+          isnan(SUMA_get_Stat(cs, cs->label[j], "meanL")) ||
+          isnan(SUMA_get_Stat(cs, cs->label[j], "stdvL")) ||
+          isnan(SUMA_get_Stat(cs, cs->label[j], "mean")) ||
+          isnan(SUMA_get_Stat(cs, cs->label[j], "stdv")) ) {
+         SUMA_S_Err("Bad parameters for class %s", cs->label[j]);
+         ++bad;
+      }
+   }
+   if (bad) {
+       SUMA_show_Class_Stat(cs, 
+                     "Bad Stats At SUMA_Class_stats() exit:\n", NULL);
+       SUMA_RETURN(0);   
+   }
       
    /* and the dice */
    if (gold && cset) {
