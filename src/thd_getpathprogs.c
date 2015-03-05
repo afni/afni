@@ -464,7 +464,7 @@ THD_string_array * THD_get_all_afni_executables(void )
    }
    
    N_af = strlen(af);
-   
+
    /* Now get all executables under af */
    INIT_SARR( outar );
    for (ii=0, iaf=0; ii<elist->num ; ii++ ){

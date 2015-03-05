@@ -330,6 +330,10 @@ int apsearch_usage(TFORM targ, int detail)
 "=====================\n"
 "-C_all_prog_opt_array : Output all program options as an array of C structs.\n"
 "                        Debugging is output to stderr, the beef is in stdout.\n"
+"                        Executables not found in the afni binaries directory \n"
+"                        (now %s) will be ignored.\n"
+"-C_all_append_prog_opt_array: Keep programs already in C struct but no longer\n"
+"                        in the new list of executables.\n"
 "-C_prog_opt_array PROG: Insert/update PROG's options in an array of C \n"
 "                        and output the results to stdout as for\n"
 "                        option -C_all_prog_opt_array\n\n"
@@ -384,7 +388,7 @@ int apsearch_usage(TFORM targ, int detail)
 "Global Options:\n"
 "===============\n"
 "%s\n%s", 
-   THD_helpdir(0),
+   THD_helpdir(0), THD_abindir(1),
    detail > 1 ? get_gopt_help():"",
    detail > 1 ? SUMA_Offset_SLines(get_help_help(),2):""); 
    PRINT_COMPILE_DATE ;
@@ -1013,6 +1017,13 @@ int main(int argc, char **argv)
       }
       
       if (strcmp(argv[iarg],"-C_all_prog_opt_array") == 0) {
+         progopt_C_array(NULL, 1, NULL, 0);
+         return(0);
+         ++iarg; 
+         continue;
+      }
+      
+      if (strcmp(argv[iarg],"-C_all_append_prog_opt_array") == 0) {
          progopt_C_array(NULL, 1, NULL, 1);
          return(0);
          ++iarg; 
