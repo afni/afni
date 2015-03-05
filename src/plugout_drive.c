@@ -339,6 +339,8 @@ int afni_io(void)
    return 0 ;
 }
 
+extern char *SUMA_Offset_SLines(char *, int);
+
 void usage_plugout_drive(int detail)
 {
       printf("Usage: plugout_drive [-host name] [-v]\n"
