@@ -185,6 +185,27 @@ void write_string(char *s, char *prelude, char *postscript,
    return;
 }
 
+/*!
+   Append s2 to s1 but without exceeding nmax characters for
+   s1
+   
+   s1 must be able to hold nmax characters 
+*/ 
+char *SUMA_strncat(char *s1, char *s2, int nmax)
+{
+   int ns1;
+   if (!s1 || !s2) return(s1);
+   if (s1) {
+      ns1 = strlen(s1);
+      if (ns1 >= nmax) return(s1);
+   }
+   if (s2) {
+      nmax = nmax - ns1;
+      s1 = strncat(s1,s2, nmax);
+   }
+   return(s1);
+}
+
 char *summarize_string(char *us, int lmax)
 {
    static char FuncName[]={"summarize_string"};
@@ -216,7 +237,7 @@ char *summarize_string(char *us, int lmax)
    strncpy(s, us, nchunk); s[nchunk]='\0';
    strcat(s,elli);
    nleft = lmax - nchunk -nelli;
-   strncat(s, us+strlen(us)-nleft, nleft);
+   SUMA_strncat(s, us+strlen(us)-nleft, nleft);
    s[lmax] = '\0';
    
    return(s);
@@ -1427,27 +1448,45 @@ char *SUMA_Sphinx_DeRef(char *s, char *r)
 }
 
 /*
-   Switch occurence of 'sc' in 's' with 'sw'
+   Switch occurence of 'sc' in '*sp' with 'sw'
    
-   At the moment, the function will insist that
-   sw be smaller or equal to sc in length.
+   Function handles reallocation if
+   sw is longer than sc. Just make sure *sp
+   can be reallocated.
    
 */
-char *SUMA_Swap_String(char *s, char *sc, char *sw)
+char *SUMA_Swap_String(char **sp, char *sc, char *sw)
 {
    static char FuncName[]={"SUMA_Swap_String"};
-   char *so, *ss=NULL;
-   int nso=0, ww;
+   char *so, *ss=NULL, *s=NULL;
+   int nso=0, ww, nfound=0, nsc=0;
    
    SUMA_ENTRY;
    
-   if (!s || !sc || !sw || !(ss=strstr(s, sc))) {
-      SUMA_RETURN(s);
+   if (!sp) SUMA_RETURN(NULL);
+   
+   if (!*sp || !sc || !sw || !(ss=strstr(*sp, sc))) {
+      SUMA_RETURN(*sp);
    }
-   if (strlen(sw) > strlen(sc)) {
-      SUMA_S_Err( "Not in the mood for reallocing, fix if you must, "
-                  "or perhaps write other function a la SUMA_Break_String");
-      SUMA_RETURN(s);
+   nsc = strlen(sc);
+   if (strlen(sw) > nsc) {
+      /* Count the number of times sc is found */
+      s = *sp; nfound=0;
+      while (strstr(s, sc)) { ++nfound; s += nsc; }
+      SUMA_S_Note("%d words found", nfound);
+      nso = strlen(*sp)+nfound*(strlen(sw)-nsc+1);
+      SUMA_S_Note("Reallocating from %ld to %d\n",
+                  strlen(*sp), nso);
+      so = (char *)SUMA_realloc(*sp, nso*sizeof(char));
+      
+      if (!so) {
+         SUMA_S_Err("Failed to allocate %d chars", 
+                    (int)(strlen(*sp)+strlen(sw)-nsc+1));
+         SUMA_RETURN(s);
+      }
+      s = so; *sp = so;
+   } else {
+      s = *sp;
    }
    
    so = s;
@@ -1457,7 +1496,7 @@ char *SUMA_Swap_String(char *s, char *sc, char *sw)
          so[nso++]=*(s++);      
       }
       for (ww=0; ww<strlen(sw); ++ww) so[nso++]=sw[ww];
-      s += strlen(sc);
+      s += nsc;
       ss=strstr(s, sc);
    }
    /* copy till end */
@@ -1763,6 +1802,7 @@ char *SUMA_Sphinx_String_Edit(char **suser, TFORM targ, int off)
    s = *suser;
    
    switch (targ) {
+      case WEB:
       case NO_FORMAT:
          SUMA_RETURN(s);
          break;
@@ -1773,7 +1813,7 @@ char *SUMA_Sphinx_String_Edit(char **suser, TFORM targ, int off)
          SUMA_Sphinx_LineSpacer(s, targ);
          sprintf(stmp,"\\|"); /* to avoid compile warning for 
                                  direct use of "\|" in SUMA_Swap_String below */
-         SUMA_Swap_String(s, stmp,"|");
+         s = SUMA_Swap_String(&s, stmp,"|");
          SUMA_Sphinx_DeRef(s,":ref:");
          SUMA_Sphinx_DeRef(s,":term:");
          SUMA_Sphinx_DeRef(s, ":LIT:");
@@ -1784,9 +1824,9 @@ char *SUMA_Sphinx_String_Edit(char **suser, TFORM targ, int off)
       case SPX: /* Sphinx */
          SUMA_Cut_String(
                SUMA_Cut_Between_String(s, ":DEF:", ":SPX:", NULL), ":SPX:");
-         SUMA_Swap_String(s, ":LR:","\n");
+         SUMA_Swap_String(&s, ":LR:","\n");
          SUMA_Sphinx_LineSpacer(s, targ);
-         SUMA_Swap_String(s, ":LIT:","::\n");
+         SUMA_Swap_String(&s, ":LIT:","::\n");
          SUMA_Cut_String(s,"(more with BHelp)");
          if (off) {
             *suser = SUMA_Offset_Lines(s,off);
@@ -1967,10 +2007,10 @@ char *sphinxize_prog_shelp (char *prog, char *oh, int verb)
                         ".. _%s:\n\n%s\n", prog, prog); bb = sins+strlen(sins);
    for (i=0; i<strlen(prog); ++i) {*bb='-'; ++bb;}
    *bb='\0';
-   strncat(sins,"\n\n", 1020);
-   strncat(sins, "`Link to classic view <", 1020);
-   strncat(sins, web_prog_help_link(prog,0), 1020);
-   strncat(sins, ">`_\n\n", 1020);
+   SUMA_strncat(sins,"\n\n", 1020);
+   SUMA_strncat(sins, "`Link to classic view <", 1020);
+   SUMA_strncat(sins, web_prog_help_link(prog,0), 1020);
+   SUMA_strncat(sins, ">`_\n\n", 1020);
    
    sh = insert_in_string(&sh, sh, sins, &nalloc); 
    for (i=0; i<N_ws; ++i) {
@@ -2103,6 +2143,7 @@ char *SUMA_Sphinx_LineSpacer(char *s, TFORM targ)
                   }
                   ns += bln+2;
                   break;
+               case WEB:
                case NO_FORMAT: /* You asked for it! */
                   break;
                default:
@@ -2293,7 +2334,7 @@ int sphinx_offprintf(TFORM targ, int off, FILE *fout, char *str, ... )
       SUMA_LH("nout=%d", nout);
       if (nout < 0) {
          SUMA_SL_Err("Error reported by  vsnprintf");
-         strncat(s,"Error SUMA_StringAppend_va:"
+         SUMA_strncat(s,"Error SUMA_StringAppend_va:"
                    " ***Error reported by  vsnprintf", nalloc-1);
          SUMA_free(s);
          SUMA_RETURN(1);

@@ -973,7 +973,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             { /* sets the transparency value of a surface, 
                expects SO in vp and TransMode in i*/
                SO = (SUMA_SurfaceObject *)EngineData->vp;
-               SUMA_Set_ADO_TransMode((SUMA_ALL_DO *)SO,EngineData->i);
+               SUMA_Set_ADO_TransMode((SUMA_ALL_DO *)SO,EngineData->i, 0, 0);
             }  
             break;
             
@@ -981,7 +981,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             { /* sets the transparency value of a surface, 
                expects SO in vp and TransMode in i*/
                ado = (SUMA_ALL_DO *)EngineData->vp;
-               SUMA_Set_ADO_TransMode(ado,EngineData->i);
+               SUMA_Set_ADO_TransMode(ado,EngineData->i, 0, 0);
             }  
             break;
             
@@ -1328,7 +1328,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               "%s: Message string:\n%s\n", FuncName, s);
                   LogShell =  SUMA_CreateTextShellStruct (
                                   SUMA_Message_open, NULL, NULL, 
-                                  SUMA_Message_destroyed, NULL);
+                                  SUMA_Message_destroyed, NULL, NULL);
                   if (!LogShell) {
                      fprintf (SUMA_STDERR, 
                             "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
@@ -1352,7 +1352,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else {
                   SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
                                     SUMA_Help_open, NULL, NULL,
-                                    SUMA_Help_destroyed, NULL);
+                                    SUMA_Help_destroyed, NULL,
+                        "http://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
+                                    "SUMA/Viewer.html#mouse-keyboard");
                   if (!SUMAg_CF->X->Help_TextShell) {
                      fprintf (SUMA_STDERR, 
                            "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
@@ -1398,7 +1400,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                } else { /* make one */
                   SUMAg_CF->X->Help_TextShell =  SUMA_CreateTextShellStruct (
                                     SUMA_Help_open, NULL, NULL,
-                                    SUMA_Help_destroyed, NULL);
+                                    SUMA_Help_destroyed, NULL, NULL);
                   if (!SUMAg_CF->X->Help_TextShell) {
                      fprintf (SUMA_STDERR, 
                            "Error %s: Failed in SUMA_CreateTextShellStruct.\n", 
@@ -1458,7 +1460,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_CreateTextShellStruct (  SUMA_Help_Cmap_open, 
                                                    NULL, NULL,
                                                    SUMA_Help_Cmap_destroyed,
-                                                   NULL);
+                                                   NULL,
+                              "http://afni.nimh.nih.gov/pub/dist/doc/htmldoc/"
+                              "SUMA/Viewer.html#colormap-keyboard-controls");
                   if (!TextShell) {
                      fprintf (SUMA_STDERR, 
                               "Error %s: "
@@ -1494,7 +1498,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_CreateTextShellStruct (  SUMA_Help_Plot_open, 
                                                    NULL, NULL,
                                                    SUMA_Help_Plot_destroyed,
-                                                   NULL);
+                                                   NULL, NULL);
                   if (!TextShell) {
                      fprintf (SUMA_STDERR, 
                               "Error %s: "
@@ -1535,7 +1539,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMA_CreateTextShellStruct (  SUMA_Whereami_open, 
                                                    NULL, NULL,
                                                    SUMA_Whereami_destroyed,
-                                                   NULL))) {
+                                                   NULL, NULL))) {
                      SUMA_S_Err("Failed to create TextShellStruct.");
                      break;
                   }
@@ -2543,7 +2547,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
          case SE_SetSelectedNode: {
             SUMA_ALL_DO *adodat=NULL;
-            char *idcode=NULL;
+            char *idcode=NULL, *eee=NULL;
             NI_element *nel=NULL;
             /* expects a node (datum) index in i and maybe a ngr in ngr
             ngr is only being used when AFNI is the src of the call*/
@@ -2656,6 +2660,73 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMA_LH("Update node field");
             SUMA_UpdateNodeField(ado);
             SUMA_LH("Done with SE_SetSelectedNode");
+            
+            
+            /* Might need to update nodemask -- experimental, need much love 
+               and cleanup 
+               Limitations: 1- constant cmask operation 
+                            2- reloads all data for mask expression!
+                            3- will not work without controller 
+                            4- Works only with integers */
+            if (SUMAg_CF->Dev && ado->do_type == SO_type &&
+                (eee = SUMA_EnvVal("SUMA_TEMP_NODE_CMASK_EXPR"))){
+               SUMA_SurfaceObject *SO=(SUMA_SurfaceObject *)ado; 
+               SUMA_DRAW_MASKS *DW = SO->DW;
+               char *etmp=NULL, stmp[32];
+               int nxyz;
+               float val;
+               
+               /* 
+                  Toy example for expression:
+  setenv SUMA_TEMP_NODE_CMASK_EXPR '-a labels.niml.dset -expr equals(a,$SEL)' 
+                  Or better yet, for the TT atlas isosurfaces
+  setenv SUMA_TEMP_NODE_CMASK_EXPR '-a labels.niml.dset -expr equals(a,mod($SEL,200))+equals(a,mod($SEL,200)+200)'
+              */
+               TLH(1);
+               DW->user_exp = 
+                  SUMA_copy_string(eee);
+               DW->cmask_exp = SUMA_copy_string(DW->user_exp);
+               if (SUMA_GetValuesAtSelection(ado, 1, &val, NULL, NULL)) {
+                  sprintf(stmp,"%d", (int)val);
+                  SUMA_Swap_String(&(DW->cmask_exp), "$SEL", stmp);
+                  if (!DW->last_cmask_exp || 
+                       strcmp(DW->last_cmask_exp, DW->cmask_exp)) {
+                     /* This is a brute force regen, just for testing */
+                     SUMA_LH("Evaluating %s", DW->cmask_exp);
+                     SUMA_ifree(DW->nodemask);
+                     etmp = SUMA_copy_string(DW->cmask_exp); /* EDT_calcmask
+                                                         modifies the string */
+                     DW->nodemask =  EDT_calcmask(etmp, &nxyz, SO->N_Node );
+                     SUMA_ifree(etmp);
+                     if (!DW->nodemask) {
+                        SUMA_S_Err("Failed to setup mask with %s", 
+                                   DW->cmask_exp);
+                     } else {
+                        if (nxyz != SO->N_Node) {
+                           SUMA_S_Err("Bigus calamitous!\n"
+                                   "length of mask (%d) != SO->N_Node (%d).\n",
+                                      nxyz, SO->N_Node);
+                           SUMA_ifree(DW->nodemask);
+                        } else {
+                           DW->last_cmask_exp = SUMA_copy_string(DW->cmask_exp);
+                           for (i=0, DW->N_nz_nodemask=0; i<SO->N_Node; ++i) 
+                              if (DW->nodemask[i]) ++DW->N_nz_nodemask;
+                           ++DW->PatchRegenID;
+                           SUMA_LH("OK, %d non zeros, regenID %d", 
+                                  DW->N_nz_nodemask, DW->PatchRegenID);
+                        }
+                     }
+
+                  } else {
+                     SUMA_LH("No re-eval last_cmask_exp: %s", 
+                             DW->last_cmask_exp);
+                  }
+               } else {
+                  SUMA_LH("Failed to get selection!");
+               }
+               TLH(0);
+            }
+
             break; }
          case SE_ToggleShowSelectedFaceSet:
             /* expects nothing ! */
@@ -4222,10 +4293,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SO = (SUMA_SurfaceObject *)ado;
                      if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                                 "trans_surf", "Viewer")) {
-                        SUMA_Set_ADO_TransMode(ado,STM_ViewerDefault);
-                        SUMA_S_Warn("Must check on indexing business");
-                        SUMA_Set_Menu_Widget(SurfCont->TransModeMenu,
-                              SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
+                        SUMA_Set_ADO_TransMode(ado,STM_ViewerDefault, 
+                                               0, 1);
                      } else {
                         int N=0;
                         NI_GET_INT(EngineData->ngr, "trans_surf", N);
@@ -4233,9 +4302,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMA_S_Errv("Bad value for trans_surf of %s\n",
                               NI_get_attribute(EngineData->ngr, "trans_surf"));
                         } else {
-                           SUMA_Set_ADO_TransMode(ado,(N+STM_0));
-                           SUMA_Set_Menu_Widget( SurfCont->TransModeMenu,
-                             SUMA_TransMode2TransModeMenuItem(SO->TransMode+1));
+                           SUMA_Set_ADO_TransMode(ado,(N+STM_0), 0, 1);
                         }
                      }
                      /* redisplay */
@@ -4257,10 +4324,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      }
                      if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, 
                                                 "trans_surf", "Viewer")) {
-                        SUMA_Set_ADO_TransMode(ado,SATM_ViewerDefault);
-                        SUMA_S_Warn("Must check on indexing business");
-                        SUMA_Set_Menu_Widget(SurfCont->VTransModeMenu,
-                         SUMA_ATransMode2ATransModeMenuItem(VSaux->TransMode+1));
+                        SUMA_Set_ADO_TransMode(ado,SATM_ViewerDefault, 
+                                               0, 1);
                      } else {
                         int N=0;
                         NI_GET_INT(EngineData->ngr, "trans_surf", N);
@@ -4268,10 +4333,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMA_S_Errv("Bad value for trans_surf of %s\n",
                               NI_get_attribute(EngineData->ngr, "trans_surf"));
                         } else {
-                           SUMA_Set_ADO_TransMode(ado,(N+SATM_0));
-                           SUMA_Set_Menu_Widget( SurfCont->VTransModeMenu,
-                                          SUMA_ATransMode2ATransModeMenuItem(
-                                                            VSaux->TransMode+1));
+                           SUMA_Set_ADO_TransMode(ado,(N+SATM_0), 0, 1);
                         }
                      }
                      /* redisplay */
@@ -5415,6 +5477,9 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    \param SO_IDs (int *) pre-allocated integer vector that will contain the 
          IDs of the SO shown in sv
          send NULL if you do not care for it and all you'll get is ans
+   \param forpicking (int) 1 --> surface rendered as points will be 
+                                 considered invisible 
+                                 
    \ret ans (int) the number of SOs shown in SV
    Still confused ? read the code for the function, it is shorter 
    than the documentation.
@@ -5422,7 +5487,8 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    \sa SUMA_isVisibleSO, SUMA_Selectable_ADOs
 */
 
-int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
+int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs, 
+                     int forpicking)
 {
    static char FuncName[]={"SUMA_VisibleSOs"};
    SUMA_SurfaceObject *SO=NULL;
@@ -5434,7 +5500,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    for (i=0; i< sv->N_DO; ++i) {
       if (SUMA_isSO_G(dov[sv->RegistDO[i].dov_ind], sv->CurGroupName)) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegistDO[i].dov_ind].OP;
-         if (SO_SHOWING(SO, sv)) {
+         if (SO_SHOWING(SO, sv) && (!forpicking || SO->PolyMode != SRM_Points)) {
             if (  SO->Side == SUMA_NO_SIDE || 
                   SO->Side == SUMA_SIDE_ERROR  || 
                   SO->Side == SUMA_LR) {

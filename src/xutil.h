@@ -156,6 +156,7 @@ typedef struct {
 } MCW_action_item ;
 
 extern char * MCW_hotcolor(Widget w) ; /* 01 Nov 1999 */
+extern char * MCW_buthighlight(Widget w) ; /* 04 March 2015 */
 
 extern Widget MCW_action_area( Widget , MCW_action_item * , int ) ;
 
