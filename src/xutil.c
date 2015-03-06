@@ -398,6 +398,21 @@ char * MCW_hotcolor(Widget w)
    return redcolor ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+char * MCW_buthighlight(Widget w)
+{
+   static char *buthighlight = NULL ;
+
+   if( buthighlight == NULL ){
+     char *xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, 
+                                                "buthighlight" ) ;
+
+     buthighlight = (xdef != NULL) ? (xdef) : ("blue2") ;
+   }
+   return buthighlight ;
+}
+
 /*--------------------------------------------------------------------------
    24 Apr 2001: manage array of widgets, some of which may be NULL
 ----------------------------------------------------------------------------*/

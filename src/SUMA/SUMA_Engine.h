@@ -6,7 +6,8 @@ SUMA_Boolean SUMA_Engine (DList **listp);
 char *SUMA_AfniOverlayLabel(SUMA_ALL_DO *ado, int num);
 SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv );
 int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs);
-int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs);
+int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs, 
+                     int forpicking);
 int SUMA_VisibleMDOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *MDO_IDs);
 int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs);
 int SUMA_is_iDO_Selectable(int dov_id);

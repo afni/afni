@@ -10,8 +10,10 @@
             if_name2: (char *) name of triangulation file
             vp_name: (char *) name of volume parent file, just for SureFit surfaces.
 */
-SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_name2, char *vp_name, 
-                                                   SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *sv_name, int debug)
+SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( 
+                     char *if_name, char *if_name2, char *vp_name, 
+                     SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, 
+                     char *sv_name, int debug)
 {
    static char FuncName[]={"SUMA_Load_Surface_Object_Wrapper"};
    SUMA_SurfaceObject *SO=NULL;
@@ -136,7 +138,7 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
 }
 
 /*!
-   \brief Removes the standard extension from a dataset filename
+   \brief Removes the standard extension from a surface filename
    \param Name (char *) name 
    \param form SUMA_DSET_FORMAT
    \return (char *) no_extension (you have to free that one with SUMA_free)
@@ -150,7 +152,9 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
    SUMA_ENTRY;
    
    if (!Name) { SUMA_SL_Err("NULL Name"); SUMA_RETURN(NULL); }
-  
+   if (oType == SUMA_FT_NOT_SPECIFIED) {
+      oType = SUMA_GuessSurfFormatFromExtension(Name, NULL);
+   }
    switch (oType) {
       case SUMA_SUREFIT:
          tmp  =  SUMA_Extension(Name, ".coord", YUP);

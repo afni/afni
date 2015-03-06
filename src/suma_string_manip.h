@@ -7,6 +7,7 @@ char *SUMA_EscapeChars(char *s1, char *ca, char *es);
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
 char *insert_in_string(char **s, char *pos, char *ins, int *nalloc);
 char *summarize_string(char *us, int lmax);
+char *SUMA_strncat(char *s1, char *s2, int nmax);
 char *line_begins_with(char *cur, char *opt, int *nb, 
                        char *term, char *bracketers, int mintoend);
 void write_string(char *s, char *prelude, char *postscript,
@@ -39,7 +40,7 @@ char *SUMA_Offset_Lines(char *si, int off);
 char *SUMA_Offset_SLines(char *si, int off);
 char *SUMA_Cut_String(char *s, char *sc);
 char *SUMA_Sphinx_DeRef(char *s, char *r);
-char *SUMA_Swap_String(char *s, char *sc, char *sw);
+char *SUMA_Swap_String(char **s, char *sc, char *sw);
 NI_str_array *SUMA_Split_String(char *s, char *sc);
 char *SUMA_Cut_Between_String(char *s, char *sc0, char *sc1, char *save);
 char *SUMA_Sphinx_String_Edit(char **s, TFORM targ, int off);

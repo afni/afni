@@ -105,6 +105,7 @@ typedef struct {
                       will be a pointer copy so don't free it.*/
    int type; /* 0 -- A container widget, not one to be pressed 
                 1 -- A regular widget */
+   void *w; /* A copy of the widget pointer... Is this wise?*/
 }GUI_WIDGET_HELP;
 
 

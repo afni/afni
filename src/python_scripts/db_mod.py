@@ -1043,6 +1043,8 @@ def db_mod_volreg(block, proc, user_opts):
             else:              reps = proc.reps
             bopt.parlist[0] = proc.runs - 1     # index of last dset
             bopt.parlist[1] = reps - 1          # index of last rep
+        elif aopt.parlist[0] == 'MIN_OUTLIER':   
+           if vr_do_min_outlier(block, proc, user_opts): return 1
         else:   
             print "** unknown '%s' param with -volreg_base_ind option" \
                   % aopt.parlist[0]
@@ -2539,6 +2541,7 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
+    apply_uopt_to_block('-regress_WMeL_corr', user_opts, block)
 
     # check for user updates
     uopt = user_opts.find_opt('-regress_basis')
@@ -3152,6 +3155,10 @@ def db_cmd_regress(proc, block):
     #    init c3d, add O3dd elements, finalize c3d
     #    (O3dd = list of 3dd option lines, which may need an extra indent)
 
+    # note first input, to have a known afni_name
+    proc.regress_inset = BASE.afni_name(proc.prev_prefix_form(1, block, view=1),
+                                        do_sel=0)
+
     O3dd = ['%s3dDeconvolve -input %s'%(istr, proc.prev_dset_form_wild(block)),
             mask, censor_str]
     O3dd.extend(reg_orts)
@@ -3366,10 +3373,12 @@ def db_cmd_regress(proc, block):
         else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
         if errts: epre = proc.errts_pre
         else:     epre = 'errts.$subj'
-        tprefix = '%s%s.tproject' % (tmp_prefix, epre)
+        # getting ugly: alter prefix but save any extension (niml.dset?)
+        aset = proc.regress_inset.new('%s%s.tproject'%(tmp_prefix, epre))
 
         tpcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
-                maskstr=mask, censtr=censor_str, xmat=xmat, prefix=tprefix)
+                maskstr=mask, censtr=censor_str, xmat=xmat,
+                prefix=aset.out_prefix())
         if not tpcmd: return
         tpcmd = '\n' + tpcmd
     else: tpcmd = ''
@@ -3468,12 +3477,10 @@ def db_cmd_regress(proc, block):
        else:                xmat = '%s%s' % (tmp_prefix, proc.xmat)
 
        # result and local datasets
-       tprefix = '%serrts.$subj.fanaticor' % tmp_prefix
-       rset = BASE.afni_name(tprefix)
-       rset.view = proc.view
+       epre = '%serrts.$subj.fanaticor' % tmp_prefix
+       rset = proc.regress_inset.new(epre)
 
-       lset = BASE.afni_name('WMeLocal_rall')
-       lset.view = proc.view
+       lset = rset.new('WMeLocal_rall')
 
        # first set of commands: generate WMeLocal
        rv, tcmd = db_cmd_regress_anaticor_fast(proc, block, rset, lset)
@@ -3482,7 +3489,7 @@ def db_cmd_regress(proc, block):
 
        tcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
                maskstr=mask, censtr=censor_str, xmat=xmat, 
-               dsort=lset, prefix=tprefix)
+               dsort=lset, prefix=rset.out_prefix())
        if not tpcmd: return
        cmd += tcmd
 
@@ -3772,7 +3779,7 @@ def db_cmd_anaticor_fast(proc, block, rset, fwhm=30):
            '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'               \
            % (fwhm, rset.out_prefix(), vmask, proc.view)
 
-    if block.opts.have_yes_opt('-regress_run_clustsim', default=1):
+    if block.opts.have_yes_opt('-regress_WMeL_corr', default=1):
       cmd +='# diagnostic volume: voxel correlation with local white matter\n'\
             '3dTcorrelate -prefix %s %s%s %s\n\n'                             \
             % ('WMeL_corr', vall, proc.view, rset.pv())
@@ -4756,7 +4763,8 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     pstr = '# move results up out of the awpy directory\n'  \
            '# (NL-warped anat, affine warp, NL warp)\n'     \
            '# (use typical standard space name for anat)\n' \
-           '3dbucket -prefix %s awpy/%s.aw.nii\n'           \
+           '# (wildcard is a cheap way to go after any .gz)\n' \
+           '3dbucket -prefix %s awpy/%s.aw.nii*\n'          \
            % (proc.tlrcanat.prefix, apre+suf)
 
     pstr += 'mv awpy/%s .\n'   % proc.nlw_aff_mat
@@ -5430,7 +5438,7 @@ g_help_string = """
            To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
            To process as anat aligned to EPI, remove -volreg_align_e2a.
 
-         * Also, consider '-volreg_base_dset MIN_OUTLIER', to use the volume
+         * Also, consider '-volreg_align_to MIN_OUTLIER', to use the volume
            with the minimum outlier fraction as the registration base.
 
         Example 7. Similar to 6, but get a little more esoteric.
@@ -5483,7 +5491,7 @@ g_help_string = """
                         -do_block align tlrc                               \\
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
-                        -volreg_base_dset MIN_OUTLIER                      \\
+                        -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
                         -blur_in_automask                                  \\
@@ -6088,7 +6096,7 @@ g_help_string = """
         -volreg_align_to, -volreg_base_dset and -volreg_base_ind, where the
         first option is by far the most commonly used.
 
-        Note that a good alternative is: '-volreg_base_dset MIN_OUTLIER'.
+        Note that a good alternative is: '-volreg_align_to MIN_OUTLIER'.
 
         The logic of EPI alignment in afni_proc.py is:
 
@@ -7349,14 +7357,16 @@ g_help_string = """
         -volreg_align_to POSN   : specify the base position for volume reg
 
                 e.g. -volreg_align_to last
+                e.g. -volreg_align_to MIN_OUTLIER
                 default: third
 
-            This option takes 'first', 'third' or 'last' as a parameter.
-            It specifies whether the EPI volumes are registered to the first
-            or third volume (of the first run) or the last volume (of the last
-            run).  The choice of 'first' or 'third' should correspond to when
-            the anatomy was acquired before the EPI data.  The choice of 'last'
-            should correspond to when the anatomy was acquired after the EPI
+            This option takes 'first', 'third', 'last' or 'MIN_OUTLIER' as a
+            parameter.  It specifies whether the EPI volumes are registered to
+            the first or third volume (of the first run), the last volume (of
+            the last run), or the volume that is consider a minimum outlier.
+            The choice of 'first' or 'third' might correspond with when the
+            anatomy was acquired before the EPI data.  The choice of 'last'
+            might correspond to when the anatomy was acquired after the EPI
             data.
 
             The default of 'third' was chosen to go a little farther into the
@@ -7365,18 +7375,27 @@ g_help_string = """
             Note that this is done after removing any volumes in the initial
             tcat operation.
 
+          * A special case is if POSN is the string MIN_OUTLIER, in which
+            case the volume with the minimum outlier fraction would be used.
+
+            Since anat and EPI alignment tends to work very well, the choice
+            of alignment base could even be independent of when the anatomy
+            was acquired, making MIN_OUTLIER a good choice.
+
             Please see '3dvolreg -help' for more information.
             See also -tcat_remove_first_trs, -volreg_base_ind and
             -volreg_base_dset.
 
         -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
 
-                e.g. -volreg_base_dset subj10/vreg_base+orig'[4]'
+                e.g. -volreg_base_dset subj10/vreg_base+orig'[0]'
                 e.g. -volreg_base_dset MIN_OUTLIER
 
             This option allows the user to specify an external dataset for the
             volreg base.  The user should apply sub-brick selection if the
             dataset has more than one volume.
+
+            For example, one might align to a pre-magnetic steady state volume.
 
             Note that unless -align_epi_ext_dset is also applied, this volume
             will be used for anatomical to EPI alignment (assuming that is

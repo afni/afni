@@ -464,7 +464,7 @@ THD_string_array * THD_get_all_afni_executables(void )
    }
    
    N_af = strlen(af);
-   
+
    /* Now get all executables under af */
    INIT_SARR( outar );
    for (ii=0, iaf=0; ii<elist->num ; ii++ ){
@@ -711,13 +711,13 @@ char *form_C_progopt_string_from_struct(PROG_OPTS po)
 
    sout[0]='\0';
    strncat(sout,"{ \"", maxch-1);
-   strncat(sout,po.program, maxch-1);
-   strncat(sout,"\", \"", maxch-1);
-   strncat(sout,po.options, maxch-1);
-   sprintf(sbuf,"\", %d", N_opts); strncat(sout,sbuf, maxch-1);
+   strncat(sout,po.program, maxch-strlen(sout)-1);
+   strncat(sout,"\", \"", maxch-strlen(sout)-1);
+   strncat(sout,po.options, maxch-strlen(sout)-1);
+   sprintf(sbuf,"\", %d", N_opts); strncat(sout,sbuf, maxch-strlen(sout)-1);
 
-   strncat(sout,"}", maxch-1);
-   if (strlen(sout)>=maxch) {
+   strncat(sout,"}", maxch-strlen(sout)-1);
+   if (strlen(sout)>=maxch-1) {
       ERROR_message("Truncated complete string possible");
       free(sout); sout=NULL;
       return(sout);
@@ -753,8 +753,8 @@ char *form_C_progopt_string(char *prog, char **ws, int N_ws)
    }
    sout[0]='\0';
    strncat(sout,"{ \"", maxch-1);
-   strncat(sout,prog, maxch-1);
-   strncat(sout,"\", \"", maxch-1);
+   strncat(sout,prog, maxch-strlen(sout)-1);
+   strncat(sout,"\", \"", maxch-strlen(sout)-1);
    
    N_opts = 0;
    for (i=0; i<N_ws; ++i) {
@@ -766,18 +766,18 @@ char *form_C_progopt_string(char *prog, char **ws, int N_ws)
                snprintf(sbuf,127,"%s; ", nisa->str[jj]);
             }
             ++N_opts;
-            strncat(sout,sbuf, maxch-1);
+            strncat(sout,sbuf, maxch-strlen(sout)-1);
             NI_free(nisa->str[jj]);
          }
          if (nisa->str) NI_free(nisa->str); 
          NI_free(nisa); nisa=NULL;
       }
    }
-   sprintf(sbuf,"\", %d", N_opts); strncat(sout,sbuf, maxch-1);
+   sprintf(sbuf,"\", %d", N_opts); strncat(sout,sbuf, maxch-strlen(sout)-1);
    
    
-   strncat(sout,"}", maxch-1);
-   if (strlen(sout)>=maxch) {
+   strncat(sout,"}", maxch-strlen(sout)-1);
+   if (strlen(sout)>=maxch-1) {
       ERROR_message("Truncated complete string possible");
       free(sout); sout=NULL;
       return(sout);
@@ -915,6 +915,7 @@ int phelp_cmd(char *prog, TFORM targ, char cmd[512], char fout[128], int verb )
    cmd[0] = '\0';
    
    switch(targ){
+      case WEB:
       case NO_FORMAT:
          hopt = "-h_raw";
          if (!program_supports(prog, hopt, NULL, verb)) hopt = "-HELP";
@@ -986,6 +987,7 @@ char *sphelp(char *prog, char **str, TFORM targ, int verb)
    if (!prog || !str || !*str) RETURN(help);
    
    switch(targ){
+      case WEB:
       case NO_FORMAT:
       case SPX:
       case TXT:
@@ -1204,10 +1206,10 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
    switch (shtp) {
       default:
       case 0: /* csh/tcsh */
-         strncat(sout,"set ARGS=(",maxch-1);
+         strncat(sout,"set ARGS=(",maxch-strlen(sout)-1);
          break;
       case 1: /* bash */
-         strncat(sout,"ARGS=(",maxch-1);
+         strncat(sout,"ARGS=(",maxch-strlen(sout)-1);
          break;
    }
    
@@ -1219,7 +1221,7 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
             } else { 
                snprintf(sbuf,127,"'%s' ", nisa->str[jj]);
             }
-            strncat(sout,sbuf, maxch-1);
+            strncat(sout,sbuf, maxch-strlen(sout)-1);
             NI_free(nisa->str[jj]);
          }
          if (nisa->str) NI_free(nisa->str); 
@@ -1244,8 +1246,8 @@ char *form_complete_command_string(char *prog, char **ws, int N_ws, int shtp) {
       free(sout); sout=NULL;
       return(sout);
    }
-   strncat(sout,sbuf, maxch-1);
-   if (strlen(sout)>=maxch) {
+   strncat(sout,sbuf, maxch-strlen(sout)-1);
+   if (strlen(sout)>=maxch-1) {
       ERROR_message("Truncated complete string possible");
       free(sout); sout=NULL;
       return(sout);

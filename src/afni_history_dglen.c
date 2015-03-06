@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 3, MAR, 2015 , DRG , "align_epi_anat.py align_centers on/off/yes/no" , 
+    MICRO , TYPE_MODIFY, 
+    "align_centers can be on or yes, off or no"
+} ,
+{ 26, FEB, 2015 , DRG , "align_epi_anat.py align_centers bug" , 
+    MINOR , TYPE_BUG_FIX, 
+    "align_centers always called by mistake"
+} ,
 { 19 , FEB, 2015 , DRG , "@Align_Centers child bug" , 
     MINOR , TYPE_BUG_FIX, 
     "child datasets not created properly",

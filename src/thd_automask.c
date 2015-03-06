@@ -1218,21 +1218,27 @@ int THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
 /* thanks Judd */
 static int bbox_clip=1 ;
 void THD_autobbox_clip( int c ){ bbox_clip = c; }
+static int bbox_npad=0 ;
+void THD_autobbox_npad( int c ){ bbox_npad = c; }
 
 /*---------------------------------------------------------------------*/
 /*! Find a bounding box for the main cluster of large-ish voxels.
     [xm..xp] will be box for x index, etc.
+    Send in a prefix and you shall get a cropped volume back. Else
+    you get NULL and you like it!
 -----------------------------------------------------------------------*/
 
-void THD_autobbox( THD_3dim_dataset *dset ,
-                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp )
+THD_3dim_dataset * THD_autobbox( THD_3dim_dataset *dset ,
+                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp, 
+                   char *prefix)
 {
    MRI_IMAGE *medim ;
+   THD_3dim_dataset *cropped = NULL;
    float clip_val , *mar ;
    int nvox , ii ;
 
 ENTRY("THD_autobbox") ;
-
+   
    medim = THD_median_brick(dset) ; if( medim == NULL ) EXRETURN ;
 
    mar  = MRI_FLOAT_PTR(medim) ;
@@ -1246,7 +1252,22 @@ ENTRY("THD_autobbox") ;
 
    MRI_autobbox( medim , xm,xp , ym,yp , zm,zp ) ;
 
-   mri_free(medim) ; EXRETURN ;
+   if (prefix) {
+      int nx=DSET_NX(dset), ny=DSET_NY(dset), nz=DSET_NZ(dset) ;
+      /* INFO_message("Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
+                   *xm, *xp, *ym, *yp, *zm, *zp ) ; */
+
+      cropped = THD_zeropad( dset ,
+                         -*xm+bbox_npad, *xp-nx+1+bbox_npad,
+                         -*ym+bbox_npad, *yp-ny+1+bbox_npad,
+                         -*zm+bbox_npad, *zp-nz+1+bbox_npad,
+                         prefix , ZPAD_IJK ) ;
+      if( cropped == NULL ) {
+         ERROR_message("Could not create cropped volume!") ;
+      }
+   }
+   mri_free(medim) ; 
+   RETURN(cropped) ;
 }
 
 /*------------------------------------------------------------------------*/

@@ -328,7 +328,7 @@ typedef struct {
 /*************************  help utilities    *************************/
 
 /* Flags & macros for shpinx string formatting */
-typedef enum { TFORM_NOT_SET, NO_FORMAT, TXT, SPX , ASPX } TFORM;
+typedef enum { TFORM_NOT_SET, NO_FORMAT, TXT, SPX , ASPX, WEB } TFORM;
 
 #define CHECK_HELP(opt,fun) {\
    if( strcmp(argv[iarg],"-h_spx") == 0 ){   \
@@ -5153,8 +5153,8 @@ extern int    thd_mask_from_brick(THD_3dim_dataset *, int, float, byte **, int);
 extern int    thd_multi_mask_from_brick(THD_3dim_dataset *, int, byte **);
 
 
-extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
-                          int *, int * , int *, int * , int *, int * ) ;
+extern THD_3dim_dataset * THD_autobbox( THD_3dim_dataset * ,  /* 06 Jun 2002 */
+                          int *, int * , int *, int * , int *, int *, char *) ;
 extern void MRI_autobbox( MRI_IMAGE * ,
                           int *, int * , int *, int * , int *, int * ) ;
 extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */
